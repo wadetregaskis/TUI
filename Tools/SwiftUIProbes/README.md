@@ -444,7 +444,7 @@ messages cite that path), and what cites it.
   `Tests/TUIGridTests/ViewSpacingTests.swift`, `Tests/TUIGridTests/StackSpacingPerPairTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the Layout row); B20 in
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`;
-  `Documentation/SwiftUI parity/Decisions/Default focus, drop badges and stack spacing (BITEMS1).md`.
+  `Documentation/Historical/Layout and geometry/Stack spacing, and what a container counts as its children.md`.
 
 ### Flexible frames
 
@@ -955,7 +955,7 @@ messages cite that path), and what cites it.
   leaving a help view, written for BUGS13-POINTER-LEAVE.
 - **Ran:** macOS 15.8, 2026-10-18.
 - **Was:** `INPUT/probes/` (the three programs were `undo/main.swift`, `undo2/main.swift` and `undo3/main.swift`).
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/Input, clipboard and text editing/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md`;
+- **Cited by:** `Documentation/Historical/Input, keys and gestures/The kitty keyboard protocol and modified keys.md`;
   `Sources/TUIFoundation/Focus/TextUndoBridge.swift`, `Sources/TUITextInput/Focus/TextUndoHistory.swift`;
   `Tests/TUITextInputTests/TextUndoCoalescingTests.swift`.
 
@@ -1020,7 +1020,7 @@ messages cite that path), and what cites it.
   year even 400 days apart, which is none of Foundation's interval formats.
 - **Ran:** macOS 15.8.1, Xcode's `swiftc`, the macOS 26.2 SDK, 2026-10-24, in the `America/Los_Angeles` zone.
 - **Cited by:** `Sources/TUIFoundation/Localization/LocalizedStringKey+Interpolation.swift`;
-  `Documentation/SwiftUI parity/Decisions/Input, clipboard and text editing/Typed interpolations, live titles and keeper passthroughs (TEXTFMT).md`
+  `Documentation/Historical/Text, editing and the clipboard/Formatting and live text.md`
   (B-TEXTFMT-1, C-TEXTFMT-1).
 
 ### Live titles (TEXTFMT)
@@ -1033,7 +1033,7 @@ messages cite that path), and what cites it.
 - **Answers:** live in the button, both placeholders and the header; read once (`0:00` throughout) in the window's
   title and the alert's title and message.
 - **Ran:** macOS 15.8.1, Xcode's `swiftc`, the macOS 26.2 SDK, 2026-10-24.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/Input, clipboard and text editing/Typed interpolations, live titles and keeper passthroughs (TEXTFMT).md`
+- **Cited by:** `Documentation/Historical/Text, editing and the clipboard/Formatting and live text.md`
   (B51-LIVE), `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (T5),
   `Sources/TUIFoundation/Views/Text+Markdown.swift`, `Sources/TUITextInput/Views/TextField.swift`,
   `Sources/TUITables/Views/TableColumn.swift`; `Tests/TUIIntegrationTests/LiveTitleTests.swift`.

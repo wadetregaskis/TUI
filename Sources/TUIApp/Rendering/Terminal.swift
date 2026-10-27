@@ -191,7 +191,7 @@ final class Terminal: HostStateKeeping {
     /// 2026-10-11, past which a paste arrived as its start. The stall timeout
     /// has been that way out since 2026-08-01, and all the limit still did was
     /// cap the memory a paste takes, which is what delivering it takes
-    /// (`Documentation/SwiftUI parity/Decisions/Input, clipboard and text editing/Large pastes and over-long input sequences (PASTE).md`, B-PASTE-1).
+    /// (`Documentation/Historical/Input, keys and gestures/Large pastes and over-long input sequences.md`, B-PASTE-1).
     var inPasteMode: Bool = false {
         didSet { pasteScanCursor = 0 }
     }

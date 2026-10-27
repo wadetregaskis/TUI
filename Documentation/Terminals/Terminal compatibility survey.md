@@ -7241,7 +7241,7 @@ K3).
   a parser gap"). An OSC 52 clipboard answer is unbounded by nature; TUI
   sends no OSC 52 query, so one arriving answers another program and is
   skipped. Every reply TUI asks for, with its longest:
-  `Documentation/SwiftUI parity/Decisions/Input, clipboard and text editing/Large pastes and over-long input sequences (PASTE).md`, B-PASTE-2.
+  `Documentation/Historical/Input, keys and gestures/Large pastes and over-long input sequences.md`, B-PASTE-2.
 - `KeyEvent.normalizingLegacyShiftedFunctionKeys()` +
   `Terminal.finalize` — Apple Terminal's shifted-function-key re-coding
   (F13…F20 read back as Shift+F5…F12), gated on `TerminalHost.isAppleTerminal`.

@@ -56,7 +56,7 @@ import TUICore
 /// macOS. A gesture around the view is released when they are given up: at
 /// the next press for a removed view, as on macOS; for a disabled one macOS
 /// gives them up at once, and TUI at the next press, as for a removed one
-/// (`Documentation/SwiftUI parity/Decisions/Input, clipboard and text editing/Stdin test flake, lost taps and the quit chord (F2).md`, B-F2-2).
+/// (`Documentation/Historical/Input, keys and gestures/Gestures, taps and the press a control takes.md`, B-F2-2).
 public struct TapGesture: Gesture {
     /// The required number of tap events.
     public var count: Int

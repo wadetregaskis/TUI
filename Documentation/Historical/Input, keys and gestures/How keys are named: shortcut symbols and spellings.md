@@ -1,27 +1,92 @@
-# Completing the SwiftUI API: decisions from lane KS
+# How keys are named: shortcut symbols and spellings
 
-*Lane KS carried out the owner's request of 2026-10-05: "Keyboard shortcuts
-should use the appropriate Unicode characters wherever possible, e.g. "⌘",
-"⎋", "⇧", "⌥", "⌃" (control), etc. And in the correct (macOS) order." It is an
-owner request, not a decisions-document item. This file holds the judgement
-calls the work reached that the request did not already settle, in the format
-of [`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.md>):*
+*How a shortcut is drawn — the macOS symbols in macOS's order — how a key is
+spelled out, how a status-bar item's own key is drawn, and the localization
+strategies. Ids: B8, B-KS-1 to 5, B-KS-1's ruling of 2026-10-23, C4.*
 
-- **A-KS-n — needs your decision.** Nothing has shipped for these.
-- **B-KS-n — shipped the safe option.** Says what the fuller version would be,
-  and its price.
-- **C-KS-n — declined.** With the reason.
+## In short
 
-What shipped, in one paragraph: one formatter (`KeySymbols`) names every key
-TUI shows, as a macOS menu names a key equivalent — the modifiers in the
-order ⌃ ⌥ ⇧ ⌘, then the key, a letter in upper case, the non-printing keys as
-⎋ ↩ ⇥ ⌫ ⌦ ↖ ↘ ⇞ ⇟ and the arrows, the function keys and the space bar as
-words. The spelling was read from AppKit's `NSKeyboardShortcut` on macOS 15
-for every key and modifier set, in all seven of TUI's languages. See
-`Documentation/Terminals/Terminal compatibility survey.md`, "Key symbols", for the glyphs'
-widths and what is still to measure.
+Shortcuts are drawn with the Unicode symbols (⌃ ⌥ ⇧ ⌘ ⎋ …) in macOS's order,
+the owner's request of 2026-10-05. Spelled out, keys take their English
+terminal names. A status-bar item's key is drawn in a menu's spelling (`Q
+quit`, `⇧N`) unless the app asks `.statusBarKeySpelling(.asTyped)`.
+`KeyboardShortcut.Localization` is recorded and every strategy behaves as
+`.custom` until right-to-left lands.
 
-## B. Shipped the safe option
+## How it unfolded
+
+1. **2026-10-05, the owner:** "Keyboard shortcuts should use the appropriate
+   Unicode characters wherever possible … And in the correct (macOS) order."
+   Lane KS built it, with the calls below.
+2. **2026-10-12, B8:** mirror the localization strategies once right-to-left
+   lands.
+3. **2026-10-23, B-KS-1:** menu spelling by default, with an option for the
+   case-sensitive one; built by lane KEYS, 2026-10-24.
+
+## The record
+
+### B8. `KeyboardShortcut.Localization` is recorded, and every strategy behaves as `.custom`
+
+*`KeyboardShortcut.Localization` (`.automatic`, `.withoutMirroring`,
+`.custom`), `KeyboardShortcut.localization`,
+`KeyboardShortcut.init(_:modifiers:localization:)`,
+`View.keyboardShortcut(_:modifiers:localization:)`*
+
+On macOS, `.automatic` (the default) does two things.
+
+- It remaps a shortcut whose character is awkward on the user's layout. `⌘[`
+  needs ⌥5 on a German keyboard, so it becomes `⌘Ö`.
+- It mirrors a directional shortcut under a right-to-left layout.
+
+`.withoutMirroring` remaps but does not mirror, and `.custom` does neither.
+
+**Shipped:** the type, the three values, the stored property (compared, so
+`KeyboardShortcut("a", localization: .custom) != KeyboardShortcut("a")` as on
+macOS), the initializer and the modifier. All three behave as `.custom`.
+
+That is honest on its own, because neither half has anything to act on:
+
+- A terminal reports the character a key typed, never the key's place on
+  the keyboard. A shortcut already matches its character however the
+  layout types it, and there is no US-layout position to remap from.
+- TUI lays out left to right only (B1 in the main decisions doc), so
+  there is nothing to mirror.
+
+**The fuller version:**
+
+- *Mirroring* comes free with right-to-left layout, if B1 is ever taken up.
+  Mirror the directional pairs under `.automatic` and leave them under the
+  other two.
+- *Remapping* would need the key's position. The kitty keyboard protocol's
+  "report alternate keys" enhancement sends the base-layout key alongside
+  the character, so it is the same negotiation as the kitty protocol's
+  (A4, shipped 2026-10-05), plus a
+  remapping table. That table is AppKit's, and it is not public, so it would
+  have to be inferred per layout. I would not do it: an app that wants
+  layout-aware shortcuts in a terminal is better served by bare keys.
+
+**Decided 2026-10-12: mirror once right-to-left lands** (B1); one commit then,
+the pairs under `.automatic` in a right-to-left environment. You asked how big
+AppKit's tables are, and whether TUI could copy them:
+
+- **The mirroring table is 10 characters, 5 pairs** (measured on macOS 15.8
+  through AppKit's own mirroring call over U+0020–U+2FFF): `(`↔`)`, `<`↔`>`,
+  `[`↔`]`, `{`↔`}`, `←`↔`→`. `NSMenuItem.h` in the macOS SDK documents the
+  same list, so TUI can write it from the documentation and copy nothing.
+- **The remapping is not a data file.** It is compiled AppKit code
+  (`NSKeyboardShortcut`'s localization methods, found through the Objective-C
+  runtime), possibly an algorithm over the layout's key map plus a cache of
+  well-known shortcuts; its size is unknown, since sizing it would mean
+  switching the system's input source through many layouts. It is Apple's
+  proprietary code, so it cannot be copied.
+- **Matching AppKit is not table-free either.** AppKit remaps only a shortcut
+  the current layout cannot type (`NSMenuItem.h`). The kitty protocol's
+  base-layout key gives a positional fallback, which TUI already uses for a
+  Ctrl or Alt chord on a non-Latin key, but matching every shortcut by
+  position would also move the reachable ones (⌘Z on the key labelled W on
+  AZERTY), and a terminal does not say which characters the user's layout can
+  type. Over ssh the local machine's layout is not the user's either. So the
+  remap stays out until there is a source for that.
 
 ### B-KS-1. A status bar item's own string is drawn as the app wrote it
 
@@ -139,3 +204,19 @@ the symbols in menus; the owner's "wherever possible" is read as the symbols
 throughout, the verb aside. **The fuller version** is the other reading: words
 in running prose, symbols only in the key legends: a scripted change of the
 prose strings, about an hour.
+
+### C4. `KeyEquivalent.clear`
+
+*`KeyEquivalent.clear`*
+
+SwiftUI's `.clear` is AppKit's Clear key, U+F739: the keypad key in Num
+Lock's position on a full-size Mac keyboard. A shortcut or `onKeyPress` on it
+fires only if a terminal sends that key as a key of its own. The legacy
+encodings TUI parses have no sequence for it, and the parser has nothing
+to map to it. So `.clear` would name a key no event can carry, and a
+shortcut on it would compile and never fire. Rule 2 says leave it out.
+
+Not byte-captured: this machine has no extended keyboard. If a terminal turns
+out to send the key, distinctly from Num Lock, the parser gains a case and
+this entry goes. The kitty keyboard protocol (A4, shipped 2026-10-05) is the likeliest
+route: it reports keypad keys by their own codes.

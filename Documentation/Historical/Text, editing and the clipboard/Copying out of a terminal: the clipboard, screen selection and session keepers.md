@@ -1,25 +1,39 @@
-# Clipboard, screen selection and the wrapping editor: decisions for review
+# Copying out of a terminal: the clipboard, screen selection and session keepers
 
-*The D4X lane's companion to
-[`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.md>),
-in its format, for the owner-decided clipboard rule, A13 (D1) and A43, built
-from [`Text selection and editing design study, A13, A42 and A43 (2026-10-04).md`](<../../Design studies/Text selection and editing design study, A13, A42 and A43 (2026-10-04).md>)
-and `Ghostty VT reference adoption study.md` C1. 2026-10-05.*
+*How a copy reaches the user's clipboard from a terminal app — OSC 52 where a
+terminal TUI can name takes it, through tmux and GNU screen, and the app's own
+copy where nothing does — and how the screen selection works: what a drag
+selects, where it stops, and when it goes. Ids: B-D4X-1 to 9, B-D4X-13 to 15,
+B-D4X-17, B-D4X-7-17, D4X-LOCALITY, C-TEXTFMT-2, C-TEXTFMT-3.*
 
-- **A. Needs your decision.** None.
-- **B. Shipped the safe option.** Seventeen, each with its fuller version and
-  price. B-D4X-13 to 17 came out of the lane's review (round 1), which also
-  found defects that are fixed rather than recorded here. Review 2's
-  follow-ups (2026-10-06) changed B-D4X-7, 13, 14, 15, 16 and 17; what it
-  asked that needed an answer rather than a change, and what is still open,
-  is at the end.
-- **C. Declined without asking.** None.
+## In short
 
-Not built, as instructed: the mouse hand-off key (D0, you are choosing the
-key), exact per-`Text` selection (D2, held), A42 rich text (after A43), and
-copy mode (declined as feature creep).
+A copy goes by OSC 52 only to terminals TUI can name as taking it (Ghostty,
+kitty, WezTerm, foot; iTerm2 is a maybe), through tmux's plain sequence or
+passthrough and GNU screen's DCS strings where they reach the outer terminal,
+and a line in the status bar says what happened. Away from this machine, a
+paste chord pastes the app's own latest copy. A drag selects the page (not the
+layers over it) wherever it does nothing else; a table cell's
+`.textSelection(.enabled)` keeps its selection to the cell.
 
-## B. Shipped the safe option
+## How it unfolded
+
+1. **Lane D4X** built the clipboard and the screen selection (and the wrapping
+   editor, in its own story), with the calls below.
+2. **2026-10-23, the owner** concurred on keeping a cell's selection to the
+   cell (B-D4X-7-17), found the screen and tmux paths fine, and asked about
+   asking keepers for their clients (D4X-LOCALITY). Lane TEXTFMT built both on
+   2026-10-24, measured on GNU screen 4.00.03 and tmux, and declined asking
+   keepers for clients for now (C-TEXTFMT-3).
+
+## For a future reader
+
+- **B-D4X-15 is recorded until someone runs into it**: a screen selection
+  whose content moves inside an unchanged area (settled 2026-10-18).
+- **iTerm2 writes OSC 52 only with its "Applications in terminal may access
+  clipboard" setting on**, which TUI cannot read.
+
+## The record
 
 ### B-D4X-1. OSC 52 goes only to a terminal TUI can name
 
@@ -199,44 +213,6 @@ highlight went for good.
 release is spelled `Scene.textSelectionCopiesOnRelease(_ copies: Bool = true)`,
 beside SwiftUI's `textSelection(_:)` family. Rename freely.
 
-### B-D4X-10. The wrapping editor's vertical keys follow `NSTextView`; its page keys do not
-
-*A43*
-
-**Shipped:** measured on macOS 15.8 with a SwiftUI `TextEditor` (an
-`NSTextView`): Up, Down, Ctrl-P and Ctrl-N move by rows keeping the column
-through short rows; Up from the first row goes to the start and Down from the
-last to the end; Ctrl-A and Ctrl-E keep the paragraph; a tab's stop is counted
-from its row's start. TUI's wrapping editor does all of these. Page Up and
-Page Down only scroll an `NSTextView`, and Home and End scroll to the ends;
-TUI's editor moves the caret for them, by a screen of rows and to the
-document's ends, as it already did. With `textEditorWrapsLines(false)` the
-editor is exactly as before, Up and Down stopping at the first and last line.
-
-**The fuller version:** page and Home/End keys that only scroll, leaving the
-caret, as macOS's do. Half a day; it would make the caret leave the screen,
-which a terminal editor rarely does.
-
-### B-D4X-11. A caret in a run of spaces hanging past the margin
-
-**Shipped:** the caret further into a hanging run is drawn on the last cell,
-as `SoftWrapLayout` already holds it (macOS clamps it the same way). Where a
-tab straddles the margin, nothing starts on that cell and the caret is not
-drawn until it moves. Rare: a tab at the very end of a full row.
-
-**The fuller version:** draw the caret on the margin cell whatever covers it.
-An hour, in the row renderer both editors share.
-
-### B-D4X-12. No wrap toggle on the Example's Text Input page
-
-**Shipped:** the modifier, the docs and the tests; the Example's editor wraps
-by default.
-
-**The fuller version:** a toggle beside the editor, with its label in the
-Example's seven languages. Shipped 2026-10-18 (lane PARITYMISC): the Text
-Input page's editor section has a "Wrap long lines" toggle that both its
-editors read.
-
 ### B-D4X-13. A session under a session keeper is never "at this machine", and under GNU screen no OSC 52 is sent
 
 *The clipboard rule's locality (`ClipboardLocality`) and the writer's ladder
@@ -302,7 +278,7 @@ would carry copies through screen to the terminal: half a day and a probe
 row, unmeasured. **Shipped 2026-10-24** (lane TEXTFMT, owner ruling
 D4X-LOCALITY), with tmux's passthrough under `allow-passthrough`, both
 measured with `Tools/TerminalProbes/keeper_passthrough_probe.py`: decisions
-[TEXTFMT](<Typed interpolations, live titles and keeper passthroughs (TEXTFMT).md#d4x-locality-copies-through-screens-and-tmuxs-passthroughs>). (b) Ask each keeper for its clients where it can be asked —
+[TEXTFMT](<Formatting and live text.md>). (b) Ask each keeper for its clients where it can be asked —
 zellij's and screen's session sockets, an outer tmux's `list-clients` (its
 socket from the outer server's environment) — and walk each client's chain
 as tmux's are: half a day per keeper, and only where the keeper answers at
@@ -350,41 +326,6 @@ good). Free either way. A move of the page's content inside the area — a
 scroll view the tooltip's row shortened — is a change of the cells, and loses
 it.
 
-### B-D4X-16. Upstream, a caret moved onto a wrapped row lands after its first character
-
-**Shipped:** under `.textSelectionAffinity(.upstream)` the start of a wrapped
-row is drawn at the end of the row before it, so Up, Down and a click put a
-caret on a wrapped row at its first upstream position, after its first
-character, in a vertical `TextField` and a wrapping `TextEditor` alike. A
-selection's ends are not carets: a drag that starts or ends on a wrapped
-row's first cell, and a Shift-click there, take that character in ("aaaa
-bbbb cccc" at width 6, dragged across "bbbb" from its first cell, selects
-"bbbb"; review 2 found it selecting "bbb" once the caret rule fed the drag).
-A head put there is on the row the pointer put it on, though the same offset
-is the end of the row before to an upstream caret: the editor and a
-`lineLimit` field follow it without scrolling, and Down goes from it to the
-next row — in a vertical field Shift+Down extends the selection there; the
-editor, which has no keyboard selection, drops it and moves the caret — until
-a key moves it off (the follow-ups' review found it read on the row before:
-a drag back onto the top row's first cell scrolled the view up a row each
-time, and Down kept to the head's own row; its second, that this entry said
-the editor's Shift+Down extended the selection, which it drops).
-A head that ends no selection is a caret: a drag or a Shift-click that comes
-back onto its own anchor there leaves the caret where a click puts it, after
-the row's first character, and a key that ends the selection without moving
-the head (Backspace deleting a backward selection) leaves a caret read as any
-other at that offset (the follow-ups' second review found both still drawn at
-the row's first cell, where no upstream caret is).
-The affinity is the view's, one for every caret.
-
-**The fuller version:** an affinity per caret, as the macOS text system keeps
-— a caret an arrow key moved to a row's start leans downstream and is drawn
-there, one typed or clicked to the end of a row leans upstream — with the
-view's affinity as the default. Half a day in `SoftWrapLayout` and the two
-handlers. Downstream, the mirror case is unchanged from before the rule: a
-drag ending on a wrapped row's trailing margin stops before its hanging
-space, which a drag onto the next row takes.
-
 ### B-D4X-17. `.textSelection(.enabled)` on a Table cell's Text makes the row's text selectable
 
 **Shipped:** on a `List` row's own `Text` the modifier makes that text
@@ -414,9 +355,7 @@ the table already carried up, is what a selection keeps to — so the fix is
 the removal of the flag (`cellsSelectText`) that treated the row's unscoped
 text as enabled. An enabled scope around the table still keeps a selection
 to the row, crossing its columns (B-D4X-7). Decisions
-[TEXTFMT](<Typed interpolations, live titles and keeper passthroughs (TEXTFMT).md#b-d4x-7-17-a-cells-modifier-keeps-to-its-cell>).
-
-## Review 2: answers, and what remains
+[TEXTFMT](<Formatting and live text.md>).
 
 ### e7ce4b0f7's suspend flush — not an issue, now pinned
 
@@ -517,3 +456,30 @@ listed — all fixed — these remain:
   in a conditional, so an A/B of f543a9c2d must hold the Stress sources
   fixed across both builds.
 
+### C-TEXTFMT-2. Declined: a modifier to choose cell or row for a table-wide scope
+
+*A `TextSelectionScope.cell`, or a table modifier, making `.textSelection(.enabled)`
+around a `Table` keep each selection to one cell, as macOS does*
+
+Not built, because where the modifier goes already chooses: on the cells'
+`Text` (`TableColumn("Name") { Text($0.name).textSelection(.enabled) }`) a
+selection keeps to the cell, as macOS's does, and around the table it crosses
+the row's columns, which is TUI's screen selection everywhere else (T6). A
+third spelling for the first would add API without adding a behaviour, and no
+app has asked for a table-wide scope that keeps to cells.
+
+**Price, if wanted:** about two hours. A `.cell` case on `TextSelectionScope`
+(TUI's existing modifier for what a selection keeps to), read by the table,
+which files its columns' x-ranges with its rows so that a press under a
+table-wide scope keeps to the column under it.
+
+### C-TEXTFMT-3. Declined for now: asking keepers for their clients
+
+*screen's and zellij's session sockets, an outer tmux's `list-clients`*
+
+The follow-up's answer, and the ruling's: only for a keeper someone uses and
+asks for. It is the one way to know the user is at the desk under a keeper,
+which would let `pbcopy` and the desk's clipboard serve such a session, but
+each keeper has its own interface (dtach and abduco have none), the answer is
+a snapshot a reattach makes stale, and it does nothing over ssh. About half a
+day per keeper.

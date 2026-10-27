@@ -1,170 +1,36 @@
-# Completing the SwiftUI API: decisions from lane D1K
+# Undo
 
-*Lane D1K implemented the owner's decisions A4 (the kitty keyboard protocol),
-B7 (key-press phases), B12 (button repeat by keyboard) and A1 (`UndoManager`).
-Where that work reached a judgement call the decisions did not settle, the
-safe option shipped and is written up here, in the format of
-[`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.md>):
-A for the owner to decide, B for a basic form shipped with its fuller version
-priced, C for a refusal recorded in `parity-map.json`.*
+*How TUI came to have undo: `UndoManager` on every platform, a text control's
+undo steps, the undo and redo keys, undoable reorders, and what the owner has
+asked for since. Ids: A1, B-D1K-5 to 7, FB9-REDO, B-TEXT2-3,
+B-PASTE-1-EDITOR.*
 
-## B. Shipped the safe option
+## In short
 
-### B-D1K-1. Under the kitty keyboard protocol a ⌘ chord is delivered to onKeyPress, and to shortcuts on request
+`UndoManager` is Foundation's on Apple platforms and TUI's own on Linux,
+without notifications or selectors. `TextField` and `TextEditor` register
+every edit, one step per event, for as long as the control lives; a secure
+field has none. Undo is Ctrl-Z; ⌃Y redoes app-wide while text controls keep
+it as yank, and the hints name another key while one has the focus. The
+Example's reorders, deletions and drops are undoable through a TUI-only
+helper.
 
-*`EventModifiers.command`, `KeyPress.modifiers`; the protocol's Super, Hyper
-and Meta bits*
+## How it unfolded
 
-A terminal's legacy encodings never deliver a ⌘ chord: the terminal keeps it
-for itself or sends nothing. Under the kitty keyboard protocol, a ⌘ chord the
-terminal does not claim reaches the app, as the Super bit (kitty and Ghostty
-report ⌘ that way on macOS; documented, not measured).
+1. **Lane D1K** built the owner's A1 (`UndoManager`), with B-D1K-5 to 7.
+2. **2026-10-23, FB9-REDO:** (a), ⌃Y redoes app-wide; built 2026-10-24.
+3. **2026-10-24, lane TEXT2:** the Example's reorders undoable (B-TEXT2-3).
+4. **2026-10-26, the owner:** undo as edits rather than whole-text snapshots,
+   rigorously tested against a whole-text model so the stack can never drift
+   from the text (B-PASTE-1-EDITOR); and undo for every built-in control that
+   changes a value — Toggle, radio, Picker, Slider, Stepper, DatePicker,
+   ColorPicker and the rest. **Not yet built.**
 
-**Shipped:** a chord on Super, Hyper or Meta that types no text is dropped,
-as the legacy encodings drop it; it still updates the modifier state, so
-`onModifierKeysChanged` sees `.command` while ⌘ is held. Delivered as the
-bare key, ⌘K would have typed a `k` into a text field and fired every bare-`k`
-binding, and nothing that matches a key knows to look for ⌘.
+## Where it stands
 
-**The fuller version** delivers the chord with ``EventModifiers/command`` in
-its modifiers: `onKeyPress` would see `[.command]` as SwiftUI does, and a
-`KeyboardShortcut` written with `.command` could match the real ⌘ where the
-terminal passes it, before (or instead of) `commandKey`'s stand-in. Every
-consumer that matches a bare character would have to learn to refuse ⌘ — text
-fields, type select, the status bar, the theme and appearance keys, the
-Example's page keys — and the stand-in rule would need a precedence: does
-`KeyboardShortcut("s")` fire on ⌘S, on Ctrl-S, or both? About a day, most of
-it the audit of bare-key consumers, and a question for you on the precedence.
+Shipped as above; both 2026-10-26 rulings are owed.
 
-**Ruled (owner, 2026-10-23), and built (lane KEYS, 2026-10-24):** "Deliver ⌘
-to onKeyPress; default shortcuts stay on non-command modifiers; command
-shortcuts when a developer opts in."
-
-- **Delivered.** A Super chord that types no text is a `KeyEvent` with the
-  new `command` set (`KittyKeyDecoder`), so `KeyPress.modifiers` holds
-  `.command`, as SwiftUI's does. Hyper and Meta chords are still dropped:
-  SwiftUI has no modifier for either. A ⌘ chord on a non-Latin layout is its
-  base-layout key (⌘С is ⌘C), as macOS matches a key equivalent.
-- **Refused centrally, not consumer by consumer.** The plan listed the
-  consumers that match a bare character — text fields, type select, the
-  status bar, `t` and `a`, the Example's page keys — each to learn to refuse
-  ⌘. Instead the input chain gives a ⌘ chord a short chain of its own
-  (`InputHandler.dispatchCommandChord(_:)`): the focus path's `onKeyPress`
-  handlers, then the app's shortcuts, and nothing else. No layer that never
-  heard of ⌘ can take one for a bare key, now or when a new layer is added;
-  the price is that an `onKeyEvent` handler never hears a ⌘ chord, which it
-  never could. TUI's own `onKeyPress` handlers that mean a typed character
-  refuse ⌘ themselves: the file panel's `~` and `/`, and the text editor's
-  find keys (⌃F, ⌃G).
-- **Default shortcuts unchanged.** A shortcut written with ⌘ registers on its
-  stand-in (`.commandKey(_:)`, Control by default) and nowhere else, so it
-  fires the same on every terminal. TUI's own bindings — undo and redo and
-  the row keys (written with Control), the copy, cut and paste commands and a
-  split view's sidebar chords (written with ⌘) — keep to their stand-ins, the
-  opt-in or not.
-- **The opt-in:** `.keyboardShortcutsMatchCommand(_:)`, an environment value
-  (`\.keyboardShortcutsMatchCommand`) by the modifier-first rule, read where a
-  `Button`'s, a `Toggle`'s or a scene's shortcut registers. On, a shortcut
-  written with ⌘ registers on its real-⌘ trigger as well as on its stand-in
-  (`KeyboardShortcut.commandChord(matching:)`): both fire, the precedence this
-  entry recommended, so a chord the terminal keeps stays reachable. Under
-  `.commandKey(.unavailable)` nothing fires, a real ⌘ included. A shortcut
-  written with Control never fires on ⌘.
-- **Cost.** Off (the default), nothing per frame: the second registration is
-  made only where the app asked. On, one more dictionary insert per ⌘
-  shortcut per frame, replayed from a memo as the first is. Per key, a ⌘
-  chord is offered to two layers instead of the whole chain.
-- **Not measured:** which ⌘ chords kitty and Ghostty pass to an app comes
-  from their documentation (`Terminal compatibility survey.md`, "Command is
-  never reported"). Tests: `CommandChordTests`, `KittyKeyDecoderTests`.
-
-### B-D1K-2. A modifier-key alternate in a menu does not inherit the modified view's shortcut
-
-*`View.modifierKeyAlternate(_:_:)`*
-
-SwiftUI turns an alternate inside a menu into an alternate menu item and
-gives it the modified view's keyboard shortcut with the alternate's modifiers
-added: `Button("Save").keyboardShortcut("s").modifierKeyAlternate(.option) {
-Button("Save All") }` makes Save All ⌥⌘S, live whether or not the menu is
-open.
-
-**Shipped:** the alternate replaces the modified view — a row in a menu
-included — while its keys are held, and takes no shortcut of its own. An app
-that wants ⌥⌘S for Save All writes `.keyboardShortcut("s", modifiers:
-[.command, .option])` on it, which works on every terminal.
-
-**The fuller version** registers the alternate's derived shortcut whether or
-not it is drawn. The alternate's action is only reachable by rendering it, so
-this means rendering the alternate on every frame into a throwaway buffer (or
-a registration-only walk), reading the modified view's resolved shortcut out
-of its environment, and registering the union. Half a day, and a small cost on
-every frame that has an alternate.
-
-**Known, and left as they are** (found reading the code in the lane's second
-review; not reproduced). While an alternate shows, the modified view keeps
-its `@State` and gets its focus back when the keys are released, but:
-
-1. The focus comes back by a `focus(id:)` asked during the render, before the
-   control registers; the neighbour the focus recovered to has already drawn
-   as focused, so for one frame two controls show the focus. The next frame
-   is right.
-2. An alternate shown for a single frame gives the focus back
-   unconditionally: Option, Tab and Option's release read in one burst of
-   input undo the Tab.
-3. The modified view's lifecycle ends while the alternate shows: its
-   `onDisappear` runs and its `.task` restarts at every tap of the key, as
-   for any view that leaves the screen.
-
-Each wants the alternate to stand in for the modified view without the view
-leaving the tree, which is the fuller version's registration-only walk again.
-
-**The three fixed (lane INPUT, 2026-10-18), the shortcut still not.** While
-an alternate shows, the modified view is walked into a picture nobody sees,
-out of the focus ring and every key channel and asking for no frame
-(`ModifierKeyAlternateModifier.walkHidden`, as a backdrop renders): its state
-and its lifecycle go on, so no `onDisappear` runs and no `.task` restarts
-(3), and the subtree retention it replaces is gone. The focus is given back
-as the keys are released, between frames (`ModifierKeyMonitor.record`), the
-recovery's neighbour first letting go of it, so no frame draws two controls
-focused (1); and where the recovery put the focus is taken as the frame that
-first drew the alternate ends (`ModifierKeyMonitor.endFrame()`), so a Tab read
-in the same burst as the keys' release is the user's move, and stands (2).
-`ModifierKeyAlternateTests` pins all three through the input chain and, for
-the lifecycle, the run loop; each failed before. The alternate's shortcut,
-derived or explicit, is still reached only by drawing the alternate:
-decisions-INPUT B-INPUT-2.
-
-### B-D1K-3. Ctrl-H, I, J, M and [ fall back to their legacy keys when nothing binds them
-
-*`KeyboardShortcut.isDeliverableInTerminal`, `KeyboardReporting.disambiguatesKeys`*
-
-The protocol delivers these five as themselves, which is what makes them
-bindable. But nothing binds them by default, and on every legacy terminal they
-are Backspace, Tab, Return and Escape — Ctrl-[ to leave, Ctrl-H to rub out.
-
-**Shipped:** a chord nothing in the input chain takes goes round once more as
-the key it would have been. A binding on it still wins.
-
-**The alternative** is to leave an unbound chord inert, as most of them are
-in SwiftUI on macOS (the text system does bind ⌃H to delete backward, as the
-fallback does; ⌃[ and ⌃M are nothing there). That would be truer to SwiftUI
-and would break muscle memory on exactly the terminals that got better; I
-chose the fallback. Free either way.
-
-### B-D1K-4. `TUIKIT_KEYBOARD_PROTOCOL=0` keeps TUI from asking for the kitty protocol
-
-*`EnvironmentValues.keyboardReporting`*
-
-Not asked for, and nothing to decide on its own, but a new user-facing switch,
-so recorded. The protocol is negotiated with every terminal that answers the
-query. A terminal that answers and then encodes keys in a way TUI misreads
-would leave a user unable to type into any TUI app on it, so the user gets
-the same way out the hyperlink and graphics switches give:
-`TUIKIT_KEYBOARD_PROTOCOL=0`, and the terminal stays in its legacy encodings.
-
-**The fuller version** is a programmatic override for an app, as
-`TerminalClient.hyperlinkSupport` is for links. Not built: nothing yet says an
-app needs one. A quarter of a day.
+## The record
 
 ### B-D1K-5. `UndoManager` on Linux is TUI's own, without notifications or selectors
 
@@ -371,27 +237,33 @@ deliverable keys are kept in hint order until the table, the ⌘ binding or
 the reporting changes, and the focus is asked only about those few kept
 keys: a focus lookup per frame while there is a step.
 
-### B-D1K-8. All five kitty flags are pushed, and a killed app leaves a shell that cannot read Return
+### B-TEXT2-3. The Example's reorders, deletions and drops are undoable, through a TUI-only helper
 
-*`EnvironmentValues.keyboardReporting`*
+*#16. The Lists page's editable list (`onMove`, `onDelete`), the Table page's
+reorderable table, the rows that travel between two lists (`onMove`, a drop),
+the Mouse page's shelf and basket (three drops) and its filing tag, and the
+Focus page's command board (`onDeleteCommand`, `onExitCommand`)*
 
-Chosen as the brief asked — "releases need 2, modifiers-alone need 8 … the
-spec's 'report associated text' (16) and 'alternate keys' (4) exist for
-exactly that" — so flag 8 is on, and with it every key, Return included, is an
-escape code. Quit, Ctrl-C, a suspend, `SIGINT` and `SIGTERM` pop the flags in an
-orderly teardown; the crash signals (a trap, a bad access, `abort`,
-`SIGQUIT`, `SIGSYS`) and the quiet terminations nothing else handles
-(`SIGHUP`, `SIGUSR1`/`2`, `SIGALRM`, `SIGVTALRM`, `SIGPROF`, `SIGXCPU`,
-`SIGXFSZ`, where the app has no handler of its own) pop them from a signal
-handler, which also turns off the other input modes and puts the shell's
-termios back (the PTY smoke covers quit, suspend, abort, `SIGHUP`, `SIGUSR1`
-and `SIGTERM`). `SIGKILL` cannot be caught: the terminal is then left on the
-alternate screen with the flags pushed, and the shell cannot read Return;
-closing the tab, or a terminal reset, recovers it.
+SwiftUI registers no undo for `onMove`, `onDelete` or a drop: the app owns
+the data. Neither does TUI, and neither did the Example, so none of these
+could be taken back. Each now registers its inverse with
+`@Environment(\.undoManager)`, named "Move", "Delete", "Copy", "Discard" or
+"Reset" (seven languages), which Edit ▸ Undo and Redo show. Checked live
+under a PTY: two Ctrl-Down moves in the editable list, then two Ctrl-Z, put
+the rows back one move at a time, the status bar offering "undo" and then
+"redo".
 
-**The alternative** is flags 1, 2 and 4 only: Return, Tab and Backspace stay
-legacy (the specification keeps them so for exactly this reason), and
-releases, repeats and the Ctrl chords still work, but modifier keys alone,
-Caps Lock on text keys and the keypad's digits are lost —
-`onModifierKeysChanged` and `modifierKeyAlternate` would never fire. Free to
-switch; `KittyKeyboardFlags.requested` is the one place.
+The helper, `UndoManager.registerRestoring(_:to:actionName:)` in
+`TUIFoundation/Undo/`, is TUI's own name, documented as such:
+Foundation's `registerUndo(withTarget:handler:)` wants a class to call back,
+which a `@State` array is not, so the step holds the binding and the old value
+in a main-actor class, and its undo registers the redo, keeping the name. Two
+values that change together (a row moved between lists) restore through one
+binding to both. A drop that changed nothing registers nothing.
+
+**The fuller version:** a diff-based step that undoes only what the change
+did (a moved row moved back), so an undo does not also revert other edits
+made to the same value since. *Price:* a day — a step per collection
+operation (move, remove, insert) with its inverse, for `RangeReplaceableCollection`
+and `MutableCollection`; the snapshot is exact for state a person edits a step
+at a time, which is every case in the Example.

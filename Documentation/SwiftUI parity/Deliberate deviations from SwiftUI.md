@@ -147,7 +147,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   columns or two rows. `DragGesture(minimumDistance: 10)` written for SwiftUI
   asks for ten cells.
 - **Why:** a terminal reports the pointer by cell.
-- **Decided:** [B90](<Decisions/SwiftUI API completion decisions.md#b90-distances-are-cells-along-either-axis>). **Lane** (the fuller version converts points
+- **Decided:** [B90](<../Historical/Input, keys and gestures/Gestures, taps and the press a control takes.md#b90-distances-are-cells-along-either-axis>). **Lane** (the fuller version converts points
   through the reported cell size).
 
 ### U5. A shape's unit is square
@@ -541,7 +541,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   for that frame itself.
 - **Why:** removing the late frame takes a second walk of every page that uses
   the API.
-- **Decided:** [B34](<Decisions/SwiftUI API completion decisions.md#b34-a-focused-value-reader-drawn-ahead-of-its-publisher-catches-up-a-frame-later>). **Lane.**
+- **Decided:** [B34](<../Historical/Input, keys and gestures/Focus, focused values and the default focus.md#b34-a-focused-value-reader-drawn-ahead-of-its-publisher-catches-up-a-frame-later>). **Lane.**
 
 ### S6. What a class property holds is installed as the object's, and every view holding it is redrawn by its writes
 
@@ -724,7 +724,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   binding.
 - **Decided:** [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tui-should-add-it>) (the `.keyboardShortcut` row),
   [Terminal compatibility survey.md](<../Terminals/Terminal compatibility survey.md#command-is-never-reported>),
-  [B-D1K-1](<Decisions/Input, clipboard and text editing/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-1-under-the-kitty-keyboard-protocol-a--chord-is-delivered-to-onkeypress-and-to-shortcuts-on-request>). **Medium.**
+  [B-D1K-1](<../Historical/Input, keys and gestures/The kitty keyboard protocol and modified keys.md#b-d1k-1-under-the-kitty-keyboard-protocol-a--chord-is-delivered-to-onkeypress-and-to-shortcuts-on-request>). **Medium.**
 
 ### I2. Shift on a typed character is the character's case
 
@@ -748,7 +748,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   still wins.
 - **Why:** on every legacy terminal they are those keys, and users' habits are
   built on that.
-- **Decided:** [B-D1K-3](<Decisions/Input, clipboard and text editing/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-3-ctrl-h-i-j-m-and--fall-back-to-their-legacy-keys-when-nothing-binds-them>). **Lane.**
+- **Decided:** [B-D1K-3](<../Historical/Input, keys and gestures/The kitty keyboard protocol and modified keys.md#b-d1k-3-ctrl-h-i-j-m-and--fall-back-to-their-legacy-keys-when-nothing-binds-them>). **Lane.**
 
 ### I4. `.focusable(false)` covers a subtree, and is additive
 
@@ -779,7 +779,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `declinedKeyEndsTheAutomaticChoice`). A focus the user, an `@FocusState`
   write or `.defaultFocus` placed is never taken.
 - **Why:** a keyboard interface needs somewhere to start.
-- **Decided:** [B35](<Decisions/SwiftUI API completion decisions.md#b35-what-when-no-other-view-has-focus-means-for-a-preferred-default>), [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tui-should-add-it>) (the `@FocusState` row
+- **Decided:** [B35](<../Historical/Input, keys and gestures/Focus, focused values and the default focus.md#b35-what-when-no-other-view-has-focus-means-for-a-preferred-default>), [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tui-should-add-it>) (the `@FocusState` row
   states the rule). **Owner** (2026-10-12: an explicit focus overrides the
   default, and the automatic choice must not count as held; shipped
   2026-10-13).
@@ -799,8 +799,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   no notifications.
 - **Why:** a terminal app that raised would die holding the terminal in raw
   mode. Ctrl-Z is the key a terminal user reaches for.
-- **Decided:** [B-D1K-5](<Decisions/Input, clipboard and text editing/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-5-undomanager-on-linux-is-tuis-own-without-notifications-or-selectors>), [B-D1K-6](<Decisions/Input, clipboard and text editing/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-6-a-text-controls-undo-steps-are-per-event-they-last-as-long-as-the-control-and-a-secure-field-has-none>),
-  [B-D1K-7](<Decisions/Input, clipboard and text editing/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-7-the-undo-and-redo-keys-are-data-ctrl-z-among-them-redos-reach-only-some-terminals-and-the-status-bar-is-the-route-everywhere>). **Owner** for Ctrl-Z (2026-10-04); **Lane** for the
+- **Decided:** [B-D1K-5](<../Historical/Text, editing and the clipboard/Undo.md#b-d1k-5-undomanager-on-linux-is-tuis-own-without-notifications-or-selectors>), [B-D1K-6](<../Historical/Text, editing and the clipboard/Undo.md#b-d1k-6-a-text-controls-undo-steps-are-per-event-they-last-as-long-as-the-control-and-a-secure-field-has-none>),
+  [B-D1K-7](<../Historical/Text, editing and the clipboard/Undo.md#b-d1k-7-the-undo-and-redo-keys-are-data-ctrl-z-among-them-redos-reach-only-some-terminals-and-the-status-bar-is-the-route-everywhere>). **Owner** for Ctrl-Z (2026-10-04); **Lane** for the
   rest.
 
 ### I7. Clipboard commands and shortcut localization
@@ -834,7 +834,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   is [slated](#slated-to-change) to follow right-to-left.
 - **Why:** a terminal's clipboard holds one string, and a terminal reports the
   character typed, not the key's place on the keyboard.
-- **Decided:** [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>); decisions B9, answered on 2026-10-12 (the
+- **Decided:** [B8](<../Historical/Input, keys and gestures/How keys are named: shortcut symbols and spellings.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>); decisions B9, answered on 2026-10-12 (the
   owner asked whether OSC 52 was in the path, and what portable versions would
   take) and removed, since nothing was left to build. **Medium.**
 
@@ -850,7 +850,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   row's selection back by the double-tap interval).
 - **Why:** TUI's controls act on the press at once; making each a
   recognizer that can wait or fail is B89's fuller version.
-- **Decided:** [B89](<Decisions/SwiftUI API completion decisions.md#b89-a-control-takes-the-press-once-the-gestures-ahead-of-it-give-up-it-cannot-wait>). **Lane** (the fuller version turns about
+- **Decided:** [B89](<../Historical/Input, keys and gestures/Gestures, taps and the press a control takes.md#b89-a-control-takes-the-press-once-the-gestures-ahead-of-it-give-up-it-cannot-wait>). **Lane** (the fuller version turns about
   fifteen controls into recognizers).
 
 ### I9. Gesture timing
@@ -867,8 +867,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** the run loop checks deadlines at each frame's start, and each click
   interval follows its own macOS counterpart: a tap's the measured tap, a
   row's `NSTableView`'s (B92, B93).
-- **Decided:** [B91](<Decisions/SwiftUI API completion decisions.md#b91-a-drags-velocity-is-an-average-of-the-report-to-report-speeds>), [B92](<Decisions/SwiftUI API completion decisions.md#b92-timed-recognizers-run-on-the-frame-clock>), [B93](<Decisions/SwiftUI API completion decisions.md#b93-two-double-click-windows-a-rows-and-a-taps>),
-  [B-F2-1](<Decisions/Input, clipboard and text editing/Stdin test flake, lost taps and the quit chord (F2).md#b-f2-1-a-press-drained-before-the-frame-that-fails-a-double-tap-restarts-it>), [B-F2-2](<Decisions/Input, clipboard and text editing/Stdin test flake, lost taps and the quit chord (F2).md#b-f2-2-a-disabled-views-gestures-are-given-up-at-the-next-press-as-a-removed-views-are>). **Lane.**
+- **Decided:** [B91](<../Historical/Input, keys and gestures/Gestures, taps and the press a control takes.md#b91-a-drags-velocity-is-an-average-of-the-report-to-report-speeds>), [B92](<../Historical/Input, keys and gestures/Gestures, taps and the press a control takes.md#b92-timed-recognizers-run-on-the-frame-clock>), [B93](<../Historical/Input, keys and gestures/Gestures, taps and the press a control takes.md#b93-two-double-click-windows-a-rows-and-a-taps>),
+  [B-F2-1](<../Historical/Input, keys and gestures/Gestures, taps and the press a control takes.md#b-f2-1-a-press-drained-before-the-frame-that-fails-a-double-tap-restarts-it>), [B-F2-2](<../Historical/Input, keys and gestures/Gestures, taps and the press a control takes.md#b-f2-2-a-disabled-views-gestures-are-given-up-at-the-next-press-as-a-removed-views-are>). **Lane.**
 
 ### I10. Drag and drop stays inside the app
 
@@ -890,7 +890,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** there is no system pasteboard to drag through, CoreTransferable is
   Apple-only, and a terminal's mouse reports carry the modifiers through the
   whole drag.
-- **Decided:** [B10](<Decisions/SwiftUI API completion decisions.md#b10-item-provider-drag-and-drop-stays-in-the-app-and-only-cancel-and-forbidden-change-a-drop>), [B82](<Decisions/SwiftUI API completion decisions.md#b82-spring-loading-a-paused-drag-activates-a-control-drawn-waiting-and-firing>), [B83](<Decisions/SwiftUI API completion decisions.md#b83-the-drag-and-drop-session-values-ship-nothing-hands-them-out-yet>),
+- **Decided:** [B10](<../Historical/Input, keys and gestures/Drag and drop.md#b10-item-provider-drag-and-drop-stays-in-the-app-and-only-cancel-and-forbidden-change-a-drop>), [B82](<../Historical/Input, keys and gestures/Drag and drop.md#b82-spring-loading-a-paused-drag-activates-a-control-drawn-waiting-and-firing>), [B83](<../Historical/Input, keys and gestures/Drag and drop.md#b83-the-drag-and-drop-session-values-ship-nothing-hands-them-out-yet>),
   [DragAndDropSession.swift](../../Sources/TUIFoundation/Input/DragAndDropSession.swift#L16-L23).
   **Medium.**
 
@@ -960,7 +960,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `^[…](inflect: true)` is drawn without inflection, and a code span is plain
   text, every cell being monospaced already.
 - **Why:** Foundation's Markdown parser is Darwin-only.
-- **Decided:** [B86](<Decisions/SwiftUI API completion decisions.md#b86-tuis-markdown-parse-is-its-own-with-two-known-differences>). **Medium.**
+- **Decided:** [B86](<../Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md#b86-tuis-markdown-parse-is-its-own-with-two-known-differences>). **Medium.**
 
 ### T4. Links are underlined, and a link inside a `Text` is a Tab stop
 
@@ -981,7 +981,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   no-mouse-only rule, so the keyboard reaches it the way it reaches every
   other control (the owner's ruling B85-KEYBOARD, 2026-10-23).
 - **Decided:** [Link.swift](../../Sources/TUIFoundation/Views/Link.swift#L41-L44)
-  (**Recorded**), [B85](<Decisions/SwiftUI API completion decisions.md#b85-a-link-in-a-text-is-drawn-and-hyperlinked-and-is-a-control>) (**Lane**).
+  (**Recorded**), [B85](<../Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md#b85-a-link-in-a-text-is-drawn-and-hyperlinked-and-is-a-control>) (**Lane**).
 
 ### T5. A live text in help and in a tab's title is read once
 
@@ -999,7 +999,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   the chrome's style, and a tab's title is laid out as a chip from its string;
   keeping either live means carrying the clock into those, for behaviour
   SwiftUI's is not known to have.
-- **Decided:** [B51](<Decisions/SwiftUI API completion decisions.md#b51-a-live-text-read-for-its-string-is-read-once-when-it-is-built>), [B51-LIVE in TEXTFMT](<Decisions/Input, clipboard and text editing/Typed interpolations, live titles and keeper passthroughs (TEXTFMT).md#b51-live-live-titles-where-swiftuis-are-live>). **Lane.**
+- **Decided:** [B51](<../Historical/Text, editing and the clipboard/Formatting and live text.md#b51-a-live-text-read-for-its-string-is-read-once-when-it-is-built>), [B51-LIVE in TEXTFMT](<../Historical/Text, editing and the clipboard/Formatting and live text.md>). **Lane.**
 
 ### T6. Text selection selects what is drawn
 
@@ -1018,8 +1018,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** decisions A13 (**Owner**, shipped 2026-10-05 and removed from
   the decisions doc; its deferred parts are in
   [Future options](<../Future options.md#handing-the-mouse-to-the-terminal-a132>)),
-  [B-D4X-6](<Decisions/Input, clipboard and text editing/Clipboard, screen selection and the wrapping editor (D4X).md#b-d4x-6-the-screen-selection-is-on-wherever-a-drag-does-nothing-else>), [B-D4X-7](<Decisions/Input, clipboard and text editing/Clipboard, screen selection and the wrapping editor (D4X).md#b-d4x-7-row-text-under-enabled-is-kept-to-the-row-not-to-the-cell>),
-  [B-D4X-8](<Decisions/Input, clipboard and text editing/Clipboard, screen selection and the wrapping editor (D4X).md#b-d4x-8-what-is-selected-is-the-page-not-the-layers-over-it>) (**Lane**).
+  [B-D4X-6](<../Historical/Text, editing and the clipboard/Copying out of a terminal: the clipboard, screen selection and session keepers.md#b-d4x-6-the-screen-selection-is-on-wherever-a-drag-does-nothing-else>), [B-D4X-7](<../Historical/Text, editing and the clipboard/Copying out of a terminal: the clipboard, screen selection and session keepers.md#b-d4x-7-row-text-under-enabled-is-kept-to-the-row-not-to-the-cell>),
+  [B-D4X-8](<../Historical/Text, editing and the clipboard/Copying out of a terminal: the clipboard, screen selection and session keepers.md#b-d4x-8-what-is-selected-is-the-page-not-the-layers-over-it>) (**Lane**).
 
 ### T7. Text entry keys
 
@@ -1053,8 +1053,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   Shift-Ctrl-G as Ctrl-G. Ctrl-U is what a terminal user's fingers expect
   of any line they type into, and ⌘⌫ is the terminal's, as every ⌘ chord is. A menu of options would make the text editor's
   module depend on the menus' and the pickers'.
-- **Decided:** [B62](<Decisions/SwiftUI API completion decisions.md#b62-a-vertical-textfield-is-a-text-field-that-wraps-not-an-editor-with-a-fields-chrome>), [B63](<Decisions/SwiftUI API completion decisions.md#b63-a-newline-from-the-keyboard-option-return-where-the-terminal-sends-it-ctrl-o-everywhere>), [B65](<Decisions/SwiftUI API completion decisions.md#b65-a-text-fields-selection-is-one-range>),
-  [B81](<Decisions/SwiftUI API completion decisions.md#b81-the-find-bar-ctrl-f-opens-it-ctrl-g-finds-the-next-match-and-its-options-are-a-row>). **Medium**, with **Lane** choices of key.
+- **Decided:** [B62](<../Historical/Text, editing and the clipboard/Text fields and the wrapping editor.md#b62-a-vertical-textfield-is-a-text-field-that-wraps-not-an-editor-with-a-fields-chrome>), [B63](<../Historical/Text, editing and the clipboard/Text fields and the wrapping editor.md#b63-a-newline-from-the-keyboard-option-return-where-the-terminal-sends-it-ctrl-o-everywhere>), [B65](<../Historical/Text, editing and the clipboard/Text fields and the wrapping editor.md#b65-a-text-fields-selection-is-one-range>),
+  [B81](<../Historical/Text, editing and the clipboard/Text fields and the wrapping editor.md#b81-the-find-bar-ctrl-f-opens-it-ctrl-g-finds-the-next-match-and-its-options-are-a-row>). **Medium**, with **Lane** choices of key.
 
 ### T8. `textContentType` filters what can be typed
 
@@ -1124,7 +1124,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   digits at most is `%lf`'s own precision, so a number reads as SwiftUI's
   with the padding taken off, not as the seventeen digits the shortest
   round-tripping form would write for `0.1 + 0.2`.
-- **Decided:** [B-TEXTFMT-1](<Decisions/Input, clipboard and text editing/Typed interpolations, live titles and keeper passthroughs (TEXTFMT).md#b-textfmt-1-a-number-interpolated-without-a-specifier-is-drawn-in-the-locale-without-swiftuis-padding>).
+- **Decided:** [B-TEXTFMT-1](<../Historical/Text, editing and the clipboard/Formatting and live text.md#b-textfmt-1-a-number-interpolated-without-a-specifier-is-drawn-in-the-locale-without-swiftuis-padding>).
   **Owner** (2026-10-24).
 
 ---
@@ -2094,16 +2094,16 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 | `Stepper` and `Slider` | draw no value | draw a value read-out | [§1](<SwiftUI compatibility guide.md#1-match>) (Controls row), **Recorded** |
 | `.automatic` and `.tabBarOnly` tab views | a segmented bar in the toolbar (measured) | a compact strip; `.grouped` draws folder tabs | [§1](<SwiftUI compatibility guide.md#1-match>) (Containers row), **Recorded** |
 | A tab's label view | drawn as given | its text, in the strip's ink | [B75](<../Historical/Lists, tables and tabs/Tab views: labels, sidebars, customization and minimizing.md#b75-a-tabs-label-is-drawn-as-text>), **Lane** |
-| A table row a drop would land on | ringed in the accent | drawn as selected | [B80](<Decisions/SwiftUI API completion decisions.md#b80-table-row-drag-and-drop-the-rows-own-line-a-selected-look-flat-loops>), **Lane** |
+| A table row a drop would land on | ringed in the accent | drawn as selected | [B80](<../Historical/Input, keys and gestures/Drag and drop.md#b80-table-row-drag-and-drop-the-rows-own-line-a-selected-look-flat-loops>), **Lane** |
 | A drop at the end of a hierarchical table's branch | aimed at the branch's loop or the next row's by the pointer's indentation (measured) | the deeper loop that takes it | [B-LISTS2-7](<../Historical/Lists, tables and tabs/Which rows a list draws.md#b-lists2-7-a-slot-two-loops-of-a-hierarchical-table-reach-goes-to-the-deeper-loop>), **Lane** |
 | Dragging a sidebar section | (a landing line between sections: not measured) | dropped onto another section's header, it takes that one's place | [B-LISTS2-4](<../Historical/Lists, tables and tabs/Tab views: labels, sidebars, customization and minimizing.md#b-lists2-4-a-sidebars-sections-move-among-the-identified-sections-and-a-drag-drops-onto-a-header>), **Lane** |
-| `modifierKeyAlternate` in a menu | gets the modified view's shortcut plus its modifiers | takes no shortcut of its own | [B-D1K-2](<Decisions/Input, clipboard and text editing/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-2-a-modifier-key-alternate-in-a-menu-does-not-inherit-the-modified-views-shortcut>), **Lane** |
+| `modifierKeyAlternate` in a menu | gets the modified view's shortcut plus its modifiers | takes no shortcut of its own | [B-D1K-2](<../Historical/Input, keys and gestures/The kitty keyboard protocol and modified keys.md#b-d1k-2-a-modifier-key-alternate-in-a-menu-does-not-inherit-the-modified-views-shortcut>), **Lane** |
 | A compact `DatePicker`'s calendar | (macOS keyboard unmeasured) | takes the keyboard as it opens | [B-D2C-2](<Decisions/Presentation and windows/Pickers and sheet sizes (D2C).md#b-d2c-2-a-compact-date-pickers-calendar-takes-the-keyboard-as-it-opens>), **Lane** |
 | A `Section` that is a lazy stack row's `ZStack`'s only child | not the stack's own; does not pin | pins | [B68](<../Historical/Layout and geometry/Sections and pinned headers in lazy stacks.md#b68-which-sections-are-the-stacks-own-the-next-stack-down-and-one-sibling-step>), **Lane** |
 | `.searchable`'s field | in the toolbar, presented by a click; scopes show while search is presented (documented) | always drawn at the top of the subtree; scopes show while it has the focus or a query | [B38](<Decisions/SwiftUI API completion decisions.md#b38-search-scopes-show-while-the-search-is-under-way-by-a-terminals-reading-of-presented-and-cancelled>), **Lane** |
 | `.searchable` on a `TabView` (macOS 26) | the field goes into the `.search` tab (documented, unmeasured) | a field above the whole tab view | [A50](<../Historical/Lists, tables and tabs/Tab views: labels, sidebars, customization and minimizing.md#a50-search-in-a-tab-view-macos-26-the-search-tab-and-its-activation>), **Owner** (2026-10-04: defer until macOS 26 can be measured) |
-| `SystemFormatStyle.DateReference` between the measured readings | keeps a time zone of its own; turns at a new year's first instant (measured) | uses the calendar's zone; turns half a second early | [B49](<Decisions/SwiftUI API completion decisions.md#b49-systemformatstyle-where-the-rules-go-beyond-the-measurements>), **Lane** |
-| An attributed format interpolated into a key | (a custom style's colours: not measured) | draws the characters only | [B88](<Decisions/SwiftUI API completion decisions.md#b88-an-attributed-format-interpolated-into-a-key-draws-the-characters-only>), **Recorded** |
+| `SystemFormatStyle.DateReference` between the measured readings | keeps a time zone of its own; turns at a new year's first instant (measured) | uses the calendar's zone; turns half a second early | [B49](<../Historical/Text, editing and the clipboard/Formatting and live text.md#b49-systemformatstyle-where-the-rules-go-beyond-the-measurements>), **Lane** |
+| An attributed format interpolated into a key | (a custom style's colours: not measured) | draws the characters only | [B88](<../Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md#b88-an-attributed-format-interpolated-into-a-key-draws-the-characters-only>), **Recorded** |
 
 ---
 
@@ -2408,10 +2408,10 @@ on. Each waits on the work, or on the ruling, its State names.
 | Difference | Where | State |
 |---|---|---|
 | Size classes, `\.displayScale`, `\.dynamicTypeSize` and `\.isLuminanceReduced` are settable; the size classes are read by `.viewAligned`, and a written `.compact` makes a popover a sheet (a tab's too, since 2026-10-24), collapses a `NavigationSplitView` (A21), shows a `Table`'s first column alone and a `.sidebarAdaptable` tab view's strip (a `.bordered` or `.grouped` one's too, under `tabBarMinimizeBehavior`'s `.automatic`, since 2026-10-24), while nothing reads the other three. On macOS SwiftUI's own text ignores the last three too (measured), so this is a planned extension past macOS, not a difference from it | [B3](<../Historical/Layout and geometry/Safe areas, size classes and layout direction.md#b3-size-classes-are-settable-and-nothing-tui-draws-reads-them>) | Owner 2026-10-12: follow a written `.compact` where possible (popover to sheet, split-view collapse, compact `Table` and sidebar tab view); keep the defaults. All four shipped 2026-10-13 |
-| `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
+| `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<../Historical/Input, keys and gestures/How keys are named: shortcut symbols and spellings.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
 | A column places its children of one priority in order, cutting the trailing ones, where SwiftUI's shares its height as it shares a row's width (rows have since L14, 2026-10-13) | [`distributeInOrder`](../../Sources/TUIFoundation/Rendering/LinearSpaceDistribution.swift) | Owner 2026-10-13: follow SwiftUI. Landed and reverted for its cost (2400f2948): every overfull column asks each child its minimum, down the whole tree, every frame — counted, and the options priced, in [decisions A-LAYOUT-1](<../Historical/Layout and geometry/Sharing space: overfull columns and ideal sizes.md#a-layout-1-a-column-shares-an-overfull-height-only-once-a-childs-minimum-is-cheap-to-ask>). Waits on that, and on a fix: shared, a column squeezes a control of several lines in the middle |
 | In a lazy stack, a `Grid`, a `List` and a `Table`, a view that an `if`/`else`'s branch, a `switch` or a `ForEach` row puts in under an animation appears at once, where SwiftUI's fades in (`.opacity`), and one with a `.transition(_:)` goes at once, where SwiftUI's plays it on the way out. An `if`'s view fades in and out everywhere (2026-10-14); a branch, a case and a row fade in, and play their own removal, in an eager stack, a `ZStack`, a `Layout` and a conditional drawn whole (2026-10-19), and go at once with none (A10) | [ChildFade.swift](../../Sources/TUIView/Animation/ChildFade.swift), [B-TRANSITIONS2-1](<Decisions/Shapes, effects and animation/Transition follow-ups (TRANSITIONS2).md#b-transitions2-1-a-branch-a-case-and-a-row-fade-in-where-a-container-remembers-its-children>) | Lane: the containers that window their rows or lay out a lattice keep no memory of their children yet (B-FB16-2, B-FB16-3, B-FB16-5); the fuller version is priced with theirs |
-| A `TableColumn`'s header and a `Tab`'s title draw their key's Markdown words but not its styles (a field's title is plain words, as SwiftUI's placeholder is); every other control's title key is drawn styled (2026-10-15, 2026-10-18) | [B87](<Decisions/SwiftUI API completion decisions.md#b87-markdown-in-a-controls-title-key-parsed-though-a-column-header-and-a-tab-title-draw-only-its-words>), [B-PARITYMISC-3](<Decisions/Small parity items (PARITYMISC).md#b-paritymisc-3-a-column-header-and-a-tab-title-draw-their-keys-markdown-words-not-its-styles>) | Lane: the fuller version draws the styles |
+| A `TableColumn`'s header and a `Tab`'s title draw their key's Markdown words but not its styles (a field's title is plain words, as SwiftUI's placeholder is); every other control's title key is drawn styled (2026-10-15, 2026-10-18) | [B87](<../Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md#b87-markdown-in-a-controls-title-key-parsed-though-a-column-header-and-a-tab-title-draw-only-its-words>), [B-PARITYMISC-3](<Decisions/Small parity items (PARITYMISC).md#b-paritymisc-3-a-column-header-and-a-tab-title-draw-their-keys-markdown-words-not-its-styles>) | Lane: the fuller version draws the styles |
 | A modifier reaches multi-view content through some wrappers only | [§3](<SwiftUI compatibility guide.md#3-open-divergence>) | Open divergence |
 | An `indirect` enum case's `update()` changes are not written back; nor any enum payload's on WebAssembly and Windows | [B-DYNVFIX-2](<Decisions/State and dynamic properties/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-2-an-indirect-enum-cases-payload-and-every-payload-on-webassembly-and-windows-is-updated-on-a-copy>) | Known; fuller version priced |
 | A class property (S6): a closure made in a view other than the first drawn holding the object reads the first one's environment (a sheet's Done calling its page's `dismiss`); the `@State` in an enum case in a long-lived object follows the case's payload | [B-DYNVFIX-3](<Decisions/State and dynamic properties/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-3-what-a-class-property-holds-is-the-objects-every-view-drawn-holding-it-is-redrawn-by-its-writes-each-reads-its-own-environment-while-it-draws-and-an-object-made-with-a-view-value-keeps-its-views-state>) | Known; the fuller version priced |

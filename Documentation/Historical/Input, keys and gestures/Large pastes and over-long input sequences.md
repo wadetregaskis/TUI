@@ -1,27 +1,23 @@
-# Completing the SwiftUI API: decisions from lane PASTE
+# Large pastes and over-long input sequences
 
-*Lane PASTE, 2026-10-11, fixed the input parser's give-ups. An 8 MiB
-bracketed paste of plain text made Stress exit: past its 1 MiB limit the
-parser dropped what it had buffered and left paste mode, so every later byte
-of the same paste was read as a key, and the first `q` quit (found by the
-coordinator while sizing an input benchmark). A terminal reply or a CSI
-longer than the 4 KiB the parser waits for had the same flaw on a smaller
-scale: the first 4 KiB was dropped and the rest typed out. Pasted text and
-terminal replies are now never keys, however long they run. (A paste the
-terminal pauses in for about a second is still ended at the pause, as
-before: B-PASTE-1.)*
+*How the input parser stopped giving up: a paste of any size arrives whole,
+and the rest of an over-long sequence is skipped rather than typed out. Ids:
+B-PASTE-1, B-PASTE-2; the capped-sequence bug class.*
 
-*The format is that of
-[`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.md>):*
+## In short
 
-- **A-PASTE-n — needs your decision.**
-- **B-PASTE-n — shipped the safe option.** Says what the fuller version would
-  be, and its price.
-- **C-PASTE-n — declined.** With the reason.
+An 8 MiB bracketed paste once made Stress exit: past the parser's 1 MiB limit
+it dropped what it had and left paste mode, so the rest of the paste was read
+as keys and the first `q` quit. A reply or a CSI longer than 4 KiB had the
+same flaw. Since 2026-10-11 (lane PASTE) pasted text and terminal replies are
+never keys, however long.
 
-There is no A or C entry.
+## For a future reader
 
-## B. Shipped the safe option
+- **The rule for any parser cap: skip, never re-parse as keys.** The memory
+  "capped sequence typed as keys" records the class.
+
+## The record
 
 ### B-PASTE-1. A paste of any size arrives whole
 
