@@ -3,10 +3,10 @@
 //
 //  `navigation`: a field guide to the owner's photographs in a three-column
 //  split view — a category in the sidebar, a species in the list, its page in
-//  the detail — and a stack in the detail: the page's photo, clicked, zooms
-//  up into a screen of its own (`navigationTransition(.zoom)`), and back
-//  folds it down into the page again. All of it by the pointer, which the
-//  film draws.
+//  the detail, the rest of its category in photos below — and a stack in the
+//  detail: the page's photo, clicked, zooms up into a screen of its own
+//  (`navigationTransition(.zoom)`), and back folds it down into the page
+//  again. All of it by the pointer, which the film draws.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -17,8 +17,9 @@ import TUI
 let navigationClip = Clip(
     id: "navigation",
     title: "Navigation",
-    columns: 112,
-    rows: 16,
+    // A 16:10 frame of the guide.
+    columns: 106,
+    rows: 30,
     output: 800,
     // Photographs, and blurs of them: WebP blocks them at the default quality.
     quality: 90,
@@ -35,14 +36,14 @@ private enum Spot {
     static let eagle = (24, 6)
     /// The thumbnail's middle: its first two columns are the link's focus
     /// marker, which a click there does not activate.
-    static let photo = (93, 3)
+    static let photo = (90, 4)
     /// The page's crumb in the photo screen's trail, "Bald eagle › Photo".
     static let back = (50, 1)
     static let rest = (60, 14)
 }
 
 private func navigationScript() -> [Step] {
-    var script: [Step] = [.camera(Shot(x: 0, y: 0, width: 112, height: 16)), .point(column: Spot.rest.0, row: Spot.rest.1)]
+    var script: [Step] = [.camera(Shot(x: 0, y: 0, width: 106, height: 30)), .point(column: Spot.rest.0, row: Spot.rest.1)]
     script += [.wait(1.0)]
     // To Birds in the sidebar; the list follows with its first bird.
     script += Step.glide(from: Spot.rest, to: Spot.birds, over: 0.6) + [.wait(0.15)]
@@ -180,46 +181,85 @@ struct FieldGuide: View {
         }
     }
 
+    private func statusName(_ status: String) -> String {
+        ["LC": "Least concern", "NT": "Near threatened", "VU": "Vulnerable", "EN": "Endangered"][status] ?? status
+    }
+
     @ViewBuilder private func page(for entry: Species?) -> some View {
         if let entry {
-            HStack(alignment: .top, spacing: 2) {
-                VStack(alignment: .leading, spacing: 1) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        HStack(spacing: 1) {
-                            Text(verbatim: entry.id).bold()
-                            Text(verbatim: " \(entry.status) ")
-                                .foregroundStyle(.palette.background)
-                                .background(statusColour(entry.status))
-                        }
-                        Text(verbatim: entry.latin).italic().foregroundStyle(.palette.foregroundSecondary)
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(alignment: .top, spacing: 2) {
+                    facts(entry)
+                    NavigationLink(value: entry) {
+                        Image(.file(ClipAssets.photo(entry.photo)))
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 30, height: 13, alignment: .topLeading)
                     }
-                    Text(verbatim: entry.note)
-                    VStack(alignment: .leading, spacing: 0) {
-                        LabeledContent("Size", value: entry.size)
-                        LabeledContent("Lifespan", value: entry.lifespan)
-                        LabeledContent("Habitat", value: entry.habitat)
-                        LabeledContent("Seen") {
-                            ProgressView(value: Double(entry.sightings), total: 100)
-                                .frame(width: 12)
-                        }
-                    }
-                    .frame(width: 30)
+                    .buttonStyle(.borderless)
+                    .fixedSize()
+                    .matchedTransitionSource(id: entry.id, in: zoom)
+                    Spacer(minLength: 0)
                 }
-                NavigationLink(value: entry) {
-                    Image(.file(ClipAssets.photo(entry.photo)))
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 16, height: 6, alignment: .topLeading)
-                }
-                .buttonStyle(.borderless)
-                .fixedSize()
-                .matchedTransitionSource(id: entry.id, in: zoom)
-                Spacer(minLength: 0)
+                Text(verbatim: "\(statusName(entry.status)) (IUCN); seen \(entry.sightings) times this year.")
+                    .foregroundStyle(.palette.foregroundSecondary)
+                    .frame(width: 56, alignment: .leading)
+                relatives(of: entry)
             }
             .padding(.horizontal, 1)
             .navigationTitle(entry.id)
         } else {
             Text(verbatim: "Choose a species").foregroundStyle(.palette.foregroundTertiary)
+        }
+    }
+
+    /// A species' name, status, note and figures.
+    private func facts(_ entry: Species) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 1) {
+                    Text(verbatim: entry.id).bold()
+                    Text(verbatim: " \(entry.status) ")
+                        .foregroundStyle(.palette.background)
+                        .background(statusColour(entry.status))
+                }
+                Text(verbatim: entry.latin).italic().foregroundStyle(.palette.foregroundSecondary)
+            }
+            Text(verbatim: entry.note)
+            VStack(alignment: .leading, spacing: 0) {
+                LabeledContent("Size", value: entry.size)
+                LabeledContent("Lifespan", value: entry.lifespan)
+                LabeledContent("Habitat", value: entry.habitat)
+                LabeledContent("Seen") {
+                    ProgressView(value: Double(entry.sightings), total: 100)
+                        .frame(width: 12)
+                }
+            }
+        }
+        .frame(width: 26, alignment: .leading)
+    }
+
+    /// The rest of the species' category, a photo each: a click opens its page.
+    private func relatives(of entry: Species) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(verbatim: "Also in \(category ?? "the guide")").foregroundStyle(.palette.foregroundSecondary)
+            HStack(alignment: .top, spacing: 2) {
+                ForEach(listed.filter { $0.id != entry.id }.prefix(3)) { other in
+                    Button {
+                        species = other.id
+                    } label: {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Image(.file(ClipAssets.photo(other.photo)))
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 18, height: 7, alignment: .topLeading)
+                            Text(verbatim: other.id).lineLimit(1)
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                    .fixedSize()
+                }
+            }
         }
     }
 
