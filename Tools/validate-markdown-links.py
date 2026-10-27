@@ -59,9 +59,12 @@ def blank_code(text, spans=True):
     text = '\n'.join(out)
     if not spans:
         return text
-    # A code span: a run of backticks, closed by a run of the same length (CommonMark 6.1).
-    return re.sub(r'(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)',
-                  lambda m: ' ' * len(m.group(0)), text, flags=re.S)
+    # A code span: a run of backticks, closed by a run of the same length (CommonMark 6.1), within one
+    # paragraph — a span never crosses a blank line, so an unclosed backtick cannot hide the links after it.
+    def spans_blanked(paragraph):
+        return re.sub(r'(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)',
+                      lambda m: ' ' * len(m.group(0)), paragraph, flags=re.S)
+    return ''.join(spans_blanked(part) for part in re.split(r'(\n[ \t]*\n)', text))
 
 
 def destinations(text):
@@ -240,6 +243,8 @@ SAMPLES = [
     ('a line anchor is GitHub\'s, not a heading', '[l](<c d.md#L2-L3>) [m](b.md#L9)', []),
     ('a link in a code span or a fence is code',
      '`[x](missing.md)`\n```\n[y](missing.md)\n```', []),
+    ('an unclosed backtick does not hide the next paragraph\'s links',
+     'a ` stray\n\n[x](missing.md) and `code`', ['missing.md']),
     ('a URL and a DocC link are not checked', '[u](https://example.com/x.md) [d](doc:Thing)', []),
     ('a directory with tracked files resolves', '[d](sub/) [e](sub)', []),
     ('an untracked directory does not', '[w](<Working notes/x.md>)', ['<Working notes/x.md>']),
