@@ -29,8 +29,8 @@ helper.
 ## Where it stands
 
 Shipped as above, a text control's steps kept as edits, and the built-in
-controls' values undoable (2026-10-26) but for the graphical `DatePicker`
-calendar and the curve editors, which are owed.
+controls' values undoable (2026-10-26) but for the curve editors, which are
+owed.
 
 ## For a future reader
 
@@ -335,14 +335,13 @@ change: `Toggle` (keys, clicks, a menu row), the menu, segmented and radio
 typing: a change made while its step is still the newest in the manager
 (the text controls' mark, `TextUndoBridge.isNewestStep`) joins it, so the
 undo goes back to where the run began — `Slider`, `Stepper`, a `DatePicker`'s
-fields, a `ColorPicker`'s 256-colour and swatch grids (its channel sliders
-are `Slider`s). Writes no person made are no step: the app's own, and a
+fields and its graphical calendar (added 2026-10-27), a `ColorPicker`'s
+256-colour and swatch grids (its channel sliders are `Slider`s). Writes no person made are no step: the app's own, and a
 control's clamp into range, which goes through the binding unwrapped. A write
 of the value already there is none either. No action name, as the text
 controls' steps have none.
 
-**Not built:** the graphical `DatePicker` calendar (a style with a body,
-where no render context holds a run), the curve editors, a `Toggle` governing
+**Not built:** the curve editors, a `Toggle` governing
 several sources (its undo restores the combined value, setting every source
 alike). **For a future reader:** a new control with a value adopts it in one
 line, `context.undoable(binding, coalescing:, propertyIndex:)`, at the point

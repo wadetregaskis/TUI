@@ -130,6 +130,20 @@ struct ControlValueUndoTests {
         #expect(box.value == "a")
     }
 
+    @Test("A run of moves on the graphical calendar is one step")
+    func calendarRun() {
+        let manager = makeManager()
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let box = Box(start)
+        let harness = InputChainHarness(undoManager: manager)
+        harness.play([KeyEvent(key: .right), KeyEvent(key: .right)]) {
+            DatePicker("Day", selection: box.binding, displayedComponents: .date).datePickerStyle(.graphical)
+        }
+        #expect(box.value != start)
+        manager.undo()
+        #expect(box.value == start)
+    }
+
     @Test("A slider's clamp of an out-of-range value is no step; the app's own writes are none")
     func clampIsNoStep() {
         let manager = makeManager()

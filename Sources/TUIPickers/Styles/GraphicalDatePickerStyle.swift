@@ -164,6 +164,8 @@ private enum DatePickerCalendarStateIndex {
     static let handler = 1
     /// Whether a calendar that takes the focus as it appears has taken it.
     static let hasTakenFocus = 2
+    /// The calendar's undo (``ControlValueUndo``): a run of moves is one step.
+    static let undo = 3
 }
 
 /// Draws the month shown and registers the calendar's focus stop and click
@@ -268,7 +270,9 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         let handler = box.value
         // Every field the view declares, every frame: a persisted handler keeps
         // the values of the frame that made it otherwise.
-        handler.selection = selection
+        // A person's picks are steps in the app's undo manager, a run of moves
+        // one step, as the grids of a colour picker make them.
+        handler.selection = context.undoable(selection, coalescing: true, propertyIndex: StateIndex.undo)
         handler.range = range
         handler.calendar = calendar
         handler.onReturn = onReturn
