@@ -206,6 +206,26 @@ struct ProgressViewPage: View {
                             text: "\(percent(fraction))%", style: .accessoryCircularTiny)
                     }
 
+                    // Tinted: a colour fills the bar; a gradient — SwiftUI's own
+                    // gauge example — runs across it, and around the rings from
+                    // the start of their sweep.
+                    gaugeRow(label: ".tint(.green)           ", fraction: fraction, style: .linearCapacity)
+                        .tint(.green)
+                    gaugeRow(label: ".tint(Gradient(…))      ", fraction: fraction, style: .linearCapacity)
+                        .tint(heat)
+                    HStack(spacing: 3) {
+                        circularGauge(
+                            label: "accessoryCircular", fraction: fraction,
+                            text: percent(fraction), style: .accessoryCircular)
+                        circularGauge(
+                            label: "…Capacity", fraction: fraction,
+                            text: "\(percent(fraction))%", style: .accessoryCircularCapacity)
+                        circularGauge(
+                            label: "…Tiny", fraction: fraction,
+                            text: "\(percent(fraction))%", style: .accessoryCircularTiny)
+                    }
+                    .tint(heat)
+
                     // Non-percentage read-outs: the same gauges over other
                     // ranges, exercising the label rendering with varied text
                     // widths — decimals ("0.62"), plain integers up to three
@@ -489,6 +509,9 @@ struct ProgressViewPage: View {
             Text(label).dim()
         }
     }
+
+    /// The tinted gauges' ramp: SwiftUI's own gauge example's.
+    private var heat: Gradient { Gradient(colors: [.green, .yellow, .orange, .red]) }
 
     /// `fraction` as a whole number of percent, with no unit — the read-out
     /// the ring gauges take.

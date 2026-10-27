@@ -40,6 +40,9 @@ package enum TrackRenderer {
     ///     bar (the default) or only the lit part. See ``TrackGradientScaling``.
     ///   - backgroundScaling: The same question for the background's
     ///     gradient — the bar, or only the cells the fill has not reached.
+    ///   - fillRamp: A gradient tint's ramp (``TrackFill``), painted across
+    ///     the fill where the style states no gradient of its own; `nil` for
+    ///     none.
     ///   - palette: The palette the style's own colours are resolved against.
     ///     The three colours above arrive resolved; a style read from the
     ///     environment does not, and a palette role has no channels to emit.
@@ -58,6 +61,7 @@ package enum TrackRenderer {
         accentColor: Color,
         fillScaling: TrackGradientScaling = .track,
         backgroundScaling: TrackGradientScaling = .track,
+        fillRamp: Gradient? = nil,
         palette: any Palette,
         graphics: GradientGraphicsContext? = nil,
         neutralFraction: Double? = nil,
@@ -84,7 +88,9 @@ package enum TrackRenderer {
         // The named cases are just presets; `.custom` carries a caller-supplied
         // recipe.
         func configured(_ config: TrackConfiguration) -> ClaimingRow {
-            fromNeutral { configured(config, at: $0, graphics: neutral == nil ? graphics : nil) }
+            var config = config
+            if config.fillGradient == nil, let fillRamp { config.fillGradient = fillRamp }
+            return fromNeutral { configured(config, at: $0, graphics: neutral == nil ? graphics : nil) }
         }
         func configured(
             _ config: TrackConfiguration, at fraction: Double, graphics: GradientGraphicsContext?

@@ -101,6 +101,29 @@ Measured, and all three must be pinned by test or TUI will diverge silently:
   `#FFB108 / #FFC701 / #FFB706` — but so did `.tint(Color.red)`. Those
   AppKit-backed controls ignore `tint` under `ImageRenderer` entirely, so the
   experiment says nothing.
+- **`.tint(gradient)` on a `Gauge`, measured (2026-10-26, macOS 15.8.1).** With
+  `.tint(Gradient(colors: [.red, .green, .blue]))`, rendered through
+  `ImageRenderer` and, for the AppKit-backed styles, an `NSHostingView`'s
+  `cacheDisplay`, and the rings sampled every 30° clockwise from 12 o'clock:
+  - `.accessoryCircular` draws the ramp along its whole arc in the sweep's
+    direction — red at the arc's start (bottom left), green at the top, blue
+    at its end — with the marker at the value.
+  - `.accessoryCircularCapacity` fixes the ramp to the ring, whatever the
+    value: the fill uncovers it and the unfilled track shows it faintly. It
+    runs the *other* way: blue (the last stop) at 12 o'clock where the fill
+    starts, green at 6, red at the end of the turn.
+  - `.accessoryLinear` draws it across the whole bar, left to right, with the
+    marker at the value.
+  - `.linearCapacity` (AppKit's level indicator on the Mac) plucks the first
+    stop: a solid red fill. Untinted it is AppKit's green, not the accent.
+
+  TUI paints a gradient tint along every gauge and progress bar — across a
+  bar, the whole track's length, so the fill uncovers it; around a ring,
+  first stop at the start of the sweep (SwiftUI's capacity ring's reversed
+  order is not copied, nor the Mac's first stop) — and stands its
+  representative wherever a colour is derived from the tint (§5). An
+  untinted bar keeps TUI's quiet `foregroundSecondary`; a stated tint, colour
+  or gradient, fills it (`TrackFill`).
 
 ---
 
@@ -597,9 +620,8 @@ claims slack and never demands any.
   while `TrackGradientScaling.fill` (now `.region`) re-measures against a VALUE-dependent
   sub-rectangle that changes every frame — which neither `GradientExtent` nor
   `.in(_:)` can express. Two knobs, two questions.
-- **What a real AppKit control does with `.tint(gradient)`** (§1). Blocks
-  nothing — the §5 rule stands on TUI's own needs — but it would be good to
-  know.
+- ~~**What a real AppKit control does with `.tint(gradient)`** (§1).~~
+  Measured for the gauges, 2026-10-26 (§1).
 
 ---
 

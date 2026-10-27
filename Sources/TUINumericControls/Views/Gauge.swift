@@ -423,15 +423,17 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
         let minPart = minText.strippedLength > 0 ? minText + " " : ""
         let maxPart = maxText.strippedLength > 0 ? " " + maxText : ""
         let barWidth = max(1, width - minPart.strippedLength - maxPart.strippedLength)
+        let fill = TrackFill(environment: context.environment, palette: palette)
         let bar = TrackRenderer.render(
             fraction: fraction,
             width: barWidth,
             style: trackStyle,
-            fillColor: palette.foregroundSecondary,
+            fillColor: fill.colour,
             backgroundColor: palette.foregroundTertiary,
             accentColor: palette.accent,
             fillScaling: context.environment.trackFillGradientScaling,
             backgroundScaling: context.environment.trackBackgroundGradientScaling,
+            fillRamp: fill.ramp,
             palette: palette,
             graphics: context.gradientGraphics(token: "track-\(context.identity.path)")
         )
@@ -450,8 +452,9 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
         // this dial is one of the four emit sites §31.4 found bypassing
         // `TrackRenderer` entirely.
         var row = ClaimingRow()
-        row.append(
-            String(GaugePieDial.glyph(for: fraction)), cells: 1, ink: palette.accent)
+        // A gradient tint: the ramp's colour at the value.
+        let ink = TrackFill(environment: context.environment, palette: palette).ramp?.color(at: fraction) ?? palette.accent
+        row.append(String(GaugePieDial.glyph(for: fraction)), cells: 1, ink: ink)
         let valueText = inlineText(currentValueLabel, slot: .currentValue, context: context)
         if valueText.strippedLength > 0 {
             row.skip(cells: 1)
@@ -525,9 +528,22 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
             let marker = Int((fraction * Double(perimeter.count - 1)).rounded())
             isOn[min(max(0, marker), perimeter.count - 1)] = true
         }
+        // A gradient tint runs along the sweep, its first stop at the start, as
+        // SwiftUI's `.accessoryCircular` draws one: lit cells in it, the rest in
+        // it faintly, as SwiftUI's capacity ring draws its unfilled track.
+        // (SwiftUI's capacity ring runs the ramp the other way round, its last
+        // stop at the start — measured; not copied.)
+        let ramp = TrackFill(environment: context.environment, palette: palette).ramp
         var colorAt: [String: Color] = [:]
         for (index, cell) in perimeter.enumerated() {
-            colorAt["\(cell.r),\(cell.c)"] = isOn[index] ? accent : dim
+            let colour: Color
+            if let ramp {
+                let along = ramp.color(at: perimeter.count > 1 ? Double(index) / Double(perimeter.count - 1) : 0)
+                colour = isOn[index] ? along : along.mix(with: palette.background, by: TrackFill.unlitRampFade)
+            } else {
+                colour = isOn[index] ? accent : dim
+            }
+            colorAt["\(cell.r),\(cell.c)"] = colour
         }
 
         var lines: [String] = []

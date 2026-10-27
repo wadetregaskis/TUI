@@ -274,6 +274,7 @@ public struct ThemeModifier<Content: View>: View {
         environment.appearance = theme.appearance
         if let tint = theme.tint {
             environment.tint = tint
+            environment.tintPaint = .color(tint.resolve(with: theme.palette))
             environment.palette = TintedPalette(base: theme.palette, tint: tint)
         } else {
             environment.palette = theme.palette

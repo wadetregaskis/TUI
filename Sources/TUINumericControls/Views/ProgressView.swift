@@ -62,7 +62,7 @@ import TUIFoundation
 ///
 /// | Part | Color |
 /// |------|-------|
-/// | Filled bar | `palette.foregroundSecondary` |
+/// | Filled bar | the ``View/tint(_:)-(S?)`` where one is stated (a gradient's ramp across the bar), else `palette.foregroundSecondary` |
 /// | Empty bar | `palette.foregroundTertiary` |
 /// | Dot head (`.dot` style only) | `palette.accent` |
 /// | Label | inherited from environment |
@@ -461,7 +461,7 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
         let canPreRender =
             IndeterminateRenderer.isOpaqueThroughout(
                 style: context.environment.indeterminateStyle,
-                fillColor: palette.foregroundSecondary, backgroundColor: palette.foregroundTertiary,
+                fillColor: TrackFill(environment: context.environment, palette: palette).colour, backgroundColor: palette.foregroundTertiary,
                 accentColor: palette.accent, palette: palette)
         guard fractionCompleted == nil, !context.isMeasuring, width > 0, canPreRender else {
             let bar: ClaimingRow
@@ -548,7 +548,7 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
         width: Int, palette: any Palette, context: RenderContext
     ) -> CachedCycle {
         let style = context.environment.indeterminateStyle
-        let filled = palette.foregroundSecondary
+        let filled = TrackFill(environment: context.environment, palette: palette).colour
         let empty = palette.foregroundTertiary
         let accent = palette.accent
         let speed = context.environment.indicatorAnimationSpeeds.speed(for: .indeterminateProgress)
@@ -751,7 +751,7 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
     ) -> (row: ClaimingRow, nextChangeNanos: Int64?) {
         IndeterminateRenderer.frame(
             atElapsed: elapsed, width: width, style: context.environment.indeterminateStyle,
-            fillColor: palette.foregroundSecondary, backgroundColor: palette.foregroundTertiary,
+            fillColor: TrackFill(environment: context.environment, palette: palette).colour, backgroundColor: palette.foregroundTertiary,
             accentColor: palette.accent, palette: palette,
             speed: context.environment.indicatorAnimationSpeeds.speed(for: .indeterminateProgress))
     }
@@ -767,15 +767,17 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
             // fallback above draws the same frame.
             return indeterminateFrame(width: width, palette: palette, context: context, elapsed: elapsed).row
         }
+        let fill = TrackFill(environment: context.environment, palette: palette)
         return TrackRenderer.render(
             fraction: fraction,
             width: width,
             style: style,
-            fillColor: palette.foregroundSecondary,
+            fillColor: fill.colour,
             backgroundColor: palette.foregroundTertiary,
             accentColor: palette.accent,
             fillScaling: context.environment.trackFillGradientScaling,
             backgroundScaling: context.environment.trackBackgroundGradientScaling,
+            fillRamp: fill.ramp,
             palette: palette,
             graphics: context.gradientGraphics(token: "track-\(context.identity.path)")
         )

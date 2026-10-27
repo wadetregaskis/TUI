@@ -80,12 +80,30 @@ private struct TintKey: EnvironmentKey {
     static let defaultValue: Color? = nil
 }
 
+/// Environment key for the tint as it was stated, resolved: a ramp where it
+/// was one.
+private struct TintPaintKey: EnvironmentKey {
+    static let defaultValue: Paint? = nil
+}
+
 extension EnvironmentValues {
     /// The tint colour applied to this subtree, if any (set via
-    /// ``View/tint(_:)``). The accent affordance of controls follows it.
+    /// ``View/tint(_:)-(S?)``). The accent affordance of controls follows it:
+    /// a gradient's representative (``Gradient/representative``).
     public var tint: Color? {
         get { self[TintKey.self] }
         set { self[TintKey.self] = newValue }
+    }
+
+    /// The tint applied to this subtree, as stated — a gradient as a ramp, not
+    /// its representative — or `nil` where none was. What a control that PAINTS
+    /// its tint along itself reads: a gauge's track, a progress bar's fill
+    /// (`Gradients where a colour is accepted.md` §5). SwiftUI's own is an
+    /// `AnyShapeStyle?` and package-only; a resolved paint, as
+    /// ``foregroundStyle`` is one, because a resolved paint compares.
+    package var tintPaint: Paint? {
+        get { self[TintPaintKey.self] }
+        set { self[TintPaintKey.self] = newValue }
     }
 }
 
@@ -94,11 +112,16 @@ extension EnvironmentValues {
 /// Applies a tint to its content's subtree by overriding the environment
 /// palette's accent (see `TintedPalette`). A read-modify-write at render, so
 /// it composes with the surrounding palette like the other style modifiers.
-public struct TintModifier<Content: View>: View {
+///
+/// The tint may be any style. Where a colour is derived from it — the accent,
+/// and every colour the controls derive from that — a gradient stands as its
+/// representative; where one is painted along a control, as a gauge's track
+/// is, the ramp itself (`EnvironmentValues.tintPaint`).
+public struct TintModifier<Content: View, S: ShapeStyle>: View {
     public let content: Content
-    public let tint: Color?
+    public let tint: S?
 
-    public init(content: Content, tint: Color?) {
+    public init(content: Content, tint: S?) {
         self.content = content
         self.tint = tint
     }
@@ -144,9 +167,13 @@ public struct TintModifier<Content: View>: View {
         // holding `any Palette` reports the CONCRETE type's conformance, so a
         // `SystemPalette` in that slot answers `is any Equatable` perfectly
         // well. It is `TintedPalette` specifically that cannot.
+        //
+        // The PAINT is noted, as `_StyleEnvironmentView` notes its: a style need
+        // not be `Equatable`, and a resolved paint is.
+        let paint = tint.paint(in: context.environment)
         if let cache = context.renderCache,
             case .changed = cache.noteAppliedEnvironment(
-                tint, identity: context.identity, keyPath: \EnvironmentValues.tint,
+                paint, identity: context.identity, keyPath: \EnvironmentValues.tintPaint,
                 depth: context.environmentApplicationDepth)
         {
             // A tint is ink; the sizes below it stay (see `_StyleEnvironmentView`).
@@ -154,8 +181,10 @@ public struct TintModifier<Content: View>: View {
         }
 
         var environment = context.environment
-        environment.tint = tint
-        environment.palette = TintedPalette(base: environment.palette, tint: tint)
+        let accent = paint.representative
+        environment.tint = accent
+        environment.tintPaint = paint
+        environment.palette = TintedPalette(base: environment.palette, tint: accent)
         var modified = context.withEnvironment(environment)
         modified.environmentApplicationDepth += 1
         return modified
@@ -184,6 +213,19 @@ extension View {
     /// ```
     ///
     /// `nil` leaves the inherited tint / palette accent unchanged.
+    ///
+    /// A gradient tints what paints along itself with the ramp — a gauge's
+    /// arc or bar, a progress bar's fill — and every colour derived from the
+    /// tint (a button's face, a toggle's mark) with its representative
+    /// (`Gradients where a colour is accepted.md` §5).
+    public func tint<S: ShapeStyle>(_ tint: S?) -> some View {
+        TintModifier(content: self, tint: tint)
+    }
+
+    /// The colour spelling, so `.tint(.red)` and `.tint(nil)` infer a type: a
+    /// disfavoured `Color?` twin, as SwiftUI ships one (and as
+    /// ``View/foregroundStyle(_:)-(Color)`` is).
+    @_disfavoredOverload
     public func tint(_ tint: Color?) -> some View {
         TintModifier(content: self, tint: tint)
     }
@@ -202,7 +244,7 @@ extension TintModifier: ContentRewrapping {
     public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { modifiedContext(context) }
 
     public func rewrapping<V: View>(_ view: V) -> any View {
-        TintModifier<V>(content: view, tint: tint)
+        TintModifier<V, S>(content: view, tint: tint)
     }
 }
 

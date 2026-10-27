@@ -246,8 +246,8 @@ public struct ForegroundStyle: ShapeStyle, Equatable {
     }
 }
 
-/// A style that reflects the current tint colour: the ``View/tint(_:)`` in
-/// force, or the palette's accent.
+/// A style that reflects the current tint: the ``View/tint(_:)-(S?)`` in force
+/// as it was stated — a gradient as its ramp — or the palette's accent.
 public struct TintShapeStyle: ShapeStyle, Equatable {
     /// Creates a tint shape style.
     public init() {}
@@ -255,7 +255,7 @@ public struct TintShapeStyle: ShapeStyle, Equatable {
     public typealias Resolved = Never
 
     public func paint(in environment: EnvironmentValues) -> Paint {
-        (environment.tint ?? Color.palette.accent).paint(in: environment)
+        environment.tintPaint ?? (environment.tint ?? Color.palette.accent).paint(in: environment)
     }
 }
 

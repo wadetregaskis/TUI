@@ -569,7 +569,16 @@ a terminal at all.
                                         .appearance(.rounded)              // border/figure set
                                         .controlStyle(.lines)              // controls' faces
 .tint(.blue)                            .tint(.blue)                       // supported, matches (→ §1)
+.tint(Gradient(colors: …))              .tint(Gradient(colors: …))         // supported: painted along a gauge or bar
 ```
+
+A gradient tint is painted where a control draws its tint along itself — a
+gauge's arc or bar, a progress bar's fill — and stands as its representative
+wherever a colour is derived from it (a button's face, a toggle's mark). An
+untinted linear gauge or progress bar fills with the palette's quiet
+`foregroundSecondary` rather than SwiftUI's accent, keeping the accent for what
+the user acts on; a stated tint fills it (`Gradients where a colour is
+accepted.md` §1).
 
 **What matches:** `\.colorScheme` asks whether the surroundings are light or dark,
 and TUI answers it. The answer is the palette's: the page it paints where that

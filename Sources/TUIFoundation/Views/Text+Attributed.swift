@@ -28,7 +28,7 @@ extension Text {
     /// draws as it does in SwiftUI; its code spans are already monospaced.
     ///
     /// A run carrying Foundation's `link` draws as a link: in the accent colour
-    /// (which follows ``View/tint(_:)``, as SwiftUI's links do) unless the run
+    /// (which follows ``View/tint(_:)-(S?)``, as SwiftUI's links do) unless the run
     /// states a colour of its own, underlined as a ``Link`` is (see
     /// ``View/linkUnderline(_:)``), and as a real OSC 8 hyperlink wherever the
     /// terminal honours one (``View/terminalHyperlinks(_:)``). And it is a
