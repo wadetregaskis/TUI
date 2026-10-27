@@ -41,7 +41,7 @@ private let listRowGutter = 2
 /// build of the row, and a frame that never asks — the hug measure, which
 /// wants widths — pays nothing for it.
 @MainActor
-private final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSeparatorDeciding {
+final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSeparatorDeciding {
     /// The number of rows. Known cheaply — O(1) for the windowed path
     /// (`ForEach.listRowCount`); the array length for the eager paths.
     let count: Int
@@ -181,7 +181,7 @@ private final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSepar
     /// Scanning it for `allContent` is cheap where every type is known; where
     /// some row's is still to be asked for, the scan waits for someone to want
     /// the answer.
-    static func eager(
+    fileprivate static func eager(
         _ rows: [EagerListRow<SelectionValue>], editOwners: [ListRowEditOwner] = []
     ) -> RowSource {
         RowSource(
