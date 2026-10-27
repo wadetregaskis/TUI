@@ -19,9 +19,18 @@ then compile time.
 
 ## For a future reader
 
-- **SIZE-SMALL-LEVERS is owed**: re-measure the small package levers under
-  today's defaults, drop any worth under about 1% of Hello, land the rest
-  within the A/B tolerance (settled 2026-10-18, never run).
+- **SIZE-SMALL-LEVERS** (settled 2026-10-18: drop any package lever worth
+  under about 1% of Hello, land the rest within the A/B tolerance), worked
+  through 2026-10-27 against §3.2's figures. Hello under the per-module
+  products (lever 5, shipped) is about 7.4 MB stripped, so 1% is about 74 KB.
+  - **Lever 7, the SF Symbols names front-coded:** already shipped. The
+    generated table is front-coded in blocks of 16 (`SFSymbolTable.generated.swift`).
+  - **Levers 8, 11, 12, 13 and 14: dropped.** Each is estimated at 15 to
+    30 KB of Hello, lever 8 at 15 KB once Hello links only its own modules.
+  - **Lever 9, `@_alwaysEmitIntoClient` on the public modifier wrappers:**
+    still a candidate, estimated at 110 to 150 KB. It changes inlining at
+    every call site, so its bytes need re-measuring on the split tree and its
+    runtime cost a quiet-box A/B before it lands. **Owed.**
 - **BINARY-DISTRIBUTION** waits on two compiler bug reports on the Desktop.
 
 ## The study: where the bytes go in a release build (2026-10-10)
