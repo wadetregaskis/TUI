@@ -90,7 +90,10 @@ package enum TrackRenderer {
         func configured(_ config: TrackConfiguration) -> ClaimingRow {
             var config = config
             if config.fillGradient == nil, let fillRamp { config.fillGradient = fillRamp }
-            return fromNeutral { configured(config, at: $0, graphics: neutral == nil ? graphics : nil) }
+            return Self.drawn(
+                from: neutral, to: fraction,
+                startEdge: Self.mirroredEdge(config, fillColor: fillColor, backgroundColor: backgroundColor)
+            ) { configured(config, at: $0, graphics: neutral == nil ? graphics : nil) }
         }
         func configured(
             _ config: TrackConfiguration, at fraction: Double, graphics: GradientGraphicsContext?
@@ -194,28 +197,84 @@ package enum TrackRenderer {
 
     /// A fill style drawn from a neutral value: put together from whole cells
     /// of the track drawn empty, drawn to the value, and drawn to the neutral
-    /// value, so no style needs a second way to draw its fill. The boundary
-    /// nearest the neutral value is a whole cell; the one at the value keeps
-    /// the style's own sub-cell ramp when the value lies above it.
+    /// value, so no style needs a second way to draw its fill. The fill's end
+    /// to the right keeps the style's own sub-cell ramp. Its start, to the
+    /// left, is a step within a cell where the style can draw a fill on a
+    /// cell's right (`startEdge`), and a whole cell elsewhere.
     private static func drawn(
-        from neutral: Double?, to fraction: Double, _ draw: (Double) -> ClaimingRow
+        from neutral: Double?, to fraction: Double, startEdge: MirroredEdge? = nil,
+        _ draw: (Double) -> ClaimingRow
     ) -> ClaimingRow {
         guard let neutral else { return draw(fraction) }
         let toValue = draw(fraction)
         let empty = draw(0)
         let total = toValue.cells
-        let neutralCell = Int((neutral * Double(total)).rounded())
+        // The fill runs from `start` to `end`; `endRow` draws its end.
+        let (start, end, endRow) = fraction >= neutral ? (neutral, fraction, toValue) : (fraction, neutral, draw(neutral))
         var row = ClaimingRow()
+        if let startEdge, let (cell, uncovered) = startEdge.step(at: start, end: end, cells: total) {
+            row.append(contentsOf: empty.slice(0..<cell))
+            row.append(contentsOf: startEdge.cell(cell, uncovered))
+            row.append(contentsOf: endRow.slice((cell + 1)..<total))
+            return row
+        }
+        let startCell = Int((start * Double(total)).rounded())
+        let endCell = Int((end * Double(total)).rounded())
+        row.append(contentsOf: empty.slice(0..<startCell))
         if fraction >= neutral {
-            row.append(contentsOf: empty.slice(0..<neutralCell))
-            row.append(contentsOf: toValue.slice(neutralCell..<total))
+            row.append(contentsOf: toValue.slice(startCell..<total))
         } else {
-            let valueCell = Int((fraction * Double(total)).rounded())
-            row.append(contentsOf: empty.slice(0..<valueCell))
-            row.append(contentsOf: draw(neutral).slice(valueCell..<neutralCell))
-            row.append(contentsOf: empty.slice(neutralCell..<total))
+            row.append(contentsOf: endRow.slice(startCell..<endCell))
+            row.append(contentsOf: empty.slice(endCell..<total))
         }
         return row
+    }
+
+    /// How a style draws a fill that starts within a cell: its ramp glyph
+    /// covering the cell's empty left part, in the track's colour, over the
+    /// fill's colour (owner ruling B33-SUBCELL, 2026-10-18) — the ramps grow
+    /// only rightward, so the cell is drawn as its complement. For a style
+    /// whose ramp starts from the left of a full block over a solid track, in
+    /// plain colours: `.blockFine`, and a custom one like it.
+    struct MirroredEdge {
+        /// The ramp, each glyph a step more of the cell from its left.
+        let ramp: [Character]
+        let fillColor: Color
+        let backgroundColor: Color
+
+        /// The cell a fill from `start` to `end` across `cells` starts in, and
+        /// how many of its steps, from the left, are empty — or `nil` where it
+        /// starts on a cell's edge, or the fill does not cover the rest of
+        /// that cell.
+        func step(at start: Double, end: Double, cells: Int) -> (cell: Int, uncovered: Int)? {
+            let perCell = ramp.count + 1
+            let startStep = Int((start * Double(cells * perCell)).rounded())
+            let endStep = Int((end * Double(cells * perCell)).rounded())
+            let (cell, uncovered) = startStep.quotientAndRemainder(dividingBy: perCell)
+            guard uncovered > 0, cell < cells, endStep >= (cell + 1) * perCell else { return nil }
+            return (cell, uncovered)
+        }
+
+        /// Cell `index`, its first `uncovered` steps empty and the rest fill.
+        func cell(_ index: Int, _ uncovered: Int) -> ClaimingRow {
+            var row = ClaimingRow()
+            row.append(String(ramp[uncovered - 1]), cells: 1, ink: backgroundColor, field: fillColor)
+            return row
+        }
+    }
+
+    /// The mirrored start edge `config` can draw, or `nil` for one it cannot:
+    /// a ramp, a full-block fill over a solid track, no gradients, and colours
+    /// that are opaque — the cell's field is the fill, and its ink the track.
+    private static func mirroredEdge(
+        _ config: TrackConfiguration, fillColor: Color, backgroundColor: Color
+    ) -> MirroredEdge? {
+        guard let ramp = config.leadingEdge, !ramp.isEmpty, config.fill == "█", case .solid = config.background,
+            config.fillGradient == nil, config.backgroundGradient == nil
+        else { return nil }
+        let background = config.backgroundColor ?? backgroundColor
+        guard fillColor.isOpaque, background.isOpaque else { return nil }
+        return MirroredEdge(ramp: ramp, fillColor: fillColor, backgroundColor: background)
     }
 
     /// The colour a gradient shows at cell `index` of a `span`-cell ramp — the

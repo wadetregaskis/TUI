@@ -589,6 +589,24 @@ with no glyph for it drawing a box — needs `overhang_card.py` (which draws the
 two rows now) read by a person. Until it is, the claim is one cell and no
 host widens it.
 
+### A fill that starts within a cell — read 2026-10-27
+
+A slider's fill from a neutral value starts within a cell under `.blockFine`
+(owner ruling B33-SUBCELL): the eighth-block ramps (`▏`…`▉`) grow only from
+a cell's left, so that cell is drawn as its complement — the ramp glyph
+covering the empty left part, in the track's colour, over the fill's colour
+as the cell's background (`TrackRenderer.MirroredEdge`).
+`Tools/TerminalProbes/mirrored_ramp_card.py` draws it at every step beside
+the plain ramp, in double-width rows, on macOS 15.8.1:
+
+| Host | Version | The mirrored edge |
+|---|---|---|
+| Apple Terminal | 455.1 | Each step in order; the glyph falls short of the line's height, so a sliver of the fill's colour shows above the empty part. The plain ramp beside it does the same in mirror image (the track's colour above the fill), so the edge is no worse than the ramp already drawn. |
+| iTerm2 | 3.7.6 | Clean: full height, each step in order. |
+| Ghostty | 1.3.1 | Clean: full height, each step in order. |
+
+Warp, kitty and xterm.js are not read.
+
 ## Identifying the host terminal
 
 Every per-terminal model in this document is only as good as the answer to

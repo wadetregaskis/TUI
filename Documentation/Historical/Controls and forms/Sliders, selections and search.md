@@ -16,8 +16,8 @@ commit of 2026-10-26 (`6813bad99`) and `Gradients where a colour is accepted.md`
 
 ## For a future reader
 
-- **B33-SUBCELL is owed**: a fill-style slider's edge at its neutral value to a
-  fraction of a cell, after a PTY check shows clean edges (settled 2026-10-18).
+- **B33-SUBCELL shipped 2026-10-27**: a fill-style slider's edge at its
+  neutral value to a fraction of a cell (below, under B33).
 
 ## The record
 
@@ -53,6 +53,21 @@ documentation, and each reading below is a guess at the look:
 **Fuller versions:** sub-cell edges at the neutral value for the fill styles
 (the ramps only grow rightward, so a leftward edge needs mirrored glyphs most
 fonts lack); and a measured look once a macOS 26 machine is available.
+
+**Sub-cell edges shipped (lane SUBCELL, 2026-10-27; B33-SUBCELL, option 2,
+settled 2026-10-18).** The fill's start is a step within a cell for a style
+that can draw it: a ramp from the left of a full block over a solid track, in
+plain opaque colours. That is `.blockFine`, and a custom style like it. The
+cell is drawn as its complement, with no mirrored glyph needed: the ramp glyph
+covers the cell's empty left part, in the track's colour, over the fill's
+colour as the cell's field (`TrackRenderer.MirroredEdge`). Above the neutral
+value that is the cell the neutral value falls in. Below it, it is the
+value's cell, and the end at the neutral value keeps the ramp's own step. Any
+other style keeps the whole-cell start. The PTY check the ruling asked for
+(`Tools/TerminalProbes/mirrored_ramp_card.py`, the survey's "A fill that
+starts within a cell") found clean edges on iTerm2 and Ghostty. On Apple
+Terminal the edge matches the ramp TUI already draws: the glyph falls short of
+the line height, in mirror image. The tests are `TrackNeutralEdgeTests`.
 
 ### B-PARITYMISC-1. A wrong-typed write through an AnyHashable projection is reported and dropped
 

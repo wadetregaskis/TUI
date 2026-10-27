@@ -77,6 +77,12 @@ when unset), the visual/aspect probes print to the terminal.
   three, every row ending in a `|` that lines up only when each glyph advances
   one cell. Read on four hosts 2026-10-17 (the survey's "Bracket pairs for a
   compact face").
+- `mirrored_ramp_card.py` — a track's fill that starts within a cell
+  (B33-SUBCELL): the eighth-block ramp glyph drawn in the track's colour over
+  the fill's, beside the plain ramp TUI already draws, at each of the seven
+  steps, in double-width rows. Read on three hosts 2026-10-27 — see "A fill
+  that starts within a cell" in
+  `Documentation/Terminals/Terminal compatibility survey.md`.
 - `breath_card.py` — how a host paints TUI's reversing row breaths: at 16
   colours, a cursor row whose breath runs between a slot fill and reverse video
   (the whole row the text's colour, every glyph on it the page's); without
