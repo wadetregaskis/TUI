@@ -73,6 +73,8 @@ public final class StateStorage: @unchecked Sendable {
     /// | -150… | `_ScrollIndicatorsFlashCore` (`scrollIndicatorsFlash(trigger:)`, a tracked value) |
     /// | -160… | `_InspectorToggleHost` (`inspector(isPresented:content:)`'s toggle) |
     /// | -170… | `_SwipeActionsView` (`swipeActions(edge:allowsFullSwipe:content:)`'s revealed strip) |
+    /// | -180… | `DraggableModifier` (its own focus stop's id, for Copy) |
+    /// | -190… | `DropDestinationModifier` (its own focus stop's id, for Paste) |
     ///
     /// Taking a new range: claim the next free ten here, in this table.
     /// (Leaf `Renderable` views whose slots can never share an identity with

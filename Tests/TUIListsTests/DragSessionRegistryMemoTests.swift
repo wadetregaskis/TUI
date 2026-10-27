@@ -112,6 +112,8 @@ private struct SpringCard: View, @MainActor Equatable {
 private final class DropLoopHarness {
     let tui = TUIContext()
     let focusManager = FocusManager()
+    /// Holds the focus, so no card is the focused, unservable one.
+    let focusSentinel = FocusSentinel()
 
     var cache: RenderCache { tui.renderCache }
     var dispatcher: MouseEventDispatcher { tui.mouseEventDispatcher }
@@ -135,6 +137,10 @@ private final class DropLoopHarness {
         cache.beginRenderPass()
         focusManager.beginRenderPass()
         focusManager.beginSceneRender()
+        // A drop destination is a focus stop (Paste drops there), and the
+        // focused one is never served from a memo, as no focused view is:
+        // the sentinel holds the focus, so every card can be.
+        focusManager.register(focusSentinel)
         dispatcher.beginRenderPass()
         // What `WindowGroup.renderScene` does before the tree renders.
         session.beginFrame()
@@ -242,7 +248,9 @@ struct DragSessionRegistryMemoTests {
         harness.frame(DropCard(title: "alpha", tally: DropTally()))
         let kinds = Array(journal.entries(since: start)).map(\.kind.name)
         journal.endRecording()
-        #expect(kinds == ["mouseHandler", "dropTarget"])
+        // Its own focus stop (Paste drops there; its content has none) and
+        // that stop's Paste key first, then the drag's two.
+        #expect(kinds == ["focusRegistration", "transfer.clipboardKey", "mouseHandler", "dropTarget"])
     }
 
     /// The same class, reached through a container rather than a modifier: a

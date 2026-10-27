@@ -33,10 +33,16 @@ session values ship; nothing hands them out yet.
 
 ## Where it stands
 
-Shipped as above. **Owed:** A53's carry mode and its prerequisite, the
-three-party model, and the compatibility guide's line for DEPR-DROPDEST (the
-soft-deprecated `dropDestination(for:action:isTargeted:)` kept while A53 is
-pinned). **Open:** DRAG-SELECTION.
+Shipped as above, and A53's prerequisite (2026-10-26): Copy on a focused
+`.draggable` copies its payload, Paste on a focused drop destination drops it
+— a stop of the content's own where it has one (a draggable `Button` keeps
+its single stop), else one of the modifier's, which publishes `\.isFocused`;
+none in a list row (the list is the row's stop) or while disabled
+(`TransferKeys`). **Owed:** A53's carry mode, and the three-party model.
+**Open:** DRAG-SELECTION. DEPR-DROPDEST's line is in the compatibility guide
+(the Drag and drop row: SwiftUI's older `dropDestination(for:action:isTargeted:)`,
+soft-deprecated, kept while the `isEnabled:` form's `DropSession` waits on
+A53).
 
 ## The record
 

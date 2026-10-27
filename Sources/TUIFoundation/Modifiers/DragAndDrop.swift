@@ -78,7 +78,22 @@ extension DraggableModifier: Renderable, Layoutable {
     }
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = TUIView.renderToBuffer(content, context: context)
+        // The keyboard's way to the payload: Copy while the view holds the
+        // focus (`TransferKeys`), on a stop of the content's or one of its own.
+        let keys = TransferKeys.applies(in: context)
+        let own = keys ? TransferKeys.ownStop(prefix: "draggable", propertyIndex: -180, context: context) : nil
+        var contentContext = context
+        if let own { FocusRegistration.publishIsFocused(own.isFocused, context: context, into: &contentContext) }
+        var buffer = TUIView.renderToBuffer(content, context: contentContext)
+        if let own {
+            let payload = self.payload
+            TransferKeys.register(
+                "c", focusIDs: TransferKeys.stops(of: buffer, ownID: own.id, context: context), context: context
+            ) { _, clipboard in
+                clipboard.copy([payload()])
+                return true
+            }
+        }
 
         guard !context.isMeasuring,
             let dispatcher = context.environment.mouseEventDispatcher,
@@ -341,9 +356,32 @@ extension DropDestinationModifier: Renderable, Layoutable {
     }
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = TUIView.renderToBuffer(content, context: context)
+        // The keyboard's way to drop here: Paste while the view holds the
+        // focus (`TransferKeys`), of what a focused `.draggable` copied, or
+        // of text that reads as `Payload`.
+        let keys = isEnabled && TransferKeys.applies(in: context)
+        let own = keys ? TransferKeys.ownStop(prefix: "dropdestination", propertyIndex: -190, context: context) : nil
+        var contentContext = context
+        if let own { FocusRegistration.publishIsFocused(own.isFocused, context: context, into: &contentContext) }
+        var buffer = TUIView.renderToBuffer(content, context: contentContext)
         guard !context.isMeasuring, isEnabled else { return buffer }
         let action = self.action
+        if let own {
+            TransferKeys.register(
+                "v", focusIDs: TransferKeys.stops(of: buffer, ownID: own.id, context: context), context: context
+            ) { event, clipboard in
+                let text: String?
+                if case .paste(let pasted) = event.key { text = pasted } else { text = clipboard.read() }
+                guard let text, !text.isEmpty, let items = clipboard.paste(text, as: Payload.self), !items.isEmpty
+                else { return false }
+                // Dropped from the keyboard, so at the view's first cell, with
+                // no modifiers held and no preview.
+                let info = DropInfo(
+                    x: 0, y: 0, shift: false, ctrl: false, meta: false, previewX: 0, previewY: 0,
+                    previewWidth: 0, previewHeight: 0, payload: DropPayload(items))
+                return action(items, info)
+            }
+        }
         DropZone.install(
             on: &buffer, context: context,
             accepts: { $0 is Payload },
@@ -464,6 +502,13 @@ extension View {
     /// through likewise), so `Button { … }.draggable(value)` both clicks and
     /// drags — matching SwiftUI. Only genuine drags are consumed.
     ///
+    /// From the keyboard (TUI-specific): while the view holds the focus, Copy
+    /// (⌘C, through ``EnvironmentValues/commandKey``) copies the payload, and
+    /// Paste on a focused ``View/dropDestination(for:isEnabled:action:)`` drops
+    /// it there. A view with focus stops of its own answers on those; one with
+    /// none is given a stop, and reads ``EnvironmentValues/isFocused`` to show
+    /// it.
+    ///
     /// Deviation from SwiftUI, forced by the terminal: the payload needs no
     /// `Transferable` conformance (CoreTransferable is Apple-only, and there
     /// is no system pasteboard to marshal through — drags stay inside the
@@ -530,7 +575,10 @@ extension View {
     /// The action is handed a ``DropInfo`` where SwiftUI's is handed a
     /// ``DropSession``, which TUI has as a value and hands out nowhere yet
     /// (decisions A53); the drop's ``DropInfo/location`` is on both. A
-    /// drop the action is called for is taken. While
+    /// drop the action is called for is taken. From the keyboard (TUI-specific),
+    /// Paste (⌘V, or the terminal's own paste) while the view holds the focus
+    /// drops what a focused `.draggable` copied, or text that reads as
+    /// `Payload`, at the view's first cell. While
     /// `isEnabled` is `false` the view is no destination at all: a drag
     /// passes over it as over anything else.
     ///
