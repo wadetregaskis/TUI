@@ -41,7 +41,10 @@ extension View {
     /// and Shift-Tab move between them, Return or Space presses one, and
     /// Escape slides them away; the same chord again is the full swipe, which
     /// presses the first, where `allowsFullSwipe` is true. A click on a button
-    /// presses it, and a click anywhere else slides them away.
+    /// presses it, and a click anywhere else slides them away. Where the
+    /// terminal reports a trackpad's sideways swipe as the horizontal wheel, a
+    /// burst of it over a row reveals that row's actions, a second burst the
+    /// same way is the full swipe, and one the other way slides them away.
     ///
     /// - Parameters:
     ///   - edge: The edge of the row the actions are revealed at.
@@ -127,6 +130,13 @@ extension _SwipeActionsView: Renderable {
         var drawn = TUIView.renderToBuffer(HStack(spacing: 0) { actions }, context: stripContext)
         if strip.highlighted == nil || !strip.sink.selectableOrdinals.contains(strip.highlighted!) {
             strip.highlighted = strip.sink.selectableOrdinals.first
+        }
+        // The wheel's full swipe, pressed by the list as its event arrives.
+        if allowsFullSwipe {
+            context.environment.listRowEditRestrictions?.swipeFullSwipe = { [weak strip] in
+                guard let strip, let first = strip.sink.selectableOrdinals.first else { return }
+                strip.sink.activate(ordinal: first)
+            }
         }
         DropdownMenu.attachDismissBackdrop(to: &drawn, context: context, onDismiss: { hide() })
         attachKeys(strip: strip, sectionID: sectionID, hide: hide, context: context)

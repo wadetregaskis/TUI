@@ -139,6 +139,12 @@ package final class RowEditRestrictions {
     }
     private var _swipeKeys: (@MainActor (KeyEvent) -> HorizontalEdge?)?
 
+    /// Presses the revealed swipe actions' first, reported by the revealed row
+    /// as it draws them: what the list's horizontal wheel calls for a full
+    /// swipe, outside the render, where a press belongs.
+    package var swipeFullSwipe: (@MainActor () -> Void)? { get { _swipeFullSwipe } set { _swipeFullSwipe = newValue } }
+    private var _swipeFullSwipe: (@MainActor () -> Void)?
+
     /// What decides, as the list extracts its sections, whether a section's
     /// actions are drawn (owner ruling B78-VISIBILITY): the list row of the
     /// cursor while the list holds the focus, and the first row of the section

@@ -28,13 +28,13 @@ Multi-contact gestures and the window drag are declined.
 4. **2026-10-26, the owner:** build full gesture recognisers for every control
    now (B89); swipe actions as revealed buttons, ⇧→ / ⇧← to reveal, again for
    the full swipe, Ctrl-L / Ctrl-T fallbacks, `RowAction` rebindable, with a
-   PTY trackpad-burst test (A48). A48's keys and clicks were built that night;
-   its horizontal wheel and B89 are not built yet.
+   PTY trackpad-burst test (A48). A48 was built that night, its wheel replayed
+   from representative bytes; B89 is not built yet.
 
 ## Where it stands
 
-Shipped as the record says; **owed:** B89's full recognizers, and A48's
-horizontal wheel (with the burst test), both ruled on 2026-10-26.
+Shipped as the record says; **owed:** B89's full recognizers (ruled on
+2026-10-26), and a real trackpad swipe recorded for A48's burst gap.
 
 ## For a future reader
 
@@ -248,10 +248,24 @@ where a full swipe is allowed, and the other edge's chord slides them away. A
 click on one presses it; a click elsewhere slides them away and is spent, as a
 click outside a menu is. The cursor stays on the row throughout.
 
-**Not built yet:** the horizontal wheel revealing them (axis-locked, a burst
-counted as one gesture, a second burst the full swipe) and the PTY test that
-replays a recorded trackpad burst; a narrow form when the actions are wider
-than the row; `TabContent.swipeActions`.
+**The horizontal wheel (built the same night):** a burst of sideways ticks
+over a row is one swipe — ticks less than 250 ms apart (an estimate; the
+proposal's range was 150 to 300 ms, unmeasured). The first burst toward an
+edge with actions moves the cursor to that row and reveals them; a second the
+same way is the full swipe, pressed by the list from the event (the revealed
+row hands it a closure through the collector, so nothing is pressed during a
+render); a burst the other way slides them away. Sideways ticks within 250 ms
+of a vertical one reveal nothing (the axis lock), and a list whose row has no
+actions on that edge leaves the wheel alone. `SwipeWheelTests` replays a
+swipe as SGR bytes through the terminal's own parser, several reports per
+read and one split across two.
+
+**For a future reader:** the burst gap and the replayed bytes are
+representative, not recorded: a recording needs a person at a trackpad, in
+Apple Terminal and iTerm2. Record one and set `swipeBurstGapNanos` from it.
+
+**Not built yet:** a narrow form when the actions are wider than the row;
+`TabContent.swipeActions`.
 
 ### C15. The multi-contact gestures, the window drag, and the recognizer bridge
 

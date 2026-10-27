@@ -1661,6 +1661,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // The edges the swipe keys can reveal, as the rows on screen reported
         // them: the cursor row is one of them.
         handler.swipeEdges = editRestrictions.swipeEdges
+        handler.swipeFullSwipe = editRestrictions.swipeFullSwipe
         if handler.sectionActionSpans.isEmpty { handler.hoveredSectionRow = nil }
         // Where the list has no selection menu, its Shift+F10 opens the cursor
         // row's own `.contextMenu` (`RowEditRestrictions.rowMenus`): a context
@@ -1698,6 +1699,15 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             context.environment.listSeparatorDefaults, editRestrictions,
             context.environment.listSeparatorStyle.drawsHairlines, context.environment.listSeparatorsShowByDefault)
         return source
+    }
+
+    /// What the wheel does over the list, at list row `row`: a sideways burst
+    /// over a row with swipe actions reveals them (it scrolls nothing in a
+    /// list); the rest scrolls the rows.
+    private static func wheel(
+        _ handler: ItemListHandler<SelectionValue>, row: Int?, _ dispatcher: MouseEventDispatcher
+    ) -> (MouseEvent) -> Bool {
+        { handler.handleSwipeWheel($0, row: row, now: dispatcher.nowNanos()) || handler.handleWheelEvent($0) }
     }
 
     /// Tells the rows, before they render, which of them has its swipe actions
@@ -3728,8 +3738,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // list's empty space and its section headers (the border is
             // neither). The rest of the gesture is the menu's.
             let spent = RowContextMenuHost.preflight(
-                event, wheel: { captureHandler.handleWheelEvent($0) }, menu: menu,
-                row: { Self.contentRow(rowAt(event.x, event.y)) })
+                event, wheel: Self.wheel(captureHandler, row: Self.contentRow(rowAt(event.x, event.y)), dispatcher),
+                menu: menu, row: { Self.contentRow(rowAt(event.x, event.y)) })
             if let spent { return spent }
 
             if event.button == .left {

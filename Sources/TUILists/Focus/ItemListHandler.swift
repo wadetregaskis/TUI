@@ -560,6 +560,16 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     }
     private var _swipeRevealedRowIdentity: ViewIdentity?
 
+    /// The horizontal wheel's swipe in progress (`handleSwipeWheel`).
+    package var swipeWheel: SwipeWheelState { get { _swipeWheel } set { _swipeWheel = newValue } }
+    private var _swipeWheel = SwipeWheelState()
+
+    /// Presses the revealed actions' first, as the revealed row reported it
+    /// (`RowEditRestrictions.swipeFullSwipe`): the wheel's full swipe. `nil`
+    /// while none are revealed.
+    package var swipeFullSwipe: (@MainActor () -> Void)? { get { _swipeFullSwipe } set { _swipeFullSwipe = newValue } }
+    private var _swipeFullSwipe: (@MainActor () -> Void)?
+
     /// ``openContextMenu``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _openContextMenu: (() -> Bool)?
