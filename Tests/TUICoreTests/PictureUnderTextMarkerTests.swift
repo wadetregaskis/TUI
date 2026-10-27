@@ -45,6 +45,15 @@ struct PictureUnderTextMarkerTests {
         #expect(PictureUnderTextMarker.extracting(unmarked).runs.map(\.columns) == [2, 2])
     }
 
+    /// The share panel's checkbox, `⬛︎`, squeezed one column's pixels into two
+    /// and left the rest of its row's run a column short of its pixels.
+    @Test("A wide glyph's mark covers its pixels for every column it takes")
+    func wideGlyph() {
+        let line = marked("a") + marked("⬛︎", x: 4) + marked("b", x: 12)
+        let runs = PictureUnderTextMarker.extracting(line).runs
+        #expect(runs == [.init(column: 0, columns: 4, image: 0x01_2345, x: 0, y: 8, width: 16, height: 8)])
+    }
+
     @Test("Text that only looks like a mark is text")
     func textIsNotAMark() {
         #expect(!PictureUnderTextMarker.mayCarryMark("port 7745:1:2 open"))

@@ -94,20 +94,26 @@ package enum PictureUnderTextMarker {
     /// A run is contiguous cells of one image, each rectangle beside the last
     /// on one row of the image's pixels, all one height; a cell under no mark
     /// ends one, as does a cell that does not continue it.
+    ///
+    /// A wide glyph's mark states its first cell's pixels: it covers as many
+    /// again for each further column, so the run's pixels keep pace with its
+    /// cells — not two columns drawn from one column's pixels, and the next
+    /// cell's continuing where the glyph's second column's would.
     package static func extracting(_ line: String) -> (line: String, runs: [Run]) {
         var runs: [Run] = []
         let stripped = SGRMarks.extracting(line, payload: cell(of:)) { column, columns, cell in
+            let width = cell.width * max(columns, 1)
             if var last = runs.last, last.column + last.columns == column, last.image == cell.image,
                 last.x + last.width == cell.x, last.y == cell.y, last.height == cell.height
             {
                 last.columns += columns
-                last.width += cell.width
+                last.width += width
                 runs[runs.count - 1] = last
             } else {
                 runs.append(
                     Run(
                         column: column, columns: columns, image: cell.image,
-                        x: cell.x, y: cell.y, width: cell.width, height: cell.height))
+                        x: cell.x, y: cell.y, width: width, height: cell.height))
             }
         }
         return (stripped, runs)
