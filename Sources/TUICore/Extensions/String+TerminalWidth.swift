@@ -797,15 +797,23 @@ extension String {
     /// show (``BlankMarks``: a background, reverse video, an underline, a
     /// strikethrough or an overline) — or `nil` when it paints none. The
     /// unstyled blank space either side of them is a line's silhouette, not its
-    /// drawing: what a layer drawn over other content must leave alone, and
-    /// what content drawn after it must not count as covering it
-    /// (`OverlayLayer.drawnParts()`, `FrameBuffer.coverOverflow`).
-    /// Its upper bound is ``visibleWidthBeforeTrailingBlanks()``.
+    /// drawing: what a layer drawn over other content must leave alone
+    /// (`OverlayLayer.drawnParts()`). Its upper bound is
+    /// ``visibleWidthBeforeTrailingBlanks()``.
     func paintedColumns() -> Range<Int>? {
-        var width = 0
-        var first: Int?
-        var end = 0
-        var marks = BlankMarks()
+        let runs = paintedRuns()
+        return runs.first.flatMap { first in runs.last.map { first.lowerBound..<$0.upperBound } }
+    }
+
+    /// The runs of cells this line paints, left to right: each a stretch of
+    /// painted cells (``paintedColumns()``), the unstyled blanks between them
+    /// left out — what content drawn after an unclipped scroll view hides of
+    /// its overflow (`FrameBuffer.coverOverflow`), which shows between its
+    /// words as it shows between SwiftUI's glyphs (owner, 2026-10-26,
+    /// D2S-SCROLLCLIP).
+    func paintedRuns() -> [Range<Int>] {
+        var runs: [Range<Int>] = []
+        var (width, marks) = (0, BlankMarks())
         forEachANSISegment { segment in
             switch segment {
             case .ansi(let sequence, let isSGR):
@@ -814,13 +822,16 @@ extension String {
                 let start = width
                 width += character.terminalWidth
                 if character != " " || !marks.isEmpty {
-                    if first == nil { first = start }
-                    end = width
+                    if let last = runs.last, last.upperBound == start {
+                        runs[runs.count - 1] = last.lowerBound..<width
+                    } else {
+                        runs.append(start..<width)
+                    }
                 }
             }
             return true
         }
-        return first.map { $0..<end }
+        return runs
     }
 
     /// The SGR attributes in force that show on a space, so make a blank cell

@@ -169,12 +169,15 @@ extension FrameBuffer {
     /// operations that place later content — a stack's next child, a
     /// composited overlay — cut the earlier overflow out from under it.
     ///
-    /// Under the cells it PAINTS (``paintedColumnsByLine(inRows:)``): on each line,
-    /// from its first painted cell to its last. The unstyled blank space either
-    /// side is not the later view drawing — it is a stack's alignment padding,
-    /// an overlay's `Spacer`, an `.offset` view's footprint — and SwiftUI shows
+    /// Under the cells it PAINTS (``paintedBlocks(inRows:)``): on each line,
+    /// each run of painted cells. The unstyled blank space either side is not
+    /// the later view drawing — it is a stack's alignment padding, an
+    /// overlay's `Spacer`, an `.offset` view's footprint — and SwiftUI shows
     /// the overflow through it. Cut by its whole rect, a short `Text` padded to
-    /// its stack's width hid every overflowing line it sat on.
+    /// its stack's width hid every overflowing line it sat on. And the blanks
+    /// between its words show it too, as between SwiftUI's glyphs (owner,
+    /// 2026-10-26, D2S-SCROLLCLIP): cut from a line's first painted cell to its
+    /// last, two words hid what ran between them.
     ///
     /// Costs a test of the hint ``overlaysAreFreeOfOverflow`` on every
     /// combining operation, a look at the layers when it does not know — after
@@ -321,19 +324,56 @@ extension FrameBuffer {
         return painted
     }
 
-    /// The cells this buffer paints (``paintedColumnsByLine(inRows:)``), as
-    /// blocks of consecutive lines whose painted columns agree — one rect for
-    /// a block of text the same width, one a line for ragged text — of the
-    /// lines in `rows`, or all of them.
+    /// Each line's runs of painted cells (``String/paintedRuns()``), and the
+    /// cells an animated run repaints on it — a caret blinking on a blank cell
+    /// is drawn there, whatever the line holds under it. Only the lines in
+    /// `rows` are read; every other has none, as a line that paints nothing.
+    func paintedRunsByLine(inRows rows: Range<Int>? = nil) -> [[Range<Int>]] {
+        let read = (rows ?? lines.indices).clamped(to: lines.indices)
+        var painted = [[Range<Int>]](repeating: [], count: lines.count)
+        for row in read { painted[row] = lines[row].paintedRuns() }
+        for run in animatedCells where read.contains(run.offsetY) && run.width > 0 {
+            painted[run.offsetY] = Self.merging(run.offsetX..<(run.offsetX + run.width), into: painted[run.offsetY])
+        }
+        return painted
+    }
+
+    /// `runs`, sorted and apart, with `cells` added, any run it meets or
+    /// touches joined to it.
+    private static func merging(_ cells: Range<Int>, into runs: [Range<Int>]) -> [Range<Int>] {
+        var merged = cells
+        var kept: [Range<Int>] = []
+        for run in runs {
+            if run.upperBound < merged.lowerBound || run.lowerBound > merged.upperBound {
+                kept.append(run)
+            } else {
+                merged = min(run.lowerBound, merged.lowerBound)..<max(run.upperBound, merged.upperBound)
+            }
+        }
+        kept.append(merged)
+        return kept.sorted { $0.lowerBound < $1.lowerBound }
+    }
+
+    /// The cells this buffer paints (``paintedRunsByLine(inRows:)``), as
+    /// blocks: each run of painted cells, joined down the lines below it that
+    /// paint the same run — one rect for a block of text the same width, one
+    /// a line for ragged text — of the lines in `rows`, or all of them.
     func paintedBlocks(inRows rows: Range<Int>? = nil) -> [(rows: Range<Int>, columns: Range<Int>)] {
         var blocks: [(rows: Range<Int>, columns: Range<Int>)] = []
-        for (row, painted) in paintedColumnsByLine(inRows: rows).enumerated() {
-            guard let columns = painted else { continue }
-            if let last = blocks.last, last.rows.upperBound == row, last.columns == columns {
-                blocks[blocks.count - 1].rows = last.rows.lowerBound..<(row + 1)
-            } else {
-                blocks.append((rows: row..<(row + 1), columns: columns))
+        // The blocks the line before ended, by their columns.
+        var open: [Range<Int>: Int] = [:]
+        for (row, runs) in paintedRunsByLine(inRows: rows).enumerated() {
+            var next: [Range<Int>: Int] = [:]
+            for columns in runs {
+                if let index = open[columns] {
+                    blocks[index].rows = blocks[index].rows.lowerBound..<(row + 1)
+                    next[columns] = index
+                } else {
+                    next[columns] = blocks.count
+                    blocks.append((rows: row..<(row + 1), columns: columns))
+                }
             }
+            open = next
         }
         return blocks
     }

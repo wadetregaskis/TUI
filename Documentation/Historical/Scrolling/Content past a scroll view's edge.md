@@ -9,9 +9,9 @@ B-D2S-5, D2S-SCROLLCLIP; B-LISTS2-5 for `Table`.*
 Under `scrollClipDisabled()`, a `ScrollView` draws the content past its
 viewport as a floating layer around itself, with its hit regions, and a
 `List` draws the row before and after its window just outside its frame. A
-later view hides the overflow from its first painted cell to its last on
-each line; the blank cells either side show the overflow, as SwiftUI's
-transparency does. A `Table` still clips.
+later view hides the overflow under each run of cells it paints; its blank
+cells, between its words too, show the overflow, as SwiftUI's transparency
+does. A `Table` still clips.
 
 ## The problem
 
@@ -34,17 +34,19 @@ which view a click lands on.
    are hardly legible. On 2026-10-26 the owner leaned to SwiftUI's behaviour
    and asked whether it had downsides beyond the look — performance — and to
    build it if it is cheap, with an A/B of the geometry (D2S-SCROLLCLIP).
-   **Not yet built.**
+   Built 2026-10-27 (lane SCROLLCLIP); its A/B is owed for a quiet machine.
 
 ## Where it stands
 
-Per-line hiding, shipped. The cell-by-cell version is owed, the owner having
-leaned to it on 2026-10-26.
+Run-by-run hiding, shipped 2026-10-27 (D2S-SCROLLCLIP), its A/B owed.
 
 ## For a future reader
 
-- **Owed: D2S-SCROLLCLIP.** Cut the overflow per run of painted cells rather
-  than per line, then A/B it; the owner's condition is that it be cheap.
+- **Owed: D2S-SCROLLCLIP's A/B** (Stress `geometry` and any scenario that
+  draws overflow), the owner's condition being that it be cheap. Only a
+  buffer that carries overflow pays anything: the cut runs where a later view
+  meets overflow, and reads more rects than before only where its lines have
+  blanks between painted cells.
 - **`contentShape`.** When TUI has one, a later view's shape should cut the
   overflow's hit regions as a painted cell does (B-D2S-5 says why).
 - **`Table` clips under the modifier** until B-LISTS2-5 is built; a list's
@@ -113,3 +115,13 @@ does between SwiftUI's glyphs. It is a small change (cut per run of painted
 cells rather than per line, an hour or two with tests, no cost where nothing is
 unclipped), but two texts interleaved cell by cell are hardly legible, which is
 why it is not the default. Owner's call.
+
+**Fuller version shipped (lane SCROLLCLIP, 2026-10-27; D2S-SCROLLCLIP, the
+owner's lean of 2026-10-26 to SwiftUI's behaviour).** A later view hides the
+overflow under each run of cells it paints (`String.paintedRuns()`,
+`FrameBuffer.paintedBlocks(inRows:)`), so the blank cells between its words
+show the overflow too: `Text("a    b")` under row 2 of an overflowing scroll
+view draws `aow 2b`. Clicks follow the drawing as before: a click on the
+overflow shown between the words is the overflow's. The overflow itself is
+still drawn from its first painted cell to its last on each line. The test is
+`ScrollClipDisabledTests.blanksBetweenWordsShowTheOverflow`; the A/B is owed.

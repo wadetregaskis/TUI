@@ -737,8 +737,11 @@ struct PlacementOverflowTests {
                                 Text("YYYY\nYYYY\nYYYY").alignmentGuide(.bottom) { _ in -20 }
                             }
                         } else {
-                            // Wider than the badge, which is cut to one line.
-                            Text("row \(index) xxxxxxxxxx")
+                            // Wider than the badge, which is cut to one line,
+                            // and with no blank between its glyphs: the badge
+                            // shows through a later row's blanks, as through
+                            // the gaps between SwiftUI's glyphs (D2S-SCROLLCLIP).
+                            Text("row-\(index)-xxxxxxxxxx")
                         }
                     }
                 }
@@ -751,7 +754,7 @@ struct PlacementOverflowTests {
         box.proxy?.scrollTo(20, anchor: .top)
         screen.render(page)
         let lines = screen.render(page)
-        #expect(lines.first?.hasPrefix("row 2") == true, "precondition: scrolled past the button: \(lines)")
+        #expect(lines.first?.hasPrefix("row-2") == true, "precondition: scrolled past the button: \(lines)")
         #expect(!lines.contains { $0.contains("Y") }, "the rows after the button are drawn over its badge: \(lines)")
     }
 

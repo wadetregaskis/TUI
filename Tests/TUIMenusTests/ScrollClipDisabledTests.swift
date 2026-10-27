@@ -337,6 +337,17 @@ struct ScrollClipDisabledTests {
         #expect(frames.lines[3] == "row 3", "\(frames.lines)")
     }
 
+    /// D2S-SCROLLCLIP (owner, 2026-10-26): as SwiftUI shows content through
+    /// the space between a later view's glyphs, the overflow shows through the
+    /// blank cells between a later line's words, not only either side of them.
+    @Test("A later view covers its runs of painted cells; the overflow shows between its words")
+    func blanksBetweenWordsShowTheOverflow() {
+        let frames = Frames(width: 30, height: 8)
+        frames.render(VStack(alignment: .leading, spacing: 0) { overflowing(); Text("a    b") })
+        #expect(frames.lines[2] == "aow 2b", "\(frames.lines)")
+        #expect(frames.lines[3] == "row 3", "\(frames.lines)")
+    }
+
     /// The reviewer's case for 5b89231e3: a later view whose tap area, its
     /// whole frame here, runs under the overflow drawn through its padding.
     /// Clicks follow what is drawn, as the overflow's own do (B-D2S-5) — and as

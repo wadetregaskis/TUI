@@ -82,7 +82,7 @@ been in force since 2026-10-18.
 | B-D2S-6 | Variable page sizes where they can be had; blank rows where they cannot, or cost too much; never a row cut off. | Done (2026-10-27): variable pages under `.paging` (the pair comes and goes; every line read once), blanks where a page cannot vary (container-sized pages, `.viewAligned`). Never a row cut (2026-10-27): over a `scrollTargetLayout`'s rows, `.paging` draws the row a page would cut blank and starts the next page with it. |
 | S3-NO-EXTENT-SPACING | Yes: a child with no rows takes no gap. | Done: deliberate deviation L17. |
 | FORMATTER | Skip both: an inferior API with a better replacement (`format:`), and on Linux a custom `Formatter` does not parse. | Done: refusals wave 17, O11. |
-| D2S-SCROLLCLIP | As SwiftUI: overflow shows through the blank cells inside a later line too. | Queued, with an A/B of the geometry. |
+| D2S-SCROLLCLIP | As SwiftUI: overflow shows through the blank cells inside a later line too. | Built (2026-10-27): a later view hides the overflow only under its runs of painted cells. Its A/B of the geometry is owed for a quiet machine; only a buffer carrying overflow pays. |
 | B-D2S-7 | As SwiftUI: `.paging` and `.viewAligned` honour `.contentMargins`, after a resize probe. | Not open: built on 2026-10-19 after the probe (lane SCROLL), and listed here by mistake. One measured SwiftUI quirk is not copied: its `.paging` page is half the top margin longer (deviation R15). |
 | TEXT2-INTERIOR | The default stays (opt-out allowed, not opt-in); try to cut its cost. | Queued. |
 | OPACITY-28.2 | Not open: you answered it on 2026-09-10 (carry: a surface stepped off a faded page is as faded as the page), and it shipped then (`cff2e7190`, Opacity §39). Listed here by mistake. | Done. |

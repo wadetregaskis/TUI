@@ -1154,13 +1154,13 @@ in-flow content, which gives the first half; the second is a rule in the
 combining operations (`appendVertically`, `appendHorizontally`, `composite`):
 content placed after a scroll view cuts that scroll view's overflow away beneath
 the cells it paints (`OverlayLayer.isOverflow`,
-`FrameBuffer.coverOverflow`) — on each line, from its first painted cell
-to its last — at the cost of one test of a hint per operation (a buffer knows,
-after each combining step, that its layers hold no overflow). The
-blank space either side is not the later view drawing: a short `Text` padded to
-its stack's width, an overlay's `Spacer`, or an `.offset` view's empty footprint
-hides nothing, as in SwiftUI, and a click on the overflow drawn there is the
-overflow's (decisions-D2S B-D2S-5). A view's own `.offset` or `.position`
+`FrameBuffer.coverOverflow`) — under each run of painted cells on each line —
+at the cost of one test of a hint per operation (a buffer knows, after each
+combining step, that its layers hold no overflow). The blank space is not the
+later view drawing: a short `Text` padded to its stack's width, an overlay's
+`Spacer`, an `.offset` view's empty footprint, or the blanks between a line's
+words hide nothing, as in SwiftUI, and a click on the overflow drawn there is
+the overflow's (decisions-D2S B-D2S-5; D2S-SCROLLCLIP, 2026-10-27). A view's own `.offset` or `.position`
 drawing is overflow too since 2026-10-18 (below), cut under the views after it.
 A `List` honours it too, as SwiftUI's on macOS does (measured): the row before
 its window and the one after draw past its frame — the band a lazy stack draws

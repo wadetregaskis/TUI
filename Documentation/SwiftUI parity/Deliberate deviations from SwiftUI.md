@@ -1871,15 +1871,17 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [B-D2S-2](<../Historical/Scrolling/Paging and view-aligned scrolling.md#b-d2s-2-list-and-table-honour-the-built-in-behaviours-and-no-behaviour-of-the-apps-own>), [B-D2S-3](<../Historical/Scrolling/Paging and view-aligned scrolling.md#b-d2s-3-in-a-list-or-table-viewaligned-aligns-rows-at-the-top-whatever-its-anchor>),
   [B-D2S-4](<../Historical/Scrolling/Content past a scroll view's edge.md#b-d2s-4-scrollclipdisabled-reaches-scrollview-list-and-table-keep-clipping>). **Lane.**
 
-### R8. An unclipped scroll view's overflow is hidden line by line
+### R8. An unclipped scroll view's overflow is hidden cell by cell
 
 - **SwiftUI:** under `scrollClipDisabled` a later view hides the overflow where
   its glyphs are drawn (measured).
-- **TUI:** on each line of the later view, from its first painted cell to
-  its last; unstyled blank cells either side hide nothing, and a click on
-  overflow drawn there is the overflow's.
+- **TUI:** under each run of cells the later view paints; its unstyled blank
+  cells — either side of a line and between its words (D2S-SCROLLCLIP,
+  2026-10-27) — hide nothing, and a click on overflow drawn there is the
+  overflow's.
 - **Why:** a cell is drawn or not, so "where it draws" has to be said in
-  cells.
+  cells: a glyph hides the whole cell it is in, where SwiftUI's hides only
+  its own points.
 - **Decided:** [B-D2S-5](<../Historical/Scrolling/Content past a scroll view's edge.md#b-d2s-5-a-later-view-hides-an-unclipped-scroll-views-overflow-from-its-first-painted-cell-to-its-last>). **Medium.**
 
 ### R9. A pinned header is opaque, and focus keeps rows clear of it
