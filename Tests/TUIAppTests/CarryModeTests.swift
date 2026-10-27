@@ -80,6 +80,20 @@ struct CarryModeTests {
         #expect(log.pressed == ["other"], "Tab from the card, where the focus went back, reaches the button")
     }
 
+    @Test("The bin is marked as reachable, and the status bar says what Return and Escape do")
+    func cuesAndLabels() {
+        let log = Log()
+        let harness = InputChainHarness()
+        harness.play([pickUp]) { board(log) }
+        let session = harness.tui.dragAndDropSession
+        #expect(session.carryCues.count == 1, "the bin, and not the button or the text destination")
+        #expect(session.carryLabels?.returnKey == "cancel move", "at its origin, Return puts it back")
+        harness.play([KeyEvent(key: .tab)]) { board(log) }
+        #expect(session.carryCues.count == 1, "the origin, now the carry is at the bin")
+        #expect(session.carryLabels?.returnKey == "drop")
+        #expect(session.carryLabels?.escape == "cancel move")
+    }
+
     @Test("A plain key while carrying is swallowed, not typed")
     func plainKeysSwallowed() {
         let log = Log()

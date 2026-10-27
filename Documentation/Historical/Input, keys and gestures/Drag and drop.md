@@ -50,10 +50,11 @@ The badge names the result, so a plain `dropDestination` now wears `+`. A
 delegate that refuses the drag proposes `.cancel`, unbadged. A53's carry
 mode, its first part (2026-10-27): Ctrl-R picks a focused draggable up, Tab
 and the arrows carry it among the stops that can take it, Return drops it,
-Escape puts it back. **Owed:** the carry's second part (a "can drop here"
-cue on every stop it can reach, a status line, an idle expiry, a `List` as one
-destination with a cursor of its own, "Pick Up" in a context menu); the image
-well's badge probed in a real window.
+Escape puts it back. Its second part followed the same night: a `‹` cue on
+every stop it can reach, Return and Escape named in the status bar, and a
+list as one stop whose rows Up and Down move between. **Owed:** "Pick Up" in
+a draggable's context menu, which needs a way for a modifier to add a menu
+item; the image well's badge probed in a real window.
 **Open:** DRAG-SELECTION. DEPR-DROPDEST's line is in the compatibility guide
 (the Drag and drop row: SwiftUI's older `dropDestination(for:action:isTargeted:)`,
 soft-deprecated, kept while the `isEnabled:` form's `DropSession` waits on
@@ -506,13 +507,31 @@ three-party operation, a delegate's moves, and the drop itself.
   key still quits. Other plain keys are swallowed, so a field the focus
   passes does not type them.
 
-**Owed, the second part:** a "can drop here" cue on every stop the carry can
-reach; a status line naming the keys; an idle expiry; a `List` or `Table` as
-one destination with an internal cursor between its rows, since a lazy list
-registers only its visible rows; and "Pick Up" in a draggable's context menu.
+**Second part shipped (lane CARRY2, 2026-10-27).**
+
+- **The cue.** Each stop the carry can reach, except the one it is at, is
+  marked by an accent `‹` in the cell after its top row. That is where the
+  picture would be drawn were the carry there. `‹` is U+2039, East Asian
+  Width Neutral, so it is one cell everywhere.
+- **The status line.** At a destination, Return says "drop". At the origin, it
+  says "cancel move", the label a list's keyboard move already uses. At a
+  spring-loaded control, the control's own verb stands. Escape says "cancel
+  move" throughout (`DragAndDropSession.carryLabels`).
+- **A list is one stop.** At a destination taller than a row, Up and Down
+  first move the carry's pointer between its rows, and the list's landing
+  slot follows it. Past the top or bottom row, they move to the next stop.
+  Tab, Left and Right always move between stops. A lazy list's unseen rows
+  are reached with the paging keys, which scroll what the carry is over.
+
+**Not built, and why.** An idle expiry: a carry left alone keeps its keys, and
+the status line says how to put it back. Ending it on a timer would make a
+slow hand lose what it carried, which is the opposite of what the mode is for.
+"Pick Up" in a draggable's context menu: nothing yet lets a modifier add an
+item to a context menu the app builds, so that is a mechanism of its own.
+
 The pick-up chord is Ctrl-R as written: a list's `RowAction` rebinding does
 not reach it, because the table of row actions lives in `TUILists`. The
-tests are `CarryModeTests`.
+tests are `CarryModeTests` and `ListCarryTests`.
 
 ### C12. The drag sessions' AppKit comparisons
 

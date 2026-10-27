@@ -395,6 +395,9 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
                     isOpaque: true
                 )
             )
+            if let dragSession, let labels = dragSession.carryLabels {
+                Self.markCarry(dragSession, labels: labels, rowsAbove: rowsAbove, on: &centered, context: context)
+            }
         } else if let step = dragSession?.returnFlightFrame {
             // A cancelled drag on its way home: the same overlay, walking back
             // to where the row started. The render loop advances it and keeps
@@ -421,6 +424,28 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
     /// carries is its content's own. Left to the compositor they were resolved
     /// against the page BEHIND the card: below one half the page's glyphs won the
     /// faded cells, through the card (§106). Nothing to spend, nothing built.
+    /// A drag the keyboard carries: a `‹` after each stop it can reach, but
+    /// the one it is at, pointing at the stop, and the status bar's Return and
+    /// Escape naming what they do to it (A53-KEYBOARD-DRAG).
+    ///
+    /// `‹` (U+2039) is East Asian Width Neutral, one cell on every host.
+    private static func markCarry(
+        _ session: DragAndDropSession, labels: (returnKey: String?, escape: String), rowsAbove: Int,
+        on buffer: inout FrameBuffer, context: RenderContext
+    ) {
+        let cue = FrameBuffer(text: "\u{2039}".styled(foreground: context.environment.palette.accent))
+        for cell in session.carryCues {
+            buffer.overlays.append(
+                OverlayLayer(
+                    offsetX: cell.x, offsetY: cell.y - rowsAbove, content: cue, level: .notification,
+                    clampsToScreen: false, isOpaque: true))
+        }
+        guard !context.isMeasuring, let statusBar = context.environment.statusBar else { return }
+        if let label = labels.returnKey { statusBar.activationLabelOverride = label }
+        statusBar.escapeLabelOverride = labels.escape
+        statusBar.escapeClaimGrabsInput = false
+    }
+
     private static func card(_ preview: FrameBuffer, palette: any Palette) -> FrameBuffer {
         guard preview.hasFadeOnWhatIsBehind else { return preview }
         return preview.paintedOver(background: ANSIRenderer.backgroundCode(for: palette.background.resolve(with: palette)))

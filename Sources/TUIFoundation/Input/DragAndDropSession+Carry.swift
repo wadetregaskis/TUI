@@ -9,6 +9,7 @@
 //  License: MIT
 
 import TUICore
+import TUIStrings
 
 extension DragAndDropSession {
     /// A drag the keyboard carries.
@@ -41,6 +42,15 @@ extension DragAndDropSession {
         /// a copy to a move or back — as holding Option does for the pointer.
         /// Space toggles it.
         var flipsOperation = false
+
+        /// How many rows down the stop it is at it points: Up and Down move
+        /// it between the rows of a destination taller than one, so a `List`
+        /// is one stop whose landing slot they move. Back to `0` at each stop.
+        var row = 0
+
+        /// Where each stop it can reach is drawn, but the one it is at: what
+        /// ``carryCues`` marks, as of the frame before the one drawing.
+        var reachable: [HitTestRegion] = []
     }
 
     /// The chord that picks a focused `.draggable` up and, again, puts it
@@ -79,7 +89,8 @@ extension DragAndDropSession {
 
     /// Answers a key while a carry lasts, or `nil` when none does.
     ///
-    /// Tab and the arrows move among the stops that can take the drag; Return
+    /// Tab and the arrows move among the stops that can take the drag — Up and
+    /// Down first between the rows of a destination taller than one; Return
     /// drops it on the destination at the focus, presses a spring-loaded
     /// control there, or puts it back at its origin; Escape and the pick-up
     /// chord put it back; Space flips its operation; the paging keys go on to
@@ -99,9 +110,13 @@ extension DragAndDropSession {
         switch event.key {
         case .tab:
             moveCarry(by: event.shift ? -1 : 1)
-        case .down, .right:
+        case .down:
+            if !moveCarryRow(by: 1) { moveCarry(by: 1) }
+        case .up:
+            if !moveCarryRow(by: -1) { moveCarry(by: -1) }
+        case .right:
             moveCarry(by: 1)
-        case .up, .left:
+        case .left:
             moveCarry(by: -1)
         case .enter:
             endCarry(dropping: true)
@@ -124,13 +139,38 @@ extension DragAndDropSession {
     /// render loop asks before each frame, so the drag follows a stop that
     /// moved, and what a move of the carry asks at once.
     package func followCarry() {
-        guard let carry, active != nil, let focused = carry.focusManager?.currentFocusedID,
-            let rect = carryStops().first(where: { $0.id == focused })?.rect ?? stopRect(focused)
-        else { return }
-        let point = Self.carryPoint(of: rect)
+        guard carry != nil, active != nil, let focused = carry?.focusManager?.currentFocusedID else { return }
+        let stops = carryStops()
+        carry?.reachable = stops.filter { $0.id != focused }.map(\.rect)
+        guard let rect = stops.first(where: { $0.id == focused })?.rect ?? stopRect(focused) else { return }
+        var point = Self.carryPoint(of: rect)
+        point.y += min(carry?.row ?? 0, max(0, rect.height - 1))
         guard lastAbsoluteEvent?.x != point.x || lastAbsoluteEvent?.y != point.y else { return }
         lastAbsoluteEvent = MouseEvent(button: .left, phase: .dragged, x: point.x, y: point.y)
         dragMoved()
+    }
+
+    /// Where to mark the stops a carry can reach, but the one it is at, in the
+    /// screen's coordinates: the cell after each one's top row, where the
+    /// carried picture would be drawn were the carry there. Empty while
+    /// nothing is carried.
+    package var carryCues: [(x: Int, y: Int)] {
+        guard active != nil else { return [] }
+        return carry?.reachable.map { (Self.carryPoint(of: $0).x + 1, $0.offsetY) } ?? []
+    }
+
+    /// What the status bar's Return and Escape say while a carry lasts: drop
+    /// it, at a destination; put it back, at its origin; and nothing for
+    /// Return at a spring-loaded control, whose own verb stands. `nil` while
+    /// nothing is carried.
+    package var carryLabels: (returnKey: String?, escape: String)? {
+        guard let carry, active != nil else { return nil }
+        let service = LocalizationService.shared
+        let putBack = service.string(for: LocalizationKey.StatusBar.cancelMove)
+        let focused = carry.focusManager?.currentFocusedID
+        if focused == nil || focused == carry.origin { return (putBack, putBack) }
+        let drops = proposedOperation.map { $0 != .forbidden && $0 != .cancel } ?? false
+        return (drops ? service.string(for: LocalizationKey.StatusBar.dropCarried) : nil, putBack)
     }
 
     /// Whether the keyboard flips the operation of the carry under way.
@@ -170,6 +210,19 @@ extension DragAndDropSession {
 
     // MARK: - Moving and ending
 
+    /// Moves the carry `step` rows within the destination it is at, if that
+    /// is taller than a row and the row is inside it, and says whether it did.
+    private func moveCarryRow(by step: Int) -> Bool {
+        guard let carry, proposedOperation != nil, let focused = carry.focusManager?.currentFocusedID,
+            let rect = carryStops().first(where: { $0.id == focused })?.rect
+        else { return false }
+        let row = carry.row + step
+        guard rect.height > 1, (0..<rect.height).contains(row) else { return false }
+        self.carry?.row = row
+        followCarry()
+        return true
+    }
+
     /// Moves the focus `step` stops on among ``carryStops()``, round the end.
     private func moveCarry(by step: Int) {
         guard let focusManager = carry?.focusManager else { return }
@@ -183,6 +236,7 @@ extension DragAndDropSession {
             next = step > 0 ? 0 : count - 1
         }
         focusManager.focus(id: stops[next].id)
+        carry?.row = 0
         followCarry()
     }
 

@@ -251,8 +251,12 @@ Or carry it: **Ctrl-R** on a focused draggable picks it up. While it is
 carried, Tab and the arrows move the focus only among the stops that can
 take it: the destinations that accept what it carries, the spring-loaded
 controls a pause would press, and the stop it came from. Unrelated controls
-are skipped. The carried picture is drawn beside the focused stop, which is
-targeted as if the pointer were over it, and wears the operation's badge.
+are skipped, and each stop it can reach is marked with a `‹`. The carried
+picture is drawn beside the focused stop, which is targeted as if the
+pointer were over it, and wears the operation's badge. At a destination
+taller than a row, such as a ``List``, Up and Down first move between its
+rows, and the landing slot follows. The status bar names what Return and
+Escape do.
 **Return** drops it there, or presses the spring-loaded control there and
 keeps carrying. **Escape**, or Ctrl-R again, puts it back. **Space** flips
 the operation between a copy and a move, as Option does for the pointer.

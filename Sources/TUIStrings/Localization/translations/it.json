@@ -192,6 +192,7 @@
   "statusbar.closeSuggestions": "chiudi i suggerimenti",
   "statusbar.closeWindow": "chiudi la finestra",
   "statusbar.cancelMove": "annulla spostamento",
+  "statusbar.dropCarried": "rilascia",
   "statusbar.clearSelection": "deseleziona tutto",
   "statusbar.stopExtendingSelection": "smetti di estendere la selezione",
   "statusbar.stopEditingColumns": "smetti di modificare le colonne",

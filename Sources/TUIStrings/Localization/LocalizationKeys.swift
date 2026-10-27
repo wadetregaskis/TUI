@@ -443,6 +443,8 @@ public enum LocalizationKey {
         case closeWindow = "statusbar.closeWindow"
         /// A keyboard drag in progress.
         case cancelMove = "statusbar.cancelMove"
+        /// A drag the keyboard carries, over a destination: what Return does.
+        case dropCarried = "statusbar.dropCarried"
         case clearSelection = "statusbar.clearSelection"
         case stopExtendingSelection = "statusbar.stopExtendingSelection"
         /// A table's column picked from the keyboard (Ctrl-K).

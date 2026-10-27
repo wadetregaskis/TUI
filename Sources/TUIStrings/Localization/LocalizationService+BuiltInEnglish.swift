@@ -222,6 +222,7 @@ extension LocalizationService {
       "statusbar.closeSuggestions": "close suggestions",
       "statusbar.closeWindow": "close window",
       "statusbar.cancelMove": "cancel move",
+      "statusbar.dropCarried": "drop",
       "statusbar.clearSelection": "clear selection",
       "statusbar.stopExtendingSelection": "stop extending selection",
       "statusbar.stopEditingColumns": "stop editing columns",

@@ -192,6 +192,7 @@
   "statusbar.closeSuggestions": "关闭建议",
   "statusbar.closeWindow": "关闭窗口",
   "statusbar.cancelMove": "取消移动",
+  "statusbar.dropCarried": "放下",
   "statusbar.clearSelection": "清除选择",
   "statusbar.stopExtendingSelection": "停止扩展选择",
   "statusbar.stopEditingColumns": "停止编辑列",
