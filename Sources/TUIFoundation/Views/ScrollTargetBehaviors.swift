@@ -26,6 +26,13 @@
 /// position) goes to the boundary at or past it. The content's last page ends
 /// at its end, as it does in SwiftUI, so the last boundary is the bottom.
 ///
+/// Over a `scrollTargetLayout()`'s rows a page never cuts a row (owner,
+/// 2026-10-26: "never a row cut off"): a step goes to the row the page it
+/// leaves could not hold whole, which the scroll view draws blank below the
+/// last whole row, so that row starts the next page — and back, to the
+/// earliest row the page before can hold whole. A row taller than a page is
+/// stepped through a page at a time.
+///
 /// In a ``List`` or ``Table`` each step moves a page from where the view is,
 /// as Page Down does: their rows are not cells of one canvas a boundary could
 /// be measured on.
@@ -38,9 +45,13 @@ public struct PagingScrollTargetBehavior: ScrollTargetBehavior, Equatable, Senda
 
     public func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
         if context.axes.contains(.vertical) {
-            target.rect.y = Self.paged(
-                target.rect.y, from: context.originalTarget.rect.y, page: context.containerSize.height,
-                end: context.contentSize.height - context.containerSize.height)
+            let end = context.contentSize.height - context.containerSize.height
+            target.rect.y =
+                Self.rowPaged(
+                    target.rect.y, from: context.originalTarget.rect.y, page: context.containerSize.height,
+                    edgeLines: context.edgeLines, rows: context.targetLayoutRows, end: end)
+                ?? Self.paged(
+                    target.rect.y, from: context.originalTarget.rect.y, page: context.containerSize.height, end: end)
         }
         if context.axes.contains(.horizontal) {
             target.rect.x = Self.paged(
@@ -74,6 +85,68 @@ public struct PagingScrollTargetBehavior: ScrollTargetBehavior, Equatable, Senda
         }
         let nearest = Int((Double(original) / Double(page)).rounded(.toNearestOrAwayFromZero)) * page
         return end > 0 && abs(end - original) < abs(nearest - original) ? end : nearest
+    }
+}
+
+// MARK: - Paging over rows
+
+extension PagingScrollTargetBehavior {
+    /// Where a gesture from `original` that would end at `proposed` rests
+    /// over `rows`, a page at a time and never cutting a row, or `nil` where
+    /// no row is taller than a line — no page can cut one, and the steps are
+    /// whole pages, as with no rows — or the gesture has no direction.
+    ///
+    /// A page shown from offset `o` reads the lines from `o` — from `o` plus
+    /// `edgeLines` below the first page, under "▲" — up to `o + page +
+    /// edgeLines`, where "▼" is. The row that line falls inside is the one the
+    /// page cuts, and the scroll view draws it blank
+    /// (`ScrollView.blankingRowCutByPage`).
+    static func rowPaged(
+        _ proposed: Int, from original: Int, page: Int, edgeLines: Int, rows: TargetLayoutSpans, end: Int
+    ) -> Int? {
+        guard page > 0, rows.hasSpansLongerThanOne, proposed != original else { return nil }
+        var offset = original
+        if proposed > original {
+            repeat { offset = pageAfter(offset, page: page, edgeLines: edgeLines, rows: rows) } while offset < proposed
+                && offset < end
+        } else {
+            repeat { offset = pageBefore(offset, page: page, edgeLines: edgeLines, rows: rows) } while offset > proposed
+                && offset > 0
+        }
+        return offset
+    }
+
+    /// The row a page shown from `offset` cuts: the one its last line read
+    /// falls inside, where it starts below the page's first line read — or
+    /// `nil` for none, where a row ends with the page or one taller than the
+    /// page fills it.
+    static func rowCut(at offset: Int, page: Int, edgeLines: Int, rows: TargetLayoutSpans) -> TargetLayoutSpans.Span? {
+        let first = offset + (offset > 0 ? edgeLines : 0)
+        let pastLast = offset + page + edgeLines
+        return rows.spans(overlapping: (pastLast - 1)...pastLast).first { row in
+            row.origin > first && row.origin < pastLast && row.origin + row.length > pastLast
+        }
+    }
+
+    /// The offset of the page after the one shown from `offset`: the row it
+    /// cut, read first under "▲"; a page on where it cut none.
+    private static func pageAfter(_ offset: Int, page: Int, edgeLines: Int, rows: TargetLayoutSpans) -> Int {
+        guard let cut = rowCut(at: offset, page: page, edgeLines: edgeLines, rows: rows) else { return offset + page }
+        return max(offset + 1, cut.origin - edgeLines)
+    }
+
+    /// The offset of the page before the one shown from `offset`: the
+    /// earliest row a page ending where this one's first line read begins can
+    /// hold whole, read first under "▲" — the top, where that page would
+    /// reach it; a page back where no row starts in it.
+    private static func pageBefore(_ offset: Int, page: Int, edgeLines: Int, rows: TargetLayoutSpans) -> Int {
+        let first = offset + (offset > 0 ? edgeLines : 0)
+        // The first page reads a line more: from the top, no "▲" above it.
+        if first <= page + edgeLines { return 0 }
+        let earliest = first - page
+        let starts = rows.spans(overlapping: earliest...first).map(\.origin).filter { $0 >= earliest && $0 < first }
+        guard let start = starts.min() else { return max(0, offset - page) }
+        return min(max(0, start - edgeLines), offset - 1)
     }
 }
 

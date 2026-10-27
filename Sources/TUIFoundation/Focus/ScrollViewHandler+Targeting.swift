@@ -101,7 +101,8 @@ extension ScrollViewHandler {
             originalTarget: original, velocity: velocity, contentSize: content,
             containerSize: container, axes: targeting.axes, environment: targeting.environment,
             targetLayoutRows: targeting.rows.shifted(by: -margins.top),
-            targetLayoutColumns: targeting.columns.shifted(by: -margins.leading))
+            targetLayoutColumns: targeting.columns.shifted(by: -margins.leading),
+            edgeLines: targeting.overwrittenEdgeLines / 2)
         targeting.behavior.updateTarget(&target, context: context)
         let anchor = target.anchor ?? .topLeading
         return (

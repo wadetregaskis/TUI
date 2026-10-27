@@ -92,6 +92,8 @@ extension _ScrollViewCore {
                 chrome: chrome, width: width, height: height, horizontal: horizontal, context: context)
             settleScrollSpace(in: window, viewport: viewport, context: context)
         }
+        // A row a page cuts is drawn blank, and so is not seen.
+        window = blankingRowCutByPage(window, handler: handler)
         context.measureScrollVisibility(in: window, viewport: CellRect(x: 0, y: 0, width: width, height: height))
         return window
     }
@@ -188,5 +190,37 @@ extension _ScrollViewCore {
             geometry.resolve(ownedSpaces, in: window, size: viewport, scrollAxis: scrollAxis)
         else { return }
         geometry.noteResidual()
+    }
+}
+
+extension _ScrollViewCore {
+    /// The window with the row `.paging` cuts at this offset drawn blank, from
+    /// its first line to the last line read, above "▼" and the bottom content
+    /// margin: over a `scrollTargetLayout()`'s rows a page never shows a row
+    /// cut off, and the next page starts with it (owner, 2026-10-26;
+    /// `PagingScrollTargetBehavior.rowPaged`). The regions the row drew there
+    /// go with it. The last page, which reads to the content's end, cuts
+    /// nothing; a window slid by an overscroll is left as drawn.
+    func blankingRowCutByPage(_ window: FrameBuffer, handler: ScrollViewHandler) -> FrameBuffer {
+        guard let targeting = handler.scrollTargeting, targeting.behavior is PagingScrollTargetBehavior,
+            targeting.axes.contains(.vertical), targeting.rows.hasSpansLongerThanOne, handler.hasContentBelow,
+            handler.overscrollState.excursion == 0
+        else { return window }
+        let margins = targeting.margins
+        let edgeLines = targeting.overwrittenEdgeLines / 2
+        let page = handler.viewportHeight - margins.top - margins.bottom - targeting.overwrittenEdgeLines
+        // In the behaviour's coordinates, the content's first line at 0.
+        let offset = handler.scrollOffset
+        guard
+            let cut = PagingScrollTargetBehavior.rowCut(
+                at: offset, page: page, edgeLines: edgeLines, rows: targeting.rows.shifted(by: -margins.top))
+        else { return window }
+        let first = cut.origin + margins.top - offset
+        let pastLast = min(window.height, margins.top + page + edgeLines)
+        guard first < pastLast, first >= 0 else { return window }
+        let kept = (0..<window.height).map { $0 >= first && $0 < pastLast ? [] : [0..<window.width] }
+        var blanked = window.clearing(keeping: kept)
+        blanked.hitTestRegions = window.hitTestRegions.filter { $0.offsetY < first || $0.offsetY >= pastLast }
+        return blanked
     }
 }

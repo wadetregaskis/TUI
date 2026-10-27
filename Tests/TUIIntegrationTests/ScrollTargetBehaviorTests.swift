@@ -116,6 +116,38 @@ struct ScrollTargetBehaviorTests {
         #expect(read == Set(0..<30), "never readable: \(Set(0..<30).subtracting(read).sorted())")
     }
 
+    @Test("Paging over rows taller than a line never cuts one: it is drawn blank, and the next page starts with it")
+    func pagingNeverCutsARow() {
+        let frames = Frames()
+        let view = ScrollView { scrollTargetRows(10, height: { _ in 3 }) }
+            .frame(height: 10)
+            .scrollIndicators(.automatic)
+            .scrollIndicatorStyle(.text)
+            .scrollTargetBehavior(.paging)
+        frames.render(view)
+        var seen = readableRows(frames)
+        var stops = [frames.scrollView?.scrollOffset ?? -1]
+        for _ in 0..<3 {
+            frames.wheel(.scrollDown)
+            frames.render(view)
+            seen += readableRows(frames)
+            stops.append(frames.scrollView?.scrollOffset ?? -1)
+        }
+        // Rows of three lines under the coming-and-going pair: the first page
+        // reads lines 0–8, rows 0–2 whole; the next reads 9–16, rows 3 and 4,
+        // and row 5 at 15 would be cut, so it is drawn blank and starts the
+        // page after, under "▲" at 14; the last page runs to the end.
+        #expect(stops == [0, 8, 14, 20], "\(stops)")
+        #expect(seen.sorted() == Array(0..<10), "every row read whole, once: \(seen)")
+        var back = [frames.scrollView?.scrollOffset ?? -1]
+        for _ in 0..<3 {
+            frames.wheel(.scrollUp)
+            frames.render(view)
+            back.append(frames.scrollView?.scrollOffset ?? -1)
+        }
+        #expect(back == [20, 14, 8, 0], "the same pages back: \(back)")
+    }
+
     /// SwiftUI's paging idiom: pages as tall as the scroll view's container.
     /// Each page marks its first and last line.
     private func containerPages(_ count: Int) -> some View {

@@ -102,6 +102,13 @@ public struct ScrollTargetBehaviorContext {
     let targetLayoutRows: TargetLayoutSpans
     let targetLayoutColumns: TargetLayoutSpans
 
+    /// How many lines the "N more" pair draws over the content at each edge
+    /// it shows at — one where it comes and goes under `.paging`, else none
+    /// (``ScrollViewTargeting/overwrittenEdgeLines``, a half of it): where
+    /// the line before a page's first, under "▲", and the line after its
+    /// last, under "▼", are.
+    var edgeLines = 0
+
     /// Reads a value from the scroll view's environment.
     public subscript<T>(dynamicMember keyPath: KeyPath<EnvironmentValues, T>) -> T {
         environment[keyPath: keyPath]
@@ -139,6 +146,12 @@ struct TargetLayoutSpans: Equatable, Sendable {
     static let none = Self()
 
     var isEmpty: Bool { uniform == nil && placed.isEmpty }
+
+    /// Whether any span is longer than one: a row a page can cut.
+    var hasSpansLongerThanOne: Bool {
+        if let uniform { return uniform.length > 1 }
+        return placed.contains { $0.length > 1 }
+    }
 
     /// The spans that overlap `range`, in order.
     func spans(overlapping range: ClosedRange<Int>) -> [Span] {

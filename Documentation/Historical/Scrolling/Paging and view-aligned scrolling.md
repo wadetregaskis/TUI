@@ -221,13 +221,23 @@ against one container.
    page, with no "▲", reads a line more, and the last runs to the end. Every
    line is read once, but at the end, where the last stop is clamped and
    repeats what the stop before it showed, as SwiftUI's does.
-4. **Not built: "never a row cut"** for rows taller than a line. `.paging`
-   knows lines, not rows: where the content is a `scrollTargetLayout` stack
-   (as `.viewAligned` reads it), a page should end at its last whole row and
-   draw the rest blank, so the next page starts with the row that did not
-   fit. The owner's "never a row cut off" (2026-10-26, and "no repeats/skips,
-   indicators only when needed or .visible, no blank rows" before it) asks for
-   it; half a day.
+4. **"Never a row cut" (built 2026-10-27, lane PAGEROWS)** for rows taller
+   than a line, where the content is a `scrollTargetLayout` stack (as
+   `.viewAligned` reads it). The page shown from an offset reads up to the
+   line under "▼". The row that line falls inside, where it starts below the
+   page's first line read, is the one the page cuts. The scroll view draws it
+   blank, with its regions, from its first line to "▼"
+   (`blankingRowCutByPage`). The step down goes to it: it is read first, under
+   "▲" (`PagingScrollTargetBehavior.rowPaged`). The step up goes to the
+   earliest row a page ending at the current first line can hold whole, or to
+   the top where the first page reaches it, so the pages back are the pages
+   down. A row taller than a page is stepped through a page at a time, and a
+   page whose last line ends a row is a plain page. Rows of one line page as
+   before. The behaviour learns where "▲" and "▼" are from
+   `ScrollTargetBehaviorContext.edgeLines`, internal. The test is
+   `ScrollTargetBehaviorTests.pagingNeverCutsARow`: rows of three lines under
+   the coming-and-going pair stop at 0, 8, 14 and 20, each row read whole
+   once, and the same stops on the way back.
 
 ### B-D2S-7. A scroll target behaviour's container and content include the content margins
 
