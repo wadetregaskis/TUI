@@ -46,13 +46,47 @@ import TUIFoundation
 ///
 /// It keeps redo as well: an undo puts the state it replaces on the redo
 /// stack, a redo puts it back, and a new edit forgets redo.
+///
+/// **Edits, not snapshots** (owner ruling B-PASTE-1-EDITOR, 2026-10-26). A
+/// step is kept as the edit it made — where the text changed, the bytes it
+/// lost and the bytes it gained (``TextEdit``) — not as the whole text before
+/// it: fifty steps over a 16 MiB document held 800 MiB of copies. Only the
+/// newest step keeps its text whole, until the step after it is recorded and
+/// shows where it ended; then it too becomes an edit. Undo splices the lost
+/// bytes back over the gained ones, and redo the other way, so either gives
+/// back exactly the bytes there were. A text that does not hold the bytes an
+/// edit expects is one the history did not produce, and the history forgets
+/// itself rather than splice into it (``undo(from:mark:)``). Texts are
+/// compared by their bytes (``TextEdit/sameBytes(_:_:)``), not by `==`, which
+/// takes canonically equivalent texts for one. The snapshot
+/// history this replaced is the reference `TextUndoHistoryDifferentialTests`
+/// checks this one against.
 struct TextUndoHistory<Caret: Equatable> {
+    /// What a recorded state keeps of its text: the text whole, while it is
+    /// the newest step and nothing has shown where it ended; else the edit
+    /// from it to the state after it.
+    private enum Kept {
+        case text(String)
+        case edit(TextEdit)
+    }
+
     /// One recorded state, and the mark its step in the app's undo manager is
     /// registered against.
     private struct Entry {
-        let text: String
+        var kept: Kept
         let caret: Caret
         let mark: TextUndoMark
+
+        /// Whether this state's step, recorded before a change to `text`,
+        /// would record the same state again: its text is `text`. Kept as an
+        /// edit, that is an edit that changed nothing, since `text` is then
+        /// the text it left.
+        func leaves(unchanged text: String) -> Bool {
+            switch kept {
+            case .text(let kept): TextEdit.sameBytes(kept, text)
+            case .edit(let edit): edit.removed == edit.inserted
+            }
+        }
     }
 
     /// The recorded states, oldest first.
@@ -95,7 +129,7 @@ struct TextUndoHistory<Caret: Equatable> {
     /// - Returns: Whether it forgot.
     @discardableResult
     mutating func forgetIfReplaced(current: String) -> Bool {
-        guard let written, written != current else { return false }
+        guard let written, !TextEdit.sameBytes(written, current) else { return false }
         forget()
         return true
     }
@@ -127,17 +161,31 @@ struct TextUndoHistory<Caret: Equatable> {
     ///   against; `nil` when nothing was recorded.
     @discardableResult
     mutating func record(text: String, caret: Caret, continuingTyping: Bool = false) -> TextUndoMark? {
-        if continuingTyping, let run = typingRun, run.caret == caret, run.text == text {
+        if continuingTyping, let run = typingRun, run.caret == caret, TextEdit.sameBytes(run.text, text) {
             return nil
         }
         typingRun = nil
-        if let last = states.last, last.text == text {
+        if let last = states.indices.last, states[last].leaves(unchanged: text) {
+            // The step is not recorded again, and the newest takes in the edit
+            // about to be made, as a snapshot's did: so it keeps its text whole
+            // again — it is `text` — until the next step shows where it ends.
+            // That edit is still a new branch, so redo goes: a redo after it
+            // would bring back a text without it. (The snapshot history kept
+            // redo here, and a redo then threw the edit away.)
+            states[last].kept = .text(text)
+            dropped += redoStates.map(\.mark)
+            redoStates.removeAll()
             return nil
         }
         dropped += redoStates.map(\.mark)
         redoStates.removeAll()
+        // The newest step ended in `text`, the state before this edit: it can
+        // be kept as its edit now.
+        if let last = states.indices.last, case .text(let before) = states[last].kept {
+            states[last].kept = .edit(TextEdit(from: before, to: text))
+        }
         let mark = TextUndoMark()
-        append(Entry(text: text, caret: caret, mark: mark))
+        append(Entry(kept: .text(text), caret: caret, mark: mark))
         return mark
     }
 
@@ -183,14 +231,33 @@ struct TextUndoHistory<Caret: Equatable> {
     ///   the control's own undo. Given, only that step's state is taken back,
     ///   so a step that has fallen out of step with the history does nothing
     ///   rather than undo another's state.
+    ///
+    /// The step's edit is taken back off `current`, which is the text the step
+    /// left; one that does not hold the bytes the edit put there was not
+    /// produced by this history, and it forgets itself and answers `nil`
+    /// rather than splice into it.
     mutating func undo(
         from current: (text: String, caret: Caret), mark: TextUndoMark? = nil
     ) -> (text: String, caret: Caret)? {
         guard let previous = states.last, mark.map({ $0 === previous.mark }) ?? true else { return nil }
+        let edit: TextEdit
+        let before: String
+        switch previous.kept {
+        case .text(let text):
+            edit = TextEdit(from: text, to: current.text)
+            before = text
+        case .edit(let kept):
+            guard let undone = kept.reverted(current.text) else {
+                forget()
+                return nil
+            }
+            edit = kept
+            before = undone
+        }
         typingRun = nil
         states.removeLast()
-        redoStates.append(Entry(text: current.text, caret: current.caret, mark: previous.mark))
-        return (previous.text, previous.caret)
+        redoStates.append(Entry(kept: .edit(edit), caret: current.caret, mark: previous.mark))
+        return (before, previous.caret)
     }
 
     /// Takes the newest undone state back for a redo, keeping `current` for
@@ -199,11 +266,17 @@ struct TextUndoHistory<Caret: Equatable> {
     mutating func redo(
         from current: (text: String, caret: Caret), mark: TextUndoMark? = nil
     ) -> (text: String, caret: Caret)? {
-        guard let next = redoStates.last, mark.map({ $0 === next.mark }) ?? true else { return nil }
+        guard let next = redoStates.last, mark.map({ $0 === next.mark }) ?? true,
+            case .edit(let edit) = next.kept
+        else { return nil }
+        guard let redone = edit.applied(current.text) else {
+            forget()
+            return nil
+        }
         typingRun = nil
         redoStates.removeLast()
-        append(Entry(text: current.text, caret: current.caret, mark: next.mark))
-        return (next.text, next.caret)
+        append(Entry(kept: .edit(edit), caret: current.caret, mark: next.mark))
+        return (redone, next.caret)
     }
 
     /// The marks of the states let go of since the last call — dropped past
@@ -222,8 +295,108 @@ struct TextUndoHistory<Caret: Equatable> {
         heldMarks + dropped
     }
 
+    /// The bytes the history holds: whole texts and edits, undo and redo —
+    /// for the tests that check it holds edits, not copies.
+    var keptBytes: Int {
+        (states + redoStates).reduce(0) { sum, entry in
+            switch entry.kept {
+            case .text(let text): sum + text.utf8.count
+            case .edit(let edit): sum + edit.removed.count + edit.inserted.count
+            }
+        }
+    }
+
     /// The marks of the states held, undo and redo.
     private var heldMarks: [TextUndoMark] {
         states.map(\.mark) + redoStates.map(\.mark)
+    }
+}
+
+/// One edit to a text, as the bytes it changed: from `offset` (in UTF-8 code
+/// units), `removed` gave way to `inserted`. Everything before `offset` and
+/// after the removed bytes is untouched, which is what lets the edit be undone
+/// and redone on the text alone.
+///
+/// Byte-exact rather than in characters: splicing bytes back gives back the
+/// very bytes there were, whatever grapheme clusters they were part of — a
+/// flag split mid-pair, a combining mark on its own, a CRLF one half of which
+/// was changed.
+struct TextEdit: Equatable {
+    /// Where the change starts, in UTF-8 code units from the text's start.
+    let offset: Int
+    /// The bytes the edit took away.
+    let removed: [UInt8]
+    /// The bytes it put there.
+    let inserted: [UInt8]
+
+    /// The edit that turns `before` into `after`: what lies between their
+    /// common start and their common end. A scan of the two, a byte at a time
+    /// from each end, and so as long as the text, when the step is recorded —
+    /// not on every key.
+    ///
+    /// The scan reads the two texts' bytes where they lie — a native string's
+    /// are contiguous — and copies only the middle that changed.
+    init(from before: String, to after: String) {
+        var old = before
+        var new = after
+        let edit =
+            old.withUTF8 { oldBytes in
+                new.withUTF8 { newBytes in Self.difference(oldBytes, newBytes) }
+            }
+        (offset, removed, inserted) = edit
+    }
+
+    /// Where `old` and `new` differ: the common start's length, and the bytes
+    /// of each between the common start and the common end.
+    private static func difference(
+        _ old: UnsafeBufferPointer<UInt8>, _ new: UnsafeBufferPointer<UInt8>
+    ) -> (Int, [UInt8], [UInt8]) {
+        let shorter = min(old.count, new.count)
+        var start = 0
+        while start < shorter, old[start] == new[start] { start += 1 }
+        var end = 0
+        while end < shorter - start, old[old.count - 1 - end] == new[new.count - 1 - end] { end += 1 }
+        return (start, Array(old[start..<(old.count - end)]), Array(new[start..<(new.count - end)]))
+    }
+
+    /// Whether `a` and `b` are the same bytes — not `==`, which takes two
+    /// canonically equivalent texts for one (a precomposed "é" and an "e"
+    /// with a combining accent): a history of byte edits has to see the text
+    /// it left, byte for byte. Storage two strings share is answered at once;
+    /// otherwise one comparison of the bytes.
+    static func sameBytes(_ a: String, _ b: String) -> Bool {
+        var a = a
+        var b = b
+        return a.withUTF8 { x in
+            b.withUTF8 { y in
+                x.count == y.count
+                    && (x.baseAddress == y.baseAddress || x.elementsEqual(y))
+            }
+        }
+    }
+
+    /// `after` with the edit taken back — the text before it — or `nil` where
+    /// `after` does not hold the inserted bytes at the edit's place, so is not
+    /// the text the edit left.
+    func reverted(_ after: String) -> String? {
+        Self.splice(after, at: offset, expecting: inserted, putting: removed)
+    }
+
+    /// `before` with the edit made again, or `nil` where `before` is not the
+    /// text the edit was made to.
+    func applied(_ before: String) -> String? {
+        Self.splice(before, at: offset, expecting: removed, putting: inserted)
+    }
+
+    private static func splice(_ text: String, at offset: Int, expecting: [UInt8], putting: [UInt8]) -> String? {
+        let bytes = Array(text.utf8)
+        guard offset + expecting.count <= bytes.count, bytes[offset..<(offset + expecting.count)].elementsEqual(expecting)
+        else { return nil }
+        var result = [UInt8]()
+        result.reserveCapacity(bytes.count - expecting.count + putting.count)
+        result += bytes[..<offset]
+        result += putting
+        result += bytes[(offset + expecting.count)...]
+        return String(bytes: result, encoding: .utf8)
     }
 }

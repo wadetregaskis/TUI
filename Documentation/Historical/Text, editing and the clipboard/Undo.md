@@ -24,11 +24,25 @@ helper.
    rigorously tested against a whole-text model so the stack can never drift
    from the text (B-PASTE-1-EDITOR); and undo for every built-in control that
    changes a value — Toggle, radio, Picker, Slider, Stepper, DatePicker,
-   ColorPicker and the rest. **Not yet built.**
+   ColorPicker and the rest. Undo as edits was built that night; the
+   controls' undo is still owed.
 
 ## Where it stands
 
-Shipped as above; both 2026-10-26 rulings are owed.
+Shipped as above, a text control's steps kept as edits (2026-10-26); the
+controls' undo is owed.
+
+## For a future reader
+
+- **Undo as edits is checked against the snapshots it replaced.**
+  `TextUndoHistoryDifferentialTests` keeps the snapshot history as its
+  reference and drives both through 200 seeded random runs (edits, typing
+  runs, undo, redo, replacements from outside, the step limit), comparing
+  text, bytes, caret and marks after every operation. A change to the
+  history's rules changes the reference with it, or the test fails.
+- **A recorded step costs a scan of the text** (the common start and end of
+  the text before and after it), once per step — a run of typing is one — not
+  per key.
 
 ## The record
 
@@ -267,3 +281,40 @@ made to the same value since. *Price:* a day — a step per collection
 operation (move, remove, insert) with its inverse, for `RangeReplaceableCollection`
 and `MutableCollection`; the snapshot is exact for state a person edits a step
 at a time, which is every case in the Example.
+
+### B-PASTE-1-EDITOR. A text control's undo keeps edits, not the whole text
+
+*`TextField`, `TextEditor` (their undo)*
+
+A text control kept every undo step as the whole text before it: fifty steps
+over a 16 MiB document held 800 MiB. Measured on that document, a
+`Character` array took 0.51 s and 305 MiB to build and 0.25 s to join on
+every edit, where a line table over UTF-8 took 0.009 s and 1.4 MiB; the
+owner (2026-10-26): undo as edits, rigorously tested so the stack can never
+drift from the text.
+
+**Built (2026-10-26):** a step is kept as the edit it made (`TextEdit`): the
+byte offset where the text changed, the bytes it lost and the bytes it
+gained, found by scanning the text before and after for their common start
+and end. Only the newest step keeps its text whole, until the step after it
+shows where it ended. Undo splices the lost bytes back over the gained ones,
+redo the other way, so each gives back exactly the bytes there were, whatever
+grapheme clusters they straddled. A text that does not hold the bytes an edit
+expects is one the history did not produce: it forgets itself rather than
+splice into it. Every rule of the snapshot history stands — one step per edit,
+a run of typing one step, the 50-step limit, the replacement check — and the
+differential test holds the two to the same answers, but two, which the test
+found and which changed in the reference too:
+
+- **Texts compare by their bytes.** Swift's `==` takes canonically equivalent
+  texts for one (a precomposed "é" and an "e" with a combining accent), so a
+  text replaced by an equivalent one went unseen as a replacement — harmless
+  while undo put back whole snapshots, not once it splices bytes.
+- **An edit made where the record was not, because the text was unchanged,
+  still forgets redo.** The snapshot history kept redo there, and a redo then
+  brought back a text without the edit.
+
+**Not done:** the editor's own storage (`[Character]`) is unchanged; the
+owner's order was undo first, then, if memory still matters, one `String`
+with a line table.
+

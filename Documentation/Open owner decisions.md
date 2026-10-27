@@ -72,7 +72,7 @@ been in force since 2026-10-18.
 | B-BITEMS1-1 | The three-party model. | Done (2026-10-26): `dragConfiguration(_:)`, the destination's proposal, the modifier flip, the narrowing and the badge. The image well's badge (Generic, not Copy?) is still to be probed in a real window. |
 | O13-KEYS | The recommendation: F10 enters bar mode; measure F10 and fn-F10. | Bar mode done (2026-10-26). **Needs you:** F10 and fn-F10 pressed in Apple Terminal, iTerm2 and Ghostty with `Tools/TerminalProbes/key_probe.py` (a key press cannot be sent from here). |
 | B-HELP-2 | Shift-F1 at the lowest priority (any app or built-in handler takes it first); ⌥? toggles all help; a menu-bar item where Option does not arrive. | Done (`897751413`); what each terminal sends for Shift-F1 is still to be measured. |
-| B-PASTE-1-EDITOR | Undo as edits, not snapshots, with exhaustive tests that the stack cannot drift from the text; and undo for every built-in control that changes a value. | Queued. |
+| B-PASTE-1-EDITOR | Undo as edits, not snapshots, with exhaustive tests that the stack cannot drift from the text; and undo for every built-in control that changes a value. | Undo as edits done (2026-10-26), checked against the snapshot history by a differential test; the controls' undo is next. |
 | B75 | Draw a tab's custom label view in its chip (variable heights allowed); text labels keep their path and cost. | Done (2026-10-26): drawn whole in its chip, the row as tall as its tallest label. |
 | B86 | Both now: the full entity table, stored compressed, and link reference definitions. | Done (`b3ab3f8b5`, `813a00cb3`). |
 | A27 | (2). | Done: the transforms declined (`73aa70327`), `mask(alignment:_:)` (`bfedecf3d`), `drawingGroup` in linear light (`8fdc5b447`). |
