@@ -27,6 +27,10 @@ final class DatePickerHandler: PersistedFocusable {
 
     var canBeFocused: Bool
     var selection: Binding<Date>
+
+    /// The same binding without the undo, for the picker's own clamp, which no
+    /// person made. `nil` before the first render.
+    var plainSelection: Binding<Date>?
     var model: DateFieldModel
 
     /// The index (into `model.orderedKinds()`) of the component being edited.
@@ -166,6 +170,7 @@ final class DatePickerHandler: PersistedFocusable {
 
     func onFocusReceived() {
         digitBuffer = ""
+        let selection = plainSelection ?? self.selection
         selection.wrappedValue = model.clamp(selection.wrappedValue)
     }
 

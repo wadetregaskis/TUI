@@ -282,6 +282,8 @@ enum DatePickerStateIndex {
     /// Which of a stepper field's arrows is under the pointer: `0` ▲, `1` ▼,
     /// `-1` neither.
     static let hoveredArrow = 4
+    /// The picker's undo (``ControlValueUndo``): a run of keys is one step.
+    static let undo = 5
 }
 
 /// Renders the inline date/time field with the active component highlighted, and
@@ -394,7 +396,10 @@ struct _DatePickerCore: View, Renderable, Layoutable {
                 focusID: focusID, selection: selection, model: model,
                 canBeFocused: !isDisabled))
         let handler = handlerBox.value
-        handler.selection = selection
+        // A person's changes are steps in the app's undo manager, a run of
+        // keys one step; the picker's own clamp is not a person's.
+        handler.selection = context.undoable(selection, coalescing: true, propertyIndex: StateIndex.undo)
+        handler.plainSelection = selection
         handler.model = model
         handler.canBeFocused = !isDisabled
         handler.onActivate = isDisabled ? nil : onActivate

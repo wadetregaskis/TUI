@@ -84,7 +84,7 @@ public struct Stepper<Label: View>: View {
 
     /// Re-points the persisted handler at this render's value binding — the only
     /// `V`-typed state that must be refreshed each frame.
-    let syncValue: (any StepperDriving) -> Void
+    let syncValue: @MainActor (any StepperDriving, RenderContext) -> Void
 
     /// Custom increment callback.
     let onIncrement: (() -> Void)?
@@ -109,7 +109,7 @@ public struct Stepper<Label: View>: View {
         display: @escaping () -> String,
         boundsWidth: @escaping () -> Int = { 0 },
         makeHandler: @escaping (String, Bool) -> any StepperDriving,
-        syncValue: @escaping (any StepperDriving) -> Void,
+        syncValue: @escaping @MainActor (any StepperDriving, RenderContext) -> Void,
         onIncrement: (() -> Void)?,
         onDecrement: (() -> Void)?,
         onEditingChanged: @escaping (Bool) -> Void
@@ -155,6 +155,7 @@ public struct Stepper<Label: View>: View {
 /// over `V` — exactly as SwiftUI's `Stepper<Label>` is not. The persisted
 /// ``StepperHandler`` carries all the `V` arithmetic; only its value binding
 /// needs refreshing each frame (`syncValue`).
+@MainActor
 private func eraseStepperValue<V: Strideable>(
     value: Binding<V>,
     bounds: ClosedRange<V>?,
@@ -164,7 +165,7 @@ private func eraseStepperValue<V: Strideable>(
     display: () -> String,
     boundsWidth: () -> Int,
     makeHandler: (String, Bool) -> any StepperDriving,
-    syncValue: (any StepperDriving) -> Void
+    syncValue: @MainActor (any StepperDriving, RenderContext) -> Void
 ) {
     let text: (V) -> String = { value in format.map { $0(value) } ?? "\(value)" }
     let display: () -> String = { text(value.wrappedValue) }
@@ -180,9 +181,12 @@ private func eraseStepperValue<V: Strideable>(
     // must be refreshed on it, not just the value binding — a stale bounds
     // kept clamping increments to a range the view no longer declared
     // (e.g. a ceiling that grew when a mode picker changed).
-    let syncValue: (any StepperDriving) -> Void = { handler in
+    let syncValue: @MainActor (any StepperDriving, RenderContext) -> Void = { handler, context in
         guard let handler = handler as? StepperHandler<V> else { return }
-        handler.value = value
+        // A person's steps are steps in the app's undo manager, a run of them
+        // one step; the stepper's own clamp is not a person's.
+        handler.value = context.undoable(value, coalescing: true, propertyIndex: StepperUndoIndex.undo)
+        handler.plainValue = value
         handler.bounds = bounds
         handler.step = step
     }
@@ -468,6 +472,13 @@ private enum StepperStateIndex {
     static let isHovered = 2
     static let incrementRepeat = 3
     static let decrementRepeat = 4
+    // 5: the undo, `StepperUndoIndex`, where the type-erased value is wrapped.
+}
+
+/// The stepper's undo slot (``ControlValueUndo``), where the type-erased value
+/// is wrapped (`eraseStepperValue`) as well as in the core's table.
+enum StepperUndoIndex {
+    static let undo = 5
 }
 
 /// Internal view that handles the actual rendering of Stepper. The value type is
@@ -478,7 +489,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
     let display: () -> String
     let boundsWidth: () -> Int
     let makeHandler: (String, Bool) -> any StepperDriving
-    let syncValue: (any StepperDriving) -> Void
+    let syncValue: @MainActor (any StepperDriving, RenderContext) -> Void
     let onIncrement: (() -> Void)?
     let onDecrement: (() -> Void)?
     let focusID: String?
@@ -520,7 +531,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
 
         // Keep handler in sync with current values. `syncValue` refreshes the
         // one `V`-typed field (the value binding); the rest are value-type-free.
-        syncValue(handler)
+        syncValue(handler, context)
         handler.canBeFocused = !isDisabled
         // Captured at render so Shift+arrow can accelerate at event time.
         handler.shiftStepMultiplier = context.environment.shiftStepMultiplier

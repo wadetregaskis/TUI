@@ -23,6 +23,8 @@ private enum PickerSegmentsStateIndex {
     /// The segment under the pointer, or `-1` for none: one box for the whole
     /// strip, since the pointer is over one segment at a time.
     static let hoveredIndex = 2
+    /// The picker's undo (``ControlValueUndo``).
+    static let undo = 3
 }
 
 /// The rendering core of a ``Picker`` in the segmented or palette style.
@@ -252,7 +254,8 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
         options: [(tag: SelectionValue, label: AnyView)], focusID: String, isDisabled: Bool,
         storage: StateStorage, context: RenderContext
     ) -> RadioButtonGroupHandler {
-        let selection = self.selection
+        // A choice a person makes is a step in the app's undo manager.
+        let selection = context.undoable(self.selection, propertyIndex: StateIndex.undo)
         let erased = Binding<AnyHashable>(
             get: { AnyHashable(selection.wrappedValue) },
             set: { newValue in
@@ -390,7 +393,8 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
         guard !context.isMeasuring, let dispatcher = context.environment.mouseEventDispatcher else { return }
         dispatcher.requestFeature(.motion, in: context)
         let focusManager = context.environment.focusManager
-        let selection = self.selection
+        // A choice a person makes is a step in the app's undo manager.
+        let selection = context.undoable(self.selection, propertyIndex: StateIndex.undo)
         let springLoads = context.environment.springLoadingBehavior.allows(byDefault: false)
         for (index, region) in regions.enumerated() {
             let tag = tags[index]

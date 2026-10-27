@@ -24,13 +24,13 @@ helper.
    rigorously tested against a whole-text model so the stack can never drift
    from the text (B-PASTE-1-EDITOR); and undo for every built-in control that
    changes a value — Toggle, radio, Picker, Slider, Stepper, DatePicker,
-   ColorPicker and the rest. Undo as edits was built that night; the
-   controls' undo is still owed.
+   ColorPicker and the rest. Both were built that night.
 
 ## Where it stands
 
-Shipped as above, a text control's steps kept as edits (2026-10-26); the
-controls' undo is owed.
+Shipped as above, a text control's steps kept as edits, and the built-in
+controls' values undoable (2026-10-26) but for the graphical `DatePicker`
+calendar and the curve editors, which are owed.
 
 ## For a future reader
 
@@ -317,4 +317,34 @@ found and which changed in the reference too:
 **Not done:** the editor's own storage (`[Character]`) is unchanged; the
 owner's order was undo first, then, if memory still matters, one `String`
 with a line table.
+
+### B-PASTE-1-EDITOR (2). Undo for every built-in control that changes a value
+
+*`Toggle`, `Picker`, `Slider`, `Stepper`, `DatePicker`, `ColorPicker` (their
+values, from a person's input)*
+
+SwiftUI's controls register nothing with the undo manager. The owner
+(2026-10-26) asked for undo for every built-in control that changes a value.
+
+**Built (2026-10-26):** `ControlValueUndo`. A control hands its input — its
+key and pointer handlers — its binding wrapped (`RenderContext.undoable`), and
+a person's write through it registers the step that puts the old value back
+(`registerRestoring`), and its redo. A discrete control makes a step of every
+change: `Toggle` (keys, clicks, a menu row), the menu, segmented and radio
+`Picker`s. A continuous one makes one step of a run, as a text field does of
+typing: a change made while its step is still the newest in the manager
+(the text controls' mark, `TextUndoBridge.isNewestStep`) joins it, so the
+undo goes back to where the run began — `Slider`, `Stepper`, a `DatePicker`'s
+fields, a `ColorPicker`'s 256-colour and swatch grids (its channel sliders
+are `Slider`s). Writes no person made are no step: the app's own, and a
+control's clamp into range, which goes through the binding unwrapped. A write
+of the value already there is none either. No action name, as the text
+controls' steps have none.
+
+**Not built:** the graphical `DatePicker` calendar (a style with a body,
+where no render context holds a run), the curve editors, a `Toggle` governing
+several sources (its undo restores the combined value, setting every source
+alike). **For a future reader:** a new control with a value adopts it in one
+line, `context.undoable(binding, coalescing:, propertyIndex:)`, at the point
+its input handlers get the binding.
 

@@ -14,6 +14,8 @@ import TUITabs
 private enum Color256GridStateIndex {
     static let focusID = 0
     static let handler = 1
+    /// The grid's undo (``ControlValueUndo``): a run of moves is one step.
+    static let undo = 2
 }
 
 // MARK: - Layout
@@ -296,7 +298,9 @@ struct _Color256GridCore: View, Renderable {
             )
         )
         let handler = handlerBox.value
-        handler.selection = selection
+        // A person's picks are steps in the app's undo manager, a run of
+        // moves one step.
+        handler.selection = context.undoable(selection, coalescing: true, propertyIndex: StateIndex.undo)
         handler.canBeFocused = !isDisabled
         // Keep the highlighted cell on the swatch nearest the current colour (an
         // exact match for a palette entry, otherwise the closest cube/grey cell)

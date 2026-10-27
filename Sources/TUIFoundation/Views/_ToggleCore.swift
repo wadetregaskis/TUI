@@ -15,6 +15,8 @@ private enum ToggleStateIndex {
     // `StateStorage.StateKey`'s reserved-range table.
     static let focusID = -50
     static let isHovered = -51
+    /// The toggle's undo (``ControlValueUndo``).
+    static let undo = -52
 }
 
 /// Child-identity indices for ``_ToggleCore``'s own subviews, so their `@State`
@@ -675,7 +677,7 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
     /// and nothing here.
     @MainActor
     private func menuRow(context: RenderContext) -> some View {
-        let binding = isOn
+        let binding = context.undoable(isOn, propertyIndex: StateIndex.undo)
         let marks = context.environment.effectiveToggleCharacterSet
         let mark = binding.wrappedValue ? marks.onMark : marks.offMark
         return Button {
@@ -734,7 +736,8 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
                 defaultPrefix: "toggle",
                 propertyIndex: StateIndex.focusID
             )
-            let binding = isOn
+            // A flip a person makes is a step in the app's undo manager.
+            let binding = context.undoable(isOn, propertyIndex: StateIndex.undo)
             let handler = ActionHandler(
                 focusID: persistedFocusID,
                 action: { binding.wrappedValue.toggle() },
@@ -913,7 +916,7 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
         mouseDispatcher.requestFeature(.motion, in: context)
         let focusManager = context.environment.focusManager
         let captureFocusID = persistedFocusID
-        let toggleBinding = isOn
+        let toggleBinding = context.undoable(isOn, propertyIndex: StateIndex.undo)
         let handlerID = mouseDispatcher.register(in: context, hoverBox: hoverBox) { event in
             switch event.phase {
             case .pressed where event.button == .left:

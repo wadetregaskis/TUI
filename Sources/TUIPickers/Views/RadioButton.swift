@@ -416,6 +416,8 @@ private enum RadioButtonGroupStateIndex {
     /// none. A single shared StateBox covers the whole group
     /// because at most one item can be hovered at a time.
     static let hoveredIndex = 2
+    /// The group's undo (``ControlValueUndo``).
+    static let undo = 3
 }
 
 /// Internal view that handles the actual rendering of RadioButtonGroup.
@@ -461,13 +463,9 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
         handler.followSelection()
     }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let isDisabled = self.isDisabled || !context.environment.isEnabled
-        let palette = context.environment.palette
-        let stateStorage = context.stateStorage!
-
-        // Create type-erased selection binding and item values
-        let erasedSelection = Binding<AnyHashable>(
+    /// `selection`, its value type erased, as the group's handler holds it.
+    private static func erased(_ selection: Binding<Value>) -> Binding<AnyHashable> {
+        Binding<AnyHashable>(
             get: { AnyHashable(selection.wrappedValue) },
             set: { newValue in
                 if let typedValue = newValue.base as? Value {
@@ -475,6 +473,17 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
                 }
             }
         )
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        let isDisabled = self.isDisabled || !context.environment.isEnabled
+        let palette = context.environment.palette
+        let stateStorage = context.stateStorage!
+
+        // Create type-erased selection binding and item values. A choice a
+        // person makes is a step in the app's undo manager.
+        let selection = context.undoable(self.selection, propertyIndex: StateIndex.undo)
+        let erasedSelection = Self.erased(selection)
         let itemValues = items.map { AnyHashable($0.value) }
 
         let persistedFocusID = FocusRegistration.persistFocusID(
@@ -560,6 +569,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
             let focusManager = context.environment.focusManager
             let captureFocusID = persistedFocusID
             let captureItems = items
+            // Already the undoable binding, from above.
             let captureSelection = selection
             let captureHoveredIndexBox = hoveredIndexBox
             // Tag only the currently-focused item's region with

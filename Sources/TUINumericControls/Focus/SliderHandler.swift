@@ -30,8 +30,13 @@ final class SliderHandler<V: BinaryFloatingPoint>: PersistedFocusable where V.St
     /// ``PersistedFocusable``: answers to `focusID` from now on.
     func repoint(focusID: String) { self.focusID = focusID }
 
-    /// The binding to the current value.
+    /// The binding to the current value, as a person's input writes it: each
+    /// write a step in the app's undo manager (``ControlValueUndo``).
     var value: Binding<V>
+
+    /// The same binding without the undo, for the slider's own writes — its
+    /// clamp into range — which no person made. `nil` before the first render.
+    var plainValue: Binding<V>?
 
     /// The range of valid values.
     ///
@@ -182,6 +187,7 @@ extension SliderHandler {
 
     /// Clamps the current value to the bounds.
     func clampValue() {
+        let value = plainValue ?? self.value
         let clamped = max(bounds.lowerBound, min(bounds.upperBound, value.wrappedValue))
         if clamped != value.wrappedValue {
             value.wrappedValue = clamped

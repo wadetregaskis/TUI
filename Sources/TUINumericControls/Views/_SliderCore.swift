@@ -20,6 +20,8 @@ enum SliderStateIndex {
     static let isHovered = 2
     static let leftArrowRepeat = 3
     static let rightArrowRepeat = 4
+    /// The slider's undo (``ControlValueUndo``): a run of moves is one step.
+    static let undo = 5
 }
 
 /// Internal view that handles the actual rendering of Slider.
@@ -172,7 +174,11 @@ struct _SliderCore: View, Renderable, Layoutable {
         // declares, or the persisted handler keeps the creation render's
         // (stale bounds made clampValue force-write the app's value back
         // inside a range the view no longer declares).
-        handler.value = value
+        // A person's moves are steps in the app's undo manager, a run of them
+        // one step; the slider's own clamp is not a person's, and writes the
+        // binding as it is.
+        handler.value = context.undoable(value, coalescing: true, propertyIndex: StateIndex.undo)
+        handler.plainValue = value
         handler.bounds = selectableBounds
         handler.step = step
         handler.gridOrigin = bounds.lowerBound
@@ -379,7 +385,8 @@ struct _SliderCore: View, Renderable, Layoutable {
         rightArrowTimer: AutoRepeatTimer,
         track: TrackGeometry
     ) -> @MainActor (MouseEvent) -> Bool {
-        let value = self.value
+        // The handler's: a person's moves, steps in the app's undo manager.
+        let value = handler.value
         let bounds = self.bounds
         let selectable = self.selectableBounds
         let step = self.step

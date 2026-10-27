@@ -55,6 +55,10 @@ final class StepperHandler<V: Strideable>: PersistedFocusable where V.Stride: Si
     /// The binding to the current value.
     var value: Binding<V>
 
+    /// The same binding without the undo, for the stepper's own clamp, which
+    /// no person made. `nil` before the first render.
+    var plainValue: Binding<V>?
+
     /// The optional range of valid values.
     ///
     /// Mutable because the handler PERSISTS across renders while the view's
@@ -259,6 +263,7 @@ extension StepperHandler {
     /// Clamps the current value to the bounds.
     func clampValue() {
         guard let bounds else { return }
+        let value = plainValue ?? self.value
         if value.wrappedValue < bounds.lowerBound {
             value.wrappedValue = bounds.lowerBound
         } else if value.wrappedValue > bounds.upperBound {

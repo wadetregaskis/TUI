@@ -14,6 +14,8 @@ import TUITabs
 private enum SwatchGridStateIndex {
     static let focusID = 0
     static let handler = 1
+    /// The grid's undo (``ControlValueUndo``): a run of moves is one step.
+    static let undo = 2
 }
 
 // MARK: - Focus handler
@@ -130,7 +132,9 @@ struct _SwatchGridCore: View, Renderable {
                 selection: selection, entries: entries, columns: columns,
                 canBeFocused: !isDisabled))
         let handler = handlerBox.value
-        handler.selection = selection
+        // A person's picks are steps in the app's undo manager, a run of
+        // moves one step.
+        handler.selection = context.undoable(selection, coalescing: true, propertyIndex: StateIndex.undo)
         handler.entries = entries
         handler.columns = columns
         handler.canBeFocused = !isDisabled

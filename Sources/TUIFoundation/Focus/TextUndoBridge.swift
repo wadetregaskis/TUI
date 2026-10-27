@@ -107,7 +107,7 @@ package enum TextUndoBridge {
     /// Only inside the step's group: `NSUndoManager` raises with none open,
     /// and with registration disabled the registration opened none.
     @MainActor
-    private static func label(_ manager: UndoManager, with mark: TextUndoMark) {
+    package static func label(_ manager: UndoManager, with mark: TextUndoMark) {
         guard #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) else { return }
         guard manager.groupingLevel > 0 else { return }
         manager.setActionUserInfoValue(mark, forKey: UndoManager.UserInfoKey(markKey))

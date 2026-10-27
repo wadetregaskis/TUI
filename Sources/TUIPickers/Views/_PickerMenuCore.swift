@@ -22,6 +22,9 @@ private enum PickerMenuConstants {
 
     /// `StateStorage` property index for the persisted hover state.
     static let isHoveredStateIndex = 2
+
+    /// `StateStorage` property index for the picker's undo (``ControlValueUndo``).
+    static let undoStateIndex = 3
 }
 
 // MARK: - Picker Menu Core
@@ -235,6 +238,8 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         // Combine own + cascaded disabled (renderToBuffer's shadowing local does
         // not reach this helper).
         let isDisabled = self.isDisabled || !context.environment.isEnabled
+        // A choice a person makes is a step in the app's undo manager.
+        let selection = context.undoable(self.selection, propertyIndex: PickerMenuConstants.undoStateIndex)
         let erasedSelection = Binding<AnyHashable>(
             get: { AnyHashable(selection.wrappedValue) },
             set: { newValue in
@@ -409,7 +414,7 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         // not reach this helper).
         let isDisabled = self.isDisabled || !context.environment.isEnabled
         let focusManager = context.environment.focusManager
-        let captureSelection = selection
+        let captureSelection = context.undoable(selection, propertyIndex: PickerMenuConstants.undoStateIndex)
         let optionTags = entries.compactMap(\.tag)
 
         DropdownMenu.attach(
