@@ -67,13 +67,13 @@ FALLBACK_SCENARIOS = [
 # The `--quick` sweep: shapes that between them cover a deep tree, a wide eager
 # one, styled controls, modifier chains, type erasure, an ordinary page and a
 # table whose data moves — and that all resolve tightly enough to trust at
-# twelve reps (see README.md for the measured floor). For iterating on a
-# change; run the full sweep before committing one.
+# twelve reps of the old 1.5 s runs (see README.md for the measured floor).
+# For iterating on a change; run the full sweep before committing one.
 #
 # `table-churn` joined them because the list had no `Table` at all, so the
 # four-minute loop used while iterating was blind to the control with the most
-# per-frame row work in the catalogue; only the twenty-five-minute full sweep
-# touched one.
+# per-frame row work in the catalogue; only the hour-long full sweep touched
+# one.
 QUICK_SCENARIOS = [
     "deep", "fanout", "menus", "modifiers", "anyview", "framedcolumns", "table-churn",
 ]
@@ -197,16 +197,24 @@ def main():
                              "(`Stress --variants` lists them)")
     parser.add_argument("--quick", action="store_true",
                         help="six representative scenarios at 12 reps — about "
-                             "four minutes instead of twenty-five. For iterating; "
+                             "four minutes instead of an hour. For iterating; "
                              "run the full sweep before committing.")
     parser.add_argument("--scale", type=int, default=1)
     parser.add_argument("--cols", type=int, default=120)
     parser.add_argument("--rows", type=int, default=40)
     parser.add_argument("--reps", type=int, default=None,
-                        help="paired measurements per scenario (default 15, or "
+                        help="paired measurements per scenario (default 10, or "
                              "12 with --quick)")
-    parser.add_argument("--target-seconds", type=float, default=1.5,
-                        help="how long one run should take (default 1.5)")
+    # 4.5 s runs, not 1.5 s ones: at the same total time per scenario, null
+    # tests (one binary against itself, 2026-10-27, five scenarios) resolved
+    # ±1.2% at 4.5 s × 10 reps against ±2.2% at 1.5 s × 30 (and
+    # ±2.1% at the old 1.5 s × 15, in half the time)
+    # — whatever bursts land on one binary's run average out inside a
+    # longer one, and process start-up is spread over more frames. See
+    # README.md.
+    parser.add_argument("--target-seconds", type=float, default=None,
+                        help="how long one run should take (default 4.5, or "
+                             "1.5 with --quick)")
     parser.add_argument("--metric", choices=["cpu", "wall"], default="cpu")
     parser.add_argument("--seed", type=int, default=20260813,
                         help="run-order seed; change it to re-randomise")
@@ -221,7 +229,9 @@ def main():
     if args.scenarios is None:
         args.scenarios = QUICK_SCENARIOS if args.quick else scenario_ids(args.old)
     if args.reps is None:
-        args.reps = 12 if args.quick else 15
+        args.reps = 12 if args.quick else 10
+    if args.target_seconds is None:
+        args.target_seconds = 1.5 if args.quick else 4.5
 
     load, busiest = quiesce_report()
     print(f"load {load:.2f} · busiest: {busiest or 'n/a'}")

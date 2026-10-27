@@ -93,7 +93,7 @@ separate, and surprisingly easy to get wrong, question:
 swift build -c release --product Stress && cp .build/release/Stress /tmp/old
 # …make the change…
 swift build -c release --product Stress && cp .build/release/Stress /tmp/new
-Tools/Profiling/ab_bench.py /tmp/old /tmp/new                    # every scenario, ~25 min
+Tools/Profiling/ab_bench.py /tmp/old /tmp/new                    # every scenario, ~1 h
 Tools/Profiling/ab_bench.py /tmp/old /tmp/new --quick            # six of them, ~4 min
 Tools/Profiling/ab_bench.py /tmp/old /tmp/new --scenarios fanout --reps 40
 Tools/Profiling/ab_bench.py /tmp/old /tmp/new --cold             # all-miss frames
@@ -152,11 +152,11 @@ Four things make it trustworthy, and each was validated by measurement:
 | **RAM beside CPU** | Reads the harness's `rss-peak` and prints `ram OLD->NEW` after the verdict. Plain medians, not a bootstrap: peak RSS barely varies between runs of one binary, so an interval on it would be theatre. A change over a megabyte is worth a look; below that it is allocator noise. |
 | **Randomised run order** | A fixed order is a fixed bias — every hand-run pass showed whichever binary ran *second* as slower, including the pass where that was the original. |
 | **Paired ratios + a bootstrap CI** | A and B run adjacent in time, so drift hits both; comparing per-rep ratios cancels it, and the interval prices what is left. |
-| **Calibrated iteration count** | 300 iterations of a 160 µs scenario is 50 ms of measurement, mostly warm-up. Each run is sized to ~1.5 s. |
+| **Calibrated iteration count** | 300 iterations of a 160 µs scenario is 50 ms of measurement, mostly warm-up. Each run is sized to ~4.5 s (1.5 s with `--quick`). |
 
 **Noise floor** (identical binary against a copy of itself, machine at load
 1.7 with a browser taking 27% of a core): `dashboard` ±0.7%, `table` ±1.7%,
-`churn` ±2%, `fanout` ±3% at the default 15 reps and ±2% at 40. Run the null
+`churn` ±2%, `fanout` ±3% at the then default 15 reps of 1.5 s and ±2% at 40. Run the null
 test yourself — `ab_bench.py X X` — whenever you doubt a result; it costs one
 command and tells you exactly what this machine can resolve today.
 
@@ -187,6 +187,28 @@ is a biased estimator whose bias tracks the local noise, and the extra runs
 push A and B further apart in time, weakening the pairing); and shorter runs
 with proportionally more reps (helped `churn`, hurt `fanout`, which needs
 enough frames to amortise process start-up).
+
+**Longer runs, fewer reps** is the knob that did pay, and why a run is 4.5 s
+and a sweep 10 reps (2026-10-27, the owner's suggestion). Null tests of one
+binary against itself on `keyrows`, `menus`, `stateful`, `table` and
+`geometry`, mean 95% interval width:
+
+| run × reps | time per binary per scenario | mean width | false verdicts |
+|---|---|---|---|
+| 1.5 s × 15 (the old default) | 22.5 s | 4.3% | 1 of 5 |
+| 1.5 s × 30 | 45 s | 4.3% | 0 of 5 |
+| 3 s × 10 | 30 s | 1.9% | 2 of 5 |
+| 4.5 s × 10 (two rounds) | 45 s | 2.4%, 2.5% | 0 of 10 |
+| 7.5 s × 6 | 45 s | 2.5% | 0 of 5 |
+
+Doubling the reps at 1.5 s bought nothing; tripling the run length halved the
+interval. A burst from something else on the box lands on one binary's run,
+and a longer run averages it into the rest; process start-up is spread over
+more frames too. `3 s × 10` looked tighter still, but two of its five null
+tests came back `faster`/`slower` at the edge of a narrow interval — chance,
+or a bootstrap of ten short runs claiming more than it knows — while
+`4.5 s × 10` gave none in ten, so the longer run is the default.
+The full sweep takes twice as long as it did, about an hour.
 
 ## `ab_bench.py` is blind to the whole output half — `emit_bench.py`
 
