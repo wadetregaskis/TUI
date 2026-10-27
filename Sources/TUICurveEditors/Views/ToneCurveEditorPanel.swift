@@ -88,6 +88,10 @@ public struct ToneCurveEditorPanel: View {
     /// read, so external shrinking of `stops` can't strand it.
     @State private var selectedStop = 0
 
+    /// Where the stops a person adds, removes and drags are undone: each
+    /// button a step, each press-and-drag one.
+    @Environment(\.undoManager) private var undoManager
+
     /// What a drag across the diagram holds — see `Grab`.
     @GestureState private var grab = Grab.idle
 
@@ -221,6 +225,9 @@ public struct ToneCurveEditorPanel: View {
                     let x = drag.location.x
                     let column = min(Self.stripWidth - 1, max(0, x - Self.gutter))
                     if case .idle = grab {
+                        // The press and the drag after it are one step, back
+                        // to the stops as they were before the press.
+                        if x >= Self.gutter { undoManager?.registerRestoring(stops, to: stops.wrappedValue) }
                         // Grab the stop under the pointer, or put one there —
                         // coloured with what the curve already produces at that
                         // tone, exactly as "+" does, so a press adds a stop
@@ -329,12 +336,14 @@ public struct ToneCurveEditorPanel: View {
             Button("+") {
                 let (updated, selected) = Self.adding(to: list, after: selection)
                 stops.wrappedValue = updated
+                undoManager?.registerRestoring(stops, to: list)
                 selectedStop = selected
             }
             Button("−") {
                 var updated = list
                 updated.remove(at: selection)
                 stops.wrappedValue = updated
+                undoManager?.registerRestoring(stops, to: list)
                 selectedStop = max(0, selection - 1)
             }
             .disabled(list.count <= 2)

@@ -29,8 +29,7 @@ helper.
 ## Where it stands
 
 Shipped as above, a text control's steps kept as edits, and the built-in
-controls' values undoable (2026-10-26) but for the curve editors, which are
-owed.
+controls' values undoable (2026-10-26 and 27).
 
 ## For a future reader
 
@@ -341,7 +340,10 @@ control's clamp into range, which goes through the binding unwrapped. A write
 of the value already there is none either. No action name, as the text
 controls' steps have none.
 
-**Not built:** the curve editors, a `Toggle` governing
+The curve editors (2026-10-27): a `ToneCurveEditorPanel`'s stops added and
+removed by its buttons or a click are a step each, a stop dragged is one
+step per drag, and its sliders and colour panel are the controls above.
+**Not built:** a `Toggle` governing
 several sources (its undo restores the combined value, setting every source
 alike). **For a future reader:** a new control with a value adopts it in one
 line, `context.undoable(binding, coalescing:, propertyIndex:)`, at the point

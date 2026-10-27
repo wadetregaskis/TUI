@@ -144,6 +144,23 @@ struct ControlValueUndoTests {
         #expect(box.value == start)
     }
 
+    @Test("A tone curve's stop added by its + button is a step")
+    func curveStopAdded() throws {
+        let manager = makeManager()
+        let box = Box([ASCIIToneCurve.Stop(at: 0, to: .black), ASCIIToneCurve.Stop(at: 1, to: .white)])
+        let harness = InputChainHarness(width: 60, height: 30, undoManager: manager)
+        let panel = { ToneCurveEditorPanel("Tone curve", stops: box.binding, isPresented: .constant(true)) }
+        let drawn = harness.frame(panel()).lines.map(\.stripped)
+        let row = try #require(drawn.firstIndex { $0.contains(" + ") || $0.hasPrefix("+") || $0.contains("[+]") })
+        let column = try #require(drawn[row].firstIndex(of: "+")).utf16Offset(in: drawn[row])
+        _ = harness.mouse(MouseEvent(button: .left, phase: .pressed, x: column, y: row))
+        _ = harness.mouse(MouseEvent(button: .left, phase: .released, x: column, y: row))
+        harness.frame(panel())
+        #expect(box.value.count == 3, "\(box.value.count) stops")
+        manager.undo()
+        #expect(box.value.count == 2)
+    }
+
     @Test("A slider's clamp of an out-of-range value is no step; the app's own writes are none")
     func clampIsNoStep() {
         let manager = makeManager()
