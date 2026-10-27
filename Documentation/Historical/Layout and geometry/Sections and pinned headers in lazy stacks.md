@@ -51,8 +51,8 @@ sections out whole. The fuller lane is owed.
 - **Owed: one lane, about three days** — B-D1S-1's fuller version, B68's
   structural version and B-D1S-5's element index together. Without the index,
   taking sections apart costs every row again.
-- **Owed: B71's A/B** (`deep`, `kitchensink`, `megalist` against the parent
-  commit), never run.
+- **B71's A/B, run 2026-10-27:** pinning costs a stack that does not pin
+  nothing measurable (B71 has the numbers).
 - **Centre alignment inside a section kept whole** can land a view a cell from
   where an unpinned stack would; leading and trailing are exact.
 
@@ -278,6 +278,21 @@ more per measure and render, to ask whether a section is among them — the
 grid's layout resolves them again — which is the one cost a grid with no
 sections pays.
 
-None of this was measured: the machine is shared. The A/B owed is `deep`,
-`kitchensink` and `megalist` on a quiet machine, against the parent commit
-(no Stress scenario has a lazy grid).
+None of this was measured at the time: the machine was shared. The A/B owed —
+`deep`, `kitchensink` and `megalist` against the parent commit — ran on
+2026-10-27: release `Stress` before `caf92aca2` against `701d6588d` (the
+stack's pinning, focus scrolling clear of a pinned header, the grid's
+sections), `ab_bench.py` at 4.5 s × 10 reps, CPU time, with the two
+lazy-scroll scenarios that existed then added:
+
+| scenario | warm | 95% CI | cold | 95% CI |
+|---|---|---|---|---|
+| `deep` | −0.0% | −1.4…+1.1 | +0.5% | −1.1…+1.5 |
+| `kitchensink` | +0.4% | −1.5…+3.5 | +0.3% | −2.6…+3.1 |
+| `megalist` | −0.0% | −1.4…+1.6 | +0.3% | −1.2…+2.1 |
+| `scrollfollow` | +0.6% | −0.6…+2.1 | +1.2% | −1.2…+3.5 |
+| `scrolleager` | +0.4% | −1.8…+2.3 | +0.1% | −0.9…+1.0 |
+
+Every verdict indistinguishable: the costs above are real but too small to
+see. No scenario has a lazy grid, so the grid's extra resolve is still
+unmeasured.
