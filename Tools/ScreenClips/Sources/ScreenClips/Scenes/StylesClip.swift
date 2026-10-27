@@ -26,7 +26,7 @@ let stylesClip = Clip(
 /// A look every two seconds or so, with a key pressed in each so the form is
 /// seen in use, and back to the first.
 private func stylesScript() -> [Step] {
-    var script: [Step] = [.camera(Shot(x: 0, y: 2, width: 58, height: 20)), .wait(1.2)]
+    var script: [Step] = [.camera(Shot(x: 0, y: 2, width: 62, height: 18)), .wait(1.2)]
     for look in StyleLook.allCases.dropFirst() {
         script += [.cue("look \(look.rawValue)"), .wait(0.9), .tab, .wait(0.5), .space, .wait(0.9)]
     }

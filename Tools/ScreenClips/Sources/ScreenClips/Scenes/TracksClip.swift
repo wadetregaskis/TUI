@@ -43,7 +43,7 @@ private let lookSeconds = 1.8
 /// two steps with ◀. Nothing jumps but the loop's seam, where the copy starts
 /// again.
 private func tracksScript() -> [Step] {
-    var script: [Step] = [.camera(Shot(x: 0, y: 2, width: 60, height: 16)), .cue("start"), .cue("style 0")]
+    var script: [Step] = [.camera(Shot(x: 0, y: 2, width: 60, height: 17)), .cue("start"), .cue("style 0")]
     script += Step.glide(from: (58, 16), to: (SliderArrows.more, SliderArrows.row), over: 0.6)
     script += [.wait(lookSeconds - 0.6)]
     for index in 1..<TrackLook.progressStyles.count {

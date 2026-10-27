@@ -41,6 +41,12 @@ to fit a thumbnail: it is a **believable full-size app** — toolbar, sidebar,
 real-looking data, at the normal font size in a normal-size window — and the
 clip is a small frame of it, cut by a **camera**:
 
+- **Every clip is 16:10**: 800 × 500 for a flagship row, 560 × 350 for a
+  tile (the hero, code beside its result, has its own shape). In Ghostty's
+  14 pt JetBrains Mono that is about 3.48 columns a row, as the films measure
+  it: a camera of 62 × 18, 87 × 25, 112 × 32. A clip whose content is wider
+  than that is recomposed taller, not filmed short — a row of mismatched
+  heights looks unfinished.
 - The camera is a rectangle of the terminal's grid, in cells. Its left and
   right edges may be fractional and cut through a glyph, and borders and
   repeating rows may run off the top and bottom, so the app's chrome peeks in

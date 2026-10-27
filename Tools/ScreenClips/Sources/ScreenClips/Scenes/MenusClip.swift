@@ -37,7 +37,7 @@ private func key(_ step: Step, _ caption: String) -> [Step] {
 }
 
 private func menusScript() -> [Step] {
-    var script: [Step] = [.camera(Shot(x: 0, y: 0, width: 50, height: 17)), .wait(0.9)]
+    var script: [Step] = [.camera(Shot(x: 0, y: 0, width: 52, height: 15)), .wait(0.9)]
     // The menu bar: the app menu opens, across File and Edit to Message, down
     // to Flag, and into it: the first message is flagged red.
     script += key(.f10, "F10  menu bar") + [.wait(0.8)]
@@ -252,7 +252,7 @@ struct Mailbox: View {
             }
             .padding(.horizontal, 1)
             // The camera's width: the caption at the right of what is filmed.
-            .frame(width: 50)
+            .frame(width: 52)
         }
         // Held at the top of the window, as the camera frames it.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

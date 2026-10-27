@@ -21,7 +21,7 @@ let materialsClip = Clip(
     quality: 90,
     budgetKB: 900,
     script: [
-        .camera(Shot(x: 0, y: 3, width: 76, height: 25)),
+        .camera(Shot(x: 0, y: 3, width: 87, height: 25)),
         .wait(1.2), .cue("panel"),
         .wait(2.8), .cue("dismiss"),
         .wait(0.6), .cue("toast"),

@@ -17,7 +17,7 @@ let imagesClip = Clip(
     id: "images",
     title: "Images",
     columns: 112,
-    rows: 32,
+    rows: 34,
     output: 800,
     // Photographs, and blurs of them: WebP blocks them at the default quality.
     quality: 90,
@@ -36,7 +36,7 @@ let glyphsClip = Clip(
     id: "glyphs",
     title: "Images as text",
     columns: 112,
-    rows: 32,
+    rows: 34,
     output: 800,
     // Photographs, and blurs of them: WebP blocks them at the default quality.
     quality: 90,
@@ -67,7 +67,7 @@ private func glyphsScript() -> [Step] {
 /// Down the sidebar's list, one every two seconds (an arrow moves the list's
 /// cursor, Space selects), and back to the first.
 private func viewerScript(steps: Int) -> [Step] {
-    var script: [Step] = [.camera(Shot(x: 0, y: 2, width: 112, height: 30))]
+    var script: [Step] = [.camera(Shot(x: 0, y: 2, width: 112, height: 32))]
     script += [.wait(2.4)]
     for _ in 1..<steps {
         script += [.down, .wait(0.12), .space, .wait(2.1)]

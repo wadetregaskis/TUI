@@ -31,7 +31,7 @@ private func unicodeScript() -> [Step] {
     // 80×25; Warp's is whatever its window is), and the app draws in the top
     // left of it, so this one shot frames the same cells in each: the
     // phrasebook alone, at a size the carousel's cards keep legible.
-    [.camera(Shot(x: 0, y: 3, width: 48, height: 13)), .wait(8.0)]
+    [.camera(Shot(x: 0, y: 3, width: 48, height: 14)), .wait(8.0)]
 }
 
 struct UnicodeApp: App {

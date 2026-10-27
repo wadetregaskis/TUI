@@ -18,7 +18,7 @@ let themingClip = Clip(
     rows: 30,
     script: [
         // On the build's panels, the target list's edge at the left.
-        .camera(Shot(x: 21.4, y: 3, width: 46, height: 16)),
+        .camera(Shot(x: 16.4, y: 3, width: 56, height: 16)),
         .wait(0.8), .down, .wait(0.2), .space,
         .wait(0.4), .cue("palette Amber"),
         .wait(0.9), .cue("palette Ocean"), .cue("appearance doubleLine"),
