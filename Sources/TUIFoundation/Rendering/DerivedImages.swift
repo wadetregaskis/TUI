@@ -403,32 +403,55 @@ struct DerivedImages {
         return out
     }
 
-    /// One pass of a box blur `radius` pixels across or down, the edges held.
-    private static func boxBlurred(
+    /// One pass of a box blur `radius` pixels across or down, the edges held:
+    /// each pixel the mean of the `2 × radius + 1` pixels around it, a pixel
+    /// past an edge counting as the edge's.
+    ///
+    /// A running sum along each line — the window slid a pixel at a time, the
+    /// pixel leaving it taken off and the one entering added — so a pixel
+    /// costs the same whatever the radius, where summing each window afresh
+    /// cost the radius again for every pixel. One of `radius`'s two is 0: the
+    /// pass runs along the other.
+    static func boxBlurred(
         _ pixels: [UInt8], width: Int, height: Int, radius: (across: Int, down: Int)
     ) -> [UInt8] {
+        guard width > 0, height > 0 else { return pixels }
         var out = pixels
-        for y in 0..<height {
-            for x in 0..<width {
-                var sums = (0, 0, 0, 0)
-                var count = 0
-                for dy in -radius.down...radius.down {
-                    for dx in -radius.across...radius.across {
-                        let sx = min(width - 1, max(0, x + dx))
-                        let sy = min(height - 1, max(0, y + dy))
-                        let at = (sy * width + sx) * 4
-                        sums.0 += Int(pixels[at])
-                        sums.1 += Int(pixels[at + 1])
-                        sums.2 += Int(pixels[at + 2])
-                        sums.3 += Int(pixels[at + 3])
-                        count += 1
+        let alongRows = radius.down == 0
+        let reach = alongRows ? radius.across : radius.down
+        guard reach > 0 else { return pixels }
+        let count = 2 * reach + 1
+        // A line's length, how many lines, and the strides between pixels on one
+        // and between the starts of two, in bytes.
+        let (length, lines) = alongRows ? (width, height) : (height, width)
+        let (step, lineStep) = alongRows ? (4, width * 4) : (width * 4, 4)
+        pixels.withUnsafeBufferPointer { source in
+            out.withUnsafeMutableBufferPointer { target in
+                for line in 0..<lines {
+                    let base = line * lineStep
+                    func at(_ index: Int) -> Int { base + min(length - 1, max(0, index)) * step }
+                    var sums = (0, 0, 0, 0)
+                    for index in -reach...reach {
+                        let pixel = at(index)
+                        sums.0 += Int(source[pixel])
+                        sums.1 += Int(source[pixel + 1])
+                        sums.2 += Int(source[pixel + 2])
+                        sums.3 += Int(source[pixel + 3])
+                    }
+                    for index in 0..<length {
+                        let pixel = base + index * step
+                        target[pixel] = UInt8(sums.0 / count)
+                        target[pixel + 1] = UInt8(sums.1 / count)
+                        target[pixel + 2] = UInt8(sums.2 / count)
+                        target[pixel + 3] = UInt8(sums.3 / count)
+                        let leaving = at(index - reach)
+                        let entering = at(index + reach + 1)
+                        sums.0 += Int(source[entering]) - Int(source[leaving])
+                        sums.1 += Int(source[entering + 1]) - Int(source[leaving + 1])
+                        sums.2 += Int(source[entering + 2]) - Int(source[leaving + 2])
+                        sums.3 += Int(source[entering + 3]) - Int(source[leaving + 3])
                     }
                 }
-                let at = (y * width + x) * 4
-                out[at] = UInt8(sums.0 / count)
-                out[at + 1] = UInt8(sums.1 / count)
-                out[at + 2] = UInt8(sums.2 / count)
-                out[at + 3] = UInt8(sums.3 / count)
             }
         }
         return out
