@@ -727,6 +727,9 @@ extension RenderLoop {
             scheduler?.requestWake("drag-spring-loading", at: Int64(bitPattern: deadline))
         }
 
+        // A drag the keyboard carries stays on the stop it is at, which the
+        // last frame drew — moved there, it is targeted where it now is.
+        tuiContext.dragAndDropSession.followCarry()
         driveDragFlights(nowNanos: nowNanos, scheduler: scheduler)
 
         // The gestures' clocks — a long press's minimum duration, a tap's wait

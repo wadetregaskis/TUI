@@ -65,7 +65,9 @@ extension DragAndDropSession {
             target.proposedOperation?()
             ?? (target.identity.map { isDragSource(within: $0) } == true ? .move : .copy)
         guard proposal == .copy || proposal == .move else { return proposal }
-        let flipped = (lastAbsoluteEvent?.meta == true) != keyboardFlipsOperation
+        // Option held, from the pointer's report or the keys' — or, for a
+        // drag the keyboard carries, Space (``Carry/flipsOperation``).
+        let flipped = ((lastAbsoluteEvent?.meta == true) != keyboardFlipsOperation) != carryFlipsOperation
         let wanted: DropOperation = flipped ? (proposal == .copy ? .move : .copy) : proposal
         let other: DropOperation = wanted == .copy ? .move : .copy
         // A copy or a move, as the source's set spells it.

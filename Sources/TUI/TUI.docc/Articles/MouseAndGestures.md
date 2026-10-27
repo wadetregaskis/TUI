@@ -240,6 +240,24 @@ interactive view inside it, or failing that to whatever it sits on. So a
 ``List`` whose rows are `draggable(_:)` still selects a row when you click it,
 and still starts a drag when you move.
 
+### From the Keyboard
+
+No drag needs the pointer. A `draggable(_:)` view and a drop destination are
+focus stops — a control's own stop where the content has one, so a draggable
+`Button` is still one stop. With a draggable focused, Copy takes its payload,
+and Paste on a focused destination drops it there.
+
+Or carry it: **Ctrl-R** on a focused draggable picks it up. While it is
+carried, Tab and the arrows move the focus only among the stops that can
+take it: the destinations that accept what it carries, the spring-loaded
+controls a pause would press, and the stop it came from. Unrelated controls
+are skipped. The carried picture is drawn beside the focused stop, which is
+targeted as if the pointer were over it, and wears the operation's badge.
+**Return** drops it there, or presses the spring-loaded control there and
+keeps carrying. **Escape**, or Ctrl-R again, puts it back. **Space** flips
+the operation between a copy and a move, as Option does for the pointer.
+The paging keys scroll what it is over, as they do for a pointer's drag.
+
 ### Spring Loading
 
 A drag can open its own way to a destination. Hold the pointer still over a

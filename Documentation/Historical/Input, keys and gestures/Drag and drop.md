@@ -26,7 +26,8 @@ session values ship; nothing hands them out yet.
    keyboard drag mode that limits focus to drop destinations
    (A53-KEYBOARD-DRAG), and on 2026-10-26 ruled: the carry mode, after its
    prerequisite (`.draggable` as a focus stop with Copy and Paste). The same
-   day: B-BITEMS1-1's three-party model. **Neither is built yet.**
+   day: B-BITEMS1-1's three-party model. Both were built that night, and the
+   carry's first part on 2026-10-27 (A53-KEYBOARD-DRAG below).
 5. **2026-10-26, found while filming:** a `.draggable` row in a multi-selection
    drags only itself; asked whether it should carry the selection, as AppKit's
    tables do (DRAG-SELECTION, open).
@@ -46,8 +47,13 @@ copy anywhere else), the pointer's one modifier or Option held on the
 keyboard flips a copy and a move, and the source's set narrows it: the other
 where only that is allowed, `.forbidden` and a refused drop where neither is.
 The badge names the result, so a plain `dropDestination` now wears `+`. A
-delegate that refuses the drag proposes `.cancel`, unbadged. **Owed:** A53's
-carry mode; the image well's badge probed in a real window.
+delegate that refuses the drag proposes `.cancel`, unbadged. A53's carry
+mode, its first part (2026-10-27): Ctrl-R picks a focused draggable up, Tab
+and the arrows carry it among the stops that can take it, Return drops it,
+Escape puts it back. **Owed:** the carry's second part (a "can drop here"
+cue on every stop it can reach, a status line, an idle expiry, a `List` as one
+destination with a cursor of its own, "Pick Up" in a context menu); the image
+well's badge probed in a real window.
 **Open:** DRAG-SELECTION. DEPR-DROPDEST's line is in the compatibility guide
 (the Drag and drop row: SwiftUI's older `dropDestination(for:action:isTargeted:)`,
 soft-deprecated, kept while the `isEnabled:` form's `DropSession` waits on
@@ -462,6 +468,51 @@ What the probes established, and what now holds here too:
 | A sequence's `onEnded` | when its second gesture ends; the event that ends the first gesture is the second's first (a tap before a tap ends at one click); only a first gesture that ends on its clock leaves the second to the next event. A release is a press already over: a tap before a drag or a long press fails at the tap's release, and a tap before a zero-duration long press ends there, `false`, with no `onChanged` |
 | `@GestureState`'s reset | on end, failure or cancellation, before `onEnded` |
 | `modifiers(_:)` | read at the press; more keys than asked for satisfy it |
+
+### A53-KEYBOARD-DRAG. A drag carried from the keyboard
+
+*`View.draggable(_:)`, `View.dropDestination(for:action:isTargeted:)` and the
+other drop destinations, from the keyboard*
+
+The owner asked (2026-10-23) for a keyboard drag mode that limits the focus to
+drop destinations, and ruled (2026-10-26) for the carry mode after its
+prerequisite, Copy and Paste on the two ends (shipped that night,
+`TransferKeys`).
+
+**First part shipped (lane CARRY, 2026-10-27).** A carry is the pointer's
+drag driven by a pointer of its own, placed on the top row's last cell of the
+focus stop it is at (`DragAndDropSession+Carry.swift`). So everything a drag
+over a destination does, a carry does too: `isTargeted`, the badge, the
+three-party operation, a delegate's moves, and the drop itself.
+
+- **Picking up:** Ctrl-R, a list row's pick-up chord, on a focused
+  `.draggable` (on its content's stops, or its own). The view is drawn as gone
+  while it is carried, as under the pointer.
+- **Carrying:** Tab and the arrows move the focus only among the stops that
+  can take it. Those are the stops of the destinations that accept the
+  payload: the ones a destination names (`Target.focusIDs`: a
+  `dropDestination`'s, from `TransferKeys`), or else the stops drawn inside
+  it. Also included are the spring-loaded controls a pause would press, and
+  the stop the carry started from. They are ordered by reading position,
+  round the ends. The picture is drawn just after the stop.
+- **Ending:** Return drops on the destination at the focus. On a
+  spring-loaded control with no destination there, it presses the control
+  and the carry goes on; at the origin, it puts the drag back. Escape, or
+  Ctrl-R again, puts it back and returns the focus to the origin. A refused
+  drop also puts it back.
+- **Other keys:** Space flips the operation, as Option does for the pointer
+  (B-BITEMS1-1's sixth point). The paging keys go on to the drag navigators,
+  which scroll what the carry is over. A chord goes on its way, so the quit
+  key still quits. Other plain keys are swallowed, so a field the focus
+  passes does not type them.
+
+**Owed, the second part:** a "can drop here" cue on every stop the carry can
+reach; a status line naming the keys; an idle expiry; a `List` or `Table` as
+one destination with an internal cursor between its rows, since a lazy list
+registers only its visible rows; and "Pick Up" in a draggable's context menu.
+The pick-up chord is Ctrl-R as written: a list's `RowAction` rebinding does
+not reach it, because the table of row actions lives in `TUILists`. The
+tests are `CarryModeTests`.
 
 ### C12. The drag sessions' AppKit comparisons
 

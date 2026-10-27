@@ -85,11 +85,10 @@ extension DraggableModifier: Renderable, Layoutable {
         var contentContext = context
         if let own { FocusRegistration.publishIsFocused(own.isFocused, context: context, into: &contentContext) }
         var buffer = TUIView.renderToBuffer(content, context: contentContext)
-        if let own {
+        let stops = own.map { TransferKeys.stops(of: buffer, ownID: $0.id, context: context) } ?? []
+        if !stops.isEmpty {
             let payload = self.payload
-            TransferKeys.register(
-                "c", focusIDs: TransferKeys.stops(of: buffer, ownID: own.id, context: context), context: context
-            ) { _, clipboard in
+            TransferKeys.register("c", focusIDs: stops, context: context) { _, clipboard in
                 clipboard.copy([payload()])
                 return true
             }
@@ -146,7 +145,7 @@ extension DraggableModifier: Renderable, Layoutable {
         let capturedPreview = previewBuffer
         let anchor = context.environment.dragPreviewAnchor
         let allowed = context.environment.allowedDragOperations
-        _DragHandle.install(
+        let handle = _DragHandle.install(
             on: &buffer,
             context: context,
             dispatcher: dispatcher,
@@ -165,6 +164,18 @@ extension DraggableModifier: Renderable, Layoutable {
                 let dropped = session.performDrop()
                 debugFocusLog("draggable drop performed=\(dropped)")
             })
+        // The keyboard's pick-up: the chord on a stop of the view carries it
+        // (A53-KEYBOARD-DRAG).
+        if !stops.isEmpty, let focusManager = context.environment.focusManager {
+            let chord = DragAndDropSession.carryChord
+            TransferKeys.registerChord(chord, focusIDs: stops, context: context) { [weak focusManager] focused in
+                let value = payload()
+                guard let focusManager, !isNilOptional(value) else { return false }
+                return session.beginCarry(
+                    payload: value, preview: capturedPreview, source: identity, allowedOperations: allowed,
+                    origin: focused, handle: handle, focusManager: focusManager)
+            }
+        }
         return buffer
     }
 }
@@ -191,7 +202,10 @@ package enum _DragHandle {
     /// to). Callback events are localized to the buffer's origin; a drag's
     /// events stay localized to the ORIGINAL press region even when content
     /// re-renders mid-drag (the dispatcher's press capture).
+    ///
+    /// - Returns: The handle's region's id.
     @MainActor
+    @discardableResult
     package static func install(
         on buffer: inout FrameBuffer,
         context: RenderContext,
@@ -199,7 +213,7 @@ package enum _DragHandle {
         onDragBegin: @escaping (MouseEvent, _ grab: (x: Int, y: Int)) -> Void,
         onDragMove: @escaping (MouseEvent) -> Void,
         onDragEnd: @escaping (MouseEvent) -> Void
-    ) {
+    ) -> HitTestRegion.HandlerID {
         // The content's interactive regions, captured WITH their handler
         // closures. Clicks and hover forward to them below — and that must
         // go through closures, never ids: the dispatcher's table of closures
@@ -312,6 +326,7 @@ package enum _DragHandle {
         // takes the presses and hides nothing.
         dispatcher.fileSeeThroughPointerShapes(for: id, over: buffer.hitTestRegions, in: context)
         buffer.hitTestRegions += buffer.frameHitRegions(handlerID: id)
+        return id
     }
 }
 
@@ -367,10 +382,9 @@ extension DropDestinationModifier: Renderable, Layoutable {
         var buffer = TUIView.renderToBuffer(content, context: contentContext)
         guard !context.isMeasuring, isEnabled else { return buffer }
         let action = self.action
-        if let own {
-            TransferKeys.register(
-                "v", focusIDs: TransferKeys.stops(of: buffer, ownID: own.id, context: context), context: context
-            ) { event, clipboard in
+        let stops = own.map { TransferKeys.stops(of: buffer, ownID: $0.id, context: context) } ?? []
+        if !stops.isEmpty {
+            TransferKeys.register("v", focusIDs: stops, context: context) { event, clipboard in
                 let text: String?
                 if case .paste(let pasted) = event.key { text = pasted } else { text = clipboard.read() }
                 guard let text, !text.isEmpty, let items = clipboard.paste(text, as: Payload.self), !items.isEmpty
@@ -390,7 +404,7 @@ extension DropDestinationModifier: Renderable, Layoutable {
                 guard let typed = payload as? Payload else { return false }
                 return action([typed], info)
             },
-            setTargeted: isTargeted)
+            setTargeted: isTargeted, focusIDs: stops)
         return buffer
     }
 }
@@ -419,6 +433,9 @@ package enum DropZone {
     ///     drop delegate does.
     ///   - proposedOperation: The operation the destination proposes for the
     ///     drag over it, which the preview's badge names; `nil` for none.
+    ///   - focusIDs: The focus stops the destination answers on, which a
+    ///     drag carried from the keyboard can be at; empty to take the stops
+    ///     drawn inside it.
     @MainActor
     package static func install(
         on buffer: inout FrameBuffer, context: RenderContext,
@@ -427,7 +444,8 @@ package enum DropZone {
         setTargeted: @escaping (Bool) -> Void,
         hovering: ((_ x: Int, _ y: Int) -> Void)? = nil,
         hoveringInfo: ((DropInfo) -> Void)? = nil,
-        proposedOperation: (() -> DropOperation?)? = nil
+        proposedOperation: (() -> DropOperation?)? = nil,
+        focusIDs: [String] = []
     ) {
         guard let dispatcher = context.environment.mouseEventDispatcher,
             let session = context.environment.dragAndDropSession
@@ -476,6 +494,7 @@ package enum DropZone {
             proposedOperation: proposedOperation,
             identity: context.identity
         )
+        target.focusIDs = focusIDs
         if hovering != nil || hoveringInfo != nil {
             target.hovering = { x, y in
                 hovering?(x, y)

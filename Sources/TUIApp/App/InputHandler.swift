@@ -10,8 +10,8 @@ import TUIFoundation
 // MARK: - Input Handler
 
 /// Dispatches key events through a five-layer priority chain (layers 0–4) plus
-/// three refinements wedged between them — the ESC pre-route, layer 0.5 and
-/// layer 3.5, described after the list.
+/// four refinements wedged between them — the ESC pre-route, a carried drag,
+/// layer 0.5 and layer 3.5, described after the list.
 ///
 /// Ahead of them all comes the **focus path**: SwiftUI's `onKeyPress` handlers
 /// on the views that contain the focused control, outermost first, as SwiftUI
@@ -40,11 +40,16 @@ import TUIFoundation
 /// layer 0 runs and layer 3 is skipped. If a layer consumes the event,
 /// subsequent layers are skipped.
 ///
-/// The three refinements, all in `handle(_:)`:
+/// The four refinements, all in `handle(_:)`:
 /// - An open modal that has claimed Escape is routed through the focus system
 ///   ahead of layer 1, so a page-level `onKeyEvent` cannot close the page out
 ///   from under an open drop-down. Declined there means declined: layer 3 must
 ///   not offer the same event twice.
+/// - **A carried drag**, ahead of everything but a screen selection: while the
+///   keyboard carries a drag (Ctrl-R on a focused `.draggable`), Tab and the
+///   arrows move it among the stops that can take it, Return drops it and
+///   Escape puts it back (`DragAndDropSession.handleCarryKey(_:)`, owner
+///   ruling A53-KEYBOARD-DRAG).
 /// - **Layer 0.5**, also ahead of the status bar: while a drag is in flight the
 ///   arrow and paging keys scroll whatever the pointer is OVER — that is how an
 ///   off-screen drop destination is reached without letting go, and every layer
@@ -208,6 +213,9 @@ extension InputHandler {
         // key a text input takes (layer 0) — so a field focused before the drag
         // must not copy its own older selection instead.
         if let taken = screenSelection?.handleKey(event) { return taken }
+        // A drag the keyboard carries takes the keys that carry it, drop it
+        // and put it back, ahead of the focused control (A53-KEYBOARD-DRAG).
+        if let taken = dragAndDropSession?.handleCarryKey(event) { return taken }
         if event.isControlReturn { return dispatchControlReturn(event) }
         if dispatchPress(event) { return true }
 

@@ -136,6 +136,11 @@ package final class DragAndDropSession: @unchecked Sendable {
         /// copy (owner ruling B-BITEMS1-1). `nil` proposes a copy.
         package var identity: ViewIdentity?
 
+        /// The focus stops the destination answers on, which a drag carried
+        /// from the keyboard can be at (``DragAndDropSession/Carry``): empty
+        /// for one that names none, whose stops drawn inside it are taken.
+        package var focusIDs: [String] = []
+
         /// The memberwise initializer, spelled out because the synthesized one
         /// is internal and TUILists makes these, for the lists, and
         /// TUITables, for the tables.
@@ -448,6 +453,9 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// The scrollable this gesture belongs to, when it named one — see
     /// ``armAutoScroll(owner:)``.
     private var autoScrollOwner: ObjectIdentifier?
+
+    /// The drag the keyboard carries, while it does (`DragAndDropSession+Carry`).
+    var carry: Carry?
 
     /// The drag in flight, or `nil`.
     package var active: ActiveDrag? { _active }
@@ -1005,6 +1013,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     func end() {
         active?.targeted?.setTargeted(false)
         _active = nil
+        carry = nil
         source = nil
         springLoadHover = nil
         _autoScrollArmed = false

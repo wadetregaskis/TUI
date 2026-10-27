@@ -82,6 +82,47 @@ enum TransferKeys {
         }
     }
 
+    /// Answers `chord` with `perform`, handed the stop that holds the focus,
+    /// while one of `focusIDs` does: a `.draggable`'s pick-up
+    /// (``DragAndDropSession/carryChord``). Replayable, as ``register(_:focusIDs:context:perform:)`` is.
+    static func registerChord(
+        _ chord: KeyboardShortcut, focusIDs: [String], context: RenderContext,
+        perform: @escaping (_ focused: String) -> Bool
+    ) {
+        let trigger = chord.trigger
+        let sectionID = context.environment.activeFocusSectionID
+        let entry = ChordEntry(trigger: trigger, focusIDs: focusIDs, perform: perform)
+        entry.register(sectionID: sectionID, context: context)
+        context.environment.volatileReadTracker?.recordReplayableEffect()
+        if let journal = context.recordingEffectJournal {
+            journal.append(
+                EffectJournal.Entry(kind: chordKind, channelToken: context.environment.keyChannelToken) { replay in
+                    entry.register(sectionID: sectionID, context: replay)
+                })
+        }
+    }
+
+    /// The journal kind of a chord's registration.
+    static let chordKind = EffectJournal.Kind("transfer.chord")
+
+    /// One chord's registration, made by the render and again by a replay.
+    private struct ChordEntry {
+        let trigger: KeyboardShortcut.Trigger
+        let focusIDs: [String]
+        let perform: (String) -> Bool
+
+        func register(sectionID: String?, context: RenderContext) {
+            let focusManager = context.environment.focusManager
+            let (trigger, focusIDs, perform) = (trigger, focusIDs, perform)
+            context.environment.keyEventDispatcher?.addHandler(sectionID: sectionID) { [weak focusManager] event in
+                guard KeyboardShortcut.trigger(for: event) == trigger, let focusManager,
+                    let focused = focusIDs.first(where: { focusManager.isFocused(id: $0) })
+                else { return false }
+                return perform(focused)
+            }
+        }
+    }
+
     /// One registration, made by the render and again by a replay.
     private struct Entry {
         let key: KeyEquivalent

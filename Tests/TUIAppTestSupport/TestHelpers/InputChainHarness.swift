@@ -123,6 +123,8 @@ final class InputChainHarness {
     func frame<V: View>(_ view: @autoclosure () -> V, walks: Int = 1) -> FrameBuffer {
         // As the run loop does: the gestures' clocks run to the frame's
         // instant before anything is cleared or rendered.
+        // As the run loop does: a drag the keyboard carries follows its stop.
+        tui.dragAndDropSession.followCarry()
         tui.mouseEventDispatcher.advanceGestures(nowNanos: now)
         tui.mouseEventDispatcher.beginRenderPass()
         tui.dragAndDropSession.beginFrame()
