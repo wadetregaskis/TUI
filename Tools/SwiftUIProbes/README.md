@@ -1094,3 +1094,19 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.1 (SwiftUI of macOS 15.8.1), Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK,
   2026-10-24.
 - **Cited by:** `Documentation/Historical/State and dynamic properties/The update model: when effects run.md`.
+
+### Modal sheet keys
+
+- **Asks:** behind a window-modal sheet and an app-modal alert on macOS, which key equivalents still work: an app
+  command (a main-menu item whose target is the app delegate, ⌘K), a window command (a main-menu item with no
+  target, implemented by the document window's view, ⌘J) and a button's key equivalent in the window (⌘B). Each
+  invocation and each menu validation is logged with what was modal at the time. AppKit, not SwiftUI: the question
+  is the platform's rule, which a SwiftUI app's menus and buttons follow.
+- **Files:** `modalkeys.swift` (build with `swiftc`, wrap it in an app bundle so the keys can be sent to it, run it,
+  press the keys); `modalkeys.out`, the log of the run.
+- **Answers:** with nothing modal all three run. Behind the sheet ⌘K runs; ⌘J and ⌘B do nothing, and the window
+  command is disabled in the menu. Behind the app-modal alert nothing runs, and both menu items are disabled.
+- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-27, the keys sent by computer use.
+- **Cited by:** `Sources/TUIFoundation/Views/KeyboardShortcutRegistry.swift` (`Scope`);
+  `Documentation/Historical/Presentation and windows/Sheets: sizes, detents, live sheets and the page behind.md`
+  (A-MODALS-1).

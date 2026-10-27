@@ -144,7 +144,8 @@ extension InputHandler {
         }
         if statusBar.handleKeyEvent(event)
             || keyboardShortcuts.trigger(
-                for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal)
+                for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal,
+                modalSection: focusManager.activeModalSectionID)
         {
             return true
         }

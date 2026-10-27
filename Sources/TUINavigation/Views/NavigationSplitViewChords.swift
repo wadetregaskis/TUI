@@ -30,7 +30,8 @@ enum SidebarChordRegistrar {
     ) {
         guard let registry = context.environment.keyboardShortcutRegistry else { return }
         for shortcut in shortcuts {
-            registry.registerDefault(shortcut, holdsFocus: holdsFocus, action: action)
+            registry.registerDefault(
+                shortcut, holdsFocus: holdsFocus, section: context.environment.activeFocusSectionID, action: action)
         }
     }
 }

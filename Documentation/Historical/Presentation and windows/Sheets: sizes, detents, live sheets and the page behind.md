@@ -13,8 +13,8 @@ sheet with two or more detents can be resized, and one that enables background
 interaction is a live sheet, docked as a pane beside a page that stays live. A
 modal sheet's page is drawn behind it, veiled (faded half way toward the
 overlay background) since 2026-10-25, and inert to the mouse, focus and the
-page's own key handlers. Keys declared outside a modal sheet still work behind
-it, a question the owner has not answered (A-MODALS-1).
+page's own key handlers, and since 2026-10-27 to the shortcuts and status bar
+items declared outside it as well (A-MODALS-1).
 
 ## How it unfolded
 
@@ -35,8 +35,7 @@ it, a question the owner has not answered (A-MODALS-1).
 
 ## Where it stands
 
-Shipped. **Open:** A-MODALS-1 (recommended: make the page inert to keys
-declared outside the sheet).
+Shipped, A-MODALS-1 included (2026-10-27).
 
 ## For a future reader
 
@@ -352,6 +351,20 @@ not run in a live app.
 **Recommendation:** 3. The dimmed backdrop already says that the whole
 screen behind a modal sheet is inert. Three channels of five already behave
 that way, and a key that works behind the dimming contradicts the picture.
+
+**Answered 2026-10-27: 3**, after a check against macOS 15.8.1 (a probe app,
+`Tools/SwiftUIProbes/Modal sheet keys/`): behind a window-modal sheet the
+window's own key equivalents and its menu commands do nothing; behind an
+app-modal alert nothing does, every menu item disabled. Built: a keyboard
+shortcut records the focus section it was declared in
+(`KeyboardShortcutRegistry.Scope`), and while a modal section holds the
+keyboard (`FocusManager.activeModalSectionID`) only the modal's own fire, its
+framework defaults included; the status bar shows and fires only the modal's
+own items, and the system items (`StatusBarState.resolvedUserItems`). The menu
+bar's commands were already inert under a modal (drawn as a backdrop, they
+register nothing), so TUI treats every modal as macOS treats an app-modal
+alert: an app-level command that macOS would still run behind a sheet does not
+run here (`ModalInertKeysTests`).
 
 ### B-MODALS-1. A dismissed sheet posts a dock resolver on every frame
 

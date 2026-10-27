@@ -413,6 +413,13 @@ public final class FocusManager: @unchecked Sendable {
         return modalSectionIDs.contains(activeID)
     }
 
+    /// The active section where it is modal (``activeSectionIsModal``), else
+    /// `nil`: the section whose own keyboard shortcuts are the only ones that
+    /// fire (`KeyboardShortcutRegistry.Scope`).
+    package var activeModalSectionID: String? {
+        activeSectionIsModal ? activeSectionID : nil
+    }
+
     /// Whether the active section is one a menu is open in
     /// (``markSectionMenu(id:)``): modal, as ``activeSectionIsModal`` says,
     /// for the keyboard, but closed by the choice made in it.

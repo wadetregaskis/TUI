@@ -288,7 +288,8 @@ extension InputHandler {
             return true
         }
         if keyboardShortcuts.trigger(
-            for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal)
+            for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal,
+            modalSection: focusManager.activeModalSectionID)
         {
             return true
         }
@@ -326,7 +327,8 @@ extension InputHandler {
             return true
         }
         return keyboardShortcuts.trigger(
-            for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal)
+            for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal,
+            modalSection: focusManager.activeModalSectionID)
     }
 
     /// The five-layer chain for a key going down or repeating — everything
@@ -451,7 +453,8 @@ extension InputHandler {
         // chain semantics); a TextField without `onSubmit` deliberately
         // lets Return through so the dialog's default button fires.
         if keyboardShortcuts.trigger(
-            for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal)
+            for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal,
+            modalSection: focusManager.activeModalSectionID)
         {
             return true
         }
@@ -619,7 +622,8 @@ extension InputHandler {
             input.givesWayToKeyboardShortcut(event)
         else { return false }
         return keyboardShortcuts.hasAppShortcut(
-            for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal)
+            for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal,
+            modalSection: focusManager.activeModalSectionID)
     }
 
     /// The tail of layer 4: the global appearance/theme cycling shortcuts.

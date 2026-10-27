@@ -500,6 +500,13 @@ public final class StatusBarState: @unchecked Sendable {
     /// The user items of the focus section, the context stack or the global
     /// set, whatever the focus is on.
     private var resolvedUserItems: [any StatusBarItemProtocol] {
+        // Behind a modal only its own items show and fire, not the page's merged
+        // under them: the dimming says the page is inert, and on a Mac a sheet's
+        // window takes no key of the page's (decisions A-MODALS-1, 2026-10-27;
+        // this undoes the merge of 2026-08-22). The system items still show.
+        if let modal = focusManager?.activeModalSectionID {
+            return sectionItems.first { $0.sectionID == modal }?.items ?? []
+        }
         if !sectionItems.isEmpty, let activeSectionID = activeFocusSectionID {
             return resolvedSectionItems(for: activeSectionID)
         }

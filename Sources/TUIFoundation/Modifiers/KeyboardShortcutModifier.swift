@@ -173,7 +173,9 @@ enum KeyboardShortcutRegistrar {
         action: @escaping () -> Void, context: RenderContext
     ) -> Bool {
         guard let registry = context.environment.keyboardShortcutRegistry else { return false }
-        registry.register(shortcut, commandChord: commandChord, repeats: repeats, action: action)
+        registry.register(
+            shortcut, commandChord: commandChord, repeats: repeats,
+            section: context.environment.activeFocusSectionID, action: action)
         return true
     }
 

@@ -49,6 +49,28 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
         let repeats: Bool
         let action: () -> Void
         let serial: Int
+        /// Where it was declared, which decides whether it fires while a modal
+        /// holds the keyboard (``Scope``).
+        var scope = Scope()
+    }
+
+    /// Where a shortcut was declared: the focus section. While a modal section
+    /// holds the keyboard only the shortcuts declared in it fire, as nothing
+    /// behind an app-modal alert does on macOS, and as neither a window's key
+    /// equivalents nor its menu commands do behind its sheet (measured
+    /// 2026-10-27, decisions A-MODALS-1). A shortcut declared outside the
+    /// presenting view used to fire behind a sheet, though the dimming says the
+    /// page is inert. (The menu bar's commands were already inert there: the
+    /// menu bar is drawn as a backdrop under a modal, and registers nothing.)
+    struct Scope {
+        var section: String?
+
+        /// Whether a shortcut of this scope fires while `modalSection` holds the
+        /// keyboard (`nil`: no modal does).
+        func fires(under modalSection: String?) -> Bool {
+            guard let modalSection else { return true }
+            return section == modalSection
+        }
     }
 
     /// The app's shortcuts registered outside every pane.
@@ -76,6 +98,7 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
     private struct Default {
         let holdsFocus: Bool
         let action: () -> Void
+        var scope = Scope()
     }
 
     /// The framework defaults registered outside every pane, consulted only
@@ -112,10 +135,12 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
     ///   nothing more.
     func register(
         _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil, repeats: Bool = true,
-        action: @escaping () -> Void
+        section: String? = nil, action: @escaping () -> Void
     ) {
         registrationCount += 1
-        let entry = Entry(repeats: repeats, action: action, serial: registrationCount)
+        let entry = Entry(
+            repeats: repeats, action: action, serial: registrationCount,
+            scope: Scope(section: section))
         insert(entry, on: shortcut.trigger)
         if let commandChord { insert(entry, on: commandChord.trigger) }
     }
@@ -193,9 +218,11 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// inside the pane — an alert over a live sheet — holds the keyboard, and
     /// the page behind it, live as it is, must not fire from under it.
     private func appEntry(
-        for trigger: KeyboardShortcut.Trigger, activePane: String?, reachesPage: Bool = true
+        for trigger: KeyboardShortcut.Trigger, activePane: String?, reachesPage: Bool = true,
+        modalSection: String? = nil
     ) -> Entry? {
         Self.paneScoped(trigger, page: actions, panes: paneActions, activePane: activePane, reachesPage: reachesPage)
+            .flatMap { $0.scope.fires(under: modalSection) ? $0 : nil }
     }
 
     /// The framework default on `trigger` that fires while the focus is in
@@ -206,9 +233,10 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// default, and an alert opened in a live sheet must hold it as it holds
     /// the page's own ⌃N.
     private func defaultEntry(
-        for trigger: KeyboardShortcut.Trigger, activePane: String?, reachesPage: Bool
+        for trigger: KeyboardShortcut.Trigger, activePane: String?, reachesPage: Bool, modalSection: String?
     ) -> Default? {
         Self.paneScoped(trigger, page: defaults, panes: paneDefaults, activePane: activePane, reachesPage: reachesPage)
+            .flatMap { $0.scope.fires(under: modalSection) ? $0 : nil }
     }
 
     /// What fires on `trigger` with the focus in `activePane` (`nil`: on the
@@ -240,12 +268,14 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// Like an app shortcut, a default registered inside a pane is the pane's
     /// (``currentPane``).
     package func registerDefault(
-        _ shortcut: KeyboardShortcut, holdsFocus: Bool = false, action: @escaping () -> Void
+        _ shortcut: KeyboardShortcut, holdsFocus: Bool = false, section: String? = nil,
+        action: @escaping () -> Void
     ) {
         let trigger = shortcut.trigger
         let existing = currentPane.map { paneDefaults[$0]?[trigger] } ?? defaults[trigger]
         if let existing, existing.holdsFocus || !holdsFocus { return }
-        let entry = Default(holdsFocus: holdsFocus, action: action)
+        let entry = Default(
+            holdsFocus: holdsFocus, action: action, scope: Scope(section: section))
         if let currentPane {
             paneDefaults[currentPane, default: [:]][trigger] = entry
         } else {
@@ -266,13 +296,19 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
     ///     or `nil` on the page.
     ///   - reachesPage: Whether a key equivalent the pane does not bind may
     ///     reach the page's: not while a modal section holds the focus.
-    package func trigger(for event: KeyEvent, activePane: String? = nil, reachesPage: Bool = true) -> Bool {
+    ///   - modalSection: The modal section holding the keyboard
+    ///     (`FocusManager.activeModalSectionID`), whose own shortcuts are then the
+    ///     only ones that fire (``Scope``).
+    package func trigger(
+        for event: KeyEvent, activePane: String? = nil, reachesPage: Bool = true, modalSection: String? = nil
+    ) -> Bool {
         guard let trigger = KeyboardShortcut.trigger(for: event) else { return false }
-        let entry = appEntry(for: trigger, activePane: activePane, reachesPage: reachesPage)
+        let entry = appEntry(for: trigger, activePane: activePane, reachesPage: reachesPage, modalSection: modalSection)
         if event.phase == .repeat, let entry, !entry.repeats { return true }
         guard
             let action = entry?.action
-                ?? defaultEntry(for: trigger, activePane: activePane, reachesPage: reachesPage)?.action
+                ?? defaultEntry(
+                    for: trigger, activePane: activePane, reachesPage: reachesPage, modalSection: modalSection)?.action
         else { return false }
         action()
         return true
@@ -288,9 +324,11 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// one of its editing chords. An app shortcut on the chord takes the key
     /// instead; see
     /// ``TextEditingCommand/givesWayToKeyboardShortcuts(homeAndEndReachLineEnds:)``.
-    package func hasAppShortcut(for event: KeyEvent, activePane: String? = nil, reachesPage: Bool = true) -> Bool {
+    package func hasAppShortcut(
+        for event: KeyEvent, activePane: String? = nil, reachesPage: Bool = true, modalSection: String? = nil
+    ) -> Bool {
         guard let trigger = KeyboardShortcut.trigger(for: event) else { return false }
-        return appEntry(for: trigger, activePane: activePane, reachesPage: reachesPage) != nil
+        return appEntry(for: trigger, activePane: activePane, reachesPage: reachesPage, modalSection: modalSection) != nil
     }
 
     /// Whether any shortcut is registered for `event`, the app's or a

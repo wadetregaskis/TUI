@@ -1,0 +1,16 @@
+337697.87 macOS Version 15.8.1 (Build 24H32)
+337770.03 validate 'App command' -> enabled (nothing modal)
+337770.03 ⌘K app command RAN (nothing modal)
+337770.38 ⌘B button RAN (nothing modal)
+337781.62 app-modal alert shown
+337801.98 app-modal alert closed
+337806.82 sheet shown
+337807.85 validate 'App command' -> enabled (sheet 'Sheet' up)
+337807.85 ⌘K app command RAN (sheet 'Sheet' up)
+337812.28 validate 'App command' -> enabled (sheet 'Sheet' up)
+337817.94 sheet closed
+337818.74 validate 'Window command' -> enabled (nothing modal)
+337818.74 ⌘J window command RAN (nothing modal)
+337818.80 ⌘B button RAN (nothing modal)
+337818.85 validate 'App command' -> enabled (nothing modal)
+337818.85 ⌘K app command RAN (nothing modal)

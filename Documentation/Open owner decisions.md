@@ -45,7 +45,6 @@ been in force since 2026-10-18.
 | A-CHURN-2 | Overlay scrollbars that take no column? | Decline: it would reverse R4 and R5, and is not needed for performance. | Bars keep a column. |
 | A-O9-1 | `\.supportsMultipleWindows` is `true`. | `true`, as shipped. | `true`. |
 | A-W1-1 | Should `import TUI` bring Foundation's geometry (and so `CGRect`) with it, as `import SwiftUI` does? | 2: re-export it. | A ported shape file needs `import Foundation`. |
-| A-MODALS-1 | Keys declared outside a modal sheet still work behind it. | 3: make the page behind a modal inert to them, as the backdrop already says. | They keep working. |
 | A-PARITYMISC-1 | Core Data's `FetchRequest` family: build it now, or when an app asks? | 2: when an app asks. | Not built. |
 | A-TRANSITIONS2-1 | B52: a custom transition that changes its view's size — lay the body out at each frame's size? | 1: leave it; FB16 closes the gap B52 was opened for. | As now. |
 
@@ -96,6 +95,7 @@ been in force since 2026-10-18.
 |---|---|---|
 | A-EFFECTS-1 | 3: never invisible; dim and the other attributes widen the palette. | Done: faint in the ink's colour at 16 colours, a step toward it at 256. |
 | A-O12-1 | Configurable, app-wide (a Mac's links-only or a web page's every clickable control). | Done: `controlPointerStyle(_:)`, `.automatic` (links only, the default) or `.link`. |
+| A-MODALS-1 | 3, if macOS agrees: it does (measured). | Done: behind a modal only its own shortcuts and status bar items show and fire. |
 
 ## Answered on 2026-10-27
 

@@ -461,11 +461,11 @@ extension ModalPresentationModifier: Renderable {
         // render publishes into a throwaway status bar now
         // (`isolatedForBackground`), because items that merely showed were
         // also still firing — `n` behind a dialog ran the page's "new".
-        // What is left to merge with is whatever the app declares outside
-        // the presented subtree, which is live and should show. The bar
-        // therefore reads "⎋ dismiss   q quit" over a dialog, rather than
-        // also advertising the page's own keys, which do nothing while it
-        // is up.
+        // What the app declares outside the presented subtree is left out
+        // too, since 2026-10-27: behind a modal the bar shows and fires only
+        // the modal's own items (`StatusBarState.resolvedUserItems`,
+        // decisions A-MODALS-1). The bar therefore reads "⎋ dismiss   q quit"
+        // over a dialog.
         //
         // Kept where the content asked not to be dismissed by hand, too: then
         // the item is named again once the content has drawn (`drawSheet`) —
