@@ -1,11 +1,31 @@
-# SwiftUI API completion — lane D4T (tables): new judgement calls
+# Acting on rows: the primary action, context menus and section actions
 
-*Lane D4T implemented the owner's decisions B46, A30, A31, B47, B45 and B44
-(2026-10-05). Each call below came up on the way. The safe option shipped;
-the alternative and its price are given. Numbered as the main decisions
-document is: A = owner decision, B = basic shipped, C = declined.*
+*What Return, Ctrl-click, Shift-F10 and the Menu key do on a list or table,
+how a section header is drawn and acted on, and when a section's actions
+show. Ids: B44 to B47 (via D4T), A30, A31, B-D4T-1 to 6, C-D4T-1, B78,
+B78-VISIBILITY, B-LISTS2-3.*
 
-## B. Shipped the safe option
+## In short
+
+Return runs the primary action on the cursor row's set (the whole selection if
+the cursor is in it, else the cursor row alone), as SwiftUI's context menu
+does. A list or table with a menu opens it on Ctrl-click, Shift-F10 and the
+Menu key. A section header is drawn as lines of the row below it. A section's
+actions show while the focused list's cursor, the focus or the pointer is in
+the section, padded to the row's width.
+
+## How it unfolded
+
+1. **2026-10-05, lane D4T** built the owner's B46, A30, A31, B47, B45 and B44,
+   measuring SwiftUI's `Table` and `List` on macOS 15.8 for each call; B47
+   turned out not to be a gap at all (SwiftUI rejects the shape, C-D4T-1).
+2. **B78** placed section actions after the header's title; lane LISTS2
+   padded them to the row's width (B-LISTS2-3).
+3. **2026-10-23 to 24, B78-VISIBILITY.** The owner chose (b): actions show only
+   while the section is in use, which keeps a keyboard route and cuts Tab
+   stops; built by lane MISC.
+
+## The record
 
 ### B-D4T-1. Return's primary action acts on the cursor row's set, not on the selection as such
 
@@ -155,61 +175,6 @@ for sections of views. A section among a table's rows has none:
 `sectionActions(content:)` is a `View` modifier and a row section is not a
 view, in SwiftUI as here. Nothing shipped for it; noted so B18 can close.
 
-### B-D4T-7. Column gestures need a customization binding and an identifier; the keyboard's are a mode
-
-*`TableColumnCustomization`, `TableColumnCustomizationBehavior`,
-`disabledCustomizationBehavior(_:)`, `RowAction.customizeColumns`
-(decisions B45)*
-
-**Measured on macOS 15.8** (a SwiftUI `Table` in an `NSHostingView`, its
-outline view driven directly): a table bound to a customization allows column
-reordering, one without does not, and both allow resizing; the header's
-right-click menu exists only with a binding, and reads "Hide “Alpha”", a
-divider, then every column in the order shown with a check while visible — a
-column with no `customizationID` checked and disabled; a resize is recorded as
-the column's `currentWidth` in the customization's encoding (SwiftUI records
-every customizable column's width, from the first layout), and a move as a
-`columnOrder` that names a column with no identifier by a transient entry;
-emptying the customization does not shrink a resized column back.
-
-**Shipped:** the three gestures — the header menu (right-click or Ctrl-click),
-dragging a title to move its column (live, as the pointer crosses the
-neighbour far enough that the swap does not swap back), dragging the gap after
-a title to resize within the column's declared bounds — on a table bound to a
-customization, for columns with an identifier, each taken away by the
-column's `disabledCustomizationBehavior`. The width goes into the
-customization and its encoding, as the owner expected and SwiftUI does; it is
-recorded only once the user resizes, so the value still records "what has
-been changed and nothing else", and an emptied customization puts the
-declared widths back. The last shown column cannot be hidden from the menu.
-
-From the keyboard the gestures are a mode rather than six chords: **Ctrl-K**
-picks a column (drawn in the selected-row fill in the header); while one is
-picked, ←/→ pick another, `<`/`>` (or Shift-←/→) move it, `-`/`+` resize it,
-Return opens the column menu on it (the mode's own: closing it returns to
-the mode, and hiding the picked column picks the first one left), and
-Escape (or Ctrl-K) lets it go — the
-shape of Ctrl-R's row move, for the same reason: a column has to be chosen
-before anything can be done to it, and keys inside a mode need no modifier a
-terminal might not send. Only Ctrl-K is a rebindable `RowAction`; free Ctrl
-letters are too few for three pairs.
-
-**Since 2026-10-18 (lane LISTS), the fuller version's resizing:** a table
-without a binding, and a column without an identifier in one with, resizes
-as any other — its gap dragged, or `-`/`+` in the column mode, which Ctrl-K
-now opens on every table with a header — the width kept in the table's own
-state (`ItemListHandler.transientColumnWidths`, by the column's identifier
-or its place in the column closure, `_TableColumnSpec.place`, which a
-condition before it does not move) for as long as the table is shown, as
-SwiftUI keeps it in the outline view. Reordering and the column menu still need a binding and an
-identifier, as measured. The price, paid by every table: a state lookup per
-frame (`applyKeptWidths`). The header's gaps were a region and a handler
-each, registered every frame on tables that had none; since lane LISTSPERF
-the table's own handler, whose region covers the header line, takes them,
-finding the gap at the press. A/B owed: tables, tables-scroll.
-
-## C. Declined, with the reason
-
 ### C-D4T-1. B47 is not a gap: SwiftUI rejects the shape too
 
 *`Group.init(content:)` for `TableColumnContent` (decisions B47)*
@@ -292,3 +257,68 @@ SwiftUI source that names the root (`\Person.email`) compiles on both. B47
 can close. A TUI-only overload that infers the root for a lone column
 (`init` over `TableColumn<RowValue, Sort, C, L>` content) would compile source
 SwiftUI refuses, which the two parity rules do not ask for.
+
+### B78. Section actions: shown while the section is in use, after the header's title
+
+*`View.sectionActions(content:)`, `TabContent.sectionActions(content:)`*
+
+macOS shows a list section's actions at the trailing end of its header while
+the pointer is over the section.
+
+**Shipped:** in a `List`, the actions are drawn one cell after the header's
+title, and are ordinary controls there — Tab moves onto each, a click presses
+one. A section with no header shows them alone on the header's line.
+
+**Owner ruling (2026-10-23, B78-VISIBILITY): (b), shown while the section is
+in use.** Built 2026-10-24 (lane MISC). A section's actions are drawn, and
+register as focus stops, only while the focused list's cursor is on one of
+the section's rows, the focus is on one of the actions, or the pointer is over
+the section (header to footer). A keyboard user reaches them by moving into
+the section and pressing Tab — the list's own place in the ring comes ahead of
+them, and an action holding the focus keeps its section's shown; the mouse
+finds them where macOS shows them, under the pointer. Not in use, the header
+keeps their cells blank, measured rather than drawn, so a headerless section's
+line, the rows below and a hugging list's width do not move as they come and
+go. A list registers a hover observer only when a section has actions, and a
+pointer move asks for a frame only when it crosses into another section
+(`ItemListHandler.hoverSections(atContentY:)`). Tests:
+`SectionActionsTests`. A custom container reads them as `SectionConfiguration.actions`.
+Outside a list (a `Section` in a stack) the view draws as it would without
+them, as SwiftUI's does. On a `TabSection`, a `.sidebarAdaptable` tab view's
+sidebar draws them the same way; a tab strip, which lists a section's tabs
+among the others, shows none, and on a lone `Tab` they do nothing, as
+SwiftUI documents.
+
+Where it differs:
+
+- **Shown while the focus is in the section as well as under the pointer.**
+  An action shown only under the pointer is one the keyboard cannot reach,
+  so the cursor and the focus show them too (B78-VISIBILITY, above); they
+  were always shown until 2026-10-24.
+- **After the title, not flush right.** The list builds a header row before
+  it knows the width a hugging list (a sidebar) settles on, so a flush-right
+  action there would lose its trailing cells. Flushing right in a list that
+  fills its width, and after the title in one that hugs, is half a day: the
+  header row would carry the actions apart from its buffer and the list
+  would place them as it places a badge. **Shipped (2026-10-19, lane
+  LISTS2), more cheaply:** a list that fills draws its rows at the width it
+  composes them at, so the header is drawn with its actions flush against
+  that width, where a row's badge ends, and the list tells its rows whether
+  it hugs them (`listRowsHug`), where the actions stay after the title.
+
+### B-LISTS2-3. A section's actions are padded to the row's width, not placed as a badge is
+
+*`View.sectionActions(content:)` (decisions B78)*
+
+The priced design had the header row carry its actions apart from its buffer
+for the list to place as it places a badge. A list that fills its width draws
+its rows at the width it composes them at, which the header's context
+already carries, so the header pads its line to that width itself and the
+list changes in nothing but the flag that says it hugs (`listRowsHug`).
+
+**Where it differs from a badge's placement:** a frame on which the list
+draws a scrollbar it did not predict, or a row wider than the list's offer
+widens the rows, puts the actions at the proposed width's edge — a cell or
+two short of the trailing edge — until the next frame, where the rows are
+drawn at the width the list now composes. The badge-like placement is half a
+day, as priced.

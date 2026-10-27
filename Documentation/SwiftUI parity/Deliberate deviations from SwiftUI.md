@@ -637,7 +637,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   compile. `flipsForRightToLeftLayoutDirection(_:)` returns the view.
 - **Why:** nothing would honour a write yet, and a write that is accepted and
   ignored is what rule 2 forbids.
-- **Decided:** [B1](<../Historical/Layout and geometry/Safe areas, size classes and layout direction.md#b1-layoutdirection-is-read-only-always-left-to-right>), [B74](<Decisions/SwiftUI API completion decisions.md#b74-sidebarrowsize-is-read-only-always-medium>). **Lane** (2026-10-12: the
+- **Decided:** [B1](<../Historical/Layout and geometry/Safe areas, size classes and layout direction.md#b1-layoutdirection-is-read-only-always-left-to-right>), [B74](<../Historical/Lists, tables and tabs/Badges and the prominence of a row.md#b74-sidebarrowsize-is-read-only-always-medium>). **Lane** (2026-10-12: the
   owner still wants right-to-left, out of scope for now). `\.legibilityWeight`
   was a third, and is settable and honoured since 2026-10-13 ([B2](<Decisions/SwiftUI API completion decisions.md#b2-legibilityweight-is-settable-and-every-text-drawing-site-steps-its-weight>)).
 
@@ -2009,7 +2009,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   row's menu where it has one).
 - **Why:** command-click does not reach many terminals, so the convention's way
   back to "nothing selected" is unavailable.
-- **Decided:** [§2.11](<SwiftUI compatibility guide.md#211-a-plain-click-on-the-selected-row-clears-a-single-selection-where-macos-keeps-it>), [B-D4T-2](<Decisions/Lists and tables/Table and list actions, context menus and columns (D4T).md#b-d4t-2-ctrl-click-on-a-list-or-table-with-a-menu-opens-the-menu-not-a-toggle>). **Owner**
+- **Decided:** [§2.11](<SwiftUI compatibility guide.md#211-a-plain-click-on-the-selected-row-clears-a-single-selection-where-macos-keeps-it>), [B-D4T-2](<../Historical/Lists, tables and tabs/Acting on rows: the primary action, context menus and section actions.md#b-d4t-2-ctrl-click-on-a-list-or-table-with-a-menu-opens-the-menu-not-a-toggle>). **Owner**
   (2026-09-21).
 
 ### V2. The keyboard cursor is apart from the selection
@@ -2025,8 +2025,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   moves.
 - **Why:** not recorded. Space toggling at the cursor is how the keyboard
   builds a selection ([§2.11](<SwiftUI compatibility guide.md#211-a-plain-click-on-the-selected-row-clears-a-single-selection-where-macos-keeps-it>)).
-- **Decided:** [B-D4T-1](<Decisions/Lists and tables/Table and list actions, context menus and columns (D4T).md#b-d4t-1-returns-primary-action-acts-on-the-cursor-rows-set-not-on-the-selection-as-such>), [B73](<Decisions/SwiftUI API completion decisions.md#b73-background-prominence-raised-on-the-rows-a-list-builds-itself>), [B76](<Decisions/SwiftUI API completion decisions.md#b76-the-sidebar-style-a-list-beside-the-content-chosen-with-return>),
-  [B77](<Decisions/SwiftUI API completion decisions.md#b77-type-select-moves-the-cursor-and-a-prefixs-first-character-gives-way-to-bare-key-bindings>). **Lane.**
+- **Decided:** [B-D4T-1](<../Historical/Lists, tables and tabs/Acting on rows: the primary action, context menus and section actions.md#b-d4t-1-returns-primary-action-acts-on-the-cursor-rows-set-not-on-the-selection-as-such>), [B73](<../Historical/Lists, tables and tabs/Badges and the prominence of a row.md#b73-background-prominence-raised-on-the-rows-a-list-builds-itself>), [B76](<../Historical/Lists, tables and tabs/Tab views: labels, sidebars, customization and minimizing.md#b76-the-sidebar-style-a-list-beside-the-content-chosen-with-return>),
+  [B77](<../Historical/Lists, tables and tabs/Moving through a list: type select, Home and End.md#b77-type-select-moves-the-cursor-and-a-prefixs-first-character-gives-way-to-bare-key-bindings>). **Lane.**
 
 ### V3. List and table chrome differs from macOS by default
 
@@ -2052,9 +2052,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   and the focus show them too.
 - **Decided:** decisions A29 and A46 (**Owner**, 2026-10-07: tables stripe by
   default, both keep their border; removed when they shipped),
-  [A-D6L-1](<Decisions/Lists and tables/List and table stripes, surfaces, pinned headers and separators (D6L).md#a-d6l-1-the-surface-look-try-it-then-decide-what-if-anything-becomes-the-default>),
-  [A-D6L-2](<Decisions/Lists and tables/List and table stripes, surfaces, pinned headers and separators (D6L).md#a-d6l-2-should-a-list-draw-separators-by-default>), [B72](<Decisions/SwiftUI API completion decisions.md#b72-badge-prominence-two-inks-read-from-the-lists-environment>),
-  [B78](<Decisions/SwiftUI API completion decisions.md#b78-section-actions-shown-while-the-section-is-in-use-after-the-headers-title>). **Under review** (borders and separators),
+  [A-D6L-1](<../Historical/Lists, tables and tabs/Stripes, surfaces and separators.md#a-d6l-1-the-surface-look-try-it-then-decide-what-if-anything-becomes-the-default>),
+  [A-D6L-2](<../Historical/Lists, tables and tabs/Stripes, surfaces and separators.md#a-d6l-2-should-a-list-draw-separators-by-default>), [B72](<../Historical/Lists, tables and tabs/Badges and the prominence of a row.md#b72-badge-prominence-two-inks-read-from-the-lists-environment>),
+  [B78](<../Historical/Lists, tables and tabs/Acting on rows: the primary action, context menus and section actions.md#b78-section-actions-shown-while-the-section-is-in-use-after-the-headers-title>). **Under review** (borders and separators),
   **Lane** (the rest).
 
 ### V4. A table row is one line unless asked
@@ -2068,7 +2068,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** the row height is the owner's answer to B44; the rest is not
   recorded.
 - **Decided:** decisions B44 (the owner's answer, implemented by
-  [lane D4T](<Decisions/Lists and tables/Table and list actions, context menus and columns (D4T).md#b-shipped-the-safe-option>)), [B-D4T-5](<Decisions/Lists and tables/Table and list actions, context menus and columns (D4T).md#b-d4t-5-a-section-header-is-lines-of-the-row-below-it-not-a-row-of-its-own>), [§1](<SwiftUI compatibility guide.md#1-match>) (the Data
+  [lane D4T](<../Historical/Lists, tables and tabs/Acting on rows: the primary action, context menus and section actions.md>)), [B-D4T-5](<../Historical/Lists, tables and tabs/Acting on rows: the primary action, context menus and section actions.md#b-d4t-5-a-section-header-is-lines-of-the-row-below-it-not-a-row-of-its-own>), [§1](<SwiftUI compatibility guide.md#1-match>) (the Data
   row). **Owner** (row height), **Lane** (the rest).
 
 ### V5. A collapsed `DisclosureGroup` keeps its content's state
@@ -2088,20 +2088,20 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 | Behaviour | SwiftUI | TUI | Decided |
 |---|---|---|---|
 | `listRowInsets` written twice on a row | the inner replaces the outer | the two add up | [ListRowStyleModifiers.swift](../../Sources/TUILists/Modifiers/ListRowStyleModifiers.swift#L51-L54), **Recorded** |
-| A row's `.top` separator | drawn where the style allows | declined; the line between rows is the upper row's `.bottom` | [B-D6L-2](<Decisions/Lists and tables/List and table stripes, surfaces, pinned headers and separators (D6L).md#b-d6l-2-a-rows-top-separator-is-the-styles-to-decline>), **Lane** |
-| A row's `.badge(_:)` with a modifier after it other than an environment write (`.badge(5).padding()`) | the badge is drawn | no badge is drawn; write the badge outermost | [B-LISTS-1](<Decisions/Lists and tables/List, table and section fixes (LISTS).md#b-lists-1-a-rows-badge-is-read-through-environment-writes-only>), **Lane** |
+| A row's `.top` separator | drawn where the style allows | declined; the line between rows is the upper row's `.bottom` | [B-D6L-2](<../Historical/Lists, tables and tabs/Stripes, surfaces and separators.md#b-d6l-2-a-rows-top-separator-is-the-styles-to-decline>), **Lane** |
+| A row's `.badge(_:)` with a modifier after it other than an environment write (`.badge(5).padding()`) | the badge is drawn | no badge is drawn; write the badge outermost | [B-LISTS-1](<../Historical/Lists, tables and tabs/Badges and the prominence of a row.md#b-lists-1-a-rows-badge-is-read-through-environment-writes-only>), **Lane** |
 | Return on a segmented picker | does nothing | chooses the segment under the cursor | [B-D2C-1](<Decisions/Presentation and windows/Pickers and sheet sizes (D2C).md#b-d2c-1-a-segmented-pickers-return-chooses-where-macoss-does-nothing>), **Lane** |
 | `Stepper` and `Slider` | draw no value | draw a value read-out | [§1](<SwiftUI compatibility guide.md#1-match>) (Controls row), **Recorded** |
 | `.automatic` and `.tabBarOnly` tab views | a segmented bar in the toolbar (measured) | a compact strip; `.grouped` draws folder tabs | [§1](<SwiftUI compatibility guide.md#1-match>) (Containers row), **Recorded** |
-| A tab's label view | drawn as given | its text, in the strip's ink | [B75](<Decisions/SwiftUI API completion decisions.md#b75-a-tabs-label-is-drawn-as-text>), **Lane** |
+| A tab's label view | drawn as given | its text, in the strip's ink | [B75](<../Historical/Lists, tables and tabs/Tab views: labels, sidebars, customization and minimizing.md#b75-a-tabs-label-is-drawn-as-text>), **Lane** |
 | A table row a drop would land on | ringed in the accent | drawn as selected | [B80](<Decisions/SwiftUI API completion decisions.md#b80-table-row-drag-and-drop-the-rows-own-line-a-selected-look-flat-loops>), **Lane** |
-| A drop at the end of a hierarchical table's branch | aimed at the branch's loop or the next row's by the pointer's indentation (measured) | the deeper loop that takes it | [B-LISTS2-7](<Decisions/Lists and tables/Lists, tabs and tables, settled parity items (LISTS2).md#b-lists2-7-a-slot-two-loops-of-a-hierarchical-table-reach-goes-to-the-deeper-loop>), **Lane** |
-| Dragging a sidebar section | (a landing line between sections: not measured) | dropped onto another section's header, it takes that one's place | [B-LISTS2-4](<Decisions/Lists and tables/Lists, tabs and tables, settled parity items (LISTS2).md#b-lists2-4-a-sidebars-sections-move-among-the-identified-sections-and-a-drag-drops-onto-a-header>), **Lane** |
+| A drop at the end of a hierarchical table's branch | aimed at the branch's loop or the next row's by the pointer's indentation (measured) | the deeper loop that takes it | [B-LISTS2-7](<../Historical/Lists, tables and tabs/Which rows a list draws.md#b-lists2-7-a-slot-two-loops-of-a-hierarchical-table-reach-goes-to-the-deeper-loop>), **Lane** |
+| Dragging a sidebar section | (a landing line between sections: not measured) | dropped onto another section's header, it takes that one's place | [B-LISTS2-4](<../Historical/Lists, tables and tabs/Tab views: labels, sidebars, customization and minimizing.md#b-lists2-4-a-sidebars-sections-move-among-the-identified-sections-and-a-drag-drops-onto-a-header>), **Lane** |
 | `modifierKeyAlternate` in a menu | gets the modified view's shortcut plus its modifiers | takes no shortcut of its own | [B-D1K-2](<Decisions/Input, clipboard and text editing/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-2-a-modifier-key-alternate-in-a-menu-does-not-inherit-the-modified-views-shortcut>), **Lane** |
 | A compact `DatePicker`'s calendar | (macOS keyboard unmeasured) | takes the keyboard as it opens | [B-D2C-2](<Decisions/Presentation and windows/Pickers and sheet sizes (D2C).md#b-d2c-2-a-compact-date-pickers-calendar-takes-the-keyboard-as-it-opens>), **Lane** |
 | A `Section` that is a lazy stack row's `ZStack`'s only child | not the stack's own; does not pin | pins | [B68](<../Historical/Layout and geometry/Sections and pinned headers in lazy stacks.md#b68-which-sections-are-the-stacks-own-the-next-stack-down-and-one-sibling-step>), **Lane** |
 | `.searchable`'s field | in the toolbar, presented by a click; scopes show while search is presented (documented) | always drawn at the top of the subtree; scopes show while it has the focus or a query | [B38](<Decisions/SwiftUI API completion decisions.md#b38-search-scopes-show-while-the-search-is-under-way-by-a-terminals-reading-of-presented-and-cancelled>), **Lane** |
-| `.searchable` on a `TabView` (macOS 26) | the field goes into the `.search` tab (documented, unmeasured) | a field above the whole tab view | [A50](<Decisions/SwiftUI API completion decisions.md#a50-search-in-a-tab-view-macos-26-the-search-tab-and-its-activation>), **Owner** (2026-10-04: defer until macOS 26 can be measured) |
+| `.searchable` on a `TabView` (macOS 26) | the field goes into the `.search` tab (documented, unmeasured) | a field above the whole tab view | [A50](<../Historical/Lists, tables and tabs/Tab views: labels, sidebars, customization and minimizing.md#a50-search-in-a-tab-view-macos-26-the-search-tab-and-its-activation>), **Owner** (2026-10-04: defer until macOS 26 can be measured) |
 | `SystemFormatStyle.DateReference` between the measured readings | keeps a time zone of its own; turns at a new year's first instant (measured) | uses the calendar's zone; turns half a second early | [B49](<Decisions/SwiftUI API completion decisions.md#b49-systemformatstyle-where-the-rules-go-beyond-the-measurements>), **Lane** |
 | An attributed format interpolated into a key | (a custom style's colours: not measured) | draws the characters only | [B88](<Decisions/SwiftUI API completion decisions.md#b88-an-attributed-format-interpolated-into-a-key-draws-the-characters-only>), **Recorded** |
 

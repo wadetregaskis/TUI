@@ -168,7 +168,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, 2026-10-06 and 2026-10-07. Neither output was kept; the results are in the D6L decisions.
 - **Was:** `D6L/probe/` (`phase.swift` and `common.swift` in `D6L/probe/phase/`).
 - **Cited by:** `Sources/TUILists/Views/_ListCore.swift`, `Sources/TUITables/Views/Table.swift`;
-  `Documentation/SwiftUI parity/Decisions/Lists and tables/List and table stripes, surfaces, pinned headers and separators (D6L).md`.
+  `Documentation/Historical/Lists, tables and tabs/Stripes, surfaces and separators.md`.
 
 ### Sections and subview counting
 
@@ -574,7 +574,7 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIFoundation/Modifiers/BadgeModifier.swift`,
   `Tests/TUIListsTests/BadgeProminenceTests.swift`;
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (B72),
-  `Documentation/SwiftUI parity/Decisions/Lists and tables/List, table and section fixes (LISTS).md` (B-LISTS-1).
+  `Documentation/Historical/Lists, tables and tabs/Badges and the prominence of a row.md` (B-LISTS-1).
 
 ### Hierarchical table insertions
 

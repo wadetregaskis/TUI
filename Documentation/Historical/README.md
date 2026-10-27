@@ -24,6 +24,7 @@ place:
 | Topic | Stories |
 |---|---|
 | [Layout and geometry](<Layout and geometry/>) | Alignment guides that travel; drawing past a region; stack spacing and what a container counts as its children; sections and pinned headers in lazy stacks; where a view is (coordinate spaces, geometry readers, scroll visibility); sharing space; safe areas, size classes and layout direction. |
+| [Lists, tables and tabs](<Lists, tables and tabs/>) | Stripes, surfaces and separators; badges and row prominence; acting on rows; table columns; type select, Home and End; which rows a list draws; tab views. |
 | [Scrolling](Scrolling/) | Holding the reader's place; paging and view-aligned scrolling; content past a scroll view's edge; scroll phases, animated scrolling, flash and bounce; scroll position and visibility; measuring a scroll view's content. |
 
 [Index of decision ids](<Index of decision ids.md>) finds the story holding any id (B30,
