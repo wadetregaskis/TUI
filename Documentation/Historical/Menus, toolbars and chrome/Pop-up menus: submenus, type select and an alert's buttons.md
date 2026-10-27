@@ -19,6 +19,14 @@ answers Return.
 inventory. On 2026-10-23 the owner's B77-KEYTIME ruling extended type select's
 hold on bare keys to open drop-downs and menus (in the lists topic).
 
+**PICKER-POINTER-OPEN** (settled 2026-10-18): a `Picker`'s drop-down opened by
+the pointer keeps its highlight on the current value. A pointer-opened `Menu`
+and a combo box highlight nothing, by the 07-27 rule against a highlight on an
+arbitrary first item, but a mis-click on the current value changes nothing.
+Confirmed on macOS 15.8 (2026-10-27): a clicked `.menu` `Picker`'s pop-up
+highlights its current value (`Tools/SwiftUIProbes/Picker pop-up
+highlight/popup.out`).
+
 ## The record
 
 ### B-MENUS-1. An alert keeps `.disabled` and `.keyboardShortcut` on its buttons; its default button answers the Return the focused button lets through

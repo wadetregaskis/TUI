@@ -729,9 +729,12 @@ messages cite that path), and what cites it.
   the field editor's `selectionAffinity` says, after a click-like set, an arrow key, typing and End
   (`affinity.swift`); and how the field is sized: its growth with wrapped text, under each `lineLimit` form, and
   with a long prompt (`size.swift`). Each puts the field in an `NSWindow` and sends key events through its key path.
-- **Files:** `keys.swift`, `nav.swift`, `affinity.swift`, `size.swift`. No `.out` files: the results are in the
-  citing documents.
-- **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-03.
+- **Also:** `affinity-motions.swift` (`affinity-motions.out`): the lean the field editor gives an insertion point
+  at a wrap after the motions `affinity.swift` did not try — Backspace and Forward Delete (from either lean), Down
+  and Up, ⌘← and ⌘→, Ctrl-A and Ctrl-E, an arrow, a word move (D4X-FULLER, 2026-10-27).
+- **Files:** `keys.swift`, `nav.swift`, `affinity.swift`, `size.swift`, `affinity-motions.swift`. Only
+  `affinity-motions.out` was kept: the other results are in the citing documents.
+- **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-03; `affinity-motions.swift` 2026-10-27.
 - **Was:** `w06b/probe/`.
 - **Cited by:** wave 6b's entries in `Documentation/Historical/` (found by id through its `Index of decision ids.md`);
   `Documentation/SwiftUI parity/Design studies/Text selection and editing design study, A13, A42 and A43 (2026-10-04).md`.
@@ -958,6 +961,15 @@ messages cite that path), and what cites it.
 - **Cited by:** `Documentation/Historical/Input, keys and gestures/The kitty keyboard protocol and modified keys.md`;
   `Sources/TUIFoundation/Focus/TextUndoBridge.swift`, `Sources/TUITextInput/Focus/TextUndoHistory.swift`;
   `Tests/TUITextInputTests/TextUndoCoalescingTests.swift`.
+
+### Picker pop-up highlight
+
+- **Asks:** which item a `.menu`-style `Picker`'s pop-up highlights when the pointer opens it: the current value, or
+  none, as a pointer-opened `Menu` does in TUI (PICKER-POINTER-OPEN). It clicks the `NSPopUpButton` SwiftUI made
+  (`performClick`) and reads the menu's highlighted item from inside its tracking loop.
+- **Files:** `popup.swift`, `popup.out`: the current value ("Banana") is highlighted.
+- **Ran:** macOS 15.8, Xcode's Swift 6.2.4, 2026-10-27.
+- **Cited by:** `Documentation/Historical/Menus, toolbars and chrome/Pop-up menus: submenus, type select and an alert's buttons.md`.
 
 ### The menu bar (O13)
 
