@@ -39,7 +39,7 @@ private func shiftClick(_ column: Int, _ row: Int) -> [Step] {
 
 private func dragDropScript() -> [Step] {
     let card = { (column: Int, index: Int) in (column, Board.firstCard + index) }
-    var script: [Step] = [.camera(Shot(x: 0, y: 3, width: 84, height: 15)), .wait(0.8)]
+    var script: [Step] = [.camera(Shot(x: 0, y: 3, width: 84, height: 24)), .wait(0.8)]
     // Across: To do's second card into Doing, between its first two.
     script += Step.glide(from: (70, 20), to: card(Board.todo, 1), over: 0.7)
     script += Step.drag(from: card(Board.todo, 1), to: card(Board.doing, 1), interval: 0.035) + [.wait(1.0)]
@@ -48,12 +48,16 @@ private func dragDropScript() -> [Step] {
     script += Step.drag(from: card(Board.doing, 3), to: card(Board.doing, 0), interval: 0.12) + [.wait(1.0)]
     // Several at once: Done's second card clicked, its fourth Shift-clicked —
     // three selected — and the three dragged to the column's top together.
+    // The camera pans across to Done for it: at 84 columns it shows To do and
+    // Doing, and Done began just past its edge.
+    script += [.camera(Shot(x: 36, y: 3, width: 84, height: 24, over: 0.6))]
     script += Step.glide(from: card(Board.doing, 0), to: card(Board.done, 1), over: 0.6)
     script += Step.click(Board.done, Board.firstCard + 1) + [.wait(0.4)]
     script += Step.glide(from: card(Board.done, 1), to: card(Board.done, 3), over: 0.3)
     script += shiftClick(Board.done, Board.firstCard + 3) + [.wait(0.7)]
     script += Step.drag(from: card(Board.done, 2), to: card(Board.done, 0), interval: 0.18) + [.wait(1.2)]
     // Undone, the three moves, and back where it began.
+    script += [.camera(Shot(x: 0, y: 3, width: 84, height: 24, over: 0.6))]
     script += Step.glide(from: card(Board.done, 0), to: (70, 20), over: 0.6)
     script += [Step.control("z"), .wait(0.5), Step.control("z"), .wait(0.5), Step.control("z"), .wait(1.2)]
     return script
@@ -94,14 +98,38 @@ struct TaskBoard: View {
          BoardCard(id: "Braille dithering", tag: "images", owner: "GH", priority: 1),
          BoardCard(id: "Menu type-select", tag: "menus", owner: "AL", priority: 0),
          BoardCard(id: "Sheet detents", tag: "modals", owner: "MH", priority: 1),
-         BoardCard(id: "Focus rings", tag: "focus", owner: "KJ", priority: 2)],
+         BoardCard(id: "Focus rings", tag: "focus", owner: "KJ", priority: 2),
+         // The rest of the backlog, below what the script drags: a board as full
+         // as a real one fills the 16:10 frame.
+         BoardCard(id: "Bidi text runs", tag: "text", owner: "KJ", priority: 1),
+         BoardCard(id: "Sixel fallback", tag: "images", owner: "GH", priority: 0),
+         BoardCard(id: "Table column pinning", tag: "tables", owner: "AL", priority: 1),
+         BoardCard(id: "Gauge tint parity", tag: "theme", owner: "MH", priority: 0),
+         BoardCard(id: "Calendar week numbers", tag: "input", owner: "KJ", priority: 0),
+         BoardCard(id: "Popover arrows", tag: "modals", owner: "MH", priority: 1),
+         BoardCard(id: "Scroll anchoring", tag: "tables", owner: "AL", priority: 2),
+         BoardCard(id: "OSC 52 paste", tag: "input", owner: "GH", priority: 1),
+         BoardCard(id: "Emoji ZWJ widths", tag: "text", owner: "KJ", priority: 1),
+         BoardCard(id: "Dialog default button", tag: "modals", owner: "MH", priority: 0)],
         [BoardCard(id: "Spring curves", tag: "anim", owner: "MH", priority: 2),
          BoardCard(id: "Column resizing", tag: "tables", owner: "AL", priority: 1),
-         BoardCard(id: "OSC 8 links", tag: "terms", owner: "GH", priority: 0)],
+         BoardCard(id: "OSC 8 links", tag: "terms", owner: "GH", priority: 0),
+         BoardCard(id: "Frost backdrops", tag: "images", owner: "GH", priority: 2),
+         BoardCard(id: "Zoom scaling", tag: "anim", owner: "MH", priority: 1),
+         BoardCard(id: "Menu mnemonics", tag: "menus", owner: "AL", priority: 0),
+         BoardCard(id: "Caret blink", tag: "focus", owner: "KJ", priority: 0)],
         [BoardCard(id: "Grapheme widths", tag: "text", owner: "KJ", priority: 2),
          BoardCard(id: "Contrast floor", tag: "theme", owner: "MH", priority: 1),
          BoardCard(id: "SGR mouse parser", tag: "input", owner: "AL", priority: 1),
-         BoardCard(id: "Undo grouping", tag: "edit", owner: "GH", priority: 0)],
+         BoardCard(id: "Undo grouping", tag: "edit", owner: "GH", priority: 0),
+         BoardCard(id: "Kitty placements", tag: "images", owner: "GH", priority: 1),
+         BoardCard(id: "Focus sections", tag: "focus", owner: "KJ", priority: 1),
+         BoardCard(id: "Spring bounce", tag: "anim", owner: "MH", priority: 0),
+         BoardCard(id: "Date pickers", tag: "input", owner: "MH", priority: 1),
+         BoardCard(id: "Colour panel", tag: "theme", owner: "GH", priority: 0),
+         BoardCard(id: "Toolbar items", tag: "modals", owner: "AL", priority: 0),
+         BoardCard(id: "Link hover", tag: "terms", owner: "KJ", priority: 0),
+         BoardCard(id: "Search fields", tag: "input", owner: "AL", priority: 1)],
     ]
     /// Each column's selected cards: several, so they can be dragged together.
     @State private var selections: [Set<String>] = [[], [], []]
