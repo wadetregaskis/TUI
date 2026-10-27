@@ -1173,6 +1173,24 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         handler.raisedProminenceRow = identity
     }
 
+    /// Drops the cached render of the row whose swipe actions were revealed
+    /// and of the one now revealed, when the reveal moves: a row served from
+    /// the render cache would not draw them, nor stop drawing them. Beside
+    /// ``raiseBackgroundProminence(source:handler:listHasFocus:context:)``,
+    /// and for its reason.
+    private func settleSwipeReveal(
+        source: RowSource<SelectionValue>, handler: ItemListHandler<SelectionValue>, context: RenderContext
+    ) {
+        let identity = handler.revealedSwipe.flatMap { $0.row < source.count ? source.content(at: $0.row).rowIdentity : nil }
+        guard !context.isMeasuring, identity != handler.swipeRevealedRowIdentity else { return }
+        let changed = [handler.swipeRevealedRowIdentity, identity].compactMap(\.self)
+        if let cache = context.renderCache {
+            for row in changed { cache.clearAffected(by: row) }
+        }
+        source.discardRenders(of: changed)
+        handler.swipeRevealedRowIdentity = identity
+    }
+
     // MARK: - Empty-state placeholder
 
     /// Builds the single-line empty-state content for a list
@@ -1255,6 +1273,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // which are focus EFFECTS.
         let listHasFocus = context.indicatesFocus(handler.engageFocus(context: context, focusID: persistedFocusID))
         raiseBackgroundProminence(source: source, handler: handler, listHasFocus: listHasFocus, context: context)
+        settleSwipeReveal(source: source, handler: handler, context: context)
 
         // Which rows are on screen — the shared rule, so this cannot drift from
         // the two `Table` composers again (`ScrollRowWindow`). It reserves a line
@@ -1639,6 +1658,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // The sections whose actions the pointer shows (owner ruling
         // B78-VISIBILITY), as the next pointer move finds them.
         handler.sectionActionSpans = editRestrictions.sectionActionSpans
+        // The edges the swipe keys can reveal, as the rows on screen reported
+        // them: the cursor row is one of them.
+        handler.swipeEdges = editRestrictions.swipeEdges
         if handler.sectionActionSpans.isEmpty { handler.hoveredSectionRow = nil }
         // Where the list has no selection menu, its Shift+F10 opens the cursor
         // row's own `.contextMenu` (`RowEditRestrictions.rowMenus`): a context
@@ -1667,6 +1689,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 cursorRow: FocusRegistration.isFocused(context: context, focusID: focusID)
                     ? handler.focusedIndex : nil,
                 hoveredSectionRow: handler.hoveredSectionRow)
+            tellRowsTheSwipeReveal(editRestrictions, handler: handler)
         }
         let source = extractRows(from: content, context: rowContext)
         (source.minimumRowHeight, source.minimumHeaderHeight) =
@@ -1675,6 +1698,21 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             context.environment.listSeparatorDefaults, editRestrictions,
             context.environment.listSeparatorStyle.drawsHairlines, context.environment.listSeparatorsShowByDefault)
         return source
+    }
+
+    /// Tells the rows, before they render, which of them has its swipe actions
+    /// revealed and at which edge, and which keys reveal an edge. A reveal is
+    /// good only while the cursor stays on its row.
+    private func tellRowsTheSwipeReveal(_ restrictions: RowEditRestrictions, handler: ItemListHandler<SelectionValue>) {
+        restrictions.swipeKeys = { [weak handler] in handler?.swipeEdge(for: $0) }
+        guard let revealed = handler.revealedSwipe else { return }
+        guard revealed.row == handler.focusedIndex else {
+            handler.revealedSwipe = nil
+            return
+        }
+        restrictions.swipeReveal = ListRowSwipeReveal(row: revealed.row, edge: revealed.edge) { [weak handler] in
+            handler?.revealedSwipe = nil
+        }
     }
 
     /// Reserves the list's own place in the focus ring before its rows are extracted, so it

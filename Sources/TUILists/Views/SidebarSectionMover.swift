@@ -113,7 +113,7 @@ final class _SidebarSectionMover: SectionHeaderDecorating {
         case .moveRowToTop, .moveRowPageUp: commit(Self.moving(section, in: movable, by: -movable.count))
         case .moveRowToBottom, .moveRowPageDown: commit(Self.moving(section, in: movable, by: movable.count))
         case .selectAll, .extendSelection, .placeRow, .cancelMove, .sortNextColumn, .reverseSortOrder,
-            .customizeColumns:
+            .customizeColumns, .revealLeadingSwipeActions, .revealTrailingSwipeActions:
             return false
         }
         return true
@@ -131,7 +131,8 @@ final class _SidebarSectionMover: SectionHeaderDecorating {
         case .moveRowDown: shift(hold, by: step)
         case .moveRowToTop, .moveRowPageUp: shift(hold, by: -hold.order.count)
         case .moveRowToBottom, .moveRowPageDown: shift(hold, by: hold.order.count)
-        case .selectAll, .extendSelection, .sortNextColumn, .reverseSortOrder, .customizeColumns:
+        case .selectAll, .extendSelection, .sortNextColumn, .reverseSortOrder, .customizeColumns,
+            .revealLeadingSwipeActions, .revealTrailingSwipeActions:
             break
         }
     }

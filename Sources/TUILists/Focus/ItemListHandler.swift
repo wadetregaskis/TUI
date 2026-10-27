@@ -536,6 +536,30 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// list's Shift+F10 as it opens the menu, and spent by the loss.
     package var focusLeavesForRowMenu = false
 
+    /// The cursor row's swipe actions while they are revealed, and the edge
+    /// revealed — `nil` while none are. Set by the swipe keys
+    /// (``RowAction/revealLeadingSwipeActions``), cleared by the revealed
+    /// actions as they slide away, and good only while the cursor stays on
+    /// that row.
+    package var revealedSwipe: (row: Int, edge: HorizontalEdge)? {
+        get { _revealedSwipe }
+        set { _revealedSwipe = newValue }
+    }
+    private var _revealedSwipe: (row: Int, edge: HorizontalEdge)?
+
+    /// Each row's swipe actions, by edge, as its rows reported them
+    /// (`RowEditRestrictions.swipeEdges`): what the swipe keys can reveal.
+    package var swipeEdges: [Int: [HorizontalEdge: Bool]] { get { _swipeEdges } set { _swipeEdges = newValue } }
+    private var _swipeEdges: [Int: [HorizontalEdge: Bool]] = [:]
+
+    /// The row drawn with its actions revealed, by identity: when the reveal
+    /// moves, the list drops that row's cached render and the new one's.
+    package var swipeRevealedRowIdentity: ViewIdentity? {
+        get { _swipeRevealedRowIdentity }
+        set { _swipeRevealedRowIdentity = newValue }
+    }
+    private var _swipeRevealedRowIdentity: ViewIdentity?
+
     /// ``openContextMenu``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _openContextMenu: (() -> Bool)?

@@ -5513,7 +5513,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // the next `RowAction` has to be answered here too.
             case .selectAll, .extendSelection, .pickUpRow, .placeRow, .cancelMove, .customizeColumns,
                 .moveRowUp, .moveRowDown, .moveRowToTop, .moveRowToBottom,
-                .moveRowPageUp, .moveRowPageDown:
+                .moveRowPageUp, .moveRowPageDown, .revealLeadingSwipeActions, .revealTrailingSwipeActions:
                 index = nil
             }
             guard let index else { return }

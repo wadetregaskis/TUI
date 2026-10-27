@@ -104,6 +104,9 @@ extension ExampleStrings {
 
             // ForEach .onMove / .onDelete + .rowReorderFeedback
             "page.list.editableSection": "Editable · .onMove / .onDelete",
+            "page.list.swipeDelete": "Delete",
+            "page.list.swipeToTop": "To Top",
+            "page.list.swipeHint": "⇧← or ⌃T shows a row's Delete, ⇧→ or ⌃L its To Top (swipe actions); the same chord again does it at once.",
             "page.list.editableInstruction": "Drag a row with the mouse to reorder it; the picker below chooses what the drag shows. Tab to the list, then press ⌦ or ⌫ to remove the focused row. Select several rows (⌃V then the arrows, or ⇧-click) and drag any one of them: they all move, and disjoint rows land as one block in their original order.",
             "page.list.reorderFeedback": "Reorder feedback",
             "page.list.reorderFeedback.live": "Live · rows shuffle as you drag",
@@ -388,6 +391,9 @@ extension ExampleStrings {
 
             // ForEach .onMove / .onDelete + .rowReorderFeedback
             "page.list.editableSection": "Bearbeitbar · .onMove / .onDelete",
+            "page.list.swipeDelete": "Löschen",
+            "page.list.swipeToTop": "Nach oben",
+            "page.list.swipeHint": "⇧← oder ⌃T zeigt „Löschen“ einer Zeile, ⇧→ oder ⌃L „Nach oben“ (Wischaktionen); dieselbe Taste noch einmal führt es sofort aus.",
             "page.list.editableInstruction": "Ziehe eine Zeile mit der Maus, um sie umzusortieren; die Auswahl darunter bestimmt, was dabei zu sehen ist. Wechsle mit Tab zur Liste und drücke ⌦ oder ⌫, um die fokussierte Zeile zu entfernen. Wähle mehrere Zeilen aus (⌃V und Pfeiltasten oder ⇧-Klick) und ziehe eine davon: alle wandern mit, verstreute Zeilen landen als ein Block in ihrer ursprünglichen Reihenfolge.",
             "page.list.reorderFeedback": "Umsortier-Rückmeldung",
             "page.list.reorderFeedback.live": "Live · Zeilen wandern beim Ziehen",
@@ -672,6 +678,9 @@ extension ExampleStrings {
 
             // ForEach .onMove / .onDelete + .rowReorderFeedback
             "page.list.editableSection": "Modifiable · .onMove / .onDelete",
+            "page.list.swipeDelete": "Supprimer",
+            "page.list.swipeToTop": "En haut",
+            "page.list.swipeHint": "⇧← ou ⌃T affiche « Supprimer » d'une ligne, ⇧→ ou ⌃L « En haut » (actions de balayage) ; la même touche à nouveau l'exécute aussitôt.",
             "page.list.editableInstruction": "Faites glisser une ligne avec la souris pour la réordonner ; le sélecteur ci-dessous choisit ce que montre le glisser. Passez à la liste avec Tab, puis appuyez sur ⌦ ou ⌫ pour supprimer la ligne ciblée. Sélectionnez plusieurs lignes puis faites glisser l’une d’elles : elles se déplacent toutes et arrivent groupées, dans leur ordre d’origine.",
             "page.list.reorderFeedback": "Retour visuel du réarrangement",
             "page.list.reorderFeedback.live": "Direct · les lignes se réorganisent pendant le glisser",
@@ -956,6 +965,9 @@ extension ExampleStrings {
 
             // ForEach .onMove / .onDelete + .rowReorderFeedback
             "page.list.editableSection": "Modificabile · .onMove / .onDelete",
+            "page.list.swipeDelete": "Elimina",
+            "page.list.swipeToTop": "In cima",
+            "page.list.swipeHint": "⇧← o ⌃T mostra «Elimina» di una riga, ⇧→ o ⌃L «In cima» (azioni di scorrimento); lo stesso tasto di nuovo la esegue subito.",
             "page.list.editableInstruction": "Trascina una riga con il mouse per riordinarla; il selettore qui sotto sceglie cosa mostra il trascinamento. Passa alla lista con Tab, poi premi ⌦ o ⌫ per rimuovere la riga attiva. Seleziona più righe e trascinane una qualsiasi: si spostano tutte e arrivano come un blocco, nel loro ordine originale.",
             "page.list.reorderFeedback": "Feedback del riordino",
             "page.list.reorderFeedback.live": "Dal vivo · le righe si riordinano mentre trascini",
@@ -1240,6 +1252,9 @@ extension ExampleStrings {
 
             // ForEach .onMove / .onDelete + .rowReorderFeedback
             "page.list.editableSection": "Editable · .onMove / .onDelete",
+            "page.list.swipeDelete": "Eliminar",
+            "page.list.swipeToTop": "Arriba",
+            "page.list.swipeHint": "⇧← o ⌃T muestra «Eliminar» de una fila, ⇧→ o ⌃L «Arriba» (acciones de deslizamiento); el mismo atajo otra vez lo hace al instante.",
             "page.list.editableInstruction": "Arrastra una fila con el ratón para reordenarla; el selector de abajo elige qué muestra el arrastre. Ve a la lista con Tab y pulsa ⌦ o ⌫ para eliminar la fila enfocada. Selecciona varias filas y arrastra cualquiera de ellas: se mueven todas y llegan como un bloque, en su orden original.",
             "page.list.reorderFeedback": "Respuesta al reordenar",
             "page.list.reorderFeedback.live": "En vivo · las filas se reordenan al arrastrar",
@@ -1524,6 +1539,9 @@ extension ExampleStrings {
 
             // ForEach .onMove / .onDelete + .rowReorderFeedback
             "page.list.editableSection": "可编辑 · .onMove / .onDelete",
+            "page.list.swipeDelete": "删除",
+            "page.list.swipeToTop": "移到顶部",
+            "page.list.swipeHint": "⇧← 或 ⌃T 显示一行的“删除”，⇧→ 或 ⌃L 显示“移到顶部”（轻扫操作）；再按一次同一组合键会立即执行。",
             "page.list.editableInstruction": "用鼠标拖动某一行即可重新排序；下方的选择器决定拖动时显示什么。按 Tab 切换到列表，再按 ⌦ 或 ⌫ 删除当前行。 选中多行后拖动其中任意一行：它们会一起移动，并按原有顺序作为一个整体落位。",
             "page.list.reorderFeedback": "重排反馈",
             "page.list.reorderFeedback.live": "实时 · 拖动时行随即重排",
@@ -1808,6 +1826,9 @@ extension ExampleStrings {
 
             // ForEach .onMove / .onDelete + .rowReorderFeedback
             "page.list.editableSection": "編集可能 · .onMove / .onDelete",
+            "page.list.swipeDelete": "削除",
+            "page.list.swipeToTop": "先頭へ",
+            "page.list.swipeHint": "⇧← または ⌃T で行の「削除」、⇧→ または ⌃L で「先頭へ」が表示されます（スワイプアクション）。同じキーをもう一度押すとすぐに実行されます。",
             "page.list.editableInstruction": "行をマウスでドラッグすると並べ替えられます。ドラッグ中に何を見せるかは下のピッカーで選べます。Tab でリストに移動し、⌦ または ⌫ でフォーカス中の行を削除します。 複数行を選択していずれかをドラッグすると、すべてが一緒に移動し、元の順序のまま一つのまとまりとして着地します。",
             "page.list.reorderFeedback": "並べ替えの表示",
             "page.list.reorderFeedback.live": "ライブ · ドラッグ中に行が入れ替わる",

@@ -91,6 +91,21 @@ struct ListPage: View {
         "Grape", "Lemon", "Mango", "Orange", "Peach",
     ]
 
+    /// The editable list's swipe actions, each undoable as the list's own
+    /// edits are.
+    private func removeEditable(_ item: String) {
+        let before = editableItems
+        editableItems.removeAll { $0 == item }
+        undoManager?.registerRestoring($editableItems, to: before, actionName: L("undo.action.delete"))
+    }
+
+    private func moveEditableToTop(_ item: String) {
+        guard let index = editableItems.firstIndex(of: item), index > 0 else { return }
+        let before = editableItems
+        editableItems.move(fromOffsets: [index], toOffset: 0)
+        undoManager?.registerRestoring($editableItems, to: before, actionName: L("undo.action.move"))
+    }
+
     /// One of the styles section's sectioned lists, under its style's name:
     /// the sample files, the folders and the rest in a section each.
     private func sectionedList(_ name: String, selection: Binding<String?>) -> some View {
@@ -160,6 +175,8 @@ struct ListPage: View {
                         .foregroundStyle(.palette.foregroundSecondary)
                     Text("page.rows.keyboardMoveHint")
                         .foregroundStyle(.palette.foregroundSecondary)
+                    Text("page.list.swipeHint")
+                        .foregroundStyle(.palette.foregroundSecondary)
                     Picker("page.list.reorderFeedback", selection: $reorderFeedback) {
                         ForEach(ReorderFeedbackChoice.allCases, id: \.rawValue) { choice in
                             Text(choice.label).tag(choice.rawValue)
@@ -168,7 +185,17 @@ struct ListPage: View {
                     // A SET binding: several rows can be selected, and then
                     // they reorder together — grab any one of them.
                     List(selection: $editableSelection) {
-                        ForEach(editableItems, id: \.self) { Text($0) }
+                        ForEach(editableItems, id: \.self) { item in
+                            Text(item)
+                                // Revealed from the keyboard on the cursor row
+                                // (a terminal has no swipe): ⇧← or ⌃T, ⇧→ or ⌃L.
+                                .swipeActions {
+                                    Button("page.list.swipeDelete", role: .destructive) { removeEditable(item) }
+                                }
+                                .swipeActions(edge: .leading) {
+                                    Button("page.list.swipeToTop") { moveEditableToTop(item) }
+                                }
+                        }
                             // Each registers its own undo — Ctrl-Z, Edit ▸ Undo
                             // Move — with TUI's `registerRestoring`.
                             .onMove { source, destination in

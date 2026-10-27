@@ -28,12 +28,13 @@ Multi-contact gestures and the window drag are declined.
 4. **2026-10-26, the owner:** build full gesture recognisers for every control
    now (B89); swipe actions as revealed buttons, ⇧→ / ⇧← to reveal, again for
    the full swipe, Ctrl-L / Ctrl-T fallbacks, `RowAction` rebindable, with a
-   PTY trackpad-burst test (A48). **Neither is built yet.**
+   PTY trackpad-burst test (A48). A48's keys and clicks were built that night;
+   its horizontal wheel and B89 are not built yet.
 
 ## Where it stands
 
-Shipped as the record says; **owed:** B89's full recognizers and A48's swipe
-actions, both ruled on 2026-10-26.
+Shipped as the record says; **owed:** B89's full recognizers, and A48's
+horizontal wheel (with the burst test), both ruled on 2026-10-26.
 
 ## For a future reader
 
@@ -225,7 +226,32 @@ menu brings its keyboard handling, dismissal and colours with it.
 a swipe as a gesture. Terminal.app and iTerm2 report a trackpad's horizontal
 scroll as the horizontal wheel buttons (Terminal compatibility survey.md), which is
 what option 1 uses, and a full swipe could be inferred from a long burst
-(answer of 2026-10-05). Not yet decided.
+(answer of 2026-10-05).
+
+**Decided (2026-10-23 and 26):** option 2, revealed buttons, with ⇧→ / ⇧←
+(again for the full swipe), ⌃L / ⌃T where Shift does not arrive on the arrows,
+both rebindable `RowAction`s, and a PTY test replaying a recorded trackpad
+burst.
+
+**Built (2026-10-26, keyboard and click):** `swipeActions(edge:allowsFullSwipe:content:)`.
+A row reports its edges to its list as it renders (replayed from the effect
+journal for a memoised row, as a row's context menu is). The list's swipe
+keys reveal an edge of the cursor row; the list tells that row alone, through
+its per-frame collector rather than the environment, and drops that row's
+cached render as the reveal comes and goes. The row draws its actions over
+its edge as an overlay in `.borderedProminent`'s look, each a menu row of a
+sink of its own (the pop-up menus' `MenuRowSink`), so the highlight and the
+full swipe can press them; while revealed they hold the keyboard as a menu
+does (`claimKeyboardAsMenu`). ← and →, Tab and Shift-Tab move, Return or Space
+press, Escape, ↑ or ↓ slide them away, the same chord again presses the first
+where a full swipe is allowed, and the other edge's chord slides them away. A
+click on one presses it; a click elsewhere slides them away and is spent, as a
+click outside a menu is. The cursor stays on the row throughout.
+
+**Not built yet:** the horizontal wheel revealing them (axis-locked, a burst
+counted as one gesture, a second burst the full swipe) and the PTY test that
+replays a recorded trackpad burst; a narrow form when the actions are wider
+than the row; `TabContent.swipeActions`.
 
 ### C15. The multi-contact gestures, the window drag, and the recognizer bridge
 

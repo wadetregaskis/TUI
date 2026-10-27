@@ -62,7 +62,6 @@
   "View.multilineTextAlignment(strategy:)",
   "View.onDragSessionUpdated(_:)",
   "View.onDropSessionUpdated(_:)",
-  "View.swipeActions(edge:allowsFullSwipe:content:)",
   "View.tabViewSearchActivation(_:)",
   "View.textRenderer(_:)",
   "View.writingDirection(strategy:)"

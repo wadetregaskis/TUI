@@ -75,6 +75,15 @@ public enum RowAction: Hashable, CaseIterable, Sendable {
     /// with no customization binding.
     case customizeColumns
 
+    /// Reveal the cursor row's leading swipe actions
+    /// (``View/swipeActions(edge:allowsFullSwipe:content:)``); revealed, the
+    /// same chord again is the full swipe. Inert on a row with none.
+    case revealLeadingSwipeActions
+
+    /// Reveal the cursor row's trailing swipe actions; revealed, the same
+    /// chord again is the full swipe. Inert on a row with none.
+    case revealTrailingSwipeActions
+
     /// What TUI binds this action to out of the box.
     ///
     /// Control chords throughout, and deliberately: `Ctrl`+letter is not a
@@ -134,6 +143,15 @@ public enum RowAction: Hashable, CaseIterable, Sendable {
         case .reverseSortOrder: return [KeyboardShortcut("d", modifiers: .control)]
         // K for "kolumn": C is spoken for, and K is free of every C0 alias.
         case .customizeColumns: return [KeyboardShortcut("k", modifiers: .control)]
+        // A swipe toward the edge revealed: ⇧→ slides the row right, showing
+        // what is at its leading edge (owner, 2026-10-26, A48). Shift because
+        // Control on the arrows is macOS's and Option on them folds outlines;
+        // ⌃L and ⌃T where a terminal drops Shift on the arrows (L for
+        // "leading", T for "trailing"; both free of every C0 alias).
+        case .revealLeadingSwipeActions:
+            return [KeyboardShortcut(.rightArrow, modifiers: .shift), KeyboardShortcut("l", modifiers: .control)]
+        case .revealTrailingSwipeActions:
+            return [KeyboardShortcut(.leftArrow, modifiers: .shift), KeyboardShortcut("t", modifiers: .control)]
         }
     }
 }

@@ -107,6 +107,38 @@ package final class RowEditRestrictions {
         _rowMenus[row] = open
     }
 
+    /// Each list row's swipe actions, by list row and edge, as
+    /// `.swipeActions(edge:allowsFullSwipe:content:)` reported them while the
+    /// row rendered: whether a full swipe on that edge performs its first
+    /// action. What the list's swipe keys reveal on the cursor row.
+    package var swipeEdges: [Int: [HorizontalEdge: Bool]] { _swipeEdges }
+    private var _swipeEdges: [Int: [HorizontalEdge: Bool]] = [:]
+
+    /// Reports that list row `row` has swipe actions on `edge`.
+    package func reportSwipeActions(row: Int, edge: HorizontalEdge, allowsFullSwipe: Bool) {
+        _swipeEdges[row, default: [:]][edge] = allowsFullSwipe
+    }
+
+    /// The row whose swipe actions are revealed, and at which edge — set by
+    /// the list before its rows render, from its handler, for the row's own
+    /// `.swipeActions` to draw them. On this collector for
+    /// ``currentRowIndex``'s reason: the one row it names compares it with its
+    /// own index, so no other row's environment changes.
+    package var swipeReveal: ListRowSwipeReveal? { get { _swipeReveal } set { _swipeReveal = newValue } }
+    private var _swipeReveal: ListRowSwipeReveal?
+
+    /// Which edge a key reveals, as the list's row shortcuts bind the swipe
+    /// keys — `nil` for a key that reveals none. Set by the list for its rows,
+    /// so revealed actions know the chord that revealed them (again, the full
+    /// swipe) and the other edge's (which slides them away). Here rather than
+    /// in the environment, where a closure would leave every row of every list
+    /// with an environment no memo can compare.
+    package var swipeKeys: (@MainActor (KeyEvent) -> HorizontalEdge?)? {
+        get { _swipeKeys }
+        set { _swipeKeys = newValue }
+    }
+    private var _swipeKeys: (@MainActor (KeyEvent) -> HorizontalEdge?)?
+
     /// What decides, as the list extracts its sections, whether a section's
     /// actions are drawn (owner ruling B78-VISIBILITY): the list row of the
     /// cursor while the list holds the focus, and the first row of the section
@@ -160,4 +192,21 @@ extension EnvironmentValues {
 @usableFromInline
 struct RowEditRestrictionsKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     @usableFromInline static let defaultValue: RowEditRestrictions? = nil
+}
+
+/// A list row's swipe actions revealed: which row, which edge, and how to
+/// slide them away again.
+package struct ListRowSwipeReveal {
+    /// The list row whose actions are revealed.
+    package let row: Int
+    /// The edge revealed.
+    package let edge: HorizontalEdge
+    /// Slides the actions away and gives the list its keys back.
+    package let hide: @MainActor () -> Void
+
+    package init(row: Int, edge: HorizontalEdge, hide: @escaping @MainActor () -> Void) {
+        self.row = row
+        self.edge = edge
+        self.hide = hide
+    }
 }

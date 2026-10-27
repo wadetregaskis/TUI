@@ -46,6 +46,13 @@ extension ItemListHandler {
             return handled
         }
 
+        // The swipe keys, on a cursor row with actions at that edge — ahead of
+        // the multi-selection keys, where Shift on an arrow would otherwise
+        // extend. A row with none lets the key fall through.
+        if let handled = handleSwipeKey(event) {
+            return handled
+        }
+
         // Multi-selection lists understand the macOS selection keys (range
         // extension, select-all, clear). Consulted first so an extending
         // movement key doesn't fall into the plain-movement cases below;
@@ -162,6 +169,28 @@ extension ItemListHandler {
         return true
     }
 
+    /// Reveals the cursor row's swipe actions at the edge `event` names
+    /// (``swipeEdge(for:)``), or `nil` where it names none or the row has no
+    /// actions there. The cursor stays on the row while the actions hold the
+    /// keyboard, as it does while the row's menu is up.
+    private func handleSwipeKey(_ event: KeyEvent) -> Bool? {
+        guard !isReordering, let edge = swipeEdge(for: event), swipeEdges[focusedIndex]?[edge] != nil
+        else { return nil }
+        revealedSwipe = (focusedIndex, edge)
+        focusLeavesForRowMenu = true
+        return true
+    }
+
+    /// The edge whose swipe actions `event` reveals, as the row shortcuts bind
+    /// the swipe keys, or `nil`.
+    package func swipeEdge(for event: KeyEvent) -> HorizontalEdge? {
+        switch shortcuts.action(for: event)?.action {
+        case .revealLeadingSwipeActions: .leading
+        case .revealTrailingSwipeActions: .trailing
+        default: nil
+        }
+    }
+
     /// The multi-selection keyboard model (macOS semantics, adapted to what
     /// terminals can deliver — see the type comment's key table). Returns
     /// `nil` when the event isn't a selection gesture, `false` when it is one
@@ -191,7 +220,8 @@ extension ItemListHandler {
 
         case .pickUpRow, .placeRow, .cancelMove, .moveRowUp, .moveRowDown,
             .moveRowToTop, .moveRowToBottom, .moveRowPageUp, .moveRowPageDown,
-            .sortNextColumn, .reverseSortOrder, .customizeColumns, nil:
+            .sortNextColumn, .reverseSortOrder, .customizeColumns, .revealLeadingSwipeActions,
+            .revealTrailingSwipeActions, nil:
             // Not selection business — handled above, or not a chord at all.
             break
         }

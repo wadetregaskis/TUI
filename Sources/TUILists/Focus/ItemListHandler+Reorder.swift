@@ -444,7 +444,8 @@ extension ItemListHandler {
         // Sorting is not a reorder — and must not happen during one, which is
         // `handleSortKey`'s `!isReordering` guard.
         case .selectAll, .extendSelection, .placeRow, .cancelMove,
-            .sortNextColumn, .reverseSortOrder, .customizeColumns:
+            .sortNextColumn, .reverseSortOrder, .customizeColumns, .revealLeadingSwipeActions,
+            .revealTrailingSwipeActions:
             return nil
         }
     }
@@ -467,7 +468,8 @@ extension ItemListHandler {
         case .moveRowPageDown: moveHeldRow(by: pageStep)
         case .moveRowToTop: moveHeldRow(to: 0)
         case .moveRowToBottom: moveHeldRow(to: itemCount - 1)
-        case .selectAll, .extendSelection, .sortNextColumn, .reverseSortOrder, .customizeColumns:
+        case .selectAll, .extendSelection, .sortNextColumn, .reverseSortOrder, .customizeColumns,
+            .revealLeadingSwipeActions, .revealTrailingSwipeActions:
             return false
         }
         return true
