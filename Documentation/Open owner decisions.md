@@ -1,6 +1,6 @@
 # Open owner decisions
 
-What is waiting on you, re-checked on the evening of 2026-10-26 against `main`, after a full audit of the record, the notes and the queue, and kept up as the night of 2026-10-27's work landed. Most questions were put to you between
+What is waiting on you, re-checked on the morning of 2026-10-28 against `main`. Most questions were put to you between
 2026-10-18 and 2026-10-26. The full write-ups of those asked by 2026-10-25, with the options and the
 evidence, are in the historical record, [Owner decisions, 2026-10-18 to 2026-10-25](<Historical/SwiftUI parity process/The owner's decisions, 2026-10-18 to 2026-10-25.md>). That record also holds every
 question you have already answered and what each answer set in motion. None of these blocks other work:
@@ -22,32 +22,63 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
   name (branch `hold-repourls`) lands only after the rename, since GitHub redirects old names to new and
   never new to old.
 - **Compiler bug reports** on the Desktop, one file per bug, are yours to file.
+- **Xcode 27**, if it can be installed again: the SwiftUI comparison was last re-baselined on the 6.3.3
+  SDK and now runs against Xcode 26.3's, and MACOS27-PARITY waits on it.
 
 ## Decisions waiting on you
 
-### Lane questions of 2026-10-18 that were never answered
-
-The lanes building on 2026-10-18 wrote these as they landed. They were listed at the end of the
-record ([From the lanes building on 2026-10-18](<Historical/SwiftUI parity process/The owner's decisions, 2026-10-18 to 2026-10-25.md#from-the-lanes-building-on-2026-10-18>)),
-never answered, and dropped from this page when the record moved to `Historical/` on 2026-10-25
-(found by the audit of 2026-10-26). Each entry there links to the full write-up. Each default has
-been in force since 2026-10-18.
+### Open on 2026-10-28
 
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
-| A-WIDTHS-1 | What does an unidentified host claim for a conjunct: one cluster's width, or a width per code point? | 1 for now (clustered), then measure xterm and VTE (and kitty) with `advance_probe.py` before choosing. | Clustered. |
-| A-FB16-1 | A container's own size changes at once, where SwiftUI's frame glides (the unbuilt half of your FB16 (a′)). | 1 now (record positions-only as a deviation); 2 if the Example's section borders read badly. | Sizes jump. |
-| A-APPSTATE-1 | `LocalizationService.shared` goes with draw-time lookup (now landed). | (b): the locale is the language, as SwiftUI's is, built on LOCALE-B. | The shared service stays. |
-| A-CHURN-1 | Presume last frame's scrollbar (hysteresis), skipping the first measuring round? | As now: the round is exact, and with the early stop it costs a screenful. | As now. |
-| A-O9-1 | `\.supportsMultipleWindows` is `true`. | `true`, as shipped. | `true`. |
-| A-PARITYMISC-1 | Core Data's `FetchRequest` family: build it now, or when an app asks? | 2: when an app asks. | Not built. |
-| A-TRANSITIONS2-1 | B52: a custom transition that changes its view's size — lay the body out at each frame's size? | 1: leave it; FB16 closes the gap B52 was opened for. | As now. |
+| A-APPSTATE-1 (root) | The locale is the language (your (b)); words drawn in views follow a subtree's `\.locale`. About 130 places read words where no view draws (the status bar's and menu bar's labels, undo titles, clipboard notes), at the app's root: where does the app's own language live? | The root `\.locale` of the app's scene (`WindowGroup { … }.environment(\.locale, …)`, SwiftUI's idiom for an in-app language), which TUI's chrome reads too. | They keep reading the process's language. |
+| NEW-FOLDER | The file panels have no way to make a folder; a Mac's save panel has New Folder (`NSSavePanel.canCreateDirectories`, on by default), its open panel not by default. | A New Folder button, with a keyboard route, in the save and move panels (`fileExporter`, `fileMover`). About half a day. | None. |
+| SMALL-IMAGE-ON-FRAME | Landed: an image file up to 256 KB is decoded on the frame that first shows it (a few ms), so icons no longer flash in after a placeholder; larger files still load in a task. Keep, or keep every load off the frame? | Keep. | Kept. |
+| PICTURE-ASPECT | A resized picture: always drawn the same (more bytes while resizing), reuse while moving and exact once settled, sent at its own aspect, or reuse as now? You asked to see them. | Pending: each filmed in Ghostty, kitty and iTerm2, with bytes. | Reuse as now. |
+| SCROLLBAR-PLACEMENT | Try `.overContent` before the final say: the Example's Theme page now switches it (Scroll indicators). | — | Both stay, beside the content by default. |
 
-### Asked in conversation on 2026-10-26
+## Answered on 2026-10-28
 
-| Id | Question | Recommended | If you don't answer |
-|---|---|---|---|
-| IMAGE-PAGE-PHOTO | The Example's image page shows the bald eagle, whose feather detail no block glyph can draw. Which photograph replaces it: the galago, the trillium or the snail? | The galago. | The eagle stays. |
+| Id | Answer | Status |
+|---|---|---|
+| VEIL | 25% of each colour kept, 60% of its colour taken out ("25d60"). | Done (g263): pictures behind a sheet are muted the same way. |
+| PREVIEW-IMAGES | Glue: a module on the file panels and the image decoders. | Done (TUIFilePanelImages, `.fileDialogPicturePreviews()`). |
+| TEXT-EFFECTS | SwiftUI's `TextRenderer`, `Text.Layout` and `customAttribute`, on the part of `GraphicsContext` text needs, plus a TUI glyph swap. | Design first. |
+
+## Answered on 2026-10-27
+
+| Id | Answer | Status |
+|---|---|---|
+| A-EFFECTS-1 | 3: never invisible; dim and the other attributes widen the palette. | Done: faint in the ink's colour at 16 colours, a step toward it at 256. |
+| A-O12-1 | Configurable, app-wide (a Mac's links-only or a web page's every clickable control). | Done: `pointingHandCursor(over:)`, `.links` (the default) or `.everythingClickable`. |
+| A-MODALS-1 | 3, if macOS agrees: it does (measured). | Done: behind a modal only its own shortcuts and status bar items show and fire. |
+| A-O10-1 | 2, generic beyond `Data` (strings, `Codable`). | Done: `fileExporter(isPresented:contents:…)` and `fileExporter(isPresented:encoding:…)`, on every platform. |
+| A-FORMS-1 | 2: follow SwiftUI. | Done: a bare button in the control column (columns), at the row's leading edge (grouped). |
+| ENV-VARS | Rename `TUIKIT_` to `TUI_`. | Done (`af22656f9`). |
+| DRAG-SELECTION | The Mac's way: the whole selection; Shift-drag extends it first. | Done for the mouse, List and Table; the keyboard's Copy and carry still take one row. |
+| A-LAYOUT-1 | Optimise it, then decide. | Done: a column's minimum height is answered without measuring, and columns share (`stateful` +1.5%, `tables-vstack` +7.5% for drawing all eight tables). |
+| A-WIDTHS-1 | Assume a perfect terminal by default; optional features never assumed. | Done. |
+| A-FB16-1 | Option 3: every frame glides with relayout. | Queued, after the transitions below. |
+| A-APPSTATE-1 | (b): the locale is the language. | Built in four slices (keys, buttons, alerts, dialogs); the root's language is open above. |
+| A-CHURN-1 | Keep the exact first round. | Nothing to change. |
+| A-O9-1 | `true`. | As shipped. |
+| A-PARITYMISC-1 | 2: build Core Data's `FetchRequest` when an app asks. | Not built. |
+| A-TRANSITIONS2-1 | All: transitions everywhere a stack's do. | Grid and `Layout` done; lazy stacks and `List`/`Table` rows queued. |
+| IMAGE-PAGE-PHOTO | None of the three: a cartoony picture. | Done: the platform's mascot, cycled with `p`. |
+| A-APPSTATE-2 | Multi-client in one process: tabled. The three statics: no practical benefit in moving them. | Done: all three stay shared, recorded as exemptions on the CLAUDE.md rule. |
+| A-W1-1 | 2: re-export Foundation from TUI, as SwiftUI does. | Done: `import TUI` brings Foundation. |
+| GLASS-BORDER-GAP | (a): a background on the bordered view fills the border's inset; an explicit option keeps it clear. | Done: `.backgroundStopsAtContent()` is the option. |
+| A-CHURN-2 / SCROLLBAR-NAMES | Both: `.scrollIndicatorPlacement(.besideContent / .overContent)`; over the content for the pointer only, never the focus; the "N more" lines follow it. | Built for `ScrollView`, `List`, `Table` and `TextEditor` (and the menus). The owner wants to try it before the final say. |
+
+## Answered later on 2026-10-26
+
+| Id | Answer | Status |
+|---|---|---|
+| INACTIVE-GLASS | Glass stays frosted in an inactive window; it may dim or turn a little more opaque. | Done (`85791b8ae`). |
+| UNDER-TEXT-PICTURES | Lay a picture under the text where the terminal can (Ghostty), adapted per terminal, conservative by default. | Done (`4ba32c983`, `72d9df103`). |
+| GAUGE-TINT | (b): a linear gauge or progress bar fills with the tint only where one is stated; gradients along every gauge, around a ring's arc. | Done (`6813bad99`). |
+| FROST-RESOLUTION | An integer downsampling factor of the terminal's own pixels. | Done (`4bb6762a3`). |
+| CLIP-ASPECT | Size symmetry: one shape for the clips. | Done: every clip at 16:10 (`cfe0a713a`…`2b437e6f7`); the re-film waits on a quiet machine. |
 
 ## Answered on 2026-10-26
 
@@ -81,33 +112,6 @@ been in force since 2026-10-18.
 | TEXT2-INTERIOR | The default stays (opt-out allowed, not opt-in); try to cut its cost. | Queued. |
 | OPACITY-28.2 | Not open: you answered it on 2026-09-10 (carry: a surface stepped off a faded page is as faded as the page), and it shipped then (`cff2e7190`, Opacity §39). Listed here by mistake. | Done. |
 | OPACITY-92 | Try it. | Done (`1ad2199fe`): a hidden view asks for no frames unless it presents a sheet. |
-
-## Answered on 2026-10-27
-
-| Id | Answer | Status |
-|---|---|---|
-| A-EFFECTS-1 | 3: never invisible; dim and the other attributes widen the palette. | Done: faint in the ink's colour at 16 colours, a step toward it at 256. |
-| A-O12-1 | Configurable, app-wide (a Mac's links-only or a web page's every clickable control). | Done: `pointingHandCursor(over:)`, `.links` (the default) or `.everythingClickable`. |
-| A-MODALS-1 | 3, if macOS agrees: it does (measured). | Done: behind a modal only its own shortcuts and status bar items show and fire. |
-| A-O10-1 | 2, generic beyond `Data` (strings, `Codable`). | Done: `fileExporter(isPresented:contents:…)` and `fileExporter(isPresented:encoding:…)`, on every platform. |
-| A-FORMS-1 | 2: follow SwiftUI. | Done: a bare button in the control column (columns), at the row's leading edge (grouped). |
-| ENV-VARS | Rename `TUIKIT_` to `TUI_`. | Done (`af22656f9`). |
-| DRAG-SELECTION | The Mac's way: the whole selection; Shift-drag extends it first. | Done for the mouse, List and Table; the keyboard's Copy and carry still take one row. |
-| A-LAYOUT-1 | Optimise it, then decide. | Done: a column's minimum height is answered without measuring, and columns share (`stateful` +1.5%, `tables-vstack` +7.5% for drawing all eight tables). |
-| A-APPSTATE-2 | Multi-client in one process: tabled. The three statics: no practical benefit in moving them. | Done: all three stay shared, recorded as exemptions on the CLAUDE.md rule. |
-| A-W1-1 | 2: re-export Foundation from TUI, as SwiftUI does. | Done: `import TUI` brings Foundation. |
-| GLASS-BORDER-GAP | (a): a background on the bordered view fills the border's inset; an explicit option keeps it clear. | Done: `.backgroundStopsAtContent()` is the option. |
-| A-CHURN-2 / SCROLLBAR-NAMES | Both: `.scrollIndicatorPlacement(.besideContent / .overContent)`; over the content for the pointer only, never the focus; the "N more" lines follow it. | Built for `ScrollView`, `List`, `Table` and `TextEditor` (and the menus). The owner wants to try it before the final say. |
-
-## Answered later on 2026-10-26
-
-| Id | Answer | Status |
-|---|---|---|
-| INACTIVE-GLASS | Glass stays frosted in an inactive window; it may dim or turn a little more opaque. | Done (`85791b8ae`). |
-| UNDER-TEXT-PICTURES | Lay a picture under the text where the terminal can (Ghostty), adapted per terminal, conservative by default. | Done (`4ba32c983`, `72d9df103`). |
-| GAUGE-TINT | (b): a linear gauge or progress bar fills with the tint only where one is stated; gradients along every gauge, around a ring's arc. | Done (`6813bad99`). |
-| FROST-RESOLUTION | An integer downsampling factor of the terminal's own pixels. | Done (`4bb6762a3`). |
-| CLIP-ASPECT | Size symmetry: one shape for the clips. | Done: every clip at 16:10 (`cfe0a713a`…`2b437e6f7`); the re-film waits on a quiet machine. |
 
 ## New on 2026-10-25
 
