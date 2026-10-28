@@ -448,32 +448,9 @@ struct _TextEditorCore: View, Renderable, Layoutable {
 
         let styling = RowStyling(palette: palette, isDisabled: isDisabled, background: fieldBackground)
 
-        // The caret honours `.textCursor(_:)` exactly like TextField: same
-        // shape, same blink/pulse animation, same speed — one setting styles
-        // every text input. And through the same `caretSetup`, so both carets
-        // agree about what a faded palette's caret SPENDS: the editor built its
-        // own colours and handed the translucent well and text to the emitter.
-        //
-        // The whole cycle, not this tick's frame. A caret that sampled the live
-        // clock re-rendered the WHOLE screen 20 times a second to blink one
-        // cell — 6.7% of a core on the Example's Text Input page against 0.2%
-        // for the TextField two screens above it, which had already been
-        // converted. Computed only while focused: even reading the cycle's
-        // `step` is pointless work for an editor with no caret to draw.
-        let cursorStyle = context.environment.textCursorStyle
-        var caret: RowCaret?
-        if isFocused {
-            let setup = TextFieldContentRenderer.caretSetup(
-                palette: palette, background: fieldBackground, textForeground: styling.text,
-                cursorStyle: cursorStyle,
-                speed: context.environment.indicatorAnimationSpeeds.speed(for: .textCursor),
-                cursorTimer: context.environment.cursorTimer,
-                timing: context.environment.indicatorCycleTiming,
-                appearsActive: context.environment.appearsActive)
-            caret = RowCaret(
-                column: window.caretColumn,
-                cycle: .init(shape: cursorStyle.shape, cursor: setup.cycle, colors: setup.colors))
-        }
+        // The caret, drawn only while focused — see `rowCaret(column:styling:background:context:)`.
+        let caret = isFocused
+            ? rowCaret(column: window.caretColumn, styling: styling, background: fieldBackground, context: context) : nil
 
         let rows =
             window.rows.map {
@@ -519,6 +496,35 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             contentWidth: contentWidth, height: height,
             focusID: persistedFocusID, isDisabled: isDisabled)
         return buffer
+    }
+
+    /// The caret a focused editor draws at `column` of its line or row.
+    ///
+    /// The caret honours `.textCursor(_:)` exactly like TextField: same
+    /// shape, same blink/pulse animation, same speed — one setting styles
+    /// every text input. And through the same `caretSetup`, so both carets
+    /// agree about what a faded palette's caret SPENDS: the editor built its
+    /// own colours and handed the translucent well and text to the emitter.
+    ///
+    /// The whole cycle, not this tick's frame. A caret that sampled the live
+    /// clock re-rendered the WHOLE screen 20 times a second to blink one
+    /// cell — 6.7% of a core on the Example's Text Input page against 0.2%
+    /// for the TextField two screens above it, which had already been
+    /// converted. Computed only while focused: even reading the cycle's
+    /// `step` is pointless work for an editor with no caret to draw.
+    private func rowCaret(
+        column: Int, styling: RowStyling, background: Color?, context: RenderContext
+    ) -> RowCaret {
+        let cursorStyle = context.environment.textCursorStyle
+        let setup = TextFieldContentRenderer.caretSetup(
+            palette: context.environment.palette, background: background, textForeground: styling.text,
+            cursorStyle: cursorStyle,
+            speed: context.environment.indicatorAnimationSpeeds.speed(for: .textCursor),
+            cursorTimer: context.environment.cursorTimer,
+            timing: context.environment.indicatorCycleTiming,
+            appearsActive: context.environment.appearsActive)
+        return RowCaret(
+            column: column, cycle: .init(shape: cursorStyle.shape, cursor: setup.cycle, colors: setup.colors))
     }
 
     /// Appends a vertical scroll indicator — one column, or two for a
