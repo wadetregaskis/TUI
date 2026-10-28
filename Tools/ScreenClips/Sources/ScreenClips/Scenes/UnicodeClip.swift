@@ -86,18 +86,18 @@ struct Phrasebook: View {
                 TableColumn("Hello", value: \Greeting.hello)
             }
             .frame(width: 46, height: 11)
+            // Centred under the table (the owner's review, 2026-10-27, which
+            // also took out a spinner and a CJK status here: the table already
+            // has non-Latin text and flags).
             HStack(spacing: 1) {
                 // Few ZWJ sequences: Apple Terminal and Warp draw each as its
                 // components, wider, and a longer line wrapped there.
                 Text(verbatim: "👩‍💻 ❤️‍🔥 🫶🏾 🎉")
                 Text(verbatim: "Ǻ ṩ ḉ").foregroundStyle(.palette.foregroundSecondary)
-                Spacer(minLength: 0)
-                Spinner()
-                Text(verbatim: "同期中… \(selection.map { greetings[$0].flag } ?? "") ")
-                    .foregroundStyle(.palette.foregroundSecondary)
             }
-            .frame(width: 46)
-            .padding(.leading, 1)
+            // `.center` said: a fixed frame's default is top-leading here
+            // (compatibility guide §2.7).
+            .frame(width: 46, alignment: .center)
             // A row of space under the strip, for the camera's bottom edge:
             // a carousel's cards take one shape, which may shave a row.
             Color.clear.frame(height: 1)
