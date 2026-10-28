@@ -199,7 +199,9 @@ struct Clip {
     /// beside the player (regenerate.sh stages the Example) and its arguments.
     /// The script's keys drive it as they drive a scene; it has no cues.
     var command: [String]?
-    /// Variables set for `command` (`TUI_GRAPHICS=0`, say).
+    /// Variables set for the app, a scene's or a `command`'s
+    /// (`TUI_GRAPHICS=0`, say): in its environment from launch, for what reads
+    /// one only then (`CFFIXED_USER_HOME`, the home folder Foundation sees).
     var environment: [String: String] = [:]
     /// Runs the app: called in the child the player starts under its own
     /// pseudo-terminal, and does not return until the app quits. Unused for a
@@ -275,7 +277,7 @@ struct Clip {
 @MainActor
 let clips: [Clip] = [
     mixerClip, unicodeClip, imagesClip, glyphsClip, tablesClip, materialsClip, dragDropClip, themingClip, animationClip,
-    stylesClip, tracksClip, menusClip, textEditClip, navigationClip, controlsClip, todoClip,
+    stylesClip, tracksClip, menusClip, textEditClip, documentClip, navigationClip, controlsClip, todoClip,
 ]
 
 /// Scenes for reviewing a change before any clip uses it: run and played by

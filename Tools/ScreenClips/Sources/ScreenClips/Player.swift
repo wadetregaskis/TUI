@@ -64,11 +64,11 @@ struct Player {
         if let command = clip.command, let program = command.first {
             executable = ClipAssets.path(program)
             arguments = [executable] + command.dropFirst()
-            for (name, value) in clip.environment { setenv(name, value, 1) }
         } else {
             executable = Bundle.main.executablePath ?? CommandLine.arguments[0]
             arguments = [executable, "--child", clip.id]
         }
+        for (name, value) in clip.environment { setenv(name, value, 1) }
         var argv: [UnsafeMutablePointer<CChar>?] = arguments.map { $0.withCString { strdup($0) } }
         argv.append(nil)
         var master: Int32 = -1
