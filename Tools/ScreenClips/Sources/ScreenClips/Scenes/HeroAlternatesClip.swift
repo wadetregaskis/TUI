@@ -135,9 +135,6 @@ struct TodoList: View {
                 else { return }
                 // Long enough to see the strikethrough drawn along the title,
                 // left to right, as TUI draws one changed under an animation.
-                // Written FIRST: the next frame is drawn under the transaction of
-                // the first write since the last, and the confetti's, unanimated,
-                // drew the strike whole at once.
                 withAnimation(.easeInOut(duration: 0.5)) { items[index].done = done }
                 if done {
                     burstCount += 1
