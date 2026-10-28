@@ -1282,6 +1282,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         var columnWidths: [Int] = []
         var rowContentWidth = 0
 
+        /// The visible width of every line the rows were drawn in, where they
+        /// are known to be one: so the content need not measure each line again
+        /// (``filled(_:toRows:knownWidth:)``). `nil` where it is not known.
+        var uniformLineWidth: Int?
+
         /// The header's gesture for the frame (``attachHeaderHandlers(to:context:state:mouseDispatcher:focusManager:)``),
         /// with which the table's own handler takes the gaps between the
         /// titles — `nil` for a table with no header, and until the header's
@@ -1409,7 +1414,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // An unframed table in a `VStack` reaches none of this and still hugs,
         // which is what it wants.
         let (filledContentLines, filledContentWidths) = Self.filled(
-            contentLines, toRows: context.hasExplicitHeight ? rowArea : nil)
+            contentLines, toRows: context.hasExplicitHeight ? rowArea : nil,
+            knownWidth: renderState?.uniformLineWidth)
 
         let container = ContainerView(
             title: nil,
@@ -1635,8 +1641,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // Drawn in reorder order (the dragged row out, a slot where it would
         // land) — see `composeRowLines` for the same two lines of it.
         let drawn = handler.reorderDrawnRows(visibleRange)
+        // The widest row drawn: no wider than the content, and every line,
+        // padded to it and given the bar's cell, is one width.
+        var widest = 0
         func padded(_ line: String) -> String {
-            line + String.spaces(max(0, contentInnerWidth - line.strippedLength))
+            let width = line.strippedLength
+            widest = max(widest, width)
+            return line + String.spaces(max(0, contentInnerWidth - width))
         }
         var rowLines: [String] = []
         // Heights, not entries: the slot stands for every row in hand, so it can
@@ -1709,6 +1720,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // A bar cell on every line — plain track below a bar shorter than the lines.
         bar.fit(toCount: slid.count, field: ScrollbarColors.track(in: palette))
         let lines = zip(slid, bar.lines).map { $0 + $1 }
+        var state = PopulatedRenderState(
+            handler: handler, focusID: persistedFocusID, visibleRange: visibleRange,
+            scrollOffsetAbove: 0, drawnBands: bands, hasScrollbar: true,
+            columnWidths: columnWidths, rowContentWidth: contentInnerWidth)
+        // Every row padded to the content's width, and every blank line that
+        // wide, with the bar's cell after each: one width, unless a row drew
+        // wider than its content (then each line is measured, as before).
+        if widest <= contentInnerWidth { state.uniformLineWidth = contentInnerWidth + bar.width }
 
         return (
             lines,
@@ -1720,10 +1739,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             rowClaims(rowOpacity, slide: slide, topOffset: 0, lineCount: lines.count)
                 + bar.claims(atColumn: contentInnerWidth),
             rowPayloads(rowPayload, slide: slide, topOffset: 0, lineCount: lines.count),
-            PopulatedRenderState(
-                handler: handler, focusID: persistedFocusID, visibleRange: visibleRange,
-                scrollOffsetAbove: 0, drawnBands: bands, hasScrollbar: true,
-                columnWidths: columnWidths, rowContentWidth: contentInnerWidth))
+            state)
     }
 
     /// The vertical scrollbar cells for a single-line table — one styled cell
@@ -6584,9 +6600,15 @@ extension _TableCore {
     /// `lines`, padded with blank lines as wide as the widest to `rows` where
     /// that is more, and each line's visible width — measured once, here: the
     /// content view sizes itself and builds its buffer from these rather than
-    /// measuring every line again for each.
-    static func filled(_ lines: [String], toRows rows: Int?) -> (lines: [String], widths: [Int]) {
-        let widths = lines.map(\.strippedLength)
+    /// measuring every line again for each. `knownWidth` is every line's width,
+    /// where the rows' drawing already knows it is one, and saves measuring.
+    static func filled(_ lines: [String], toRows rows: Int?, knownWidth: Int? = nil) -> (lines: [String], widths: [Int]) {
+        let widths = knownWidth.map { Array(repeating: $0, count: lines.count) } ?? lines.map(\.strippedLength)
+        // Debug builds (every test) check the shortcut against the measure it
+        // saves; a release build trusts it.
+        assert(
+            knownWidth == nil || lines.allSatisfy { $0.strippedLength == knownWidth },
+            "a table's lines are not all \(knownWidth ?? 0) wide: \(lines.map(\.strippedLength))")
         guard let rows, lines.count < rows else { return (lines, widths) }
         let padWidth = widths.max() ?? 0
         let blanks = rows - lines.count
