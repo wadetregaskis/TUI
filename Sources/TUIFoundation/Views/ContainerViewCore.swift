@@ -296,9 +296,16 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         var innerContext = context.forBorderedContent(hasBorder: hasBorder)
 
         // Consume focus indicator so nested containers don't also show it —
-        // where there is one (see `sizeThatFits`).
-        let indicator = context.environment.focusIndicator
-        if indicator != nil { innerContext.environment.focusIndicator = nil }
+        // where there is one (see `sizeThatFits`). Drawn only by a box that
+        // encloses the whole of what was handed it: one among siblings is not
+        // the section's border (``EnvironmentValues/focusIndicatorOriginDepth``).
+        var indicator = context.environment.focusIndicator
+        if indicator != nil {
+            innerContext.environment.focusIndicator = nil
+            if !context.identity.isDirectDescent(fromDepth: context.environment.focusIndicatorOriginDepth) {
+                indicator = nil
+            }
+        }
         // Likewise the sheet detent's height: this box takes it, its children
         // do not (see ``EnvironmentValues/sheetDetentHeight``).
         let sheetHeight = context.environment.sheetDetentHeight.map {

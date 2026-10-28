@@ -995,7 +995,8 @@ extension FocusManager {
     /// Dispatches a key event through the focus system.
     ///
     /// Navigation model:
-    /// - **Tab / Shift+Tab**: Cycles between sections (or within a single section).
+    /// - **Tab / Shift+Tab**: Steps through the active section, then on to the
+    ///   next or previous one (or round a single section).
     /// - **Up / Down arrows**: Cycles between focusable elements within the active section.
     /// - **Enter / Space**: Dispatched to the focused element for activation.
     /// - **Other keys**: Dispatched to the focused element.

@@ -93,6 +93,7 @@ extension RenderContext {
         let indicating = !isMeasuring && isActive
         sectionContext.environment.focusIndicator = AnimatedColor.activeSection(
             indicating, in: environment)
+        sectionContext.environment.focusIndicatorOriginDepth = sectionContext.identity.depth
         guard !isMeasuring, let cache = renderCache else { return }
         if case .changed = cache.noteAppliedEnvironment(
             environment.indicatesFocus(indicating), identity: identity,

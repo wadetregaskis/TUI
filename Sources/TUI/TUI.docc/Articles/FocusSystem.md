@@ -96,9 +96,13 @@ Two more modifiers shape the ring itself:
 - `focusable(_:interactions:)` makes any view a Tab stop — `.activate` also
   makes a click focus it — so a custom view joins the ring without adopting
   ``Focusable``.
-- `focusSection(_:)` groups a region. ⇥ and ⇧⇥ move *between*
-  sections, entering each at its edge (first element going forward, last going
-  back) rather than at whatever was last focused inside it.
+- `focusSection(_:)` groups a region. ⇥ and ⇧⇥ step through a section's
+  controls and, from its last (or first), move to the next (or previous)
+  section, entering it at its edge — its first control going forward, its last
+  going back — rather than at whatever was last focused inside it. The arrow
+  keys stay within the section. While a section holds the keyboard, the border
+  that encloses all of it draws a breathing ●; a section with no such border
+  draws none.
 - `focusID(_:)` pins an explicit identity on a control, instead of the one
   derived from its position in the tree.
 

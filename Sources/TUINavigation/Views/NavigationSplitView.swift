@@ -592,6 +592,7 @@ extension _NavigationSplitViewCore {
         sectionContext.environment.focusIndicator = AnimatedColor.activeSection(
             !columnContext.isMeasuring && (focusManager?.isActiveSection(sectionID) ?? false),
             in: columnContext.environment)
+        sectionContext.environment.focusIndicatorOriginDepth = columnContext.identity.depth
         if sectionContext.environment.compactColumnAdvance != nil {
             sectionContext.environment.compactColumnAdvance = nil
         }

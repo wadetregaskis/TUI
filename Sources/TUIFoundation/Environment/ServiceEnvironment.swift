@@ -103,6 +103,11 @@ private struct FocusIndicatorKey: EnvironmentKey {
     static let defaultValue: AnimatedColor? = nil
 }
 
+/// EnvironmentKey for the depth of the identity that handed down the ●.
+private struct FocusIndicatorOriginDepthKey: EnvironmentKey {
+    static let defaultValue = 0
+}
+
 /// EnvironmentKey for the drag-and-drop session.
 ///
 /// `@usableFromInline`, so internal rather than `private`, with its default: the
@@ -268,6 +273,18 @@ extension EnvironmentValues {
     package var focusIndicator: AnimatedColor? {
         get { self[FocusIndicatorKey.self] }
         set { self[FocusIndicatorKey.self] = newValue }
+    }
+
+    /// The depth of the identity whose content ``focusIndicator`` was handed
+    /// to: a focus section's, or a split view column's. Only a border reached
+    /// from there through single-child steps draws the ●
+    /// (`ViewIdentity.isDirectDescent(fromDepth:)`), so it marks a border that
+    /// encloses the whole section. Without that, a section with no border of
+    /// its own — `Grid { … }.focusSection()` over bordered cells — drew a ● in
+    /// every cell, each being the first border on its own way down.
+    package var focusIndicatorOriginDepth: Int {
+        get { self[FocusIndicatorOriginDepthKey.self] }
+        set { self[FocusIndicatorOriginDepthKey.self] = newValue }
     }
 }
 
