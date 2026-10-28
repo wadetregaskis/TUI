@@ -1383,17 +1383,19 @@ extension Text: Renderable, Layoutable {
             // What the run states, with what being a link adds beneath that.
             let own = run.styleStatingLink(in: context.environment)
             var runStyle: TextStyle
-            if let stated = own.font, stated != font {
+            if own.font.map({ $0 != font }) == true || own.textScale != nil {
                 // A fragment that brought its own font resolves its OWN cascade
                 // — the font decides both the baseline intensity and which
                 // `.font(_:)` scope entries match, neither of which can be
                 // borrowed from the enclosing text. It starts from the explicit
                 // attributes alone (this text's, with the fragment's over them)
                 // so that what the cascade fills in is the fragment's answer and
-                // not the text's.
+                // not the text's. So does one that states a scale: the scale
+                // steps the intensity it RESOLVES, which the text's resolved
+                // intensity has already been stepped by the text's own.
                 runStyle = applyingCascadedEmphasis(
                     to: own.merged(over: style),
-                    cascadedAttributes(context: context, font: stated),
+                    cascadedAttributes(context: context, font: own.font ?? font),
                     context: context)
                 // The colours were resolved once, at text level (the
                 // semantic-role remapping there reads this text's own

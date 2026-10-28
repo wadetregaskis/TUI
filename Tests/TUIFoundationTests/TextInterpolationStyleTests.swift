@@ -105,4 +105,23 @@ struct TextInterpolationStyleTests {
         let beforeA = line[..<(line.firstIndex(of: "a") ?? line.endIndex)]
         #expect(!beforeA.contains(bold), "\(line)")
     }
+
+    @Test("A fragment's own secondary scale steps its intensity down, as a text's does")
+    func secondaryFragment() {
+        let context = RenderContext(availableWidth: 30, availableHeight: 1, tuiContext: TUIContext())
+            .isolatingRenderCache()
+        // Plain to faint, bold to plain — and the text around them as it was.
+        let text = Text("a \(Text("b").textScale(.secondary)) \(Text("c").bold().textScale(.secondary)) d")
+        let lines = renderToBuffer(text, context: context).lines
+        // The on/off attributes on the word's first cell: the parameters
+        // before any colour's, whose own numbers (`38;2;…`) are not flags.
+        let parameters = { (word: String) in
+            Set(
+                (sgrState(of: word, in: lines)?.parameters ?? "").split(separator: ";").compactMap { Int($0) }
+                    .prefix { ![38, 48, 58].contains($0) })
+        }
+        #expect(parameters("b").contains(2), "\(lines)")
+        #expect(!parameters("c").contains(1) && !parameters("c").contains(2), "\(lines)")
+        #expect(!parameters("a").contains(2) && !parameters("d").contains(2), "\(lines)")
+    }
 }
