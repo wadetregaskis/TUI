@@ -119,7 +119,10 @@ extension View {
     /// `strikethrough(_:pattern:color:)`.
     ///
     /// A terminal's strikethrough is one solid line, whatever the pattern,
-    /// and only iTerm2 colours it: see ``Text/LineStyle``.
+    /// and only iTerm2 colours it: see ``Text/LineStyle``. A change under an
+    /// animation draws the line along the text, left to right, and takes it
+    /// back right to left, where SwiftUI cross-fades: a terminal has no
+    /// half-struck cell to fade through.
     ///
     /// - Parameters:
     ///   - isActive: Whether the text is struck through. `false` overrides an
@@ -129,10 +132,7 @@ extension View {
     public func strikethrough(
         _ isActive: Bool = true, pattern: Text.LineStyle.Pattern = .solid, color: Color? = nil
     ) -> some View {
-        style(
-            .text,
-            StyleAttributes(
-                strikethrough: isActive, strikethroughStyle: Text.LineStyle(pattern: pattern, color: color)))
+        modifier(_StrikethroughSweep(progress: isActive ? 1 : 0, line: Text.LineStyle(pattern: pattern, color: color)))
     }
 
     /// Sets the font weight for all text in this view's subtree. On a terminal,

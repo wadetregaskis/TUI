@@ -335,6 +335,10 @@ extension Text {
     /// Applies or removes a strikethrough — mirrors SwiftUI's
     /// `strikethrough(_:color:)`.
     ///
+    /// A change under an animation draws the line along the text, left to
+    /// right, and takes it back right to left, where SwiftUI cross-fades: a
+    /// terminal has no half-struck cell to fade through.
+    ///
     /// - Parameters:
     ///   - isActive: Whether the text is struck through. `false` overrides an
     ///     ancestor's ``View/strikethrough(_:pattern:color:)``.
@@ -1049,7 +1053,12 @@ extension Text: Renderable, Layoutable {
         // asks that one for `rendered(context:linkSpans:routesLinks:)`, its
         // drawing before any dissolve, so the dissolve is kept once, at this
         // text's identity.
-        ContentDissolve.drawn(rendered(context: context, linkSpans: nil, routesLinks: true), context: context)
+        //
+        // A strikethrough that changes under an animation is drawn along the
+        // text (`Text+StrikeSweep.swift`).
+        sweepingStrike(context: context) { text in
+            ContentDissolve.drawn(text.rendered(context: context, linkSpans: nil, routesLinks: true), context: context)
+        }
     }
 
     /// The text drawn, and in `shadowing` the paint whose shadows it casts:
