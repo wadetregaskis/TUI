@@ -130,13 +130,20 @@ struct TodoList: View {
         Binding(
             get: { item.done },
             set: { done in
-                guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-                if done, let row = ordered.firstIndex(where: { $0.id == item.id }) {
+                guard let index = items.firstIndex(where: { $0.id == item.id }),
+                    let row = ordered.firstIndex(where: { $0.id == item.id })
+                else { return }
+                // Long enough to see the strikethrough drawn along the title,
+                // left to right, as TUI draws one changed under an animation.
+                // Written FIRST: the next frame is drawn under the transaction of
+                // the first write since the last, and the confetti's, unanimated,
+                // drew the strike whole at once.
+                withAnimation(.easeInOut(duration: 0.5)) { items[index].done = done }
+                if done {
                     burstCount += 1
                     bursts = bursts.filter { Date().timeIntervalSince($0.start) < 1.2 }
                         + [ConfettiBurst(id: burstCount, row: row, start: Date())]
                 }
-                withAnimation(.easeOut(duration: 0.2)) { items[index].done = done }
                 guard done else { return }
                 Task { await walkDown(item.id) }
             })
