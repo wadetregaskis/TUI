@@ -52,6 +52,12 @@
 // notices one this file leaves out while a sibling's re-export still reaches
 // it. A qualified name in an app, `TUI.Label`, still resolves through these
 // re-exports.
+// Foundation as well, as `import SwiftUI` brings it: so a file ported from
+// SwiftUI compiles without an `import Foundation` of its own — its `CGRect`
+// and `Date`, `URL` and `Locale`, which TUI's API names throughout (the
+// owner's answer to A-W1-1, 2026-10-27). It costs an app no bytes: TUI links
+// Foundation already.
+@_exported import Foundation
 @_exported import TUIApp
 @_exported import TUIBitmaps
 @_exported import TUIChrome

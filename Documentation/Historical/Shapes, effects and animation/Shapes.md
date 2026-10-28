@@ -53,6 +53,10 @@ sharpest, because every custom shape meets it.
 **Recommendation:** 2. It is what a ported file expects, and the cost of
 Foundation in scope is one SwiftUI apps already pay.
 
+**Answered 2026-10-27: 2.** The umbrella re-exports Foundation; the
+per-module products do not (an app that picks modules à la carte picks its
+imports too).
+
 ### B-W1-1. Shapes live in TUIFoundation, rasterizer and all
 
 *`Path`, `Shape`, `ShapeCoverage`, `ShapeStroker`, `ShapeHalfBlocks`,

@@ -42,7 +42,6 @@ been in force since 2026-10-18.
 | A-CHURN-1 | Presume last frame's scrollbar (hysteresis), skipping the first measuring round? | As now: the round is exact, and with the early stop it costs a screenful. | As now. |
 | A-CHURN-2 | Overlay scrollbars that take no column? | Decline: it would reverse R4 and R5, and is not needed for performance. | Bars keep a column. |
 | A-O9-1 | `\.supportsMultipleWindows` is `true`. | `true`, as shipped. | `true`. |
-| A-W1-1 | Should `import TUI` bring Foundation's geometry (and so `CGRect`) with it, as `import SwiftUI` does? | 2: re-export it. | A ported shape file needs `import Foundation`. |
 | A-PARITYMISC-1 | Core Data's `FetchRequest` family: build it now, or when an app asks? | 2: when an app asks. | Not built. |
 | A-TRANSITIONS2-1 | B52: a custom transition that changes its view's size — lay the body out at each frame's size? | 1: leave it; FB16 closes the gap B52 was opened for. | As now. |
 
@@ -98,6 +97,7 @@ been in force since 2026-10-18.
 | ENV-VARS | Rename `TUIKIT_` to `TUI_`. | Done (`af22656f9`). |
 | DRAG-SELECTION | The Mac's way: the whole selection; Shift-drag extends it first. | Done for the mouse, List and Table; the keyboard's Copy and carry still take one row. |
 | A-LAYOUT-1 | Optimise it, then decide. | Done: a column's minimum height is answered without measuring, and columns share (`stateful` +1.5%, `tables-vstack` +7.5% for drawing all eight tables). |
+| A-W1-1 | 2: re-export Foundation from TUI, as SwiftUI does. | Done: `import TUI` brings Foundation. |
 
 ## Answered later on 2026-10-26
 
