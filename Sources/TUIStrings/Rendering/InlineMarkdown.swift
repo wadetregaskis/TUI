@@ -31,7 +31,10 @@
 /// - `[label](destination "title")` links, `<scheme:…>` and `<email>`
 ///   autolinks, and bare `https://…`, `www.…` and `name@host.domain` text;
 /// - `![alt](source)`, which SwiftUI draws as its alt text, and
-///   `^[text](attributes)`, which draws its text (TUI has no inflection);
+///   `^[text](attributes)`, which draws its text with the attributes'
+///   ``Attribute``s on it: Foundation's `key: value` list, which TUI reads
+///   for the styling keys a `Text` knows (`Text+MarkdownAttributes.swift`)
+///   and Foundation reads for inflection, which TUI has not;
 /// - backslash escapes, a backslash before a newline (a line break), and
 ///   character references (`&amp;`, `&#65;`, `&#x42;`).
 ///
@@ -67,6 +70,30 @@ package enum InlineMarkdown {
         case argument(Int)
     }
 
+    /// One `key: value` of a `^[text](key: value, …)`, as Foundation's
+    /// grammar for them writes it (JSON5 without the braces).
+    ///
+    /// Every pair that parses is kept, whatever its key: which keys mean
+    /// something is the drawing's to say, not the parse's.
+    package struct Attribute: Equatable, Sendable {
+        /// A value as it was written.
+        package enum Value: Equatable, Sendable {
+            /// A quoted string, `"…"` or `'…'`, its escapes decoded.
+            case string(String)
+            /// Anything unquoted: `true`, `false`, a number, a name. JSON5
+            /// has no bare names, so Foundation refuses one where TUI takes
+            /// it as the name it spells — `dim: true` and
+            /// `foregroundColor: red` both read.
+            case word(String)
+        }
+
+        /// The key, its quotes and escapes gone if it had them.
+        package let key: String
+        /// The value. An object or array value is never one: no key TUI reads
+        /// takes one, so the pair is skipped rather than kept.
+        package let value: Value
+    }
+
     /// A run of the parsed text with one set of traits and at most one link.
     package struct Span: Equatable, Sendable {
         /// The span's text, arguments in their slots.
@@ -75,6 +102,13 @@ package enum InlineMarkdown {
         package var traits: Traits
         /// Where it links, arguments in their slots; `nil` for no link.
         package var link: [Atom]?
+        /// The attributes of every `^[…](…)` around it, the innermost's
+        /// first, each list in the order it was written: so the first of a
+        /// key is the one that holds, as in Foundation's runs, where an inner
+        /// attribute beats an outer one and the first of two equal keys wins
+        /// (measured on macOS 15.8, lane MDATTRS). Empty — which allocates
+        /// nothing — for nearly every span.
+        package var attributes: [Attribute] = []
     }
 
     /// The spans `source` parses to, adjacent spans of equal style merged.

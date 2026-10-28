@@ -409,6 +409,54 @@ Text("Bold").bold()
 Text("Quiet").dim().italic()
 ```
 
+### Inside a Key, with Markdown
+
+A ``Text`` made from a key reads it as inline Markdown, as SwiftUI does:
+`**bold**`, `*italic*`, `~~struck~~`, `` `code` `` and links. Everything else a
+modifier can do to part of a text is reachable too, through Apple's
+`^[text](key: value, …)` syntax — useful in a translation, which can style
+its words differently from the key, and on Linux, where `AttributedString`
+has no Markdown initializer:
+
+```swift
+Text("Disk is ^[90% full](foregroundColor: warning, fontWeight: bold)")
+Text("^[Deprecated](strikethroughStyle: true, strikethroughColor: red) API")
+Text("A ^[spelling](underlineStyle: curly, underlineColor: \"#ff3b30\") mistake")
+```
+
+Each key applies its value as the modifier it is named after does:
+
+| Key | Value | Same as |
+|---|---|---|
+| `foregroundColor` | a colour | `.foregroundStyle(_:)` |
+| `backgroundColor` | a colour | an `AttributedString`'s `backgroundColor` |
+| `underlineStyle` | `true`, `false` or a pattern | `.underline(_:pattern:color:)` |
+| `underlineColor` | a colour | its `color:` (a colour alone draws a solid line) |
+| `strikethroughStyle` | `true`, `false` or a pattern | `.strikethrough(_:pattern:color:)` |
+| `strikethroughColor` | a colour | its `color:` |
+| `font` | `largeTitle` … `caption2` | `.font(_:)` |
+| `fontWeight` | `ultraLight` … `black` | `.fontWeight(_:)` |
+| `dim` | `true` or `false` | `.dim(_:)` |
+| `blink` | `true` | `.blink()` |
+| `inverse` | `true` | `.inverted()` |
+| `textScale` | `secondary` or `default` | `.textScale(_:)` |
+
+A **colour** is a `Color` name as Swift spells it (`red`, `magenta`, `gray`,
+`primary`, `accentColor`, `warning`…), a palette role (`accent`, `info`,
+`foregroundTertiary`, or `palette.accent`), or `#rgb` / `#rrggbb`. A
+**pattern** is one of `Text.LineStyle.Pattern`'s: `solid`, `dot`, `dash`,
+`dashDot`, `dashDotDot`, `double`, `curly`.
+
+The list is Foundation's (JSON5 members): values may be quoted with `"` or
+`'`, and must be when they hold a comma or a parenthesis; `true` and `false`
+must not be. TUI also takes an unquoted name, which Foundation's own parser
+refuses — quote names if the same string is ever handed to
+`AttributedString(markdown:)`. The first value of a key holds, and an inner
+`^[…](…)` beats an outer one. A key TUI does not know (`inflect`) or a value it
+cannot read is passed over, and the text is drawn without it; so is a list
+that does not parse. The keys are TUI's own: SwiftUI's `Text` reads none of
+them.
+
 ### Cascading (container-level)
 
 Container-level modifiers apply to every descendant ``Text`` and can be

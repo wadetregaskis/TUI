@@ -1,0 +1,24 @@
+^[x](foregroundColor: red) -> THROWS dataCorrupted(Swift.DecodingError.Context(codingPath: [], debugDescription: "The given data was not valid JSON.", underlyingError: Optional(Error Domain=NSCocoaErrorDomain Code=3840 "Unexpected character 'r' around line 1, column 18." UserInfo={NSDebugDescription=Unexpected character 'r' around line 1, column 18., NSJSONSerializationErrorIndex=17})))
+^[x](foregroundColor: "red") -> "x" fg="red" dim=- intent=- link=-
+^[x](foregroundColor: 'red') -> "x" fg="red" dim=- intent=- link=-
+^[x](foregroundColor: "a (b), c", dim: true) -> "x" fg="a (b), c" dim=true intent=- link=-
+^[x](foregroundColor: "a\)b", dim: true) -> THROWS dataCorrupted(Swift.DecodingError.Context(codingPath: [], debugDescription: "The given data was not valid JSON.", underlyingError: Optional(Error Domain=NSCocoaErrorDomain Code=3840 "Invalid escape sequence ')' around line 1, column 21." UserInfo={NSDebugDescription=Invalid escape sequence ')' around line 1, column 21., NSJSONSerializationErrorIndex=20})))
+^[x](foregroundColor: "a\\b") -> "x" fg="a\\b" dim=- intent=- link=-
+^[x](dim: true, foregroundColor: 3) -> THROWS typeMismatch(Swift.String, Swift.DecodingError.Context(codingPath: [AttributeKey(stringValue: "foregroundColor", intValue: nil)], debugDescription: "Expected to decode String but found number instead.", underlyingError: nil))
+^[x](dim: 1) -> THROWS typeMismatch(Swift.Bool, Swift.DecodingError.Context(codingPath: [AttributeKey(stringValue: "dim", intValue: nil)], debugDescription: "Expected to decode Bool but found number instead.", underlyingError: nil))
+^[x](dim: "true") -> THROWS typeMismatch(Swift.Bool, Swift.DecodingError.Context(codingPath: [AttributeKey(stringValue: "dim", intValue: nil)], debugDescription: "Expected to decode Bool but found a string instead.", underlyingError: nil))
+^[x](dim: true b: 2) -> THROWS dataCorrupted(Swift.DecodingError.Context(codingPath: [], debugDescription: "The given data was not valid JSON.", underlyingError: Optional(Error Domain=NSCocoaErrorDomain Code=3840 "Unexpected character 'b' in object around line 1, column 11." UserInfo={NSDebugDescription=Unexpected character 'b' in object around line 1, column 11., NSJSONSerializationErrorIndex=10})))
+^[x](inflect: true, dim: true) -> "x" fg=- dim=true intent=- link=-
+^[x](zzz: {a: [1, 2]}, dim: true) -> "x" fg=- dim=true intent=- link=-
+^[a ^[b](dim: false)](dim: true) -> "a " fg=- dim=true intent=- link=- | "b" fg=- dim=false intent=- link=-
+^[a ^[b](foregroundColor: blue)](dim: true, foregroundColor: red) -> THROWS dataCorrupted(Swift.DecodingError.Context(codingPath: [], debugDescription: "The given data was not valid JSON.", underlyingError: Optional(Error Domain=NSCocoaErrorDomain Code=3840 "Unexpected character 'r' around line 1, column 29." UserInfo={NSDebugDescription=Unexpected character 'r' around line 1, column 29., NSJSONSerializationErrorIndex=28})))
+**^[a](dim: true)** -> "a" fg=- dim=true intent=2 link=-
+^[**a** b](dim: true) -> "a" fg=- dim=true intent=2 link=- | " b" fg=- dim=true intent=- link=-
+[^[a](dim: true)](https://x.y) -> "a" fg=- dim=- intent=- link=https://x.y
+^[[a](https://x.y)](dim: true) -> "a" fg=- dim=true intent=- link=https://x.y
+^[x](dim: true, dim: false) -> "x" fg=- dim=true intent=- link=-
+^[x]("dim": true) -> "x" fg=- dim=true intent=- link=-
+^[x](foregroundColor: #ff0000) -> THROWS dataCorrupted(Swift.DecodingError.Context(codingPath: [], debugDescription: "The given data was not valid JSON.", underlyingError: Optional(Error Domain=NSCocoaErrorDomain Code=3840 "Unexpected character '#' around line 1, column 18." UserInfo={NSDebugDescription=Unexpected character '#' around line 1, column 18., NSJSONSerializationErrorIndex=17})))
+^[x](foregroundColor: "#ff0000") -> "x" fg="#ff0000" dim=- intent=- link=-
+^[x](dim: true,) -> "x" fg=- dim=true intent=- link=-
+^[x](foregroundColor: "\u0041") -> "x" fg="A" dim=- intent=- link=-

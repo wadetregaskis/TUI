@@ -211,7 +211,7 @@ struct MarkdownTemplate {
             return Span(
                 pieces: words.pieces,
                 text: words.hasPlaceholders ? nil : words.text,
-                style: Self.style(of: span.traits),
+                style: Self.style(of: span.traits, attributes: span.attributes),
                 link: linkIsFilled ? nil : destination.flatMap { Text.linkURL($0.text) },
                 linkPieces: linkIsFilled ? destination?.pieces : nil)
         }
@@ -305,14 +305,22 @@ struct MarkdownTemplate {
         return (content, runs)
     }
 
-    /// What a span's traits draw as. Code is monospaced, which every cell
-    /// already is, so it draws as the text around it.
-    private static func style(of traits: InlineMarkdown.Traits) -> TextStyle {
+    /// What a span's traits and attributes draw as. Code is monospaced, which
+    /// every cell already is, so it draws as the text around it. The
+    /// attributes go on after the traits, as modifiers on a `Text` of them
+    /// would (``Text/applyingMarkdownAttributes(_:)``) — once per template,
+    /// with the parse, so a span with none costs what it did.
+    private static func style(
+        of traits: InlineMarkdown.Traits, attributes: [InlineMarkdown.Attribute]
+    ) -> TextStyle {
         var style = TextStyle()
         if traits.contains(.strong) { style.isBold = true }
         if traits.contains(.emphasized) { style.isItalic = true }
         if traits.contains(.strikethrough) { style.isStrikethrough = true }
-        return style
+        guard !attributes.isEmpty else { return style }
+        var text = Text(verbatim: "")
+        text.style = style
+        return text.applyingMarkdownAttributes(attributes).style
     }
 
     // MARK: Keeping

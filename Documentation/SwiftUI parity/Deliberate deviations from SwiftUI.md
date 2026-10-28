@@ -963,7 +963,23 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   drawing:
   `^[…](inflect: true)` is drawn without inflection, and a code span is plain
   text, every cell being monospaced already.
-- **Why:** Foundation's Markdown parser is Darwin-only.
+  And one extension (2026-10-28): the attributes of a `^[text](…)` are read
+  for a vocabulary of TUI's own — `foregroundColor`, `backgroundColor`,
+  `underlineStyle`, `underlineColor`, `strikethroughStyle`,
+  `strikethroughColor`, `font`, `fontWeight`, `dim`, `blink`, `inverse`,
+  `textScale` — each applied as the `Text` modifier it names, so everything a
+  `Text` can do to its words is reachable from a key. SwiftUI's `Text` reads
+  none of them: they are not parity. Where Foundation's decoder throws (a list
+  that is not JSON5, a value of the wrong type), a `Text` cannot, so it draws
+  the text without the list, or without the one value; and it takes an
+  unquoted name (`red`) where JSON5 wants `"red"`. Foundation's grammar and
+  precedence are kept otherwise: an inner attribute beats an outer one, the
+  first of two equal keys wins, and a link drops the attributes inside it
+  (measured on macOS 15.8.1,
+  `Tools/SwiftUIProbes/Markdown attribute syntax/decode.swift`).
+- **Why:** Foundation's Markdown parser is Darwin-only. The keys: the owner's
+  ruling of 2026-10-27, that everything `Text` can do must be reachable from
+  inline Markdown, which on Linux is the only Markdown a `Text` has.
 - **Decided:** [B86](<../Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md#b86-tuis-markdown-parse-is-its-own-with-two-known-differences>). **Medium.**
 
 ### T4. Links are underlined, and a link inside a `Text` is a Tab stop

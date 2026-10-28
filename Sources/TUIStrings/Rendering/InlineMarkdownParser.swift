@@ -53,6 +53,9 @@ struct InlineMarkdownParser {
         var kind: Kind
         var traits: Traits = []
         var link: [Atom]?
+        /// The attributes of the `^[…](…)`s around it; see
+        /// ``InlineMarkdown/Span/attributes``.
+        var attributes: [InlineMarkdown.Attribute] = []
         var removed = false
     }
 
@@ -135,9 +138,11 @@ struct InlineMarkdownParser {
         index >= 0 && index < source.count ? source[index] : nil
     }
 
-    /// Appends literal text, joining the previous node when that is text too.
+    /// Appends literal text, joining the previous node when that is text too
+    /// — and not the text of a closed `^[…](…)`, whose attributes are its
+    /// own (``canJoin(_:)``).
     mutating func appendText(_ atoms: [Atom]) {
-        if let last = nodes.indices.last, nodes[last].kind == .text, !nodes[last].removed {
+        if let last = nodes.indices.last, canJoin(last) {
             nodes[last].atoms += atoms
         } else {
             nodes.append(Node(atoms: atoms, kind: .text))
@@ -148,11 +153,19 @@ struct InlineMarkdownParser {
     /// commonest step, a plain character, without building a one-element
     /// array for it.
     mutating func appendText(_ atom: Atom) {
-        if let last = nodes.indices.last, nodes[last].kind == .text, !nodes[last].removed {
+        if let last = nodes.indices.last, canJoin(last) {
             nodes[last].atoms.append(atom)
         } else {
             nodes.append(Node(atoms: [atom], kind: .text))
         }
+    }
+
+    /// Whether text may join node `index`: a live text node, outside any
+    /// closed attribute bracket. A link's text is no longer `.text`, so
+    /// nothing joins it; an attribute bracket's text is, and what follows the
+    /// `)` must not take its attributes.
+    private func canJoin(_ index: Int) -> Bool {
+        nodes[index].kind == .text && !nodes[index].removed && nodes[index].attributes.isEmpty
     }
 
     /// cmark's `isspace`: space, tab, line feed, vertical tab, form feed,
@@ -288,8 +301,11 @@ struct InlineMarkdownParser {
             return
         }
         let destination: [Atom]?
+        var attributes: [InlineMarkdown.Attribute] = []
         if opener.kind == .attribute {
-            destination = parseAttributeTail().map { _ in [] }
+            let tail = parseAttributeTail()
+            attributes = tail ?? []
+            destination = tail.map { _ in [] }
         } else {
             destination = parseLinkTail() ?? parseReferenceTail(text: opener.textStart..<closer)
         }
@@ -303,9 +319,11 @@ struct InlineMarkdownParser {
             switch opener.kind {
             case .link:
                 // Foundation keeps none of the emphasis inside a link's text
-                // (measured: `[a *b*](u)` is one plain linked run), and
-                // nothing inside a link is autolinked.
+                // (measured: `[a *b*](u)` is one plain linked run), nor the
+                // attributes (`[^[a](dim: true)](u)` is not dim, lane
+                // MDATTRS), and nothing inside a link is autolinked.
                 nodes[index].traits = []
+                nodes[index].attributes = []
                 nodes[index].link = destination
                 if nodes[index].kind == .text || nodes[index].kind == .delimiter {
                     nodes[index].kind = .autolink
@@ -313,9 +331,12 @@ struct InlineMarkdownParser {
             case .image:
                 // SwiftUI draws an image's alt text, plain.
                 nodes[index].traits = []
+                nodes[index].attributes = []
                 nodes[index].link = nil
             case .attribute:
-                break
+                // After any the node has already: those are an inner
+                // bracket's, which win (``InlineMarkdown/Span/attributes``).
+                nodes[index].attributes += attributes
             }
         }
         if opener.kind == .image,
@@ -429,36 +450,5 @@ struct InlineMarkdownParser {
             }
         }
         return index
-    }
-
-    /// The `(…)` of Apple's `^[text](attributes)`: anything up to the `)`
-    /// that balances it, a backslash escaping the character after it — and
-    /// nothing else. Quotes shelter no parenthesis, and attributes that do not
-    /// parse are no reason to keep the text literal: Foundation draws the
-    /// bracket text whatever the attributes say, `^[x](a: ")")` closing at the
-    /// quoted `)` and `^[x](a: "(")` left literal, unbalanced (measured on
-    /// macOS 15.8, B86's open item; `Tools/SwiftUIProbes/Markdown attribute
-    /// syntax/attrs.swift`). TUI reads none of the attributes — it has no
-    /// inflection — so this only finds the end.
-    private mutating func parseAttributeTail() -> Void? {
-        guard atom(at: position)?.is("(") == true else { return nil }
-        var index = position + 1
-        var depth = 0
-        while let atom = atom(at: index) {
-            defer { index += 1 }
-            guard let scalar = atom.scalar else { continue }
-            switch scalar {
-            case "\\": index += 1
-            case "(": depth += 1
-            case ")":
-                if depth == 0 {
-                    position = index + 1
-                    return ()
-                }
-                depth -= 1
-            default: break
-            }
-        }
-        return nil
     }
 }

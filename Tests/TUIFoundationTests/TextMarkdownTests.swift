@@ -21,12 +21,12 @@ import Testing
 @Suite("Markdown in a Text")
 struct TextMarkdownTests {
 
-    private func lines(_ text: Text, width: Int = 60) -> [String] {
+    func lines(_ text: Text, width: Int = 60) -> [String] {
         renderToBuffer(text, context: makeRenderContext(width: width, height: 4)).lines
     }
 
     /// The on/off attributes (1 bold … 9 strikethrough) on `word`'s first cell.
-    private func attributes(of word: String, in lines: [String]) -> Set<Int> {
+    func attributes(of word: String, in lines: [String]) -> Set<Int> {
         guard let state = sgrState(of: word, in: lines) else { return [] }
         let parameters = state.parameters.split(separator: ";").compactMap { Int($0) }
         var result: Set<Int> = []

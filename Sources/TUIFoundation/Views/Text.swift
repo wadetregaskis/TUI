@@ -139,6 +139,18 @@ public struct Text: View, Equatable {
     /// stands — and neither is a `String` you pass, nor ``init(verbatim:)``.
     /// The rules are Foundation's, measured: see `InlineMarkdown`.
     ///
+    /// What the other modifiers do is there too, through Apple's
+    /// `^[text](key: value, …)` — TUI's own keys, which SwiftUI's `Text` does
+    /// not read: `foregroundColor`, `backgroundColor`, `underlineStyle`,
+    /// `underlineColor`, `strikethroughStyle`, `strikethroughColor`, `font`,
+    /// `fontWeight`, `dim`, `blink`, `inverse` and `textScale`, each applying
+    /// its value as the modifier it names does. *Appearance and Colors* lists
+    /// the values.
+    ///
+    /// ```swift
+    /// Text("Disk is ^[90% full](foregroundColor: warning, fontWeight: bold)")
+    /// ```
+    ///
     /// ## String tables
     ///
     /// The key is looked up in the string table `tableName` of `bundle` — the

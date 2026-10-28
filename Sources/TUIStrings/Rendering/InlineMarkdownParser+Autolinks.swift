@@ -245,7 +245,7 @@ extension InlineMarkdownParser {
                 continue
             }
             let isPlain = (node.kind == .text || node.kind == .delimiter) && node.link == nil
-            if isPlain, var current = pending, current.traits == node.traits {
+            if isPlain, var current = pending, current.traits == node.traits, current.attributes == node.attributes {
                 current.atoms += node.atoms
                 pending = current
             } else {
@@ -269,18 +269,21 @@ extension InlineMarkdownParser {
         var offset = 0
         while let link = emailAddress(in: atoms, from: offset) {
             if link.start > 0 {
-                pieces.append(Node(atoms: Array(atoms[..<link.start]), kind: .text, traits: node.traits))
+                pieces.append(
+                    Node(
+                        atoms: Array(atoms[..<link.start]), kind: .text, traits: node.traits,
+                        attributes: node.attributes))
             }
             let text = Array(atoms[link.start..<link.end])
             pieces.append(
                 Node(
                     atoms: text, kind: .autolink, traits: node.traits,
-                    link: link.addsMailto ? Self.atoms("mailto:") + text : text))
+                    link: link.addsMailto ? Self.atoms("mailto:") + text : text, attributes: node.attributes))
             atoms = Array(atoms[link.end...])
             offset = 0
         }
         if !atoms.isEmpty {
-            pieces.append(Node(atoms: atoms, kind: .text, traits: node.traits))
+            pieces.append(Node(atoms: atoms, kind: .text, traits: node.traits, attributes: node.attributes))
         }
         return pieces
     }

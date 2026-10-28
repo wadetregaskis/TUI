@@ -51,7 +51,7 @@ struct InlineMarkdownTests {
     }
 
     /// Atoms as text, an argument as `§n`.
-    private func text(_ atoms: [Atom]) -> String {
+    func text(_ atoms: [Atom]) -> String {
         var result = ""
         for atom in atoms {
             switch atom {
@@ -62,7 +62,7 @@ struct InlineMarkdownTests {
         return result
     }
 
-    private func atoms(_ pieces: Any...) -> [Atom] {
+    func atoms(_ pieces: Any...) -> [Atom] {
         pieces.flatMap { piece -> [Atom] in
             if let index = piece as? Int { return [.argument(index)] }
             return (piece as? String ?? "").unicodeScalars.map(Atom.scalar)

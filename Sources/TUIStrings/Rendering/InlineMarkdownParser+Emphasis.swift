@@ -133,7 +133,7 @@ extension InlineMarkdownParser {
     // MARK: - Output
 
     /// The nodes as spans: empty and removed nodes dropped, neighbours with
-    /// the same traits and link merged, as Foundation's runs are. A link whose
+    /// the same traits, link and attributes merged, as Foundation's runs are. A link whose
     /// host or port Foundation cannot make a URL of is its text alone, as
     /// Foundation draws it (``hasLinkableAuthority(_:)``).
     func spans() -> [InlineMarkdown.Span] {
@@ -141,10 +141,13 @@ extension InlineMarkdownParser {
         for node in nodes where !node.removed && !node.atoms.isEmpty {
             let traits = node.traits
             let link = node.link.flatMap { Self.hasLinkableAuthority($0) ? $0 : nil }
-            if let last = result.indices.last, result[last].traits == traits, result[last].link == link {
+            if let last = result.indices.last, result[last].traits == traits, result[last].link == link,
+                result[last].attributes == node.attributes
+            {
                 result[last].atoms += node.atoms
             } else {
-                result.append(InlineMarkdown.Span(atoms: node.atoms, traits: traits, link: link))
+                result.append(
+                    InlineMarkdown.Span(atoms: node.atoms, traits: traits, link: link, attributes: node.attributes))
             }
         }
         return result
