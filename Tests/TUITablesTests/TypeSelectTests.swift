@@ -153,6 +153,31 @@ struct TypeSelectTests {
         #expect(handler?.focusedIndex == 4, "Delta")
     }
 
+    /// A row of a tree, with or without rows below it.
+    private struct Node: Identifiable {
+        let id: String
+        var children: [Self]?
+    }
+
+    @Test("A tree's row answers to its words, not its triangle, with children or without")
+    func treeRows() {
+        let nodes = [
+            Node(id: "Alpha", children: [Node(id: "Inner")]), Node(id: "Bravo"),
+            Node(id: "Charlie", children: [Node(id: "Deep")]),
+        ]
+        let view = Table(nodes, children: \.children, selection: .constant(String?.none)) {
+            TableColumn("Name", value: \.id)
+        }
+        let (handler, type) = harness(view)
+        _ = type(KeyEvent(key: .character("c")))
+        #expect(handler?.focusedIndex == 2, "Charlie, which has children")
+        // A fresh table: the typed prefix lasts until a pause, so "b" here
+        // would read as "cb".
+        let (leafHandler, typeInLeaf) = harness(view)
+        _ = typeInLeaf(KeyEvent(key: .character("b")))
+        #expect(leafHandler?.focusedIndex == 1, "Bravo, a leaf")
+    }
+
     @Test("A table's view cell answers to the text it states")
     func tableViewCell() {
         let people = Self.names.map(Person.init)

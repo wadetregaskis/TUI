@@ -5214,8 +5214,18 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         var probe = Self.probing(context)
         probe.environment.isTypeSelectProbe = true
         let value = cellValue(column, for: item, width: max(1, context.availableWidth), context: probe)
-        return value.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false).first
-            .map { String($0).stripped.trimmingCharacters(in: .whitespaces) }
+        return value.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false).first.map {
+            var line = String($0).stripped
+            // A tree's first column begins with the row's indent and triangle
+            // (`_TableOutline.prefix(for:)`), which are not its words: "▶ Postcards"
+            // answered to no prefix but "▶", so typing could reach a leaf
+            // and never a row with children — a file in a file panel, never a
+            // folder (found filming the Document clip, 2026-10-28).
+            if let prefix = outline?.prefix(for: item.id), line.hasPrefix(prefix) {
+                line.removeFirst(prefix.count)
+            }
+            return line.trimmingCharacters(in: .whitespaces)
+        }
     }
 
     /// `context` over a raised background: what the focused, selected row's
