@@ -203,7 +203,7 @@ struct ContainersPage: View {
     /// This page's footer.
     ///
     /// `b` cycles the appearance forward and `B` back, the pair spelled the way
-    /// the image pages spell theirs: one visible item carrying the dual-key
+    /// the image page spells its own: one visible item carrying the dual-key
     /// indicator and the current value, and a hidden partner for the uppercase
     /// key. Escape and the arrows are informational — the page switch and the
     /// scroll are handled above this page.

@@ -73,7 +73,7 @@ struct FrostResolutionDemo: View {
                 .scaledToFit()
                 .frame(width: Self.photo.width, height: Self.photo.height)
         } else {
-            Text("\(L("page.imageFile.resourceNotFound")): demo-image.jpg")
+            Text("\(L("page.images.resourceNotFound")): demo-image.jpg")
                 .foregroundStyle(.error)
         }
     }

@@ -2,7 +2,7 @@
 //  ImageDemoLayout.swift
 //
 //  The shape of an image demo page — the picture and its controls side by
-//  side — and the status bar both pages carry.
+//  side — and the status bar it carries.
 //
 //  Side by side rather than stacked because of what the controls are FOR: you
 //  change one and look at the picture. A strip above the image took its height
@@ -19,6 +19,8 @@ import TUI
 struct ImageDemoLayout<Content: View>: View {
     @Binding var settings: ImageDemoSettings
     @ViewBuilder let content: Content
+    /// The page, as a focus scope: the control pane prefers the focus in it.
+    @Namespace private var page
 
     /// How wide the control pane is, borders included. Wide enough for the
     /// widest row it holds (the block-resolution radio row) *with* the
@@ -37,20 +39,26 @@ struct ImageDemoLayout<Content: View>: View {
             // A box rather than a `Divider` (which would draw a vertical rule
             // here, across the row): the border does the separating, and a box
             // reads as a pane.
+            // The focus starts here rather than on the first control in the
+            // tree, the picture's combo box: a focused text field takes every
+            // bare character, and the status bar's knobs (`c`, `m`, `p`, …)
+            // are bare characters. Tab or a click reaches the field.
             ImageRenderingControls(settings: $settings)
+                .prefersDefaultFocus(in: page)
                 .border(.palette.border)
                 .frame(width: Self.paneWidth)
         }
+        .focusScope(page)
     }
 }
 
-/// The status bar both image pages carry: the same knobs the pane holds, on
+/// The status bar the image page carries: the same knobs the pane holds, on
 /// single keys, because a demo of an image renderer is a thing you want to
 /// flick through without leaving the picture.
 ///
-/// Shared rather than written twice. The two pages had drifted already — the
-/// file page grew the tone cycler and the URL page did not, so the same app
-/// answered `n` in two ways depending on which page you were on.
+/// Written once when there were two image pages, a file one and a URL one,
+/// which had drifted — the file page grew the tone cycler and the URL page did
+/// not. They are one page now (2026-10-27).
 enum ImageDemoStatusBar {
     @MainActor
     static func items(
@@ -144,8 +152,9 @@ enum ImageDemoStatusBar {
 extension View {
     /// Applies an ``ImageDemoSettings`` to an image.
     ///
-    /// One place, so the two pages cannot apply different subsets of it — which
-    /// they did: the URL page never applied a tone curve at all.
+    /// One place, so no picture the page shows can be given a different subset
+    /// of it — which happened while there were two pages: the URL page never
+    /// applied a tone curve at all.
     func imageDemoSettings(_ settings: ImageDemoSettings) -> some View {
         self
             .imageCharacterSet(settings.characterSet)
@@ -156,7 +165,7 @@ extension View {
             // every flip, dropping its loaded phase and decoding the file again.
             // On, they are the theme's own foreground and background, which is
             // what an unstated style means, so nothing changes. Every `Text` in
-            // either page's scope states its own style.
+            // the page's scope states its own style.
             .foregroundStyle(settings.monoInk)
             .backgroundStyle(settings.monoPaper)
             .imageToneCurve(settings.toneCurve)

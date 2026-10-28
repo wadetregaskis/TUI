@@ -27,8 +27,7 @@ enum DemoPage: Int, CaseIterable {
     case sliders
     case steppers
     case splitView
-    case imageFile
-    case imageURL
+    case images
     case emoji
     case pickers
     case progress
@@ -174,7 +173,7 @@ struct ContentView: View {
             // One column of breathing room down each side, on every page.
             // Applied here rather than in `scrollableDemoPage()` because only 22
             // of the 36 pages use that wrapper — a split view, a tab view and
-            // the image pages fill the viewport themselves — and a gutter that
+            // the image page fill the viewport themselves — and a gutter that
             // appeared on two thirds of the app would read as a mistake.
             //
             // Unconditional, not fitted. A page holding a List or a Table fills
@@ -327,10 +326,8 @@ struct ContentView: View {
             StepperPage().statusBarItems(subPageItems(pageSetter: pageSetter))
         case .splitView:
             SplitViewPage().statusBarItems(subPageItems(pageSetter: pageSetter))
-        case .imageFile:
-            ImageFilePage()
-        case .imageURL:
-            ImageURLPage()
+        case .images:
+            ImagesPage()
         case .emoji:
             EmojiPage().statusBarItems(subPageItems(pageSetter: pageSetter))
         case .pickers:

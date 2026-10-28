@@ -13,7 +13,7 @@
 import Foundation
 import TUI
 
-/// Shared image demo configuration used by both `ImageFilePage` and `ImageURLPage`.
+/// Shared image demo configuration used by `ImagesPage`'s controls and status bar.
 enum ImageDemoHelpers {
     /// The fundamental charsets the demo exposes — mirroring
     /// ``ASCIICharacterSet``'s cases directly rather than a list of

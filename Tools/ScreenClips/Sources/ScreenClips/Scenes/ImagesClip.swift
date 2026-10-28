@@ -42,7 +42,7 @@ let glyphsClip = Clip(
     quality: 90,
     budgetKB: 900,
     script: glyphsScript(),
-    command: ["Example", "--page", "imageFile"],
+    command: ["Example", "--page", "images"],
     environment: ["TUI_GRAPHICS": "0"]
 )
 

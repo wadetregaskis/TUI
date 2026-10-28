@@ -6,8 +6,8 @@
 //  running on shown first, and a photograph.
 //
 //  Credits: Tux by Larry Ewing (lewing@isc.tamu.edu), drawn with The GIMP.
-//  Lil' Finder Guy and the Swift logo are Apple's, Touko Madobe is
-//  Microsoft's (Windows 7's Japanese mascot).
+//  Lil' Mac Guy and the Swift logo are Apple's, Touko Madobe is
+//  Microsoft's (Windows 7's Japanese mascot). The photograph is an eagle.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -15,16 +15,17 @@
 import Foundation
 import TUI
 
-/// A picture bundled with the Example, in `Resources/`.
+/// A picture bundled with the Example, in `Resources/`, in the order the
+/// image page's combo box lists them and `p` steps through them.
 enum DemoPicture: CaseIterable {
     case macOS
-    case linux
     case windows
+    case linux
     case wasm
     case photo
 
-    /// The mascot of the platform the Example is running on: Lil' Finder
-    /// Guy on macOS, Tux on Linux, Touko Madobe on Windows, and the Swift
+    /// The mascot of the platform the Example is running on: Lil' Mac Guy
+    /// on macOS, Tux on Linux, Touko Madobe on Windows, and the Swift
     /// bird in a browser, WebAssembly having no mascot of its own.
     ///
     /// The platform itself, not a capability, is the question here, so this
@@ -60,15 +61,34 @@ enum DemoPicture: CaseIterable {
     /// The file's name, for the message when it is missing.
     var fileName: String { "\(resource.name).\(resource.type)" }
 
+    /// The picture's name, as the image page's combo box offers it rather
+    /// than its file's path. A proper name, so not translated.
+    var name: String {
+        switch self {
+        case .macOS: "Lil' Mac Guy"
+        case .linux: "Tux"
+        case .windows: "Touko Madobe"
+        case .wasm: "Swift"
+        case .photo: "Eagle"
+        }
+    }
+
+    /// The bundled picture called `name`, ignoring case and the spaces around
+    /// it, or `nil` if none is.
+    static func named(_ name: String) -> Self? {
+        let name = name.trimmingCharacters(in: .whitespaces)
+        return allCases.first { $0.name.caseInsensitiveCompare(name) == .orderedSame }
+    }
+
     /// The status bar's label: the picture's name, as `chars:` names the
     /// charset. Names, so not translated.
     var label: String {
         switch self {
-        case .macOS: "picture:finder"
+        case .macOS: "picture:mac"
         case .linux: "picture:tux"
         case .windows: "picture:touko"
         case .wasm: "picture:swift"
-        case .photo: "picture:photo"
+        case .photo: "picture:eagle"
         }
     }
 
