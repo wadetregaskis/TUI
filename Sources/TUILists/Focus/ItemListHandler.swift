@@ -255,6 +255,21 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _showsScrollbar = false
 
+    /// Whether the pointer is over the list: under
+    /// `.scrollIndicatorPlacement(.overContent)` its indicators are drawn over
+    /// the rows while it is.
+    package var isPointerOver = false
+
+    /// Whether this frame draws the scrollbar OVER the rows' last column
+    /// (`.scrollIndicatorPlacement(.overContent)`, the pointer over the list):
+    /// the rows were laid out at the whole width, and nothing in the layout
+    /// reserves the bar.
+    package var overlaysScrollbar = false
+
+    /// Whether this frame writes the "N more" lines OVER the rows' first and
+    /// last lines, as ``overlaysScrollbar`` draws the bar over their last column.
+    package var overlaysTextIndicators = false
+
     /// Whether a drag hovering this control is drawing a landing slot that
     /// NOTHING left the control to make room for — so the rows plus the slot
     /// need one line more than the rows alone.

@@ -286,6 +286,10 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// repeat state) so the same scrollbar machinery serves both axes.
     public let horizontal = ScrollAxis()
 
+    /// Whether the pointer is over the view: its indicators are drawn over the
+    /// content while it is, under `.scrollIndicatorPlacement(.overContent)`.
+    var isPointerOver = false
+
     /// A parked ``ScrollViewProxy/scrollTo(_:anchor:)`` request, set at event
     /// time (or from an async context) and consumed — one-shot — by the next
     /// render pass, which carries it to the content via the scroll-window

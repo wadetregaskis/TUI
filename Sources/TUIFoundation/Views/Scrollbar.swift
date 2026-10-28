@@ -162,7 +162,7 @@ package struct ResolvedScrollIndicators: Sendable {
     /// two-line view scrolled away from the top is 100% chrome: "▲ N more rows
     /// above" as the entire view, advertising content that is then unreachable
     /// at every offset.
-    static let minimumTextHeight = 3
+    package static let minimumTextHeight = 3
 
     /// The same answer with the "N more" lines dropped when `contentHeight`
     /// cannot hold both of them and a row.
@@ -196,11 +196,17 @@ extension EnvironmentValues {
     ///   An autoclosure for the reason ``ScrollIndicatorVisibility/showsIndicator(overflowing:)``
     ///   takes one: only ``ScrollIndicatorVisibility/automatic`` has to know,
     ///   and finding out can mean measuring the whole content.
+    ///
+    /// Indicators drawn over the content (``ScrollIndicatorPlacement/overContent``)
+    /// reserve nothing, and answer ``ResolvedScrollIndicators/none`` here: this
+    /// is the LAYOUT's question. Whether one is drawn over the content is
+    /// ``overlaidVerticalScrollIndicators(overflowing:)``'s.
     @inlinable
     package func verticalScrollIndicators(
         overflowing: @autoclosure () -> Bool
     ) -> ResolvedScrollIndicators {
-        guard verticalScrollIndicatorVisibility.showsIndicator(overflowing: overflowing())
+        guard !scrollIndicatorsOverlayContent,
+            verticalScrollIndicatorVisibility.showsIndicator(overflowing: overflowing())
         else { return .none }
         switch scrollIndicatorStyle {
         case .scrollbar: return ResolvedScrollIndicators(bar: true, text: false)
@@ -227,13 +233,39 @@ extension EnvironmentValues {
     @inlinable
     package var alwaysShowsVerticalTextIndicators: Bool {
         verticalScrollIndicatorVisibility == .visible && scrollIndicatorStyle == .text
+            && !scrollIndicatorsOverlayContent
+    }
+
+    /// The vertical indicator drawn OVER the content of a view the pointer is
+    /// over, under ``ScrollIndicatorPlacement/overContent`` — none otherwise,
+    /// and none for a view the pointer is not over.
+    ///
+    /// - Parameters:
+    ///   - overflowing: Whether the content exceeds its viewport, known by the
+    ///     time this is asked: after the content is drawn.
+    ///   - hovered: Whether the pointer is over the view.
+    @inlinable
+    package func overlaidVerticalScrollIndicators(overflowing: Bool, hovered: Bool) -> ResolvedScrollIndicators {
+        guard scrollIndicatorsOverlayContent, hovered,
+            verticalScrollIndicatorVisibility.showsIndicator(overflowing: overflowing)
+        else { return .none }
+        switch scrollIndicatorStyle {
+        case .scrollbar: return ResolvedScrollIndicators(bar: true, text: false)
+        case .text: return ResolvedScrollIndicators(bar: false, text: true)
+        }
     }
 
     /// Whether this subtree's horizontally scrolling views reserve a bottom
     /// scrollbar. There is no horizontal text indicator, so the style does not
     /// enter into it — a `.text` subtree still gets its horizontal bar.
     func showsHorizontalScrollbar(overflowing: @autoclosure () -> Bool) -> Bool {
-        horizontalScrollIndicatorVisibility.showsIndicator(overflowing: overflowing())
+        !scrollIndicatorsOverlayContent && horizontalScrollIndicatorVisibility.showsIndicator(overflowing: overflowing())
+    }
+
+    /// Whether a horizontal bar is drawn over the content's last row of a view
+    /// the pointer is over (``ScrollIndicatorPlacement/overContent``).
+    func overlaidHorizontalScrollbar(overflowing: Bool, hovered: Bool) -> Bool {
+        scrollIndicatorsOverlayContent && hovered && horizontalScrollIndicatorVisibility.showsIndicator(overflowing: overflowing)
     }
 }
 

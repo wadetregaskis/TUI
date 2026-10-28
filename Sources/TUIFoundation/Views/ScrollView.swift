@@ -499,7 +499,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             _ environment: EnvironmentValues, landsScrollTargets: () -> Bool, overflows: () -> Bool,
             pageIsFixed: () -> Bool = { true }
         ) {
-            guard environment.scrollIndicatorStyle == .text else {
+            // Drawn over the content for the pointer, the pair takes no line and
+            // is drawn after the content, by `applyOverlaidScrollChrome`.
+            guard environment.scrollIndicatorStyle == .text, !environment.scrollIndicatorsOverlayContent else {
                 (text, alwaysShown, reservedForTargets) = (false, false, false)
                 return
             }
@@ -780,7 +782,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // they get the gated answer; the keys and the mouse never read it. The
         // bar memo is keyed on this value too, so a change of it redraws.
         applyScrollChrome(
-            to: &visibleBuffer, handler: handler, contentWidth: contentWidth,
+            to: &visibleBuffer, handler: handler, contentWidth: contentWidth, wantsHorizontal: wantsHorizontal,
             chrome: chrome, isFocused: context.indicatesFocus(isFocused), focusID: persistedFocusID,
             context: context)
 
@@ -1041,10 +1043,19 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     }
 
     private func applyScrollChrome(
-        to visibleBuffer: inout FrameBuffer, handler: ScrollViewHandler, contentWidth: Int,
+        to visibleBuffer: inout FrameBuffer, handler: ScrollViewHandler, contentWidth: Int, wantsHorizontal: Bool,
         chrome: ScrollChrome, isFocused: Bool, focusID persistedFocusID: String,
         context: RenderContext
     ) {
+        // Drawn over the content for the pointer, the indicators reserved nothing
+        // (`ScrollView+OverlaidIndicators.swift`).
+        if context.environment.scrollIndicatorsOverlayContent {
+            applyOverlaidScrollChrome(
+                to: &visibleBuffer, handler: handler, contentWidth: contentWidth, wantsHorizontal: wantsHorizontal,
+                isFocused: isFocused, focusID: persistedFocusID, context: context)
+            attachIndicatorHoverObserver(to: &visibleBuffer, handler: handler, context: context)
+            return
+        }
         // Indicators REPLACE viewport lines, so a 1-2 line viewport scrolled
         // mid-content would be 100% chrome — "▼ N more below" as the entire
         // view, with the content it advertises never visible at any offset.
@@ -1290,6 +1301,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         textLines: TextIndicatorLines, lastContentHeight: Int = 0,
         contentWalksNestedStacks: Bool = false, context: RenderContext
     ) -> (vertical: Bool, horizontal: Bool, settled: (width: Int, height: Int)?) {
+        // Drawn over the content for the pointer, the bars take no room, and
+        // nothing is measured to decide them: the content is laid out once.
+        guard !context.environment.scrollIndicatorsOverlayContent else { return (false, false, nil) }
         let verticalPolicy = context.environment.verticalScrollIndicatorVisibility
         let horizontalPolicy = context.environment.horizontalScrollIndicatorVisibility
         // Only the scrollbar style reserves a COLUMN on the vertical axis; the

@@ -253,6 +253,11 @@ public struct Table<Value: Identifiable>: View {
         // what stops the next interactive cell from reintroducing the gap.
         .disabled(isDisabled)
         .paintingScrollContentBackground()
+        // A table keeps its indicators beside its rows for now: drawing them
+        // over the rows, for the pointer, is built for `ScrollView` and `List`
+        // (`.scrollIndicatorPlacement(.overContent)`), and a table that took no
+        // room for them and drew none would hide where it is scrolled.
+        .environment(\.scrollIndicatorPlacement, .besideContent)
     }
 }
 

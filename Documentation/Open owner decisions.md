@@ -40,7 +40,6 @@ been in force since 2026-10-18.
 | A-APPSTATE-1 | `LocalizationService.shared` goes with draw-time lookup (now landed). | (b): the locale is the language, as SwiftUI's is, built on LOCALE-B. | The shared service stays. |
 | A-APPSTATE-2 | Three more process-wide statics: the notification queue, the default store, the URL opener. | Exempt the default store and the URL opener (documented on the CLAUDE.md rule); make the notification queue per app later. | All three stay shared. |
 | A-CHURN-1 | Presume last frame's scrollbar (hysteresis), skipping the first measuring round? | As now: the round is exact, and with the early stop it costs a screenful. | As now. |
-| A-CHURN-2 | Overlay scrollbars that take no column? | Decline: it would reverse R4 and R5, and is not needed for performance. | Bars keep a column. |
 | A-O9-1 | `\.supportsMultipleWindows` is `true`. | `true`, as shipped. | `true`. |
 | A-PARITYMISC-1 | Core Data's `FetchRequest` family: build it now, or when an app asks? | 2: when an app asks. | Not built. |
 | A-TRANSITIONS2-1 | B52: a custom transition that changes its view's size — lay the body out at each frame's size? | 1: leave it; FB16 closes the gap B52 was opened for. | As now. |
@@ -98,6 +97,7 @@ been in force since 2026-10-18.
 | A-LAYOUT-1 | Optimise it, then decide. | Done: a column's minimum height is answered without measuring, and columns share (`stateful` +1.5%, `tables-vstack` +7.5% for drawing all eight tables). |
 | A-W1-1 | 2: re-export Foundation from TUI, as SwiftUI does. | Done: `import TUI` brings Foundation. |
 | GLASS-BORDER-GAP | (a): a background on the bordered view fills the border's inset; an explicit option keeps it clear. | Done: `.backgroundStopsAtContent()` is the option. |
+| A-CHURN-2 / SCROLLBAR-NAMES | Both: `.scrollIndicatorPlacement(.besideContent / .overContent)`; over the content for the pointer only, never the focus; the "N more" lines follow it. | Built for `ScrollView` and `List` (and the menus); `Table` keeps its beside for now. The owner wants to try it before the final say. |
 
 ## Answered later on 2026-10-26
 

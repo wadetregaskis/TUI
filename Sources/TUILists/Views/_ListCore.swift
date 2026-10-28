@@ -1348,7 +1348,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // which only a striped list reads (`RowSource.contentRowIndex(at:)`).
         let firstContentRowIndex =
             stripesRows(style: style, environment: context.environment) ? source.contentRowIndex(at: origin.offset) : 0
-        if wantsScrollbar {
+        if wantsScrollbar || handler.overlaysScrollbar {
             let bar = listScrollbarCells(
                 source: source,
                 origin: origin,
@@ -1360,15 +1360,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             )
             let contentRowWidth = max(1, rowWidth - bar.width)
             (lines, visibleRowYRanges, animatedRuns, listRowClaims, contentClaims) = composeScrollbarRowLines(
-                visibleRows: visibleRows,
-                handler: handler,
-                origin: origin,
-                firstContentRowIndex: firstContentRowIndex,
-                listHasFocus: listHasFocus,
-                contentRowWidth: contentRowWidth,
-                bar: bar,
-                context: context
-            )
+                visibleRows: visibleRows, handler: handler, origin: origin,
+                firstContentRowIndex: firstContentRowIndex, listHasFocus: listHasFocus,
+                // Over the rows, they are laid out at the whole width the
+                // layout gave them, and the bar covers their last column.
+                widths: (contentRowWidth, wantsScrollbar ? contentRowWidth : rowWidth), bar: bar, context: context)
             // The bar is the last interior column: the border's cell when the
             // style draws one — a `.plain` list has none, and a constant 1 here
             // registered the bar's hit region one column PAST the drawn bar, off
@@ -2010,6 +2006,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // names — once the rows' landing set is known, and before the window is
         // chosen, so the window follows it.
         handler.resolvePendingTypeSelect(measuring: context.isMeasuring) { source.content(at: $0).typeSelectText }
+        // Drawn over the rows for the pointer, the bar reserves nothing above:
+        // only the drawing below learns of it.
+        let overlaid = context.environment.overlaidVerticalScrollIndicators(
+            overflowing: overflowing, hovered: handler.isPointerOver)
+        handler.overlaysScrollbar = overlaid.bar
+        handler.overlaysTextIndicators = overlaid.text && contentHeight >= ResolvedScrollIndicators.minimumTextHeight
         return (handler, showsScrollbar)
     }
 
@@ -2337,22 +2339,22 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
 
         if origin.reservesBelow {
             bottomIndicator = renderScrollIndicator(
-                direction: .down,
-                count: handler.rowsBelow,
-                unit: .rows,
-                width: rowWidth,
-                palette: palette,
-                cycle: indicatorCycle, flash: indicatorFlash,
-                over: indicatorSurface,
-                locale: numberLocale
-            )
+                direction: .down, count: handler.rowsBelow, unit: .rows, width: rowWidth, palette: palette,
+                cycle: indicatorCycle, flash: indicatorFlash, over: indicatorSurface, locale: numberLocale)
         }
 
         let wrapped = slideAndWrap(
             rowLines: rowLines, ranges: ranges, pulseRuns: pulseRuns, rowClaims: rowClaims,
             topIndicator: topIndicator, bottomIndicator: bottomIndicator,
             handler: handler, rowWidth: rowWidth)
-        return (wrapped.lines, wrapped.ranges, wrapped.runs, wrapped.claims, contentClaims)
+        // Written over the rows' first and last lines for the pointer, as the bar
+        // is drawn over their last column (`_ListCore+OverlaidIndicators.swift`).
+        let overlaid = overlayingTextIndicators(
+            (wrapped.lines, wrapped.runs, wrapped.claims),
+            hidden: (origin.offset > 0 || origin.topClip > 0 ? max(1, origin.offset) : 0,
+                     handler.hasContentBelow ? max(1, handler.rowsBelow) : 0),
+            handler: handler, rowWidth: rowWidth, listHasFocus: listHasFocus, context: context)
+        return (overlaid.lines, wrapped.ranges, overlaid.runs, overlaid.claims, contentClaims)
     }
 
     /// Applies the overscroll slide to the rows, then wraps the (unmoved) "N
@@ -2559,7 +2561,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         origin: WindowOrigin,
         firstContentRowIndex: Int,
         listHasFocus: Bool,
-        contentRowWidth: Int,
+        widths: (content: Int, rowLayout: Int),
         bar: ClaimingColumn,
         context: RenderContext
     ) -> (
@@ -2569,6 +2571,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let palette = context.environment.palette
         let style = context.environment.listStyle
         let contentHeight = bar.count
+        let (contentRowWidth, rowLayoutWidth) = widths
 
         // Content-only row lines. The bar cell is merged in at the END, keyed by
         // absolute line index, so an overscroll slide moves the rows and leaves
@@ -2598,7 +2601,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 row: row,
                 at: rowIndex,
                 state: state,
-                rowWidth: contentRowWidth,
+                rowWidth: rowLayoutWidth,
                 contentRowIndex: contentRowIndex,
                 style: style,
                 context: context,
@@ -2925,6 +2928,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // borderless title shifted every titled one down a row.)
 
         publishRowBands(state: state)
+        attachIndicatorHoverObserver(to: &buffer, handler: state.handler, dispatcher: mouseDispatcher, context: context)
 
         // The scrollbar's own handler goes in first so the container's later
         // insert(at: 0) pushes it to a higher index — hit-tested ahead of the
