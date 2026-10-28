@@ -4322,6 +4322,17 @@ size, not per frame.
 > application those bytes arrive on **stdin**, where the input parser reads
 > them as keystrokes. Anything on a render path sets `q=2`.
 
+### Pixels of another aspect than their placeholder box — filmed 2026-10-28, Ghostty 1.3.1 and iTerm2 3.7.3
+
+A Unicode-placeholder placement (`a=p,U=1,c=…,r=…`) of pixels whose aspect is
+not the box's is fitted to the box with the pixels' aspect kept and centred,
+in both: the part of the box the picture does not cover shows the cells'
+own ground (the page's background, in the filmed scene), with no artefact at
+the picture's edge. TUI relies on it for `.scaledToFit()` pictures, sent at
+their own aspect (`Terminal graphics protocols.md`, §8, PICTURE-ASPECT).
+Filmed with `Tools/ScreenClips --child aspectreview`; kitty and WezTerm not yet
+checked.
+
 ### A line on a row boundary: Kitty classic placements — measured 2026-10-08, Ghostty 1.3.1 and iTerm2 3.7.3
 
 Every separator TUI draws between rows costs a whole row:

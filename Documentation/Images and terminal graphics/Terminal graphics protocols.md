@@ -712,6 +712,35 @@ in the old layout. Found filming the Navigation README clip; pinned by
 is still owed is not handed out again until it is written, and a `SIGQUIT`'s
 farewell deletes those too.
 
+**A picture is sent at the aspect its mode asks for, so its box rounding to
+whole cells never distorts it (2026-10-28, the owner's PICTURE-ASPECT).** A
+picture's cell box is whole cells, so its aspect is the picture's only to
+within a cell, and it moves at nearly every step of a resize. Pixels sent at
+the box's aspect fill it, which stretched the picture a little, differently at
+every size; pixels kept from an earlier box were letterboxed by the terminal,
+which fits pixels to a box with their aspect kept, so one box drew a picture
+at two sizes by what it had been drawn in before (the Galago stretch, found
+filming the Navigation README clip). Filmed side by side
+(`ScreenClips --child aspectreview`, four ways), the owner chose the picture's
+own aspect: a face must not fatten or thin as it resizes. So the pixels sent
+follow the content mode (`_ImageCore.PixelFit`):
+
+- **`.scaledToFit()`, and a picture at its natural size:** the picture's own
+  aspect. The terminal fits it to the box and centres it, leaving up to half a
+  cell on one axis showing the page (Ghostty 1.3.1 and iTerm2 3.7.3, filmed:
+  the page's ground, nothing else). Kept pixels draw every box alike, so a
+  shrink sends nothing and a growth is sent at twice the box: the same sends
+  as before, each no larger.
+- **`.scaledToFill()`:** the box's aspect, the picture cropped to it, centred
+  (`TerminalImageSignature.cropsToFill`): the box covered edge to edge, nothing
+  distorted — the choice for a background or a picture that must meet a border.
+- **`.resizable()` with no aspect ratio:** the box's aspect, stretched, as
+  asked.
+
+Kept pixels are placed in a new box only where they draw it within a pixel of
+a fresh send (`_ImageCore.drawsAlike`), which own-aspect pixels always do and
+cropped or stretched ones do only in a box of their aspect.
+
 ---
 
 ## 9. Reproducing all of it

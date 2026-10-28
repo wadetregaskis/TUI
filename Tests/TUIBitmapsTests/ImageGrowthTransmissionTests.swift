@@ -26,7 +26,9 @@ struct ImageGrowthTransmissionTests {
 
     /// One view's picture drawn at each width in turn, in one context, as an
     /// animation's frames draw it: what each frame owed the terminal.
-    private func frames(_ image: RGBAImage, path: String, widths: [Int]) -> [String] {
+    private func frames(
+        _ image: RGBAImage, path: String, widths: [Int], contentMode: ContentMode = .fit
+    ) -> [String] {
         let tui = TUIContext(
             lifecycle: LifecycleManager(firesEffects: false),
             keyEventDispatcher: KeyEventDispatcher(),
@@ -37,6 +39,7 @@ struct ImageGrowthTransmissionTests {
         environment.applyRuntimeServices(from: tui)
         environment.imageCellAspect = 2.0
         environment.imageCellPixels = TerminalCellPixels(width: 8, height: 16)
+        environment.imageContentMode = contentMode
         let identity = ViewIdentity(path: "Root")
         let phase: StateBox<ImageLoadingPhase> = tui.stateStorage.storage(
             for: StateStorage.StateKey(identity: identity, propertyIndex: 0), default: .loading)
@@ -87,9 +90,67 @@ struct ImageGrowthTransmissionTests {
         let owed = KittyGraphics.withSupport(true) {
             frames(image, path: path, widths: [8, 10])
         }
-        // Twice the second box is 160 × 96 pixels; the picture has 100 × 50,
-        // and one factor clamps both, so the height binds: 83 × 50.
+        // Twice the second box is 160 × 96 pixels, more than the picture's
+        // own 100 × 50 on both axes: it is sent whole, at its own aspect.
         let size = owed[1].firstMatch(of: /a=t,[^;]*?s=(\d+),v=(\d+)/)
-        #expect(size.map { "\($0.1)×\($0.2)" } == "83×50", "got \(owed[1].prefix(60))")
+        #expect(size.map { "\($0.1)×\($0.2)" } == "100×50", "got \(owed[1].prefix(60))")
+    }
+
+    /// The resolutions each transmission in `owed` sent.
+    private func sentSizes(_ owed: [String]) -> [(width: Int, height: Int)] {
+        owed.flatMap { pending in
+            pending.matches(of: /a=t,[^;]*?s=(\d+),v=(\d+)/).compactMap { match in
+                Int(match.1).flatMap { width in Int(match.2).map { (width, $0) } }
+            }
+        }
+    }
+
+    /// A fitted picture is sent at its own aspect at every size, so the
+    /// terminal draws it undistorted in every box, whatever the box's whole
+    /// cells round to (the owner's PICTURE-ASPECT, 2026-10-28).
+    @Test("A fitted picture is always sent at its own aspect")
+    func fittedKeepsItsAspect() throws {
+        let (image, path) = try load(width: 400, height: 200)
+        let owed = KittyGraphics.withSupport(true) {
+            frames(image, path: path, widths: Array(stride(from: 9, through: 31, by: 2)))
+        }
+        let sizes = sentSizes(owed)
+        try #require(!sizes.isEmpty)
+        #expect(sizes.allSatisfy { abs($0.width - 2 * $0.height) <= 1 }, "\(sizes)")
+    }
+
+    /// One box draws the picture the same whatever it was drawn in before: a
+    /// 28-column box after a 30-column one sends what a fresh 28-column box
+    /// would draw, at the picture's own aspect either way.
+    @Test("A box draws a fitted picture the same whatever came before")
+    func sameBoxDrawsTheSame() throws {
+        let (image, path) = try load(width: 400, height: 200)
+        let history = KittyGraphics.withSupport(true) { frames(image, path: path, widths: [30, 28]) }
+        let fresh = KittyGraphics.withSupport(true) { frames(image, path: path, widths: [28]) }
+        let kept = try #require(sentSizes(history).last)
+        let sentFresh = try #require(sentSizes(fresh).last)
+        // Both at the picture's aspect, so the terminal fits them to the box
+        // alike.
+        #expect(abs(kept.width * sentFresh.height - sentFresh.width * kept.height) <= max(kept.width, sentFresh.width))
+    }
+
+    /// A filled picture covers its box: sent at the box's aspect — the picture
+    /// cropped to it, not stretched — so the terminal fills the box edge to
+    /// edge. 8 × 16 pixels a cell.
+    @Test("A filled picture is sent at its box's aspect, cropped")
+    func filledCoversItsBox() throws {
+        let (image, path) = try load(width: 400, height: 200)
+        for width in [9, 11, 13] {
+            let owed = KittyGraphics.withSupport(true) {
+                frames(image, path: path, widths: [width], contentMode: .fill)
+            }
+            let sent = try #require(sentSizes(owed).first)
+            let box = try #require(owed.first?.firstMatch(of: /a=p,U=1[^\u{1B}]*?c=(\d+),r=(\d+)/))
+            let (columns, rows) = (Int(box.1) ?? 0, Int(box.2) ?? 0)
+            // Within a pixel of the box's own aspect, 8 × 16 pixels a cell.
+            #expect(
+                abs(sent.width * rows * 16 - sent.height * columns * 8) <= max(columns * 8, rows * 16),
+                "box \(columns)×\(rows) cells, sent \(sent)")
+        }
     }
 }

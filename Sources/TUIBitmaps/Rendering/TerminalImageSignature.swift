@@ -117,6 +117,12 @@ struct TerminalImageSignature: Equatable {
     /// is rare, where leaving it out of the modes that do name one would be a
     /// picture that never updates.
     var terminalColors: TerminalColors
+
+    /// Whether the pixels are the picture cut to their own aspect, centred —
+    /// what `.scaledToFill()` sends so that they cover its box with the
+    /// picture's aspect kept — rather than the whole picture. The same picture
+    /// at one resolution is different pixels cropped or not.
+    var cropsToFill = false
 }
 
 extension TerminalImageSignature {

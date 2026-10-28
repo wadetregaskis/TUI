@@ -25,6 +25,34 @@ extension RGBAImage {
         return RGBAImage(width: columns, height: rows, pixels: out)
     }
 
+    /// The image cut to the aspect of `width` × `height`, centred — the part a
+    /// box of that aspect shows of it when filled with its own aspect kept, as
+    /// `.scaledToFill()` fills one. Itself where it already has that aspect.
+    func centreCropped(toAspectOf width: Int, _ height: Int) -> RGBAImage {
+        let (columns, rows) = croppedSize(toAspectOf: width, height)
+        guard columns != self.width || rows != self.height else { return self }
+        let left = (self.width - columns) / 2
+        let top = (self.height - rows) / 2
+        var out: [RGBA] = []
+        out.reserveCapacity(columns * rows)
+        for row in top..<(top + rows) {
+            let start = row * self.width + left
+            out.append(contentsOf: pixels[start..<(start + columns)])
+        }
+        return RGBAImage(width: columns, height: rows, pixels: out)
+    }
+
+    /// The size of ``centreCropped(toAspectOf:_:)``, worked out without
+    /// copying a pixel.
+    func croppedSize(toAspectOf width: Int, _ height: Int) -> (width: Int, height: Int) {
+        guard width > 0, height > 0, self.width > 0, self.height > 0 else { return (self.width, self.height) }
+        let wanted = Double(width) / Double(height)
+        let own = Double(self.width) / Double(self.height)
+        if own > wanted { return (max(1, Int((Double(self.height) * wanted).rounded())), self.height) }
+        if own < wanted { return (self.width, max(1, Int((Double(self.width) / wanted).rounded()))) }
+        return (self.width, self.height)
+    }
+
     /// The image in nine slices, made to fill `columns` × `rows` cells: its
     /// caps at its natural size (``_ImageResizing/sliceBox``), or at the scale
     /// the whole image fits those cells at where that is unknown, and the edges

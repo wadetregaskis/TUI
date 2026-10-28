@@ -56,16 +56,85 @@ extension _ImageCore {
     ///
     /// Clamped by a single factor rather than per axis, so a source whose
     /// aspect differs from the box is not stretched on the way out.
-    static func pixelSize(
+    nonisolated static func pixelSize(
         of rawImage: RGBAImage, fitting wanted: (width: Int, height: Int)
     ) -> (width: Int, height: Int) {
-        let widthShrink = Double(rawImage.width) / Double(max(1, wanted.width))
-        let heightShrink = Double(rawImage.height) / Double(max(1, wanted.height))
+        pixelSize(of: (rawImage.width, rawImage.height), fitting: wanted)
+    }
+
+    /// ``pixelSize(of:fitting:)`` for a picture of `source` pixels.
+    nonisolated static func pixelSize(
+        of source: (width: Int, height: Int), fitting wanted: (width: Int, height: Int)
+    ) -> (width: Int, height: Int) {
+        let widthShrink = Double(source.width) / Double(max(1, wanted.width))
+        let heightShrink = Double(source.height) / Double(max(1, wanted.height))
         let shrink = min(1.0, min(widthShrink, heightShrink))
         return (
             max(1, Int((Double(wanted.width) * shrink).rounded())),
             max(1, Int((Double(wanted.height) * shrink).rounded()))
         )
+    }
+
+    /// Whether pixels `kept`, which the terminal fits to a box of `box`
+    /// pixels with their aspect kept and centres, draw within a pixel of
+    /// where pixels `fresh` would, on both axes: the same box must draw the
+    /// picture the same way, whatever it was drawn in before.
+    nonisolated static func drawsAlike(
+        _ kept: (width: Int, height: Int), _ fresh: (width: Int, height: Int), in box: (width: Int, height: Int)
+    ) -> Bool {
+        func fitted(_ pixels: (width: Int, height: Int)) -> (width: Double, height: Double) {
+            let width = Double(max(1, pixels.width))
+            let height = Double(max(1, pixels.height))
+            let scale = min(Double(box.width) / width, Double(box.height) / height)
+            return (width * scale, height * scale)
+        }
+        let keptDrawn = fitted(kept)
+        let freshDrawn = fitted(fresh)
+        return abs(keptDrawn.width - freshDrawn.width) <= 1 && abs(keptDrawn.height - freshDrawn.height) <= 1
+    }
+
+    /// How a picture's pixels are fitted to its cell box. The box is whole
+    /// cells, so its aspect is the picture's only to within a cell, and the
+    /// pixels sent decide what that rounding does to the picture (the
+    /// owner's PICTURE-ASPECT, 2026-10-28):
+    enum PixelFit: Equatable {
+        /// The picture's own aspect, never distorted: the terminal fits it to
+        /// the box with its aspect kept, leaving up to half a cell blank on one
+        /// axis, the page's ground. `.scaledToFit()`, and a picture at its
+        /// natural size.
+        case ownAspect
+        /// The box's aspect, the picture cropped to it, centred, at its own
+        /// aspect: the box covered edge to edge with nothing distorted.
+        /// `.scaledToFill()`.
+        case crop
+        /// The box's aspect, the picture stretched to it: what a `.resizable()`
+        /// picture with no aspect ratio asks for.
+        case stretch
+
+        init(stretches: Bool, contentMode: ContentMode) {
+            self = stretches ? .stretch : contentMode == .fill ? .crop : .ownAspect
+        }
+
+        /// The pixels to send for a box of `wanted` pixels, never more than
+        /// the picture (or the part of it a crop keeps) has.
+        func pixels(of image: RGBAImage, fitting wanted: (width: Int, height: Int)) -> (width: Int, height: Int) {
+            switch self {
+            case .stretch:
+                return _ImageCore.pixelSize(of: image, fitting: wanted)
+            case .crop:
+                return _ImageCore.pixelSize(of: image.croppedSize(toAspectOf: wanted.width, wanted.height), fitting: wanted)
+            case .ownAspect:
+                // In steps: as one expression the type-check guard times out.
+                let imageWidth = Double(image.width)
+                let imageHeight = Double(image.height)
+                let acrossScale = Double(max(1, wanted.width)) / imageWidth
+                let downScale = Double(max(1, wanted.height)) / imageHeight
+                let scale: Double = min(1.0, min(acrossScale, downScale))
+                let width: Int = max(1, Int((imageWidth * scale).rounded()))
+                let height: Int = max(1, Int((imageHeight * scale).rounded()))
+                return (width, height)
+            }
+        }
     }
 
     func renderWithTerminalGraphics(
@@ -144,7 +213,8 @@ extension _ImageCore {
         // to the same pixels are the same picture, and the store answers the
         // second with a placement instead of megabytes.
         let token = "image-\(context.identity.path)"
-        let boxPixels = Self.pixelSize(of: rawImage, fitting: (wantedWidth, wantedHeight))
+        let fit = PixelFit(stretches: stretches, contentMode: context.environment.imageContentMode)
+        let boxPixels = fit.pixels(of: rawImage, fitting: (wantedWidth, wantedHeight))
         var signature = TerminalImageSignature(
             source: source,
             rawWidth: rawImage.width, rawHeight: rawImage.height,
@@ -152,7 +222,7 @@ extension _ImageCore {
             colorMode: colorMode, toneCurve: toneCurve,
             edgeContrast: edgeContrast, dithering: dithering,
             monoInk: mono.ink, monoPaper: mono.paper,
-            terminalColors: TerminalColors.current)
+            terminalColors: TerminalColors.current, cropsToFill: fit == .crop)
         // A picture whose box changes — a frame animating it, a zoom growing
         // it, a window dragged — was sent again at every new size, half a
         // megabyte a frame for a photo growing into a screen: the frames came
@@ -162,11 +232,21 @@ extension _ImageCore {
         // the terminal fitting it), and where it has too few — the picture
         // grew — it is sent once at twice what the box wants, so a growth
         // costs a send or two, not one a frame.
-        if let held = store.signature(heldBy: token) as? TerminalImageSignature, held.isResample(of: signature) {
-            if held.pixelWidth >= signature.pixelWidth, held.pixelHeight >= signature.pixelHeight {
+        //
+        // Kept only where the kept pixels draw the box as a fresh send would
+        // (``drawsAlike(_:_:in:)``): the terminal fits pixels to a box with
+        // their aspect kept, so pixels of the picture's own aspect (`.fit`, the
+        // owner's PICTURE-ASPECT, 2026-10-28) draw every box alike, and pixels
+        // cropped or stretched to one box's aspect draw another's with bars.
+        if let held = store.signature(heldBy: token) as? TerminalImageSignature, held.isResample(of: signature),
+            Self.drawsAlike(
+                (held.pixelWidth, held.pixelHeight), (signature.pixelWidth, signature.pixelHeight),
+                in: (wantedWidth, wantedHeight))
+        {
+            if held.pixelWidth >= signature.pixelWidth - 1, held.pixelHeight >= signature.pixelHeight - 1 {
                 (signature.pixelWidth, signature.pixelHeight) = (held.pixelWidth, held.pixelHeight)
             } else {
-                let grown = Self.pixelSize(of: rawImage, fitting: (wantedWidth * 2, wantedHeight * 2))
+                let grown = fit.pixels(of: rawImage, fitting: (wantedWidth * 2, wantedHeight * 2))
                 (signature.pixelWidth, signature.pixelHeight) = (grown.width, grown.height)
             }
         }
@@ -184,9 +264,12 @@ extension _ImageCore {
                     let converter = ASCIIConverter(
                         colorMode: colorMode, dithering: dithering,
                         toneCurve: toneCurve, edgeContrast: edgeContrast)
+                    // A filled picture is the part of it its box shows, at
+                    // its own aspect; any other, the whole picture.
+                    let source = fit == .crop ? rawImage.centreCropped(toAspectOf: pixelWidth, pixelHeight) : rawImage
                     let packed = Self.pixelBytes(
                         converter.recoloured(
-                            rawImage, width: pixelWidth, height: pixelHeight,
+                            source, width: pixelWidth, height: pixelHeight,
                             monoInk: mono.ink, monoPaper: mono.paper))
                     return (packed.bytes, packed.format, pixelWidth, pixelHeight)
                 })
