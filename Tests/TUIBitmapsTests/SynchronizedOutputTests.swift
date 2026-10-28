@@ -230,17 +230,59 @@ struct SynchronizedOutputTests {
         #expect(bytes.hasSuffix(Self.end))
         #expect(bytes.components(separatedBy: Self.begin).count == 2, "held once")
     }
+
+    /// A picture that changes — another photo after a navigation, the same one
+    /// at the resolution a new box needs — is swapped in one held update: the
+    /// new one transmitted under an id of its own ahead of the hold, and the
+    /// old one deleted inside it, after the cells that stop naming it. Until
+    /// 2026-10-27 the old one was deleted first and the new one sent on the
+    /// same id, all ahead of the hold: blank for as long as the bytes took to
+    /// travel, and then the new picture for a frame in the old layout (found
+    /// filming the Navigation README clip).
+    @Test("A picture that changes is transmitted ahead of the hold, and the old one deleted inside it after the cells")
+    func renderLoopSwapsAPictureInsideTheHold() throws {
+        let (terminal, output) = ScriptedTerminalOutput.terminal()
+        let harness = RenderLoopHarness()
+        let ramp = Ramp()
+        let loop = harness.loop(PictureApp(ramp: ramp), on: terminal)
+        KittyGraphics.withSupport(true) { _ = loop.render() }
+        let first = try #require(output.bytes.firstMatch(of: /a=t,[^\u{1B}]*?i=(\d+)/)?.1)
+
+        output.clear()
+        ramp.end = .rgb(0, 255, 0)
+        KittyGraphics.withSupport(true) { _ = loop.render() }
+        let bytes = output.bytes
+        let transmission = try #require(bytes.range(of: "a=t,"), "the new picture is sent")
+        let second = try #require(bytes.firstMatch(of: /a=t,[^\u{1B}]*?i=(\d+)/)?.1)
+        #expect(second != first, "on an id of its own")
+        let hold = try #require(bytes.range(of: Self.begin))
+        let firstMove = try #require(bytes.range(of: "\u{1B}\\[[0-9]+;[0-9]+H", options: .regularExpression))
+        let delete = try #require(bytes.range(of: "a=d,d=I,q=2,i=\(first)\u{1B}"), "the old picture is deleted")
+        #expect(transmission.upperBound <= hold.lowerBound, "the bytes travel before the hold")
+        #expect(hold.upperBound <= firstMove.lowerBound)
+        #expect(firstMove.upperBound <= delete.lowerBound, "the delete comes after the cells, inside the hold")
+        #expect(bytes.components(separatedBy: "a=d").count == 2, "one delete, nothing else deleted")
+        #expect(bytes.hasSuffix(Self.end))
+    }
+}
+
+/// The far end of ``PictureApp``'s ramp, which a test changes between frames
+/// to change the picture.
+private final class Ramp {
+    var end: Color = .rgb(0, 0, 255)
 }
 
 /// A picture above a line of text: a frame of several rows that transmits an
 /// image where the terminal draws them.
 private struct PictureApp: App {
-    init() {}
+    let ramp: Ramp
+    init() { ramp = Ramp() }
+    init(ramp: Ramp) { self.ramp = ramp }
     var body: some Scene {
         WindowGroup {
             VStack(spacing: 0) {
                 LinearGradient(
-                    colors: [.rgb(255, 0, 0), .rgb(0, 0, 255)], startPoint: .leading, endPoint: .trailing
+                    colors: [.rgb(255, 0, 0), ramp.end], startPoint: .leading, endPoint: .trailing
                 )
                 .frame(width: 10, height: 2)
                 Text("below")

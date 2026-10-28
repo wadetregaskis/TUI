@@ -695,6 +695,23 @@ three bytes a pixel instead of four. It also deletes by id when the view goes aw
 which is the one genuinely new resource TUI now owns — nothing in the
 terminal will free it otherwise.
 
+**A picture that changes is swapped, never blanked (2026-10-27).** A view that
+moves on to a different picture — another photo after a navigation, or the
+same one at the resolution a new box needs — gets it under a fresh id: the
+new bytes travel ahead of the frame's synchronized-update hold, as every
+transmission does, and the old image's delete is written inside the hold,
+after the cells that stop naming it (`TerminalImageStore.takeDeletes()`). The
+old picture stays on screen until the frame that replaces it is shown whole.
+Until then the store deleted the old image first and sent the new one on the
+same id, all ahead of the hold: the picture was blank for as long as the
+bytes took to arrive — 2.5 s for a 720×550 photo while a split view's divider
+was dragged, about 90 ms for a navigation's new photo — and then, as the
+cells were unchanged (same id, same box), the new picture drew for a frame
+in the old layout. Found filming the Navigation README clip; pinned by
+`SynchronizedOutputTests` and `TerminalImageStoreTests`. An id whose delete
+is still owed is not handed out again until it is written, and a `SIGQUIT`'s
+farewell deletes those too.
+
 ---
 
 ## 9. Reproducing all of it

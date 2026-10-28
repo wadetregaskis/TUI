@@ -6603,6 +6603,15 @@ content). Adopted from Ghostty's VT reference
   bytes more per such frame. The transmissions stay outside because they draw
   nothing and can be megabytes, which inside a hold could outlast Ghostty's
   limit on one (below). An animation tick's frame is held by the same rule.
+- **Image deletes go inside the hold, after the cells** (since 2026-10-27): a
+  picture that changes is sent under a fresh id ahead of the hold, and the
+  old one deleted after the cells that stop naming it, so the swap is shown
+  in one update rather than as a blank while the new bytes travel
+  (`TerminalImageStore.takeDeletes()`; `Terminal graphics protocols.md`
+  §8.6). That a host defers a graphics delete's effect on screen to the
+  hold's end, as it does a cell's, is read from what the mode promises (the
+  display, not the parser, is held) and NOT yet measured on any host; where
+  a frame is not held, the delete still follows the cells.
 - **Any other frame is not**: one row (a focus breath, a caret's blink, a
   spinner) cannot tear, and a frame that writes nothing sends nothing. The
   begin marker is reserved in the frame buffer and skipped when unused, so

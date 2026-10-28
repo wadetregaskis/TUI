@@ -51,6 +51,7 @@ struct TerminalImageStoreTests {
         #expect(pending.contains("a=t,q=2,f=32,t=d,s=8,v=8"))
         #expect(pending.contains("a=p,U=1,q=2"))
         #expect(!pending.contains("a=d"), "nothing to delete on a first draw")
+        #expect(store.takeDeletes().isEmpty)
         #expect(store.takePending().isEmpty, "taking it clears it")
         #expect(store.imageCount == 1)
     }
@@ -81,26 +82,31 @@ struct TerminalImageStoreTests {
     /// old one has to go — the leak that would otherwise happen once per drag
     /// of a window edge. A resize that does not change the resolution is the
     /// test below this one, and costs no bytes at all.
-    @Test("A resize to a new resolution deletes the old image before transmitting the new")
+    ///
+    /// The new one goes under a FRESH id, and the old one's delete waits for
+    /// the frame's cells (``TerminalImageStore/takeDeletes()``). Until
+    /// 2026-10-27 the old image was deleted first and the new one sent on the
+    /// same id, all ahead of the frame: the picture was blank for as long as
+    /// the bytes took to travel (2.5 s for a photo, seen filming the
+    /// Navigation README clip).
+    @Test("A resize to a new resolution sends the new image under a fresh id, and deletes the old after the cells")
     func resizeReplacesRatherThanAccumulates() {
         let store = TerminalImageStore()
-        _ = store.placeholderRows(
+        let before = store.placeholderRows(
             token: "a", signature: signature("a"), columns: 4, rows: 2,
             pixels: { (pixels(64), .rgba, 8, 8) })
         _ = store.takePending()
 
-        _ = store.placeholderRows(
+        let after = store.placeholderRows(
             token: "a", signature: signature("a", pixelWidth: 16, pixelHeight: 16),
             columns: 8, rows: 4, pixels: { (pixels(256), .rgba, 16, 16) })
         let pending = store.takePending()
-        #expect(pending.contains("a=d,d=I"), "the old bytes are freed")
-        #expect(pending.contains("s=16,v=16"), "…and the new ones sent")
+        #expect(pending.contains("s=16,v=16,i=2"), "the new bytes are sent, on an id of their own")
+        #expect(!pending.contains("a=d"), "nothing is deleted ahead of the frame's cells")
+        #expect(store.takeDeletes() == KittyGraphics.delete(id: 1), "the old bytes are freed after them")
+        #expect(store.takeDeletes().isEmpty, "taking them clears them")
         #expect(store.imageCount == 1, "one view still holds exactly one image")
-        // The delete comes first: transmitting over a live id is documented to
-        // replace it, but only one terminal has been measured doing so.
-        let deleteAt = pending.range(of: "a=d,d=I")?.lowerBound
-        let transmitAt = pending.range(of: "a=t,")?.lowerBound
-        #expect(deleteAt != nil && transmitAt != nil && deleteAt! < transmitAt!)
+        #expect(before?.first != after?.first, "the cells name the new id, so the frame writes them")
     }
 
     /// The point of splitting the signature: a box change that resamples to
@@ -170,12 +176,13 @@ struct TerminalImageStoreTests {
         _ = store.takePending()
 
         store.release(token: "a")
-        #expect(store.takePending().contains("a=d,d=I"))
+        #expect(store.takeDeletes().contains("a=d,d=I"))
         #expect(store.imageCount == 0)
         // Releasing something that was never there is not an error and sends
         // nothing — a disappear handler runs for views that never drew.
         store.release(token: "never")
         #expect(store.takePending().isEmpty)
+        #expect(store.takeDeletes().isEmpty)
     }
 
     @Test("Two views get two ids")
@@ -261,10 +268,10 @@ struct TerminalImageStoreTests {
         #expect(pending.components(separatedBy: "a=t,").count - 1 == 1)
         // The first to leave frees nothing; the last frees the image.
         store.release(token: "a")
-        #expect(store.takePending().isEmpty, "b is still drawing it")
+        #expect(store.takeDeletes().isEmpty, "b is still drawing it")
         #expect(store.imageCount == 1)
         store.release(token: "b")
-        #expect(store.takePending().contains("a=d,d=I"))
+        #expect(store.takeDeletes().contains("a=d,d=I"))
         #expect(store.imageCount == 0)
     }
 
@@ -283,11 +290,11 @@ struct TerminalImageStoreTests {
         let pending = store.takePending()
         #expect(moved?.count == 4)
         #expect(pending.contains("a=t,"), "a second image, transmitted")
-        #expect(!pending.contains("a=d"), "a still draws the first; nothing is deleted")
+        #expect(!pending.contains("a=d") && store.takeDeletes().isEmpty, "a still draws the first; nothing is deleted")
         #expect(store.imageCount == 2)
         // And b's old holding is gone: releasing a now frees the first image.
         store.release(token: "a")
-        #expect(store.takePending().contains("a=d,d=I"))
+        #expect(store.takeDeletes().contains("a=d,d=I"))
         #expect(store.imageCount == 1)
     }
 
@@ -303,17 +310,17 @@ struct TerminalImageStoreTests {
         _ = store.placeholderRows(
             token: "b", signature: signature("other"), columns: 4, rows: 2,
             pixels: { (pixels(64), .rgba, 8, 8) })
-        var pending = store.takePending()
-        #expect(!pending.contains("a=d"), "the shared picture stays for a")
+        let pending = store.takePending()
+        #expect(store.takeDeletes().isEmpty, "the shared picture stays for a")
         #expect(pending.contains("a=t,"))
         #expect(store.imageCount == 2)
-        // Now b is alone on "other": changing again frees it, on the same id.
+        // Now b is alone on "other": changing again frees it, after the
+        // frame's cells, and sends third on an id of its own.
         _ = store.placeholderRows(
             token: "b", signature: signature("third"), columns: 4, rows: 2,
             pixels: { (pixels(64), .rgba, 8, 8) })
-        pending = store.takePending()
-        #expect(pending.contains("a=d,d=I,q=2,i=2"), "other is freed…")
-        #expect(pending.contains("i=2,"), "…and its id reused for third")
+        #expect(store.takePending().contains("i=3,"), "third is sent on a fresh id…")
+        #expect(store.takeDeletes() == KittyGraphics.delete(id: 2), "…and other is freed")
         #expect(store.imageCount == 2)
     }
 
@@ -391,6 +398,7 @@ struct TerminalImageStoreTests {
         store.release(token: "t3")
         draw("t10", "s10")
         _ = store.takePending()
+        _ = store.takeDeletes()
 
         store.releaseAll()
         let deleted = store.takePending().components(separatedBy: "a=d,d=I,q=2,i=").dropFirst()
@@ -425,6 +433,14 @@ struct TerminalImageStoreTests {
         let held = store.generation
         store.release(token: "t1")
         #expect(store.generation != held, "taking one out changes it too")
+        // Its delete is owed after the frame's cells; until a frame writes it,
+        // a SIGQUIT owes it too, first.
+        #expect(
+            store.farewell()
+                == KittyGraphics.delete(id: 2) + KittyGraphics.delete(id: 1) + KittyGraphics.delete(id: 3))
+        let owed = store.generation
+        _ = store.takeDeletes()
+        #expect(store.generation != owed, "writing the deletes changes it as well")
         #expect(store.farewell() == KittyGraphics.delete(id: 1) + KittyGraphics.delete(id: 3))
         _ = store.takePending()
         store.releaseAll()

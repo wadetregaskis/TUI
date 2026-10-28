@@ -1239,6 +1239,12 @@ extension RenderLoop {
         let placedHairlines = hairlinesPrepared && hairlines.place(on: terminal, startRow: 1)
         // The pictures under the glyphs, likewise.
         let placedPictures = picturesPrepared && picturesUnderText.place(on: terminal, startRow: 1)
+        // The images this frame let go of, after the cells that stopped naming
+        // them and inside the same hold: a picture swapped for another goes in
+        // one held update, never blank in between. See
+        // `TerminalImageStore.takeDeletes()`.
+        let deletes = tuiContext.terminalImageStore.takeDeletes()
+        if !deletes.isEmpty { terminal.write(deletes) }
         parkCursor(
             at: insertionPointOnScreen(
                 in: buffer.hitTestRegions, width: terminalWidth, height: outputLines.count),

@@ -45,11 +45,11 @@ struct TerminalImageStoreHoldTests {
         store.hold(picturesIn: ["text " + rows[0], rows[1]], for: "zoom")
         store.release(token: "view")
         #expect(store.imageCount == 1, "the view went, the hold keeps its picture")
-        #expect(!store.takePending().contains("a=d"), "nothing deleted while held")
+        #expect(store.takeDeletes().isEmpty, "nothing deleted while held")
 
         store.release(token: "zoom")
         #expect(store.imageCount == 0)
-        #expect(store.takePending().contains("a=d"), "the hold's end deletes it")
+        #expect(store.takeDeletes().contains("a=d"), "the hold's end deletes it")
     }
 
     @Test("A new hold under the same token keeps what both hold and lets the rest go")
@@ -61,12 +61,13 @@ struct TerminalImageStoreHoldTests {
         store.release(token: "a")
         store.release(token: "b")
         _ = store.takePending()
+        _ = store.takeDeletes()
 
         store.hold(picturesIn: second, for: "zoom")
         #expect(store.imageCount == 1, "the first, held by nothing now, went")
-        let pending = store.takePending()
-        #expect(pending.components(separatedBy: "a=d").count == 2, "one delete: got \(pending.debugDescription)")
-        #expect(!pending.contains("a=t"), "the second was kept, not deleted and sent again")
+        let deletes = store.takeDeletes()
+        #expect(deletes.components(separatedBy: "a=d").count == 2, "one delete: got \(deletes.debugDescription)")
+        #expect(!store.takePending().contains("a=t"), "the second was kept, not deleted and sent again")
     }
 
     @Test("Lines with no picture hold nothing")

@@ -87,7 +87,8 @@ package protocol ImageStoreSignature: Equatable {
 ///   does not have, and sending a placement alone if it is one it does at a
 ///   size it was not told about.
 /// - **What do I still owe the terminal?** ``takePending()`` hands back the
-///   escapes that have to reach it before the frame those cells are in.
+///   escapes that have to reach it before the frame those cells are in, and
+///   ``takeDeletes()`` the deletes that go after them.
 /// - **What can go?** ``release(token:)``, from the view's disappear handler.
 ///
 /// ## One picture, many views
@@ -111,6 +112,21 @@ package protocol ImageStoreSignature: Equatable {
 /// draining at `beginFrame` is the seam. It also means a measure pass that
 /// renders (a Card measuring its container, a Table probing a multi-line
 /// cell) transmits nothing, because it never asks.
+///
+/// ## Why a picture that changes is never blank
+///
+/// A view that moves on to a different picture — another photo, or the same
+/// one at a resolution its new box needs — gets it under a FRESH id, and its
+/// old image is deleted only after the frame's cells stop naming it
+/// (``takeDeletes()``, which the run loop writes inside the frame's
+/// synchronized-update hold). Until 2026-10-27 the old image was deleted
+/// first and the new one sent on the same id, ahead of the hold: the picture
+/// was blank for as long as the new bytes took to travel — 2.5 s for a
+/// 720×550 photo while a split view's divider was dragged — and then the new
+/// picture drew for a frame in the old cells, in the old layout. Now the old
+/// picture stays on screen until the cells naming the new one replace it, in
+/// one held update.
+///
 /// ## Isolation
 ///
 /// `@unchecked Sendable`, exactly as `LifecycleManager` is, and for the same
@@ -185,6 +201,12 @@ package final class TerminalImageStore: @unchecked Sendable {
     /// is not sent again.
     private var scaledBoxes: [KittyGraphics.ImageID: (columns: Int, rows: Int)] = [:]
     private var pending = ""
+    /// The deletes owed after the frame's cells (``takeDeletes()``).
+    private var deletes = ""
+    /// The ids ``deletes`` names, in the order they were let go. Not handed
+    /// out again until the deletes are taken: a picture sent on one before
+    /// then would be deleted by them.
+    private var retiring: [KittyGraphics.ImageID] = []
     /// Copies of the pictures, changed for a translucent layer over them.
     private var derivedImages = DerivedImages()
     private var nextID: KittyGraphics.ImageID = 1
@@ -308,21 +330,19 @@ package final class TerminalImageStore: @unchecked Sendable {
             return images[id]?.cells
         }
 
-        // A picture the terminal does not have. The token's previous image is
-        // freed first if this was its only holder — reusing the id, so a view
-        // that changes picture every frame does not walk the id space.
-        var reusableID: KittyGraphics.ImageID?
+        // A picture the terminal does not have, sent under a FRESH id. The
+        // token's previous image is let go — deleted, if this was its only
+        // holder — but its delete waits for the frame's cells
+        // (``takeDeletes()``): the old picture stays on screen until the
+        // cells naming the new one replace it, rather than going blank while
+        // the new bytes travel. Never re-transmitted over the old id, either,
+        // which is documented to replace it but measured on one terminal of
+        // five; a fresh id never has to find out.
         if let previous = entries[token], images[previous] != nil {
-            // Delete first, on the same id. Re-transmitting over a live id
-            // is documented to replace it, but "documented to replace it"
-            // is a claim about five terminals of which one has been
-            // measured, and the cost of being wrong is an image store that
-            // grows every time a window is resized. Twenty bytes buys not
-            // having to find out.
-            if letGo(of: previous, by: token) { reusableID = previous }
+            letGo(of: previous, by: token)
             entries.removeValue(forKey: token)
         }
-        let id = reusableID ?? claimID()
+        let id = claimID()
         let cells = KittyGraphics.placeholderRows(id: id, columns: columns, rows: rows)
         guard !cells.isEmpty else { return nil }
 
@@ -417,7 +437,7 @@ package final class TerminalImageStore: @unchecked Sendable {
         backdrops.append((key, id))
         if backdrops.count > Self.backdropLimit {
             let oldest = backdrops.removeFirst()
-            for copy in derivedImages.forget(oldest.id) { pending += KittyGraphics.delete(id: copy) }
+            for copy in derivedImages.forget(oldest.id) { retire(copy) }
         }
         return id
     }
@@ -540,9 +560,12 @@ package final class TerminalImageStore: @unchecked Sendable {
     }
 
     /// Gives back every image, for a shutdown that wants to leave the terminal
-    /// as it found it.
+    /// as it found it: the deletes still owed after a frame's cells
+    /// (``takeDeletes()``) with them, as there is no frame to come.
     package func releaseAll() {
         pending += farewell()
+        deletes = ""
+        retiring.removeAll()
         images.removeAll()
         slots.removeAll()
         entries.removeAll()
@@ -558,7 +581,8 @@ package final class TerminalImageStore: @unchecked Sendable {
     ///
     /// In the order the images were put in, so a shutdown writes the same
     /// bytes on every run. A dictionary's order is not that: it changes from
-    /// one process to the next.
+    /// one process to the next. The images already let go whose deletes are
+    /// still owed (``takeDeletes()``) come first, in the order they went.
     ///
     /// What a `SIGQUIT` owes the terminal too, which skips the teardown that
     /// calls ``releaseAll()`` (`Terminal.quitFarewell`).
@@ -569,11 +593,11 @@ package final class TerminalImageStore: @unchecked Sendable {
         // in the order the backdrops were made.
         // Two statements: one expression of both took the type-check guard past
         // its limit.
-        var deletes: [KittyGraphics.ImageID] = images.values.sorted(by: { $0.arrival < $1.arrival }).flatMap {
+        var ids: [KittyGraphics.ImageID] = images.values.sorted(by: { $0.arrival < $1.arrival }).flatMap {
             [$0.id] + derivedImages.copyIDs(of: $0.id)
         }
-        for backdrop in backdrops { deletes += derivedImages.copyIDs(of: backdrop.id) }
-        for id in deletes {
+        for backdrop in backdrops { ids += derivedImages.copyIDs(of: backdrop.id) }
+        for id in retiring + ids {
             let delete = KittyGraphics.delete(id: id)
             guard farewell.utf8.count + delete.utf8.count <= limit else { break }
             farewell += delete
@@ -588,6 +612,26 @@ package final class TerminalImageStore: @unchecked Sendable {
     package func takePending() -> String {
         defer { pending = "" }
         return pending
+    }
+
+    /// The deletes owed to the terminal for the images this frame let go of,
+    /// and clears them.
+    ///
+    /// Written AFTER the frame's cells, inside its synchronized-update hold
+    /// (`RenderLoop.writeFrame`): the cells that stop naming an image replace
+    /// it on screen in the same held update that deletes it, so a picture
+    /// swapped for another is never blank in between. A delete written with
+    /// ``takePending()``, ahead of the hold, blanked the old picture for as
+    /// long as the new one's bytes took to arrive.
+    package func takeDeletes() -> String {
+        guard !retiring.isEmpty else { return "" }
+        defer {
+            deletes = ""
+            retiring.removeAll()
+            // What a SIGQUIT owes changes with it (``farewell(fitting:)``).
+            _generation += 1
+        }
+        return deletes
     }
 
     // MARK: - Filing
@@ -615,7 +659,7 @@ package final class TerminalImageStore: @unchecked Sendable {
         guard images[id] != nil else { return false }
         images[id]?.holders.remove(token)
         guard images[id]?.holders.isEmpty == true else { return false }
-        pending += KittyGraphics.delete(id: id)
+        retire(id)
         deleteCopies(of: id)
         derivedImages.forget(id)
         unfile(id)
@@ -624,9 +668,15 @@ package final class TerminalImageStore: @unchecked Sendable {
 
     /// Deletes every copy derived from picture `id` from the terminal.
     private func deleteCopies(of id: KittyGraphics.ImageID) {
-        for copy in derivedImages.copyIDs(of: id) {
-            pending += KittyGraphics.delete(id: copy)
-        }
+        for copy in derivedImages.copyIDs(of: id) { retire(copy) }
+    }
+
+    /// Owes the terminal a delete of image `id`, after the frame's cells
+    /// (``takeDeletes()``), and keeps the id from being handed out before
+    /// then.
+    private func retire(_ id: KittyGraphics.ImageID) {
+        deletes += KittyGraphics.delete(id: id)
+        retiring.append(id)
     }
 
     private func file(_ image: Image) {
@@ -657,7 +707,8 @@ package final class TerminalImageStore: @unchecked Sendable {
 
     /// The next id nothing is using.
     ///
-    /// Counts up and wraps, skipping ids in use and the two the startup
+    /// Counts up and wraps, skipping ids in use, ids whose deletes are still
+    /// owed (``takeDeletes()``), and the two the startup
     /// handshake borrows (``TerminalGraphicsQuery/probeID`` and
     /// ``TerminalGraphicsQuery/compressionProbeID``, the top of the range).
     /// Sixteen million ids and a handful of images means the wrap is
@@ -667,7 +718,11 @@ package final class TerminalImageStore: @unchecked Sendable {
         for _ in 0..<KittyGraphics.maximumImageID {
             let candidate = nextID
             nextID = candidate >= KittyGraphics.maximumImageID - 2 ? 1 : candidate + 1
-            if images[candidate] == nil, !derivedImages.isCopy(candidate), !isBackdrop(candidate) { return candidate }
+            if images[candidate] == nil, !derivedImages.isCopy(candidate), !isBackdrop(candidate),
+                !retiring.contains(candidate)
+            {
+                return candidate
+            }
         }
         return 1
     }

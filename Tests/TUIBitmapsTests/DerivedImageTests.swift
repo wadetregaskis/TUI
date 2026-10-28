@@ -99,8 +99,8 @@ struct DerivedImageTests {
         let copy = try #require(store.derived(picture, by: ImageTransform(blurs: true, toward: (0, 0, 0), fraction: 0)))
         _ = store.takePending()
         store.release(token: "a")
-        let pending = store.takePending()
-        #expect(pending.contains("a=d,d=I,q=2,i=\(picture.id)\u{1B}") && pending.contains("a=d,d=I,q=2,i=\(copy.id)\u{1B}"))
+        let deletes = store.takeDeletes()
+        #expect(deletes.contains("a=d,d=I,q=2,i=\(picture.id)\u{1B}") && deletes.contains("a=d,d=I,q=2,i=\(copy.id)\u{1B}"))
     }
 
     @Test("Translucent paint composited over a picture re-points the cells it covers")
