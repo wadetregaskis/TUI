@@ -186,6 +186,14 @@ private func layoutPriority(ofView view: any View) -> Double {
 @MainActor
 func minimumLength(of child: ChildView, horizontally: Bool, across: Int?, context: RenderContext) -> Int {
     if child.isSpacer { return child.spacerLength(along: horizontally ? .horizontal : .vertical) }
+    // A column offered no height answers none, whatever it holds: it clamps its
+    // children's total to the offer (`_VStackCore.clipSizeThatFits`). Answered
+    // without the measure, which walked the whole column below to come back with
+    // that zero — a quarter of `stateful`'s frame once columns shared their height
+    // (decisions A-LAYOUT-1).
+    if !horizontally, child.wrappedView is any ClampsHeightToOffer {
+        return statedMinimumLength(of: child, horizontally: false)
+    }
     let proposal = horizontally ? ProposedSize(width: 0, height: across) : ProposedSize(width: across, height: 0)
     let size = child.measure(proposal: proposal, context: context)
     return max(horizontally ? size.width : size.height, statedMinimumLength(of: child, horizontally: horizontally))
@@ -204,6 +212,17 @@ func statedMinimumLength(of child: ChildView, horizontally: Bool) -> Int {
     throughWrappers(child.wrappedView, as: (any StatesMinimumLength).self)?.statedMinimumLength(horizontally: horizontally)
         ?? 0
 }
+
+/// A view that, offered no height, answers none, whatever its content: the
+/// height it reports is clamped to the height it is offered. A `VStack` is one;
+/// a `.environment(_:_:)` around one changes nothing of its layout, so it is one
+/// too. ``minimumLength(of:horizontally:across:context:)`` answers such a
+/// view's vertical minimum without measuring it.
+@MainActor
+protocol ClampsHeightToOffer {}
+
+extension VStack: ClampsHeightToOffer {}
+extension EnvironmentModifier: ClampsHeightToOffer where Content: ClampsHeightToOffer {}
 
 /// A view with a minimum length of its own on either axis.
 @MainActor

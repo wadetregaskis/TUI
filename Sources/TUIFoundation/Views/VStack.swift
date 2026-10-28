@@ -493,7 +493,6 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             isFlexible: isFlexible,
             available: context.availableHeight,
             spacing: spacing,
-            shares: false,
             isSpacer: { children[$0].isSpacer },
             priorities: priorities,
             minimumSize: { minimumLength(of: children[$0], horizontally: false, across: nil, context: context) },

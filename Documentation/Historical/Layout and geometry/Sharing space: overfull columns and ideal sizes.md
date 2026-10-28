@@ -6,11 +6,10 @@ B-LAYOUT-6; deviations L14 (rows), the slated column half, L16.*
 
 ## In short
 
-A row shares its width among children of one priority by flexibility, as
-SwiftUI's does (L14, 2026-10-13). A column still places its children in order
-and cuts the trailing ones when it runs out of height: sharing was built,
-landed and reverted for its cost (up to +34%), and is waiting on making a
-child's minimum cheap to ask. A frame with an ideal width is exactly that wide
+A stack shares its length among children of one priority by flexibility, as
+SwiftUI's does: a row since 2026-10-13 (L14), a column since 2026-10-27, once a
+column's minimum height was answered without measuring it (A-LAYOUT-1; the
+first attempt cost up to +34% and was reverted). A frame with an ideal width is exactly that wide
 when offered no width; the ideal height is not yet honoured (L16).
 
 ## How it unfolded
@@ -28,34 +27,57 @@ when offered no width; the ideal height is not yet honoured (L16).
    (recommended: make the minimum cheap, then land, about two days). It was
    never answered, and has been on the open-decisions page again since
    2026-10-26.
+4. **2026-10-27, the owner: optimise, then decide.** A column offered no
+   height answers none, so its minimum needs no measure; answering it so took
+   `stateful` from +35% to +1.5%, and the column half landed (below).
 
 ## Where it stands
 
-Rows share; columns place in order; the ideal width is SwiftUI's, the ideal
-height not.
+Rows and columns share; the ideal width is SwiftUI's, the ideal height not.
 
 ## For a future reader
 
-- **The owner's ruling is "follow SwiftUI"**, and only the cost stands in the
-  way; with the perf rule (about 10% means optimise first), A-LAYOUT-1's
-  option 2 is the likely path. Two drawing fixes come with it: a squeezed
-  control of several lines in the middle of a column, and the squeezed inline
-  `Menu` (45e860b55 kept).
+- **A column's minimum height is free only because a column clamps to its
+  offer.** A container that stops doing so (one that reports its content's
+  full height offered nothing) must leave `ClampsHeightToOffer`, or the column
+  around it will squeeze it below what it draws.
 - **`tables-vstack` will never return to the base's time** when shared: it
-  draws all eight tables where in order it drew the first few. Judge it by
-  what it draws.
+  draws all eight tables where in order it drew the first few (+7.5%). Judge it
+  by what it draws.
 - **The ideal height** needs a measure-generation bit (six are left) and a
   flag for the drawing, as the width has; about half a day.
 
 ## The record
 
-### A-LAYOUT-1. A column shares an overfull height only once a child's minimum is cheap to ask
+### A-LAYOUT-1. A column shares an overfull height, its children's minimums answered cheaply
 
 *`VStack`, `VStackLayout`, `View.layoutPriority(_:)`; deviations, slated
 "A column places its children of one priority in order" (L14, the column
 half); your ruling of 2026-10-13, "follow SwiftUI"*
 
-Not landed. The column half of L14 (47171484d) was reverted by 2400f2948 for
+**Landed 2026-10-27** (the owner, that day: "optimise it this time", then
+decide). The cost was the minimum walk below; two changes removed it, neither
+of them option 2's memo:
+
+- **A column's minimum height is answered without measuring it.** Offered no
+  height a `VStack` answers none, whatever it holds, because it clamps its
+  children's total to its offer; so `minimumLength` returns its stated minimum
+  (a frame's `minHeight`, or 0) for any `ClampsHeightToOffer` view: a `VStack`,
+  and a `.environment(_:_:)` around one. That walk was 23.8% of a `stateful`
+  frame once shared (profile, `minimumLength` inclusive); after it, `stateful`
+  went from +35.1% to +2.5%.
+- **A `Table`'s height is flexible** (it was reported rigid, so a column never
+  offered it less): a separate commit, which lets the shared column squeeze a
+  table as SwiftUI's does instead of placing it whole.
+
+The final A/B against main (`ab_bench.py`, 4.5 s × 10, paired, 95% CI):
+`tables-vstack` +7.5% (inherent, below: all eight tables now draw),
+`stateful` +1.5%, `table-churn-wrapped` +0.8%, `kitchensink` +1.1%; every
+other scenario indistinguishable. Within the owner's tolerance (a few per
+cent), and `tables-vstack` is judged by what it draws.
+
+What follows is the record from before the ruling. The column half of L14
+(47171484d) was reverted by 2400f2948 for
 its A/B: `tables-vstack` +32%, `stateful` +34%, the table scenarios +11 to
 +24%. The lane re-applied it and counted, rather than timed, what it does per
 frame (`Stress --bench --cold`, a debug build, temporary counters, all

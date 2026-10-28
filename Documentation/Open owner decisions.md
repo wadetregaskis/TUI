@@ -37,7 +37,6 @@ been in force since 2026-10-18.
 |---|---|---|---|
 | A-WIDTHS-1 | What does an unidentified host claim for a conjunct: one cluster's width, or a width per code point? | 1 for now (clustered), then measure xterm and VTE (and kitty) with `advance_probe.py` before choosing. | Clustered. |
 | A-FB16-1 | A container's own size changes at once, where SwiftUI's frame glides (the unbuilt half of your FB16 (a′)). | 1 now (record positions-only as a deviation); 2 if the Example's section borders read badly. | Sizes jump. |
-| A-LAYOUT-1 | A column shares an overfull height only once a child's minimum is cheap to ask (the attempt cost +11 to +34%). | 2: make a child's minimum cheap to ask (a static witness), then land the sharing. | A column cuts its trailing children where SwiftUI squeezes them all. |
 | A-APPSTATE-1 | `LocalizationService.shared` goes with draw-time lookup (now landed). | (b): the locale is the language, as SwiftUI's is, built on LOCALE-B. | The shared service stays. |
 | A-APPSTATE-2 | Three more process-wide statics: the notification queue, the default store, the URL opener. | Exempt the default store and the URL opener (documented on the CLAUDE.md rule); make the notification queue per app later. | All three stay shared. |
 | A-CHURN-1 | Presume last frame's scrollbar (hysteresis), skipping the first measuring round? | As now: the round is exact, and with the early stop it costs a screenful. | As now. |
@@ -98,6 +97,7 @@ been in force since 2026-10-18.
 | A-FORMS-1 | 2: follow SwiftUI. | Done: a bare button in the control column (columns), at the row's leading edge (grouped). |
 | ENV-VARS | Rename `TUIKIT_` to `TUI_`. | Done (`af22656f9`). |
 | DRAG-SELECTION | The Mac's way: the whole selection; Shift-drag extends it first. | Done for the mouse, List and Table; the keyboard's Copy and carry still take one row. |
+| A-LAYOUT-1 | Optimise it, then decide. | Done: a column's minimum height is answered without measuring, and columns share (`stateful` +1.5%, `tables-vstack` +7.5% for drawing all eight tables). |
 
 ## Answered later on 2026-10-26
 

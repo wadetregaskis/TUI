@@ -242,6 +242,9 @@ final class GlidesSession: StressSession {
     /// `below` it started from and is going to, and whether a frame has drawn
     /// them anywhere else — part-way.
     private var bannerMove: (step: Int, from: Int, to: Int, seenPartWay: Bool, framesSeen: Int)?
+    /// The screen's height at the last check, and the step it last changed on.
+    private var screenHeight: Int?
+    private var resizedAt = -GlidesSession.settledAfter
     /// The rows from `above` to `below` on the last frame that drew both.
     private var bannerRows = 6
 
@@ -288,8 +291,24 @@ final class GlidesSession: StressSession {
         {
             return problem
         }
-        guard screen.contains(where: { $0.contains("tick \(model.tick)") }) else { return nil }
-        let landed = Part.allCases.filter { index - (changedAt[$0] ?? -Self.settledAfter) >= Self.settledAfter }
+        // A resize is a change of layout too: a column it squeezes moves the
+        // rows of its stacks (A-LAYOUT-1), and one with a glide in flight
+        // carries them there by that glide, so nothing counts as landed until
+        // the frames after a resize have played. The runner resizes; the
+        // screen's height is how the page sees it.
+        if screen.count != screenHeight {
+            if screenHeight != nil { resizedAt = index }
+            screenHeight = screen.count
+        }
+        let landed = Part.allCases.filter {
+            index - max(changedAt[$0] ?? -Self.settledAfter, resizedAt) >= Self.settledAfter
+        }
+        // The clock is the page's last row, but drawn is not the same as fitting:
+        // a column too short for the page squeezes its stacks (A-LAYOUT-1), so the
+        // banner's can lose its rows while the clock still shows.
+        guard screen.contains(where: { $0.contains("tick \(model.tick)") }),
+            screen.count >= rowsNeeded(landed: landed)
+        else { return nil }
         for part in landed {
             let isOn = model[keyPath: part.keyPath]
             if screen.contains(where: { $0.contains(part.marker) }) != isOn {
@@ -314,6 +333,17 @@ final class GlidesSession: StressSession {
             return "below is \(below - above) rows below above, with the banner \(model.banner ? "up" : "down")"
         }
         return nil
+    }
+
+    /// The rows the page takes, a part still playing counted at its taller end.
+    private func rowsNeeded(landed: [Part]) -> Int {
+        func on(_ part: Part) -> Bool { !landed.contains(part) || model[keyPath: part.keyPath] }
+        let column = 2 + (on(.detail) ? 2 : 0)
+        let card = 2 + (on(.card) ? 4 : 3)
+        let note = 2 + (on(.note) ? 1 : 0)
+        let banner = on(.banner) ? 7 : 3
+        let folds = 2 + (on(.fold) ? 2 : 0) + (on(.row) ? 3 : 2)
+        return 1 + column + 3 + card + note + banner + folds + 1
     }
 
     /// Notes the rows a frame drew the banner's stack across, and says what is
