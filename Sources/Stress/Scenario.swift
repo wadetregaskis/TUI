@@ -98,6 +98,7 @@ enum Scenarios {
         GeometryScenario.descriptor,
         CustomLayoutScenario.descriptor,
         TextWallScenario.descriptor,
+        TextEffectsScenario.descriptor,
         AnyViewStormScenario.descriptor,
         DashboardScenario.descriptor,
         FramedColumnsScenario.descriptor,
