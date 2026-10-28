@@ -115,6 +115,13 @@ so none can draw one app's change in another. What each still shares:
 CLAUDE.md rule with the caches of SINGLETON-CACHES; make the notification
 queue per app in a later lane, with the API change.
 
+**Answered 2026-10-27: all three stay shared.** The owner: the no-singletons
+rule exists so code stays testable and so parts of an app that want different
+things are not painted into a corner, and neither is a real issue for these
+three; making the notification queue per app would only make it harder to
+reach. Multi-client hosting in one process, the case that would change that,
+is tabled until an app asks. Recorded as exemptions on the CLAUDE.md rule.
+
 ### B-APPSTATE-1. A change with no view in hand asks the app whose work made it
 
 *`AmbientApp.renderState`, a task local in TUICore; `StoredKey.didChange()`,

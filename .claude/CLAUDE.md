@@ -40,6 +40,13 @@
     a name or an app), a place never changes once given, and it is bounded, so
     every test and app in the process can share it without one seeing
     another. A new interner of this kind still needs the owner's grant.
+  - And three process-wide statics (2026-10-27, A-APPSTATE-2): the
+    notification queue (`NotificationService.current`), the store
+    `@AppStorage` reads when none is named (`StorageDefaults.backend`, as
+    SwiftUI's is `UserDefaults.standard`) and the running app's URL opener
+    (`TerminalURLOpening.runLoopOpener`). One app runs per process, none of
+    them makes a test depend on another, and making them per app would only
+    make them harder to reach. Revisit if one starts doing either.
 - **Before implementing ANYTHING NEW: Search the codebase** for similar patterns, reusable code, existing solutions
 - Consolidate and reuse before adding new functions or types
 - "Reinventing the wheel" is a code smell: investigate why it exists first
