@@ -30,6 +30,13 @@ package protocol AppRenderState: AnyObject, Sendable {
     /// `transaction` in force for whatever it changed: the app may take it for
     /// a change whose own report carried none.
     func transactionScopeEnded(_ transaction: Transaction)
+
+    /// The language the app's scene states at its root (`\.locale`, as
+    /// `WindowGroup { … }.environment(\.locale, …)` sets it), as a language
+    /// code, for the words read in the app's work where no view is drawing —
+    /// the status bar's and menu bar's labels, undo titles, a button's title
+    /// read at its init — or `nil` where the root states the process's own.
+    var rootLanguage: String? { get }
 }
 
 // MARK: - Ambient App

@@ -164,6 +164,20 @@ interpolations is never scanned for placeholders, so `Text("100% done")` says
 
 ### Switch Language at Runtime
 
+An app's language is the `\.locale` at the root of its scene, as in SwiftUI:
+
+```swift
+WindowGroup { ContentView() }
+    .environment(\.locale, Locale(identifier: "de"))
+```
+
+Everything the scene draws reads its words in German — a `Text` or a
+`Button` made from a key, and also the words read where no view is drawing:
+the status bar's and the menu bar's labels, undo titles, a title read when a
+view is made. A subtree's own `.environment(\.locale, …)` still wins below it.
+Words read outside the app's work (on a queue of the app's own) are in the
+process's language, which `setLanguage(_:)` sets and keeps for the next run:
+
 ```swift
 LocalizationService.shared.setLanguage(.german)
 // UI automatically re-renders with German strings

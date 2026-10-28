@@ -58,6 +58,13 @@ extension RenderLoop {
         _ configuration: SceneConfiguration, commands: SceneCommands, to environment: inout EnvironmentValues
     ) {
         configuration.applyRootOverrides(to: &environment)
+        // The language the scene states at its root, where it states one
+        // (`WindowGroup { … }.environment(\.locale, …)`): what the app's words
+        // are read in where no view is drawing — the bars' labels, undo
+        // titles, a title read at an init (the owner's A-APPSTATE-1,
+        // 2026-10-28). `stringLanguage` is set exactly where a locale was
+        // written, so a scene that writes none leaves the process's.
+        tuiContext.appState.noteRootLanguage(environment.stringLanguage)
         // The app's undo and redo keys, which the scene may have set
         // (`.undoShortcuts`), resolved through its `\.commandKey`, for the keys
         // that arrive before the next frame. Rebuilt only when they changed.

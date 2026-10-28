@@ -445,9 +445,20 @@ public final class LocalizationService: @unchecked Sendable {
     /// languages the user asked for, or the one the app chose — as a code.
     /// What a `Text` made from a key notes it was read in, so that a subtree
     /// whose `\.locale` names another language can read it again in that one.
+    ///
+    /// In the app's work, the language its scene states at its root, where it
+    /// states one (``rootLanguage``).
     package var stringLanguage: String {
-        lock.withLock { lookupCodes[0] }
+        Self.rootLanguage ?? lock.withLock { lookupCodes[0] }
     }
+
+    /// The language the app whose work is under way states at its scene's
+    /// root (`\.locale`), where it states one other than the process's: what
+    /// a lookup with no language of its own is read in (the owner's
+    /// A-APPSTATE-1, 2026-10-28). `nil` outside every app's work, as on a
+    /// queue of the app's own, where words are read in the process's
+    /// language.
+    static var rootLanguage: String? { AmbientApp.renderState?.rootLanguage }
 
     /// `key` as ``string(for:swiftUIKey:tableName:bundle:)`` resolves it, and
     /// the language it was read in first, from one lock.
@@ -456,11 +467,14 @@ public final class LocalizationService: @unchecked Sendable {
     /// language reads it, as SwiftUI's `Text` does (measured 2026-10-18): in
     /// that language first, every place in turn, and then in English — where
     /// SwiftUI shows the key itself when the language's table lacks it
-    /// (Deliberate deviations E4). `nil`, or the service's own first language,
-    /// reads it as ``string(for:swiftUIKey:tableName:bundle:)`` does.
+    /// (Deliberate deviations E4). `nil` reads it in the language the app's
+    /// scene states at its root (``rootLanguage``), in the app's work, and
+    /// else, as the service's own first language does, as
+    /// ``string(for:swiftUIKey:tableName:bundle:)`` does.
     package func reading(
         _ key: String, swiftUIKey: String?, tableName: String?, bundle: Bundle?, in language: String?
     ) -> (text: String, language: String) {
+        let language = language ?? Self.rootLanguage
         lock.lock()
         defer { lock.unlock() }
         let own = lookupCodes[0]
@@ -566,10 +580,12 @@ public final class LocalizationService: @unchecked Sendable {
     ///
     /// With a `language`, it is read as a subtree whose `\.locale` names that
     /// language reads it, as ``reading(_:swiftUIKey:tableName:bundle:in:)``
-    /// reads an app's key: in that language first, then in English. `nil`, or
-    /// the service's own first language, reads it as ``frameworkString(for:)``
-    /// does.
+    /// reads an app's key: in that language first, then in English. `nil` reads
+    /// it in the root's language (``rootLanguage``) in the app's work, and
+    /// else, as the service's own first language does, as
+    /// ``frameworkString(for:)`` does.
     package func frameworkReading(_ key: String, in language: String?) -> (text: String, language: String) {
+        let language = language ?? Self.rootLanguage
         lock.lock()
         defer { lock.unlock() }
         let own = lookupCodes[0]

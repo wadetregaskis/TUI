@@ -43,6 +43,8 @@ public final class AppState: Sendable {
         var pendingAnimationClocks: Set<AnimationClock> = []
         var needsCacheClear = false
         var shouldExit = false
+        /// The language the scene states at its root (``rootLanguage``).
+        var rootLanguage: String?
         var observers: [@Sendable () -> Void] = []
         /// Whether an `@Observable` property a body read was written since
         /// the last frame with no transaction in force — so its observation
@@ -278,6 +280,28 @@ extension AppState {
 /// What code with no handle on its app reaches through `AmbientApp`: the
 /// requests above, of the app whose event, frame or task is running.
 extension AppState: AppRenderState {
+    /// The language the app's scene states at its root, as the run loop read
+    /// it on the last frame (``noteRootLanguage(_:)``), or `nil` for the
+    /// process's own. What `LocalizationService` reads the app's words in,
+    /// where no view is drawing (the owner's A-APPSTATE-1, 2026-10-28: the
+    /// app's language is the root `\.locale` of its scene).
+    package var rootLanguage: String? {
+        lock.withLock { $0.rootLanguage }
+    }
+
+    /// Notes the language the scene's root `\.locale` names this frame: `nil`
+    /// where it is the process's own. Written only on a change, which asks for
+    /// a frame drawn with an empty render cache, as a change of the process's
+    /// language does: what a memo kept was read in the language before.
+    package func noteRootLanguage(_ language: String?) {
+        let changed = lock.withLock { state in
+            guard state.rootLanguage != language else { return false }
+            state.rootLanguage = language
+            return true
+        }
+        if changed { setNeedsRenderWithCacheClear() }
+    }
+
     /// Marks state as changed by a write to an `@Observable` property a body
     /// read — what its observation reports, through the render cache's link —
     /// and notes when it was made with no transaction in force.

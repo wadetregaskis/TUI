@@ -228,3 +228,25 @@ empty other suites' memos mid-run (`LocalizedTitleTests`).
 **The fuller version** is A-APPSTATE-1: a service per app, or the locale as
 the language, so the change is the app's own and reaches it through its
 environment. **Price:** that entry's.
+
+### A-APPSTATE-1, the root's language (2026-10-28)
+
+Ruled (b) on 2026-10-27, and built in four slices that night: a `Text` or a
+`Button` made from a key, TUI's typed keys, alert titles and messages and the
+dialogs' key titles are read again when drawn, in the language a subtree's
+`\.locale` names. About 130 places still read words where no view is
+drawing — the status bar's and menu bar's labels, undo titles, clipboard
+notes — at the app's root, where a subtree's locale cannot reach. The
+proposal, accepted on 2026-10-28: the app's language is the root `\.locale` of
+its scene, `WindowGroup { … }.environment(\.locale, …)`, SwiftUI's idiom for an
+in-app language.
+
+Built: each frame the run loop notes the language the scene's root locale
+names, where the scene wrote one (`EnvironmentValues.stringLanguage`), on the
+app's render state (`AppState.rootLanguage`, through `AppRenderState`). A
+lookup with no language of its own — `string(for:)`, `frameworkString(for:)`,
+and the language a `Text` notes it was read in — reads in that language while
+the app's work is under way (`AmbientApp`), and in the process's outside it.
+A change of it asks for a frame with an empty render cache, as `setLanguage(_:)`
+does. One reach is left for later: a number written into a key with no
+specifier still follows the process's locale where no view is drawing.
