@@ -84,6 +84,16 @@ struct LocaleStringLanguageTests {
         #expect(german.contains("Abbrechen"), "\(german)")
     }
 
+    @Test("A typed key of TUI's, and the view of one, follow the override too")
+    func typedFrameworkKeys() {
+        let text = drawn(Text(localized: LocalizationKey.Button.cancel).environment(\.locale, Locale(identifier: "de")))
+        #expect(text.contains("Abbrechen"), "\(text)")
+        let view = drawn(LocalizedString(LocalizationKey.Button.cancel).environment(\.locale, Locale(identifier: "de")))
+        #expect(view.contains("Abbrechen"), "\(view)")
+        let english = drawn(Text(localized: LocalizationKey.Button.cancel).bold())
+        #expect(english.contains("Cancel"), "\(english)")
+    }
+
     @Test("The re-read key draws its Markdown, and the text's own style stays")
     func markdownAndStyle() {
         let context = makeBareRenderContext(width: 30, height: 3)

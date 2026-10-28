@@ -558,14 +558,29 @@ public final class LocalizationService: @unchecked Sendable {
     /// - Parameter key: One of TUI's keys (`LocalizationKey`'s raw values).
     /// - Returns: The localized string, or the key if not found.
     package func frameworkString(for key: String) -> String {
+        frameworkReading(key, in: nil).text
+    }
+
+    /// One of TUI's own keys as ``frameworkString(for:)`` reads it, and the
+    /// language it was read in first, from one lock.
+    ///
+    /// With a `language`, it is read as a subtree whose `\.locale` names that
+    /// language reads it, as ``reading(_:swiftUIKey:tableName:bundle:in:)``
+    /// reads an app's key: in that language first, then in English. `nil`, or
+    /// the service's own first language, reads it as ``frameworkString(for:)``
+    /// does.
+    package func frameworkReading(_ key: String, in language: String?) -> (text: String, language: String) {
         lock.lock()
         defer { lock.unlock() }
-        for code in lookupCodes {
+        let own = lookupCodes[0]
+        let other = language.flatMap { $0 == own ? nil : $0 }
+        let codes = other.map { Self.lookupCodes(asked: [$0], language: .english) } ?? lookupCodes
+        for code in codes {
             if let value = _frameworkValue(key, in: code) {
-                return value
+                return (value, other ?? own)
             }
         }
-        return _frameworkFallback(key)
+        return (_frameworkFallback(key), other ?? own)
     }
 
     /// How many table answers the service keeps — for the tests of their

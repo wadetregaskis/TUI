@@ -65,41 +65,41 @@ extension Text {
     /// Text(localized: LocalizationKey.Error.notFound)
     /// ```
     public init(localized key: LocalizationKey.Button) {
-        self.init(verbatim: LocalizationService.shared.frameworkString(for: key.rawValue))
+        self.init(frameworkKey: key.rawValue, language: nil)
     }
 
     /// Creates a text view with a localized string from a label key.
     public init(localized key: LocalizationKey.Label) {
-        self.init(verbatim: LocalizationService.shared.frameworkString(for: key.rawValue))
+        self.init(frameworkKey: key.rawValue, language: nil)
     }
 
     /// Creates a text view with a localized string from an error key.
     public init(localized key: LocalizationKey.Error) {
-        self.init(verbatim: LocalizationService.shared.frameworkString(for: key.rawValue))
+        self.init(frameworkKey: key.rawValue, language: nil)
     }
 
     /// Creates a text view with a localized string from a placeholder key.
     public init(localized key: LocalizationKey.Placeholder) {
-        self.init(verbatim: LocalizationService.shared.frameworkString(for: key.rawValue))
+        self.init(frameworkKey: key.rawValue, language: nil)
     }
 
     /// Creates a text view with a localized string from a menu key.
     public init(localized key: LocalizationKey.Menu) {
-        self.init(verbatim: LocalizationService.shared.frameworkString(for: key.rawValue))
+        self.init(frameworkKey: key.rawValue, language: nil)
     }
 
     /// Creates a text view with a localized string from a dialog key.
     public init(localized key: LocalizationKey.Dialog) {
-        self.init(verbatim: LocalizationService.shared.frameworkString(for: key.rawValue))
+        self.init(frameworkKey: key.rawValue, language: nil)
     }
 
     /// Creates a text view with a localized string from a validation key.
     public init(localized key: LocalizationKey.Validation) {
-        self.init(verbatim: LocalizationService.shared.frameworkString(for: key.rawValue))
+        self.init(frameworkKey: key.rawValue, language: nil)
     }
 
     /// Creates a text view with a localized string from a status bar key.
     public init(localized key: LocalizationKey.StatusBar) {
-        self.init(verbatim: LocalizationService.shared.frameworkString(for: key.rawValue))
+        self.init(frameworkKey: key.rawValue, language: nil)
     }
 }

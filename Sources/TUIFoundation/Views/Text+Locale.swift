@@ -32,19 +32,27 @@ package final class LocalizedTextSource: Equatable, @unchecked Sendable {
     /// written in where a subtree's `\.locale` chose it; `nil` for the app's
     /// (`LocalizationService.currentLocale`), as the key wrote them.
     let locale: Locale?
+    /// Whether the key is one of TUI's own (`Text(localized:)`), read in TUI's
+    /// order (`LocalizationService.frameworkReading(_:in:)`) rather than an
+    /// app's.
+    let isFramework: Bool
 
-    private init(key: LocalizedStringKey, tableName: String?, bundle: Bundle?, language: String, locale: Locale?) {
+    private init(
+        key: LocalizedStringKey, tableName: String?, bundle: Bundle?, language: String, locale: Locale?,
+        isFramework: Bool
+    ) {
         self.key = key
         self.tableName = tableName
         self.bundle = bundle
         self.language = language
         self.locale = locale
+        self.isFramework = isFramework
     }
 
     package static func == (lhs: LocalizedTextSource, rhs: LocalizedTextSource) -> Bool {
         lhs === rhs
             || (lhs.language == rhs.language && lhs.key == rhs.key && lhs.tableName == rhs.tableName
-                && lhs.bundle == rhs.bundle && lhs.locale == rhs.locale)
+                && lhs.bundle == rhs.bundle && lhs.locale == rhs.locale && lhs.isFramework == rhs.isFramework)
     }
 
     /// What one is filed under: compared whole, and hashed by the parts that
@@ -60,6 +68,8 @@ package final class LocalizedTextSource: Equatable, @unchecked Sendable {
         /// Compared, not hashed: the key's words already differ wherever
         /// its numbers were written in another locale.
         let locale: Locale?
+        /// Compared, not hashed: TUI's keys and an app's rarely share a name.
+        let isFramework: Bool
 
         func hash(into hasher: inout Hasher) {
             hasher.combine(key.key)
@@ -97,7 +107,8 @@ package final class LocalizedTextSource: Equatable, @unchecked Sendable {
         words: String
     ) -> LocalizedTextSource {
         if !key.arguments.isEmpty, words.utf8.count > inlineCapacity {
-            return LocalizedTextSource(key: key, tableName: tableName, bundle: bundle, language: language, locale: locale)
+            return LocalizedTextSource(
+                key: key, tableName: tableName, bundle: bundle, language: language, locale: locale, isFramework: false)
         }
         return interned(key, tableName: tableName, bundle: bundle, language: language, locale: locale)
     }
@@ -106,14 +117,16 @@ package final class LocalizedTextSource: Equatable, @unchecked Sendable {
     /// numbers written in `locale`.
     @MainActor
     static func interned(
-        _ key: LocalizedStringKey, tableName: String?, bundle: Bundle?, language: String, locale: Locale?
+        _ key: LocalizedStringKey, tableName: String?, bundle: Bundle?, language: String, locale: Locale?,
+        isFramework: Bool = false
     ) -> LocalizedTextSource {
         let filed = Filed(
             key: key, tableName: tableName, bundle: bundle.map(ObjectIdentifier.init), language: language,
-            locale: locale)
+            locale: locale, isFramework: isFramework)
         if let source = kept[filed] { return source }
         let source = LocalizedTextSource(
-            key: key, tableName: tableName, bundle: bundle, language: language, locale: locale)
+            key: key, tableName: tableName, bundle: bundle, language: language, locale: locale,
+            isFramework: isFramework)
         if kept.count >= limit { kept.removeAll(keepingCapacity: true) }
         kept[filed] = source
         return source
@@ -123,6 +136,19 @@ package final class LocalizedTextSource: Equatable, @unchecked Sendable {
 // MARK: - Reading it again
 
 extension Text {
+    /// One of TUI's own keys, read as `Text(localized:)` reads it, in
+    /// `language` first where one is given (``relocalized(in:)``); `nil`
+    /// reads it in the app's. It notes where its words came from, so a
+    /// subtree whose `\.locale` names another language reads it again there,
+    /// as SwiftUI's own controls' words follow `\.locale`.
+    init(frameworkKey key: String, language: String?) {
+        let reading = LocalizationService.shared.frameworkReading(key, in: language)
+        self.init(verbatim: reading.text)
+        localization = LocalizedTextSource.interned(
+            LocalizedStringKey(key), tableName: nil, bundle: nil, language: reading.language, locale: nil,
+            isFramework: true)
+    }
+
     /// `key` read as ``init(_:tableName:bundle:comment:)`` reads it, in
     /// `language` first where one is given: the language a subtree's
     /// `\.locale` names (``relocalized(in:)``). `nil` reads it in the app's.
@@ -176,6 +202,12 @@ extension Text {
     /// subtree, a comparison of two locales; elsewhere it costs nothing more.
     func relocalized(in context: RenderContext) -> Text? {
         guard let localization, let language = context.environment.stringLanguage else { return nil }
+        if localization.isFramework {
+            guard language != localization.language else { return nil }
+            var read = Text(frameworkKey: localization.key.key, language: language)
+            read.style = style
+            return read
+        }
         var locale = localization.locale
         if !localization.key.numberArguments.isEmpty {
             let wanted = context.environment.locale
