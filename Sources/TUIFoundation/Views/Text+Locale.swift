@@ -113,6 +113,17 @@ package final class LocalizedTextSource: Equatable, @unchecked Sendable {
         return interned(key, tableName: tableName, bundle: bundle, language: language, locale: locale)
     }
 
+    /// The one for TUI's own key `key`, read in the app's language: what a
+    /// view keeps of a word of TUI's it shows, to read again under a subtree's
+    /// `\.locale` (``LocalizedTextSource/words(in:)``).
+    @MainActor
+    package static func framework(_ key: String) -> LocalizedTextSource {
+        interned(
+            LocalizedStringKey(key), tableName: nil, bundle: nil,
+            language: LocalizationService.shared.frameworkReading(key, in: nil).language, locale: nil,
+            isFramework: true)
+    }
+
     /// The one for `key` read in `language` from `tableName` of `bundle`, its
     /// numbers written in `locale`.
     @MainActor

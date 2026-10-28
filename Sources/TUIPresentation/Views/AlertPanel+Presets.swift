@@ -70,6 +70,18 @@ extension LocalizedStringKey {
         key == label.rawValue && arguments.isEmpty
             ? service.frameworkString(for: key) : resolved(with: service)
     }
+
+    /// Where ``localizedTitle(defaultingTo:service:)``'s words come from, to
+    /// read them again under a subtree's `\.locale`: TUI's own word where the
+    /// title was left as `label`, else this key as a `Text` reads it.
+    @MainActor
+    func textSource(defaultingTo label: LocalizationKey.Label) -> LocalizedTextSource? {
+        key == label.rawValue && arguments.isEmpty ? .framework(key) : textSource
+    }
+
+    /// Where this key's words come from, as a `Text` of it notes them.
+    @MainActor
+    var textSource: LocalizedTextSource? { Text(self).localization }
 }
 
 extension AlertPanel {
@@ -93,6 +105,7 @@ extension AlertPanel {
     ) -> AlertPanel {
         warning(
             title: titleKey.localizedTitle(defaultingTo: .warning), message: messageKey.localized, actions: actions)
+            .withSources(title: titleKey.textSource(defaultingTo: .warning), message: messageKey.textSource)
     }
 
     /// Creates a warning-style alert with text displayed as written.
@@ -141,6 +154,7 @@ extension AlertPanel {
             message: message,
             actions: actions
         )
+        .withSources(title: .framework(LocalizationKey.Label.warning.rawValue), message: nil)
     }
 
     /// Creates an error-style alert with palette error title color.
@@ -160,6 +174,7 @@ extension AlertPanel {
         @ViewBuilder actions: () -> Actions
     ) -> AlertPanel {
         error(title: titleKey.localizedTitle(defaultingTo: .error), message: messageKey.localized, actions: actions)
+            .withSources(title: titleKey.textSource(defaultingTo: .error), message: messageKey.textSource)
     }
 
     /// Creates an error-style alert with text displayed as written.
@@ -205,6 +220,7 @@ extension AlertPanel {
             message: message,
             actions: actions
         )
+        .withSources(title: .framework(LocalizationKey.Label.error.rawValue), message: nil)
     }
 
     /// Creates an info-style alert with palette info title color.
@@ -224,6 +240,7 @@ extension AlertPanel {
         @ViewBuilder actions: () -> Actions
     ) -> AlertPanel {
         info(title: titleKey.localizedTitle(defaultingTo: .info), message: messageKey.localized, actions: actions)
+            .withSources(title: titleKey.textSource(defaultingTo: .info), message: messageKey.textSource)
     }
 
     /// Creates an info-style alert with text displayed as written.
@@ -269,6 +286,7 @@ extension AlertPanel {
             message: message,
             actions: actions
         )
+        .withSources(title: .framework(LocalizationKey.Label.info.rawValue), message: nil)
     }
 
     /// Creates a success-style alert with palette success title color.
@@ -288,6 +306,7 @@ extension AlertPanel {
         @ViewBuilder actions: () -> Actions
     ) -> AlertPanel {
         success(title: titleKey.localizedTitle(defaultingTo: .success), message: messageKey.localized, actions: actions)
+            .withSources(title: titleKey.textSource(defaultingTo: .success), message: messageKey.textSource)
     }
 
     /// Creates a success-style alert with text displayed as written.
@@ -333,6 +352,7 @@ extension AlertPanel {
             message: message,
             actions: actions
         )
+        .withSources(title: .framework(LocalizationKey.Label.success.rawValue), message: nil)
     }
 }
 
@@ -348,6 +368,7 @@ extension AlertPanel where Actions == EmptyView {
         message messageKey: LocalizedStringKey
     ) -> AlertPanel<EmptyView> {
         warning(title: titleKey.localizedTitle(defaultingTo: .warning), message: messageKey.localized)
+            .withSources(title: titleKey.textSource(defaultingTo: .warning), message: messageKey.textSource)
     }
 
     /// Creates a warning-style alert without actions, shown as written.
@@ -369,6 +390,7 @@ extension AlertPanel where Actions == EmptyView {
         warning(
             title: LocalizationService.shared.string(for: LocalizationKey.Label.warning),
             message: message)
+        .withSources(title: .framework(LocalizationKey.Label.warning.rawValue), message: nil)
     }
 
     /// Creates an error-style alert without actions. Literals are keys.
@@ -378,6 +400,7 @@ extension AlertPanel where Actions == EmptyView {
         message messageKey: LocalizedStringKey
     ) -> AlertPanel<EmptyView> {
         error(title: titleKey.localizedTitle(defaultingTo: .error), message: messageKey.localized)
+            .withSources(title: titleKey.textSource(defaultingTo: .error), message: messageKey.textSource)
     }
 
     /// Creates an error-style alert without actions, shown as written.
@@ -399,6 +422,7 @@ extension AlertPanel where Actions == EmptyView {
         error(
             title: LocalizationService.shared.string(for: LocalizationKey.Label.error),
             message: message)
+        .withSources(title: .framework(LocalizationKey.Label.error.rawValue), message: nil)
     }
 
     /// Creates an info-style alert without actions. Literals are keys.
@@ -408,6 +432,7 @@ extension AlertPanel where Actions == EmptyView {
         message messageKey: LocalizedStringKey
     ) -> AlertPanel<EmptyView> {
         info(title: titleKey.localizedTitle(defaultingTo: .info), message: messageKey.localized)
+            .withSources(title: titleKey.textSource(defaultingTo: .info), message: messageKey.textSource)
     }
 
     /// Creates an info-style alert without actions, shown as written.
@@ -429,6 +454,7 @@ extension AlertPanel where Actions == EmptyView {
         info(
             title: LocalizationService.shared.string(for: LocalizationKey.Label.info),
             message: message)
+        .withSources(title: .framework(LocalizationKey.Label.info.rawValue), message: nil)
     }
 
     /// Creates a success-style alert without actions. Literals are keys.
@@ -438,6 +464,7 @@ extension AlertPanel where Actions == EmptyView {
         message messageKey: LocalizedStringKey
     ) -> AlertPanel<EmptyView> {
         success(title: titleKey.localizedTitle(defaultingTo: .success), message: messageKey.localized)
+            .withSources(title: titleKey.textSource(defaultingTo: .success), message: messageKey.textSource)
     }
 
     /// Creates a success-style alert without actions, shown as written.
@@ -459,5 +486,6 @@ extension AlertPanel where Actions == EmptyView {
         success(
             title: LocalizationService.shared.string(for: LocalizationKey.Label.success),
             message: message)
+        .withSources(title: .framework(LocalizationKey.Label.success.rawValue), message: nil)
     }
 }

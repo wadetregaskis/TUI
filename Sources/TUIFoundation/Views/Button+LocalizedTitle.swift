@@ -18,6 +18,15 @@ extension LocalizedTextSource {
         guard !isFramework else { return LocalizationService.shared.frameworkReading(key.key, in: language).text }
         return Text(key, tableName: tableName, bundle: bundle, language: language, locale: locale).content
     }
+
+    /// The words as they read where `context` draws them: read again where a
+    /// subtree's `\.locale` names a language other than the one they were
+    /// read in, and `nil` where it does not — one environment read.
+    @MainActor
+    package func relocalizedWords(in context: RenderContext) -> String? {
+        guard let language = context.environment.stringLanguage, language != self.language else { return nil }
+        return words(in: language)
+    }
 }
 
 extension Text {

@@ -91,6 +91,22 @@ public struct AlertPanel<Actions: View>: View {
     /// takes its place (``_AlertPanelCore``'s `resolvedTitle`).
     var titleMark: String?
 
+    /// Where the title's and the message's words came from, when they were
+    /// read from keys: read again when the alert is drawn where a subtree's
+    /// `\.locale` names another language, as a `Text` made from a key is.
+    /// `nil` for words displayed as written.
+    var titleSource: LocalizedTextSource?
+    var messageSource: LocalizedTextSource?
+
+    /// This alert, noting where its title's and message's words came from
+    /// (``titleSource``, ``messageSource``).
+    func withSources(title: LocalizedTextSource?, message: LocalizedTextSource?) -> Self {
+        var sourced = self
+        sourced.titleSource = title
+        sourced.messageSource = message
+        return sourced
+    }
+
     /// Creates an alert with localized text and custom action views.
     ///
     /// String **literals** bind here, so they are lookup keys — see
@@ -130,6 +146,8 @@ public struct AlertPanel<Actions: View>: View {
             verticalButtons: verticalButtons,
             actions: actions
         )
+        titleSource = titleKey.textSource
+        messageSource = messageKey.textSource
     }
 
     /// Creates an alert with custom action views, displayed as written.
@@ -181,7 +199,9 @@ public struct AlertPanel<Actions: View>: View {
             config: config,
             actions: actions,
             verticalButtons: verticalButtons,
-            titleMark: titleMark
+            titleMark: titleMark,
+            titleSource: titleSource,
+            messageSource: messageSource
         )
     }
 }
@@ -199,6 +219,8 @@ struct _AlertPanelCore<Actions: View>: View, Renderable, Layoutable {
     let actions: Actions
     var verticalButtons: Bool = false
     var titleMark: String?
+    var titleSource: LocalizedTextSource?
+    var messageSource: LocalizedTextSource?
 
     var body: Never {
         fatalError("_AlertPanelCore renders via Renderable")
@@ -288,6 +310,7 @@ struct _AlertPanelCore<Actions: View>: View, Renderable, Layoutable {
     /// (``AlertPanel/titleMark``).
     private func resolvedTitle(_ context: RenderContext) -> String {
         let mark = context.environment.dialogIsCritical ? Self.criticalMark : titleMark
+        let title = titleSource?.relocalizedWords(in: context) ?? self.title
         guard let mark else { return title }
         return title.isEmpty ? mark : mark + " " + title
     }
@@ -306,7 +329,7 @@ struct _AlertPanelCore<Actions: View>: View, Renderable, Layoutable {
 
     /// The message, with the environment's dialog icon beside it.
     private func messageBody(_ context: RenderContext) -> _AlertMessage {
-        _AlertMessage(message: message, icon: context.environment.dialogIcon)
+        _AlertMessage(message: messageSource?.relocalizedWords(in: context) ?? message, icon: context.environment.dialogIcon)
     }
 }
 
@@ -527,6 +550,8 @@ extension AlertPanel where Actions == EmptyView {
             borderColor: borderColor,
             titleColor: titleColor
         )
+        titleSource = titleKey.textSource
+        messageSource = messageKey.textSource
     }
 
     /// Creates an alert without action buttons, displayed as written.
