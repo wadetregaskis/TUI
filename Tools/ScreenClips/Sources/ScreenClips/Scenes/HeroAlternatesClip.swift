@@ -70,7 +70,8 @@ struct TodoList: View {
         TodoItem(id: "Water the plants", due: "today"), TodoItem(id: "Call Mum", due: "today"),
         TodoItem(id: "Book flights to Lisbon", due: "Fri"), TodoItem(id: "Fix the bike's brakes", due: "Sat"),
         TodoItem(id: "Return library books", due: "Sat"), TodoItem(id: "Renew passport", due: "Nov"),
-        TodoItem(id: "Plan Sam's birthday", due: "Dec"),
+        TodoItem(id: "Plan Sam's birthday", due: "Dec"), TodoItem(id: "Clear the gutters", due: "Dec"),
+        TodoItem(id: "Write the holiday cards", due: "Dec"),
     ]
     @State private var items = Self.start
     /// The list's order, by id: an item checked keeps its place until its
@@ -109,7 +110,9 @@ struct TodoList: View {
                     Confetti(bursts: bursts, now: context.date)
                 }
             }
-            .frame(width: 46, height: 10)
+            // The whole of the shot: as wide as the camera, and as tall as the
+            // rows below the header, a list exactly as long as its items.
+            .frame(width: 48, height: 11)
         }
         .padding(.top, 1)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
