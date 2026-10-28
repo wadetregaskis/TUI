@@ -27,7 +27,8 @@ enum FilePanelField: Hashable {
 /// The folder's items as Finder's column view shows them: a column for each
 /// folder from the path control's first — the root, or the home folder — to
 /// the folder shown, as many of the last as fit at ``minimumColumnWidth``
-/// cells each, each a ``List`` of the folder's items.
+/// cells each, each a ``List`` of the folder's items; and after them, while a
+/// file is selected, a column previewing it (``FilePanelPreview``).
 ///
 /// The last column is the folder shown, and its selection is the panel's. In
 /// the others the folder on the way is the one selected; choosing another row
@@ -80,9 +81,14 @@ struct FilePanelColumnView: View {
     /// last, so a column keeps its identity — its cursor, and the focus — as
     /// folders open after it and close again.
     @ViewBuilder private func columns(width: Int) -> some View {
-        let folders = Self.folders(of: browser.directory, home: home, width: width)
+        // The file selected, previewed in a column of its own after the last
+        // (`FilePanelPreview`), which the folders' columns make room for.
+        let previewed = previewedFile
+        let previewWidth = previewed == nil ? 0 : Self.previewWidth(in: width)
+        let foldersWidth = previewed == nil ? width : max(Self.minimumColumnWidth, width - previewWidth - 1)
+        let folders = Self.folders(of: browser.directory, home: home, width: foldersWidth)
         // Each column but the last at an even share; the last takes the rest.
-        let share = max(1, (width - (folders.count - 1)) / folders.count)
+        let share = max(1, (foldersWidth - (folders.count - 1)) / folders.count)
         HStack(spacing: 0) {
             ForEach(Array(folders.enumerated()), id: \.element) { index, path in
                 if index > 0 {
@@ -92,7 +98,29 @@ struct FilePanelColumnView: View {
                 column(path, after: index > 0 ? folders[index - 1] : nil, next: isLast ? nil : folders[index + 1])
                     .frame(minWidth: share, maxWidth: isLast ? .infinity : .fixed(share), maxHeight: .infinity)
             }
+            if let previewed {
+                Divider()
+                FilePanelPreview(entry: previewed)
+                    .frame(width: previewWidth)
+                    .frame(maxHeight: .infinity)
+            }
         }
+    }
+
+    /// The file selected in the folder shown, alone: what the preview column
+    /// shows. A folder opens a column of its own instead, and several items
+    /// selected have no one preview.
+    private var previewedFile: FileEntry? {
+        let url = allowsMultipleSelection ? (selection.wrappedValue.count == 1 ? selection.wrappedValue.first : nil)
+            : singleSelection.wrappedValue
+        guard let url else { return nil }
+        return browser.rows.first { $0.url == url && !$0.isFolder && !$0.isPlaceholder }
+    }
+
+    /// The preview column's width in a column view `width` cells wide: a
+    /// third of it, and never narrower than a folder's column.
+    static func previewWidth(in width: Int) -> Int {
+        max(minimumColumnWidth, width / 3)
     }
 
     /// The column of the folder at `path`, which comes `after` another and is

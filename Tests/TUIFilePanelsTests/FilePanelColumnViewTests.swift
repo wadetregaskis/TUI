@@ -92,6 +92,54 @@ struct FilePanelColumnViewTests {
         #expect(caller.chosenPaths == [fixture.url("Alpha/inner.txt").path])
     }
 
+    /// How many times `text` shows on `screen`.
+    private func count(_ text: String, in screen: String) -> Int {
+        screen.components(separatedBy: text).count - 1
+    }
+
+    /// Selects beta.txt — ↓ moves the cursor to it, past Alpha/ and linked/,
+    /// and Space selects it — and returns the screen once it is previewed,
+    /// its name shown twice, in its column and in the preview's.
+    private func previewingBeta(with driver: FilePanelDriver<some View>) async -> String {
+        await driver.waitFor("notes.md")
+        driver.press(.down, times: 2)
+        driver.press(.space)
+        await settle { count("beta.txt", in: driver.screen()) >= 2 }
+        return driver.screen()
+    }
+
+    @Test("A file selected is previewed in a column after its folder's: its opening lines, then its name")
+    func previewColumn() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver { panel(fixture, caller: caller, store: columnsStore()) }
+        var shown = await previewingBeta(with: driver)
+        await settle {
+            shown = driver.screen()
+            return shown.split(separator: "\n").contains { $0.hasSuffix("│ beta") || $0.contains("│ beta ") }
+        }
+        #expect(count("beta.txt", in: shown) == 2, "\(shown)")
+        // The excerpt, `beta`, on a line of its own in the preview column.
+        let rows = shown.split(separator: "\n").map(String.init)
+        let name = try #require(rows.firstIndex { count("beta.txt", in: $0) == 1 && $0.contains("│ beta.txt") })
+        let excerpt = try #require(rows.firstIndex { $0.contains("│ beta ") || $0.hasSuffix("│ beta") })
+        #expect(excerpt < name, "the excerpt is above the name: \(shown)")
+    }
+
+    @Test("An app's preview takes the excerpt's place")
+    func appPreview() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver {
+            panel(fixture, caller: caller, store: columnsStore())
+                .fileDialogPreview { url, _ in url.lastPathComponent == "beta.txt" ? Text("PREVIEWED") : nil }
+        }
+        _ = await previewingBeta(with: driver)
+        await driver.waitFor("PREVIEWED")
+    }
+
     @Test("A click on a folder in an earlier column goes to it")
     func clickInEarlierColumn() async throws {
         let fixture = try FilePanelFixture()
