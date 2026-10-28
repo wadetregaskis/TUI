@@ -12,14 +12,16 @@ import TUI
 
 /// Image demo page for loading an image from the local filesystem.
 ///
-/// Displays a bundled demo image and provides status bar items to
-/// cycle through character set, color mode, and dithering settings.
+/// Displays a bundled picture (the platform's mascot first, `p` cycling
+/// through the others) and provides status bar items to cycle through
+/// character set, color mode, and dithering settings.
 ///
 /// A picture pasted here (⌘V, or the terminal's paste) is shown in its place,
 /// where the terminal hands pictures over: kitty's OSC 5522 paste events.
 struct ImageFilePage: View {
     @State private var settings = ImageDemoSettings()
     @State private var zoom: Double = 1.0
+    @State private var picture = DemoPicture.platformDefault
     /// Where a pasted picture was written, to be shown as a file is.
     @State private var pastedPath: String?
 
@@ -39,21 +41,33 @@ struct ImageFilePage: View {
     }
 
     @ViewBuilder private var imageContent: some View {
-        if let path = pastedPath
-            ?? Bundle.module.path(forResource: "demo-image", ofType: "jpg", inDirectory: "Resources")
-        {
+        if let path = pastedPath ?? picture.path {
             Image(.file(path))
                 .imagePlaceholder("page.imageFile.loading")
                 .imagePlaceholderSpinner(true)
                 .zoomableImageScroll(zoom: zoom)
         } else {
-            Text("\(L("page.imageFile.resourceNotFound")): demo-image.jpg")
+            Text("\(L("page.imageFile.resourceNotFound")): \(picture.fileName)")
                 .foregroundStyle(.error)
         }
     }
 
     private var statusBarItems: [any StatusBarItemProtocol] {
-        ImageDemoStatusBar.items(settings: $settings, zoom: $zoom, back: "page.imageFile.back")
+        ImageDemoStatusBar.items(settings: $settings, zoom: $zoom, back: "page.imageFile.back") + pictureItems
+    }
+
+    /// p|P: the next and the previous bundled picture, replacing a pasted one.
+    private var pictureItems: [any StatusBarItemProtocol] {
+        [
+            StatusBarItem(shortcut: "p|P", label: picture.label, key: .character("p")) {
+                pastedPath = nil
+                picture = picture.cycled(by: 1)
+            },
+            StatusBarItem(shortcut: "P", label: "", key: .character("P"), displayInStatusBar: false) {
+                pastedPath = nil
+                picture = picture.cycled(by: -1)
+            },
+        ]
     }
 }
 
