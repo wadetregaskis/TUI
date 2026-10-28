@@ -33,9 +33,6 @@
   "LayoutDirectionBehavior.mirrors(in:)",
   "Optional.Scope",
   "TabContent.swipeActions(edge:allowsFullSwipe:content:)",
-  "TabSearchActivation",
-  "TabSearchActivation.automatic",
-  "TabSearchActivation.searchTabSelection",
   "Text.AlignmentStrategy",
   "Text.AlignmentStrategy.default",
   "Text.AlignmentStrategy.layoutBased",
@@ -60,7 +57,6 @@
   "View.multilineTextAlignment(strategy:)",
   "View.onDragSessionUpdated(_:)",
   "View.onDropSessionUpdated(_:)",
-  "View.tabViewSearchActivation(_:)",
   "View.writingDirection(strategy:)"
  ],
  "labelDeviations": [

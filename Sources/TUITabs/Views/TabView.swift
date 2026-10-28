@@ -81,7 +81,26 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View {
     /// A `.sidebarAdaptable` tab view shows a strip in a compact class.
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
+    /// Whether selecting the search tab activates the search around the tab
+    /// view (``View/tabViewSearchActivation(_:)``).
+    @Environment(\.tabSearchActivation) private var searchActivation
+
     public var body: some View {
+        // The search tab linked to the search around the tab view, only where
+        // `tabViewSearchActivation(.searchTabSelection)` asks
+        // (`TabSearchActivation.swift`): the link watches the selection and
+        // the search, which a tab view that never asks should not pay for —
+        // its watching kept the render memo from serving the tab view on a
+        // quiet frame.
+        if searchActivation.isLinked, let searchTab = tabs.first(where: { $0.role == .search })?.value {
+            _TabSearchLink(content: arranged, selection: erasedSelection, searchTab: searchTab)
+        } else {
+            arranged
+        }
+    }
+
+    /// The tabs in a sidebar or a strip, as the style and the size class say.
+    @ViewBuilder private var arranged: some View {
         if style.stripLook == .sidebar {
             // In a compact class the layout draws a strip where its sidebar was,
             // and the tabs are then where a strip's are.
@@ -1134,5 +1153,6 @@ extension TabView: ResolvesOwnEnvironment {
         _style.resolveEnvironment(environment)
         _customization.resolveEnvironment(environment)
         _horizontalSizeClass.resolveEnvironment(environment)
+        _searchActivation.resolveEnvironment(environment)
     }
 }

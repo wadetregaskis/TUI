@@ -119,6 +119,12 @@ final class SearchDismissal: Equatable {
     nonisolated static func == (lhs: SearchDismissal, rhs: SearchDismissal) -> Bool { lhs === rhs }
 }
 
+/// What a view inside the search's content may ask of it without depending on
+/// this module: a tab view selecting its search tab activates it.
+extension SearchDismissal: SearchActivating {
+    func activateSearch() { focusField() }
+}
+
 // MARK: - Environment Keys
 
 /// Environment key for ``EnvironmentValues/isSearching``.
