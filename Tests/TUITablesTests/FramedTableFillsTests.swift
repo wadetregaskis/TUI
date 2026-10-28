@@ -79,4 +79,16 @@ struct FramedTableFillsTests {
         #expect(buffer.height == 12)
         #expect(boxHeight(buffer) == 12)
     }
+
+    /// A table takes the height it is offered and scrolls what does not fit, so
+    /// its height is flexible, as a `List`'s is and SwiftUI's table's: a stack
+    /// deals it a share rather than measuring it at one (decisions A-LAYOUT-1).
+    @Test("A Table reports a flexible height, as a List does")
+    func heightIsFlexible() {
+        let rows = (1...3).map(Row.init)
+        let size = measureChild(
+            Table(rows) { TableColumn("Name", value: \.name) },
+            proposal: ProposedSize(width: 30, height: nil), context: makeRenderContext(width: 30, height: 20))
+        #expect(size.isHeightFlexible)
+    }
 }

@@ -1011,11 +1011,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
 
         // `.fit` is content-sized (a fixed width derived from the data), so
-        // like `.fixed` it does not grow with the available width.
+        // like `.fixed` it does not grow with the available width. The height is
+        // flexible, as a `List`'s is and SwiftUI's table's: a table takes the
+        // height it is offered and scrolls what does not fit, so a stack deals
+        // it a share rather than measuring it at one (decisions A-LAYOUT-1).
         let fillsWidth = columns.contains { $0.effectiveWidth.growsWithAvailableWidth }
-        return fillsWidth
-            ? ViewSize.flexibleWidth(minWidth: size.width, height: size.height)
-            : ViewSize.fixed(size.width, size.height)
+        return ViewSize(
+            width: size.width, height: size.height, isWidthFlexible: fillsWidth, isHeightFlexible: true)
     }
 
     /// The single-line table's rendered size, computed without building its
