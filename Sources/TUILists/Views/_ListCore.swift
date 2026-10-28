@@ -2640,8 +2640,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // own clipping of over-wide rows on the bar-less path. A run's
             // frames go through the same fit, or the run would claim more
             // cells than its line occupies and paint over the bar.
+            // Each line's width, where the row knows it (a still row's lines
+            // are all the row's width; ``RenderedRow/lineWidth``), checked
+            // against the measure it saves in debug builds — every test.
+            let knownWidth = rendered.lineWidth
             func fitted(_ rowLine: String) -> String {
-                let width = rowLine.strippedLength
+                assert(knownWidth == nil || knownWidth == rowLine.strippedLength, "a row line is not \(knownWidth ?? 0) wide")
+                let width = knownWidth ?? rowLine.strippedLength
                 guard width > contentRowWidth else {
                     return rowLine + String.spaces(contentRowWidth - width)
                 }
@@ -4515,6 +4520,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         /// under it (§96.1): once for a still fill, per colour for a breath.
         let content = ListRowContent(row.buffer, background: background, palette: palette)
 
+        /// The widest content line laid in this row, read as the lines are made:
+        /// where it leaves the gutter and a cell of padding, every line is the
+        /// row's width exactly (``RenderedRow/lineWidth``).
+        var widestContent = 0
+
         /// The row's lines over a given background — the ONE description of what
         /// this row looks like, called once for the frame on screen and once per
         /// point of a pulse for the runs that replay it.
@@ -4527,6 +4537,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 // under it, and read as a row a line taller than its content.
                 if let separator = row.content.separatorLine, separator.takesRow, lineIndex == row.buffer.lines.count - 1 {
                     let rule = separator.drawn(width: max(0, rowWidth - listRowGutter), palette: palette)
+                    widestContent = max(widestContent, rule.strippedLength)
                     return renderPlainLine(
                         line: rule, lineLength: rule.strippedLength, rowWidth: rowWidth, backgroundColor: nil, gutter: " ")
                 }
@@ -4537,9 +4548,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 } else {
                     // Its width from the content's buffer, which mostly knows it:
                     // `line` is that buffer's row, or the same cells spent on a fill.
+                    let lineLength = row.buffer.knownWidth(ofRow: lineIndex, line: line)
+                    widestContent = max(widestContent, lineLength)
                     return renderPlainLine(
-                        line: line, lineLength: row.buffer.knownWidth(ofRow: lineIndex, line: line), rowWidth: rowWidth,
-                        backgroundColor: backgroundColor, gutter: lineIndex == 0 ? gutter : " ")
+                        line: line, lineLength: lineLength, rowWidth: rowWidth, backgroundColor: backgroundColor,
+                        gutter: lineIndex == 0 ? gutter : " ")
                 }
             }
             // The hairline of the row above, along this row's top — here, in
@@ -4607,7 +4620,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     lines: background.stillLines { lines(over: $0) },
                     pulseFrames: nil, childRuns: Self.grounding(childRuns, on: background),
                     claims: Self.cuttingTranslucentFill(claims(over: fill), fill: fill, rowWidth: rowWidth) { lines(over: nil) },
-                    contentClaims: content.claims(leaving: droppedRunClaims)),
+                    // After the lines, which set the widest; a badged line is laid out apart.
+                    contentClaims: content.claims(leaving: droppedRunClaims),
+                    lineWidth: badge == nil && widestContent <= rowWidth - 2 ? rowWidth : nil),
                 of: background, row: row, badge: badge, rowWidth: rowWidth, palette: palette)
         }
         // A breathing row repaints its WHOLE line every tick, so a narrower run
@@ -4689,6 +4704,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         /// own followed by what its child runs said about ALPHA for the ones this row
         /// kept the lines of and dropped, the order the resolver needs (§69.4).
         var contentClaims: [OpacityRegion]?
+
+        /// The visible width of every line in ``lines`` and every frame of
+        /// ``pulseFrames``, where the row knows them all to be one — so the list
+        /// need not measure each again to fit it to its column — or `nil`.
+        var lineWidth: Int?
     }
 
     /// One animated run positioned within the lines being assembled: `y` is the
