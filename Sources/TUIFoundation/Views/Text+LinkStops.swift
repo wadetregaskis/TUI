@@ -408,7 +408,7 @@ extension Text {
         let run = runs[index]
         var style = run.style
         style.foregroundColor = colour
-        runs[index] = Run(text: run.text, style: style, live: run.live, link: run.link)
+        runs[index] = Run(text: run.text, style: style, live: run.live, link: run.link, attributes: run.attributes)
         var recoloured = self
         recoloured.runs = runs
         return recoloured

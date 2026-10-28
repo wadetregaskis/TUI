@@ -158,15 +158,22 @@ extension Text {
                 // The source's own look over the live run's, as an attributed
                 // text's runs sit over the text's style.
                 read += styled.map {
-                    Run(text: $0.text, style: $0.style.merged(over: run.style), link: $0.link ?? run.link)
+                    Run(
+                        text: $0.text, style: $0.style.merged(over: run.style), link: $0.link ?? run.link,
+                        attributes: run.attributes)
                 }
             } else {
-                read.append(Run(text: live.source.text(at: date, in: environment), style: run.style, link: run.link))
+                read.append(
+                    Run(
+                        text: live.source.text(at: date, in: environment), style: run.style, link: run.link,
+                        attributes: run.attributes))
             }
         }
         var text = Text(verbatim: read.map(\.text).joined())
         text.style = style
-        if read.count > 1 || read.first?.style != TextStyle() || read.first?.link != nil {
+        if read.count > 1 || read.first?.style != TextStyle() || read.first?.link != nil
+            || read.first?.attributes != nil
+        {
             text.runs = read
         }
         return (text, next)
@@ -183,11 +190,13 @@ extension Text {
         let count = ladders.map(\.count).max() ?? 1
         return (0..<count).map { rung in
             let read = zip(runs, ladders).map { run, ladder in
-                Run(text: ladder[min(rung, ladder.count - 1)], style: run.style, link: run.link)
+                Run(text: ladder[min(rung, ladder.count - 1)], style: run.style, link: run.link, attributes: run.attributes)
             }
             var text = Text(verbatim: read.map(\.text).joined())
             text.style = style
-            if read.count > 1 || read.first?.style != TextStyle() || read.first?.link != nil {
+            if read.count > 1 || read.first?.style != TextStyle() || read.first?.link != nil
+                || read.first?.attributes != nil
+            {
                 text.runs = read
             }
             return text

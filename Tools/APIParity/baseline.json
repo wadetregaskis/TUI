@@ -44,7 +44,6 @@
   "Text.WritingDirectionStrategy.contentBased",
   "Text.WritingDirectionStrategy.default",
   "Text.WritingDirectionStrategy.layoutBased",
-  "Text.customAttribute(_:)",
   "View.attributedTextFormattingDefinition(_:)",
   "View.dragContainer(for:in:_:)",
   "View.dragContainer(for:itemID:in:_:)",
@@ -62,7 +61,6 @@
   "View.onDragSessionUpdated(_:)",
   "View.onDropSessionUpdated(_:)",
   "View.tabViewSearchActivation(_:)",
-  "View.textRenderer(_:)",
   "View.writingDirection(strategy:)"
  ],
  "labelDeviations": [

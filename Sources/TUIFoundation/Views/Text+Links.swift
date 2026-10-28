@@ -58,7 +58,7 @@ extension Text {
             guard let link = run.link else { return run }
             let destination = link.absoluteString
             let text = display == .urlOnly ? destination : "\(run.text) (\(destination))"
-            return Run(text: text, style: run.style, link: link)
+            return Run(text: text, style: run.style, link: link, attributes: run.attributes)
         }
         return (shown.map(\.text).joined(), shown)
     }

@@ -34,6 +34,10 @@ extension Text {
         /// Where the fragment links — an attributed string's `link`, or a
         /// Markdown link in a key — or `nil`. See `Text+Links.swift`.
         var link: URL?
+
+        /// The fragment's custom attributes (`customAttribute(_:)`), for a
+        /// text renderer; `nil` for none.
+        var attributes: TextAttributes?
     }
 }
 
@@ -55,7 +59,7 @@ extension Text.Run {
     /// This run with `base` beneath it: the run's own attributes win, the
     /// base fills anything it left unset.
     func rebased(on base: TextStyle) -> Self {
-        Self(text: text, style: style.merged(over: base), live: live, link: link)
+        Self(text: text, style: style.merged(over: base), live: live, link: link, attributes: attributes)
     }
 }
 

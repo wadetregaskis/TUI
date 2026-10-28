@@ -144,7 +144,7 @@ extension GraphicsContext {
     /// and at its place — the terminal's way to change a glyph's shape: a
     /// dissolve through ever-smaller glyphs (█ ▓ ▒ ░ ·), a typewriter's
     /// cursor, a scramble.
-    func draw(_ slice: Text.Layout.RunSlice, as character: Character, options: …)
+    func drawSubstituting(_ character: Character, for slice: Text.Layout.RunSlice, options: …)
 
     /// The cell attributes the next draws use instead of the run's own:
     /// bold, italic, underline (and its pattern), strikethrough, dim, blink,
@@ -208,10 +208,10 @@ stored properties are hashed with the existing value-hashing plans.
 ## 7. Example effects (the Example app, a "Text Effects" section on the Text Styles page)
 
 - **Wave** ("Mexican wave"): capitals travel through the text — a slice is
-  lifted a row and uppercased (`draw(_:as:)`) where `sin(index·k − t)` is past
+  lifted a row and uppercased (`drawSubstituting(_:for:)`) where `sin(index·k − t)` is past
   a threshold; back and forth with a triangle wave.
 - **Dissolve:** from the end, each grapheme steps through `█ ▓ ▒ ░ ·` and
-  then nothing (`draw(_:as:)`, then not drawn), then the next.
+  then nothing (`drawSubstituting(_:for:)`, then not drawn), then the next.
 - **Typewriter:** slices up to `progress · count` drawn, a `▏` cursor after
   the last, blinking.
 - **Rainbow:** each slice's shading a hue from its column and time

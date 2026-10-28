@@ -881,7 +881,7 @@ extension Text: Renderable, Layoutable {
     /// ``StyleAttributes/textCase`` through a `.font(_:)`-scoped cascade entry —
     /// and a case that changes width (ß → SS) measured against a different font
     /// than it is drawn with reserves the wrong number of cells.
-    private func resolvedFont(stating stated: Font??, context: RenderContext) -> Font? {
+    func resolvedFont(stating stated: Font??, context: RenderContext) -> Font? {
         let font = stated ?? context.environment.font
         // `Font.default` is the environment's font, with its own statements
         // over it — never itself, which names no style.
@@ -971,16 +971,19 @@ extension Text: Renderable, Layoutable {
         context.environment.lineSpacing
     }
 
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    /// The size this text lays itself out at, whatever renderer draws it
+    /// (``sizeThatFits(proposal:context:)``, in `TextRenderer.swift`, asks a
+    /// renderer in force first).
+    func ownSize(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         // A key's words in the language a subtree's `\.locale` names; a text
         // that is no key pays a nil check.
         if localization != nil, let read = relocalized(in: context) {
-            return read.sizeThatFits(proposal: proposal, context: context)
+            return read.ownSize(proposal: proposal, context: context)
         }
         // A live text measures the words it reads at this frame. Only a text
         // with runs can be live, so a plain one pays a nil check.
         if runs != nil, let read = readingLive(declaringIn: context, measuring: true) {
-            return read.sizeThatFits(proposal: proposal, context: context)
+            return read.ownSize(proposal: proposal, context: context)
         }
         // Text has a fixed size based on its content.
         // If a width is proposed, we may word-wrap.
@@ -1068,9 +1071,13 @@ extension Text: Renderable, Layoutable {
         //
         // A strikethrough that changes under an animation is drawn along the
         // text (`Text+StrikeSweep.swift`).
-        sweepingStrike(context: context) { text in
+        //
+        // A text renderer in force redraws the result from its layout
+        // (`TextRenderer.swift`).
+        let drawn = sweepingStrike(context: context) { text in
             ContentDissolve.drawn(text.rendered(context: context, linkSpans: nil, routesLinks: true), context: context)
         }
+        return renderedThroughRenderer(drawn, context: context)
     }
 
     /// The text drawn, and in `shadowing` the paint whose shadows it casts:
@@ -1552,7 +1559,7 @@ extension Text: Renderable, Layoutable {
     /// here: the render draws its content AND every run of a concatenation,
     /// and a read per string was an environment lookup each time (two under
     /// `.privacy`) for the same answer.
-    private static func displayString(
+    static func displayString(
         _ string: String, textCase: TextCase?, redaction: RedactionReasons
     ) -> String {
         redaction.redacting(applyingCase(textCase, to: string))

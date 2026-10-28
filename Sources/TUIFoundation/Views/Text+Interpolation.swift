@@ -23,7 +23,9 @@ struct StyledArgument: Hashable, Sendable {
     /// — no style, no styled or linked run — whose words are all a key needs.
     init?(_ text: Text) {
         let runs = text.runs?.map { $0.rebased(on: text.style) } ?? [Text.Run(text: text.content, style: text.style)]
-        guard runs.contains(where: { $0.style != TextStyle() || $0.link != nil }) else { return nil }
+        guard runs.contains(where: { $0.style != TextStyle() || $0.link != nil || $0.attributes != nil }) else {
+            return nil
+        }
         self.runs = runs
     }
 
@@ -59,9 +61,10 @@ extension MarkdownTemplate {
         func append(_ run: Text.Run) {
             guard !run.text.isEmpty || run.live != nil else { return }
             if let last = runs.last, last.live == nil, run.live == nil, last.style == run.style,
-                last.link == run.link
+                last.link == run.link, last.attributes == run.attributes
             {
-                runs[runs.count - 1] = Text.Run(text: last.text + run.text, style: run.style, link: run.link)
+                runs[runs.count - 1] = Text.Run(
+                    text: last.text + run.text, style: run.style, link: run.link, attributes: run.attributes)
             } else {
                 runs.append(run)
             }
@@ -96,14 +99,18 @@ extension MarkdownTemplate {
                     append(
                         Text.Run(
                             text: run.text, style: run.style.merged(over: span.style), live: run.live,
-                            link: run.link ?? link))
+                            link: run.link ?? link, attributes: run.attributes))
                 }
             }
             flush()
         }
         var content = ""
         for run in runs { content += run.text }
-        guard runs.count > 1 || runs.first.map({ $0.style != TextStyle() || $0.link != nil || $0.live != nil }) == true
+        guard
+            runs.count > 1
+                || runs.first.map({
+                    $0.style != TextStyle() || $0.link != nil || $0.live != nil || $0.attributes != nil
+                }) == true
         else { return (content, nil) }
         return (content, runs)
     }
