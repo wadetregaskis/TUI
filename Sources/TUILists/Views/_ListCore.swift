@@ -4448,6 +4448,18 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         return marked
     }
 
+    /// The background `row` is drawn on: its own, where it names one (the
+    /// reorder slot), else the one its type and state ask for.
+    private func background(
+        of row: SelectableListRow<SelectionValue>, state: RowDrawState, contentRowIndex: Int, style: any ListStyle,
+        context: RenderContext, palette: any Palette
+    ) -> RowBackground {
+        guard case .none = row.backgroundOverride else { return row.backgroundOverride }
+        return rowBackground(
+            rowType: row.type, isFocused: state.isFocused, isSelected: state.isSelected,
+            contentRowIndex: contentRowIndex, style: style, context: context, palette: palette)
+    }
+
     private func renderRow(
         row: SelectableListRow<SelectionValue>,
         at rowIndex: Int,
@@ -4459,21 +4471,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         palette: any Palette,
         hairlineAbove: ListRowSeparatorLine? = nil
     ) -> RenderedRow {
-        // A row that names its own background (the reorder slot) keeps it; the
-        // rest ask their type and state.
-        let background: RowBackground
-        if case .none = row.backgroundOverride {
-            background = rowBackground(
-                rowType: row.type,
-                isFocused: state.isFocused,
-                isSelected: state.isSelected,
-                contentRowIndex: contentRowIndex,
-                style: style,
-                context: context,
-                palette: palette)
-        } else {
-            background = row.backgroundOverride
-        }
+        let background = background(
+            of: row, state: state, contentRowIndex: contentRowIndex, style: style, context: context, palette: palette)
 
         // The mark for the one-cell gutter every row already reserves — the
         // same answer the `Table` puts in its own, from the same place, because
