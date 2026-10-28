@@ -73,10 +73,10 @@ extension MouseEventDispatcher {
         clickRecognizers[id] = recognizer
         // Every control that acts on its click files here, so here is where an
         // app that asked for a hand over every clickable control gets it
-        // (`controlPointerStyle(.link)`, decisions A-O12-1).
+        // (`pointingHandCursor(over: .everythingClickable)`, decisions A-O12-1).
         // `offersHand: false` for a caller that decides its own (a `Button`,
         // whose menu rows keep the arrow).
-        if offersHand, context.environment.controlPointerStyle == .link {
+        if offersHand, context.environment.pointingHandCursorScope == .everythingClickable {
             fileControlPointerShape(.link, for: id, in: context)
         }
         context.environment.volatileReadTracker?.recordReplayableEffect()

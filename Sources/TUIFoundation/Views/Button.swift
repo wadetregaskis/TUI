@@ -777,11 +777,11 @@ private struct _ButtonCore: View, Renderable, Layoutable {
             // A pointing hand over it, where TUI's controls set their own
             // shapes: over a link-styled button always, over any other where
             // the app asks for a hand over every control (decisions A-O12-1,
-            // `controlPointerStyle(_:)`); never over a menu's rows, which a
+            // `pointingHandCursor(over:)`); never over a menu's rows, which a
             // menu shows as a list (decisions O12, B-O12-6).
             if menuOrdinal == nil,
                 style is _LinkButtonStyle || (style as? _AppearanceButtonStyle)?.appearance == .link
-                    || context.environment.controlPointerStyle == .link
+                    || context.environment.pointingHandCursorScope == .everythingClickable
             {
                 mouseDispatcher.fileControlPointerShape(.link, for: handlerID, in: context)
             }

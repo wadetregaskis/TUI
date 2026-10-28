@@ -1,9 +1,9 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
-//  ControlPointerStyleTests.swift
+//  PointingHandCursorTests.swift
 //
 //  Which of TUI's own controls give the pointer a hand: links only, the Mac's
 //  convention, by default; every clickable control under
-//  `.controlPointerStyle(.link)` (decisions A-O12-1, the owner's answer of
+//  `.pointingHandCursor(over: .everythingClickable)` (decisions A-O12-1, the owner's answer of
 //  2026-10-27).
 //
 //  Created by Wade Tregaskis
@@ -20,7 +20,7 @@ import Testing
 
 @MainActor
 @Suite("Which controls give the pointer a hand")
-struct ControlPointerStyleTests {
+struct PointingHandCursorTests {
     /// The shape over `text` in a frame of `view`, where the terminal takes
     /// shapes and TUI's controls set theirs.
     private func shape(over text: String, in view: some View) -> PointerShape?? {
@@ -45,18 +45,18 @@ struct ControlPointerStyleTests {
         #expect(shape(over: "More", in: Button("More") {}.buttonStyle(.link)) == .some(.link))
     }
 
-    @Test(".controlPointerStyle(.link) gives a button the hand")
+    @Test(".pointingHandCursor(over: .everythingClickable) gives a button the hand")
     func buttonGetsTheHandWhenAsked() {
-        #expect(shape(over: "Save", in: Button("Save") {}.controlPointerStyle(.link)) == .some(.link))
+        #expect(shape(over: "Save", in: Button("Save") {}.pointingHandCursor(over: .everythingClickable)) == .some(.link))
     }
 
-    @Test(".controlPointerStyle(.link) gives every clickable control the hand, set once above them")
+    @Test(".pointingHandCursor(over: .everythingClickable) gives every clickable control the hand, set once above them")
     func everyClickableControlGetsTheHand() {
         let view = VStack(alignment: .leading) {
             Toggle("Wi-Fi", isOn: .constant(true))
             Toggle("Bluetooth", isOn: .constant(false))
         }
-        .controlPointerStyle(.link)
+        .pointingHandCursor(over: .everythingClickable)
         #expect(shape(over: "Wi-Fi", in: view) == .some(.link))
         #expect(shape(over: "Bluetooth", in: view) == .some(.link))
         // And not without it.
@@ -66,7 +66,7 @@ struct ControlPointerStyleTests {
 
     @Test("A view's own pointerStyle still wins over the setting")
     func ownStyleWins() {
-        let view = Text("Pan").pointerStyle(.grabIdle).controlPointerStyle(.link)
+        let view = Text("Pan").pointerStyle(.grabIdle).pointingHandCursor(over: .everythingClickable)
         #expect(shape(over: "Pan", in: view) == .some(.grab))
     }
 }

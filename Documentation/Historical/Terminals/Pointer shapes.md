@@ -11,7 +11,7 @@ names; the innermost style under the pointer wins; it is written as the
 pointer moves and put back before the mouse modes go off. TUI's own controls'
 shapes are built, and off until a host's reset is read. Which controls get a
 hand is the app's choice (A-O12-1, answered 2026-10-27): links only by default,
-as on a Mac, or every clickable control under `.controlPointerStyle(.link)`.
+as on a Mac, or every clickable control under `.pointingHandCursor(over: .everythingClickable)`.
 
 ## The record
 
@@ -35,12 +35,12 @@ hand keeps its meaning — this goes somewhere else.
 **Answered 2026-10-27: configurable**, app-wide, because both mindsets are
 valid — a Mac's (the arrow over buttons) and a web page's (a hand over
 whatever can be clicked) — and a subtree can choose too. Built as a TUI-only
-environment value, `controlPointerStyle(_:)` (`ControlPointerStyle`):
+environment value, `pointingHandCursor(over:)` (`PointingHandCursorScope`):
 `.automatic`, the default, gives the hand to links (a `Link`, a link in a
 `Text`, a button styled `.link`); `.link` gives it to every control that acts on
 its click, filed where each files its click recognizer (B89), menus' rows still
 excepted. A view's own `pointerStyle(_:)` wins over either
-(`ControlPointerStyleTests`).
+(`PointingHandCursorTests`).
 
 ### B-O12-1. Emitted only where a host documents OSC 22, in its own names
 

@@ -91,7 +91,7 @@ been in force since 2026-10-18.
 | Id | Answer | Status |
 |---|---|---|
 | A-EFFECTS-1 | 3: never invisible; dim and the other attributes widen the palette. | Done: faint in the ink's colour at 16 colours, a step toward it at 256. |
-| A-O12-1 | Configurable, app-wide (a Mac's links-only or a web page's every clickable control). | Done: `controlPointerStyle(_:)`, `.automatic` (links only, the default) or `.link`. |
+| A-O12-1 | Configurable, app-wide (a Mac's links-only or a web page's every clickable control). | Done: `pointingHandCursor(over:)`, `.links` (the default) or `.everythingClickable`. |
 | A-MODALS-1 | 3, if macOS agrees: it does (measured). | Done: behind a modal only its own shortcuts and status bar items show and fire. |
 | A-O10-1 | 2, generic beyond `Data` (strings, `Codable`). | Done: `fileExporter(isPresented:contents:…)` and `fileExporter(isPresented:encoding:…)`, on every platform. |
 | A-FORMS-1 | 2: follow SwiftUI. | Done: a bare button in the control column (columns), at the row's leading edge (grouped). |

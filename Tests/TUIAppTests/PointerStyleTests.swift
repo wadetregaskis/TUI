@@ -358,10 +358,10 @@ struct PointerStyleTests {
             return
         }
         #expect(off.shape(atX: go.x, y: go.y) == nil, "no control sets a shape until a host's reset is read")
-        // A button's hand is asked for with `controlPointerStyle(.link)`; a Mac's
+        // A button's hand is asked for with `pointingHandCursor(over: .everythingClickable)`; a Mac's
         // buttons keep the arrow by default (decisions A-O12-1).
         let on = Harness(controlShapes: true)
-        on.frame(view.controlPointerStyle(.link))
+        on.frame(view.pointingHandCursor(over: .everythingClickable))
         #expect(on.shape(atX: go.x, y: go.y) == .link, "a pointing hand over a button")
     }
 
