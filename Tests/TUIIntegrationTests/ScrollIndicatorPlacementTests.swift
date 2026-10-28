@@ -41,14 +41,25 @@ struct ScrollIndicatorPlacementTests {
     private struct Lister: View {
         let placement: ScrollIndicatorPlacement
         var style: ScrollIndicatorStyle = .scrollbar
+        /// Rows that are each a control, with a hit region of its own.
+        var buttons = false
         var body: some View {
             List(0..<30, id: \.self) { row in
-                Text(verbatim: String(repeating: "x", count: 30) + " \(row)")
+                if buttons {
+                    Button(String(repeating: "x", count: 30) + " \(row)") {}
+                } else {
+                    Text(verbatim: String(repeating: "x", count: 30) + " \(row)")
+                }
             }
             .frame(width: 20, height: 8)
             .scrollIndicatorPlacement(placement)
             .scrollIndicatorStyle(style)
         }
+    }
+
+    private enum Kind {
+        case scroller
+        case list(buttons: Bool = false)
     }
 
     private struct ScrollerApp: App {
@@ -58,10 +69,13 @@ struct ScrollIndicatorPlacementTests {
         init(placement: ScrollIndicatorPlacement, style: ScrollIndicatorStyle) {
             (self.placement, self.style) = (placement, style)
         }
-        var list = false
+        var kind = Kind.scroller
         var body: some Scene {
             WindowGroup {
-                if list { Lister(placement: placement, style: style) } else { Scroller(placement: placement, style: style) }
+                switch kind {
+                case .scroller: Scroller(placement: placement, style: style)
+                case .list(let buttons): Lister(placement: placement, style: style, buttons: buttons)
+                }
             }
         }
     }
@@ -71,9 +85,9 @@ struct ScrollIndicatorPlacementTests {
         let app: HeadlessApp<ScrollerApp>
         private var now: Int64 = 0
 
-        init(_ placement: ScrollIndicatorPlacement, style: ScrollIndicatorStyle = .scrollbar, list: Bool = false) {
+        init(_ placement: ScrollIndicatorPlacement, style: ScrollIndicatorStyle = .scrollbar, kind: Kind = .scroller) {
             var scene = ScrollerApp(placement: placement, style: style)
-            scene.list = list
+            scene.kind = kind
             app = HeadlessApp(scene, width: 30, height: 10)
             frame()
             frame()
@@ -135,8 +149,8 @@ struct ScrollIndicatorPlacementTests {
 
     @Test("A list's bar is drawn over its rows for the pointer, the rows laid out at the whole width")
     func listBarForThePointer() {
-        let beside = Harness(.besideContent, list: true)
-        let over = Harness(.overContent, list: true)
+        let beside = Harness(.besideContent, kind: .list())
+        let over = Harness(.overContent, kind: .list())
         let xs = { (row: String) in row.filter { $0 == "x" }.count }
         #expect(xs(over.firstRow) > xs(beside.firstRow), "\(beside.firstRow) / \(over.firstRow)")
         let before = over.firstRow
@@ -149,11 +163,20 @@ struct ScrollIndicatorPlacementTests {
 
     @Test("A list's N more lines are written over its rows for the pointer only")
     func listTextForThePointer() {
-        let harness = Harness(.overContent, style: .text, list: true)
+        let harness = Harness(.overContent, style: .text, kind: .list())
         let screen = { harness.app.screen.map(\.stripped).joined(separator: "\n") }
         #expect(!screen().contains("below"), "no N more line until the pointer comes: \(screen())")
         let inside = harness.inside
         harness.move(to: inside.x, inside.y)
         #expect(screen().contains("below"), "\(screen())")
+    }
+
+    @Test("Over a control in a row, the pointer is still over the list")
+    func barOverARowsControl() {
+        let harness = Harness(.overContent, kind: .list(buttons: true))
+        let before = harness.firstRow
+        let inside = harness.inside
+        harness.move(to: inside.x, inside.y)
+        #expect(harness.firstRow != before, "the row's control hides nothing: \(harness.firstRow)")
     }
 }

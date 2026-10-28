@@ -1060,12 +1060,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // the list is disabled or has no mouse dispatcher — which is what
             // `registered` is threaded through for.
             attachRowPayloads(
-                to: &buffer,
-                context: context,
-                state: state,
-                topInset: contentTop,
-                mergesHitRegions: registered
-            )
+                to: &buffer, context: context, state: state, topInset: contentTop, mergesHitRegions: registered)
+            // The pointer's coming and going, for indicators drawn over the
+            // rows — in front of the rows' own regions, or a control in a row
+            // would hide it, and the pointer over it would leave the list.
+            if registered { buffer.observePointerForOverlaidIndicators(of: state.handler, context: context) }
             // A list is a scroll view to `onScrollVisibilityChange`, as it is
             // in SwiftUI: its rows' lines are the viewport.
             context.measureScrollVisibility(
@@ -2928,7 +2927,6 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // borderless title shifted every titled one down a row.)
 
         publishRowBands(state: state)
-        buffer.observePointerForOverlaidIndicators(of: state.handler, context: context)
 
         // The scrollbar's own handler goes in first so the container's later
         // insert(at: 0) pushes it to a higher index — hit-tested ahead of the
