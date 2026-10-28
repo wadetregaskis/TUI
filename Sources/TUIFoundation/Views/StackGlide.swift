@@ -65,7 +65,7 @@ extension RenderContext {
     ///   - width: The stack's in-flow width.
     ///   - height: The stack's in-flow height.
     @MainActor
-    func glidingStackBuffer(
+    package func glidingStackBuffer(
         _ children: [ChildView], buffers: [FrameBuffer?], at targets: [ChildPlacement],
         departing: [ChildView], width: Int, height: Int
     ) -> FrameBuffer? {

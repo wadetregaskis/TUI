@@ -413,6 +413,13 @@ identity under its row, the lattice's origins as targets, drawn through
 `FrameBuffer.layered` while anything moves; departure slots in a row taken out
 of the lattice. About half a day.
 
+**Built 2026-10-28** (the owner's A-TRANSITIONS2-1, "all"): a grid's cells
+are one flat list at the grid's identity, each with its own resolved
+identity, so the eager stacks' glide takes them whole — every cell, its
+picture and its place in the grid — and draws them where each has got to.
+Still open: a departure slot in a row keeps its room (the lattice is grouped
+by the rows' marks, which a slot taken out would disturb). `GridGlideTests`.
+
 ### B-FB16-4. A `Layout`'s subviews glide, but a removal keeps its room
 
 *`_LayoutCore`, `LayoutSubviews`*

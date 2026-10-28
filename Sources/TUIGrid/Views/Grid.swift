@@ -370,6 +370,11 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
             height: (rowTops.last ?? 0) + max(1, heights.last ?? 1))
 
         var result = FrameBuffer()
+        // Every cell, what it drew and where in the grid: what a change under
+        // an animation glides each from where it was (`StackGlide`).
+        var cells: [ChildView] = []
+        var pictures: [FrameBuffer?] = []
+        var targets: [ChildPlacement] = []
         for (rowIndex, row) in rows.enumerated() {
             let rowHeight = heights[rowIndex]
             var canvas = FrameBuffer(emptyWithWidth: width, height: max(1, rowHeight))
@@ -399,14 +404,23 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
                 }
                 let rendered = cell.render(
                     width: max(0, boxWidth), height: max(1, rowHeight), context: childContext)
-                canvas = canvas.composited(
-                    with: rendered,
-                    at: placement(
-                        width: rendered.width, height: rendered.height, in: box, cell: cell,
-                        rowAlignment: rowAlignment, columnAlignment: columnGuide))
+                let seat = placement(
+                    width: rendered.width, height: rendered.height, in: box, cell: cell,
+                    rowAlignment: rowAlignment, columnAlignment: columnGuide)
+                canvas = canvas.composited(with: rendered, at: seat)
+                cells.append(cell)
+                pictures.append(rendered)
+                targets.append(ChildPlacement(x: seat.x, y: rowTops[rowIndex] + seat.y))
                 index += span
             }
             result.appendVertically(canvas, spacing: rowIndex > 0 ? verticalSpacing : 0)
+        }
+        // While a cell is on its way to where the lattice now puts it under an
+        // animation, each is drawn where it is, over the grid's whole canvas.
+        if let gliding = context.glidingStackBuffer(
+            cells, buffers: pictures, at: targets, departing: [], width: width, height: result.height)
+        {
+            return gliding.clamped(toWidth: context.availableWidth, height: context.availableHeight)
         }
         return result.clamped(toWidth: context.availableWidth, height: context.availableHeight)
     }
