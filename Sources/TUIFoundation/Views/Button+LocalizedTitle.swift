@@ -9,20 +9,14 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-/// Where a button's title came from, to read it again in another language.
-package enum LocalizedTitle: Sendable {
-    /// An app's key, read as `Text(_:)` reads one.
-    case key(LocalizedStringKey)
-    /// One of TUI's own keys, by its raw value, read in TUI's order.
-    case framework(String)
-
-    /// The title's words in `language` first.
+extension LocalizedTextSource {
+    /// The words of the key this came from, read in `language` first: as a
+    /// `Text` made from it reads them there (``Text/relocalized(in:)``), or,
+    /// for one of TUI's keys, in TUI's order.
     @MainActor
     func words(in language: String) -> String {
-        switch self {
-        case .key(let key): Text(key, tableName: nil, bundle: nil, language: language).content
-        case .framework(let key): LocalizationService.shared.frameworkReading(key, in: language).text
-        }
+        guard !isFramework else { return LocalizationService.shared.frameworkReading(key.key, in: language).text }
+        return Text(key, tableName: tableName, bundle: bundle, language: language, locale: locale).content
     }
 }
 

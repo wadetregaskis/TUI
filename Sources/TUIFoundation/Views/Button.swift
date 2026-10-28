@@ -118,10 +118,13 @@ public struct Button: View {
 
     /// Where ``label``'s words came from, when they were read from a key:
     /// read again when the button is drawn where a subtree's `\.locale`
-    /// names a language, as a `Text` made from a key is
-    /// (``LocalizedTitle``). `nil` for a title displayed as written, and for
-    /// a styled key, whose ``labelView`` is a `Text` that reads itself again.
-    private(set) var localizedTitle: LocalizedTitle?
+    /// names another language, as a `Text` made from a key is. `nil` for a
+    /// title displayed as written, and for a styled key, whose ``labelView`` is
+    /// a `Text` that reads itself again. A reference — the source a `Text` of
+    /// the key would hold — so it costs the button one word, among its other
+    /// words, where the key itself cost 72 bytes and padding
+    /// (`ControlLayoutPaddingTests`).
+    private(set) var localizedTitle: LocalizedTextSource?
 
     /// The action to perform when pressed.
     package let action: () -> Void
@@ -219,7 +222,11 @@ public struct Button: View {
         self.role = role
         self.focusID = nil
         self.isDisabled = false
-        if title.styled == nil { self.localizedTitle = .key(titleKey) }
+        if title.styled == nil {
+            self.localizedTitle = LocalizedTextSource.source(
+                titleKey, tableName: nil, bundle: nil, language: LocalizationService.shared.stringLanguage, locale: nil,
+                words: title.plain)
+        }
     }
 
     /// Creates a button with a role and a title displayed as written.
@@ -373,8 +380,11 @@ extension Button {
     package init(
         localized key: some FrameworkLocalizationKey, role: ButtonRole? = nil, action: @escaping () -> Void
     ) {
-        self.init(LocalizationService.shared.frameworkString(for: key.rawValue), role: role, action: action)
-        localizedTitle = .framework(key.rawValue)
+        let reading = LocalizationService.shared.frameworkReading(key.rawValue, in: nil)
+        self.init(reading.text, role: role, action: action)
+        localizedTitle = LocalizedTextSource.interned(
+            LocalizedStringKey(key.rawValue), tableName: nil, bundle: nil, language: reading.language, locale: nil,
+            isFramework: true)
     }
 }
 
@@ -388,7 +398,7 @@ extension Button {
 private struct _ButtonCore: View, Renderable, Layoutable {
     let label: String
     let labelView: AnyView?
-    let localizedTitle: LocalizedTitle?
+    let localizedTitle: LocalizedTextSource?
     let action: () -> Void
     let role: ButtonRole?
     let focusID: String?
@@ -662,7 +672,9 @@ private struct _ButtonCore: View, Renderable, Layoutable {
     /// subtree's `\.locale` names, if it came from one, and as it was made
     /// otherwise — one environment read for a button under no such subtree.
     private func title(in context: RenderContext) -> String {
-        guard let localizedTitle, let language = context.environment.stringLanguage else { return label }
+        guard let localizedTitle, let language = context.environment.stringLanguage,
+            language != localizedTitle.language
+        else { return label }
         return localizedTitle.words(in: language)
     }
 

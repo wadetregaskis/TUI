@@ -50,12 +50,14 @@ struct ControlLayoutPaddingTests {
     /// behind the disabled flag, and a typed step in every button's measure
     /// hash. Now a reference, ahead of the flag: one word, which a plain
     /// button's `nil` writes whole, so the hash reads it as plain bytes. (106
-    /// when it was a `Bool` beside the flag, before the opener was kept.)
-    @Test("A Button and its core: no padding, 144 → 113 bytes, and its menu opener hashed as bytes")
+    /// when it was a `Bool` beside the flag, before the opener was kept. 121
+    /// since a title read from a key keeps its source, one word, to read again
+    /// under a subtree's `\.locale`.)
+    @Test("A Button and its core: no padding, 144 → 113 → 121 bytes, and its menu opener hashed as bytes")
     func button() {
         func check<T>(_: T) {
             #expect(interiorPadding(of: T.self).isEmpty, "\(T.self): \(interiorPadding(of: T.self))")
-            #expect(MemoryLayout<T>.size == 113, "\(T.self)")
+            #expect(MemoryLayout<T>.size == 121, "\(T.self)")
             // The plan's runs and steps are the table's memory: it has to
             // outlive the reads, which a `let` alone does not promise.
             let plans = ValueHashPlans()
