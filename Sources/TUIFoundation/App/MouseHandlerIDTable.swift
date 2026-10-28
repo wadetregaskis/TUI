@@ -110,17 +110,27 @@ final class MouseHandlerIDTable {
         // every id below it, so it gets an id that names nothing instead.
         guard !context.isMeasuring else { return freshID() }
         let identity = context.identity
-        let slot = slotsUsed[identity, default: 0]
-        slotsUsed[identity] = slot + 1
+        // One lookup each, where a read then a write was two: the key is an
+        // identity, whose hash and equality walk its chain, and every control
+        // that takes the pointer asks here on every frame (Stress `controls`,
+        // 2026-10-28: `registerGesture`'s dictionary reads 2.5% of a frame).
+        let slot = Self.postIncrement(&slotsUsed[identity, default: 0])
         let key = Key(identity: identity, slot: slot)
-        if let existing = interned[key] {
-            interned[key] = Record(id: existing.id, askedAt: pruneSerial)
-            return existing.id
+        if let index = interned.index(forKey: key) {
+            interned.values[index].askedAt = pruneSerial
+            return interned.values[index].id
         }
         let id = freshID()
         interned[key] = Record(id: id, askedAt: pruneSerial)
         owners[id] = identity
         return id
+    }
+
+    /// `value`, which is then incremented: a counter in a dictionary read and
+    /// bumped through one access (`subscript(_:default:)`'s modify).
+    private static func postIncrement(_ value: inout Int) -> Int {
+        defer { value += 1 }
+        return value
     }
 
     /// Restarts the per-identity slot counters for a new walk of the scene.
