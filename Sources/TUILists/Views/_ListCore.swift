@@ -2008,10 +2008,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         handler.resolvePendingTypeSelect(measuring: context.isMeasuring) { source.content(at: $0).typeSelectText }
         // Drawn over the rows for the pointer, the bar reserves nothing above:
         // only the drawing below learns of it.
-        let overlaid = context.environment.overlaidVerticalScrollIndicators(
-            overflowing: overflowing, hovered: handler.isPointerOver)
-        handler.overlaysScrollbar = overlaid.bar
-        handler.overlaysTextIndicators = overlaid.text && contentHeight >= ResolvedScrollIndicators.minimumTextHeight
+        handler.resolveOverlaidIndicators(
+            overflowing: overflowing, contentHeight: contentHeight, environment: context.environment)
         return (handler, showsScrollbar)
     }
 
@@ -2348,12 +2346,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             topIndicator: topIndicator, bottomIndicator: bottomIndicator,
             handler: handler, rowWidth: rowWidth)
         // Written over the rows' first and last lines for the pointer, as the bar
-        // is drawn over their last column (`_ListCore+OverlaidIndicators.swift`).
-        let overlaid = overlayingTextIndicators(
-            (wrapped.lines, wrapped.runs, wrapped.claims),
-            hidden: (origin.offset > 0 || origin.topClip > 0 ? max(1, origin.offset) : 0,
-                     handler.hasContentBelow ? max(1, handler.rowsBelow) : 0),
-            handler: handler, rowWidth: rowWidth, listHasFocus: listHasFocus, context: context)
+        // is drawn over their last column (`OverlaidScrollIndicators.swift`).
+        var overlaid = (lines: wrapped.lines, runs: wrapped.runs, claims: wrapped.claims)
+        if handler.overlaysTextIndicators {
+            overlaid = overlayingScrollIndicatorLines(
+                overlaid, hidden: (origin.offset > 0 || origin.topClip > 0 ? max(1, origin.offset) : 0,
+                                   handler.hasContentBelow ? max(1, handler.rowsBelow) : 0),
+                width: rowWidth, isFocused: listHasFocus, context: context)
+        }
         return (overlaid.lines, wrapped.ranges, overlaid.runs, overlaid.claims, contentClaims)
     }
 
@@ -2928,7 +2928,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // borderless title shifted every titled one down a row.)
 
         publishRowBands(state: state)
-        attachIndicatorHoverObserver(to: &buffer, handler: state.handler, dispatcher: mouseDispatcher, context: context)
+        buffer.observePointerForOverlaidIndicators(of: state.handler, context: context)
 
         // The scrollbar's own handler goes in first so the container's later
         // insert(at: 0) pushes it to a higher index — hit-tested ahead of the

@@ -1611,12 +1611,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // measure pass (the clamp above is render-gated), and the raw form
         // would construct an inverted range (e.g. `1300..<2`) and trap.
         let visibleRange = handler.visibleRange
-        var bar = ScrollbarRenderer.verticalScrollbar(
-            height: contentHeight, extent: data.count, viewport: contentHeight, offset: visibleRange.lowerBound,
-            arrows: context.environment.scrollbarArrows,
-            proportional: context.environment.scrollbarProportionalThumb,
-            colors: .resting(in: palette, flash: handler.indicatorFlash.strength(context: context)),
-            width: context.environment.scrollbarWidth, cornerTriangles: context.environment.cornerTrianglesFillTheCell)
+        var bar = singleLineScrollbarCells(
+            handler: handler, offset: visibleRange.lowerBound, contentHeight: contentHeight, context: context)
 
         // Content-only row lines; the bar cell is merged in at the END, keyed by
         // absolute line index, so an overscroll slide moves the rows and leaves
@@ -1714,6 +1710,26 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 handler: handler, focusID: persistedFocusID, visibleRange: visibleRange,
                 scrollOffsetAbove: 0, drawnBands: bands, hasScrollbar: true,
                 columnWidths: columnWidths, rowContentWidth: contentInnerWidth))
+    }
+
+    /// The vertical scrollbar cells for a single-line table — one styled cell
+    /// per content line, metered in rows (one line each).
+    ///
+    /// - Parameters:
+    ///   - handler: The table's handler, whose flash the bar shows.
+    ///   - offset: The first row drawn.
+    ///   - contentHeight: The lines the rows are drawn in, and the bar's height.
+    ///   - context: The table's context.
+    private func singleLineScrollbarCells(
+        handler: ItemListHandler<Value.ID>, offset: Int, contentHeight: Int, context: RenderContext
+    ) -> ClaimingColumn {
+        ScrollbarRenderer.verticalScrollbar(
+            height: contentHeight, extent: data.count, viewport: contentHeight, offset: offset,
+            arrows: context.environment.scrollbarArrows,
+            proportional: context.environment.scrollbarProportionalThumb,
+            colors: .resting(
+                in: context.environment.palette, flash: handler.indicatorFlash.strength(context: context)),
+            width: context.environment.scrollbarWidth, cornerTriangles: context.environment.cornerTrianglesFillTheCell)
     }
 
     // MARK: - Multi-line content (variable row heights)

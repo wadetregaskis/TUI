@@ -1053,7 +1053,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             applyOverlaidScrollChrome(
                 to: &visibleBuffer, handler: handler, contentWidth: contentWidth, wantsHorizontal: wantsHorizontal,
                 isFocused: isFocused, focusID: persistedFocusID, context: context)
-            attachIndicatorHoverObserver(to: &visibleBuffer, handler: handler, context: context)
+            visibleBuffer.observePointerForOverlaidIndicators(of: handler, context: context)
             return
         }
         // Indicators REPLACE viewport lines, so a 1-2 line viewport scrolled

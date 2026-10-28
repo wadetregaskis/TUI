@@ -59,32 +59,4 @@ extension _ScrollViewCore {
                 to: &visibleBuffer, contentWidth: width, handler: handler, focusID: focusID, context: context)
         }
     }
-
-    /// Watches the pointer come and go over the viewport, for indicators drawn
-    /// over the content: a view it enters draws them, one it leaves takes them
-    /// away. An observer, so the content's own controls still have their hover.
-    func attachIndicatorHoverObserver(to buffer: inout FrameBuffer, handler: ScrollViewHandler, context: RenderContext) {
-        guard context.environment.scrollIndicatorsOverlayContent, !context.isMeasuring,
-            let dispatcher = context.environment.mouseEventDispatcher
-        else { return }
-        // Motion reports, which a terminal sends only when asked: hover is made of them.
-        dispatcher.requestFeature(.motion, in: context)
-        let drawing = HandlerDrawing(context)
-        let handlerID = dispatcher.registerHoverObserver(in: context) { event in
-            switch event.phase {
-            case .entered where !handler.isPointerOver:
-                handler.isPointerOver = true
-                drawing.changed()
-            case .exited where handler.isPointerOver:
-                handler.isPointerOver = false
-                drawing.changed()
-            default:
-                break
-            }
-            // Claims nothing: the wheel, clicks and the content's own hover go
-            // on to what is under the pointer.
-            return false
-        }
-        buffer.hitTestRegions += buffer.frameHitRegions(handlerID: handlerID)
-    }
 }

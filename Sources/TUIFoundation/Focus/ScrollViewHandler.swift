@@ -288,7 +288,7 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
 
     /// Whether the pointer is over the view: its indicators are drawn over the
     /// content while it is, under `.scrollIndicatorPlacement(.overContent)`.
-    var isPointerOver = false
+    package var isPointerOver = false
 
     /// A parked ``ScrollViewProxy/scrollTo(_:anchor:)`` request, set at event
     /// time (or from an async context) and consumed — one-shot — by the next
@@ -568,3 +568,6 @@ extension ScrollViewHandler {
 
 // A scroll view's focus shows in its scrollbar alone — see the protocol.
 extension ScrollViewHandler: FocusDrawnOnlyAtItself {}
+
+// Its indicators drawn over the content follow the pointer — see the protocol.
+extension ScrollViewHandler: ScrollIndicatorPointerTracking {}

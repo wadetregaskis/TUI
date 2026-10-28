@@ -1934,3 +1934,23 @@ extension ItemListHandler {
         ensureFocusedItemVisible()
     }
 }
+
+// Its indicators drawn over the rows follow the pointer — see the protocol.
+extension ItemListHandler: ScrollIndicatorPointerTracking {
+    /// Decides whether this frame draws the indicators over the rows —
+    /// ``overlaysScrollbar`` and ``overlaysTextIndicators`` — as a `List` and a
+    /// `Table` both do: under `.scrollIndicatorPlacement(.overContent)`, with
+    /// the pointer over the control and the rows overflowing. Nothing is
+    /// reserved for them, so only the drawing learns of it.
+    ///
+    /// - Parameters:
+    ///   - overflowing: Whether the rows overflow the content area.
+    ///   - contentHeight: The content area's height, in lines: the "N more"
+    ///     lines need ``ResolvedScrollIndicators/minimumTextHeight`` of them.
+    ///   - environment: The control's environment.
+    package func resolveOverlaidIndicators(overflowing: Bool, contentHeight: Int, environment: EnvironmentValues) {
+        let overlaid = environment.overlaidVerticalScrollIndicators(overflowing: overflowing, hovered: isPointerOver)
+        overlaysScrollbar = overlaid.bar
+        overlaysTextIndicators = overlaid.text && contentHeight >= ResolvedScrollIndicators.minimumTextHeight
+    }
+}
