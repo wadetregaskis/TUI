@@ -143,28 +143,36 @@ final class MailStore {
     var caption: String?
     /// The message fading out of the list as it is archived.
     var leaving: Int?
-    private var history: [(messages: [MailMessage], selection: Int?, said: String)] = []
+    /// Each change's state before it, and what its undo says.
+    private var history: [(messages: [MailMessage], selection: Int?, undone: String)] = []
 
     var canUndo: Bool { !history.isEmpty }
     var selected: MailMessage? { messages.first { $0.id == selection } ?? messages.first }
 
-    private func change(_ said: String, _ edit: (inout [MailMessage]) -> Void) {
-        history.append((messages, selection, said))
+    private func change(_ said: String, undone: String, _ edit: (inout [MailMessage]) -> Void) {
+        history.append((messages, selection, undone))
         withAnimation(.easeInOut(duration: 0.35)) {
             edit(&messages)
             toast = said
         }
     }
 
-    private func editSelected(_ said: String, _ edit: @escaping (inout MailMessage) -> Void) {
-        guard let id = selection else { return }
-        change(said) { list in
+    private func editSelected(
+        _ said: String, undone: (MailMessage) -> String, _ edit: @escaping (inout MailMessage) -> Void
+    ) {
+        guard let id = selection, let message = messages.first(where: { $0.id == id }) else { return }
+        change(said, undone: undone(message)) { list in
             if let index = list.firstIndex(where: { $0.id == id }) { edit(&list[index]) }
         }
     }
 
-    func flagSelected(_ colour: Color) { editSelected("Flagged") { $0.flag = colour } }
-    func markSelectedUnread() { editSelected("Marked as unread") { $0.unread = true } }
+    func flagSelected(_ colour: Color) {
+        editSelected("Flagged", undone: { "Unflagged “\($0.subject)”" }) { $0.flag = colour }
+    }
+
+    func markSelectedUnread() {
+        editSelected("Marked as unread", undone: { "Marked “\($0.subject)” as read" }) { $0.unread = true }
+    }
     func archiveSelected() { if let id = selection { archive(id) } }
 
     /// Fades `id` out where it is, then takes it out of the list, so the eye
@@ -175,7 +183,9 @@ final class MailStore {
         Task {
             try? await Task.sleep(for: .seconds(0.35))
             guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
-            change("Archived “\(message.subject)”") { $0.remove(at: index) }
+            change("Archived “\(message.subject)”", undone: "Unarchived “\(message.subject)” from \(message.from)") {
+                $0.remove(at: index)
+            }
             leaving = nil
             if selection == id { selection = messages[min(index, messages.count - 1)].id }
         }
@@ -185,7 +195,7 @@ final class MailStore {
         guard let last = history.popLast() else { return }
         withAnimation(.easeInOut(duration: 0.35)) {
             messages = last.messages
-            toast = "Undid: \(last.said)"
+            toast = last.undone
         }
         selection = last.selection
     }
