@@ -723,6 +723,10 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             // routes it from (a right-drag from the screen selection's
             // highlight moved the selection, decisions-D4X).
             case .dragged where event.button == .left:
+                if handler.textDrag != nil {
+                    handler.dragText(to: pointer.textPosition(at: event))
+                    return true
+                }
                 if handler.block != nil {
                     placeCursor(at: event)
                     handler.extendBlock(to: gridPoint(event), shift: event.shift)
@@ -737,6 +741,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                 placeCursor(at: event, asSelectionEnd: true)
                 return true
             case .released where event.button == .left:
+                if handler.endTextDrag(clickedAt: pointer.textPosition(at: event)) { return true }
                 handler.finishBlock()
                 // A drag or a Shift-click that ends on its own anchor leaves no
                 // selection, and its head is a caret. Where the head is a

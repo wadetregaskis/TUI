@@ -68,8 +68,9 @@ struct EditorPointer {
 
     /// What a plain left press at `event` does to the caret and the
     /// selection: an Option-press starts a block, a Shift-press extends the
-    /// selection, a double- or triple-click selects a word or a line, and any
-    /// other press puts the caret down and drops the selection.
+    /// selection, a double- or triple-click selects a word or a line, a press
+    /// inside the selection may carry it, and any other press puts the caret
+    /// down and drops the selection.
     func press(_ event: MouseEvent) {
         if event.meta {
             // Option-drag (⌘-drag in iTerm2): a block, from here.
@@ -84,6 +85,9 @@ struct EditorPointer {
             // the line; a drag after either extends by them.
             placeCursor(at: event)
             handler.selectRun(granularity, around: handler.cursor)
+        } else if handler.beginTextDrag(at: textPosition(at: event)) {
+            // A press inside the selection: it may be carried
+            // somewhere else (`TextEditorHandler+TextDrag.swift`).
         } else {
             // Plain click: place the caret and drop any selection. Do
             // NOT anchor here — a collapsed anchor (anchor == cursor)
@@ -100,5 +104,20 @@ struct EditorPointer {
                     column: max(0, min(event.x, contentWidth - 1)), in: rows)
             }
         }
+    }
+
+    /// Where a press at `event` lands in the text, as a click puts the caret,
+    /// without moving the caret.
+    func textPosition(at event: MouseEvent) -> TextEditorPosition {
+        let (line, column, anchor, rowStart, desired) =
+            (handler.cursorLine, handler.cursorColumn, handler.selectionAnchor, handler.rowStartHead,
+             handler.desiredColumn)
+        defer {
+            (handler.cursorLine, handler.cursorColumn, handler.selectionAnchor, handler.rowStartHead) =
+                (line, column, anchor, rowStart)
+            handler.desiredColumn = desired
+        }
+        placeCursor(at: event)
+        return handler.cursor
     }
 }

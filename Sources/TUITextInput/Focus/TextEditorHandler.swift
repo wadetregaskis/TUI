@@ -40,6 +40,11 @@ final class TextEditorHandler: PersistedFocusable {
     /// anchor…cursor, and the next edit consumes it.
     var selectionAnchor: TextEditorPosition?
 
+    /// The selected text being dragged to a new place, or nil
+    /// (`TextEditorHandler+TextDrag.swift`). While it is, its span draws lit
+    /// and the caret shows where it will land.
+    var textDrag: TextDrag?
+
     /// A rectangular selection, an Option-drag's, in place of the selection
     /// between ``selectionAnchor`` and the caret (`TextEditorHandler+Block.swift`).
     var block: TextEditorBlock?
@@ -936,7 +941,7 @@ extension TextEditorHandler {
     /// `lineLength`), or nil if the line carries no selection. Interior lines of
     /// a multi-line selection return their whole width.
     func selectedColumns(inLine lineIndex: Int, lineLength: Int) -> Range<Int>? {
-        guard let span = selectionRange, lineIndex >= span.start.line, lineIndex <= span.end.line
+        guard let span = textDrag?.span ?? selectionRange, lineIndex >= span.start.line, lineIndex <= span.end.line
         else { return nil }
         let lo = lineIndex == span.start.line ? span.start.column : 0
         let hi = lineIndex == span.end.line ? span.end.column : lineLength
