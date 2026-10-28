@@ -30,11 +30,11 @@ struct ImagesPage: View {
     @State private var settings = ImageDemoSettings()
     @State private var zoom: Double = 1.0
     /// The bundled picture shown, and the one `p`/`P` step from.
-    @State private var picture = DemoPicture.platformDefault
+    @State private var picture = DemoPicture.first
     /// A typed path or URL, or a pasted picture, shown in place of `picture`.
     @State private var elsewhere: PictureLocation?
     /// What the combo box holds: a bundled picture's name, a path or a URL.
-    @State private var entry = DemoPicture.platformDefault.name
+    @State private var entry = DemoPicture.first.name
     /// Whether the picture is loaded by SwiftUI's `AsyncImage`, which hands
     /// its content the load's phase, rather than by TUI's `Image(_:)`, which
     /// draws its own placeholder.

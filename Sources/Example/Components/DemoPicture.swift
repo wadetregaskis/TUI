@@ -42,6 +42,17 @@ enum DemoPicture: CaseIterable {
         #endif
     }
 
+    /// The picture the image page opens on: the one `TUI_EXAMPLE_PICTURE`
+    /// names (by ``name``, any case: `TUI_EXAMPLE_PICTURE="Touko Madobe"`),
+    /// for a clip or a screenshot of one in particular, else
+    /// ``platformDefault``.
+    static var first: Self {
+        guard let wanted = ProcessInfo.processInfo.environment["TUI_EXAMPLE_PICTURE"]?.lowercased() else {
+            return platformDefault
+        }
+        return allCases.first { $0.name.lowercased() == wanted } ?? platformDefault
+    }
+
     /// The file's name in `Resources/`, and its extension.
     private var resource: (name: String, type: String) {
         switch self {

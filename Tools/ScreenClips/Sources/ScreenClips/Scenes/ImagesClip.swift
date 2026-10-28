@@ -43,7 +43,9 @@ let glyphsClip = Clip(
     budgetKB: 900,
     script: glyphsScript(),
     command: ["Example", "--page", "images"],
-    environment: ["TUI_GRAPHICS": "0"]
+    // Touko Madobe, whose flat colours and fine line work show what each
+    // glyph set and palette keeps (the owner's choice, 2026-10-27).
+    environment: ["TUI_GRAPHICS": "0", "TUI_EXAMPLE_PICTURE": "Touko Madobe"]
 )
 
 /// From fine blocks in true colour: ASCII, then shape matching on (after the
