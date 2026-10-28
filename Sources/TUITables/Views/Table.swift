@@ -253,11 +253,6 @@ public struct Table<Value: Identifiable>: View {
         // what stops the next interactive cell from reintroducing the gap.
         .disabled(isDisabled)
         .paintingScrollContentBackground()
-        // A table keeps its indicators beside its rows for now: drawing them
-        // over the rows, for the pointer, is built for `ScrollView` and `List`
-        // (`.scrollIndicatorPlacement(.overContent)`), and a table that took no
-        // room for them and drew none would hide where it is scrolled.
-        .environment(\.scrollIndicatorPlacement, .besideContent)
     }
 }
 
@@ -1269,6 +1264,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         /// Whether a scrollbar column was drawn — by either layout path. Drives
         /// the bar's mouse handler in `attachMouseHandlers`.
         var hasScrollbar = false
+        /// The column of the rows' lines a bar drawn OVER them starts at
+        /// (`.scrollIndicatorPlacement(.overContent)`, for the pointer), where
+        /// its mouse handler goes; `nil` for a bar beside them, or none.
+        var overlaidScrollbarColumn: Int?
 
         /// This frame's column widths and row width — enough to re-render any
         /// row on demand, which is how a ``RowReorderFeedback/cursor`` drag gets
@@ -1446,6 +1445,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             buffer.hitTestRegions.removeAll()
             attachMouseHandlers(to: &buffer, context: context, state: state, scopesBefore: scopesBefore)
             buffer.hitTestRegions += cellRegions
+            // The pointer's coming and going, for indicators drawn over the
+            // rows — in front of every region the table and its cells filed,
+            // or the first of them under the pointer would hide it.
+            if !isDisabled(in: context) { buffer.observePointerForOverlaidIndicators(of: state.handler, context: context) }
             presentRowMenu(over: &buffer, state: state, context: context)
             presentColumnMenu(over: &buffer, state: state, context: context)
         }
@@ -1534,12 +1537,21 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             context: context,
             palette: palette
         )
+        // Over the rows, for the pointer (`Table+OverlaidIndicators.swift`).
+        var drawn = _TableDrawnRows(
+            lines: composed.lines, runs: composed.runs, claims: composed.claims, payload: composed.payload)
+        let overlaidBar = handler.overlayIndicators(
+            on: &drawn,
+            width: tableContentWidth(columnWidths, within: innerWidth, gutter: selectionGutter(context.environment)),
+            hidden: (handler.drawnOffset, max(0, handler.itemCount - handler.drawnVisibleRange.upperBound)),
+            isFocused: tableHasFocus, context: context
+        ) { singleLineScrollbarCells(handler: handler, offset: handler.drawnOffset, contentHeight: contentHeight, context: context) }
 
         return (
-            lines: composed.lines,
-            runs: composed.runs,
-            claims: composed.claims,
-            payload: composed.payload,
+            lines: drawn.lines,
+            runs: drawn.runs,
+            claims: drawn.claims,
+            payload: drawn.payload,
             state: PopulatedRenderState(
                 handler: handler,
                 focusID: persistedFocusID,
@@ -1553,6 +1565,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 // low in the same configuration.
                 scrollOffsetAbove: drawnIndicators.above ? 1 : 0,
                 drawnBands: composed.bands,
+                hasScrollbar: overlaidBar != nil,
+                overlaidScrollbarColumn: overlaidBar,
                 columnWidths: columnWidths,
                 rowContentWidth: innerWidth
             )
@@ -1929,7 +1943,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // actually drawn — the same discipline `_ListCore.listScrollbarCells`
         // keeps.
         let bar =
-            showsScrollbar
+            showsScrollbar || handler.overlaysScrollbar
             ? multiLineScrollbarCells(
                 window: window, contentHeight: contentHeight,
                 height: heightOf, handler: handler, columnWidths: columnWidths, headers: headers,
@@ -1971,17 +1985,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // often as it moved a row.
         if !context.isMeasuring { handler.publishRowBands(bands) }
         return (
-            lines: composed.lines,
-            runs: composed.runs,
-            claims: composed.claims,
-            payload: composed.payload,
+            lines: composed.lines, runs: composed.runs, claims: composed.claims, payload: composed.payload,
             state: PopulatedRenderState(
                 handler: handler,
                 focusID: persistedFocusID,
                 visibleRange: window.range,
                 scrollOffsetAbove: indicatorLines,
                 drawnBands: bands,
-                hasScrollbar: showsScrollbar,
+                hasScrollbar: showsScrollbar || composed.overlaidBar != nil,
+                overlaidScrollbarColumn: composed.overlaidBar,
                 columnWidths: columnWidths,
                 rowContentWidth: tableContentWidth(columnWidths, within: innerWidth, gutter: gutter)
             )
@@ -2349,6 +2361,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             draws && !showsScrollbar && context.environment.alwaysShowsVerticalTextIndicators
         handler.drawsScrollIndicators =
             draws && (furthest > 0 || handler.alwaysReservesIndicatorLines)
+        // As on the single-line path: drawn over the rows for the pointer, the
+        // indicators reserve nothing, and only the drawing learns of them.
+        handler.resolveOverlaidIndicators(
+            overflowing: furthest > 0, contentHeight: contentHeight, environment: context.environment)
         return furthest
     }
 
@@ -2418,7 +2434,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         context: RenderContext
     ) -> (
         lines: [String], runs: [AnimatedCellRun], claims: [OpacityRegion],
-        payload: _TableRowPayload, rowsEnd: Int
+        payload: _TableRowPayload, rowsEnd: Int, overlaidBar: Int?
     ) {
         let palette = context.environment.palette
         let gutter = selectionGutter(context.environment)
@@ -2426,7 +2442,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // to the *content* width (the columns), not the full interior, so a focused
         // row or a scroll indicator is never wider than the header and rows; that
         // width mismatch is what made the wrapping VStack centre the header.
-        let showsBar = !bar.isEmpty
+        // A bar drawn OVER the rows, for the pointer, is drawn at the end.
+        let showsBar = !bar.isEmpty && !handler.overlaysScrollbar
         // …and, before a bar, the cells the rows keep clear of it, which the
         // columns were laid out without (`View.scrollbarSpacing(_:)`).
         let contentWidth = min(
@@ -2564,7 +2581,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             }
         }
         guard showsBar else {
-            return (lines, runs + chromeRuns, claims + chromeClaims, payload, rowsEnd)
+            // Over the rows, for the pointer (`Table+OverlaidIndicators.swift`).
+            var drawn = _TableDrawnRows(lines: lines, runs: runs + chromeRuns, claims: claims + chromeClaims, payload: payload)
+            let overlaidBar = handler.overlayIndicators(
+                on: &drawn, width: contentWidth, hidden: window.hiddenRows(of: data.count),
+                isFocused: tableHasFocus, context: context) { bar }
+            return (drawn.lines, drawn.runs, drawn.claims, drawn.payload, rowsEnd, overlaidBar)
         }
         // The bar is the rightmost interior column, merged in by absolute line
         // index so an overscroll slide moves the rows and leaves it where it
@@ -2579,7 +2601,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         return (
             zip(lines, bar.lines).map { $0 + $1 },
             runs + chromeRuns, claims + chromeClaims + bar.claims(atColumn: contentWidth), payload,
-            rowsEnd)
+            rowsEnd, nil)
     }
 
     /// Renders one (possibly multi-line) row: the selection indicator on the first
@@ -2993,6 +3015,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             firstRowHeight: 1)
         handler.reportScrollPosition(rowID: { AnyHashable(data[$0].id) }, context: context)
         bindSelection(handler, context: context)
+        // Drawn over the rows for the pointer, the indicators reserve nothing
+        // above: only the drawing learns of them.
+        handler.resolveOverlaidIndicators(
+            overflowing: overflowing, contentHeight: contentHeight, environment: context.environment)
         return (handler, overflowing)
     }
 
@@ -3819,12 +3845,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             ScrollbarRenderer.focusing(
                 barHandler, focusID: state.focusID,
                 focusManager: context.environment.focusManager))
+        // A bar drawn over the rows stands where they put it, past the border
+        // and the padding before them; one beside them is the last interior column.
+        let barX =
+            state.overlaidScrollbarColumn.map { borderWidth(context.environment) + Self.containerPadding.leading + $0 }
+            ?? context.availableWidth - borderWidth(context.environment)
+            - trailingPadding(context.environment, showsBar: true) - context.environment.scrollbarWidth
         buffer.hitTestRegions.insert(
             HitTestRegion(
-                offsetX: max(
-                    0,
-                    context.availableWidth - borderWidth(context.environment)
-                        - trailingPadding(context.environment, showsBar: true) - context.environment.scrollbarWidth),
+                offsetX: max(0, barX),
                 offsetY: firstRowY,
                 width: context.environment.scrollbarWidth, height: barHeight, handlerID: barHandlerID),
             at: 0

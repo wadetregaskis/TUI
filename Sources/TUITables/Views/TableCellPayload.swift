@@ -136,6 +136,18 @@ struct _TableRowPayload {
             },
             overlays: overlays)
     }
+
+    /// This payload with its regions trimmed to the columns `columns` — what
+    /// the rows still show where a scrollbar is drawn over their last column.
+    /// Overlays are kept, as ``clipped(toRows:)`` keeps them.
+    func clipped(toColumns columns: Range<Int>) -> Self {
+        guard !hitTestRegions.isEmpty else { return self }
+        return Self(
+            hitTestRegions: hitTestRegions.compactMap {
+                $0.clipped(toColumns: columns, rows: $0.offsetY..<($0.offsetY + $0.height))
+            },
+            overlays: overlays)
+    }
 }
 
 // MARK: - Markers
