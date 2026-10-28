@@ -68,6 +68,10 @@ struct ExampleApp: App {
         // How controls draw their faces, apart from the border: scene-level for
         // the same reason, so the bars' buttons follow it too.
         .environment(\.controlStyle, styling.controlStyle)
+        // Where scroll indicators go, beside the content or over it for the
+        // pointer: scene-level too, so every page, the Inspector and Settings
+        // follow the Theme page's choice.
+        .environment(\.scrollIndicatorPlacement, styling.scrollIndicatorPlacement)
         // The menu bar, on the top row: declaring commands shows it. The app's
         // menu (with Settings…), Edit, Window and Help are TUI's; View and
         // Go add the Example's own. F10 walks its titles and a title's letter opens one, as does a click on a title.

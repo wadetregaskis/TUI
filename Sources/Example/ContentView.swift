@@ -97,6 +97,10 @@ struct ExampleStyling: Equatable {
     /// Control Style and applied at the scene, so the window's bars follow:
     /// `.automatic`, filled, by default.
     var controlStyle: ControlStyle = .automatic
+    /// Where scrolling views draw their indicators, edited on the Theme page and
+    /// applied at the scene: in room of their own (the default), or over the
+    /// content's edge while the pointer is over the view.
+    var scrollIndicatorPlacement: ScrollIndicatorPlacement = .besideContent
 
     /// The control styles the Example offers, each with its name's key.
     static let controlStyles: [(key: String, style: ControlStyle)] = [

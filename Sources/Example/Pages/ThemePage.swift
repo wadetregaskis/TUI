@@ -229,6 +229,18 @@ struct ThemePage: View {
                     }
                 }
 
+                DemoSection("page.theme.scrollIndicators") {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("page.theme.scrollIndicatorsDescription")
+                            .foregroundStyle(.palette.foregroundSecondary)
+                        Picker("page.theme.scrollIndicatorsLabel", selection: $styling.scrollIndicatorPlacement) {
+                            Text("scrollIndicatorPlacement.besideContent").tag(ScrollIndicatorPlacement.besideContent)
+                            Text("scrollIndicatorPlacement.overContent").tag(ScrollIndicatorPlacement.overContent)
+                        }
+                        .pickerStyle(.radioGroup)
+                    }
+                }
+
                 DemoSection("page.theme.chromeStyle") {
                     VStack(alignment: .leading, spacing: 1) {
                         Text("page.theme.chromeStyleDescription")
