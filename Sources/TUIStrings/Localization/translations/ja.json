@@ -24,6 +24,7 @@
   "button.paste": "ペースト",
   "button.copy": "コピー",
   "button.replace": "置換",
+  "button.create": "作成",
   "button.replaceAll": "すべて置換",
 
   "label.search": "検索",
@@ -101,6 +102,11 @@
 
   "filePanel.open": "開く",
   "filePanel.showHiddenFiles": "隠しファイルを表示",
+  "filePanel.newFolder": "新規フォルダ",
+  "filePanel.newFolderName": "新規フォルダの名前：",
+  "filePanel.untitledFolder": "名称未設定フォルダ",
+  "filePanel.newFolderFailed": "フォルダ“%@”を作成できません。",
+  "filePanel.status.newFolder": "新規フォルダ",
   "filePanel.enclosingFolder": "親フォルダ",
   "filePanel.column.size": "サイズ",
   "filePanel.column.dateModified": "変更日",

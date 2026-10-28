@@ -24,6 +24,7 @@
   "button.paste": "Einfügen",
   "button.copy": "Kopieren",
   "button.replace": "Ersetzen",
+  "button.create": "Erstellen",
   "button.replaceAll": "Alle ersetzen",
 
   "label.search": "Suche",
@@ -101,6 +102,11 @@
 
   "filePanel.open": "Öffnen",
   "filePanel.showHiddenFiles": "Versteckte Dateien anzeigen",
+  "filePanel.newFolder": "Neuer Ordner",
+  "filePanel.newFolderName": "Name des neuen Ordners:",
+  "filePanel.untitledFolder": "Neuer Ordner",
+  "filePanel.newFolderFailed": "Der Ordner „%@“ kann nicht erstellt werden.",
+  "filePanel.status.newFolder": "Neuer Ordner",
   "filePanel.enclosingFolder": "Übergeordneter Ordner",
   "filePanel.column.size": "Größe",
   "filePanel.column.dateModified": "Änderungsdatum",

@@ -189,7 +189,7 @@ struct FileImporterPanelTests {
         let driver = FilePanelDriver { panel(fixture, caller: caller, types: [.folder]) }
         await driver.waitFor("notes.md")
         // Tab past the table and the hidden-files switch to Cancel and Open.
-        driver.press(.tab, times: 3)
+        driver.press(.tab, times: 4)
         driver.press(.enter)
         #expect(caller.chosenPaths == [fixture.root.path])
     }
@@ -204,7 +204,7 @@ struct FileImporterPanelTests {
         // Alpha/, then linked/: select it, then Open (past the switch and Cancel).
         driver.press(.down)
         driver.press(.space)
-        driver.press(.tab, times: 3)
+        driver.press(.tab, times: 4)
         driver.press(.enter)
         #expect(caller.chosenPaths == [fixture.url("Alpha").path])
     }

@@ -39,7 +39,7 @@ import Testing
             await driver.waitFor("notes.md")
             driver.press(.enter)
             await driver.waitFor("inner.txt")
-            driver.press(.tab, times: 3)
+            driver.press(.tab, times: 4)
             driver.press(.enter)
             await settle { !caller.heard.isEmpty }
         }

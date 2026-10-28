@@ -24,6 +24,7 @@
   "button.paste": "Pegar",
   "button.copy": "Copiar",
   "button.replace": "Reemplazar",
+  "button.create": "Crear",
   "button.replaceAll": "Reemplazar todo",
 
   "label.search": "Buscar",
@@ -101,6 +102,11 @@
 
   "filePanel.open": "Abrir",
   "filePanel.showHiddenFiles": "Mostrar archivos ocultos",
+  "filePanel.newFolder": "Nueva carpeta",
+  "filePanel.newFolderName": "Nombre de la nueva carpeta:",
+  "filePanel.untitledFolder": "carpeta sin título",
+  "filePanel.newFolderFailed": "No se puede crear la carpeta «%@».",
+  "filePanel.status.newFolder": "Nueva carpeta",
   "filePanel.enclosingFolder": "Carpeta contenedora",
   "filePanel.column.size": "Tamaño",
   "filePanel.column.dateModified": "Fecha de modificación",

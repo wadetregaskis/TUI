@@ -127,7 +127,7 @@ struct FileDialogCustomizationTests {
         await driver.waitFor("notes.md")
         driver.press(.down)
         driver.press(.space)
-        driver.press(.tab, times: 3)
+        driver.press(.tab, times: 4)
         driver.press(.enter)
         #expect(caller.chosenPaths == [fixture.url("linked").path])
     }

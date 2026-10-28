@@ -24,6 +24,7 @@
   "button.paste": "Incolla",
   "button.copy": "Copia",
   "button.replace": "Sostituisci",
+  "button.create": "Crea",
   "button.replaceAll": "Sostituisci tutto",
 
   "label.search": "Ricerca",
@@ -101,6 +102,11 @@
 
   "filePanel.open": "Apri",
   "filePanel.showHiddenFiles": "Mostra file nascosti",
+  "filePanel.newFolder": "Nuova cartella",
+  "filePanel.newFolderName": "Nome della nuova cartella:",
+  "filePanel.untitledFolder": "cartella senza titolo",
+  "filePanel.newFolderFailed": "Impossibile creare la cartella «%@».",
+  "filePanel.status.newFolder": "Nuova cartella",
   "filePanel.enclosingFolder": "Cartella superiore",
   "filePanel.column.size": "Dimensione",
   "filePanel.column.dateModified": "Data di modifica",

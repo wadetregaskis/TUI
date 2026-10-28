@@ -54,6 +54,7 @@ extension LocalizationService {
       "button.paste": "Paste",
       "button.copy": "Copy",
       "button.replace": "Replace",
+      "button.create": "Create",
       "button.replaceAll": "Replace All",
 
       "label.search": "Search",
@@ -131,6 +132,11 @@ extension LocalizationService {
 
       "filePanel.open": "Open",
       "filePanel.showHiddenFiles": "Show Hidden Files",
+      "filePanel.newFolder": "New Folder",
+      "filePanel.newFolderName": "Name of new folder:",
+      "filePanel.untitledFolder": "untitled folder",
+      "filePanel.newFolderFailed": "The folder “%@” can’t be created.",
+      "filePanel.status.newFolder": "New Folder",
       "filePanel.enclosingFolder": "Enclosing Folder",
       "filePanel.column.size": "Size",
       "filePanel.column.dateModified": "Date Modified",

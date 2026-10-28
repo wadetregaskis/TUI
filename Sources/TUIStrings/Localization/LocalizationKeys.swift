@@ -53,6 +53,7 @@ public enum LocalizationKey {
         /// The screen selection's context-menu item.
         case copy = "button.copy"
         case replace = "button.replace"
+        case create = "button.create"
         case replaceAll = "button.replaceAll"
     }
 
@@ -215,6 +216,16 @@ public enum LocalizationKey {
         case open = "filePanel.open"
         /// The toggle that lists the files a folder hides.
         case showHiddenFiles = "filePanel.showHiddenFiles"
+        /// The button, and the alert's title, that make a folder in the folder shown.
+        case newFolder = "filePanel.newFolder"
+        /// The New Folder alert's message, over the name field.
+        case newFolderName = "filePanel.newFolderName"
+        /// The name the New Folder alert offers.
+        case untitledFolder = "filePanel.untitledFolder"
+        /// The alert's title when a folder cannot be made, its name as `%@`.
+        case newFolderFailed = "filePanel.newFolderFailed"
+        /// The status bar's word for the key that makes a folder.
+        case statusNewFolder = "filePanel.status.newFolder"
         /// The path bar's button to the folder above.
         case enclosingFolder = "filePanel.enclosingFolder"
         /// The Size column's title.

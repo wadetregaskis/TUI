@@ -245,7 +245,7 @@ struct SaveNameTests {
             // Into Alpha, then Save (past the switch and Cancel).
             driver.press(.enter)
             await driver.waitFor("inner.txt")
-            driver.press(.tab, times: 3)
+            driver.press(.tab, times: 4)
             driver.press(.enter)
             await settle { !caller.heard.isEmpty }
             #expect(caller.saved.map(\.lastPathComponent) == ["Untitled.txt", "Untitled 2.txt"])

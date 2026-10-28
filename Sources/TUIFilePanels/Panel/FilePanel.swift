@@ -74,6 +74,9 @@ struct FilePanel: View {
     /// The file a save would replace, while the panel asks whether to.
     @State private var replacing: URL?
 
+    /// Whether the New Folder alert is up (``FilePanelNewFolderPrompt``).
+    @State private var askingNewFolder = false
+
     /// The path typed in the go-to field, while it is open (`/` opens it).
     @State private var typedPath: String?
 
@@ -126,7 +129,8 @@ struct FilePanel: View {
             config: ContainerConfig(
                 titleColor: .palette.accent, padding: EdgeInsets(horizontal: 1, vertical: 0),
                 footerAlignment: .trailing),
-            content: replaceAlert(on: panelContent),
+            content: FilePanelNewFolderPrompt(
+                content: replaceAlert(on: panelContent), isPresented: $askingNewFolder, browser: browser),
             footer: footer
         )
         .task(id: browser.refreshKey) { await browser.refresh() }
@@ -280,6 +284,12 @@ struct FilePanel: View {
                 openGoToField()
                 return .handled
             }
+            // The Mac's ⇧⌘N, which no terminal sends as itself: typed, as `/` is.
+            .onKeyPress(keys: ["+"]) { press in
+                guard createsFolders, !press.modifiers.contains(.command) else { return .ignored }
+                askingNewFolder = true
+                return .handled
+            }
             // Added to the sheet's own Escape item, which presses the Cancel
             // button (`StatusBarState.keepPresentationItem`).
             .statusBarItems {
@@ -292,6 +302,11 @@ struct FilePanel: View {
                 StatusBarItem(
                     shortcut: "/",
                     label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusGoTo))
+                if createsFolders {
+                    StatusBarItem(
+                        shortcut: "+",
+                        label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusNewFolder))
+                }
             }
     }
 
@@ -374,6 +389,11 @@ struct FilePanel: View {
 
     @ViewBuilder private var footer: some View {
         HStack(spacing: 2) {
+            if createsFolders {
+                Button(LocalizationService.shared.string(for: LocalizationKey.FilePanel.newFolder)) {
+                    askingNewFolder = true
+                }
+            }
             Toggle(
                 LocalizationService.shared.string(for: LocalizationKey.FilePanel.showHiddenFiles),
                 isOn: Binding(get: { browser.showsHiddenFiles }, set: { browser.showsHiddenFiles = $0 }))
@@ -389,6 +409,13 @@ struct FilePanel: View {
             .buttonStyle(.borderedProminent)
             .disabled(!canConfirm)
         }
+    }
+
+    /// Whether the panel makes folders: a save panel, or one that chooses a
+    /// folder (a mover's destination, an importer of folders), as a macOS
+    /// save panel does and an open panel does not by default.
+    private var createsFolders: Bool {
+        request.saveContentTypes != nil || request.rule.choosesFolders
     }
 
     // MARK: - Choosing

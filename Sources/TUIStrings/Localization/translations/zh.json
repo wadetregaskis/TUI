@@ -24,6 +24,7 @@
   "button.paste": "粘贴",
   "button.copy": "复制",
   "button.replace": "替换",
+  "button.create": "创建",
   "button.replaceAll": "全部替换",
 
   "label.search": "搜索",
@@ -101,6 +102,11 @@
 
   "filePanel.open": "打开",
   "filePanel.showHiddenFiles": "显示隐藏文件",
+  "filePanel.newFolder": "新建文件夹",
+  "filePanel.newFolderName": "新文件夹的名称：",
+  "filePanel.untitledFolder": "未命名文件夹",
+  "filePanel.newFolderFailed": "无法创建文件夹“%@”。",
+  "filePanel.status.newFolder": "新建文件夹",
   "filePanel.enclosingFolder": "上层文件夹",
   "filePanel.column.size": "大小",
   "filePanel.column.dateModified": "修改日期",

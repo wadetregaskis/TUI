@@ -154,7 +154,7 @@ extension FilePanelTypePopUpTests {
         #expect(capless(renamed).contains("Format: Markdown Text"), "\(renamed)")
         // Save is the default button.
         driver.press([KeyEvent(key: .tab, shift: true)])
-        driver.press(.tab, times: 4)
+        driver.press(.tab, times: 5)
         driver.press(.enter)
         await settle { !saved.isEmpty }
         #expect(saved.map(\.lastPathComponent) == ["draft.md"])

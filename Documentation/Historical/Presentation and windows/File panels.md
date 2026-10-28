@@ -2,7 +2,7 @@
 
 *How `fileImporter`, `fileExporter` and `fileMover` came to TUI as panels it
 draws itself, and then came to look and behave as the Mac's. Ids: O10
-(refusal review), A-O10-1, B-O10-1 to 12, C-O10-1, A-FP2-1, B-FP2-1 to 8.*
+(refusal review), A-O10-1, B-O10-1 to 12, C-O10-1, A-FP2-1, B-FP2-1 to 8, NEW-FOLDER.*
 
 ## In short
 
@@ -24,6 +24,8 @@ value on every platform (A-O10-1, answered 2026-10-27).
 2. **2026-10-23, items #29 to #34:** the Mac's look. Lane FP2 built them on
    2026-10-24; the system icons need a dependency the module lacks (A-FP2-1),
    and the owner chose option 2: "Okay, go with (2)."
+3. **2026-10-28, NEW-FOLDER:** found filming the Document clip, the panels
+   had no way to make a folder. The owner: "yes, add it" (below).
 
 ## The record
 
@@ -758,3 +760,22 @@ asked, turning those unknowns into answers: a different interface per keeper
 each, and the clipboard would gain from it too. The owner's answer to
 D4X-LOCALITY (Open owner decisions) keeps such queries to a keeper someone
 uses and asks for.
+
+### NEW-FOLDER. A save panel, or one that chooses a folder, makes folders
+
+A Mac's save panel has a New Folder button (`NSSavePanel.canCreateDirectories`,
+on by default); its open panel has none unless the app asks. TUI's panels had
+none, so a save into a folder that did not exist yet meant leaving the app.
+Answered on 2026-10-28: add it.
+
+The save panel and any panel that chooses a folder (a mover's destination, an
+importer of folders) have **New Folder** at the start of the footer; a panel
+that opens only files has none, as the Mac's. It asks the new folder's name in
+a sheet over the panel, as the Mac's does (an alert holds only buttons): "Name
+of new folder:", a field holding "untitled folder", numbered past any the
+folder holds already ("untitled folder 2"), and Cancel and Create. Create, or
+Return in the field, makes the folder in the folder shown and opens it; a name the folder holds already, or one with a `/`,
+says why it cannot be made in an alert of its own. From the keyboard the
+button is a Tab stop, and **+** in the folder asks too, named in the status
+bar: the Mac's ⇧⌘N is a chord no terminal sends as itself, and `+`, like `/`
+and `~`, is typed. The panel's words are in the seven languages.

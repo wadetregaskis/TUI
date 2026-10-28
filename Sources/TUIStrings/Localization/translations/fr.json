@@ -24,6 +24,7 @@
   "button.paste": "Coller",
   "button.copy": "Copier",
   "button.replace": "Remplacer",
+  "button.create": "Créer",
   "button.replaceAll": "Tout remplacer",
 
   "label.search": "Recherche",
@@ -101,6 +102,11 @@
 
   "filePanel.open": "Ouvrir",
   "filePanel.showHiddenFiles": "Afficher les fichiers masqués",
+  "filePanel.newFolder": "Nouveau dossier",
+  "filePanel.newFolderName": "Nom du nouveau dossier :",
+  "filePanel.untitledFolder": "dossier sans titre",
+  "filePanel.newFolderFailed": "Impossible de créer le dossier « %@ ».",
+  "filePanel.status.newFolder": "Nouveau dossier",
   "filePanel.enclosingFolder": "Dossier parent",
   "filePanel.column.size": "Taille",
   "filePanel.column.dateModified": "Date de modification",
