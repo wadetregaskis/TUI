@@ -85,7 +85,10 @@ fi
 # Staged where every terminal may run it: Ghostty is refused files under ~/Documents. So are the clips' own files
 # (a picture), which the player finds beside itself.
 probe=$HOME/Library/Caches/tuikit-probe
-stage=$probe/screenclips
+# SCREENCLIPS_STAGE gives a run a stage of its own, for two checkouts filming at
+# once: with one stage, each run copies its build over the other's, and a clip
+# is filmed from whichever build was staged last.
+stage=${SCREENCLIPS_STAGE:-$probe/screenclips}
 player=$stage/bin/ScreenClips
 recorder=$stage/bin/WindowRecorder
 if (( ! encode_only )); then
