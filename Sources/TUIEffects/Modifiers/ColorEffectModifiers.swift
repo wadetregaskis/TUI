@@ -308,47 +308,18 @@ extension _ColorEffectView: Layoutable {
 // MARK: - The arithmetic
 
 extension _ColorEffect {
-    /// `color` with this effect applied.
+    /// `color` with this effect applied: the arithmetic is `Color`'s, shared
+    /// with a `GraphicsContext`'s filters.
     func applied(to color: Color, amount: Double) -> Color {
-        guard let rgb = color.rgbComponents else { return color }
         switch self {
-        case .brightness:
-            return Self.mapped(rgb) { $0 + amount * 255 }
-        case .contrast:
-            return Self.mapped(rgb) { ($0 - 127.5) * amount + 127.5 }
-        case .saturation:
-            return color.saturated(keeping: amount)
-        case .grayscale:
-            return color.saturated(keeping: 1 - amount)
-        case .hueRotation:
-            let hsl = Color.rgbToHSL(red: rgb.red, green: rgb.green, blue: rgb.blue)
-            return Color.hsl(
-                (hsl.hue + amount).truncatingRemainder(dividingBy: 360),
-                hsl.saturation, hsl.lightness)
-        case .invert:
-            return Self.mapped(rgb) { 255 - $0 }
-        case .multiply(let tint):
-            guard let other = tint.rgbComponents else { return color }
-            return Color.rgb(
-                Self.byte(Double(rgb.red) * Double(other.red) / 255),
-                Self.byte(Double(rgb.green) * Double(other.green) / 255),
-                Self.byte(Double(rgb.blue) * Double(other.blue) / 255))
+        case .brightness: color.brightened(by: amount)
+        case .contrast: color.contrasted(by: amount)
+        case .saturation: color.saturated(keeping: amount)
+        case .grayscale: color.saturated(keeping: 1 - amount)
+        case .hueRotation: color.hueRotated(byDegrees: amount)
+        case .invert: color.inverted
+        case .multiply(let tint): color.multiplied(by: tint)
         }
-    }
-
-    private static func mapped(
-        _ rgb: (red: UInt8, green: UInt8, blue: UInt8), _ transform: (Double) -> Double
-    ) -> Color {
-        Color.rgb(
-            byte(transform(Double(rgb.red))),
-            byte(transform(Double(rgb.green))),
-            byte(transform(Double(rgb.blue))))
-    }
-
-    /// A channel back into a byte. Clamped, because every one of these can
-    /// leave the range and a terminal has no colour outside it.
-    private static func byte(_ value: Double) -> UInt8 {
-        UInt8(min(255, max(0, value.rounded())))
     }
 }
 

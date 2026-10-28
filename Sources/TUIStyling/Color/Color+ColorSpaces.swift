@@ -305,6 +305,57 @@ extension Color {
     }
 }
 
+// MARK: - Colour Effects
+
+extension Color {
+    /// This colour with `amount` (−1…1 of the full range) added to each
+    /// channel, as `.brightness(_:)` draws it; itself where it has no RGB.
+    package func brightened(by amount: Double) -> Color {
+        mappingChannels { $0 + amount * 255 }
+    }
+
+    /// This colour's channels pushed away from (above 1) or toward (below 1)
+    /// the middle grey, as `.contrast(_:)` draws it; itself where it has no RGB.
+    package func contrasted(by amount: Double) -> Color {
+        mappingChannels { ($0 - 127.5) * amount + 127.5 }
+    }
+
+    /// This colour with its hue turned `degrees`, its saturation and lightness
+    /// kept, as `.hueRotation(_:)` draws it; itself where it has no RGB.
+    package func hueRotated(byDegrees degrees: Double) -> Color {
+        guard let rgb = rgbComponents else { return self }
+        let hsl = Self.rgbToHSL(red: rgb.red, green: rgb.green, blue: rgb.blue)
+        return Self.hsl((hsl.hue + degrees).truncatingRemainder(dividingBy: 360), hsl.saturation, hsl.lightness)
+    }
+
+    /// This colour's channels inverted, as `.colorInvert()` draws it; itself
+    /// where it has no RGB.
+    package var inverted: Color {
+        mappingChannels { 255 - $0 }
+    }
+
+    /// This colour multiplied channel by channel by `tint`, as
+    /// `.colorMultiply(_:)` draws it; itself where either has no RGB.
+    package func multiplied(by tint: Color) -> Color {
+        guard let rgb = rgbComponents, let other = tint.rgbComponents else { return self }
+        return .rgb(
+            clampedByte(Double(rgb.red) * Double(other.red) / 255),
+            clampedByte(Double(rgb.green) * Double(other.green) / 255),
+            clampedByte(Double(rgb.blue) * Double(other.blue) / 255))
+    }
+
+    /// Each channel through `transform`, clamped back into a byte (every
+    /// effect can leave the range, and a terminal has no colour outside it);
+    /// itself where it has no RGB.
+    private func mappingChannels(_ transform: (Double) -> Double) -> Color {
+        guard let rgb = rgbComponents else { return self }
+        return .rgb(
+            clampedByte(transform(Double(rgb.red))),
+            clampedByte(transform(Double(rgb.green))),
+            clampedByte(transform(Double(rgb.blue))))
+    }
+}
+
 // MARK: - Private Helpers
 
 /// Rounds and clamps a 0–255-scaled channel value into a `UInt8`, guarding
