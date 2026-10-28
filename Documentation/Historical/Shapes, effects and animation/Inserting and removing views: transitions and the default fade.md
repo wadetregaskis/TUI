@@ -433,6 +433,12 @@ an app's layout sees — as SwiftUI's never include a removed view — keeping
 was. About half a day; an app's own layout code then sees one subview fewer on
 the first frame of a removal, which is SwiftUI's behaviour.
 
+**Built 2026-10-28** (the owner's A-TRANSITIONS2-1, "all"): the slot of a
+view leaving is taken out of the `LayoutSubviews` the layout is handed and
+drawn where the view last was, as an eager stack's is; the row ids are still
+made over every child and reached through `sourceIndices`, since a position
+is what matches a row to its loop. `StackGlideTests` `layoutRemovalGlides`.
+
 ### B-FB16-5. `List` and `Table` rows change at once
 
 *`List`, `Table`, `ForEach` rows*

@@ -32,11 +32,23 @@ struct StackChildren {
 @MainActor
 func stackChildren<Content: View>(of content: Content, context: RenderContext) -> StackChildren {
     let children = resolveChildViews(from: content, context: context)
-    guard let storage = context.stateStorage, !storage.departures.isEmpty,
-        children.contains(where: \.isDeparting), context.environment.transitionSpace == .released
+    guard context.leavingTakesNoRoom(among: children)
     else { return StackChildren(laidOut: children, departing: []) }
     return StackChildren(
         laidOut: children.filter { !$0.isDeparting }, departing: children.filter(\.isDeparting))
+}
+
+extension RenderContext {
+    /// Whether `children` hold the slot of a view still leaving that a
+    /// container lays out nowhere: something is leaving here, and the
+    /// environment does not hold its room while it does
+    /// (``View/transitionSpace(_:)``). One check where nothing is leaving
+    /// anywhere, and a scan of the children where something is.
+    @MainActor
+    func leavingTakesNoRoom(among children: [ChildView]) -> Bool {
+        guard let storage = stateStorage, !storage.departures.isEmpty else { return false }
+        return environment.transitionSpace == .released && children.contains(where: \.isDeparting)
+    }
 }
 
 // MARK: - Drawing the children where they are

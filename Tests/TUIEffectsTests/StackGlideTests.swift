@@ -219,6 +219,34 @@ struct StackGlideTests {
         #expect(end.prefix(2) == ["A", "B"], "closed up: \(end)")
     }
 
+    /// A `Layout` the same way (B-FB16-4): the view leaving is not one of the
+    /// subviews it is handed, as SwiftUI's `Subviews` never hold a removed
+    /// view, so the layout closes up at once and the view after it glides
+    /// back over it while it fades where it was.
+    @Test("A subview after a removal in a layout glides back while the view leaves where it was")
+    func layoutRemovalGlides() {
+        let frames = Frames()
+        _ = frames.draw(LaidOutRow(showing: true), atMillis: 0)
+        let start = frames.draw(LaidOutRow(showing: false), atMillis: 1000, animating: .linear(duration: 1))
+        #expect(start[0].hasPrefix("AXXXXB"), "nothing has moved yet: \(start)")
+        let half = frames.draw(LaidOutRow(showing: false), atMillis: 1500)
+        #expect(half[0].hasPrefix("AXXBX"), "half-way back, over the view leaving: \(half)")
+        let end = frames.draw(LaidOutRow(showing: false), atMillis: 2000)
+        #expect(end[0] == "AB", "closed up: \(end)")
+    }
+
+    @Test("A removal gives a layout's room back at once")
+    func layoutRemovalLeavesTheLayout() {
+        let frames = Frames()
+        _ = frames.draw(LaidOutRow(showing: true), atMillis: 0)
+        frames.context.environment.frameNowNanos = 1_000_000_000
+        frames.context.environment.transaction = Transaction(animation: .linear(duration: 1))
+        frames.storage.beginRenderPass()
+        let size = measureChild(LaidOutRow(showing: false), proposal: .unspecified, context: frames.context)
+        frames.storage.endRenderPass()
+        #expect(size.width == 2)
+    }
+
     /// The room goes on the frame the view does: what the stack lays out is
     /// two rows from the first frame, and what it draws past them is the
     /// glide.

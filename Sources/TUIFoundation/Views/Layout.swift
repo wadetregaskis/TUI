@@ -313,26 +313,40 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
     /// A layout that lays out grid cells (``GridLayout``, and the stack
     /// layouts it is switched with) sees a `ForEach` row that is a `GridRow`
     /// as the row's cells — see `expandingWholeGridRows(_:context:)`.
-    private func resolve(context: RenderContext) -> (LayoutSubviews, LayoutPlacements) {
+    private func resolve(context: RenderContext) -> (LayoutSubviews, LayoutPlacements, departing: [ChildView]) {
         let placements = LayoutPlacements()
-        let children = resolveChildViews(from: content, context: context)
-        let rowIDs = FlattenedRowIDs<AnyHashable>(content: content, children: children)
+        let all = resolveChildViews(from: content, context: context)
+        // Row ids by position among ALL the children, a slot still leaving
+        // included: a position is what matches a row to its loop.
+        let rowIDs = FlattenedRowIDs<AnyHashable>(content: content, children: all)
+        // A subview that has left is not one the layout is handed, as SwiftUI's
+        // `Subviews` never hold a removed view: it is drawn where it last was
+        // while its removal plays (`StackGlide`), and the rest close up.
+        var children = all
+        var kept: [Int]?
+        var departing: [ChildView] = []
+        if context.leavingTakesNoRoom(among: all) {
+            let indices = all.indices.filter { !all[$0].isDeparting }
+            children = indices.map { all[$0] }
+            departing = all.filter(\.isDeparting)
+            kept = indices
+        }
         if (layout as? any WholeGridRowExpanding)?.expandsWholeGridRows == true,
             let expanded = expandingWholeGridRows(children, context: context)
         {
             return (
                 LayoutSubviews(
                     children: expanded.children, context: context, placements: placements,
-                    rowIDs: rowIDs, sourceIndices: expanded.sourceIndices,
+                    rowIDs: rowIDs, sourceIndices: expanded.sourceIndices.map { kept?[$0] ?? $0 },
                     mayStateSpacing: Content._statesSpacingPreference),
-                placements
+                placements, departing
             )
         }
         return (
             LayoutSubviews(
                 children: children, context: context, placements: placements, rowIDs: rowIDs,
-                mayStateSpacing: Content._statesSpacingPreference),
-            placements
+                sourceIndices: kept, mayStateSpacing: Content._statesSpacingPreference),
+            placements, departing
         )
     }
 
@@ -394,7 +408,7 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
 
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let context = publishingChildAxis(context)
-        let (subviews, _) = resolve(context: context)
+        let (subviews, _, _) = resolve(context: context)
         var cache = freshCache(subviews)
         return layout.sizeThatFits(
             proposal: grounded(proposal, in: context), subviews: subviews, cache: &cache)
@@ -421,13 +435,13 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let context = publishingChildAxis(context)
-        let (subviews, placements) = resolve(context: context)
+        let (subviews, placements, departing) = resolve(context: context)
         guard !subviews.isEmpty else {
             // Nothing to place, and still a subview the change took out may
             // be playing a transition of its own where it was; and asked, so
             // the record lasts for a subview that comes to fade in
             // (`ChildFade`).
-            return context.glidingStackBuffer([], buffers: [], at: [], departing: [], width: 0, height: 0)
+            return context.glidingStackBuffer([], buffers: [], at: [], departing: departing, width: 0, height: 0)
                 ?? FrameBuffer()
         }
 
@@ -466,7 +480,7 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
         // While a subview is on its way to where the layout now places it
         // under an animation, each is drawn where it is (`StackGlide`).
         if let gliding = context.glidingStackBuffer(
-            children, buffers: pictures, at: entries.map { ChildPlacement(x: $0.x, y: $0.y) }, departing: [],
+            children, buffers: pictures, at: entries.map { ChildPlacement(x: $0.x, y: $0.y) }, departing: departing,
             width: bounds.width, height: bounds.height)
         {
             return gliding
@@ -521,7 +535,7 @@ extension _LayoutCore: AlignmentGuideQuerying {
         if !defines, query.isEdgeOrCentre, !passesOneView { return nil }
         guard defines || Content._providesAlignmentGuide else { return nil }
         let context = publishingChildAxis(context)
-        let (subviews, _) = resolve(context: context)
+        let (subviews, _, _) = resolve(context: context)
         guard defines || anyAlignmentGuide(in: subviews.children) else { return nil }
         var cache = freshCache(subviews)
         let proposal = ProposedSize(
@@ -578,7 +592,7 @@ extension _LayoutCore: SpacingPreferenceProviding {
     func preferredSpacing(context: RenderContext) -> ViewSpacing {
         var context = publishingChildAxis(context)
         context.isMeasuring = true
-        let (subviews, _) = resolve(context: context)
+        let (subviews, _, _) = resolve(context: context)
         var cache = freshCache(subviews)
         return layout.spacing(subviews: subviews, cache: &cache)
     }
