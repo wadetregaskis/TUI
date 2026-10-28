@@ -88,10 +88,28 @@ struct ScrollIndicatorPlacementTests {
         }
     }
 
+    private struct Editor: View {
+        let placement: ScrollIndicatorPlacement
+        @State private var text: String
+        init(placement: ScrollIndicatorPlacement, lines: Int) {
+            self.placement = placement
+            // Each line exactly as wide as the editor, and one word: the room a
+            // bar beside it takes wraps every line.
+            _text = State(initialValue: (0..<lines).map { "\($0)".padding(toLength: 20, withPad: "x", startingAt: 0) }
+                .joined(separator: "\n"))
+        }
+        var body: some View {
+            TextEditor(text: $text)
+                .frame(width: 20, height: 8)
+                .scrollIndicatorPlacement(placement)
+        }
+    }
+
     private enum Kind {
         case scroller
         case list(buttons: Bool = false)
         case table(rows: Int = 30, multiLine: Bool = false, buttons: Bool = false)
+        case editor(lines: Int = 30)
     }
 
     private struct ScrollerApp: App {
@@ -109,6 +127,7 @@ struct ScrollIndicatorPlacementTests {
                 case .list(let buttons): Lister(placement: placement, style: style, buttons: buttons)
                 case .table(let rows, let multiLine, let buttons):
                     Tabler(placement: placement, style: style, rows: rows, multiLine: multiLine, buttons: buttons)
+                case .editor(let lines): Editor(placement: placement, lines: lines)
                 }
             }
         }
@@ -306,5 +325,49 @@ struct ScrollIndicatorPlacementTests {
         harness.mouse(.dragged, at: barX, inside.y + 4)
         harness.mouse(.released, at: barX, inside.y + 4)
         #expect((harness.firstRowNumber ?? 0) > 0, "dragging the thumb scrolled the rows: \(harness.text)")
+    }
+
+    // MARK: - TextEditor
+
+    @Test("An editor's text keeps the bar's column over the content")
+    func editorKeepsItsRoom() {
+        let beside = Harness(.besideContent, kind: .editor())
+        let over = Harness(.overContent, kind: .editor())
+        let xs = { (row: String) in row.filter { $0 == "x" }.count }
+        #expect(xs(over.firstRow) > xs(beside.firstRow), "\(beside.firstRow) / \(over.firstRow)")
+    }
+
+    @Test("An editor's bar is drawn over its text for the pointer, and goes when it leaves")
+    func editorBarForThePointer() {
+        let harness = Harness(.overContent, kind: .editor())
+        // As drawn, styles and all: at the top, the bar's thumb is a painted
+        // blank, over the blank the caret's room leaves after the last column.
+        let before = harness.app.screen
+        let inside = harness.inside
+        harness.move(to: inside.x, inside.y)
+        #expect(harness.app.screen != before, "the bar covers the last column")
+        harness.move(to: 29, 9)
+        #expect(harness.app.screen == before, "gone with the pointer")
+    }
+
+    @Test("Nothing is drawn over an editor whose text fits")
+    func nothingOverAnEditorThatFits() {
+        let harness = Harness(.overContent, kind: .editor(lines: 3))
+        let before = harness.text
+        let inside = harness.inside
+        harness.move(to: inside.x, inside.y)
+        #expect(harness.text == before, "\(harness.text)")
+    }
+
+    @Test("An editor's focus alone draws nothing over its text")
+    func editorFocusAlone() {
+        let harness = Harness(.overContent, kind: .editor())
+        // The caret moved down past the view: the editor has the focus.
+        harness.press(.down, times: 12)
+        #expect((harness.firstRowNumber ?? 0) > 0, "the keys scrolled the editor: \(harness.firstRow)")
+        let focused = harness.firstRow
+        let inside = harness.inside
+        harness.move(to: inside.x, inside.y)
+        #expect(harness.firstRow != focused, "only the pointer brings the bar: \(focused) / \(harness.firstRow)")
     }
 }

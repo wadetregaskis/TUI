@@ -97,7 +97,7 @@ been in force since 2026-10-18.
 | A-APPSTATE-2 | Multi-client in one process: tabled. The three statics: no practical benefit in moving them. | Done: all three stay shared, recorded as exemptions on the CLAUDE.md rule. |
 | A-W1-1 | 2: re-export Foundation from TUI, as SwiftUI does. | Done: `import TUI` brings Foundation. |
 | GLASS-BORDER-GAP | (a): a background on the bordered view fills the border's inset; an explicit option keeps it clear. | Done: `.backgroundStopsAtContent()` is the option. |
-| A-CHURN-2 / SCROLLBAR-NAMES | Both: `.scrollIndicatorPlacement(.besideContent / .overContent)`; over the content for the pointer only, never the focus; the "N more" lines follow it. | Built for `ScrollView`, `List` and `Table` (and the menus). The owner wants to try it before the final say. |
+| A-CHURN-2 / SCROLLBAR-NAMES | Both: `.scrollIndicatorPlacement(.besideContent / .overContent)`; over the content for the pointer only, never the focus; the "N more" lines follow it. | Built for `ScrollView`, `List`, `Table` and `TextEditor` (and the menus). The owner wants to try it before the final say. |
 
 ## Answered later on 2026-10-26
 

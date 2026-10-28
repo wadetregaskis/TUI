@@ -420,11 +420,14 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         let isFocused = FocusRegistration.isFocused(context: context, focusID: persistedFocusID)
 
         let displayLines = handler.readLines()
+        // Whether a bar is drawn over the text, for the pointer, rather than
+        // beside it (`TextEditor+OverlaidIndicators.swift`): it takes no room.
+        let barOverText = context.environment.scrollIndicatorsOverlayContent
         handler.noteFind(opensOnControlF: opensFindOnControlF, matches: findMatches, in: displayLines)
         let window = window(
             handler, lines: displayLines, width: width, height: height, tabWidth: tabWidth,
             wraps: context.environment.textEditorWrapsLines, follows: !context.isMeasuring,
-            barWidth: context.environment.scrollbarWidth)
+            barWidth: barOverText ? 0 : context.environment.scrollbarWidth)
         let contentWidth = window.contentWidth
         // The widths this frame asked for are the ones to keep (see
         // `EditorLayout.endFrame()`); a measure is not the end of a frame.
@@ -465,31 +468,33 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         // field's is (`TextFieldContentRenderer.weighted(_:)`): the rows and
         // the caret's frames, before the bar, which is not text, joins them.
         let drawsBold = context.environment.legibilityWeight.drawsPlainBold
-        var output = drawsBold ? rows.lines.map(ANSIRenderer.applyPersistentBold) : rows.lines
-        let caretRun = drawsBold ? rows.caret?.drawnBold() : rows.caret
+        var drawn = _EditorDrawnRows(
+            lines: drawsBold ? rows.lines.map(ANSIRenderer.applyPersistentBold) : rows.lines,
+            claims: rows.claims, caret: drawsBold ? rows.caret?.drawnBold() : rows.caret)
 
         var bar: (runs: [AnimatedCellRun], claims: [OpacityRegion]) = ([], [])
-        if window.hasVerticalOverflow {
+        if window.hasVerticalOverflow, let barColumn = scrollbarColumn(
+            clearing: &drawn, contentWidth: contentWidth, overText: barOverText, handler: handler, context: context) {
             // Drawing only — see `RenderContext.indicatesFocus(_:)`. The bar's
             // breath is a focus indication and goes with the effect; the caret
             // above is the insertion point and reads the raw `isFocused`.
             bar = appendScrollbar(
-                to: &output, height: height, extent: window.extent,
-                offset: window.offset, barColumn: contentWidth,
+                to: &drawn.lines, height: height, extent: window.extent,
+                offset: window.offset, barColumn: barColumn,
                 isFocused: context.indicatesFocus(isFocused),
                 flash: handler.indicatorFlash.strength(context: context), context: context)
         }
 
-        var buffer = FrameBuffer(lines: output)
-        // Disjoint by construction: every row stops at `contentWidth`, the bar's
-        // column — so concatenated rather than merged.
-        buffer.opacityRegions += rows.claims + bar.claims
+        var buffer = FrameBuffer(lines: drawn.lines)
+        // Disjoint by construction: every row stops at the bar's column — so
+        // concatenated rather than merged.
+        buffer.opacityRegions += drawn.claims + bar.claims
         // Never from a measure pass: its buffer describes a size being tried
         // on, not cells on screen, and a run outliving its cells repaints — on
         // a clock — over whatever took their place.
         if !context.isMeasuring {
             buffer.animatedCells += bar.runs
-            if let caretRun { buffer.animatedCells.append(caretRun) }
+            if let caret = drawn.caret { buffer.animatedCells.append(caret) }
         }
         registerMouse(
             context: context, buffer: &buffer, handler: handler,
@@ -777,6 +782,9 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             HitTestRegion(
                 offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.height,
                 handlerID: handlerID, focusID: focusID))
+        // The pointer's coming and going, for a bar drawn over the text: in
+        // front of the editor's own region, which would otherwise hide it.
+        buffer.observePointerForOverlaidIndicators(of: handler, context: context)
     }
 }
 

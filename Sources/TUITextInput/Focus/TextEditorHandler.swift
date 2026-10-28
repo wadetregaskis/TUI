@@ -31,6 +31,11 @@ final class TextEditorHandler: PersistedFocusable {
     /// (`scrollIndicatorsFlash`).
     var indicatorFlash = ScrollIndicatorFlash()
 
+    /// Whether the pointer is over the editor: under
+    /// `.scrollIndicatorPlacement(.overContent)` its scroll bar is drawn over
+    /// the text while it is.
+    var isPointerOver = false
+
     /// The cursor line (0-based).
     var cursorLine = 0
     /// The cursor column, a character offset into the cursor line.
@@ -867,3 +872,6 @@ final class TextEditorHandler: PersistedFocusable {
         writeLines(lines)
     }
 }
+
+// Its bar drawn over the text follows the pointer — see the protocol.
+extension TextEditorHandler: ScrollIndicatorPointerTracking {}
