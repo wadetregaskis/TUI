@@ -104,10 +104,10 @@ package struct _EditorPanelChrome<Value, Content: View>: View {
             // dialog claim the full available width instead of sizing to its
             // content. The footer sizes to the buttons; the dialog to its body.
             HStack(spacing: 2) {
-                Button(LocalizationService.shared.string(for: LocalizationKey.Button.cancel)) {
+                Button(localized: LocalizationKey.Button.cancel) {
                     isPresented.wrappedValue = false
                 }
-                Button(LocalizationService.shared.string(for: LocalizationKey.Button.done)) {
+                Button(localized: LocalizationKey.Button.done) {
                     session.applied = true
                     doneAction()
                     isPresented.wrappedValue = false

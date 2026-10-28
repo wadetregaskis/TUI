@@ -119,7 +119,7 @@ enum FilePanelColumns {
     @ViewBuilder
     private static func nameCellContent(_ entry: FileEntry, browser: FileBrowser) -> some View {
         if entry.isPlaceholder {
-            Text(LocalizationService.shared.string(for: LocalizationKey.FilePanel.loading))
+            Text(localized: LocalizationKey.FilePanel.loading)
                 .foregroundStyle(.palette.foregroundTertiary)
                 .onAppear {
                     Task { await browser.loadFolder(entry.placeholderFolder) }

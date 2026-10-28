@@ -242,7 +242,7 @@ public struct SearchUnavailableContent: Sendable {
     /// The description: "Check the spelling or try a new search."
     public struct Description: View {
         public var body: some View {
-            Text(verbatim: LocalizationService.shared.string(for: LocalizationKey.Label.noResultsHint))
+            Text(localized: LocalizationKey.Label.noResultsHint)
         }
     }
 

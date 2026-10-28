@@ -17,7 +17,7 @@ struct FilePanelGoToField: View {
 
     var body: some View {
         HStack(spacing: 1) {
-            Text(LocalizationService.shared.string(for: LocalizationKey.FilePanel.goTo))
+            Text(localized: LocalizationKey.FilePanel.goTo)
                 .foregroundStyle(.palette.foregroundSecondary)
             TextField(LocalizationService.shared.string(for: LocalizationKey.FilePanel.goTo), text: path)
         }

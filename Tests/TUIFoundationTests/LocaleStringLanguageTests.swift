@@ -94,6 +94,22 @@ struct LocaleStringLanguageTests {
         #expect(english.contains("Cancel"), "\(english)")
     }
 
+    @Test("A button titled from a key — the app's or TUI's — follows the override; one titled as written does not")
+    func buttonTitles() {
+        let german = Locale(identifier: "de")
+        let keyed = drawn(Button("test.localeLanguage.greeting") {}.environment(\.locale, german))
+        #expect(keyed.contains("Hallo"), "\(keyed)")
+        let tuis = drawn(Button(localized: LocalizationKey.Button.cancel) {}.environment(\.locale, german))
+        #expect(tuis.contains("Abbrechen"), "\(tuis)")
+        let written = drawn(Button(verbatimTitle()) {}.environment(\.locale, german))
+        #expect(written.contains("test.localeLanguage"), "\(written)")
+        let english = drawn(Button(localized: LocalizationKey.Button.cancel) {})
+        #expect(english.contains("Cancel"), "\(english)")
+    }
+
+    /// A computed `String`, which a button displays as written.
+    private func verbatimTitle() -> String { "test.localeLanguage.greeting" }
+
     @Test("The re-read key draws its Markdown, and the text's own style stays")
     func markdownAndStyle() {
         let context = makeBareRenderContext(width: 30, height: 3)

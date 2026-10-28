@@ -90,21 +90,21 @@ struct LinkContextMenu: View {
         let url = destination.absoluteString
         let words = label?.text ?? ""
         if let show {
-            Button(LocalizationService.shared.string(for: LocalizationKey.Menu.showLink), action: show)
+            Button(localized: LocalizationKey.Menu.showLink, action: show)
             Divider()
         }
-        Button(LocalizationService.shared.string(for: LocalizationKey.Menu.copyLink)) {
+        Button(localized: LocalizationKey.Menu.copyLink) {
             // As a URI list too, which is how a pasteboard says "a link".
             _ = clipboard.write(
                 url, representations: [ClipboardRepresentation(type: "text/uri-list", text: url)],
                 announcingSuccess: true)
         }
         if !words.isEmpty, !Self.labelIsDestination(words, destination) {
-            Button(LocalizationService.shared.string(for: LocalizationKey.Menu.copyLinkLabel)) {
+            Button(localized: LocalizationKey.Menu.copyLinkLabel) {
                 _ = clipboard.write(words, announcingSuccess: true)
             }
         }
-        Button(LocalizationService.shared.string(for: LocalizationKey.Menu.copyLinkAsMarkdown)) {
+        Button(localized: LocalizationKey.Menu.copyLinkAsMarkdown) {
             let markdown = Self.markdown(label: words, destination: destination)
             _ = clipboard.write(
                 markdown, representations: [ClipboardRepresentation(type: "text/markdown", text: markdown)],

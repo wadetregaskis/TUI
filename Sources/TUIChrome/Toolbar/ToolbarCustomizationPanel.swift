@@ -58,7 +58,7 @@ struct _ToolbarCustomizationHost<Content: View>: View {
             }
             Divider()
         }
-        Button(LocalizationService.shared.string(for: LocalizationKey.Label.customizeToolbar)) {
+        Button(localized: LocalizationKey.Label.customizeToolbar) {
             chrome.beginCustomizingToolbar()
         }
     }
@@ -110,7 +110,7 @@ struct _ToolbarCustomizationPanel: View {
             if let choose = choosesLabelStyle {
                 Divider()
                 HStack(spacing: 1) {
-                    Text(LocalizationService.shared.string(for: LocalizationKey.Label.toolbarShow))
+                    Text(localized: LocalizationKey.Label.toolbarShow)
                     ForEach(Self.labelStyles.indices, id: \.self) { index in
                         let (style, key) = Self.labelStyles[index]
                         Toggle(
@@ -121,9 +121,9 @@ struct _ToolbarCustomizationPanel: View {
             }
             Divider()
             HStack(spacing: 1) {
-                Button(LocalizationService.shared.string(for: LocalizationKey.Button.reset)) { toolbar.reset() }
+                Button(localized: LocalizationKey.Button.reset) { toolbar.reset() }
                 Spacer(minLength: 1)
-                Button(LocalizationService.shared.string(for: LocalizationKey.Button.done)) { close() }
+                Button(localized: LocalizationKey.Button.done) { close() }
             }
         }
     }

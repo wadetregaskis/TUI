@@ -479,7 +479,7 @@ private struct _Link<Label: View>: View {
             // way to the same copy.
             popover: ContextMenuModifier(
                 content: Text(verbatim: destination.absoluteString),
-                menuItems: Button(LocalizationService.shared.string(for: LocalizationKey.Menu.copyLink)) { [clipboard] in
+                menuItems: Button(localized: LocalizationKey.Menu.copyLink) { [clipboard] in
                     _ = clipboard.write(destination.absoluteString, announcingSuccess: true)
                 },
                 keyboardRoute: .contentStops),

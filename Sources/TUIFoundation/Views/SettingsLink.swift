@@ -68,7 +68,7 @@ public struct DefaultSettingsLinkLabel: View {
 
     public var body: some View {
         TUIFoundation.Label {
-            Text(LocalizationService.shared.string(for: LocalizationKey.Menu.settings))
+            Text(localized: LocalizationKey.Menu.settings)
         } icon: {
             Image(systemName: "gearshape")
         }

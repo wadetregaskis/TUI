@@ -111,7 +111,7 @@ extension RenameButton where Label == TUIFoundation.Label<Text, Image> {
     /// Creates a rename button, titled "Rename" in the current language.
     public init() {
         self.label = TUIFoundation.Label {
-            Text(LocalizationService.shared.string(for: .rename))
+            Text(localized: LocalizationKey.Button.rename)
         } icon: {
             Image(systemName: "pencil")
         }

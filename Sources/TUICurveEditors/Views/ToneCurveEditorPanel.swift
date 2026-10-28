@@ -358,7 +358,7 @@ public struct ToneCurveEditorPanel: View {
     private var positionRow: some View {
         let percent = Int((Self.position(of: ordered[clampedSelection]) * 100).rounded())
         return HStack(spacing: 1) {
-            Text(LocalizationService.shared.string(for: LocalizationKey.Label.position)).dim()
+            Text(localized: LocalizationKey.Label.position).dim()
             // No `.frame(maxWidth: .infinity)`: this dialog hugs its content,
             // and a width-flexible child would stretch it to the screen.
             Slider(value: positionBinding, in: 0...1, step: 0.01)

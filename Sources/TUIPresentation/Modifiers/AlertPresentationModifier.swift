@@ -377,7 +377,7 @@ struct _ImplicitDialogActions<A: View>: View, ButtonProvider {
             ]
         }
         guard actions.isEmpty else { return actions }
-        return [AlertAction(Button(LocalizationService.shared.string(for: LocalizationKey.Button.ok), action: {}))]
+        return [AlertAction(Button(localized: LocalizationKey.Button.ok, action: {}))]
     }
 }
 

@@ -55,7 +55,7 @@ public struct PasteButton: View {
             paste(clipboard)
         } label: {
             Label {
-                Text(LocalizationService.shared.string(for: .paste))
+                Text(localized: LocalizationKey.Button.paste)
             } icon: {
                 Image(systemName: "doc.on.clipboard")
             }

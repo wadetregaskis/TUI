@@ -230,8 +230,8 @@ struct FilePanel: View {
         content.alert(
             replaceTitle, isPresented: Binding(get: { replacing != nil }, set: { if !$0 { replacing = nil } })
         ) {
-            Button(LocalizationService.shared.string(for: LocalizationKey.Button.cancel), role: .cancel) {}
-            Button(LocalizationService.shared.string(for: LocalizationKey.Button.replace), role: .destructive) {
+            Button(localized: LocalizationKey.Button.cancel, role: .cancel) {}
+            Button(localized: LocalizationKey.Button.replace, role: .destructive) {
                 if let replacing { finish(.chose([replacing], ending)) }
             }
         } message: {
@@ -378,7 +378,7 @@ struct FilePanel: View {
                 LocalizationService.shared.string(for: LocalizationKey.FilePanel.showHiddenFiles),
                 isOn: Binding(get: { browser.showsHiddenFiles }, set: { browser.showsHiddenFiles = $0 }))
             Spacer()
-            Button(LocalizationService.shared.string(for: LocalizationKey.Button.cancel)) {
+            Button(localized: LocalizationKey.Button.cancel) {
                 finish(.cancelled(ending))
             }
             .keyboardShortcut(.cancelAction)

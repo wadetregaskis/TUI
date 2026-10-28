@@ -116,6 +116,13 @@ public struct Button: View {
     /// matching SwiftUI's `Button(action:label:)` call syntax.
     let labelView: AnyView?
 
+    /// Where ``label``'s words came from, when they were read from a key:
+    /// read again when the button is drawn where a subtree's `\.locale`
+    /// names a language, as a `Text` made from a key is
+    /// (``LocalizedTitle``). `nil` for a title displayed as written, and for
+    /// a styled key, whose ``labelView`` is a `Text` that reads itself again.
+    private(set) var localizedTitle: LocalizedTitle?
+
     /// The action to perform when pressed.
     package let action: () -> Void
 
@@ -212,6 +219,7 @@ public struct Button: View {
         self.role = role
         self.focusID = nil
         self.isDisabled = false
+        if title.styled == nil { self.localizedTitle = .key(titleKey) }
     }
 
     /// Creates a button with a role and a title displayed as written.
@@ -333,6 +341,7 @@ public struct Button: View {
     package init(_ button: Self, action: @escaping () -> Void) {
         self.label = button.label
         self.labelView = button.labelView
+        self.localizedTitle = button.localizedTitle
         self.action = action
         self.role = button.role
         self.focusID = button.focusID
@@ -344,12 +353,28 @@ public struct Button: View {
         _ButtonCore(
             label: label,
             labelView: labelView,
+            localizedTitle: localizedTitle,
             action: action,
             role: role,
             focusID: focusID,
             triggeredMenu: triggeredMenu,
             isDisabled: isDisabled
         )
+    }
+}
+
+// Here, not in `Button+LocalizedTitle.swift`: it sets ``localizedTitle``,
+// whose setter is this file's.
+extension Button {
+    /// A button titled with one of TUI's own words, which follows a subtree's
+    /// `\.locale` as a SwiftUI control's own words do — what TUI's controls
+    /// make their buttons with, where they once read the word when the button
+    /// was made and kept it.
+    package init(
+        localized key: some FrameworkLocalizationKey, role: ButtonRole? = nil, action: @escaping () -> Void
+    ) {
+        self.init(LocalizationService.shared.frameworkString(for: key.rawValue), role: role, action: action)
+        localizedTitle = .framework(key.rawValue)
     }
 }
 
@@ -363,6 +388,7 @@ public struct Button: View {
 private struct _ButtonCore: View, Renderable, Layoutable {
     let label: String
     let labelView: AnyView?
+    let localizedTitle: LocalizedTitle?
     let action: () -> Void
     let role: ButtonRole?
     let focusID: String?
@@ -613,7 +639,7 @@ private struct _ButtonCore: View, Renderable, Layoutable {
             repeats: context.environment.buttonRepeatBehavior == .enabled, context: context)
 
         let configuration = ButtonStyleConfiguration(
-            title: label,
+            title: title(in: context),
             labelView: labelView,
             role: role,
             isPressed: isPressed,
@@ -632,6 +658,14 @@ private struct _ButtonCore: View, Renderable, Layoutable {
             isDisabled: isDisabled)
     }
 
+    /// The title as it reads here: its key read again in the language a
+    /// subtree's `\.locale` names, if it came from one, and as it was made
+    /// otherwise — one environment read for a button under no such subtree.
+    private func title(in context: RenderContext) -> String {
+        guard let localizedTitle, let language = context.environment.stringLanguage else { return label }
+        return localizedTitle.words(in: language)
+    }
+
     /// A custom ``PrimitiveButtonStyle`` is the whole button: its body is
     /// drawn in place of one, and this core registers nothing — no focus stop,
     /// no keys, no click — because the body decides how the button is
@@ -647,7 +681,7 @@ private struct _ButtonCore: View, Renderable, Layoutable {
         let action = self.action
         let configuration = PrimitiveButtonStyleConfiguration(
             role: role,
-            label: ButtonStyleConfiguration.Label(title: label, view: labelView),
+            label: ButtonStyleConfiguration.Label(title: title(in: context), view: labelView),
             action: {
                 action()
                 dismissMenu?()

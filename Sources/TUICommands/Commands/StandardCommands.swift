@@ -101,7 +101,7 @@ public struct ToolbarCommands: Commands {
             }
             .keyboardShortcut("t", modifiers: [.command, .option])
             .disabled(!hidden && !declared)
-            Button(LocalizationService.shared.string(for: LocalizationKey.Label.customizeToolbar)) {
+            Button(localized: LocalizationKey.Label.customizeToolbar) {
                 chrome?.beginCustomizingToolbar()
             }
             .disabled(chrome?.customizableToolbars.isEmpty ?? true)
@@ -136,13 +136,13 @@ public struct TextEditingCommands: Commands {
     public var body: some Commands {
         CommandGroup(after: .textEditing) {
             let find = KeyboardShortcut("f", modifiers: .control)
-            Button(LocalizationService.shared.string(for: LocalizationKey.Menu.find)) {
+            Button(localized: LocalizationKey.Menu.find) {
                 find.keyEvent(commandKey: .control).map { keys?.press($0) }
             }
             .keyboardShortcutHint(find)
             .disabled(finding == nil)
             let findNext = KeyboardShortcut("g", modifiers: .control)
-            Button(LocalizationService.shared.string(for: LocalizationKey.Menu.findNext)) {
+            Button(localized: LocalizationKey.Menu.findNext) {
                 findNext.keyEvent(commandKey: .control).map { keys?.press($0) }
             }
             .keyboardShortcutHint(findNext)
