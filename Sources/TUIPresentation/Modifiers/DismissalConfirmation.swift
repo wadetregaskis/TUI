@@ -64,7 +64,7 @@ extension View {
         @ViewBuilder actions: () -> A, @ViewBuilder message: () -> M
     ) -> some View {
         _DismissalConfirmationModifier(
-            content: self, title: titleKey.localized, shouldPresent: shouldPresent,
+            content: self, title: titleKey.localized, titleKey: titleKey, shouldPresent: shouldPresent,
             actions: actions(), message: message())
     }
 
@@ -117,7 +117,7 @@ extension View {
         _ titleKey: LocalizedStringKey, shouldPresent: Bool, @ViewBuilder actions: () -> A
     ) -> some View {
         _DismissalConfirmationModifier<Self, A, EmptyView>(
-            content: self, title: titleKey.localized, shouldPresent: shouldPresent,
+            content: self, title: titleKey.localized, titleKey: titleKey, shouldPresent: shouldPresent,
             actions: actions(), message: nil)
     }
 
@@ -180,6 +180,9 @@ final class PendingDismissal {
 struct _DismissalConfirmationModifier<Content: View, A: View, M: View>: View {
     let content: Content
     let title: String
+    /// The key ``title`` was read from, if it was: the dialog is titled with
+    /// it, so its words follow a subtree's `\.locale` as an alert's do.
+    var titleKey: LocalizedStringKey?
     let shouldPresent: Bool
     let actions: A
     let message: M?
@@ -233,7 +236,10 @@ struct _DismissalConfirmationModifier<Content: View, A: View, M: View>: View {
     private func dialog(
         _ content: some View, isConfirming: Binding<Bool>, actions: _DismissalActions<A>
     ) -> some View {
-        if let message {
+        if let titleKey {
+            content.titledAlert(
+                titleKey, isPresented: isConfirming, actions: actions, message: message, verticalButtons: true)
+        } else if let message {
             content.confirmationDialog(
                 title, isPresented: isConfirming, titleVisibility: .visible,
                 actions: { actions }, message: { message })

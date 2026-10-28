@@ -54,8 +54,9 @@ extension View {
         @ViewBuilder message: @escaping (T) -> Message
     ) -> some View {
         alert(
-            titleKey.localized, isPresented: isPresented, presenting: data,
-            actions: actions, message: message)
+            titleKey, isPresented: isPresented.andPresent(data),
+            actions: { if let data { actions(data) } },
+            message: { if let data { message(data) } })
     }
 
     /// Presents an alert built from `data`, with a title shown as written.
@@ -99,7 +100,7 @@ extension View {
         presenting data: T?,
         @ViewBuilder actions: @escaping (T) -> Actions
     ) -> some View {
-        alert(titleKey.localized, isPresented: isPresented, presenting: data, actions: actions)
+        alert(titleKey, isPresented: isPresented.andPresent(data), actions: { if let data { actions(data) } })
     }
 
     /// Presents an alert built from `data` with buttons and no message, with a
@@ -213,8 +214,9 @@ extension View {
         @ViewBuilder message: @escaping (T) -> Message
     ) -> some View {
         confirmationDialog(
-            titleKey.localized, isPresented: isPresented, titleVisibility: titleVisibility,
-            presenting: data, actions: actions, message: message)
+            titleKey, isPresented: isPresented.andPresent(data), titleVisibility: titleVisibility,
+            actions: { if let data { actions(data) } },
+            message: { if let data { message(data) } })
     }
 
     /// Presents a confirmation dialog built from `data`, titled as written.
@@ -263,8 +265,8 @@ extension View {
         @ViewBuilder actions: @escaping (T) -> Actions
     ) -> some View {
         confirmationDialog(
-            titleKey.localized, isPresented: isPresented, titleVisibility: titleVisibility,
-            presenting: data, actions: actions)
+            titleKey, isPresented: isPresented.andPresent(data), titleVisibility: titleVisibility,
+            actions: { if let data { actions(data) } })
     }
 
     /// Presents a confirmation dialog built from `data` with no message, titled

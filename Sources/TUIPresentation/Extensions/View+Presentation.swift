@@ -58,10 +58,9 @@ extension View {
         borderColor: Color? = nil,
         titleColor: Color? = nil
     ) -> some View {
-        alert(
-            titleKey.localized, isPresented: isPresented, actions: actions,
-            message: message, borderStyle: borderStyle, borderColor: borderColor,
-            titleColor: titleColor)
+        titledAlert(
+            titleKey, isPresented: isPresented, actions: actions(), message: message(),
+            colours: (borderStyle, borderColor, titleColor))
     }
 
     /// Presents an alert whose title is displayed as written.
@@ -124,9 +123,9 @@ extension View {
         borderColor: Color? = nil,
         titleColor: Color? = nil
     ) -> some View {
-        alert(
-            titleKey.localized, isPresented: isPresented, actions: actions,
-            borderStyle: borderStyle, borderColor: borderColor, titleColor: titleColor)
+        titledAlert(
+            titleKey, isPresented: isPresented, actions: actions(), message: EmptyView?.none,
+            colours: (borderStyle, borderColor, titleColor))
     }
 
     /// Presents an alert with actions only, whose title is shown as written.
@@ -194,9 +193,9 @@ extension View {
         @ViewBuilder actions: @escaping () -> Actions,
         @ViewBuilder message: @escaping () -> Message
     ) -> some View {
-        confirmationDialog(
-            titleKey.localized, isPresented: isPresented,
-            titleVisibility: titleVisibility, actions: actions, message: message)
+        titledAlert(
+            titleVisibility == .hidden ? nil : titleKey, isPresented: isPresented, actions: actions(),
+            message: message(), verticalButtons: true)
     }
 
     /// Presents a confirmation dialog whose title is displayed as written.
@@ -232,9 +231,9 @@ extension View {
         titleVisibility: Visibility = .automatic,
         @ViewBuilder actions: @escaping () -> Actions
     ) -> some View {
-        confirmationDialog(
-            titleKey.localized, isPresented: isPresented,
-            titleVisibility: titleVisibility, actions: actions)
+        titledAlert(
+            titleVisibility == .hidden ? nil : titleKey, isPresented: isPresented, actions: actions(),
+            message: EmptyView?.none, verticalButtons: true)
     }
 
     /// Presents an actions-only dialog whose title is displayed as written.
@@ -592,5 +591,27 @@ extension View {
             content: self,
             width: width
         )
+    }
+}
+
+// MARK: - A dialog titled with a key
+
+extension View {
+    /// An alert or confirmation dialog titled with `titleKey` — read now, and
+    /// read again where the dialog is drawn under a subtree's `\.locale` that
+    /// names another language (``AlertPresentationModifier/titleSource``) —
+    /// or untitled where it is `nil`, a dialog whose title is hidden. What
+    /// the key-titled overloads make, where the ones titled as written make
+    /// the modifier with no source.
+    func titledAlert<Actions: View, Message: View>(
+        _ titleKey: LocalizedStringKey?, isPresented: Binding<Bool>, actions: Actions, message: Message?,
+        colours: (BorderStyle?, Color?, Color?) = (nil, nil, nil), verticalButtons: Bool = false
+    ) -> AlertPresentationModifier<Self, Actions, Message> {
+        var modifier = AlertPresentationModifier(
+            content: self, isPresented: isPresented, title: titleKey?.localized ?? "", message: message,
+            actions: actions, borderStyle: colours.0, borderColor: colours.1, titleColor: colours.2,
+            verticalButtons: verticalButtons)
+        modifier.titleSource = titleKey?.textSource
+        return modifier
     }
 }

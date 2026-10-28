@@ -39,6 +39,30 @@ struct AlertPanelLocaleTests {
         #expect(written.contains("label.error"), "\(written)")
     }
 
+    /// What `view` draws with its dialogs composited over it, as the run loop
+    /// draws the screen.
+    private func screen(_ view: some View) -> String {
+        let context = makeRenderContext(width: 60, height: 14)
+        return renderToBuffer(view, context: context)
+            .compositingOverlays(maxWidth: 60, maxHeight: 14, palette: context.environment.palette)
+            .lines.map(\.stripped).joined(separator: "\n")
+    }
+
+    @Test("An alert and a confirmation dialog presented with a key title follow the override")
+    func presentedDialogs() {
+        let german = Locale(identifier: "de")
+        let alert = screen(
+            Text("page").alert("label.error", isPresented: .constant(true)) { Button("OK") {} }
+                .environment(\.locale, german))
+        #expect(alert.contains("Fehler"), "\(alert)")
+        let dialog = screen(
+            Text("page").confirmationDialog("label.warning", isPresented: .constant(true), titleVisibility: .visible) {
+                Button("OK") {}
+            }
+            .environment(\.locale, german))
+        #expect(dialog.contains("Warnung"), "\(dialog)")
+    }
+
     /// A computed `String`, which an alert displays as written.
     private func verbatim(_ text: String) -> String { text }
 }

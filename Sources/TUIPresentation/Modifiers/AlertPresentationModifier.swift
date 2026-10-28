@@ -63,6 +63,12 @@ public struct AlertPresentationModifier<Content: View, Actions: View, Message: V
     /// what a ``DialogSeverity/automatic`` severity makes critical.
     var presentsError: Bool = false
 
+    /// Where the title's words came from, when they were read from a key:
+    /// the panel reads them again where a subtree's `\.locale` names another
+    /// language (``AlertPanel/withSources(title:message:)``). The message is
+    /// drawn from its views, which read themselves.
+    var titleSource: LocalizedTextSource?
+
     /// The actions as the dialog draws them, with SwiftUI's implicit button:
     /// a confirmation dialog — the vertical form, which nothing else uses —
     /// with no `.cancel` button gets a standard Cancel, and an alert with no
@@ -128,6 +134,7 @@ extension AlertPresentationModifier: Renderable {
             verticalButtons: verticalButtons,
             actions: { shownActions }
         )
+        .withSources(title: titleSource, message: nil)
 
         // Register the alert focus section and activate it FIRST, so the page
         // beneath registers its controls in the now-inactive page section (and
