@@ -93,6 +93,10 @@ public final class AnimationStore: @unchecked Sendable {
         /// The pass this record was last asked about. See ``pass``.
         var lastPass: UInt64 = 0
 
+        /// The last pass a memo serving this record's view keeps it through
+        /// (``declareAgain(_:)``), though nothing asks about it.
+        var keptUntil: UInt64 = 0
+
         /// The pass and walk a first sight stored this record in — `nil` once
         /// anything has stored over it. See
         /// ``value(for:target:animation:nowNanos:isMeasuring:)``.
@@ -129,6 +133,77 @@ public final class AnimationStore: @unchecked Sendable {
     }
 
     private var records: [Key: Record] = [:]
+
+    /// The keys declared while a memo renders on a miss (``beginLogging()``),
+    /// for the memo to declare again each time it serves what it drew
+    /// (``declareAgain(_:)``).
+    private var declaredLog: [Key] = []
+
+    /// How many memos are rendering on a miss, outermost to innermost.
+    private var loggingDepth = 0
+
+    /// Notes `key` as declared this pass for the memos rendering around it.
+    @inline(__always)
+    private func logDeclaration(_ key: Key) {
+        if loggingDepth > 0 { declaredLog.append(key) }
+    }
+
+    /// Begins a memo's log of the keys its render declares, returning where
+    /// its slice starts (``endLogging(from:)``).
+    public func beginLogging() -> Int {
+        loggingDepth += 1
+        return declaredLog.count
+    }
+
+    /// Ends the innermost memo's log and returns the keys its render
+    /// declared; the log empties when the outermost ends. An inner memo's
+    /// keys stay in the log for the memo around it.
+    public func endLogging(from start: Int) -> DeclaredRecords? {
+        loggingDepth -= 1
+        let declared = start < declaredLog.count ? DeclaredRecords(Array(declaredLog[start...])) : nil
+        if loggingDepth == 0 { declaredLog.removeAll(keepingCapacity: true) }
+        return declared
+    }
+
+    /// Declares `keys` again, as the views that declared them would had they
+    /// been drawn: what a memo serving a subtree does for the records in it
+    /// (`ValueMemo`). Nothing in a served subtree is drawn, so nothing in it
+    /// declares its records; dropped at the end of the pass, the value a
+    /// change there animates FROM was gone, and the change jumped to its end
+    /// — the To do clip's strikethrough, whose row the memo served on every
+    /// frame after the first, drew whole (found 2026-10-28). A record that has
+    /// gone is not made again.
+    public func declareAgain(_ declared: DeclaredRecords) {
+        // A memo serving a list's rows serves hundreds a frame, and a lookup
+        // of every record of every one, hashing its identity, was 5.5% of a
+        // `menus` frame (A/B +6.5%). So a served subtree keeps its records
+        // for ``keepPasses`` passes, and is asked again only once half of
+        // them have gone: one comparison on every other hit.
+        if loggingDepth > 0 { for key in declared.keys { logDeclaration(key) } }
+        guard declared.keptUntil < pass + Self.keepPasses / 2 else { return }
+        let until = pass + Self.keepPasses
+        for key in declared.keys {
+            guard let index = records.index(forKey: key) else { continue }
+            records.values[index].keptUntil = until
+        }
+        declared.keptUntil = until
+    }
+
+    /// How many passes a record a memo served stays without being asked
+    /// about (``declareAgain(_:)``): a second at 60 frames a second. A view
+    /// that has left keeps its record that long, and coming back within it
+    /// carries on from it rather than appearing afresh.
+    static let keepPasses: UInt64 = 64
+
+    /// The records a memo's render declared, which every hit of the memo
+    /// keeps (``declareAgain(_:)``), and how long it has kept them for.
+    public final class DeclaredRecords {
+        let keys: [Key]
+        /// The last pass the records are kept through, as this last set it.
+        var keptUntil: UInt64 = 0
+
+        init(_ keys: [Key]) { self.keys = keys }
+    }
 
     /// How many of ``records`` are ``Record/isUnsettled``: kept by every write
     /// and removal, so ``presentsEveryTarget`` is a load and a compare.
@@ -242,6 +317,7 @@ extension AnimationStore {
         // The re-declaration, on an entry already in hand.
         if record.lastPass != pass, !isMeasuring {
             record.lastPass = pass
+            logDeclaration(key)
             records[key] = record
         }
 
@@ -326,6 +402,7 @@ extension AnimationStore {
                     for: key, isMeasuring: isMeasuring)
             } else if record.lastPass != pass, !isMeasuring {
                 records[key]?.lastPass = pass
+                logDeclaration(key)
             }
             return phase
         }
@@ -552,8 +629,9 @@ extension AnimationStore {
             let recorded = records.values[index].target as? D, recorded == target,
             let from = records.values[index].from as? D, from == target
         else { return false }
-        if !isMeasuring, records.values[index].lastPass != pass {
-            records.values[index].lastPass = pass
+        if !isMeasuring {
+            if records.values[index].lastPass != pass { records.values[index].lastPass = pass }
+            logDeclaration(key)
         }
         return true
     }
@@ -673,6 +751,7 @@ extension AnimationStore {
         guard !isMeasuring else { return }
         var stamped = record
         stamped.lastPass = pass
+        logDeclaration(key)
         let unsettles = stamped.isUnsettled ? 1 : 0
         // Swapped in through the subscript, which keeps the key already filed
         // and hands back the record it replaces, in one lookup. NOT
@@ -706,8 +785,10 @@ extension AnimationStore {
         // dictionary every pass. On a deeply nested tree that is thousands of
         // entries reallocated per frame to drop, almost always, none of them —
         // it measured as most of a +7.6% on `deep`.
+        // A record in a subtree a memo served was declared again by it
+        // (``declareAgain(_:)``).
         var stale: [Key] = []
-        for (key, record) in records where record.lastPass != pass { stale.append(key) }
+        for (key, record) in records where record.lastPass != pass && record.keptUntil < pass { stale.append(key) }
         for key in stale { removeRecord(at: key) }
 
         guard !triggers.isEmpty else { return }

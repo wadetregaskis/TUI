@@ -183,6 +183,11 @@ func renderValueMemoized<Key: Equatable, Row>(
     let clearsBefore = cache.stats.subtreeClears
     let journal = cache.effectJournal
     let journalStart = journal.beginRecording()
+    // The animation records the render declares, which a hit declares again
+    // (`AnimationStore.declareAgain(_:)`): nothing in a served subtree is
+    // drawn, so nothing in it would.
+    let animations = context.isMeasuring ? nil : context.stateStorage?.animations
+    let animationLogStart = animations?.beginLogging()
 
     // The scopes this render arms are kept alive by the entry it stores, for as
     // long as that is kept — and, stored or not, by what encloses this memo
@@ -206,6 +211,9 @@ func renderValueMemoized<Key: Equatable, Row>(
         }
     }
     let lease = cache.leases.endComputation(leaseMark)
+    if let animations, let animationLogStart {
+        journalAnimationRecords(animations.endLogging(from: animationLogStart), in: journal, context: context)
+    }
 
     if RenderCache.isStorable(
         buffer: buffer, context: context,
@@ -226,6 +234,22 @@ func renderValueMemoized<Key: Equatable, Row>(
     // one leaves its entries in place for the memo enclosing it.
     journal.endRecording()
     return buffer
+}
+
+/// The animation records a memo's render declared, as one journal entry that
+/// declares them again (`AnimationStore.declareAgain(_:)`) — what a hit
+/// replays, since nothing in a served subtree is drawn and so nothing in it
+/// would. One entry for them all, into the journal like any registration, so
+/// a memo enclosing this one keeps it too, and the verifier sees it.
+@MainActor
+private func journalAnimationRecords(
+    _ declared: AnimationStore.DeclaredRecords?, in journal: EffectJournal, context: RenderContext
+) {
+    guard let declared else { return }
+    journal.append(
+        EffectJournal.Entry(
+            kind: EffectJournal.Kind("animationRecords"), channelToken: context.environment.keyChannelToken
+        ) { served in served.stateStorage?.animations.declareAgain(declared) })
 }
 
 extension RenderContext {
@@ -303,7 +327,14 @@ private func verifyServe(
     let tracker = context.environment.volatileReadTracker
     let unreplayableBefore = tracker?.unreplayableCount ?? 0
     let checkMark = cache.leases.beginDetachedComputation()
+    // Logged as a miss logs them, so the fresh journal holds the entry the
+    // served one does.
+    let animations = context.isMeasuring ? nil : context.stateStorage?.animations
+    let animationLogStart = animations?.beginLogging()
     let fresh = render(context)
+    if let animations, let animationLogStart {
+        journalAnimationRecords(animations.endLogging(from: animationLogStart), in: journal, context: context)
+    }
     _ = cache.leases.endComputation(checkMark)
     // A measure takes a served buffer's size and nothing else: no buffer a
     // measure draws is stored, and none it is served reaches the screen. So
