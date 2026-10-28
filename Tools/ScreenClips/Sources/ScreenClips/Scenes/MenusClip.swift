@@ -242,10 +242,12 @@ struct Mailbox: View {
             .padding(.horizontal, 1)
         }
         .padding(.horizontal, 1)
-        // The camera's height, less the menu bar: the toast and the caption sit at
-        // the foot of what is filmed, not of the window.
+        // The camera's height (15), less the menu bar's row: the toast and the
+        // caption sit at the foot of what is filmed, not of the window. At 15 the
+        // foot was the row under the shot, and a toast of two lines showed only
+        // its first.
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .frame(height: 15, alignment: .topLeading)
+        .frame(height: 14, alignment: .topLeading)
         .overlay(alignment: .bottomLeading) {
             HStack(spacing: 2) {
                 if let toast = store.toast {
