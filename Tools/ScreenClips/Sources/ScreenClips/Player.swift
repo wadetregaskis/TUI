@@ -95,6 +95,9 @@ struct Player {
         var clockStart: UInt64?
         var due: UInt64?          // when the next step is due, once the clock runs
         var firstOutput: UInt64?
+        // Every byte the app writes, left beside the markers file as
+        // `markers.bytes`: a review scene's comparison of what each build sends.
+        var written = 0
         var ended = false
         var buffer = [UInt8](repeating: 0, count: 65536)
 
@@ -138,6 +141,7 @@ struct Player {
                 let count = read(master, &buffer, buffer.count)
                 if count <= 0 { break loop }  // the app has gone
                 if firstOutput == nil { firstOutput = Self.now() }
+                written += count
                 writeAll(STDOUT_FILENO, Array(buffer[0..<count]))
             }
             if fds[1].revents & Int16(POLLIN) != 0 {
@@ -166,6 +170,7 @@ struct Player {
             }
         }
         close(master)
+        if let markers { try? "\(written)\n".write(toFile: markers + ".bytes", atomically: true, encoding: .utf8) }
         if !ended { mark("end", Self.now()) }
         return ended ? 0 : 1
     }
