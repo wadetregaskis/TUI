@@ -12,7 +12,7 @@ import Foundation
 /// ANSI escape sequences that are understood by most terminals.
 ///
 /// `@usableFromInline`, with ``reset`` and
-/// ``colorize(_:foreground:background:bold:underline:inverted:)``: the
+/// ``colorize(_:foreground:background:bold:underline:faint:inverted:)``: the
 /// `@inlinable` members of `ClaimingRow` call them (module split step A3).
 @usableFromInline
 package enum ANSIRenderer {
@@ -217,6 +217,7 @@ extension ANSIRenderer {
     ///   - background: Optional background color.
     ///   - bold: Whether to apply bold.
     ///   - underline: Whether to apply underline.
+    ///   - faint: Whether to draw it faint (SGR 2).
     ///   - inverted: Whether to reverse the pair (SGR 7). The two colours are STATED
     ///     beside the 7 rather than swapped here, so what the terminal exchanges is
     ///     exactly this pair and not whatever is in force — the reason
@@ -232,6 +233,7 @@ extension ANSIRenderer {
         background: Color? = nil,
         bold: Bool = false,
         underline: Bool = false,
+        faint: Bool = false,
         inverted: Bool = false
     ) -> String {
         var style = TextStyle()
@@ -239,6 +241,7 @@ extension ANSIRenderer {
         style.backgroundColor = background
         style.isBold = bold
         style.isUnderlined = underline
+        if faint { style.isDim = true }
         style.isInverted = inverted
         return render(string, with: style)
     }

@@ -227,13 +227,16 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         // weight each line of them is drawn a tier heavier, whole.
         var grid = [weekdayRow(calendar: calendar, palette: palette)]
         let days = monthGrid(month: month, calendar: calendar)
-        let marks = DayMarks(selection: selection.wrappedValue, range: range, calendar: calendar)
+        let marks = DayMarks(
+            selection: selection.wrappedValue, range: range, calendar: calendar,
+            pastDays: context.environment.datePickerDistinguishesPastDays)
+        let weekend = weekendColumns(days, calendar: calendar, environment: context.environment)
         for week in 0..<6 {
             grid.append(
                 (0..<7).map { column in
                     dayCell(
-                        days[week * 7 + column], isDisabled: isDisabled, marks: marks, calendar: calendar,
-                        palette: palette)
+                        days[week * 7 + column], isWeekend: weekend[column], isDisabled: isDisabled, marks: marks,
+                        calendar: calendar, palette: palette)
                 }.joined())
         }
         lines += legibility.drawsPlainBold ? grid.map(ANSIRenderer.applyPersistentBold) : grid
@@ -328,6 +331,18 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         }
     }
 
+    /// Which of the grid's seven columns are the weekend's days, by the
+    /// calendar's locale — all `false` where the environment does not ask
+    /// (``EnvironmentValues/datePickerDistinguishesWeekends``). Asked once a
+    /// column, of any day in it: a column is one weekday.
+    private func weekendColumns(_ days: [Date?], calendar: Calendar, environment: EnvironmentValues) -> [Bool] {
+        guard environment.datePickerDistinguishesWeekends else { return Array(repeating: false, count: 7) }
+        return (0..<7).map { column in
+            let day = stride(from: column, to: days.count, by: 7).lazy.compactMap { days[$0] }.first
+            return day.map(calendar.isDateInWeekend) ?? false
+        }
+    }
+
     /// The days a cell is compared with, each reduced to the start of its day
     /// once a frame rather than once a cell: the selected day, today, and the
     /// first day in range.
@@ -343,18 +358,23 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         let today: Date
         /// The range's first day's start, and its last instant as given.
         let range: (start: Date, end: Date)?
+        /// Whether a day before today is drawn faint
+        /// (``EnvironmentValues/datePickerDistinguishesPastDays``).
+        let pastDays: Bool
 
-        init(selection: Date, range: ClosedRange<Date>?, calendar: Calendar) {
+        init(selection: Date, range: ClosedRange<Date>?, calendar: Calendar, pastDays: Bool) {
             selected = calendar.startOfDay(for: selection)
             today = calendar.startOfDay(for: Date())
             self.range = range.map { (calendar.startOfDay(for: $0.lowerBound), $0.upperBound) }
+            self.pastDays = pastDays
         }
     }
 
     /// One day: its number in three cells, the selected day in the accent,
-    /// today in the accent's ink, a day out of range dimmed.
+    /// today in the accent's ink, a day out of range dimmed, the weekend's in
+    /// the secondary text colour, and a day gone by faint where asked.
     private func dayCell(
-        _ day: Date?, isDisabled: Bool, marks: DayMarks, calendar: Calendar, palette: any Palette
+        _ day: Date?, isWeekend: Bool, isDisabled: Bool, marks: DayMarks, calendar: Calendar, palette: any Palette
     ) -> String {
         guard let day else { return "   " }
         let number = calendar.component(.day, from: day)
@@ -367,11 +387,13 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
                 String(text.dropFirst()), foreground: palette.background.opaqueSpelling,
                 background: fill.opaqueSpelling)
         }
+        guard inRange, !isDisabled else {
+            return ANSIRenderer.colorize(text, foreground: palette.foregroundTertiary.opaqueSpelling)
+        }
         let ink: Color =
-            !inRange || isDisabled
-            ? palette.foregroundTertiary
-            : dayStart == marks.today ? palette.accent : palette.foreground
-        return ANSIRenderer.colorize(text, foreground: ink.opaqueSpelling)
+            dayStart == marks.today ? palette.accent : isWeekend ? palette.foregroundSecondary : palette.foreground
+        return ANSIRenderer.colorize(
+            text, foreground: ink.opaqueSpelling, faint: marks.pastDays && dayStart < marks.today)
     }
 
     // MARK: Mouse
