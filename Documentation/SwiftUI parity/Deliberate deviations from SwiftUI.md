@@ -1635,11 +1635,17 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   cells; both go from the source's to nothing as the rectangle reaches the
   stack ([B-W1B-2](<../Historical/Shapes, effects and animation/Matched geometry and the zoom transition.md#b-w1b-2-a-zoom-sources-clip-shape-and-shadow-shrink-to-nothing-as-the-rectangle-grows>)).
   A picture the terminal draws (Kitty graphics) on the screen being
-  revealed or folded away IS scaled, and moved with the rectangle, by the
-  map that takes the stack to it — a photo zoomed up from its thumbnail
-  grows from the thumbnail's size and place — drawn by a second placement of
-  its image, so no pixels are sent (since 2026-10-26; the owner: "it should
-  scale and move, whereas it's scaling and *clipping*").
+  revealed or folded away IS scaled and moved, from the source's frame to
+  its own on that screen, as SwiftUI's zoom takes its destination from the
+  source's frame: a photo zoomed up from its thumbnail starts exactly on the
+  thumbnail, and folded back lands exactly on it, nothing of the screen
+  drawn across it (the screen's pictures move as one, the box they fill
+  together mapped from the source's frame). It is drawn by a second
+  placement of its image, so no pixels are sent (since 2026-10-26; the
+  owner: "it should scale and move, whereas it's scaling and *clipping*").
+  Until 2026-10-27 it was scaled by the map from the whole stack to the
+  rectangle, so a photo under its screen's bar landed smaller than its
+  thumbnail and popped to it once the zoom was over.
   (`ZoomNavigationTransitionTests`, `ZoomScalingTests`.)
 - **Why:** a cell cannot be scaled (refusal review O4, ruled 2026-10-12: the
   zoom is the `.scale` reveal generalised).

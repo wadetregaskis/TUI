@@ -11,7 +11,9 @@ The owner's O4 ruling (2026-10-12): a full re-layout at the interpolated frame
 each animation frame. A removed member stays where it was while it leaves; a
 carried member floats over every view while it moves; the zoom transition is a
 reveal, and a push zooms under the default animation. Since 2026-10-26 a zoom
-scales and moves the Kitty pictures it reveals (graphics notes §14).
+scales and moves the Kitty pictures it reveals (graphics notes §14) — since
+2026-10-27 from the source's frame to their own, so a photo lands exactly on
+its thumbnail (Deliberate deviations A9).
 
 ## The record
 

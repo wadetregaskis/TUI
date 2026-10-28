@@ -2,9 +2,9 @@
 //  NavigationZoom+Pictures.swift
 //
 //  The pictures on a screen a navigation zoom reveals or folds away, scaled
-//  and moved with the zoom's rectangle rather than cut by it: a cell of text
-//  cannot be drawn smaller, but a picture the terminal draws can, by a
-//  second placement of it at the rectangle's scale.
+//  and moved from the source's frame to their own rather than cut by the
+//  zoom's rectangle: a cell of text cannot be drawn smaller, but a picture the
+//  terminal draws can, by a second placement of it at the scale it is drawn.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -14,11 +14,25 @@ import TUIFoundation
 import TUIView
 
 /// How a navigation zoom draws the pictures of the screen it reveals or folds
-/// away: each scaled and moved by the map that takes the whole stack to the
-/// zoom's rectangle this frame, so a photo zoomed up from its thumbnail grows
-/// from the thumbnail's size and place, and folds back into it, as SwiftUI's
-/// zoom scales its screen. The rest of the screen is cut by the rectangle, as
-/// before: a cell of text cannot be drawn smaller.
+/// away: moved and scaled from the source's frame to the frame they have on
+/// that screen, as SwiftUI's zoom takes its destination from the source's
+/// frame to its own. A photo zoomed up from its thumbnail starts exactly on
+/// the thumbnail and grows into its place on the screen; folded back, it lands
+/// exactly on the thumbnail. The rest of the screen is cut by the zoom's
+/// rectangle, as before: a cell of text cannot be drawn smaller.
+///
+/// The pictures move as one: the box they fill together is mapped from the
+/// source's frame to itself, edge by edge as the rectangle is
+/// (``MatchedEdgeOffsets``), and each picture with it — so a screen's one
+/// photo fills the source's frame at the zoom's far end, and two side by side
+/// share it as they share the screen. Their frame is always inside the
+/// rectangle, which goes from the same source to the whole stack.
+///
+/// They were scaled by the map from the whole stack to the rectangle until
+/// 2026-10-27: a photo under its screen's navigation bar, smaller than the
+/// stack, then landed smaller than the thumbnail it folded into, the bar's
+/// rule cut across the rest of the rectangle, and the page's own thumbnail
+/// replaced it with a pop once the zoom was over.
 ///
 /// The owner, on the Navigation clip's photo folding back: "it should scale
 /// and move, whereas it's scaling and *clipping*". A picture is drawn by a
@@ -27,8 +41,12 @@ import TUIView
 /// pixels are sent, and the image's own placement, which every other cell
 /// drawing it names, is untouched.
 struct ZoomScaling {
-    /// The whole stack, which the rectangle grows to and shrinks from.
-    let whole: CellRect
+    /// The source's frame, in the stack: where the pictures are at the
+    /// zoom's far end — the start of a reveal, the end of a fold.
+    let source: CellRect
+    /// How much of the way from their own frames to the source's the
+    /// pictures are this frame: `1` on the source, `0` in their places.
+    let remaining: Double
     /// The store the pictures are the images of.
     let images: TerminalImageStore
 
@@ -45,7 +63,7 @@ struct ZoomScaling {
 
     /// The pictures `content` draws, each once, and `content` with their cells
     /// blanked: what the rectangle cuts is the rest of the screen, and the
-    /// pictures are drawn again over it, scaled (``drawing(_:into:within:)``).
+    /// pictures are drawn again over it, scaled (``drawings(of:within:)``).
     func liftingPictures(out content: inout FrameBuffer) -> [Picture] {
         guard content.lines.contains(where: { $0.unicodeScalars.contains(.terminalImagePlaceholder) }) else {
             return []
@@ -95,17 +113,36 @@ struct ZoomScaling {
         return found
     }
 
-    /// `picture` drawn as the zoom maps it into `rect` this frame — its box
-    /// scaled as the whole stack is to the rectangle, and moved with it — cut
-    /// to `visible`, with the column and row it is laid at; or `nil` where
-    /// none of it is visible, or the store cannot draw it.
-    func drawing(
-        _ picture: Picture, into rect: CellRect, within visible: CellRect
+    /// `pictures` drawn as the zoom maps them this frame — the box they fill
+    /// together moved and scaled from the source's frame toward its own, each
+    /// picture with it — each cut to `visible`, with the column and row it is
+    /// laid at; a picture none of which is visible, or that the store cannot
+    /// draw, is left out.
+    func drawings(
+        of pictures: [Picture], within visible: CellRect
+    ) -> [(cells: FrameBuffer, x: Int, y: Int)] {
+        guard let first = pictures.first else { return [] }
+        var minX = first.x, minY = first.y, maxX = first.x + first.columns, maxY = first.y + first.rows
+        for picture in pictures.dropFirst() {
+            minX = min(minX, picture.x)
+            minY = min(minY, picture.y)
+            maxX = max(maxX, picture.x + picture.columns)
+            maxY = max(maxY, picture.y + picture.rows)
+        }
+        let box = CellRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+        let frame = MatchedEdgeOffsets(from: source, to: box).applied(to: box, remaining: remaining)
+        return pictures.compactMap { drawing($0, from: box, into: frame, within: visible) }
+    }
+
+    /// `picture`, one of those filling `box`, drawn where the map that takes
+    /// `box` to `frame` takes it, at that scale, cut to `visible`.
+    private func drawing(
+        _ picture: Picture, from box: CellRect, into frame: CellRect, within visible: CellRect
     ) -> (cells: FrameBuffer, x: Int, y: Int)? {
-        let scaleX = Double(rect.width) / Double(max(1, whole.width))
-        let scaleY = Double(rect.height) / Double(max(1, whole.height))
-        let left = rect.x + Int((Double(picture.x - whole.x) * scaleX).rounded())
-        let top = rect.y + Int((Double(picture.y - whole.y) * scaleY).rounded())
+        let scaleX = Double(frame.width) / Double(max(1, box.width))
+        let scaleY = Double(frame.height) / Double(max(1, box.height))
+        let left = frame.x + Int((Double(picture.x - box.x) * scaleX).rounded())
+        let top = frame.y + Int((Double(picture.y - box.y) * scaleY).rounded())
         let columns = max(1, Int((Double(picture.columns) * scaleX).rounded()))
         let rows = max(1, Int((Double(picture.rows) * scaleY).rounded()))
         let shown = (
