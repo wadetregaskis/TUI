@@ -407,6 +407,10 @@ extension _ImageCore {
                 let cached = Self.cachedPhase(of: source, cache: settings.urlCache, maxPixelCount: settings.maxPixelCount)
             {
                 phaseBox.value = cached
+            } else if case .loading = phaseBox.value, case .file(let path) = source,
+                let decoded = Self.smallFilePhase(path: path, settings: settings)
+            {
+                phaseBox.value = decoded
             } else {
                 let src = source
                 lifecycle.startTask(token: token, priority: .userInitiated) {
@@ -467,6 +471,34 @@ extension _ImageCore {
                 case .url(let address): try loader.cachedImage(fromURL: address, cache: cache, maxPixelCount: maxPixelCount)
                 }
             return image.map { .success($0) }
+        } catch let loadError as ImageLoadError {
+            return .failure(loadError.description)
+        } catch {
+            return .failure(error.localizedDescription)
+        }
+    }
+
+    /// The largest file, in bytes, decoded on the frame that first draws it.
+    ///
+    /// A picture from a file drew a placeholder on its first frames while a
+    /// task decoded it, so a small icon flashed in, and an app wanting it at
+    /// once had to decode it itself (the Materials clip, 2026-10-27). A file
+    /// this small decodes in a few milliseconds, within a frame, so it draws
+    /// on the first, as a SwiftUI `Image` of a local picture does. A larger
+    /// one still loads in a task, so the frame does not wait on it.
+    static let inlineDecodeLimit = 256 * 1_024
+
+    /// The phase of a file of at most ``inlineDecodeLimit`` bytes, decoded
+    /// here, or `nil` for a larger file or one whose size cannot be read,
+    /// which the task loads as before.
+    static func smallFilePhase(path: String, settings: LoadSettings) -> ImageLoadingPhase? {
+        guard let size = (try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? Int,
+            size <= inlineDecodeLimit
+        else { return nil }
+        do {
+            return .success(
+                try PlatformImageLoader().loadImage(
+                    from: path, cache: settings.urlCache, maxPixelCount: settings.maxPixelCount))
         } catch let loadError as ImageLoadError {
             return .failure(loadError.description)
         } catch {

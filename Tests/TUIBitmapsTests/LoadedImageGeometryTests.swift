@@ -104,9 +104,31 @@ struct LoadedImageGeometryTests {
     /// assertion about one number. Before the pixels arrive the aspect is
     /// unknown, and the view reserves a box bounded by the cell aspect — this
     /// one goes through `Image` and never seats a phase, so it is the real
-    /// first frame of a real load.
-    @Test("Before it loads, the same image reserves the placeholder box")
+    /// first frame of a real load. A file too large to decode on the frame
+    /// that first draws it (`_ImageCore.inlineDecodeLimit`): 600 × 150 at
+    /// three bytes a pixel is 270 KB, and loaded it would be 5 rows.
+    @Test("Before it loads, a large image reserves the placeholder box")
     func placeholderBeforeLoad() throws {
+        let fixture = try BitmapFixture(width: 600, height: 150)
+        let tui = Self.snapshotContext()
+        var environment = EnvironmentValues()
+        environment.focusManager = FocusManager()
+        environment.applyRuntimeServices(from: tui)
+        environment.imageCellAspect = 2.0
+        let context = RenderContext(
+            availableWidth: 40, availableHeight: 20, environment: environment, tuiContext: tui)
+
+        tui.stateStorage.beginRenderPass()
+        let first = renderToBuffer(Image(.file(fixture.path)), context: context)
+        tui.stateStorage.endRenderPass()
+
+        #expect(first.height == 20, "the placeholder is bounded by the offer, not by the picture's 5")
+    }
+
+    /// A small file decodes on the frame that first draws it, so its first
+    /// frame is the picture, at its own aspect, and not a placeholder.
+    @Test("A small image draws on its first frame")
+    func smallImageDrawsAtOnce() throws {
         let fixture = try BitmapFixture(width: 40, height: 10)
         let tui = Self.snapshotContext()
         var environment = EnvironmentValues()
@@ -120,7 +142,7 @@ struct LoadedImageGeometryTests {
         let first = renderToBuffer(Image(.file(fixture.path)), context: context)
         tui.stateStorage.endRenderPass()
 
-        #expect(first.height == 20, "the placeholder is bounded by the offer, not by 5")
+        #expect(first.height == 5, "the picture, 40 × 10 pixels at two pixels a cell, not a placeholder")
     }
 
     /// `.fill` covers the box instead of fitting inside it, so the same image
