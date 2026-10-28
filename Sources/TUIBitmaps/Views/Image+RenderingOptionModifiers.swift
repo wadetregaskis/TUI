@@ -322,6 +322,32 @@ extension View {
         environment(\.imageURLTimeout, seconds)
     }
 
+    /// Sets the largest image file, in bytes, that is decoded on the frame that
+    /// first draws it, so that the picture is there on that frame rather than
+    /// a placeholder. A larger file loads in a task, off the frame, and draws
+    /// when it has loaded. A TUI-specific modifier: SwiftUI's `Image` of a
+    /// local picture draws at once, and has nothing to configure.
+    ///
+    /// The default, 256 KB, decodes an icon or a small picture in a few
+    /// milliseconds, within a frame, so it does not flash in after a
+    /// placeholder. 0 keeps every load off the frame: every picture from a file
+    /// draws its placeholder first.
+    ///
+    /// ```swift
+    /// PhotoGrid(photos)
+    ///     .imageSynchronousDecodeLimit(0)  // never decode on a frame
+    /// ```
+    ///
+    /// A picture the cache already holds draws on its first frame whatever
+    /// this says: that is a lookup, not a decode.
+    ///
+    /// - Parameter bytes: The largest file decoded on the frame; 0 or less
+    ///   for none.
+    /// - Returns: A modified view.
+    public func imageSynchronousDecodeLimit(_ bytes: Int) -> some View {
+        environment(\.imageSynchronousDecodeLimit, max(0, bytes))
+    }
+
     /// Sets the cache the images in this view load URLs and files through — in
     /// place of the app's own, which every app has, bounded at
     /// ``URLImageCache/defaultByteLimit``. A file is kept under its path, size

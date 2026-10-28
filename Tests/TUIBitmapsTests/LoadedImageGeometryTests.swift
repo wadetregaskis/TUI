@@ -105,7 +105,7 @@ struct LoadedImageGeometryTests {
     /// unknown, and the view reserves a box bounded by the cell aspect — this
     /// one goes through `Image` and never seats a phase, so it is the real
     /// first frame of a real load. A file too large to decode on the frame
-    /// that first draws it (`_ImageCore.inlineDecodeLimit`): 600 × 150 at
+    /// that first draws it (`imageSynchronousDecodeLimit`, 256 KB): 600 × 150 at
     /// three bytes a pixel is 270 KB, and loaded it would be 5 rows.
     @Test("Before it loads, a large image reserves the placeholder box")
     func placeholderBeforeLoad() throws {
@@ -143,6 +143,26 @@ struct LoadedImageGeometryTests {
         tui.stateStorage.endRenderPass()
 
         #expect(first.height == 5, "the picture, 40 × 10 pixels at two pixels a cell, not a placeholder")
+    }
+
+    /// A limit of 0 keeps every load off the frame: the same small file draws
+    /// its placeholder first.
+    @Test("imageSynchronousDecodeLimit(0) loads even a small image in a task")
+    func noSynchronousDecode() throws {
+        let fixture = try BitmapFixture(width: 40, height: 10)
+        let tui = Self.snapshotContext()
+        var environment = EnvironmentValues()
+        environment.focusManager = FocusManager()
+        environment.applyRuntimeServices(from: tui)
+        environment.imageCellAspect = 2.0
+        let context = RenderContext(
+            availableWidth: 40, availableHeight: 20, environment: environment, tuiContext: tui)
+
+        tui.stateStorage.beginRenderPass()
+        let first = renderToBuffer(Image(.file(fixture.path)).imageSynchronousDecodeLimit(0), context: context)
+        tui.stateStorage.endRenderPass()
+
+        #expect(first.height == 20, "the placeholder, bounded by the offer")
     }
 
     /// `.fill` covers the box instead of fitting inside it, so the same image

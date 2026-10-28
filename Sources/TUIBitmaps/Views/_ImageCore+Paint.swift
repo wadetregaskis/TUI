@@ -63,7 +63,8 @@ extension _ImageCore {
                 load: Self.LoadSettings(
                     maxPixelCount: context.environment.imageMaxPixelCount,
                     urlTimeout: context.environment.imageURLTimeout,
-                    urlCache: context.environment.resolvedURLImageCache),
+                    urlCache: context.environment.resolvedURLImageCache,
+                    synchronousDecodeLimit: context.environment.imageSynchronousDecodeLimit),
                 imageStore: nil, loads: decoded == nil)
         }
         guard case .success(let image) = phaseBox.value else { return nil }

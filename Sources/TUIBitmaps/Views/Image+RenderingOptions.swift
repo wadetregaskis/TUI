@@ -96,6 +96,10 @@ private struct ImageURLTimeoutKey: EnvironmentKey {
     static let defaultValue: TimeInterval = 30
 }
 
+private struct ImageSynchronousDecodeLimitKey: EnvironmentKey {
+    static let defaultValue = 256 * 1_024
+}
+
 private struct URLImageCacheKey: EnvironmentKey {
     static let defaultValue: URLImageCache? = nil
 }
@@ -237,6 +241,14 @@ extension EnvironmentValues {
     var imageURLTimeout: TimeInterval {
         get { self[ImageURLTimeoutKey.self] }
         set { self[ImageURLTimeoutKey.self] = newValue }
+    }
+
+    /// The largest image file, in bytes, decoded on the frame that first draws
+    /// it (``View/imageSynchronousDecodeLimit(_:)``); 0 loads every file in a
+    /// task. Defaults to 256 KB.
+    var imageSynchronousDecodeLimit: Int {
+        get { self[ImageSynchronousDecodeLimitKey.self] }
+        set { self[ImageSynchronousDecodeLimitKey.self] = newValue }
     }
 
     /// The cache images downloaded from URLs and read from files are kept in, when a subtree names

@@ -246,7 +246,8 @@ struct _ImageCore: View, Renderable, Layoutable {
                 phaseBox: phaseBox, lastSourceBox: lastSourceBox,
                 load: LoadSettings(
                     maxPixelCount: maxPixelCount, urlTimeout: urlTimeout,
-                    urlCache: context.environment.resolvedURLImageCache),
+                    urlCache: context.environment.resolvedURLImageCache,
+                    synchronousDecodeLimit: context.environment.imageSynchronousDecodeLimit),
                 imageStore: context.environment.terminalImageStore, loads: decoded == nil)
             // Written only when the owner changes, as the source is: a write
             // asks for a frame.
@@ -357,6 +358,9 @@ extension _ImageCore {
         /// The cache a load goes through (`resolvedURLImageCache`), a URL's
         /// or a file's, or `nil`.
         let urlCache: URLImageCache?
+        /// The largest file decoded on the frame that first draws it
+        /// (`imageSynchronousDecodeLimit`); 0 for none.
+        var synchronousDecodeLimit = 0
     }
 
     /// Render-pass-only load management: resets the phase on a source change,
@@ -478,22 +482,22 @@ extension _ImageCore {
         }
     }
 
-    /// The largest file, in bytes, decoded on the frame that first draws it.
+    /// The phase of a file of at most `settings.synchronousDecodeLimit` bytes
+    /// (`imageSynchronousDecodeLimit`, 256 KB unless an app says otherwise),
+    /// decoded here, or `nil` for a larger file or one whose size cannot be
+    /// read, which the task loads as before.
     ///
     /// A picture from a file drew a placeholder on its first frames while a
     /// task decoded it, so a small icon flashed in, and an app wanting it at
-    /// once had to decode it itself (the Materials clip, 2026-10-27). A file
-    /// this small decodes in a few milliseconds, within a frame, so it draws
-    /// on the first, as a SwiftUI `Image` of a local picture does. A larger
-    /// one still loads in a task, so the frame does not wait on it.
-    static let inlineDecodeLimit = 256 * 1_024
-
-    /// The phase of a file of at most ``inlineDecodeLimit`` bytes, decoded
-    /// here, or `nil` for a larger file or one whose size cannot be read,
-    /// which the task loads as before.
+    /// once had to decode it itself (the Materials clip, 2026-10-27). A small
+    /// file decodes in a few milliseconds, within a frame, so it draws on the
+    /// first, as a SwiftUI `Image` of a local picture does. A larger one still
+    /// loads in a task, so the frame does not wait on it. The owner
+    /// (2026-10-28): keep it, configurable down to none.
     static func smallFilePhase(path: String, settings: LoadSettings) -> ImageLoadingPhase? {
-        guard let size = (try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? Int,
-            size <= inlineDecodeLimit
+        guard settings.synchronousDecodeLimit > 0,
+            let size = (try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? Int,
+            size <= settings.synchronousDecodeLimit
         else { return nil }
         do {
             return .success(
