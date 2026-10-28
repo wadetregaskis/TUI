@@ -181,6 +181,8 @@ struct ZoomScalingTests {
         #expect(start.rect == thumbnail, "the photo starts on the thumbnail, at its size")
         #expect(start.solid, "and covers it: nothing of the screen is drawn across it")
         harness.transaction = Transaction()
+        // The frame after, at once: the zoom's clock starts.
+        harness.frame(view())
         // Halfway, each of the photo's edges is halfway from the thumbnail's
         // to its own — 10 → 20, 3 → 4, 14 → 40, 5 → 12 — inside the
         // rectangle, (5, 2) 22×6.
@@ -192,6 +194,7 @@ struct ZoomScalingTests {
         harness.transaction = Transaction(animation: .linear(duration: 1))
         harness.frame(view())
         harness.transaction = Transaction()
+        harness.frame(view())
         harness.now = 1_999_000_000
         let end = try #require(pictureRect(in: harness.frame(view())))
         #expect(end.rect == thumbnail, "the photo lands on the thumbnail, at its size")

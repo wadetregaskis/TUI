@@ -142,7 +142,12 @@ Four calls the ruling left open:
   zoom takes the change's animation where it has one and `Animation.default`
   where it does not, and does not play where the transaction disables
   animations, the frame cannot animate (a headless render), or motion is
-  reduced.
+  reduced. Its first frame shows where it starts and its clock starts on the
+  next, the first drawn once that one is presented (2026-10-27, found filming
+  the Navigation clip): a first frame that sent the pushed screen's photo took
+  up to 1.3 s to write, and a clock started at its instant had the zoom over
+  by the frame after. A completion on the change waits for the change's own
+  animation, which ends that one frame sooner.
 - **No source.** With no `matchedTransitionSource` of the id on screen the
   stack changes at once, as `.automatic` does; what SwiftUI does then is not
   documented.

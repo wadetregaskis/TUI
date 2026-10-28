@@ -41,6 +41,11 @@ struct NavigationZoomState {
         /// The source's configuration: its background, drawn in the
         /// rectangle, its clip shape and its shadow.
         let configuration: _ResolvedMatchedTransitionSourceConfiguration
+        /// How it plays: the change's animation, or the default one.
+        let animation: Animation
+        /// The render pass of its first frame (`StateStorage.currentPass`),
+        /// which shows where it starts, its clock not yet running.
+        let pass: UInt32
         /// Its slot in the animation store.
         let epoch: Int
     }
@@ -69,8 +74,13 @@ struct NavigationZoomState {
     }
 }
 
-/// The type a zoom's progress is kept under in the animation store.
+/// The type a zoom's change is kept under in the animation store: the
+/// animation its first frame starts, under the change's transaction.
 private enum NavigationZoomAnimation {}
+
+/// The type a zoom's progress is kept under in the animation store: its
+/// clock, started on the frame after its first.
+private enum NavigationZoomClock {}
 
 extension NavigationCoordinator {
     /// Notes the configuration of the transition source of `key`, as it draws.
@@ -108,14 +118,8 @@ extension NavigationCoordinator {
             running.source = found
             zoom.running = running
         }
-        let key = AnimationStore.Key(
-            identity: context.identity, owner: ObjectIdentifier(NavigationZoomAnimation.self), slot: running.epoch)
-        let now = context.environment.frameNowNanos
-        let phase = storage.animations.arrivalPhase(
-            for: key, animation: started ? Self.zoomAnimation(context) : nil, nowNanos: now, isMeasuring: false)
-        guard storage.animations.isAnimating(at: key, nowNanos: now) else {
-            zoom.running = nil
-            context.environment.terminalImageStore?.release(token: Self.stillToken(context))
+        guard let phase = phase(of: running, started: started, storage: storage, context: context) else {
+            endZoom(context)
             return buffer
         }
         // Drawn this frame from where the stack's owner predicts it; a wrong
@@ -149,6 +153,40 @@ extension NavigationCoordinator {
         }
     }
 
+    /// How far the zoom `running` is this frame, `0` to `1`, or `nil` once
+    /// it is over. `started` says this walk started it.
+    private func phase(
+        of running: NavigationZoomState.Running, started: Bool, storage: StateStorage, context: RenderContext
+    ) -> Double? {
+        let animations = storage.animations
+        let now = context.environment.frameNowNanos
+        // The change's own record: started on the zoom's first frame, under
+        // the change's transaction, it is what a completion waiting on the
+        // change waits for, and what asks the run loop for the next frame;
+        // asked about while the zoom runs, so it is kept.
+        let change = AnimationStore.Key(
+            identity: context.identity, owner: ObjectIdentifier(NavigationZoomAnimation.self), slot: running.epoch)
+        _ = animations.arrivalPhase(
+            for: change, animation: started ? running.animation : nil, nowNanos: now, isMeasuring: false)
+        guard storage.currentPass != running.pass else {
+            // The zoom's first frame shows where it starts, and its clock
+            // waits for the next: this frame may be slow to reach the screen —
+            // it may send the pushed screen's photo, a second or more of bytes
+            // — and a clock started at its instant had run the zoom out by the
+            // frame after, which showed the screen whole. Started on the frame
+            // after, the first drawn once this one is presented, the zoom
+            // plays from its start as it is seen; a frame's time later, where
+            // frames are quick. (A completion on the change waits for the
+            // change's record, which ends that much sooner.)
+            return animations.isAnimating(at: change, nowNanos: now) ? 0 : nil
+        }
+        let clock = AnimationStore.Key(
+            identity: context.identity, owner: ObjectIdentifier(NavigationZoomClock.self), slot: running.epoch)
+        let phase = animations.arrivalPhase(
+            for: clock, animation: running.animation, nowNanos: now, isMeasuring: false)
+        return animations.isAnimating(at: clock, nowNanos: now) ? phase : nil
+    }
+
     /// What the rectangle's edge is this frame: the source's clip shape, its
     /// radius `remaining` of the source's, and its shadow at `remaining` of
     /// its alpha — the source's at the start, and nothing once the rectangle
@@ -170,9 +208,17 @@ extension NavigationCoordinator {
             kept: kept, shadow: configuration.shadow?.style(at: remaining), composite: CompositeEnvironment(environment))
     }
 
+    /// Ends the zoom running, if one is, and lets go of its still's pictures.
+    private func endZoom(_ context: RenderContext) {
+        guard zoom.running != nil else { return }
+        zoom.running = nil
+        context.environment.terminalImageStore?.release(token: Self.stillToken(context))
+    }
+
     /// Starts a zoom if the path's change calls for one: a push of a screen
     /// that declared one whose source was found, or a pop of a screen that
-    /// did. Answers whether one started.
+    /// did, under a change that animates — one that does not goes at once,
+    /// ending any zoom running. Answers whether one started.
     private func startZoom(depth: Int, declared: MatchedGeometryKey?, context: RenderContext) -> Bool {
         let previousDepth = zoom.depth
         zoom.depth = depth
@@ -189,11 +235,15 @@ extension NavigationCoordinator {
         let found = context.geometryCoordinator?.matchedGeometry.source(of: key, excluding: context.identity)?.frame
         guard let source = found ?? (pushed ? nil : zoom.sources[previousDepth]) else { return false }
         if pushed { zoom.sources[depth] = source }
+        guard let animation = Self.zoomAnimation(context), let storage = context.stateStorage else {
+            endZoom(context)
+            return false
+        }
         zoom.epoch += 1
         zoom.running = NavigationZoomState.Running(
             direction: pushed ? .reveal : .conceal, key: key, source: source, still: still,
             configuration: zoom.configurations[key] ?? _ResolvedMatchedTransitionSourceConfiguration(),
-            epoch: zoom.epoch)
+            animation: animation, pass: storage.currentPass, epoch: zoom.epoch)
         // The still's pictures, kept while it is drawn: the views that drew
         // them are gone by the end of this pass — a popped screen's at once —
         // and a picture nobody draws is deleted from the terminal, which left

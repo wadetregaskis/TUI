@@ -130,6 +130,10 @@ private struct ZoomingFromOutside: View {
 }
 
 /// A stack and the path it shows, drawn frame by frame.
+///
+/// A zoom's clock starts on the frame after its first — the first drawn once
+/// that one is presented — so a test draws that frame at the first's instant
+/// for the zoom to run from it.
 @MainActor
 private final class Navigator {
     var path = NavigationPath()
@@ -172,6 +176,7 @@ struct ZoomNavigationTransitionTests {
         navigator.draw(view, atMillis: 0)
         navigator.path.append(1)
         let start = navigator.lines(navigator.draw(view, atMillis: 0, transaction: linear))
+        navigator.draw(view, atMillis: 0)
         #expect(rect(of: "D", in: start) == CellRect(x: 10, y: 3, width: 4, height: 2))
         #expect(rect(of: "s", in: start) == nil, "the screen covers the source")
         #expect(start[0].hasPrefix("....."), "the root is still drawn round it")
@@ -190,6 +195,7 @@ struct ZoomNavigationTransitionTests {
         navigator.draw(view, atMillis: 0)
         navigator.path.append(1)
         let start = navigator.lines(navigator.draw(view, atMillis: 0, transaction: linear))
+        navigator.draw(view, atMillis: 0)
         #expect(rect(of: "D", in: start) == CellRect(x: 10, y: 3, width: 4, height: 2))
         #expect(start.count == 12, "the pushed screen's size")
         let halfway = navigator.lines(navigator.draw(view, atMillis: 500))
@@ -197,6 +203,7 @@ struct ZoomNavigationTransitionTests {
         navigator.draw(view, atMillis: 1000)
         navigator.path.removeLast()
         let back = navigator.lines(navigator.draw(view, atMillis: 1000, transaction: linear))
+        navigator.draw(view, atMillis: 1000)
         #expect(back.count == 12, "the screen leaving is drawn whole while it folds")
         #expect(rect(of: "D", in: back) == CellRect(x: 0, y: 2, width: 40, height: 10))
         let folded = navigator.lines(navigator.draw(view, atMillis: 2000))
@@ -215,6 +222,7 @@ struct ZoomNavigationTransitionTests {
         navigator.draw(view, atMillis: 2000)
         navigator.path.removeLast()
         let start = navigator.lines(navigator.draw(view, atMillis: 2000, transaction: linear))
+        navigator.draw(view, atMillis: 2000)
         #expect(rect(of: "D", in: start) == CellRect(x: 0, y: 2, width: 40, height: 10))
         let halfway = navigator.lines(navigator.draw(view, atMillis: 2500))
         #expect(rect(of: "D", in: halfway) == CellRect(x: 5, y: 2, width: 22, height: 6))
@@ -238,6 +246,7 @@ struct ZoomNavigationTransitionTests {
             navigator.draw(moved, atMillis: 2000)
             navigator.path.removeLast()
             navigator.draw(moved, atMillis: 2000, transaction: linear)
+            navigator.draw(moved, atMillis: 2000)
             return navigator.lines(navigator.draw(moved, atMillis: 2500))
         }
         // Each edge halfway: 20 → 0, 3 → 0, 24 → 40, 5 → 12.
@@ -271,6 +280,7 @@ struct ZoomNavigationTransitionTests {
         navigator.path.append(1)
         navigator.draw(view, atMillis: 0)
         inner.append(1)
+        navigator.draw(view, atMillis: 0)
         navigator.draw(view, atMillis: 0)
         let pushed = navigator.lines(navigator.draw(view, atMillis: 2000))
         #expect(rect(of: "D", in: pushed) != nil, "the inner stack shows its screen")
@@ -309,9 +319,35 @@ struct ZoomNavigationTransitionTests {
         navigator.draw(view, atMillis: 0)
         navigator.path.append(1)
         let start = navigator.lines(navigator.draw(view, atMillis: 0))
+        navigator.draw(view, atMillis: 0)
         #expect(rect(of: "D", in: start) == CellRect(x: 10, y: 3, width: 4, height: 2))
         let later = navigator.lines(navigator.draw(view, atMillis: 2000))
         #expect(rect(of: "D", in: later) == CellRect(x: 0, y: 2, width: 40, height: 10))
+    }
+
+    @Test("A zoom plays from its start, though its first frame is slow to reach the screen")
+    func slowFirstFrame() {
+        let navigator = Navigator()
+        let view = { (path: Binding<NavigationPath>) in Zooming(path: path) }
+        navigator.draw(view, atMillis: 0)
+        navigator.path.append(1)
+        navigator.draw(view, atMillis: 0, transaction: linear)
+        // The first frame took 1.3 s to write — it sent the screen's photo —
+        // so the next is drawn 1.3 s on: where the zoom is first seen, and
+        // starts.
+        let seen = navigator.lines(navigator.draw(view, atMillis: 1300))
+        #expect(rect(of: "D", in: seen) == CellRect(x: 10, y: 3, width: 4, height: 2))
+        let halfway = navigator.lines(navigator.draw(view, atMillis: 1800))
+        #expect(rect(of: "D", in: halfway) == CellRect(x: 5, y: 2, width: 22, height: 6))
+        navigator.draw(view, atMillis: 2300)
+        // Popped, likewise: the screen is still whole on the frame after a
+        // slow first, and folds from there.
+        navigator.path.removeLast()
+        navigator.draw(view, atMillis: 2300, transaction: linear)
+        let folding = navigator.lines(navigator.draw(view, atMillis: 3600))
+        #expect(rect(of: "D", in: folding) == CellRect(x: 0, y: 2, width: 40, height: 10))
+        let halfwayBack = navigator.lines(navigator.draw(view, atMillis: 4100))
+        #expect(rect(of: "D", in: halfwayBack) == CellRect(x: 5, y: 2, width: 22, height: 6))
     }
 
     @Test("Animations disabled, motion reduced, or no source on screen: the stack changes at once")
@@ -341,6 +377,7 @@ struct ZoomNavigationTransitionTests {
             navigator.draw(view, atMillis: 0)
             navigator.path.append(1)
             navigator.draw(view, atMillis: 0, transaction: linear)
+            navigator.draw(view, atMillis: 0)
             // Halfway the rectangle is (5, 2) 22×6; the screen draws its `x`
             // at (0, 2), outside it, and nothing inside.
             let halfway = navigator.draw(view, atMillis: 500)
@@ -361,6 +398,7 @@ struct ZoomNavigationTransitionTests {
         navigator.draw(view, atMillis: 0)
         navigator.path.append(1)
         navigator.draw(view, atMillis: 0, transaction: linear)
+        navigator.draw(view, atMillis: 0)
         // Halfway the rectangle is (5, 2) 22×6, and the radius 3: each corner
         // cell is under half covered, and cut, showing the root behind it; the
         // cells beside it are kept.
@@ -382,6 +420,7 @@ struct ZoomNavigationTransitionTests {
             navigator.draw(view, atMillis: 0)
             navigator.path.append(1)
             let start = navigator.draw(view, atMillis: 0, transaction: linear)
+            navigator.draw(view, atMillis: 0)
             // At the start the rectangle is the source's, (10, 3) 4×2: its shadow
             // a cell right and down, at the colour's half.
             #expect(paintedCells(start.lines[5])[11].background.isEmpty == false, "under the rectangle's bottom edge")

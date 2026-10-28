@@ -1629,7 +1629,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   the screen it replaces; a popped screen is covered back down into the
   source over the screen it returns to. A push with no animation of its own
   zooms under `Animation.default`; none zooms where the transaction disables
-  animations, motion is reduced, or no source is on screen. The source's
+  animations, motion is reduced, or no source is on screen. Its clock starts
+  on the frame after its first, the first drawn once that one is presented
+  (since 2026-10-27): a first frame slow to reach the screen — one sending
+  the pushed screen's photo, a second or more — had run the zoom out before
+  it was seen. The source's
   `clipShape(_:)` cuts the rectangle's corners by the ½ rule a clip keeps,
   and its `shadow(color:radius:x:y:)` falls on the screen it grows over, in
   cells; both go from the source's to nothing as the rectangle reaches the
