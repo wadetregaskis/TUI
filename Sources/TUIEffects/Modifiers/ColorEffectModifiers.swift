@@ -317,9 +317,9 @@ extension _ColorEffect {
         case .contrast:
             return Self.mapped(rgb) { ($0 - 127.5) * amount + 127.5 }
         case .saturation:
-            return Self.blendedTowardGrey(rgb, keeping: amount)
+            return color.saturated(keeping: amount)
         case .grayscale:
-            return Self.blendedTowardGrey(rgb, keeping: 1 - amount)
+            return color.saturated(keeping: 1 - amount)
         case .hueRotation:
             let hsl = Color.rgbToHSL(red: rgb.red, green: rgb.green, blue: rgb.blue)
             return Color.hsl(
@@ -334,19 +334,6 @@ extension _ColorEffect {
                 Self.byte(Double(rgb.green) * Double(other.green) / 255),
                 Self.byte(Double(rgb.blue) * Double(other.blue) / 255))
         }
-    }
-
-    /// Rec. 709 luminance — the grey a colour reads as. Blending toward it is
-    /// what both saturation and grayscale do, from opposite ends.
-    private static func blendedTowardGrey(
-        _ rgb: (red: UInt8, green: UInt8, blue: UInt8), keeping amount: Double
-    ) -> Color {
-        let grey =
-            0.2126 * Double(rgb.red) + 0.7152 * Double(rgb.green) + 0.0722 * Double(rgb.blue)
-        return Color.rgb(
-            byte(grey + (Double(rgb.red) - grey) * amount),
-            byte(grey + (Double(rgb.green) - grey) * amount),
-            byte(grey + (Double(rgb.blue) - grey) * amount))
     }
 
     private static func mapped(

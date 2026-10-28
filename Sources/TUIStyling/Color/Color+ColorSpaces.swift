@@ -277,6 +277,34 @@ extension Color {
     }
 }
 
+// MARK: - Toward Grey
+
+extension Color {
+    /// The channels `red`, `green`, `blue` moved toward the grey they read as
+    /// (Rec. 709 luminance, in encoded sRGB), keeping `amount` of their colour:
+    /// 1 leaves them as they are, 0 is the grey, and above 1 pushes away from
+    /// it. What `.saturation(_:)` and `.grayscale(_:)` do from opposite ends,
+    /// what the modal veil takes out of a page, and the same per pixel for a
+    /// picture's copy, so all of them agree on a colour's grey.
+    package static func saturated(
+        red: UInt8, green: UInt8, blue: UInt8, keeping amount: Double
+    ) -> (red: UInt8, green: UInt8, blue: UInt8) {
+        let grey = 0.2126 * Double(red) + 0.7152 * Double(green) + 0.0722 * Double(blue)
+        return (
+            clampedByte(grey + (Double(red) - grey) * amount),
+            clampedByte(grey + (Double(green) - grey) * amount),
+            clampedByte(grey + (Double(blue) - grey) * amount))
+    }
+
+    /// This colour keeping `amount` of its colour (``saturated(red:green:blue:keeping:)``),
+    /// or itself where it has no RGB.
+    package func saturated(keeping amount: Double) -> Color {
+        guard let rgb = rgbComponents else { return self }
+        let moved = Self.saturated(red: rgb.red, green: rgb.green, blue: rgb.blue, keeping: amount)
+        return .rgb(moved.red, moved.green, moved.blue)
+    }
+}
+
 // MARK: - Private Helpers
 
 /// Rounds and clamps a 0–255-scaled channel value into a `UInt8`, guarding
