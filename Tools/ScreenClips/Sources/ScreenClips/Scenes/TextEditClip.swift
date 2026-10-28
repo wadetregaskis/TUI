@@ -2,10 +2,11 @@
 //  TextEditClip.swift
 //
 //  `textedit`: a notes app's editor holding a note about TUI's own text
-//  editing, each feature shown on the line that names it: a click, Option-
-//  arrows, a double-click typed over, an Option-drag block, Ctrl-F, the Emacs
-//  keys, Ctrl-Z undoing it all and Ctrl-Shift-Z redoing some — each chord
-//  captioned as it is pressed.
+//  editing, each feature shown on the line that names it: a word drag-selected
+//  and dragged to the end of its line, Shift-Option-arrows selecting a word
+//  at a time, copied and pasted onto a new line, a double-click typed over,
+//  an Option-drag block, Ctrl-F, the Emacs keys, Ctrl-Z undoing it all and
+//  Ctrl-Shift-Z redoing some — each chord captioned as it is pressed.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -44,35 +45,49 @@ private func chord(_ keys: Step, _ caption: String) -> [Step] {
 /// it (`CSI 122 ; 6 u`): in a legacy encoding it arrives as Ctrl-Z.
 private let redo = Step.keys("\u{1B}[122;6u")
 
+/// Shift-Option with right: a word's more of selection.
+private let shiftOptionRight = Step.keys("\u{1B}[1;4C")
+
 /// Each feature, shown on the line of the note that names it.
 private func textEditScript() -> [Step] {
     var script: [Step] = [.camera(Shot(x: 0, y: 2, width: 78, height: 22)), .wait(0.8)]
     let park: [Step] = [.point(column: Editor.rest.column, row: Editor.rest.row), .wait(0.5)]
-    // "Click anywhere to put the caret there." — on "anywhere".
-    script += Step.click(Editor.left + 7, Editor.top + 2) + [.wait(0.4)] + park
-    // "Option-arrows move a word at a time." — from its start, ⌥→ word by word.
-    script += Step.click(Editor.left, Editor.top + 3) + [.wait(0.3)] + park
-    script += [.cue("key ⌥→  next word")] + Step.repeat(.optionRight, 5, interval: 0.4)
-    script += [.wait(0.4)]
+    let row = { (line: Int) in Editor.top + line }
+    // "Click anywhere to move the caret" — " anywhere" drag-selected, and
+    // dragged to the end of the line: "Click to move the caret anywhere".
+    script += Step.drag(from: (Editor.left + 5, row(2)), to: (Editor.left + 14, row(2)), interval: 0.08)
+    script += [.wait(0.5)]
+    script += Step.drag(from: (Editor.left + 9, row(2)), to: (Editor.left + 32, row(2)), interval: 0.05)
+    script += [.wait(0.6)] + park
+    // "Option-arrows move a word at a time." — from "a", Shift-Option-→ a
+    // word at a time selects "a word at a time", copied; a new line under it,
+    // typed, and the copy pasted on its end.
+    script += Step.click(Editor.left + 19, row(3)) + [.wait(0.3)] + park
+    script += [.cue("key ⇧⌥→  select a word at a time")] + Step.repeat(shiftOptionRight, 5, interval: 0.4)
+    script += [.wait(0.3)] + chord(Step.control("c"), "⌃C  copy") + [.wait(0.8)]
+    script += chord(Step.control("e"), "⌃E  end of line") + [.wait(0.4)]
+    script += chord(.enter, "⏎  new line") + [.wait(0.4), .cue("clear")]
+    script += Step.type("Shift-option-arrows to select ", interval: 0.07)
+    script += chord(Step.control("v"), "⌃V  paste") + [.wait(1.0)]
     // "Double-click a word to select it." — "word", selected and typed over.
-    script += Step.doubleClick(Editor.left + 16, Editor.top + 4) + [.wait(0.5)]
+    script += Step.doubleClick(Editor.left + 16, row(5)) + [.wait(0.5)]
     script += Step.type("phrase", interval: 0.1)
     script += [.wait(0.3)] + park
     // "- Option-drag selects a block" — down the bullets: a block, deleted
     // from every row at once, and put back.
-    script += Step.drag(from: (Editor.left, Editor.top + 7), to: (Editor.left + 2, Editor.top + 9), interval: 0.1,
-                        option: true)
+    script += Step.drag(from: (Editor.left, row(8)), to: (Editor.left + 2, row(10)), interval: 0.1, option: true)
     script += [.wait(0.5)] + park + [.keys("\u{7F}"), .wait(0.9), Step.control("z"), .wait(0.7)]
     // "- Ctrl-F finds, Return steps on" — "select": the bar opens, the
-    // matches light up, Return steps through them. (A click puts the query
-    // field in charge; the bar opens with the editor holding the keys.)
-    script += chord(Step.control("f"), "⌃F  find") + [.wait(0.5)]
-    script += Step.click(Editor.left + 6, Editor.top) + [.wait(0.2)] + park
-    script += Step.type("select", interval: 0.12)
-    script += [.wait(0.8), .enter, .wait(0.7), .enter, .wait(0.7), .escape, .wait(0.4)]
+    // matches light up, Return steps through them, unhurried. (A click puts
+    // the query field in charge; the bar opens with the editor holding the
+    // keys.)
+    script += chord(Step.control("f"), "⌃F  find") + [.wait(0.8)]
+    script += Step.click(Editor.left + 6, Editor.top) + [.wait(0.3)] + park
+    script += Step.type("select", interval: 0.2)
+    script += [.wait(1.3), .enter, .wait(1.2), .enter, .wait(1.2), .enter, .wait(1.0), .escape, .wait(0.6)]
     // "- Emacs keys" — to the line's start and end, a word on, the rest killed
     // and yanked back.
-    script += Step.click(Editor.left + 12, Editor.top + 9) + [.wait(0.3)] + park
+    script += Step.click(Editor.left + 12, row(10)) + [.wait(0.3)] + park
     script += chord(Step.control("a"), "⌃A  start of line") + [.wait(0.7)]
     script += chord(Step.control("e"), "⌃E  end of line") + [.wait(0.7)]
     script += chord(Step.control("a"), "⌃A  start of line") + [.wait(0.5)]
@@ -80,8 +95,9 @@ private func textEditScript() -> [Step] {
     script += chord(Step.control("k"), "⌃K  kill to end of line") + [.wait(0.9)]
     script += chord(Step.control("y"), "⌃Y  yank it back") + [.wait(0.9)]
     // "- Ctrl-Z undoes it all, ⌃⇧Z redoes" — back to where it began, two
-    // steps redone, and undone again: where the clip loops from.
-    script += [.cue("key ⌃Z  undo")] + Step.repeat(Step.control("z"), 12, interval: 0.22)
+    // steps redone, and undone again: where the clip loops from. (More undos
+    // than steps: one past the first does nothing.)
+    script += [.cue("key ⌃Z  undo")] + Step.repeat(Step.control("z"), 16, interval: 0.2)
     script += [.wait(0.6), .cue("key ⌃⇧Z  redo")] + Step.repeat(redo, 2, interval: 0.6)
     script += [.wait(0.6), .cue("key ⌃Z  undo")] + Step.repeat(Step.control("z"), 2, interval: 0.6)
     // The caption goes before the end, as it was at the start: the loop's seam.
@@ -103,7 +119,7 @@ struct NotesEditor: View {
     @State private var text = """
         # Editing in TUI
 
-        Click anywhere to put the caret there.
+        Click anywhere to move the caret
         Option-arrows move a word at a time.
         Double-click a word to select it.
 
@@ -145,10 +161,12 @@ struct NotesEditor: View {
                 .foregroundStyle(.palette.foregroundTertiary)
             }
         }
-        // As wide as the camera, so the status bar's captions end on camera.
-        .frame(width: 76)
+        // As wide and as tall as the camera, so the status bar's captions end
+        // on camera whatever the size of the Warp window it plays in (its
+        // owner's, at its own size): held at the top left.
+        .frame(width: 76, height: 21)
         .padding(.horizontal, 1)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .toolbar {
             ToolbarItem(placement: .navigation) { Text(verbatim: "Notes") }
         }
