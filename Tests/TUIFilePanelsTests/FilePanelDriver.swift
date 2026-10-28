@@ -107,6 +107,11 @@ final class FilePanelDriver<Page: View> {
         composited().lines.map(\.stripped).joined(separator: "\n")
     }
 
+    /// Draws a frame and returns the screen's rows as drawn, escapes and all.
+    func styledRows() -> [String] {
+        composited().lines
+    }
+
     /// Draws a frame, the sheet composited over the page, and points the
     /// mouse at what that frame shows: the harness hands the dispatcher the
     /// page's own regions, and the sheet's are where compositing puts them,

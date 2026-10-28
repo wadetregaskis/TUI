@@ -26,7 +26,9 @@
 // since step C2), TUITabs (tab views, since step C3) and TUIGrid (grids,
 // since step C4), all three of which TUILists compiled until then,
 // TUITabImages (`Tab`'s `image:` initialisers, built on TUIBitmaps and
-// TUITabs, since the owner's TAB-IMAGE-NAME option 2),
+// TUITabs, since the owner's TAB-IMAGE-NAME option 2), TUIFilePanelImages
+// (`fileDialogPicturePreviews()`, built on TUIBitmaps and TUIFilePanels,
+// since the owner's PREVIEW-IMAGES option "glue"),
 // TUIChrome (the window chrome), TUIEffects (transitions and visual
 // effects) and TUIMenus (`Menu`, `.contextMenu`; all three since step B5b),
 // and TUIBitmaps (`Image`'s bitmap path, `AsyncImage` and the `.image*`
@@ -66,6 +68,7 @@
 @_exported import TUICore
 @_exported import TUICurveEditors
 @_exported import TUIEffects
+@_exported import TUIFilePanelImages
 @_exported import TUIFilePanels
 @_exported import TUIForms
 @_exported import TUIFoundation

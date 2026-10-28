@@ -14,6 +14,7 @@ import Testing
 @testable import TUIApp
 @testable import TUIAppTestSupport
 @testable import TUICore
+@testable import TUIFilePanelImages
 @testable import TUIFilePanels
 @testable import TUIFoundation
 @testable import TUITestSupport
@@ -138,6 +139,36 @@ struct FilePanelColumnViewTests {
         }
         _ = await previewingBeta(with: driver)
         await driver.waitFor("PREVIEWED")
+    }
+
+    /// An 8 × 8 red PNG.
+    private static let redPicture = Data(
+        base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEklEQVR4nGP4z8CAFWEXHbQSACj/P8Fu7N9hAAAAAElFTkSuQmCC")!
+
+    @Test("fileDialogPicturePreviews() previews a picture, and leaves a text file its excerpt")
+    func picturePreviews() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        try Self.redPicture.write(to: fixture.url("picture.png"))
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver { panel(fixture, caller: caller, store: columnsStore()).fileDialogPicturePreviews() }
+        // A text file keeps TUI's own preview.
+        _ = await previewingBeta(with: driver)
+        await settle { driver.screen().split(separator: "\n").contains { $0.hasSuffix("│ beta") || $0.contains("│ beta ") } }
+        // ↓ past gamma.pdf and notes.md to picture.png, and Space selects it.
+        driver.press(.down, times: 3)
+        driver.press(.space)
+        await settle { count("picture.png", in: driver.screen()) >= 2 }
+        let shown = driver.screen()
+        let rows = shown.split(separator: "\n").map(String.init)
+        let name = try #require(rows.firstIndex { $0.contains("│ picture.png") && count("picture.png", in: $0) == 1 })
+        // Above the name, the picture drawn in cells, in its red: a test
+        // terminal has no graphics, and a picture all one colour is drawn as
+        // cells of that colour, so the stripped screen shows nothing there.
+        let styled = driver.styledRows()
+        let red = styled[..<name].contains { $0.contains("2;255;0;0m") }
+        #expect(red, "\(shown)")
+        #expect(FileDialogPicturePreviews.isPicture(.png) && !FileDialogPicturePreviews.isPicture(.plainText))
     }
 
     @Test("A click on a folder in an earlier column goes to it")

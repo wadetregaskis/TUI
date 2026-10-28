@@ -6,8 +6,8 @@ import PackageDescription
 /// Every library module: what TUIIntegrationTests, the one test target that can see everything, depends on.
 let umbrellaTestDependencies: [Target.Dependency] = [
     "TUI", "TUIApp", "TUIBitmaps", "TUIChrome", "TUIColorPicker", "TUICommands", "TUICurveEditors",
-    "TUIEffects", "TUIFilePanels", "TUIForms", "TUIFoundation", "TUIGrid", "TUILists", "TUIMenus",
-    "TUINavigation", "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes", "TUISearch",
+    "TUIEffects", "TUIFilePanelImages", "TUIFilePanels", "TUIForms", "TUIFoundation", "TUIGrid", "TUILists",
+    "TUIMenus", "TUINavigation", "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes", "TUISearch",
     "TUIStrings", "TUITabImages", "TUITables", "TUITabs", "TUITerminalHost", "TUITextInput",
     "TUIAppKit", "TUIFilePanelsAppKit", "TUIWidthCorpus", "CTestSupport",
 ]
@@ -125,6 +125,10 @@ let package = Package(
         // as `Image(_:bundle:)` finds it. Re-exports TUIBitmaps and TUITabs, which it is built on, so that
         // neither pays for the other (decisions C11).
         .library(name: "TUITabImages", targets: ["TUITabImages"]),
+        // TUIFilePanelImages: `fileDialogPicturePreviews()`, the file panels previewing a selected picture.
+        // Re-exports TUIBitmaps and TUIFilePanels, which it is built on, so that neither pays for the other
+        // (the owner's PREVIEW-IMAGES option "glue", 2026-10-28).
+        .library(name: "TUIFilePanelImages", targets: ["TUIFilePanelImages"]),
         // TUITextInput: `TextField`, `SecureField` and `TextEditor`.
         .library(name: "TUITextInput", targets: ["TUITextInput"]),
 
@@ -590,13 +594,24 @@ let package = Package(
             dependencies: ["TUIBitmaps", "TUIFoundation", "TUITabs"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
+        // The owner's PREVIEW-IMAGES option "glue" (2026-10-28): `fileDialogPicturePreviews()`, the file panels'
+        // column view previewing a selected picture, in a module of its own on TUIBitmaps and TUIFilePanels, as
+        // TUITabImages is for tabs: in TUIFilePanels every app with a file panel would carry the image decoders,
+        // and in TUIBitmaps every app showing a picture the file panels (and through them the lists, tables,
+        // pickers and presentations). Here an app pays for them only when it uses both. Nothing but the umbrella
+        // and the file panels' tests depends on it. It re-exports both (Sources/TUIFilePanelImages/Exports.swift).
+        .target(
+            name: "TUIFilePanelImages",
+            dependencies: ["TUIBitmaps", "TUIFilePanels", "TUIFoundation"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
 
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
         // The umbrella: Sources/TUI/Exports.swift `@_exported import`s the leaves carved so far (TUIApp,
         // TUIBitmaps, TUIChrome, TUIColorPicker, TUICommands, TUICurveEditors, TUIEffects,
         // TUIFilePanels, TUIForms, TUIGrid, TUILists, TUIMenus, TUINavigation, TUINumericControls,
         // TUIPickers, TUIPresentation, TUIScenes, TUISearch, TUITabImages, TUITables, TUITabs,
-        // TUITextInput),
+        // TUITextInput, TUIFilePanelImages),
         // TUIFoundation and the lower four, and holds no code (Tools/ModuleMap's `umbrella` check), so
         // `import TUI` gives an app exactly what it gave when the framework was one TUI module. It names
         // TUIImage itself since step B5c: TUIFoundation no longer re-exports it. Its directory also holds the
@@ -605,7 +620,7 @@ let package = Package(
             name: "TUI",
             dependencies: [
                 "TUIApp", "TUIBitmaps", "TUIChrome", "TUIColorPicker", "TUICommands", "TUICurveEditors",
-                "TUIEffects", "TUIFilePanels", "TUIForms", "TUIGrid", "TUILists", "TUIMenus",
+                "TUIEffects", "TUIFilePanelImages", "TUIFilePanels", "TUIForms", "TUIGrid", "TUILists", "TUIMenus",
                 "TUINavigation", "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes",
                 "TUISearch", "TUITabImages", "TUITables", "TUITabs", "TUITextInput", "TUIFoundation",
                 "TUICore", "TUIStyling", "TUIImage", "TUIView",
@@ -831,8 +846,8 @@ let package = Package(
         .testTarget(
             name: "TUIFilePanelsTests",
             dependencies: [
-                "TUIApp", "TUIAppTestSupport", "TUIChrome", "TUICore", "TUIFilePanels", "TUIFoundation",
-                "TUILists", "TUIPresentation", "TUIStrings", "TUITables", "TUITestSupport",
+                "TUIApp", "TUIAppTestSupport", "TUIChrome", "TUICore", "TUIFilePanelImages", "TUIFilePanels",
+                "TUIFoundation", "TUILists", "TUIPresentation", "TUIStrings", "TUITables", "TUITestSupport",
                 "TUITextInput", "TUIView",
             ]
         ),
