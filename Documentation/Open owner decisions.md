@@ -50,7 +50,6 @@ been in force since 2026-10-18.
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
 | IMAGE-PAGE-PHOTO | The Example's image page shows the bald eagle, whose feather detail no block glyph can draw. Which photograph replaces it: the galago, the trillium or the snail? | The galago. | The eagle stays. |
-| GLASS-BORDER-GAP | Under glass, the one-cell gap between a `.border()` and the material: inset the border and lay the glass under it, as the Materials clip now does by hand? | Yes, as a `.border()` inset with the material reaching under it. | The gap stays. |
 
 ## Answered on 2026-10-26
 
@@ -98,6 +97,7 @@ been in force since 2026-10-18.
 | DRAG-SELECTION | The Mac's way: the whole selection; Shift-drag extends it first. | Done for the mouse, List and Table; the keyboard's Copy and carry still take one row. |
 | A-LAYOUT-1 | Optimise it, then decide. | Done: a column's minimum height is answered without measuring, and columns share (`stateful` +1.5%, `tables-vstack` +7.5% for drawing all eight tables). |
 | A-W1-1 | 2: re-export Foundation from TUI, as SwiftUI does. | Done: `import TUI` brings Foundation. |
+| GLASS-BORDER-GAP | (a): a background on the bordered view fills the border's inset; an explicit option keeps it clear. | Done: `.backgroundStopsAtContent()` is the option. |
 
 ## Answered later on 2026-10-26
 

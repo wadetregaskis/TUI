@@ -34,7 +34,7 @@ In an inactive window glass stays frosted, half way to opaque.
 ## For a future reader
 
 - **Revisit the frost's remaining cost** (the owner's note of 2026-10-25).
-- **The border gap under glass** is a question to the owner (GLASS-BORDER-GAP).
+- **The border gap under glass** was answered (GLASS-BORDER-GAP (a), 2026-10-27): a background the bordered view ends in fills the border's inset, `BackgroundBeneathBorderInset.swift`; `.backgroundStopsAtContent()` keeps it clear.
 
 ## The record
 

@@ -132,9 +132,9 @@ extension View {
         } else {
             _BorderRings<Self>(
                 rings: (1..<max(1, width)).reduce(
-                    AnyView(ring(style: style, colour: colour, keepsSelectionInside: keepsSelectionInside))
+                    ring(style: style, colour: colour, keepsSelectionInside: keepsSelectionInside)
                 ) { inner, _ in
-                    AnyView(inner.ring(style: style, colour: colour, keepsSelectionInside: keepsSelectionInside))
+                    inner.ring(style: style, colour: colour, keepsSelectionInside: keepsSelectionInside)
                 })
         }
     }
@@ -145,19 +145,25 @@ extension View {
     /// edges (``View/_paintsToItsEdges``), whose blank cells were strips of the page
     /// between the border and the surface. That one is SwiftUI's own border,
     /// which is drawn on the view's edge with no inset at all.
-    private func ring(style: BorderStyle?, colour: AnimatedColor?, keepsSelectionInside: Bool) -> some View {
-        ContainerView(
-            style: ContainerStyle(
-                showHeaderSeparator: false,
-                showFooterSeparator: false,
-                borderStyle: style,
-                borderColor: colour,
-                keepsSelectionInside: keepsSelectionInside
-            ),
-            padding: Self._paintsToItsEdges ? EdgeInsets() : EdgeInsets(horizontal: 1, vertical: 0)
-        ) {
-            self
+    ///
+    /// The inset goes beneath a background the content ends in, which then
+    /// reaches the line (`BackgroundBeneathBorderInset.swift`).
+    private func ring(style: BorderStyle?, colour: AnimatedColor?, keepsSelectionInside: Bool) -> AnyView {
+        let style = ContainerStyle(
+            showHeaderSeparator: false,
+            showFooterSeparator: false,
+            borderStyle: style,
+            borderColor: colour,
+            keepsSelectionInside: keepsSelectionInside
+        )
+        let inset = EdgeInsets(horizontal: 1, vertical: 0)
+        if Self._paintsToItsEdges {
+            return AnyView(ContainerView(style: style, padding: EdgeInsets()) { self })
         }
+        if let backed = self as? any BackgroundBeneathBorderInset {
+            return AnyView(ContainerView(style: style, padding: EdgeInsets()) { backed.paddingBeneathBackground(inset) })
+        }
+        return AnyView(ContainerView(style: style, padding: inset) { self })
     }
 }
 
