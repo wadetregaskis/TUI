@@ -7701,6 +7701,21 @@ through.
 
 `.dimmed()` keeps the flatten, which is the look it asks for.
 
+**Since (2026-10-26)** the veil is a rewrite of the colours each row names
+(`SGRColorRewrite`, one memoised mapping per colour) rather than a region resolved
+cell by cell, which cost a frame with a sheet open 40–60%; the look is the same.
+
+**Strength (2026-10-28).** Half was still a little bright: the page should read
+plainly as disabled and unimportant, and stay readable on a careful look. From a
+comparison of 50%, 35% and 25% kept, with and without colour taken out, the owner
+chose 25% kept with 60% of the colour out: each colour first keeps
+`FrameBuffer.modalVeilSaturation` (40%) of its colour, toward the grey it reads as
+(Rec. 709, `Color.saturated(keeping:)`, what `.saturation(_:)` does), and is then
+composited at `modalVeilOpacity` (¼) over the overlay colour. Taking the colour out
+makes the page recede without going darker, so its borders, bars and text survive
+the lower strength, and nothing on it competes with the modal's own colours.
+Pictures take the same two steps per pixel (§14.4 of the graphics protocols).
+
 ## 113. A drawing group can blend in linear light (2026-10-26)
 
 `drawingGroup(opaque:colorMode:)` ships (decisions A27): the group itself is

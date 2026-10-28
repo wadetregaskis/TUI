@@ -31,6 +31,10 @@ package struct ImageTransform: Hashable, Sendable {
         /// mixes — the modal veil's — rather than in encoded sRGB, as
         /// `Color.opacity(_:over:)` and every fade do.
         package var linearLight: Bool
+        /// Whether each pixel is mixed toward its own grey
+        /// (`Color.saturated(red:green:blue:keeping:)`) instead of toward
+        /// `toward`, which is then unused: the colour the modal veil takes out.
+        package var greys = false
     }
 
     /// Whether the copy is blurred over about a cell, as a material frosts.
@@ -47,6 +51,14 @@ package struct ImageTransform: Hashable, Sendable {
         let amount = UInt8((min(1, max(0, fraction)) * 64).rounded())
         let toward = UInt32(colour.red) << 16 | UInt32(colour.green) << 8 | UInt32(colour.blue)
         mixes = amount > 0 ? [Mix(toward: toward, amount: amount, linearLight: linearLight)] : []
+    }
+
+    /// A transform taking `fraction` of each pixel's colour out, toward the
+    /// grey it reads as, quantised to 64ths.
+    package init(greying fraction: Double) {
+        blurs = false
+        let amount = UInt8((min(1, max(0, fraction)) * 64).rounded())
+        mixes = amount > 0 ? [Mix(toward: 0, amount: amount, linearLight: false, greys: true)] : []
     }
 
     /// Whether the copy would be the picture itself.
@@ -350,9 +362,18 @@ struct DerivedImages {
         return out
     }
 
-    /// `pixels` (RGBA) mixed toward `mix`'s colour by its amount.
+    /// `pixels` (RGBA) mixed toward `mix`'s colour, or each pixel's own grey,
+    /// by its amount.
     private static func apply(_ mix: ImageTransform.Mix, to out: inout [UInt8]) {
         let fraction = Double(mix.amount) / 64
+        if mix.greys {
+            for at in stride(from: 0, to: out.count, by: 4) {
+                let moved = Color.saturated(
+                    red: out[at], green: out[at + 1], blue: out[at + 2], keeping: 1 - fraction)
+                (out[at], out[at + 1], out[at + 2]) = moved
+            }
+            return
+        }
         // One channel of the colour, by its shift: a function rather than three
         // shifts in one array literal, which the type-check guard times out on.
         func channel(_ shift: UInt32) -> UInt8 { UInt8((mix.toward >> shift) & 0xFF) }

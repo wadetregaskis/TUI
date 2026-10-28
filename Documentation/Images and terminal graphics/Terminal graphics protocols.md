@@ -1276,7 +1276,11 @@ The modal veil rewrites the page's colours toward the overlay colour
 its own brightness behind a sheet or an alert. With the store known, each
 picture cell on the veiled page draws a copy mixed toward the scrim as the
 veil mixes a colour: by ½, in linear light, as `Color.compositing(_:over:)`
-mixes. So `ImageTransform` carries whether a mix is linear.
+mixes. So `ImageTransform` carries whether a mix is linear. Since 2026-10-28
+the veil keeps a quarter and first takes 60% of the colour out, so a mix can
+also be toward each pixel's own grey (`ImageTransform(greying:)`, the
+`Color.saturated` arithmetic per pixel), and the veil's copy is the two in
+turn (`FrameBuffer.modalVeilTransform(toward:)`).
 
 **Layers stack, so copies do.** A faded picture, or glass over one, is already
 a copy when the veil reaches it. A copy's id names no picture the store

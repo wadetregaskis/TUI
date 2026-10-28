@@ -117,8 +117,8 @@ been in force since 2026-10-18.
   went into the Navigation clip.
 - **Environment variables** (answered 2026-10-27: rename): every `TUIKIT_` variable is `TUI_` now.
 - **The page behind a sheet** is now veiled rather than flattened (your ruling of 2026-10-25), with a
-  cost of +6.4% on a frame with a sheet open in the notes session, and a gain of 11.8% in another. Look
-  at it when you can.
+  cost of +6.4% on a frame with a sheet open in the notes session, and a gain of 11.8% in another. Its
+  strength is now 25% kept with 60% of the colour out (your pick of 2026-10-28, "25d60").
 
 ## Deferred, by your choice
 

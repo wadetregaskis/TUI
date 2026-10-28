@@ -12,12 +12,31 @@ import TUIStyling
 
 extension FrameBuffer {
     /// How much of the page a modal leaves showing: each cell's colours go
-    /// this far from the overlay colour back toward their own. Half: enough
-    /// to read the page and recognise it, and plainly not the thing to use.
-    public static let modalVeilOpacity = 0.5
+    /// this far from the overlay colour back toward their own (after
+    /// ``modalVeilSaturation`` has taken colour out of them). A quarter: with
+    /// the colour taken out, the page's borders, bars and text still read on a
+    /// careful look, and nothing on it competes with the modal's own colours.
+    /// (The owner, 2026-10-28, from a comparison of 50%, 35% and 25%, with and
+    /// without colour taken out; half was still a little bright.)
+    public static let modalVeilOpacity = 0.25
 
-    /// The backdrop behind a modal: this page faded to ``modalVeilOpacity``
-    /// over `scrim`, every glyph kept, and nothing on it reachable.
+    /// How much of its colour each of the page's colours keeps behind a modal,
+    /// before it is faded by ``modalVeilOpacity``: 40%, so it recedes without
+    /// going darker, toward the grey it reads as (Rec. 709, as
+    /// `.saturation(_:)` takes colour out).
+    public static let modalVeilSaturation = 0.4
+
+    /// What the veil does to a picture's pixels: ``modalVeilSaturation``'s
+    /// colour taken out, then mixed toward `scrim` as ``modalVeilOpacity``
+    /// veils a colour, in linear light (`Color.compositing(_:over:)`).
+    package static func modalVeilTransform(toward scrim: (red: UInt8, green: UInt8, blue: UInt8)) -> ImageTransform {
+        ImageTransform(greying: 1 - modalVeilSaturation).followed(
+            by: ImageTransform(blurs: false, toward: scrim, fraction: 1 - modalVeilOpacity, linearLight: true))
+    }
+
+    /// The backdrop behind a modal: this page's colours muted to
+    /// ``modalVeilSaturation`` and faded to ``modalVeilOpacity`` over `scrim`,
+    /// every glyph kept, and nothing on it reachable.
     ///
     /// What a sheet or an alert covers stays what it was, visibly deactivated:
     /// pictures drawn in text cells, charts, coloured text and borders all
@@ -31,8 +50,9 @@ extension FrameBuffer {
     ///
     /// The fade is a rewrite of the colours each row names, as `.saturation`
     /// and the other colour effects rewrite them (`SGRColorRewrite`): each
-    /// colour moves to `compositing(modalVeilOpacity, over: scrim)`, the blend
-    /// the opacity resolution makes, and every glyph and attribute stays. A
+    /// colour moves to `saturated(keeping: modalVeilSaturation)` and then
+    /// `compositing(modalVeilOpacity, over: scrim)`, the blend the opacity
+    /// resolution makes, and every glyph and attribute stays. A
     /// row starts in the veiled default colours, and every reset restates
     /// them, so text in the terminal's own colours fades too. A run (a
     /// spinner, a pulse) is rewritten frame by frame with its row, so the page
@@ -161,7 +181,7 @@ extension FrameBuffer {
 
 extension FrameBuffer {
     /// The cell drawing a copy of the picture `character` names in `ink`, veiled
-    /// toward `scrim` as ``modalVeilOpacity`` veils a colour — spelled with its
+    /// toward `scrim` as the page's colours are veiled — spelled with its
     /// copy's id — or `nil` where `character` is no picture's.
     fileprivate static func veiledPicture(
         _ character: Character, ink: SGRState.Colour?, toward scrim: Color, store: TerminalImageStore
@@ -173,9 +193,7 @@ extension FrameBuffer {
                 character, foreground: (UInt8(clamping: red), UInt8(clamping: green), UInt8(clamping: blue))),
             let toward = scrim.rgbComponents
         else { return nil }
-        let transform = ImageTransform(
-            blurs: false, toward: toward, fraction: 1 - modalVeilOpacity, linearLight: true)
-        return store.derived(picture, by: transform)?.spelled
+        return store.derived(picture, by: modalVeilTransform(toward: toward))?.spelled
     }
 }
 
@@ -190,7 +208,8 @@ private struct Veil {
     subscript(colour: Color) -> Color {
         mutating get {
             if let known = memo[colour] { return known }
-            let veiled = colour.compositing(FrameBuffer.modalVeilOpacity, over: scrim).opaqueSpelling
+            let veiled = colour.saturated(keeping: FrameBuffer.modalVeilSaturation)
+                .compositing(FrameBuffer.modalVeilOpacity, over: scrim).opaqueSpelling
             memo[colour] = veiled
             return veiled
         }

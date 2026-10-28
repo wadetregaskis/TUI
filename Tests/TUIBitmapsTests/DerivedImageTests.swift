@@ -251,8 +251,7 @@ struct DerivedImageTests {
         let original = try #require(pictureCells(rows[0])[2])
         let drawn = try #require(pictureCells(veiled.lines[0])[2])
         #expect(drawn.id != original.id && drawn.row == 0 && drawn.column == 2)
-        let veil = ImageTransform(
-            blurs: false, toward: (0, 0, 0), fraction: 1 - FrameBuffer.modalVeilOpacity, linearLight: true)
+        let veil = FrameBuffer.modalVeilTransform(toward: (0, 0, 0))
         #expect(store.average(of: original, by: veil) != nil, "veiled as the page's colours are")
         // The text after the picture is veiled as it would be on its own.
         let text = FrameBuffer(lines: ["abc"]).veiledAsBackdrop(by: scrim, surface: .rgb(250, 250, 250), palette: palette)
@@ -262,6 +261,21 @@ struct DerivedImageTests {
         // Without the store, the picture keeps its own.
         let unknowing = page.veiledAsBackdrop(by: scrim, surface: .rgb(250, 250, 250), palette: palette)
         #expect(pictureCells(unknowing.lines[0])[2] == original)
+    }
+
+    /// The veil's strength (the owner, 2026-10-28): each colour keeps 40% of its
+    /// colour toward its Rec. 709 grey, then a quarter of it over the scrim in
+    /// linear light; a picture's pixels take the same two steps. Red over black
+    /// is (135, 33, 33) muted, then (70, 12, 12).
+    @Test("The veil mutes a colour and a picture's pixels alike, then keeps a quarter")
+    func veilStrength() {
+        let palette = makeRenderContext(width: 8, height: 1).environment.palette
+        let page = FrameBuffer(lines: ["\u{1B}[38;2;255;0;0mx\u{1B}[0m"])
+        let veiled = page.veiledAsBackdrop(by: .rgb(0, 0, 0), surface: .rgb(0, 0, 0), palette: palette)
+        #expect(veiled.lines[0].contains("38;2;70;12;12"), "\(veiled.lines[0].debugDescription)")
+        let pixels = DerivedImages.applying(
+            FrameBuffer.modalVeilTransform(toward: (0, 0, 0)), to: [255, 0, 0, 255], width: 1, height: 1)
+        #expect(pixels == [70, 12, 12, 255])
     }
 
     /// Layers stack: a faded picture under a sheet is a copy veiled again. The
