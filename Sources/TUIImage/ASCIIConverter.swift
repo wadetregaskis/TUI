@@ -421,7 +421,8 @@ public struct ASCIIConverter: Sendable {
     /// - ``edgeThreshold`` asks *where does the picture have an edge*, and draws
     ///   the cells that do as directional line glyphs (`╱ ╲ ─ │`).
     /// - ``shapeAware`` asks *how should a cell's ink be chosen* — by where the
-    ///   darkness sits inside the cell rather than by how much of it there is.
+    ///   ink (its brightness, as in every ramp) sits inside the cell rather than
+    ///   by how much of it there is.
     /// - This asks *how much separation is there to see in the first place*. It
     ///   runs before either, on the pixels, so both of them read a picture whose
     ///   boundaries have already been pulled apart — and it is worth having with

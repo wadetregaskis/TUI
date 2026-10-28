@@ -86,19 +86,20 @@ struct ImageFidelityConfigTests {
 
     // MARK: - Shape-aware blocks
 
-    @Test("A solid dark image renders full blocks")
+    @Test("A solid white image renders full blocks")
     func blocksShapeSolid() {
-        let img = image(50, 30) { _, _ in 0 }
+        // Ink is brightness, as in every ramp: white is solid ink.
+        let img = image(50, 30) { _, _ in 255 }
         let out = render(img, w: 10, h: 3, .blocks(.fine), shapeAware: true, edgeThreshold: nil)
         #expect(out.contains("█"), "solid ink is a full block: \(out)")
     }
 
     @Test("Corner-weighted ink picks quadrant-family glyphs")
     func blocksShapeQuadrants() {
-        // Dark only in each cell's top-left quadrant (cells are 5×10 px in
-        // shape modes). Edge detection is moot for blocks (the repertoire
-        // carries its own directional glyphs).
-        let img = image(50, 30) { x, y in (x % 5 < 2 && y % 10 < 5) ? 0 : 255 }
+        // Ink (brightness) only in each cell's top-left quadrant (cells are
+        // 5×10 px in shape modes). Edge detection is moot for blocks (the
+        // repertoire carries its own directional glyphs).
+        let img = image(50, 30) { x, y in (x % 5 < 2 && y % 10 < 5) ? 255 : 0 }
         let out = render(img, w: 10, h: 3, .blocks(.fine), shapeAware: true)
         let quadrantFamily = Set("▘▝▖▗▚▞▛▜▙▟▀▄▌▐▍▎▏▉▊▋◢◣◤◥")
         #expect(
@@ -122,7 +123,7 @@ struct ImageFidelityConfigTests {
         // A corner-weighted image: the shape matcher picks quadrants; the
         // luminance `.coarse` path can only pick shades — so the two must
         // differ, and every `.blocks(_)` resolution shape-matches identically.
-        let img = image(50, 30) { x, y in (x % 5 < 2 && y % 10 < 5) ? 0 : 255 }
+        let img = image(50, 30) { x, y in (x % 5 < 2 && y % 10 < 5) ? 255 : 0 }
         let shaped = render(img, w: 10, h: 3, .blocks(.fine), shapeAware: true)
         let shapedCoarse = render(img, w: 10, h: 3, .blocks(.coarse), shapeAware: true)
         let luminance = render(img, w: 10, h: 3, .blocks(.coarse))
@@ -136,7 +137,7 @@ struct ImageFidelityConfigTests {
     func unicodeExcludesBlocks() {
         // Solid ink: the blocks charset answers with █; unicode must answer
         // with its own densest non-block glyph instead.
-        let img = image(50, 30) { _, _ in 0 }
+        let img = image(50, 30) { _, _ in 255 }
         let out = render(img, w: 10, h: 3, .unicode, shapeAware: true, edgeThreshold: nil)
         #expect(!out.isEmpty)
         #expect(

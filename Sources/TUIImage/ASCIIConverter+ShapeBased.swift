@@ -143,7 +143,7 @@ extension ASCIIConverter {
                     let baseX = cellX * cellPixelWidth
                     let baseLinearIndex = baseY * imageWidth + baseX
 
-                    // Sample the cell, accumulating per-circle darkness and
+                    // Sample the cell, accumulating per-circle ink and
                     // a global RGB sum (for the foreground colour) in one
                     // pass over the precomputed flat offset table.
                     var sumR = 0
@@ -151,7 +151,7 @@ extension ASCIIConverter {
                     var sumB = 0
                     var sumA = 0
                     for centreIndex in 0..<centreCount {
-                        var totalDarkness: Double = 0
+                        var totalInk: Double = 0
                         let centreBase = centreIndex * sampleCount
                         for sampleIndex in 0..<sampleCount {
                             let pixel = pixelBuffer[
@@ -159,18 +159,25 @@ extension ASCIIConverter {
                             ]
                             // Weighted by coverage, like every other average in the
                             // module (§41.1): a transparent sample has no colour to
-                            // contribute, and DARKNESS is what picks the glyph — an
+                            // contribute, and its INK is what picks the glyph — an
                             // uncovered sample is not dark, it is absent, so it
                             // contributes none of either.
+                            //
+                            // Ink is BRIGHTNESS, as in every charset's ramp and in
+                            // mono (`isMonoInk`): a glyph is drawn in the cell's own
+                            // colour on the terminal's dark field, so a bright cell
+                            // takes a dense glyph. The renderer first took darkness,
+                            // the convention of dark ink on paper, and turned a white
+                            // ground into spaces, so the terminal's black showed
+                            // where the other modes drew white.
                             let coverage = Int(pixel.a)
-                            totalDarkness +=
-                                (1.0 - (pixel.luminance / 255.0)) * (Double(coverage) / 255)
+                            totalInk += (pixel.luminance / 255.0) * (Double(coverage) / 255)
                             sumR += Int(pixel.r) * coverage
                             sumG += Int(pixel.g) * coverage
                             sumB += Int(pixel.b) * coverage
                             sumA += coverage
                         }
-                        sampling[centreIndex] = totalDarkness * inverseSampleCount
+                        sampling[centreIndex] = totalInk * inverseSampleCount
                     }
 
                     // A strong directional edge overrides the coverage match
@@ -254,11 +261,12 @@ extension ASCIIConverter {
     /// `nil` when the cell carries no strong directional edge (or edge glyphs
     /// are disabled: `threshold` or `edge` `nil`).
     ///
-    /// The gradient is a Sobel-style difference over the six staggered darkness
+    /// The gradient is a Sobel-style difference over the six staggered ink
     /// regions (`[0][1]` top / `[2][3]` middle / `[4][5]` bottom): `gx` is the
-    /// left-minus-right darkness, `gy` the top-minus-bottom. The edge runs
+    /// left-minus-right ink, `gy` the top-minus-bottom. The edge runs
     /// perpendicular to the gradient — tangent `(-gy, gx)` — which classifies
-    /// into horizontal / vertical / the two diagonals. Reuses the darkness
+    /// into horizontal / vertical / the two diagonals, the same line whichever
+    /// side is the bright one, so ink and darkness trace alike. Reuses the ink
     /// vector already sampled for the coverage match, so it adds no image reads.
     ///
     /// Not `fileprivate`: the LUMINANCE renderer traces edges too, from the
