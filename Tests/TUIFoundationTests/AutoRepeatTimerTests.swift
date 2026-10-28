@@ -30,6 +30,9 @@ struct AutoRepeatTimerTests {
     private static let delayMs = 40
     private static let intervalMs = 10
 
+    /// The most polls of ``delayMs`` a test waits for repeats that are owed.
+    private static let pollLimit = 100
+
     private static func timer() -> AutoRepeatTimer {
         AutoRepeatTimer(initialDelayMs: delayMs, repeatIntervalMs: intervalMs)
     }
@@ -85,8 +88,11 @@ struct AutoRepeatTimerTests {
         // Polled rather than waited out in one go: another main-actor test
         // running alongside this one can starve the timer through a window,
         // and the gate's whole job is then to wait for the next one. That
-        // delays the first repeat; it does not prevent it.
-        for _ in 0..<20 where fires <= 1 {
+        // delays the first repeat; it does not prevent it. Up to four seconds:
+        // under a loaded machine (a build beside the suite, 2026-10-28) the
+        // 800 ms this allowed ran out with the repeat still owed, and the poll
+        // ends as soon as it comes.
+        for _ in 0..<Self.pollLimit where fires <= 1 {
             await Self.settle(ms: Self.delayMs)
         }
         timer.stop()
@@ -98,7 +104,7 @@ struct AutoRepeatTimerTests {
         var continuous: [Bool] = []
         let timer = Self.timer()
         timer.start { continuous.append(Transaction.ambient?.isContinuous ?? false) }
-        for _ in 0..<20 where continuous.count <= 2 {
+        for _ in 0..<Self.pollLimit where continuous.count <= 2 {
             await Self.settle(ms: Self.delayMs)
         }
         timer.stop()
