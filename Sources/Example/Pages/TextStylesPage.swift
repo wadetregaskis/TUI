@@ -325,6 +325,8 @@ struct TextStylesPage: View {
                 }
             }
 
+            TextEffectsDemo()
+
             RedactionAndSelectionDemo()
         }
     }
