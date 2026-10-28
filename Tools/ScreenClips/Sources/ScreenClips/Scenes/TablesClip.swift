@@ -3,8 +3,8 @@
 //
 //  `tables`: an activity monitor's process table, its numbers live — scrolled
 //  under a header that stays put, sorted by a click on a column's header and
-//  then on another, a row selected and followed, and then filtered by name
-//  through `.searchable`.
+//  then on another, a row selected and followed, filtered by name through
+//  `.searchable`, and sorted by PID again as it began, so it loops.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -28,12 +28,18 @@ let tablesClip = Clip(
 /// table's top border five more).
 private enum TableHeader {
     static let row = 8
+    static let pid = 7
     static let cpu = 38
     static let name = 14
 }
 
 private func tablesScript() -> [Step] {
-    var script: [Step] = [.camera(Shot(x: 0.6, y: 3, width: 73, height: 21)), .wait(1.0)]
+    // The pointer drawn from the first frame, resting on the PID header where
+    // the clip leaves it, so the loop's seam does not show.
+    var script: [Step] = [
+        .camera(Shot(x: 0.6, y: 3, width: 73, height: 21)), .point(column: TableHeader.pid, row: TableHeader.row),
+        .wait(1.0),
+    ]
     // Down through the rows, past the bottom: the header stays.
     script += Step.repeat(.down, 6, interval: 0.18)
     script += [.wait(0.3), .pageDown, .wait(0.9), .pageDown, .wait(0.9)]
@@ -52,6 +58,9 @@ private func tablesScript() -> [Step] {
     script += [.keys("\u{1B}[Z"), .wait(0.5)]
     script += Step.type("swift", interval: 0.22)
     script += [.wait(1.8), .control("u"), .wait(0.6), .keys("\t"), .wait(0.8)]
+    // Back to the order it began in, by PID, and its first row: the table as
+    // the clip opened, so it loops.
+    script += Step.click(TableHeader.pid, TableHeader.row) + [.wait(0.8), .home, .wait(1.0)]
     return script
 }
 
@@ -80,7 +89,8 @@ struct ProcessRow: Identifiable, Hashable {
 /// The processes, their numbers moving on a clock of their own.
 struct ActivityMonitor: View {
     @State private var tick = 0
-    @State private var selection: Int?
+    /// The first process by PID, as the script leaves it.
+    @State private var selection: Int? = 100
     @State private var sortOrder = [KeyPathComparator(\ProcessRow.id)]
     @State private var query = ""
 
