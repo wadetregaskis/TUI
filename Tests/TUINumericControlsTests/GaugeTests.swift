@@ -97,18 +97,28 @@ struct GaugeTests {
         #expect(buffer.height == 4)  // 3 ring rows + label
     }
 
-    @Test("The circular dial right-aligns its interior value")
-    func circularDialRightAligned() {
-        // A value narrower than the 4-cell interior must sit flush against the
-        // right border with the padding on the LEFT (right-aligned), e.g. the
-        // middle ring row reads `│  7%│`, not centred/left `│7%  │`.
-        let buffer = renderToBuffer(
-            Gauge(value: 0.07) { EmptyView() } currentValueLabel: { Text("7%") }
-                .gaugeStyle(.accessoryCircular),
-            context: makeRenderContext(width: 30, height: 6))
-        let mid = buffer.lines.map(\.stripped).first { $0.contains("7%") } ?? ""
-        #expect(mid.hasSuffix("7%│"), "value flush-right against the border: '\(mid)'")
-        #expect(mid.hasPrefix("│ "), "padding on the left proves right-alignment: '\(mid)'")
+    @Test("The circular dial centres its value, and centres its label and ring on each other")
+    func circularDialCentred() {
+        // SwiftUI centres the value in the ring (the owner, 2026-10-27): `│ 7% │`
+        // and `│ 12 │`, an odd cell over on the right, `│ 5  │`.
+        func rows(_ value: String, label: String) -> [String] {
+            renderToBuffer(
+                Gauge(value: 0.07) { Text(label) } currentValueLabel: { Text(value) }
+                    .gaugeStyle(.accessoryCircular),
+                context: makeRenderContext(width: 30, height: 6)
+            ).lines.map(\.stripped)
+        }
+        #expect(rows("7%", label: "")[1] == "│ 7% │")
+        #expect(rows("12", label: "")[1] == "│ 12 │")
+        #expect(rows("5", label: "")[1] == "│ 5  │")
+        // A short label is centred under the ring; a long one has the ring
+        // centred over it.
+        let short = rows("12", label: "Go")
+        #expect(short[3].trimmingCharacters(in: .whitespaces) == "Go")
+        #expect(short[3].hasPrefix("  Go"), "\(short)")
+        let long = rows("12", label: "Guests list")
+        #expect(long[3] == "Guests list", "\(long)")
+        #expect(long[1].hasPrefix("  │ 12 │"), "\(long)")
     }
 
     @Test("A wide-character value does not break the ring")

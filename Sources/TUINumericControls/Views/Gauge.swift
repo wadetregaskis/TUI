@@ -560,17 +560,21 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
             var drawn = ClaimingRow()
             if row == 1 {
                 let stripped = valueText.stripped
-                let leftPad = max(0, inner - valueText.strippedLength)
+                // Centred, as SwiftUI's ring centres its value (the owner,
+                // 2026-10-27, over the right-aligned read-out of 7b84b4f73); an
+                // odd cell over goes to the right, as `.center` puts it.
+                let spare = max(0, inner - valueText.strippedLength)
                 func wall(_ col: Int) {
                     drawn.append(
                         String(glyphs[1][col]), cells: 1, ink: colorAt["1,\(col)"])
                 }
                 wall(0)
-                drawn.skip(cells: leftPad)
+                drawn.skip(cells: spare / 2)
                 if !stripped.isEmpty {
                     drawn.append(
                         stripped, cells: valueText.strippedLength, ink: palette.foreground)
                 }
+                drawn.skip(cells: spare - spare / 2)
                 wall(inner + 1)
             } else {
                 for col in 0...(inner + 1) {
@@ -581,9 +585,19 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
             claims += drawn.claims.map { $0.shifted(byX: 0, y: row) }
             lines.append(drawn.text)
         }
+        // The label centred under the ring, or the ring over a wider label, as
+        // SwiftUI stacks the two: centred on one another.
         let labelText = inlineText(label, slot: .label, context: context)
-        if labelText.strippedLength > 0 {
-            lines.append(labelText)
+        let ringWidth = inner + 2
+        let labelWidth = labelText.strippedLength
+        let ringIndent = max(0, labelWidth - ringWidth) / 2
+        if ringIndent > 0 {
+            let indent = String(repeating: " ", count: ringIndent)
+            lines = lines.map { indent + $0 }
+            claims = claims.map { $0.shifted(byX: ringIndent, y: 0) }
+        }
+        if labelWidth > 0 {
+            lines.append(String(repeating: " ", count: max(0, ringWidth - labelWidth) / 2) + labelText)
         }
         var buffer = FrameBuffer(lines: lines)
         buffer.opacityRegions += claims
