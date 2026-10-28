@@ -68,18 +68,18 @@ import TUICore
         func fallsBack() throws {
             // Turned off by the app, which holds whatever the terminal answered
             // (`KittyGraphics.isSupported` is process-wide, and not this test's).
-            var provider: FileDialogIconProvider?
+            var provider: FileDialogItemViews?
             let context = makeRenderContext()
             _ = renderToBuffer(
                 ProviderReader { provider = $0 }.fileDialogSystemIcons().terminalGraphics(false), context: context)
             let installed = try #require(provider)
-            #expect(installed.box.icon(URL(fileURLWithPath: "/tmp/a.txt"), .plainText) == nil)
+            #expect(installed.box.make(URL(fileURLWithPath: "/tmp/a.txt"), .plainText) == nil)
         }
     }
 
     /// Hands `read` the file panels' icon provider when it renders.
     private struct ProviderReader: View {
-        let read: (FileDialogIconProvider?) -> Void
+        let read: (FileDialogItemViews?) -> Void
 
         var body: some View {
             _ProviderReaderCore(read: read)
@@ -87,7 +87,7 @@ import TUICore
     }
 
     private struct _ProviderReaderCore: View, Renderable {
-        let read: (FileDialogIconProvider?) -> Void
+        let read: (FileDialogItemViews?) -> Void
         var body: Never { fatalError("renders via Renderable") }
         func renderToBuffer(context: RenderContext) -> FrameBuffer {
             read(context.environment.fileDialogIcon)

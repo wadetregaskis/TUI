@@ -66,7 +66,7 @@ struct FilePanelNameCell: View {
     @Environment(\.fileDialogIcon) private var appIcons
 
     var body: some View {
-        if let icon = appIcons?.icon(for: entry) {
+        if let icon = appIcons?.view(for: entry) {
             // In the cells an emoji icon takes, so the names line up whatever
             // the app draws.
             HStack(spacing: 1) {
