@@ -67,11 +67,19 @@ struct FilePanelPreview: View {
     /// The most lines an excerpt keeps.
     nonisolated static let excerptLines = 12
 
-    /// The opening lines of `entry` if it is text, read off the main actor;
-    /// `nil` for anything else, or a file that cannot be read.
+    /// The opening lines of `entry` if it is a text file, read off the main
+    /// actor; `nil` for anything else, or a file that cannot be read.
+    ///
+    /// Only a regular file (or a link to one) is opened: on Linux a type is
+    /// its extension's, so a named pipe called `x.log` is "text", and opening
+    /// it waits for a writer — holding a thread of the cooperative pool for
+    /// good.
     @concurrent
     static func excerpt(of entry: FileEntry) async -> String? {
-        guard entry.contentType.conforms(to: .text), let handle = try? FileHandle(forReadingFrom: entry.url)
+        let file = entry.url.resolvingSymlinksInPath()
+        guard entry.contentType.conforms(to: .text),
+            (try? file.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true,
+            let handle = try? FileHandle(forReadingFrom: file)
         else { return nil }
         defer { try? handle.close() }
         guard let data = try? handle.read(upToCount: excerptBytes) else { return nil }

@@ -161,6 +161,36 @@ struct FilePanelColumnViewTests {
         #expect(shown.contains("notes.md") && shown.contains("inner.txt"), "\(shown)")
     }
 
+    /// On Linux a file's type is its extension's, so a named pipe called
+    /// `x.log` is "text"; opened for its excerpt, it waited for a writer for
+    /// good, holding a thread of the cooperative pool.
+    @Test("A named pipe of a text file's type is not read for an excerpt")
+    func pipeIsNotRead() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let pipe = fixture.url("pipe.log")
+        try #require(mkfifo(pipe.path, 0o600) == 0)
+        let entry = FileEntry(
+            url: pipe, name: "pipe.log", isFolder: false, isHidden: false, isSymbolicLink: false,
+            contentType: .plainText, size: nil, modified: nil, sizeText: "", modifiedText: "", kind: "",
+            isChoosable: true)
+        // A writer comes along, should a reader be waiting, and writes a
+        // line: a test that opens the pipe fails rather than hangs.
+        let writer = Task.detached {
+            for _ in 0..<30 {
+                try? await Task.sleep(for: .milliseconds(100))
+                let descriptor = open(pipe.path, O_WRONLY | O_NONBLOCK)
+                if descriptor >= 0 {
+                    _ = "piped\n".withCString { write(descriptor, $0, 6) }
+                    close(descriptor)
+                    return
+                }
+            }
+        }
+        defer { writer.cancel() }
+        #expect(await FilePanelPreview.excerpt(of: entry) == nil)
+    }
+
     /// How many times `text` shows on `screen`.
     private func count(_ text: String, in screen: String) -> Int {
         screen.components(separatedBy: text).count - 1
