@@ -45,6 +45,15 @@ struct PointingHandCursorTests {
         #expect(shape(over: "More", in: Button("More") {}.buttonStyle(.link)) == .some(.link))
     }
 
+    /// The scope's own documentation names a link inside a `Text`, which
+    /// had none (the cursor survey, 2026-10-28).
+    @Test("By default a link inside a Text gets the hand, and the text around it the arrow")
+    func inlineLinkGetsTheHand() {
+        let text = Text("Read the [manual](https://example.com) first")
+        #expect(shape(over: "manual", in: text) == .some(.link))
+        #expect(shape(over: "Read", in: text) == .some(nil))
+    }
+
     @Test(".pointingHandCursor(over: .everythingClickable) gives a button the hand")
     func buttonGetsTheHandWhenAsked() {
         #expect(shape(over: "Save", in: Button("Save") {}.pointingHandCursor(over: .everythingClickable)) == .some(.link))

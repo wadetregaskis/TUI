@@ -391,6 +391,12 @@ private struct _TextLinksCore: View, Renderable {
             // the text. Its own test above stays — a release over another
             // piece of the same link is no click on this one.
             dispatcher.fileClickRecognizer(.plain, for: handlerID, in: context)
+            // A pointing hand over it, where TUI's controls set their own
+            // shapes, as over a `Link` (`Button`'s link style): a link is the
+            // one thing the hand always marks (`pointingHandCursor(over:)`).
+            // It had none, though the scope's own documentation names a link
+            // inside a `Text` (found by the cursor survey, 2026-10-28).
+            dispatcher.fileControlPointerShape(.link, for: handlerID, in: context)
             return HitTestRegion(
                 offsetX: span.column, offsetY: span.row, width: width, height: 1, handlerID: handlerID,
                 focusID: focusID)
