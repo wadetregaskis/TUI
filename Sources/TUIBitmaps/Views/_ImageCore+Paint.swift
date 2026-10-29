@@ -28,7 +28,14 @@ private enum PaintStateIndex {
 /// no frame: a box's write invalidates its view.
 private final class PaintPixelsHolder {
     var source: ImageSource?
-    var owner: ObjectIdentifier?
+    /// The object the pixels were drawn out of (``_DecodedImage/owner``),
+    /// KEPT, as `_ImageCore`'s owner box keeps it: its address names the
+    /// picture in `source`, and a freed address can come straight back for a
+    /// different picture. Holding only the address, these pixels outlived the
+    /// object, and a new picture at the old address matched both fields and
+    /// was handed the old pixels. Kept, no other picture can take the address
+    /// while the pixels stand for it.
+    var owner: AnyObject?
     var pixels: ImagePaintPixels?
 }
 
@@ -71,9 +78,9 @@ extension _ImageCore {
         let holder: StateBox<PaintPixelsHolder> = stateStorage.storage(
             for: StateStorage.StateKey(identity: identity, propertyIndex: PaintStateIndex.pixels),
             default: PaintPixelsHolder())
-        let owner = decoded?.owner.map(ObjectIdentifier.init)
+        let owner = decoded?.owner
         let kept = holder.value
-        if let pixels = kept.pixels, kept.source == source, kept.owner == owner { return pixels }
+        if let pixels = kept.pixels, kept.source == source, kept.owner === owner { return pixels }
         let pixels = Self.paintPixels(
             image, pointSize: decoded?.pointSize(of: image) ?? (Double(image.width), Double(image.height)))
         kept.source = source
