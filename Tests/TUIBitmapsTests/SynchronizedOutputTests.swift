@@ -14,8 +14,8 @@ import Testing
 @testable import TUIFoundation
 @testable import TUITestSupport
 
-/// A frame that writes more than one row holds the terminal's display while
-/// it is drawn (DEC mode 2026), and nothing else does. Step V2 of the Ghostty
+/// A frame that writes a row holds the terminal's display while it is drawn
+/// (DEC mode 2026), and nothing else does. Step V2 of the Ghostty
 /// adoption (`Documentation/Terminals/Ghostty VT reference adoption study.md`, O1).
 @MainActor
 @Suite("Synchronized output (DEC mode 2026)")
@@ -48,11 +48,15 @@ struct SynchronizedOutputTests {
         #expect(terminal.lastFrameData == Array(output.bytes.utf8), "the frame dump sees what was sent")
     }
 
-    @Test("A frame that writes one row, in however many spans, is not held")
-    func singleRowFrameIsNotHeld() {
+    /// One row is enough: a changed row is rewritten whole, `ESC[2K` and
+    /// then its content, and a long one reaches the terminal in several
+    /// reads, so Ghostty could paint it erased — a focused toggle's breath
+    /// beside a picture drawn in glyphs flickered so (#27, 2026-10-29).
+    @Test("A frame that writes one row, in however many spans, is held too")
+    func singleRowFrameIsHeld() {
         let (terminal, output) = ScriptedTerminalOutput.terminal()
         frame(on: terminal, rows: [5], spansPerRow: 3)
-        #expect(output.writes == ["\u{1B}[5;1Hx\u{1B}[5;5Hx\u{1B}[5;9Hx"])
+        #expect(output.writes == [Self.begin + "\u{1B}[5;1Hx\u{1B}[5;5Hx\u{1B}[5;9Hx" + Self.end])
         #expect(terminal.lastFrameData == Array(output.bytes.utf8))
     }
 
@@ -63,7 +67,7 @@ struct SynchronizedOutputTests {
         #expect(output.writes.isEmpty)
     }
 
-    @Test("Image transmissions go before the hold, and an unheld frame goes out either side of its unused marker")
+    @Test("Image transmissions go before the hold, and a frame that draws nothing goes out either side of its unused marker")
     func transmissionsStayOutsideTheHold() {
         let (terminal, output) = ScriptedTerminalOutput.terminal()
         let graphics = "\u{1B}_Ga=t,i=1;AAAA\u{1B}\\"
@@ -71,9 +75,9 @@ struct SynchronizedOutputTests {
         #expect(output.writes == [graphics + Self.begin + "\u{1B}[1;1Hx\u{1B}[2;1Hx" + Self.end])
 
         output.clear()
-        frame(on: terminal, transmissions: graphics, rows: [1])
-        #expect(output.writes == [graphics, "\u{1B}[1;1Hx"])
-        #expect(terminal.lastFrameData == Array((graphics + "\u{1B}[1;1Hx").utf8))
+        frame(on: terminal, transmissions: graphics, rows: [])
+        #expect(output.writes == [graphics])
+        #expect(terminal.lastFrameData == Array(graphics.utf8))
     }
 
     @Test("TUI_SYNCHRONIZED_OUTPUT=0 holds nothing, and owes nothing")
@@ -167,8 +171,7 @@ struct SynchronizedOutputTests {
 
     /// A descriptor a crashed program left non-blocking reports `EAGAIN` when
     /// full, and the end marker's retry right after met the same. The hold
-    /// then lasted until the next multi-row frame: a caret's blink or a
-    /// breath writes one row and no end marker.
+    /// then lasted until the next held frame, which could be a while.
     @Test("A held frame on a full non-blocking descriptor waits for room and goes out whole, end marker and all")
     func fullNonBlockingDescriptorWaits() {
         let frame = Array((Self.begin + "\u{1B}[1;1Hx\u{1B}[2;1Hx" + Self.end).utf8)

@@ -1222,7 +1222,7 @@ extension RenderLoop {
         if !host.isEmpty { terminal.write(host) }
 
         // The terminal holds its display from here to the frame's end, if the
-        // frame writes more than one row. After the transmissions, which draw
+        // frame writes a row. After the transmissions, which draw
         // nothing and can be large enough to outlast a hold; before the first
         // cell. See `Terminal.beginSynchronizedUpdate()`.
         synchronizedUpdates?.beginSynchronizedUpdate()

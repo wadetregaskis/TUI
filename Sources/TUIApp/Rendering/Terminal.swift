@@ -468,7 +468,7 @@ final class Terminal: HostStateKeeping {
     /// written without re-rendering.
     private(set) var lastFrameData: [UInt8] = []
 
-    /// Whether a frame that writes more than one row holds the terminal's
+    /// Whether a frame that writes a row holds the terminal's
     /// display while it is drawn (DEC mode 2026, synchronized output): yes,
     /// unless `TUI_SYNCHRONIZED_OUTPUT=0`. See
     /// ``beginSynchronizedUpdate()``.
@@ -479,13 +479,9 @@ final class Terminal: HostStateKeeping {
     /// ``synchronizesOutput`` off, and outside a frame.
     private var synchronizedUpdateStart: Int?
 
-    /// How many rows the cursor has been moved to since the begin marker,
-    /// counted only as far as the two that decide whether the frame is held.
-    private var synchronizedRows = 0
-
-    /// The row the cursor was last moved to since the begin marker, or 0
-    /// before the first move (rows count from 1).
-    private var synchronizedLastRow = 0
+    /// Whether the cursor has been moved to a row since the begin marker: a
+    /// frame that draws a cell is held (see ``beginSynchronizedUpdate()``).
+    private var synchronizedDrawsRow = false
 
     /// Whether autowrap stays on while the app runs: on Apple Terminal, until
     /// a card measures it there, and everywhere else it goes off
@@ -1169,8 +1165,8 @@ extension Terminal {
     }
 
     /// Ends a buffered frame and flushes all collected output: held, if it
-    /// began a synchronized update and went on to write more than one row,
-    /// and without its begin marker if it began one and did not (see
+    /// began a synchronized update and went on to write a row, and without
+    /// its begin marker if it began one and did not (see
     /// ``beginSynchronizedUpdate()``). Then, where the frame changed what
     /// ``hostState`` owes — a title saved or restored, a bar put up or taken
     /// down — the debt a signal pays is armed again, now that it is out.
@@ -1189,7 +1185,7 @@ extension Terminal {
             return
         }
         synchronizedUpdateStart = nil
-        if synchronizedRows > 1 {
+        if synchronizedDrawsRow {
             frameBuffer.append(contentsOf: Self.synchronizedUpdateEnd.utf8)
             lastFrameData = frameBuffer
             flushBuffer(holdingDisplay: true)
@@ -1218,13 +1214,18 @@ extension Terminal {
     /// content. The begin marker goes into the frame buffer here, and
     /// ``endFrame()`` decides whether to keep it:
     ///
-    /// - A frame that moved the cursor to more than one row keeps it, and gets
-    ///   the end marker after its last byte: one write, 16 bytes more.
-    /// - Any other frame — a single row (a breath, a caret's blink), or none —
-    ///   cannot tear, and goes out without it, as the parts either side of
-    ///   the marker. Nothing is copied: with nothing before the marker, which
-    ///   is every frame with no image to transmit, that is one write starting
-    ///   8 bytes in.
+    /// - A frame that moved the cursor to a row keeps it, and gets the end
+    ///   marker after its last byte: one write, 16 bytes more. One row is
+    ///   enough: a changed row is rewritten whole, `ESC[2K` and then its
+    ///   content, and a long one reaches the terminal in several reads, so
+    ///   Ghostty can paint the erased row before the rest arrives. A focused
+    ///   toggle's breath beside a picture drawn in glyphs is about 2 KB, two
+    ///   reads of a macOS pty, and flickered so (measured 2026-10-29: an
+    ///   unheld row every ~50 ms on the Example's Images page).
+    /// - A frame that writes nothing goes out without it, as the parts either
+    ///   side of the marker. Nothing is copied: with nothing before the
+    ///   marker, which is every frame with no image to transmit, that is one
+    ///   write starting 8 bytes in.
     ///
     /// Image transmissions stay outside the hold: they draw nothing, and they
     /// can be megabytes, which inside it could outlast Ghostty's one-second
@@ -1243,8 +1244,7 @@ extension Terminal {
     func beginSynchronizedUpdate() {
         guard synchronizesOutput, isBuffering, synchronizedUpdateStart == nil else { return }
         synchronizedUpdateStart = frameBuffer.count
-        synchronizedRows = 0
-        synchronizedLastRow = 0
+        synchronizedDrawsRow = false
         frameBuffer.append(contentsOf: Self.synchronizedUpdateBegin.utf8)
     }
 
@@ -1277,13 +1277,9 @@ extension Terminal {
     ///   - row: The row (1-based).
     ///   - column: The column (1-based).
     func moveCursor(toRow row: Int, column: Int) {
-        // A row of its own counts toward holding the frame; see
-        // ``beginSynchronizedUpdate()``. Every row a frame draws starts with a
-        // move to it.
-        if synchronizedUpdateStart != nil, synchronizedRows < 2, row != synchronizedLastRow {
-            synchronizedRows += 1
-            synchronizedLastRow = row
-        }
+        // A frame that draws a row is held; see ``beginSynchronizedUpdate()``.
+        // Every row a frame draws starts with a move to it.
+        if synchronizedUpdateStart != nil { synchronizedDrawsRow = true }
         write(ANSIRenderer.moveCursor(toRow: row, column: column))
     }
 

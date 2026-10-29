@@ -305,8 +305,9 @@ extension RenderLoop {
         guard touched else { return true }
 
         terminal.beginFrame()
-        // Held like a rendered frame when it patches more than one row: two
-        // spinners' ticks land together. No transmissions come first.
+        // Held like a rendered frame: a patched run's row is rewritten whole,
+        // which can tear (a breath beside a picture drawn in glyphs did, #27).
+        // No transmissions come first.
         synchronizedUpdates?.beginSynchronizedUpdate()
         let wrote = diffWriter.writeContentDiff(
             newLines: lines,

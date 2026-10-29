@@ -128,7 +128,7 @@ The ``FrameBuffer`` is converted into terminal-ready output lines by `FrameDiffW
 
 `Terminal.beginFrame()` activates output buffering. From this point, all `Terminal.write()` calls append to an internal `[UInt8]` buffer instead of issuing syscalls.
 
-Images owed to the terminal are written first. Then the frame's synchronized update begins (DEC mode 2026, `Terminal.beginSynchronizedUpdate()`): a terminal that implements it holds its display until the frame's end, so a frame that arrives in several reads is shown whole. The hold is kept only if the frame goes on to write more than one row.
+Images owed to the terminal are written first. Then the frame's synchronized update begins (DEC mode 2026, `Terminal.beginSynchronizedUpdate()`): a terminal that implements it holds its display until the frame's end, so a frame that arrives in several reads is shown whole. The hold is kept if the frame goes on to write a row: a changed row is rewritten whole, so even one can reach the terminal in several reads.
 
 ### Step 9: Diff the Frame
 

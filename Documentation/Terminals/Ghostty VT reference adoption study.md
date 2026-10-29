@@ -141,6 +141,10 @@ How output items are measured:
     mid-hold.
   - **Only frames that write more than one row.** A breath frame of one or
     two cells cannot tear and would pay 16 bytes, a large share of its size.
+    *(Superseded 2026-10-29: a breath is not one or two cells on the wire. The
+    diff writer rewrites a changed row whole, `ESC[2K` and its content, and
+    beside a picture drawn in glyphs that is about 2 KB, which flickered in
+    Ghostty. Every frame that writes a row is held now.)*
     `FrameDiffWriter` knows how many rows it wrote. `beginFrame` reserves 8
     bytes at the buffer head, and the flush starts at offset 0 or 8, so there
     is no copy.

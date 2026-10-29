@@ -6647,10 +6647,16 @@ content). Adopted from Ghostty's VT reference
 
 ### What TUI does
 
-- **A frame that moves the cursor to more than one row is held**: the begin
-  marker after the frame's image transmissions and before its first cell, the
-  end marker as its last bytes, all in the one write that sends the frame. 16
-  bytes more per such frame. The transmissions stay outside because they draw
+- **A frame that moves the cursor to a row is held**: the begin marker after
+  the frame's image transmissions and before its first cell, the end marker as
+  its last bytes, all in the one write that sends the frame. 16 bytes more per
+  frame. Until 2026-10-29 a frame of one row was not held, on the reasoning
+  that one row cannot tear; but a changed row is rewritten whole, `ESC[2K` and
+  then its content, and a focused toggle's breath on the Example's Images page,
+  its row running beside a picture drawn in glyphs, was about 2 KB: two reads
+  of a macOS pty, sent every ~50 ms unheld (captured in a PTY). Ghostty painted
+  the erased row in between, which was the toggle's flicker there, worst with
+  terminal graphics off (#27; the owner's report, not yet re-checked live). The transmissions stay outside because they draw
   nothing and can be megabytes, which inside a hold could outlast Ghostty's
   limit on one (below). An animation tick's frame is held by the same rule.
 - **Image deletes go inside the hold, after the cells** (since 2026-10-27): a
@@ -6662,10 +6668,10 @@ content). Adopted from Ghostty's VT reference
   hold's end, as it does a cell's, is read from what the mode promises (the
   display, not the parser, is held) and NOT yet measured on any host; where
   a frame is not held, the delete still follows the cells.
-- **Any other frame is not**: one row (a focus breath, a caret's blink, a
-  spinner) cannot tear, and a frame that writes nothing sends nothing. The
-  begin marker is reserved in the frame buffer and skipped when unused, so
-  nothing is copied.
+- **A frame that writes no row is not**: one that writes nothing sends
+  nothing, and one that only transmits images sends them unheld. The begin
+  marker is reserved in the frame buffer and skipped when unused, so nothing
+  is copied.
 - **Teardown.** The end marker is the first thing `disableRawMode` sends (quit,
   suspend, `SIGINT`, `SIGTERM`) and heads the debt a fatal signal pays
   (`FatalSignalTerminalRestore`). A write that gives up partway through a held
@@ -6675,8 +6681,7 @@ content). Adopted from Ghostty's VT reference
   with the shell, and a crashed program (a Node CLI is the known case) can
   leave it `O_NONBLOCK`. A frame larger than the pty's buffer then met
   `EAGAIN` partway, and so did the end marker's retry straight after: the
-  display stayed held until the next multi-row frame, and a caret's blink is
-  not one. Every write now waits for room on `EAGAIN` (`poll` for `POLLOUT`),
+  display stayed held until the next held frame. Every write now waits for room on `EAGAIN` (`poll` for `POLLOUT`),
   as a blocking write would, so only a hard error gives up partway
   (`Terminal.writeAll`, pinned by `SynchronizedOutputTests` and over a real
   non-blocking pipe by `TerminalOutputTests`). TUI never sets the flag
