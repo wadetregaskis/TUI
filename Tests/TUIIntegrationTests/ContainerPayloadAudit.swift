@@ -270,8 +270,8 @@ struct ContainerPayloadAudit {
         // A control that cannot be clicked still draws its focus ring and its
         // hover lift, so nothing about the screen says the region is missing.
         for (what, wrap) in containers() {
-            let base = render(wrap(AnyView(inert()))).hitTestRegions.count
-            let found = render(wrap(AnyView(clickable()))).hitTestRegions.count
+            let base = render(wrap(AnyView(inert()))).hitTargets.count
+            let found = render(wrap(AnyView(clickable()))).hitTargets.count
             #expect(found > base, "\(what) dropped the child's region (\(base) → \(found))")
         }
     }
@@ -323,12 +323,12 @@ struct ContainerPayloadAudit {
         #expect(
             render(Link(destination: url) { blinker() }).animatedCells.contains { $0.frames == ["a", "b"] },
             "the label's own run rides along beside the breath")
-        let inertLink = render(Link(destination: url) { inert() }).hitTestRegions.count
-        #expect(render(Link(destination: url) { clickable() }).hitTestRegions.count > inertLink)
+        let inertLink = render(Link(destination: url) { inert() }).hitTargets.count
+        #expect(render(Link(destination: url) { clickable() }).hitTargets.count > inertLink)
         // The bullet path: a plain button, and a Link that asked for the bullet.
         #expect(!render(Button(action: {}, label: { presenter() }).buttonStyle(.plain)).overlays.isEmpty)
-        let inertButton = render(Button(action: {}, label: { inert() }).buttonStyle(.plain)).hitTestRegions.count
-        #expect(render(Button(action: {}, label: { clickable() }).buttonStyle(.plain)).hitTestRegions.count > inertButton)
+        let inertButton = render(Button(action: {}, label: { inert() }).buttonStyle(.plain)).hitTargets.count
+        #expect(render(Button(action: {}, label: { clickable() }).buttonStyle(.plain)).hitTargets.count > inertButton)
         #expect(!render(Link(destination: url) { presenter() }.linkFocusIndicator(.bullet)).overlays.isEmpty)
     }
 

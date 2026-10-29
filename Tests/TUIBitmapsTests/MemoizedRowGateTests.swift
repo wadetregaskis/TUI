@@ -66,7 +66,7 @@ struct MemoizedRowGateTests {
 
         let row = _MemoizedRow(element: "row-A", content: Text("hello"))
         let first = renderToBuffer(row, context: context)
-        #expect(first.hitTestRegions.isEmpty)
+        #expect(first.hitTargets.isEmpty)
         #expect(cache.count == 1)  // inert → stored
 
         let second = renderToBuffer(row, context: context)

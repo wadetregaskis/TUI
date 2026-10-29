@@ -77,8 +77,7 @@ struct HitTestingModifierTests {
     func overlaysAreCleared() {
         func regionCount(_ view: some View) -> (own: Int, overlay: Int) {
             let drawn = buffer(view, width: 40, height: 12)
-            return (drawn.hitTestRegions.count,
-                    drawn.overlays.reduce(0) { $0 + $1.content.hitTestRegions.count })
+            return (drawn.hitTargets.count, drawn.overlays.reduce(0) { $0 + $1.content.hitTargets.count })
         }
         let shown = Text(verbatim: "page")
             .popover(isPresented: .constant(true)) { Button("Inside") {} }

@@ -44,6 +44,7 @@ extension ScreenSelection {
     ) -> FrameBuffer {
         let resized = width != frameWidth
         frameLines = buffer.lines
+        frameRegions = buffer.hitTestRegions
         frameWidth = width
         frameTop = top
         guard var selection = current else { return buffer }
@@ -80,7 +81,9 @@ extension ScreenSelection {
         }
         current = selection
         guard selection.isHighlighted else { return buffer }
-        return Self.highlighting(selection, in: buffer, palette: palette, pictures: buffer.hitTestRegions.pictureRects)
+        return Self.highlighting(
+            selection, in: buffer, palette: palette, frames: buffer.hitTestRegions.textFrames,
+            pictures: buffer.hitTestRegions.pictureRects)
     }
 }
 
@@ -90,6 +93,11 @@ extension ScreenSelection {
     /// `buffer` with `selection`'s cells drawn in the selection colours of the
     /// text inputs (``FieldTextLayout/selectionColors(palette:background:ink:)``), reverse video
     /// where the palette leaves the colours to the terminal.
+    ///
+    /// The cells it crosses that are drawn: the text frames it crosses
+    /// (`frames`, read off the frame's `HitTestRegion.HandlerID.textFrame`
+    /// regions), not the padding round them, with drawing that is no text
+    /// taken as before (``highlightedSpans(of:frames:pictures:cells:)``).
     ///
     /// Except a picture's cells (`pictures`, read off the frame's
     /// `HitTestRegion.pictureCorners`): their glyphs and colours ARE the
@@ -104,7 +112,8 @@ extension ScreenSelection {
     /// fading them, and an animated run stops redrawing them, as under a menu.
     @MainActor
     static func highlighting(
-        _ selection: Selection, in buffer: FrameBuffer, palette: any Palette, pictures: [CellRect] = []
+        _ selection: Selection, in buffer: FrameBuffer, palette: any Palette, frames: [CellRect] = [],
+        pictures: [CellRect] = []
     ) -> FrameBuffer {
         let colors = Self.selectionColors(palette: palette, background: nil)
             .resolved(with: palette)
@@ -121,11 +130,6 @@ extension ScreenSelection {
             cache[row] = cells
             return cells
         }
-        let (start, end) = ends(of: selection, cells: cellsOf)
-        var resolved = selection
-        (resolved.anchor, resolved.head) = (start, end)
-        resolved.unit = .character
-
         // Rows with the same columns go in one layer: a stream selection is at
         // most three, a rectangle one.
         var result = buffer
@@ -149,18 +153,17 @@ extension ScreenSelection {
             }
             return ANSIRenderer.wrap(text, in: introducer)
         }
-        for row in start.y...max(start.y, end.y) where row < buffer.lines.count {
+        let spansByRow = highlightedSpans(of: selection, frames: frames, pictures: pictures, cells: cellsOf)
+        for (row, spans) in spansByRow where row < buffer.lines.count {
             let cells = cellsOf(row)
-            guard let columns = Self.columns(of: resolved, onRow: row, cells: cells) else {
-                flush()
-                continue
-            }
             // A picture's cells on this row are tinted, and the text either
-            // side of them highlighted as text, each a layer of its own.
-            if !pictures.isEmpty {
-                let (text, tinted) = Self.splitting(columns, onRow: row, by: pictures)
-                if !tinted.isEmpty {
-                    flush()
+            // side of them highlighted as text, each a layer of its own; so is
+            // each of a row's spans, where it keeps to more than one text.
+            let split = pictures.isEmpty ? [] : spans.map { Self.splitting($0, onRow: row, by: pictures) }
+            if spans.count > 1 || split.contains(where: { !$0.tinted.isEmpty }) {
+                flush()
+                for (index, span) in spans.enumerated() {
+                    let (text, tinted) = split.isEmpty ? ([span], []) : split[index]
                     for segment in text {
                         result = result.compositedResolvingOpacity(
                             with: FrameBuffer(lines: [highlighted(segment, of: cells)]),
@@ -169,9 +172,10 @@ extension ScreenSelection {
                     for span in tinted {
                         result = Self.tinting(span, onRow: row, of: result, colour: style.backgroundColor, palette: palette)
                     }
-                    continue
                 }
+                continue
             }
+            let columns = spans[0]
             let line = highlighted(columns, of: cells)
             if let open = band, open.columns == columns, open.top + open.lines.count == row {
                 band?.lines.append(line)

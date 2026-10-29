@@ -94,10 +94,10 @@ struct StepperRenderTests {
         // under the label and clicks would miss.
         let buffer = renderToBuffer(
             Stepper("Qty", value: .constant(5), in: 0...10), context: mouseContext())
-        let arrowRegions = buffer.hitTestRegions.filter { $0.width == 1 }
+        let arrowRegions = buffer.hitTargets.filter { $0.width == 1 }
         #expect(arrowRegions.contains { $0.offsetX == buffer.width - 1 }, "right arrow ▶ at far right")
         #expect(arrowRegions.contains { $0.offsetX == 4 }, "left arrow ◀ just after the 'Qty ' label")
-        #expect(buffer.hitTestRegions.allSatisfy { $0.offsetX >= 4 }, "no hit region under the label")
+        #expect(buffer.hitTargets.allSatisfy { $0.offsetX >= 4 }, "no hit region under the label")
     }
 
     @Test("The control size sets the space round the value, as a bordered button's padding")
@@ -112,7 +112,7 @@ struct StepperRenderTests {
         #expect(drawn(.extraLarge) == "Qty ◀  5  ▶")
         // The arrows are still each a cell at either end, whatever the space.
         let buffer = renderToBuffer(Stepper("Qty", value: .constant(5)).controlSize(.small), context: mouseContext())
-        let arrowRegions = buffer.hitTestRegions.filter { $0.width == 1 }
+        let arrowRegions = buffer.hitTargets.filter { $0.width == 1 }
         #expect(arrowRegions.contains { $0.offsetX == 4 } && arrowRegions.contains { $0.offsetX == 6 }, "\(arrowRegions)")
     }
 }

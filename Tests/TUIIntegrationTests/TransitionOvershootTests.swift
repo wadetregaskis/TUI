@@ -313,7 +313,7 @@ struct TransitionOvershootTests {
         _ = drawn(Bouncing(showing: true), atMillis: 0, in: &context)
         let peak = drawn(Bouncing(showing: true), atMillis: Self.peakMillis, in: &context)
         #expect(peak.lines[0].stripped.hasPrefix(".XXXXXXXXXXXXXXXXXXXX."), "\(peak.lines.map(\.stripped))")
-        let targets = peak.hitTestRegions.filter { !$0.isGeometryMarker && $0.offsetY == 0 }
+        let targets = peak.hitTargets.filter { !$0.isGeometryMarker && $0.offsetY == 0 }
         // Column 20 is past the 20-wide slot and drawn by the bounce.
         #expect(targets.contains { $0.offsetX <= 20 && 20 < $0.offsetX + $0.width }, "\(targets)")
         #expect(!targets.contains { $0.offsetX == 0 }, "nothing left to click in the vacated cell: \(targets)")

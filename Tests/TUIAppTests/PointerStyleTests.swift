@@ -102,7 +102,7 @@ struct PointerStyleTests {
     func inertWhereUnsupported() {
         let harness = Harness(shapes: false)
         let buffer = harness.frame(Text("styled").pointerStyle(.link))
-        #expect(buffer.hitTestRegions.isEmpty)
+        #expect(buffer.hitTargets.isEmpty)
         #expect(!harness.dispatcher.effectiveSupport(baseConfig: .standard).motion)
         #expect(harness.shape(atX: 1, y: 0) == nil)
     }
@@ -254,7 +254,7 @@ struct PointerStyleTests {
         #expect(harness.shape(atX: 1, y: 1) == .crosshair, "a disabled view's own style shows nothing")
         let alone = Harness()
         let buffer = alone.frame(Text("disabled").pointerStyle(.link).disabled(true))
-        #expect(buffer.hitTestRegions.isEmpty)
+        #expect(buffer.hitTargets.isEmpty)
     }
 
     @Test("A control drawn over a styled view covers its style")
@@ -370,9 +370,9 @@ struct PointerStyleTests {
         let harness = Harness(controlShapes: true)
         let buffer = harness.frame(
             Text("resize me").frame(width: 12, height: 3).userResizable())
-        let corner = buffer.hitTestRegions.last { $0.width == 2 && $0.height == 2 }
-        let bottom = buffer.hitTestRegions.first { $0.height == 1 && $0.width > 2 }
-        let right = buffer.hitTestRegions.first { $0.width == 1 && $0.height > 2 }
+        let corner = buffer.hitTargets.last { $0.width == 2 && $0.height == 2 }
+        let bottom = buffer.hitTargets.first { $0.height == 1 && $0.width > 2 }
+        let right = buffer.hitTargets.first { $0.width == 1 && $0.height > 2 }
         guard let corner, let bottom, let right else {
             Issue.record("the resizable view drew no edges: \(buffer.hitTestRegions)")
             return

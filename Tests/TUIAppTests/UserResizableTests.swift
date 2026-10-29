@@ -604,7 +604,7 @@ struct UserResizableTests {
             buffer.lines.compactMap { $0.stripped.last }.contains("\u{2551}"),
             "the live axis lost its handle too")
         // One region, for the one live edge — no corner, and no bottom edge.
-        #expect(buffer.hitTestRegions.count == 1)
+        #expect(buffer.hitTargets.count == 1)
     }
 
     @Test("A view pinned on every axis is not resizable at all")

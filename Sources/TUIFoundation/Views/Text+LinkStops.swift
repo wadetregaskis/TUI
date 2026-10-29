@@ -288,7 +288,8 @@ private struct _TextLinksCore: View, Renderable {
         // Noted by line; a line is a row apart from the spacing between them,
         // which is the environment's, as `Text` reads it.
         spans.space(by: context.environment.lineSpacing)
-        guard !context.isMeasuring, let runs = text.runs else { return drawn }
+        // Where it is drawn, as `Text` files it (`FrameBuffer.filingTextFrame(context:)`).
+        guard !context.isMeasuring, let runs = text.runs else { return drawn.filingTextFrame(context: context) }
         // The page beneath an open menu is a picture drawn unfocused into a
         // throwaway focus system: what it says is not where the focus is.
         let live = context.environment.focusManager?.isBackdrop != true
@@ -319,7 +320,7 @@ private struct _TextLinksCore: View, Renderable {
                 context: context)
         }
         buffer.hitTestRegions += regions
-        return buffer
+        return buffer.filingTextFrame(context: context)
     }
 
     /// The text with the link at `run` breathing, as a focused `Link`'s words

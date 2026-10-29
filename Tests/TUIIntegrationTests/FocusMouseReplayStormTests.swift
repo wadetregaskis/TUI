@@ -590,8 +590,9 @@ private final class StormRun {
     /// registered — which is what a served buffer would carry if its
     /// registration were not replayed.
     func danglingRegions(_ frame: StormFrame) -> [String] {
+        // A text's frame names no handler by design: it is no control.
         zip(frame.regions, lastRegionIDs)
-            .filter { tui.mouseEventDispatcher.handler(for: $0.1) == nil }
+            .filter { $0.1 != .textFrame && tui.mouseEventDispatcher.handler(for: $0.1) == nil }
             .map(\.0)
     }
 

@@ -1077,7 +1077,9 @@ extension Text: Renderable, Layoutable {
         let drawn = sweepingStrike(context: context) { text in
             ContentDissolve.drawn(text.rendered(context: context, linkSpans: nil, routesLinks: true), context: context)
         }
-        return renderedThroughRenderer(drawn, context: context)
+        // Where it is drawn, for a screen selection's highlight
+        // (`FrameBuffer.filingTextFrame(context:)`).
+        return renderedThroughRenderer(drawn, context: context).filingTextFrame(context: context)
     }
 
     /// The text drawn, and in `shadowing` the paint whose shadows it casts:

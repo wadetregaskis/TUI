@@ -121,7 +121,7 @@ struct FocusableModifierTests {
         let buffer = renderBuffer(
             VStack { Text("x").focusable() }.focusable(false),
             TUIContext(), FocusManager())
-        #expect(buffer.hitTestRegions.isEmpty)
+        #expect(buffer.hitTargets.isEmpty)
     }
 
     @Test("A disabled focusable does not register")

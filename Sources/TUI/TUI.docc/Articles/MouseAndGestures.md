@@ -369,7 +369,15 @@ List(invite.recipients) { recipient in
 .textSelection(.enabled)
 ```
 
-Selected text is drawn in the selection colours of the text fields. A
+Selected text is drawn in the selection colours of the text fields, on the
+text the selection crosses: each `Text` notes where it is drawn, and on every
+row the highlight covers the texts the selection crosses there — a wrapped
+paragraph's rows to its trailing edge, as a block — and not a padded card's
+padding, the blanks past a short line or the gap between two texts side by
+side, though a copy still reads those blanks. Drawing that is no `Text` — a
+field's text, a table's text columns, a custom view — is highlighted by its
+characters and the blanks between them, never a border's walls; and a
+selection that crosses no `Text` at all is highlighted cell for cell. A
 picture — an ``Image`` drawn in characters, blocks or Braille — keeps its
 glyphs and colours under a selection and takes a tint of the selection colour
 instead: its cells are pixels, and drawing them as text left a flat field of

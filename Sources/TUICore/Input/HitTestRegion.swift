@@ -246,7 +246,28 @@ extension HitTestRegion {
         /// either. It names no handler: a press offered to it is declined,
         /// and hover and the pointer's shape see through it.
         public static let selectionInterior = Self(geometryMarkerBit - 1)
+
+        /// The id of a `Text`'s frame: the cells it draws, filed by the
+        /// region alone, as ``selectionInterior`` files a box's interior, for
+        /// a screen selection that crosses it, whose highlight keeps to the
+        /// text frames it crosses rather than the padding between them
+        /// (`ScreenSelection`). Two below the geometry bit. It names no
+        /// handler and is no target: the mouse dispatcher never offers it an
+        /// event, and hover and the pointer's shape see through it.
+        ///
+        /// An ordinary region otherwise, NOT a geometry marker: it is the
+        /// cells the text draws, so a clip trims it and drops it once nothing
+        /// of it is left, and it travels with the cells where they are drawn
+        /// away from their slot (`.offset`, a transition's overshoot), where
+        /// a marker stays behind.
+        package static let textFrame = Self(geometryMarkerBit - 2)
     }
+}
+
+extension HitTestRegion {
+    /// Whether this region is a `Text`'s frame (``HandlerID/textFrame``)
+    /// rather than a hit-test target.
+    package var isTextFrame: Bool { handlerID == .textFrame }
 }
 
 // MARK: - Geometry Markers

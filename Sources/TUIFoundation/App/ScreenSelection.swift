@@ -30,8 +30,14 @@ import TUICore
 ///
 /// What is selected is CHARACTERS, read from the page as drawn, not views:
 /// wide characters once, trailing blanks dropped, rows joined with line
-/// breaks. The text is fixed when the drag ends; the highlight goes as soon as
-/// the cells under it no longer read that text, and with it the selection's
+/// breaks. The HIGHLIGHT keeps to the text it crosses: each `Text` files its
+/// frame as it is drawn, and a row's highlight is the frames the selection
+/// crosses there, so a padded card's padding and the gap between two texts
+/// side by side are not highlighted, though their blanks are copied;
+/// drawing that is no text is highlighted as before
+/// (``highlightedSpans(of:frames:pictures:cells:)``). The text is fixed when
+/// the drag ends; the highlight goes as soon as the cells under it no longer
+/// read that text, and with it the selection's
 /// keys — for good, unless the page itself moved, when both come back with it.
 ///
 /// **Copying** is Ctrl-C — the app's ⌘C, resolved through `commandKey` — while
@@ -42,7 +48,8 @@ import TUICore
 /// and a resize clear the selection.
 ///
 /// Costs nothing per frame while nothing is selected but keeping a reference
-/// to the frame's lines (the array is shared, not copied).
+/// to the frame's lines and regions (the arrays are shared, not copied) —
+/// and, in the drawing, a region per `Text` (`FrameBuffer.filingTextFrame(context:)`).
 package final class ScreenSelection: @unchecked Sendable {
     // Touched from the main actor only: the dispatcher's events, the input
     // chain's keys and the run loop's frame all run there.
@@ -143,6 +150,16 @@ package final class ScreenSelection: @unchecked Sendable {
     /// ``frameLines``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _frameLines: [String] = []
+
+    /// The last frame's regions, in the page's coordinates: where its texts
+    /// and pictures are drawn, which the highlight keeps to
+    /// (``highlightedSpans(of:frames:pictures:cells:)``). A reference to the
+    /// frame's own array, kept every frame, as ``frameLines`` is.
+    package var frameRegions: [HitTestRegion] { get { _frameRegions } set { _frameRegions = newValue } }
+
+    /// ``frameRegions``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _frameRegions: [HitTestRegion] = []
 
     /// The last frame's content width.
     package var frameWidth: Int { get { _frameWidth } set { _frameWidth = newValue } }
@@ -315,13 +332,17 @@ extension ScreenSelection {
         guard let selection = current, selection.isHighlighted, !selection.isMaking,
             point.y >= 0, point.y < frameLines.count
         else { return false }
-        let cells = Self.cells(of: frameLines[point.y])
-        var resolved = selection
-        (resolved.anchor, resolved.head) = Self.ends(of: selection) { row in
-            row >= 0 && row < frameLines.count ? Self.cells(of: frameLines[row]) : []
+        var cache: [Int: [Character?]] = [:]
+        let lines = frameLines
+        let spans = Self.highlightedSpans(
+            of: selection, frames: frameRegions.textFrames, pictures: frameRegions.pictureRects
+        ) { row in
+            if let cached = cache[row] { return cached }
+            let cells = row >= 0 && row < lines.count ? Self.cells(of: lines[row]) : []
+            cache[row] = cells
+            return cells
         }
-        resolved.unit = .character
-        return Self.columns(of: resolved, onRow: point.y, cells: cells)?.contains(point.x) ?? false
+        return spans.first { $0.row == point.y }?.spans.contains { $0.contains(point.x) } ?? false
     }
 
     /// Opens the selection's context menu at `point`, if `point` is on the

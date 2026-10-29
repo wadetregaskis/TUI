@@ -134,7 +134,7 @@ struct StateBindingIdentityTests {
         dispatcher.setActiveSupport(.standard)
         dispatcher.setRegions(buffer.hitTestRegions)
 
-        let regions = buffer.hitTestRegions
+        let regions = buffer.hitTargets
         guard regions.count >= 2 else {
             Issue.record("expected 2 TextField regions, got \(regions.count)")
             return
@@ -205,7 +205,7 @@ struct StateBindingIdentityTests {
         dispatcher.setActiveSupport(.standard)
         dispatcher.setRegions(buffer.hitTestRegions)
 
-        let regions = buffer.hitTestRegions
+        let regions = buffer.hitTargets
         guard regions.count >= 2 else {
             Issue.record("expected 2 TextField regions, got \(regions.count)")
             return
@@ -366,7 +366,7 @@ struct StateBindingIdentityTests {
         // Final render pass — this is the one whose regions we click.
         let buffer = renderToBuffer(page, context: context)
         dispatcher.setRegions(buffer.hitTestRegions)
-        let regions = buffer.hitTestRegions
+        let regions = buffer.hitTargets
         guard regions.count >= 2 else {
             Issue.record("expected 2 regions, got \(regions.count)")
             return

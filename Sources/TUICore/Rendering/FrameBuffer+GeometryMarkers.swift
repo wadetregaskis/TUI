@@ -53,16 +53,17 @@ extension FrameBuffer {
             || overlays.contains { $0.carriesDisplacedDrawing && $0.content.carriesGeometryMarkers }
     }
 
-    /// Removes every hit-test TARGET, keeping the geometry markers.
+    /// Removes every hit-test TARGET, keeping the geometry markers and the
+    /// text frames (``HitTestRegion/HandlerID/textFrame``).
     ///
     /// For a view that makes what it wraps inert — `.allowsHitTesting(false)`,
     /// the page under a modal — rather than a view that removes it: an inert
     /// view is still drawn where it is drawn, and a reader inside it still asks
-    /// where that is. Clearing ``hitTestRegions`` outright took the markers
-    /// with the targets.
+    /// where that is, and a selection over its text still keeps to the text.
+    /// Clearing ``hitTestRegions`` outright took the markers with the targets.
     public mutating func removeHitTargets() {
         guard !hitTestRegions.isEmpty else { return }
-        hitTestRegions.removeAll { !$0.isGeometryMarker }
+        hitTestRegions.removeAll { !$0.isGeometryMarker && !$0.isTextFrame }
     }
 }
 

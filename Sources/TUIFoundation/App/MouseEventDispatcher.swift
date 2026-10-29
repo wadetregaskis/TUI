@@ -1262,8 +1262,12 @@ extension MouseEventDispatcher {
     func matchingRegions(at x: Int, y: Int, includingWheelOnly: Bool = false) -> [HitTestRegion] {
         // A geometry marker has no area, so `contains` already refuses it; the
         // explicit test says so, and keeps a marker inert if one ever grows a
-        // size (`HitTestRegion.geometryMarker(_:)`).
-        var matching = regions.reversed().filter { !$0.isGeometryMarker && $0.contains(x: x, y: y) }
+        // size (`HitTestRegion.geometryMarker(_:)`). A text's frame has one,
+        // and is no target either: it is read by the screen selection alone
+        // (`HitTestRegion.HandlerID.textFrame`).
+        var matching = regions.reversed().filter {
+            !$0.isGeometryMarker && !$0.isTextFrame && $0.contains(x: x, y: y)
+        }
         if !pointerStyleRegions.isEmpty { matching.removeAll { pointerStyleRegions[$0.handlerID] != nil } }
         guard !includingWheelOnly, !wheelHandlerIDs.isEmpty else { return matching }
         return matching.filter { !wheelHandlerIDs.contains($0.handlerID) }

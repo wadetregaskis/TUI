@@ -3164,11 +3164,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // reverse iteration matches first.
             //
             // A list that registered nothing still merges its rows' geometry
-            // markers: a marker names no handler, and a disabled row is still
-            // drawn where it is (`HitTestRegion.geometryMarker(_:)`).
+            // markers and text frames: they name no handler, and a disabled
+            // row is still drawn where it is (`HitTestRegion.geometryMarker(_:)`,
+            // `HitTestRegion.HandlerID.textFrame`).
             if !visible.row.buffer.hitTestRegions.isEmpty {
                 for region in visible.row.buffer.hitTestRegions
-                where mergesHitRegions || region.isGeometryMarker {
+                where mergesHitRegions || region.isGeometryMarker || region.isTextFrame {
                     // Rows can be partially visible — the top row clipped above
                     // (line granularity), the last row clipped below: intersect
                     // each region with the row-local window of lines actually

@@ -213,7 +213,8 @@ extension MouseEventDispatcher {
         // The innermost style or see-through wrapper the walk has gone into:
         // what follows it front to back is inside its view, or behind it.
         var scope: HitTestRegion.HandlerID?
-        for region in regions.reversed() where !region.isGeometryMarker && region.contains(x: x, y: y) {
+        for region in regions.reversed()
+        where !region.isGeometryMarker && !region.isTextFrame && region.contains(x: x, y: y) {
             let id = region.handlerID
             let style = pointerStyleRegions[id]
             let seesThrough = style == nil && pointerShapeWrappers.contains(id)
