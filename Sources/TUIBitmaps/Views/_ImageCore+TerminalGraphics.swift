@@ -138,7 +138,8 @@ extension _ImageCore {
     }
 
     func renderWithTerminalGraphics(
-        _ rawImage: RGBAImage, width: Int, height: Int, stretches: Bool, context: RenderContext
+        _ rawImage: RGBAImage, decodedPixels: DecodedPixels, width: Int, height: Int, stretches: Bool,
+        context: RenderContext
     ) -> FrameBuffer? {
         guard KittyGraphics.isSupported,
             context.environment.terminalGraphics,
@@ -220,7 +221,7 @@ extension _ImageCore {
         let fit = PixelFit(stretches: stretches, contentMode: context.environment.imageContentMode)
         let boxPixels = fit.pixels(of: rawImage, fitting: (wantedWidth, wantedHeight))
         var signature = TerminalImageSignature(
-            source: source,
+            source: source, decodedPixels: decodedPixels,
             rawWidth: rawImage.width, rawHeight: rawImage.height,
             pixelWidth: boxPixels.width, pixelHeight: boxPixels.height,
             colorMode: colorMode, toneCurve: toneCurve,

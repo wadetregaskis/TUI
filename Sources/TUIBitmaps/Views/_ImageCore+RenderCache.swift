@@ -34,6 +34,11 @@ struct ImageRenderCache: Equatable {
     /// it from the start, so the same app switching pictures was correct on a
     /// Kitty-graphics terminal and stale on every other one.
     var source: ImageSource
+    /// And which LOAD of it: a file rewritten at the same path and size
+    /// decodes to new pixels under the same source and the same dimensions,
+    /// and this view loads it again when it comes back into a window that
+    /// kept its state. See ``DecodedPixels``; it costs two pointer reads.
+    var decodedPixels: DecodedPixels
     var rawImageWidth: Int
     var rawImageHeight: Int
     var width: Int
@@ -64,11 +69,6 @@ struct ImageRenderCache: Equatable {
     /// By value, not by `TerminalColors.generation`: a task-local pin changes
     /// what a slot measures as without moving the generation.
     var terminalColors: TerminalColors
-    /// The colour a template image's pixels were drawn in, or `nil` for an
-    /// image drawn in its own colours.
-    var templateInk: RGBA?
-    /// How a resizable image filled its box: stretched, or in slices.
-    var resizing: _ImageResizing?
     /// How many colours the terminal shows, which the conversion downgrades the
     /// colour mode to (`ASCIIColorMode.effective(for:)`, read from
     /// `ColorDepth.current`). The render cache clears itself when the depth
@@ -77,12 +77,18 @@ struct ImageRenderCache: Equatable {
     /// drawn in true-colour escapes on a 256-colour terminal, and the other
     /// way round.
     var colorDepth: ColorDepth
+    /// The colour a template image's pixels were drawn in, or `nil` for an
+    /// image drawn in its own colours.
+    var templateInk: RGBA?
+    /// How a resizable image filled its box: stretched, or in slices.
+    var resizing: _ImageResizing?
     var art: ASCIIArt
 
     /// Returns whether `self` was built from the same inputs as the
     /// pending render. Compares everything except the cached `art`.
     func matches(  // swiftlint:disable:this function_parameter_count
         source: ImageSource,
+        decodedPixels: DecodedPixels,
         rawImageWidth: Int, rawImageHeight: Int,
         width: Int, height: Int,
         characterSet: ASCIICharacterSet, shapeAware: Bool, colorMode: ASCIIColorMode,
@@ -92,13 +98,13 @@ struct ImageRenderCache: Equatable {
         aspectRatioOverride: Double?,
         cellAspect: Double,
         terminalColors: TerminalColors,
+        colorDepth: ColorDepth,
         templateInk: RGBA?,
         resizing: _ImageResizing?
     ) -> Bool {
         guard self.rawImageWidth == rawImageWidth,
             self.rawImageHeight == rawImageHeight,
             self.width == width,
-        colorDepth: ColorDepth,
             self.height == height,
             self.characterSet == characterSet,
             self.shapeAware == shapeAware,
@@ -115,13 +121,14 @@ struct ImageRenderCache: Equatable {
             self.aspectRatioOverride == aspectRatioOverride,
             self.cellAspect == cellAspect,
             self.terminalColors == terminalColors,
+            self.colorDepth == colorDepth,
             self.templateInk == templateInk,
-            self.resizing == resizing
+            self.resizing == resizing,
+            self.decodedPixels == decodedPixels
         else { return false }
         // Last: the scalar comparisons above reject the frequent miss — a
         // resize — before this one runs. It is the field that decides
         // correctness, not the one that usually decides the answer.
-            self.colorDepth == colorDepth,
         return self.source == source
     }
 }

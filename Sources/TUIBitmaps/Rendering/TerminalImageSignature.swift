@@ -23,6 +23,11 @@ struct TerminalImageSignature: Equatable {
     /// Which picture, and at what decoded size — a source change resets the
     /// loading phase, so within one view these cannot disagree.
     var source: ImageSource
+    /// Which load of that source (``DecodedPixels``): a file rewritten at the
+    /// same path and size decodes to new pixels under the same name and size,
+    /// and the terminal kept the picture of the old ones. `nil` only where a
+    /// test builds a signature by hand; `_ImageCore` always says.
+    var decodedPixels: DecodedPixels?
     var rawWidth: Int
     var rawHeight: Int
 

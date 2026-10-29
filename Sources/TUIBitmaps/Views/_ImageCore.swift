@@ -210,9 +210,7 @@ struct _ImageCore: View, Renderable, Layoutable {
 
         let (width, height) = (context.availableWidth, context.availableHeight)
 
-        guard width > 0, height > 0 else {
-            return FrameBuffer()
-        }
+        guard width > 0, height > 0 else { return FrameBuffer() }
 
         // Read environment values
         let characterSet = context.environment.imageCharacterSet
@@ -325,13 +323,16 @@ struct _ImageCore: View, Renderable, Layoutable {
             // So is an image in slices: its pixels are made for the box.
             let monoColours = ImageMonoColours(for: colorMode, in: context.environment)
             let picture: FrameBuffer
+            // Each keyed on which load its pixels are (`DecodedPixels`): the
+            // LOADED buffer, not the drawn one, which a crop makes every frame.
             if !isTemplate, resizing?.slices != true, let drawn = renderWithTerminalGraphics(
-                rawImage, width: drawWidth, height: drawHeight, stretches: resizing != nil && !keepsAspect, context: context)
+                rawImage, decodedPixels: DecodedPixels(loadedImage), width: drawWidth, height: drawHeight,
+                stretches: resizing != nil && !keepsAspect, context: context)
             {
                 picture = drawn
             } else {
                 picture = renderImage(
-                    rawImage,
+                    rawImage, decodedPixels: DecodedPixels(loadedImage),
                     width: drawWidth,
                     height: drawHeight,
                     characterSet: characterSet,
@@ -588,6 +589,7 @@ extension _ImageCore {
     /// many times per second.
     private func renderImage(  // swiftlint:disable:this function_parameter_count
         _ rawImage: RGBAImage,
+        decodedPixels: DecodedPixels,
         width: Int,
         height: Int,
         characterSet: ASCIICharacterSet,
@@ -630,13 +632,14 @@ extension _ImageCore {
         // Read once, for the lookup and for the entry it may store: the colours
         // the conversion below measures the terminal's slots under.
         let terminalColors = TerminalColors.current
-        let cacheKey = StateStorage.StateKey(identity: identity, propertyIndex: StateIndex.renderCache)
-        let cacheBox: StateBox<ImageRenderCache?> = stateStorage.storage(for: cacheKey, default: nil)
-        if let cache = cacheBox.value, cache.matches(
         // And the depth the converter downgrades the colour mode to, which it
         // reads from the same place as it converts.
         let colorDepth = ColorDepth.current
+        let cacheKey = StateStorage.StateKey(identity: identity, propertyIndex: StateIndex.renderCache)
+        let cacheBox: StateBox<ImageRenderCache?> = stateStorage.storage(for: cacheKey, default: nil)
+        if let cache = cacheBox.value, cache.matches(
             source: source,
+            decodedPixels: decodedPixels,
             rawImageWidth: rawImage.width,
             rawImageHeight: rawImage.height,
             width: targetSize.width,
@@ -656,11 +659,11 @@ extension _ImageCore {
             aspectRatioOverride: aspectRatioOverride,
             cellAspect: cellAspect,
             terminalColors: terminalColors,
+            colorDepth: colorDepth,
             templateInk: templateInk,
             resizing: resizing
         ) {
             return Self.buffer(for: cache.art, monoColours: monoColours)
-            colorDepth: colorDepth,
         }
 
         let converter = ASCIIConverter(
@@ -685,6 +688,7 @@ extension _ImageCore {
 
         cacheBox.value = ImageRenderCache(
             source: source,
+            decodedPixels: decodedPixels,
             rawImageWidth: rawImage.width,
             rawImageHeight: rawImage.height,
             width: targetSize.width,
@@ -704,12 +708,12 @@ extension _ImageCore {
             aspectRatioOverride: aspectRatioOverride,
             cellAspect: cellAspect,
             terminalColors: terminalColors,
+            colorDepth: colorDepth,
             templateInk: templateInk,
             resizing: resizing,
             art: art
         )
 
-            colorDepth: colorDepth,
         return Self.buffer(for: art, monoColours: monoColours)
     }
 
