@@ -69,6 +69,14 @@ struct ImageRenderCache: Equatable {
     var templateInk: RGBA?
     /// How a resizable image filled its box: stretched, or in slices.
     var resizing: _ImageResizing?
+    /// How many colours the terminal shows, which the conversion downgrades the
+    /// colour mode to (`ASCIIColorMode.effective(for:)`, read from
+    /// `ColorDepth.current`). The render cache clears itself when the depth
+    /// moves, and this lives in the view's state, where that clear does not
+    /// reach: without it a picture converted in true colour went on being
+    /// drawn in true-colour escapes on a 256-colour terminal, and the other
+    /// way round.
+    var colorDepth: ColorDepth
     var art: ASCIIArt
 
     /// Returns whether `self` was built from the same inputs as the
@@ -90,6 +98,7 @@ struct ImageRenderCache: Equatable {
         guard self.rawImageWidth == rawImageWidth,
             self.rawImageHeight == rawImageHeight,
             self.width == width,
+        colorDepth: ColorDepth,
             self.height == height,
             self.characterSet == characterSet,
             self.shapeAware == shapeAware,
@@ -112,6 +121,7 @@ struct ImageRenderCache: Equatable {
         // Last: the scalar comparisons above reject the frequent miss — a
         // resize — before this one runs. It is the field that decides
         // correctness, not the one that usually decides the answer.
+            self.colorDepth == colorDepth,
         return self.source == source
     }
 }

@@ -633,6 +633,9 @@ extension _ImageCore {
         let cacheKey = StateStorage.StateKey(identity: identity, propertyIndex: StateIndex.renderCache)
         let cacheBox: StateBox<ImageRenderCache?> = stateStorage.storage(for: cacheKey, default: nil)
         if let cache = cacheBox.value, cache.matches(
+        // And the depth the converter downgrades the colour mode to, which it
+        // reads from the same place as it converts.
+        let colorDepth = ColorDepth.current
             source: source,
             rawImageWidth: rawImage.width,
             rawImageHeight: rawImage.height,
@@ -657,6 +660,7 @@ extension _ImageCore {
             resizing: resizing
         ) {
             return Self.buffer(for: cache.art, monoColours: monoColours)
+            colorDepth: colorDepth,
         }
 
         let converter = ASCIIConverter(
@@ -705,6 +709,7 @@ extension _ImageCore {
             art: art
         )
 
+            colorDepth: colorDepth,
         return Self.buffer(for: art, monoColours: monoColours)
     }
 
