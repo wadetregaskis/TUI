@@ -450,4 +450,35 @@ struct ToolbarCustomizationTests {
         driver.click("ALPHA")
         #expect(CustomizationProbe.shared.taps == 2)
     }
+
+    @Test("An item dragged off the bar goes in a puff where it was let go, gone after a third of a second")
+    func barDragPoofs() {
+        reset()
+        defer { reset() }
+        let driver = Driver(DraggableApp())
+        driver.click("BETA", button: .right)
+        driver.click("Customize Toolbar")
+        guard let bar = driver.rows.first, let found = bar.range(of: "GAMMA") else {
+            Issue.record("\(driver.rows)")
+            return
+        }
+        let x = bar.distance(from: bar.startIndex, to: found.lowerBound)
+        func cell(_ row: Int, _ column: Int) -> Character? {
+            let line = Array(driver.rows[row])
+            return line.indices.contains(column) ? line[column] : nil
+        }
+        driver.dragBarItem("GAMMA", across: 0, down: 3)
+        // The release's frame and the next: the puff's first frame, a star.
+        #expect(cell(3, x) == "*", "\(driver.rows)")
+        // Its second, five sixtieths of a second in (the frames are 20 ms
+        // apart): it opens.
+        driver.frames(4)
+        #expect(cell(3, x) == "\u{273B}" && cell(3, x - 1) == ".", "\(driver.rows)")
+        driver.frames(15)
+        #expect(!driver.rows.contains { $0.contains("\u{273B}") || $0.contains("\u{273A}") }, "\(driver.rows)")
+        #expect(cell(3, x) != "*", "\(driver.rows)")
+        // One the person may not take out goes in no puff.
+        driver.dragBarItem("KEPT", across: 0, down: 3)
+        #expect(!driver.rows.contains { $0.contains("*") }, "\(driver.rows)")
+    }
 }

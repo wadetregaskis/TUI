@@ -769,7 +769,8 @@ package final class WindowChromeState: @unchecked Sendable {
     private var _customizingToolbarID: String?
 
     /// The person's gestures on the customized toolbar's items in the bar:
-    /// the items drawn to be dragged, and the drag under way.
+    /// the items drawn to be dragged, the drag under way, the puff an item
+    /// dragged off the bar goes in.
     package let toolbarCustomization = ToolbarCustomizationGestures()
 
     /// Opens the customization panel on the first customizable toolbar

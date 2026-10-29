@@ -791,7 +791,8 @@ the person chose, listed in the panel as SwiftUI lists it. While the panel is
 open the bar's own items are no controls but things to drag, as on macOS: one
 dragged sideways moves a place among the others of its place for each
 neighbour it crosses, and one let go two or more rows off the bar is taken out
-of it (an item the person may not take out stays). What the person
+of it, in a third of a second's puff of smoke where it was let go (an item the
+person may not take out stays). What the person
 chose is kept per identifier in the app's default storage, under
 `"TUI Toolbar Configuration <id>"`, as macOS keeps a toolbar's
 configuration; an item moves among the others of its own place, its region of

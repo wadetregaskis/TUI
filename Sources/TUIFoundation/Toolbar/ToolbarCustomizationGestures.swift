@@ -3,7 +3,8 @@
 //
 //  What the window keeps of the person dragging a customizable toolbar's
 //  items in the bar itself while they customize it: the items the bars drew
-//  to be dragged, and the drag under way.
+//  to be dragged, the drag under way, and the puff an item taken out of the
+//  bar goes in.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -13,7 +14,7 @@ import TUICore
 /// The person's gestures on a customizable toolbar's items in the bar, while
 /// its customization panel is open (the owner, 2026-10-28, afternoon list
 /// #41): as on macOS, an item dragged sideways moves among the others of its
-/// place, and one dragged off the bar is taken out of it.
+/// place, and one dragged off the bar is taken out of it, in a puff of smoke.
 ///
 /// Kept in ``WindowChromeState``, which the bars draw from and the run loop
 /// keeps from frame to frame; the toolbar's module (TUIChrome) fills it and
@@ -59,12 +60,31 @@ package final class ToolbarCustomizationGestures: @unchecked Sendable {
         }
     }
 
+    /// The puff an item taken out of the bar goes in, where it was let go.
+    package struct Poof {
+        /// The screen cell it is centred on.
+        package let x: Int
+        package let y: Int
+        /// When its first frame was drawn: `nil` until the frame after the
+        /// release, which stamps it — the release itself has no clock.
+        package var startNanos: Int64?
+
+        package init(x: Int, y: Int) {
+            self.x = x
+            self.y = y
+        }
+    }
+
     /// The items the bars drew this walk to be dragged, by their regions'
     /// handlers.
     private var draggables: [HitTestRegion.HandlerID: Draggable] = [:]
 
     /// The drag under way, or `nil`.
     package var drag: Drag?
+
+    /// The puff showing, or `nil` — every frame but a third of a second's
+    /// after an item is dragged off the bar.
+    package var poof: Poof?
 
     package init() {}
 

@@ -21,7 +21,8 @@ import TUIFoundation
 ///   panel's grip moves a row (``CustomizableToolbarDeclaration/neighbour``).
 ///   An item the bar does not draw is passed with the next one it does.
 /// - Let go two or more rows off its bar, it is taken out of the bar, if the
-///   person may take it out; one they may not stays where it is.
+///   person may take it out, and goes in a puff of smoke where it was let go
+///   (``_ToolbarPoof``); one they may not stays where it is.
 ///
 /// The bar's regions are under the panel's: the panel is a popover hanging
 /// from the bar, and its backdrop, which closes it on a click outside, covers
@@ -87,6 +88,7 @@ enum _ToolbarItemDrag {
             gestures.drag = nil
             if isOffBar, let toolbar, toolbar.items.contains(where: { $0.id == key.itemID && $0.isRemovable }) {
                 toolbar.setShown(key.itemID, false)
+                gestures.poof = ToolbarCustomizationGestures.Poof(x: drag.origin.x + event.x, y: row)
             }
             return true
         default:

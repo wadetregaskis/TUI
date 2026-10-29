@@ -208,6 +208,7 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         frontingToolbarItemDrags(
             &frame, chrome: chrome, topRows: rows.menu..<(rows.menu + rows.top),
             bottomRows: (height - rows.bottom)..<height)
+        _ToolbarPoof.draw(over: &frame, chrome: chrome, context: context)
 
         // What the content declared this walk becomes the next frame's rows.
         let now = context.environment.frameNowNanos
