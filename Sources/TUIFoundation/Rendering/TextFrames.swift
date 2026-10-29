@@ -12,7 +12,7 @@ import TUICore
 
 extension FrameBuffer {
     /// This buffer, a `Text`'s drawing, filed as the text's frame
-    /// (``HitTestRegion/HandlerID/textFrame``): its whole rectangle, the
+    /// (`HitTestRegion.HandlerID.textFrame`): its whole rectangle, the
     /// widest line by every row.
     ///
     /// The rectangle, not each line's own run: a wrapped paragraph's
@@ -44,7 +44,7 @@ extension FrameBuffer {
 
 extension Array where Element == HitTestRegion {
     /// The rectangles of the text frames among these regions
-    /// (``HitTestRegion/HandlerID/textFrame``), in the regions' coordinates.
+    /// (`HitTestRegion.HandlerID.textFrame`), in the regions' coordinates.
     package var textFrames: [CellRect] {
         var rects: [CellRect] = []
         for region in self where region.isTextFrame {

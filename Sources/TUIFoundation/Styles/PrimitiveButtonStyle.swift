@@ -145,7 +145,7 @@ extension EnvironmentValues {
 /// Compared as its two halves were when each had a modifier of its own: an
 /// appearance as an `Equatable` style (every built-in one is), a chain as
 /// ``StyleChain`` compares — and, like the chain, saying when it holds a style
-/// it cannot compare (``PartiallyComparable``).
+/// it cannot compare (`PartiallyComparable`).
 enum InstalledPrimitiveButtonStyle: Equatable, PartiallyComparable, @unchecked Sendable {
     /// A built-in style's appearance, with no custom style in force.
     case appearance(any ButtonStyle)

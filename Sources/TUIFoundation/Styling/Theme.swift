@@ -107,7 +107,7 @@ public struct ThemeModifier<Content: View>: View {
     /// which is what `3a7c1d27..bbac32c8` was for.
     ///
     /// A style that cannot answer by value is unequal to everything, as
-    /// `StyleChain` holds it, and says so (``PartiallyComparable``): the slot is
+    /// `StyleChain` holds it, and says so (`PartiallyComparable`): the slot is
     /// then `.incomparable`, and the memos below are declined rather than
     /// cleared every frame. Its type alone used to answer "equal", so a second
     /// style of one type that held something else — a badge, a colour — was
@@ -220,7 +220,7 @@ public struct ThemeModifier<Content: View>: View {
         // compiler knows is `Equatable` keeps a raw value that cannot be compared
         // out — a build error rather than silently wrong pixels. The one way in
         // is a wrapper that says it cannot compare what it holds
-        // (``PartiallyComparable``, a `ComparableStyle` around an app's style
+        // (`PartiallyComparable`, a `ComparableStyle` around an app's style
         // that is not `Equatable`), and that answer is acted on below as
         // `EnvironmentModifier`'s arm acts on it: the memos under the theme
         // decline to store, through the tracker and the environment's flag.

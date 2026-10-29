@@ -54,7 +54,7 @@ extension FrameBuffer {
     }
 
     /// Removes every hit-test TARGET, keeping the geometry markers and the
-    /// text frames (``HitTestRegion/HandlerID/textFrame``).
+    /// text frames (`HitTestRegion.HandlerID.textFrame`).
     ///
     /// For a view that makes what it wraps inert — `.allowsHitTesting(false)`,
     /// the page under a modal — rather than a view that removes it: an inert

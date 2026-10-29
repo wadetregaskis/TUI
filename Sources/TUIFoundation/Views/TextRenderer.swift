@@ -98,7 +98,7 @@ extension View {
 /// A text renderer in the environment, compared by value where its type is
 /// `Equatable` (so a subtree under an unchanging renderer can be served from
 /// the render memo), and unequal otherwise — which it says
-/// (``PartiallyComparable``), so the render cache declines the memos under such
+/// (`PartiallyComparable`), so the render cache declines the memos under such
 /// a renderer rather than reading "unequal" as a change, and clearing them, on
 /// every frame.
 ///
@@ -155,7 +155,7 @@ extension EnvironmentValues {
 extension Text {
     /// The size this text needs: a text renderer in force says it, asking the
     /// text's own through its proxy unless it knows better; with none, one
-    /// environment read and the text's own (``ownSize(proposal:context:)``).
+    /// environment read and the text's own (`ownSize(proposal:context:)`).
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         guard let renderer = context.environment.textRenderer?.renderer else {
             return ownSize(proposal: proposal, context: context)

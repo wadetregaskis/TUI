@@ -66,7 +66,7 @@ extension RenderCache {
     ///   words, as most style values are), and two-pass layout visits each
     ///   modifier several times a frame.
     /// - Returns: `.incomparable` when `value` is not `Equatable`, or is a
-    ///   ``PartiallyComparable`` wrapper around a value that is not — the
+    ///   `PartiallyComparable` wrapper around a value that is not — the
     ///   caller must then decline caching, because nothing here can tell
     ///   whether it changed.
     public func noteAppliedEnvironment(
@@ -126,7 +126,7 @@ extension RenderCache {
     }
 
     /// Whether a slot can compare `value` from pass to pass: `Equatable`, and
-    /// not a ``PartiallyComparable`` wrapper around a value that is not. Asked
+    /// not a `PartiallyComparable` wrapper around a value that is not. Asked
     /// once, when a slot is first met.
     private static func canCompare(_ value: Any) -> Bool {
         guard value is any Equatable else { return false }

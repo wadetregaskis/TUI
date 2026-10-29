@@ -18,7 +18,7 @@
 /// `Style` is an existential — `any LabelStyle`, say — held as the environment
 /// holds a style. Equal when both styles are `Equatable`, of one type and equal,
 /// and so are the styles outside them: a style that is not `Equatable` compares
-/// unequal, and says so (``PartiallyComparable``), so the render cache declines
+/// unequal, and says so (`PartiallyComparable`), so the render cache declines
 /// the memos under it rather than serving them stale, the price the style
 /// protocols' documentation states. Unequal alone, the cache read it as a
 /// change on every pass and cleared everything under it every frame.
