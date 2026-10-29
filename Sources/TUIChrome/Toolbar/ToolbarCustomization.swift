@@ -24,7 +24,9 @@ extension View {
     /// Customize Toolbar… (`ToolbarCommands`), a panel lists them, where the
     /// person puts each in the bar or takes it out, and moves it among the
     /// others in its place — its region of its bar's row — with the keyboard
-    /// or the mouse.
+    /// or the mouse. While the panel is open, the items in the bar are dragged
+    /// rather than used, as on macOS: sideways to move one, off the bar to
+    /// take it out.
     ///
     /// ```swift
     /// BrowserView()
@@ -259,6 +261,15 @@ extension _ToolbarModifier {
                 canMoveEarlier: neighbours[id]?.earlier != nil, canMoveLater: neighbours[id]?.later != nil,
                 isShown: record.isChosen(item), isHiddenByApp: item.customization.isHiddenByApp)
         }
+        // From the order stored NOW, not this frame's: a drag moves an item a
+        // place at a time through closures kept from the frame it began in,
+        // and a second move worked out from that frame's order swapped the
+        // first one back.
+        func stored() -> (ids: [String], neighbours: [String: (earlier: String?, later: String?)]) {
+            let (ids, _, neighbours) = Self.arrangement(
+                of: declared, by: _ToolbarCustomizationRecord.load(customizationID, from: store))
+            return (ids, neighbours)
+        }
         chrome.declare(
             CustomizableToolbarDeclaration(
                 id: customizationID, items: items, environment: context.environment,
@@ -268,12 +279,7 @@ extension _ToolbarModifier {
                     record.save(customizationID, to: store)
                 },
                 move: { id, offset in
-                    // From the order stored NOW, not this frame's: a drag
-                    // moves an item a place at a time through closures kept
-                    // from the frame it began in, and a second move worked out
-                    // from that frame's order swapped the first one back.
-                    let (ids, _, neighbours) = Self.arrangement(
-                        of: declared, by: _ToolbarCustomizationRecord.load(customizationID, from: store))
+                    let (ids, neighbours) = stored()
                     guard let other = offset < 0 ? neighbours[id]?.earlier : neighbours[id]?.later,
                         let at = ids.firstIndex(of: id), let to = ids.firstIndex(of: other)
                     else { return }
@@ -284,6 +290,10 @@ extension _ToolbarModifier {
                     var record = _ToolbarCustomizationRecord.load(customizationID, from: store)
                     record.order = order
                     record.save(customizationID, to: store)
+                },
+                neighbour: { id, offset in
+                    let neighbours = stored().neighbours[id]
+                    return offset < 0 ? neighbours?.earlier : neighbours?.later
                 },
                 reset: { _ToolbarCustomizationRecord().save(customizationID, to: store) }))
     }

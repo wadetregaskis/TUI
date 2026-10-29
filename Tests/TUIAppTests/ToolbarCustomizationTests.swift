@@ -23,6 +23,7 @@ private final class CustomizationProbe: @unchecked Sendable {
     var store = MockStorageBackend()
     var downloads = 0
     var hidesShare = false
+    var taps = 0
 }
 
 /// A customizable toolbar: two items in the bar, one that starts out of it,
@@ -90,6 +91,29 @@ private struct MixedPlacementsApp: App {
     }
 }
 
+/// A customizable toolbar of buttons to drag in the bar: three the person
+/// may take out, and one they may only move.
+private struct DraggableApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            Text("PAGE")
+                .toolbar(id: "drag") {
+                    ToolbarItem(id: "alpha", placement: .primaryAction) {
+                        Button("ALPHA") { CustomizationProbe.shared.taps += 1 }
+                    }
+                    ToolbarItem(id: "beta", placement: .primaryAction) { Text("BETA") }
+                    ToolbarItem(id: "gamma", placement: .primaryAction) { Text("GAMMA") }
+                    ToolbarItem(id: "kept", placement: .primaryAction) { Text("KEPT") }
+                        .customizationBehavior(.reorderable)
+                }
+        }
+        .defaultAppStorage(CustomizationProbe.shared.store)
+        .windowToolbarStyle(.unifiedCompact)
+    }
+}
+
 @MainActor
 @Suite("Toolbar customization", .serialized)
 struct ToolbarCustomizationTests {
@@ -98,6 +122,7 @@ struct ToolbarCustomizationTests {
         CustomizationProbe.shared.store = MockStorageBackend()
         CustomizationProbe.shared.downloads = 0
         CustomizationProbe.shared.hidesShare = false
+        CustomizationProbe.shared.taps = 0
     }
 
     /// The app and its frame clock.
@@ -151,6 +176,32 @@ struct ToolbarCustomizationTests {
                 frames()
             }
             _ = app.send(MouseEvent(button: .left, phase: .released, x: x, y: row + count))
+            frames()
+        }
+
+        /// Drags the bar's item showing `text` by its first cell, `across`
+        /// cells sideways and then `down` rows, a cell at a time with a frame
+        /// after each, and lets it go there.
+        func dragBarItem(_ text: String, across: Int, down: Int = 0) {
+            guard let bar = rows.first, let found = bar.range(of: text) else {
+                Issue.record("no \(text) in the bar: \(rows)")
+                return
+            }
+            let x = bar.distance(from: bar.startIndex, to: found.lowerBound)
+            _ = app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: 0))
+            frames()
+            var at = (x: x, y: 0)
+            for _ in 0..<abs(across) {
+                at.x += across.signum()
+                _ = app.send(MouseEvent(button: .left, phase: .dragged, x: at.x, y: at.y))
+                frames()
+            }
+            for _ in 0..<abs(down) {
+                at.y += down.signum()
+                _ = app.send(MouseEvent(button: .left, phase: .dragged, x: at.x, y: at.y))
+                frames()
+            }
+            _ = app.send(MouseEvent(button: .left, phase: .released, x: at.x, y: at.y))
             frames()
         }
 
@@ -334,5 +385,69 @@ struct ToolbarCustomizationTests {
         driver.click("Done")
         #expect(driver.rows.first?.contains("MAIL") == false, "\(driver.rows)")
         #expect(!CustomizationProbe.shared.store.hasValue(forKey: "TUI Toolbar Configuration main"))
+    }
+
+    /// The owner, 2026-10-28, afternoon list #41: the bar's own items dragged
+    /// while the toolbar is customized, as on macOS.
+    @Test("Dragged sideways in the bar while customizing, an item moves past each neighbour it crosses")
+    func barDragReorders() {
+        reset()
+        defer { reset() }
+        let driver = Driver(DraggableApp())
+        driver.click("BETA", button: .right)
+        driver.click("Customize Toolbar")
+        // Past GAMMA ("GAMMA" and the gap after it), and no further.
+        driver.dragBarItem("BETA", across: 6)
+        let bar = driver.rows.first ?? ""
+        if let beta = bar.range(of: "BETA"), let gamma = bar.range(of: "GAMMA"), let kept = bar.range(of: "KEPT") {
+            #expect(gamma.lowerBound < beta.lowerBound && beta.lowerBound < kept.lowerBound, "\(bar)")
+        } else {
+            Issue.record("\(driver.rows)")
+        }
+        // And back, past GAMMA then ALPHA.
+        driver.dragBarItem("BETA", across: -20)
+        let back = driver.rows.first ?? ""
+        if let beta = back.range(of: "BETA"), let alpha = back.range(of: "ALPHA") {
+            #expect(beta.lowerBound < alpha.lowerBound, "\(back)")
+        } else {
+            Issue.record("\(driver.rows)")
+        }
+        #expect(driver.rows.contains { $0.contains("Done") }, "the panel stays open: \(driver.rows)")
+    }
+
+    @Test("Dragged off the bar while customizing, an item leaves it; one the person may not remove stays")
+    func barDragRemoves() {
+        reset()
+        defer { reset() }
+        let driver = Driver(DraggableApp())
+        driver.click("BETA", button: .right)
+        driver.click("Customize Toolbar")
+        driver.dragBarItem("GAMMA", across: 0, down: 3)
+        #expect(driver.rows.first?.contains("GAMMA") == false, "\(driver.rows)")
+        #expect(driver.rows.contains { $0.contains("Done") }, "the panel stays open: \(driver.rows)")
+        driver.dragBarItem("KEPT", across: 0, down: 3)
+        #expect(driver.rows.first?.contains("KEPT") == true, "\(driver.rows)")
+        // One row under the bar is still the bar's: nothing is taken out.
+        driver.dragBarItem("BETA", across: 0, down: 1)
+        #expect(driver.rows.first?.contains("BETA") == true, "\(driver.rows)")
+        driver.click("Done")
+        #expect(driver.rows.first?.contains("GAMMA") == false, "kept: \(driver.rows)")
+    }
+
+    @Test("While customizing, a bar item takes no click; afterwards it does again")
+    func barItemInertWhileCustomizing() {
+        reset()
+        defer { reset() }
+        let driver = Driver(DraggableApp())
+        driver.click("ALPHA")
+        #expect(CustomizationProbe.shared.taps == 1)
+        driver.click("BETA", button: .right)
+        driver.click("Customize Toolbar")
+        driver.click("ALPHA")
+        #expect(CustomizationProbe.shared.taps == 1, "\(driver.rows)")
+        #expect(driver.rows.contains { $0.contains("Done") }, "nor does it close the panel: \(driver.rows)")
+        driver.click("Done")
+        driver.click("ALPHA")
+        #expect(CustomizationProbe.shared.taps == 2)
     }
 }

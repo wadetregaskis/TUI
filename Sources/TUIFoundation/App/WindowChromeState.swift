@@ -80,13 +80,18 @@ package final class WindowChromeState: @unchecked Sendable {
         /// view that declared it: the item is shown while a text input inside
         /// that view has the focus. `nil` for every other item.
         package var keyboardScope: ViewIdentity?
+        /// The customizable item it draws — a `ToolbarItem(id:)` of a
+        /// `toolbar(id:content:)` — or `nil` for any other item: while its
+        /// toolbar is customized, the bar's item is dragged to move it or
+        /// take it out, and is no control.
+        package var customizableItem: CustomizableToolbarDeclaration.ItemKey?
 
         /// The memberwise initializer, spelled out because the synthesized one is internal and the
         /// toolbars (TUIChrome) declare these.
         package init(
             placement: ToolbarItemPlacement, view: AnyView, environment: EnvironmentValues, identity: ViewIdentity,
             isFlexibleSpace: Bool = false, defaultKind: ToolbarDefaultItemKind.Kind? = nil, isTitleMenu: Bool = false,
-            keyboardScope: ViewIdentity? = nil
+            keyboardScope: ViewIdentity? = nil, customizableItem: CustomizableToolbarDeclaration.ItemKey? = nil
         ) {
             self.placement = placement
             self.view = view
@@ -96,6 +101,7 @@ package final class WindowChromeState: @unchecked Sendable {
             self.defaultKind = defaultKind
             self.isTitleMenu = isTitleMenu
             self.keyboardScope = keyboardScope
+            self.customizableItem = customizableItem
         }
 
         /// Whether the item is shown while `focusManager` holds the focus as it
@@ -639,6 +645,7 @@ package final class WindowChromeState: @unchecked Sendable {
         declaredBackgroundVisibility.removeAll(keepingCapacity: true)
         declaredTitleBesidePrincipal = nil
         customizableToolbarDeclarations.removeAll(keepingCapacity: true)
+        toolbarCustomization.beginWalk()
         _appLineHandlerIDs.removeAll(keepingCapacity: true)
         _tooltipRows = 0..<0
         _presentationsOverPage = []
@@ -760,6 +767,10 @@ package final class WindowChromeState: @unchecked Sendable {
     /// ``customizingToolbarID``'s storage: private, under the `package`
     /// accessor (CONTRIBUTING.md, "Crossing a module boundary").
     private var _customizingToolbarID: String?
+
+    /// The person's gestures on the customized toolbar's items in the bar:
+    /// the items drawn to be dragged, and the drag under way.
+    package let toolbarCustomization = ToolbarCustomizationGestures()
 
     /// Opens the customization panel on the first customizable toolbar
     /// declared: what the menu bar's View ▸ Customize Toolbar… does. Nothing,

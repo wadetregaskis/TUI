@@ -112,7 +112,10 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
                     identity: itemIdentity(item, depth: depth, context: context),
                     isFlexibleSpace: item.isFlexibleSpace, defaultKind: item.defaultKind,
                     isTitleMenu: item.isTitleMenu,
-                    keyboardScope: item.placement.role == .keyboard ? context.identity : nil)
+                    keyboardScope: item.placement.role == .keyboard ? context.identity : nil,
+                    customizableItem: customizationID.flatMap { toolbar in
+                        item.id.map { CustomizableToolbarDeclaration.ItemKey(toolbarID: toolbar, itemID: $0) }
+                    })
                 if let stackBar, item.goesInNavigationBar {
                     stackBar.drawsItems = Self.drawsItems
                     stackBar.declare(entry)

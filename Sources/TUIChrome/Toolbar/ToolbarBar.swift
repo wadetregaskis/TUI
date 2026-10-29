@@ -145,6 +145,9 @@ struct _ToolbarItemRun: View, Renderable, ChildViewProvider {
 ///   kept rather than swapped for the bar's live ones — swapped, a `.toolbar`
 ///   inside `.dimmed()` was the one live part of a subtree drawn as inert.
 ///
+/// While its customizable toolbar is customized, an item is no control
+/// either, but a thing to drag (``_ToolbarItemDrag``).
+///
 /// The one region an inert item keeps is the app's line of key hints
 /// (``StatusBar``'s `init()`, see ``WindowChromeState/appLineHandlerIDs``):
 /// it shows the keys the app answers now, and a click there does what the key
@@ -166,8 +169,14 @@ struct _ToolbarEntryView: View, Renderable, Layoutable {
         // change to its `@State` would invalidate nothing the bar's memo is
         // keyed under, and the memo would go on serving the old picture.
         context.environment.volatileReadTracker?.recordRenderSideEffect()
-        var buffer = TUIView.renderToBuffer(entry.view, context: entryContext(context))
-        if isInert(in: context), !buffer.hitTestRegions.isEmpty {
+        let entryContext = entryContext(context)
+        var buffer = TUIView.renderToBuffer(entry.view, context: entryContext)
+        if let item = entry.customizableItem, let chrome = context.environment.windowChrome,
+            chrome.customizingToolbarID == item.toolbarID
+        {
+            // While its toolbar is customized, dragged rather than used.
+            _ToolbarItemDrag.make(item, of: &buffer, chrome: chrome, context: entryContext)
+        } else if isInert(in: context), !buffer.hitTestRegions.isEmpty {
             let live = context.environment.windowChrome?.appLineHandlerIDs ?? []
             // The targets, not the geometry markers: an inert item is still
             // drawn where it is (`HitTestRegion.geometryMarker(_:)`).

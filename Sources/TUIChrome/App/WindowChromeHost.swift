@@ -199,12 +199,15 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         }
         guard let chrome else { return page }
 
-        let frame = stacked(
+        var frame = stacked(
             Bars(
                 menu: menu, top: top, bottom: bottom, topBackground: topGround?.code ?? "",
                 bottomBackground: bottomGround?.code ?? ""),
             around: page, in: rows, width: width, height: height,
             chrome: chrome, palette: palette)
+        frontingToolbarItemDrags(
+            &frame, chrome: chrome, topRows: rows.menu..<(rows.menu + rows.top),
+            bottomRows: (height - rows.bottom)..<height)
 
         // What the content declared this walk becomes the next frame's rows.
         let now = context.environment.frameNowNanos

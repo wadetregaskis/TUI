@@ -19,6 +19,20 @@
 /// there, so the bar's customization panel and the menu bar's View ▸ Customize
 /// Toolbar… (TUICommands) can find it.
 package struct CustomizableToolbarDeclaration {
+    /// Names one customizable item of one customizable toolbar: what a bar's
+    /// entry carries for the item it draws (`ToolbarEntry.customizableItem`).
+    package struct ItemKey: Hashable {
+        /// The toolbar's identifier.
+        package let toolbarID: String
+        /// The item's identifier, unique in the toolbar.
+        package let itemID: String
+
+        package init(toolbarID: String, itemID: String) {
+            self.toolbarID = toolbarID
+            self.itemID = itemID
+        }
+    }
+
     /// One customizable item: a `ToolbarItem(id:)` in the toolbar.
     package struct Item {
         /// Its identifier, unique in the toolbar.
@@ -73,6 +87,13 @@ package struct CustomizableToolbarDeclaration {
     /// one in another place would stay where it was in the bar.
     package let move: @MainActor (_ id: String, _ offset: Int) -> Void
 
+    /// The movable item that ``move`` would take the item with `id` past —
+    /// the one before it in its place (`offset` −1) or after it (`offset`
+    /// 1) — or `nil` for none. Worked out from the order stored when it is
+    /// called, as ``move`` is, so a drag that moves an item several places
+    /// asks it afresh before each.
+    package let neighbour: @MainActor (_ id: String, _ offset: Int) -> String?
+
     /// Forgets everything the person chose: the items as the app declared
     /// them.
     package let reset: @MainActor () -> Void
@@ -80,13 +101,14 @@ package struct CustomizableToolbarDeclaration {
     package init(
         id: String, items: [Item], environment: EnvironmentValues,
         setShown: @escaping @MainActor (String, Bool) -> Void, move: @escaping @MainActor (String, Int) -> Void,
-        reset: @escaping @MainActor () -> Void
+        neighbour: @escaping @MainActor (String, Int) -> String?, reset: @escaping @MainActor () -> Void
     ) {
         self.id = id
         self.items = items
         self.environment = environment
         self.setShown = setShown
         self.move = move
+        self.neighbour = neighbour
         self.reset = reset
     }
 }
