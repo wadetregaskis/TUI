@@ -3,7 +3,7 @@
     <img alt="Swift 6.2" src="https://img.shields.io/badge/Swift-6.2-00b300?logo=swift&logoColor=white">
     <img alt="i18n" src="https://img.shields.io/badge/i18n-7%20Languages-00d900">
     <img alt="License" src="https://img.shields.io/badge/License-MIT-00b300?style=flat">
-    <a href="https://github.com/wadetregaskis/TUIkit/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/wadetregaskis/TUIkit/ci.yml?branch=main&label=CI&color=009900"></a>
+    <a href="https://github.com/wadetregaskis/TUI/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/wadetregaskis/TUI/ci.yml?branch=main&label=CI&color=009900"></a>
 </p>
 
 <img width="1200" height="630" alt="og-image@1x" src="https://github.com/user-attachments/assets/8bf99da8-e87c-4447-b3cb-a6f3f52c6d18" />
@@ -176,7 +176,7 @@ Press `q` to exit. (Inside a demo page, `ESC` goes back to the menu.)
 Install the `tuikit` command and create a new project:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/wadetregaskis/TUIkit/main/project-template/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/wadetregaskis/TUI/main/project-template/install.sh | bash
 tuikit init MyApp
 cd MyApp && swift run
 ```
@@ -189,7 +189,7 @@ Add TUI to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/wadetregaskis/TUIkit.git", branch: "main")
+    .package(url: "https://github.com/wadetregaskis/TUI.git", branch: "main")
 ]
 ```
 
@@ -230,7 +230,7 @@ Measured 2026-10-11 with Swift 6.4.0 (`swift build -c release`, then `strip`), a
 - **Mixing is safe**: an app can list `TUI` beside module products, or use a library that depends on `TUI`, and each module is linked once. But then the app is as large as the `TUI` app, so a **library** built on TUI should depend on module products (or `TUIFoundation`), never on `TUI`.
 - **Never build a `.dynamic` library from TUI while an app also links a TUI product statically**: SwiftPM's own build system gives the app two copies of the shared modules, and Swift Build turns them into dynamic libraries the app must ship, and can fail to link another app in the package.
 
-[Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md) has the product list, what each brings with it, and where the module still shows when you use the umbrella: the debugger's and `String(reflecting:)`'s type names (`TUILists.List<…>`), `NavigationPath`'s saved form, the `TUI_TUIStrings` resource bundle, and `renderOnce`, which is `TUIApp`'s.
+[Choosing products](https://github.com/wadetregaskis/TUI/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md) has the product list, what each brings with it, and where the module still shows when you use the umbrella: the debugger's and `String(reflecting:)`'s type names (`TUILists.List<…>`), `NavigationPath`'s saved form, the `TUI_TUIStrings` resource bundle, and `renderOnce`, which is `TUIApp`'s.
 
 ### Shipping a program
 
@@ -371,11 +371,11 @@ The `LocalizationKey` namespace groups all framework strings into `Button`, `Lab
 
 Text in scripts a terminal shapes — Devanagari and the other Indic scripts, Thai, Lao, Khmer, and Latin with stacked marks — is laid out at the width each terminal advances it. Apple's Terminal.app draws such text at the font's own proportional width and moves everything after it on the row a little to the left (a table's next column, a border), and no escape sequence moves it back; see "What Apple Terminal paints" in [Documentation/Terminals/Terminal compatibility survey.md](<Documentation/Terminals/Terminal compatibility survey.md>).
 
-For complete documentation, see the [Localization Guide](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUI/TUI.docc/Articles/Localization.md) in the DocC documentation.
+For complete documentation, see the [Localization Guide](https://github.com/wadetregaskis/TUI/blob/main/Sources/TUI/TUI.docc/Articles/Localization.md) in the DocC documentation.
 
 ## Architecture
 
-- **Modular package**: 34 Swift library modules, a macro plugin and 1 in-tree C target, offered as 31 library products: the `TUI` umbrella, which is everything, a product for each module an app or a library may want on its own, and the opt-in `TUIAppKit`, `TUIFilePanelsAppKit` and `TUIMacros` ([Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md); Project Structure below)
+- **Modular package**: 34 Swift library modules, a macro plugin and 1 in-tree C target, offered as 31 library products: the `TUI` umbrella, which is everything, a product for each module an app or a library may want on its own, and the opt-in `TUIAppKit`, `TUIFilePanelsAppKit` and `TUIMacros` ([Choosing products](https://github.com/wadetregaskis/TUI/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md); Project Structure below)
 - **Per-app state**: every app owns its render state — whether a frame is owed, and the transaction the change behind it was made under — and its views' `@State` and `@Observable` changes reach it through the render cache the app draws with, so two apps in one process never take each other's frames; application state flows through the Environment system. Still process-wide: the localization service (`LocalizationService.shared`), the notification queue (`NotificationService.current`) and the default `@AppStorage` store (`StorageDefaults.backend`)
 - **Pure ANSI rendering**: no ncurses runtime dependency; the only C is the bundled `stb_image` decoder, and only as the fallback where ImageIO is unavailable (selected via `canImport(ImageIO)`, not a hard-coded platform list)
 - **Linux compatible**: works on macOS and Linux (XDG paths supported)
@@ -520,7 +520,7 @@ Benchmarks/
                           view identity); run via `TUI_BENCHMARKS=1 swift package benchmark`
 ```
 
-`import TUI` re-exports every module: `TUIFoundation` (the views and modifiers), `TUIApp` (`App`, `Scene` and the run loop), `TUICommands` (`Commands`, `CommandMenu`, `CommandGroup` and the menu bar a scene's `.commands` draws), `TUIFilePanels` (`fileImporter`, `fileExporter`, `fileMover` and the open and save panels TUI draws for them), `TUIScenes` (the `Settings` scene and `AlertScene`), `TUIColorPicker` (`ColorPicker`, `ColorPickerPanel` and `GradientEditorPanel`), `TUICurveEditors` (the tone-curve and channel-curve editors), `TUINavigation` (the navigation containers), `TUIPresentation` (alerts, dialogs, sheets and the presentation modifiers), `TUILists` (lists), `TUITables` (tables), `TUITabs` (tab views), `TUITabImages` (`Tab`'s `image:` initialisers, which find the image by name), `TUIGrid` (grids), `TUIChrome` (the status bar, toolbars, notifications and tooltips), `TUIEffects` (transitions and visual effects), `TUIMenus` (`Menu`, `ControlGroup` and `.contextMenu`), `TUIBitmaps` (`Image` from a file, a URL or a bundle, `AsyncImage` and the `.image*` options), `TUITextInput` (the text fields and editors), `TUIForms` (`Form`, `LabeledContent`, `GroupBox` and the other view groupings), `TUISearch` (`.searchable`, search tokens and scopes), `TUIPickers` (`Picker`, `RadioButtonGroup` and `DatePicker`), `TUINumericControls` (`Slider`, `Stepper`, `Gauge` and `ProgressView`) and `TUICore`, `TUIStyling`, `TUIView`, and `TUIImage` (via `@_exported`). Each of these is also a library product of its own (TUIStrings and TUITerminalHost come with `TUIFoundation`); [Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md) says when to depend on them instead. The AppKit bridges — `Color(nsColor:)`, `NSColor(_:)` and `Image(nsImage:)` — are the separate `TUIAppKit` product: add `import TUIAppKit` where you use them. The Core Graphics ones — `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)` and `Image(decorative:scale:orientation:)` — need only TUI, on Apple platforms. They are kept out of TUI because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUI's.
+`import TUI` re-exports every module: `TUIFoundation` (the views and modifiers), `TUIApp` (`App`, `Scene` and the run loop), `TUICommands` (`Commands`, `CommandMenu`, `CommandGroup` and the menu bar a scene's `.commands` draws), `TUIFilePanels` (`fileImporter`, `fileExporter`, `fileMover` and the open and save panels TUI draws for them), `TUIScenes` (the `Settings` scene and `AlertScene`), `TUIColorPicker` (`ColorPicker`, `ColorPickerPanel` and `GradientEditorPanel`), `TUICurveEditors` (the tone-curve and channel-curve editors), `TUINavigation` (the navigation containers), `TUIPresentation` (alerts, dialogs, sheets and the presentation modifiers), `TUILists` (lists), `TUITables` (tables), `TUITabs` (tab views), `TUITabImages` (`Tab`'s `image:` initialisers, which find the image by name), `TUIGrid` (grids), `TUIChrome` (the status bar, toolbars, notifications and tooltips), `TUIEffects` (transitions and visual effects), `TUIMenus` (`Menu`, `ControlGroup` and `.contextMenu`), `TUIBitmaps` (`Image` from a file, a URL or a bundle, `AsyncImage` and the `.image*` options), `TUITextInput` (the text fields and editors), `TUIForms` (`Form`, `LabeledContent`, `GroupBox` and the other view groupings), `TUISearch` (`.searchable`, search tokens and scopes), `TUIPickers` (`Picker`, `RadioButtonGroup` and `DatePicker`), `TUINumericControls` (`Slider`, `Stepper`, `Gauge` and `ProgressView`) and `TUICore`, `TUIStyling`, `TUIView`, and `TUIImage` (via `@_exported`). Each of these is also a library product of its own (TUIStrings and TUITerminalHost come with `TUIFoundation`); [Choosing products](https://github.com/wadetregaskis/TUI/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md) says when to depend on them instead. The AppKit bridges — `Color(nsColor:)`, `NSColor(_:)` and `Image(nsImage:)` — are the separate `TUIAppKit` product: add `import TUIAppKit` where you use them. The Core Graphics ones — `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)` and `Image(decorative:scale:orientation:)` — need only TUI, on Apple platforms. They are kept out of TUI because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUI's.
 
 ## Requirements
 

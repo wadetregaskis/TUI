@@ -18,7 +18,7 @@ let package = Package(
     name: "MyTUIApp",
     platforms: [.macOS(.v14)],
     dependencies: [
-        .package(url: "https://github.com/wadetregaskis/TUIkit.git", branch: "main"),
+        .package(url: "https://github.com/wadetregaskis/TUI.git", branch: "main"),
     ],
     targets: [
         .executableTarget(

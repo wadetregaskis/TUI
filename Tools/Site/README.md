@@ -16,7 +16,7 @@ generated files never enter the history and clones do not grow.
 | `/404.html` | what Pages answers for any missing path | `Tools/Site/404.html` |
 
 On a project site the base is `https://<owner>.github.io/<repository>/`, so
-for this repository today: `https://wadetregaskis.github.io/TUIkit/`, with the
+for this repository today: `https://wadetregaskis.github.io/TUI/`, with the
 docs at `…/TUI/docs/documentation/tui/` and the demo at `…/TUI/demo/`.
 Nothing in the workflow or the scripts names the repository: the base path
 comes from `actions/configure-pages` and the links from `github.repository`,

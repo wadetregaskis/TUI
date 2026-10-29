@@ -14,9 +14,10 @@ package `TUIkit` is `TUI`, the umbrella `import TUIkit` is `import TUI`, and eac
 new names throughout, for the package as it was on 1 October as well.
 
 - Change each `import TUIkit…` to `import TUI…`, and each `.product(name: "TUIkit…", …)` to
-  `.product(name: "TUI…", …)`. The `package:` argument is the package's identity, which SwiftPM takes from the
-  URL you depend on. Until the GitHub repository is renamed, that URL still ends in `TUIkit`, and so does the
-  identity: `.product(name: "TUI", package: "TUIkit")`.
+  `.product(name: "TUI…", …)`. The repository is renamed too (29 October): depend on
+  `https://github.com/wadetregaskis/TUI.git`. The `package:` argument is the package's identity, which SwiftPM
+  takes from that URL, so it is `"TUI"`: `.product(name: "TUI", package: "TUI")`. GitHub redirects the old URL,
+  but a dependency that still names it keeps the identity `TUIkit`, and its `package:` arguments must say so.
 - The trait `UnexportTUIkitSymbols` is `UnexportTUISymbols`. A dependency that names its traits
   (`traits: […]`) must use the new name.
 - The resource bundle that ships beside an app is `TUI_TUIStrings.bundle`, not `TUIkit_TUIkitStrings.bundle`.
@@ -144,11 +145,11 @@ Two traits are enabled by default. Both apply only to macOS release builds. Debu
 - No compiler or linker flag undoes what the traits do. The traits are the only way out.
 
 ```swift
-.package(url: "https://github.com/wadetregaskis/TUIkit.git", branch: "main", traits: [])
+.package(url: "https://github.com/wadetregaskis/TUI.git", branch: "main", traits: [])
 ```
 
 ```swift
-.package(url: "https://github.com/wadetregaskis/TUIkit.git", branch: "main", traits: ["DeadStripUnusedAPI"])
+.package(url: "https://github.com/wadetregaskis/TUI.git", branch: "main", traits: ["DeadStripUnusedAPI"])
 ```
 
 ### Upgrade-affecting changes
