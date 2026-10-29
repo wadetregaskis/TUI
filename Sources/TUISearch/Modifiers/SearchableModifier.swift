@@ -177,7 +177,9 @@ struct SearchableModifier<Content: View>: View {
                     if let accessories {
                         _SearchAccessoryFrame(content: accessories, search: dismissal)
                     }
-                })
+                }
+                // Find puts the keys in the field, wherever they are.
+                .background { _SearchFindChord(search: dismissal) })
             // Both values reach the CONTENT only, which is where SwiftUI puts
             // them: they answer questions about the field, and the field is the
             // framework's, not the caller's.

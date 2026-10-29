@@ -89,6 +89,24 @@ struct SearchPresentationTests {
         #expect(probe.query == "hello!", "and the field takes the typing")
     }
 
+    /// The owner, 2026-10-28: Ctrl-F in a searchable context focuses the field.
+    @Test("Find, ⌃F under the default command key, puts the keys in the search field from the content")
+    func findFocusesTheField() {
+        let harness = InputChainHarness()
+        let probe = Probe()
+        harness.frame(FocusedPage(probe: probe))
+        harness.frame(FocusedPage(probe: probe))
+        harness.press(tab)
+        harness.frame(FocusedPage(probe: probe))
+        #expect(probe.focus?.wrappedValue == false, "sanity: the focus is on the result")
+        harness.press(KeyEvent(key: .character("f"), ctrl: true))
+        harness.frame(FocusedPage(probe: probe))
+        #expect(probe.focus?.wrappedValue == true, "Find moved the focus to the field")
+        harness.press(KeyEvent(character: "!"))
+        #expect(probe.query == "hello!", "and the field takes the typing")
+        #expect(probe.pressed == 0)
+    }
+
     @Test("searchFocused(_:equals:) gives the field its value in a shared focus state")
     func searchFocusedEquals() {
         let harness = InputChainHarness()
