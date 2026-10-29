@@ -12,7 +12,15 @@ extension ASCIIConverter {
     ///
     /// Each Braille character (U+2800-U+28FF) represents a 2x4 pixel grid.
     /// The dot pattern encodes which pixels are "on" based on a luminance
-    /// threshold. Colour is taken from the average of the cell's pixels.
+    /// threshold. In colour, the dots are drawn in the average of the lit
+    /// pixels and the cell's background in the average of the unlit ones, so
+    /// a tone below the threshold keeps its colour; in mono there is one ink,
+    /// and the dots alone draw the picture.
+    ///
+    /// The background is new (the owner, 2026-10-28, afternoon list #29):
+    /// with only the dots drawn, every tone below the threshold vanished into
+    /// the page, Tux's black showing as the page, and half the Finder
+    /// mascot's face, which Otsu's split put below it, black.
     ///
     /// Hot-path notes:
     /// - The eight 2x4-grid → braille-bit mappings are precomputed as a
@@ -65,6 +73,13 @@ extension ASCIIConverter {
 
         // The mode resolved once for the whole picture — see `CellColours`.
         let colours = CellColours(mode: mode)
+        // Whether the cell's unlit dots paint its background: in colour, where
+        // there is a colour to give them.
+        let paintsField: Bool =
+            switch mode {
+            case .mono: false
+            default: true
+            }
 
         return image.pixels.withUnsafeBufferPointer { buffer -> ASCIIArt in
             var lines = [String]()
@@ -94,6 +109,13 @@ extension ASCIIConverter {
                     var totalB = 0
                     var totalA = 0
                     var count = 0
+                    // The lit dots' sums apart, for the ink where the unlit ones
+                    // paint the field (`paintsField`).
+                    var litR = 0
+                    var litG = 0
+                    var litB = 0
+                    var litA = 0
+                    var litCount = 0
 
                     for index in 0..<8 {
                         let dy = index / 2
@@ -127,6 +149,11 @@ extension ASCIIConverter {
                         // whatever colour the encoder left in it.
                         if coverage >= 128, r * 299 + g * 587 + b * 114 >= scaledThreshold {
                             pattern |= 1 << dotBitsFlat[index]
+                            litR += r * coverage
+                            litG += g * coverage
+                            litB += b * coverage
+                            litA += coverage
+                            litCount += 1
                         }
                     }
 
@@ -148,8 +175,18 @@ extension ASCIIConverter {
                     // Every dot absent: the cell nothing of the picture reaches, which a
                     // mono line has no byte for (`ASCIIArt.uncovered`).
                     if totalA == 0 { uncovered.note(line: charY, column: charX, ink: 0, field: 0) }
-                    coverage.note(line: charY, column: charX, ink: avgPixel.a, field: .max)
-                    row.setColors(foreground: colours.color(for: avgPixel), background: nil)
+                    // The unlit dots: what is left of the cell's sums once the lit
+                    // ones are taken out. A field only where some are there.
+                    if paintsField, totalA > litA {
+                        let field = Self.mean(
+                            (totalR - litR, totalG - litG, totalB - litB, totalA - litA), of: count - litCount)
+                        let ink = litA > 0 ? Self.mean((litR, litG, litB, litA), of: litCount) : field
+                        coverage.note(line: charY, column: charX, ink: ink.a, field: field.a)
+                        row.setColors(foreground: colours.color(for: ink), background: colours.color(for: field))
+                    } else {
+                        coverage.note(line: charY, column: charX, ink: avgPixel.a, field: .max)
+                        row.setColors(foreground: colours.color(for: avgPixel), background: nil)
+                    }
                     row.append(brailleChar)
                 }
                 lines.append(row.finish())
@@ -157,5 +194,13 @@ extension ASCIIConverter {
 
             return ASCIIArt(lines: lines, coverage: coverage.runs, uncovered: uncovered.runs)
         }
+    }
+
+    /// The mean colour of `count` dots whose premultiplied sums are `sums`,
+    /// their alpha the sum's share of each.
+    private static func mean(_ sums: (r: Int, g: Int, b: Int, a: Int), of count: Int) -> RGBA {
+        RGBA(
+            r: UInt8(clamping: sums.r / max(1, sums.a)), g: UInt8(clamping: sums.g / max(1, sums.a)),
+            b: UInt8(clamping: sums.b / max(1, sums.a)), a: UInt8(clamping: sums.a / max(1, count)))
     }
 }
