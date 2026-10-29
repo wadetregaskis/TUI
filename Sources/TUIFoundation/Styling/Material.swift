@@ -136,8 +136,14 @@ extension Material: ShapeStyle {
     func surface(_ surface: Color, in environment: EnvironmentValues) -> Color {
         // Reduce transparency draws every material opaque (owner ruling P5).
         guard !environment.accessibilityReduceTransparency else { return surface }
+        return surface.opacity(appearsActive(in: environment) ? opacity : inactiveOpacity)
+    }
+
+    /// Whether this material appears active in `environment`: by its own
+    /// ``MaterialActiveAppearance``, or the environment's where it has none.
+    func appearsActive(in environment: EnvironmentValues) -> Bool {
         let appearance = activeAppearance == .automatic ? environment.materialActiveAppearance : activeAppearance
-        return surface.opacity(appearance.appearsActive(in: environment) ? opacity : inactiveOpacity)
+        return appearance.appearsActive(in: environment)
     }
 
     /// The opacity of this material's surface while it does not appear

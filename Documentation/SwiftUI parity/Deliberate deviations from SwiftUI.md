@@ -1383,7 +1383,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `.clear` — and rimmed: its outline drawn behind the view in the border's ink
   lifted (the tint's, tinted), in the lines of the appearance in force (a
   Braille outline, a solid band, or none under `.blank`). Glass that does not
-  appear active stays frosted, half way to opaque, as a material does (C5). Interactive glass lifts its rim
+  appear active stays frosted, half way to opaque, as a material does (C5); a tint instead keeps the
+  glass's opacity and is greyed to a quarter of its colour, as an inactive window's accent controls go grey
+  on macOS, since more of a tint is more of its colour (2026-10-28). Interactive glass lifts its rim
   again under the pointer; it takes no click and no focus. Layout is
   untouched, and the rim shows only in the view's blank cells — pad the view,
   as SwiftUI's examples do (`GlassEffectTests`). In a `GlassEffectContainer`,

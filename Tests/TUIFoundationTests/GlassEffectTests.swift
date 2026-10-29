@@ -88,7 +88,16 @@ struct GlassEffectTests {
     @Test("Glass that does not appear active stays translucent, half way to opaque, as a material does")
     func inactiveIsMoreOpaque() {
         #expect(Glass.regular.surface(in: environment(active: false)) == Color.palette.background.opacity(0.825))
-        #expect(Glass.clear.tint(.blue).surface(in: environment(active: false)) == Color.blue.opacity(0.675))
+    }
+
+    /// More of a tint is more of its colour: made more opaque, as untinted glass
+    /// is, an inactive window's accent-tinted glass and prominent glass buttons
+    /// grew BRIGHTER as the window lost focus (owner, 2026-10-28).
+    @Test("A tint on glass that does not appear active is greyed at the glass's own opacity, never strengthened")
+    func inactiveTintIsGreyed() {
+        let tint = Color.rgb(40, 120, 255)
+        #expect(Glass.clear.tint(tint).surface(in: environment(active: false)) == Color.rgb(95, 115, 148).opacity(0.35))
+        #expect(Glass.regular.tint(tint).surface(in: environment(active: true)) == tint.opacity(0.65))
     }
 
     @Test("The default glass shape is a capsule")

@@ -38,6 +38,9 @@ import TUIStyling
 /// Glass that does not appear active stays frosted, as a material does, its
 /// surface half way to opaque: SwiftUI's glass goes flat in an inactive
 /// window, which read here as the glass having broken (``MaterialActiveAppearance``).
+/// A tint is not made more opaque but greyed, at the glass's own opacity, as
+/// an inactive window's accent controls go grey on macOS: more of a tint is
+/// more of its colour, and tinted glass lit up when the window lost focus.
 ///
 /// You can combine glass effects by using a ``GlassEffectContainer``, which
 /// draws the glass of views near one another as one shape.
@@ -135,11 +138,31 @@ extension Glass {
         return environment.resolvedFrost(thickness: thinner.frost)
     }
 
-    /// The surface: the tint or the page's background, at the material's
-    /// opacity while it appears active and half way from that to opaque while
-    /// not. Semantic where the colour is, so it follows the palette.
+    /// The surface: the page's background, at the material's opacity while it
+    /// appears active and half way from that to opaque while not; or the tint
+    /// (``shownTint(in:)``), at the material's opacity. Semantic where the
+    /// colour is, so it follows the palette.
     func surface(in environment: EnvironmentValues) -> Color {
-        material.surface(tintColor ?? Color.palette.background, in: environment)
+        guard let tint = shownTint(in: environment) else {
+            return material.surface(Color.palette.background, in: environment)
+        }
+        // Reduce transparency draws every material opaque (owner ruling P5).
+        return environment.accessibilityReduceTransparency ? tint : tint.opacity(material.opacity)
+    }
+
+    /// How much of its colour a tint keeps while the glass does not appear
+    /// active: a quarter, so it still reads as tinted, and quieter than it
+    /// was, where taking the surface toward opaque as an untinted glass's is
+    /// made the tint stronger — the window brightened as it lost focus.
+    static let inactiveTintSaturation = 0.25
+
+    /// The tint as this glass shows it in `environment` — itself while it
+    /// appears active, greyed (``inactiveTintSaturation``) while it does not —
+    /// or `nil` for untinted glass.
+    private func shownTint(in environment: EnvironmentValues) -> Color? {
+        guard let tintColor else { return nil }
+        guard !material.appearsActive(in: environment) else { return tintColor }
+        return tintColor.resolve(with: environment.palette).saturated(keeping: Self.inactiveTintSaturation)
     }
 
     /// The surface as it lands on what the glass is drawn over, opaque — what
@@ -162,7 +185,7 @@ extension Glass {
         let palette = environment.palette
         let surface = environment.enclosingSurface
         let highlight: Color
-        if let tintColor {
+        if let tintColor = shownTint(in: environment) {
             highlight = palette.hoveredForeground(tintColor.resolve(with: palette).spendingAlpha(over: surface))
         } else {
             highlight = _ButtonStyleBody.outlineInk(palette: palette, surface: surface, hovered: true, disabled: false)
