@@ -142,7 +142,13 @@ where Value == KeyframePath.Value {
             if !playback.hasFinished {
                 playback.hasFinished = true
                 let isPlaying = $isPlaying
-                Task { @MainActor in isPlaying.wrappedValue = false }
+                // Unless a new play began meanwhile: a trigger that changed on
+                // this frame restarted it (`hasFinished` false again), and
+                // stopping the clock would leave it resting on the old end.
+                Task { @MainActor [playback] in
+                    guard playback.hasFinished else { return }
+                    isPlaying.wrappedValue = false
+                }
             }
         } else {
             value = timeline.value(time: elapsed)
