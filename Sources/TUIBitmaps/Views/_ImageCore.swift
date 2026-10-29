@@ -31,11 +31,19 @@ private enum StateIndex {
     /// (``PictureSettle``), for its resend at the box's exact size once it holds
     /// still.
     static let settle = 4
+
+    /// The pixels of a picture the cache keeps, held while the view is drawn
+    /// (``ImagePixelPin``).
+    static let pin = 5
 }
 
 extension _ImageCore {
     /// ``StateIndex/settle``, for `PictureSettle` in its own file.
     static let settleStateIndex = StateIndex.settle
+    /// ``StateIndex/renderCache`` and ``StateIndex/pin``, for the cached
+    /// pixels' drawing in its own file.
+    static let renderCacheStateIndex = StateIndex.renderCache
+    static let pinStateIndex = StateIndex.pin
 }
 
 // MARK: - Image Core
@@ -78,11 +86,13 @@ struct _ImageCore: View, Renderable, Layoutable {
 
         // Reading the phase box is a pure lookup (no mutation that matters
         // during a measure pass).
-        let loaded: RGBAImage? = environment.stateStorage.flatMap { stateStorage in
+        // Only the picture's size in pixels: a picture the cache keeps is laid
+        // out without its pixels.
+        let loaded: (width: Int, height: Int)? = environment.stateStorage.flatMap { stateStorage in
             let phaseKey = StateStorage.StateKey(
                 identity: context.identity, propertyIndex: StateIndex.phase)
             let phaseBox: StateBox<ImageLoadingPhase> = stateStorage.storage(
-                for: phaseKey, default: decoded.map { .success($0.pixels) } ?? .loading)
+                for: phaseKey, default: decoded?.phase ?? .loading)
             // Still loading, a picture the cache holds is the one the render
             // pass about to follow will draw (``cachedPhase(of:cache:maxPixelCount:)``).
             var phase = phaseBox.value
@@ -105,16 +115,20 @@ struct _ImageCore: View, Renderable, Layoutable {
                 // cache, where the render pass finds it, so it is made once.
                 phase = small
             }
-            guard case .success(let rawImage) = phase, rawImage.width > 0, rawImage.height > 0 else {
-                return nil
+            let size: (width: Int, height: Int)
+            switch phase {
+            case .success(let rawImage): size = (rawImage.width, rawImage.height)
+            case .cached(let picture): size = (picture.width, picture.height)
+            case .loading, .failure: return nil
             }
-            return rawImage
+            guard size.width > 0, size.height > 0 else { return nil }
+            return size
         }
 
         // Its own size, whatever it is offered, where it has one — and before
         // the box below, whose viewport read would keep a memo above from
         // storing a size that does not depend on it.
-        if let loaded, let natural = naturalBox(of: loaded, in: environment) {
+        if let loaded, let natural = naturalBox(ofPixels: loaded, in: environment) {
             return .fixed(Self.zoomed(natural.width, zoom), Self.zoomed(natural.height, zoom))
         }
 
@@ -143,9 +157,9 @@ struct _ImageCore: View, Renderable, Layoutable {
 
         // Once the image has loaded, report the SAME aspect-fitted size the renderer
         // produces (height follows from width × aspect ratio), then apply zoom.
-        if let rawImage = loaded {
+        if let loaded {
             let fitted = Self.cellBox(
-                imageWidth: rawImage.width, imageHeight: rawImage.height,
+                imageWidth: loaded.width, imageHeight: loaded.height,
                 maxWidth: fitWidth, maxHeight: fitHeight,
                 stretches: effectiveResizing(in: environment) != nil,
                 contentMode: environment.imageContentMode,
@@ -234,8 +248,9 @@ struct _ImageCore: View, Renderable, Layoutable {
         // Retrieve or create persistent phase state
         let phaseKey = StateStorage.StateKey(identity: identity, propertyIndex: StateIndex.phase)
         let phaseBox: StateBox<ImageLoadingPhase> = stateStorage.storage(
-            for: phaseKey, default: decoded.map { .success($0.pixels) } ?? .loading)
+            for: phaseKey, default: decoded?.phase ?? .loading)
         stateStorage.markActive(identity)
+        let pin = pixelPin(context: context)
 
         // Track the last loaded source to detect changes
         let sourceKey = StateStorage.StateKey(identity: identity, propertyIndex: StateIndex.lastSource)
@@ -268,7 +283,7 @@ struct _ImageCore: View, Renderable, Layoutable {
                     maxPixelCount: maxPixelCount, urlTimeout: urlTimeout,
                     urlCache: context.environment.resolvedURLImageCache,
                     synchronousDecodeLimit: context.environment.imageSynchronousDecodeLimit),
-                imageStore: context.environment.terminalImageStore, loads: decoded == nil)
+                imageStore: context.environment.terminalImageStore, pin: pin.value, loads: decoded == nil)
             // Written only when the owner changes, as the source is: a write
             // asks for a frame.
             let ownerBox: StateBox<_DecodedImage?> = stateStorage.storage(
@@ -296,16 +311,22 @@ struct _ImageCore: View, Renderable, Layoutable {
             renderHeight = height
         }
 
+        // A picture the cache keeps draws as one held here, its pixels read
+        // back from the cache — and held while the view is drawn — and keyed by
+        // the decode the cache filed them as rather than by their buffer.
+        // Reloading what the cache let go of (``manageLoadLifecycle``): until
+        // it lands, what the view last drew of it, where that still fits.
+        guard case let (phase, decodedPixels)? = drawablePhase(phaseBox.value, pin: pin.value, context: context) else {
+            return lastDrawing(of: phaseBox.value, width: renderWidth, height: renderHeight, context: context)
+                ?? renderPlaceholder(
+                    width: renderWidth, height: renderHeight, text: placeholderText, spinner: spinner, context: context)
+        }
+
         // Render based on current phase
-        switch phaseBox.value {
-        case .loading:
+        switch phase {
+        case .loading, .cached:
             return renderPlaceholder(
-                width: renderWidth,
-                height: renderHeight,
-                text: placeholderText,
-                spinner: spinner,
-                context: context
-            )
+                width: renderWidth, height: renderHeight, text: placeholderText, spinner: spinner, context: context)
 
         case .success(let loadedImage):
             // What is drawn into which box: at its natural size, the image's
@@ -325,20 +346,16 @@ struct _ImageCore: View, Renderable, Layoutable {
             let picture: FrameBuffer
             // Each keyed on which load its pixels are (`DecodedPixels`): the
             // LOADED buffer, not the drawn one, which a crop makes every frame.
+            let decodedPixels = decodedPixels ?? DecodedPixels(loadedImage)
             if !isTemplate, resizing?.slices != true, let drawn = renderWithTerminalGraphics(
-                rawImage, decodedPixels: DecodedPixels(loadedImage), width: drawWidth, height: drawHeight,
+                rawImage, decodedPixels: decodedPixels, width: drawWidth, height: drawHeight,
                 stretches: resizing != nil && !keepsAspect, context: context)
             {
                 picture = drawn
             } else {
                 picture = renderImage(
-                    rawImage, decodedPixels: DecodedPixels(loadedImage),
-                    width: drawWidth,
-                    height: drawHeight,
-                    characterSet: characterSet,
-                    shapeAware: shapeAware,
-                    colorMode: colorMode,
-                    dithering: dithering,
+                    rawImage, decodedPixels: decodedPixels, width: drawWidth, height: drawHeight,
+                    characterSet: characterSet, shapeAware: shapeAware, colorMode: colorMode, dithering: dithering,
                     toneCurve: context.environment.imageToneCurve?.resolved(
                         with: context.environment.palette),
                     supersampling: context.environment.imageSupersampling, edgeThreshold: context.environment.imageEdgeThreshold,
@@ -398,6 +415,7 @@ extension _ImageCore {
         lastSourceBox: StateBox<ImageSource?>,
         load settings: LoadSettings,
         imageStore: TerminalImageStore?,
+        pin: ImagePixelPin? = nil,
         loads: Bool
     ) {
         // Detect source change and force reload
@@ -406,7 +424,7 @@ extension _ImageCore {
             lifecycle.resetAppearance(token: token)
             // Pixels that came with the image are the new phase: nothing is
             // going to load them.
-            phaseBox.value = decoded.map { .success($0.pixels) } ?? .loading
+            phaseBox.value = decoded?.phase ?? .loading
         }
         // Only on an actual change. `StateBox.value.didSet` invalidates
         // unconditionally — it cannot compare, since `Value` is not constrained
@@ -430,11 +448,16 @@ extension _ImageCore {
             // view showed — a navigation zoom's photo screen, a list row
             // scrolled back into view — drew a blank frame first, while a
             // task decoded the file again.
-            if case .loading = phaseBox.value,
+            //
+            // So does a row coming back whose picture the cache has let go of
+            // since it was drawn (``ImageLoadingPhase/cached(_:)``): it has
+            // nothing to draw, as a view loading for the first time has not.
+            let needsPixels = Self.needsPixels(phaseBox.value, cache: settings.urlCache)
+            if needsPixels,
                 let cached = Self.cachedPhase(of: source, cache: settings.urlCache, maxPixelCount: settings.maxPixelCount)
             {
                 phaseBox.value = cached
-            } else if case .loading = phaseBox.value, case .file(let path) = source,
+            } else if needsPixels, case .file(let path) = source,
                 let decoded = Self.smallFilePhase(path: path, settings: settings)
             {
                 phaseBox.value = decoded
@@ -477,9 +500,12 @@ extension _ImageCore {
         // memory back. A transmitted image is retained by the terminal until
         // something deletes it, and this is the only moment anything knows
         // the picture is not coming back.
+        // And let go of the pixels the cache keeps: the view keeps a handle
+        // until it is drawn again (``ImagePixelPin``).
         lifecycle.registerDisappear(token: token) { [lifecycle] in
             lifecycle.cancelTask(token: token)
             imageStore?.release(token: token)
+            pin?.release()
         }
     }
 
@@ -497,7 +523,7 @@ extension _ImageCore {
                 case .file(let path): try loader.cachedImage(fromFile: path, cache: cache, maxPixelCount: maxPixelCount)
                 case .url(let address): try loader.cachedImage(fromURL: address, cache: cache, maxPixelCount: maxPixelCount)
                 }
-            return image.map { .success($0) }
+            return image.map { .loaded($0, from: source, cache: cache) }
         } catch let loadError as ImageLoadError {
             return .failure(loadError.description)
         } catch {
@@ -523,9 +549,10 @@ extension _ImageCore {
             size <= settings.synchronousDecodeLimit
         else { return nil }
         do {
-            return .success(
+            return .loaded(
                 try PlatformImageLoader().loadImage(
-                    from: path, cache: settings.urlCache, maxPixelCount: settings.maxPixelCount))
+                    from: path, cache: settings.urlCache, maxPixelCount: settings.maxPixelCount),
+                from: .file(path), cache: settings.urlCache)
         } catch let loadError as ImageLoadError {
             return .failure(loadError.description)
         } catch {
@@ -561,8 +588,9 @@ extension _ImageCore {
                     maxPixelCount: settings.maxPixelCount
                 )
             }
-            // Store the raw image; conversion happens per render pass.
-            return .success(rawImage)
+            // Store the raw image — or where the cache keeps it, if it does;
+            // conversion happens per render pass.
+            return .loaded(rawImage, from: source, cache: settings.urlCache)
         } catch is CancellationError {
             return nil
         } catch let loadError as ImageLoadError {
@@ -728,7 +756,7 @@ extension _ImageCore {
     ///
     /// A fully opaque picture's `coverage` is empty, so this is one `isEmpty` for the
     /// overwhelming majority of images and no allocation at all.
-    private static func buffer(
+    static func buffer(
         for art: ASCIIArt, monoColours: ImageMonoColours?
     ) -> FrameBuffer {
         var buffer = FrameBuffer(lines: inked(art, monoColours: monoColours))
@@ -874,7 +902,6 @@ extension _ImageCore {
 // MARK: - Placeholder Rendering
 
 extension _ImageCore {
-
     /// Renders the placeholder, centred: a spinner above the text when the spinner
     /// is shown, and otherwise the text alone, or "Loading..." when there is none.
     private func renderPlaceholder(

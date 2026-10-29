@@ -61,6 +61,13 @@ package final class _DecodedImage: @unchecked Sendable {
     private var drawn: RGBAImage?
     private let draw: () -> RGBAImage
 
+    /// Where the image cache keeps these pixels, when it is the cache that
+    /// keeps them — an ``AsyncImage``'s load — or `nil` for pixels held here.
+    /// Then nothing here holds them: the view drawing them holds them while it
+    /// draws (``ImagePixelPin``), and reads them back from `cache` after.
+    let cachedPicture: CachedPicture?
+    private let cache: URLImageCache?
+
     /// How the pixels become the image's size in points: SwiftUI's natural
     /// size for an image that is not resizable.
     package enum PointSizing: Equatable, Sendable {
@@ -81,6 +88,22 @@ package final class _DecodedImage: @unchecked Sendable {
         self.drawn = pixels
         self.draw = { pixels }
         self.pointSizing = .scale(Self.sanitized(scale))
+        self.cachedPicture = nil
+        self.cache = nil
+    }
+
+    /// The picture `cache` keeps as `picture`, at `scale` pixels per point —
+    /// an ``AsyncImage``'s load. Its owner is the decode: a new load is a new
+    /// picture to the view that keeps its owner.
+    init(cached picture: CachedPicture, in cache: URLImageCache?, scale: Double = 1) {
+        self.owner = picture.decode
+        self.drawn = nil
+        // Empty once the cache has let the decode go: the view drawing it reads
+        // the phase (``phase``), and never asks for these then.
+        self.draw = { picture.pixels(in: cache) ?? RGBAImage(width: 0, height: 0, pixels: []) }
+        self.pointSizing = .scale(Self.sanitized(scale))
+        self.cachedPicture = picture
+        self.cache = cache
     }
 
     /// Pixels drawn out of `owner` by `draw`, the first time they are wanted,
@@ -88,6 +111,8 @@ package final class _DecodedImage: @unchecked Sendable {
     package init(owner: AnyObject, pointSizing: PointSizing = .scale(1), draw: @escaping () -> RGBAImage) {
         self.owner = owner
         self.draw = draw
+        self.cachedPicture = nil
+        self.cache = nil
         switch pointSizing {
         case .scale(let scale): self.pointSizing = .scale(Self.sanitized(scale))
         case .points: self.pointSizing = pointSizing
@@ -96,21 +121,33 @@ package final class _DecodedImage: @unchecked Sendable {
 
     /// The image's size in points, given its pixels.
     func pointSize(of pixels: RGBAImage) -> (width: Double, height: Double) {
+        pointSize(width: pixels.width, height: pixels.height)
+    }
+
+    /// The image's size in points, given its size in pixels.
+    func pointSize(width pixelWidth: Int, height pixelHeight: Int) -> (width: Double, height: Double) {
         switch pointSizing {
         case .scale(let scale):
-            return (Double(pixels.width) / scale, Double(pixels.height) / scale)
+            return (Double(pixelWidth) / scale, Double(pixelHeight) / scale)
         case .points(let width, let height):
             guard width.isFinite, height.isFinite, width > 0, height > 0 else {
-                return (Double(pixels.width), Double(pixels.height))
+                return (Double(pixelWidth), Double(pixelHeight))
             }
             return (width, height)
         }
+    }
+
+    /// The phase a view drawing this image starts in: loaded, its pixels
+    /// held here, or kept by the cache.
+    var phase: ImageLoadingPhase {
+        cachedPicture.map { .cached($0) } ?? .success(pixels)
     }
 
     /// These pixels at `scale` pixels per point: the same pixels, shared, and
     /// this image itself where the scale is the one it has.
     func scaled(_ scale: Double) -> _DecodedImage {
         guard pointSizing != .scale(Self.sanitized(scale)) else { return self }
+        if let cachedPicture { return _DecodedImage(cached: cachedPicture, in: cache, scale: scale) }
         return _DecodedImage(pixels, scale: scale)
     }
 
@@ -122,6 +159,8 @@ package final class _DecodedImage: @unchecked Sendable {
 
     /// The pixels.
     package var pixels: RGBAImage {
+        // Read back each time from the cache that keeps them, never kept here.
+        if cachedPicture != nil { return draw() }
         if let drawn { return drawn }
         let pixels = draw()
         drawn = pixels
@@ -343,6 +382,8 @@ private struct _AsyncImageCore<Content: View>: View, Renderable, Layoutable {
                 let next: Stored
                 switch loaded {
                 case .success(let pixels): next = .loaded(_DecodedImage(pixels, scale: scale), address)
+                case .cached(let picture):
+                    next = .loaded(_DecodedImage(cached: picture, in: settings.urlCache, scale: scale), address)
                 case .failure(let message): next = .failed(message)
                 case .loading: return
                 }

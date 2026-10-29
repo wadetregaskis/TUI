@@ -85,10 +85,12 @@ struct FileImageCacheTests {
 
         let phase: StateBox<ImageLoadingPhase> = tui.stateStorage.storage(
             for: StateStorage.StateKey(identity: identity, propertyIndex: 0), default: .loading)
-        guard case .success(let image) = phase.value else {
+        // Kept by the cache, which the phase names rather than holds.
+        guard case .cached(let picture) = phase.value else {
             Issue.record("still \(phase.value) after its first frame")
             return
         }
-        #expect(image.width == 6)
+        #expect(picture.width == 6)
+        #expect(picture.pixels(in: cache)?.width == 6)
     }
 }

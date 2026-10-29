@@ -340,6 +340,7 @@ Pictures:
 
 Fixes an app may have worked around:
 
+- **A long list of pictures holds at most the image cache's bytes of pixels** (64 MiB unless `.urlImageCache(_:)` gives another). A row keeps its state for as long as its list lives, as in SwiftUI, and that state used to hold the row's decoded picture, so every picture a list had ever drawn stayed in memory. A picture loaded from a file or a URL is now kept by the cache, and its view holds it only while drawn. One drawn again after the cache let it go loads again: a small file on that frame, as before; a larger file or a URL in a task, the row showing what it last drew meanwhile (its placeholder, where the terminal drew it as a picture). A picture made from pixels in memory is kept by its view, as before.
 - **An app that calls `exit()` hands the terminal back** (raw mode, the alternate screen, the cursor, mouse reporting, the kitty keyboard flags) as a quit does; so does a stack overflow in a frame, and resuming after an external `SIGSTOP` takes the terminal back as resuming after ⌃Z does. Quitting puts xterm's `modifyCursorKeys` back to its initial value, where it set it to 0.
 - **`TimelineView(.periodic(from:by:))` with an interval of 0, below 0 or NaN gives one entry** instead of stopping the app, and one too long or too short for the date to move ends its entries instead of hanging. Animations, timelines and notifications take any duration without trapping.
 - **A picture file that is a named pipe or a device is refused** rather than opened, which froze the app waiting for a writer.

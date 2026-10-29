@@ -56,7 +56,7 @@ extension _ImageCore {
         let identity = context.identity
         let phaseBox: StateBox<ImageLoadingPhase> = stateStorage.storage(
             for: StateStorage.StateKey(identity: identity, propertyIndex: PaintStateIndex.phase),
-            default: decoded.map { .success($0.pixels) } ?? .loading)
+            default: decoded?.phase ?? .loading)
         stateStorage.markActive(identity)
         let lastSourceBox: StateBox<ImageSource?> = stateStorage.storage(
             for: StateStorage.StateKey(identity: identity, propertyIndex: PaintStateIndex.lastSource), default: nil)
@@ -74,7 +74,16 @@ extension _ImageCore {
                     synchronousDecodeLimit: context.environment.imageSynchronousDecodeLimit),
                 imageStore: nil, loads: decoded == nil)
         }
-        guard case .success(let image) = phaseBox.value else { return nil }
+        // A picture the cache keeps is read back from it; the holder below keeps
+        // what it was converted to, as it keeps any picture's.
+        let image: RGBAImage
+        switch phaseBox.value {
+        case .success(let held): image = held
+        case .cached(let picture):
+            guard let kept = picture.pixels(in: context.environment.resolvedURLImageCache) else { return nil }
+            image = kept
+        case .loading, .failure: return nil
+        }
         let holder: StateBox<PaintPixelsHolder> = stateStorage.storage(
             for: StateStorage.StateKey(identity: identity, propertyIndex: PaintStateIndex.pixels),
             default: PaintPixelsHolder())

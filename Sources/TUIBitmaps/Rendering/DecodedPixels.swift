@@ -27,19 +27,42 @@ import TUIImage
 ///
 /// Holding the buffer keeps nothing alive the view does not: the phase it was
 /// loaded into holds the same one, until the next load replaces both.
+///
+/// Or, for a picture the image cache keeps rather than the view
+/// (``ImageLoadingPhase/cached(_:)``), the decode the cache filed it as
+/// (``ImageDecodeID``): the same exactness — one object per decode, held, so
+/// never another's — without holding the pixels, which is what lets a row
+/// scrolled out of a long list keep its conversion and not its picture.
 struct DecodedPixels: Equatable {
-    private let pixels: [RGBA]
+    private enum Identity {
+        case buffer([RGBA])
+        case decode(ImageDecodeID)
+    }
+
+    private let identity: Identity
 
     /// The pixels `image` was decoded into.
     init(_ image: RGBAImage) {
-        pixels = image.pixels
+        identity = .buffer(image.pixels)
+    }
+
+    /// The pixels the cache filed as `decode`.
+    init(decode: ImageDecodeID) {
+        identity = .decode(decode)
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.pixels.withUnsafeBufferPointer { mine in
-            rhs.pixels.withUnsafeBufferPointer { theirs in
-                mine.baseAddress == theirs.baseAddress && mine.count == theirs.count
+        switch (lhs.identity, rhs.identity) {
+        case (.buffer(let mine), .buffer(let theirs)):
+            mine.withUnsafeBufferPointer { mine in
+                theirs.withUnsafeBufferPointer { theirs in
+                    mine.baseAddress == theirs.baseAddress && mine.count == theirs.count
+                }
             }
+        case (.decode(let mine), .decode(let theirs)):
+            mine === theirs
+        default:
+            false
         }
     }
 }

@@ -27,8 +27,16 @@ extension _ImageCore {
     /// cell's size is known. Rounded to whole cells, at least one each way,
     /// and at most `maximumNaturalCells`.
     func naturalBox(of rawImage: RGBAImage, in environment: EnvironmentValues) -> (width: Int, height: Int)? {
+        naturalBox(ofPixels: (rawImage.width, rawImage.height), in: environment)
+    }
+
+    /// ``naturalBox(of:in:)`` of an image of `pixels`, which a measure knows
+    /// without the image itself (``CachedPicture``).
+    func naturalBox(ofPixels pixels: (width: Int, height: Int), in environment: EnvironmentValues)
+        -> (width: Int, height: Int)?
+    {
         guard resizing == nil, environment.imageFitTarget == .naturalSize else { return nil }
-        return naturalCells(of: rawImage, in: environment)
+        return naturalCells(ofPixels: pixels, in: environment)
     }
 
     /// The image's size in cells at its natural size, before any zoom, where a
@@ -36,8 +44,16 @@ extension _ImageCore {
     /// whether or not the image is resizable — what a sliced image's caps and
     /// tiles are cut at.
     func naturalCells(of rawImage: RGBAImage, in environment: EnvironmentValues) -> (width: Int, height: Int)? {
-        guard let cell = environment.imageCellPoints, rawImage.width > 0, rawImage.height > 0 else { return nil }
-        let size = pointSize(of: rawImage)
+        naturalCells(ofPixels: (rawImage.width, rawImage.height), in: environment)
+    }
+
+    /// ``naturalCells(of:in:)`` of an image of `pixels`.
+    private func naturalCells(ofPixels pixels: (width: Int, height: Int), in environment: EnvironmentValues)
+        -> (width: Int, height: Int)?
+    {
+        guard let cell = environment.imageCellPoints, pixels.width > 0, pixels.height > 0 else { return nil }
+        let size = decoded?.pointSize(width: pixels.width, height: pixels.height)
+            ?? (width: Double(pixels.width), height: Double(pixels.height))
         func cells(_ points: Double, _ cell: Double) -> Int {
             let count = (points / cell).rounded()
             guard count.isFinite else { return 1 }

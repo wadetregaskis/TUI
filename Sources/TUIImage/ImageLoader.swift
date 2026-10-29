@@ -566,7 +566,21 @@ extension PlatformImageLoader {
 /// least recently used go first. A single image larger than the limit is not
 /// kept at all. Thread-safe through an internal lock: a load decodes off the
 /// main actor.
+///
+/// It is also where a loaded picture's pixels live. A view keeps the key and
+/// which decode it drew (a few words), holds the pixels only while it is
+/// drawn, and reads them back from here when it is drawn again — so a list
+/// that keeps every row's state for as long as it lives, as SwiftUI's do,
+/// holds at most this cache's bytes of pictures rather than every row's ever
+/// drawn. A picture this cache let go of loads again when its view is next
+/// drawn: a small file on that frame, a larger one or a URL in a task, the
+/// view showing what it last drew meanwhile where it drew glyphs. A picture
+/// with no cache to go to — made from pixels in memory, larger than the
+/// limit, or drawn outside an app — stays with its view.
 public final class URLImageCache: @unchecked Sendable {
+    // Each entry is filed with the decode it is (`ImageDecodeID`): a new one
+    // for every image set, so a key whose picture was evicted and decoded
+    // again is a different decode, though its name is the same.
     /// The bytes the cache keeps at most, by default: 64 MiB, about eleven
     /// full-HD pictures.
     public static let defaultByteLimit = 64 << 20
@@ -574,7 +588,7 @@ public final class URLImageCache: @unchecked Sendable {
     /// The bytes the cache keeps at most.
     public let byteLimit: Int
 
-    private var entries: [String: (image: RGBAImage, lastUse: UInt64)] = [:]
+    private var entries: [String: (image: RGBAImage, lastUse: UInt64, decode: ImageDecodeID)] = [:]
     private var bytes = 0
     private var clock: UInt64 = 0
     private let lock = NSLock()
@@ -597,8 +611,21 @@ public final class URLImageCache: @unchecked Sendable {
         defer { lock.unlock() }
         guard let entry = entries[urlString] else { return nil }
         clock &+= 1
-        entries[urlString] = (entry.image, clock)
+        entries[urlString] = (entry.image, clock, entry.decode)
         return entry.image
+    }
+
+    /// The image cached for `key` and which decode it is
+    /// (``ImageDecodeID``), or `nil`: what a view that keeps only the key and
+    /// the decode — not the pixels — reads its pixels back from while it
+    /// draws. Counts as a use, as ``get(_:)`` does.
+    package func entry(_ key: String) -> (image: RGBAImage, decode: ImageDecodeID)? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let entry = entries[key] else { return nil }
+        clock &+= 1
+        entries[key] = (entry.image, clock, entry.decode)
+        return (entry.image, entry.decode)
     }
 
     /// Stores an image in the cache for the given URL string, letting the
@@ -614,7 +641,7 @@ public final class URLImageCache: @unchecked Sendable {
             bytes -= Self.cost(of: oldest.value.image)
         }
         clock &+= 1
-        entries[urlString] = (image, clock)
+        entries[urlString] = (image, clock, ImageDecodeID())
         bytes += cost
     }
 
@@ -670,7 +697,7 @@ extension PlatformImageLoader {
     /// The key a file's picture is cached under: its path, size and
     /// modification time, so an edited file is decoded again rather than
     /// served as it was. `nil` for a file whose attributes cannot be read.
-    static func cacheKey(forFile path: String) -> String? {
+    package static func cacheKey(forFile path: String) -> String? {
         guard let attributes = try? FileManager.default.attributesOfItem(atPath: path),
             let size = attributes[.size] as? NSNumber,
             let modified = attributes[.modificationDate] as? Date
@@ -854,3 +881,17 @@ private final class URLTaskHandle: @unchecked Sendable {
     }
 }
 #endif
+
+// MARK: - Decode Identity
+
+/// Which decode a cached picture is: one object for each image a
+/// ``URLImageCache`` files, compared by being that object.
+///
+/// A view that keeps a picture's cache key rather than its pixels keeps this
+/// too, so that what it converted the pixels into — glyphs, a picture sent to
+/// the terminal — is known to be of THESE pixels, without holding them: a
+/// picture evicted and decoded again is another decode, though it is filed
+/// under the same key, and an address cannot be reused while it is held.
+package final class ImageDecodeID: Sendable {
+    package init() {}
+}
