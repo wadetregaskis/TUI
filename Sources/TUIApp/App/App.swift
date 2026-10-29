@@ -633,12 +633,13 @@ extension AppRunner {
             }
 
             // Resumed from an *external* SIGSTOP, which cannot be caught, so
-            // nothing was torn down and nothing needs rebuilding — but the
-            // screen may have been disturbed while the process slept.
+            // nothing was handed back — and while the process slept the shell
+            // had the terminal, in this process's raw mode and modes, and may
+            // have changed both. Taken back as a Ctrl-Z resume takes it.
             if signals.consumeContinueFlag() {
+                recoverFromExternalStop(renderer: renderer)
                 // The same long gap as Ctrl-Z's, so the same restart.
                 cursorTimer.restartFocusPhase()
-                renderer.invalidateDiffCache()
                 pacer.requestRender()
             }
 
@@ -975,8 +976,39 @@ extension AppRunner {
         #if !canImport(WASILibc)
         raise(SIGSTOP)
         // ── stopped; `fg` resumes here ──
-        //
-        // So does `bg`, and a BACKGROUND process must not touch the terminal:
+        #endif
+        waitUntilForeground()
+        retakeTerminal(renderer: renderer)
+    }
+
+    /// Takes the terminal back after an *external* `SIGSTOP` (`kill -STOP`,
+    /// then `fg`), which cannot be caught, so nothing was handed back: the
+    /// shell had the terminal in this process's raw mode, with every mode it
+    /// set — and may have changed them, as a line editor resets bracketed
+    /// paste or pushes kitty flags of its own, and `stty sane` or `reset`
+    /// change the rest. So: once in the foreground, raw mode is turned off
+    /// by this process's own books (``Terminal/disableRawMode()``: the modes
+    /// off, the kitty flags popped, the shell's termios back) and taken back
+    /// as a Ctrl-Z resume takes it (``retakeTerminal(renderer:)``): raw mode
+    /// made again from the shell's original termios, every mode asserted,
+    /// the flags pushed again. Without leaving the alternate screen, which
+    /// would show the shell's screen for a moment for nothing. The pop
+    /// before the push keeps one entry of this process's on the kitty stack
+    /// whether or not the shell left it there (a pop of an empty stack does
+    /// nothing).
+    fileprivate func recoverFromExternalStop(renderer: RenderLoop<A>) {
+        waitUntilForeground()
+        terminal.applyMouseSupport(.disabled)
+        tuiContext.mouseEventDispatcher.forgetRestingPointer()
+        terminal.disableRawMode()
+        retakeTerminal(renderer: renderer)
+    }
+
+    /// Waits until this process is the terminal's foreground job, stopping
+    /// again while it is not: the resume of a stop, by `fg` or `bg`.
+    fileprivate func waitUntilForeground() {
+        #if !canImport(WASILibc)
+        // `bg` resumes a stopped job too, and a BACKGROUND process must not touch the terminal:
         // the escapes below would garble the shell's prompt, and grabbing raw
         // mode would steal the foreground shell's keystrokes. Re-stop until
         // the shell actually hands the terminal over (`fg` makes this group
@@ -991,6 +1023,13 @@ extension AppRunner {
             raise(SIGSTOP)
         }
         #endif
+    }
+
+    /// Takes the terminal back the way `run` set it up, after a stop: the
+    /// alternate screen, the cursor hidden, raw mode and its modes, the
+    /// host's own modes, and every line repainted. Shared by the Ctrl-Z
+    /// resume and the recovery from an external stop.
+    fileprivate func retakeTerminal(renderer: RenderLoop<A>) {
         terminal.enterAlternateScreen()
         SoftTrap.holdUntilTerminalRestored()
         terminal.hideCursor()

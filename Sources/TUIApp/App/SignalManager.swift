@@ -134,9 +134,10 @@ final class SignalManager {
     private var suspendRequested = false
 
     /// Set by SIGCONT. The case this exists for is resuming from an *external*
-    /// `SIGSTOP`, which cannot be caught — nothing was torn down, so nothing
-    /// needs rebuilding, but the screen may have been disturbed while the
-    /// process slept and the loop repaints it. (Our own suspend path arms
+    /// `SIGSTOP`, which cannot be caught — nothing was handed back, the shell
+    /// had the terminal in our raw mode while the process slept and may have
+    /// changed it, so the loop takes it back as a Ctrl-Z resume does and
+    /// repaints (`AppRunner.recoverFromExternalStop`). (Our own suspend path arms
     /// ``expectSelfResume()`` before it stops, so the SIGCONT its `fg` raises
     /// is swallowed and doesn't double-repaint through here.)
     private var continueReceived = false
