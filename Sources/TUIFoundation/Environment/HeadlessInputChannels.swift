@@ -24,14 +24,19 @@
 /// three are work an app pays on every frame. Without one the bench measured
 /// controls with their pointer half removed.
 ///
+/// So is the screen selection, for what a frame draws for it: with one in the
+/// environment each `Text` files its frame (`FrameBuffer.filingTextFrame(context:)`),
+/// a region an app's every text carries. Nothing here selects.
+///
 /// `package`, not public: it is harness plumbing, not API.
 package final class HeadlessInputChannels {
     private let keyEventDispatcher = KeyEventDispatcher()
     private let keyboardShortcuts = KeyboardShortcutRegistry()
     private let statusBar = StatusBarState()
     private let mouseEventDispatcher = MouseEventDispatcher()
+    private let screenSelection = ScreenSelection()
 
-    /// Creates four empty channels.
+    /// Creates five empty channels.
     package init() {}
 
     /// Wires the channels into `environment`.
@@ -46,6 +51,7 @@ package final class HeadlessInputChannels {
         environment.statusBar = statusBar
         environment.appStatusBar = statusBar
         environment.mouseEventDispatcher = mouseEventDispatcher
+        environment.screenSelection = screenSelection
     }
 
     /// Empties what the previous walk registered, as `RenderLoop` does before
