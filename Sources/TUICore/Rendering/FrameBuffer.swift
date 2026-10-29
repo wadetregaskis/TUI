@@ -613,7 +613,14 @@ extension FrameBuffer {
         // `!other.isEmpty` half of the guard above exists for the footprint an
         // `.offset`/`.position` child leaves behind, and that one declares
         // columns (`other.width > 0`), so it is untouched here.
-        let spacingApplied = priorWidth > 0 && other.width > 0 ? spacing : 0
+        //
+        // A negative gap pulls `other` back over this buffer's last columns, no
+        // further than its first, and each row here is cut where `other`
+        // starts — the later child drawn over the earlier, as SwiftUI's is.
+        // Joined like a positive gap, a row kept both halves whole while the
+        // width took the overlap off, and the two disagreed.
+        let spacingApplied = priorWidth > 0 && other.width > 0 ? max(spacing, -priorWidth) : 0
+        let leftColumns = myWidth + min(0, spacingApplied)
         coverOverflow(under: other, at: (x: myWidth + spacingApplied, y: 0))
 
         // Pre-compute the new width
@@ -631,7 +638,7 @@ extension FrameBuffer {
         if !resultUniform { widths.reserveCapacity(maxHeight) }
 
         for row in 0..<maxHeight {
-            let left = row < lines.count ? lines[row] : ""
+            var left = row < lines.count ? lines[row] : ""
             let right = row < other.lines.count ? other.lines[row] : ""
 
             // Build each combined row in place: the left line padded to `myWidth`,
@@ -647,18 +654,23 @@ extension FrameBuffer {
             // Only an unmeasured ragged buffer falls back to `strippedLength`
             // (the dominant cost this avoids). Rows past this buffer's height
             // are zero-wide.
-            let leftWidth = knownWidth(ofRow: row, line: left)
-            let leftPad = max(0, myWidth - leftWidth)
+            var leftWidth = knownWidth(ofRow: row, line: left)
+            if spacingApplied < 0, leftWidth > leftColumns {
+                left = left.ansiAwarePrefix(visibleCount: leftColumns)
+                leftWidth = left.strippedLength
+            }
+            let leftPad = max(0, leftColumns - leftWidth)
             var combined = ""
             combined.reserveCapacity(
-                left.utf8.count + leftPad + spacingApplied + right.utf8.count)
+                left.utf8.count + leftPad + max(0, spacingApplied) + right.utf8.count)
             combined += left
             if leftPad > 0 { combined += asciiSpaces(leftPad) }
             if spacingApplied > 0 { combined += asciiSpaces(spacingApplied) }
             combined += right
             result.append(combined)
             if !resultUniform {
-                widths.append(max(leftWidth, myWidth) + spacingApplied + other.knownWidth(ofRow: row, line: right))
+                widths.append(
+                    max(leftWidth, leftColumns) + max(0, spacingApplied) + other.knownWidth(ofRow: row, line: right))
             }
         }
 
