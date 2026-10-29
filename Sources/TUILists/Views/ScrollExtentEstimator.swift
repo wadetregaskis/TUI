@@ -111,7 +111,7 @@ package enum ScrollExtentEstimator {
             var below = 0
             for index in clamped.upperBound..<count { below += height(index) }
             (linesAbove, linesBelow) = (above, below)
-        } else if count <= ScrollExtentPrecision.exactRowLimit {
+        } else if keepsEveryHeight(count: count, precision: precision) {
             // Exact because it is CHEAP, not because anyone asked — and it was
             // not cheap. This was the one path with no stash of its own, which
             // made the small case the expensive one: a table above the row limit
@@ -153,6 +153,16 @@ package enum ScrollExtentEstimator {
             offset: linesAbove + topClip,
             profile: profileUsed
         )
+    }
+
+    /// Whether ``lineMetrics(visible:count:topClip:precision:cached:height:)``
+    /// keeps every row's height (as prefix sums) rather than a sample's mean:
+    /// below ``ScrollExtentPrecision/exactRowLimit``, unless ``ScrollExtentPrecision/exact``
+    /// measures every row every frame. Asked by a caller deciding what its kept
+    /// profile must be checked against — a kept height is a row's own, so the
+    /// row's data must not have moved under it.
+    package static func keepsEveryHeight(count: Int, precision: ScrollExtentPrecision) -> Bool {
+        precision != .exact && count <= ScrollExtentPrecision.exactRowLimit
     }
 
     /// The mean height of ``ScrollExtentPrecision/sampleCount`` rows spread

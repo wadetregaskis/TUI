@@ -2053,14 +2053,22 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             hasher.combine(column.lineLimit)
         }
         let signature = hasher.finalize()
+        // Where every row's height is kept, the rows themselves too: an
+        // off-screen row that grew moves none of the above. Boxed without
+        // copying, and compared by `==`, which an array the table was handed
+        // again answers from its buffer; built only on that branch.
+        let precision = context.environment.scrollExtentPrecision
+        let rows =
+            ScrollExtentEstimator.keepsEveryHeight(count: data.count, precision: precision)
+            ? Self.rowsSignature(of: data) : nil
         let cachedProfile =
-            handler.extentProfileCache.flatMap { $0.signature == signature ? $0.profile : nil }
+            handler.extentProfileCache.flatMap { $0.signature == signature && $0.rows == rows ? $0.profile : nil }
         let metrics = ScrollExtentEstimator.lineMetrics(
             visible: window.range, count: data.count, topClip: window.topClip,
-            precision: context.environment.scrollExtentPrecision,
+            precision: precision,
             cached: cachedProfile, height: height)
         if !context.isMeasuring, let profile = metrics.profile {
-            handler.extentProfileCache = (signature: signature, profile: profile)
+            handler.extentProfileCache = (signature: signature, rows: rows, profile: profile)
         }
         return ScrollbarRenderer.verticalScrollbar(
             height: contentHeight, extent: metrics.extent, viewport: contentHeight,
@@ -5331,6 +5339,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     ) -> Int {
         // The cap is in the key: a scan that stopped early answers for the
         // interior it stopped against, and a wider table wants the real width.
+        // Uncapped — a table with a multi-line column — the scan lays each cell
+        // out at the table's width (`scanForFitWidth`'s `probeWidth`), so that
+        // width is the key's instead: filed under "uncapped" alone, a table
+        // given more room was served the width its cells wrapped to in the old.
         // The height fields carry the column INDEX rather than a height — a fit
         // width has no height to depend on, and one entry per column has to be
         // told from the next.
@@ -5339,10 +5351,6 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             proposalWidth: cap, proposalHeight: nil,
             availableWidth: cap ?? context.availableWidth, availableHeight: column.declarationIndex,
             hasExplicitWidth: false, hasExplicitHeight: false,
-        // Uncapped — a table with a multi-line column — the scan lays each cell
-        // out at the table's width (`scanForFitWidth`'s `probeWidth`), so that
-        // width is the key's instead: filed under "uncapped" alone, a table
-        // given more room was served the width its cells wrapped to in the old.
             measureGeneration: context.measureGeneration)
         let memo: (cache: RenderCache, signature: AnyEquatableBox)? =
             // A live header's width moves with the clock, which the rows'

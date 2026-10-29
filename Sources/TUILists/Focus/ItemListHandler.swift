@@ -154,17 +154,26 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
 
     /// What the scrollbar extent estimator worked out about these rows' heights,
     /// carried across frames while `signature` — a hash of everything that
-    /// shapes row heights (row count, widths/limits, precision) — holds.
+    /// shapes row heights (row count, widths/limits, precision) — holds, and
+    /// `rows`, the rows' data where every row's height is kept
+    /// (``ScrollExtentEstimator/keepsEveryHeight(count:precision:)``) and the
+    /// rows can be compared: an off-screen row that grew changes none of the
+    /// signature's inputs, and its kept height placed the thumb for the row as
+    /// it was. `nil` where the sample is kept, whose staleness only bends the
+    /// middle of the travel, or where the rows cannot be compared.
     ///
     /// See ``ScrollExtentProfile`` for the contract. It spares the same 64 rows
     /// every frame under the approximate mode, and EVERY row under the exact one
     /// — each of which costs a wrap (a Table) or a row materialisation (a List)
     /// to ask.
-    package var extentProfileCache: (signature: Int, profile: ScrollExtentProfile)? { get { _extentProfileCache } set { _extentProfileCache = newValue } }
+    package var extentProfileCache: (signature: Int, rows: AnyEquatableBox?, profile: ScrollExtentProfile)? {
+        get { _extentProfileCache }
+        set { _extentProfileCache = newValue }
+    }
 
     /// ``extentProfileCache``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
-    private var _extentProfileCache: (signature: Int, profile: ScrollExtentProfile)?
+    private var _extentProfileCache: (signature: Int, rows: AnyEquatableBox?, profile: ScrollExtentProfile)?
 
     /// The vertical scrollbar a `List` drew last time, with everything it was
     /// drawn from — `ScrollViewHandler.verticalScrollbarMemo`'s twin, kept the

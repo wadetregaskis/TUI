@@ -24,6 +24,12 @@ private struct ExtentRow: Identifiable {
     let detail: String
 }
 
+private struct TallRow: Identifiable, Equatable {
+    let id: Int
+    let name: String
+    var detail = "detail"
+}
+
 @MainActor
 @Suite("Scroll extent precision")
 struct ScrollExtentPrecisionTests {
@@ -245,6 +251,67 @@ struct ScrollExtentPrecisionTests {
     func tableBarMatchesWhenTheEstimateIsPerfect() {
         let data = uniformRows(600)
         #expect(render(data, precision: .approximate).lines == render(data, precision: .exact).lines)
+    }
+
+    /// Rows that can be compared, so the kept heights can be checked against them:
+    /// row 0 and the rows from `tallFrom` wrap to four lines in a seven-wide column,
+    /// the rest are one.
+    private func comparableRows(_ count: Int, tallFrom: Int) -> [TallRow] {
+        (0..<count).map { index in
+            TallRow(id: index, name: index == 0 || index >= tallFrom ? "alpha beta gamma delta" : "a")
+        }
+    }
+
+    /// Below the row limit every row's height is measured once and kept as prefix
+    /// sums, under a signature of the count, the widths and the precision. Rows off
+    /// screen that grow while the count stays put change none of those, so the kept
+    /// sums placed the thumb for the rows as they were.
+    @Test("A table's kept row heights follow off-screen rows that grew")
+    func tableExtentFollowsOffScreenRows() {
+        func table(_ rows: [TallRow]) -> some View {
+            Table(rows, selection: .constant(Int?.none)) {
+                TableColumn("Name", value: \TallRow.name).lineLimit(4).width(7)
+                TableColumn("Detail", value: \TallRow.detail)
+            }
+            .scrollIndicators(.visible)
+        }
+        let short = comparableRows(60, tallFrom: 60)
+        let grown = comparableRows(60, tallFrom: 20)
+        let warm = makeRenderContext(width: 44, height: 18)
+        for _ in 0..<2 {
+            warm.renderCache?.beginRenderPass()
+            _ = renderToBuffer(table(short), context: warm)
+        }
+        warm.renderCache?.beginRenderPass()
+        let served = renderToBuffer(table(grown), context: warm).lines
+        let fresh = renderToBuffer(table(grown), context: makeRenderContext(width: 44, height: 18)).lines
+        let before = renderToBuffer(table(short), context: makeRenderContext(width: 44, height: 18)).lines
+        #expect(fresh != before, "the rows' growth must move the bar, or this proves nothing")
+        #expect(served == fresh, "the bar was placed by the heights the rows had before they grew")
+    }
+
+    /// The `List` twin: its rows are materialised to be measured, and kept the same way.
+    @Test("A list's kept row heights follow off-screen rows that grew")
+    func listExtentFollowsOffScreenRows() {
+        func list(_ rows: [TallRow]) -> some View {
+            List {
+                ForEach(rows) { Text(verbatim: $0.name) }
+            }
+            .scrollIndicators(.visible)
+        }
+        let short = comparableRows(60, tallFrom: 60)
+        let grown = comparableRows(60, tallFrom: 20)
+        let warm = makeRenderContext(width: 12, height: 12)
+        for _ in 0..<2 {
+            warm.renderCache?.beginRenderPass()
+            _ = renderToBuffer(list(short), context: warm)
+        }
+        warm.renderCache?.beginRenderPass()
+        let served = renderToBuffer(list(grown), context: warm).lines
+        let fresh = renderToBuffer(list(grown), context: makeRenderContext(width: 12, height: 12)).lines
+        let before = renderToBuffer(list(short), context: makeRenderContext(width: 12, height: 12)).lines
+        #expect(fresh != before, "the rows' growth must move the bar, or this proves nothing")
+        #expect(served == fresh, "the bar was placed by the heights the rows had before they grew")
     }
 
     @Test("Precision changes nothing when every row is one line")

@@ -2508,15 +2508,23 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             hasher.combine(context.availableWidth)
             hasher.combine(context.environment.scrollExtentPrecision)
             let signature = hasher.finalize()
+            // Where every row's height is kept, the rows' data too (the
+            // source's signature, already built): an off-screen row that grew
+            // moves none of the above. An eager source has none, and keeps the
+            // trade above.
+            let precision = context.environment.scrollExtentPrecision
+            let rows =
+                ScrollExtentEstimator.keepsEveryHeight(count: source.count, precision: precision)
+                ? source.signature : nil
             let cachedProfile =
-                handler.extentProfileCache.flatMap { $0.signature == signature ? $0.profile : nil }
+                handler.extentProfileCache.flatMap { $0.signature == signature && $0.rows == rows ? $0.profile : nil }
             let metrics = ScrollExtentEstimator.lineMetrics(
                 visible: visible, count: source.count, topClip: origin.topClip,
-                precision: context.environment.scrollExtentPrecision,
+                precision: precision,
                 cached: cachedProfile,
                 height: { onScreen[$0] ?? source.content(at: $0).buffer.height })
             if !context.isMeasuring, let profile = metrics.profile {
-                handler.extentProfileCache = (signature: signature, profile: profile)
+                handler.extentProfileCache = (signature: signature, rows: rows, profile: profile)
             }
             (extentLines, offsetLines) = (metrics.extent, metrics.offset)
         }
