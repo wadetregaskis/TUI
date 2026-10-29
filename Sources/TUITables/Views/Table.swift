@@ -5337,8 +5337,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let key = RenderCache.SizeKey(
             identityHash: context.identity.structuralHash,
             proposalWidth: cap, proposalHeight: nil,
-            availableWidth: cap ?? -1, availableHeight: column.declarationIndex,
+            availableWidth: cap ?? context.availableWidth, availableHeight: column.declarationIndex,
             hasExplicitWidth: false, hasExplicitHeight: false,
+        // Uncapped — a table with a multi-line column — the scan lays each cell
+        // out at the table's width (`scanForFitWidth`'s `probeWidth`), so that
+        // width is the key's instead: filed under "uncapped" alone, a table
+        // given more room was served the width its cells wrapped to in the old.
             measureGeneration: context.measureGeneration)
         let memo: (cache: RenderCache, signature: AnyEquatableBox)? =
             // A live header's width moves with the clock, which the rows'

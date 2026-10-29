@@ -155,6 +155,33 @@ struct TableFitColumnMemoTests {
         #expect(wide.lines.contains { $0.stripped.contains("Bartholomew") })
     }
 
+    /// A table with a multi-line column scans uncapped, laying a cell out at the
+    /// width the table has — so the fit width is a function of that width, and a
+    /// table given more room has to be measured again. The kept width was filed
+    /// under "uncapped" alone, so it served the width the cells wrapped to in the
+    /// old room: here, a note wrapped to 40 cells drawn in a table of 90.
+    @Test("A fit width laid out at the table's width is measured again at a new width")
+    func uncappedFitFollowsTheWidth() {
+        let data = [ComparableRow(id: 0, name: String(repeating: "word ", count: 20))]
+        let table = Table(data, selection: Binding<Int?>.constant(nil)) {
+            TableColumn("Name") { (row: ComparableRow) in Text(verbatim: row.name) }
+                .width(.fit)
+                .lineLimit(3)
+            TableColumn("ID") { (row: ComparableRow) in Text(verbatim: "\(row.id)") }
+        }
+        let shared = context(width: 40)
+        for frame in 0..<3 {
+            if frame > 0 { shared.renderCache?.beginRenderPass() }
+            _ = renderToBuffer(table, context: shared)
+        }
+        var wider = shared
+        wider.availableWidth = 90
+        shared.renderCache?.beginRenderPass()
+        let served = renderToBuffer(table, context: wider)
+        let fresh = renderToBuffer(table, context: context(width: 90))
+        #expect(served.lines == fresh.lines, "the width fitted in 40 cells was laid out in 90")
+    }
+
     /// A row type with no `Equatable` conformance has no signature, so there is
     /// nothing to compare a kept answer against and the scan runs every frame.
     ///
