@@ -174,7 +174,7 @@ public struct PaddingModifier: BufferModifier {
     }
 
     /// The cells a negative inset offers the content past the view's own
-    /// extent, per axis (``BufferModifier/_contentOverhang``): what
+    /// extent, per axis (`BufferModifier._contentOverhang`): what
     /// ``adjustContext(_:)`` adds back, which the measure takes off the size
     /// the view reports.
     public var _contentOverhang: (width: Int, height: Int) {
@@ -446,7 +446,7 @@ extension PaddingModifier {
     ///
     /// The frame is the buffer less the overhang on each edge, and never less
     /// than nothing: a padding so negative that it would be reports zero on
-    /// that axis, as the measure does (``_contentOverhang``). The content is
+    /// that axis, as the measure does (`_contentOverhang`). The content is
     /// drawn at its full size from the overhang above and before the frame,
     /// as content past its region is (`FrameBuffer.splitPlacing(at:inWidth:height:)`,
     /// a frame's and an alignment guide's path): the part the frame holds in

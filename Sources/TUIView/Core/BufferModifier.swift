@@ -445,7 +445,7 @@ extension ModifiedView: Layoutable {
     /// `renderToBuffer` would produce.
     ///
     /// A negative padding offers its content MORE than it was offered
-    /// (``BufferModifier/_contentOverhang``): the delta is then negative, the
+    /// (`BufferModifier._contentOverhang`): the delta is then negative, the
     /// proposal grows by it and the reported size shrinks by it, never below
     /// zero, as SwiftUI's does.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
