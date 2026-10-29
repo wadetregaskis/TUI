@@ -230,7 +230,7 @@ extension StepperHandler {
 
     /// Decrements the value by `times` step sizes (default one). See ``increment(times:)``.
     func decrement(times: Int = 1) {
-        let negativeStep = V.Stride.zero - step
+        let negativeStep = step.negatedSaturating
         for _ in 0..<max(1, times) {
             if let onDecrement {
                 onDecrement()
@@ -305,7 +305,25 @@ extension Strideable where Stride: SignedNumeric {
     }
 }
 
+extension SignedNumeric {
+    /// `-self`, or the type's largest value where `-self` is past it: an
+    /// integer step of `Int.min` has no positive twin, and negating it for a
+    /// decrement trapped on the press. A step that far is past every value
+    /// anyway, so the largest one steps to the same saturated end.
+    fileprivate var negatedSaturating: Self {
+        guard let integer = self as? any FixedWidthInteger, let negated = integer.negatedSaturatingInteger as? Self
+        else { return .zero - self }
+        return negated
+    }
+}
+
 extension FixedWidthInteger {
+    /// `0 - self`, at this type's largest value where that overflows.
+    fileprivate var negatedSaturatingInteger: Self {
+        let (negated, overflow) = Self.zero.subtractingReportingOverflow(self)
+        return overflow ? .max : negated
+    }
+
     /// `self + n` with this type's extremes as a floor and ceiling.
     ///
     /// A step too large for the type to even hold (an `Int8` stepped by 1000)
