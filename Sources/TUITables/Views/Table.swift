@@ -963,6 +963,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         if let prepared = prepared(context, measuring: true) {
             return prepared.sizeThatFits(proposal: proposal, context: context)
         }
+        // As the render places them (`renderToBuffer(context:)`), or the two
+        // disagree about the bar's column while the table holds the focus.
+        context = Self.placingScrollIndicators(context, focusID: focusID)
         var measureContext = context
         measureContext.isMeasuring = true
         // Match the fallback: report the natural (minimum) size, not an expanded one.
@@ -1265,7 +1268,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         /// the bar's mouse handler in `attachMouseHandlers`.
         var hasScrollbar = false
         /// The column of the rows' lines a bar drawn OVER them starts at
-        /// (`.scrollIndicatorPlacement(.overContent)`, for the pointer), where
+        /// (`.scrollIndicatorPlacement(.overContent)`, for the pointer, the
+        /// table not holding the focus), where
         /// its mouse handler goes; `nil` for a bar beside them, or none.
         var overlaidScrollbarColumn: Int?
 
@@ -1302,6 +1306,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 configuration: TableStyleConfiguration(table: AnyView(self)), context: context)
         }
         if let prepared = prepared(context) { return prepared.renderToBuffer(context: context) }
+        context = Self.placingScrollIndicators(context, focusID: focusID)
         // `.tableStyle(.surface)`: everything below is drawn on the table's own
         // surface — a field in a cell steps off it, a stripe tints over it — and
         // the finished buffer is painted with it at the end. Taken AFTER the
@@ -5188,7 +5193,19 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         if cellContext.carriesGeometryOrigin { cellContext.geometryOrigin = nil }
         Self.castingNoShadows(&cellContext)
         RowContextMenuHost.yieldSecondaryClicks(in: &cellContext.environment, rowsIdentifiedBy: Value.ID.self)
+        // The table's focus placed its own indicators (`placingScrollIndicators`),
+        // not a scroll view's in a cell.
+        cellContext.environment.restoreStatedScrollIndicatorPlacement()
         return cellContext
+    }
+
+    /// `context` as the table reads it for its indicators: under
+    /// `.scrollIndicatorPlacement(.overContent)`, beside the rows while the
+    /// table holds the focus (`RenderContext.placingScrollIndicators`). Asked
+    /// at the top of the measure and the render, before the bar is decided,
+    /// and given back to the cells (``cellContext(_:for:width:context:)``).
+    private static func placingScrollIndicators(_ context: RenderContext, focusID: String?) -> RenderContext {
+        context.placingScrollIndicators(explicitFocusID: focusID, focusIDIndex: StateIndex.focusID)
     }
 
     /// `context` with a shadowed foreground style's shadows taken off: what a

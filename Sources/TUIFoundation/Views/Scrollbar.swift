@@ -197,17 +197,29 @@ extension EnvironmentValues {
     ///   takes one: only ``ScrollIndicatorVisibility/automatic`` has to know,
     ///   and finding out can mean measuring the whole content.
     ///
-    /// Indicators drawn over the content (``ScrollIndicatorPlacement/overContent``)
-    /// reserve nothing, and answer ``ResolvedScrollIndicators/none`` here: this
-    /// is the LAYOUT's question. Whether one is drawn over the content is
-    /// ``overlaidVerticalScrollIndicators(overflowing:)``'s.
+    /// Indicators drawn over the content (``ScrollIndicatorPlacement/overContent``,
+    /// the view not holding the focus) reserve nothing, and answer
+    /// ``ResolvedScrollIndicators/none`` here: this is the LAYOUT's question.
+    /// Whether one is drawn over the content is
+    /// ``overlaidVerticalScrollIndicators(overflowing:hovered:)``'s.
     @inlinable
     package func verticalScrollIndicators(
         overflowing: @autoclosure () -> Bool
     ) -> ResolvedScrollIndicators {
-        guard !scrollIndicatorsOverlayContent,
-            verticalScrollIndicatorVisibility.showsIndicator(overflowing: overflowing())
-        else { return .none }
+        guard !scrollIndicatorsOverlayContent else { return .none }
+        return verticalScrollIndicatorsBesideContent(overflowing: overflowing())
+    }
+
+    /// ``verticalScrollIndicators(overflowing:)`` as it would answer with the
+    /// indicators beside the content, whatever the placement: what a view
+    /// placed ``ScrollIndicatorPlacement/overContent`` reserves once it holds
+    /// the focus. A `List` keeps it from frame to frame, to lay its rows out
+    /// for the bar on the frame the focus arrives.
+    @inlinable
+    package func verticalScrollIndicatorsBesideContent(
+        overflowing: @autoclosure () -> Bool
+    ) -> ResolvedScrollIndicators {
+        guard verticalScrollIndicatorVisibility.showsIndicator(overflowing: overflowing()) else { return .none }
         switch scrollIndicatorStyle {
         case .scrollbar: return ResolvedScrollIndicators(bar: true, text: false)
         case .text: return ResolvedScrollIndicators(bar: false, text: true)
@@ -238,7 +250,8 @@ extension EnvironmentValues {
 
     /// The vertical indicator drawn OVER the content of a view the pointer is
     /// over, under ``ScrollIndicatorPlacement/overContent`` — none otherwise,
-    /// and none for a view the pointer is not over.
+    /// none for a view the pointer is not over, and none for one holding the
+    /// focus, whose indicators are beside its content.
     ///
     /// - Parameters:
     ///   - overflowing: Whether the content exceeds its viewport, known by the

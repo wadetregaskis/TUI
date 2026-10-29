@@ -898,7 +898,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // A section this list draws as one row keeps the list's styling; under
         // `.listStyle(.surface)` everything is drawn on the list's own surface,
         // and the finished buffer painted with it at the end.
-        let (context, surface) = CollectionSurface.drawing(context.drawingListSectionChrome(), when: context.environment.listStyle is SurfaceListStyle)
+        //
+        // Under `.scrollIndicatorPlacement(.overContent)`, the list's indicators
+        // go beside the rows while it holds the focus: decided here, before
+        // the rows are laid out, and given back to the rows (`rowContext`).
+        let (context, surface) = CollectionSurface.drawing(
+            context.drawingListSectionChrome().placingScrollIndicators(
+                explicitFocusID: focusID, focusIDIndex: StateIndex.focusID),
+            when: context.environment.listStyle is SurfaceListStyle)
         let palette = context.environment.palette
         let style = context.environment.listStyle
         let stateStorage = context.stateStorage!
@@ -933,6 +940,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // (``predictsScrollbar(stateStorage:context:)``) and the prediction
         // checked once the list knows (``settleScrollbarPrediction``).
         var rowContext = context
+        rowContext.environment.restoreStatedScrollIndicatorPlacement()
         let predictsBar = predictsScrollbar(stateStorage: stateStorage, context: context)
         if context.environment.fixedSizeWidth {
             rowContext.environment.fixedSizeWidth = false
@@ -1765,16 +1773,24 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// asked before the rows are, which is before the list can know whether
     /// they overflow.
     ///
-    /// The last frame's answer where there was one (``ItemListHandler/showsScrollbar``),
-    /// which is this frame's but where the rows have just come to overflow or
-    /// to fit; else the visibility's: a bar for `.visible`, none otherwise.
-    /// No bar at all under the text indicators.
+    /// The last frame's answer where there was one, which is this frame's but
+    /// where the rows have just come to overflow or to fit; else the
+    /// visibility's: a bar for `.visible`, none otherwise. No bar at all under
+    /// the text indicators, nor drawn over the rows (`.overContent`, the list
+    /// not holding the focus).
+    ///
+    /// The answer beside the rows (``ItemListHandler/showsScrollbarBesideContent``),
+    /// not the one drawn: under `.overContent` the frame the focus arrives on
+    /// moves the bar beside the rows, and the last frame, which drew it over
+    /// them or not at all, reserved none. Predicted from that, the rows were
+    /// laid out a frame late, at the whole width under the bar.
     private func predictsScrollbar(stateStorage: StateStorage, context: RenderContext) -> Bool {
         let environment = context.environment
-        guard environment.scrollIndicatorStyle == .scrollbar else { return false }
+        guard environment.scrollIndicatorStyle == .scrollbar, !environment.scrollIndicatorsOverlayContent
+        else { return false }
         let key = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.handler)
         let stored: StateBox<ItemListHandler<SelectionValue>>? = stateStorage.existingStorage(for: key)
-        if let handler = stored?.value { return handler.showsScrollbar }
+        if let handler = stored?.value { return handler.showsScrollbarBesideContent }
         return environment.verticalScrollIndicatorVisibility == .visible
     }
 
@@ -1855,6 +1871,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             .verticalScrollIndicators(overflowing: overflowing)
             .fitting(contentHeight: contentHeight)
         let showsScrollbar = indicators.bar
+        handler.showsScrollbarBesideContent =
+            context.environment.verticalScrollIndicatorsBesideContent(overflowing: overflowing).bar
         // Clamp the offset against the largest possible visible-row
         // count (one indicator, at an end); the exact viewport is
         // finalised by `ScrollRowWindow` once the offset is known.

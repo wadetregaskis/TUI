@@ -33,7 +33,8 @@ final class TextEditorHandler: PersistedFocusable {
 
     /// Whether the pointer is over the editor: under
     /// `.scrollIndicatorPlacement(.overContent)` its scroll bar is drawn over
-    /// the text while it is.
+    /// the text while it is, unless the editor holds the focus (then the bar
+    /// is beside the text).
     var isPointerOver = false
 
     /// The cursor line (0-based).

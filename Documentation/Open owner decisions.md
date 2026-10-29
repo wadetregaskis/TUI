@@ -35,7 +35,13 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 | NEW-FOLDER | The file panels have no way to make a folder; a Mac's save panel has New Folder (`NSSavePanel.canCreateDirectories`, on by default), its open panel not by default. | A New Folder button, with a keyboard route, in the save and move panels (`fileExporter`, `fileMover`). About half a day. | None. |
 | SMALL-IMAGE-ON-FRAME | Landed: an image file up to 256 KB is decoded on the frame that first shows it (a few ms), so icons no longer flash in after a placeholder; larger files still load in a task. Keep, or keep every load off the frame? | Keep. | Kept. |
 | PICTURE-ASPECT | A resized picture: always drawn the same (more bytes while resizing), reuse while moving and exact once settled, sent at its own aspect, or reuse as now? You asked to see them. | Pending: each filmed in Ghostty, kitty and iTerm2, with bytes. | Reuse as now. |
-| SCROLLBAR-PLACEMENT | Try `.overContent` before the final say: the Example's Theme page now switches it (Scroll indicators). | — | Both stay, beside the content by default. |
+| SCROLLBAR-PLACEMENT | Try `.overContent` before the final say: the Example's Theme page now switches it (Scroll indicators). Hover a list, then click it: the bar moves from over the rows to beside them. | — | Both stay, beside the content by default. |
+
+## Answered on 2026-10-29
+
+| Id | Answer | Status |
+|---|---|---|
+| A-CHURN-2 (focus) | Under `.overContent`, over the content for the pointer; while the view has the focus, beside the content as `.besideContent` draws them, the content laid out again; losing the focus restores its room. | Done for `ScrollView`, `List`, `Table` and `TextEditor`: the placement is resolved per view per frame, before layout. |
 
 ## Answered on 2026-10-28
 
@@ -68,7 +74,7 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 | A-APPSTATE-2 | Multi-client in one process: tabled. The three statics: no practical benefit in moving them. | Done: all three stay shared, recorded as exemptions on the CLAUDE.md rule. |
 | A-W1-1 | 2: re-export Foundation from TUI, as SwiftUI does. | Done: `import TUI` brings Foundation. |
 | GLASS-BORDER-GAP | (a): a background on the bordered view fills the border's inset; an explicit option keeps it clear. | Done: `.backgroundStopsAtContent()` is the option. |
-| A-CHURN-2 / SCROLLBAR-NAMES | Both: `.scrollIndicatorPlacement(.besideContent / .overContent)`; over the content for the pointer only, never the focus; the "N more" lines follow it. | Built for `ScrollView`, `List`, `Table` and `TextEditor` (and the menus). The owner wants to try it before the final say. |
+| A-CHURN-2 / SCROLLBAR-NAMES | Both: `.scrollIndicatorPlacement(.besideContent / .overContent)`; over the content for the pointer; the "N more" lines follow it. (The focus: see 2026-10-29, which corrected "never the focus".) | Built for `ScrollView`, `List`, `Table` and `TextEditor` (and the menus). The owner wants to try it before the final say. |
 
 ## Answered later on 2026-10-26
 

@@ -6,7 +6,8 @@
 //  on the content's last column, the horizontal bar on its last row, the "N
 //  more" lines on its first and last — each drawn exactly as it is beside the
 //  content, in the cells it covers. The content was laid out at the whole
-//  viewport, so nothing moves as they come and go.
+//  viewport, so nothing moves as they come and go. While the view holds the
+//  focus they are beside the content instead, and none of this runs.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -15,6 +16,16 @@ import TUICore
 import TUIView
 
 extension _ScrollViewCore {
+    /// `context` as this view reads it for its indicators: under
+    /// `.overContent`, beside the content while the view holds the focus
+    /// (``RenderContext/placingScrollIndicators(explicitFocusID:focusIDIndex:canHoldFocus:)``).
+    /// Asked where ``hidingAutomaticIndicators(_:)`` is, at the top of the
+    /// measure and of the render; ``contentContext(_:)`` puts it back.
+    func placingIndicators(_ context: RenderContext) -> RenderContext {
+        context.placingScrollIndicators(
+            explicitFocusID: explicitFocusID, focusIDIndex: StateIndex.focusID, canHoldFocus: isFocusStop)
+    }
+
     /// Draws the indicators over `visibleBuffer`, the viewport's content, if
     /// the pointer is over the view and the content overflows that way.
     func applyOverlaidScrollChrome(

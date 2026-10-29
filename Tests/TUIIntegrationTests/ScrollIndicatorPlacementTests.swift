@@ -1,10 +1,17 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  ScrollIndicatorPlacementTests.swift
 //
-//  `.scrollIndicatorPlacement(.overContent)`: the indicators take no room,
-//  the content is laid out at the whole viewport, and they are drawn over its
-//  edge while the pointer is over the view — never for the focus alone (the
-//  owner's A-CHURN-2 and SCROLLBAR-NAMES, 2026-10-27).
+//  `.scrollIndicatorPlacement(.overContent)`: for the pointer the indicators
+//  take no room, the content is laid out at the whole viewport, and they are
+//  drawn over its edge while the pointer is over the view; while the view
+//  holds the focus they are beside the content, as `.besideContent` draws
+//  them, and losing the focus gives the content its room back (the owner's
+//  A-CHURN-2 and SCROLLBAR-NAMES, 2026-10-27, and the focus ruling of
+//  2026-10-29).
+//
+//  Every app here puts a button before the scrolling view, which the focus
+//  goes to first: a lone scrolling view would take the focus on the first
+//  frame, and so draw its indicators beside its content from the start.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -24,6 +31,7 @@ struct ScrollIndicatorPlacementTests {
     private struct Scroller: View {
         let placement: ScrollIndicatorPlacement
         let style: ScrollIndicatorStyle
+        var visibility = ScrollIndicatorVisibility.automatic
         var body: some View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -35,12 +43,14 @@ struct ScrollIndicatorPlacementTests {
             .frame(width: 20, height: 8)
             .scrollIndicatorPlacement(placement)
             .scrollIndicatorStyle(style)
+            .scrollIndicators(visibility)
         }
     }
 
     private struct Lister: View {
         let placement: ScrollIndicatorPlacement
         var style: ScrollIndicatorStyle = .scrollbar
+        var visibility = ScrollIndicatorVisibility.automatic
         /// Rows that are each a control, with a hit region of its own.
         var buttons = false
         var body: some View {
@@ -54,6 +64,7 @@ struct ScrollIndicatorPlacementTests {
             .frame(width: 20, height: 8)
             .scrollIndicatorPlacement(placement)
             .scrollIndicatorStyle(style)
+            .scrollIndicators(visibility)
         }
     }
 
@@ -67,6 +78,7 @@ struct ScrollIndicatorPlacementTests {
     private struct Tabler: View {
         let placement: ScrollIndicatorPlacement
         var style: ScrollIndicatorStyle = .scrollbar
+        var visibility = ScrollIndicatorVisibility.automatic
         let rows: Int
         /// A line limit above 1 takes the table's multi-line layout path.
         let multiLine: Bool
@@ -85,6 +97,7 @@ struct ScrollIndicatorPlacementTests {
             .frame(width: 20, height: 10)
             .scrollIndicatorPlacement(placement)
             .scrollIndicatorStyle(style)
+            .scrollIndicators(visibility)
         }
     }
 
@@ -120,14 +133,23 @@ struct ScrollIndicatorPlacementTests {
             (self.placement, self.style) = (placement, style)
         }
         var kind = Kind.scroller
+        var visibility = ScrollIndicatorVisibility.automatic
         var body: some Scene {
             WindowGroup {
-                switch kind {
-                case .scroller: Scroller(placement: placement, style: style)
-                case .list(let buttons): Lister(placement: placement, style: style, buttons: buttons)
-                case .table(let rows, let multiLine, let buttons):
-                    Tabler(placement: placement, style: style, rows: rows, multiLine: multiLine, buttons: buttons)
-                case .editor(let lines): Editor(placement: placement, lines: lines)
+                VStack(spacing: 0) {
+                    // Where the focus starts, and goes back to on Tab. It shows
+                    // no focus, so nothing on screen breathes.
+                    Button("Away") {}.focusEffectDisabled()
+                    switch kind {
+                    case .scroller: Scroller(placement: placement, style: style, visibility: visibility)
+                    case .list(let buttons):
+                        Lister(placement: placement, style: style, visibility: visibility, buttons: buttons)
+                    case .table(let rows, let multiLine, let buttons):
+                        Tabler(
+                            placement: placement, style: style, visibility: visibility, rows: rows,
+                            multiLine: multiLine, buttons: buttons)
+                    case .editor(let lines): Editor(placement: placement, lines: lines)
+                    }
                 }
             }
         }
@@ -138,12 +160,24 @@ struct ScrollIndicatorPlacementTests {
         let app: HeadlessApp<ScrollerApp>
         private var now: Int64 = 0
 
-        init(_ placement: ScrollIndicatorPlacement, style: ScrollIndicatorStyle = .scrollbar, kind: Kind = .scroller) {
+        init(
+            _ placement: ScrollIndicatorPlacement, style: ScrollIndicatorStyle = .scrollbar, kind: Kind = .scroller,
+            visibility: ScrollIndicatorVisibility = .automatic
+        ) {
             var scene = ScrollerApp(placement: placement, style: style)
             scene.kind = kind
-            app = HeadlessApp(scene, width: 30, height: 10)
+            scene.visibility = visibility
+            app = HeadlessApp(scene, width: 30, height: 12)
             frame()
             frame()
+        }
+
+        /// Clicks inside the scrolling view, which gives it the focus.
+        func click() {
+            let inside = inside
+            move(to: inside.x, inside.y)
+            mouse(.pressed, at: inside.x, inside.y)
+            mouse(.released, at: inside.x, inside.y)
         }
 
         func frame() {
@@ -300,18 +334,6 @@ struct ScrollIndicatorPlacementTests {
         }
     }
 
-    @Test("A table's focus alone draws nothing over its rows", arguments: tables)
-    private func tableFocusAlone(_ kind: Kind) {
-        let harness = Harness(.overContent, kind: kind)
-        // Scrolled from the keyboard: the table has the focus.
-        harness.press(.down, times: 12)
-        #expect((harness.firstRowNumber ?? 0) > 0, "the keys scrolled the table: \(harness.firstRow)")
-        let focused = harness.firstRow
-        let inside = harness.inside
-        harness.move(to: inside.x, inside.y)
-        #expect(harness.firstRow != focused, "only the pointer brings the bar: \(focused) / \(harness.firstRow)")
-    }
-
     @Test("A drag on a table's bar over its rows scrolls it", arguments: tables)
     private func tableBarDrags(_ kind: Kind) throws {
         let harness = Harness(.overContent, kind: kind)
@@ -359,15 +381,60 @@ struct ScrollIndicatorPlacementTests {
         #expect(harness.text == before, "\(harness.text)")
     }
 
-    @Test("An editor's focus alone draws nothing over its text")
-    func editorFocusAlone() {
-        let harness = Harness(.overContent, kind: .editor())
-        // The caret moved down past the view: the editor has the focus.
-        harness.press(.down, times: 12)
-        #expect((harness.firstRowNumber ?? 0) > 0, "the keys scrolled the editor: \(harness.firstRow)")
-        let focused = harness.firstRow
+    // MARK: - The focus
+
+    /// Every scrolling view, a table on each of its content paths.
+    nonisolated private static let scrollers: [Kind] = [
+        .scroller, .list(), .table(), .table(multiLine: true), .editor(),
+    ]
+
+    @Test(
+        "Holding the focus, the indicators are beside the content, as .besideContent draws them",
+        arguments: scrollers)
+    private func focusPutsThemBeside(_ kind: Kind) {
+        let over = Harness(.overContent, kind: kind)
+        let beside = Harness(.besideContent, kind: kind)
+        let unfocused = over.text
+        // The pointer comes (the indicators over the content), and clicks.
+        over.click()
+        beside.click()
+        #expect(over.text != unfocused, "the content is laid out again, beside the indicators: \(over.text)")
+        #expect(over.text == beside.text, "as beside the content:\n\(over.text)\n---\n\(beside.text)")
+        // The pointer leaving moves nothing while the view holds the focus.
+        over.move(to: 29, 9)
+        #expect(over.text == beside.text, "the pointer gone, the focus keeps them beside:\n\(over.text)")
+    }
+
+    @Test(
+        "Losing the focus gives the content its whole room back, and the pointer its indicators",
+        arguments: [Kind.scroller, .list(), .table(), .table(multiLine: true)])
+    private func losingFocusRestores(_ kind: Kind) {
+        let harness = Harness(.overContent, kind: kind)
+        let unfocused = harness.text
+        let unfocusedRow = harness.firstRow
+        harness.click()
+        harness.move(to: 29, 9)
+        #expect(harness.text != unfocused, "beside the content while focused: \(harness.text)")
+        // To the button before the view.
+        harness.press(.tab)
+        #expect(harness.text == unfocused, "neither focus nor pointer, no indicator:\n\(harness.text)")
         let inside = harness.inside
         harness.move(to: inside.x, inside.y)
-        #expect(harness.firstRow != focused, "only the pointer brings the bar: \(focused) / \(harness.firstRow)")
+        #expect(harness.firstRow != unfocusedRow, "the pointer's bar is over the content: \(harness.firstRow)")
+        #expect(harness.firstRow.count == unfocusedRow.count, "and moves nothing: \(harness.firstRow)")
+    }
+
+    @Test(
+        "Holding the focus under .visible, the N more lines take lines of their own",
+        arguments: [Kind.scroller, .list(), .table()])
+    private func focusedTextLinesTakeTheirOwnLines(_ kind: Kind) {
+        let over = Harness(.overContent, style: .text, kind: kind, visibility: .visible)
+        let beside = Harness(.besideContent, style: .text, kind: kind, visibility: .visible)
+        #expect(!over.text.contains("below"), "neither focus nor pointer, no N more line: \(over.text)")
+        over.click()
+        beside.click()
+        over.move(to: 29, 9)
+        #expect(over.text.contains("below"), "\(over.text)")
+        #expect(over.text == beside.text, "as beside the content:\n\(over.text)\n---\n\(beside.text)")
     }
 }

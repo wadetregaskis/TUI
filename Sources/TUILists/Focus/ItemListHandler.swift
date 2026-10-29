@@ -266,11 +266,20 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
 
     /// Whether the pointer is over the list: under
     /// `.scrollIndicatorPlacement(.overContent)` its indicators are drawn over
-    /// the rows while it is.
+    /// the rows while it is, unless the list holds the focus (then they are
+    /// beside the rows).
     package var isPointerOver = false
 
+    /// Whether the list would have drawn a scrollbar beside its rows this
+    /// frame, whatever its placement: ``showsScrollbar`` as it stands under
+    /// `.besideContent`. A list placed `.overContent` lays its rows out by it
+    /// on the frame the focus arrives, when the indicators move beside the
+    /// rows and its own ``showsScrollbar`` is still the overlay's `false`.
+    var showsScrollbarBesideContent = false
+
     /// Whether this frame draws the scrollbar OVER the rows' last column
-    /// (`.scrollIndicatorPlacement(.overContent)`, the pointer over the list):
+    /// (`.scrollIndicatorPlacement(.overContent)`, the pointer over the list
+    /// and the focus elsewhere):
     /// the rows were laid out at the whole width, and nothing in the layout
     /// reserves the bar.
     package var overlaysScrollbar = false
@@ -1979,7 +1988,8 @@ extension ItemListHandler: ScrollIndicatorPointerTracking {
     /// Decides whether this frame draws the indicators over the rows —
     /// ``overlaysScrollbar`` and ``overlaysTextIndicators`` — as a `List` and a
     /// `Table` both do: under `.scrollIndicatorPlacement(.overContent)`, with
-    /// the pointer over the control and the rows overflowing. Nothing is
+    /// the pointer over the control, the focus elsewhere (holding it, the
+    /// control has them beside the rows) and the rows overflowing. Nothing is
     /// reserved for them, so only the drawing learns of it.
     ///
     /// - Parameters:

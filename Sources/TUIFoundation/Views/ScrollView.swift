@@ -325,7 +325,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     // MARK: Layout
 
     func sizeThatFits(proposal: ProposedSize, context given: RenderContext) -> ViewSize {
-        let read = hidingAutomaticIndicators(given)
+        let read = placingIndicators(hidingAutomaticIndicators(given))
         if let margined = margined(context: read) {
             return margined.sizeThatFits(proposal: proposal, context: read)
         }
@@ -1121,6 +1121,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
                 to: &visibleBuffer, contentWidth: contentWidth, margins: chrome.indicatorMargins,
                 handler: handler, focusID: persistedFocusID, context: context)
         }
+        // Placed over the content but holding the focus, so beside it: the
+        // pointer is still watched, for the frame the focus leaves on.
+        visibleBuffer.observePointerForOverlaidIndicators(of: handler, context: context)
     }
 
     /// Registers the viewport-wide mouse handler + its hit region. The handler:

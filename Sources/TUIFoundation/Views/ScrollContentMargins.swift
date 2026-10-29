@@ -262,13 +262,14 @@ extension _ScrollViewCore {
     /// is decided by too (`resolveChrome`): asked once, so a scroll target
     /// behaviour's overflow measures are too. The context is the one this
     /// view reads, ``ScrollView/showsIndicators`` applied
-    /// (``hidingAutomaticIndicators(_:)``), as everything after this does.
+    /// (``hidingAutomaticIndicators(_:)``) and its focus's placement of the
+    /// indicators (``placingIndicators(_:)``), as everything after this does.
     func viewport(
         _ context: RenderContext
     ) -> (
         context: RenderContext, width: Int, height: Int, textLines: TextIndicatorLines, horizontalBar: Bool
     ) {
-        var context = hidingAutomaticIndicators(context)
+        var context = placingIndicators(hidingAutomaticIndicators(context))
         // The note the content reports a container read on, for the pair's
         // reservation (``pageIsFixed(_:)``): handed to everything that runs
         // the content's bodies from here, the overflow measures included.

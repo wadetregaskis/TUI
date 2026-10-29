@@ -363,6 +363,10 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        // Under `.scrollIndicatorPlacement(.overContent)`, the bar is beside
+        // the text while the editor holds the focus: decided before the text is
+        // wrapped, so the frame the focus arrives on wraps it narrower.
+        let context = context.placingScrollIndicators(explicitFocusID: focusID, focusIDIndex: StateIndex.focusID)
         let isDisabled = self.isDisabled || !context.environment.isEnabled
         let palette = context.environment.palette
         let stateStorage = context.stateStorage!
@@ -422,6 +426,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         let displayLines = handler.readLines()
         // Whether a bar is drawn over the text, for the pointer, rather than
         // beside it (`TextEditor+OverlaidIndicators.swift`): it takes no room.
+        // Never while the editor holds the focus (`placingScrollIndicators`).
         let barOverText = context.environment.scrollIndicatorsOverlayContent
         handler.noteFind(opensOnControlF: opensFindOnControlF, matches: findMatches, in: displayLines)
         let window = window(

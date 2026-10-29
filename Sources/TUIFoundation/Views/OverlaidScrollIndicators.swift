@@ -16,7 +16,7 @@ import TUIView
 
 /// A scrolling view's memory of whether the pointer is over it: its indicators
 /// are drawn over its content while it is, under
-/// ``ScrollIndicatorPlacement/overContent``.
+/// ``ScrollIndicatorPlacement/overContent``, unless the view holds the focus.
 package protocol ScrollIndicatorPointerTracking: AnyObject {
     /// Whether the pointer is over the view.
     var isPointerOver: Bool { get set }
@@ -29,7 +29,10 @@ extension FrameBuffer {
     /// scroll view's controls.
     ///
     /// Does nothing unless the subtree places its indicators over the content,
-    /// and nothing in a measure pass.
+    /// and nothing in a measure pass. Watches while the view holds the focus
+    /// too, when its indicators are beside the content and the pointer moves
+    /// nothing: the focus can leave with the pointer elsewhere, and the frame
+    /// it leaves on must know.
     ///
     /// Call it after every region the view and its content have filed, so the
     /// observer stands in front of them: the dispatcher looks for observers
@@ -43,7 +46,7 @@ extension FrameBuffer {
     package mutating func observePointerForOverlaidIndicators(
         of tracker: some ScrollIndicatorPointerTracking, context: RenderContext
     ) {
-        guard context.environment.scrollIndicatorsOverlayContent, !context.isMeasuring,
+        guard context.environment.scrollIndicatorsFollowPointer, !context.isMeasuring,
             let dispatcher = context.environment.mouseEventDispatcher
         else { return }
         // Motion reports, which a terminal sends only when asked: hover is made of them.

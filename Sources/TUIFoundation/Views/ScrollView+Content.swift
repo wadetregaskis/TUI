@@ -74,6 +74,9 @@ extension _ScrollViewCore {
         // view's, and a scroll view nested in the content keeps its own
         // indicators (measured on SwiftUI).
         if hidesAutomaticIndicators { contentContext.environment.restoreIndicatorsAboveShowsIndicators() }
+        // So is the focus that moved this view's indicators beside it
+        // (`placingIndicators(_:)`): a scroll view in the content has its own.
+        contentContext.environment.restoreStatedScrollIndicatorPlacement()
         // The content margins are this view's, not its content's: a scroll view
         // nested in the content has none of its own (measured on SwiftUI).
         // Written only when set, since almost no scroll view has any. A

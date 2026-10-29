@@ -287,7 +287,8 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     public let horizontal = ScrollAxis()
 
     /// Whether the pointer is over the view: its indicators are drawn over the
-    /// content while it is, under `.scrollIndicatorPlacement(.overContent)`.
+    /// content while it is, under `.scrollIndicatorPlacement(.overContent)`,
+    /// unless the view holds the focus (then they are beside the content).
     package var isPointerOver = false
 
     /// A parked ``ScrollViewProxy/scrollTo(_:anchor:)`` request, set at event

@@ -24,9 +24,11 @@ extension _TextEditorCore {
     /// `nil` where it draws none.
     ///
     /// Beside the text, the bar's own column, which the window left it past
-    /// `contentWidth`. Over the text (`.overContent`), the text's last column,
-    /// and only while the pointer is over the editor: `drawn` is cut back to
-    /// the columns before it, its claims and the caret's run with it.
+    /// `contentWidth`. Over the text (`.overContent`, the editor not holding
+    /// the focus), the text's last column, and only while the pointer is over
+    /// the editor: `drawn` is cut back to the columns before it, its claims and
+    /// the caret's run with it. Holding the focus, an `.overContent` editor's
+    /// bar is beside the text.
     ///
     /// The bar is the editor's own, shown whenever the text overflows whatever
     /// `.scrollIndicators(_:)` says, beside the text or over it alike.
