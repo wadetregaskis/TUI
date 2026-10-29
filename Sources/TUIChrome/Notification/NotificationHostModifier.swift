@@ -77,7 +77,6 @@ extension NotificationHostModifier: Renderable {
 
         // Start the animation timer if not already running.
         startAnimationTask(
-            entries: activeEntries,
             service: service,
             lifecycle: context.environment.lifecycle!,
             frames: context.renderCache?.link
@@ -220,7 +219,6 @@ extension NotificationHostModifier {
     /// its render cache's link (`frames`), which drops nothing the cache keeps:
     /// the host's read of the service is unkeyed, so no memo holds a toast.
     fileprivate func startAnimationTask(
-        entries: [NotificationEntry],
         service: NotificationService,
         lifecycle: LifecycleManager,
         frames: RenderCache.Link?
@@ -242,14 +240,19 @@ extension NotificationHostModifier {
         _ = lifecycle.recordAppear(token: token) {}
         guard isFirstAppear else { return }
 
-        // The latest expiry across all entries, on the service's clock.
-        let latestExpiry = entries.map(\.expiresAtNanos).max() ?? 0
         let nowNanos = service.nowNanos
 
         lifecycle.startTask(token: token, priority: .medium) { [lifecycle] in
             while !Task.isCancelled {
+                // The entries as they are NOW, read at every wake: one posted
+                // while this sleeps fades in on its own schedule, and the task
+                // runs until the last of them expires. The ones the task began
+                // with left a later post invisible until an earlier one began
+                // to fade (2026-10-29 review).
+                let entries = service.activeEntries()
                 let now = nowNanos()
-                if now > latestExpiry {
+                // The latest expiry across all entries, on the service's clock.
+                if now > entries.map(\.expiresAtNanos).max() ?? 0 {
                     break
                 }
                 // Sleep until an opacity actually moves, rather than 42 times a
