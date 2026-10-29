@@ -162,6 +162,13 @@ struct ToolbarCustomizationTests {
         /// Drags the grip of the panel row showing `text` down `rows` rows (up
         /// where negative), a frame after each step.
         func dragGrip(of text: String, rows count: Int) {
+            dragGrip(of: text, through: (1...abs(count)).map { $0 * count.signum() })
+        }
+
+        /// Drags the grip of the panel row showing `text` through `offsets`,
+        /// rows down from where it was pressed (up where negative), a frame
+        /// after each, and lets it go at the last.
+        func dragGrip(of text: String, through offsets: [Int]) {
             guard let row = rows.firstIndex(where: { $0.contains(text) && $0.contains("▼") }),
                 let found = rows[row].range(of: "\u{283F}")
             else {
@@ -171,11 +178,11 @@ struct ToolbarCustomizationTests {
             let x = rows[row].distance(from: rows[row].startIndex, to: found.lowerBound)
             _ = app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: row))
             frames()
-            for step in 1...abs(count) {
-                _ = app.send(MouseEvent(button: .left, phase: .dragged, x: x, y: row + step * count.signum()))
+            for offset in offsets {
+                _ = app.send(MouseEvent(button: .left, phase: .dragged, x: x, y: row + offset))
                 frames()
             }
-            _ = app.send(MouseEvent(button: .left, phase: .released, x: x, y: row + count))
+            _ = app.send(MouseEvent(button: .left, phase: .released, x: x, y: row + (offsets.last ?? 0)))
             frames()
         }
 
@@ -291,6 +298,37 @@ struct ToolbarCustomizationTests {
         } else {
             Issue.record("\(before) \(after)")
         }
+    }
+
+    @Test("A pointer report that jumps two rows moves the grip's item two places")
+    func gripDragJumps() {
+        reset()
+        defer { reset() }
+        let driver = Driver(CustomizableApp())
+        driver.openPanel()
+        let before = driver.rows.filter { $0.contains("▼") }
+        driver.dragGrip(of: "SHARE", through: [2])
+        let after = driver.rows.filter { $0.contains("▼") }
+        let was = before.firstIndex { $0.contains("SHARE") }
+        let now = after.firstIndex { $0.contains("SHARE") }
+        if let was, let now {
+            #expect(now == was + 2, "before \(before), after \(after)")
+        } else {
+            Issue.record("\(before) \(after)")
+        }
+    }
+
+    @Test("Dragged past the last place it can go and back a row, a grip's item stays where it went")
+    func gripDragPastTheEnd() {
+        reset()
+        defer { reset() }
+        let driver = Driver(CustomizableApp())
+        driver.openPanel()
+        let before = driver.rows.filter { $0.contains("▼") }
+        // DOWNLOADS has no movable item after it: FIXED may not be moved.
+        driver.dragGrip(of: "DOWNLOADS", through: [1, 2, 3, 2])
+        let after = driver.rows.filter { $0.contains("▼") }
+        #expect(after == before, "before \(before), after \(after)")
     }
 
     @Test("The panel lists the items in the bars' order, and ▼ moves one past the next of its own place")

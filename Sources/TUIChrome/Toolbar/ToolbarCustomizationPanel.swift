@@ -157,7 +157,8 @@ private struct _ToolbarCustomizationGrip: View {
     let item: CustomizableToolbarDeclaration.Item
     let toolbar: CustomizableToolbarDeclaration
 
-    /// The places the item has moved in this drag, up being negative.
+    /// The places the item has moved in this drag, up being negative: moves
+    /// that changed the order, not rows the pointer crossed.
     @State private var moved = 0
 
     /// The grip: six dots, a braille cell, one cell wide in every terminal.
@@ -173,15 +174,22 @@ private struct _ToolbarCustomizationGrip: View {
                 DragGesture(minimumDistance: 0, coordinateSpace: .global)
                     .onChanged { value in
                         // A place at a time, so each move is worked out from
-                        // the order the last one left.
+                        // the order the last one left, until the item has
+                        // moved as many places as the pointer has rows: a
+                        // report that jumps three rows moves it three. Only
+                        // a move that changes the order counts — past the end
+                        // of its place there is no neighbour to pass, and a
+                        // move counted there took the item back a place the
+                        // moment the pointer turned.
                         let rows = value.translation.height
-                        if moved < rows {
-                            toolbar.move(id, 1)
-                            moved += 1
-                        } else if moved > rows {
-                            toolbar.move(id, -1)
-                            moved -= 1
+                        var done = moved
+                        while done != rows {
+                            let step = done < rows ? 1 : -1
+                            guard toolbar.neighbour(id, step) != nil else { break }
+                            toolbar.move(id, step)
+                            done += step
                         }
+                        moved = done
                     }
                     .onEnded { _ in moved = 0 },
                 isEnabled: movable)
