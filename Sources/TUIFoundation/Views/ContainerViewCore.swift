@@ -222,13 +222,15 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // may wrap taller, exactly as the constrained re-render does.
         var footerFinalHeight = 0
         if let footerView = footer {
-            let footerWidth = max(0, innerWidth - footerPadding.leading - footerPadding.trailing)
+            // The inner width whole: the padding below takes its own cells out,
+            // and taken out here as well, the footer's content was two cells
+            // narrower than the box, and drawn two cells off its centre.
             var footerContext = footerInner
-            footerContext.availableWidth = footerWidth
+            footerContext.availableWidth = innerWidth
             footerContext.availableHeight = innerAvailableHeight
             let size = measureChild(
                 footerView.padding(footerPadding),
-                proposal: ProposedSize(width: footerWidth, height: innerAvailableHeight),
+                proposal: ProposedSize(width: innerWidth, height: innerAvailableHeight),
                 context: footerContext)
             footerFinalHeight = min(size.height, innerAvailableHeight)
         }
@@ -388,7 +390,8 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         let footerBuffer: FrameBuffer?
         if let footerView = footer {
             var footerContext = footerInner
-            footerContext.availableWidth = max(0, innerWidth - footerPadding.leading - footerPadding.trailing)
+            // The inner width whole, as the re-measure above has it.
+            footerContext.availableWidth = innerWidth
             footerContext.availableHeight = innerAvailableHeight
             let rendered = TUIView.renderToBuffer(footerView.padding(footerPadding), context: footerContext)
                 .clamped(toWidth: innerWidth, height: innerAvailableHeight)
