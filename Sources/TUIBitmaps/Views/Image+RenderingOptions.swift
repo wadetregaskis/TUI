@@ -51,6 +51,10 @@ private struct ImageEdgeContrastKey: EnvironmentKey {
     static let defaultValue: Double = 0
 }
 
+private struct ImageInkThresholdKey: EnvironmentKey {
+    static let defaultValue: Double? = nil
+}
+
 /// Environment key for the placeholder text shown while loading.
 private struct ImagePlaceholderTextKey: EnvironmentKey {
     static let defaultValue: String? = nil
@@ -206,6 +210,13 @@ extension EnvironmentValues {
     var imageEdgeContrast: Double {
         get { self[ImageEdgeContrastKey.self] }
         set { self[ImageEdgeContrastKey.self] = newValue }
+    }
+
+    /// The luminance at or above which a pixel is ink where the drawing is
+    /// ink or none, or `nil` to measure it — see ``View/imageInkThreshold(_:)``.
+    var imageInkThreshold: Double? {
+        get { self[ImageInkThresholdKey.self] }
+        set { self[ImageInkThresholdKey.self] = newValue }
     }
 
     /// The dithering mode for ASCII art rendering.

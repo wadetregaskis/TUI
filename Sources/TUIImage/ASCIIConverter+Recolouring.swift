@@ -126,7 +126,7 @@ extension ASCIIConverter {
         // `colorMode` is knowable here because `derived(from:depth:)` below only
         // rewrites `.palette`, so it can neither produce nor consume `.mono`.
         let monoThreshold =
-            colorMode == .mono ? Self.monoInkThreshold(for: scaled) : Self.midLuminance
+            colorMode == .mono ? statedInkThreshold ?? Self.monoInkThreshold(for: scaled) : Self.midLuminance
 
         // An adaptive palette's colours come from the picture as it will be
         // drawn — after the curve and the lift, before anything quantises.

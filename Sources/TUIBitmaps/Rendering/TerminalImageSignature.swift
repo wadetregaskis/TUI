@@ -123,6 +123,11 @@ struct TerminalImageSignature: Equatable {
     /// picture's aspect kept — rather than the whole picture. The same picture
     /// at one resolution is different pixels cropped or not.
     var cropsToFill = false
+
+    /// The stated ink threshold (`View.imageInkThreshold(_:)`), where it
+    /// decides the pixels: a mono picture's, which are ink or paper by it.
+    /// `nil` in every other mode, so a change to it re-sends no photograph.
+    var inkThreshold: Double?
 }
 
 extension TerminalImageSignature {

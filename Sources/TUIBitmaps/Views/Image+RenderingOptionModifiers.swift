@@ -151,6 +151,25 @@ extension View {
         environment(\.imageEdgeContrast, amount)
     }
 
+    /// Sets the luminance at or above which a pixel is ink, where the
+    /// drawing is ink or none: braille's dots, and every cell in the
+    /// monochrome modes. TUI-specific.
+    ///
+    /// By default (`nil`) it is measured from each picture: the split between
+    /// its two most different tones (Otsu's method), which lands where a
+    /// person would draw it for a subject against a background. Where the two
+    /// most different tones are two parts of the subject — the two halves of
+    /// a two-tone face — the split loses one of them, and a stated threshold
+    /// is the black level that keeps it. In colour, braille draws what falls
+    /// below it as each cell's background, so nothing vanishes; the threshold
+    /// still decides which pixels are dots.
+    ///
+    /// - Parameter threshold: `0...1`, from black to white, or `nil` to
+    ///   measure it.
+    public func imageInkThreshold(_ threshold: Double?) -> some View {
+        environment(\.imageInkThreshold, threshold)
+    }
+
     /// Sets the dithering mode for ASCII art image rendering.
     ///
     /// - Parameter dithering: The dithering algorithm.

@@ -231,6 +231,22 @@ struct ImageRenderingControls: View {
                         Text(String(format: "%.1f", settings.edgeContrastAmount)).dim()
                     }
                 }
+
+            // Off, the split between ink and none is measured from each picture
+            // (the split between its two most different tones); on, it is a
+            // black level stated here (the owner, 2026-10-28). Only where the
+            // drawing is ink or none: braille's dots, or mono.
+            Toggle("component.imageControls.inkThreshold", isOn: $settings.statesInkThreshold)
+                .toggleContent {
+                    HStack(spacing: 1) {
+                        Text("component.imageControls.inkThresholdLevel").dim()
+                        Slider(value: $settings.inkThreshold, in: 0...1, step: 0.05)
+                            .sliderShowsValue(false)
+                            .frame(maxWidth: .infinity)
+                        Text(String(format: "%.2f", settings.inkThreshold)).dim()
+                    }
+                }
+                .disabled(!settings.usesInkThreshold)
         }
     }
 

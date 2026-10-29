@@ -436,6 +436,15 @@ public struct ASCIIConverter: Sendable {
     /// neighbours, so a flat region does not move at all.
     let edgeContrast: Double
 
+    /// The luminance, `0...1`, at or above which a pixel is ink where the
+    /// drawing is ink or none — braille's dots and the mono modes' cells — or
+    /// `nil` to measure it from each picture (``monoInkThreshold(for:)``,
+    /// Otsu's split). Stated, it is a black level the person sets: where a
+    /// picture's two most different tones are not its subject and its
+    /// background, the measured split can lose half the subject (the owner,
+    /// 2026-10-28, afternoon list #29).
+    let inkThreshold: Double?
+
     /// Creates a converter with the specified options.
     public init(
         characterSet: ASCIICharacterSet = .blocks(.fine),
@@ -445,7 +454,8 @@ public struct ASCIIConverter: Sendable {
         supersampling: Int? = nil,
         edgeThreshold: Double? = 0.9,
         toneCurve: ASCIIToneCurve? = nil,
-        edgeContrast: Double = 0
+        edgeContrast: Double = 0,
+        inkThreshold: Double? = nil
     ) {
         self.characterSet = characterSet
         self.shapeAware = shapeAware
@@ -455,7 +465,12 @@ public struct ASCIIConverter: Sendable {
         self.edgeThreshold = edgeThreshold
         self.toneCurve = toneCurve
         self.edgeContrast = max(0, edgeContrast)
+        self.inkThreshold = inkThreshold.map { min(1, max(0, $0)) }
     }
+
+    /// ``inkThreshold`` in the luminance the converters compare against,
+    /// `0...255`, as ``midLuminance`` is.
+    var statedInkThreshold: Double? { inkThreshold.map { $0 * 255 } }
 }
 
 // MARK: - Color Mode Capability
@@ -624,7 +639,7 @@ extension ASCIIConverter {
         // rather than assumed to be mid-grey — see ``monoInkThreshold(for:)``.
         // Measured before dithering, because dithering quantises against it and
         // measuring after would be measuring its own output.
-        let monoThreshold = Self.monoInkThreshold(for: scaled)
+        let monoThreshold = statedInkThreshold ?? Self.monoInkThreshold(for: scaled)
 
         // Apply dithering if requested (only meaningful for non-trueColor modes)
         if dithering == .floydSteinberg, effectiveMode != .trueColor {

@@ -619,6 +619,7 @@ compromise — it is what the two halves always were.
 | `.imageToneCurve` | **applies** | says what a TONE becomes; nothing about characters |
 | `.imageEdgeContrast` | **applies** | an unsharp mask on the picture itself |
 | `.imageDithering` | **applies** | diffuses the error of the quantisation above it |
+| `.imageInkThreshold` | **applies** in mono | a mono picture's pixels are ink or paper by it; in every other mode there is nothing for it to split |
 | `.imageCharacterSet` | inert | there is no character to choose |
 | `.imageShapeAware` | inert | chooses a character by its ink distribution |
 | `.imageEdgeThreshold` | inert | draws directional line *glyphs* at edges |

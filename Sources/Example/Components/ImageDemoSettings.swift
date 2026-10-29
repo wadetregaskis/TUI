@@ -68,6 +68,22 @@ struct ImageDemoSettings: Equatable {
     /// The unsharp amount (used while ``edgeContrast``).
     var edgeContrastAmount = 0.6
 
+    /// Whether the ink threshold is stated rather than measured from the
+    /// picture, for braille's dots and the mono mode.
+    var statesInkThreshold = false
+
+    /// The stated ink threshold, black to white (used while
+    /// ``statesInkThreshold``).
+    var inkThreshold = 0.5
+
+    /// Whether the drawing is ink or none, which an ink threshold decides:
+    /// braille's dots, or anything in mono.
+    var usesInkThreshold: Bool {
+        colour == .mono
+            || (charset == .blocks && ImageDemoHelpers.blockStyles[
+                min(blockStyleIndex, ImageDemoHelpers.blockStyles.count - 1)] == .braille)
+    }
+
     /// A custom brightness ramp, darkest character first; applies while the
     /// custom charset is selected.
     var customRamp = ""
