@@ -91,7 +91,9 @@ import Musl
 ///
 /// ## What the handler may do
 ///
-/// Only async-signal-safe calls: `write(2)` the owed bytes, `tcsetattr(3)`
+/// Only async-signal-safe calls: `write(2)` the owed bytes — whole, through
+/// a short write, an interruption or a full descriptor, waiting for room with
+/// `poll(2)` up to a deadline (``writeOwed(_:count:to:)``) — `tcsetattr(3)`
 /// the saved termios, put back the handler that was there before
 /// (`sigaction`) — for `SIGQUIT`, the default (`signal(3)`) — and `raise(2)`
 /// the signal again, which is delivered to that handler, or the default
@@ -274,7 +276,7 @@ enum FatalSignalTerminalRestore {
     private static func handle(_ signal: Int32) {
         let quitting = signal == SIGQUIT
         let count = quitting ? owedOnQuitCount : owedCount
-        if count > 0 { _ = write(STDOUT_FILENO, quitting ? owedOnQuit : owed, count) }
+        if count > 0 { writeOwed(quitting ? owedOnQuit : owed, count: count) }
         owedCount = 0
         owedOnQuitCount = 0
         if owesTermios {
@@ -287,6 +289,50 @@ enum FatalSignalTerminalRestore {
             sigaction(signal, previous + index, nil)
         }
         raise(signal)
+    }
+
+    /// Writes `count` bytes of `bytes` to standard output whole, if the
+    /// terminal takes them in time.
+    ///
+    /// One `write(2)` is not enough: it may take only part (a pty whose
+    /// buffer is nearly full), be interrupted by another signal before it
+    /// takes anything (`EINTR`), or find no room at all where another program
+    /// left standard output non-blocking (`EAGAIN`) — and what is cut off is
+    /// the rest of the debt: the kitty flags' pop, the input modes, the
+    /// cursor. So: the rest again after a short write or an interruption, and
+    /// a `poll(2)` for room on a full descriptor, each wait at most 50 ms,
+    /// twenty of them in all — a terminal that takes nothing in that long is
+    /// not reading, and the process must still die. Both calls are
+    /// async-signal-safe. Every try that takes nothing counts against the
+    /// waits, an interruption and a write that took nothing and reported
+    /// nothing included, so nothing here can spin.
+    ///
+    /// The limits are literals here, not static properties: a static is
+    /// initialized lazily on first read, and a handler must not be the
+    /// first to read one.
+    ///
+    /// Internal, with `descriptor`, so a test can fill a pipe.
+    static func writeOwed(_ bytes: UnsafePointer<UInt8>, count: Int, to descriptor: Int32 = STDOUT_FILENO) {
+        let waitMilliseconds: Int32 = 50
+        let maximumWaits = 20  // a second in all
+        var written = 0
+        var waits = 0
+        while written < count {
+            let result = write(descriptor, bytes + written, count - written)
+            if result > 0 {
+                written += result
+                continue
+            }
+            // `errno` is the thread's, and read before anything can change it.
+            let error = result < 0 ? errno : 0
+            let interrupted = error == EINTR
+            let full = error == 0 || error == EAGAIN || error == EWOULDBLOCK
+            guard interrupted || full, waits < maximumWaits else { return }
+            waits += 1
+            guard full else { continue }
+            var room = pollfd(fd: descriptor, events: Int16(POLLOUT), revents: 0)
+            _ = poll(&room, 1, waitMilliseconds)
+        }
     }
 
     /// Puts the default action back for `number`. `signal(3)` is
