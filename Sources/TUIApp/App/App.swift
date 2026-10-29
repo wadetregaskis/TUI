@@ -890,10 +890,11 @@ extension AppRunner {
         tuiContext.mouseEventDispatcher.setActiveSupport(effective, isFrameFinal: true)
         // After the mouse mode, which on Ghostty resets the pointer's shape.
         showPointerShape()
-        // What a SIGQUIT owes for the images this frame put in or took out.
-        // (What a signal owes for the title it saved, the terminal's ledger
-        // owed as the frame went out: `Terminal.hostState`.)
-        terminal.oweFarewell(for: tuiContext.terminalImageStore)
+        // What a SIGQUIT owes for the images this frame put in or took out,
+        // and the hairline strips it made or deleted. (What a signal owes for
+        // the title it saved, the terminal's ledger owed as the frame went
+        // out: `Terminal.hostState`.)
+        terminal.oweFarewell(for: tuiContext.terminalImageStore, hairlines: renderer.hairlines)
         return FramePacer.Frame(
             renderedAtNanos: MonotonicClock.nowNanoseconds,
             animationDeadlineNanos: deadline)

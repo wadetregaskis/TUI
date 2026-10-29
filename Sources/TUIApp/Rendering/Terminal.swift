@@ -427,16 +427,21 @@ final class Terminal: HostStateKeeping {
     #endif
 
     /// What a quit writes ahead of the hand-back, kept current for a
-    /// `SIGQUIT`, which skips the teardown: a delete for each image the app
-    /// put in the terminal (`TerminalImageStore.farewell(fitting:)`), which
-    /// the terminal otherwise keeps for as long as IT runs. The run loop has
-    /// it spelled after every frame that put an image in or took one out
-    /// (``oweFarewell(for:)``), and it is owed from then on
-    /// (``armSignalRestore()``).
+    /// `SIGQUIT`, which skips the teardown: a delete for each hairline strip
+    /// (`HairlineLayer.owedDeletes`), which on iTerm2 would otherwise stay on
+    /// the shell's screen, and for each image the app put in the terminal
+    /// (`TerminalImageStore.farewell(fitting:)`), which the terminal
+    /// otherwise keeps for as long as IT runs. The run loop has it spelled
+    /// after every frame that made or deleted a strip or put an image in or
+    /// took one out (``oweFarewell(for:hairlines:)``), and it is owed from
+    /// then on (``armSignalRestore()``). The pictures under text need nothing
+    /// of their own: they are placements of the image store's copies, and a
+    /// copy's delete takes its placements with it.
     ///
-    /// At most ``quitFarewellCapacity`` bytes, whole deletes only: about 150
-    /// images. One more is left in the terminal by a `SIGQUIT`, as every image
-    /// was before 2026-10-06; an orderly quit deletes them all.
+    /// At most ``quitFarewellCapacity`` bytes, whole deletes only: the strips
+    /// first (sixteen at most, a few hundred bytes), then about 140 images.
+    /// One more is left in the terminal by a `SIGQUIT`, as every image was
+    /// before 2026-10-06; an orderly quit deletes them all.
     private(set) var quitFarewell = "" {
         didSet {
             if quitFarewell != oldValue { armSignalRestore() }
@@ -445,6 +450,10 @@ final class Terminal: HostStateKeeping {
 
     /// The image store's generation ``quitFarewell`` was last spelled from.
     private var owedImageGeneration = 0
+
+    /// The hairline layer's strip generation ``quitFarewell`` was last
+    /// spelled from.
+    private var owedHairlineGeneration = 0
 
     /// Whether frame buffering is active.
     ///
@@ -1041,13 +1050,16 @@ extension Terminal {
             + (isOnAlternateScreen ? ANSIRenderer.exitAlternateScreen : "")
     }
 
-    /// Keeps ``quitFarewell`` in step with `images`, after a frame: one
-    /// integer compare, and the deletes spelled again only when the frame put
-    /// an image in or took one out.
-    func oweFarewell(for images: TerminalImageStore) {
-        guard images.generation != owedImageGeneration else { return }
+    /// Keeps ``quitFarewell`` in step with `images` and `hairlines`, after a
+    /// frame: two integer compares, and the deletes spelled again only when
+    /// the frame made or deleted a strip, or put an image in or took one out.
+    func oweFarewell(for images: TerminalImageStore, hairlines: HairlineLayer? = nil) {
+        let hairlineGeneration = hairlines?.stripGeneration ?? owedHairlineGeneration
+        guard images.generation != owedImageGeneration || hairlineGeneration != owedHairlineGeneration else { return }
         owedImageGeneration = images.generation
-        quitFarewell = images.farewell(fitting: Self.quitFarewellCapacity)
+        owedHairlineGeneration = hairlineGeneration
+        let strips = hairlines?.owedDeletes ?? ""
+        quitFarewell = strips + images.farewell(fitting: max(0, Self.quitFarewellCapacity - strips.utf8.count))
     }
 
     /// The most bytes ``quitFarewell`` may be: what the signal handler's

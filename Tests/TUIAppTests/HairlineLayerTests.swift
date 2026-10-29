@@ -171,6 +171,32 @@ struct HairlineLayerTests {
         #expect(layer.isIdle)
     }
 
+    /// A `SIGQUIT` skips the teardown and its farewell, and on iTerm2 a strip
+    /// left on the alternate screen shows on the shell's (Q8): its debt
+    /// deletes the strips the terminal holds, kept in step after each frame.
+    @Test("A SIGQUIT's debt deletes the strips the terminal holds, and only those")
+    func quitDebtDeletesTheStrips() {
+        let (terminal, _) = ScriptedTerminalOutput.terminal()
+        terminal.enterAlternateScreen()
+        terminal.enableRawMode()
+        let images = TerminalImageStore()
+        let layer = HairlineLayer(z: -1)
+        _ = frame(layer, [[run(1, 22)], [run(1, 4, ink: 3)]])
+        terminal.oweFarewell(for: images, hairlines: layer)
+        #expect(terminal.quitDebt.hasPrefix(layer.owedDeletes))
+        #expect(terminal.quitDebt.contains(KittyGraphics.delete(id: strip)))
+        #expect(terminal.quitDebt.contains(KittyGraphics.delete(id: strip - 1)))
+        #expect(layer.owedDeletes == layer.farewell(), "the deletes the quit's own farewell writes")
+
+        // Every line gone: the strips are deleted with them, and owed no more.
+        _ = frame(layer, [[run(1, 22)]])
+        terminal.oweFarewell(for: images, hairlines: layer)
+        _ = frame(layer, [])
+        terminal.oweFarewell(for: images, hairlines: layer)
+        #expect(!terminal.quitDebt.contains("a=d"))
+        terminal.disableRawMode()
+    }
+
     @Test("A frame that prepared nothing writes nothing")
     func placeWithoutPrepare() {
         let layer = HairlineLayer(z: 1)

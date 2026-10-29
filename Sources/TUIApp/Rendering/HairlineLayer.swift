@@ -88,6 +88,11 @@ final class HairlineLayer {
     /// The strips, by colour (``HairlineMarker/Run/ink``).
     private var strips: [UInt32: Strip] = [:]
 
+    /// Moves on whenever a strip is made or deleted: what a `SIGQUIT`'s debt
+    /// is spelled again for (``owedDeletes``, `Terminal.oweFarewell`), so a
+    /// frame that changed no strip costs one integer compare.
+    private(set) var stripGeneration = 0
+
     /// The first id the strips take, counting down: below the handshake's
     /// placement and compression probes.
     static let firstStripID: KittyGraphics.ImageID = KittyGraphics.maximumImageID - 2
@@ -194,6 +199,7 @@ final class HairlineLayer {
         for (ink, strip) in strips.sorted(by: { $0.key < $1.key }) where strip.placements <= 0 {
             if strip.isSent { freed.append(strip.id) }
             strips[ink] = nil
+            stripGeneration &+= 1
         }
         return out
     }
@@ -236,12 +242,23 @@ final class HairlineLayer {
         return out
     }
 
-    /// Deletes every strip and its placements, and forgets them all.
-    private func forgetEverything() -> String {
+    /// What ``farewell()`` would write now, without forgetting anything: a
+    /// delete for every strip, with its placements. What a `SIGQUIT` owes for
+    /// the hairlines (`Terminal.quitFarewell`), which skips the quit's
+    /// teardown: on iTerm2 a strip left on the alternate screen shows on the
+    /// shell's (Q8). At most ``maximumStrips`` deletes.
+    var owedDeletes: String {
         var out = ""
         for strip in strips.values.sorted(by: { $0.id > $1.id }) {
             out += KittyGraphics.delete(id: strip.id)
         }
+        return out
+    }
+
+    /// Deletes every strip and its placements, and forgets them all.
+    private func forgetEverything() -> String {
+        let out = owedDeletes
+        if !strips.isEmpty { stripGeneration &+= 1 }
         strips.removeAll()
         placed.removeAll()
         return out
@@ -256,6 +273,7 @@ final class HairlineLayer {
             let id = Self.firstStripID - KittyGraphics.ImageID(slot)
             guard !taken.contains(id) else { continue }
             strips[ink] = Strip(id: id)
+            stripGeneration &+= 1
             return id
         }
         return nil
