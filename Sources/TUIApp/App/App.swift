@@ -574,11 +574,19 @@ extension AppRunner {
         // driver quits on.
         let stopStallWatchdog = startStallWatchdog()
 
-        // Initial render
+        // Initial render, with an alternate signal stack under it (see the
+        // loop's first line).
+        FatalSignalTerminalRestore.provideAlternateStack()
         pacer.render(renderOneFrame)
 
         // Main loop
         while isRunning {
+            // An alternate signal stack for the thread this iteration runs on,
+            // so a stack overflow in its frame still pays the terminal back.
+            // On Darwin the main thread, once; on Linux whichever pool thread
+            // the wait below resumed on.
+            FatalSignalTerminalRestore.provideAlternateStack()
+
             // Check for graceful shutdown request (from SIGINT handler)
             if signals.shouldShutdown {
                 isRunning = false

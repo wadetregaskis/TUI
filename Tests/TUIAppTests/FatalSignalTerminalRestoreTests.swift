@@ -97,6 +97,32 @@ struct FatalSignalTerminalRestoreTests {
         #expect(!(String(bytes: disarmed.standardOutputContent, encoding: .utf8) ?? "").contains("<quit>"))
     }
 
+    /// The handler is installed with `SA_ONSTACK`, which is only as good as
+    /// the thread's alternate stack: without one a stack overflow's
+    /// `SIGSEGV` cannot be delivered, and the process dies with the debt
+    /// unpaid. On a thread of its own, as a Linux pool thread the main actor
+    /// lands on would be.
+    @Test("A thread is given an alternate signal stack once, and keeps it")
+    func alternateStack() {
+        let seen = AlternateStacks()
+        let thread = Thread {
+            var before = stack_t()
+            _ = sigaltstack(nil, &before)
+            FatalSignalTerminalRestore.provideAlternateStack()
+            var first = stack_t()
+            _ = sigaltstack(nil, &first)
+            FatalSignalTerminalRestore.provideAlternateStack()
+            var second = stack_t()
+            _ = sigaltstack(nil, &second)
+            seen.record(before: before, first: first, second: second)
+        }
+        thread.start()
+        seen.waitUntilRecorded()
+        #expect(seen.enabled, "the thread has one")
+        #expect(seen.kept, "and the second call kept it")
+        #expect(seen.ownSize == nil || seen.ownSize == FatalSignalTerminalRestore.alternateStackSize)
+    }
+
     /// A descriptor nothing reads: the handler must still return, so the
     /// signal can end the process.
     @Test("A descriptor that never drains is given up on, not waited on for ever")
@@ -115,6 +141,35 @@ struct FatalSignalTerminalRestoreTests {
             FatalSignalTerminalRestore.writeOwed(buffer.baseAddress!, count: buffer.count, to: ends[1])
         }
         #expect(Date().timeIntervalSince(started) < 5)
+    }
+}
+
+/// What a thread saw of its alternate signal stack, handed to the test under
+/// a lock.
+private final class AlternateStacks: @unchecked Sendable {
+    private let condition = NSCondition()
+    private var recorded = false
+    private(set) var enabled = false
+    private(set) var kept = false
+    /// The size of the stack, where this process's function made it; `nil`
+    /// where the thread already had one of its own.
+    private(set) var ownSize: Int?
+
+    func record(before: stack_t, first: stack_t, second: stack_t) {
+        condition.withLock {
+            let disabled = Int32(SS_DISABLE)
+            enabled = first.ss_flags & disabled == 0
+            kept = second.ss_sp == first.ss_sp
+            ownSize = before.ss_flags & disabled != 0 ? first.ss_size : nil
+            recorded = true
+            condition.broadcast()
+        }
+    }
+
+    func waitUntilRecorded() {
+        condition.lock()
+        defer { condition.unlock() }
+        while !recorded { condition.wait() }
     }
 }
 

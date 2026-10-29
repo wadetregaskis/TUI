@@ -110,8 +110,16 @@ import Musl
 /// (`sigaction`) — for `SIGQUIT`, the default (`signal(3)`) — and `raise(2)`
 /// the signal again, which is delivered to that handler, or the default
 /// action, as soon as this one returns. Installed
-/// with `SA_ONSTACK`, so on a stack overflow it runs on whatever alternate
-/// stack the thread has rather than on the stack that overflowed.
+/// with `SA_ONSTACK`, so on a stack overflow it runs on the thread's
+/// alternate stack rather than on the stack that overflowed — which a thread
+/// does not have unless something gives it one. Without it the kernel cannot
+/// deliver the `SIGSEGV` at all, and kills the process with the debt unpaid:
+/// deep view nesting is a known way to overflow the render's stack. So each
+/// thread that runs the main actor's work is given one
+/// (``provideAlternateStack()``): the main thread when the handlers are
+/// installed, and whichever thread the run loop finds itself on at each
+/// iteration — on Linux the main actor is drained by cooperative pool
+/// threads from its first suspension, and not always the same one.
 enum FatalSignalTerminalRestore {
 
     /// The signals that end the process with nothing run on the way out:
@@ -216,6 +224,76 @@ enum FatalSignalTerminalRestore {
             taken[index] = sigaction(signal, &action, previous + index) == 0
         }
         _ = atexit(exitHandler)
+        provideAlternateStack()
+    }
+
+    // MARK: The alternate signal stack
+
+    /// How big an alternate signal stack ``provideAlternateStack()`` makes:
+    /// room for the handler, a few hundred bytes of locals and its calls, and
+    /// for the handler it hands a crash on to, many times over.
+    static let alternateStackSize = 64 * 1024
+
+    /// Gives the calling thread an alternate signal stack, unless it has one
+    /// — this function's, or another's (the Swift runtime's crash reporter
+    /// may have given the main thread one), which is kept. Called on the
+    /// main actor: by ``installIfNeeded()``, and by the run loop at each
+    /// iteration, which on Linux may be on another pool thread than the one
+    /// before. Costs one thread-local lookup on a thread already seen.
+    ///
+    /// A stack made here is freed when its thread ends, by the thread-local
+    /// key's destructor, so a pool thread that comes and goes leaks nothing.
+    static func provideAlternateStack() {
+        let key = alternateStackKey
+        guard pthread_getspecific(key) == nil else { return }
+        var current = stack_t()
+        guard sigaltstack(nil, &current) == 0 else { return }
+        guard current.ss_flags & Int32(SS_DISABLE) != 0 else {
+            // Another's: kept, and noted, so the next look is the lookup.
+            _ = pthread_setspecific(key, UnsafeRawPointer(foreignStack))
+            return
+        }
+        let memory = UnsafeMutableRawPointer.allocate(byteCount: alternateStackSize, alignment: 16)
+        var stack = stack_t()
+        stack.ss_sp = memory
+        stack.ss_size = alternateStackSize
+        stack.ss_flags = 0
+        guard sigaltstack(&stack, nil) == 0 else {
+            memory.deallocate()
+            return
+        }
+        _ = pthread_setspecific(key, UnsafeRawPointer(memory))
+    }
+
+    /// What ``alternateStackKey`` holds for a thread whose alternate stack is
+    /// another's: never an allocation's address.
+    private static var foreignStack: UnsafeMutableRawPointer { UnsafeMutableRawPointer(bitPattern: 1)! }
+
+    /// The thread-local key that holds the alternate stack
+    /// ``provideAlternateStack()`` made for each thread, or ``foreignStack``,
+    /// and frees it as the thread ends (``releaseAlternateStack(_:)``).
+    private static let alternateStackKey: pthread_key_t = {
+        var key = pthread_key_t()
+        // The destructor's parameter is optional in Glibc's and Musl's
+        // spelling, not in Darwin's; the release takes either.
+        _ = pthread_key_create(&key) { value in
+            Self.releaseAlternateStack(value)
+        }
+        return key
+    }()
+
+    /// Frees an alternate stack ``provideAlternateStack()`` made, as its
+    /// thread ends: turned off first, so the thread never has a stack that
+    /// is gone. Left alone (a few KiB leaked) where it is not the thread's
+    /// stack any more, or cannot be turned off.
+    private static func releaseAlternateStack(_ value: UnsafeMutableRawPointer?) {
+        guard let value, value != foreignStack else { return }
+        var current = stack_t()
+        guard sigaltstack(nil, &current) == 0, current.ss_sp == value else { return }
+        var off = stack_t()
+        off.ss_flags = Int32(SS_DISABLE)
+        guard sigaltstack(&off, nil) == 0 else { return }
+        value.deallocate()
     }
 
     /// What ``installIfNeeded()`` registers with `atexit(3)`: a C function
@@ -384,6 +462,7 @@ enum FatalSignalTerminalRestore {
 /// No signals on wasip1, so nothing can die of one with a debt outstanding.
 enum FatalSignalTerminalRestore {
     @MainActor static func disarm() {}
+    @MainActor static func provideAlternateStack() {}
 }
 
 #endif
