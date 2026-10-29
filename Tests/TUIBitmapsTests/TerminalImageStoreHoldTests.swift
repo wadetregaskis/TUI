@@ -79,4 +79,27 @@ struct TerminalImageStoreHoldTests {
         #expect(store.imageCount == 0)
         #expect(!rows.isEmpty)
     }
+
+    @Test("A zoom's scaled placement is forgotten with its picture")
+    func scaledBoxGoesWithPicture() throws {
+        let store = TerminalImageStore()
+        // Every picture a zoom ever scaled used to leave its box behind, for
+        // the life of the app.
+        for round in 0..<8 {
+            _ = draw("photo \(round)", token: "view", in: store)
+            // A fresh store's ids count up from 1, and the one picture held
+            // is the newest.
+            let id = KittyGraphics.ImageID(round + 1)
+            try #require(store.scaledPlaceholderRows(of: id, columns: 2, rows: 1) != nil)
+            #expect(store.scaledBoxCount == 1)
+            store.release(token: "view")
+            #expect(store.scaledBoxCount == 0, "round \(round): the box outlived its picture")
+            _ = store.takeDeletes()
+        }
+
+        _ = draw("last", token: "view", in: store)
+        _ = store.scaledPlaceholderRows(of: 9, columns: 2, rows: 1)
+        store.releaseAll()
+        #expect(store.scaledBoxCount == 0)
+    }
 }

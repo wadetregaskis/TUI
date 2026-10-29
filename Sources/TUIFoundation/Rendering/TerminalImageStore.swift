@@ -199,6 +199,11 @@ package final class TerminalImageStore: @unchecked Sendable {
     /// The box each image's second placement was last given
     /// (``scaledPlaceholderRows(of:columns:rows:)``), so a size it already has
     /// is not sent again.
+    ///
+    /// An entry goes when its image is deleted (``retire(_:)``), as the
+    /// terminal's placement goes with the image. Kept, it outlived the picture
+    /// for the life of the app: one entry for every picture or copy a zoom
+    /// ever scaled.
     private var scaledBoxes: [KittyGraphics.ImageID: (columns: Int, rows: Int)] = [:]
     private var pending = ""
     /// The deletes owed after the frame's cells (``takeDeletes()``).
@@ -217,6 +222,10 @@ package final class TerminalImageStore: @unchecked Sendable {
     /// diagnostics — a number that only ever grows is the leak this type
     /// exists to prevent.
     var imageCount: Int { images.count }
+
+    /// How many images have a scaled placement on record. For tests, as
+    /// ``imageCount`` is.
+    var scaledBoxCount: Int { scaledBoxes.count }
 
     /// Counts every image put in the terminal or taken out of it, so the run
     /// loop can tell after a frame whether ``farewell(fitting:)`` changed
@@ -569,6 +578,7 @@ package final class TerminalImageStore: @unchecked Sendable {
         deletes = ""
         retiring.removeAll()
         images.removeAll()
+        scaledBoxes.removeAll()
         slots.removeAll()
         entries.removeAll()
         for backdrop in backdrops { derivedImages.forget(backdrop.id) }
@@ -679,6 +689,8 @@ package final class TerminalImageStore: @unchecked Sendable {
     private func retire(_ id: KittyGraphics.ImageID) {
         deletes += KittyGraphics.delete(id: id)
         retiring.append(id)
+        // The delete takes the image's placements with it, the scaled one too.
+        scaledBoxes[id] = nil
     }
 
     private func file(_ image: Image) {
