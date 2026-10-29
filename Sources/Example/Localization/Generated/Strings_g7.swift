@@ -94,7 +94,7 @@ extension ExampleStrings {
 
             // Stepper page — Shift stepping
             "page.stepper.shiftSection": "⇧-accelerated stepping",
-            "page.stepper.shiftDescription": "Hold ⇧ while pressing ← / → (or +/−) to step by 10× the normal amount.",
+            "page.stepper.shiftDescription": "Hold ⇧ while pressing ← / → (or +/−) to step further at once: 5× the normal amount by default, set here to 10× with .shiftStepMultiplier.",
             "page.stepper.bigValue": "Value (×10 with ⇧)",
             "page.stepper.bigValueLabel": "Value",
 
@@ -215,7 +215,7 @@ extension ExampleStrings {
             "page.focus.lastKey": "Letzte Taste",
 
             "page.stepper.shiftSection": "⇧-beschleunigtes Schrittweise",
-            "page.stepper.shiftDescription": "Halte ⇧, während du ← / → (oder +/−) drückst, um in 10× der normalen Schrittweite zu springen.",
+            "page.stepper.shiftDescription": "Halte ⇧, während du ← / → (oder +/−) drückst, um weiter zu springen: standardmäßig mit 5× der normalen Schrittweite, hier mit .shiftStepMultiplier auf 10× gesetzt.",
             "page.stepper.bigValue": "Wert (×10 mit ⇧)",
             "page.stepper.bigValueLabel": "Wert",
 
@@ -334,7 +334,7 @@ extension ExampleStrings {
             "page.focus.lastKey": "Dernière touche",
 
             "page.stepper.shiftSection": "Incrémentation accélérée par ⇧",
-            "page.stepper.shiftDescription": "Maintenez ⇧ en appuyant sur ← / → (ou +/−) pour avancer de 10× la valeur normale.",
+            "page.stepper.shiftDescription": "Maintenez ⇧ en appuyant sur ← / → (ou +/−) pour avancer plus loin d'un coup : 5× la valeur normale par défaut, ici réglé sur 10× avec .shiftStepMultiplier.",
             "page.stepper.bigValue": "Valeur (×10 avec ⇧)",
             "page.stepper.bigValueLabel": "Valeur",
 
@@ -453,7 +453,7 @@ extension ExampleStrings {
             "page.focus.lastKey": "Ultimo tasto",
 
             "page.stepper.shiftSection": "Avanzamento accelerato con ⇧",
-            "page.stepper.shiftDescription": "Tieni premuto ⇧ mentre premi ← / → (o +/−) per avanzare di 10× il valore normale.",
+            "page.stepper.shiftDescription": "Tieni premuto ⇧ mentre premi ← / → (o +/−) per avanzare più in là in un colpo: 5× il valore normale per impostazione predefinita, qui portato a 10× con .shiftStepMultiplier.",
             "page.stepper.bigValue": "Valore (×10 con ⇧)",
             "page.stepper.bigValueLabel": "Valore",
 
@@ -572,7 +572,7 @@ extension ExampleStrings {
             "page.focus.lastKey": "Última tecla",
 
             "page.stepper.shiftSection": "Paso acelerado con ⇧",
-            "page.stepper.shiftDescription": "Mantén ⇧ mientras pulsas ← / → (o +/−) para avanzar 10× el valor normal.",
+            "page.stepper.shiftDescription": "Mantén ⇧ mientras pulsas ← / → (o +/−) para avanzar más de una vez: 5× el valor normal por defecto, aquí fijado en 10× con .shiftStepMultiplier.",
             "page.stepper.bigValue": "Valor (×10 con ⇧)",
             "page.stepper.bigValueLabel": "Valor",
 
@@ -691,7 +691,7 @@ extension ExampleStrings {
             "page.focus.lastKey": "最后按键",
 
             "page.stepper.shiftSection": "⇧ 加速步进",
-            "page.stepper.shiftDescription": "按住 ⇧ 同时按 ← / →（或 +/−）以 10× 的正常幅度步进。",
+            "page.stepper.shiftDescription": "按住 ⇧ 同时按 ← / →（或 +/−）可一次步进更多：默认为正常幅度的 5×，此处通过 .shiftStepMultiplier 设为 10×。",
             "page.stepper.bigValue": "值（按住 ⇧ ×10）",
             "page.stepper.bigValueLabel": "值",
 
@@ -810,7 +810,7 @@ extension ExampleStrings {
             "page.focus.lastKey": "最後のキー",
 
             "page.stepper.shiftSection": "⇧ 加速ステップ",
-            "page.stepper.shiftDescription": "⇧ を押しながら ← / →（または +/−）を押すと、通常の10倍の幅でステップします。",
+            "page.stepper.shiftDescription": "⇧ を押しながら ← / →（または +/−）を押すと、一度に大きくステップします。既定は通常の5倍で、ここでは .shiftStepMultiplier で10倍にしています。",
             "page.stepper.bigValue": "値（⇧ で ×10）",
             "page.stepper.bigValueLabel": "値",
 
