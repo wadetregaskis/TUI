@@ -134,6 +134,26 @@ struct ToolbarCustomizationTests {
             Issue.record("no \(text) on the screen: \(rows)")
         }
 
+        /// Drags the grip of the panel row showing `text` down `rows` rows (up
+        /// where negative), a frame after each step.
+        func dragGrip(of text: String, rows count: Int) {
+            guard let row = rows.firstIndex(where: { $0.contains(text) && $0.contains("▼") }),
+                let found = rows[row].range(of: "\u{283F}")
+            else {
+                Issue.record("no grip for \(text): \(rows)")
+                return
+            }
+            let x = rows[row].distance(from: rows[row].startIndex, to: found.lowerBound)
+            _ = app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: row))
+            frames()
+            for step in 1...abs(count) {
+                _ = app.send(MouseEvent(button: .left, phase: .dragged, x: x, y: row + step * count.signum()))
+                frames()
+            }
+            _ = app.send(MouseEvent(button: .left, phase: .released, x: x, y: row + count))
+            frames()
+        }
+
         /// Opens the panel from the top bar's context menu.
         func openPanel() {
             click("PRINT", button: .right)
@@ -200,6 +220,25 @@ struct ToolbarCustomizationTests {
             #expect(print.lowerBound < share.lowerBound, "\(bar)")
         } else {
             Issue.record("\(bar)")
+        }
+    }
+
+    /// The owner, 2026-10-28: re-ordering the customiser's items with the mouse.
+    @Test("Dragging an item's grip down two rows moves it two places, each worked out from the order the last left")
+    func gripDragMovesAnItem() {
+        reset()
+        defer { reset() }
+        let driver = Driver(CustomizableApp())
+        driver.openPanel()
+        let before = driver.rows.filter { $0.contains("▼") }
+        driver.dragGrip(of: "SHARE", rows: 2)
+        let after = driver.rows.filter { $0.contains("▼") }
+        let was = before.firstIndex { $0.contains("SHARE") }
+        let now = after.firstIndex { $0.contains("SHARE") }
+        if let was, let now {
+            #expect(now == was + 2, "before \(before), after \(after)")
+        } else {
+            Issue.record("\(before) \(after)")
         }
     }
 

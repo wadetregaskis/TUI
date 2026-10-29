@@ -128,11 +128,12 @@ struct _ToolbarCustomizationPanel: View {
         }
     }
 
-    /// One item: its checkbox, labelled with the item as the bar draws it —
-    /// inert here — and its arrows.
+    /// One item: a grip to drag it by, its checkbox, labelled with the item
+    /// as the bar draws it — inert here — and its arrows.
     private func row(_ item: CustomizableToolbarDeclaration.Item) -> some View {
         let toolbar = toolbar
         return HStack(spacing: 1) {
+            _ToolbarCustomizationGrip(item: item, toolbar: toolbar)
             Toggle(isOn: Binding(get: { item.isShown }, set: { toolbar.setShown(item.id, $0) })) {
                 item.view.disabled(true)
             }
@@ -142,5 +143,48 @@ struct _ToolbarCustomizationPanel: View {
             Button("▼") { toolbar.move(item.id, 1) }
                 .disabled(!item.canMoveLater)
         }
+    }
+}
+
+/// The handle a panel row is dragged by: up or down, the item moves a place
+/// for every row the pointer crosses, among the others in its place, as the
+/// arrows move it (the owner, 2026-10-28, afternoon list #40). Not a focus
+/// stop: the arrows are the keyboard's way.
+///
+/// Measured in the window's cells, not the grip's own: the grip moves with
+/// its row, and in its own space each move would take a row off the drag.
+private struct _ToolbarCustomizationGrip: View {
+    let item: CustomizableToolbarDeclaration.Item
+    let toolbar: CustomizableToolbarDeclaration
+
+    /// The places the item has moved in this drag, up being negative.
+    @State private var moved = 0
+
+    /// The grip: six dots, a braille cell, one cell wide in every terminal.
+    static let glyph = "\u{283F}"
+
+    var body: some View {
+        let movable = item.canMoveEarlier || item.canMoveLater
+        let toolbar = toolbar
+        let id = item.id
+        Text(verbatim: Self.glyph)
+            .foregroundStyle(movable ? .palette.foregroundSecondary : .palette.foregroundTertiary)
+            .gesture(
+                DragGesture(minimumDistance: 0, coordinateSpace: .global)
+                    .onChanged { value in
+                        // A place at a time, so each move is worked out from
+                        // the order the last one left.
+                        let rows = value.translation.height
+                        if moved < rows {
+                            toolbar.move(id, 1)
+                            moved += 1
+                        } else if moved > rows {
+                            toolbar.move(id, -1)
+                            moved -= 1
+                        }
+                    }
+                    .onEnded { _ in moved = 0 },
+                isEnabled: movable)
+            .pointerStyle(movable ? .grabIdle : nil)
     }
 }

@@ -220,20 +220,16 @@ extension _ToolbarModifier {
             id: "tuikit.overflow", path: [])
     }
 
-    /// Records this customizable toolbar in the window's chrome, for its panel
-    /// and the menu bar's Customize Toolbar…: its customizable items in the
-    /// order the bars draw them, whether each is in the bar, and the ways to
-    /// change it.
-    func declareCustomizable(into chrome: WindowChromeState, context: RenderContext) {
-        guard let customizationID else { return }
-        let store = context.environment.defaultAppStorage?.store ?? StorageDefaults.backend
-        let record = _ToolbarCustomizationRecord.load(customizationID, from: store)
-        let arranged = record.arranged(toolbarItems(of: items)).filter { $0.id != nil && !$0.isTitleMenu }
+    /// The customizable items as `record` arranges them: their identifiers
+    /// in the record's order, the items in the order the bars draw them, and
+    /// each movable item's neighbours, the movable items before and after it
+    /// in its own place.
+    private static func arrangement(
+        of declared: [_ToolbarItemSpec], by record: _ToolbarCustomizationRecord
+    ) -> (ids: [String], listed: [_ToolbarItemSpec], neighbours: [String: (earlier: String?, later: String?)]) {
+        let arranged = record.arranged(declared).filter { $0.id != nil && !$0.isTitleMenu }
         // The record's order is the arranged one; the panel's, the bars'.
-        let ids = arranged.compactMap(\.id)
         let listed = _ToolbarCustomizationPlace.inBarOrder(arranged)
-        // Each movable item's neighbours: the movable items before and after
-        // it in its own place.
         var neighbours: [String: (earlier: String?, later: String?)] = [:]
         for place in Set(listed.map(\.customizationPlace)) {
             let movable = listed.filter { $0.isMovableCustomization && $0.customizationPlace == place }.compactMap(\.id)
@@ -243,6 +239,19 @@ extension _ToolbarModifier {
                 )
             }
         }
+        return (arranged.compactMap(\.id), listed, neighbours)
+    }
+
+    /// Records this customizable toolbar in the window's chrome, for its panel
+    /// and the menu bar's Customize Toolbar…: its customizable items in the
+    /// order the bars draw them, whether each is in the bar, and the ways to
+    /// change it.
+    func declareCustomizable(into chrome: WindowChromeState, context: RenderContext) {
+        guard let customizationID else { return }
+        let store = context.environment.defaultAppStorage?.store ?? StorageDefaults.backend
+        let record = _ToolbarCustomizationRecord.load(customizationID, from: store)
+        let declared = toolbarItems(of: items)
+        let (_, listed, neighbours) = Self.arrangement(of: declared, by: record)
         let items = listed.map { item in
             let id = item.id ?? ""
             return CustomizableToolbarDeclaration.Item(
@@ -259,6 +268,12 @@ extension _ToolbarModifier {
                     record.save(customizationID, to: store)
                 },
                 move: { id, offset in
+                    // From the order stored NOW, not this frame's: a drag
+                    // moves an item a place at a time through closures kept
+                    // from the frame it began in, and a second move worked out
+                    // from that frame's order swapped the first one back.
+                    let (ids, _, neighbours) = Self.arrangement(
+                        of: declared, by: _ToolbarCustomizationRecord.load(customizationID, from: store))
                     guard let other = offset < 0 ? neighbours[id]?.earlier : neighbours[id]?.later,
                         let at = ids.firstIndex(of: id), let to = ids.firstIndex(of: other)
                     else { return }
