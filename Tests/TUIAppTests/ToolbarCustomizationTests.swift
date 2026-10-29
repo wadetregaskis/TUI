@@ -472,6 +472,33 @@ struct ToolbarCustomizationTests {
         #expect(driver.rows.first?.contains("GAMMA") == false, "kept: \(driver.rows)")
     }
 
+    @Test("A bar item dragged off the bar as the panel closes is let go there and stays in the bar")
+    func barDragEndsWithThePanel() {
+        reset()
+        defer { reset() }
+        let driver = Driver(DraggableApp())
+        driver.click("BETA", button: .right)
+        driver.click("Customize Toolbar")
+        guard let bar = driver.rows.first, let found = bar.range(of: "GAMMA") else {
+            Issue.record("\(driver.rows)")
+            return
+        }
+        let x = bar.distance(from: bar.startIndex, to: found.lowerBound)
+        _ = driver.app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: 0))
+        driver.frames()
+        for row in 1...3 {
+            _ = driver.app.send(MouseEvent(button: .left, phase: .dragged, x: x, y: row))
+            driver.frames()
+        }
+        // Escape closes the panel mid-drag.
+        _ = driver.app.send(KeyEvent(key: .escape))
+        driver.frames()
+        #expect(!driver.rows.contains { $0.contains("Done") }, "the panel closed: \(driver.rows)")
+        _ = driver.app.send(MouseEvent(button: .left, phase: .released, x: x, y: 3))
+        driver.frames()
+        #expect(driver.rows.first?.contains("GAMMA") == true, "\(driver.rows)")
+    }
+
     @Test("While customizing, a bar item takes no click; afterwards it does again")
     func barItemInertWhileCustomizing() {
         reset()

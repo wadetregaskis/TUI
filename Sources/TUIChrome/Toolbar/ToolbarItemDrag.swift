@@ -65,6 +65,14 @@ enum _ToolbarItemDrag {
     ) -> Bool {
         guard event.button == .left else { return false }
         let gestures = chrome.toolbarCustomization
+        // A drag outlives the customization it began in when the panel closes
+        // under it (Escape): the rest of it does nothing, so a release off the
+        // bar takes nothing out.
+        guard chrome.customizingToolbarID == key.toolbarID else {
+            guard gestures.drag?.item == key else { return false }
+            gestures.drag = nil
+            return true
+        }
         switch event.phase {
         case .pressed:
             guard let placement = gestures.placement(of: key) else { return false }
