@@ -127,10 +127,19 @@ struct FilePanelColumnViewTests {
         _ = FileManager.default.createFile(atPath: deep.appendingPathComponent("leaf.txt").path, contents: nil)
         let caller = FilePanelCaller()
         let driver = FilePanelDriver { panel(fixture, caller: caller, store: columnsStore(), start: deep) }
+        // Each column read — ~'s too, or going up shows ~ "Loading…" until
+        // it is, with no row for the folder come from to be selected in.
         await driver.waitFor("leaf.txt")
         await driver.waitFor("inner.txt")
+        await driver.waitFor("notes.md")
         driver.press(.character("~"))
-        await settle { !driver.screen().contains("~ │ Alpha") }
+        // At ~, its rows listed and the folder come from selected among them,
+        // so the way back down shows beside it — and ~'s column, which has
+        // the keys, has its cursor on Alpha/ for the presses below.
+        await settle {
+            let screen = driver.screen()
+            return !screen.contains("~ │ Alpha") && screen.contains("leaf.txt") && screen.contains("inner.txt")
+        }
         let shown = driver.screen()
         #expect(shown.contains("leaf.txt") && shown.contains("inner.txt"), "\(shown)")
         // beta.txt chosen in ~'s column — past Alpha/ and linked/ — and the
