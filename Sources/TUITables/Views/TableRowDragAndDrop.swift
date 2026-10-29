@@ -264,6 +264,11 @@ enum _TableRowDragRegions {
     /// such a row is the drag's; a press released without moving passes
     /// through to the table as a click. The zones go in first, behind it, so
     /// they never take a press — a drag finds a zone at any depth.
+    ///
+    /// The drawn rows' drags are offered to the keyboard as well
+    /// (``ItemListHandler/offerRowDrags(_:context:)``): Copy takes the cursor
+    /// row's payload, and the pick-up chord carries it as this handle's drag
+    /// would, the selection with it (A53-KEYBOARD-DRAG).
     /// Makes the drag just begun from row `grabbed` carry the table's selection,
     /// in the table's order, where that row is one of several selected; Shift
     /// held as it began extends the selection to the row first, as a
@@ -304,6 +309,8 @@ enum _TableRowDragRegions {
         context: RenderContext,
         preview: @escaping @MainActor (Int) -> [String]?
     ) {
+        var drags: [Int: RowDrag] = [:]
+        defer { handler.offerRowDrags(drags, context: context) }
         guard context.environment.isEnabled, !context.isMeasuring,
             let dispatcher = context.environment.mouseEventDispatcher,
             let session = context.environment.dragAndDropSession
@@ -316,7 +323,7 @@ enum _TableRowDragRegions {
                 let allowed = context.environment.allowedDragOperations
                 var surface = FrameBuffer(emptyWithWidth: columns.count, height: max(1, row.height))
                 let index = row.index
-                _DragHandle.install(
+                let handle = _DragHandle.install(
                     on: &surface, context: context, dispatcher: dispatcher,
                     onDragBegin: { _, grab in
                         guard let value = payload() else { return }
@@ -330,6 +337,17 @@ enum _TableRowDragRegions {
                     onDragMove: { _ in session.dragMoved() },
                     onDragEnd: { _ in _ = session.performDrop() })
                 buffer.hitTestRegions += surface.hitTestRegions.map { $0.shifted(byX: columns.lowerBound, y: row.y) }
+                drags[index] = RowDrag(payload: payload) { origin, focusManager in
+                    guard let value = payload() else { return false }
+                    let picture = FrameBuffer(lines: [preview(index)?.last ?? ""])
+                    guard
+                        session.beginCarry(
+                            payload: value, preview: picture, source: nil, allowedOperations: allowed,
+                            origin: origin, handle: handle, focusManager: focusManager)
+                    else { return false }
+                    carrySelection(grabbed: index, handler: handler, traits: traits, session: session)
+                    return true
+                }
             }
             let drops = rowTraits.dropActions
             guard !drops.isEmpty else { continue }

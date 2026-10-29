@@ -56,9 +56,10 @@ and the arrows carry it among the stops that can take it, Return drops it,
 Escape puts it back. Its second part followed the same night: a `‹` cue on
 every stop it can reach, Return and Escape named in the status bar, and a
 list as one stop whose rows Up and Down move between. Its third part
-(2026-10-29) reached the rows that are no stops of their own: on a
-`.draggable` list row the list's Ctrl-R carries the cursor row — a selected
-row with the whole selection — and its Copy copies the payload.
+(2026-10-29) reached the rows and tabs that are no stops of their own: on a
+`.draggable` list or table row, and on a draggable tab, the list's, table's,
+strip's or sidebar's Ctrl-R carries the cursor row or selected tab — a
+selected row with the whole selection — and its Copy copies the payload.
 **Owed:** "Pick Up" in
 a draggable's context menu, which needs a way for a modifier to add a menu
 item. The image well's badge, probed in a real window on 2026-10-27, is
@@ -541,23 +542,25 @@ The pick-up chord is Ctrl-R as written: a list's `RowAction` rebinding does
 not reach it, because the table of row actions lives in `TUILists`. The
 tests are `CarryModeTests` and `ListCarryTests`.
 
-**Third part shipped (2026-10-29): list rows.** A `.draggable` in a list
+**Third part shipped (2026-10-29): rows and tabs.** A `.draggable` in a list
 row was no stop of its own, so neither its Copy nor its Ctrl-R was reachable,
 and moving a row to another list needed the pointer — against the owner's
-rule that no interaction is mouse-only. Now the list answers for its
-cursor row, as it does for the row's context menu:
+rule that no interaction is mouse-only. A table row's drag and a tab's had
+the same gap. Now the container answers for its cursor row, as it does for
+the row's context menu:
 
 - **Reported, not registered.** A `.draggable` drawn in a list row reports a
   `RowDrag` (its payload, and a pick-up that begins the carry) to the list's
   collector (`RowEditRestrictions.rowDrags`, journalled so a served row
-  reports again).
-- **Copy** on the list copies the cursor row's payload
-  (`ItemListHandler.offerRowDrags`).
+  reports again); a table makes one for each drawn row with a payload; a tab
+  files one with the strip's or sidebar's openers (`_TabMenuOpeners`).
+- **Copy** on the list, table, strip or sidebar copies the cursor row's or
+  selected tab's payload (`ItemListHandler.offerRowDrags`).
 - **Ctrl-R picks the row up as a carry**, its origin the container's stop, and
   the carry starts at the row's own line in it. On a selected row of a
   multi-selection it carries the selection, as the pointer's drag does
-  (DRAG-SELECTION): the list gathers it on the next frame through the same
-  path.
+  (DRAG-SELECTION): a list gathers it on the next frame through the same
+  path, a table at once from its traits.
 - **One gesture, not two.** In a list whose rows are `.draggable`, Ctrl-R
   carries rather than entering the `onMove` keyboard move, because that is
   what the pointer does: a press on a `.draggable` row is the drag's, never
@@ -571,8 +574,8 @@ cursor row, as it does for the row's context menu:
   `onMove`; a row with no drag still gets the keyboard move.
 - **Not built:** a list's Copy takes the cursor row alone, not the selection
   (a list draws only its window, and gathering the rest is the drag's
-  one-frame path); and a table row's and a tab's drag, which are not
-  `.draggable` views, are still pointer-only. The test is `ListRowCarryTests`.
+  one-frame path); the tests are `ListRowCarryTests`, `TableRowCarryTests`
+  and `TabCarryTests`.
 
 ### C12. The drag sessions' AppKit comparisons
 
@@ -609,6 +612,6 @@ is out; a cancelled drag's preview flies home to the grabbed row, and the
 others come back at once. The preview is the grabbed row with "+N more" under
 it (`label.dragMore`, in the seven languages). Shift held as the drag starts
 extends the selection to the row first. From the keyboard (2026-10-29,
-A53-KEYBOARD-DRAG's third part), Ctrl-R on a selected list row carries the
+A53-KEYBOARD-DRAG's third part), Ctrl-R on a selected row carries the
 selection too; Copy still takes the cursor row alone (`ListDragSelectionTests`,
-`TableRowDragAndDropTests`, `ListRowCarryTests`).
+`TableRowDragAndDropTests`, `ListRowCarryTests`, `TableRowCarryTests`).

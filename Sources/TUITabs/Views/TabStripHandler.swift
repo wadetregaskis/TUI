@@ -29,8 +29,8 @@ final class TabStripHandler: PersistedFocusable {
     var rows: [[Int]] = []
     var centers: [Int: Int] = [:]
 
-    /// Where Shift+F10 finds the selected tab's context menu: each chip with
-    /// one files it here as it draws.
+    /// Where Shift+F10 finds the selected tab's context menu, and Ctrl-R and
+    /// Copy its drag: each chip with one files it here as it draws.
     let menuOpeners = _TabMenuOpeners()
 
     init(focusID: String, selection: Binding<AnyHashable>, values: [AnyHashable], canBeFocused: Bool = true) {
@@ -90,7 +90,14 @@ final class TabStripHandler: PersistedFocusable {
             nonisolated(unsafe) let value = selection.wrappedValue
             let openers = menuOpeners
             return MainActor.assumeIsolated { openers.open(value) }
-        default: return false
+        default:
+            // The selected tab's drag, carried (A53-KEYBOARD-DRAG): the
+            // strip's pick-up chord, as a list's is its rows'.
+            nonisolated(unsafe) let value = selection.wrappedValue
+            let openers = menuOpeners
+            return MainActor.assumeIsolated {
+                KeyboardShortcut.trigger(for: event) == DragAndDropSession.carryChord.trigger && openers.pickUp(value)
+            }
         }
     }
 }

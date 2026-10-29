@@ -4527,6 +4527,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 },
                 traits: rowTraits, handler: state.handler, columns: contentColumns, context: context,
                 preview: previewLine)
+        } else {
+            state.handler.offerRowDrags([:], context: context)
         }
 
         // A one-row region at the keyboard cursor's on-screen line, ahead of

@@ -324,7 +324,8 @@ struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
 
     /// A drag handle over the content, carrying the tab's payload with its
     /// title as the picture. A press released without moving passes through
-    /// as the click that selects the tab.
+    /// as the click that selects the tab. The drag is filed with the openers
+    /// too, for the keyboard (``fileDrag(_:context:)``).
     private func attachDrag(to buffer: inout FrameBuffer, context: RenderContext) {
         guard let payload = traits.dragPayload, let dispatcher = context.environment.mouseEventDispatcher,
             let session = context.environment.dragAndDropSession
@@ -332,7 +333,7 @@ struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
         let preview = FrameBuffer(lines: [" \(title) "])
         let anchor = context.environment.dragPreviewAnchor
         let allowed = context.environment.allowedDragOperations
-        _DragHandle.install(
+        let handle = _DragHandle.install(
             on: &buffer, context: context, dispatcher: dispatcher,
             onDragBegin: { _, grab in
                 guard let value = payload() else { return }
@@ -342,7 +343,32 @@ struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
             },
             onDragMove: { _ in session.dragMoved() },
             onDragEnd: { _ in _ = session.performDrop() })
+        let drag = RowDrag(payload: payload) { origin, focusManager in
+            guard let value = payload() else { return false }
+            return session.beginCarry(
+                payload: value, preview: preview, source: nil, allowedOperations: allowed, origin: origin,
+                handle: handle, focusManager: focusManager)
+        }
+        fileDrag(drag, context: context)
     }
+
+    /// Files the tab's drag where the strip's or the sidebar's Ctrl-R and Copy
+    /// find it — and, while a memo records, the entry that files it again
+    /// when the memo is served, as ``fileOpener(for:context:)`` does the menu's.
+    private func fileDrag(_ drag: RowDrag, context: RenderContext) {
+        let value = self.value
+        (openers ?? context.environment.tabMenuOpeners)?.file(drag, for: value)
+        context.environment.volatileReadTracker?.recordReplayableEffect()
+        guard let journal = context.recordingEffectJournal else { return }
+        let token = context.environment.keyChannelToken
+        journal.append(
+            EffectJournal.Entry(kind: Self.dragKind, channelToken: token) { replay in
+                replay.environment.tabMenuOpeners?.file(drag, for: value)
+            })
+    }
+
+    /// The journal kind of a tab's drag, filed for the keyboard.
+    private static var dragKind: EffectJournal.Kind { EffectJournal.Kind("tab.drag") }
 
     /// A drop zone behind the content, handing the tab the drops it takes.
     private func attachDrop(to buffer: inout FrameBuffer, context: RenderContext) {
@@ -412,7 +438,20 @@ extension _TabViewCore {
             let handler = (context.stateStorage?.existingStorage(for: handlerKey) as StateBox<TabStripHandler>?)?.value
         else { return }
         let openers = handler.menuOpeners
-        openers.beginFrame()
+        openers.beginFrame(focusManager: context.environment.focusManager)
+        // Copy on the strip copies the selected tab's payload, where it has a
+        // drag (A53-KEYBOARD-DRAG): read when the key comes, so it is the
+        // drags filed below.
+        defer {
+            if openers.hasDrags {
+                let selection = handler.selection
+                TransferKeys.register("c", focusIDs: [handler.focusID], context: context) { _, clipboard in
+                    guard let value = openers.payload(of: selection.wrappedValue) else { return false }
+                    clipboard.copy([value])
+                    return true
+                }
+            }
+        }
         let hoverBox = hoveredTabBox(context: context)
         for region in regions {
             let tab = tabs[region.index]

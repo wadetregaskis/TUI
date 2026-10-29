@@ -86,7 +86,7 @@ private struct StableSidebarPage: View {
                         title: "Tab \(index)")
                 }
             },
-            selection: selection, hasMenus: true)
+            selection: selection, hasMenusOrDrags: true)
     }
 }
 

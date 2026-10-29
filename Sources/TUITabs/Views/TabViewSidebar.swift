@@ -162,9 +162,10 @@ private struct _TabSidebarList: View {
 
     var body: some View {
         // Shift+F10 opens the selected tab's context menu while the list has
-        // the focus.
+        // the focus, and Ctrl-R and Copy take its drag.
         _TabSidebarMenuKeys(
-            content: list, selection: selection, hasMenus: tabs.contains { $0.interactions.contextMenu != nil })
+            content: list, selection: selection,
+            hasMenusOrDrags: tabs.contains { $0.interactions.contextMenu != nil || $0.interactions.dragPayload != nil })
     }
 
     /// The sidebar list, which TUILists builds: a `.sidebar` `List` of the

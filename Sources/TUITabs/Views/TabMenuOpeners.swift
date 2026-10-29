@@ -1,8 +1,9 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  TabMenuOpeners.swift
 //
-//  Where Shift+F10 finds a tab's context menu: the openers the strip and the
-//  sidebar file their tabs' menus in, and the sidebar's key over its list.
+//  Where Shift+F10 finds a tab's context menu, and Ctrl-R and Copy its drag:
+//  the openers the strip and the sidebar file their tabs' menus and drags in,
+//  and the sidebar's keys over its list.
 //  Split out of `TabContentInteractions.swift`, which had passed the
 //  file-length guideline.
 //
@@ -31,12 +32,46 @@ import TUIView
 final class _TabMenuOpeners {
     private var openers: [AnyHashable: () -> Void] = [:]
 
+    /// The drags the tabs carry, by tab value, as the keyboard takes them
+    /// (A53-KEYBOARD-DRAG): Ctrl-R carries the selected tab's, and Copy
+    /// copies its payload, while the strip or the sidebar holds the focus. A
+    /// tab is no focus stop of its own — the strip or the sidebar is — as a
+    /// list row is none.
+    private var drags: [AnyHashable: RowDrag] = [:]
+
+    /// The focus manager a carry moves, as of the owner's last render. Weak:
+    /// the openers outlive a manager a test makes.
+    private weak var focusManager: FocusManager?
+
     /// Made by the strip's handler, which is not on the main actor.
     nonisolated init() {}
 
-    /// Forgets every opener, before a render files this frame's.
-    func beginFrame() {
+    /// Forgets every opener and drag, before a render files this frame's.
+    func beginFrame(focusManager: FocusManager?) {
         openers.removeAll(keepingCapacity: true)
+        drags.removeAll(keepingCapacity: true)
+        self.focusManager = focusManager
+    }
+
+    func file(_ drag: RowDrag, for value: AnyHashable) {
+        drags[value] = drag
+    }
+
+    /// Whether a tab filed a drag this frame.
+    var hasDrags: Bool { !drags.isEmpty }
+
+    /// The payload of the tab `value` names, where it is dragged.
+    func payload(of value: AnyHashable) -> Any? {
+        drags[value]?.payload()
+    }
+
+    /// Picks up the tab `value` names as a carry from the stop that holds the
+    /// focus — the strip, or the sidebar's list — and says whether it did.
+    func pickUp(_ value: AnyHashable) -> Bool {
+        guard let drag = drags[value], let focusManager, let origin = focusManager.currentFocusedID else {
+            return false
+        }
+        return drag.pickUp(origin, focusManager)
     }
 
     func file(_ opener: @escaping () -> Void, for value: AnyHashable) {
@@ -62,7 +97,8 @@ private enum TabSidebarMenuKeysStateIndex {
 
 /// The sidebar's Shift+F10, over its list: opens the selected tab's context
 /// menu while the list has the focus — once the list has let the key go, as a
-/// command is heard.
+/// command is heard. Its Ctrl-R and Copy likewise carry and copy the selected
+/// tab's drag (A53-KEYBOARD-DRAG).
 ///
 /// It keeps the sidebar's ``_TabMenuOpeners`` and hands them to the rows'
 /// hosts through the environment, starting them afresh on every render. A
@@ -70,14 +106,14 @@ private enum TabSidebarMenuKeysStateIndex {
 /// built before anything renders and a `@State` initial value is built on
 /// every evaluation of the body that makes the list.
 ///
-/// A sidebar none of whose tabs carries a context menu has nothing for the key
-/// to open, and pays for none of it: no box, no environment write, no
-/// handler. The content renders at the same identity either way.
+/// A sidebar none of whose tabs carries a context menu or a drag has nothing
+/// for the keys to do, and pays for none of it: no box, no environment write,
+/// no handler. The content renders at the same identity either way.
 struct _TabSidebarMenuKeys<Content: View>: View, Renderable, Layoutable {
     let content: Content
     let selection: Binding<AnyHashable>
-    /// Whether any of the sidebar's tabs carries a context menu.
-    let hasMenus: Bool
+    /// Whether any of the sidebar's tabs carries a context menu or a drag.
+    let hasMenusOrDrags: Bool
 
     private typealias StateIndex = TabSidebarMenuKeysStateIndex
 
@@ -89,7 +125,7 @@ struct _TabSidebarMenuKeys<Content: View>: View, Renderable, Layoutable {
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var contentContext = context.withChildIdentity(type: Content.self, index: 0)
-        guard hasMenus, !context.isMeasuring, let storage = context.stateStorage else {
+        guard hasMenusOrDrags, !context.isMeasuring, let storage = context.stateStorage else {
             return TUIView.renderToBuffer(content, context: contentContext)
         }
         // A manual box, which nothing else hydrates: marked, or the end of
@@ -99,13 +135,21 @@ struct _TabSidebarMenuKeys<Content: View>: View, Renderable, Layoutable {
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.openers),
             default: _TabMenuOpeners()
         ).value
-        openers.beginFrame()
+        openers.beginFrame(focusManager: context.environment.focusManager)
         contentContext.environment.tabMenuOpeners = openers
         let selection = self.selection
-        let keyed = FocusPathModifier(content: content, stage: .command) { _ in
-            { event in
-                guard event.opensContextMenu else { return false }
-                return openers.open(selection.wrappedValue)
+        // One handler for the three, so a sidebar pays for one.
+        let keyed = FocusPathModifier(content: content, stage: .command) { context in
+            let (copy, clipboard) = context.environment.clipboardCommand("c")
+            return { event in
+                if event.opensContextMenu { return openers.open(selection.wrappedValue) }
+                let trigger = KeyboardShortcut.trigger(for: event)
+                if trigger == DragAndDropSession.carryChord.trigger { return openers.pickUp(selection.wrappedValue) }
+                guard copy != nil, trigger == copy, let value = openers.payload(of: selection.wrappedValue) else {
+                    return false
+                }
+                clipboard.copy([value])
+                return true
             }
         }
         return TUIView.renderToBuffer(keyed, context: contentContext)
