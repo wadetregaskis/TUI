@@ -127,6 +127,20 @@ messages cite that path), and what cites it.
   `Tests/TUIFoundationTests/DynamicPropertyStateKeyTests.swift`;
   `Documentation/Historical/State and dynamic properties/Finding dynamic properties, and writing back what update() changes.md`.
 
+### Row state lifetime
+
+- **Asks:** when SwiftUI drops a row's `@State`: a row of a `List` and of a `LazyVStack` whose id leaves the
+  `ForEach`'s data and comes back on a later update — at once, and after 300 other ids have come and gone, five at
+  a time — with a `VStack` as the control; a `DisclosureGroup`'s content collapsed and expanded again, in a `List`
+  and in a `VStack`; and a `List(_:children:)` and an `OutlineGroup` in a `List`, a branch collapsed and expanded
+  through the `NSOutlineView` SwiftUI makes, and a child removed and put back (`rows.swift`, `rows.out`). Each
+  row stamps its `@State` with a serial when SwiftUI makes it, and logs the stamp and its `onAppear` (+) and
+  `onDisappear` (-). In the lazy containers and every outline, a row whose id left the data, or whose branch was
+  collapsed, disappears, and comes back with the state it had — even after 300 other ids; in a `VStack` it comes
+  back fresh, and a `DisclosureGroup` in a `VStack` drops its content's state when collapsed.
+- **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-29.
+- **Cited by:** `Documentation/Historical/State and dynamic properties/Row state lifetime (2026-10-29).md`.
+
 ### Alignment guides
 
 - **Asks:** whether an explicit alignment guide's value is used as given or clamped to the view's own size, in

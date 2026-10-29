@@ -1206,9 +1206,12 @@ containers, and those carry it.
   margin, §13) won't coincide. Code that treats `onAppear` as "roughly
   near the viewport" ports fine; code that depends on exact fire counts
   was already fragile in SwiftUI.
-- **Deleted rows' state lingers** until the container dies (§5h), where
-  SwiftUI prunes on data diff. Observable only by memory footprint, not
-  by behaviour — SwiftUI code cannot observe its own pruning either.
+- **Deleted rows' state lingers** until the container dies (§5h) — as in
+  SwiftUI's lazy containers, measured on 2026-10-29: a `List` or
+  `LazyVStack` row whose id leaves and comes back has its old `@State`
+  (`Tools/SwiftUIProbes/Row state lifetime`). A decoded picture is kept by
+  the bounded image cache rather than in the row ("Row state lifetime" in
+  `Documentation/Historical/State and dynamic properties`).
 - **The scrollbar thumb on variable-height content is an estimate**
   (§3). SwiftUI's is too (its platforms estimate), but ours may drift
   more visibly on pathological content. Uniform content is exact (§5i).

@@ -173,9 +173,15 @@ public final class StateStorage: @unchecked Sendable {
     /// *window*, not the *tree* (§5h of "Locating things without drawing
     /// them"). Cleared by ``beginRenderPass``, so a container that stops
     /// rendering stops protecting and its subtree prunes on the next pass.
-    /// Deliberately NOT pruned per-row on data deletion: knowing a row left
-    /// the data would require the full id set every frame (the identity tax);
-    /// a deleted row's state lingers until its container dies.
+    /// Deliberately NOT pruned per-row on data deletion: a deleted row's state
+    /// lives until its container dies, as SwiftUI's lazy containers keep it
+    /// (measured: a `List` or `LazyVStack` row whose id leaves the data and
+    /// comes back has its old `@State`, even after 300 other ids came and went
+    /// — `Tools/SwiftUIProbes/Row state lifetime`). Pruning on deletion would
+    /// also need the full id set every frame, the identity tax. A row's
+    /// decoded picture is not kept here but by the bounded image cache, so
+    /// what lingers is small ("Row state lifetime" in
+    /// `Documentation/Historical/State and dynamic properties`).
     private var retainedSubtreeRoots: [ViewIdentity] = []
 
     /// Whether the containers that window their rows note which they drew
