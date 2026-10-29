@@ -215,17 +215,6 @@ struct FilePanel: View {
         }
     }
 
-    /// The folder in `folder` on the way to `deeper`, spelled as the folder's
-    /// rows spell their URLs (`DirectoryListing`); `nil` where `deeper` is not
-    /// inside `folder`.
-    static func folder(in folder: URL, toward deeper: URL) -> URL? {
-        let base = folder.path.hasSuffix("/") ? folder.path : folder.path + "/"
-        guard deeper.path.hasPrefix(base),
-            let component = deeper.path.dropFirst(base.count).split(separator: "/").first
-        else { return nil }
-        return folder.appendingPathComponent(String(component))
-    }
-
     /// The path bar, or the go-to field in its place while `/` has it open.
     /// The bar's Preview button shows whether the preview `showsPreview`, and
     /// opening or closing it is the user's choice from then on.
@@ -254,21 +243,6 @@ struct FilePanel: View {
     /// or the column view's column of the folder shown.
     private var folderField: FilePanelField {
         viewMode == .list ? .rows : .column(browser.directory.path)
-    }
-
-    /// The blank rows between the panel's parts — the message, the name
-    /// field, the path and the folder: none at the small control sizes, as
-    /// dense as a terminal panel can be; one at `.regular` and `.large`, to
-    /// set the parts apart as a macOS panel's margins do; two at
-    /// `.extraLarge`. None, whatever the size, where the vertical size class
-    /// is compact: a short terminal keeps its rows for the folder.
-    static func spacing(controlSize: ControlSize, verticalSizeClass: UserInterfaceSizeClass?) -> Int {
-        if verticalSizeClass == .compact { return 0 }
-        switch controlSize {
-        case .mini, .small: return 0
-        case .regular, .large: return 1
-        case .extraLarge: return 2
-        }
     }
 
     /// The alert a save asks before replacing a file, on `content`: inside
@@ -340,22 +314,7 @@ struct FilePanel: View {
             }
             // Added to the sheet's own Escape item, which presses the Cancel
             // button (`StatusBarState.keepPresentationItem`).
-            .statusBarItems {
-                StatusBarItem(
-                    shortcut: viewMode == .list ? Shortcut.backspace : Shortcut.arrowLeft,
-                    label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusEnclosingFolder))
-                StatusBarItem(
-                    shortcut: "~",
-                    label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusHome))
-                StatusBarItem(
-                    shortcut: "/",
-                    label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusGoTo))
-                if createsFolders {
-                    StatusBarItem(
-                        shortcut: "+",
-                        label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusNewFolder))
-                }
-            }
+            .statusBarItems(Self.statusItems(viewMode: viewMode, createsFolders: createsFolders))
     }
 
     /// The keys to the enclosing folder in the view shown.
