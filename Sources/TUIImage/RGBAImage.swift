@@ -435,12 +435,13 @@ extension RGBAImage {
     /// being the picture's outline rather than anything inside it.
     ///
     /// - Parameters:
-    ///   - amount: How far to push. `0` (or less) returns `self`; around `0.6`
-    ///     is a visible lift and `2` is heavy-handed.
+    ///   - amount: How far to push. `0` (or less) returns `self`, as does an
+    ///     amount that is not a finite number; around `0.6` is a visible lift
+    ///     and `2` is heavy-handed.
     ///   - radiusX: Half the neighbourhood's width, in pixels. Clamped to ≥ 1.
     ///   - radiusY: Half its height. Clamped to ≥ 1.
     public func sharpened(amount: Double, radiusX: Int = 1, radiusY: Int = 1) -> RGBAImage {
-        guard amount > 0, width > 0, height > 0 else { return self }
+        guard amount > 0, amount.isFinite, width > 0, height > 0 else { return self }
         let spanX = max(1, radiusX)
         let spanY = max(1, radiusY)
         let rowBlur = horizontallyAveraged(span: spanX)
@@ -537,7 +538,9 @@ extension RGBAImage {
         // representable as an Int and as a Double. Three of these run per PIXEL
         // of the sharpened picture.
         let original = Double(Int(value))
-        return UInt8(clamping: Int((original + amount * (original - blurred)).rounded()))
+        // Held to a byte while still a `Double`: a finite amount of 1e18 lifts
+        // a channel past what `Int(_:)` takes without trapping.
+        return UInt8(min(255, max(0, (original + amount * (original - blurred)).rounded())))
     }
 
     /// Each pixel's three colour channels averaged across `2 × span + 1`

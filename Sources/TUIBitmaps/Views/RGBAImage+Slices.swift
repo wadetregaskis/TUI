@@ -69,7 +69,8 @@ extension RGBAImage {
                 contentMode: .fit, cellAspect: cellAspect)
         let tiles = resizing.mode == .tile
         let perPoint = resizing.sliceBox?.pixelsPerPoint ?? 1
-        func inPixels(_ points: Int) -> Int { Int((Double(points) * perPoint).rounded()) }
+        // Clamping: a cap inset of `Int.max` points is past `Int` in pixels.
+        func inPixels(_ points: Int) -> Int { Int(clamping: (Double(points) * perPoint).rounded()) }
         let xs = Self.sliceMap(
             source: width, leading: inPixels(resizing.capInsets.leading), trailing: inPixels(resizing.capInsets.trailing),
             cells: columns, fittedCells: fitted.width, tiles: tiles)

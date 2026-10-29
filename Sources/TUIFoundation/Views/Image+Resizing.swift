@@ -64,6 +64,12 @@ extension Image {
     /// - Returns: The image, resizable.
     public func resizable(capInsets: EdgeInsets = EdgeInsets(), resizingMode: ResizingMode = .stretch) -> Image {
         var copy = self
+        // Held as padding's insets are: never negative, and short of `Int`'s
+        // end, which the slicing's sums of caps and centre would pass.
+        func hold(_ inset: Int) -> Int { max(0, inset.heldToStatedLength) }
+        let capInsets = EdgeInsets(
+            top: hold(capInsets.top), leading: hold(capInsets.leading), bottom: hold(capInsets.bottom),
+            trailing: hold(capInsets.trailing))
         copy.resizing = _ImageResizing(capInsets: capInsets, mode: resizingMode)
         return copy
     }
