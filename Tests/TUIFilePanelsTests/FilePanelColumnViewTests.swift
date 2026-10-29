@@ -24,16 +24,17 @@ import Testing
 @Suite("File panel column view", .serialized)
 struct FilePanelColumnViewTests {
     /// A panel opening on `start`, its home `fixture`'s root, its view mode
-    /// kept in `store`.
+    /// kept in `store`; to save where `saves`.
     private func panel(
         _ fixture: FilePanelFixture, caller: FilePanelCaller, store: MockStorageBackend, start: URL? = nil,
-        id: String? = nil
+        id: String? = nil, saves: Bool = false
     ) -> some View {
         let presenter = FilePanelPresenter(
             content: Text("Page"), isPresented: caller.binding,
             request: {
                 FilePanelRequest(
-                    purpose: .open(allowsMultipleSelection: false), rule: FileChoiceRule(), title: "Open",
+                    purpose: saves ? .save(contentTypes: [.plainText]) : .open(allowsMultipleSelection: false),
+                    rule: FileChoiceRule(), title: "Open",
                     confirmationLabel: "Open", startDirectory: start ?? fixture.root, homeDirectory: fixture.root)
             },
             onChoose: { caller.chose($0) }, onCancel: { caller.cancelled() })
@@ -138,6 +139,26 @@ struct FilePanelColumnViewTests {
         driver.press(.space)
         await settle { !driver.screen().contains("leaf.txt") }
         #expect(!driver.screen().contains("inner.txt"))
+    }
+
+    /// New Folder reads the panel's folders again: the column of a folder
+    /// above, whose task had no reason to run again, drew "Loading…" for good.
+    @Test("After New Folder, the columns of the folders above are read again")
+    func newFolderRereadsTheColumnsAbove() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver {
+            panel(fixture, caller: caller, store: columnsStore(), start: fixture.url("Alpha"), saves: true)
+        }
+        await driver.waitFor("notes.md")
+        await driver.waitFor("inner.txt")
+        #expect(driver.click("New Folder"))
+        await driver.waitFor("Name of new folder")
+        #expect(driver.click("Create"))
+        await settle { FileManager.default.fileExists(atPath: fixture.url("Alpha/untitled folder").path) }
+        let shown = await driver.waitFor("notes.md", timeout: .seconds(5))
+        #expect(shown.contains("notes.md") && shown.contains("inner.txt"), "\(shown)")
     }
 
     /// How many times `text` shows on `screen`.

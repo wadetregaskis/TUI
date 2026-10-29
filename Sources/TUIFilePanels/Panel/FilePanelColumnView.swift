@@ -235,8 +235,14 @@ struct FilePanelColumnView: View {
         }
         // Again as it stops being the folder shown, which the panel reads: gone
         // up from before its read finished, the folder's column of the way
-        // back down drew "Loading…" for good.
-        .task(id: [path, path == browser.directory.path ? "shown" : ""]) { await loadIfNeeded(path) }
+        // back down drew "Loading…" for good. And again as the panel reads its
+        // folders again (`FileBrowser.reload()`, after New Folder or a new
+        // type in the pop-up), which forgets every folder read: a column of
+        // a folder above, whose task had no other reason to run, drew
+        // "Loading…" for good too.
+        .task(id: [path, path == browser.directory.path ? "shown" : "", String(browser.generation)]) {
+            await loadIfNeeded(path)
+        }
     }
 
     /// The items of the folder at `path`: the folder shown's rows, or a
