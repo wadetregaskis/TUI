@@ -132,13 +132,52 @@ package final class ScrollToRegistry: @unchecked Sendable {
     /// Live scroll views, keyed by identity path so a re-render refreshes
     /// its entry in place. Handlers are held weakly: a scroll view that
     /// leaves the tree dies with its state, and its entry is swept on the
-    /// next `scrollTo`.
+    /// next `scrollTo`, or by ``register(handler:identity:renderCache:)``
+    /// once the table has doubled.
     private var entries: [String: Entry] = [:]
 
+    /// The size at which a registration that adds an entry sweeps out the
+    /// dead ones first: twice what was live after the last sweep, and never
+    /// less than ``minimumSweepThreshold``.
+    private var sweepThreshold = ScrollToRegistry.minimumSweepThreshold
+
+    /// The smallest ``sweepThreshold``: a reader with a handful of scroll
+    /// views never sweeps at all.
+    static let minimumSweepThreshold = 64
+
+    /// How many scroll views are on record, live or dead. For tests.
+    var entryCount: Int { entries.count }
+
     /// Registers (or refreshes) a scrolling view for this frame.
+    ///
+    /// Only a NEW identity can grow the table, so only that sweeps, and only
+    /// once the table has doubled since the last sweep: a constant amortised
+    /// cost per scroll view ever added, and none on the frames that merely
+    /// refresh. Without it the dead were dropped only by `scrollTo`, and a
+    /// reader whose scroll views come and go — one per row of churning data,
+    /// a proxy never called — kept every one it ever saw.
+    ///
+    /// The sweep goes by the weak handler, not by which frame registered:
+    /// a scroll view served from a memo does not register, yet is live, and
+    /// its entry must stay (see the `Equatable` conformance below).
     package func register(handler: any ScrollToTarget, identity: ViewIdentity, renderCache: RenderCache?) {
-        entries[identity.path] = Entry(
-            handler: handler, identity: identity, renderCacheLink: renderCache?.link)
+        let entry = Entry(handler: handler, identity: identity, renderCacheLink: renderCache?.link)
+        guard entries.updateValue(entry, forKey: identity.path) == nil, entries.count >= sweepThreshold
+        else { return }
+        sweepDead()
+    }
+
+    /// Drops the entries whose scroll view has gone, and sets the next
+    /// ``sweepThreshold``.
+    private func sweepDead() {
+        var dead: [String] = []
+        for (path, entry) in entries where entry.handler == nil {
+            dead.append(path)
+        }
+        for path in dead {
+            entries[path] = nil
+        }
+        sweepThreshold = max(Self.minimumSweepThreshold, entries.count * 2)
     }
 
     /// Parks the request on every live registered scroll view — each
