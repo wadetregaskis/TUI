@@ -98,6 +98,28 @@ struct KeyboardProtocolNegotiationTests {
         #expect(events == [.key(KeyEvent(key: .enter))])
     }
 
+    /// The push is followed by up to two half-second exchanges; a signal in
+    /// them found no pop owed, and left the shell with every key an escape
+    /// code.
+    @Test("The pop is owed before the push goes out, through the exchanges after it")
+    func popOwedBeforeThePush() {
+        let (terminal, script) = makeTerminal(reads: [
+            "\u{1B}[?15u" + Self.fence, "\u{1B}[?7u" + Self.fence,
+        ])
+        var armings: [(debt: String, afterSends: Int)] = []
+        terminal.exchangeTransport?.armSignalRestore = { debt, _ in armings.append((debt, script.sent.count)) }
+        terminal.enableRawMode()
+        script.sent.removeAll()
+        armings.removeAll()
+        terminal.negotiateKeyboardEnhancement(firstAnswer: [], timeout: 5)
+        let firstOwing = armings.first { $0.debt.contains(KeyboardProtocolQuery.pop) }
+        #expect(firstOwing?.afterSends == 0, "owed before the push, the first thing sent")
+        #expect(armings.allSatisfy { $0.debt.contains(KeyboardProtocolQuery.pop) }, "and from then on")
+        #expect(script.sent.first == "\u{1B}[>31u")
+        #expect(terminal.keyboardFlagsPushed)
+        terminal.disableRawMode()
+    }
+
     @Test("A pop is owed once, and a resume pushes the same flags without asking")
     func popAndRepush() {
         let (terminal, script) = makeTerminal(reads: ["\u{1B}[?31u" + Self.fence])

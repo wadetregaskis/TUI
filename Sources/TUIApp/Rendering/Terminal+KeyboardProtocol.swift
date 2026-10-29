@@ -193,6 +193,15 @@ extension Terminal {
     func negotiateKeyboardEnhancement(firstAnswer: KittyKeyboardFlags?, timeout: Double) {
         guard firstAnswer != nil else { return }
         var pushed = KittyKeyboardFlags.requested
+        // The pop owed BEFORE the push goes out: up to two exchanges of half a
+        // second each follow it, and a signal in them would otherwise leave
+        // the shell with the flags pushed — every key, Return included, sent
+        // as an escape code it cannot read. Owing a pop the terminal never
+        // took costs nothing: a pop of an empty stack does nothing. Only the
+        // debt is told: the parser reads the protocol's grammar once the
+        // negotiation is done (``noteKeyboardFlagsPushed()``).
+        keyboardFlagsPushed = true
+        armSignalRestore()
         writeImmediate(KeyboardProtocolQuery.push(pushed))
         var granted = askKeyboardFlags(timeout: timeout) ?? pushed
         if granted.contains(.reportAllKeysAsEscapeCodes), !granted.contains(.reportAssociatedText) {
