@@ -36,6 +36,10 @@ struct ScrollViewPage: View {
     /// still meaningful: `.hidden` then draws neither.
     @State private var indicatorStyle: ScrollIndicatorStyle = .scrollbar
     @State private var barArrows: ScrollbarArrows = .single
+    /// This demo's own `.scrollIndicatorPlacement`, or `nil` to keep the one
+    /// the Theme page set for the whole app (read below, to tell which it is).
+    @State private var barPlacement: ScrollIndicatorPlacement?
+    @Environment(\.scrollIndicatorPlacement) private var themePlacement
     @State private var barProportional: Bool = true
     /// The bar's width in cells: one, or two (`.scrollbarWidth(_:)`).
     @State private var barWidth = 1
@@ -191,6 +195,7 @@ struct ScrollViewPage: View {
                     .userResizable(height: 6...24)
                     .scrollIndicators(barVisibility)
                     .scrollIndicatorStyle(indicatorStyle)
+                    .scrollIndicatorPlacement(barPlacement ?? themePlacement)
                     .scrollbarArrows(barArrows)
                     .scrollbarProportionalThumb(barProportional)
                     .scrollbarWidth(barWidth)
@@ -224,6 +229,15 @@ struct ScrollViewPage: View {
                         Text("page.scrollView.indicatorStyle.text").tag(ScrollIndicatorStyle.text)
                     }
                     Text("page.scrollView.indicatorStyleNote")
+                    .foregroundStyle(.palette.foregroundSecondary)
+                    Picker("page.scrollView.placement", selection: $barPlacement) {
+                        Text("page.scrollView.placement.theme").tag(ScrollIndicatorPlacement?.none)
+                        Text("scrollIndicatorPlacement.besideContent")
+                            .tag(ScrollIndicatorPlacement?.some(.besideContent))
+                        Text("scrollIndicatorPlacement.overContent")
+                            .tag(ScrollIndicatorPlacement?.some(.overContent))
+                    }
+                    Text("page.scrollView.placementNote")
                     .foregroundStyle(.palette.foregroundSecondary)
                     Picker("page.scrollView.endArrows", selection: $barArrows) {
                         Text("page.scrollView.arrows.none").tag(ScrollbarArrows.none)
