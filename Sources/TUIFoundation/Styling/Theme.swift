@@ -100,12 +100,18 @@ public struct ThemeModifier<Content: View>: View {
     /// holds an existential the compiler cannot promise is `Equatable`, and
     /// ``note(_:_:)`` takes a value it can.
     ///
-    /// The TYPE first, which is the cheap rejection and, for a style that cannot
-    /// answer by value, the whole of it; then by VALUE where the style can
-    /// answer. The style protocols are public and carry no `Equatable`
+    /// The TYPE first, which is the cheap rejection; then by VALUE where the
+    /// style can answer. The style protocols are public and carry no `Equatable`
     /// refinement — an app writes `struct MyStyle: ButtonStyle` and owes nothing
     /// more — so both halves are live. Every style this package ships conforms,
     /// which is what `3a7c1d27..bbac32c8` was for.
+    ///
+    /// A style that cannot answer by value is unequal to everything, as
+    /// `StyleChain` holds it, and says so (``PartiallyComparable``): the slot is
+    /// then `.incomparable`, and the memos below are declined rather than
+    /// cleared every frame. Its type alone used to answer "equal", so a second
+    /// style of one type that held something else — a badge, a colour — was
+    /// served the buffer the first had drawn.
     ///
     /// The type alone used to be the whole answer, and that was the bug: two
     /// styles of one type then compared equal however differently they draw, so
@@ -138,7 +144,7 @@ public struct ThemeModifier<Content: View>: View {
     /// converts it to the `Any` that `isEqual(to:)` takes, a copy the release
     /// build keeps (31 more instructions across `==` and its closure on
     /// Xcode's 6.2.4, measured 2026-10-08).
-    private struct ComparableStyle: Equatable, @unchecked Sendable {
+    private struct ComparableStyle: Equatable, PartiallyComparable, @unchecked Sendable {
         /// `Any?` rather than a generic parameter bound to `any ButtonStyle`,
         /// and that is load-bearing rather than laziness: inside a generic whose
         /// parameter is an existential, `type(of:)` answers the EXISTENTIAL
@@ -177,10 +183,16 @@ public struct ThemeModifier<Content: View>: View {
                 // therefore already inside it, and stands alone only for the
                 // style that cannot be compared at all.
                 type(of: lhs) == type(of: rhs)
-                    && ((lhs as? any Equatable).map { $0.isEqual(to: rhs) } ?? true)
+                    && ((lhs as? any Equatable).map { $0.isEqual(to: rhs) } ?? false)
             default:
                 false
             }
+        }
+
+        /// No style, or one that can be compared by value.
+        var isComparable: Bool {
+            guard let style else { return true }
+            return style is any Equatable
         }
     }
 
@@ -202,14 +214,16 @@ public struct ThemeModifier<Content: View>: View {
         //
         // `note` takes `some Equatable` rather than `Any`, which is the point
         // and not a tidy-up. `noteAppliedEnvironment` answers `.incomparable`
-        // for a value it cannot compare, this site matches only `.changed`, and
-        // dropping `.incomparable` here does NOT decline the memo below (that is
-        // `EnvironmentModifier`'s arm, and it has no counterpart here) — it
-        // deadens the slot permanently, so it can never answer `.changed` again
-        // and the subtree keeps the ink it was painted with. Taking a value the
-        // compiler knows is `Equatable` makes `.incomparable` unreachable here
-        // instead of unhandled, and makes a future note of a value that cannot
-        // be compared a build error rather than silently wrong pixels.
+        // for a value it cannot compare, and a slot that has said so never
+        // answers `.changed` again, so dropping that answer would deaden it and
+        // leave the subtree the ink it was painted with. Taking a value the
+        // compiler knows is `Equatable` keeps a raw value that cannot be compared
+        // out — a build error rather than silently wrong pixels. The one way in
+        // is a wrapper that says it cannot compare what it holds
+        // (``PartiallyComparable``, a `ComparableStyle` around an app's style
+        // that is not `Equatable`), and that answer is acted on below as
+        // `EnvironmentModifier`'s arm acts on it: the memos under the theme
+        // decline to store, through the tracker and the environment's flag.
         //
         // `theme.palette` is what needed the wrapper: it is `any Palette`, and
         // `Palette` carries no `Equatable` refinement — the shape ``ThemingGuide``
@@ -236,6 +250,7 @@ public struct ThemeModifier<Content: View>: View {
         // not region-tracked, so the clone has nothing to report; every value
         // noted here is part of a `Sendable` `Theme`, and `Sendable` is a
         // marker protocol, so the generated code is the same.
+        var incomparable = false
         if let cache = context.renderCache {
             var changed = false
             var movedCells = false
@@ -243,12 +258,17 @@ public struct ThemeModifier<Content: View>: View {
                 _ value: some Equatable & Sendable, _ keyPath: PartialKeyPath<EnvironmentValues>,
                 movesCells: Bool = false
             ) {
-                if case .changed = cache.noteAppliedEnvironment(
+                switch cache.noteAppliedEnvironment(
                     value, identity: context.identity, keyPath: keyPath,
                     depth: context.environmentApplicationDepth)
                 {
+                case .changed:
                     changed = true
                     movedCells = movedCells || movesCells
+                case .incomparable:
+                    incomparable = true
+                case .first, .unchanged:
+                    break
                 }
             }
             note(theme.appearance, \EnvironmentValues.appearance)
@@ -271,6 +291,12 @@ public struct ThemeModifier<Content: View>: View {
         }
 
         var environment = context.environment
+        if incomparable {
+            // `EnvironmentModifier`'s two routes: a memo above the theme hears
+            // through the tracker, one below it through the flag.
+            context.environment.volatileReadTracker?.recordRenderSideEffect()
+            environment.hasUncomparableEnvironmentValue = true
+        }
         environment.appearance = theme.appearance
         if let tint = theme.tint {
             environment.tint = tint

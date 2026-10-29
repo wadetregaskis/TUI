@@ -161,10 +161,10 @@ struct ThemeStyleMemoTests {
     /// The other direction, and the one a careless fix breaks in two ways. A
     /// `.theme(…)` rebuilds the styles it installs on every frame, so equal
     /// values must compare equal; and a style an app writes need not be
-    /// `Equatable` at all, in which case the comparison has nothing finer than
-    /// the type to go on and must answer "unchanged" rather than clearing the
-    /// subtree on every frame. Only the clear count can catch either — no
-    /// comparison of the output would.
+    /// `Equatable` at all, in which case nothing can say whether it changed: it
+    /// must answer "incomparable", which declines the memos below, rather than
+    /// "changed", which cleared the subtree on every frame. Only the clear count
+    /// can catch either — no comparison of the output would.
     @Test("A theme's styles rebuilt unchanged do not defeat the memo below them")
     func unchangedThemeStylesStillMemoize() {
         func stillMemoizes(_ style: @autoclosure () -> some ButtonStyle, _ spelling: String) {
@@ -183,5 +183,22 @@ struct ThemeStyleMemoTests {
 
         stillMemoizes(_ColorSwatchButtonStyle(color: .red), "a style compared by value")
         stillMemoizes(UncomparableButtonStyle(badge: "x"), "a style that cannot be compared")
+    }
+
+    /// A style that cannot be compared, swapped for another of its type that holds
+    /// something else. Nothing can tell the two apart, so nothing below may be served
+    /// from what the first drew: the theme answered "the same type, so the same
+    /// style", and the buffer the old badge drew was served under the new one.
+    /// `.buttonStyle(_:)` notes the style raw and declines the memos below it, as
+    /// the theme now does.
+    @Test("A theme's style that cannot be compared serves nothing it drew to the next one of its type")
+    func uncomparableStyleOfOneTypeIsNotServed() {
+        let shared = context()
+        let cache = shared.environment.renderCache!
+        frame(shared, StyleMemoLeaf(text: "hi").equatable().theme(themed(UncomparableButtonStyle(badge: "x"))))
+        let before = cache.stats
+        frame(shared, StyleMemoLeaf(text: "hi").equatable().theme(themed(UncomparableButtonStyle(badge: "y"))))
+        let delta = cache.stats.delta(since: before)
+        #expect(delta.hits == 0, "the buffer drawn under the first badge was served under the second: \(delta)")
     }
 }
