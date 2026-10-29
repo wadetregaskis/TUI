@@ -587,7 +587,9 @@ extension AppRunner {
 
             // Check for an in-app `@Environment(\.dismiss)` call. Lets a
             // view exit the run loop cleanly without resorting to `exit()`,
-            // which would skip the terminal-restore teardown below. The
+            // which skips the teardown below: the terminal is paid back by
+            // `FatalSignalTerminalRestore`'s `atexit` handler, as for a
+            // SIGQUIT, but settings are not flushed. The
             // top-level action asks this app's render state
             // (`TUIContext.exitAction`).
             if appState.consumeShouldExit() {

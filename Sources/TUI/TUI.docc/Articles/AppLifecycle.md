@@ -129,8 +129,12 @@ struct ContentView: View {
 notices on its next iteration. The terminal is restored to its prior
 state and `App.main()` returns normally — exactly the same teardown path
 the built-in `q` key and `SIGINT` follow. This is the recommended way to
-exit; calling `exit(0)` skips the terminal-restore step and leaves the
-terminal in alternate-screen / raw mode.
+exit. Calling `exit(0)` skips the teardown: the terminal is still handed
+back — an `atexit` handler `FatalSignalTerminalRestore` registers pays what
+a `SIGQUIT` pays, every mode off, the shell's termios back, the images
+deleted and the alternate screen left — but nothing else of `cleanup()`
+runs, so a setting stored a moment before may not reach disk, and under
+tmux the client hooks stay until their next firing removes them.
 
 ## Key Event Dispatch
 

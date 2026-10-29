@@ -59,6 +59,18 @@ import Musl
 /// next firing removes them (`TerminalHost.tmuxClientChangeHookArguments`),
 /// as after a crash — removing them forks tmux, no call for a signal handler.
 ///
+/// ## An `exit()` with the debt owed
+///
+/// An app that ends the process itself — `exit(0)` from a button's action,
+/// or a library that calls `exit` — runs no teardown either, and dies of no
+/// signal. So the first arming also registers an `atexit(3)` handler, which
+/// pays a quit's debt (``owedOnQuit``) and puts the termios back, as a
+/// `SIGQUIT` does: the process is ending at the app's word, there is no crash
+/// report to keep, and the alternate screen is left. It does nothing where
+/// the debt was paid or disarmed — after an orderly teardown
+/// (`Terminal.disableRawMode`), the `exit` that ends every normal run. The
+/// rest of the quit's teardown is skipped, as for a `SIGQUIT`.
+///
 /// ## Which signals
 ///
 /// - **The crashes** (`SIGSEGV`, `SIGBUS`, `SIGILL`, `SIGTRAP`, `SIGABRT`,
@@ -178,7 +190,8 @@ enum FatalSignalTerminalRestore {
     }
 
     /// Owes the terminal nothing. The handlers stay installed and pass every
-    /// signal straight on, a `SIGQUIT` to its default action.
+    /// signal straight on, a `SIGQUIT` to its default action; the `atexit`
+    /// handler pays nothing.
     @MainActor
     static func disarm() {
         owedCount = 0
@@ -202,6 +215,21 @@ enum FatalSignalTerminalRestore {
             action.sa_flags = SA_ONSTACK
             taken[index] = sigaction(signal, &action, previous + index) == 0
         }
+        _ = atexit(exitHandler)
+    }
+
+    /// What ``installIfNeeded()`` registers with `atexit(3)`: a C function
+    /// that calls ``payOnExit()``.
+    private static let exitHandler: @convention(c) () -> Void = {
+        Self.payOnExit()
+    }
+
+    /// Pays a quit's debt, and the termios, where the process is ending by
+    /// `exit(3)` with them still owed: an app's own `exit()`, which skips
+    /// the teardown. Nothing after an orderly teardown, which disarmed it.
+    /// See the type's "An `exit()` with the debt owed".
+    private static func payOnExit() {
+        pay(asQuit: true)
     }
 
     /// Whether `action` is the default disposition, `SIG_DFL` — a null
@@ -275,20 +303,28 @@ enum FatalSignalTerminalRestore {
     /// action.
     private static func handle(_ signal: Int32) {
         let quitting = signal == SIGQUIT
-        let count = quitting ? owedOnQuitCount : owedCount
-        if count > 0 { writeOwed(quitting ? owedOnQuit : owed, count: count) }
-        owedCount = 0
-        owedOnQuitCount = 0
-        if owesTermios {
-            _ = tcsetattr(STDIN_FILENO, TCSANOW, savedTermios)
-            owesTermios = false
-        }
+        pay(asQuit: quitting)
         if quitting {
             restoreDefault(signal)
         } else if let index = signals.firstIndex(of: signal), taken[index] {
             sigaction(signal, previous + index, nil)
         }
         raise(signal)
+    }
+
+    /// Writes what is owed — a quit's debt where `quitting`, a crash's
+    /// otherwise — and puts the shell's termios back, and owes nothing from
+    /// then on: so a debt is paid once, by whichever of the handler and the
+    /// `atexit` handler comes first. Async-signal-safe calls only.
+    private static func pay(asQuit quitting: Bool) {
+        let count = quitting ? owedOnQuitCount : owedCount
+        owedCount = 0
+        owedOnQuitCount = 0
+        if count > 0 { writeOwed(quitting ? owedOnQuit : owed, count: count) }
+        if owesTermios {
+            owesTermios = false
+            _ = tcsetattr(STDIN_FILENO, TCSANOW, savedTermios)
+        }
     }
 
     /// Writes `count` bytes of `bytes` to standard output whole, if the

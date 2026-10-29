@@ -69,6 +69,34 @@ struct FatalSignalTerminalRestoreTests {
         #expect(Array(drained.bytes.suffix(debt.count)) == debt, "every byte of the debt, once, in order")
     }
 
+    /// An app that calls `exit()` — from a button's action, say — runs no
+    /// teardown and dies of no signal: before the `atexit` handler it left
+    /// the shell raw, on the alternate screen, with every mode on. In a child
+    /// process, which the handlers and the `atexit` registration belong to.
+    @Test("An exit() with a debt owed pays a quit's debt, and once disarmed pays nothing")
+    func exitPaysTheQuitDebt() async throws {
+        let owed = try #require(
+            await #expect(processExitsWith: .exitCode(3), observing: [\.standardOutputContent]) {
+                await MainActor.run {
+                    FatalSignalTerminalRestore.arm(owing: "<crash>", onQuit: "<quit>", restoring: nil)
+                }
+                exit(3)
+            })
+        let paid = (String(bytes: owed.standardOutputContent, encoding: .utf8) ?? "")
+        #expect(paid.contains("<quit>"), "the alternate screen left, as a quit leaves it")
+        #expect(!paid.contains("<crash>"))
+
+        let disarmed = try #require(
+            await #expect(processExitsWith: .exitCode(3), observing: [\.standardOutputContent]) {
+                await MainActor.run {
+                    FatalSignalTerminalRestore.arm(owing: "<crash>", onQuit: "<quit>", restoring: nil)
+                    FatalSignalTerminalRestore.disarm()
+                }
+                exit(3)
+            })
+        #expect(!(String(bytes: disarmed.standardOutputContent, encoding: .utf8) ?? "").contains("<quit>"))
+    }
+
     /// A descriptor nothing reads: the handler must still return, so the
     /// signal can end the process.
     @Test("A descriptor that never drains is given up on, not waited on for ever")
