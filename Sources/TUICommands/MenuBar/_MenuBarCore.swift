@@ -251,6 +251,12 @@ extension _MenuBarCore {
         let palette = context.environment.palette
         if open {
             chunk.foregroundStyle(palette.appHeaderBackground).background(palette.foreground)
+        } else if context.environment.drawsBackdrop {
+            // Under a modal the bar takes no key and no click: drawn as a
+            // disabled control is, in the faint ink on its own ground, rather
+            // than looking ready to use (the owner, 2026-10-28).
+            chunk.foregroundStyle(
+                palette.foreground.opacity(ViewConstants.disabledForeground, over: palette.appHeaderBackground))
         } else {
             chunk
         }

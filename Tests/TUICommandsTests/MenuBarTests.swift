@@ -128,6 +128,15 @@ private struct SheetApp: App {
     }
 }
 
+/// ``SheetApp`` with no sheet.
+private struct UnsheetedApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { NotesPage() }
+            .commands { NoteCommands() }
+    }
+}
+
 /// Two modifiers' menus, the scene's own commands taken away.
 private struct TwoModifiersApp: App {
     init() {}
@@ -277,6 +286,21 @@ struct MenuBarTests {
         #expect(app.screen.contains { $0.stripped.contains("SHEET") }, "sanity: the sheet is up")
         app.send(KeyEvent(key: .character("s"), ctrl: true))
         #expect(MenuBarProbe.shared.log.isEmpty)
+    }
+
+    /// The owner, 2026-10-28: the bar must look disabled when it is.
+    @Test("While a modal holds the input, the bar's titles are drawn faint, as a disabled control's are")
+    func dimmedUnderAModal() {
+        let sheeted = HeadlessApp(SheetApp(), width: 40, height: 10)
+        sheeted.frame(atNanos: 0)
+        sheeted.frame(atNanos: 20_000_000)
+        let plain = HeadlessApp(UnsheetedApp(), width: 40, height: 10)
+        plain.frame(atNanos: 0)
+        plain.frame(atNanos: 20_000_000)
+        #expect(sheeted.screen[0].stripped == plain.screen[0].stripped, "the same titles")
+        #expect(
+            sheeted.screen[0] != plain.screen[0],
+            "drawn in another ink: \(sheeted.screen[0].debugDescription) vs \(plain.screen[0].debugDescription)")
     }
 
     @Test("Commands of several modifiers add up, the innermost first")
