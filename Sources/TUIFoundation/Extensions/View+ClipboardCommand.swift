@@ -28,10 +28,7 @@ extension View {
     ) -> FocusPathModifier<Self> {
         let takesPaste = key == "v"
         return FocusPathModifier(content: self, stage: .command, declares: declares) { context in
-            let chord = KeyboardShortcut(key, modifiers: .command)
-                .resolved(commandKey: context.environment.commandKey)?.trigger
-            var clipboard = context.environment.clipboardAccess
-            clipboard.typed = clipboard.typed ?? context.environment.typedClipboard
+            let (chord, clipboard) = context.environment.clipboardCommand(key)
             return { event in
                 let isPaste: Bool
                 if case .paste = event.key { isPaste = true } else { isPaste = false }
@@ -40,5 +37,19 @@ extension View {
                 return perform(event, clipboard)
             }
         }
+    }
+}
+
+extension EnvironmentValues {
+    /// The clipboard command ⌘`key` where this environment holds: its chord,
+    /// resolved through ``EnvironmentValues/commandKey`` (`nil` where the
+    /// command key leaves it none), and the clipboard it reaches, with the
+    /// app's typed values beside the text (``TypedClipboard``). What every
+    /// clipboard command's handler is made from.
+    package func clipboardCommand(_ key: KeyEquivalent) -> (chord: KeyboardShortcut.Trigger?, clipboard: ClipboardAccess) {
+        let chord = KeyboardShortcut(key, modifiers: .command).resolved(commandKey: commandKey)?.trigger
+        var clipboard = clipboardAccess
+        clipboard.typed = clipboard.typed ?? typedClipboard
+        return (chord, clipboard)
     }
 }

@@ -67,10 +67,7 @@ enum TransferKeys {
         perform: @escaping (KeyEvent, ClipboardAccess) -> Bool
     ) {
         let sectionID = context.environment.activeFocusSectionID
-        var clipboard = context.environment.clipboardAccess
-        clipboard.typed = clipboard.typed ?? context.environment.typedClipboard
-        let chord = KeyboardShortcut(key, modifiers: .command).resolved(commandKey: context.environment.commandKey)?
-            .trigger
+        let (chord, clipboard) = context.environment.clipboardCommand(key)
         let entry = Entry(key: key, chord: chord, focusIDs: focusIDs, clipboard: clipboard, perform: perform)
         entry.register(sectionID: sectionID, context: context)
         context.environment.volatileReadTracker?.recordReplayableEffect()
