@@ -48,7 +48,7 @@ extension ExampleStrings {
             "page.terminal.feature.numericPad": "Numeric keypad told apart",
             "page.terminal.feature.optionAsMeta": "Option sent as Meta",
             "page.terminal.unknown": "not known",
-            "capability.note.unsupported": "(not drawn as asked here)",
+            "capability.note.unsupported": "(this terminal can't draw this)",
             "capability.note.undetermined": "(not measured on this terminal)",
         ],
         "de": [
@@ -84,7 +84,7 @@ extension ExampleStrings {
             "page.terminal.feature.numericPad": "Ziffernblock unterschieden",
             "page.terminal.feature.optionAsMeta": "Option als Meta",
             "page.terminal.unknown": "unbekannt",
-            "capability.note.unsupported": "(hier nicht wie verlangt gezeichnet)",
+            "capability.note.unsupported": "(dieses Terminal kann das nicht darstellen)",
             "capability.note.undetermined": "(auf diesem Terminal nicht gemessen)",
         ],
         "fr": [
@@ -120,7 +120,7 @@ extension ExampleStrings {
             "page.terminal.feature.numericPad": "Pavé numérique distingué",
             "page.terminal.feature.optionAsMeta": "Option comme Méta",
             "page.terminal.unknown": "inconnu",
-            "capability.note.unsupported": "(pas dessiné comme demandé ici)",
+            "capability.note.unsupported": "(ce terminal ne sait pas l'afficher)",
             "capability.note.undetermined": "(non mesuré sur ce terminal)",
         ],
         "it": [
@@ -156,7 +156,7 @@ extension ExampleStrings {
             "page.terminal.feature.numericPad": "Tastierino numerico distinto",
             "page.terminal.feature.optionAsMeta": "Opzione come Meta",
             "page.terminal.unknown": "sconosciuto",
-            "capability.note.unsupported": "(qui non disegnato come richiesto)",
+            "capability.note.unsupported": "(questo terminale non lo visualizza)",
             "capability.note.undetermined": "(non misurato su questo terminale)",
         ],
         "es": [
@@ -192,7 +192,7 @@ extension ExampleStrings {
             "page.terminal.feature.numericPad": "Teclado numérico distinguido",
             "page.terminal.feature.optionAsMeta": "Opción como Meta",
             "page.terminal.unknown": "desconocido",
-            "capability.note.unsupported": "(aquí no se dibuja como se pide)",
+            "capability.note.unsupported": "(este terminal no puede mostrarlo)",
             "capability.note.undetermined": "(no medido en este terminal)",
         ],
         "zh": [
@@ -228,7 +228,7 @@ extension ExampleStrings {
             "page.terminal.feature.numericPad": "区分数字小键盘",
             "page.terminal.feature.optionAsMeta": "Option 作为 Meta",
             "page.terminal.unknown": "未知",
-            "capability.note.unsupported": "（这里不按要求绘制）",
+            "capability.note.unsupported": "（此终端无法显示）",
             "capability.note.undetermined": "（未在这个终端上测量）",
         ],
         "ja": [
@@ -264,7 +264,7 @@ extension ExampleStrings {
             "page.terminal.feature.numericPad": "テンキーの区別",
             "page.terminal.feature.optionAsMeta": "Option を Meta として送る",
             "page.terminal.unknown": "不明",
-            "capability.note.unsupported": "（ここでは指定どおりに描かれない）",
+            "capability.note.unsupported": "（この端末では表示できない）",
             "capability.note.undetermined": "（このターミナルでは未計測）",
         ],
     ]
