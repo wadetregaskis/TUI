@@ -50,6 +50,13 @@ enum FilePanelColumns {
         return count
     }
 
+    /// The fewest cells a table needs to show the name at ``nameRoom`` and
+    /// the first `count` of the columns beside it at their widths: where
+    /// ``shown(inWidth:)`` counts at least `count`.
+    static func width(showing count: Int) -> Int {
+        besideName.prefix(count).reduce(inset + nameRoom) { $0 + spacing + $1 }
+    }
+
     /// The columns a table `width` cells wide shows: the name always,
     /// starting at ``nameRoom`` and taking whatever width the others leave,
     /// and as many of the others as ``shown(inWidth:)`` says. `browser` reads

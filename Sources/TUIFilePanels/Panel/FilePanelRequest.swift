@@ -70,6 +70,10 @@ struct FilePanelRequest {
     /// (``FilePanelViewMode/storageKey(for:)``).
     var viewModeKey = FilePanelViewMode.storageKey(for: nil)
 
+    /// The key whether the panel shows its preview is kept under, beside the
+    /// view mode's (``FilePanelPreviewVisibility/storageKey(for:)``).
+    var previewKey = FilePanelPreviewVisibility.storageKey(for: nil)
+
     /// The folder `~` stands for: the user's home folder, which `~` goes to
     /// and the path bar abbreviates. A test names a folder of its own.
     var homeDirectory = FileManager.default.homeDirectoryForCurrentUser

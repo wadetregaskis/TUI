@@ -127,7 +127,18 @@ final class FilePanelDriver<Page: View> {
     /// The app storage the page is drawn with, unless it names its own: a
     /// test's own, so a panel's view mode switched in one test is not the
     /// next one's (the panels keep it, `FilePanelViewMode`).
-    let storage = MockStorageBackend()
+    ///
+    /// With the preview closed, as the panels were drawn before it: a panel
+    /// 100 columns wide opens it (`FilePanelPreviewVisibility`), which takes
+    /// the list's Kind column and puts the splitter's divider, a Tab stop,
+    /// before the buttons the tests Tab to. The preview's own tests name a
+    /// store of their own.
+    let storage: MockStorageBackend = {
+        let storage = MockStorageBackend()
+        storage.setValue(
+            FilePanelPreviewVisibility.hidden.rawValue, forKey: FilePanelPreviewVisibility.storageKey(for: nil))
+        return storage
+    }()
 
     /// One frame of the page, built afresh, with no icons unless the page
     /// asks for them: the SF Symbols are drawn where the machine has their

@@ -12,7 +12,8 @@
 // and alert it is presented in (TUIPresentation), the table it lists a
 // folder in (TUITables, which brings `List` with it), the fields it names
 // a file and types a path in (TUITextInput), the segmented picker its path
-// control is (TUIPickers), and TUIFoundation. Beside
+// control is (TUIPickers), the splitter before its list view's preview pane
+// (TUINavigation's `HSplitView`), and TUIFoundation. Beside
 // what it gives an importer, it keeps their names, and through their own
 // re-exports the chrome's and the lower and side modules', in scope in every
 // file of this module; each file imports TUIFoundation itself as well, and
@@ -27,6 +28,7 @@
 //
 // The umbrella, Sources/TUI, re-exports this module beside TUIFoundation.
 @_exported import TUIFoundation
+@_exported import TUINavigation
 @_exported import TUIPickers
 @_exported import TUIPresentation
 @_exported import TUITables

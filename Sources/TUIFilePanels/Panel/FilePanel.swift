@@ -27,8 +27,10 @@ import TUITables
 /// items in a ``Table`` (Name, Size, Date Modified, Kind; sortable by any,
 /// folders always first; the last three giving way in a narrow panel,
 /// ``FilePanelColumns``), or a column for each folder on the way to it
-/// (``FilePanelColumnView``) — and below them the hidden-files switch and
-/// the Cancel and confirmation buttons.
+/// (``FilePanelColumnView``) — with a preview of the item selected after
+/// them, behind a splitter in the list view, while it shows
+/// (``FilePanelPreviewVisibility``); and below them the hidden-files switch
+/// and the Cancel and confirmation buttons.
 ///
 /// The keys are a terminal file browser's:
 /// - ↑ and ↓ move through the folder, and typing a name's first letters
@@ -93,6 +95,10 @@ struct FilePanel: View {
     /// (``FilePanelViewMode``).
     @AppStorage private var viewMode: FilePanelViewMode
 
+    /// Whether the preview shows, kept in the app's storage beside the view
+    /// mode (``FilePanelPreviewVisibility``).
+    @AppStorage private var previewVisibility: FilePanelPreviewVisibility
+
     /// The control size in force, which decides how much room the panel's
     /// parts have between them (``spacing(controlSize:verticalSizeClass:)``).
     @Environment(\.controlSize) private var controlSize
@@ -117,34 +123,51 @@ struct FilePanel: View {
         _name = State(initialValue: request.defaultFilename ?? "")
         _typeChoice = State(initialValue: request.initialTypeChoice)
         _viewMode = AppStorage(wrappedValue: .list, request.viewModeKey)
+        _previewVisibility = AppStorage(wrappedValue: .automatic, request.previewKey)
     }
 
     var body: some View {
-        // A dialog's box, as ``Dialog`` draws one, but with a body that does
-        // not scroll: the table is the part that scrolls, and it takes the
-        // sheet's whole height, where a dialog's body is as tall as its
-        // content and scrolls past the sheet's.
-        makeContainer(
-            title: request.title,
-            config: ContainerConfig(
-                titleColor: .palette.accent, padding: EdgeInsets(horizontal: 1, vertical: 0),
-                footerAlignment: .trailing),
-            content: FilePanelNewFolderPrompt(
-                content: replaceAlert(on: panelContent), isPresented: $askingNewFolder, browser: browser),
-            footer: footer
-        )
+        // A reader for the panel's width, which decides whether the preview
+        // shows until the user says (``FilePanelPreviewVisibility``). The box
+        // takes the sheet's size whatever it holds — the folder's views are
+        // greedy — so the reader changes nothing of it.
+        GeometryReader { proxy in
+            box(folderWidth: proxy.size.width - Self.boxChrome)
+        }
         .task(id: browser.refreshKey) { await browser.refresh() }
         .task(id: pinnedSession) {
             remoteHost = await FilePanelSession.noticeHost(pinned: pinnedSession, visibility: request.remoteNotice)
         }
     }
 
-    /// What the box holds: the message, a save panel's name field, the path
-    /// (with the remote-machine notice on it, where the panel browses another
-    /// machine than the user's) and the folder's items, with the room
-    /// between them the control size
-    /// gives (``spacing(controlSize:verticalSizeClass:)``).
-    private var panelContent: some View {
+    /// The cells the box takes beside what it holds: a border and a cell of
+    /// padding at each side.
+    private static let boxChrome = 4
+
+    /// A dialog's box, as ``Dialog`` draws one, but with a body that does not
+    /// scroll: the table is the part that scrolls, and it takes the sheet's
+    /// whole height, where a dialog's body is as tall as its content and
+    /// scrolls past the sheet's. What it holds is `folderWidth` cells wide.
+    private func box(folderWidth: Int) -> some View {
+        let showsPreview = previewVisibility.isShown(inWidth: folderWidth)
+        return makeContainer(
+            title: request.title,
+            config: ContainerConfig(
+                titleColor: .palette.accent, padding: EdgeInsets(horizontal: 1, vertical: 0),
+                footerAlignment: .trailing),
+            content: FilePanelNewFolderPrompt(
+                content: replaceAlert(on: panelContent(showsPreview: showsPreview, width: folderWidth)),
+                isPresented: $askingNewFolder, browser: browser),
+            footer: footer
+        )
+    }
+
+    /// What the box holds, `width` cells wide: the message, a save panel's
+    /// name field, the path (with the remote-machine notice on it, where the
+    /// panel browses another machine than the user's) and the folder's items
+    /// — with the preview, where it `showsPreview` — with the room between
+    /// them the control size gives (``spacing(controlSize:verticalSizeClass:)``).
+    private func panelContent(showsPreview: Bool, width: Int) -> some View {
         let spacing = Self.spacing(controlSize: controlSize, verticalSizeClass: verticalSizeClass)
         return VStack(alignment: .leading, spacing: spacing) {
             if let message = request.message {
@@ -163,9 +186,9 @@ struct FilePanel: View {
             // between: it is about the file system the path is in.
             VStack(alignment: .leading, spacing: 0) {
                 if let remoteHost { FilePanelRemoteNotice(hostName: remoteHost) }
-                pathRow
+                pathRow(showsPreview: showsPreview)
             }
-            rows
+            rows(showsPreview: showsPreview, width: width)
             if let choices = request.typeChoices {
                 FilePanelTypePopUp(
                     choices: choices, selection: request.saveContentTypes != nil ? formatChoice : filterChoice,
@@ -204,7 +227,9 @@ struct FilePanel: View {
     }
 
     /// The path bar, or the go-to field in its place while `/` has it open.
-    @ViewBuilder private var pathRow: some View {
+    /// The bar's Preview button shows whether the preview `showsPreview`, and
+    /// opening or closing it is the user's choice from then on.
+    @ViewBuilder private func pathRow(showsPreview: Bool) -> some View {
         if typedPath != nil {
             FilePanelGoToField(path: Binding(get: { typedPath ?? "" }, set: { typedPath = $0 }))
                 .focused($focus, equals: .path)
@@ -218,7 +243,10 @@ struct FilePanel: View {
                     return .handled
                 }
         } else {
-            FilePanelPathBar(browser: browser, home: request.homeDirectory, viewMode: $viewMode)
+            FilePanelPathBar(
+                browser: browser, home: request.homeDirectory, viewMode: $viewMode,
+                showsPreview: Binding(
+                    get: { showsPreview }, set: { previewVisibility = $0 ? .shown : .hidden }))
         }
     }
 
@@ -272,11 +300,14 @@ struct FilePanel: View {
 
     // MARK: - The folder's items
 
-    /// The folder's items in the view chosen (``FilePanelListView``,
-    /// ``FilePanelColumnView``), and the keys and the primary action the
-    /// panel gives them.
-    @ViewBuilder private var rows: some View {
-        folderView
+    /// The folder's items in the view chosen (``FilePanelFolderView``), with
+    /// the preview where it `showsPreview`, `width` cells wide, and the keys
+    /// and the primary action the panel gives them.
+    @ViewBuilder private func rows(showsPreview: Bool, width: Int) -> some View {
+        FilePanelFolderView(
+            browser: browser, viewMode: viewMode, home: request.homeDirectory,
+            allowsMultipleSelection: request.allowsMultipleSelection, selection: selectable,
+            singleSelection: selectableSingle, focus: $focus, showsPreview: showsPreview, width: width)
             .contextMenu(forSelectionType: URL.self) { _ in
             } primaryAction: { urls in
                 activate(urls)
@@ -330,27 +361,6 @@ struct FilePanel: View {
     /// The keys to the enclosing folder in the view shown.
     private var enclosingFolderKeys: Set<KeyEquivalent> {
         viewMode == .list ? [.delete] : [.delete, .leftArrow]
-    }
-
-    /// The list or the column view of the folder.
-    @ViewBuilder private var folderView: some View {
-        switch viewMode {
-        case .list:
-            FilePanelListView(
-                browser: browser, allowsMultipleSelection: request.allowsMultipleSelection, selection: selectable,
-                singleSelection: selectableSingle)
-            // A folder is a new table: its cursor starts on the first row and
-            // its scroll at the top, rather than where the last folder's were.
-            .id(browser.directory)
-            .focused($focus, equals: .rows)
-        case .columns:
-            // The columns keep their place from folder to folder: each is a
-            // folder's, and keeps its cursor while it shows.
-            FilePanelColumnView(
-                browser: browser, home: request.homeDirectory,
-                allowsMultipleSelection: request.allowsMultipleSelection, selection: selectable,
-                singleSelection: selectableSingle, focus: $focus)
-        }
     }
 
     /// The selection, through a binding that refuses an item that can be

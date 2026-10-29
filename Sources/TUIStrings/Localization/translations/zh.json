@@ -132,6 +132,8 @@
   "filePanel.view.list": "列表",
   "filePanel.view.columns": "分栏",
   "filePanel.remoteNotice": "你正在浏览 %@ 上的文件系统，而不是你的本地计算机。",
+  "filePanel.preview": "预览",
+  "filePanel.noSelection": "未选择",
 
   "menu.file": "文件",
   "menu.edit": "编辑",

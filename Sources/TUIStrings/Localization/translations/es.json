@@ -132,6 +132,8 @@
   "filePanel.view.list": "Lista",
   "filePanel.view.columns": "Columnas",
   "filePanel.remoteNotice": "Estás explorando el sistema de archivos de %@, no el de tu máquina local.",
+  "filePanel.preview": "Vista previa",
+  "filePanel.noSelection": "Sin selección",
 
   "menu.file": "Archivo",
   "menu.edit": "Editar",

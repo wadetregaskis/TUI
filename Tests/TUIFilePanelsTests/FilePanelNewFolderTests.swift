@@ -62,8 +62,9 @@ struct FilePanelNewFolderTests {
         defer { fixture.remove() }
         let driver = FilePanelDriver { panel(fixture, purpose: .save(contentTypes: [.plainText])) }
         await driver.waitFor("notes.md")
-        // From the name field past the path and the view switcher to the folder.
-        driver.press(.tab, times: 3)
+        // From the name field past the path, the view switcher and the
+        // Preview button to the folder.
+        driver.press(.tab, times: 4)
         driver.press([KeyEvent(key: .character("+"))])
         await driver.waitFor("Name of new folder")
     }

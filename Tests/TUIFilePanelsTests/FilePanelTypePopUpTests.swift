@@ -143,10 +143,10 @@ extension FilePanelTypePopUpTests {
         }
         let shown = await driver.waitFor("notes.md")
         #expect(capless(shown).contains("Format: Text "), "\(shown)")
-        // From the name field past the path, the view switcher and the
-        // folder to the pop-up; open it, and choose Markdown, the one after
-        // the current.
-        driver.press(.tab, times: 4)
+        // From the name field past the path, the view switcher, the Preview
+        // button and the folder to the pop-up; open it, and choose Markdown,
+        // the one after the current.
+        driver.press(.tab, times: 5)
         driver.press(.enter)
         driver.press(.down)
         driver.press(.enter)

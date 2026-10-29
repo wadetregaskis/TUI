@@ -114,9 +114,10 @@ struct FilePanelPathControlTests {
         let caller = FilePanelCaller()
         let driver = FilePanelDriver { panel(fixture, caller: caller) }
         await driver.waitFor("inner.txt")
-        // Back from the folder's rows past the view switcher to the control,
-        // whose cursor starts on the folder shown: ← to ~, Space to go there.
-        driver.press(Array(repeating: KeyEvent(key: .tab, shift: true), count: 2))
+        // Back from the folder's rows past the Preview button and the view
+        // switcher to the control, whose cursor starts on the folder shown: ←
+        // to ~, Space to go there.
+        driver.press(Array(repeating: KeyEvent(key: .tab, shift: true), count: 3))
         driver.press(.left)
         driver.press(.space)
         let home = await driver.waitFor("beta.txt")

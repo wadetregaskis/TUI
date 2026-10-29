@@ -28,8 +28,9 @@ enum FilePanelField: Hashable {
 /// folder from the path control's first — the root, or the home folder — to
 /// the folder shown, as many of the last as fit at ``minimumColumnWidth``
 /// cells each, each a ``List`` of the folder's items; and after them, while a
-/// file is selected, a column previewing it (``FilePanelPreview``), or while
-/// a folder is, its items (``trail(selected:deepest:)``).
+/// file is selected, a column previewing it (``FilePanelPreview``) unless the
+/// preview is closed, or while a folder is, its items
+/// (``trail(selected:deepest:)``).
 ///
 /// The folder shown's column has the panel's selection. In the others the
 /// folder on the way is the one selected; choosing another row there goes to
@@ -60,6 +61,11 @@ struct FilePanelColumnView: View {
 
     /// Where the panel's focus is, each column bound to its folder's path.
     let focus: FocusState<FilePanelField?>.Binding
+
+    /// Whether the preview column shows while a file is selected: the panel's
+    /// one preview setting, which the list view's pane follows too
+    /// (``FilePanelPreviewVisibility``).
+    let showsPreview: Bool
 
     /// The deepest folder whose column shows, at or below the folder shown:
     /// the way back down after going up, which stays while the folder come
@@ -163,11 +169,13 @@ struct FilePanelColumnView: View {
         }
     }
 
-    /// The file selected in the folder shown, alone: what the preview column
-    /// shows. A folder shows a column of its items instead
-    /// (``selectedFolder``), and several items selected have no one preview.
+    /// The file selected in the folder shown, alone, while the preview shows:
+    /// what the preview column shows. A folder shows a column of its items
+    /// instead (``selectedFolder``), and several items selected have no one
+    /// preview.
     private var previewedFile: FileEntry? {
-        selectedEntry.flatMap { $0.isFolder ? nil : $0 }
+        guard showsPreview else { return nil }
+        return selectedEntry.flatMap { $0.isFolder ? nil : $0 }
     }
 
     /// The folder selected in the folder shown, alone, whose items show in

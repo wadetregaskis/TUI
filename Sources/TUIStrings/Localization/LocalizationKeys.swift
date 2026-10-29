@@ -277,6 +277,10 @@ public enum LocalizationKey {
         /// The notice a panel shows when it browses another machine than the
         /// user's, that machine's name as `%@`.
         case remoteNotice = "filePanel.remoteNotice"
+        /// The button that opens and closes the preview.
+        case preview = "filePanel.preview"
+        /// The list view's preview pane while no one item is selected.
+        case noSelection = "filePanel.noSelection"
     }
 
     /// Menu items and sections

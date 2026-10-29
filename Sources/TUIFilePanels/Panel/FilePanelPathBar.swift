@@ -13,7 +13,8 @@ import TUIChrome
 import TUIFoundation
 import TUIPickers
 
-/// The path of the folder a panel shows, after a button to the folder above.
+/// The path of the folder a panel shows, after a button to the folder above,
+/// and before the view switcher and the Preview button.
 ///
 /// The path is a path control, as macOS draws one (`NSPathControl`): a
 /// segment per folder from the root — or from the home folder, written `~`,
@@ -39,6 +40,10 @@ struct FilePanelPathBar: View {
     /// end chooses.
     let viewMode: Binding<FilePanelViewMode>
 
+    /// Whether the preview shows, which the Preview button after the view
+    /// switcher opens and closes (``FilePanelPreviewToggle``).
+    let showsPreview: Binding<Bool>
+
     /// The size the path control is drawn at, which decides what its
     /// segments' chrome costs.
     @Environment(\.controlSize) private var controlSize
@@ -59,6 +64,7 @@ struct FilePanelPathBar: View {
             }
             .frame(height: 1)
             FilePanelViewModePicker(mode: viewMode)
+            FilePanelPreviewToggle(isOn: showsPreview)
         }
     }
 

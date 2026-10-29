@@ -54,7 +54,7 @@ notifications and `.help`. Then add the product of each module whose names you u
 | `TUINavigation` | `NavigationStack`, `NavigationPath`, `NavigationLink`, the zoom transition and `.matchedTransitionSource`, the split views, the inspector | |
 | `TUIPresentation` | `alert`, `confirmationDialog`, `Dialog`, `sheet`, `fullScreenCover`, `modal` | `TUIChrome` |
 | `TUIMenus` | `Menu`, `ControlGroup`, `.contextMenu`, the menu styles | |
-| `TUIFilePanels` | `fileImporter`, `fileExporter`, `fileMover`, the `fileDialog` modifiers: the open and save panels | `TUIPresentation`, `TUITables`, `TUITextInput` |
+| `TUIFilePanels` | `fileImporter`, `fileExporter`, `fileMover`, the `fileDialog` modifiers: the open and save panels | `TUINavigation`, `TUIPickers`, `TUIPresentation`, `TUITables`, `TUITextInput` |
 | `TUICommands` | `Commands`, `CommandMenu`, `CommandGroup`, `CommandGroupPlacement`: the menu bar | `TUIApp`, `TUIPresentation` |
 | `TUIScenes` | `Settings` (presented as a sheet) and `AlertScene`, and the scene modifiers for alerts | `TUIApp`, `TUIPresentation` |
 | `TUITextInput` | `TextField`, `SecureField`, `TextEditor` | |

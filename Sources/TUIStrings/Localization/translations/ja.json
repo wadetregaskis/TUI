@@ -132,6 +132,8 @@
   "filePanel.view.list": "リスト",
   "filePanel.view.columns": "カラム",
   "filePanel.remoteNotice": "ローカルのマシンではなく、%@ のファイルシステムをブラウズしています。",
+  "filePanel.preview": "プレビュー",
+  "filePanel.noSelection": "選択されていません",
 
   "menu.file": "ファイル",
   "menu.edit": "編集",

@@ -132,6 +132,8 @@
   "filePanel.view.list": "Liste",
   "filePanel.view.columns": "Spalten",
   "filePanel.remoteNotice": "Sie durchsuchen das Dateisystem von %@, nicht das Ihres lokalen Rechners.",
+  "filePanel.preview": "Vorschau",
+  "filePanel.noSelection": "Keine Auswahl",
 
   "menu.file": "Datei",
   "menu.edit": "Bearbeiten",

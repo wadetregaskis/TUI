@@ -571,13 +571,16 @@ let package = Package(
         // the `fileDialog` customizations present a panel TUI draws in a sheet, listing a folder in a `Table`
         // with a path bar and, to save, a name field; so it is built on TUIPresentation (the sheet and the
         // replace alert), TUITables (the folder's rows, which bring TUILists), TUITextInput (the name
-        // and path fields) and TUIPickers (the path control, a segmented picker; lane FP2). A module of its own
-        // so that an app with no file panel compiles and links none of it. Nothing in TUIFoundation may use
-        // it (Tools/ModuleMap's upward check), so the umbrella re-exports it. It re-exports the five
+        // and path fields), TUIPickers (the path control, a segmented picker; lane FP2) and TUINavigation (the
+        // `HSplitView` before the list view's preview pane, the owner's request of 2026-10-28). A module of its
+        // own so that an app with no file panel compiles and links none of it. Nothing in TUIFoundation may use
+        // it (Tools/ModuleMap's upward check), so the umbrella re-exports it. It re-exports the six
         // (Sources/TUIFilePanels/Exports.swift).
         .target(
             name: "TUIFilePanels",
-            dependencies: ["TUIFoundation", "TUIPickers", "TUIPresentation", "TUITables", "TUITextInput"],
+            dependencies: [
+                "TUIFoundation", "TUINavigation", "TUIPickers", "TUIPresentation", "TUITables", "TUITextInput",
+            ],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
