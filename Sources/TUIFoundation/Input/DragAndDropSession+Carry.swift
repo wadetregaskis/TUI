@@ -243,10 +243,17 @@ extension DragAndDropSession {
     /// Ends the carry: drops it where the focus is — or presses the
     /// spring-loaded control there and carries on — or puts it back at its
     /// origin.
+    ///
+    /// Dropped only on a stop still drawn (``carryStops()``): a stop can keep
+    /// the focus while drawn nowhere — scrolled or clipped out of sight —
+    /// and the carry's pointer stays where it last followed the focus, so it
+    /// dropped there, on whatever is drawn there now. It goes back instead.
     private func endCarry(dropping: Bool) {
         guard let carry else { return }
         followCarry()
-        if dropping, let focused = carry.focusManager?.currentFocusedID, focused != carry.origin {
+        if dropping, let focused = carry.focusManager?.currentFocusedID, focused != carry.origin,
+            carryStops().contains(where: { $0.id == focused })
+        {
             if let point = lastAbsoluteEvent, springLoadTarget(at: point) != nil, proposedOperation == nil {
                 springLoadTarget(at: point)?.activate()
                 return

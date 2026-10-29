@@ -24,6 +24,10 @@ private final class Log: @unchecked Sendable {
     var dropped: [Card] = []
     var strings: [String] = []
     var pressed: [String] = []
+    /// Whether the bin is out of sight, and a trap for cards drawn in its
+    /// place.
+    var binGone = false
+    var trapped: [Card] = []
 }
 
 private let pickUp = KeyEvent(key: .character("r"), ctrl: true)
@@ -41,10 +45,24 @@ struct CarryModeTests {
                 log.strings += items
                 return true
             }
-            Text("bin").dropDestination(for: Card.self) { cards, _ in
-                log.dropped += cards
-                return true
+            // The bin, which moves out of sight — still a focus stop, but
+            // drawn nowhere — where `binGone`, and a trap for cards that
+            // takes its place on the screen.
+            ZStack {
+                if log.binGone {
+                    Text("trap").dropDestination(for: Card.self) { cards, _ in
+                        log.trapped += cards
+                        return true
+                    }
+                }
+                Text("bin").dropDestination(for: Card.self) { cards, _ in
+                    log.dropped += cards
+                    return true
+                }
+                .offset(y: log.binGone ? 5 : 0)
             }
+            .frame(height: 1)
+            .clipped()
         }
     }
 
@@ -92,6 +110,21 @@ struct CarryModeTests {
         #expect(session.carryCues.count == 1, "the origin, now the carry is at the bin")
         #expect(session.carryLabels?.returnKey == "drop")
         #expect(session.carryLabels?.escape == "cancel move")
+    }
+
+    @Test("Once the stop the carry is at is drawn nowhere, Return drops nothing where it was: it puts the card back")
+    func undrawnStopPutsBack() {
+        let log = Log()
+        let harness = InputChainHarness()
+        harness.play([pickUp, KeyEvent(key: .tab)]) { board(log) }
+        // The bin moves out of sight, the focus still on it, and a trap for
+        // cards is drawn where it was.
+        log.binGone = true
+        let bin = harness.focusManager.currentFocusedID
+        harness.play([KeyEvent(key: .enter)]) { board(log) }
+        #expect(bin != nil && harness.focusManager.currentFocusedID != bin, "the focus went back to the card")
+        #expect(log.dropped.isEmpty && log.trapped.isEmpty, "\(log.dropped) \(log.trapped)")
+        #expect(harness.tui.dragAndDropSession.active == nil)
     }
 
     @Test("A plain key while carrying is swallowed, not typed")
