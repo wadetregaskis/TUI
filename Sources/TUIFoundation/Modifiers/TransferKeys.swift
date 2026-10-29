@@ -29,7 +29,7 @@ import TUIView
 /// paste in this app gets it back typed, and writes its text for the system's
 /// clipboard.
 @MainActor
-enum TransferKeys {
+package enum TransferKeys {
     /// The journal kind of a registration.
     static let kind = EffectJournal.Kind("transfer.clipboardKey")
 
@@ -62,7 +62,7 @@ enum TransferKeys {
     /// Answers the clipboard command `key` (`"c"` or `"v"`) with `perform`
     /// while one of `focusIDs` holds the focus — and, for `"v"`, the terminal's
     /// own paste. Replayable, so a memo serving the view registers it again.
-    static func register(
+    package static func register(
         _ key: KeyEquivalent, focusIDs: [String], context: RenderContext,
         perform: @escaping (KeyEvent, ClipboardAccess) -> Bool
     ) {

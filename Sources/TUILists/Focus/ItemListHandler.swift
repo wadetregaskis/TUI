@@ -611,6 +611,15 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _openContextMenu: (() -> Bool)?
 
+    /// The drawn rows' drags, by row, and the focus manager a carry of one
+    /// moves: what Copy and the pick-up chord take from the cursor row
+    /// (``offerRowDrags(_:context:)``). Set by the list or table every frame.
+    package var rowDragOffer: RowDragOffer { get { _rowDragOffer } set { _rowDragOffer = newValue } }
+
+    /// ``rowDragOffer``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _rowDragOffer = RowDragOffer()
+
     /// What a `Table`'s column keys reach — set each frame by a table with a
     /// header, `nil` for a `List` and a table without one. See
     /// ``TableColumnEditing``.

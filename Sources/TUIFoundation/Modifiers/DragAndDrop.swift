@@ -186,6 +186,23 @@ extension DraggableModifier: Renderable, Layoutable {
                     origin: focused, handle: handle, focusManager: focusManager)
             }
         }
+        // In a list row, which is no stop of its own, the list answers for it
+        // on its cursor row: Copy, and its pick-up chord carries it.
+        if context.environment.isEnabled {
+            let drag = RowDrag(
+                payload: {
+                    let value = payload()
+                    return isNilOptional(value) ? nil : value
+                },
+                pickUp: { origin, focusManager in
+                    let value = payload()
+                    guard !isNilOptional(value) else { return false }
+                    return session.beginCarry(
+                        payload: value, preview: capturedPreview, source: identity, allowedOperations: allowed,
+                        origin: origin, handle: handle, focusManager: focusManager)
+                })
+            RowDragReporter.reportToListRow(drag, context: context)
+        }
         return buffer
     }
 }

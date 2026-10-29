@@ -45,16 +45,28 @@ extension DragAndDropSession {
 
         /// How many rows down the stop it is at it points: Up and Down move
         /// it between the rows of a destination taller than one, so a `List`
-        /// is one stop whose landing slot they move. Back to `0` at each stop.
+        /// is one stop whose landing slot they move. Back to `0` at each stop,
+        /// and to ``originRow`` at the origin.
         var row = 0
+
+        /// The row of the origin it was picked up from: a list row's, inside
+        /// its list's stop, and `0` for a stop of its own. Return at the
+        /// origin puts it back while it points here, and drops it — a reorder,
+        /// where the list takes the drag — once Up or Down has moved it.
+        var originRow = 0
 
         /// Where each stop it can reach is drawn, but the one it is at: what
         /// ``carryCues`` marks, as of the frame before the one drawing.
         var reachable: [HitTestRegion] = []
+
+        /// Whether the carry is home at the focus stop `focused`: at its
+        /// origin, pointing at the row it was picked up from.
+        func isHome(at focused: String?) -> Bool { focused == origin && row == originRow }
     }
 
     /// The chord that picks a focused `.draggable` up and, again, puts it
-    /// back: a list row's pick-up chord's default, Ctrl-R.
+    /// back: a list row's pick-up chord's default, Ctrl-R — which in a list or
+    /// table picks up a `.draggable` row as a carry too (``RowDrag``).
     package static let carryChord = KeyboardShortcut("r", modifiers: .control)
 
     /// Picks `payload` up from the focus stop `origin`, which `rect` draws, and
@@ -63,22 +75,30 @@ extension DragAndDropSession {
     /// - Parameters:
     ///   - payload: What the drag carries.
     ///   - preview: Its picture, drawn beside the stop the carry is at.
-    ///   - source: The view picked up, drawn as gone while it is carried.
+    ///   - source: The view picked up, drawn as gone while it is carried;
+    ///     `nil` for a table row, which no view draws.
     ///   - allowedOperations: The operations the source allows.
-    ///   - origin: The focus stop it was picked up from.
+    ///   - origin: The focus stop it was picked up from: the view's own, or
+    ///     the list or table whose row it is.
     ///   - handle: The region that draws the view picked up: where the origin
-    ///     is, where no region names the stop.
+    ///     is, where no region names the stop, and which of its rows, where
+    ///     the stop is a list's.
     ///   - focusManager: The focus manager the carry moves.
     /// - Returns: Whether the carry began.
     @discardableResult
     package func beginCarry(
-        payload: Any, preview: FrameBuffer, source: ViewIdentity, allowedOperations: DropOperation.Set,
+        payload: Any, preview: FrameBuffer, source: ViewIdentity?, allowedOperations: DropOperation.Set,
         origin: String, handle: HitTestRegion.HandlerID, focusManager: FocusManager
     ) -> Bool {
-        guard active == nil, let rect = stopRect(origin) ?? dispatcher?.regionRect(for: handle) else { return false }
-        let point = Self.carryPoint(of: rect)
+        let drawn = dispatcher?.regionRect(for: handle)
+        guard active == nil, let rect = stopRect(origin) ?? drawn else { return false }
+        // A row of a list starts the carry at its own row of the list's stop,
+        // so the landing slot opens where the row was.
+        let row = drawn.map { Self.contains(rect, $0) ? $0.offsetY - rect.offsetY : 0 } ?? 0
+        var point = Self.carryPoint(of: rect)
+        point.y += row
         lastAbsoluteEvent = MouseEvent(button: .left, phase: .pressed, x: point.x, y: point.y)
-        carry = Carry(origin: origin, originRect: rect, focusManager: focusManager)
+        carry = Carry(origin: origin, originRect: rect, focusManager: focusManager, row: row, originRow: row)
         // Beside the stop, not over it: the stop is what the carry is at.
         begin(
             payload: payload, preview: preview, anchor: .offset(x: 1, y: 0), source: source,
@@ -168,7 +188,7 @@ extension DragAndDropSession {
         let service = LocalizationService.shared
         let putBack = service.string(for: LocalizationKey.StatusBar.cancelMove)
         let focused = carry.focusManager?.currentFocusedID
-        if focused == nil || focused == carry.origin { return (putBack, putBack) }
+        if focused == nil || carry.isHome(at: focused) { return (putBack, putBack) }
         let drops = proposedOperation.map { $0 != .forbidden && $0 != .cancel } ?? false
         return (drops ? service.string(for: LocalizationKey.StatusBar.dropCarried) : nil, putBack)
     }
@@ -236,7 +256,8 @@ extension DragAndDropSession {
             next = step > 0 ? 0 : count - 1
         }
         focusManager.focus(id: stops[next].id)
-        carry?.row = 0
+        let row = stops[next].id == carry?.origin ? carry?.originRow ?? 0 : 0
+        carry?.row = row
         followCarry()
     }
 
@@ -251,7 +272,7 @@ extension DragAndDropSession {
     private func endCarry(dropping: Bool) {
         guard let carry else { return }
         followCarry()
-        if dropping, let focused = carry.focusManager?.currentFocusedID, focused != carry.origin,
+        if dropping, let focused = carry.focusManager?.currentFocusedID, !carry.isHome(at: focused),
             carryStops().contains(where: { $0.id == focused })
         {
             if let point = lastAbsoluteEvent, springLoadTarget(at: point) != nil, proposedOperation == nil {
@@ -292,5 +313,66 @@ extension DragAndDropSession {
         inner.offsetX >= outer.offsetX && inner.offsetY >= outer.offsetY
             && inner.offsetX + inner.width <= outer.offsetX + outer.width
             && inner.offsetY + inner.height <= outer.offsetY + outer.height
+    }
+}
+
+// MARK: - A row's drag
+
+/// A list or table row's drag, offered to the keyboard through its container
+/// (A53-KEYBOARD-DRAG): a row is no focus stop of its own — the list is — so
+/// the container answers for its cursor row. Copy takes the row's payload,
+/// and the container's pick-up chord (Ctrl-R) carries it, as a drag from the
+/// row would: the whole selection, where the row is one of several selected
+/// (DRAG-SELECTION).
+///
+/// A `.draggable` in a list row reports one to its list as it draws
+/// (`RowEditRestrictions.rowDrags`); a container that knows its rows'
+/// payloads without a `.draggable` view makes its own.
+///
+/// Not `@MainActor`, as a list's `openContextMenu` is not: the list's handler,
+/// which is not isolated, calls it as a key arrives, on the main thread, and
+/// the closures are made by renders there.
+package struct RowDrag {
+    /// The row's payload, evaluated now; `nil` where it vends nothing.
+    package let payload: () -> Any?
+
+    /// Picks the row up as a carry from the container's focus stop `origin`,
+    /// moving `focusManager`'s focus, and answers whether it began.
+    package let pickUp: (_ origin: String, _ focusManager: FocusManager) -> Bool
+
+    package init(payload: @escaping () -> Any?, pickUp: @escaping (_ origin: String, _ focusManager: FocusManager) -> Bool) {
+        self.payload = payload
+        self.pickUp = pickUp
+    }
+}
+
+/// A list row's drag reported to its list, shared by the live render and by a
+/// memo replaying it.
+@MainActor
+enum RowDragReporter {
+    /// The journal kind of the report.
+    static let kind = EffectJournal.Kind("draggable.listRow")
+
+    /// Reports `drag` to the list row `context` is drawing, if it draws one.
+    /// Replayable, as a row menu's report is, so a row served from a memo
+    /// reports again.
+    static func reportToListRow(_ drag: RowDrag, context: RenderContext) {
+        guard let restrictions = context.environment.listRowEditRestrictions, restrictions.currentRowIndex != nil
+        else { return }
+        report(drag, context: context)
+        context.environment.volatileReadTracker?.recordReplayableEffect()
+        if let journal = context.recordingEffectJournal {
+            journal.append(
+                EffectJournal.Entry(kind: kind, channelToken: context.environment.keyChannelToken) { replay in
+                    report(drag, context: replay)
+                })
+        }
+    }
+
+    private static func report(_ drag: RowDrag, context: RenderContext) {
+        guard let restrictions = context.environment.listRowEditRestrictions,
+            let row = restrictions.currentRowIndex
+        else { return }
+        restrictions.reportRowDrag(row: row, drag)
     }
 }

@@ -65,8 +65,12 @@ struct RowTransferDemoSection: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text("page.list.transferHint")
                     .foregroundStyle(.palette.foregroundSecondary)
+                // The keyboard's way across: ⌃R carries the focused row as the
+                // drag it is — the selection with it — to either list.
+                Text("page.list.transferKeyboardHint")
+                    .foregroundStyle(.palette.foregroundSecondary)
                 // The same keyboard-reorder hint the `.onMove` demo carries —
-                // the shortcuts are identical because they ARE the same
+                // the move chords are identical because they ARE the same
                 // mechanism. A row's `.draggable` claims the press here, but a
                 // press released without moving is a click and passes through
                 // to the List, so clicking a row selects it exactly as it does
@@ -109,18 +113,18 @@ struct RowTransferDemoSection: View {
                     for drop in drops { perform(drop, to: side, at: index) }
                     registerUndo(restoring: before)
                 }
-                // `.onMove` alongside `.draggable`, for the KEYBOARD. The two
-                // cannot share a mouse gesture — `.draggable`'s region is inside
-                // the row, so it claims the press and owns the rest — but
-                // keyboard reordering never involves a press: Ctrl-R and the
-                // Ctrl/⌥-arrow shortcuts go through the List's own key handling,
-                // which is `.onMove`'s. Without this the rows here could only be
-                // reordered with a mouse, while the `.onMove` demo above did it
-                // from the keyboard, and nothing on screen explained why.
+                // `.onMove` alongside `.draggable`, for the KEYBOARD's single
+                // steps. The two cannot share a mouse gesture — `.draggable`'s
+                // region is inside the row, so it claims the press and owns the
+                // rest — but the Ctrl/⌥-arrow shortcuts never involve a press:
+                // they go through the List's own key handling, which is
+                // `.onMove`'s.
                 //
-                // Within-list only, which is what the keyboard can express: a
-                // row still needs the mouse to change LISTS, because a list has
-                // no way to name the other one.
+                // Ctrl-R is the drag's, as the press is: on a `.draggable` row
+                // it carries the row (A53-KEYBOARD-DRAG) among the destinations
+                // that take it — this list, whose landing slot Up and Down
+                // move, and the other one, which Tab reaches — so a row changes
+                // LISTS from the keyboard too.
                 .onMove { source, destination in
                     let before = (queue, backlog)
                     defer { registerUndo(restoring: before) }

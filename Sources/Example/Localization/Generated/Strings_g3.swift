@@ -133,6 +133,7 @@ extension ExampleStrings {
 
             "page.list.transferSection": "Rows that travel · .draggable + .dropDestination",
             "page.list.transferHint": "Drag a row onto another row to put it in that place, onto the other list to move it across, or past the last row to append it. Both lists are the same code. This is the other mechanism: .onMove above lets the List own the drag (so it can draw the drop slot) but a row cannot leave it, because the List never learns what a row IS; here the row carries a value the app defined, so it can go anywhere that accepts one — at the price of the app doing the reordering too.",
+            "page.list.transferKeyboardHint": "From the keyboard: ⌃R on the focused row picks it up — the whole selection, if that row is selected — and carries it: ↑/↓ move its landing slot within a list, Tab or ←/→ take it to the other list, ↩ drops it, ⎋ puts it back.",
             "page.list.transferQueue": "Queue",
             "page.list.transferBacklog": "Backlog",
             "page.list.transferLast": "Last move:",
@@ -440,6 +441,7 @@ extension ExampleStrings {
 
             "page.list.transferSection": "Wandernde Zeilen · .draggable + .dropDestination",
             "page.list.transferHint": "Ziehe eine Zeile auf eine andere, um sie an diese Stelle zu setzen, auf die andere Liste, um sie dorthin zu verschieben, oder hinter die letzte Zeile, um sie anzuhängen. Beide Listen sind derselbe Code. Das ist der andere Mechanismus: bei .onMove oben führt die Liste die Bewegung (und kann deshalb den Ziel-Platzhalter zeichnen), aber die Zeile kann sie nicht verlassen, weil die Liste nie erfährt, WAS eine Zeile ist; hier trägt die Zeile einen von der App definierten Wert und kann überall dorthin, wo dieser angenommen wird — dafür sortiert die App selbst.",
+            "page.list.transferKeyboardHint": "Per Tastatur: ⌃R auf der fokussierten Zeile nimmt sie auf — mit der ganzen Auswahl, wenn die Zeile ausgewählt ist — und trägt sie: ↑/↓ verschieben den Zielplatz in einer Liste, Tab oder ←/→ bringen sie zur anderen Liste, ↩ legt sie ab, ⎋ bricht ab.",
             "page.list.transferQueue": "Warteschlange",
             "page.list.transferBacklog": "Rückstand",
             "page.list.transferLast": "Letzte Bewegung:",
@@ -747,6 +749,7 @@ extension ExampleStrings {
 
             "page.list.transferSection": "Lignes voyageuses · .draggable + .dropDestination",
             "page.list.transferHint": "Faites glisser une ligne sur une autre pour la placer à cet endroit, sur l’autre liste pour l’y déplacer, ou après la dernière ligne pour l’ajouter à la fin. Les deux listes sont le même code. C’est l’autre mécanisme : avec .onMove ci-dessus, la liste mène le glissement (elle peut donc dessiner l’emplacement d’arrivée) mais la ligne ne peut pas en sortir, car la liste ne sait jamais CE QU’EST une ligne ; ici la ligne porte une valeur définie par l’application et peut aller partout où elle est acceptée — au prix d’un réordonnancement écrit par l’application.",
+            "page.list.transferKeyboardHint": "Au clavier : ⌃R sur la ligne ciblée la saisit — avec toute la sélection si cette ligne est sélectionnée — et la transporte : ↑/↓ déplacent l’emplacement d’arrivée dans une liste, Tab ou ←/→ la portent à l’autre liste, ↩ la dépose, ⎋ annule.",
             "page.list.transferQueue": "File",
             "page.list.transferBacklog": "En attente",
             "page.list.transferLast": "Dernier déplacement :",
@@ -1054,6 +1057,7 @@ extension ExampleStrings {
 
             "page.list.transferSection": "Righe in viaggio · .draggable + .dropDestination",
             "page.list.transferHint": "Trascina una riga su un’altra per metterla in quel posto, sull’altra lista per spostarla lì, o oltre l’ultima riga per aggiungerla in fondo. Le due liste sono lo stesso codice. Questo è l’altro meccanismo: con .onMove sopra è la lista a condurre il trascinamento (e può quindi disegnare lo spazio di arrivo) ma la riga non può uscirne, perché la lista non sa mai COSA sia una riga; qui la riga porta un valore definito dall’app e può andare dove quel valore è accettato — al prezzo di un riordino scritto dall’app.",
+            "page.list.transferKeyboardHint": "Da tastiera: ⌃R sulla riga a fuoco la prende — con tutta la selezione, se la riga è selezionata — e la trasporta: ↑/↓ spostano il punto di arrivo in una lista, Tab o ←/→ la portano all’altra lista, ↩ la posa, ⎋ annulla.",
             "page.list.transferQueue": "Coda",
             "page.list.transferBacklog": "Arretrato",
             "page.list.transferLast": "Ultimo spostamento:",
@@ -1361,6 +1365,7 @@ extension ExampleStrings {
 
             "page.list.transferSection": "Filas que viajan · .draggable + .dropDestination",
             "page.list.transferHint": "Arrastra una fila sobre otra para colocarla en ese lugar, sobre la otra lista para moverla allí, o más allá de la última fila para añadirla al final. Las dos listas son el mismo código. Este es el otro mecanismo: con .onMove arriba la lista dirige el arrastre (y por eso puede dibujar el hueco de destino) pero la fila no puede salir de ella, porque la lista nunca llega a saber QUÉ es una fila; aquí la fila lleva un valor definido por la app y puede ir a donde ese valor se acepte — a cambio de que la app también haga el reordenado.",
+            "page.list.transferKeyboardHint": "Con el teclado: ⌃R sobre la fila enfocada la toma — con toda la selección, si la fila está seleccionada — y la lleva: ↑/↓ mueven el destino dentro de una lista, Tab o ←/→ la llevan a la otra lista, ↩ la suelta, ⎋ lo deshace.",
             "page.list.transferQueue": "Cola",
             "page.list.transferBacklog": "Pendientes",
             "page.list.transferLast": "Último movimiento:",
@@ -1668,6 +1673,7 @@ extension ExampleStrings {
 
             "page.list.transferSection": "可迁移的行 · .draggable + .dropDestination",
             "page.list.transferHint": "把某一行拖到另一行上，即把它放在那个位置；拖到另一个列表上，即移过去；拖到最后一行之后，即追加到末尾。两个列表用的是同一段代码。这是另一种机制：上面的 .onMove 由 List 主导拖拽（因此它能画出落点空位），但行无法离开这个 List，因为 List 永远不知道一行“是什么”；这里行携带应用自定义的值，可以去往任何接受该值的地方——代价是排序也要由应用自己来做。",
+            "page.list.transferKeyboardHint": "用键盘：在当前行按 ⌃R 拿起它（若该行已选中，则拿起整个选择）并携带：↑/↓ 在列表内移动落点，Tab 或 ←/→ 把它带到另一个列表，↩ 放下，⎋ 放回原处。",
             "page.list.transferQueue": "队列",
             "page.list.transferBacklog": "待办",
             "page.list.transferLast": "最近一次移动：",
@@ -1975,6 +1981,7 @@ extension ExampleStrings {
 
             "page.list.transferSection": "移動できる行 · .draggable + .dropDestination",
             "page.list.transferHint": "行を別の行にドロップするとその位置に入り、もう一方のリストにドロップすると移動し、最後の行より下にドロップすると末尾に追加されます。二つのリストは同じコードです。これはもう一つの仕組みです。上の .onMove ではドラッグを List が主導するため落下位置を描けますが、List は行が「何であるか」を知らないので、行はその List から出られません。ここでは行がアプリの定義した値を運ぶので、その値を受け取る場所へどこへでも行けます——並べ替えもアプリが書くのが代償です。",
+            "page.list.transferKeyboardHint": "キーボードでは：フォーカス行で ⌃R を押すと持ち上げて運べます（その行が選択中なら選択全体）。↑/↓ でリスト内の落とす位置を動かし、Tab または ←/→ でもう一方のリストへ、↩ でドロップ、⎋ で元に戻します。",
             "page.list.transferQueue": "キュー",
             "page.list.transferBacklog": "未処理",
             "page.list.transferLast": "直前の移動:",

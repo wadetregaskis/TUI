@@ -107,6 +107,19 @@ package final class RowEditRestrictions {
         _rowMenus[row] = open
     }
 
+    /// Each list row's drag, by list row, as its `.draggable` reported it
+    /// while the row rendered: what the list's Copy and pick-up chord take
+    /// from the cursor row (``RowDrag``). A `.draggable` in a list row is no
+    /// focus stop of its own, as its context menu is none.
+    package var rowDrags: [Int: RowDrag] { _rowDrags }
+    private var _rowDrags: [Int: RowDrag] = [:]
+
+    /// Reports that list row `row` is dragged as `drag`. The outermost
+    /// `.draggable` of a row wins, as it wins a press: it reports last.
+    package func reportRowDrag(row: Int, _ drag: RowDrag) {
+        _rowDrags[row] = drag
+    }
+
     /// Each list row's swipe actions, by list row and edge, as
     /// `.swipeActions(edge:allowsFullSwipe:content:)` reported them while the
     /// row rendered: whether a full swipe on that edge performs its first

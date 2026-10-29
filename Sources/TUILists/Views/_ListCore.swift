@@ -1321,6 +1321,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // window walk: the drag shows an extra row that is not in the data, so
         // it must not take part in choosing which data rows are visible.
         applyRowReports(editRestrictions, to: handler)
+        // The rows' `.draggable`s, for the keyboard: Copy and the pick-up
+        // chord on the cursor row (A53-KEYBOARD-DRAG).
+        handler.offerRowDrags(editRestrictions.rowDrags, context: context)
         // After the viewport sync, which counts DATA rows: the header pinned over
         // the window's top, ahead of its rows (see `pinningSectionHeader`).
         visibleRows = pinningSectionHeader(

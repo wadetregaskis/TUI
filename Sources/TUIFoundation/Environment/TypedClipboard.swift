@@ -76,7 +76,7 @@ enum ClipboardText {
 extension ClipboardAccess {
     /// Copies `values`: their text onto the clipboard, and the values beside
     /// it where the app keeps them.
-    func copy(_ values: [Any]) {
+    package func copy(_ values: [Any]) {
         guard let text = ClipboardText.text(of: values) else { return }
         write(text)
         typed?.store(values, as: text)

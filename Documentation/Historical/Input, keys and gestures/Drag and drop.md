@@ -40,8 +40,9 @@ Shipped as above, and A53's prerequisite (2026-10-26): Copy on a focused
 `.draggable` copies its payload, Paste on a focused drop destination drops it
 — a stop of the content's own where it has one (a draggable `Button` keeps
 its single stop), else one of the modifier's, which publishes `\.isFocused`;
-none in a list row (the list is the row's stop) or while disabled
-(`TransferKeys`); and B-BITEMS1-1's three-party model the same night:
+none in a list row (the list is the row's stop, and answers for its cursor
+row's since 2026-10-29) or while disabled (`TransferKeys`); and
+B-BITEMS1-1's three-party model the same night:
 `dragConfiguration(_:)` states what a source allows (a copy by default, a
 row reorder a move), a destination proposes (a delegate its own; else a move
 into the container the drag came from — one the source is inside — and a
@@ -54,7 +55,11 @@ mode, its first part (2026-10-27): Ctrl-R picks a focused draggable up, Tab
 and the arrows carry it among the stops that can take it, Return drops it,
 Escape puts it back. Its second part followed the same night: a `‹` cue on
 every stop it can reach, Return and Escape named in the status bar, and a
-list as one stop whose rows Up and Down move between. **Owed:** "Pick Up" in
+list as one stop whose rows Up and Down move between. Its third part
+(2026-10-29) reached the rows that are no stops of their own: on a
+`.draggable` list row the list's Ctrl-R carries the cursor row — a selected
+row with the whole selection — and its Copy copies the payload.
+**Owed:** "Pick Up" in
 a draggable's context menu, which needs a way for a modifier to add a menu
 item. The image well's badge, probed in a real window on 2026-10-27, is
 "+" (it answers Copy), as TUI's destinations show.
@@ -536,6 +541,39 @@ The pick-up chord is Ctrl-R as written: a list's `RowAction` rebinding does
 not reach it, because the table of row actions lives in `TUILists`. The
 tests are `CarryModeTests` and `ListCarryTests`.
 
+**Third part shipped (2026-10-29): list rows.** A `.draggable` in a list
+row was no stop of its own, so neither its Copy nor its Ctrl-R was reachable,
+and moving a row to another list needed the pointer — against the owner's
+rule that no interaction is mouse-only. Now the list answers for its
+cursor row, as it does for the row's context menu:
+
+- **Reported, not registered.** A `.draggable` drawn in a list row reports a
+  `RowDrag` (its payload, and a pick-up that begins the carry) to the list's
+  collector (`RowEditRestrictions.rowDrags`, journalled so a served row
+  reports again).
+- **Copy** on the list copies the cursor row's payload
+  (`ItemListHandler.offerRowDrags`).
+- **Ctrl-R picks the row up as a carry**, its origin the container's stop, and
+  the carry starts at the row's own line in it. On a selected row of a
+  multi-selection it carries the selection, as the pointer's drag does
+  (DRAG-SELECTION): the list gathers it on the next frame through the same
+  path.
+- **One gesture, not two.** In a list whose rows are `.draggable`, Ctrl-R
+  carries rather than entering the `onMove` keyboard move, because that is
+  what the pointer does: a press on a `.draggable` row is the drag's, never
+  the list's reorder. The carry still reorders where the list takes its own
+  rows (`ForEach.dropDestination(for:action:)`, as the Example's row-transfer
+  demo does): the list is one of the carry's stops, Up and Down move its
+  landing slot, and Return there drops — once the slot has moved off the
+  row's own place; unmoved, Return puts it back, as at any origin
+  (`Carry.originRow`). Tab and Left/Right reach the other destinations. The
+  single-step move chords (Ctrl/Option-arrows) still move the row through
+  `onMove`; a row with no drag still gets the keyboard move.
+- **Not built:** a list's Copy takes the cursor row alone, not the selection
+  (a list draws only its window, and gathering the rest is the drag's
+  one-frame path); and a table row's and a tab's drag, which are not
+  `.draggable` views, are still pointer-only. The test is `ListRowCarryTests`.
+
 ### C12. The drag sessions' AppKit comparisons
 
 *`DragSession.ID.matches(_:)`, `DropSession.ID.matches(_:)`*
@@ -570,6 +608,7 @@ gathers as the drag begins. The selected rows are drawn as gone while the drag
 is out; a cancelled drag's preview flies home to the grabbed row, and the
 others come back at once. The preview is the grabbed row with "+N more" under
 it (`label.dragMore`, in the seven languages). Shift held as the drag starts
-extends the selection to the row first. Not yet: the keyboard's Copy and
-carry, which still take the focused row alone (`ListDragSelectionTests`,
-`TableRowDragAndDropTests`).
+extends the selection to the row first. From the keyboard (2026-10-29,
+A53-KEYBOARD-DRAG's third part), Ctrl-R on a selected list row carries the
+selection too; Copy still takes the cursor row alone (`ListDragSelectionTests`,
+`TableRowDragAndDropTests`, `ListRowCarryTests`).

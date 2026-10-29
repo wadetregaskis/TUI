@@ -434,7 +434,9 @@ extension ItemListHandler {
         // cursor keys — same environment-configured multiplier.
         let step = accelerated ? max(1, shiftStepMultiplier) : 1
         switch action {
-        case .pickUpRow: return beginKeyboardMove() ? true : nil
+        // A `.draggable` row is carried as the drag it is, out of the list or
+        // within it (``pickUpFocusedRowDrag()``); any other is moved.
+        case .pickUpRow: return pickUpFocusedRowDrag() || beginKeyboardMove() ? true : nil
         case .moveRowUp: return nudgeFocusedRow(by: -step) ? true : nil
         case .moveRowDown: return nudgeFocusedRow(by: step) ? true : nil
         case .moveRowPageUp: return nudgeFocusedRow(by: -pageStep) ? true : nil
