@@ -95,11 +95,17 @@ jobs:
           ./Tools/BuildDocs/build-docs.sh --output docc-output --static-hosting \
             --hosting-base-path "${BASE_PATH#/}/docs"
 
+      # Packed into one tar first: an artifact's file names may not contain a
+      # colon, and an operator's page is named for its signature
+      # (`!=(_:_:).json`). The Pages artifact is a tar already.
+      - name: Pack the archive
+        run: tar -cf docs.tar -C docc-output/TUI.doccarchive .
+
       - name: Upload the archive
         uses: actions/upload-artifact@v7
         with:
           name: docs
-          path: docc-output/TUI.doccarchive
+          path: docs.tar
           retention-days: 1
           if-no-files-found: error
 
@@ -169,7 +175,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: docs
-          path: ${{ runner.temp }}/docs
+          path: ${{ runner.temp }}/docs-tar
+
+      - name: Unpack the docs
+        run: mkdir -p "$RUNNER_TEMP/docs" && tar -xf "$RUNNER_TEMP/docs-tar/docs.tar" -C "$RUNNER_TEMP/docs"
 
       - name: Download the demo
         uses: actions/download-artifact@v8
