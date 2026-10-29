@@ -47,8 +47,17 @@ extension FileBrowser {
         // Named through the folder as it was asked for: a branch beneath a
         // link names its items through the link, as the listing names them.
         let read = (try? result.get()) ?? []
-        let arranged = await Self.arrange(read, showsHiddenFiles: showsHiddenFiles, sortOrder: sortOrder)
-        guard generation == started else { return }
+        // Arranged as the panel says when it is published: a new order or
+        // the hidden-files switch while it was arranged arranges it again,
+        // since `arrangeFolders(as:)` may have run already without it.
+        var arranged: (rows: [FileEntry], rowIndex: [URL: Int], hiddenCount: Int)
+        var hidden: Bool
+        var order: [KeyPathComparator<FileEntry>]
+        repeat {
+            (hidden, order) = (showsHiddenFiles, sortOrder)
+            arranged = await Self.arrange(read, showsHiddenFiles: hidden, sortOrder: order)
+            guard generation == started else { return }
+        } while showsHiddenFiles != hidden || sortOrder != order
         folderListings[path] = read
         folderRows[path] = arranged.rows
         for row in arranged.rows { index(row) }
@@ -57,15 +66,23 @@ extension FileBrowser {
 
     /// The folders read, arranged again as `key` says: after the folder shown
     /// is, for a new order or the hidden-files switch.
+    ///
+    /// A folder read while they are arranged is arranged too, as the rest
+    /// are. The rows were replaced by those of the folders there were when
+    /// this began, which dropped such a folder's rows while its listing
+    /// stayed — so nothing read it again, and its column drew "Loading…".
     func arrangeFolders(as key: RefreshKey) async {
         guard !folderListings.isEmpty else { return }
-        let listings = folderListings
+        var pending = folderListings
         var arranged: [String: [FileEntry]] = [:]
-        for (path, read) in listings {
-            arranged[path] =
-                await Self.arrange(read, showsHiddenFiles: key.showsHiddenFiles, sortOrder: key.sortOrder).rows
+        while !pending.isEmpty {
+            for (path, read) in pending {
+                arranged[path] =
+                    await Self.arrange(read, showsHiddenFiles: key.showsHiddenFiles, sortOrder: key.sortOrder).rows
+            }
+            guard !Task.isCancelled, refreshKey == key else { return }
+            pending = folderListings.filter { arranged[$0.key] == nil }
         }
-        guard !Task.isCancelled, refreshKey == key else { return }
         folderRows = arranged
         folderIndex = [:]
         for rows in arranged.values {

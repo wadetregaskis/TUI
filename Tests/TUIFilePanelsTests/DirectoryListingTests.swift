@@ -219,6 +219,33 @@ struct FileBrowserTests {
         #expect(browser.folderRows[alpha.standardizedFileURL.path]?.map(\.name) == ["inner.txt"])
     }
 
+    /// A new order arranges the folders read again, off the main actor; one
+    /// read meanwhile was dropped from the rows when the arranging finished,
+    /// though its listing stayed, so nothing read it again.
+    @Test("A folder read while the others are arranged again keeps its rows")
+    func readDuringArranging() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        // Many items, so arranging them takes a while.
+        let many = fixture.url("Many")
+        try FileManager.default.createDirectory(at: many, withIntermediateDirectories: false)
+        for index in 0..<1_500 {
+            FileManager.default.createFile(atPath: many.appendingPathComponent("item\(index).txt").path, contents: nil)
+        }
+        let browser = FileBrowser(directory: fixture.root, rule: FileChoiceRule())
+        await browser.refresh()
+        await browser.loadFolder(many)
+        browser.sortOrder = [KeyPathComparator(\FileEntry.name, order: .reverse)]
+        let arranging = Task { await browser.arrangeFolders(as: browser.refreshKey) }
+        // Begun: it took the listings and went off the main actor to sort.
+        await Task.yield()
+        await browser.loadFolder(fixture.url("Alpha"))
+        await arranging.value
+        #expect(browser.folderRows[fixture.url("Alpha").standardizedFileURL.path]?.map(\.name) == ["inner.txt"])
+        // As Finder compares names: by their numbers.
+        #expect(browser.folderRows[many.standardizedFileURL.path]?.first?.name == "item1499.txt")
+    }
+
     @Test("The root has nothing above it")
     func root() {
         let browser = FileBrowser(directory: URL(fileURLWithPath: "/"), rule: FileChoiceRule())
