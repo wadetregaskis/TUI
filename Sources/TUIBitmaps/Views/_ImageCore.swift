@@ -26,6 +26,16 @@ private enum StateIndex {
     /// Keeps the object a decoded image was drawn out of (`_DecodedImage?`) —
     /// see ``_DecodedImage/owner``.
     static let decodedOwner = 3
+
+    /// The picture's box and the frame it was first drawn in at that size
+    /// (``PictureSettle``), for its resend at the box's exact size once it holds
+    /// still.
+    static let settle = 4
+}
+
+extension _ImageCore {
+    /// ``StateIndex/settle``, for `PictureSettle` in its own file.
+    static let settleStateIndex = StateIndex.settle
 }
 
 // MARK: - Image Core

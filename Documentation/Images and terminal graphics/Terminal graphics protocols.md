@@ -741,6 +741,20 @@ Kept pixels are placed in a new box only where they draw it within a pixel of
 a fresh send (`_ImageCore.drawsAlike`), which own-aspect pixels always do and
 cropped or stretched ones do only in a box of their aspect.
 
+**At rest, a picture is drawn from pixels sent for its exact box
+(2026-10-28).** Filmed in Ghostty 1.3.1 (`ScreenClips --child restreview`):
+one 12-column box sent for itself beside the same box showing pixels sent for
+a box 2×, 1.25× and 1.1× as wide, scaled down by the terminal. The terminal's
+scaling is visibly softer — edge sharpness 21.3 for the exact send against
+18.8, 17.5 and 16.7, PSNR about 33 dB — and softest at the smallest ratios.
+So kept pixels are placed only while the box moves: once it has held still
+for a quarter of a second (`PictureSettle`, a wake asked for then), pixels of
+another size are sent again at the box's own. A picture keeps its aspect, so
+all that changes is that it sharpens. The owner's ruling for a known
+destination (a zoom, matched geometry): send the final picture once and let
+the terminal scale it on the way — never a second picture for an overshoot,
+whose switch mid-motion would show the two scalings' difference.
+
 ---
 
 ## 9. Reproducing all of it

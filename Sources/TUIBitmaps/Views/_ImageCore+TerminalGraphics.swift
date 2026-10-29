@@ -238,10 +238,22 @@ extension _ImageCore {
         // their aspect kept, so pixels of the picture's own aspect (`.fit`, the
         // owner's PICTURE-ASPECT, 2026-10-28) draw every box alike, and pixels
         // cropped or stretched to one box's aspect draw another's with bars.
+        //
+        // And kept only while the box moves: a picture at rest is drawn from
+        // pixels sent for its exact box, since a terminal's own scaling is
+        // visibly softer (Ghostty, 2026-10-28: edge sharpness down 12-22%
+        // scaling down from 2×, 1.25× and 1.1×, the smallest the softest).
+        // Once the box has held still for ``PictureSettle/delayNanos``, kept
+        // pixels of another size are sent again at the box's own — a picture
+        // keeps its aspect, so all that changes is that it sharpens.
+        // Asked only of a picture holding pixels of another size: one at its
+        // exact size has nothing to settle, and pays nothing.
         if let held = store.signature(heldBy: token) as? TerminalImageSignature, held.isResample(of: signature),
             Self.drawsAlike(
                 (held.pixelWidth, held.pixelHeight), (signature.pixelWidth, signature.pixelHeight),
-                in: (wantedWidth, wantedHeight))
+                in: (wantedWidth, wantedHeight)),
+            (held.pixelWidth, held.pixelHeight) == (signature.pixelWidth, signature.pixelHeight)
+                || !PictureSettle.isSettled(box: (wantedWidth, wantedHeight), context: context, token: token)
         {
             if held.pixelWidth >= signature.pixelWidth - 1, held.pixelHeight >= signature.pixelHeight - 1 {
                 (signature.pixelWidth, signature.pixelHeight) = (held.pixelWidth, held.pixelHeight)

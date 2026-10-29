@@ -27,7 +27,8 @@ struct ImageGrowthTransmissionTests {
     /// One view's picture drawn at each width in turn, in one context, as an
     /// animation's frames draw it: what each frame owed the terminal.
     private func frames(
-        _ image: RGBAImage, path: String, widths: [Int], contentMode: ContentMode = .fit
+        _ image: RGBAImage, path: String, widths: [Int], contentMode: ContentMode = .fit,
+        atNanos instants: [Int64]? = nil
     ) -> [String] {
         let tui = TUIContext(
             lifecycle: LifecycleManager(firesEffects: false),
@@ -44,7 +45,8 @@ struct ImageGrowthTransmissionTests {
         let phase: StateBox<ImageLoadingPhase> = tui.stateStorage.storage(
             for: StateStorage.StateKey(identity: identity, propertyIndex: 0), default: .loading)
         phase.value = .success(image)
-        return widths.map { width in
+        return widths.enumerated().map { index, width in
+            environment.frameNowNanos = instants?[index] ?? 0
             let context = RenderContext(
                 availableWidth: width, availableHeight: width, environment: environment,
                 tuiContext: tui, identity: identity)
@@ -152,5 +154,25 @@ struct ImageGrowthTransmissionTests {
                 abs(sent.width * rows * 16 - sent.height * columns * 8) <= max(columns * 8, rows * 16),
                 "box \(columns)×\(rows) cells, sent \(sent)")
         }
+    }
+
+    /// A picture at rest is drawn from pixels sent for its exact box: while the
+    /// box moves the kept pixels are placed, and once it has held still for
+    /// `PictureSettle.delayNanos` it is sent again at the box's own size (the
+    /// owner, 2026-10-28; a terminal's scaling measured softer).
+    @Test("A shrunk picture is sent again at its exact size once its box holds still")
+    func settledPictureIsExact() throws {
+        let (image, path) = try load(width: 400, height: 200)
+        let quarter = PictureSettle.delayNanos
+        let owed = KittyGraphics.withSupport(true) {
+            frames(image, path: path, widths: [30, 20, 20, 20], atNanos: [0, 10_000_000, 20_000_000, 20_000_000 + quarter])
+        }
+        #expect(transmits(owed[0]), "the first frame sends")
+        #expect(!transmits(owed[1]) && !transmits(owed[2]), "while it has not settled, the kept pixels are placed")
+        #expect(transmits(owed[3]), "settled, it is sent at its box's size")
+        let fresh = KittyGraphics.withSupport(true) { frames(image, path: path, widths: [20]) }
+        let settledSize = try #require(sentSizes([owed[3]]).last)
+        let freshSize = try #require(sentSizes(fresh).last)
+        #expect(settledSize.width == freshSize.width && settledSize.height == freshSize.height, "\(settledSize) against a fresh \(freshSize)")
     }
 }
