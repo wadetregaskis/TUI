@@ -56,6 +56,22 @@ struct FilePanelNewFolderTests {
         #expect(!driver.screen().contains("notes.md"), "\(driver.screen())")
     }
 
+    @Test("Back in the folder New Folder made it in, the new folder is listed")
+    func newFolderListedInItsParent() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let driver = FilePanelDriver { panel(fixture, purpose: .save(contentTypes: [.plainText])) }
+        await driver.waitFor("notes.md")
+        #expect(driver.click("New Folder"))
+        await driver.waitFor("Name of new folder")
+        #expect(driver.click("Create"))
+        await settle { !driver.screen().contains("notes.md") }
+        // ⌘↑, as the default command key spells it.
+        driver.press([FilePanelCommand.enclosingFolder.shortcuts[0].keyEvent(commandKey: .control)!])
+        let shown = await driver.waitFor("notes.md")
+        #expect(shown.contains("untitled folder"), "\(shown)")
+    }
+
     @Test("+ in the folder asks for a new folder's name too")
     func plusKey() async throws {
         let fixture = try FilePanelFixture()

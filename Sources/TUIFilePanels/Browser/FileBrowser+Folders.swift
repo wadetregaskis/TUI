@@ -94,8 +94,13 @@ extension FileBrowser {
     /// folders above it, and those inside it, which the column view shows as
     /// the way back down after going up. Dropped, the folder come from was
     /// read again for its column, which drew "Loading…" until then.
+    ///
+    /// The folder shown joins them only as read in this generation: read
+    /// before a ``reload()`` — New Folder reloads, then opens the folder it
+    /// made — its listing is out of date, and kept, it was what going back
+    /// showed, without the new folder.
     func keepFolders(onTheWayTo folder: URL) {
-        if state == .loaded, let listed, listed.directory.path == directory.path {
+        if state == .loaded, let listed, listed.directory.path == directory.path, listed.generation == generation {
             folderListings[directory.path] = listed.entries
             folderRows[directory.path] = rows
         }
