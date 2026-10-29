@@ -35,9 +35,10 @@ enum RecentValues {
     }
 
     /// Records a use of `value`: moves it to the front (descending
-    /// last-use), truncates at ``limit``, and returns the new storage
-    /// string. Empty values are not recorded.
-    static func recording(_ value: String, in json: String) -> String {
+    /// last-use), truncates at `limit` (``limit`` unless a list wants a
+    /// shorter one), and returns the new storage string. Empty values are
+    /// not recorded.
+    static func recording(_ value: String, in json: String, keeping limit: Int = Self.limit) -> String {
         guard !value.isEmpty else { return json }
         var list = list(from: json)
         list.removeAll { $0 == value }

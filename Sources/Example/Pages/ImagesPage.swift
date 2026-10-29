@@ -20,6 +20,9 @@ import TUI
 /// the status bar items change the character set, colour mode, dithering and
 /// the rest, for a file and a download alike.
 ///
+/// The paths and URLs typed here that showed a picture are remembered, the last
+/// eight, and offered under the bundled names the next time.
+///
 /// A picture pasted here (⌘V, or the terminal's paste) is shown in its place,
 /// where the terminal hands pictures over: kitty's OSC 5522 paste events.
 ///
@@ -39,6 +42,12 @@ struct ImagesPage: View {
     /// its content the load's phase, rather than by TUI's `Image(_:)`, which
     /// draws its own placeholder.
     @State private var usesAsyncImage = false
+    /// The paths and URLs typed into the combo box that showed a picture,
+    /// most recent first, kept between runs (see ``RecentValues``).
+    @AppStorage("images.recentEntries") private var recentEntriesJSON = "[]"
+
+    /// How many typed paths and URLs the combo box remembers.
+    private static let recentEntryLimit = 8
 
     var body: some View {
         // The image lives in a two-axis ScrollView fitted to the viewport: at zoom 1
@@ -71,8 +80,15 @@ struct ImagesPage: View {
                 .textContentType(.URL)
                 // By name, not by path: where the Example keeps them is its
                 // own business. Picking one shows it (a pick submits).
-                .textInputSuggestions(DemoPicture.allCases, id: \.self) { choice in
-                    Text(choice.name)
+                .textInputSuggestions {
+                    ForEach(DemoPicture.allCases, id: \.self) { Text($0.name) }
+                    // What was typed before and showed a picture, under the
+                    // pictures the Example carries.
+                    let recents = RecentValues.list(from: recentEntriesJSON)
+                    if !recents.isEmpty {
+                        Divider()
+                        ForEach(recents, id: \.self) { Text($0) }
+                    }
                 }
             Toggle("page.images.asyncImage", isOn: $usesAsyncImage)
         }
@@ -133,6 +149,11 @@ struct ImagesPage: View {
             entry = named.name
         } else if let location = PictureLocation(text) {
             elsewhere = location
+            if location.isPicture {
+                recentEntriesJSON = RecentValues.recording(
+                    text.trimmingCharacters(in: .whitespaces), in: recentEntriesJSON,
+                    keeping: Self.recentEntryLimit)
+            }
         }
     }
 
@@ -183,6 +204,21 @@ private enum PictureLocation: Equatable {
         }
         let expanded = NSString(string: text).expandingTildeInPath
         self = .file(URL(fileURLWithPath: expanded).standardizedFileURL.path)
+    }
+
+    /// Whether this names a picture worth remembering: a file that exists (a
+    /// folder is not one), or a web address (`http`/`https` with a host). A
+    /// guess for the web, which only a download could settle — what it keeps
+    /// out is the text that was never a location at all, such as `no such file`
+    /// typed and submitted.
+    var isPicture: Bool {
+        switch self {
+        case .file(let path):
+            var isDirectory: ObjCBool = false
+            return FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && !isDirectory.boolValue
+        case .url(let url):
+            return ["http", "https"].contains(url.scheme?.lowercased() ?? "") && url.host != nil
+        }
     }
 }
 
