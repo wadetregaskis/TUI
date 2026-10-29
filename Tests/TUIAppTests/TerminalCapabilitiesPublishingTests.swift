@@ -152,7 +152,7 @@ struct TerminalCapabilitiesPublishingTests {
     func launchHonoursSwitches() {
         let on = TerminalCapabilities.atLaunch(
             features: TerminalFeatures(pointerShapes: true, postsNotifications: true), reporting: .legacy,
-            environment: ["TUI_NOTIFICATIONS": "1", "TUI_POINTER_SHAPES": "all"])
+            environment: ["TUI_NOTIFICATIONS": "1", "TUI_POINTER_SHAPES": "apps"])
         #expect(on.supports([.notifications, .pointerShapes]))
         let off = TerminalCapabilities.atLaunch(
             features: .none, reporting: .legacy,

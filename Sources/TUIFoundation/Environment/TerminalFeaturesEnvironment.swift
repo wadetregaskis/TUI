@@ -35,11 +35,10 @@ package struct TerminalFeatures: Hashable, Sendable {
     package let pointerShapes: Bool
 
     /// Whether TUI's own controls set the pointer's shape without being
-    /// asked: the I-beam over a text field, a pointing hand over a link or a
-    /// button, a resize arrow over a split view's divider or a table's column
-    /// edge. Only where a person has seen the terminal put its pointer back as
-    /// the app leaves — no terminal yet — or where `TUI_POINTER_SHAPES=all`
-    /// asks for them.
+    /// asked: the I-beam over a text field, a pointing hand over a link, a
+    /// resize arrow over a split view's divider or a table's column edge.
+    /// Wherever ``pointerShapes`` is, unless `TUI_POINTER_SHAPES=apps` keeps
+    /// the shapes to the app's own.
     package let controlPointerShapes: Bool
 
     /// Whether the person sees a view's ``View/terminalProgress(_:)`` as a bar

@@ -121,20 +121,6 @@ package enum PointerShapeHost: Equatable, Sendable {
     package var unsetName: String {
         self == .ghostty ? "default" : ""
     }
-
-    /// Whether a person has seen this host's pointer put back as the app
-    /// leaves — after the teardown, the shell's own pointer over the window
-    /// again, on a quit and on a suspend. TUI's own controls set shapes
-    /// without being asked (``TerminalClient/builtInPointerShapes``) only
-    /// where this is so, because a pointer left in a shape the app never
-    /// asked for is a defect of TUI's, not of the app's.
-    ///
-    /// iTerm2 alone so far: the owner read `pointer_shape_card.py` in iTerm2
-    /// 3.7.6 on 2026-10-19 and had the shell's own pointer back once the card
-    /// closed. Quit and suspend write the same reset, the empty name. Every
-    /// other host's reset is documented (the table above), and the card is
-    /// what turns its row on, once its reading is in the compatibility survey.
-    package var resetIsMeasured: Bool { self == .iTerm2 }
 }
 
 // MARK: - The names
@@ -400,7 +386,7 @@ extension TerminalClient {
             case .some(let override): override
             case .none:
                 switch environment["TUI_POINTER_SHAPES"] {
-                case "1", "all": true
+                case "1", "apps": true
                 case "0": false
                 default: nil
                 }
@@ -413,12 +399,16 @@ extension TerminalClient {
     }
 
     /// Whether TUI's own controls set the pointer's shape without being
-    /// asked — the I-beam over a text field, a hand over a link or a button,
-    /// a resize arrow over a divider — on `host`: where a person has seen its
-    /// pointer put back as the app leaves (``PointerShapeHost/resetIsMeasured``,
-    /// iTerm2 so far), or where `TUI_POINTER_SHAPES=all` asks for them.
+    /// asked — the I-beam over a text field, a hand over a link, a resize
+    /// arrow over a divider — on `host`: wherever the pointer's shape is set
+    /// at all, unless `TUI_POINTER_SHAPES=apps` keeps it to the app's own
+    /// `pointerStyle(_:)`.
+    ///
+    /// They waited on a person seeing each host put its pointer back as the
+    /// app leaves; the owner ruled (2026-10-28) to take that as so, every
+    /// host's reset being documented, and the teardown writes it on a quit,
+    /// a suspend and a fatal signal alike (`Terminal.inputModesOwed`).
     package static func builtInPointerShapes(host: PointerShapeHost?, environment: [String: String]) -> Bool {
-        guard let host else { return false }
-        return environment["TUI_POINTER_SHAPES"] == "all" || host.resetIsMeasured
+        host != nil && environment["TUI_POINTER_SHAPES"] != "apps"
     }
 }

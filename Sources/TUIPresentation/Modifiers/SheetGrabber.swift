@@ -316,6 +316,10 @@ enum SheetGrabber {
                     move: { delta, height in handler.snap(toHeight: height - delta) })
             }
         })
+        // Up and down, as a divider between rows is: dragged, it resizes the
+        // sheet as a split view's divider resizes its panes (the owner's
+        // pointer survey, 2026-10-28).
+        dispatcher.fileControlPointerShape(.rowResize, for: handlerID, in: context)
         rule.hitTestRegions.append(
             HitTestRegion(
                 offsetX: 0, offsetY: 0, width: rule.width, height: 1, handlerID: handlerID, focusID: focusID))

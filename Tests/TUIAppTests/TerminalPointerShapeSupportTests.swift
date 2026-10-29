@@ -167,17 +167,17 @@ struct TerminalPointerShapeSupportTests {
                 == .unnamed)
         #expect(
             TerminalClient.pointerShapeHost(
-                override: false, environment: ghostty.merging(["TUI_POINTER_SHAPES": "all"]) { $1 }) == nil,
+                override: false, environment: ghostty.merging(["TUI_POINTER_SHAPES": "1"]) { $1 }) == nil,
             "the app's override beats the environment")
     }
 
-    @Test("TUI's own controls set shapes where a host's reset is measured, iTerm2 so far, or where TUI_POINTER_SHAPES=all asks")
+    /// The owner, 2026-10-28: assume every host puts its pointer back.
+    @Test("TUI's own controls set shapes wherever shapes are set at all, unless TUI_POINTER_SHAPES=apps")
     func builtInShapes() {
-        #expect(TerminalClient.builtInPointerShapes(host: .iTerm2, environment: [:]), "its reset read by the owner")
-        for host: PointerShapeHost in [.ghostty, .kitty, .foot, .xterm, .unnamed] {
-            #expect(!TerminalClient.builtInPointerShapes(host: host, environment: [:]), "\(host): reset unread")
+        for host: PointerShapeHost in [.iTerm2, .ghostty, .kitty, .foot, .xterm, .unnamed] {
+            #expect(TerminalClient.builtInPointerShapes(host: host, environment: [:]), "\(host)")
+            #expect(!TerminalClient.builtInPointerShapes(host: host, environment: ["TUI_POINTER_SHAPES": "apps"]))
         }
-        #expect(TerminalClient.builtInPointerShapes(host: .ghostty, environment: ["TUI_POINTER_SHAPES": "all"]))
-        #expect(!TerminalClient.builtInPointerShapes(host: nil, environment: ["TUI_POINTER_SHAPES": "all"]))
+        #expect(!TerminalClient.builtInPointerShapes(host: nil, environment: [:]))
     }
 }

@@ -41,7 +41,7 @@ extension TerminalCapabilities {
                 .pointerShapes,
                 as: status(
                     uses: features.pointerShapes,
-                    forced: environment["TUI_POINTER_SHAPES"] == "all"
+                    forced: environment["TUI_POINTER_SHAPES"] == "apps"
                         || isForced(
                             override: TerminalClient.pointerShapeSupport, variable: "TUI_POINTER_SHAPES",
                             in: environment),

@@ -6405,11 +6405,13 @@ leaves: it has nothing to put back, and on a host whose reset is unread the
 empty name is unmeasured too. After any
 mouse mode change the shape is written again, because Ghostty resets it on
 one. A host not in the table below is sent nothing and owed nothing.
-`TUI_POINTER_SHAPES=0` turns it off, `1` turns it on for a host not in the
-table (in CSS names), and `all` also turns on TUI's own controls' shapes
-(the I-beam over a text field, a hand over a link or a button, a resize arrow
-over a divider or a table's column edge), which are otherwise on only where
-a host's reset has been read off the card: iTerm2, so far.
+`TUI_POINTER_SHAPES=0` turns it off, and `1` turns it on for a host not in
+the table (in CSS names). TUI's own controls' shapes (the I-beam over a text
+field, a hand over a link, a resize arrow over a divider or a table's column
+edge) are on wherever shapes are set at all, and `apps` keeps the shapes to
+the app's own `pointerStyle(_:)`. Until 2026-10-28 they were on only where a
+host's reset had been read off the card (iTerm2); the owner ruled to take
+every documented reset as so, since the teardown writes it in every way out.
 
 **What each host is documented to do**, read 2026-10-19 from its
 documentation and its source (copies under the lane's notes, `O12/docs`):
