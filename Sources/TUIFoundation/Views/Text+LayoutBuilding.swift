@@ -27,6 +27,17 @@ extension Text {
     /// have (a truncation's ellipsis) is a glyph of the run before it. Words
     /// left over at the end mean the text was cut short.
     func layout(of drawn: FrameBuffer, context: RenderContext) -> Layout {
+        // A text that draws another in its place — relocalized, or a live
+        // text's reading at this frame (`drawn(context:…)`) — is laid out from
+        // the words that one draws, or every glyph would be matched against
+        // words that are not there. The reading is the pure one: the frame's
+        // own draw has already declared when it next changes.
+        if localization != nil, let read = relocalized(in: context) {
+            return read.layout(of: drawn, context: context)
+        }
+        if isLive, let read = readingLive(at: context.liveFrameDate, in: LiveTextEnvironment(context.environment)) {
+            return read.text.layout(of: drawn, context: context)
+        }
         let words = laidOutWords(context: context)
         var next = 0
         var lines: [Layout.Line] = []
