@@ -25,3 +25,22 @@ extension Equatable {
         return self == other
     }
 }
+
+/// A value that is `Equatable` so that what holds it can be, but whose `==` is
+/// a real comparison only for some of what it wraps.
+///
+/// A style chain or a text renderer wraps an existential the app supplies,
+/// which need not be `Equatable`, and answers `false` for one that is not:
+/// unequal is the safe answer for a value compared by what holds it. It is the
+/// wrong answer for the render cache's environment slots
+/// (`RenderCache.noteAppliedEnvironment`), which would read it as `.changed` on
+/// every pass and clear the subtree below — its buffers and its sizes — on
+/// every frame of an app that changed nothing. A wrapper that says here that it
+/// cannot compare what it holds is `.incomparable` instead, as a raw value that
+/// is not `Equatable` is: the memos below decline to store, and nothing is
+/// cleared.
+package protocol PartiallyComparable {
+    /// Whether `==` can tell this value from another: `false` where it wraps a
+    /// value that is not `Equatable`.
+    var isComparable: Bool { get }
+}

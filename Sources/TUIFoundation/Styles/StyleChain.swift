@@ -18,10 +18,11 @@
 /// `Style` is an existential — `any LabelStyle`, say — held as the environment
 /// holds a style. Equal when both styles are `Equatable`, of one type and equal,
 /// and so are the styles outside them: a style that is not `Equatable` compares
-/// unequal, so the render cache treats what is under it as changed every frame
-/// rather than serving it stale, the price the style protocols' documentation
-/// states.
-package struct StyleChain<Style>: Equatable, @unchecked Sendable {
+/// unequal, and says so (``PartiallyComparable``), so the render cache declines
+/// the memos under it rather than serving them stale, the price the style
+/// protocols' documentation states. Unequal alone, the cache read it as a
+/// change on every pass and cleared everything under it every frame.
+package struct StyleChain<Style>: Equatable, PartiallyComparable, @unchecked Sendable {
     /// The style in force.
     package let style: Style
 
@@ -77,5 +78,11 @@ package struct StyleChain<Style>: Equatable, @unchecked Sendable {
     package static func == (lhs: Self, rhs: Self) -> Bool {
         guard let left = lhs.style as? any Equatable, left.isEqual(to: rhs.style) else { return false }
         return lhs.outer == rhs.outer
+    }
+
+    /// Whether every style in the chain is `Equatable`, which is when `==` can
+    /// say anything but "unequal".
+    package var isComparable: Bool {
+        style is any Equatable && (outer?.chain.isComparable ?? true)
     }
 }

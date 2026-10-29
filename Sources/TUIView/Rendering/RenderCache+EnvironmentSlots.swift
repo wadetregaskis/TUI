@@ -65,9 +65,10 @@ extension RenderCache {
     ///   and boxes it in an `Any` (an allocation for anything over three
     ///   words, as most style values are), and two-pass layout visits each
     ///   modifier several times a frame.
-    /// - Returns: `.incomparable` when `value` is not `Equatable` — the caller
-    ///   must then decline caching, because nothing here can tell whether it
-    ///   changed.
+    /// - Returns: `.incomparable` when `value` is not `Equatable`, or is a
+    ///   ``PartiallyComparable`` wrapper around a value that is not — the
+    ///   caller must then decline caching, because nothing here can tell
+    ///   whether it changed.
     public func noteAppliedEnvironment(
         _ value: @autoclosure () -> Any,
         identity: ViewIdentity,
@@ -77,7 +78,7 @@ extension RenderCache {
         let slot = EnvironmentSlot(identity: identity, keyPath: keyPath, depth: depth)
         guard var previous = appliedEnvironment[slot] else {
             let value = value()
-            let comparable = value is any Equatable
+            let comparable = Self.canCompare(value)
             appliedEnvironment[slot] = AppliedEnvironment(
                 value: value, lastSeenFrame: frameCounter, isComparable: comparable)
             return comparable ? .first : .incomparable
@@ -107,9 +108,29 @@ extension RenderCache {
             appliedEnvironment[slot] = previous
             return .unchanged
         }
+        // Unequal — or a wrapper that has come to hold what it cannot compare,
+        // which answers unequal to everything. Asked only here, past the
+        // comparison, so an unchanged slot pays nothing for it. The slot goes
+        // incomparable as a raw value's does; and what is cached below was
+        // drawn under the value before, which did differ, so it goes too.
+        if let partial = current as? any PartiallyComparable, !partial.isComparable {
+            previous.lastSeenFrame = frameCounter
+            previous.isComparable = false
+            appliedEnvironment[slot] = previous
+            clearAffected(by: identity)
+            return .incomparable
+        }
         appliedEnvironment[slot] = AppliedEnvironment(
             value: current, lastSeenFrame: frameCounter, isComparable: true)
         return .changed
+    }
+
+    /// Whether a slot can compare `value` from pass to pass: `Equatable`, and
+    /// not a ``PartiallyComparable`` wrapper around a value that is not. Asked
+    /// once, when a slot is first met.
+    private static func canCompare(_ value: Any) -> Bool {
+        guard value is any Equatable else { return false }
+        return (value as? any PartiallyComparable)?.isComparable ?? true
     }
 
     /// What an `AnyView` last held at one identity and depth — see

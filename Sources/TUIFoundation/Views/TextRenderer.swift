@@ -97,11 +97,14 @@ extension View {
 
 /// A text renderer in the environment, compared by value where its type is
 /// `Equatable` (so a subtree under an unchanging renderer can be served from
-/// the render memo), and unequal otherwise.
+/// the render memo), and unequal otherwise — which it says
+/// (``PartiallyComparable``), so the render cache declines the memos under such
+/// a renderer rather than reading "unequal" as a change, and clearing them, on
+/// every frame.
 ///
 /// `@unchecked Sendable`: a `TextRenderer` need not be `Sendable`, as
 /// SwiftUI's need not; it is read and drawn with on the main actor only.
-package struct AnyTextRenderer: Equatable, @unchecked Sendable {
+package struct AnyTextRenderer: Equatable, PartiallyComparable, @unchecked Sendable {
     let renderer: any TextRenderer
     private let isEqual: (any TextRenderer) -> Bool
 
@@ -114,6 +117,10 @@ package struct AnyTextRenderer: Equatable, @unchecked Sendable {
     }
 
     package static func == (lhs: Self, rhs: Self) -> Bool { lhs.isEqual(rhs.renderer) }
+
+    /// Whether the renderer is `Equatable`, which is when `==` can say anything
+    /// but "unequal".
+    package var isComparable: Bool { renderer is any Equatable }
 
     /// `a == b` where `T` is `Equatable`, else `false`.
     private static func equal<T>(_ a: T, _ b: T) -> Bool {
