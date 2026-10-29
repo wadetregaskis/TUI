@@ -481,6 +481,18 @@ and going up selects the folder come from, so the way back down stays in view
 until another row is chosen. The panel opens in the view the last was left in,
 kept in the app's storage.
 
+While it shows, a preview of the item selected follows the folder: in the
+list a pane behind a splitter, whose divider a drag moves, or ← and → once
+<kbd>Tab</kbd> reaches it; in the column view a column of its own after a
+file's folder. It shows a file's opening lines, or the app's preview
+(`fileDialogPreview(_:)`), then its name, kind, size and date, and "No
+Selection" while there is no one item to show. The Preview button after the
+view switcher opens and closes it. Until the user does,
+it is open where the folder has room for it beside a list that keeps its
+Size and Date Modified — 82 cells, as in a terminal 90 columns wide — and
+closed in a narrower panel, such as an 80-column terminal's; the user's
+choice is kept in the app's storage beside the view.
+
 The callbacks come in SwiftUI's order: `isPresented` becomes `false`, then
 `onCompletion` hears the choice; a cancellation clears the binding and calls
 `onCancellation`, never `onCompletion`. The panel opens on the folder the app
