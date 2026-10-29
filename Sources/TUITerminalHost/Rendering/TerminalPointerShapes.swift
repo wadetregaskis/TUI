@@ -356,8 +356,8 @@ extension TerminalClient {
     /// `true` turns shapes on for a host with no documentation here (spoken to
     /// in CSS's names); `false` turns them off on one that has it. `nil` (the
     /// default) means the table, unless `TUI_POINTER_SHAPES` is set in the
-    /// environment: `1` on, `0` off, and `all` on with TUI's own controls'
-    /// shapes as well.
+    /// environment: `1` on, `0` off, and `apps` on for the app's own
+    /// `pointerStyle(_:)` only, without TUI's controls' shapes.
     ///
     /// Read once, as the app starts: set it in your `App`'s `init`.
     @MainActor public static var pointerShapeSupport: Bool?
