@@ -220,8 +220,11 @@ struct VerticalTextFieldTests {
         #expect(model.text == "a\ndef")
     }
 
-    @Test("Ctrl-A keeps the key from an app's ⌘A, its only key for the start of a line; one line gives it up")
-    func lineStartKeepsTheChord() {
+    /// Though Ctrl-A is a vertical field's only key for the start of a line,
+    /// an app's ⌘A on it comes first, as on one line (the owner, 2026-10-29:
+    /// no exceptions).
+    @Test("Ctrl-A gives way to an app's ⌘A on several lines as on one")
+    func lineStartGivesWay() {
         final class Fired { var fired = false }
         let shortcut = Fired()
         let model = Model("abc\ndef")
@@ -231,8 +234,9 @@ struct VerticalTextFieldTests {
                 Button("Select All") { shortcut.fired = true }.keyboardShortcut("a")
             }
         }
-        InputChainHarness(width: 20).play([key("a", ctrl: true), key("X")]) { page(.vertical) }
-        #expect(model.text == "abc\nXdef" && !shortcut.fired)
+        InputChainHarness(width: 20).play([key("a", ctrl: true)]) { page(.vertical) }
+        #expect(shortcut.fired && model.text == "abc\ndef")
+        shortcut.fired = false
         model.text = "abc"
         InputChainHarness(width: 20).play([key("a", ctrl: true)]) { page(.horizontal) }
         #expect(shortcut.fired)

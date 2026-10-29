@@ -116,9 +116,9 @@ extension ScenePresenter {
         }
         // File ▸ Close and Close All, for an app that can have more than one
         // window open. Registered as commands, so a key of the window's own
-        // content wins; and a text field's Ctrl-W, the word rubout, never
-        // reaches them, since the field takes the chord before any shortcut
-        // (owner ruling O9, 2026-10-26: ⌃W is the field's).
+        // content wins; and they come before a focused text field's Ctrl-W,
+        // the word rubout, which gives way to a shortcut on its chord (the
+        // owner, 2026-10-29, replacing O9's "⌃W is the field's").
         if opensSeveralWindows {
             keys.append((Self.closeShortcut, { [weak self] in self?.closeFrontWindow() }))
             keys.append((Self.closeAllShortcut, { [weak self] in self?.closeAllWindows() }))

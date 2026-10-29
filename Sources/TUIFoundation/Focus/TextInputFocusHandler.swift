@@ -20,10 +20,10 @@ package protocol TextInputFocusHandler: AnyObject {
     /// the answer is yes and an app shortcut is registered on the chord, the
     /// control is not offered the key at all: the shortcut fires and the
     /// control does nothing. The answer must be the one the control's own key
-    /// handling acts on, so each text control reads both from its
-    /// `editingCommand(for:)`, and gives the rule
-    /// (``TextEditingCommand/givesWayToKeyboardShortcuts(homeAndEndReachLineEnds:)``)
-    /// the one fact about itself it depends on.
+    /// handling acts on, so each text control reads both from the chord its
+    /// key handling reads (`TextEditingCommand.givesWayToKeyboardShortcuts`:
+    /// every Control or Command chord gives way but the clipboard and undo
+    /// stand-ins, which are the shortcut's own command).
     func givesWayToKeyboardShortcut(_ event: KeyEvent) -> Bool
 
     /// Whether the control takes `event` as one of its own editing chords,

@@ -17,8 +17,8 @@ extension TextEditorHandler: TextInputFocusHandler {
     /// (`TextEditingCommands`) are no app shortcut: they press these keys.
     func givesWayToKeyboardShortcut(_ event: KeyEvent) -> Bool {
         if isFindChord(event, on: ["f", "F", "g", "G"]) { return true }
-        return editingCommand(for: event)?.givesWayToKeyboardShortcuts(homeAndEndReachLineEnds: false)
-            ?? false
+        if let command = standInCommand(for: event) { return command.givesWayToKeyboardShortcuts }
+        return editingCommand(for: event)?.givesWayToKeyboardShortcuts ?? false
     }
 
     /// The editor's readline and Option word-motion chords.

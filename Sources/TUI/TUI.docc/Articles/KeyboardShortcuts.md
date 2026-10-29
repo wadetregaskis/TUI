@@ -301,9 +301,11 @@ shortcut arrives as a Control chord: `.keyboardShortcut("f")`, Find, is ⌃F.
 `.searchable` field and ``TextEditor``, where it moves the caret forward a
 character. Under `.option`, ⌘B and ⌘F arrive as ⌥B and ⌥F,
 readline's word motions, which every text control answers. The text controls
-read those chords the way the macOS text system and readline do, and they are
-a bonus: whatever one does can be done some other way, with another key or by
-selecting and typing. So **your shortcut wins them**. Layer 0 does
+read those chords the way the macOS text system and readline do. A chord whose
+modifiers reach no character (Control, Command) is your shortcut's first, as a
+Mac menu's key equivalent comes before the text view; only a character a key
+types, Option's and Shift-Option's included, goes to the text control first.
+So **your shortcut wins them**. Layer 0 does
 not offer the chord to the focused text control when a `.keyboardShortcut` is
 registered on it. The chord goes on down the chain as a chord the control does
 not bind would, and Layer 3.5 fires your button.
@@ -311,7 +313,7 @@ not bind would, and Layer 3.5 fires your button.
 | Chord | What the text control does with it | With your shortcut on it |
 |-------|------------------------------------|--------------------------|
 | ⌃A, ⌃E | A field: start, end of the line, as Home and End do | Yours |
-| ⌃A, ⌃E | `TextEditor`: start, end of the line; its Home and End go to the ends of the document | The editor's |
+| ⌃A, ⌃E | `TextEditor`: start, end of the line; its Home and End go to the ends of the document | Yours |
 | ⌥B, ⌥F | Back, forward a word, as ⌥← and ⌥→ do (a character in a `SecureField`); with Shift, a field extends its selection | Yours |
 | ⌃⌥B, ⌃⌥F | A field: back, forward a word. `TextEditor`: back, forward a character | Yours |
 | ⌃B, ⌃F | Back, forward a character | Yours |
@@ -320,21 +322,18 @@ not bind would, and Layer 3.5 fires your button.
 | ⌃T | Transpose the characters around the caret | Yours |
 | ⌃P, ⌃N | `TextEditor`: previous, next line | Yours |
 | ⌃O | `TextEditor`: open a line after the caret | Yours |
-| ⌃⌥A | Select all | The control's |
+| ⌃⌥A | Select all | Yours |
 | ⌃C, ⌃X | Copy and cut the selection | The control's while text is selected; with nothing selected, yours. While a mouse selection is on the screen, ⌃C copies that instead, until the control takes a key |
 | ⌃Z | Undo | The control's |
 | ⌃V | Paste, in a field or a `TextEditor` | The control's |
-| ⌃U | Kill to the start of the line, readline's `unix-line-discard`: in a field everything before the caret, in a vertical field or a `TextEditor` the caret's line; ⌃Y yanks it back (a `SecureField` keeps no kill to yank) | The control's |
+| ⌃U | Kill to the start of the line, readline's `unix-line-discard`: in a field everything before the caret, in a vertical field or a `TextEditor` the caret's line; ⌃Y yanks it back (a `SecureField` keeps no kill to yank) | Yours |
+| ⌃W | Kill the word before the caret, readline's `unix-word-rubout`, on the caret's line; ⌃Y yanks it back (a `SecureField` keeps no kill to yank) | Yours |
 
-A chord gives way when what it does can be done some other way in that
-control, and keeps the key when it is the only way. Select-all has no other key
-at all, since ⌘A cannot reach a terminal app. A field's Home and End go to the
-ends of its line, so its ⌃A and ⌃E give way. The editor's Home and End
-go to the ends of the whole document, which leaves ⌃A and ⌃E its only
-keys for the ends of a line, so there they stay. The clipboard and undo chords
-stand in for ⌘C, ⌘X, ⌘V and ⌘Z and do what those would, and ⌃U is the
-terminal's own kill to the start of the line, which every shell prompt
-answers; those stay too, except that copy and cut have nothing to act on
+Every editing chord gives way, even where it is the control's only key for
+what it does (select-all, the editor's ⌃A and ⌃E): an app that binds the chord
+chose to. Only the clipboard and undo chords stay the control's, because they
+stand in for ⌘C, ⌘X, ⌘V and ⌘Z and are the very command those shortcuts would
+ask the focused text to carry out; and copy and cut have nothing to act on
 without a selection. Then ⌃C and ⌃X are not the control's at all: they
 go on down the chain whether or not you have a shortcut on them, so your ⌘C
 fires, and so does ``QuitShortcut/ctrlC``. ⌃Z never passes on: it is the

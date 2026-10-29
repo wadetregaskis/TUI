@@ -136,8 +136,9 @@ struct SceneOwnCommands {
 
     /// File ▸ Close and Close All, for an app that can open more than one
     /// window: the window in front, and every window that may close but the
-    /// one at the back, on ⌘W and ⌥⌘W, which the presenter binds. A focused
-    /// text field keeps Ctrl-W, the word rubout (owner ruling O9, 2026-10-26).
+    /// one at the back, on ⌘W and ⌥⌘W, which the presenter binds. They come
+    /// before a focused text field's Ctrl-W, the word rubout, as every Command
+    /// chord does (the owner, 2026-10-29, replacing O9).
     private func closeItems(_ presenter: ScenePresenter) -> CommandItems? {
         guard presenter.opensSeveralWindows else { return nil }
         let service = LocalizationService.shared

@@ -12,8 +12,11 @@ extension TextFieldHandler: TextInputFocusHandler {
     /// ends of its text, as the editor's do, and there Ctrl-A and Ctrl-E are
     /// the only keys for the ends of a line, so they keep the key.
     func givesWayToKeyboardShortcut(_ event: KeyEvent) -> Bool {
-        editingCommand(for: event)?.givesWayToKeyboardShortcuts(homeAndEndReachLineEnds: !isVertical)
-            ?? false
+        switch TextFieldChord(event) {
+        case .standIn(let command): command.givesWayToKeyboardShortcuts
+        case .shared(let command): command.givesWayToKeyboardShortcuts
+        case nil: false
+        }
     }
 
     /// The field's chords: its readline and Option word motions, and the

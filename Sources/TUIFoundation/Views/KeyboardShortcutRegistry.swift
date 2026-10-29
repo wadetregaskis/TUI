@@ -330,8 +330,7 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
     ///
     /// For `InputHandler`, which asks it before offering a focused text control
     /// one of its editing chords. An app shortcut on the chord takes the key
-    /// instead; see
-    /// ``TextEditingCommand/givesWayToKeyboardShortcuts(homeAndEndReachLineEnds:)``.
+    /// instead; see `TextEditingCommand.givesWayToKeyboardShortcuts`.
     package func hasAppShortcut(
         for event: KeyEvent, activePane: String? = nil, reachesPage: Bool = true, modalSection: String? = nil
     ) -> Bool {

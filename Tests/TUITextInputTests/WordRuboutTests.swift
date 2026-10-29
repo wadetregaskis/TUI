@@ -4,8 +4,7 @@
 //  Ctrl-W is readline's `unix-word-rubout` in every text control: it kills
 //  back over the blanks before the caret and the run of non-blanks before
 //  them, keeps the kill for Ctrl-Y, and stays on the caret's line, as Ctrl-U
-//  does (owner ruling O9, 2026-10-26: a text field's ⌃W comes before an app's
-//  ⌘W).
+//  does. An app's ⌘W comes first (the owner, 2026-10-29, replacing O9).
 //
 //  Created by Wade Tregaskis
 //  License: MIT

@@ -86,11 +86,11 @@ import TUIFoundation
 ///   clipboard. A ``SecureField`` keeps no kill, and its word motions go one
 ///   character (see ``isSecure``).
 ///
-/// An app's keyboard shortcut on the same chord takes all of these but
-/// Option+Ctrl+A from the field; Home, End, Left, Right, Delete and
-/// Option+Left / Right do the same things, and a kill, yank or transpose can
-/// be done by selecting and typing. See
-/// ``TextEditingCommand/givesWayToKeyboardShortcuts(homeAndEndReachLineEnds:)``.
+/// An app's keyboard shortcut on the same chord takes every one of these from
+/// the field (the owner, 2026-10-29: no exceptions); Home, End, Left, Right,
+/// Delete and Option+Left / Right do the same things, and a kill, yank or
+/// transpose can be done by selecting and typing. See
+/// ``TextEditingCommand/givesWayToKeyboardShortcuts``.
 ///
 /// Option+Left and Alt+b are one binding, not two — likewise Option+Right and
 /// Alt+f: macOS Terminal sends the readline escapes `ESC b` / `ESC f` when

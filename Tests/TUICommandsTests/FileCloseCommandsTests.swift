@@ -3,9 +3,9 @@
 //
 //  File ▸ Close (⌘W) and Close All (⌥⌘W), for an app that can have more than
 //  one window open: the window in front, and every window that may close but
-//  the one at the back. A focused text field keeps Ctrl-W, the stand-in for
-//  ⌘W, as its word rubout, and a key of the window's own content wins (owner
-//  ruling O9, 2026-10-26).
+//  the one at the back. They come before a focused text field's Ctrl-W, its
+//  word rubout, as every Command chord does (the owner, 2026-10-29, replacing
+//  O9), and a key of the window's own content wins.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -132,16 +132,14 @@ struct FileCloseCommandsTests {
         #expect(app.scenes.windowsCloseAllCloses.isEmpty, "Close All would close the last window")
     }
 
-    @Test("A focused text field keeps Ctrl-W as its word rubout")
-    mutating func fieldKeepsControlW() {
+    @Test("Close takes Ctrl-W from a focused text field's word rubout")
+    mutating func closeTakesControlWFromAField() {
         let app = welcoming(.field)
         for character in "ab cd" { send(KeyEvent(character: character), to: app) }
         #expect(CloseProbe.shared.text == "ab cd", "the field did not have the focus")
         send(ctrl("w"), to: app)
-        #expect(CloseProbe.shared.text == "ab ")
-        #expect(app.scenes.windows.count == 2, "Ctrl-W closed the window from a text field")
-        send(ctrl("w", alt: true), to: app)
-        #expect(app.scenes.windows.count == 2, "Ctrl-Option-W closed windows from a text field")
+        #expect(CloseProbe.shared.text == "ab cd", "the field rubbed out a word as well")
+        #expect(app.scenes.windows.count == 1, "Ctrl-W did not close the window from a text field")
     }
 
     @Test("A key of the window's own content wins over Close")

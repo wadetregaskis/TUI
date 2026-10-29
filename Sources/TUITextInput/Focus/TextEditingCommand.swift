@@ -112,52 +112,22 @@ enum TextEditingCommand: Equatable {
 
 extension TextEditingCommand {
     /// Whether an app's keyboard shortcut on the same chord takes the key from
-    /// the focused text control, which then does nothing.
+    /// the focused text control, which then does nothing: always.
     ///
     /// A focused text control is offered a key before the app's shortcuts are
     /// (`InputHandler`, layer 0 before layer 3.5). Under the default
     /// `.commandKey(.control)` a SwiftUI ⌘ shortcut arrives as a Control chord,
     /// so ⌘F, "Find", is Ctrl-F, the chord for forward a character, and ⌘D is
     /// Ctrl-D; under `.commandKey(.option)` ⌘B and ⌘F arrive as Option-B and
-    /// Option-F, the word motions. The owner's rule (2026-09-23) is that the
-    /// Emacs chords are a bonus: whatever one does can be done some other way,
-    /// with another key or by selecting and typing, so the app's shortcut wins
-    /// it.
-    ///
-    /// Where a chord *is* the only way, it keeps the key:
-    ///
-    /// - Option-Ctrl-A, select-all, everywhere. ⌘A cannot reach a terminal
-    ///   app, and no other key selects everything.
-    /// - Ctrl-A and Ctrl-E where Home and End do not go to the ends of the
-    ///   line. In a field they do, so there the pair gives way like the rest.
-    ///   In the editor Home and End go to the ends of the document, which
-    ///   leaves Ctrl-A and Ctrl-E the only keys for the ends of a line.
-    ///
-    /// The chords that stand in for the Command-key ones, for the clipboard
-    /// and undo (``StandInEditingCommand``), are not in this table and keep
-    /// the key: they are what the app's ⌘ shortcut would ask the focused text
-    /// for anyway. Copy and cut keep it only while there is a selection to act
-    /// on; with none the control declines them, and the chord goes on to the
-    /// app as one the control does not bind would. Ctrl-U, in the same table,
-    /// keeps the key as well: it is the terminal's own kill to the start of
-    /// the line, which every shell prompt answers, not an Emacs bonus — so an
-    /// app's ⌘U, which arrives as Ctrl-U, does not reach past a focused text
-    /// control.
-    ///
-    /// - Parameter homeAndEndReachLineEnds: Whether the control's Home and End
-    ///   keys go to the ends of the line the caret is on.
-    func givesWayToKeyboardShortcuts(homeAndEndReachLineEnds: Bool) -> Bool {
-        switch self {
-        case .selectAll:
-            false
-        case .moveToStartOfLine, .moveToEndOfLine:
-            homeAndEndReachLineEnds
-        case .moveBackward, .moveForward, .moveToPreviousLine, .moveToNextLine, .deleteForward,
-            .killToEndOfLine, .yank, .transpose, .openLine, .moveWordBackward,
-            .moveWordForward, .moveWordBackwardAndModifySelection, .moveWordForwardAndModifySelection:
-            true
-        }
-    }
+    /// Option-F, the word motions. The owner's rule (2026-10-29, which
+    /// replaces the exceptions of 2026-09-23 and O9): a chord whose modifiers
+    /// reach no character — Control, Command — is the app's shortcut's first,
+    /// with no exceptions, as a Mac menu's key equivalent comes before the text
+    /// view; only a character a key types (Option's and Shift-Option's
+    /// included) goes to the text first. So the select-all chord and the
+    /// editor's Ctrl-A and Ctrl-E give way too, though they are the editor's
+    /// only keys for the ends of a line: an app that binds them chose to.
+    var givesWayToKeyboardShortcuts: Bool { true }
 }
 
 // MARK: - Transpose
@@ -241,9 +211,7 @@ enum StandInEditingCommand: Equatable {
     /// Ctrl-W: kills the word before the caret, as readline's
     /// `unix-word-rubout` does in a shell at a terminal (``wordRuboutStart(in:before:lineStart:)``):
     /// one undoable edit, kept for Ctrl-Y; a ``SecureField`` deletes and keeps
-    /// nothing. Like Ctrl-U it keeps the key from an app's shortcut on it, an
-    /// app's ⌘W among them (owner ruling O9, 2026-10-26: a text field's ⌃W
-    /// comes first), and stays on the caret's line.
+    /// nothing. Stays on the caret's line.
     case killWordBackward
 
     /// The command a Control chord names, or `nil` when it names none here.
@@ -257,6 +225,22 @@ enum StandInEditingCommand: Equatable {
         case "u", "U": self = .killToStartOfLine
         case "w", "W": self = .killWordBackward
         default: return nil
+        }
+    }
+
+    /// Whether an app's keyboard shortcut on the same chord takes the key from
+    /// the focused text control (``TextEditingCommand/givesWayToKeyboardShortcuts``).
+    ///
+    /// The two kills do: Ctrl-U and Ctrl-W are the terminal's own erasures,
+    /// but an app's ⌘U or ⌘W, which arrive as them, comes first, as any
+    /// Command chord does (the owner, 2026-10-29, replacing O9's "a text
+    /// field's ⌃W comes first"). The clipboard and undo stand-ins keep the
+    /// key: they ARE the command an app's ⌘C, ⌘X, ⌘V, ⌘Z or ⇧⌘Z asks the
+    /// focused text to carry out, so no shortcut is passed over by it.
+    var givesWayToKeyboardShortcuts: Bool {
+        switch self {
+        case .killToStartOfLine, .killWordBackward: true
+        case .copy, .cut, .paste, .undo, .redo: false
         }
     }
 }

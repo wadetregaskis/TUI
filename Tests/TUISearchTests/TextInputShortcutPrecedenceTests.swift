@@ -373,10 +373,6 @@ struct KeepingCase: Sendable, CustomTestStringConvertible {
 
     static let fieldCases: [Self] = [
         Self(
-            name: "Option-Ctrl-A selects all",
-            shortcut: AppShortcut(key: "a", modifiers: [.command, .option]),
-            keys: [optionCtrl("a"), typed("X")], text: ("X", "X")),
-        Self(
             name: "Ctrl-C copies the selection", shortcut: .command("c"),
             keys: [optionCtrl("a"), ctrl("c")], text: ("abcd", "abcd"), clipboardWrites: ["abcd"]),
         Self(
@@ -388,16 +384,6 @@ struct KeepingCase: Sendable, CustomTestStringConvertible {
         Self(
             name: "Ctrl-Z undoes", shortcut: .command("z"),
             keys: [typed("X"), ctrl("z")], text: ("abcd", "abcd")),
-        // From one character short of the end, so the "d" after the caret
-        // shows that it kills to the start and not the whole text.
-        Self(
-            name: "Ctrl-U kills to the start", shortcut: .command("u"),
-            keys: [KeyEvent(key: .left), ctrl("u")], text: ("d", "d")),
-        // An app's ⌘W (Close) is Ctrl-W here, and a text field's word rubout
-        // keeps it (owner ruling O9, 2026-10-26).
-        Self(
-            name: "Ctrl-W kills the word before the caret", shortcut: .command("w"),
-            keys: [KeyEvent(key: .left), ctrl("w")], text: ("d", "d")),
     ]
 
     /// Every field, paired with every case.
@@ -517,7 +503,7 @@ struct TextInputShortcutPrecedenceTests {
     /// Each script is checked for its effect as well as for the silent button,
     /// so a chord that did nothing cannot pass as a chord that kept the key.
     @Test(
-        "A field keeps select-all and its clipboard, undo and erase chords",
+        "A field keeps its clipboard and undo chords, which are the shortcut's own command",
         arguments: KeepingCase.rows)
     func fieldKeepsItsChords(host: PrecedenceHost, keeping: KeepingCase) {
         let played = play(
@@ -528,27 +514,28 @@ struct TextInputShortcutPrecedenceTests {
         #expect(played.clipboardWrites == (host.isSecure ? [] : keeping.clipboardWrites), "\(host)")
     }
 
-    /// The editor's Home and End go to the ends of the document, so Ctrl-A and
-    /// Ctrl-E are the only keys for the ends of its lines, and they keep the
-    /// key there. Select-all has no other key anywhere.
-    @Test("The editor keeps the ends of the line and select-all")
-    func editorKeepsItsChords() {
-        let start = play(
-            [down, KeyEvent(key: .end), ctrl("a"), typed("X")], into: .textEditor, from: "ab\ncd",
-            shortcut: .command("a"))
-        #expect(start.fired.isEmpty)
-        #expect(start.text == "ab\nXcd")
-
-        let end = play(
-            [ctrl("e"), typed("X")], into: .textEditor, from: "ab\ncd", shortcut: .command("e"))
-        #expect(end.fired.isEmpty)
-        #expect(end.text == "abX\ncd")
-
-        let all = play(
-            [optionCtrl("a"), typed("X")], into: .textEditor, from: "ab\ncd",
-            shortcut: AppShortcut(key: "a", modifiers: [.command, .option]))
-        #expect(all.fired.isEmpty)
-        #expect(all.text == "X")
+    /// No exceptions (the owner, 2026-10-29, replacing O9): select-all, the
+    /// kills to the start of the line and of the word, and the editor's ends
+    /// of the line give way to a shortcut on their chord too, though some are
+    /// the control's only key for what they do — an app that binds the chord
+    /// chose to. Ctrl-W is an app's ⌘W, Close, under the default command key.
+    @Test("Select-all, the kills and the editor's line ends give way too", arguments: PrecedenceHost.allCases)
+    func everyEditingChordGivesWay(host: PrecedenceHost) {
+        var chords: [(name: String, keys: [KeyEvent], shortcut: AppShortcut)] = [
+            ("Option-Ctrl-A", [optionCtrl("a")], AppShortcut(key: "a", modifiers: [.command, .option])),
+            ("Ctrl-U", [KeyEvent(key: .left), ctrl("u")], .command("u")),
+            ("Ctrl-W", [KeyEvent(key: .left), ctrl("w")], .command("w")),
+        ]
+        if host.isEditor {
+            chords.append(("Ctrl-A", [ctrl("a")], .command("a")))
+            chords.append(("Ctrl-E", [ctrl("e")], .command("e")))
+        }
+        for chord in chords {
+            let start = GivingWayCase.initial(host)
+            let played = play(chord.keys, into: host, from: start, shortcut: chord.shortcut)
+            #expect(played.fired == [String(chord.shortcut.key)], "\(host): \(chord.name) did not reach the shortcut")
+            #expect(played.text == start, "\(host): \(chord.name) edited as well")
+        }
     }
 
     /// The editor's copy, cut and undo stand in for ⌘C, ⌘X and ⌘Z, as a
