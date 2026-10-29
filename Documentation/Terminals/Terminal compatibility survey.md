@@ -5951,7 +5951,7 @@ after the grabber's keys: run it in Apple Terminal, iTerm2 and Ghostty from each
 default profile, and record whether F10 or fn-F10 was pressed, the
 standard-function-keys setting, and each host's Option setting.
 
-### The help key, `?`, `⌥?` and `⇧F1` — documented, NOT yet measured
+### The help key, `?`, `⌥?` and `⇧F1` — ⇧F1 measured 2026-10-28, ⌥? in Ghostty only
 
 Added 2026-10-24 (lane MENUBAR; the owner's B-HELP-2 answer: no one key for
 two purposes, and a modifier on `?` for showing every tooltip). `?` reveals the
@@ -5963,7 +5963,7 @@ the screen, or hides them again — the menu bar's Help ▸ Show All Tooltips.
 | **?** | `?` | the help key, unless a focused text control types it | the text `?` |
 | **⌥?** | `ESC ?` where Option is sent as Meta (none the default, as for the menu bar's letters above); otherwise the character Option composes (`¿` on a US layout), which is typed or ignored | Alt and `?`: every tooltip shows, or hides. A focused text field does not type an Option chord, so it reaches the key inside a field too, where `?` alone is typed | `CSI 47:63;4u` (Shift and Alt on `/`, its shifted key `?`) where the host reports Option as Alt; where it composes (Ghostty 1.4.0's default, measured 2026-10-28) `CSI 47:191;4;191u`, read as ⌥? through `KeyEvent.optionComposedKey` (the menu bar's row above) |
 | ⌃? | `DEL` (`0x7F`), the Backspace byte, in every legacy encoding | Backspace | unusable: the legacy encodings cannot tell it from Backspace, so it is not used |
-| **⇧F1** | `CSI 1;2P` (xterm and its kin); Apple Terminal's re-coding of shifted F-keys is decoded back (below) — not measured for F1 | Shift and F1: every tooltip shows, or hides, as for ⌥?, but in the chain's last layer, so any handler of the app's or a built-in view's on the chord takes it first (owner ruling B-HELP-2, 2026-10-26: the portable key, where Option does not arrive) | `CSI 1;2P` |
+| **⇧F1** | `CSI 1;2P` in iTerm2 3.7.6, Ghostty 1.4.0 and Warp v0.2026.10.21 (measured 2026-10-28 with `key_probe.py`, default profiles, macOS 15.8.1); **nothing at all in Apple Terminal 455.1**, for ⇧F1 or fn-⇧F1 — its re-coding of the shifted F-keys (below) does not reach F1 | Shift and F1: every tooltip shows, or hides, as for ⌥?, but in the chain's last layer, so any handler of the app's or a built-in view's on the chord takes it first (owner ruling B-HELP-2, 2026-10-26: the portable key, where Option does not arrive) | `CSI 1;2P` |
 
 **Why Option and not another modifier:** Shift is already in `?` on most layouts,
 and Control-? is Backspace wherever the kitty protocol is not spoken. Option is
@@ -5971,8 +5971,14 @@ the one that survives, where the host sends it as Meta; elsewhere the menu item
 is the way to it (F10, ← to Help, ↓), as the menu bar is to everything. An F-key
 was declined for the help key itself (F-keys are often taken system-wide).
 
-*To measure:* `Tools/TerminalProbes/key_probe.py` with `⌥?` and `⇧F1` added,
-in Apple Terminal, iTerm2 and Ghostty with each Option setting.
+**Apple Terminal reaches neither chord from its default profile:** it sends no
+Meta, so ⌥? arrives as `¿`, and it sends nothing for ⇧F1 (measured above).
+There Help ▸ Show All Tooltips is the way to it (F10, ← to Help, ↓), or ⌥? once
+"Use Option as Meta key" is on. ⇧F1 still earns its place in the three hosts
+that send it, where Option may compose instead (iTerm2's and Warp's defaults).
+
+*Still to measure:* `⌥?` with `Tools/TerminalProbes/key_probe.py` in Apple
+Terminal, iTerm2 and Warp, with each Option setting.
 
 ### Modified F1–F4 are CSI letters (xterm) — decoded since 2026-10-05
 

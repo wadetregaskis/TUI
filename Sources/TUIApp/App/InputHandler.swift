@@ -641,9 +641,11 @@ extension InputHandler {
         if event.alt, !event.ctrl, let tooltipState, let helpKey = tooltipState.helpKey, event.key == helpKey {
             return tooltipState.toggleShowsAllTooltips()
         }
-        // Shift-F1 does the same where Option does not arrive (Apple Terminal
-        // sends no Meta by default): the portable key for it (owner ruling
-        // B-HELP-2, 2026-10-26). Here, in the chain's last layer, so any
+        // Shift-F1 does the same where Option does not arrive (owner ruling
+        // B-HELP-2, 2026-10-26). iTerm2, Ghostty and Warp send it; Apple
+        // Terminal sends neither it nor Meta by default, so there the menu
+        // item is the way (Terminal compatibility survey.md, "The help key",
+        // measured 2026-10-28). Here, in the chain's last layer, so any
         // handler of the app's or a built-in view's on the chord takes it first.
         if event.key == .f1, event.shift, !event.ctrl, !event.alt, let tooltipState {
             return tooltipState.toggleShowsAllTooltips()
