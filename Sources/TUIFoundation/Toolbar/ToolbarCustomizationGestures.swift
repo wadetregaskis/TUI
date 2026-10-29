@@ -31,6 +31,11 @@ package final class ToolbarCustomizationGestures: @unchecked Sendable {
         /// are measured from, and the screen's rows its bar takes: set once
         /// the window is stacked (``place(_:origin:barRows:)``).
         package var placement: (origin: (x: Int, y: Int), barRows: Range<Int>)?
+        /// The rows of the bar it is drawn in, counted from its region's
+        /// top, where that bar is not one of the window's — a navigation
+        /// stack's, inside the page — whose rows the window cannot know
+        /// (``noteBar(rows:of:)``); `nil` in the window's bars.
+        package var ownBarRows: Range<Int>?
     }
 
     /// A drag of an item in the bar, from the press to the release.
@@ -101,6 +106,25 @@ package final class ToolbarCustomizationGestures: @unchecked Sendable {
     /// Whether `id` is the handler of an item's region to drag.
     package func isDraggable(_ id: HitTestRegion.HandlerID) -> Bool {
         draggables[id] != nil
+    }
+
+    /// Records, for each item drawn to be dragged in `buffer`, a bar of the
+    /// page's own — a navigation stack's — that the window's do not cover,
+    /// that `rows` of `buffer` are the rows of the bar it is in. The first
+    /// bar to say so is the item's: the one it is drawn in.
+    package func noteBar(rows: Range<Int>, of buffer: FrameBuffer) {
+        guard !draggables.isEmpty else { return }
+        for region in buffer.hitTestRegions where draggables[region.handlerID]?.ownBarRows == nil {
+            let top = region.localOriginY
+            draggables[region.handlerID]?.ownBarRows = (rows.lowerBound - top)..<(rows.upperBound - top)
+        }
+    }
+
+    /// The rows of the bar of the page's own that the item of handler `id`
+    /// is drawn in, counted from its region's top, or `nil` for an item in
+    /// one of the window's bars (``noteBar(rows:of:)``).
+    package func ownBarRows(of id: HitTestRegion.HandlerID) -> Range<Int>? {
+        draggables[id]?.ownBarRows
     }
 
     /// Records where on the screen the region of handler `id` is, and the

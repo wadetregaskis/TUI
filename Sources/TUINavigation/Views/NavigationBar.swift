@@ -155,6 +155,11 @@ struct NavigationBar {
 
         let rendered = TUIView.renderToBuffer(
             titled, context: barContext.withChildIdentity(type: NavigationBarID.self))
+        // A customizable toolbar's items, drawn to be dragged while it is
+        // customized, are judged on or off this bar, not the window's.
+        if !context.isMeasuring {
+            context.environment.windowChrome?.toolbarCustomization.noteBar(rows: 0..<Self.height, of: rendered)
+        }
         return Self.padded(rendered, toWidth: width, height: Self.height)
     }
 

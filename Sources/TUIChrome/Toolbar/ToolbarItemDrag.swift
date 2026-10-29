@@ -132,8 +132,12 @@ enum _ToolbarItemDrag {
 extension _WindowChromeHost {
     /// Brings the regions of the items drawn to be dragged (``_ToolbarItemDrag``)
     /// in front of every other region of `frame`, the stacked window, and notes
-    /// where each is on the screen and which bar's rows — `topRows` or
-    /// `bottomRows` — it is in. Nothing while no toolbar is customized.
+    /// where each is on the screen and the rows of the bar it is drawn in:
+    /// the bar of the page's own that noted them, for an item a screen pushed
+    /// onto a navigation stack put in the stack's bar
+    /// (`ToolbarCustomizationGestures.noteBar(rows:of:)`); else the window's
+    /// `topRows` or `bottomRows`, whichever it is in. Nothing while no toolbar
+    /// is customized.
     func frontingToolbarItemDrags(
         _ frame: inout FrameBuffer, chrome: WindowChromeState, topRows: Range<Int>, bottomRows: Range<Int>
     ) {
@@ -146,9 +150,13 @@ extension _WindowChromeHost {
             return true
         }
         for region in front {
-            gestures.place(
-                region.handlerID, origin: (region.localOriginX, region.localOriginY),
-                barRows: topRows.contains(region.offsetY) ? topRows : bottomRows)
+            // Judged against the bottom bar's rows, an item in a stack's bar
+            // was off its bar where it was pressed: a click took it out.
+            let top = region.localOriginY
+            let barRows =
+                gestures.ownBarRows(of: region.handlerID).map { ($0.lowerBound + top)..<($0.upperBound + top) }
+                ?? (topRows.contains(region.offsetY) ? topRows : bottomRows)
+            gestures.place(region.handlerID, origin: (region.localOriginX, top), barRows: barRows)
         }
         // The last region filed is the first hit.
         frame.hitTestRegions.append(contentsOf: front)

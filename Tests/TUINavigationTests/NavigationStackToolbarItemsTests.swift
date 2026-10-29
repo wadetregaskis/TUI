@@ -23,6 +23,7 @@ private final class StackProbe: @unchecked Sendable {
     static let shared = StackProbe()
     var path: [Int] = []
     var saved = 0
+    var store = MockStorageBackend()
 }
 
 /// A stack whose root and pushed screen each declare items.
@@ -53,6 +54,31 @@ private struct StackItemsApp: App {
     }
 }
 
+/// A pushed screen with a customizable toolbar: two items in the stack's bar,
+/// and one in the window's bottom bar, whose context menu customizes it.
+private struct StackCustomizableApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            NavigationStack(path: Binding(get: { StackProbe.shared.path }, set: { StackProbe.shared.path = $0 })) {
+                Text("ROOT")
+                    .navigationDestination(for: Int.self) { _ in
+                        Text("SCREEN")
+                            .navigationTitle("Earth")
+                            .toolbar(id: "pushed") {
+                                ToolbarItem(id: "one", placement: .primaryAction) { Text("ONE") }
+                                ToolbarItem(id: "two", placement: .primaryAction) { Text("TWO") }
+                                ToolbarItem(id: "low", placement: .bottomBar) { Text("LOW") }
+                            }
+                    }
+            }
+        }
+        .defaultAppStorage(StackProbe.shared.store)
+        .windowToolbarStyle(.unifiedCompact)
+    }
+}
+
 @MainActor
 @Suite("Navigation stack toolbar items", .serialized)
 struct NavigationStackToolbarItemsTests {
@@ -60,10 +86,11 @@ struct NavigationStackToolbarItemsTests {
     private func reset() {
         StackProbe.shared.path = []
         StackProbe.shared.saved = 0
+        StackProbe.shared.store = MockStorageBackend()
     }
 
     /// The screen after a few frames: enough to declare, adopt and settle.
-    private func frames(_ app: HeadlessApp<StackItemsApp>, from now: inout Int64) -> [String] {
+    private func frames(_ app: HeadlessApp<some App>, from now: inout Int64) -> [String] {
         for _ in 0..<3 {
             now += 20_000_000
             app.frame(atNanos: now)
@@ -123,5 +150,59 @@ struct NavigationStackToolbarItemsTests {
         let rows = frames(app, from: &now)
         #expect(rows.first?.contains("ROOTITEM") == true, "\(rows)")
         #expect(!rows.contains { $0.contains("SAVE") }, "\(rows)")
+    }
+
+    /// Off the bar is judged against the rows of the bar the item is drawn
+    /// in: the stack's, not the window's bottom bar's, as it was — so a click
+    /// on the item took it out.
+    @Test("While customizing, a pushed screen's item in the stack's bar stays on a click, and moves when dragged")
+    func customizingInTheStackBar() {
+        reset()
+        defer { reset() }
+        StackProbe.shared.path = [3]
+        let app = HeadlessApp(StackCustomizableApp(), width: 50, height: 12)
+        var now: Int64 = 0
+        var rows = frames(app, from: &now)
+        func position(of text: String) -> (x: Int, y: Int)? {
+            for (row, line) in rows.enumerated() {
+                if let found = line.range(of: text) { return (line.distance(from: line.startIndex, to: found.lowerBound), row) }
+            }
+            return nil
+        }
+        func send(_ phase: MousePhase, _ point: (x: Int, y: Int), button: MouseButton = .left) {
+            _ = app.send(MouseEvent(button: button, phase: phase, x: point.x, y: point.y))
+            rows = frames(app, from: &now)
+        }
+        guard let low = position(of: "LOW") else {
+            Issue.record("\(rows)")
+            return
+        }
+        send(.pressed, low, button: .right)
+        send(.released, low, button: .right)
+        guard let customize = position(of: "Customize Toolbar") else {
+            Issue.record("no context menu: \(rows)")
+            return
+        }
+        send(.pressed, customize)
+        send(.released, customize)
+        #expect(rows.contains { $0.contains("Done") }, "the panel: \(rows)")
+        guard let one = position(of: "ONE") else {
+            Issue.record("\(rows)")
+            return
+        }
+        // A click: nothing is taken out.
+        send(.pressed, one)
+        send(.released, one)
+        #expect(rows[one.y].contains("ONE"), "\(rows)")
+        // Dragged sideways past TWO, it goes after it.
+        send(.pressed, one)
+        for step in 1...4 { send(.dragged, (one.x + step, one.y)) }
+        send(.released, (one.x + 4, one.y))
+        let bar = rows[one.y]
+        if let first = bar.range(of: "ONE"), let second = bar.range(of: "TWO") {
+            #expect(second.lowerBound < first.lowerBound, "\(rows)")
+        } else {
+            Issue.record("\(rows)")
+        }
     }
 }
