@@ -374,6 +374,10 @@ extension AppRunner {
 
     /// Runs the app until it quits (``whileRunning(_:)``).
     func run() async {
+        // One app per process: a second run beside this one would share its
+        // terminal, signal handlers and signal debt (`RunningAppClaim`).
+        RunningAppClaim.claim()
+        defer { RunningAppClaim.release() }
         await whileRunning { await runLoop() }
     }
 
