@@ -183,7 +183,9 @@ public struct GraphicsContext {
     /// Writes one glyph to the canvas under this context's state.
     private func place(_ glyph: Text.Layout.Glyph, as character: Character?, style: SGRState) {
         let origin = CGPoint(x: CGFloat(glyph.column), y: CGFloat(glyph.row)).applying(transform)
-        guard origin.x.isFinite, origin.y.isFinite else { return }
+        // Within the canvas's reach, which also keeps `Int(_:)` from trapping
+        // on a huge or non-finite coordinate (NaN fails both comparisons).
+        guard canvas.reaches(origin) else { return }
         let shown = character.map(String.init) ?? glyph.character
         canvas.write(
             Canvas.Cell(
@@ -282,6 +284,30 @@ extension GraphicsContext {
 
         /// Row → column → cell.
         private(set) var rows: [Int: [Int: Cell]] = [:]
+
+        /// How far past the text's frame a glyph may be drawn, in columns and
+        /// rows: farther is past any screen a person reads, and the buffer
+        /// made from the canvas spans every cell between, so a renderer that
+        /// translated by `1 / sin(t)` near zero would otherwise allocate
+        /// millions of rows a frame.
+        static let reach = (columns: 256, rows: 128)
+
+        /// The rectangle a glyph's origin must lie in: the text's frame,
+        /// `width` × `height` at the origin, and ``reach`` round it.
+        private let bounds: (minX: CGFloat, minY: CGFloat, maxX: CGFloat, maxY: CGFloat)
+
+        /// A canvas for a text whose frame is `width` × `height` cells.
+        init(width: Int, height: Int) {
+            bounds = (
+                CGFloat(-Self.reach.columns), CGFloat(-Self.reach.rows),
+                CGFloat(width + Self.reach.columns), CGFloat(height + Self.reach.rows))
+        }
+
+        /// Whether a glyph at `origin` is drawn: inside ``bounds``, which a
+        /// non-finite coordinate never is.
+        func reaches(_ origin: CGPoint) -> Bool {
+            origin.x >= bounds.minX && origin.x <= bounds.maxX && origin.y >= bounds.minY && origin.y <= bounds.maxY
+        }
 
         func write(_ cell: Cell, column: Int, row: Int) {
             guard cell.opacity > 0 else { return }

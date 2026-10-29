@@ -170,7 +170,7 @@ extension Text {
     private func redrawn<R: TextRenderer>(_ drawn: FrameBuffer, by renderer: R, context: RenderContext) -> FrameBuffer {
         let shown = animatedValue(of: renderer, owner: R.self, context: context, isMeasuring: false) ?? renderer
         let layout = layout(of: drawn, context: context)
-        let canvas = GraphicsContext.Canvas()
+        let canvas = GraphicsContext.Canvas(width: drawn.width, height: drawn.height)
         var graphics = GraphicsContext(canvas: canvas)
         shown.draw(layout: layout, in: &graphics)
         let extent = canvas.extent(including: drawn.width, drawn.height)

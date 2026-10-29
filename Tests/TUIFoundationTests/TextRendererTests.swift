@@ -185,4 +185,32 @@ struct TextRendererTests {
         let a = line.range(of: "a")!, b = line.range(of: "b")!
         #expect(line[a.upperBound..<b.lowerBound].contains("4"), "underline turned on before b: \(line.debugDescription)")
     }
+
+    /// A live text draws its reading at this frame, not its own words; its
+    /// layout is built from what it draws, or every glyph is unmatched and the
+    /// text reads as cut short (2026-10-29 review).
+    @Test("A live text's layout is built from the words it draws")
+    func liveTextLayout() throws {
+        let probe = LayoutProbe()
+        let base = Date(timeIntervalSinceNow: -3_725)
+        let text = Text("Ran \(Text(base, style: .relative))")
+        let shown = screen(text).trimmingCharacters(in: .whitespacesAndNewlines)
+        _ = rendered(text.textRenderer(Recording(probe: probe)))
+        let layout = try #require(probe.layout)
+        let glyphs = layout.flatMap { line in line.flatMap { run in run.glyphs.map(\.character) } }.joined()
+        #expect(glyphs == shown)
+        #expect(!layout.isTruncated)
+    }
+
+    @Test("A glyph moved far past the text's frame is not drawn, and a huge move does not trap")
+    func farGlyphsDropped() {
+        for distance: CGFloat in [1e7, 1e300, .infinity, .nan] {
+            let buffer = rendered(
+                Text(verbatim: "ab").textRenderer(PerGlyph { index, glyph, ctx in
+                    if index == 1 { ctx.translateBy(x: distance, y: distance) }
+                    ctx.draw(glyph)
+                }))
+            #expect(buffer.width == 2 && buffer.height == 1, "\(distance): \(buffer.width)×\(buffer.height)")
+        }
+    }
 }
