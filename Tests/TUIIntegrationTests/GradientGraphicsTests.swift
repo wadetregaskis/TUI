@@ -67,6 +67,28 @@ struct GradientRasterTests {
         }
     }
 
+    /// A radius is in cells, as the cells draw it; the picture measures in
+    /// pixels, and read the radius as pixels — `endRadius: 6` was a dot six
+    /// pixels across in a flat field of the last stop (Ghostty, 2026-10-28).
+    @Test("A radial ramp's radii and an extent stated in cells are as far across the picture as across the cells", arguments: [false, true])
+    func radialRadiiAreCells(statedExtent: Bool) throws {
+        let gradient = Gradient(colors: [.rgb(255, 0, 0), .rgb(0, 0, 255)])
+        let paint = Paint.gradient(
+            GradientPaint(
+                gradient, .radial(center: .center, startRadius: 0, endRadius: 6),
+                extent: statedExtent ? CellSize(width: 12, height: 3) : nil))
+        let picture = try #require(raster(paint, columns: 12, rows: 3))
+        // The middle row, 3 cells right of the centre: half way out, so half
+        // way along the ramp, where it was all blue.
+        let row = picture.height / 2
+        let column = picture.width / 2 + picture.width / 4
+        let at = (row * picture.width + column) * 3
+        let pixel = Array(picture.bytes[at..<(at + 3)])
+        #expect(pixel[0] > 60 && pixel[2] > 60, "half way along the ramp: \(pixel)")
+        let edge = (row * picture.width + picture.width - 1) * 3
+        #expect(Array(picture.bytes[edge..<(edge + 3)])[0] < 30, "the edge, six cells out, is the last stop")
+    }
+
     @Test("A vertical ramp varies down the rows and not along them")
     func verticalRampVariesByRow() throws {
         let paint = Paint.gradient(

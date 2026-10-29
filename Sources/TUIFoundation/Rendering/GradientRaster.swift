@@ -165,6 +165,9 @@ package enum GradientRaster {
         // An image paint is drawn in cells: a picture of it would sample the
         // image again at the terminal's pixels (decisions W1B, B-W1B-4).
         if case .image = paint { return nil }
+        // The paint's own lengths in pixels too, which the frame's alone left
+        // in cells: a radial ramp's radii, and a `.in(_:)` extent.
+        let paint = inPixels(paint, cellPixels: cellPixels)
         // The extent in pixels — every cell coordinate times the cell — and
         // the sampler over it at that resolution. The factor is applied by
         // SAMPLING every `factor`-th pixel rather than by shrinking the frame,
@@ -252,6 +255,37 @@ package enum GradientRaster {
                 bytes[index * 3 + 2] = rgb.blue
             }
             return bytes
+        }
+    }
+
+    /// `paint` with the lengths it states in cells stated in pixels, as the
+    /// picture's sampler measures everything: a radial ramp's radii, which are
+    /// horizontal cells and so become that many cells' widths, and a
+    /// `.in(_:)` extent. Left in cells, `RadialGradient(…, endRadius: 6)`
+    /// reached its last stop six pixels from the centre — a dot in a flat
+    /// field, in every terminal that draws a gradient as a picture.
+    static func inPixels(_ paint: Paint, cellPixels: TerminalCellPixels) -> Paint {
+        /// `length` times `scale`, held to `Int`'s range: a radius is the
+        /// caller's, and can be anything.
+        func scaled(_ length: Int, by scale: Int) -> Int {
+            let (product, overflowed) = length.multipliedReportingOverflow(by: scale)
+            return overflowed ? (length < 0 ? .min : .max) : product
+        }
+        switch paint {
+        case .gradient(var ramped):
+            if case .radial(let center, let startRadius, let endRadius) = ramped.geometry {
+                ramped.geometry = .radial(
+                    center: center, startRadius: scaled(startRadius, by: cellPixels.width),
+                    endRadius: scaled(endRadius, by: cellPixels.width))
+            }
+            ramped.extent = ramped.extent.map {
+                CellSize(width: scaled($0.width, by: cellPixels.width), height: scaled($0.height, by: cellPixels.height))
+            }
+            return .gradient(ramped)
+        case .shadowed(let base, let shadow): return .shadowed(inPixels(base, cellPixels: cellPixels), shadow)
+        case .blended(let base, let mode): return .blended(inPixels(base, cellPixels: cellPixels), mode)
+        case .frosted(let base, let frost): return .frosted(inPixels(base, cellPixels: cellPixels), frost)
+        case .color, .mesh, .image: return paint
         }
     }
 

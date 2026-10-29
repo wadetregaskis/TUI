@@ -797,6 +797,15 @@ turned it off, those four are drawn as pictures through the same
 | The indeterminate `.gradient` motion over a `█` fill | 4 samples a cell, re-coloured every frame | `IndeterminateRaster` — a picture per frame, transmitted once; a frame is a row of unchanged cells naming a different id |
 | everything with a glyph in it — shade, braille, dot, knob, text over a ramp | unchanged | — |
 
+**Lengths in cells, sampled in pixels (fixed 2026-10-28).** `GradientRaster`
+samples the ramp over the extent in the terminal's pixels, and converted the
+frame, but not the lengths a paint states itself: a `RadialGradient`'s radii,
+which are horizontal cells, and a `.in(_:)` extent. So `endRadius: 6` reached
+its last stop six pixels from the centre — a dot in a flat field of the last
+colour in Ghostty, where the cells drew a circle (the owner, 2026-10-28).
+`GradientRaster.inPixels` states both in pixels first: a radius times the
+cell's width, an extent times the cell.
+
 **What declines, and is drawn in cells instead.** A translucent colour
 (`Opacity as composition.md` §15.1). Since 2026-09-15, also a colour with no RGB:
 `Color.default`, or the terminal's own foreground or background before it has
