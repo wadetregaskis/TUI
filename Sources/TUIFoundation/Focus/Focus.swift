@@ -141,8 +141,10 @@ public final class FocusManager: @unchecked Sendable {
     /// page — and a `ScrollView` would snap-scroll there, resetting the scroll.
     ///
     /// Readable outside this file because ``focusedValuesIdentity`` reads the
-    /// focus a menu was opened over from it.
-    private(set) var sectionFocusMemory: [String: String] = [:]
+    /// focus a menu was opened over from it, and writable because the sweep
+    /// that keeps it bounded is in a file of its own
+    /// (`FocusManagerSectionSweep.swift`).
+    var sectionFocusMemory: [String: String] = [:]
 
     /// Sections that belong to a presented modal / alert — surfaces that *grab*
     /// input. Re-marked each render by the presentation modifiers (cleared in
@@ -260,8 +262,15 @@ public final class FocusManager: @unchecked Sendable {
     /// to when it is deactivated (e.g. a modal section reverts to the page's).
     ///
     /// Readable outside this file because `activatePresentedSection(id:)` walks
-    /// it to tell a surface stacked on a presentation from anything else.
-    private(set) var sectionRevertTarget: [String: String] = [:]
+    /// it to tell a surface stacked on a presentation from anything else, and
+    /// writable because the sweep that keeps it bounded is in a file of its
+    /// own (`FocusManagerSectionSweep.swift`).
+    var sectionRevertTarget: [String: String] = [:]
+
+    /// The size ``sectionFocusMemory`` and ``sectionRevertTarget`` together
+    /// may reach before a write sweeps out the sections that have gone
+    /// (``sweepSectionTablesIfGrown()``).
+    var sectionSweepThreshold = FocusManager.minimumSectionSweepThreshold
 
     /// A focus request whose target was not registered when it was made —
     /// durable focus intent ("Locating things without drawing them" §5d:
@@ -1248,6 +1257,7 @@ extension FocusManager {
         rememberFocusForActiveSection()
         if let leaving = activeSectionID {
             sectionRevertTarget[id] = leaving
+            sweepSectionTablesIfGrown()
         }
 
         // Notify current focused element
@@ -1325,6 +1335,7 @@ extension FocusManager {
     private func rememberFocusForActiveSection() {
         if let active = activeSectionID, let focused = focusedID {
             sectionFocusMemory[active] = focused
+            sweepSectionTablesIfGrown()
         }
     }
 
