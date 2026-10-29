@@ -7128,6 +7128,37 @@ The paste is unmeasured on any host here, for the reasons the table gives (the
 owner's kitty run measured the write). The acknowledgement is swallowed with
 every other reply. A paste in kitty, and Ghostty-tip, are owed a run.
 
+## modifyCursorKeys (XTMODKEYS) — set to 2, and reset to its initial value since 2026-10-29; read from ctlseqs, NOT measured
+
+`Terminal.enableRawMode` (startup and every resume) sends `CSI > 1 ; 2 m`,
+modifyCursorKeys = 2, so a modified arrow arrives in the canonical
+`CSI 1 ; <mod> <letter>` form with every modifier bit (Shift+Option+Left
+with both). The teardown, and the debt a signal pays, put it back with
+`CSI > 1 m` (`Terminal.inputModesOff`).
+
+**Why `CSI > 1 m` and not `CSI > 1 ; 0 m`.** xterm's control-sequence notes
+(ctlseqs, XTMODKEYS, `CSI > Pp ; Pv m`): "If the second parameter is
+omitted, the resource is reset to its initial value" — the value the
+terminal started with, from the user's resources, and xterm's own default
+for modifyCursorKeys is 2. `CSI > 1 ; 0 m` does not reset anything: it SETS
+the resource to 0, xterm's obsolete encoding of a modified cursor key.
+Until 2026-10-29 every quit, suspend and crash debt sent it, so each run of
+a TUI app changed the user's xterm Ctrl/Shift/Alt-arrow encoding for the
+rest of the terminal's life.
+
+This is read from ctlseqs and nowhere measured. Hosts that do not implement
+XTMODKEYS ignore both spellings (Apple Terminal ignores the set as well; its
+shape — `>`, no intermediate — is the DA2 shape it consumes, "Asking the
+terminal — Device Attributes"). What remains to measure, per host: after an
+app quits, does `cat -v` show Ctrl+Left as `^[[1;5D` as it did before launch?
+
+| Host | Implements XTMODKEYS 1 | Initial value restored by `CSI > 1 m` |
+|---|---|---|
+| xterm | yes (ctlseqs) | yes, by ctlseqs — UNMEASURED |
+| iTerm2, Ghostty, kitty, WezTerm, VTE | UNMEASURED | UNMEASURED |
+| Apple Terminal | no (ignores the set) | — |
+| tmux | UNMEASURED | UNMEASURED |
+
 ## Inherited state: the defaults raw mode asserts — since 2026-10-05
 
 Modes outlive the program that set them. A killed `vim`, `less` or `htop`, or

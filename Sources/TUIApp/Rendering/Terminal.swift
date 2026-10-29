@@ -890,7 +890,14 @@ extension Terminal {
     /// — the orderly teardown's, and the debt a signal pays
     /// (``armSignalRestore()``):
     ///
-    /// - modifyCursorKeys back to the terminal's default;
+    /// - modifyCursorKeys back to the terminal's initial value: `CSI > 1 m`,
+    ///   the resource named with no value, which xterm's control-sequence
+    ///   notes (XTMODKEYS) say resets it to its initial value — xterm's own
+    ///   default is 2, what ``enableRawMode()`` sets, or whatever the user
+    ///   configured. Not `CSI > 1 ; 0 m`: that SETS it, to 0, and every quit
+    ///   changed how the user's xterm sent a modified arrow key. Read from
+    ///   ctlseqs, not measured (`Documentation/Terminals/Terminal
+    ///   compatibility survey.md`, "modifyCursorKeys (XTMODKEYS)");
     /// - every mouse tracking mode this process might have enabled, and SGR
     ///   coordinates (a terminal ignores a disable for a mode that is not on);
     /// - focus reports, so the shell (or whatever runs after a suspend or
@@ -905,7 +912,7 @@ extension Terminal {
     /// Shift is handed back after it (``shiftEscapeOff``) where it was asked
     /// for: see ``inputModesOwed``.
     static let inputModesOff =
-        "\u{1B}[>1;0m"
+        "\u{1B}[>1m"
         + "\u{1B}[?1006l\u{1B}[?1003l\u{1B}[?1002l\u{1B}[?1000l"
         + "\u{1B}[?1004l"
         + "\u{1B}[?2031l"

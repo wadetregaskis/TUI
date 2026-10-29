@@ -172,6 +172,21 @@ extension TerminalOutputTests {
             + "\u{1B}[?2004h" + "\u{1B}[?1004h" + "\u{1B}[?2031h" + "\u{1B}[>1;2m")
     }
 
+    /// `CSI > 1 ; 0 m` SETS modifyCursorKeys to 0; xterm's default is 2, so
+    /// every quit changed how the user's xterm sent a modified arrow. With
+    /// no value the resource goes back to its initial value (ctlseqs,
+    /// XTMODKEYS).
+    @Test("The teardown and a signal's debt put modifyCursorKeys back to its initial value, not to 0")
+    func modifyCursorKeysIsReset() {
+        let (terminal, output) = ScriptedTerminalOutput.terminal()
+        terminal.enableRawMode()
+        #expect(terminal.signalDebt.contains("\u{1B}[>1m"))
+        output.clear()
+        terminal.disableRawMode()
+        #expect(output.bytes.contains("\u{1B}[>1m"))
+        #expect(!output.bytes.contains("\u{1B}[>1;0m"))
+    }
+
     /// SIGQUIT is the user's quit key's signal, and it leaves the terminal as
     /// a quit does: its debt is the bytes the run loop's teardown writes
     /// (`AppRunner.cleanup`: the styling reset, raw mode off, the cursor
