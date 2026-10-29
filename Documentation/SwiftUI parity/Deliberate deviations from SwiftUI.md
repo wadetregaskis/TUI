@@ -2158,8 +2158,12 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   more than SwiftUI elsewhere.
 - **Why:** a nested group opened, or a field typed in, should still be so when
   its parent reopens, in a `VStack` as in a `List`; dropping it there would copy
-  a SwiftUI limitation (the owner's rule: keep TUI's extra capability unless it
-  is unsound). Aligning with SwiftUI is parked on `hold/disclosure-swiftui`.
+  a SwiftUI limitation. The owner's rule (2026-10-29): TUI changes to match
+  SwiftUI only where a program written for SwiftUI would do something
+  undesirable on TUI, not where it merely behaves differently. Here it would
+  not: SwiftUI code cannot count on the reset, since SwiftUI itself keeps the
+  state in a `List`. A program written for TUI that counts on the state being
+  kept in a `VStack` loses it on SwiftUI.
 - **Decided:** [DisclosureGroup.swift](../../Sources/TUIFoundation/Views/DisclosureGroup.swift#L58-L63).
   **Recorded.**
 

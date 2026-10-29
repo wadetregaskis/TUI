@@ -48,6 +48,16 @@ blends inside it mixed in linear light)
 (`Sources/TUIFoundation/Modifiers/MediumGuaranteedModifiers.swift`). A guarantee the
 medium keeps for free is honoured; a request it silently discards is not.
 
+**And a corollary: TUI does not copy SwiftUI's limitations** (owner,
+2026-10-11 and 2026-10-29). "Mean the same thing" is about correctness: where a
+program written for SwiftUI would do something undesirable on TUI, TUI changes.
+Where it only behaves differently, because TUI does more, keeps more, or does it
+more cheaply, TUI keeps its own behaviour and records the difference in
+[Deliberate deviations from SwiftUI.md](<Deliberate deviations from SwiftUI.md>).
+A program written for TUI that would misbehave on SwiftUI is not a reason to
+hold TUI back either. That is SwiftUI's limitation, and the deviation entry is
+where a reader learns of it.
+
 ---
 
 ## How this was determined
