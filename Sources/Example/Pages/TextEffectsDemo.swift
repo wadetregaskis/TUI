@@ -24,11 +24,14 @@ struct TextEffectsDemo: View {
                 let sample = Array(L("page.textStyles.effectSample"))
                 VStack(alignment: .leading, spacing: 1) {
                     Text("page.textStyles.effectsExplain").foregroundStyle(.palette.foregroundSecondary)
-                    effect("page.textStyles.effect.wave", Wave(time: time, text: sample))
-                    effect("page.textStyles.effect.dissolve", Dissolve(time: time))
-                    effect("page.textStyles.effect.typewriter", Typewriter(time: time))
-                    effect("page.textStyles.effect.rainbow", Rainbow(time: time))
-                    effect("page.textStyles.effect.sweep", UnderlineSweep(time: time, text: sample))
+                    VStack(alignment: .leading, spacing: 1) {
+                        effect("page.textStyles.effect.wave", Wave(time: time, text: sample))
+                        effect("page.textStyles.effect.dissolve", Dissolve(time: time))
+                        effect("page.textStyles.effect.typewriter", Typewriter(time: time))
+                        effect("page.textStyles.effect.rainbow", Rainbow(time: time))
+                        effect("page.textStyles.effect.sweep", UnderlineSweep(time: time, text: sample))
+                    }
+                    .indentedExamples()
                 }
                 // A row above each effect for the wave's crest to rise into.
                 .padding(.top, 1)

@@ -73,3 +73,11 @@ struct DemoSection<Content: View>: View {
         }
     }
 }
+
+extension View {
+    /// Sets a section's examples in from its header and its explanation, so the
+    /// two read apart.
+    func indentedExamples() -> some View {
+        padding(.leading, 2)
+    }
+}

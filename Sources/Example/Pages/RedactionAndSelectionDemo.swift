@@ -42,18 +42,22 @@ struct RedactionAndSelectionDemo: View {
                     .border(.palette.border)
                     .redacted(reason: reasons)
                 }
+                .indentedExamples()
             }
             DemoSection("page.textStyles.section.selection") {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("page.textStyles.selection.explain")
                         .foregroundStyle(.palette.foregroundSecondary)
-                    // A drag selects within this text, and no further.
-                    Text("page.textStyles.selection.enabled")
-                        .textSelection(.enabled)
-                    // A drag here selects nothing: TUI's selection is off.
-                    Text("page.textStyles.selection.disabled")
-                        .foregroundStyle(.palette.foregroundTertiary)
-                        .textSelection(.disabled)
+                    VStack(alignment: .leading, spacing: 1) {
+                        // A drag selects within this text, and no further.
+                        Text("page.textStyles.selection.enabled")
+                            .textSelection(.enabled)
+                        // A drag here selects nothing: TUI's selection is off.
+                        Text("page.textStyles.selection.disabled")
+                            .foregroundStyle(.palette.foregroundTertiary)
+                            .textSelection(.disabled)
+                    }
+                    .indentedExamples()
                 }
             }
         }

@@ -83,10 +83,13 @@ struct TextStylesPage: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("page.textStyles.formatExplain")
                         .foregroundStyle(.palette.foregroundSecondary)
-                    // Each right-hand view IS a Text(value, format:) rendering.
-                    formatRow(".percent") { Text(0.5, format: .percent) }
-                    formatRow(".number") { Text(1_234_567, format: .number) }
-                    formatRow(".currency(USD)") { Text(1299.99, format: .currency(code: "USD")) }
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Each right-hand view IS a Text(value, format:) rendering.
+                        formatRow(".percent") { Text(0.5, format: .percent) }
+                        formatRow(".number") { Text(1_234_567, format: .number) }
+                        formatRow(".currency(USD)") { Text(1299.99, format: .currency(code: "USD")) }
+                    }
+                    .indentedExamples()
                 }
             }
 
@@ -94,12 +97,15 @@ struct TextStylesPage: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("page.textStyles.localeExplain")
                         .foregroundStyle(.palette.foregroundSecondary)
-                    // The same value under three locales (via the format style's own
-                    // locale). The \.locale environment re-locales Table/List number
-                    // chrome the same way.
-                    formatRow("en_US") { Text(1_234_567, format: .number.locale(Locale(identifier: "en_US"))) }
-                    formatRow("de_DE") { Text(1_234_567, format: .number.locale(Locale(identifier: "de_DE"))) }
-                    formatRow("fr_FR") { Text(1_234_567, format: .number.locale(Locale(identifier: "fr_FR"))) }
+                    VStack(alignment: .leading, spacing: 0) {
+                        // The same value under three locales (via the format style's own
+                        // locale). The \.locale environment re-locales Table/List number
+                        // chrome the same way.
+                        formatRow("en_US") { Text(1_234_567, format: .number.locale(Locale(identifier: "en_US"))) }
+                        formatRow("de_DE") { Text(1_234_567, format: .number.locale(Locale(identifier: "de_DE"))) }
+                        formatRow("fr_FR") { Text(1_234_567, format: .number.locale(Locale(identifier: "fr_FR"))) }
+                    }
+                    .indentedExamples()
                 }
             }
 
@@ -108,10 +114,13 @@ struct TextStylesPage: View {
                     Text("page.textStyles.fontWeightExplain")
                     .foregroundStyle(.palette.foregroundSecondary)
 
-                    Text("page.textStyles.thin").fontWeight(.thin)
-                    Text("page.textStyles.regular").fontWeight(.regular)
-                    Text("page.textStyles.semibold").fontWeight(.semibold)
-                    Text("page.textStyles.black").fontWeight(.black)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("page.textStyles.thin").fontWeight(.thin)
+                        Text("page.textStyles.regular").fontWeight(.regular)
+                        Text("page.textStyles.semibold").fontWeight(.semibold)
+                        Text("page.textStyles.black").fontWeight(.black)
+                    }
+                    .indentedExamples()
                 }
             }
 
@@ -123,24 +132,30 @@ struct TextStylesPage: View {
                     // Each style renders its OWN name, so the collapse onto
                     // three tiers is visible rather than described — and so is
                     // the fact that none of them changes a cell count.
-                    Text(verbatim: ".largeTitle").font(.largeTitle)
-                    Text(verbatim: ".title").font(.title)
-                    Text(verbatim: ".title2").font(.title2)
-                    Text(verbatim: ".title3").font(.title3)
-                    Text(verbatim: ".headline").font(.headline)
-                    Text(verbatim: ".subheadline").font(.subheadline)
-                    Text(verbatim: ".body").font(.body)
-                    Text(verbatim: ".callout").font(.callout)
-                    Text(verbatim: ".footnote").font(.footnote)
-                    Text(verbatim: ".caption").font(.caption)
-                    Text(verbatim: ".caption2").font(.caption2)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(verbatim: ".largeTitle").font(.largeTitle)
+                        Text(verbatim: ".title").font(.title)
+                        Text(verbatim: ".title2").font(.title2)
+                        Text(verbatim: ".title3").font(.title3)
+                        Text(verbatim: ".headline").font(.headline)
+                        Text(verbatim: ".subheadline").font(.subheadline)
+                        Text(verbatim: ".body").font(.body)
+                        Text(verbatim: ".callout").font(.callout)
+                        Text(verbatim: ".footnote").font(.footnote)
+                        Text(verbatim: ".caption").font(.caption)
+                        Text(verbatim: ".caption2").font(.caption2)
+                    }
+                    .indentedExamples()
 
                     // The axes that survive the medium, composed onto a style.
                     Text("page.textStyles.fontAxes")
                         .foregroundStyle(.palette.foregroundSecondary)
-                    Text(verbatim: ".caption.weight(.bold)").font(.caption.weight(.bold))
-                    Text(verbatim: ".headline.bold(false)").font(.headline.bold(false))
-                    Text(verbatim: ".headline.italic()").font(.headline.italic())
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(verbatim: ".caption.weight(.bold)").font(.caption.weight(.bold))
+                        Text(verbatim: ".headline.bold(false)").font(.headline.bold(false))
+                        Text(verbatim: ".headline.italic()").font(.headline.italic())
+                    }
+                    .indentedExamples()
 
                     // The mapping is a default, so a theme can redefine one
                     // style without touching the others.
@@ -151,6 +166,7 @@ struct TextStylesPage: View {
                         Text(verbatim: ".caption").font(.caption)
                     }
                     .style(.font(.headline)) { $0.underline = true }
+                    .indentedExamples()
                 }
             }
 
@@ -175,6 +191,7 @@ struct TextStylesPage: View {
                         .lineSpacing(1)
                         .frame(width: 46)
                 }
+                .indentedExamples()
             }
 
             DemoSection("page.textStyles.section.cascading") {
@@ -182,40 +199,43 @@ struct TextStylesPage: View {
                     Text("page.textStyles.cascadingExplain")
                     .foregroundStyle(.palette.foregroundSecondary)
 
-                    // .bold() on the VStack makes all three lines bold; the middle
-                    // one opts out with .bold(false) (the closer modifier wins).
-                    VStack(alignment: .leading) {
-                        Text("page.textStyles.boldByInheritance")
-                        Text("page.textStyles.optsOut").bold(false)
-                        Text("page.textStyles.boldAgain")
-                    }
-                    .bold()
-
-                    // A whole block uppercased via .textCase.
-                    VStack(alignment: .leading) {
-                        Text("page.textStyles.uppercasedBlock")
-                        Text("page.textStyles.viaTextCase")
-                    }
-                    .textCase(.uppercase)
-
-                    // .lineLimit(2) on the VStack caps both paragraphs; the second
-                    // opts back out with .lineLimit(nil), which means "no limit" —
-                    // not "no opinion", or an inherited cap could never be lifted.
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("page.textStyles.cappedByInheritance")
-                        Text("page.textStyles.uncapped").lineLimit(nil)
-                    }
-                    .lineLimit(2)
-                    .frame(width: 46)
+                        // .bold() on the VStack makes all three lines bold; the middle
+                        // one opts out with .bold(false) (the closer modifier wins).
+                        VStack(alignment: .leading) {
+                            Text("page.textStyles.boldByInheritance")
+                            Text("page.textStyles.optsOut").bold(false)
+                            Text("page.textStyles.boldAgain")
+                        }
+                        .bold()
 
-                    // Role-scoped: dim ALL secondary-coloured text in this block,
-                    // without touching the primary line.
-                    VStack(alignment: .leading) {
-                        Text("page.textStyles.primaryStaysNormal")
-                        Text("page.textStyles.secondaryDimmed")
-                            .foregroundStyle(.palette.foregroundSecondary)
+                        // A whole block uppercased via .textCase.
+                        VStack(alignment: .leading) {
+                            Text("page.textStyles.uppercasedBlock")
+                            Text("page.textStyles.viaTextCase")
+                        }
+                        .textCase(.uppercase)
+
+                        // .lineLimit(2) on the VStack caps both paragraphs; the second
+                        // opts back out with .lineLimit(nil), which means "no limit" —
+                        // not "no opinion", or an inherited cap could never be lifted.
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("page.textStyles.cappedByInheritance")
+                            Text("page.textStyles.uncapped").lineLimit(nil)
+                        }
+                        .lineLimit(2)
+                        .frame(width: 46)
+
+                        // Role-scoped: dim ALL secondary-coloured text in this block,
+                        // without touching the primary line.
+                        VStack(alignment: .leading) {
+                            Text("page.textStyles.primaryStaysNormal")
+                            Text("page.textStyles.secondaryDimmed")
+                                .foregroundStyle(.palette.foregroundSecondary)
+                        }
+                        .style(.semanticColor(.foregroundSecondary)) { $0.dim = true }
                     }
-                    .style(.semanticColor(.foregroundSecondary)) { $0.dim = true }
+                    .indentedExamples()
                 }
             }
 
@@ -224,42 +244,45 @@ struct TextStylesPage: View {
                     Text("page.textStyles.concatExplain")
                         .foregroundStyle(.palette.foregroundSecondary)
 
-                    // Three fragments, three styles, one Text: each `Text`
-                    // interpolated into the outer one keeps its styling.
-                    Text(
-                        """
-                        \(Text("page.textStyles.concatLabel").bold())\
-                        \(Text("page.textStyles.concatValue").foregroundStyle(.palette.accent))\
-                        \(Text("page.textStyles.concatNote").dim())
-                        """)
+                    VStack(alignment: .leading, spacing: 1) {
+                        // Three fragments, three styles, one Text: each `Text`
+                        // interpolated into the outer one keeps its styling.
+                        Text(
+                            """
+                            \(Text("page.textStyles.concatLabel").bold())\
+                            \(Text("page.textStyles.concatValue").foregroundStyle(.palette.accent))\
+                            \(Text("page.textStyles.concatNote").dim())
+                            """)
 
-                    // The same thing narrow enough to wrap: the break falls
-                    // wherever the words need it, including inside a fragment,
-                    // and each fragment keeps its styling on every line it
-                    // reaches. An HStack of three Texts could not do that.
-                    Text(
-                        """
-                        \(Text("page.textStyles.concatLabel").bold())\
-                        \(Text("page.textStyles.concatLong").foregroundStyle(.palette.accent))
-                        """
-                    )
-                    .frame(width: 34)
+                        // The same thing narrow enough to wrap: the break falls
+                        // wherever the words need it, including inside a fragment,
+                        // and each fragment keeps its styling on every line it
+                        // reaches. An HStack of three Texts could not do that.
+                        Text(
+                            """
+                            \(Text("page.textStyles.concatLabel").bold())\
+                            \(Text("page.textStyles.concatLong").foregroundStyle(.palette.accent))
+                            """
+                        )
+                        .frame(width: 34)
 
-                    // A modifier on the RESULT is the base beneath each
-                    // fragment's own attributes — the first stays bold.
-                    Text("\(Text("page.textStyles.concatLabel").bold())\(Text("page.textStyles.concatValue"))")
-                        .italic()
+                        // A modifier on the RESULT is the base beneath each
+                        // fragment's own attributes — the first stays bold.
+                        Text("\(Text("page.textStyles.concatLabel").bold())\(Text("page.textStyles.concatValue"))")
+                            .italic()
 
-                    // A semantic font travels WITH its fragment, which is why
-                    // `Text` has a `.font(_:)` of its own: the fragments make
-                    // ONE view, so a container's font could only reach them
-                    // all at once. Here the heading is emphatic and the aside
-                    // is faint, in a single Text.
-                    Text(
-                        """
-                        \(Text("page.textStyles.concatLabel").font(.headline))\
-                        \(Text("page.textStyles.concatNote").font(.caption))
-                        """)
+                        // A semantic font travels WITH its fragment, which is why
+                        // `Text` has a `.font(_:)` of its own: the fragments make
+                        // ONE view, so a container's font could only reach them
+                        // all at once. Here the heading is emphatic and the aside
+                        // is faint, in a single Text.
+                        Text(
+                            """
+                            \(Text("page.textStyles.concatLabel").font(.headline))\
+                            \(Text("page.textStyles.concatNote").font(.caption))
+                            """)
+                    }
+                    .indentedExamples()
                 }
             }
 
@@ -268,30 +291,33 @@ struct TextStylesPage: View {
                     Text("page.textStyles.opacityExplain")
                     .foregroundStyle(.palette.foregroundSecondary)
 
-                    // One modifier fades a whole subtree — text, colours and
-                    // controls alike — with each colour blended toward the
-                    // background rather than replaced by a single grey.
-                    Slider(value: $opacity, in: 0...1)
-                    .frame(width: 40)
+                    VStack(alignment: .leading, spacing: 1) {
+                        // One modifier fades a whole subtree — text, colours and
+                        // controls alike — with each colour blended toward the
+                        // background rather than replaced by a single grey.
+                        Slider(value: $opacity, in: 0...1)
+                        .frame(width: 40)
 
-                    VStack(alignment: .leading) {
-                        Text("page.textStyles.opacityHeading").bold()
-                        .foregroundStyle(.palette.error)
-                        Text("page.textStyles.opacityBody")
-                        Text("page.textStyles.opacityAccent")
-                        .foregroundStyle(.palette.accent)
-                    }
-                    .opacity(opacity)
+                        VStack(alignment: .leading) {
+                            Text("page.textStyles.opacityHeading").bold()
+                            .foregroundStyle(.palette.error)
+                            Text("page.textStyles.opacityBody")
+                            Text("page.textStyles.opacityAccent")
+                            .foregroundStyle(.palette.accent)
+                        }
+                        .opacity(opacity)
 
-                    // A fixed ramp beside it: the same line at four fades, so
-                    // the hues can be compared against each other directly.
-                    HStack(spacing: 2) {
-                        ForEach([1.0, 0.66, 0.33, 0.0], id: \.self) { step in
-                            Text("page.textStyles.opacitySwatch")
-                            .foregroundStyle(.palette.success)
-                            .opacity(step)
+                        // A fixed ramp beside it: the same line at four fades, so
+                        // the hues can be compared against each other directly.
+                        HStack(spacing: 2) {
+                            ForEach([1.0, 0.66, 0.33, 0.0], id: \.self) { step in
+                                Text("page.textStyles.opacitySwatch")
+                                .foregroundStyle(.palette.success)
+                                .opacity(step)
+                            }
                         }
                     }
+                    .indentedExamples()
                 }
             }
 
@@ -300,28 +326,31 @@ struct TextStylesPage: View {
                     Text("page.textStyles.chromeExplain")
                     .foregroundStyle(.palette.foregroundSecondary)
 
-                    // In a `List`, which is what styles a section's header:
-                    // anywhere else a header is drawn as written, as
-                    // SwiftUI's is.
-                    List {
-                        Section {
-                            Text("page.textStyles.bodyLine")
-                        } header: {
-                            Text("page.textStyles.defaultHeader")
-                        }
+                    VStack(alignment: .leading, spacing: 1) {
+                        // In a `List`, which is what styles a section's header:
+                        // anywhere else a header is drawn as written, as
+                        // SwiftUI's is.
+                        List {
+                            Section {
+                                Text("page.textStyles.bodyLine")
+                            } header: {
+                                Text("page.textStyles.defaultHeader")
+                            }
 
-                        // The same header, re-themed: uppercased and not bold.
-                        Section {
-                            Text("page.textStyles.bodyLine")
-                        } header: {
-                            Text("page.textStyles.themedHeader")
+                            // The same header, re-themed: uppercased and not bold.
+                            Section {
+                                Text("page.textStyles.bodyLine")
+                            } header: {
+                                Text("page.textStyles.themedHeader")
+                            }
+                            .style(.chrome(.sectionHeader)) {
+                                $0.textCase = .uppercase
+                                $0.bold = false
+                            }
                         }
-                        .style(.chrome(.sectionHeader)) {
-                            $0.textCase = .uppercase
-                            $0.bold = false
-                        }
+                        .frame(height: 6)
                     }
-                    .frame(height: 6)
+                    .indentedExamples()
                 }
             }
 
