@@ -618,7 +618,8 @@ compromise — it is what the two halves always were.
 | `.imageColorMode` | **applies** | a quantisation of colour, and pixels have colour |
 | `.imageToneCurve` | **applies** | says what a TONE becomes; nothing about characters |
 | `.imageEdgeContrast` | **applies** | an unsharp mask on the picture itself |
-| `.imageDithering` | **applies** | diffuses the error of the quantisation above it |
+| `.imagePosterization` | **applies** | N levels a channel, the last change to the picture before the colour mode reads it |
+| `.imageDithering` | **applies** | diffuses the error of each quantisation above it — the posterization's and the colour mode's; at true colour with no posterization there is no error, and it changes nothing |
 | `.imageInkThreshold` | **applies** in mono | a mono picture's pixels are ink or paper by it; in every other mode there is nothing for it to split |
 | `.imageCharacterSet` | inert | there is no character to choose |
 | `.imageShapeAware` | inert | chooses a character by its ink distribution |

@@ -346,6 +346,14 @@ struct ImageRenderingControls: View {
                     .labelsHidden()
                 }
             }
+            // Every mode, true colour too: a posterize reduces the picture to
+            // N levels a channel before the mode draws it, which is what gives
+            // Dithering below something to spread in true colour (the owner,
+            // 2026-10-28).
+            Toggle("component.imageControls.posterize", isOn: $settings.posterizes)
+                .toggleContent {
+                    counted("component.imageControls.levels", value: $settings.posterizationLevels, in: 2...16)
+                }
             Toggle("component.imageControls.dithering", isOn: $settings.dithering)
         }
     }

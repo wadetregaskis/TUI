@@ -190,6 +190,7 @@ extension _ImageCore {
         // Only a mono picture's pixels depend on it (`recoloured`).
         let inkThreshold = colorMode == .mono ? context.environment.imageInkThreshold : nil
         let adjustments = context.environment.imageAdjustments
+        let posterizationLevels = context.environment.imagePosterization
         let dithering = context.environment.imageDithering
         // Mono's two colours, which pixels have to be TOLD. The character
         // renderer states them after the fact — `inked(_:monoColours:)`, run
@@ -226,7 +227,7 @@ extension _ImageCore {
             edgeContrast: edgeContrast, dithering: dithering,
             monoInk: mono.ink, monoPaper: mono.paper,
             terminalColors: TerminalColors.current, cropsToFill: fit == .crop, inkThreshold: inkThreshold,
-            adjustments: adjustments)
+            adjustments: adjustments, posterizationLevels: posterizationLevels)
         // A picture whose box changes — a frame animating it, a zoom growing
         // it, a window dragged — was sent again at every new size, half a
         // megabyte a frame for a photo growing into a screen: the frames came
@@ -280,7 +281,7 @@ extension _ImageCore {
                     let converter = ASCIIConverter(
                         colorMode: colorMode, dithering: dithering,
                         toneCurve: toneCurve, edgeContrast: edgeContrast, inkThreshold: inkThreshold,
-                        adjustments: adjustments)
+                        adjustments: adjustments, posterizationLevels: posterizationLevels)
                     // A filled picture is the part of it its box shows, at
                     // its own aspect; any other, the whole picture.
                     let source = fit == .crop ? rawImage.centreCropped(toAspectOf: pixelWidth, pixelHeight) : rawImage

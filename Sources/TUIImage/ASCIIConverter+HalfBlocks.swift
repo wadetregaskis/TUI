@@ -95,7 +95,7 @@ extension ASCIIConverter {
         // The mode resolved ONCE for the whole picture: this renderer asks it
         // twice a cell, and asking the enum copies the palette out of its
         // payload and re-takes the search index's lock every time.
-        let colours = CellColours(mode: mode)
+        let colours = CellColours(mode: mode, posterizationLevels: posterizationLevels)
 
         var lines = [String]()
         var coverage = CoverageMap()

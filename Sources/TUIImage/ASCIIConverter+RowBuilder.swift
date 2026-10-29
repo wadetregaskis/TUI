@@ -91,6 +91,8 @@ extension ASCIIConverter {
 struct CellColours {
     private enum Kind {
         case trueColor
+        /// True colour with a posterization: each channel at its level.
+        case posterized
         case grayscale
         case mono
         case palette
@@ -101,10 +103,18 @@ struct CellColours {
     private let palette: ASCIIPalette
     /// Its search index, resolved once — see `ASCIIPalette.consultedSearchIndex`.
     private let index: ASCIIPalette.SearchIndex?
+    /// ``ChannelLevels/table`` for the `.posterized` kind — empty, which
+    /// allocates nothing, for every other.
+    private let levels: [UInt8]
 
-    init(mode: ASCIIColorMode) {
+    /// - Parameter posterizationLevels: ``ASCIIConverter/posterizationLevels``.
+    ///   Read at true colour only, where a cell that averages several pixels
+    ///   (braille's dots, a shape-matched cell) would otherwise draw a colour
+    ///   between two levels. Every other mode quantises the cell itself.
+    init(mode: ASCIIColorMode, posterizationLevels: Int? = nil) {
+        levels = mode == .trueColor ? posterizationLevels.map { ChannelLevels(count: $0).table } ?? [] : []
         switch mode {
-        case .trueColor: kind = .trueColor
+        case .trueColor: kind = levels.isEmpty ? .trueColor : .posterized
         case .grayscale: kind = .grayscale
         case .mono: kind = .mono
         case .ansi256, .ansi16, .palette: kind = .palette
@@ -142,6 +152,8 @@ struct CellColours {
         switch kind {
         case .trueColor:
             return .rgb(pixel.r, pixel.g, pixel.b)
+        case .posterized:
+            return .rgb(levels[Int(pixel.r)], levels[Int(pixel.g)], levels[Int(pixel.b)])
         case .grayscale:
             return .palette256(UInt8(232 + ASCIIConverter.greyRampStep(for: pixel)))
         case .mono:

@@ -107,6 +107,11 @@ extension ASCIIConverter {
             scaled = scaled.sharpened(amount: edgeContrast)
         }
 
+        // …and a posterize last, at the same stage and for the same reasons as
+        // in `convert(_:width:height:)`. At true colour it is the whole of the
+        // quantisation, so it comes before the return below.
+        scaled = posterized(scaled)
+
         guard colorMode != .trueColor else { return scaled }
 
         // The split between ink and background, measured from THIS picture —

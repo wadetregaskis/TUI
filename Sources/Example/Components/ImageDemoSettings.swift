@@ -134,6 +134,13 @@ struct ImageDemoSettings: Equatable {
     /// Supersampling factor: 0 = the default, 1–4 explicit.
     var supersampling = 0
 
+    /// Whether the picture is posterized — reduced to ``posterizationLevels``
+    /// a channel before the colour mode draws it.
+    var posterizes = false
+
+    /// The levels each channel keeps while ``posterizes``.
+    var posterizationLevels = 4
+
     var dithering = false
 
     /// Whether ``ColourMode/mono`` draws in the theme's colours (the default)
@@ -333,6 +340,7 @@ struct ImageDemoSettings: Equatable {
         spreadColours = min(256, max(2, spreadColours))
         mostUsedColours = min(256, max(2, mostUsedColours))
         leastErrorColours = min(256, max(2, leastErrorColours))
+        posterizationLevels = min(16, max(2, posterizationLevels))
         customPaletteIndex = min(
             ImageDemoHelpers.customPalettes.count - 1, max(0, customPaletteIndex))
         // A one-stop LUT is not a mapping; the editor can delete down to one,

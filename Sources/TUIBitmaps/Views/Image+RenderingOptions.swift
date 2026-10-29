@@ -59,6 +59,10 @@ private struct ImageAdjustmentsKey: EnvironmentKey {
     static let defaultValue: ImageAdjustments = .none
 }
 
+private struct ImagePosterizationKey: EnvironmentKey {
+    static let defaultValue: Int? = nil
+}
+
 /// Environment key for the placeholder text shown while loading.
 private struct ImagePlaceholderTextKey: EnvironmentKey {
     static let defaultValue: String? = nil
@@ -227,6 +231,13 @@ extension EnvironmentValues {
     var imageAdjustments: ImageAdjustments {
         get { self[ImageAdjustmentsKey.self] }
         set { self[ImageAdjustmentsKey.self] = newValue }
+    }
+
+    /// How many levels each channel is posterized to, or `nil` for none — see
+    /// ``View/imagePosterization(levels:)``.
+    var imagePosterization: Int? {
+        get { self[ImagePosterizationKey.self] }
+        set { self[ImagePosterizationKey.self] = newValue }
     }
 
     /// The dithering mode for ASCII art rendering.

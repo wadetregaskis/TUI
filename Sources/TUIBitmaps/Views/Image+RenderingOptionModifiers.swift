@@ -185,7 +185,37 @@ extension View {
         environment(\.imageAdjustments, adjustments)
     }
 
-    /// Sets the dithering mode for ASCII art image rendering.
+    /// Reduces each of the pictures' colour channels to `levels` evenly spaced
+    /// values, black to white — a posterize. TUI-specific.
+    ///
+    /// The last change to the picture, after ``imageToneCurve(_:)`` and
+    /// ``imageEdgeContrast(_:)``, and before the colour mode draws it, so it
+    /// reaches the characters and the pixels a terminal draws alike. A colour
+    /// mode that reduces the colours again (a palette, greyscale, mono) draws
+    /// the posterized picture in its own.
+    ///
+    /// ``imageDithering(_:)`` dithers it, as it dithers every reduction of a
+    /// picture's colours — so this is what gives a dither something to do in
+    /// true colour, which reduces nothing of its own:
+    ///
+    /// ```swift
+    /// Image("photo")
+    ///     .imageColorMode(.trueColor)
+    ///     .imagePosterization(levels: 2)   // the eight primaries…
+    ///     .imageDithering(.floydSteinberg) // …in their dither pattern
+    /// ```
+    ///
+    /// - Parameter levels: The values each channel keeps, `2...255`; `nil`,
+    ///   the default, leaves the picture alone, as does `256` or more.
+    public func imagePosterization(levels: Int?) -> some View {
+        environment(\.imagePosterization, levels)
+    }
+
+    /// Sets the dithering mode for ASCII art image rendering: how the error
+    /// of every reduction of a picture's colours is spread — the colour
+    /// mode's, and a posterization's (``imagePosterization(levels:)``). At
+    /// true colour without a posterization there is nothing to spread, and
+    /// it changes nothing.
     ///
     /// - Parameter dithering: The dithering algorithm.
     /// - Returns: A modified view.

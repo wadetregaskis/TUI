@@ -72,7 +72,7 @@ extension ASCIIConverter {
         let scaledThreshold = Int(monoThreshold * 1000)
 
         // The mode resolved once for the whole picture — see `CellColours`.
-        let colours = CellColours(mode: mode)
+        let colours = CellColours(mode: mode, posterizationLevels: posterizationLevels)
         // Whether the cell's unlit dots paint its background: in colour, where
         // there is a colour to give them.
         let paintsField: Bool =

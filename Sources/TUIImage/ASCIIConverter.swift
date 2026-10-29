@@ -449,6 +449,19 @@ public struct ASCIIConverter: Sendable {
     /// tone curve and before anything reads the picture.
     let adjustments: ImageAdjustments
 
+    /// How many evenly spaced levels each channel is reduced to — a posterize,
+    /// `2...255` — or `nil` (the default) to leave the picture alone.
+    ///
+    /// The last change to the picture before the colour mode reads it, after
+    /// the curve and the lift, and dithered by ``dithering`` like any other
+    /// reduction of its colours. So it is what gives a dither something to do
+    /// at ``ASCIIColorMode/trueColor``, which reduces nothing of its own: two
+    /// levels with Floyd–Steinberg draws a photograph in the eight primaries'
+    /// pattern, in 24-bit colour (the owner, 2026-10-28). A colour mode that
+    /// does reduce draws the posterized picture in its own colours. See
+    /// ``ChannelLevels``.
+    let posterizationLevels: Int?
+
     /// Creates a converter with the specified options.
     public init(
         characterSet: ASCIICharacterSet = .blocks(.fine),
@@ -460,7 +473,8 @@ public struct ASCIIConverter: Sendable {
         toneCurve: ASCIIToneCurve? = nil,
         edgeContrast: Double = 0,
         inkThreshold: Double? = nil,
-        adjustments: ImageAdjustments = .none
+        adjustments: ImageAdjustments = .none,
+        posterizationLevels: Int? = nil
     ) {
         self.characterSet = characterSet
         self.shapeAware = shapeAware
@@ -472,6 +486,9 @@ public struct ASCIIConverter: Sendable {
         self.edgeContrast = max(0, edgeContrast)
         self.inkThreshold = inkThreshold.map { min(1, max(0, $0)) }
         self.adjustments = adjustments
+        // 256 levels a channel IS every byte, so it is no posterization at all,
+        // and is stored as none so it costs none.
+        self.posterizationLevels = posterizationLevels.flatMap { $0 >= 256 ? nil : max(2, $0) }
     }
 
     /// ``inkThreshold`` in the luminance the converters compare against,
@@ -627,6 +644,12 @@ extension ASCIIConverter {
                 amount: edgeContrast, radiusX: cellGrid.x, radiusY: cellGrid.y)
         }
 
+        // A posterize, the last change to the picture: after the curve and the
+        // lift, which would move its levels, and before the palette, the
+        // threshold and the dither below, which read the picture it leaves.
+        // Returns `scaled` itself, untouched, while none is set.
+        scaled = posterized(scaled)
+
         // An adaptive palette takes its colours from the picture HERE, for the
         // same reason the threshold below is measured here: this is the picture
         // that will be drawn. Inert for every other mode.
@@ -648,7 +671,8 @@ extension ASCIIConverter {
         // measuring after would be measuring its own output.
         let monoThreshold = statedInkThreshold ?? Self.monoInkThreshold(for: scaled)
 
-        // Apply dithering if requested (only meaningful for non-trueColor modes)
+        // Apply dithering if requested (only meaningful for non-trueColor modes;
+        // at true colour, a dither has a posterization's error to spread, above)
         if dithering == .floydSteinberg, effectiveMode != .trueColor {
             scaled = applyFloydSteinbergDithering(
                 scaled, mode: effectiveMode, monoThreshold: monoThreshold)
@@ -793,7 +817,7 @@ extension ASCIIConverter {
     ) -> ASCIIArt {
         let ramp = characterRamp
         // The mode resolved once for the whole picture — see `CellColours`.
-        let colours = CellColours(mode: mode)
+        let colours = CellColours(mode: mode, posterizationLevels: posterizationLevels)
         // Edge tracing is independent of shape matching: it asks where the
         // PICTURE has a strong gradient, which the luminance renderer can
         // answer as well as the shape one — from the cells around each cell
@@ -885,7 +909,7 @@ extension ASCIIConverter {
         monoThreshold: Double
     ) -> ASCIIArt {
         // The mode resolved once for the whole picture — see `CellColours`.
-        let colours = CellColours(mode: mode)
+        let colours = CellColours(mode: mode, posterizationLevels: posterizationLevels)
         var lines = [String]()
         var coverage = CoverageMap()
         var uncovered = CoverageMap()

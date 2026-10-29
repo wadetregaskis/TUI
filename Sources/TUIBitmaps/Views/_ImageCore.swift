@@ -343,7 +343,7 @@ struct _ImageCore: View, Renderable, Layoutable {
                     supersampling: context.environment.imageSupersampling, edgeThreshold: context.environment.imageEdgeThreshold,
                     edgeContrast: context.environment.imageEdgeContrast,
                     inkThreshold: context.environment.imageInkThreshold,
-                    adjustments: context.environment.imageAdjustments,
+                    adjustments: context.environment.imageAdjustments, posterizationLevels: context.environment.imagePosterization,
                     contentMode: contentMode, aspectRatioOverride: aspectRatioOverride,
                     cellAspect: context.environment.imageCellAspect,
                     monoColours: monoColours,
@@ -600,6 +600,7 @@ extension _ImageCore {
         edgeContrast: Double,
         inkThreshold: Double?,
         adjustments: ImageAdjustments,
+        posterizationLevels: Int?,
         contentMode: ContentMode,
         aspectRatioOverride: Double?,
         cellAspect: Double,
@@ -647,6 +648,7 @@ extension _ImageCore {
             edgeContrast: edgeContrast,
             inkThreshold: inkThreshold,
             adjustments: adjustments,
+            posterizationLevels: posterizationLevels,
             contentMode: contentMode,
             aspectRatioOverride: aspectRatioOverride,
             cellAspect: cellAspect,
@@ -667,7 +669,8 @@ extension _ImageCore {
             toneCurve: toneCurve,
             edgeContrast: edgeContrast,
             inkThreshold: inkThreshold,
-            adjustments: adjustments
+            adjustments: adjustments,
+            posterizationLevels: posterizationLevels
         )
         var pixels = templateInk.map { rawImage.templated(in: $0) } ?? rawImage
         if let resizing, resizing.slices {
@@ -692,6 +695,7 @@ extension _ImageCore {
             edgeContrast: edgeContrast,
             inkThreshold: inkThreshold,
             adjustments: adjustments,
+            posterizationLevels: posterizationLevels,
             contentMode: contentMode,
             aspectRatioOverride: aspectRatioOverride,
             cellAspect: cellAspect,

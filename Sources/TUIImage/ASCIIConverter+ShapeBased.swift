@@ -119,7 +119,7 @@ extension ASCIIConverter {
         let characters = columns.characters
 
         // The mode resolved once for the whole picture — see `CellColours`.
-        let colours = CellColours(mode: mode)
+        let colours = CellColours(mode: mode, posterizationLevels: posterizationLevels)
 
         // Render through an unsafe pointer to the pixel array — the hot
         // path makes 96 reads per cell, and we know all the indices are

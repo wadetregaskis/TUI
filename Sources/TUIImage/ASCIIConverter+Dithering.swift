@@ -519,8 +519,10 @@ struct PixelQuantiser {
     /// Returned unchanged at full coverage rather than multiplied and divided, so the
     /// overwhelmingly common case is a compare and the byte-identical claim needs no
     /// argument about rounding.
+    /// Internal rather than private: ``ChannelLevels`` weights its carry the
+    /// same way.
     @inline(__always)
-    private static func weighted(
+    static func weighted(
         _ error: (r: Int16, g: Int16, b: Int16), byCoverage coverage: UInt8
     ) -> (r: Int16, g: Int16, b: Int16) {
         guard coverage != 255 else { return error }

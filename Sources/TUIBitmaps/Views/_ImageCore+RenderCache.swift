@@ -48,6 +48,7 @@ struct ImageRenderCache: Equatable {
     var edgeContrast: Double
     var inkThreshold: Double?
     var adjustments: ImageAdjustments
+    var posterizationLevels: Int?
     var contentMode: ContentMode
     var aspectRatioOverride: Double?
     var cellAspect: Double
@@ -79,7 +80,7 @@ struct ImageRenderCache: Equatable {
         characterSet: ASCIICharacterSet, shapeAware: Bool, colorMode: ASCIIColorMode,
         dithering: DitheringMode, toneCurve: ASCIIToneCurve?,
         supersampling: Int?, edgeThreshold: Double?, edgeContrast: Double, inkThreshold: Double?,
-        adjustments: ImageAdjustments, contentMode: ContentMode,
+        adjustments: ImageAdjustments, posterizationLevels: Int?, contentMode: ContentMode,
         aspectRatioOverride: Double?,
         cellAspect: Double,
         terminalColors: TerminalColors,
@@ -100,6 +101,7 @@ struct ImageRenderCache: Equatable {
             self.edgeContrast == edgeContrast,
             self.inkThreshold == inkThreshold,
             self.adjustments == adjustments,
+            self.posterizationLevels == posterizationLevels,
             self.contentMode == contentMode,
             self.aspectRatioOverride == aspectRatioOverride,
             self.cellAspect == cellAspect,

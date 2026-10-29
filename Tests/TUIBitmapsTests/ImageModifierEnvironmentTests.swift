@@ -63,6 +63,7 @@ struct ImageModifierEnvironmentTests {
             "imageMaxPixelCount": String(describing: environment.imageMaxPixelCount),
             "imagePlaceholderSpinner": String(describing: environment.imagePlaceholderSpinner),
             "imagePlaceholderText": String(describing: environment.imagePlaceholderText),
+            "imagePosterization": String(describing: environment.imagePosterization),
             "imageShapeAware": String(describing: environment.imageShapeAware),
             "imageSupersampling": String(describing: environment.imageSupersampling),
             "imageToneCurve": String(describing: environment.imageToneCurve),
@@ -128,6 +129,11 @@ struct ImageModifierEnvironmentTests {
         }
         check("imageDithering", ["imageDithering": String(describing: DitheringMode.floydSteinberg)]) {
             AnyView($0.imageDithering(.floydSteinberg))
+        }
+        // An `Int?`, as `imageSupersampling` and `imageMaxPixelCount` are, so a
+        // forward swapped with either would compile.
+        check("imagePosterization", ["imagePosterization": "Optional(4)"]) {
+            AnyView($0.imagePosterization(levels: 4))
         }
     }
 

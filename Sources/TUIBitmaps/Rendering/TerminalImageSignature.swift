@@ -132,6 +132,11 @@ struct TerminalImageSignature: Equatable {
     /// The picture's tone adjustments (`View.imageAdjustments(_:)`), which
     /// change its pixels in every mode.
     var adjustments: ImageAdjustments = .none
+
+    /// How many levels each channel is posterized to
+    /// (`View.imagePosterization(levels:)`), which changes the pixels in every
+    /// mode — and, with it, what ``dithering`` does at true colour.
+    var posterizationLevels: Int?
 }
 
 extension TerminalImageSignature {
