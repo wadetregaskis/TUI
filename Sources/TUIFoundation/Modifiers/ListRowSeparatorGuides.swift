@@ -21,7 +21,7 @@ import TUIView
 /// that are not.
 @usableFromInline
 package struct ListRowSeparatorLine: Equatable, Sendable {
-    /// The ink, or `nil` for the list's own — the border's, as a `Divider`'s.
+    /// The ink, or `nil` for the list's own (``defaultInk(palette:)``).
     @usableFromInline package var tint: Color?
     /// Cells of the row's content before the rule starts: the row's own
     /// ``HorizontalAlignment/listRowSeparatorLeading``, else 0 — the
@@ -57,10 +57,28 @@ package struct ListRowSeparatorLine: Equatable, Sendable {
         return start..<max(start, min(trailing ?? width, width))
     }
 
+    /// How much of the border's ink a separator with no tint of its own
+    /// keeps, over the page's background.
+    package static let defaultInkStrength = 0.5
+
+    /// A separator's ink where nothing tinted it: the border's, faded half way
+    /// into the page. Drawn in the border's ink itself, as a `Divider` is, a
+    /// rule between every two rows read as heavier than the rows (the owner,
+    /// 2026-10-28) — as a macOS list's separator is fainter than its dividers.
+    /// `listRowSeparatorTint(_:edges:)` states another.
+    package static func defaultInk(palette: any Palette) -> Color {
+        palette.border.opacity(defaultInkStrength, over: palette.background)
+    }
+
+    /// This separator's ink: its tint, else ``defaultInk(palette:)``.
+    private func ink(palette: any Palette) -> Color {
+        (tint ?? Self.defaultInk(palette: palette)).resolve(with: palette).opaqueSpelling
+    }
+
     /// The rule drawn `width` cells wide (the row's content width).
     package func drawn(width: Int, palette: any Palette) -> String {
         let columns = columns(width: width)
-        let ink = (tint ?? palette.border).resolve(with: palette).opaqueSpelling
+        let ink = ink(palette: palette)
         return String.spaces(columns.lowerBound)
             + ANSIRenderer.colorize(String(repeating: "─", count: columns.count), foreground: ink)
             + String.spaces(width - columns.upperBound)
@@ -75,7 +93,7 @@ package struct ListRowSeparatorLine: Equatable, Sendable {
     package func markingHairline(on line: String, offset: Int, width: Int, palette: any Palette) -> String {
         let columns = columns(width: width)
         guard !columns.isEmpty,
-            let rgb = (tint ?? palette.border).resolve(with: palette).opaqueSpelling.rgbComponents
+            let rgb = ink(palette: palette).rgbComponents
         else { return line }
         return HairlineMarker.marking(
             line, columns: (offset + columns.lowerBound)..<(offset + columns.upperBound),

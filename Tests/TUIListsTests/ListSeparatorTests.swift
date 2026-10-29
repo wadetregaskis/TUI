@@ -283,4 +283,18 @@ struct ListSeparatorTests {
         // Grabbed by its second row, which hangs one line — a's own — below the top.
         #expect(session.active?.grabY == 1)
     }
+
+    /// The owner, 2026-10-28: in the border's own ink, a separator under every
+    /// row read as heavier than the rows.
+    @Test("A separator nothing tints is drawn fainter than the border; a tint is drawn as it is")
+    func defaultInkIsFainter() {
+        let palette = makeRenderContext(width: 10, height: 1).environment.palette
+        let faint = ListRowSeparatorLine.defaultInk(palette: palette).resolve(with: palette).opaqueSpelling
+        let border = palette.border.resolve(with: palette).opaqueSpelling
+        #expect(faint != border)
+        let untinted = ListRowSeparatorLine().drawn(width: 4, palette: palette)
+        #expect(untinted.contains(faint.foregroundCodes().joined(separator: ";")), "\(untinted.debugDescription)")
+        let tinted = ListRowSeparatorLine(tint: .rgb(200, 10, 10)).drawn(width: 4, palette: palette)
+        #expect(tinted.contains("200;10;10"), "\(tinted.debugDescription)")
+    }
 }

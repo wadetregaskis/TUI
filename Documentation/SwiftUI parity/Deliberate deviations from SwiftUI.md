@@ -2072,7 +2072,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   where the terminal draws hairlines (Ghostty), which follow SwiftUI's
   default, take no row, and are left off beside the focused or a selected
   row (A-D6L-2 option 4, 2026-10-24; `listSeparatorStyle(_:)` picks the
-  look); a `.standard` badge sits in a capsule in the control family (since
+  look); a separator no `listRowSeparatorTint(_:edges:)` tints is drawn in the
+  border's ink faded half way into the page, since in the border's own ink a
+  hairline under every row read as heavier than the rows (2026-10-28); a `.standard` badge sits in a capsule in the control family (since
   2026-10-24: a field a cell wider each side under filled faces, line caps
   under `.controlStyle(.lines)`), as macOS's does, and is no longer a
   deviation; a section's actions show while the focused list's cursor or
