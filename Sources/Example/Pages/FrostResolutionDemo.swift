@@ -22,7 +22,7 @@ struct FrostResolutionDemo: View {
     /// enough to frost most of the picture, short enough to leave it bare above
     /// and below, to compare.
     private static let photo = (width: 32, height: 11)
-    private static let panel = (width: 26, height: 5)
+    private static let panel = (inset: 3, height: 5)
 
     var body: some View {
         DemoSection("page.colors.section.frostResolution") {
@@ -48,11 +48,17 @@ struct FrostResolutionDemo: View {
     /// and what that costs a cell below it.
     private func pane(_ name: String, grid: String, resolution: MaterialFrostResolution) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            ZStack {
-                photo
+            // Over the picture as drawn, not over its box: fitted to its own
+            // aspect the picture is narrower than the box and sits at its
+            // leading edge, and a panel centred in the box stood a cell further
+            // over the picture's right edge than its left (the owner,
+            // 2026-10-28).
+            photo {
                 Text(verbatim: name)
-                    .frame(width: Self.panel.width, height: Self.panel.height)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: Self.panel.height)
                     .background(.thinMaterial)
+                    .padding(.horizontal, Self.panel.inset)
             }
             .materialFrostResolution(resolution)
             Text(verbatim: grid).foregroundStyle(.palette.foregroundSecondary)
@@ -66,11 +72,13 @@ struct FrostResolutionDemo: View {
         return "\(across)×\(down) · \(across * down * 4) B"
     }
 
-    @ViewBuilder private var photo: some View {
+    /// The photograph, with `panel` laid over it as drawn.
+    @ViewBuilder private func photo(@ViewBuilder panel: () -> some View) -> some View {
         if let path = Bundle.module.path(forResource: "demo-image", ofType: "jpg", inDirectory: "Resources") {
             Image(.file(path))
                 .resizable()
                 .scaledToFit()
+                .overlay { panel() }
                 .frame(width: Self.photo.width, height: Self.photo.height)
         } else {
             Text("\(L("page.images.resourceNotFound")): demo-image.jpg")
