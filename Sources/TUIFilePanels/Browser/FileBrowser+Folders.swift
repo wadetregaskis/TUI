@@ -90,16 +90,19 @@ extension FileBrowser {
     }
 
     /// Before the folder shown becomes `folder`: the folder shown joins the
-    /// folders read, and only those on the way to `folder` — the folders above
-    /// it, which the column view shows — are kept.
+    /// folders read, and only those on the way to `folder` are kept — the
+    /// folders above it, and those inside it, which the column view shows as
+    /// the way back down after going up. Dropped, the folder come from was
+    /// read again for its column, which drew "Loading…" until then.
     func keepFolders(onTheWayTo folder: URL) {
         if state == .loaded, let listed, listed.directory.path == directory.path {
             folderListings[directory.path] = listed.entries
             folderRows[directory.path] = rows
         }
         let target = folder.standardizedFileURL.path
+        let inside = target.hasSuffix("/") ? target : target + "/"
         let kept = folderListings.keys.filter { path in
-            path == target || path == "/" || target.hasPrefix(path + "/")
+            path == target || path == "/" || target.hasPrefix(path + "/") || path.hasPrefix(inside)
         }
         folderListings = folderListings.filter { kept.contains($0.key) }
         folderRows = folderRows.filter { kept.contains($0.key) }

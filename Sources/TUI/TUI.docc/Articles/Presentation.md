@@ -474,9 +474,12 @@ turns the path into a field to type a path in, as at a shell prompt:
 
 A switcher at the end of the path's row chooses between that list and a
 column view, as Finder's view buttons do: a column for each folder on the way
-to the one shown, side by side, <kbd>Return</kbd> opening a folder as a new
-column and <kbd>←</kbd> or <kbd>Backspace</kbd> going back to the one before.
-The panel opens in the view the last was left in, kept in the app's storage.
+to the one shown, side by side, <kbd>Return</kbd> or <kbd>→</kbd> opening a
+folder as a new column and <kbd>←</kbd> or <kbd>Backspace</kbd> going back to
+the one before. A folder selected shows its items in a column after its own,
+and going up selects the folder come from, so the way back down stays in view
+until another row is chosen. The panel opens in the view the last was left in,
+kept in the app's storage.
 
 The callbacks come in SwiftUI's order: `isPresented` becomes `false`, then
 `onCompletion` hears the choice; a cancellation clears the binding and calls

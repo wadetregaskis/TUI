@@ -28,14 +28,19 @@ enum FilePanelField: Hashable {
 /// folder from the path control's first — the root, or the home folder — to
 /// the folder shown, as many of the last as fit at ``minimumColumnWidth``
 /// cells each, each a ``List`` of the folder's items; and after them, while a
-/// file is selected, a column previewing it (``FilePanelPreview``).
+/// file is selected, a column previewing it (``FilePanelPreview``), or while
+/// a folder is, its items (``trail(selected:deepest:)``).
 ///
-/// The last column is the folder shown, and its selection is the panel's. In
-/// the others the folder on the way is the one selected; choosing another row
-/// there goes to it — a folder becomes the folder shown, a file is selected
-/// in its own folder — and the columns after it go, as Finder's do. The
-/// columns keep their cursors while they show, so ← back to a column finds
-/// its cursor on the folder that was opened from it.
+/// The folder shown's column has the panel's selection. In the others the
+/// folder on the way is the one selected; choosing another row there goes to
+/// it — a folder becomes the folder shown, a file is selected in its own
+/// folder — and the columns after it go, as Finder's do. The columns keep
+/// their cursors while they show, so ← back to a column finds its cursor on
+/// the folder that was opened from it; and the way back down stays, the
+/// folder come from selected (`FilePanel`), until another row is chosen: going
+/// up to `~` from three folders down took the columns down to one. → opens
+/// the folder under the cursor, as Return does, and stays in the columns on
+/// a file.
 struct FilePanelColumnView: View {
     let browser: FileBrowser
 
@@ -56,25 +61,74 @@ struct FilePanelColumnView: View {
     /// Where the panel's focus is, each column bound to its folder's path.
     let focus: FocusState<FilePanelField?>.Binding
 
+    /// The deepest folder whose column shows, at or below the folder shown:
+    /// the way back down after going up, which stays while the folder come
+    /// from is selected. `nil` until the folder shown first changes, when it
+    /// is the folder shown.
+    @State private var deepest: String?
+
+    /// What the columns' → does (``ListRowForwardAction``), kept for the
+    /// view's life, as the environment must hold the same value every frame
+    /// for the memos below to stay on; its action is refreshed each frame.
+    @State private var forward = ListRowForwardAction.Box()
+
     /// The narrowest a column is drawn, in cells: a name of about twenty
     /// cells, as the list view keeps one (``FilePanelColumns/nameRoom``).
     static let minimumColumnWidth = 24
 
     var body: some View {
+        let browser = browser
+        forward.action = { id in
+            guard let url = id.base as? URL, let entry = browser.entry(for: url) else { return false }
+            if entry.isFolder, !entry.isPlaceholder { browser.open(entry.url) }
+            // On a file too: → does nothing there, and stays in the columns.
+            return true
+        }
         // Greedy, as the list view's reader is: the columns take the rest of
         // the sheet, and the panel keeps its size from folder to folder.
-        GeometryReader { proxy in
+        return GeometryReader { proxy in
             columns(width: proxy.size.width)
+        }
+        .environment(\.listRowForwardAction, ListRowForwardAction(box: forward))
+        .onChange(of: browser.directory) { old, new in
+            // Up, or down the way back, keeps the way; anywhere else starts it
+            // again at the folder shown.
+            let way = deepest ?? old.path
+            deepest = Self.isAtOrBelow(way, new.path) ? way : new.path
         }
     }
 
     /// The folders that have columns, from the first the path control shows
-    /// to the folder shown: as many of the last as fit in `width` cells, a
-    /// rule between each two.
-    static func folders(of folder: URL, home: URL, width: Int) -> [String] {
-        let all = FilePanelPathSegment.all(of: folder, home: home).map(\.path)
+    /// through the folder shown to the last of `trail`: as many as fit in
+    /// `width` cells, a rule between each two, the folder shown always among
+    /// them and the last as many after it as fit.
+    static func folders(of folder: URL, home: URL, trail: [String] = [], width: Int) -> [String] {
+        let all = FilePanelPathSegment.all(of: folder, home: home).map(\.path) + trail
         let fit = max(1, (width + 1) / (minimumColumnWidth + 1))
-        return Array(all.suffix(fit))
+        let shown = all.count - 1 - trail.count
+        let start = max(0, min(shown, all.count - fit))
+        return Array(all[start..<min(all.count, start + fit)])
+    }
+
+    /// The folders whose columns follow the folder shown's: none while no
+    /// folder is selected there; the one `selected`; and on from it down to
+    /// `deepest` where that is below it — the way back down, after going up.
+    static func trail(selected: URL?, deepest: String?) -> [String] {
+        guard let selected else { return [] }
+        let folder = selected.standardizedFileURL.path
+        guard let deepest, deepest != folder, isAtOrBelow(deepest, folder) else { return [folder] }
+        var paths = [folder]
+        var current = folder
+        for component in deepest.dropFirst(folder.count).split(separator: "/") {
+            current += "/" + component
+            paths.append(current)
+        }
+        return paths
+    }
+
+    /// Whether the folder at `path` is `folder` or inside it.
+    static func isAtOrBelow(_ path: String, _ folder: String) -> Bool {
+        path == folder || path.hasPrefix(folder.hasSuffix("/") ? folder : folder + "/")
     }
 
     /// The columns, each the same kind of view whether or not it is the
@@ -86,7 +140,9 @@ struct FilePanelColumnView: View {
         let previewed = previewedFile
         let previewWidth = previewed == nil ? 0 : Self.previewWidth(in: width)
         let foldersWidth = previewed == nil ? width : max(Self.minimumColumnWidth, width - previewWidth - 1)
-        let folders = Self.folders(of: browser.directory, home: home, width: foldersWidth)
+        let folders = Self.folders(
+            of: browser.directory, home: home, trail: Self.trail(selected: selectedFolder, deepest: deepest),
+            width: foldersWidth)
         // Each column but the last at an even share; the last takes the rest.
         let share = max(1, (foldersWidth - (folders.count - 1)) / folders.count)
         HStack(spacing: 0) {
@@ -108,13 +164,24 @@ struct FilePanelColumnView: View {
     }
 
     /// The file selected in the folder shown, alone: what the preview column
-    /// shows. A folder opens a column of its own instead, and several items
-    /// selected have no one preview.
+    /// shows. A folder shows a column of its items instead
+    /// (``selectedFolder``), and several items selected have no one preview.
     private var previewedFile: FileEntry? {
+        selectedEntry.flatMap { $0.isFolder ? nil : $0 }
+    }
+
+    /// The folder selected in the folder shown, alone, whose items show in
+    /// the column after it.
+    private var selectedFolder: URL? {
+        selectedEntry.flatMap { $0.isFolder ? $0.url : nil }
+    }
+
+    /// The item selected in the folder shown, alone.
+    private var selectedEntry: FileEntry? {
         let url = allowsMultipleSelection ? (selection.wrappedValue.count == 1 ? selection.wrappedValue.first : nil)
             : singleSelection.wrappedValue
         guard let url else { return nil }
-        return browser.rows.first { $0.url == url && !$0.isFolder && !$0.isPlaceholder }
+        return browser.rows.first { $0.url == url && !$0.isPlaceholder }
     }
 
     /// The preview column's width in a column view `width` cells wide: a
@@ -153,9 +220,15 @@ struct FilePanelColumnView: View {
         }))
         .focused(focus, equals: .column(path))
         .onAppear {
+            // Only the folder shown's: a column of the folder selected there
+            // appears beside it while the keys stay where they are.
+            guard path == browser.directory.path else { return }
             if let previous, focus.wrappedValue == .column(previous) { focus.wrappedValue = .column(path) }
         }
-        .task(id: path) { await loadIfNeeded(path) }
+        // Again as it stops being the folder shown, which the panel reads: gone
+        // up from before its read finished, the folder's column of the way
+        // back down drew "Loading…" for good.
+        .task(id: [path, path == browser.directory.path ? "shown" : ""]) { await loadIfNeeded(path) }
     }
 
     /// The items of the folder at `path`: the folder shown's rows, or a
@@ -179,17 +252,18 @@ struct FilePanelColumnView: View {
         await browser.loadFolder(URL(fileURLWithPath: path, isDirectory: true))
     }
 
-    /// The last column's selection is the panel's; another's is the folder on
-    /// the way, `next` (``onTheWay(in:next:folder:)``).
+    /// The folder shown's column's selection is the panel's; another's is the
+    /// folder on the way, `next`, or none after the last
+    /// (``onTheWay(in:next:folder:)``).
     private func singleSelection(of path: String, next: String?) -> Binding<URL?> {
-        guard let next else { return singleSelection }
+        guard path != browser.directory.path else { return singleSelection }
         let way = onTheWay(in: items(of: path), next: next, folder: path)
         return Binding(get: { way.wrappedValue }, set: { way.wrappedValue = $0 })
     }
 
     /// ``singleSelection(of:next:)``, where several may be chosen.
     private func multipleSelection(of path: String, next: String?) -> Binding<Set<URL>> {
-        guard let next else { return selection }
+        guard path != browser.directory.path else { return selection }
         let way = onTheWay(in: items(of: path), next: next, folder: path)
         return Binding(
             get: { way.wrappedValue.map { [$0] } ?? [] },
@@ -199,13 +273,13 @@ struct FilePanelColumnView: View {
     /// A column's selection: the row of the folder on the way, `next`; and a
     /// choice of another row goes there — a folder becomes the folder shown,
     /// a file is selected in the folder it is in, `folder`.
-    private func onTheWay(in rows: [FileEntry], next: String, folder: String) -> Binding<URL?> {
+    private func onTheWay(in rows: [FileEntry], next: String?, folder: String) -> Binding<URL?> {
         let browser = browser
         let selection = selection
         let singleSelection = singleSelection
         let multiple = allowsMultipleSelection
         return Binding(
-            get: { rows.first { $0.url.standardizedFileURL.path == next }?.url },
+            get: { next.flatMap { next in rows.first { $0.url.standardizedFileURL.path == next }?.url } },
             set: { url in
                 guard let url, let entry = rows.first(where: { $0.url == url }) else { return }
                 if entry.isFolder {

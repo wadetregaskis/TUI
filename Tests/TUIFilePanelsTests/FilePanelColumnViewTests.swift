@@ -73,7 +73,7 @@ struct FilePanelColumnViewTests {
         #expect(!shown.contains("Date Modified"))
     }
 
-    @Test("Return opens a folder as a new column; ← goes back, its column's cursor where it was")
+    @Test("Return opens a folder as a new column; ← goes back, its column's cursor where it was, the way back down kept")
     func returnAndLeft() async throws {
         let fixture = try FilePanelFixture()
         defer { fixture.remove() }
@@ -83,14 +83,61 @@ struct FilePanelColumnViewTests {
         // Alpha/ is the first row: Return opens it as a column, and the keys
         // follow into it — Return there chooses inner.txt.
         driver.press(.enter)
+        await driver.waitFor("~ │ Alpha")
         await driver.waitFor("inner.txt")
         driver.press(.left)
-        await settle { !driver.screen().contains("inner.txt") }
-        // Back in ~'s column, its cursor still on Alpha/: Return opens it again.
+        // Back in ~, Alpha/ selected in its column: Alpha's column still shows
+        // beside it, as Finder's does.
+        await settle { !driver.screen().contains("~ │ Alpha") }
+        #expect(driver.screen().contains("inner.txt"), "\(driver.screen())")
+        // Its cursor still on Alpha/: Return opens it again, and the keys
+        // follow into the column that showed already.
         driver.press(.enter)
-        await driver.waitFor("inner.txt")
+        await driver.waitFor("~ │ Alpha")
         driver.press(.enter)
         #expect(caller.chosenPaths == [fixture.url("Alpha/inner.txt").path])
+    }
+
+    @Test("→ opens the folder under the cursor, and on a file stays in the columns")
+    func rightOpensFolder() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver { panel(fixture, caller: caller, store: columnsStore()) }
+        await driver.waitFor("notes.md")
+        driver.press(.right)
+        await driver.waitFor("~ │ Alpha")
+        await driver.waitFor("inner.txt")
+        // On inner.txt, → goes nowhere, and the keys stay in Alpha's column:
+        // Return chooses it.
+        driver.press(.right)
+        driver.press(.enter)
+        #expect(caller.chosenPaths == [fixture.url("Alpha/inner.txt").path])
+    }
+
+    /// The owner, 2026-10-28: going to `~` from folders down took the columns
+    /// down to one.
+    @Test("Going up to ~ keeps the columns of the way back down, until another row is chosen there")
+    func upKeepsTheWay() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let deep = fixture.url("Alpha/Deep")
+        try FileManager.default.createDirectory(at: deep, withIntermediateDirectories: true)
+        _ = FileManager.default.createFile(atPath: deep.appendingPathComponent("leaf.txt").path, contents: nil)
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver { panel(fixture, caller: caller, store: columnsStore(), start: deep) }
+        await driver.waitFor("leaf.txt")
+        await driver.waitFor("inner.txt")
+        driver.press(.character("~"))
+        await settle { !driver.screen().contains("~ │ Alpha") }
+        let shown = driver.screen()
+        #expect(shown.contains("leaf.txt") && shown.contains("inner.txt"), "\(shown)")
+        // beta.txt chosen in ~'s column — past Alpha/ and linked/ — and the
+        // way goes: its preview takes the columns' place.
+        driver.press(.down, times: 2)
+        driver.press(.space)
+        await settle { !driver.screen().contains("leaf.txt") }
+        #expect(!driver.screen().contains("inner.txt"))
     }
 
     /// How many times `text` shows on `screen`.

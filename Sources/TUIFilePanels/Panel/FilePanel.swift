@@ -176,14 +176,31 @@ struct FilePanel: View {
         // open, as a macOS panel's does: not on the path control, the first
         // control in reading order.
         .defaultFocus($focus, request.saveContentTypes != nil ? .name : folderField)
-        // The column view's keys go back to the column of a folder above,
-        // which shows already, when the folder shown closes (←, Backspace,
-        // the ↰ button); a column that opens takes them itself
-        // (`FilePanelColumnView`).
+        // In the column view, going up selects the folder come from in the
+        // folder above, so the way back down still shows beside it, as
+        // Finder's does (`FilePanelColumnView`). And the keys, where they were
+        // in a column, go to the folder shown's: one above, which shows
+        // already (←, Backspace, the ↰ button, ~), or one below that showed
+        // already beside the folder selected; a column that opens takes them
+        // itself as well.
         .onChange(of: browser.directory) { old, new in
-            guard viewMode == .columns, case .column = focus, old.path.hasPrefix(new.path) else { return }
-            focus = .column(new.path)
+            guard viewMode == .columns else { return }
+            if let child = Self.folder(in: new, toward: old) {
+                if request.allowsMultipleSelection { selection = [child] } else { singleSelection = child }
+            }
+            if case .column = focus { focus = .column(new.path) }
         }
+    }
+
+    /// The folder in `folder` on the way to `deeper`, spelled as the folder's
+    /// rows spell their URLs (`DirectoryListing`); `nil` where `deeper` is not
+    /// inside `folder`.
+    static func folder(in folder: URL, toward deeper: URL) -> URL? {
+        let base = folder.path.hasSuffix("/") ? folder.path : folder.path + "/"
+        guard deeper.path.hasPrefix(base),
+            let component = deeper.path.dropFirst(base.count).split(separator: "/").first
+        else { return nil }
+        return folder.appendingPathComponent(String(component))
     }
 
     /// The path bar, or the go-to field in its place while `/` has it open.
