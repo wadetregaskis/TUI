@@ -383,6 +383,9 @@ struct ListPage: View {
             // 12 items in an 8-row frame → it scrolls, with a scrollbar.
             ListRowsDemo()
 
+            // Every badge: counts, texts, the three prominences, and a tab's.
+            BadgesDemo()
+
             DemoSection("page.list.multiLineSection") {
                 VStack(alignment: .leading, spacing: 0) {
                     // Line- vs row-centric scrolling, live: with two-line rows,

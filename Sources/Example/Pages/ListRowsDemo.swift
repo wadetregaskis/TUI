@@ -6,11 +6,11 @@
 
 import TUI
 
-/// What a row can say about itself in a list: a badge, and a more prominent
-/// one (`.badgeProminence`); a background of its own (`.listRowBackground`);
-/// insets of its own (`.listRowInsets`); a section header made prominent
-/// (`.headerProminence`). And what an empty list draws in place of its rows —
-/// TUI's `.listEmptyPlaceholder(_:)`.
+/// What a row can say about itself in a list: a background of its own
+/// (`.listRowBackground`); insets of its own (`.listRowInsets`); a section
+/// header made prominent (`.headerProminence`). And what an empty list draws in
+/// place of its rows — TUI's `.listEmptyPlaceholder(_:)`. Badges have a demo of
+/// their own, ``BadgesDemo``.
 struct ListRowsDemo: View {
     @State private var showsTasks = true
 
@@ -24,8 +24,6 @@ struct ListRowsDemo: View {
                 HStack(alignment: .top, spacing: 2) {
                     List {
                         Section("page.list.rows.inbox") {
-                            Text("page.list.rows.badge").badge(3)
-                            Text("page.list.rows.prominentBadge").badge(12).badgeProminence(.increased)
                             Text("page.list.rows.background")
                                 .listRowBackground(Color.palette.info.opacity(0.35))
                             Text("page.list.rows.inset").listRowInsets(.leading, 4)
