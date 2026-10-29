@@ -10,6 +10,9 @@ import TUI
 #if canImport(UniformTypeIdentifiers)
     import UniformTypeIdentifiers
 #endif
+#if canImport(AppKit)
+    import TUIFilePanelsAppKit
+#endif
 
 // MARK: - File Panels Page
 
@@ -57,6 +60,7 @@ struct FilePanelsPage: View {
                 move
             }
             .environment(\.filePanelSession, simulatedSession)
+            .exampleFileDialogs()
             KeyboardHelpSection(
                 "page.files.keys",
                 shortcuts: [
@@ -206,5 +210,20 @@ struct FilePanelsPage: View {
         case .failure(let error):
             results[dialog] = "\(L("page.files.failed")): \(error.localizedDescription)"
         }
+    }
+}
+
+extension View {
+    /// The file panels as the Example shows them: a selected picture
+    /// previewed (`fileDialogPicturePreviews()`), and on macOS each item drawn
+    /// with the Finder's icon where the terminal draws pictures
+    /// (`fileDialogSystemIcons()`). Both are opt-in, so a panel without them
+    /// had no preview column and only the kinds' emoji.
+    func exampleFileDialogs() -> some View {
+        #if canImport(AppKit)
+            fileDialogPicturePreviews().fileDialogSystemIcons()
+        #else
+            fileDialogPicturePreviews()
+        #endif
     }
 }

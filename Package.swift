@@ -694,7 +694,8 @@ let package = Package(
         // ── App & Tests ─────────────────────────────────────────────────────────────────────────────────
         .executableTarget(
             name: "Example",
-            dependencies: ["TUI"],
+            // The Finder's icons in its file panels (empty off Apple platforms).
+            dependencies: ["TUI", "TUIFilePanelsAppKit"],
             resources: [.copy("Resources")]
         ),
         // The framework's suite, a test target per module (the owner's request B-TC1-1, 2026-10-12; placed
