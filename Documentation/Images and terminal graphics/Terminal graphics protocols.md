@@ -1422,3 +1422,24 @@ cell's pixels are sampled from the picture's own where they were kept
 (`DerivedImages.cellPixels(of:column:row:across:down:)`), and the blur is a
 running sum, which costs a pixel the same whatever its radius. The
 Example's Colors page shows factors 8, 4, 2 and 1 side by side.
+
+### 14.7 Colour effects over a picture (2026-10-28)
+
+`.brightness`, `.contrast`, `.saturation`, `.grayscale`, `.hueRotation`,
+`.colorInvert` and `.colorMultiply` rewrite the colours a subtree's escapes
+name (`SGRColorRewrite`), and a picture cell's foreground is its image's id.
+So the rewrite turned the id into one no image has, and the terminal drew
+nothing: in Ghostty, which draws a `LinearGradient` as a picture (§10), every
+row of the Example's colour effects was a blank strip but `.colorMultiply`'s,
+whose tint, (80, 160, 255), happened to leave a low id's bytes alone — so it
+drew the gradient untinted (the owner, 2026-10-28).
+
+Now a picture cell under a colour effect draws a copy recoloured by it, as the
+veil's cells draw a veiled copy (§14.4): `ImageTransform.Recolour`, the effect
+with its amount in 64ths (a turn in whole degrees), run per pixel through the
+same `Color` arithmetic the cells use (`SGRColorRewrite.rewriting(_:
+defaultForeground:defaultBackground:pictures:images:transform:)`). Where there
+is no copy to draw — no store, a tint with no RGB, a picture the store cannot
+copy — the cell keeps its own id, and the picture is drawn as it was rather
+than blanked. A translucent multiply tint's alpha fades the layer as before,
+and the fade's resolution draws its own copy (§14.3).

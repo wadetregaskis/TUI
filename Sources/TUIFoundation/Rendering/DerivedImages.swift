@@ -13,7 +13,8 @@ import TUICore
 import TUIStyling
 
 /// How a derived copy differs from its picture: blurred or not, then mixed
-/// toward one colour after another.
+/// toward one colour after another, or recoloured as a colour effect
+/// recolours cells.
 ///
 /// Each mix's amount is in 64ths, so a layer whose alpha moves — a fade, a
 /// breath — asks for at most 65 copies rather than one a frame (and the store
@@ -21,7 +22,9 @@ import TUIStyling
 /// layers stack: a faded picture behind a sheet is a fade and then a veil, a
 /// copy of a copy, made from the picture itself.
 package struct ImageTransform: Hashable, Sendable {
-    /// One mix toward a colour.
+    /// One step of the change to each pixel's colour: a mix toward a colour,
+    /// toward the pixel's own grey (``greys``), or a colour effect's
+    /// recolouring (``recolour``).
     package struct Mix: Hashable, Sendable {
         /// The colour mixed in, as 0xRRGGBB.
         package var toward: UInt32
@@ -35,6 +38,9 @@ package struct ImageTransform: Hashable, Sendable {
         /// (`Color.saturated(red:green:blue:keeping:)`) instead of toward
         /// `toward`, which is then unused: the colour the modal veil takes out.
         package var greys = false
+        /// The colour effect each pixel is recoloured by instead of mixed,
+        /// where there is one: `toward`, `amount` and `greys` are then unused.
+        package var recolour: Recolour?
     }
 
     /// Whether the copy is blurred over about a cell, as a material frosts.
@@ -59,6 +65,12 @@ package struct ImageTransform: Hashable, Sendable {
         blurs = false
         let amount = UInt8((min(1, max(0, fraction)) * 64).rounded())
         mixes = amount > 0 ? [Mix(toward: 0, amount: amount, linearLight: false, greys: true)] : []
+    }
+
+    /// A transform recolouring each pixel by `recolour`.
+    package init(recolouring recolour: Recolour) {
+        blurs = false
+        mixes = [Mix(toward: 0, amount: 64, linearLight: false, recolour: recolour)]
     }
 
     /// Whether the copy would be the picture itself.
@@ -365,6 +377,16 @@ struct DerivedImages {
     /// `pixels` (RGBA) mixed toward `mix`'s colour, or each pixel's own grey,
     /// by its amount.
     private static func apply(_ mix: ImageTransform.Mix, to out: inout [UInt8]) {
+        if let recolour = mix.recolour {
+            for at in stride(from: 0, to: out.count, by: 4) {
+                // A pixel's colour, as the effect's arithmetic takes it: not ink.
+                // swiftlint:disable:next framework_colour_literal
+                let moved = recolour.applied(to: .rgb(out[at], out[at + 1], out[at + 2]))
+                guard let rgb = moved.rgbComponents else { continue }
+                (out[at], out[at + 1], out[at + 2]) = (rgb.red, rgb.green, rgb.blue)
+            }
+            return
+        }
         let fraction = Double(mix.amount) / 64
         if mix.greys {
             for at in stride(from: 0, to: out.count, by: 4) {

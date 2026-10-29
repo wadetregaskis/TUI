@@ -222,7 +222,7 @@ extension _ColorEffectView: Renderable {
         let foreground = palette.foreground.resolve(with: palette)
         return effected(
             buffer, rewrites: rewrites, layerFade: layerFade,
-            foreground: foreground, surface: surface)
+            foreground: foreground, surface: surface, images: context.environment.terminalImageStore)
     }
 }
 
@@ -239,10 +239,14 @@ extension _ColorEffectView {
     /// Recursive, because a layer's content can carry layers.
     private func effected(
         _ buffer: FrameBuffer, rewrites: Bool, layerFade: Double?,
-        foreground: Color, surface: Color
+        foreground: Color, surface: Color, images: TerminalImageStore?
     ) -> FrameBuffer {
         let effect = self.effect
         let amount = self.amount
+        // A picture's cells name their image, not a colour: they draw a copy
+        // of the picture under the same effect (`SGRColorRewrite`'s picture
+        // rewrite).
+        let pictures = effect.pictureTransform(amount: amount)
         // Lines that are all empty are not rebuilt, and not as a shortcut: there is
         // nothing in them to rewrite, and rebuilding a placeholder from its lines
         // re-measures it at zero and throws away the width its slot declares. The
@@ -251,7 +255,8 @@ extension _ColorEffectView {
         // own width claims stay true, including a width a displaced child set.
         func recoloured(_ line: String) -> String {
             SGRColorRewrite.rewriting(
-                line, defaultForeground: foreground, defaultBackground: surface
+                line, defaultForeground: foreground, defaultBackground: surface,
+                pictures: pictures, images: images
             ) { effect.applied(to: $0, amount: amount) }
         }
         var result =
@@ -290,7 +295,7 @@ extension _ColorEffectView {
             var drawn = layer
             drawn.content = effected(
                 layer.content, rewrites: rewrites, layerFade: layerFade,
-                foreground: foreground, surface: surface)
+                foreground: foreground, surface: surface, images: images)
             return drawn
         }
         return result
@@ -320,6 +325,27 @@ extension _ColorEffect {
         case .invert: color.inverted
         case .multiply(let tint): color.multiplied(by: tint)
         }
+    }
+
+    /// This effect at `amount` as a picture's copy is recoloured, or `nil`
+    /// where it has no such form: a multiply by a tint with no RGB, which
+    /// leaves every colour as it was.
+    func pictureTransform(amount: Double) -> ImageTransform? {
+        let sixtyFourths = ImageTransform.Recolour.sixtyFourths
+        let recolour: ImageTransform.Recolour? =
+            switch self {
+            case .brightness: .brightness(sixtyFourths(amount))
+            case .contrast: .contrast(sixtyFourths(amount))
+            case .saturation: .saturation(sixtyFourths(amount))
+            case .grayscale: .saturation(sixtyFourths(1 - amount))
+            case .hueRotation: .hueRotation(ImageTransform.Recolour.degrees(amount))
+            case .invert: .invert
+            case .multiply(let tint):
+                tint.rgbComponents.map {
+                    .multiply(UInt32($0.red) << 16 | UInt32($0.green) << 8 | UInt32($0.blue))
+                }
+            }
+        return recolour.map(ImageTransform.init(recolouring:))
     }
 }
 
