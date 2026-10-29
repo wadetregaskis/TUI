@@ -158,7 +158,9 @@ struct _DialogSuppressionModifier<Content: View>: View {
 // MARK: - Drawing
 
 /// An alert's footer: its buttons, and the suppression toggle above them when
-/// the environment asks for one.
+/// the environment asks for one — centred over them, as the alert centres the
+/// footer, with a blank row between. Flush left, the toggle sat askew above a
+/// wider row of buttons, and touching them (the owner, 2026-10-28).
 ///
 /// The buttons are rendered FIRST and drawn second, so they register in the
 /// focus ring ahead of the toggle: the dialog's first button keeps the focus
@@ -187,12 +189,18 @@ struct _AlertFooter: View, Renderable, Layoutable {
             buttonsView,
             context: context.withChildIdentity(type: _AlertButtons.self, index: ChildIndex.buttons))
         guard let suppression else { return buttonsBuffer }
-        var result = TUIView.renderToBuffer(
+        let toggle = TUIView.renderToBuffer(
             suppression.toggle,
             context: context.withChildIdentity(type: DialogSuppression.self, index: ChildIndex.toggle))
-        result.appendVertically(buttonsBuffer)
+        let inset = max(0, (buttonsBuffer.width - toggle.width) / 2)
+        var result = FrameBuffer(emptyWithWidth: inset, height: toggle.height)
+        result.appendHorizontally(toggle)
+        result.appendVertically(buttonsBuffer, spacing: Self.toggleSpacing)
         return result
     }
+
+    /// The blank rows between the toggle and the buttons.
+    private static let toggleSpacing = 1
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let buttonsSize = measureChild(
@@ -204,7 +212,7 @@ struct _AlertFooter: View, Renderable, Layoutable {
             context: context.withChildIdentity(type: DialogSuppression.self, index: ChildIndex.toggle))
         return ViewSize(
             width: max(buttonsSize.width, toggleSize.width),
-            height: buttonsSize.height + toggleSize.height)
+            height: buttonsSize.height + Self.toggleSpacing + toggleSize.height)
     }
 }
 

@@ -147,12 +147,21 @@ struct DialogModifierTests {
         }
     }
 
-    @Test("The suppression toggle draws above the buttons, with the default title")
+    @Test("The suppression toggle draws above the buttons, a row apart and centred in the dialog, with the default title")
     func suppressionDraws() throws {
         let lines = screen(suppressible(Flags())).map(\.stripped)
         let toggleRow = try #require(lines.firstIndex { $0.contains("Do not show this message again") })
         let buttonRow = try #require(lines.firstIndex { $0.contains("Erase") && !$0.contains("Erase?") })
-        #expect(toggleRow < buttonRow)
+        #expect(buttonRow - toggleRow == 2, "a blank row between (the owner, 2026-10-28): \(lines)")
+        // Centred between the dialog's borders, where the buttons keep to the
+        // trailing edge, as a macOS dialog's do.
+        let row = Array(lines[toggleRow])
+        let left = try #require(row.firstIndex(of: "│"))
+        let right = try #require(row.lastIndex(of: "│"))
+        let drawn = row.indices.filter { $0 > left && $0 < right && row[$0] != " " }
+        let first = try #require(drawn.first)
+        let last = try #require(drawn.last)
+        #expect(abs((first - left) - (right - last)) <= 1, "centred in the dialog: \(lines)")
         #expect(screen(suppressible(Flags(), label: "Never ask")).contains { $0.stripped.contains("Never ask") })
     }
 
