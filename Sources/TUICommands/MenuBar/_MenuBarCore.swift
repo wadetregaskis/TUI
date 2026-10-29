@@ -199,6 +199,25 @@ extension _MenuBarCore {
         let mnemonics: [Character?]
     }
 
+    /// Where each title is drawn: one identity per title, keyed by its place
+    /// in the bar, and another for its underlined drawing
+    /// (``MnemonicTitleLabel``).
+    ///
+    /// NOT one identity for the whole row. Whatever a view keeps at its
+    /// identity — an animated value's record above all — was then shared by
+    /// every title, so in a pass that carried an animation (any
+    /// `withAnimation` on the page: the pass's transaction is the change's)
+    /// each title animated from the one drawn before it at the same place.
+    /// The trailing cell of `" Help "` stands in its column 5, and every title drew
+    /// a blank there for that frame — the `E` of "Example" and the `o` of
+    /// "Window" blinked out with each step of a `PhaseAnimator` (the owner,
+    /// 2026-10-28, #38).
+    enum TitleLabel {}
+
+    /// Where a title's drawing with its letter underlined is made: apart from
+    /// its plain drawing (``TitleLabel``), which the same pass makes first.
+    enum MnemonicTitleLabel {}
+
     /// The row of titles: each menu's with a cell on each side, one after
     /// another from the left edge, the app's menu in bold, as a menu bar's
     /// first title is, and the open menu's — or, `walking` the bar with every
@@ -208,7 +227,9 @@ extension _MenuBarCore {
     func titleRow(_ menus: [ResolvedCommandMenu], open: Int?, walking: Bool, context: RenderContext) -> TitleRow {
         let appName = context.environment.resolvedAboutPanel.name
         var drawn = menus.enumerated().map { index, menu in
-            self.line(chunk(title(of: menu, appName: appName), open: index == open, context), context)
+            self.line(
+                chunk(title(of: menu, appName: appName), open: index == open, context),
+                at: context.withChildIdentity(type: TitleLabel.self, index: index))
         }
         let plain: [String?] = zip(menus, drawn).map { menu, line in
             // The app's menu has no letter (``MenuBarMnemonics``).
@@ -226,7 +247,9 @@ extension _MenuBarCore {
                     Text(verbatim: parts.letter).underline()
                     Text(verbatim: parts.after)
                 }
-                drawn[index] = self.line(chunk(underlined, open: index == open, context), context)
+                drawn[index] = self.line(
+                    chunk(underlined, open: index == open, context),
+                    at: context.withChildIdentity(type: MnemonicTitleLabel.self, index: index))
             }
         }
         var line = ""
@@ -278,9 +301,10 @@ extension _MenuBarCore {
         return monitor.current.contains(.option)
     }
 
-    /// `view` drawn on one line at its natural width.
-    private func line(_ view: some View, _ context: RenderContext) -> String {
-        var lineContext = context.withChildIdentity(type: TitleRow.self, index: 0)
+    /// `view` drawn on one line at its natural width, in `context` — an
+    /// identity of the title's own (``TitleLabel``).
+    private func line(_ view: some View, at context: RenderContext) -> String {
+        var lineContext = context
         lineContext.availableWidth = max(context.availableWidth, 1)
         lineContext.hasExplicitWidth = false
         return TUIView.renderToBuffer(view, context: lineContext).lines.first ?? ""
