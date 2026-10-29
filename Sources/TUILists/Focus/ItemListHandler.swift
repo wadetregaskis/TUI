@@ -539,6 +539,19 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// accessor (CONTRIBUTING.md, "Crossing a module boundary").
     private var _compactColumnAdvance: CompactColumnAdvance?
 
+    /// What → does on the cursor row of a list that is not a tree
+    /// (``EnvironmentValues/listRowForwardAction``): a file panel's column
+    /// opens the folder there. Set by the list or table every frame from its
+    /// environment.
+    package var rowForwardAction: ListRowForwardAction? {
+        get { _rowForwardAction }
+        set { _rowForwardAction = newValue }
+    }
+
+    /// ``rowForwardAction``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _rowForwardAction: ListRowForwardAction?
+
     /// Opens the container's row menu on the cursor row — Shift+F10 or the
     /// Menu key (``KeyEvent/opensContextMenu``) — and answers whether one
     /// opened. `nil` where the container has no menu, so the key falls
@@ -681,7 +694,15 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
             // should not land you in the control next to the list.
             //
             // A list that is not a tree keeps its fall-through: it has no use
-            // for Right at all, so nothing is taken away.
+            // for Right at all, so nothing is taken away — unless what it is in
+            // gives the key a use there (``rowForwardAction``).
+            if outlineActivation == nil, let rowForwardAction, let id = id(at: focusedIndex) {
+                // Keys arrive on the main actor, as `compactColumnAdvance`'s do,
+                // so the row's id never leaves it: `nonisolated(unsafe)` only
+                // says so to the checker, which cannot see it.
+                nonisolated(unsafe) let row = AnyHashable(id)
+                return MainActor.assumeIsolated { rowForwardAction(row) }
+            }
             return outlineActivation != nil
         }
         if setFocusedRowExpanded(false, includingDescendants: event.alt) { return true }

@@ -3045,6 +3045,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         handler.singleSelection = singleSelection
         handler.multiSelection = multiSelection
         handler.compactColumnAdvance = context.environment.compactColumnAdvance
+        handler.rowForwardAction = context.environment.listRowForwardAction
     }
 
     /// `ScrollViewProxy.scrollTo` reaching the table, as it reaches a `List`:
