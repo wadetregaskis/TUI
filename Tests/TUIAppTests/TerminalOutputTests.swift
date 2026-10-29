@@ -187,6 +187,18 @@ extension TerminalOutputTests {
         #expect(!output.bytes.contains("\u{1B}[>1;0m"))
     }
 
+    /// A signal can land in the middle of a row, with a hyperlink open and
+    /// the row's styling in force: a crash's debt closes the one and resets
+    /// the other, before the shell's prompt is drawn in them.
+    @Test("A fatal signal's debt closes an open hyperlink and resets the styling")
+    func signalDebtResetsThePen() {
+        let (terminal, _) = ScriptedTerminalOutput.terminal()
+        terminal.enableRawMode()
+        #expect(Terminal.penReset == "\u{1B}]8;;\u{1B}\\" + "\u{1B}[0m")
+        #expect(terminal.signalDebt.hasPrefix(terminal.outputModesOff))
+        #expect(terminal.outputModesOff.hasSuffix(Terminal.penReset))
+    }
+
     /// SIGQUIT is the user's quit key's signal, and it leaves the terminal as
     /// a quit does: its debt is the bytes the run loop's teardown writes
     /// (`AppRunner.cleanup`: the styling reset, raw mode off, the cursor
@@ -225,7 +237,7 @@ extension TerminalOutputTests {
         #expect(terminal.signalDebt.contains("\u{1B}[?7h"))
         output.clear()
         terminal.disableRawMode()
-        #expect(output.writes.first == "\u{1B}[?2026l\u{1B}[?7h", "before anything else")
+        #expect(output.writes.first == "\u{1B}[?2026l\u{1B}[?7h" + Terminal.penReset, "before anything else")
 
         // A resume turns it off again, as a startup does.
         output.clear()
@@ -233,7 +245,7 @@ extension TerminalOutputTests {
         #expect(output.bytes.contains("\u{1B}[?7l"))
 
         let (quiet, _) = ScriptedTerminalOutput.terminal(environment: ["TUI_SYNCHRONIZED_OUTPUT": "0"])
-        #expect(quiet.outputModesOff == "\u{1B}[?7h", "owed whether or not frames are held")
+        #expect(quiet.outputModesOff == "\u{1B}[?7h" + Terminal.penReset, "owed whether or not frames are held")
     }
 
     /// K3's precondition: Apple Terminal's card decides, so until it is run

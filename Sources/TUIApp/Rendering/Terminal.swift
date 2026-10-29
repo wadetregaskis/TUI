@@ -995,12 +995,25 @@ extension Terminal {
     ///   ``outputModesOn`` turned it off. Not per screen, so leaving the
     ///   alternate screen does not put it back. Sent where it was kept on too:
     ///   harmless there, and one debt for every host.
+    /// - the pen back to its defaults (``penReset``): no hyperlink open and
+    ///   no styling in force. A frame closes every link it opens and the
+    ///   teardown resets the styling a frame left, but a signal can land in
+    ///   the middle of a row, and a crash's debt was paid with both still on:
+    ///   the shell's prompt, and everything after it, drawn in the frame's
+    ///   colours and as one link to the app's last URL.
     var outputModesOff: String {
-        (synchronizesOutput ? Self.synchronizedUpdateEnd : "") + Self.autowrapOn
+        (synchronizesOutput ? Self.synchronizedUpdateEnd : "") + Self.autowrapOn + Self.penReset
     }
 
+    /// `ESC ] 8 ; ; ST` and `CSI 0 m`: whatever hyperlink is open closed
+    /// (OSC 8 with no destination, `TerminalHyperlink.closing`), and the
+    /// styling reset. Shapes every host consumes: an OSC, which even Apple
+    /// Terminal parses, and a plain SGR.
+    static let penReset = TerminalHyperlink.closing + ANSIRenderer.reset
+
     /// What the terminal is owed, should the process die of a signal now:
-    /// everything it has been changed by — the output modes, the kitty flags
+    /// everything it has been changed by — the output modes and the pen
+    /// (``outputModesOff``), the kitty flags
     /// if pushed, the input modes, a pinned grapheme-clustering mode, what the
     /// app set beyond the screen (`TerminalHostState.debt`: its own window
     /// title, saved on its title stack, and the app's progress bar taken
