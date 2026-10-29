@@ -34,7 +34,7 @@ extension ExampleStrings {
             "controlStyle.thickBraille": "Thick Braille",
             "controlStyle.blank": "Blank",
             "commands.textStyling": "Text Styling",
-            "about.credits": "A tour of TUI: SwiftUI's views and controls, in a terminal.",
+            "about.credits": "A tour of TUI: SwiftUI's views\nand controls, in a terminal.",
         ],
         "de": [
             "page.menus.menuBarSection": "Menüleiste · .commands",
@@ -52,7 +52,7 @@ extension ExampleStrings {
             "controlStyle.thickBraille": "Braille (dick)",
             "controlStyle.blank": "Leer",
             "commands.textStyling": "Textgestaltung",
-            "about.credits": "Eine Tour durch TUI: die Views und Bedienelemente von SwiftUI, im Terminal.",
+            "about.credits": "Eine Tour durch TUI: die Views und\nBedienelemente von SwiftUI, im Terminal.",
         ],
         "fr": [
             "page.menus.menuBarSection": "Barre des menus · .commands",
@@ -70,7 +70,7 @@ extension ExampleStrings {
             "controlStyle.thickBraille": "Braille épais",
             "controlStyle.blank": "Vide",
             "commands.textStyling": "Style du texte",
-            "about.credits": "Une visite de TUI : les vues et contrôles de SwiftUI, dans un terminal.",
+            "about.credits": "Une visite de TUI : les vues et\ncontrôles de SwiftUI, dans un terminal.",
         ],
         "it": [
             "page.menus.menuBarSection": "Barra dei menu · .commands",
@@ -88,7 +88,7 @@ extension ExampleStrings {
             "controlStyle.thickBraille": "Braille spesso",
             "controlStyle.blank": "Vuoto",
             "commands.textStyling": "Stile del testo",
-            "about.credits": "Un giro di TUI: le viste e i controlli di SwiftUI, in un terminale.",
+            "about.credits": "Un giro di TUI: le viste e i controlli\ndi SwiftUI, in un terminale.",
         ],
         "es": [
             "page.menus.menuBarSection": "Barra de menús · .commands",
@@ -106,7 +106,7 @@ extension ExampleStrings {
             "controlStyle.thickBraille": "Braille grueso",
             "controlStyle.blank": "Vacío",
             "commands.textStyling": "Estilo del texto",
-            "about.credits": "Un recorrido por TUI: las vistas y los controles de SwiftUI, en un terminal.",
+            "about.credits": "Un recorrido por TUI: las vistas y los\ncontroles de SwiftUI, en un terminal.",
         ],
         "zh": [
             "page.menus.menuBarSection": "菜单栏 · .commands",
@@ -124,7 +124,7 @@ extension ExampleStrings {
             "controlStyle.thickBraille": "粗盲文",
             "controlStyle.blank": "空白",
             "commands.textStyling": "文字样式",
-            "about.credits": "TUI 导览：SwiftUI 的视图和控件，在终端里。",
+            "about.credits": "TUI 导览：SwiftUI 的视图\n和控件，在终端里。",
         ],
         "ja": [
             "page.menus.menuBarSection": "メニューバー · .commands",
@@ -142,7 +142,7 @@ extension ExampleStrings {
             "controlStyle.thickBraille": "太い点字",
             "controlStyle.blank": "なし",
             "commands.textStyling": "テキストのスタイル",
-            "about.credits": "TUI ツアー：SwiftUI のビューとコントロールをターミナルで。",
+            "about.credits": "TUI ツアー：SwiftUI のビューと\nコントロールをターミナルで。",
         ],
     ]
 }

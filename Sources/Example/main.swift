@@ -78,9 +78,11 @@ struct ExampleApp: App {
         .commands { ExampleCommands(palette: $palette, styling: $styling) }
         // What the app menu's About says: a SwiftPM executable has no
         // Info.plist to say it, so the scene does (a TUI modifier).
+        // The credits and the copyright break their lines by hand, so they
+        // read balanced rather than wrapping raggedly at the alert's width.
         .aboutPanel(
             applicationName: "TUI Example", applicationVersion: tuiKitVersion,
-            copyright: "Copyright © 2026 Frank Gregor & Wade Tregaskis · MIT License",
+            copyright: "Copyright © 2026 Frank Gregor & Wade Tregaskis\nMIT License",
             credits: L("about.credits"))
     }
 }
