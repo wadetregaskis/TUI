@@ -4877,7 +4877,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             return nil
         }
         let rows = data
-        let probe = Self.probing(context)
+        // Measured when the click comes, after the frame that made this
+        // closure has ended: nothing memoised. The frame's render cache has
+        // moved on to another pass by then, and measuring through it against
+        // the frame's environment crossed the two (a debug assertion that the
+        // pass's volatile-read tracker is the cache's; the owner, 2026-10-28,
+        // clicking a folder in a file panel's list view).
+        var probe = Self.probing(context)
+        probe.renderCache = nil
+        probe.environment.renderCache = nil
         return { index, x in
             guard rows.indices.contains(index),
                 let triangle = outline.triangleColumns(for: rows[index].id)
