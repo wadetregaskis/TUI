@@ -775,7 +775,15 @@ it.
 customisation family, built as its option 1): the person customizes the items
 made with an identifier — `ToolbarItem(id:)` — from the top bar's context menu
 (a right-click on it, or Shift+F10 while one of its items has the focus) or the
-menu bar's View ▸ Customize Toolbar… (`ToolbarCommands`). A panel hangs from the
+menu bar's View ▸ Customize Toolbar… (F10, then View). The menu bar offers it
+wherever the page shows a customizable toolbar, `ToolbarCommands` or not — on
+macOS the View menu has it only with `ToolbarCommands`, and otherwise the
+toolbar's own context menu is the way to it (owner ruling CUSTOMIZE-CHORD,
+2026-10-29: no key of its own). `ToolbarCommands`' item takes the place of the
+scene's own, so there are never two; an app's `CommandGroup(replacing: .toolbar)`
+or `commandsRemoved()` takes the scene's away, as it takes any group's. A scene
+with no `commands` has no menu bar, and the bar's context menu is then the way.
+A panel hangs from the
 bar listing every such item in the order the bars draw them, those out of the
 bar included, each with a checkbox that puts it in the bar or takes it out and
 ▲ ▼ that move it among the others of its place — Tab, Space and Return, or the
@@ -832,7 +840,9 @@ focus back. SwiftUI's opt-in sets fill the View and Edit menus:
 `SidebarCommands` (Show/Hide Sidebar, the split view's ⌃⌘S), `InspectorCommands`
 (Show/Hide Inspector, ⌃⌘I), `ToolbarCommands` (Hide/Show Toolbar, ⌥⌘T, the
 person's choice over the page's top bar; and Customize Toolbar…, the panel of
-the page's `toolbar(id:content:)`, disabled where it has none) and
+the page's `toolbar(id:content:)`, disabled where it has none, which stands in
+for the scene's own item — offered without `ToolbarCommands`, while the page
+shows a customizable toolbar) and
 `TextEditingCommands` (Find… and Find Next, a `TextEditor`'s ⌃F and ⌃G,
 disabled unless an editor that can find has the focus, as AppKit validates
 them against the responder chain); `TextFormattingCommands`

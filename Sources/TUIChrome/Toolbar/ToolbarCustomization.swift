@@ -21,7 +21,9 @@ extension View {
     /// made with an identifier — `ToolbarItem(id:)` — the person customizes:
     /// from the bar's context menu (a right-click on the top bar, or Shift+F10
     /// while one of its items has the focus) or the menu bar's View ▸
-    /// Customize Toolbar… (`ToolbarCommands`), a panel lists them, where the
+    /// Customize Toolbar… (F10, then View: offered whether or not the scene's
+    /// commands include `ToolbarCommands`, which macOS needs for it; a scene
+    /// with no `commands` has no menu bar), a panel lists them, where the
     /// person puts each in the bar or takes it out, and moves it among the
     /// others in its place — its region of its bar's row — with the keyboard
     /// or the mouse. While the panel is open, the items in the bar are dragged

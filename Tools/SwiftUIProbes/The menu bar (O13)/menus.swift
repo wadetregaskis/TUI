@@ -1,5 +1,6 @@
 // Probe: what SwiftUI puts in the main menu for a few .commands shapes.
-// Usage: ./menus <case>   (cases: base, two, removed, removedInner, replaced, order, keys)
+// Usage: ./menus <case>   (cases: base, two, removed, removedInner, replaced, order, keys,
+//        toolbarId, toolbarIdStd)
 import SwiftUI
 import AppKit
 
@@ -36,6 +37,18 @@ struct ContentView: View {
                 Button("Page K") { Log.fired.append("page") }.keyboardShortcut("k")
             }
         }.frame(width: 200, height: 100)
+    }
+}
+
+/// A page with a customizable toolbar (`toolbar(id:)`), for `toolbarId` and
+/// `toolbarIdStd`: whether the View menu offers Customize Toolbar… without
+/// `ToolbarCommands`.
+struct CustomizableContentView: View {
+    var body: some View {
+        ContentView().toolbar(id: "probe") {
+            ToolbarItem(id: "one") { Button("One") {} }
+            ToolbarItem(id: "two") { Button("Two") {} }
+        }
     }
 }
 
@@ -82,6 +95,10 @@ struct ProbeApp: App {
         WindowGroup { ContentView() }.commands {
             SidebarCommands(); ToolbarCommands(); TextEditingCommands(); TextFormattingCommands(); InspectorCommands()
         }
+        #elseif CASE_toolbarId
+        WindowGroup { CustomizableContentView() }
+        #elseif CASE_toolbarIdStd
+        WindowGroup { CustomizableContentView() }.commands { ToolbarCommands() }
         #elseif CASE_keys
         WindowGroup { ContentView() }.commands {
             CommandMenu("Keys") { Button("Command K") { Log.fired.append("command") }.keyboardShortcut("k") }
@@ -112,9 +129,32 @@ struct ProbeApp: App {
     }
     init() {
         NSApplication.shared.setActivationPolicy(.regular)
+        if probeCase.hasPrefix("toolbarId") {
+            // The window group's own window is not made where the probe runs
+            // (no session to activate in), so host the page in a window of
+            // the probe's own, bridging its toolbar to the window's.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                let host = NSHostingController(rootView: CustomizableContentView())
+                host.sceneBridgingOptions = [.toolbars, .title]
+                let made = NSWindow(contentViewController: host)
+                made.makeKeyAndOrderFront(nil)
+                Keep.window = made
+            }
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             print("== case \(probeCase)")
-            if let main = NSApp.mainMenu { dump(main) }
+            if let main = NSApp.mainMenu {
+                // Let AppKit update the menus as it does before showing one,
+                // in case it adds the toolbar's items only then.
+                for item in main.items { item.submenu?.update() }
+                dump(main)
+            }
+            print("windows:", NSApp.windows.map { "\($0.className) visible=\($0.isVisible) toolbar=\($0.toolbar != nil)" })
+            for window in NSApp.windows where window.toolbar != nil {
+                let toolbar = window.toolbar!
+                print("toolbar:", toolbar.identifier, "customizable:", toolbar.allowsUserCustomization,
+                      "items:", toolbar.items.map(\.itemIdentifier.rawValue))
+            }
             if probeCase == "keys" || probeCase == "keysPageOnly" {
                 print("windows:", NSApp.windows.map { "\($0.className) visible=\($0.isVisible) canKey=\($0.canBecomeKey)" })
                 NSApp.setActivationPolicy(.regular)

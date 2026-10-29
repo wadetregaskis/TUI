@@ -78,6 +78,11 @@ struct CommandsCollector {
     /// What the group edits said, by group.
     private(set) var groups: [CommandGroupPlacement.Group: CommandGroupEdits] = [:]
 
+    /// Whether the commands offer View ▸ Customize Toolbar… themselves
+    /// (``ToolbarCommands``): the scene's own item is then left out, so the
+    /// menu never has two.
+    var offersCustomizeToolbar = false
+
     /// The place being collected: one step per block member and `if` branch.
     private var path: [Int] = []
 

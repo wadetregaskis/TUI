@@ -29,10 +29,20 @@ import TUIFoundation
 /// | `undoRedo` | Undo, Redo | the app's `UndoManager`; disabled with nothing to undo or redo | the scene's undo and redo keys |
 /// | `pasteboard` | Cut, Copy, Paste | ⌘X, ⌘C, ⌘V to the focused view, after the menu closes | the same, through `commandKey` |
 /// | `help` | Show Tooltips; Show All Tooltips | whether tooltips show at all; every tooltip on the screen at once (`TooltipState`); each disabled where no view on the screen has help | —; ⌥ and the help key (⌥?), and Shift-F1, the chain's last resort, where Option does not arrive |
+/// | `toolbar` | Customize Toolbar… | opens the customization panel of the page's customizable toolbar (`toolbar(id:content:)`), as its right-click does; only while the page shows one, and not where the commands offer it themselves (`ToolbarCommands`) | — |
 /// | `saveItem` | Close; Close All | closes the window in front; every window that may close but the one at the back; each disabled where it would close nothing (the Window menu's rule) | ⌘W; ⌥⌘W — a focused text field keeps Ctrl-W, its word rubout |
 /// | `windowArrangement` | Close Window | closes the window in front; disabled where the person may not: the last, one whose content disabled its dismissal, one showing a sheet | Escape |
 /// | `windowList` | each open window, the one in front checked | brings it to the front | — |
 /// | `singleWindowList` | each `Window` scene | opens it, or brings its window to the front | its `.keyboardShortcut`, if it states one |
+///
+/// Customize Toolbar… is TUI's: macOS's View menu offers it only with
+/// `ToolbarCommands` (measured on macOS 15.8:
+/// `Tools/SwiftUIProbes/The menu bar (O13)/toolbarId.out`), leaving the
+/// toolbar's context menu as the way there. Here the keyboard reaches that
+/// menu only while one of the bar's items has the focus (Shift+F10), so the
+/// menu bar is the keyboard's way to the panel wherever a page shows a
+/// customizable toolbar (owner ruling CUSTOMIZE-CHORD, 2026-10-29: no chord of
+/// its own).
 ///
 /// The Window menu's three groups are filled only for an app that can have
 /// more than one window open — more than one window scene, or a window group
@@ -53,6 +63,10 @@ import TUIFoundation
 struct SceneOwnCommands {
     /// Shows the About alert.
     let showAbout: () -> Void
+
+    /// Whether the scene's commands offer Customize Toolbar… themselves
+    /// (``ToolbarCommands``), so the toolbar group has none of its own.
+    let commandsOfferCustomizeToolbar: Bool
 
     /// What `group` holds before an edit, where the bar renders in `context`;
     /// `nil` for a group TUI leaves empty.
@@ -83,6 +97,8 @@ struct SceneOwnCommands {
             return undoItems(environment)
         case .help:
             return helpItems(environment)
+        case .toolbar:
+            return customizeToolbarItems(environment)
         case .pasteboard:
             return Self.items("pasteboard") {
                 pressing("x", title: service.string(for: LocalizationKey.Menu.cut), environment)
@@ -107,6 +123,15 @@ struct SceneOwnCommands {
             Button(title) { openSettings() }
                 .keyboardShortcutHint(shortcut)
         }
+    }
+
+    /// View ▸ Customize Toolbar…, while the page shows a customizable toolbar
+    /// and the commands do not offer it themselves: ``ToolbarCommands``' item.
+    private func customizeToolbarItems(_ environment: EnvironmentValues) -> CommandItems? {
+        guard !commandsOfferCustomizeToolbar, let chrome = environment.windowChrome,
+            !chrome.customizableToolbars.isEmpty
+        else { return nil }
+        return Self.items("customize-toolbar") { CustomizeToolbarCommand.item(chrome) }
     }
 
     /// File ▸ Close and Close All, for an app that can open more than one

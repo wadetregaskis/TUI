@@ -150,7 +150,12 @@ public struct CommandGroupPlacement: Hashable, Sendable {
 
     /// Placement for commands that manipulate the toolbar.
     ///
-    /// Empty by default; ``ToolbarCommands`` adds Hide Toolbar.
+    /// By default, while the page shows a customizable toolbar
+    /// (`toolbar(id:content:)`), this group includes "Customize Toolbar…",
+    /// which opens its customization panel — the keyboard's way to it, which
+    /// macOS leaves to ``ToolbarCommands``. ``ToolbarCommands`` adds Hide
+    /// Toolbar and its own Customize Toolbar…, which takes the place of this
+    /// one.
     public static let toolbar = Self(.toolbar)
 
     /// Placement for commands that control the app's sidebar and full-screen

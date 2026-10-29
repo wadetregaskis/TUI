@@ -988,8 +988,11 @@ messages cite that path), and what cites it.
   standard command sets add. It builds a SwiftUI app per case and reads the main menu back: `menus.swift`, with
   `run.sh <case>` (cases `base`, `two`, `removed`, `removedInner`, `replaced`, `order`, `keys`). The probe could not
   make its window key on the development Mac, and with no key window the main menu took the key, so how a command's
-  key equivalent is routed is unmeasured.
-- **Ran:** macOS 15.8, 2026-10-18.
+  key equivalent is routed is unmeasured. Cases `toolbarId` and `toolbarIdStd` host a page with a customizable
+  toolbar (`toolbar(id:)`) in a window of the probe's own and read the View menu without and with `ToolbarCommands`
+  (`toolbarId.out`, `toolbarIdStd.out`): without, it holds no Customize Toolbar…; with, Show Toolbar and Customize Toolbar… (disabled, the
+  window not being key).
+- **Ran:** macOS 15.8, 2026-10-18; the toolbar cases on macOS 15.8.1, 2026-10-29.
 - **Was:** `O13/probe/`.
 - **Cited by:** `Documentation/Historical/Menus, toolbars and chrome/The menu bar.md`,
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`,

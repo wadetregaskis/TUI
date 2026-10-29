@@ -198,7 +198,8 @@ bar): the items in the order the bars draw them, a checkbox per item, ▲ ▼ to
 move it among the movable items of its place, the label styles where the scene
 bound them, Reset and Done. It opens from the bar's
 context menu — a right-click, or Shift+F10 while one of the bar's items has the
-focus — and from the menu bar's View ▸ Customize Toolbar… (`ToolbarCommands`).
+focus — and from the menu bar's View ▸ Customize Toolbar… (`ToolbarCommands`;
+since 2026-10-29 without it too, below).
 What the person chose is kept per toolbar identifier in the app's default
 storage, as JSON in TUI's own encoding (`order`, `shown`), with nothing
 written until they change something; Reset forgets it.
@@ -214,8 +215,15 @@ Where it differs from macOS:
   a `ToolbarSpacer` here stays where it was declared.
 - **The keyboard's way in needs a stop or the menu bar.** Shift+F10 opens the
   bar's context menu while one of the bar's items has the focus, and View ▸
-  Customize Toolbar… needs `ToolbarCommands`; a bar of text alone, in an app
-  with no menu bar, is customized by its right-click only.
+  Customize Toolbar… needed `ToolbarCommands`, as on macOS. Since 2026-10-29
+  (owner ruling CUSTOMIZE-CHORD: no key of its own) the menu bar's View menu
+  offers it wherever the page shows a customizable toolbar, as the scene's own
+  item in the toolbar group, which `ToolbarCommands`' item takes the place of
+  (`SceneOwnCommands`). macOS's View menu has no such item without
+  `ToolbarCommands` (measured on macOS 15.8:
+  `Tools/SwiftUIProbes/The menu bar (O13)/toolbarId.out`); there the toolbar's
+  context menu is the way. A bar of text alone, in an app with no menu bar (a
+  scene with no `commands`), is still customized by its right-click only.
 
 **The fuller versions:** a stop of its own for a bar with no focusable item,
 so Shift+F10 always reaches its menu — about two hours; moving an item across

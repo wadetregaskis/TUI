@@ -1,0 +1,51 @@
+== case toolbarIdStd
+menus_toolbarIdStd
+    About menus_toolbarIdStd
+    ----
+    Services
+    ----
+    Hide menus_toolbarIdStd  [⌘h]
+    Hide Others  [⌥⌘h]
+    Show All (disabled)
+    ----
+    Quit menus_toolbarIdStd  [⌘q]
+File
+    New Window  [⌘n]
+    ----
+    Close  [⌘w] (disabled)
+    Close All  [⌥⌘w]
+Edit
+    Undo  [⌘z] (disabled)
+    Redo  [⇧⌘z] (disabled)
+    ----
+    Cut  [⌘x] (disabled)
+    Copy  [⌘c] (disabled)
+    Paste  [⌘v] (disabled)
+    Delete (disabled)
+    Select All  [⌘a] (disabled)
+    ----
+    AutoFill
+        Contact…
+        Passwords…
+    Start Dictation  [d] (disabled)
+    Start Dictation  [d] (disabled) (hidden)
+    Emoji & Symbols  [⌘ ]
+    Emoji & Symbols  [⌃⌘ ] (hidden)
+    Emoji & Symbols  [e] (hidden)
+View
+    ----
+    Show Toolbar  [⌥⌘t] (disabled)
+    Customize Toolbar… (disabled)
+    ----
+Window
+    Minimize  [⌘m] (disabled)
+    Zoom (disabled)
+    ----
+    Bring All to Front
+    ----
+    Untitled
+Help
+    menus_toolbarIdStd Help  [⌘?]
+    Toggle Sidebar  [⌥⌘s] (disabled) (hidden)
+windows: ["NSWindow visible=true toolbar=true"]
+toolbar: probe customizable: true items: ["one", "two"]

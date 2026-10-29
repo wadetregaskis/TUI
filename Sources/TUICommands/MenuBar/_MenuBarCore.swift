@@ -129,7 +129,8 @@ struct _MenuBarCore: View, Renderable {
             collector.step(index, commands)
         }
         guard commands.includesSceneCommands else { return collector.resolvedMenus() }
-        let own = SceneOwnCommands(showAbout: showAbout)
+        let own = SceneOwnCommands(
+            showAbout: showAbout, commandsOfferCustomizeToolbar: collector.offersCustomizeToolbar)
         return collector.resolvedMenus { own.items(for: $0, context: context) }
     }
 

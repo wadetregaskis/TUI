@@ -4,7 +4,8 @@
 //  SwiftUI's opt-in command sets: SidebarCommands, InspectorCommands and
 //  ToolbarCommands in the View menu, TextEditingCommands' Find… and Find Next
 //  in Edit — each doing what its key does, titled for the panel's state,
-//  disabled where there is nothing to act on.
+//  disabled where there is nothing to act on — and the scene's own View ▸
+//  Customize Toolbar…, wherever a customizable toolbar shows.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -70,19 +71,57 @@ private struct ToolbarApp: App {
     }
 }
 
+/// A page with a customizable toolbar, one of whose items starts out of the
+/// bar: the panel lists it unchecked.
+private struct CustomizablePage: View {
+    var body: some View {
+        Text("PAGE").toolbar(id: "main") {
+            ToolbarItem(id: "header", placement: .navigation) { Text("HEADER") }
+            ToolbarItem(id: "extra", placement: .primaryAction) { Text("EXTRA") }
+                .defaultCustomization(.hidden)
+        }
+    }
+}
+
 private struct CustomizableToolbarApp: App {
     init() {}
     var body: some Scene {
+        WindowGroup { CustomizablePage() }
+            .defaultAppStorage(MemoryStore())
+            .commandsRemoved()
+            .commands { ToolbarCommands() }
+    }
+}
+
+/// A customizable toolbar, with the scene's own commands and no
+/// `ToolbarCommands`.
+private struct OwnCustomizeApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { CustomizablePage() }
+            .defaultAppStorage(MemoryStore())
+            .commands { CommandMenu("Note") {} }
+    }
+}
+
+/// The same, with `ToolbarCommands` as well.
+private struct OwnAndToolbarCommandsApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { CustomizablePage() }
+            .defaultAppStorage(MemoryStore())
+            .commands { ToolbarCommands() }
+    }
+}
+
+/// A toolbar that is not customizable, with the scene's own commands.
+private struct OwnPlainToolbarApp: App {
+    init() {}
+    var body: some Scene {
         WindowGroup {
-            Text("PAGE").toolbar(id: "main") {
-                ToolbarItem(id: "header", placement: .navigation) { Text("HEADER") }
-                ToolbarItem(id: "extra", placement: .primaryAction) { Text("EXTRA") }
-                    .defaultCustomization(.hidden)
-            }
+            Text("PAGE").toolbar { ToolbarItem(placement: .navigation) { Text("HEADER") } }
         }
-        .defaultAppStorage(MemoryStore())
-        .commandsRemoved()
-        .commands { ToolbarCommands() }
+        .commands { CommandMenu("Note") {} }
     }
 }
 
@@ -268,6 +307,64 @@ struct StandardCommandSetsTests {
         frame(app)
         frame(app)
         #expect(rows(app).contains { $0.contains("□") && $0.contains("EXTRA") }, "the panel: \(rows(app))")
+    }
+
+    /// The View menu's rows, opened from the keyboard: F10, then right to
+    /// View, the bar's third menu after the app's and Edit.
+    private mutating func viewMenuRows<A: App>(of app: HeadlessApp<A>) -> [String] {
+        #expect(rows(app)[0].contains("  Edit  View  "), "\(rows(app)[0])")
+        app.send(KeyEvent(key: .f10))
+        frame(app)
+        app.send(KeyEvent(key: .down))
+        frame(app)
+        app.send(KeyEvent(key: .right))
+        frame(app)
+        app.send(KeyEvent(key: .right))
+        frame(app)
+        let shown = Array(rows(app).dropFirst())
+        app.send(KeyEvent(key: .escape))
+        frame(app)
+        return shown
+    }
+
+    @Test("Without ToolbarCommands, F10 then View ▸ Customize Toolbar… opens the customizable toolbar's panel")
+    mutating func ownCustomizeToolbar() {
+        let app = launched(OwnCustomizeApp())
+        let menu = viewMenuRows(of: app)
+        #expect(menu.contains { $0.contains("Customize Toolbar") }, "\(menu)")
+        #expect(!rows(app).contains { $0.contains("□") && $0.contains("EXTRA") }, "sanity: no panel yet")
+        app.send(KeyEvent(key: .f10))
+        frame(app)
+        app.send(KeyEvent(key: .down))
+        frame(app)
+        app.send(KeyEvent(key: .right))
+        frame(app)
+        app.send(KeyEvent(key: .right))
+        frame(app)
+        app.send(KeyEvent(key: .enter))
+        frame(app)
+        frame(app)
+        frame(app)
+        #expect(rows(app).contains { $0.contains("□") && $0.contains("EXTRA") }, "the panel: \(rows(app))")
+    }
+
+    @Test("With no customizable toolbar the scene offers no Customize Toolbar…, and no View menu for it")
+    mutating func noOwnCustomizeToolbarWithoutOne() {
+        let app = launched(OwnPlainToolbarApp())
+        #expect(rows(app).contains { $0.contains("HEADER") }, "sanity: the top bar shows")
+        let bar = rows(app)[0]
+        #expect(bar.contains("Edit") && bar.contains("Note"), "sanity: \(bar)")
+        #expect(!bar.contains("View"), "\(bar)")
+    }
+
+    @Test("With ToolbarCommands too, the View menu has one Customize Toolbar…, after Hide Toolbar")
+    mutating func oneCustomizeToolbarWithToolbarCommands() {
+        let app = launched(OwnAndToolbarCommandsApp())
+        let menu = viewMenuRows(of: app)
+        let items = menu.indices.filter { menu[$0].contains("Customize Toolbar") }
+        #expect(items.count == 1, "\(menu)")
+        let hide = menu.firstIndex { $0.contains("Hide Toolbar") } ?? menu.count
+        #expect(items.allSatisfy { $0 > hide }, "\(menu)")
     }
 
     @Test("TextEditingCommands: Edit ▸ Find… (⌃F) shows the focused editor's find bar; Find Next is ⌃G")

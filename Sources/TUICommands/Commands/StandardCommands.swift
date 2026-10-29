@@ -86,6 +86,11 @@ public struct InspectorCommands: Commands {
 /// View ▸ Customize Toolbar…, which opens the customization panel of the
 /// page's customizable toolbar (`toolbar(id:content:)`); disabled while it has
 /// none.
+///
+/// A scene with a menu bar has View ▸ Customize Toolbar… without these
+/// commands too, while the page shows a customizable toolbar: the scene's own
+/// item, in the toolbar group (``CommandGroupPlacement/toolbar``). These
+/// commands' item stands in for it, so the menu never has two.
 public struct ToolbarCommands: Commands {
     @Environment(\.windowChrome) private var chrome
 
@@ -101,11 +106,36 @@ public struct ToolbarCommands: Commands {
             }
             .keyboardShortcut("t", modifiers: [.command, .option])
             .disabled(!hidden && !declared)
-            Button(localized: LocalizationKey.Label.customizeToolbar) {
-                chrome?.beginCustomizingToolbar()
-            }
-            .disabled(chrome?.customizableToolbars.isEmpty ?? true)
         }
+        CustomizeToolbarCommand(chrome: chrome)
+    }
+}
+
+// MARK: - Customize Toolbar…
+
+/// ``ToolbarCommands``' View ▸ Customize Toolbar…: its item, after the toolbar
+/// group's others, which tells the collector that the commands offer it, so
+/// the scene's own (`SceneOwnCommands`) is left out.
+struct CustomizeToolbarCommand: Commands, _CommandsPrimitive {
+    /// The window's chrome, whose customizable toolbar the item customizes.
+    let chrome: WindowChromeState?
+
+    var body: Never { fatalError("CustomizeToolbarCommand hands its commands over itself") }
+
+    func collectCommands(into collector: inout CommandsCollector) {
+        collector.offersCustomizeToolbar = true
+        let chrome = chrome
+        collector.step(0, CommandGroup(after: .toolbar) { Self.item(chrome) })
+    }
+
+    /// Customize Toolbar…, which opens the customization panel of the page's
+    /// first customizable toolbar (`toolbar(id:content:)`); disabled while it
+    /// has none. ``ToolbarCommands``' item, and the scene's own.
+    static func item(_ chrome: WindowChromeState?) -> some View {
+        Button(localized: LocalizationKey.Label.customizeToolbar) {
+            chrome?.beginCustomizingToolbar()
+        }
+        .disabled(chrome?.customizableToolbars.isEmpty ?? true)
     }
 }
 

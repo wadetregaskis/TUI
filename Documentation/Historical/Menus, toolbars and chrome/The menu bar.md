@@ -231,6 +231,10 @@ Speech submenus.
   over the top bar (`WindowChromeState.topBarHiddenByCommand`), whatever the
   page's `.toolbarVisibility` says, until Show Toolbar; disabled while the page
   places nothing in the top bar. No Customize Toolbar…: `toolbar(id:)` is a gap.
+  (Customize Toolbar… came with `toolbar(id:)`; since 2026-10-29, owner ruling
+  CUSTOMIZE-CHORD, the scene offers it in the View menu without
+  `ToolbarCommands` too, wherever the page shows a customizable toolbar —
+  macOS does not: `Tools/SwiftUIProbes/The menu bar (O13)/toolbarId.out`.)
 - `TextEditingCommands`: Find… and Find Next, pressing a `TextEditor`'s own
   keys, ⌃F (⌘F's Control chord, which the editor yields to its find bar) and
   ⌃G (B81, 2026-10-19; Find… pressed ⌃G until then).
