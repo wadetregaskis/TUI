@@ -131,6 +131,9 @@ struct SplitViewPage: View {
     @State private var visibility: NavigationSplitViewVisibility = .all
     @State private var styleName: String = "balanced"
     @State private var resizable: Bool = true
+    /// Whether the leftmost divider's ◀ (and the ▶ edge column) can hide and
+    /// show columns; off removes them with `.toolbar(removing: .sidebarToggle)`.
+    @State private var collapsible: Bool = true
     /// Bumped by the Reset button to release any manually-resized column widths
     /// back to the style / size-to-fit defaults (`.navigationSplitViewColumnWidthReset`).
     @State private var widthResetToken: Int = 0
@@ -176,21 +179,26 @@ struct SplitViewPage: View {
     /// control costs nothing even at the narrow end.
     @ViewBuilder private var controls: some View {
         ViewThatFits(in: .horizontal) {
-            // Preferred: all three side by side. The divider pair stacks here so
-            // this candidate fits at more widths; it is one row tall either way,
+            // Preferred: all three side by side. The divider controls stack here
+            // so this candidate fits at more widths; they are three rows tall,
             // against the groups' four.
             HStack(alignment: .top, spacing: 3) {
                 stylePicker
                 visibilityPicker
                 VStack(alignment: .leading, spacing: 0) { dividerControls }
             }
-            // Fallback: the two groups side by side, the divider pair beneath.
+            // Fallback: the two groups side by side, the divider controls beneath
+            // — in a row where they fit, else (three of them are wider than the
+            // pair was, in German) in a column.
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top, spacing: 3) {
                     stylePicker
                     visibilityPicker
                 }
-                HStack(spacing: 2) { dividerControls }
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 2) { dividerControls }
+                    VStack(alignment: .leading, spacing: 0) { dividerControls }
+                }
             }
         }
         .padding(.horizontal, 1)
@@ -242,10 +250,14 @@ struct SplitViewPage: View {
     /// which pins it. Reset releases every pin so the columns re-flow to the
     /// automatic widths.
     ///
-    /// Two views rather than a container, so each candidate layout above can put
-    /// them in the stack that suits it.
+    /// Collapsing is the ◀ on the leftmost divider and the ▶ edge column that
+    /// brings a column back; the toggle removes both.
+    ///
+    /// Three views rather than a container, so each candidate layout above can
+    /// put them in the stack that suits it.
     @ViewBuilder private var dividerControls: some View {
         Toggle("page.splitView.resizable", isOn: $resizable)
+        Toggle("page.splitView.collapsible", isOn: $collapsible)
         Button("page.splitView.resetWidths") { widthResetToken += 1 }
             .disabled(!resizable)
     }
@@ -256,6 +268,8 @@ struct SplitViewPage: View {
         styledSplitViewCore
             .navigationSplitViewResizable(resizable)
             .navigationSplitViewColumnWidthReset(widthResetToken)
+            // `nil` removes nothing, so no branch on the toggle is needed.
+            .toolbar(removing: collapsible ? nil : .sidebarToggle)
     }
 
     @ViewBuilder private var styledSplitViewCore: some View {
