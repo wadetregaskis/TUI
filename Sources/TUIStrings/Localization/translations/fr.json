@@ -134,6 +134,8 @@
   "filePanel.remoteNotice": "Vous parcourez le système de fichiers de %@, et non celui de votre machine locale.",
   "filePanel.preview": "Aperçu",
   "filePanel.noSelection": "Aucune sélection",
+  "filePanel.status.preview": "aperçu",
+  "filePanel.status.view": "présentation",
 
   "menu.file": "Fichier",
   "menu.edit": "Modifier",

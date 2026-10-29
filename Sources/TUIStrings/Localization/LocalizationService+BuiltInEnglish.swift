@@ -164,6 +164,8 @@ extension LocalizationService {
       "filePanel.remoteNotice": "You are browsing the file system on %@, not your local machine.",
       "filePanel.preview": "Preview",
       "filePanel.noSelection": "No Selection",
+      "filePanel.status.preview": "preview",
+      "filePanel.status.view": "view",
 
       "menu.file": "File",
       "menu.edit": "Edit",

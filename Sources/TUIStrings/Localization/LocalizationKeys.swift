@@ -281,6 +281,10 @@ public enum LocalizationKey {
         case preview = "filePanel.preview"
         /// The list view's preview pane while no one item is selected.
         case noSelection = "filePanel.noSelection"
+        /// The status bar's word for the chord that opens and closes the preview.
+        case statusPreview = "filePanel.status.preview"
+        /// The status bar's word for the chords that choose the view.
+        case statusView = "filePanel.status.view"
     }
 
     /// Menu items and sections

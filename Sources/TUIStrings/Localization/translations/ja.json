@@ -134,6 +134,8 @@
   "filePanel.remoteNotice": "ローカルのマシンではなく、%@ のファイルシステムをブラウズしています。",
   "filePanel.preview": "プレビュー",
   "filePanel.noSelection": "選択されていません",
+  "filePanel.status.preview": "プレビュー",
+  "filePanel.status.view": "表示",
 
   "menu.file": "ファイル",
   "menu.edit": "編集",

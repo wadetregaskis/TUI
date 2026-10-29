@@ -45,7 +45,11 @@ import TUITables
 ///   and `~` to the home folder;
 /// - `/` turns the path bar into a field to type a path in, which Tab
 ///   completes and Return goes to, as at a shell prompt;
-/// - Escape cancels (or closes that field).
+/// - Escape cancels (or closes that field);
+/// - and Finder's chords, ⌘ through the app's `commandKey` (⌃ by default):
+///   ⌘2 and ⌘3 the views, ⇧⌘P the preview, ⌘↑ and ⌘↓, the Go menu's ⇧⌘G,
+///   ⇧⌘H, ⇧⌘D, ⌥⌘L, ⇧⌘O and ⇧⌘A, ⇧⌘N, ⇧⌘. hidden files and ⌘. cancel
+///   (``FilePanelCommand``, which says where a terminal cannot send them).
 /// Every one of them is also a click: a double-click opens or chooses, the
 /// ↰ button before the path goes up, a segment of the path goes to its
 /// folder, and the buttons are buttons. The focus starts in the folder's
@@ -106,6 +110,15 @@ struct FilePanel: View {
     /// Whether the terminal is short of rows, where the panel stays dense.
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
+    /// The key that stands in for ⌘, which the status bar names the panel's
+    /// chords with (``FilePanelCommand``).
+    @Environment(\.commandKey) private var commandKey
+
+    /// Whether the terminal speaks the kitty keyboard protocol, without which
+    /// the status bar names none of the chords: their Control stand-ins
+    /// cannot arrive as themselves (``FilePanelCommand``).
+    @Environment(\.keyboardReporting) private var keyboardReporting
+
     /// The machine the notice above the path names, where the panel browses
     /// one the user is not at: judged as the panel opens, off the main actor
     /// (``FilePanelSession``), so it shows a moment later.
@@ -160,6 +173,9 @@ struct FilePanel: View {
                 isPresented: $askingNewFolder, browser: browser),
             footer: footer
         )
+        // On the box, so they are heard wherever the focus is in the panel,
+        // its buttons too.
+        .filePanelCommands { perform($0, showsPreview: showsPreview) }
     }
 
     /// What the box holds, `width` cells wide: the message, a save panel's
@@ -306,7 +322,8 @@ struct FilePanel: View {
                 openGoToField()
                 return .handled
             }
-            // The Mac's ⇧⌘N, which no terminal sends as itself: typed, as `/` is.
+            // Beside the Mac's ⇧⌘N, whose Control stand-in a legacy encoding
+            // sends without its Shift (`FilePanelCommand`): typed, as `/` is.
             .onKeyPress(keys: ["+"]) { press in
                 guard createsFolders, !press.modifiers.contains(.command) else { return .ignored }
                 askingNewFolder = true
@@ -314,7 +331,10 @@ struct FilePanel: View {
             }
             // Added to the sheet's own Escape item, which presses the Cancel
             // button (`StatusBarState.keepPresentationItem`).
-            .statusBarItems(Self.statusItems(viewMode: viewMode, createsFolders: createsFolders))
+            .statusBarItems(
+                Self.statusItems(
+                    viewMode: viewMode, createsFolders: createsFolders,
+                    chords: keyboardReporting.isEnhanced ? commandKey : nil))
     }
 
     /// The keys to the enclosing folder in the view shown.
@@ -490,6 +510,47 @@ struct FilePanel: View {
             return
         }
         finish(.chose([destination], ending))
+    }
+
+    // MARK: - The chords
+
+    /// Carries out one of the panel's chords (``FilePanelCommand``), where
+    /// the preview `showsPreview` now, and answers whether it took the key: a
+    /// chord that has nothing to do (no item selected for ⌘↓, a place that
+    /// does not exist, New Folder where the panel makes none) goes on.
+    private func perform(_ command: FilePanelCommand, showsPreview: Bool) -> Bool {
+        // The go-to field keeps the keys while it is open, but for ⌘., which
+        // closes it as Escape does.
+        guard typedPath == nil || command == .cancel else { return false }
+        switch command {
+        case .listView, .columnsView:
+            let mode: FilePanelViewMode = command == .listView ? .list : .columns
+            // The keys follow into the new view where they were in the old.
+            let wasInFolder = focus == folderField
+            viewMode = mode
+            if wasInFolder { focus = mode == .list ? .rows : .column(browser.directory.path) }
+        case .togglePreview:
+            previewVisibility = showsPreview ? .hidden : .shown
+        case .enclosingFolder:
+            browser.goUp()
+        case .openSelection:
+            let selected = selectedEntries
+            guard !selected.isEmpty else { return false }
+            activate(Set(selected.map(\.url)))
+        case .goToFolder:
+            openGoToField()
+        case .home, .desktop, .downloads, .documents, .applications:
+            guard let place = command.place(home: request.homeDirectory) else { return false }
+            browser.open(place)
+        case .newFolder:
+            guard createsFolders else { return false }
+            askingNewFolder = true
+        case .toggleHiddenFiles:
+            browser.showsHiddenFiles.toggle()
+        case .cancel:
+            if typedPath != nil { closeGoToField() } else { finish(.cancelled(ending)) }
+        }
+        return true
     }
 
     // MARK: - Going to a typed path

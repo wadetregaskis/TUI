@@ -472,6 +472,20 @@ double-click opens or chooses, and the ↰ button before the path goes up. <kbd>
 turns the path into a field to type a path in, as at a shell prompt:
 <kbd>Tab</kbd> completes it and <kbd>Return</kbd> goes there.
 
+Finder's chords work too, ⌘ written as the app's `commandKey` says (⌃ by
+default): <kbd>⌘2</kbd> and <kbd>⌘3</kbd> the list and the column view,
+<kbd>⇧⌘P</kbd> the preview, <kbd>⌘↑</kbd> the enclosing folder and
+<kbd>⌘↓</kbd> into the folder selected (or choosing the file, as Return
+does), <kbd>⇧⌘G</kbd> the path field, <kbd>⇧⌘H</kbd>, <kbd>⇧⌘D</kbd>,
+<kbd>⌥⌘L</kbd>, <kbd>⇧⌘O</kbd> and <kbd>⇧⌘A</kbd> home, Desktop, Downloads,
+Documents and Applications where they exist, <kbd>⇧⌘N</kbd> New Folder,
+<kbd>⇧⌘.</kbd> the hidden files and <kbd>⌘.</kbd> cancel. A text field keeps
+a chord it reads as its own. Their Control stand-ins arrive as themselves
+only under the kitty keyboard protocol — elsewhere Shift is lost on a
+Control letter, ⌃2, ⌃3 and ⌃. have no keys of their own, and macOS keeps ⌃↑
+and ⌃↓ for Mission Control — so the status bar names them only there, and
+the typed keys above are the route every terminal has.
+
 A switcher at the end of the path's row chooses between that list and a
 column view, as Finder's view buttons do: a column for each folder on the way
 to the one shown, side by side, <kbd>Return</kbd> or <kbd>→</kbd> opening a
@@ -487,7 +501,7 @@ list a pane behind a splitter, whose divider a drag moves, or ← and → once
 file's folder. It shows a file's opening lines, or the app's preview
 (`fileDialogPreview(_:)`), then its name, kind, size and date, and "No
 Selection" while there is no one item to show. The Preview button after the
-view switcher opens and closes it. Until the user does,
+view switcher, or <kbd>⇧⌘P</kbd>, opens and closes it. Until the user does,
 it is open where the folder has room for it beside a list that keeps its
 Size and Date Modified — 82 cells, as in a terminal 90 columns wide — and
 closed in a narrower panel, such as an 80-column terminal's; the user's

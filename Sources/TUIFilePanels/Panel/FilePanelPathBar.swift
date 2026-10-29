@@ -92,9 +92,9 @@ struct FilePanelPathBar: View {
     /// accent and in its own cell, with no cells kept for a focus marker it
     /// never shows; lifted under the pointer, and dimmed at the root, which
     /// has no folder above it. Not a Tab stop, as a macOS panel's toolbar buttons
-    /// are not in its key view loop: its key is Backspace in the
-    /// folder's rows. macOS's ⌘↑ cannot be offered, since a key press never
-    /// carries Command (`KeyPress.modifiers`).
+    /// are not in its key view loop: its keys are Backspace in the
+    /// folder's rows, and macOS's ⌘↑ through the app's `commandKey`
+    /// anywhere in the panel (``FilePanelCommand``).
     private var enclosingFolderButton: some View {
         let browser = browser
         return Button {

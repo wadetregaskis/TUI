@@ -5823,6 +5823,37 @@ it asks for each of the keys above in turn and records the bytes that arrived, o
 that NOTHING did, within six seconds. Record whether the Mission Control
 shortcuts are on.
 
+### A file panel's Finder chords — since 2026-10-28; ⌃2 ⌃3 ⌃. NOT yet measured
+
+The file panels (TUIFilePanels, `FilePanelCommand`) answer Finder's chords,
+each written with ⌘ and resolved through `commandKey`, so under the default
+`.control`: ⌃2 and ⌃3 (the views), ⌃⇧P (the preview), ⌃↑ and ⌃↓, ⌃⇧G,
+⌃⇧H, ⌃⇧D, ⌥⌃L, ⌃⇧O, ⌃⇧A, ⌃⇧N, ⌃⇧. (hidden files) and ⌃. (cancel). What
+reaches the app, from the records above and NOT re-measured for this:
+
+- **⌃⇧ and a letter** arrives as ⌃ and the letter in every legacy encoding:
+  the C0 byte has no case ("Control collides with the C0 range"; the
+  `reportsShiftedKeys` capability). Under the kitty keyboard protocol it
+  arrives with its capital. So these fire only under the protocol; a legacy
+  ⌃P, ⌃D … is left to whatever reads it (a field's Emacs chord).
+- **⌃↑ and ⌃↓** are Mission Control's on macOS, and Apple Terminal strips the
+  modifiers from ↑ and ↓ ("Keys a sheet's grabber uses").
+- **⌃⇧.** has no capital to carry its Shift: under the protocol with its
+  alternate keys (flag 4) it arrives as ⌃> on a US layout, and without them
+  as `.` with the Shift bit kept ("Shift on a printable key is the
+  character"). The panel answers both, and does not read the second as ⌃.,
+  its cancel.
+- **⌃2, ⌃3 and ⌃.: NOT YET MEASURED.** By xterm's convention a legacy
+  encoding sends ⌃2 as NUL (0x00, which `KeyEvent.parse` drops), ⌃3 as ESC
+  (read as Escape: in a panel, Cancel) and ⌃. as a bare `.`, so none would
+  arrive as itself; whether each host here follows the convention has not
+  been checked. Measure with
+  `Tools/TerminalProbes/key_probe.py` from each host's default profile.
+
+So the panel's typed keys (Backspace, `~`, `/`, `+`, Escape) remain its route
+on every terminal, and its status bar names the chords only where the kitty
+keyboard protocol is on.
+
 ### Shifted function keys are re-coded (Apple Terminal)
 
 Measured 2026-07-27, `cat -v` in Terminal.app 2.14 (455): **Shift+F10 emits

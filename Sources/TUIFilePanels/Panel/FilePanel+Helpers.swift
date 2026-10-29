@@ -61,9 +61,14 @@ extension FilePanel {
     /// Escape item, which presses the Cancel button
     /// (`StatusBarState.keepPresentationItem`): to the enclosing folder in
     /// the view `viewMode` shows, home, the go-to field, and New Folder where
-    /// the panel `createsFolders`.
+    /// the panel `createsFolders`; and where `chords` names the key that
+    /// stands in for ⌘, the most used of the chords (``FilePanelCommand``):
+    /// the preview's and the views'. The panel passes none where they cannot
+    /// arrive as themselves.
     @StatusBarItemBuilder
-    static func statusItems(viewMode: FilePanelViewMode, createsFolders: Bool) -> [any StatusBarItemProtocol] {
+    static func statusItems(
+        viewMode: FilePanelViewMode, createsFolders: Bool, chords: CommandKeyBinding?
+    ) -> [any StatusBarItemProtocol] {
         StatusBarItem(
             shortcut: viewMode == .list ? Shortcut.backspace : Shortcut.arrowLeft,
             label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusEnclosingFolder))
@@ -77,6 +82,19 @@ extension FilePanel {
             StatusBarItem(
                 shortcut: "+",
                 label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusNewFolder))
+        }
+        if let chords, let preview = FilePanelCommand.togglePreview.displayString(commandKey: chords) {
+            StatusBarItem(
+                shortcut: preview,
+                label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusPreview))
+        }
+        if let chords, let list = FilePanelCommand.listView.displayString(commandKey: chords),
+            let columns = FilePanelCommand.columnsView.displayString(commandKey: chords)
+        {
+            // Either key, as the bar writes `c|C`.
+            StatusBarItem(
+                shortcut: list + "|" + columns,
+                label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusView))
         }
     }
 }
