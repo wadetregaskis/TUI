@@ -383,7 +383,8 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
             let lines = graphics.store.placeholderRows(
                 token: graphics.token,
                 signature: GradientImageSignature(
-                    paint: paint, frame: extent, width: picture.width, height: picture.height),
+                    paint: paint, frame: extent, width: picture.width, height: picture.height,
+                    terminalColors: TerminalColors.current),
                 columns: width, rows: buffer.lines.count,
                 pixels: { (picture.pixels(), picture.format, picture.width, picture.height) })
         else { return nil }

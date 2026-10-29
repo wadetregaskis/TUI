@@ -312,6 +312,15 @@ struct GradientImageSignature: Equatable {
     /// The picture's resolution, which follows the box and the cell.
     var width: Int
     var height: Int
+    /// The colours the terminal had reported when the picture was drawn: a
+    /// colour it decides — an ANSI slot, a 256-colour index under 16, its
+    /// default foreground or background — is painted in what it reported
+    /// (`Color.rgbComponents`), and is the same `Color` whatever that was. So
+    /// without this a theme change repainted the pixels and not the
+    /// signature, and the terminal kept the old picture. Carried as
+    /// ``TerminalImageSignature/terminalColors`` carries it, and for the same
+    /// price: one more send per picture per report, which is rare.
+    var terminalColors: TerminalColors
 }
 
 extension GradientImageSignature: ImageStoreSignature {

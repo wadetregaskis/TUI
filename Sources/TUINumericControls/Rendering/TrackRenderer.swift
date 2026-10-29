@@ -321,7 +321,8 @@ package enum TrackRenderer {
             config: config, fillColor: fillColor, backgroundColor: backgroundColor,
             fillScaling: fillScaling, backgroundScaling: backgroundScaling,
             width: picture.width, height: picture.height,
-            lit: Int((fraction * Double(picture.width)).rounded()))
+            lit: Int((fraction * Double(picture.width)).rounded()),
+            terminalColors: TerminalColors.current)
         return graphics.store.placeholderRows(
             token: graphics.token, signature: signature, columns: width, rows: 1,
             pixels: { (picture.bytes, picture.format, picture.width, picture.height) }
@@ -923,6 +924,15 @@ struct TrackImageSignature: Equatable {
     var width: Int
     var height: Int
     var lit: Int
+    /// The colours the terminal had reported when the picture was drawn: a
+    /// colour it decides — an ANSI slot, a 256-colour index under 16, its
+    /// default foreground or background — is painted in what it reported
+    /// (`Color.rgbComponents`), and is the same `Color` whatever that was. So
+    /// without this a theme change repainted the pixels and not the
+    /// signature, and the terminal kept the old picture. Carried as
+    /// ``TerminalImageSignature/terminalColors`` carries it, and for the same
+    /// price: one more send per picture per report, which is rare.
+    var terminalColors: TerminalColors
 }
 
 extension TrackImageSignature: ImageStoreSignature {

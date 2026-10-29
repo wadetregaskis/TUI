@@ -523,6 +523,13 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
         /// glyph terminal must not be served where pictures are drawn, nor
         /// the other way round, so it is part of what the cache is keyed on.
         let pictures: Bool
+        /// The colours the terminal had reported when the cycle was built. A
+        /// stop it decides — an ANSI slot, its foreground or background — is
+        /// sampled and painted in what it reported, so a report of others is
+        /// other pictures (and other ramps), and the cycle built before it must
+        /// not be served after it; this lives in the bar's state, where the
+        /// render cache's clear on a report does not reach.
+        let terminalColors: TerminalColors
         let frames: [String]
         let run: AnimatedCellRun
         /// How many picture tokens the build asked the image store for: one for each
@@ -532,13 +539,13 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
         /// A rebuild gives back the ones its replacement does not name.
         let pictureCount: Int
 
-        func matches(
+        func matches(  // swiftlint:disable:this function_parameter_count
             width: Int, style: IndeterminateStyle, filled: Color, empty: Color, accent: Color,
-            gradient: Gradient?, speed: IndicatorAnimationSpeed, pictures: Bool
+            gradient: Gradient?, speed: IndicatorAnimationSpeed, pictures: Bool, terminalColors: TerminalColors
         ) -> Bool {
             guard self.width == width, self.style == style, self.filled == filled,
                 self.empty == empty, self.accent == accent, self.gradient == gradient,
-                self.speed == speed
+                self.speed == speed, self.terminalColors == terminalColors
             else { return false }
             return self.pictures == pictures
         }
@@ -575,16 +582,17 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
             : 0
         let graphics = isPictureBar ? context.gradientGraphics(token: pictureToken, frames: distinctPictures) : nil
         let pictureCount = graphics == nil ? 0 : distinctPictures
+        let terminalColors = TerminalColors.current
 
         func build() -> CachedCycle {
             if let graphics,
                 let rows = pictureFrames(
                     width: width, frameCount: frameCount, configuration: configuration, graphics: graphics,
-                    palette: palette)
+                    palette: palette, terminalColors: terminalColors)
             {
                 return CachedCycle(
                     width: width, style: style, filled: filled, empty: empty, accent: accent,
-                    gradient: gradient, speed: speed, pictures: true, frames: rows,
+                    gradient: gradient, speed: speed, pictures: true, terminalColors: terminalColors, frames: rows,
                     run: AnimatedCellRun(
                         offsetX: 0, offsetY: 0, width: width, frames: rows,
                         frameTicks: layout.frameTicks, clock: .content),
@@ -595,7 +603,8 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
                 backgroundColor: empty, accentColor: accent, palette: palette, speed: speed)
             return CachedCycle(
                 width: width, style: style, filled: filled, empty: empty, accent: accent,
-                gradient: gradient, speed: speed, pictures: false, frames: built.frames,
+                gradient: gradient, speed: speed, pictures: false, terminalColors: terminalColors,
+                frames: built.frames,
                 run: AnimatedCellRun(
                     offsetX: 0, offsetY: 0, width: width, frames: built.frames,
                     frameTicks: built.frameTicks, clock: .content),
@@ -614,7 +623,7 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
         if let cached = box.value,
             cached.matches(
                 width: width, style: style, filled: filled, empty: empty, accent: accent,
-                gradient: gradient, speed: speed, pictures: graphics != nil)
+                gradient: gradient, speed: speed, pictures: graphics != nil, terminalColors: terminalColors)
         {
             return cached
         }
@@ -650,7 +659,7 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
     /// is drawn in glyphs.
     private func pictureFrames(
         width: Int, frameCount: Int, configuration: IndeterminateConfiguration,
-        graphics: GradientGraphicsContext, palette: any Palette
+        graphics: GradientGraphicsContext, palette: any Palette, terminalColors: TerminalColors
     ) -> [String]? {
         guard
             let pixels = IndeterminateRenderer.states(
@@ -681,7 +690,8 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
                 token: graphics.token(forFrame: index),
                 signature: IndeterminateFrameSignature(
                     configuration: configuration, width: picture.width,
-                    height: picture.height, frame: index, count: pictures.count),
+                    height: picture.height, frame: index, count: pictures.count,
+                    terminalColors: terminalColors),
                 columns: width, rows: 1,
                 pixels: { (picture.bytes, picture.format, picture.width, picture.height) }
             )?.first

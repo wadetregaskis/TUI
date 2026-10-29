@@ -234,10 +234,10 @@ struct GradientPictureTests {
     }
 
     private func rendered<V: View>(
-        _ view: V, width: Int = 20, height: Int = 3, measuring: Bool = false,
+        _ view: V, width: Int = 20, height: Int = 3, measuring: Bool = false, in shared: TUIContext? = nil,
         configure: (inout EnvironmentValues) -> Void = { _ in }
     ) -> (buffer: FrameBuffer, store: TerminalImageStore) {
-        let tui = Self.snapshotContext()
+        let tui = shared ?? Self.snapshotContext()
         var environment = EnvironmentValues()
         environment.focusManager = FocusManager()
         environment.applyRuntimeServices(from: tui)
@@ -475,6 +475,48 @@ struct GradientPictureTests {
                 }
                 #expect(placeholders(buffer) == 20, "\(name): reported, the picture path is taken")
             }
+        }
+    }
+
+    /// The same three in the terminal's own colours, once it has reported them: the
+    /// pixels are those colours, so a report of others is a new picture. The store
+    /// keeps the terminal's picture under the view's signature, which named the
+    /// colours unresolved, so a theme change kept the old pixels on screen.
+    @Test("A ramp, a block bar and a sweep in the terminal's colours are sent again when it reports others")
+    func terminalColourPicturesFollowTheReport() {
+        let ink = Color(value: .terminalForeground)
+        let page = Color(value: .terminalBackground)
+        let palette: ThemeProbePalette = {
+            var palette = ThemeProbePalette()
+            palette.foregroundSecondary = page
+            palette.accent = ink
+            palette.error = ink
+            palette.warning = page
+            palette.success = ink
+            palette.info = page
+            return palette
+        }()
+        let paper = TerminalColors(
+            foreground: TerminalColors.RGB(red: 40, green: 44, blue: 52),
+            background: TerminalColors.RGB(red: 250, green: 250, blue: 250))
+        let views: [(name: String, view: AnyView)] = [
+            ("a ramp", AnyView(LinearGradient(colors: [.rgb(255, 4, 3), ink], startPoint: .leading, endPoint: .trailing))),
+            ("a block bar", AnyView(ProgressView(value: 0.5).trackStyle(.block))),
+            ("a sweep", AnyView(ProgressView().indeterminateStyle(.gradient()))),
+        ]
+        for (name, view) in views {
+            let tui = Self.snapshotContext()
+            func sent(under colours: TerminalColors) -> String {
+                TerminalColors.withCurrent(colours) {
+                    _ = KittyGraphics.withSupport(true) {
+                        rendered(view, height: 1, in: tui) { $0.palette = palette }
+                    }
+                }
+                return tui.terminalImageStore.takePending()
+            }
+            #expect(sent(under: reportedOneDark).contains("a=t,"), "\(name): the first frame sends nothing")
+            #expect(!sent(under: reportedOneDark).contains("a=t,"), "\(name): nothing changed, and it was sent again")
+            #expect(sent(under: paper).contains("a=t,"), "\(name): the terminal's colours changed and the old picture stayed")
         }
     }
 }
