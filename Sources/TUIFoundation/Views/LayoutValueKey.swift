@@ -199,6 +199,31 @@ func minimumLength(of child: ChildView, horizontally: Bool, across: Int?, contex
     return max(horizontally ? size.width : size.height, statedMinimumLength(of: child, horizontally: horizontally))
 }
 
+/// Whether a column has room for every child at its natural height, the gaps
+/// between those that occupy it included — and so need offer none of its fixed
+/// children less than that.
+///
+/// A column shares its height by flexibility (A-LAYOUT-1), which needs each
+/// child's minimum, and TUI has no true one: offered no height, a column
+/// answers none whatever it holds (``ClampsHeightToOffer``), and so does any
+/// view around one, measured. Taken at its word beside a child that fills (a
+/// gradient used as a view, a `Color`), a column of fixed rows — a block
+/// `frame(height:)` fixes — was the most shrinkable thing there and was offered
+/// an equal share, half the height, though the stack had room for all of it:
+/// its trailing rows were cut, and in a `ScrollView`, which draws its content
+/// at exactly the height it measured, a whole block vanished from the page (the
+/// Example's mesh gradient, the owner, 2026-10-28, #10). So where everything
+/// fits, a fixed child keeps its natural height, as columns did before they
+/// shared, and the filling children share the rest; only an OVERFULL column,
+/// the case A-LAYOUT-1 is about, asks for minimums. SwiftUI, whose minimums are
+/// real, would still cut a fixed child that can shrink — a text of several
+/// lines beside a colour — where it all fits; here it is drawn whole.
+func fitsAtNaturalHeights(_ heights: [Int], isFlexible: [Bool], spacing: Int, available: Int) -> Bool {
+    let occupying = heights.indices.count { isFlexible[$0] || heights[$0] > 0 }
+    return heights.reduce(0) { $0 + max(0, $1) } + totalLinearSpacing(occupiedChildren: occupying, spacing: spacing)
+        <= available
+}
+
 /// The minimum length `child` states along an axis whatever it is offered —
 /// a frame's `minWidth` or `minHeight`, which `frame(width:)` sets — found
 /// through the wrappers around it, or `0`.

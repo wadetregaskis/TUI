@@ -124,6 +124,51 @@ struct StackSharingTests {
         #expect(column[5].hasPrefix("b0"), "\(column)")
     }
 
+    /// A column offered no height answers none, so beside a child that fills
+    /// it looked the most shrinkable thing in the stack and was dealt half
+    /// the height though everything fitted: here two of its four rows, and in
+    /// a `ScrollView`, which draws its content at the height it measured, the
+    /// Example's mesh gradient block was dropped from the Colors page (the
+    /// owner, 2026-10-28, #10).
+    @Test("A column with room for every child keeps a nested column whole beside one that fills")
+    func columnThatFitsKeepsItsRows() {
+        let rows = VStack(spacing: 0) { ForEach(0..<4, id: \.self) { Text(verbatim: "r\($0)").frame(height: 1) } }
+        let beside = renderToBuffer(
+            VStack(spacing: 0) {
+                Color.red
+                rows
+            },
+            context: makeRenderContext(width: 8, height: 4)
+        ).lines.map(\.stripped)
+        #expect(beside.map { $0.trimmingCharacters(in: .whitespaces) } == ["r0", "r1", "r2", "r3"], "\(beside)")
+
+        // As a scroll view draws its content: measured with no height offered,
+        // then drawn at the height that measured, the strip a row of its own.
+        let page = VStack(alignment: .leading, spacing: 1) {
+            HStack(spacing: 1) {
+                Text(verbatim: "strip")
+                Color.blue
+            }
+            VStack(alignment: .leading, spacing: 1) {
+                ForEach(0..<3, id: \.self) { block in
+                    VStack(alignment: .leading, spacing: 0) {
+                        Color.green.frame(width: 4, height: 3)
+                        Text(verbatim: "block \(block)")
+                    }
+                }
+            }
+            Text(verbatim: "after")
+        }
+        var context = makeRenderContext(width: 20, height: 4096)
+        context.availableHeight = measureChild(
+            page, proposal: ProposedSize(width: 20, height: nil), context: context
+        ).height
+        let scrolled = renderToBuffer(page, context: context).lines.map(\.stripped)
+        for label in ["strip", "block 0", "block 1", "block 2", "after"] {
+            #expect(scrolled.contains { $0.contains(label) }, "\(label) is drawn: \(scrolled)")
+        }
+    }
+
     @Test("A child offered less than its ideal takes what it answers, leaving the rest to those after it")
     func askedAtItsOffer() {
         // The first is offered 6 of its 10 and answers 2 — a `ViewThatFits`

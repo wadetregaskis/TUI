@@ -454,6 +454,30 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** the owner, 2026-10-26 (S3-NO-EXTENT-SPACING): keep TUI's rule.
   **Owner.**
 
+### L18. A column with room for all its children cuts none of them
+
+- **SwiftUI:** a stack shares its length by flexibility whether or not its
+  children fit: the least flexible first, each offered an equal share of what
+  is left, so a child that can shrink is cut to its share beside one that
+  fills (a `Color`) even where the stack has room for both at their ideal
+  sizes (`Tools/SwiftUIProbes/Layout priority/share.out`).
+- **TUI:** a row does the same (L14); a column does only when it is
+  overfull. With room for every child at its natural height, each fixed child
+  keeps it and the filling children share the rest
+  (`fitsAtNaturalHeights(_:isFlexible:spacing:available:)`, pinned by
+  `StackSharingTests.columnThatFitsKeepsItsRows`).
+- **Why:** sharing needs each child's minimum, and a column's is not known:
+  offered no height, a column answers none whatever it holds
+  (`ClampsHeightToOffer`, which is what makes A-LAYOUT-1 affordable), and so
+  does any view around one. Beside a child that fills, a column of
+  fixed-height rows was then dealt half the height of a stack that had room
+  for all of it, and in a `ScrollView`, which draws its content at the height
+  it measured, rows went missing from the page (the owner, 2026-10-28, #10).
+  What SwiftUI would still cut here is a child of several lines that can
+  shrink; TUI draws it whole.
+- **Decided:** lane, 2026-10-28 ([A-LAYOUT-1](<../Historical/Layout and geometry/Sharing space: overfull columns and ideal sizes.md#a-layout-1-a-column-shares-an-overfull-height-its-childrens-minimums-answered-cheaply>)
+  is about an overfull column). **Lane.**
+
 ## State and data flow
 
 ### S1. A dynamic property in an optional field is live

@@ -142,6 +142,11 @@ public struct VStackLayout: Layout, Sendable, Equatable {
         let natural = ProposedSize(width: bounds.width, height: nil)
         let sizes = subviews.map { $0.sizeThatFits(natural) }
         let priorities = subviewPriorities(subviews)
+        // With room for every subview, none is offered less than its natural
+        // height (``fitsAtNaturalHeights(_:isFlexible:spacing:available:)``).
+        let fits = fitsAtNaturalHeights(
+            sizes.map(\.height), isFlexible: sizes.map(\.isHeightFlexible), spacing: resolvedSpacing,
+            available: bounds.height)
         let heights = distributeLinearSpace(
             naturalSizes: sizes.map(\.height),
             isFlexible: sizes.map(\.isHeightFlexible),
@@ -150,7 +155,7 @@ public struct VStackLayout: Layout, Sendable, Equatable {
             isSpacer: { subviews[$0].child.isSpacer },
             priorities: priorities,
             minimumSize: {
-                max(
+                fits ? sizes[$0].height : max(
                     subviews[$0].sizeThatFits(ProposedSize(width: bounds.width, height: 0)).height,
                     statedMinimumLength(of: subviews[$0].child, horizontally: false))
             },

@@ -41,6 +41,12 @@ Rows and columns share; the ideal width is SwiftUI's, the ideal height not.
   offer.** A container that stops doing so (one that reports its content's
   full height offered nothing) must leave `ClampsHeightToOffer`, or the column
   around it will squeeze it below what it draws.
+- **That minimum is a lie wherever a column has room.** Taken at its word
+  beside a child that fills, a column of fixed rows was dealt half a stack
+  that could hold it whole, and a `ScrollView`'s page lost the Colors page's
+  mesh block (2026-10-28, #10). So a column asks minimums only when it is
+  overfull; with room for everyone, fixed children keep their natural
+  heights (`fitsAtNaturalHeights`, deviation L18).
 - **`tables-vstack` will never return to the base's time** when shared: it
   draws all eight tables where in order it drew the first few (+7.5%). Judge it
   by what it draws.

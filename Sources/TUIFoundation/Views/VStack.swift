@@ -488,6 +488,10 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // A child's minimum is measured only where it may be offered less
         // than its natural height.
         let priorities = layoutPriorities(of: children)
+        // With room for every child, none is offered less than its natural
+        // height (``fitsAtNaturalHeights(_:isFlexible:spacing:available:)``).
+        let fits = fitsAtNaturalHeights(
+            naturalHeight, isFlexible: isFlexible, spacing: spacing, available: context.availableHeight)
         let finalHeights = distributeLinearSpace(
             naturalSizes: naturalHeight,
             isFlexible: isFlexible,
@@ -495,7 +499,9 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             spacing: spacing,
             isSpacer: { children[$0].isSpacer },
             priorities: priorities,
-            minimumSize: { minimumLength(of: children[$0], horizontally: false, across: nil, context: context) },
+            minimumSize: {
+                fits ? naturalHeight[$0] : minimumLength(of: children[$0], horizontally: false, across: nil, context: context)
+            },
             statedMinimum: { statedMinimumLength(of: children[$0], horizontally: false) },
             sizeAt: { index, offer in
                 children[index].measure(proposal: ProposedSize(width: nil, height: offer), context: context).height
