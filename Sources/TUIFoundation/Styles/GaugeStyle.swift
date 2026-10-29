@@ -160,6 +160,11 @@ public struct GaugeStyleConfiguration {
     /// has none.
     public let maximumValueLabel: AnyView?
 
+    /// Whether the gauge's bounds reach below zero, so its value may come with
+    /// a minus, which a built-in style keeps a cell for. TUI's, not SwiftUI's:
+    /// a style sees only the normalized ``value``.
+    package let goesBelowZero: Bool
+
     /// The memberwise initializer. Configurations are produced by ``Gauge``
     /// during rendering, never by client code, so this is `package`, not
     /// public, as SwiftUI's `GaugeStyleConfiguration` publishes no initializer
@@ -167,8 +172,9 @@ public struct GaugeStyleConfiguration {
     /// is TUINumericControls' (TUITextInput's from step B7 until step C7).
     package init(
         value: Double, label: AnyView, currentValueLabel: AnyView?, minimumValueLabel: AnyView?,
-        maximumValueLabel: AnyView?
+        maximumValueLabel: AnyView?, goesBelowZero: Bool = false
     ) {
+        self.goesBelowZero = goesBelowZero
         self.value = value
         self.label = label
         self.currentValueLabel = currentValueLabel

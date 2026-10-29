@@ -121,6 +121,27 @@ struct GaugeTests {
         #expect(long[1].hasPrefix("  │ 12 │"), "\(long)")
     }
 
+    /// The owner, 2026-10-28: centred whole, "67%" sat left of the ring's
+    /// middle, and a minus that came and went moved the figures.
+    @Test("The circular dial centres its value by its figures: signs, degrees and percents hang outside them")
+    func circularDialOpticallyCentred() {
+        func middle(_ value: String, in bounds: ClosedRange<Double> = 0...1) -> String {
+            renderToBuffer(
+                Gauge(value: 0.5, in: bounds) { EmptyView() } currentValueLabel: { Text(value) }
+                    .gaugeStyle(.accessoryCircular),
+                context: makeRenderContext(width: 30, height: 6)
+            ).lines[1].stripped
+        }
+        #expect(middle("67%") == "│ 67%│", "the percent hangs after the centred figures")
+        #expect(middle("100%") == "│100%│")
+        // A range below zero keeps a cell for the minus, so the figures stand
+        // still as it comes and goes.
+        #expect(middle("5°", in: -10...10) == "│ 5° │")
+        #expect(middle("-5°", in: -10...10) == "│-5° │")
+        #expect(middle("-10°", in: -10...10) == "│-10°│")
+        #expect(OpticalReadout("%").figures == "%", "nothing but marks is centred as it is")
+    }
+
     @Test("A wide-character value does not break the ring")
     func circularDialWideValue() {
         // The dial's glyph grid holds one Character per column, but a CJK or

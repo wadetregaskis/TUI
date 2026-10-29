@@ -57,6 +57,10 @@ public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, Mar
     /// The normalized position of the value within its bounds (0.0–1.0).
     let fraction: Double
 
+    /// Whether the bounds reach below zero, so a value may come with a minus:
+    /// a read-out keeps its cell (``OpticalReadout``).
+    let goesBelowZero: Bool
+
     /// The label describing what the gauge measures.
     let label: Label
 
@@ -77,6 +81,7 @@ public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, Mar
     public var body: some View {
         _GaugeCore(
             fraction: fraction,
+            goesBelowZero: goesBelowZero,
             label: label,
             currentValueLabel: currentValueLabel,
             minimumValueLabel: minimumValueLabel,
@@ -110,6 +115,7 @@ extension Gauge {
         @ViewBuilder markedValueLabels: () -> MarkedValueLabels
     ) {
         self.fraction = Self.normalized(value: value, in: bounds)
+        self.goesBelowZero = bounds.lowerBound < 0
         self.label = label()
         self.currentValueLabel = currentValueLabel()
         self.minimumValueLabel = minimumValueLabel()
@@ -137,6 +143,7 @@ extension Gauge where BoundsLabel == EmptyView {
         @ViewBuilder markedValueLabels: () -> MarkedValueLabels
     ) {
         self.fraction = Self.normalized(value: value, in: bounds)
+        self.goesBelowZero = bounds.lowerBound < 0
         self.label = label()
         self.currentValueLabel = currentValueLabel()
         self.minimumValueLabel = nil
@@ -164,6 +171,7 @@ extension Gauge where MarkedValueLabels == EmptyView {
         @ViewBuilder maximumValueLabel: () -> BoundsLabel
     ) {
         self.fraction = Self.normalized(value: value, in: bounds)
+        self.goesBelowZero = bounds.lowerBound < 0
         self.label = label()
         self.currentValueLabel = currentValueLabel()
         self.minimumValueLabel = minimumValueLabel()
@@ -187,6 +195,7 @@ extension Gauge where BoundsLabel == EmptyView, MarkedValueLabels == EmptyView {
         @ViewBuilder currentValueLabel: () -> CurrentValueLabel
     ) {
         self.fraction = Self.normalized(value: value, in: bounds)
+        self.goesBelowZero = bounds.lowerBound < 0
         self.label = label()
         self.currentValueLabel = currentValueLabel()
         self.minimumValueLabel = nil
@@ -208,6 +217,7 @@ extension Gauge where CurrentValueLabel == EmptyView, BoundsLabel == EmptyView, 
         @ViewBuilder label: () -> Label
     ) {
         self.fraction = Self.normalized(value: value, in: bounds)
+        self.goesBelowZero = bounds.lowerBound < 0
         self.label = label()
         self.currentValueLabel = nil
         self.minimumValueLabel = nil
@@ -278,6 +288,7 @@ private enum GaugeLabelSlot: Int {
 /// flanked by optional bound labels.
 private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: View>: View, Renderable, Layoutable {
     let fraction: Double
+    let goesBelowZero: Bool
     let label: Label
     let currentValueLabel: CurrentValueLabel?
     let minimumValueLabel: BoundsLabel?
@@ -367,7 +378,7 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
             label: erase(label) ?? AnyView(EmptyView()),
             currentValueLabel: erase(currentValueLabel),
             minimumValueLabel: erase(minimumValueLabel),
-            maximumValueLabel: erase(maximumValueLabel))
+            maximumValueLabel: erase(maximumValueLabel), goesBelowZero: goesBelowZero)
     }
 
     // MARK: - Rendering
@@ -479,9 +490,10 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
         capacity: Bool, palette: any Palette, context: RenderContext
     ) -> FrameBuffer {
         let valueText = inlineText(currentValueLabel, slot: .currentValue, context: context)
+        let readout = OpticalReadout(valueText.stripped)
         // Fixed interior width so the dial never resizes as the value changes
         // ("67%" and "100%" both fit); only an unusually wide value grows it.
-        let inner = max(gaugeCircularInnerWidth, valueText.strippedLength)
+        let inner = max(gaugeCircularInnerWidth, readout.width(reservingLead: reservedLead))
         let dim = palette.foregroundTertiary
         let accent = palette.accent
 
@@ -562,19 +574,22 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
                 let stripped = valueText.stripped
                 // Centred, as SwiftUI's ring centres its value (the owner,
                 // 2026-10-27, over the right-aligned read-out of 7b84b4f73); an
-                // odd cell over goes to the right, as `.center` puts it.
-                let spare = max(0, inner - valueText.strippedLength)
+                // odd cell over goes to the right, as `.center` puts it. Centred
+                // by its figures, its sign and degree or percent sign hanging
+                // either side (``OpticalReadout``).
+                let start = readout.start(in: inner, reservingLead: reservedLead)
+                let spare = max(0, inner - valueText.strippedLength - start)
                 func wall(_ col: Int) {
                     drawn.append(
                         String(glyphs[1][col]), cells: 1, ink: colorAt["1,\(col)"])
                 }
                 wall(0)
-                drawn.skip(cells: spare / 2)
+                drawn.skip(cells: start)
                 if !stripped.isEmpty {
                     drawn.append(
                         stripped, cells: valueText.strippedLength, ink: palette.foreground)
                 }
-                drawn.skip(cells: spare - spare / 2)
+                drawn.skip(cells: spare)
                 wall(inner + 1)
             } else {
                 for col in 0...(inner + 1) {
@@ -604,9 +619,14 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
         return buffer
     }
 
+    /// The cells a ring's read-out keeps before its figures for a minus that
+    /// may come: one where the bounds go below zero.
+    private var reservedLead: Int { goesBelowZero ? 1 : 0 }
+
     /// The natural size of a circular gauge (kept in step with the renderers).
     private func circularSize(shape: GaugeShape, context: RenderContext) -> (width: Int, height: Int) {
-        let valueWidth = inlineText(currentValueLabel, slot: .currentValue, context: context).strippedLength
+        let valueText = inlineText(currentValueLabel, slot: .currentValue, context: context)
+        let valueWidth = valueText.strippedLength
         let labelWidth = inlineText(label, slot: .label, context: context).strippedLength
         if shape == .tinyDial {
             let rowWidth = valueWidth > 0 ? 1 + 1 + valueWidth : 1  // dial + space + value
@@ -614,7 +634,8 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
         }
         // Ring dial: a 3-row box of width inner+2, plus a label row. Mirrors
         // renderCircularDial's fixed interior width so measure == render.
-        let inner = max(gaugeCircularInnerWidth, valueWidth)
+        let inner = max(
+            gaugeCircularInnerWidth, OpticalReadout(valueText.stripped).width(reservingLead: reservedLead))
         let width = max(inner + 2, labelWidth)
         return (width, labelWidth > 0 ? 4 : 3)
     }
@@ -649,6 +670,7 @@ where Label == AnyView, CurrentValueLabel == AnyView, BoundsLabel == AnyView, Ma
     init(_ configuration: GaugeStyleConfiguration) {
         self.init(
             fraction: configuration.value,
+            goesBelowZero: configuration.goesBelowZero,
             label: configuration.label,
             currentValueLabel: configuration.currentValueLabel,
             minimumValueLabel: configuration.minimumValueLabel,
