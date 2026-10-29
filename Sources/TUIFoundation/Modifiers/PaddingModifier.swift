@@ -128,11 +128,14 @@ public struct PaddingModifier: BufferModifier {
     /// A `var` so an animation can substitute it — see the `Animatable`
     /// conformance below.
     ///
-    /// Every inset is held to `0...Int.statedLengthLimit`, whether stated or
-    /// animated (a spring overshoots below zero). A negative inset drew a
-    /// negative count of blank rows — a trap — and SwiftUI's, which pulls the
-    /// frame in over the content, has no cell grid to do it on; one past the
-    /// limit overflowed the sum of the two insets.
+    /// Every inset is held to ±`Int.statedLengthLimit`, whether stated or
+    /// animated: one past the limit overflowed the sum of the two insets.
+    ///
+    /// A negative inset is SwiftUI's (owner, 2026-10-29, NEG-PADDING): the
+    /// view's frame is pulled in over its content by that many cells on that
+    /// edge, the content is offered as many more, and it is drawn at its full
+    /// size, past the frame there (``overhanging(_:context:)``). A spring that
+    /// overshoots zero draws the same, for as long as it is below.
     var insets: EdgeInsets {
         get { heldInsets }
         set { heldInsets = Self.held(newValue) }
@@ -145,13 +148,71 @@ public struct PaddingModifier: BufferModifier {
     }
 
     private static func held(_ insets: EdgeInsets) -> EdgeInsets {
-        func hold(_ inset: Int) -> Int { max(0, inset.heldToStatedLength) }
-        return EdgeInsets(
-            top: hold(insets.top), leading: hold(insets.leading), bottom: hold(insets.bottom),
-            trailing: hold(insets.trailing))
+        EdgeInsets(
+            top: insets.top.heldToStatedLength, leading: insets.leading.heldToStatedLength,
+            bottom: insets.bottom.heldToStatedLength, trailing: insets.trailing.heldToStatedLength)
+    }
+
+    /// Whether any inset is negative: the one test a padding without one pays
+    /// for the overhang. The OR of four numbers is negative exactly when one
+    /// of them is (its sign bit is theirs, OR-ed).
+    var overhangs: Bool { (insets.top | insets.leading | insets.bottom | insets.trailing) < 0 }
+
+    /// The insets drawn as blank cells round the content: the positive ones.
+    private var padding: EdgeInsets {
+        EdgeInsets(
+            top: max(0, insets.top), leading: max(0, insets.leading), bottom: max(0, insets.bottom),
+            trailing: max(0, insets.trailing))
+    }
+
+    /// The negative insets, as the cells the content overhangs its frame by
+    /// on each edge.
+    var overhang: EdgeInsets {
+        EdgeInsets(
+            top: max(0, -insets.top), leading: max(0, -insets.leading), bottom: max(0, -insets.bottom),
+            trailing: max(0, -insets.trailing))
+    }
+
+    /// The cells a negative inset offers the content past the view's own
+    /// extent, per axis (``BufferModifier/_contentOverhang``): what
+    /// ``adjustContext(_:)`` adds back, which the measure takes off the size
+    /// the view reports.
+    public var _contentOverhang: (width: Int, height: Int) {
+        guard overhangs else { return (0, 0) }
+        let overhang = overhang
+        return (overhang.leading + overhang.trailing, overhang.top + overhang.bottom)
     }
 
     public func adjustContext(_ context: RenderContext) -> RenderContext {
+        guard overhangs else { return adjustContext(context, padding: insets, shift: (0, 0)) }
+        let overhang = overhang
+        // The content is drawn from the frame's leading and top edges less the
+        // overhang there, inside the positive insets.
+        return adjustContext(
+            Self.grown(context, by: overhang), padding: padding, shift: (-overhang.leading, -overhang.top))
+    }
+
+    /// `context` offered the overhang on each edge more: the space the content
+    /// and the positive insets round it are drawn in before the frame is
+    /// pulled in over them. The positive insets are taken out of THIS, in the
+    /// measure and the render alike, so that the cell they always leave the
+    /// content is counted from the same space: taken from the frame instead,
+    /// `.padding(EdgeInsets(leading: 3, trailing: -3))` round a two-cell text
+    /// measured two cells and drew none.
+    private static func grown(_ context: RenderContext, by overhang: EdgeInsets) -> RenderContext {
+        var grown = context
+        grown.availableWidth += overhang.leading + overhang.trailing
+        grown.availableHeight += overhang.top + overhang.bottom
+        return grown
+    }
+
+    /// The content's context under the positive insets `insets`, its carried
+    /// origin moved `shift` further: the whole of ``adjustContext(_:)`` for
+    /// a padding with no negative inset.
+    @inline(__always)
+    private func adjustContext(
+        _ context: RenderContext, padding insets: EdgeInsets, shift: (x: Int, y: Int)
+    ) -> RenderContext {
         var adjusted = context
         // Padding never takes the LAST cell from its content. Where there is
         // room for anything at all, the content keeps at least one cell of it
@@ -167,7 +228,7 @@ public struct PaddingModifier: BufferModifier {
             context.availableWidth, less: insets.leading + insets.trailing)
         adjusted.availableHeight = Self.remaining(
             context.availableHeight, less: insets.top + insets.bottom)
-        adjusted = relayingScrollWindow(from: context, to: adjusted)
+        adjusted = relayingScrollWindow(from: context, to: adjusted, insets: insets)
         // Where the content sits in the padded view — past the leading and top
         // insets `modify` draws for content that is not empty — for a ramp
         // spanning the view and the carried geometry origin
@@ -180,7 +241,7 @@ public struct PaddingModifier: BufferModifier {
         let top = Self.drawnInsets(
             insets.top, insets.bottom, in: context.availableHeight, contentIsEmpty: false
         ).before
-        return adjusted.placingChild(gradient: adjusted.gradientFrame, x: leading, y: top)
+        return adjusted.placingChild(gradient: adjusted.gradientFrame, x: leading + shift.x, y: top + shift.y)
     }
 
     /// `available` less `taken`, but never below one cell while `available` has
@@ -232,6 +293,15 @@ public struct PaddingModifier: BufferModifier {
     }
 
     public func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+        guard overhangs else { return padded(buffer, by: insets, context: context) }
+        return overhanging(padded(buffer, by: padding, context: Self.grown(context, by: overhang)), context: context)
+    }
+
+    /// `buffer` with the positive `insets` drawn round it as blank cells: the
+    /// whole of ``modify(buffer:context:)`` for a padding with no negative
+    /// inset.
+    @inline(__always)
+    private func padded(_ buffer: FrameBuffer, by insets: EdgeInsets, context: RenderContext) -> FrameBuffer {
         let horizontal = Self.drawnInsets(
             insets.leading, insets.trailing, in: context.availableWidth,
             contentIsEmpty: buffer.width == 0)
@@ -240,7 +310,8 @@ public struct PaddingModifier: BufferModifier {
             contentIsEmpty: buffer.height == 0)
         // A lazy stack in the content that drew a band of its rows leaves out
         // the padding the band does not reach (`relayingScrollWindow`).
-        if let placement = answerRelayedScrollWindow(contentBuffer: buffer, linesBelow: vertical.after, context: context) {
+        if let placement = answerRelayedScrollWindow(
+            contentBuffer: buffer, linesBelow: vertical.after, insets: insets, context: context) {
             if !placement.drawsAbove { vertical.before = 0 }
             if !placement.drawsBelow { vertical.after = 0 }
         }
@@ -321,7 +392,9 @@ extension PaddingModifier {
     /// further left in the content (``RenderContext/withScrollWindowAcross(leading:)``),
     /// and the columns it answers are moved back right
     /// (``shiftAnsweredColumns(by:context:)``).
-    fileprivate func relayingScrollWindow(from context: RenderContext, to adjusted: RenderContext) -> RenderContext {
+    fileprivate func relayingScrollWindow(
+        from context: RenderContext, to adjusted: RenderContext, insets: EdgeInsets
+    ) -> RenderContext {
         guard insets.top > 0 || insets.bottom > 0 || insets.leading > 0, !context.isMeasuring,
             context.mayConsumeScrollWindow
         else { return adjusted }
@@ -354,13 +427,52 @@ extension PaddingModifier {
     /// The relay ``relayingScrollWindow(from:to:)`` set up, answered once the
     /// content has drawn: which of the padding's lines the band holds.
     fileprivate func answerRelayedScrollWindow(
-        contentBuffer: FrameBuffer, linesBelow: Int, context: RenderContext
+        contentBuffer: FrameBuffer, linesBelow: Int, insets: EdgeInsets, context: RenderContext
     ) -> ScrollWindowRelay.Placement? {
         guard insets.top > 0 || insets.bottom > 0, !context.isMeasuring, context.mayConsumeScrollWindow,
             let reply = context.environment.scrollContentWindow?.reply, let relay = reply.pendingRelay
         else { return nil }
         reply.pendingRelay = nil
         return relay.answer(contentBuffer: contentBuffer, linesBelow: linesBelow)
+    }
+}
+
+// MARK: - A negative inset
+
+extension PaddingModifier {
+    /// `buffer` — the content with the positive insets drawn round it — in
+    /// the frame the negative insets pull in over it: SwiftUI's negative
+    /// padding.
+    ///
+    /// The frame is the buffer less the overhang on each edge, and never less
+    /// than nothing: a padding so negative that it would be reports zero on
+    /// that axis, as the measure does (``_contentOverhang``). The content is
+    /// drawn at its full size from the overhang above and before the frame,
+    /// as content past its region is (`FrameBuffer.splitPlacing(at:inWidth:height:)`,
+    /// a frame's and an alignment guide's path): the part the frame holds in
+    /// flow, the rest past it, at this view's place in the stacking order —
+    /// over the views before it and under the views after it, as SwiftUI's
+    /// is — with only the cells it paints drawn there. A measure pass draws
+    /// nothing past the frame, and keeps the part inside, which sizes the
+    /// same.
+    func overhanging(_ buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+        let overhang = overhang
+        let width = max(0, buffer.width - overhang.leading - overhang.trailing)
+        let height = max(0, buffer.height - overhang.top - overhang.bottom)
+        let placement = buffer.splitPlacing(
+            at: (x: -overhang.leading, y: -overhang.top), inWidth: width, height: height)
+        let inside = context.isMeasuring ? placement.inside : placement.insideCarryingOverflow
+        guard width > 0, height > 0 else {
+            // Nothing of it is in the frame: the frame still stands, blank,
+            // its rows existing (or a stack reads it as no child), and its
+            // overflow and markers ride on it.
+            var footprint = FrameBuffer(footprintWidth: width, height: height)
+            footprint.hitTestRegions = inside.hitTestRegions
+            footprint.overlays = inside.overlays
+            return footprint
+        }
+        return inside.placedHorizontally(inWidth: width, offset: placement.insideOrigin.x)
+            .placedVertically(inHeight: height, topPadding: placement.insideOrigin.y)
     }
 }
 

@@ -152,6 +152,17 @@ public protocol BufferModifier {
     /// - Parameter context: The current rendering context.
     /// - Returns: The adjusted context for content rendering.
     func adjustContext(_ context: RenderContext) -> RenderContext
+
+    /// The cells, per axis, that ``adjustContext(_:)`` offers the content
+    /// past the modified view's own extent: a negative padding's, which lays
+    /// its content out larger than the frame it reports and draws it past
+    /// that frame. The measure takes them off the size it reports, and adds
+    /// them to the proposal it hands the content.
+    ///
+    /// `(0, 0)` by default, a constant the specialiser folds: every other
+    /// modifier offers its content at most what it was offered. Not to be
+    /// implemented by hand outside padding.
+    var _contentOverhang: (width: Int, height: Int) { get }
 }
 
 extension BufferModifier {
@@ -176,6 +187,11 @@ extension BufferModifier {
     ) -> FrameBuffer {
         modify(buffer: buffer, context: context)
     }
+
+    /// A modifier offers its content nothing past its own extent unless it is
+    /// a negative padding.
+    @inlinable
+    public var _contentOverhang: (width: Int, height: Int) { (0, 0) }
 
     /// A modifier binds no identity key unless it is `View.id(_:)`'s.
     @inlinable
@@ -427,10 +443,18 @@ extension ModifiedView: Layoutable {
     /// just report the child's size. For modifiers that do (padding), the
     /// caller sees the post-modifier dimensions, which matches what
     /// `renderToBuffer` would produce.
+    ///
+    /// A negative padding offers its content MORE than it was offered
+    /// (``BufferModifier/_contentOverhang``): the delta is then negative, the
+    /// proposal grows by it and the reported size shrinks by it, never below
+    /// zero, as SwiftUI's does.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let adjustedContext = modifier.adjustContext(context)
-        let widthDelta = max(0, context.availableWidth - adjustedContext.availableWidth)
-        let heightDelta = max(0, context.availableHeight - adjustedContext.availableHeight)
+        let overhang = modifier._contentOverhang
+        let widthDelta =
+            max(0, context.availableWidth + overhang.width - adjustedContext.availableWidth) - overhang.width
+        let heightDelta =
+            max(0, context.availableHeight + overhang.height - adjustedContext.availableHeight) - overhang.height
 
         // Propagate the modifier's shrink to the proposal too, so a flex
         // child still treats the remaining space as its budget.
@@ -450,8 +474,8 @@ extension ModifiedView: Layoutable {
 
         let childSize = measureChild(content, proposal: adjustedProposal, context: adjustedContext)
         return ViewSize(
-            width: childSize.width + widthDelta,
-            height: childSize.height + heightDelta,
+            width: max(0, childSize.width + widthDelta),
+            height: max(0, childSize.height + heightDelta),
             isWidthFlexible: childSize.isWidthFlexible,
             isHeightFlexible: childSize.isHeightFlexible
         )

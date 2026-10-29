@@ -241,6 +241,7 @@ identifier_name:
     - _measureSelf
     - _explicitIDKey
     - _explicitID
+    - _contentOverhang
     # Table column and row content's flattening: what every framework column
     # and row type appends itself with, instead of a cast to a protocol
     # constrained by the row type (which demangled on every call).
