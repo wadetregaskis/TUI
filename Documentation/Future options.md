@@ -298,6 +298,21 @@ keyboard selection.
 **What would reopen it.** A port whose users select across a wrapped `Text`
 beside other content, where the screen selection picks up the neighbours.
 
+### Selecting screen text from the keyboard
+
+**What it is.** A keyboard route to TUI's screen selection, which starts only
+with the pointer: selectable `Text` as focus stops, hints that label every
+block of text on screen, a tmux-style copy mode, or Copy on the focused
+control. Designed in [Keyboard screen selection](<Input and focus/Keyboard screen selection.md>),
+recommendation hints (about a day), entered from an Edit menu item.
+
+**Why not now.** The owner, 2026-10-29: screen selection stays pointer-only, an
+extra rather than a function anything depends on; shelved.
+
+**What would reopen it.** A user who cannot use a pointer and needs to copy
+text an app only shows, or an app relying on `textSelection(.enabled)` from
+the keyboard.
+
 ## Input
 
 ### SGR-Pixels mouse reports (mode 1016)
