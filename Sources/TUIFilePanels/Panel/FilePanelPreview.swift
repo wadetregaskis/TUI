@@ -50,7 +50,15 @@ struct FilePanelPreview: View {
         }
         .padding(.horizontal, 1)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .task(id: entry.url) { excerpt = await Self.excerpt(of: entry) }
+        .task(id: entry.url) {
+            // The last file's excerpt is not this one's: gone while this one
+            // is read. And a read the selection has moved on from is dropped,
+            // or a slow one of the last file showed its text under this one.
+            excerpt = nil
+            let read = await Self.excerpt(of: entry)
+            guard !Task.isCancelled else { return }
+            excerpt = read
+        }
     }
 
     /// The most of a file read for its excerpt, in bytes.
