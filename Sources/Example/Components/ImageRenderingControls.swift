@@ -101,6 +101,30 @@ struct ImageRenderingControls: View {
         !(settings.terminalGraphics && KittyGraphics.isSupported)
     }
 
+    /// How the picture is drawn: out of one of the charsets, or in the
+    /// terminal's own pixels.
+    private enum RenderStyle: Hashable {
+        case glyphs(ImageDemoHelpers.Charset)
+        case pixels
+    }
+
+    /// The render style as one choice: choosing a charset draws glyphs again,
+    /// and choosing pixels keeps the charset for when glyphs come back.
+    private var renderStyle: Binding<RenderStyle> {
+        let settings = $settings
+        return Binding(
+            get: { drawsGlyphs ? .glyphs(settings.wrappedValue.charset) : .pixels },
+            set: { style in
+                switch style {
+                case .glyphs(let charset):
+                    settings.wrappedValue.charset = charset
+                    settings.wrappedValue.terminalGraphics = false
+                case .pixels:
+                    settings.wrappedValue.terminalGraphics = true
+                }
+            })
+    }
+
     @ViewBuilder private var characters: some View {
         VStack(alignment: .leading, spacing: 0) {
             heading("component.imageControls.characters")
@@ -108,17 +132,19 @@ struct ImageRenderingControls: View {
             // IT — see ``RadioButtonItem``. It was four groups sharing a
             // binding for a while, which put each control under the right
             // option at the cost of the arrow keys that walk them: four groups
-            // are four Tab stops where the reader sees one list.
-            RadioButtonGroup(selection: $settings.charset) {
-                RadioButtonItem(ImageDemoHelpers.Charset.ascii, "component.imageControls.ascii") {
+            // are four Tab stops where the reader sees one list. The terminal's
+            // own pixels are an option among them, rather than a switch below
+            // that greyed them all (the owner, 2026-10-28): visible everywhere,
+            // and disabled where the terminal did not answer the graphics
+            // handshake.
+            RadioButtonGroup(selection: renderStyle) {
+                RadioButtonItem(RenderStyle.glyphs(.ascii), "component.imageControls.ascii") {
                     glyphStepper(.ascii, value: $settings.asciiGlyphs)
                 }
-                RadioButtonItem(
-                    ImageDemoHelpers.Charset.unicode, "component.imageControls.unicode"
-                ) {
+                RadioButtonItem(RenderStyle.glyphs(.unicode), "component.imageControls.unicode") {
                     glyphStepper(.unicode, value: $settings.unicodeGlyphs)
                 }
-                RadioButtonItem(ImageDemoHelpers.Charset.blocks, "component.imageControls.blocks") {
+                RadioButtonItem(RenderStyle.glyphs(.blocks), "component.imageControls.blocks") {
                     // The blocks charset's discrete size. Disabled on its own
                     // account as well as by the group: shape matching draws
                     // blocks by ink coverage, and no style is chosen then.
@@ -134,14 +160,15 @@ struct ImageRenderingControls: View {
                         !ImageDemoHelpers.usesBlockStyle(
                             settings.charset, shapeAware: settings.shapeAware))
                 }
-                RadioButtonItem(ImageDemoHelpers.Charset.custom, "component.imageControls.custom") {
+                RadioButtonItem(RenderStyle.glyphs(.custom), "component.imageControls.custom") {
                     rampField
                 }
+                RadioButtonItem(RenderStyle.pixels) {
+                    Text("component.imageControls.terminalGraphics")
+                        .help("component.imageControls.terminalGraphicsHelp")
+                }
+                .disabled(!KittyGraphics.isSupported)
             }
-            // The whole vocabulary, greyed as one, when the terminal is drawing
-            // the picture itself: no character is being chosen, so no charset
-            // is in use — see `drawsGlyphs`.
-            .disabled(!drawsGlyphs)
             // Off the ramp field and onto its own footing: what follows applies
             // to the charset CHOICE above rather than to the custom ramp it
             // would otherwise appear to continue.
@@ -151,18 +178,6 @@ struct ImageRenderingControls: View {
             // charset except a custom ramp.
             Toggle("component.imageControls.shapeAware", isOn: $settings.shapeAware)
                 .disabled(!drawsGlyphs || !ImageDemoHelpers.usesShape(settings.charset))
-
-            // Above every glyph knob in importance and below them on the page,
-            // because it is the one switch that decides whether any of them
-            // apply: on a terminal with a graphics protocol the picture is
-            // drawn in real pixels and the charset choice does nothing.
-            //
-            // Disabled — and snapped off, see `ImageDemoSettings.snap()` — on
-            // a terminal that did not answer the startup handshake. A switch
-            // that is on while glyphs are being drawn is a lie about what you
-            // are looking at, and this page exists to show the difference.
-            Toggle("component.imageControls.terminalGraphics", isOn: $settings.terminalGraphics)
-                .disabled(!KittyGraphics.isSupported)
 
             // Edge tracing sits BESIDE shape-awareness rather than under it.
             // The two are orthogonal: one asks where the picture has an edge,
