@@ -84,7 +84,11 @@ struct MeshColourField {
     /// The field of `paint`'s colours. A short colour list is filled out with
     /// `.clear`, as SwiftUI's is; a long one is cut to the vertices.
     init(_ paint: MeshPaint) {
-        let (width, height) = (max(0, paint.width), max(0, paint.height))
+        // A field is read only where the mesh draws patches, so one that does
+        // not has none: `width × height` taken from the app's numbers before
+        // they are checked against its locations could overflow, or ask for
+        // 10^18 colours (a `MeshGradient(width: .max, …)`).
+        let (width, height) = MeshVertices.drawsPatches(paint) ? (paint.width, paint.height) : (0, 0)
         let count = width * height
         let colours =
             Array(paint.colors.prefix(count))

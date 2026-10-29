@@ -176,9 +176,10 @@ enum PaintAnimation {
         case .radial(let centre, let startRadius, let endRadius):
             return .radial(
                 center: UnitPoint(x: moved(centre.x, 1, 0), y: moved(centre.y, 1, 1)),
-                // Rounded back, because a radius here is a count of cells.
-                startRadius: Int(moved(Double(startRadius), 1, 2).rounded()),
-                endRadius: Int(moved(Double(endRadius), 1, 3).rounded()))
+                // Rounded back, because a radius here is a count of cells —
+                // clamping, as `Double(Int.max)` is one past `Int.max`.
+                startRadius: Int(clamping: moved(Double(startRadius), 1, 2).rounded()),
+                endRadius: Int(clamping: moved(Double(endRadius), 1, 3).rounded()))
         case .elliptical(let centre, let startFraction, let endFraction):
             return .elliptical(
                 center: UnitPoint(x: moved(centre.x, 2, 0), y: moved(centre.y, 2, 1)),

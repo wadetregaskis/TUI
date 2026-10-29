@@ -49,15 +49,12 @@ struct MeshVertices {
     /// two vertices in a direction, or a location count other than
     /// `width × height` — SwiftUI's mesh then draws its background alone.
     init?(_ paint: MeshPaint) {
+        guard Self.drawsPatches(paint) else { return nil }
         let (width, height) = (paint.width, paint.height)
-        guard width >= 2, height >= 2 else { return nil }
-        let (count, overflow) = width.multipliedReportingOverflow(by: height)
-        guard !overflow else { return nil }
         self.width = width
         self.height = height
         switch paint.locations {
         case .bezierPoints(let points):
-            guard points.count == count else { return nil }
             vertices = points.map {
                 Vertex(
                     position: Self.double($0.position), leading: Self.double($0.leadingControlPoint),
@@ -65,14 +62,38 @@ struct MeshVertices {
                     bottom: Self.double($0.bottomControlPoint))
             }
         case .points(let points):
-            guard points.count == count else { return nil }
             let positions = points.map(Self.double)
             vertices = Self.implied(positions, width: width, height: height)
         }
     }
 
+    /// Whether `paint` draws patches: at least two vertices each way, and
+    /// exactly `width × height` locations. Checked against the locations the
+    /// app GAVE, so a grid that passes is no bigger than an array it holds —
+    /// the app's `width` and `height` alone can overflow their product, or
+    /// name 10^18 vertices nothing will ever be handed.
+    static func drawsPatches(_ paint: MeshPaint) -> Bool {
+        guard paint.width >= 2, paint.height >= 2 else { return false }
+        let (count, overflow) = paint.width.multipliedReportingOverflow(by: paint.height)
+        guard !overflow else { return false }
+        switch paint.locations {
+        case .bezierPoints(let points): return points.count == count
+        case .points(let points): return points.count == count
+        }
+    }
+
+    /// The furthest from the box, in boxes, a finite coordinate is taken to
+    /// lie. A point further out bends nothing on screen that this does not,
+    /// and one stated at 10^18 kept every piece of its patch overlapping the
+    /// screen to the deepest split — millions of pieces, seconds a frame.
+    /// A non-finite one is kept, for the patch to refuse (``MeshPatchNet/bounds``).
+    private static let reach = 64.0
+
     private static func double(_ point: SIMD2<Float>) -> SIMD2<Double> {
-        SIMD2(Double(point.x), Double(point.y))
+        func near(_ value: Float) -> Double {
+            value.isFinite ? min(max(Double(value), -reach), reach) : Double(value)
+        }
+        return SIMD2(near(point.x), near(point.y))
     }
 
     /// Every vertex's control points, implied by its neighbours.
