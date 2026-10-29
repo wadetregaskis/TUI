@@ -78,9 +78,24 @@ public struct GridItem: Sendable, Equatable {
         spacing: Int? = nil,
         alignment: Alignment? = nil
     ) {
-        self.size = size
-        self.spacing = spacing
+        self.size = size.held
+        self.spacing = spacing?.heldToStatedLength
         self.alignment = alignment
+    }
+}
+
+extension GridItem.Size {
+    /// This size with its lengths held to ``Swift/Int/statedLengthLimit``:
+    /// track resolution sums them with their gaps, and `.fixed(.max)`
+    /// overflowed the sum.
+    var held: Self {
+        switch self {
+        case .fixed(let width): .fixed(width.heldToStatedLength)
+        case .flexible(let minimum, let maximum):
+            .flexible(minimum: minimum.heldToStatedLength, maximum: maximum.heldToStatedLength)
+        case .adaptive(let minimum, let maximum):
+            .adaptive(minimum: minimum.heldToStatedLength, maximum: maximum.heldToStatedLength)
+        }
     }
 }
 
@@ -161,7 +176,9 @@ extension GridItem {
                 // At least one track even when nothing fits: a grid that
                 // renders one clipped column is far easier to understand than
                 // one that silently renders nothing.
-                let count = max(1, (share + gap) / (unit + gap))
+                // A negative gap as wide as the track leaves each repeat no
+                // width at all, and nothing to divide by: one track, then.
+                let count = unit + gap > 0 ? max(1, (share + gap) / (unit + gap)) : 1
                 for _ in 0..<count {
                     tracks.append(GridTrack(extent: unit, alignment: item.alignment, spacing: gap))
                     ceilings.append(max(unit, maximum))

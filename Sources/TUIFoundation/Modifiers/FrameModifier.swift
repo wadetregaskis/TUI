@@ -117,24 +117,25 @@ public struct FlexibleFrameView<Content: View>: View {
 /// A frame constraint in one word: `Int.min` is "none", `Int.min + 1` is
 /// `.infinity`, and anything else is the size itself.
 ///
-/// A size at or below `Int.min + 1` is stored as `Int.min + 2`. Every use
-/// floors a constraint at zero or takes the larger of it and a size, so a
-/// size that far below zero means what zero does, and moving it by two
-/// changes nothing drawn.
+/// A size is stored held to ``Swift/Int/statedLengthLimit`` either way, which
+/// keeps it clear of the two sentinels at `Int.min` and of overflow in the
+/// sums that align content in the frame. Every use floors a constraint at
+/// zero or takes the larger of it and a size, so a size that far below zero
+/// means what zero does.
 private enum FrameWord {
     static let none = Int.min
     static let infinity = Int.min + 1
 
     static func pack(_ size: Int?) -> Int {
         guard let size else { return none }
-        return max(size, Int.min + 2)
+        return size.heldToStatedLength
     }
 
     static func pack(_ dimension: FrameDimension?) -> Int {
         switch dimension {
         case nil: none
         case .infinity: infinity
-        case .fixed(let size): max(size, Int.min + 2)
+        case .fixed(let size): size.heldToStatedLength
         }
     }
 
@@ -760,7 +761,7 @@ extension FlexibleFrameView: Animatable {
         _ min: inout Int?, _ ideal: inout Int?, _ max: inout FrameDimension?, to value: Double
     ) {
         guard value >= 0, pinned(min, ideal, max) >= 0 else { return }
-        let cells = Int(value.rounded())
+        let cells = Int(clamping: value.rounded())
         min = cells
         ideal = cells
         max = .fixed(cells)

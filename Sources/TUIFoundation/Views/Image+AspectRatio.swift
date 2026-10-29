@@ -77,10 +77,16 @@ extension View {
     /// - Returns: A view that constrains this view's dimensions to the given
     ///   aspect ratio and content mode.
     public func aspectRatio(_ aspectRatio: Double? = nil, contentMode: ContentMode) -> some View {
+        // A ratio that is not a positive number is none; one finite but past
+        // what a box of cells can show — 1e-300, 1e18 — is held to one cell
+        // by `Int.statedLengthLimit`. Unheld, it reached the image inside as
+        // a height no conversion could take.
+        let limit = Double(Int.statedLengthLimit)
+        let aspectRatio = aspectRatio.flatMap { $0.isFinite && $0 > 0 ? min(max($0, 1 / limit), limit) : nil }
         // The layout is SwiftUI's, for any view (`_AspectRatioView`). The
         // environment still tells an image inside how it fills the box it is
         // given: a resizable image stretches unless a content mode is set.
-        _AspectRatioView(content: self, aspectRatio: aspectRatio, contentMode: contentMode)
+        return _AspectRatioView(content: self, aspectRatio: aspectRatio, contentMode: contentMode)
             .environment(\.imageContentMode, contentMode)
             .environment(\.imageAspectRatio, aspectRatio)
     }

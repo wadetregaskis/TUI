@@ -168,6 +168,22 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [O0](<../Historical/SwiftUI parity process/The refusals re-examined (wave 17).md#o0-shapes-the-unit-of-shapepathin--gates-w1>),
   ruled 2026-10-12: (B); [§2.12](<SwiftUI compatibility guide.md#212-a-shapes-unit-is-square-a-column-across-the-same-down>). **Owner.**
 
+### U6. A stated length is held to 2^16 cells, and padding is never negative
+
+- **SwiftUI:** a frame, padding, spacing or offset of any size is laid out at
+  that size; a negative padding pulls the frame in over the content (not
+  measured for sizes near `Int.max`).
+- **TUI:** every length an app states in cells — frame bounds, insets,
+  stack and grid spacing, spacer minimums, offsets and positions, table column
+  widths — is held to ±2^16 (`Int.statedLengthLimit`) where it enters, and a
+  padding inset to `0...2^16`, stated or animated (`HostileNumbersLayoutTests`).
+- **Why:** a terminal draws a length cell by cell, and lays it out by adding
+  lengths: `Int.max` overflowed the first sum and 10^18 asked for that many
+  spaces, each taking the app down. A negative inset drew a negative count of
+  rows, which trapped, and a cell grid has no partial overlap to pull in over.
+- **Decided:** on the declarations (`StatedLength.swift`,
+  `PaddingModifier.insets`). **Recorded.**
+
 ---
 
 ## Layout

@@ -50,7 +50,7 @@ extension View {
     /// - Parameter lineSpacing: Blank rows between lines.
     /// - Returns: A view whose text is spaced.
     public func lineSpacing(_ lineSpacing: Int) -> some View {
-        environment(\.lineSpacing, max(0, lineSpacing))
+        environment(\.lineSpacing, max(0, lineSpacing.heldToStatedLength))
     }
 }
 

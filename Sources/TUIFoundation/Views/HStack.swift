@@ -59,7 +59,7 @@ public struct HStack<Content: View>: View {
         @ViewBuilder content: () -> Content
     ) {
         self.alignment = alignment
-        self.spacing = spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .horizontal)
+        self.spacing = spacing?.heldToStatedLength ?? ViewSpacing().distance(to: ViewSpacing(), along: .horizontal)
         self.content = content()
         self.resolvesSpacingPerPair = spacing == nil
     }

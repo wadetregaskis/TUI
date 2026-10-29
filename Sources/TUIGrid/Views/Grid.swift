@@ -39,7 +39,7 @@ extension View {
     ///   treated as 1.
     /// - Returns: A view carrying the span.
     public func gridCellColumns(_ count: Int) -> some View {
-        layoutValue(key: GridCellColumnsKey.self, value: max(1, count))
+        layoutValue(key: GridCellColumnsKey.self, value: max(1, count.heldToStatedLength))
     }
 
     /// Overrides where this cell sits inside the box the grid gives it.
@@ -226,8 +226,8 @@ public struct Grid<Content: View>: View {
         @ViewBuilder content: () -> Content
     ) {
         self.alignment = alignment
-        self.horizontalSpacing = horizontalSpacing ?? GridLattice.defaultHorizontalSpacing
-        self.verticalSpacing = verticalSpacing ?? GridLattice.defaultVerticalSpacing
+        self.horizontalSpacing = horizontalSpacing?.heldToStatedLength ?? GridLattice.defaultHorizontalSpacing
+        self.verticalSpacing = verticalSpacing?.heldToStatedLength ?? GridLattice.defaultVerticalSpacing
         self.content = content()
     }
 

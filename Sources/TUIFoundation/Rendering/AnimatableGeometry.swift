@@ -37,10 +37,10 @@ extension EdgeInsets: Animatable {
                 AnimatablePair(Double(bottom), Double(trailing)))
         }
         set {
-            top = Int(newValue.first.first.rounded())
-            leading = Int(newValue.first.second.rounded())
-            bottom = Int(newValue.second.first.rounded())
-            trailing = Int(newValue.second.second.rounded())
+            top = Int(clamping: newValue.first.first.rounded())
+            leading = Int(clamping: newValue.first.second.rounded())
+            bottom = Int(clamping: newValue.second.first.rounded())
+            trailing = Int(clamping: newValue.second.second.rounded())
         }
     }
 }
@@ -64,8 +64,8 @@ extension CellSize: Animatable {
     public var animatableData: AnimatablePair<Double, Double> {
         get { AnimatablePair(Double(width), Double(height)) }
         set {
-            width = Int(newValue.first.rounded())
-            height = Int(newValue.second.rounded())
+            width = Int(clamping: newValue.first.rounded())
+            height = Int(clamping: newValue.second.rounded())
         }
     }
 }
@@ -82,10 +82,10 @@ extension CellRect: Animatable {
                 AnimatablePair(Double(width), Double(height)))
         }
         set {
-            x = Int(newValue.first.first.rounded())
-            y = Int(newValue.first.second.rounded())
-            width = Int(newValue.second.first.rounded())
-            height = Int(newValue.second.second.rounded())
+            x = Int(clamping: newValue.first.first.rounded())
+            y = Int(clamping: newValue.first.second.rounded())
+            width = Int(clamping: newValue.second.first.rounded())
+            height = Int(clamping: newValue.second.second.rounded())
         }
     }
 }

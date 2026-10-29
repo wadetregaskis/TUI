@@ -56,7 +56,7 @@ extension View {
     ///
     /// - Returns: A view whose lists and tables keep that spacing.
     public func scrollbarSpacing(_ cells: Int) -> some View {
-        environment(\.scrollbarSpacing, max(0, cells))
+        environment(\.scrollbarSpacing, max(0, cells.heldToStatedLength))
     }
 }
 

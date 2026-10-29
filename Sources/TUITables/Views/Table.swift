@@ -556,7 +556,7 @@ extension Table {
         // places, which traps on a negative count. Clamp once here, at the
         // boundary, so every use downstream is safe by construction rather
         // than by remembering.
-        copy.columnSpacing = max(0, spacing)
+        copy.columnSpacing = max(0, spacing.heldToStatedLength)
         return copy
     }
 

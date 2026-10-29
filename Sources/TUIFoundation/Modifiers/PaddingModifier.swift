@@ -127,7 +127,29 @@ public struct PaddingModifier: BufferModifier {
     ///
     /// A `var` so an animation can substitute it — see the `Animatable`
     /// conformance below.
-    var insets: EdgeInsets
+    ///
+    /// Every inset is held to `0...Int.statedLengthLimit`, whether stated or
+    /// animated (a spring overshoots below zero). A negative inset drew a
+    /// negative count of blank rows — a trap — and SwiftUI's, which pulls the
+    /// frame in over the content, has no cell grid to do it on; one past the
+    /// limit overflowed the sum of the two insets.
+    var insets: EdgeInsets {
+        get { heldInsets }
+        set { heldInsets = Self.held(newValue) }
+    }
+
+    private var heldInsets: EdgeInsets
+
+    init(insets: EdgeInsets) {
+        heldInsets = Self.held(insets)
+    }
+
+    private static func held(_ insets: EdgeInsets) -> EdgeInsets {
+        func hold(_ inset: Int) -> Int { max(0, inset.heldToStatedLength) }
+        return EdgeInsets(
+            top: hold(insets.top), leading: hold(insets.leading), bottom: hold(insets.bottom),
+            trailing: hold(insets.trailing))
+    }
 
     public func adjustContext(_ context: RenderContext) -> RenderContext {
         var adjusted = context

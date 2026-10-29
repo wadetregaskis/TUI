@@ -53,7 +53,7 @@ public struct VStack<Content: View>: View {
         @ViewBuilder content: () -> Content
     ) {
         self.alignment = alignment
-        self.spacing = spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .vertical)
+        self.spacing = spacing?.heldToStatedLength ?? ViewSpacing().distance(to: ViewSpacing(), along: .vertical)
         self.content = content()
     }
 

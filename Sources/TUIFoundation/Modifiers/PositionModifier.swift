@@ -32,7 +32,7 @@ extension View {
     ///   - y: The row its centre sits on.
     /// - Returns: A view drawn at that position, filling the space offered.
     public func position(x: Int = 0, y: Int = 0) -> some View {
-        PositionView(content: self, x: x, y: y)
+        PositionView(content: self, x: x.heldToStatedLength, y: y.heldToStatedLength)
     }
 
     /// Places this view's centre at `position` — the same modifier as
@@ -66,8 +66,8 @@ extension PositionView: Animatable {
     public var animatableData: AnimatablePair<Double, Double> {
         get { AnimatablePair(Double(x), Double(y)) }
         set {
-            x = Int(newValue.first.rounded())
-            y = Int(newValue.second.rounded())
+            x = Int(clamping: newValue.first.rounded())
+            y = Int(clamping: newValue.second.rounded())
         }
     }
 }

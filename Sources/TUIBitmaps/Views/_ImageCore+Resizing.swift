@@ -115,11 +115,16 @@ extension _ImageCore {
         stretches: Bool, contentMode: ContentMode, aspectRatio: Double?, cellAspect: Double
     ) -> (width: Int, height: Int) {
         func fitted(maxHeight: Int?) -> (width: Int, height: Int) {
-            ASCIIConverter.targetSize(
+            let size = ASCIIConverter.targetSize(
                 imageWidth: imageWidth, imageHeight: imageHeight,
                 maxWidth: maxWidth, maxHeight: maxHeight,
                 contentMode: stretches ? .fit : contentMode,
                 overrideAspectRatio: aspectRatio, cellAspect: cellAspect)
+            // Held as at the natural size: the converter clamps an extreme
+            // ratio's side to `Int.max`, which its own pixel arithmetic then
+            // overflowed.
+            func held(_ cells: Int) -> Int { Swift.min(cells, Self.maximumNaturalCells) }
+            return (held(size.width), held(size.height))
         }
         guard stretches else { return fitted(maxHeight: maxHeight) }
         guard maxWidth > 0, maxHeight > 0 else { return (0, 0) }

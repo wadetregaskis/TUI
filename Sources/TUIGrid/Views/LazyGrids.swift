@@ -283,7 +283,7 @@ public struct LazyVGrid<Content: View>: View {
     ) {
         self.columns = columns
         self.alignment = alignment
-        self.spacing = spacing ?? 0
+        self.spacing = spacing?.heldToStatedLength ?? 0
         self.content = content()
         self.pinnedViews = pinnedViews
     }
@@ -493,7 +493,7 @@ public struct LazyHGrid<Content: View>: View {
     ) {
         self.rows = rows
         self.alignment = alignment
-        self.spacing = spacing ?? 1
+        self.spacing = spacing?.heldToStatedLength ?? 1
         self.content = content()
         self.pinnedViews = pinnedViews
     }

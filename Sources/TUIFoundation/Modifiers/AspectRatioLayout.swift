@@ -57,8 +57,14 @@ extension _AspectRatioView {
     /// (either `nil` where unconstrained), or `nil` when neither axis says
     /// anything, so the content is asked for its own.
     private func target(width: Int?, height: Int?, ratio: Double) -> (width: Int, height: Int)? {
-        func rows(_ columns: Int) -> Int { max(0, Int((Double(columns) / ratio).rounded())) }
-        func columns(_ rows: Int) -> Int { max(0, Int((Double(rows) * ratio).rounded())) }
+        // Clamping, and held: a ratio of 10^18 is finite, and asks for more
+        // columns than `Int` holds.
+        func rows(_ columns: Int) -> Int {
+            max(0, Int(clamping: (Double(columns) / ratio).rounded()).heldToStatedLength)
+        }
+        func columns(_ rows: Int) -> Int {
+            max(0, Int(clamping: (Double(rows) * ratio).rounded()).heldToStatedLength)
+        }
         let width = width.flatMap { isNaturalExtentBudget($0) ? nil : $0 }
         let height = height.flatMap { isNaturalExtentBudget($0) ? nil : $0 }
         switch (width, height) {

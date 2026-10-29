@@ -137,7 +137,10 @@ extension View {
     public func containerRelativeFrame(
         _ axes: Axis.Set, count: Int, span: Int = 1, spacing: Int, alignment: Alignment = .center
     ) -> some View {
-        _ContainerRelativeFrame(content: self, axes: axes, alignment: alignment) { length, _ in
+        // Held, as the division multiplies them: a spacing of `Int.max` across
+        // three divisions overflowed.
+        let (count, span, spacing) = (count.heldToStatedLength, span.heldToStatedLength, spacing.heldToStatedLength)
+        return _ContainerRelativeFrame(content: self, axes: axes, alignment: alignment) { length, _ in
             guard count > 0 else { return 0 }
             let available = max(0, length - spacing * (count - 1))
             return available * span / count + spacing * max(0, span - 1)

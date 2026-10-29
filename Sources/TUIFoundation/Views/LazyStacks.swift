@@ -136,7 +136,7 @@ public struct LazyVStack<Content: View>: View {
         @ViewBuilder content: () -> Content
     ) {
         self.alignment = alignment
-        self.spacing = spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .vertical)
+        self.spacing = spacing?.heldToStatedLength ?? ViewSpacing().distance(to: ViewSpacing(), along: .vertical)
         self.content = content()
         self.pinnedViews = pinnedViews
     }
@@ -249,7 +249,7 @@ public struct LazyHStack<Content: View>: View {
         @ViewBuilder content: () -> Content
     ) {
         self.alignment = alignment
-        self.spacing = spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .horizontal)
+        self.spacing = spacing?.heldToStatedLength ?? ViewSpacing().distance(to: ViewSpacing(), along: .horizontal)
         self.content = content()
         self.pinnedViews = pinnedViews
         self.resolvesSpacingPerPair = spacing == nil

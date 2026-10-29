@@ -49,7 +49,7 @@ public struct Spacer: View, Equatable {
     ///   `spacing` is `nil`, so a row with no room to spare is as wide with a
     ///   spacer as without one.
     public init(minLength: Int? = nil) {
-        self.minLength = minLength
+        self.minLength = minLength?.heldToStatedLength
     }
 
     public var body: Never {

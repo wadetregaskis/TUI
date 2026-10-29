@@ -326,7 +326,7 @@ extension View {
     ///   where SwiftUI measures in points.
     /// - Returns: A view whose labels use `spacing`.
     public func labelIconToTitleSpacing(_ spacing: Int) -> some View {
-        environment(\.labelIconToTitleSpacing, spacing)
+        environment(\.labelIconToTitleSpacing, spacing.heldToStatedLength)
     }
 
     /// Sets the width reserved for icons in labels, so that titles beside
@@ -335,7 +335,7 @@ extension View {
     /// - Parameter value: The width, in cells, the icon is placed in, leading.
     /// - Returns: A view whose labels reserve `value` cells for their icons.
     public func labelReservedIconWidth(_ value: Int) -> some View {
-        environment(\.labelReservedIconWidth, value)
+        environment(\.labelReservedIconWidth, value.heldToStatedLength)
     }
 }
 

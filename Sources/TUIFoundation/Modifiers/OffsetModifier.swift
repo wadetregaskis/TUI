@@ -71,7 +71,7 @@ extension View {
     ///   - y: Rows to shift down (negative shifts up).
     /// - Returns: A view drawn at the offset position.
     public func offset(x: Int = 0, y: Int = 0) -> some View {
-        OffsetView(content: self, x: x, y: y)
+        OffsetView(content: self, x: x.heldToStatedLength, y: y.heldToStatedLength)
     }
 
     /// Offsets this view's drawn position by a size — SwiftUI's
@@ -105,8 +105,8 @@ extension OffsetView: Animatable {
     public var animatableData: AnimatablePair<Double, Double> {
         get { AnimatablePair(Double(x), Double(y)) }
         set {
-            x = Int(newValue.first.rounded())
-            y = Int(newValue.second.rounded())
+            x = Int(clamping: newValue.first.rounded())
+            y = Int(clamping: newValue.second.rounded())
         }
     }
 }

@@ -564,7 +564,7 @@ extension TableColumn {
     public func width(_ width: Int? = nil) -> TableColumn {
         guard let width else { return self }
         var copy = self
-        copy.width = .fixed(max(0, width))
+        copy.width = .fixed(max(0, width.heldToStatedLength))
         return copy
     }
 
@@ -591,7 +591,8 @@ extension TableColumn {
                 (nil, nil, nil)
             }
         copy.width = .flexible(
-            min: min ?? current.min, ideal: ideal ?? current.ideal, max: max ?? current.max)
+            min: min?.heldToStatedLength ?? current.min, ideal: ideal?.heldToStatedLength ?? current.ideal,
+            max: max?.heldToStatedLength ?? current.max)
         return copy
     }
 
