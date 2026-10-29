@@ -136,9 +136,20 @@ package enum BindingReads {
     /// Notes `get`, a binding's getter, when a walk is noting. Generic, and
     /// wrapped only after the checks, so a read outside a walk allocates
     /// nothing.
+    /// Whether this is the main thread: always, on WebAssembly's wasip1,
+    /// which is single-threaded and has no `Thread` to ask (as
+    /// `BodyMutationDiagnostic.callingThread`).
+    private static var isMainThread: Bool {
+        #if canImport(WASILibc)
+            true
+        #else
+            Thread.isMainThread
+        #endif
+    }
+
     @inline(__always)
     static func note<Value>(_ get: @escaping () -> Value) {
-        guard Thread.isMainThread, noted != nil else { return }
+        guard isMainThread, noted != nil else { return }
         noted?.append { _ = get() }
     }
 }
