@@ -397,13 +397,6 @@ struct FilePanel: View {
         }
     }
 
-    /// Whether the panel makes folders: a save panel, or one that chooses a
-    /// folder (a mover's destination, an importer of folders), as a macOS
-    /// save panel does and an open panel does not by default.
-    private var createsFolders: Bool {
-        request.saveContentTypes != nil || request.rule.choosesFolders
-    }
-
     // MARK: - Choosing
 
     /// The items of the folder shown that are selected now, in the rows'
@@ -445,21 +438,9 @@ struct FilePanel: View {
         return destination
     }
 
-    /// The one folder of `selected`, when it is one folder that cannot be
-    /// chosen: the confirmation button opens it.
-    private func openableSelection(_ selected: [FileEntry]) -> URL? {
-        guard selected.count == 1, let entry = selected.first, entry.isFolder, !entry.isChoosable else { return nil }
-        return entry.url
-    }
-
     /// Where the panel is now, for the presenter to keep.
     private var ending: FilePanelEnding {
         FilePanelEnding(directory: browser.directory, showsHiddenFiles: browser.showsHiddenFiles)
-    }
-
-    /// The URL the caller is handed for `entry`.
-    private func chosenURL(_ entry: FileEntry) -> URL {
-        entry.chosenURL(resolvingLinks: request.resolvesSymbolicLinks)
     }
 
     /// The confirmation button.
