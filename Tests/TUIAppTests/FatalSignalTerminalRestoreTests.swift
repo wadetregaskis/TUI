@@ -123,6 +123,41 @@ struct FatalSignalTerminalRestoreTests {
         #expect(seen.ownSize == nil || seen.ownSize == FatalSignalTerminalRestore.alternateStackSize)
     }
 
+    /// The stall watchdog pops the kitty flags so a hung app's next ⌃\ is
+    /// the byte the driver quits on — and that quit paid the armed debt,
+    /// pop and all: a second pop, of an entry this process never pushed (on
+    /// a terminal whose screens share a stack, the shell's). Through the
+    /// `atexit` handler, which pays the same way the signal handler does,
+    /// in a child process.
+    @Test("Once the stall watchdog has popped the kitty flags, the debt is paid without its pop")
+    func watchdogPopIsNotPaidTwice() async throws {
+        let skipped = try #require(
+            await #expect(processExitsWith: .exitCode(3), observing: [\.standardOutputContent]) {
+                await MainActor.run {
+                    FatalSignalTerminalRestore.arm(
+                        owing: "<crash>", onQuit: "<before>" + KeyboardProtocolQuery.pop + "<after>", restoring: nil)
+                }
+                FatalSignalTerminalRestore.notePoppedByWatchdog(true)
+                exit(3)
+            })
+        #expect((String(bytes: skipped.standardOutputContent, encoding: .utf8) ?? "").contains("<before><after>"))
+
+        let paid = try #require(
+            await #expect(processExitsWith: .exitCode(3), observing: [\.standardOutputContent]) {
+                await MainActor.run {
+                    FatalSignalTerminalRestore.arm(
+                        owing: "<crash>", onQuit: "<before>" + KeyboardProtocolQuery.pop + "<after>", restoring: nil)
+                }
+                FatalSignalTerminalRestore.notePoppedByWatchdog(true)
+                FatalSignalTerminalRestore.notePoppedByWatchdog(false)
+                exit(3)
+            })
+        #expect(
+            (String(bytes: paid.standardOutputContent, encoding: .utf8) ?? "")
+                .contains("<before>" + KeyboardProtocolQuery.pop + "<after>"),
+            "pushed back: the pop is owed again")
+    }
+
     /// A descriptor nothing reads: the handler must still return, so the
     /// signal can end the process.
     @Test("A descriptor that never drains is given up on, not waited on for ever")

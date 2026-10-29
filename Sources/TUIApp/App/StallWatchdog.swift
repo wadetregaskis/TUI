@@ -51,8 +51,17 @@ final class TerminalWriteGate: @unchecked Sendable {
     fileprivate var armed = false
 
     /// Whether the watchdog popped the flags and the main loop has not yet
-    /// been told (``noteDrain()``).
-    fileprivate var popped = false
+    /// been told (``noteDrain()``). Told to the signal handler as it
+    /// changes, which leaves the pop out of the debt it pays while this is
+    /// set (`FatalSignalTerminalRestore.notePoppedByWatchdog(_:)`): the
+    /// armed debt still owes it, and a ⌃\ after the watchdog's pop — the one
+    /// it popped for — would pop a second entry, of a stack this process no
+    /// longer has one on.
+    fileprivate var popped = false {
+        didSet {
+            if popped != oldValue { FatalSignalTerminalRestore.notePoppedByWatchdog(popped) }
+        }
+    }
 
     /// How many times the main loop has drained its input: what the watchdog
     /// watches for a change.

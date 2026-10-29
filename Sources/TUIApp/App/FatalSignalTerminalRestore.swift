@@ -165,6 +165,34 @@ enum FatalSignalTerminalRestore {
     nonisolated(unsafe) private static let owedOnQuit = UnsafeMutablePointer<UInt8>.allocate(capacity: quitCapacity)
     nonisolated(unsafe) private static var owedOnQuitCount = 0
 
+    /// Where each debt's pop of the kitty keyboard flags lies
+    /// (`KeyboardProtocolQuery.pop`), or `nil` where it owes none: what the
+    /// handler leaves out once the stall watchdog has popped the flags
+    /// itself (``notePoppedByWatchdog(_:)``).
+    nonisolated(unsafe) private static var owedPop: Range<Int>?
+    nonisolated(unsafe) private static var owedOnQuitPop: Range<Int>?
+
+    /// Whether the stall watchdog (`StallWatchdog`) has popped the kitty
+    /// flags and the run loop has not pushed them back: then the pop in the
+    /// debt would be a second one, of an entry this process never pushed —
+    /// on a terminal whose screens share one stack, the shell's. Written by
+    /// the watchdog's thread and the main thread under the terminal's write
+    /// lock, read by the handler: a byte behind a pointer, which no
+    /// exclusivity check watches and no lazy initializer guards once
+    /// ``installIfNeeded()`` has read it.
+    nonisolated(unsafe) private static let poppedByWatchdog: UnsafeMutablePointer<Bool> = {
+        let flag = UnsafeMutablePointer<Bool>.allocate(capacity: 1)
+        flag.initialize(to: false)
+        return flag
+    }()
+
+    /// The stall watchdog popped the kitty flags (`true`), or the run loop
+    /// pushed them back or popped them itself (`false`): from now on the
+    /// handler writes the debt without its pop, or with it. Any thread.
+    static func notePoppedByWatchdog(_ popped: Bool) {
+        poppedByWatchdog.pointee = popped
+    }
+
     /// The termios the shell had, put back by the handler while
     /// ``owesTermios`` is set.
     nonisolated(unsafe) private static let savedTermios = UnsafeMutablePointer<termios>.allocate(capacity: 1)
@@ -191,11 +219,23 @@ enum FatalSignalTerminalRestore {
         for (index, byte) in bytes.enumerated() { owed[index] = byte }
         for (index, byte) in quitBytes.enumerated() { owedOnQuit[index] = byte }
         if let termios { savedTermios.pointee = termios }
+        owedPop = popRange(in: bytes)
+        owedOnQuitPop = popRange(in: quitBytes)
         owedCount = bytes.count
         owedOnQuitCount = quitBytes.count
         owesTermios = termios != nil
         installIfNeeded()
     }
+
+    /// Where the kitty flags' pop lies in `debt`, if it owes one. Found by
+    /// its bytes, which nothing else in a debt spells: a debt is escape
+    /// sequences, and an image delete's or a title's never holds `CSI < u`.
+    private static func popRange(in debt: [UInt8]) -> Range<Int>? {
+        debt.firstRange(of: popBytes)
+    }
+
+    /// `KeyboardProtocolQuery.pop`'s bytes.
+    private static let popBytes = Array(KeyboardProtocolQuery.pop.utf8)
 
     /// Owes the terminal nothing. The handlers stay installed and pass every
     /// signal straight on, a `SIGQUIT` to its default action; the `atexit`
@@ -211,6 +251,8 @@ enum FatalSignalTerminalRestore {
     private static func installIfNeeded() {
         guard !installed else { return }
         installed = true
+        // Read once here, so the handler never runs its lazy initializer.
+        _ = poppedByWatchdog
         for (index, signal) in signals.enumerated() {
             taken[index] = false
             if index >= alwaysTaken {
@@ -394,11 +436,22 @@ enum FatalSignalTerminalRestore {
     /// otherwise — and puts the shell's termios back, and owes nothing from
     /// then on: so a debt is paid once, by whichever of the handler and the
     /// `atexit` handler comes first. Async-signal-safe calls only.
+    ///
+    /// Without the kitty flags' pop where the stall watchdog popped them
+    /// already (``poppedByWatchdog``): the debt in two writes, either side of
+    /// it.
     private static func pay(asQuit quitting: Bool) {
         let count = quitting ? owedOnQuitCount : owedCount
+        let bytes = quitting ? owedOnQuit : owed
+        let pop = quitting ? owedOnQuitPop : owedPop
         owedCount = 0
         owedOnQuitCount = 0
-        if count > 0 { writeOwed(quitting ? owedOnQuit : owed, count: count) }
+        if count > 0, let pop, pop.upperBound <= count, poppedByWatchdog.pointee {
+            writeOwed(bytes, count: pop.lowerBound)
+            writeOwed(bytes + pop.upperBound, count: count - pop.upperBound)
+        } else if count > 0 {
+            writeOwed(bytes, count: count)
+        }
         if owesTermios {
             owesTermios = false
             _ = tcsetattr(STDIN_FILENO, TCSANOW, savedTermios)
