@@ -76,6 +76,9 @@ struct ImageDemoSettings: Equatable {
     /// ``statesInkThreshold``).
     var inkThreshold = 0.5
 
+    /// The picture's tone adjustments, applied before the tone curve.
+    var adjustments = ImageAdjustments.none
+
     /// Whether the drawing is ink or none, which an ink threshold decides:
     /// braille's dots, or anything in mono.
     var usesInkThreshold: Bool {

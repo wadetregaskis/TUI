@@ -170,6 +170,21 @@ extension View {
         environment(\.imageInkThreshold, threshold)
     }
 
+    /// Adjusts the pictures' tones before anything is drawn from them —
+    /// exposure, black point, highlights and contrast, as a photo editor's
+    /// basic adjustments (``ImageAdjustments``). TUI-specific.
+    ///
+    /// Applied to the picture itself, so they reach every rendering: the
+    /// characters, a threshold, a palette, and the pixels a terminal draws.
+    /// Before ``imageToneCurve(_:)``, which says what the adjusted tones
+    /// become.
+    ///
+    /// - Parameter adjustments: The adjustments; ``ImageAdjustments/none``,
+    ///   the default, changes nothing.
+    public func imageAdjustments(_ adjustments: ImageAdjustments) -> some View {
+        environment(\.imageAdjustments, adjustments)
+    }
+
     /// Sets the dithering mode for ASCII art image rendering.
     ///
     /// - Parameter dithering: The dithering algorithm.

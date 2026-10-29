@@ -128,6 +128,10 @@ struct TerminalImageSignature: Equatable {
     /// decides the pixels: a mono picture's, which are ink or paper by it.
     /// `nil` in every other mode, so a change to it re-sends no photograph.
     var inkThreshold: Double?
+
+    /// The picture's tone adjustments (`View.imageAdjustments(_:)`), which
+    /// change its pixels in every mode.
+    var adjustments: ImageAdjustments = .none
 }
 
 extension TerminalImageSignature {

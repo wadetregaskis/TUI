@@ -44,6 +44,7 @@ struct ImageRenderingControls: View {
             VStack(alignment: .leading, spacing: 1) {
                 characters
                 sampling
+                adjustments
                 tone
                 colour
             }
@@ -456,7 +457,7 @@ struct ImageRenderingControls: View {
 
     // MARK: - Pieces
 
-    private func heading(_ key: LocalizedStringKey) -> some View {
+    func heading(_ key: LocalizedStringKey) -> some View {
         Text(key).bold().foregroundStyle(.palette.accent)
     }
 

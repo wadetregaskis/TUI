@@ -55,6 +55,10 @@ private struct ImageInkThresholdKey: EnvironmentKey {
     static let defaultValue: Double? = nil
 }
 
+private struct ImageAdjustmentsKey: EnvironmentKey {
+    static let defaultValue: ImageAdjustments = .none
+}
+
 /// Environment key for the placeholder text shown while loading.
 private struct ImagePlaceholderTextKey: EnvironmentKey {
     static let defaultValue: String? = nil
@@ -217,6 +221,12 @@ extension EnvironmentValues {
     var imageInkThreshold: Double? {
         get { self[ImageInkThresholdKey.self] }
         set { self[ImageInkThresholdKey.self] = newValue }
+    }
+
+    /// The picture's tone adjustments — see ``View/imageAdjustments(_:)``.
+    var imageAdjustments: ImageAdjustments {
+        get { self[ImageAdjustmentsKey.self] }
+        set { self[ImageAdjustmentsKey.self] = newValue }
     }
 
     /// The dithering mode for ASCII art rendering.

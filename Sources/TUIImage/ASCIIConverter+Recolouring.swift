@@ -94,6 +94,7 @@ extension ASCIIConverter {
         // inversion moves where the ink/background split falls, so a threshold
         // taken from the original would be taken from tones that no longer
         // exist.
+        adjustments.apply(to: &scaled)
         if let toneCurve, !toneCurve.isIdentity {
             scaled.mapPixels(toneCurve.apply(to:))
         }

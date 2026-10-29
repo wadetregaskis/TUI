@@ -328,10 +328,10 @@ struct _ImageCore: View, Renderable, Layoutable {
                     dithering: dithering,
                     toneCurve: context.environment.imageToneCurve?.resolved(
                         with: context.environment.palette),
-                    supersampling: context.environment.imageSupersampling,
-                    edgeThreshold: context.environment.imageEdgeThreshold,
+                    supersampling: context.environment.imageSupersampling, edgeThreshold: context.environment.imageEdgeThreshold,
                     edgeContrast: context.environment.imageEdgeContrast,
                     inkThreshold: context.environment.imageInkThreshold,
+                    adjustments: context.environment.imageAdjustments,
                     contentMode: contentMode, aspectRatioOverride: aspectRatioOverride,
                     cellAspect: context.environment.imageCellAspect,
                     monoColours: monoColours,
@@ -587,6 +587,7 @@ extension _ImageCore {
         edgeThreshold: Double?,
         edgeContrast: Double,
         inkThreshold: Double?,
+        adjustments: ImageAdjustments,
         contentMode: ContentMode,
         aspectRatioOverride: Double?,
         cellAspect: Double,
@@ -633,6 +634,7 @@ extension _ImageCore {
             edgeThreshold: edgeThreshold,
             edgeContrast: edgeContrast,
             inkThreshold: inkThreshold,
+            adjustments: adjustments,
             contentMode: contentMode,
             aspectRatioOverride: aspectRatioOverride,
             cellAspect: cellAspect,
@@ -652,7 +654,8 @@ extension _ImageCore {
             edgeThreshold: edgeThreshold,
             toneCurve: toneCurve,
             edgeContrast: edgeContrast,
-            inkThreshold: inkThreshold
+            inkThreshold: inkThreshold,
+            adjustments: adjustments
         )
         var pixels = templateInk.map { rawImage.templated(in: $0) } ?? rawImage
         if let resizing, resizing.slices {
@@ -676,6 +679,7 @@ extension _ImageCore {
             edgeThreshold: edgeThreshold,
             edgeContrast: edgeContrast,
             inkThreshold: inkThreshold,
+            adjustments: adjustments,
             contentMode: contentMode,
             aspectRatioOverride: aspectRatioOverride,
             cellAspect: cellAspect,

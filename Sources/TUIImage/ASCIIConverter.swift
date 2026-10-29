@@ -445,6 +445,10 @@ public struct ASCIIConverter: Sendable {
     /// 2026-10-28, afternoon list #29).
     let inkThreshold: Double?
 
+    /// The picture's adjustments (``ImageAdjustments``), applied before the
+    /// tone curve and before anything reads the picture.
+    let adjustments: ImageAdjustments
+
     /// Creates a converter with the specified options.
     public init(
         characterSet: ASCIICharacterSet = .blocks(.fine),
@@ -455,7 +459,8 @@ public struct ASCIIConverter: Sendable {
         edgeThreshold: Double? = 0.9,
         toneCurve: ASCIIToneCurve? = nil,
         edgeContrast: Double = 0,
-        inkThreshold: Double? = nil
+        inkThreshold: Double? = nil,
+        adjustments: ImageAdjustments = .none
     ) {
         self.characterSet = characterSet
         self.shapeAware = shapeAware
@@ -466,6 +471,7 @@ public struct ASCIIConverter: Sendable {
         self.toneCurve = toneCurve
         self.edgeContrast = max(0, edgeContrast)
         self.inkThreshold = inkThreshold.map { min(1, max(0, $0)) }
+        self.adjustments = adjustments
     }
 
     /// ``inkThreshold`` in the luminance the converters compare against,
@@ -600,6 +606,7 @@ extension ASCIIConverter {
         // threshold taken from the original would be taken from tones that no
         // longer exist — and a palette would map colours the render is not
         // going to draw. See ``ASCIIToneCurve``.
+        adjustments.apply(to: &scaled)
         if let toneCurve, !toneCurve.isIdentity {
             scaled.mapPixels(toneCurve.apply(to:))
         }
