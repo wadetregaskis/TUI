@@ -262,6 +262,18 @@ struct MenuBarOpeningTests {
         #expect(shows("A1", app) && !shows("B1", app), "\(rows(app))")
     }
 
+    /// Ghostty's default Option setting types `ƒ` for ⌥F, and reports the
+    /// key it was made with (the owner, 2026-10-28, afternoon list #36).
+    @Test("A character Option composed opens the menu of the letter Option was held with")
+    func optionComposedLetterOpens() {
+        let (app, clock) = launched(TwoMenusApp())
+        let composed = KeyEvent(
+            key: .character("∫"), pasteAttachments: [], optionComposedKey: .character("b"))
+        #expect(app.send(composed))
+        clock.frame(app)
+        #expect(shows("B1", app), "\(rows(app))")
+    }
+
     @Test("A click on a title opens its menu with nothing highlighted; a click while it is open closes it")
     func clickOpens() throws {
         let (app, clock) = launched(TwoMenusApp())

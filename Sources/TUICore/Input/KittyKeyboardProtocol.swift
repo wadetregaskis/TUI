@@ -337,7 +337,9 @@ package enum KittyKeyDecoder {
 
         // Text the key typed: the keystroke is that text.
         if phase != .release, fields.count > 2, let text = Self.text(fields[2]), !text.isEmpty {
-            let events = textEvents(text, bits: bits, phase: phase, numericPad: isKeypad(code))
+            let events = textEvents(
+                text, bits: bits, phase: phase, numericPad: isKeypad(code),
+                composedFrom: optionComposedKey(code: code, bits: bits, text: text))
             memory.press(code, delivered: events.compactMap(\.keyEvent))
             return events
         }
@@ -397,15 +399,48 @@ package enum KittyKeyDecoder {
     /// the text consumed — the event `KeyEvent(character:)` makes of the same
     /// character's legacy byte, plus what only the protocol reports.
     private static func textEvents(
-        _ text: String, bits: Int, phase: KeyEvent.Phase, numericPad: Bool
+        _ text: String, bits: Int, phase: KeyEvent.Phase, numericPad: Bool, composedFrom: Key? = nil
     ) -> [TerminalInput] {
         let kept = bits & capsLockBit
         return text.map { character in
             let key: Key = character == " " ? .space : .character(character)
             let shift = character.isUppercase ? shiftBit : 0
-            return .key(event(key, bits: kept | shift, phase: phase, numericPad: numericPad))
+            let typed = event(key, bits: kept | shift, phase: phase, numericPad: numericPad)
+            guard let composedFrom else { return .key(typed) }
+            return .key(
+                KeyEvent(
+                    key: typed.key, shift: typed.shift, phase: typed.phase, capsLock: typed.capsLock,
+                    numericPad: typed.numericPad, pasteAttachments: [], optionComposedKey: composedFrom))
         }
     }
+
+    /// The key Option was held with where it composed `text` — Option and no
+    /// Control, one character typed that is not the key's own — in its
+    /// shifted form under Shift, or `nil` where Option composed nothing.
+    ///
+    /// The shifted form of a letter is its capital; of other keys, a US
+    /// layout's, as a legacy byte is read: the report's shifted key is the
+    /// one Option and Shift made together (`¿` for ⌥⇧/, Ghostty 1.4.0), and
+    /// the layout's own shifted key is not reported.
+    static func optionComposedKey(code: Int, bits: Int, text: String) -> Key? {
+        guard bits & altBit != 0, bits & ctrlBit == 0, text.count == 1,
+            let scalar = Unicode.Scalar(UInt32(clamping: code)), scalar.isASCII, scalar.value >= 0x21
+        else { return nil }
+        let base = Character(scalar)
+        guard bits & shiftBit != 0 else { return text == String(base) ? nil : .character(base) }
+        if let upper = uppercaseLetter(code), let capital = Unicode.Scalar(UInt32(upper)) {
+            return .character(Character(capital))
+        }
+        return usShifted[base].map { .character($0) }
+    }
+
+    /// A US layout's shifted character of each unshifted punctuation key and
+    /// digit.
+    private static let usShifted: [Character: Character] = [
+        "`": "~", "1": "!", "2": "@", "3": "#", "4": "$", "5": "%", "6": "^", "7": "&", "8": "*", "9": "(",
+        "0": ")", "-": "_", "=": "+", "[": "{", "]": "}", "\\": "|", ";": ":", "'": "\"", ",": "<", ".": ">",
+        "/": "?",
+    ]
 
     /// The text a report's third field spells, or `nil` for a code point that
     /// is not a Unicode scalar, or a control character, which the protocol

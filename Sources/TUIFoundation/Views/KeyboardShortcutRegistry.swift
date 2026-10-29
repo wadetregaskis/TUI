@@ -302,6 +302,22 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
     package func trigger(
         for event: KeyEvent, activePane: String? = nil, reachesPage: Bool = true, modalSection: String? = nil
     ) -> Bool {
+        if triggerOne(event, activePane: activePane, reachesPage: reachesPage, modalSection: modalSection) {
+            return true
+        }
+        // A character Option composed (`ƒ` for ⌥F, where the terminal does not
+        // send Option as Alt) is the Option chord on its key where nothing
+        // binds the character: a menu's letter, ⌥? for every tooltip (the
+        // owner's afternoon list #36 and #39, 2026-10-28).
+        guard let chord = event.optionChord else { return false }
+        return triggerOne(chord, activePane: activePane, reachesPage: reachesPage, modalSection: modalSection)
+    }
+
+    /// ``trigger(for:activePane:reachesPage:modalSection:)`` for `event` as it
+    /// is.
+    private func triggerOne(
+        _ event: KeyEvent, activePane: String?, reachesPage: Bool, modalSection: String?
+    ) -> Bool {
         guard let trigger = KeyboardShortcut.trigger(for: event) else { return false }
         let entry = appEntry(for: trigger, activePane: activePane, reachesPage: reachesPage, modalSection: modalSection)
         if event.phase == .repeat, let entry, !entry.repeats { return true }

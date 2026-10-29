@@ -70,6 +70,15 @@ public struct KeyEvent: Equatable, Sendable {
     /// terminal could only bracket.
     package let pasteAttachments: [PasteAttachment]
 
+    /// The key Option was held with where Option composed this character
+    /// rather than being sent as Alt — ⌥F typing `ƒ`, as Ghostty reports it
+    /// under the kitty keyboard protocol with its default Option setting —
+    /// in its shifted form where Shift was held too (⌥⇧/ is `?`): so an
+    /// Option chord on that key still fires where nothing takes the
+    /// character (`KeyboardShortcutRegistry.trigger(for:)`), as a Mac's menu
+    /// does. `nil` for every other key.
+    package let optionComposedKey: Key?
+
     /// Creates a key event.
     public init(
         key: Key, ctrl: Bool = false, alt: Bool = false, shift: Bool = false, command: Bool = false,
@@ -84,7 +93,7 @@ public struct KeyEvent: Equatable, Sendable {
     package init(
         key: Key, ctrl: Bool = false, alt: Bool = false, shift: Bool = false, command: Bool = false,
         phase: Phase = .press, capsLock: Bool = false, numericPad: Bool = false,
-        pasteAttachments: [PasteAttachment]
+        pasteAttachments: [PasteAttachment], optionComposedKey: Key? = nil
     ) {
         self.key = key
         self.ctrl = ctrl
@@ -95,6 +104,7 @@ public struct KeyEvent: Equatable, Sendable {
         self.capsLock = capsLock
         self.numericPad = numericPad
         self.pasteAttachments = pasteAttachments
+        self.optionComposedKey = optionComposedKey
     }
 
     /// Creates a key event from a character.
@@ -108,6 +118,13 @@ public struct KeyEvent: Equatable, Sendable {
         self.capsLock = false
         self.numericPad = false
         self.pasteAttachments = []
+        self.optionComposedKey = nil
+    }
+
+    /// The Option chord this event stands for where Option composed its
+    /// character (``optionComposedKey``), or `nil` where it did not.
+    package var optionChord: Self? {
+        optionComposedKey.map { Self(key: $0, alt: true, phase: phase) }
     }
 }
 

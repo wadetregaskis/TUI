@@ -40,10 +40,36 @@ struct KittyKeyDecoderTests {
         #expect(decode("45:95;2;95u") == key(KeyEvent(character: "_")))
     }
 
-    @Test("Text the key typed with Option is the text, without Option")
+    @Test("Text the key typed with Option is the text, without Option, noting the key Option composed it from")
     func optionComposedText() {
         // Option-S on a Mac layout types ß; a legacy terminal sends ß alone.
-        #expect(decode("115;3;223u") == key(KeyEvent(key: .character("ß"))))
+        let decoded = decode("115;3;223u")
+        #expect(decoded == key(composed("ß", from: "s")))
+        if case .key(let event)? = decoded?.first {
+            #expect(event.key == .character("ß") && !event.alt)
+            #expect(event.optionChord == KeyEvent(key: .character("s"), alt: true))
+        }
+    }
+
+    /// Ghostty 1.4.0 with its default Option setting, measured by the owner
+    /// (2026-10-28, `keyboard_events_probe.py`): ⌥F, ⌥⇧F, ⌥/ and ⌥⇧/.
+    @Test("Ghostty's Option chords that composed text carry the key and Shift they were made with")
+    func ghosttyOptionChords() {
+        #expect(decode("102;3;402u") == key(composed("ƒ", from: "f")))
+        #expect(decode("102:207;4;207u") == key(composed("Ï", from: "F")))
+        #expect(decode("47;3;247u") == key(composed("÷", from: "/")))
+        #expect(decode("47:191;4;191u") == key(composed("¿", from: "?")))
+        // Control as well is no composition; nor a key that typed itself.
+        #expect(KittyKeyDecoder.optionComposedKey(code: 102, bits: 2 | 4, text: "f") == nil)
+        #expect(KittyKeyDecoder.optionComposedKey(code: 102, bits: 2, text: "f") == nil)
+    }
+
+    /// The event a text report decodes to where Option composed `text` from
+    /// `base`.
+    private func composed(_ text: Character, from base: Character) -> KeyEvent {
+        KeyEvent(
+            key: .character(text), shift: text.isUppercase, pasteAttachments: [],
+            optionComposedKey: .character(base))
     }
 
     @Test("A key that typed several characters is one event per character")
