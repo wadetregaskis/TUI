@@ -48,9 +48,26 @@ final class NavigationCoordinator {
     private var builders: [ObjectIdentifier: (AnyHashable) -> AnyView] = [:]
 
     /// Views pushed directly by `NavigationLink(destination:)`, keyed by the
-    /// link's identity path. Refreshed every frame the link renders, which is
-    /// every frame — the stack renders its root even while a screen is pushed.
-    private var viewDestinations: [String: AnyView] = [:]
+    /// link's identity path, each with the pass that last registered it.
+    /// Refreshed every pass the link renders — the stack renders its root even
+    /// while a screen is pushed — and swept by ``endRegistrationPass()``.
+    private var viewDestinations: [String: ViewDestination] = [:]
+
+    /// The stack's render passes, counted by ``beginRegistrationPass()``.
+    private var registrationPass: UInt64 = 0
+
+    /// Whether a registration has added a destination since the last sweep.
+    private var addedSinceSweep = false
+
+    /// A view a link registered, and the pass it was last registered in.
+    private struct ViewDestination {
+        let view: AnyView
+        let pass: UInt64
+    }
+
+    /// How many passes may go by between sweeps when nothing has been added:
+    /// how long a link that left keeps its destination at most.
+    static let sweepInterval: UInt64 = 64
 
     /// Reads the current path. Re-installed by the stack each render pass, so
     /// it always reflects the binding the stack was given this frame.
@@ -218,7 +235,48 @@ extension NavigationCoordinator {
 
     /// Registers the view a `NavigationLink(destination:)` pushes.
     func register(viewDestination: AnyView, forToken id: String) {
-        viewDestinations[id] = viewDestination
+        let entry = ViewDestination(view: viewDestination, pass: registrationPass)
+        if viewDestinations.updateValue(entry, forKey: id) == nil { addedSinceSweep = true }
+    }
+
+    /// How many view destinations are registered. For tests: a number that
+    /// only grows is a leak.
+    var viewDestinationCount: Int { viewDestinations.count }
+
+    /// Starts one of the stack's render passes: the links in it register
+    /// under this pass.
+    func beginRegistrationPass() {
+        registrationPass &+= 1
+    }
+
+    /// Ends the pass ``beginRegistrationPass()`` started, dropping the view
+    /// destinations no link registered in it, unless their token is on the
+    /// path: a screen buried under another is not rendered, and neither are
+    /// its links, yet popping back to the screen above it needs its view.
+    ///
+    /// Every link that ever drew used to stay registered for the stack's life,
+    /// holding its destination view and whatever that captured: a list of
+    /// links over changing data grew by a view per row it ever showed.
+    ///
+    /// Swept when a pass added a destination, which is the only way the table
+    /// grows, and otherwise once every ``sweepInterval`` passes for the links
+    /// that left, so a steady frame pays nothing proportional to the table.
+    /// A link served from a memo registers again from the memo's effect
+    /// journal (`NavigationLink`), so it is not taken for gone.
+    func endRegistrationPass() {
+        guard addedSinceSweep || registrationPass.isMultiple(of: Self.sweepInterval) else { return }
+        addedSinceSweep = false
+        var onPath: Set<String> = []
+        for value in read() {
+            if let token = value.base as? NavigationViewToken { onPath.insert(token.id) }
+        }
+        var gone: [String] = []
+        for (id, entry) in viewDestinations where entry.pass != registrationPass && !onPath.contains(id) {
+            gone.append(id)
+        }
+        for id in gone {
+            viewDestinations[id] = nil
+        }
     }
 
     /// The view for a pushed value, or `nil` when nothing has claimed its type.
@@ -229,7 +287,7 @@ extension NavigationCoordinator {
     /// rather than dropping the value, so the app stays navigable.
     func destination(for value: AnyHashable) -> AnyView? {
         if let token = value.base as? NavigationViewToken {
-            return viewDestinations[token.id]
+            return viewDestinations[token.id]?.view
         }
         return builders[ObjectIdentifier(type(of: value.base))].map { $0(value) }
     }

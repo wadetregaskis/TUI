@@ -252,6 +252,12 @@ extension _NavigationSplitViewCore {
                 position.columns.dropFirst().prefix(position.depth).map { AnyHashable($0) } + state.links
             }
             coordinator.write = { path in position.show(path: path, state: state) }
+            // The links in the columns register under this pass, as a
+            // navigation stack's do, and those that did not are swept at its end.
+            coordinator.beginRegistrationPass()
+        }
+        defer { if !context.isMeasuring { coordinator.endRegistrationPass() } }
+        if !context.isMeasuring {
             renderColumnsBehind(
                 position.columns.prefix(link == nil ? depth : depth + 1), coordinator: coordinator,
                 context: context.withAvailableSize(width: width, height: columnHeight))

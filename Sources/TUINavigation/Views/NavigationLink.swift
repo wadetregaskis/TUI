@@ -195,8 +195,8 @@ private struct _NavigationLinkCore<Label: View, Destination: View>: View, Render
             // "the screen this link owns" on the path without the link having
             // any data of its own.
             let token = NavigationViewToken(id: context.identity.path)
-            if registerViewDestination {
-                coordinator?.register(viewDestination: AnyView(destination), forToken: token.id)
+            if registerViewDestination, let coordinator {
+                Self.register(destination, token: token, into: coordinator, context: context)
             }
             action = { coordinator?.push(AnyHashable(token)) }
         }
@@ -213,6 +213,41 @@ private struct _NavigationLinkCore<Label: View, Destination: View>: View, Render
             }
         }
         .disabled(isDisabled || coordinator == nil)
+    }
+
+    /// What the effect journal calls a link's registration of its view.
+    private static var registrationKind: EffectJournal.Kind { EffectJournal.Kind("navigationLink") }
+
+    /// Registers the view this link pushes, and does so again on every hit of
+    /// a memo that serves the link.
+    ///
+    /// The coordinator keeps only the destinations registered in the stack's
+    /// latest pass, or on its path (`NavigationCoordinator.endRegistrationPass`),
+    /// so a link a memo served without registering would lose its view, and
+    /// pushing it would show an empty screen. Declared REPLAYABLE: the memo
+    /// makes the registration again from the entry below.
+    ///
+    /// The entry holds the coordinator, weakly, rather than looking it up
+    /// from the context it is replayed against, as other entries look up their
+    /// service: a memo above the stack replays where the stack has not yet put
+    /// its coordinator in the environment. It is the stack's `@State`, one
+    /// object for the stack's life, which is what makes holding it right.
+    private static func register(
+        _ destination: Destination, token: NavigationViewToken, into coordinator: NavigationCoordinator,
+        context: RenderContext
+    ) {
+        let view = AnyView(destination)
+        coordinator.register(viewDestination: view, forToken: token.id)
+        context.environment.volatileReadTracker?.recordReplayableEffect()
+        guard let journal = context.recordingEffectJournal else { return }
+        // Built only while a memo records, so the live path allocates no
+        // second closure.
+        let replay: @MainActor (RenderContext) -> Void = { [weak coordinator] _ in
+            coordinator?.register(viewDestination: view, forToken: token.id)
+        }
+        journal.append(
+            EffectJournal.Entry(
+                kind: registrationKind, channelToken: context.environment.keyChannelToken, apply: replay))
     }
 }
 

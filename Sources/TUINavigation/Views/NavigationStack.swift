@@ -229,7 +229,12 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         if !context.isMeasuring {
             coordinator.read = read
             coordinator.write = write
+            // The links below register their destinations under this pass,
+            // and the ones that did not are swept at its end — after the
+            // screens have rendered, against the path as it then stands.
+            coordinator.beginRegistrationPass()
         }
+        defer { if !context.isMeasuring { coordinator.endRegistrationPass() } }
 
         let elements = read()
         // Where the stack is, asked only on a frame it may zoom — before
