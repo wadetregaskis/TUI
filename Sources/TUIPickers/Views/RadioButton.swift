@@ -68,6 +68,22 @@ public struct RadioButtonItem<Value: Hashable> {
     /// other view builder.
     let contentBuilder: (@MainActor () -> AnyView)?
 
+    /// Whether this option alone cannot be chosen (``disabled(_:)``).
+    private(set) var isDisabled = false
+
+    /// This option, drawn greyed and not to be chosen, where the rest of its
+    /// group can be — as a SwiftUI picker's option is by `.disabled(_:)` on
+    /// its view. The arrows pass over it, and a click or Return on it chooses
+    /// nothing; it stays chosen if it already was.
+    ///
+    /// - Parameter disabled: Whether the option is disabled.
+    /// - Returns: The option, disabled or not.
+    public func disabled(_ disabled: Bool = true) -> Self {
+        var copy = self
+        copy.isDisabled = disabled
+        return copy
+    }
+
     /// Creates a radio button item with a view label.
     ///
     /// - Parameters:
@@ -456,6 +472,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
     ) {
         handler.selection = selection
         handler.itemValues = itemValues
+        handler.disabledIndices = Set(items.indices.filter { items[$0].isDisabled })
         handler.orientation = orientation
         handler.canBeFocused = !isDisabled
         handler.edgeBehavior = context.environment.radioButtonGroupEdgeBehavior
@@ -601,6 +618,8 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
                     case .pressed where event.button == .left:
                         return true
                     case .released where event.button == .left:
+                        // A disabled option takes no click (``RadioButtonItem/disabled(_:)``).
+                        guard !captureItems[index].isDisabled else { return true }
                         focusManager?.focus(id: captureFocusID)
                         handler.focusedIndex = index
                         captureSelection.wrappedValue = captureItems[index].value
@@ -722,8 +741,8 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
         palette: Palette
     ) -> RenderedItem {
         // Combine own + cascaded disabled (renderToBuffer's shadowing local does
-        // not reach this helper).
-        let isDisabled = self.isDisabled || !context.environment.isEnabled
+        // not reach this helper), and the option's own.
+        let isDisabled = self.isDisabled || !context.environment.isEnabled || item.isDisabled
         // Radio indicator: ● if selected OR focused; otherwise ◯ when enabled, or
         // ◌ (dotted circle) when disabled — a disabled, unselected option reads
         // as "not pickable". (A disabled control never holds focus, so a disabled
@@ -794,8 +813,11 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
         // items would share the group's storage slots with each other AND with
         // the group's own handler at index 0 — two sliders under two options
         // would be one slider.
-        let itemContext = context.withChildIdentity(
+        var itemContext = context.withChildIdentity(
             erasedType: RadioButtonItem<Value>.self, index: index)
+        // A disabled option's label and content are drawn as a disabled
+        // control's are.
+        if item.isDisabled { itemContext = itemContext.settingNotedEnvironment(\.isEnabled, to: false) }
 
         // Render label, tagged so its Text resolves `.control(.radioButton)`
         // style entries — but only when not already inside another control (e.g.
@@ -884,6 +906,9 @@ final class RadioButtonGroupHandler: PersistedFocusable {
 
     var selection: Binding<AnyHashable>
     var itemValues: [AnyHashable]
+    /// The options that cannot be chosen (``RadioButtonItem/disabled(_:)``),
+    /// by index: the arrows pass over them and Return chooses none.
+    var disabledIndices: Set<Int> = []
     /// Mutable because the handler persists across renders while a responsive
     /// layout may flip the group between vertical and horizontal — a stale
     /// orientation kept the OLD arrow-axis mapping (Up/Down navigating a
@@ -998,7 +1023,9 @@ extension RadioButtonGroupHandler {
             onAxisForward: onForward, onAxisBackward: onBackward,
             multiplier: shiftStepMultiplier, pageSize: itemValues.count)
         {
-            focusedIndex = destination
+            // Onto the nearest option that can be chosen, back toward where the
+            // cursor was, if the destination cannot.
+            focusedIndex = nearestEnabled(to: destination, toward: focusedIndex)
             return true
         }
 
@@ -1020,8 +1047,10 @@ extension RadioButtonGroupHandler {
             return moveOnAxis(.horizontal, forward: true)
 
         case .enter, .space:
-            // Select the currently focused item (make it the selection)
-            selection.wrappedValue = itemValues[focusedIndex]
+            // Select the currently focused item (make it the selection), unless
+            // it is disabled, which the cursor rests on only when nothing else
+            // could take it.
+            if !disabledIndices.contains(focusedIndex) { selection.wrappedValue = itemValues[focusedIndex] }
             return true
 
         default:
@@ -1048,10 +1077,13 @@ extension RadioButtonGroupHandler {
     /// `false` to relinquish to the neighbour, `.wrap` cycles to the far end.
     private func moveOnAxis(_ axis: RadioButtonOrientation, forward: Bool) -> Bool {
         guard orientation == axis else { return false }  // cross-axis: relinquish focus
-        let lastIndex = itemValues.count - 1
-        let atEdge = forward ? focusedIndex >= lastIndex : focusedIndex <= 0
-        if !atEdge {
-            focusedIndex += forward ? 1 : -1
+        let step = forward ? 1 : -1
+        // The next option that can be chosen that way, passing over disabled
+        // ones (``RadioButtonItem/disabled(_:)``); `nil` past the edge.
+        var next = focusedIndex + step
+        while itemValues.indices.contains(next), disabledIndices.contains(next) { next += step }
+        if itemValues.indices.contains(next) {
+            focusedIndex = next
             return true
         }
         switch edgeBehavior {
@@ -1060,9 +1092,18 @@ extension RadioButtonGroupHandler {
         case .escape:
             return false  // relinquish to the neighbouring control
         case .wrap:
-            focusedIndex = forward ? 0 : lastIndex
+            focusedIndex = nearestEnabled(to: forward ? 0 : itemValues.count - 1, toward: focusedIndex)
             return true
         }
+    }
+
+    /// `index`, or the nearest option from it toward `origin` that can be
+    /// chosen; `origin` itself where none between can.
+    func nearestEnabled(to index: Int, toward origin: Int) -> Int {
+        var candidate = index
+        let step = origin >= index ? 1 : -1
+        while candidate != origin, disabledIndices.contains(candidate) { candidate += step }
+        return candidate
     }
 }
 

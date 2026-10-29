@@ -176,4 +176,33 @@ struct RadioButtonContentTests {
         let expected: [String] = ["\(unselected) Alpha", "\(selected) Bravo"]
         #expect(lines == expected)
     }
+
+    /// The owner, 2026-10-28: terminal graphics as an option of the Images
+    /// page's render style, shown everywhere and disabled where unsupported.
+    @Test("A disabled option is drawn greyed, passed over by the arrows, and chosen by neither Return nor a click")
+    func disabledOptionIsPassedOver() {
+        var selection = "a"
+        let binding = Binding(get: { selection }, set: { selection = $0 })
+        let view = RadioButtonGroup(selection: binding) {
+            RadioButtonItem("a", "Alpha")
+            RadioButtonItem("b", "Beta").disabled()
+            RadioButtonItem("c", "Gamma")
+        }
+        let context = makeRenderContext(width: 40, height: 6)
+        _ = renderToBuffer(view, context: context)
+        let buffer = renderToBuffer(view, context: context)
+        let beta = buffer.lines[1]
+        #expect(beta.stripped.hasPrefix(TerminalSymbols.radioDisabledUnselected), "\(beta.debugDescription)")
+        let focus = context.environment.focusManager!
+        let ids = focus.focusableIDsInActiveSection()
+        focus.focus(id: ids[0])
+        // Down passes over Beta to Gamma; Return chooses Gamma.
+        _ = focus.dispatchKeyEvent(KeyEvent(key: .down))
+        _ = focus.dispatchKeyEvent(KeyEvent(key: .enter))
+        #expect(selection == "c")
+        // Up passes back over it to Alpha.
+        _ = focus.dispatchKeyEvent(KeyEvent(key: .up))
+        _ = focus.dispatchKeyEvent(KeyEvent(key: .enter))
+        #expect(selection == "a")
+    }
 }
