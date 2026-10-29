@@ -77,7 +77,14 @@ public enum AnimationClock: String, Sendable, Equatable, Hashable, CaseIterable 
     /// count all ask this, so what the render draws and what a replay splices cannot
     /// disagree about which step an instant is in.
     public static func nanoseconds(_ seconds: Double) -> Int64 {
-        Int64((seconds * 1_000_000_000).rounded())
+        let nanos = (seconds * 1_000_000_000).rounded()
+        // Saturating, as `Int64(_:)` traps past ±292 years and on NaN — a
+        // toast posted for `.infinity` seconds reaches here. NaN is no time.
+        // `Double(Int64.max)` is 2^63, one past the largest `Int64`.
+        guard !nanos.isNaN else { return 0 }
+        guard nanos < Double(Int64.max) else { return .max }
+        guard nanos > Double(Int64.min) else { return .min }
+        return Int64(nanos)
     }
 
     /// Whole steps of `frameTicks` ticks in `elapsed`: the tick `elapsed` is in, counted

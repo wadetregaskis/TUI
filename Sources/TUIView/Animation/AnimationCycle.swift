@@ -81,8 +81,11 @@ public struct AnimationCycle<Value: VectorArithmetic>: Sendable where Value: Sen
         guard animation.effectiveDelay <= 0 else { return nil }
         // One value per standard animation frame, 50 ms, on either clock.
         let frame = AnimationClock.seconds(forTicks: AnimationClock.standardFrameTicks)
-        let count = Int((period / frame).rounded())
-        guard count >= 2, count <= Self.maximumSteps else { return nil }
+        // Counted in `Double` until it is known to fit: a period of 10^18 s,
+        // or an infinite one, is more steps than `Int(_:)` takes.
+        let steps = (period / frame).rounded()
+        guard steps >= 2, steps <= Double(Self.maximumSteps) else { return nil }
+        let count = Int(steps)
 
         // Which step the animation began on. The current step is `step` and the
         // animation has been running `nowNanos - startNanos`, so counting back

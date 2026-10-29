@@ -66,9 +66,10 @@ public protocol TimelineSchedule {
 /// Create one with ``TimelineSchedule/periodic(from:by:)``.
 public struct PeriodicTimelineSchedule: TimelineSchedule, Sendable {
     /// The dates of a ``PeriodicTimelineSchedule``: an unbounded arithmetic
-    /// sequence of instants one `interval` apart.
+    /// sequence of instants one `interval` apart — or, for an interval too
+    /// small to move a `Date`, that one instant.
     public struct Entries: Sequence, IteratorProtocol, Sendable {
-        private var upcoming: Date
+        private var upcoming: Date?
         private let interval: TimeInterval
 
         init(first: Date, interval: TimeInterval) {
@@ -77,8 +78,14 @@ public struct PeriodicTimelineSchedule: TimelineSchedule, Sendable {
         }
 
         public mutating func next() -> Date? {
-            defer { upcoming = upcoming.addingTimeInterval(interval) }
-            return upcoming
+            guard let current = upcoming else { return nil }
+            // A step that does not move the date — an interval of 1e-300 s,
+            // absorbed by a `Date`'s precision, or none at all — would hand
+            // out this entry forever, and a timeline looks for the first one
+            // after now: the sequence ends instead. A NaN date is never later.
+            let following = current.addingTimeInterval(interval)
+            upcoming = following > current ? following : nil
+            return current
         }
     }
 
@@ -92,14 +99,24 @@ public struct PeriodicTimelineSchedule: TimelineSchedule, Sendable {
     ///   - startDate: The instant the lattice is anchored to. The lattice
     ///     extends backwards from it too, so a schedule anchored in the past
     ///     still has an entry to show right now.
-    ///   - interval: The seconds between entries. Must be greater than zero — a
-    ///     schedule that never advances would be asked for its next entry
-    ///     forever, which in a terminal app is an unrecoverable hang rather
-    ///     than a spinning beachball.
+    ///   - interval: The seconds between entries. One that is not a positive,
+    ///     finite number of seconds — zero, negative, NaN or infinite — has no
+    ///     lattice to step along, and the schedule is the one entry
+    ///     `startDate`.
+    ///
+    /// Until 2026-10-29 a non-positive interval was a `precondition`, kept
+    /// deliberately: a schedule that never advances would be asked for its
+    /// next entry forever, an unrecoverable hang in a terminal app. It
+    /// stopped the app instead, on an interval an app may well compute from
+    /// data, and it guarded neither of the intervals that DID hang
+    /// `TimelineView` — `.infinity`, whose lattice's first date was NaN, and
+    /// 1e-300 s, too small to move a `Date`. So the interval is now taken as
+    /// one entry, and ``Entries`` ends where a step does not move the date:
+    /// the hang the precondition was for cannot happen, and nothing stops.
+    /// (Open for the owner's ruling, 2026-10-29.)
     public init(from startDate: Date, by interval: TimeInterval) {
-        precondition(interval > 0, "PeriodicTimelineSchedule interval must be > 0")
         self.anchor = startDate
-        self.interval = interval
+        self.interval = interval > 0 && interval.isFinite ? interval : 0
     }
 
     public func entries(from startDate: Date, mode: TimelineScheduleMode) -> Entries {
@@ -108,6 +125,7 @@ public struct PeriodicTimelineSchedule: TimelineSchedule, Sendable {
         // the truncation SwiftUI performs (measured), rather than a floor: with
         // an anchor 7 s away and a 5 s interval, the sequence starts 2 s away and
         // not 3 s ago.
+        guard interval > 0 else { return Entries(first: anchor, interval: 0) }
         let steps = (startDate.timeIntervalSince(anchor) / interval).rounded(.towardZero)
         return Entries(first: anchor.addingTimeInterval(steps * interval), interval: interval)
     }

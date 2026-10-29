@@ -37,7 +37,10 @@ struct NotificationEntry: Identifiable, Sendable {
     init(message: String, duration: TimeInterval, postedAtNanos: UInt64) {
         self.id = UUID()
         self.message = message
-        self.duration = duration
+        // A NaN duration has no end to count to: taken as none, so the toast
+        // fades in and straight back out. An infinite one stays, and the
+        // clock saturates at its end (``AnimationClock/nanoseconds(_:)``).
+        self.duration = duration.isNaN ? 0 : duration
         self.postedAtNanos = postedAtNanos
     }
 

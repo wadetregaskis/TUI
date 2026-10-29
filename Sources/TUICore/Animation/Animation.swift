@@ -179,7 +179,13 @@ extension Animation {
         _ p1x: Double, _ p1y: Double, _ p2x: Double, _ p2y: Double,
         duration: TimeInterval = defaultDuration
     ) -> Animation {
-        Animation(
+        // A control point that is not a number makes every value of the curve
+        // NaN, and a NaN cell count is a trap wherever one is drawn: such a
+        // curve is taken as the straight line, the curve that says least.
+        guard p1x.isFinite, p1y.isFinite, p2x.isFinite, p2y.isFinite else {
+            return linear(duration: duration)
+        }
+        return Animation(
             curve: .bezier(p1x: p1x, p1y: p1y, p2x: p2x, p2y: p2y), passDuration: duration)
     }
 }
@@ -583,10 +589,17 @@ extension Animation {
         // An instant pass jumps when its wait ends, or at once without one.
         guard passDuration > 0 else { return wait > 0 && scaled < wait ? 0 : 1 }
 
-        // Each pass is its wait, then the curve.
-        let pass = Int(scaled / (wait + passDuration))
-        let into = scaled - Double(pass) * (wait + passDuration)
-        let within = max(0, into - wait) / passDuration
+        // Each pass is its wait, then the curve. Counted in `Double` and held
+        // short of `Int`'s end: an `elapsed` of `.infinity`, or a speed of
+        // 1e18 an hour in, is more passes than `Int(_:)` can take without
+        // trapping, and every pass past the count is the same finished one.
+        // Past 2^53 a pass's parity and place in it are noise; finite noise.
+        // An infinite pass run for an infinite time is NaN passes: the first.
+        let ratio = scaled / (wait + passDuration)
+        let passes = ratio.isNaN ? 0 : min(ratio.rounded(.down), Double(1 << 62))
+        let pass = Int(passes)
+        let into = scaled.isFinite ? scaled - passes * (wait + passDuration) : 0
+        let within = min(1, max(0, into - wait) / passDuration)
 
         switch repeatMode {
         case .count(let n, _, let autoreverses):
