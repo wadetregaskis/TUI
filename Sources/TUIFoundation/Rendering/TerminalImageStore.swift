@@ -388,8 +388,10 @@ package final class TerminalImageStore: @unchecked Sendable {
             return KittyGraphics.PlaceholderCell(id: copy, row: cell.row, column: cell.column)
         }
         let copyID = claimID()
-        guard let escapes = derivedImages.make(of: cell.id, by: transform, as: copyID) else { return nil }
-        pending += escapes
+        guard let made = derivedImages.make(of: cell.id, by: transform, as: copyID) else { return nil }
+        pending += made.escapes
+        // After the frame's cells, as every delete: one still names it.
+        if let evicted = made.evicted { retire(evicted) }
         return KittyGraphics.PlaceholderCell(id: copyID, row: cell.row, column: cell.column)
     }
 

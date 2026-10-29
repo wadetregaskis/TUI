@@ -89,7 +89,28 @@ struct DerivedImageTests {
         }
         _ = store.takePending()
         _ = store.derived(picture, by: ImageTransform(blurs: true, toward: (0, 0, 0), fraction: 0))
-        #expect(store.takePending().contains("a=d,d=I,q=2,i=\(first.id)\u{1B}"), "the oldest copy is deleted")
+        let delete = "a=d,d=I,q=2,i=\(first.id)\u{1B}"
+        // After the frame's cells, not before them: a cell may still name it.
+        #expect(!store.takePending().contains(delete), "not ahead of the cells")
+        #expect(store.takeDeletes().contains(delete), "the oldest copy is deleted after them")
+    }
+
+    /// A copy used every frame stays: the one pushed out is the least lately
+    /// used, not the first made (2026-10-29 review: a greyscale picture beside
+    /// an animated hue rotation lost its copy every eighth frame).
+    @Test("A copy in use is not the one pushed out")
+    func usedCopyStays() throws {
+        let (store, rows) = storeWithPicture()
+        let picture = try #require(pictureCells(rows[0])[0])
+        let kept = ImageTransform(blurs: false, toward: (0, 0, 0), fraction: 1 / 64)
+        let first = try #require(store.derived(picture, by: kept))
+        for step in 2...(DerivedImages.limit + 3) {
+            #expect(store.derived(picture, by: kept) == first, "reused at step \(step)")
+            _ = store.derived(picture, by: ImageTransform(blurs: false, toward: (0, 0, 0), fraction: Double(step) / 64))
+        }
+        _ = store.takePending()
+        #expect(!store.takeDeletes().contains("i=\(first.id)\u{1B}"))
+        #expect(store.derived(picture, by: kept) == first)
     }
 
     @Test("Letting a picture go deletes its copies")

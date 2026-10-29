@@ -217,29 +217,41 @@ struct DerivedImages {
     // MARK: - Copies
 
     /// The id of the copy of picture `id` changed by `transform`, if the
-    /// terminal has it.
-    func existingCopy(of id: KittyGraphics.ImageID, by transform: ImageTransform) -> KittyGraphics.ImageID? {
-        sources[id]?.copies[transform]?.id
+    /// terminal has it — moved to the back of the line ``make(of:by:as:)``
+    /// pushes the oldest out of, so a copy in use every frame is not the one
+    /// another's making deletes.
+    mutating func existingCopy(of id: KittyGraphics.ImageID, by transform: ImageTransform) -> KittyGraphics.ImageID? {
+        guard let copy = sources[id]?.copies[transform] else { return nil }
+        if sources[id]?.order.last != transform {
+            sources[id]?.order.removeAll { $0 == transform }
+            sources[id]?.order.append(transform)
+        }
+        return copy.id
     }
 
     /// Makes the copy of picture `id` changed by `transform`, under `copyID`,
-    /// and returns the escapes that put it in the terminal — a delete first,
-    /// when making it pushes the oldest copy out. `nil` where the picture is
+    /// and returns the escapes that put it in the terminal, and the id of the
+    /// copy making it pushed out, if it did. `nil` where the picture is
     /// unknown.
+    ///
+    /// The pushed-out copy is the caller's to delete, after the frame's cells
+    /// (`TerminalImageStore.takeDeletes()`): a cell may still name it until
+    /// they are written.
     ///
     /// The id is the caller's, claimed before this is called: the store's
     /// search for a free id reads ``ids``, and reading them from inside a
     /// mutation of this value is an overlapping access.
     mutating func make(
         of id: KittyGraphics.ImageID, by transform: ImageTransform, as copyID: KittyGraphics.ImageID
-    ) -> String? {
+    ) -> (escapes: String, evicted: KittyGraphics.ImageID?)? {
         guard var source = sources[id] else { return nil }
         var escapes = ""
+        var evicted: KittyGraphics.ImageID?
         if source.order.count >= Self.limit, let oldest = source.order.first {
             source.order.removeFirst()
             if let gone = source.copies.removeValue(forKey: oldest) {
                 origins.removeValue(forKey: gone.id)
-                escapes += KittyGraphics.delete(id: gone.id)
+                evicted = gone.id
             }
         }
         let pixels = Self.applying(
@@ -264,7 +276,7 @@ struct DerivedImages {
         source.order.append(transform)
         origins[copyID] = (id, transform)
         sources[id] = source
-        return escapes
+        return (escapes, evicted)
     }
 
     /// The box copy `copyID` is placed in, in cells: its picture's.
