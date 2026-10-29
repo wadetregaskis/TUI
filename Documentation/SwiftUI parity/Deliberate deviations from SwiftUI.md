@@ -2148,13 +2148,18 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 ### V5. A collapsed `DisclosureGroup` keeps its content's state
 
-- **SwiftUI:** collapsing takes the content out of the hierarchy, `@State`
-  with it (not measured).
+- **SwiftUI** (measured 2026-10-29, macOS 15.8.1, `Tools/SwiftUIProbes/Row state lifetime/`):
+  a group that is a row of a `List`, or nested in one, keeps its content's
+  state while collapsed; one in a `VStack` or a `LazyVStack` drops it, and its
+  content comes back fresh.
 - **TUI:** the content's `@State`, `onChange` baselines and branches are
-  kept while the group itself is on screen; `.task` and `onDisappear` are not
-  covered.
+  kept while the group itself is on screen, wherever it is; `.task` and
+  `onDisappear` are not covered. So TUI matches SwiftUI in a `List` and keeps
+  more than SwiftUI elsewhere.
 - **Why:** a nested group opened, or a field typed in, should still be so when
-  its parent reopens.
+  its parent reopens, in a `VStack` as in a `List`; dropping it there would copy
+  a SwiftUI limitation (the owner's rule: keep TUI's extra capability unless it
+  is unsound). Aligning with SwiftUI is parked on `hold/disclosure-swiftui`.
 - **Decided:** [DisclosureGroup.swift](../../Sources/TUIFoundation/Views/DisclosureGroup.swift#L58-L63).
   **Recorded.**
 

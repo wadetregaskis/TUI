@@ -57,9 +57,10 @@ import TUIView
 ///
 /// What a closed group *does* keep is the state its content had: a nested group
 /// you opened is still open when you reopen its parent, and a field you typed
-/// in still has your text. This is a deliberate divergence from SwiftUI, where
-/// collapsing takes the content out of the hierarchy and its `@State` with it —
-/// see `_DisclosedStateRetainer`. It lasts only while the group itself is on
+/// in still has your text. SwiftUI keeps it too for a group in a `List`, and
+/// drops it for one in a `VStack` or `LazyVStack` (measured 2026-10-29); TUI keeps
+/// it everywhere, a deliberate divergence (deviation V5) — see
+/// `_DisclosedStateRetainer`. It lasts only while the group itself is on
 /// screen: a group that leaves the tree takes everything below it along.
 ///
 /// - Note: SwiftUI's `DisclosureGroupStyle` is not implemented; a terminal
