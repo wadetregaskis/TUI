@@ -201,6 +201,24 @@ struct FileBrowserTests {
         #expect(browser.directory == fixture.root.standardizedFileURL)
     }
 
+    /// The column view: P selected (its column reads P), Down to Q (P's
+    /// column goes, its task cancelled), Up to P again (a new column asks).
+    @Test("A folder's read, under way for an ask that moved on, is kept for the next ask")
+    func readOutlivesItsAsker() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let browser = FileBrowser(directory: fixture.root, rule: FileChoiceRule())
+        await browser.refresh()
+        let alpha = fixture.url("Alpha")
+        let first = Task { await browser.loadFolder(alpha) }
+        // Under way: begun, and gone off the main actor to read.
+        while browser.foldersReading[alpha.standardizedFileURL.path] == nil { await Task.yield() }
+        first.cancel()
+        await browser.loadFolder(alpha)
+        await first.value
+        #expect(browser.folderRows[alpha.standardizedFileURL.path]?.map(\.name) == ["inner.txt"])
+    }
+
     @Test("The root has nothing above it")
     func root() {
         let browser = FileBrowser(directory: URL(fileURLWithPath: "/"), rule: FileChoiceRule())

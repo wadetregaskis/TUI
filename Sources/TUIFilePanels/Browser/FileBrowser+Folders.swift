@@ -13,26 +13,42 @@ import TUIFoundation
 
 extension FileBrowser {
     /// Reads `folder` off the main actor, unless it has been read since the
-    /// folder shown was last read again, or is being read: as the outline
-    /// opens a branch (its placeholder row asks), or the column view shows a
-    /// column. A folder that cannot be read has no items.
+    /// folder shown was last read again, and returns once it is read: as the
+    /// outline opens a branch (its placeholder row asks), or the column view
+    /// shows a column. A folder that cannot be read has no items.
     ///
-    /// Kept only while nothing has moved on: a read cancelled part-way, or
-    /// begun before the folder shown was read again, is dropped, and the next
-    /// ask reads it afresh.
+    /// The read is the folder's, not the asker's: one task of its own, which
+    /// every ask while it lasts awaits, and which the asker's cancellation
+    /// does not reach. Owned by the first asker, a read was thrown away when
+    /// that asker was cancelled — a column that left — and the next ask,
+    /// finding the folder "being read", went away too: a column selected,
+    /// left and selected again drew "Loading…" until it was left once more.
     func loadFolder(_ folder: URL) async {
         let path = folder.standardizedFileURL.path
-        guard folderListings[path] == nil, !foldersReading.contains(path), path != directory.path else { return }
-        foldersReading.insert(path)
-        defer { foldersReading.remove(path) }
+        guard folderListings[path] == nil, path != directory.path else { return }
+        // A read begun before the folder shown was read again is not this
+        // generation's: it publishes nothing, so this ask reads afresh.
+        if let reading = foldersReading[path], reading.generation == generation {
+            await reading.read.value
+            return
+        }
         let started = generation
+        let read = Task { await self.read(path, generation: started) }
+        foldersReading[path] = (started, read)
+        await read.value
+    }
+
+    /// Reads the folder at `path` for ``loadFolder(_:)``, and publishes it
+    /// unless the folder shown has been read again since `generation`.
+    private func read(_ path: String, generation started: Int) async {
+        defer { if foldersReading[path]?.generation == started { foldersReading[path] = nil } }
         let result = await DirectoryListing.load(URL(fileURLWithPath: path), rule: rule)
-        guard !Task.isCancelled, generation == started else { return }
+        guard generation == started else { return }
         // Named through the folder as it was asked for: a branch beneath a
         // link names its items through the link, as the listing names them.
         let read = (try? result.get()) ?? []
         let arranged = await Self.arrange(read, showsHiddenFiles: showsHiddenFiles, sortOrder: sortOrder)
-        guard !Task.isCancelled, generation == started else { return }
+        guard generation == started else { return }
         folderListings[path] = read
         folderRows[path] = arranged.rows
         for row in arranged.rows { index(row) }

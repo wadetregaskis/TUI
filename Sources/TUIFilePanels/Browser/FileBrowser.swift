@@ -95,8 +95,9 @@ final class FileBrowser {
     /// (``entry(for:)``): a branch's items can be selected too.
     @ObservationIgnored var folderIndex: [URL: FileEntry] = [:]
 
-    /// The folders being read for ``loadFolder(_:)`` now.
-    @ObservationIgnored var foldersReading: Set<String> = []
+    /// The folders being read for ``loadFolder(_:)`` now, by path: each read's
+    /// task, which every ask awaits, and the generation it began in.
+    @ObservationIgnored var foldersReading: [String: (generation: Int, read: Task<Void, Never>)] = [:]
 
     init(directory: URL, rule: FileChoiceRule, showsHiddenFiles: Bool = false) {
         self.directory = directory.standardizedFileURL
