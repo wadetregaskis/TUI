@@ -300,7 +300,7 @@ struct _ImageCore: View, Renderable, Layoutable {
         case .success(let loadedImage):
             // What is drawn into which box: at its natural size, the image's
             // own box; otherwise the box it was handed, to fit or fill.
-            let (rawImage, drawWidth, drawHeight, resizing) = drawing(
+            let (rawImage, drawWidth, drawHeight, resizing, keepsAspect) = drawing(
                 loadedImage, in: (renderWidth, renderHeight), zoom: zoom, environment: context.environment)
             // Real pixels first, where the terminal will take them. Falls
             // through to the glyph renderer for every terminal that did not
@@ -314,7 +314,7 @@ struct _ImageCore: View, Renderable, Layoutable {
             let monoColours = ImageMonoColours(for: colorMode, in: context.environment)
             let picture: FrameBuffer
             if !isTemplate, resizing?.slices != true, let drawn = renderWithTerminalGraphics(
-                rawImage, width: drawWidth, height: drawHeight, stretches: resizing != nil, context: context)
+                rawImage, width: drawWidth, height: drawHeight, stretches: resizing != nil && !keepsAspect, context: context)
             {
                 picture = drawn
             } else {

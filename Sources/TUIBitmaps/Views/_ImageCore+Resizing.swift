@@ -81,17 +81,21 @@ extension _ImageCore {
     /// Otherwise it is the image whole, in `space`, with its own resizing.
     func drawing(
         _ image: RGBAImage, in space: (width: Int, height: Int), zoom: Double, environment: EnvironmentValues
-    ) -> (image: RGBAImage, width: Int, height: Int, resizing: _ImageResizing?) {
+    ) -> (image: RGBAImage, width: Int, height: Int, resizing: _ImageResizing?, keepsAspect: Bool) {
         guard let natural = naturalBox(of: image, in: environment) else {
-            return (image, space.width, space.height, slicing(effectiveResizing(in: environment), of: image, in: environment))
+            let resizing = slicing(effectiveResizing(in: environment), of: image, in: environment)
+            return (image, space.width, space.height, resizing, false)
         }
         let full = (width: Self.zoomed(natural.width, zoom), height: Self.zoomed(natural.height, zoom))
         let width = Swift.min(full.width, space.width)
         let height = Swift.min(full.height, space.height)
-        guard width < full.width || height < full.height else { return (image, width, height, .filling) }
+        // Whole at its natural size, the box is the picture's own rounded to
+        // whole cells, so its pixels keep their aspect (`PixelFit.ownAspect`)
+        // rather than stretch by up to half a cell on each axis.
+        guard width < full.width || height < full.height else { return (image, width, height, .filling, true) }
         let cut = image.croppedToLeading(
             fraction: (Double(width) / Double(full.width), Double(height) / Double(full.height)))
-        return (cut, width, height, .filling)
+        return (cut, width, height, .filling, false)
     }
 
     /// The most cells an image takes on either axis at its natural size: more

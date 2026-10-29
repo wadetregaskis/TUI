@@ -28,7 +28,7 @@ struct ImageGrowthTransmissionTests {
     /// animation's frames draw it: what each frame owed the terminal.
     private func frames(
         _ image: RGBAImage, path: String, widths: [Int], contentMode: ContentMode = .fit,
-        atNanos instants: [Int64]? = nil
+        atNanos instants: [Int64]? = nil, natural: Bool = false
     ) -> [String] {
         let tui = TUIContext(
             lifecycle: LifecycleManager(firesEffects: false),
@@ -41,6 +41,10 @@ struct ImageGrowthTransmissionTests {
         environment.imageCellAspect = 2.0
         environment.imageCellPixels = TerminalCellPixels(width: 8, height: 16)
         environment.imageContentMode = contentMode
+        if natural {
+            environment.imageFitTarget = .naturalSize
+            environment.imageCellPoints = TerminalCellPoints(width: 7, height: 14)
+        }
         let identity = ViewIdentity(path: "Root")
         let phase: StateBox<ImageLoadingPhase> = tui.stateStorage.storage(
             for: StateStorage.StateKey(identity: identity, propertyIndex: 0), default: .loading)
@@ -119,6 +123,18 @@ struct ImageGrowthTransmissionTests {
         let sizes = sentSizes(owed)
         try #require(!sizes.isEmpty)
         #expect(sizes.allSatisfy { abs($0.width - 2 * $0.height) <= 1 }, "\(sizes)")
+    }
+
+    /// At its natural size a picture's box is its own rounded to whole cells:
+    /// a 20-point square on 7 × 14-point cells is 3 × 1 cells, 24 × 16 pixels.
+    /// It is sent square all the same, for the terminal to fit undistorted,
+    /// not stretched to 3:2 (2026-10-29 review).
+    @Test("A picture at its natural size is sent at its own aspect")
+    func naturalSizeKeepsItsAspect() throws {
+        let (image, path) = try load(width: 20, height: 20)
+        let owed = KittyGraphics.withSupport(true) { frames(image, path: path, widths: [40], natural: true) }
+        let sent = try #require(sentSizes(owed).first)
+        #expect(sent.width == sent.height, "sent \(sent)")
     }
 
     /// One box draws the picture the same whatever it was drawn in before: a
