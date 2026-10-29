@@ -45,12 +45,26 @@ public struct RedactionReasons: OptionSet, Sendable, Equatable {
 }
 
 extension RedactionReasons {
-    /// The glyph a redacted cell is filled with.
+    /// The glyph a placeholder's cell is filled with.
     ///
     /// A light shade rather than a full block: it reads as "something belongs
     /// here" instead of as a solid bar of foreground colour, and it stays
     /// legible on both light and dark palettes.
     static let glyph: Character = "░"
+
+    /// The glyph private data's cell is filled with: a secure field's mask
+    /// (`TerminalSymbols.maskBullet`), so text hidden for privacy reads as a
+    /// secret, not as text still to come. SwiftUI draws both reasons alike;
+    /// side by side here, the owner could not tell loading from hiding
+    /// (2026-10-28, Deliberate deviations).
+    static let privacyGlyph: Character = TerminalSymbols.maskBullet
+
+    /// The glyph these reasons fill a cell with: a placeholder's where content
+    /// is still to come, which wins over privacy — there is nothing yet to
+    /// hide — and otherwise privacy's.
+    var glyph: Character {
+        contains(.placeholder) ? Self.glyph : Self.privacyGlyph
+    }
 
     /// Whether these reasons replace the text rather than merely restyle it.
     var replacesContent: Bool {
@@ -68,6 +82,7 @@ extension RedactionReasons {
     /// and the skeleton keeps the shape of the sentence it stands in for.
     func redacting(_ text: String) -> String {
         guard replacesContent, !text.isEmpty else { return text }
+        let glyph = self.glyph
         var redacted = ""
         redacted.reserveCapacity(text.count)
         for character in text {
@@ -75,7 +90,7 @@ extension RedactionReasons {
                 redacted.append(character)
             } else {
                 redacted.append(
-                    String(repeating: Self.glyph, count: max(1, character.terminalWidth)))
+                    String(repeating: glyph, count: max(1, character.terminalWidth)))
             }
         }
         return redacted

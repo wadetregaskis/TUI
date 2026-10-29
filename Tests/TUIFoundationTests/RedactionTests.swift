@@ -54,9 +54,16 @@ struct RedactionTests {
 
     /// SwiftUI's rule: `.privacy` hides what is marked `.privacySensitive()`
     /// and nothing else — "Account #" stays readable beside the number.
+    @Test("A placeholder's skeleton wins over privacy's mask where both apply: there is nothing yet to hide")
+    func placeholderWinsOverPrivacy() {
+        #expect(first(Text(verbatim: "hunter2").privacySensitive().redacted(reason: [.placeholder, .privacy])) == "░░░░░░░")
+    }
+
     @Test("privacy redacts what is marked privacy-sensitive, and only that")
     func privacy() {
-        #expect(first(Text(verbatim: "hunter2").privacySensitive().redacted(reason: .privacy)) == "░░░░░░░")
+        // In a secure field's mask, so hidden reads apart from still to come
+        // (the owner, 2026-10-28).
+        #expect(first(Text(verbatim: "hunter2").privacySensitive().redacted(reason: .privacy)) == "●●●●●●●")
         #expect(first(Text(verbatim: "Account #").redacted(reason: .privacy)) == "Account #")
         #expect(first(Text(verbatim: "hunter2").privacySensitive(false)
             .privacySensitive().redacted(reason: .privacy)) == "hunter2",
