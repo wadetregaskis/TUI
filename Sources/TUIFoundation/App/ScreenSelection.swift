@@ -238,7 +238,7 @@ package final class ScreenSelection: @unchecked Sendable {
     private var _menuAnchor: Point?
 
     /// Whether anything is selected.
-    var hasSelection: Bool { current != nil }
+    package var hasSelection: Bool { current != nil }
 
     /// The content area of the last frame, in the screen's coordinates.
     package var contentArea: Rect { Rect(x: 0, y: frameTop, width: frameWidth, height: frameLines.count) }

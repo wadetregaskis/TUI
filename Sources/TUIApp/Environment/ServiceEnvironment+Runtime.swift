@@ -34,6 +34,7 @@ extension EnvironmentValues {
         keysAfterFrame = context.keysAfterFrame
         urlOpener = context.urlOpener
         screenSelection = context.screenSelection
+        filesTextFrames = context.screenSelection.hasSelection
         tooltipState = context.tooltipState
         // The Help menu's choice about tooltips, at the root, where a
         // subtree's own `tooltips(_:)` still wins. Written only where the

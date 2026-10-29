@@ -27,10 +27,13 @@ extension FrameBuffer {
     /// text served from a memo — a list's row, a value memo's subtree —
     /// carries its frame as it carries its cells, at no cost a frame beyond
     /// the region (the bordered box's interior is filed the same way). Nothing
-    /// while measuring, for a buffer that draws nothing, or where no screen
-    /// selection reads the page — a drawing outside a live app's frames.
+    /// while measuring, for a buffer that draws nothing, or while no selection
+    /// is being made or shown (``EnvironmentValues/filesTextFrames``): filed
+    /// on every frame, the regions cost a text-heavy page 3–7% a frame and
+    /// `fanout` 8.6 MB more (Stress A/B, 2026-10-28), for a highlight that
+    /// is drawn only while there is a selection.
     package consuming func filingTextFrame(context: RenderContext) -> FrameBuffer {
-        guard !context.isMeasuring, width > 0, height > 0, context.environment.screenSelection != nil
+        guard !context.isMeasuring, width > 0, height > 0, context.environment.filesTextFrames
         else { return self }
         var buffer = self
         buffer.hitTestRegions.append(

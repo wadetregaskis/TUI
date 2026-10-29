@@ -156,6 +156,8 @@ final class InputChainHarness {
         frameContext.environment.installVolatileReadTracker(VolatileReadTracker())
         frameContext.environment.frameNowNanos = now
         frameContext.environment.transaction = transaction
+        // As `applyRuntimeServices` sets it for the run loop.
+        frameContext.environment.filesTextFrames = tui.screenSelection.hasSelection
         // The global space's origin, carried down when there are readers, as
         // `RenderLoop.renderContent` carries it.
         frameContext = frameContext.carryingGeometryRootOrigin()

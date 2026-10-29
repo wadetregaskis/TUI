@@ -125,6 +125,10 @@ private struct ScreenSelectionKey: EnvironmentKey {
     static let defaultValue: ScreenSelection? = nil
 }
 
+private struct FilesTextFramesKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 // MARK: - Terminal image store
 
 /// EnvironmentKey for the images this app has put in the terminal.
@@ -219,6 +223,16 @@ extension EnvironmentValues {
     package var screenSelection: ScreenSelection? {
         get { self[ScreenSelectionKey.self] }
         set { self[ScreenSelectionKey.self] = newValue }
+    }
+
+    /// Whether each drawn `Text` files its frame for the screen selection
+    /// (`FrameBuffer.filingTextFrame(context:)`): while a selection is made
+    /// or shown, and not otherwise. A value, not a read of the selection,
+    /// so the memos see it change: a subtree stored without its texts'
+    /// frames is drawn again, with them, as a selection begins.
+    package var filesTextFrames: Bool {
+        get { self[FilesTextFramesKey.self] }
+        set { self[FilesTextFramesKey.self] = newValue }
     }
 
     /// The app-wide drag-and-drop session, or `nil` outside a live app.
