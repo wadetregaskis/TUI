@@ -49,4 +49,19 @@ struct ImageFileBytesTests {
             try PlatformImageLoader.fileBytes(atPath: absent)
         }
     }
+
+    #if !os(Windows)
+        /// A named pipe reports 0 bytes, so it passed as a small file and was
+        /// opened to decode on the frame that drew it, which waits for a
+        /// writer: the app froze, signals and all (2026-10-29 review). Before
+        /// the fix this test hangs rather than fails.
+        @Test("A named pipe is refused, not opened")
+        func namedPipeRefused() throws {
+            let path = FileManager.default.temporaryDirectory
+                .appendingPathComponent("tuikit-fifo-\(UUID().uuidString).png").path
+            #expect(mkfifo(path, 0o600) == 0)
+            defer { try? FileManager.default.removeItem(atPath: path) }
+            #expect(throws: ImageLoadError.self) { try PlatformImageLoader().loadImage(from: path) }
+        }
+    #endif
 }

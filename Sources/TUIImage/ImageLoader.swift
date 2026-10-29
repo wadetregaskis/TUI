@@ -126,6 +126,15 @@ public struct PlatformImageLoader: ImageLoader {
         guard FileManager.default.fileExists(atPath: path) else {
             throw ImageLoadError.fileNotFound(path)
         }
+        // Only a regular file, its links followed: opening a named pipe or a
+        // device to read waits for a writer that may never come, and a decode
+        // on the frame that draws it (a pipe reports 0 bytes, so it passes as
+        // a small file) froze the app, signals and all.
+        let target = URL(fileURLWithPath: path).resolvingSymlinksInPath().path
+        guard (try? FileManager.default.attributesOfItem(atPath: target))?[.type] as? FileAttributeType == .typeRegular
+        else {
+            throw ImageLoadError.decodingFailed("\(path) is not a regular file")
+        }
         #if canImport(ImageIO)
             if let pdf = Self.pdfDocument(atPath: path) { return try decodePDF(pdf, maxPixelCount: maxPixelCount) }
             return try decodeWithImageIO(
