@@ -58,6 +58,7 @@ struct TabViewPage: View {
     @State private var headerAlignment: HeaderAlignment = .center
     @State private var foldStrip = true
     @State private var forecastSelection = 0
+    @State private var mascotSelection = 0
     // Off (default) sizes the box to the tallest tab so it never jumps as you
     // switch; on sizes it to whichever tab is visible. Drives
     // `.tabViewContentSizing(_:)` on the adjustable demo below.
@@ -204,6 +205,14 @@ struct TabViewPage: View {
                 forecastTabs
             }
 
+            DemoSection("page.tabView.imageLabels") {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("page.tabView.imageLabelsHint")
+                        .foregroundStyle(.palette.foregroundSecondary)
+                    mascotTabs
+                }
+            }
+
             KeyboardHelpSection(
                 "page.tabView.navigation",
                 shortcuts: [
@@ -235,6 +244,32 @@ struct TabViewPage: View {
                             Text(verbatim: "\(day.high)°").foregroundStyle(Color.rgb(230, 120, 50))
                             Text(verbatim: "\(day.low)°").foregroundStyle(Color.rgb(90, 150, 230))
                         }
+                    }
+                }
+            }
+        }
+        .tabViewStyle(.compact)
+        .tabViewHeaderAlignment(.leading)
+    }
+
+    /// Tabs whose labels hold a picture: the mascot as an `Image`, a few cells
+    /// across, before the name. The label view is the tab's own, so anything
+    /// that draws can be in it; the bundled pictures are the ones the Images
+    /// page offers, and one the bundle lacks is left out.
+    private var mascotTabs: some View {
+        let mascots = DemoPicture.allCases.filter { $0 != .photo }.filter { $0.path != nil }
+        return TabView(selection: $mascotSelection) {
+            ForEach(mascots.indices, id: \.self) { index in
+                let mascot = mascots[index]
+                Tab(value: index) {
+                    Text(verbatim: mascot.name)
+                } label: {
+                    HStack(spacing: 1) {
+                        Image(.file(mascot.path ?? ""))
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 4, height: 2)
+                        Text(verbatim: mascot.name)
                     }
                 }
             }
