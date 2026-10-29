@@ -106,6 +106,17 @@ package struct TableRowFrameKey: Equatable {
     /// `.bold()` on the table reaches a cell drawn from a `String` key path,
     /// and nothing the row carries changes with it.
     package let cellText: StyleAttributes
+    /// Whether the cells are drawn a tier heavier, under a bold legibility
+    /// weight (`LegibilityWeight.drawsPlainBold`): the introducer states bold,
+    /// and under a still fill the close ends it (`TableRowInk`). Neither the
+    /// row nor anything else here changes with it, so turning it on served
+    /// every kept row in its old weight.
+    package let boldCells: Bool
+    /// Whether the table is drawn inside a `List` row, where runs of plain
+    /// cells do not share one introducer (`TableRowInk`), so the same row is
+    /// other bytes. Where a table sits does not usually move under one
+    /// identity, but the bytes depend on it, and a `Bool` costs nothing.
+    package let insideListRow: Bool
 
     /// The memberwise initializer, written out: a synthesized one is internal,
     /// and a table in TUITables makes these (module split, step C2).
@@ -113,7 +124,8 @@ package struct TableRowFrameKey: Equatable {
         columnWidths: [Int], columnSpacing: Int, gutter: Int, rowWidth: Int, ink: Color,
         selectedMark: RowSelectionIndicator, unselectedMark: RowSelectionIndicator, stripe: Color?,
         alignments: [HorizontalAlignment], truncations: [TruncationMode], lineLimits: [Int], colorDepth: ColorDepth,
-        colorGeneration: Int, widthGeneration: Int, cellText: StyleAttributes
+        colorGeneration: Int, widthGeneration: Int, cellText: StyleAttributes, boldCells: Bool,
+        insideListRow: Bool
     ) {
         self.columnWidths = columnWidths
         self.columnSpacing = columnSpacing
@@ -130,6 +142,8 @@ package struct TableRowFrameKey: Equatable {
         self.colorGeneration = colorGeneration
         self.widthGeneration = widthGeneration
         self.cellText = cellText
+        self.boldCells = boldCells
+        self.insideListRow = insideListRow
     }
 }
 

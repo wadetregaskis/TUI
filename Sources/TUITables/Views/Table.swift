@@ -5645,7 +5645,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             colorDepth: ColorDepth.current,
             colorGeneration: TerminalColors.generation,
             widthGeneration: TerminalWidthTraits.generation,
-            cellText: cascadesCellText == false ? StyleAttributes() : Self.cellTextAttributes(context.environment))
+            cellText: cascadesCellText == false ? StyleAttributes() : Self.cellTextAttributes(context.environment),
+            boldCells: context.environment.legibilityWeight.drawsPlainBold,
+            insideListRow: context.environment.listRowEditRestrictions != nil)
     }
 
     /// Whether this table's rows may be kept across frames at all.
