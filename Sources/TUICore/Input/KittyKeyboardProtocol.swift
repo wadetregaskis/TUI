@@ -423,15 +423,26 @@ package enum KittyKeyDecoder {
     /// one Option and Shift made together (`¿` for ⌥⇧/, Ghostty 1.4.0), and
     /// the layout's own shifted key is not reported.
     static func optionComposedKey(code: Int, bits: Int, text: String) -> Key? {
-        guard bits & altBit != 0, bits & ctrlBit == 0, text.count == 1,
+        // Option alone of the modifiers that chord: ⌘, Hyper and Meta make
+        // another chord, which a bare ⌥ one must not stand in for.
+        guard bits & altBit != 0, bits & (ctrlBit | superBit | hyperBit | metaBit) == 0, text.count == 1,
             let scalar = Unicode.Scalar(UInt32(clamping: code)), scalar.isASCII, scalar.value >= 0x21
         else { return nil }
         let base = Character(scalar)
-        guard bits & shiftBit != 0 else { return text == String(base) ? nil : .character(base) }
-        if let upper = uppercaseLetter(code), let capital = Unicode.Scalar(UInt32(upper)) {
-            return .character(Character(capital))
+        let key: Character?
+        if bits & shiftBit == 0 {
+            key = base
+        } else if let upper = uppercaseLetter(code), let capital = Unicode.Scalar(UInt32(upper)) {
+            key = Character(capital)
+        } else {
+            key = usShifted[base]
         }
-        return usShifted[base].map { .character($0) }
+        // The key's own character, in either case (Caps Lock or Shift):
+        // Option composed nothing, and the key is typed, under Shift as
+        // without it.
+        guard let key, text.lowercased() != String(key).lowercased(), text.lowercased() != String(base).lowercased()
+        else { return nil }
+        return .character(key)
     }
 
     /// A US layout's shifted character of each unshifted punctuation key and

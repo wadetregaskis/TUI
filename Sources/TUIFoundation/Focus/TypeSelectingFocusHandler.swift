@@ -70,9 +70,12 @@ package struct TypeSelectBuffer {
     }
 
     /// Whether type select takes `event`: any printable character but Space,
-    /// with no Control, Option or ⌘ held.
+    /// with no Control, Option or ⌘ held — nor one Option composed (`ƒ` for
+    /// ⌥F, `KeyEvent.optionComposedKey`), which is the Option chord's to take
+    /// where the terminal does not send Option as Alt.
     package static func takes(_ event: KeyEvent) -> Bool {
         guard case .character(let character) = event.key, !event.ctrl, !event.alt, !event.command,
+            event.optionComposedKey == nil,
             character != " ", !character.isNewline
         else { return false }
         return character.unicodeScalars.allSatisfy { !$0.properties.isDefaultIgnorableCodePoint && $0.value >= 0x20 }

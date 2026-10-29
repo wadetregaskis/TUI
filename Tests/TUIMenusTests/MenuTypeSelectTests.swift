@@ -77,6 +77,17 @@ struct MenuTypeSelectTests {
         }
     }
 
+    /// A character Option composed (`ƒ` for ⌥F where the terminal does not send
+    /// Option as Alt) is the Option chord's: type select leaves it, so the
+    /// chord can switch menus or reach a shortcut (2026-10-29: a focused List
+    /// or an open menu swallowed it).
+    @Test("Type select leaves a character Option composed")
+    func composedCharacterDeclined() {
+        let composed = KeyEvent(key: .character("ƒ"), pasteAttachments: [], optionComposedKey: .character("f"))
+        #expect(!TypeSelectBuffer.takes(composed))
+        #expect(TypeSelectBuffer.takes(KeyEvent(key: .character("ƒ"))), "the same character typed is taken")
+    }
+
     @Test("A typed character highlights the row its title starts, and Return chooses it")
     func typingFindsTheRow() {
         let chosen = Chosen()

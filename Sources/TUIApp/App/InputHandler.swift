@@ -222,6 +222,15 @@ extension InputHandler {
         if event.isControlReturn { return dispatchControlReturn(event) }
         if dispatchPress(event) { return true }
 
+        // A character Option composed (`ƒ` for ⌥F, where the terminal does
+        // not send Option as Alt — Ghostty's default) that nothing took goes
+        // round once more as the Option chord on its key: a menu's letter, ⌥?
+        // for every tooltip, ⌥⇧- for redo, an app's ⌥ shortcut. Here and not
+        // in one registry, so every layer that matches chords sees it; a text
+        // field has already typed the character, and type select declines it
+        // (`TypeSelectBuffer.takes(_:)`). The owner's list #36 and #39.
+        if let chord = event.optionChord { return dispatchPress(chord) }
+
         // Ctrl-H, I, J, M and [ arrive as themselves only where the kitty
         // keyboard protocol is on. Everywhere else they arrive as Backspace,
         // Tab, Return and Escape, and hands have learnt them as those: Ctrl-[

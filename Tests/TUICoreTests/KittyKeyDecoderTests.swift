@@ -62,6 +62,15 @@ struct KittyKeyDecoderTests {
         // Control as well is no composition; nor a key that typed itself.
         #expect(KittyKeyDecoder.optionComposedKey(code: 102, bits: 2 | 4, text: "f") == nil)
         #expect(KittyKeyDecoder.optionComposedKey(code: 102, bits: 2, text: "f") == nil)
+        // ⌘, Hyper or Meta held too make another chord, not ⌥ alone.
+        for other in [8, 16, 32] {
+            #expect(KittyKeyDecoder.optionComposedKey(code: 102, bits: 2 | other, text: "ƒ") == nil)
+        }
+        // The key's own character under Caps Lock (64) or Shift (1): nothing
+        // composed, as without them.
+        #expect(KittyKeyDecoder.optionComposedKey(code: 102, bits: 2 | 64, text: "F") == nil)
+        #expect(KittyKeyDecoder.optionComposedKey(code: 102, bits: 2 | 1, text: "F") == nil)
+        #expect(KittyKeyDecoder.optionComposedKey(code: 47, bits: 2 | 1, text: "?") == nil)
     }
 
     /// The event a text report decodes to where Option composed `text` from

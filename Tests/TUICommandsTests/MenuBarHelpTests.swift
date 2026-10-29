@@ -166,6 +166,20 @@ struct MenuBarHelpTests {
         #expect(!shows("Explains the label", app), "\(app.screen.map(\.stripped))")
     }
 
+    /// Ghostty's default composes with Option: ⌥⇧/ arrives as `¿` with the
+    /// key it was made on, `?` (2026-10-29: the chord was tried only in the
+    /// shortcut registry, which has no ⌥? — the help key is the input
+    /// chain's own — so it rang the bell).
+    @Test("⌥? that Option composed into ¿ shows every tooltip too")
+    mutating func composedOptionHelpKey() {
+        let app = launched(HelpfulApp())
+        let composed = KeyEvent(
+            key: .character("¿"), shift: false, pasteAttachments: [], optionComposedKey: .character("?"))
+        #expect(app.send(composed))
+        frame(app)
+        #expect(shows("Explains the label", app), "\(app.screen.map(\.stripped))")
+    }
+
     @Test("Shift-F1 shows every tooltip, and again hides them, where Option does not arrive")
     mutating func shiftF1() {
         let app = launched(HelpfulApp())
