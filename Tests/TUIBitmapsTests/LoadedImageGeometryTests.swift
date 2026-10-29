@@ -145,6 +145,32 @@ struct LoadedImageGeometryTests {
         #expect(first.height == 5, "the picture, 40 × 10 pixels at two pixels a cell, not a placeholder")
     }
 
+    /// And it is LAID OUT at its own size on that frame: a stack measures it
+    /// before it draws, and a measure that saw only the placeholder's 20 rows
+    /// put the text under it 20 rows down for a frame (2026-10-29 review).
+    @Test("A small image is laid out at its own size on its first frame")
+    func smallImageLaidOutAtOnce() throws {
+        let fixture = try BitmapFixture(width: 40, height: 10)
+        let tui = Self.snapshotContext()
+        var environment = EnvironmentValues()
+        environment.focusManager = FocusManager()
+        environment.applyRuntimeServices(from: tui)
+        environment.imageCellAspect = 2.0
+        let context = RenderContext(
+            availableWidth: 40, availableHeight: 30, environment: environment, tuiContext: tui)
+
+        tui.stateStorage.beginRenderPass()
+        let first = renderToBuffer(
+            VStack(spacing: 0) {
+                Image(.file(fixture.path))
+                Text(verbatim: "BELOW")
+            }, context: context)
+        tui.stateStorage.endRenderPass()
+
+        let row = first.lines.firstIndex { $0.stripped.contains("BELOW") }
+        #expect(row == 5, "under the picture's 5 rows, got \(row.map(String.init) ?? "none")")
+    }
+
     /// A limit of 0 keeps every load off the frame: the same small file draws
     /// its placeholder first.
     @Test("imageSynchronousDecodeLimit(0) loads even a small image in a task")

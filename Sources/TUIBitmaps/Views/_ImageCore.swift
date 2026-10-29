@@ -86,12 +86,24 @@ struct _ImageCore: View, Renderable, Layoutable {
             // Still loading, a picture the cache holds is the one the render
             // pass about to follow will draw (``cachedPhase(of:cache:maxPixelCount:)``).
             var phase = phaseBox.value
+            let cache = environment.resolvedURLImageCache
             if case .loading = phase, decoded == nil,
-                let cached = Self.cachedPhase(
-                    of: source, cache: environment.resolvedURLImageCache,
-                    maxPixelCount: environment.imageMaxPixelCount)
+                let cached = Self.cachedPhase(of: source, cache: cache, maxPixelCount: environment.imageMaxPixelCount)
             {
                 phase = cached
+            } else if case .loading = phase, decoded == nil, cache != nil, case .file(let path) = source,
+                let small = Self.smallFilePhase(
+                    path: path,
+                    settings: LoadSettings(
+                        maxPixelCount: environment.imageMaxPixelCount, urlTimeout: 0, urlCache: cache,
+                        synchronousDecodeLimit: environment.imageSynchronousDecodeLimit))
+            {
+                // A small file the render pass will decode on this frame
+                // (``smallFilePhase(path:settings:)``), decoded here instead:
+                // measured at its own size, not the placeholder's, so its first
+                // frame is laid out as every later one. The decode lands in the
+                // cache, where the render pass finds it, so it is made once.
+                phase = small
             }
             guard case .success(let rawImage) = phase, rawImage.width > 0, rawImage.height > 0 else {
                 return nil
