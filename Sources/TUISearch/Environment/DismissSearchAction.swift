@@ -123,6 +123,8 @@ final class SearchDismissal: Equatable {
 /// this module: a tab view selecting its search tab activates it.
 extension SearchDismissal: SearchActivating {
     func activateSearch() { focusField() }
+
+    var hasEmptyQuery: Bool { text?.wrappedValue.isEmpty ?? true }
 }
 
 // MARK: - Environment Keys

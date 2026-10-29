@@ -67,6 +67,11 @@ extension View {
 /// it only then): selecting the search tab
 /// activates the search, and the search ending while the search tab is
 /// selected selects the tab before it again.
+///
+/// The search ends when the field gives up the focus with nothing in it —
+/// dismissed (which empties it), or left empty. The focus leaving a field that
+/// holds a query is the reader going to its results, Tab from the field into
+/// the search tab's content, and keeps the tab.
 struct _TabSearchLink<Content: View>: View {
     let content: Content
     /// The tab view's selection.
@@ -89,7 +94,9 @@ struct _TabSearchLink<Content: View>: View {
                 search?.activateSearch()
             }
             .onChange(of: searching) { wasSearching, isSearching in
-                guard wasSearching, !isSearching, selection.wrappedValue == searchTab, let before else { return }
+                guard wasSearching, !isSearching, search?.hasEmptyQuery ?? true, selection.wrappedValue == searchTab,
+                    let before
+                else { return }
                 selection.wrappedValue = before
                 self.before = nil
             }

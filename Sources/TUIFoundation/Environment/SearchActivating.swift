@@ -16,6 +16,9 @@ package protocol SearchActivating: AnyObject {
     /// Whether the search field holds the focus (`\.isSearching`).
     var isSearching: Bool { get }
 
+    /// Whether the search's query is empty: as `dismissSearch` leaves it.
+    var hasEmptyQuery: Bool { get }
+
     /// Moves the focus to the search field, as setting a searchable's
     /// `isPresented` to `true` does.
     func activateSearch()

@@ -85,6 +85,25 @@ struct TabSearchActivationTests {
         #expect(model.selection == 0, "the tab before is selected again")
     }
 
+    /// Tab out of a field that holds a query goes to its results, in the
+    /// search tab's content: the tab stays (2026-10-29 review).
+    @Test("Leaving the field with a query in it keeps the search tab")
+    func queryKeepsTheTab() {
+        let model = TabSearchModel()
+        let tui = TUIContext()
+        let focus = FocusManager()
+        let view = page(model, activation: .searchTabSelection)
+        frame(view, tui: tui, focus: focus)
+        frame(view, tui: tui, focus: focus)
+        let elsewhere = focus.currentFocusedID
+        model.selection = 1
+        for _ in 0..<3 { frame(view, tui: tui, focus: focus) }
+        model.query = "dune"
+        if let elsewhere { focus.focus(id: elsewhere) }
+        for _ in 0..<3 { frame(view, tui: tui, focus: focus) }
+        #expect(model.selection == 1, "the search tab stays selected")
+    }
+
     @Test("By default, selecting the search tab leaves the focus where it is")
     func automatic() {
         let model = TabSearchModel()
