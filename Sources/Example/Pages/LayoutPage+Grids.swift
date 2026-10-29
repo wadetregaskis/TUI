@@ -47,6 +47,10 @@ extension LayoutPage {
                         Text(Self.gridWords[index + 6]).foregroundStyle(.palette.foregroundSecondary)
                     }
                 }
+                // Wide enough for the flexible column to reach its maximum and
+                // the last to take a visibly larger share of what is left; at
+                // its own width the grid is only as wide as its words.
+                .frame(width: 40)
                 .border(.palette.border)
                 // Rows instead of columns: two of them, filled down then across,
                 // in a scroll view that scrolls sideways.
