@@ -12,7 +12,7 @@
 import Foundation
 import TUI
 
-/// Five text effects, each a renderer driven by an animation timeline.
+/// The text effects, each a renderer driven by an animation timeline.
 struct TextEffectsDemo: View {
     var body: some View {
         DemoSection("page.textStyles.section.effects") {
@@ -25,16 +25,24 @@ struct TextEffectsDemo: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("page.textStyles.effectsExplain").foregroundStyle(.palette.foregroundSecondary)
                     VStack(alignment: .leading, spacing: 1) {
-                        effect("page.textStyles.effect.wave", Wave(time: time, text: sample))
+                        // Rows above and below for the ripple's crests and troughs.
+                        effect("page.textStyles.effect.ripple", Ripple(time: time))
+                            .padding(.vertical, Ripple.reach)
+                        effect("page.textStyles.effect.wave", CapitalsWave(time: time, text: sample))
                         effect("page.textStyles.effect.dissolve", Dissolve(time: time))
+                        effect("page.textStyles.effect.shrink", Shrink(time: time, text: sample))
                         effect("page.textStyles.effect.typewriter", Typewriter(time: time))
                         effect("page.textStyles.effect.rainbow", Rainbow(time: time))
-                        effect("page.textStyles.effect.sweep", UnderlineSweep(time: time, text: sample))
+                        // Rows for the rain to fall through, above the text and below.
+                        effect("page.textStyles.effect.matrix", MatrixRain(time: time))
+                            .padding(.top, MatrixRain.above).padding(.bottom, MatrixRain.below)
+                        effect("page.textStyles.effect.congeal", MatrixArrival(time: time))
+                            .padding(.top, MatrixRain.above)
+                        effect("page.textStyles.effect.sweepChars", LetterSweep(time: time))
+                        effect("page.textStyles.effect.sweep", WordGlide(time: time, text: sample))
                     }
                     .indentedExamples()
                 }
-                // A row above each effect for the wave's crest to rise into.
-                .padding(.top, 1)
             }
         }
     }
@@ -42,7 +50,7 @@ struct TextEffectsDemo: View {
     /// An effect's name, and the sample drawn by it.
     private func effect(_ name: LocalizedStringKey, _ renderer: some TextRenderer) -> some View {
         HStack(spacing: 2) {
-            Text(name).foregroundStyle(.palette.foregroundSecondary).frame(width: 16, alignment: .leading)
+            Text(name).foregroundStyle(.palette.foregroundSecondary).frame(width: 24, alignment: .leading)
             Text("page.textStyles.effectSample").foregroundStyle(.palette.accent).textRenderer(renderer)
         }
     }
@@ -51,7 +59,7 @@ struct TextEffectsDemo: View {
 // MARK: - The effects
 
 /// Every glyph of `layout`, in reading order, numbered.
-private func glyphs(of layout: Text.Layout) -> [(index: Int, glyph: Text.Layout.RunSlice)] {
+func glyphs(of layout: Text.Layout) -> [(index: Int, glyph: Text.Layout.RunSlice)] {
     var all: [(index: Int, glyph: Text.Layout.RunSlice)] = []
     for line in layout {
         for run in line {
@@ -61,9 +69,30 @@ private func glyphs(of layout: Text.Layout) -> [(index: Int, glyph: Text.Layout.
     return all
 }
 
-/// A "Mexican wave": capitals travel along the text, each lifted a row
-/// where the wave's crest passes.
-private struct Wave: TextRenderer {
+/// A ripple running along the text: each glyph lifted or lowered by a sine of
+/// its place and the time, up to ``reach`` rows either way.
+private struct Ripple: TextRenderer {
+    var time: Double
+    var animatableData: Double {
+        get { time }
+        set { time = newValue }
+    }
+
+    /// The rows a glyph moves up or down at most.
+    static let reach = 2
+
+    func draw(layout: Text.Layout, in ctx: inout GraphicsContext) {
+        for (index, glyph) in glyphs(of: layout) {
+            let lift = (Double(Self.reach) * sin(Double(index) * 0.35 - time * 4)).rounded()
+            var moved = ctx
+            moved.translateBy(x: 0, y: lift)
+            moved.draw(glyph)
+        }
+    }
+}
+
+/// A "Mexican wave" of capitals travelling along the text, in place.
+private struct CapitalsWave: TextRenderer {
     var time: Double
     let text: [Character]
     var animatableData: Double {
@@ -78,9 +107,7 @@ private struct Wave: TextRenderer {
                 ctx.draw(glyph)
                 continue
             }
-            var lifted = ctx
-            lifted.translateBy(x: 0, y: -1)
-            lifted.drawSubstituting(Character(letter.uppercased()), for: glyph)
+            ctx.drawSubstituting(Character(letter.uppercased()), for: glyph)
         }
     }
 }
@@ -110,6 +137,40 @@ private struct Dissolve: TextRenderer {
             } else if stage < stepsPerGlyph {
                 ctx.drawSubstituting(Self.steps[stage - 1], for: glyph)
             }
+        }
+    }
+}
+
+/// From the end, each glyph steps down through ever-smaller glyphs to
+/// nothing, then the next; then the text comes back. The steps are a short
+/// ramp by ink — a letter's lowercase, where it differs, then `+`, `-` and
+/// `.` — as the image glyph ramps step by ink, which every font draws alike.
+private struct Shrink: TextRenderer {
+    var time: Double
+    let text: [Character]
+    var animatableData: Double {
+        get { time }
+        set { time = newValue }
+    }
+
+    private static let ramp: [Character] = ["+", "-", "."]
+
+    func draw(layout: Text.Layout, in ctx: inout GraphicsContext) {
+        let all = glyphs(of: layout)
+        let cycle = Double(all.count * 2 + 12)
+        let elapsed = Int((time * 10).truncatingRemainder(dividingBy: cycle))
+        for (index, glyph) in all {
+            let stage = elapsed - (all.count - 1 - index) * 2
+            guard stage > 0 else {
+                ctx.draw(glyph)
+                continue
+            }
+            // A blank has nothing to shrink, and goes at once.
+            guard let letter = character(of: glyph, in: text, layout: layout), !letter.isWhitespace else { continue }
+            var steps: [Character] = []
+            if let lower = letter.lowercased().first, lower != letter { steps.append(lower) }
+            steps += Self.ramp
+            if stage <= steps.count { ctx.drawSubstituting(steps[stage - 1], for: glyph) }
         }
     }
 }
@@ -155,40 +216,10 @@ private struct Rainbow: TextRenderer {
     }
 }
 
-/// An underline drawn along the text a word at a time, then taken back.
-private struct UnderlineSweep: TextRenderer {
-    var time: Double
-    let text: [Character]
-    var animatableData: Double {
-        get { time }
-        set { time = newValue }
-    }
-
-    func draw(layout: Text.Layout, in ctx: inout GraphicsContext) {
-        let all = glyphs(of: layout)
-        // Which word each glyph is in: words are split by blanks.
-        var words: [Int] = []
-        var word = 0
-        for (_, glyph) in all {
-            if character(of: glyph, in: text, layout: layout)?.isWhitespace == true { word += 1 }
-            words.append(word)
-        }
-        let count = word + 1
-        // Out and back, a word every half second.
-        let step = Int(time * 2) % (count * 2)
-        let reached = step < count ? step + 1 : count * 2 - step - 1
-        for (index, glyph) in all {
-            var swept = ctx
-            swept.textAttributes.underline = words[index] < reached
-            swept.draw(glyph)
-        }
-    }
-}
-
 /// The character a glyph starts at in `text`, the text it was laid out from,
 /// or `nil` past its end: its character index's distance from the layout's
 /// first, which is the text's first character.
-private func character(of glyph: Text.Layout.RunSlice, in text: [Character], layout: Text.Layout) -> Character? {
+func character(of glyph: Text.Layout.RunSlice, in text: [Character], layout: Text.Layout) -> Character? {
     guard let index = glyph.characterIndices.first,
         let first = layout.first?.first?.characterIndices.first
     else { return nil }
