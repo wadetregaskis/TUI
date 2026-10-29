@@ -185,9 +185,15 @@ extension NotificationService {
     ///   - duration: How long the notification stays visible in seconds (default: 3.0).
     @_disfavoredOverload
     public func post<S: StringProtocol>(_ message: S, duration: TimeInterval = 3.0) {
-        let entry = NotificationEntry(
-            message: String(message), duration: duration, postedAtNanos: nowNanos())
+        let now = nowNanos()
+        let entry = NotificationEntry(message: String(message), duration: duration, postedAtNanos: now)
         lock.lock()
+        // The expired go here too, not only in `activeEntries()`: that is the
+        // host's to call, and a service no host draws (an app that posts but
+        // never shows a toast, or one whose host has gone) kept every post it
+        // was ever given. The same rule as `activeEntries()`, so what the host
+        // reads next is unchanged.
+        entries.removeAll { now > $0.expiresAtNanos }
         entries.append(entry)
         let displays = self.displays
         lock.unlock()
@@ -220,6 +226,14 @@ extension NotificationService {
         let snapshot = entries
         lock.unlock()
         return snapshot
+    }
+
+    /// How many notifications are kept, expired or not, without pruning. For
+    /// tests: a number that only grows is a leak.
+    var entryCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return entries.count
     }
 
     /// Removes all active notifications.

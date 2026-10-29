@@ -189,6 +189,21 @@ struct NotificationTests {
         #expect(service.activeEntries().isEmpty)
     }
 
+    @Test("A post drops the expired, so a service no host reads stays bounded")
+    func postPrunesExpired() {
+        let clock = ManualClock(1_000_000_000_000)
+        let service = NotificationService(nowNanos: { clock.now })
+        // A post a second for a minute, and no host ever calling
+        // `activeEntries()`: each lives 3.5 s, so no more than four are up.
+        for second in 0..<60 {
+            service.post("Tick \(second)", duration: 3.0)
+            clock.now += 1_000_000_000
+        }
+        #expect(service.entryCount <= 4, "kept \(service.entryCount) posts")
+        // What the host reads is the same as it was.
+        #expect(service.activeEntries().map(\.message) == ["Tick 57", "Tick 58", "Tick 59"])
+    }
+
     // MARK: - NotificationHostModifier Rendering
 
     @Test("Host renders base content when no notifications are active")
