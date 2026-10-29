@@ -42,6 +42,25 @@ struct ButtonRepeatBehaviorTests {
         #expect(count.value == 1, "the hold was the activation; letting go stops it")
     }
 
+    /// Disabled under a held press, the button's handler is no longer
+    /// registered, so no release reaches it: the frame that disables it stops
+    /// the repeat (2026-10-29 review).
+    @Test("A held repeat stops when the button is disabled")
+    func disablingStopsTheRepeat() async {
+        let count = PressCount()
+        let harness = InputChainHarness()
+        func page(disabled: Bool) -> some View {
+            Button("+") { count.value += 1 }.buttonRepeatBehavior(.enabled).disabled(disabled)
+        }
+        harness.frame(page(disabled: false))
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 2, y: 0))
+        await Self.settle()
+        #expect(count.value == 1)
+        harness.frame(page(disabled: true))
+        try? await Task.sleep(nanoseconds: UInt64(AutoRepeatTimer.defaultInitialDelayMs + 300) * 1_000_000)
+        #expect(count.value == 1, "no repeat once disabled")
+    }
+
     @Test("By default, and disabled, the button acts once on the release")
     func defaultActsOnTheRelease() async {
         for behavior in [ButtonRepeatBehavior.automatic, .disabled] {

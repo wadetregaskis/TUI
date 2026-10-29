@@ -719,6 +719,12 @@ private struct _ButtonCore: View, Renderable, Layoutable {
         var buffer = style.makeBuffer(
             configuration: resolved.configuration, context: context)
 
+        // A held repeat stops when the button is disabled under it: its
+        // handler is not registered while disabled, so the release that would
+        // stop it never comes (`.disabled(n >= 10)` on a held "+" climbed past
+        // 10 until the mouse let go; 2026-10-29 review).
+        if isDisabled, !context.isMeasuring, !isMenuTrigger { repeatTimer(context: context)?.stop() }
+
         // Hit-test region for mouse clicks AND hover transitions.
         // A left-button release inside the button's bounds counts
         // as a click; .entered / .exited (synthesised by the
