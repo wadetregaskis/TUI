@@ -291,11 +291,12 @@ extension EnvironmentValues {
     }
 
     /// The cache a URL image loads through: the subtree's, else the app's own,
-    /// made when the app first loads one — and none outside an app, where
-    /// every load downloads.
+    /// made when the app first loads one, bounded at
+    /// ``URLImageCache/appByteLimit`` — and none outside an app, where every
+    /// load downloads.
     @MainActor
     var resolvedURLImageCache: URLImageCache? {
-        urlImageCache ?? appScopedObjects?.object { URLImageCache() }
+        urlImageCache ?? appScopedObjects?.object { URLImageCache(byteLimit: URLImageCache.appByteLimit) }
     }
 
     /// The reference box images scale to fit — their natural size, the

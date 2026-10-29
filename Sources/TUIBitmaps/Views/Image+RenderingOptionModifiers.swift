@@ -413,21 +413,39 @@ extension View {
     }
 
     /// Sets the cache the images in this view load URLs and files through — in
-    /// place of the app's own, which every app has, bounded at
-    /// ``URLImageCache/defaultByteLimit``. A file is kept under its path, size
-    /// and modification time, so an edited file is read again; a picture the
-    /// cache holds draws on a new view's first frame.
+    /// place of the app's own, which every app has. A file is kept under its
+    /// path, size and modification time, so an edited file is read again; a
+    /// picture the cache holds draws on a new view's first frame.
     ///
-    /// A test that wants a cache nothing else sees, or an app that wants a
-    /// different bound for one part of itself, hands its views its own:
+    /// The app's own cache is bounded at ``URLImageCache/defaultByteLimit``
+    /// unless the environment variable `TUI_IMAGE_CACHE_SIZE` names another
+    /// size: bytes, or KiB, MiB or GiB with a `K`, `M` or `G` suffix
+    /// (`TUI_IMAGE_CACHE_SIZE=256M`). An app that wants a different bound in
+    /// code, for all of itself or one part, hands its views a cache of its
+    /// own — made once, where it lasts as long as the app, and not in a
+    /// `body`, which would make a new, empty one each time it is evaluated:
     ///
     /// ```swift
-    /// Gallery()
-    ///     .urlImageCache(URLImageCache(byteLimit: 256 << 20))
+    /// @main
+    /// struct Viewer: App {
+    ///     let imageCache = URLImageCache(byteLimit: 256 << 20)
+    ///
+    ///     var body: some Scene {
+    ///         WindowGroup {
+    ///             Gallery()
+    ///                 .urlImageCache(imageCache)
+    ///         }
+    ///     }
+    /// }
     /// ```
     ///
-    /// `URLImageCache(byteLimit: 0)` keeps nothing. TUI-specific: SwiftUI's
-    /// `AsyncImage` goes through the URL loading system's own cache.
+    /// Or keep it in a view's `@State`. A cache made in code keeps the bound
+    /// it was made with; `TUI_IMAGE_CACHE_SIZE` changes only the app's own.
+    /// A test that wants a cache nothing else sees hands its views its own
+    /// the same way. `URLImageCache(byteLimit: 0)` keeps nothing.
+    ///
+    /// TUI-specific: SwiftUI's `AsyncImage` goes through the URL loading
+    /// system's own cache.
     ///
     /// - Parameter cache: The cache, or `nil` for the app's own.
     /// - Returns: A modified view.

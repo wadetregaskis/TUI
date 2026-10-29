@@ -57,4 +57,31 @@ struct URLImageCacheTests {
         #expect(cache.get("a") == nil)
         #expect(cache.byteCount == 0)
     }
+
+    /// Sizes as `TUI_IMAGE_CACHE_SIZE` spells them, and the bytes each names.
+    /// Typed, as a literal of tuples left to inference takes the type checker
+    /// too long.
+    private static let sizes: [(text: String, bytes: Int)] = [
+        ("0", 0), ("1000", 1000), (" 64k ", 64 << 10), ("64KB", 64 << 10), ("64KiB", 64 << 10),
+        ("256M", 256 << 20), ("256 mib", 256 << 20), ("1G", 1 << 30), ("2gb", 2 << 30),
+    ]
+
+    /// Values that name no size.
+    private static let nonsizes: [String?] = [nil, "", "M", "-5", "+5", "1.5G", "256T", "256b", "lots", "١٢"]
+
+    @Test("TUI_IMAGE_CACHE_SIZE names bytes, or KiB, MiB or GiB by suffix", arguments: sizes)
+    func parsesASize(size: (text: String, bytes: Int)) {
+        #expect(URLImageCache.byteLimit(named: size.text) == size.bytes)
+    }
+
+    @Test("A value TUI_IMAGE_CACHE_SIZE cannot read leaves the default", arguments: nonsizes)
+    func ignoresWhatItCannotRead(text: String?) {
+        #expect(URLImageCache.byteLimit(named: text) == nil)
+    }
+
+    @Test("A size too large for an Int is no bound at all")
+    func clampsAnOverflow() {
+        #expect(URLImageCache.byteLimit(named: "99999999999999999999") == Int.max)
+        #expect(URLImageCache.byteLimit(named: "\(Int.max >> 20)G") == Int.max)
+    }
 }

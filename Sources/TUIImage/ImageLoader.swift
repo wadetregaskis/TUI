@@ -582,8 +582,41 @@ public final class URLImageCache: @unchecked Sendable {
     // for every image set, so a key whose picture was evicted and decoded
     // again is a different decode, though its name is the same.
     /// The bytes the cache keeps at most, by default: 64 MiB, about eleven
-    /// full-HD pictures.
+    /// full-HD pictures. The app's own cache keeps this many unless the
+    /// environment variable `TUI_IMAGE_CACHE_SIZE` names another size.
     public static let defaultByteLimit = 64 << 20
+
+    /// The bytes the app's own cache keeps at most: what the environment
+    /// variable `TUI_IMAGE_CACHE_SIZE` says, if it names a size, otherwise
+    /// ``defaultByteLimit``. A size is a whole number of bytes, or of KiB,
+    /// MiB or GiB with a suffix: `K`, `M` or `G`, alone or followed by `B` or
+    /// `iB`, in either case (`256M`, `1 GiB`). `0` keeps nothing. Anything
+    /// else is ignored, as the other `TUI_` variables ignore what they do not
+    /// understand.
+    ///
+    /// Only the app's own cache reads it: a cache an app makes for itself
+    /// keeps the limit it was made with.
+    package static let appByteLimit: Int =
+        byteLimit(named: ProcessInfo.processInfo.environment["TUI_IMAGE_CACHE_SIZE"]) ?? defaultByteLimit
+
+    /// The bytes `text` names, as `TUI_IMAGE_CACHE_SIZE` spells them, or `nil`
+    /// if it names none. A size too large for an `Int` is `Int.max`: no bound.
+    package static func byteLimit(named text: String?) -> Int? {
+        guard let text = text?.lowercased() else { return nil }
+        var number = Substring(text.trimmingCharacters(in: .whitespaces))
+        var shift = 0
+        for (place, letter) in ["k", "m", "g"].enumerated() {
+            guard let unit = [letter + "ib", letter + "b", letter].first(where: number.hasSuffix) else { continue }
+            number = number.dropLast(unit.count)
+            shift = 10 * (place + 1)
+            break
+        }
+        number = Substring(number.trimmingCharacters(in: .whitespaces))
+        guard !number.isEmpty, number.allSatisfy({ $0.isASCII && $0.isWholeNumber }) else { return nil }
+        // Digits too many for an `Int` name more than any bound could.
+        guard let count = Int(number), count <= Int.max >> shift else { return Int.max }
+        return count << shift
+    }
 
     /// The bytes the cache keeps at most.
     public let byteLimit: Int
