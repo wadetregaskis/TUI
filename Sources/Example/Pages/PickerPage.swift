@@ -122,6 +122,29 @@ struct PickerPage: View {
             }
     }
 
+    /// The same `date` as a month to pick the day from.
+    @ViewBuilder
+    private var calendarSection: some View {
+            DemoSection("page.picker.calendarSection") {
+                VStack(alignment: .leading, spacing: 1) {
+                    DatePicker("page.newControls.dateOnly", selection: $date, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                    Text("page.picker.calendarHint")
+                        .foregroundStyle(.palette.foregroundSecondary)
+                        .frame(maxWidth: 40, alignment: .leading)
+                }
+            }
+    }
+
+    /// The date fields, and the calendar under them.
+    @ViewBuilder
+    private var dateColumn: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            dateSection
+            calendarSection
+        }
+    }
+
     @ViewBuilder
     private var currentSelections: some View {
             DemoSection("page.picker.currentSelections") {
@@ -147,14 +170,14 @@ struct PickerPage: View {
                 HStack(alignment: .top, spacing: 4) {
                     menuColumn
                     inPlaceColumn
-                    dateSection
+                    dateColumn
                     currentSelections
                 }
                 HStack(alignment: .top, spacing: 4) {
                     menuColumn
                     inPlaceColumn
                     VStack(alignment: .leading, spacing: 1) {
-                        dateSection
+                        dateColumn
                         currentSelections
                     }
                 }
@@ -164,14 +187,14 @@ struct PickerPage: View {
                         inPlaceColumn
                     }
                     VStack(alignment: .leading, spacing: 1) {
-                        dateSection
+                        dateColumn
                         currentSelections
                     }
                 }
                 VStack(alignment: .leading, spacing: 1) {
                     menuColumn
                     inPlaceColumn
-                    dateSection
+                    dateColumn
                     currentSelections
                 }
             }

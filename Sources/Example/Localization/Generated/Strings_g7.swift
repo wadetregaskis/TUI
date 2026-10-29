@@ -138,6 +138,8 @@ extension ExampleStrings {
             "page.textInput.submitHint": "Type in a field and press ↩ to submit.",
             "page.progressView.gaugeSection": "Gauges",
             "page.picker.dateSection": "Date & time",
+            "page.picker.calendarSection": "Calendar · .datePickerStyle(.graphical)",
+            "page.picker.calendarHint": "The same date as the fields beside it, as a month. ←/→ move a day, ↑/↓ a week, PgUp/PgDn a month, Home/End to the month's ends; a click picks a day and ◀ ▶ turn the month.",
             "page.buttons.section.links": "Links",
         ],
 
@@ -257,6 +259,8 @@ extension ExampleStrings {
             "page.textInput.submitHint": "Tippe in ein Feld und drücke ↩ zum Abschicken.",
             "page.progressView.gaugeSection": "Anzeigen",
             "page.picker.dateSection": "Datum & Uhrzeit",
+            "page.picker.calendarSection": "Kalender · .datePickerStyle(.graphical)",
+            "page.picker.calendarHint": "Dasselbe Datum wie die Felder daneben, als Monat. ←/→ bewegen um einen Tag, ↑/↓ um eine Woche, Bild↑/Bild↓ um einen Monat, Pos1/Ende zu den Enden des Monats; ein Klick wählt einen Tag, ◀ ▶ blättern den Monat.",
             "page.buttons.section.links": "Links",
         ],
 
@@ -376,6 +380,8 @@ extension ExampleStrings {
             "page.textInput.submitHint": "Saisissez du texte dans un champ et appuyez sur ↩ pour envoyer.",
             "page.progressView.gaugeSection": "Jauges",
             "page.picker.dateSection": "Date et heure",
+            "page.picker.calendarSection": "Calendrier · .datePickerStyle(.graphical)",
+            "page.picker.calendarHint": "La même date que les champs voisins, sous forme de mois. ←/→ déplacent d’un jour, ↑/↓ d’une semaine, PgPréc/PgSuiv d’un mois, Début/Fin aux extrémités du mois ; un clic choisit un jour et ◀ ▶ changent de mois.",
             "page.buttons.section.links": "Liens",
         ],
 
@@ -495,6 +501,8 @@ extension ExampleStrings {
             "page.textInput.submitHint": "Scrivi in un campo e premi ↩ per inviare.",
             "page.progressView.gaugeSection": "Indicatori",
             "page.picker.dateSection": "Data e ora",
+            "page.picker.calendarSection": "Calendario · .datePickerStyle(.graphical)",
+            "page.picker.calendarHint": "La stessa data dei campi accanto, come mese. ←/→ si spostano di un giorno, ↑/↓ di una settimana, PagSu/PagGiù di un mese, Home/Fine agli estremi del mese; un clic sceglie un giorno e ◀ ▶ cambiano mese.",
             "page.buttons.section.links": "Collegamenti",
         ],
 
@@ -614,6 +622,8 @@ extension ExampleStrings {
             "page.textInput.submitHint": "Escribe en un campo y pulsa ↩ para enviar.",
             "page.progressView.gaugeSection": "Indicadores",
             "page.picker.dateSection": "Fecha y hora",
+            "page.picker.calendarSection": "Calendario · .datePickerStyle(.graphical)",
+            "page.picker.calendarHint": "La misma fecha que los campos de al lado, como un mes. ←/→ se mueven un día, ↑/↓ una semana, RePág/AvPág un mes, Inicio/Fin a los extremos del mes; un clic elige un día y ◀ ▶ cambian de mes.",
             "page.buttons.section.links": "Enlaces",
         ],
 
@@ -733,6 +743,8 @@ extension ExampleStrings {
             "page.textInput.submitHint": "在字段中输入内容并按 ↩ 提交。",
             "page.progressView.gaugeSection": "仪表",
             "page.picker.dateSection": "日期和时间",
+            "page.picker.calendarSection": "日历 · .datePickerStyle(.graphical)",
+            "page.picker.calendarHint": "与旁边字段相同的日期，以月历显示。←/→ 移动一天，↑/↓ 移动一周，PgUp/PgDn 移动一个月，Home/End 跳到月初或月末；点击选择某天，◀ ▶ 翻月。",
             "page.buttons.section.links": "链接",
         ],
 
@@ -852,6 +864,8 @@ extension ExampleStrings {
             "page.textInput.submitHint": "フィールドに入力して ↩ を押すと送信します。",
             "page.progressView.gaugeSection": "ゲージ",
             "page.picker.dateSection": "日付と時刻",
+            "page.picker.calendarSection": "カレンダー · .datePickerStyle(.graphical)",
+            "page.picker.calendarHint": "隣のフィールドと同じ日付を、月のカレンダーで表示します。←/→ で1日、↑/↓ で1週間、PgUp/PgDn で1か月移動し、Home/End で月の初日と末日へ移ります。クリックで日を選び、◀ ▶ で月を切り替えます。",
             "page.buttons.section.links": "リンク",
         ],
     ]
