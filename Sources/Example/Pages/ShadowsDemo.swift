@@ -87,7 +87,9 @@ struct ShadowsDemo: View {
                     Text("page.colors.shadow.glow")
                         .foregroundStyle(.palette.foregroundSecondary)
                 }
-                .padding(EdgeInsets(top: 1, leading: 3, bottom: 1, trailing: 0))
+                // The glow reaches two rows (its radius) past the card, so two
+                // rows below it keep it off the row above the next header.
+                .padding(EdgeInsets(top: 1, leading: 3, bottom: 2, trailing: 0))
             }
         }
     }
