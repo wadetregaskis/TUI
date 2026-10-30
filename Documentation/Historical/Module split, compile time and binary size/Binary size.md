@@ -53,7 +53,7 @@ then compile time.
 > - **`-internalize-at-link` ships from the package**, as the default-on trait `DeadStripUnusedAPI`, with the
 >   README's "Shipping size" recipe and the `-deduplicate` check, `Tools/DedupCheck` (lane SHIP, 6122a8646): see
 >   [Shipping size (SHIP).md](<Binary size.md>)
->   and the [README](../../../README.md#shipping-size).
+>   and the [README](<../../Building and shipping an app.md#shipping-size>).
 > - **TUI's symbols stay out of the program's export table**, behind a second default-on trait,
 >   `UnexportTUISymbols`, and ColorPicker's tone-curve and channel-curve editors are a module of their own,
 >   TUICurveEditors (lane SHIP2, 4b1e00743): see
@@ -1252,8 +1252,8 @@ emission and pay-for-use services.
 
 ### Links
 
-- README, [Shipping size](../../../README.md#shipping-size) and
-  [Depending on fewer modules](../../../README.md#depending-on-fewer-modules): what an app developer can do.
+- README, [Shipping size](<../../Building and shipping an app.md#shipping-size>) and
+  [Depending on fewer modules](<../../Building and shipping an app.md#depending-on-fewer-modules>): what an app developer can do.
 - Commits: `a3218056d` (internalize trait), `d159ab542` (unexport trait), `17a63a3a7` (products), `f8ec22f19`
   (SF Symbol names, described in [Baking a large static lookup table](<../../Swift language/Baking a large static lookup table in Swift.md#front-coding-the-names-2026-10-11>)),
   `02863940b` (swift-collections out), `7612c03a4` (README's recipe), `97d8cf928` and `af87dc403` (editor modules).
@@ -1400,7 +1400,7 @@ then the choice is about 300 lines of TUI's own against about 165 KB per app.
   library module's objects. The owner asked for a unit test if cheap; it stays in CI because a debug build links the
   library where release does not (decisions
   [C-SHIP-1](#c-ship-1-the-libswiftcompatibilityspan-check-stays-in-ci-not-in-the-unit-tests)).
-- `de9e3d06d`: README, [Shipping a program](../../../README.md#shipping-a-program), says what an app that uses
+- `de9e3d06d`: README, [Shipping a program](<../../Building and shipping an app.md#shipping-a-program>), says what an app that uses
   Span types or swift-collections 1.4+ itself must ship or weak-link.
 
 ### Still open
@@ -1488,7 +1488,7 @@ The unexport list became a second default trait, `UnexportTUISymbols`, on 2026-1
 an export list of the developer's own (decisions
 [B-SHIP2-1](#b-ship2-1--unexported_symbol-is-a-trait-of-its-own-unexporttuisymbols-beside-deadstripunusedapi)).
 See also [which links TUI's flags reach](<Binary size.md>),
-README [Shipping size](../../../README.md#shipping-size), and
+README [Shipping size](<../../Building and shipping an app.md#shipping-size>), and
 [where the bytes of a TUI app go](<Binary size.md>).
 
 ## Whether `-deduplicate` is safe for TUI (2026-10-11)
@@ -1569,7 +1569,7 @@ differences left were animation timing, as large between two runs of one binary.
   (F2), and a report of public alias pairs for app developers (K3). Two SwiftLint rules flag a new key-path
   comparison or function-address cast in the library. CI also fails if a release program exports a TUI symbol
   (`cd0ffeee9`).
-- README, [Shipping size](../../../README.md#shipping-size): what folding changes in an app's own code, and how
+- README, [Shipping size](<../../Building and shipping an app.md#shipping-size>): what folding changes in an app's own code, and how
   to opt in or out.
 
 Part of [where the bytes of a TUI app go](<Binary size.md>); the flag's
@@ -1645,7 +1645,7 @@ The user's own steps, for scale: `swift build -c release` 25,582,312 B; `strip -
   [dedup check](<Binary size.md>) matter for every Xcode app.
 
 See also [dead-stripping TUI's unused API](<Binary size.md>)
-and README [Shipping size](../../../README.md#shipping-size).
+and README [Shipping size](<../../Building and shipping an app.md#shipping-size>).
 
 ## Completing the SwiftUI API: lane SHIP's decisions for review
 
