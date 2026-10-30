@@ -171,6 +171,39 @@ struct LoadedImageGeometryTests {
         #expect(row == 5, "under the picture's 5 rows, got \(row.map(String.init) ?? "none")")
     }
 
+    /// And so is a NEW picture, on the frame that changes the image's source:
+    /// the measure read the phase the view still held, the old picture's,
+    /// until the render reset it, so a viewer stepping from one photo to the
+    /// next laid the new one out in the old one's box for a frame and then
+    /// snapped it to its own (the Images clip, 2026-10-29).
+    @Test("A changed source is laid out at the new picture's size on its first frame")
+    func changedSourceLaidOutAtOnce() throws {
+        let wide = try BitmapFixture(width: 40, height: 10)
+        let tall = try BitmapFixture(width: 40, height: 20)
+        let tui = Self.snapshotContext()
+        var environment = EnvironmentValues()
+        environment.focusManager = FocusManager()
+        environment.applyRuntimeServices(from: tui)
+        environment.imageCellAspect = 2.0
+        let context = RenderContext(
+            availableWidth: 40, availableHeight: 30, environment: environment, tuiContext: tui)
+
+        func belowRow(_ path: String) -> Int? {
+            tui.stateStorage.beginRenderPass()
+            defer { tui.stateStorage.endRenderPass() }
+            let frame = renderToBuffer(
+                VStack(spacing: 0) {
+                    Image(.file(path))
+                    Text(verbatim: "BELOW")
+                }, context: context)
+            return frame.lines.firstIndex { $0.stripped.contains("BELOW") }
+        }
+
+        #expect(belowRow(wide.path) == 5)
+        let row = belowRow(tall.path)
+        #expect(row == 10, "under the new picture's 10 rows, not the old one's 5, got \(row.map(String.init) ?? "none")")
+    }
+
     /// A limit of 0 keeps every load off the frame: the same small file draws
     /// its placeholder first.
     @Test("imageSynchronousDecodeLimit(0) loads even a small image in a task")

@@ -96,6 +96,19 @@ struct _ImageCore: View, Renderable, Layoutable {
             // Still loading, a picture the cache holds is the one the render
             // pass about to follow will draw (``cachedPhase(of:cache:maxPixelCount:)``).
             var phase = phaseBox.value
+            // A source changed since the view last drew: the box still holds the
+            // OLD picture's phase, which that render pass resets
+            // (``manageLoadLifecycle``) before it draws. Measured as the reset
+            // phase, so the new picture is laid out at its own size, not the old
+            // one's: a viewer stepping from photo to photo drew each new one in
+            // the last one's box for a frame, and then snapped it to its own
+            // (the Images clip, 2026-10-29).
+            let lastSource: StateBox<ImageSource?> = stateStorage.storage(
+                for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.lastSource),
+                default: nil)
+            if let last = lastSource.value, last != source {
+                phase = decoded?.phase ?? .loading
+            }
             let cache = environment.resolvedURLImageCache
             if case .loading = phase, decoded == nil,
                 let cached = Self.cachedPhase(of: source, cache: cache, maxPixelCount: environment.imageMaxPixelCount)
