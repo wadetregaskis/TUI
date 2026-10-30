@@ -59,10 +59,15 @@ clip is a small frame of it, cut by a **camera**:
   on GitHub's light pages as on its dark ones.
 - Something always moves: a clip with nothing happening reads as a still.
 
-Keep each WebP well under 1 MB; 100–400 KB is the aim. The encoder steps its
-quality down to fit `--budget-kb` (450). A clip of photographs or blurs sets its
-own `quality` (and `budgetKB`): at the default 75 WebP draws blocks across a
-smooth gradient that flat colour never shows. A camera move changes every pixel of
+Keep each WebP around 1 MB at most; 100–400 KB is the aim. The encoder steps
+its quality down by 5 to fit `--budget-kb` (450), but never below 70
+(`--min-quality`): lower, WebP smears blocks across flat colour and leaves
+ghosts of the last frame in dark areas, and a terminal's flat grounds show
+both. A clip still over budget at 70 is kept, with a warning; make it cheaper
+(fewer or shorter camera moves, less changing at once) or give it a larger
+`budgetKB`. A clip of photographs or blurs sets its own `quality` (and
+`budgetKB`): at the default 75 WebP draws blocks across a smooth gradient that
+flat colour never shows. A camera move changes every pixel of
 every frame it lasts, so moves cost more than anything else in a clip: keep
 them short and few.
 

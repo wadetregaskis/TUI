@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """encode.py: a recorded clip's frames → a looping animated WebP, cropped by the clip's camera (and optionally an MP4).
 
-    encode.py clip FRAMES_DIR MARKERS OUT.webp --framing FRAMING.json [--fps 30] [--quality 75] [--min-quality 40]
+    encode.py clip FRAMES_DIR MARKERS OUT.webp --framing FRAMING.json [--fps 30] [--quality 75] [--min-quality 70]
                                                [--budget-kb 450] [--radius 12] [--mp4 OUT.mp4]
     encode.py carousel OUT.webp TERMINAL RUN_DIR [TERMINAL RUN_DIR ...] [--mp4 OUT.mp4] [--hold 2.6] [--slide 0.5]
     encode.py composite OUT.mp4 CLIP.mp4 [CLIP.mp4 ...]
@@ -18,8 +18,11 @@ rectangle for that instant (moves eased in and out), scaled to the output width 
 corners on a transparent ground, so it sits on GitHub's light and dark pages alike. ScreenCaptureKit sends a frame only
 when the window changes, so runs of one picture under one camera become one WebP frame with a longer duration.
 
-The WebP is lossy, looped forever, at --quality; if it comes out over --budget-kb the quality is stepped down by 10,
-to no lower than --min-quality, and the smallest that fits (or the last tried) is kept.
+The WebP is lossy, looped forever, at --quality, its colours converted to YUV the sharper (slower) way; if it comes out
+over --budget-kb the quality is stepped down by 5, to no lower than --min-quality, and the first that fits (or the
+last tried) is kept. A clip still over its budget at --min-quality is kept anyway, with a warning: below about 70,
+WebP's blocks show as smears on flat colour and ghosts of the last frame in dark areas, which a terminal's flat
+backgrounds make plain (2026-10-29: Animation at 45 and Navigation at 50 were sent back for it).
 
 A carousel is one scene filmed in several terminals (RUN_DIR each, as regenerate.sh leaves it: frames/, markers,
 framing.json), composited as a stack of cards: one in front, the previous and the next peeking out at its top left and
@@ -313,8 +316,10 @@ def clip_sequence(frames, markers, framing, fps, radius, workdir, camera_fps=15,
 def encode_webp(sequence, out, quality):
     with tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False) as args:
         # File-level options, then each frame's own: its duration, lossy at this quality. Method 4, not the slowest
-        # (6): on a clip of a table, 6 took 27 s to 4's 1.3 s and saved 2%.
-        args.write('-loop 0 -kmax 120\n')
+        # (6): on a clip of a table, 6 took 27 s to 4's 1.3 s and saved 2%. -sharp_yuv: lossy WebP keeps colour at
+        # half resolution, and the usual conversion bleeds a coloured glyph into its ground; the sharp one costs
+        # about 10% more bytes at the same quality (Animation at 75: 869 → 957 KB, 28.2 → 28.8 dB).
+        args.write('-loop 0 -kmax 120 -sharp_yuv\n')
         for path, duration in sequence:
             args.write(f'-d {duration} -lossy -q {quality} -m 4 {path}\n')
         args.write(f'-o {out}\n')
@@ -329,9 +334,13 @@ def encode_webp(sequence, out, quality):
 def encode_within_budget(sequence, out, quality, min_quality, budget_kb):
     while True:
         size = encode_webp(sequence, out, quality)
-        if size <= budget_kb * 1024 or quality - 10 < min_quality:
+        if size <= budget_kb * 1024:
             return size, quality
-        quality -= 10
+        if quality - 5 < min_quality:
+            print(f'encode.py: warning: {out} is {size / 1024:.0f} KB at quality {quality}, over its {budget_kb} KB '
+                  f'budget; kept, as a lower quality shows blocks', file=sys.stderr)
+            return size, quality
+        quality -= 5
 
 
 def encode_mp4(sequence, out, fps):
@@ -542,7 +551,7 @@ def main():
         return
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument('--quality', type=int, default=75)
-    common.add_argument('--min-quality', type=int, default=40)
+    common.add_argument('--min-quality', type=int, default=70)
     common.add_argument('--budget-kb', type=int, default=450)
     common.add_argument('--radius', type=int, default=12, help='corner radius, output pixels')
     common.add_argument('--mp4')
