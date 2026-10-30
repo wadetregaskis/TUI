@@ -6,7 +6,7 @@
 //  running on shown first, and a photograph.
 //
 //  Credits: Tux by Larry Ewing (lewing@isc.tamu.edu), drawn with The GIMP.
-//  Lil' Mac Guy and the Swift logo are Apple's, Touko Madobe is
+//  Lil' Finder Guy and the Swift logo are Apple's, Touko Madobe is
 //  Microsoft's (Windows 7's Japanese mascot). The photograph is an eagle.
 //
 //  Created by Wade Tregaskis
@@ -24,7 +24,7 @@ enum DemoPicture: CaseIterable {
     case wasm
     case photo
 
-    /// The mascot of the platform the Example is running on: Lil' Mac Guy
+    /// The mascot of the platform the Example is running on: Lil' Finder Guy
     /// on macOS, Tux on Linux, Touko Madobe on Windows, and the Swift
     /// bird in a browser, WebAssembly having no mascot of its own.
     ///
@@ -76,7 +76,7 @@ enum DemoPicture: CaseIterable {
     /// than its file's path. A proper name, so not translated.
     var name: String {
         switch self {
-        case .macOS: "Lil' Mac Guy"
+        case .macOS: "Lil' Finder Guy"
         case .linux: "Tux"
         case .windows: "Touko Madobe"
         case .wasm: "Swift"
