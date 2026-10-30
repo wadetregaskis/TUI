@@ -29,8 +29,8 @@ let imagesClip = Clip(
 
 /// The Example's own image page, with the terminal's graphics off so the
 /// picture is drawn in text cells: the glyph sets, shape matching, colour
-/// depths and palettes, dithering and tone curves, each flicked through on the
-/// page's own keys (its status bar shows which). The real app, not a scene.
+/// depths and palettes, dithering and tone curves, each chosen in the page's
+/// Inspector. The real app, not a scene.
 @MainActor
 let glyphsClip = Clip(
     id: "glyphs",
@@ -43,28 +43,65 @@ let glyphsClip = Clip(
     budgetKB: 900,
     script: glyphsScript(),
     command: ["Example", "--page", "images"],
-    // Touko Madobe, whose flat colours and fine line work show what each
-    // glyph set and palette keeps (the owner's choice, 2026-10-27).
-    environment: ["TUI_GRAPHICS": "0", "TUI_EXAMPLE_PICTURE": "Touko Madobe"]
+    // Lil' Mac Guy, the macOS mascot (the owner calls him Lil' Finder Guy):
+    // big flat areas and a few clean edges, which each glyph set and palette
+    // keeps or loses legibly. Touko Madobe's fine line work was too detailed
+    // to read at this size (the owner, 2026-10-29).
+    environment: ["TUI_GRAPHICS": "0", "TUI_EXAMPLE_PICTURE": "Lil' Mac Guy"]
 )
 
-/// From fine blocks in true colour: ASCII, then shape matching on (after the
-/// cycle has passed the custom ramp, which cannot shape-match and turns it off
-/// as it is passed); Unicode and blocks, shape-matched; 256 and 16 colours,
-/// dithered, grey; the tone curves; and back to where it began.
+/// Every change made in the Inspector, from the keyboard, as a user makes it:
+/// the focus walks to the control (the pane scrolls to keep it in view), the
+/// control changes, and the picture redraws. The status bar's single keys
+/// would do the same with nothing in the pane moving, which reads as the
+/// settings changing by themselves (the owner, 2026-10-29).
+///
+/// From fine blocks in true colour, the focus on the render style's options:
+/// ASCII, then shape matching on; Unicode and blocks, shape-matched; the tone
+/// curves (negative, accent, duotone) and off again; 256 and 16 colours,
+/// dithered, greyscale, undithered; true colour; and back up the pane,
+/// shape matching off, to where it began.
 private func glyphsScript() -> [Step] {
-    func key(_ k: String, _ hold: Double) -> [Step] { [.keys(k), .wait(hold)] }
-    var script: [Step] = [.wait(2.0)]
-    script += key("c", 0.05) + key("c", 1.6)                   // (custom) ascii
-    script += key("s", 1.8)                                    // shape matching
-    script += key("c", 1.6) + key("c", 1.4)                    // unicode, blocks
-    script += key("m", 1.4) + key("m", 1.4) + key("d", 1.8)    // 256, 16, dithered
-    script += key("m", 1.6) + key("d", 0.05)                   // grey, undithered
-    script += key("M", 0.05) + key("M", 0.05) + key("M", 1.0)  // back to true colour
-    script += key("t", 1.4) + key("t", 1.4) + key("t", 1.8)    // invert, accent, duotone
-    script += key("T", 0.05) + key("T", 0.05) + key("T", 0.05) + key("s", 1.2)
+    /// Selects the option `moves` arrows along from the cursor (negative:
+    /// up), a beat on each, then holds on the picture it draws.
+    func choose(_ moves: Int, hold: Double) -> [Step] {
+        Step.repeat(moves < 0 ? .up : .down, abs(moves), interval: 0.3) + [.wait(0.1), .space, .wait(hold)]
+    }
+    /// Walks the focus `stops` controls on (negative: back), as Tab does.
+    func walk(_ stops: Int) -> [Step] {
+        Step.repeat(stops < 0 ? .backTab : .tab, abs(stops), interval: 0.24) + [.wait(0.2)]
+    }
+    // The window but its status bar, which gains ⌃Z Undo with the first
+    // change and would jump back where the loop wraps; the Inspector says
+    // what is chosen. Its top border runs off the foot, as a border may.
+    var script: [Step] = [.camera(Shot(x: 0, y: 0, width: 112, height: 32)), .wait(1.6)]
+    // Characters.
+    script += choose(-2, hold: 1.6)                         // ASCII
+    script += walk(2) + [.space, .wait(1.8)]                // past its glyph count to Shape-aware: on
+    script += walk(-2)                                      // back to the options
+    script += choose(1, hold: 1.5)                          // Unicode
+    script += choose(1, hold: 1.6)                          // Blocks
+    // Tone, down the pane past the sampling and the adjustments.
+    script += walk(toneStops)
+    script += choose(1, hold: 1.3) + choose(1, hold: 1.3) + choose(1, hold: 1.7)  // negative, accent, duotone
+    script += [.home, .wait(0.3), .space, .wait(0.8)]       // off
+    // Colour.
+    script += walk(1)
+    script += choose(1, hold: 1.3) + choose(1, hold: 1.4)   // 256, 16
+    script += walk(2) + [.space, .wait(1.7)]                // past Posterize to Dithering: on
+    script += walk(-2) + choose(1, hold: 1.6)               // greyscale, dithered
+    script += walk(2) + [.space, .wait(1.3)]                // undithered
+    script += walk(-2) + [.home, .wait(0.3), .space, .wait(1.0)]  // true colour
+    // Back up the pane: shape matching off, and the focus on the options.
+    script += walk(-toneStops) + [.space, .wait(1.0)]
+    script += walk(-2) + [.wait(0.8)]
     return script
 }
+
+/// How many Tab stops lie between the render style's options (Blocks chosen,
+/// shape-matched) and the tone's: Shape-aware, Edge contrast, the four
+/// adjustments.
+private let toneStops = 7
 
 /// Down the sidebar's list, one every two seconds (an arrow moves the list's
 /// cursor, Space selects), and back to the first.
