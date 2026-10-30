@@ -2,14 +2,15 @@
 //  DocumentClip.swift
 //
 //  `document`: a postcard app, and a document's life in TUI's file panels,
-//  from the keyboard. An untitled postcard is given a picture through the
-//  open panel, filtered to images, in its column view, each picture selected
-//  previewed beside it — found by typing its name; a message is typed, and
-//  the title says it is edited. Saved: the name offered, a folder picked in
-//  the save panel's list. Edited again and closed, it asks whether to save;
-//  not saved, it is opened again through the open panel, filtered to
-//  postcards, each previewed; exported as Markdown through the Format pop-up;
-//  and a new postcard is where the loop began.
+//  from the keyboard: one postcard written, start to finish. An untitled
+//  postcard is given a picture through the open panel, filtered to images,
+//  in its column view — found by typing its name, previewed beside it; a
+//  message is begun, and the title says it is edited. Saved into the
+//  Postcards folder beside the two already sent: the name offered, the
+//  folder found by typing in the save panel's list. Written on, and exported
+//  as Markdown, to send, through the File menu and the Format pop-up.
+//  Closed: the last line is not saved, so it asks; saved. And a new postcard
+//  is where the loop began, the next one to write.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -45,43 +46,55 @@ private func chord(_ keys: Step, _ caption: String) -> [Step] {
 }
 
 private func documentScript() -> [Step] {
-    var script: [Step] = [.camera(Shot(x: 0, y: 0, width: 112, height: 32)), .wait(1.0)]
+    var script: [Step] = [.camera(Shot(x: 0, y: 0, width: 112, height: 32)), .wait(1.2)]
     // Add Picture… has the focus: the open panel, filtered to images, in its
-    // column view on ~/Pictures. The picture selected is previewed; typing
-    // "bu" finds the burrowing owl, Space previews it, Return chooses it.
-    script += [.space, .wait(1.1), .space, .wait(1.2)]
-    script += Step.type("bu", interval: 0.15) + [.wait(0.35), .space, .wait(1.3), .enter, .wait(0.8)]
-    // The message, typed: the title says the postcard is edited.
-    script += Step.type("Greetings from the burrow!", interval: 0.055) + [.enter]
-    script += Step.type("Ollie says hi.", interval: 0.055) + [.wait(0.6)]
-    // Saved: the name the picture gave it offered, a folder picked in the
-    // save panel's list — past the path and the view switcher, down to it,
-    // opened — and saved there, from the Save button. (Arrows, not typing:
-    // typing finds no folder in the list view; see the commit message.)
-    script += chord(Step.control("s"), "⌃S  Save") + [.wait(1.2)]
-    script += Step.repeat(.tab, 3, interval: 0.25) + [.wait(0.2)]
-    script += Step.repeat(.down, 6, interval: 0.2) + [.wait(0.4), .enter, .wait(0.9)]
-    script += Step.repeat(.tab, 3, interval: 0.25) + [.wait(0.2), .space, .wait(0.9), .cue("clear")]
-    // Edited again, and closed from the File menu: it asks; not saved.
-    script += Step.type(" See you soon!", interval: 0.055) + [.wait(0.4)]
-    script += [.f10, .wait(0.5), .right, .wait(0.5)] + Step.repeat(.down, 3, interval: 0.25)
-    // The question's keys start on Cancel; Don't Save is two along.
-    script += [.wait(0.3), .enter, .wait(1.3), .tab, .wait(0.4), .tab, .wait(0.5), .enter, .wait(0.9)]
-    // Opened again, filtered to postcards, each previewed: its picture and
-    // its message.
-    script += chord(Step.control("o"), "⌃O  Open…") + [.wait(1.0)]
-    script += [.space, .wait(1.2), .down, .wait(0.3), .space, .wait(1.2), .up, .wait(0.3), .space, .wait(0.7)]
-    script += [.enter, .wait(0.5), .cue("clear"), .wait(0.5)]
-    // Exported as Markdown, from the File menu: the Format pop-up renames
-    // the file.
-    script += [.f10, .wait(0.5), .right, .wait(0.5)] + Step.repeat(.down, 5, interval: 0.2)
+    // column view on ~/Pictures. Typing "bu" finds the burrowing owl, Space
+    // previews it, Return chooses it.
+    script += [.space, .wait(1.0)]
+    script += Step.type("bu", interval: 0.15) + [.wait(0.35), .space, .wait(1.4), .enter, .wait(0.8)]
+    // The message's first line, typed: the title says the postcard is edited.
+    script += Step.type("Greetings from the burrow!", interval: 0.055) + [.wait(0.5)]
+    // Saved where postcards are kept, beside the two already sent (and
+    // where the open panel looks): the picture's name offered, Tab to the
+    // folder's list, "po" finds Postcards, Return opens it, and on past the
+    // preview's splitter, New Folder, the hidden-files switch and Cancel to
+    // Save. (No New Folder: the folder is there already.)
+    script += chord(Step.control("s"), "⌃S  Save") + [.wait(1.1)]
+    script += Step.repeat(.tab, saveListStops, interval: 0.25) + [.wait(0.2)]
+    script += Step.type("po", interval: 0.15) + [.wait(0.4), .enter, .wait(1.0)]
+    script += Step.repeat(.tab, saveButtonStops, interval: 0.25) + [.wait(0.3), .space, .wait(0.9), .cue("clear")]
+    // Writing on: the title says it is edited again.
+    script += [.enter] + Step.type("Ollie says hi. See you soon!", interval: 0.055) + [.wait(0.6)]
+    // Exported as Markdown, from the File menu, to send: the Format pop-up
+    // renames the file, and it goes beside the postcard.
+    script += [.f10, .wait(0.5), .right, .wait(0.5)] + Step.repeat(.down, exportMenuRow, interval: 0.2)
     script += [.wait(0.3), .enter, .wait(1.2)]
-    script += Step.repeat(.tab, 4, interval: 0.25) + [.wait(0.2), .space, .wait(0.6), .down, .wait(0.5), .enter]
-    script += [.wait(0.9)] + Step.repeat(.tab, 3, interval: 0.25) + [.wait(0.2), .space, .wait(1.6)]
-    // A new postcard: where the loop began.
-    script += chord(Step.control("n"), "⌃N  New") + [.wait(0.7), .cue("clear"), .wait(0.8)]
+    script += Step.repeat(.tab, exportFormatStops, interval: 0.25) + [.wait(0.2), .space, .wait(0.6)]
+    script += [.down, .wait(0.5), .enter, .wait(0.9)]
+    script += Step.repeat(.tab, exportButtonStops, interval: 0.25) + [.wait(0.2), .space, .wait(1.4)]
+    // Done: closed. The second line is not saved yet, so it asks; saved.
+    // The empty desk, and then:
+    script += chord(Step.control("w"), "⌃W  Close") + [.wait(1.3)]
+    script += closeSaveKeys + [.wait(1.2)]
+    // the next postcard: where the loop began, the same picture as its first
+    // frame (the caption gone, Add Picture… focused).
+    script += chord(Step.control("n"), "⌃N  New") + [.wait(0.8), .cue("clear"), .wait(0.6)]
     return script
 }
+
+/// Tab stops from a save panel's name field to its folder's list, and from
+/// the list to the Save button.
+private let saveListStops = 4
+private let saveButtonStops = 5
+/// Rows down the File menu, from New Postcard, to Export….
+private let exportMenuRow = 5
+/// Tab stops from an export panel's name field to its Format pop-up, and
+/// from the pop-up to the Export button.
+private let exportFormatStops = 6
+private let exportButtonStops = 4
+/// The close question's keys: its buttons read Cancel, Save, Don't Save,
+/// and the focus starts on Cancel; Tab to Save, and Return.
+private let closeSaveKeys: [Step] = [.tab, .wait(0.5), .enter]
 
 struct PostcardApp: App {
     @State private var desk = PostcardDesk()
