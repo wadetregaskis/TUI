@@ -182,6 +182,33 @@ struct ListDragSelectionTests {
         #expect(carried(none) == ["banana", "+2 more"])
     }
 
+    /// The stack and the rows it carries are one picture: a frame that paints
+    /// the stack at the pointer must not still draw those rows in their places,
+    /// or for a frame the user sees each of them twice.
+    @Test("The carried rows leave the list on the frame the stack first draws")
+    func rowsLeaveAsTheStackDraws() {
+        let model = Model(["banana", "cherry", "damson"])
+        let harness = InputChainHarness(width: 30, height: 12)
+        func build() -> some View { tree(model, Dropped(), rowLimit: 5) }
+        let start = cell(of: "damson", in: harness, build)
+        let session = harness.tui.dragAndDropSession
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: start.x, y: start.y))
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: start.x + 1, y: start.y + 1))
+        var stacked = false
+        for frame in 0..<4 {
+            let lines = harness.frame(build()).lines.map(\.stripped)
+            let painted = (session.liftedPreviewContent()?.lines ?? []).map(\.stripped)
+            if painted.count > 1 {
+                stacked = true
+                #expect(
+                    !lines.contains { $0.contains("banana") || $0.contains("cherry") },
+                    "frame \(frame) paints the stack \(painted) over a list still drawing its rows: \(lines)")
+            }
+            harness.mouse(MouseEvent(button: .left, phase: .dragged, x: start.x + 2, y: start.y + 2 + frame))
+        }
+        #expect(stacked, "the stack is drawn")
+    }
+
     @Test("A selected row scrolled out of the list's window is carried too")
     func carriesRowsOutsideTheWindow() {
         let names = (0..<40).map { "row\($0)" }

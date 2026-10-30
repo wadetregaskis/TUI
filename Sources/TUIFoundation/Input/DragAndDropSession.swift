@@ -262,6 +262,11 @@ package final class DragAndDropSession: @unchecked Sendable {
         /// gathers once per drag.
         package internal(set) var carriesSelection = false
 
+        /// A gathered selection's picture, waiting for the next frame to replace
+        /// ``preview``: the frame on which the rows it shows are first drawn as
+        /// gone from their places (``carrySelection(_:sources:picture:)``).
+        var pendingSelectionPicture: SelectionPicture?
+
         /// Whether Shift was held as the drag began: a selection is extended to
         /// the dragged row first, as a Shift-click extends it (Finder).
         package internal(set) var startedWithShift = false
@@ -506,6 +511,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     ///
     /// `package` for `TUIContext.reset()`, which empties them for good.
     package func beginFrame() {
+        applyPendingSelectionPicture()
         targets.removeAll(keepingCapacity: true)
         autoScrollZones.removeAll(keepingCapacity: true)
         reorderHosts.removeAll(keepingCapacity: true)
@@ -597,6 +603,12 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// Mac's way). `picture` replaces the grabbed row's own
     /// (``selectionPicture(count:grabbed:limit:grabbedFrames:frames:)``). Once
     /// per drag.
+    ///
+    /// The rows `sources` names are drawn as gone from the next frame on: this
+    /// one has drawn them already. So the picture of them waits for that frame
+    /// too, or for a frame each would be seen twice, in its place and at the
+    /// pointer. With no `sources` — a `Table`, which gathers as the drag begins,
+    /// before any frame — it takes its place at once.
     package func carrySelection(
         _ items: [Any], sources: Set<ViewIdentity>, picture: SelectionPicture? = nil
     ) {
@@ -604,14 +616,10 @@ package final class DragAndDropSession: @unchecked Sendable {
         drag.carriesSelection = true
         drag.payload = items.count == 1 ? items[0] : DragItems(items: items)
         if let picture {
-            drag.preview = picture.preview.trimmingTrailingBlankCells()
-            drag.morph = picture.morph.map { $0.trimmingTrailingBlankCells() }
-            // The grabbed row stays under the pointer, and starts its lift from
-            // its own place, however many rows are stacked above it. An offset
-            // anchor places the stack's corner, not the row, so it is left be.
-            if case .grabPoint = drag.anchor {
-                drag.grabY += picture.linesAboveGrab
-                drag.originY -= picture.linesAboveGrab
+            if sources.isEmpty {
+                Self.apply(picture, to: &drag)
+            } else {
+                drag.pendingSelectionPicture = picture
             }
         }
         _active = drag
@@ -650,6 +658,15 @@ package final class DragAndDropSession: @unchecked Sendable {
     package func beginGatheringPayloads(for owner: ViewIdentity) {
         gatheredPayloads = [:]
         gatheringOwner = owner
+    }
+
+    /// Puts the picture ``carrySelection(_:sources:picture:)`` left waiting in
+    /// place, as the frame that first draws its rows as gone begins.
+    private func applyPendingSelectionPicture() {
+        guard var drag = _active, let picture = drag.pendingSelectionPicture else { return }
+        drag.pendingSelectionPicture = nil
+        Self.apply(picture, to: &drag)
+        _active = drag
     }
 
     /// The `.draggable`s noted since ``beginGatheringPayloads(for:)``, and an

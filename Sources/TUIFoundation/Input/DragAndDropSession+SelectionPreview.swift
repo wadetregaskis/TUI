@@ -90,6 +90,21 @@ extension DragAndDropSession {
     }
 }
 
+extension DragAndDropSession {
+    /// Puts a selection's picture in place of the grabbed row's.
+    static func apply(_ picture: SelectionPicture, to drag: inout ActiveDrag) {
+        drag.preview = picture.preview.trimmingTrailingBlankCells()
+        drag.morph = picture.morph.map { $0.trimmingTrailingBlankCells() }
+        // The grabbed row stays under the pointer, and starts its lift from its
+        // own place, however many rows are stacked above it. An offset anchor
+        // places the stack's corner, not the row, so it is left be.
+        if case .grabPoint = drag.anchor {
+            drag.grabY += picture.linesAboveGrab
+            drag.originY -= picture.linesAboveGrab
+        }
+    }
+}
+
 extension DragAndDropSession.ActiveDrag {
     /// The dragged picture in the form ``DragAndDropSession/selectionPicture(count:grabbed:limit:grabbedFrames:frames:)``
     /// takes: its travel, or the steady picture alone where it has none.
