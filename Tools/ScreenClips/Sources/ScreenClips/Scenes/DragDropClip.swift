@@ -4,8 +4,9 @@
 //  `dragdrop`: a task board, all by mouse: To do's top three cards dragged
 //  into Doing one at a time, landing apart; three of Done's cards selected (a
 //  click and a Shift-click), dragged up their column together and undone; then
-//  the three in Doing selected apart (a click and two Option-clicks) and
-//  dragged back to To do together — the board as it began, so it loops.
+//  the three in Doing selected apart (a click and two Option-clicks, bottom
+//  up) and dragged back to To do together, held by the first — the board as
+//  it began, so it loops.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -70,16 +71,18 @@ private func dragDropScript() -> [Step] {
     script += Step.drag(from: card(Board.done, 2), to: card(Board.done, 0), interval: 0.18) + [.wait(1.0)]
     script += [Step.control("z"), .wait(1.0)]
     // Several apart: the three cards brought into Doing, clicked and
-    // Option-clicked, dragged back to the top of To do together, in their
-    // order — the board as it began, so the clip loops.
+    // Option-clicked from the bottom up, dragged back to the top of To do
+    // together, in their order — the board as it began, so the clip loops.
+    // Held by the first of them, the stack hangs down from the pointer onto
+    // exactly the rows it lands in.
     script += [.camera(Shot(x: 0, y: 3, width: 84, height: 24, over: 0.6))]
-    script += Step.glide(from: card(Board.done, 0), to: card(Board.doing, 0), over: 0.6)
-    script += Step.click(Board.doing, Board.firstCard) + [.wait(0.35)]
-    script += Step.glide(from: card(Board.doing, 0), to: card(Board.doing, 2), over: 0.25)
+    script += Step.glide(from: card(Board.done, 0), to: card(Board.doing, 4), over: 0.6)
+    script += Step.click(Board.doing, Board.firstCard + 4) + [.wait(0.35)]
+    script += Step.glide(from: card(Board.doing, 4), to: card(Board.doing, 2), over: 0.25)
     script += optionClick(Board.doing, Board.firstCard + 2) + [.wait(0.35)]
-    script += Step.glide(from: card(Board.doing, 2), to: card(Board.doing, 4), over: 0.25)
-    script += optionClick(Board.doing, Board.firstCard + 4) + [.wait(0.7)]
-    script += Step.drag(from: card(Board.doing, 4), to: card(Board.todo, 0), interval: 0.03) + [.wait(1.0)]
+    script += Step.glide(from: card(Board.doing, 2), to: card(Board.doing, 0), over: 0.25)
+    script += optionClick(Board.doing, Board.firstCard) + [.wait(0.7)]
+    script += Step.drag(from: card(Board.doing, 0), to: card(Board.todo, 0), interval: 0.03) + [.wait(1.0)]
     // To do's top card clicked, the one selection the board began with.
     script += Step.click(Board.todo, Board.firstCard) + [.wait(0.3)]
     script += Step.glide(from: card(Board.todo, 0), to: (70, 20), over: 0.6) + [.wait(0.6)]
