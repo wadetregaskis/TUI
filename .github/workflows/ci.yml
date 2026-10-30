@@ -816,10 +816,13 @@ jobs:
       # compiles it, while it takes swift-syntax prebuilt only at 602.0.0 on a
       # 6.2 toolchain. Pinning it on this lane keeps the prebuilt here and
       # builds and tests TUIMacros against the oldest swift-syntax the
-      # range allows; every other lane tests the newest.
+      # range allows; every other lane tests the newest. The plain resolve
+      # comes first because `resolve <package> --version` changes a package
+      # already checked out: on a fresh clone it fails with "dependency
+      # 'swift-syntax' was not found".
       - name: Pin swift-syntax to the range's floor
         if: matrix.image == 'swift:6.2-noble'
-        run: swift package resolve swift-syntax --version 602.0.0
+        run: swift package resolve && swift package resolve swift-syntax --version 602.0.0
 
       - name: Build
         run: swift build --build-tests
