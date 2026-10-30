@@ -49,6 +49,12 @@ struct ImageRenderingControls: View {
                 colour
             }
         }
+        // An inspector, walked with Tab: the control the focus lands on keeps
+        // a quarter of the pane around it in view, so its section's heading
+        // and the options after it come with it, rather than it arriving on
+        // the pane's very edge. Back at the first control, that is the whole
+        // way up, heading and all.
+        .scrollFollowMargin(.fraction(0.25))
         // A disabled control still ASSERTS the value it displays, so every
         // dependent knob snaps to what the configuration actually renders with
         // whenever a driver changes — a greyed-out "3×" supersampling under
