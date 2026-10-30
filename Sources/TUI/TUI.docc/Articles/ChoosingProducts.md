@@ -133,7 +133,7 @@ An app that calls only your library's own API is unaffected, except where that A
 names those symbols after the TUI module, so they leave your library's exports with TUI's, and an app calling
 one fails to link unless the compiler copied its body into the app. To export TUI from your library, depend on TUI
 with that trait off and the other default one kept, `.package(url: …, from: …, traits: ["DeadStripUnusedAPI"])`
-(the README's "Shipping size" has what each trait does).
+("Shipping size" in the repository's `Documentation/Building and shipping an app.md` has what each trait does).
 
 ## Where the module shows
 

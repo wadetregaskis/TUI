@@ -21,7 +21,8 @@
 #     package's linker flags land on the app's own final link and change the
 #     developer's whole program: `-deduplicate` changes which of the app's own
 #     key paths compare equal, and a strip flag strips the app's symbols.
-#     Those are the developer's to choose; the README offers them, with what
+#     Those are the developer's to choose; Documentation/Building and shipping
+#     an app.md offers them, with what
 #     each costs. That pattern matches only symbols Swift names under a
 #     TUI module, and takes them out of what the link exports: TUI's
 #     own, and the app's own extensions of TUI's types and protocols,
@@ -136,7 +137,7 @@ check_manifest() {
     if grep -qx 'linker bad' <<<"$settings"; then
         printf 'FAIL unsafeFlags in a linker setting, other than -unexported_symbol for a TUI module\n'
         printf '     A package'"'"'s linker flags land on the app'"'"'s final link and change\n'
-        printf '     the developer'"'"'s whole program. Offer the flag in the README instead.\n'
+        printf '     the developer'"'"'s whole program. Offer the flag in Documentation/Building and shipping an app.md instead.\n'
         printf '     The one allowed is -Xlinker -unexported_symbol -Xlinker '"'"'_$s<length><module>*'"'"'\n'
         printf '     for a target of this package named TUI…, which touches only what Swift names under it.\n'
         failures=$((failures + 1))

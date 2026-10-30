@@ -7,7 +7,6 @@ docs/** linguist-documentation=false
 .github/           export-ignore
 .serena/           export-ignore
 .vscode/           export-ignore
-project-template/  export-ignore
 AGENTS.md          export-ignore
 CONTRIBUTING.md    export-ignore
 WHATS-NEXT.md      export-ignore

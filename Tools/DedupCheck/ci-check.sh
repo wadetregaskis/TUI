@@ -1,9 +1,9 @@
 #!/bin/bash
-# ci-check.sh : TUI's programs linked, stripped and run as the README's "Shipping size" recipe ships them.
+# ci-check.sh : TUI's programs linked, stripped and run as "Shipping size" in Documentation/Building and shipping an app.md ships them.
 #
-# The README offers app developers a link flag that changes the whole program, `-Xlinker -deduplicate`, beside
+# That document offers app developers a link flag that changes the whole program, `-Xlinker -deduplicate`, beside
 # TUI's default traits, whose `UnexportTUISymbols` takes TUI's symbols out of the program's export table (it
-# replaced the README's `-Xlinker -no_exported_symbols`, which ld refuses beside it). This keeps TUI correct under
+# replaced the README's old `-Xlinker -no_exported_symbols`, which ld refuses beside it). This keeps TUI correct under
 # them:
 #
 #   1. Relinks Stress with the flag and `--disable-dead-strip`, so that every key path TUI's objects form is in it

@@ -1,3 +1,7 @@
+<h1 align="center">TUI</h1>
+
+<p align="center"><strong>A Terminal UI framework for Swift, modelled after SwiftUI.</strong></p>
+
 <p align="center">
     <img alt="Platforms" src="https://img.shields.io/badge/Platforms-macOS%20%7C%20Linux%20%7C%20WebAssembly-005c00">
     <img alt="Swift 6.2" src="https://img.shields.io/badge/Swift-6.2-00b300?logo=swift&logoColor=white">
@@ -6,532 +10,187 @@
     <a href="https://github.com/wadetregaskis/TUI/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/wadetregaskis/TUI/ci.yml?branch=main&label=CI&color=009900"></a>
 </p>
 
-<img width="1200" height="630" alt="og-image@1x" src="https://github.com/user-attachments/assets/8bf99da8-e87c-4447-b3cb-a6f3f52c6d18" />
+<p align="center">
+    <img src="https://swift-tui.com/media/latest/mixer.webp" width="800" alt="A mixing desk made with TUI, in Ghostty: faders and pan knobs dragged with the mouse, and the level meters answering.">
+</p>
 
-# TUI
+Write SwiftUI, and get a terminal app. TUI speaks SwiftUI's language: views,
+`@State`, stacks, lists, tables, navigation, sheets, menus and animation. It
+draws them with nothing but Swift and the terminal's own escape codes: no
+ncurses, nothing to install. It runs on macOS and Linux, and in a browser,
+compiled to WebAssembly.
 
 > [!IMPORTANT]
-> **This project is currently a WORK IN PROGRESS! I strongly advise against using it in a production environment because APIs are subject to change at any time.**
+> TUI is a work in progress, ahead of its 1.0. Its APIs can change in any commit.
 
-A SwiftUI-like framework for building Terminal User Interfaces in Swift: no ncurses, no external C dependencies, just pure Swift.
-
-## What is this?
-
-TUI lets you build terminal apps using the same declarative syntax you already know from SwiftUI. Define your UI with `View`, compose views with `VStack`, `HStack`, and `ZStack`, style text with modifiers like `.bold()` and `.foregroundStyle(.red)`, and run it all in your terminal.
+## A taste
 
 ```swift
 import TUI
 
 @main
-struct MyApp: App {
+struct Groceries: App {
     var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
+        WindowGroup { ShoppingList() }
     }
 }
 
-struct ContentView: View {
-    @State var count = 0
-    
+struct ShoppingList: View {
+    @State private var items = ["Apples", "Bread", "Coffee", "Dates", "Eggs", "Figs"]
+    @State private var bought: Set<String> = []
+    @State private var query = ""
+
     var body: some View {
-        VStack(spacing: 1) {
-            Text("Hello, TUI!")
-                .bold()
-                .foregroundStyle(.cyan)
-            
-            Text("Count: \(count)")
-            
-            Button("Increment") {
-                count += 1
-            }
+        List(items.filter { query.isEmpty || $0.localizedStandardContains(query) }, id: \.self) { item in
+            Toggle(item, isOn: Binding(
+                get: { bought.contains(item) },
+                set: { if $0 { bought.insert(item) } else { bought.remove(item) } }))
         }
-        .navigationTitle("Counter")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button("Reset") { count = 0 }
-            }
-            // The line of key hints — quit, and whatever the page declares
-            // with `.statusBarItems` — opted into.
-            ToolbarItem(placement: .bottomBar) { StatusBar() }
-        }
+        .searchable(text: $query)
+        .navigationTitle("Groceries")
     }
 }
 ```
 
-Every bar is the app's to place: an app that declares no `.toolbar` draws on
-every row of the terminal, and `q` still quits.
+If you know SwiftUI, you already know how this reads, and what it does.
 
-SwiftUI code should compile against TUI and mean the same thing; what a
-terminal cannot honour fails to compile rather than doing nothing, with the
-few documented exceptions the deviations page lists.
-[Documentation/SwiftUI parity/SwiftUI compatibility guide.md](<Documentation/SwiftUI parity/SwiftUI compatibility guide.md>)
-is the porting guide, and
-[Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md](<Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md>)
-lists the places where TUI deliberately behaves differently from SwiftUI,
-and why.
+## In a real terminal
 
-## Features
+Every clip below is a TUI app playing itself in a real terminal window,
+filmed and looped. Nothing is mocked up.
 
-### Core
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="https://swift-tui.com/media/latest/images.webp" width="400" alt="A picture viewer stepping through wildlife photographs, drawn as real pixels.">
+<br><strong>Real pictures.</strong> Photographs drawn as pixels, through the Kitty graphics protocol, wherever the terminal speaks it.
+</td>
+<td width="50%" valign="top">
+<img src="https://swift-tui.com/media/latest/glyphs.webp" width="400" alt="The same kind of picture drawn in text characters, its style changed in an inspector.">
+<br><strong>…or text, everywhere else.</strong> Glyph sets, shape matching, palettes, dithering and tone curves, chosen by modifier.
+</td>
+</tr>
+<tr>
+<td valign="top">
+<img src="https://swift-tui.com/media/latest/tables.webp" width="400" alt="An activity monitor's process table: scrolled, sorted by column, a row followed, filtered by name.">
+<br><strong>Tables.</strong> Live data under a fixed header, sorted by a click on a column, followed, and filtered with <code>.searchable</code>.
+</td>
+<td valign="top">
+<img src="https://swift-tui.com/media/latest/dragdrop.webp" width="400" alt="A task board whose cards are dragged between columns, three at once.">
+<br><strong>Drag and drop.</strong> Between lists and within them, a whole selection at a time.
+</td>
+</tr>
+<tr>
+<td valign="top">
+<img src="https://swift-tui.com/media/latest/materials.webp" width="400" alt="A photo album with a share panel and a toast on frosted glass over it.">
+<br><strong>Materials.</strong> Frosted glass over the terminal's own pixels.
+</td>
+<td valign="top">
+<img src="https://swift-tui.com/media/latest/animation.webp" width="400" alt="A card game: spells cast from a hand of cards, with a battle log.">
+<br><strong>Animation.</strong> <code>withAnimation</code>, springs and transitions, at the terminal's frame rate.
+</td>
+</tr>
+<tr>
+<td valign="top">
+<img src="https://swift-tui.com/media/latest/navigation.webp" width="400" alt="A field guide in a three-column split view; a photo zooms up into a screen of its own.">
+<br><strong>Navigation.</strong> Split views with columns you can drag, and a photo that zooms into a screen of its own.
+</td>
+<td valign="top">
+<img src="https://swift-tui.com/media/latest/document.webp" width="400" alt="A postcard app: a picture picked in an open panel, saved, exported as Markdown.">
+<br><strong>Documents.</strong> Open and save panels, unsaved changes, export: a document's whole life.
+</td>
+</tr>
+<tr>
+<td valign="top">
+<img src="https://swift-tui.com/media/latest/controls.webp" width="400" alt="An event planner filled in from the keyboard: fields, a pop-up, a stepper, a calendar.">
+<br><strong>Controls.</strong> Fields, pop-ups, switches, steppers, gauges and a calendar, every one of them from the keyboard.
+</td>
+<td valign="top">
+<img src="https://swift-tui.com/media/latest/styles.webp" width="400" alt="A train booking form whose controls change their look every two seconds.">
+<br><strong>Styles.</strong> One form, five looks, a modifier each.
+</td>
+</tr>
+<tr>
+<td valign="top">
+<img src="https://swift-tui.com/media/latest/theming.webp" width="400" alt="A build window whose colours and borders change while it runs.">
+<br><strong>Themes.</strong> Palettes and borders, changed while the app runs.
+</td>
+<td valign="top">
+<img src="https://swift-tui.com/media/latest/tracks.webp" width="400" alt="A backup's progress bar, restyled as it fills, and a bandwidth slider.">
+<br><strong>Progress and sliders</strong> in more styles than you will need.
+</td>
+</tr>
+<tr>
+<td valign="top">
+<img src="https://swift-tui.com/media/latest/menus.webp" width="400" alt="A mail client's menu bar and context menu in Apple's Terminal.">
+<br><strong>Menus.</strong> A menu bar, context menus and keyboard shortcuts, here in Apple's Terminal.
+</td>
+<td valign="top">
+<img src="https://swift-tui.com/media/latest/textedit.webp" width="400" alt="A notes editor in Warp: text selected with the mouse, dragged to a new place, edited.">
+<br><strong>Text editing.</strong> Select with the mouse, drag to move, jump by word, undo. Here in Warp.
+</td>
+</tr>
+<tr>
+<td valign="top">
+<img src="https://swift-tui.com/media/latest/unicode.webp" width="400" alt="One screen of languages and scripts in Ghostty, iTerm2, Apple's Terminal and Warp.">
+<br><strong>Every terminal.</strong> One screen in four terminals, each drawn the way that terminal draws text.
+</td>
+<td valign="top">
+<img src="https://swift-tui.com/media/latest/todo.webp" width="400" alt="A to-do list: items checked off with confetti, then moving to the bottom.">
+<br><strong>The little things.</strong> Confetti, and a finished item walking to the bottom of the list.
+</td>
+</tr>
+</table>
 
-- **`View` protocol**: the core building block, mirroring SwiftUI's `View`
-- **`@ViewBuilder`**: result builder for declarative view composition
-- **`@State` / `@Binding`**: reactive state management with automatic re-rendering
-- **`@Environment`**: dependency injection for theme, focus, status bar, and other services
-- **`App` / `Scene` / `WindowGroup`**: app lifecycle with signal handling and a demand-driven run loop (idle screens cost nothing; animations are bounded by `maxFrameRate`)
+## What's in the box
 
-### Views & components
+- **SwiftUI's API.** SwiftUI code compiles against TUI and means the same
+  thing. What a terminal cannot honour fails to compile, rather than quietly
+  doing nothing. See the
+  [compatibility guide](<Documentation/SwiftUI parity/SwiftUI compatibility guide.md>)
+  and the [deliberate deviations](<Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md>).
+- **Keyboard first, mouse too.** Focus and Tab order, keyboard shortcuts and a
+  menu bar; clicks, drags, scroll wheels and trackpads.
+- **Every terminal, measured.** Ghostty, iTerm2, Apple's Terminal, Warp, kitty
+  and more, each one's quirks measured and allowed for, in the
+  [compatibility survey](<Documentation/Terminals/Terminal compatibility survey.md>).
+- **Seven languages.** TUI's own words in English, German, French, Italian,
+  Spanish, Chinese and Japanese, and your app's through the same service.
+- **Idle is free.** A screen redraws only when something changed.
+- **macOS, Linux and the browser.** [Try the demo](https://swift-tui.com/demo/)
+  without installing anything.
 
-- **Primitive views**: `Text`, `EmptyView`, `Spacer`, `Divider`, `Image` (a raster file/URL drawn as real pixels on a terminal that answers the Kitty graphics handshake — Ghostty, iTerm2 — and rasterised to terminal art everywhere else; or `Image(systemName:)` for an SF Symbol glyph), and `Label(_:systemImage:)` (SF Symbols, on terminals using Apple's fonts)
-  - **`Image`** renders raster images (PNG/JPEG, decoded by ImageIO on Apple platforms and the bundled `stb_image` elsewhere). On a host that passes the startup graphics handshake it draws the actual pixels through the Kitty graphics protocol (Unicode placeholders, so the picture scrolls and clips like text) — on by default, `.terminalGraphics(false)` opts a subtree out, and `.imageCellPixels(_:)` sets the cell size it is resampled to; see `Documentation/Images and terminal graphics/Terminal graphics protocols.md`. Everywhere else it is terminal art, configured by three orthogonal choices. The **charset** via `.imageCharacterSet(_:)` — `.ascii(glyphs:)`, `.unicode(glyphs:)` (adds box-drawing and geometric shapes; excludes block characters), `.blocks(_:)` in a discrete style (`.fine` half-block `▄` cells — two pixels per cell, the default; `.solid` gap-free background fill; `.coarse` shades; `.braille` 2×4 dots), or `.customRamp(_:)`. The charset **size** — the `glyphs` count picks the ideal calibrated subset (density levels spread evenly, flattest glyph per level). And **shape-awareness** via `.imageShapeAware(_:)` — glyphs matched by their measured in-cell ink distribution (with Sobel edge-orientation lines for ascii/unicode; blocks shape-match over quadrants, halves, shades, and corner triangles `◢◣◤◥`). Colour via `.imageColorMode(_:)` — a fidelity ladder of `trueColor` (default), `ansi256`, `ansi16` (the terminal's own sixteen, so they follow the user's profile), `grayscale` and `mono`, auto-downgraded to what the terminal reports; or `palette(_:)` to name the colours by intent (`.shades(n)`, `.sampled(n)`, or any `[Color]`, including the theme's). Optional Floyd–Steinberg dithering throughout. Loads asynchronously from a file path or URL (a URL's image kept in the app's own bounded cache; `.urlImageCache(_:)` gives a subtree another) behind a placeholder spinner, and supports aspect-fit/fill, zoom including sub-1× (`.imageZoom(_:)`), and fit targets (`.imageFitTarget(.naturalSize | .proposedSize | .viewport)`). An image that is not resizable takes its **natural size**, as in SwiftUI — its pixels over its scale, in points, in cells of the terminal's size in points — on the hosts whose cell size in points is known (Apple Terminal, iTerm2, Warp, and Ghostty locally; `.imageCellPoints(_:)` states it for others), and fits what it is offered elsewhere.
-- **Layout containers**: `VStack`, `HStack`, `ZStack` (with `.zIndex` for draw order and overlay layers for floating content), `LazyVStack`, `LazyHStack`, `Group`, `ViewThatFits`, and `TabView` / `Tab`
-- **Interactive controls**: `Button`, `ButtonRow`, `Toggle`, `Menu`, `Picker`, `TextField` (with combo-box-style suggestion menus via `.textInputSuggestions(_:)`), `SecureField`, `TextEditor`, `DatePicker`, `Slider`, `Stepper`, `RadioButtonGroup`, `Link` (with the `openURL` environment action), and `ColorPicker` (with a rich `ColorPickerPanel` offering RGB/HSL/HSB/CMYK editing, a 256-colour grid, and named / web-safe / crayon palettes) — all with keyboard navigation and focus
-  - `Picker` styles: `.automatic` (default), `.menu`, `.inline`, `.radioGroup`
-  - `Menu` takes a `@ViewBuilder` of `Button`s (as SwiftUI's does) and is styled with `.menuStyle(_:)`: `.automatic` — a collapsed pull-down that opens a pop-up — or `.inline`, the items expanded in place. Click-and-hold works like a Mac menu: the highlight tracks the pointer and releasing over an item chooses it.
-  - `.contextMenu(menuItems:)` attaches a right-click pop-up to any view (⌃-click where the terminal keeps right-click for itself; ⇧F10 opens it from the keyboard)
-  - `Toggle` styles: `.automatic`, `.checkbox` (a checkbox; customise its glyphs with `ToggleCharacterSet` — `.unicode` (■/□), `.emoji` (⬛︎/⬜︎), or `.ascii` (`[x]`/`[ ]`) — via `.toggleCharacterSet(_:)`; the default adapts to the terminal: emoji under Apple's Terminal.app and iTerm2, unicode elsewhere), and `.switch` (a two-position switch — a knob over a coloured track, following the same glyph repertoire)
-- **Data views**: `List`, `Table`, `Section`, `ForEach`, `Form` (with `LabeledContent` rows and columns / grouped layouts via `.formStyle(_:)`), `NavigationSplitView`, `ContentUnavailableView`
-  - **Editing**: `Table` takes a TUI-specific `.onMove(perform:)` of its own (its rows are values, so there is no `ForEach` to attach one to) and reorders through the same state machine and the same `.rowReorderFeedback(_:)` modes — `.live` only for a multi-line table. `ForEach` takes `.onMove(perform:)` / `.onDelete(perform:)` — rows then drag to reorder, and <kbd>Delete</kbd> removes the row at the cursor — gated on those closures being present. `EditMode`/`EditButton`/`\.editMode` exist for source compatibility with ported SwiftUI code and do nothing: `List` and `Table` follow the macOS style of not being modal, so there is no mode to enter before editing (SwiftUI marks both unavailable on macOS for the same reason). `.rowReorderFeedback(_:)` picks what a drag shows — in every mode the row leaves its old place, so what is on screen *is* the order a drop would produce: `.live` (the default: the rows reorder as the cursor moves, at one `onMove` per slot crossed), `.dimmed` (the row reappears greyed in the slot it would land in), or `.cursor` (it rides the pointer and the landing slot is an empty gap). `.dimmed` and `.cursor` move the data once, on release. **Without a mouse:** ⌃R picks the focused row up, the movement keys move its landing slot, Return places it and Escape puts it back — a mode rather than a modifier+arrow chord because Apple Terminal cannot deliver one (it strips modifiers from Up/Down). `.cursor` shows `.dimmed` for a keyboard move, having no cursor to ride. ⌃↑/↓ and ⌥↑/↓ nudge the focused row one place with no mode at all (macOS eats the Ctrl pair itself — Mission Control), ⌥↖/↘/⇞/⇟ move it further, and Shift applies the coarse step.
-  - **Search**: `.searchable(text:placement:prompt:)` composes a magnifier glyph and a bound field above the content; `.searchFieldIconPlacement(_:)` moves the glyph and turns it to face the field. The content reads `\.isSearching` (is the field holding the keyboard right now) and `\.dismissSearch` (empty the query and hand the keyboard back), exactly as in SwiftUI. `.searchSuggestions { … }` offers the field a combo-box drop-down (a `Text`, a `Divider`, or anything carrying `.searchCompletion(_:)`), scoped to the search field rather than to every text field in the content
-  - `List` rows render lazily — only the visible window is materialised, so very large lists stay O(visible) — with `.plain` / `.insetGrouped` styles and `.badge()` rows
-  - `Table` supports per-column sizing (`.width(.fixed(n) | .flexible | .ratio(r) | .fit)`, where `.fit` sizes to the widest header/cell value), multi-line wrapping cells (`.lineLimit(_:)`), per-column alignment and truncation, and row selection
-  - `Set`-bound selections follow the macOS model: plain / shift- / ctrl-click for sole / range / toggle selection, ⇧-arrows extend the range where the terminal reports Shift, ⌃V toggles an extend mode so plain arrows extend in any terminal, ⌃A selects all, and Escape clears — consuming the key only when there is something to clear, so it never blocks app navigation. Every one of those chords is rebindable with `.rowShortcuts(_:)` — bare keys are deliberately left to the app
-  - `NavigationSplitView` columns are resizable by default (drag the divider or use the keyboard) and offer automatic / balanced / prominent-detail styles
-- **Containers & chrome**: `Alert`, `Dialog`, `Panel`, `Card`
-- **Feedback**:
-  - **`ProgressView`** — determinate or indeterminate. Determinate look via `.progressViewStyle(_:)` (`TrackStyle`): `block` (default), `bar`, `blockFine`, `dot`, `shade`, `braille`, `shadeRamp(gradient:)`, `threeSegment(...)`, or `custom(TrackConfiguration)` — the named fill styles are presets of one configurable renderer (fill glyph, leading-edge ramp, patterned or solid background, gradient). Indeterminate animation via `.indeterminateStyle(_:)`: `sweep` (default), `barberPole`, `pulse`, `knightRider`, `gradient`. A gradient's ramp spans the whole bar by default, so a colour always marks the same value; `.trackGradientScaling(.region)` compresses it into the region it paints instead.
-  - **`Gauge`** — a labelled value read-out with min/max bounds, styled via `.gaugeStyle(_:)`: `linearCapacity` (default), `accessoryLinear` (position marker), `accessoryLinearCapacity`, `accessoryCircular` / `accessoryCircularCapacity` (ring dials), or the compact `accessoryCircularTiny` pie glyph.
-  - **`Spinner`** — animated, in sixteen built-in styles (`dots` (default), `line`, `dancingLine`, `bouncing` (a Knight-Rider scanner with a fading trail), `pie`, `beachball`, `box`, `curve`, `column`, `bar`, `shade`, `blockWedge`, `spinningTriangle`, `moon`, `earth`, `clock`) plus `.custom(_:)` frame sequences, with an optional label and colour.
-- **Toolbars**: SwiftUI's `.toolbar` with `ToolbarItem`, `ToolbarItemGroup` and `ToolbarSpacer` — items join the window's top bar (title, navigation, principal, primary and secondary actions) or bottom bar by placement, framed in the scene's `.windowToolbarStyle(_:)` (`.expanded`, the default, boxes them; `.unified` rules them; `.unifiedCompact` draws neither). Every bar is opt-in.
-- **Menu bar**: SwiftUI's commands — `.commands { … }` with `CommandMenu`, `CommandGroup` (`before:`/`after:`/`replacing:` any of the twenty `CommandGroupPlacement`s), `Commands` types of your own reading `@FocusedValue`, and `SidebarCommands`, `InspectorCommands`, `ToolbarCommands` and `TextEditingCommands` — draw a menu bar on the window's top row, with the app's menu (About, Quit) and Edit (Undo, Redo, Cut, Copy, Paste) of TUI's own. F10, a click on a title, or Alt and its first letter opens a menu; every command's shortcut works with the menus closed. `commandsRemoved()` and `commandsReplaced(content:)` as in SwiftUI.
-- **Several scenes**: a body declares several — `WindowGroup`, `WindowGroup(id:)` and `WindowGroup(for:)`, `Window` and `Settings` — and `openWindow`, `dismissWindow` and `openSettings` present them on the one surface a terminal has: a window opens over the whole terminal in front of the others, which carry on behind it and come back as they were left; the `Settings` scene comes up as a sheet (`SettingsLink`). Escape closes a window opened over another, and the last window closing quits.
-- **`StatusBar`**: a line of context-sensitive keyboard shortcuts — `StatusBar()` in the bottom bar shows the page's `.statusBarItems`, the focus section's and the system items; the keys work whether or not it is shown
+## Getting started
 
-### Scrolling & scrollbars
+Add TUI to your package:
 
-- **`ScrollView`** scrolls both vertically and horizontally (`ScrollView(.horizontal)` / `[.horizontal, .vertical]`), and `List`, `Table`, and `Picker` pop-ups scroll too.
-- **Scroll indicators** answer two separate questions. *Whether*: `.scrollIndicators(.automatic | .visible | .hidden | .never, axes:)`, SwiftUI's spelling and SwiftUI's `.automatic` default — an indicator while the content overflows, nothing while it fits. *Which*: `.scrollIndicatorStyle(.scrollbar | .text)`, a TUI-specific setting, over a scrollbar in a column beside the content (the default) or the "▲/▼ N more lines above / below" lines that spend a viewport line instead. Only the bar measures, so the automatic default costs nothing where it is not drawn. Configure the bar with `.scrollbarArrows(.none | .single | .double)`, `.scrollbarProportionalThumb(_:)`, and `.scrollbarClickBehavior(.page | .jump)`. They are fully interactive: a sub-cell-precise proportional thumb, drag-to-scroll, click-to-page/jump on the track, end-arrow stepping, and auto-repeat while a button is held.
-- **What stays put** when the content or the terminal changes size is a policy, not an accident: `.anchorPosition(_:)` pins the viewport to `.top`, `.bottom`, a specific `.row(id)`, or the default `.window` (whatever is on screen stays on screen). `.scrollFollowMargin(_:)` says how much context to keep around a cursor that scrolls into view, `.scrollGranularity(_:)` sizes a step in lines or whole rows, and `.scrollOverscroll(_:)` allows (or forbids) scrolling past the end.
-- **`ScrollViewReader`** hands you a `ScrollViewProxy` for imperative `scrollTo(_:anchor:)`, as in SwiftUI. Focusing a control also reveals it — including its border — in every scrollable ancestor.
+```swift
+dependencies: [
+    .package(url: "https://github.com/wadetregaskis/TUI.git", branch: "main")
+],
+targets: [
+    .executableTarget(name: "MyApp", dependencies: ["TUI"])
+]
+```
 
-### Mouse & trackpad
+Then `import TUI`, and write views. The sample above is a whole app.
 
-- Left / middle / right clicks, vertical scroll-wheel, and horizontal + vertical trackpad scrolling, with drag tracking and enter/exit hit-testing. Both SGR and legacy X10 mouse-report encodings are parsed.
-- Gesture modifiers: `.onTapGesture` (including `count:` for double/triple-click, via synthesised `MouseEvent.clickCount`), `.onScrollGesture`, `.onHover`, and the raw `.onMouseEvent`; and SwiftUI's gesture values — `DragGesture`, `LongPressGesture`, `TapGesture` and their combinators — attached with `.gesture(_:)`.
-- Drag and drop: `.draggable(_:)` (with an optional custom preview and grab-point anchoring) and `.dropDestination(for:action:)`, in the style of SwiftUI's Transferable API.
-- Enable the level you want with `.mouseSupport(.disabled | .scrollOnly | .standard | .full)` on a `View` or a `Scene`.
-
-### Presentation
-
-- **Alerts**: `.alert(_:isPresented:actions:message:)` (and a no-message overload), with optional `borderStyle` / `borderColor` / `titleColor`.
-- **Confirmation dialogs**: `.confirmationDialog(_:isPresented:titleVisibility:actions:message:)` — the same host with its buttons stacked as an action sheet and the `.cancel` role sorted last.
-- **Modals / sheets**: `.modal(isPresented:content:)`, an always-on `.modal { … }`, and `.sheet(isPresented:content:)` (a SwiftUI-compatible alias for `.modal`).
-- Alerts and modals present a **centred overlay that dims the whole screen and captures keyboard input** from any attachment point, and are draggable by their title or border. Choosing any alert action dismisses it (as in SwiftUI — the action does not flip the binding itself), and <kbd>ESC</kbd> *is* the `.cancel`-role button: it runs that action if there is one, and closes either way.
-- **Notifications**: toast-style transient messages drawn by `.notificationHost(width:)`, posted out-of-band via `NotificationService.current.post(...)` — they overlay without dimming or blocking the background.
-- **Popovers**: `.popover(isPresented:attachmentAnchor:arrowEdge:content:)` and its `item:` twin — anchored to the presenting view rather than centred.
-- **Full-screen covers**: `.fullScreenCover(isPresented:onDismiss:content:)` and its `item:` twin; `.presentationDetents(_:)` sizes a sheet.
-
-### Styling
-
-- **Gradients and shape styles**: `Gradient`, `LinearGradient` / `RadialGradient` / `EllipticalGradient` / `AngularGradient`, `AnyShapeStyle`, `AnyGradient` (`Color.gradient`), `Color.mix(with:by:in:)` with a `Gradient.ColorSpace`; `.foregroundStyle(_:)` and `.background(_:)` take any `ShapeStyle`, `Color` is itself a `View`, and the TUI-specific `.gradientExtent(_:)` lets a ramp run across several rows. See `Documentation/Colour and styling/Gradients where a colour is accepted.md`.
-- **Animation**: `withAnimation`, `Animation` (curves and springs), `.transition(_:)` / `AnyTransition`, and `.opacity(_:)` as real compositing — an animation is a sequence of frames the run loop replays without re-rendering the page.
-- **Text styling**: `.bold()`, `.italic()`, `.underline()`, `.strikethrough()`, `.fontWeight(_:)`, `.textCase(_:)` on any view; plus `.dim()`, `.blink()`, and `.inverted()` on `Text`.
-- **Colour**: `.foregroundStyle(_:)` and `.background(_:)`. `Color` has SwiftUI's fifteen named colours (`.red`, `.gray`, …: fixed RGB at Apple's light values) plus TUI's `.magenta`, the terminal's sixteen ANSI slots, bright ones included (`Color.ansi(.red)`, `Color.ansi(.brightBlack)`), the 256-colour palette (`Color.palette256(_:)`), 24-bit RGB (`Color.rgb(_:_:_:)`), hex (`Color.hex(0xFF5500)` / `Color.hex("#FF5500")`), and the HSL / HSB / CMYK colour spaces. Palette-aware semantic colours resolve against the active palette at render time.
-- **Border styles** (`BorderStyle`): `.line`, `.rounded`, `.doubleLine`, `.heavy`, `.block`, `.none`, plus a public initialiser for fully custom border characters; applied with `.border(_:color:)`.
-- **Control styles**: `.buttonStyle`, `.toggleStyle`, `.pickerStyle`, `.toggleCharacterSet`, `.menuStyle`, `.listStyle`, `.formStyle`, `.gaugeStyle`, `.tabViewStyle`, `.navigationSplitViewStyle`, `.trackStyle` (the shared `TrackStyle` that draws a `Slider`'s rail as well as a `ProgressView`'s bar — `.knob` and `.marker` are the two looks that only make sense on a control you can move), plus per-control text-style builders.
-- **Badges**: `.badge(_ count: Int)` (0 hides) or `.badge(_ label:)` on list rows.
-
-### Internationalization (i18n)
-
-- **7 languages built-in**: English, German, French, Italian, Spanish, Simplified Chinese, Japanese
-- **Type-safe string constants**: the compile-time-verified `LocalizationKey` namespace
-- **Persistent language selection**: stored per-app in the platform config dir (macOS `~/Library/Application Support/<App>`, Linux `$XDG_CONFIG_HOME/<App>`); set `TUI_CONFIG_DIR` to relocate ALL of an app's persisted state (`@AppStorage` included) — the isolation hook for test harnesses, since `UserDefaults` on macOS ignores `$HOME`
-- **Fallback chain**: current language → English → key itself
-- **Thread-safe operations**: safe language switching at runtime
-
-### Advanced
-
-- **Lifecycle modifiers**: `.onAppear()`, `.onDisappear()`, `.task()`, `.onChange(of:initial:)`
-- **Key handling**: `.onKeyEvent()` (a raw handler, a key-set handler, and a single-key action), with modifier keys (ctrl, alt, shift) and function keys F1–F12 (plus the VT220 F13–F20, which Apple's Terminal.app sends for ⇧F5–F12)
-- **Keyboard shortcuts**: `.keyboardShortcut(_:modifiers:)` with `KeyEquivalent` / `EventModifiers`, and the semantic `.defaultAction` (Return) / `.cancelAction` (Escape) roles. A terminal never reports ⌘, so SwiftUI's default `modifiers: .command` is remapped at registration to whatever `.commandKey(_:)` names — `.control` (default), `.option`, `.bare`, or `.unavailable` — which is what lets one `View` source carry ⌘-shortcuts under both frameworks
-- **Storage**: `@AppStorage`, backed by `UserDefaults` on Apple platforms (the preferences domain, like SwiftUI — `~/Library/Preferences/<id>.plist`) and a JSON file under the XDG config dir on Linux
-- **Preferences**: bottom-up data flow with `PreferenceKey` — `.preference(key:value:)`, `.onPreferenceChange(_:perform:)`, `.navigationTitle(_:)`
-- **Focus system**: ⇥ / ⇧⇥ navigation, `.focusSection(_:)` for grouped areas, and `.focusID(_:)` to set an explicit identity on a control. `@FocusState` + `.focused($x)` / `.focused($field, equals:)` read and move focus programmatically, `.defaultFocus($field, value)` picks what starts focused, and `.focusable(_:interactions:)` makes any view a Tab stop. The focused control pulses on a shared clock; `\.isFocused` and `\.selectionEmphasis` let your own views join in
-- **Accelerated stepping**: `.shiftStepMultiplier(_:)` controls how far a Shift-accelerated key press moves (scrolling, list/table cursor movement, and `Stepper` / `Slider` value changes; default 5)
-- **Render caching**: `.equatable()` for subtree memoization
-
-## Run the example app
+To see what TUI can do, run the Example app from a clone, and press `q` to
+quit:
 
 ```bash
 swift run Example
 ```
 
-Press `q` to exit. (Inside a demo page, `ESC` goes back to the menu.)
-
-## Installation
-
-### Quick start with the CLI
-
-Install the `tuikit` command and create a new project:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/wadetregaskis/TUI/main/project-template/install.sh | bash
-tuikit init MyApp
-cd MyApp && swift run
-```
-
-See [project-template/README.md](project-template/README.md) for more options (SQLite, Swift Testing).
-
-### Manual setup
-
-Add TUI to your `Package.swift`:
-
-```swift
-dependencies: [
-    .package(url: "https://github.com/wadetregaskis/TUI.git", branch: "main")
-]
-```
-
-Then add it to your target:
-
-```swift
-.target(
-    name: "YourApp",
-    dependencies: ["TUI"]
-)
-```
-
-`import TUI` is the whole framework, as `import SwiftUI` is SwiftUI, and the `TUI` product is the simplest way to depend on it. Start there.
-
-### Depending on fewer modules
-
-TUI is built as separate modules, and each module an app may want on its own is a library product too. An app that lists the products of only the modules it uses compiles and links only those and what they are built on:
-
-```swift
-.executableTarget(
-    name: "YourApp",
-    dependencies: [
-        .product(name: "TUIApp", package: "TUI"),     // App, WindowGroup, Text, stacks, Button, …
-        .product(name: "TUITables", package: "TUI"),  // Table, and List with it
-    ]
-)
-```
-
-```swift
-import TUIApp
-import TUITables
-```
-
-Measured 2026-10-11 with Swift 6.4.0 (`swift build -c release`, then `strip`), a hello world is 5,964,832 bytes on `TUIApp` against 9,552,376 on `TUI` (−37.6%), and compiles 8 of TUI's modules where the umbrella compiles 26. On a quiet machine the same day (release, 12 jobs, two clean builds each), it built in 62.8 and 58.7 s against 68.9 and 75.1 s, reached its first output in 6.8 ms against 7.1 ms, and used 2.76 MiB against 2.85 MiB (`footprint`; medians of 20 launches each, alternated).
-
-- **The products decide what is built; the imports only which names you can see.** Depending on `TUI` and writing `import TUITables` builds and links everything.
-- **A forgotten product** reads `cannot find 'Table' in scope` or `value of type 'Text' has no member 'tableStyle'`, naming no module. The documentation's *Which Module Provides It* page (built by `Tools/BuildDocs/build-docs.sh`) lists every public name with its module and product.
-- **Mixing is safe**: an app can list `TUI` beside module products, or use a library that depends on `TUI`, and each module is linked once. But then the app is as large as the `TUI` app, so a **library** built on TUI should depend on module products (or `TUIFoundation`), never on `TUI`.
-- **Never build a `.dynamic` library from TUI while an app also links a TUI product statically**: SwiftPM's own build system gives the app two copies of the shared modules, and Swift Build turns them into dynamic libraries the app must ship, and can fail to link another app in the package.
-
-[Choosing products](https://github.com/wadetregaskis/TUI/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md) has the product list, what each brings with it, and where the module still shows when you use the umbrella: the debugger's and `String(reflecting:)`'s type names (`TUILists.List<…>`), `NavigationPath`'s saved form, the `TUI_TUIStrings` resource bundle, and `renderOnce`, which is `TUIApp`'s.
-
-### Shipping a program
-
-`swift build` puts TUI's resource bundle beside your executable: `TUI_TUIStrings.bundle` on macOS, `TUI_TUIStrings.resources` elsewhere. It holds the translations of TUI's own words (German, French, Italian, Spanish, Chinese and Japanese) and TUI's version. Copy it beside the executable wherever you install it — a release archive, an installer, a Homebrew formula that links the executable into `bin` (TUI looks beside the real file too) — and TUI's words follow the user's language.
-
-The bundle is optional. A program shipped as the executable alone runs: TUI's words read in English, which is compiled in, whatever language the user asks for, and `tuiKitVersion` reads `unknown`. A copied executable does not read the bundle it left in `.build`, so it behaves the same on the machine that built it as on any other. Your own targets' resources are bundles of their own, which SwiftPM's `Bundle.module` still requires wherever your code reads it.
-
-TUI itself needs no library beside the executable on any macOS it supports. A program that uses the standard library's `Span` types itself (`Span`, `RawSpan`, `MutableSpan`, `OutputSpan` and their kin), or links swift-collections 1.4 or later, may link `libswiftCompatibilitySpan.dylib` (`otool -L` on the executable says whether it does), which macOS has only from 26: copied out of `.build`, a program that links it strongly (the usual case: weak only where the code needing it was compiled for a macOS older than 10.14.4) stops at launch on macOS 14 and 15 with `Library not loaded: @rpath/libswiftCompatibilitySpan.dylib`. Ship that library beside the executable — copy it from `usr/lib/swift-6.2/macosx/` in the toolchain that built the program (Xcode's is `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain`, swift.org's and swiftly's `~/Library/Developer/Toolchains/swift-<version>-RELEASE.xctoolchain`), and sign it with your own identity if you notarise the program — or link it weakly, `swift build -c release -Xlinker -weak_library -Xlinker <that directory>/libswiftCompatibilitySpan.dylib`, which is safe only if the code that needs it never runs before macOS 26. To check a built program, run `Tools/check-span-compatibility.sh <executable>` from a TUI checkout: it fails on any load of the library, strong or weak, and on any symbol imported from it.
-
-### Shipping size
-
-`swift build -c release` does not strip the program (measured), and a link flag shrinks it further; each of these costs something only you can weigh. The figures are for a stripped hello-world app (`Text("Hello, world")` in a `WindowGroup`), built with Swift 6.4.0 on 2026-10-11; Xcode's Swift 6.2.4 is within a point. The Xcode settings named are untried in Xcode unless marked measured.
-
-- **Depend on fewer modules** ([above](#depending-on-fewer-modules)): −37.6% for the hello world on `TUIApp` alone (stripped, with the trait below on); the link flags below apply to it as well. *Cost:* a product per module you use, in your `Package.swift`.
-- **`strip`**: 20.9 MB → 9.7 MB, the symbol tables and the debug map. *Cost:* crash reports and profiles show addresses, so keep the dSYM to symbolicate them. `dsymutil` makes one and must run before `strip`; `swift build -c release` already runs it and leaves `MyApp.dSYM` beside the executable (measured, 6.2.4 and 6.4.0). In Xcode, Strip Linked Product (`STRIP_INSTALLED_PRODUCT`) with `DEBUG_INFORMATION_FORMAT = dwarf-with-dsym`; Xcode applies it only when it installs or archives the product (`DEPLOYMENT_POSTPROCESSING = YES`, per Xcode's build-setting reference), so a plain Release build stays unstripped.
-- **TUI's `DeadStripUnusedAPI` trait, on by default**: −14.7% with `swift build -c release`, the TUI API the app never calls. It works through the linker's dead stripping, so an Xcode app needs `DEAD_CODE_STRIPPING = YES`, which is not Xcode's default (measured, Xcode 26.3). *Cost:* a statically linked app whose `dlopen`ed plugin calls TUI API the app itself never calls: the plugin no longer loads. Such an app turns the trait off with `.package(url: …, from: …, traits: [])`, which turns off every default trait of TUI's (today, this one and the next, which such a plugin needs off as well).
-- **TUI's `UnexportTUISymbols` trait, on by default**: −3.2%, TUI's entries in the program's export table, whose bytes `strip` leaves in place (measured 2026-10-12, Swift 6.4.0 and Xcode's 6.2.4: 317 KB of export table down to 9 KB; the 227 entries left are the program's own and TUI's extensions of other modules' types, `String`'s and Foundation's). It works on every link that contains TUI, a `.dynamic` library of yours as well, and keeps TUI's symbols out of what that link exports, and with them your own extensions of TUI's types and protocols (`extension View { func card() }`, `extension Color { static var brand }`) and your conformances of TUI's types to your protocols, whose symbols Swift names after the TUI module (measured with a small library on both toolchains). *Cost:* a plugin `dlopen`ed into your app that calls any TUI API through it no longer loads ("symbol not found in flat namespace"), where with the trait above alone only one calling API the app never calls fails; a dynamic library of yours that contains TUI no longer exports TUI's symbols, so an app that uses TUI through it fails to link ("Undefined symbols"), or, built against an older build of the library, to launch ("Symbol not found"); an app that calls one of your library's extensions of TUI's types fails to link as well, unless the compiler copied the extension's body into the app (it did for one built on public API alone), and a plugin that calls one in your app no longer loads; and the linker refuses it beside an export list of your own: `-no_exported_symbols`, `-exported_symbol` or `-exported_symbols_list` stop the link with "-unexported_symbol cannot be used with -exported_symbol*", and so would `LD_EXPORT_SYMBOLS = NO` or `EXPORTED_SYMBOLS_FILE` in Xcode, which pass those flags (untried in Xcode). Turn this trait off alone, and keep the other, with `.package(url: …, from: …, traits: ["DeadStripUnusedAPI"])`. The program's remaining exports go with `-Xlinker -unexported_symbol -Xlinker '*'`, which the linker takes beside the trait's patterns: 9 KB more (−0.1%), at the cost of any plugin linked against the executable (`-bundle_loader`) or `dlsym` on it.
-- **`-Xlinker -deduplicate`**: −7.5% with both traits on (measured 2026-10-12). An Xcode Release build already does this: Xcode hands the linker `-Os`, and the linker then folds identical functions (measured, Xcode 26.3: a hello-world built from a SwiftPM package dependency folds 20,575 of its 61,034 functions). `swift build` does not. *Cost:* the linker gives functions whose machine code is identical one address, across your whole program. Swift identifies a key path to a computed property by its getter's address, so two key paths with one root and one value type whose getters compile alike — `var a: Int { x }` and `var b: Int { x }`, or two constants — compare and hash equal. They still read the same values, but code using key paths as names can tell: a `Set` or `Dictionary` of key paths, `KeyPathComparator` equality (a `Table` then treats two such columns as one), and writable key paths whose setters differ. Swift closures compared by function pointer can likewise compare equal (`@convention(c)` functions are not merged), and a crash report or profile may name one of several merged functions. Adding `-Xlinker -no_deduplicate_allow_swift_addr_ref` keeps key paths and closures distinct (measured) and saves 2.2% instead. TUI's CI checks TUI's own code under it, with both traits on, as Swift 6.4.0 and Xcode's 6.2.4 compile it (each compiler folds its own set: 6.2.4 folds one more pair, reviewed; swift.org's 6.3.3, measured once outside CI, folds the same as 6.2.4; other compilers are unchecked) and in the modules its test programs link (TUIAppKit's key paths are not among them); `Tools/DedupCheck/dedup_check.py --report` lists, before `strip`, what it did to yours ([Tools/DedupCheck/README.md](Tools/DedupCheck/README.md)).
-
-The link flag, per build or in your app's own manifest, and in Xcode (Release configuration, where deduplication is already on):
-
-```bash
-swift build -c release -Xlinker -deduplicate
-```
-
-```swift
-.executableTarget(
-    name: "MyApp",
-    dependencies: ["TUI"],
-    linkerSettings: [
-        .unsafeFlags(
-            ["-Xlinker", "-deduplicate"],
-            .when(platforms: [.macOS], configuration: .release))
-    ]
-)
-```
-
-```
-// Deduplication is on already. To keep key paths and closures distinct instead:
-OTHER_LDFLAGS = $(inherited) -Xlinker -no_deduplicate_allow_swift_addr_ref
-```
-
-### Build time
-
-A clean release build of TUI takes minutes, not seconds. Two things decide most of it (measured 2026-10-07 on a 12-core arm64 Mac VM, Swift 6.2.4):
-
-- **Which compiler you have.** Run `swift --version`. If it prints `Build config: +assertions`, the compiler is an assertions build — swift.org's 6.2.4 for macOS is one, whether installed by hand or by swiftly (its 6.3.3 and 6.4.0 are not) — and Xcode's own Swift of the same version compiles TUI in about 26% less time: 86.4 s against 116.7 s to the end of TUI's compile, paired on one machine. (Part of the gap is the swift.org toolchain rebuilding SDK module interfaces that Xcode ships prebuilt.) With Xcode installed, build with its toolchain:
-
-  ```bash
-  DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift build -c release
-  ```
-
-  Both halves are needed. `DEVELOPER_DIR` alone does not change which compiler swiftly's `swift` runs, and `xcrun --toolchain XcodeDefault` without it runs the Command Line Tools' `swift` whenever `xcode-select` points at them.
-- **Why more cores help little.** A release build compiles each module as one whole-module job, and the modules build in a chain: TUICore, then TUIView, then TUI. Inside a job, type checking and the SIL optimiser — about three quarters of TUI's job — run on one thread; only LLVM's code generation spreads across cores. The whole build averaged about 1.7 cores busy.
-
-## Theming
-
-TUI ships two families of built-in palettes, both conforming to the `Palette` protocol and applied at the scene (or view) level with `.palette(_:)`.
-
-**Classic-phosphor presets** — `SystemPalette`:
-
-```swift
-@main
-struct MyApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-        .palette(SystemPalette(.green))  // Classic green terminal
-    }
-}
-```
-
-Available presets (`SystemPalette.Preset`):
-- `.green` — IBM 5151 / Apple II (P1 phosphor) — the default
-- `.amber` — IBM 3278 / Wyse 50 (P3 phosphor)
-- `.red` — military / night-vision
-- `.violet` — retro computing / sci-fi terminals
-- `.blue` — vacuum fluorescent displays (VFDs)
-- `.white` — DEC VT100/VT220 (P4 phosphor)
-
-**macOS Terminal.app profiles** — `AppleTerminalPalette` recreates ten built-in Terminal.app profiles from their exact shipped colours (Basic, Grass, Homebrew, Man Page, Novel, Ocean, Pro, Red Sands, Silver Aerogel, Solid Colors):
-
-```swift
-.palette(AppleTerminalPalette(.homebrew))
-```
-
-**The terminal's own colours** — `LiveTerminalPalette` states no colour of its own: its page is the terminal's (SGR 49), its text the terminal's foreground (39), and its accent, status roles and border the terminal's own ANSI slots, so an app takes the colours of the user's terminal profile and follows them when it changes:
-
-```swift
-.palette(LiveTerminalPalette())
-```
-
-Until the terminal answers TUI's startup query for those colours (OSC 10, 11 and 4) none of them can be measured — and some hosts never answer — so the text tiers stay plain rather than dimmed, faces and hovers show no fill (a hover lifts the label's ink to another name instead), and the highlights that would have been tints, like a cursor row or a text selection, are drawn in reverse video.
-
-`PaletteRegistry.all` enumerates all 17 built-in palettes (`.phosphorPresets` + `.appleTerminalProfiles` + `.terminalPalettes`), with `PaletteRegistry.palette(withId:)` / `palette(withName:)` lookups. Custom palettes conform to `Palette` directly, and the `ColorPicker` lets users edit colours interactively — R/G/B inline, or the full modal editor from a click or `Return` on its swatch.
-
-## Internationalization
-
-TUI includes comprehensive i18n support with 7 languages and type-safe string constants:
-
-```swift
-import TUI
-
-struct MyView: View {
-    var body: some View {
-        VStack {
-            // Type-safe localized strings (typed-key overloads)
-            Text(localized: LocalizationKey.Button.ok)
-            LocalizedString(LocalizationKey.Error.notFound)
-
-            // Or look up by dot-notation key directly
-            LocalizedString("button.cancel")
-
-            // Switch language at runtime
-            Button("Deutsch") {
-                LocalizationService.shared.setLanguage(.german)
-            }
-        }
-    }
-}
-```
-
-**Supported languages**: English, Deutsch, Français, Italiano, Español, 简体中文, 日本語
-
-Apps can localize **their own** strings through the same service — register
-language-keyed tables once at startup, then look them up by key:
-
-```swift
-LocalizationService.shared.register(translations: [
-    "en": ["app.greeting": "Hello"],
-    "de": ["app.greeting": "Hallo"],
-])
-LocalizationService.shared.string(for: "app.greeting")  // honours the current language
-```
-
-The `LocalizationKey` namespace groups all framework strings into `Button`, `Label`, `Error`, `Placeholder`, `Menu`, `Dialog`, `Validation`, and `StatusBar`, with typed-key overloads for `Text(localized:)`, `LocalizedString(_:)`, and `LocalizationService.string(for:)`. The fallback chain is current language → English → the key itself, and the selection is persisted per-app in the platform config directory alongside `@AppStorage` (macOS: `~/Library/Application Support/<App>/language`; Linux: `$XDG_CONFIG_HOME/<App>/language`, else `~/.config/<App>/language`).
-
-Text in scripts a terminal shapes — Devanagari and the other Indic scripts, Thai, Lao, Khmer, and Latin with stacked marks — is laid out at the width each terminal advances it. Apple's Terminal.app draws such text at the font's own proportional width and moves everything after it on the row a little to the left (a table's next column, a border), and no escape sequence moves it back; see "What Apple Terminal paints" in [Documentation/Terminals/Terminal compatibility survey.md](<Documentation/Terminals/Terminal compatibility survey.md>).
-
-For complete documentation, see the [Localization Guide](https://github.com/wadetregaskis/TUI/blob/main/Sources/TUI/TUI.docc/Articles/Localization.md) in the DocC documentation.
-
-## Architecture
-
-- **Modular package**: 34 Swift library modules, a macro plugin and 1 in-tree C target, offered as 31 library products: the `TUI` umbrella, which is everything, a product for each module an app or a library may want on its own, and the opt-in `TUIAppKit`, `TUIFilePanelsAppKit` and `TUIMacros` ([Choosing products](https://github.com/wadetregaskis/TUI/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md); Project Structure below)
-- **Per-app state**: every app owns its render state — whether a frame is owed, and the transaction the change behind it was made under — and its views' `@State` and `@Observable` changes reach it through the render cache the app draws with, so two apps in one process never take each other's frames; application state flows through the Environment system. Still process-wide: the localization service (`LocalizationService.shared`), the notification queue (`NotificationService.current`) and the default `@AppStorage` store (`StorageDefaults.backend`)
-- **Pure ANSI rendering**: no ncurses runtime dependency; the only C is the bundled `stb_image` decoder, and only as the fallback where ImageIO is unavailable (selected via `canImport(ImageIO)`, not a hard-coded platform list)
-- **Linux compatible**: works on macOS and Linux (XDG paths supported)
-- **Runs in a browser**: builds for `wasm32-unknown-wasip1`; `Tools/Web/build.sh` compiles the Example app to WebAssembly and `Tools/Web/serve.py` serves it into a terminal made of DOM ([how it works](<Documentation/WebAssembly port.md>))
-- **Value types**: views are structs, just like SwiftUI
-
-### Package dependencies
-
-- [swift-docc-plugin](https://github.com/swiftlang/swift-docc-plugin) — documentation
-- [swift-syntax](https://github.com/swiftlang/swift-syntax) — the `@Animatable` and `@Entry` macros' compiler plugin, built only for an app that depends on the `TUIMacros` product (every client resolves and fetches it)
-- [ordo-one/benchmark](https://github.com/ordo-one/package-benchmark) — performance benchmarks, opt-in via the `TUI_BENCHMARKS` flag: `TUI_BENCHMARKS=1 swift package benchmark` (kept out of the default build/test graph)
-
-## Project structure
-
-```
-Sources/
-├── CSTBImage/            C target: bundled stb_image — image decoder fallback (non-Apple platforms)
-├── TUICore/           Primitives, key/input parsing, frame buffer, concurrency helpers
-│                         (Concurrency, Environment, Extensions, Input, Rendering)
-├── TUIStyling/        Color, theme palettes, border styles (Color, Styles, Theme)
-├── TUIView/           View protocol, ViewBuilder, State, Environment, Renderable
-│                         (Core, Environment, Rendering, State)
-│                         Depends on TUIStyling for ONE reason: `Color: View`
-│                         has to be declared in the module that owns `View`, or
-│                         a `Color` in a ViewBuilder pack beside a generic view
-│                         segfaults the debug runtime (a toolchain bug — see
-│                         Sources/TUIView/Core/ColorAsView.swift)
-├── TUIImage/          ASCII-art converter (braille / fine-blocks / shape / dithering),
-│                         image loading — ImageIO on Apple, else stb_image
-│                         (depends on CSTBImage + TUIStyling)
-├── TUIAppKit/         Bridges to AppKit: Color(nsColor:), NSColor(_:),
-│                         Image(nsImage:) — the module that imports AppKit, so that
-│                         SwiftUICore (which AppKit imports) never reaches an app that
-│                         imports only TUI. Empty off Apple platforms.
-├── TUIFilePanelsAppKit/ The file panels' fileDialogSystemIcons(): NSWorkspace's
-│                         icons (the second module that imports AppKit; a module of
-│                         its own so that TUIAppKit does not link the file panels).
-│                         Empty off Apple platforms.
-├── TUI/               The umbrella: Exports.swift (re-exports, no code), and TUI.docc/ (DocC)
-│
-│   The framework's sources, one directory per module of the planned split
-│   (Tools/ModuleMap; Documentation/Historical/Module split plan, revision 4). Each
-│   became a module of its own when it was carved out of TUIFoundation:
-│   TUIStrings and TUITerminalHost (step B2), which TUIFoundation
-│   re-exports, TUIApp (step B3), TUIColorPicker (step B4, whose
-│   curve-editor panels C9b peeled into TUICurveEditors),
-│   TUINavigation (step B5, which compiled TUIPresentation's directory
-│   too until step C1 peeled it into TUIPresentation), TUILists (step
-│   B6, which compiled TUITables', TUITabs' and TUIGrid's
-│   directories too until steps C2 to C4 peeled them into TUITables,
-│   TUITabs and TUIGrid), TUIChrome, TUIEffects and TUIMenus
-│   (step B5b), TUIBitmaps (step B5c) and TUITextInput (step B7, which
-│   compiled TUIForms', TUISearch's, TUIPickers' and
-│   TUINumericControls' directories too until steps C5 to C8 peeled them
-│   into TUIForms, TUISearch, TUIPickers and
-│   TUINumericControls). TUICommands (lane O13) and TUIScenes
-│   (lane O9) were modules of their own from the start, built on TUIApp,
-│   whose Scene they extend, and so were TUIFilePanels (lane O10), built
-│   on TUIPresentation, TUITables and TUITextInput, and
-│   TUITabImages (Tab's image: initialisers), built on TUIBitmaps and
-│   TUITabs so that neither pays for the other.
-│   TUIApp, TUIColorPicker, TUICurveEditors, TUINavigation,
-│   TUIPresentation,
-│   TUILists, TUITables, TUITabs, TUIGrid, TUIChrome,
-│   TUIEffects, TUIMenus, TUIBitmaps, TUITextInput, TUIForms,
-│   TUISearch, TUIPickers and TUINumericControls are built on
-│   TUIFoundation (TUITables and TUITabs on TUILists as well,
-│   TUITabs on TUIPresentation too,
-│   TUISearch on TUITextInput and TUIPickers, TUICurveEditors
-│   on TUIColorPicker), and the umbrella re-exports all twenty.
-│   Inside each: App/, Views/, Modifiers/, Focus/, ...
-├── TUIStrings/        SF Symbols name table, inline Markdown, format styles,
-│                         localization (translations in 7 languages) and VERSION,
-│                         in the resource bundle TUI_TUIStrings
-├── TUITerminalHost/   Terminal facts as values: host, identity, quirks, capabilities
-├── TUIFoundation/     The base: everything the modules below share — layout,
-│                         stacks, Text, Button, Toggle, focus, state, rendering, ...
-├── TUIChrome/         Status bar view, toolbars, notifications, tooltips, help
-├── TUIEffects/        Transitions, symbol, visual and colour effects
-├── TUIBitmaps/        Image from files and URLs, AsyncImage, the image options
-├── TUIMenus/          Menu, ControlGroup, .contextMenu, menu styles
-├── TUINumericControls/ Slider, Stepper, Gauge, ProgressView
-├── TUITextInput/      TextField, SecureField, TextEditor
-├── TUIPickers/        Picker, DatePicker, RadioButtonGroup
-├── TUILists/          List, OutlineGroup, list styles, row editing
-├── TUIGrid/           Grid, LazyVGrid, LazyHGrid
-├── TUINavigation/     NavigationStack, NavigationSplitView, Inspector
-├── TUIPresentation/   alert, confirmationDialog, sheet, presentation modifiers
-├── TUIForms/          Form, LabeledContent, GroupBox, Card, Panel
-├── TUISearch/         .searchable, search tokens and scopes
-├── TUITables/         Table, columns, rows, table styles
-├── TUITabs/           TabView, Tab, tab styles
-├── TUITabImages/      Tab(_:image:…): a tab's picture found by name, as Image(_:bundle:)
-├── TUIColorPicker/    ColorPicker, ColorPickerPanel and GradientEditorPanel
-├── TUICurveEditors/   The tone-curve and channel-curve editor panels
-├── TUIApp/            App, Scene, WindowGroup, the run loop, the terminal (POSIX)
-├── TUICommands/       Commands, CommandMenu, CommandGroup, .commands: the menu bar
-├── TUIFilePanels/     fileImporter, fileExporter, fileMover: the open and save panels
-├── TUIScenes/         Settings (a sheet) and AlertScene: scenes shown over the windows
-├── Example/        Example app (executable target)
-└── Stress/         Performance stress harness, also a complex-TUI demo (executable)
-
-Tests/                    ~11,600 tests across ~1,560 suites in ~1,360 files, a target per module
-├── TUIFoundationTests/  Tests needing only TUIFoundation and what it re-exports:
-│                         views, layout, styling, rendering, the environment
-├── TUIAppTests/       … the App and run loop, the terminal, input, chrome
-├── TUIListsTests/     One target per feature module (Lists, Tables, Menus,
-├── TUITablesTests/    TextInput, …) for the tests needing it, and maybe the
-├── …                     App, so an edit to a module rebuilds only its tests
-├── TUIIntegrationTests/  Tests needing two feature modules (golden snapshots,
-│                         i18n consistency, cross-control focus): the umbrella
-├── TUITestSupport/    Shared helpers, mocks and golden snapshots; App-, Lists-,
-│                         Tables-… level helpers in TUIAppTestSupport and the like
-├── TUICoreTests/      The low modules' own unit tests, which cannot lean on
-├── TUIStylingTests/   anything above them. Each target imports only what it
-├── TUIViewTests/      depends on: Tools/validate-test-boundaries.sh enforces it
-├── TUIImageTests/
-└── ExampleTests/         The Example app's own views, driven whole (@testable import Example)
-
-Tools/
-├── BuildDocs/            Builds the DocC reference as ONE archive covering every
-│                         module (the module split is not the reader's problem)
-├── Diagrams/             Generates the DocC architecture / lifecycle diagrams from source
-├── EmojiBenchmark/       Benchmarks emoji classification strategies
-├── EmojiBugScanner/      Probes Terminal.app for emoji cursor-advance quirks
-├── GenerateImageGlyphs/  Font-rasterisation calibration tables for the Image glyph renderers
-├── GenerateSFSymbols/    Regenerates the baked SF Symbol name → codepoint table
-├── ProductSmoke/         One tiny app per library product, each on its product alone,
-│                         built and run against the tree as a client would (CI)
-├── Profiling/            Instruments Time Profiler tooling (record.sh, drive.py,
-│                         analyze_timeprofile.py, idle_cpu.py) and the RenderHarness
-│                         executable (no-PTY render loop for `xctrace --launch`)
-├── Smoke/                Drives the Example and Stress apps through a PTY: walks
-│                         every page (crashes only reachable interactively) and
-│                         probes the suspend / fg resume round trip
-└── TerminalProbes/       Reproducible terminal-behaviour probes backing
-                          Documentation/Terminals/Terminal compatibility survey.md
-
-Benchmarks/
-└── TUIBenchmarks/     ordo-one/package-benchmark suite (color, frame buffer, image,
-                          input parsing, layout, list/table, render, scroll, text width,
-                          view identity); run via `TUI_BENCHMARKS=1 swift package benchmark`
-```
-
-`import TUI` re-exports every module: `TUIFoundation` (the views and modifiers), `TUIApp` (`App`, `Scene` and the run loop), `TUICommands` (`Commands`, `CommandMenu`, `CommandGroup` and the menu bar a scene's `.commands` draws), `TUIFilePanels` (`fileImporter`, `fileExporter`, `fileMover` and the open and save panels TUI draws for them), `TUIScenes` (the `Settings` scene and `AlertScene`), `TUIColorPicker` (`ColorPicker`, `ColorPickerPanel` and `GradientEditorPanel`), `TUICurveEditors` (the tone-curve and channel-curve editors), `TUINavigation` (the navigation containers), `TUIPresentation` (alerts, dialogs, sheets and the presentation modifiers), `TUILists` (lists), `TUITables` (tables), `TUITabs` (tab views), `TUITabImages` (`Tab`'s `image:` initialisers, which find the image by name), `TUIGrid` (grids), `TUIChrome` (the status bar, toolbars, notifications and tooltips), `TUIEffects` (transitions and visual effects), `TUIMenus` (`Menu`, `ControlGroup` and `.contextMenu`), `TUIBitmaps` (`Image` from a file, a URL or a bundle, `AsyncImage` and the `.image*` options), `TUITextInput` (the text fields and editors), `TUIForms` (`Form`, `LabeledContent`, `GroupBox` and the other view groupings), `TUISearch` (`.searchable`, search tokens and scopes), `TUIPickers` (`Picker`, `RadioButtonGroup` and `DatePicker`), `TUINumericControls` (`Slider`, `Stepper`, `Gauge` and `ProgressView`) and `TUICore`, `TUIStyling`, `TUIView`, and `TUIImage` (via `@_exported`). Each of these is also a library product of its own (TUIStrings and TUITerminalHost come with `TUIFoundation`); [Choosing products](https://github.com/wadetregaskis/TUI/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md) says when to depend on them instead. The AppKit bridges — `Color(nsColor:)`, `NSColor(_:)` and `Image(nsImage:)` — are the separate `TUIAppKit` product: add `import TUIAppKit` where you use them. The Core Graphics ones — `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)` and `Image(decorative:scale:orientation:)` — need only TUI, on Apple platforms. They are kept out of TUI because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUI's.
-
-## Requirements
-
-- Swift 6.2+
-- macOS 14+ or Linux
-
-## Developer notes
-
-- Benchmarks: `TUI_BENCHMARKS=1 swift package benchmark` (full suite) — see `Benchmarks/TUIBenchmarks`. The `TUI_BENCHMARKS` flag opts the `ordo-one/benchmark` dependency into the graph; without it the default build/test stays benchmark-free (no jemalloc requirement, no plugin deprecation warnings).
-- Profiling: see [Tools/Profiling/README.md](Tools/Profiling/README.md) (Instruments Time Profiler via a PTY, plus the no-PTY `RenderHarness` for `xctrace --launch`).
+## Learn more
+
+- **[Documentation](https://swift-tui.com/docs/documentation/tui/)**: the API
+  reference and its articles, from getting started to the render cycle.
+- **[Building and shipping an app](<Documentation/Building and shipping an app.md>)**:
+  which products to depend on, what to ship, how small it can be.
+- **[Contributing](CONTRIBUTING.md)**: how TUI is built, tested and laid out.
+- **[Changes](CHANGELOG.md)**: what has changed, and what to do about it.
 
 ## License
 
-This repository has been published under the [MIT](https://mit-license.org) license.
+MIT; see [LICENSE](LICENSE). TUI began as [Frank Gregor's TUIkit](https://github.com/phranck/TUIkit).

@@ -611,7 +611,7 @@ jobs:
         if: matrix.release_build
         run: Tools/check-span-compatibility.sh
 
-      # The README's "Shipping size" offers app developers a link flag that
+      # "Shipping size" in Documentation/Building and shipping an app.md offers app developers a link flag that
       # changes their whole program, `-Xlinker -deduplicate`, beside TUI's
       # default traits, which take TUI's symbols out of the program's
       # export table; TUI has to stay correct under them.

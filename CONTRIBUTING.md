@@ -260,7 +260,7 @@ swift build
 # on its own: while `xcode-select` points at the Command Line Tools it runs
 # THEIR `swift` (6.1.2 here, 2026-10-07). Xcode's also takes ~26% less time
 # over a clean release build than swiftly's 6.2.4, an assertions build — see
-# the README's "Build time".
+# "Build time" in Documentation/Building and shipping an app.md.
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift build --build-tests --scratch-path .build/xcode
 
 # Run all tests (7,591 tests in 1,082 suites, Swift Testing framework)
@@ -639,16 +639,157 @@ anything at run time:
   parallel" above. CI runs the suite the same way on macOS and Linux (`-j 4`),
   and plain `swift test` on Windows.
 
-## The `project-template/` directory
+## Architecture
 
-`project-template/` is a starter kit for spinning up a new app built on
-TUI (a `tuikit` scaffold plus an `install.sh` and its own README). It
-is intentionally kept **inline in this repository** rather than split into
-a separate repo: it's small, low-churn, and easiest to keep in step with
-the library when it lives alongside it. It is excluded from source
-archives / GitHub release tarballs via `export-ignore` in `.gitattributes`,
-so it adds no weight for SwiftPM consumers. If it ever grows enough to
-warrant independent versioning, revisit moving it out.
+- **Modular package**: 34 Swift library modules, a macro plugin and 1 in-tree C target, offered as 31 library products: the `TUI` umbrella, which is everything, a product for each module an app or a library may want on its own, and the opt-in `TUIAppKit`, `TUIFilePanelsAppKit` and `TUIMacros` ([Choosing products](https://github.com/wadetregaskis/TUI/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md); Project Structure below)
+- **Per-app state**: every app owns its render state — whether a frame is owed, and the transaction the change behind it was made under — and its views' `@State` and `@Observable` changes reach it through the render cache the app draws with, so two apps in one process never take each other's frames; application state flows through the Environment system. Still process-wide: the localization service (`LocalizationService.shared`), the notification queue (`NotificationService.current`) and the default `@AppStorage` store (`StorageDefaults.backend`)
+- **Pure ANSI rendering**: no ncurses runtime dependency; the only C is the bundled `stb_image` decoder, and only as the fallback where ImageIO is unavailable (selected via `canImport(ImageIO)`, not a hard-coded platform list)
+- **Linux compatible**: works on macOS and Linux (XDG paths supported)
+- **Runs in a browser**: builds for `wasm32-unknown-wasip1`; `Tools/Web/build.sh` compiles the Example app to WebAssembly and `Tools/Web/serve.py` serves it into a terminal made of DOM ([how it works](<Documentation/WebAssembly port.md>))
+- **Value types**: views are structs, just like SwiftUI
+
+### Package dependencies
+
+- [swift-docc-plugin](https://github.com/swiftlang/swift-docc-plugin) — documentation
+- [swift-syntax](https://github.com/swiftlang/swift-syntax) — the `@Animatable` and `@Entry` macros' compiler plugin, built only for an app that depends on the `TUIMacros` product (every client resolves and fetches it)
+- [ordo-one/benchmark](https://github.com/ordo-one/package-benchmark) — performance benchmarks, opt-in via the `TUI_BENCHMARKS` flag: `TUI_BENCHMARKS=1 swift package benchmark` (kept out of the default build/test graph)
+
+## Project structure
+
+```
+Sources/
+├── CSTBImage/            C target: bundled stb_image — image decoder fallback (non-Apple platforms)
+├── TUICore/           Primitives, key/input parsing, frame buffer, concurrency helpers
+│                         (Concurrency, Environment, Extensions, Input, Rendering)
+├── TUIStyling/        Color, theme palettes, border styles (Color, Styles, Theme)
+├── TUIView/           View protocol, ViewBuilder, State, Environment, Renderable
+│                         (Core, Environment, Rendering, State)
+│                         Depends on TUIStyling for ONE reason: `Color: View`
+│                         has to be declared in the module that owns `View`, or
+│                         a `Color` in a ViewBuilder pack beside a generic view
+│                         segfaults the debug runtime (a toolchain bug — see
+│                         Sources/TUIView/Core/ColorAsView.swift)
+├── TUIImage/          ASCII-art converter (braille / fine-blocks / shape / dithering),
+│                         image loading — ImageIO on Apple, else stb_image
+│                         (depends on CSTBImage + TUIStyling)
+├── TUIAppKit/         Bridges to AppKit: Color(nsColor:), NSColor(_:),
+│                         Image(nsImage:) — the module that imports AppKit, so that
+│                         SwiftUICore (which AppKit imports) never reaches an app that
+│                         imports only TUI. Empty off Apple platforms.
+├── TUIFilePanelsAppKit/ The file panels' fileDialogSystemIcons(): NSWorkspace's
+│                         icons (the second module that imports AppKit; a module of
+│                         its own so that TUIAppKit does not link the file panels).
+│                         Empty off Apple platforms.
+├── TUI/               The umbrella: Exports.swift (re-exports, no code), and TUI.docc/ (DocC)
+│
+│   The framework's sources, one directory per module of the planned split
+│   (Tools/ModuleMap; Documentation/Historical/Module split plan, revision 4). Each
+│   became a module of its own when it was carved out of TUIFoundation:
+│   TUIStrings and TUITerminalHost (step B2), which TUIFoundation
+│   re-exports, TUIApp (step B3), TUIColorPicker (step B4, whose
+│   curve-editor panels C9b peeled into TUICurveEditors),
+│   TUINavigation (step B5, which compiled TUIPresentation's directory
+│   too until step C1 peeled it into TUIPresentation), TUILists (step
+│   B6, which compiled TUITables', TUITabs' and TUIGrid's
+│   directories too until steps C2 to C4 peeled them into TUITables,
+│   TUITabs and TUIGrid), TUIChrome, TUIEffects and TUIMenus
+│   (step B5b), TUIBitmaps (step B5c) and TUITextInput (step B7, which
+│   compiled TUIForms', TUISearch's, TUIPickers' and
+│   TUINumericControls' directories too until steps C5 to C8 peeled them
+│   into TUIForms, TUISearch, TUIPickers and
+│   TUINumericControls). TUICommands (lane O13) and TUIScenes
+│   (lane O9) were modules of their own from the start, built on TUIApp,
+│   whose Scene they extend, and so were TUIFilePanels (lane O10), built
+│   on TUIPresentation, TUITables and TUITextInput, and
+│   TUITabImages (Tab's image: initialisers), built on TUIBitmaps and
+│   TUITabs so that neither pays for the other.
+│   TUIApp, TUIColorPicker, TUICurveEditors, TUINavigation,
+│   TUIPresentation,
+│   TUILists, TUITables, TUITabs, TUIGrid, TUIChrome,
+│   TUIEffects, TUIMenus, TUIBitmaps, TUITextInput, TUIForms,
+│   TUISearch, TUIPickers and TUINumericControls are built on
+│   TUIFoundation (TUITables and TUITabs on TUILists as well,
+│   TUITabs on TUIPresentation too,
+│   TUISearch on TUITextInput and TUIPickers, TUICurveEditors
+│   on TUIColorPicker), and the umbrella re-exports all twenty.
+│   Inside each: App/, Views/, Modifiers/, Focus/, ...
+├── TUIStrings/        SF Symbols name table, inline Markdown, format styles,
+│                         localization (translations in 7 languages) and VERSION,
+│                         in the resource bundle TUI_TUIStrings
+├── TUITerminalHost/   Terminal facts as values: host, identity, quirks, capabilities
+├── TUIFoundation/     The base: everything the modules below share — layout,
+│                         stacks, Text, Button, Toggle, focus, state, rendering, ...
+├── TUIChrome/         Status bar view, toolbars, notifications, tooltips, help
+├── TUIEffects/        Transitions, symbol, visual and colour effects
+├── TUIBitmaps/        Image from files and URLs, AsyncImage, the image options
+├── TUIMenus/          Menu, ControlGroup, .contextMenu, menu styles
+├── TUINumericControls/ Slider, Stepper, Gauge, ProgressView
+├── TUITextInput/      TextField, SecureField, TextEditor
+├── TUIPickers/        Picker, DatePicker, RadioButtonGroup
+├── TUILists/          List, OutlineGroup, list styles, row editing
+├── TUIGrid/           Grid, LazyVGrid, LazyHGrid
+├── TUINavigation/     NavigationStack, NavigationSplitView, Inspector
+├── TUIPresentation/   alert, confirmationDialog, sheet, presentation modifiers
+├── TUIForms/          Form, LabeledContent, GroupBox, Card, Panel
+├── TUISearch/         .searchable, search tokens and scopes
+├── TUITables/         Table, columns, rows, table styles
+├── TUITabs/           TabView, Tab, tab styles
+├── TUITabImages/      Tab(_:image:…): a tab's picture found by name, as Image(_:bundle:)
+├── TUIColorPicker/    ColorPicker, ColorPickerPanel and GradientEditorPanel
+├── TUICurveEditors/   The tone-curve and channel-curve editor panels
+├── TUIApp/            App, Scene, WindowGroup, the run loop, the terminal (POSIX)
+├── TUICommands/       Commands, CommandMenu, CommandGroup, .commands: the menu bar
+├── TUIFilePanels/     fileImporter, fileExporter, fileMover: the open and save panels
+├── TUIScenes/         Settings (a sheet) and AlertScene: scenes shown over the windows
+├── Example/        Example app (executable target)
+└── Stress/         Performance stress harness, also a complex-TUI demo (executable)
+
+Tests/                    ~11,600 tests across ~1,560 suites in ~1,360 files, a target per module
+├── TUIFoundationTests/  Tests needing only TUIFoundation and what it re-exports:
+│                         views, layout, styling, rendering, the environment
+├── TUIAppTests/       … the App and run loop, the terminal, input, chrome
+├── TUIListsTests/     One target per feature module (Lists, Tables, Menus,
+├── TUITablesTests/    TextInput, …) for the tests needing it, and maybe the
+├── …                     App, so an edit to a module rebuilds only its tests
+├── TUIIntegrationTests/  Tests needing two feature modules (golden snapshots,
+│                         i18n consistency, cross-control focus): the umbrella
+├── TUITestSupport/    Shared helpers, mocks and golden snapshots; App-, Lists-,
+│                         Tables-… level helpers in TUIAppTestSupport and the like
+├── TUICoreTests/      The low modules' own unit tests, which cannot lean on
+├── TUIStylingTests/   anything above them. Each target imports only what it
+├── TUIViewTests/      depends on: Tools/validate-test-boundaries.sh enforces it
+├── TUIImageTests/
+└── ExampleTests/         The Example app's own views, driven whole (@testable import Example)
+
+Tools/
+├── BuildDocs/            Builds the DocC reference as ONE archive covering every
+│                         module (the module split is not the reader's problem)
+├── Diagrams/             Generates the DocC architecture / lifecycle diagrams from source
+├── EmojiBenchmark/       Benchmarks emoji classification strategies
+├── EmojiBugScanner/      Probes Terminal.app for emoji cursor-advance quirks
+├── GenerateImageGlyphs/  Font-rasterisation calibration tables for the Image glyph renderers
+├── GenerateSFSymbols/    Regenerates the baked SF Symbol name → codepoint table
+├── ProductSmoke/         One tiny app per library product, each on its product alone,
+│                         built and run against the tree as a client would (CI)
+├── Profiling/            Instruments Time Profiler tooling (record.sh, drive.py,
+│                         analyze_timeprofile.py, idle_cpu.py) and the RenderHarness
+│                         executable (no-PTY render loop for `xctrace --launch`)
+├── Smoke/                Drives the Example and Stress apps through a PTY: walks
+│                         every page (crashes only reachable interactively) and
+│                         probes the suspend / fg resume round trip
+└── TerminalProbes/       Reproducible terminal-behaviour probes backing
+                          Documentation/Terminals/Terminal compatibility survey.md
+
+Benchmarks/
+└── TUIBenchmarks/     ordo-one/package-benchmark suite (color, frame buffer, image,
+                          input parsing, layout, list/table, render, scroll, text width,
+                          view identity); run via `TUI_BENCHMARKS=1 swift package benchmark`
+```
+
+## Benchmarks and profiling
+
+- Benchmarks: `TUI_BENCHMARKS=1 swift package benchmark` (full suite) — see `Benchmarks/TUIBenchmarks`. The `TUI_BENCHMARKS` flag opts the `ordo-one/benchmark` dependency into the graph; without it the default build/test stays benchmark-free (no jemalloc requirement, no plugin deprecation warnings).
+- Profiling: see [Tools/Profiling/README.md](Tools/Profiling/README.md) (Instruments Time Profiler via a PTY, plus the no-PTY `RenderHarness` for `xctrace --launch`).
 
 ## Detailed Architecture Rules
 
