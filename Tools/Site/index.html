@@ -1,9 +1,10 @@
 <!doctype html>
 <!--
   🖥️ TUI — A Terminal UI framework for Swift
-  The landing page of the GitHub Pages site: a placeholder until the project
-  has a website of its own. Tools/Site/assemble.sh copies it to the site's
-  root, replacing @REPOSITORY@ and @REPOSITORY_URL@ (so the repository's name
+  The landing page of the GitHub Pages site: the name, the hero clip, the way
+  in to the docs, the demo and the source, and the README's clips. The clips
+  are served from media/latest/, the release assets assemble.sh downloads.
+  Tools/Site/assemble.sh copies it to the site's root, replacing @REPOSITORY@ and @REPOSITORY_URL@ (so the repository's name
   is never written down here, and renaming it needs no edit). Every other link
   is relative, so the page works under any base path.
 -->
@@ -12,7 +13,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>TUI</title>
-    <meta name="description" content="TUI: a SwiftUI-compatible framework for terminal user interfaces, in pure Swift." />
+    <meta name="description" content="TUI: a Terminal UI framework for Swift, modelled after SwiftUI." />
     <style>
       :root {
         color-scheme: light dark;
@@ -42,10 +43,60 @@
         color: var(--ink);
         font: 16px/1.55 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
       }
-      main {
+      main,
+      .column {
         max-width: 44rem;
         margin: 0 auto;
-        padding: 72px 16px 48px;
+        padding: 0 16px;
+      }
+      .intro {
+        padding-top: 72px;
+      }
+      main {
+        padding-top: 8px;
+      }
+      .column:last-child {
+        padding-bottom: 48px;
+      }
+      .wide {
+        max-width: 64rem;
+        margin: 0 auto;
+        padding: 0 16px;
+      }
+      .hero {
+        margin: 40px auto 0;
+        max-width: 50rem;
+        padding: 0 16px;
+      }
+      .hero img,
+      figure img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      h2 {
+        margin: 56px 0 6px;
+        font: 600 1.3rem/1.2 ui-monospace, SFMono-Regular, Menlo, "Cascadia Mono", monospace;
+      }
+      .lede {
+        margin: 0 0 24px;
+        color: var(--muted);
+      }
+      .clips {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr));
+        gap: 28px 24px;
+      }
+      figure {
+        margin: 0;
+      }
+      figcaption {
+        margin-top: 10px;
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+      figcaption strong {
+        color: var(--ink);
       }
       h1 {
         margin: 0;
@@ -108,13 +159,15 @@
     </style>
   </head>
   <body>
-    <main>
+    <header class="column intro">
       <h1>TUI</h1>
-      <p class="tagline">
-        Terminal user interfaces in Swift, written the way you write SwiftUI: no ncurses, no C
-        dependencies, just Swift.
-      </p>
-      <p class="note">A work in progress. Its APIs may change at any time.</p>
+      <p class="tagline">A Terminal UI framework for Swift, modelled after SwiftUI.</p>
+      <p class="note">A work in progress, ahead of its 1.0. Its APIs can change at any time.</p>
+    </header>
+    <div class="hero">
+      <img src="media/latest/mixer.webp" alt="A mixing desk made with TUI, in Ghostty: faders and pan knobs dragged with the mouse, and the level meters answering." />
+    </div>
+    <main>
       <ul>
         <li>
           <a href="docs/documentation/tui/">
@@ -135,7 +188,79 @@
           </a>
         </li>
       </ul>
-      <footer>MIT licensed. <a href="@REPOSITORY_URL@">@REPOSITORY@</a></footer>
     </main>
+    <section class="wide">
+      <h2>In a real terminal</h2>
+      <p class="lede">Every clip is a TUI app playing itself in a real terminal window, filmed and looped.</p>
+      <div class="clips">
+        <figure>
+          <img src="media/latest/images.webp" alt="A picture viewer stepping through wildlife photographs, drawn as real pixels." loading="lazy" />
+          <figcaption><strong>Real pictures.</strong> Photographs drawn as pixels, through the Kitty graphics protocol, wherever the terminal speaks it.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/latest/glyphs.webp" alt="The same kind of picture drawn in text characters, its style changed in an inspector." loading="lazy" />
+          <figcaption><strong>…or text, everywhere else.</strong> Glyph sets, shape matching, palettes, dithering and tone curves, chosen by modifier.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/latest/tables.webp" alt="An activity monitor's process table: scrolled, sorted by column, a row followed, filtered by name." loading="lazy" />
+          <figcaption><strong>Tables.</strong> Live data under a fixed header, sorted by a click on a column, followed, and filtered with <code>.searchable</code>.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/latest/dragdrop.webp" alt="A task board whose cards are dragged between columns, three at once." loading="lazy" />
+          <figcaption><strong>Drag and drop.</strong> Between lists and within them, a whole selection at a time.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/latest/materials.webp" alt="A photo album with a share panel and a toast on frosted glass over it." loading="lazy" />
+          <figcaption><strong>Materials.</strong> Frosted glass over the terminal's own pixels.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/latest/animation.webp" alt="A card game: spells cast from a hand of cards, with a battle log." loading="lazy" />
+          <figcaption><strong>Animation.</strong> <code>withAnimation</code>, springs and transitions, at the terminal's frame rate.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/latest/navigation.webp" alt="A field guide in a three-column split view; a photo zooms up into a screen of its own." loading="lazy" />
+          <figcaption><strong>Navigation.</strong> Split views with columns you can drag, and a photo that zooms into a screen of its own.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/latest/document.webp" alt="A postcard app: a picture picked in an open panel, saved, exported as Markdown." loading="lazy" />
+          <figcaption><strong>Documents.</strong> Open and save panels, unsaved changes, export: a document's whole life.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/latest/controls.webp" alt="An event planner filled in from the keyboard: fields, a pop-up, a stepper, a calendar." loading="lazy" />
+          <figcaption><strong>Controls.</strong> Fields, pop-ups, switches, steppers, gauges and a calendar, every one of them from the keyboard.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/latest/styles.webp" alt="A train booking form whose controls change their look every two seconds." loading="lazy" />
+          <figcaption><strong>Styles.</strong> One form, five looks, a modifier each.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/latest/theming.webp" alt="A build window whose colours and borders change while it runs." loading="lazy" />
+          <figcaption><strong>Themes.</strong> Palettes and borders, changed while the app runs.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/latest/tracks.webp" alt="A backup's progress bar, restyled as it fills, and a bandwidth slider." loading="lazy" />
+          <figcaption><strong>Progress and sliders</strong> in more styles than you will need.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/latest/menus.webp" alt="A mail client's menu bar and context menu in Apple's Terminal." loading="lazy" />
+          <figcaption><strong>Menus.</strong> A menu bar, context menus and keyboard shortcuts, here in Apple's Terminal.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/latest/textedit.webp" alt="A notes editor in Warp: text selected with the mouse, dragged to a new place, edited." loading="lazy" />
+          <figcaption><strong>Text editing.</strong> Select with the mouse, drag to move, jump by word, undo. Here in Warp.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/latest/unicode.webp" alt="One screen of languages and scripts in Ghostty, iTerm2, Apple's Terminal and Warp." loading="lazy" />
+          <figcaption><strong>Every terminal.</strong> One screen in four terminals, each drawn the way that terminal draws text.</figcaption>
+        </figure>
+        <figure>
+          <img src="media/latest/todo.webp" alt="A to-do list: items checked off with confetti, then moving to the bottom." loading="lazy" />
+          <figcaption><strong>The little things.</strong> Confetti, and a finished item walking to the bottom of the list.</figcaption>
+        </figure>
+      </div>
+    </section>
+    <div class="column">
+      <footer>MIT licensed. <a href="@REPOSITORY_URL@">@REPOSITORY@</a></footer>
+    </div>
   </body>
 </html>

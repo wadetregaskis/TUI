@@ -8,7 +8,7 @@ generated files never enter the history and clones do not grow.
 
 | Path | What | Built by |
 |---|---|---|
-| `/` | the landing page — a placeholder until the project has a website — linking to the three below | `Tools/Site/index.html` |
+| `/` | the landing page: the hero clip, links to the three below, and the README's clips from `/media/latest/` | `Tools/Site/index.html` |
 | `/docs/` | the DocC reference; `/docs/` itself redirects to `/docs/documentation/tui/` | `Tools/BuildDocs/build-docs.sh --static-hosting --hosting-base-path <base>/docs`, on macOS as CI's `docs` job does |
 | `/demo/` | the Example app in WebAssembly, which loads only when the visitor presses *Run* | `Tools/Web/build.sh`, in CI's `swift:6.3.3-noble` + wasm SDK pair |
 | `/media/<version>/<name>` | every asset of that version's GitHub release (tag `v<version>`) | `gh release download` |
