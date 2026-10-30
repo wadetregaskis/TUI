@@ -43,11 +43,11 @@ let glyphsClip = Clip(
     budgetKB: 900,
     script: glyphsScript(),
     command: ["Example", "--page", "images"],
-    // Lil' Mac Guy, the macOS mascot (the owner calls him Lil' Finder Guy):
+    // Lil' Finder Guy, the macOS mascot:
     // big flat areas and a few clean edges, which each glyph set and palette
     // keeps or loses legibly. Touko Madobe's fine line work was too detailed
     // to read at this size (the owner, 2026-10-29).
-    environment: ["TUI_GRAPHICS": "0", "TUI_EXAMPLE_PICTURE": "Lil' Mac Guy"]
+    environment: ["TUI_GRAPHICS": "0", "TUI_EXAMPLE_PICTURE": "Lil' Finder Guy"]
 )
 
 /// Every change made in the Inspector, from the keyboard, as a user makes it:
