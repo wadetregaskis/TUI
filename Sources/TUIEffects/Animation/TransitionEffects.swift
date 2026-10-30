@@ -169,7 +169,12 @@ extension AnyTransition.Effect {
         func fading(_ line: String) -> String {
             OpacityFade.fading(line, by: factor, over: surface, defaultForeground: defaultForeground)
         }
-        var faded = buffer.replacingLines(buffer.lines.map(fading))
+        // At the buffer's own width, which its lines need not spell: a view
+        // drawn displaced (`.offset`) leaves an empty footprint of its size
+        // in flow, and measured from its empty lines it was nothing wide, so
+        // an overlay centring it put its picture half its width aside for
+        // every frame of the fade (the Materials clip's toast, 2026-10-29).
+        var faded = buffer.replacingLines(buffer.lines.map(fading), width: buffer.width)
         faded.restyleRuns(fading)
         // What it draws past its slot — an `.offset` child, a matched view
         // carried from another's frame, the cells a move has carried past the
@@ -182,10 +187,29 @@ extension AnyTransition.Effect {
     }
 
     /// The buffer moved by whole cells within its own frame, with whatever
-    /// slides past the edge clipped and the vacated cells blank.
+    /// slides past the edge clipped and the vacated cells blank — and what it
+    /// draws past its frame (an `.offset` child's picture, its layers) moved
+    /// with it, by the same cells.
+    ///
+    /// A buffer that draws nothing in flow — the empty footprint a view drawn
+    /// displaced leaves — keeps its empty lines: blanked to the width, they
+    /// painted out whatever the footprint stood over, and the moving picture
+    /// is all in its layers. Those layers stayed put until 2026-10-29, so a
+    /// toast offset into place and moved in from the bottom appeared where it
+    /// ended, unmoved, and a blank box of its size was drawn where it was laid
+    /// out (the Materials clip).
     private static func translated(_ buffer: FrameBuffer, dx: Int, dy: Int) -> FrameBuffer {
         guard dx != 0 || dy != 0 else { return buffer }
         let width = buffer.width
+        // Only the layers move with it: they are drawn past the frame anyway,
+        // and the hit regions they carry ride inside them. The frame's own
+        // payloads stay as they were.
+        func withLayersMoved(_ lines: [String]) -> FrameBuffer {
+            var result = buffer.replacingLines(lines, width: width)
+            result.overlays = buffer.shiftedOverlays(byX: dx, y: dy)
+            return result
+        }
+        if buffer.lines.allSatisfy(\.isEmpty) { return withLayersMoved(buffer.lines) }
         let blank = String.spaces(max(0, width))
         var moved: [String] = []
         moved.reserveCapacity(buffer.lines.count)
@@ -199,7 +223,7 @@ extension AnyTransition.Effect {
             let line = buffer.lines[source].padToVisibleWidth(width)
             moved.append(shifted(line, by: dx, within: width, blank: blank))
         }
-        return buffer.replacingLines(moved)
+        return withLayersMoved(moved)
     }
 
     /// One line moved sideways within `width`.
@@ -226,6 +250,8 @@ extension AnyTransition.Effect {
         _ buffer: FrameBuffer, by factor: Double, anchor: UnitPoint
     ) -> FrameBuffer {
         let width = buffer.width
+        // A footprint that draws nothing in flow stays one, as in `translated`.
+        guard !buffer.lines.allSatisfy(\.isEmpty) else { return buffer }
         let height = buffer.lines.count
         let shownWidth = Int((Double(width) * factor).rounded())
         let shownHeight = Int((Double(height) * factor).rounded())
@@ -245,6 +271,6 @@ extension AnyTransition.Effect {
             revealed.append(
                 (String.spaces(originX) + kept).padToVisibleWidth(width))
         }
-        return buffer.replacingLines(revealed)
+        return buffer.replacingLines(revealed, width: width)
     }
 }
