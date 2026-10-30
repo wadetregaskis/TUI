@@ -255,7 +255,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     package struct ActiveDrag {
         /// The dragged value, type-erased (drops re-match it by type): one
         /// value, or a selection's values as ``DragItems`` once the container
-        /// the drag started in has gathered them (``carrySelection(_:sources:preview:)``).
+        /// the drag started in has gathered them (``carrySelection(_:sources:picture:)``).
         package internal(set) var payload: Any
 
         /// Whether a selection has been gathered into ``payload``: a container
@@ -294,13 +294,18 @@ package final class DragAndDropSession: @unchecked Sendable {
         /// Empty for a preview with nothing to travel — a `List` row, a
         /// `.draggable` chip — and then the picture is simply ``preview``
         /// throughout.
-        let morph: [FrameBuffer]
+        ///
+        /// Replaced with ``preview`` when a selection's drag gathers its rows
+        /// (``carrySelection(_:sources:picture:)``).
+        var morph: [FrameBuffer]
 
         /// Where the press landed WITHIN the dragged view (its local space)
         /// — the grab point ``DragPreviewAnchor/grabPoint`` keeps under the
         /// cursor.
         let grabX: Int
-        let grabY: Int
+        /// Moved down by the rows stacked above the grabbed one when a
+        /// selection's drag gathers them (``carrySelection(_:sources:picture:)``).
+        var grabY: Int
 
         /// How the preview anchors to the cursor.
         let anchor: DragPreviewAnchor
@@ -573,7 +578,7 @@ package final class DragAndDropSession: @unchecked Sendable {
         return selectionSources.contains { $0 == identity || identity.isAncestor(of: $0) }
     }
 
-    /// The other views a selection's drag carries (``carrySelection(_:sources:preview:)``),
+    /// The other views a selection's drag carries (``carrySelection(_:sources:picture:)``),
     /// drawn as gone with ``source`` while the drag is in flight. A cancelled
     /// drag's preview flies home to ``source`` alone; these come back at once.
     private(set) var selectionSources: Set<ViewIdentity> = [] {
@@ -589,22 +594,42 @@ package final class DragAndDropSession: @unchecked Sendable {
     /// container the drag started in, a `List` or a `Table`, gathers them on the
     /// frame after the drag begins (decisions DRAG-SELECTION, the owner's ruling
     /// of 2026-10-27: dragging a selected row carries the whole selection, the
-    /// Mac's way). `preview` replaces the grabbed row's own. Once per drag.
-    package func carrySelection(_ items: [Any], sources: Set<ViewIdentity>, preview: FrameBuffer? = nil) {
+    /// Mac's way). `picture` replaces the grabbed row's own
+    /// (``selectionPicture(count:grabbed:limit:grabbedFrames:frames:)``). Once
+    /// per drag.
+    package func carrySelection(
+        _ items: [Any], sources: Set<ViewIdentity>, picture: SelectionPicture? = nil
+    ) {
         guard var drag = _active, !drag.carriesSelection else { return }
         drag.carriesSelection = true
         drag.payload = items.count == 1 ? items[0] : DragItems(items: items)
-        // The grabbed row's preview leads, so the grab point stays on it.
-        if let preview { drag.preview = preview.trimmingTrailingBlankCells() }
+        if let picture {
+            drag.preview = picture.preview.trimmingTrailingBlankCells()
+            drag.morph = picture.morph.map { $0.trimmingTrailingBlankCells() }
+            // The grabbed row stays under the pointer, and starts its lift from
+            // its own place, however many rows are stacked above it. An offset
+            // anchor places the stack's corner, not the row, so it is left be.
+            if case .grabPoint = drag.anchor {
+                drag.grabY += picture.linesAboveGrab
+                drag.originY -= picture.linesAboveGrab
+            }
+        }
         _active = drag
         selectionSources = sources.subtracting(source.map { [$0] } ?? [])
         dragMoved()
     }
 
-    /// The payloads ``notePayload(_:for:)`` has been told of while a container
-    /// gathers a selection (``beginGatheringPayloads()``), by the identity of
-    /// the `.draggable` that holds each; `nil` while none gathers.
-    private(set) var gatheredPayloads: [ViewIdentity: () -> Any]?
+    /// What a `.draggable` tells a container gathering a selection: its payload,
+    /// and the picture its drag would carry.
+    package struct NotedDraggable {
+        package let payload: () -> Any
+        package let preview: FrameBuffer
+    }
+
+    /// The `.draggable`s ``notePayload(_:preview:for:)`` has been told of while
+    /// a container gathers a selection (``beginGatheringPayloads(for:)``), by
+    /// identity; `nil` while none gathers.
+    private(set) var gatheredPayloads: [ViewIdentity: NotedDraggable]?
 
     /// The container gathering a selection this frame (``beginGatheringPayloads(for:)``).
     package private(set) var gatheringOwner: ViewIdentity?
@@ -627,9 +652,9 @@ package final class DragAndDropSession: @unchecked Sendable {
         gatheringOwner = owner
     }
 
-    /// The payloads noted since ``beginGatheringPayloads(for:)``, and an end
-    /// to noting them.
-    package func endGatheringPayloads() -> [ViewIdentity: () -> Any] {
+    /// The `.draggable`s noted since ``beginGatheringPayloads(for:)``, and an
+    /// end to noting them.
+    package func endGatheringPayloads() -> [ViewIdentity: NotedDraggable] {
         defer {
             gatheredPayloads = nil
             gatheringOwner = nil
@@ -643,19 +668,12 @@ package final class DragAndDropSession: @unchecked Sendable {
         _active?.carriesSelection = true
     }
 
-    /// Notes a `.draggable`'s payload while a container gathers a selection;
-    /// nothing otherwise.
-    package func notePayload(_ payload: @escaping () -> Any, for identity: ViewIdentity) {
-        if gatheredPayloads != nil { gatheredPayloads?[identity] = payload }
-    }
-
-    /// The grabbed row's preview, with a line under it saying how many more a
-    /// selection's drag carries: the stack a Mac's drag shows, as a terminal can
-    /// say it.
-    package static func selectionPreview(_ grabbed: FrameBuffer, count: Int) -> FrameBuffer {
-        let more = LocalizedStringKey.substituting(
-            ["\(count - 1)"], into: LocalizationService.shared.string(for: LocalizationKey.Label.dragMore))
-        return FrameBuffer(lines: grabbed.lines + [more])
+    /// Notes a `.draggable`'s payload, and the picture its drag would carry,
+    /// while a container gathers a selection; nothing otherwise.
+    package func notePayload(_ payload: @escaping () -> Any, preview: FrameBuffer, for identity: ViewIdentity) {
+        if gatheredPayloads != nil {
+            gatheredPayloads?[identity] = NotedDraggable(payload: payload, preview: preview)
+        }
     }
 
     /// The values a drag's payload carries: a selection's, or the one value.
@@ -1358,7 +1376,7 @@ package final class DragAndDropSession: @unchecked Sendable {
     }
 }
 
-/// A selection's values, dragged as one payload (``DragAndDropSession/carrySelection(_:sources:preview:)``):
+/// A selection's values, dragged as one payload (``DragAndDropSession/carrySelection(_:sources:picture:)``):
 /// a destination for `T` takes it where every value is a `T`, and is handed
 /// them all at once, in the selection's order, as an AppKit table's drop is.
 package struct DragItems {

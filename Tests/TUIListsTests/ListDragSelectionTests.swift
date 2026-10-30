@@ -34,11 +34,21 @@ private final class Model: @unchecked Sendable {
 struct ListDragSelectionTests {
     static let fruits = ["apple", "banana", "cherry", "damson", "elder"]
 
-    /// A list of draggable fruits over a drop zone.
-    private func tree(_ model: Model, _ dropped: Dropped) -> some View {
+    /// A list of draggable fruits over a drop zone; `rowLimit`, where given,
+    /// is the list's `dragPreviewRowLimit(_:)`.
+    private func tree(_ model: Model, _ dropped: Dropped, rowLimit: Int?? = nil) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            List(Self.fruits, id: \.self, selection: model.binding) { fruit in
-                Text(fruit).draggable(fruit)
+            Group {
+                if let rowLimit {
+                    List(Self.fruits, id: \.self, selection: model.binding) { fruit in
+                        Text(fruit).draggable(fruit)
+                    }
+                    .dragPreviewRowLimit(rowLimit)
+                } else {
+                    List(Self.fruits, id: \.self, selection: model.binding) { fruit in
+                        Text(fruit).draggable(fruit)
+                    }
+                }
             }
             .frame(height: 7)
             Text("ZONE==========")
@@ -115,6 +125,61 @@ struct ListDragSelectionTests {
         drag("damson", shift: true, harness: harness) { tree(model, dropped) }
         #expect(model.selection == ["banana", "cherry", "damson"])
         #expect(dropped.drops == [["banana", "cherry", "damson"]])
+    }
+
+    /// Presses on `from`'s row and moves it twice, a frame after each move, so
+    /// the list has gathered the selection; the drag stays in hand.
+    private func pickUp(_ from: String, harness: InputChainHarness, _ build: () -> some View) {
+        let start = cell(of: from, in: harness, build)
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: start.x, y: start.y))
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: start.x + 1, y: start.y + 1))
+        harness.frame(build())
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: start.x + 2, y: start.y + 3))
+        harness.frame(build())
+    }
+
+    /// The lines of the drag's picture, stripped.
+    private func carried(_ harness: InputChainHarness) -> [String] {
+        (harness.tui.dragAndDropSession.active?.preview.lines ?? []).map { $0.stripped }
+    }
+
+    @Test("By default a selection's drag shows the grabbed row and counts the rest")
+    func defaultPreviewCountsTheRest() {
+        let model = Model(["banana", "cherry", "damson"])
+        let harness = InputChainHarness(width: 30, height: 12)
+        pickUp("cherry", harness: harness) { tree(model, Dropped()) }
+        #expect(carried(harness) == ["cherry", "+2 more"])
+        #expect(harness.tui.dragAndDropSession.active?.grabY == 0, "the grabbed row is the picture's first line")
+    }
+
+    @Test("dragPreviewRowLimit(_:) above the count shows every carried row, in the list's order")
+    func raisedLimitShowsEveryRow() {
+        let model = Model(["banana", "cherry", "damson"])
+        let harness = InputChainHarness(width: 30, height: 12)
+        pickUp("damson", harness: harness) { tree(model, Dropped(), rowLimit: 5) }
+        #expect(carried(harness) == ["banana", "cherry", "damson"])
+        // Grabbed by its third row, so the stack hangs two lines above the
+        // pointer and damson stays under it.
+        #expect(harness.tui.dragAndDropSession.active?.grabY == 2)
+    }
+
+    @Test("dragPreviewRowLimit(_:) below the count shows that many, the grabbed one among them, and counts the rest")
+    func partialLimitKeepsTheGrabbedRow() {
+        let model = Model(["apple", "banana", "cherry", "damson"])
+        let harness = InputChainHarness(width: 30, height: 12)
+        pickUp("damson", harness: harness) { tree(model, Dropped(), rowLimit: 2) }
+        #expect(carried(harness) == ["cherry", "damson", "+2 more"])
+        #expect(harness.tui.dragAndDropSession.active?.grabY == 1)
+    }
+
+    @Test("dragPreviewRowLimit(nil) shows every row; a limit below 1 is taken as 1")
+    func nilAndClampedLimits() {
+        let all = InputChainHarness(width: 30, height: 12)
+        pickUp("banana", harness: all) { tree(Model(["banana", "cherry", "damson"]), Dropped(), rowLimit: .some(nil)) }
+        #expect(carried(all) == ["banana", "cherry", "damson"])
+        let none = InputChainHarness(width: 30, height: 12)
+        pickUp("banana", harness: none) { tree(Model(["banana", "cherry", "damson"]), Dropped(), rowLimit: 0) }
+        #expect(carried(none) == ["banana", "+2 more"])
     }
 
     @Test("A selected row scrolled out of the list's window is carried too")

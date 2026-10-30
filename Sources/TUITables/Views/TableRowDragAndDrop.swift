@@ -274,9 +274,13 @@ enum _TableRowDragRegions {
     /// held as it began extends the selection to the row first, as a
     /// Shift-click does (decisions DRAG-SELECTION, 2026-10-27: the Mac's way).
     /// Every row's payload is in its traits, so nothing has to be drawn.
+    ///
+    /// The drag's picture stacks the carried rows' lines (`preview`), as many
+    /// as `limit` lets it (`View.dragPreviewRowLimit(_:)`).
     @MainActor
     static func carrySelection<ID: Hashable>(
-        grabbed: Int, handler: ItemListHandler<ID>, traits: [_TableRowTraits], session: DragAndDropSession
+        grabbed: Int, handler: ItemListHandler<ID>, traits: [_TableRowTraits], session: DragAndDropSession,
+        limit: Int?, preview: @MainActor (Int) -> [String]?
     ) {
         guard let drag = session.active, !drag.carriesSelection, let binding = handler.multiSelection,
             let grabbedID = handler.id(at: grabbed)
@@ -288,15 +292,24 @@ enum _TableRowDragRegions {
             return
         }
         var items: [Any] = []
+        var rows: [Int] = []
         for index in traits.indices where handler.id(at: index).map(selection.contains) == true {
-            if let value = traits[index].dragPayload?() { items.append(value) }
+            if let value = traits[index].dragPayload?() {
+                items.append(value)
+                rows.append(index)
+            }
         }
         guard items.count > 1 else {
             session.carriesNoSelection()
             return
         }
-        session.carrySelection(
-            items, sources: [], preview: DragAndDropSession.selectionPreview(drag.preview, count: items.count))
+        // Only the rows the picture shows are drawn: a table of 50,000 rows
+        // with all of them selected draws `limit`.
+        let picture = DragAndDropSession.selectionPicture(
+            count: items.count, grabbed: rows.firstIndex(of: grabbed) ?? 0, limit: limit,
+            grabbedFrames: drag.pictureFrames,
+            frames: { item in preview(rows[item])?.map { FrameBuffer(lines: [$0]) } })
+        session.carrySelection(items, sources: [], picture: picture)
     }
 
     @MainActor
@@ -317,6 +330,7 @@ enum _TableRowDragRegions {
         else { return }
         let drawing = HandlerDrawing(context)
         let anchor = context.environment.dragPreviewAnchor
+        let limit = context.environment.dragPreviewRowLimit
         for row in rows where traits.indices.contains(row.index) {
             let rowTraits = traits[row.index]
             if let payload = rowTraits.dragPayload {
@@ -332,7 +346,9 @@ enum _TableRowDragRegions {
                             payload: value, preview: FrameBuffer(lines: [frames.last ?? ""]),
                             morph: frames.map { FrameBuffer(lines: [$0]) },
                             grabX: grab.x, grabY: grab.y, anchor: anchor, allowedOperations: allowed)
-                        carrySelection(grabbed: index, handler: handler, traits: traits, session: session)
+                        carrySelection(
+                            grabbed: index, handler: handler, traits: traits, session: session, limit: limit,
+                            preview: preview)
                     },
                     onDragMove: { _ in session.dragMoved() },
                     onDragEnd: { _ in _ = session.performDrop() })
@@ -345,7 +361,9 @@ enum _TableRowDragRegions {
                             payload: value, preview: picture, source: nil, allowedOperations: allowed,
                             origin: origin, handle: handle, focusManager: focusManager)
                     else { return false }
-                    carrySelection(grabbed: index, handler: handler, traits: traits, session: session)
+                    carrySelection(
+                        grabbed: index, handler: handler, traits: traits, session: session, limit: limit,
+                        preview: preview)
                     return true
                 }
             }

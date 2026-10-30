@@ -75,19 +75,27 @@ extension _ListCore {
         for index in selected { _ = source.row(at: index).buffer }
         let noted = session.endGatheringPayloads()
         var items: [Any] = []
+        var pictures: [FrameBuffer] = []
+        var grabbedItem = 0
         var sources = Set<ViewIdentity>()
         for index in selected {
             guard let row = source.content(at: index).rowIdentity,
-                let (identity, payload) = noted.first(where: { $0.key == row || row.isAncestor(of: $0.key) })
+                let (identity, draggable) = noted.first(where: { $0.key == row || row.isAncestor(of: $0.key) })
             else { continue }
-            items.append(payload())
+            if index == grabbed { grabbedItem = items.count }
+            items.append(draggable.payload())
+            pictures.append(draggable.preview)
             sources.insert(identity)
         }
         guard items.count > 1 else {
             session.carriesNoSelection()
             return
         }
-        session.carrySelection(
-            items, sources: sources, preview: DragAndDropSession.selectionPreview(drag.preview, count: items.count))
+        // The grabbed row's own picture is the one its drag began with: drawn
+        // this frame, it is already the blank it leaves in the list.
+        let picture = DragAndDropSession.selectionPicture(
+            count: items.count, grabbed: grabbedItem, limit: context.environment.dragPreviewRowLimit,
+            grabbedFrames: drag.pictureFrames, frames: { [pictures[$0]] })
+        session.carrySelection(items, sources: sources, picture: picture)
     }
 }

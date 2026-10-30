@@ -233,6 +233,11 @@ Dragging requires drag tracking (`.standard` or `.full`). The floating
 preview's grab-point anchoring is configurable via
 `dragPreviewAnchor(_:)`.
 
+Dragging one of several selected rows of a ``List`` or ``Table`` carries them
+all. Its preview shows the grabbed row and a line such as "+2 more" for the
+rest; `dragPreviewRowLimit(_:)` on the list or table lets that many rows ride
+the pointer, stacked in the container's order, before the rest are counted.
+
 A drag source has to take the press to find out whether it becomes a drag, but
 it keeps only the ones that do: a press released without moving is a **click**,
 and goes wherever it would have gone had the source not been there — to an

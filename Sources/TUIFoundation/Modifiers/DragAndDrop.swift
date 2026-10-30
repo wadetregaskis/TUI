@@ -49,6 +49,55 @@ extension View {
     }
 }
 
+// MARK: - Drag Preview Row Limit
+
+private struct DragPreviewRowLimitKey: EnvironmentKey {
+    static let defaultValue: Int? = 1
+}
+
+extension EnvironmentValues {
+    /// How many carried rows the preview of a selection's drag shows before it
+    /// sums up the rest in a "+N more" line; `nil` for every row. Already
+    /// clamped to at least 1 (``View/dragPreviewRowLimit(_:)``).
+    package var dragPreviewRowLimit: Int? {
+        get { self[DragPreviewRowLimitKey.self] }
+        set { self[DragPreviewRowLimitKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// Sets how many rows the floating preview shows when a drag carries a
+    /// selection, before it sums up the rest in a line such as "+2 more".
+    ///
+    /// Dragging one of several selected rows of a `List` or a `Table` carries
+    /// them all. The preview stacks the rows' own pictures in the container's
+    /// order, up to `limit` of them, always including the row the pointer took
+    /// hold of; that row stays under the pointer. With the default limit of 1
+    /// the preview is the grabbed row alone, with a line under it counting the
+    /// others, so twenty selected rows do not hang twenty lines off the pointer.
+    ///
+    /// ```swift
+    /// List(cards, selection: $selection) { card in
+    ///     CardRow(card).draggable(card.id)
+    /// }
+    /// .dragPreviewRowLimit(5)  // up to five rows ride the pointer
+    /// ```
+    ///
+    /// The container composes the picture, so set this on the `List` or
+    /// `Table`, or on a view containing it. A drag that carries one row is
+    /// unaffected.
+    ///
+    /// SwiftUI has no equivalent: the system draws a multi-item drag's stack
+    /// itself (`dragPreviewsFormation(_:)` arranges it, and no count limits
+    /// it). This is a TUI-specific modifier.
+    ///
+    /// - Parameter limit: The most rows the preview shows, or `nil` for all of
+    ///   them. A limit below 1 is taken as 1: the grabbed row always shows.
+    public func dragPreviewRowLimit(_ limit: Int?) -> some View {
+        environment(\.dragPreviewRowLimit, limit.map { max(1, $0) })
+    }
+}
+
 // MARK: - Draggable
 
 /// The view wrapper created by ``View/draggable(_:)``.
@@ -142,17 +191,19 @@ extension DraggableModifier: Renderable, Layoutable {
         previewBuffer.overlays = []
 
         let payload = self.payload
+        let capturedPreview = previewBuffer
         // Told to a container gathering a selection this frame, and journalled so a
-        // memo serving this view tells it too (decisions DRAG-SELECTION).
-        session.notePayload({ payload() }, for: identity)
+        // memo serving this view tells it too (decisions DRAG-SELECTION). The
+        // picture goes with it: a selection's drag stacks the rows it shows.
+        session.notePayload({ payload() }, preview: capturedPreview, for: identity)
         if let journal = context.recordingEffectJournal {
             let token = context.environment.keyChannelToken
             journal.append(
                 EffectJournal.Entry(kind: Self.payloadKind, channelToken: token) { replay in
-                    replay.environment.dragAndDropSession?.notePayload({ payload() }, for: identity)
+                    replay.environment.dragAndDropSession?.notePayload(
+                        { payload() }, preview: capturedPreview, for: identity)
                 })
         }
-        let capturedPreview = previewBuffer
         let anchor = context.environment.dragPreviewAnchor
         let allowed = context.environment.allowedDragOperations
         let handle = _DragHandle.install(

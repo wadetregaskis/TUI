@@ -58,6 +58,51 @@ struct TableRowDragAndDropTests {
         harness.frame(build())
     }
 
+    /// The lines of the picture a drag of `grabbed` carries, with every fruit
+    /// selected, under `limit` (no modifier for `nil`), once it has gathered
+    /// the selection.
+    private func selectionPicture(grabbing grabbed: String, limit: Int?) -> (lines: [String], grabY: Int?) {
+        var selection: Set<String> = ["apple", "pear", "plum"]
+        let harness = InputChainHarness(width: 30, height: 14)
+        let fruit = self.fruit
+        func build() -> some View {
+            let table = Table(of: Fruit.self, selection: Binding(get: { selection }, set: { selection = $0 })) {
+                TableColumn("Name", value: \.name)
+            } rows: {
+                ForEach(fruit) { item in
+                    TableRow(item).draggable(item.name)
+                }
+            }
+            .frame(height: 7)
+            return Group {
+                if let limit { table.dragPreviewRowLimit(limit) } else { table }
+            }
+        }
+        let buffer = harness.frame(build())
+        let row = line(of: grabbed, in: buffer)
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 4, y: row))
+        harness.frame(build())
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 5, y: row + 1))
+        harness.frame(build())
+        let drag = harness.tui.dragAndDropSession.active
+        let lines = (drag?.preview.lines ?? []).map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+        return (lines, drag?.grabY)
+    }
+
+    @Test("By default a selection's drag shows the grabbed row and counts the rest")
+    func selectionPictureDefault() {
+        let picture = selectionPicture(grabbing: "plum", limit: nil)
+        #expect(picture.lines == ["plum", "+2 more"])
+        #expect(picture.grabY == 0)
+    }
+
+    @Test("dragPreviewRowLimit(_:) above the count shows every carried row, in the table's order")
+    func selectionPictureRaisedLimit() {
+        let picture = selectionPicture(grabbing: "plum", limit: 3)
+        #expect(picture.lines == ["apple", "pear", "plum"])
+        #expect(picture.grabY == 2, "the grabbed row stays under the pointer")
+    }
+
     @Test("A draggable row carries its payload to a view's drop destination")
     func draggableRowToView() {
         let log = Log()
