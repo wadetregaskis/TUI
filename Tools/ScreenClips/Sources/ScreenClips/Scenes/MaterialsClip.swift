@@ -148,12 +148,21 @@ struct PhotoLibrary: View {
         // Floating surfaces, not a sheet or an alert: a modal flattens the page
         // behind it to two colours (`dimmedAsBackdrop`), so there would be no
         // library left to frost.
+        // Fades in, but goes at once when answered, as a dialog does: a
+        // frosted panel cannot fade out (its blur is a picture, and a
+        // terminal's pictures have no alpha), so a fade left the glass until it
+        // ended and then took it away in one frame. Its closing shares a frame
+        // with the toast's animated arrival, which TUI draws under one
+        // transaction (deviation A7), so the closing turns animation off here.
         .overlay(alignment: .topLeading) {
-            if sharing {
-                sharePanel
-                    .offset(x: 24, y: 6)
-                    .transition(.opacity)
+            Group {
+                if sharing {
+                    sharePanel
+                        .offset(x: 24, y: 6)
+                        .transition(.opacity)
+                }
             }
+            .transaction { $0.disablesAnimations = !sharing }
         }
         // Centred in the camera's shot (which starts at the window's left
         // edge and is 87 cells wide), not in the 112-cell window.
