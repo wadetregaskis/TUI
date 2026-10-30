@@ -284,29 +284,30 @@ struct FieldGuide: View {
 
     /// A species' photo on its page, where its photo screen zooms from.
     ///
-    /// The zoom draws the photo screen's picture scaled by the map that takes
-    /// the whole stack to this rectangle, and the rest of the screen cut, not
-    /// scaled, by it. So the shapes are chosen for the map to land the
-    /// screen's photo exactly on this one. The stack is 57 × 31 (the film's
-    /// grid is 108 × 31: Ghostty opens the 106 × 30 window a little larger),
-    /// and its photo, as wide as the screen, is 57 × 20 under the two-row bar.
-    /// This rectangle, 28 × 15, takes that to 28 × 10, a row down: where this
-    /// thumbnail is drawn, at its size. Any other shape and the photo folded
-    /// back into a picture of another size and place, held there while the
-    /// zoom ended, and then jumped to this one.
+    /// The zoom draws the photo screen's picture moved and scaled from the
+    /// transition source's frame to its own, and the rest of the screen cut,
+    /// not scaled, by the zoom's rectangle. So the source is the picture
+    /// itself, 28 × 10 (the photo's own aspect, 28 columns wide), not the
+    /// frame round it: marked on the 28 × 15 frame and its padding, the zoom
+    /// started with the photo fitted to all fifteen rows, a row and a half
+    /// below the thumbnail, which it jumped to the instant it was clicked, and
+    /// it folded back into that place too (2026-10-29).
     ///
-    /// 57 × 20 is also the one box near this size whose pixels are the
-    /// photo's own, 720 × 550: what the photo screen sends first is then
-    /// enough for every box it grows to as the columns are dragged and hidden,
-    /// which the terminal is given as placements alone. A box whose pixels
-    /// came out a little wider was sent again, the photo blank meanwhile.
+    /// The stack is 57 × 31 (the film's grid is 108 × 31: Ghostty opens the
+    /// 106 × 30 window a little larger), and its photo, as wide as the screen,
+    /// is 57 × 20 under the two-row bar: the one box near this size whose
+    /// pixels are the photo's own, 720 × 550. What the photo screen sends
+    /// first is then enough for every box it grows to as the columns are
+    /// dragged and hidden, which the terminal is given as placements alone. A
+    /// box whose pixels came out a little wider was sent again, the photo
+    /// blank meanwhile.
     private func thumbnail(_ entry: Species) -> some View {
         Image(.file(ClipAssets.photo(entry.photo)))
             .resizable()
             .scaledToFit()
+            .matchedTransitionSource(id: entry.id, in: zoom)
             .frame(width: 28, height: 14, alignment: .topLeading)
             .padding(.top, 1)
-            .matchedTransitionSource(id: entry.id, in: zoom)
     }
 
     /// A species' name, status, note and figures.
