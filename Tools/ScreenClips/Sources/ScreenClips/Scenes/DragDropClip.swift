@@ -194,6 +194,9 @@ struct TaskBoard: View {
                             register(before)
                         }
                     }
+                    // The three cards dragged together all ride the pointer,
+                    // rather than one and "+2 more".
+                    .dragPreviewRowLimit(5)
                 }
                 .frame(width: 38)
             }
