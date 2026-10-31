@@ -31,8 +31,19 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from unify_symbol_graphs import MODULES, UMBRELLA  # noqa: E402
 
+# Apple-only bridges and the macro product: the unified build runs on any platform
+# and reads no macro declarations.
+NOT_DOCUMENTED = {"TUIAppKit", "TUIFilePanelsAppKit", "TUIMacros"}
+
 KEY = re.compile(r"^[ \t]*(?:-[ \t]*)?documentation_targets[ \t]*:(.*)$", re.MULTILINE)
 FLOW = re.compile(r"[ \t]*\[([^\]]*)\]")
+
+
+def undocumented_products(manifest: str) -> list[str]:
+    """Library products in the manifest that MODULES leaves out, so that a new one
+    cannot be missed by hand: it reaches neither reference until it is listed."""
+    products = set(re.findall(r'\.library\(name: "(\w+)"', manifest))
+    return sorted(products - MODULES - NOT_DOCUMENTED)
 
 
 def uncommented(text: str) -> str:
@@ -70,6 +81,8 @@ def problems(text: str) -> list[str]:
 
 def main(path: pathlib.Path) -> int:
     found = problems(path.read_text())
+    manifest = pathlib.Path(__file__).resolve().parents[2] / "Package.swift"
+    found += [f"library product {name} is not in unify_symbol_graphs.py's MODULES" for name in undocumented_products(manifest.read_text())]
     for problem in found:
         print(f"error: {path}: {problem}", file=sys.stderr)
     return 1 if found else 0

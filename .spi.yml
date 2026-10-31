@@ -10,7 +10,7 @@ builder:
     # first; Tools/BuildDocs/check_spi_targets.py fails the docs build if not.
     # (Tools/BuildDocs/build-docs.sh builds the one-module reference instead.)
     - documentation_targets: [TUI, TUIApp, TUIBitmaps, TUIChrome, TUIColorPicker,
-                              TUICommands, TUICurveEditors, TUIEffects, TUIFilePanels, TUIForms, TUIGrid,
+                              TUICommands, TUICurveEditors, TUIEffects, TUIFilePanelImages, TUIFilePanels, TUIForms, TUIGrid,
                               TUILists, TUIMenus, TUINavigation, TUINumericControls, TUIPickers,
                               TUIPresentation, TUIScenes, TUISearch, TUITabImages, TUITables,
                               TUITabs, TUITextInput,
