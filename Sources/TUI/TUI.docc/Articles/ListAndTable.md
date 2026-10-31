@@ -72,66 +72,71 @@ List("Files", selection: $selectedIDs) {
 }
 ```
 
-### Visual States
+## Sections
 
-A row says two things at once, and they are separate questions. The
-**background** says where the cursor is; the **mark** in the row's leading
-gutter says what is selected. `List` and `Table` answer both identically —
-they reserve a gutter of the same purpose, and since 2026-08-24 both draw in
-it.
+Use ``Section`` to group list items with headers and optional footers:
 
-| State | Background | Gutter |
-|-------|------------|--------|
-| Focused + Selected | Pulsing accent | `●` in the accent |
-| Focused only (the cursor row) | Pulsing focus wash | blank |
-| Selected, not the cursor row | Subtle accent, still | `●`, dimmed |
-| Neither | Default | blank |
+```swift
+List("Settings", selection: $selected) {
+    Section("General") {
+        ForEach(generalItems) { item in
+            Text(item.name)
+        }
+    }
+    Section("Advanced") {
+        ForEach(advancedItems) { item in
+            Text(item.name)
+        }
+    }
+}
+```
 
-So a control with no selection draws no mark on any row: being under the
-cursor is not being chosen. The subtle accent is what says "selected" where the
-mark is hidden (`.rowSelectionIndicator(.hidden)`) — a `Table` drew no fill
-there until 2026-09-29, so its selected rows away from the cursor showed nothing. `.unfocusedSelectionVisibility(.hidden)`
-collapses the third row of that table into the fourth — background and mark
-together — for a transient list where an ambient highlight is more noise
-than signal.
+In a list, section headers are rendered dimmed and bold above the group, and
+footers dimmed below it. Outside a `List`, a `Form` and a `Table`, a `Section`
+is its parts: a stack lays its header, rows and footer out as its own children,
+drawn as written.
 
-The cursor row of a control that has the keys breathes, selected or
-not: motion is what says where the keys go, on a list as on every other
-focused control. Selected, it breathes the accent; not selected, the neutral
-focus wash (``Palette/focusWashPulse()``). At truecolour and 256 colours the
-fills are chosen together, so each state stays distinguishable from the
-others: each breath's dim end sits a little above what it extends — the page,
-or the selected-row tint — and a selected cursor row peaks brighter than
-either an unselected one or a selected row. The shipped palettes' fills were
-chosen at coding time; every other palette's — a custom one, the terminal's
-own colours, a `.tint` subtree — come from a rule that places them the same
-way. A `focusBackground` a palette states is drawn as stated: at truecolour
-the unselected cursor row breathes up from it to twice its distance from the
-page, and on 256 colours its entries are kept wherever the selected rows
-still stand apart from it. On 16 colours the fills are slots of the table the
-terminal reports, and where sixteen are too few to keep the states apart, one end
-of a cursor row's breath is reverse video: the whole row the text's colour, and
-everything on it the page's. The ● is
-what tells the two apart: most palettes' wash shares the accent's hue. A control drawn with `.rowSelectionIndicator(.hidden)` has no ●,
-and its cursor row breathes all the same, selected or not: the focus indicator
-always visibly breathes. A control that does not have the keys draws no
-breath: unfocused, it has no cursor row; focused in a window that has lost the
-terminal's focus, its cursor row holds still — the subtle accent on a selected
-row, the plain wash on one that is not (see <doc:FocusSystem>).
+## Badges
 
-A control that can never draw a mark does not keep the cells for one.
-`Table(_:columns:)` (no selection binding) and `.rowSelectionIndicator(.hidden)`
-both give the two cells back, so their rows and header start one cell inside
-the border like any other bordered content. Only the structural conditions
-count: which row is selected, and whether an unfocused selection is shown,
-change while the app runs, and a column that appeared when you clicked would
-shift every value in the table sideways. `List` reserves nothing to give
-back — it draws its mark in the single pad cell its rows already had.
+Add badges to list rows using the `.badge(_:)` modifier:
 
-How the pulse animates is a separate setting again:
-`.selectionIndicatorStyle(.none | .blink | .pulse)`, and its speed is
-`.indicatorAnimationSpeed(_:for: .focusEmphasis)`. Both govern the emphasis, not
-which cells carry it.
+```swift
+List("Inbox", selection: $selected) {
+    ForEach(mailboxes) { mailbox in
+        Text(mailbox.name)
+            .badge(mailbox.unreadCount)
+    }
+}
+```
+
+Badges appear right-aligned in the row and support both integer and string values.
+
+## Keyboard Navigation
+
+Both List and Table support the same keyboard shortcuts:
+
+| Key | Action |
+|-----|--------|
+| Up | Move focus up (wraps to end) |
+| Down | Move focus down (wraps to start) |
+| Home | Jump to first item |
+| End | Jump to last item |
+| Page Up | Move up by viewport height |
+| Page Down | Move down by viewport height |
+| Space | Toggle selection |
+| Enter | Activate the row (primary action) when one is set, otherwise toggle selection |
+
+Hold Shift with Up/Down to move the cursor by several rows at once (clamping at
+the ends rather than wrapping). The step count is the `.shiftStepMultiplier(_:)`
+environment value (default 5).
+
+With a `Set` selection binding, the macOS multi-selection keyboard model is
+also available: **⇧↑/↓** extends an anchored selection span
+(clamping at the ends, like macOS), <kbd>Ctrl</kbd>+<kbd>V</kbd> toggles a sticky extend mode in
+which plain Up/Down keep extending (Shift then reapplies the accelerated
+step), **⌃A** selects all, and **Escape** acts one stage per press —
+exit extend mode, then clear the selection — falling through to page
+navigation when there is neither to do.
 
 ## Table
 
@@ -155,7 +160,7 @@ struct ContentView: View {
         Table(files, selection: $selectedFile) {
             TableColumn("Name", value: \.name)
             TableColumn("Size", value: \.size)
-                .width(.fixed(10))
+                .width(10)
                 .alignment(.trailing)
             TableColumn("Modified", value: \.modified)
         }
@@ -172,7 +177,7 @@ SwiftUI:
 ```swift
 Table(files, selection: $selectedFile) {
     TableColumn("Name", value: \.name)
-    TableColumn("Size", value: \.byteCount) { file in
+    TableColumn("Size") { file in
         Text(file.byteCount, format: .byteCount(style: .file))
     }
     TableColumn("Kind") { file in
@@ -278,7 +283,7 @@ Table(of: File.self) {
     TableColumn("Name", value: \.name)
 } rows: {
     DisclosureTableRow(downloads, isExpanded: $showsDownloads) {
-        ForEach(downloads.files) { TableRow($0) }
+        ForEach(downloads.children ?? []) { TableRow($0) }
     }
     OutlineGroup(projects, children: \.children)
 }
@@ -388,8 +393,7 @@ rows. A sortable table still sorts from the keyboard.
 customization decides — persisted, if you like, in `@SceneStorage`:
 
 ```swift
-@SceneStorage("ReportsTable") private var stored: TableColumnCustomization<Report>
-@State private var customization = TableColumnCustomization<Report>()
+@SceneStorage("ReportsTable") private var customization: TableColumnCustomization<Report>
 
 Table(reports, columnCustomization: $customization) {
     TableColumn("Title", value: \.title).customizationID("title")
@@ -483,164 +487,6 @@ Table(logEntries) { ... }
 Single-line rows are unaffected — there a line *is* a row, so the extent is
 already exact at no cost.
 
-## Keyboard Navigation
-
-Both List and Table support the same keyboard shortcuts:
-
-| Key | Action |
-|-----|--------|
-| Up | Move focus up (wraps to end) |
-| Down | Move focus down (wraps to start) |
-| Home | Jump to first item |
-| End | Jump to last item |
-| Page Up | Move up by viewport height |
-| Page Down | Move down by viewport height |
-| Space | Toggle selection |
-| Enter | Activate the row (primary action) when one is set, otherwise toggle selection |
-
-Hold Shift with Up/Down to move the cursor by several rows at once (clamping at
-the ends rather than wrapping). The step count is the `.shiftStepMultiplier(_:)`
-environment value (default 5).
-
-With a `Set` selection binding, the macOS multi-selection keyboard model is
-also available: **⇧↑/↓** extends an anchored selection span
-(clamping at the ends, like macOS), <kbd>Ctrl</kbd>+<kbd>V</kbd> toggles a sticky extend mode in
-which plain Up/Down keep extending (Shift then reapplies the accelerated
-step), **⌃A** selects all, and **Escape** acts one stage per press —
-exit extend mode, then clear the selection — falling through to page
-navigation when there is neither to do.
-
-## Scroll Indicators
-
-When content extends beyond the viewport, scroll indicators appear at the
-top and bottom, reporting the number of rows hidden in each direction:
-
-```
-┌─ My List ────────────────────┐
-│        ▲ 4 more above        │
-│ Item 5                       │
-│ Item 6                       │
-│ Item 7                       │
-│        ▼ 12 more below       │
-└──────────────────────────────┘
-```
-
-Instead of the text indicators, List and Table can draw an interactive
-scrollbar (hidden by default). When the bar is visible it replaces the
-"N more" lines — the bar marks the off-screen rows itself, so the rows
-fill the full content area with no reserved indicator line. Opt in and
-customize it with the shared scrollbar modifiers, which also apply to
-ScrollView:
-
-```swift
-List("Items", selection: $selected) { ... }
-    .scrollIndicators(.visible)      // .automatic / .visible / .hidden / .never
-    .scrollbarArrows(.single)        // .none / .single / .double
-    .scrollbarWidth(2)               // a double-width bar; 1 by default
-```
-
-The scrollbar supports a proportional thumb, drag, click-to-page or
-click-to-jump, end-arrow stepping, and auto-repeat while a button is held.
-
-A list or a table keeps one cell clear between its rows' content and the
-bar, so its text does not run into the bar's column of ink; a row's fill (a
-stripe, the selection, the focused row's breath) still runs on to the bar.
-``View/scrollbarSpacing(_:)`` changes it — `0` puts the content against the
-bar, `2` or `3` give it more room:
-
-```swift
-Table(files) { ... }
-    .scrollIndicators(.visible)
-    .scrollbarSpacing(0)
-```
-
-## Sections
-
-Use ``Section`` to group list items with headers and optional footers:
-
-```swift
-List("Settings", selection: $selected) {
-    Section("General") {
-        ForEach(generalItems) { item in
-            Text(item.name)
-        }
-    }
-    Section("Advanced") {
-        ForEach(advancedItems) { item in
-            Text(item.name)
-        }
-    }
-}
-```
-
-In a list, section headers are rendered dimmed and bold above the group, and
-footers dimmed below it. Outside a `List`, a `Form` and a `Table`, a `Section`
-is its parts: a stack lays its header, rows and footer out as its own children,
-drawn as written.
-
-## Badges
-
-Add badges to list rows using the `.badge(_:)` modifier:
-
-```swift
-List("Inbox", selection: $selected) {
-    ForEach(mailboxes) { mailbox in
-        Text(mailbox.name)
-            .badge(mailbox.unreadCount)
-    }
-}
-```
-
-Badges appear right-aligned in the row and support both integer and string values.
-
-## List Modifiers
-
-Lists support several TUI-specific modifiers:
-
-```swift
-List("Items", selection: $selected) {
-    ForEach(items) { item in
-        Text(item.name)
-    }
-}
-.focusID("my-list")                    // Explicit focus identifier
-.listEmptyPlaceholder("Nothing here")  // Custom empty state text
-.listFooterSeparator(false)            // Hide footer separator
-.disabled(isLoading)                   // Disable interaction
-```
-
-| Modifier | Description |
-|----------|-------------|
-| `.focusID(_:)` | Sets a stable, explicit focus identifier |
-| `.listEmptyPlaceholder(_:)` | Text shown when the list has no items (default: "No items"), in the secondary ink where a row's text would start |
-| `.listFooterSeparator(_:)` | Controls the separator line before the footer |
-| `.disabled(_:)` | Prevents keyboard interaction |
-
-## Environment Propagation
-
-Modifiers applied to List or Table propagate to their content:
-
-```swift
-List("Items", selection: $selected) {
-    ForEach(items) { item in
-        Text(item.name)  // Inherits red foreground
-    }
-}
-.foregroundStyle(.red)
-```
-
-## See Also
-
-- ``List``
-- ``Table``
-- ``TableColumn``
-- ``ColumnWidth``
-- ``TruncationMode``
-- ``Section``
-- ``ForEach``
-- ``SelectionMode``
-- <doc:FocusSystem>
-
 ## Reordering from the Keyboard
 
 A list or table that takes `onMove` can be reordered without a mouse.
@@ -695,6 +541,28 @@ all.
 
 Every chord here is rebindable — see ``RowShortcuts``.
 
+### Reordering Several Rows
+
+Grab any row of a multi-selection and the whole selection comes — macOS's rule,
+and what makes a multi-row drag discoverable at all. Grabbing an UNSELECTED row
+takes only that row, which is how you move one row out of a selection without
+clearing it first.
+
+They travel as a block and land as one: a disjoint selection arrives contiguous,
+in its original relative order, through a single `onMove`. So the preview shows
+one slot however many rows are in hand — a gap per row would promise something
+the drop does not do — and that slot is as tall as the block, holding a faint
+copy of every row under ``RowReorderFeedback/dimmed`` and making room for all of
+them under ``RowReorderFeedback/cursor``, which floats the whole block on the
+pointer. Grab it by its third row and it hangs from its third row.
+
+Under ``RowReorderFeedback/live`` a block shuffles as the pointer crosses slots,
+exactly as one row does — it lands after the row it is dragged onto going down,
+before it going up. A KEYBOARD move of several rows previews with a slot instead,
+whatever the view asked for: it has a cancel, and while one `onMove` can gather a
+scattered selection into a block, nothing can scatter it back, so there would be
+nothing to cancel to.
+
 ## Sorting from the Keyboard
 
 A ``Table`` with a `sortOrder` binding sorts from the keyboard as well as from a
@@ -723,24 +591,159 @@ picks a column — ←/→ pick another, <kbd>&lt;</kbd>/<kbd>&gt;</kbd> move it
 it go. ``TableColumnContent/disabledCustomizationBehavior(_:)`` takes away what it
 names; ``RowAction/customizeColumns`` rebinds the chord.
 
-## Reordering Several Rows
+## Scroll Indicators
 
-Grab any row of a multi-selection and the whole selection comes — macOS's rule,
-and what makes a multi-row drag discoverable at all. Grabbing an UNSELECTED row
-takes only that row, which is how you move one row out of a selection without
-clearing it first.
+When the rows don't all fit, a list or table draws a scroll bar in a column at its right-hand edge. The bar shows where you are in the rows, and can be dragged or clicked. Because it takes up a column, the rows have one column less while it's there.
 
-They travel as a block and land as one: a disjoint selection arrives contiguous,
-in its original relative order, through a single `onMove`. So the preview shows
-one slot however many rows are in hand — a gap per row would promise something
-the drop does not do — and that slot is as tall as the block, holding a faint
-copy of every row under ``RowReorderFeedback/dimmed`` and making room for all of
-them under ``RowReorderFeedback/cursor``, which floats the whole block on the
-pointer. Grab it by its third row and it hangs from its third row.
+Hide it, or change how it's drawn, with the same modifiers a ``ScrollView`` takes:
 
-Under ``RowReorderFeedback/live`` a block shuffles as the pointer crosses slots,
-exactly as one row does — it lands after the row it is dragged onto going down,
-before it going up. A KEYBOARD move of several rows previews with a slot instead,
-whatever the view asked for: it has a cancel, and while one `onMove` can gather a
-scattered selection into a block, nothing can scatter it back, so there would be
-nothing to cancel to.
+```swift
+List("Items", selection: $selected) { ... }
+    .scrollIndicators(.hidden)       // .automatic / .visible / .hidden / .never
+
+List("Items", selection: $selected) { ... }
+    .scrollbarArrows(.single)        // .none / .single / .double
+    .scrollbarWidth(2)               // a double-width bar; 1 by default
+```
+
+The scrollbar supports a proportional thumb, drag, click-to-page or
+click-to-jump, end-arrow stepping, and auto-repeat while a button is held.
+
+A list or a table keeps one cell clear between its rows' content and the
+bar, so its text does not run into the bar's column of ink; a row's fill (a
+stripe, the selection, the focused row's breath) still runs on to the bar.
+``View/scrollbarSpacing(_:)`` changes it — `0` puts the content against the
+bar, `2` or `3` give it more room:
+
+```swift
+Table(files) { ... }
+    .scrollIndicators(.visible)
+    .scrollbarSpacing(0)
+```
+
+To say how many rows are out of view instead of showing a bar, ask for the text style. It takes a row at each edge that has rows beyond it, rather than a column:
+
+```swift
+List("Items", selection: $selected) { ... }
+    .scrollIndicatorStyle(.text)
+```
+
+```
+╭─ My List ────────────────────────────╮
+│         ▲ 9 more rows above          │
+│ Row 9                                │
+│ Row 10                               │
+│ Row 11                               │
+│ Row 12                               │
+│ Row 13                               │
+│ Row 14                               │
+│        ▼ 85 more rows below          │
+╰──────────────────────────────────────╯
+```
+
+## List Modifiers
+
+Lists support several TUI-specific modifiers:
+
+```swift
+List("Items", selection: $selected) {
+    ForEach(items) { item in
+        Text(item.name)
+    }
+}
+.focusID("my-list")                    // Explicit focus identifier
+.listEmptyPlaceholder("Nothing here")  // Custom empty state text
+.listFooterSeparator(false)            // Hide footer separator
+.disabled(isLoading)                   // Disable interaction
+```
+
+| Modifier | Description |
+|----------|-------------|
+| `.focusID(_:)` | Sets a stable, explicit focus identifier |
+| `.listEmptyPlaceholder(_:)` | Text shown when the list has no items (default: "No items"), in the secondary ink where a row's text would start |
+| `.listFooterSeparator(_:)` | Controls the separator line before the footer |
+| `.disabled(_:)` | Prevents keyboard interaction |
+
+## Environment Propagation
+
+Modifiers applied to List or Table propagate to their content:
+
+```swift
+List("Items", selection: $selected) {
+    ForEach(items) { item in
+        Text(item.name)  // Inherits red foreground
+    }
+}
+.foregroundStyle(.red)
+```
+
+## How Rows Show Focus and Selection
+
+A row says two things at once, and they are separate questions. The
+**background** says where the cursor is; the **mark** in the row's leading
+gutter says what is selected. `List` and `Table` answer both the same way.
+
+| State | Background | Gutter |
+|-------|------------|--------|
+| Focused + Selected | Pulsing accent | `●` in the accent |
+| Focused only (the cursor row) | Pulsing focus wash | blank |
+| Selected, not the cursor row | Subtle accent, still | `●`, dimmed |
+| Neither | Default | blank |
+
+So a control with no selection draws no mark on any row: being under the
+cursor is not being chosen. The subtle accent is what says "selected" where the
+mark is hidden (`.rowSelectionIndicator(.hidden)`). `.unfocusedSelectionVisibility(.hidden)`
+collapses the third row of that table into the fourth — background and mark
+together — for a transient list where an ambient highlight is more noise
+than signal.
+
+The cursor row of a control that has the keys breathes, selected or
+not: motion is what says where the keys go, on a list as on every other
+focused control. Selected, it breathes the accent; not selected, the neutral
+focus wash (``Palette/focusWashPulse()``). At truecolour and 256 colours the
+fills are chosen together, so each state stays distinguishable from the
+others: each breath's dim end sits a little above what it extends — the page,
+or the selected-row tint — and a selected cursor row peaks brighter than
+either an unselected one or a selected row. The shipped palettes' fills were
+chosen at coding time; every other palette's — a custom one, the terminal's
+own colours, a `.tint` subtree — come from a rule that places them the same
+way. A `focusBackground` a palette states is drawn as stated: at truecolour
+the unselected cursor row breathes up from it to twice its distance from the
+page, and on 256 colours its entries are kept wherever the selected rows
+still stand apart from it. On 16 colours the fills are slots of the table the
+terminal reports, and where sixteen are too few to keep the states apart, one end
+of a cursor row's breath is reverse video: the whole row the text's colour, and
+everything on it the page's. The ● is
+what tells the two apart: most palettes' wash shares the accent's hue. A control drawn with `.rowSelectionIndicator(.hidden)` has no ●,
+and its cursor row breathes all the same, selected or not: the focus indicator
+always visibly breathes. A control that does not have the keys draws no
+breath: unfocused, it has no cursor row; focused in a window that has lost the
+terminal's focus, its cursor row holds still — the subtle accent on a selected
+row, the plain wash on one that is not (see <doc:FocusSystem>).
+
+A control that can never draw a mark does not keep the cells for one.
+`Table(_:columns:)` (no selection binding) and `.rowSelectionIndicator(.hidden)`
+both give the two cells back, so their rows and header start one cell inside
+the border like any other bordered content. Only the structural conditions
+count: which row is selected, and whether an unfocused selection is shown,
+change while the app runs, and a column that appeared when you clicked would
+shift every value in the table sideways. `List` reserves nothing to give
+back — it draws its mark in the single pad cell its rows already had.
+
+How the pulse animates is a separate setting again:
+`.selectionIndicatorStyle(.none | .blink | .pulse)`, and its speed is
+`.indicatorAnimationSpeed(_:for: .focusEmphasis)`. Both govern the emphasis, not
+which cells carry it.
+
+## See Also
+
+- ``List``
+- ``Table``
+- ``TableColumn``
+- ``ColumnWidth``
+- ``TruncationMode``
+- ``Section``
+- ``ForEach``
+- ``SelectionMode``
+- <doc:FocusSystem>
+- <doc:DragAndDrop>
