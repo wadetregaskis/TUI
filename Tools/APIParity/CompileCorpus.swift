@@ -4723,3 +4723,65 @@ private struct CorpusFileDocumentExporters: View {
         }
     }
 }
+
+// MARK: - A selection that is not the rows' id type, and a link as a row
+
+private enum CorpusCategory: String, CaseIterable, Identifiable, Hashable {
+    case fruit, vegetables
+    var id: String { rawValue }
+}
+
+/// Apple's own "migrating to the new navigation types" sidebar.
+@MainActor
+private struct CorpusLinkSidebar: View {
+    @State private var category: CorpusCategory?
+    @State private var categories = Set<CorpusCategory>()
+    @State private var required = CorpusCategory.fruit
+
+    var body: some View {
+        NavigationSplitView {
+            List(CorpusCategory.allCases, selection: $category) { category in
+                NavigationLink(category.rawValue, value: category)
+            }
+        } content: {
+            List(CorpusCategory.allCases, id: \.id, selection: $categories) { category in
+                Text(category.rawValue).tag(category)
+            }
+        } detail: {
+            List(CorpusCategory.allCases, selection: $required) { category in
+                NavigationLink(value: category) { Text(category.rawValue) }
+            }
+        }
+    }
+}
+
+// MARK: - The geometry of a custom Layout
+
+private struct CorpusGeometryLayout: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+        subviews.first?.sizeThatFits(ProposedViewSize.zero) ?? .zero
+    }
+
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        for subview in subviews {
+            subview.place(at: bounds.origin, anchor: .topLeading, proposal: ProposedViewSize(bounds.size))
+        }
+    }
+}
+
+// MARK: - Small parity
+
+@MainActor
+private struct CorpusSmallParity: View {
+    @State private var count = 0
+
+    var body: some View {
+        VStack {
+            Text("a").overlay(.red)
+            Text("b").overlay(.tint)
+            Text("c").onAppear(perform: nil).onDisappear(perform: nil)
+            Text("d").onAppear().onDisappear()
+            Text("e").refreshable { count += 1 }
+        }
+    }
+}
