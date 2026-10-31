@@ -2,17 +2,25 @@
   "_doc": "Reviewed facts for dedup_check.py (README.md beside it). `modules` names the modules whose objects are TUI's and checked; every other module's are the app's, reported only. The entries of `key_path_consumers`, `c_function_addresses` and `address_identity` are regexes matched against DEMANGLED names; `key_path_aliases` lists exact MANGLED getter names. Adding an entry is a review: say where the key paths or addresses come from and why folding cannot change the answer.",
   "modules": {
     "pattern": "TUI[A-Za-z]*",
-    "except": ["TUITestSupport", "TUIWidthCorpus"],
+    "except": [
+      "TUITestSupport",
+      "TUIWidthCorpus"
+    ],
     "why": "Every module a TUI library product ships is named TUI…; TUITestSupport is the tests' and TUIWidthCorpus the tests' and a probe app's, and no product links either into an app."
   },
   "key_path_consumers": {
     "RenderCache\\.EnvironmentSlot": "The environment-change table's key: (identity, keyPath, depth). Only Theme (8 key paths), PinnedScrollableViews (2) and GeometryReader (2 tags) note more than one key path at one (identity, depth); within each site the value types differ, and AnyKeyPath.== compares the class (root AND value type) before any getter, so no fold can make two of them equal. Every other caller (EnvironmentModifier, TransformEnvironmentModifier, the single-key-path sites) notes one key path per depth.",
     "WindowGroup\\.\\(rootViewStatements ": "Root palette discovery (Scene+PaletteOverride.swift): `keyPath == \\EnvironmentValues.palette`. Equal only for a WritableKeyPath<EnvironmentValues, any Palette> whose getter is byte-identical to palette's, i.e. one that reads the palette; treating its value as the palette is what it is.",
     "SceneDisplayOptions\\.init\\(writing:": "The display option an environment write states (SceneDisplayOptions.swift): `keyPath == \\EnvironmentValues.palette`, `.appearance`, `.controlStyle`, for the key path of a scene's `.environment(_:_:)` or of a root-view environment modifier. Equal only for a key path of that root and value type whose getter is byte-identical to the property's, i.e. one that reads that value; counting its write as a write of that value is what it is. The three have different value types, so no fold makes two of them equal.",
-    "_TableSortModel": "Table's sort header (TableColumnSpec.swift, sameColumn): two KeyPathComparators name one column when their key paths are equal. The key paths are the app's own (row types); folded getters read identical values, so the two columns sort identically; the visible effect is one sort indicator for both. The README's caveat, not a TUI defect."
+    "_TableSortModel": "Table's sort header (TableColumnSpec.swift, sameColumn): two KeyPathComparators name one column when their key paths are equal. The key paths are the app's own (row types); folded getters read identical values, so the two columns sort identically; the visible effect is one sort indicator for both. The README's caveat, not a TUI defect.",
+    "KeyPathComparator<TUIFilePanels\\.FileEntry>": "A file panel's sort order compared with the one its rows were arranged in (FileBrowser.refreshKey, arrangeFolders). The key paths name FileEntry's columns; folded getters read identical values, so the two orders arrange the rows alike and skipping a re-sort changes nothing.",
+    "_TableOutlineRoots\\.hasSameRows": "Whether an outline Table's roots are unchanged (TableOutlineRoots.swift): one array buffer and one children key path. The key paths are the app's own; folded getters read identical values, so over one buffer they give the same children.",
+    "key path index (equality|hash) operator for .*WritableKeyPath<B1, A1\\?>": "The compiler's Equatable and Hashable for the children key path a Binding-taking List or OutlineGroup captures as a key path subscript's index (TUILists), reached only if that composed key path is itself compared or hashed. The key paths are the app's own; folded getters read identical values, so a folded pair reads the same children."
   },
   "c_function_addresses": {
-    "FatalSignalTerminalRestore\\.\\(handler ": "COMPARED: endsTheProcess(handlerAddress:) compares SIGQUIT's disposition with it. Listed under address_identity."
+    "FatalSignalTerminalRestore\\.\\(handler ": "COMPARED: endsTheProcess(handlerAddress:) compares SIGQUIT's disposition with it. Listed under address_identity.",
+    "FatalSignalTerminalRestore\\.\\(exitHandler ": "Handed to atexit(3) and never compared: the C library only calls it.",
+    "FatalSignalTerminalRestore\\.\\(alternateStackKey ": "The destructor handed to pthread_key_create and never compared: the C library only calls it."
   },
   "address_identity": [
     "^@objc closure .*FatalSignalTerminalRestore\\.\\(handler "
