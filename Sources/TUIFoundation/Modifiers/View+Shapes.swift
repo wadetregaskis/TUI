@@ -63,6 +63,26 @@ extension View {
     ) -> some View {
         overlay { shape.fill(style, style: fillStyle) }
     }
+
+    /// Layers a style over this view, filling its frame.
+    ///
+    /// SwiftUI's `overlay(_:ignoresSafeAreaEdges:)`, minus the argument: a
+    /// terminal has no safe area for it to talk about, as for
+    /// ``View/background(_:)-(S)``.
+    ///
+    /// - Parameter style: The style to layer over the view.
+    /// - Returns: A view with the style over it.
+    public func overlay<S: ShapeStyle>(_ style: S) -> some View {
+        overlay(style, in: Rectangle())
+    }
+
+    /// The colour spelling, so `.overlay(.red)` and `.overlay(.palette.accent)`
+    /// both infer, the `@_disfavoredOverload` pair ``View/background(_:)-(Color)``
+    /// is.
+    @_disfavoredOverload
+    public func overlay(_ color: Color) -> some View {
+        overlay(color, in: Rectangle())
+    }
 }
 
 // MARK: - A shape as the clip

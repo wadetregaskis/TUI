@@ -67,6 +67,36 @@ struct RefreshableTests {
         #expect(refreshes.total == 1)
     }
 
+    /// Writes its `@State` in the action. That this compiles is half the test:
+    /// the action inherits the body's main actor, as SwiftUI's does, and without
+    /// that this language mode refuses the write.
+    private struct WritesState: View {
+        let refreshes: Lock<Int>
+        @State private var count = 0
+        var body: some View {
+            Text("count \(count)").refreshable {
+                count += 1
+                refreshes.bump()
+            }
+        }
+    }
+
+    @Test("The action inherits the body's actor, and can write @State")
+    func actionWritesState() async {
+        let harness = Harness()
+        let refreshes = Lock(initialState: 0)
+        let view = WritesState(refreshes: refreshes)
+
+        _ = harness.frame(view)
+        harness.press(.character("r"), ctrl: true)
+        await settle(until: { refreshes.total == 1 })
+        // The spinner covers the top row until the action has returned, a beat
+        // after that count, so what it covers is asked for until it shows.
+        func showsTheWrite() -> Bool { harness.frame(view).lines.contains { $0.stripped.contains("count 1") } }
+        await settle(until: { showsTheWrite() })
+        #expect(showsTheWrite())
+    }
+
     @Test("A bare r is left alone")
     func bareRIsNotARefresh() async {
         // Refreshable content is usually a list, and a list's rows are

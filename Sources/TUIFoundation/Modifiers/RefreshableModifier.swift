@@ -213,10 +213,14 @@ extension View {
     /// so a "Reload" button anywhere inside can run the same refresh, and a
     /// view can tell whether it is inside something refreshable at all.
     ///
+    /// The action **inherits the isolation of the context it is written in**, as
+    /// SwiftUI's does. Written inside a view body, which is `@MainActor`, it runs
+    /// on the main actor, so writing `@State` in it needs no `await`.
+    ///
     /// - Parameter action: The async action to run. It is awaited, and the
     ///   spinner shows until it returns.
     /// - Returns: A view that refreshes on <kbd>Ctrl</kbd>-<kbd>R</kbd>.
-    public func refreshable(action: @escaping @Sendable () async -> Void) -> some View {
+    public func refreshable(@_inheritActorContext action: @escaping @Sendable () async -> Void) -> some View {
         RefreshableModifier(content: self, action: action)
     }
 }

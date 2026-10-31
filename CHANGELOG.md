@@ -361,6 +361,9 @@ Fixes an app may have worked around:
 - **Return or Space on a `List`'s cursor follows a `NavigationLink` in that row**, in a list with no selection, with no Tab to the link first. The link keeps its button there, and Tab still reaches it.
 - **A row of a windowed `List` whose tag or link value says nothing for the selection, after row 0 said something, no longer stops the app.** It draws and selects nothing.
 - **The geometry of a custom `Layout` fits together.** `LayoutSubview.place(at:anchor:proposal:)` takes a `CellPoint`, such as `bounds.origin`, beside its tuple; `CellSize.zero` and `ViewSize.zero` exist; `ProposedSize(_:)` makes a proposal of a `ViewSize` or a `CellSize`, and `ProposedViewSize` is SwiftUI's name for `ProposedSize`. `ViewSize` and `CellSize` stay apart, since a `ViewSize` also says which axes can grow, and `CellSize(_:)` and `ViewSize(_:)` convert.
+- **`.overlay(.red)` takes a style with no `in:`**, as `.background(.red)` does, filling the view's frame.
+- **`.refreshable`'s action inherits the actor it is written on**, as SwiftUI's does. Written in a `body` it can write `@State`, and it runs on the main actor, so long synchronous work belongs in a `Task` of its own or a `nonisolated` function.
+- **`onAppear(perform:)` and `onDisappear(perform:)` take an optional closure, defaulting to none**, as SwiftUI's do.
 
 ### Removed deprecated spellings
 

@@ -73,6 +73,7 @@ struct RefreshableMemoTests {
                 Text(name).refreshable { runs.increment() }
             }
         }
+        let idle = harness.frame(view).buffer.lines
 
         for number in 1...3 {
             // The first frame of each round renders: the row is new, or the
@@ -87,6 +88,12 @@ struct RefreshableMemoTests {
             #expect(harness.pressControlR(), "round \(number): Ctrl-R was not taken on a served frame")
             await settle(until: { runs.value == number })
             #expect(runs.value == number, "round \(number): \(runs.value) refreshes")
+            // The action has counted, but its run ends a beat later, and that
+            // ending invalidates the row. So the next round starts once the
+            // spinner has gone, or its frames would race the invalidation. The
+            // action inherits this test's main actor, as an app's inherits its
+            // body's, which widens that beat.
+            await settle(until: { harness.frame(view).buffer.lines == idle })
         }
         #expect(!harness.cache.isEmpty, "the row was never stored")
     }

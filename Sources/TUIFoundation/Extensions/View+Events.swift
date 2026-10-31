@@ -323,12 +323,13 @@ extension View {
     /// }
     /// ```
     ///
-    /// - Parameter action: The action to execute.
+    /// - Parameter action: The action to execute, or `nil` for none, which
+    ///   lets a caller decide at run time whether there is one.
     /// - Returns: A view that executes the action on appearance.
-    public func onAppear(perform action: @escaping () -> Void) -> some View {
+    public func onAppear(perform action: (() -> Void)? = nil) -> some View {
         OnAppearModifier(
             content: self,
-            action: action
+            action: action ?? {}
         )
     }
 
@@ -349,12 +350,13 @@ extension View {
     /// }
     /// ```
     ///
-    /// - Parameter action: The action to execute.
+    /// - Parameter action: The action to execute, or `nil` for none, which
+    ///   lets a caller decide at run time whether there is one.
     /// - Returns: A view that executes the action on disappearance.
-    public func onDisappear(perform action: @escaping () -> Void) -> some View {
+    public func onDisappear(perform action: (() -> Void)? = nil) -> some View {
         OnDisappearModifier(
             content: self,
-            action: action
+            action: action ?? {}
         )
     }
 

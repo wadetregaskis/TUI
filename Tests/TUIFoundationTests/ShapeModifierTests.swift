@@ -54,6 +54,24 @@ struct ShapeModifierTests {
         #expect(lines[2].first == "▜" && lines[2].last == "▛", "\(lines)")
     }
 
+    @Test("A style over a view paints what a rectangle of that style over it paints")
+    func styleOver() {
+        let styled = screen(Text("x").frame(width: 3).overlay(.red), width: 3, height: 1)
+        let shaped = screen(Text("x").frame(width: 3).overlay(.red, in: Rectangle()), width: 3, height: 1)
+        #expect(styled.lines == shaped.lines)
+        #expect(paintedCells(styled.lines[0])[1].background == renderedBackground(of: .red))
+    }
+
+    @Test("A palette colour and a gradient go over a view as a colour does")
+    func otherStylesOver() {
+        let palette = screen(Text("x").frame(width: 3).overlay(.palette.accent), width: 3, height: 1)
+        let gradient = screen(
+            Text("x").frame(width: 3).overlay(LinearGradient(colors: [.red, .blue], startPoint: .leading, endPoint: .trailing)),
+            width: 3, height: 1)
+        #expect(palette.lines[0].stripped == "   ")
+        #expect(gradient.lines[0].stripped == "   ")
+    }
+
     @Test("A rectangle behind a view paints what a background style paints")
     func rectangleBehind() {
         let shaped = screen(Text("x").frame(width: 3).background(.red, in: Rectangle()), width: 3, height: 1)
