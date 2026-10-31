@@ -308,6 +308,18 @@ def child_of(path, app):
     return None, None
 
 
+def is_zombie(pid):
+    """Whether `pid` has ended and is only waiting to be reaped. The app's child is
+    orphaned when the app ends, and in CI's Linux containers process 1 is not an
+    init that reaps it, so signal 0 goes on finding it. Linux only: launchd reaps."""
+    try:
+        with open(f"/proc/{pid}/stat") as handle:
+            # The state follows the command, which is in parentheses and may hold spaces.
+            return handle.read().rpartition(")")[2].split()[0] == "Z"
+    except (OSError, IndexError):
+        return False
+
+
 def child_ends(pid, seconds):
     """Whether process `pid` is gone within `seconds`; killed if it is not."""
     deadline = time.time() + seconds
@@ -315,6 +327,8 @@ def child_ends(pid, seconds):
         try:
             os.kill(pid, 0)
         except ProcessLookupError:
+            return True
+        if is_zombie(pid):
             return True
         time.sleep(0.05)
     try:
