@@ -118,7 +118,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   frame was drawn ([§1](<SwiftUI compatibility guide.md#1-match>), the Env / prefs row).
 - **Why:** U1's reason. Flooring a midpoint before subtracting a half-size
   moves a centred view by a cell in 210 of 861 (extent, size) cases.
-- **Decided:** [§2.2](<SwiftUI compatibility guide.md#22-geometry-is-integer-never-cgpointcgsizecgrect>), [B-D5G-5](<../Historical/Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md#b-d5g-5-cellrect-gains-minx-miny-origin-and-size--and-still-no-midxmidy>). **Recorded.**
+- **Decided:** [§2.2](<SwiftUI compatibility guide.md#22-geometry-is-integer-never-cgpointcgsizecgrect>), [B-D5G-5](<../Historical/Layout and geometry/Where a view is - coordinate spaces, geometry readers and scroll visibility.md#b-d5g-5-cellrect-gains-minx-miny-origin-and-size--and-still-no-midxmidy>). **Recorded.**
 
 ### U3. Default spacing and padding are one cell or none
 
@@ -444,7 +444,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   content's. The width has a mark of its own for the true ask (the
   ideal-width probe, and `.fixedSize()`'s flag when it draws). A height mark
   would take another bit of the measure generation.
-- **Decided:** [B-LAYOUT-6](<../Historical/Layout and geometry/Sharing space: overfull columns and ideal sizes.md#b-layout-6-a-frames-ideal-is-its-size-offered-nothing-across-not-down>).
+- **Decided:** [B-LAYOUT-6](<../Historical/Layout and geometry/Sharing space - overfull columns and ideal sizes.md#b-layout-6-a-frames-ideal-is-its-size-offered-nothing-across-not-down>).
   **Lane.**
 
 ---
@@ -490,7 +490,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   it measured, rows went missing from the page (the owner, 2026-10-28, #10).
   What SwiftUI would still cut here is a child of several lines that can
   shrink; TUI draws it whole.
-- **Decided:** lane, 2026-10-28 ([A-LAYOUT-1](<../Historical/Layout and geometry/Sharing space: overfull columns and ideal sizes.md#a-layout-1-a-column-shares-an-overfull-height-its-childrens-minimums-answered-cheaply>)
+- **Decided:** lane, 2026-10-28 ([A-LAYOUT-1](<../Historical/Layout and geometry/Sharing space - overfull columns and ideal sizes.md#a-layout-1-a-column-shares-an-overfull-height-its-childrens-minimums-answered-cheaply>)
   is about an overfull column). **Lane.**
 
 ## State and data flow
@@ -701,7 +701,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   ([ReduceMotion.swift](../../Sources/TUIApp/Environment/ReduceMotion.swift#L4-L9)).
 - **Why:** the owner's reading: motion means movement in x and y, and the
   framework's own movement should honour the setting.
-- **Decided:** [A-D3M-1](<../Historical/Shapes, effects and animation/Accessibility settings: reduce motion, transparency and contrast.md#a-d3m-1-what-else-reduce-motion-should-hold-still--decided-2026-10-05>), [C-FU2-1](<../Historical/Shapes, effects and animation/Accessibility settings: reduce motion, transparency and contrast.md#c-fu2-1-reduce-motion-does-not-hold-still-an-apps-own-animations>).
+- **Decided:** [A-D3M-1](<../Historical/Shapes, effects and animation/Accessibility settings - reduce motion, transparency and contrast.md#a-d3m-1-what-else-reduce-motion-should-hold-still--decided-2026-10-05>), [C-FU2-1](<../Historical/Shapes, effects and animation/Accessibility settings - reduce motion, transparency and contrast.md#c-fu2-1-reduce-motion-does-not-hold-still-an-apps-own-animations>).
   **Owner** (2026-10-05).
 
 ### E5. The display preferences come from the user's variables, and from the host only where it is local
@@ -724,7 +724,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** the machine an app runs on need not be the one its user sits at,
   so a host setting counts only with positive evidence (refusal review O1).
 - **Decided:** owner ruling P5 (c), 2026-10-23
-  ([VISUALS](<../Historical/Shapes, effects and animation/Accessibility settings: reduce motion, transparency and contrast.md#p5-reduce-transparency-differentiate-without-colour-and-increase-contrast-are-read-as-reduce-motion-is>)).
+  ([VISUALS](<../Historical/Shapes, effects and animation/Accessibility settings - reduce motion, transparency and contrast.md#p5-reduce-transparency-differentiate-without-colour-and-increase-contrast-are-read-as-reduce-motion-is>)).
   **Owner.**
 
 ### E4. A key a locale's language lacks reads English, not the key
@@ -876,7 +876,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   is [slated](#slated-to-change) to follow right-to-left.
 - **Why:** a terminal's clipboard holds one string, and a terminal reports the
   character typed, not the key's place on the keyboard.
-- **Decided:** [B8](<../Historical/Input, keys and gestures/How keys are named: shortcut symbols and spellings.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>); decisions B9, answered on 2026-10-12 (the
+- **Decided:** [B8](<../Historical/Input, keys and gestures/How keys are named - shortcut symbols and spellings.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>); decisions B9, answered on 2026-10-12 (the
   owner asked whether OSC 52 was in the path, and what portable versions would
   take) and removed, since nothing was left to build. **Medium.**
 
@@ -1077,8 +1077,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** decisions A13 (**Owner**, shipped 2026-10-05 and removed from
   the decisions doc; its deferred parts are in
   [Future options](<../Future options.md#handing-the-mouse-to-the-terminal-a132>)),
-  [B-D4X-6](<../Historical/Text, editing and the clipboard/Copying out of a terminal: the clipboard, screen selection and session keepers.md#b-d4x-6-the-screen-selection-is-on-wherever-a-drag-does-nothing-else>), [B-D4X-7](<../Historical/Text, editing and the clipboard/Copying out of a terminal: the clipboard, screen selection and session keepers.md#b-d4x-7-row-text-under-enabled-is-kept-to-the-row-not-to-the-cell>),
-  [B-D4X-8](<../Historical/Text, editing and the clipboard/Copying out of a terminal: the clipboard, screen selection and session keepers.md#b-d4x-8-what-is-selected-is-the-page-not-the-layers-over-it>) (**Lane**).
+  [B-D4X-6](<../Historical/Text, editing and the clipboard/Copying out of a terminal - the clipboard, screen selection and session keepers.md#b-d4x-6-the-screen-selection-is-on-wherever-a-drag-does-nothing-else>), [B-D4X-7](<../Historical/Text, editing and the clipboard/Copying out of a terminal - the clipboard, screen selection and session keepers.md#b-d4x-7-row-text-under-enabled-is-kept-to-the-row-not-to-the-cell>),
+  [B-D4X-8](<../Historical/Text, editing and the clipboard/Copying out of a terminal - the clipboard, screen selection and session keepers.md#b-d4x-8-what-is-selected-is-the-page-not-the-layers-over-it>) (**Lane**).
 
 ### T7. Text entry keys
 
@@ -1236,7 +1236,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   twice as tall as it is wide, so radii and angles are corrected for a circle
   to look like one, and the second sample goes down the cell, where the
   resolution is coarse.
-- **Decided:** [B95](<../Historical/Shapes, effects and animation/Pixel effects: transforms, masks, drawingGroup, blend modes and meshes.md#b95-a-mesh-is-one-sample-a-cell-on-a-glyph-terminal-and-a-picture-where-the-terminal-takes-one>),
+- **Decided:** [B95](<../Historical/Shapes, effects and animation/Pixel effects - transforms, masks, drawingGroup, blend modes and meshes.md#b95-a-mesh-is-one-sample-a-cell-on-a-glyph-terminal-and-a-picture-where-the-terminal-takes-one>),
   [§3, "Closed: `foregroundStyle`…"](<SwiftUI compatibility guide.md#closed-foregroundstyle-takes-some-shapestyle>),
   [AppearanceAndColors](../../Sources/TUI/TUI.docc/Articles/AppearanceAndColors.md#L237-L241).
   **Medium.**
@@ -1490,7 +1490,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   the blend lasts. TUI's own continuous controls, which `tracksVelocity`
   serves in SwiftUI, report a cell at a time and carry no velocity worth
   tracking.
-- **Decided:** [B55](<../Historical/Shapes, effects and animation/Animation timing: curves, springs, keyframes and completions.md#b55-tracksvelocity-is-recorded-and-read-by-nothing-iscontinuous-is-set-by-tuis-own-continuous-controls>), [B58](<../Historical/Shapes, effects and animation/Animation timing: curves, springs, keyframes and completions.md#b58-spring-is-swiftuis-numbers-two-quirks-kept-and-one-not>);
+- **Decided:** [B55](<../Historical/Shapes, effects and animation/Animation timing - curves, springs, keyframes and completions.md#b55-tracksvelocity-is-recorded-and-read-by-nothing-iscontinuous-is-set-by-tuis-own-continuous-controls>), [B58](<../Historical/Shapes, effects and animation/Animation timing - curves, springs, keyframes and completions.md#b58-spring-is-swiftuis-numbers-two-quirks-kept-and-one-not>);
   the velocity and the adding were B58's lane, landed with O3. **Medium**.
 
 ### A2. Animation arithmetic follows the documentation where SwiftUI's answers do not
@@ -1506,7 +1506,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   because ported arithmetic reads them.
 - **Why:** where SwiftUI's answer contradicts its own documentation, or is
   NaN, the documented answer is the one code can rely on.
-- **Decided:** [B57](<../Historical/Shapes, effects and animation/Animation timing: curves, springs, keyframes and completions.md#b57-unitcurve-is-swiftuis-arithmetic-except-where-its-answers-contradict-its-documentation>), [B58](<../Historical/Shapes, effects and animation/Animation timing: curves, springs, keyframes and completions.md#b58-spring-is-swiftuis-numbers-two-quirks-kept-and-one-not>), [B60](<../Historical/Shapes, effects and animation/Animation timing: curves, springs, keyframes and completions.md#b60-keyframe-timelines-follow-swiftuis-curves-measured>).
+- **Decided:** [B57](<../Historical/Shapes, effects and animation/Animation timing - curves, springs, keyframes and completions.md#b57-unitcurve-is-swiftuis-arithmetic-except-where-its-answers-contradict-its-documentation>), [B58](<../Historical/Shapes, effects and animation/Animation timing - curves, springs, keyframes and completions.md#b58-spring-is-swiftuis-numbers-two-quirks-kept-and-one-not>), [B60](<../Historical/Shapes, effects and animation/Animation timing - curves, springs, keyframes and completions.md#b60-keyframe-timelines-follow-swiftuis-curves-measured>).
   **Lane.**
 
 ### A3. Transitions move in whole cells, and a custom one is drawn by scrubbing
@@ -1530,10 +1530,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** a frame is rebuilt from the tree, and a removed view no longer
   exists in it; a transition's parts share one presence, which a part with an
   animation of its own would split.
-- **Decided:** [§2.9](<SwiftUI compatibility guide.md#29-what-clips-a-floating-layer-and-how-far-a-spring-may-carry-a-view>), [B52](<../Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md#b52-a-custom-transitions-body-is-drawn-at-each-frames-point-between-its-phases>), [B54](<../Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md#b54-a-scale-transition-uncovers-from-its-anchor-and-a-scale-above-1-draws-the-view-whole>),
-  [B-TRANSITIONS2-4](<../Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md#b-transitions2-4-a-combined-transition-plays-under-one-animation-for-each-half>);
-  [A34](<../Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md#a34-blurreplacetransition-is-its-scale-and-a-fade>);
-  the size a custom body changes waits on [A-TRANSITIONS2-1](<../Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md#a-transitions2-1-b52-a-custom-transition-that-changes-its-views-size--lay-the-body-out-at-each-frames-size>).
+- **Decided:** [§2.9](<SwiftUI compatibility guide.md#29-what-clips-a-floating-layer-and-how-far-a-spring-may-carry-a-view>), [B52](<../Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md#b52-a-custom-transitions-body-is-drawn-at-each-frames-point-between-its-phases>), [B54](<../Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md#b54-a-scale-transition-uncovers-from-its-anchor-and-a-scale-above-1-draws-the-view-whole>),
+  [B-TRANSITIONS2-4](<../Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md#b-transitions2-4-a-combined-transition-plays-under-one-animation-for-each-half>);
+  [A34](<../Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md#a34-blurreplacetransition-is-its-scale-and-a-fade>);
+  the size a custom body changes waits on [A-TRANSITIONS2-1](<../Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md#a-transitions2-1-b52-a-custom-transition-that-changes-its-views-size--lay-the-body-out-at-each-frames-size>).
   **Medium.**
 
 ### A4. A content transition is a dissolve in each text and image
@@ -1551,7 +1551,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** a cell holds one glyph, so there is no glyph shape to morph or
   roll; the opacity compositor blends a cell's colours and hands its glyph
   over half way.
-- **Decided:** [B61](<../Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md#b61-a-content-transition-dissolves-each-text-and-image>), [§1](<SwiftUI compatibility guide.md#1-match>) (the Symbol effects row).
+- **Decided:** [B61](<../Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md#b61-a-content-transition-dissolves-each-text-and-image>), [§1](<SwiftUI compatibility guide.md#1-match>) (the Symbol effects row).
   **Lane.**
 
 ### A5. A text that changes under an animation snaps
@@ -1564,7 +1564,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** a default dissolve makes every `Text` keep its last drawing in
   state, whether or not anything animates: measured on 2026-10-15 at up to
   +500% a frame (`fanout`), +69% on `textwall`, +13.5% on `menus`.
-- **Decided:** [A40](<../Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md#a40-should-a-content-change-dissolve-by-default-under-an-animation>). **Owner**: agreed on 2026-10-05 to dissolve
+- **Decided:** [A40](<../Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md#a40-should-a-content-change-dissolve-by-default-under-an-animation>). **Owner**: agreed on 2026-10-05 to dissolve
   by default if that cost under about 1%; measured far over it on
   2026-10-15, so a change is drawn at once.
 
@@ -1607,9 +1607,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   Only a container composites a fade against what is beneath it; for two
   fades crossing, over and beneath are the same blend with the weights
   swapped.
-- **Decided:** [decisions FB16](<../Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md>),
+- **Decided:** [decisions FB16](<../Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md>),
   B-FB16-1 to B-FB16-8, B-FB16-13, A-FB16-1;
-  [B-TRANSITIONS2-2](<../Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md#b-transitions2-2-a-conditional-drawn-whole-draws-the-branch-it-leaves-over-the-one-it-takes>).
+  [B-TRANSITIONS2-2](<../Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md#b-transitions2-2-a-conditional-drawn-whole-draws-the-branch-it-leaves-over-the-one-it-takes>).
   **Owner** for the model (FB16 (a′), 2026-10-18); **Lane** for what stops
   short of it.
 
@@ -1643,7 +1643,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   SwiftUI runs when the animation ends — and TUI cannot tell the two
   cases apart; run as the scope returned, they would come before the
   animation had begun.
-- **Decided:** [B-APPSTATE-2](<../Historical/State and dynamic properties/Per-app render state: no singletons.md#b-appstate-2-an-observed-change-reported-with-no-transaction-takes-the-next-scopes>). **Lane.**
+- **Decided:** [B-APPSTATE-2](<../Historical/State and dynamic properties/Per-app render state - no singletons.md#b-appstate-2-an-observed-change-reported-with-no-transaction-takes-the-next-scopes>). **Lane.**
 
 ### A8. A matched view is laid out again at each frame's size, and a removed one is carried at the size it was
 
@@ -1746,8 +1746,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   fading in only at a significant cost, above all with no animation. An
   `if`'s view keeps its fade-out: its `if` keeps one picture, which passed
   its own A/B on 2026-10-14.
-- **Decided:** [B-TR2PERF-1](<../Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md#b-tr2perf-1-a-branch-a-case-and-a-row-fade-in-and-go-at-once>),
-  [B-TR2PERF-2](<../Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md#b-tr2perf-2-an-ifs-view-keeps-its-fade-out>).
+- **Decided:** [B-TR2PERF-1](<../Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md#b-tr2perf-1-a-branch-a-case-and-a-row-fade-in-and-go-at-once>),
+  [B-TR2PERF-2](<../Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md#b-tr2perf-2-an-ifs-view-keeps-its-fade-out>).
   **Owner** (the fallback, 2026-10-14); **Lane** (the measurement).
 
 ---
@@ -1980,7 +1980,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   "hidden" must hear it. A list renders its rows into a window under its
   chrome, and tells them its own origin until it knows where the window put
   them.
-- **Decided:** [B-D5G-1](<../Historical/Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md#b-d5g-1-scroll-visibility-a-removed-view-is-not-reported-a-row-windowed-out-of-a-lazy-stack-is>), [B-D5G-9](<../Historical/Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md#b-d5g-9-a-lists-rows-are-not-placed-by-the-prediction-and-a-list-does-not-own-scrollview>),
+- **Decided:** [B-D5G-1](<../Historical/Layout and geometry/Where a view is - coordinate spaces, geometry readers and scroll visibility.md#b-d5g-1-scroll-visibility-a-removed-view-is-not-reported-a-row-windowed-out-of-a-lazy-stack-is>), [B-D5G-9](<../Historical/Layout and geometry/Where a view is - coordinate spaces, geometry readers and scroll visibility.md#b-d5g-9-a-lists-rows-are-not-placed-by-the-prediction-and-a-list-does-not-own-scrollview>),
   [ScrollViewReader.swift](../../Sources/TUIFoundation/Views/ScrollViewReader.swift#L47-L52).
   **Lane.**
 
@@ -2082,7 +2082,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   row's menu where it has one).
 - **Why:** command-click does not reach many terminals, so the convention's way
   back to "nothing selected" is unavailable.
-- **Decided:** [§2.11](<SwiftUI compatibility guide.md#211-a-plain-click-on-the-selected-row-clears-a-single-selection-where-macos-keeps-it>), [B-D4T-2](<../Historical/Lists, tables and tabs/Acting on rows: the primary action, context menus and section actions.md#b-d4t-2-ctrl-click-on-a-list-or-table-with-a-menu-opens-the-menu-not-a-toggle>). **Owner**
+- **Decided:** [§2.11](<SwiftUI compatibility guide.md#211-a-plain-click-on-the-selected-row-clears-a-single-selection-where-macos-keeps-it>), [B-D4T-2](<../Historical/Lists, tables and tabs/Acting on rows - the primary action, context menus and section actions.md#b-d4t-2-ctrl-click-on-a-list-or-table-with-a-menu-opens-the-menu-not-a-toggle>). **Owner**
   (2026-09-21).
 
 ### V2. The keyboard cursor is apart from the selection
@@ -2098,8 +2098,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   moves.
 - **Why:** not recorded. Space toggling at the cursor is how the keyboard
   builds a selection ([§2.11](<SwiftUI compatibility guide.md#211-a-plain-click-on-the-selected-row-clears-a-single-selection-where-macos-keeps-it>)).
-- **Decided:** [B-D4T-1](<../Historical/Lists, tables and tabs/Acting on rows: the primary action, context menus and section actions.md#b-d4t-1-returns-primary-action-acts-on-the-cursor-rows-set-not-on-the-selection-as-such>), [B73](<../Historical/Lists, tables and tabs/Badges and the prominence of a row.md#b73-background-prominence-raised-on-the-rows-a-list-builds-itself>), [B76](<../Historical/Lists, tables and tabs/Tab views: labels, sidebars, customization and minimizing.md#b76-the-sidebar-style-a-list-beside-the-content-chosen-with-return>),
-  [B77](<../Historical/Lists, tables and tabs/Moving through a list: type select, Home and End.md#b77-type-select-moves-the-cursor-and-a-prefixs-first-character-gives-way-to-bare-key-bindings>). **Lane.**
+- **Decided:** [B-D4T-1](<../Historical/Lists, tables and tabs/Acting on rows - the primary action, context menus and section actions.md#b-d4t-1-returns-primary-action-acts-on-the-cursor-rows-set-not-on-the-selection-as-such>), [B73](<../Historical/Lists, tables and tabs/Badges and the prominence of a row.md#b73-background-prominence-raised-on-the-rows-a-list-builds-itself>), [B76](<../Historical/Lists, tables and tabs/Tab views - labels, sidebars, customization and minimizing.md#b76-the-sidebar-style-a-list-beside-the-content-chosen-with-return>),
+  [B77](<../Historical/Lists, tables and tabs/Moving through a list - type select, Home and End.md#b77-type-select-moves-the-cursor-and-a-prefixs-first-character-gives-way-to-bare-key-bindings>). **Lane.**
 
 ### V3. List and table chrome differs from macOS by default
 
@@ -2129,7 +2129,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   default, both keep their border; removed when they shipped),
   [A-D6L-1](<../Historical/Lists, tables and tabs/Stripes, surfaces and separators.md#a-d6l-1-the-surface-look-try-it-then-decide-what-if-anything-becomes-the-default>),
   [A-D6L-2](<../Historical/Lists, tables and tabs/Stripes, surfaces and separators.md#a-d6l-2-should-a-list-draw-separators-by-default>), [B72](<../Historical/Lists, tables and tabs/Badges and the prominence of a row.md#b72-badge-prominence-two-inks-read-from-the-lists-environment>),
-  [B78](<../Historical/Lists, tables and tabs/Acting on rows: the primary action, context menus and section actions.md#b78-section-actions-shown-while-the-section-is-in-use-after-the-headers-title>). **Under review** (borders and separators),
+  [B78](<../Historical/Lists, tables and tabs/Acting on rows - the primary action, context menus and section actions.md#b78-section-actions-shown-while-the-section-is-in-use-after-the-headers-title>). **Under review** (borders and separators),
   **Lane** (the rest).
 
 ### V4. A table row is one line unless asked
@@ -2143,7 +2143,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** the row height is the owner's answer to B44; the rest is not
   recorded.
 - **Decided:** decisions B44 (the owner's answer, implemented by
-  [lane D4T](<../Historical/Lists, tables and tabs/Acting on rows: the primary action, context menus and section actions.md>)), [B-D4T-5](<../Historical/Lists, tables and tabs/Acting on rows: the primary action, context menus and section actions.md#b-d4t-5-a-section-header-is-lines-of-the-row-below-it-not-a-row-of-its-own>), [§1](<SwiftUI compatibility guide.md#1-match>) (the Data
+  [lane D4T](<../Historical/Lists, tables and tabs/Acting on rows - the primary action, context menus and section actions.md>)), [B-D4T-5](<../Historical/Lists, tables and tabs/Acting on rows - the primary action, context menus and section actions.md#b-d4t-5-a-section-header-is-lines-of-the-row-below-it-not-a-row-of-its-own>), [§1](<SwiftUI compatibility guide.md#1-match>) (the Data
   row). **Owner** (row height), **Lane** (the rest).
 
 ### V5. A collapsed `DisclosureGroup` keeps its content's state
@@ -2179,12 +2179,12 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 | `.automatic` and `.tabBarOnly` tab views | a segmented bar in the toolbar (measured) | a compact strip; `.grouped` draws folder tabs | [§1](<SwiftUI compatibility guide.md#1-match>) (Containers row), **Recorded** |
 | A table row a drop would land on | ringed in the accent | drawn as selected | [B80](<../Historical/Input, keys and gestures/Drag and drop.md#b80-table-row-drag-and-drop-the-rows-own-line-a-selected-look-flat-loops>), **Lane** |
 | A drop at the end of a hierarchical table's branch | aimed at the branch's loop or the next row's by the pointer's indentation (measured) | the deeper loop that takes it | [B-LISTS2-7](<../Historical/Lists, tables and tabs/Which rows a list draws.md#b-lists2-7-a-slot-two-loops-of-a-hierarchical-table-reach-goes-to-the-deeper-loop>), **Lane** |
-| Dragging a sidebar section | (a landing line between sections: not measured) | dropped onto another section's header, it takes that one's place | [B-LISTS2-4](<../Historical/Lists, tables and tabs/Tab views: labels, sidebars, customization and minimizing.md#b-lists2-4-a-sidebars-sections-move-among-the-identified-sections-and-a-drag-drops-onto-a-header>), **Lane** |
+| Dragging a sidebar section | (a landing line between sections: not measured) | dropped onto another section's header, it takes that one's place | [B-LISTS2-4](<../Historical/Lists, tables and tabs/Tab views - labels, sidebars, customization and minimizing.md#b-lists2-4-a-sidebars-sections-move-among-the-identified-sections-and-a-drag-drops-onto-a-header>), **Lane** |
 | `modifierKeyAlternate` in a menu | gets the modified view's shortcut plus its modifiers | takes no shortcut of its own | [B-D1K-2](<../Historical/Input, keys and gestures/The kitty keyboard protocol and modified keys.md#b-d1k-2-a-modifier-key-alternate-in-a-menu-does-not-inherit-the-modified-views-shortcut>), **Lane** |
 | A compact `DatePicker`'s calendar | (macOS keyboard unmeasured) | takes the keyboard as it opens | [B-D2C-2](<../Historical/Presentation and windows/Dialogs and pickers.md#b-d2c-2-a-compact-date-pickers-calendar-takes-the-keyboard-as-it-opens>), **Lane** |
 | A `Section` that is a lazy stack row's `ZStack`'s only child | not the stack's own; does not pin | pins | [B68](<../Historical/Layout and geometry/Sections and pinned headers in lazy stacks.md#b68-which-sections-are-the-stacks-own-the-next-stack-down-and-one-sibling-step>), **Lane** |
 | `.searchable`'s field | in the toolbar, presented by a click; scopes show while search is presented (documented) | always drawn at the top of the subtree; scopes show while it has the focus or a query | [B38](<../Historical/Controls and forms/Sliders, selections and search.md#b38-search-scopes-show-while-the-search-is-under-way-by-a-terminals-reading-of-presented-and-cancelled>), **Lane** |
-| `.searchable` on a `TabView` (macOS 26) | the field goes into the `.search` tab (documented, unmeasured) | a field above the whole tab view | [A50](<../Historical/Lists, tables and tabs/Tab views: labels, sidebars, customization and minimizing.md#a50-search-in-a-tab-view-macos-26-the-search-tab-and-its-activation>), **Owner** (2026-10-04: defer until macOS 26 can be measured) |
+| `.searchable` on a `TabView` (macOS 26) | the field goes into the `.search` tab (documented, unmeasured) | a field above the whole tab view | [A50](<../Historical/Lists, tables and tabs/Tab views - labels, sidebars, customization and minimizing.md#a50-search-in-a-tab-view-macos-26-the-search-tab-and-its-activation>), **Owner** (2026-10-04: defer until macOS 26 can be measured) |
 | `SystemFormatStyle.DateReference` between the measured readings | keeps a time zone of its own; turns at a new year's first instant (measured) | uses the calendar's zone; turns half a second early | [B49](<../Historical/Text, editing and the clipboard/Formatting and live text.md#b49-systemformatstyle-where-the-rules-go-beyond-the-measurements>), **Lane** |
 | An attributed format interpolated into a key | (a custom style's colours: not measured) | draws the characters only | [B88](<../Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md#b88-an-attributed-format-interpolated-into-a-key-draws-the-characters-only>), **Recorded** |
 
@@ -2229,8 +2229,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `min(25, height)` rows; boxes stacked in a sized sheet share its size.
 - **Why:** a terminal sheet has no material, so its box is what shows its
   size.
-- **Decided:** [B-D2C-3](<../Historical/Presentation and windows/Sheets: sizes, detents, live sheets and the page behind.md#b-d2c-3-form-is-25-rows-tall>), [B-D2C-4](<../Historical/Presentation and windows/Sheets: sizes, detents, live sheets and the page behind.md#b-d2c-4-no-minimum-sheet-size>),
-  [B-D2C-5](<../Historical/Presentation and windows/Sheets: sizes, detents, live sheets and the page behind.md#b-d2c-5-a-sized-sheets-boxes-share-its-size-in-a-stack-and-size-to-content-in-a-scroll-view--nowhere-else>). **Lane.**
+- **Decided:** [B-D2C-3](<../Historical/Presentation and windows/Sheets - sizes, detents, live sheets and the page behind.md#b-d2c-3-form-is-25-rows-tall>), [B-D2C-4](<../Historical/Presentation and windows/Sheets - sizes, detents, live sheets and the page behind.md#b-d2c-4-no-minimum-sheet-size>),
+  [B-D2C-5](<../Historical/Presentation and windows/Sheets - sizes, detents, live sheets and the page behind.md#b-d2c-5-a-sized-sheets-boxes-share-its-size-in-a-stack-and-size-to-content-in-a-scroll-view--nowhere-else>). **Lane.**
 
 ### W4. Detents and live sheets
 
@@ -2243,7 +2243,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   detents or more. A live sheet presented from a modal presentation is a modal.
 - **Why:** Tab and the arrow keys would reach a page drawn under the sheet.
 - **Decided:** [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tui-should-add-it>) (the Presentation row),
-  [B-D7S-1](<../Historical/Presentation and windows/Sheets: sizes, detents, live sheets and the page behind.md#b-d7s-1-the-grabber-is-a-rule-of-its-own-and-a-sheet-with-one-detent-has-none-whatever-the-indicator-says>), [B-D7S-4](<../Historical/Presentation and windows/Sheets: sizes, detents, live sheets and the page behind.md#b-d7s-4-a-live-sheet-presented-from-inside-a-modal-presentation-is-a-modal>). **Lane.**
+  [B-D7S-1](<../Historical/Presentation and windows/Sheets - sizes, detents, live sheets and the page behind.md#b-d7s-1-the-grabber-is-a-rule-of-its-own-and-a-sheet-with-one-detent-has-none-whatever-the-indicator-says>), [B-D7S-4](<../Historical/Presentation and windows/Sheets - sizes, detents, live sheets and the page behind.md#b-d7s-4-a-live-sheet-presented-from-inside-a-modal-presentation-is-a-modal>). **Lane.**
 
 ### W5. A critical dialog's caution sign is an emoji
 
@@ -2323,7 +2323,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   2026-10-12: secondary scenes are full-surface covers stacked over the main
   one, room left for a real windowing model (the presenter's policy, which a
   tiling or overlapping one can replace).
-- **Decided:** [B-O9-1](<../Historical/Presentation and windows/Windows: several scenes on one surface.md#b-o9-1-windows-are-full-surface-covers-stacked-over-one-another>). **Owner** (the policy), **Lane** (the details).
+- **Decided:** [B-O9-1](<../Historical/Presentation and windows/Windows - several scenes on one surface.md#b-o9-1-windows-are-full-surface-covers-stacked-over-one-another>). **Owner** (the policy), **Lane** (the details).
 
 ### W10. Escape closes a window opened over another
 
@@ -2339,7 +2339,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** a terminal has no close button and no ⌘ key, and a window's content
   need not offer a way out; without one, a window opened over the main one
   would hold the reader.
-- **Decided:** [B-O9-2](<../Historical/Presentation and windows/Windows: several scenes on one surface.md#b-o9-2-escape-closes-a-window-opened-over-another>). **Lane.**
+- **Decided:** [B-O9-2](<../Historical/Presentation and windows/Windows - several scenes on one surface.md#b-o9-2-escape-closes-a-window-opened-over-another>). **Lane.**
 
 ### W11. Closing the last window quits the app
 
@@ -2351,7 +2351,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   declares no window scene quits at launch.
 - **Why:** a terminal app with no window open would show nothing, and could be
   given no input that opens one.
-- **Decided:** [B-O9-3](<../Historical/Presentation and windows/Windows: several scenes on one surface.md#b-o9-3-the-last-window-closing-quits-the-app>). **Lane.**
+- **Decided:** [B-O9-3](<../Historical/Presentation and windows/Windows - several scenes on one surface.md#b-o9-3-the-last-window-closing-quits-the-app>). **Lane.**
 
 ### W12. Settings is a sheet over the window in front
 
@@ -2363,7 +2363,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   up (`SettingsSceneTests`).
 - **Why:** refusal review O9, ruled 2026-10-12: `openSettings` presents the
   `Settings` scene as a sheet.
-- **Decided:** [B-O9-6](<../Historical/Presentation and windows/Windows: several scenes on one surface.md#b-o9-6-settings-is-a-sheet-over-the-window-in-front>). **Owner.**
+- **Decided:** [B-O9-6](<../Historical/Presentation and windows/Windows - several scenes on one surface.md#b-o9-6-settings-is-a-sheet-over-the-window-in-front>). **Owner.**
 
 ### W13. The Window menu closes a window; File has Close and Close All but no New Window
 
@@ -2386,7 +2386,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   and Ctrl-W is a text field's word rubout, which the owner put first
   (ruling O9, 2026-10-26). New Window's ⌘N is Ctrl-N, a text field's next
   line, and is not built.
-- **Decided:** [B-O9-9](<../Historical/Presentation and windows/Windows: several scenes on one surface.md#b-o9-9-the-window-menu-lists-the-windows-and-closes-the-one-in-front>). **Lane.**
+- **Decided:** [B-O9-9](<../Historical/Presentation and windows/Windows - several scenes on one surface.md#b-o9-9-the-window-menu-lists-the-windows-and-closes-the-one-in-front>). **Lane.**
 
 ### W14. A file panel is TUI's own, browsing the machine the app runs on
 
@@ -2431,7 +2431,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** the dialog's buttons are ordinary `Button`s in its focus section, and
   the default button's rule is the framework's, not the dialog's; opening on the
   default button is the fuller version, priced in the decision.
-- **Decided:** [B-MENUS-1](<../Historical/Menus, toolbars and chrome/Pop-up menus: submenus, type select and an alert's buttons.md#b-menus-1-an-alert-keeps-disabled-and-keyboardshortcut-on-its-buttons-its-default-button-answers-the-return-the-focused-button-lets-through>).
+- **Decided:** [B-MENUS-1](<../Historical/Menus, toolbars and chrome/Pop-up menus - submenus, type select and an alert's buttons.md#b-menus-1-an-alert-keeps-disabled-and-keyboardshortcut-on-its-buttons-its-default-button-answers-the-return-the-focused-button-lets-through>).
   **Lane**.
 
 ### W16. Escape closes one submenu, and the pointer's way into a submenu is across
@@ -2453,7 +2453,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   last moves, priced in the decision. macOS's radio-group form cannot be used:
   it shows no selection, so TUI checks the selected option, as a picker's
   other menu forms do.
-- **Decided:** [B-MENUS-2](<../Historical/Menus, toolbars and chrome/Pop-up menus: submenus, type select and an alert's buttons.md#b-menus-2-a-menu-and-a-picker-in-a-pop-up-menu-are-submenus-opened-by-right-and-closed-by-left-or-escape>).
+- **Decided:** [B-MENUS-2](<../Historical/Menus, toolbars and chrome/Pop-up menus - submenus, type select and an alert's buttons.md#b-menus-2-a-menu-and-a-picker-in-a-pop-up-menu-are-submenus-opened-by-right-and-closed-by-left-or-escape>).
   **Lane**.
 ---
 
@@ -2469,7 +2469,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `onScrollVisibilityChange` reports it hidden (R10).
 - **Why:** L7's: TUI keeps no view objects, so nothing ends a row's state
   while the stack still lists the row.
-- **Decided:** [§2.8](<SwiftUI compatibility guide.md#28-lazy-stacks-window-the-render-list-is-the-scalable-container>), [B-D5G-1](<../Historical/Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md#b-d5g-1-scroll-visibility-a-removed-view-is-not-reported-a-row-windowed-out-of-a-lazy-stack-is>). **Recorded.**
+- **Decided:** [§2.8](<SwiftUI compatibility guide.md#28-lazy-stacks-window-the-render-list-is-the-scalable-container>), [B-D5G-1](<../Historical/Layout and geometry/Where a view is - coordinate spaces, geometry readers and scroll visibility.md#b-d5g-1-scroll-visibility-a-removed-view-is-not-reported-a-row-windowed-out-of-a-lazy-stack-is>). **Recorded.**
 
 ### F2. Animations carry on in an inactive scene
 
@@ -2491,8 +2491,8 @@ on. Each waits on the work, or on the ruling, its State names.
 | Difference | Where | State |
 |---|---|---|
 | Size classes, `\.displayScale`, `\.dynamicTypeSize` and `\.isLuminanceReduced` are settable; the size classes are read by `.viewAligned`, and a written `.compact` makes a popover a sheet (a tab's too, since 2026-10-24), collapses a `NavigationSplitView` (A21), shows a `Table`'s first column alone and a `.sidebarAdaptable` tab view's strip (a `.bordered` or `.grouped` one's too, under `tabBarMinimizeBehavior`'s `.automatic`, since 2026-10-24), while nothing reads the other three. On macOS SwiftUI's own text ignores the last three too (measured), so this is a planned extension past macOS, not a difference from it | [B3](<../Historical/Layout and geometry/Safe areas, size classes and layout direction.md#b3-size-classes-are-settable-and-nothing-tui-draws-reads-them>) | Owner 2026-10-12: follow a written `.compact` where possible (popover to sheet, split-view collapse, compact `Table` and sidebar tab view); keep the defaults. All four shipped 2026-10-13 |
-| `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<../Historical/Input, keys and gestures/How keys are named: shortcut symbols and spellings.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
-| In a lazy stack, a `Grid`, a `List` and a `Table`, a view that an `if`/`else`'s branch, a `switch` or a `ForEach` row puts in under an animation appears at once, where SwiftUI's fades in (`.opacity`), and one with a `.transition(_:)` goes at once, where SwiftUI's plays it on the way out. An `if`'s view fades in and out everywhere (2026-10-14); a branch, a case and a row fade in, and play their own removal, in an eager stack, a `ZStack`, a `Layout` and a conditional drawn whole (2026-10-19), and go at once with none (A10) | [ChildFade.swift](../../Sources/TUIView/Animation/ChildFade.swift), [B-TRANSITIONS2-1](<../Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md#b-transitions2-1-a-branch-a-case-and-a-row-fade-in-where-a-container-remembers-its-children>) | Lane: the containers that window their rows or lay out a lattice keep no memory of their children yet (B-FB16-2, B-FB16-3, B-FB16-5); the fuller version is priced with theirs |
+| `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<../Historical/Input, keys and gestures/How keys are named - shortcut symbols and spellings.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
+| In a lazy stack, a `Grid`, a `List` and a `Table`, a view that an `if`/`else`'s branch, a `switch` or a `ForEach` row puts in under an animation appears at once, where SwiftUI's fades in (`.opacity`), and one with a `.transition(_:)` goes at once, where SwiftUI's plays it on the way out. An `if`'s view fades in and out everywhere (2026-10-14); a branch, a case and a row fade in, and play their own removal, in an eager stack, a `ZStack`, a `Layout` and a conditional drawn whole (2026-10-19), and go at once with none (A10) | [ChildFade.swift](../../Sources/TUIView/Animation/ChildFade.swift), [B-TRANSITIONS2-1](<../Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md#b-transitions2-1-a-branch-a-case-and-a-row-fade-in-where-a-container-remembers-its-children>) | Lane: the containers that window their rows or lay out a lattice keep no memory of their children yet (B-FB16-2, B-FB16-3, B-FB16-5); the fuller version is priced with theirs |
 | A `TableColumn`'s header and a `Tab`'s title draw their key's Markdown words but not its styles (a field's title is plain words, as SwiftUI's placeholder is); every other control's title key is drawn styled (2026-10-15, 2026-10-18) | [B87](<../Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md#b87-markdown-in-a-controls-title-key-parsed-though-a-column-header-and-a-tab-title-draw-only-its-words>), [B-PARITYMISC-3](<../Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md#b-paritymisc-3-a-column-header-and-a-tab-title-draw-their-keys-markdown-words-not-its-styles>) | Lane: the fuller version draws the styles |
 | A modifier reaches multi-view content through some wrappers only | [§3](<SwiftUI compatibility guide.md#3-open-divergence>) | Open divergence |
 | An `indirect` enum case's `update()` changes are not written back; nor any enum payload's on WebAssembly and Windows | [B-DYNVFIX-2](<../Historical/State and dynamic properties/Finding dynamic properties, and writing back what update() changes.md#b-dynvfix-2-an-indirect-enum-cases-payload-and-every-payload-on-webassembly-and-windows-is-updated-on-a-copy>) | Known; fuller version priced |

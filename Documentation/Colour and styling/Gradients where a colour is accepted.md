@@ -814,7 +814,7 @@ each one makes — `RenderContext.gradientContentFrame(width:height:)` then
 geometry origin of the A2 coordinate spaces onto the child in the same call.)
 
 **Since 2026-10-05 the composers place their content too** (decisions A2,
-rung 3; B-D5G-10 in `Historical/Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md`): `.padding`, a
+rung 3; B-D5G-10 in `Historical/Layout and geometry/Where a view is - coordinate spaces, geometry readers and scroll visibility.md`): `.padding`, a
 border or box (`.border()`, `ContainerView` and what is built on it), `.frame`'s
 alignment, `.overlay`/`.background` and the preference layers, and `ZStack`
 each move the ramp onto their content where they draw it. Content under them

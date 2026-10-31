@@ -3,7 +3,7 @@
 *How a localized key is looked up: the order of languages, a language TUI
 does not ship, and a `\.locale` override. Ids: A14's lookup order, B-FU2-1,
 B-PARITYMISC-5, LOCALE-B, A-APPSTATE-1 (in
-[Per-app render state](<../State and dynamic properties/Per-app render state: no singletons.md>)).*
+[Per-app render state](<../State and dynamic properties/Per-app render state - no singletons.md>)).*
 
 ## In short
 

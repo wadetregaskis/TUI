@@ -79,7 +79,7 @@ agreed, not shipped: it cost far more than 1% (see A40).
 A22 and A26 (O9) and A24 (O0, O15); A42, B19 (after its A/B). B22's look at
 the faint tiers was taken on 2026-10-19 (lane EFFECTS): the faintest vanish at
 16 and 256 colours, and what to do is A-EFFECTS-1, in
-[Blend modes and image details (EFFECTS)](<../Shapes, effects and animation/Pixel effects: transforms, masks, drawingGroup, blend modes and meshes.md>).
+[Blend modes and image details (EFFECTS)](<../Shapes, effects and animation/Pixel effects - transforms, masks, drawingGroup, blend modes and meshes.md>).
 B3's lane shipped on 2026-10-13 with most of A21; A21 lists what is left.
 Shipped on 2026-10-14 (their entries removed): A25; O7 with A12; O1; O17; O2 with A37.
 Shipped on 2026-10-18: O0's shapes (lane W1); O3's merging and additive

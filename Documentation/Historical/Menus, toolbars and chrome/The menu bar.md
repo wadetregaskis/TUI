@@ -205,7 +205,7 @@ an hour, with its test. The Window menu's groups (`windowList`,
 
 **Shipped (2026-10-18, lane O9):** Settings… on ⌘, where the app declares a
 `Settings` scene, and the Window menu's three groups for an app that can open
-more than one window — [B-O9-9](<../Presentation and windows/Windows: several scenes on one surface.md#b-o9-9-the-window-menu-lists-the-windows-and-closes-the-one-in-front>).
+more than one window — [B-O9-9](<../Presentation and windows/Windows - several scenes on one surface.md#b-o9-9-the-window-menu-lists-the-windows-and-closes-the-one-in-front>).
 
 ### B-O13-8. The standard command sets, as a terminal app has them
 

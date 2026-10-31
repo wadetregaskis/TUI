@@ -64,7 +64,7 @@ on every palette, `.secondary` is `.primary`'s colour and `.tertiary` to
 `.quinary` is the page on five palettes and `.quaternary` too on three, and
 some neighbours share a colour. The rendered contrast floor does not reach
 content text. Nothing changed: a vanishing level is your call,
-[A-EFFECTS-1](<../Shapes, effects and animation/Pixel effects: transforms, masks, drawingGroup, blend modes and meshes.md#a-effects-1-the-faint-content-levels-vanish-at-16-colours-and-the-faintest-at-256>).
+[A-EFFECTS-1](<../Shapes, effects and animation/Pixel effects - transforms, masks, drawingGroup, blend modes and meshes.md#a-effects-1-the-faint-content-levels-vanish-at-16-colours-and-the-faintest-at-256>).
 
 ### B2. `\.legibilityWeight` is settable, and every text-drawing site steps its weight
 

@@ -2,7 +2,7 @@
 
 *How TUI's update model was set beside SwiftUI's: what runs when, the order
 effects fire in, and the change that made effects run after the walk. Ids:
-B-D5G-11 (in [the geometry story](<../Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md>)),
+B-D5G-11 (in [the geometry story](<../Layout and geometry/Where a view is - coordinate spaces, geometry readers and scroll visibility.md>)),
 the effect-convergence ruling of 2026-10-25; the two investigations of
 2026-10-24, appended.*
 
@@ -229,7 +229,7 @@ The consequences:
 
 #### 2.3 SwiftUI's effect ordering, measured
 
-From [SwiftUI's update and effect ordering, measured](<The update model: when effects run.md>)
+From [SwiftUI's update and effect ordering, measured](<The update model - when effects run.md>)
 (probe `Tools/SwiftUIProbes/Effect and update ordering/`, each case run four times, on macOS 15.8.1's
 SwiftUI built with Xcode 26.3; macOS 26's SwiftUI is untested). Every item is measured unless it says
 otherwise:
@@ -733,7 +733,7 @@ The reasons:
 - [M] TUI's own SwiftUI probes, `Tools/SwiftUIProbes/Coordinate spaces and scroll visibility (D5G)/` and
   their neighbours: scroll visibility reports, `.scrollView` in viewport space, unknown names answering
   globally.
-- [M] `Tools/SwiftUIProbes/Effect and update ordering/`, written up in [SwiftUI's update and effect ordering, measured](<The update model: when effects run.md>)
+- [M] `Tools/SwiftUIProbes/Effect and update ordering/`, written up in [SwiftUI's update and effect ordering, measured](<The update model - when effects run.md>)
   (2026-10-24, macOS 15.8.1): where effects run, re-updates and their cut-offs, `GeometryReader` sizes,
   `.task`'s start, a `@State` write in `body`.
 
@@ -744,9 +744,9 @@ The reasons:
   TUI uses single-pass rendering with no layout phase", which is this document's subject in one line.
 - [Locating things without drawing them](<../../Layout and scrolling/Locating things without drawing them.md>):
   §7 weighs retained trees (7i), a retained layout tree (7j) and SwiftUI's `Layout` shape (7h).
-- [Geometry design study, A2 and A7](<../Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md>): G1,
+- [Geometry design study, A2 and A7](<../Layout and geometry/Where a view is - coordinate spaces, geometry readers and scroll visibility.md>): G1,
   G3, G4 and the container audit.
-- [Decisions D5G](<../Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md>):
+- [Decisions D5G](<../Layout and geometry/Where a view is - coordinate spaces, geometry readers and scroll visibility.md>):
   B-D5G-2, -3, -4 (lane EFFECTS rewrites it), -9 and -10.
 - [Discarded render passes and redundant frames](<../../Performance/Discarded render passes and redundant frames.md>):
   the 2026-08-07 analysis of writes during the walk and of `onAppear` timing that option (a) revisits.

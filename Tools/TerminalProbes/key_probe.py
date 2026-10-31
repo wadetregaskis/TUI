@@ -13,7 +13,7 @@ Shortcuts → Mission Control. Record whether they are.
 
 The keys asked are a detented sheet's grabber's (↑ ↓, ↖ ↘ Home and End) and the
 ones its design rejected or deferred (⇞ ⇟, ⌃↑ ⌃↓, ⇧↑, ⌥↑) — see
-Documentation/Historical/Presentation and windows/Sheets: sizes, detents, live sheets and the page behind.md (its appendix's §4) and
+Documentation/Historical/Presentation and windows/Sheets - sizes, detents, live sheets and the page behind.md (its appendix's §4) and
 Documentation/Terminals/Terminal compatibility survey.md, "Keys a sheet's grabber uses" —
 and the menu bar's (F10, and ⌥F for Alt with a title's first letter) — see the
 survey's "The menu bar's keys". On a Mac keyboard F10 is the mute key unless fn is

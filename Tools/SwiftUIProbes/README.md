@@ -315,7 +315,7 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIView/State/State.swift` (`AppState.transactionScopeEnded(_:)`);
   `Tests/TUIIntegrationTests/ObservedChangeTransactionTests.swift`;
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (A7);
-  `Documentation/Historical/State and dynamic properties/Per-app render state: no singletons.md` (B-APPSTATE-2).
+  `Documentation/Historical/State and dynamic properties/Per-app render state - no singletons.md` (B-APPSTATE-2).
 
 ### Scroll anchoring
 
@@ -571,9 +571,9 @@ messages cite that path), and what cites it.
   `Tests/TUIEffectsTests/TransitionAnimationTests.swift`, `Tests/TUIEffectsTests/BranchAndRowFadeTests.swift`,
   `Tests/TUIEffectsTests/DefaultTransitionTests.swift`; `Documentation/SwiftUI parity/Deliberate deviations
   from SwiftUI.md` (A3, A6), `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the Animation row);
-  `Documentation/Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md`,
+  `Documentation/Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md`,
   `Documentation/Historical/Shapes, effects and animation/Matched geometry and the zoom transition.md` (B-O4-2),
-  `Documentation/Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md` (A34);
+  `Documentation/Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md` (A34);
   `Sources/TUIEffects/Animation/BuiltInTransitions.swift`, `Tests/TUIEffectsTests/BlurReplaceTransitionTests.swift`.
 
 ### Badge prominence
@@ -703,7 +703,7 @@ messages cite that path), and what cites it.
   `Tests/TUIIntegrationTests/PickerInMenuTests.swift`, `Tests/TUIIntegrationTests/MenuBarSubmenuTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (§1, Controls; Presentation),
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (W15, W16),
-  `Documentation/Historical/Menus, toolbars and chrome/Pop-up menus: submenus, type select and an alert's buttons.md`.
+  `Documentation/Historical/Menus, toolbars and chrome/Pop-up menus - submenus, type select and an alert's buttons.md`.
 
 ### Blend modes
 
@@ -720,7 +720,7 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUICore/Rendering/BlendMode.swift`,
   `Sources/TUIFoundation/Styling/Color+BlendMode.swift`; `Tests/TUIFoundationTests/BlendModeTests.swift`;
   `Documentation/Colour and styling/Opacity as composition.md`,
-  `Documentation/Historical/Shapes, effects and animation/Pixel effects: transforms, masks, drawingGroup, blend modes and meshes.md`.
+  `Documentation/Historical/Shapes, effects and animation/Pixel effects - transforms, masks, drawingGroup, blend modes and meshes.md`.
 
 ### Search field clear button
 
@@ -889,7 +889,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15, 2026-10-05.
 - **Was:** `D5G/probe/`.
 - **Cited by:** `Documentation/Historical/Layout and geometry/README.md`;
-  `Documentation/Historical/Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md`.
+  `Documentation/Historical/Layout and geometry/Where a view is - coordinate spaces, geometry readers and scroll visibility.md`.
 
 ### Scroll position, margins and disabled scrolling (DECB)
 
@@ -937,7 +937,7 @@ messages cite that path), and what cites it.
   Animation presentation frames every 0.5 s, per column and per phase (`insert` and `remove` lines).
 - **Ran:** macOS 15.8, 2026-10-17.
 - **Was:** `plan/fb16/`.
-- **Cited by:** `Documentation/Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md`,
+- **Cited by:** `Documentation/Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md`,
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`; `Sources/TUIEffects/Animation/TransitionModifier.swift`,
   `Sources/TUIFoundation/Views/StackGlide.swift`, `Sources/TUIView/Animation/ChildGlide.swift`,
   `Sources/TUIView/Animation/PlacementStore.swift`; `Tests/ExampleTests/AnimationPageShowHideTests.swift`,
@@ -993,7 +993,7 @@ messages cite that path), and what cites it.
   (`performClick`) and reads the menu's highlighted item from inside its tracking loop.
 - **Files:** `popup.swift`, `popup.out`: the current value ("Banana") is highlighted.
 - **Ran:** macOS 15.8, Xcode's Swift 6.2.4, 2026-10-27.
-- **Cited by:** `Documentation/Historical/Menus, toolbars and chrome/Pop-up menus: submenus, type select and an alert's buttons.md`.
+- **Cited by:** `Documentation/Historical/Menus, toolbars and chrome/Pop-up menus - submenus, type select and an alert's buttons.md`.
 
 ### The menu bar (O13)
 
@@ -1095,7 +1095,7 @@ messages cite that path), and what cites it.
   `OS_ACTIVITY_DT_MODE=YES` (SwiftUI's runtime warnings appear in the log as `[runtime] …`) and writes
   `<case>.out`, its stacks demangled. The times and frame numbers in the `.out` files differ from run to run; the
   order of events did not, over four runs of each case, except in the two ways that
-  `Documentation/Historical/State and dynamic properties/The update model: when effects run.md` names.
+  `Documentation/Historical/State and dynamic properties/The update model - when effects run.md` names.
 - **Answers:** no effect ran inside a body or inside a `Layout` call: SwiftUI runs them in `Update.dispatchActions()`,
   either from `ViewRendererHost.render(…)` inside `NSHostingView.layout()` or from `Update.end()` at the end of a
   graph update in SwiftUI's own run-loop observer. A state write in `onAppear`, `onChange` or `onPreferenceChange` is
@@ -1110,7 +1110,7 @@ messages cite that path), and what cites it.
   view update, this will cause undefined behavior." and is lost.
 - **Ran:** macOS 15.8.1 (SwiftUI of macOS 15.8.1), Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK,
   2026-10-24.
-- **Cited by:** `Documentation/Historical/State and dynamic properties/The update model: when effects run.md`.
+- **Cited by:** `Documentation/Historical/State and dynamic properties/The update model - when effects run.md`.
 
 ### Modal sheet keys
 
@@ -1125,5 +1125,5 @@ messages cite that path), and what cites it.
   command is disabled in the menu. Behind the app-modal alert nothing runs, and both menu items are disabled.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-27, the keys sent by computer use.
 - **Cited by:** `Sources/TUIFoundation/Views/KeyboardShortcutRegistry.swift` (`Scope`);
-  `Documentation/Historical/Presentation and windows/Sheets: sizes, detents, live sheets and the page behind.md`
+  `Documentation/Historical/Presentation and windows/Sheets - sizes, detents, live sheets and the page behind.md`
   (A-MODALS-1).
