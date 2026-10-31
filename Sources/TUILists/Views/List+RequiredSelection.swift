@@ -41,7 +41,7 @@ extension List where Footer == EmptyView {
     ///
     /// - Parameters:
     ///   - data: The collection to show, one row per element.
-    ///   - selection: A binding to the selected element's id.
+    ///   - selection: A binding to the selected row's value.
     ///   - rowContent: Builds the row view for each element.
     @_disfavoredOverload
     public init<Data: RandomAccessCollection, RowContent: View>(
@@ -49,7 +49,7 @@ extension List where Footer == EmptyView {
         selection: Binding<SelectionValue>,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == ForEach<Data, Data.Element.ID, RowContent>,
-            Data.Element: Identifiable, SelectionValue == Data.Element.ID {
+            Data.Element: Identifiable {
         self.init(data, selection: Binding<SelectionValue?>(selection), rowContent: rowContent)
     }
 
@@ -59,15 +59,15 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: The collection to show, one row per element.
     ///   - id: A key path to each element's stable identity.
-    ///   - selection: A binding to the selected id.
+    ///   - selection: A binding to the selected row's value.
     ///   - rowContent: Builds the row view for each element.
     @_disfavoredOverload
-    public init<Data: RandomAccessCollection, RowContent: View>(
+    public init<Data: RandomAccessCollection, ID: Hashable, RowContent: View>(
         _ data: Data,
-        id: KeyPath<Data.Element, SelectionValue>,
+        id: KeyPath<Data.Element, ID>,
         selection: Binding<SelectionValue>,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
-    ) where Content == ForEach<Data, SelectionValue, RowContent> {
+    ) where Content == ForEach<Data, ID, RowContent> {
         self.init(data, id: id, selection: Binding<SelectionValue?>(selection), rowContent: rowContent)
     }
 
@@ -76,7 +76,7 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: The elements at the top of the tree.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
-    ///   - selection: A binding to the selected node's id.
+    ///   - selection: A binding to the selected row's value.
     ///   - rowContent: Builds the row view for each node.
     @_disfavoredOverload
     public init<Data: RandomAccessCollection, RowContent: View>(
@@ -85,7 +85,7 @@ extension List where Footer == EmptyView {
         selection: Binding<SelectionValue>,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>,
-            Data.Element: Identifiable, SelectionValue == Data.Element.ID {
+            Data.Element: Identifiable {
         self.init(data, children: children, selection: Binding<SelectionValue?>(selection), rowContent: rowContent)
     }
 
@@ -96,16 +96,16 @@ extension List where Footer == EmptyView {
     ///   - data: The elements at the top of the tree.
     ///   - id: A key path to each element's stable identity.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
-    ///   - selection: A binding to the selected node's id.
+    ///   - selection: A binding to the selected row's value.
     ///   - rowContent: Builds the row view for each node.
     @_disfavoredOverload
-    public init<Data: RandomAccessCollection, RowContent: View>(
+    public init<Data: RandomAccessCollection, ID: Hashable, RowContent: View>(
         _ data: Data,
-        id: KeyPath<Data.Element, SelectionValue>,
+        id: KeyPath<Data.Element, ID>,
         children: KeyPath<Data.Element, Data?>,
         selection: Binding<SelectionValue>,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
-    ) where Content == OutlineGroup<Data, SelectionValue, RowContent> {
+    ) where Content == OutlineGroup<Data, ID, RowContent> {
         self.init(
             data, id: id, children: children, selection: Binding<SelectionValue?>(selection), rowContent: rowContent)
     }
@@ -117,7 +117,7 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: The collection to show and edit, one row per element.
     ///   - editActions: The edits the list performs on `data`.
-    ///   - selection: A binding to the selected element's id.
+    ///   - selection: A binding to the selected row's value.
     ///   - rowContent: Builds the row for each element, from a binding to it.
     @_disfavoredOverload
     public init<Data, RowContent: View>(
@@ -129,7 +129,7 @@ extension List where Footer == EmptyView {
     where
         Content == ForEach<IndexedIdentifierCollection<Data, Data.Element.ID>, Data.Element.ID, RowContent>,
         Data: MutableCollection, Data: RandomAccessCollection, Data: RangeReplaceableCollection,
-        Data.Index == Int, Data.Element: Identifiable, SelectionValue == Data.Element.ID
+        Data.Index == Int, Data.Element: Identifiable
     {
         self.init(data, editActions: editActions, selection: Binding<SelectionValue?>(selection), rowContent: rowContent)
     }
@@ -142,18 +142,18 @@ extension List where Footer == EmptyView {
     ///   - data: The collection to show and edit, one row per element.
     ///   - id: The key path to each element's stable identity.
     ///   - editActions: The edits the list performs on `data`.
-    ///   - selection: A binding to the selected id.
+    ///   - selection: A binding to the selected row's value.
     ///   - rowContent: Builds the row for each element, from a binding to it.
     @_disfavoredOverload
-    public init<Data, RowContent: View>(
+    public init<Data, ID: Hashable, RowContent: View>(
         _ data: Binding<Data>,
-        id: KeyPath<Data.Element, SelectionValue>,
+        id: KeyPath<Data.Element, ID>,
         editActions: EditActions<Data>,
         selection: Binding<SelectionValue>,
         @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent
     )
     where
-        Content == ForEach<IndexedIdentifierCollection<Data, SelectionValue>, SelectionValue, RowContent>,
+        Content == ForEach<IndexedIdentifierCollection<Data, ID>, ID, RowContent>,
         Data: MutableCollection, Data: RandomAccessCollection, Data: RangeReplaceableCollection,
         Data.Index == Int
     {
@@ -161,20 +161,18 @@ extension List where Footer == EmptyView {
             data, id: id, editActions: editActions, selection: Binding<SelectionValue?>(selection),
             rowContent: rowContent)
     }
-}
 
-extension List where Footer == EmptyView, SelectionValue == Int {
     /// Creates a list over a range of integers with single selection that
     /// cannot be emptied.
     ///
     /// - Parameters:
     ///   - data: The integers to show, one row each.
-    ///   - selection: A binding to the selected integer.
+    ///   - selection: A binding to the selected row's value.
     ///   - rowContent: Builds the row view for each integer.
     @_disfavoredOverload
     public init<RowContent: View>(
-        _ data: Range<Int>, selection: Binding<Int>, @ViewBuilder rowContent: @escaping (Int) -> RowContent
+        _ data: Range<Int>, selection: Binding<SelectionValue>, @ViewBuilder rowContent: @escaping (Int) -> RowContent
     ) where Content == ForEach<Range<Int>, Int, RowContent> {
-        self.init(data, selection: Binding<Int?>(selection), rowContent: rowContent)
+        self.init(data, selection: Binding<SelectionValue?>(selection), rowContent: rowContent)
     }
 }

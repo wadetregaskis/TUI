@@ -28,6 +28,31 @@ extension ItemListHandler {
         }
         toggleSelectionAtFocusedIndex()
         anchorOnSelection(at: focusedIndex)
+        followRowLink(at: focusedIndex)
+    }
+
+    /// Follows the `NavigationLink` in the row at `index`, if it holds one,
+    /// when choosing the row was a choice of it: always in a list with no
+    /// selection, and in one with a selection only when the row is now selected
+    /// — Space or a click on the selected row clears it, here, and that goes
+    /// nowhere.
+    ///
+    /// SwiftUI's selection and a row's link are one gesture: a row chosen in a
+    /// `List` in a `NavigationStack` is selected and its link followed, whether
+    /// or not the list has a selection, and whichever of the row's views the
+    /// link is (`Tools/SwiftUIProbes/NavigationLink as a list row/links.out`).
+    /// A row in a split view's column has no stack to follow into, and is only
+    /// selected: the link reports nothing there. Nor does a list with a
+    /// selection in the column on top of a collapsed split follow one, though a
+    /// stack is around it there: choosing its row has shown the next column.
+    private func followRowLink(at index: Int) {
+        let hasSelection = singleSelection != nil || multiSelection != nil
+        guard let follow = rowLinks[index],
+            !hasSelection || (isSelected(at: index) && compactColumnAdvance == nil)
+        else { return }
+        // Not main-actor isolated, but the keys and the clicks that choose a
+        // row are only ever handled on the main actor.
+        MainActor.assumeIsolated { follow() }
     }
 
     /// The §1.2 shadow-switch: **selecting a row turns an EDGE anchor into a
@@ -161,6 +186,7 @@ extension ItemListHandler {
         // In a collapsed split a click chooses the row, whatever the mode.
         guard selectionMode == .multi, compactColumnAdvance == nil else {
             toggleSelectionAtFocusedIndex()
+            followRowLink(at: index)
             return
         }
         guard let clickedID = id(at: index), !selectionDisabledRows.contains(index) else { return }
@@ -180,6 +206,7 @@ extension ItemListHandler {
 
         multiSelection?.wrappedValue = [clickedID]
         selectionAnchor = index
+        followRowLink(at: index)
     }
 
     /// Toggles the selection state at the focused index.

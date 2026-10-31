@@ -594,6 +594,11 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     }
     private var _revealedSwipe: (row: Int, edge: HorizontalEdge)?
 
+    /// What following the link in each row on screen does, as its row reported
+    /// it (`RowEditRestrictions.rowLinks`): what choosing that row follows.
+    package var rowLinks: [Int: @MainActor () -> Void] { get { _rowLinks } set { _rowLinks = newValue } }
+    private var _rowLinks: [Int: @MainActor () -> Void] = [:]
+
     /// Each row's swipe actions, by edge, as its rows reported them
     /// (`RowEditRestrictions.swipeEdges`): what the swipe keys can reveal.
     package var swipeEdges: [Int: [HorizontalEdge: Bool]] { get { _swipeEdges } set { _swipeEdges = newValue } }

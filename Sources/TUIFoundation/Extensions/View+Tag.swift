@@ -151,13 +151,20 @@ extension View {
 /// ``ContainerValues/tag(for:)`` — but a `List` row arrives already resolved
 /// to one child, and asks it here, through the same wrappers
 /// (``extractTagValue(from:as:)``).
+///
+/// `.tag(_:)` is one conformer. A `NavigationLink(value:)` is the other: in a
+/// list with a selection its value names its row, unless a `.tag(_:)` outside it
+/// names another (`Tools/SwiftUIProbes/NavigationLink as a list row/links.out`).
+/// Unlike a tag it is no container value, so ``ContainerValues/tag(for:)`` does
+/// not see it. `nil` when this instance carries none: a link to a view, or to a
+/// `nil` value.
 @MainActor
-private protocol TagCarrying {
-    var carriedTag: (value: AnyHashable, includeOptional: Bool) { get }
+package protocol TagCarrying {
+    var carriedTag: (value: AnyHashable, includeOptional: Bool)? { get }
 }
 
 extension _TaggedView: TagCarrying {
-    fileprivate var carriedTag: (value: AnyHashable, includeOptional: Bool) {
+    package var carriedTag: (value: AnyHashable, includeOptional: Bool)? {
         (tagValue, includeOptional)
     }
 }

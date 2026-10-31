@@ -61,7 +61,7 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: A binding to the elements at the top of the tree.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
-    ///   - selection: A binding to the selected node's id (`nil` = none).
+    ///   - selection: A binding to the selected row's value (`nil` = none).
     ///   - rowContent: Builds the row view for each node, from a binding to it.
     public init<Data, RowContent: View>(
         _ data: Binding<Data>,
@@ -71,7 +71,7 @@ extension List where Footer == EmptyView {
     )
     where
         Content == OutlineGroup<Binding<Data>, Data.Element.ID, RowContent>, Data: MutableCollection,
-        Data: RandomAccessCollection, Data.Element: Identifiable, SelectionValue == Data.Element.ID
+        Data: RandomAccessCollection, Data.Element: Identifiable
     {
         self.init(selection: selection) { OutlineGroup(data, children: children, content: rowContent) }
     }
@@ -81,7 +81,7 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: A binding to the elements at the top of the tree.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
-    ///   - selection: A binding to the set of selected node ids.
+    ///   - selection: A binding to the set of selected rows' values.
     ///   - rowContent: Builds the row view for each node, from a binding to it.
     public init<Data, RowContent: View>(
         _ data: Binding<Data>,
@@ -91,7 +91,7 @@ extension List where Footer == EmptyView {
     )
     where
         Content == OutlineGroup<Binding<Data>, Data.Element.ID, RowContent>, Data: MutableCollection,
-        Data: RandomAccessCollection, Data.Element: Identifiable, SelectionValue == Data.Element.ID
+        Data: RandomAccessCollection, Data.Element: Identifiable
     {
         self.init(selection: selection) { OutlineGroup(data, children: children, content: rowContent) }
     }
@@ -102,7 +102,7 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: A binding to the elements at the top of the tree.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
-    ///   - selection: A binding to the selected node's id. Activating the
+    ///   - selection: A binding to the selected row's value. Activating the
     ///     selected row again leaves it selected.
     ///   - rowContent: Builds the row view for each node, from a binding to it.
     @_disfavoredOverload
@@ -114,7 +114,7 @@ extension List where Footer == EmptyView {
     )
     where
         Content == OutlineGroup<Binding<Data>, Data.Element.ID, RowContent>, Data: MutableCollection,
-        Data: RandomAccessCollection, Data.Element: Identifiable, SelectionValue == Data.Element.ID
+        Data: RandomAccessCollection, Data.Element: Identifiable
     {
         self.init(data, children: children, selection: Binding<SelectionValue?>(selection), rowContent: rowContent)
     }
@@ -126,17 +126,17 @@ extension List where Footer == EmptyView {
     ///   - data: A binding to the elements at the top of the tree.
     ///   - id: A key path to each element's stable identity.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
-    ///   - selection: A binding to the selected node's id (`nil` = none).
+    ///   - selection: A binding to the selected row's value (`nil` = none).
     ///   - rowContent: Builds the row view for each node, from a binding to it.
-    public init<Data, RowContent: View>(
+    public init<Data, ID: Hashable, RowContent: View>(
         _ data: Binding<Data>,
-        id: KeyPath<Data.Element, SelectionValue>,
+        id: KeyPath<Data.Element, ID>,
         children: WritableKeyPath<Data.Element, Data?>,
         selection: Binding<SelectionValue?>?,
         @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent
     )
     where
-        Content == OutlineGroup<Binding<Data>, SelectionValue, RowContent>, Data: MutableCollection,
+        Content == OutlineGroup<Binding<Data>, ID, RowContent>, Data: MutableCollection,
         Data: RandomAccessCollection
     {
         self.init(selection: selection) { OutlineGroup(data, id: id, children: children, content: rowContent) }
@@ -149,17 +149,17 @@ extension List where Footer == EmptyView {
     ///   - data: A binding to the elements at the top of the tree.
     ///   - id: A key path to each element's stable identity.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
-    ///   - selection: A binding to the set of selected node ids.
+    ///   - selection: A binding to the set of selected rows' values.
     ///   - rowContent: Builds the row view for each node, from a binding to it.
-    public init<Data, RowContent: View>(
+    public init<Data, ID: Hashable, RowContent: View>(
         _ data: Binding<Data>,
-        id: KeyPath<Data.Element, SelectionValue>,
+        id: KeyPath<Data.Element, ID>,
         children: WritableKeyPath<Data.Element, Data?>,
         selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent
     )
     where
-        Content == OutlineGroup<Binding<Data>, SelectionValue, RowContent>, Data: MutableCollection,
+        Content == OutlineGroup<Binding<Data>, ID, RowContent>, Data: MutableCollection,
         Data: RandomAccessCollection
     {
         self.init(selection: selection) { OutlineGroup(data, id: id, children: children, content: rowContent) }
@@ -172,19 +172,19 @@ extension List where Footer == EmptyView {
     ///   - data: A binding to the elements at the top of the tree.
     ///   - id: A key path to each element's stable identity.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
-    ///   - selection: A binding to the selected node's id. Activating the
+    ///   - selection: A binding to the selected row's value. Activating the
     ///     selected row again leaves it selected.
     ///   - rowContent: Builds the row view for each node, from a binding to it.
     @_disfavoredOverload
-    public init<Data, RowContent: View>(
+    public init<Data, ID: Hashable, RowContent: View>(
         _ data: Binding<Data>,
-        id: KeyPath<Data.Element, SelectionValue>,
+        id: KeyPath<Data.Element, ID>,
         children: WritableKeyPath<Data.Element, Data?>,
         selection: Binding<SelectionValue>,
         @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent
     )
     where
-        Content == OutlineGroup<Binding<Data>, SelectionValue, RowContent>, Data: MutableCollection,
+        Content == OutlineGroup<Binding<Data>, ID, RowContent>, Data: MutableCollection,
         Data: RandomAccessCollection
     {
         self.init(

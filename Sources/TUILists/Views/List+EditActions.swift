@@ -75,8 +75,8 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: The collection to show and edit, one row per element.
     ///   - editActions: The edits the list performs on `data`.
-    ///   - selection: A binding to the selected element's id (`nil` = none),
-    ///     or `nil` for a list that selects nothing.
+    ///   - selection: A binding to the selected row's value (`nil` = none), or
+    ///     `nil` for a list that selects nothing.
     ///   - rowContent: Builds the row for each element, from a binding to it.
     public init<Data, RowContent: View>(
         _ data: Binding<Data>,
@@ -87,7 +87,7 @@ extension List where Footer == EmptyView {
     where
         Content == ForEach<IndexedIdentifierCollection<Data, Data.Element.ID>, Data.Element.ID, RowContent>,
         Data: MutableCollection, Data: RandomAccessCollection, Data: RangeReplaceableCollection,
-        Data.Index == Int, Data.Element: Identifiable, SelectionValue == Data.Element.ID
+        Data.Index == Int, Data.Element: Identifiable
     {
         self.init(selection: selection) { ForEach(data, editActions: editActions, content: rowContent) }
     }
@@ -98,7 +98,7 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: The collection to show and edit, one row per element.
     ///   - editActions: The edits the list performs on `data`.
-    ///   - selection: A binding to the set of selected element ids, or `nil`
+    ///   - selection: A binding to the set of selected rows' values, or `nil`
     ///     for a list that selects nothing.
     ///   - rowContent: Builds the row for each element, from a binding to it.
     public init<Data, RowContent: View>(
@@ -110,7 +110,7 @@ extension List where Footer == EmptyView {
     where
         Content == ForEach<IndexedIdentifierCollection<Data, Data.Element.ID>, Data.Element.ID, RowContent>,
         Data: MutableCollection, Data: RandomAccessCollection, Data: RangeReplaceableCollection,
-        Data.Index == Int, Data.Element: Identifiable, SelectionValue == Data.Element.ID
+        Data.Index == Int, Data.Element: Identifiable
     {
         self.init(selection: selection) { ForEach(data, editActions: editActions, content: rowContent) }
     }
@@ -119,25 +119,22 @@ extension List where Footer == EmptyView {
     /// identified by a key path, performing the named edits on the collection,
     /// with single selection.
     ///
-    /// The id key path's value type is the selection type, so `selection`
-    /// binds to the same id the rows are keyed by.
-    ///
     /// - Parameters:
     ///   - data: The collection to show and edit, one row per element.
     ///   - id: The key path to each element's stable identity.
     ///   - editActions: The edits the list performs on `data`.
-    ///   - selection: A binding to the selected id (`nil` = none), or `nil`
-    ///     for a list that selects nothing.
+    ///   - selection: A binding to the selected row's value (`nil` = none), or
+    ///     `nil` for a list that selects nothing.
     ///   - rowContent: Builds the row for each element, from a binding to it.
-    public init<Data, RowContent: View>(
+    public init<Data, ID: Hashable, RowContent: View>(
         _ data: Binding<Data>,
-        id: KeyPath<Data.Element, SelectionValue>,
+        id: KeyPath<Data.Element, ID>,
         editActions: EditActions<Data>,
         selection: Binding<SelectionValue?>?,
         @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent
     )
     where
-        Content == ForEach<IndexedIdentifierCollection<Data, SelectionValue>, SelectionValue, RowContent>,
+        Content == ForEach<IndexedIdentifierCollection<Data, ID>, ID, RowContent>,
         Data: MutableCollection, Data: RandomAccessCollection, Data: RangeReplaceableCollection,
         Data.Index == Int
     {
@@ -154,18 +151,18 @@ extension List where Footer == EmptyView {
     ///   - data: The collection to show and edit, one row per element.
     ///   - id: The key path to each element's stable identity.
     ///   - editActions: The edits the list performs on `data`.
-    ///   - selection: A binding to the set of selected ids, or `nil` for a
-    ///     list that selects nothing.
+    ///   - selection: A binding to the set of selected rows' values, or `nil`
+    ///     for a list that selects nothing.
     ///   - rowContent: Builds the row for each element, from a binding to it.
-    public init<Data, RowContent: View>(
+    public init<Data, ID: Hashable, RowContent: View>(
         _ data: Binding<Data>,
-        id: KeyPath<Data.Element, SelectionValue>,
+        id: KeyPath<Data.Element, ID>,
         editActions: EditActions<Data>,
         selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent
     )
     where
-        Content == ForEach<IndexedIdentifierCollection<Data, SelectionValue>, SelectionValue, RowContent>,
+        Content == ForEach<IndexedIdentifierCollection<Data, ID>, ID, RowContent>,
         Data: MutableCollection, Data: RandomAccessCollection, Data: RangeReplaceableCollection,
         Data.Index == Int
     {

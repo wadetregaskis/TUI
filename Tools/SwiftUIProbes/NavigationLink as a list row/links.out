@@ -1,0 +1,117 @@
+=== A split view, data form, selection value = link value, id differs
+rows 3 firstResponder is table: true start: sel=nil set=[] int=nil path=[] strPath=[]
+ down: sel=fruit set=[] int=nil path=[] strPath=[] shown=content:fruit
+ down: sel=veg set=[] int=nil path=[] strPath=[] shown=content:fruit
+ return: sel=veg set=[] int=nil path=[] strPath=[] shown=content:fruit
+ space: sel=veg set=[] int=nil path=[] strPath=[] shown=content:fruit
+ click0: sel=veg set=[] int=nil path=[] strPath=[] shown=content:fruit
+ click2: sel=veg set=[] int=nil path=[] strPath=[] shown=content:fruit
+=== A2 split view, ForEach, multi-selection
+rows 3 firstResponder is table: true start: sel=nil set=[] int=nil path=[] strPath=[]
+ down: sel=nil set=["fruit"] int=nil path=[] strPath=[] shown=detail:[]
+ down: sel=nil set=["veg"] int=nil path=[] strPath=[] shown=detail:[]
+ return: sel=nil set=["veg"] int=nil path=[] strPath=[] shown=detail:[]
+ space: sel=nil set=["veg"] int=nil path=[] strPath=[] shown=detail:[]
+ click0: sel=nil set=["veg"] int=nil path=[] strPath=[] shown=detail:[]
+ click2: sel=nil set=["veg"] int=nil path=[] strPath=[] shown=detail:[]
+=== B stack + selecting list + typed path
+rows 3 firstResponder is table: true start: sel=nil set=[] int=nil path=[] strPath=[]
+ down: sel=fruit set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ down: sel=fruit set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ return: sel=fruit set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ space: sel=fruit set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ (no table on screen)
+ click0: sel=fruit set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ (no table on screen)
+ click2: sel=fruit set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+=== C stack + list without selection
+rows 3 firstResponder is table: true start: sel=nil set=[] int=nil path=[] strPath=[]
+ down: sel=nil set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ return: sel=nil set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ space: sel=nil set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ (no table on screen)
+ click0: sel=nil set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+=== D selecting list, link value is another type, no tag
+rows 3 firstResponder is table: true start: sel=nil set=[] int=nil path=[] strPath=[]
+ down: sel=nil set=[] int=nil path=[] strPath=["fruit"] shown=pushed:fruit
+ down: sel=nil set=[] int=nil path=[] strPath=["fruit"] shown=pushed:fruit
+ return: sel=nil set=[] int=nil path=[] strPath=["fruit"] shown=pushed:fruit
+ space: sel=nil set=[] int=nil path=[] strPath=["fruit"] shown=pushed:fruit
+ (no table on screen)
+ click0: sel=nil set=[] int=nil path=[] strPath=["fruit"] shown=pushed:fruit
+ (no table on screen)
+ click2: sel=nil set=[] int=nil path=[] strPath=["fruit"] shown=pushed:fruit
+=== E selecting list, explicit tag on a link (Int), value String
+rows 3 firstResponder is table: true start: sel=nil set=[] int=nil path=[] strPath=[]
+ down: sel=nil set=[] int=0 path=[] strPath=["A"] shown=pushed:A
+ down: sel=nil set=[] int=0 path=[] strPath=["A"] shown=pushed:A
+ return: sel=nil set=[] int=0 path=[] strPath=["A"] shown=pushed:A
+ space: sel=nil set=[] int=0 path=[] strPath=["A"] shown=pushed:A
+ (no table on screen)
+ click0: sel=nil set=[] int=0 path=[] strPath=["A"] shown=pushed:A
+ (no table on screen)
+ click2: sel=nil set=[] int=0 path=[] strPath=["A"] shown=pushed:A
+=== F selecting list, link inside an HStack in the row
+rows 3 firstResponder is table: true start: sel=nil set=[] int=nil path=[] strPath=[]
+ down: sel=fruit set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ down: sel=fruit set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ return: sel=fruit set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ space: sel=fruit set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ (no table on screen)
+ click0: sel=fruit set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ (no table on screen)
+ click2: sel=fruit set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+=== F2 selecting list, link inside an HStack, row id another type
+rows 3 firstResponder is table: true start: sel=nil set=[] int=nil path=[] strPath=[]
+ down: sel=nil set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ down: sel=nil set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ return: sel=nil set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ space: sel=nil set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ (no table on screen)
+ click0: sel=nil set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+ (no table on screen)
+ click2: sel=nil set=[] int=nil path=["fruit"] strPath=[] shown=pushed:fruit
+=== K split view, sidebar without a selection, stack in the detail
+rows 3 firstResponder is table: true start: sel=nil set=[] int=nil path=[] strPath=[]
+ down: sel=nil set=[] int=nil path=[] strPath=[] shown=pushed:fruit
+ down: sel=nil set=[] int=nil path=[] strPath=[] shown=pushed:fruit
+ return: sel=nil set=[] int=nil path=[] strPath=[] shown=pushed:fruit
+ space: sel=nil set=[] int=nil path=[] strPath=[] shown=pushed:fruit
+ click0: sel=nil set=[] int=nil path=[] strPath=[] shown=pushed:fruit
+ click2: sel=nil set=[] int=nil path=[] strPath=[] shown=pushed:fruit
+=== G selecting list, row id = selection type, link value another type
+rows 3 firstResponder is table: true start: sel=nil set=[] int=nil path=[] strPath=[]
+ down: sel=fruit set=[] int=nil path=[] strPath=["fruit"] shown=pushed:fruit
+ down: sel=fruit set=[] int=nil path=[] strPath=["fruit"] shown=pushed:fruit
+ return: sel=fruit set=[] int=nil path=[] strPath=["fruit"] shown=pushed:fruit
+ space: sel=fruit set=[] int=nil path=[] strPath=["fruit"] shown=pushed:fruit
+ (no table on screen)
+ click0: sel=fruit set=[] int=nil path=[] strPath=["fruit"] shown=pushed:fruit
+ (no table on screen)
+ click2: sel=fruit set=[] int=nil path=[] strPath=["fruit"] shown=pushed:fruit
+=== H link with a view destination in a selecting list
+rows 3 firstResponder is table: true start: sel=nil set=[] int=nil path=[] strPath=[]
+ down: sel=fruit set=[] int=nil path=[] strPath=[] shown=pushed:fruit
+ down: sel=fruit set=[] int=nil path=[] strPath=[] shown=pushed:fruit
+ return: sel=fruit set=[] int=nil path=[] strPath=[] shown=pushed:fruit
+ space: sel=fruit set=[] int=nil path=[] strPath=[] shown=pushed:fruit
+ (no table on screen)
+ click0: sel=fruit set=[] int=nil path=[] strPath=[] shown=pushed:fruit
+ (no table on screen)
+ click2: sel=fruit set=[] int=nil path=[] strPath=[] shown=pushed:fruit
+=== I selecting list, link with a padding
+rows 3 firstResponder is table: true start: sel=nil set=[] int=nil path=[] strPath=[]
+ down: sel=fruit set=[] int=nil path=[] strPath=[] shown=-
+ down: sel=veg set=[] int=nil path=[] strPath=[] shown=-
+ return: sel=veg set=[] int=nil path=[] strPath=[] shown=-
+ space: sel=veg set=[] int=nil path=[] strPath=[] shown=-
+ click0: sel=veg set=[] int=nil path=[] strPath=[] shown=-
+ click2: sel=veg set=[] int=nil path=[] strPath=[] shown=-
+=== J selecting list, nil-value link first
+rows 3 firstResponder is table: true start: sel=nil set=[] int=nil path=[] strPath=[]
+ down: sel=nil set=[] int=nil path=[] strPath=[] shown=-
+ down: sel=veg set=[] int=nil path=[] strPath=[] shown=-
+ return: sel=veg set=[] int=nil path=[] strPath=[] shown=-
+ space: sel=veg set=[] int=nil path=[] strPath=[] shown=-
+ click0: sel=veg set=[] int=nil path=[] strPath=[] shown=-
+ click2: sel=veg set=[] int=nil path=[] strPath=[] shown=-

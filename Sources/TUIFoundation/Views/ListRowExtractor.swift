@@ -134,10 +134,11 @@ package protocol ListRowExtractor {
 /// eager ``ListRowExtractor`` when it isn't available (e.g. heterogeneous
 /// content) or the ids can't be expressed as the list's selection type.
 ///
-/// - Important: Conformers must be *id-homogeneous* — whether ``listRowID(at:rowsPerElement:)``
-///   resolves to a given `ID` must not vary by index. `List` relies on this:
-///   it probes row 0 once to decide windowability and force-unwraps the rest.
-///   `ForEach` satisfies this (one element type, one id key-path).
+/// - Important: `List` probes row 0 once to decide windowability, on the
+///   expectation that whether ``listRowID(at:rowsPerElement:)`` resolves to a
+///   given `ID` does not vary by index. `ForEach`'s element ids do not (one
+///   element type, one id key-path), but a row's own tag or link value can, so
+///   a later row that declines is drawn as one that selects nothing.
 @MainActor
 package protocol WindowedListRowExtractor {
     /// The number of rows, in O(1), without building or rendering any content.

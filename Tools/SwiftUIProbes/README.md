@@ -1033,6 +1033,25 @@ messages cite that path), and what cites it.
   `Sources/TUIPickers/Views/_PickerOptionsReader.swift`, `Sources/TUIPresentation/Views/AlertActions.swift`;
   `Documentation/Historical/SwiftUI parity process/The semantic audit of August 2026.md` (root cause 5).
 
+### NavigationLink as a list row
+
+- **Asks:** what a `NavigationLink` does as a row of a `List`, with and without a selection, in a
+  `NavigationSplitView` and in a `NavigationStack`: the selection and the path after Down, Return, Space and a click,
+  for a value of the selection's type whose element `id` is another type, a multiple selection, an explicit `.tag`, a
+  value of another type, a link inside an `HStack`, a link to a view, a `nil` value and a modifier on the link
+  (`links.swift`, `links.out`). A `@main` program, built alone with `-parse-as-library`. Keys and clicks are synthetic
+  `NSEvent`s sent to a table made first responder.
+- **Answers:** in a selecting list, the link's value is the row's selection value whatever the element's `id` is, and
+  a `.tag` outranks it. It is read through a modifier and not through an `HStack`. A row with neither a usable link
+  value, a tag nor an `id` of the selection's type selects nothing. In a split view, selecting pushes nothing. In a
+  stack, the row's link is followed as it is selected, whatever the selection, and in a list with no selection too.
+  A sidebar with no selection shows the link's destination in the detail. So a row is reached through the list, with
+  no Tab to the link first. On a Mac, Down is the gesture that does all this; Return and Space then do nothing.
+- **Not answered:** the synthetic clicks did not reach the rows in the cases that had a row left on screen.
+- **Cited by:** `Sources/TUIFoundation/Extensions/View+Tag.swift`, `Sources/TUILists/Focus/ItemListHandler+Selection.swift`,
+  `Tests/TUIIntegrationTests/NavigationLinkListRowTests.swift`.
+- **Ran:** macOS 15.8.1, Xcode's `swiftc`, the macOS 26.2 SDK, 2026-10-31.
+
 ### Named colours by scheme
 
 - **Asks:** what SwiftUI's fifteen named colours resolve to under a light and a dark colour scheme, and in a bare

@@ -623,8 +623,12 @@ extension List where SelectionValue == Int, Footer == EmptyView {
 // SwiftUI-parity `List(_:rowContent:)` sugar. Each overload builds the existing
 // `ForEach` row path internally — no new rendering — so large lists keep their
 // O(visible) windowed cost. Footer is `EmptyView` (data-driven lists take no
-// footer, as in SwiftUI). Selection variants fix `SelectionValue` to the row's
-// id type so the selection binding lines up with what `ForEach` keys rows by.
+// footer, as in SwiftUI).
+//
+// The selection's type is its own, as SwiftUI's is, not the rows' id type. A
+// row's value for the selection is its `.tag(_:)` or, on a `NavigationLink(value:)`,
+// the link's value, and failing those its element's id, when that is of the
+// selection's type. A row with none of them draws, and cannot be selected.
 
 extension List where Footer == EmptyView, SelectionValue == Int {
     /// Creates a list from an `Identifiable` collection, without selection.
@@ -666,47 +670,49 @@ extension List where Footer == EmptyView, SelectionValue == Int {
     where Content == ForEach<Range<Int>, Int, RowContent> {
         self.init { ForEach(data, content: rowContent) }
     }
+}
 
+extension List where Footer == EmptyView {
     /// Creates a list of the rows a range of integers makes, with single
-    /// selection by the integer.
+    /// selection.
     ///
     /// - Parameters:
     ///   - data: The range, one row per integer.
-    ///   - selection: A binding to the selected integer (`nil` = none).
+    ///   - selection: A binding to the selected row's value (`nil` = none).
     ///   - rowContent: Builds the row view for each integer.
     public init<RowContent: View>(
-        _ data: Range<Int>, selection: Binding<Int?>?, @ViewBuilder rowContent: @escaping (Int) -> RowContent
+        _ data: Range<Int>, selection: Binding<SelectionValue?>?,
+        @ViewBuilder rowContent: @escaping (Int) -> RowContent
     ) where Content == ForEach<Range<Int>, Int, RowContent> {
         self.init(selection: selection) { ForEach(data, content: rowContent) }
     }
 
     /// Creates a list of the rows a range of integers makes, with
-    /// multi-selection by the integer.
+    /// multi-selection.
     ///
     /// - Parameters:
     ///   - data: The range, one row per integer.
-    ///   - selection: A binding to the set of selected integers.
+    ///   - selection: A binding to the set of selected rows' values.
     ///   - rowContent: Builds the row view for each integer.
     public init<RowContent: View>(
-        _ data: Range<Int>, selection: Binding<Set<Int>>?, @ViewBuilder rowContent: @escaping (Int) -> RowContent
+        _ data: Range<Int>, selection: Binding<Set<SelectionValue>>?,
+        @ViewBuilder rowContent: @escaping (Int) -> RowContent
     ) where Content == ForEach<Range<Int>, Int, RowContent> {
         self.init(selection: selection) { ForEach(data, content: rowContent) }
     }
-}
 
-extension List where Footer == EmptyView {
     /// Creates a list from an `Identifiable` collection with single selection.
     ///
     /// - Parameters:
     ///   - data: The collection to show, one row per element.
-    ///   - selection: A binding to the selected element's id (`nil` = none).
+    ///   - selection: A binding to the selected row's value (`nil` = none).
     ///   - rowContent: Builds the row view for each element.
     public init<Data: RandomAccessCollection, RowContent: View>(
         _ data: Data,
         selection: Binding<SelectionValue?>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == ForEach<Data, Data.Element.ID, RowContent>,
-            Data.Element: Identifiable, SelectionValue == Data.Element.ID {
+            Data.Element: Identifiable {
         self.init(selection: selection) { ForEach(data, content: rowContent) }
     }
 
@@ -714,33 +720,30 @@ extension List where Footer == EmptyView {
     ///
     /// - Parameters:
     ///   - data: The collection to show, one row per element.
-    ///   - selection: A binding to the set of selected element ids.
+    ///   - selection: A binding to the set of selected rows' values.
     ///   - rowContent: Builds the row view for each element.
     public init<Data: RandomAccessCollection, RowContent: View>(
         _ data: Data,
         selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == ForEach<Data, Data.Element.ID, RowContent>,
-            Data.Element: Identifiable, SelectionValue == Data.Element.ID {
+            Data.Element: Identifiable {
         self.init(selection: selection) { ForEach(data, content: rowContent) }
     }
 
     /// Creates a list keyed by an explicit id with single selection.
     ///
-    /// The id key path's value type is the selection type, so `selection` binds
-    /// to the same id the rows are keyed by.
-    ///
     /// - Parameters:
     ///   - data: The collection to show, one row per element.
     ///   - id: A key path to each element's stable identity.
-    ///   - selection: A binding to the selected id (`nil` = none).
+    ///   - selection: A binding to the selected row's value (`nil` = none).
     ///   - rowContent: Builds the row view for each element.
-    public init<Data: RandomAccessCollection, RowContent: View>(
+    public init<Data: RandomAccessCollection, ID: Hashable, RowContent: View>(
         _ data: Data,
-        id: KeyPath<Data.Element, SelectionValue>,
+        id: KeyPath<Data.Element, ID>,
         selection: Binding<SelectionValue?>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
-    ) where Content == ForEach<Data, SelectionValue, RowContent> {
+    ) where Content == ForEach<Data, ID, RowContent> {
         self.init(selection: selection) { ForEach(data, id: id, content: rowContent) }
     }
 
@@ -749,14 +752,14 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: The collection to show, one row per element.
     ///   - id: A key path to each element's stable identity.
-    ///   - selection: A binding to the set of selected ids.
+    ///   - selection: A binding to the set of selected rows' values.
     ///   - rowContent: Builds the row view for each element.
-    public init<Data: RandomAccessCollection, RowContent: View>(
+    public init<Data: RandomAccessCollection, ID: Hashable, RowContent: View>(
         _ data: Data,
-        id: KeyPath<Data.Element, SelectionValue>,
+        id: KeyPath<Data.Element, ID>,
         selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
-    ) where Content == ForEach<Data, SelectionValue, RowContent> {
+    ) where Content == ForEach<Data, ID, RowContent> {
         self.init(selection: selection) { ForEach(data, id: id, content: rowContent) }
     }
 }
@@ -815,7 +818,7 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: The elements at the top of the tree.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
-    ///   - selection: A binding to the selected node's id (`nil` = none).
+    ///   - selection: A binding to the selected row's value (`nil` = none).
     ///   - rowContent: Builds the row view for each node.
     public init<Data: RandomAccessCollection, RowContent: View>(
         _ data: Data,
@@ -823,7 +826,7 @@ extension List where Footer == EmptyView {
         selection: Binding<SelectionValue?>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>,
-            Data.Element: Identifiable, SelectionValue == Data.Element.ID {
+            Data.Element: Identifiable {
         self.init(selection: selection) {
             OutlineGroup(data, children: children, content: rowContent)
         }
@@ -834,7 +837,7 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: The elements at the top of the tree.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
-    ///   - selection: A binding to the set of selected node ids.
+    ///   - selection: A binding to the set of selected rows' values.
     ///   - rowContent: Builds the row view for each node.
     public init<Data: RandomAccessCollection, RowContent: View>(
         _ data: Data,
@@ -842,7 +845,7 @@ extension List where Footer == EmptyView {
         selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>,
-            Data.Element: Identifiable, SelectionValue == Data.Element.ID {
+            Data.Element: Identifiable {
         self.init(selection: selection) {
             OutlineGroup(data, children: children, content: rowContent)
         }
@@ -854,15 +857,15 @@ extension List where Footer == EmptyView {
     ///   - data: The elements at the top of the tree.
     ///   - id: A key path to each element's stable identity.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
-    ///   - selection: A binding to the selected node's id (`nil` = none).
+    ///   - selection: A binding to the selected row's value (`nil` = none).
     ///   - rowContent: Builds the row view for each node.
-    public init<Data: RandomAccessCollection, RowContent: View>(
+    public init<Data: RandomAccessCollection, ID: Hashable, RowContent: View>(
         _ data: Data,
-        id: KeyPath<Data.Element, SelectionValue>,
+        id: KeyPath<Data.Element, ID>,
         children: KeyPath<Data.Element, Data?>,
         selection: Binding<SelectionValue?>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
-    ) where Content == OutlineGroup<Data, SelectionValue, RowContent> {
+    ) where Content == OutlineGroup<Data, ID, RowContent> {
         self.init(selection: selection) {
             OutlineGroup(data, id: id, children: children, content: rowContent)
         }
@@ -874,15 +877,15 @@ extension List where Footer == EmptyView {
     ///   - data: The elements at the top of the tree.
     ///   - id: A key path to each element's stable identity.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
-    ///   - selection: A binding to the set of selected node ids.
+    ///   - selection: A binding to the set of selected rows' values.
     ///   - rowContent: Builds the row view for each node.
-    public init<Data: RandomAccessCollection, RowContent: View>(
+    public init<Data: RandomAccessCollection, ID: Hashable, RowContent: View>(
         _ data: Data,
-        id: KeyPath<Data.Element, SelectionValue>,
+        id: KeyPath<Data.Element, ID>,
         children: KeyPath<Data.Element, Data?>,
         selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
-    ) where Content == OutlineGroup<Data, SelectionValue, RowContent> {
+    ) where Content == OutlineGroup<Data, ID, RowContent> {
         self.init(selection: selection) {
             OutlineGroup(data, id: id, children: children, content: rowContent)
         }

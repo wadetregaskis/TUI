@@ -107,6 +107,39 @@ package final class RowEditRestrictions {
         _rowMenus[row] = open
     }
 
+    /// What following each list row's `NavigationLink` does, by list row, as
+    /// the links reported it while their rows rendered: what the list does on
+    /// the cursor row's Return, and when choosing a row selects it. A link in a
+    /// row is reached through the list, as SwiftUI's is.
+    package var rowLinks: [Int: @MainActor () -> Void] { _rowLinks }
+    private var _rowLinks: [Int: @MainActor () -> Void] = [:]
+
+    /// Reports that list row `row` holds a link that `follow` follows. The
+    /// first link of a row is the one the row follows.
+    package func reportRowLink(row: Int, follow: @escaping @MainActor () -> Void) {
+        if _rowLinks[row] == nil { _rowLinks[row] = follow }
+    }
+
+    /// Whether the list can select a list row, set by a list with a selection
+    /// once it has its rows, and `nil` for a list without one. Here rather than
+    /// in the environment for ``swipeKeys``'s reason. It answers for a link
+    /// drawing itself: a row the list can select needs no control inside it.
+    package var rowIsSelectable: (@MainActor (Int) -> Bool)? {
+        get { _rowIsSelectable }
+        set { _rowIsSelectable = newValue }
+    }
+    private var _rowIsSelectable: (@MainActor (Int) -> Bool)?
+
+    /// Whether a link drawing now is drawn as its row's plain content, the list
+    /// doing what a press would: true in a row its list can select. With no
+    /// row being drawn, in a measure of a list with a selection, it assumes it
+    /// is in such a row, which is what the hug that asks needs to know.
+    package func drawsLinkAsRowContent(measuring: Bool) -> Bool {
+        guard let rowIsSelectable else { return false }
+        guard let row = _currentRowIndex else { return measuring }
+        return rowIsSelectable(row) && !_selectionDisabled.contains(row)
+    }
+
     /// Each list row's drag, by list row, as its `.draggable` reported it
     /// while the row rendered: what the list's Copy and pick-up chord take
     /// from the cursor row (``RowDrag``). A `.draggable` in a list row is no

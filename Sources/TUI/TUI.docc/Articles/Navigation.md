@@ -37,7 +37,8 @@ struct RecipeBrowser: View {
 
 A ``NavigationLink`` is a `Button` underneath, so it is a Tab stop, Return and
 Space activate it, a click works, and `.buttonStyle(_:)` restyles it. A link
-whose value is `nil` is disabled.
+whose value is `nil` is disabled. As a row of a `List` it needs no Tab: Return or
+Space on the list's cursor follows the link.
 
 When the screen is one specific thing with no data to route on, hand the link
 the view instead:
@@ -169,6 +170,27 @@ NavigationSplitView {
     DetailView(id: categoryID)
 }
 ```
+
+A sidebar's rows are often ``NavigationLink``s to values of the selection's type.
+The link's value is then the row's value for the selection, whatever the element's
+`id` is, and the link draws as just its label, with no Tab stop of its own, as with
+a `.tag(_:)`:
+
+```swift
+NavigationSplitView {
+    List(categories, selection: $category) { category in
+        NavigationLink(category.name, value: category)
+    }
+} detail: {
+    DetailView(category: category)
+}
+```
+
+The arrows move the list's cursor and <kbd>Return</kbd>, <kbd>Space</kbd> or a click
+selects, as in any `List`. In a ``NavigationStack`` the same row also follows its link
+when it is selected, as SwiftUI's does; a row the list cannot select, where neither
+the link's value nor the element's `id` is of the selection's type, keeps its button.
+A link in a sidebar with no selection is disabled: a sidebar has no stack to push onto.
 
 ### In a compact size class
 

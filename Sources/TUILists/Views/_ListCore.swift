@@ -641,6 +641,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         rowContext.environment.fixedSizeWidth = false
         Self.claimRowText(in: &rowContext.environment)
         Self.tellRows(hugging: true, in: &rowContext.environment)
+        // Measured as they draw: a link in a selecting list is its label (see
+        // ``RowEditRestrictions/drawsLinkAsRowContent(measuring:)``).
+        if singleSelection != nil || multiSelection != nil {
+            let restrictions = RowEditRestrictions()
+            restrictions.rowIsSelectable = { _ in true }
+            rowContext.environment.listRowEditRestrictions = restrictions
+        }
         let source = extractRows(from: content, context: rowContext)
         let widest = widestRowWidth(source: source, context: rowContext)
         let titleWidth = title.map { $0.strippedLength + 2 } ?? 0
@@ -1673,6 +1680,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // them: the cursor row is one of them.
         handler.swipeEdges = editRestrictions.swipeEdges
         handler.swipeFullSwipe = editRestrictions.swipeFullSwipe
+        handler.rowLinks = editRestrictions.rowLinks
         if handler.sectionActionSpans.isEmpty { handler.hoveredSectionRow = nil }
         // Where the list has no selection menu, its Shift+F10 opens the cursor
         // row's own `.contextMenu` (`RowEditRestrictions.rowMenus`): a context
@@ -1706,6 +1714,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             tellRowsTheSwipeReveal(editRestrictions, handler: handler)
         }
         let source = extractRows(from: content, context: rowContext)
+        // Weak: the rows' thunks hold the collector, through their context, and
+        // the source holds them.
+        if singleSelection != nil || multiSelection != nil {
+            editRestrictions.rowIsSelectable = { [weak source] row in
+                if case .content? = source?.type(at: row) { return true }
+                return false
+            }
+        }
         (source.minimumRowHeight, source.minimumHeaderHeight) =
             (context.environment.defaultMinListRowHeight, context.environment.defaultMinListHeaderHeight)
         source.separators = (
@@ -4043,9 +4059,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // ids can't be expressed as SelectionValue.
         if let windowed, let rowsPerElement {
             let count = windowed.listRowCount
-            // The conformer is id-homogeneous (see WindowedListRowExtractor), so
-            // row 0's resolvability decides the whole list: probe it once rather
-            // than resolving all N ids up front. An empty list windows trivially.
+            // Row 0's resolvability decides the whole list (see
+            // WindowedListRowExtractor): probe it once rather than resolving all
+            // N ids up front. An empty list windows trivially.
             if count == 0 || (windowed.listRowID(at: 0, rowsPerElement: rowsPerElement) as SelectionValue?) != nil {
                 return RowSource(
                     count: count,
@@ -4054,10 +4070,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     editOwners: Self.editOwner(of: content, rows: 0..<count, rowsPerElement: rowsPerElement)
                         .map { [$0] } ?? [],
                     typeAt: { index in
-                        // Force-unwrap is safe: row 0 resolved and the data is
-                        // id-homogeneous, so every index resolves as SelectionValue.
-                        let id: SelectionValue = windowed.listRowID(at: index, rowsPerElement: rowsPerElement)!
-                        return .content(id: id)
+                        // A row can decline after row 0 answered: a tag or a
+                        // link's value is the row's to choose, and a link's
+                        // can be nil. It stays a row the cursor lands on, and
+                        // selects nothing, as SwiftUI's does.
+                        let id: SelectionValue? = windowed.listRowID(at: index, rowsPerElement: rowsPerElement)
+                        return id.map { .content(id: $0) } ?? .unselectable
                     },
                     make: { index in
                         windowed.makeListRowContent(at: index, rowsPerElement: rowsPerElement, context: context)

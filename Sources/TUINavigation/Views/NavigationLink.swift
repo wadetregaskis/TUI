@@ -32,6 +32,36 @@ import TUIView
 /// Return/Space, and a click works — everything a `Button` does, including
 /// `.buttonStyle(_:)`. A link with a `nil` value is disabled, as in SwiftUI.
 ///
+/// ## In a List
+///
+/// A list row reaches its link through the list, as SwiftUI's does. Without a
+/// selection the row keeps the button, and Return or Space on the row's cursor
+/// follows the link without a Tab to it first:
+///
+/// ```swift
+/// List(recipes) { recipe in
+///     NavigationLink(recipe.name, value: recipe)
+/// }
+/// ```
+///
+/// In a list with a selection, a link's value is its row's value for the
+/// selection, unless a `.tag(_:)` outside the link says otherwise, and the
+/// element's `id` need not be of that type at all. A row the list can select
+/// draws the link as just its label, with no Tab stop of its own, and choosing
+/// the row selects it. That is the whole of a sidebar:
+///
+/// ```swift
+/// NavigationSplitView {
+///     List(categories, selection: $category) { category in
+///         NavigationLink(category.name, value: category)
+///     }
+/// } content: { … } detail: { … }
+/// ```
+///
+/// In a ``NavigationStack``, choosing the row follows its link as well as
+/// selecting it, as SwiftUI's does. A row the list cannot select, whose link's
+/// value and element's `id` are both of other types, keeps the button.
+///
 /// > Note: A view destination needs a path that can hold the link's own token,
 ///   so it works in `NavigationStack { … }` and with a ``NavigationPath``
 ///   binding. A *typed* path binding (`NavigationStack(path: $recipes)`) can by
@@ -52,6 +82,17 @@ public struct NavigationLink<Label: View, Destination: View>: View {
 
     public var body: some View {
         _NavigationLinkCore(target: target, label: label)
+    }
+
+    /// Static witness: a link to a value can name its list row, so a list reads
+    /// it (``TagCarrying``), as it reads a `.tag(_:)`, and builds the row to ask.
+    public static var _providesContainerValues: Bool { Destination.self == Never.self }
+}
+
+extension NavigationLink: TagCarrying {
+    package var carriedTag: (value: AnyHashable, includeOptional: Bool)? {
+        guard case .value(let value?) = target else { return nil }
+        return (value, true)
     }
 }
 
@@ -160,34 +201,46 @@ private struct _NavigationLinkCore<Label: View, Destination: View>: View, Render
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let button = button(context: context, registerViewDestination: !context.isMeasuring)
+        let follow = follow(context: context, registerViewDestination: !context.isMeasuring)
+        if !context.isMeasuring { Self.reportToListRow(follow, context: context) }
+        if Self.drawsAsRowContent(context: context, measuring: context.isMeasuring) {
+            let content = labelContent(context: context)
+            return TUIView.renderToBuffer(content, context: context.withChildIdentity(type: type(of: content)))
+        }
+        let button = button(follow: follow, context: context)
         return TUIView.renderToBuffer(button, context: context.withChildIdentity(type: type(of: button)))
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        if Self.drawsAsRowContent(context: context, measuring: true) {
+            let content = labelContent(context: context)
+            return measureChild(content, proposal: proposal, context: context.withChildIdentity(type: type(of: content)))
+        }
         // Registering a view destination is a render-pass side effect; a
         // measure only needs the button's geometry.
-        let button = button(context: context, registerViewDestination: false)
+        let button = button(
+            follow: follow(context: context, registerViewDestination: false), context: context)
         return measureChild(button, proposal: proposal, context: context.withChildIdentity(type: type(of: button)))
     }
 
-    /// The button this link is, with its push action bound.
-    private func button(context: RenderContext, registerViewDestination: Bool) -> some View {
-        let coordinator = context.environment.navigationCoordinator
-        let content = label
-        let action: () -> Void
-        var isDisabled = false
+    /// Whether this link is drawn as its label, its list row being the control:
+    /// in a row its list can select, unless it is disabled, which only a button
+    /// draws.
+    private static func drawsAsRowContent(context: RenderContext, measuring: Bool) -> Bool {
+        context.environment.isEnabled
+            && context.environment.listRowEditRestrictions?.drawsLinkAsRowContent(measuring: measuring) == true
+    }
 
+    /// What following this link does, `nil` when it can do nothing: a `nil`
+    /// value disables it, as in SwiftUI — there is nothing to push, and a
+    /// control that looks live but does nothing is worse than one that looks
+    /// unavailable — and with no stack around it there is nowhere to push to.
+    private func follow(context: RenderContext, registerViewDestination: Bool) -> (@MainActor () -> Void)? {
+        guard let coordinator = context.environment.navigationCoordinator else { return nil }
         switch target {
         case .value(let value):
-            // A nil value disables the link, as in SwiftUI — there is nothing
-            // to push, and a control that looks live but does nothing is worse
-            // than one that looks unavailable.
-            isDisabled = value == nil
-            action = {
-                guard let value else { return }
-                coordinator?.push(value)
-            }
+            guard let value else { return nil }
+            return { coordinator.push(value) }
 
         case .view(let destination):
             // The identity path is stable across frames and unique per link, so
@@ -195,24 +248,57 @@ private struct _NavigationLinkCore<Label: View, Destination: View>: View, Render
             // "the screen this link owns" on the path without the link having
             // any data of its own.
             let token = NavigationViewToken(id: context.identity.path)
-            if registerViewDestination, let coordinator {
+            if registerViewDestination {
                 Self.register(destination, token: token, into: coordinator, context: context)
             }
-            action = { coordinator?.push(AnyHashable(token)) }
+            return { coordinator.push(AnyHashable(token)) }
         }
+    }
 
-        // The disclosure indicator, when asked for: a terminal's chevron after
-        // the label. The automatic look is macOS's, which draws none.
+    /// The button this link is, following it when pressed.
+    private func button(follow: (@MainActor () -> Void)?, context: RenderContext) -> some View {
+        Button(action: follow ?? {}) {
+            labelContent(context: context)
+        }
+        .disabled(follow == nil)
+    }
+
+    /// The link's label, with the disclosure indicator when asked for: a
+    /// terminal's chevron after it. The automatic look is macOS's, which draws
+    /// none.
+    private func labelContent(context: RenderContext) -> some View {
         let showsIndicator = context.environment.navigationLinkIndicatorVisibility == .visible
-        return Button(action: action) {
-            HStack(spacing: 1) {
-                content
-                if showsIndicator {
-                    Text(verbatim: "›")
-                }
+        return HStack(spacing: 1) {
+            label
+            if showsIndicator {
+                Text(verbatim: "›")
             }
         }
-        .disabled(isDisabled || coordinator == nil)
+    }
+
+    /// What the effect journal calls a link's report to its list row.
+    private static var rowReportKind: EffectJournal.Kind { EffectJournal.Kind("navigationLink.listRow") }
+
+    /// Tells the list row this link is in, if any, what following it does, for
+    /// the list to do it when the row is chosen. Replayable, so a row served
+    /// from a memo reports it again.
+    private static func reportToListRow(_ follow: (@MainActor () -> Void)?, context: RenderContext) {
+        guard let follow, context.environment.isEnabled,
+            let restrictions = context.environment.listRowEditRestrictions,
+            let row = restrictions.currentRowIndex
+        else { return }
+        restrictions.reportRowLink(row: row, follow: follow)
+        context.environment.volatileReadTracker?.recordReplayableEffect()
+        guard let journal = context.recordingEffectJournal else { return }
+        let replay: @MainActor (RenderContext) -> Void = { replayed in
+            let restrictions = replayed.environment.listRowEditRestrictions
+            if let restrictions, let row = restrictions.currentRowIndex {
+                restrictions.reportRowLink(row: row, follow: follow)
+            }
+        }
+        journal.append(
+            EffectJournal.Entry(
+                kind: rowReportKind, channelToken: context.environment.keyChannelToken, apply: replay))
     }
 
     /// What the effect journal calls a link's registration of its view.

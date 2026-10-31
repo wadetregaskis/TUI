@@ -354,6 +354,13 @@ Fixes an app may have worked around:
 - **A write made outside an event (a timer, a `Task`, a network reply) asks for a frame** when what it changed was read only by a top-level control's `Binding`, a custom style's `makeBody` or the app's body. The control used to show the old value until something else drew.
 - **Where several views hold one object, an `@Environment` the object reads in a closure** (a key or mouse handler, a gesture's callback, a `.task`) is the environment of the view the closure runs for, where it was the first holder's: a sheet sharing its page's object now dismisses the sheet. Timers, detached tasks and hover handlers still read the first holder's.
 
+#### Since 29 October
+
+- **`List(data, selection:)` takes a selection of any type**, as SwiftUI's does, in every form: `Identifiable` data, an `id:` key path, a `Range<Int>`, a tree (`children:`), a binding to a tree or to editable data (`editActions:`), and the non-optional selection. A row's value for the selection is its `.tag(_:)` or link value, else its element's `id` where that is of the selection's type. One source change: `List(items, selection: nil) { … }` can no longer infer a selection type from the `id`, as in SwiftUI; write `selection: nil as Binding<MyID?>?`, or leave the argument out.
+- **A `NavigationLink(value:)` names its row in a selecting `List`**, so `List(categories, selection: $category) { NavigationLink($0.name, value: $0) }` selects with Return, Space or a click and a `NavigationSplitView`'s next column switches. Such a row draws the link as its label, with no button and no Tab stop. In a `NavigationStack`, selecting the row also follows its link.
+- **Return or Space on a `List`'s cursor follows a `NavigationLink` in that row**, in a list with no selection, with no Tab to the link first. The link keeps its button there, and Tab still reaches it.
+- **A row of a windowed `List` whose tag or link value says nothing for the selection, after row 0 said something, no longer stops the app.** It draws and selects nothing.
+
 ### Removed deprecated spellings
 
 The project removes SwiftUI API that SwiftUI itself has deprecated, and does not add it. These went:
