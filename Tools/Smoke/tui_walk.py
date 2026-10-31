@@ -237,6 +237,16 @@ def main() -> int:
                 return condition(), time.time() - start
         return True, time.time() - start
 
+    # The menu's first paint, not a fixed wait for it: TUI asks the terminal what
+    # it is before its first frame, and this PTY never answers, so that frame took
+    # over 1.5 s on CI's arm64 runner. A key sent earlier reads as a page opening
+    # when the menu paints, and every later comparison of the title row is wrong.
+    painted, paint_latency = waited(lambda: title().strip() != "", since=time.time())
+    if not painted:
+        print(f"FAIL: the menu did not paint in {paint_latency:.1f}s")
+        dump_screen()
+        return 1
+
     def steady_title() -> str:
         """The title row once it has held still for 0.3 s (to the paint
         deadline): a frame can reach the terminal split across reads, and a
