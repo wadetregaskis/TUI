@@ -8,6 +8,7 @@ Show text, pictures, shapes and other content, and compose views of your own.
 
 - <doc:CustomViews>
 - <doc:TextStyling>
+- <doc:WorkingWithImages>
 - <doc:Localization>
 
 ### Views
