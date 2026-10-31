@@ -90,7 +90,7 @@ Worth recording, because both were latent everywhere:
   on WASI, but `url(forResource:withExtension:subdirectory:)` returns `nil` for
   a file that is sitting in the bundle directory. The symptom is quiet: the
   framework's own strings render as their keys (`statusbar.quit` across the
-  status bar) and `tuiKitVersion` reads `unknown`. `ModuleResources.url(named:
+  status bar) and `tuiVersion` reads `unknown`. `ModuleResources.url(named:
   extension:subdirectory:)` asks by name first and works it out from the bundle
   URL second.
 

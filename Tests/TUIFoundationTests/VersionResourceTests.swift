@@ -1,7 +1,7 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  VersionResourceTests.swift
 //
-//  `tuiKitVersion` reads a bundled resource and falls back to the string
+//  `tuiVersion` reads a bundled resource and falls back to the string
 //  "unknown" when it cannot. That fallback is silent by design, and resource
 //  bundling is a BUILD-configuration fact, not a code one — it depends on the
 //  `resources:` declaration in `Package.swift` surviving every target edit.
@@ -34,26 +34,26 @@ struct VersionResourceTests {
     @Test("The resource resolves, so the version is not the silent fallback")
     func resourceResolves() {
         #expect(
-            tuiKitVersion != "unknown",
+            tuiVersion != "unknown",
             "No TUI resource bundle with VERSION was found (ModuleResources) — check `resources:` in Package.swift")
     }
 
     @Test("The version is a semantic version, trimmed")
     func versionShape() {
         #expect(
-            tuiKitVersion.wholeMatch(of: /\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?/) != nil,
-            "not a semantic version: \(tuiKitVersion.debugDescription)")
+            tuiVersion.wholeMatch(of: /\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?/) != nil,
+            "not a semantic version: \(tuiVersion.debugDescription)")
         // Pins the `trimmingCharacters` call: the file on disk ends in a
         // newline, and an untrimmed version string would be pasted straight
         // into a `--version` line.
-        #expect(tuiKitVersion == tuiKitVersion.trimmingCharacters(in: .whitespacesAndNewlines))
+        #expect(tuiVersion == tuiVersion.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     @Test("The bundled copy is the file in the source tree")
     func matchesTheSourceFile() throws {
         let onDisk = try String(contentsOf: Self.versionFile, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        #expect(tuiKitVersion == onDisk)
+        #expect(tuiVersion == onDisk)
     }
 
     @Test("A program without the bundle reads the version as unknown")

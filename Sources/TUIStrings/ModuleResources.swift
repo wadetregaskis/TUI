@@ -13,12 +13,12 @@ import Foundation
 /// stopping the program.
 ///
 /// A value rather than a function of `Bundle.module`, so that what reads the
-/// files (``LocalizationService``, `tuiKitVersion`) can be handed a bundle of a
+/// files (``LocalizationService``, `tuiVersion`) can be handed a bundle of a
 /// test's own, or none — and because `Bundle.module` stops the program
 /// (`fatalError`) where it finds no bundle. A terminal program is often shipped
 /// as one file, copied out of `.build` or installed by a formula, so that was
 /// every such program, at launch. Where this finds none, TUI's words read in
-/// English (`LocalizationService.builtInEnglish`) and `tuiKitVersion` reads
+/// English (`LocalizationService.builtInEnglish`) and `tuiVersion` reads
 /// `unknown`.
 ///
 /// ## Where it looks

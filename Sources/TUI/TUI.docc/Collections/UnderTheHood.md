@@ -141,7 +141,7 @@ How TUI draws, and the lower-level types for custom rendering and for talking to
 - ``Lock``
 - ``StackGuard``
 - ``AutoRepeatTimer``
-- ``tuiKitVersion``
+- ``tuiVersion``
 - ``extractBadgeValue(from:)``
 - ``viewTypeCarriesBadge(_:)``
 - ``RenderPass``

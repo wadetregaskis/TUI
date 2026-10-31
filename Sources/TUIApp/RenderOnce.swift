@@ -20,7 +20,7 @@ import TUIFoundation
 ///             .bold()
 ///             .foregroundStyle(.cyan)
 ///         Divider()
-///         Text("Version \(tuiKitVersion)")
+///         Text("Version \(tuiVersion)")
 ///             .dim()
 ///     }
 /// }

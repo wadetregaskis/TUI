@@ -28,7 +28,7 @@ private struct Holds<Existential> {
 struct ValueHashOpenerTests {
     /// Tables live as long as the test: a plan read from a table that has gone
     /// is read from freed memory.
-    private let opened = ValueHashPlans.tuikit()
+    private let opened = ValueHashPlans.tui()
     private let cast = ValueHashPlans()
 
     private func hash<V>(_ value: V, _ plans: ValueHashPlans) -> Int? {

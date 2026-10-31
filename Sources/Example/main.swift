@@ -81,7 +81,7 @@ struct ExampleApp: App {
         // The credits and the copyright break their lines by hand, so they
         // read balanced rather than wrapping raggedly at the alert's width.
         .aboutPanel(
-            applicationName: "TUI Example", applicationVersion: tuiKitVersion,
+            applicationName: "TUI Example", applicationVersion: tuiVersion,
             copyright: "Copyright © 2026 Frank Gregor & Wade Tregaskis\nMIT License",
             credits: L("about.credits"))
     }

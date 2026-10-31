@@ -113,7 +113,7 @@ renderOnce {
             .bold()
             .foregroundStyle(.green)
         Divider()
-        Text("Version \(tuiKitVersion)")
+        Text("Version \(tuiVersion)")
             .dim()
     }
 }

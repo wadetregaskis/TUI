@@ -55,7 +55,7 @@ package func debugFocusLog(_ message: @autoclosure () -> String) {
 ///
 /// Read from `Sources/TUIStrings/VERSION` (bundled as a resource).
 /// Update the `VERSION` file to change the version number.
-public let tuiKitVersion: String = readTUIVersion(from: .current)
+public let tuiVersion: String = readTUIVersion(from: .current)
 
 /// The version the `VERSION` file in `resources` names, trimmed; `"unknown"`
 /// where it cannot be read.

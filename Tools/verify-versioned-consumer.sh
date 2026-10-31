@@ -11,7 +11,7 @@
 # The consumer here does not merely compile — it RUNS, and checks two things
 # that only exist at runtime:
 #
-#   tuiKitVersion                  reads Sources/TUIStrings/VERSION from
+#   tuiVersion                  reads Sources/TUIStrings/VERSION from
 #                                  TUI's resource bundle, and answers
 #                                  "unknown" if the bundle cannot be found. A
 #                                  compile-only check would sail straight past
@@ -91,10 +91,10 @@ import TUI
 var failures: [String] = []
 
 // Resolves Sources/TUIStrings/VERSION from TUI's resource bundle, or answers "unknown".
-if tuiKitVersion == "unknown" || tuiKitVersion.isEmpty {
+if tuiVersion == "unknown" || tuiVersion.isEmpty {
     failures.append(
         """
-        tuiKitVersion is "\(tuiKitVersion)".
+        tuiVersion is "\(tuiVersion)".
         The VERSION resource did not resolve from TUI's resource bundle when TUI was
         built as a dependency. Check the `resources:` entry for the TUIStrings
         target, whose bundle (TUI_TUIStrings) holds it.
@@ -119,7 +119,7 @@ guard failures.isEmpty else {
     exit(1)
 }
 
-print("versioned consumer OK — TUI \(tuiKitVersion), button.cancel = \(cancel)")
+print("versioned consumer OK — TUI \(tuiVersion), button.cancel = \(cancel)")
 EOF
 
 printf '── Resolving\n'

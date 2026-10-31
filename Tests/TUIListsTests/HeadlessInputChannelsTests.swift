@@ -56,7 +56,7 @@ struct HeadlessInputChannelsTests {
             var environment = EnvironmentValues()
             channels.install(into: &environment)
             let stateStorage = StateStorage()
-            let renderCache = RenderCache(valueHashPlans: .tuikit())
+            let renderCache = RenderCache(valueHashPlans: .tui())
             environment.stateStorage = stateStorage
             environment.renderCache = renderCache
             environment.preferenceStorage = PreferenceStorage()

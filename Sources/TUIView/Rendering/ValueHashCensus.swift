@@ -2,7 +2,7 @@
 //  ValueHashCensus.swift
 //
 //  What the value hash did, by the shape of each plan it ran — compiled in
-//  only with `-DTUIKIT_VALUE_HASH_CENSUS`, so an ordinary build pays nothing.
+//  only with `-DTUI_VALUE_HASH_CENSUS`, so an ordinary build pays nothing.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -15,7 +15,7 @@
 /// loses its memo hits, and one with steps pays for typed Swift on every
 /// lookup, so the types that do either, weighted by how often they are
 /// hashed, are the list of what to reorder, re-represent or opt in. Build
-/// with `swift build -Xswiftc -DTUIKIT_VALUE_HASH_CENSUS`; `Stress --bench`
+/// with `swift build -Xswiftc -DTUI_VALUE_HASH_CENSUS`; `Stress --bench`
 /// prints it.
 package struct ValueHashCensus {
     /// Lookups answered by a dense plan: the word loop over the whole value.

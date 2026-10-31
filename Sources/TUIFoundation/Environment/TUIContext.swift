@@ -630,7 +630,7 @@ package final class TUIContext: @unchecked Sendable {
         // bar's reflow (`TooltipState.held`).
         self.mouseEventDispatcher.tooltipState = self.tooltipState
         self.preferences = PreferenceStorage()
-        self.renderCache = RenderCache(valueHashPlans: .tuikit())
+        self.renderCache = RenderCache(valueHashPlans: .tui())
         // Point the state storage at this context's cache so a `@State` change
         // (``StateBox/value`` didSet) invalidates the right cache. Without the
         // shared singleton there is no implicit common target — the owner must
@@ -667,7 +667,7 @@ package final class TUIContext: @unchecked Sendable {
         mouseEventDispatcher: MouseEventDispatcher = MouseEventDispatcher(),
         preferences: PreferenceStorage,
         stateStorage: StateStorage = StateStorage(),
-        renderCache: RenderCache = RenderCache(valueHashPlans: .tuikit()),
+        renderCache: RenderCache = RenderCache(valueHashPlans: .tui()),
         appState: AppState = AppState()
     ) {
         self.appState = appState

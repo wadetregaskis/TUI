@@ -55,7 +55,7 @@ struct MemoCounts {
 
     /// Prints the value hash's census for `cache` — lookups by the shape of the
     /// plan that answered them, and the types that stepped or bypassed —
-    /// warm-up included. Only in a build with `-DTUIKIT_VALUE_HASH_CENSUS`,
+    /// warm-up included. Only in a build with `-DTUI_VALUE_HASH_CENSUS`,
     /// which is the only build that counts it; otherwise nothing.
     @MainActor
     static func printValueHashCensus(of cache: RenderCache?) {

@@ -431,7 +431,7 @@ old address — the memos key a value by its bytes, an address among them.)
 `unkeyed` counts the measures and resolutions whose view the value hash
 cannot read (a payload enum that has not opted in, say, or a value nested too deep for the stack to hash — which
 cuts no tree short, so the stack guard's count of descents stopped leaves
-it out): measured or resolved every time, neither looked up nor kept. Build with `-Xswiftc -DTUIKIT_VALUE_HASH_CENSUS` (a scratch path of its
+it out): measured or resolved every time, neither looked up nor kept. Build with `-Xswiftc -DTUI_VALUE_HASH_CENSUS` (a scratch path of its
 own saves rebuilding the ordinary one) and `--bench` also prints the value
 hash's census: lookups by the shape of the plan that answered them — dense,
 runs, steps, bypass — and the types behind all but the first. A lookup that

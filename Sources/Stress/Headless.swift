@@ -218,7 +218,7 @@ enum Headless {
         let clock = StressClock()
         var failures = 0
         let cases = selfcheckCases(config)
-        let valueHashPlans = ValueHashPlans.tuikit()
+        let valueHashPlans = ValueHashPlans.tui()
         print("selfcheck — scale \(config.scale) seed \(config.seed) @ 120x40")
         for scenario in cases {
             let channels = HeadlessInputChannels()
@@ -457,7 +457,7 @@ enum Headless {
 
         // Warm up (build lazy state, prime caches) outside the timed region.
         let channels = HeadlessInputChannels()
-        let valueHashPlans = ValueHashPlans.tuikit()
+        let valueHashPlans = ValueHashPlans.tui()
         var warm = makeContext(cols: cols, rows: rows, channels: channels, valueHashPlans: valueHashPlans)
         stampFrameDate(warm)
         _ = renderToBuffer(view, context: warm)

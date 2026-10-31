@@ -24,7 +24,7 @@ import TUI
 struct DemoVersionInfo: View {
     var body: some View {
         VStack(alignment: .trailing) {
-            Text(verbatim: "TUI v\(tuiKitVersion)")
+            Text(verbatim: "TUI v\(tuiVersion)")
             Text(verbatim: systemInfo)
         }
         .foregroundStyle(.palette.foregroundTertiary)

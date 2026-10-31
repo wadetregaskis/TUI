@@ -107,7 +107,7 @@ final class ViewRenderer {
             keyEventDispatcher: KeyEventDispatcher(),
             preferences: PreferenceStorage(),
             stateStorage: StateStorage(),
-            renderCache: RenderCache(valueHashPlans: .tuikit())
+            renderCache: RenderCache(valueHashPlans: .tui())
         )
     }
 }
