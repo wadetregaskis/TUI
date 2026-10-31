@@ -1,73 +1,149 @@
 # Modals, Sheets, and Alerts
 
-Present overlays — alerts, modal dialogs, and transient notifications — above
-the current screen.
+Present alerts, sheets and other overlays above the current screen.
 
 ## Overview
 
-TUI presents alerts and modals as a **centred overlay that dims the whole
-screen and captures keyboard input**, no matter where in the view tree the
-modifier is attached. The overlay is hosted at the root, so you can hang it off
-any subtree rather than a special full-screen container. <kbd>Esc</kbd>
-dismisses the presentation, and says so on the status bar while it is up — it
-has to claim the key there, or a page carrying its own `⎋ back` item would eat
-it and navigate out from under the dialog. A presented dialog can also be
-dragged by its title or border, and is clamped to stay on screen.
+An alert or a sheet is a centred panel that dims the screen behind it and takes the keyboard. You can attach one to any view, wherever it is in the tree: TUI draws it at the top. <kbd>Esc</kbd> dismisses it, and the status bar says so while it's up. A presented panel can also be dragged by its title or border, and stays on screen.
 
-## Popovers
+## Alerts
 
-A `sheet(isPresented:onDismiss:content:)` centres a panel over the dimmed
-screen; a **popover** stays next to the thing it belongs to. It is a bordered
-panel anchored to the presenting view, over a page that is *not* dimmed —
-the same presentation `.contextMenu` and the `Picker` drop-down use, with your
-content instead of menu rows. <kbd>Esc</kbd> closes it, and so does a click
-anywhere outside it.
+Use `alert(_:isPresented:actions:message:)` for a titled alert with an
+actions area and an optional message. Bind it to a `Bool` state:
 
 ```swift
-Button("Details") { showing = true }
-    .popover(isPresented: $showing) {
-        VStack(alignment: .leading) {
-            Text("Ganymede").bold()
-            Text("Largest moon in the solar system")
-        }
+struct ContentView: View {
+    @State private var confirming = false
+
+    var body: some View {
+        Button("Delete") { confirming = true }
+            .alert("Delete this item?", isPresented: $confirming) {
+                Button("Delete", role: .destructive) { deleteItem() }
+                Button("Cancel", role: .cancel) { keepItem() }
+            } message: {
+                Text("This action cannot be undone.")
+            }
+    }
+}
+```
+
+An overload without the `message:` closure presents an actions-only alert. Both
+accept optional `borderStyle`, `borderColor`, and `titleColor` arguments for
+terminal-specific styling.
+
+Choosing **any** action dismisses the alert, as in SwiftUI — the action closure
+does not flip `isPresented` itself. <kbd>Esc</kbd> *is* the `.cancel`-role
+button: it runs that action if there is one (a disabled one is skipped) and
+closes the alert either way, which is why `Cancel` above has something to do.
+An alert with no cancel role simply closes, and no other action is conscripted
+into the job.
+
+An alert with no actions at all has a standard **OK**, as SwiftUI's does, so
+`.alert("Saved", isPresented: $saved) {} message: { … }` still has a button to
+close it with; and a confirmation dialog with no `.cancel`-role button has a
+standard **Cancel** below its own. Each does nothing but close the dialog.
+
+Each action is a separate focusable control: <kbd>Tab</kbd> moves between them
+in drawn order and <kbd>Return</kbd> activates the focused one.
+
+## Confirmation Dialogs
+
+`confirmationDialog(_:isPresented:titleVisibility:actions:message:)` is the same
+host with its buttons **stacked vertically** — an action sheet — and the
+`.cancel` role sorted to the bottom. `titleVisibility: .hidden` suppresses the
+title.
+
+```swift
+Button("Delete item…") { confirming = true }
+    .confirmationDialog("Delete this item?", isPresented: $confirming) {
+        Button("Delete", role: .destructive) { choice = "deleted" }
+        Button("Cancel", role: .cancel) { choice = "cancelled" }
+    } message: {
+        Text("This action cannot be undone.")
     }
 ```
 
-`arrowEdge` decides which side it sits on — a terminal draws no arrow, but the
-edge still means something: `.bottom` (the default) puts it below the view,
-`.top` above, `.leading` / `.trailing` beside. `attachmentAnchor` decides where
-along that edge: `.rect(.bounds)` centres it on the view, `.rect(.rect(_:))` on
-a rectangle in the view's cells (an `Anchor<CellRect>.Source`, as SwiftUI's
-takes an `Anchor<CGRect>.Source`), and `.point(_:)` puts it at a unit point
-within it.
+Dismissal works exactly as it does for an alert, Escape included.
 
-### In a compact size class
+## Sheets
 
-On iOS a popover in a compact size class is presented as a sheet, and TUI
-does the same where an app writes `.compact` into `\.horizontalSizeClass` or
-`\.verticalSizeClass` — a terminal's classes are `.regular` otherwise, so
-nothing changes for an app that writes neither. The content decides otherwise
-with `presentationCompactAdaptation(_:)`: `.none` and `.popover` keep the
-popover, `.fullScreenCover` covers the content area, and
-`presentationCompactAdaptation(horizontal:vertical:)` answers each class
-apart, the vertical one winning where both are compact. The presenting view
-keeps its state when the class changes while the popover is up; the content
-starts over, as another presentation.
+`sheet(isPresented:onDismiss:content:)` presents any content you like, in the same
+centred, screen-dimming panel:
 
 ```swift
-Button("Details") { showing = true }
-    .popover(isPresented: $showing) {
-        Details()
-            .presentationCompactAdaptation(.none)
+struct ContentView: View {
+    @State private var showingDetails = false
+
+    var body: some View {
+        Button("Show details") { showingDetails = true }
+            .sheet(isPresented: $showingDetails) {
+                DetailView()
+            }
+    }
+}
+```
+
+The optional `onDismiss:` closure runs on the presented → dismissed
+transition, whatever cleared the binding — a Close button, a key press, or a
+programmatic change.
+
+`modal(isPresented:onDismiss:content:)` is the same presentation under TUI's own
+name. Its always-on form, `modal { … }`, is for content that should be presented
+for as long as its host is on screen.
+
+### A Sheet for an Item
+
+As in SwiftUI, there is also an item-driven overload,
+`sheet(item:onDismiss:content:)`: a non-`nil` `Identifiable` value presents
+the sheet, built from the unwrapped item, and clearing the binding dismisses
+it:
+
+```swift
+@State private var editing: Row?
+
+List(rows, selection: $selection) { ... }
+    .sheet(item: $editing) { row in
+        EditView(row)
     }
 ```
 
-## Full-screen covers
+The item's **id is the sheet content's identity**, which is the whole reason to
+reach for this form: move the selection to another row while the sheet is up and
+the editor is a *different view* — its `@State` back at its initial values, its
+`onAppear`/`task` firing again — rather than the same editor handed a new row to
+describe, still holding the previous row's half-typed draft. The same is true of
+`fullScreenCover(item:onDismiss:content:)` and
+`popover(item:attachmentAnchor:arrowEdge:content:)`.
 
-`fullScreenCover(isPresented:onDismiss:content:)` replaces the page rather than
-floating over it: the content fills the area between the window's top and
-bottom bars, nothing shows through, and — unlike a sheet — it cannot be dragged,
-because there is nowhere for it to go.
+### Insisting on an answer
+
+``View/interactiveDismissDisabled(_:)`` takes away the reader's own ways out.
+SwiftUI's gesture is a downward swipe; a terminal's are **Escape** and a click
+outside, so those are what it suppresses — Escape stops being offered on the
+status bar at all, rather than being offered and doing nothing. It holds from
+anywhere inside the presented content, a view of your own or under other
+modifiers, as SwiftUI's does.
+
+```swift
+.sheet(isPresented: $editing) {
+    Editor()
+        .interactiveDismissDisabled(hasUnsavedChanges)
+}
+```
+
+Everything programmatic still closes it: a `Done` button flipping the binding,
+`@Environment(\.dismiss)`, or the app clearing it once whatever the sheet was
+insisting on is done. Alerts and confirmation dialogs are unaffected — Escape
+there chooses the `.cancel` button, which is an answer rather than a dismissal.
+
+### Becoming a Full-Screen Cover
+
+Where an app writes `.compact` into `\.verticalSizeClass`, a sheet is
+presented as a full-screen cover, as SwiftUI's is on an iPhone in landscape.
+`presentationCompactAdaptation(.none)` or `(.sheet)` on its content keeps it a
+sheet, and `(.fullScreenCover)` makes it a cover in a horizontally compact
+class too. Becoming a cover is not a dismissal: `onDismiss` does not run, and
+the content keeps its state.
 
 ## Sheet heights: detents
 
@@ -113,7 +189,7 @@ dragged by its border — its place is the edge. On a short terminal two detents
 can come to the same number of rows (`.medium` and `.height(5)` of a 10-row
 content area); they are then one height.
 
-Two more things to know. It must be the content's **outermost** modifier — the
+It must be the content's **outermost** modifier — the
 detent is the height the content is rendered *into*, so it has to be readable
 before that render happens, which is why it rides the view's type rather than a
 preference. (An `if` in the sheet's builder is fine; another presentation
@@ -139,11 +215,9 @@ sheet's own controls:
 | ↖ ↘ (Home, End) | the smallest, the largest — where the terminal sends them (below) |
 | ↩ or Space | the next, round to the smallest after the largest |
 
-↑ and ↓ reach the app in every terminal measured. Whether every terminal's
-default profile sends a bare ↖ and ↘ to the app, rather than keeping them to
-scroll its own buffer, is not yet measured (`Terminal compatibility survey.md`, "Keys
-a sheet's grabber uses"), so they are a convenience where they arrive, and ↑
-and ↓ the route that always works.
+↑ and ↓ reach the app in every terminal measured. Some terminals may keep a bare
+↖ and ↘ to scroll their own buffer, so treat those two as a convenience, and ↑
+and ↓ as the route that always works.
 
 A mouse drags the rule, and the sheet snaps to the nearest detent as the
 pointer moves. Bind `selection:` to see where the reader put it, or to move it
@@ -265,317 +339,63 @@ not known until the item is. Likewise, the frame after the view that
 presented a sheet stops being drawn — its page navigated away from with the
 sheet up — is laid out short by the sheet's rows, and the next takes them back.
 
-## Alerts
+## Popovers
 
-Use `alert(_:isPresented:actions:message:)` for a titled alert with an
-actions area and an optional message. Bind it to a `Bool` state:
-
-```swift
-struct ContentView: View {
-    @State private var confirming = false
-
-    var body: some View {
-        Button("Delete") { confirming = true }
-            .alert("Delete this item?", isPresented: $confirming) {
-                Button("Delete", role: .destructive) { deleteItem() }
-                Button("Cancel", role: .cancel) { keepItem() }
-            } message: {
-                Text("This action cannot be undone.")
-            }
-    }
-}
-```
-
-An overload without the `message:` closure presents an actions-only alert. Both
-accept optional `borderStyle`, `borderColor`, and `titleColor` arguments for
-terminal-specific styling.
-
-Choosing **any** action dismisses the alert, as in SwiftUI — the action closure
-does not flip `isPresented` itself. <kbd>Esc</kbd> *is* the `.cancel`-role
-button: it runs that action if there is one (a disabled one is skipped) and
-closes the alert either way, which is why `Cancel` above has something to do.
-An alert with no cancel role simply closes, and no other action is conscripted
-into the job.
-
-An alert with no actions at all has a standard **OK**, as SwiftUI's does, so
-`.alert("Saved", isPresented: $saved) {} message: { … }` still has a button to
-close it with; and a confirmation dialog with no `.cancel`-role button has a
-standard **Cancel** below its own. Each does nothing but close the dialog.
-
-Each action is a separate focusable control: <kbd>Tab</kbd> moves between them
-in drawn order and <kbd>Return</kbd> activates the focused one.
-
-## Confirmation Dialogs
-
-`confirmationDialog(_:isPresented:titleVisibility:actions:message:)` is the same
-host with its buttons **stacked vertically** — an action sheet — and the
-`.cancel` role sorted to the bottom. `titleVisibility: .hidden` suppresses the
-title.
+A sheet centres a panel over the dimmed screen; a **popover** stays next to the
+thing it belongs to. It is a bordered
+panel anchored to the presenting view, over a page that is *not* dimmed —
+the same presentation `.contextMenu` and the `Picker` drop-down use, with your
+content instead of menu rows. <kbd>Esc</kbd> closes it, and so does a click
+anywhere outside it.
 
 ```swift
-Button("Delete item…") { confirming = true }
-    .confirmationDialog("Delete this item?", isPresented: $confirming) {
-        Button("Delete", role: .destructive) { choice = "deleted" }
-        Button("Cancel", role: .cancel) { choice = "cancelled" }
-    } message: {
-        Text("This action cannot be undone.")
+Button("Details") { showing = true }
+    .popover(isPresented: $showing) {
+        VStack(alignment: .leading) {
+            Text("Ganymede").bold()
+            Text("Largest moon in the solar system")
+        }
     }
 ```
 
-Dismissal works exactly as it does for an alert, Escape included.
+`arrowEdge` decides which side it sits on — a terminal draws no arrow, but the
+edge still means something: `.bottom` (the default) puts it below the view,
+`.top` above, `.leading` / `.trailing` beside. `attachmentAnchor` decides where
+along that edge: `.rect(.bounds)` centres it on the view, `.rect(.rect(_:))` on
+a rectangle in the view's cells (an `Anchor<CellRect>.Source`, as SwiftUI's
+takes an `Anchor<CGRect>.Source`), and `.point(_:)` puts it at a unit point
+within it.
 
-## Modals and Sheets
+### In a compact size class
 
-`modal(isPresented:onDismiss:content:)` presents arbitrary content with the
-same centred, screen-dimming treatment.
-`sheet(isPresented:onDismiss:content:)` is a SwiftUI-compatible alias that
-forwards to `modal`:
-
-```swift
-struct ContentView: View {
-    @State private var showingDetails = false
-
-    var body: some View {
-        Button("Show details") { showingDetails = true }
-            .sheet(isPresented: $showingDetails) {
-                DetailView()
-            }
-    }
-}
-```
-
-The optional `onDismiss:` closure runs on the presented → dismissed
-transition, whatever cleared the binding — a Close button, a key press, or a
-programmatic change.
-
-Where an app writes `.compact` into `\.verticalSizeClass`, a sheet is
-presented as a full-screen cover, as SwiftUI's is on an iPhone in landscape.
-`presentationCompactAdaptation(.none)` or `(.sheet)` on its content keeps it a
-sheet, and `(.fullScreenCover)` makes it a cover in a horizontally compact
-class too. Becoming a cover is not a dismissal: `onDismiss` does not run, and
-the content keeps its state.
-
-### Insisting on an answer
-
-``View/interactiveDismissDisabled(_:)`` takes away the reader's own ways out.
-SwiftUI's gesture is a downward swipe; a terminal's are **Escape** and a click
-outside, so those are what it suppresses — Escape stops being offered on the
-status bar at all, rather than being offered and doing nothing. It holds from
-anywhere inside the presented content, a view of your own or under other
-modifiers, as SwiftUI's does.
+On iOS a popover in a compact size class is presented as a sheet, and TUI
+does the same where an app writes `.compact` into `\.horizontalSizeClass` or
+`\.verticalSizeClass` — a terminal's classes are `.regular` otherwise, so
+nothing changes for an app that writes neither. The content decides otherwise
+with `presentationCompactAdaptation(_:)`: `.none` and `.popover` keep the
+popover, `.fullScreenCover` covers the content area, and
+`presentationCompactAdaptation(horizontal:vertical:)` answers each class
+apart, the vertical one winning where both are compact. The presenting view
+keeps its state when the class changes while the popover is up; the content
+starts over, as another presentation.
 
 ```swift
-.sheet(isPresented: $editing) {
-    Editor()
-        .interactiveDismissDisabled(hasUnsavedChanges)
-}
-```
-
-Everything programmatic still closes it: a `Done` button flipping the binding,
-`@Environment(\.dismiss)`, or the app clearing it once whatever the sheet was
-insisting on is done. Alerts and confirmation dialogs are unaffected — Escape
-there chooses the `.cancel` button, which is an answer rather than a dismissal.
-
-As in SwiftUI, there is also an item-driven overload,
-`sheet(item:onDismiss:content:)`: a non-`nil` `Identifiable` value presents
-the sheet, built from the unwrapped item, and clearing the binding dismisses
-it:
-
-```swift
-@State private var editing: Row?
-
-List(rows, selection: $selection) { ... }
-    .sheet(item: $editing) { row in
-        EditView(row)
+Button("Details") { showing = true }
+    .popover(isPresented: $showing) {
+        Details()
+            .presentationCompactAdaptation(.none)
     }
 ```
 
-The item's **id is the sheet content's identity**, which is the whole reason to
-reach for this form: move the selection to another row while the sheet is up and
-the editor is a *different view* — its `@State` back at its initial values, its
-`onAppear`/`task` firing again — rather than the same editor handed a new row to
-describe, still holding the previous row's half-typed draft. The same is true of
-`fullScreenCover(item:onDismiss:content:)` and
-`popover(item:attachmentAnchor:arrowEdge:content:)`.
+A pop-up of *choices* anchored to a control is still better spelled ``Menu`` or
+`contextMenu(menuItems:)`; `.popover` is for arbitrary content.
 
-There is also an always-on `modal { … }` overload (bound to a constant `true`)
-for content that should always be presented while its host is on screen.
+## Full-screen covers
 
-> Note: `popover(isPresented:attachmentAnchor:arrowEdge:content:)` and
-> `fullScreenCover(isPresented:onDismiss:content:)` are both available, as is
-> `presentationDetents(_:)` — see the sections above. A pop-up of *choices*
-> anchored to a control is still better spelled ``Menu`` or
-> `contextMenu(menuItems:)`; `.popover` is for arbitrary content.
-
-## Open and save panels
-
-SwiftUI's `fileImporter` presents the system's open panel; a terminal has none,
-so TUI draws one (the `TUIFilePanels` module), in a sheet as large as a
-page. It lists a folder's items in a table — Name, Size, Date Modified and
-Kind, sortable by any of them, folders first, each name after an icon of its
-kind where the terminal draws emoji or SF Symbols (a folder marked with a
-trailing `/` where it draws neither);
-in a narrow terminal Kind gives way, then Date Modified, then Size, so that a
-name keeps its room —
-under the folder's path, with the hidden-files switch and the buttons below.
-The path is a path control, as on a Mac: a segment per folder from `/`, or
-from the home folder, written `~`, each a target of its own — a click goes
-there, and with the focus on it <kbd>←</kbd> and <kbd>→</kbd> move among the
-segments and <kbd>Space</kbd> goes to the one under the cursor. At the
-`.regular` and larger control sizes a blank row sets the parts apart; under
-`.controlSize(.small)` the panel is as dense as it can be.
-
-Where a panel has more than one type, a pop-up under the folder lists them:
-to open, "Show:" narrows the files that can be chosen to one of them, or
-widens them to All Files; to save, "Format:" chooses the type to save as and
-gives the name its extension. `fileDialogContentTypePicker(.visible)` shows it
-for a single type too, and `.hidden` never:
-
-```swift
-Button("Open…") { importing = true }
-    .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in … }
-    .fileDialogContentTypePicker(.visible)
-```
-Items of a type the caller does not take are dimmed: the cursor lands on them,
-but they can be neither selected nor chosen.
-
-`fileDialogIcon(_:)` draws an app's own icon before each name, in the two
-cells an emoji icon takes; its closure is given the item's URL and type, and
-`nil` keeps the kind's icon. On macOS, `fileDialogSystemIcons()`, from
-`TUIFilePanelsAppKit`, draws the Finder's where the terminal draws pictures (Ghostty,
-kitty, iTerm2, WezTerm), and the kinds' icons elsewhere:
-
-```swift
-import TUIFilePanelsAppKit
-
-Button("Open…") { importing = true }
-    .fileImporter(isPresented: $importing, allowedContentTypes: [.pdf]) { result in … }
-    .fileDialogSystemIcons()
-```
-
-```swift
-@State private var importing = false
-
-Button("Open…") { importing = true }
-    .fileImporter(isPresented: $importing, allowedContentTypes: [.plainText, .json]) { result in
-        if case .success(let url) = result { open(url) }
-    }
-```
-
-The keys are a terminal file browser's: <kbd>↑</kbd> and <kbd>↓</kbd> move,
-typing a name's first letters finds it, <kbd>Return</kbd> opens a folder or
-chooses a file, <kbd>Space</kbd> selects (adding to the selection where several
-may be chosen), <kbd>→</kbd> opens a folder in place and <kbd>←</kbd> closes
-it, <kbd>Backspace</kbd> goes to the enclosing
-folder and <kbd>~</kbd> to the home folder, and <kbd>Esc</kbd> cancels. A
-double-click opens or chooses, and the ↰ button before the path goes up. <kbd>/</kbd>
-turns the path into a field to type a path in, as at a shell prompt:
-<kbd>Tab</kbd> completes it and <kbd>Return</kbd> goes there.
-
-Finder's chords work too, ⌘ written as the app's `commandKey` says (⌃ by
-default): <kbd>⌘2</kbd> and <kbd>⌘3</kbd> the list and the column view,
-<kbd>⇧⌘P</kbd> the preview, <kbd>⌘↑</kbd> the enclosing folder and
-<kbd>⌘↓</kbd> into the folder selected (or choosing the file, as Return
-does), <kbd>⇧⌘G</kbd> the path field, <kbd>⇧⌘H</kbd>, <kbd>⇧⌘D</kbd>,
-<kbd>⌥⌘L</kbd>, <kbd>⇧⌘O</kbd> and <kbd>⇧⌘A</kbd> home, Desktop, Downloads,
-Documents and Applications where they exist, <kbd>⇧⌘N</kbd> New Folder,
-<kbd>⇧⌘.</kbd> the hidden files and <kbd>⌘.</kbd> cancel. A text field keeps
-a chord it reads as its own. Their Control stand-ins arrive as themselves
-only under the kitty keyboard protocol — elsewhere Shift is lost on a
-Control letter, ⌃2, ⌃3 and ⌃. have no keys of their own, and macOS keeps ⌃↑
-and ⌃↓ for Mission Control — so the status bar names them only there, and
-the typed keys above are the route every terminal has.
-
-A switcher at the end of the path's row chooses between that list and a
-column view, as Finder's view buttons do: a column for each folder on the way
-to the one shown, side by side, <kbd>Return</kbd> or <kbd>→</kbd> opening a
-folder as a new column and <kbd>←</kbd> or <kbd>Backspace</kbd> going back to
-the one before. A folder selected shows its items in a column after its own,
-and going up selects the folder come from, so the way back down stays in view
-until another row is chosen. The panel opens in the view the last was left in,
-kept in the app's storage.
-
-While it shows, a preview of the item selected follows the folder: in the
-list a pane behind a splitter, whose divider a drag moves, or ← and → once
-<kbd>Tab</kbd> reaches it; in the column view a column of its own after a
-file's folder. It shows a file's opening lines, or the app's preview
-(`fileDialogPreview(_:)`), then its name, kind, size and date, and "No
-Selection" while there is no one item to show. The Preview button after the
-view switcher, or <kbd>⇧⌘P</kbd>, opens and closes it. Until the user does,
-it is open where the folder has room for it beside a list that keeps its
-Size and Date Modified — 82 cells, as in a terminal 90 columns wide — and
-closed in a narrower panel, such as an 80-column terminal's; the user's
-choice is kept in the app's storage beside the view.
-
-The callbacks come in SwiftUI's order: `isPresented` becomes `false`, then
-`onCompletion` hears the choice; a cancellation clears the binding and calls
-`onCancellation`, never `onCompletion`. The panel opens on the folder the app
-was started from, and later on the folder of the last choice. It browses the
-machine the app runs on — over `ssh`, the remote one, and then a line above
-the path says so: "You are browsing the file system on *host*, not your local
-machine." It shows where TUI has evidence that the user is elsewhere (an
-ssh or mosh session, or a tmux client attached from one), not where it cannot
-tell (inside GNU screen or zellij); `fileDialogRemoteNotice(.hidden)` turns it
-off, and `.visible` shows it where TUI cannot tell as well.
-
-`fileMover` presents the same panel titled Move, to choose a folder, opening
-on the folder that holds the file and later, as every panel does, on the
-folder of the last choice: Move moves the file (or files) into the folder
-selected, or the one shown, and
-`onCompletion` hears the new URLs, or the error — an item of the same name
-already in the folder is one.
-
-`fileExporter` presents the panel titled Save, with a name field above the
-folder, offering `defaultFilename`, else the item's suggested name, else
-Untitled; Return in
-the field saves, a name without the type's extension is given it, and saving
-over a file asks first. The item is exported through its
-`transferRepresentation` — on Apple platforms, since `Transferable` is
-CoreTransferable's — and `fileExporterFilenameLabel(_:)` labels the field.
-
-```swift
-.fileExporter(isPresented: $exporting, item: note, contentTypes: [.plainText]) { result in
-    if case .success(let url) = result { print("Saved to \(url.path)") }
-}
-```
-
-On Apple platforms a `FileDocument` exports the same way, written through its
-`fileWrapper(configuration:)`:
-
-```swift
-.fileExporter(isPresented: $exporting, document: TextFile(text: draft), contentType: .plainText,
-              defaultFilename: "Draft") { result in … }
-```
-
-The `fileDialog` modifiers customize the panel, written outside the modifier
-that presents it, as with SwiftUI:
-
-```swift
-.fileImporter(isPresented: $importing, allowedContentTypes: [.pdf], allowsMultipleSelection: true) { result in
-    …
-}
-.fileDialogMessage("Choose the PDFs to combine")
-.fileDialogConfirmationLabel("Combine")
-.fileDialogDefaultDirectory(documents)
-.fileDialogBrowserOptions(.includeHiddenFiles)
-.fileDialogCustomizationID("combine")
-```
-
-The message is a line above the folder and the label the confirmation
-button's. `.includeHiddenFiles` starts the hidden-files switch on and
-`.enumeratePackages` opens a package as a folder. `fileDialogURLEnabled(_:)`
-dims, and refuses, the items whose URL its predicate rejects, and
-`fileDialogImportsUnresolvedAliases(true)` hands back a chosen link rather
-than what it leads to. With a `fileDialogCustomizationID(_:)` the panel keeps
-the folder it was left in, and its hidden-files switch, in the app's storage,
-and opens there next time, launches later included.
-
-`allowedContentTypes` takes UniformTypeIdentifiers' `UTType` on Apple
-platforms (import that module where you name the type, as beside SwiftUI);
-where the framework does not exist, `TUIFilePanels` declares a `UTType` of
-its own with the same spelling and the common types, so the code compiles
-unchanged on Linux. Type a file of your app's own by its extension with
-`UTType(filenameExtension:conformingTo:)`, which works everywhere.
+`fullScreenCover(isPresented:onDismiss:content:)` replaces the page rather than
+floating over it: the content fills the area between the window's top and
+bottom bars, nothing shows through, and — unlike a sheet — it cannot be dragged,
+because there is nowhere for it to go.
 
 ## Notifications
 
@@ -596,6 +416,11 @@ NotificationService.current.post("Saved!", duration: 2.0)
 Because the host is independent of the view that posts, a notification survives
 navigation between screens.
 
+## Open and Save Panels
+
+`fileImporter`, `fileExporter` and `fileMover` draw their panels in the terminal.
+They have a page of their own: <doc:FilePanels>.
+
 ## Topics
 
 ### Presentation
@@ -607,3 +432,9 @@ navigation between screens.
 ### Notifications
 
 - ``NotificationService``
+
+## See Also
+
+- <doc:FilePanels>
+- <doc:Navigation>
+- <doc:StatusBarGuide>
