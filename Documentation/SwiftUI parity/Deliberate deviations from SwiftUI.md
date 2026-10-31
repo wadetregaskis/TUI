@@ -1,5 +1,7 @@
 # Deliberate deviations from SwiftUI
 
+> This is a working record for TUI's developers, far more detailed than you need in order to use TUI. For the differences that matter when writing an app, see [Coming from SwiftUI](<../../Sources/TUI/TUI.docc/Articles/ComingFromSwiftUI.md>).
+
 TUI aims at rough source compatibility with SwiftUI: SwiftUI code should
 compile and mean the same thing, except where a grid of character cells cannot
 carry the meaning. The two rules behind that are at the top of

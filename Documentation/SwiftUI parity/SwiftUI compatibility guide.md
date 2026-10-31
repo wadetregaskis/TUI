@@ -1,5 +1,7 @@
 # SwiftUI Compatibility
 
+> This is a working record for TUI's developers, far more detailed than you need in order to use TUI. For the differences that matter when writing an app, see [Coming from SwiftUI](<../../Sources/TUI/TUI.docc/Articles/ComingFromSwiftUI.md>).
+
 A guide for porting SwiftUI code to TUI, and a record of **where** TUI's
 public API matches or diverges from SwiftUI, **why**, and **whether the
 divergence should change**.
