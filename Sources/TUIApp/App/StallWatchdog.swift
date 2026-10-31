@@ -133,6 +133,66 @@ final class TerminalWriteGate: @unchecked Sendable {
     var isStopped: Bool { withWriteLock { stopped } }
 }
 
+// MARK: - Looking at standard input from another thread
+
+/// What a thread watching standard input for a main loop that has stopped
+/// reading it asks of the descriptor, which the loop goes on reading from its
+/// own thread: `StallWatchdog`.
+enum StandardInputWait {
+    /// What ended a wait.
+    enum Woke { case input, stop, hangUp }
+
+    /// Sleeps in `poll` until `input` has bytes, the terminal hangs up,
+    /// or the wake pipe `wake` says stop.
+    static func untilInput(on input: Int32, orWake wake: Int32) -> Woke {
+        while true {
+            var targets = [
+                pollfd(fd: input, events: Int16(POLLIN), revents: 0),
+                pollfd(fd: wake, events: Int16(POLLIN), revents: 0),
+            ]
+            let ready = poll(&targets, 2, -1)
+            if ready < 0 {
+                if errno == EINTR { continue }
+                return .hangUp
+            }
+            if targets[1].revents != 0 { return .stop }
+            // A hang-up first: a terminal gone is readable for ever, with
+            // nothing to read, and `poll` says it is gone — POLLHUP for a pty
+            // whose terminal closed and for a pipe whose writer did (measured
+            // on Darwin 24.6; Linux's pty and pipe drivers set it too, by
+            // their source), POLLNVAL for a descriptor that is none.
+            if targets[0].revents & gone != 0 { return .hangUp }
+            // Readable is input, and nothing more is asked here — above all
+            // not `FIONREAD`, whose 0 would read as an end of file. The loop
+            // reads this descriptor on its own thread, and a read between the
+            // `poll` and the `ioctl` makes a keystroke's 0 too: each arrival
+            // a chance to end the watch for good, silently (round 6; the race
+            // `StdinArrivalNotifier.handleReadable()` records making every
+            // Linux CI lane deaf). Bytes the loop took first are only input no
+            // longer waiting, which ``inputIsWaiting(on:)`` finds.
+            if targets[0].revents & Int16(POLLIN) != 0 { return .input }
+        }
+    }
+
+    /// What `poll` reports for a descriptor with no terminal behind it any
+    /// more.
+    private static let gone = Int16(POLLHUP | POLLERR | POLLNVAL)
+
+    /// Whether `input` still has bytes waiting — a drain by something
+    /// other than the loop (a startup exchange) takes them too.
+    ///
+    /// Here the race ``untilInput(on:orWake:)`` steers clear of costs nothing:
+    /// bytes the loop read between the `poll` and the count are not waiting,
+    /// which is the answer, and a loop that reads is draining, which starts the
+    /// grace again anyway. A descriptor readable with nothing to count
+    /// (`/dev/null`) never has input waiting, so no grace runs out for it.
+    static func inputIsWaiting(on input: Int32) -> Bool {
+        var target = pollfd(fd: input, events: Int16(POLLIN), revents: 0)
+        return poll(&target, 1, 0) > 0 && target.revents & gone == 0 && target.revents & Int16(POLLIN) != 0
+            && !StdinArrivalNotifier.isAtEndOfInput(input)
+    }
+}
+
 // MARK: - The watchdog
 
 /// A thread that pops the kitty keyboard protocol's flags when the main loop
@@ -247,7 +307,7 @@ final class StallWatchdog: @unchecked Sendable {
             // Asleep until input arrives — or the pipe says stop — not holding
             // the lock, so writes and drains go on.
             condition.unlock()
-            let woke = waitForInput()
+            let woke = StandardInputWait.untilInput(on: input, orWake: wakeRead)
             condition.lock()
             switch woke {
             case .stop: return
@@ -279,7 +339,7 @@ final class StallWatchdog: @unchecked Sendable {
             let check = min(waitingSince.addingTimeInterval(grace), Date(timeIntervalSinceNow: Self.checkInterval))
             while !gate.stopped, gate.armed, condition.wait(until: check) {}
             if gate.stopped { return true }
-            guard gate.armed, inputIsWaiting() else { return false }
+            guard gate.armed, StandardInputWait.inputIsWaiting(on: input) else { return false }
             if gate.drains != drainsSeen {
                 drainsSeen = gate.drains
                 waitingSince = Date()
@@ -298,58 +358,6 @@ final class StallWatchdog: @unchecked Sendable {
 
     /// How often waiting input is looked at.
     private static let checkInterval: TimeInterval = 0.25
-
-    private enum Woke { case input, stop, hangUp }
-
-    /// Sleeps in `poll` until ``input`` has bytes, the terminal hangs up,
-    /// or the wake pipe says stop.
-    private func waitForInput() -> Woke {
-        while true {
-            var targets = [
-                pollfd(fd: input, events: Int16(POLLIN), revents: 0),
-                pollfd(fd: wakeRead, events: Int16(POLLIN), revents: 0),
-            ]
-            let ready = poll(&targets, 2, -1)
-            if ready < 0 {
-                if errno == EINTR { continue }
-                return .hangUp
-            }
-            if targets[1].revents != 0 { return .stop }
-            // A hang-up first: a terminal gone is readable for ever, with
-            // nothing to read, and `poll` says it is gone — POLLHUP for a pty
-            // whose terminal closed and for a pipe whose writer did (measured
-            // on Darwin 24.6; Linux's pty and pipe drivers set it too, by
-            // their source), POLLNVAL for a descriptor that is none.
-            if targets[0].revents & Self.gone != 0 { return .hangUp }
-            // Readable is input, and nothing more is asked here — above all
-            // not `FIONREAD`, whose 0 would read as an end of file. The loop
-            // reads this descriptor on its own thread, and a read between the
-            // `poll` and the `ioctl` makes a keystroke's 0 too: each arrival
-            // a chance to end the watch for good, silently (round 6; the race
-            // `StdinArrivalNotifier.handleReadable()` records making every
-            // Linux CI lane deaf). Bytes the loop took first are only input no
-            // longer waiting, which ``inputIsWaiting()`` finds.
-            if targets[0].revents & Int16(POLLIN) != 0 { return .input }
-        }
-    }
-
-    /// What `poll` reports for a descriptor with no terminal behind it any
-    /// more.
-    private static let gone = Int16(POLLHUP | POLLERR | POLLNVAL)
-
-    /// Whether ``input`` still has bytes waiting — a drain by something
-    /// other than the loop (a startup exchange) takes them too.
-    ///
-    /// Here the race ``waitForInput()`` steers clear of costs nothing: bytes
-    /// the loop read between the `poll` and the count are not waiting, which
-    /// is the answer, and a loop that reads is draining, which starts the
-    /// grace again anyway. A descriptor readable with nothing to count
-    /// (`/dev/null`) never has input waiting, so no grace pops for it.
-    private func inputIsWaiting() -> Bool {
-        var target = pollfd(fd: input, events: Int16(POLLIN), revents: 0)
-        return poll(&target, 1, 0) > 0 && target.revents & Self.gone == 0 && target.revents & Int16(POLLIN) != 0
-            && !StdinArrivalNotifier.isAtEndOfInput(input)
-    }
 
     /// Writes the pop whole, or not at all.
     ///
