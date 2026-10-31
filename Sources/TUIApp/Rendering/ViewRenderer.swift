@@ -9,8 +9,8 @@ import TUIFoundation
 
 /// Convenience class for standalone one-off view rendering.
 ///
-/// `ViewRenderer` wraps the free function ``renderToBuffer(_:context:)``
-/// with terminal cursor positioning. It is a thin wrapper — the actual
+/// `ViewRenderer` wraps the free function ``renderToBuffer(_:context:)``, and
+/// writes the rows where the cursor is. It is a thin wrapper — the actual
 /// rendering dispatch happens in `renderToBuffer`, not here.
 ///
 /// This class is **not** part of the main render pipeline. The main
@@ -20,7 +20,7 @@ import TUIFoundation
 /// AppRunner → RenderLoop.render() → renderToBuffer() → FrameDiffWriter → Terminal
 /// ```
 ///
-/// `ViewRenderer` is used by the ``renderOnce(_:)`` convenience API
+/// `ViewRenderer` is used by the ``renderOnce(output:content:)`` convenience API
 /// for simple CLI tools that don't need a full ``App``. It bypasses
 /// `RenderLoop`, `FrameDiffWriter`, and diff-based rendering, but it
 /// still has to provide the runtime services the render pass reads
@@ -53,7 +53,7 @@ import TUIFoundation
 /// What a snapshot does NOT skip is the root composite. `.offset`,
 /// `.position`, `.popover`, `.sheet` and `.alert` leave their drawing in
 /// `overlays` rather than in the lines, and `.opacity` leaves a blend still
-/// to perform in `opacityRegions`; `flush` walks only `lines`, so both are
+/// to perform in `opacityRegions`; the write walks only `lines`, so both are
 /// resolved first, by the same
 /// ``FrameBuffer/compositingOverlays(maxWidth:maxHeight:palette:)`` the live
 /// pipeline runs at the screen root. Without it a displaced view drew nothing
@@ -66,8 +66,7 @@ final class ViewRenderer {
     ///
     /// Typed as ``TerminalProtocol`` rather than the concrete
     /// ``Terminal`` so tests can inject a capturing mock — the
-    /// renderer only needs `getSize()`, `moveCursor(toRow:column:)`,
-    /// and `write(_:)`.
+    /// renderer only needs `getSize()` and `write(_:)`.
     private let terminal: any TerminalProtocol
 
     /// The private snapshot context supplying runtime services. Internal, not
@@ -93,7 +92,7 @@ final class ViewRenderer {
     ///
     /// - Parameters:
     ///   - terminal: The target terminal. No default: the console `Terminal`
-    ///     is the app layer's, which ``renderOnce(content:)`` passes, and a
+    ///     is the app layer's, which ``renderOnce(output:content:)`` passes, and a
     ///     test passes a capturing one.
     ///   - writer: The advance model to emit through (default: the detected
     ///     host). Injectable for the same reason `terminal` is: `TerminalHost`
@@ -115,26 +114,70 @@ final class ViewRenderer {
 // MARK: - Internal API
 
 extension ViewRenderer {
-    /// Renders a view to the terminal.
-    ///
-    /// Queries the terminal size, renders the view into a ``FrameBuffer``,
-    /// and writes the result line-by-line to the terminal. Then empties what
-    /// the walk left in the renderer's services, without running any view's
-    /// code (see the type's documentation), so a second render on the same
-    /// renderer starts from empty `@State` and an empty render cache, and
+    /// Renders a view to the terminal where the cursor is: no cursor moves, a
+    /// newline after every row, so the next thing written follows on. Then
+    /// empties what the walk left in the renderer's services, without running
+    /// any view's code (see the type's documentation), so a second render on the
+    /// same renderer starts from empty `@State` and an empty render cache, and
     /// nothing the walk registered keeps the renderer alive.
+    ///
+    /// There is no screen to fill, so the view gets the height it asks for at
+    /// the terminal's width, not the terminal's height: a `Spacer` is the
+    /// least it can be, and a long stack is all there, off the top of the
+    /// screen if need be.
     ///
     /// - Parameters:
     ///   - view: The view to render.
-    ///   - row: The starting row (1-based, default: 1).
-    ///   - column: The starting column (1-based, default: 1).
-    func render<V: View>(_ view: V, atRow row: Int = 1, column: Int = 1) {
+    ///   - plainText: Whether to write only the text: no escape sequences, no
+    ///     images, and no spaces at the end of a row.
+    func render<V: View>(_ view: V, plainText: Bool = false) {
         let size = terminal.getSize()
+        beginRenderPass()
+        let height = naturalHeight(of: view, width: size.width)
+        let composited = composite(view, width: size.width, height: height, sendingImages: !plainText)
+        for line in composited.lines {
+            let row = terminalRow(line)
+            if plainText {
+                terminal.write(String(row.stripped.reversed().drop { $0 == " " }.reversed()) + "\n")
+            } else {
+                // The styling ended before the newline, so a line feed at the
+                // bottom of the screen does not scroll in a row of its colour.
+                terminal.write(row + "\u{1B}[0m\n")
+            }
+            // Styled bytes this writer did not plan, so its belief about what
+            // the terminal is wearing no longer holds — see
+            // ``FrameDiffWriter/terminalStyle``.
+            writer.forgetTerminalStyling()
+        }
+        release()
+    }
 
+    /// The height `view` asks for at `width`, its least where it is flexible,
+    /// and always a row at least, for a measure with no budget.
+    private func naturalHeight<V: View>(of view: V, width: Int) -> Int {
+        var measuring = RenderContext(
+            availableWidth: width, availableHeight: Self.tallestInlineRender, environment: makeEnvironment())
+        measuring.isMeasuring = true
+        let measured = context.stateStorage.inRenderPass {
+            measureChild(view, proposal: ProposedSize(width: width, height: nil), context: measuring)
+        }
+        return min(max(measured.height, 1), Self.tallestInlineRender)
+    }
+
+    /// More rows than any one-off render writes, so that a view which answers
+    /// a measure with the whole of what it was offered does not write without end.
+    private static let tallestInlineRender = 100_000
+
+    /// The environment a snapshot renders in: this renderer's services.
+    private func makeEnvironment() -> EnvironmentValues {
         var environment = EnvironmentValues()
         environment.applyRuntimeServices(from: context)
         environment.focusManager = focusManager
+        return environment
+    }
 
+    /// Starts the snapshot's one pass.
+    private func beginRenderPass() {
         // Initialise per-frame tracking the way the live pipeline does
         // before evaluating a frame, so @State hydration and the render
         // cache behave. No matching end-of-frame pass runs: a snapshot
@@ -147,10 +190,16 @@ extension ViewRenderer {
         // the loop stamps one per frame: a timeline measured for one entry and
         // drawn for the next is laid out for the wrong text.
         context.renderCache.frameDate = FrameClock.nowDate
+    }
+
+    /// Renders `view` at the size given and resolves what it left to the root,
+    /// sending the terminal any images it drew if `sendingImages`.
+    private func composite<V: View>(_ view: V, width: Int, height: Int, sendingImages: Bool) -> FrameBuffer {
+        let environment = makeEnvironment()
 
         let renderContext = RenderContext(
-            availableWidth: size.width,
-            availableHeight: size.height,
+            availableWidth: width,
+            availableHeight: height,
             environment: environment
         )
         // In the pass, as the run loop draws a frame: a `@State` made in it
@@ -164,7 +213,7 @@ extension ViewRenderer {
         // a one-off render is a one-off, and there is no lifecycle here to hang
         // a release on.
         let graphics = context.terminalImageStore.takePending()
-        if !graphics.isEmpty { terminal.write(graphics) }
+        if sendingImages, !graphics.isEmpty { terminal.write(graphics) }
         // The root composite, before the write. `.offset`/`.position`/
         // `.popover`/`.alert` put their drawing in `buffer.overlays` and
         // `.opacity` leaves a blend still to perform in `buffer.opacityRegions`,
@@ -182,11 +231,15 @@ extension ViewRenderer {
         // Free when there is neither payload: the opacity pass returns `self`
         // on an empty region list and the layer queue never iterates, so the
         // buffer comes back byte-identical.
-        let composited = buffer.compositingOverlays(
-            maxWidth: size.width, maxHeight: size.height, palette: environment.palette,
+        return buffer.compositingOverlays(
+            maxWidth: width, maxHeight: height, palette: environment.palette,
             images: environment.terminalImageStore)
-        flush(composited, atRow: row, column: column)
-        // Then what the walk left is emptied, as `App.cleanup` empties its own
+    }
+
+    /// Empties what the walk left in the renderer's services, once the frame
+    /// is written.
+    private func release() {
+        // What the walk left is emptied, as `App.cleanup` empties its own
         // at quit: the focus manager, then the context, in that order. Letting
         // go of them is not enough. What the walk left in them holds closures
         // over its `RenderContext` — a `List`'s handler answers row heights
@@ -211,28 +264,19 @@ extension ViewRenderer {
 // MARK: - Private Helpers
 
 extension ViewRenderer {
-    /// Flushes a FrameBuffer to the terminal at the specified position.
-    fileprivate func flush(_ buffer: FrameBuffer, atRow row: Int, column: Int) {
-        for (index, line) in buffer.lines.enumerated() {
-            terminal.moveCursor(toRow: row + index, column: column)
-            // Through the SAME two treatments the live writer's `buildLine`
-            // applies at its write boundary: the row sanitiser (a tab or a
-            // newline in user data would otherwise move the cursor here, as it
-            // cannot in an `App`) and the host's cursor-advance compensation.
-            // This is a second write boundary, and it used to skip the first.
-            // And without a hairline's mark (`HairlineMarker`), which a list
-            // makes on a host that draws hairlines: a one-off render places no
-            // lines, so the mark only has to go.
-            var sanitized = line.sanitizedForTerminalRow()
-            if KittyGraphics.isHairlineSupported { sanitized = HairlineMarker.stripping(sanitized) }
-            // And a glyph's mark for a picture under it (`PictureUnderTextMarker`),
-            // which places nothing here either.
-            if KittyGraphics.isPictureUnderTextSupported { sanitized = PictureUnderTextMarker.stripping(sanitized) }
-            terminal.write(writer.compensatingCursorAdvance(sanitized))
-            // Styled bytes this writer did not plan, so its belief about what
-            // the terminal is wearing no longer holds — see
-            // ``FrameDiffWriter/terminalStyle``.
-            writer.forgetTerminalStyling()
-        }
+    /// A row as it goes to the terminal: through the SAME two treatments the
+    /// live writer's `buildLine` applies at its write boundary, the row sanitiser
+    /// (a tab or a newline in user data would otherwise move the cursor here, as
+    /// it cannot in an `App`) and the host's cursor-advance compensation. This
+    /// is a second write boundary, and it used to skip the first. And without
+    /// a hairline's mark (`HairlineMarker`), which a list makes on a host that
+    /// draws hairlines: a one-off render places no lines, so the mark only has
+    /// to go. And without a glyph's mark for a picture under it
+    /// (`PictureUnderTextMarker`), which places nothing here either.
+    private func terminalRow(_ line: String) -> String {
+        var sanitized = line.sanitizedForTerminalRow()
+        if KittyGraphics.isHairlineSupported { sanitized = HairlineMarker.stripping(sanitized) }
+        if KittyGraphics.isPictureUnderTextSupported { sanitized = PictureUnderTextMarker.stripping(sanitized) }
+        return writer.compensatingCursorAdvance(sanitized)
     }
 }

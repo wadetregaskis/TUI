@@ -17,7 +17,8 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 - ``App``
 - ``Scene``
 - ``WindowGroup``
-- ``renderOnce(content:)``
+- ``renderOnce(output:content:)``
+- ``RenderOnceOutput``
 - ``ScenePhase``
 - ``QuitBehavior``
 

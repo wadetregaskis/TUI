@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 import TUI
@@ -15,11 +16,8 @@ import TUI
 /// Tests for `ViewRenderer`, the one-off renderer behind `renderOnce(_:)`.
 ///
 /// It queries the terminal size, renders the view to a `FrameBuffer`,
-/// and flushes the buffer line-by-line (moving the cursor before each
-/// line). A `MockTerminal` is injected via the `TerminalProtocol`
-/// parameter; it records cursor moves and captures every write
-/// (including the cursor-positioning escape sequences, which strip to
-/// empty visible text).
+/// and writes the buffer line by line where the cursor is. A `MockTerminal`
+/// is injected via the `TerminalProtocol` parameter; it captures every write.
 @MainActor
 @Suite("ViewRenderer")
 struct ViewRendererTests {
@@ -29,11 +27,11 @@ struct ViewRendererTests {
         Text("two")
     }
 
-    /// The visible (ANSI-stripped) content lines written to the mock,
-    /// dropping the empty strings the cursor-move sequences strip to.
+    /// The visible (ANSI-stripped) content lines written to the mock, without
+    /// the newline each ends in.
     private func visibleWrites(_ mock: MockTerminal) -> [String] {
         mock.writtenOutput.compactMap {
-            let stripped = $0.stripped
+            let stripped = $0.stripped.trimmingCharacters(in: .newlines)
             return stripped.isEmpty ? nil : stripped
         }
     }
@@ -101,44 +99,6 @@ struct ViewRendererTests {
         ViewRenderer(terminal: mock).render(sampleView)
 
         #expect(visibleWrites(mock) == ["one", "two"])
-    }
-
-    @Test("Positions each line at the default origin (row 1, column 1)")
-    func positionsAtDefaultOrigin() {
-        let mock = MockTerminal()
-        mock.size = (20, 6)
-
-        ViewRenderer(terminal: mock).render(sampleView)
-
-        #expect(mock.cursorMoves.map(\.row) == [1, 2])
-        #expect(mock.cursorMoves.allSatisfy { $0.column == 1 })
-    }
-
-    @Test("Offsets every line by the given row and column")
-    func positionsAtOffset() {
-        let mock = MockTerminal()
-        mock.size = (20, 6)
-
-        ViewRenderer(terminal: mock).render(sampleView, atRow: 5, column: 3)
-
-        #expect(mock.cursorMoves.map(\.row) == [5, 6])
-        #expect(mock.cursorMoves.allSatisfy { $0.column == 3 })
-    }
-
-    @Test("Queries the terminal size so a greedy layout fills it")
-    func usesTerminalSize() {
-        let mock = MockTerminal()
-        mock.size = (40, 10)
-        let greedy = VStack {
-            Text("top")
-            Spacer()
-        }
-
-        ViewRenderer(terminal: mock).render(greedy)
-
-        // 10 lines of content area → 10 cursor moves, one per line.
-        #expect(mock.cursorMoves.count == 10)
-        #expect(mock.cursorMoves.map(\.row) == Array(1...10))
     }
 
     @Test("Snapshot render does not fire onAppear")
@@ -371,5 +331,130 @@ enum SnapshotSubject: String, CaseIterable, Sendable {
                     .presentationBackgroundInteraction(.enabled)
             })
         }
+    }
+}
+
+// MARK: - Drawing where the cursor is
+
+/// `renderOnce`'s path: from the line the cursor is on, a newline after every
+/// row, and plain text where there is no terminal.
+@MainActor
+@Suite("ViewRenderer, inline")
+struct ViewRendererInlineTests {
+
+    @Test("Moves the cursor nowhere, and ends on the line after the last row")
+    func noCursorMoves() {
+        let mock = MockTerminal()
+        ViewRenderer(terminal: mock).render(
+            VStack(alignment: .leading) {
+                Text("one")
+                Text("two")
+            },
+            plainText: false)
+
+        #expect(mock.cursorMoves.isEmpty)
+        let written = mock.writtenOutput.joined()
+        #expect(written.hasSuffix("\n"))
+        #expect(!written.contains("\u{1B}[1;1H"))
+        #expect(written.stripped.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) } == ["one", "two"])
+    }
+
+    @Test("Takes the height it asks for, not the terminal's: a Spacer is the least it can be")
+    func naturalHeight() {
+        let mock = MockTerminal()
+        mock.size = (40, 10)
+        ViewRenderer(terminal: mock).render(
+            VStack {
+                Text("top")
+                Spacer()
+            },
+            plainText: true)
+        #expect(mock.writtenOutput.count < 10)
+        #expect(mock.writtenOutput.first == "top\n")
+    }
+
+    @Test("A stack taller than the terminal is all written")
+    func tallerThanTheTerminal() {
+        let mock = MockTerminal()
+        mock.size = (40, 5)
+        ViewRenderer(terminal: mock).render(
+            VStack(alignment: .leading) {
+                ForEach(0..<30, id: \.self) { Text("row \($0)") }
+            },
+            plainText: true)
+        #expect(mock.writtenOutput == (0..<30).map { "row \($0)\n" })
+    }
+
+    @Test("Plain text holds no escape sequence and no trailing spaces")
+    func plainText() {
+        let mock = MockTerminal()
+        ViewRenderer(terminal: mock).render(
+            VStack(alignment: .leading) {
+                Text("bold").bold().foregroundStyle(.red)
+                Text("wider row")
+            },
+            plainText: true)
+        #expect(mock.writtenOutput == ["bold\n", "wider row\n"])
+    }
+
+    @Test("Styled rows end their styling before the newline, so a scroll does not smear a colour")
+    func styledRowsEndStyling() {
+        let mock = MockTerminal()
+        ViewRenderer(terminal: mock).render(Text("red").foregroundStyle(.red), plainText: false)
+        let written = mock.writtenOutput.joined()
+        #expect(written.contains("\u{1B}["))
+        #expect(written.hasSuffix("\u{1B}[0m\n"))
+    }
+}
+
+/// What `renderOnce` writes, by what stdout is and what the environment says.
+@Suite("RenderOnceOutput")
+struct RenderOnceOutputTests {
+    private func automatic(terminal: Bool, _ environment: [String: String] = [:]) -> RenderOnceOutput.Resolved {
+        RenderOnceOutput.automatic.resolved(stdoutIsTerminal: terminal, environment: environment)
+    }
+
+    @Test("By default: escape sequences to a terminal, plain text elsewhere")
+    func byDefault() {
+        #expect(automatic(terminal: true) == .styled(noColor: false))
+        #expect(automatic(terminal: false) == .plainText)
+    }
+
+    @Test("TUI_FORCE_ESCAPES overrules both ways, and an empty value is no value")
+    func tuiVariable() {
+        #expect(automatic(terminal: false, ["TUI_FORCE_ESCAPES": "1"]) == .styled(noColor: false))
+        #expect(automatic(terminal: true, ["TUI_FORCE_ESCAPES": "0"]) == .plainText)
+        #expect(automatic(terminal: false, ["TUI_FORCE_ESCAPES": ""]) == .plainText)
+        #expect(automatic(terminal: true, ["TUI_FORCE_ESCAPES": "0", "FORCE_COLOR": "1"]) == .plainText)
+    }
+
+    @Test("FORCE_COLOR forces the sequences down a pipe, and 0 leaves the colours out")
+    func forceColor() {
+        #expect(automatic(terminal: false, ["FORCE_COLOR": "1"]) == .styled(noColor: false))
+        #expect(automatic(terminal: false, ["FORCE_COLOR": "3", "NO_COLOR": "1"]) == .styled(noColor: false))
+        #expect(automatic(terminal: true, ["FORCE_COLOR": "0"]) == .styled(noColor: true))
+        #expect(automatic(terminal: false, ["FORCE_COLOR": "0"]) == .plainText)
+    }
+
+    @Test("NO_COLOR leaves the colours out on a terminal; an empty one does not count")
+    func noColor() {
+        #expect(automatic(terminal: true, ["NO_COLOR": "1"]) == .styled(noColor: true))
+        #expect(automatic(terminal: true, ["NO_COLOR": ""]) == .styled(noColor: false))
+        #expect(automatic(terminal: false, ["NO_COLOR": "1"]) == .plainText)
+    }
+
+    @Test("A dumb terminal gets plain text, unless the program's user forces otherwise")
+    func dumbTerminal() {
+        #expect(automatic(terminal: true, ["TERM": "dumb"]) == .plainText)
+        #expect(automatic(terminal: true, ["TERM": "dumb", "TUI_FORCE_ESCAPES": "1"]) == .styled(noColor: false))
+    }
+
+    @Test("A stated output beats the environment")
+    func statedOutput() {
+        let environment = ["TUI_FORCE_ESCAPES": "1", "NO_COLOR": "1"]
+        #expect(RenderOnceOutput.plainText.resolved(stdoutIsTerminal: true, environment: environment) == .plainText)
+        #expect(
+            RenderOnceOutput.escapeSequences.resolved(stdoutIsTerminal: false, environment: ["NO_COLOR": "1"])
+                == .styled(noColor: false))
     }
 }

@@ -149,7 +149,7 @@ Whichever products you depend on, a type's full name includes the module that de
   version.
 - The resource bundle that holds TUI's translations and version is `TUI_TUIStrings` (named for the package
   and the module that owns the resources), whichever product you use.
-- ``renderOnce(content:)``, which draws a view once without the run loop, is `TUIApp`'s: a tool that uses only it
+- ``renderOnce(output:content:)``, which draws a view once without the run loop, is `TUIApp`'s: a tool that uses only it
   still depends on `TUIApp`.
 
 Module and product names are now part of what you depend on: if a module is renamed or split, a `Package.swift` that

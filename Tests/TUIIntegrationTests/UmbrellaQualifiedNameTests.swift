@@ -424,7 +424,7 @@ struct UmbrellaQualifiedNameTests {
         // TUIApp's as a value (never called: it writes to the terminal).
         let style: any TUI.WindowToolbarStyle = TUI.DefaultWindowToolbarStyle()
         #expect(style is TUI.DefaultWindowToolbarStyle)
-        let draw: (() -> TUI.Text) -> Void = TUI.renderOnce(content:)
+        let draw: (TUI.RenderOnceOutput, () -> TUI.Text) -> Void = TUI.renderOnce(output:content:)
         _ = draw
     }
 
