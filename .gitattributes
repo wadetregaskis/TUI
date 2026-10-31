@@ -1,4 +1,3 @@
-docs/** linguist-documentation=false
 
 # Exclude non-essential files from source archives (git archive / GitHub releases).
 # SPM consumers only need Sources/, Tests/, Package.swift, README.md, and LICENSE.
