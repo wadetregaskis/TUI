@@ -7522,15 +7522,16 @@ steps, the run's own rate, with none left wrong. The unfaded label over a glyph-
 for none. A frost also reads the cells around the layer, which a run just past its edge moves without
 asking; that is left.
 
-**Nor where the root lays a floating layer (known issue).** The root's flatten of floating
-layers (`FrameBuffer.compositingOverlays`) punches a base's run under a layer the same way — an
-`.offset` or `.position` label, any layer that is not a surface — and asks for nothing: it runs
-after the walk, with no render context to ask from. Measured through the run loop (2026-09-28):
+**Where the root lays a floating layer (2026-10-31).** The root's flatten of floating layers
+(`FrameBuffer.compositingOverlays`) punches a base's run under a layer the same way — an `.offset`
+or `.position` label, any layer that does not state its field, or that fades — and runs after the
+walk, with no render context to ask from. Measured through the run loop (2026-09-28):
 `Text("x").offset(y: -1)` laid on the probe's run from the line below it, and
-`Text("x").position(x: 0, y: 0)` in a `ZStack` over it, each held `x` on the drawn frame's red at
-12 of 24 ticks, where a render draws it on blue, and asked for no render. It predates this
-section. The follow-up is for the run loop to ask its scheduler for the runs the flatten punches
-under a layer that shows their field: the rule above, asked where the flatten lands each layer.
+`Text("x").position(x: 0, y: 0)` in a `ZStack` over it, each held `x` on the drawn frame's red at 12
+of 24 ticks, where a render draws it on blue, and asked for no render. The flatten now gathers what
+the rule above finds as each layer lands, and the window host, which has a context, asks; both
+shapes ask for 24 renders. Not the flatten of the menu bar's own layers over the finished frame,
+which are painted surfaces: only a fade could ask there, and nothing fades a menu bar's menu.
 
 **A later layer that hides the cell (cost).** A `ZStack` and a `Layout` gather the runs as each
 layer lands and never look again: under a label and then an opaque chip laid over the same two

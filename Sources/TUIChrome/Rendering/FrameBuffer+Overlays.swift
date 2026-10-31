@@ -38,6 +38,21 @@ extension FrameBuffer {
     package func compositingOverlays(
         maxWidth: Int, maxHeight: Int, palette: any Palette, images: TerminalImageStore?
     ) -> FrameBuffer {
+        var unasked: [AnimatedCellRun] = []
+        return compositingOverlays(
+            maxWidth: maxWidth, maxHeight: maxHeight, palette: palette, images: images, punching: &unasked)
+    }
+
+    /// ``compositingOverlays(maxWidth:maxHeight:palette:images:)``, gathering in
+    /// `punched` each run of what is below a layer that the layer shows differently
+    /// from step to step (``FrameBuffer/runsShowingThrough(_:at:)``). A layer lands
+    /// on it and punches it, as a `ZStack`'s later child does, so it is owed a render
+    /// at each of its steps; this runs after the walk with no render context to ask
+    /// from, so the caller asks (`Opacity as composition.md` §109).
+    package func compositingOverlays(
+        maxWidth: Int, maxHeight: Int, palette: any Palette, images: TerminalImageStore?,
+        punching punched: inout [AnimatedCellRun]
+    ) -> FrameBuffer {
         // The page's OWN opacity resolves first, before anything is drawn over
         // it. This is the screen root, so nothing is behind the page but the
         // surface — and if a region were still pending when a layer composited
@@ -162,12 +177,10 @@ extension FrameBuffer {
                 // popover and toast showed the colour under its first cell through
                 // it (`Opacity as composition.md` §98).
                 //
-                // A run of what is below that the layer shows the field of, and whose
-                // frames turn it, is punched here as a `ZStack` punches one, but nothing
-                // asks for a render at its steps (`FrameBuffer.runsShowingThrough`): this
-                // runs after the walk, with no render context to ask from, so an
-                // `.offset` label over a breathing fill holds the drawn frame's field
-                // between renders — a known gap (§109).
+                // A run of what is below that the layer shows differently from step
+                // to step is punched here as a `ZStack` punches one, and is owed a
+                // render at its steps (§109).
+                punched += result.runsShowingThrough(content, at: (x: placed.x, y: placed.y))
                 result = result.compositedResolvingOpacity(
                     with: content, at: (x: placed.x, y: placed.y), palette: palette,
                     overlayIsPainted: layer.isOpaque, images: images)

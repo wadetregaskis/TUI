@@ -7,6 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUICore
 import TUIFoundation
 
 // MARK: - The Chrome Host
@@ -193,9 +194,16 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
             // What is presented over the page, counted before the layers are
             // spent (`WindowChromeState.presentationsOverPage`).
             chrome?.presentationsOverPage = Self.presentations(in: page.overlays)
+            var punched: [AnimatedCellRun] = []
             page = page.compositingOverlays(
                 maxWidth: width, maxHeight: contentHeight, palette: palette,
-                images: context.environment.terminalImageStore)
+                images: context.environment.terminalImageStore, punching: &punched)
+            // What the layers punched and show differently from step to step: a
+            // render at each of its steps draws those cells as they are then, as a
+            // compositor inside the tree asks (`Opacity as composition.md` §109).
+            context.requestWake(
+                token: "floating-layer-run-\(context.identity.path)",
+                forNextStepOf: punched.map { ($0.clock, $0.frameTicks) })
         }
         guard let chrome else { return page }
 

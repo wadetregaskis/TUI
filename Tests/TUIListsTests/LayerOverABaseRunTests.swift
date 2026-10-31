@@ -12,9 +12,9 @@
 //  froze on the drawn frame's field. So the compositor asks for a render at each
 //  of the run's steps (`Opacity as composition.md` §109), each `.overlay` of a
 //  chain under a token of its own. A layer that fades over the run shows the run's
-//  glyph, ink or field as well, so there any difference between its frames asks.
-//  A floating layer the root lays over the run is not asked for yet, and is held
-//  here as a known issue.
+//  glyph, ink or field as well, so there any difference between its frames asks;
+//  and the root's flatten of floating layers punches as they do, and asks through
+//  the window host.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -356,22 +356,18 @@ struct LayerOverABaseRunTests {
             "\(shape), \(layer): \(found.mismatches.count) mismatches, first \(found.mismatches.first ?? "")")
     }
 
-    /// Known issue: the root's flatten of floating layers (`compositingOverlays`)
-    /// punches a base's run under a layer as the compositors above do — an `.offset`
-    /// or `.position` label over the run — and asks for nothing: it runs after the
-    /// walk, with no render context to ask from. So the label holds the drawn frame's
-    /// field between renders, `x` on `rgb(200, 0, 0)` where a render draws it on
-    /// `rgb(0, 0, 200)`. Older than §109; pinned until the flatten asks too.
-    @Test(
-        "A floating label over a run turning its field holds the drawn field (known issue)",
-        arguments: Floating.allCases)
+    /// The root's flatten of floating layers (`compositingOverlays`) punches a base's
+    /// run under a layer as the compositors above do: an `.offset` or `.position` label
+    /// over the run. It runs after the walk, and hands what it punched to the window
+    /// host, which asks. Asked nothing, the label held the drawn frame's field between
+    /// renders, `x` on `rgb(200, 0, 0)` where a render draws it on `rgb(0, 0, 200)`.
+    @Test("A floating label over a run turning its field is on the field each step shows", arguments: Floating.allCases)
     func aFloatingLabelOverATurningField(floating: Floating) throws {
         let found = ReplayOracle.compare({ FloatingLabelOverARunApp(floating) }, ticks: 24, size: (30, 8))
         try #require(found.compared >= 24, "\(floating): only \(found.compared) rows were compared")
-        withKnownIssue("the root's flatten punches a run under a floating layer and asks for no render (§109)") {
-            #expect(
-                found.mismatches.isEmpty,
-                "\(floating): \(found.mismatches.count) mismatches, first \(found.mismatches.first ?? "")")
-        }
+        #expect(found.scheduledRenders == 24, "\(floating): \(found.scheduledRenders) renders asked for")
+        #expect(
+            found.mismatches.isEmpty,
+            "\(floating): \(found.mismatches.count) mismatches, first \(found.mismatches.first ?? "")")
     }
 }
