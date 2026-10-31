@@ -4,17 +4,27 @@ Build your own views by composing existing ones or creating custom view modifier
 
 ## Overview
 
-TUI offers three ways to create custom views:
+TUI offers four ways to create custom views:
 
 | Approach | When to Use | Complexity |
 |----------|-------------|------------|
 | **Composite View** (``View`` with `body`) | Combining existing views into reusable components | Low |
 | **View Modifier** (``ViewModifier``) | A reusable composition around any view, exactly as in SwiftUI | Low |
 | **Buffer Modifier** (``BufferModifier``) | Transforming any view's rendered buffer, cell by cell | Medium |
+| **Drawn View** (``View`` and ``Renderable``) | Drawing cells yourself, with no views to compose | High |
 
 Most custom views should be **composite views**, and most custom modifiers
 **view modifiers**. A buffer modifier is TUI's own: reach for it only when the
-transformation has to work on the rendered cells rather than on views.
+transformation has to work on the rendered cells rather than on views. A drawn
+view is TUI's own too, a view that returns a ``FrameBuffer`` in place of a `body`:
+<doc:AnimatingYourOwnView> shows one, with what it takes to animate without
+rendering every frame.
+
+> Note: Views are built on the main actor. A `body` already is, so most code never
+> notices, but SwiftUI lets you build a view anywhere and TUI doesn't: a function,
+> a static member or a model's method that makes a view, a `@ViewBuilder` helper
+> among them, needs `@MainActor` when it isn't inside a view. Without it the
+> compiler says `call to main actor-isolated initializer`.
 
 ## Composite Views
 
@@ -202,6 +212,7 @@ Use ``BufferModifier`` when your transformation is a pure buffer-to-buffer opera
 When you need to store views of different types in a single variable or return different view types conditionally, use ``AnyView``:
 
 ```swift
+@MainActor
 func makeView(isCompact: Bool) -> AnyView {
     if isCompact {
         return AnyView(Text("Compact"))
@@ -216,7 +227,7 @@ func makeView(isCompact: Bool) -> AnyView {
 }
 ```
 
-Or use the convenience method:
+Or use the convenience method, in a `body` or anywhere else on the main actor:
 
 ```swift
 let view = Text("Hello").asAnyView()
@@ -233,6 +244,7 @@ let view = Text("Hello").asAnyView()
 - ``View``
 - ``ViewModifier``
 - ``BufferModifier``
+- ``Renderable``
 
 ### Supporting Types
 
