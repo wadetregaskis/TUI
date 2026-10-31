@@ -198,11 +198,14 @@ extension ScreenSelection {
     static func splitting(
         _ columns: Range<Int>, onRow row: Int, by pictures: [CellRect]
     ) -> (text: [Range<Int>], tinted: [Range<Int>]) {
-        let tinted = pictures
-            .filter { (picture: CellRect) in (picture.y..<(picture.y + picture.height)).contains(row) }
-            .map { columns.clamped(to: $0.x..<($0.x + $0.width)) }
-            .filter { !$0.isEmpty }
-            .sorted { $0.lowerBound < $1.lowerBound }
+        // A loop, not a chain of closures: on Swift 6.4 the chain went over CI's
+        // type-check budget.
+        var tinted: [Range<Int>] = []
+        for picture in pictures where row >= picture.y && row < picture.y + picture.height {
+            let span = columns.clamped(to: picture.x..<(picture.x + picture.width))
+            if !span.isEmpty { tinted.append(span) }
+        }
+        tinted.sort { $0.lowerBound < $1.lowerBound }
         guard !tinted.isEmpty else { return ([columns], []) }
         var text: [Range<Int>] = []
         var from = columns.lowerBound
