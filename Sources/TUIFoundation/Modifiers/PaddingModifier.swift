@@ -134,7 +134,7 @@ public struct PaddingModifier: BufferModifier {
     /// A negative inset is SwiftUI's (owner, 2026-10-29, NEG-PADDING): the
     /// view's frame is pulled in over its content by that many cells on that
     /// edge, the content is offered as many more, and it is drawn at its full
-    /// size, past the frame there (``overhanging(_:context:)``). A spring that
+    /// size, past the frame there (``overhanging(_:placement:context:)``). A spring that
     /// overshoots zero draws the same, for as long as it is below.
     var insets: EdgeInsets {
         get { heldInsets }
@@ -293,15 +293,26 @@ public struct PaddingModifier: BufferModifier {
     }
 
     public func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
-        guard overhangs else { return padded(buffer, by: insets, context: context) }
-        return overhanging(padded(buffer, by: padding, context: Self.grown(context, by: overhang)), context: context)
+        var placement: ScrollWindowRelay.Placement?
+        guard overhangs else {
+            return padded(buffer, by: insets, overhang: EdgeInsets(), context: context, placement: &placement)
+        }
+        let overhang = overhang
+        let drawn = padded(
+            buffer, by: padding, overhang: overhang, context: Self.grown(context, by: overhang), placement: &placement)
+        return overhanging(drawn, placement: placement, context: context)
     }
 
     /// `buffer` with the positive `insets` drawn round it as blank cells: the
     /// whole of ``modify(buffer:context:)`` for a padding with no negative
-    /// inset.
+    /// inset. `overhang` is what the frame then pulls in over it, which a
+    /// scroll view's answers are moved by here (`relayingScrollWindow`), and
+    /// `placement` says which of a lazy stack's lines that leaves to it.
     @inline(__always)
-    private func padded(_ buffer: FrameBuffer, by insets: EdgeInsets, context: RenderContext) -> FrameBuffer {
+    private func padded(
+        _ buffer: FrameBuffer, by insets: EdgeInsets, overhang: EdgeInsets, context: RenderContext,
+        placement answered: inout ScrollWindowRelay.Placement?
+    ) -> FrameBuffer {
         let horizontal = Self.drawnInsets(
             insets.leading, insets.trailing, in: context.availableWidth,
             contentIsEmpty: buffer.width == 0)
@@ -311,11 +322,12 @@ public struct PaddingModifier: BufferModifier {
         // A lazy stack in the content that drew a band of its rows leaves out
         // the padding the band does not reach (`relayingScrollWindow`).
         if let placement = answerRelayedScrollWindow(
-            contentBuffer: buffer, linesBelow: vertical.after, insets: insets, context: context) {
+            contentBuffer: buffer, linesBelow: vertical.after - overhang.bottom, insets: insets, context: context) {
             if !placement.drawsAbove { vertical.before = 0 }
             if !placement.drawsBelow { vertical.after = 0 }
+            answered = placement
         }
-        shiftAnsweredColumns(by: horizontal.before, context: context)
+        shiftAnsweredColumns(by: horizontal.before - overhang.leading, context: context)
 
         var result: [String] = []
         result.reserveCapacity(vertical.before + buffer.lines.count + vertical.after)
@@ -392,33 +404,43 @@ extension PaddingModifier {
     /// further left in the content (``RenderContext/withScrollWindowAcross(leading:)``),
     /// and the columns it answers are moved back right
     /// (``shiftAnsweredColumns(by:context:)``).
+    ///
+    /// A negative inset is the same thing the other way, the frame pulled in
+    /// over the content: its lines and columns are that much further up and
+    /// left in the scroll view's content than the stack places them. `insets`
+    /// are the positive ones, and the overhang is taken from them, so the two
+    /// can mix.
     fileprivate func relayingScrollWindow(
         from context: RenderContext, to adjusted: RenderContext, insets: EdgeInsets
     ) -> RenderContext {
-        guard insets.top > 0 || insets.bottom > 0 || insets.leading > 0, !context.isMeasuring,
+        guard insets.top > 0 || insets.bottom > 0 || insets.leading > 0 || overhangs, !context.isMeasuring,
             context.mayConsumeScrollWindow
         else { return adjusted }
+        let overhang = overhang
         var relayed = adjusted
-        if insets.top > 0 || insets.bottom > 0 {
+        if insets.top > 0 || insets.bottom > 0 || overhang.top > 0 || overhang.bottom > 0 {
             let drawn = Self.drawnInsets(insets.top, insets.bottom, in: context.availableHeight, contentIsEmpty: false)
-            if let relay = ScrollWindowRelay(context: context, linesAbove: drawn.before, linesBelow: { drawn.after }) {
+            if let relay = ScrollWindowRelay(
+                context: context, linesAbove: drawn.before - overhang.top, linesBelow: { drawn.after - overhang.bottom })
+            {
                 context.environment.scrollContentWindow?.reply?.pendingRelay = relay
                 relayed = relay.contentContext(adjusted)
             }
         }
-        guard insets.leading > 0, let window = relayed.environment.scrollContentWindow, window.columnReport != nil,
-            window.isAtOrigin(context.identity)
+        guard insets.leading > 0 || overhang.leading > 0, let window = relayed.environment.scrollContentWindow,
+            window.columnReport != nil, window.isAtOrigin(context.identity)
         else { return relayed }
         let leading = Self.drawnInsets(insets.leading, insets.trailing, in: context.availableWidth, contentIsEmpty: false)
-        return relayed.withScrollWindowAcross(leading: leading.before)
+        return relayed.withScrollWindowAcross(leading: leading.before - overhang.leading)
     }
 
     /// The columns the content answered into the scroll view's reply, moved
-    /// right past the `leading` cells this padding draws before it, where the
-    /// content is the scroll content or a single-child step of it: a column a
-    /// carousel under `.padding()` sought was placed a cell short.
+    /// right past the `leading` cells this padding draws before it — left, for
+    /// a negative inset's overhang — where the content is the scroll content or
+    /// a single-child step of it: a column a carousel under `.padding()` sought
+    /// was placed a cell short.
     fileprivate func shiftAnsweredColumns(by leading: Int, context: RenderContext) {
-        guard leading > 0, !context.isMeasuring, context.mayConsumeScrollWindow,
+        guard leading != 0, !context.isMeasuring, context.mayConsumeScrollWindow,
             let window = context.environment.scrollContentWindow, window.isAtOrigin(context.identity)
         else { return }
         window.reply?.shiftColumns(by: leading)
@@ -429,7 +451,7 @@ extension PaddingModifier {
     fileprivate func answerRelayedScrollWindow(
         contentBuffer: FrameBuffer, linesBelow: Int, insets: EdgeInsets, context: RenderContext
     ) -> ScrollWindowRelay.Placement? {
-        guard insets.top > 0 || insets.bottom > 0, !context.isMeasuring, context.mayConsumeScrollWindow,
+        guard insets.top > 0 || insets.bottom > 0 || overhangs, !context.isMeasuring, context.mayConsumeScrollWindow,
             let reply = context.environment.scrollContentWindow?.reply, let relay = reply.pendingRelay
         else { return nil }
         reply.pendingRelay = nil
@@ -455,8 +477,15 @@ extension PaddingModifier {
     /// is — with only the cells it paints drawn there. A measure pass draws
     /// nothing past the frame, and keeps the part inside, which sizes the
     /// same.
-    func overhanging(_ buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
-        let overhang = overhang
+    ///
+    /// Of a lazy stack's band (`placement`), only an end that is the content's
+    /// own has an overhang to lose: a band that starts or stops short of it is
+    /// already the lines the scroll view asked for, in the frame's coordinates
+    /// (``relayingScrollWindow(from:to:insets:)``).
+    func overhanging(_ buffer: FrameBuffer, placement: ScrollWindowRelay.Placement?, context: RenderContext) -> FrameBuffer {
+        var overhang = overhang
+        if placement?.drawsAbove == false { overhang.top = 0 }
+        if placement?.drawsBelow == false { overhang.bottom = 0 }
         let width = max(0, buffer.width - overhang.leading - overhang.trailing)
         let height = max(0, buffer.height - overhang.top - overhang.bottom)
         let placement = buffer.splitPlacing(

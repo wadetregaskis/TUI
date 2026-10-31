@@ -48,12 +48,15 @@ struct ScrollWindowRelay {
     /// about the content below it read it (whether any lies below the
     /// viewport, and how far the content scrolls); the heights this reports
     /// are the drawn ones.
+    ///
+    /// Either may be negative: a negative padding's overhang, its frame pulled
+    /// in over the content, and all the arithmetic below holds for it.
     init?(context: RenderContext, linesAbove: Int, linesBelow: () -> Int) {
         guard !context.isMeasuring, let window = context.environment.scrollContentWindow,
             window.isAtOrigin(context.identity)
         else { return nil }
         let linesBelow = linesBelow()
-        guard linesAbove > 0 || linesBelow > 0 else { return nil }
+        guard linesAbove != 0 || linesBelow != 0 else { return nil }
         self.reply = window.reply
         self.contentReply = window.reply == nil ? nil : ScrollContentReply()
         self.window = window.beneath(
@@ -124,7 +127,7 @@ struct ScrollWindowRelay {
         else {
             // A full-height buffer: the view's lines surround it whole.
             reply.drawnLines = contentReply.drawnLines.map { drawn in
-                let lower = drawn.lowerBound <= 0 ? 0 : drawn.lowerBound + linesAbove
+                let lower = drawn.lowerBound <= 0 ? 0 : max(0, drawn.lowerBound + linesAbove)
                 let upper = drawn.upperBound == Int.max ? Int.max : drawn.upperBound + linesAbove
                 return lower..<upper
             }
