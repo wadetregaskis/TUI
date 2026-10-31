@@ -7546,22 +7546,21 @@ at 12 of 24 ticks. It asks now, by the rule above, under its identity and its ow
 `.overlay` does, since the row's content renders at the modifier's identity and a second
 `.listRowBackground` on the row is at the same path (two chained, each over a run of its own
 under a letter of the label: 10 mismatches and 11 renders under one token, none and 31 under
-two). A fading layer over its run is the known issue above, as under the other compositors. A
-background view with no run asks nothing more. No Example page and no Stress scenario lays a row
-over a background view.
+two). A fading layer over its run asks as it does under the other compositors. A background view
+with no run asks nothing more. No Example page and no Stress scenario lays a row over a background
+view.
 
-What it does not cover (known issue, older than this section): a background view shorter than
-the row is repeated down it as lines alone (`filled`), its runs left on the first copy. Where the
-run's own line shows its field the wake above renders every copy at each step; where nothing
-there does — a chip naming its own field over the run — nothing asks, and the copies below hold
-the drawn frame's field between renders: a three-line row over the one-line run replayed its
-second and third lines on the drawn red at 12 of 24 ticks each, with no render asked for. The
-follow-up is to repeat the runs with the lines, or to ask for their steps wherever a copy shows.
+A background view shorter than the row is repeated down it, and its runs with its lines
+(`filled`, 2026-10-31). They were left on the first copy, so where nothing on the run's own line
+shows its field — a chip naming its own field over the run — nothing asked, and the copies below
+held the drawn frame's field between renders: a three-line row over the one-line run replayed its
+second and third lines on the drawn red at 12 of 24 ticks each, with no render asked for. Now each
+copy asks and replays as the first does: 24 renders, none left wrong.
 
 `LayerOverABaseRunTests` pins the four compositors (12 mismatches each before) and the render
 count, a run turning only its glyphs under the label (no render asked for, as before), two
 chained `.overlay`s and two chained row backgrounds (31 renders each, the two runs' steps), and
-the fading layers, the floating labels and the repeated background above as known issues.
+the fading layers, the floating labels and the repeated background above (24 renders each).
 
 ## 110. Blend modes ride the same composite (2026-10-19)
 

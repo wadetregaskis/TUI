@@ -270,9 +270,10 @@ extension _ListRowBackgroundView: Renderable {
     /// Repeats the backdrop's own lines to cover the whole row — a one-line
     /// `Color` fills a three-line row, which is what "behind the row" means.
     ///
-    /// Lines alone: a run of the backdrop stays on the first copy, so an animating
-    /// background's copies hold the drawn frame between renders unless something
-    /// asks for its steps — a known gap (`Opacity as composition.md` §109).
+    /// Its runs repeat with the lines, each copy of a line carrying its own: left on
+    /// the first copy, an animating background's copies held the drawn frame between
+    /// renders. A row shorter than the backdrop keeps only the runs on the lines it
+    /// keeps (`Opacity as composition.md` §109).
     private func filled(_ buffer: FrameBuffer, toWidth width: Int, height: Int) -> FrameBuffer {
         guard !buffer.lines.isEmpty else { return FrameBuffer(emptyWithHeight: height) }
         let lines = (0..<height).map { row -> String in
@@ -281,7 +282,14 @@ extension _ListRowBackgroundView: Renderable {
             return visible < width
                 ? source + String.spaces(width - visible) : source
         }
-        return buffer.replacingLines(lines)
+        var filled = buffer.replacingLines(lines)
+        guard !buffer.animatedCells.isEmpty, height != buffer.lines.count else { return filled }
+        filled.animatedCells = stride(from: 0, to: height, by: buffer.lines.count).flatMap { top in
+            buffer.animatedCells.compactMap { run in
+                top + run.offsetY < height ? run.shifted(byX: 0, y: top) : nil
+            }
+        }
+        return filled
     }
 }
 

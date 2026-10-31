@@ -318,22 +318,19 @@ struct LayerOverABaseRunTests {
         for mismatch in found.mismatches { Issue.record(Comment(rawValue: mismatch)) }
     }
 
-    /// Known issue: a background view shorter than its row is repeated down the row
-    /// as lines alone (`_ListRowBackgroundView.filled`), its run left on the first
-    /// copy. Where nothing on the run's own line shows its field — here a chip that
-    /// names its own covers it — nothing asks for a render, and the copies below hold
-    /// the drawn frame's field between renders: `b` on `rgb(200, 0, 0)` where a render
-    /// draws it on `rgb(0, 0, 200)`. Older than §109; pinned until the copies carry
-    /// the run, or ask for its steps.
-    @Test("A background view repeated down a tall row holds its copies' drawn field (known issue)")
+    /// A background view shorter than its row is repeated down the row, its run with
+    /// it. Where nothing on the run's own line shows its field — here a chip that names
+    /// its own covers it — it is a copy that asks: left on the first copy, the run asked
+    /// for nothing, and the copies held the drawn frame's field between renders, `b` on
+    /// `rgb(200, 0, 0)` where a render draws it on `rgb(0, 0, 200)`.
+    @Test("A background view repeated down a tall row turns its copies")
     func aBackgroundRepeatedDownATallRow() throws {
         let found = ReplayOracle.compare({ TallRowOverARunApp() }, ticks: 24, size: (30, 10))
         try #require(found.compared >= 24, "only \(found.compared) rows were compared")
-        withKnownIssue("a repeated background's copies carry no run and ask for no render (§109)") {
-            #expect(
-                found.mismatches.isEmpty,
-                "\(found.mismatches.count) mismatches, first \(found.mismatches.first ?? "")")
-        }
+        #expect(found.scheduledRenders == 24, "\(found.scheduledRenders) renders asked for")
+        #expect(
+            found.mismatches.isEmpty,
+            "\(found.mismatches.count) mismatches, first \(found.mismatches.first ?? "")")
     }
 
     /// A layer that fades, or names a translucent field, over a run of its base is
