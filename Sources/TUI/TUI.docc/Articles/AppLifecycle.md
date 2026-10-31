@@ -4,7 +4,7 @@ Understand how a TUI application starts, runs, and shuts down.
 
 ## Overview
 
-A TUI application follows a linear lifecycle: **launch → setup → main loop → cleanup**. The framework handles terminal configuration, signal handling, and the render-input cycle so you can focus on building views.
+A TUI application starts from a type conforming to ``App``, runs until something quits it, and hands the terminal back on the way out. The framework looks after the terminal, its signals and the drawing, so you can stick to your views.
 
 ## Entry Point
 
@@ -21,17 +21,43 @@ struct MyApp: App {
 }
 ```
 
-The `@main` attribute tells Swift to call the static `main()` method provided by the ``App`` protocol. This method:
+The `@main` attribute tells Swift to call the static `main()` method the ``App`` protocol provides, which sets up the terminal and runs your app until it quits.
 
-1. Creates an instance of your app via its parameterless `init()`
-2. Creates an internal `AppRunner` that owns all subsystems
-3. Calls `run()` to enter the main loop
+## Quitting
+
+People quit with `q`, or with ⌃\\, which works even if the app has hung; <doc:KeyboardShortcuts#Default-Bindings> has the details. ⌃C doesn't quit by default.
+
+To quit from your own code, call the ``DismissAction`` at
+``EnvironmentValues/dismiss``, as you would in SwiftUI:
+
+```swift
+struct ContentView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        Button("Quit") { dismiss() }
+    }
+}
+```
+
+The terminal is restored to its prior state and `App.main()` returns normally,
+as it does for the built-in `q` key. This is the recommended way to exit.
+Calling `exit(0)` skips part of the teardown: the terminal is still handed
+back, but a setting stored a moment before may not reach disk.
+
+## How It Works
+
+The rest of this page describes what the framework does for you. You don't need it to write an app.
+
+### Starting Up
+
+`App.main()` makes an instance of your app with its parameterless `init()`, creates an internal `AppRunner` that owns all the subsystems, and calls `run()` to enter the main loop:
 
 ```
 @main → App.main() → Self() → AppRunner(app:) → run()
 ```
 
-## Subsystem Initialization
+### Subsystem Initialization
 
 `AppRunner.init()` creates and wires the core subsystems: Terminal, AppState, StatusBarState, FocusManager, TUIContext (containing LifecycleManager, KeyEventDispatcher, PreferenceStorage, StateStorage, and RenderCache, and holding the AppState, which is the app's own — there is no process-wide one), and two ThemeManagers (palette and appearance). `run()` then creates the remaining runtime components: InputHandler, RenderLoop, and CursorTimer (50 ms) — the one animation timer, behind two clocks: the focus-relative one the cursor's blink and every focus indicator's breath read, and the monotonic one every spinner and indeterminate bar reads.
 
@@ -109,33 +135,6 @@ These are not C signal handlers, and that is the point: libdispatch delivers eac
 
 The signals that end the process with nothing run on the way out are the exception, because a queued event would never be read: a crash (`SIGSEGV`, `SIGABRT` and the rest), the terminations nothing handles (`SIGHUP`, `SIGUSR1`, …), and `SIGQUIT` — ⌃\\, which the terminal driver raises even while the main thread is stuck, unless the app binds it (see the key table). `FatalSignalTerminalRestore` takes them with a C handler that writes what the terminal is owed from a buffer filled in advance, puts the shell's termios back, and lets the signal do what it does. A crash leaves the alternate screen up, with its report on it. `SIGQUIT` (⌃\\, or `kill -QUIT`) is the user's quit, not a crash: it leaves the terminal as a quit does — the images the app put in it deleted, the alternate screen left, the cursor shown, every mode off — and ends by its default action, the shell's `Quit: 3`, without the Swift runtime's crash report. It runs nothing else of `cleanup()` (below): no focus is lost; a setting stored a moment before — persistence saves asynchronously — can go with the process, since a flush is no async-signal-safe call; and under tmux the client hooks stay installed until their next firing removes them, as after a crash (removing them forks tmux). Where ⌃\\ arrives as a kitty keyboard protocol report, which the input chain reads, the settings are flushed before the signal is sent. And `kill -QUIT` no longer gets the Swift runtime's crash report, a backtrace, out of a running app: it quits it. `kill -ABRT` still does — an abort is a crash, handed on to the runtime's reporter (its threads as `SWIFT_BACKTRACE` sets them), with the alternate screen left up and the report on it.
 
-## Programmatic Exit
-
-A view can exit the application from inside its event handlers by calling
-the SwiftUI-parity ``DismissAction`` exposed at
-``EnvironmentValues/dismiss``:
-
-```swift
-struct ContentView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        Button("Quit") { dismiss() }
-    }
-}
-```
-
-`dismiss()` sets a flag on the app's own `AppState` that the main loop
-notices on its next iteration. The terminal is restored to its prior
-state and `App.main()` returns normally — exactly the same teardown path
-the built-in `q` key and `SIGINT` follow. This is the recommended way to
-exit. Calling `exit(0)` skips the teardown: the terminal is still handed
-back — an `atexit` handler `FatalSignalTerminalRestore` registers pays what
-a `SIGQUIT` pays, every mode off, the shell's termios back, the images
-deleted and the alternate screen left — but nothing else of `cleanup()`
-runs, so a setting stored a moment before may not reach disk, and under
-tmux the client hooks stay until their next firing removes them.
-
 ## Key Event Dispatch
 
 When the terminal delivers a key event, the `InputHandler` dispatches it through five layers (plus three refinements: an ESC pre-route before Layer 1 when an open drop-down has claimed Escape, the mid-drag Layer 0.5, and a semantic-shortcut stage — Layer 3.5 — between Layers 3 and 4). Layer 0 and Layer 3 are mutually exclusive based on `focusManager.hasTextInputFocus`:
@@ -189,7 +188,7 @@ Built-in key bindings that apply when no handler consumed the event, and the one
 
 **⌃\\ quits, even when the app hangs — unless the app binds it.** While nothing in the app is bound to it, it never reaches the chain: the terminal driver takes it before the app sees it — from a bracketed paste too, as in a shell, so pasted text holding a 0x1C quits the app. Raw mode keeps the line discipline's signals on with every signal character turned off but the quit key, so ⌃C and ⌃Z are keys while ⌃\\ is still `SIGQUIT`, as in a shell; the signal then leaves the terminal as a quit does (see Signal Handling above). A user who turned the quit key off (`stty quit undef`) or moved it keeps their setting.
 
-An app's own binding overrides the quit. While the app declares one on ⌃\\ — a `.keyboardShortcut` (a menu item's among them), an `onKeyPress` on the key on the path to the focused view, the status bar's quit key or an item, an undo key — or, in the terminal's legacy encoding, on ⌃4, ⌃| or ⌃⇧\\, for which some terminals send ⌃\\'s byte (measured per chord for Apple Terminal, iTerm2, Warp and Ghostty on 2026-10-06 — Apple Terminal for ⌃⇧\\ only, Ghostty for ⌃4 only, iTerm2 and Warp for both — and assumed of a terminal not measured), the driver's quit is masked: asked after every frame, the line discipline set only when the answer changes. The byte then reaches the chain as ⌃\\, and the app's bindings have it first — an unbound one tried as ⌃4, ⌃| and ⌃⇧\\ in turn on the bindings declared for them (a handler that hears every key hears it once, as ⌃\\), a ⌃\\ binding winning over a ⌃4 one, since the bytes are the same — and where none takes it the chain raises `SIGQUIT` itself, so ⌃\\ still quits a responsive app. A handler that hears every key (`onKeyEvent`, `onKeyPress(phases:action:)`) cannot be read without running it, so it masks nothing, and does not hear ⌃\\ while the driver has it; nor does an `onKeyPress` on a set of characters, which asks for typed text, not chords (`.decimalDigits` would otherwise claim ⌃4), nor one on a key for a Control chord the key does not name: `onKeyPress("|")` counts for ⌃|, but a PIN field's `onKeyPress(keys:)` on the digits does not count for ⌃4, though it hears ⌃4 (its keys match without Control), so it neither masks the quit nor is offered ⌃\\ again as ⌃4. The price: while such a binding is on screen, a hung app does not quit by ⌃\\; `kill -QUIT` from another shell still ends it.
+An app's own binding overrides the quit. While the app declares one on ⌃\\ — a `.keyboardShortcut` (a menu item's among them), an `onKeyPress` on the key on the path to the focused view, the status bar's quit key or an item, an undo key — or, in the terminal's legacy encoding, on ⌃4, ⌃| or ⌃⇧\\, for which some terminals send ⌃\\'s byte (measured per chord for Apple Terminal, iTerm2, Warp and Ghostty — Apple Terminal for ⌃⇧\\ only, Ghostty for ⌃4 only, iTerm2 and Warp for both — and assumed of a terminal not measured), the driver's quit is masked: asked after every frame, the line discipline set only when the answer changes. The byte then reaches the chain as ⌃\\, and the app's bindings have it first — an unbound one tried as ⌃4, ⌃| and ⌃⇧\\ in turn on the bindings declared for them (a handler that hears every key hears it once, as ⌃\\), a ⌃\\ binding winning over a ⌃4 one, since the bytes are the same — and where none takes it the chain raises `SIGQUIT` itself, so ⌃\\ still quits a responsive app. A handler that hears every key (`onKeyEvent`, `onKeyPress(phases:action:)`) cannot be read without running it, so it masks nothing, and does not hear ⌃\\ while the driver has it; nor does an `onKeyPress` on a set of characters, which asks for typed text, not chords (`.decimalDigits` would otherwise claim ⌃4), nor one on a key for a Control chord the key does not name: `onKeyPress("|")` counts for ⌃|, but a PIN field's `onKeyPress(keys:)` on the digits does not count for ⌃4, though it hears ⌃4 (its keys match without Control), so it neither masks the quit nor is offered ⌃\\ again as ⌃4. The price: while such a binding is on screen, a hung app does not quit by ⌃\\; `kill -QUIT` from another shell still ends it.
 
 Where the terminal speaks the kitty keyboard protocol it sends ⌃\\ as a key report instead of the byte the driver acts on; the input chain offers it to the app's bindings, as any key, and raises the signal itself where none takes it. A hung app reads no report, so a thread of its own, the stall watchdog (`StallWatchdog`), watches for input the loop leaves unread: after 1.5 s it pops the protocol's flags, the terminal sends keys in its legacy encoding again, and the next ⌃\\ is the byte the driver quits on. So under the protocol a hung app quits at the second ⌃\\, about two seconds after the first; the first report is never read. A loop that was only slow — a frame that took two seconds — pushes the flags back at its next read, and the keys typed across read right in either encoding. The watchdog costs the loop one store an iteration and each write to the terminal a lock, which the pop is written under, so it never lands inside a frame; a main thread hung inside a write (a terminal not reading) leaves it waiting, and nothing is popped. It is armed only while popping can help: not while the quit key is off, nor while the app declares a binding that the legacy encoding the pop puts the terminal in would mask the quit for — ⌃\\, or ⌃4, ⌃| or ⌃⇧\\ where they may share its byte, though under the protocol those three leave the driver's quit live, since after a pop the user's ⌃4 would be the driver's 0x1C and quit the app — nor during a suspend.
 
