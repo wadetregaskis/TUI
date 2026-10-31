@@ -54,7 +54,7 @@ import TUIView
 /// - **A fractional intermediate is fine — just floor it once, at the end.**
 ///   A radial layout computing with `cos`/`sin` is perfectly reasonable; the
 ///   cell boundary is where the rounding belongs, and
-///   ``LayoutSubview/place(at:anchor:proposal:)`` does it for you.
+///   ``LayoutSubview/place(at:anchor:proposal:)-(CellPoint,_,_)`` does it for you.
 ///
 /// ## Publishing a guide to the parent
 ///

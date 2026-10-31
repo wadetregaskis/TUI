@@ -153,6 +153,40 @@ public struct CellSize: Hashable, Sendable {
         self.width = width
         self.height = height
     }
+
+    /// No size at all, `(0, 0)`.
+    public static let zero = Self(width: 0, height: 0)
+
+    /// The cells a measured size takes.
+    ///
+    /// ``ViewSize`` stays a type of its own, because it says more: which axes
+    /// the view can grow along. That is what this conversion drops, and
+    /// ``ViewSize/init(_:)`` says nothing can.
+    ///
+    /// - Parameter size: The size to read.
+    public init(_ size: ViewSize) {
+        self.init(width: size.width, height: size.height)
+    }
+}
+
+extension ViewSize {
+    /// The size of exactly `size`, fixed on both axes: what a `Layout` answers
+    /// for a region it has worked out in cells.
+    ///
+    /// - Parameter size: The cells the view takes.
+    public init(_ size: CellSize) {
+        self.init(width: size.width, height: size.height)
+    }
+}
+
+extension ProposedSize {
+    /// Creates a proposal of `size`, such as the bounds a layout was given —
+    /// mirrors SwiftUI's `ProposedViewSize(_ size: CGSize)`.
+    ///
+    /// - Parameter size: The size to propose.
+    public init(_ size: CellSize) {
+        self.init(width: size.width, height: size.height)
+    }
 }
 
 /// A rectangle in whole terminal cells — the counterpart of `CGRect`.

@@ -360,6 +360,7 @@ Fixes an app may have worked around:
 - **A `NavigationLink(value:)` names its row in a selecting `List`**, so `List(categories, selection: $category) { NavigationLink($0.name, value: $0) }` selects with Return, Space or a click and a `NavigationSplitView`'s next column switches. Such a row draws the link as its label, with no button and no Tab stop. In a `NavigationStack`, selecting the row also follows its link.
 - **Return or Space on a `List`'s cursor follows a `NavigationLink` in that row**, in a list with no selection, with no Tab to the link first. The link keeps its button there, and Tab still reaches it.
 - **A row of a windowed `List` whose tag or link value says nothing for the selection, after row 0 said something, no longer stops the app.** It draws and selects nothing.
+- **The geometry of a custom `Layout` fits together.** `LayoutSubview.place(at:anchor:proposal:)` takes a `CellPoint`, such as `bounds.origin`, beside its tuple; `CellSize.zero` and `ViewSize.zero` exist; `ProposedSize(_:)` makes a proposal of a `ViewSize` or a `CellSize`, and `ProposedViewSize` is SwiftUI's name for `ProposedSize`. `ViewSize` and `CellSize` stay apart, since a `ViewSize` also says which axes can grow, and `CellSize(_:)` and `ViewSize(_:)` convert.
 
 ### Removed deprecated spellings
 

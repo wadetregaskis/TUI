@@ -40,7 +40,20 @@ public struct ProposedSize: Equatable, Sendable {
     public static func fixed(_ width: Int, _ height: Int) -> Self {
         Self(width: width, height: height)
     }
+
+    /// Creates a proposal of `size` — mirrors SwiftUI's
+    /// `ProposedViewSize(_ size: CGSize)`, for offering a subview the size
+    /// another subview answered with.
+    ///
+    /// - Parameter size: The size to propose. Its flexibility is the answering
+    ///   view's, and is no part of a proposal.
+    public init(_ size: ViewSize) {
+        self.init(width: size.width, height: size.height)
+    }
 }
+
+/// SwiftUI's name for ``ProposedSize``.
+public typealias ProposedViewSize = ProposedSize
 
 /// The size a view needs and whether it can flex.
 ///
@@ -156,6 +169,10 @@ public struct ViewSize: Equatable, Sendable {
             && lhs.isWidthFlexible == rhs.isWidthFlexible
             && lhs.isHeightFlexible == rhs.isHeightFlexible
     }
+
+    /// No size at all, fixed on both axes: what a layout with nothing to arrange
+    /// answers.
+    public static let zero = Self(width: 0, height: 0)
 
     /// Creates a fixed-size view that doesn't expand.
     public static func fixed(_ width: Int, _ height: Int) -> Self {

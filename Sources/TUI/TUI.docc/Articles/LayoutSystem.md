@@ -187,7 +187,7 @@ struct Diagonal: Layout {
     func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize { … }
     func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
         for (index, subview) in subviews.enumerated() {
-            subview.place(at: (x: bounds.x + index, y: bounds.y + index), proposal: .unspecified)
+            subview.place(at: CellPoint(x: bounds.x + index, y: bounds.y + index), proposal: .unspecified)
         }
     }
 }
@@ -196,6 +196,10 @@ Diagonal { Text("one"); Text("two") }
 ```
 
 A subview that is never placed is not drawn, and placement order is draw order.
+``ProposedViewSize`` is SwiftUI's name for ``ProposedSize``, and `ProposedSize(_:)`
+makes a proposal of a size, whether a subview's ``ViewSize`` or a region's
+``CellSize``. Those two stay apart because a ``ViewSize`` also says which axes can
+grow; `CellSize(_:)` and `ViewSize(_:)` convert between them.
 ``AnyLayout`` erases the type so a view can switch arrangements without the two
 branches tearing down each other's state.
 
