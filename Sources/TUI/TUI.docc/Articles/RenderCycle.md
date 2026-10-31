@@ -588,7 +588,7 @@ the same picture — the same frame, a repeated shade, a whole cycle later — i
 still served, and a measure pass is served regardless, as a frame changes no
 cell's width. It is paid for: a queue of memoized rows whose spinners turn at
 six speeds (`Stress --session jobs`) measures +9.4% [+8.6%, +10.4%] a frame
-against the stale serve, on an idle machine (2026-09-24) — each row whose run
+against the stale serve, on an idle machine — each row whose run
 moved is drawn again rather than served.
 
 ### Re-checking Rows After a Parent Writes
@@ -897,3 +897,94 @@ serves, which costs more than the cache saves, and every difference they draw
 they also report. Set without a path (`=1`), they keep the findings in memory
 instead (`RenderCache.renderMemoMismatches`, `measureMemoMismatches`); the
 Stress harness fails a run on any.
+
+## How State Survives Re-Rendering
+
+Each frame TUI renders evaluates `app.body` again and walks the view tree from the root,
+so the views it meets are new values, built again by their parents' bodies. Not every body
+runs, though. A memoized subtree whose cached buffer is still valid, such as an
+`.equatable()` view or a `ForEach` row over an `Equatable` element, is served from the
+render cache, and nothing below it is visited. A lazy stack in a `ScrollView`, a `List` or
+a `Table` renders only the rows in its window. Either way, `@State` values persist: while a view stays in the
+tree, its state is never reset to its initial value.
+
+### Structural Identity
+
+Each view in the tree has a **structural identity**: a path like `"ContentView/VStack.0/Menu"`.
+This path is built automatically during rendering based on:
+- The view's type name
+- Its position among siblings (child index)
+- Conditional branches (`true`/`false` for `if`/`else`)
+
+### Persistent State Storage
+
+All `@State` values live in one `StateStorage`, owned by the app's `TUIContext`. Each value
+is held in a reference box (`StateBox`), keyed by:
+- The structural identity of the view that declares the property
+- The property's declaration index within that view (0, 1, 2, ...) — or, for a `@State`
+  inside an app's own `DynamicProperty`, a modifier or an enum's case, where inside the
+  view it is declared, so that what the view's other fields hold never moves its key
+
+Declaring `@State var count = 0` stores nothing. The `init` only records the default, in a
+box of its own that belongs to no identity. The property is bound when its view renders:
+the property walk, planned once per view type from its fields, visits them in declaration order
+and points each `@State` at the box stored under the view's identity and that index. An
+existing box keeps its value; a missing one is created with the default. The measure pass
+binds the same way, under the same identity, so a view is measured and drawn with the same
+values.
+
+The key is the identity the view renders at, not the body it was constructed in. That is
+what keeps two views an `if`/`else` or `switch` swaps between from sharing state: each branch
+renders under an identity of its own.
+
+Until its view first renders, a `@State` still points at the box its `init` made. That box
+has no identity and no render cache, so a write to it requests no render. The first bind
+replaces it with the stored box, so the written value is not kept either.
+
+An `App` is not a view, so no render walk reaches it. `RenderLoop` binds the App's own
+`@State` itself, at the identity at the root of the view tree, each frame before it evaluates
+`app.body`, and marks that identity active so the prune at the end of the pass keeps it. A
+write to it therefore invalidates the whole tree below the root, just as a write to a root
+view's `@State` does.
+
+### Re-Render Trigger
+
+When a ``State`` value changes:
+
+1. `StateBox.value`'s `didSet` calls `invalidateRender(for: identity)` on the box's invalidation sink: the link (`RenderCache.Link`) of the `RenderCache` of the `TUIContext` whose `StateStorage` bound it. That call only records the identity behind a lock, so a write from a background `Task` never touches the cache, and then calls `setNeedsRender()` on the `AppState` the link holds: the render state of the app the cache draws, which its `TUIContext` owns. Every app has its own, so a write asks its own app for a frame, under the transaction it was made in, and never another app in the same process
+2. `setNeedsRender()` sets the `needsRender` flag and calls `AppState`'s observers. The observer `AppRunner` registers does not render: it only wakes the run loop, which may be blocked waiting for input. The loop checks the flag on each iteration (`foldPendingWork`), clears it and marks a frame due, and `FramePacer` renders that frame once the frame-rate cap has cleared. Any number of writes between two frames produce one frame
+3. As the render pass begins, `RenderCache.beginRenderPass()` drains the recorded identities on the main actor. For each it drops what `clearAffected(by:)` would — the cached buffers and sizes of the identity, its ancestors and its descendants — in one walk of each table however many were recorded; sibling subtrees keep theirs
+4. The App's `@State` is bound and `app.body` is evaluated again, and the tree is rendered. A memoized subtree whose cached buffer survived step 3 is served from the cache; every other view is rendered, and each composite view's `@State` is bound again to the same boxes, so it reads the values they now hold
+5. The new ``FrameBuffer`` output is written to the terminal
+
+### Garbage Collection
+
+At the end of each render pass, `StateStorage` drops the state of every identity that was
+not marked active during the pass. A composite view marks its identity as it renders, so
+the state of a view that has left the tree is dropped at the end of the first pass that
+does not render it.
+
+Some views stay in the tree without rendering, and their state is kept. The view above them
+declares a retained subtree for the pass, and nothing under a retained root is dropped:
+- a lazy stack, `List` or `Table`, for the rows outside its window
+- a collapsed `DisclosureGroup`, for its content
+- a memoized subtree served from the render cache, for everything below it
+- ``View/keepsStateWhileHidden(_:)``, for everything below it, for as long as it renders
+
+The declaration is made again on each pass that renders the declaring view, so once that
+view leaves the tree its subtree is dropped too. A row deleted from a windowed container's
+data is not dropped by itself: its state stays as long as the container keeps retaining its
+subtree, which for a `List` or `Table` is as long as it renders.
+
+`ConditionalView` drops the inactive branch's state itself, but only on a render pass where
+it renders a different branch from the one it rendered last, and never while measuring.
+Outside a retained root the end-of-pass prune would drop that state anyway; under one, this
+is what drops it — except under ``View/keepsStateWhileHidden(_:)``, whose point is to keep it:
+a page a `switch` leaves there has its state back when the `switch` returns to it, where
+SwiftUI, and TUI everywhere else, gives it fresh state. A conditional that is not rendered, in a row outside the window or in a
+memoized subtree served from the cache, notices the change on the next pass that renders
+it, not on the frame the condition changed.
+
+There is no virtual DOM to diff: each rendered frame walks the view tree again and draws it
+into a buffer, with state kept in `StateStorage` and memoized subtrees served from the
+render cache. Terminal output is then diffed at the line level: only changed lines are written. See <doc:RenderCycle> for details on the output optimization pipeline.

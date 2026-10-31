@@ -4,7 +4,7 @@ Manage reactive state in your TUI application.
 
 ## Overview
 
-TUI provides a state management system modeled after SwiftUI. When state changes, the view tree is automatically re-rendered.
+State works as it does in SwiftUI. When a value changes, TUI draws the views that depend on it again. `@State` holds a view's own values, `@Observable` holds data that views share, and a binding lets a control edit a value that lives somewhere else.
 
 ## @State
 
@@ -24,6 +24,72 @@ struct CounterView: View {
     }
 }
 ```
+
+## @Observable
+
+When several views share data, or the data has some logic of its own, put it in a class marked `@Observable`. Hold it in a `@State` property in the view that owns it:
+
+```swift
+@Observable
+final class Library {
+    var books: [String] = []
+}
+
+struct LibraryView: View {
+    @State private var library = Library()
+
+    var body: some View {
+        VStack {
+            Text("\(library.books.count) books")
+            Button("Add a Book") {
+                library.books.append("Untitled")
+            }
+        }
+    }
+}
+```
+
+A view that reads a property is drawn again when that property changes, and that includes a write made from a `.task`.
+
+To hand the model to views further down, pass it as an ordinary value or put it in the environment:
+
+```swift
+struct LibraryScreen: View {
+    @State private var library = Library()
+
+    var body: some View {
+        ShelfView()
+            .environment(library)
+    }
+}
+
+struct ShelfView: View {
+    @Environment(Library.self) private var library
+
+    var body: some View {
+        Text("\(library.books.count) books")
+    }
+}
+```
+
+To get a binding to one of its properties, for a control to edit, use ``Bindable``:
+
+```swift
+@Observable
+final class Profile {
+    var name = ""
+}
+
+struct ProfileForm: View {
+    @Bindable var profile: Profile
+
+    var body: some View {
+        TextField("Name", text: $profile.name)
+    }
+}
+```
+
+> Note: TUI watches only `@Observable`. `ObservableObject` and `@Published` compile on macOS, but a write to one doesn't redraw anything. See <doc:ComingFromSwiftUI>.
 
 ## Binding
 
@@ -98,7 +164,7 @@ struct MyView: View {
 
 ```swift
 struct MyCustomKey: EnvironmentKey {
-    static var defaultValue: String = "default"
+    static let defaultValue = "default"
 }
 
 extension EnvironmentValues {
@@ -118,7 +184,7 @@ ContentView()
 
 ## @AppStorage
 
-``AppStorage`` persists values across app launches using `UserDefaults`:
+``AppStorage`` keeps values across app launches, in `UserDefaults` on Apple platforms and in a JSON file elsewhere:
 
 ```swift
 struct SettingsView: View {
@@ -193,93 +259,12 @@ Reads are deliberately quieter: a value that fails to *decode* falls back to the
 declared default, which is defined behaviour and sits on the per-frame render
 path. Directory creation, loads, encodes and writes are all reported.
 
-## How State Survives Re-Rendering
+## How Long State Lasts
 
-Each frame TUI renders evaluates `app.body` again and walks the view tree from the root,
-so the views it meets are new values, built again by their parents' bodies. Not every body
-runs, though. A memoized subtree whose cached buffer is still valid, such as an
-`.equatable()` view or a `ForEach` row over an `Equatable` element, is served from the
-render cache, and nothing below it is visited. A lazy stack in a `ScrollView`, a `List` or
-a `Table` renders only the rows in its window. Either way, `@State` values persist: while a view stays in the
-tree, its state is never reset to its initial value.
+A view's `body` runs many times, but its `@State` isn't reset each time. The value lasts for as long as the view stays in the tree, wherever the tree puts it:
 
-### Structural Identity
+- The two sides of an `if`/`else` or the cases of a `switch` are different views, each with state of its own. Switching to the other side and back starts the first one afresh.
+- A view that leaves the tree loses its state, unless it's inside ``View/keepsStateWhileHidden(_:)``.
+- A row of a `List`, `Table` or lazy stack keeps its state when it scrolls out of view, and a collapsed `DisclosureGroup` keeps its content's.
 
-Each view in the tree has a **structural identity**: a path like `"ContentView/VStack.0/Menu"`.
-This path is built automatically during rendering based on:
-- The view's type name
-- Its position among siblings (child index)
-- Conditional branches (`true`/`false` for `if`/`else`)
-
-### Persistent State Storage
-
-All `@State` values live in one `StateStorage`, owned by the app's `TUIContext`. Each value
-is held in a reference box (`StateBox`), keyed by:
-- The structural identity of the view that declares the property
-- The property's declaration index within that view (0, 1, 2, ...) — or, for a `@State`
-  inside an app's own `DynamicProperty`, a modifier or an enum's case, where inside the
-  view it is declared, so that what the view's other fields hold never moves its key
-
-Declaring `@State var count = 0` stores nothing. The `init` only records the default, in a
-box of its own that belongs to no identity. The property is bound when its view renders:
-the property walk, planned once per view type from its fields, visits them in declaration order
-and points each `@State` at the box stored under the view's identity and that index. An
-existing box keeps its value; a missing one is created with the default. The measure pass
-binds the same way, under the same identity, so a view is measured and drawn with the same
-values.
-
-The key is the identity the view renders at, not the body it was constructed in. That is
-what keeps two views an `if`/`else` or `switch` swaps between from sharing state: each branch
-renders under an identity of its own.
-
-Until its view first renders, a `@State` still points at the box its `init` made. That box
-has no identity and no render cache, so a write to it requests no render. The first bind
-replaces it with the stored box, so the written value is not kept either.
-
-An `App` is not a view, so no render walk reaches it. `RenderLoop` binds the App's own
-`@State` itself, at the identity at the root of the view tree, each frame before it evaluates
-`app.body`, and marks that identity active so the prune at the end of the pass keeps it. A
-write to it therefore invalidates the whole tree below the root, just as a write to a root
-view's `@State` does.
-
-### Re-Render Trigger
-
-When a ``State`` value changes:
-
-1. `StateBox.value`'s `didSet` calls `invalidateRender(for: identity)` on the box's invalidation sink: the link (`RenderCache.Link`) of the `RenderCache` of the `TUIContext` whose `StateStorage` bound it. That call only records the identity behind a lock, so a write from a background `Task` never touches the cache, and then calls `setNeedsRender()` on the `AppState` the link holds: the render state of the app the cache draws, which its `TUIContext` owns. Every app has its own, so a write asks its own app for a frame, under the transaction it was made in, and never another app in the same process
-2. `setNeedsRender()` sets the `needsRender` flag and calls `AppState`'s observers. The observer `AppRunner` registers does not render: it only wakes the run loop, which may be blocked waiting for input. The loop checks the flag on each iteration (`foldPendingWork`), clears it and marks a frame due, and `FramePacer` renders that frame once the frame-rate cap has cleared. Any number of writes between two frames produce one frame
-3. As the render pass begins, `RenderCache.beginRenderPass()` drains the recorded identities on the main actor. For each it drops what `clearAffected(by:)` would — the cached buffers and sizes of the identity, its ancestors and its descendants — in one walk of each table however many were recorded; sibling subtrees keep theirs
-4. The App's `@State` is bound and `app.body` is evaluated again, and the tree is rendered. A memoized subtree whose cached buffer survived step 3 is served from the cache; every other view is rendered, and each composite view's `@State` is bound again to the same boxes, so it reads the values they now hold
-5. The new ``FrameBuffer`` output is written to the terminal
-
-### Garbage Collection
-
-At the end of each render pass, `StateStorage` drops the state of every identity that was
-not marked active during the pass. A composite view marks its identity as it renders, so
-the state of a view that has left the tree is dropped at the end of the first pass that
-does not render it.
-
-Some views stay in the tree without rendering, and their state is kept. The view above them
-declares a retained subtree for the pass, and nothing under a retained root is dropped:
-- a lazy stack, `List` or `Table`, for the rows outside its window
-- a collapsed `DisclosureGroup`, for its content
-- a memoized subtree served from the render cache, for everything below it
-- ``View/keepsStateWhileHidden(_:)``, for everything below it, for as long as it renders
-
-The declaration is made again on each pass that renders the declaring view, so once that
-view leaves the tree its subtree is dropped too. A row deleted from a windowed container's
-data is not dropped by itself: its state stays as long as the container keeps retaining its
-subtree, which for a `List` or `Table` is as long as it renders.
-
-`ConditionalView` drops the inactive branch's state itself, but only on a render pass where
-it renders a different branch from the one it rendered last, and never while measuring.
-Outside a retained root the end-of-pass prune would drop that state anyway; under one, this
-is what drops it — except under ``View/keepsStateWhileHidden(_:)``, whose point is to keep it:
-a page a `switch` leaves there has its state back when the `switch` returns to it, where
-SwiftUI, and TUI everywhere else, gives it fresh state. A conditional that is not rendered, in a row outside the window or in a
-memoized subtree served from the cache, notices the change on the next pass that renders
-it, not on the frame the condition changed.
-
-There is no virtual DOM to diff: each rendered frame walks the view tree again and draws it
-into a buffer, with state kept in `StateStorage` and memoized subtrees served from the
-render cache. Terminal output is then diffed at the line level: only changed lines are written. See <doc:RenderCycle> for details on the output optimization pipeline.
+To see how TUI does this, and what a write sets off, read <doc:RenderCycle#How-State-Survives-Re-Rendering>.
