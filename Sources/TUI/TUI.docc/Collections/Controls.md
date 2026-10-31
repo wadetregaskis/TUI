@@ -4,6 +4,10 @@ Take input with buttons, fields, toggles, sliders, pickers, menus and search.
 
 ## Topics
 
+### Essentials
+
+- <doc:TextInputAndForms>
+
 ### Buttons
 
 - ``Button``
