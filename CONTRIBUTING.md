@@ -651,6 +651,193 @@ anything at run time:
   parallel" above. CI runs the suite the same way on macOS and Linux (`-j 4`),
   and plain `swift test` on Windows.
 
+## Localizing the framework
+
+TUI's own words live in `Sources/TUIStrings/Localization/`. An app adds or changes words without touching the framework (see the Localization article); this is for changing what TUI ships.
+
+Keys use a `category.key_name` format, such as `button.ok` or `error.not_found`. Each prefix becomes an enum category: every `button.*` key is in `LocalizationKey.Button`.
+
+### Adding a key
+
+#### 1. Update the LocalizationKey enum
+
+Edit `Sources/TUIStrings/Localization/LocalizationKeys.swift`:
+
+```swift
+public enum LocalizationKey {
+    public enum Button: String {
+        // ... existing cases
+        case myNewButton = "button.my_new_button"
+    }
+}
+```
+
+Then add convenient extensions. They look the key up as one of TUI's own
+words, through the framework's entry points (`LocalizedString(frameworkKey:)`
+and `LocalizationService.frameworkString(for:)`), and never by passing
+`key.rawValue` to an initialiser that takes a `String`: that looks it up as
+the app's key, so an app whose `Localizable.strings` happens to spell
+`button.my_new_button` would change TUI's word by accident (see Fallback
+Behavior, above).
+
+```swift
+extension LocalizedString {
+    public init(_ key: LocalizationKey.Button) {
+        self.init(frameworkKey: key.rawValue)
+    }
+}
+
+extension Text {
+    public init(localized key: LocalizationKey.Button) {
+        self.init(verbatim: LocalizationService.shared.frameworkString(for: key.rawValue))
+    }
+}
+
+extension LocalizationService {
+    public func string(for key: LocalizationKey.Button) -> String {
+        frameworkString(for: key.rawValue)
+    }
+}
+```
+
+#### 2. Add it to all the translation files
+
+Add the same key to all 7 translation JSON files:
+
+**en.json**:
+```json
+{
+  "button.my_new_button": "My New Button",
+  ...
+}
+```
+
+**de.json**:
+```json
+{
+  "button.my_new_button": "Mein neuer Button",
+  ...
+}
+```
+
+Similar for `fr.json`, `it.json`, `es.json`, `zh.json`, `ja.json`.
+
+Then paste `en.json` into `LocalizationService+BuiltInEnglish.swift`, between
+its `#"""` delimiters: that is the English compiled in, and
+`BuiltInEnglishTests` fails, naming the keys, until it matches the file.
+
+#### 3. Update the tests
+
+Add tests in `Tests/TUIFoundationTests/LocalizationKeyConsistencyTests.swift`:
+
+```swift
+@Test("All button keys exist in translations")
+func allButtonKeysExist() {
+    let keys = [
+        LocalizationKey.Button.ok,
+        LocalizationKey.Button.myNewButton,
+        // ... all other button keys
+    ]
+
+    for key in keys {
+        #expect(englishTranslations[key.rawValue] != nil)
+    }
+}
+```
+
+#### 4. Run the consistency tests
+
+Verify all keys exist in translation files:
+
+```bash
+swift test --filter LocalizationKeyConsistencyTests
+```
+
+### Adding a language
+
+#### 1. Update the Language enum
+
+Edit `Sources/TUIStrings/Localization/LocalizationService+Language.swift`:
+
+```swift
+public enum Language: String, Codable {
+    case english = "en"
+    case german = "de"
+    case french = "fr"
+    case italian = "it"
+    case spanish = "es"
+    case portuguese = "pt"  // NEW
+
+    public var displayName: String {
+        switch self {
+        case .english: "English"
+        case .german: "Deutsch"
+        case .french: "Français"
+        case .italian: "Italiano"
+        case .spanish: "Español"
+        case .portuguese: "Português"  // NEW
+        }
+    }
+}
+```
+
+#### 2. Create the translation file
+
+Create `Sources/TUIStrings/Localization/translations/pt.json` with **all** keys from other language files:
+
+```json
+{
+  "button.ok": "OK",
+  "button.cancel": "Cancelar",
+  ...
+  // Must include ALL keys (use en.json as reference)
+}
+```
+
+#### 3. Test the new language
+
+```swift
+let service = LocalizationService()
+service.setLanguage(.portuguese)
+let ok = service.string(for: LocalizationKey.Button.ok)
+```
+
+#### 4. Run the consistency tests
+
+```bash
+swift test --filter LocalizationKeyConsistencyTests
+```
+
+### Translation file format
+
+
+```json
+{
+  "category.key": "English text",
+  "category.another_key": "More text",
+  ...
+}
+```
+
+The rules:
+
+1. **Flat structure**: No nested objects (all keys are top-level)
+2. **Dot-separated keys**: `"button.ok"`, not nested objects
+3. **UTF-8 encoding**: Required for non-Latin characters
+4. **Valid JSON**: No trailing commas, proper escaping
+
+For example:
+
+```json
+{
+  "button.ok": "OK",
+  "button.cancel": "Cancel",
+  "error.not_found": "Not found",
+  "error.unicode_test": "Unicode: café, Ñoño, 日本語",
+  "placeholder.enter_name": "Enter name..."
+}
+```
+
 ## Architecture
 
 - **Modular package**: 34 Swift library modules, a macro plugin and 1 in-tree C target, offered as 31 library products: the `TUI` umbrella, which is everything, a product for each module an app or a library may want on its own, and the opt-in `TUIAppKit`, `TUIFilePanelsAppKit` and `TUIMacros` ([Choosing products](https://github.com/wadetregaskis/TUI/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md); Project Structure below)

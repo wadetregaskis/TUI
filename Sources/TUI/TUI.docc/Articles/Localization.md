@@ -1,6 +1,6 @@
 # Localization
 
-Build multilingual terminal applications with TUI's comprehensive internationalization system.
+Show your app in several languages, with TUI's own words already translated.
 
 ## Overview
 
@@ -13,7 +13,7 @@ TUI provides built-in support for 7 languages: English, German, French, Italian,
 - **Persistent storage**: Language preference saved and restored per-app, in the platform config directory (macOS Application Support, Linux XDG config)
 - **Fallback chain**: Current language → English → key itself for graceful degradation
 - **Thread-safe**: Safe language switching from any thread at runtime
-- **JSON-based**: Easy to extend with new strings and languages
+- **Yours to extend**: Register your own translations, or use a `Localizable.strings` file
 
 ## Quick Start
 
@@ -418,190 +418,11 @@ LocalizationService.shared.register(translations: [
 ])
 ```
 
-## Adding New Keys
+## Changing Language While the App Runs
 
-To add new localized strings to the framework:
-
-### 1. Update LocalizationKey Enum
-
-Edit `Sources/TUIStrings/Localization/LocalizationKeys.swift`:
+``LocalizationService`` is safe to call from any thread:
 
 ```swift
-public enum LocalizationKey {
-    public enum Button: String {
-        // ... existing cases
-        case myNewButton = "button.my_new_button"
-    }
-}
-```
-
-Then add convenient extensions. They look the key up as one of TUI's own
-words, through the framework's entry points (`LocalizedString(frameworkKey:)`
-and `LocalizationService.frameworkString(for:)`), and never by passing
-`key.rawValue` to an initialiser that takes a `String`: that looks it up as
-the app's key, so an app whose `Localizable.strings` happens to spell
-`button.my_new_button` would change TUI's word by accident (see Fallback
-Behavior, above).
-
-```swift
-extension LocalizedString {
-    public init(_ key: LocalizationKey.Button) {
-        self.init(frameworkKey: key.rawValue)
-    }
-}
-
-extension Text {
-    public init(localized key: LocalizationKey.Button) {
-        self.init(verbatim: LocalizationService.shared.frameworkString(for: key.rawValue))
-    }
-}
-
-extension LocalizationService {
-    public func string(for key: LocalizationKey.Button) -> String {
-        frameworkString(for: key.rawValue)
-    }
-}
-```
-
-### 2. Add to All Translation Files
-
-Add the same key to all 7 translation JSON files:
-
-**en.json**:
-```json
-{
-  "button.my_new_button": "My New Button",
-  ...
-}
-```
-
-**de.json**:
-```json
-{
-  "button.my_new_button": "Mein neuer Button",
-  ...
-}
-```
-
-Similar for `fr.json`, `it.json`, `es.json`, `zh.json`, `ja.json`.
-
-Then paste `en.json` into `LocalizationService+BuiltInEnglish.swift`, between
-its `#"""` delimiters: that is the English compiled in, and
-`BuiltInEnglishTests` fails, naming the keys, until it matches the file.
-
-### 3. Update Tests
-
-Add tests in `Tests/TUIFoundationTests/LocalizationKeyConsistencyTests.swift`:
-
-```swift
-@Test("All button keys exist in translations")
-func allButtonKeysExist() {
-    let keys = [
-        LocalizationKey.Button.ok,
-        LocalizationKey.Button.myNewButton,
-        // ... all other button keys
-    ]
-
-    for key in keys {
-        #expect(englishTranslations[key.rawValue] != nil)
-    }
-}
-```
-
-### 4. Run Consistency Tests
-
-Verify all keys exist in translation files:
-
-```bash
-swift test --filter LocalizationKeyConsistencyTests
-```
-
-## Adding New Languages
-
-To add support for a new language:
-
-### 1. Update Language Enum
-
-Edit `Sources/TUIStrings/Localization/LocalizationService.swift`:
-
-```swift
-public enum Language: String, Codable {
-    case english = "en"
-    case german = "de"
-    case french = "fr"
-    case italian = "it"
-    case spanish = "es"
-    case portuguese = "pt"  // NEW
-
-    public var displayName: String {
-        switch self {
-        case .english: "English"
-        case .german: "Deutsch"
-        case .french: "Français"
-        case .italian: "Italiano"
-        case .spanish: "Español"
-        case .portuguese: "Português"  // NEW
-        }
-    }
-}
-```
-
-### 2. Create Translation File
-
-Create `Sources/TUIStrings/Localization/translations/pt.json` with **all** keys from other language files:
-
-```json
-{
-  "button.ok": "OK",
-  "button.cancel": "Cancelar",
-  ...
-  // Must include ALL keys (use en.json as reference)
-}
-```
-
-### 3. Test the New Language
-
-```swift
-let service = LocalizationService()
-service.setLanguage(.portuguese)
-let ok = service.string(for: LocalizationKey.Button.ok)
-```
-
-### 4. Run Consistency Tests
-
-```bash
-swift test --filter LocalizationKeyConsistencyTests
-```
-
-## Design Principles
-
-### Dot-Notation Keys
-
-Keys use `category.key_name` format:
-
-```
-button.ok
-error.not_found
-validation.email_invalid
-```
-
-This organizes related strings, makes them easy to find, and matches JSON structure.
-
-### Enum Categories
-
-Each JSON prefix becomes an enum category:
-- All `button.*` keys → `LocalizationKey.Button`
-- All `error.*` keys → `LocalizationKey.Error`
-- All `validation.*` keys → `LocalizationKey.Validation`
-
-This provides type safety, IDE autocomplete, and compile-time verification.
-
-### Thread Safety
-
-``LocalizationService`` uses `NSLock` for thread-safe access:
-
-```swift
-// Safe to call from any thread
 DispatchQueue.global().async {
     LocalizationService.shared.setLanguage(.german)
 }
@@ -614,104 +435,21 @@ drawn with the old strings is drawn again. The app's run loop notes the app
 with the service for the length of its run; translations registered before
 the app runs ask nothing to be drawn, since the first frame is still to come.
 
-### Performance Caching
-
-Translations are cached per language after first load:
-
-```swift
-let text1 = service.string(for: LocalizationKey.Button.ok)  // Loads and caches
-let text2 = service.string(for: LocalizationKey.Button.ok)  // Uses cache
-```
-
-## JSON File Format
-
-### Structure
-
-```json
-{
-  "category.key": "English text",
-  "category.another_key": "More text",
-  ...
-}
-```
-
-### Rules
-
-1. **Flat structure**: No nested objects (all keys are top-level)
-2. **Dot-separated keys**: `"button.ok"`, not nested objects
-3. **UTF-8 encoding**: Required for non-Latin characters
-4. **Valid JSON**: No trailing commas, proper escaping
-
-### Example
-
-```json
-{
-  "button.ok": "OK",
-  "button.cancel": "Cancel",
-  "error.not_found": "Not found",
-  "error.unicode_test": "Unicode: café, Ñoño, 日本語",
-  "placeholder.enter_name": "Enter name..."
-}
-```
-
-## Best Practices
-
-1. **Always use type-safe keys**: Use `LocalizationKey` enums instead of raw strings
-2. **Keep keys organized**: Group related strings by category
-3. **Use descriptive names**: Short, clear key names
-4. **Run consistency tests**: Always verify after adding keys
-5. **Test all languages**: Check translations look correct in each language
-6. **Handle missing strings**: Rely on the fallback chain for incomplete translations
-
-## Testing
-
-TUI includes comprehensive localization tests:
-
-### LocalizationServiceTests
-Core functionality tests covering:
-- Bundle loading for all languages
-- String resolution with dot-notation
-- Fallback behavior
-- Language switching
-- Persistence to disk
-- Thread safety
-
-### LocalizationKeyConsistencyTests
-Validation tests ensuring:
-- Every enum key exists in all translation files
-- No extraneous keys in translation files
-- Expected total key count
-
-Run after any localization changes:
-
-```bash
-swift test --filter LocalizationKeyConsistencyTests
-```
-
 ## Troubleshooting
 
 ### String Not Appearing
 
-- Verify the key exists in `LocalizationKey` enum
-- Check the key is in all translation JSON files
-- Run consistency tests to verify
+- A key that isn't found is shown as it's written, so check its spelling first.
+- Check the translation is registered, or in a `Localizable.strings` file in that language's `.lproj` folder.
 
 ### Wrong Language Showing
 
-- Verify language was set: `LocalizationService.shared.currentLanguage`
-- Confirm language is supported (en, de, fr, it, es, zh, ja)
-- Check translation file exists for that language
-
-### JSON Syntax Errors
-
-If translation files won't load:
-- Validate JSON syntax
-- Check for missing commas or quotes
-- Ensure UTF-8 encoding
-- No trailing commas in objects
+- Check which language is set: `LocalizationService.shared.currentLanguage`.
+- Check which languages the environment asks for: `LANGUAGE`, `LC_ALL`, `LC_MESSAGES` and `LANG` come first, then the system's preferred languages.
+- Remember the saved preference: a language set with `setLanguage(_:)` is kept for the next run.
 
 ## See Also
 
 - <doc:GettingStarted>
+- <doc:TextStyling>
 - <doc:AppLifecycle>
-- <doc:Architecture>
