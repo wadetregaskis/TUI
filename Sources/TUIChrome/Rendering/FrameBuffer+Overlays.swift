@@ -160,15 +160,15 @@ extension FrameBuffer {
                     : placed.content
                 // And a surface is the backdrop of every fade INSIDE it (§96.2): a
                 // label faded in a sheet fades into the sheet, whose surface stays
-                // put. Only a centred layer — a sheet, an alert, a cover — because a
-                // fade outside the presenter never reaches one (`OpacityFading.fadingOverlays`),
-                // so every region it carries is its own content's. An anchored layer
-                // may carry the presenter's fade, which must take the surface with
-                // it, in the same list as its content's, and cannot be told apart
-                // here.
-                if layer.isOpaque, layer.isScreenLevel {
+                // put. A fade outside the presenter takes the surface with it, and
+                // was kept apart for this (`OverlayLayer.claimsFromOutside`). First:
+                // the resolution takes a cell's layer alpha from the first claim on
+                // it, which is the outermost's product of all of them, and what the
+                // content still claims here is at full strength (ink alone).
+                if layer.isOpaque {
                     content = content.resolvingOpacity(
                         onOpaqueFill: { nil }, surface: palette.background, palette: palette)
+                    content.opacityRegions = layer.claimsFromOutside + content.opacityRegions
                 }
                 // Painted, a surface states every cell's field, so it is composited
                 // as it is. Asked what it lands on, its own `ESC[49m` — the surface

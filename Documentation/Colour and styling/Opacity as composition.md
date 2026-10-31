@@ -6381,22 +6381,25 @@ field: the surface under it took the label's fade toward the backdrop, and the l
 entered the glyph contest with whatever the page drew behind the sheet — at 0.3 it lost, and
 the page's own character showed through the sheet in its place.
 
-The compositor now spends a centred layer's fades against its surface, painted first, as a
-`.background` does. Only a centred layer: a fade outside the presenter never reaches one
-(`_OpacityView.fadingOverlays`, now `OpacityFading.fadingOverlays`, leaves screen-level layers alone), so every region it carries
-is its own content's. An anchored layer can carry the presenter's fade, which has to take the
-surface with it, in the same list as its content's, and the compositor cannot tell the two
-apart; so a label faded inside an anchored layer that paints no surface of its own (a menu,
-a drop-down, a toast) still fades that surface toward what is behind the layer — a limit,
-held as a known issue. A popover paints its own, with a `.background`, and is §96's case.
-(Re-measured on 2026-09-25, §103: no built-in anchored layer brings a fade of its content to the
-compositor — a menu's and a drop-down's rows spend theirs at their own painters — so the limit is
-a hand-built layer's.)
+The compositor now spends a surface's fades against its surface, painted first, as a
+`.background` does. A fade outside the presenter never reaches a centred layer
+(`_OpacityView.fadingOverlays`, now `OpacityFading.fadingOverlays`, leaves screen-level layers
+alone), so every region one carries is its own content's. An anchored layer can carry the
+presenter's fade, which has to take the surface with it. Until 2026-10-31 that was in the same list
+as its content's, and the compositor could not tell the two apart, so a label faded inside an
+anchored layer that paints no surface of its own (a menu, a drop-down, a toast) faded that surface
+toward what is behind the layer. Now a claim from outside a surface is kept apart
+(`OverlayLayer.claimsFromOutside`, which `.opacity(_:)`, `.blendMode(_:)`, a translucent
+`.colorMultiply` and a transition's fade write), and laid on the layer after its content's are
+spent. A popover paints its own, with a `.background`, and is §96's case.
+(Re-measured on 2026-09-25, §103: no built-in anchored layer brought a fade of its content to the
+compositor — a menu's and a drop-down's rows spend theirs at their own painters — so the limit
+was a hand-built layer's.)
 
 `FadeInsideAPainterTests`: a label at 0.3 in a centred modal layer over a page, on a palette
 whose backdrop wash is red — on the surface, its ink 30% of the way from it (before, the page's
-character in its place); a label in a popover, on the popover's surface; and the anchored
-limit.
+character in its place); a label in a popover, on the popover's surface; and a label in an
+anchored layer with no surface of its own, with and without the presenter's fade over it.
 
 ### 96.3 A menu row's bar
 
@@ -6968,8 +6971,8 @@ toast's content is strings; a tooltip's, text. A lifted drag preview is built fr
 (`_ListCore`, `FrameBuffer(lines:)`) and carries no region at all — which is a finding of its own,
 outside this section's: a label faded in a row that is dragged is lifted at full strength. (Fixed
 2026-09-26, §106 — and a `.draggable` view's preview, which does carry its fades, reached the
-compositor with them as an anchored layer: this limit, in a built-in shape.) The
-known issue in `FadeInsideAPainterTests` stays as the pin for a hand-built layer.
+compositor with them as an anchored layer: this limit, in a built-in shape.) Fixed for a
+hand-built layer on 2026-10-31 (§96.2).
 
 **A fade inside a translucent fill** (§22, §96): draws wrong. (Fixed 2026-09-26 with the exact
 answer, §105.) `HStack(spacing: 0) { Text("ab")

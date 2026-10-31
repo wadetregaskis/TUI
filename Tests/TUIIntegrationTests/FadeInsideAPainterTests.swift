@@ -22,6 +22,7 @@ import TUI
 @testable import TUIStyling
 @testable import TUITabsTestSupport
 @testable import TUITestSupport
+@testable import TUIView
 
 /// `item`, on a repeating fade drawn at 0.9 of a breath down to 0.3.
 private struct BreathingItem: View, Renderable {
@@ -260,13 +261,11 @@ struct FadeInsideAPainterTests {
     }
 
     /// An anchored layer that paints NO surface of its own — the compositor paints
-    /// one under it, as it does a sheet's — is not done. A fade outside the
-    /// presenter reaches an anchored layer (`_OpacityView.fadingOverlays`) and has to
-    /// take the surface with it, and at the compositor it is in the same list as the
-    /// content's own fades; spending that list against the surface would lose the
-    /// presenter's fade on the surface. So a label faded inside such a layer still
-    /// fades the surface toward what is behind the layer.
-    @Test("A label faded inside an anchored layer with no surface of its own")
+    /// one under it, as it does a sheet's. A fade outside the presenter reaches such a
+    /// layer (`OpacityFading.fadingOverlays`) and has to take the surface with it, so
+    /// it is kept apart from the content's own fades, which the surface is behind. In
+    /// one list, a label faded inside took the surface toward what is behind the layer.
+    @Test("A label faded inside an anchored layer with no surface of its own stays on the surface")
     func aLabelFadedInsideABareAnchoredLayer() throws {
         let palette = ThemeProbePalette(background: .rgb(10, 10, 10))
         let context = makeRenderContext(width: 20, height: 6) { environment, _ in
@@ -284,9 +283,33 @@ struct FadeInsideAPainterTests {
         let cells = try #require(composited.lines.map(paintedCells).first { $0.contains { $0.glyph == "x" } })
         let x = try #require(cells.first { $0.glyph == "x" })
         let surface = try #require(palette.background.rgbComponents)
-        withKnownIssue("an anchored layer's own fade and its content's are one list at the compositor") {
-            #expect(x.background == Self.spelled(surface), "x is drawn on \(x.background.debugDescription)")
+        #expect(x.background == Self.spelled(surface), "x is drawn on \(x.background.debugDescription)")
+    }
+
+    /// The presenter's fade over a label faded inside the same layer: the label is on
+    /// the surface as its own fade leaves it, and the presenter's takes the surface,
+    /// and the label with it, half way to the page.
+    @Test("A presenter's fade takes an anchored surface with it, over a fade inside")
+    func aPresentersFadeOverAFadeInsideABareAnchoredLayer() throws {
+        let palette = ThemeProbePalette(background: .rgb(10, 10, 10))
+        let context = makeRenderContext(width: 20, height: 6) { environment, _ in
+            environment.palette = palette
         }
+        let composited = ColorDepth.withCurrent(.truecolor) {
+            var page = FrameBuffer(
+                lines: Array(repeating: ANSIRenderer.colorize(String(repeating: " ", count: 20), background: .rgb(200, 0, 0)), count: 6))
+            page.overlays = OpacityFading.fadingOverlays(
+                [
+                    OverlayLayer(
+                        offsetX: 2, offsetY: 2, content: renderToBuffer(Text("xy").opacity(0.8), context: context))
+                ],
+                by: 0.5)
+            return page.compositingOverlays(maxWidth: 20, maxHeight: 6, palette: context.environment.palette)
+        }
+        let cells = try #require(composited.lines.map(paintedCells).first { $0.contains { $0.glyph == "x" } })
+        let x = try #require(cells.first { $0.glyph == "x" })
+        // Half way from the surface's 10 to the page's 200, and from its 10 to 0.
+        #expect(x.background == Self.spelled((red: 105, green: 5, blue: 5)), "x is drawn on \(x.background.debugDescription)")
     }
 
     /// A list's cursor row breathes: its fill is a run of whole-row frames, one per

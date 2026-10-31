@@ -82,7 +82,7 @@ extension _BlendModeView: Renderable {
         overlays.map { layer in
             guard !layer.isScreenLevel else { return layer }
             var marked = layer
-            marked.content.opacityRegions = marking(layer.content.opacityRegions, wholeOf: layer.content, with: mode)
+            marked.claimFromOutside { marking($0, wholeOf: layer.content, with: mode) }
             marked.content.overlays = markingOverlays(layer.content.overlays, with: mode)
             return marked
         }

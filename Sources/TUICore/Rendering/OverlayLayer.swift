@@ -204,6 +204,36 @@ public struct OverlayLayer: Sendable, Equatable {
     /// loudly is the safer one.
     public var isOpaque: Bool = true
 
+    /// What a modifier outside the view that emitted this SURFACE (``isOpaque``)
+    /// claims of the whole of it — a presenter's `.opacity(_:)`, a blend mode —
+    /// kept apart from what the content claims of its own cells.
+    ///
+    /// They are behind different things. A fade inside a surface fades toward the
+    /// surface, which stays put; a fade outside it takes the surface with it, toward
+    /// what is behind the layer. In one list the compositor could spend neither
+    /// against the surface: spent, the presenter's fade was lost on the surface, and
+    /// unspent, a label faded inside an anchored layer took the surface toward the
+    /// page in its cells (`Opacity as composition.md` §96.2).
+    ///
+    /// Each claim is of the whole layer at the origin of its content, however much
+    /// of it the placement keeps: a rectangle reaching past what is drawn claims
+    /// nothing there. Never on a layer that is not a surface, whose claims all stay on
+    /// its content, nor a screen-level one, which no such modifier reaches.
+    package var claimsFromOutside: [OpacityRegion] = []
+
+    /// Has a modifier outside the view that emitted this layer claim the whole of it:
+    /// ``claimsFromOutside`` for a surface, otherwise on the content, whose cells have
+    /// only one thing behind them.
+    ///
+    /// - Parameter claim: The claims with this one added, handed the claims so far.
+    package mutating func claimFromOutside(_ claim: ([OpacityRegion]) -> [OpacityRegion]) {
+        if isOpaque {
+            claimsFromOutside = claim(claimsFromOutside)
+        } else {
+            content.opacityRegions = claim(content.opacityRegions)
+        }
+    }
+
     /// Whether this layer holds the input while it is drawn: a menu, a
     /// drop-down, a popover — a surface with a dismiss backdrop that takes
     /// every press outside it, and, for the menus, the keyboard.

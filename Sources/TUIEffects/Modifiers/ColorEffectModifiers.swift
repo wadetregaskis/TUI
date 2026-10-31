@@ -293,9 +293,19 @@ extension _ColorEffectView {
         result.overlays = result.overlays.map { layer in
             guard !layer.isScreenLevel else { return layer }
             var drawn = layer
+            // A surface's own fades are behind its surface, and this tint's is not
+            // (`OverlayLayer.claimsFromOutside`), so it is claimed apart from them.
             drawn.content = effected(
-                layer.content, rewrites: rewrites, layerFade: layerFade,
+                layer.content, rewrites: rewrites, layerFade: layer.isOpaque ? nil : layerFade,
                 foreground: foreground, surface: surface, images: images)
+            if layer.isOpaque, let layerFade {
+                drawn.content.overlays = OpacityFading.fadingOverlays(drawn.content.overlays, by: layerFade)
+                drawn.claimFromOutside {
+                    OpacityFading.fading(
+                        $0, by: layerFade, cycle: nil, wholeOf: layer.content,
+                        appendingRectangle: !layer.content.isEmpty)
+                }
+            }
             return drawn
         }
         return result

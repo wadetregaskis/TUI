@@ -85,9 +85,11 @@ package enum OpacityFading {
         overlays.map { layer in
             guard !layer.isScreenLevel else { return layer }
             var faded = layer
-            faded.content.opacityRegions = fading(
-                layer.content.opacityRegions, by: factor, cycle: cycle,
-                wholeOf: layer.content, appendingRectangle: !layer.content.isEmpty)
+            faded.claimFromOutside {
+                fading(
+                    $0, by: factor, cycle: cycle, wholeOf: layer.content,
+                    appendingRectangle: !layer.content.isEmpty)
+            }
             faded.content.overlays = fadingOverlays(
                 layer.content.overlays, by: factor, cycle: cycle)
             return faded
