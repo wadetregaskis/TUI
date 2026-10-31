@@ -10,16 +10,8 @@ nothing below needs your attention.
 
 TUI is also built as separate modules, and each module an app may want on its own is a library product of its
 own. An app can list the products of the modules it uses instead of `TUI`, and SwiftPM then compiles and links
-only those modules and the ones they are built on. Measured on 2026-10-12 with Swift 6.4.0 (`swift build -c
-release` with TUI's default traits, then `strip`), a hello world (`Text("Hello, world")` in a `WindowGroup`):
-
-| The app depends on | Stripped size | TUI modules compiled |
-|---|--:|--:|
-| `TUI` | 9,241,968 bytes | 25, the umbrella, and the C image decoder |
-| `TUIApp` | 5,751,768 bytes (−37.8%) | 8 |
-| `TUIApp` and `TUIColorPicker`, with one `ColorPicker` | 7,613,568 bytes | 14 |
-
-On a quiet machine (Swift 6.4.0, release, 12 jobs, 2026-10-11), the hello world on `TUIApp` built clean in 62.8 and 58.7 s against 68.9 and 75.1 s on `TUI`, reached its first output in 6.8 ms against 7.1 ms, and used 2.76 MiB against 2.85 MiB (`footprint`; medians of 20 alternated launches).
+only those modules and the ones they are built on. A stripped release build of a hello world that depends only on
+`TUIApp` comes out about 40% smaller than one that depends on `TUI`, and it builds a little faster.
 
 ### Depending on modules
 
@@ -132,8 +124,7 @@ An app that calls only your library's own API is unaffected, except where that A
 (`extension Color { static var brand }`, `extension View { func card() }`) or conforms one to your protocol: Swift
 names those symbols after the TUI module, so they leave your library's exports with TUI's, and an app calling
 one fails to link unless the compiler copied its body into the app. To export TUI from your library, depend on TUI
-with that trait off and the other default one kept, `.package(url: …, from: …, traits: ["DeadStripUnusedAPI"])`
-("Shipping size" in the repository's `Documentation/Building and shipping an app.md` has what each trait does).
+with that trait off and the other default one kept, `.package(url: …, from: …, traits: ["DeadStripUnusedAPI"])`.
 
 ## Where the module shows
 
