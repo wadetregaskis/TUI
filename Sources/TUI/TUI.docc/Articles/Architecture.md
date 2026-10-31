@@ -20,7 +20,7 @@ The ``App`` protocol is the entry point. It defines one or more scenes that make
 
 Every UI component conforms to the ``View`` protocol. Views are composed declaratively using ``ViewBuilder``, which supports:
 
-- Single and multiple child views (up to 10)
+- Single and multiple child views, as many as you like
 - Conditionals (`if`, `if-else`, `if let`)
 - Loops (`for-in` via ``ForEach``)
 
