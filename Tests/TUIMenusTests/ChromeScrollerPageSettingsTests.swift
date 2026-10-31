@@ -106,6 +106,11 @@ struct ChromeScrollerPageSettingsTests {
         let column = frames.last.lines[row].stripped.range(of: "row 0").map {
             frames.last.lines[row].stripped.distance(from: frames.last.lines[row].stripped.startIndex, to: $0.lowerBound)
         } ?? 0
+        // A stopped clock: on a slow machine the next frame can come after the
+        // quiet period, and the scroll would read as already over.
+        for handler in frames.focusManager.activeSection?.focusables.compactMap({ $0 as? ScrollViewHandler }) ?? [] {
+            handler.phaseNow = { 0 }
+        }
         _ = frames.tui.mouseEventDispatcher.dispatch(
             MouseEvent(button: .scrollDown, phase: .scrolled, x: column, y: row))
         frames.render(view)

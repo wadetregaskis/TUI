@@ -34,11 +34,12 @@ private struct Run: Equatable {
 }
 
 // Each test waits on a task's run, so a task that never runs would wait
-// forever: the limit turns that into a failure. Generous, because in the
-// full parallel suite a main-actor test's wall time runs past a minute (one
-// in the 2026-10-24 run took 91 s), and a limit of one failed all three.
+// forever: the limit turns that into a failure. Very generous, because the
+// task queues on the main actor behind every other main-actor test the process
+// has started, so it runs about when they have all finished: more than 600 s on
+// a slow CI runner (2026-10-31, in a group that took 933 s), failing all three.
 @MainActor
-@Suite("A view's task, named", .timeLimit(.minutes(10)))
+@Suite("A view's task, named", .timeLimit(.minutes(45)))
 struct NamedTaskTests {
 
     /// The name a task carries where the runtime names tasks, and `nil` where
