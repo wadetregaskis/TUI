@@ -181,6 +181,18 @@ These have no meaning in a grid of cells, or aren't built yet, so using them is 
 | `Font.system(size:)`, the font designs `.serif` and `.rounded` | `.font(.title)` and the other text styles. |
 | Right-to-left layout | Not yet. `\.layoutDirection` is always left to right and can't be set. |
 | VoiceOver and accessibility traits | None. |
+| `.foregroundColor` | `.foregroundStyle`. |
+| `.cornerRadius` | `.background(.blue, in: RoundedRectangle(cornerRadius: 1))`, or `.clipShape(RoundedRectangle(cornerRadius: 1))`. |
+| `NavigationView` | `NavigationStack`, or `NavigationSplitView` for columns. |
+| `.tabItem` | `Tab("Inbox", systemImage: "tray") { … }` inside the `TabView`. |
+| `.imageScale` | None. Leave it out: a symbol is one glyph of the terminal's font. |
+| `.ignoresSafeArea` | None. Leave it out: a terminal has no safe area, and your views already reach its edges. |
+| `ShareLink` | None. A terminal has no share sheet. To open something, use `Link`. |
+| `DocumentGroup` | A `WindowGroup`, with `.fileImporter` and `.fileExporter`. |
+| `.onOpenURL` | None. Nothing sends a terminal app a URL. Read `CommandLine.arguments` at launch. |
+| `.defaultSize`, `.windowResizability` | None. Leave them out: a window is the size of the terminal. |
+| `@Entry` | Add `import TUIMacros`, and the `TUIMacros` product to your target (<doc:ChoosingProducts>). It's a product of its own because it builds swift-syntax. |
+| `.background(view)`, `.overlay(view)` | `.background { view }`, `.overlay { view }`. `.overlay(.red)` and `.background(.red)` take a style as they do in SwiftUI. |
 
 ## Sharing code with a SwiftUI app
 

@@ -61,7 +61,7 @@ notifications and `.help`. Then add the product of each module whose names you u
 | `TUICurveEditors` | `ToneCurveEditorPanel`, `ChannelCurveEditorPanel` | `TUIColorPicker`, `TUIImage`, `TUIPickers` |
 | `TUIAppKit` | `Color(nsColor:)`, `NSColor(_:)`, `Image(nsImage:)` and the other bridges to AppKit and Core Graphics (Apple platforms) | `TUIBitmaps` |
 | `TUIFilePanelsAppKit` | `.fileDialogSystemIcons()`, the file panels drawn with the Finder's icons (Apple platforms; a product of its own so that `TUIAppKit` does not bring the file panels) | `TUIAppKit`, `TUIFilePanels` |
-| `TUIMacros` | the `@Animatable` and `@AnimatableIgnored` macros (it builds swift-syntax) | `TUICore` |
+| `TUIMacros` | the `@Entry`, `@Animatable` and `@AnimatableIgnored` macros (it builds swift-syntax) | `TUICore` |
 
 Every product in the table but `TUIMacros` brings `TUIFoundation` too, and every module in it but `TUIAppKit`,
 `TUIFilePanelsAppKit` and `TUIMacros`, which are imported beside the others, re-exports the modules it is built on, so one import covers
