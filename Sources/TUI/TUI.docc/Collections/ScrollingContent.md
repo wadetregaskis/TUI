@@ -4,6 +4,10 @@ Scroll content, control where it stops, and style its scroll bars.
 
 ## Topics
 
+### Essentials
+
+- <doc:ScrollingGuide>
+
 ### Scroll Views
 
 - ``ScrollView``
