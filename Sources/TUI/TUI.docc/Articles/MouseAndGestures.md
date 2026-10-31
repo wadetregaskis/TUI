@@ -4,39 +4,9 @@ Respond to clicks, scrolling, and drags from the mouse or trackpad.
 
 ## Overview
 
-TUI reads terminal mouse reports — both the modern SGR encoding and the
-legacy X10 encoding — and delivers them as `MouseEvent` values. Once mouse
-support is enabled, the built-in controls respond automatically: buttons
-activate on click, scrollbars drag, ``List`` and ``Table`` rows select, and
-``ScrollView`` scrolls on the wheel. You can also handle raw events or
-higher-level gestures on any view.
+The mouse already works. With no setup, buttons activate on a click, scroll bars drag, ``List`` and ``Table`` rows select, and ``ScrollView`` scrolls on the wheel. This page covers what you can add to your own views: gestures, context menus and raw mouse events.
 
-## Enabling Mouse Support
-
-Mouse reporting is **opt-in**. Turn it on for the whole app with the
-`mouseSupport(_:)` scene modifier, or for a subtree with the view modifier of
-the same name:
-
-```swift
-@main
-struct MyApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-        .mouseSupport(.full)
-    }
-}
-```
-
-``MouseSupport`` has four presets:
-
-| Preset | What it enables |
-|--------|-----------------|
-| `.disabled` | No mouse reporting (the default) |
-| `.scrollOnly` | Wheel / trackpad scrolling only |
-| `.standard` | Clicks, scrolling, and drag tracking |
-| `.full` | Everything, including cursor-motion reporting (hover) |
+Dragging one view onto another has a page of its own, <doc:DragAndDrop>, and so does copying text from the screen, <doc:SelectingText>.
 
 ## Gestures
 
@@ -160,8 +130,7 @@ view does not handle bubbles to an ancestor menu, the way the wheel does.
 
 Not every terminal will give you the right button: iTerm2 keeps it for its own
 menu by default, so TUI also accepts <kbd>Ctrl</kbd>-click, and
-<kbd>Shift</kbd>+<kbd>F10</kbd> opens the menu of whatever is focused. See
-`Documentation/Terminals/Terminal compatibility survey.md` for what each terminal forwards.
+<kbd>Shift</kbd>+<kbd>F10</kbd> opens the menu of whatever is focused.
 A <kbd>Ctrl</kbd>-click is the secondary click: it never starts a text
 selection, a scroll view's background passes it on to a menu around it — and
 takes it as its click, focusing the scroll view, only where nothing else
@@ -171,7 +140,7 @@ opens the row's menu, as a right-click there does. Where the row has none, the r
 it as it takes one on its blank cells. A control that acts on a left press — a
 button, a field, a toggle — takes it as its own click, menu or no menu: a
 <kbd>Ctrl</kbd>-click on a button in a table's row presses the button, where a
-right-click there opens the row's menu (what macOS does there is unmeasured).
+right-click there opens the row's menu.
 
 `onMenuOpen(_:)` reports the opening — of a `contextMenu` or of a ``Menu`` — to
 any view above it, however the menu was opened. It exists for a specific
@@ -207,249 +176,6 @@ release straight after the press cannot choose an item you never pointed at. The
 first <kbd>↓</kbd> lands on the first item and the first <kbd>↑</kbd> on the
 last.
 
-## Drag and Drop
-
-Views can act as drag sources and drop targets, in the style of SwiftUI's
-`Transferable` modifiers. Mark a source with `draggable(_:)` — optionally with
-a custom preview that floats at the cursor — and a target with
-`dropDestination(for:action:isTargeted:)`:
-
-```swift
-Text("🍎 Apple")
-    .draggable(Fruit.apple)
-
-Text("🧺 Basket")
-    .dropDestination(for: Fruit.self) { fruits, info in
-        // info is a DropInfo: the drop cell in local space plus the
-        // modifiers held at release
-        basket.append(contentsOf: fruits)
-        return true
-    } isTargeted: { over in
-        isHighlighted = over   // highlight while a compatible drag hovers
-    }
-```
-
-Dragging requires drag tracking (`.standard` or `.full`). The floating
-preview's grab-point anchoring is configurable via
-`dragPreviewAnchor(_:)`.
-
-Dragging one of several selected rows of a ``List`` or ``Table`` carries them
-all. Its preview shows the grabbed row and a line such as "+2 more" for the
-rest; `dragPreviewRowLimit(_:)` on the list or table lets that many rows ride
-the pointer, stacked in the container's order, before the rest are counted.
-
-A drag source has to take the press to find out whether it becomes a drag, but
-it keeps only the ones that do: a press released without moving is a **click**,
-and goes wherever it would have gone had the source not been there — to an
-interactive view inside it, or failing that to whatever it sits on. So a
-``List`` whose rows are `draggable(_:)` still selects a row when you click it,
-and still starts a drag when you move.
-
-### From the Keyboard
-
-No drag needs the pointer. A `draggable(_:)` view and a drop destination are
-focus stops — a control's own stop where the content has one, so a draggable
-`Button` is still one stop. With a draggable focused, Copy takes its payload,
-and Paste on a focused destination drops it there.
-
-Or carry it: **Ctrl-R** on a focused draggable picks it up. While it is
-carried, Tab and the arrows move the focus only among the stops that can
-take it: the destinations that accept what it carries, the spring-loaded
-controls a pause would press, and the stop it came from. Unrelated controls
-are skipped, and each stop it can reach is marked with a `‹`. The carried
-picture is drawn beside the focused stop, which is targeted as if the
-pointer were over it, and wears the operation's badge. At a destination
-taller than a row, such as a ``List``, Up and Down first move between its
-rows, and the landing slot follows. The status bar names what Return and
-Escape do.
-**Return** drops it there, or presses the spring-loaded control there and
-keeps carrying. **Escape**, or Ctrl-R again, puts it back. **Space** flips
-the operation between a copy and a move, as Option does for the pointer.
-The paging keys scroll what it is over, as they do for a pointer's drag.
-
-### Spring Loading
-
-A drag can open its own way to a destination. Hold the pointer still over a
-spring-loaded control for half a second, mid-drag, and the control activates
-as a click would — a ``TabView``'s tab is selected, a ``DisclosureGroup``
-opens, a ``Button`` runs its action — with the payload still in hand:
-
-```swift
-Button {
-    showFolders = true
-} label: {
-    Label("Show Folders", systemImage: "folder")
-}
-.springLoadingBehavior(.enabled)
-```
-
-Tabs spring-load unless told `.disabled`; buttons, links, navigation links,
-`.button` toggles, segmented pickers and disclosure groups only under
-`.enabled`, as on macOS. Moving to another cell starts the pause again, and a
-control activates once each time the pointer arrives on it. The keyboard needs
-no pause: while a drag is in flight, <kbd>Tab</kbd> still moves the focus and
-<kbd>Return</kbd> or <kbd>Space</kbd> still activates the focused control.
-
-## Selecting Text
-
-An app that reports the mouse takes it from the terminal, whose own selection
-then needs a modifier held: Option-drag in iTerm2, Shift-drag in Ghostty, Warp,
-kitty and xterm — and none at all in Apple Terminal, which has no bypass. So
-TUI selects by itself, as a terminal would:
-
-- **A drag that no control uses selects what is drawn** — over the page's
-  background, over plain text, over a scroll view's content. It runs from the
-  press to the pointer in reading order, whole rows between, and keeps to the
-  pane it started in: a scroll view's viewport, a split view's column, or else
-  the content area. The app header and the status bar are never selected.
-- **A drag that starts inside a bordered container keeps to its interior**:
-  `.border()`, a `Box`, `Card`, `Panel` or `GroupBox`, a dialog, an alert.
-  Its border, the title in it and the page around are left out, and in a
-  box inside a box the inner one is the one. A drag that starts on the
-  border, or outside the container, crosses it. A drag that goes on past the
-  container, more than 3 rows above or below its interior or more than 6
-  columns beside it, widens to what the container sits in (the box around
-  it, or the pane) and stays widened until the release; overshooting the
-  bottom border by a row or two on the way to a card's last line does not.
-  ``View/textSelectionScope(_:)`` with `.pane`, on the root view or on one
-  container, lets a drag run on to the pane instead; with `.container`,
-  inside, it puts the rule back.
-- **A double-click selects a word, a triple-click the line in its context,
-  a quadruple-click the row**, and a drag after any of them extends by
-  words, lines or rows. A double-click on a web address — from its scheme's
-  `://` or a `www.` to the next blank, less a sentence's full stop or
-  closing bracket — selects the whole address. A line in its context is the run of text between the
-  walls either side — a box's border, a divider — or gaps of three blanks or
-  more: triple-clicking a name on a bordered card selects the name, not the
-  card's padding and walls, as macOS selects a line of the text view clicked
-  rather than of the window. **Option-drag** selects a rectangle (iTerm2
-  reports ⌘ the same way). Pressing Shift partway through swaps which
-  corner the pointer moves — the corner the drag started from follows it,
-  by as much as it moves — and letting Shift go swaps them back, so any side
-  of the rectangle can be adjusted without starting again. That needs the
-  terminal to report Shift on a drag it is already reporting; one whose
-  Shift-drag is its own selection may take the drag back instead.
-- **A drag that starts on a control is the control's**: a button, a field, a
-  slider, a `.draggable` view, a list row — except that a drag starting on
-  a list's or table's row text that `.textSelection(.enabled)` made
-  selectable selects it, even on a row that is `.draggable`, `.itemProvider`
-  or `.onMove`, as macOS's rows do (measured on macOS 15.8); such a row drags
-  from its blank cells. So does one on any `.draggable` view's selectable
-  text, whichever of the two modifiers comes first
-  (`Text(…).textSelection(.enabled).draggable(…)` and
-  `Text(…).draggable(…).textSelection(.enabled)` alike, `textSelection`
-  being environment-like), in a scroll view as in a list. A control's label
-  is not text: a draggable tab drags from its title, and a `.draggable` view
-  or row from a button's label in it, as they do with no scope, and a click
-  there is still the button's. Nor is a field's: a drag on a `TextField`'s
-  text in a `.draggable` view or row moves the view or row, and a click there
-  focuses the field. An `.onMouseEvent` closure is asked, not
-  taken for a control: it is offered the press in turn, so one that declines
-  a left press leaves the drag to select, and one that takes it has it.
-- **⌘C — Ctrl-C under the default `commandKey`** — copies the selection while
-  it is drawn, ahead of everything else, the focused text field included.
-  ⌘C itself never reaches the app: the terminal takes it for its own,
-  empty, selection. **A right-click on the highlight** (or a Control-click)
-  offers **Copy** in a menu of its own — ahead of a row's own menu, as a
-  Mac's selected text offers its Cut, Copy and Paste there (measured on
-  macOS 15.8: a SwiftUI `List` row with a `.contextMenu`). **Escape** clears the selection, and so
-  does any click, any key a focused text field takes, and a presentation — a
-  sheet, an alert or a menu — over the page.
-
-`textSelection(_:)` says where the selection applies. With no modifier it is
-on wherever a drag does nothing else. `.enabled` keeps a selection to the view
-it is on — on a single `Text`, that `Text` — and widens it to the rows of a
-``List`` or a ``Table`` inside it, as macOS does: a press on a row's text belongs
-to the text, so a drag selects it (kept to the row), a double-click selects a
-word, and a click selects nothing, while a press on the row's blank cells
-selects, drags or activates the row as before. On a row's own `Text` it does
-the same for that text, kept to it; on a `Table` cell's `Text`, for that text,
-kept to its cell, and for the row's other text, kept to the row.
-`.disabled` turns the selection off; the innermost modifier wins.
-
-```swift
-List(invite.recipients) { recipient in
-    Text(recipient.email)
-}
-.textSelection(.enabled)
-```
-
-Selected text is drawn in the selection colours of the text fields, on the
-text the selection crosses: each `Text` notes where it is drawn, and on every
-row the highlight covers the texts the selection crosses there — a wrapped
-paragraph's rows to its trailing edge, as a block — and not a padded card's
-padding, the blanks past a short line or the gap between two texts side by
-side, though a copy still reads those blanks. Drawing that is no `Text` — a
-field's text, a table's text columns, a custom view — is highlighted by its
-characters and the blanks between them, never a border's walls; and a
-selection that crosses no `Text` at all is highlighted cell for cell. A
-picture — an ``Image`` drawn in characters, blocks or Braille — keeps its
-glyphs and colours under a selection and takes a tint of the selection colour
-instead: its cells are pixels, and drawing them as text left a flat field of
-selection colour where the picture was.
-
-A selection reads characters, not views: a wide character once, each row's
-trailing blanks dropped, rows joined with line breaks. Its text is fixed when
-the drag ends, and the highlight goes as soon as the cells under it change —
-a log that scrolls on, a list that moves, a spinner that turns — for good: an
-equal line drawn there later is not the selection come back. A selection that
-is not drawn takes no keys: ⌘C and Escape are the app's again. Only where the
-page itself moved under it — a status-bar tooltip or a copy's line taking a
-row from a centred page — do the highlight and its keys come back, when the
-page does. It reads the page, not the layers over it: a menu or a popover
-draws over the highlight.
-
-Nothing is copied until the user asks, as on a Mac. A scene can copy every
-selection at the release instead, as tmux and iTerm2 do:
-
-```swift
-WindowGroup { LogView() }
-    .textSelectionCopiesOnRelease()
-```
-
-Where a copy goes depends on where the user is: by OSC 52 to a terminal that
-writes it, to this machine's clipboard only when the terminal is on this
-machine, and otherwise nowhere — and the status bar says which. See
-`Documentation/Terminals/Terminal compatibility survey.md`, "OSC 52 clipboard writes".
-A terminal that speaks kitty's clipboard protocol, OSC 5522, is sent every
-form a copy has beside its text — a link's Copy Link as a URI list, its
-Copy as Markdown as Markdown, a screen selection with its colours, weight
-and decoration as HTML — so an app that pastes those takes them as such;
-`TUI_OSC5522=1` or `0` overrides what the terminal said. Such a terminal
-hands a paste over with its types too: a picture on the clipboard reaches a
-view's `onPasteCommand(of: [.png])` as a PNG, beside any text.
-
-There is no keyboard route to the screen selection: what it selects is what a
-pointer points at. Text the app means to be copied from the keyboard belongs in
-a ``TextField`` or ``TextEditor``, whose Shift-arrow selection and Ctrl-C are
-the keyboard's.
-
-Inside a text input a click places the caret and a drag selects, as in any
-text control. A double-click selects the word clicked — or the run of blanks
-or marks, or past the end the last word — and a triple-click the paragraph: a
-field's text, an editor's line with its line break. A drag after either
-extends by words or paragraphs, keeping what was clicked. A `SecureField`
-selects all of its text on a double-click, as macOS's does, since it shows no
-word breaks. While text is selected no caret is drawn, as on a Mac: typing
-replaces the selection, so the highlight is where it goes.
-
-In a `TextEditor`, **Option-drag** (⌘-drag in iTerm2) selects a block: the
-same columns of every row it spans — the rows as drawn, where the editor
-wraps. Copy takes them row by row, joined by line breaks; Cut, Backspace or
-Delete take them out of every row; typing or pasting replaces them once, at
-the block's top-left corner. Pressing Shift partway through the drag swaps
-which corner the pointer moves, as on the screen selection. The app's
-`selection:` binding is not told of a block; it sees the caret. A field's
-one row makes a block and an ordinary selection the same, so in a
-`TextField` an Option-drag selects as a drag does.
-
-A right-click (or Ctrl-click) on a `TextField`, `SecureField` or `TextEditor`
-opens its editing menu — Cut, Copy, Paste, Select All, and Yank while a ⌃K or ⌃U has
-left text for it — and Shift+F10 opens it on the focused one. Cut and Copy
-act on the selection, and are offered disabled without one, and always in a
-`SecureField`, which never copies its contents. A disabled control offers no
-menu.
-
 ## Raw Events
 
 For full control, handle the raw event and return whether you consumed it.
@@ -468,7 +194,8 @@ content
     }
 ```
 
-Each view that wants the mouse registers a hit-test region for its on-screen
+Events come from the terminal's mouse reports, in the modern SGR encoding or the
+legacy X10 one, and reach you as `MouseEvent` values. Each view that wants the mouse registers a hit-test region for its on-screen
 rectangle; the dispatcher routes an incoming report to the front-most region
 that contains the point. See <doc:RenderCycle> for where mouse dispatch sits in
 the frame.
@@ -480,140 +207,48 @@ not renumbered, so the same cell keeps the same coordinates however the page is
 scrolled. Only the rows still on screen can be clicked, and each reports where
 it sits in the view.
 
+## Choosing What the Mouse Reports
+
+An app gets clicks, scrolling and drags unless it says otherwise. To change that for the whole app, use the `mouseSupport(_:)` scene modifier:
+
+```swift
+@main
+struct MyApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+        .mouseSupport(.scrollOnly)
+    }
+}
+```
+
+The view modifier of the same name changes it while the app runs, for instance to hand the mouse back to the terminal for a moment.
+
+``MouseSupport`` has four presets:
+
+| Preset | What it enables |
+|--------|-----------------|
+| `.disabled` | No mouse reporting. The terminal keeps the mouse for its own text selection and links |
+| `.scrollOnly` | Wheel / trackpad scrolling only |
+| `.standard` | Clicks, scrolling, and drag tracking (the default) |
+| `.full` | Everything, including every movement of the cursor |
+
+A view that uses `onHover` asks for cursor movement by itself, so hover doesn't need `.full`.
+
 ## Topics
 
 ### Mouse Types
 
 - ``MouseSupport``
-- ``TextSelectability``
-- ``EnabledTextSelectability``
-- ``DisabledTextSelectability``
 - ``ScrollDirection``
+- ``MouseEvent``
+- ``MouseButton``
+- ``MousePhase``
 
-### Drag and Drop
+## See Also
 
-- ``DropInfo``
-- ``DragPreviewAnchor``
-- ``SpringLoadingBehavior``
-- ``DragSession``
-- ``DropSession``
-- ``DragConfiguration``
-- ``DropConfiguration``
-- ``DragDropPreviewsFormation``
-
-The raw event types (`MouseEvent`, `MouseButton`, `MousePhase`) live in the
-re-exported `TUICore` module.
-
-A view being carried leaves its place: while its own drag is in flight it draws
-blank, because it is already on screen at the cursor and drawing it twice says
-two things are moving. That is the contract row reordering has always kept under
-``RowReorderFeedback/cursor``, now kept by `.draggable` too — so a row dragged
-out of one list and into another looks the same as a row dragged within one. It
-goes blank rather than vanishing from the layout: the space is still the view's,
-and a list closing up mid-drag would move the very rows the drop is aimed
-between.
-
-It stays blank until the picture is back, not until the button comes up. A
-release over nothing sends the preview home rather than letting it vanish under
-the pointer, and for the length of that flight the view it is flying to is still
-somewhere else — so it keeps its blank, and one row lands in one place.
-
-A cancelled row REORDER reads the same way, and gets there differently. Its rows
-are put back in the data the moment the button comes up — a `List` that changed
-length after the gesture was over would move the very rows you are looking at —
-so they are back in the layout and simply draw nothing until the picture
-arrives. Their space is held open, blank, and then the row appears in it. Both
-twins do this, and neither one's window, budget or index arithmetic knows about
-it: it is a question the renderer asks and the layout never does.
-
-A list whose rows fill it exactly borrows a row's worth of scrolling while a
-drag hovers it, because the landing slot needs a line and nothing left the list
-to free one. It does not grow — the page must not shift under the pointer —
-so instead it overflows by one and says so, with its "▼ N more rows below"
-indicator or its scrollbar, and can be scrolled (by wheel, by the mid-drag
-navigators, or by holding the pointer at its edge) one further than usual. That
-last position is the one after the final row: without the borrowed line a full
-list could not draw every row AND the slot, so "drop at the very end" could not
-be pointed at. The indicators still count only real rows — the borrowed line is
-the slot, which is on screen and is not a row.
-
-They count from where the rows were **drawn**, too, which near the top is not
-always where the scroll offset stands. A viewport one line down draws from the
-line above instead, because saying "▲ 1 more row above" costs the very line it
-would be reporting; normally the offset is then settled down to match, but not
-while a drag is being steered — a viewport in motion is not resting anywhere.
-So the two disagree, harmlessly, and only for as long as the drag lasts. What
-must never differ is what the user is *told*: two frames that draw the same rows
-say the same thing about what is off screen, and one <kbd>Page Down</kbd> from
-either takes you to the same place. A page moves the picture by a page.
-
-The movement keys are the exception, and have to be: a step moves the position
-itself, so it measures from the position, which is the only way it can ever
-leave a spot that looks like the one above it.
-
-The one place it does close up is the list the row is being dropped back into.
-A `List` whose rows are `.draggable` opens a landing slot while the drag hovers
-it, and a slot plus a blank would be two gaps for one row — the list would grow
-by a line for the duration of every same-list drag. So the row that the slot is
-*for* is dropped from the drawing instead: one row out, one slot in, and the
-list keeps its length, exactly as a ``ForEach/onMove(perform:)`` reorder has
-always drawn it. Move the pointer to a different list and the blank comes back,
-because that list has no slot of its own and nothing there should shift.
-
-Only a row that is **on screen** can pay for the slot that way. Carry it far
-enough — dragging to the bottom edge scrolls the list, and the row it came from
-goes off the top — and nothing has left the drawing any more, so the list
-borrows a line exactly as it would for a drag from elsewhere. Without that, the
-end of a scrolled list could not be pointed at: the furthest the pointer could
-reach was the position *before* the last row.
-
-## Abandoning a Drag
-
-Let go with nowhere to land and the drag is abandoned: the floating preview
-walks back to where it started rather than vanishing under the pointer — about
-a fifth of a second, cell by cell. "Nothing happened" reads far better as a row
-going home than as one disappearing in mid-air.
-
-**No key cancels a drag**, deliberately. A drag has to be carriable across the
-app — pick a row up on one page, navigate to another, drop it there — and that
-requires the navigation keys to keep navigating while something is in hand.
-<kbd>Escape</kbd> was the obvious candidate and is exactly the key that
-navigation needs, so releasing over nothing is the cancel, as it is on macOS.
-The movement keys are the other half of the same rule: mid-drag they scroll
-rather than move the cursor, so a destination that is off screen can be reached
-without letting go. They scroll **the view under the pointer**, not the one the
-drag came from — carrying a payload somewhere else is the whole point, and
-somewhere else is where you need to reach. A view the drag could not land in is
-not scrolled under it, and with the pointer over nothing that qualifies the keys
-mean what they usually mean.
-
-A keyboard move (<kbd>Ctrl</kbd>+<kbd>R</kbd>) is a different thing — a mode,
-not a gesture — and it does answer <kbd>Escape</kbd>, which puts the row back.
-Its rows leave the list and are drawn as the landing slot, which pulses to say
-"these are in your hand". Several rows at once make that pulse ambiguous, so the
-row the cursor is on stays at full strength while the others travel faint: an
-indicator every row wears is an indicator none of them wears.
-
-The landing slot rides the pointer, not the rows: hold still near a scrollable's
-edge and it auto-scrolls, and the slot stays where you are pointing while the
-rows stream past underneath. It is a place in the list you are aiming at, and
-you have not moved.
-
-*Near* the edge is not the same as *past* it. Auto-scroll engages from a hot
-margin just inside the control, where the pointer is still on a row; dragged
-beyond the frame the pointer is on nothing.
-
-What a release out there does depends on whether the rows left with it — see
-``RowReorderFeedback``. Under `.cursor` they did, so the slot closes and the
-release abandons the gesture; dragging out is how a user changes their mind.
-Under `.live` and `.dimmed` they did not: those draw the rows inside the
-control throughout, so the release commits to what is on screen, which is
-whichever end the pointer left by.
-
-A **row reorder** is carriable in the same way, with one limit that follows from
-what it is: a reorder can only land in the list it came from, so leaving that
-list's page and coming back resumes the gesture, and releasing anywhere else
-abandons it. The rows go home and the preview walks back, exactly as a refused
-drop does. Which control finishes a reorder is decided at the release, against
-whatever is on screen then — not against the list that was there at the press —
-so the drop lands in the list you are looking at, moving the rows you can see.
+- <doc:DragAndDrop>
+- <doc:SelectingText>
+- <doc:KeyboardShortcuts>
+- <doc:FocusSystem>
