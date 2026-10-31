@@ -226,6 +226,11 @@
   "dialog.success": "Operation completed successfully",
   "dialog.error": "An error occurred",
 
+  "noterminal.no_output": "standard output is not a terminal, so there is nowhere to draw this app's interface.",
+  "noterminal.no_input": "standard input is not a terminal, so this app cannot read keys.",
+  "noterminal.neither": "standard input and output are not a terminal, so this app cannot run here.",
+  "noterminal.dumb": "this terminal cannot draw this app's interface, because TERM is dumb. Set TERM to your terminal's type.",
+
   "validation.email_invalid": "Invalid email address",
   "validation.password_too_short": "Password must be at least 8 characters",
   "validation.username_taken": "Username already exists",

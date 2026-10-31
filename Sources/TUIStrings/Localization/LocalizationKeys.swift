@@ -377,6 +377,15 @@ public enum LocalizationKey {
         case error = "dialog.error"
     }
 
+    /// What an app with no terminal to draw on says on stderr (`NoTerminal`):
+    /// the words after the program's name, so each starts as a clause does.
+    package enum NoTerminal: String, CaseIterable {
+        case noOutput = "noterminal.no_output"
+        case noInput = "noterminal.no_input"
+        case neither = "noterminal.neither"
+        case dumbTerminal = "noterminal.dumb"
+    }
+
     /// Validation messages
     public enum Validation: String {
         case emailInvalid = "validation.email_invalid"

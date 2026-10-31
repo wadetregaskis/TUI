@@ -226,6 +226,11 @@
   "dialog.success": "操作が正常に完了しました",
   "dialog.error": "エラーが発生しました",
 
+  "noterminal.no_output": "標準出力が端末ではないため、このアプリの画面を表示できません。",
+  "noterminal.no_input": "標準入力が端末ではないため、このアプリはキー入力を読み取れません。",
+  "noterminal.neither": "標準入力と標準出力が端末ではないため、このアプリはここでは実行できません。",
+  "noterminal.dumb": "TERM が dumb のため、この端末ではこのアプリの画面を表示できません。TERM にお使いの端末の種類を設定してください。",
+
   "validation.email_invalid": "メールアドレスが無効です",
   "validation.password_too_short": "パスワードは8文字以上である必要があります",
   "validation.username_taken": "ユーザー名は既に使用されています",

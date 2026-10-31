@@ -226,6 +226,11 @@
   "dialog.success": "Operation erfolgreich abgeschlossen",
   "dialog.error": "Ein Fehler ist aufgetreten",
 
+  "noterminal.no_output": "Die Standardausgabe ist kein Terminal, daher kann die Oberfläche dieses Programms nicht angezeigt werden.",
+  "noterminal.no_input": "Die Standardeingabe ist kein Terminal, daher kann dieses Programm keine Tasten lesen.",
+  "noterminal.neither": "Standardeingabe und -ausgabe sind kein Terminal, daher kann dieses Programm hier nicht laufen.",
+  "noterminal.dumb": "Dieses Terminal kann die Oberfläche des Programms nicht anzeigen, weil TERM auf dumb steht. Setzen Sie TERM auf den Typ Ihres Terminals.",
+
   "validation.email_invalid": "Ungültige E-Mail-Adresse",
   "validation.password_too_short": "Passwort muss mindestens 8 Zeichen lang sein",
   "validation.username_taken": "Benutzername existiert bereits",

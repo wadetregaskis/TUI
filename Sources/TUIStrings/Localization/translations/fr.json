@@ -226,6 +226,11 @@
   "dialog.success": "Opération complétée avec succès",
   "dialog.error": "Une erreur s'est produite",
 
+  "noterminal.no_output": "la sortie standard n'est pas un terminal : l'interface de cette application ne peut donc pas s'afficher.",
+  "noterminal.no_input": "l'entrée standard n'est pas un terminal : cette application ne peut donc pas lire les touches.",
+  "noterminal.neither": "l'entrée et la sortie standard ne sont pas un terminal : cette application ne peut donc pas s'exécuter ici.",
+  "noterminal.dumb": "ce terminal ne peut pas afficher l'interface de cette application, car TERM vaut dumb. Donnez à TERM le type de votre terminal.",
+
   "validation.email_invalid": "Adresse e-mail invalide",
   "validation.password_too_short": "Le mot de passe doit contenir au moins 8 caractères",
   "validation.username_taken": "Ce nom d'utilisateur existe déjà",

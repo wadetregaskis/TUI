@@ -226,6 +226,11 @@
   "dialog.success": "Operación completada correctamente",
   "dialog.error": "Ocurrió un error",
 
+  "noterminal.no_output": "la salida estándar no es un terminal, así que no hay dónde dibujar la interfaz de esta aplicación.",
+  "noterminal.no_input": "la entrada estándar no es un terminal, así que esta aplicación no puede leer teclas.",
+  "noterminal.neither": "la entrada y la salida estándar no son un terminal, así que esta aplicación no puede ejecutarse aquí.",
+  "noterminal.dumb": "este terminal no puede dibujar la interfaz de esta aplicación porque TERM es dumb. Asigne a TERM el tipo de su terminal.",
+
   "validation.email_invalid": "Dirección de correo electrónico no válida",
   "validation.password_too_short": "La contraseña debe tener al menos 8 caracteres",
   "validation.username_taken": "Este nombre de usuario ya existe",

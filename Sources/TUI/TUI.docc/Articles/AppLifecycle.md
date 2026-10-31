@@ -27,6 +27,8 @@ The `AppRunner` is the sole owner of all subsystems. Dependencies flow through c
 
 ## Terminal Setup
 
+Before any of this, the app checks it has a terminal to draw on: `App.main()` asks ``App/runWithoutTerminal(_:)`` what to do instead when stdout or stdin isn't a terminal, or `TERM` is `dumb`. By default that prints one line to stderr and exits with status 1, before the app is created and with nothing sent to the terminal. See "Running Without a Terminal" in <doc:GettingStarted>. WebAssembly skips the check: its stdio is no terminal to `isatty`, whatever its host draws with.
+
 Before the main loop starts, `run()` prepares the terminal:
 
 | Step | What | Why |

@@ -63,6 +63,27 @@ public protocol App {
     /// renders nothing at all. Raise it for smoother animation, lower it to cap
     /// CPU while something is animating. Default: 60.
     var maxFrameRate: Int { get }
+
+    /// What the app does when it is launched where it can't draw: stdout or
+    /// stdin isn't a terminal, or `TERM` is `dumb`.
+    ///
+    /// Called in place of the app's interface, before the app is created, so
+    /// the terminal has seen nothing. The default prints one line to stderr
+    /// and exits with status 1 (``NoTerminal/reportFailure()``).
+    ///
+    /// Implement it where running without a terminal is an alternate way of
+    /// using the app: print a report, draw a view once with
+    /// ``renderOnce(output:content:)``, read stdin. Return an exit status, or
+    /// ``NoTerminal/Outcome/drawOnControllingTerminal`` to run as usual on the
+    /// process's controlling terminal, as `fzf` does in a pipeline. See
+    /// ``NoTerminal``.
+    ///
+    /// Not asked in WebAssembly, whose host hands the program a stream of bytes
+    /// and draws them itself.
+    ///
+    /// - Parameter situation: What is missing, and why.
+    /// - Returns: What happens next.
+    static func runWithoutTerminal(_ situation: NoTerminal) async -> NoTerminal.Outcome
 }
 
 extension App {
@@ -70,10 +91,16 @@ extension App {
     /// `maxFrameRate` on your `App` to change it.
     public var maxFrameRate: Int { 60 }
 
+    /// Says what is wrong on stderr, and fails.
+    public static func runWithoutTerminal(_ situation: NoTerminal) async -> NoTerminal.Outcome {
+        situation.reportFailure()
+    }
+
     /// Starts the app.
     ///
     /// This method is called by the `@main` attribute and starts
-    /// the main run loop of the application.
+    /// the main run loop of the application, unless it has no terminal to draw
+    /// on (``runWithoutTerminal(_:)``).
     ///
     /// `main()` is `async` so the run loop can suspend once per frame
     /// (via `Task.sleep`) instead of blocking the thread. Each suspension
@@ -82,9 +109,34 @@ extension App {
     /// rendering — rather than being starved until the app exits.
     @MainActor
     public static func main() async {
+        await settleTerminal()
         let app = Self()
         let runner = AppRunner<Self>(app: app)
         await runner.run()
+    }
+}
+
+// MARK: - Having a terminal
+
+extension App {
+    /// Returns once standard input and output are a terminal to draw on, or
+    /// has the app say what it does without one, and ends the process.
+    ///
+    /// wasip1's stdio is no terminal to `isatty`, whatever its host draws with.
+    @MainActor
+    private static func settleTerminal() async {
+        #if !canImport(WASILibc)
+            guard let situation = NoTerminal.current() else { return }
+            switch await runWithoutTerminal(situation) {
+            case .exit(let status):
+                exit(status)
+            case .drawOnControllingTerminal:
+                guard situation.pointStandardStreamsAtControllingTerminal() else {
+                    guard case .exit(let status) = situation.reportFailure() else { return }
+                    exit(status)
+                }
+            }
+        #endif
     }
 }
 

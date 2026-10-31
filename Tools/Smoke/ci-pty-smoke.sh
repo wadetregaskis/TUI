@@ -147,6 +147,14 @@ echo "── kitty keyboard protocol: pushed where spoken, popped on every exit 
 # so is the quit key across a suspend. Against IdleProbe, the smallest app,
 # whose `keys` mode shows each key and `hang` mode hangs. Five short runs,
 # about fifteen seconds.
+# No terminal: stdout or stdin a pipe, a file or /dev/null, or TERM=dumb. One clear
+# line on stderr, a non-zero status and not one escape code in the pipe, where it
+# once sat there forever writing the alternate screen into it; and what an app
+# that has an alternate way of running does instead. renderOnce's plain text
+# and its escape sequences by the same road.
+echo "── no terminal, and renderOnce ──"
+"$PY" "$HERE/no_terminal_smoke.py" "$BUILD_DIR/IdleProbe"
+
 echo "── ⌃\\ and SIGQUIT: a quit, not a crash, even when hung ──"
 "$PY" "$HERE/quit_key_smoke.py" "$BUILD_DIR/IdleProbe"
 

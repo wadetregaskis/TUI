@@ -386,6 +386,11 @@ final class LocalizationKeyConsistencyTests {
             enumKeys.insert(key.rawValue)
         }
 
+        // What an app with no terminal says — enumerated, as the status bar's are.
+        for key in LocalizationKey.NoTerminal.allCases {
+            enumKeys.insert(key.rawValue)
+        }
+
         // Check for extraneous keys
         let translationKeys = Set(englishTranslations.keys)
         let extraneousKeys = translationKeys.subtracting(enumKeys)
@@ -401,7 +406,7 @@ final class LocalizationKeyConsistencyTests {
             27 + LocalizationKey.Label.allCases.count + 11 + 6 + LocalizationKey.Menu.allCases.count + 7 + 4
             + LocalizationKey.StatusBar.allCases.count + 8 + LocalizationKey.TimeSpan.allCases.count
             + LocalizationKey.KeyName.allCases.count + LocalizationKey.FilePanel.allCases.count
-            + LocalizationKey.ControlStyle.allCases.count
+            + LocalizationKey.ControlStyle.allCases.count + LocalizationKey.NoTerminal.allCases.count
         #expect(
             englishTranslations.count == expectedKeyCount,
             "Expected \(expectedKeyCount) keys in translations, but got \(englishTranslations.count)"

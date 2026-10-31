@@ -1,5 +1,5 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
-//  IdleProbe/main.swift
+//  main.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
@@ -45,7 +45,8 @@ import TUI
 // `IDLE_PROBE_SHORTCUTS` binds Control shortcuts and `IDLE_PROBE_STALL_KEY`
 // names a key that stalls the main thread for three seconds (`KeyEcho`). So does
 // `IDLE_PROBE_CHILD_PIDFILE`, in any mode: a child in the app's process group
-// (bottom of this file).
+// (bottom of this file). `Tools/Smoke/no_terminal_smoke.py` wants it too, for
+// what an app does with no terminal (`IDLE_PROBE_NO_TERMINAL`, on the app).
 
 // MARK: - Mode
 
@@ -73,9 +74,9 @@ enum ProbeMode: String {
     /// has to end anyway.
     case hang
 
-    static var current: ProbeMode {
+    static var current: Self {
         ProcessInfo.processInfo.environment["IDLE_PROBE_MODE"]
-            .flatMap { ProbeMode(rawValue: $0) } ?? .text
+            .flatMap { Self(rawValue: $0) } ?? .text
     }
 }
 
@@ -88,6 +89,35 @@ struct IdleProbeApp: App {
     var body: some Scene {
         WindowGroup {
             ProbeContent()
+        }
+    }
+
+    /// With `IDLE_PROBE_NO_TERMINAL` set, what `no_terminal_smoke.py` asks of
+    /// an app that has something to do without a terminal: `report` draws a view
+    /// once and ends with status 7, and `tty` runs on the controlling terminal,
+    /// its piped input and output reachable: the first line of stdin goes to
+    /// stdout, as a tool in a pipeline's answer does. Unset, the default.
+    static func runWithoutTerminal(_ situation: NoTerminal) async -> NoTerminal.Outcome {
+        switch ProcessInfo.processInfo.environment["IDLE_PROBE_NO_TERMINAL"] {
+        case "report":
+            print("input \(situation.input), output \(situation.output)")
+            renderOnce {
+                VStack(alignment: .leading) {
+                    Text("idle probe — report").bold().foregroundStyle(.red)
+                    Text("second row")
+                }
+            }
+            return 7
+        case "tty":
+            guard situation.canDrawOnControllingTerminal else {
+                print("no controlling terminal")
+                return 8
+            }
+            let line = situation.pipedInput.flatMap { String(data: $0.availableData, encoding: .utf8) } ?? ""
+            situation.pipedOutput?.write(Data("from stdin: \(line)".utf8))
+            return .drawOnControllingTerminal
+        default:
+            return situation.reportFailure()
         }
     }
 }
