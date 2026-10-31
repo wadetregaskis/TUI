@@ -259,9 +259,10 @@ enum RemovedView: String, CaseIterable, Sendable {
     /// re-wraps the members of what it wraps.
     case disabledOutside
     /// `X.transition(t).onPreferenceChange(…)`: a wrapper that draws nothing
-    /// of its own but is not yet looked through (not a single-content
-    /// wrapper), with `.appHeader` and the two status-bar item modifiers.
+    /// of its own.
     case preferenceObservedOutside
+    /// `X.transition(t).statusBarItems { … }`: another.
+    case statusBarItemsOutside
 
     /// Whether the removal does not play its own transition — it fades
     /// instead — a gap on the record in ``View/transition(_:)``, pinned as a
@@ -273,8 +274,7 @@ enum RemovedView: String, CaseIterable, Sendable {
     /// them (`DrawsContentUnchanged`), or the `AnyView` vouches for its picture.
     var fadesInstead: Bool {
         switch self {
-        case .identifiedOutside, .customViewBody, .taggedOutside, .presentingOutside,
-            .preferenceObservedOutside:
+        case .identifiedOutside, .customViewBody, .taggedOutside, .presentingOutside:
             true
         default: false
         }
@@ -325,6 +325,8 @@ private struct Held: View {
         case .disabledOutside: besideSibling(sliding.disabled(false))
         case .preferenceObservedOutside:
             besideSibling(sliding.onPreferenceChange(ObservedPreference.self) { _ in })
+        case .statusBarItemsOutside:
+            besideSibling(sliding.statusBarItems { StatusBarItem(shortcut: "q", label: "quit") })
         }
     }
 }

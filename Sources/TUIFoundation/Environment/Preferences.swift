@@ -111,6 +111,18 @@ where K.Value: Equatable {
     }
 }
 
+/// Draws its content unchanged, at its own identity, so a removal transition written
+/// inside it plays — see `DrawsContentUnchanged`.
+extension OnPreferenceChangeModifier: DrawsContentUnchanged {
+    var wrappedContent: Content { content }
+
+    /// It keeps its content's geometry: it only listens.
+    static var _keepsContentGeometry: Bool { true }
+
+    /// Its content is laid out in its own context.
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
+}
+
 extension OnPreferenceChangeModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Pure passthrough during a measure pass: registering the callback and

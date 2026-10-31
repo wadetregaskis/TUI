@@ -95,7 +95,8 @@ extension View {
     /// if it draws nothing of its own: environment and style modifiers
     /// (`.foregroundStyle`, `.tint`, `.disabled`, `.environment`), lifecycle
     /// and event modifiers (`.onAppear`, `.task`, `.onChange`, `.onKeyEvent`,
-    /// `.onHover`), focus modifiers (`.focusable`, `.focused`), and `AnyView`.
+    /// `.onHover`, `.onPreferenceChange`), focus modifiers (`.focusable`,
+    /// `.focused`), and `AnyView`.
     /// `if show { Toast().transition(.opacity).onAppear { … } }` plays.
     ///
     /// A view that goes with no `nil` to stand in for it — the branch an
@@ -174,12 +175,6 @@ extension View {
     ///   transition's alone, so drawing it would drop the padding and move the
     ///   view; it fades instead. `X.padding().transition(t)` plays, padding and
     ///   all — write the transition after anything that draws.
-    /// - A transition behind one of four wrappers that draw nothing but are
-    ///   not yet looked through: `.onPreferenceChange`, `.appHeader`, and the
-    ///   two status-bar item modifiers. `X.transition(t).onPreferenceChange(…)`
-    ///   fades — it played until 2026-09-24, when a removal began checking the
-    ///   type of the view that left its picture; write the transition after
-    ///   them.
     /// - A view with no `nil` to stand in for it — the branch an `if`/`else`
     ///   leaves, a `switch`'s case, a `ForEach`'s row, the views of an `if`
     ///   holding several — whose transition has a modifier outside it that

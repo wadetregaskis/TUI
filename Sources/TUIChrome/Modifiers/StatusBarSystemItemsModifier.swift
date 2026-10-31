@@ -49,6 +49,18 @@ struct StatusBarSystemItemsModifier<Content: View>: View {
 
 // MARK: - Renderable
 
+/// Draws its content unchanged, at its own identity, so a removal transition written
+/// inside it plays — see `DrawsContentUnchanged`.
+extension StatusBarSystemItemsModifier: DrawsContentUnchanged {
+    var wrappedContent: Content { content }
+
+    /// It keeps its content's geometry: it only registers its items.
+    static var _keepsContentGeometry: Bool { true }
+
+    /// Its content is laid out in its own context.
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
+}
+
 extension StatusBarSystemItemsModifier: Renderable {
     func renderToBuffer(context renderContext: RenderContext) -> FrameBuffer {
         guard let statusBar = renderContext.environment.statusBar else {
