@@ -278,7 +278,9 @@ struct InterpolatedNumberTextTests {
         #expect(lines.count == 3)
         #expect(lines.first?.contains("1.234.567") == true, "\(lines)")
         #expect(lines.dropFirst().first?.contains("1,234,567") == true, "\(lines)")
-        #expect(lines.last?.contains("1’234’567") == true, "\(lines)")
+        // Foundation's: ’ before macOS 26 and on Linux, ' from it.
+        let swiss = IntegerFormatStyle<Int>(locale: Locale(identifier: "de_CH")).format(1_234_567)
+        #expect(lines.last?.contains(swiss) == true, "\(lines)")
     }
 
     @Test("A styled Text keeps its number in the locale too")

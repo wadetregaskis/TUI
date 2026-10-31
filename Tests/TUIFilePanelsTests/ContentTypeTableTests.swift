@@ -21,14 +21,28 @@ import Testing
     /// type a file one way on macOS and another on Linux.
     @Suite("Content type table matches UniformTypeIdentifiers")
     struct ContentTypeTableTests {
+        private static let markdown = "net.daringfireball.markdown"
+
+        /// What macOS 26 took from Apple's declaration of Markdown. The table
+        /// keeps them, as macOS 15 has them: on Linux they still name Markdown.
+        private static var droppedFromMarkdown: Set<String> {
+            if #available(macOS 26, *) {
+                return ["mdown", "text", "text/x-markdown", "text/x-web-markdown"]
+            }
+            return []
+        }
+
         @Test("Every record names a type Apple declares, with its extensions and MIME types")
         func recordsMatchDeclarations() throws {
             for record in ContentTypeTable.records {
                 let type = try #require(UTType(record.identifier), "\(record.identifier) is not declared")
+                let dropped = record.identifier == Self.markdown ? Self.droppedFromMarkdown : []
                 #expect(
-                    record.extensions == (type.tags[.filenameExtension] ?? []),
+                    record.extensions.filter { !dropped.contains($0) } == (type.tags[.filenameExtension] ?? []),
                     "\(record.identifier)'s extensions")
-                #expect(record.mimeTypes == (type.tags[.mimeType] ?? []), "\(record.identifier)'s MIME types")
+                #expect(
+                    record.mimeTypes.filter { !dropped.contains($0) } == (type.tags[.mimeType] ?? []),
+                    "\(record.identifier)'s MIME types")
             }
         }
 
@@ -37,7 +51,11 @@ import Testing
             let known = Set(ContentTypeTable.records.map(\.identifier))
             for record in ContentTypeTable.records {
                 let type = try #require(UTType(record.identifier))
-                let apple = Set(type.supertypes.map(\.identifier)).intersection(known)
+                var apple = Set(type.supertypes.map(\.identifier)).intersection(known)
+                // macOS 27 made Markdown UTF-8 text; the table holds it as plain text.
+                if #available(macOS 27, *), record.identifier == Self.markdown {
+                    apple.remove("public.utf8-plain-text")
+                }
                 #expect(ContentTypeTable.ancestors(of: record.identifier) == apple, "\(record.identifier)")
             }
         }
@@ -45,12 +63,13 @@ import Testing
         @Test("An extension or MIME type names the record Apple's names")
         func lookupsMatch() {
             for record in ContentTypeTable.records {
-                for name in record.extensions {
+                let dropped = record.identifier == Self.markdown ? Self.droppedFromMarkdown : []
+                for name in record.extensions where !dropped.contains(name) {
                     #expect(
                         ContentTypeTable.record(forExtension: name)?.identifier
                             == UTType(filenameExtension: name)?.identifier, "extension \(name)")
                 }
-                for name in record.mimeTypes {
+                for name in record.mimeTypes where !dropped.contains(name) {
                     #expect(
                         ContentTypeTable.record(forMIMEType: name)?.identifier
                             == UTType(mimeType: name)?.identifier, "MIME type \(name)")

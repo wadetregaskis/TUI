@@ -254,7 +254,11 @@ struct AssetCatalogTests {
             let brand = Color("Brand", bundle: bundle)
             #expect(components(brand, in: .light) == [204, 102, 51, 255])
             #expect(components(brand, in: .dark) == [16, 128, 255, 255], "not chosen where it is drawn")
-            #expect(brand == Color("Brand", bundle: try TemporaryBundle.uncompiled().1), "a pair is one colour")
+            // Held in a local: `.uncompiled().1` lets the temporary directory go
+            // before the colour is read from it, and macOS 26 then finds nothing.
+            let (uncompiled, uncompiledBundle) = try TemporaryBundle.uncompiled()
+            defer { withExtendedLifetime(uncompiled) {} }
+            #expect(brand == Color("Brand", bundle: uncompiledBundle), "a pair is one colour")
             #expect(Color("NoSuchColour", bundle: bundle) == .clear)
             // A body names its colour every frame: AppKit is asked once.
             for _ in 0..<3 {

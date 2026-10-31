@@ -151,7 +151,8 @@ extension FilePanelTypePopUpTests {
         driver.press(.down)
         driver.press(.enter)
         let renamed = await driver.waitFor("draft.md")
-        #expect(capless(renamed).contains("Format: Markdown Text"), "\(renamed)")
+        // "Markdown Text" before macOS 26, "Markdown" from it: UTType's words.
+        #expect(capless(renamed).contains("Format: Markdown"), "\(renamed)")
         // Save is the default button.
         driver.press([KeyEvent(key: .tab, shift: true)])
         driver.press(.tab, times: 5)
