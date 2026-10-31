@@ -5,9 +5,7 @@
 //  of your own: the mascot of each platform TUI runs on, the one it is
 //  running on shown first, and a photograph.
 //
-//  Credits: Tux by Larry Ewing (lewing@isc.tamu.edu), drawn with The GIMP.
-//  Lil' Finder Guy and the Swift logo are Apple's, Touko Madobe is
-//  Microsoft's (Windows 7's Japanese mascot). The photograph is an eagle.
+//  Credits and licences are in THIRD-PARTY-NOTICES.md.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
