@@ -288,26 +288,27 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// last lines, as ``overlaysScrollbar`` draws the bar over their last column.
     package var overlaysTextIndicators = false
 
-    /// Whether a drag hovering this control is drawing a landing slot that
-    /// NOTHING left the control to make room for — so the rows plus the slot
-    /// need one line more than the rows alone.
+    /// How many lines of a landing slot a drag hovering this control is drawing
+    /// that NOTHING left the control to make room for — so the rows plus the
+    /// slot need that many more than the rows alone.
     ///
-    /// True only for a drag that came from elsewhere. A reorder takes its rows
-    /// out of the list before opening the slot, and a `.draggable` row of this
-    /// list's own is dropped from the drawing for the same reason (see
-    /// `_ListCore.decorateForReorder`) — both are one row out, one slot in, no
-    /// net change. Set by the owning view every render, because only it knows
-    /// where the drag started and whether a slot is open here at all.
+    /// Above zero for a drag that came from elsewhere, as tall as what it
+    /// carries (``externalDropSlotLines``). A reorder takes its rows out of the
+    /// list before opening the slot, and a `.draggable` row of this list's own
+    /// is dropped from the drawing for the same reason (see
+    /// `_ListCore.decorateForReorder`) — both are N rows out, a slot of N lines
+    /// in, no net change. Set by the owning view every render, because only it
+    /// knows where the drag started and whether a slot is open here at all.
     ///
-    /// The line is granted as CONTENT, not as height: the control cannot grow
+    /// The lines are granted as CONTENT, not as height: the control cannot grow
     /// mid-drag without shifting the page under the pointer. So an
-    /// exactly-full list overflows by one, which is a state the scroll
+    /// exactly-full list overflows by them, which is a state the scroll
     /// machinery already knows how to express — the "▼ N more below" indicator
-    /// or the scrollbar appears, and ``maxOffset`` rises by one so the wheel,
+    /// or the scrollbar appears, and ``maxOffset`` rises as far so the wheel,
     /// the mid-drag navigators and the edge auto-scroll can all reach the
     /// position after the last row. Without it the extent says the rows fit
-    /// exactly, ``maxOffset`` is zero, nothing can scroll, and the slot's line
-    /// is silently clipped off the bottom — taking a real row with it, and
+    /// exactly, ``maxOffset`` is zero, nothing can scroll, and the slot's lines
+    /// are silently clipped off the bottom — taking real rows with them, and
     /// leaving "drop at the end" impossible to point at.
     ///
     /// Deliberately NOT folded into ``itemCount``: that is the DATA count, and
@@ -315,11 +316,11 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// the `externalDropSlot` clamp, the keyboard-move clamps — is defined
     /// against it. A phantom row there would let a drop name an index the data
     /// has no room for.
-    package var dropSlotAddsRow: Bool { get { _dropSlotAddsRow } set { _dropSlotAddsRow = newValue } }
+    package var dropSlotLines: Int { get { _dropSlotLines } set { _dropSlotLines = newValue } }
 
-    /// ``dropSlotAddsRow``'s storage: private, under the `package` accessor
+    /// ``dropSlotLines``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
-    private var _dropSlotAddsRow = false
+    private var _dropSlotLines = 0
 
     /// Whether this frame's render spends content lines on "▲/▼ N more"
     /// indicators. Synced by the owning view, because only it knows: a `List`
@@ -396,7 +397,7 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// How many DRAWABLE entries the row area holds this frame.
     ///
     /// ``viewportHeight`` counts ROWS, and the owning view has already taken
-    /// the landing slot's line out of it (`contentHeight - dropSlotAddsRow`).
+    /// the landing slot's line out of it (`contentHeight - dropSlotLines`).
     /// ``extent`` counts ENTRIES, and has already added that same line in. A
     /// bound taken as `extent - viewportHeight` therefore counts one line
     /// twice, in opposite directions, and lands one offset past the end: the
@@ -404,7 +405,7 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// frame draws the slot AND a blank the rows should have filled — the
     /// "two blank lines, one of them nowhere near the pointer" report. Adding
     /// the line back here is what makes the two sides speak the same units.
-    var viewportEntries: Int { viewportHeight + (dropSlotAddsRow ? 1 : 0) }
+    var viewportEntries: Int { viewportHeight + dropSlotLines }
 
     /// The largest valid scroll offset, in rows, **as it applies to where the
     /// viewport currently sits** — see ``resolvedMaxOffset(reaching:)``, which
@@ -494,7 +495,7 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
         var top = extent
         var straddling = 0
         while top > 0 {
-            // The row a hovering drag borrows (``dropSlotAddsRow``) sits past
+            // The row a hovering drag borrows (``dropSlotLines``) sits past
             // the last real one and has no data to measure: it is the slot,
             // one blank line. Asking `rowHeight` for it indexes past the data.
             let height = top - 1 < itemCount ? max(1, rowHeight(top - 1)) : 1

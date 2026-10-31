@@ -1534,7 +1534,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // lines, so the rows are budgeted the content area minus it.
             let reserved = reserveIndicatorLines(
                 handler: handler,
-                contentHeight: contentHeight - (handler.dropSlotAddsRow ? 1 : 0),
+                contentHeight: contentHeight - handler.dropSlotLines,
                 context: context)
             drawnIndicators = (reserved.above, reserved.below)
         }
@@ -1616,7 +1616,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // Render only, for the reason `reserveIndicatorLines` gives at
             // length: a measure pass is offered a different height and would
             // leave a later clamp reading another proposal's viewport.
-            handler.viewportHeight = max(1, contentHeight - (handler.dropSlotAddsRow ? 1 : 0))
+            handler.viewportHeight = max(1, contentHeight - handler.dropSlotLines)
             // A bar spends no indicator line, so this path absorbs nothing: the
             // rows are drawn from the offset itself. Published anyway, so a
             // frame that took another path cannot leave a stale origin behind.
@@ -1872,10 +1872,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // control's OWN rows pays for it with the lines those rows gave up —
         // but only while those rows are still in the window, which is the
         // question ``ItemListHandler/reorderSlotNeedsALine`` answers.
-        handler.dropSlotAddsRow = handler.externalDropSlot != nil || handler.reorderSlotNeedsALine
+        handler.dropSlotLines = handler.externalDropSlot != nil
+            ? handler.externalDropSlotLines : handler.reorderSlotNeedsALine ? 1 : 0
         handler.syncReturningRows(with: context.environment.dragAndDropSession)
-        let rowArea = max(1, contentHeight - (handler.dropSlotAddsRow ? 1 : 0))
-        // The FULL area, not `rowArea`: `dropSlotAddsRow` is already set above,
+        let rowArea = max(1, contentHeight - handler.dropSlotLines)
+        // The FULL area, not `rowArea`: `dropSlotLines` is already set above,
         // and every reader inside the handler that has to account for the slot
         // subtracts it itself (``rowLineBudget``). Passing the reduced figure
         // charges for the slot twice — see the twin at the single-line path,
@@ -2927,7 +2928,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// - Parameter overflows: Whether the rows overflow `contentHeight`, given
     ///   the extra lines they must share it with — 1 while a hovering drag is
     ///   drawing a landing slot, 0 otherwise. A closure rather than a `Bool`
-    ///   because the answer depends on ``ItemListHandler/dropSlotAddsRow``,
+    ///   because the answer depends on ``ItemListHandler/dropSlotLines``,
     ///   which is a question about the handler this call is still resolving.
     /// - Returns: The handler and the overflow answer, which the caller needs
     ///   for its indicator reservation and cannot compute itself.
@@ -2963,9 +2964,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // control's OWN rows pays for it with the lines those rows gave up —
         // but only while those rows are still in the window, which is the
         // question ``ItemListHandler/reorderSlotNeedsALine`` answers.
-        handler.dropSlotAddsRow = handler.externalDropSlot != nil || handler.reorderSlotNeedsALine
+        handler.dropSlotLines = handler.externalDropSlot != nil
+            ? handler.externalDropSlotLines : handler.reorderSlotNeedsALine ? 1 : 0
         handler.syncReturningRows(with: context.environment.dragAndDropSession)
-        let overflowing = overflows(handler.dropSlotAddsRow ? 1 : 0)
+        let overflowing = overflows(handler.dropSlotLines)
         // Clamp against the largest possible visible-row count (one
         // indicator, at an end); the exact viewport is finalised by
         // the caller once the offset is known.
@@ -2979,7 +2981,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // stopped one row short of the end for ever.
         let provisionalViewport =
             max(1, (overflowing ? contentHeight - 1 : contentHeight)
-                - (handler.dropSlotAddsRow ? 1 : 0))
+                - handler.dropSlotLines)
         handler.contentHeight = contentHeight
         // A scrollbar reserves no indicator line, so the focus-reveal / offset
         // arithmetic must claim the full content height (matches the List path).
@@ -3301,12 +3303,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // the selection falling off the bottom of the table.
         // Negated excursion for the same reason as the scrollbar path above:
         // bands must travel WITH the slid rows, not mirror them.
-        // Rows PLUS the line the slot borrowed (``dropSlotAddsRow``). Clipping
+        // Rows PLUS the line the slot borrowed (``dropSlotLines``). Clipping
         // to the row count alone dropped a real row instead: the slot is
         // deliberately never the thing clipped, so the overrun came out of the
         // rows — a full table showed the slot and the indicator and no rows at
         // all, while the reserve arithmetic said one should be visible.
-        let drawnBudget = visibleRange.count + (handler.dropSlotAddsRow ? 1 : 0)
+        let drawnBudget = visibleRange.count + handler.dropSlotLines
         let slide =
             clipOverrun(&rowLines, to: drawnBudget, drawn: drawnHeights)
             - handler.overscrollState.excursion
@@ -3386,7 +3388,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         guard handler.effectiveReorderFeedback == .dimmed, !sources.isEmpty else {
             // A keyboard move never takes the `.cursor` path: it resolves that
             // to `.dimmed`, precisely because there is no pointer to carry a row.
-            return RenderedRow(lines: Array(repeating: blank, count: max(1, sources.count)))
+            return RenderedRow(lines: Array(repeating: blank, count: max(sources.count, handler.externalDropSlotLines)))
         }
         // The row the cursor is on stays at full strength while the rest of the
         // block goes faint — the slot's pulse covers all of them, so without
@@ -3496,6 +3498,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                         handler.hoverExternalDrop(atContentY: y - interiorTopY)
                     }
                 },
+                landingPosition: slot,
                 identity: context.identity),
             in: context)
     }

@@ -445,11 +445,11 @@ extension ItemListHandler {
     /// handled by the protocol's ``handleWheelEvent(_:
     /// linesPerTick:)``. See the protocol comment for why
     /// these moved out of this class.)
-    package var extent: Int { itemCount + (dropSlotAddsRow ? 1 : 0) }
+    package var extent: Int { itemCount + dropSlotLines }
 
     /// The "▼ N more rows below" indicator's subject, which is ROWS THE USER
     /// CANNOT SEE — so it counts the data, never the line a hovering drag
-    /// borrowed (``dropSlotAddsRow``). That line is the landing slot, which is
+    /// borrowed (``dropSlotLines``). That line is the landing slot, which is
     /// on screen and is not a row.
     ///
     /// The split is deliberate and is the whole shape of the feature: the
@@ -486,7 +486,7 @@ extension ItemListHandler {
         guard let contentHeight, contentHeight > 0 else { return max(1, viewportHeight) }
         // The landing slot is drawn among the rows and takes one of their
         // lines — the same subtraction `_ListCore` makes before its walk.
-        var budget = contentHeight - (dropSlotAddsRow ? 1 : 0)
+        var budget = contentHeight - dropSlotLines
         if alwaysReservesIndicatorLines {
             // Both lines, at every offset — nothing to discover.
             budget -= 2

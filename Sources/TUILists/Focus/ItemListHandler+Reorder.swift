@@ -216,7 +216,7 @@ extension ItemListHandler {
     /// last row" cannot be pointed at: the furthest the pointer can aim is the
     /// second-last line.
     ///
-    /// `_ListCore.borrowsDropRow` reached the same conclusion by the same route
+    /// `_ListCore.borrowedDropLines` reached the same conclusion by the same route
     /// for a `.draggable` row of the list's own; this is the reorder twin of
     /// it, and it lives here because both `List` and `Table` need it.
     ///
@@ -616,8 +616,8 @@ extension ItemListHandler {
         /// A real row, by data offset.
         case row(Int)
 
-        /// The drop slot — a gap the size of the dragged row (`.cursor`), or a
-        /// faint copy of it (`.dimmed`). It has no data behind it: the keyboard
+        /// The drop slot — a gap the size of the dragged rows (`.cursor`, or a
+        /// drag from elsewhere), or a faint copy of them (`.dimmed`). It has no data behind it: the keyboard
         /// cursor cannot sit on it and selection ignores it, but it IS a drop
         /// target, because after every step of the drag the pointer is on it.
         case slot
@@ -639,22 +639,22 @@ extension ItemListHandler {
     /// and it is subtle enough (every index here is CLOSED-UP, which is also what
     /// `move(from:to:)` produces) that having it twice is how the two drift.
     ///
-    /// `excluding` names a row that has left the list without the list owning
-    /// the gesture: a `.draggable` row whose drag started HERE, which the drag
-    /// is already carrying at the cursor. It only arises on the external-drag
-    /// path, and only for a `List` — a `Table` builds its rows from `data`, so
-    /// they cannot be `.draggable` and there is no such row to leave.
+    /// `excluding` names the rows that have left the list without the list
+    /// owning the gesture: `.draggable` rows whose drag started HERE, which the
+    /// drag is already carrying at the cursor. They only arise on the
+    /// external-drag path, and only for a `List` — a `Table` builds its rows from
+    /// `data`, so they cannot be `.draggable` and there is no such row to leave.
     func reorderDrawnRows(
-        _ visible: some Sequence<Int>, excluding excluded: Int? = nil
+        _ visible: some Sequence<Int>, excluding excluded: IndexSet = IndexSet()
     ) -> [DrawnRow] {
         let removed = reorderRemovedRows
         guard !removed.isEmpty else {
             // No reorder of our own — but a drag may be hovering, and it opens
             // the same gap for the same reason. When that drag STARTED here the
-            // row it took is dropped as well, so the list keeps its length: one
-            // row out, one slot in. Drawn AND slotted, it gained a line — the
-            // gap the drop opens plus the blank the row left behind.
-            let rows = Array(visible).filter { $0 != excluded }
+            // rows it took are dropped as well, so the list keeps its length: N
+            // rows out, a slot of N lines in. Drawn AND slotted, each gained a
+            // line — the gap the drop opens plus the blank the row left behind.
+            let rows = excluded.isEmpty ? Array(visible) : visible.filter { !excluded.contains($0) }
             guard let slot = externalDropSlot else { return rows.map { .row($0) } }
             var drawn = rows.map { DrawnRow.row($0) }
             let at = rows.firstIndex { $0 >= slot } ?? drawn.count
@@ -663,7 +663,8 @@ extension ItemListHandler {
         }
         // EVERY held row leaves — a multi-row drag carries them all — but only
         // ONE slot opens: they land as a single block, so a gap per row would
-        // promise something the drop does not do.
+        // promise something the drop does not do. It is as tall as the block
+        // (the views draw its lines: `decorateForReorder`, `reorderSlotLines`).
         let rows = visible.filter { !removed.contains($0) }
         guard let placeholder = reorderPlaceholder else { return rows.map { .row($0) } }
         // The slot goes at closed-up position `placeholder.slot` — before the
@@ -688,7 +689,7 @@ extension ItemListHandler {
     /// `@usableFromInline` and so every member that witnesses one of its
     /// protocols' requirements, its stored properties among them.
     package func reorderDrawnRows(_ visible: Range<Int>) -> [DrawnRow] {
-        reorderDrawnRows(visible, excluding: nil)
+        reorderDrawnRows(visible, excluding: IndexSet())
     }
 
     /// Re-reads the drop target from the bands just published, while edge

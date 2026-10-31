@@ -196,7 +196,9 @@ it, and a slot plus a blank would be two gaps for one row — the list would gro
 by a line for the duration of every same-list drag. So the row that the slot is
 *for* is dropped from the drawing instead: one row out, one slot in, and the
 list keeps its length, exactly as a ``ForEach/onMove(perform:)`` reorder has
-always drawn it. Move the pointer to a different list and the blank comes back,
+always drawn it. A selection carried together leaves together, and the slot opens
+as tall as the rows it would land, in any list a drag of several rows hovers,
+up to half of the list so that there are still rows to aim at. Move the pointer to a different list and the blank comes back,
 because that list has no slot of its own and nothing there should shift.
 
 Only a row that is **on screen** can pay for the slot that way. Carry it far

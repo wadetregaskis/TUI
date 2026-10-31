@@ -130,6 +130,12 @@ package final class DragAndDropSession: @unchecked Sendable {
         /// has heard the move, so a delegate's latest proposal is the answer.
         package var proposedOperation: (() -> DropOperation?)?
 
+        /// Where in itself the drag over this destination would land, for one
+        /// that opens a landing slot: what a carry steps until it changes,
+        /// since a slot taller than a line holds where it is under the pointer
+        /// (``handleCarryKey(_:)``). `nil` for one that takes a drop anywhere.
+        package var landingPosition: (() -> Int?)?
+
         /// The destination view's identity: where a destination proposes no
         /// operation of its own, a drop into the container the drag came from
         /// — one the source is inside — proposes a move, and anywhere else a
@@ -151,8 +157,10 @@ package final class DragAndDropSession: @unchecked Sendable {
             setTargeted: @escaping (Bool) -> Void,
             hovering: ((_ x: Int, _ y: Int) -> Void)? = nil,
             proposedOperation: (() -> DropOperation?)? = nil,
+            landingPosition: (() -> Int?)? = nil,
             identity: ViewIdentity? = nil
         ) {
+            self.landingPosition = landingPosition
             self.identity = identity
             self.handlerID = handlerID
             self.accepts = accepts

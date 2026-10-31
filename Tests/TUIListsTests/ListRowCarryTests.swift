@@ -99,6 +99,18 @@ struct ListRowCarryTests {
         #expect(harness.tui.dragAndDropSession.active == nil)
     }
 
+    /// A carry's Down moves the gap a row, however many lines the gap is tall:
+    /// stepping the pointer a line at a time left it inside the gap for as many
+    /// presses as rows were carried, and the keys did nothing.
+    @Test("Down moves a tall landing gap one row")
+    func downMovesATallGap() {
+        let board = Board(selection: ["a", "c"])
+        let harness = InputChainHarness()
+        harness.play([pickUp, KeyEvent(key: .tab), KeyEvent(key: .down), KeyEvent(key: .enter)]) { lists(board) }
+        #expect(board.moved == ["a", "c"])
+        #expect(board.movedAt == 1, "after x: \(board.movedAt as Any)")
+    }
+
     @Test("Copy on the list copies the cursor row's payload")
     func copyTakesTheCursorRow() {
         let clipboard = FakeClipboard()

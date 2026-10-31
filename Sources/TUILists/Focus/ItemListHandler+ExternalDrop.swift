@@ -114,6 +114,22 @@ extension ItemListHandler {
         }
     }
 
+    /// The lines the slot a drag from another view opens is drawn in: one for
+    /// each row the drag would land, as a reorder's slot makes room for the
+    /// block it carries. Showing less promised less than the drop does, and the
+    /// rows landed over the ones below it.
+    ///
+    /// One line a row whatever the rows' heights, which only their source knows,
+    /// as a reorder's pads the rows it cannot see. And never more than half the
+    /// rows' area, however many are carried: the pointer resting on the gap holds
+    /// the gap where it is, so a gap that took the whole list would leave no row
+    /// to aim at. Asked of ``contentHeight``, the frame's area, because the rows'
+    /// own window is what this line count takes from.
+    package var externalDropSlotLines: Int {
+        guard externalDropSlot != nil, let drag = dragSession?.active else { return 1 }
+        return min(DragAndDropSession.items(of: drag.payload).count, max(1, (contentHeight ?? 1) / 2))
+    }
+
     /// Consumes the slot for a drop that is happening now: the clamped index
     /// to insert at, with the hover state cleared.
     ///

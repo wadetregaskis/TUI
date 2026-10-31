@@ -1275,7 +1275,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // area, so the rows get one less to walk. Reserved HERE, once, rather
         // than inside each window rule: the two rules disagree about indicator
         // lines but not about this.
-        let rowBudget = max(1, targetContentHeight - (handler.dropSlotAddsRow ? 1 : 0))
+        let rowBudget = max(1, targetContentHeight - handler.dropSlotLines)
         // Drawing only — see `RenderContext.indicatesFocus(_:)`. `engageFocus`
         // still runs with the true answer: it publishes the Escape claim and
         // the status bar's Return verb, and sets `isFocusEngaged`, none of
@@ -1528,7 +1528,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// (a short list, which is rendered in full anyway).
     /// - Parameter plusLines: Lines the rows must share the area with — the
     ///   landing slot a hovering drag borrows (see
-    ///   ``ItemListHandler/dropSlotAddsRow``). Counted here rather than
+    ///   ``ItemListHandler/dropSlotLines``). Counted here rather than
     ///   subtracted from the height by each caller, so every consumer of
     ///   `overflowing` sees one answer.
     private func rowsOverflow(
@@ -1552,9 +1552,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         return false
     }
 
-    /// Whether a drag hovering this list is opening a landing slot that no row
-    /// of ours left to make room for — the condition
-    /// ``ItemListHandler/dropSlotAddsRow`` names.
+    /// The lines of a landing slot a drag hovering this list is opening that no
+    /// row of ours left to make room for — what
+    /// ``ItemListHandler/dropSlotLines`` holds.
     ///
     /// Gated on a slot being OPEN here, not merely on a compatible drag being
     /// in flight somewhere. Granting the row for the whole drag would need no
@@ -1562,29 +1562,31 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// things at once — but a list the pointer is nowhere near would then
     /// advertise "▼ 1 more row below" with nothing below it, which is the
     /// phantom indicator this renderer has already been fixed for once.
-    private func borrowsDropRow(
+    private func borrowedDropLines(
         _ source: RowSource<SelectionValue>,
         handler: ItemListHandler<SelectionValue>, context: RenderContext
-    ) -> Bool {
+    ) -> Int {
         // A reorder of this list's OWN rows asks the same question about the
         // same line, and answers it the same way — see
         // ``ItemListHandler/reorderSlotNeedsALine``, which is the twin of the
         // paragraph below and is shared with `Table`.
-        guard handler.externalDropSlot != nil else { return handler.reorderSlotNeedsALine }
-        // A drag that started HERE has already had its row taken out of the
-        // drawing (see `decorateForReorder`), so its slot replaces a line
-        // rather than adding one.
-        guard let session = context.environment.dragAndDropSession else { return true }
-        guard session.isDragSource(within: context.identity) else { return true }
-        // …but only a row that is ON SCREEN can leave the drawing. `carriedRow`
-        // looks for the source among the VISIBLE rows and finds nothing once
-        // the viewport has moved past it — auto-scrolling toward the end does
-        // exactly that — so from there on nothing is freed and the slot needs a
-        // line of its own, the same as a foreign drag's. Without this the
+        guard handler.externalDropSlot != nil else { return handler.reorderSlotNeedsALine ? 1 : 0 }
+        let lines = handler.externalDropSlotLines
+        // A drag that started HERE has already had its rows taken out of the
+        // drawing (see `decorateForReorder`), so its slot replaces their lines
+        // rather than adding its own.
+        guard let session = context.environment.dragAndDropSession,
+            session.isDragSource(within: context.identity)
+        else { return lines }
+        // …but only a row that is ON SCREEN can leave the drawing. `carriedRows`
+        // looks for the sources among the VISIBLE rows and finds none once
+        // the viewport has moved past them — auto-scrolling toward the end does
+        // exactly that — so from there on nothing is freed and the slot needs
+        // lines of its own, the same as a foreign drag's. Without this the
         // extent said the rows still fit, and the position after the last row
         // could not be reached: the furthest the pointer could aim was the
         // second-last line.
-        return !sourceRowIsOnScreen(source, session: session, handler: handler)
+        return max(0, lines - sourceRowsOnScreen(source, session: session, handler: handler))
     }
 
     /// Notes which rows this walk draws (`drawn`), for a live sheet docked
@@ -1605,8 +1607,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 isDrawn: { drawn.contains($0) }))
     }
 
-    /// Whether the row the in-flight drag came from is inside the window this
-    /// frame will draw — the condition under which it leaves the drawing.
+    /// How many of the rows the in-flight drag came from are inside the window
+    /// this frame will draw — the condition under which one leaves the drawing.
     ///
     /// Asked of ``ItemListHandler/visibleRange`` rather than the resolved
     /// window, because the answer feeds the row budget the window is computed
@@ -1614,19 +1616,20 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// costs one reserved line — a state the overflow machinery already
     /// expresses. Reading `rowIdentity` forces no row to render, and the walk
     /// covers a viewport's worth at most.
-    private func sourceRowIsOnScreen(
+    private func sourceRowsOnScreen(
         _ source: RowSource<SelectionValue>,
         session: DragAndDropSession,
         handler: ItemListHandler<SelectionValue>
-    ) -> Bool {
+    ) -> Int {
+        var count = 0
         for index in handler.visibleRange where index < source.count {
             if let identity = source.content(at: index).rowIdentity,
                 session.isDragSource(within: identity)
             {
-                return true
+                count += 1
             }
         }
-        return false
+        return count
     }
 
     /// Fetches (or creates) the persistent ``ItemListHandler``
@@ -1641,7 +1644,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// paths inside the handler already call it themselves.
     /// Also decides `showsScrollbar` — and, on the handler,
     /// `drawsScrollIndicators` — which it cannot be handed: both depend on
-    /// ``ItemListHandler/dropSlotAddsRow``, a question about the handler's own
+    /// ``ItemListHandler/dropSlotLines``, a question about the handler's own
     /// drag state. That ordering — box, row count, borrowed drop row, and only
     /// then "do the rows fit" — is the whole reason this returns more than the
     /// handler.
@@ -1847,8 +1850,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         handler.drawing = HandlerDrawing(context)
         // A drag from elsewhere draws its landing slot as an extra line —
         // nothing left this list to make room for it — so while one is hovering
-        // the list has a row's worth of content more than it has rows.
-        handler.dropSlotAddsRow = borrowsDropRow(source, handler: handler, context: context)
+        // the list has that much content more than it has rows.
+        handler.dropSlotLines = borrowedDropLines(source, handler: handler, context: context)
         handler.syncReturningRows(with: context.environment.dragAndDropSession)
         // BEFORE the rows are composed: the slot's position is decided down
         // there, and under auto-scroll the answer it would otherwise use was
@@ -1858,7 +1861,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // borrowed line — don't all fit in the content area.
         let overflowing = rowsOverflow(
             source, targetContentHeight: contentHeight,
-            plusLines: handler.dropSlotAddsRow ? 1 : 0)
+            plusLines: handler.dropSlotLines)
         // Which indicator this list draws, if any: a bar down the trailing
         // edge (the default), the "N more" text lines, or — when the visibility
         // says so — nothing at all. Decided before the offset-1 snap below,
@@ -3331,7 +3334,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         }
         // EVERY row in hand, stacked: they land as one block, so the slot is
         // one gap the size of all of them. Showing only the grabbed row made a
-        // multi-row drag look like the rest had been deleted.
+        // multi-row drag look like the rest had been deleted. A drag from
+        // elsewhere has none of ours in hand, and its slot is as tall as what it
+        // carries (``ItemListHandler/externalDropSlotLines``).
         let byIndex = Dictionary(
             visibleRows.map { ($0.index, $0.row) }, uniquingKeysWith: { first, _ in first })
         let held = handler.reorderRemovedRows.compactMap { index in
@@ -3358,7 +3363,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // window). Pad with one blank line per unseen row — their true height
         // is unknowable unrendered, and single-line is the overwhelming case.
         let removedCount = handler.reorderRemovedRows.count
-        if body.height < removedCount {
+        let slotLines = removedCount > 0 ? removedCount : handler.externalDropSlotLines
+        if body.height < slotLines {
             let width = max(1, body.width)
             // The pad goes BELOW the rows that were rendered, so their claims still
             // name their own cells and come across unchanged.
@@ -3367,7 +3373,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 lines: body.lines
                     + Array(
                         repeating: String.spaces(width),
-                        count: removedCount - body.height))
+                        count: slotLines - body.height))
             body.opacityRegions = claims
         }
         // A keyboard move has no pointer to say where the row is, so the slot
@@ -3380,7 +3386,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // Which rows to draw, and where the slot goes among them, is the shared
         // arithmetic — `Table` asks the same question of the same handler.
         return handler.reorderDrawnRows(
-            visibleRows.map(\.index), excluding: carriedRow(visibleRows, context: context)
+            visibleRows.map(\.index), excluding: carriedRows(visibleRows, context: context)
         ).compactMap { drawn in
             switch drawn {
             case .row(let index):
@@ -3393,30 +3399,34 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         }
     }
 
-    /// The visible row a `.draggable` drag took out of THIS list, or `nil` when
-    /// the drag started anywhere else.
+    /// The visible rows a `.draggable` drag took out of THIS list: the one it
+    /// started in and the rest of a selection it carries. None when the drag
+    /// started anywhere else.
     ///
     /// Such a row is in the user's hand: `DraggableModifier` already renders it
     /// blank, because a view that is floating at the cursor must not also be
     /// sitting in place. That is right for a chip in a plain container, and one
     /// line too many in a list that is ALSO opening a landing slot for the same
     /// drag — the blank and the gap are both "where the row would go". So the
-    /// row is dropped from the drawing entirely and the slot is the only gap,
+    /// rows are dropped from the drawing entirely and the slot is the only gap,
     /// exactly as `.onMove`'s own reorder has always drawn it.
     ///
     /// Matched by IDENTITY rather than by the rendered path: the drag names the
     /// `.draggable` view, which lives INSIDE the row, so the row is an ancestor
     /// of it — and comparing path strings by prefix would let row 1 answer for
     /// row 11.
-    private func carriedRow(
+    private func carriedRows(
         _ visibleRows: [(index: Int, row: SelectableListRow<SelectionValue>)],
         context: RenderContext
-    ) -> Int? {
-        guard let session = context.environment.dragAndDropSession else { return nil }
-        return visibleRows.first { entry in
-            guard let identity = entry.row.rowIdentity else { return false }
-            return session.isDragSource(within: identity)
-        }?.index
+    ) -> IndexSet {
+        guard let session = context.environment.dragAndDropSession else { return IndexSet() }
+        var carried = IndexSet()
+        for entry in visibleRows {
+            if let identity = entry.row.rowIdentity, session.isDragSource(within: identity) {
+                carried.insert(entry.index)
+            }
+        }
+        return carried
     }
 
     /// The colour that marks the slot as the row you are steering — the same
@@ -3629,6 +3639,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                         handler.hoverExternalDrop(atContentY: y - topInset)
                     }
                 },
+                landingPosition: slot,
                 identity: context.identity),
             in: context)
     }

@@ -401,7 +401,7 @@ struct ListRowDropDestinationTests {
     /// value — a fixed point one short of the end.
     ///
     /// Granting the list one row of EXTENT while a drag hovers (see
-    /// ``ItemListHandler/dropSlotAddsRow``) settles both: the list overflows by
+    /// ``ItemListHandler/dropSlotLines``) settles both: the list overflows by
     /// one, which it already knows how to say and to scroll.
     @Test("A full list makes room for the landing slot instead of losing a row")
     func aFullListMakesRoomForTheLandingSlot() {

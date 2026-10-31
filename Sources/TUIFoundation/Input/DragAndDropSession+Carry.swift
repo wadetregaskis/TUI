@@ -232,14 +232,23 @@ extension DragAndDropSession {
 
     /// Moves the carry `step` rows within the destination it is at, if that
     /// is taller than a row and the row is inside it, and says whether it did.
+    ///
+    /// On through a landing slot taller than a row, which holds under the
+    /// pointer, until the slot moves: a key that moved nothing, as many times
+    /// as there are rows carried, reads as a key that does not work.
     private func moveCarryRow(by step: Int) -> Bool {
         guard let carry, proposedOperation != nil, let focused = carry.focusManager?.currentFocusedID,
             let rect = carryStops().first(where: { $0.id == focused })?.rect
         else { return false }
-        let row = carry.row + step
+        var row = carry.row + step
         guard rect.height > 1, (0..<rect.height).contains(row) else { return false }
-        self.carry?.row = row
-        followCarry()
+        let landing = active?.targeted?.landingPosition
+        let before = landing?()
+        repeat {
+            self.carry?.row = row
+            followCarry()
+            row += step
+        } while before != nil && landing?() == before && (0..<rect.height).contains(row)
         return true
     }
 

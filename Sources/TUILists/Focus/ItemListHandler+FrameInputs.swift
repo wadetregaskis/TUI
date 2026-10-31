@@ -38,7 +38,7 @@ extension ItemListHandler {
     /// noticing an absence. A plain `applyEnvironment(_:)` would have left
     /// exactly the three that caused the bugs outside the shared call.
     ///
-    /// Call it once per pass, AFTER ``dropSlotAddsRow`` is settled: that flag's
+    /// Call it once per pass, AFTER ``dropSlotLines`` is settled: that flag's
     /// readers (``reorderSlotNeedsALine`` through `effectiveReorderFeedback`)
     /// consult ``reorderFeedback``, ``keyboardMoveIsLive`` and
     /// ``canFloatDraggedRow``, and they are meant to see the values from the
@@ -46,7 +46,7 @@ extension ItemListHandler {
     ///
     /// `syncReturningRows(with:)` is deliberately NOT here even though all three
     /// sites call it with the same argument: it belongs to the drag block beside
-    /// `dropSlotAddsRow`, and folding it in would move it after
+    /// `dropSlotLines`, and folding it in would move it after
     /// `carryReorderTargetThroughAutoScroll()` at every site.
     ///
     /// - Parameters:
