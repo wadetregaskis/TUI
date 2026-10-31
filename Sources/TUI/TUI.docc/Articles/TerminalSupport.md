@@ -44,7 +44,7 @@ swift run Example
 
 Then go through these in the demo, or in your own app:
 
-1. Click a button and turn the scroll wheel over a list. If nothing happens, see Troubleshooting.
+1. Click a button and turn the scroll wheel over a list. If nothing happens, see <doc:Troubleshooting>.
 2. Open a page with a picture. A smooth photo means real pixels. Visible blocks of colour mean text characters.
 3. Press Option-Left in a text field. If the caret doesn't jump a word, see "Option keys" below.
 4. Check that borders line up and emoji don't push the text after them out of place.
@@ -80,7 +80,7 @@ If your app has shortcuts of its own, prefer Control, which reaches the app in e
 
 TUI works under tmux with no settings. It recognises tmux and draws correctly for it. A few things differ from running directly in the terminal:
 
-- **Mouse:** clicks, drags and the wheel reach the app, with tmux's `mouse` option on or off. If they don't, see Troubleshooting.
+- **Mouse:** clicks, drags and the wheel reach the app, with tmux's `mouse` option on or off. If they don't, see <doc:Troubleshooting>.
 - **Pictures:** they're always drawn in text characters, because tmux doesn't pass real pixels on.
 - **Image sizes:** tmux doesn't say how big a cell is, so an image that isn't `.resizable()` fits the space it's offered, rather than taking its natural size. Write `.resizable().scaledToFit()` and give it a frame to look the same everywhere.
 - **Keyboard protocol:** it's off, so the keys it would tell apart arrive looking the same.

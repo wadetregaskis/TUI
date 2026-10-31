@@ -37,6 +37,7 @@ struct Hello: App {
 - <doc:GettingStarted>
 - <doc:ComingFromSwiftUI>
 - <doc:ChoosingProducts>
+- <doc:Troubleshooting>
 
 ### Build Your Interface
 
