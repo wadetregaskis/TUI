@@ -8,6 +8,7 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 
 - <doc:AppLifecycle>
 - <doc:StatusBarGuide>
+- <doc:TerminalSupport>
 
 ### Apps and Scenes
 
