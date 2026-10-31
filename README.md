@@ -143,7 +143,7 @@ Actual screen recordings (demo apps, but otherwise completely real - see [their 
 
 ## What's in the box
 
-- **SwiftUI-compatible API.** Most SwiftUI code compiles as-is under TUI, and behaves effectively the same.  Some things differ, but are easily adapted (e.g. the terminal's primary unit is the character cell, not the pixel, so instead of `.padding(20)` you might write (`.padding(1)`)).  See [Coming from SwiftUI](https://swift-tui.com/docs/documentation/tui/comingfromswiftui) for what's different.
+- **SwiftUI-compatible API.** Most SwiftUI code compiles as-is under TUI, and behaves effectively the same.  Some things differ, but are easily adapted (e.g. the terminal's primary unit is the character cell, not the pixel, so instead of `.padding(20)` you might write `.padding(1)`).  See [Coming from SwiftUI](https://swift-tui.com/docs/documentation/tui/comingfromswiftui) for what's different.
 - **Keyboard first, mouse too.** Everything is designed to be terminal-native, which means proper support for keyboard-only use.  But TUI also loves the mouse, and its extensive and powerful mouse support makes terminal apps much more intuitive for beginners.
 - **Powerful terminal client portability.** Terminal clients are _not_ created equal - you wouldn't believe how much they vary in what they support, how they support it, and where they make mistakes.  TUI has extensive knowledge of popular terminal clients - including Apple Terminal, iTerm2, Ghostty, & Warp - which means you don't have to.
 - **Seven languages.** TUI's built-in controls support multiple languages, with full localisation support - for both your own custom controls and additional languages.  See your app in English, German, French, Italian, Spanish, Chinese, Japanese - and any others you wish to add.
@@ -156,6 +156,7 @@ Actual screen recordings (demo apps, but otherwise completely real - see [their 
 Add TUI to your package:
 
 ```swift
+platforms: [.macOS(.v14)],
 dependencies: [
     .package(url: "https://github.com/wadetregaskis/TUI.git", branch: "main")
 ],
@@ -164,12 +165,13 @@ targets: [
 ]
 ```
 
-Then `import TUI`, and start writing your views.
+Then `import TUI`, and start writing your views.  [Getting Started](https://swift-tui.com/docs/documentation/tui/gettingstarted) goes through it step by step, from an empty folder to a running app.
 
 To see more of what TUI can do, run the Example app (`swift run Example` from a checkout / clone).  Then, check out [its source](Sources/Example/) to see how it's done, and copy whatever you need to get started on your own app.
 
 ## Learn more
 
+- **[Getting Started](https://swift-tui.com/docs/documentation/tui/gettingstarted)**: create your first app, run it, and quit it.
 - **[Documentation](https://swift-tui.com/docs/documentation/tui/)**: the API reference and its articles, from getting started to the render cycle.
 - **[Building and shipping an app](<Documentation/Building and shipping an app.md>)**: which products to depend on, what to ship, how small it can be.
 - **[Contributing](CONTRIBUTING.md)**: how TUI is built, tested and laid out.
