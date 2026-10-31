@@ -1,14 +1,26 @@
 # Getting Started
 
-Build your first terminal application with TUI.
+Create a terminal app with TUI, run it, and make it respond to a key press.
 
 ## Overview
 
-TUI is a Swift package that lets you create terminal user interfaces with a declarative, SwiftUI-like syntax. This guide walks you through setting up a project and building a simple app.
+You need Swift 6.2 or newer, on Linux or on macOS 14 or later. On a Mac, that means Xcode 26 or its Command Line Tools. Swift's package manager does the rest, so there is nothing else to install.
 
-## Adding TUI to Your Project
+## Create a Package
 
-Add TUI as a dependency in your `Package.swift`:
+In a terminal, make a folder for your app and create an executable package in it:
+
+```bash
+mkdir MyTUIApp
+cd MyTUIApp
+swift package init --type executable
+```
+
+That writes a `Package.swift` and one source file, `Sources/MyTUIApp/MyTUIApp.swift`.
+
+## Add TUI
+
+Replace everything in `Package.swift` with this:
 
 ```swift
 // swift-tools-version: 6.2
@@ -29,64 +41,56 @@ let package = Package(
 )
 ```
 
-The `TUI` product is the whole framework, and `import TUI` gives you all of it. An app can instead depend on
-the products of only the modules it uses, and then compiles and links less: see <doc:ChoosingProducts>.
+## Write the App
 
-## Creating Your First App
-
-Adopt the ``App`` protocol and mark it `@main`. Put it in a file called
-anything **except** `main.swift` — `App.swift` is the convention, and the
-`tuikit` scaffold generates exactly that:
+Open `Sources/MyTUIApp/MyTUIApp.swift`. It holds a small `@main` type that prints "Hello, world!". Your app takes its place, so replace everything in the file with this:
 
 ```swift
 import TUI
 
 @main
-struct MyApp: App {
+struct MyTUIApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
-        }
-    }
-}
-
-struct ContentView: View {
-    var body: some View {
-        VStack {
-            Text("Welcome to TUI!")
-                .bold()
-                .foregroundStyle(.cyan)
-
-            Spacer()
-
-            Text("Press 'q' to quit")
-                .dim()
+            VStack {
+                Text("Hello, TUI!")
+                    .bold()
+                Text("Press q to quit")
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }
 ```
 
-> Important: A file named `main.swift` holds top-level code, and Swift refuses
-> `@main` in a module that has any — *"'main' attribute cannot be used in a
-> module that contains top-level code"*. If you would rather have a
-> `main.swift` (to run setup before the first frame, as this package's own
-> `Example` target does), drop the attribute and call the entry point yourself:
->
-> ```swift
-> // main.swift — no @main on the type
-> struct MyApp: App { … }
->
-> registerMyLocalizations()
-> await MyApp.main()
-> ```
+## Run It
 
-## Using State
+```bash
+swift run
+```
 
-Add interactivity with the ``State`` property wrapper:
+The first run downloads and compiles TUI, which takes a few minutes. Later runs take seconds.
+
+The terminal clears, and your two lines of text appear in the middle of it. Press `q` to quit, and the terminal goes back to how it was.
+
+## Count Something
+
+Now give it some state and a button. Replace everything in the file again:
 
 ```swift
+import TUI
+
+@main
+struct MyTUIApp: App {
+    var body: some Scene {
+        WindowGroup {
+            CounterView()
+        }
+    }
+}
+
 struct CounterView: View {
-    @State var count = 0
+    @State private var count = 0
 
     var body: some View {
         VStack {
@@ -100,35 +104,23 @@ struct CounterView: View {
 }
 ```
 
-## One-Shot Rendering
+Run it with `swift run` again. The button has the keyboard focus already, because it's the only control on the screen. Press Return or Space to press it, or click it with the mouse, and the count goes up.
 
-For simple scripts that don't need a full app lifecycle, use ``renderOnce(content:)``:
+If you know SwiftUI, this is the same code you would write there.
 
-```swift
-import TUI
+## Quitting
 
-renderOnce {
-    VStack {
-        Text("Hello, TUI!")
-            .bold()
-            .foregroundStyle(.green)
-        Divider()
-        Text("Version \(tuiVersion)")
-            .dim()
-    }
-}
-```
+`q` quits from anywhere, as long as the control with the focus isn't using the letter itself. A text field types it, and a list or table uses it to jump to a row starting with "q". Press Tab to move the focus to another control, then press `q`.
 
-## Build Time
+Control-\\ always quits, and it works even if the app has stopped responding. Your shell may then print `Quit: 3`, which only says how the app ended.
 
-A clean release build of TUI takes minutes (measured 2026-10-07, Swift 6.2.4, a 12-core arm64 Mac VM):
+Control-C doesn't quit by default. It reaches your app as an ordinary key.
 
-- If `swift --version` prints `Build config: +assertions`, your compiler is an assertions build, as swift.org's 6.2.4 for macOS is (swiftly's included). Xcode's own Swift of the same version compiled TUI in about 26% less time (86.4 s against 116.7 s to the end of TUI's compile). To build with it: `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift build -c release`. Setting `DEVELOPER_DIR` alone does not redirect swiftly's `swift`.
-- A release build compiles each module as one whole-module job, in a chain (TUICore, then TUIView, then TUI), and most of each job runs on one thread, so more cores help little.
+<doc:KeyboardShortcuts#Default-Bindings> shows how to change the quit key.
 
-## Next Steps
+## Next
 
-- Learn about the framework's <doc:Architecture>
-- Explore <doc:StateManagement> for reactive UIs
-- Customize your app's look with <doc:ThemingGuide>
-- Build multilingual apps with <doc:Localization>
+- <doc:ComingFromSwiftUI>, if you already know SwiftUI
+- <doc:StateManagement>, to keep and share your app's data
+- <doc:ListAndTable>, to show rows of data
+- <doc:Controls>, for every button, field, toggle and picker
