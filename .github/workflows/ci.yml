@@ -68,7 +68,7 @@ name: CI
 on:
   push:
     branches: [main]
-    tags: ["*"]
+    tags: ["v*"]
   pull_request:
     branches: [main]
   # The nightly lanes only earn their keep if they run without a push.
@@ -247,6 +247,13 @@ jobs:
         run: |
           python3 Tools/validate-markdown-tables.py --self-test
           python3 Tools/validate-markdown-tables.py
+
+      # A path Windows cannot check out ends every Windows lane at its first
+      # step, and passes here and on macOS and Linux otherwise.
+      - name: Every path can be checked out on Windows
+        run: |
+          python3 Tools/validate-filenames.py --self-test
+          python3 Tools/validate-filenames.py
 
       # The same, for links: a relative link or an anchor that names nothing
       # renders as an ordinary link, and the reader finds out by following it.
@@ -861,7 +868,7 @@ jobs:
         timeout-minutes: 30
         run: swift build -c release
 
-  # ── Windows (advisory: the port is in progress) ─────────────────────────────
+  # ── Windows (the port is in progress) ─────────────────────────────
   #
   # Uses the official `swift:<version>-windowsservercore-ltsc2022` images, which
   # bundle the Visual Studio and Windows SDK prerequisites — the same approach
