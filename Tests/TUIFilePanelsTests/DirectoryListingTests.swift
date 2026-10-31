@@ -211,8 +211,11 @@ struct FileBrowserTests {
         await browser.refresh()
         let alpha = fixture.url("Alpha")
         let first = Task { await browser.loadFolder(alpha) }
-        // Under way: begun, and gone off the main actor to read.
-        while browser.foldersReading[alpha.standardizedFileURL.path] == nil { await Task.yield() }
+        // Under way: begun, and gone off the main actor to read. Or already done, on a
+        // read that beat this loop back to the main actor, which would otherwise spin
+        // here for good.
+        let path = alpha.standardizedFileURL.path
+        while browser.foldersReading[path] == nil, browser.folderRows[path] == nil { await Task.yield() }
         first.cancel()
         await browser.loadFolder(alpha)
         await first.value
