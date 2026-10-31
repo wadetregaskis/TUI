@@ -692,6 +692,11 @@ def list_tests(tc, binaries):
         out = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO,
                              env=child_env(tc, 0))
         ids = {l.strip() for l in out.stdout.splitlines() if l.strip() and "/" in l}
+        # EX_UNAVAILABLE is swift-testing's "no tests": a target whose tests all
+        # compile out here, as TUIFilePanelsAppKitTests' do on Linux, where
+        # swift-build makes it a binary of its own. Nothing to run, not a failure.
+        if not ids and out.returncode == SWIFT_TESTING_NO_TESTS:
+            continue
         if not ids:
             sys.exit("parallel-test: --list-tests returned nothing from %s (exit %d)\n%s"
                      % (binary, out.returncode, (out.stderr or out.stdout)[:2000]))
@@ -780,6 +785,9 @@ def run_processes(invocations, tc, slot_of):
 # line is followed by its details — `↳ …` or indented on Linux, `<symbol>  …`
 # and indented on macOS — until the next event line, which is a symbol and then
 # `Test`/`Suite`/`Test run`. Known issues are expected and are left out.
+# What a swift-testing binary exits with when it has no tests to run (EX_UNAVAILABLE).
+SWIFT_TESTING_NO_TESTS = 69
+
 ISSUE_RE = re.compile(r" recorded an issue\b")
 EVENT_LINE_RE = re.compile("^(?![↳\U00100135])\\S+\\s+(Test|Suite)\\b")
 
