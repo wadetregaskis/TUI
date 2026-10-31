@@ -168,7 +168,9 @@ extension ModalPresentationModifier: Renderable {
                 // Presented again, it is a new sheet.
                 startOver(context: context)
             }
-            return TUIView.renderToBuffer(content, context: contentContext)
+            let buffer = TUIView.renderToBuffer(content, context: contentContext)
+            context.noteDepartureDrawnWhole(of: Content.self, at: contentContext.identity, by: Self.self)
+            return buffer
         }
 
         // Built now it is presented, once for the frame, and presented as a

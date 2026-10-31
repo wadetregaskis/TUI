@@ -111,7 +111,9 @@ extension AlertPresentationModifier: Renderable {
                 // Recentre next time it opens.
                 DialogDrag.reset(context: context, propertyIndex: StateIndex.dragHandler)
             }
-            return TUIView.renderToBuffer(content, context: contentContext)
+            let buffer = TUIView.renderToBuffer(content, context: contentContext)
+            context.noteDepartureDrawnWhole(of: Content.self, at: contentContext.identity, by: Self.self)
+            return buffer
         }
 
         // Render message content to string if provided

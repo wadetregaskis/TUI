@@ -418,6 +418,11 @@ extension ConditionalView: Renderable {
         // early cannot change what any frame contains.
         guard !context.isMeasuring, let stateStorage = context.stateStorage else { return buffer }
 
+        // Drawn whole, this conditional is what it draws, and an `if` holding it
+        // finds what its branch left here (`if a { if c { X.transition(t) } else { Y } }`).
+        context.noteDepartureDrawnWhole(
+            of: isTrueBranch ? TrueContent.self : FalseContent.self, at: branchContext.identity, by: Self.self)
+
         // The branch taken is recorded, in one access, and under an animated
         // change it fades in while the branch left goes — at once, or by a
         // transition of its own (`BranchTransition`).

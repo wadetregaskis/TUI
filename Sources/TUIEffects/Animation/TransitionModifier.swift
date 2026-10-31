@@ -96,7 +96,10 @@ extension View {
     /// (`.foregroundStyle`, `.tint`, `.disabled`, `.environment`), lifecycle
     /// and event modifiers (`.onAppear`, `.task`, `.onChange`, `.onKeyEvent`,
     /// `.onHover`, `.onPreferenceChange`), focus modifiers (`.focusable`,
-    /// `.focused`), and `AnyView`.
+    /// `.focused`), `AnyView`, `.id`, a modifier built as a view with a body
+    /// (`.tag`, `.zIndex`) and a view of your own whose `body` is the
+    /// transition, and a presentation modifier (`.sheet`, `.alert`, `.popover`,
+    /// `.contextMenu`) that is not presenting.
     /// `if show { Toast().transition(.opacity).onAppear { … } }` plays.
     ///
     /// A view that goes with no `nil` to stand in for it — the branch an
@@ -139,11 +142,11 @@ extension View {
     /// ## What does not play its transition
     ///
     /// The claim finds a departure only where the view carrying the transition
-    /// rendered at exactly that address, so these removals do not play it.
-    /// The view does instead what one with no transition does there: where
-    /// its `if` holds it, it fades, its whole picture where it was; where the
-    /// stack does — the first of these in a stack, `.id` written on the `if`
-    /// in a stack, and the last — it goes at once:
+    /// rendered at exactly that address, or something that draws it unchanged
+    /// said so, so these removals do not play it. The view does instead what
+    /// one with no transition does there: where its `if` holds it, it fades,
+    /// its whole picture where it was; where the stack does — the first of
+    /// these in a stack, and the last — it goes at once:
     ///
     /// - One view behind a modifier on the structure around it that draws,
     ///   `if a { Group { X }.padding() }`, whose picture the transition's
@@ -152,20 +155,8 @@ extension View {
     ///   `if` fades it. With a modifier that draws nothing,
     ///   `.foregroundStyle(.red)` on that `Group`, the stack sees the member
     ///   go: it plays.
-    /// - Where the optional is rendered directly — a view's whole `body`, or a
-    ///   modifier's content such as `.overlay { if a { … } }` — a `Group` or an
-    ///   `if`/`else` inside the `if`: `if a { Group { X } }`, `if a { if c { X }
-    ///   else { Y } }`. Each draws its view a step below the optional's own
-    ///   identity, where the `nil` does not look. In a stack both play, and a
-    ///   nested `if` plays either way.
-    /// - A transition with an identity step between it and the `if`: one on
-    ///   the root of a `body` — a view of your own, or a modifier built as a
-    ///   view with a body, such as `.tag` or `.zIndex` — rather than on the
-    ///   view the `if` holds; one inside a presentation modifier (`.sheet`,
-    ///   `.alert`, `.popover`, `.contextMenu`); or one with an `.id` outside
-    ///   it — `X.transition(t).id(k)`, or `.id` written on the `if` itself in
-    ///   a stack, where the view goes at once. `X.id(k).transition(t)` plays,
-    ///   and so does `.id` on an `if` rendered directly.
+    /// - A transition inside a presentation modifier that is presenting: the
+    ///   presentation goes with it, and the view fades.
     /// - A transition with a modifier outside it in the `if` that moves,
     ///   resizes or draws: `X.transition(t).padding()`, and so `.frame`,
     ///   `.offset`, `.position`, `.background`, `.overlay`, `.border`,

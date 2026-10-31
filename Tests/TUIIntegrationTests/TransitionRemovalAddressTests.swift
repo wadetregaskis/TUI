@@ -66,17 +66,16 @@ enum RemovalSurround: String, CaseIterable, Sendable {
     /// Whether the removal does not play its own transition in this shape —
     /// the view goes at once instead — a gap on the record in
     /// ``View/transition(_:)``, pinned as a known issue so that closing it is
-    /// noticed. `.id` puts an identity step of its own between the slot the
-    /// `nil` claims and the view that left its picture, so the picture is one
-    /// step below where the `nil` looks for it. A padded `Group` has a picture
-    /// of its own the transition's would lose. The stack sees both go, and
-    /// keeps no picture of them to fade: what goes from a stack with no
+    /// noticed. A padded `Group` has a picture of its own the transition's
+    /// would lose: the padding would have to be drawn round the departing
+    /// picture, and the `nil` has no value of it. The stack sees it go, and
+    /// keeps no picture of it to fade: what goes from a stack with no
     /// transition it can play goes at once (decisions TR2PERF). A styled
     /// `Group` plays: its member, which the `nil` holding the wrapped `Group`
     /// could not name, is a child of the stack, and the stack sees it go
     /// (`ChildFade`).
     var goesAtOnce: Bool {
-        self == .identifiedBesideSibling || self == .paddedGroupInIf
+        self == .paddedGroupInIf
     }
 
     /// Whether the shape pads the view two cells in, beside a wider sibling.
@@ -241,6 +240,12 @@ enum RemovedView: String, CaseIterable, Sendable {
     /// `X.transition(t).sheet(…)`: a presentation modifier, which draws its
     /// content a step below itself.
     case presentingOutside
+    /// `X.transition(t).alert(…)`: another, not presenting.
+    case alertOutside
+    /// `X.transition(t).popover(…)`: another, not presenting.
+    case popoverOutside
+    /// `X.transition(t).contextMenu { … }`: another.
+    case contextMenuOutside
     /// `X.transition(t).foregroundStyle(.red)`: a modifier outside the
     /// transition that draws nothing of its own.
     case styledOutside
@@ -263,22 +268,6 @@ enum RemovedView: String, CaseIterable, Sendable {
     case preferenceObservedOutside
     /// `X.transition(t).statusBarItems { … }`: another.
     case statusBarItemsOutside
-
-    /// Whether the removal does not play its own transition — it fades
-    /// instead — a gap on the record in ``View/transition(_:)``, pinned as a
-    /// known issue. An `.id` outside the
-    /// transition, a custom view's `body`, `.tag` and `.sheet` put an identity
-    /// step between the slot the `nil` claims and the transition: `.id`'s own,
-    /// and the step a `body` or a presentation's content renders at. The
-    /// wrappers that draw their content unchanged play: the slot looks through
-    /// them (`DrawsContentUnchanged`), or the `AnyView` vouches for its picture.
-    var fadesInstead: Bool {
-        switch self {
-        case .identifiedOutside, .customViewBody, .taggedOutside, .presentingOutside:
-            true
-        default: false
-        }
-    }
 }
 
 /// A preference nothing sets, for `.onPreferenceChange` to observe.
@@ -317,6 +306,9 @@ private struct Held: View {
         case .customViewBody: besideSibling(SlidingCard())
         case .taggedOutside: besideSibling(sliding.tag(1))
         case .presentingOutside: besideSibling(sliding.sheet(isPresented: .constant(false)) { Text("sheet") })
+        case .alertOutside: besideSibling(sliding.alert("alert", isPresented: .constant(false)) { Button("OK") {} })
+        case .popoverOutside: besideSibling(sliding.popover(isPresented: .constant(false)) { Text("popover") })
+        case .contextMenuOutside: besideSibling(sliding.contextMenu { Button("menu") {} })
         case .styledOutside: besideSibling(sliding.foregroundStyle(.red))
         case .appearingOutside: besideSibling(sliding.onAppear {})
         case .erased: besideSibling(AnyView(sliding))
@@ -359,20 +351,15 @@ enum RenderedDirectly: String, CaseIterable, Sendable {
     /// modifier on the structure around it that draws. In a stack it goes at
     /// once (``RemovalSurround/paddedGroupInIf``); here the `if` holds it.
     case paddedGroupInIf
-    /// `(a ? X.transition(t) : nil).id(k)`: `.id` written on the `if`, whose
-    /// view goes at once in a stack
-    /// (``RemovalSurround/identifiedBesideSibling``).
+    /// `(a ? X.transition(t) : nil).id(k)`: `.id` written on the `if`.
     case identified
 
     /// Whether the removal does not play its own transition — it fades
     /// instead — a gap on the record in ``View/transition(_:)``, pinned as a
-    /// known issue. A `Group` draws its view one step below the optional's
-    /// identity, where a view with a `body` draws its body, and an
-    /// `if`/`else` draws its view under a branch step; the `nil` looks for
-    /// the picture at its own identity. A padded `Group` has a picture of its
-    /// own the transition's would lose. The `if` holds each of them, and
-    /// fades the whole of what it held.
-    var fadesInstead: Bool { self == .groupInIf || self == .conditionalInIf || self == .paddedGroupInIf }
+    /// known issue. A padded `Group` has a picture of its own the
+    /// transition's would lose. The `if` holds it, and fades the whole of what
+    /// it held.
+    var fadesInstead: Bool { self == .paddedGroupInIf }
 
     /// The row `core` — the view, or what is left of it part-way gone — as
     /// the shape draws it: two cells in, for the padded one.
@@ -473,15 +460,8 @@ struct TransitionRemovalAddressTests {
         let screen = RemovalScreen(animation: .linear(duration: 1)) { Held(showing: $0, held: held) }
         _ = screen.draw(true, atMillis: 0)
         #expect(screen.draw(true, atMillis: 1100) == ["XXXX", "----"], "precondition: it arrived")
-        withKnownIssue("this removal fades instead — see `RemovedView.fadesInstead`") {
-            #expect(screen.draw(false, atMillis: 1100) == ["XXXX", "----"], "gone on the frame it was removed")
-            #expect(screen.draw(false, atMillis: 1600) == ["  XX", "----"], "not sliding out half-way")
-        } when: {
-            held.fadesInstead
-        }
-        if held.fadesInstead {
-            #expect(!screen.fades(false, atMillis: 1600).isEmpty, "it fades where it was instead")
-        }
+        #expect(screen.draw(false, atMillis: 1100) == ["XXXX", "----"], "gone on the frame it was removed")
+        #expect(screen.draw(false, atMillis: 1600) == ["  XX", "----"], "not sliding out half-way")
         #expect(screen.draw(false, atMillis: 2200) == ["----"], "still drawn after the end")
     }
 

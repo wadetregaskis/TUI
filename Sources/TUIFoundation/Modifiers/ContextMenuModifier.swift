@@ -162,6 +162,7 @@ extension ContextMenuModifier: Renderable {
             // served the unfocused frame after Tab arrived.
             FocusRegistration.publishIsFocused(isFocused, context: context, into: &contentContext)
             var buffer = TUIView.renderToBuffer(content, context: contentContext)
+            context.noteDepartureDrawnWhole(of: Content.self, at: contentContext.identity, by: Self.self)
             if !context.isMeasuring, keyboardRoute != .ownStop {
                 attachContentStopsTrigger(stateBox: stateBox, regions: buffer.hitTestRegions, context: context)
             }

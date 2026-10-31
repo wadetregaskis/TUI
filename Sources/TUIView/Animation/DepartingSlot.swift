@@ -132,11 +132,14 @@ package func departingSlot<Content: View>(
 ///   `.overlay`, `.border`, `.opacity`, `.hidden()`, a colour effect, a list
 ///   row's colours, `.help`'s tooltip, a drag source's blank, a
 ///   selection-disabled row's dim, the animated runs `AnimatedCellsModifier`
-///   adds;
-/// - one that renders its content a step below its own identity — any view
-///   with a `body` (`.tag`, `.zIndex`, `.redacted`, `.alignmentGuide`, a view
-///   of your own), a presentation modifier (`.sheet`, `.alert`, `.popover`,
-///   `.contextMenu`), `.id`.
+///   adds.
+///
+/// A wrapper that renders its content a step below its own identity is not one
+/// either, but draws it unchanged as well, and says so as it draws
+/// (``RenderContext/noteDepartureDrawnWhole(of:at:by:)``): any view with a `body`
+/// (`.tag`, `.zIndex`, `.redacted`, `.alignmentGuide`, a view of your own), a
+/// presentation modifier (`.sheet`, `.alert`, `.popover`, `.contextMenu`), `.id`,
+/// a conditional.
 ///
 /// `AnyView` draws its content unchanged at its own identity too, but what
 /// that content is, is known only when it renders, so it cannot say so by
@@ -184,8 +187,35 @@ package func departingPictureType(heldAs type: Any.Type) -> Any.Type {
 
 /// The wrapper's content type, the existential metatype opened to reach it.
 @MainActor
-private func wrappedContentType<Wrapper: DrawsContentUnchanged>(of _: Wrapper.Type) -> Any.Type {
+private func wrappedContentType<Wrapper: SingleContentWrapper>(of _: Wrapper.Type) -> Any.Type {
     Wrapper.WrappedContent.self
+}
+
+/// The slot a `nil` under an identity step keeps open, for `content`, an optional
+/// that a modifier written on it keys, or `nil` when nothing it held is leaving.
+///
+/// `(show ? X.transition(t) : nil).id(k)` in a stack: the modifier reaches each member
+/// of what it wraps, so the view drew at `(X, 0)` and then its key, where the
+/// question a `nil` asks, directly under its scope, does not look. What is written on
+/// the optional stands for both, so the whole address is known: the question is asked
+/// there, and the slot, which the modifier then wraps, is drawn there.
+@MainActor
+package func departingSlot(
+    throughStep step: (RenderContext) -> RenderContext, of content: Any.Type, context: RenderContext
+) -> ChildView? {
+    guard let storage = context.stateStorage, !storage.departures.isEmpty,
+        let optional = content as? any OptionalOfView.Type
+    else { return nil }
+    let held = optional.wrappedViewType
+    let pictureType = departingPictureType(heldAs: held)
+    let frame = context.environment.animationFrame
+    guard
+        storage.departures.hasDeparture(
+            at: step(context.withChildIdentity(erasedType: held, index: 0)).identity, ofType: pictureType,
+            nowNanos: frame.nowNanos,
+            frameAnimation: frame.canAnimate ? context.environment.transaction.effectiveAnimation : nil)
+    else { return nil }
+    return ChildView.departing(DepartureSlot(viewType: pictureType), identityType: held)
 }
 
 /// An optional of a view, seen from where it is rendered directly: it hands
@@ -199,6 +229,43 @@ extension Optional: OptionalOfView where Wrapped: View {
 }
 
 extension RenderContext {
+    /// Tells the departure store that the view rendering here, of type `wrapper`,
+    /// drew what its content drew at `child`, a step below it, unchanged — so a slot
+    /// that held `wrapper` may play the picture `content` left there
+    /// (``DepartureStore/noteDrawnWhole(at:by:leftAt:by:)``).
+    ///
+    /// One check where no view with a transition of its own is on screen, which is
+    /// every app that animates nothing: this is asked once per composite per frame.
+    /// The rest is out of line, and its arguments are worked out only there.
+    ///
+    /// - Parameters:
+    ///   - content: The type of what was drawn at `child`.
+    ///   - child: Where it was drawn.
+    ///   - wrapper: This view's type.
+    @MainActor
+    @inline(__always)
+    package func noteDepartureDrawnWhole(
+        of content: @autoclosure () -> Any.Type, at child: @autoclosure () -> ViewIdentity, by wrapper: Any.Type
+    ) {
+        guard let store = stateStorage?.departures, !store.isEmpty, !isMeasuring else { return }
+        store.noteDrawnWhole(
+            at: identity, by: wrapper, leftAt: child(), by: departingPictureType(heldAs: content()))
+    }
+
+    /// ``noteDepartureDrawnWhole(of:at:by:)`` for a modifier told its `ModifiedView`'s
+    /// type and no more: that type's content, which is what was drawn at `child`.
+    @MainActor
+    package func noteDepartureDrawnWhole(
+        ofContentOf wrapper: Any.Type, at child: @autoclosure () -> ViewIdentity
+    ) {
+        guard let store = stateStorage?.departures, !store.isEmpty, !isMeasuring,
+            let single = wrapper as? any SingleContentWrapper.Type
+        else { return }
+        store.noteDrawnWhole(
+            at: identity, by: wrapper, leftAt: child(),
+            by: departingPictureType(heldAs: wrappedContentType(of: single)))
+    }
+
     /// Tells the departure store that the `AnyView` rendering here drew the
     /// picture its content left at this identity, unchanged — if the view that
     /// left it is `content`, or inside `content` behind wrappers that draw

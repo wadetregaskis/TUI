@@ -421,6 +421,32 @@ extension DepartureStore {
         entries[identity] = entry
     }
 
+    /// Records that `wrapper`, the view at `identity`, drew the picture left a step
+    /// below it at `drawnAt` this pass, unchanged, if the view that left it is `type`:
+    /// a slot that held `wrapper` then plays that picture, as one that held the
+    /// transition does.
+    ///
+    /// For a wrapper that draws its content at an identity of its content's own, which
+    /// the `nil` standing in for it cannot look through, by type or by address: a view's
+    /// `body`, a presentation modifier's content, what `.id` keys. So the wrapper
+    /// says so as it draws, and the picture is left at its address as well. The copy
+    /// below it is dropped at the end of the pass the view goes, as any picture nothing
+    /// plays is. `type` is an autoclosure, as in
+    /// ``noteDrawnUnchanged(at:leftBy:byErasing:)``.
+    package func noteDrawnWhole(
+        at identity: ViewIdentity, by wrapper: Any.Type, leftAt drawnAt: ViewIdentity,
+        by type: @autoclosure () -> Any.Type
+    ) {
+        guard let entry = entries[drawnAt], entry.presentThisPass, entry.wasLeft(by: ObjectIdentifier(type()))
+        else { return }
+        let left = entry.departure
+        entries[identity] = Entry(
+            departure: Departure(
+                viewType: wrapper, width: left.width, height: left.height, explicitAnimation: left.explicitAnimation,
+                render: left.render),
+            leftAtNanos: nil, animation: nil, presentThisPass: true)
+    }
+
     /// Whether `entry`'s removal will actually PLAY: already resolved, named by
     /// the transition, or animated by the frame doing the removing. A slot
     /// exists only for one that will — an unanimated removal snaps, and its

@@ -101,7 +101,9 @@ extension PopoverPresentationModifier: Renderable {
 
         guard isPresented.wrappedValue else {
             if !context.isMeasuring { tearDownIfPresented(context: context) }
-            return TUIView.renderToBuffer(content, context: contentContext)
+            let buffer = TUIView.renderToBuffer(content, context: contentContext)
+            context.noteDepartureDrawnWhole(of: Content.self, at: contentContext.identity, by: Self.self)
+            return buffer
         }
         let sectionID = Self.sectionID(context)
 

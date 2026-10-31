@@ -405,7 +405,15 @@ extension ModifiedView: ExplicitIDProviding {
 ///   rule.
 extension ModifiedView: ChildViewProvider where Content: ChildViewProvider {
     public func childViews(context: RenderContext) -> [ChildView] {
-        content.childViews(context: context).map { $0.modified(by: modifier) }
+        let children = content.childViews(context: context)
+        // A `nil` under `.id`, whose view drew a step below where a `nil` asks. Only
+        // a key: a modifier that moves its content or draws has a picture of its own.
+        if children.isEmpty, modifier._explicitIDKey != nil,
+            let slot = departingSlot(throughStep: modifier.adjustContext, of: Content.self, context: context)
+        {
+            return [slot.modified(by: modifier)]
+        }
+        return children.map { $0.modified(by: modifier) }
     }
 
     /// The content's answer: whether the resolution is worth remembering is a

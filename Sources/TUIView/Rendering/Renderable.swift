@@ -236,6 +236,9 @@ private func renderResolved<V: View>(_ view: V, context: RenderContext) -> Frame
         let body = evaluateCompositeBody(of: view, context: context)
         let buffer = TUIView.renderToBuffer(body, context: childContext)
         context.stateStorage?.restoreEnvironments(to: restoreDepth)
+        // What the body drew is all this view draws: a transition on the root of a
+        // `body` leaves its picture a step below the address a `nil` claims.
+        context.noteDepartureDrawnWhole(of: V.Body.self, at: childContext.identity, by: V.self)
         return buffer
     }
 

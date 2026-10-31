@@ -39,6 +39,14 @@ private struct _IDModifier<ID: Hashable>: BufferModifier {
         buffer
     }
 
+    /// Draws its content unchanged, a keyed step below itself: what a transition
+    /// inside it left there is a slot's to play here too, since a `nil` standing in
+    /// for this view has no key to find it by.
+    func _modify(buffer: FrameBuffer, context: RenderContext, owner: Any.Type) -> FrameBuffer {
+        context.noteDepartureDrawnWhole(ofContentOf: owner, at: adjustContext(context).identity)
+        return buffer
+    }
+
     func adjustContext(_ context: RenderContext) -> RenderContext {
         context.withChildIdentity(erasedType: Self.self, key: key)
     }

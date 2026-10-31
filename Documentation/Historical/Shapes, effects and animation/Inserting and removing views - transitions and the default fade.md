@@ -884,3 +884,19 @@ at once: about half a day, with the tests of the `if`'s fade-out
 `if` costs. Not done: one picture per `if` is a cost of a different order from
 one per child of every container, it passed its own A/B, and the fade-out of
 an `if`'s view is the one people see most.
+
+### B-RMVADDR-1. A wrapper that draws its content a step below itself says so as it draws (2026-10-31)
+
+A `nil` finds a removal by address and by type, from the type of what it held. Past a view's `body`, a
+presentation modifier's content, `.id`'s key and a conditional drawn whole, the address it needs is a step
+further in, and `.id`'s step holds a key the `nil` does not have, so a transition behind any of them faded, or
+went at once. The address could have been worked out by type for all but `.id`. Instead each of them, as it
+draws, leaves the picture its content left at its own address too, under its own type, when its content is the
+view that left it (`DepartureStore.noteDrawnWhole`), as `AnyView` vouches for a picture as it draws. One rule for
+the four, nothing to work out on a `nil`, and nothing asked of the `nil` that it cannot know. It costs one
+emptiness check per composite per frame where no transition is on screen, and a dictionary lookup per composite
+per frame where one is. `.id` written on the `if` itself has its key to hand, and asks at the whole address.
+
+`if a { Group { X.transition(t) }.padding() }` is left: playing it takes a wrapper that draws composing itself onto
+the departing picture, which would also change `X.transition(t).padding()` from a fade to a play, and is a
+question of its own (`RemovalSurround.paddedGroupInIf`).
