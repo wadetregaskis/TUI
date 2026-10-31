@@ -4,9 +4,20 @@ Customize the visual appearance of your TUI application with palettes.
 
 ## Overview
 
-TUI includes a full theming system with six built-in palettes inspired by classic CRT terminals. Palettes define semantic colors for backgrounds, foregrounds, accents, and UI elements.
+A palette names the colors your whole app is drawn with: backgrounds, text, accents and the parts of controls. TUI includes 17 of them, and you can write your own.
+
+To use one, set it on your app's root view:
+
+```swift
+ContentView()
+    .palette(SystemPalette(.amber))
+```
+
+This works on any view, and applies to everything inside it.
 
 ## Built-in Palettes
+
+Six are classic-phosphor presets inspired by CRT terminals:
 
 | Palette | Preset | Inspiration |
 |---------|--------|-------------|
@@ -17,7 +28,7 @@ TUI includes a full theming system with six built-in palettes inspired by classi
 | Blue | `.blue` | VFD displays |
 | White | `.white` | DEC VT100, VT220 |
 
-These six classic-phosphor presets are instances of ``SystemPalette``.
+They are instances of ``SystemPalette``.
 
 In addition, TUI ships recreations of the ten built-in **macOS Terminal.app**
 profiles as ``AppleTerminalPalette`` — Basic, Grass, Homebrew, Man Page, Novel,
@@ -35,37 +46,7 @@ profiles, then the terminal's own); ``PaletteRegistry/phosphorPresets``,
 ``PaletteRegistry/appleTerminalProfiles`` and ``PaletteRegistry/terminalPalettes``
 expose the three groups separately.
 
-## Using Palettes
-
-### Via PaletteManager
-
-Access the palette manager through the environment to cycle or set palettes:
-
-```swift
-struct MyView: View {
-    @Environment(\.paletteManager) var paletteManager
-
-    var body: some View {
-        VStack {
-            Text("Current: \(paletteManager.currentName)")
-            Button("Next Palette") {
-                paletteManager.cycleNext()
-            }
-        }
-    }
-}
-```
-
-### Via Environment
-
-Set a palette for a view and all its descendants:
-
-```swift
-ContentView()
-    .palette(SystemPalette(.amber))
-```
-
-### Palette Colors in Views
+## Palette Colors in Views
 
 Use ``Color/palette`` to access the current palette's colors:
 
@@ -82,6 +63,27 @@ Or read the palette directly from the environment:
 
 Text("Hello").foregroundStyle(palette.accent)
 ```
+
+## Changing Palettes at Runtime
+
+The environment's palette manager cycles through the built-in palettes, or sets one. It's `nil` outside a running app:
+
+```swift
+struct PaletteSwitcher: View {
+    @Environment(\.paletteManager) private var paletteManager
+
+    var body: some View {
+        VStack {
+            Text("Current: \(paletteManager?.currentName ?? "none")")
+            Button("Next Palette") {
+                paletteManager?.cycleNext()
+            }
+        }
+    }
+}
+```
+
+A `.palette(_:)` modifier wins over the manager for the views inside it, so an app that switches palettes this way leaves the modifier off its root.
 
 ## Creating Custom Palettes
 

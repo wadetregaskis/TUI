@@ -14,11 +14,14 @@ Text("Hello")
     .background(.palette.background)
 ```
 
-Cycle through palettes at runtime by pressing `t` (when theme cycling is enabled via `statusBarSystemItems(theme: true)` — it is off by default), or set a specific palette programmatically:
+To use a palette, set it on a view:
 
 ```swift
-environment.paletteManager.setCurrent(SystemPalette(.amber))
+ContentView()
+    .palette(SystemPalette(.amber))
 ```
+
+People can also cycle through the palettes at runtime by pressing `t`, once the app has turned that on with `statusBarSystemItems(theme: true)`.
 
 ## Palette Protocol
 
@@ -173,7 +176,7 @@ The violet preset takes a base hue (270°) and derives all color tokens using HS
 - **Background**: Base hue at very low lightness (3%) with reduced saturation
 - **Foregrounds**: Base hue at medium-high lightness (40–70%)
 - **Accent**: Base hue at high lightness (78%) with high saturation
-- **Semantic colors**: green, amber and red for success, warning and error, as every other preset reads them, and `info` at base − 60° (analogous cool). They were colour-theory offsets from the base hue until 2026-10-25, which put success at orange and error at lime green.
+- **Semantic colors**: green, amber and red for success, warning and error, as every other preset reads them, and `info` at base − 60° (analogous cool).
 
 ### Violet Token Values
 
@@ -234,7 +237,8 @@ Inspired by vintage vacuum fluorescent displays (VFDs). The characteristic brigh
 | Solid Colors | ``AppleTerminalPalette/Profile/solidColors`` | `"appleTerminal.solidColors"` |
 
 ```swift
-environment.paletteManager.setCurrent(AppleTerminalPalette(.homebrew))
+ContentView()
+    .palette(AppleTerminalPalette(.homebrew))
 ```
 
 ## Terminal
@@ -264,7 +268,8 @@ TUI asks the terminal for these colours at startup (OSC 10, 11 and 4). Until it 
 Once the terminal answers, every one of those measures and the palette behaves like any other. The colours are still *emitted* as slots and 39/49, so they keep following the user's profile; the report only says what they paint.
 
 ```swift
-environment.paletteManager.setCurrent(LiveTerminalPalette())
+ContentView()
+    .palette(LiveTerminalPalette())
 ```
 
 ## Palette Cycling Order
