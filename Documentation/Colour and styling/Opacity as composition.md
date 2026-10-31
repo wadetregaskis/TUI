@@ -7505,23 +7505,22 @@ the label asks for a render at each of its steps, 24 over 24 steps, for as long 
 on that row, where the same list without the label asks for none. Before, the label's cells held
 the shade the row was drawn at while the row breathed round them (23 of 24 ticks).
 
-**What it does not cover yet (known issue).** The rule reads the raw layer, which is right for a
-cell that does not fade. A layer that fades over the run, or names a translucent field there, is
-resolved over the run's DRAWN frame: it loses its glyph to the run's (a contest below ½, or a
-blank veil), or mixes its ink and field toward the run's. The composite punches the run all the
-same, and nothing asks for it, so the cell holds the drawn frame between renders. Measured, 12
-of 24 ticks under each compositor, with no render asked for: `Text("x").opacity(0.4)` and a
-one-cell `Color.rgb(0, 0, 0).opacity(0.5)` scrim over a run turning only its glyphs (the run's
-glyph held, `⠋` where a render draws `⠙`), and `Text("x").background(green).opacity(0.5)` over
-one turning its field (the chip mixed toward the drawn frame's red where a render mixes it toward
-blue). A scrim over a whole spinner freezes it:
-`Spinner().overlay { Color.rgb(0, 0, 0).opacity(0.4) }` held the drawn glyph at 22 of 24 ticks,
-and no replay moved it. It predates this section: the compositor has always resolved a layer over
-the drawn base and punched the run. The follow-up is to ask for a render at the run's steps where
-the layer fades over it too, on any difference between its frames there — glyph and ink as well
-as field — or to read the resolved layer rather than the raw one. Asking for every animating run
-under any layer clears all nine shapes at 24 renders each (a perturbation, not kept), but also
-asks for the unfaded label over a glyph-only run, which needs none.
+**A layer that fades over the run (2026-10-31).** The rule above reads the raw layer, which is
+right for a cell that does not fade. A layer that fades over the run, or names a translucent field
+there, is resolved over the run's DRAWN frame: it loses its glyph to the run's (a contest below ½,
+or a blank veil), or mixes its ink and field toward the run's. The composite punches the run all
+the same, so asked nothing, the cell held the drawn frame between renders. Measured, 12 of 24 ticks
+under each compositor, with no render asked for: `Text("x").opacity(0.4)` and a one-cell
+`Color.rgb(0, 0, 0).opacity(0.5)` scrim over a run turning only its glyphs (the run's glyph held,
+`⠋` where a render draws `⠙`), and `Text("x").background(green).opacity(0.5)` over one turning its
+field (the chip mixed toward the drawn frame's red where a render mixes it toward blue). A scrim over
+a whole spinner froze it: `Spinner().overlay { Color.rgb(0, 0, 0).opacity(0.4) }` held the drawn
+glyph at 22 of 24 ticks, and no replay moved it. So a cell of the layer under a translucent claim, a
+frost or a repeating fade asks on ANY difference between the run's frames there — glyph, ink or
+field, `String.columnsLook(width:)` — and each of the twelve shapes asks for 24 renders over its 24
+steps, the run's own rate, with none left wrong. The unfaded label over a glyph-only run still asks
+for none. A frost also reads the cells around the layer, which a run just past its edge moves without
+asking; that is left.
 
 **Nor where the root lays a floating layer (known issue).** The root's flatten of floating
 layers (`FrameBuffer.compositingOverlays`) punches a base's run under a layer the same way — an

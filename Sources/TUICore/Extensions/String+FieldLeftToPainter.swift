@@ -137,6 +137,26 @@ extension String {
         }
     }
 
+    /// For each of the first `width` columns of this line, everything the cell shows:
+    /// its glyph and the attributes in force, for a question about whether two lines
+    /// draw a cell alike. A column past the end of the line shows nothing.
+    ///
+    /// - Parameter width: How many columns to answer for.
+    /// - Returns: One look per column, `nil` past the end of the line.
+    package func columnsLook(width: Int) -> [CellLook?] {
+        columns(width: width, beyondTheEnd: nil) { _, state, character in
+            CellLook(glyph: character, state: state)
+        }
+    }
+
+    /// What one cell of a line shows: its glyph, and the attributes in force on it.
+    package struct CellLook: Equatable {
+        /// The character drawn; a wide glyph's second column has its first's.
+        let glyph: Character
+        /// The colours and attributes in force.
+        let state: SGRState
+    }
+
     /// For each of the first `width` columns of this line, whether it is reversed on
     /// the terminal's own ink (`ESC[7;39…m`): the field it shows is the terminal's
     /// foreground, which no background code spells, so a compositor draws a cell laid

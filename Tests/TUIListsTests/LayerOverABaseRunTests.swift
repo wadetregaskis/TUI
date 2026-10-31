@@ -11,9 +11,10 @@
 //  layer's glyph on another field, and the punched run cannot replay it: the cell
 //  froze on the drawn frame's field. So the compositor asks for a render at each
 //  of the run's steps (`Opacity as composition.md` §109), each `.overlay` of a
-//  chain under a token of its own. A layer that fades over the run is not asked
-//  for yet, nor is a floating one the root lays over it, and both are held here as
-//  known issues.
+//  chain under a token of its own. A layer that fades over the run shows the run's
+//  glyph, ink or field as well, so there any difference between its frames asks.
+//  A floating layer the root lays over the run is not asked for yet, and is held
+//  here as a known issue.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -335,26 +336,24 @@ struct LayerOverABaseRunTests {
         }
     }
 
-    /// Known issue: a layer that fades, or names a translucent field, over a run of
-    /// its base is resolved over the run's drawn frame, and the composite punches the
-    /// run as it does under a label. §109's rule asks for a render only where the
-    /// layer's cell takes the base's field and the run's frames disagree about it, so
-    /// where the layer loses the glyph to the run, or mixes its ink or field toward
-    /// the run's, the cell holds the drawn frame's between renders: a faded label or a
-    /// scrim over a run turning only its glyphs, a faded chip over one turning its
-    /// field. Older than the rule; pinned until the rule asks there too.
+    /// A layer that fades, or names a translucent field, over a run of its base is
+    /// resolved over the run's drawn frame, and the composite punches the run as it
+    /// does under a label. So where the layer loses the glyph to the run, or mixes its
+    /// ink or field toward the run's, a render has to draw it at each of the run's
+    /// steps: a faded label or a scrim over a run turning only its glyphs held the
+    /// run's drawn glyph, and a faded chip over one turning its field mixed toward the
+    /// drawn frame's, at 12 of 24 ticks.
     @Test(
-        "A fading layer over a run holds the drawn frame between renders (known issue)",
+        "A fading layer over a run is drawn over each step's frame",
         arguments: Shape.allCases, [Layer.fadedLabel, .scrim, .fadedChip])
     func aFadingLayerOverARun(shape: Shape, layer: Layer) throws {
         let found = ReplayOracle.compare(
             { LayerOverARunApp(shape, glyphOnly: layer != .fadedChip, layer: layer) }, ticks: 24, size: (30, 8))
         try #require(found.compared >= 24, "\(shape), \(layer): only \(found.compared) rows were compared")
-        withKnownIssue("a fading layer over a base run asks for no render at the run's steps (§109)") {
-            #expect(
-                found.mismatches.isEmpty,
-                "\(shape), \(layer): \(found.mismatches.count) mismatches, first \(found.mismatches.first ?? "")")
-        }
+        #expect(found.scheduledRenders == 24, "\(shape), \(layer): \(found.scheduledRenders) renders asked for")
+        #expect(
+            found.mismatches.isEmpty,
+            "\(shape), \(layer): \(found.mismatches.count) mismatches, first \(found.mismatches.first ?? "")")
     }
 
     /// Known issue: the root's flatten of floating layers (`compositingOverlays`)
