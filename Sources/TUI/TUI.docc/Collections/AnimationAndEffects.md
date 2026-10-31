@@ -35,6 +35,7 @@ Animate changes, move views in and out with transitions, and draw on a schedule.
 
 ### Transitions
 
+- ``AnyTransition``
 - ``BlurReplaceTransition``
 - ``ContentTransition``
 - ``GlassEffectTransition``
@@ -47,9 +48,10 @@ Animate changes, move views in and out with transitions, and draw on a schedule.
 
 ### Matched Geometry and Effects
 
+- ``View/matchedGeometryEffect(id:in:properties:anchor:isSource:)``
+- ``MatchedGeometryProperties``
 - ``VisualEffect``
 - ``EmptyVisualEffect``
-- ``MatchedGeometryProperties``
 - ``ScrollTransitionConfiguration``
 - ``ScrollTransitionPhase``
 

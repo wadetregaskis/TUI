@@ -20,16 +20,16 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 
 ### Windows
 
-- ``DefaultSettingsLinkLabel``
-- ``DefaultWindowVisibilityToggleLabel``
-- ``PresentedWindowContent``
-- ``SceneBuilder``
-- ``ScenePadding``
+- ``Window``
 - ``Settings``
 - ``SettingsLink``
-- ``Window``
-- ``WindowInteractionBehavior``
 - ``WindowVisibilityToggle``
+- ``WindowInteractionBehavior``
+- ``SceneBuilder``
+- ``ScenePadding``
+- ``PresentedWindowContent``
+- ``DefaultSettingsLinkLabel``
+- ``DefaultWindowVisibilityToggleLabel``
 - ``TerminalProgress``
 
 ### Commands and the Menu Bar
@@ -82,13 +82,13 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 - ``StatusBarKeySpelling``
 - ``SystemStatusBarItem``
 
-### Actions
+### Opening and Closing Things from Your Code
 
-- ``DismissBehavior``
-- ``DismissWindowAction``
-- ``MenuActionDismissBehavior``
-- ``OpenSettingsAction``
-- ``OpenURLAction``
 - ``OpenWindowAction``
+- ``DismissWindowAction``
+- ``DismissBehavior``
+- ``OpenURLAction``
+- ``OpenSettingsAction``
+- ``MenuActionDismissBehavior``
 - ``RefreshIndicator``
 - ``RequestAttentionAction``

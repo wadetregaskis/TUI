@@ -4,6 +4,10 @@ Change how each kind of control looks, with the built-in styles or one of your o
 
 ## Topics
 
+### The Whole App's Look
+
+- ``ControlStyle``
+
 ### Button Styles
 
 - ``ButtonStyle``
@@ -192,4 +196,3 @@ Change how each kind of control looks, with the built-in styles or one of your o
 - ``ButtonBorderShape``
 - ``ButtonSizing``
 - ``ControlSize``
-- ``ControlStyle``

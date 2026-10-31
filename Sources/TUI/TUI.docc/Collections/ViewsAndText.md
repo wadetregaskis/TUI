@@ -7,6 +7,7 @@ Show text, pictures, shapes and other content, and compose views of your own.
 ### Essentials
 
 - <doc:CustomViews>
+- <doc:TextStyling>
 - <doc:Localization>
 
 ### Views

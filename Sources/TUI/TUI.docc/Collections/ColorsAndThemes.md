@@ -1,6 +1,6 @@
 # Colors and Themes
 
-Choose colours, palettes, gradients, materials and borders.
+Choose colors, palettes, gradients, materials and borders.
 
 ## Topics
 

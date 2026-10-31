@@ -66,6 +66,7 @@ Take input with buttons, fields, toggles, sliders, pickers, menus and search.
 
 ### Search
 
+- ``View/searchable(text:placement:prompt:)-(_,_,LocalizedStringKey)``
 - ``SearchFieldPlacement``
 - ``SearchFieldIconPlacement``
 - ``DismissSearchAction``

@@ -8,6 +8,7 @@ Move between screens with stacks, split views and tabs, and present sheets, dial
 
 - <doc:Navigation>
 - <doc:Presentation>
+- <doc:FilePanels>
 
 ### Stacks and Links
 
@@ -51,9 +52,12 @@ Move between screens with stacks, split views and tabs, and present sheets, dial
 
 ### Sheets and Dialogs
 
-- ``AlertPanel``
-- ``Dialog``
+- ``View/sheet(isPresented:onDismiss:content:)``
+- ``View/alert(_:isPresented:actions:message:borderStyle:borderColor:titleColor:)-(LocalizedStringKey,_,_,_,_,_,_)``
+- ``View/confirmationDialog(_:isPresented:titleVisibility:actions:)-(LocalizedStringKey,_,_,_)``
 - ``PresentationDetent``
+- ``Dialog``
+- ``AlertPanel``
 - ``AlertScene``
 - ``DialogSeverity``
 

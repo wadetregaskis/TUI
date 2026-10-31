@@ -6,9 +6,26 @@ Respond to keys, clicks, drags and gestures, and decide where the focus goes.
 
 ### Essentials
 
-- <doc:FocusSystem>
 - <doc:KeyboardShortcuts>
+- <doc:FocusSystem>
 - <doc:MouseAndGestures>
+- <doc:DragAndDrop>
+- <doc:SelectingText>
+
+### Keyboard
+
+- ``View/keyboardShortcut(_:modifiers:)``
+- ``KeyboardShortcut``
+- ``KeyPress``
+- ``KeyEquivalent``
+- ``EventModifiers``
+- ``CommandKeyBinding``
+- ``SubmitTriggers``
+- ``KeyEvent``
+- ``Key``
+- ``ModifierKeyState``
+- ``ShortcutSet``
+- ``MoveCommandDirection``
 
 ### Focus
 
@@ -25,20 +42,6 @@ Respond to keys, clicks, drags and gestures, and decide where the focus goes.
 - ``FocusedValue``
 - ``FocusedValues``
 - ``ResetFocusAction``
-
-### Keyboard
-
-- ``KeyPress``
-- ``KeyboardShortcut``
-- ``KeyEquivalent``
-- ``EventModifiers``
-- ``CommandKeyBinding``
-- ``SubmitTriggers``
-- ``KeyEvent``
-- ``Key``
-- ``ModifierKeyState``
-- ``ShortcutSet``
-- ``MoveCommandDirection``
 
 ### Gestures
 
@@ -70,8 +73,10 @@ Respond to keys, clicks, drags and gestures, and decide where the focus goes.
 
 ### Drag and Drop
 
-- ``DragPreviewAnchor``
+- ``View/draggable(_:)``
+- ``View/dropDestination(for:action:isTargeted:)``
 - ``DropInfo``
+- ``DragPreviewAnchor``
 - ``DropDelegate``
 - ``DropProposal``
 - ``DropOperation``

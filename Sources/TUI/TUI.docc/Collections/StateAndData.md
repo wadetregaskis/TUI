@@ -20,12 +20,12 @@ Keep your data, pass it through your views, and save it between runs.
 
 ### Environment
 
-- ``EnvironmentKey``
+- ``Environment``
 - ``EnvironmentValues``
+- ``EnvironmentKey``
 - ``DismissAction``
 - ``RefreshAction``
 - ``EnvironmentResolvable``
-- ``Environment``
 
 ### Preferences
 
