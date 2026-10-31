@@ -14,7 +14,7 @@
     <img src="https://swift-tui.com/media/latest/mixer.webp" width="800" alt="A mixing desk made with TUI, in Ghostty: faders and pan knobs dragged with the mouse, and the level meters answering.">
 </p>
 
-Write SwiftUI, and get a terminal app. TUI speaks SwiftUI's language - all of it.  Views, `@State`, `@Observable`, stacks, lists, tables, navigation, sheets, menus, animation, and so much more. It draws them with nothing but Swift and the terminal's own escape codes: no ncurses, nothing to install. It runs on macOS, Linux, and in a web browser (and anywhere else that supports WebAssembly).
+Write SwiftUI, and get a terminal app. TUI speaks SwiftUI's language, with a terminal accent.  Views, `@State`, `@Observable`, stacks, lists, tables, navigation, sheets, menus, animation, and so much more. It draws them with nothing but Swift and the terminal's own escape codes: no ncurses, nothing to install. It runs on macOS, Linux, and in a web browser (and anywhere else that supports WebAssembly).
 
 > [!IMPORTANT]
 > TUI is close to a 1.0 release, but not there yet.  Until then, breaking changes may occur without notice.
