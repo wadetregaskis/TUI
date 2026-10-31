@@ -242,8 +242,14 @@ struct FileBrowserTests {
         await browser.loadFolder(fixture.url("Alpha"))
         await arranging.value
         #expect(browser.folderRows[fixture.url("Alpha").standardizedFileURL.path]?.map(\.name) == ["inner.txt"])
-        // As Finder compares names: by their numbers.
-        #expect(browser.folderRows[many.standardizedFileURL.path]?.first?.name == "item1499.txt")
+        // As Finder compares names, by their numbers, where Foundation can;
+        // elsewhere by their characters (`FileBrowser.nameOrder`).
+        #if canImport(Darwin)
+            let last = "item1499.txt"
+        #else
+            let last = "item999.txt"
+        #endif
+        #expect(browser.folderRows[many.standardizedFileURL.path]?.first?.name == last)
     }
 
     @Test("The root has nothing above it")

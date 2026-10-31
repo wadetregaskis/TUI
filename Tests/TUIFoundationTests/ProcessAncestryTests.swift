@@ -71,6 +71,9 @@ struct ProcessAncestryTests {
             current = parent
             steps += 1
         }
-        #expect(current == 1)
+        // Process 1, or under `docker exec`, as CI's Linux lanes run, a process
+        // whose parent is outside the container and reads as 0.
+        #expect(steps < 64)
+        #expect(ProcessAncestry.parent(of: current) == nil, "stopped at \(current)")
     }
 }

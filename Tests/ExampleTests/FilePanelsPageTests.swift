@@ -18,6 +18,15 @@ extension FilePanelsPage: ExamplePageContent {}
 struct FilePanelsPageTests {
     private typealias Driver = ExamplePageDriver<ExamplePageApp<FilePanelsPage>>
 
+    /// A dash for each panel but the first. The save panel's row needs
+    /// CoreTransferable, so Linux has four panels.
+    #if canImport(CoreTransferable)
+        private static let panelCount = 5
+    #else
+        private static let panelCount = 4
+    #endif
+    private static let otherPanelsCleared = Array(repeating: "—", count: panelCount - 1)
+
     private func driver() -> Driver {
         ExamplePageDriver(ExamplePageApp<FilePanelsPage>(), width: 240, height: 50)
     }
@@ -31,9 +40,9 @@ struct FilePanelsPageTests {
         }
     }
 
-    @Test("Each of the five panels has a result beside its button, cleared to a dash")
+    @Test("Each panel has a result beside its button, cleared to a dash")
     func fiveResults() {
-        #expect(results(driver()) == ["—", "—", "—", "—", "—"], "\(driver().lines)")
+        #expect(results(driver()) == ["—"] + Self.otherPanelsCleared, "\(driver().lines)")
     }
 
     @Test("A cancelled panel says so, and opening it again clears that")
@@ -42,7 +51,7 @@ struct FilePanelsPageTests {
         driver.click("page.files.open ▌")
         driver.press(.escape)
         #expect(results(driver).first == "page.files.cancelled", "\(driver.lines)")
-        #expect(Array(results(driver).dropFirst()) == ["—", "—", "—", "—"], "the others are untouched")
+        #expect(Array(results(driver).dropFirst()) == Self.otherPanelsCleared, "the others are untouched")
 
         driver.click("page.files.open ▌")
         #expect(results(driver).first == "—", "opening clears it: \(driver.lines)")
@@ -56,7 +65,7 @@ struct FilePanelsPageTests {
         driver.click("page.files.chooseFolder")
         driver.press(.escape)
         let shown = results(driver)
-        #expect(shown.count == 5)
+        #expect(shown.count == Self.panelCount)
         #expect(shown[0] == "page.files.cancelled" && shown[2] == "page.files.cancelled", "\(shown)")
         #expect(shown[1] == "—")
     }
