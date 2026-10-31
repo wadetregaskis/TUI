@@ -112,10 +112,11 @@ instead — `NavigationStack(path: $recipes)` — and the path is just your data
   recommends) keeps every type reachable. A value with no destination shows a
   blank screen that still has its back button, rather than being silently
   dropped.
-- **`NavigationPath` has no `CodableRepresentation`.** Serialising one means
-  recording each element's type name and looking it back up at runtime, which is
-  not available on every platform TUI targets. Persist your own array of
-  values and rebuild the path with `NavigationPath(_:)`.
+- **To save a `NavigationPath`, use its ``NavigationPath/codable`` property**,
+  which is `nil` if any value in the path isn't `Codable`, and rebuild it with
+  `NavigationPath(_:)`. It records each value's type by name, so a saved path
+  can stop decoding when that type is renamed or moved; see <doc:ChoosingProducts>.
+  Saving your own array of values, and rebuilding the path from that, avoids this.
 
 ## Columns instead
 
