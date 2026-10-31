@@ -1,6 +1,6 @@
 # ``TUI``
 
-A declarative, SwiftUI-like framework for building Terminal User Interfaces in Swift.
+The Swift Terminal UI framework: write SwiftUI, and get a terminal app.
 
 @Metadata {
     @DisplayName("TUI")
@@ -10,433 +10,58 @@ A declarative, SwiftUI-like framework for building Terminal User Interfaces in S
 
 ## Overview
 
-TUI lets you build terminal applications using a familiar, declarative syntax inspired by SwiftUI. No ncurses, no system terminal libraries: rendering is pure Swift. (Image decoding bundles `stb_image` as an in-tree C target; there are no external system C dependencies.)
+TUI speaks SwiftUI's language: views, `@State`, `@Observable`, stacks, lists, tables, navigation, sheets, menus, animation and much more. It draws them with nothing but Swift and the terminal's own escape codes, on macOS, on Linux, and in a web browser.
 
 ```swift
+import TUI
+
 @main
-struct MyApp: App {
+struct Hello: App {
     var body: some Scene {
         WindowGroup {
             VStack {
-                Text("Hello, TUI!")
-                    .bold()
-                    .foregroundStyle(.cyan)
-                Button("Press me") {
-                    // handle action
-                }
+                Text("Hello, TUI!").bold()
+                Button("Press me") {}
             }
         }
     }
 }
 ```
 
-### Key Features
-
-- **Declarative syntax**: Build UIs with `VStack`, `HStack`, `Text`, `Button`, and more
-- **SwiftUI-like API**: `@State`, `@ViewBuilder`, environment values, modifiers
-- **Theming system**: 16 built-in palettes (6 phosphor presets + 10 terminal profiles) with full RGB color support
-- **Focus management**: Keyboard-driven navigation between interactive elements
-- **Status bar**: Configurable shortcut bar with context stack
-- **Menu bar**: SwiftUI's commands (`CommandMenu`, `CommandGroup`) draw a menu bar on the window's top row, opened with F10 or a click
-- **No terminal libraries**: Rendering is pure Swift, with no ncurses or system terminal C libraries
-- **Cross-platform**: macOS and Linux
+[See TUI in action](https://swift-tui.com/), or [try the demo in your browser](https://swift-tui.com/demo/).
 
 ## Topics
 
-### Essentials
+### Get Started
 
 - <doc:GettingStarted>
-- <doc:Architecture>
-- <doc:AppLifecycle>
-- <doc:RenderCycle>
-
-### Guides
-
-- <doc:StateManagement>
-- <doc:ThemingGuide>
-- <doc:FocusSystem>
-- <doc:StatusBarGuide>
-- <doc:AppearanceAndColors>
-- <doc:Preferences>
-- <doc:CustomViews>
-- <doc:AnimatingChanges>
-- <doc:AnimatingYourOwnView>
-- <doc:KeyboardShortcuts>
-- <doc:MouseAndGestures>
-- <doc:Presentation>
-- <doc:Navigation>
-- <doc:PaletteReference>
-- <doc:ListAndTable>
-- <doc:LayoutSystem>
-- <doc:Localization>
-
-### Products and Modules
-
+- <doc:ComingFromSwiftUI>
 - <doc:ChoosingProducts>
-- <doc:ModuleIndex>
 
-### App Structure
+### Build Your Interface
 
-- ``App``
-- ``Scene``
-- ``WindowGroup``
-- ``renderOnce(content:)``
+- <doc:ViewsAndText>
+- <doc:Controls>
+- <doc:LayoutAndGeometry>
+- <doc:ListsAndTables>
+- <doc:ScrollingContent>
 
-### Commands and the Menu Bar
+### Structure Your App
 
-- ``Commands``
-- ``CommandsBuilder``
-- ``CommandMenu``
-- ``CommandGroup``
-- ``CommandGroupPlacement``
-- ``EmptyCommands``
-- ``SidebarCommands``
-- ``InspectorCommands``
-- ``ToolbarCommands``
-- ``TextEditingCommands``
-- ``DisplayCommands``
+- <doc:AppsAndWindows>
+- <doc:NavigationAndPresentation>
+- <doc:StateAndData>
 
-### Views
+### Respond and Move
 
-- ``View``
-- ``Text``
-- ``LocalizedStringKey``
-- ``Image``
-- ``ImageSource``
-- ``Label``
-- ``EmptyView``
-- ``AnyView``
-- ``Spinner``
-- ``Divider``
-- ``ContentUnavailableView``
+- <doc:KeyboardMouseAndFocus>
+- <doc:AnimationAndEffects>
 
-### Interactive Controls
+### Style It
 
-- ``Button``
-- ``ButtonRole``
-- ``ButtonRow``
-- ``TextField``
-- ``SecureField``
-- ``TextEditor``
-- ``Toggle``
-- ``Slider``
-- ``Stepper``
-- ``RadioButtonGroup``
-- ``Picker``
-- ``RadioButtonItem``
-- ``DatePicker``
-- ``ColorPicker``
-- ``Menu``
-- ``Link``
-- ``ProgressView``
-- ``Gauge``
-- ``EditButton``
-- ``EditMode``
+- <doc:ColorsAndThemes>
+- <doc:ControlStyles>
 
-### Layout
+### Go Deeper
 
-- ``VStack``
-- ``HStack``
-- ``ZStack``
-- ``LazyVStack``
-- ``LazyHStack``
-- ``Spacer``
-- ``Section``
-- ``ForEach``
-- ``Group``
-- ``ViewThatFits``
-- ``HorizontalAlignment``
-- ``VerticalAlignment``
-- ``Alignment``
-- ``ProposedSize``
-- ``ViewSize``
-
-### Containers
-
-- ``Card``
-- ``Panel``
-- ``DisclosureGroup``
-- ``OutlineGroup``
-- ``AlertPanel``
-- ``Dialog``
-- ``PresentationDetent``
-- ``ScenePhase``
-- ``SceneStorage``
-- ``NavigationStack``
-- ``NavigationLink``
-- ``NavigationPath``
-- ``NavigationSplitView``
-- ``TabView``
-- ``Tab``
-- ``TabSection``
-- ``TabContent``
-- ``TabContentBuilder``
-- ``AnyTabContent``
-- ``DefaultTabLabel``
-- ``TabRole``
-- ``TabPlacement``
-- ``TabViewCustomization``
-- ``AdaptableTabBarPlacement``
-- ``TabCustomizationBehavior``
-- ``ScrollView``
-- ``Form``
-- ``LabeledContent``
-
-### Data Collections
-
-- ``List``
-- ``Table``
-- ``TableColumn``
-- ``TableColumnContent``
-- ``TableColumnBuilder``
-- ``TableColumnForEach``
-- ``TableColumnAlignment``
-- ``TableColumnCustomization``
-- ``TableColumnCustomizationBehavior``
-- ``TupleTableColumnContent``
-- ``TableRow``
-- ``TableRowContent``
-- ``TableRowBuilder``
-- ``DynamicTableRowContent``
-- ``TupleTableRowContent``
-- ``TableForEachContent``
-- ``EmptyTableRowContent``
-- ``DisclosureTableRow``
-- ``TableOutlineGroupContent``
-- ``ColumnWidth``
-- ``SelectionMode``
-- ``RowReorderFeedback``
-
-### Scrolling
-
-- ``ScrollViewReader``
-- ``ScrollPosition``
-- ``ScrollViewProxy``
-- ``ScrollAnchor``
-- ``ScrollWindowHold``
-- ``ScrollFollowMargin``
-- ``ScrollGranularity``
-- ``ScrollTargetBehavior``
-- ``PagingScrollTargetBehavior``
-- ``ViewAlignedScrollTargetBehavior``
-- ``AnyScrollTargetBehavior``
-- ``ScrollTarget``
-- ``ScrollTargetBehaviorContext``
-- ``ScrollTargetBehaviorProperties``
-- ``ScrollTargetBehaviorPropertiesContext``
-- ``ScrollOverscroll``
-- ``ScrollIndicatorVisibility``
-- ``ScrollIndicatorStyle``
-- ``ScrollbarArrows``
-- ``ScrollbarEdges``
-- ``ScrollbarClickBehavior``
-- ``ScrollbarRepeat``
-
-### Focus
-
-- ``FocusState``
-- ``FocusInteractions``
-- ``DefaultFocusEvaluationPriority``
-- ``SelectionEmphasis``
-
-### Keyboard
-
-- ``KeyPress``
-- ``KeyboardShortcut``
-- ``KeyEquivalent``
-- ``EventModifiers``
-- ``CommandKeyBinding``
-- ``SubmitTriggers``
-
-### Gestures
-
-- ``Gesture``
-- ``TapGesture``
-- ``SpatialTapGesture``
-- ``LongPressGesture``
-- ``DragGesture``
-- ``GestureState``
-- ``GestureStateGesture``
-- ``SimultaneousGesture``
-- ``SequenceGesture``
-- ``ExclusiveGesture``
-- ``AnyGesture``
-- ``GestureMask``
-
-### Mouse & Drag and Drop
-
-- ``MouseSupport``
-- ``MouseFeature``
-- ``DragPreviewAnchor``
-- ``DropInfo``
-
-### Search
-
-- ``SearchFieldPlacement``
-- ``SearchFieldIconPlacement``
-
-### State Management
-
-- ``State``
-- ``Binding``
-
-### Animation
-
-- ``withAnimation(_:_:)``
-- ``Animation``
-- ``Animatable``
-- ``Transaction``
-- ``withTransaction(_:_:)``
-- ``VectorArithmetic``
-- ``AnimatablePair``
-- ``EmptyAnimatableData``
-- ``TimelineView``
-- ``TimelineViewDefaultContext``
-- ``TimelineSchedule``
-- ``TimelineScheduleMode``
-- ``PeriodicTimelineSchedule``
-- ``EveryMinuteTimelineSchedule``
-- ``ExplicitTimelineSchedule``
-- ``AnimationTimelineSchedule``
-- ``IndicatorAnimationSpeed``
-- ``IndicatorAnimations``
-- ``IndicatorAnimationSpeeds``
-
-### Environment
-
-- ``EnvironmentKey``
-- ``EnvironmentValues``
-- ``DismissAction``
-- ``RefreshAction``
-
-### Preference System
-
-- ``PreferenceKey``
-- ``PreferenceValues``
-
-### Theming
-
-- ``Palette``
-- ``SystemPalette``
-- ``AppleTerminalPalette``
-- ``PaletteRegistry``
-- ``Color``
-- ``Font``
-- ``FontWeight``
-- ``StyleAttributes``
-- ``StyleScope``
-- ``StyleCascade``
-- ``ChromeRole``
-- ``ControlKind``
-
-### Appearance
-
-- ``Appearance``
-- ``BorderStyle``
-- ``ContentMode``
-- ``EdgeInsets``
-- ``Edge``
-
-### Styles
-
-- ``ButtonStyle``
-- ``ButtonStyleConfiguration``
-- ``DefaultButtonStyle``
-- ``BorderedButtonStyle``
-- ``BorderedProminentButtonStyle``
-- ``BorderlessButtonStyle``
-- ``LinkButtonStyle``
-- ``DestructiveButtonStyle``
-- ``SuccessButtonStyle``
-- ``PlainButtonStyle``
-- ``ToggleStyle``
-- ``DefaultToggleStyle``
-- ``CheckboxToggleStyle``
-- ``SwitchToggleStyle``
-- ``ToggleCharacterSet``
-- ``MenuStyle``
-- ``MenuStyleConfiguration``
-- ``DefaultMenuStyle``
-- ``InlineMenuStyle``
-- ``GaugeStyle``
-- ``GaugeStyleConfiguration``
-- ``DefaultGaugeStyle``
-- ``LinearCapacityGaugeStyle``
-- ``AccessoryLinearGaugeStyle``
-- ``AccessoryLinearCapacityGaugeStyle``
-- ``AccessoryCircularGaugeStyle``
-- ``AccessoryCircularCapacityGaugeStyle``
-- ``AccessoryCircularTinyGaugeStyle``
-- ``FormStyle``
-- ``FormStyleConfiguration``
-- ``TableStyle``
-- ``TableStyleConfiguration``
-- ``AutomaticTableStyle``
-- ``BorderedTableStyle``
-- ``InsetTableStyle``
-- ``TrackStyle``
-- ``TrackConfiguration``
-- ``IndeterminateStyle``
-- ``IndeterminateConfiguration``
-- ``ListStyle``
-- ``DefaultListStyle``
-- ``BorderedListStyle``
-- ``InsetListStyle``
-- ``PlainListStyle``
-- ``SidebarListStyle``
-- ``InsetGroupedListStyle``
-- ``ListItemTint``
-- ``SpinnerStyle``
-- ``TextCursorStyle``
-- ``TextContentType``
-- ``NavigationSplitViewStyle``
-- ``TabViewStyle``
-- ``PickerStyle``
-- ``DefaultPickerStyle``
-- ``MenuPickerStyle``
-- ``InlinePickerStyle``
-- ``RadioGroupPickerStyle``
-
-### View Composition
-
-- ``ViewBuilder``
-- ``ViewModifier``
-- ``ModifiedContent``
-- ``EmptyModifier``
-- ``BufferModifier``
-- ``ModifiedView``
-- ``EquatableView``
-
-### Focus System
-
-- ``FocusReference``
-- ``Focusable``
-
-### Status Bar
-
-- ``StatusBar``
-- ``StatusBarState``
-- ``StatusBarItem``
-- ``StatusBarItemProtocol``
-- ``ChromeStyle``
-- ``StatusBarAlignment``
-- ``Shortcut``
-
-### Input Handling
-
-- ``KeyEvent``
-- ``Key``
-- ``QuitBehavior``
-
-### Rendering
-
-- ``FrameBuffer``
-- ``RenderContext``
-- ``OverlayLayer``
-- ``OverlayLevel``
-
-### Persistence
-
-- ``AppStorage``
-- ``StorageBackend``
-- ``StoredKey``
+- <doc:UnderTheHood>

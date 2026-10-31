@@ -179,3 +179,11 @@ module: the module split's step B1, which renamed the module of everything
 above the lower four, broke all five hash links to those symbols. Only where
 the types cannot tell the overloads apart (two generic `S` constrained
 differently) is the hash the way.
+
+## Where a page's symbols are listed
+
+The landing page, `Sources/TUI/TUI.docc/TUI.md`, lists only articles and the
+themed pages in `TUI.docc/Collections/`, and those pages list the symbols. A
+public symbol that no page lists appears on the landing page anyway, in a section
+DocC makes for it, so add a new one to the page and section where a reader
+would look for it.
