@@ -248,6 +248,10 @@ The status bar system has three parts:
 - **``StatusBarItem``**: A single shortcut entry (key + label + action)
 - **``StatusBar``**: The view that renders items into a ``FrameBuffer``
 
+## When the Items Do Not Fit
+
+Items never touch and none is ever cut. A row too narrow closes the gaps between them to one column, then leaves out whole items from the end, the quit item last of all, and blank when not even that fits. An item left out loses only its hint: its key still works.
+
 ## Event Dispatch Priority
 
 Status bar items are dispatched in **Layer 1** of the key event pipeline: they take priority over view-registered handlers and default bindings. See <doc:AppLifecycle> for the full dispatch order.

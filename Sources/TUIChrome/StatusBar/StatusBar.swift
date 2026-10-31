@@ -336,7 +336,7 @@ private struct _StatusBarCore: View, Renderable {
         let hoveredID = context.environment.statusBar?.hoveredItemID
         let activationOverride = context.environment.statusBar?.activationLabelOverride
         let colours = resolvedColours(in: context.environment.palette)
-        let layouts = combinedItems.map { item -> ItemLayout in
+        let allLayouts = combinedItems.map { item -> ItemLayout in
             let display = renderItemString(
                 item: item,
                 colours: colours,
@@ -352,6 +352,9 @@ private struct _StatusBarCore: View, Renderable {
                 visibleWidth: display.strippedLength
             )
         }
+        // Whole items, or none: everything below places what is left, so the
+        // hit regions and the claims can only name items that were drawn.
+        let layouts = itemsFitting(allLayouts, width: style.barContentWidth(context.availableWidth))
 
         var buffer: FrameBuffer
         let itemColumnOffset: Int
@@ -769,11 +772,45 @@ private struct _StatusBarCore: View, Renderable {
         return item.triggerKey != nil
     }
 
+    /// The columns between items where the row has room for them, and the
+    /// fewest it ever draws: items that touch read as one long word.
+    private static let roomyGap = 2
+    private static let tightestGap = 1
+
+    /// The columns `layouts` take on a row under this alignment, with `gap`
+    /// columns between them: the leading and trailing alignments keep a column
+    /// off the edge they sit against.
+    private func widthNeeded(by layouts: [ItemLayout], gap: Int) -> Int {
+        let items = layouts.reduce(gap * max(0, layouts.count - 1)) { $0 + $1.visibleWidth }
+        switch alignment {
+        case .leading, .trailing: return items + 1
+        case .center, .justified: return items
+        }
+    }
+
+    /// The items a row `width` columns wide can draw whole, with a column
+    /// between each: the last ones go first, the quit item after all the rest.
+    /// A hint cut short is a hint for a key that is not the one named, and two
+    /// run together are neither. The keys of the items left out still work.
+    private func itemsFitting(_ layouts: [ItemLayout], width: Int) -> [ItemLayout] {
+        var kept = layouts
+        while !kept.isEmpty, widthNeeded(by: kept, gap: Self.tightestGap) > width {
+            kept.remove(at: kept.lastIndex { $0.item.order != .quit } ?? kept.count - 1)
+        }
+        return kept
+    }
+
     /// Aligns content within the given width based on alignment
     /// setting. Returns the rendered line and the column at
     /// which each input item was placed.
+    ///
+    /// `layouts` are items that fit (``itemsFitting(_:width:)``).
     private func alignContent(layouts: [ItemLayout], width: Int) -> LaidOutLine {
-        let separator = "  "  // Two spaces between items for non-justified
+        guard !layouts.isEmpty else {
+            return LaidOutLine(line: String.spaces(max(0, width)), placedColumns: [])
+        }
+        let separator = String.spaces(
+            widthNeeded(by: layouts, gap: Self.roomyGap) <= width ? Self.roomyGap : Self.tightestGap)
         let strings = layouts.map(\.display)
         let widths = layouts.map(\.visibleWidth)
 
@@ -831,14 +868,10 @@ private struct _StatusBarCore: View, Renderable {
     /// Distributes items evenly across the width (justified alignment).
     /// Returns the rendered line and the column at which each
     /// input item was placed.
+    ///
+    /// `layouts` are items that fit (``itemsFitting(_:width:)``), so there is a
+    /// column for each gap between them.
     private func justifyContent(layouts: [ItemLayout], width: Int) -> LaidOutLine {
-        guard !layouts.isEmpty else {
-            return LaidOutLine(
-                line: String.spaces(width),
-                placedColumns: []
-            )
-        }
-
         guard layouts.count > 1 else {
             // Single item: center it
             let only = layouts[0]
@@ -860,6 +893,10 @@ private struct _StatusBarCore: View, Renderable {
         let availableForGaps = max(0, width - totalContentWidth)
         let gapWidth = availableForGaps / gapCount
         let extraSpace = availableForGaps % gapCount
+        // Exactly a column for each gap between the items, and none for the
+        // edges, which the even spread below would give one of: the left edge's
+        // would come out of the last gap, and two items would touch.
+        let justFits = availableForGaps == gapCount - 2
 
         // Build justified string with equal gaps, recording each
         // item's starting column as we go.
@@ -868,7 +905,7 @@ private struct _StatusBarCore: View, Renderable {
         var cursor = 0
 
         // Left edge gap (gets extra space if available)
-        let leftGapExtra = extraSpace > 0 ? 1 : 0
+        let leftGapExtra = extraSpace > 0 && !justFits ? 1 : 0
         let leftGap = gapWidth + leftGapExtra
         line += String.spaces(leftGap)
         cursor += leftGap
@@ -882,7 +919,7 @@ private struct _StatusBarCore: View, Renderable {
                 // Gap between items.
                 // Distribute extra space to middle gaps (after left edge took one if available).
                 let gapIndex = index + 1  // 0 = left edge, 1..n-1 = between items, n = right edge
-                let extra = gapIndex < extraSpace ? 1 : 0
+                let extra = gapIndex < extraSpace || justFits ? 1 : 0
                 let gap = gapWidth + extra
                 line += String.spaces(gap)
                 cursor += gap
