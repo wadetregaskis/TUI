@@ -69,6 +69,15 @@ package enum InterpolatedNumber: Hashable, Sendable {
             case .double(let bits): Double(bitPattern: bits)
             }
         }
+
+        /// Whether this is an unsigned value its signed twin cannot hold.
+        fileprivate var exceedsSignedRange: Bool {
+            switch self {
+            case .uint32(let value): value > UInt32(Int32.max)
+            case .uint64(let value): value > UInt64(Int64.max)
+            case .int32, .int64, .double: false
+            }
+        }
     }
 
     /// A floating-point number.
@@ -91,7 +100,17 @@ package enum InterpolatedNumber: Hashable, Sendable {
         case .floating(let bits): FloatingPointFormatStyle<Double>(locale: locale).format(Double(bitPattern: bits))
         case .verbatim(let description): description
         case .specified(let specifier, let argument):
-            String(format: specifier, locale: locale, argument.cVarArg)
+            #if canImport(Darwin)
+                String(format: specifier, locale: locale, argument.cVarArg)
+            #else
+                // Outside Apple's platforms Foundation writes an integer in a
+                // locale as signed: UInt.max came out "-1" (Swift 6.2 and 6.3
+                // on Linux, CI, 2026-10-29). Without a locale it is right, and
+                // that Foundation groups no conversion's digits either way.
+                argument.exceedsSignedRange
+                    ? String(format: specifier, argument.cVarArg)
+                    : String(format: specifier, locale: locale, argument.cVarArg)
+            #endif
         }
     }
 }
