@@ -10,6 +10,12 @@ import Foundation
 import Observation
 import TUICore
 
+#if canImport(Glibc)
+    import Glibc
+#elseif canImport(Musl)
+    import Musl
+#endif
+
 // MARK: - Reads nothing keeps
 
 // A read is observed for what it can make stale: in a body
@@ -111,45 +117,67 @@ private func frameChange(
 /// The `Binding`s read during a frame's walk, to be read again after it under
 /// one frame-only scope (``observingFrameReads(cache:identity:_:)``).
 ///
-/// Noted only on the main thread, where the walk runs, and only between
-/// ``begin()`` and ``end()``: a read anywhere else is not a drawing's. A
-/// getter read twice is what SwiftUI allows too: it calls them as often as
-/// it likes.
+/// Noted only on the thread walking, and only between ``begin()`` and
+/// ``end()``: a read anywhere else is not a drawing's. A getter read twice is
+/// what SwiftUI allows too: it calls them as often as it likes.
 package enum BindingReads {
     /// The reads noted since ``begin()``; `nil` outside a walk. Touched only on
-    /// the main thread, which is checked before it is read.
+    /// the thread walking, which is checked before it is read.
     nonisolated(unsafe) private static var noted: [() -> Void]?
 
     /// Starts noting.
     @MainActor
     package static func begin() {
         noted = []
+        #if canImport(Glibc) || canImport(Musl)
+            pthread_setspecific(walkingThreadKey, UnsafeRawPointer(bitPattern: 1))
+        #endif
     }
 
     /// Stops noting, and returns what was noted.
     @MainActor
     package static func end() -> [() -> Void] {
-        defer { noted = nil }
+        defer {
+            noted = nil
+            #if canImport(Glibc) || canImport(Musl)
+                pthread_setspecific(walkingThreadKey, nil)
+            #endif
+        }
         return noted ?? []
     }
 
     /// Notes `get`, a binding's getter, when a walk is noting. Generic, and
     /// wrapped only after the checks, so a read outside a walk allocates
     /// nothing.
-    /// Whether this is the main thread: always, on WebAssembly's wasip1,
-    /// which is single-threaded and has no `Thread` to ask (as
-    /// `BodyMutationDiagnostic.callingThread`).
-    private static var isMainThread: Bool {
+    /// Whether this thread is the one walking. On WebAssembly's wasip1, which
+    /// is single-threaded and has no `Thread` to ask, it always is (as
+    /// `BodyMutationDiagnostic.callingThread`). On Linux the main actor is
+    /// drained by a pool thread after the first suspension (see `StackGuard`),
+    /// so `Thread.isMainThread` is false for the walk: the walking thread marks
+    /// itself, and each thread reads only its own mark, so no thread reads what
+    /// another writes. Elsewhere the main actor is the main thread.
+    private static var isWalkingThread: Bool {
         #if canImport(WASILibc)
             true
+        #elseif canImport(Glibc) || canImport(Musl)
+            pthread_getspecific(walkingThreadKey) != nil
         #else
             Thread.isMainThread
         #endif
     }
 
+    #if canImport(Glibc) || canImport(Musl)
+        /// The thread-local mark ``isWalkingThread`` reads.
+        private static let walkingThreadKey: pthread_key_t = {
+            var key = pthread_key_t()
+            pthread_key_create(&key, nil)
+            return key
+        }()
+    #endif
+
     @inline(__always)
     static func note<Value>(_ get: @escaping () -> Value) {
-        guard isMainThread, noted != nil else { return }
+        guard isWalkingThread, noted != nil else { return }
         noted?.append { _ = get() }
     }
 }
