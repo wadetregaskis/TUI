@@ -1,118 +1,112 @@
 # Layout System
 
-Understand the two-pass layout used by stacks and other layout containers.
+Arrange views with stacks, padding and frames, and see how sizes are worked out.
 
 ## Overview
 
-TUI uses a two-pass layout system inspired by SwiftUI's layout protocol. Layout containers like ``VStack`` and ``HStack`` first **measure** each child, then **render** them with allocated sizes. This approach enables features like flexible spacers, proportional sizing, and proper alignment.
+Layout works as it does in SwiftUI, in whole character cells rather than points. Put views in a stack, add space with padding and spacers, and give a view a size with a frame. The later sections cover grids, reading the space you were given, and custom layouts, and the last one explains how sizes are worked out.
 
-## The Two Passes
+## Stacks
 
-### Pass 1: Measure
-
-The parent proposes a size to each child via ``ProposedSize``. Each child responds with a ``ViewSize`` that describes how much space it needs and whether it can flex.
-
-```
-Parent (VStack)
-  ├─ propose(width: 40, height: nil) → Text    → ViewSize(10, 1, flexible: false)
-  ├─ propose(width: 40, height: nil) → Spacer  → ViewSize(0, 0, flexible: true)
-  └─ propose(width: 40, height: nil) → Button  → ViewSize(12, 1, flexible: false)
-```
-
-### Pass 2: Render
-
-After measuring all children, the parent distributes the remaining space among flexible children and renders each child with its final allocated size.
-
-```
-Parent allocates:
-  Text   → render(width: 40, height: 1)   // Gets full width, fixed height
-  Spacer → render(width: 40, height: 8)   // Gets remaining vertical space
-  Button → render(width: 40, height: 1)   // Gets full width, fixed height
-```
-
-## ProposedSize
-
-``ProposedSize`` represents the space a parent offers to a child. Either dimension can be `nil`, meaning "use your ideal size."
+``VStack`` puts views under each other, ``HStack`` beside each other, and ``ZStack`` on top of each other:
 
 ```swift
-public struct ProposedSize {
-    public var width: Int?
-    public var height: Int?
+VStack(alignment: .leading) {
+    Text("Groceries").bold()
+    HStack {
+        Text("Apples")
+        Spacer()
+        Text("3")
+    }
 }
 ```
 
-| Value | Meaning |
-|-------|---------|
-| `nil` | Use ideal size (no constraint) |
-| `0` | Minimum size |
-| `> 0` | Available space in characters/lines |
+A ``Spacer`` takes up all the room left over, which is how `3` ends up at the far right. Stacks centre their views unless you pass an `alignment:`.
 
-## ViewSize
-
-``ViewSize`` is the child's response: how much space it needs and whether it can expand.
+`VStack` puts no blank row between its views, and `HStack` puts one column. Pass `spacing:` to change that, in cells:
 
 ```swift
-public struct ViewSize {
-    public var width: Int
-    public var height: Int
-    public var isWidthFlexible: Bool
-    public var isHeightFlexible: Bool
+VStack(spacing: 1) {
+    Text("One")
+    Text("Two")
 }
 ```
 
-Factory methods make common patterns concise:
+## Padding
+
+`.padding()` adds one cell on each side. A number sets how many, and an edge says where:
 
 ```swift
-ViewSize.fixed(20, 1)                    // Fixed 20x1, won't expand
-ViewSize.flexible(minWidth: 0, minHeight: 0)  // Expands in both directions
-ViewSize.flexibleWidth(minWidth: 5, height: 1) // Expands horizontally only
+Text("Saved").padding()
+Text("Saved").padding(2)
+Text("Saved").padding(.horizontal, 2)
 ```
 
-## The Layoutable Protocol
+## Frames
 
-Views that participate in two-pass layout conform to `Layoutable` (which extends `Renderable`):
+`.frame` gives a view a size, or a range of sizes:
 
 ```swift
-protocol Layoutable: Renderable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+Text("Name").frame(width: 20)                       // 20 columns, text at the left
+Text("Name").frame(width: 20, alignment: .trailing) // 20 columns, text at the right
+Text("Name").frame(maxWidth: .infinity)             // all the width there is, text centred
+```
+
+A frame with a fixed size puts its content at the top left, where SwiftUI centres it. A flexible frame, like the last one, still centres.
+
+## Rows That Line Up: Grid
+
+``Grid`` sizes each column to its widest cell *across every row*, so cells line
+up without any of them being given a width — the thing a column of `HStack`s
+cannot do, because each of those rows sizes on its own:
+
+```swift
+Grid(alignment: .leading) {
+    GridRow { Text("Name");   Text("Size"); Text("Kind") }
+    Divider()                                  // spans every column
+    GridRow { Text("README"); Text("2 KB"); Text("Markdown") }
 }
 ```
 
-A default implementation renders the view and measures the resulting buffer. Custom implementations can calculate size without rendering for better performance.
+Spacings are whole cells, defaulting to one column and no rows. A cell can span
+with ``View/gridCellColumns(_:)``, and placement precedence runs
+``View/gridCellAnchor(_:)`` → ``View/gridColumnAlignment(_:)`` → the row's
+alignment → the grid's. A cell that should fill its column or row rather than
+size it — a rule, a fill — takes ``View/gridCellUnsizedAxes(_:)``.
 
-## ChildView
-
-Layout containers wrap their children in `ChildView`, which provides a uniform interface for measuring and rendering:
+A ``GridRow`` is not a container of its own: it hands its cells to whatever lays
+them out, so outside a grid they are simply views. ``GridLayout`` is the same
+lattice as a ``Layout``, for switching with another through ``AnyLayout`` while
+every cell keeps its identity:
 
 ```swift
-struct ChildView {
-    func measure(proposal: ProposedSize, context: RenderContext) -> ViewSize
-    func render(width: Int, height: Int, context: RenderContext) -> FrameBuffer
+let layout = isWide ? AnyLayout(GridLayout()) : AnyLayout(VStackLayout())
+layout {
+    GridRow { Text("Name");   Text("Size") }
+    GridRow { Text("README"); Text("2 KB") }
 }
 ```
 
-`ChildView` automatically detects spacers and propagates child identity for correct state management.
+## Reading the Space You Were Given
 
-## How Stacks Lay Out Children
+``GeometryReader`` hands its content the size the container was actually
+offered, so a view can branch on it:
 
-``VStack`` and ``HStack`` follow this algorithm:
+```swift
+GeometryReader { proxy in
+    if proxy.size.width >= 60 { HStack { Sidebar(); Detail() } } else { Detail() }
+}
+```
 
-1. **Measure** all children with `.unspecified` to learn their natural sizes
-2. **Sum** the fixed sizes along the stack axis
-3. **Distribute** remaining space among flexible children (spacers, flexible text fields, etc.)
-4. **Re-measure** each child along the *cross axis* at its allocated size,
-   so the row / column is tall (or wide) enough for any wrapping a narrow
-   allocated width forces. Without this step a long `Text` inside an
-   `HStack` would silently lose its wrapped lines when the stack squeezed
-   it under its natural width.
-5. **Render** each child with its allocated size
-6. **Compose** the rendered buffers with the specified spacing and alignment
-
-Flexible children share remaining space equally. If multiple spacers exist, they each get an equal portion of the leftover space.
+As in SwiftUI it **fills** the space proposed to it rather than hugging its
+content — that is what makes the reported size meaningful — so bound it with a
+`.frame(...)` when you want it smaller. Its content is not measured with the
+other views: measuring would mean building it, which needs a proxy, which needs the
+size the measure is working out.
 
 ## Alignment Guides
 
-Step 6 above aligns each child on one *guide*: `.leading` sits at a view's
+A stack lines its children up on one *guide*: `.leading` sits at a view's
 leading edge, `.center` at its middle, and the container lines those positions
 up. ``View/alignmentGuide(_:computeValue:)-(HorizontalAlignment,_)`` moves a
 child's guide, so it can hang off the alignment line instead of sitting on it:
@@ -176,30 +170,12 @@ them; a cell has no transparency, so whatever it draws past the region hides
 what is beneath it. In a **lazy** stack the run is the realized rows, so
 prefer guides on content whose realized set is stable; a lazy stack reports none
 of its rows' guides to its own parent. SwiftUI's lazy stacks ignore explicit
-guides altogether (measured); TUI's honour them on purpose (decisions
-A-GUIDE-1).
+guides altogether; TUI's honour them on purpose.
 
 Custom guides come from ``AlignmentID``, whose `defaultValue(in:)` receives the
 view's ``ViewDimensions``. Note that a guide's value is `Double` even though
 every size and position here is a whole cell — see ``AlignmentID`` for why that
 is what preserves TUI's long-standing centring rather than shifting it.
-
-## Reading the Space You Were Given
-
-``GeometryReader`` hands its content the size the container was actually
-offered, so a view can branch on it:
-
-```swift
-GeometryReader { proxy in
-    if proxy.size.width >= 60 { HStack { Sidebar(); Detail() } } else { Detail() }
-}
-```
-
-As in SwiftUI it **fills** the space proposed to it rather than hugging its
-content — that is what makes the reported size meaningful — so bound it with a
-`.frame(...)` when you want it smaller. Its content is not measured during
-Pass 1: measuring would mean building it, which needs a proxy, which needs the
-size Pass 1 is computing.
 
 ## Writing Your Own Layout
 
@@ -236,40 +212,115 @@ because the geometry is integral rather than floating point:
   ``LayoutSubview/place(in:anchor:proposal:)``, which does it in one step and
   clamps the result inside the region.
 
-## Rows That Line Up: Grid
+## How Sizes Are Worked Out
 
-``Grid`` sizes each column to its widest cell *across every row*, so cells line
-up without any of them being given a width — the thing a column of `HStack`s
-cannot do, because each of those rows sizes on its own:
+You don't need this section to use stacks and frames. It's for writing layouts and for working out why a view ended up the size it did.
+
+TUI's layout is inspired by SwiftUI's layout protocol. Layout containers like ``VStack`` and ``HStack`` first **measure** each child, then **render** them with allocated sizes. This is what makes flexible spacers, proportional sizing and alignment possible.
+
+### Pass 1: Measure
+
+The parent proposes a size to each child via ``ProposedSize``. Each child responds with a ``ViewSize`` that describes how much space it needs and whether it can flex.
+
+```
+Parent (VStack)
+  ├─ propose(width: 40, height: nil) → Text    → ViewSize(10, 1, flexible: false)
+  ├─ propose(width: 40, height: nil) → Spacer  → ViewSize(0, 0, flexible: true)
+  └─ propose(width: 40, height: nil) → Button  → ViewSize(12, 1, flexible: false)
+```
+
+### Pass 2: Render
+
+After measuring all children, the parent distributes the remaining space among flexible children and renders each child with its final allocated size.
+
+```
+Parent allocates:
+  Text   → render(width: 40, height: 1)   // Gets full width, fixed height
+  Spacer → render(width: 40, height: 8)   // Gets remaining vertical space
+  Button → render(width: 40, height: 1)   // Gets full width, fixed height
+```
+
+### ProposedSize
+
+``ProposedSize`` represents the space a parent offers to a child. Either dimension can be `nil`, meaning "use your ideal size."
 
 ```swift
-Grid(alignment: .leading) {
-    GridRow { Text("Name");   Text("Size"); Text("Kind") }
-    Divider()                                  // spans every column
-    GridRow { Text("README"); Text("2 KB"); Text("Markdown") }
+public struct ProposedSize {
+    public var width: Int?
+    public var height: Int?
 }
 ```
 
-Spacings are whole cells, defaulting to one column and no rows. A cell can span
-with ``View/gridCellColumns(_:)``, and placement precedence runs
-``View/gridCellAnchor(_:)`` → ``View/gridColumnAlignment(_:)`` → the row's
-alignment → the grid's. A cell that should fill its column or row rather than
-size it — a rule, a fill — takes ``View/gridCellUnsizedAxes(_:)``.
+| Value | Meaning |
+|-------|---------|
+| `nil` | Use ideal size (no constraint) |
+| `0` | Minimum size |
+| `> 0` | Available space in characters/lines |
 
-A ``GridRow`` is not a container of its own: it hands its cells to whatever lays
-them out, so outside a grid they are simply views. ``GridLayout`` is the same
-lattice as a ``Layout``, for switching with another through ``AnyLayout`` while
-every cell keeps its identity:
+### ViewSize
+
+``ViewSize`` is the child's response: how much space it needs and whether it can expand.
 
 ```swift
-let layout = isWide ? AnyLayout(GridLayout()) : AnyLayout(VStackLayout())
-layout {
-    GridRow { Text("Name");   Text("Size") }
-    GridRow { Text("README"); Text("2 KB") }
+public struct ViewSize {
+    public var width: Int
+    public var height: Int
+    public var isWidthFlexible: Bool
+    public var isHeightFlexible: Bool
 }
 ```
 
-## Which Views Are Layoutable?
+Factory methods make common patterns concise:
+
+```swift
+ViewSize.fixed(20, 1)                    // Fixed 20x1, won't expand
+ViewSize.flexible(minWidth: 0, minHeight: 0)  // Expands in both directions
+ViewSize.flexibleWidth(minWidth: 5, height: 1) // Expands horizontally only
+```
+
+### The Layoutable Protocol
+
+Views that participate in two-pass layout conform to `Layoutable` (which extends `Renderable`):
+
+```swift
+protocol Layoutable: Renderable {
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+}
+```
+
+A default implementation renders the view and measures the resulting buffer. Custom implementations can calculate size without rendering for better performance.
+
+### ChildView
+
+Layout containers wrap their children in `ChildView`, which provides a uniform interface for measuring and rendering:
+
+```swift
+struct ChildView {
+    func measure(proposal: ProposedSize, context: RenderContext) -> ViewSize
+    func render(width: Int, height: Int, context: RenderContext) -> FrameBuffer
+}
+```
+
+`ChildView` automatically detects spacers and propagates child identity for correct state management.
+
+### How Stacks Lay Out Children
+
+``VStack`` and ``HStack`` follow this algorithm:
+
+1. **Measure** all children with `.unspecified` to learn their natural sizes
+2. **Sum** the fixed sizes along the stack axis
+3. **Distribute** remaining space among flexible children (spacers, flexible text fields, etc.)
+4. **Re-measure** each child along the *cross axis* at its allocated size,
+   so the row / column is tall (or wide) enough for any wrapping a narrow
+   allocated width forces. Without this step a long `Text` inside an
+   `HStack` would silently lose its wrapped lines when the stack squeezed
+   it under its natural width.
+5. **Render** each child with its allocated size
+6. **Compose** the rendered buffers with the specified spacing and alignment
+
+Flexible children share remaining space equally. If multiple spacers exist, they each get an equal portion of the leftover space.
+
+### Which Views Are Layoutable?
 
 | View | Layoutable? | Flexibility |
 |------|------------|-------------|
