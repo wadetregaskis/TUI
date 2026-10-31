@@ -8,7 +8,7 @@ Most SwiftUI code compiles under TUI and does what you expect. The differences c
 
 Two rules help when something surprises you:
 
-- **If TUI can't do what you asked, your code doesn't compile.** It won't accept a request and quietly ignore it. So a compile error usually means "this has no meaning in a terminal", and this page tells you what to use instead.
+- **If TUI can't do what you asked, your code usually doesn't compile.** It rarely accepts a request and quietly ignores it. So a compile error usually means "this has no meaning in a terminal", and this page tells you what to use instead. The one exception you're likely to meet is `ObservableObject`, below.
 - **If it compiles but behaves differently, it's probably listed here.** This page covers the differences you're most likely to meet, not every one.
 
 ## Sizes are in character cells
@@ -53,11 +53,14 @@ Text("Body").font(.body)            // normal
 Text("Details").font(.caption)      // faint, not smaller
 ```
 
-`largeTitle` through `headline` are bold, and `footnote`, `caption` and `caption2` are faint. `Font.system(size:)` doesn't compile. A font design such as `.serif` is accepted but changes nothing, because the terminal chooses the font.
+`largeTitle` through `headline` are bold, and `footnote`, `caption` and `caption2` are faint. `Font.system(size:)` doesn't compile. Nor do the font designs `.serif` and `.rounded`, because the terminal chooses the font.
 
 ## Use `@Observable`, not `ObservableObject`
 
-TUI supports only the Observation framework, so the older Combine-based tools don't exist here. `.onReceive(_:perform:)` doesn't either.
+TUI watches only the Observation framework, so use `@Observable` for a model.
+
+- `@StateObject`, `@ObservedObject`, `@EnvironmentObject` and `.onReceive(_:perform:)` don't compile.
+- `ObservableObject` and `@Published` do compile on macOS, because Foundation brings them in, but TUI doesn't watch them. Writing to a `@Published` property doesn't redraw anything, and nothing tells you so. Check for this first if you've moved a model over from SwiftUI and the screen doesn't update.
 
 ```swift
 // SwiftUI, the older way
@@ -145,7 +148,7 @@ Shapes work, within the limits of the grid.
 A terminal has one surface, so app structure changes a little.
 
 - **One window at a time.** `openWindow` opens a window over the whole terminal, and only the front one is drawn or gets input. The ones behind keep running, and come back when it closes.
-- **Closing the last window quits the app**, whether by `dismissWindow`, by `dismiss()` at the window's root, or by Escape.
+- **Closing the last window quits the app**, whether by `dismissWindow` or by `dismiss()` at the window's root. Escape closes a window only while another is open behind it.
 - **Toolbars are bars.** `.toolbar` items go into one bar above the page or one below it, each drawn only when it has something in it. `.principal` replaces the title, and `.status` goes in the bottom bar.
 - **Sheets fit their content.** There's no minimum size.
 - **Help appears in the status bar.** `.help("…")` shows there when the mouse rests on a view, or when the user presses `?` on a focused control. For a panel beside the view, write `.tooltipStyle(.popover)`.
@@ -173,9 +176,9 @@ These have no meaning in a grid of cells, or aren't built yet, so using them is 
 | `.scaleEffect`, `.rotationEffect`, `.rotation3DEffect` | None. A cell can't be scaled or rotated. |
 | `.blur` | None. For a frosted look, use a material. |
 | `.preferredColorScheme` | `.palette` and `.appearance`. |
-| `ObservableObject`, `@Published`, `@StateObject`, `@EnvironmentObject` | `@Observable`, `@State`, `@Environment`. |
+| `@StateObject`, `@ObservedObject`, `@EnvironmentObject` | `@Observable` with `@State`, `@Bindable` and `@Environment`. |
 | `.onReceive` | A `.task`, or an `@Observable` model. |
-| `Font.system(size:)` | `.font(.title)` and the other text styles. |
+| `Font.system(size:)`, the font designs `.serif` and `.rounded` | `.font(.title)` and the other text styles. |
 | Right-to-left layout | Not yet. `\.layoutDirection` is always left to right and can't be set. |
 | VoiceOver and accessibility traits | None. |
 
