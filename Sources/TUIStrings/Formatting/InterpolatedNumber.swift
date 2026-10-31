@@ -107,9 +107,11 @@ package enum InterpolatedNumber: Hashable, Sendable {
                 // locale as signed: UInt.max came out "-1" (Swift 6.2 and 6.3
                 // on Linux, CI, 2026-10-29). Without a locale it is right, and
                 // that Foundation groups no conversion's digits either way.
-                argument.exceedsSignedRange
-                    ? String(format: specifier, argument.cVarArg)
-                    : String(format: specifier, locale: locale, argument.cVarArg)
+                if argument.exceedsSignedRange {
+                    String(format: specifier, argument.cVarArg)
+                } else {
+                    String(format: specifier, locale: locale, argument.cVarArg)
+                }
             #endif
         }
     }
