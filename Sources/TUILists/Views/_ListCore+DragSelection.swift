@@ -5,7 +5,8 @@
 //  several selected carries them all, in the list's order, as a Mac's table
 //  does; Shift held as the drag starts extends the selection to that row first,
 //  as a Shift-click does (Finder). The owner's ruling DRAG-SELECTION,
-//  2026-10-27: "we do it the Mac way".
+//  2026-10-27: "we do it the Mac way". Copy on such a row gathers them the same
+//  way.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -22,6 +23,16 @@ extension _ListCore {
     func armSelectionGathering(context: RenderContext) {
         guard multiSelection != nil, !context.isMeasuring, let session = context.environment.dragAndDropSession,
             session.wantsSelectionGathered(by: context.identity)
+        else { return }
+        session.beginGatheringPayloads(for: context.identity)
+    }
+
+    /// Starts the gathering for a Copy of the selection, the frame after the
+    /// key (``RowDragOffer/selectionCopy``): as a drag's, but it needs the
+    /// handler, which holds the request.
+    func armSelectionCopy(handler: ItemListHandler<SelectionValue>, context: RenderContext) {
+        guard handler.rowDragOffer.selectionCopy != nil, !context.isMeasuring,
+            let session = context.environment.dragAndDropSession, session.gatheringOwner == nil
         else { return }
         session.beginGatheringPayloads(for: context.identity)
     }
@@ -44,13 +55,63 @@ extension _ListCore {
     /// its own payload. Rows are drawn off the window only on this one frame,
     /// and only the selected ones: a list of 50,000 rows with three selected
     /// draws three.
+    ///
+    /// A Copy of the selection waiting on this frame is answered first
+    /// (``copySelection(source:handler:session:)``), and a drag begun in the
+    /// same frame gathers on the next.
     func gatherDraggedSelection(
         source: RowSource<SelectionValue>, handler: ItemListHandler<SelectionValue>, context: RenderContext
     ) {
         guard !context.isMeasuring, let session = context.environment.dragAndDropSession,
-            session.gatheringOwner == context.identity, let drag = session.active,
-            let selectionBinding = handler.multiSelection
+            session.gatheringOwner == context.identity
         else { return }
+        if handler.rowDragOffer.selectionCopy != nil {
+            copySelection(source: source, handler: handler, session: session)
+        } else {
+            gatherSelection(source: source, handler: handler, session: session, context: context)
+        }
+    }
+
+    /// Fills the clipboard a Copy left waiting with every selected row's
+    /// payload, in the list's order. The selection is read now, a frame after
+    /// the key, which nothing can have moved between.
+    private func copySelection(
+        source: RowSource<SelectionValue>, handler: ItemListHandler<SelectionValue>, session: DragAndDropSession
+    ) {
+        let clipboard = handler.rowDragOffer.selectionCopy
+        handler.rowDragOffer.selectionCopy = nil
+        let selected = drawSelectedRows(source: source, handler: handler)
+        let noted = session.endGatheringPayloads()
+        let values = selected.compactMap { draggable(ofRow: $0, in: source, noted: noted)?.draggable.payload() }
+        if !values.isEmpty { clipboard?.copy(values) }
+    }
+
+    /// Every selected row, in the list's order, drawn so that each one's
+    /// `.draggable` notes its payload; a row the window drew already has, and
+    /// its render is kept.
+    private func drawSelectedRows(
+        source: RowSource<SelectionValue>, handler: ItemListHandler<SelectionValue>
+    ) -> [Int] {
+        let selection = handler.multiSelection?.wrappedValue ?? []
+        let selected = (0..<source.count).filter { index in handler.id(at: index).map(selection.contains) ?? false }
+        for index in selected { _ = source.row(at: index).buffer }
+        return selected
+    }
+
+    /// The `.draggable` noted in the row at `index`.
+    private func draggable(
+        ofRow index: Int, in source: RowSource<SelectionValue>, noted: [ViewIdentity: DragAndDropSession.NotedDraggable]
+    ) -> (identity: ViewIdentity, draggable: DragAndDropSession.NotedDraggable)? {
+        guard let row = source.content(at: index).rowIdentity else { return nil }
+        return noted.first { $0.key == row || row.isAncestor(of: $0.key) }.map { ($0.key, $0.value) }
+    }
+
+    /// ``gatherDraggedSelection(source:handler:context:)``'s drag.
+    private func gatherSelection(
+        source: RowSource<SelectionValue>, handler: ItemListHandler<SelectionValue>, session: DragAndDropSession,
+        context: RenderContext
+    ) {
+        guard let drag = session.active, let selectionBinding = handler.multiSelection else { return }
         // The row the drag started in: among those drawn, since a press lands on
         // one.
         let grabbed = handler.visibleRange.first { index in
@@ -69,19 +130,14 @@ extension _ListCore {
             session.carriesNoSelection()
             return
         }
-        let selected = (0..<source.count).filter { index in handler.id(at: index).map(selection.contains) ?? false }
-        // Drawn, so each one's `.draggable` notes its payload; a row the window
-        // drew already has, and its render is kept.
-        for index in selected { _ = source.row(at: index).buffer }
+        let selected = drawSelectedRows(source: source, handler: handler)
         let noted = session.endGatheringPayloads()
         var items: [Any] = []
         var pictures: [FrameBuffer] = []
         var grabbedItem = 0
         var sources = Set<ViewIdentity>()
         for index in selected {
-            guard let row = source.content(at: index).rowIdentity,
-                let (identity, draggable) = noted.first(where: { $0.key == row || row.isAncestor(of: $0.key) })
-            else { continue }
+            guard let (identity, draggable) = draggable(ofRow: index, in: source, noted: noted) else { continue }
             if index == grabbed { grabbedItem = items.count }
             items.append(draggable.payload())
             pictures.append(draggable.preview)

@@ -114,4 +114,39 @@ struct ListRowCarryTests {
         #expect(consumed == [true, true])
         #expect(clipboard.writes == ["b"])
     }
+
+    /// As the pointer's drag carries (DRAG-SELECTION): no gesture of the mouse
+    /// without one of the keyboard. The row off the list's window is drawn for
+    /// the copy, as it is for a drag.
+    @Test("Copy on a selected row copies the whole selection, in the list's order")
+    func copyTakesTheSelection() {
+        let clipboard = FakeClipboard()
+        let typed = TypedClipboard()
+        let harness = InputChainHarness {
+            $0.clipboardAccess = clipboard.access
+            $0.typedClipboard = typed
+        }
+        let names = (0..<40).map { "row\($0)" }
+        let board = Board(selection: ["row30", "row0"])
+        let selection = Binding(get: { board.selection }, set: { board.selection = $0 })
+        let consumed = harness.play([KeyEvent(key: .character("c"), ctrl: true)]) {
+            List(names, id: \.self, selection: selection) { Text($0).draggable($0) }.frame(width: 10, height: 6)
+        }
+        #expect(consumed == [true])
+        #expect(clipboard.writes == ["row0\nrow30"])
+        #expect(typed.values(as: String.self, ifClipboardHolds: "row0\nrow30") == ["row0", "row30"], "kept typed, for a paste")
+    }
+
+    @Test("Copy on a row that is not selected copies that row alone")
+    func copyOutsideTheSelection() {
+        let clipboard = FakeClipboard()
+        let typed = TypedClipboard()
+        let harness = InputChainHarness {
+            $0.clipboardAccess = clipboard.access
+            $0.typedClipboard = typed
+        }
+        let board = Board(selection: ["c", "d"])
+        harness.play([KeyEvent(key: .character("c"), ctrl: true)]) { lists(board) }
+        #expect(clipboard.writes == ["a"])
+    }
 }

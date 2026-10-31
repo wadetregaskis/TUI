@@ -266,9 +266,9 @@ enum _TableRowDragRegions {
     /// they never take a press — a drag finds a zone at any depth.
     ///
     /// The drawn rows' drags are offered to the keyboard as well
-    /// (``ItemListHandler/offerRowDrags(_:context:)``): Copy takes the cursor
-    /// row's payload, and the pick-up chord carries it as this handle's drag
-    /// would, the selection with it (A53-KEYBOARD-DRAG).
+    /// (``ItemListHandler/offerRowDrags(_:selectedPayloads:context:)``): Copy
+    /// takes the cursor row's payload, and the pick-up chord carries it as this
+    /// handle's drag would, in both the selection with it (A53-KEYBOARD-DRAG).
     /// Makes the drag just begun from row `grabbed` carry the table's selection,
     /// in the table's order, where that row is one of several selected; Shift
     /// held as it began extends the selection to the row first, as a
@@ -291,14 +291,7 @@ enum _TableRowDragRegions {
             session.carriesNoSelection()
             return
         }
-        var items: [Any] = []
-        var rows: [Int] = []
-        for index in traits.indices where handler.id(at: index).map(selection.contains) == true {
-            if let value = traits[index].dragPayload?() {
-                items.append(value)
-                rows.append(index)
-            }
-        }
+        let (items, rows) = selectedPayloads(selection, handler: handler, traits: traits)
         guard items.count > 1 else {
             session.carriesNoSelection()
             return
@@ -312,6 +305,24 @@ enum _TableRowDragRegions {
         session.carrySelection(items, sources: [], picture: picture)
     }
 
+    /// The payload of every row in `selection` that has one, in the table's
+    /// order, with the row each came from. Every row's is in its traits, so
+    /// nothing has to be drawn.
+    @MainActor
+    private static func selectedPayloads<ID: Hashable>(
+        _ selection: Set<ID>, handler: ItemListHandler<ID>, traits: [_TableRowTraits]
+    ) -> (items: [Any], rows: [Int]) {
+        var items: [Any] = []
+        var rows: [Int] = []
+        for index in traits.indices where handler.id(at: index).map(selection.contains) == true {
+            if let value = traits[index].dragPayload?() {
+                items.append(value)
+                rows.append(index)
+            }
+        }
+        return (items, rows)
+    }
+
     @MainActor
     static func register<ID: Hashable>(
         to buffer: inout FrameBuffer,
@@ -323,7 +334,15 @@ enum _TableRowDragRegions {
         preview: @escaping @MainActor (Int) -> [String]?
     ) {
         var drags: [Int: RowDrag] = [:]
-        defer { handler.offerRowDrags(drags, context: context) }
+        defer {
+            handler.offerRowDrags(
+                drags,
+                selectedPayloads: { [weak handler] in
+                    guard let handler, let selection = handler.multiSelection?.wrappedValue else { return [] }
+                    return selectedPayloads(selection, handler: handler, traits: traits).items
+                },
+                context: context)
+        }
         guard context.environment.isEnabled, !context.isMeasuring,
             let dispatcher = context.environment.mouseEventDispatcher,
             let session = context.environment.dragAndDropSession

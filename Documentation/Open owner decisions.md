@@ -61,7 +61,7 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 | A-O10-1 | 2, generic beyond `Data` (strings, `Codable`). | Done: `fileExporter(isPresented:contents:…)` and `fileExporter(isPresented:encoding:…)`, on every platform. |
 | A-FORMS-1 | 2: follow SwiftUI. | Done: a bare button in the control column (columns), at the row's leading edge (grouped). |
 | ENV-VARS | Rename `TUIKIT_` to `TUI_`. | Done (`af22656f9`). |
-| DRAG-SELECTION | The Mac's way: the whole selection; Shift-drag extends it first. | Done for the mouse, List and Table; the keyboard's Copy and carry still take one row. |
+| DRAG-SELECTION | The Mac's way: the whole selection; Shift-drag extends it first. | Done for the mouse and the keyboard's Copy and carry, List and Table. |
 | A-LAYOUT-1 | Optimise it, then decide. | Done: a column's minimum height is answered without measuring, and columns share (`stateful` +1.5%, `tables-vstack` +7.5% for drawing all eight tables). |
 | A-WIDTHS-1 | Assume a perfect terminal by default; optional features never assumed. | Done. |
 | A-FB16-1 | Option 3: every frame glides with relayout. | Queued, after the transitions below. |

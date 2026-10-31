@@ -1695,6 +1695,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     ) -> RowSource<SelectionValue> {
         armSelectionGathering(context: context)
         if let (handler, focusID) = registerOwnFocusStop(stateStorage: stateStorage, context: context) {
+            armSelectionCopy(handler: handler, context: context)
             editRestrictions.sectionsInUse = (
                 cursorRow: FocusRegistration.isFocused(context: context, focusID: focusID)
                     ? handler.focusedIndex : nil,

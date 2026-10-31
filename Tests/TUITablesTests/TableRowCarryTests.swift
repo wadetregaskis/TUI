@@ -90,4 +90,18 @@ struct TableRowCarryTests {
         #expect(consumed == [true, true])
         #expect(clipboard.writes == ["pear"])
     }
+
+    @Test("Copy on a selected row copies the whole selection, in the table's order")
+    func copyTakesTheSelection() {
+        let clipboard = FakeClipboard()
+        let typed = TypedClipboard()
+        let harness = InputChainHarness(width: 30, height: 14) {
+            $0.clipboardAccess = clipboard.access
+            $0.typedClipboard = typed
+        }
+        let board = Board(selection: ["plum", "apple"])
+        let consumed = harness.play([KeyEvent(key: .character("c"), ctrl: true)]) { self.board(board) }
+        #expect(consumed == [true])
+        #expect(clipboard.writes == ["apple\nplum"])
+    }
 }
