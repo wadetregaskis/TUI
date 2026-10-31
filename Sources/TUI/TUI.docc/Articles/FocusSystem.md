@@ -1,67 +1,28 @@
 # Focus System
 
-Navigate between interactive elements using the keyboard.
+Navigate between interactive elements using the keyboard, and decide where the focus goes.
 
 ## Overview
 
-TUI provides a focus system that lets users move between interactive views (buttons, menus, text fields) using ⇥, ⇧⇥, or arrow keys. The system consists of three parts:
+One control at a time has the keyboard focus, and people move it with Tab, Shift-Tab and the arrow keys. Every button, field, toggle and list joins in by itself, in the order they're drawn, and the first control on a screen starts with the focus. You only need this page to say where the focus goes, or to make a view of your own focusable.
 
-- **`FocusManager`**: Tracks which element is focused, handles navigation
-- **``Focusable``**: Protocol that views adopt to receive focus
-- **``FocusReference``**: Lightweight handle that views use to query and request focus by id
+## Navigation Keys
 
-## How Focus Works
+These keys move the focus, once the focused control has let them go:
 
-Every frame, the `FocusManager` is cleared and interactive views re-register themselves during rendering. This means focus registrations are always in sync with the current view tree: removed views are automatically unregistered.
+| Key | Action |
+|-----|--------|
+| ⇥ | Move focus to the next element |
+| ⇧⇥ | Move focus to the previous element |
+| Arrow Down / Right | Move focus to the next element |
+| Arrow Up / Left | Move focus to the previous element |
 
-The focus order follows the rendering order: the first focusable view rendered is first in the Tab cycle.
+Inside a `NavigationSplitView`, Arrow Left and Right move focus to the
+neighbouring column instead — landing on what was last focused there — while Up
+and Down keep stepping within the column. A focused control that uses Left and
+Right itself, such as an outline's disclosure or a slider, still gets them first.
 
-## The Focusable Protocol
-
-Views that want to receive focus conform to ``Focusable``:
-
-```swift
-public protocol Focusable: AnyObject {
-    var focusID: String { get }
-    var canBeFocused: Bool { get }
-    func onFocusReceived()
-    func onFocusLost()
-    func handleKeyEvent(_ event: KeyEvent) -> Bool
-}
-```
-
-- **`focusID`**: Unique identifier for this focusable element
-- **`canBeFocused`**: Whether focus can move to this element (default: `true`)
-- **`onFocusReceived()`**: Called when this element gains focus (default: no-op)
-- **`onFocusLost()`**: Called when this element loses focus (default: no-op)
-- **`handleKeyEvent(_:)`**: Handle a key event while focused; return `true` if consumed
-
-A default extension provides sensible defaults for `canBeFocused` (`true`), `onFocusReceived()`, and `onFocusLost()` (both no-ops). Only `focusID` and `handleKeyEvent(_:)` must be implemented.
-
-## Using FocusReference
-
-``FocusReference`` is the imperative API for checking and requesting focus inside a view by id (the declarative `@FocusState` property wrapper is the SwiftUI-style alternative):
-
-```swift
-// The environment's focusManager is Optional: it is nil in isolated/measure
-// renders and in tests that don't install a focus system.
-guard let focusManager = context.environment.focusManager else { return }
-let focusRef = FocusReference(id: "my-button", focusManager: focusManager)
-
-// Check if this element is currently focused
-if focusRef.isFocused {
-    // render with focus indicator
-}
-
-// Programmatically request focus
-focusRef.requestFocus()
-```
-
-Built-in views like ``Button`` and ``Menu`` register their own focus internally: you only need this when building custom focusable views.
-
-## Declarative Focus
-
-For view code, the SwiftUI-shaped API is usually what you want.
+## Choosing Where the Focus Goes
 
 ``FocusState`` binds a value to *where focus is*, and `focused(_:)` /
 `focused(_:equals:)` attach a control to it. `defaultFocus(_:_:)` says what
@@ -91,7 +52,7 @@ struct SignIn: View {
 Writing to `field` moves focus; reading it tells you where focus is. A `Bool`
 `@FocusState` binds a single control the same way, via `focused($isEditing)`.
 
-Two more modifiers shape the ring itself:
+Three more modifiers shape the order that Tab follows:
 
 - `focusable(_:interactions:)` makes any view a Tab stop — `.activate` also
   makes a click focus it — so a custom view joins the ring without adopting
@@ -105,22 +66,6 @@ Two more modifiers shape the ring itself:
   draws none.
 - `focusID(_:)` pins an explicit identity on a control, instead of the one
   derived from its position in the tree.
-
-## Navigation Keys
-
-The `FocusManager` responds to these keys during dispatch:
-
-| Key | Action |
-|-----|--------|
-| ⇥ | Move focus to the next element |
-| ⇧⇥ | Move focus to the previous element |
-| Arrow Down / Right | Move focus to the next element |
-| Arrow Up / Left | Move focus to the previous element |
-
-Inside a `NavigationSplitView`, Arrow Left and Right move focus to the
-neighbouring column instead — landing on what was last focused there — while Up
-and Down keep stepping within the column. A focused control that uses Left and
-Right itself, such as an outline's disclosure or a slider, still gets them first.
 
 ## When a Control Loses Focus
 
@@ -193,16 +138,6 @@ A target in another focus section moves the focus into that section, unless the
 section that held the focus is a modal; the rule above then applies inside the
 modal. Like `focused(_:equals:)`, a handoff written on a container belongs to the
 first focusable control inside it.
-
-## FocusRegistration Helper
-
-Built-in interactive views use the internal `FocusRegistration` helper to avoid boilerplate. It handles three tasks in one call:
-
-1. **Persist a focus ID** via `StateStorage` so it remains stable across renders
-2. **Register** the handler with the `FocusManager`
-3. **Query** whether this view currently has focus
-
-Custom views that implement ``Focusable`` typically do not need `FocusRegistration` directly. It is used by the framework's `_*Core` views (e.g. `_ButtonCore`, `_ListCore`).
 
 ## Focus Indicator
 
@@ -356,9 +291,56 @@ and only under it. A view that asks that function keeps drawing its indication
 while inactive, and a view that reads `\.isFocused` in its `body` and colours
 itself through `\.selectionEmphasis` holds still with no change at all.
 
+## Making Your Own View Focusable
+
+Most views don't need any of this: `focusable(_:interactions:)`, above, makes any view a Tab stop. The types here are for a view that draws itself through ``Renderable``.
+
+Each frame, interactive views register again as they are drawn, so the focus system always matches the views on screen, and the focus order follows the drawing order.
+
+Views that want to receive focus conform to ``Focusable``:
+
+```swift
+public protocol Focusable: AnyObject {
+    var focusID: String { get }
+    var canBeFocused: Bool { get }
+    func onFocusReceived()
+    func onFocusLost()
+    func handleKeyEvent(_ event: KeyEvent) -> Bool
+}
+```
+
+- **`focusID`**: Unique identifier for this focusable element
+- **`canBeFocused`**: Whether focus can move to this element (default: `true`)
+- **`onFocusReceived()`**: Called when this element gains focus (default: no-op)
+- **`onFocusLost()`**: Called when this element loses focus (default: no-op)
+- **`handleKeyEvent(_:)`**: Handle a key event while focused; return `true` if consumed
+
+A default extension provides sensible defaults for `canBeFocused` (`true`), `onFocusReceived()`, and `onFocusLost()` (both no-ops). Only `focusID` and `handleKeyEvent(_:)` must be implemented.
+
+### Using FocusReference
+
+``FocusReference`` is the imperative API for checking and requesting focus inside a view by id (the declarative `@FocusState` property wrapper is the SwiftUI-style alternative):
+
+```swift
+// The environment's focusManager is Optional: it is nil in isolated/measure
+// renders and in tests that don't install a focus system.
+guard let focusManager = context.environment.focusManager else { return }
+let focusRef = FocusReference(id: "my-button", focusManager: focusManager)
+
+// Check if this element is currently focused
+if focusRef.isFocused {
+    // render with focus indicator
+}
+
+// Programmatically request focus
+focusRef.requestFocus()
+```
+
+Built-in views like ``Button`` and ``Menu`` register their own focus internally: you only need this when building custom focusable views.
+
 ## Focus in the Event Loop
 
-Focus dispatch happens in Layer 3 of the key event pipeline (see <doc:AppLifecycle> for the whole ladder, including the ESC pre-route and Layer 3.5):
+The focus system handles a key in Layer 3 of the key event pipeline (see <doc:AppLifecycle> for the whole ladder, including the ESC pre-route and Layer 3.5):
 
 1. A key event arrives from stdin, and the `onKeyPress` handlers on the path to the focused control are asked first, outermost first
 2. Layer 0: text input, when `focusManager.hasTextInputFocus` — mutually exclusive with Layer 3
@@ -367,3 +349,8 @@ Focus dispatch happens in Layer 3 of the key event pipeline (see <doc:AppLifecyc
 5. Layer 3: `FocusManager` delegates to the focused view's `handleKeyEvent(_:)`, then handles ⇥/⇧⇥ and arrow key fallback
 6. Layer 3.5: semantic shortcut actions — `.defaultAction` (Return) and `.cancelAction` (Escape) — so a default button fires only once the focused control has let the key through
 7. Layer 4 (default bindings) handles quit, theme cycling, etc.
+
+## See Also
+
+- <doc:KeyboardShortcuts>
+- <doc:CustomViews>
