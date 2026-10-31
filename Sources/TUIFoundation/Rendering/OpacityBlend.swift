@@ -526,7 +526,9 @@ extension FrameBuffer {
             let blue = Int(lhs.blue) - Int(rhs.blue)
             return red * red + green * green + blue * blue
         }
-        return squaredDistance(truth, was) <= squaredDistance(truth, entry) ? existing : blended
+        // What was already there can be a translucent palette's colour, and the
+        // emitter takes only opaque ones.
+        return squaredDistance(truth, was) <= squaredDistance(truth, entry) ? existing.opaqueSpelling : blended
     }
 
     /// What a cell shows where its glyph draws — its ink where it paints one,
