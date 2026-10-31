@@ -19,14 +19,6 @@ The line updates every frame. It takes no row while it has nothing to show: no a
 
 Its bar is framed in the scene's window toolbar style — see ``WindowToolbarStyle`` — which the top bar shares. It defaults to a box: the line boxed like a container view.
 
-## Architecture
-
-The status bar system has three parts:
-
-- **``StatusBarState``**: Manages the item stack and event handling
-- **``StatusBarItem``**: A single shortcut entry (key + label + action)
-- **``StatusBar``**: The view that renders items into a ``FrameBuffer``
-
 ## Defining Status Bar Items
 
 Use the `statusBarItems` modifier on your views to register shortcuts:
@@ -54,18 +46,69 @@ constant is the symbol a macOS menu draws for it, from the same formatter as
 ``KeyboardShortcut/displayString``, so the bar and a menu name a key the same
 way:
 
-| Constant | Display | Description |
-|----------|---------|-------------|
-| `Shortcut.quit` | `q` (drawn `Q`, see One-letter keys) | Default quit display |
-| `Shortcut.enter` | `↩` | Return |
-| `Shortcut.escape` | `⎋` | Escape |
-| `Shortcut.tab` | `⇥` | Tab |
-| `Shortcut.arrowUp` | `↑` | Arrow up |
-| `Shortcut.arrowDown` | `↓` | Arrow down |
-| `Shortcut.arrowsUpDown` | `↑↓` | Vertical navigation |
-| `Shortcut.ctrl("q")` | `⌃Q` | Control and Q, named as a menu names the chord |
+| Symbol | Constant | Description |
+|--------|----------|-------------|
+| `⎋` | `Shortcut.escape` | Escape |
+| `↩` | `Shortcut.enter` | Return |
+| `⇥` | `Shortcut.tab` | Tab |
+| `⇧⇥` | `Shortcut.shiftTab` | Shift-Tab |
+| `⌫` | `Shortcut.backspace` | Delete (backspace) |
+| `⌦` | `Shortcut.delete` | Forward Delete |
+| `Space` | `Shortcut.space` | The space bar, named in the app's language |
+| `↖` | `Shortcut.home` | Home |
+| `↘` | `Shortcut.end` | End |
+| `⇞` | `Shortcut.pageUp` | Page Up |
+| `⇟` | `Shortcut.pageDown` | Page Down |
+| `↑` | `Shortcut.arrowUp` | Arrow up |
+| `↓` | `Shortcut.arrowDown` | Arrow down |
+| `←` | `Shortcut.arrowLeft` | Arrow left |
+| `→` | `Shortcut.arrowRight` | Arrow right |
+| `↑↓` | `Shortcut.arrowsUpDown` | Vertical arrows |
+| `←→` | `Shortcut.arrowsLeftRight` | Horizontal arrows |
+| `↑↓←→` | `Shortcut.arrowsAll` | All arrows |
+| `⌃` | `Shortcut.control` | Control modifier |
+| `⌥` | `Shortcut.option` | Option (Alt) modifier |
+| `⇧` | `Shortcut.shift` | Shift modifier |
+| `⌘` | `Shortcut.command` | Command modifier |
 
-`Shortcut` defines how the item is displayed. If you do not pass `key:`, `StatusBarItem` derives a trigger key from the shortcut string where possible.
+`Shortcut` defines how the item is displayed. If you do not pass `key:`, `StatusBarItem` derives a trigger key from the shortcut string where possible:
+
+- Symbol shortcuts (`⎋`, `↩`, `⇥`) map to their corresponding ``Key`` values
+- Single-character shortcuts (`"q"`, `"y"`) map to `.character(thatChar)`
+- Arrow combinations (`"↑↓"`) match **both** individual arrow keys
+- Multi-character non-symbol strings are informational only (no trigger key)
+
+```swift
+// Automatic: shortcut "q" triggers on Key.character("q")
+StatusBarItem(shortcut: "q", label: "quit") { quit() }
+
+// Explicit: override the trigger key
+StatusBarItem(shortcut: Shortcut.enter, label: "select", key: .enter) { select() }
+
+// Informational: no action, no trigger
+StatusBarItem(shortcut: Shortcut.arrowsUpDown, label: "nav")
+```
+
+A few more helpers and letters:
+
+```swift
+// Control and a key, named as a shortcut is: "⌃C"
+Shortcut.ctrl("c")
+
+// Join symbols: "↑↓"
+Shortcut.combine(Shortcut.arrowUp, Shortcut.arrowDown)
+
+// Range display: "1-9"
+Shortcut.range("1", "9")
+```
+
+| Constant | Value |
+|----------|-------|
+| `Shortcut.quit` | `q` |
+| `Shortcut.yes` | `y` |
+| `Shortcut.no` | `n` |
+| `Shortcut.cancel` | `c` |
+| `Shortcut.ok` | `o` |
 
 ### One-letter keys
 
@@ -113,6 +156,14 @@ TUI registers built-in system items automatically:
 
 These appear on the right side of the status bar, drawn `Q quit`, `A appearance` and `T theme` (see One-letter keys). `q quit` is shown by default, `a appearance` and `t theme` are not, and the two common keys are — all four are controlled by ``View/statusBarSystemItems(theme:appearance:returnKey:escapeKey:)``.
 
+Turn them on and off with that modifier, or on the state directly, which you read from the environment as `@Environment(\.statusBar)`. It's `nil` outside a running app:
+
+```swift
+statusBar?.showSystemItems = false      // Hide all system items
+statusBar?.showThemeItem = true         // Show theme cycling (also enables the `t` binding)
+statusBar?.showAppearanceItem = true    // Show appearance cycling (also enables the `a` binding)
+```
+
 ### The two common keys
 
 Return and Escape are the only keys the bar carries on their own account. They are common enough, and special enough, to be worth a permanent place — and unlike the rest, what they do changes with the focus, so a page cannot label them once and be right.
@@ -153,7 +204,7 @@ struct ContentView: View {
     var body: some View {
         MainView()
             .task {
-                statusBar.quitShortcut = .escape
+                statusBar?.quitShortcut = .escape
             }
     }
 }
@@ -171,9 +222,7 @@ ContentView()
 ```
 
 ```swift
-@Environment(\.statusBar) private var statusBar
-
-statusBar.showSystemItems = false
+statusBar?.showSystemItems = false
 ```
 
 When there are no active items left, `StatusBar()` takes no row, and a bottom bar holding nothing else is not drawn — except while a tooltip is showing, which is the default presentation of `.help(_:)`: the bottom bar then takes the rows the tooltip needs, above any items, and is drawn for the tooltip alone when there is nothing else in it.
@@ -190,6 +239,14 @@ The bottom bar is framed in the scene's window toolbar style, which the top bar 
 WindowGroup { ContentView() }
     .windowToolbarStyle(.unifiedCompact)
 ```
+
+## How It Fits Together
+
+The status bar system has three parts:
+
+- **``StatusBarState``**: Manages the item stack and event handling
+- **``StatusBarItem``**: A single shortcut entry (key + label + action)
+- **``StatusBar``**: The view that renders items into a ``FrameBuffer``
 
 ## Event Dispatch Priority
 
