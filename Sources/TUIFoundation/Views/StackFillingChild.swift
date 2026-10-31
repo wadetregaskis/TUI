@@ -63,4 +63,76 @@ extension _VStackCore {
         return fixed + totalLinearSpacing(occupiedChildren: occupying, spacing: max(0, spacing))
             > context.availableHeight
     }
+
+    /// The height each child is dealt out of `available`: what `.clip` render draws
+    /// it in.
+    func dealtHeights(
+        of children: [ChildView], naturalHeight: [Int], isFlexible: [Bool], available: Int, context: RenderContext
+    ) -> [Int] {
+        let priorities = layoutPriorities(of: children)
+        // With room for every child, none is offered less than its natural
+        // height (``fitsAtNaturalHeights(_:isFlexible:spacing:available:)``).
+        let fits = fitsAtNaturalHeights(naturalHeight, isFlexible: isFlexible, spacing: spacing, available: available)
+        return distributeLinearSpace(
+            naturalSizes: naturalHeight,
+            isFlexible: isFlexible,
+            available: available,
+            spacing: spacing,
+            isSpacer: { children[$0].isSpacer },
+            priorities: priorities,
+            minimumSize: {
+                fits ? naturalHeight[$0] : minimumLength(of: children[$0], horizontally: false, across: nil, context: context)
+            },
+            statedMinimum: { statedMinimumLength(of: children[$0], horizontally: false) },
+            sizeAt: { index, offer in
+                children[index].measure(proposal: ProposedSize(width: nil, height: offer), context: context).height
+            }
+        )
+    }
+
+    /// Every child's size for a column whose rows pass `limit`, the `squeezable` ones
+    /// measured again in the share of it the render deals them.
+    ///
+    /// Measured against the whole height, a child that gives way answers for a layout
+    /// nobody draws: a scroll view whose rows fit the column's height but not what a
+    /// header leaves them answers no column for a bar, and a parent that draws the
+    /// column at its measured width (a `TabView`) squeezed the rows by the bar it then
+    /// drew. SwiftUI's stack proposes a flexible child its share. Only here, where
+    /// the column overflows and such a child's width can move, because a measure is a
+    /// walk of the child's content: a child that fits, or that fills a width it was
+    /// offered, is not asked twice.
+    ///
+    /// Only a scroll view (``View/_fillsItsOffer``), not every child that gives way: a
+    /// column in a column asked twice at every level is 2^depth walks of what is inside
+    /// (1.8 million at twenty levels, `ColumnShareMeasureTests`). So a column between
+    /// this one and the scroll view is still measured in the whole height, and the
+    /// scroll view a row short of fitting under two headers can still lose a column.
+    func widthsInShares(
+        of children: [ChildView], squeezable: [(index: Int, size: ViewSize)], proposal: ProposedSize, limit: Int,
+        context: RenderContext
+    ) -> [ViewSize] {
+        var sizes: [ViewSize] = []
+        sizes.reserveCapacity(children.count)
+        var next = squeezable.startIndex
+        for (index, child) in children.enumerated() {
+            if next < squeezable.endIndex, squeezable[next].index == index {
+                sizes.append(squeezable[next].size)
+                next += 1
+            } else {
+                sizes.append(child.measure(proposal: proposal, context: context))
+            }
+        }
+        let shares = dealtHeights(
+            of: children,
+            naturalHeight: children.indices.map {
+                children[$0].isSpacer ? children[$0].spacerLength(along: .vertical) : sizes[$0].height
+            },
+            isFlexible: children.indices.map { children[$0].isSpacer || sizes[$0].isHeightFlexible },
+            available: max(0, limit), context: context)
+        for (index, size) in squeezable where shares[index] < size.height {
+            sizes[index] = children[index].measure(
+                proposal: ProposedSize(width: proposal.width, height: shares[index]), context: context)
+        }
+        return sizes
+    }
 }

@@ -195,15 +195,13 @@ struct TabViewFillingTabTests {
         #expect(lines.contains { $0.contains("▲") }, "no bar:\n\(dump(lines))")
     }
 
-    /// NOT fixed: a scroll view under a header whose rows fit the tab's height
-    /// but not what the header leaves them. A column measures its children
-    /// against its whole height and lays them out in their share of it, so the
-    /// scroll view answered no column for a bar it then drew in eleven rows
-    /// less the header's one. Rendered at its natural width that squeezes the
-    /// rows; rendered at the panel's and clamped back, as before this, a wider
-    /// strip hid it by clipping the bar off instead. The fix is the column's:
-    /// measure a squeezed flexible child in its share.
-    @Test("A scroll view under a header a row short of fitting keeps its rows (known issue)")
+    /// A scroll view under a header whose rows fit the tab's height but not what
+    /// the header leaves them. A column measured its children against its whole
+    /// height and laid them out in their share of it, so the scroll view answered
+    /// no column for a bar it then drew in eleven rows less the header's one, and
+    /// the bar came out of the rows. It measures a squeezed flexible child in its
+    /// share now.
+    @Test("A scroll view under a header a row short of fitting keeps its rows")
     func headerBandKeepsTheRows() {
         let lines = renderFrames(
             TabView(selection: .constant(0)) {
@@ -214,9 +212,7 @@ struct TabViewFillingTabTests {
             width: 30, height: 12
         ).lines.map(\.stripped)
         #expect(lines.contains { $0.contains("▲") }, "no bar:\n\(dump(lines))")
-        withKnownIssue("a column measures a flexible child in its whole height, not its share") {
-            #expect(lines.contains { $0.contains("row 10") }, "row 10 was squeezed:\n\(dump(lines))")
-        }
+        #expect(lines.contains { $0.contains("row 10") }, "row 10 was squeezed:\n\(dump(lines))")
     }
 
     /// A strip wider than the space: a bordered tab's one-tab row, " One "

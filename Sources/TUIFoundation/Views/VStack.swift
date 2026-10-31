@@ -155,6 +155,10 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // "occupies nothing" would drop one `spacing` from the reported minimum
         // of every column that has one.
         var occupiedRows = 0
+        // The scroll views a deal may hand less than they asked, where that can move
+        // their width: offered a width, one takes it at any height. Offered none, it
+        // answers its ideal, which is the rows it shows and the bar it needs for them.
+        var squeezable: [(index: Int, size: ViewSize)] = []
         let widthLimit = proposal.width ?? context.availableWidth
         // Asked for its ideal width — the horizontal probe, through a nil
         // proposal — a column counts its rows as the windowed twin's arms do:
@@ -162,9 +166,10 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // counted, it made the column as wide as the ladder's rung
         // (`wholeContentWidth(of:limit:)`).
         let asksIdealWidth = proposal.width == nil && context.asksIdealWidth
-        for child in children {
+        for (index, child) in children.enumerated() {
             let size = child.measure(proposal: proposal, context: context)
             if !size.isNaturalSize { childrenAreNatural = false }
+            if child.fillsItsOffer, !child.isSpacer, proposal.width == nil { squeezable.append((index, size)) }
             tallestChild = max(tallestChild, size.height)
             if child.isSpacer || size.height > 0 { occupiedRows += 1 }
             let width = asksIdealWidth ? wholeContentWidth(of: size, limit: widthLimit) : size.width
@@ -211,6 +216,22 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // an over-report would make the parent reserve space that does not
         // exist and let content overlap.
         let heightLimit = proposal.height ?? context.availableHeight
+        // Rows past the budget, and a child that gives way: the render draws it in
+        // its share, so that is the height its width has to be answered for.
+        if !squeezable.isEmpty, totalHeight > max(0, heightLimit) {
+            let widths = widthsInShares(
+                of: children, squeezable: squeezable, proposal: proposal, limit: heightLimit, context: context)
+            maxWidth = 0
+            for (index, measured) in widths.enumerated() {
+                let width = asksIdealWidth ? wholeContentWidth(of: measured, limit: widthLimit) : measured.width
+                maxWidth = max(maxWidth, width)
+                if hasGuides {
+                    guideSizes[index] =
+                        children[index].isSpacer
+                        ? (width: 0, height: 0) : (width: width, height: guideSizes[index].height)
+                }
+            }
+        }
         // A guide can make the column wider than its widest child; the report
         // has to say so or the parent reserves too little and clips it. A
         // flexible child fills the limit when drawn — but not when the column
@@ -487,26 +508,9 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         // A priority decides who is offered space first (`layoutPriority(_:)`).
         // A child's minimum is measured only where it may be offered less
         // than its natural height.
-        let priorities = layoutPriorities(of: children)
-        // With room for every child, none is offered less than its natural
-        // height (``fitsAtNaturalHeights(_:isFlexible:spacing:available:)``).
-        let fits = fitsAtNaturalHeights(
-            naturalHeight, isFlexible: isFlexible, spacing: spacing, available: context.availableHeight)
-        let finalHeights = distributeLinearSpace(
-            naturalSizes: naturalHeight,
-            isFlexible: isFlexible,
-            available: context.availableHeight,
-            spacing: spacing,
-            isSpacer: { children[$0].isSpacer },
-            priorities: priorities,
-            minimumSize: {
-                fits ? naturalHeight[$0] : minimumLength(of: children[$0], horizontally: false, across: nil, context: context)
-            },
-            statedMinimum: { statedMinimumLength(of: children[$0], horizontally: false) },
-            sizeAt: { index, offer in
-                children[index].measure(proposal: ProposedSize(width: nil, height: offer), context: context).height
-            }
-        )
+        let finalHeights = dealtHeights(
+            of: children, naturalHeight: naturalHeight, isFlexible: isFlexible, available: context.availableHeight,
+            context: context)
         reportEagerTargetLayout(heights: finalHeights, children: children, window: window, context: context)
         reportEagerSample(heights: finalHeights, window: window, context: context)
 
