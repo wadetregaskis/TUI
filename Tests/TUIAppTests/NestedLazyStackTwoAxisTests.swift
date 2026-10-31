@@ -149,7 +149,7 @@ struct NestedLazyStackTwoAxisTests {
         script += [KeyEvent(key: .character("w")), KeyEvent(key: .end), KeyEvent(key: .character("t")), nil]
         script += Array(repeating: KeyEvent(key: .left), count: 10)
         script += [KeyEvent(key: .home), KeyEvent(key: .character("w")), nil]
-        let content = { (app: HeadlessApp<TwoAxisGroupsApp>) in
+        let content = { (app: HeadlessApp) in
             app.screen.dropLast(4).map { String($0.stripped.dropLast()) }
         }
         var diverged: [String] = []

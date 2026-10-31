@@ -74,7 +74,7 @@ struct FocusedValueBackdropIdleTests {
     private static let frameNanos: Int64 = 16_666_667
 
     /// Draws `count` frames from `now`, one frame interval apart.
-    private func frames(_ app: HeadlessApp<some App>, _ count: Int, from now: inout Int64) {
+    private func frames(_ app: HeadlessApp, _ count: Int, from now: inout Int64) {
         for _ in 0..<count {
             app.frame(atNanos: now)
             now += Self.frameNanos

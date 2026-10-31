@@ -49,7 +49,7 @@ struct ToolbarLabelledGroupTests {
 
     /// The app at `width`, after the frame that declares the bar and the one
     /// that draws it.
-    private func app(width: Int) -> (HeadlessApp<LabelledGroupApp>, [String]) {
+    private func app(width: Int) -> (HeadlessApp, [String]) {
         let app = HeadlessApp(LabelledGroupApp(), width: width, height: 10)
         app.frame(atNanos: 20_000_000)
         app.frame(atNanos: 40_000_000)

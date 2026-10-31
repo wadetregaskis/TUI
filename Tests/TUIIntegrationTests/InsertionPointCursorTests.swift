@@ -64,7 +64,7 @@ struct InsertionPointCursorTests {
     @MainActor
     private final class Harness {
         let text: Box<String>
-        let app: HeadlessApp<InputApp>
+        let app: HeadlessApp
         private var now: Int64 = 0
 
         init(_ control: Control, text: String) {

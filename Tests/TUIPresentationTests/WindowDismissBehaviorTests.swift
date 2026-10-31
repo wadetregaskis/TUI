@@ -81,19 +81,19 @@ private struct BehaviorApp: App {
 struct WindowDismissBehaviorTests {
     private var now: Int64 = 0
 
-    private mutating func frame(_ app: HeadlessApp<BehaviorApp>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func press(_ key: Key, in app: HeadlessApp<BehaviorApp>) {
+    private mutating func press(_ key: Key, in app: HeadlessApp) {
         app.send(KeyEvent(key: key))
         frame(app)
     }
 
-    private func screen(_ app: HeadlessApp<BehaviorApp>) -> String {
+    private func screen(_ app: HeadlessApp) -> String {
         app.screen.map(\.stripped).joined(separator: "\n")
     }
 

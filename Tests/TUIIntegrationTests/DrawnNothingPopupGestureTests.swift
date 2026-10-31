@@ -120,7 +120,7 @@ private struct PopupPage: View {
 @MainActor
 private final class Harness {
     let model = Model()
-    let app: HeadlessApp<PopupApp>
+    let app: HeadlessApp
     private var now: Int64 = 0
 
     init(_ shape: Model.Shape) {

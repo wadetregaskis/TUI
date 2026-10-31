@@ -75,7 +75,7 @@ struct TextLinkStopsTests {
     private final class Harness {
         let board = FakeClipboard()
         let log = Log()
-        let app: HeadlessApp<TextLinksApp>
+        let app: HeadlessApp
         private var now: Int64 = 0
 
         init(display: LinkDisplay = .popover, enabled: Bool = true) {

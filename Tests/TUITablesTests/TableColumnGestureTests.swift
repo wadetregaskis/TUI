@@ -130,7 +130,7 @@ extension ColumnsPage {
 @MainActor
 private final class Harness {
     let columns = Columns()
-    let app: HeadlessApp<ColumnsApp>
+    let app: HeadlessApp
     private var now: Int64 = 0
 
     init(bound: Bool = true, toggles: Bool = false, emptyRowMenu: Bool = false) {

@@ -56,9 +56,9 @@ import TUIFoundation
 ///
 /// `package`, not public: harness plumbing, not API.
 @MainActor
-package final class HeadlessApp<A: App> {
+package final class HeadlessApp {
     private let terminal: InMemoryTerminal
-    private let renderer: RenderLoop<A>
+    private let renderer: any HeadlessRendering
     private let inputHandler: InputHandler
     private let tuiContext: TUIContext
     private let focusManager: FocusManager
@@ -77,7 +77,7 @@ package final class HeadlessApp<A: App> {
     package var clearsRenderCacheEachFrame = false
 
     /// Assembles `app` over an in-memory terminal of `width` × `height` cells.
-    package init(_ app: A, width: Int, height: Int) {
+    package init<A: App>(_ app: A, width: Int, height: Int) {
         let terminal = InMemoryTerminal(width: width, height: height)
         let quits = QuitCount()
         self.quits = quits
@@ -94,12 +94,13 @@ package final class HeadlessApp<A: App> {
         self.terminal = terminal
         self.tuiContext = tuiContext
         self.focusManager = focusManager
-        self.renderer = RenderLoop(
+        let renderer = RenderLoop(
             app: app, terminal: terminal, statusBar: statusBar,
             focusManager: focusManager, paletteManager: paletteManager,
             appearanceManager: appearanceManager, tuiContext: tuiContext, isTmux: false)
         let quitPrompt = QuitPrompt(requestFrame: { [appState = tuiContext.appState] in appState.setNeedsRender() })
         renderer.scenes.quitPrompt = quitPrompt
+        self.renderer = renderer
         self.inputHandler = InputHandler(
             statusBar: statusBar, keyEventDispatcher: tuiContext.keyEventDispatcher,
             focusManager: focusManager, paletteManager: paletteManager,
@@ -155,7 +156,9 @@ package final class HeadlessApp<A: App> {
         eventClock.nanos = UInt64(bitPattern: nanos)
         if clearsRenderCacheEachFrame { tuiContext.renderCache.clearAll() }
         animationScheduler.beginFrame()
-        renderer.render(animationScheduler: animationScheduler, frameNowNanos: nanos, frameDate: date)
+        renderer.render(
+            pulsePhase: 0, cursorTimer: nil, animationScheduler: animationScheduler, frameNowNanos: nanos,
+            frameDate: date)
         animationScheduler.endFrame()
         // As `AppRunner.renderFrame` ends a frame: the events until the next one
         // are filtered against the support the frame asked for, the scene's
@@ -339,6 +342,28 @@ package final class HeadlessApp<A: App> {
         animationScheduler.nextFiring(after: nanos)
     }
 }
+
+/// What ``HeadlessApp`` asks of its render loop: everything but the type of the
+/// app, so that the harness needs no type parameter of its own, and a thing
+/// holding one need not say which app it is running.
+@MainActor
+private protocol HeadlessRendering: AnyObject {
+    @discardableResult
+    func render(
+        pulsePhase: Double, cursorTimer: CursorTimer?, animationScheduler: AnimationScheduler?,
+        frameNowNanos: Int64, frameDate: Date
+    ) -> RenderActivity
+    func effectiveMouseSupport() -> MouseSupport
+    func invalidateDiffCache()
+    func handBackHostState() -> String
+    func keepHostStateAlive(atNanos now: Int64)
+    var diffWriter: FrameDiffWriter { get }
+    var scenes: ScenePresenter { get }
+    var hostState: TerminalHostState { get }
+    var sendsProgressReports: Bool { get set }
+}
+
+extension RenderLoop: HeadlessRendering {}
 
 /// The caller's clock, as the mouse dispatcher reads it: a box, so the
 /// dispatcher's closure holds the clock rather than the app that owns the

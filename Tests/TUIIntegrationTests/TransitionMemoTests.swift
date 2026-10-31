@@ -142,7 +142,7 @@ struct TransitionMemoTests {
             for app in [warm, cold] { app.frame(atNanos: now) }
             tick += 1
         }
-        func showsDetail(_ app: HeadlessApp<RowsApp>) -> Bool {
+        func showsDetail(_ app: HeadlessApp) -> Bool {
             app.screen.contains { $0.stripped.contains("DETAIL") }
         }
 

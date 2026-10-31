@@ -326,7 +326,7 @@ private struct FullWindowRowsPage: View {
 private final class HelpDriver<A: App> {
     static var frameNanos: Int64 { 16_666_667 }
 
-    let app: HeadlessApp<A>
+    let app: HeadlessApp
     private(set) var now: Int64 = 0
 
     init(_ page: A, width: Int = 50, height: Int = 14) {

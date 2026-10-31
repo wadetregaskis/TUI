@@ -90,7 +90,7 @@ private struct AnimationPageApp: App {
 /// shows it.
 @MainActor
 private final class PageDriver<A: App> {
-    private let app: HeadlessApp<A>
+    private let app: HeadlessApp
     /// The text on the first line below the panel's slot.
     private let belowText: String
     /// The instant of the last frame drawn, on the frame clock.

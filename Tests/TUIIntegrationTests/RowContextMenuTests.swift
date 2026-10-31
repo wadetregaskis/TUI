@@ -288,7 +288,7 @@ private struct RowsPage: View {
 @MainActor
 private final class Harness {
     let rows = Rows()
-    let app: HeadlessApp<RowsApp>
+    let app: HeadlessApp
     private var now: Int64 = 0
 
     init(_ shape: Rows.Shape) {

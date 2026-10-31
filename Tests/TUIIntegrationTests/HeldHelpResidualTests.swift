@@ -106,7 +106,7 @@ struct HeldHelpCoverApp: App {
 struct HeldHelpResidualTests {
     @MainActor
     final class Driver<A: App> {
-        let app: HeadlessApp<A>
+        let app: HeadlessApp
         private(set) var now: Int64 = 0
 
         init(_ page: A) {

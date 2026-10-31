@@ -19,18 +19,18 @@ import TUI
 struct ExampleMenuBarTests {
     private var now: Int64 = 0
 
-    private mutating func frame(_ app: HeadlessApp<ExampleApp>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private func rows(_ app: HeadlessApp<ExampleApp>) -> [String] { app.screen.map(\.stripped) }
+    private func rows(_ app: HeadlessApp) -> [String] { app.screen.map(\.stripped) }
 
     /// The Example's string for `key`: in this process its strings are not
     /// registered (another suite reads the keys themselves), so the key.
     private func text(_ key: String) -> String { L(key) }
 
-    private mutating func launched() -> HeadlessApp<ExampleApp> {
+    private mutating func launched() -> HeadlessApp {
         let app = HeadlessApp(ExampleApp(), width: 120, height: 40)
         frame(app)
         frame(app)
@@ -38,7 +38,7 @@ struct ExampleMenuBarTests {
     }
 
     /// Opens the menu titled `title` with a click on it.
-    private mutating func open(_ title: String, in app: HeadlessApp<ExampleApp>) throws {
+    private mutating func open(_ title: String, in app: HeadlessApp) throws {
         let bar = rows(app)[0]
         let x = try #require(bar.range(of: " \(title) ")).lowerBound.utf16Offset(in: bar) + 1
         app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: 0))
@@ -94,7 +94,7 @@ struct ExampleMenuBarTests {
     /// opened by a click has no row highlighted: Down highlights the first),
     /// opens it, and returns its rows; then chooses its `item`th option (from
     /// 0), or closes it where `item` is nil.
-    private mutating func submenu(row: Int, choosing item: Int?, in app: HeadlessApp<ExampleApp>) throws -> [String] {
+    private mutating func submenu(row: Int, choosing item: Int?, in app: HeadlessApp) throws -> [String] {
         try open("View", in: app)
         for _ in 0...row {
             app.send(KeyEvent(key: .down))

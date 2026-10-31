@@ -111,25 +111,25 @@ private struct DocumentPage: View {
 struct SceneMenuBarTests {
     private var now: Int64 = 0
 
-    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp<A> {
+    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
         let headless = HeadlessApp(app, width: 60, height: 14)
         frame(headless)
         frame(headless)
         return headless
     }
 
-    private func rows<A: App>(_ app: HeadlessApp<A>) -> [String] { app.screen.map(\.stripped) }
+    private func rows(_ app: HeadlessApp) -> [String] { app.screen.map(\.stripped) }
 
-    private func screen<A: App>(_ app: HeadlessApp<A>) -> String { rows(app).joined(separator: "\n") }
+    private func screen(_ app: HeadlessApp) -> String { rows(app).joined(separator: "\n") }
 
     /// Opens the menu titled `title` from the keyboard: F10, Right along the
     /// titles to it, and Down.
-    private mutating func open<A: App>(_ title: String, in app: HeadlessApp<A>) {
+    private mutating func open(_ title: String, in app: HeadlessApp) {
         let titles = rows(app)[0].split(separator: " ").map(String.init)
         let index = titles.firstIndex(of: title) ?? 0
         app.send(KeyEvent(key: .f10))
@@ -143,7 +143,7 @@ struct SceneMenuBarTests {
     }
 
     /// Chooses the item `downs` places past the open menu's first.
-    private mutating func choose<A: App>(item downs: Int, in app: HeadlessApp<A>) {
+    private mutating func choose(item downs: Int, in app: HeadlessApp) {
         for _ in 0..<downs {
             app.send(KeyEvent(key: .down))
             frame(app)

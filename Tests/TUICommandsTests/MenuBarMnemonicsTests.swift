@@ -85,12 +85,12 @@ struct MenuBarMnemonicRuleTests {
 struct MenuBarMnemonicsTests {
     private var now: Int64 = 0
 
-    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private func shows<A: App>(_ text: String, _ app: HeadlessApp<A>) -> Bool {
+    private func shows(_ text: String, _ app: HeadlessApp) -> Bool {
         app.screen.dropFirst().contains { $0.stripped.contains(text) }
     }
 

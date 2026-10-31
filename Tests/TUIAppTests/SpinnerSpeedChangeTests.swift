@@ -117,7 +117,7 @@ struct SpinnerSpeedChangeTests {
         expectContinuous(HeadlessApp(MemoizedRowsApp(), width: 30, height: 8))
     }
 
-    private func expectContinuous<A: App>(_ app: HeadlessApp<A>) {
+    private func expectContinuous(_ app: HeadlessApp) {
         let changes: Set<Int> = [37, 90, 141, 200]
         var shown: [Int] = []
         for tick in 0..<240 {

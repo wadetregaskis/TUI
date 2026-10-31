@@ -204,15 +204,15 @@ private struct FindDisabledApp: App {
 struct StandardCommandSetsTests {
     private var now: Int64 = 0
 
-    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private func rows<A: App>(_ app: HeadlessApp<A>) -> [String] { app.screen.map(\.stripped) }
+    private func rows(_ app: HeadlessApp) -> [String] { app.screen.map(\.stripped) }
 
     /// A fresh app after two frames (the second adopts any toolbar).
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp<A> {
+    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
         let headless = HeadlessApp(app, width: 60, height: 14)
         frame(headless)
         frame(headless)
@@ -220,7 +220,7 @@ struct StandardCommandSetsTests {
     }
 
     /// Opens the bar's only menu and chooses its first item.
-    private mutating func chooseFirst<A: App>(in app: HeadlessApp<A>) {
+    private mutating func chooseFirst(in app: HeadlessApp) {
         app.send(KeyEvent(key: .f10))
         frame(app)
         app.send(KeyEvent(key: .down))
@@ -232,7 +232,7 @@ struct StandardCommandSetsTests {
     }
 
     /// The open menu's rows: every row below the bar.
-    private mutating func menuRows<A: App>(of app: HeadlessApp<A>) -> [String] {
+    private mutating func menuRows(of app: HeadlessApp) -> [String] {
         app.send(KeyEvent(key: .f10))
         frame(app)
         app.send(KeyEvent(key: .down))
@@ -311,7 +311,7 @@ struct StandardCommandSetsTests {
 
     /// The View menu's rows, opened from the keyboard: F10, then right to
     /// View, the bar's third menu after the app's and Edit.
-    private mutating func viewMenuRows<A: App>(of app: HeadlessApp<A>) -> [String] {
+    private mutating func viewMenuRows(of app: HeadlessApp) -> [String] {
         #expect(rows(app)[0].contains("  Edit  View  "), "\(rows(app)[0])")
         app.send(KeyEvent(key: .f10))
         frame(app)

@@ -76,7 +76,7 @@ struct TextEditingMenuTests {
         let board = FakeClipboard()
         let text: Box<String>
         let second = Box("")
-        let app: HeadlessApp<TextApp>
+        let app: HeadlessApp
         private var now: Int64 = 0
 
         init(_ control: Control, text: String = "hello world", disabled: Bool = false) {

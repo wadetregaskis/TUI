@@ -229,7 +229,7 @@ private struct MovingPage: View {
 
 /// The screen's lines, styling stripped.
 @MainActor
-private func visible<A: App>(_ app: HeadlessApp<A>) -> [String] {
+private func visible(_ app: HeadlessApp) -> [String] {
     app.screen.map(\.stripped)
 }
 

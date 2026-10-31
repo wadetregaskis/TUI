@@ -145,23 +145,23 @@ struct SidebarToggleBarButtonTests {
     /// `app` after five frames: a bar is adopted a frame or two after its items
     /// are first declared, and the split leaves out its edge column the frame
     /// after the bar first draws the button.
-    private func running<A: App>(_ app: A) -> HeadlessApp<A> {
+    private func running<A: App>(_ app: A) -> HeadlessApp {
         let headless = HeadlessApp(app, width: 50, height: 12)
         for index in 1...5 { headless.frame(atNanos: Int64(index) * 16_666_667) }
         return headless
     }
 
     /// Two more frames of `app`, after an input.
-    private func settle<A: App>(_ app: HeadlessApp<A>, from frame: Int = 6) {
+    private func settle(_ app: HeadlessApp, from frame: Int = 6) {
         for index in frame...(frame + 1) { app.frame(atNanos: Int64(index) * 16_666_667) }
     }
 
-    private func rows<A: App>(_ app: HeadlessApp<A>) -> [String] {
+    private func rows(_ app: HeadlessApp) -> [String] {
         app.screen.map(\.stripped)
     }
 
     /// The row and column of the first `text` on screen.
-    private func position<A: App>(of text: String, in app: HeadlessApp<A>) -> (row: Int, column: Int)? {
+    private func position(of text: String, in app: HeadlessApp) -> (row: Int, column: Int)? {
         let screen = rows(app)
         guard let row = screen.firstIndex(where: { $0.contains(text) }),
             let range = screen[row].range(of: text)
@@ -169,7 +169,7 @@ struct SidebarToggleBarButtonTests {
         return (row, screen[row].distance(from: screen[row].startIndex, to: range.lowerBound))
     }
 
-    private func click<A: App>(_ app: HeadlessApp<A>, at point: (row: Int, column: Int)) {
+    private func click(_ app: HeadlessApp, at point: (row: Int, column: Int)) {
         _ = app.send(MouseEvent(button: .left, phase: .pressed, x: point.column, y: point.row))
         _ = app.send(MouseEvent(button: .left, phase: .released, x: point.column, y: point.row))
     }

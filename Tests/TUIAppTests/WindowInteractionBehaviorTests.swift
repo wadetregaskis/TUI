@@ -64,24 +64,24 @@ struct WindowInteractionBehaviorTests {
 
     /// The app with its welcome window opened over the main one, drawn the
     /// one frame.
-    private mutating func welcoming(_ behavior: WindowInteractionBehavior) -> HeadlessApp<WelcomeApp> {
+    private mutating func welcoming(_ behavior: WindowInteractionBehavior) -> HeadlessApp {
         let app = HeadlessApp(WelcomeApp(behavior: behavior), width: 50, height: 10)
         frame(app)
         press(.enter, in: app)
         return app
     }
 
-    private mutating func frame(_ app: HeadlessApp<WelcomeApp>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func press(_ key: Key, in app: HeadlessApp<WelcomeApp>) {
+    private mutating func press(_ key: Key, in app: HeadlessApp) {
         app.send(KeyEvent(key: key))
         frame(app)
     }
 
-    private func screen(_ app: HeadlessApp<WelcomeApp>) -> String {
+    private func screen(_ app: HeadlessApp) -> String {
         app.screen.map(\.stripped).joined(separator: "\n")
     }
 

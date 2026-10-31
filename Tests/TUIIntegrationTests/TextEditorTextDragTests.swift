@@ -44,7 +44,7 @@ struct TextEditorTextDragTests {
     @MainActor
     private final class Harness {
         let text: Box<String>
-        let app: HeadlessApp<EditorApp>
+        let app: HeadlessApp
         private var now: Int64 = 0
         /// The screen cell of the editor's first character.
         private(set) var origin = CellPoint.zero

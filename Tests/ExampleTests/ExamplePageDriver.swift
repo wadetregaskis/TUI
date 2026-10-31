@@ -18,7 +18,7 @@ import TUI
 /// the same keys it would write in the page.
 @MainActor
 final class ExamplePageDriver<A: App> {
-    private let app: HeadlessApp<A>
+    private let app: HeadlessApp
     private var now: Int64 = 0
     private static var frameNanos: Int64 { 16_666_667 }
 

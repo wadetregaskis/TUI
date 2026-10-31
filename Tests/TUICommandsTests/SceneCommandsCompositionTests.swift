@@ -49,7 +49,7 @@ private struct GroupedApp: App {
 @Suite("The commands of several scenes", .serialized)
 struct SceneCommandsCompositionTests {
     /// `app` after two frames, as its rows, stripped.
-    private func screen<A: App>(_ app: HeadlessApp<A>) -> [String] {
+    private func screen(_ app: HeadlessApp) -> [String] {
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
         return app.screen.map(\.stripped)

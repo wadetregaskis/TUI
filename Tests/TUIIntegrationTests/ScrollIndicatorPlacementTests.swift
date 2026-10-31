@@ -157,7 +157,7 @@ struct ScrollIndicatorPlacementTests {
 
     @MainActor
     private final class Harness {
-        let app: HeadlessApp<ScrollerApp>
+        let app: HeadlessApp
         private var now: Int64 = 0
 
         init(

@@ -109,7 +109,7 @@ private struct LedgerPage: View {
 @MainActor
 private final class Harness {
     let ledger = Ledger()
-    let app: HeadlessApp<LedgerApp>
+    let app: HeadlessApp
     private var now: Int64 = 0
 
     init(tall: Bool = false, overflow: TruncationMode? = nil) {

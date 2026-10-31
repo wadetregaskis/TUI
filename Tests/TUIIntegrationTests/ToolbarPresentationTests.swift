@@ -160,7 +160,7 @@ private struct SheetHidingBarApp: App {
 @Suite("A toolbar in a sheet", .serialized)
 struct ToolbarPresentationTests {
 
-    private func settled() -> HeadlessApp<SheetToolbarApp> {
+    private func settled() -> HeadlessApp {
         let app = HeadlessApp(SheetToolbarApp(), width: 60, height: 14)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)

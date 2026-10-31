@@ -191,7 +191,7 @@ private struct RowHostedApp: App {
 struct LiveSheetWindowedPresenterTests {
     private static let frameNanos: Int64 = 16_666_667
 
-    private func rows(_ app: HeadlessApp<some App>) -> [String] {
+    private func rows(_ app: HeadlessApp) -> [String] {
         app.screen.map(\.stripped)
     }
 

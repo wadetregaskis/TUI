@@ -90,7 +90,7 @@ struct StorageWriteScopeTests {
         }
     }
 
-    private static func draw<A: App>(_ app: HeadlessApp<A>, _ frame: inout Int64) -> String {
+    private static func draw(_ app: HeadlessApp, _ frame: inout Int64) -> String {
         for _ in 0..<2 {
             frame += 100_000_000
             app.frame(atNanos: frame)

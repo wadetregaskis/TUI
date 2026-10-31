@@ -188,7 +188,7 @@ private struct LoadingPageApp: App {
 struct ToolbarReachTests {
 
     /// Two frames: one that declares the bars, one that draws them.
-    private func settled<A: App>(_ app: A, width: Int = 50, height: Int = 12) -> HeadlessApp<A> {
+    private func settled<A: App>(_ app: A, width: Int = 50, height: Int = 12) -> HeadlessApp {
         let headless = HeadlessApp(app, width: width, height: height)
         headless.frame(atNanos: 0)
         headless.frame(atNanos: 20_000_000)
@@ -196,7 +196,7 @@ struct ToolbarReachTests {
     }
 
     /// Clicks the first cell of `text` on the screen.
-    private func click(_ text: String, in app: HeadlessApp<some App>) throws {
+    private func click(_ text: String, in app: HeadlessApp) throws {
         let rows = app.screen.map(\.stripped)
         let row = try #require(rows.firstIndex { $0.contains(text) }, "\(rows)")
         let column = rows[row].distance(

@@ -93,7 +93,7 @@ struct TextSelectionRowGestureTests {
 
     @MainActor
     final class Harness {
-        let app: HeadlessApp<PageApp>
+        let app: HeadlessApp
         let page: Page
         var now: Int64 = 0
 

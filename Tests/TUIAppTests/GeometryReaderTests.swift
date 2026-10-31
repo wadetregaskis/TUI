@@ -68,7 +68,7 @@ private struct ReaderRowsPage: App {
 
 /// One frame of `app`, a sixtieth of a second after the one before.
 @MainActor
-private func step<A: App>(_ app: HeadlessApp<A>, _ frame: Int) {
+private func step(_ app: HeadlessApp, _ frame: Int) {
     app.frame(atNanos: 1_000_000_000 + Int64(frame) * 16_666_667)
 }
 

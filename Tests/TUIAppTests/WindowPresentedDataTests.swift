@@ -50,24 +50,24 @@ private struct ValuedApp: App {
 struct WindowPresentedDataTests {
     private var now: Int64 = 0
 
-    private mutating func launched() -> HeadlessApp<ValuedApp> {
+    private mutating func launched() -> HeadlessApp {
         let app = HeadlessApp(ValuedApp(), width: 40, height: 8)
         frame(app)
         return app
     }
 
-    private mutating func frame(_ app: HeadlessApp<ValuedApp>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private func screen(_ app: HeadlessApp<ValuedApp>) -> String {
+    private func screen(_ app: HeadlessApp) -> String {
         app.screen.map(\.stripped).joined(separator: "\n")
     }
 
-    private func open(_ app: HeadlessApp<ValuedApp>) -> OpenWindowAction {
+    private func open(_ app: HeadlessApp) -> OpenWindowAction {
         OpenWindowAction(handler: app.scenes.actions)
     }
 

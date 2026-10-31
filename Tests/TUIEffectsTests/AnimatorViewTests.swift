@@ -153,7 +153,7 @@ private struct NotRepeatingApp: App {
 /// instant and the wall date together.
 @MainActor
 private final class Driver<A: App> {
-    let app: HeadlessApp<A>
+    let app: HeadlessApp
     private var nanos: Int64 = 0
     private let base = Date(timeIntervalSinceReferenceDate: 800_000_000)
 

@@ -161,7 +161,7 @@ struct RenderGlobalsCacheTests {
     /// and the snapshot did not carry it, so the card went on saying "60x16".
     @Test("A memoized row that reads the terminal's size is not served at another")
     func terminalSize() {
-        func frame(_ app: HeadlessApp<TerminalSizeApp>, _ index: Int) {
+        func frame(_ app: HeadlessApp, _ index: Int) {
             app.frame(atNanos: 1_000_000_000 + Int64(index) * 16_666_667)
         }
         let app = HeadlessApp(TerminalSizeApp(), width: 60, height: 16)

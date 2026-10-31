@@ -38,7 +38,7 @@ struct ScrollReflowPlaceTests {
     private static let frameNanos: Int64 = 16_666_667
 
     /// The section at the top of the screen, by its number.
-    private func topSection(_ app: HeadlessApp<ReflowingPage>) -> Int? {
+    private func topSection(_ app: HeadlessApp) -> Int? {
         for line in app.screen {
             guard let range = line.range(of: "Section ") else { continue }
             let digits = line[range.upperBound...].prefix { $0.isNumber }

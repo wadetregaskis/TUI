@@ -107,7 +107,7 @@ private struct StableSidebarApp: App {
 @MainActor
 private final class Harness {
     let tabs = Tabs()
-    let app: HeadlessApp<TabsApp>
+    let app: HeadlessApp
     private var now: Int64 = 0
 
     init(withMenus: Bool) {

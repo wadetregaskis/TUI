@@ -31,8 +31,8 @@ import TUI
 /// empties it before every frame.
 @MainActor
 private final class Twin<A: App> {
-    let warm: HeadlessApp<A>
-    let cold: HeadlessApp<A>
+    let warm: HeadlessApp
+    let cold: HeadlessApp
     /// The script's own clock, a sixtieth of a second a frame from zero as the
     /// Stress sessions' is: an event arrives at the instant of the frame before
     /// it (see `HeadlessApp`), so whatever counts from an arrival — a tooltip's

@@ -91,7 +91,7 @@ struct SheetToolbarEdgesTests {
     }
 
     /// The app, `frames` frames in.
-    private func screen(frames: Int) -> (HeadlessApp<EdgesApp>, [String]) {
+    private func screen(frames: Int) -> (HeadlessApp, [String]) {
         let app = HeadlessApp(EdgesApp(), width: 50, height: 16)
         for frame in 1...frames { app.frame(atNanos: Int64(frame) * 20_000_000) }
         return (app, app.screen.map(\.stripped))

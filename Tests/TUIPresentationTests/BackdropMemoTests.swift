@@ -86,7 +86,7 @@ private struct MarkedRowsUnderSheetApp: App {
 @Suite("What a backdrop stores")
 struct BackdropMemoTests {
     /// Rows drawn and rows served by one frame.
-    private func rowWork(_ app: HeadlessApp<ButtonsUnderSheetApp>, atNanos nanos: Int64) -> (drawn: Int, served: Int) {
+    private func rowWork(_ app: HeadlessApp, atNanos nanos: Int64) -> (drawn: Int, served: Int) {
         let before = app.renderCache.rowWork
         app.frame(atNanos: nanos)
         let after = app.renderCache.rowWork

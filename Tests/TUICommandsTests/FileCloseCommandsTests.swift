@@ -92,7 +92,7 @@ struct FileCloseCommandsTests {
     private var now: Int64 = 0
 
     /// The app with its welcome window opened over the main one.
-    private mutating func welcoming(_ content: WelcomeContent) -> HeadlessApp<TwoWindowApp> {
+    private mutating func welcoming(_ content: WelcomeContent) -> HeadlessApp {
         CloseProbe.shared.text = ""
         CloseProbe.shared.saves = 0
         let app = HeadlessApp(TwoWindowApp(content: content), width: 60, height: 14)
@@ -102,12 +102,12 @@ struct FileCloseCommandsTests {
         return app
     }
 
-    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func send<A: App>(_ key: KeyEvent, to app: HeadlessApp<A>) {
+    private mutating func send(_ key: KeyEvent, to app: HeadlessApp) {
         app.send(key)
         frame(app)
     }

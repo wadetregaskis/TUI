@@ -100,13 +100,13 @@ private struct StatefulTwoGroupsApp: App {
 @Suite("Several scenes in one body")
 struct SceneCompositionTests {
     /// The app after its first frame.
-    private func launched<A: App>(_ app: A) -> HeadlessApp<A> {
+    private func launched<A: App>(_ app: A) -> HeadlessApp {
         let headless = HeadlessApp(app, width: 40, height: 6)
         headless.frame(atNanos: 0)
         return headless
     }
 
-    private func screen<A: App>(_ app: HeadlessApp<A>) -> String {
+    private func screen(_ app: HeadlessApp) -> String {
         app.screen.map(\.stripped).joined(separator: "\n")
     }
 

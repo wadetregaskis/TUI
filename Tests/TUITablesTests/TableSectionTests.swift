@@ -139,7 +139,7 @@ private struct ProminenceProbe: View {
 @MainActor
 private final class Harness {
     let produce = Produce()
-    let app: HeadlessApp<ProduceApp>
+    let app: HeadlessApp
     private var now: Int64 = 0
 
     init(configure: (Produce) -> Void = { _ in }) {

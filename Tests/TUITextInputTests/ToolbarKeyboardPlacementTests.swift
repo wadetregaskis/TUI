@@ -60,7 +60,7 @@ private struct KeyboardPage: View {
 struct ToolbarKeyboardPlacementTests {
 
     /// The app after `frames` frames.
-    private func frames(_ app: HeadlessApp<KeyboardApp>, _ count: Int, from start: inout Int64) -> [String] {
+    private func frames(_ app: HeadlessApp, _ count: Int, from start: inout Int64) -> [String] {
         for _ in 0..<count {
             start += 20_000_000
             app.frame(atNanos: start)

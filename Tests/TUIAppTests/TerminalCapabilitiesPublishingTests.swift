@@ -56,12 +56,12 @@ private struct CapabilitiesApp: App {
 struct TerminalCapabilitiesPublishingTests {
     private var now: Int64 = 0
 
-    private mutating func frame(_ app: HeadlessApp<CapabilitiesApp>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private static func shows(_ app: HeadlessApp<CapabilitiesApp>, _ text: String) -> Bool {
+    private static func shows(_ app: HeadlessApp, _ text: String) -> Bool {
         app.screen.map(\.stripped).joined(separator: "\n").contains(text)
     }
 

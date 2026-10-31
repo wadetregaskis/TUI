@@ -56,12 +56,12 @@ private struct ClosedWatchApp: App {
 struct SceneOnChangeWindowsTests {
     private var now: Int64 = 0
 
-    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp<A> {
+    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
         WatchProbe.value = 1
         WatchProbe.log = []
         let headless = HeadlessApp(app, width: 40, height: 6)

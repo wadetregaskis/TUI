@@ -97,7 +97,7 @@ struct NavigationSplitViewCollapseTests {
 
     /// A headless app over `view`, with its frames 1/60 s apart.
     private final class Driver {
-        let app: HeadlessApp<Page>
+        let app: HeadlessApp
         private var now: Int64 = 0
 
         @MainActor

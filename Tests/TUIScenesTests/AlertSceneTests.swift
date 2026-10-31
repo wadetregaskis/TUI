@@ -96,18 +96,18 @@ private struct WindowSeverityApp: App {
 struct AlertSceneTests {
     private var now: Int64 = 0
 
-    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private func screen<A: App>(_ app: HeadlessApp<A>) -> String {
+    private func screen(_ app: HeadlessApp) -> String {
         app.screen.map(\.stripped).joined(separator: "\n")
     }
 
-    private mutating func launched<A: App>(_ app: A, presented: Bool = true) -> HeadlessApp<A> {
+    private mutating func launched<A: App>(_ app: A, presented: Bool = true) -> HeadlessApp {
         AlertProbe.shared.isPresented = presented
         AlertProbe.shared.isSuppressed = false
         AlertProbe.shared.pageAlert = false

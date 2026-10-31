@@ -84,7 +84,7 @@ struct MenuSubmenuTests {
     /// The app, with a clock that steps a frame at a time.
     @MainActor
     private final class Driver<Scene: App> {
-        let app: HeadlessApp<Scene>
+        let app: HeadlessApp
         private var now: Int64 = 0
 
         init(_ scene: Scene, width: Int = 60, height: Int = 20) {

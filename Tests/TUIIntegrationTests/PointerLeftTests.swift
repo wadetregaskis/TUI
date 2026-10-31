@@ -63,7 +63,7 @@ struct PointerLeftTests {
     /// A headless app and its clock, a 60 Hz frame per step.
     @MainActor
     final class Driver {
-        let app: HeadlessApp<PointerPageApp>
+        let app: HeadlessApp
         private(set) var now: Int64 = 0
 
         init(_ page: PointerPageApp) {

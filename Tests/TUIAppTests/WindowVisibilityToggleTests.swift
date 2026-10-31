@@ -71,25 +71,25 @@ private struct KeptToggleApp: App {
 struct WindowVisibilityToggleTests {
     private var now: Int64 = 0
 
-    private mutating func launched() -> HeadlessApp<ToggleApp> {
+    private mutating func launched() -> HeadlessApp {
         let app = HeadlessApp(ToggleApp(), width: 50, height: 10)
         frame(app)
         frame(app)
         return app
     }
 
-    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func press<A: App>(_ key: Key, in app: HeadlessApp<A>) {
+    private mutating func press(_ key: Key, in app: HeadlessApp) {
         app.send(KeyEvent(key: key))
         frame(app)
         frame(app)
     }
 
-    private func screen<A: App>(_ app: HeadlessApp<A>) -> String {
+    private func screen(_ app: HeadlessApp) -> String {
         app.screen.map(\.stripped).joined(separator: "\n")
     }
 

@@ -77,7 +77,7 @@ struct QuitConfirmationTests {
     /// A fresh app, drawn once.
     private func app(
         _ confirmation: QuitConfirmation = .automatic, model: Model = Model(), bindsControlC: Bool = false
-    ) -> HeadlessApp<Page> {
+    ) -> HeadlessApp {
         Page.model = model
         Page.confirmation = confirmation
         Page.bindsControlC = bindsControlC
@@ -86,11 +86,11 @@ struct QuitConfirmationTests {
         return app
     }
 
-    private func asks(_ app: HeadlessApp<Page>) -> Bool {
+    private func asks(_ app: HeadlessApp) -> Bool {
         app.screen.contains { $0.stripped.contains(quitTitle) && $0.stripped.contains("?") }
     }
 
-    private func press(_ event: KeyEvent, on app: HeadlessApp<Page>, at nanos: inout Int64) {
+    private func press(_ event: KeyEvent, on app: HeadlessApp, at nanos: inout Int64) {
         app.send(event)
         nanos += 20_000_000
         app.frame(atNanos: nanos)

@@ -98,7 +98,7 @@ private struct PageF10App: App {
 struct MenuBarOpeningTests {
 
     /// A fresh app, after its first frame, its log cleared.
-    private func launched<A: App>(_ app: A) -> (HeadlessApp<A>, Clock) {
+    private func launched<A: App>(_ app: A) -> (HeadlessApp, Clock) {
         OpeningProbe.shared.log = []
         let headless = HeadlessApp(app, width: 40, height: 12)
         let clock = Clock()
@@ -107,12 +107,12 @@ struct MenuBarOpeningTests {
     }
 
     /// The frame's rows, stripped.
-    private func rows<A: App>(_ app: HeadlessApp<A>) -> [String] {
+    private func rows(_ app: HeadlessApp) -> [String] {
         app.screen.map(\.stripped)
     }
 
     /// Whether the screen shows `text` below the bar's row.
-    private func shows<A: App>(_ text: String, _ app: HeadlessApp<A>) -> Bool {
+    private func shows(_ text: String, _ app: HeadlessApp) -> Bool {
         rows(app).dropFirst().contains { $0.contains(text) }
     }
 
@@ -291,7 +291,7 @@ struct MenuBarOpeningTests {
     }
 
     /// Where `text` first shows below the bar's row: its first cell.
-    private func cell<A: App>(of text: String, _ app: HeadlessApp<A>) throws -> (x: Int, y: Int) {
+    private func cell(of text: String, _ app: HeadlessApp) throws -> (x: Int, y: Int) {
         let screen = rows(app)
         let y = try #require(screen.indices.dropFirst().first { screen[$0].contains(text) }, "\(screen)")
         let x = try #require(screen[y].range(of: text)).lowerBound.utf16Offset(in: screen[y])
@@ -299,7 +299,7 @@ struct MenuBarOpeningTests {
     }
 
     /// The first cell of the title `name` on the bar's row.
-    private func title<A: App>(_ name: String, _ app: HeadlessApp<A>) throws -> Int {
+    private func title(_ name: String, _ app: HeadlessApp) throws -> Int {
         let bar = rows(app)[0]
         return try #require(bar.range(of: name)).lowerBound.utf16Offset(in: bar)
     }
@@ -522,7 +522,7 @@ struct MenuBarOpeningTests {
 private final class Clock {
     private var now: Int64 = 0
 
-    func frame<A: App>(_ app: HeadlessApp<A>) {
+    func frame(_ app: HeadlessApp) {
         app.frame(atNanos: now)
         now += 20_000_000
     }

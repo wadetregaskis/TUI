@@ -90,7 +90,7 @@ struct NavigationStackToolbarItemsTests {
     }
 
     /// The screen after a few frames: enough to declare, adopt and settle.
-    private func frames(_ app: HeadlessApp<some App>, from now: inout Int64) -> [String] {
+    private func frames(_ app: HeadlessApp, from now: inout Int64) -> [String] {
         for _ in 0..<3 {
             now += 20_000_000
             app.frame(atNanos: now)

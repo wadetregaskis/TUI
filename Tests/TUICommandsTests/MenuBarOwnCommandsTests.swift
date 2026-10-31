@@ -97,7 +97,7 @@ struct MenuBarOwnCommandsTests {
     private var now: Int64 = 0
 
     /// A fresh app after its first frame, its log cleared.
-    private func launched<A: App>(_ app: A, undo: UndoManager? = nil) -> HeadlessApp<A> {
+    private func launched<A: App>(_ app: A, undo: UndoManager? = nil) -> HeadlessApp {
         OwnCommandsProbe.shared.log = []
         let headless = HeadlessApp(app, width: 60, height: 14)
         if let undo { headless.services.undoManager = undo }
@@ -106,16 +106,16 @@ struct MenuBarOwnCommandsTests {
     }
 
     /// Renders a frame after `app`'s last.
-    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private func rows<A: App>(_ app: HeadlessApp<A>) -> [String] { app.screen.map(\.stripped) }
+    private func rows(_ app: HeadlessApp) -> [String] { app.screen.map(\.stripped) }
 
     /// Opens the menu at `title` from the keyboard and chooses its item at
     /// `downs` places past the first, drawing a frame between each step.
-    private mutating func choose<A: App>(_ title: Int, item downs: Int, in app: HeadlessApp<A>) {
+    private mutating func choose(_ title: Int, item downs: Int, in app: HeadlessApp) {
         app.send(KeyEvent(key: .f10))
         frame(app)
         app.send(KeyEvent(key: .down))

@@ -90,7 +90,7 @@ struct StackGlideMemoTests {
             }
             tick += 1
         }
-        func row(of text: String, in app: HeadlessApp<GlidingApp>) -> Int? {
+        func row(of text: String, in app: HeadlessApp) -> Int? {
             app.screen.map(\.stripped).firstIndex { $0.contains(text) }
         }
 

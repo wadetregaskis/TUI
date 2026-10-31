@@ -43,18 +43,18 @@ private struct BothSidesApp: App {
 @MainActor
 @Suite("A toolbar toggle's label", .rendersEnglishUI)
 struct LabelledPanelToggleTests {
-    private func running<A: App>(_ app: A) -> HeadlessApp<A> {
+    private func running<A: App>(_ app: A) -> HeadlessApp {
         let headless = HeadlessApp(app, width: 72, height: 14)
         for index in 1...5 { headless.frame(atNanos: Int64(index) * 16_666_667) }
         return headless
     }
 
-    private func rows<A: App>(_ app: HeadlessApp<A>) -> [String] {
+    private func rows(_ app: HeadlessApp) -> [String] {
         app.screen.map(\.stripped)
     }
 
     /// A still click at `column` on `row`, and two frames after it.
-    private func click<A: App>(_ app: HeadlessApp<A>, row: Int, column: Int, frame: Int) {
+    private func click(_ app: HeadlessApp, row: Int, column: Int, frame: Int) {
         _ = app.send(MouseEvent(button: .left, phase: .pressed, x: column, y: row))
         _ = app.send(MouseEvent(button: .left, phase: .released, x: column, y: row))
         for index in frame...(frame + 1) { app.frame(atNanos: Int64(index) * 16_666_667) }

@@ -218,7 +218,7 @@ private struct ReportingGapPage: View {
 /// A headless app and its clock, one 60 Hz frame per step.
 @MainActor
 private final class Driver<A: App> {
-    let app: HeadlessApp<A>
+    let app: HeadlessApp
     private var now: Int64 = 0
 
     init(_ page: A, height: Int = 14) {

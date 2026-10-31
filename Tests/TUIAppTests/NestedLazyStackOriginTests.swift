@@ -181,7 +181,7 @@ struct NestedLazyStackOriginTests {
         script += Array(repeating: KeyEvent(key: .pageDown), count: 4)
         script += [KeyEvent(key: .end), nil, KeyEvent(key: .pageUp), KeyEvent(key: .up), KeyEvent(key: .home)]
         // The status bar's three lines go too: they are the app's, not the scroll view's.
-        let content = { (app: HeadlessApp<OriginApp>) in
+        let content = { (app: HeadlessApp) in
             app.screen.dropLast(3).map { String($0.stripped.dropLast()) }
         }
         var diverged: [String] = []

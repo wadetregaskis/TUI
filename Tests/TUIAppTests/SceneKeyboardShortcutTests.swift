@@ -53,14 +53,14 @@ private struct ClashingApp: App {
 struct SceneKeyboardShortcutTests {
     private var now: Int64 = 0
 
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp<A> {
+    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
         let headless = HeadlessApp(app, width: 50, height: 10)
         frame(headless)
         frame(headless)
         return headless
     }
 
-    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
@@ -68,14 +68,14 @@ struct SceneKeyboardShortcutTests {
     /// Presses `character` with Control — ⌘ through the default `commandKey`
     /// — and Shift if `shift`, which a terminal reports with the letter's
     /// capital, and draws.
-    private mutating func press<A: App>(_ character: Character, shift: Bool = false, in app: HeadlessApp<A>) {
+    private mutating func press(_ character: Character, shift: Bool = false, in app: HeadlessApp) {
         let typed = shift ? Character(character.uppercased()) : character
         app.send(KeyEvent(key: .character(typed), ctrl: true, shift: shift))
         frame(app)
         frame(app)
     }
 
-    private func screen<A: App>(_ app: HeadlessApp<A>) -> String {
+    private func screen(_ app: HeadlessApp) -> String {
         app.screen.map(\.stripped).joined(separator: "\n")
     }
 

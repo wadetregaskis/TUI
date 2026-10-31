@@ -76,21 +76,21 @@ private struct LateWriteApp: App {
 struct SceneStoragePerWindowTests {
     private var now: Int64 = 0
 
-    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func launched() -> HeadlessApp<StorageApp> {
+    private mutating func launched() -> HeadlessApp {
         StorageProbe.shared.store = MockStorageBackend()
         let app = HeadlessApp(StorageApp(), width: 40, height: 6)
         frame(app)
         return app
     }
 
-    private func screen(_ app: HeadlessApp<StorageApp>) -> String {
+    private func screen(_ app: HeadlessApp) -> String {
         app.screen.map(\.stripped).joined(separator: "\n")
     }
 
@@ -99,7 +99,7 @@ struct SceneStoragePerWindowTests {
     }
 
     /// Opens `id` and presses the new window's button.
-    private mutating func openAndPress(_ id: String, in app: HeadlessApp<StorageApp>) {
+    private mutating func openAndPress(_ id: String, in app: HeadlessApp) {
         app.scenes.open(WindowTarget(id: id))
         frame(app)
         app.send(KeyEvent(key: .enter))

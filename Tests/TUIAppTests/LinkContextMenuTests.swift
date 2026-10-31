@@ -71,7 +71,7 @@ struct LinkContextMenuTests {
     private final class Harness {
         let board = FakeClipboard()
         let opened = Opened()
-        let app: HeadlessApp<LinksApp>
+        let app: HeadlessApp
         private var now: Int64 = 0
 
         init(activation: LinkActivation = .open, display: LinkDisplay = .popover) {

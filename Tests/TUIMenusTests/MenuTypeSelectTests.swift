@@ -51,7 +51,7 @@ private struct TypeSelectMenuApp: App {
 struct MenuTypeSelectTests {
     @MainActor
     private final class Driver {
-        let app: HeadlessApp<TypeSelectMenuApp>
+        let app: HeadlessApp
         private var now: Int64 = 0
 
         init(_ scene: TypeSelectMenuApp) {

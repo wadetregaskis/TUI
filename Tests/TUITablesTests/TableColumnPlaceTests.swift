@@ -70,7 +70,7 @@ private struct FilesPage: View {
 @MainActor
 private final class Harness {
     let shown = Shown()
-    let app: HeadlessApp<FilesApp>
+    let app: HeadlessApp
     private var now: Int64 = 0
 
     init() {

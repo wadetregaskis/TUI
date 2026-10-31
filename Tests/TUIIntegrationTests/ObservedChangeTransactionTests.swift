@@ -70,7 +70,7 @@ private struct ObservedSlideApp: App {
 @Suite("An observed change made inside withAnimation animates, whichever write fired the observation")
 struct ObservedChangeTransactionTests {
     /// The column the mark is drawn at.
-    private func markColumn(_ app: HeadlessApp<ObservedSlideApp>) -> Int? {
+    private func markColumn(_ app: HeadlessApp) -> Int? {
         for line in app.screen.map(\.stripped) {
             if let range = line.range(of: "MARK") {
                 return line.distance(from: line.startIndex, to: range.lowerBound)

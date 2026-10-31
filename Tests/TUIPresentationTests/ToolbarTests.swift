@@ -156,12 +156,12 @@ private struct StyledApp: App {
 struct ToolbarTests {
 
     /// The screen's rows, escapes stripped.
-    private func rows(_ app: HeadlessApp<some App>) -> [String] {
+    private func rows(_ app: HeadlessApp) -> [String] {
         app.screen.map(\.stripped)
     }
 
     /// Two frames: one that declares the bars, one that draws them.
-    private func settled<A: App>(_ app: A, width: Int = 60, height: Int = 16) -> HeadlessApp<A> {
+    private func settled<A: App>(_ app: A, width: Int = 60, height: Int = 16) -> HeadlessApp {
         let headless = HeadlessApp(app, width: width, height: height)
         headless.frame(atNanos: 0)
         headless.frame(atNanos: 20_000_000)

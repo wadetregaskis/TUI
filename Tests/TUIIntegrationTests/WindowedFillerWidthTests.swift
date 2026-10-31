@@ -173,7 +173,7 @@ struct FillerListDriver {
     static let frameNanos: Int64 = 16_666_667
 
     let model: FillerListModel
-    let app: HeadlessApp<FillerListApp>
+    let app: HeadlessApp
     private var now: Int64 = 0
 
     init(plan: FillerListPlan, width: Int = 60, height: Int = 20) {

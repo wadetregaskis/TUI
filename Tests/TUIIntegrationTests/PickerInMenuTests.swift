@@ -121,7 +121,7 @@ private func sortPicker(_ title: String) -> some View {
 struct PickerInMenuTests {
     @MainActor
     private final class Driver<Scene: App> {
-        let app: HeadlessApp<Scene>
+        let app: HeadlessApp
         private var now: Int64 = 0
 
         init(_ scene: Scene) {

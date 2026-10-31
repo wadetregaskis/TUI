@@ -31,7 +31,7 @@ struct ScreenSelectionMenuTests {
     }
 
     /// An app with `alpha` selected, its copies going to `log`.
-    func selected(log: SystemClipboardLog) throws -> (HeadlessApp<Page>, Clock, x: Int, y: Int) {
+    func selected(log: SystemClipboardLog) throws -> (HeadlessApp, Clock, x: Int, y: Int) {
         let app = HeadlessApp(Page(), width: 40, height: 10)
         app.services.clipboardWriter = ClipboardWriter.stated(terminal: .unsupported, isLocal: true, log: log)
         let clock = Clock()
@@ -53,7 +53,7 @@ struct ScreenSelectionMenuTests {
         return (app, clock, x, y)
     }
 
-    func frame(_ app: HeadlessApp<Page>, _ clock: Clock) {
+    func frame(_ app: HeadlessApp, _ clock: Clock) {
         clock.nanos += 16_666_667
         app.frame(atNanos: clock.nanos)
     }

@@ -76,7 +76,7 @@ private struct TwoToolbarsApp: App {
 @Suite("A toolbar item's identity", .serialized)
 struct ToolbarIdentityTests {
 
-    private func rows(_ app: HeadlessApp<some App>) -> [String] {
+    private func rows(_ app: HeadlessApp) -> [String] {
         app.screen.map(\.stripped)
     }
 

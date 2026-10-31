@@ -56,7 +56,7 @@ private struct InboxApp: App {
 @MainActor
 private final class Harness {
     let inbox = Inbox()
-    let app: HeadlessApp<InboxApp>
+    let app: HeadlessApp
     private var now: Int64 = 0
 
     init() {

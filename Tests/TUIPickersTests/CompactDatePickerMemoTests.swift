@@ -63,7 +63,7 @@ private struct DatesPage: View {
 @MainActor
 private final class Harness {
     let dates = Dates()
-    let app: HeadlessApp<DatesApp>
+    let app: HeadlessApp
     private var now: Int64 = 0
 
     init(compact: Bool) {

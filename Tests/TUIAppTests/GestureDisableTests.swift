@@ -110,14 +110,14 @@ struct GestureDisableTests {
     }
 
     /// Where `text` is drawn on `app`'s screen: its first cell.
-    private func cell(of text: String, in app: HeadlessApp<Page>) throws -> (x: Int, y: Int) {
+    private func cell(of text: String, in app: HeadlessApp) throws -> (x: Int, y: Int) {
         let lines = app.screen.map(\.stripped)
         let y = try #require(lines.firstIndex { $0.contains(text) })
         let range = try #require(lines[y].range(of: text))
         return (lines[y].distance(from: lines[y].startIndex, to: range.lowerBound), y)
     }
 
-    private func click(_ app: HeadlessApp<Page>, at cell: (x: Int, y: Int)) {
+    private func click(_ app: HeadlessApp, at cell: (x: Int, y: Int)) {
         app.send(MouseEvent(button: .left, phase: .pressed, x: cell.x, y: cell.y))
         app.send(MouseEvent(button: .left, phase: .released, x: cell.x, y: cell.y))
     }

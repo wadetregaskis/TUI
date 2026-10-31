@@ -73,14 +73,14 @@ struct TerminalProgressTests {
 
     /// `app`, run on a terminal that takes a progress bar, or, with `sends`
     /// `false`, one that does not; one frame drawn.
-    private mutating func launched<A: App>(_ app: A, sends: Bool = true) -> HeadlessApp<A> {
+    private mutating func launched<A: App>(_ app: A, sends: Bool = true) -> HeadlessApp {
         let headless = HeadlessApp(app, width: 40, height: 8)
         headless.sendsProgressReports = sends
         frame(headless)
         return headless
     }
 
-    private mutating func frame<A: App>(_ app: HeadlessApp<A>, after nanos: Int64 = 20_000_000) {
+    private mutating func frame(_ app: HeadlessApp, after nanos: Int64 = 20_000_000) {
         now += nanos
         app.frame(atNanos: now)
     }

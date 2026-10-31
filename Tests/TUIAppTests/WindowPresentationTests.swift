@@ -108,7 +108,7 @@ struct WindowPresentationTests {
     private var now: Int64 = 0
 
     /// `app` after its first two frames, its log cleared.
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp<A> {
+    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
         WindowsProbe.shared.log = []
         let headless = HeadlessApp(app, width: 50, height: 12)
         frame(headless)
@@ -116,23 +116,23 @@ struct WindowPresentationTests {
         return headless
     }
 
-    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private func screen<A: App>(_ app: HeadlessApp<A>) -> String {
+    private func screen(_ app: HeadlessApp) -> String {
         app.screen.map(\.stripped).joined(separator: "\n")
     }
 
     /// Presses `key` and draws a frame.
-    private mutating func press<A: App>(_ key: Key, in app: HeadlessApp<A>) {
+    private mutating func press(_ key: Key, in app: HeadlessApp) {
         app.send(KeyEvent(key: key))
         frame(app)
     }
 
     /// Tabs `tabs` times from the first control and presses Return there.
-    private mutating func choose<A: App>(tabs: Int, in app: HeadlessApp<A>) {
+    private mutating func choose(tabs: Int, in app: HeadlessApp) {
         for _ in 0..<tabs { press(.tab, in: app) }
         press(.enter, in: app)
         frame(app)

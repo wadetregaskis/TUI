@@ -136,22 +136,22 @@ struct AutomaticSidebarToggleTests {
     /// `app` after five frames: a bar is adopted a frame or two after its items
     /// are first declared, and the split leaves out its edge column the frame
     /// after the bar first draws the button.
-    private func running<A: App>(_ app: A) -> HeadlessApp<A> {
+    private func running<A: App>(_ app: A) -> HeadlessApp {
         let headless = HeadlessApp(app, width: 50, height: 12)
         for index in 1...5 { headless.frame(atNanos: Int64(index) * 16_666_667) }
         return headless
     }
 
-    private func rows<A: App>(_ app: HeadlessApp<A>) -> [String] {
+    private func rows(_ app: HeadlessApp) -> [String] {
         app.screen.map(\.stripped)
     }
 
     /// The top bar's item row: the one holding "ITEM".
-    private func barRow<A: App>(_ app: HeadlessApp<A>) -> String? {
+    private func barRow(_ app: HeadlessApp) -> String? {
         rows(app).first { $0.contains("ITEM") }
     }
 
-    private func click<A: App>(_ app: HeadlessApp<A>, on text: String, in row: Int) {
+    private func click(_ app: HeadlessApp, on text: String, in row: Int) {
         let line = rows(app)[row]
         guard let range = line.range(of: text) else { return }
         let column = line.distance(from: line.startIndex, to: range.lowerBound)

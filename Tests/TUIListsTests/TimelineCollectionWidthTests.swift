@@ -183,7 +183,7 @@ private let evenMinute: TimeInterval = 13_333_320 * 60
 /// Draws `app` at `seconds` past the even minute. The monotonic instant
 /// follows the date, as the loop stamps them together.
 @MainActor
-private func frame<A: App>(_ app: HeadlessApp<A>, at seconds: TimeInterval) {
+private func frame(_ app: HeadlessApp, at seconds: TimeInterval) {
     app.frame(
         atNanos: 1_000_000_000 + Int64(seconds * 1_000_000_000),
         date: Date(timeIntervalSinceReferenceDate: evenMinute + seconds))
@@ -207,7 +207,7 @@ struct TimelineCollectionWidthTests {
     /// suite, alone or beside the rest of its target, ever did; the request was
     /// then an `@AppStorage` or `@SceneStorage` write's, which no longer clears
     /// anything (`StorageWriteScopeTests`).
-    private func drive<A: App>(
+    private func drive(
         _ make: (RowBuilds) -> A, width: Int
     ) -> (widestBuiltInOneMinute: Int, later: [String], control: [String]) {
         var attempt = 0

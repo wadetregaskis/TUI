@@ -60,7 +60,7 @@ private struct SlideApp: App {
 @Suite("Two apps in one process keep what is pending for each apart")
 struct AppIsolationTests {
     /// The column the mark is drawn at in `app`'s screen.
-    private func markColumn(_ app: HeadlessApp<SlideApp>) -> Int? {
+    private func markColumn(_ app: HeadlessApp) -> Int? {
         for line in app.screen.map(\.stripped) {
             if let range = line.range(of: "MARK") {
                 return line.distance(from: line.startIndex, to: range.lowerBound)
@@ -79,7 +79,7 @@ struct AppIsolationTests {
         let pressed = HeadlessApp(SlideApp(), width: 40, height: 6)
         let other = HeadlessApp(SlideApp(), width: 40, height: 6)
         var tick: Int64 = 0
-        func frame(_ apps: [HeadlessApp<SlideApp>]) {
+        func frame(_ apps: [HeadlessApp]) {
             let now = AnimationClock.nanoseconds(atTick: tick)
             for app in apps { app.frame(atNanos: now) }
             tick += 1

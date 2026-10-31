@@ -73,7 +73,7 @@ private struct DocumentRow: View, @MainActor Equatable {
 @MainActor
 private final class Harness {
     let documents = Documents()
-    let app: HeadlessApp<DocumentsApp>
+    let app: HeadlessApp
     private var now: Int64 = 0
 
     init() {

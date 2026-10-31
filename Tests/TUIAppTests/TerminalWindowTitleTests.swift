@@ -76,14 +76,14 @@ struct TerminalWindowTitleTests {
 
     private static func set(_ title: String) -> String { "\u{1B}]2;\(title)\u{1B}\\" }
 
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp<A> {
+    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
         let headless = HeadlessApp(app, width: 50, height: 10)
         frame(headless)
         frame(headless)
         return headless
     }
 
-    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }

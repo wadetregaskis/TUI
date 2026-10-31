@@ -69,7 +69,7 @@ struct MemoServedAnimationTests {
     /// Every tick for two seconds, rendering each time — which is what an app
     /// does while something else on the page changes — against an instance
     /// with no cache: the ticks whose screens differed, and the warm instance.
-    private func staleTicks<A: App>(_ make: () -> A) -> (ticks: [Int], warm: HeadlessApp<A>) {
+    private func staleTicks<A: App>(_ make: () -> A) -> (ticks: [Int], warm: HeadlessApp) {
         let warm = HeadlessApp(make(), width: 30, height: 8)
         let cold = HeadlessApp(make(), width: 30, height: 8)
         cold.clearsRenderCacheEachFrame = true

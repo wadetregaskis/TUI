@@ -64,7 +64,7 @@ private struct MailPage: View {
 @MainActor
 private final class Harness {
     let mail = Mail()
-    let app: HeadlessApp<MailApp>
+    let app: HeadlessApp
     private var now: Int64 = 0
 
     init(allowsFullSwipe: Bool = true) {

@@ -118,7 +118,7 @@ private struct TitleItemApp: App {
 @Suite("Default toolbar items", .rendersEnglishUI)
 struct DefaultToolbarItemTests {
     /// `app` after three frames.
-    private func running<A: App>(_ app: A) -> HeadlessApp<A> {
+    private func running<A: App>(_ app: A) -> HeadlessApp {
         let headless = HeadlessApp(app, width: 40, height: 12)
         var now: Int64 = 0
         for _ in 0..<3 {

@@ -83,16 +83,16 @@ private struct FieldHelpApp: App {
 struct MenuBarHelpTests {
     private var now: Int64 = 0
 
-    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private func shows<A: App>(_ text: String, _ app: HeadlessApp<A>) -> Bool {
+    private func shows(_ text: String, _ app: HeadlessApp) -> Bool {
         app.screen.contains { $0.stripped.contains(text) }
     }
 
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp<A> {
+    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
         let headless = HeadlessApp(app, width: 60, height: 16)
         frame(headless)
         frame(headless)
@@ -101,7 +101,7 @@ struct MenuBarHelpTests {
 
     /// Opens the Help menu, the bar's last, and chooses its item `downs`
     /// places past the first enabled one.
-    private mutating func chooseHelp<A: App>(item downs: Int, in app: HeadlessApp<A>) {
+    private mutating func chooseHelp(item downs: Int, in app: HeadlessApp) {
         app.send(KeyEvent(key: .f10))
         frame(app)
         app.send(KeyEvent(key: .down))

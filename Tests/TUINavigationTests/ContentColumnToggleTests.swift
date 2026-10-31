@@ -91,24 +91,24 @@ private struct TwoColumnApp: App {
 @MainActor
 @Suite("A three-column split view's content-column button", .rendersEnglishUI)
 struct ContentColumnToggleTests {
-    private func running<A: App>(_ app: A) -> HeadlessApp<A> {
+    private func running<A: App>(_ app: A) -> HeadlessApp {
         let headless = HeadlessApp(app, width: 60, height: 12)
         for index in 1...5 { headless.frame(atNanos: Int64(index) * 16_666_667) }
         return headless
     }
 
-    private func rows<A: App>(_ app: HeadlessApp<A>) -> [String] {
+    private func rows(_ app: HeadlessApp) -> [String] {
         app.screen.map(\.stripped)
     }
 
     /// The top bar's buttons, by their arrows, leading first.
-    private func barArrows<A: App>(_ app: HeadlessApp<A>) -> [Character] {
+    private func barArrows(_ app: HeadlessApp) -> [Character] {
         guard let bar = rows(app).first(where: { $0.contains("ITEM") }) else { return [] }
         return bar.prefix { $0 != "I" }.filter { $0 == "◀" || $0 == "▶" }
     }
 
     /// Clicks the `ordinal`th arrow of the top bar, and draws what follows.
-    private func clickArrow<A: App>(_ app: HeadlessApp<A>, _ ordinal: Int) throws {
+    private func clickArrow(_ app: HeadlessApp, _ ordinal: Int) throws {
         let screen = rows(app)
         let row = try #require(screen.firstIndex { $0.contains("ITEM") }, "\(screen)")
         let line = screen[row]

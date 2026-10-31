@@ -83,23 +83,23 @@ private struct NoSettingsApp: App {
 struct SettingsSceneTests {
     private var now: Int64 = 0
 
-    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
+    private mutating func frame(_ app: HeadlessApp) {
         now += 20_000_000
         app.frame(atNanos: now)
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func press<A: App>(_ key: Key, in app: HeadlessApp<A>) {
+    private mutating func press(_ key: Key, in app: HeadlessApp) {
         app.send(KeyEvent(key: key))
         frame(app)
     }
 
-    private func screen<A: App>(_ app: HeadlessApp<A>) -> String {
+    private func screen(_ app: HeadlessApp) -> String {
         app.screen.map(\.stripped).joined(separator: "\n")
     }
 
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp<A> {
+    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
         let headless = HeadlessApp(app, width: 60, height: 14)
         frame(headless)
         return headless

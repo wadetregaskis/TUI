@@ -67,7 +67,7 @@ private struct AppBodyReadingApp: App {
 @Suite("Frame observation")
 struct FrameObservationTests {
 
-    private func draw<A: App>(_ app: HeadlessApp<A>, at now: inout Int64) -> [String] {
+    private func draw(_ app: HeadlessApp, at now: inout Int64) -> [String] {
         now += 20_000_000
         app.frame(atNanos: now)
         return app.screen.map(\.stripped)

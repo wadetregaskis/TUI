@@ -58,7 +58,7 @@ struct TextEditorBlockSelectionTests {
     private final class Harness {
         let board = FakeClipboard()
         let text: Box<String>
-        let app: HeadlessApp<EditorApp>
+        let app: HeadlessApp
         private var now: Int64 = 0
         /// The screen cell of the editor's first character.
         private(set) var origin = CellPoint.zero

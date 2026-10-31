@@ -53,7 +53,7 @@ private struct FruitApp: App {
 struct PickerTypeSelectTests {
     @MainActor
     private final class Driver {
-        let app: HeadlessApp<FruitApp>
+        let app: HeadlessApp
         private var now: Int64 = 0
 
         init(_ scene: FruitApp) {

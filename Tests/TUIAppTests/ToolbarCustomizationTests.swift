@@ -128,7 +128,7 @@ struct ToolbarCustomizationTests {
     /// The app and its frame clock.
     @MainActor
     private final class Driver<Probe: App> {
-        let app: HeadlessApp<Probe>
+        let app: HeadlessApp
         var now: Int64 = 0
 
         init(_ probe: Probe) {
