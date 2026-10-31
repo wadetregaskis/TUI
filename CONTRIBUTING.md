@@ -2,6 +2,19 @@
 
 TUI is a SwiftUI-like framework for building Terminal User Interfaces in pure Swift, with no ncurses or external C dependencies (the only C is the in-tree `stb_image` decoder, used as the image-decoding fallback where AppKit's `NSImage` is unavailable). It targets SwiftUI API parity wherever possible.
 
+## Quick start
+
+```bash
+git clone https://github.com/wadetregaskis/TUI.git
+cd TUI
+swift build                    # needs Swift 6.2 or newer
+swift test                     # the whole test suite
+swift run Example              # the demo app; press q to quit
+swiftlint                      # must report no violations
+```
+
+To send a change, see [Pull Request Requirements](#pull-request-requirements). The rest of this page is the detail you can look up as you need it: what CI checks, how the modules are laid out, and the rules the code follows.
+
 ## Hard Requirements (non-negotiable)
 
 | Requirement | Details |
@@ -12,7 +25,7 @@ TUI is a SwiftUI-like framework for building Terminal User Interfaces in pure Sw
 
 ### What CI covers
 
-Every lane runs `swift build`, the test suite, and both smoke tests
+Every job runs `swift build`, the test suite, and both smoke tests
 (`Stress --selfcheck` everywhere; the PTY walk on macOS and Linux). On macOS
 and Linux the suite runs through `Tools/ParallelTest/parallel_test.py -j 4`
 rather than `swift test` — see "Running the suite in parallel" below; Windows
@@ -31,7 +44,7 @@ operating system, and trunk on macOS and Linux:
 Released Swift comes from Xcode on macOS. 6.4 also runs from swift.org's
 release toolchain on `macos-26`, where no Xcode carries it. Trunk comes from
 swift.org too: the newest snapshot of `main`, never a release branch's, and
-the lane checks the snapshot it installed says so. Windows has no trunk lane because its trunk image is rebuilt too rarely to be
+the job checks the snapshot it installed says so. Windows has no trunk job because its trunk image is rebuilt too rarely to be
 worth reporting as a nightly (on 2026-09-27 it was eleven weeks old).
 
 Until 6.4.0 shipped (2026-09-14) its row was `release/6.4.x` snapshots and
@@ -39,19 +52,19 @@ nightlies, advisory; the release images replaced them, and they block. The
 next release branch's nightlies take that place when it is cut.
 
 **Compiler warnings.** The build has none, in every target, and the 6.2 macOS
-lane (`macos-15`) fails if it gains one: it builds every target from a clean
+job (`macos-15`) fails if it gains one: it builds every target from a clean
 checkout, then `TUIBenchmarks` (`TUI_BENCHMARKS=1`, which no other step
 builds), and `Tools/check-compiler-warnings.py` reads both logs. A warning in a
 dependency's own code is printed and not counted. Locally, a count means
 nothing after an incremental build, which compiles only what changed: build
 into a fresh `--scratch-path`, or after `swift package clean`.
 
-Every released lane takes the newest patch of its line — an Xcode major, a
+Every released job takes the newest patch of its line — an Xcode major, a
 `swift:6.x` image tag, swift.org's newest 6.4.x — so a patch toolchain arrives
 without a workflow edit. It can also break the build without a TUI change;
 that is accepted, as the price of never testing a stale toolchain.
 
-WebAssembly is built by its own lane, on a pinned 6.3.3 container plus the
+WebAssembly is built by its own job, on a pinned 6.3.3 container plus the
 matching Swift SDK — pinned because a Swift SDK loads only under the toolchain
 version it was built for, and still 6.3.3 because that is the only version the
 port has been measured with (see [`Documentation/WebAssembly port.md`](<Documentation/WebAssembly port.md>)).
@@ -60,19 +73,19 @@ Linux additionally runs Swift 6.3 on arm64, and lint runs on Linux only — it
 gates everything else, so a style slip fails in a minute rather than after
 eighteen builds.
 
-Four checks run on chosen lanes only:
+Four checks run on chosen jobs only:
 
-| Check | Lanes | What it catches |
+| Check | Jobs | What it catches |
 |-------|-------|-----------------|
-| Release build (`swift build -c release`: every library target, Stress, Example and the tools; no tests) | `macOS 26 · Swift 6.4`, `Linux · Swift 6.3 · arm64` | Failures that exist only under `-O`. Every other build in CI is debug; on 2026-10-08 Swift 6.3.3 could not build the library in release while every lane was green. |
+| Release build (`swift build -c release`: every library target, Stress, Example and the tools; no tests) | `macOS 26 · Swift 6.4`, `Linux · Swift 6.3 · arm64` | Failures that exist only under `-O`. Every other build in CI is debug; on 2026-10-08 Swift 6.3.3 could not build the library in release while every job was green. |
 | Span back-deployment library (`Tools/check-span-compatibility.sh` on that release build's Stress and Example, and on the objects of every module a library product ships; runs locally after `swift build -c release`) | `macOS 26 · Swift 6.4` | An executable that links `libswiftCompatibilitySpan.dylib`, which macOS has only from 26, or a library module that refers to one of its symbols (and so links it into every app that uses the module). Copied out of `.build` such an app stops at launch on macOS 14 and 15, as every 6.4 build did until 2026-10-10, through swift-collections. |
-| Type-check budget (the library rebuilt with every expression capped at a number of solver scopes, `-solver-scope-threshold`) | `macOS 15 · Xcode 26` (6.2.4) at 2,000; `macOS 26 · Swift 6.4` at 1,500 | An expression that has become expensive to type-check, as a count rather than a time, so a slow runner cannot fail it. The count belongs to the compiler, so each lane's cap sits just above its own compiler's worst expression. |
+| Type-check budget (the library rebuilt with every expression capped at a number of solver scopes, `-solver-scope-threshold`) | `macOS 15 · Xcode 26` (6.2.4) at 2,000; `macOS 26 · Swift 6.4` at 1,500 | An expression that has become expensive to type-check, as a count rather than a time, so a slow runner cannot fail it. The count belongs to the compiler, so each job's cap sits just above its own compiler's worst expression. |
 | Module map (`Tools/ModuleMap`) | `macOS 15 · Xcode 26` | A reference that would cross a planned module boundary upward. It reads the index store the build wrote, and the map is the same on every Swift. |
 
 The workflow's comment on each step has the measurements behind it and says
 how to read a failure.
 
-Nightly-toolchain lanes are **advisory** (`continue-on-error`): visible, but
+Nightly-toolchain jobs are **advisory** (`continue-on-error`): visible, but
 unable to block a merge, because they break for reasons that have nothing to do
 with this package. Everything on a released toolchain — including Windows —
 blocks.
@@ -80,14 +93,14 @@ blocks.
 macOS 27 runs on GitHub's `xcode-27` image (macOS 27.0 with Xcode 27, and so
 Xcode's own Swift 6.4), and is required alongside `macos-15` and `macos-26`.
 GitHub still labels that image a preview and warns it may queue; a queued
-macOS 27 lane holds the `CI` check pending until it runs. When a `macos-27`
-label appears, the lane moves to it (see the macOS 27 note at the top of the
+macOS 27 job holds the `CI` check pending until it runs. When a `macos-27`
+label appears, the job moves to it (see the macOS 27 note at the top of the
 workflow).
 
 #### The `CI` gate job
 
 `CI` is a job that runs after everything else and fails if any non-advisory
-lane did not succeed. **It is the only check that should be marked as a
+job did not succeed. **It is the only check that should be marked as a
 required status check in the repository's branch-protection settings**
 (Settings → Branches → branch protection rule for `main` → "Require status
 checks to pass before merging"). A required check is one GitHub refuses to
@@ -107,8 +120,8 @@ Requiring it rather than the individual jobs matters for two reasons:
 
 A second workflow, `.github/workflows/pages.yml`, publishes the GitHub Pages
 site on every push to `main`: a landing page, the DocC reference (built as the
-`docs` lane builds it), the Example app in WebAssembly (built on the `wasm`
-lane's toolchain and SDK), and the assets of the `media` release, which hold
+`docs` job builds it), the Example app in WebAssembly (built on the `wasm`
+job's toolchain and SDK), and the assets of the `media` release, which hold
 the README's pictures. It deploys an Actions artifact rather than committing
 to a `gh-pages` branch, so nothing generated enters the history. It is not
 part of the `CI` gate, and it does not wait for CI: a push that breaks the
@@ -120,7 +133,7 @@ repository setting it needs (Settings → Pages → Source: "GitHub Actions").
 ### WebAssembly
 
 TUI builds for `wasm32-unknown-wasip1`, and the Example app runs in a browser
-— `Tools/Web/build.sh` compiles it, `Tools/Web/serve.py` serves it. The CI lane
+— `Tools/Web/build.sh` compiles it, `Tools/Web/serve.py` serves it. The CI job
 builds every module and the Example for wasm and is **binding**: what compiles
 for WebAssembly today has to keep compiling.
 
@@ -147,19 +160,19 @@ and the two latent bugs it turned up in platform-independent code — is in
 ### Windows
 
 Windows is **not supported yet** — the package does not build there in full.
-The CI lane is a **ratchet**: every step says for itself whether it is allowed
+The CI job is a **ratchet**: every step says for itself whether it is allowed
 to fail, so the job as a whole promises exactly *"everything that builds on
 Windows today still builds"*. That set can only grow — when a step goes green,
 delete its `continue-on-error` and it is binding from then on. When the console
 layer lands, the last flag goes and nothing staged is left in the file.
 
-The lane is therefore **required** on released toolchains. Observed state:
+The job is therefore **required** on released toolchains. Observed state:
 
 | Step | Status |
 |---|---|
 | `TUICore`, `TUIStyling` | pass everywhere — **binding** |
 | `TUIView` | passes on 6.3+; **fails on 6.2**, cause not yet diagnosed — binding except there |
-| `TUIImage` | failed everywhere until 2026-08-07; green on all five lanes since, `continue-on-error` removed 2026-09-04 — **binding** |
+| `TUIImage` | failed everywhere until 2026-08-07; green on all five jobs since, `continue-on-error` removed 2026-09-04 — **binding** |
 | `TUIStrings`, `TUITerminalHost` | carved out of TUIFoundation at module split step B2 (2026-10-08), on TUICore alone; advisory, each with a 30-minute timeout, until CI has seen them green (no Windows build of them yet) |
 | `TUIFoundation` | held the console layer until module split step B3 (2026-10-08) carved it out as TUIApp, so the `TUI` step stood for it; advisory, with a 30-minute timeout, until CI has seen it green (no Windows build of it without the console layer yet) |
 | `TUIChrome`, `TUIEffects`, `TUIMenus` | carved out of TUIFoundation at module split step B5b (2026-10-09), each built on it alone, with no POSIX API (TUIEffects' one `#if`, `canImport(Symbols)`, leaves out the `.symbolEffect` modifiers that take Apple's Symbols types); advisory, each with a 30-minute timeout, until CI has seen them green (none can pass before `TUIFoundation` does) |
@@ -177,14 +190,14 @@ The lane is therefore **required** on released toolchains. Observed state:
 | `TUIForms` | peeled out of TUITextInput at module split step C6 (2026-10-10), built on TUIFoundation alone, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIFoundation` does) |
 | `TUIColorPicker` | carved out of TUIFoundation at module split step B4 (2026-10-08), built on it and (since steps C3, B7, C7 and C1) on TUITabs, TUITextInput, TUINumericControls and TUIPresentation (on TUILists from step B6 until C3, on TUINavigation from step B5 until C1, and on TUIImage and, from C8, TUIPickers until C9b took the editors out; the gradient editor came back on 2026-10-12, needing neither), with no POSIX API; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before all four of those do) |
 | `TUICurveEditors` | peeled out of TUIColorPicker at C9b (2026-10-11) as TUIColorEditors, renamed on 2026-10-12 when the gradient editor went back, built on it, on TUIImage, TUIPickers and TUINumericControls, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIColorPicker` does) |
-| `TUIFilePanels` | lane O10's leaf (2026-10-19), a module of its own from the start, built on TUIPresentation, TUITables and TUITextInput, with no POSIX API (it reads folders through `FileManager`); its `#if`s are `canImport(UniformTypeIdentifiers)`, Apple's `UTType` or its own, and `canImport(Darwin)`, a name column's comparator; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUITables` does) |
-| `TUITabImages` | the owner's TAB-IMAGE-NAME option 2 (2026-10-24, decisions C11), a module of its own from the start: `Tab`'s `image:` initialisers, built on TUIBitmaps and TUITabs, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIBitmaps` and `TUITabs` do) |
+| `TUIFilePanels` | a module of its own from the start, built on TUIPresentation, TUITables and TUITextInput, with no POSIX API (it reads folders through `FileManager`); its `#if`s are `canImport(UniformTypeIdentifiers)`, Apple's `UTType` or its own, and `canImport(Darwin)`, a name column's comparator; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUITables` does) |
+| `TUITabImages` | a module of its own from the start: `Tab`'s `image:` initialisers, built on TUIBitmaps and TUITabs, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIBitmaps` and `TUITabs` do) |
 | the four modules' own test targets | advisory, each with a 30-minute timeout |
-| `TUI`, build-tests, test, smoke | fail until the console layer is ported (TUIApp since module split step B3, which has no Windows step of its own: it is POSIX by design; nor have TUICommands and TUIScenes, lanes O13's and O9's modules, which are built on it) |
+| `TUI`, build-tests, test, smoke | fail until the console layer is ported (TUIApp since module split step B3, which has no Windows step of its own: it is POSIX by design; nor have TUICommands and TUIScenes, which are built on it) |
 
 Do not take the table on trust — it is a record of what CI did, and the whole
-point of binding the lane is that it stays true. `TUIImage`'s failure went
-unnoticed for as long as the lane was advisory, and this file previously claimed
+point of binding the job is that it stays true. `TUIImage`'s failure went
+unnoticed for as long as the job was advisory, and this file previously claimed
 it passed. It then stayed *advisory in this table* for a month after the flag came
 off in CI, which is the same failure from the other end: the ratchet only reads
 as a ratchet if the record moves with it.
@@ -218,7 +231,7 @@ The known blockers, in rough order of difficulty:
    depth only, and is 7 min 15 s of the 11 min 23 s that costs; §68 of
    `Documentation/Colour and styling/Opacity as composition.md` explains what it catches that a
    walk cannot.)
-   `Tools/Smoke/ci-pty-smoke.sh` is skipped on the Windows lanes for this
+   `Tools/Smoke/ci-pty-smoke.sh` is skipped on the Windows jobs for this
    reason, and they run `Stress --selfcheck` alone.
 5. **The system clipboard.** `SystemClipboard` (TUIApp) runs this
    machine's helper (`pbcopy`, `wl-copy`, `xclip`/`xsel`), and
@@ -247,15 +260,14 @@ support in 0.64.0.
 # TUI needs Swift 6.2 or newer, and on macOS that means an SDK from Xcode 26 or
 # Command Line Tools 26 (or newer), whose interfaces are 6.2's: Xcode 26.3 runs
 # on macOS 15. The macOS 15 SDKs (Command Line Tools 16.x) carry Swift 6.1's
-# interfaces and are not supported, so nothing is built or tested against them
-# (owner ruling SDK15-CI, 2026-10-26).
+# interfaces and are not supported, so nothing is built or tested against them.
 swift build
 
 # Build with Xcode's own toolchain too, if `swift` on your PATH is a swift.org
 # one (swiftly puts itself first, and DEVELOPER_DIR does not change that). The
 # two differ by more than version: Apple's SDKs build the standard library from
 # its PUBLIC interface, so an `@_spi` import of `Swift` sees nothing there, and
-# the macOS CI lanes use Xcode's. A separate scratch path keeps the two builds
+# the macOS CI jobs use Xcode's. A separate scratch path keeps the two builds
 # from invalidating each other. `xcrun --toolchain XcodeDefault` is not enough
 # on its own: while `xcode-select` points at the Command Line Tools it runs
 # THEIR `swift` (6.1.2 here, 2026-10-07). Xcode's also takes ~26% less time
@@ -337,11 +349,11 @@ combined RSS, the largest single one 265 MiB. `swift test` peaks lower in total
 compressor never moved, and there were no swapins or swapouts. `-j 12` is
 comfortable here; the ceiling is cores, not RAM.
 
-**CI's macOS and Linux lanes use it**, at `-j 4`, since single-process
+**CI's macOS and Linux jobs use it**, at `-j 4`, since single-process
 `swift test` runs there had grown to 290–650 s and one of them outlasted a
 test's 600 s sleep (see the comment on the macOS Test step in
 `.github/workflows/ci.yml`; `-j 4` is an experiment, and the arm64 macOS
-runners' 7 GB is the thing to watch). The Windows lanes still run `swift
+runners' 7 GB is the thing to watch). The Windows jobs still run `swift
 test`. The harness runs every test, and fails loudly unless the union of test
 IDs returned by its processes matches the enumerated suite exactly, so a
 process that quietly ran nothing cannot be mistaken for a pass. That identity
@@ -363,7 +375,7 @@ swift-testing reports.
 1. Branch from `main`
 2. Fill in the PR template completely
 3. The `CI` gate check must be green — it covers macOS, Linux and, on
-   released toolchains, Windows; only the nightly-toolchain lanes are
+   released toolchains, Windows; only the nightly-toolchain jobs are
    advisory (see "What CI covers" above)
 4. No new SwiftLint warnings, and no compiler warnings (see "What CI covers")
 5. Follow the architecture and API rules below
@@ -416,7 +428,7 @@ Public APIs **must** match SwiftUI signatures exactly unless terminal constraint
 
 ### Crossing a module boundary
 
-The module split (Documentation/Historical/Module split plan, revision 4) puts
+The module split puts
 code that was one module into several, and a call between two of them is
 compiled differently from a call inside one. These rules keep that from costing
 anything at run time:
@@ -683,7 +695,7 @@ Sources/
 ├── TUI/               The umbrella: Exports.swift (re-exports, no code), and TUI.docc/ (DocC)
 │
 │   The framework's sources, one directory per module of the planned split
-│   (Tools/ModuleMap; Documentation/Historical/Module split plan, revision 4). Each
+│   (Tools/ModuleMap). Each
 │   became a module of its own when it was carved out of TUIFoundation:
 │   TUIStrings and TUITerminalHost (step B2), which TUIFoundation
 │   re-exports, TUIApp (step B3), TUIColorPicker (step B4, whose
@@ -697,9 +709,9 @@ Sources/
 │   compiled TUIForms', TUISearch's, TUIPickers' and
 │   TUINumericControls' directories too until steps C5 to C8 peeled them
 │   into TUIForms, TUISearch, TUIPickers and
-│   TUINumericControls). TUICommands (lane O13) and TUIScenes
-│   (lane O9) were modules of their own from the start, built on TUIApp,
-│   whose Scene they extend, and so were TUIFilePanels (lane O10), built
+│   TUINumericControls). TUICommands and TUIScenes
+│   were modules of their own from the start, built on TUIApp,
+│   whose Scene they extend, and so were TUIFilePanels, built
 │   on TUIPresentation, TUITables and TUITextInput, and
 │   TUITabImages (Tab's image: initialisers), built on TUIBitmaps and
 │   TUITabs so that neither pays for the other.
