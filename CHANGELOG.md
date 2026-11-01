@@ -353,6 +353,7 @@ Fixes an app may have worked around:
 - **A `@FocusState` set before its control has registered focuses the control when it does**: `.onAppear { field = .email }` on a view that has just appeared takes the focus from another control, as in SwiftUI. The write was dropped.
 - **A write made outside an event (a timer, a `Task`, a network reply) asks for a frame** when what it changed was read only by a top-level control's `Binding`, a custom style's `makeBody` or the app's body. The control used to show the old value until something else drew.
 - **Where several views hold one object, an `@Environment` the object reads in a closure** (a key or mouse handler, a gesture's callback, a `.task`) is the environment of the view the closure runs for, where it was the first holder's: a sheet sharing its page's object now dismisses the sheet. Timers, detached tasks and hover handlers still read the first holder's.
+- **A URL image answered with a failure status fails as a download.** A 404's page used to go to the decoder, which reported `ImageLoadError.decodingFailed`; it is now `.downloadFailed`, naming the status, even when the response's body is a picture.
 
 #### Since 29 October
 

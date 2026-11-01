@@ -60,7 +60,8 @@ public enum ImageLoadError: Error, LocalizedError, CustomStringConvertible {
     /// The image data could not be decoded.
     case decodingFailed(String)
 
-    /// A URL download failed.
+    /// A URL download failed: the network failed, or the response's status
+    /// said the request did.
     case downloadFailed(String)
 
     /// The image exceeds the maximum allowed pixel count.
@@ -839,6 +840,16 @@ extension PlatformImageLoader {
     }
 
     #if canImport(FoundationNetworking) || canImport(Darwin)
+    /// The failure `response` reports, or `nil` for a success or a response
+    /// that is not HTTP's. Its body is no picture, whatever it holds: a server's
+    /// 404 page went on to the decoder, which reported a picture that would not
+    /// decode rather than one that was not there.
+    private static func httpFailure(of response: URLResponse?, for request: URLRequest) -> ImageLoadError? {
+        guard let status = (response as? HTTPURLResponse)?.statusCode, !(200..<300).contains(status) else { return nil }
+        let reason = HTTPURLResponse.localizedString(forStatusCode: status)
+        return .downloadFailed("HTTP \(status) (\(reason)): \(request.url?.absoluteString ?? "")")
+    }
+
     /// Runs one request to completion, bridging `URLSession`'s callback API to
     /// `async` — and structured cancellation to `URLSessionTask.cancel()`.
     ///
@@ -854,9 +865,11 @@ extension PlatformImageLoader {
         return try await withTaskCancellationHandler {
             try Task.checkCancellation()
             return try await withCheckedThrowingContinuation { continuation in
-                let task = URLSession.shared.dataTask(with: request) { data, _, error in
+                let task = URLSession.shared.dataTask(with: request) { data, response, error in
                     if let error {
                         continuation.resume(throwing: error)
+                    } else if let failure = httpFailure(of: response, for: request) {
+                        continuation.resume(throwing: failure)
                     } else if let data {
                         continuation.resume(returning: data)
                     } else {
