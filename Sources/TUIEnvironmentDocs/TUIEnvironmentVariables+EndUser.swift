@@ -24,7 +24,7 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "FORCE_COLOR", .endUser, .colour,
             values: "A number, or a word such as `true`",
-            effect: "`0` or `false`: no colour. `1`: 16 colours. `2`: 256. `3` or more: millions. Any other value, such as `true`: what the terminal has, but at least 16. `NO_COLOR` beats it.",
+            effect: "`0` or `false`: no colour. `1`: at least 16 colours. `2`: at least 256. `3` or more: millions. Any other value, such as `true`: what the terminal has, but at least 16. `NO_COLOR` beats it.",
             code: .overrides("Assign `ColorDepth.current`. `ColorDepth.cap` still holds it down.")),
         TUIEnvironmentVariable(
             "CLICOLOR_FORCE", .endUser, .colour,

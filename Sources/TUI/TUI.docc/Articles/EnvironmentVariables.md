@@ -67,7 +67,7 @@ Don't write a variable to state a setting. Many are read once, and `setenv` isn'
 | Variable | Values | Effect |
 |---|---|---|
 | `NO_COLOR` | Any value, even `0` | No colour. Bold, underline, italics and the other text attributes stay. A picture the terminal draws in real pixels keeps its colours. |
-| `FORCE_COLOR` | A number, or a word such as `true` | `0` or `false`: no colour. `1`: 16 colours. `2`: 256. `3` or more: millions. Any other value, such as `true`: what the terminal has, but at least 16. `NO_COLOR` beats it. |
+| `FORCE_COLOR` | A number, or a word such as `true` | `0` or `false`: no colour. `1`: at least 16 colours. `2`: at least 256. `3` or more: millions. Any other value, such as `true`: what the terminal has, but at least 16. `NO_COLOR` beats it. |
 | `CLICOLOR_FORCE` | Any value but `0` or `false` | What the terminal has, but at least 16 colours. `NO_COLOR` and `FORCE_COLOR` beat it. |
 | `CLICOLOR` | `0` or `false` | No colour. Any other value changes nothing. `NO_COLOR`, `FORCE_COLOR` and `CLICOLOR_FORCE` beat it. |
 | `COLORTERM` | `truecolor` or `24bit` | The terminal can show millions of colours. Terminals set this themselves, and ssh doesn't pass it on, so set it on the remote machine if colours look coarse there. |
