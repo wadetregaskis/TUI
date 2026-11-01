@@ -30,9 +30,15 @@ package protocol AppRenderState: AnyObject, Sendable {
     /// draws what it did before it reads any more input (`ActivationHold`).
     func noteControlActivated()
 
+    /// A ``withTransaction(_:_:isolation:)`` scope is about to run in the app's work,
+    /// with `transaction` in force: a change waiting under another transaction
+    /// gets its update now, before the scope can change anything.
+    func transactionScopeWillBegin(_ transaction: Transaction)
+
     /// A ``withTransaction(_:_:isolation:)`` scope run in the app's work has ended, with
-    /// `transaction` in force for whatever it changed: the app may take it for
-    /// a change whose own report carried none.
+    /// `transaction` in force for whatever it changed: what it changed may need
+    /// its update now, or the app may take it for a change whose own report
+    /// carried none.
     func transactionScopeEnded(_ transaction: Transaction)
 
     /// The language the app's scene states at its root (`\.locale`, as
@@ -56,8 +62,8 @@ package protocol AppRenderState: AnyObject, Sendable {
 /// hand: an `@AppStorage` write, a change of language, a top-level `dismiss()`
 /// with no environment behind it. Those ask the app whose work they are part
 /// of: its event handlers, its frames, and the tasks they start. So does a
-/// ``withTransaction(_:_:isolation:)`` scope as it ends, for an observed change whose
-/// observation an earlier write had already fired.
+/// ``withTransaction(_:_:isolation:)`` scope as it begins and as it ends, so that what
+/// it changes gets an update of its own (``AppRenderState/transactionScopeWillBegin(_:)``).
 ///
 /// A task local, not a global: it is bound for the duration of an app's work —
 /// by `AppRunner` around its run loop, by `HeadlessApp` around each frame and

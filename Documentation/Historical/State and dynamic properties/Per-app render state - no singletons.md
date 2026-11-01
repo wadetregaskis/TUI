@@ -186,6 +186,81 @@ access list a scope read, which only Observation's `@_spi(SwiftUI)`
 Windows and WebAssembly toolchains need not keep, and one more registration
 a body. Not worth it for a scope that animates nothing.
 
+Replaced by B-APPSTATE-5 wherever a walk can be made; what is written here
+still happens where one cannot.
+
+### B-APPSTATE-5. A walk for each transaction
+
+*`AppState.transactionScopeWillBegin(_:)`, `AppState.transactionScopeEnded(_:)`,
+`AppState.changeWillBeMade(observed:)`, `RenderLoop.walkUpdate()`,
+`RenderInvalidationSink.willInvalidateRender()`,
+`RenderLoop.render(…writesFrame:)`*
+
+The owner's rule is that TUI changes to match SwiftUI where a program written for
+SwiftUI would misbehave, and a clip met this one: a panel meant to go at once
+beside a toast's animated arrival, which needed
+`.transaction { $0.disablesAnimations = !sharing }` to do it in TUI, or its frost
+stayed on the screen until the fade ended. The owner chose to try it
+(2026-10-31).
+
+**What SwiftUI does** (`Tools/SwiftUIProbes/Transactions of observed
+changes/txn2.out`): it queues a turn's changes by transaction, and gives each an
+update in order, at the values between them. A body reading `a` and `b` is
+updated at a = 1, b = 0, plain, and again at a = 1, b = 1, animated. An
+`Animatable` value it draws from `a` is never interpolated; one from `b` is.
+
+**Reading the transaction per view or per dependency cannot do this.** The clip's
+panel and toast are one body's two `@State`s, and an `Animatable` modifier's value
+comes out of a body with nothing to say which write moved it. Attribution per
+write would need a body evaluated at a state between the writes, which is what
+an update is. So TUI makes one: a pass with nothing written.
+
+**The walk has to come before the next change is made**, since the state between
+two changes exists only then. Three points give it that chance: a scope's
+beginning, when a change waits under a transaction that does not draw alike; a
+scope's end, when an `@Observable` change it made spent an observation, since a
+plain write after it to what that body read would report nothing; and a write's
+beginning, for what still reports (every `@State` write, and an `@Observable` one
+whose body's observation has not fired). A `@State` scope therefore costs no
+walk until something it does not cover is written.
+
+**One hole, closed bluntly.** A walk made as an `@Observable` property's write
+begins runs inside the registrar's telling of its observers. A body the walk
+evaluates reads the old value and is not among those being told, so it would
+keep that value. The frame after such a walk clears the render cache. It takes a
+`@State` scope followed by a plain write to a property a body already read,
+in one turn, so it is rare.
+
+**What declines, and falls back to the frame's one transaction:** a render under
+way (so a view's effects and completions), any thread but the main actor's (asked
+of the main queue, `MainActorCheck`, since `Thread.isMainThread` is false on Linux
+for the pool thread that drains the main actor), no frame drawn yet, and past
+`UpdateWalks.maximumBetweenFrames` walks since the last frame. Effects could be
+given walks of their own by making a walk from inside `FrameSettling`'s, which
+was left: that loop holds a stage it is running.
+
+**Which transactions are one update:** `Transaction.updatesAlike(_:)`, not `==`. A
+slider's every tick and a held stepper's are made under `isContinuous`, which is
+no reason to walk them apart from a plain change beside them, and costs a walk a
+tick if it is.
+
+**What was rejected:**
+
+- Walking at the end of every scope that changed anything, with no hook on a
+  write. It is the simplest form, and it runs `onChange` before the code after a
+  plain `withAnimation { state = x }`, the commonest thing an app writes, and
+  costs that a walk each time. The hook on a `@State` write costs two uncontended
+  locks a write, and neither.
+- `@_spi(SwiftUI) ObservationTracking._installTracking`, for what B-APPSTATE-2
+  says.
+- `StateBox.value` with `willSet` beside its `didSet`: a `willSet` turns an in-place
+  mutation into a copy of the value. It is written accessors with a `_modify`.
+
+**If the A/B says a scope's walk costs too much**, the end-of-scope walk is the one
+to give up: an animated `@Observable` change would cost nothing, and a plain write
+after it to what the same body read would animate with it, the half of A7 that
+would remain.
+
 ### B-APPSTATE-3. `AppState` stays public, though nothing public hands out an app's
 
 *`AppState`, `StatusBarState.init(appState:)`*

@@ -136,6 +136,11 @@ final class ObjectHub: RenderInvalidationSink {
             link?.invalidateRender(for: holder)
         }
     }
+
+    /// A write to a `@State` box the object holds is about to be made.
+    func willInvalidateRender() {
+        link?.willInvalidateRender()
+    }
 }
 
 /// The views drawn holding an object (``ObjectHub``).

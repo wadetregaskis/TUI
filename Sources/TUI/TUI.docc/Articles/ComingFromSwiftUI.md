@@ -120,7 +120,7 @@ Because of this, a row that scrolls away **keeps its `@State`**, where SwiftUI w
 
 - **Sizes jump.** A view that changes size takes its new size at once. Its position can glide, but only among the children of `VStack`, `HStack`, `ZStack` and a custom `Layout`.
 - **Removals can be abrupt.** With no `.transition` of its own, a row or `switch` case that goes away goes at once, though one coming in fades in. Write a `.transition` to control how it leaves.
-- **One animation per frame.** A frame draws every change made since the last one under one animation. So if you change one value plainly and another inside `withAnimation` at the same moment, both animate.
+- **Updates can come early.** A value changed plainly and one changed inside `withAnimation` at the same moment each get their own update, as in SwiftUI: one jumps and the other moves. But the update comes before the next change, wherever that falls. So an `@Observable` change inside `withAnimation` runs its `onChange` actions before the code after the `withAnimation`, where SwiftUI's wait for the end of the turn. Changes made in a view's `onAppear` or `onChange`, or off the main actor, still share one update, under the last transaction.
 
 ## Scrolling moves line by line
 

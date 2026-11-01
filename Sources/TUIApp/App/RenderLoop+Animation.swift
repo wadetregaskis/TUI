@@ -13,6 +13,11 @@
 import Foundation
 import TUIFoundation
 
+#if canImport(Dispatch)
+    import Dispatch
+    import Synchronization
+#endif
+
 extension RenderLoop {
     /// Publishes everything this frame's animations are a function of: the two
     /// clocks, the scheduler they declare their rates to, this frame's `now`,
@@ -99,4 +104,86 @@ extension RenderLoop {
     /// One token, not one per animation: they all want the same thing — another
     /// frame, soon — so they ride one lattice and one render serves them all.
     static var viewAnimationToken: String { "view-animations" }
+}
+
+// MARK: - Updates
+
+/// What ``RenderLoop`` keeps of the updates it walks between frames.
+struct UpdateWalks {
+    /// How many updates may be walked between two written frames: enough for
+    /// a turn that makes a few changes under a few transactions, nested, and few
+    /// enough that a loop writing inside `withAnimation` cannot hold the main
+    /// thread for a walk a pass. Past it the rest wait for the frame, under the
+    /// last transaction, as ``FrameSettling`` writes a frame whose effects never
+    /// settle as it stands.
+    static let maximumBetweenFrames = 8
+
+    /// The updates walked since the last frame was written.
+    private(set) var count = 0
+
+    /// Runs a pass for the driver's frame: its clocks, its scheduler's fence.
+    /// `nil` until a driver says, so no update can be walked.
+    var walk: (@MainActor () -> Void)?
+
+    /// Whether another may be walked, and counts it if so.
+    mutating func takeOne() -> Bool {
+        guard walk != nil, count < Self.maximumBetweenFrames else { return false }
+        count += 1
+        return true
+    }
+
+    /// A frame is being written: what it writes shows them all.
+    mutating func noteFrameWritten() {
+        count = 0
+    }
+}
+
+extension RenderLoop {
+    /// Makes `walk`, which runs a pass with ``render(pulsePhase:cursorTimer:animationScheduler:frameNowNanos:frameDate:writesFrame:)``'s
+    /// `writesFrame` off, what draws the app's updates: see "An Update For Each
+    /// Transaction" (`State.swift`).
+    func drawsUpdates(with walk: @escaping @MainActor () -> Void) {
+        updates.walk = walk
+        tuiContext.appState.drawsUpdates { [weak self] in
+            guard MainActorCheck.isCurrent else { return false }
+            return MainActor.assumeIsolated { self?.walkUpdate() ?? false }
+        }
+    }
+
+    /// Walks one update now, unless a render is under way — a view's effect or
+    /// a completion is what asked — or no frame has been drawn to update, or
+    /// the walks since the last frame have reached the limit. Asks the
+    /// dispatcher to filter what comes next by the walk's mouse support, as a
+    /// frame's driver does.
+    private func walkUpdate() -> Bool {
+        guard !isRendering, lastFrameSize != nil, updates.takeOne() else { return false }
+        updates.walk?()
+        tuiContext.mouseEventDispatcher.setActiveSupport(effectiveMouseSupport(), isFrameFinal: true)
+        return true
+    }
+}
+
+/// Whether the thread asking is running the main actor's work, asked of the
+/// queue and not the thread: on Linux the main actor is drained by a pool thread
+/// after the first suspension (see `StackGuard`), so `Thread.isMainThread` is
+/// false for it there, and `MainActor.assumeIsolated` would be a trap, not an
+/// answer. A false answer costs only an update: the change waits for the frame.
+enum MainActorCheck {
+    #if canImport(Dispatch)
+        /// Set on the main queue once, by whoever asks first. In a `Mutex`, which
+        /// only ever lends it to `getSpecific`, as the open-source Dispatch does
+        /// not call the key `Sendable`, and Apple's does.
+        private static let key: Mutex<DispatchSpecificKey<Bool>> = {
+            let key = DispatchSpecificKey<Bool>()
+            DispatchQueue.main.setSpecific(key: key, value: true)
+            return Mutex(key)
+        }()
+
+        static var isCurrent: Bool {
+            key.withLock { DispatchQueue.getSpecific(key: $0) == true }
+        }
+    #else
+        /// One thread: WebAssembly's, with no queue to ask.
+        static var isCurrent: Bool { true }
+    #endif
 }

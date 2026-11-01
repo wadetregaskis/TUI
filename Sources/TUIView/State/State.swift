@@ -50,11 +50,22 @@ package final class AppState: Sendable {
         var rootLanguage: String?
         var observers: [@Sendable () -> Void] = []
         /// Whether an `@Observable` property a body read was written since
-        /// the last frame with no transaction in force — so its observation
+        /// the last walk with no transaction in force — so its observation
         /// has fired, and a later write in the same body's reads, under
         /// `withAnimation`, has none left to fire
         /// (``transactionScopeEnded(_:)``).
         var unstampedObservedChange = false
+        /// Whether a `@State` or an `@Observable` property a body read was
+        /// written since the last walk with no transaction in force.
+        var plainChangePending = false
+        /// Whether an `@Observable` property a body read was written since the
+        /// last walk under a transaction: its observation has fired, so a
+        /// plain write after the scope to what the same body read would report
+        /// nothing (``transactionScopeEnded(_:)``).
+        var scopedObservationSpent = false
+        /// Walks the tree now under what is pending, drawing nothing, or says
+        /// it cannot (``drawsUpdates(with:)``).
+        var updateWalk: (@Sendable () -> Bool)?
 
         /// Stamps the change being recorded with whatever ``Transaction`` is in
         /// force where it was made — the seam that makes
@@ -144,17 +155,17 @@ extension AppState {
     /// publishes it as ``EnvironmentValues/transaction`` so every view affected
     /// by the change can see how it was meant to arrive.
     ///
-    /// A frame coalesces every change made since the last one, so a frame with
-    /// two animated changes in it renders both under the *last* transaction —
-    /// there is one pass and it can only run under one. Two animations of
-    /// genuinely different lengths in one frame want
-    /// ``View/animation(_:value:)``, which scopes the animation to a subtree
-    /// and a value rather than to the whole update.
+    /// A pass runs under one transaction, so changes made under different ones
+    /// get a pass each (``transactionScopeWillBegin(_:)``), as SwiftUI gives
+    /// them an update each. Where no walk can be made between them they share
+    /// this pass, under the *last* transaction.
     public func consumePendingTransaction() -> Transaction? {
         lock.withLock { state in
             defer {
                 state.pendingTransaction = nil
                 state.unstampedObservedChange = false
+                state.plainChangePending = false
+                state.scopedObservationSpent = false
             }
             return state.pendingTransaction
         }
@@ -326,16 +337,16 @@ extension AppState: AppRenderState {
         if changed { setNeedsRenderWithCacheClear() }
     }
 
-    /// Marks state as changed by a write to an `@Observable` property a body
-    /// read — what its observation reports, through the render cache's link —
-    /// and notes when it was made with no transaction in force.
+    /// Marks state as changed by a write to a `@State` — what its box reports,
+    /// through the render cache's link — and notes when it was made with no
+    /// transaction in force.
     ///
-    /// Thread-safe: the observation fires on the writer's thread.
-    package func setNeedsRenderForObservedChange() {
+    /// Thread-safe: a `@State` may be written on any thread.
+    package func setNeedsRenderForStateChange() {
         let observers = lock.withLock { state -> [@Sendable () -> Void] in
             state.needsRender = true
             if Transaction.ambient == nil {
-                state.unstampedObservedChange = true
+                state.plainChangePending = true
             } else {
                 state.recordAmbientTransaction()
             }
@@ -346,39 +357,146 @@ extension AppState: AppRenderState {
         }
     }
 
+    /// Marks state as changed by a write to an `@Observable` property a body
+    /// read — what its observation reports, through the render cache's link —
+    /// and notes what the report spent: the body's observation has fired, and
+    /// will not fire again until the body is evaluated again.
+    ///
+    /// Thread-safe: the observation fires on the writer's thread.
+    package func setNeedsRenderForObservedChange() {
+        let observers = lock.withLock { state -> [@Sendable () -> Void] in
+            state.needsRender = true
+            if Transaction.ambient == nil {
+                state.plainChangePending = true
+                state.unstampedObservedChange = true
+            } else {
+                state.recordAmbientTransaction()
+                state.scopedObservationSpent = true
+            }
+            return state.observers
+        }
+        for observer in observers {
+            observer()
+        }
+    }
+}
+
+// MARK: - An Update For Each Transaction
+
+/// SwiftUI draws the changes of one turn of the run loop in order, one update
+/// for each transaction: `model.a += 1; withAnimation { model.b += 1 }` updates
+/// a body reading both at a = 1, b = 0, unanimated, and again at a = 1, b = 1,
+/// animated, so `a` jumps and `b` moves, and in the other order the same
+/// (`Tools/SwiftUIProbes/Transactions of observed changes/`, `txn.out` and
+/// `txn2.out`). A single pass cannot do that: nothing in a body says which
+/// change moved which value. So the changes get a pass each. The walk of the
+/// first is made as the second is about to happen, while the state still says
+/// what it said between them, and draws nothing: only the frame after the last
+/// is written.
+///
+/// That walk has to come before the second change, and has three ways to:
+///
+/// - **As a scope begins**, when a change waits under another transaction. Not
+///   at the scope's first write: a body's observation fires once, so the first
+///   write's report has spent it and the second has nothing to report it.
+/// - **As a scope ends**, when an `@Observable` change it made spent an
+///   observation, for the same reason: a plain write after the scope to what
+///   that body read reports nothing. A `@State` always reports, so a scope
+///   that wrote only those waits, and costs nothing, until a write comes that
+///   its transaction does not cover.
+/// - **As a write is about to be made**, which a `@State` always announces
+///   and an `@Observable` property announces while the observation of a body
+///   that read it has not fired.
+///
+/// The walk is the driver's (``drawsUpdates(with:)``), and declines where it
+/// cannot run: during a frame's own walk, which is where a view's effects and
+/// a completion run; on any thread but the main actor's; before the first
+/// frame; or after too many since the last frame. Then, and with no driver,
+/// every change waits for the next pass, under the last transaction, as they
+/// did before there were walks of this kind (deviation A7).
+extension AppState {
+    /// Makes `walk` what walks the tree under what is pending, drawing nothing,
+    /// when changes under different transactions are about to be made. It
+    /// returns whether it did.
+    package func drawsUpdates(with walk: (@Sendable () -> Bool)?) {
+        lock.withLock { $0.updateWalk = walk }
+    }
+
+    /// A ``withTransaction(_:_:isolation:)`` scope is about to run: a change waiting
+    /// under a transaction that does not draw alike gets its update first.
+    package func transactionScopeWillBegin(_ transaction: Transaction) {
+        let owed = lock.withLock { state -> Bool in
+            guard state.pendingTransaction != nil || state.plainChangePending else { return false }
+            return !(state.pendingTransaction ?? Transaction()).updatesAlike(transaction)
+        }
+        if owed { walkPendingChanges() }
+    }
+
     /// A ``withTransaction(_:_:isolation:)`` scope run in this app's work has ended:
     /// `transaction` was in force for whatever it changed.
     ///
-    /// A body's observation fires ONCE, at the first write to anything it
-    /// read, and reports with the transaction in force for that write. So in
-    ///
-    /// ```swift
-    /// model.selection = item
-    /// withAnimation { model.isExpanded = true }
-    /// ```
-    ///
-    /// — one body reading both — the first write fired it with none, and the
-    /// animated one found nothing to fire: its transaction was recorded
-    /// nowhere, and the change snapped. SwiftUI animates it, in either order
-    /// (`Tools/SwiftUIProbes/Transactions of observed changes/txn.out`).
-    /// Observation offers no way to see which properties the ended scope
-    /// wrote, so the scope's transaction is taken for the frame when an
-    /// observed change was reported with none since the last frame and no
-    /// transaction is pending yet — the frame then draws every change made
-    /// since the last one under it, as a frame always does, and its
-    /// completions are claimed for the frame, to run when the animation it
-    /// draws completes (``AnimationCompletionTracker``). That also animates an
-    /// unanimated observed change followed by a `withAnimation` that writes
-    /// nothing a body read, which SwiftUI does not — and holds that
-    /// `withAnimation`'s completion until the animation completes, where
-    /// SwiftUI runs it as the body returns, since nothing the body did started
-    /// an animation (see "Deliberate deviations from SwiftUI", A7). Left
-    /// unclaimed, a completion would run before the animation of the change
-    /// the scope DID make had begun, in the case this exists for.
+    /// Where it spent an observation, the change gets its update now
+    /// (``transactionScopeWillBegin(_:)`` says why). Where no walk could be
+    /// made as it began, a plain observed change is still waiting, and the
+    /// scope may have written what the same body read with no report of it:
+    /// the frame then draws every change under this transaction, as it draws
+    /// every change where no walk can be made, its completions claimed for that
+    /// frame. A `withAnimation` that wrote nothing such a body read is then
+    /// drawn animated too, and its completion waits (deviation A7).
     package func transactionScopeEnded(_ transaction: Transaction) {
-        lock.withLock { state in
-            guard state.unstampedObservedChange, state.pendingTransaction == nil else { return }
-            state.record(transaction)
+        let owed = lock.withLock { state -> Bool in
+            if state.scopedObservationSpent, let pending = state.pendingTransaction,
+                pending.updatesAlike(transaction), !pending.updatesAlike(Transaction())
+            {
+                return true
+            }
+            if state.unstampedObservedChange, state.pendingTransaction == nil { state.record(transaction) }
+            return false
+        }
+        if owed { walkPendingChanges() }
+    }
+
+    /// A write is about to be made: a change waiting under a transaction the
+    /// write's does not draw alike gets its update first, while the state still
+    /// says what it said before the write.
+    ///
+    /// Called on the writer's thread, on every `@State` write and on every
+    /// report an `@Observable` write makes, so nearly always the answer is the
+    /// first: nothing animated is waiting. Costs the lock, and the ambient
+    /// transaction only where something is waiting.
+    ///
+    /// - Parameter observed: Whether the write is an `@Observable` property's,
+    ///   whose registrar has already gathered the observers it tells, so a body
+    ///   this walk evaluates reads the old value and never hears of the new
+    ///   one. The next frame then keeps nothing the walk evaluated.
+    package func changeWillBeMade(observed: Bool) {
+        let owed = lock.withLock { state -> Bool in
+            guard let pending = state.pendingTransaction else { return false }
+            return !pending.updatesAlike(Transaction.ambient ?? Transaction())
+        }
+        if owed { walkPendingChanges(keepingNothing: observed) }
+    }
+
+    /// Walks the tree under what is pending, if the driver can, and asks for
+    /// the frame that shows it: the walk has drawn nothing.
+    ///
+    /// With no transaction in force and for no view's dispatch, as a frame's
+    /// walk is, whatever scope and whatever handler this was reached from.
+    private func walkPendingChanges(keepingNothing: Bool = false) {
+        guard let walk = lock.withLock({ $0.updateWalk }) else { return }
+        let walked = StateRegistration.$dispatchingIdentity.withValue(nil) {
+            Transaction.$ambient.withValue(nil) {
+                AmbientApp.$renderState.withValue(self, operation: walk)
+            }
+        }
+        guard walked else { return }
+        let observers = lock.withLock { state -> [@Sendable () -> Void] in
+            state.needsRender = true
+            if keepingNothing { state.needsCacheClear = true }
+            return state.observers
+        }
+        for observer in observers {
+            observer()
         }
     }
 }
@@ -411,6 +529,13 @@ package protocol RenderInvalidationSink: AnyObject {
     /// views below it are rebuilt before any is served (Option C, §2.1). A
     /// sink that makes no such distinction drops what a write drops.
     func invalidateRenderSoftly(for identity: ViewIdentity)
+
+    /// A write is about to be made, which ``invalidateRender(for:)`` will
+    /// report once it has been: a change waiting under another transaction
+    /// gets its update now, while the state still says what it said before
+    /// (`AppState.changeWillBeMade(observed:)`). A sink no app draws for need
+    /// do nothing.
+    func willInvalidateRender()
 }
 
 extension RenderInvalidationSink {
@@ -418,6 +543,9 @@ extension RenderInvalidationSink {
     public func invalidateRenderSoftly(for identity: ViewIdentity) {
         invalidateRender(for: identity)
     }
+
+    /// Does nothing: a sink with no app to draw an update.
+    package func willInvalidateRender() {}
 }
 
 // MARK: - Environment Registration

@@ -110,13 +110,16 @@ struct AnimationCompletionTests {
         #expect(!ran)
     }
 
-    /// Deviation A7's completion half. An observed change reported with no
+    /// Deviation A7's completion half, where no walk can be made: this state
+    /// has no driver to make one. An observed change reported with no
     /// transaction may be waiting for its frame when a scope ends; the app
     /// takes the scope's transaction for it — the scope may have written what
     /// the same body read, which reports nothing a second time — and its
     /// completions with it. So a body that changed nothing then leaves its
     /// completion to that frame's animation, where SwiftUI runs it as the body
     /// returns; with no such change waiting, it runs at once, as SwiftUI's.
+    /// Where a walk can be made, it runs at once either way
+    /// (`ObservedChangeTransactionTests`).
     @Test(
         "A body that changes nothing, ending while an unanimated observed change waits, leaves its completion to that frame"
     )

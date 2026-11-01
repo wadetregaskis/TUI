@@ -159,15 +159,30 @@ extension RenderCache {
         /// - Parameter identity: The subtree whose cached buffers are now stale,
         ///   or `nil` to drop the whole cache.
         package func invalidateRender(for identity: ViewIdentity?) {
-            enqueue(identity)?.setNeedsRender()
+            enqueue(identity)?.setNeedsRenderForStateChange()
+        }
+
+        /// A `@State` write is about to be made: what its app owes first
+        /// (`AppState.changeWillBeMade(observed:)`). A lock here and one there
+        /// on every write, which already takes two.
+        package func willInvalidateRender() {
+            attachedAppState?.changeWillBeMade(observed: false)
+        }
+
+        /// The app the cache draws, while the cache is there.
+        private var attachedAppState: AppState? {
+            queue.withLock { $0.attached ? $0.appState : nil }
         }
 
         /// ``invalidateRender(for:)`` for an `@Observable` change a body's
-        /// observation reported: the frame is asked as an observed change's
-        /// (`AppState.setNeedsRenderForObservedChange()`), so a later write
-        /// under `withAnimation` that the spent observation cannot report
-        /// still animates it.
+        /// observation reported, before the property is written: what its app
+        /// owes comes first, the identity queued after that walk has drained
+        /// the queue, since what the walk evaluated read the old value. The
+        /// frame is asked as an observed change's
+        /// (`AppState.setNeedsRenderForObservedChange()`), which notes the
+        /// observation it spent.
         package func invalidateRenderForObservedChange(at identity: ViewIdentity, softly: Bool = false) {
+            attachedAppState?.changeWillBeMade(observed: true)
             enqueue(identity, softly: softly)?.setNeedsRenderForObservedChange()
         }
 
@@ -175,7 +190,7 @@ extension RenderCache {
         /// `@State`'s, whose view's body — and so the values of the views it
         /// makes — is certain to be evaluated again (Option C, §2.1).
         package func invalidateRenderSoftly(for identity: ViewIdentity) {
-            enqueue(identity, softly: true)?.setNeedsRender()
+            enqueue(identity, softly: true)?.setNeedsRenderForStateChange()
         }
 
         /// Queues the invalidation of `identity` (`nil`: of everything), and
@@ -229,6 +244,7 @@ extension RenderCache {
         /// observed change's, as ``invalidateRenderForObservedChange(at:)``
         /// asks it, and dropping nothing.
         package func requestFrameForObservedChange() {
+            attachedAppState?.changeWillBeMade(observed: true)
             // Counted as a write (``writeCount``): an effect that wrote what
             // only such a read saw has made the walk out of date as surely as
             // one that wrote a body's read.

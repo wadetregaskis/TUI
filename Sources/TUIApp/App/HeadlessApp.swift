@@ -69,8 +69,12 @@ package final class HeadlessApp {
     /// The instant of the last frame, which the mouse dispatcher reads as the
     /// time an event arrives. See the type's discussion.
     private let eventClock = EventClock()
+    /// The wall clock at the last frame: an update between frames reads a
+    /// timeline's schedule at it, as a script's time is the script's.
+    private var lastFrameDate = FrameClock.nowDate
 
-    /// Whether every frame starts from an EMPTY render cache — every memo
+    /// Whether every frame, and every update between frames, starts from an
+    /// EMPTY render cache — every memo
     /// missing, every kept size and buffer gone. `@State` survives, as it does
     /// across frames in the app; only what the cache keeps does not. The
     /// oracle a session holds a normal instance against: a cache is right
@@ -126,6 +130,18 @@ package final class HeadlessApp {
         // Counted where `AppRunner.wireFocusRepaints` asks the loop for them.
         focusManager.onFocusChange = { [weak self] in self?.framesAsked += 1 }
         focusManager.focusedValues.requestFrame = { [weak self] in self?.framesAsked += 1 }
+        // An update between frames is a frame's pass with nothing written, at
+        // the caller's time as an event is: the last frame's instant.
+        renderer.drawsUpdates { [weak self] in
+            guard let self else { return }
+            if clearsRenderCacheEachFrame { tuiContext.renderCache.clearAll() }
+            animationScheduler.beginFrame()
+            self.renderer.render(
+                pulsePhase: 0, cursorTimer: nil, animationScheduler: animationScheduler,
+                frameNowNanos: Int64(bitPattern: eventClock.nanos), frameDate: lastFrameDate,
+                writesFrame: false)
+            animationScheduler.endFrame()
+        }
     }
 
     /// How many frames have been drawn.
@@ -177,11 +193,12 @@ package final class HeadlessApp {
 
     private func drawFrame(atNanos nanos: Int64, date: Date) {
         eventClock.nanos = UInt64(bitPattern: nanos)
+        lastFrameDate = date
         if clearsRenderCacheEachFrame { tuiContext.renderCache.clearAll() }
         animationScheduler.beginFrame()
         renderer.render(
             pulsePhase: 0, cursorTimer: nil, animationScheduler: animationScheduler, frameNowNanos: nanos,
-            frameDate: date)
+            frameDate: date, writesFrame: true)
         animationScheduler.endFrame()
         // As `AppRunner.renderFrame` ends a frame: the events until the next one
         // are filtered against the support the frame asked for, the scene's
@@ -374,7 +391,7 @@ private protocol HeadlessRendering: AnyObject {
     @discardableResult
     func render(
         pulsePhase: Double, cursorTimer: CursorTimer?, animationScheduler: AnimationScheduler?,
-        frameNowNanos: Int64, frameDate: Date
+        frameNowNanos: Int64, frameDate: Date, writesFrame: Bool
     ) -> RenderActivity
     func effectiveMouseSupport() -> MouseSupport
     func invalidateDiffCache()

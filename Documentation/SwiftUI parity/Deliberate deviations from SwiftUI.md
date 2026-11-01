@@ -1615,37 +1615,56 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   **Owner** for the model (FB16 (a′), 2026-10-18); **Lane** for what stops
   short of it.
 
-### A7. A frame draws every change since the last under one transaction, and an observed change takes the next scope's
+### A7. An update can come earlier in the turn than SwiftUI's, and changes made where no walk can run share one
 
-- **SwiftUI (measured, macOS 15.8.1, 2026-10-18,
-  `Tools/SwiftUIProbes/Transactions of observed changes/txn.out`):** a body
-  reading two `@Observable` properties, one written plainly and one inside
-  `withAnimation` in the same turn of the run loop, is updated once per
-  write: unanimated for the plain one, animated for the other, in either
-  order. An unanimated write followed by a `withAnimation` that writes
-  nothing the body read, or nothing at all, is drawn unanimated, and that
-  `withAnimation`'s completion runs as soon as its body returns, as Apple
-  documents for a body whose changes create no animations.
-- **TUI:** a frame draws every change made since the last one under one
-  transaction (`AppState.consumePendingTransaction()`), so both writes are
-  drawn animated; the animated write is, in either order
-  (`ObservedChangeTransactionTests`). An unanimated observed change followed,
-  in the same app's work before the frame, by a `withTransaction` scope that
-  changed nothing any body read is drawn under that scope's transaction too
-  (`AppState.transactionScopeEnded(_:)`), and the scope's completions go with
-  its transaction: claimed for that frame, they run when the animation it
-  draws the change with completes, not as the scope returns
-  (`AnimationCompletionTests`).
-- **Why:** a frame is one pass, and a pass runs under one transaction. A
-  body's observation fires once, at the first write to anything it read, and
-  Observation has no public way to see the writes after it: when the first
-  was unanimated, the scope's transaction is taken for its change. Its
-  completions are taken with it because that is right where the scope did
-  write what the body read — the case this exists for, whose completion
-  SwiftUI runs when the animation ends — and TUI cannot tell the two
-  cases apart; run as the scope returned, they would come before the
-  animation had begun.
-- **Decided:** [B-APPSTATE-2](<../Historical/State and dynamic properties/Per-app render state - no singletons.md#b-appstate-2-an-observed-change-reported-with-no-transaction-takes-the-next-scopes>). **Lane.**
+- **SwiftUI (measured, macOS 15.8.1, 2026-10-18 and 2026-10-31,
+  `Tools/SwiftUIProbes/Transactions of observed changes/`, `txn.out` and
+  `txn2.out`):** one turn's changes are drawn in order, one update for each
+  transaction, and two scopes of one animation are one transaction. A body
+  reading two values, one written plainly and one inside `withAnimation`, is
+  updated once at the first change's values, under its transaction, and again
+  at both, under the other's, in either order: the plain value jumps and the
+  animated one moves. An `@Observable` write under another transaction runs the
+  update of what waits before it is made, as the write begins, so that update
+  comes in the turn; otherwise, and always for `@State`, the updates come as the
+  turn ends. A `withAnimation` that writes nothing starts no update, and its
+  completion runs as its body returns.
+- **TUI:** the same updates, in the same order, at the same values, for `@State`
+  and `@Observable` alike (`ObservedChangeTransactionTests`). A walk draws one
+  (`AppState.transactionScopeWillBegin(_:)`, "An Update For Each Transaction" in
+  `State.swift`), and only the frame after the last is written. What differs:
+  - **When an update comes.** It comes before the next change, wherever that
+    is in the turn. So a `withAnimation` that spends an `@Observable` body's
+    observation is walked as it ends, and its `onChange` actions run before the
+    code after it, where SwiftUI runs them when the turn ends, if nothing else is
+    written. Between a plain and an animated `@State` write the walk comes between
+    them too, where SwiftUI's come when the turn ends.
+  - **An extra walk.** A plain change followed by a `withAnimation` that writes
+    nothing, or only reads, is walked as the scope begins, before it can be known
+    to write nothing. The body runs once more than SwiftUI's, under the same
+    transaction, and nothing draws differently. Two scopes of one animation
+    writing `@Observable` properties are walked one by one, where SwiftUI merges
+    them; each change animates just the same.
+  - **Where no walk can run**, every change made there waits for the next pass,
+    and they share it, under the last transaction. That is in a view's
+    effects and completions, during a frame's own walk (made again for what they
+    wrote, `FrameSettling`); off the main actor; on no app's task, such as a GCD
+    block or a timer, except for what a `@State` write reports itself; and past
+    `UpdateWalks.maximumBetweenFrames` walks between two frames. There an unanimated
+    observed change followed by a `withTransaction` scope takes that scope's
+    transaction, as the last write's report cannot be seen
+    (`AppState.transactionScopeEnded(_:)`), completions and all.
+- **Why:** nothing in a body says which change moved which value, so a pass can
+  only be under one transaction, and SwiftUI's rule takes a pass for each.
+  Observation offers no way to see a write after a body's observation has fired
+  but a walk, which re-arms it, so a walk must come before the write can be made:
+  that is what brings an update forward. The walks that decline do so for safety
+  and cost: a walk cannot be made inside a walk, nor the tree read off the main
+  actor, and a loop of scopes cannot be allowed to hold the main thread for a walk
+  apiece.
+- **Decided:** [B-APPSTATE-5](<../Historical/State and dynamic properties/Per-app render state - no singletons.md#b-appstate-5-a-walk-for-each-transaction>),
+  replacing [B-APPSTATE-2](<../Historical/State and dynamic properties/Per-app render state - no singletons.md#b-appstate-2-an-observed-change-reported-with-no-transaction-takes-the-next-scopes>).
+  **Owner** for trying it (2026-10-31); **Lane** for what stops short of it.
 
 ### A8. A matched view is laid out again at each frame's size, and a removed one is carried at the size it was
 

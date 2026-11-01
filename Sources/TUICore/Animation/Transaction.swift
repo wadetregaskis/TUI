@@ -144,6 +144,26 @@ public struct Transaction: Sendable, Equatable {
         }
     }
 
+    /// The switches two updates may differ in and still be one: `isContinuous`
+    /// and the velocity switches say how a change came about, and start or
+    /// stop nothing a frame draws.
+    private static let bitsOfOneUpdate = ~(isContinuousBit | tracksVelocityBit | preservesVelocityBit)
+
+    /// Whether a change made under this transaction and one made under `other`
+    /// can be drawn by one update: they animate alike, as SwiftUI merges two
+    /// `withAnimation` scopes of one animation
+    /// (`Tools/SwiftUIProbes/Transactions of observed changes/txn2.out`), and
+    /// carry nothing else that tells them apart.
+    ///
+    /// Not `==`. A slider's every tick is made under `isContinuous`, which is
+    /// no reason to draw it apart from a plain change beside it.
+    package func updatesAlike(_ other: Self) -> Bool {
+        effectiveAnimation == other.effectiveAnimation
+            && flags & Self.bitsOfOneUpdate == other.flags & Self.bitsOfOneUpdate
+            && scrollAnchorX == other.scrollAnchorX && scrollAnchorY == other.scrollAnchorY
+            && TransactionExtras.equal(extras, other.extras)
+    }
+
     /// Creates a transaction with no animation.
     public init() {}
 
@@ -373,14 +393,13 @@ extension Transaction {
 /// documents. One the enclosing transaction already carried belongs to the
 /// enclosing call, which decides.
 ///
-/// As `body` returns, the app whose work this is (`AmbientApp`) hears that
-/// the scope ended: an `@Observable` property written in `body` whose body's
-/// observation an earlier, unanimated write had already fired reports
-/// nothing, and the app takes `transaction` for that change — completions
-/// and all, which then run when the frame's animation completes. The app
-/// cannot tell that change from none, so a `body` that changed nothing,
-/// ending while such an unanimated change waits for its frame, has its
-/// completions held for that frame too (deviation A7).
+/// Changes made under different transactions are drawn by different updates,
+/// in the order they were made, as SwiftUI's are: each animates under its own
+/// transaction, whichever body reads them. So the app whose work this is
+/// (`AmbientApp`) hears of the scope as it begins, when a change waiting under
+/// another transaction is walked before `body` runs, and as it ends, when an
+/// `@Observable` change `body` made is walked before anything after the scope
+/// can write again (`AppState.transactionScopeWillBegin(_:)`).
 ///
 /// `isolation` is beyond SwiftUI's signature, and defaulted: it tells this
 /// function, which is not itself on the main actor, whether a completion that
@@ -392,10 +411,12 @@ public func withTransaction<Result>(
     isolation: isolated (any Actor)? = #isolation
 ) rethrows -> Result {
     let enclosing = transaction.completions.isEmpty ? [] : Transaction.ambient?.completions ?? []
+    let app = AmbientApp.renderState
+    app?.transactionScopeWillBegin(transaction)
     defer {
-        // First: the app may claim the completions for the change it takes
-        // this transaction for.
-        AmbientApp.renderState?.transactionScopeEnded(transaction)
+        // First: the walk of what `body` changed places the completions, or
+        // the app claims them for the change it takes this transaction for.
+        app?.transactionScopeEnded(transaction)
         for completion in transaction.completions
         where !completion.isClaimed && !enclosing.contains(where: { $0 === completion }) {
             completion.fire(from: isolation)

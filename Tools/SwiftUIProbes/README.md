@@ -310,12 +310,20 @@ messages cite that path), and what cites it.
   (`txn.swift`, a program of top-level code; `txn.out`). The body records, through `.transaction(_:)`, whether
   each update it was given carried an animation: SwiftUI updates it once per write, the animated write's update
   animated in both orders, and an empty `withAnimation` animates nothing.
-- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-18, in an `NSHostingView` with no window.
+- **Also asks** (`txn2.swift`, `txn2.out`): what those updates do for `@State`, which SwiftUI gives at the turn's
+  end but at the values between the writes, a turn's reads seeing its writes at once; whether two scopes are two
+  updates (of one animation, no; of two, yes) and a scope in a scope; whether a scope that only reads starts one (no:
+  it is a write under another transaction that does); whether an `Animatable` value is interpolated when a plain
+  change beside it moved it (no); what order `onChange` actions and completions run in.
+- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-18 (`txn2`: 2026-10-31), in an `NSHostingView`, in a window
+  where `animatableData` or `onChange` needed one.
 - **Was:** `APPSTATE/probe/`.
-- **Cited by:** `Sources/TUIView/State/State.swift` (`AppState.transactionScopeEnded(_:)`);
+- **Cited by:** `Sources/TUIView/State/State.swift` ("An Update For Each Transaction");
+  `Sources/TUICore/Animation/Transaction.swift` (`Transaction.updatesAlike(_:)`);
   `Tests/TUIIntegrationTests/ObservedChangeTransactionTests.swift`;
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (A7);
-  `Documentation/Historical/State and dynamic properties/Per-app render state - no singletons.md` (B-APPSTATE-2).
+  `Documentation/Historical/State and dynamic properties/Per-app render state - no singletons.md` (B-APPSTATE-2,
+  B-APPSTATE-5).
 
 ### Scroll anchoring
 

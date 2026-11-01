@@ -981,14 +981,37 @@ package final class StateBox<Value> {
     /// from the first frame on.
     private(set) var invalidationSink: (any RenderInvalidationSink)?
 
+    /// What ``value`` holds.
+    private var stored: Value
+
     /// The current value.
+    ///
+    /// Written accessors rather than the `didSet` this was, for what comes
+    /// before the store (``RenderInvalidationSink/willInvalidateRender()``),
+    /// and not `willSet` and `didSet`: a `willSet` turns an in-place mutation
+    /// of the value into a copy of it, which a `didSet` that never names
+    /// `oldValue` does not (SE-0268), and an array in a `@State` would be
+    /// copied at every append.
     public var value: Value {
-        didSet {
-            if invalidatesSoftly, let identity {
-                invalidationSink?.invalidateRenderSoftly(for: identity)
-            } else {
-                invalidationSink?.invalidateRender(for: identity)
-            }
+        _read { yield stored }
+        set {
+            invalidationSink?.willInvalidateRender()
+            stored = newValue
+            reportChange()
+        }
+        _modify {
+            invalidationSink?.willInvalidateRender()
+            defer { reportChange() }
+            yield &stored
+        }
+    }
+
+    /// Tells the sink that the value changed: softly, for a parent's write.
+    private func reportChange() {
+        if invalidatesSoftly, let identity {
+            invalidationSink?.invalidateRenderSoftly(for: identity)
+        } else {
+            invalidationSink?.invalidateRender(for: identity)
         }
     }
 
@@ -1007,12 +1030,12 @@ package final class StateBox<Value> {
     ///
     /// - Parameter value: The initial value.
     public init(_ value: Value) {
-        self.value = value
+        stored = value
         invalidatesSoftly = false
     }
 
     init(_ value: Value, invalidatesSoftly: Bool) {
-        self.value = value
+        stored = value
         self.invalidatesSoftly = invalidatesSoftly
     }
 }

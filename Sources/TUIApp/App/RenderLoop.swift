@@ -102,7 +102,16 @@ internal final class RenderLoop<A: App> {
 
     /// The terminal's size at the previous frame, `nil` before the first: a
     /// frame drawn at another size stamps `RenderCache.terminalResizedAtNanos`.
-    private var lastFrameSize: (width: Int, height: Int)?
+    private(set) var lastFrameSize: (width: Int, height: Int)?
+
+    /// Whether a render is under way, from its timed input to its last
+    /// completion: no update can be walked inside one
+    /// (`RenderLoop+Animation.swift`).
+    private(set) var isRendering = false
+
+    /// What the updates walked since the last frame was written say, for
+    /// ``walkUpdate()``.
+    var updates = UpdateWalks()
 
     /// The tooltip text the status bar was sized for this frame, before the
     /// walk; `nil` when it shows none. What
@@ -478,20 +487,31 @@ extension RenderLoop {
     ///   - frameDate: The wall clock at the same moment, read beside
     ///     `frameNowNanos`: the one date every walk of the frame resolves a
     ///     `TimelineView`'s schedule against. See `RenderCache.frameDate`.
+    ///   - writesFrame: `false` for an update (``walkUpdate()``): a pass whose
+    ///     walk moves the animations, runs what its views did and re-arms what
+    ///     they read, with no timed input before it and nothing written to the
+    ///     terminal after it. What the frame owes the terminal waits for the
+    ///     frame that follows.
     @discardableResult
     func render(
         pulsePhase: Double = 0,
         cursorTimer: CursorTimer? = nil,
         animationScheduler: AnimationScheduler? = nil,
         frameNowNanos: Int64 = FrameClock.nowNanos,
-        frameDate: Date = FrameClock.nowDate
+        frameDate: Date = FrameClock.nowDate,
+        writesFrame: Bool = true
     ) -> RenderActivity {
+        isRendering = true
+        defer { isRendering = false }
         // This frame's instant, before anything reads a phase from the clock. The run
         // loop has already shown it; a render called any other way has not.
         cursorTimer?.observe(nowNanos: UInt64(bitPattern: frameNowNanos))
-        // The timed input — drags, spring loading, gestures — runs to this
-        // frame's instant first, against the last frame's regions.
-        driveTimedInput(nowNanos: frameNowNanos, scheduler: animationScheduler)
+        if writesFrame {
+            updates.noteFrameWritten()
+            // The timed input — drags, spring loading, gestures — runs to this
+            // frame's instant first, against the last frame's regions.
+            driveTimedInput(nowNanos: frameNowNanos, scheduler: animationScheduler)
+        }
 
         beginRenderPass()
 
@@ -502,7 +522,7 @@ extension RenderLoop {
         return tuiContext.stateStorage.inRenderPass {
             renderBegunPass(
                 pulsePhase: pulsePhase, cursorTimer: cursorTimer, animationScheduler: animationScheduler,
-                frameNowNanos: frameNowNanos, frameDate: frameDate)
+                frameNowNanos: frameNowNanos, frameDate: frameDate, writesFrame: writesFrame)
         }
     }
 
@@ -513,7 +533,8 @@ extension RenderLoop {
         cursorTimer: CursorTimer?,
         animationScheduler: AnimationScheduler?,
         frameNowNanos: Int64,
-        frameDate: Date
+        frameDate: Date,
+        writesFrame: Bool
     ) -> RenderActivity {
         // Terminal size: single getSize() call avoids 2 ioctl syscalls per frame.
         let terminalSize = terminal.getSize()
@@ -572,13 +593,15 @@ extension RenderLoop {
             animationScheduler?.requestWake("gesture-disable", at: frameNowNanos &+ 1)
         }
 
-        writeFrame(
-            buffer: buffer,
-            environment: environment,
-            terminalWidth: terminalWidth,
-            terminalHeight: terminalHeight,
-            frameNowNanos: frameNowNanos
-        )
+        if writesFrame {
+            writeFrame(
+                buffer: buffer,
+                environment: environment,
+                terminalWidth: terminalWidth,
+                terminalHeight: terminalHeight,
+                frameNowNanos: frameNowNanos
+            )
+        }
 
         endRenderPass()
         // After `endRenderPass`, which drops a focus tooltip the drawn walk
@@ -594,7 +617,7 @@ extension RenderLoop {
         // silent, and that half second would have come out of the time before
         // this frame. Written and not waited for; the answer arrives as a late
         // reply. See `TerminalColorRequester`.
-        colorQueries.noteFrameWritten()
+        if writesFrame { colorQueries.noteFrameWritten() }
 
         keepAnimating(scheduler: animationScheduler, frameNowNanos: frameNowNanos)
 
@@ -603,6 +626,8 @@ extension RenderLoop {
         tuiContext.stateStorage.animationCompletions.endPass(
             at: frameNowNanos, animations: tuiContext.stateStorage.animations)
 
+        // What the frame on screen animates: an update wrote no frame.
+        guard writesFrame else { return lastActivity }
         return recordActivity(
             usesPulse: (environment.volatileReadTracker?.demandingReads ?? 0) > 0,
             usesCursor: cursorTimer?.didReadThisFrame ?? false)

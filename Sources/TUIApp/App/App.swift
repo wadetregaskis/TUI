@@ -633,6 +633,8 @@ extension AppRunner {
             return frame
         }
 
+        wireUpdates(renderer: renderer, cursorTimer: cursorTimer, scheduler: animationScheduler)
+
         // Under the kitty keyboard protocol ⌃\ is a report only a running
         // loop reads: should the loop stall with input waiting, a thread of
         // its own pops the protocol's flags so the next ⌃\ is the byte the
@@ -925,6 +927,28 @@ extension AppRunner {
         // runs the timer has already begun its next sleep — the plan it needed was the
         // one made at its wake, which `CursorTimer.planner` now makes.
         return renderer.replayAnimations(elapsed: elapsed)
+    }
+
+    /// Makes an update between frames what `renderFrame` makes a frame, with
+    /// nothing written: the same clocks and the same fence, and the frame it
+    /// asks for follows ("An Update For Each Transaction", `State.swift`).
+    fileprivate func wireUpdates(
+        renderer: RenderLoop<A>, cursorTimer: CursorTimer, scheduler: AnimationScheduler
+    ) {
+        renderer.drawsUpdates { [weak renderer] in
+            scheduler.beginFrame()
+            let frameNow = FrameClock.nowNanos
+            let frameDate = FrameClock.nowDate
+            cursorTimer.observe(nowNanos: UInt64(bitPattern: frameNow))
+            renderer?.render(
+                pulsePhase: cursorTimer.breathPhase,
+                cursorTimer: cursorTimer,
+                animationScheduler: scheduler,
+                frameNowNanos: frameNow,
+                frameDate: frameDate,
+                writesFrame: false)
+            scheduler.endFrame()
+        }
     }
 
     /// Renders one frame and returns the per-frame state the run loop tracks: the
