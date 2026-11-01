@@ -68,6 +68,12 @@ package final class _DecodedImage: @unchecked Sendable {
     let cachedPicture: CachedPicture?
     private let cache: URLImageCache?
 
+    /// The load's own pixels, kept until the view has first drawn them, and
+    /// then let go (``letGoOfLandedPixels()``): between a load and the frame
+    /// that draws it, the cache can file another decode over this one or evict
+    /// it, and nothing would load it again.
+    private var landedPixels: RGBAImage?
+
     /// How the pixels become the image's size in points: SwiftUI's natural
     /// size for an image that is not resizable.
     package enum PointSizing: Equatable, Sendable {
@@ -95,9 +101,13 @@ package final class _DecodedImage: @unchecked Sendable {
     /// The picture `cache` keeps as `picture`, at `scale` pixels per point —
     /// an ``AsyncImage``'s load. Its owner is the decode: a new load is a new
     /// picture to the view that keeps its owner.
-    init(cached picture: CachedPicture, in cache: URLImageCache?, scale: Double = 1) {
+    ///
+    /// - Parameter landedPixels: The pixels the load decoded, held here until
+    ///   the view has drawn them.
+    init(cached picture: CachedPicture, in cache: URLImageCache?, scale: Double = 1, landedPixels: RGBAImage? = nil) {
         self.owner = picture.decode
         self.drawn = nil
+        self.landedPixels = landedPixels
         // Empty once the cache has let the decode go: the view drawing it reads
         // the phase (``phase``), and never asks for these then.
         self.draw = { picture.pixels(in: cache) ?? RGBAImage(width: 0, height: 0, pixels: []) }
@@ -143,11 +153,24 @@ package final class _DecodedImage: @unchecked Sendable {
         cachedPicture.map { .cached($0) } ?? .success(pixels)
     }
 
+    /// The load's own pixels of `picture`, until the view has first drawn them.
+    func landedPixels(of picture: CachedPicture) -> RGBAImage? {
+        cachedPicture?.decode === picture.decode ? landedPixels : nil
+    }
+
+    /// The view has its own hold on the pixels now, or has gone without
+    /// drawing them: from here the cache keeps them.
+    func letGoOfLandedPixels() {
+        landedPixels = nil
+    }
+
     /// These pixels at `scale` pixels per point: the same pixels, shared, and
     /// this image itself where the scale is the one it has.
     func scaled(_ scale: Double) -> _DecodedImage {
         guard pointSizing != .scale(Self.sanitized(scale)) else { return self }
-        if let cachedPicture { return _DecodedImage(cached: cachedPicture, in: cache, scale: scale) }
+        if let cachedPicture {
+            return _DecodedImage(cached: cachedPicture, in: cache, scale: scale, landedPixels: landedPixels)
+        }
         return _DecodedImage(pixels, scale: scale)
     }
 
@@ -160,7 +183,7 @@ package final class _DecodedImage: @unchecked Sendable {
     /// The pixels.
     package var pixels: RGBAImage {
         // Read back each time from the cache that keeps them, never kept here.
-        if cachedPicture != nil { return draw() }
+        if cachedPicture != nil { return landedPixels ?? draw() }
         if let drawn { return drawn }
         let pixels = draw()
         drawn = pixels
@@ -362,7 +385,12 @@ private struct _AsyncImageCore<Content: View>: View, Renderable, Layoutable {
             return
         }
         _ = lifecycle.recordAppear(token: token) {}
-        lifecycle.registerDisappear(token: token) { [lifecycle] in lifecycle.cancelTask(token: token) }
+        lifecycle.registerDisappear(token: token) { [lifecycle] in
+            lifecycle.cancelTask(token: token)
+            // Gone before it drew them: a row's state outlives it, and must not
+            // keep its pixels (``ImagePixelPin``).
+            if case .loaded(let image, _) = box.value { image.letGoOfLandedPixels() }
+        }
         guard let url else { return }
         let address = url.absoluteString
         let settings = _ImageCore.LoadSettings(
@@ -380,10 +408,12 @@ private struct _AsyncImageCore<Content: View>: View, Renderable, Layoutable {
                 // is honoured here, last, before the write.
                 guard !Task.isCancelled else { return }
                 let next: Stored
-                switch loaded {
+                switch loaded.phase {
                 case .success(let pixels): next = .loaded(_DecodedImage(pixels, scale: scale), address)
                 case .cached(let picture):
-                    next = .loaded(_DecodedImage(cached: picture, in: settings.urlCache, scale: scale), address)
+                    next = .loaded(
+                        _DecodedImage(cached: picture, in: settings.urlCache, scale: scale, landedPixels: loaded.pixels),
+                        address)
                 case .failure(let message): next = .failed(message)
                 case .loading: return
                 }

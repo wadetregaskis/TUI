@@ -451,6 +451,14 @@ extension _ImageCore {
             lastSourceBox.value = source
         }
 
+        // A row coming back after the cache let its picture go loads it again
+        // from above, an `AsyncImage`'s load: a new decode under the same
+        // source, which the phase has to follow, or the view goes on asking the
+        // cache for the old one.
+        if let decoded, case .cached(let held) = phaseBox.value, decoded.cachedPicture?.decode !== held.decode {
+            phaseBox.value = decoded.phase
+        }
+
         // Start loading on first appearance — unless the pixels came with
         // the image, already decoded.
         if !lifecycle.hasAppeared(token: token), loads {
@@ -485,7 +493,7 @@ extension _ImageCore {
                     // the CoW pixel array is heap corruption, not a glitch). This
                     // is the one place the framework itself wrote @State off-main.
                     guard
-                        let phase = await Self.loadPhase(source: src, settings: settings)
+                        let loaded = await Self.loadPhase(source: src, settings: settings)
                     else { return }
                     await MainActor.run {
                         // Cancellation is observed HERE, not (only) inside the
@@ -501,7 +509,8 @@ extension _ImageCore {
                         // Last thing before the write, so it also covers a cancel
                         // that arrives during the hop onto the main actor.
                         guard !Task.isCancelled else { return }
-                        phaseBox.value = phase
+                        pin?.hold(loaded)
+                        phaseBox.value = loaded.phase
                     }
                 }
             }
@@ -573,7 +582,7 @@ extension _ImageCore {
         }
     }
 
-    /// Loads and decodes the image, returning the phase to publish — or `nil`
+    /// Loads and decodes the image, returning what to publish — or `nil`
     /// if the load was cancelled, which is not a phase: the view has left the
     /// tree (or its source changed), and a replacement task may already be
     /// running, so publishing anything here would either paint an error into a
@@ -585,7 +594,7 @@ extension _ImageCore {
     @concurrent
     static func loadPhase(
         source: ImageSource, settings: LoadSettings
-    ) async -> ImageLoadingPhase? {
+    ) async -> FinishedLoad? {
         let loader = PlatformImageLoader()
         do {
             let rawImage: RGBAImage
@@ -603,13 +612,13 @@ extension _ImageCore {
             }
             // Store the raw image — or where the cache keeps it, if it does;
             // conversion happens per render pass.
-            return .loaded(rawImage, from: source, cache: settings.urlCache)
+            return FinishedLoad(phase: .loaded(rawImage, from: source, cache: settings.urlCache), pixels: rawImage)
         } catch is CancellationError {
             return nil
         } catch let loadError as ImageLoadError {
-            return .failure(loadError.description)
+            return FinishedLoad(phase: .failure(loadError.description))
         } catch {
-            return .failure(error.localizedDescription)
+            return FinishedLoad(phase: .failure(error.localizedDescription))
         }
     }
 }

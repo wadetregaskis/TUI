@@ -36,6 +36,14 @@ final class ImagePixelPin {
         self.image = image
     }
 
+    /// Holds what a load landed with, if the cache keeps it: from here, not
+    /// from the frame that first draws it. By that frame the cache may have
+    /// filed another load's decode over this one, or evicted it, and a view
+    /// that has appeared does not load again.
+    func hold(_ load: _ImageCore.FinishedLoad) {
+        if case .cached(let picture) = load.phase, let pixels = load.pixels { hold(pixels, of: picture) }
+    }
+
     func release() {
         decode = nil
         image = nil
@@ -45,6 +53,15 @@ final class ImagePixelPin {
 // MARK: - Drawing a Cached Picture
 
 extension _ImageCore {
+    /// What a load comes back with.
+    struct FinishedLoad: Sendable {
+        /// The phase to publish.
+        let phase: ImageLoadingPhase
+        /// The pixels it decoded, or `nil` if it failed, for the view to hold
+        /// until it has drawn them when `phase` leaves them to the cache.
+        var pixels: RGBAImage?
+    }
+
     /// The box holding this view's ``ImagePixelPin``.
     func pixelPin(context: RenderContext) -> StateBox<ImagePixelPin> {
         context.stateStorage!.storage(
@@ -62,9 +79,14 @@ extension _ImageCore {
         _ phase: ImageLoadingPhase, pin: ImagePixelPin, context: RenderContext
     ) -> (ImageLoadingPhase, DecodedPixels?)? {
         guard case .cached(let picture) = phase else { return (phase, nil) }
-        guard let image = pin.pixels(of: picture) ?? picture.pixels(in: context.environment.resolvedURLImageCache)
+        guard
+            let image = pin.pixels(of: picture) ?? decoded?.landedPixels(of: picture)
+                ?? picture.pixels(in: context.environment.resolvedURLImageCache)
         else { return nil }
-        if !context.isMeasuring { pin.hold(image, of: picture) }
+        if !context.isMeasuring {
+            pin.hold(image, of: picture)
+            decoded?.letGoOfLandedPixels()
+        }
         return (.success(image), DecodedPixels(decode: picture.decode))
     }
 
