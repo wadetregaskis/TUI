@@ -9,12 +9,26 @@ import Synchronization
 
 /// The color depth supported by the terminal.
 ///
-/// Detected automatically from `TERM` and `COLORTERM` environment
-/// variables. The detected value is cached and used by
-/// `ANSIRenderer` to downsample colors that exceed the terminal's
-/// capabilities.
+/// Detected automatically from environment variables: first what the person
+/// running the program asks for, then what `TERM` and `COLORTERM` say the terminal
+/// can do. The detected value is cached and used by `ANSIRenderer` to downsample
+/// colors that exceed the terminal's capabilities.
 ///
 /// ## Detection Order
+///
+/// What the person asks for comes first. An empty variable counts as unset.
+///
+/// - `NO_COLOR` set, whatever its value → ``noColor``. Bold, underline, italics
+///   and the other text attributes stay: they aren't colour.
+/// - `FORCE_COLOR`: `0` or `false` → ``noColor``, `1` → ``basic16``, `2` →
+///   ``palette256``, `3` or more → ``truecolor``, and anything else, such as `true`,
+///   → what the terminal can do, but at least ``basic16``. That can raise a depth
+///   `TERM` understates, or lower one.
+/// - `CLICOLOR_FORCE` set and not `0` or `false` → what the terminal can do, but at
+///   least ``basic16``.
+/// - `CLICOLOR` of `0` or `false` → ``noColor``.
+///
+/// Otherwise it is what the terminal can do:
 ///
 /// 1. `COLORTERM` containing `truecolor` or `24bit` → ``truecolor``
 /// 2. `TERM` not set → ``truecolor`` (backward-compatible default)
@@ -29,26 +43,32 @@ import Synchronization
 /// 7. `TERM` containing `color` → ``basic16``
 /// 8. `TERM` set but unrecognized → ``basic16``
 ///
-/// > Note: `NO_COLOR` (https://no-color.org/) is not handled here because
-/// > it represents a user preference, not a terminal capability. It should
-/// > be handled at the output layer (e.g., by stripping ANSI codes before
-/// > writing to stdout). Use ``noColor`` directly if you need to disable
-/// > color output programmatically.
+/// None of this makes a terminal of what isn't one: an `App` still needs one to draw
+/// on, whatever `FORCE_COLOR` says, and `TERM=dumb` is still no terminal to it. Only
+/// `renderOnce` writes its styling elsewhere.
+///
+/// > Note: `NO_COLOR` is a preference rather than a capability, but the two meet here
+/// > because every view asks one question, what colours it may use, and gets one
+/// > answer. So a control that has to say something another way at ``noColor`` says it
+/// > for a person who asked for no colour as it does for a terminal that has none.
 ///
 /// ## Override
 ///
-/// Set ``current`` to override the detected value, for example when
-/// building for a known target environment or in tests:
+/// Set ``current`` to override the detected value, including what the person
+/// running the program asked for, as no-color.org says a program's own flag may. An
+/// app with a `--color=always` flag writes this where it reads the flag:
 ///
 /// ```swift
-/// ColorDepth.current = .palette256
+/// ColorDepth.current = .truecolor
 /// ```
+///
+/// To use less colour than is detected, without ever asking for more, set ``cap``.
 public enum ColorDepth: Int, Sendable, Comparable, AtomicRepresentable {
     /// No color output.
     ///
-    /// Detected when `TERM` is `dumb`. Can also be set manually
-    /// to disable color output programmatically.
-    /// `ANSIRenderer` emits no color escape codes at this level;
+    /// Detected when `NO_COLOR` is set or `TERM` is `dumb`, among others: see
+    /// ``ColorDepth``. Can also be set manually to disable color output
+    /// programmatically. `ANSIRenderer` emits no color escape codes at this level;
     /// text attributes (bold, underline, etc.) are still emitted.
     case noColor = 0
 
@@ -207,11 +227,12 @@ extension ColorDepth {
         try await $taskCurrent.withValue(depth, operation: operation)
     }
 
-    /// Detects the terminal's color depth from environment variables.
+    /// Detects the color depth to use from environment variables.
     ///
-    /// This method inspects `COLORTERM` and `TERM` in the order
-    /// described in ``ColorDepth``. It is called once to initialize
-    /// ``current`` and can be called again if the environment changes.
+    /// This method inspects what the person running the program asks for, then
+    /// `COLORTERM` and `TERM`, in the order described in ``ColorDepth``. It is called
+    /// once to initialize ``current`` and can be called again if the environment
+    /// changes.
     ///
     /// # Why the environment is a parameter
     ///
@@ -241,6 +262,18 @@ extension ColorDepth {
     public static func detect(
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> ColorDepth {
+        switch ColorRequest(environment: environment) {
+        case .off: .noColor
+        case .forced(let depth?): depth
+        case .forced(nil): max(terminalDepth(environment: environment), .basic16)
+        case .unstated: terminalDepth(environment: environment)
+        }
+    }
+
+    /// What the terminal can do, by `COLORTERM` and `TERM`, whatever the person
+    /// running the program asks for: the numbered rungs of the order described in
+    /// ``ColorDepth``.
+    package static func terminalDepth(environment: [String: String]) -> ColorDepth {
         // COLORTERM is the most reliable indicator of truecolor support.
         // Modern terminals (iTerm2, GNOME Terminal, Alacritty, WezTerm,
         // Ghostty, etc.) set this to "truecolor" or "24bit".

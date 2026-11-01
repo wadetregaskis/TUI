@@ -416,45 +416,83 @@ struct RenderOnceOutputTests {
 
     @Test("By default: escape sequences to a terminal, plain text elsewhere")
     func byDefault() {
-        #expect(automatic(terminal: true) == .styled(noColor: false))
+        #expect(automatic(terminal: true) == .styled)
         #expect(automatic(terminal: false) == .plainText)
     }
 
     @Test("TUI_FORCE_ESCAPES overrules both ways, and an empty value is no value")
     func tuiVariable() {
-        #expect(automatic(terminal: false, ["TUI_FORCE_ESCAPES": "1"]) == .styled(noColor: false))
+        #expect(automatic(terminal: false, ["TUI_FORCE_ESCAPES": "1"]) == .styled)
         #expect(automatic(terminal: true, ["TUI_FORCE_ESCAPES": "0"]) == .plainText)
         #expect(automatic(terminal: false, ["TUI_FORCE_ESCAPES": ""]) == .plainText)
         #expect(automatic(terminal: true, ["TUI_FORCE_ESCAPES": "0", "FORCE_COLOR": "1"]) == .plainText)
     }
 
-    @Test("FORCE_COLOR forces the sequences down a pipe, and 0 leaves the colours out")
-    func forceColor() {
-        #expect(automatic(terminal: false, ["FORCE_COLOR": "1"]) == .styled(noColor: false))
-        #expect(automatic(terminal: false, ["FORCE_COLOR": "3", "NO_COLOR": "1"]) == .styled(noColor: false))
-        #expect(automatic(terminal: true, ["FORCE_COLOR": "0"]) == .styled(noColor: true))
+    @Test("TUI_FORCE_ESCAPES is about the sequences: NO_COLOR still takes the colours out of them")
+    func tuiVariableKeepsNoColor() {
+        let environment = ["TUI_FORCE_ESCAPES": "1", "NO_COLOR": "1"]
+        #expect(automatic(terminal: false, environment) == .styled)
+        #expect(ColorDepth.detect(environment: environment) == .noColor)
+    }
+
+    @Test("FORCE_COLOR forces the sequences down a pipe, at its level", arguments: ["1", "2", "3", "true", "yes"])
+    func forceColor(value: String) {
+        #expect(automatic(terminal: false, ["FORCE_COLOR": value]) == .styled)
+    }
+
+    @Test("FORCE_COLOR=0 is no colour: a terminal keeps its attributes, and a pipe gets plain text")
+    func forceColorOff() {
+        #expect(automatic(terminal: true, ["FORCE_COLOR": "0"]) == .styled)
+        #expect(ColorDepth.detect(environment: ["FORCE_COLOR": "0"]) == .noColor)
         #expect(automatic(terminal: false, ["FORCE_COLOR": "0"]) == .plainText)
+    }
+
+    @Test("CLICOLOR_FORCE forces as FORCE_COLOR does, and CLICOLOR doesn't")
+    func cliColor() {
+        #expect(automatic(terminal: false, ["CLICOLOR_FORCE": "1"]) == .styled)
+        #expect(automatic(terminal: false, ["CLICOLOR_FORCE": "0"]) == .plainText)
+        #expect(automatic(terminal: false, ["CLICOLOR": "1"]) == .plainText)
+    }
+
+    @Test("NO_COLOR beats FORCE_COLOR, so a pipe gets plain text, as it does for NO_COLOR alone")
+    func noColorWins() {
+        #expect(automatic(terminal: false, ["FORCE_COLOR": "3", "NO_COLOR": "1"]) == .plainText)
+        #expect(automatic(terminal: false, ["CLICOLOR_FORCE": "1", "NO_COLOR": "1"]) == .plainText)
+        #expect(automatic(terminal: true, ["FORCE_COLOR": "3", "NO_COLOR": "1"]) == .styled)
+        #expect(ColorDepth.detect(environment: ["FORCE_COLOR": "3", "NO_COLOR": "1"]) == .noColor)
     }
 
     @Test("NO_COLOR leaves the colours out on a terminal; an empty one does not count")
     func noColor() {
-        #expect(automatic(terminal: true, ["NO_COLOR": "1"]) == .styled(noColor: true))
-        #expect(automatic(terminal: true, ["NO_COLOR": ""]) == .styled(noColor: false))
+        #expect(automatic(terminal: true, ["NO_COLOR": "1"]) == .styled)
+        #expect(ColorDepth.detect(environment: ["NO_COLOR": "1"]) == .noColor)
+        #expect(automatic(terminal: true, ["NO_COLOR": ""]) == .styled)
+        #expect(ColorDepth.detect(environment: ["NO_COLOR": ""]) == .truecolor)
         #expect(automatic(terminal: false, ["NO_COLOR": "1"]) == .plainText)
     }
 
     @Test("A dumb terminal gets plain text, unless the program's user forces otherwise")
     func dumbTerminal() {
         #expect(automatic(terminal: true, ["TERM": "dumb"]) == .plainText)
-        #expect(automatic(terminal: true, ["TERM": "dumb", "TUI_FORCE_ESCAPES": "1"]) == .styled(noColor: false))
+        #expect(automatic(terminal: true, ["TERM": "dumb", "TUI_FORCE_ESCAPES": "1"]) == .styled)
+        #expect(automatic(terminal: true, ["TERM": "dumb", "FORCE_COLOR": "1"]) == .styled)
     }
 
     @Test("A stated output beats the environment")
     func statedOutput() {
         let environment = ["TUI_FORCE_ESCAPES": "1", "NO_COLOR": "1"]
         #expect(RenderOnceOutput.plainText.resolved(stdoutIsTerminal: true, environment: environment) == .plainText)
-        #expect(
-            RenderOnceOutput.escapeSequences.resolved(stdoutIsTerminal: false, environment: ["NO_COLOR": "1"])
-                == .styled(noColor: false))
+        #expect(RenderOnceOutput.escapeSequences.resolved(stdoutIsTerminal: false, environment: [:]) == .styled)
+    }
+
+    @Test("Stated escape sequences get back the colours the environment took away, as far as the terminal has them")
+    func statedEscapesOutrankNoColor() {
+        func stated(_ environment: [String: String]) -> RenderOnceOutput.Resolved {
+            RenderOnceOutput.escapeSequences.resolved(stdoutIsTerminal: false, environment: environment)
+        }
+        #expect(stated(["NO_COLOR": "1"]) == .styledAt(.truecolor))
+        #expect(stated(["NO_COLOR": "1", "TERM": "xterm-256color"]) == .styledAt(.palette256))
+        #expect(stated(["FORCE_COLOR": "0", "TERM": "xterm"]) == .styledAt(.basic16))
+        #expect(stated(["NO_COLOR": "1", "TERM": "dumb"]) == .styledAt(.noColor))
     }
 }

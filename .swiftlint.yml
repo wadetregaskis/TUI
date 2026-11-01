@@ -360,12 +360,13 @@ custom_rules:
   # only environment writes left in `Tests/`. The runtime backstop for the
   # indirected case is `ColorDepthDetectionTests`'s last test.
   process_terminal_environment_mutation:
-    name: "Process TERM/COLORTERM mutation"
+    name: "Process colour-depth environment mutation"
     message: >-
-      Writing TERM or COLORTERM process-wide can latch the process colour depth
-      at a fake value for every concurrently-rendering test. Pose the question
-      on a dictionary instead: ColorDepth.detect(environment:).
-    regex: '\b(un)?setenv\(\s*"(TERM|COLORTERM)"'
+      Writing TERM, COLORTERM, NO_COLOR, FORCE_COLOR, CLICOLOR or CLICOLOR_FORCE
+      process-wide can latch the process colour depth at a fake value for every
+      concurrently-rendering test. Pose the question on a dictionary instead:
+      ColorDepth.detect(environment:).
+    regex: '\b(un)?setenv\(\s*"(TERM|COLORTERM|NO_COLOR|FORCE_COLOR|CLICOLOR|CLICOLOR_FORCE)"'
     match_kinds:
       - identifier
       - string

@@ -138,7 +138,7 @@ Check these in order:
 - **It's green and you didn't ask for that.** Green is the default palette. To use your terminal's own colours, write `.palette(LiveTerminalPalette())` on your root view. <doc:ThemingGuide> has the others.
 - **Colours look coarse or banded.** Your terminal may have only 256 colours, as Apple's Terminal does. Over ssh, set `COLORTERM=truecolor` on the remote machine if your terminal has more.
 - **Bold text is a different colour.** Some terminals brighten bold text, which you can usually turn off in their settings.
-- **There's no colour at all.** Check that `TERM` isn't set to `dumb`.
+- **There's no colour at all.** Check that `TERM` isn't set to `dumb`, and that `NO_COLOR` isn't set in your shell profile, nor `FORCE_COLOR` or `CLICOLOR` to `0`. <doc:TerminalSupport> has what each does.
 
 ## Images look like coloured text
 

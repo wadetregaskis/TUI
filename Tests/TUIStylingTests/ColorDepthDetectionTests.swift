@@ -141,6 +141,88 @@ struct ColorDepthDetectionTests {
         #expect(ColorDepth.detect(environment: ["TERM": "xterm-256color"]) == .palette256)
     }
 
+    // MARK: - What the person running the program asks for
+
+    @Test("NO_COLOR: present and not empty, whatever its value", arguments: ["1", "0", "false", "true", "anything"])
+    func noColorAnyValue(value: String) {
+        #expect(ColorDepth.detect(environment: ["NO_COLOR": value, "TERM": "xterm-256color"]) == .noColor)
+        #expect(ColorDepth.detect(environment: ["NO_COLOR": value, "COLORTERM": "truecolor"]) == .noColor)
+    }
+
+    @Test("An empty variable counts as unset", arguments: ["NO_COLOR", "FORCE_COLOR", "CLICOLOR_FORCE", "CLICOLOR"])
+    func emptyIsUnset(name: String) {
+        #expect(ColorDepth.detect(environment: [name: "", "TERM": "xterm-256color"]) == .palette256)
+        #expect(ColorDepth.detect(environment: [name: "", "TERM": "dumb"]) == .noColor)
+    }
+
+    @Test(
+        "FORCE_COLOR digits name a level exactly, up as well as down",
+        arguments: [
+            ("0", ColorDepth.noColor), ("00", .noColor), ("1", .basic16), ("01", .basic16), ("2", .palette256),
+            ("3", .truecolor), ("4", .truecolor), ("16", .truecolor), ("99999999999999999999999", .truecolor),
+        ])
+    func forceColorLevels(value: String, depth: ColorDepth) {
+        for term in ["xterm", "xterm-256color", "xterm-ghostty", "dumb"] {
+            #expect(ColorDepth.detect(environment: ["FORCE_COLOR": value, "TERM": term]) == depth, "TERM=\(term)")
+        }
+        #expect(ColorDepth.detect(environment: ["FORCE_COLOR": value, "COLORTERM": "truecolor"]) == depth)
+    }
+
+    @Test("FORCE_COLOR=false is off, in any case", arguments: ["false", "False", "FALSE"])
+    func forceColorFalse(value: String) {
+        #expect(ColorDepth.detect(environment: ["FORCE_COLOR": value]) == .noColor)
+    }
+
+    @Test(
+        "FORCE_COLOR of any other word, and CLICOLOR_FORCE: what the terminal can do, but at least 16 colours",
+        arguments: [
+            ("FORCE_COLOR", "true"), ("FORCE_COLOR", "TRUE"), ("FORCE_COLOR", "yes"), ("FORCE_COLOR", "-1"),
+            ("FORCE_COLOR", "1.5"), ("FORCE_COLOR", "٣"), ("CLICOLOR_FORCE", "1"), ("CLICOLOR_FORCE", "true"),
+        ])
+    func forcedWithoutALevel(name: String, value: String) {
+        #expect(ColorDepth.detect(environment: [name: value, "TERM": "xterm"]) == .basic16)
+        #expect(ColorDepth.detect(environment: [name: value, "TERM": "xterm-256color"]) == .palette256)
+        #expect(ColorDepth.detect(environment: [name: value, "COLORTERM": "truecolor"]) == .truecolor)
+        #expect(ColorDepth.detect(environment: [name: value, "TERM": "dumb"]) == .basic16)
+    }
+
+    @Test("CLICOLOR_FORCE=0 neither forces nor turns colour off", arguments: ["0", "false"])
+    func cliColorForceZero(value: String) {
+        #expect(ColorDepth.detect(environment: ["CLICOLOR_FORCE": value, "TERM": "xterm-256color"]) == .palette256)
+        #expect(ColorDepth.detect(environment: ["CLICOLOR_FORCE": value, "TERM": "dumb"]) == .noColor)
+        #expect(
+            ColorDepth.detect(environment: ["CLICOLOR_FORCE": value, "CLICOLOR": "0", "TERM": "xterm"]) == .noColor)
+    }
+
+    @Test("CLICOLOR=0 is off, and any other value changes nothing, not even on a dumb terminal")
+    func cliColor() {
+        #expect(ColorDepth.detect(environment: ["CLICOLOR": "0", "TERM": "xterm-256color"]) == .noColor)
+        #expect(ColorDepth.detect(environment: ["CLICOLOR": "false", "TERM": "xterm-256color"]) == .noColor)
+        #expect(ColorDepth.detect(environment: ["CLICOLOR": "1", "TERM": "xterm-256color"]) == .palette256)
+        #expect(ColorDepth.detect(environment: ["CLICOLOR": "1", "TERM": "dumb"]) == .noColor)
+    }
+
+    @Test(
+        "The order: NO_COLOR, then FORCE_COLOR, then CLICOLOR_FORCE, then CLICOLOR",
+        arguments: [
+            (["NO_COLOR": "1", "FORCE_COLOR": "3"], ColorDepth.noColor),
+            (["NO_COLOR": "1", "CLICOLOR_FORCE": "1"], .noColor),
+            (["NO_COLOR": "", "FORCE_COLOR": "2"], .palette256),
+            (["FORCE_COLOR": "0", "CLICOLOR_FORCE": "1"], .noColor),
+            (["FORCE_COLOR": "2", "CLICOLOR_FORCE": "1", "CLICOLOR": "0"], .palette256),
+            (["FORCE_COLOR": "", "CLICOLOR_FORCE": "1", "CLICOLOR": "0"], .truecolor),
+            (["CLICOLOR_FORCE": "1", "CLICOLOR": "0"], .truecolor),
+        ] as [([String: String], ColorDepth)])
+    func precedence(environment: [String: String], depth: ColorDepth) {
+        #expect(ColorDepth.detect(environment: environment) == depth)
+    }
+
+    @Test("What the terminal can do ignores what the person asks for")
+    func terminalDepthIsTheTerminals() {
+        let asked = ["NO_COLOR": "1", "FORCE_COLOR": "1", "TERM": "xterm-256color"]
+        #expect(ColorDepth.terminalDepth(environment: asked) == .palette256)
+    }
+
     @Test("The default environment is the live one, read per call")
     func defaultArgumentIsTheProcessEnvironment() {
         // `detect()` must keep answering for the process that calls it, since

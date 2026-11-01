@@ -28,14 +28,16 @@ public enum RenderOnceOutput: Sendable, Equatable {
     ///
     /// 1. `TUI_FORCE_ESCAPES`: `0` for plain text; anything else not empty for
     ///    escape sequences, even down a pipe.
-    /// 2. `FORCE_COLOR`, the convention other command-line tools read: `0` for
-    ///    no colour; anything else not empty for escape sequences, even down a
-    ///    pipe.
-    /// 3. `NO_COLOR` (<https://no-color.org>), not empty: no colour. A terminal
-    ///    still gets bold and the other text attributes.
+    /// 2. Whatever asks for colour wherever the output goes, as `ColorDepth`
+    ///    reads the environment: `FORCE_COLOR` or `CLICOLOR_FORCE`, unless `NO_COLOR`
+    ///    is set too. Escape sequences, even down a pipe.
     ///
-    /// A terminal whose `TERM` is `dumb` gets plain text, unless the first two
-    /// say otherwise: it would print the sequences as text.
+    /// A terminal whose `TERM` is `dumb` gets plain text, unless those say
+    /// otherwise: it would print the sequences as text.
+    ///
+    /// The sequences have the colours `ColorDepth.current` allows, which is the
+    /// answer a running app gets. So `NO_COLOR` leaves the colours out of them, and
+    /// a terminal still gets bold and the other text attributes.
     case automatic
 
     /// Plain text, whatever stdout is: no colour and no attributes.
@@ -50,8 +52,11 @@ public enum RenderOnceOutput: Sendable, Equatable {
     enum Resolved: Equatable {
         /// Text alone.
         case plainText
-        /// With its escape sequences, and whether to leave out the colours.
-        case styled(noColor: Bool)
+        /// With its escape sequences, in the colours `ColorDepth.current` allows.
+        case styled
+        /// With its escape sequences, at `depth` rather than at the depth the person
+        /// running the program asked for.
+        case styledAt(ColorDepth)
     }
 
     /// What this asks for, given what stdout is and the environment. A
@@ -59,18 +64,24 @@ public enum RenderOnceOutput: Sendable, Equatable {
     /// `ColorDepth.detect(environment:)` is, so a test can pose the table
     /// without writing to the environment.
     func resolved(stdoutIsTerminal: Bool, environment: [String: String]) -> Resolved {
+        let request = ColorRequest(environment: environment)
         switch self {
-        case .plainText: return .plainText
-        case .escapeSequences: return .styled(noColor: false)
-        case .automatic: break
+        case .plainText:
+            return .plainText
+        case .escapeSequences:
+            // This is the program speaking, as a `--color=always` flag does, and
+            // no-color.org has that outrank `NO_COLOR`. A request that stated no colour
+            // has already set the depth, so this has to state it back.
+            return request == .off ? .styledAt(ColorDepth.terminalDepth(environment: environment)) : .styled
+        case .automatic:
+            break
         }
         if let forced = ColorRequest.stated("TUI_FORCE_ESCAPES", in: environment) {
-            return forced == "0" ? .plainText : .styled(noColor: false)
+            return forced == "0" ? .plainText : .styled
         }
-        let request = ColorRequest(environment: environment)
-        if request == .forced { return .styled(noColor: false) }
+        if case .forced = request { return .styled }
         guard stdoutIsTerminal, environment["TERM"] != "dumb" else { return .plainText }
-        return .styled(noColor: request == .off)
+        return .styled
     }
 }
 
@@ -119,10 +130,10 @@ public func renderOnce<Content: View>(
     switch output.resolved(stdoutIsTerminal: stdoutIsTerminal, environment: ProcessInfo.processInfo.environment) {
     case .plainText:
         renderer.render(view, plainText: true)
-    case .styled(noColor: true):
-        ColorDepth.withCurrent(.noColor) { renderer.render(view) }
-    case .styled(noColor: false):
+    case .styled:
         renderer.render(view)
+    case .styledAt(let depth):
+        ColorDepth.withCurrent(depth) { renderer.render(view) }
     }
 }
 

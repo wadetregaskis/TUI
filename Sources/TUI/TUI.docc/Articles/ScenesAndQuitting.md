@@ -172,7 +172,7 @@ struct Inventory: App {
 
 ``renderOnce(output:content:)`` draws a view once from the line the cursor is on, and works with or without an ``App``.
 When stdout isn't a terminal it writes plain text, unless you pass `output: .escapeSequences` or whoever runs the program
-sets `TUI_FORCE_ESCAPES=1` or `FORCE_COLOR=1`.
+sets `TUI_FORCE_ESCAPES=1`, `FORCE_COLOR=1` or `CLICOLOR_FORCE=1`.
 
 A tool like `fzf`, which reads its data from a pipe and draws on the terminal anyway, returns
 ``NoTerminal/Outcome/drawOnControllingTerminal``. The app then runs as usual on the process's controlling terminal, and

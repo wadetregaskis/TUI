@@ -104,12 +104,32 @@ These environment variables settle a question without asking the terminal. Set t
 | `TUI_GRAPHICS=0` or `1` | Pictures in text characters, or in real pixels |
 | `TUI_KEYBOARD_PROTOCOL=0` | Doesn't use the keyboard protocol |
 | `TUI_HYPERLINKS=0` or `1` | Links the terminal can follow, off or on |
-| `TUI_FORCE_ESCAPES=0` or `1` | What `renderOnce` writes: plain text, or its escape sequences even down a pipe. `FORCE_COLOR` and `NO_COLOR` also count |
+| `TUI_FORCE_ESCAPES=0` or `1` | What `renderOnce` writes: plain text, or its escape sequences even down a pipe. It says nothing about colour |
 | `TUI_TERM_PROGRAM=name` | Says which terminal this is: `Apple_Terminal`, `iTerm.app`, `ghostty`, `WarpTerminal`, `tmux` or `gnome-terminal` |
-| `COLORTERM=truecolor` | Uses millions of colours |
-| `TERM=xterm-256color` | Uses 256 colours, if `COLORTERM` isn't set. `TERM=dumb` won't run an app at all: see <doc:ScenesAndQuitting> |
 
 To turn off real pixels for part of an app, because a blocky look is part of the design, write `.terminalGraphics(false)` around those views.
+
+### Colour
+
+TUI reads the variables other command-line tools read, for an app and for `renderOnce` alike. They're read once, when the first colour is drawn. An empty variable counts as unset. Each of these is checked only if none above it decided, except that `COLORTERM` and `TERM` also say what "what the terminal has" means:
+
+| Variable | Effect |
+|---|---|
+| `NO_COLOR` | Set to anything, even `0`: no colour. Bold, underline, italics and the other text attributes stay |
+| `FORCE_COLOR` | `0` or `false`: no colour. `1`: 16 colours. `2`: 256. `3` or more: millions. These apply whatever `TERM` says, so `1` can lower as well as raise. Anything else, such as `true`: what the terminal has, but at least 16 |
+| `CLICOLOR_FORCE` | Set, and not `0` or `false`: what the terminal has, but at least 16 |
+| `CLICOLOR` | `0` or `false`: no colour. Any other value changes nothing, because an app on a terminal uses colour anyway |
+| `COLORTERM=truecolor` or `24bit` | Millions of colours |
+| `TERM=xterm-256color` | 256 colours. Other values are covered by ``ColorDepth`` |
+| `TERM=dumb` | No colour |
+
+Where the conventions disagree, TUI goes with the one that does what the person meant. `NO_COLOR` beats `FORCE_COLOR`, as it does in Python and the [CLICOLORS](https://bixense.com/clicolors/) text, though Node has it the other way. `FORCE_COLOR=0` means off, as it does in Node and chalk, though [force-color.org](https://force-color.org) would count any value as on. An empty `FORCE_COLOR` means unset, as force-color.org and Python have it, though Node and chalk would turn colour on.
+
+These choose the colours, not whether there's a terminal to draw on. An app still needs one, so `FORCE_COLOR=1 myapp | less` and `TERM=dumb FORCE_COLOR=1 myapp` go to its `runWithoutTerminal` as usual (see <doc:ScenesAndQuitting>). `renderOnce` has no such need: `FORCE_COLOR` or `CLICOLOR_FORCE` keeps its escape sequences down a pipe, unless `NO_COLOR` is set too, which leaves plain text there.
+
+An app's own code has the last word on detection, as [no-color.org](https://no-color.org) says a program's own flag or config should. To honour a `--color=always` flag, set ``ColorDepth/current`` when reading the flag. ``ColorDepth/cap`` only ever lowers: it can't undo `NO_COLOR`, and `FORCE_COLOR` can't raise a depth past it.
+
+Without colour, a control says with an attribute what it would have said in colour. The focus is reverse video, on a button's face, a checkbox's label, a slider's arrows or a list's cursor row, and a scroll bar's thumb turns solid. Disabled is faint, and so is a text field's prompt. Nothing breathes except a text cursor's blink and a list's cursor row, so a focused control doesn't wake the app, and an indeterminate `ProgressView` that only changes colour sweeps instead. A gradient drawn as a picture goes back to cells and a list's hairlines go, since each is a colour sent as a picture. An ``Image`` keeps its pixels where the terminal draws pictures, since it's the app's content rather than its colouring. In text characters it's drawn in shades, without colour.
 
 ## See Also
 

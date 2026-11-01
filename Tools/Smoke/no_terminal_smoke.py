@@ -68,7 +68,7 @@ def environment(**extra):
         "LANG": "en_US.UTF-8",
         "TUI_CONFIG_DIR": tempfile.mkdtemp(dir=SCRATCH),
     })
-    for name in ("NO_COLOR", "FORCE_COLOR", "TUI_FORCE_ESCAPES"):
+    for name in ("NO_COLOR", "FORCE_COLOR", "CLICOLOR", "CLICOLOR_FORCE", "TUI_FORCE_ESCAPES"):
         env.pop(name, None)
     env.update(extra)
     return env
@@ -187,10 +187,16 @@ check(status == 7 and b"input device, output file" in written and ANY_ESCAPE not
       f"report to a file: told so, and plain text: {written[:60]!r}")
 
 # 9. The escape sequences, asked for.
-for name, value in (("TUI_FORCE_ESCAPES", "1"), ("FORCE_COLOR", "1")):
+for name, value in (("TUI_FORCE_ESCAPES", "1"), ("FORCE_COLOR", "1"), ("CLICOLOR_FORCE", "1")):
     status, out, _, _ = run(environment(IDLE_PROBE_NO_TERMINAL="report", **{name: value}), subprocess.DEVNULL, subprocess.PIPE)
     check(status == 7 and b"\x1b[" in out and b"\x1b[1;1H" not in out,
           f"{name}=1 down a pipe: the styling, and no cursor move: {out[-40:]!r}")
+
+# NO_COLOR beats them, and a colour request doesn't make a terminal of a pipe.
+status, out, _, _ = run(environment(IDLE_PROBE_NO_TERMINAL="report", FORCE_COLOR="3", NO_COLOR="1"), subprocess.DEVNULL, subprocess.PIPE)
+check(status == 7 and ANY_ESCAPE not in out, f"NO_COLOR with FORCE_COLOR down a pipe: plain text: {out[-40:]!r}")
+status, out, err, _ = run(environment(FORCE_COLOR="3"), subprocess.DEVNULL, subprocess.PIPE)
+check(status == 1 and ANY_ESCAPE not in out and err, f"FORCE_COLOR doesn't let a full app draw down a pipe: {status} {out[:40]!r}")
 
 # 10. renderOnce on a terminal, from the line the cursor is on. Stdin is a pipe,
 # so the app has no terminal to run on and reports.
