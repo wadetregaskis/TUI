@@ -222,11 +222,11 @@ package struct SearchTokenSink {
     /// For a token of the collection's element type, whether it is already
     /// among the tokens, and how to add it; `nil` for a token of any other
     /// type, which this searchable cannot take.
-    let choice: @MainActor (Any) -> (isChosen: Bool, choose: () -> Void)?
+    let choice: (Any) -> (isChosen: Bool, choose: () -> Void)?
 
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and TUISearch makes these, for a searchable with tokens.
-    package init(choice: @escaping @MainActor (Any) -> (isChosen: Bool, choose: () -> Void)?) {
+    package init(choice: @escaping (Any) -> (isChosen: Bool, choose: () -> Void)?) {
         self.choice = choice
     }
 }

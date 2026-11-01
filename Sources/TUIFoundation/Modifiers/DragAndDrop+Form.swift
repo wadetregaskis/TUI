@@ -30,7 +30,7 @@ extension DropDestinationModifier: FormRowRewrapping {
     /// And so is an `onDrop(of:…)`'s.
     extension ItemProviderDropModifier: FormRowRewrapping {
         func rewrappingFormRow<V: View>(_ row: V) -> any View {
-            ItemProviderDropModifier<V>(content: row, install: install)
+            ItemProviderDropModifier<V>(content: row, supportedContentTypes: supportedContentTypes, handler: handler)
         }
     }
 #endif

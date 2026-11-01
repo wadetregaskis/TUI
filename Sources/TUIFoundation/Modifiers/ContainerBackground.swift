@@ -34,7 +34,7 @@ package struct ContainerBackground {
 /// The window background the content published. The last one set wins — the
 /// default `reduce` — as SwiftUI leaves unspecified which of several does.
 package struct ContainerBackgroundKey: PreferenceKey {
-    package static let defaultValue: ContainerBackground? = nil
+    package static var defaultValue: ContainerBackground? { nil }
 }
 
 extension View {

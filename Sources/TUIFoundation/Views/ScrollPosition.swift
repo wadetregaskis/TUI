@@ -457,7 +457,7 @@ extension ScrollPositionBinding: Equatable {
 }
 
 private struct ScrollPositionBindingKey: EnvironmentKey {
-    static let defaultValue: ScrollPositionBinding? = nil
+    static var defaultValue: ScrollPositionBinding? { nil }
 }
 
 extension EnvironmentValues {

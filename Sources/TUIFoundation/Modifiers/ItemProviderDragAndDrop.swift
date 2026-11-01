@@ -184,17 +184,9 @@
             of supportedContentTypes: [UTType], isTargeted: Binding<Bool>?,
             perform action: @escaping ([NSItemProvider], CellPoint) -> Bool
         ) -> some View {
-            ItemProviderDropModifier(content: self) { context, buffer in
-                DropZone.install(
-                    on: &buffer, context: context,
-                    accepts: { !ItemProviders.of($0, conformingTo: supportedContentTypes).isEmpty },
-                    perform: { payload, info in
-                        action(ItemProviders.of(payload, conformingTo: supportedContentTypes), info.location)
-                    },
-                    setTargeted: { isTargeted?.wrappedValue = $0 },
-                    // What SwiftUI's view without a delegate proposes.
-                    proposedOperation: { .copy })
-            }
+            ItemProviderDropModifier(
+                content: self, supportedContentTypes: supportedContentTypes,
+                handler: .perform(action, isTargeted: isTargeted))
         }
 
         /// Makes this view a destination for drags carrying items of
@@ -206,22 +198,8 @@
         ///   - delegate: Validates, follows and performs the drop.
         /// - Returns: A view that can receive drops.
         public func onDrop(of supportedContentTypes: [UTType], delegate: any DropDelegate) -> some View {
-            ItemProviderDropModifier(content: self) { context, buffer in
-                guard let storage = context.stateStorage else { return }
-                storage.markActive(context.identity)
-                let state: StateBox<DropDelegateState> = storage.storage(
-                    for: StateStorage.StateKey(
-                        identity: context.identity, propertyIndex: ItemProviderDropStateIndex.delegate),
-                    default: DropDelegateState())
-                let session = DropDelegateSession(state: state.value, delegate: delegate)
-                DropZone.install(
-                    on: &buffer, context: context,
-                    accepts: { !ItemProviders.of($0, conformingTo: supportedContentTypes).isEmpty },
-                    perform: session.perform,
-                    setTargeted: session.setTargeted,
-                    hoveringInfo: session.hovering,
-                    proposedOperation: session.proposedOperation)
-            }
+            ItemProviderDropModifier(
+                content: self, supportedContentTypes: supportedContentTypes, handler: .delegate(delegate))
         }
     }
 
@@ -256,6 +234,13 @@
             lastInfo = nil
             dropped = false
         }
+    }
+
+    /// What a drop does: kept as the caller gave it, and installed where the
+    /// view draws, on the main actor.
+    enum ItemProviderDropHandler {
+        case perform(([NSItemProvider], CellPoint) -> Bool, isTargeted: Binding<Bool>?)
+        case delegate(any DropDelegate)
     }
 
     /// The drop zone's callbacks for a delegate, in SwiftUI's order.
@@ -312,7 +297,8 @@
     /// and registers its rectangle as a drop zone, as `install` says.
     struct ItemProviderDropModifier<Content: View>: View {
         let content: Content
-        let install: @MainActor (RenderContext, inout FrameBuffer) -> Void
+        let supportedContentTypes: [UTType]
+        let handler: ItemProviderDropHandler
 
         var body: Never {
             fatalError("ItemProviderDropModifier renders via Renderable")
@@ -329,6 +315,37 @@
             guard !context.isMeasuring else { return buffer }
             install(context, &buffer)
             return buffer
+        }
+
+        private func install(_ context: RenderContext, _ buffer: inout FrameBuffer) {
+            let supportedContentTypes = self.supportedContentTypes
+            switch handler {
+            case .perform(let action, let isTargeted):
+                DropZone.install(
+                    on: &buffer, context: context,
+                    accepts: { !ItemProviders.of($0, conformingTo: supportedContentTypes).isEmpty },
+                    perform: { payload, info in
+                        action(ItemProviders.of(payload, conformingTo: supportedContentTypes), info.location)
+                    },
+                    setTargeted: { isTargeted?.wrappedValue = $0 },
+                    // What SwiftUI's view without a delegate proposes.
+                    proposedOperation: { .copy })
+            case .delegate(let delegate):
+                guard let storage = context.stateStorage else { return }
+                storage.markActive(context.identity)
+                let state: StateBox<DropDelegateState> = storage.storage(
+                    for: StateStorage.StateKey(
+                        identity: context.identity, propertyIndex: ItemProviderDropStateIndex.delegate),
+                    default: DropDelegateState())
+                let session = DropDelegateSession(state: state.value, delegate: delegate)
+                DropZone.install(
+                    on: &buffer, context: context,
+                    accepts: { !ItemProviders.of($0, conformingTo: supportedContentTypes).isEmpty },
+                    perform: session.perform,
+                    setTargeted: session.setTargeted,
+                    hoveringInfo: session.hovering,
+                    proposedOperation: session.proposedOperation)
+            }
         }
     }
 

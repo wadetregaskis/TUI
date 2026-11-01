@@ -215,7 +215,7 @@ final class ScrollGeometryObserver {
 }
 
 private struct ScrollObserversKey: EnvironmentKey {
-    static let defaultValue = ScrollObservers()
+    static var defaultValue: ScrollObservers { ScrollObservers() }
 }
 
 extension EnvironmentValues {

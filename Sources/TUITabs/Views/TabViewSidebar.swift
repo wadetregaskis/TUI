@@ -317,7 +317,7 @@ struct _TabViewSidebarAccessories {
 }
 
 private struct TabViewSidebarAccessoriesKey: EnvironmentKey {
-    static let defaultValue = _TabViewSidebarAccessories()
+    static var defaultValue: _TabViewSidebarAccessories { _TabViewSidebarAccessories() }
 }
 
 extension EnvironmentValues {

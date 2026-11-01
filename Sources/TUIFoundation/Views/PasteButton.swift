@@ -25,7 +25,7 @@
 /// app's own latest copy instead (see `Documentation/Terminals/Terminal compatibility survey.md`,
 /// "OSC 52 clipboard writes").
 public struct PasteButton: View {
-    private let paste: @MainActor (ClipboardAccess) -> Void
+    private let paste: (ClipboardAccess) -> Void
 
     @Environment(\.clipboardAccess) private var clipboard
     @Environment(\.typedClipboard) private var typedClipboard

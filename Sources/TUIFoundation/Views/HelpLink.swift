@@ -24,7 +24,9 @@ import Foundation
 /// Apple Help book, which no terminal has; they are absent.
 public struct HelpLink: View {
     /// What the link does, given the environment's URL opener.
-    private let perform: @MainActor (OpenURLAction) -> Void
+    /// What pressing it does: the caller's action, or `nil` to open ``destination``.
+    private let action: (() -> Void)?
+    private let destination: URL?
 
     @Environment(\.openURL) private var openURL
 
@@ -32,7 +34,8 @@ public struct HelpLink: View {
     ///
     /// - Parameter action: The action to perform when the link is activated.
     public init(action: @escaping () -> Void) {
-        self.perform = { _ in action() }
+        self.action = action
+        self.destination = nil
     }
 
     /// Constructs a new help link that opens the specified destination URL,
@@ -41,12 +44,17 @@ public struct HelpLink: View {
     ///
     /// - Parameter destination: The URL to open when the link is activated.
     public init(destination: URL) {
-        self.perform = { openURL in openURL(destination) }
+        self.action = nil
+        self.destination = destination
     }
 
     public var body: some View {
         Button {
-            perform(openURL)
+            if let action {
+                action()
+            } else if let destination {
+                openURL(destination)
+            }
         } label: {
             Text(verbatim: "?")
         }

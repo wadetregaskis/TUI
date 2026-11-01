@@ -48,7 +48,7 @@ package struct FocusPathModifier<Content: View>: View {
     /// resolved through ``EnvironmentValues/commandKey``. The handler does its
     /// own matching of keys, characters and phases, and answers whether it
     /// took the key.
-    let bind: @MainActor (RenderContext) -> (KeyEvent) -> Bool
+    let bind: (RenderContext) -> (KeyEvent) -> Bool
 
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and TUITabs makes these, for a tab view's menu openers.
@@ -56,7 +56,7 @@ package struct FocusPathModifier<Content: View>: View {
         content: Content,
         stage: FocusPathStage,
         declares: ((KeyEvent) -> Bool)? = nil,
-        bind: @escaping @MainActor (RenderContext) -> (KeyEvent) -> Bool
+        bind: @escaping (RenderContext) -> (KeyEvent) -> Bool
     ) {
         self.content = content
         self.stage = stage
