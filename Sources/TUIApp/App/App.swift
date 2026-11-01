@@ -996,15 +996,6 @@ extension AppRunner {
             frameDate: frameDate)
     }
 
-    /// Reads and dispatches every terminal event currently pending (up to a
-    /// per-frame cap of 128, which avoids paste lag without letting a flood
-    /// spin the loop). Called BEFORE the frame renders so a keypress / mouse
-    /// action shows up in the same frame it triggers.
-    ///
-    /// A consumed key or mouse event requests a render: focus / scroll moves go
-    /// through plain (non-`@State`) handler properties that don't themselves
-    /// call `setNeedsRender()`, so without this an arrow-key List navigation
-    /// would move the selection but never repaint.
     /// The Ctrl-Z round trip: hands the terminal back to the shell exactly the
     /// way quitting would, stops the process for real, and — execution resumes
     /// at the next line when `fg` delivers SIGCONT — rebuilds the terminal
@@ -1156,6 +1147,15 @@ extension AppRunner {
         appState.setNeedsRender()
     }
 
+    /// Reads and dispatches every terminal event currently pending (up to a
+    /// per-frame cap of 128, which avoids paste lag without letting a flood
+    /// spin the loop). Called BEFORE the frame renders so a keypress / mouse
+    /// action shows up in the same frame it triggers.
+    ///
+    /// A consumed key or mouse event requests a render: focus / scroll moves go
+    /// through plain (non-`@State`) handler properties that don't themselves
+    /// call `setNeedsRender()`, so without this an arrow-key List navigation
+    /// would move the selection but never repaint.
     fileprivate func drainTerminalEvents(
         inputHandler: InputHandler,
         renderer: RenderLoop<A>,
