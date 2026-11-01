@@ -38,6 +38,7 @@ import TUIFoundation
 public struct EditButton: View {
     @Environment(\.editMode) private var editMode
 
+    /// Creates an edit button.
     public init() {}
 
     public var body: some View {

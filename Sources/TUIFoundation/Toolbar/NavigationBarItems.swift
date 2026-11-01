@@ -31,7 +31,7 @@ package final class NavigationBarItems {
     /// Draws a run of the items, side by side: given by what declared them.
     package var drawsItems: (@MainActor ([WindowChromeState.ToolbarEntry]) -> AnyView)?
 
-    package init() {}
+    nonisolated package init() {}
 
     /// Forgets the last walk's items. Called by the stack before its screen
     /// draws.
