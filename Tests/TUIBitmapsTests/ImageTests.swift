@@ -603,6 +603,18 @@ struct ImageLoadErrorTests {
         let downloadError = ImageLoadError.downloadFailed("timeout")
         #expect(downloadError.description.contains("timeout"))
     }
+
+    /// The rendering options of ``Image``'s own documentation, as it spells
+    /// them: it said `.imageCharacterSet(.braille)`, which has no such member.
+    @MainActor
+    @Test("The rendering options in Image's documentation compile")
+    func documentedRenderingOptions() {
+        _ = Image(.file("photo.png"))
+            .imageCharacterSet(.blocks(.braille))
+            .imageColorMode(.trueColor)
+            .imageDithering(.floydSteinberg)
+            .frame(width: 80, height: 40)
+    }
 }
 
 // MARK: - Image sizing (aspect-driven, not greedy)

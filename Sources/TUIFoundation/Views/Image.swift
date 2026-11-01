@@ -27,7 +27,7 @@ import Foundation
 ///
 /// // With rendering options
 /// Image(.file("photo.png"))
-///     .imageCharacterSet(.braille)
+///     .imageCharacterSet(.blocks(.braille))
 ///     .imageColorMode(.trueColor)
 ///     .imageDithering(.floydSteinberg)
 ///     .frame(width: 80, height: 40)
