@@ -8,7 +8,7 @@ let umbrellaTestDependencies: [Target.Dependency] = [
     "TUI", "TUIApp", "TUIBitmaps", "TUIChrome", "TUIColorPicker", "TUICommands", "TUICurveEditors",
     "TUIEffects", "TUIFilePanelImages", "TUIFilePanels", "TUIForms", "TUIFoundation", "TUIGrid", "TUILists",
     "TUIMenus", "TUINavigation", "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes", "TUISearch",
-    "TUIStrings", "TUITabImages", "TUITables", "TUITabs", "TUITerminalHost", "TUITextInput",
+    "TUIStrings", "TUITabImages", "TUITables", "TUITabs", "TUITerminalHost", "TUITesting", "TUITextInput",
     "TUIAppKit", "TUIFilePanelsAppKit", "TUIWidthCorpus", "CTestSupport",
 ]
 
@@ -30,7 +30,7 @@ let package = Package(
 
         // ── The umbrella: the default ───────────────────────────────────────────────────────────────────
         // `import TUI` is the whole framework, as `import SwiftUI` is the whole of SwiftUI: every module
-        // below but TUIAppKit, TUIFilePanelsAppKit and TUIMacros, which are opt-in. Start here; the README and the docs do.
+        // below but TUIAppKit, TUIFilePanelsAppKit, TUIMacros and TUITesting, which are opt-in. Start here; the README and the docs do.
         .library(name: "TUI", targets: ["TUI"]),
 
         // ── À la carte: one product per module ──────────────────────────────────────────────────────────
@@ -131,6 +131,11 @@ let package = Package(
         .library(name: "TUIFilePanelImages", targets: ["TUIFilePanelImages"]),
         // TUITextInput: `TextField`, `SecureField` and `TextEditor`.
         .library(name: "TUITextInput", targets: ["TUITextInput"]),
+        // TUITesting: `TestApp`, which runs an app or a view in a unit test with no terminal: press keys,
+        // click, advance a clock that moves only when told to, read the screen. For a test target's
+        // `dependencies:` and nothing else, so a shipping app never carries it. Uses no `@testable`, and
+        // neither Testing nor XCTest. Re-exports TUIApp.
+        .library(name: "TUITesting", targets: ["TUITesting"]),
 
         // ── Low-level (no deps) ─────────────────────────────────────────────────────────────────────────
         // The four modules beneath TUIFoundation: products of their own since before the split, and the
@@ -696,6 +701,15 @@ let package = Package(
             ]
         ),
 
+        // What a client's tests drive an app with, and the suite's too (Sources/TUI/TUI.docc/Articles/TestingYourApp.md).
+        // On TUIApp's headless render loop through `package` API, so it needs no testability and builds in release.
+        // The umbrella does not re-export it: an app's tests depend on it beside what the app depends on.
+        .target(
+            name: "TUITesting",
+            dependencies: ["TUIApp", "TUICore", "TUIFoundation"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
         // ── App & Tests ─────────────────────────────────────────────────────────────────────────────────
         .executableTarget(
             name: "Example",
@@ -745,8 +759,8 @@ let package = Package(
         .target(
             name: "TUIAppTestSupport",
             dependencies: [
-                "TUIApp", "TUIChrome", "TUICore", "TUIFoundation", "TUIStyling", "TUITestSupport",
-                "TUIView",
+                "TUIApp", "TUIChrome", "TUICore", "TUIFoundation", "TUIStyling", "TUITerminalHost",
+                "TUITestSupport", "TUITesting", "TUIView",
             ],
             path: "Tests/TUIAppTestSupport",
             swiftSettings: [.define("TUI_TEST_SUPPORT", .when(configuration: .debug))]
@@ -797,7 +811,7 @@ let package = Package(
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUIChrome", "TUICore", "TUIFoundation", "TUIImage",
                 "TUIStrings", "TUIStyling", "TUITerminalHost", "TUITestSupport", "TUIView",
-                "TUIWidthCorpus",
+                "TUITesting", "TUIWidthCorpus",
             ]
         ),
         .testTarget(
@@ -826,14 +840,14 @@ let package = Package(
             name: "TUICommandsTests",
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUICommands", "TUICore", "TUIFoundation",
-                "TUINavigation", "TUIPresentation", "TUITestSupport", "TUITextInput", "TUIView",
+                "TUINavigation", "TUIPresentation", "TUITestSupport", "TUITextInput", "TUITesting", "TUIView",
             ]
         ),
         .testTarget(
             name: "TUIScenesTests",
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUICommands", "TUICore", "TUIFoundation",
-                "TUIPresentation", "TUIScenes", "TUITestSupport", "TUIView",
+                "TUIPresentation", "TUIScenes", "TUITestSupport", "TUITesting", "TUIView",
             ]
         ),
         .testTarget(
@@ -846,14 +860,14 @@ let package = Package(
             name: "TUIEffectsTests",
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUICore", "TUIEffects", "TUIFoundation",
-                "TUIStyling", "TUITerminalHost", "TUITestSupport", "TUIView",
+                "TUIStyling", "TUITerminalHost", "TUITestSupport", "TUITesting", "TUIView",
             ]
         ),
         .testTarget(
             name: "TUIFilePanelsTests",
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUIChrome", "TUICore", "TUIFilePanelImages", "TUIFilePanels",
-                "TUIFoundation", "TUILists", "TUIPresentation", "TUIStrings", "TUITables", "TUITestSupport",
+                "TUIFoundation", "TUILists", "TUIPresentation", "TUIStrings", "TUITables", "TUITestSupport", "TUITesting",
                 "TUITextInput", "TUIView",
             ]
         ),
@@ -887,21 +901,21 @@ let package = Package(
             name: "TUIListsTests",
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUICore", "TUIFoundation", "TUILists",
-                "TUIListsTestSupport", "TUIStyling", "TUITestSupport", "TUIView",
+                "TUIListsTestSupport", "TUIStyling", "TUITestSupport", "TUITesting", "TUIView",
             ]
         ),
         .testTarget(
             name: "TUIMenusTests",
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUICore", "TUIFoundation", "TUIMenus", "TUIStyling",
-                "TUITestSupport", "TUIView",
+                "TUITestSupport", "TUITesting", "TUIView",
             ]
         ),
         .testTarget(
             name: "TUINavigationTests",
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUICore", "TUIFoundation", "TUINavigation",
-                "TUITestSupport", "TUIView",
+                "TUITestSupport", "TUITesting", "TUIView",
             ]
         ),
         .testTarget(
@@ -915,21 +929,21 @@ let package = Package(
             name: "TUIPickersTests",
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUICore", "TUIFoundation", "TUIPickers",
-                "TUIStyling", "TUITerminalHost", "TUITestSupport", "TUIView",
+                "TUIStyling", "TUITerminalHost", "TUITestSupport", "TUITesting", "TUIView",
             ]
         ),
         .testTarget(
             name: "TUIPresentationTests",
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUIChrome", "TUICore", "TUIFoundation",
-                "TUIPresentation", "TUIStrings", "TUIStyling", "TUITestSupport", "TUIView",
+                "TUIPresentation", "TUIStrings", "TUIStyling", "TUITestSupport", "TUITesting", "TUIView",
             ]
         ),
         .testTarget(
             name: "TUISearchTests",
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUICore", "TUIFoundation", "TUISearch", "TUIStrings",
-                "TUIStyling", "TUITestSupport", "TUITextInput", "TUIView",
+                "TUIStyling", "TUITestSupport", "TUITextInput", "TUITesting", "TUIView",
             ]
         ),
         .testTarget(
@@ -937,7 +951,7 @@ let package = Package(
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUICore", "TUIFoundation", "TUILists",
                 "TUIListsTestSupport", "TUIStyling", "TUITables", "TUITablesTestSupport",
-                "TUITestSupport", "TUIView",
+                "TUITestSupport", "TUITesting", "TUIView",
             ]
         ),
         .testTarget(
@@ -958,14 +972,14 @@ let package = Package(
             name: "TUITabsTests",
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUICore", "TUIFoundation", "TUIStyling", "TUITabs",
-                "TUITestSupport", "TUIView",
+                "TUITestSupport", "TUITesting", "TUIView",
             ]
         ),
         .testTarget(
             name: "TUITextInputTests",
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUICore", "TUIFoundation", "TUIStyling",
-                "TUITerminalHost", "TUITestSupport", "TUITextInput", "TUIView",
+                "TUITerminalHost", "TUITestSupport", "TUITextInput", "TUITesting", "TUIView",
             ]
         ),
         // C declarations a test needs that only the C importer makes — a struct
@@ -980,7 +994,13 @@ let package = Package(
         // Linux, its `main.swift` left unrun.
         .testTarget(
             name: "ExampleTests",
-            dependencies: ["Example", "TUI", "TUIApp", "TUIFoundation"]
+            dependencies: ["Example", "TUI", "TUIApp", "TUIFoundation", "TUITesting"]
+        ),
+        // `TUITesting`'s own tests, written as a client's are: `import TUITesting` and the modules the
+        // views come from, with no `@testable`, so a thing a client cannot do fails to compile here.
+        .testTarget(
+            name: "TUITestingTests",
+            dependencies: ["TUITesting", "TUIApp", "TUIFoundation", "TUIMenus", "TUIPresentation", "TUITextInput"]
         ),
 
         // ── Per-module unit-test targets (compiler-enforced layering) ──────────────────────────────────────

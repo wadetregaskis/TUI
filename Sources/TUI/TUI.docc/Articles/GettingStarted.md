@@ -124,3 +124,4 @@ Your app gets those keys first, so anything it binds them to wins. <doc:ScenesAn
 - <doc:StateManagement>, to keep and share your app's data
 - <doc:ListAndTable>, to show rows of data
 - <doc:Controls>, for every button, field, toggle and picker
+- <doc:TestingYourApp>, to test your views

@@ -173,6 +173,7 @@ To see more of what TUI can do, run the Example app (`swift run Example` from a 
 
 - **[Getting Started](https://swift-tui.com/docs/documentation/tui/gettingstarted)**: create your first app, run it, and quit it.
 - **[Documentation](https://swift-tui.com/docs/documentation/tui/)**: the API reference and its articles, from getting started to the render cycle.
+- **[Testing your app](https://swift-tui.com/docs/documentation/tui/testingyourapp)**: run your views in a unit test, press keys, move a clock by hand and read the screen.
 - **[Building and shipping an app](https://swift-tui.com/docs/documentation/tui/shippinganapp)**: what to ship, how small it can be, and why a release build takes minutes.
 - **[Contributing](CONTRIBUTING.md)**: how TUI is built, tested and laid out.
 - **[Changes](CHANGELOG.md)**: what has changed, and what to do about it.

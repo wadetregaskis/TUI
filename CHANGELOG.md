@@ -76,7 +76,7 @@ import TUITables
 
 Foundation and app:
 
-- `TUI`: the umbrella. Everything below except `TUIAppKit`, `TUIFilePanelsAppKit` and `TUIMacros`.
+- `TUI`: the umbrella. Everything below except `TUIAppKit`, `TUIFilePanelsAppKit`, `TUIMacros` and `TUITesting`.
 - `TUIApp`: `App`, `Scene`, `WindowGroup` and the scene modifiers, the run loop, the terminal (POSIX only), and `renderOnce`. Re-exports `TUIChrome` and `TUIFoundation`.
 - `TUIFoundation`: what everything else is built on: `View`, `Text`, stacks, `ScrollView`, `Button`, `Toggle`, `Label`, `Image(systemName:)`, layout, state, the environment, focus and rendering. It cannot run an app on its own. It re-exports `TUICore`, `TUIStyling`, `TUIView`, and two modules that have no product of their own: `TUIStrings` (localization, string tables, SF Symbols names, the resource bundle) and `TUITerminalHost` (the terminal's identity, quirks and capabilities).
 
@@ -110,6 +110,7 @@ Opt-in (not in the umbrella):
 - `TUIAppKit`: `Color(nsColor:)`, `NSColor(_:)` and `Image(nsImage:)`, and compiled asset catalogue reading. Apple platforms only; empty elsewhere.
 - `TUIFilePanelsAppKit`: `fileDialogSystemIcons()`, which draws the file panels' items with the Finder's icons. Built on `TUIAppKit` and `TUIFilePanels`, and a product of its own so that an app that takes `TUIAppKit` for `Color(nsColor:)` does not link the file panels (+29% in an app that does). Apple platforms only; empty elsewhere.
 - `TUIMacros`: the `@Animatable`, `@AnimatableIgnored` and `@Entry` macros.
+- `TUITesting`: `TestApp`, which runs an app or a view in a unit test with no terminal: press keys, click, move a clock by hand and read the screen. For test targets, so a shipping app carries none of it. See [Testing Your App](https://swift-tui.com/docs/documentation/tui/testingyourapp).
 
 Low-level, as before:
 

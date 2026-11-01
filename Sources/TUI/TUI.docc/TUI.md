@@ -40,6 +40,10 @@ struct Hello: App {
 - <doc:ChoosingProducts>
 - <doc:Troubleshooting>
 
+### Test Your App
+
+- <doc:TestingYourApp>
+
 ### Build Your Interface
 
 - <doc:ViewsAndText>

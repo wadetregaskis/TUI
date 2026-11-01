@@ -61,6 +61,7 @@ package final class HeadlessApp {
     private let renderer: any HeadlessRendering
     private let inputHandler: InputHandler
     private let tuiContext: TUIContext
+    nonisolated private let lifecycleManager: LifecycleManager
     private let focusManager: FocusManager
     private let animationScheduler = AnimationScheduler()
     /// The quits asked for: see ``quitsRequested``.
@@ -93,6 +94,7 @@ package final class HeadlessApp {
         let appearanceManager = ThemeManager(items: AppearanceRegistry.all, renderTrigger: {})
         self.terminal = terminal
         self.tuiContext = tuiContext
+        self.lifecycleManager = tuiContext.lifecycle
         self.focusManager = focusManager
         let renderer = RenderLoop(
             app: app, terminal: terminal, statusBar: statusBar,
@@ -126,6 +128,25 @@ package final class HeadlessApp {
         focusManager.focusedValues.requestFrame = { [weak self] in self?.framesAsked += 1 }
     }
 
+    /// How many frames have been drawn.
+    package private(set) var framesDrawn = 0
+
+    /// The instant the last frame was drawn at; zero before the first.
+    package private(set) var lastFrameNanos: Int64 = 0
+
+    /// The terminal's size, in cells.
+    package var size: (width: Int, height: Int) { terminal.size }
+
+    /// Changes every frame's root environment, after the render loop has built
+    /// it: what a test wants of a running app that the app itself does not say,
+    /// such as which store its `@AppStorage` reads.
+    package func configureEnvironment(_ configure: @escaping (inout EnvironmentValues) -> Void) {
+        renderer.configureEnvironment = configure
+    }
+
+    /// What tracks the app's views and owns the tasks their `.task`s started.
+    package nonisolated var lifecycle: LifecycleManager { lifecycleManager }
+
     /// How many frames the focus system has asked for, where the app's run
     /// loop is asked (`AppRunner.wireFocusRepaints`): a move of the focus to
     /// show, a `@FocusedValue` reader to catch up. A harness renders whenever
@@ -147,6 +168,8 @@ package final class HeadlessApp {
     /// Events sent after it arrive at `nanos`, and so does a hover the frame
     /// itself moves onto a resting pointer.
     package func frame(atNanos nanos: Int64, date: Date = FrameClock.nowDate) {
+        framesDrawn += 1
+        lastFrameNanos = nanos
         // This app's work, as `AppRunner.run()` binds its whole run: a change
         // made with no view in hand asks this app for its frame.
         AmbientApp.$renderState.withValue(tuiContext.appState) { drawFrame(atNanos: nanos, date: date) }
@@ -361,6 +384,7 @@ private protocol HeadlessRendering: AnyObject {
     var scenes: ScenePresenter { get }
     var hostState: TerminalHostState { get }
     var sendsProgressReports: Bool { get set }
+    var configureEnvironment: ((inout EnvironmentValues) -> Void)? { get set }
 }
 
 extension RenderLoop: HeadlessRendering {}

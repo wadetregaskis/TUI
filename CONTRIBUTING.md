@@ -619,6 +619,16 @@ anything at run time:
   it to the target's `dependencies:` in `Package.swift` if it is not there.
   `Tools/TestSplit` holds the scripts that placed the existing files, from
   the compiler's index of what each one references.
+- **A test that drives a view or an app uses `TestApp`** from `TUITesting`, the
+  product an app's own tests use (`Sources/TUI/TUI.docc/Articles/TestingYourApp.md`),
+  whenever the module it needs sits above `TUIApp` or at it. That is how the product
+  stays good enough. What it cannot say, such as one frame drawn by hand at a chosen
+  instant, a key with no frame after it, or the render cache's counters, is in
+  `Tests/TUIAppTestSupport/TestHelpers/TestApp+Internals.swift` on the same type.
+  `InputChainHarness` is for a test of the machinery itself: it hands back the
+  frame's `FrameBuffer` and the services behind it, with no window around the view.
+  A test in `TUIFoundationTests` cannot see `TUIApp`, so it renders with
+  `renderToBuffer` and the helpers in `Tests/TUITestSupport`.
 - A test target cannot see another's declarations, so a helper two targets
   share lives in a support target, a plain target split the same way:
   `Tests/TUITestSupport` for the base (with the golden snapshots, its
@@ -952,6 +962,7 @@ Tests/                    ~11,600 tests across ~1,560 suites in ~1,360 files, a 
 ├── …                     App, so an edit to a module rebuilds only its tests
 ├── TUIIntegrationTests/  Tests needing two feature modules (golden snapshots,
 │                         i18n consistency, cross-control focus): the umbrella
+├── TUITestingTests/   TUITesting's own, written as an app's tests are: no @testable
 ├── TUITestSupport/    Shared helpers, mocks and golden snapshots; App-, Lists-,
 │                         Tables-… level helpers in TUIAppTestSupport and the like
 ├── TUICoreTests/      The low modules' own unit tests, which cannot lean on

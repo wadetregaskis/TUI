@@ -11,6 +11,7 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 - <doc:StatusBarGuide>
 - <doc:TerminalSupport>
 - <doc:ShippingAnApp>
+- <doc:TestingYourApp>
 
 ### Apps and Scenes
 

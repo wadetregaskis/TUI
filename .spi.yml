@@ -13,5 +13,5 @@ builder:
                               TUICommands, TUICurveEditors, TUIEffects, TUIFilePanelImages, TUIFilePanels, TUIForms, TUIGrid,
                               TUILists, TUIMenus, TUINavigation, TUINumericControls, TUIPickers,
                               TUIPresentation, TUIScenes, TUISearch, TUITabImages, TUITables,
-                              TUITabs, TUITextInput,
+                              TUITabs, TUITesting, TUITextInput,
                               TUIFoundation, TUIStrings, TUITerminalHost, TUIView, TUIStyling, TUICore, TUIImage]

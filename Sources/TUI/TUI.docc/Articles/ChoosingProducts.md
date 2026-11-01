@@ -65,6 +65,7 @@ notifications and `.help`. It links `TUIPresentation` too, for the alert the qui
 | `TUIFilePanelImages` | `.fileDialogPicturePreviews()`, the file panels previewing the selected picture (a product of its own so that neither of the two it brings pays for the other) | `TUIBitmaps`, `TUIFilePanels` |
 | `TUIFilePanelsAppKit` | `.fileDialogSystemIcons()`, the file panels drawn with the Finder's icons (Apple platforms; a product of its own so that `TUIAppKit` does not bring the file panels) | `TUIAppKit`, `TUIFilePanels` |
 | `TUIMacros` | the `@Entry`, `@Animatable` and `@AnimatableIgnored` macros (it builds swift-syntax) | `TUICore` |
+| `TUITesting` | `TestApp`, for running your views in unit tests (<doc:TestingYourApp>). List it in a test target, not in your app; `TUI` does not include it | `TUIApp` |
 
 Every product in the table but `TUIMacros` brings `TUIFoundation` too, and every module in it but `TUIAppKit`,
 `TUIFilePanelsAppKit` and `TUIMacros`, which are imported beside the others, re-exports the modules it is built on, so one import covers

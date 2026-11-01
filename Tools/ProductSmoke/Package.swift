@@ -19,7 +19,7 @@ let products = [
     "TUICurveEditors", "TUIEffects", "TUIFilePanels", "TUIForms", "TUIGrid", "TUILists",
     "TUIMenus", "TUINavigation", "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes",
     "TUISearch",
-    "TUITabImages", "TUIFilePanelImages", "TUITables", "TUITabs", "TUITextInput", "TUICore", "TUIStyling", "TUIView", "TUIImage",
+    "TUITabImages", "TUIFilePanelImages", "TUITables", "TUITabs", "TUITesting", "TUITextInput", "TUICore", "TUIStyling", "TUIView", "TUIImage",
     "TUIAppKit", "TUIFilePanelsAppKit", "TUIMacros",
 ]
 

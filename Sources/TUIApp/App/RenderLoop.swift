@@ -201,6 +201,10 @@ internal final class RenderLoop<A: App> {
     /// The diff writer that tracks previous frames and writes only changed lines.
     let diffWriter = FrameDiffWriter()
 
+    /// What changes every frame's root environment once it is built: `nil` in an
+    /// app, and in a test what it wants of the app (`HeadlessApp.configureEnvironment`).
+    var configureEnvironment: ((inout EnvironmentValues) -> Void)?
+
     /// The lines `.hairline` list separators draw, as the terminal holds them
     /// (`RenderLoop+Hairlines.swift`). Idle, and never asked, on a host that
     /// draws none.
@@ -1019,6 +1023,7 @@ extension RenderLoop {
         // Runtime services (shared with ViewRenderer's one-off path so
         // the wired set can't drift — see EnvironmentValues.applyRuntimeServices).
         environment.applyRuntimeServices(from: tuiContext)
+        configureEnvironment?(&environment)
 
         return environment
     }
