@@ -195,6 +195,14 @@ These have no meaning in a grid of cells, or aren't built yet, so using them is 
 | `@Entry` | Add `import TUIMacros`, and the `TUIMacros` product to your target (<doc:ChoosingProducts>). It's a product of its own because it builds swift-syntax. |
 | `.background(view)`, `.overlay(view)` | `.background { view }`, `.overlay { view }`. `.overlay(.red)` and `.background(.red)` take a style as they do in SwiftUI. |
 
+## Views can be built anywhere, and handlers run on the main actor
+
+As in SwiftUI, a view is a nonisolated value: you can build one in a free function, on an enum or on another actor, while `body` and drawing stay on the main actor. <doc:CustomViews> has the details. A few things differ from SwiftUI, because `View` and `Button` here aren't `@preconcurrency`, which is what lets SwiftUI turn these errors into warnings:
+
+- `Button(title, action: closure)` doesn't compile when `title` is a `String` variable and `closure` is a plain closure variable, because the action has to be `@MainActor`. Write `Button(title) { closure() }`. A string literal title works either way, as does a closure or method that's already on the main actor.
+- A `struct` of your own with a generic field, built from a nonisolated function, is an error rather than a warning. Mark the function `@MainActor`, or state the struct's `View` conformance in an extension.
+- A few things can only be made on the main actor: `Table`, `TabView`, `ForEach(subviews:)`, `.transition(_:)` given a ``Transition`` value, `.keyframeAnimator`, `.searchFocused`, `.fileExporter` and `.fileMover`. Mark a function that uses them `@MainActor`.
+
 ## Sharing code with a SwiftUI app
 
 The aim is to learn once and write anywhere, not to write once and run anywhere, but a lot of view code can be shared. Choose the framework with a conditional import, and give sizes names, since the same number means something different on each side:

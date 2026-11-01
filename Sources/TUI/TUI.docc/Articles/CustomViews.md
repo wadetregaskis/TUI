@@ -237,6 +237,84 @@ let view = Text("Hello").asAnyView()
 
 > Tip: Prefer concrete types and `some View` return types over `AnyView`. Type erasure should be a last resort when the type system can't express what you need.
 
+## Building Views Outside body
+
+A view is a value, so any code can build one, as in SwiftUI: a free function like `makeView` above, a helper on an enum, a method of a model, or an actor. `body` and everything that draws run on the main actor.
+
+```swift
+func row(_ title: String, count: Int) -> some View {
+    HStack {
+        Text(title)
+        Spacer()
+        Text(verbatim: "\(count)")
+    }
+    .padding(.horizontal, 1)
+}
+```
+
+A view of your own is on the main actor, because it declares that it conforms to ``View``. Its memberwise initializer can still be called anywhere if every stored property is `Sendable`. If one isn't, as with a generic `Content`, or if you write your own `init`, calling it from a nonisolated function is an error. Either mark the function `@MainActor`, or state the conformance in an extension, which leaves the struct itself nonisolated, with `body` still on the main actor:
+
+```swift
+struct Titled<Content: View> {
+    let title: String
+    let content: Content
+
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+}
+
+extension Titled: View {
+    var body: some View {
+        VStack {
+            Text(title).bold()
+            content
+        }
+    }
+}
+```
+
+A ``Button``'s action is `@MainActor`, as in SwiftUI, so a button built in a free function can still call your main-actor model. The other handlers, such as `onChange(of:)` and `onAppear(perform:)`, take a plain closure, also as in SwiftUI. Written in `body`, such a closure is on the main actor. Written in a free function it isn't, so mark that function `@MainActor` if the closure needs the main actor.
+
+A view holding a closure or another view stays in the isolation that built it, so an actor can't hand one to the main actor. ``Text``, ``Image``, ``Spacer``, ``EmptyView`` and ``EmptyModifier`` are `Sendable`, as they are in SwiftUI, so `static let title = Text("Title")` works, and so does returning a `Text` from an actor.
+
+If your app runs everything on the main actor, you can say so once, in your target's settings in `Package.swift`. Every declaration in the target is then `@MainActor` unless it says otherwise:
+
+```swift
+.executableTarget(
+    name: "MyApp",
+    dependencies: ["TUI"],
+    swiftSettings: [.defaultIsolation(MainActor.self)]
+)
+```
+
+## Running Async Work from a Handler
+
+A handler runs on the main actor, straight away, before the next key press is read, and it can't be `async`. To do slow work, start a `Task` from it. The task runs on the main actor between suspensions, and the app keeps drawing and reading keys while it waits:
+
+```swift
+struct SaveButton: View {
+    let model: DocumentModel
+    @State private var isSaving = false
+
+    var body: some View {
+        Button("Save") {
+            isSaving = true
+            Task {
+                await model.save()
+                isSaving = false
+            }
+        }
+        .disabled(isSaving)
+    }
+}
+```
+
+Setting `isSaving` before the task starts is what stops a second press from starting a second save. Each `Task` you start is your own: it keeps running if the button goes away, which is usually what you want from a save.
+
+For work tied to a view's life, use ``View/task(priority:_:)`` instead, which starts when the view appears and is cancelled when it goes away, or ``View/task(id:priority:_:)``, which also restarts when a value changes.
+
 ## Topics
 
 ### Protocols
