@@ -372,6 +372,7 @@ Fixes an app may have worked around:
 - **`.overlay(.red)` takes a style with no `in:`**, as `.background(.red)` does, filling the view's frame.
 - **`.refreshable`'s action inherits the actor it is written on**, as SwiftUI's does. Written in a `body` it can write `@State`, and it runs on the main actor, so long synchronous work belongs in a `Task` of its own or a `nonisolated` function.
 - **`onAppear(perform:)` and `onDisappear(perform:)` take an optional closure, defaulting to none**, as SwiftUI's do.
+- **Controls show their state without colour.** At `.noColor`, however it was reached, most controls showed neither the focus nor being disabled. The focus is now reverse video, on a button's or tab's face, a toggle's or radio option's label, a stepper, a slider's arrows or a link. A disabled control is faint. A text field's caret, its selection and its prompt each show, where the first two were invisible and the prompt read as typed text. A scroll bar's thumb is a shade glyph, where it was invisible, and it turns solid with the focus. A radio option's ● no longer also means focus there, which made it look selected. An indeterminate `ProgressView` in `.pulse` or `.gradient` sweeps, where it stood still. A gradient drawn as a picture goes back to cells at `.noColor`, and a list's hairlines go. An `Image` keeps its pixels.
 
 ### Removed deprecated spellings
 

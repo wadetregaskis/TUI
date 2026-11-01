@@ -488,6 +488,10 @@ package struct ScrollbarColors {
     /// the one at the far end too. Only one cell is ever under the pointer.
     var hover: (cell: Int, color: Color)?
 
+    /// What the thumb is drawn as at ``ColorDepth/noColor``, where a filled cell has
+    /// no fill to show: ``ThumbWithoutColor``.
+    var thumbWithoutColor = ThumbWithoutColor.resting
+
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and TUILists and TUITables make these, for the lists'
     /// and tables' scrollbars.
@@ -496,6 +500,19 @@ package struct ScrollbarColors {
         self.track = track
         self.arrow = arrow
         self.hover = hover
+    }
+
+    /// A thumb's glyph without colour. With colour a thumb is a filled cell, in a tone
+    /// for its state. Without it there is neither a fill nor a tone, so the bar showed
+    /// its arrows and nothing between them, and where the view was scrolled to and
+    /// whether it held the focus were both lost. Three weights of shade say the same.
+    enum ThumbWithoutColor: Character {
+        /// The bar's scrolling is off, or the view is disabled.
+        case pinned = "░"
+        /// The usual thumb.
+        case resting = "▒"
+        /// The bar's view holds the focus.
+        case focused = "█"
     }
 
     /// The arrow colour, in the hover tone when the pointer is on cell `index`.
@@ -543,19 +560,23 @@ package struct ScrollbarColors {
         // A bar that cannot be scrolled is not a control, so it does not
         // answer the pointer either.
         guard context.environment.isScrollEnabled else {
-            return Self(
+            var pinned = Self(
                 thumb: palette.foregroundTertiary,
                 track: Self.track(in: palette),
                 arrow: Self.track(in: palette))
+            pinned.thumbWithoutColor = .pinned
+            return pinned
         }
         guard isFocused else {
-            return Self(
+            var resting = Self(
                 thumb: palette.foregroundSecondary,
                 track: Self.track(in: palette),
                 arrow: palette.foregroundTertiary,
                 hover: hoveredCell.map {
                     ($0, palette.hoveredForeground(palette.foregroundSecondary))
                 })
+            if !context.environment.isEnabled { resting.thumbWithoutColor = .pinned }
+            return resting
         }
         // The cycle, not the live phase: building it reads no clock, so a
         // focused bar no longer forces a full re-render on every tick. The
@@ -572,11 +593,13 @@ package struct ScrollbarColors {
                 dim: Self.separated(palette.accent.resolve(with: palette), in: palette),
                 bright: Self.pulseLift(palette)),
             in: palette, standingOffThePage: false)
-        return Self(
+        var focused = Self(
             thumb: now,
             track: Self.track(in: palette),
             arrow: now,
             hover: hoveredCell.map { ($0, palette.hoveredForeground(now)) })
+        focused.thumbWithoutColor = .focused
+        return focused
     }
 
     /// The far end of the focused bar's breath: the accent LIFTED, away from
@@ -922,10 +945,14 @@ package enum ScrollbarRenderer {
     /// into bytes AND a claim in one statement, and an end cell is why that has to
     /// know both colours: its glyph is one of thumb and track and its field the
     /// other, the same two-channel cell as `.blockFine`'s boundary (§31.1).
-    static func paint(
-        of cell: ScrollbarCell, thumb: Color, track: Color
-    ) -> (glyph: String, ink: Color?, field: Color) {
+    ///
+    /// Without colour every cell the thumb touches is ``ScrollbarColors/thumbWithoutColor``,
+    /// whole: a fill is nothing there, and a partial block would show as much as the
+    /// cell's other part as of the thumb.
+    static func paint(of cell: ScrollbarCell, colors: ScrollbarColors) -> (glyph: String, ink: Color?, field: Color) {
+        let (thumb, track) = (colors.thumb, colors.track)
         if cell.glyph == " " { return (" ", nil, track) }
+        if ColorDepth.current == .noColor { return (String(colors.thumbWithoutColor.rawValue), nil, track) }
         if cell.glyph == "█" { return (" ", nil, thumb) }
         if cell.inverted { return (String(cell.glyph), track, thumb) }
         return (String(cell.glyph), thumb, track)
@@ -977,7 +1004,7 @@ package enum ScrollbarRenderer {
             count: height - reserve, extent: extent, viewport: viewport, offset: offset,
             proportional: proportional, vertical: true)
         {
-            let drawn = paint(of: cell, thumb: colors.thumb, track: colors.track)
+            let drawn = paint(of: cell, colors: colors)
             bar.append(drawn.glyph, ink: drawn.ink, field: drawn.field)
         }
         if reserve == 4 { arrow(pointingUp: true, atCell: last - 1) }
@@ -1068,7 +1095,7 @@ package enum ScrollbarRenderer {
             count: width - reserve, extent: extent, viewport: viewport, offset: offset,
             proportional: proportional, vertical: false)
         {
-            let drawn = paint(of: cell, thumb: colors.thumb, track: colors.track)
+            let drawn = paint(of: cell, colors: colors)
             bar.append(drawn.glyph, cells: 1, ink: drawn.ink, field: drawn.field)
         }
         if reserve == 4 { arrow("◀", atCell: last - 1) }

@@ -846,7 +846,11 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
                 isSwitch: toggleStyle is SwitchToggleStyle, isOnValue: isOnValue, isDisabled: isDisabled, isFocused: isFocused,
                 isHovered: isHovered, labelContext: labelContext, palette: palette,
                 context: context)
-            buffer = built.buffer
+            // The label only: which part of a mark or a switch is lit says whether
+            // the toggle is on, and reversing it would say the opposite.
+            buffer = built.buffer.reversedWithoutColor(
+                if: isFocused && !isDisabled, rows: 0..<built.clickHeight,
+                columns: built.clickWidth > built.indent ? built.indent..<built.clickWidth : nil)
             clickWidth = built.clickWidth
             clickHeight = built.clickHeight
             contentIndent = built.indent
@@ -870,6 +874,8 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             // measure, so content under it is not indented under one.
             contentIndent = 0
         }
+
+        buffer = buffer.fadedWithoutColor(if: isDisabled)
 
         // What the toggle governs, under it and indented to its label. Drawn
         // whether the toggle is on or off — so the rows below do not move as it

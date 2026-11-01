@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUICore
+import TUIStyling
 
 // MARK: - Whether a ramp may be a picture
 
@@ -112,8 +113,14 @@ extension RenderContext {
     /// away at the guard. That was 3.8 µs a bar, 750 µs of a frame of 200
     /// progress bars. It is spelled once, after the guard, and only for a
     /// picture that will be kept.
+    ///
+    /// Never at ``ColorDepth/noColor``. A ramp is a colour, a way of painting
+    /// what would otherwise be cells, so whoever asked for no colour, by `NO_COLOR`
+    /// or ``ColorDepth/cap``, would otherwise still get one wherever the terminal
+    /// takes pictures, and none where it doesn't. An ``Image`` is not this: it is
+    /// the app's content, and it keeps its pixels.
     package func gradientGraphics(token: @autoclosure () -> String, frames: Int = 1) -> GradientGraphicsContext? {
-        guard KittyGraphics.isSupported, !isMeasuring,
+        guard KittyGraphics.isSupported, !isMeasuring, ColorDepth.current > .noColor,
             environment.terminalGraphics, environment.gradientGraphics,
             let store = environment.terminalImageStore
         else { return nil }

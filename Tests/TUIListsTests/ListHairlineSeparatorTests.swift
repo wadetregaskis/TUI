@@ -205,6 +205,14 @@ struct ListHairlineSeparatorTests {
     /// The mark is not a colour the blend knows, so a line under a fade — a
     /// modal's dimmed backdrop above all — would stay at full strength over the
     /// dimmed rows. Until its colour is blended, it goes.
+    @Test("Without colour there's no line, which would be a picture in the border's colour")
+    func noColorTakesTheLine() {
+        #expect(!markedLines(ColorDepth.withCurrent(.truecolor) { render(names(), hairlines: true) }).isEmpty)
+        #expect(markedLines(ColorDepth.withCurrent(.noColor) { render(names(), hairlines: true) }).isEmpty)
+        let explicit = names().listSeparatorStyle(.hairline)
+        #expect(markedLines(ColorDepth.withCurrent(.noColor) { render(explicit, hairlines: true) }).isEmpty)
+    }
+
     @Test("A fade takes the line away")
     func fadeTakesTheLine() {
         KittyGraphics.withHairlineSupport(true) {

@@ -648,7 +648,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
                 context: context)
         attachRevealRegion(
             to: &buffer, persistedFocusID: persistedFocusID, context: context)
-        return buffer
+        return buffer.fadedWithoutColor(if: isDisabled)
     }
 
     /// A whole-TabView region carrying the persisted focusID, so an
@@ -873,7 +873,8 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             contentsOf: visibleContent.shiftedOpacityRegions(
                 byX: contentShiftX, y: contentStartY))
         attachTabClicks(to: &buffer, regions: strip.regions, context: context)
-        return buffer.clamped(toWidth: context.availableWidth, height: context.availableHeight)
+        return buffer.reversedForActiveTab(isFocused: isFocused, region: strip.regions.first { $0.index == selectedIndex }, isFolder: true)
+            .clamped(toWidth: context.availableWidth, height: context.availableHeight)
     }
 
     /// The budget-clipped content rows and the interior height the panel pads
@@ -1131,7 +1132,8 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         // coordinates; `appendVertically` has carried the panel's up, shifted.
         buffer.opacityRegions += claims
         attachTabClicks(to: &buffer, regions: regions, context: context)
-        return buffer.clamped(toWidth: context.availableWidth, height: context.availableHeight)
+        return buffer.reversedForActiveTab(isFocused: isFocused, region: regions.first { $0.index == selectedIndex }, isFolder: false)
+            .clamped(toWidth: context.availableWidth, height: context.availableHeight)
     }
 
     /// The persistent "which tab is the pointer over" box.

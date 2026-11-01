@@ -117,6 +117,20 @@ struct MeshGradientPictureTests {
         #expect(placeholders(opaque) == 20 * 3, "an opaque background is a picture")
     }
 
+    @Test("Without colour a ramp is no picture: it would be the one colour left on the screen")
+    func noPictureWithoutColor() {
+        let (buffer, store) = ColorDepth.withCurrent(.noColor) {
+            KittyGraphics.withSupport(true) { rendered(Self.mesh) }
+        }
+        #expect(placeholders(buffer) == 0)
+        #expect(store.imageCount == 0)
+        let (capped, cappedStore) = ColorDepth.withCap(.noColor) {
+            KittyGraphics.withSupport(true) { rendered(Self.mesh) }
+        }
+        #expect(placeholders(capped) == 0, "an app's own cap counts too")
+        #expect(cappedStore.imageCount == 0)
+    }
+
     @Test("A mesh behind text stays cells")
     func meshBehindTextIsCells() {
         let (buffer, store) = KittyGraphics.withSupport(true) {

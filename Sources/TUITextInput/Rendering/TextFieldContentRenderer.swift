@@ -350,10 +350,12 @@ struct TextFieldContentRenderer: FieldTextLayout {
         // anyway, and for the same reason the two unfocused arms share their
         // padding rule: they are one field in two states, and a claim on one only
         // would fade a field's text and not its placeholder.
+        let line = ANSIRenderer.colorize(
+            paddedPrompt, foreground: foreground.opaqueSpelling, background: background?.opaqueSpelling)
         return FieldContent(
-            line: ANSIRenderer.colorize(
-                paddedPrompt, foreground: foreground.opaqueSpelling,
-                background: background?.opaqueSpelling),
+            // Without colour a prompt reads as text somebody typed, which only its
+            // quieter colour told it from.
+            line: ColorDepth.current == .noColor ? ANSIRenderer.applyPersistentDim(line) : line,
             claims: OpacityRegion.claim(
                 width: width, height: 1, ink: foreground, field: background).map { [$0] } ?? [])
     }

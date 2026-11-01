@@ -747,8 +747,12 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
         // ◌ (dotted circle) when disabled — a disabled, unselected option reads
         // as "not pickable". (A disabled control never holds focus, so a disabled
         // item is ● only when it is the current selection.)
+        //
+        // Without colour a ● that only means focus would be one more selected option,
+        // since only the breath told them apart. The ● stays with the selection there,
+        // and the focus reverses the label below.
         let indicator: String
-        if isSelected || isFocused {
+        if isSelected || (isFocused && ColorDepth.current > .noColor) {
             indicator = TerminalSymbols.radioSelected
         } else if isDisabled {
             indicator = TerminalSymbols.radioDisabledUnselected
@@ -871,6 +875,10 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
             buffer.opacityRegions.append(claim)
         }
         let optionWidth = lines[0].strippedLength
+        buffer = buffer
+            .reversedWithoutColor(
+                if: isFocused && !isDisabled, rows: 0..<1, columns: optionWidth > indentWidth ? indentWidth..<optionWidth : nil)
+            .fadedWithoutColor(if: isDisabled)
 
         if let contentBuilder = item.contentBuilder {
             // Disabled unless this option is the chosen one — so an unselected

@@ -896,6 +896,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// list's content window, not by a scroll view around the list.
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         context.drawingAsVerticalScroller { renderFrame(context: context) }
+            .fadedWithoutColor(if: isDisabled(in: context))
     }
 
     /// The list's frame, and its content window within it: the rows' lines,
@@ -4493,11 +4494,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// draws one. None from a row painted in the focus or selection fill, nor
     /// into one (at the call): a line across a highlight reads as a seam in
     /// it. Whether macOS draws one there is unmeasured, so this is a look call
-    /// left to the owner (decisions A-D6L-2).
+    /// left to the owner (decisions A-D6L-2). None at ``ColorDepth/noColor``
+    /// either: the line would be a picture in the border's colour.
     private static func hairline(
         below row: SelectableListRow<SelectionValue>, isHighlighted: Bool
     ) -> ListRowSeparatorLine? {
-        guard KittyGraphics.isHairlineSupported, !isHighlighted, let line = row.content.separatorLine, line.isHairline
+        guard KittyGraphics.isHairlineSupported, ColorDepth.current > .noColor, !isHighlighted,
+            let line = row.content.separatorLine, line.isHairline
         else { return nil }
         return line
     }

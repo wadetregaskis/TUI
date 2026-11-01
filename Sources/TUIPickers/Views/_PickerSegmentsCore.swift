@@ -240,7 +240,7 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
                 to: &buffer, regions: regions, tags: options.map(\.tag), handler: handler, hoverBox: hoverBox,
                 focusID: persistedFocusID, context: context)
         }
-        return buffer
+        return buffer.fadedWithoutColor(if: isDisabled)
     }
 
     // MARK: - State

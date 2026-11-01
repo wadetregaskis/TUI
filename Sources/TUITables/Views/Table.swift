@@ -1299,6 +1299,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        drawn(context: context).fadedWithoutColor(if: isDisabled(in: context))
+    }
+
+    private func drawn(context: RenderContext) -> FrameBuffer {
         var context = RowSelectionIndicator.resolvingForTable(context)
         Self.claimCellText(in: &context)
         if let style = customStyle(context.environment) {

@@ -80,8 +80,11 @@ extension Palette {
         _ fill: Color, over surface: Color? = nil, tint: Color? = nil
     ) -> HighlightFill {
         let ground = surface ?? background
+        // Without colour a fill draws nothing at all: a text field's caret and its
+        // selection were both invisible. Reverse video is an attribute, which such a
+        // terminal still draws.
         guard fill.rgbComponents != nil, ground.rgbComponents != nil,
-            tint.map({ $0.rgbComponents != nil }) ?? true
+            tint.map({ $0.rgbComponents != nil }) ?? true, ColorDepth.current > .noColor
         else { return .reversed(ink: foreground, field: ground) }
         return .fill(fill)
     }

@@ -504,7 +504,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             context: context, buffer: &buffer, handler: handler,
             contentWidth: contentWidth, height: height,
             focusID: persistedFocusID, isDisabled: isDisabled)
-        return buffer
+        return buffer.fadedWithoutColor(if: isDisabled)
     }
 
     /// The caret a focused editor draws at `column` of its line or row.

@@ -54,10 +54,12 @@ public enum ListSeparatorStyle: Sendable, Equatable {
     case hairline
 
     /// Whether this look draws hairlines on the terminal in front of the app:
-    /// `.automatic` resolved by ``KittyGraphics/isHairlineSupported``.
+    /// `.automatic` resolved by ``KittyGraphics/isHairlineSupported``, and never at
+    /// ``ColorDepth/noColor``. A hairline is a picture in the border's colour, so
+    /// there, like a gradient's picture, it is colour that nobody asked for.
     var drawsHairlines: Bool {
         switch self {
-        case .automatic: KittyGraphics.isHairlineSupported
+        case .automatic: KittyGraphics.isHairlineSupported && ColorDepth.current > .noColor
         case .line: false
         case .hairline: true
         }

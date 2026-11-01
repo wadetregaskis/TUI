@@ -87,15 +87,27 @@ extension IndeterminateStyle {
     /// because they are made of anything else: each is a preset, and this is
     /// where the two spellings meet so that nothing downstream has to know
     /// which one it was given.
+    ///
+    /// At `ColorDepth.noColor`, a recipe whose motion is all in its colours sweeps
+    /// instead: it would otherwise stand still, and an indeterminate bar says the app
+    /// is working by moving.
     public var configuration: IndeterminateConfiguration {
-        switch self {
-        case .sweep: .sweep
-        case .barberPole: .barberPole
-        case .pulse: .pulse
-        case .knightRider: .knightRider
-        case .gradient(let gradient): .gradient(gradient)
-        case .custom(let configuration): configuration
-        }
+        let configuration: IndeterminateConfiguration =
+            switch self {
+            case .sweep: .sweep
+            case .barberPole: .barberPole
+            case .pulse: .pulse
+            case .knightRider: .knightRider
+            case .gradient(let gradient): .gradient(gradient)
+            case .custom(let configuration): configuration
+            }
+        guard configuration.motion == .pulse || configuration.motion == .gradient,
+            ColorDepth.current == .noColor
+        else { return configuration }
+        var swept = configuration
+        swept.motion = .sweep
+        swept.extent = IndeterminateConfiguration.sweep.extent
+        return swept
     }
 }
 

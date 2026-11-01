@@ -116,6 +116,15 @@ struct ImageTerminalGraphicsTests {
     /// A mono picture bakes its ink and paper into its pixels. A colour the terminal
     /// decides and has not reported has none to bake, and was baked as white ink or
     /// black paper. The glyph renderer can spell it, so the picture is drawn in glyphs.
+    @Test("Without colour an image keeps its pixels: it's the app's content, not its colouring")
+    func imageKeepsItsPixelsWithoutColor() throws {
+        let (image, path) = try load(width: 40, height: 20)
+        let drawn = ColorDepth.withCurrent(.noColor) {
+            KittyGraphics.withSupport(true) { rendered(image, path: path, width: 20, height: 20) }
+        }
+        #expect(placeholderCells(in: drawn.buffer) == drawn.buffer.width * drawn.buffer.height)
+    }
+
     @Test("A mono picture in a colour with no RGB is drawn in glyphs")
     func monoWithoutRGBIsGlyphs() throws {
         let (image, path) = try load(width: 40, height: 20)

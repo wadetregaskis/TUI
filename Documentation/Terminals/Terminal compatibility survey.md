@@ -3321,6 +3321,32 @@ shows no change there, as for a focused button's label above. Colours stated as
 `38;2` or `38;5;n ≥ 16` keep their colour. Inferred from the table; not measured
 under the setting.
 
+### Without colour: what `.noColor` relies on — chosen 2026-11-01
+
+`NO_COLOR` and its relatives (`ColorRequest.swift`) put a whole app at `.noColor`, on a
+terminal that can draw colour as readily as one that can't, so a control's state rests on
+attributes and glyphs that every terminal must then draw.
+
+- **Reverse video (SGR 7) for the focus.** Measured on every terminal here; see the next
+  section. A bare 7 at this depth exchanges the terminal's own two colours, which is what
+  no-colour means. That bare 7 itself, on a whole label or button face, is inferred from
+  those measurements rather than measured.
+- **Faint (SGR 2) for disabled and for a text field's prompt.** Measured on Apple Terminal
+  only (`ESC[2m` draws faint text; see "Reverse video" below). **Not measured on iTerm2,
+  Ghostty, Warp, tmux or GNOME Terminal.** A terminal that ignores it shows a disabled control
+  as an enabled one. It would still not take the keyboard, and `RadioButton`'s ◌ and a
+  `DatePicker`'s missing underline don't rest on it.
+- **Bold** for a selected tab or segment, and a cursor row's breath where
+  `TerminalClient.drawsBold` says so. See "Bold is a COLOUR on some hosts" above: with no
+  colour stated, a host that brightens bold has nothing here to clash with.
+- **`░ ▒ █` for a scroll bar's thumb.** All Block Elements the track styles already draw.
+  Their advance is not separately measured for this use. A thumb built of `█` can show the
+  hairline gap between block glyphs that Terminal.app leaves, which is why it is a filled
+  space when there is colour to fill it with.
+- **No pictures of colour.** A gradient picture and a list's hairline strip are Kitty
+  graphics in an RGB of TUI's choosing, which `NO_COLOR` would otherwise not reach because
+  they aren't SGR. Both are off at `.noColor`. An `Image`'s pixels stay.
+
 ### Reverse video (SGR 7) — cursor behaviour measured 2026-09-14; paint measured 2026-09-19
 
 **Status:**

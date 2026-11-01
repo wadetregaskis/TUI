@@ -370,7 +370,9 @@ struct ListRenderTests {
         // stripping. Verify it in the raw output via the thumb's filled cell.
         let palette = context.environment.palette
         let full = ScrollbarRenderer.paint(
-            of: .full, thumb: palette.foregroundSecondary, track: palette.foregroundQuaternary)
+            of: .full,
+            colors: ScrollbarColors(
+                thumb: palette.foregroundSecondary, track: palette.foregroundQuaternary, arrow: palette.foregroundSecondary))
         var column = ClaimingColumn()
         column.append(full.glyph, ink: full.ink, field: full.field)
         let thumbCell = column.lines[0]

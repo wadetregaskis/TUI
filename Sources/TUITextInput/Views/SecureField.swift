@@ -505,7 +505,7 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
                 leadingCapWidth: chrome.leadingCells)
         }
 
-        return buffer
+        return buffer.fadedWithoutColor(if: isDisabled)
     }
 }
 
