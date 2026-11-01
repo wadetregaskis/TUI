@@ -86,6 +86,23 @@ struct AsyncImageTests {
         await settle(until: { harness.frame(view()).lines.first?.stripped.hasPrefix("failure with error") == true })
     }
 
+    @Test("The failure phase's error describes itself in words")
+    func failureDescribesItself() async {
+        let url = URL(string: "tuikit-unsupported-scheme://nowhere/x.png")!
+        let harness = InputChainHarness()
+        var error: (any Error)?
+        func noting(_ phase: AsyncImagePhase) -> EmptyView {
+            error = phase.error ?? error
+            return EmptyView()
+        }
+        await settle(until: {
+            harness.frame(AsyncImage(url: url) { noting($0) })
+            return error != nil
+        })
+        // Not Foundation's "The operation couldn't be completed. (TUIBitmaps.AsyncImageLoadError error 1.)".
+        #expect(error?.localizedDescription.hasPrefix("Image download failed") == true, "\(String(describing: error))")
+    }
+
     @Test("A nil URL stays empty, and the placeholder form shows its placeholder")
     func nilURLAndPlaceholder() {
         let harness = InputChainHarness()

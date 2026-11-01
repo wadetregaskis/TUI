@@ -191,9 +191,14 @@ package final class _DecodedImage: @unchecked Sendable {
     }
 }
 
-/// Why an ``AsyncImage`` could not load its image.
-struct AsyncImageLoadError: Error, CustomStringConvertible {
+/// Why an ``AsyncImage`` could not load its image, in the words of the
+/// ``ImageLoadError`` it came from. A `LocalizedError`, as that is, because
+/// `localizedDescription` is what an app reads: without it, Foundation reads
+/// "TUIBitmaps.AsyncImageLoadError error 1".
+struct AsyncImageLoadError: LocalizedError, CustomStringConvertible {
     let description: String
+
+    var errorDescription: String? { description }
 }
 
 // MARK: - AsyncImage
