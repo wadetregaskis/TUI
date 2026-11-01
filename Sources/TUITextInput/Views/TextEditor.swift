@@ -808,5 +808,5 @@ extension TextEditor: ResolvesOwnEnvironment {
 extension TextEditor {
     /// Its field reaches its edges, so `.border()` draws on them, with no
     /// blank cell of page between.
-    public static var _paintsToItsEdges: Bool { true }
+    nonisolated public static var _paintsToItsEdges: Bool { true }
 }

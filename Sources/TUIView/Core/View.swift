@@ -158,7 +158,7 @@ public protocol View {
     /// asks every time a body builds one, and a walk of casts down the
     /// wrappers, the value boxed to start it, was 2% of a frame of bordered
     /// views (Stress `anyview`, cold, 2026-10-17).
-    static var _paintsToItsEdges: Bool { get }
+    nonisolated static var _paintsToItsEdges: Bool { get }
 
     /// Static witness: whether this view type may state a spacing preference
     /// of its own (a `ViewSpacing` other than the default) — because it is a
@@ -298,7 +298,7 @@ public extension View {
     /// `TextEditor` overrides this. A constant, never `Body`'s answer: the
     /// single-content wrappers forward it, and a forwarded witness whose
     /// default follows `Body` loops for ever on a view that holds itself.
-    static var _paintsToItsEdges: Bool { false }
+    nonisolated static var _paintsToItsEdges: Bool { false }
 
     /// Default: what this view's `body` answers — a view of the app's own
     /// states the spacing its body does (a row of `struct Row: View { var body:

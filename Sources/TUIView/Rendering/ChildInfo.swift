@@ -405,7 +405,7 @@ extension View where Self: SingleContentWrapper {
     /// The content's answer: a `.frame` or a `.foregroundStyle` around a
     /// `TextEditor` still has the editor's surface at its edges, as
     /// `TextEditor(…).frame(height: 4).border()` writes it.
-    public static var _paintsToItsEdges: Bool { WrappedContent._paintsToItsEdges }
+    nonisolated public static var _paintsToItsEdges: Bool { WrappedContent._paintsToItsEdges }
 
     /// The content's answer: a spacing preference is about the view's EDGES,
     /// and a single-content wrapper — a tag, an `.id`, a focus or gesture
