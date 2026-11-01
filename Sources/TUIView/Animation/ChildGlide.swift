@@ -122,6 +122,7 @@ extension RenderContext {
             return nil
         }
 
+        let wasMoving = !still
         var glide = Glide(context: self, storage: storage, targets: targets, held: record.held)
         let fade = ChildFade(context: self, storage: storage)
         var arriving = record.arriving
@@ -155,8 +156,17 @@ extension RenderContext {
         record.held = glide.anyMoving ? glide.held : [:]
         // Landed, and nothing coming or going: drawn as a settled container
         // is, so the last frame of a glide is the picture every frame after it
-        // is.
-        guard glide.anyMoving || !departing.isEmpty || presence != nil || !leaving.isEmpty else { return nil }
+        // is. But not one a memo keeps: its render asked the store about what
+        // has just landed, as no render after it will, and a memo declares
+        // again what its render asked (`AnimationStore.declareAgain(_:)`), so
+        // it would keep a record of where the child landed past any later
+        // change of layout nothing animates. The next animated change then
+        // finds the child already there, and it does not move. The frame after
+        // this asks nothing, and is the one kept.
+        guard glide.anyMoving || !departing.isEmpty || presence != nil || !leaving.isEmpty else {
+            if wasMoving { environment.volatileReadTracker?.recordRenderSideEffect() }
+            return nil
+        }
         // The picture is a function of the clock, which no memo can reproduce
         // from a buffer it kept: stored, the glide would freeze on this frame.
         // The declaration `animatedValue` makes.
