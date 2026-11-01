@@ -19,27 +19,56 @@ import TUICore
 /// When the wrapped gesture changes type, its recognizer starts afresh, as a
 /// view's state does when its type changes.
 public struct AnyGesture<Value>: Gesture {
-    /// The erased gesture, kept as the one thing a recognizer needs of it.
-    private let makeGesture: @MainActor (_GestureInputs) -> _GestureOutputs<Value>
-
-    /// The named spaces the erased gesture reports locations in, read before
-    /// its type was erased — see `PointerSpaceReporting`.
-    let pointerSpaces: [CoordinateSpace]
+    /// The erased gesture: what a recognizer needs of it, and the named spaces
+    /// it reports locations in (`PointerSpaceReporting`), each of which needs
+    /// the main actor, where an `AnyGesture` can be made anywhere. A reference
+    /// the memos hash by its address, as they hashed the closure's context this
+    /// replaced.
+    private let erased: ErasedGesture<Value>
 
     /// Creates an instance from another gesture.
     ///
     /// - Parameter gesture: A gesture that you use to create a new gesture.
     public init<T: Gesture>(_ gesture: T) where Value == T.Value {
-        makeGesture = { T._makeGesture(gesture: gesture, inputs: $0) }
-        pointerSpaces = namedPointerSpaces(of: gesture)
+        erased = ConcreteErasedGesture(gesture: gesture)
     }
+
+    /// The named spaces the erased gesture reports locations in.
+    var pointerSpaces: [CoordinateSpace] { erased.pointerSpaces }
 
     /// The type of gesture representing the body of `Self`.
     public typealias Body = Never
 
     public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
-        gesture.makeGesture(inputs.child(0))
+        gesture.erased.make(inputs.child(0))
     }
+}
+
+/// What ``AnyGesture`` keeps. Its methods alone are on the main actor, so that
+/// one can be made anywhere and read where gestures are made.
+private class ErasedGesture<Value> {
+    // swiftlint:disable:next unavailable_function
+    @MainActor func make(_ inputs: _GestureInputs) -> _GestureOutputs<Value> {
+        fatalError("ConcreteErasedGesture overrides this")
+    }
+
+    @MainActor var pointerSpaces: [CoordinateSpace] {
+        fatalError("ConcreteErasedGesture overrides this")
+    }
+}
+
+private final class ConcreteErasedGesture<G: Gesture>: ErasedGesture<G.Value> {
+    let gesture: G
+
+    init(gesture: G) {
+        self.gesture = gesture
+    }
+
+    @MainActor override func make(_ inputs: _GestureInputs) -> _GestureOutputs<G.Value> {
+        G._makeGesture(gesture: gesture, inputs: inputs)
+    }
+
+    @MainActor override var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: gesture) }
 }
 
 // MARK: - Optional
