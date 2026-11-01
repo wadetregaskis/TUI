@@ -20,7 +20,8 @@ import TUIPresentation
 /// Cancel, Escape, or the app clearing the binding — `isPresented` is false
 /// and `onCancel` is called instead, once, after the sheet has gone.
 ///
-/// Each presentation's request is made when the sheet is presented, with the
+/// Each presentation's request is made in the frame the sheet is presented, after
+/// that frame's effects have run, with the
 /// `fileDialog` customizations the environment holds then
 /// (``FileDialogCustomization``). It opens on, in order: the folder kept
 /// under its `fileDialogCustomizationID(_:)`, the `fileDialogDefaultDirectory(_:)`,
@@ -45,6 +46,14 @@ struct FilePanelPresenter<Content: View>: View {
     /// choice was made.
     @State private var session = Session()
 
+    /// Whether the sheet is up: `isPresented`, one walk later. An `onChange` of the
+    /// presentation can change what the panel is asked for, and it runs after the
+    /// walk that saw the binding turn true. So this is written beside it, and the
+    /// frame's next walk, which the write asks for, builds the panel with what the
+    /// app says by then. The panel seeds its state from the request, and keeps it,
+    /// so it can't be built from the first walk's and corrected in the second's.
+    @State private var isSheetUp = false
+
     /// The locale the panel writes its sizes and dates in.
     @Environment(\.locale) private var locale
 
@@ -65,12 +74,23 @@ struct FilePanelPresenter<Content: View>: View {
 
     var body: some View {
         content
-            .sheet(isPresented: isPresented, onDismiss: dismissed) {
+            .sheet(isPresented: sheetBinding, onDismiss: dismissed) {
                 // Built only while the sheet is presented, so the request is
                 // made when it is.
                 FilePanel(request: currentRequest(), finish: finish)
                     .presentationSizing(.page)
             }
+            .onChange(of: isPresented.wrappedValue, initial: true) { _, presented in
+                isSheetUp = presented
+            }
+    }
+
+    /// `isPresented`, but true only once ``isSheetUp`` has caught up with it, as
+    /// this body read it: the `onChange` outside the sheet writes it before the
+    /// sheet is drawn, in the same walk, ahead of that frame's other effects.
+    private var sheetBinding: Binding<Bool> {
+        let isUp = isSheetUp
+        return Binding(get: { isPresented.wrappedValue && isUp }, set: { isPresented.wrappedValue = $0 })
     }
 
     /// The request this presentation was made with: made the first time the

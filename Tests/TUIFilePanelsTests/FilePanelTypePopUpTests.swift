@@ -175,7 +175,7 @@ extension FilePanelRequest {
 /// `screen` without a pop-up's caps — the control style's half blocks or a
 /// lines face's brackets — and the blank inside each, so an expectation reads
 /// the label and its value whatever face the control is drawn in.
-private func capless(_ screen: String) -> String {
+func capless(_ screen: String) -> String {
     screen.replacingOccurrences(of: #"[▐(] "#, with: "", options: .regularExpression)
         .replacingOccurrences(of: #" [▌)]"#, with: "", options: .regularExpression)
 }
