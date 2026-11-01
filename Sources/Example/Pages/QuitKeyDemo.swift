@@ -6,8 +6,8 @@
 
 import TUI
 
-/// The key that quits the app, which is the app's to choose: `q` by default,
-/// or a chord a text-heavy app is less likely to type by accident.
+/// The key that quits the app, which is the app's to choose: Control-Q by
+/// default, or a bare `q` for an app with nothing to type into.
 /// TUI-specific — a window's close box has no terminal equivalent, so the
 /// key is the way out, and the status bar names it.
 ///
@@ -18,7 +18,7 @@ struct QuitKeyDemo: View {
 
     /// The quit keys offered, by name.
     enum Choice: String, CaseIterable, Hashable {
-        case q, ctrlQ, ctrlC
+        case ctrlQ, q, ctrlC
 
         var shortcut: QuitShortcut {
             switch self {
@@ -30,7 +30,7 @@ struct QuitKeyDemo: View {
 
         /// The choice a quit shortcut is, by its symbol.
         init(_ shortcut: QuitShortcut?) {
-            self = Self.allCases.first { $0.shortcut.shortcutSymbol == shortcut?.shortcutSymbol } ?? .q
+            self = Self.allCases.first { $0.shortcut.shortcutSymbol == shortcut?.shortcutSymbol } ?? .ctrlQ
         }
     }
 

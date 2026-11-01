@@ -107,7 +107,7 @@ for item in items:
         print(f"{item:>5} {round_index:>5} {elapsed*1000:>9.1f} {total:>9}  {title}")
         os.write(fd, b"\x1b")
         drain(0.4)
-os.write(fd, b"q")
+os.write(fd, b"\x11")  # ⌃Q
 time.sleep(0.3)
 try:
     os.kill(pid, 9)

@@ -141,10 +141,10 @@ class App:
         return True
 
     def quit(self):
-        # Escape to the menu first: on a page `q` is a character.
+        # Escape to the menu first: a page may hold something that asks.
         os.write(self.fd, b"\x1b")
         self.drain(0.4)
-        os.write(self.fd, b"q")
+        os.write(self.fd, b"\x11")  # ⌃Q
         self.drain(0.6)
         for _ in range(60):
             finished, _ = os.waitpid(self.pid, os.WNOHANG)

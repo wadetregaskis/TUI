@@ -167,7 +167,7 @@ struct InputHandlerTests {
     func quitBindingFires() {
         let fixture = makeFixture()
 
-        fixture.handler.handle(KeyEvent(key: .character("q")))
+        fixture.handler.handle(KeyEvent(key: .character("q"), ctrl: true))
 
         #expect(fixture.probe.quitCount == 1)
     }
@@ -313,8 +313,8 @@ struct InputHandlerTests {
         #expect(fixture.palette.current.id == paletteBefore)
         #expect(fixture.appearance.current.id == appearanceBefore)
 
-        fixture.handler.handle(KeyEvent(key: .character("q"), alt: true))
-        #expect(fixture.probe.quitCount == 0, "Alt+Q is not the quit binding")
+        fixture.handler.handle(KeyEvent(key: .character("q"), ctrl: true, alt: true))
+        #expect(fixture.probe.quitCount == 0, "Ctrl+Alt+Q is not the quit binding")
     }
 
     /// Leaves the focus manager in the state a presented modal/alert produces:
@@ -367,16 +367,16 @@ struct InputHandlerTests {
         let fixture = makeFixture()
         activateModalSection(fixture.focus)
 
-        let consumed = fixture.handler.handle(KeyEvent(key: .character("q")))
+        let consumed = fixture.handler.handle(KeyEvent(key: .character("q"), ctrl: true))
 
         #expect(consumed)
-        #expect(fixture.probe.quitCount == 1, "q remains an escape hatch behind a modal")
+        #expect(fixture.probe.quitCount == 1, "⌃Q remains an escape hatch behind a modal")
     }
 
     /// The `.rootOnly` half of the quit gate, driven through the layer that
     /// actually consults it. Asserted on the SIDE EFFECT, not on
     /// `isQuitAllowed`: the key must still report consumed (so the bar's own
-    /// `q` never falls through to the theme shortcuts) while `onQuit` stays
+    /// ⌃Q never falls through to the theme shortcuts) while `onQuit` stays
     /// unfired.
     @Test("Layer 4 quit is refused under a pushed context when quitBehavior is .rootOnly")
     func rootOnlyQuitRefusedOffRoot() {
@@ -384,15 +384,15 @@ struct InputHandlerTests {
         fixture.statusBar.quitBehavior = .rootOnly
         fixture.statusBar.push(context: "detail", items: [])
 
-        let consumed = fixture.handler.handle(KeyEvent(key: .character("q")))
+        let consumed = fixture.handler.handle(KeyEvent(key: .character("q"), ctrl: true))
 
-        #expect(consumed, "q is still the quit binding; it simply declines to act")
+        #expect(consumed, "⌃Q is still the quit binding; it simply declines to act")
         #expect(fixture.probe.quitCount == 0, "rootOnly must not quit from a subpage")
 
         fixture.statusBar.pop(context: "detail")
-        fixture.handler.handle(KeyEvent(key: .character("q")))
+        fixture.handler.handle(KeyEvent(key: .character("q"), ctrl: true))
 
-        #expect(fixture.probe.quitCount == 1, "back at the root, q quits again")
+        #expect(fixture.probe.quitCount == 1, "back at the root, ⌃Q quits again")
     }
 
     @Test("An unhandled key with no consumers is a no-op")

@@ -32,7 +32,7 @@ import TUIView
 /// 2. **View handlers** — registered via `onKeyEvent` modifiers
 /// 3. **Focus system** (conditional) — Tab/Shift+Tab navigation, Enter/Space
 ///    on focused buttons
-/// 4. **Default bindings** — `q` (quit), undo and redo (``UndoShortcuts``),
+/// 4. **Default bindings** — Control-Q (quit), undo and redo (``UndoShortcuts``),
 ///    Ctrl-Z where neither binds it (re-raised as SIGTSTP, so the key and the
 ///    external signal suspend by one path), `t` (theme), `a` (appearance)
 ///
@@ -471,7 +471,7 @@ extension InputHandler {
         // Layer 4: Default key bindings.
         //
         // Quit stays available even behind a transient surface — a modal's status
-        // bar still offers `q quit` as an escape hatch — so it is handled first,
+        // bar still offers `⌃Q quit` as an escape hatch — so it is handled first,
         // unconditionally.
         if runQuitShortcut(event) {
             return true
@@ -521,7 +521,7 @@ extension InputHandler {
         return handleGlobalShortcut(event, inputGrabbed: globalChromeGrabbed)
     }
 
-    /// Layer 4's quit: the status bar's quit key (`q` by default), which
+    /// Layer 4's quit: the status bar's quit key (Control-Q by default), which
     /// quits through the bar, so a top-level dismissal confirmation can ask
     /// first — and does nothing where the bar does not allow a quit.
     ///

@@ -38,7 +38,7 @@ struct StatusBarCommonKeysTests {
         #expect(!shortcuts(bar).contains(Shortcut.escape))
         #expect(!shortcuts(bar).contains(Shortcut.enter))
         // Quit is unaffected: it is not conditional on anything being focused.
-        #expect(shortcuts(bar).contains("q"))
+        #expect(shortcuts(bar).contains(Shortcut.quit))
     }
 
     @Test("A claim puts the key on the bar, in the claim's own words")
@@ -75,7 +75,7 @@ struct StatusBarCommonKeysTests {
         let ordered = bar.currentSystemItems.sorted { $0.order < $1.order }.map(\.shortcut)
         let escape = try #require(ordered.firstIndex(of: Shortcut.escape))
         let enter = try #require(ordered.firstIndex(of: Shortcut.enter))
-        let quit = try #require(ordered.firstIndex(of: "q"))
+        let quit = try #require(ordered.firstIndex(of: Shortcut.quit))
         #expect(escape < quit)
         #expect(enter < quit)
         #expect(escape < enter, "Escape before Return, as the bar has always read")

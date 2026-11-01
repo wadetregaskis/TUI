@@ -21,7 +21,7 @@ struct StatusBarStateTests {
         // By default, system items (quit) are present
         #expect(state.hasItems == true)
         #expect(state.currentItems.count >= 1)
-        #expect(state.currentItems.contains { $0.shortcut == "q" })
+        #expect(state.currentItems.contains { $0.shortcut == Shortcut.quit })
     }
 
     @Test("StatusBarState without system items is empty")
@@ -41,10 +41,10 @@ struct StatusBarStateTests {
             StatusBarItem(shortcut: "x", label: "extra"),
         ])
 
-        // User items (s, x) + system item (q) = 3 total (appearance/theme off by default)
+        // User items (s, x) + system item (⌃Q) = 3 total (appearance/theme off by default)
         #expect(state.currentItems.count == 3)
         #expect(state.hasItems == true)
-        #expect(state.currentItems.contains { $0.shortcut == "q" })  // system quit
+        #expect(state.currentItems.contains { $0.shortcut == Shortcut.quit })  // system quit
         #expect(state.currentItems.contains { $0.shortcut == "s" })  // user save
         #expect(state.currentItems.contains { $0.shortcut == "x" })  // user extra
 
@@ -77,9 +77,9 @@ struct StatusBarStateTests {
             ]
         )
 
-        // Context items (escape, enter) + system item (q) = 3 total (appearance/theme off by default)
+        // Context items (escape, enter) + system item (⌃Q) = 3 total (appearance/theme off by default)
         #expect(state.currentItems.count == 3)
-        #expect(state.currentItems.contains { $0.shortcut == "q" })  // system quit
+        #expect(state.currentItems.contains { $0.shortcut == Shortcut.quit })  // system quit
         #expect(state.currentItems.contains { $0.shortcut == Shortcut.escape })
         #expect(state.currentItems.contains { $0.shortcut == Shortcut.enter })
 
@@ -88,10 +88,10 @@ struct StatusBarStateTests {
         builderState.push(context: "test") {
             StatusBarItem(shortcut: "x", label: "action")  // Use 'x' to not conflict with 'a' (appearance)
         }
-        // Context item (x) + system item (q) = 2 total (appearance/theme off by default)
+        // Context item (x) + system item (⌃Q) = 2 total (appearance/theme off by default)
         #expect(builderState.currentItems.count == 2)
         #expect(builderState.currentItems.contains { $0.label == "action" })
-        #expect(builderState.currentItems.contains { $0.shortcut == "q" })
+        #expect(builderState.currentItems.contains { $0.shortcut == Shortcut.quit })
     }
 
     @Test("Pop context returns to global items with system items")
@@ -111,10 +111,10 @@ struct StatusBarStateTests {
 
         state.pop(context: "temp")
 
-        // Global item (g) + system item (q) = 2 total (appearance/theme off by default)
+        // Global item (g) + system item (⌃Q) = 2 total (appearance/theme off by default)
         #expect(state.currentItems.count == 2)
         #expect(state.currentItems.contains { $0.shortcut == "g" })
-        #expect(state.currentItems.contains { $0.shortcut == "q" })
+        #expect(state.currentItems.contains { $0.shortcut == Shortcut.quit })
     }
 
     @Test("Context stack respects order")
@@ -349,7 +349,7 @@ struct SystemStatusBarItemsTests {
         let state = StatusBarState()
         #expect(state.showSystemItems == true)
         #expect(state.currentSystemItems.count >= 1)
-        #expect(state.currentSystemItems.contains { $0.shortcut == "q" })
+        #expect(state.currentSystemItems.contains { $0.shortcut == Shortcut.quit })
     }
 
     @Test("System items can be disabled")
@@ -369,7 +369,7 @@ struct SystemStatusBarItemsTests {
         // User items should come before system items (lower order)
         let items = state.currentItems
         let saveIndex = items.firstIndex { $0.shortcut == "s" }
-        let quitIndex = items.firstIndex { $0.shortcut == "q" }
+        let quitIndex = items.firstIndex { $0.shortcut == Shortcut.quit }
 
         #expect(saveIndex != nil)
         #expect(quitIndex != nil)
@@ -382,13 +382,13 @@ struct SystemStatusBarItemsTests {
 
         // Set user item with same shortcut as system quit
         state.setItems([
-            StatusBarItem(shortcut: "q", label: "custom-quit") {
+            StatusBarItem(shortcut: Shortcut.quit, label: "custom-quit") {
                 // Custom action
             }
         ])
 
-        // Should only have one "q" item, and it should be the user's
-        let qItems = state.currentItems.filter { $0.shortcut == "q" }
+        // Should only have one quit item, and it should be the user's
+        let qItems = state.currentItems.filter { $0.shortcut == Shortcut.quit }
         #expect(qItems.count == 1)
         #expect(qItems[0].label == "custom-quit")
     }
@@ -414,7 +414,7 @@ struct SystemStatusBarItemsTests {
         let earlyIndex = labels.firstIndex(of: "early")!
         let defaultIndex = labels.firstIndex(of: "default")!
         let lateIndex = labels.firstIndex(of: "late")!
-        let quitIndex = items.firstIndex { $0.shortcut == "q" }!
+        let quitIndex = items.firstIndex { $0.shortcut == Shortcut.quit }!
 
         #expect(earlyIndex < defaultIndex)
         #expect(defaultIndex < lateIndex)

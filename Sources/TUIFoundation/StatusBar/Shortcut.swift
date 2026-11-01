@@ -175,8 +175,8 @@ public enum Shortcut {
 
     // MARK: - Common Shortcuts
 
-    /// Quit shortcut: q
-    public static let quit = "q"
+    /// Quit shortcut: ⌃Q
+    public static let quit = ctrl("q")
 
     /// Yes shortcut: y
     public static let yes = "y"

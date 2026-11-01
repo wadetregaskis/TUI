@@ -377,7 +377,7 @@ def main() -> int:
         walked += 1
         print(f"ok item {item}  (opened in {open_latency * 1000:.0f} ms, back in {back_latency * 1000:.0f} ms)", flush=True)
 
-    os.write(fd, b"q")
+    os.write(fd, b"\x11")  # ⌃Q
     pump(0.3)
     try:
         os.kill(pid, 9)

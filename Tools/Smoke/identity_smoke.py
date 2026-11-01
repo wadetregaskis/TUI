@@ -131,7 +131,7 @@ def run(binary, replies, seconds, config_dir):
                 os.write(fd, b"\x1b[0n")       # the fence every terminal answers
             elif sequence == b"\x1b[6n":
                 os.write(fd, b"\x1b[1;1R")     # a cursor report, should anything ask
-    os.write(fd, b"q")
+    os.write(fd, b"\x11")  # ⌃Q
     time.sleep(0.3)
     try:
         os.kill(pid, 9)

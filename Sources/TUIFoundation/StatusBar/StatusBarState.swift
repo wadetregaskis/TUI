@@ -8,7 +8,7 @@ import Foundation
 
 // MARK: - Quit Behavior
 
-/// Controls when the quit shortcut (`q`) is active.
+/// Controls when the quit shortcut (Control-Q by default) is active.
 public enum QuitBehavior: Sendable {
     /// Quit works from any screen.
     ///
@@ -216,15 +216,15 @@ public final class StatusBarState: @unchecked Sendable {
 
     /// The keyboard shortcut used to quit the application.
     ///
-    /// Defaults to `.q` (pressing `q` quits). Change this to use a different key:
+    /// Defaults to `.ctrlQ` (pressing Control-Q quits). Change this to use a different key:
     ///
     /// ```swift
     /// statusBar.quitShortcut = .escape   // ⎋ quit
-    /// statusBar.quitShortcut = .ctrlQ    // ⌃Q quit
+    /// statusBar.quitShortcut = .q        // q quit, where nothing is typed
     /// ```
     ///
     /// The status bar display updates automatically.
-    public var quitShortcut: QuitShortcut = .q
+    public var quitShortcut: QuitShortcut = .ctrlQ
 
     // MARK: - Appearance
 
@@ -407,7 +407,7 @@ public final class StatusBarState: @unchecked Sendable {
             // default; a custom `QuitShortcut` (e.g. label "exit") keeps its
             // own label verbatim. Resolving here (not at construction) means a
             // runtime language switch re-localizes it live.
-            let quitLabel = quitShortcut.label == QuitShortcut.q.label
+            let quitLabel = quitShortcut.label == QuitShortcut.ctrlQ.label
                 ? LocalizationService.shared.string(for: LocalizationKey.StatusBar.quit)
                 : quitShortcut.label
             items.append(

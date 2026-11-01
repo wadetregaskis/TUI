@@ -111,10 +111,9 @@ class App:
         self.drain(wait)
 
     def quit(self):
-        # Escape first: `q` quits from the MENU, and on a page it is a
-        # character — which a focused text field would happily accept.
+        # Escape first, to the menu: a page may hold something that asks.
         self.key(b"\x1b", 0.4)
-        self.key(b"q", 0.6)
+        self.key(b"\x11", 0.6)  # ⌃Q
         # `waitpid`, NOT `kill(pid, 0)`: an exited child of this process is a
         # zombie until it is reaped, and signalling a zombie SUCCEEDS. The
         # first version of this probe used `kill` and reported a cleanly

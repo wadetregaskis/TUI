@@ -21,7 +21,7 @@ struct StatusBarSystemItemsModifierTests {
 
         let items = statusBar.currentSystemItems
         #expect(items.count == 1)
-        #expect(items.first?.shortcut == "q")
+        #expect(items.first?.shortcut == Shortcut.quit)
     }
 
     @Test("Theme item can be enabled")
@@ -31,7 +31,7 @@ struct StatusBarSystemItemsModifierTests {
 
         let items = statusBar.currentSystemItems
         #expect(items.count == 2)
-        #expect(items.contains { $0.shortcut == "q" })
+        #expect(items.contains { $0.shortcut == Shortcut.quit })
         #expect(items.contains { $0.shortcut == "t" })
     }
 
@@ -42,7 +42,7 @@ struct StatusBarSystemItemsModifierTests {
 
         let items = statusBar.currentSystemItems
         #expect(items.count == 2)
-        #expect(items.contains { $0.shortcut == "q" })
+        #expect(items.contains { $0.shortcut == Shortcut.quit })
         #expect(items.contains { $0.shortcut == "a" })
     }
 
@@ -54,7 +54,7 @@ struct StatusBarSystemItemsModifierTests {
 
         let items = statusBar.currentSystemItems
         #expect(items.count == 3)
-        #expect(items.contains { $0.shortcut == "q" })
+        #expect(items.contains { $0.shortcut == Shortcut.quit })
         #expect(items.contains { $0.shortcut == "t" })
         #expect(items.contains { $0.shortcut == "a" })
     }

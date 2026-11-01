@@ -31,7 +31,7 @@ private struct CounterView: View {
 ///
 /// Demonstrates `@AppStorage` — values that persist to disk and survive quitting
 /// and relaunching the app. The page shows the live values, the on-disk settings
-/// file they are written to, and a prompt to quit (`q`) and relaunch to see the
+/// file they are written to, and a prompt to quit (⌃Q) and relaunch to see the
 /// numbers carry over.
 struct StatePersistencePage: View {
     // @AppStorage persists to <config>/settings.json, so these values survive

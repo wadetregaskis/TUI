@@ -162,6 +162,6 @@ struct QuitShortcutTests {
         let systemItems = state.currentSystemItems
         let quitItem = systemItems.first { $0.order == .quit }
         #expect(quitItem != nil)
-        #expect(quitItem?.shortcut == "q")
+        #expect(quitItem?.shortcut == Shortcut.quit)
     }
 }

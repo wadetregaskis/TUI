@@ -13,7 +13,7 @@ ContentView()
     }
 ```
 
-Every bar is opt-in: an app that places no `StatusBar()` shows no line of hints, and the content takes every row. The keys work either way — an item's action fires on its key with no bar on screen, and `q` quits.
+Every bar is opt-in: an app that places no `StatusBar()` shows no line of hints, and the content takes every row. The keys work either way — an item's action fires on its key with no bar on screen, and ⌃Q quits.
 
 The line updates every frame. It takes no row while it has nothing to show: no active user items and no visible system items.
 
@@ -112,11 +112,11 @@ Shortcut.range("1", "9")
 
 ### One-letter keys
 
-An item's `shortcut` string is the key it binds in the bar's own vocabulary, where the case is the Shift: `"n"` is n and `"N"` is Shift-N. The bar draws a one-letter key the way a macOS menu draws it, as every other key TUI names is drawn — `N new` for `"n"`, `⇧N new` for `"N"`, and `Q quit` — so the bar reads the same as `⌃Z undo` beside it. The string still binds the key and names the item. An app that prefers the TUI convention, in which lower case means no Shift, sets ``StatusBarKeySpelling/asTyped`` with ``View/statusBarKeySpelling(_:)``:
+An item's `shortcut` string is the key it binds in the bar's own vocabulary, where the case is the Shift: `"n"` is n and `"N"` is Shift-N. The bar draws a one-letter key the way a macOS menu draws it, as every other key TUI names is drawn — `N new` for `"n"`, `⇧N new` for `"N"`, and `Y yes` — so the bar reads the same as `⌃Z undo` beside it. The string still binds the key and names the item. An app that prefers the TUI convention, in which lower case means no Shift, sets ``StatusBarKeySpelling/asTyped`` with ``View/statusBarKeySpelling(_:)``:
 
 ```swift
 StatusBar()
-    .statusBarKeySpelling(.asTyped)   // n new, N new, q quit
+    .statusBarKeySpelling(.asTyped)   // n new, N new, y yes
 ```
 
 A key of anything but one letter — `1-9`, `c|C`, `↑↓`, `?` — is drawn as written either way.
@@ -148,13 +148,13 @@ TUI registers built-in system items automatically:
 
 | Key | Label | Action |
 |-----|-------|--------|
-| `q` | Quit | Exit the application |
+| `⌃Q` | Quit | Exit the application |
 | `a` | Appearance | Cycle to next border appearance |
 | `t` | Theme | Cycle to next color theme |
 | `⎋` | *(what claimed it)* | None — informational |
 | `↩` | *(what claimed it)* | None — informational |
 
-These appear on the right side of the status bar, drawn `Q quit`, `A appearance` and `T theme` (see One-letter keys). `q quit` is shown by default, `a appearance` and `t theme` are not, and the two common keys are — all four are controlled by ``View/statusBarSystemItems(theme:appearance:returnKey:escapeKey:)``.
+These appear on the right side of the status bar, drawn `⌃Q quit`, `A appearance` and `T theme` (see One-letter keys). `⌃Q quit` is shown by default, `a appearance` and `t theme` are not, and the two common keys are — all four are controlled by ``View/statusBarSystemItems(theme:appearance:returnKey:escapeKey:)``.
 
 Turn them on and off with that modifier, or on the state directly, which you read from the environment as `@Environment(\.statusBar)`. It's `nil` outside a running app:
 
@@ -178,9 +178,9 @@ A page that wants Escape (or Return) to do something of its own publishes an ord
 
 A sheet's Escape is the sheet's. Items its content declares with `.statusBarItems` are added to the sheet's own "⎋ dismiss" (or "⎋ cancel", where Escape presses the content's cancel button), never put in its place, so a page's "⎋ back" declared around the view presenting the sheet does not answer Escape while the sheet is up. Content that declares an Escape item of its own keeps it: that item answers the key instead.
 
-### Overriding `q quit`
+### Overriding `⌃Q quit`
 
-A user-defined status bar item with shortcut `q` overrides the built-in quit binding for that view context:
+A user-defined status bar item with the quit key's shortcut overrides the built-in quit binding for that view context:
 
 ```swift
 EditorView()
@@ -191,7 +191,7 @@ EditorView()
     }
 ```
 
-This works because status bar items with actions are handled before the default quit binding. The built-in `q quit` system item is also removed from the display when a user item uses the same shortcut string.
+This works because status bar items with actions are handled before the default quit binding. The built-in `⌃Q quit` system item is also removed from the display when a user item uses the same shortcut string.
 
 ### Changing the global quit shortcut
 
@@ -210,7 +210,7 @@ struct ContentView: View {
 }
 ```
 
-Available presets include ``QuitShortcut/q``, ``QuitShortcut/escape``, ``QuitShortcut/ctrlQ``, and ``QuitShortcut/ctrlC``. You can also create a fully custom ``QuitShortcut``.
+Available presets include ``QuitShortcut/ctrlQ``, the default, ``QuitShortcut/q``, ``QuitShortcut/escape`` and ``QuitShortcut/ctrlC``. You can also create a fully custom ``QuitShortcut``.
 
 ### Hiding the status bar completely
 

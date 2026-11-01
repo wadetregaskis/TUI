@@ -14,7 +14,7 @@ the colour fence and, when the case says the terminal speaks the protocol,
 stack as the specification says. Cases:
 
   1. A terminal that speaks it: the flags are pushed, a key sent as a `CSI u`
-     report works (`q` quits), and the flags are popped before the alternate
+     report works (⌃Q quits), and the flags are popped before the alternate
      screen is left.
   2. A terminal that does not: nothing is pushed or popped, and the one
      question rode on the colour exchange rather than costing a round trip.
@@ -148,8 +148,9 @@ class FakeTerminal:
             pass
 
 
-def q_report():
-    return b"\x1b[113;;113u"
+def quit_report():
+    """⌃Q, the quit key, as the protocol reports it."""
+    return b"\x1b[113;5u"
 
 
 def line_discipline_restored(term):
@@ -167,10 +168,10 @@ term = FakeTerminal(speaks_protocol=True)
 term.pump(3.0)
 check(b"\x1b[>31u" in term.out, "speaks it: all five enhancements pushed")
 check(term.stack == [31], "speaks it: one entry on the stack while running")
-term.send(q_report())
+term.send(quit_report())
 term.pump(2.0)
 tail = term.out[term.out.rfind(b"\x1b[>31u"):]
-check(POP in tail, "speaks it: q, sent as a key report, quits and the flags are popped")
+check(POP in tail, "speaks it: ⌃Q, sent as a key report, quits and the flags are popped")
 check(POP in tail and EXIT_ALT in tail and tail.index(POP) < tail.index(EXIT_ALT),
       "speaks it: popped before the alternate screen is left")
 check(term.stack == [], "speaks it: the stack is back as the shell had it")
@@ -183,7 +184,7 @@ check(term.out.count(QUERY) == 1, "legacy: asked once")
 check(QUERY + b"\x1b]10;?" in term.out and QUERY + b"\x1b[c" not in term.out,
       "legacy: asked on the colour exchange, with no round trip of its own")
 check(re.search(rb"\x1b\[>[0-9]+u", term.out) is None, "legacy: nothing pushed")
-term.send(b"q")
+term.send(b"\x11")  # ⌃Q
 term.pump(2.0)
 check(POP not in term.out, "legacy: nothing popped")
 term.finish()
@@ -194,7 +195,7 @@ term = FakeTerminal(speaks_protocol=True)
 del os.environ["TUI_KEYBOARD_PROTOCOL"]
 term.pump(3.0)
 check(QUERY not in term.out, "opted out: not even asked")
-term.send(b"q")
+term.send(b"\x11")  # ⌃Q
 term.pump(2.0)
 term.finish()
 
@@ -225,7 +226,7 @@ mark = len(term.out)
 os.kill(term.pid, signal.SIGCONT)
 term.pump(2.0)
 check(b"\x1b[>31u" in term.out[mark:] and term.stack == [31], "resume: pushed again")
-term.send(q_report())
+term.send(quit_report())
 term.pump(2.0)
 check(term.stack == [], "resume: still quits, popping on the way")
 term.finish()

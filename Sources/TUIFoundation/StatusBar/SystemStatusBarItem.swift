@@ -12,18 +12,18 @@
 /// They appear in a fixed order and provide essential app-wide functionality.
 ///
 /// System items include:
-/// - **quit** (`q`): Exits the application
+/// - **quit** (`⌃Q`): Exits the application
 /// - **appearance** (`a`): Cycles through appearances
 /// - **theme** (`t`): Cycles through themes
 public enum SystemStatusBarItem {
-    /// The quit item (`q quit`).
+    /// The quit item (`⌃Q quit`).
     ///
     /// This item is always present and exits the application. The label is
     /// localized via the shared ``LocalizationService`` (key `statusbar.quit`),
     /// so it reads in the app's current language.
     public static var quit: StatusBarItem {
         StatusBarItem(
-            shortcut: "q",
+            shortcut: Shortcut.quit,
             label: LocalizationService.shared.string(for: LocalizationKey.StatusBar.quit),
             order: .quit
         )
@@ -142,7 +142,7 @@ extension SystemStatusBarItem {
         // LocalizationService so they read in the app's current language.
         result.append(
             StatusBarItem(
-                shortcut: "q",
+                shortcut: Shortcut.quit,
                 label: LocalizationService.shared.string(for: LocalizationKey.StatusBar.quit),
                 order: .quit,
                 action: onQuit

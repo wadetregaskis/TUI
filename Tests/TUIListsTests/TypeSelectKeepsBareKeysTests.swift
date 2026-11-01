@@ -94,12 +94,12 @@ struct TypeSelectKeepsBareKeysTests {
             StatusBarItem(shortcut: "x", label: "info"),
         ])
         let shown = { fixture.statusBar.currentItems.map(\.shortcut) }
-        #expect(shown() == ["x"], "the action item and q, t leave; the informational item stays")
+        #expect(shown() == ["x", Shortcut.quit], "the action item and t leave; the informational item stays, and ⌃Q, typed by nothing")
         #expect(fixture.input.handle(KeyEvent(key: .character("n"))))
         #expect(fired == 0)
         #expect(fixture.list.pendingTypeSelect == "n")
         fixture.focus.unregister(fixture.list)
-        #expect(shown().contains("n") && shown().contains("q") && shown().contains("t"))
+        #expect(shown().contains("n") && shown().contains(Shortcut.quit) && shown().contains("t"))
         #expect(fixture.input.handle(KeyEvent(key: .character("n"))))
         #expect(fired == 1)
     }

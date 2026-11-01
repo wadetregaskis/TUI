@@ -250,7 +250,7 @@ def main() -> int:
             return 1
         print(f"ok item {item}")
 
-    os.write(fd, b"q")
+    os.write(fd, b"\x11")  # ⌃Q
     pump(0.3)
     try:
         os.kill(pid, 9)

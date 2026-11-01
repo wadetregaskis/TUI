@@ -139,14 +139,14 @@ CASES = {
              "under tmux the slots are asked once, after frame one"),
     "silent": (False, False, True, 0.0, None, {}, "frame drawn after a fence-only answer"),
     "no-fence": (False, True, False, 0.0, None, {}, "frame drawn once the deadline passes"),
-    # `q` quits the Example: if it reaches the app, the app exits on its own.
-    "keystroke": (False, True, True, 0.0, b"q", {}, "a key among the replies quits the app"),
+    # ⌃Q quits the Example: if it reaches the app, the app exits on its own.
+    "keystroke": (False, True, True, 0.0, b"\x11", {}, "a key among the replies quits the app"),
     # Held back too, so frame one is provably drawn with the page reported.
     "clear-answering": (False, True, True, 0.3, None, CLEAR_GROUNDS,
                         "clear grounds over a reported page: frame one clears on 49"),
     "clear-silent": (False, False, True, 0.0, None, CLEAR_GROUNDS,
                      "clear grounds, nothing reported: frame one clears on 49"),
-    "clear-keystroke": (False, True, True, 0.0, b"q", CLEAR_GROUNDS,
+    "clear-keystroke": (False, True, True, 0.0, b"\x11", CLEAR_GROUNDS,
                         "clear grounds: a key among the replies quits the app"),
 }
 

@@ -56,7 +56,7 @@ still = shows_help()
 os.write(fd, f"\x1b[<35;{x+2};{y+1}M".encode())
 pump(2.0)
 back = shows_help()
-os.write(fd, b"q")
+os.write(fd, b"\x11")  # ⌃Q
 pump(0.5)
 os.kill(pid, 9)
 print(f"help before={before} after-focus-out={after} after-focus-in={still} after-move={back}")

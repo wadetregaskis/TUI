@@ -24,7 +24,7 @@ struct SystemStatusBarItemFactoryTests {
 
     @Test("The static items carry the documented shortcut and order, and no action")
     func staticItems() {
-        #expect(SystemStatusBarItem.quit.shortcut == "q")
+        #expect(SystemStatusBarItem.quit.shortcut == Shortcut.quit)
         #expect(SystemStatusBarItem.quit.order == .quit)
         #expect(SystemStatusBarItem.appearance.shortcut == "a")
         #expect(SystemStatusBarItem.appearance.order == .appearance)
@@ -41,14 +41,14 @@ struct SystemStatusBarItemFactoryTests {
     func allIsTheThree() {
         // `StatusBarItem` is not Equatable, so this compares the two fields
         // that define an entry's place in the bar.
-        #expect(SystemStatusBarItem.all.map(\.shortcut) == ["q", "a", "t"])
+        #expect(SystemStatusBarItem.all.map(\.shortcut) == [Shortcut.quit, "a", "t"])
         #expect(SystemStatusBarItem.all.map(\.order) == [.quit, .appearance, .theme])
     }
 
     @Test("Quit alone is the whole result when nothing else is bound")
     func quitIsAlwaysPresent() {
         let items = SystemStatusBarItem.items()
-        #expect(items.map(\.shortcut) == ["q"])
+        #expect(items.map(\.shortcut) == [Shortcut.quit])
         #expect(items.map(\.order) == [.quit])
         // And it has no action: `nil` really means "no action", not "the
         // default one". Quitting is dispatched against
@@ -58,10 +58,10 @@ struct SystemStatusBarItemFactoryTests {
 
     @Test("Appearance and theme appear only when given an action")
     func optionalItemsAreConditional() {
-        #expect(SystemStatusBarItem.items(onAppearance: {}).map(\.shortcut) == ["q", "a"])
-        #expect(SystemStatusBarItem.items(onTheme: {}).map(\.shortcut) == ["q", "t"])
+        #expect(SystemStatusBarItem.items(onAppearance: {}).map(\.shortcut) == [Shortcut.quit, "a"])
+        #expect(SystemStatusBarItem.items(onTheme: {}).map(\.shortcut) == [Shortcut.quit, "t"])
         let all = SystemStatusBarItem.items(onQuit: {}, onAppearance: {}, onTheme: {})
-        #expect(all.map(\.shortcut) == ["q", "a", "t"])
+        #expect(all.map(\.shortcut) == [Shortcut.quit, "a", "t"])
         #expect(all.map(\.order) == [.quit, .appearance, .theme])
         #expect(all.filter(\.hasAction).count == 3)
     }

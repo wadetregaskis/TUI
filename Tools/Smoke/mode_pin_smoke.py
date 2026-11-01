@@ -104,7 +104,7 @@ def run(binary, termtype, decrpm, config_dir, seconds):
                     os.write(fd, b"\x1b[1;1R")   # a cursor report, should anything ask
 
     pump(time.time() + seconds)
-    os.write(fd, b"q")
+    os.write(fd, b"\x11")  # ⌃Q
     pump(time.time() + 2.0)        # read through the clean shutdown, for the reset
     try:
         os.kill(pid, 9)

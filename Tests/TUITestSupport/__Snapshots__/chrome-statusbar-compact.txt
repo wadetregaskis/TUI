@@ -10,4 +10,4 @@
 
 
 
-          S save         Q quit
+         S save         ⌃Q quit

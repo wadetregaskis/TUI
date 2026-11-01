@@ -8,12 +8,15 @@
 
 /// Defines the keyboard shortcut used to quit the application.
 ///
-/// By default, TUI uses `q` to quit. You can change this by setting
-/// a different `QuitShortcut` on the status bar state:
+/// By default, TUI uses Control-Q to quit, a chord nothing types by accident. A
+/// bare `q` was the default until 2026-10-31, but a focused text field typed it
+/// and a focused list searched for it, so an app could have no way to quit that
+/// worked from where it opened. You can change the key by setting a different
+/// `QuitShortcut` on the status bar state:
 ///
 /// ```swift
+/// statusBar.quitShortcut = .q        // for an app with nothing to type into
 /// statusBar.quitShortcut = .escape
-/// statusBar.quitShortcut = .ctrlQ
 /// statusBar.quitShortcut = QuitShortcut(
 ///     key: .f12,
 ///     shortcutSymbol: Shortcut.f12,
@@ -108,7 +111,11 @@ extension QuitShortcut {
     // `"quit"` rather than the `statusbar.quit` these actually display. They
     // take the default instead, which is what they always meant.
 
-    /// The default quit shortcut: `q` (matches both `q` and `Q`).
+    /// Quit with a bare `q` (matches both `q` and `Q`).
+    ///
+    /// For an app with nothing to type into: a focused text field types the
+    /// letter, and a focused list or an open menu searches for it, each before
+    /// the quit key is reached.
     public static let q = QuitShortcut(
         key: .character("q"),
         shortcutSymbol: "q"
@@ -120,7 +127,10 @@ extension QuitShortcut {
         shortcutSymbol: Shortcut.escape
     )
 
-    /// Quit with Control-Q (`⌃Q`).
+    /// Quit with Control-Q (`⌃Q`): the default.
+    ///
+    /// Raw mode turns flow control off (`IXON`), so the terminal driver hands it
+    /// to the app as 0x11 rather than taking it for XON.
     public static let ctrlQ = QuitShortcut(
         key: .character("q"),
         ctrl: true,

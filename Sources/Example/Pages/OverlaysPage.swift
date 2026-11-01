@@ -233,7 +233,7 @@ struct OverlaysPage: View {
     /// what the page would add is a promise it can no longer keep: "⎋ back"
     /// goes nowhere, and "↩ show" describes a Return that now activates
     /// whatever the presentation focused. Saying nothing leaves the bar reading
-    /// "⎋ dismiss   q quit" — which is what a dialog already showed, and now
+    /// "⎋ dismiss   ⌃Q quit" — which is what a dialog already showed, and now
     /// what the confirmation dialog, the cover, the sheet and the popover show
     /// too.
     private var statusBarItems: [any StatusBarItemProtocol] {

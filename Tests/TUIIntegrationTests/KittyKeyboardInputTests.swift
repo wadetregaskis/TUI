@@ -145,8 +145,8 @@ struct KittyKeyboardInputTests {
         harness.play([
             KeyEvent(key: .character("k"), ctrl: true),
             KeyEvent(key: .character("k"), ctrl: true, phase: .release),
-            KeyEvent(character: "q"),
-            KeyEvent(key: .character("q"), phase: .release),
+            KeyEvent(key: .character("q"), ctrl: true),
+            KeyEvent(key: .character("q"), ctrl: true, phase: .release),
         ]) {
             Button("Go") { count.value += 1 }.keyboardShortcut("k", modifiers: .control)
         }

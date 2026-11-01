@@ -18,13 +18,13 @@
 /// `"N"` is Shift-N. Every other key TUI names is drawn as a macOS menu
 /// draws a key equivalent (``KeyboardShortcut/displayString``): a letter in
 /// upper case, Shift as `⇧`. By default the bar draws a one-letter key that
-/// way too, so `q quit` reads `Q quit` beside `⌃Z undo`, and an app's `"N"`
+/// way too, so `y yes` reads `Y yes` beside `⌃Z undo`, and an app's `"N"`
 /// item reads `⇧N` (the owner's ruling B-KS-1, 2026-10-23). The string still
 /// binds the key and names the item; only what is drawn changes.
 ///
 /// ```swift
 /// StatusBar()
-///     .statusBarKeySpelling(.asTyped)   // `q quit`, `N new`
+///     .statusBarKeySpelling(.asTyped)   // `y yes`, `N new`
 /// ```
 public enum StatusBarKeySpelling: Hashable, Sendable, CaseIterable {
     /// As a macOS menu draws a key: a letter in upper case, and a capital as

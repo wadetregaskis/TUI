@@ -21,7 +21,7 @@ import TUIPresentation
 @MainActor
 @Suite("Presentations that prevent quitting")
 struct PresentationTerminationTests {
-    private let quitKey = KeyEvent(character: "q")
+    private let quitKey = KeyEvent(key: .character("q"), ctrl: true)
 
     /// Whether the presentation is up, by reference so a frame's binding
     /// reaches it.

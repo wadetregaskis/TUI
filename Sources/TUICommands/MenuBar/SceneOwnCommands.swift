@@ -86,7 +86,7 @@ struct SceneOwnCommands {
         case .saveItem:
             return environment.scenePresenter.flatMap(closeItems)
         case .appTermination:
-            let quit = environment.statusBar?.quitShortcut ?? .q
+            let quit = environment.statusBar?.quitShortcut ?? .ctrlQ
             let title = LocalizedStringKey.substituting(
                 [environment.resolvedAboutPanel.name], into: service.string(for: LocalizationKey.Menu.quitApp))
             return Self.items("quit") {

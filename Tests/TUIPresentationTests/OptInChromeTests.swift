@@ -168,7 +168,7 @@ struct OptInChromeTests {
             dragAndDropSession: nil,
             onQuit: { quits += 1 },
             onSuspend: {})
-        _ = handler.handle(KeyEvent(key: .character("q")))
+        _ = handler.handle(KeyEvent(key: .character("q"), ctrl: true))
         #expect(quits == 1)
     }
 

@@ -208,7 +208,7 @@ struct ContentView: View {
                 switch event.key {
                 case .escape:
                     // ESC goes back to the menu from a sub-page. On the menu it
-                    // does nothing — quitting is `q` (no default ESC→quit binding),
+                    // does nothing — quitting is ⌃Q (no default ESC→quit binding),
                     // so we leave the event unconsumed rather than implying it exits.
                     if currentPage != .menu {
                         pageSetter.wrappedValue = .menu

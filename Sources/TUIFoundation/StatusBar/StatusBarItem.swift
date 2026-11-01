@@ -40,7 +40,7 @@ public enum StatusBarAlignment: Sendable {
 /// # System Item Layout (from right edge)
 ///
 /// ```
-/// [user items...] [q quit] [? help] [t theme]
+/// [user items...] [⌃Q quit] [? help] [t theme]
 /// ```
 ///
 /// # Example
@@ -79,7 +79,7 @@ public struct StatusBarItemOrder: Comparable, Sendable {
     // MARK: - System Item Orders (right side)
 
     /// Order for the quit item (leftmost of system items).
-    /// Appears as: `[...user items] [q quit] [a appearance] [t theme]`
+    /// Appears as: `[...user items] [⌃Q quit] [a appearance] [t theme]`
     /// The two common keys the status bar carries by default, ahead of the
     /// app-wide ones: they change meaning with the focus, so they read best
     /// nearest the page's own items.

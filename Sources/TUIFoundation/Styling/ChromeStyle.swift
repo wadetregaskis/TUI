@@ -34,7 +34,7 @@ public enum ChromeStyle: String, Sendable, Hashable, CaseIterable, Codable {
     /// ────────────────────────────────────────────────
     ///  … the page …
     /// ────────────────────────────────────────────────
-    ///   ↑↓ nav          ↩ select          q quit
+    ///   ↑↓ nav          ↩ select          ⌃Q quit
     /// ```
     case rule
 
@@ -45,7 +45,7 @@ public enum ChromeStyle: String, Sendable, Hashable, CaseIterable, Codable {
     ///
     /// ```
     /// ╭──────────────────────────────────────────────╮
-    /// │  ↑↓ nav          ↩ select          q quit    │
+    /// │  ↑↓ nav          ↩ select          ⌃Q quit   │
     /// ╰──────────────────────────────────────────────╯
     /// ```
     case bordered

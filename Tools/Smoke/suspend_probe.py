@@ -139,7 +139,7 @@ check(FOCUS_REPORTS_ON in resumed_output, "resume turns focus reporting back on"
 check(PALETTE_REPORTS_ON in resumed_output, "resume turns palette-change reporting back on")
 
 # 5. Still alive and quits cleanly.
-os.write(fd, b"q")
+os.write(fd, b"\x11")  # ⌃Q
 deadline = time.time() + 5.0
 exited = False
 while time.time() < deadline:
