@@ -84,7 +84,7 @@ public struct Stepper<Label: View>: View {
 
     /// Re-points the persisted handler at this render's value binding — the only
     /// `V`-typed state that must be refreshed each frame.
-    let syncValue: @MainActor (any StepperDriving, RenderContext) -> Void
+    let syncValue: any StepperValueSync
 
     /// Custom increment callback.
     let onIncrement: (() -> Void)?
@@ -109,7 +109,7 @@ public struct Stepper<Label: View>: View {
         display: @escaping () -> String,
         boundsWidth: @escaping () -> Int = { 0 },
         makeHandler: @escaping (String, Bool) -> any StepperDriving,
-        syncValue: @escaping @MainActor (any StepperDriving, RenderContext) -> Void,
+        syncValue: any StepperValueSync,
         onIncrement: (() -> Void)?,
         onDecrement: (() -> Void)?,
         onEditingChanged: @escaping (Bool) -> Void
@@ -165,7 +165,7 @@ private func eraseStepperValue<V: Strideable>(
     display: () -> String,
     boundsWidth: () -> Int,
     makeHandler: (String, Bool) -> any StepperDriving,
-    syncValue: @MainActor (any StepperDriving, RenderContext) -> Void
+    syncValue: any StepperValueSync
 ) {
     let text: (V) -> String = { value in format.map { $0(value) } ?? "\(value)" }
     let display: () -> String = { text(value.wrappedValue) }
@@ -177,20 +177,7 @@ private func eraseStepperValue<V: Strideable>(
     let makeHandler: (String, Bool) -> any StepperDriving = { focusID, canBeFocused in
         StepperHandler(focusID: focusID, value: value, bounds: bounds, step: step, canBeFocused: canBeFocused)
     }
-    // The handler persists across renders; EVERYTHING this render declared
-    // must be refreshed on it, not just the value binding — a stale bounds
-    // kept clamping increments to a range the view no longer declared
-    // (e.g. a ceiling that grew when a mode picker changed).
-    let syncValue: @MainActor (any StepperDriving, RenderContext) -> Void = { handler, context in
-        guard let handler = handler as? StepperHandler<V> else { return }
-        // A person's steps are steps in the app's undo manager, a run of them
-        // one step; the stepper's own clamp is not a person's.
-        handler.value = context.undoable(value, coalescing: true, propertyIndex: StepperUndoIndex.undo)
-        handler.plainValue = value
-        handler.bounds = bounds
-        handler.step = step
-    }
-    return (display, boundsWidth, makeHandler, syncValue)
+    return (display, boundsWidth, makeHandler, DeclaredStepperValue(value: value, bounds: bounds, step: step))
 }
 
 // MARK: - Stepper Initializers (Value Binding)
@@ -489,7 +476,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
     let display: () -> String
     let boundsWidth: () -> Int
     let makeHandler: (String, Bool) -> any StepperDriving
-    let syncValue: @MainActor (any StepperDriving, RenderContext) -> Void
+    let syncValue: any StepperValueSync
     let onIncrement: (() -> Void)?
     let onDecrement: (() -> Void)?
     let focusID: String?
@@ -531,7 +518,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
 
         // Keep handler in sync with current values. `syncValue` refreshes the
         // one `V`-typed field (the value binding); the rest are value-type-free.
-        syncValue(handler, context)
+        syncValue.sync(handler, context)
         handler.canBeFocused = !isDisabled
         // Captured at render so Shift+arrow can accelerate at event time.
         handler.shiftStepMultiplier = context.environment.shiftStepMultiplier

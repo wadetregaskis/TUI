@@ -109,7 +109,8 @@ final class NavigationCoordinator {
     /// draws: one object for the stack's life, so the environment value that
     /// carries it is the same every frame.
     let barItems = NavigationBarItems()
-    init() {}
+
+    nonisolated init() {}
 }
 
 // MARK: - Path
