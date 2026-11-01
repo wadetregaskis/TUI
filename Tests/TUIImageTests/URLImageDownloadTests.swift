@@ -159,7 +159,7 @@ struct URLImageDownloadTests {
     /// Longer than the loader's default 30 s so that "waited it out" stands
     /// well clear of what a busy test process costs on its own — see
     /// ``promptly``. Only a failing run ever waits it out.
-    private static let stalledTimeout: TimeInterval = 120
+    private static let stalledTimeout: TimeInterval = 600
 
     /// How long "promptly" is allowed to take, for the two tests that time a
     /// cancellation and an unrelated task against a stalled transfer.
@@ -178,8 +178,11 @@ struct URLImageDownloadTests {
     /// finishing beside them, against a bound of 20 s and a timeout of 30 —
     /// too near to tell "the suite was busy" from "waited it out". Earlier,
     /// the pool test took 6.2 s on Linux 6.3 and 10.2 s on Linux 6.2 against
-    /// a 5 s bound, and neither pool was blocked.
-    private static let promptly: Duration = .seconds(60)
+    /// a 5 s bound, and neither pool was blocked. On Linux 6.2 (2026-11-01), in a
+    /// 698 s suite, both took 73 s against a bound of 60. So these stand well clear
+    /// of any suite's length: a failing run waits ten minutes, and a passing one
+    /// doesn't wait.
+    private static let promptly: Duration = .seconds(300)
 
     /// Cancelling the task must abandon the download promptly. The tarpit
     /// never replies, so pre-fix this could only finish by waiting out the
