@@ -1,5 +1,5 @@
-// Cases for the SwiftLint rules key_path_identity and function_address_identity (.swiftlint.yml): a line ending in
-// `hit: <rule>` must be flagged by that rule, and every other line by neither. Tools/DedupCheck/test-lint-rules.sh
+// Cases for the SwiftLint rules key_path_identity, function_address_identity and concurrency_escape
+// (.swiftlint.yml): a line ending in `hit: <rule>` must be flagged by that rule, and every other line by none. Tools/DedupCheck/test-lint-rules.sh
 // lints a copy under `Sources/TUILintCases/`. Never compiled.
 struct Slot: Hashable { let keyPath: AnyKeyPath }
 func f(a: AnyKeyPath, b: AnyKeyPath, kp: PartialKeyPath<Int>, c: KeyPathComparator<Int>, d: KeyPathComparator<Int>) {
@@ -29,4 +29,10 @@ func g() {
     var refs: [ReferenceWritableKeyPath<Box, Int>: Int] = [:]  // hit: key_path_identity
     var spelled = Dictionary<WritableKeyPath<Row, String>, Int>()  // hit: key_path_identity
     var any: [AnyKeyPath: Int] = [:]  // hit: key_path_identity
+}
+final class Unchecked: @unchecked Sendable {}  // hit: concurrency_escape
+struct Spaced: @unchecked  Sendable {}  // hit: concurrency_escape
+extension Boxed: @unchecked Sendable where Value: Sendable {}  // hit: concurrency_escape
+enum Flags {
+    nonisolated(unsafe) static var isOn = false  // hit: concurrency_escape
 }

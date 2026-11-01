@@ -572,6 +572,32 @@ custom_rules:
       - string
     severity: error
 
+  # What the compiler cannot check, in code an app links. Most of what these used
+  # to mark is gone (2026-10-31): state confined to the render path is simply not
+  # `Sendable`, which the compiler enforces at no cost, and what crosses threads
+  # is in a `Mutex` or an `Atomic`, or is `@MainActor`. Before reaching for one,
+  # try those. One that truly has to stay says why in a comment and disables this
+  # rule on its line: `grep -rn "disable:this concurrency_escape" Sources` is the
+  # allowlist. The tests are not held to it: they drive threads on purpose.
+  concurrency_escape:
+    included: 'Sources/'
+    excluded: 'Sources/TUI(MacrosPlugin|WidthCorpus)/'
+    name: "Concurrency escape"
+    message: >-
+      @unchecked Sendable and nonisolated(unsafe) turn off the checks that keep
+      this package free of data races. Try dropping Sendable, a Mutex, an Atomic,
+      @MainActor (a type or a closure), sending, or a let of Sendable content. If
+      none can do it, say why in a comment and disable this rule on the line.
+    regex: '@unchecked\s+Sendable|nonisolated\(unsafe\)'
+    excluded_match_kinds:
+      - comment
+      - doccomment
+      - comment.mark
+      - comment.url
+      - doccomment.field
+      - string
+    severity: error
+
   # The other way Swift code sees a function's address: reinterpreting a
   # function value (a closure, a @convention(c) pointer) as bits. ld does not
   # fold a @convention(c) entry point, but does fold Swift closures whose

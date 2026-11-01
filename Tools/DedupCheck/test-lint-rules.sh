@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
 # test-lint-rules.sh — the SwiftLint rules that guard `-Xlinker -deduplicate`,
-# key_path_identity and function_address_identity (.swiftlint.yml), flag
-# exactly the lines marked in lint-cases/.
+# key_path_identity and function_address_identity (.swiftlint.yml), and the one
+# that guards the concurrency checks, concurrency_escape, flag exactly the lines
+# marked in lint-cases/.
 #
 # A case line ending in `hit: <rule>` must be flagged by that rule, and every
 # other line by neither. The rules read only TUI's library sources (their
@@ -20,7 +21,7 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 repo="$(cd "$here/../.." && pwd)"
-rules='key_path_identity|function_address_identity'
+rules='key_path_identity|function_address_identity|concurrency_escape'
 
 command -v swiftlint >/dev/null || { echo "test-lint-rules: no swiftlint on PATH" >&2; exit 2; }
 tmp="$(mktemp -d)"
@@ -38,7 +39,7 @@ done
 # "Module/File.swift:line rule", one per line, sorted.
 expected=$(cd "$tmp/Sources" && grep -nE "hit: ($rules)\$" -- TUILintCases/*.swift \
     | sed -E "s/^([^:]+):([0-9]+):.*hit: ($rules)\$/\1:\2 \3/" | sort)
-for rule in key_path_identity function_address_identity; do
+for rule in key_path_identity function_address_identity concurrency_escape; do
     if ! grep -q " $rule\$" <<<"$expected"; then
         echo "test-lint-rules: no case marks a hit for $rule" >&2
         exit 2

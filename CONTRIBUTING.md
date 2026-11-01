@@ -426,6 +426,32 @@ Public APIs **must** match SwiftUI signatures exactly unless terminal constraint
   `nil`", which is a statement. One level makes an explicit `nil`
   indistinguishable from silence (the semantic audit's root cause 4)
 
+### Concurrency
+
+Swift 6 mode checks this package for data races, and the package keeps it able
+to. `@unchecked Sendable` and `nonisolated(unsafe)` turn that off, so the
+SwiftLint rule `concurrency_escape` refuses them in `Sources`; the few that have
+to stay say why in a comment and disable the rule on their line, and
+`grep -rn "disable:this concurrency_escape" Sources` lists them. In order of
+preference:
+
+- **Not `Sendable` at all.** A class the render path holds (a store, a per-frame
+  service, a box in the environment) needs nothing: `EnvironmentValues` is not
+  `Sendable`, as SwiftUI's is explicitly not, so the compiler keeps what is in it
+  on the isolation it was made in. It costs nothing at run time. A key's default
+  of such a type is computed (`static var defaultValue: T? { nil }`), since a
+  stored one is refused.
+- **`Mutex`, or `Atomic` for one value,** for what really crosses threads. Read
+  the body of a lock that calls out: `Mutex` is not re-entrant, and on macOS
+  re-entry is a SIGKILL, which nothing can catch.
+- **`@MainActor`,** on a closure's type (which makes it `Sendable`), a method or
+  a type. It is free at run time but for one thing: Swift 6 checks the executor
+  on entry to a closure a main-actor function hands to a module built in Swift 5
+  mode, as the standard library and `Synchronization` are (SE-0423), about 100 ns
+  a time. So isolate no type on a hot path whose methods hand closures to `map`,
+  `first(where:)` or `Mutex.withLock`; leave it not `Sendable` instead.
+- **`sending`, or a `let` of `Sendable` content.**
+
 ### Crossing a module boundary
 
 The module split puts
@@ -491,8 +517,8 @@ anything at run time:
   inline (the client sees it as `package_external`) and is called out of
   line whatever its attribute says. So the type is `@usableFromInline`, as
   are the stored properties the body touches, and it states `Sendable`
-  itself: the compiler infers `Sendable` only for a type that is not usable
-  from inline code (UsableFromInlineSendabilityTests pins each one).
+  itself where it is `Sendable`: the compiler infers it only for a type that is
+  not usable from inline code (UsableFromInlineSendabilityTests pins each one).
   `@inline(__always)` alone does not cross a module either: it reaches only
   callers in the declaring module, so a `package` function that was always
   inlined becomes an out-of-line call from the module that a split moves its
@@ -560,6 +586,12 @@ anything at run time:
 ## Testing
 
 - Uses Swift Testing framework (`@Test`, `#expect`, `@Suite`)
+- **Never compare a metatype inside `#expect`.** On a macOS 15 runtime
+  `#expect(someType == nil)` is a SIGSEGV that takes the whole test process with
+  it and fails no test: the standard library's `==` for metatypes names
+  `(any (~Copyable & ~Escapable).Type)?`, which macOS 15 cannot make, and the macro
+  hands that type to generic code. Compare first (`let found = someType == nil`),
+  then expect the `Bool`.
 - **Tests run in parallel, and every suite of every test target shares one
   process.** `.serialized` orders a suite's own tests, not other suites, so it
   does not protect process-wide state. Other tests read that state on other

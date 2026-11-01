@@ -23,3 +23,8 @@ func j() {
     let lookups: [KeyPath<Row, [String: Int]>] = []
     _ = (columns, lookups)
 }
+// Naming what the concurrency rule looks for, in a comment: @unchecked Sendable, nonisolated(unsafe).
+/// And in documentation: `@unchecked Sendable`, `nonisolated(unsafe)`.
+let namedInAString = "@unchecked Sendable, nonisolated(unsafe)"
+final class Checked: Sendable {}
+nonisolated struct Plain {}
