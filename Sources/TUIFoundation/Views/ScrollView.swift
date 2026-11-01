@@ -272,7 +272,7 @@ enum ScrollViewStateIndex {
 /// detect focus *changes* and scroll the new focused control into
 /// view. Class-typed so a StateBox can hold it mutably across
 /// renders.
-final class LastFocusedIDBox: @unchecked Sendable {
+final class LastFocusedIDBox {
     var value: String?
 }
 
@@ -281,7 +281,7 @@ final class LastFocusedIDBox: @unchecked Sendable {
 /// "the focused control just consumed a key event" between
 /// frames. Class-typed for the same reason as
 /// ``LastFocusedIDBox``.
-final class LastInteractionGenBox: @unchecked Sendable {
+final class LastInteractionGenBox {
     var value: UInt64 = 0
 }
 
@@ -293,7 +293,7 @@ final class LastInteractionGenBox: @unchecked Sendable {
 /// screen with nothing to bring it back. See
 /// ``_ScrollViewCore/snapViewportToFocusedControl(handler:fullBuffer:viewportHeight:regionOriginY:indicatorsActive:suppressed:context:)``.
 /// `nil` until the first render: there was nothing on screen to keep in view.
-final class LastViewportBox: @unchecked Sendable {
+final class LastViewportBox {
     var value: (width: Int, height: Int)?
 }
 

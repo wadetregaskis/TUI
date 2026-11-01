@@ -43,7 +43,7 @@ import TUIView
 /// `@usableFromInline`: the type of `EnvironmentValues.assignedFocusID`, which the
 /// `@inlinable` `FocusRegistration.register(context:handler:focusID:)` reads (module split step A3).
 @usableFromInline
-package final class AssignedFocusID: @unchecked Sendable {
+package final class AssignedFocusID {
     /// The id `.focused(_:equals:)` forces on its target.
     let id: String
 
@@ -77,7 +77,7 @@ package final class AssignedFocusID: @unchecked Sendable {
 }
 
 private struct AssignedFocusIDKey: EnvironmentKey {
-    static let defaultValue: AssignedFocusID? = nil
+    static var defaultValue: AssignedFocusID? { nil }
 }
 
 extension EnvironmentValues {

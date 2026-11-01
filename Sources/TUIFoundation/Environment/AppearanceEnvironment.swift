@@ -46,7 +46,7 @@ extension EnvironmentValues {
 
 /// Environment key for the appearance manager.
 private struct AppearanceManagerKey: EnvironmentKey {
-    static let defaultValue: ThemeManager? = nil
+    static var defaultValue: ThemeManager? { nil }
 }
 
 extension EnvironmentValues {

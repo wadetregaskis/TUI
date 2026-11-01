@@ -709,6 +709,7 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// - Returns: Whether anything moved. `false` when the list is not a tree,
     ///   when the focused row is a leaf, and when the subtree is already in the
     ///   requested state — the key falls through in each case.
+    @MainActor
     func setFocusedRowExpanded(_ expanded: Bool, includingDescendants: Bool = false) -> Bool {
         guard let outlineActivation, let id = id(at: focusedIndex) else { return false }
         return outlineActivation.setRowExpanded(
@@ -717,6 +718,7 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
 
     /// Right opens the focused branch; Left closes it, and — when there is
     /// nothing to close — leaves the subtree instead of the list.
+    @MainActor
     func handleDisclosureKey(_ event: KeyEvent) -> Bool {
         if event.key == .right {
             if setFocusedRowExpanded(true, includingDescendants: event.alt) { return true }
@@ -730,11 +732,7 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
             // for Right at all, so nothing is taken away — unless what it is in
             // gives the key a use there (``rowForwardAction``).
             if outlineActivation == nil, let rowForwardAction, let id = id(at: focusedIndex) {
-                // Keys arrive on the main actor, as `compactColumnAdvance`'s do,
-                // so the row's id never leaves it: `nonisolated(unsafe)` only
-                // says so to the checker, which cannot see it.
-                nonisolated(unsafe) let row = AnyHashable(id)
-                return MainActor.assumeIsolated { rowForwardAction(row) }
+                return rowForwardAction(AnyHashable(id))
             }
             return outlineActivation != nil
         }
@@ -758,6 +756,7 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     ///
     /// - Returns: Whether the cursor moved. `false` on a list that is not a
     ///   tree, so a plain list's Left is untouched.
+    @MainActor
     private func moveFocusOutOfSubtree() -> Bool {
         guard let outlineActivation, focusedIndex >= 0 else { return false }
         if let id = id(at: focusedIndex),

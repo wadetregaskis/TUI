@@ -211,6 +211,7 @@ struct TextUndoHistory<Caret: Equatable> {
     /// typing after such a step a step of its own
     /// (`TextUndoBridge.isNewestStep(_:on:)`). Nothing to ask with no
     /// manager.
+    @MainActor
     mutating func endTypingRun(unlessNewestIn manager: UndoManager?) {
         guard let manager, let mark = typingRun?.mark, !TextUndoBridge.isNewestStep(mark, on: manager) else { return }
         typingRun = nil

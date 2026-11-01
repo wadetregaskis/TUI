@@ -15,12 +15,9 @@ import TUIView
 /// Manages view lifecycle tracking, disappear callbacks, and async tasks.
 ///
 /// Bundles lifecycle tracking, disappear callbacks, and async task management
-/// into a single cohesive manager.
-/// All mutable state is protected by `NSLock`.
-package final class LifecycleManager: @unchecked Sendable {
-
-    /// Lock protecting all mutable state.
-    private let lock = NSLock()
+/// into a single cohesive manager. Not `Sendable`, so the compiler keeps it on
+/// the render path, which holds it.
+package final class LifecycleManager {
 
     // MARK: - Lifecycle Tracking
 
@@ -59,15 +56,15 @@ package final class LifecycleManager: @unchecked Sendable {
     /// storage's stage, wired by ``TUIContext``; `nil` for a manager standing
     /// alone, which acts at once.
     package var effectStage: EffectStage? {
-        get { lock.withLock { _effectStage } }
+        get { _effectStage }
         set {
-            lock.withLock { _effectStage = newValue }
+            _effectStage = newValue
             // A discarded drawing takes back the presence it noted.
             newValue?.presenceUndo = { [weak self] token in self?.forgetPresence(token) }
         }
     }
 
-    /// ``effectStage``'s storage, under the lock.
+    /// ``effectStage``'s storage.
     private var _effectStage: EffectStage?
 
     // MARK: - Init
@@ -87,8 +84,6 @@ package final class LifecycleManager: @unchecked Sendable {
 extension LifecycleManager {
     /// Marks the start of a new render pass.
     package func beginRenderPass() {
-        lock.lock()
-        defer { lock.unlock() }
         currentRenderTokens.removeAll()
     }
 
@@ -98,8 +93,6 @@ extension LifecycleManager {
     /// one does not, disappears with the frame, its `onDisappear` run. What
     /// has appeared stays appeared: the walk before's `onAppear`s have run.
     package func beginRewalk() {
-        lock.lock()
-        defer { lock.unlock() }
         visibleTokens.formUnion(currentRenderTokens)
         currentRenderTokens.removeAll()
     }
@@ -107,14 +100,11 @@ extension LifecycleManager {
     /// Takes back `token`'s presence in this pass, for a discarded drawing
     /// that first saw it (``EffectStage/presenceUndo``).
     private func forgetPresence(_ token: String) {
-        lock.lock()
         currentRenderTokens.remove(token)
-        lock.unlock()
     }
 
     /// Marks the end of a render pass and triggers onDisappear for views that are no longer visible.
     package func endRenderPass() {
-        lock.lock()
         let disappeared = visibleTokens.subtracting(currentRenderTokens)
         for token in disappeared {
             appearedTokens.remove(token)
@@ -129,9 +119,7 @@ extension LifecycleManager {
         for token in disappeared {
             disappearCallbacks.removeValue(forKey: token)
         }
-        lock.unlock()
 
-        // Execute callbacks outside the lock to avoid deadlocks
         for token in disappeared {
             callbacks[token]?()
         }
@@ -139,9 +127,7 @@ extension LifecycleManager {
 
     /// The number of registered disappear callbacks — a leak canary for tests.
     var disappearCallbackCount: Int {
-        lock.lock()
-        defer { lock.unlock() }
-        return disappearCallbacks.count
+        disappearCallbacks.count
     }
 
     /// Records that a view with the given token appeared.
@@ -159,23 +145,18 @@ extension LifecycleManager {
     ///   waits for the drawing to be kept).
     @discardableResult
     package func recordAppear(token: String, action: @escaping () -> Void) -> Bool {
-        lock.lock()
         let isPresent = !currentRenderTokens.insert(token).inserted
         let stage = _effectStage
         guard !appearedTokens.contains(token) else {
-            lock.unlock()
             if !isPresent { stage?.notePresence(token) }
             return false
         }
         appearedTokens.insert(token)
         let shouldFire = firesEffects
-        lock.unlock()
         if let stage, stage.isStaging {
             stage.noteUndo { [self, isPresent] in
-                lock.lock()
                 appearedTokens.remove(token)
                 if !isPresent { currentRenderTokens.remove(token) }
-                lock.unlock()
             }
         }
         // In snapshot mode the view is still recorded as appeared
@@ -188,17 +169,13 @@ extension LifecycleManager {
 
     /// Checks if a view has appeared before.
     package func hasAppeared(token: String) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return appearedTokens.contains(token)
+        appearedTokens.contains(token)
     }
 
     /// Removes the appeared state for a token so the next `recordAppear`
     /// treats it as a fresh first appearance.
     package func resetAppearance(token: String) {
-        lock.lock()
         appearedTokens.remove(token)
-        lock.unlock()
     }
 
     /// Registers a callback for when a view with the given token disappears.
@@ -207,25 +184,19 @@ extension LifecycleManager {
     ///   - token: Unique identifier for the view.
     ///   - action: The onDisappear action to execute.
     package func registerDisappear(token: String, action: @escaping () -> Void) {
-        lock.lock()
         let isNew = disappearCallbacks.updateValue(action, forKey: token) == nil
         let stage = _effectStage
-        lock.unlock()
         // Registered first by a drawing the walk then discards, it would stay
         // for a view the kept drawing may never draw. One registered on an
         // earlier frame stays: the kept drawing's registration replaces it.
         guard isNew, let stage, stage.isStaging else { return }
         stage.noteUndo { [self] in
-            lock.lock()
             disappearCallbacks.removeValue(forKey: token)
-            lock.unlock()
         }
     }
 
     /// Unregisters the disappear callback for the given token.
     func unregisterDisappear(token: String) {
-        lock.lock()
-        defer { lock.unlock() }
         disappearCallbacks.removeValue(forKey: token)
     }
 
@@ -271,8 +242,6 @@ extension LifecycleManager {
         identity: ViewIdentity?,
         operation: @escaping @isolated(any) @Sendable () async -> Void
     ) {
-        lock.lock()
-        defer { lock.unlock() }
         // Snapshot renders don't start tasks — there's no run loop to
         // observe their effects and no disappear pass to cancel them.
         guard firesEffects else { return }
@@ -300,17 +269,14 @@ extension LifecycleManager {
 
     /// Cancels and removes the task associated with the given token.
     package func cancelTask(token: String) {
-        lock.lock()
         tasks[token]?.cancel()
         tasks.removeValue(forKey: token)
-        lock.unlock()
     }
 
     /// Resets all lifecycle state.
     ///
     /// Cancels all running tasks, clears all callbacks and tracking state.
     package func reset() {
-        lock.lock()
         appearedTokens.removeAll()
         visibleTokens.removeAll()
         currentRenderTokens.removeAll()
@@ -319,7 +285,6 @@ extension LifecycleManager {
             task.cancel()
         }
         tasks.removeAll()
-        lock.unlock()
     }
 }
 
@@ -352,7 +317,7 @@ extension LifecycleManager {
 ///     }
 /// }
 /// ```
-package final class TUIContext: @unchecked Sendable {
+package final class TUIContext {
     /// Semantic keyboard-shortcut registry (default / cancel actions),
     /// re-populated each render pass by buttons carrying a
     /// ``KeyboardShortcut`` and consulted by the input chain.

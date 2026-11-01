@@ -414,6 +414,7 @@ extension TextFieldHandler {
     /// Pushes the current state to the undo stack before deleting.
     ///
     /// - Parameter range: The range of characters to delete.
+    @MainActor
     func deleteRange(_ range: Range<Int>) {
         pushUndoState()
         deleteRangeWithoutUndo(range)
@@ -530,6 +531,7 @@ extension TextFieldHandler {
 // MARK: - Key Event Handling
 
 extension TextFieldHandler {
+    @MainActor
     func handleKeyEvent(_ event: KeyEvent) -> Bool {
         defer { publishSelection() }
         defer { forgetMovedRowStartHead() }
@@ -610,6 +612,7 @@ extension TextFieldHandler {
 
     /// Backspace and Delete: a character, or with Option a word, as in the
     /// editor. Either takes a selection instead when there is one.
+    @MainActor
     fileprivate func handleDeletion(_ event: KeyEvent) {
         switch (event.key, event.alt) {
         case (.backspace, false): deleteBackward()
@@ -626,6 +629,7 @@ extension TextFieldHandler {
     ///
     /// Extracted from ``handleKeyEvent(_:)`` to keep the top-level switch's
     /// cyclomatic complexity manageable.
+    @MainActor
     fileprivate func handleCharacterEvent(_ char: Character, event: KeyEvent) -> Bool {
         if let chord = TextFieldChord(event) {
             return perform(chord)
@@ -712,6 +716,7 @@ extension TextFieldHandler {
     /// Handles the keys the suggestions menu consumes. Returns `nil` when
     /// the event is not menu interaction, so normal field handling proceeds
     /// — typing always keeps editing the field.
+    @MainActor
     private func handleSuggestionKeyEvent(_ event: KeyEvent) -> Bool? {
         guard !suggestionChoices.isEmpty, !event.alt, !event.ctrl else { return nil }
         guard suggestionsOpen else {
@@ -777,6 +782,7 @@ extension TextFieldHandler {
     /// `searchCompletion(_:)` given a token replaces "the partial text being
     /// currently edited" with it, and a suggested token is the same choice
     /// offered by the searchable itself.
+    @MainActor
     func acceptSuggestion(at index: Int) {
         guard suggestionChoices.indices.contains(index) else { return }
         pushUndoState()
@@ -810,6 +816,7 @@ extension TextFieldHandler {
     /// If text is selected, the selection is replaced with the character.
     ///
     /// - Parameter char: The character to insert.
+    @MainActor
     func insertCharacter(_ char: Character) {
         guard textContentType?.isAllowed(char) ?? true else {
             bell?.ring()
@@ -853,6 +860,7 @@ extension TextFieldHandler {
     /// Deletes the character before the cursor (backspace).
     ///
     /// If text is selected, the entire selection is deleted.
+    @MainActor
     func deleteBackward() {
         resetSuggestionNavigation()
         // Delete selection if present: a new undo step, which typing goes on
@@ -879,6 +887,7 @@ extension TextFieldHandler {
     /// Deletes the character at the cursor position (delete key).
     ///
     /// If text is selected, the entire selection is deleted.
+    @MainActor
     func deleteForward() {
         resetSuggestionNavigation()
         // Delete selection if present
@@ -901,6 +910,7 @@ extension TextFieldHandler {
     /// (``wordBoundary(forward:)``: the word boundary the editor's
     /// Option-Backspace uses too, or one character in a ``SecureField``), as
     /// one undoable edit. A selection goes instead, as for plain Backspace.
+    @MainActor
     func deleteWordBackward() {
         guard !hasSelection else {
             deleteBackward()
@@ -914,6 +924,7 @@ extension TextFieldHandler {
 
     /// Option-Delete: deletes forward to where Option-Right moves, as one
     /// undoable edit. A selection goes instead, as for plain Delete.
+    @MainActor
     func deleteWordForward() {
         guard !hasSelection else {
             deleteForward()
@@ -1035,6 +1046,7 @@ extension TextFieldHandler {
     ///   character, or Backspace — with no selection, which continues the
     ///   undo step of the typing before it when made where that left the
     ///   caret (``TextUndoHistory/record(text:caret:continuingTyping:)``).
+    @MainActor
     func pushUndoState(continuingTyping: Bool = false) {
         forgetHistoryIfReplaced()
         if continuingTyping { undoHistory.endTypingRun(unlessNewestIn: undoManager) }
@@ -1062,6 +1074,7 @@ extension TextFieldHandler {
     /// the status bar is built and before the next key: the manager does not
     /// go on offering undos that do nothing. Every edit, undo and redo of the
     /// field's own calls it too, for the replacement made since that frame.
+    @MainActor
     func forgetHistoryIfReplaced() {
         undoHistory.forgetIfReplaced(current: text.wrappedValue)
         forgetDroppedSteps()
@@ -1069,6 +1082,7 @@ extension TextFieldHandler {
 
     /// Takes the steps of the states the history let go of out of the app's
     /// undo manager, so it never offers an undo that does nothing.
+    @MainActor
     private func forgetDroppedSteps() {
         let dropped = undoHistory.takeDroppedMarks()
         if let undoManager { TextUndoBridge.forget(dropped, on: undoManager) }
@@ -1080,6 +1094,7 @@ extension TextFieldHandler {
     /// last edit where there is not. After the app has replaced the text there
     /// is nothing of the field's to restore: the history described the text
     /// that was replaced.
+    @MainActor
     func undo() {
         forgetHistoryIfReplaced()
         if let undoManager {
@@ -1091,6 +1106,7 @@ extension TextFieldHandler {
 
     /// Ctrl-Shift-Z, the stand-in for ⇧⌘Z, where the terminal tells it from
     /// Ctrl-Z: redoes, as ``undo()`` undoes.
+    @MainActor
     func redo() {
         forgetHistoryIfReplaced()
         if let undoManager {

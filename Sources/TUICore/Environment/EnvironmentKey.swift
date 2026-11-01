@@ -72,7 +72,11 @@ package protocol _EnvironmentRenderComparing {
 /// Environment values flow down from parent views to child views.
 /// Each view can read environment values and optionally override them
 /// for its children.
-public struct EnvironmentValues: @unchecked Sendable {
+///
+/// Explicitly not `Sendable`, as SwiftUI's is explicitly not: a key's value is
+/// the app's, of any type. So the compiler keeps an environment, and whatever is
+/// read out of one, on the isolation it was made in.
+public struct EnvironmentValues {
     /// Storage for environment values.
     ///
     /// `@usableFromInline` for the key subscript's getter, which is inlined
@@ -176,6 +180,9 @@ public struct EnvironmentValues: @unchecked Sendable {
         return copy
     }
 }
+
+@available(*, unavailable)
+extension EnvironmentValues: Sendable {}
 
 extension EnvironmentValues: CustomStringConvertible {
     /// The values set in this environment, each described by itself.

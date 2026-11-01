@@ -123,7 +123,13 @@ private func frameChange(
 package enum BindingReads {
     /// The reads noted since ``begin()``; `nil` outside a walk. Touched only on
     /// the thread walking, which is checked before it is read.
-    nonisolated(unsafe) private static var noted: [() -> Void]?
+    ///
+    /// `nonisolated(unsafe)` because `Binding.wrappedValue`, which notes here,
+    /// is not isolated, as SwiftUI's is not, and what it notes is its getter, a
+    /// closure that is not `Sendable`: a `Mutex` would not take it, and a
+    /// `MainActor.assumeIsolated` could not be handed it. The check Swift cannot
+    /// see is the one below, and a wider thread-local would only hide it.
+    nonisolated(unsafe) private static var noted: [() -> Void]?  // swiftlint:disable:this concurrency_escape
 
     /// Starts noting.
     @MainActor

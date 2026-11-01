@@ -39,6 +39,7 @@ struct TextContentTypeFilteringTests {
     }
 
     @Test("A typed character the content type rejects never reaches the binding")
+    @MainActor
     func typingIsFiltered() {
         let (handler, box) = makeHandler(.integer)
         for character in "a-1b2" { handler.insertCharacter(character) }
@@ -52,6 +53,7 @@ struct TextContentTypeFilteringTests {
     }
 
     @Test("A pasted string is filtered, and one filtered to nothing inserts nothing")
+    @MainActor
     func pasteIsFiltered() {
         let board = FakeClipboard()
         board.contents = "a1b2"
@@ -67,6 +69,7 @@ struct TextContentTypeFilteringTests {
     }
 
     @Test("A password field is not filtered at either door")
+    @MainActor
     func passwordPassesEverything() {
         let board = FakeClipboard()
         board.contents = "p@$$ w0rd!"
@@ -119,6 +122,7 @@ struct TextContentTypeFilteringTests {
     // MARK: - Never in silence (deviation T8, the owner's ruling of 2026-10-13)
 
     @Test("A typed character the content type turns away rings the bell; one it takes does not")
+    @MainActor
     func typingRingsForWhatItRefuses() {
         let (handler, box) = makeHandler(.integer)
         let bell = TerminalBell(requestFrame: {})
@@ -131,6 +135,7 @@ struct TextContentTypeFilteringTests {
     }
 
     @Test("A paste rings the bell once for whatever it drops, and a clean paste not at all")
+    @MainActor
     func pasteRingsOnce() {
         let (handler, box) = makeHandler(.integer)
         let bell = TerminalBell(requestFrame: {})
@@ -227,6 +232,7 @@ struct TextContentTypeFilteringTests {
     }
 
     @Test("An editor filters typing as a field does, line breaks included, and rings for each refusal")
+    @MainActor
     func editorTypingIsFiltered() {
         let (editor, box, bell) = makeEditor(.integer)
         for key in [Key.character("a"), .character("1"), .enter, .space, .character("2")] {
@@ -245,6 +251,7 @@ struct TextContentTypeFilteringTests {
     }
 
     @Test("An editor's paste loses what the content type turns away, with one ring; a free-text type keeps it all")
+    @MainActor
     func editorPasteIsFiltered() {
         let (editor, box, bell) = makeEditor(.creditCardNumber)
         _ = editor.handleKeyEvent(KeyEvent(key: .paste("4111 1111-x1111\n1111")))
@@ -260,6 +267,7 @@ struct TextContentTypeFilteringTests {
     }
 
     @Test("Ctrl-V into an editor loses what the content type turns away, with one ring")
+    @MainActor
     func editorClipboardPasteIsFiltered() {
         let board = FakeClipboard(contents: "12a3")
         let (editor, box, bell) = makeEditor(.integer, clipboard: board)
@@ -275,6 +283,7 @@ struct TextContentTypeFilteringTests {
     }
 
     @Test("Ctrl-O opens no line in an editor whose content type takes no line break, and rings")
+    @MainActor
     func editorOpenLineIsFiltered() {
         let (editor, box, bell) = makeEditor(.emailAddress)
         for character in "ab" { _ = editor.handleKeyEvent(KeyEvent(key: .character(character))) }

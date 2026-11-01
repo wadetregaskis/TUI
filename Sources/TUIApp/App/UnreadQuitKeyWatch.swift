@@ -9,6 +9,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Synchronization
 import TUIFoundation
 
 // Threads, `poll` and a process group to signal are POSIX; wasip1 has no driver
@@ -31,20 +32,21 @@ import Musl
 /// loop reads through here (`Terminal.readSource`), and the watch takes what the
 /// loop has left unread into ``held``, from which the loop's next read comes first,
 /// so no key is lost or read out of order.
-///
-/// `@unchecked Sendable`: every stored property is touched only under ``lock``.
-final class SharedStandardInput: @unchecked Sendable {
+final class SharedStandardInput: Sendable {
     /// The descriptor: standard input, unless a test drives a pipe.
     let descriptor: Int32
 
-    private let lock = NSLock()
+    /// What the loop and the watch share.
+    private struct State {
+        /// What the watch has read and the loop has not, oldest first.
+        var held: [UInt8] = []
 
-    /// What the watch has read and the loop has not, oldest first.
-    private var held: [UInt8] = []
+        /// How many times the loop has asked to read: how the watch tells a loop
+        /// that is reading from one that has stopped.
+        var reads = 0
+    }
 
-    /// How many times the loop has asked to read: how the watch tells a loop
-    /// that is reading from one that has stopped.
-    private var reads = 0
+    private let state = Mutex(State())
 
     /// The most the watch holds: far more than a terminal's input queue, so it
     /// takes a long stall with keys held down to get here, and past it the
@@ -63,55 +65,52 @@ final class SharedStandardInput: @unchecked Sendable {
     /// and `VTIME` 0.
     func read(into buffer: UnsafeMutableBufferPointer<UInt8>) -> Int {
         guard let base = buffer.baseAddress else { return 0 }
-        lock.lock()
-        defer { lock.unlock() }
-        reads &+= 1
-        if !held.isEmpty {
-            let count = min(held.count, buffer.count)
-            held.withUnsafeBufferPointer { base.update(from: $0.baseAddress!, count: count) }
-            held.removeFirst(count)
-            return count
-        }
-        while true {
-            let count = readDescriptor(descriptor, base, buffer.count)
-            // Retry only on EINTR (a signal interrupted the read before any byte
-            // arrived); surface everything else — n >= 0, or a real error / the
-            // benign EAGAIN of a non-blocking fd with no data — unchanged, which
-            // `appendDrain`'s `n > 0` check already handles.
-            if count < 0, errno == EINTR { continue }
-            return count
+        let capacity = buffer.count
+        return state.withLock { state in
+            state.reads &+= 1
+            if !state.held.isEmpty {
+                let count = min(state.held.count, capacity)
+                state.held.withUnsafeBufferPointer { base.update(from: $0.baseAddress!, count: count) }
+                state.held.removeFirst(count)
+                return count
+            }
+            while true {
+                let count = readDescriptor(descriptor, base, capacity)
+                // Retry only on EINTR (a signal interrupted the read before any byte
+                // arrived); surface everything else — n >= 0, or a real error / the
+                // benign EAGAIN of a non-blocking fd with no data — unchanged, which
+                // `appendDrain`'s `n > 0` check already handles.
+                if count < 0, errno == EINTR { continue }
+                return count
+            }
         }
     }
 
     /// Whether the loop has bytes to read that the descriptor would not tell
     /// it of.
     var holdsInput: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return !held.isEmpty
+        state.withLock { !$0.held.isEmpty }
     }
 
     /// How many times the loop has asked to read.
     var readCount: Int {
-        lock.lock()
-        defer { lock.unlock() }
-        return reads
+        state.withLock { $0.reads }
     }
 
     /// Reads what the descriptor has waiting into ``held``, up to the limit.
     ///
     /// - Returns: All that is held, oldest first.
     func holdWaitingInput() -> [UInt8] {
-        lock.lock()
-        defer { lock.unlock() }
-        var chunk = [UInt8](repeating: 0, count: 4096)
-        while held.count < Self.holdLimit {
-            let count = chunk.withUnsafeMutableBytes { readDescriptor(descriptor, $0.baseAddress, $0.count) }
-            if count < 0, errno == EINTR { continue }
-            guard count > 0 else { break }
-            held.append(contentsOf: chunk[..<count])
+        state.withLock { state in
+            var chunk = [UInt8](repeating: 0, count: 4096)
+            while state.held.count < Self.holdLimit {
+                let count = chunk.withUnsafeMutableBytes { readDescriptor(descriptor, $0.baseAddress, $0.count) }
+                if count < 0, errno == EINTR { continue }
+                guard count > 0 else { break }
+                state.held.append(contentsOf: chunk[..<count])
+            }
+            return state.held
         }
-        return held
     }
 }
 
@@ -226,28 +225,21 @@ enum UnreadQuitKey {
 /// arrives, and looks every tenth of a second for as long as it waits unread.
 /// Disarmed, it waits for arming without watching at all. A terminal that hangs up
 /// ends it.
-final class UnreadQuitKeyWatch: @unchecked Sendable {
+///
+/// Not `Sendable`: it is the main thread's handle on the thread, whose loop is a
+/// ``QuitKeyWatchLoop``, a value of what the thread needs alone.
+final class UnreadQuitKeyWatch {
     /// How long input may wait unread before it is looked at.
     let grace: TimeInterval
 
     /// Standard input, as the loop reads it.
     let input: SharedStandardInput
 
-    /// Guards the two below, and is what the thread waits for arming on.
-    private let condition = NSCondition()
-
-    /// The quit key's byte, while the thread is to watch for it.
-    private var armedByte: UInt8?
-
-    /// Whether the thread is to end.
-    private var stopped = false
+    /// What this thread and the watch's tell each other.
+    private let gate = QuitKeyWatchGate()
 
     /// Quits: `SIGQUIT` to the process group, unless a test hands in another.
     private let quit: @Sendable () -> Void
-
-    /// Told when input has been held, for the loop to be woken: it may be waiting
-    /// on a descriptor that has nothing more to say. Set before the thread starts.
-    private var inputHeld: @Sendable () -> Void = {}
 
     /// The pipe that wakes the thread from `poll` to stop: read end, write
     /// end; -1 before ``start()``.
@@ -257,9 +249,6 @@ final class UnreadQuitKeyWatch: @unchecked Sendable {
     /// Signalled when the thread has ended.
     private let ended = DispatchSemaphore(value: 0)
     private var started = false
-
-    /// How often waiting input is looked at.
-    private static let checkInterval: TimeInterval = 0.1
 
     /// - Parameters:
     ///   - input: Standard input, unless a test drives a pipe.
@@ -277,18 +266,18 @@ final class UnreadQuitKeyWatch: @unchecked Sendable {
     /// Watches for the quit key `byte`, or, for `nil`, stops watching until armed
     /// again.
     func setArmed(byte: UInt8?) {
-        condition.lock()
-        defer { condition.unlock() }
-        guard byte != armedByte else { return }
-        armedByte = byte
-        condition.broadcast()
+        gate.condition.lock()
+        defer { gate.condition.unlock() }
+        guard byte != gate.armedByte else { return }
+        gate.armedByte = byte
+        gate.condition.broadcast()
     }
 
     /// Whether the watch is armed, for tests.
     var isArmed: Bool {
-        condition.lock()
-        defer { condition.unlock() }
-        return armedByte != nil
+        gate.condition.lock()
+        defer { gate.condition.unlock() }
+        return gate.armedByte != nil
     }
 
     /// Starts the thread. Does nothing a second time, or where the pipe that
@@ -298,14 +287,16 @@ final class UnreadQuitKeyWatch: @unchecked Sendable {
     ///   may be waiting on a descriptor that has nothing more to say.
     func start(inputHeld: @escaping @Sendable () -> Void = {}) {
         guard !started else { return }
-        self.inputHeld = inputHeld
         var ends: [Int32] = [-1, -1]
         guard pipe(&ends) == 0 else { return }
         wakeRead = ends[0]
         wakeWrite = ends[1]
         started = true
-        let thread = Thread { [self] in
-            watch()
+        let loop = QuitKeyWatchLoop(
+            gate: gate, input: input, wake: ends[0], grace: grace, quit: quit, inputHeld: inputHeld)
+        let ended = ended
+        let thread = Thread {
+            loop.run()
             ended.signal()
         }
         thread.name = "TUI quit key watch"
@@ -317,10 +308,10 @@ final class UnreadQuitKeyWatch: @unchecked Sendable {
     func stop() {
         guard started else { return }
         started = false
-        condition.lock()
-        stopped = true
-        condition.broadcast()
-        condition.unlock()
+        gate.condition.lock()
+        gate.stopped = true
+        gate.condition.broadcast()
+        gate.condition.unlock()
         var byte: UInt8 = 0
         _ = write(wakeWrite, &byte, 1)
         if ended.wait(timeout: .now() + 1) == .success {
@@ -328,29 +319,81 @@ final class UnreadQuitKeyWatch: @unchecked Sendable {
             close(wakeWrite)
         }
     }
+}
+
+/// What the main thread and the watch's thread tell each other, under
+/// ``condition``, which makes a change one step, and which the thread sleeps on.
+/// Each value is an atomic as well, `Mutex` having no condition to wait on, and
+/// relaxed, since the lock is what orders them, as in ``TerminalWriteGate``.
+private final class QuitKeyWatchGate: Sendable {
+    /// The lock, and what the thread waits for arming on.
+    let condition = NSCondition()
+
+    /// The quit key's byte, while the thread is to watch for it.
+    var armedByte: UInt8? {
+        get {
+            let stored = armedStore.load(ordering: .relaxed)
+            return stored < 0 ? nil : UInt8(stored)
+        }
+        set { armedStore.store(newValue.map(Int16.init) ?? -1, ordering: .relaxed) }
+    }
+
+    private let armedStore = Atomic<Int16>(-1)
+
+    /// Whether the thread is to end.
+    var stopped: Bool {
+        get { stoppedStore.load(ordering: .relaxed) }
+        set { stoppedStore.store(newValue, ordering: .relaxed) }
+    }
+
+    private let stoppedStore = Atomic(false)
+}
+
+/// What the watch's thread runs: everything here is a `let`, made before the
+/// thread starts and told to it by value.
+private struct QuitKeyWatchLoop: Sendable {
+    let gate: QuitKeyWatchGate
+    let input: SharedStandardInput
+
+    /// The read end of the pipe that wakes the thread from `poll` to stop.
+    let wake: Int32
+
+    /// How long input may wait unread before it is looked at.
+    let grace: TimeInterval
+
+    /// Quits.
+    let quit: @Sendable () -> Void
+
+    /// Told when input has been held, for the loop to be woken: it may be waiting
+    /// on a descriptor that has nothing more to say.
+    let inputHeld: @Sendable () -> Void
+
+    /// How often waiting input is looked at.
+    private static let checkInterval: TimeInterval = 0.1
 
     /// The thread's loop.
-    private func watch() {
+    func run() {
+        let condition = gate.condition
         condition.lock()
         defer { condition.unlock() }
         // The read count when input was last held and the loop had not read
         // since: the loop has stopped reading, and needs no grace to prove it.
         var heldAtReads: Int?
         while true {
-            while !stopped, armedByte == nil { condition.wait() }
-            if stopped { return }
+            while !gate.stopped, gate.armedByte == nil { condition.wait() }
+            if gate.stopped { return }
 
             condition.unlock()
-            let woke = StandardInputWait.untilInput(on: input.descriptor, orWake: wakeRead)
+            let woke = StandardInputWait.untilInput(on: input.descriptor, orWake: wake)
             condition.lock()
             switch woke {
             case .stop: return
             case .hangUp:
-                stopped = true
+                gate.stopped = true
                 return
             case .input: break
             }
-            if stopped { return }
+            if gate.stopped { return }
             if watchWaitingInput(heldAtReads: &heldAtReads) { return }
         }
     }
@@ -359,16 +402,19 @@ final class UnreadQuitKeyWatch: @unchecked Sendable {
     /// no read by the loop, and then looks at it. Holds the lock but while it
     /// sleeps; returns whether the thread is to end.
     private func watchWaitingInput(heldAtReads: inout Int?) -> Bool {
+        let condition = gate.condition
         var readsSeen = input.readCount
         var waitingSince = Date()
         if heldAtReads == readsSeen { waitingSince = .distantPast }
         while true {
             if waitingSince != .distantPast {
                 let check = min(waitingSince.addingTimeInterval(grace), Date(timeIntervalSinceNow: Self.checkInterval))
-                while !stopped, armedByte != nil, condition.wait(until: check) {}
+                while !gate.stopped, gate.armedByte != nil, condition.wait(until: check) {}
             }
-            if stopped { return true }
-            guard let byte = armedByte, StandardInputWait.inputIsWaiting(on: input.descriptor) else { return false }
+            if gate.stopped { return true }
+            guard let byte = gate.armedByte, StandardInputWait.inputIsWaiting(on: input.descriptor) else {
+                return false
+            }
             if input.readCount != readsSeen {
                 readsSeen = input.readCount
                 waitingSince = Date()

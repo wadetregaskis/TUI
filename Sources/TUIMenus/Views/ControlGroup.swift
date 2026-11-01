@@ -310,7 +310,7 @@ extension ControlGroupStyle where Self == PaletteControlGroupStyle {
 // MARK: - Environment
 
 private struct ControlGroupStyleKey: EnvironmentKey {
-    static let defaultValue = StyleChain<any ControlGroupStyle>(AutomaticControlGroupStyle())
+    static var defaultValue: StyleChain<any ControlGroupStyle> { StyleChain(AutomaticControlGroupStyle()) }
 }
 
 extension EnvironmentValues {

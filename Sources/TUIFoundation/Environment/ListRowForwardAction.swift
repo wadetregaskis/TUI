@@ -15,9 +15,9 @@
 /// Equal by identity, as ``CompactColumnAdvance`` is: its owner keeps one box
 /// for its life and refreshes the action in it, so the environment holds the
 /// same value every frame and the memos below stay on.
-package struct ListRowForwardAction: Equatable, Sendable {
+package struct ListRowForwardAction: Equatable {
     /// The action, refreshed in place by the box's owner.
-    package final class Box: @unchecked Sendable {
+    package final class Box {
         package var action: @MainActor (AnyHashable) -> Bool { get { _action } set { _action = newValue } }
 
         /// ``action``'s storage: private, under the `package` accessor
@@ -48,7 +48,7 @@ package struct ListRowForwardAction: Equatable, Sendable {
 }
 
 private struct ListRowForwardActionKey: EnvironmentKey {
-    static let defaultValue: ListRowForwardAction? = nil
+    static var defaultValue: ListRowForwardAction? { nil }
 }
 
 extension EnvironmentValues {

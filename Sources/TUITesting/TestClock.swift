@@ -7,6 +7,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 
 /// A `Clock` whose time passes only when a test says, for the waits a view's own
 /// code makes.
@@ -37,7 +38,7 @@ import Foundation
 ///     try await app.wait(for: "Ticks: 1")
 /// }
 /// ```
-public final class TestClock: Clock, @unchecked Sendable {
+public final class TestClock: Clock {
     /// A reading of a ``TestClock``.
     public struct Instant: InstantProtocol {
         fileprivate var offset: Duration
@@ -54,36 +55,40 @@ public final class TestClock: Clock, @unchecked Sendable {
         let continuation: CheckedContinuation<Void, any Error>
     }
 
-    private let lock = NSLock()
-    private var reading = Instant(offset: .zero)
-    private var asleep: [Sleeper] = []
-    private var nextSleeperID = 0
+    /// What the clock knows.
+    private struct State {
+        var reading = Instant(offset: .zero)
+        var asleep: [Sleeper] = []
+        var nextSleeperID = 0
+    }
+
+    private let state = Mutex(State())
 
     /// Creates a clock reading zero.
     public init() {}
 
     /// The clock's reading.
-    public var now: Instant { lock.withLock { reading } }
+    public var now: Instant { state.withLock { $0.reading } }
 
     /// The clock has no resolution to speak of: it reads what it was told.
     public var minimumResolution: Duration { .nanoseconds(1) }
 
     /// How many tasks are asleep on the clock, for a test that must not move it
     /// until a task has gone to sleep.
-    public var sleepers: Int { lock.withLock { asleep.count } }
+    public var sleepers: Int { state.withLock { $0.asleep.count } }
 
     /// Sleeps until the clock reads `deadline`, which is at once if it already
     /// has, or until the task is cancelled, which throws `CancellationError`.
     public func sleep(until deadline: Instant, tolerance: Duration? = nil) async throws {
-        let id = lock.withLock {
-            nextSleeperID += 1
-            return nextSleeperID
+        let id = state.withLock { state in
+            state.nextSleeperID += 1
+            return state.nextSleeperID
         }
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
-                let isDue = lock.withLock {
-                    guard reading < deadline else { return true }
-                    asleep.append(Sleeper(id: id, deadline: deadline, continuation: continuation))
+                let isDue = state.withLock { state in
+                    guard state.reading < deadline else { return true }
+                    state.asleep.append(Sleeper(id: id, deadline: deadline, continuation: continuation))
                     return false
                 }
                 if isDue { continuation.resume() }
@@ -100,11 +105,11 @@ public final class TestClock: Clock, @unchecked Sendable {
     /// when your test next suspends, so wait for what it does with
     /// ``TestApp/wait(for:timeout:)``.
     public func advance(by duration: Duration) {
-        let due = lock.withLock {
-            reading = reading.advanced(by: duration)
-            let now = reading
-            let due = asleep.filter { $0.deadline <= now }
-            asleep.removeAll { $0.deadline <= now }
+        let due = state.withLock { state in
+            state.reading = state.reading.advanced(by: duration)
+            let now = state.reading
+            let due = state.asleep.filter { $0.deadline <= now }
+            state.asleep.removeAll { $0.deadline <= now }
             return due.sorted { $0.deadline < $1.deadline }
         }
         for sleeper in due { sleeper.continuation.resume() }
@@ -112,9 +117,9 @@ public final class TestClock: Clock, @unchecked Sendable {
 
     /// Wakes one sleeper, if it is still asleep.
     private func wake(_ id: Int, with result: Result<Void, any Error>) {
-        let sleeper = lock.withLock { () -> Sleeper? in
-            guard let index = asleep.firstIndex(where: { $0.id == id }) else { return nil }
-            return asleep.remove(at: index)
+        let sleeper = state.withLock { state -> Sleeper? in
+            guard let index = state.asleep.firstIndex(where: { $0.id == id }) else { return nil }
+            return state.asleep.remove(at: index)
         }
         sleeper?.continuation.resume(with: result)
     }

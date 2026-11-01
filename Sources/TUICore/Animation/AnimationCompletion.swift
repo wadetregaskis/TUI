@@ -2,11 +2,13 @@
 //  AnimationCompletion.swift
 //
 //  Running code when the animations a change started have finished:
-//  `withAnimation(_:completionCriteria:_:completion:)` and
+//  `withAnimation(_:completionCriteria:_:completion:isolation:)` and
 //  `Transaction.addAnimationCompletion(criteria:_:)`.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
+
+import Synchronization
 
 /// The criteria that determines when an animation is considered finished.
 public struct AnimationCompletionCriteria: Hashable, Sendable {
@@ -47,12 +49,12 @@ public struct AnimationCompletionCriteria: Hashable, Sendable {
 /// a state change ever claimed it. Its state is guarded by a lock because a
 /// state change — and so a claim — may be made from any thread
 /// (`AppState.setNeedsRender()` is), while firing happens on the main actor.
-public final class AnimationCompletion: @unchecked Sendable {
+public final class AnimationCompletion: Sendable {
     /// When the handler fires.
     public let criteria: AnimationCompletionCriteria
 
-    /// The handler.
-    private let handler: () -> Void
+    /// The handler, which runs on the main actor, where completions fire.
+    private let handler: @MainActor () -> Void
 
     private struct State {
         /// Whether a state change made under the transaction recorded it, so
@@ -62,9 +64,9 @@ public final class AnimationCompletion: @unchecked Sendable {
         var fired = false
     }
 
-    private let state = Lock(initialState: State())
+    private let state = Mutex(State())
 
-    init(criteria: AnimationCompletionCriteria, handler: @escaping () -> Void) {
+    init(criteria: AnimationCompletionCriteria, handler: @escaping @MainActor () -> Void) {
         self.criteria = criteria
         self.handler = handler
     }
@@ -79,12 +81,29 @@ public final class AnimationCompletion: @unchecked Sendable {
     package var isClaimed: Bool { state.withLock { $0.claimed } }
 
     /// Runs the handler, unless it has already run.
-    package func fire() {
-        let first = state.withLock { state -> Bool in
+    @MainActor package func fire() {
+        if takeFiring() { handler() }
+    }
+
+    /// Runs the handler from code isolated to `isolation`, unless it has
+    /// already run: at once on the main actor, and from anywhere else as soon
+    /// as the main actor can take it.
+    package func fire(from isolation: isolated (any Actor)?) {
+        guard takeFiring() else { return }
+        if isolation === MainActor.shared {
+            MainActor.assumeIsolated { handler() }
+        } else {
+            let handler = handler
+            Task { @MainActor in handler() }
+        }
+    }
+
+    /// Whether this is the first time the handler was asked to run.
+    private func takeFiring() -> Bool {
+        state.withLock { state -> Bool in
             defer { state.fired = true }
             return !state.fired
         }
-        if first { handler() }
     }
 }
 
@@ -101,13 +120,19 @@ extension Transaction {
     /// transition and departing one that begins moving on that frame.
     ///
     /// A completion is honoured on a transaction a change is made under —
-    /// ``withTransaction(_:_:)``, ``withAnimation(_:completionCriteria:_:completion:)``,
+    /// ``withTransaction(_:_:isolation:)``, ``withAnimation(_:completionCriteria:_:completion:isolation:)``,
     /// a binding's transaction — not on one a view's
     /// `transaction(_:)` modifier rewrites while rendering, which no change
     /// was made under.
+    ///
+    /// The completion runs on the main actor, wherever it was added. SwiftUI's
+    /// parameter is a plain closure; a closure literal is accepted the same
+    /// way from any caller, and `@preconcurrency` lets one held in a variable
+    /// through with a warning rather than an error.
+    @preconcurrency
     public mutating func addAnimationCompletion(
         criteria: AnimationCompletionCriteria = .logicallyComplete,
-        _ completion: @escaping () -> Void
+        _ completion: @escaping @MainActor () -> Void
     ) {
         appendCompletion(AnimationCompletion(criteria: criteria, handler: completion))
     }
@@ -132,13 +157,20 @@ extension Transaction {
 ///     showsDetail = false
 /// }
 /// ```
+///
+/// The completion runs on the main actor, wherever it was added. SwiftUI's
+/// parameter is a plain closure; a closure literal is accepted the same way from
+/// any caller, and one held in a variable is called from a literal (`{ done() }`).
+/// Not `@preconcurrency`, as `addAnimationCompletion(criteria:_:)` is: with an
+/// `isolated` parameter that trips an assertion in the compiler (6.2.4).
 public func withAnimation<Result>(
     _ animation: Animation? = .default,
     completionCriteria: AnimationCompletionCriteria = .logicallyComplete,
     _ body: () throws -> Result,
-    completion: @escaping () -> Void
+    completion: @escaping @MainActor () -> Void,
+    isolation: isolated (any Actor)? = #isolation
 ) rethrows -> Result {
     var transaction = Transaction(animation: animation)
     transaction.addAnimationCompletion(criteria: completionCriteria, completion)
-    return try withTransaction(transaction, body)
+    return try withTransaction(transaction, body, isolation: isolation)
 }

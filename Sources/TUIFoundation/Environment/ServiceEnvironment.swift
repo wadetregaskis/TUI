@@ -15,7 +15,7 @@ private struct LocalizationServiceKey: EnvironmentKey {
 
 /// EnvironmentKey for view lifecycle tracking (appear/disappear/task).
 private struct LifecycleKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
-    static let defaultValue: LifecycleManager? = nil
+    static var defaultValue: LifecycleManager? { nil }
 }
 
 // MARK: - Key Event Dispatcher
@@ -26,7 +26,7 @@ private struct LifecycleKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
 /// `@inlinable` accessor reads it (module split step A3).
 @usableFromInline
 struct KeyEventDispatcherKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
-    @usableFromInline static let defaultValue: KeyEventDispatcher? = nil
+    @usableFromInline static var defaultValue: KeyEventDispatcher? { nil }
 }
 
 // MARK: - Mouse Event Dispatcher
@@ -37,7 +37,7 @@ struct KeyEventDispatcherKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
 /// `@inlinable` accessor reads it (module split step A3).
 @usableFromInline
 struct MouseEventDispatcherKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
-    @usableFromInline static let defaultValue: MouseEventDispatcher? = nil
+    @usableFromInline static var defaultValue: MouseEventDispatcher? { nil }
 }
 
 // MARK: - Animation Scheduler
@@ -77,7 +77,7 @@ private struct SynthesizeKeyEventKey: EnvironmentKey, _RenderNeutralEnvironmentK
 /// `@inlinable` accessor reads it (module split step A3).
 @usableFromInline
 struct PreferenceStorageKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
-    @usableFromInline static let defaultValue: PreferenceStorage? = nil
+    @usableFromInline static var defaultValue: PreferenceStorage? { nil }
 }
 
 // MARK: - Pulse Phase
@@ -91,8 +91,7 @@ private struct PulsePhaseKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
 
 /// EnvironmentKey for TextField/SecureField cursor blink animation.
 private struct CursorTimerKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
-    // `CursorTimer` is `@MainActor` (hence implicitly `Sendable`), so a `nil`
-    // default needs no `nonisolated(unsafe)`.
+    // `CursorTimer` is `@MainActor`, hence implicitly `Sendable`.
     static let defaultValue: CursorTimer? = nil
 }
 
@@ -114,15 +113,15 @@ private struct FocusIndicatorOriginDepthKey: EnvironmentKey {
 /// `@inlinable` accessor reads it (module split step A3).
 @usableFromInline
 struct DragAndDropSessionKey: EnvironmentKey {
-    @usableFromInline static let defaultValue: DragAndDropSession? = nil
+    @usableFromInline static var defaultValue: DragAndDropSession? { nil }
 }
 
 private struct TypedClipboardKey: EnvironmentKey {
-    static let defaultValue: TypedClipboard? = nil
+    static var defaultValue: TypedClipboard? { nil }
 }
 
 private struct ScreenSelectionKey: EnvironmentKey {
-    static let defaultValue: ScreenSelection? = nil
+    static var defaultValue: ScreenSelection? { nil }
 }
 
 private struct FilesTextFramesKey: EnvironmentKey {
@@ -133,7 +132,7 @@ private struct FilesTextFramesKey: EnvironmentKey {
 
 /// EnvironmentKey for the images this app has put in the terminal.
 private struct TerminalImageStoreKey: EnvironmentKey {
-    static let defaultValue: TerminalImageStore? = nil
+    static var defaultValue: TerminalImageStore? { nil }
 }
 
 private struct AppScopedObjectsKey: EnvironmentKey {

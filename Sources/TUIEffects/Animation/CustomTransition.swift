@@ -25,7 +25,7 @@ import TUIView
 /// (its built-ins are `static let`s), and combining one with a body of the
 /// app's own must not need the main actor. Drawing does, and the closures are
 /// isolated to it.
-final class _AnyTransitionBox: Equatable, @unchecked Sendable {
+final class _AnyTransitionBox: Equatable, Sendable {
     private let draw: @MainActor (TransitionPhase, PlaceholderSource, RenderContext) -> FrameBuffer
     private let size:
         @MainActor (TransitionPhase, PlaceholderSource, ProposedSize, RenderContext) -> ViewSize

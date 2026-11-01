@@ -93,10 +93,8 @@ package struct AnchorPositionBinding: Equatable {
 /// `@inlinable` accessor reads it (module split step A3).
 @usableFromInline
 struct AnchorPositionKey: EnvironmentKey {
-    // `Binding` is not `Sendable`, so the immutable `nil` default needs
-    // `nonisolated(unsafe)` — the value never mutates, so it is genuinely safe
-    // (the same treatment `\.editMode` gets).
-    @usableFromInline nonisolated(unsafe) static let defaultValue: AnchorPositionBinding? = nil
+    // Computed: `Binding` is not `Sendable`, so a stored default is refused.
+    @usableFromInline static var defaultValue: AnchorPositionBinding? { nil }
 }
 
 extension EnvironmentValues {

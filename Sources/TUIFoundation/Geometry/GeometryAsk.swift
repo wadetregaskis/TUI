@@ -56,9 +56,9 @@ package struct GeometryObservation: Equatable, Sendable {
 ///
 /// A reference, because the proxy is a value that can be copied into a
 /// closure and asked later; the answer it gives then is the latest found.
-/// `@unchecked Sendable` on the coordinator's terms: render path and
-/// frame-end only, both on the main actor.
-package final class GeometryAsk: @unchecked Sendable {
+/// Not `Sendable`, like the coordinator: render path and frame-end only, both on
+/// the main actor.
+package final class GeometryAsk {
     /// What the asking view does with the answers — which decides whether a
     /// wrong one is corrected.
     package enum Role: Equatable {

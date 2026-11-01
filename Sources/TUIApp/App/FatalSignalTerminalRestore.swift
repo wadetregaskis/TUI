@@ -7,6 +7,7 @@
 import TUIFoundation
 
 // Signal handlers are POSIX; wasip1 has none, and no crash to survive.
+import Synchronization
 #if !canImport(WASILibc)
 
 #if canImport(Darwin)
@@ -156,56 +157,113 @@ enum FatalSignalTerminalRestore {
     /// deletes a quit writes first (`Terminal.quitFarewell`).
     static let quitCapacity = capacity + Terminal.quitFarewellCapacity
 
-    /// The owed bytes, and how many of them are owed: zero when nothing is.
-    /// Written only on the main actor, read only by the handler.
-    nonisolated(unsafe) private static let owed = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
-    nonisolated(unsafe) private static var owedCount = 0
+    /// One debt, in atomics, since a handler can take no lock: written only on
+    /// the main actor, read by the handler, which may run on any thread at any
+    /// moment. ``count`` publishes what is written before it: the handler sees
+    /// no count without the bytes and the pop that go with it.
+    ///
+    /// A static of this type is initialized lazily on its first read, so
+    /// ``installIfNeeded()`` reads each one before any handler is installed:
+    /// from then on a read is a load.
+    private struct Debt: ~Copyable, Sendable {
+        /// The owed bytes. The pointer never changes, and no lock can guard
+        /// what it points at: the release of ``count`` orders them.
+        ///
+        /// `nonisolated(unsafe)`, as ``savedTermios`` and ``previous`` are: a
+        /// signal handler can take no lock and is handed no context, so it reads
+        /// a static, and what it writes to the terminal or hands to the kernel
+        /// has to be plain memory. `Atomic` refuses a pointer, which is not
+        /// `Sendable`, and an address kept as an integer would be this with the
+        /// type taken away.
+        nonisolated(unsafe) private let bytes: UnsafeMutablePointer<UInt8>  // swiftlint:disable:this concurrency_escape
+
+        /// How many of ``bytes`` are owed: zero when nothing is.
+        private let count = Atomic<Int>(0)
+
+        /// Where the debt's pop of the kitty keyboard flags lies
+        /// (`KeyboardProtocolQuery.pop`), with `popEnd` 0 where it owes none:
+        /// what the handler leaves out once the stall watchdog has popped the
+        /// flags itself (``notePoppedByWatchdog(_:)``).
+        private let popStart = Atomic<Int>(0)
+        private let popEnd = Atomic<Int>(0)
+
+        init(capacity: Int) {
+            bytes = .allocate(capacity: capacity)
+        }
+
+        /// Owes nothing.
+        func clear() {
+            count.store(0, ordering: .releasing)
+        }
+
+        /// Reads the debt, to no effect but this: a static's first read runs its
+        /// initializer, which a handler must not be the one to do.
+        func touch() {
+            _ = count.load(ordering: .relaxed)
+        }
+
+        /// Owes `debt`, its pop at `pop`. Clears it first, so a signal arriving
+        /// in between finds nothing rather than half of it.
+        func arm(_ debt: [UInt8], pop: Range<Int>?) {
+            clear()
+            for (index, byte) in debt.enumerated() { bytes[index] = byte }
+            popStart.store(pop?.lowerBound ?? 0, ordering: .relaxed)
+            popEnd.store(pop?.upperBound ?? 0, ordering: .relaxed)
+            count.store(debt.count, ordering: .releasing)
+        }
+
+        /// Takes what is owed and writes it, without the pop where `leavingOutPop`.
+        /// Async-signal-safe.
+        func pay(leavingOutPop: Bool) {
+            let owed = count.exchange(0, ordering: .acquiringAndReleasing)
+            guard owed > 0 else { return }
+            let base = UnsafePointer(bytes)
+            let start = popStart.load(ordering: .relaxed)
+            let end = popEnd.load(ordering: .relaxed)
+            if leavingOutPop, end > 0, end <= owed {
+                writeOwed(base, count: start)
+                writeOwed(base + end, count: owed - end)
+            } else {
+                writeOwed(base, count: owed)
+            }
+        }
+    }
+
+    /// What a crash pays.
+    private static let crashDebt = Debt(capacity: capacity)
 
     /// What a `SIGQUIT` pays instead: what a quit writes, the alternate screen
     /// left with the rest.
-    nonisolated(unsafe) private static let owedOnQuit = UnsafeMutablePointer<UInt8>.allocate(capacity: quitCapacity)
-    nonisolated(unsafe) private static var owedOnQuitCount = 0
-
-    /// Where each debt's pop of the kitty keyboard flags lies
-    /// (`KeyboardProtocolQuery.pop`), or `nil` where it owes none: what the
-    /// handler leaves out once the stall watchdog has popped the flags
-    /// itself (``notePoppedByWatchdog(_:)``).
-    nonisolated(unsafe) private static var owedPop: Range<Int>?
-    nonisolated(unsafe) private static var owedOnQuitPop: Range<Int>?
+    private static let quitDebt = Debt(capacity: quitCapacity)
 
     /// Whether the stall watchdog (`StallWatchdog`) has popped the kitty
     /// flags and the run loop has not pushed them back: then the pop in the
     /// debt would be a second one, of an entry this process never pushed —
     /// on a terminal whose screens share one stack, the shell's. Written by
     /// the watchdog's thread and the main thread under the terminal's write
-    /// lock, read by the handler: a byte behind a pointer, which no
-    /// exclusivity check watches and no lazy initializer guards once
-    /// ``installIfNeeded()`` has read it.
-    nonisolated(unsafe) private static let poppedByWatchdog: UnsafeMutablePointer<Bool> = {
-        let flag = UnsafeMutablePointer<Bool>.allocate(capacity: 1)
-        flag.initialize(to: false)
-        return flag
-    }()
+    /// lock, read by the handler: atomic, which no exclusivity check watches
+    /// and no lazy initializer guards once ``installIfNeeded()`` has read it.
+    private static let poppedByWatchdog = Atomic(false)
 
     /// The stall watchdog popped the kitty flags (`true`), or the run loop
     /// pushed them back or popped them itself (`false`): from now on the
     /// handler writes the debt without its pop, or with it. Any thread.
     static func notePoppedByWatchdog(_ popped: Bool) {
-        poppedByWatchdog.pointee = popped
+        poppedByWatchdog.store(popped, ordering: .relaxed)
     }
 
     /// The termios the shell had, put back by the handler while
     /// ``owesTermios`` is set.
-    nonisolated(unsafe) private static let savedTermios = UnsafeMutablePointer<termios>.allocate(capacity: 1)
-    nonisolated(unsafe) private static var owesTermios = false
+    nonisolated(unsafe) private static let savedTermios = UnsafeMutablePointer<termios>.allocate(capacity: 1)  // swiftlint:disable:this concurrency_escape
+    private static let owesTermios = Atomic(false)
 
     /// The handlers that were installed before this one, one per entry of
     /// ``signals``, restored by the handler before it re-raises.
-    nonisolated(unsafe) private static let previous = UnsafeMutablePointer<sigaction>.allocate(
-        capacity: signals.count)
-    /// Which entries of ``signals`` this installed a handler for.
-    nonisolated(unsafe) private static let taken = UnsafeMutablePointer<Bool>.allocate(capacity: signals.count)
-    nonisolated(unsafe) private static var installed = false
+    nonisolated(unsafe) private static let previous =  // swiftlint:disable:this concurrency_escape
+        UnsafeMutablePointer<sigaction>.allocate(capacity: signals.count)
+    /// Which entries of ``signals`` this installed a handler for, a bit each.
+    private static let taken = Atomic<UInt64>(0)
+    @MainActor private static var installed = false
 
     /// Owes the terminal `sequence`, or `quitSequence` for a `SIGQUIT`, and
     /// `termios` if there is one, should the process die of a signal,
@@ -214,17 +272,11 @@ enum FatalSignalTerminalRestore {
     static func arm(owing sequence: String, onQuit quitSequence: String, restoring termios: termios?) {
         let bytes = Array(sequence.utf8.prefix(capacity))
         let quitBytes = Array(quitSequence.utf8.prefix(quitCapacity))
-        owedCount = 0
-        owedOnQuitCount = 0
-        owesTermios = false
-        for (index, byte) in bytes.enumerated() { owed[index] = byte }
-        for (index, byte) in quitBytes.enumerated() { owedOnQuit[index] = byte }
+        owesTermios.store(false, ordering: .releasing)
+        crashDebt.arm(bytes, pop: popRange(in: bytes))
+        quitDebt.arm(quitBytes, pop: popRange(in: quitBytes))
         if let termios { savedTermios.pointee = termios }
-        owedPop = popRange(in: bytes)
-        owedOnQuitPop = popRange(in: quitBytes)
-        owedCount = bytes.count
-        owedOnQuitCount = quitBytes.count
-        owesTermios = termios != nil
+        owesTermios.store(termios != nil, ordering: .releasing)
         installIfNeeded()
     }
 
@@ -243,19 +295,23 @@ enum FatalSignalTerminalRestore {
     /// handler pays nothing.
     @MainActor
     static func disarm() {
-        owedCount = 0
-        owedOnQuitCount = 0
-        owesTermios = false
+        crashDebt.clear()
+        quitDebt.clear()
+        owesTermios.store(false, ordering: .releasing)
     }
 
     @MainActor
     private static func installIfNeeded() {
         guard !installed else { return }
         installed = true
-        // Read once here, so the handler never runs its lazy initializer.
-        _ = poppedByWatchdog
+        // Read once here, so the handler never runs a lazy initializer.
+        _ = poppedByWatchdog.load(ordering: .relaxed)
+        _ = savedTermios
+        _ = owesTermios.load(ordering: .relaxed)
+        _ = taken.load(ordering: .relaxed)
+        crashDebt.touch()
+        quitDebt.touch()
         for (index, signal) in signals.enumerated() {
-            taken[index] = false
             if index >= alwaysTaken {
                 var current = sigaction()
                 guard sigaction(signal, nil, &current) == 0, isDefault(current) else { continue }
@@ -264,7 +320,9 @@ enum FatalSignalTerminalRestore {
             setHandler(&action)
             sigemptyset(&action.sa_mask)
             action.sa_flags = SA_ONSTACK
-            taken[index] = sigaction(signal, &action, previous + index) == 0
+            if sigaction(signal, &action, previous + index) == 0 {
+                taken.bitwiseOr(1 << UInt64(index), ordering: .relaxed)
+            }
         }
         _ = atexit(exitHandler)
         provideAlternateStack()
@@ -427,7 +485,9 @@ enum FatalSignalTerminalRestore {
         pay(asQuit: quitting)
         if quitting {
             restoreDefault(signal)
-        } else if let index = signals.firstIndex(of: signal), taken[index] {
+        } else if let index = signals.firstIndex(of: signal),
+            taken.load(ordering: .relaxed) & (1 << UInt64(index)) != 0
+        {
             sigaction(signal, previous + index, nil)
         }
         raise(signal)
@@ -442,19 +502,15 @@ enum FatalSignalTerminalRestore {
     /// already (``poppedByWatchdog``): the debt in two writes, either side of
     /// it.
     private static func pay(asQuit quitting: Bool) {
-        let count = quitting ? owedOnQuitCount : owedCount
-        let bytes = quitting ? owedOnQuit : owed
-        let pop = quitting ? owedOnQuitPop : owedPop
-        owedCount = 0
-        owedOnQuitCount = 0
-        if count > 0, let pop, pop.upperBound <= count, poppedByWatchdog.pointee {
-            writeOwed(bytes, count: pop.lowerBound)
-            writeOwed(bytes + pop.upperBound, count: count - pop.upperBound)
-        } else if count > 0 {
-            writeOwed(bytes, count: count)
+        let leavingOutPop = poppedByWatchdog.load(ordering: .relaxed)
+        if quitting {
+            quitDebt.pay(leavingOutPop: leavingOutPop)
+            crashDebt.clear()
+        } else {
+            crashDebt.pay(leavingOutPop: leavingOutPop)
+            quitDebt.clear()
         }
-        if owesTermios {
-            owesTermios = false
+        if owesTermios.exchange(false, ordering: .acquiringAndReleasing) {
             _ = tcsetattr(STDIN_FILENO, TCSANOW, savedTermios)
         }
     }

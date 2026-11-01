@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Synchronization
+
 // MARK: - Drawing an image at the cursor
 
 extension KittyGraphics {
@@ -114,13 +116,13 @@ extension KittyGraphics {
     /// row; elsewhere it is a rule line of its own. **Defaults to `false`**,
     /// so a list renders as it always has wherever nothing answered.
     public static var isHairlineSupported: Bool {
-        get { taskHairlineSupported ?? processHairlineSupported }
-        set { processHairlineSupported = newValue }
+        get { taskHairlineSupported ?? processHairlineSupported.load(ordering: .relaxed) }
+        set { processHairlineSupported.store(newValue, ordering: .relaxed) }
     }
 
-    /// `nonisolated(unsafe)` for the reason ``isSupported`` gives: written
-    /// during startup, before the render loop exists, and only read after.
-    nonisolated(unsafe) private static var processHairlineSupported = false
+    /// Atomic for the reason ``isSupported`` gives: written during startup and
+    /// read by whoever draws after.
+    private static let processHairlineSupported = Atomic(false)
 
     /// A task-scoped pin, bound by ``withHairlineSupport(_:operation:)``.
     @TaskLocal private static var taskHairlineSupported: Bool?

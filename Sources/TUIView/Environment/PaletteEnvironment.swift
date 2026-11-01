@@ -262,7 +262,7 @@ package struct GroundedPalette: DerivedPalette {
 
 /// Environment key for the palette manager.
 private struct PaletteManagerKey: EnvironmentKey {
-    static let defaultValue: ThemeManager? = nil
+    static var defaultValue: ThemeManager? { nil }
 }
 
 extension EnvironmentValues {

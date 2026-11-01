@@ -34,7 +34,8 @@ import Foundation
 import TUICore
 
 /// The computations one render cache's walks arm scopes under, the frames'
-/// leases, and when a scope may be cancelled. Main actor only, like the walk.
+/// leases, and when a scope may be cancelled. Not `Sendable`, so it stays with
+/// the walk, on the main actor.
 ///
 /// Nothing here costs anything until a body of some type has been seen to
 /// read an `@Observable` (``isActive``): every entry point is one load and a

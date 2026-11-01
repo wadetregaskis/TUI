@@ -25,7 +25,7 @@ import TUIFoundation
 /// the view it was drawn with until the row itself changes: an app whose
 /// closure starts answering otherwise for the same item sees the new view
 /// when the folder is next read.
-struct FileDialogItemViews: Equatable, @unchecked Sendable {
+struct FileDialogItemViews: Equatable {
     /// The box the modifier keeps.
     let box: Box
 

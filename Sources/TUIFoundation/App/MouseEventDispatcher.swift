@@ -37,7 +37,7 @@ public enum MouseFeature: Sendable {
 /// drag once it has captured a control.
 /// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
 @usableFromInline
-package final class MouseEventDispatcher: @unchecked Sendable {
+package final class MouseEventDispatcher {
     /// The app's drag-and-drop session, when one is wired (see
     /// ``TUIContext``). The dispatcher stamps it with every press / drag /
     /// release event in ABSOLUTE coordinates before routing — a drag-captured
@@ -943,6 +943,7 @@ extension MouseEventDispatcher {
     ///
     /// - Returns: `true` if a handler consumed the event.
     @discardableResult
+    @MainActor
     package func dispatch(_ event: MouseEvent) -> Bool {
         // Diagnostic (TUI_DEBUG_FOCUS=1): log every press/release
         // with the click coords (in content-area space), the
@@ -1154,6 +1155,7 @@ extension MouseEventDispatcher {
     ///   fallback, spent for a pop-up that is not on screen, or dropped for
     ///   having no press behind it at all — and `nil` when the event should go
     ///   on to ordinary live hit-testing.
+    @MainActor
     func routeAgainstItsPress(_ event: MouseEvent) -> Bool? {
         // When a button is held, every subsequent event for it goes to the
         // handler that took the press, wherever the cursor sits now.
@@ -1161,7 +1163,7 @@ extension MouseEventDispatcher {
             // A control whose press is a recognizer: a release off it fails
             // it, and acts on nothing (decisions B89).
             if let recognizer = capture.recognizer {
-                MainActor.assumeIsolated { routeRecognizedClick(event, to: capture, recognizer: recognizer) }
+                routeRecognizedClick(event, to: capture, recognizer: recognizer)
             } else {
                 deliver(event, to: capture)
             }

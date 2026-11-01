@@ -330,7 +330,7 @@ extension FocusManager {
 /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
 /// reaches it (module split step A3).
 @usableFromInline
-final class PreferredFocusOffer: @unchecked Sendable {
+final class PreferredFocusOffer {
     let namespace: Namespace.ID
 
     /// Whose it is. `nil` until the first focusable registers below the modifier.
@@ -354,7 +354,7 @@ final class PreferredFocusOffer: @unchecked Sendable {
 }
 
 private struct PreferredFocusOfferKey: EnvironmentKey {
-    static let defaultValue: PreferredFocusOffer? = nil
+    static var defaultValue: PreferredFocusOffer? { nil }
 }
 
 extension EnvironmentValues {
@@ -501,6 +501,7 @@ extension MouseEventDispatcher {
     ///   - event: The event, in the screen's coordinates.
     ///   - focusManager: The manager whose automatic choice it may end.
     /// - Returns: Whether a handler consumed it.
+    @MainActor
     package func dispatch(_ event: MouseEvent, noting focusManager: FocusManager) -> Bool {
         let consumed = dispatch(event)
         focusManager.notePointerInput(event, consumed: consumed, regions: self)

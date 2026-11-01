@@ -10,6 +10,7 @@
 
 #if canImport(AppKit)
     import AppKit
+    import Synchronization
     import TUIBitmaps
     import TUIFoundation
 
@@ -123,13 +124,16 @@
             let isDark: Bool
         }
 
-        private static let lock = NSLock()
-        nonisolated(unsafe) private static var pictures: [Key: Picture?] = [:]
-        nonisolated(unsafe) private static var colors: [Key: Color?] = [:]
+        private struct Kept {
+            var pictures: [Key: Picture?] = [:]
+            var colors: [Key: Color?] = [:]
 
-        /// How many times each colour was asked of AppKit — for the test that
-        /// a colour is read once, not every frame. One count per colour kept.
-        nonisolated(unsafe) private static var colorLookups: [Key: Int] = [:]
+            /// How many times each colour was asked of AppKit — for the test that
+            /// a colour is read once, not every frame. One count per colour kept.
+            var colorLookups: [Key: Int] = [:]
+        }
+
+        private static let kept = Mutex(Kept())
 
         /// The colour `name` in `bundle`'s compiled catalogue, or `nil` where
         /// it has none: both its variants, chosen where it is drawn, or where
@@ -137,14 +141,14 @@
         /// variants are chosen by (which is why the key has the scheme in it).
         static func color(named name: String, in bundle: Bundle) -> Color? {
             let key = Key(bundlePath: bundle.bundlePath, name: name, isDark: Color.catalogColorScheme == .dark)
-            if let known = lock.withLock({ colors[key] }) { return known }
+            if let known = kept.withLock({ $0.colors[key] }) { return known }
             var color: Color?
             if let named = NSColor(named: name, bundle: bundle) {
                 appearance.performAsCurrentDrawingAppearance { color = Color(nsColor: named) }
             }
-            lock.withLock {
-                colorLookups[key, default: 0] += 1
-                colors[key] = .some(color)
+            kept.withLock { kept in
+                kept.colorLookups[key, default: 0] += 1
+                kept.colors[key] = .some(color)
             }
             return color
         }
@@ -153,7 +157,7 @@
         /// AppKit, in the current colour scheme.
         static func colorLookupCount(named name: String, in bundle: Bundle) -> Int {
             let key = Key(bundlePath: bundle.bundlePath, name: name, isDark: Color.catalogColorScheme == .dark)
-            return lock.withLock { colorLookups[key] ?? 0 }
+            return kept.withLock { $0.colorLookups[key] ?? 0 }
         }
 
         /// The appearance a catalogue's light and dark variants are chosen
@@ -165,7 +169,7 @@
         static func picture(named name: String, in bundle: Bundle) -> Picture? {
             let isDark = Color.catalogColorScheme == .dark
             let key = Key(bundlePath: bundle.bundlePath, name: name, isDark: isDark)
-            if let known = lock.withLock({ pictures[key] }) { return known }
+            if let known = kept.withLock({ $0.pictures[key] }) { return known }
             var picture: Picture?
             // The largest representation, as TUI's own reader takes an image
             // set's largest file: a catalogue keeps one per scale.
@@ -179,7 +183,7 @@
                     }
                 }
             }
-            lock.withLock { pictures[key] = .some(picture) }
+            kept.withLock { $0.pictures[key] = .some(picture) }
             return picture
         }
     }

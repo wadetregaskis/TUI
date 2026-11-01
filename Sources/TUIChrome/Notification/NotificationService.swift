@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import TUIFoundation
 
 // MARK: - Notification Entry
@@ -93,7 +94,7 @@ struct NotificationEntry: Identifiable, Sendable {
 ///
 /// The service automatically removes expired entries and triggers re-renders
 /// for animation frames.
-public final class NotificationService: @unchecked Sendable {
+public final class NotificationService: Sendable {
     /// The shared instance used by the running application.
     ///
     /// Prefer the environment where you can: the render loop installs this
@@ -114,25 +115,32 @@ public final class NotificationService: @unchecked Sendable {
     /// ```swift
     /// NotificationService.current.post("Done!")
     /// ```
-    nonisolated(unsafe) public static var current = NotificationService()
+    public static var current: NotificationService {
+        get { currentStore.withLock { $0 } }
+        set { currentStore.withLock { $0 = newValue } }
+    }
 
-    /// Lock for thread-safe access to the entries array.
-    private let lock = NSLock()
+    /// ``current``'s storage, read once a frame by the render loop.
+    private static let currentStore = Mutex(NotificationService())
 
-    /// The active notification entries, ordered by posting time.
-    private var entries: [NotificationEntry] = []
+    private struct State {
+        /// The active notification entries, ordered by posting time.
+        var entries: [NotificationEntry] = []
 
-    /// The links of the render caches of the apps that draw this service's
-    /// notifications, which a post asks for a frame: one per app, noted by
-    /// its host as it draws (``noteDisplayed(by:)``).
-    ///
-    /// A post can come from anywhere — an event handler, a task, a callback on
-    /// a queue of its own — so it cannot ask "the app" for a frame: the host
-    /// that draws the service is how the service knows which apps that is. A
-    /// link, not the app's render state: it holds nothing that holds the cache
-    /// or the app, and once its cache has gone it asks no one, and the next
-    /// host to note itself drops it.
-    private var displays: [RenderCache.Link] = []
+        /// The links of the render caches of the apps that draw this service's
+        /// notifications, which a post asks for a frame: one per app, noted by
+        /// its host as it draws (``noteDisplayed(by:)``).
+        ///
+        /// A post can come from anywhere — an event handler, a task, a callback on
+        /// a queue of its own — so it cannot ask "the app" for a frame: the host
+        /// that draws the service is how the service knows which apps that is. A
+        /// link, not the app's render state: it holds nothing that holds the cache
+        /// or the app, and once its cache has gone it asks no one, and the next
+        /// host to note itself drops it.
+        var displays: [RenderCache.Link] = []
+    }
+
+    private let state = Mutex(State())
 
     /// The clock a notification's age is measured on.
     ///
@@ -187,16 +195,16 @@ extension NotificationService {
     public func post<S: StringProtocol>(_ message: S, duration: TimeInterval = 3.0) {
         let now = nowNanos()
         let entry = NotificationEntry(message: String(message), duration: duration, postedAtNanos: now)
-        lock.lock()
-        // The expired go here too, not only in `activeEntries()`: that is the
-        // host's to call, and a service no host draws (an app that posts but
-        // never shows a toast, or one whose host has gone) kept every post it
-        // was ever given. The same rule as `activeEntries()`, so what the host
-        // reads next is unchanged.
-        entries.removeAll { now > $0.expiresAtNanos }
-        entries.append(entry)
-        let displays = self.displays
-        lock.unlock()
+        let displays = state.withLock { state in
+            // The expired go here too, not only in `activeEntries()`: that is the
+            // host's to call, and a service no host draws (an app that posts but
+            // never shows a toast, or one whose host has gone) kept every post it
+            // was ever given. The same rule as `activeEntries()`, so what the host
+            // reads next is unchanged.
+            state.entries.removeAll { now > $0.expiresAtNanos }
+            state.entries.append(entry)
+            return state.displays
+        }
         // Outside the lock: a frame request calls the app's observers.
         for link in displays { link.requestFrame() }
     }
@@ -206,12 +214,12 @@ extension NotificationService {
     /// every frame it draws; `nil` — a render with no cache — notes nothing.
     package func noteDisplayed(by link: RenderCache.Link?) {
         guard let link else { return }
-        lock.lock()
-        defer { lock.unlock() }
-        // The usual case: noted already, one comparison.
-        guard !displays.contains(where: { $0 === link }) else { return }
-        displays.removeAll { !$0.isAttached }
-        displays.append(link)
+        state.withLock { state in
+            // The usual case: noted already, one comparison.
+            guard !state.displays.contains(where: { $0 === link }) else { return }
+            state.displays.removeAll { !$0.isAttached }
+            state.displays.append(link)
+        }
     }
 
     /// Returns a snapshot of all currently active notifications.
@@ -221,26 +229,21 @@ extension NotificationService {
     func activeEntries() -> [NotificationEntry] {
         let now = nowNanos()
 
-        lock.lock()
-        entries.removeAll { now > $0.expiresAtNanos }
-        let snapshot = entries
-        lock.unlock()
-        return snapshot
+        return state.withLock { state in
+            state.entries.removeAll { now > $0.expiresAtNanos }
+            return state.entries
+        }
     }
 
     /// How many notifications are kept, expired or not, without pruning. For
     /// tests: a number that only grows is a leak.
     var entryCount: Int {
-        lock.lock()
-        defer { lock.unlock() }
-        return entries.count
+        state.withLock { $0.entries.count }
     }
 
     /// Removes all active notifications.
     func clear() {
-        lock.lock()
-        entries.removeAll()
-        lock.unlock()
+        state.withLock { $0.entries.removeAll() }
     }
 }
 

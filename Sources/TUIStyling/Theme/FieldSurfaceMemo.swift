@@ -7,6 +7,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 
 /// The field surfaces `Palette.derivedFieldBackground()` has derived, keyed on
 /// everything the derivation reads, by value — as `RowFills.ruled` keeps a
@@ -42,17 +43,16 @@ enum FieldSurfaceMemo {
         let terminal: TerminalColors
     }
 
-    private static let cacheLock = NSLock()
-    nonisolated(unsafe) private static var cache: [Key: Color] = [:]
+    private static let cache = Mutex<[Key: Color]>([:])
 
     /// The surface kept for `key`, or `derive`'s answer, kept.
     ///
     /// `derive` runs outside the lock: it is a pure function of `key`, so two
     /// threads deriving the same key at once store the same answer.
     static func surface(for key: Key, derive: () -> Color) -> Color {
-        if let known = cacheLock.withLock({ cache[key] }) { return known }
+        if let known = cache.withLock({ $0[key] }) { return known }
         let answer = derive()
-        cacheLock.withLock {
+        cache.withLock { cache in
             if cache.count > 64 { cache.removeAll(keepingCapacity: true) }
             cache[key] = answer
         }

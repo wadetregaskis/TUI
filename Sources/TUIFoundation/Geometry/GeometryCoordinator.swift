@@ -43,7 +43,7 @@ import TUIView
 ///
 /// Unsynchronised, on the dispatcher's terms: it is only touched on the
 /// render path and at the end of a frame, both on the main actor.
-package final class GeometryCoordinator: @unchecked Sendable {
+package final class GeometryCoordinator {
     init() {}
 
     // MARK: - Scroll Visibility (state; GeometryCoordinator+Visibility.swift)

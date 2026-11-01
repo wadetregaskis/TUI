@@ -14,7 +14,7 @@ import TUICore
 /// Handlers are processed in reverse order (most recent first).
 /// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
 @usableFromInline
-package final class KeyEventDispatcher: @unchecked Sendable {
+package final class KeyEventDispatcher {
     /// One registration: the handler and the focus section it rendered in.
     private struct Entry {
         /// The focus section that was active where this handler registered, or

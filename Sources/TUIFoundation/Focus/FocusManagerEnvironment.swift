@@ -25,7 +25,7 @@ struct FocusManagerKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     // The real app installs one via `RenderLoop.makeRenderContext`; a nil manager
     // means "no focus system", so controls render unfocused and nothing
     // auto-focuses.
-    @usableFromInline static let defaultValue: FocusManager? = nil
+    @usableFromInline static var defaultValue: FocusManager? { nil }
 }
 
 extension EnvironmentValues {

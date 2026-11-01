@@ -50,9 +50,9 @@ import TUICore
 /// Costs nothing per frame while nothing is selected but keeping a reference
 /// to the frame's lines and regions (the arrays are shared, not copied) —
 /// and, in the drawing, a region per `Text` (`FrameBuffer.filingTextFrame(context:)`).
-package final class ScreenSelection: @unchecked Sendable {
-    // Touched from the main actor only: the dispatcher's events, the input
-    // chain's keys and the run loop's frame all run there.
+package final class ScreenSelection {
+    // Not `Sendable`: the dispatcher's events, the input chain's keys and the
+    // run loop's frame all run on the main actor.
 
     /// A cell. The pointer's and the hit regions' are the screen's; a
     /// selection keeps its own in the content area's, the page's, so it stays

@@ -16,6 +16,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Synchronization
 import TUICore
 
 extension FrameBuffer {
@@ -101,11 +102,18 @@ extension FrameBuffer {
     @TaskLocal package static var settleWork: SettleWork?
 
     /// A count ``settleWork`` accumulates into, read by the one task that binds it.
-    package final class SettleWork: @unchecked Sendable {
+    package final class SettleWork: Sendable {
         /// Cells asked about, summed over every settle while bound.
-        package var cellsAsked = 0
+        package var cellsAsked: Int { asked.load(ordering: .relaxed) }
+
+        private let asked = Atomic<Int>(0)
 
         package init() {}
+
+        /// Adds `count` to ``cellsAsked``.
+        func note(_ count: Int) {
+            asked.wrappingAdd(count, ordering: .relaxed)
+        }
     }
 }
 
@@ -236,7 +244,7 @@ private struct ClaimsUnderALayer {
         var content: [OpacityRegion] = []
         var painters: [OpacityRegion] = []
         var asked = 0
-        defer { FrameBuffer.settleWork?.cellsAsked += asked }
+        defer { FrameBuffer.settleWork?.note(asked) }
         for index in claims {
             guard
                 let claim = base.opacityRegions[index].clipped(toColumns: bounds.columns, rows: bounds.rows)

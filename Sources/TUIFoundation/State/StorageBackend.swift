@@ -31,21 +31,23 @@ import Observation
 /// time it is evaluated.
 ///
 /// ```swift
-/// final class MemoryStorage: StorageBackend, @unchecked Sendable {
-///     private let lock = NSLock()
-///     private var entries: [String: (data: Data?, key: StoredKey)] = [:]
+/// import Synchronization
+///
+/// final class MemoryStorage: StorageBackend {
+///     private let entries = Mutex<[String: (data: Data?, key: StoredKey)]>([:])
 ///
 ///     func entry<T: Codable>(forKey key: String, as type: T.Type) -> (value: T?, key: StoredKey) {
-///         lock.withLock {
+///         let entry = entries.withLock { entries in
 ///             let entry = entries[key] ?? (nil, StoredKey())
 ///             entries[key] = entry
-///             return (entry.data.flatMap { try? JSONDecoder().decode(T.self, from: $0) }, entry.key)
+///             return entry
 ///         }
+///         return (entry.data.flatMap { try? JSONDecoder().decode(T.self, from: $0) }, entry.key)
 ///     }
 ///
 ///     func store<T: Codable>(_ value: T, forKey key: String) -> StoredKey {
 ///         let data = try? JSONEncoder().encode(value)
-///         return lock.withLock {
+///         return entries.withLock { entries in
 ///             let stored = entries[key]?.key ?? StoredKey()
 ///             entries[key] = (data, stored)
 ///             return stored
@@ -53,7 +55,7 @@ import Observation
 ///     }
 ///
 ///     func remove(forKey key: String) -> StoredKey? {
-///         lock.withLock {
+///         entries.withLock { entries in
 ///             entries[key]?.data = nil
 ///             return entries[key]?.key
 ///         }
@@ -198,7 +200,10 @@ final class StoredEntry {
 
     /// The stored value as `T`, from the kept value when it is a `T`, else
     /// decoded from the bytes and kept.
-    func value<T: Codable>(as type: T.Type) -> T? {
+    ///
+    /// `T` is inferred rather than passed as a metatype, because a built-in
+    /// store calls this inside its `Mutex`, and a `T.Type` is not `Sendable`.
+    func value<T: Codable>() -> T? {
         // The very type, not merely one the kept value casts to: an `as?` alone
         // would also answer for a type a fresh decode of the bytes might not.
         if let decoded, decoded.type == ObjectIdentifier(T.self), let value = decoded.value as? T {
@@ -234,5 +239,23 @@ final class StoredEntry {
     private func keep<T>(_ value: T) {
         guard !(T.self is AnyObject.Type) else { return }
         decoded = (value, ObjectIdentifier(T.self))
+    }
+}
+
+/// A value of a stored key's type, crossing a built-in store's `Mutex`, into
+/// its ``StoredEntry`` or out of it.
+///
+/// `@unchecked` because that type is only `Codable`: a ``StorageBackend`` takes
+/// any `Codable` value, as SwiftUI's `AppStorage` is not limited to `Sendable`
+/// ones, so nothing states it is `Sendable`, and a `Mutex` lets nothing else
+/// across. What crosses is a copy, and ``StoredEntry`` keeps no class instance,
+/// so the one thing shared is a class reference held inside a struct or an
+/// enum, between the entry and whoever read it. Only the stores' calls use
+/// this: everything else about them is checked.
+struct StoredValue<Value>: @unchecked Sendable {  // swiftlint:disable:this concurrency_escape
+    let value: Value
+
+    init(_ value: Value) {
+        self.value = value
     }
 }

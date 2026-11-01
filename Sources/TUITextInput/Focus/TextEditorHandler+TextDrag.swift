@@ -34,6 +34,7 @@ extension TextEditorHandler {
     /// carried, or, where the press never moved, makes it the click it was —
     /// the caret at `click`, nothing selected. Returns whether a drag was
     /// under way.
+    @MainActor
     func endTextDrag(clickedAt click: TextEditorPosition) -> Bool {
         guard let drag = textDrag else { return false }
         textDrag = nil
@@ -55,6 +56,7 @@ extension TextEditorHandler {
     /// would land where it is.
     ///
     /// - Returns: Whether the text moved.
+    @MainActor
     func moveSelection(to target: TextEditorPosition) -> Bool {
         guard let span = selectionRange else { return false }
         let (start, end) = clamped(span, in: readLines())

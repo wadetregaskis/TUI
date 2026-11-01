@@ -90,6 +90,7 @@ private struct SnapshotUndoHistory<Caret: Equatable> {
         typingRun = (text, caret, states.last?.mark)
     }
 
+    @MainActor
     mutating func endTypingRun(unlessNewestIn manager: UndoManager?) {
         guard let manager, let mark = typingRun?.mark, !TextUndoBridge.isNewestStep(mark, on: manager) else { return }
         typingRun = nil

@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 
 /// The color depth supported by the terminal.
 ///
@@ -42,7 +43,7 @@ import Foundation
 /// ```swift
 /// ColorDepth.current = .palette256
 /// ```
-public enum ColorDepth: Int, Sendable, Comparable {
+public enum ColorDepth: Int, Sendable, Comparable, AtomicRepresentable {
     /// No color output.
     ///
     /// Detected when `TERM` is `dumb`. Can also be set manually
@@ -70,17 +71,18 @@ public enum ColorDepth: Int, Sendable, Comparable {
 extension ColorDepth {
     /// The process-wide colour depth, before any task-local pin.
     ///
-    /// `nonisolated(unsafe)` is intentional: the value is set once during
-    /// initialization (from environment variables that don't change) and
-    /// read from the render path. Any override is expected before rendering
-    /// starts.
+    /// Atomic because anything may read it, whatever thread sets it: the value
+    /// is set once during initialization (from environment variables that
+    /// don't change) and read from the render path. Any override is expected
+    /// before rendering starts. Relaxed, since no other memory is published
+    /// with it, and a read costs what a plain load does.
     ///
-    /// Being a `static var` with an initializer, this is LAZY: `detect()` runs
+    /// Being a `static let` with an initializer, this is LAZY: `detect()` runs
     /// on the first read of ``current`` from anywhere in the process, and the
     /// answer it gives then is the one the whole process keeps. That is the
     /// designed behaviour; see ``detect(environment:)`` for why it means no
     /// test may put a fake `TERM` in the real environment.
-    nonisolated(unsafe) private static var processCurrent: ColorDepth = detect()
+    private static let processCurrent = Atomic<ColorDepth>(detect())
 
     /// A task-scoped pin of ``current``, bound by ``withCurrent(_:operation:)-(_,()->T)``.
     ///
@@ -93,8 +95,8 @@ extension ColorDepth {
     @TaskLocal private static var taskCurrent: ColorDepth?
 
     /// The process-wide ceiling on ``current``, before any task-local pin.
-    /// `nonisolated(unsafe)` for the same reason ``processCurrent`` is.
-    nonisolated(unsafe) private static var processCap: ColorDepth = .truecolor
+    /// Atomic for the same reason ``processCurrent`` is.
+    private static let processCap = Atomic<ColorDepth>(.truecolor)
 
     /// A task-scoped ceiling, bound by ``withCap(_:operation:)-(_,()->T)``.
     @TaskLocal private static var taskCap: ColorDepth?
@@ -107,8 +109,12 @@ extension ColorDepth {
     /// rendering starts); use ``withCurrent(_:operation:)-(_,()->T)`` for a scoped,
     /// task-local pin.
     public static var current: ColorDepth {
-        get { min(taskCurrent ?? processCurrent, taskCap ?? processCap) }
-        set { processCurrent = newValue }
+        get {
+            min(
+                taskCurrent ?? processCurrent.load(ordering: .relaxed),
+                taskCap ?? processCap.load(ordering: .relaxed))
+        }
+        set { processCurrent.store(newValue, ordering: .relaxed) }
     }
 
     /// The most colour the app will use, whatever the terminal offers.
@@ -129,8 +135,8 @@ extension ColorDepth {
     ///
     /// Defaults to ``truecolor``, which is no cap at all.
     public static var cap: ColorDepth {
-        get { taskCap ?? processCap }
-        set { processCap = newValue }
+        get { taskCap ?? processCap.load(ordering: .relaxed) }
+        set { processCap.store(newValue, ordering: .relaxed) }
     }
 
     /// Runs `operation` with ``cap`` pinned to `depth` on the current task,

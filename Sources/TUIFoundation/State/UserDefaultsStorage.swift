@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import TUICore
 
 // MARK: - UserDefaults Storage (Apple Platforms)
@@ -24,17 +25,38 @@ import TUICore
     /// keeps it, so `UserDefaults`' own getters read what an `@AppStorage`
     /// wrote and an `@AppStorage` reads what they set. Any other `Codable`
     /// value is kept as its JSON encoding.
-    public final class UserDefaultsStorage: StorageBackend, @unchecked Sendable {
+    public final class UserDefaultsStorage: StorageBackend, @unchecked Sendable {  // swiftlint:disable:this concurrency_escape
         /// The underlying UserDefaults.
+        ///
+        /// This one property is why the class is `@unchecked`: Foundation
+        /// documents `UserDefaults` as thread-safe, and its SDK marks the type's
+        /// `Sendable` conformance unavailable. It stays out of ``state``,
+        /// because a write to it runs the key-value observers of whoever is
+        /// watching the key, and they may read this store.
         private let defaults: UserDefaults
 
-        /// Every key this store has read or written, guarded by `lock`: the
-        /// bytes last seen for it, the value they decoded to, and its
-        /// ``StoredKey``.
-        private var entries: [String: StoredEntry] = [:]
+        private struct State {
+            /// Every key this store has read or written: the bytes last seen
+            /// for it, the value they decoded to, and its ``StoredKey``.
+            var entries: [String: StoredEntry] = [:]
 
-        /// Guards `entries`.
-        private let lock = NSLock()
+            /// The entry for `key`, made empty if there is none, on the key's
+            /// shared ``StoredKey``.
+            mutating func entry(_ key: String) -> StoredEntry {
+                if let entry = entries[key] { return entry }
+                let stored = UserDefaultsStorage.sharedKeys.withLock { keys in
+                    if let stored = keys[key] { return stored }
+                    let stored = StoredKey()
+                    keys[key] = stored
+                    return stored
+                }
+                let entry = StoredEntry(key: stored)
+                entries[key] = entry
+                return entry
+            }
+        }
+
+        private let state = Mutex(State())
 
         /// One ``StoredKey`` per key, shared by every store of this type:
         /// readers of a key are registered on it whichever store they read
@@ -49,7 +71,7 @@ import TUICore
         /// in another domain shares the `StoredKey` too, which costs its
         /// readers a redraw that finds nothing changed, never a missed change.
         ///
-        /// Taken only when a store first sees a key, inside its own `lock`;
+        /// Taken only when a store first sees a key, inside its own lock;
         /// nothing takes the two the other way round.
         private static let sharedKeys = Lock<[String: StoredKey]>(initialState: [:])
 
@@ -94,16 +116,15 @@ import TUICore
             // A property-list value is read as itself, every time: there are no
             // bytes to keep a decoding of.
             if let stored = PropertyListValue.read(T.self, from: defaults, forKey: key) {
-                lock.lock()
-                defer { lock.unlock() }
-                return (stored, entryLocked(key).key)
+                return (stored, state.withLock { $0.entry(key).key })
             }
             let data = defaults.data(forKey: key)
-            lock.lock()
-            defer { lock.unlock() }
-            let entry = entryLocked(key)
-            entry.reload(data)
-            return (entry.value(as: T.self), entry.key)
+            let (read, stored) = state.withLock { state -> (StoredValue<T?>, StoredKey) in
+                let entry = state.entry(key)
+                entry.reload(data)
+                return (StoredValue(entry.value()), entry.key)
+            }
+            return (read.value, stored)
         }
 
         /// Stores `value` for `key`: as itself where `UserDefaults` keeps such
@@ -114,11 +135,11 @@ import TUICore
         /// user expected to keep, so it is worth surfacing.
         public func store<T: Codable>(_ value: T, forKey key: String) -> StoredKey {
             if PropertyListValue.write(value, to: defaults, forKey: key) {
-                lock.lock()
-                defer { lock.unlock() }
-                let entry = entryLocked(key)
-                entry.clear()
-                return entry.key
+                return state.withLock { state in
+                    let entry = state.entry(key)
+                    entry.clear()
+                    return entry.key
+                }
             }
             let data: Data
             do {
@@ -126,16 +147,15 @@ import TUICore
             } catch {
                 StorageDiagnostics.report(
                     StorageFailure(operation: .encode, key: key, underlying: error))
-                lock.lock()
-                defer { lock.unlock() }
-                return entryLocked(key).key
+                return state.withLock { $0.entry(key).key }
             }
             defaults.set(data, forKey: key)
-            lock.lock()
-            defer { lock.unlock() }
-            let entry = entryLocked(key)
-            entry.set(value, encoded: data)
-            return entry.key
+            let crossing = StoredValue(value)
+            return state.withLock { state in
+                let entry = state.entry(key)
+                entry.set(crossing.value, encoded: data)
+                return entry.key
+            }
         }
 
         /// Removes any value stored for `key`. A key that was never set is
@@ -145,26 +165,11 @@ import TUICore
         /// never seen the key: readers may be waiting on it through another.
         public func remove(forKey key: String) -> StoredKey? {
             defaults.removeObject(forKey: key)
-            lock.lock()
-            defer { lock.unlock() }
-            guard let entry = entries[key] else { return Self.sharedKeys.withLock { $0[key] } }
-            entry.clear()
-            return entry.key
-        }
-
-        /// The entry for `key`, made empty if there is none, on the key's
-        /// shared ``StoredKey`` (caller holds `lock`).
-        private func entryLocked(_ key: String) -> StoredEntry {
-            if let entry = entries[key] { return entry }
-            let stored = Self.sharedKeys.withLock { keys in
-                if let stored = keys[key] { return stored }
-                let stored = StoredKey()
-                keys[key] = stored
-                return stored
+            return state.withLock { state in
+                guard let entry = state.entries[key] else { return Self.sharedKeys.withLock { $0[key] } }
+                entry.clear()
+                return entry.key
             }
-            let entry = StoredEntry(key: stored)
-            entries[key] = entry
-            return entry
         }
 
         /// Asks `UserDefaults` to flush pending writes.
@@ -282,7 +287,7 @@ import TUICore
     ///
     /// Uses a JSON file at `~/.local/share/[appName]/UserDefaults.json` to store data,
     /// following the XDG Base Directory Specification.
-    public final class UserDefaultsStorage: StorageBackend, @unchecked Sendable {
+    public final class UserDefaultsStorage: StorageBackend {
         /// The underlying file storage.
         private let storage: JSONFileStorage
 

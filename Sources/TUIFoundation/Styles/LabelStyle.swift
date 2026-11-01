@@ -250,7 +250,7 @@ extension LabelStyle where Self == TitleAndIconLabelStyle {
 
 /// Environment key for the label style.
 private struct LabelStyleKey: EnvironmentKey {
-    static let defaultValue = StyleChain<any LabelStyle>(DefaultLabelStyle())
+    static var defaultValue: StyleChain<any LabelStyle> { StyleChain(DefaultLabelStyle()) }
 }
 
 extension EnvironmentValues {

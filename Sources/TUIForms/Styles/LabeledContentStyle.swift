@@ -162,7 +162,7 @@ extension LabeledContentStyle where Self == AutomaticLabeledContentStyle {
 // MARK: - Environment
 
 private struct LabeledContentStyleKey: EnvironmentKey {
-    static let defaultValue = StyleChain<any LabeledContentStyle>(AutomaticLabeledContentStyle())
+    static var defaultValue: StyleChain<any LabeledContentStyle> { StyleChain(AutomaticLabeledContentStyle()) }
 }
 
 extension EnvironmentValues {

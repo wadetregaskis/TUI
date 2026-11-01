@@ -38,6 +38,7 @@ struct SecureFieldClipboardTests {
     }
 
     @Test("Ctrl-C in a secure field puts nothing on the clipboard")
+    @MainActor
     func secureCopyIsRefused() {
         let board = FakeClipboard()
         let (handler, box) = makeHandler("hunter2", secure: true, clipboard: board)
@@ -55,6 +56,7 @@ struct SecureFieldClipboardTests {
     }
 
     @Test("Ctrl-X in a secure field neither copies nor deletes")
+    @MainActor
     func secureCutIsRefused() {
         let board = FakeClipboard()
         let (handler, box) = makeHandler("hunter2", secure: true, clipboard: board)
@@ -114,6 +116,7 @@ struct SecureFieldClipboardTests {
     /// Ctrl-K deleted "part" from "SECRETpart", and the next Ctrl-Y, in that
     /// field or another, yanked the kill made before it, never "part").
     @Test("Ctrl-K in a secure field deletes without keeping the kill, so Ctrl-Y yanks nothing")
+    @MainActor
     func secureKillKeepsNothing() {
         let board = FakeClipboard()
         let (handler, box) = makeHandler("hunter2", secure: true, clipboard: board)
@@ -141,6 +144,7 @@ struct SecureFieldClipboardTests {
     }
 
     @Test("Pasting INTO a secure field still works")
+    @MainActor
     func securePasteIsAllowed() {
         // The promise is one-directional: SwiftUI's list bars cutting and
         // copying and says nothing about paste, which is how a password

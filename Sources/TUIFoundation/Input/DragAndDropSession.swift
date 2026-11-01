@@ -21,7 +21,7 @@ import TUICore
 /// shift/ctrl/meta through the whole drag), so this deliberate deviation
 /// carries both. The location is in the destination view's local space —
 /// `(0, 0)` is its top-left cell.
-public struct DropInfo: Sendable, Equatable {
+public struct DropInfo: Equatable {
     /// The drop column, relative to the destination's left edge.
     public let x: Int
 
@@ -67,7 +67,7 @@ public struct DropInfo: Sendable, Equatable {
 /// A drag's payload as a ``DropInfo`` carries it: by reference, so the info
 /// stays `Sendable` and its equality is the payload's identity rather than a
 /// comparison of values of unknown type.
-final class DropPayload: @unchecked Sendable, Equatable {
+final class DropPayload: Equatable {
     let value: Any
 
     init(_ value: Any) {
@@ -91,13 +91,11 @@ final class DropPayload: @unchecked Sendable, Equatable {
 /// cursor against the registered targets, so a target's geometry is always
 /// exactly what is on screen.
 ///
-/// `@unchecked Sendable` on the same terms as ``MouseEventDispatcher``: the
-/// session is only ever touched from the main run loop (render pass + input
-/// dispatch), but it is created by the nonisolated ``TUIContext``
-/// initializer, so it cannot be formally actor-isolated.
+/// Not `Sendable`, like ``MouseEventDispatcher``: the session is only ever
+/// touched from the main run loop (render pass + input dispatch).
 /// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
 @usableFromInline
-package final class DragAndDropSession: @unchecked Sendable {
+package final class DragAndDropSession {
     /// One frame's registration of a drop destination.
     package struct Target {
         /// The mouse-region id whose on-screen rectangle is the drop zone.

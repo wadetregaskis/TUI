@@ -91,7 +91,7 @@ struct APIOpaqueRow: Identifiable, Sendable {
 /// A reference-type row, which an app driving a table from model objects has.
 /// Identity is the `id` as ever, but equality — if anything reaches for it —
 /// is the class's, so a fresh object per frame is never equal to last frame's.
-final class APIClassRow: Identifiable, @unchecked Sendable {
+final class APIClassRow: Identifiable, Sendable {
     let id: Int
     let generation: Int
     init(id: Int, generation: Int) {

@@ -16,7 +16,7 @@ import TUIFoundation
 #endif
 
 private struct FileDialogIconKey: EnvironmentKey {
-    static let defaultValue: FileDialogItemViews? = nil
+    static var defaultValue: FileDialogItemViews? { nil }
 }
 
 extension EnvironmentValues {

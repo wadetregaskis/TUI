@@ -264,11 +264,11 @@ enum FileExportWrite {
     /// exports as and the name it suggests, and loads its data.
     ///
     /// Through `NSItemProvider` rather than `Transferable.exported(as:)`, which
-    /// is macOS 15.2's, where TUI runs on macOS 14 (registering a
+    /// is macOS 15.2's, where TUI runs on macOS 15.0 (registering a
     /// `Transferable` is macOS 13's).
     /// An item handed to `NSItemProvider`, whose `register(_:)` takes it as
     /// a `@Sendable` autoclosure: see ``TransferableExport/init(_:contentTypes:)``.
-    private struct HandedItem<T>: @unchecked Sendable {
+    private struct HandedItem<T>: @unchecked Sendable {  // swiftlint:disable:this concurrency_escape
         let item: T
 
         init(_ item: T) {
@@ -276,10 +276,10 @@ enum FileExportWrite {
         }
     }
 
-    struct TransferableExport: @unchecked Sendable {
+    @MainActor
+    struct TransferableExport {
         /// The provider the item is registered with. Only read, and only
-        /// asked to load: `@unchecked Sendable` for the provider, which is
-        /// not marked so.
+        /// asked to load.
         private let provider: NSItemProvider
 
         /// The types the file can be saved as: the caller's, else the ones
@@ -289,7 +289,6 @@ enum FileExportWrite {
         /// The file name the item suggests, if any.
         let suggestedFilename: String?
 
-        @MainActor
         init<T: Transferable>(_ item: T, contentTypes: [UTType]) {
             let provider = NSItemProvider()
             // The provider takes the item as a `@Sendable` autoclosure, which

@@ -116,7 +116,7 @@ extension OnHoverModifier: Renderable {
 /// arrives: the handler is built before the registration that names it, so the
 /// id is filled in afterwards. A memo replaying the registration keeps the id,
 /// and so the lookup.
-final class RegionOrigin: @unchecked Sendable {
+final class RegionOrigin {
     private weak var dispatcher: MouseEventDispatcher?
     var handlerID: HitTestRegion.HandlerID?
 

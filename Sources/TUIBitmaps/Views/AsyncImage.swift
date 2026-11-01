@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import TUICore
 import TUIFoundation
 import TUIImage
@@ -45,10 +46,13 @@ public enum AsyncImagePhase: Sendable {
 /// source again. A reference, so an `Image` carrying one
 /// stays cheap to copy.
 ///
-/// Main-actor state in practice — views are built and drawn there — which is
-/// what the unchecked `Sendable` rests on, the drawn-out pixels being cached
-/// on first use.
-package final class _DecodedImage: @unchecked Sendable {
+/// `@unchecked` for ``owner`` and `draw` alone, both set once when it is made.
+/// `owner` is any object, a `CGImage` or an `NSImage` (whose `Sendable`
+/// conformance its SDK marks unavailable), and it is only compared and kept
+/// alive here, never called. `draw` is a closure that captures it, run wherever
+/// `pixels` is first asked for: main-actor work in practice, views being built
+/// and drawn there. The drawn-out pixels are behind a lock.
+package final class _DecodedImage: @unchecked Sendable {  // swiftlint:disable:this concurrency_escape
     /// What the pixels are drawn out of — a `CGImage` or an `NSImage` — or
     /// `nil` for pixels handed over as they are.
     ///
@@ -58,7 +62,7 @@ package final class _DecodedImage: @unchecked Sendable {
     /// no other picture can take the address while it does.
     package let owner: AnyObject?
 
-    private var drawn: RGBAImage?
+    private let drawn: Mutex<RGBAImage?>
     private let draw: () -> RGBAImage
 
     /// Where the image cache keeps these pixels, when it is the cache that
@@ -91,7 +95,7 @@ package final class _DecodedImage: @unchecked Sendable {
     /// Pixels already decoded, at `scale` pixels per point.
     init(_ pixels: RGBAImage, scale: Double = 1) {
         self.owner = nil
-        self.drawn = pixels
+        self.drawn = Mutex(pixels)
         self.draw = { pixels }
         self.pointSizing = .scale(Self.sanitized(scale))
         self.cachedPicture = nil
@@ -106,7 +110,7 @@ package final class _DecodedImage: @unchecked Sendable {
     ///   the view has drawn them.
     init(cached picture: CachedPicture, in cache: URLImageCache?, scale: Double = 1, landedPixels: RGBAImage? = nil) {
         self.owner = picture.decode
-        self.drawn = nil
+        self.drawn = Mutex(nil)
         self.landedPixels = landedPixels
         // Empty once the cache has let the decode go: the view drawing it reads
         // the phase (``phase``), and never asks for these then.
@@ -120,6 +124,7 @@ package final class _DecodedImage: @unchecked Sendable {
     /// sized in points as `pointSizing` says.
     package init(owner: AnyObject, pointSizing: PointSizing = .scale(1), draw: @escaping () -> RGBAImage) {
         self.owner = owner
+        self.drawn = Mutex(nil)
         self.draw = draw
         self.cachedPicture = nil
         self.cache = nil
@@ -184,9 +189,11 @@ package final class _DecodedImage: @unchecked Sendable {
     package var pixels: RGBAImage {
         // Read back each time from the cache that keeps them, never kept here.
         if cachedPicture != nil { return landedPixels ?? draw() }
-        if let drawn { return drawn }
+        if let kept = drawn.withLock({ $0 }) { return kept }
+        // Outside the lock: decoding is slow, and drawing out an app's picture
+        // runs AppKit's code. Two threads asking at once draw the same pixels.
         let pixels = draw()
-        drawn = pixels
+        drawn.withLock { $0 = pixels }
         return pixels
     }
 }

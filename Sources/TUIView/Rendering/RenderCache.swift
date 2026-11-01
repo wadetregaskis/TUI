@@ -87,12 +87,12 @@ import TUIStyling
 ///
 /// ## Thread Safety
 ///
-/// The cache's tables are main-actor only, but ``invalidateRender(for:)`` is
-/// **not**: a `@State` write can arrive from any thread (a `.task`, a mouse
-/// handler on the input thread). That path therefore only takes a lock and
-/// enqueues; every mutation of `entries` / `sizeEntries` happens on the main
-/// actor when the queue drains.
-@usableFromInline package final class RenderCache: @unchecked Sendable {
+/// The cache is not `Sendable`, so the compiler keeps its tables on the main
+/// actor, where the walk that holds it runs. What another thread can reach is its
+/// ``Link``: an `@Observable` property's write reports there, from whatever thread
+/// it is made on. That path only takes a lock and enqueues; every mutation of
+/// `entries` / `sizeEntries` happens on the main actor when the queue drains.
+@usableFromInline package final class RenderCache {
 
     /// Cached entries keyed by the view identity's STRUCTURAL HASH.
     ///
@@ -537,6 +537,9 @@ import TUIStyling
     /// drained on the main actor at ``beginRenderPass()``. See ``Link``.
     package let link = Link()
 
+    /// What a holder on the render path names this cache by.
+    package let handle = Handle()
+
     /// Cumulative cache performance statistics.
     public internal(set) var stats = Stats()
 
@@ -661,7 +664,7 @@ import TUIStyling
     /// this one (see ``valueHashPlans``).
     package init(valueHashPlans: ValueHashPlans) {
         self.valueHashPlans = valueHashPlans
-        link.attach(self)
+        handle.attach(self)
         link.setDiagnostic(bodyMutationDiagnostic)
     }
 
@@ -669,6 +672,7 @@ import TUIStyling
         // First, so that nothing reading the link can find a cache that is
         // going: a holder that outlives the cache reads `nil` from here on, and
         // a write reports to nothing.
+        handle.detach()
         link.detach()
     }
 

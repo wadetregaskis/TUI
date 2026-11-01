@@ -13,6 +13,7 @@ import TUIFoundation
 
 // Threads, `poll` and a pipe are POSIX; wasip1 has no driver to hand the key
 // back to.
+import Synchronization
 #if !canImport(WASILibc)
 
 import Foundation
@@ -39,16 +40,24 @@ import Musl
 /// not read the pop either. Writes outside `Terminal` (an app's own `print`,
 /// a crash report) do not take it.
 ///
-/// `@unchecked Sendable`: every stored property is read and written only
-/// under ``condition``.
-final class TerminalWriteGate: @unchecked Sendable {
+/// What the two threads share is told under ``condition``, which makes the
+/// changes to it one step, and which the watchdog sleeps on. Each value is an
+/// atomic as well, `Mutex` having no condition to wait on, and relaxed, since
+/// the lock is what orders them: the class is `Sendable` with nothing
+/// unchecked, and a value read without the lock is only stale, never torn.
+final class TerminalWriteGate: Sendable {
     /// The lock, and what the watchdog waits on.
     fileprivate let condition = NSCondition()
 
     /// Whether the watchdog may pop the flags: they are pushed, the user's
     /// quit key is live in the driver and would stay so after the pop, and
     /// no suspend or teardown is under way (`Terminal.refreshStallWatch()`).
-    fileprivate var armed = false
+    fileprivate var armed: Bool {
+        get { armedStore.load(ordering: .relaxed) }
+        set { armedStore.store(newValue, ordering: .relaxed) }
+    }
+
+    private let armedStore = Atomic(false)
 
     /// Whether the watchdog popped the flags and the main loop has not yet
     /// been told (``noteDrain()``). Told to the signal handler as it
@@ -57,18 +66,30 @@ final class TerminalWriteGate: @unchecked Sendable {
     /// armed debt still owes it, and a ⌃\ after the watchdog's pop — the one
     /// it popped for — would pop a second entry, of a stack this process no
     /// longer has one on.
-    fileprivate var popped = false {
-        didSet {
-            if popped != oldValue { FatalSignalTerminalRestore.notePoppedByWatchdog(popped) }
+    fileprivate var popped: Bool {
+        get { poppedStore.load(ordering: .relaxed) }
+        set {
+            if poppedStore.exchange(newValue, ordering: .relaxed) != newValue {
+                FatalSignalTerminalRestore.notePoppedByWatchdog(newValue)
+            }
         }
     }
 
+    private let poppedStore = Atomic(false)
+
     /// How many times the main loop has drained its input: what the watchdog
     /// watches for a change.
-    fileprivate var drains = 0
+    fileprivate var drains: Int { drainsStore.load(ordering: .relaxed) }
+
+    private let drainsStore = Atomic<Int>(0)
 
     /// Whether the watchdog is to end.
-    fileprivate var stopped = false
+    fileprivate var stopped: Bool {
+        get { stoppedStore.load(ordering: .relaxed) }
+        set { stoppedStore.store(newValue, ordering: .relaxed) }
+    }
+
+    private let stoppedStore = Atomic(false)
 
     /// Runs `body`, a write to the terminal, holding the gate.
     func withWriteLock<Result>(_ body: () throws -> Result) rethrows -> Result {
@@ -86,7 +107,7 @@ final class TerminalWriteGate: @unchecked Sendable {
     func noteDrain() -> Bool {
         condition.lock()
         defer { condition.unlock() }
-        drains &+= 1
+        drainsStore.wrappingAdd(1, ordering: .relaxed)
         let wasPopped = popped
         popped = false
         return wasPopped
@@ -224,7 +245,10 @@ enum StandardInputWait {
 /// quit key's byte could be once popped (`Terminal.refreshStallWatch()`) —
 /// it waits for arming without watching at all. A terminal that hangs up
 /// ends it.
-final class StallWatchdog: @unchecked Sendable {
+///
+/// Not `Sendable`: it is the main thread's handle on the thread, whose loop is
+/// a ``Watch``, a value of what the thread needs alone.
+final class StallWatchdog {
     /// How long input may wait unread before the flags are popped.
     let grace: TimeInterval
 
@@ -240,9 +264,6 @@ final class StallWatchdog: @unchecked Sendable {
     /// Signalled when the thread has ended.
     private let ended = DispatchSemaphore(value: 0)
     private var started = false
-
-    /// What the watchdog writes to pop the flags: `KeyboardProtocolQuery.pop`.
-    private static let pop = Array(KeyboardProtocolQuery.pop.utf8)
 
     /// - Parameters:
     ///   - gate: The lock the terminal's writes take, and the state shared
@@ -269,8 +290,10 @@ final class StallWatchdog: @unchecked Sendable {
         wakeRead = ends[0]
         wakeWrite = ends[1]
         started = true
-        let thread = Thread { [self] in
-            watch()
+        let watch = Watch(gate: gate, input: input, output: output, wake: ends[0], grace: grace)
+        let ended = ended
+        let thread = Thread {
+            watch.run()
             ended.signal()
         }
         thread.name = "TUI stall watchdog"
@@ -294,9 +317,28 @@ final class StallWatchdog: @unchecked Sendable {
             close(wakeWrite)
         }
     }
+}
+
+// MARK: - The thread's loop
+
+/// What the watchdog's thread runs: everything here is a `let`, made before the
+/// thread starts and told to it by value.
+private struct Watch: Sendable {
+    let gate: TerminalWriteGate
+    let input: Int32
+    let output: Int32
+
+    /// The read end of the pipe that wakes the thread from `poll` to stop.
+    let wake: Int32
+
+    /// How long input may wait unread before the flags are popped.
+    let grace: TimeInterval
+
+    /// What the watchdog writes to pop the flags: `KeyboardProtocolQuery.pop`.
+    private static let pop = Array(KeyboardProtocolQuery.pop.utf8)
 
     /// The thread's loop. Holds the gate's lock except while it sleeps.
-    private func watch() {
+    func run() {
         let condition = gate.condition
         condition.lock()
         defer { condition.unlock() }
@@ -307,7 +349,7 @@ final class StallWatchdog: @unchecked Sendable {
             // Asleep until input arrives — or the pipe says stop — not holding
             // the lock, so writes and drains go on.
             condition.unlock()
-            let woke = StandardInputWait.untilInput(on: input, orWake: wakeRead)
+            let woke = StandardInputWait.untilInput(on: input, orWake: wake)
             condition.lock()
             switch woke {
             case .stop: return

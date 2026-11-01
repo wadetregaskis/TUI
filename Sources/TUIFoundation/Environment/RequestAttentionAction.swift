@@ -44,7 +44,7 @@ import TUICore
 /// icon or post a notification itself, neither of which a program in a
 /// terminal can reach. See `Documentation/Terminals/Terminal compatibility
 /// survey.md`, "Progress and attention".
-public struct RequestAttentionAction: Sendable {
+public struct RequestAttentionAction {
     /// Where the request is queued for the next frame: the running app's
     /// bell, or `nil` outside a running app, where nothing could hear it.
     private let bell: TerminalBell?

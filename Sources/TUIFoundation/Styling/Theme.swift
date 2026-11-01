@@ -122,43 +122,30 @@ package struct ThemeModifier<Content: View>: View {
     /// which was never true of `_LinkButtonStyle` or `_ColorSwatchButtonStyle`
     /// and says nothing at all about an app's own.
     ///
-    /// `@unchecked Sendable` because ``note(_:_:)`` asks it of what it notes
-    /// (it says why), and what this holds always is: its only initialisers
-    /// take a `ButtonStyle`, a `ListStyle` or a `PickerStyle`, and each of
-    /// those protocols refines `Sendable`. So the compiler checks the claim
-    /// where a value comes IN, though it cannot see it through the `Any` the
-    /// value is kept in. That is why there are three typed initialisers and not
-    /// one taking `Any?`: with that one, any later caller could wrap a value of
-    /// any type — a style whose protocol does not refine `Sendable` among them
-    /// — and `@unchecked` would wave it through. A fourth style gets a fourth
-    /// initialiser, and only if its protocol refines `Sendable`. Checked by
-    /// hand once (2026-10-08), with a throwaway
-    /// `note(ComparableStyle(NotSendable()), …)` for a `final class
-    /// NotSendable {}`: it compiled silently against `init(_: Any?)`, and
-    /// against these it fails with "no exact matches in call to initializer".
-    /// Recorded here rather than tested, because the type is private and a
-    /// file whose purpose is to fail to compile cannot live in a target that
-    /// has to build (`StorageSendabilityTests` says the same of its own).
+    /// `Sendable` because ``note(_:_:)`` asks it of what it notes (it says why),
+    /// and what this holds is: its initialisers take a `ButtonStyle`, a
+    /// `ListStyle` or a `PickerStyle`, and each of those protocols refines
+    /// `Sendable`.
     ///
-    /// Spelling the property `(any Sendable)?` instead is NOT free: `==` then
-    /// converts it to the `Any` that `isEqual(to:)` takes, a copy the release
-    /// build keeps (31 more instructions across `==` and its closure on
-    /// Xcode's 6.2.4, measured 2026-10-08).
-    private struct ComparableStyle: Equatable, PartiallyComparable, @unchecked Sendable {
-        /// `Any?` rather than a generic parameter bound to `any ButtonStyle`,
-        /// and that is load-bearing rather than laziness: inside a generic whose
-        /// parameter is an existential, `type(of:)` answers the EXISTENTIAL
-        /// metatype — `(any ButtonStyle).self` for every style alike — so the
-        /// comparison below would report two unrelated styles as the same type
-        /// and lose the floor entirely. Through `Any` it answers the dynamic
-        /// type, which is what `styleToken(_:)` took before it and why it took
-        /// it. (`ThemeStyleMemoTests` swaps two styles that cannot be compared
-        /// by value, which is the arm where only the type answers.)
-        let style: Any?
+    /// `==` converts the property to the `Any` that `isEqual(to:)` takes, a copy
+    /// the release build keeps (31 more instructions across `==` and its closure
+    /// on Xcode's 6.2.4, measured 2026-10-08): this runs once for each style a
+    /// theme modifier sets, once for each theme modifier a walk reaches.
+    private struct ComparableStyle: Equatable, PartiallyComparable {
+        /// `any Sendable` rather than a generic parameter bound to
+        /// `any ButtonStyle`, and that is load-bearing rather than laziness:
+        /// inside a generic whose parameter is an existential, `type(of:)`
+        /// answers the EXISTENTIAL metatype — `(any ButtonStyle).self` for every
+        /// style alike — so the comparison below would report two unrelated
+        /// styles as the same type and lose the floor entirely. Through an
+        /// unconstrained existential it answers the dynamic type, which is what
+        /// `styleToken(_:)` took before it and why it took it.
+        /// (`ThemeStyleMemoTests` swaps two styles that cannot be compared by
+        /// value, which is the arm where only the type answers.)
+        let style: (any Sendable)?
 
-        // The same `Any?` store from each: one existential conversion, the one
-        // the call sites made themselves when this took `Any?`, and the
-        // spelling is what keeps it that cheap. An initialiser's parameter is
+        // The same store from each: one existential conversion, the one the
+        // call sites made themselves when this took `Any?`, and the spelling is what keeps it that cheap. An initialiser's parameter is
         // OWNED unless it says otherwise, so `init(_ style: (any
         // ButtonStyle)?)` made each call site copy the theme's style to pass
         // it, and the body copy it again into the box and destroy the

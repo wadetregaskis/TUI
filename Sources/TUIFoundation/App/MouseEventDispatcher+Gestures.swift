@@ -197,27 +197,26 @@ extension MouseEventDispatcher {
     ///   and `nil` when it should go on through ordinary dispatch — a press
     ///   with no gesture under it (an arena still waiting goes on waiting),
     ///   and the drags and release of a press no arena took.
+    @MainActor
     func routeThroughGestures(_ event: MouseEvent, matching: () -> [HitTestRegion]) -> Bool? {
         guard event.button == .left, !gestureRoles.isEmpty || !gestureArenas.isEmpty else { return nil }
         let time = Int64(bitPattern: nowNanos())
         let regions = event.phase == .pressed ? matching() : []
-        return MainActor.assumeIsolated {
-            markDepartedGestures()
-            defer { giveUpDepartedGestures() }
-            switch event.phase {
-            case .pressed:
-                return beginGestureArena(event, matching: regions, time: time)
-            case .dragged, .released:
-                guard let arena = gestureArenas.last, arena.isButtonDown else { return nil }
-                var routed = arena.process(.pointer(event, timeNanos: time), dispatcher: self)
-                if arena.controlTookPress, let settled = routeAgainstItsPress(event) {
-                    routed = routed || settled
-                }
-                settleGestureArenas()
-                return routed
-            default:
-                return nil
+        markDepartedGestures()
+        defer { giveUpDepartedGestures() }
+        switch event.phase {
+        case .pressed:
+            return beginGestureArena(event, matching: regions, time: time)
+        case .dragged, .released:
+            guard let arena = gestureArenas.last, arena.isButtonDown else { return nil }
+            var routed = arena.process(.pointer(event, timeNanos: time), dispatcher: self)
+            if arena.controlTookPress, let settled = routeAgainstItsPress(event) {
+                routed = routed || settled
             }
+            settleGestureArenas()
+            return routed
+        default:
+            return nil
         }
     }
 

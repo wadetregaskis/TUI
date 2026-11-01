@@ -34,10 +34,9 @@ import TUICore
 /// hosts live in this module and the transitions live above it. A closure from
 /// phase to buffer is the whole contract, and it lets each side keep what it
 /// knows to itself.
-/// Main-actor by discipline rather than by annotation, exactly as
-/// ``StateStorage`` is — it is a stored property of one, and rendering is
-/// single-threaded on the run loop.
-package final class DepartureStore: @unchecked Sendable {
+/// Not `Sendable`, exactly as ``StateStorage`` is not: it is a stored property
+/// of one, and the compiler keeps it on the main-actor render path that holds it.
+package final class DepartureStore {
 
     /// A view's parting picture.
     public struct Departure {

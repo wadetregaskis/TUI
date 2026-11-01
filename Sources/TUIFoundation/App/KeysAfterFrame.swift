@@ -22,9 +22,9 @@
 ///
 /// One per ``TUIContext``. The run loop drains it after each frame
 /// (``take()``), handing each key to the input chain, and draws again when
-/// anything was owed. `@unchecked Sendable` as ``TerminalBell`` is: pressed
+/// anything was owed. Not `Sendable`, as ``TerminalBell`` is not: it is pressed
 /// from event handlers and drained by the run loop, all on the main actor.
-package final class KeysAfterFrame: @unchecked Sendable {
+package final class KeysAfterFrame {
     /// What is owed once the frame is on the screen.
     package enum Owed {
         /// A key, through the whole input chain, as if typed then.
@@ -69,7 +69,7 @@ package final class KeysAfterFrame: @unchecked Sendable {
 }
 
 private struct KeysAfterFrameKey: EnvironmentKey {
-    static let defaultValue: KeysAfterFrame? = nil
+    static var defaultValue: KeysAfterFrame? { nil }
 }
 
 extension EnvironmentValues {

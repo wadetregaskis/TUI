@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 
 extension Color {
     /// The phase of a breath of `count` frames at `frame`: 1 at frame 0 (the bright
@@ -115,13 +116,13 @@ extension Color {
         let key = PulseRampKey(
             dim: dim, bright: bright, depth: depth, samples: samples,
             terminalColorsGeneration: terminalColorsGeneration)
-        if let cached = pulseRampCacheLock.withLock({ pulseRampCache[key] }) { return cached }
+        if let cached = pulseRampCache.withLock({ $0[key] }) { return cached }
 
         if depth == .palette256, case .palette256(let dimIndex) = dim.value,
             case .palette256(let brightIndex) = bright.value, dimIndex >= 16, brightIndex >= 16
         {
             let answer = cubeRamp(from: dimIndex, to: brightIndex)
-            pulseRampCacheLock.withLock { pulseRampCache[key] = answer }
+            pulseRampCache.withLock { $0[key] = answer }
             return answer
         }
 
@@ -155,12 +156,12 @@ extension Color {
         // Dropping the greys can empty a ramp whose whole span was off-hue.
         // A steady bright beats a grey flicker.
         let answer = ramp.isEmpty ? [bright] : Self.monotonicInLightness(ramp, at: depth)
-        pulseRampCacheLock.withLock {
+        pulseRampCache.withLock { cache in
             // A backstop against unbounded growth, not a working-set estimate:
             // a real app has a handful of accents at a handful of depths. Same
             // shape as `ScrollbarColors.track`'s cap.
-            if pulseRampCache.count > 128 { pulseRampCache.removeAll(keepingCapacity: true) }
-            pulseRampCache[key] = answer
+            if cache.count > 128 { cache.removeAll(keepingCapacity: true) }
+            cache[key] = answer
         }
         return answer
     }
@@ -285,8 +286,7 @@ extension Color {
         let terminalColorsGeneration: Int
     }
 
-    private static let pulseRampCacheLock = NSLock()
-    nonisolated(unsafe) private static var pulseRampCache: [PulseRampKey: [Color]] = [:]
+    private static let pulseRampCache = Mutex<[PulseRampKey: [Color]]>([:])
 
     /// This colour as the terminal will actually draw it at `depth`.
     func rendered(at depth: ColorDepth) -> Color {

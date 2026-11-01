@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import TUIFoundation
 import TUIImage
 
@@ -121,8 +122,7 @@ extension Image {
 }
 
 extension AssetCatalog {
-    private static let decodedLock = NSLock()
-    nonisolated(unsafe) private static var decoded: [String: _DecodedImage] = [:]
+    private static let decoded = Mutex<[String: _DecodedImage]>([:])
 
     /// The pixels of an image set's picture drawn at another scale than 1,
     /// decoded the first time they are drawn and kept for the process, so
@@ -130,7 +130,7 @@ extension AssetCatalog {
     /// frame.
     static func decodedImage(for file: ImageFile) -> _DecodedImage {
         let key = "\(file.scale)@\(file.path)"
-        return decodedLock.withLock {
+        return decoded.withLock { decoded in
             if let known = decoded[key] { return known }
             let path = file.path
             let made = _DecodedImage(owner: key as NSString, pointSizing: .scale(file.scale)) {

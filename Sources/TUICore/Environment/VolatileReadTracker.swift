@@ -30,7 +30,7 @@ import Foundation
 /// thread-local lookup and an access-set insert, then `swift_endAccess`, per
 /// variable). ``cacheUnsafeCount`` alone summed four of them, and every memo
 /// gate reads it twice per measured or rendered node.
-package final class VolatileReadTracker: @unchecked Sendable {
+package final class VolatileReadTracker {
     /// Every count, and the scope's earliest clock instant — see the
     /// properties of the same names, which read them.
     private struct Counts {

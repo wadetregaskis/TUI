@@ -162,7 +162,7 @@ extension GroupBoxStyle where Self == DefaultGroupBoxStyle {
 // MARK: - Environment
 
 private struct GroupBoxStyleKey: EnvironmentKey {
-    static let defaultValue = StyleChain<any GroupBoxStyle>(DefaultGroupBoxStyle())
+    static var defaultValue: StyleChain<any GroupBoxStyle> { StyleChain(DefaultGroupBoxStyle()) }
 }
 
 extension EnvironmentValues {

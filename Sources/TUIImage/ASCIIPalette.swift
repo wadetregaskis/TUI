@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import TUIStyling
 
 /// How a pixel picks one of an ``ASCIIPalette``'s colours.
@@ -239,18 +240,16 @@ public struct ASCIIPalette: Sendable, Equatable {
         // under exactly those, so a report landing on another thread between the
         // two cannot store one terminal's entries under another's slots.
         let colours = TerminalColors.current
-        ansi16Lock.lock()
-        defer { ansi16Lock.unlock() }
-        if let built = ansi16Built, built.slots == colours.slots { return built.palette }
-        let palette = TerminalColors.withCurrent(colours) { Self(ANSIColor.allCases.map(Color.ansi)) }
-        ansi16Built = (slots: colours.slots, palette: palette)
-        return palette
+        return ansi16Built.withLock { built in
+            if let built, built.slots == colours.slots { return built.palette }
+            let palette = TerminalColors.withCurrent(colours) { Self(ANSIColor.allCases.map(Color.ansi)) }
+            built = (slots: colours.slots, palette: palette)
+            return palette
+        }
     }
 
-    private static let ansi16Lock = NSLock()
-
     /// The last ``ansi16`` built, with the slots it was measured under.
-    nonisolated(unsafe) private static var ansi16Built: (slots: TerminalColors.Slots?, palette: Self)?
+    private static let ansi16Built = Mutex<(slots: TerminalColors.Slots?, palette: Self)?>(nil)
 
     /// The terminal's own 256 — the 6×6×6 cube and the 24-step grey ramp,
     /// indices 16…255. What ``ASCIIColorMode/ansi256`` maps through.

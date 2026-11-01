@@ -346,7 +346,7 @@ extension AppState: AppRenderState {
         }
     }
 
-    /// A ``withTransaction(_:_:)`` scope run in this app's work has ended:
+    /// A ``withTransaction(_:_:isolation:)`` scope run in this app's work has ended:
     /// `transaction` was in force for whatever it changed.
     ///
     /// A body's observation fires ONCE, at the first write to anything it
@@ -399,7 +399,7 @@ extension AppState: AppRenderState {
 /// and so does its link, which a box actually holds, and which asks the app the
 /// cache draws for the frame. Keeping the seam a protocol lets ``StateBox`` stay
 /// free of the concrete cache type.
-package protocol RenderInvalidationSink: AnyObject, Sendable {
+package protocol RenderInvalidationSink: AnyObject {
     /// Records that the subtree rooted at `identity` (or the whole cache, when
     /// `identity` is `nil`) needs its cached buffers dropped, and requests a
     /// re-render. Thread-safe; the cache mutation itself is deferred to the
@@ -454,7 +454,24 @@ package enum StateRegistration {
     ///
     /// Only readable directly; publish it with ``withHydration(context:_:)`` or
     /// ``withHydration(environment:_:)``.
-    @TaskLocal public static var activeEnvironment: EnvironmentValues?
+    public static var activeEnvironment: EnvironmentValues? { published?.environment }
+
+    /// ``activeEnvironment``'s task local, which has to be `Sendable`. An
+    /// environment is not, as SwiftUI's is explicitly not, for what it holds may
+    /// not be: a key's value is the app's, of any type.
+    ///
+    /// `@unchecked` for exactly the scope below, which is synchronous: the value
+    /// is read by the code `block` runs, on this thread, unless `block` makes a
+    /// `Task`, which inherits the task local, and reads it on another thread.
+    /// Such a read only copies out the key's value, which the view that wrote it
+    /// handed to the environment. Nothing narrower exists: a lock will not hand
+    /// a non-`Sendable` value out, and a main-actor static cannot be read by
+    /// ``Environment/wrappedValue``, which is not isolated, without trapping.
+    private struct PublishedEnvironment: @unchecked Sendable {  // swiftlint:disable:this concurrency_escape
+        let environment: EnvironmentValues?
+    }
+
+    @TaskLocal private static var published: PublishedEnvironment?
 
     /// The view an event's handler, a gesture's callback or a `.task` is
     /// running for, while it runs (decisions B-DYNVFIX-3, option (c), the
@@ -492,7 +509,7 @@ package enum StateRegistration {
     public static func withHydration<R>(
         environment: EnvironmentValues?, _ block: () -> R
     ) -> R {
-        $activeEnvironment.withValue(environment, operation: block)
+        $published.withValue(PublishedEnvironment(environment: environment), operation: block)
     }
 
     /// The render pass under way where this is read, a serial of
@@ -662,7 +679,7 @@ public struct Binding<Value> {
     /// Reads are untouched; only the write is wrapped.
     ///
     /// - Parameter transaction: The context to write under.
-    /// - Returns: A binding that writes inside ``withTransaction(_:_:)``.
+    /// - Returns: A binding that writes inside ``withTransaction(_:_:isolation:)``.
     public func transaction(_ transaction: Transaction) -> Binding<Value> {
         var copy = self
         copy.transaction = transaction

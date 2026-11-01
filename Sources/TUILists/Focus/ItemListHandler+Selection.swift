@@ -20,6 +20,7 @@ extension ItemListHandler {
     /// "opens" the row while Space remains the selection key (the
     /// file-browser convention); without one, both keep the original select
     /// behaviour. Either way the key is an *action*, so it ends extend mode.
+    @MainActor
     func handleSelectionKey(_ key: Key) {
         isExtendingSelection = false
         if key == .enter, let primaryAction, let id = id(at: focusedIndex) {
@@ -178,6 +179,7 @@ extension ItemListHandler {
         return clickCount >= 2 && lastClickedRow == row
     }
 
+    @MainActor
     package func handleClickSelection(at index: Int, event: MouseEvent) {
         defer { anchorOnSelection(at: index) }
         focusedIndex = index
@@ -218,12 +220,11 @@ extension ItemListHandler {
     /// ctrl-/option-click toggle in multi-selection mode. The row keeps its
     /// FOCUS; only the commit is refused, matching `.deleteDisabled()`'s
     /// "still takes focus" precedent.
+    @MainActor
     func toggleSelectionAtFocusedIndex() {
         guard let itemID = id(at: focusedIndex), !selectionDisabledRows.contains(focusedIndex) else { return }
         if let compactColumnAdvance, chooseRow(itemID) {
-            // The handler is not main-actor isolated, but the keys and the
-            // clicks that choose a row are only ever handled on the main actor.
-            MainActor.assumeIsolated { compactColumnAdvance() }
+            compactColumnAdvance()
             return
         }
 

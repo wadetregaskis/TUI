@@ -517,7 +517,10 @@ struct DynamicPropertyTests {
     /// plans none for it.
     @Test("TUI's own @GestureState does not make its view run the app-property update")
     func gestureStateIsNotAnAppProperty() {
-        #expect(PropertyPlans.appPropertyType(GestureState<Int>.self) == nil)
+        // Out of `#expect`, which at a macOS 15 target crashes on a metatype
+        // compared with `nil` on a macOS 15 runtime: see CONTRIBUTING, "Testing".
+        let plansNoUpdate = PropertyPlans.appPropertyType(GestureState<Int>.self) == nil
+        #expect(plansNoUpdate)
         let context = makeRenderContext(width: 20, height: 1)
         #expect(line(GestureStateView(), context: context) == "idle")
     }

@@ -114,7 +114,7 @@ extension Optional: PointerSpaceReporting where Wrapped: Gesture {
 /// the way up (a `Table` cell): the global space,
 /// for hover and mouse handlers as for a gesture (`GesturePointer`), never the
 /// view's own.
-final class PointerSpaceOrigin: @unchecked Sendable {
+final class PointerSpaceOrigin {
     private let region: RegionOrigin?
     private let ask: GeometryAsk?
 

@@ -17,7 +17,6 @@ import TUIApp
 @testable import TUITestSupport
 import TUITextInput
 
-@available(macOS 15, *)
 private final class Model: @unchecked Sendable {
     var text: String
     var selection: TextSelection?
@@ -49,25 +48,24 @@ struct TextSelectionTests {
 
     @Test("A text editor writes its caret, and an app's selection moves it")
     func editorRoundTrip() {
-        if #available(macOS 15, *) { editorRoundTripBody() }
+        editorRoundTripBody()
     }
 
     @Test("Text edited by typing reports the caret after the new text")
     func editorTyping() {
-        if #available(macOS 15, *) { editorTypingBody() }
+        editorTypingBody()
     }
 
     @Test("A text field writes its caret and selection, and an app's selection moves them")
     func fieldRoundTrip() {
-        if #available(macOS 15, *) { fieldRoundTripBody() }
+        fieldRoundTripBody()
     }
 
     @Test("A vertical text field exchanges its selection the same way, across its rows")
     func verticalFieldRoundTrip() {
-        if #available(macOS 15, *) { verticalFieldRoundTripBody() }
+        verticalFieldRoundTripBody()
     }
 
-    @available(macOS 15, *)
     private func fieldRoundTripBody() {
         let model = Model("hello world")
         let harness = InputChainHarness { $0.textSelectionAffinity = .downstream }
@@ -85,7 +83,6 @@ struct TextSelectionTests {
         #expect(model.offsets == 7..<7, "\(String(describing: model.offsets))")
     }
 
-    @available(macOS 15, *)
     private func verticalFieldRoundTripBody() {
         let model = Model("one\ntwo")
         let harness = InputChainHarness()
@@ -101,7 +98,6 @@ struct TextSelectionTests {
         #expect(model.text == "X\ntwo")
     }
 
-    @available(macOS 15, *)
     private func editorRoundTripBody() {
         let model = Model("one\ntwo")
         let harness = InputChainHarness { $0.textSelectionAffinity = .upstream }
@@ -119,7 +115,6 @@ struct TextSelectionTests {
         #expect(model.offsets == 5..<5, "\(String(describing: model.offsets))")
     }
 
-    @available(macOS 15, *)
     private func editorTypingBody() {
         let model = Model("ab")
         let harness = InputChainHarness()

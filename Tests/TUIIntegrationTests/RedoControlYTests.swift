@@ -45,10 +45,8 @@ struct RedoControlYTests {
         let old = model.value
         model.value = value
         manager.beginUndoGrouping()
-        let reference = MainActorUndoManager(manager)
         manager.registerUndo(withTarget: model) { [self] model in
-            nonisolated(unsafe) let model = model
-            MainActor.assumeIsolated { self.set(model, to: old, on: reference.manager) }
+            self.set(model, to: old, on: manager)
         }
         manager.endUndoGrouping()
     }

@@ -61,7 +61,7 @@ extension EnvironmentValues {
 /// below its header (`ScrollWindowRelay`), since single-child steps still lead
 /// from the content to a stack there.
 private struct ScrollContentWindowKey: EnvironmentKey {
-    static let defaultValue: ScrollContentWindow? = nil
+    static var defaultValue: ScrollContentWindow? { nil }
 }
 
 extension EnvironmentValues {

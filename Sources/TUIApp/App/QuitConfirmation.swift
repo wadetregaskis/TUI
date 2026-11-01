@@ -86,10 +86,9 @@ enum QuitRequest {
 /// Whether quitting asks first, what it says, and whether it is asking: what the
 /// input chain, the run loop and the scene presenter share.
 ///
-/// One per run, made by what runs the app. `@unchecked Sendable` as
-/// ``KeysAfterFrame`` is: asked from key handlers and frames, all on the main
-/// actor.
-final class QuitPrompt: @unchecked Sendable {
+/// One per run, made by what runs the app. Not `Sendable`, as ``KeysAfterFrame``
+/// is not: asked from key handlers and frames, all on the main actor.
+final class QuitPrompt {
     /// When quitting asks: the scene's, adopted each frame.
     var confirmation = QuitConfirmation.automatic
 

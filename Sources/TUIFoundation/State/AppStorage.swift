@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 
 // MARK: - JSON File Storage
 
@@ -14,30 +15,56 @@ import Foundation
 /// app-specific configuration directory (see `appConfigDirectory()`):
 /// `~/Library/Application Support/[appName]/settings.json` on macOS, or
 /// `$XDG_CONFIG_HOME/[appName]/settings.json` (else `~/.config/...`) elsewhere.
-public final class JSONFileStorage: StorageBackend, @unchecked Sendable {
+public final class JSONFileStorage: StorageBackend {
     /// The file URL for the storage file.
     private let fileURL: URL
 
-    /// Every key this store has read, loaded or written, guarded by `lock`:
-    /// its persisted bytes, the value they last decoded to, and its
-    /// ``StoredKey``. A key read and never stored keeps an entry with no bytes,
-    /// so the readers waiting on its `StoredKey` hear of the first write.
-    private var entries: [String: StoredEntry] = [:]
+    /// What changes, behind one lock that guards nothing slow: disk writes
+    /// snapshot under the lock and write outside it.
+    private struct State {
+        /// Every key this store has read, loaded or written: its persisted
+        /// bytes, the value they last decoded to, and its ``StoredKey``. A key
+        /// read and never stored keeps an entry with no bytes, so the readers
+        /// waiting on its `StoredKey` hear of the first write.
+        var entries: [String: StoredEntry] = [:]
 
-    /// The keys THIS instance has written or removed, guarded by `lock`.
-    ///
-    /// A flush merges these — and only these — over what is currently on
-    /// disk. Snapshotting the whole cache instead rewrote the entire file
-    /// from a copy loaded once at startup, so two instances of one app (two
-    /// terminal tabs) silently clobbered each other's saved settings: the
-    /// second to write anything erased everything the first had saved since
-    /// launch. Merging per key narrows a lost update to a key both actually
-    /// contested.
-    private var dirtyKeys: Set<String> = []
+        /// The keys THIS instance has written or removed.
+        ///
+        /// A flush merges these — and only these — over what is currently on
+        /// disk. Snapshotting the whole cache instead rewrote the entire file
+        /// from a copy loaded once at startup, so two instances of one app (two
+        /// terminal tabs) silently clobbered each other's saved settings: the
+        /// second to write anything erased everything the first had saved since
+        /// launch. Merging per key narrows a lost update to a key both actually
+        /// contested.
+        var dirtyKeys: Set<String> = []
 
-    /// Lock for thread safety. Guards `entries` and `savePending` — and nothing
-    /// slow: disk writes snapshot under the lock and write outside it.
-    private let lock = NSLock()
+        /// Whether a save is already queued. Writes arrive in bursts (a slider
+        /// bound to storage emits one per tick); one queued flush snapshots
+        /// whatever the cache holds when it runs, so the burst costs one disk
+        /// write, not one per tick.
+        var savePending = false
+
+        /// The entry for `key`, made empty if there is none.
+        mutating func entry(_ key: String) -> StoredEntry {
+            if let entry = entries[key] { return entry }
+            let entry = StoredEntry()
+            entries[key] = entry
+            return entry
+        }
+
+        /// Notes that `key` must reach the disk, and returns whether a flush
+        /// has to be started for it (``flushSoon()``): none does if one is
+        /// already queued, since that one will snapshot this write too.
+        mutating func noteChanged(_ key: String) -> Bool {
+            dirtyKeys.insert(key)
+            guard !savePending else { return false }
+            savePending = true
+            return true
+        }
+    }
+
+    private let state = Mutex(State())
 
     /// Serialises every disk write. A dedicated serial queue rather than
     /// `Task.detached` for three reasons: writes land in submission order (two
@@ -54,12 +81,6 @@ public final class JSONFileStorage: StorageBackend, @unchecked Sendable {
     #if !canImport(WASILibc)
         private let saveQueue = DispatchQueue(label: "TUI.JSONFileStorage.save", qos: .utility)
     #endif
-
-    /// Whether a save is already queued. Writes arrive in bursts (a slider
-    /// bound to storage emits one per tick); one queued flush snapshots
-    /// whatever the cache holds when it runs, so the burst costs one disk
-    /// write, not one per tick.
-    private var savePending = false
 
     /// Creates a JSON file storage with default location.
     public init() {
@@ -103,10 +124,11 @@ extension JSONFileStorage {
     /// frame for as long as the value stayed in the file. See
     /// ``StorageDiagnostics``.
     public func entry<T: Codable>(forKey key: String, as type: T.Type) -> (value: T?, key: StoredKey) {
-        lock.lock()
-        defer { lock.unlock() }
-        let entry = entryLocked(key)
-        return (entry.value(as: T.self), entry.key)
+        let (read, stored) = state.withLock { state -> (StoredValue<T?>, StoredKey) in
+            let entry = state.entry(key)
+            return (StoredValue(entry.value()), entry.key)
+        }
+        return (read.value, stored)
     }
 
     /// Stores `value` for `key` and schedules a write.
@@ -123,39 +145,36 @@ extension JSONFileStorage {
         } catch {
             // Reported before the lock is taken at all, deliberately, rather
             // than from a `catch` inside the critical section: ``report`` runs
-            // the app's handler synchronously on this thread, and `lock` is a
-            // plain `NSLock`. A handler that touches this backend — even just
-            // `value(forKey:)`, the coalescing ``StorageDiagnostics`` invites —
-            // re-entered it and hung the app for good. `flushToDisk` reports
-            // after its own unlock for the same reason.
+            // the app's handler synchronously on this thread, and the lock
+            // cannot be taken twice. A handler that touches this backend — even
+            // just `value(forKey:)`, the coalescing ``StorageDiagnostics``
+            // invites — would re-enter it, which ends the process. `flushToDisk`
+            // reports after its own unlock for the same reason.
             StorageDiagnostics.report(
                 StorageFailure(operation: .encode, key: key, path: fileURL.path, underlying: error))
-            lock.lock()
-            defer { lock.unlock() }
-            return entryLocked(key).key
+            return state.withLock { $0.entry(key).key }
         }
 
-        lock.lock()
-        defer { lock.unlock() }
-
-        let entry = entryLocked(key)
-        entry.set(value, encoded: data)
-        dirtyKeys.insert(key)
-        saveToDiskAsync()
-        return entry.key
+        let crossing = StoredValue(value)
+        let (stored, needsFlush) = state.withLock { state in
+            let entry = state.entry(key)
+            entry.set(crossing.value, encoded: data)
+            return (entry.key, state.noteChanged(key))
+        }
+        if needsFlush { flushSoon() }
+        return stored
     }
 
     /// Removes any value stored for `key`, scheduling the write as
     /// ``store(_:forKey:)`` does.
     public func remove(forKey key: String) -> StoredKey? {
-        lock.lock()
-        defer { lock.unlock() }
-
-        let entry = entries[key]
-        entry?.clear()
-        dirtyKeys.insert(key)
-        saveToDiskAsync()
-        return entry?.key
+        let (stored, needsFlush) = state.withLock { state -> (StoredKey?, Bool) in
+            let entry = state.entries[key]
+            entry?.clear()
+            return (entry?.key, state.noteChanged(key))
+        }
+        if needsFlush { flushSoon() }
+        return stored
     }
 
     /// Blocks until everything written so far is on disk.
@@ -179,24 +198,18 @@ extension JSONFileStorage {
 // MARK: - Private Helpers
 
 extension JSONFileStorage {
-    /// The entry for `key`, made empty if there is none (caller holds `lock`).
-    fileprivate func entryLocked(_ key: String) -> StoredEntry {
-        if let entry = entries[key] { return entry }
-        let entry = StoredEntry()
-        entries[key] = entry
-        return entry
-    }
-
     fileprivate func loadFromDisk() {
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
 
         do {
             let data = try Data(contentsOf: fileURL)
             if let decoded = try JSONSerialization.jsonObject(with: data) as? [String: String] {
-                // Convert base64 strings back to Data
-                for (key, base64String) in decoded {
-                    if let valueData = Data(base64Encoded: base64String) {
-                        entries[key] = StoredEntry(data: valueData)
+                state.withLock { state in
+                    // Convert base64 strings back to Data
+                    for (key, base64String) in decoded {
+                        if let valueData = Data(base64Encoded: base64String) {
+                            state.entries[key] = StoredEntry(data: valueData)
+                        }
                     }
                 }
             }
@@ -208,12 +221,15 @@ extension JSONFileStorage {
         }
     }
 
-    /// Queues one flush (caller holds `lock`). Bursts coalesce: if a flush is
-    /// already queued it will snapshot this write too, so a slider dragging a
-    /// bound value costs one disk write per drain, not one per tick.
-    fileprivate func saveToDiskAsync() {
-        guard !savePending else { return }
-        savePending = true
+    /// Queues one flush, once ``State/noteChanged(_:)`` has said one is needed.
+    /// Bursts coalesce: if a flush is already queued it will snapshot this
+    /// write too, so a slider dragging a bound value costs one disk write per
+    /// drain, not one per tick.
+    ///
+    /// Called outside the lock, because on wasip1 the flush runs right here,
+    /// and it takes the lock itself and reports a failed write to the app's
+    /// handler.
+    fileprivate func flushSoon() {
         #if canImport(WASILibc)
             // Inline, and therefore synchronous: the burst-coalescing above still
             // holds (`savePending` is cleared by the flush), and a write that
@@ -233,10 +249,10 @@ extension JSONFileStorage {
     /// the main thread (a CoW dictionary read overlapping a mutation of the
     /// same reference).
     fileprivate func flushToDisk() {
-        lock.lock()
-        savePending = false
-        let changed = dirtyKeys.map { ($0, entries[$0]?.data) }
-        lock.unlock()
+        let changed = state.withLock { state in
+            state.savePending = false
+            return state.dirtyKeys.map { ($0, state.entries[$0]?.data) }
+        }
 
         // Start from what is on disk NOW — another instance may have written
         // since this one loaded — and overlay only this instance's own
@@ -308,7 +324,18 @@ public enum StorageDefaults {
     /// writes the developer's real preferences domain.
     ///
     /// Override before creating any `@AppStorage` properties to use a custom backend.
-    nonisolated(unsafe) public static var backend: StorageBackend = {
+    public static var backend: StorageBackend {
+        get { backendStore.withLock { $0 } }
+        set { backendStore.withLock { $0 = newValue } }
+    }
+
+    /// ``backend``'s storage, made the first time it is asked for. Read each
+    /// time an `@AppStorage` that names no store and has none from its view's
+    /// environment is read or written.
+    private static let backendStore = Mutex<any StorageBackend>(makeBackend())
+
+    /// The store ``backend`` starts as.
+    private static func makeBackend() -> any StorageBackend {
         if let override = ProcessInfo.processInfo.environment["TUI_CONFIG_DIR"],
             !override.isEmpty
         {
@@ -321,7 +348,7 @@ public enum StorageDefaults {
         #else
             return JSONFileStorage()
         #endif
-    }()
+    }
 }
 
 // MARK: - AppStorage Property Wrapper

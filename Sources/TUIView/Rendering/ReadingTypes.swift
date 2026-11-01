@@ -28,8 +28,8 @@
 /// first measure, and the set is bounded by the types an app declares rather
 /// than by the rows it has drawn.
 ///
-/// Main actor only, like the render walk that asks and teaches it: it is
-/// taught from a scope's `onChange` autoclosure, which `withObservationTracking`
+/// Not `Sendable`, so it stays with the render walk that asks and teaches it,
+/// on the main actor: it is taught from a scope's `onChange` autoclosure, which `withObservationTracking`
 /// evaluates on the walk's own thread as the scope closes.
 package final class ReadingTypes {
     /// One bit per type known, at a hash of its metadata pointer: a type not

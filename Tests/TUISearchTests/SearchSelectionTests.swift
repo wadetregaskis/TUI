@@ -17,7 +17,6 @@ import TUISearch
 @testable import TUITestSupport
 
 /// What the page holds, by reference so the bindings a frame built reach it.
-@available(macOS 15, *)
 private final class Probe: @unchecked Sendable {
     var query = "hello"
     var selection: TextSelection?
@@ -40,7 +39,6 @@ private final class Probe: @unchecked Sendable {
 }
 
 /// A searchable page whose field's selection is bound with `searchSelection`.
-@available(macOS 15, *)
 private struct SelectedPage: View {
     let probe: Probe
 
@@ -60,15 +58,14 @@ struct SearchSelectionTests {
 
     @Test("The search field writes its caret and selection to the binding")
     func fieldWrites() {
-        if #available(macOS 15, *) { fieldWritesBody() }
+        fieldWritesBody()
     }
 
     @Test("A selection the app writes moves the search field's, so typing replaces it")
     func appWrites() {
-        if #available(macOS 15, *) { appWritesBody() }
+        appWritesBody()
     }
 
-    @available(macOS 15, *)
     private func fieldWritesBody() {
         let harness = InputChainHarness()
         let probe = Probe()
@@ -83,7 +80,6 @@ struct SearchSelectionTests {
         #expect(probe.offsets == 0..<2, "and the selection as it grows: \(String(describing: probe.offsets))")
     }
 
-    @available(macOS 15, *)
     private func appWritesBody() {
         let harness = InputChainHarness()
         let probe = Probe()

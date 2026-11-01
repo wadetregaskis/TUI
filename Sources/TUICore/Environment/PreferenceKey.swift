@@ -67,7 +67,7 @@ extension PreferenceKey {
 // MARK: - Preference Values
 
 /// A collection of preference values propagated up the view hierarchy.
-public struct PreferenceValues: @unchecked Sendable {
+public struct PreferenceValues {
     /// One key's value, and the key's own way of combining two of them.
     ///
     /// The fold is carried WITH the value because the only place that knows the
@@ -158,13 +158,10 @@ extension PreferenceValues {
 
 /// The stack of preference values collected during one render pass.
 ///
-/// Not thread-local, which is what this said and what the `@unchecked Sendable`
-/// might otherwise be taken to mean: there is ONE instance per `TUIContext`,
-/// reached by every view through the environment, and it is unsynchronised.
-/// What makes that sound is that `push`, `pop` and `setValue` only ever run on
-/// the render path, which is main-actor isolated — the same terms, for the same
-/// reason, as `LifecycleManager`.
-@usableFromInline package final class PreferenceStorage: @unchecked Sendable {
+/// There is ONE instance per `TUIContext`, reached by every view through the
+/// environment, and it is unsynchronised. It is not `Sendable`, so the compiler
+/// keeps it on the render path that made it, which is main-actor isolated.
+@usableFromInline package final class PreferenceStorage {
     /// Stack of preference values for nested rendering.
     private var stack: [PreferenceValues] = [PreferenceValues()]
 

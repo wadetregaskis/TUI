@@ -32,7 +32,7 @@ import TUICore
 /// body removes it for the duration (`PlaceholderContentView`), so the
 /// content's own animations go on as they would without the transition.
 ///
-/// Main-actor by discipline, like the store it is installed on.
+/// Not `Sendable`, like the store it is installed on.
 package final class TransitionScrub {
     /// Which of the two passes is being drawn.
     package enum Mode {

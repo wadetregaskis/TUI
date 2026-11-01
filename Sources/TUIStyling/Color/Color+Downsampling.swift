@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 
 // MARK: - Public API
 
@@ -237,14 +238,14 @@ extension Color {
 
     /// The cached ramp for `key`, promoting a previous-generation entry.
     private static func cachedRamp(_ key: RampKey) -> [Color]? {
-        rampCacheLock.lock()
-        defer { rampCacheLock.unlock() }
-        if let live = rampCache[key] { return live }
-        // A hit in the older generation is proof the entry is still wanted, so
-        // it moves up rather than being re-derived when that generation goes.
-        guard let stale = previousRampCache[key] else { return nil }
-        rampCache[key] = stale
-        return stale
+        rampCaches.withLock { caches in
+            if let live = caches.live[key] { return live }
+            // A hit in the older generation is proof the entry is still wanted, so
+            // it moves up rather than being re-derived when that generation goes.
+            guard let stale = caches.previous[key] else { return nil }
+            caches.live[key] = stale
+            return stale
+        }
     }
 
     /// Stores `entries`, retiring a generation rather than the whole cache when
@@ -257,13 +258,13 @@ extension Color {
     /// the half that has not been asked for since the last turnover, and cost
     /// one extra dictionary probe on a miss.
     private static func storeRamp(_ entries: [Color], for key: RampKey) {
-        rampCacheLock.lock()
-        defer { rampCacheLock.unlock() }
-        if rampCache.count >= rampCacheGenerationSize {
-            previousRampCache = rampCache
-            rampCache.removeAll(keepingCapacity: true)
+        rampCaches.withLock { caches in
+            if caches.live.count >= rampCacheGenerationSize {
+                caches.previous = caches.live
+                caches.live.removeAll(keepingCapacity: true)
+            }
+            caches.live[key] = entries
         }
-        rampCache[key] = entries
     }
 
     /// The index of the first run whose entry moves a channel against the way
@@ -352,12 +353,16 @@ extension Color {
         let terminalColorsGeneration: Int
     }
 
-    private static let rampCacheLock = NSLock()
-    nonisolated(unsafe) private static var rampCache: [RampKey: [Color]] = [:]
+    /// The ramps kept, in two generations.
+    private struct RampCaches: Sendable {
+        var live: [RampKey: [Color]] = [:]
 
-    /// The generation retired when ``rampCache`` fills. Still consulted, so a
-    /// turnover costs a re-promotion rather than a re-derivation.
-    nonisolated(unsafe) private static var previousRampCache: [RampKey: [Color]] = [:]
+        /// The generation retired when ``live`` fills. Still consulted, so a
+        /// turnover costs a re-promotion rather than a re-derivation.
+        var previous: [RampKey: [Color]] = [:]
+    }
+
+    private static let rampCaches = Mutex(RampCaches())
 
     /// How many ramps a generation holds. The cache therefore tops out at twice
     /// this; the number is a guard against unbounded growth, not a working-set
@@ -384,10 +389,7 @@ extension Color {
     /// cell, but an app only ever uses a few dozen distinct colours.
     fileprivate static func nearestPalette256Index(red: UInt8, green: UInt8, blue: UInt8) -> UInt8 {
         let key = UInt32(red) << 16 | UInt32(green) << 8 | UInt32(blue)
-        quantiseCacheLock.lock()
-        let cached = quantiseCache[key]
-        quantiseCacheLock.unlock()
-        if let cached { return cached }
+        if let cached = quantiseCache.withLock({ $0[key] }) { return cached }
 
         let target = oklab(red: red, green: green, blue: blue)
         let targetChroma = (target.a * target.a + target.b * target.b).squareRoot()
@@ -417,10 +419,10 @@ extension Color {
             }
         }
 
-        quantiseCacheLock.lock()
-        if quantiseCache.count > 4096 { quantiseCache.removeAll(keepingCapacity: true) }
-        quantiseCache[key] = UInt8(bestIndex)
-        quantiseCacheLock.unlock()
+        quantiseCache.withLock { cache in
+            if cache.count > 4096 { cache.removeAll(keepingCapacity: true) }
+            cache[key] = UInt8(bestIndex)
+        }
         return UInt8(bestIndex)
     }
 
@@ -439,8 +441,7 @@ extension Color {
             return (lab.l, lab.a, lab.b, (lab.a * lab.a + lab.b * lab.b).squareRoot())
         }
 
-    private static let quantiseCacheLock = NSLock()
-    nonisolated(unsafe) private static var quantiseCache: [UInt32: UInt8] = [:]
+    private static let quantiseCache = Mutex<[UInt32: UInt8]>([:])
 
     /// How much OKLab chroma a colour needs before it counts as HAVING a hue,
     /// and so before it is held to keeping one.

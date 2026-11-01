@@ -11,11 +11,7 @@ import TUICore
 /// An action that closes the enclosing pop-up menu — set by a ``ContextMenu`` on
 /// its item subtree, read by ``Button`` so selecting an item runs its action AND
 /// closes the menu (SwiftUI's menu auto-dismiss behaviour).
-///
-/// `@unchecked Sendable`: the closure is created and invoked only on the render
-/// loop's single thread — the same latitude every action closure relies on — so
-/// it can be a concurrency-safe environment default.
-package struct DismissMenuAction: @unchecked Sendable {
+package struct DismissMenuAction {
     let action: () -> Void
 
     /// The memberwise initializer, spelled out because the synthesized one is
@@ -28,7 +24,7 @@ package struct DismissMenuAction: @unchecked Sendable {
 }
 
 private struct DismissMenuKey: EnvironmentKey {
-    static let defaultValue: DismissMenuAction? = nil
+    static var defaultValue: DismissMenuAction? { nil }
 }
 
 extension EnvironmentValues {

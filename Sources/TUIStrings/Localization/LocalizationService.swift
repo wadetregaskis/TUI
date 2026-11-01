@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import TUICore
 
 // MARK: - Localization Service
@@ -41,7 +42,7 @@ import TUICore
 /// ``currentLanguage``. So under `LANG=pt_BR.UTF-8` the app's Portuguese
 /// strings are read first, and TUI's words fall back to English only for
 /// what the app does not spell in Portuguese.
-public final class LocalizationService: @unchecked Sendable {
+public final class LocalizationService: Sendable {
     /// The shared localization service instance.
     public static let shared = LocalizationService()
 
@@ -52,12 +53,13 @@ public final class LocalizationService: @unchecked Sendable {
     /// another first — Portuguese, say — and the app's own strings are read in
     /// that one before this; see "Where a key is looked up" above.
     ///
-    /// No `didSet` doing work: the persistence and the re-render belong to
-    /// ``setLanguage(_:)``, OUTSIDE its lock. Run from an observer they ran
-    /// inside the critical section, and a storage failure there reports
-    /// synchronously to the app's handler — a handler that localizes its own
-    /// message re-entered `string(for:)`, and the lock is not recursive.
-    public private(set) var currentLanguage: Language
+    /// The persistence and the re-render belong to ``setLanguage(_:)``,
+    /// OUTSIDE the lock that moves this. Inside it, a storage failure would
+    /// report synchronously to the app's handler, and a handler that localizes
+    /// its own message re-enters `string(for:)`, which the lock does not allow.
+    public var currentLanguage: Language {
+        state.withLock { $0.currentLanguage }
+    }
 
     /// The locale the app formats in, and what `\.locale` is each frame
     /// unless a subtree sets its own: the user's locale, as SwiftUI's
@@ -72,89 +74,103 @@ public final class LocalizationService: @unchecked Sendable {
     /// stored by it) it is that language with the user's region
     /// (``Language/locale(in:)``) — `de` under `LANG=en_GB.UTF-8` is German
     /// written for Britain — as macOS's per-app language makes
-    /// `Locale.current`. Moved with ``currentLanguage``, under `lock`.
-    ///
-    /// Read under the lock, unlike ``currentLanguage``: a `Locale` holds a
-    /// reference, which a read racing ``setLanguage(_:)`` must not tear.
+    /// `Locale.current`. Moved with ``currentLanguage``.
     public var currentLocale: Locale {
-        lock.withLock { _currentLocale }
+        state.withLock { $0.currentLocale }
     }
 
-    /// ``currentLocale``'s storage, under `lock`.
-    private var _currentLocale: Locale
+    /// What the service holds that changes, behind one lock.
+    private struct State {
+        /// ``LocalizationService/currentLanguage``'s storage.
+        var currentLanguage: Language
+
+        /// ``LocalizationService/currentLocale``'s storage.
+        var currentLocale: Locale
+
+        /// The language codes a key is looked up in, most preferred first,
+        /// ending in English: ``currentLanguage``'s code, after any the
+        /// environment asked for ahead of it that TUI has no translations of,
+        /// and then `"en"`. Moved with ``currentLanguage``.
+        var lookupCodes: [String]
+
+        /// Cached translations: [languageCode: [dotPath: localizedString]]
+        var translationCache: [String: [String: String]] = [:]
+
+        /// App-supplied translations: [languageCode: [dotPath: localizedString]],
+        /// registered by the host application via ``register(translations:)``. These
+        /// are checked before the bundled framework strings, so an app can add its
+        /// own keys and override framework defaults.
+        var appTranslations: [String: [String: String]] = [:]
+
+        /// Whether any key in ``appTranslations`` holds a printf conversion other
+        /// than `%@` — `%lld`, `%lf`, … — and so may be a key as SwiftUI spells an
+        /// interpolated number (`LocalizedStringKey.swiftUIKey`). Until one is
+        /// registered, a key in that spelling is not looked for among the
+        /// registered strings: none could hold it, and an interpolated `Text` that
+        /// is no key at all would otherwise hash its key a second time on every
+        /// lookup, in every language.
+        var registeredKeysSpellSwiftUI = false
+
+        /// What ``string(for:swiftUIKey:tableName:bundle:)`` has answered, so a key
+        /// asked for again — every `Text` of every frame — is one lookup rather
+        /// than a walk of every language and every table, twice where SwiftUI
+        /// spells the key differently. Emptied by everything that can change an
+        /// answer: the language, and the strings an app registers.
+        var resolved = ResolvedStrings()
+
+        /// The numbers ``formatted(_:)`` has written in ``currentLocale``, so a
+        /// body that interpolates an unchanged number into a key — every frame —
+        /// looks it up rather than formatting it again. Emptied whenever
+        /// ``currentLocale`` moves.
+        var formattedNumbers = GenerationalMemo<InterpolatedNumber, String>(
+            limit: LocalizationService.formattedNumberLimit)
+
+        /// How many numbers ``formatted(_:)`` has written afresh, rather than
+        /// found kept — for the tests that count them.
+        var numbersWritten = 0
+
+        /// The app's own string tables — see ``BundleStringTables``. Here
+        /// because they are not thread-safe: they are used only with the lock
+        /// held.
+        let bundleTables: BundleStringTables
+
+        /// Where this service persists its preference, when that is not the app's
+        /// own config directory: the constructor override the localization tests
+        /// use, and the scoped redirect in ``withPersistence(redirectedTo:_:)``.
+        ///
+        /// Behind the lock, so that redirect is safe against a concurrent
+        /// ``setLanguage(_:)``.
+        var configDirectoryOverride: String?
+
+        /// Makes `language`, written for `region`, the active language, and
+        /// forgets every answer read in the last one.
+        mutating func move(to language: Language, in region: Locale.Region?) {
+            currentLanguage = language
+            currentLocale = language.locale(in: region)
+            lookupCodes = LocalizationService.lookupCodes(asked: [], language: language)
+            resolved = ResolvedStrings()
+            formattedNumbers = GenerationalMemo(limit: LocalizationService.formattedNumberLimit)
+        }
+    }
+
+    private let state: Mutex<State>
 
     /// The region the user's locale names, read once when the service is
     /// made: see `systemRegion(environment:current:)`.
     private let region: Locale.Region?
 
-    /// The language codes a key is looked up in, most preferred first, ending
-    /// in English: ``currentLanguage``'s code, after any the environment asked
-    /// for ahead of it that TUI has no translations of, and then `"en"`.
-    /// Moved with ``currentLanguage``, under `lock`.
-    private var lookupCodes: [String]
-
-    /// Cached translations: [languageCode: [dotPath: localizedString]]
-    private var translationCache: [String: [String: String]] = [:]
-
-    /// App-supplied translations: [languageCode: [dotPath: localizedString]],
-    /// registered by the host application via ``register(translations:)``. These
-    /// are checked before the bundled framework strings, so an app can add its
-    /// own keys and override framework defaults.
-    private var appTranslations: [String: [String: String]] = [:]
-
-    /// Whether any key in ``appTranslations`` holds a printf conversion other
-    /// than `%@` — `%lld`, `%lf`, … — and so may be a key as SwiftUI spells an
-    /// interpolated number (`LocalizedStringKey.swiftUIKey`). Until one is
-    /// registered, a key in that spelling is not looked for among the
-    /// registered strings: none could hold it, and an interpolated `Text` that
-    /// is no key at all would otherwise hash its key a second time on every
-    /// lookup, in every language. Under `lock`.
-    private var registeredKeysSpellSwiftUI = false
-
-    /// What ``string(for:swiftUIKey:tableName:bundle:)`` has answered, so a key
-    /// asked for again — every `Text` of every frame — is one lookup rather
-    /// than a walk of every language and every table, twice where SwiftUI
-    /// spells the key differently. Emptied by everything that can change an
-    /// answer: the language, and the strings an app registers. Under `lock`.
-    private var resolved = ResolvedStrings()
-
-    /// The numbers ``formatted(_:)`` has written in ``currentLocale``, so a
-    /// body that interpolates an unchanged number into a key — every frame —
-    /// looks it up rather than formatting it again. Emptied whenever
-    /// ``currentLocale`` moves. Under `lock`.
-    private var formattedNumbers = GenerationalMemo<InterpolatedNumber, String>(limit: formattedNumberLimit)
-
-    /// How many numbers one generation of ``formattedNumbers`` holds.
+    /// How many numbers one generation of ``State/formattedNumbers`` holds.
     static let formattedNumberLimit = 1_024
 
-    /// How many numbers ``formatted(_:)`` has written afresh, rather than
-    /// found kept — for the tests that count them. Under `lock`.
-    private var numbersWritten = 0
-
-    /// ``numbersWritten``, read under the lock.
-    var numbersFormatted: Int { lock.withLock { numbersWritten } }
-
-    /// The app's own string tables — see ``BundleStringTables``. Used under
-    /// `lock`.
-    private let bundleTables: BundleStringTables
+    /// ``State/numbersWritten``, read under the lock.
+    var numbersFormatted: Int { state.withLock { $0.numbersWritten } }
 
     /// Where TUI's own translations are read from: its resource bundle.
     let resources: ModuleResources
 
-    /// Lock for thread-safe access
-    private let lock = NSLock()
-
-    /// Where this service persists its preference, when that is not the app's
-    /// own config directory: the constructor override the localization tests
-    /// use, and the scoped redirect in ``withPersistence(redirectedTo:_:)``.
-    ///
-    /// Read under `lock`, so that redirect is safe against a concurrent
-    /// ``setLanguage(_:)``.
-    private var configDirectoryOverride: String?
-
     /// The render states of the apps running from this service, which a
     /// change of what it holds asks for a frame wherever the change was made:
-    /// see ``noteRunning(_:)``. Behind a lock of its own, not `lock`: it is
+    /// see ``noteRunning(_:)``. Behind a lock of its own, not `state`: it is
     /// read after a change has let go of that one, and noted from another
     /// file.
     let runningApps = Lock<[any AppRenderState]>(initialState: [])
@@ -165,21 +181,19 @@ public final class LocalizationService: @unchecked Sendable {
     /// environment asks for — see `systemPreferredLanguage(environment:preferredLanguages:)`
     /// — and then to English.
     public init() {
-        self.configDirectoryOverride = nil
-        self.bundleTables = BundleStringTables()
         self.resources = .current
 
         let initial = Self.initialLanguage(
             stored: Self.loadLanguagePreference(), asked: Self.systemPreferredLanguageCodes())
-        self.currentLanguage = initial.language
-        self.lookupCodes = initial.codes
-        self.region = Self.systemRegion()
-        self._currentLocale = Self.userLocale(initial, region: region)
+        let region = Self.systemRegion()
+        self.region = region
+        self.state = Mutex(
+            State(
+                currentLanguage: initial.language, currentLocale: Self.userLocale(initial, region: region),
+                lookupCodes: initial.codes, bundleTables: BundleStringTables()))
 
         // Preload current language translations
-        lock.lock()
-        _ = _translations(for: currentLanguage.rawValue)
-        lock.unlock()
+        state.withLock { _ = _translations(for: initial.language.rawValue, state: &$0) }
     }
 
     /// Creates a localization service with a custom config directory.
@@ -194,21 +208,20 @@ public final class LocalizationService: @unchecked Sendable {
         configDirectoryPath: String, defaultBundle: Bundle = .main, environment: [String: String] = [:],
         resources: ModuleResources = .current
     ) {
-        self.configDirectoryOverride = configDirectoryPath
-        self.bundleTables = BundleStringTables(defaultBundle: defaultBundle)
         self.resources = resources
 
         let initial = Self.initialLanguage(
             stored: Self.loadLanguagePreference(from: configDirectoryPath),
             asked: Self.systemPreferredLanguageCodes(environment: environment, preferredLanguages: []))
-        self.currentLanguage = initial.language
-        self.lookupCodes = initial.codes
-        self.region = Self.systemRegion(environment: environment, current: nil)
-        self._currentLocale = Self.userLocale(initial, region: region)
+        let region = Self.systemRegion(environment: environment, current: nil)
+        self.region = region
+        self.state = Mutex(
+            State(
+                currentLanguage: initial.language, currentLocale: Self.userLocale(initial, region: region),
+                lookupCodes: initial.codes, bundleTables: BundleStringTables(defaultBundle: defaultBundle),
+                configDirectoryOverride: configDirectoryPath))
 
-        lock.lock()
-        _ = _translations(for: currentLanguage.rawValue)
-        lock.unlock()
+        state.withLock { _ = _translations(for: initial.language.rawValue, state: &$0) }
     }
 
     /// Changes the active language and persists the preference, and asks for
@@ -223,13 +236,7 @@ public final class LocalizationService: @unchecked Sendable {
     ///
     /// - Parameter language: The new language to activate.
     package func setLanguageWithoutRendering(_ language: Language) {
-        lock.lock()
-        currentLanguage = language
-        _currentLocale = language.locale(in: region)
-        lookupCodes = Self.lookupCodes(asked: [], language: language)
-        resolved = ResolvedStrings()
-        formattedNumbers = GenerationalMemo(limit: Self.formattedNumberLimit)
-        lock.unlock()
+        state.withLock { $0.move(to: language, in: region) }
         // After the lock, deliberately — see `currentLanguage`.
         saveLanguagePreference(language)
     }
@@ -252,12 +259,12 @@ public final class LocalizationService: @unchecked Sendable {
     ///   - directory: Where the preference may be written for the duration.
     ///   - body: The work to run with the redirect in force.
     func withPersistence<T>(redirectedTo directory: String, _ body: () throws -> T) rethrows -> T {
-        let previous = lock.withLock { () -> String? in
-            let previous = configDirectoryOverride
-            configDirectoryOverride = directory
+        let previous = state.withLock { state -> String? in
+            let previous = state.configDirectoryOverride
+            state.configDirectoryOverride = directory
             return previous
         }
-        defer { lock.withLock { configDirectoryOverride = previous } }
+        defer { state.withLock { $0.configDirectoryOverride = previous } }
         return try body()
     }
 
@@ -286,13 +293,7 @@ public final class LocalizationService: @unchecked Sendable {
     ///
     /// - Parameter language: The language to pin.
     func pinLanguageForTesting(_ language: Language) {
-        lock.lock()
-        currentLanguage = language
-        _currentLocale = language.locale(in: region)
-        lookupCodes = Self.lookupCodes(asked: [], language: language)
-        resolved = ResolvedStrings()
-        formattedNumbers = GenerationalMemo(limit: Self.formattedNumberLimit)
-        lock.unlock()
+        state.withLock { $0.move(to: language, in: region) }
     }
 
     /// The language a service starts in, and the codes it looks keys up in:
@@ -334,7 +335,7 @@ public final class LocalizationService: @unchecked Sendable {
 
     /// The language codes keys are looked up in, in order — for the tests.
     var lookupLanguageCodes: [String] {
-        lock.withLock { lookupCodes }
+        state.withLock { $0.lookupCodes }
     }
 
     /// Merges an app's translations into this service, and asks for nothing
@@ -344,13 +345,13 @@ public final class LocalizationService: @unchecked Sendable {
     ///
     /// - Parameter translations: Language-code-keyed translation tables to add.
     package func registerWithoutRendering(translations: [String: [String: String]]) {
-        lock.lock()
-        defer { lock.unlock() }
-        resolved = ResolvedStrings()
-        for (code, table) in translations {
-            appTranslations[code, default: [:]].merge(table) { _, new in new }
-            if !registeredKeysSpellSwiftUI, table.keys.contains(where: Self.holdsPrintfConversion) {
-                registeredKeysSpellSwiftUI = true
+        state.withLock { state in
+            state.resolved = ResolvedStrings()
+            for (code, table) in translations {
+                state.appTranslations[code, default: [:]].merge(table) { _, new in new }
+                if !state.registeredKeysSpellSwiftUI, table.keys.contains(where: Self.holdsPrintfConversion) {
+                    state.registeredKeysSpellSwiftUI = true
+                }
             }
         }
     }
@@ -425,18 +426,13 @@ public final class LocalizationService: @unchecked Sendable {
     /// Formatted outside the lock: the first number in a locale makes
     /// Foundation's formatter for it, which is not quick.
     package func formatted(_ number: InterpolatedNumber) -> String {
-        let locale: Locale
-        do {
-            lock.lock()
-            defer { lock.unlock() }
-            if let kept = formattedNumbers.answer(for: number) { return kept }
-            locale = _currentLocale
-        }
+        if let kept = state.withLock({ $0.formattedNumbers.answer(for: number) }) { return kept }
+        let locale = currentLocale
         let written = number.formatted(in: locale)
-        lock.withLock {
-            numbersWritten += 1
+        state.withLock { state in
+            state.numbersWritten += 1
             // Not kept if the locale moved meanwhile: the memo is the new one's.
-            if _currentLocale == locale { formattedNumbers.remember(written, for: number) }
+            if state.currentLocale == locale { state.formattedNumbers.remember(written, for: number) }
         }
         return written
     }
@@ -449,7 +445,7 @@ public final class LocalizationService: @unchecked Sendable {
     /// In the app's work, the language its scene states at its root, where it
     /// states one (``rootLanguage``).
     package var stringLanguage: String {
-        Self.rootLanguage ?? lock.withLock { lookupCodes[0] }
+        Self.rootLanguage ?? state.withLock { $0.lookupCodes[0] }
     }
 
     /// The language the app whose work is under way states at its scene's
@@ -475,79 +471,87 @@ public final class LocalizationService: @unchecked Sendable {
         _ key: String, swiftUIKey: String?, tableName: String?, bundle: Bundle?, in language: String?
     ) -> (text: String, language: String) {
         let language = language ?? Self.rootLanguage
-        lock.lock()
-        defer { lock.unlock() }
-        let own = lookupCodes[0]
-        let other = language.flatMap { $0 == own ? nil : $0 }
-        let memoKey = ResolvedStrings.Key(
-            key: key, swiftUIKey: swiftUIKey, tableName: tableName, bundle: bundle, language: other)
-        if let answer = resolved.answer(for: memoKey) { return (answer, other ?? own) }
-        let codes = other.map { Self.lookupCodes(asked: [$0], language: .english) } ?? lookupCodes
-        let answer = _resolve(key, swiftUIKey: swiftUIKey, tableName: tableName, bundle: bundle, codes: codes)
-        resolved.remember(answer, for: memoKey)
-        return (answer, other ?? own)
+        return state.withLock { state in
+            let own = state.lookupCodes[0]
+            let other = language.flatMap { $0 == own ? nil : $0 }
+            let memoKey = ResolvedStrings.Key(
+                key: key, swiftUIKey: swiftUIKey, tableName: tableName, bundle: bundle, language: other)
+            if let answer = state.resolved.answer(for: memoKey) { return (answer, other ?? own) }
+            let codes = other.map { Self.lookupCodes(asked: [$0], language: .english) } ?? state.lookupCodes
+            let answer = _resolve(
+                key, swiftUIKey: swiftUIKey, tableName: tableName, bundle: bundle, codes: codes, state: &state)
+            state.resolved.remember(answer, for: memoKey)
+            return (answer, other ?? own)
+        }
     }
 
     /// The walk ``reading(_:swiftUIKey:tableName:bundle:in:)`` remembers the
     /// answer of, through `codes` in order. Called under the lock.
     private func _resolve(
-        _ key: String, swiftUIKey: String?, tableName: String?, bundle: Bundle?, codes: [String]
+        _ key: String, swiftUIKey: String?, tableName: String?, bundle: Bundle?, codes: [String], state: inout State
     ) -> String {
-        let namesTable = !bundleTables.isDefaultTable(tableName, in: bundle)
+        let namesTable = !state.bundleTables.isDefaultTable(tableName, in: bundle)
         for code in codes {
             if let swiftUIKey,
                 let value = _appValue(
                     swiftUIKey, in: code, namesTable: namesTable, tableName: tableName, bundle: bundle,
-                    spelledAsSwiftUI: true)
+                    spelledAsSwiftUI: true, state: &state)
             {
                 return value
             }
             if let value = _appValue(
-                key, in: code, namesTable: namesTable, tableName: tableName, bundle: bundle, spelledAsSwiftUI: false)
+                key, in: code, namesTable: namesTable, tableName: tableName, bundle: bundle, spelledAsSwiftUI: false,
+                state: &state)
             {
                 return value
             }
         }
 
         if let swiftUIKey,
-            let value = _appFallback(swiftUIKey, namesTable: namesTable, tableName: tableName, bundle: bundle)
+            let value = _appFallback(
+                swiftUIKey, namesTable: namesTable, tableName: tableName, bundle: bundle, tables: state.bundleTables)
         {
             return value
         }
-        return _appFallback(key, namesTable: namesTable, tableName: tableName, bundle: bundle) ?? key
+        return _appFallback(key, namesTable: namesTable, tableName: tableName, bundle: bundle, tables: state.bundleTables)
+            ?? key
     }
 
     /// `key` in `code` as ``string(for:swiftUIKey:tableName:bundle:)`` reads
     /// it: the named table, the strings the app registered, the app's
     /// `Localizable` table, and TUI's own. A key `spelledAsSwiftUI` is not
     /// looked for in TUI's own, none of which is spelt so, nor among the
-    /// registered strings until one is (``registeredKeysSpellSwiftUI``).
+    /// registered strings until one is (``State/registeredKeysSpellSwiftUI``).
     /// Called under the lock.
     private func _appValue(
         _ key: String, in code: String, namesTable: Bool, tableName: String?, bundle: Bundle?,
-        spelledAsSwiftUI: Bool
+        spelledAsSwiftUI: Bool, state: inout State
     ) -> String? {
-        if namesTable, let value = bundleTables.string(for: key, tableName: tableName, bundle: bundle, language: code) {
+        if namesTable,
+            let value = state.bundleTables.string(for: key, tableName: tableName, bundle: bundle, language: code)
+        {
             return value
         }
-        if !spelledAsSwiftUI || registeredKeysSpellSwiftUI, let value = appTranslations[code]?[key] {
+        if !spelledAsSwiftUI || state.registeredKeysSpellSwiftUI, let value = state.appTranslations[code]?[key] {
             return value
         }
         // The app's table costs a stored Bool for an app that ships none.
-        if let value = bundleTables.string(for: key, tableName: nil, bundle: nil, language: code) {
+        if let value = state.bundleTables.string(for: key, tableName: nil, bundle: nil, language: code) {
             return value
         }
-        return spelledAsSwiftUI ? nil : _tuikitValue(key, in: code)
+        return spelledAsSwiftUI ? nil : _tuikitValue(key, in: code, state: &state)
     }
 
     /// `key` in the tables as Foundation picks them for the bundle, the named
     /// one first: the last places ``string(for:swiftUIKey:tableName:bundle:)``
     /// looks. Called under the lock.
-    private func _appFallback(_ key: String, namesTable: Bool, tableName: String?, bundle: Bundle?) -> String? {
-        if namesTable, let value = bundleTables.fallbackString(for: key, tableName: tableName, bundle: bundle) {
+    private func _appFallback(
+        _ key: String, namesTable: Bool, tableName: String?, bundle: Bundle?, tables: BundleStringTables
+    ) -> String? {
+        if namesTable, let value = tables.fallbackString(for: key, tableName: tableName, bundle: bundle) {
             return value
         }
-        return bundleTables.fallbackString(for: key, tableName: nil, bundle: nil)
+        return tables.fallbackString(for: key, tableName: nil, bundle: nil)
     }
 
     /// TUI's own word for one of its own keys — the lookup TUI's
@@ -586,33 +590,29 @@ public final class LocalizationService: @unchecked Sendable {
     /// ``frameworkString(for:)`` does.
     package func frameworkReading(_ key: String, in language: String?) -> (text: String, language: String) {
         let language = language ?? Self.rootLanguage
-        lock.lock()
-        defer { lock.unlock() }
-        let own = lookupCodes[0]
-        let other = language.flatMap { $0 == own ? nil : $0 }
-        let codes = other.map { Self.lookupCodes(asked: [$0], language: .english) } ?? lookupCodes
-        for code in codes {
-            if let value = _frameworkValue(key, in: code) {
-                return (value, other ?? own)
+        return state.withLock { state in
+            let own = state.lookupCodes[0]
+            let other = language.flatMap { $0 == own ? nil : $0 }
+            let codes = other.map { Self.lookupCodes(asked: [$0], language: .english) } ?? state.lookupCodes
+            for code in codes {
+                if let value = _frameworkValue(key, in: code, state: &state) {
+                    return (value, other ?? own)
+                }
             }
+            return (_frameworkFallback(key, tables: state.bundleTables), other ?? own)
         }
-        return (_frameworkFallback(key), other ?? own)
     }
 
     /// How many table answers the service keeps — for the tests of their
     /// bound (`BundleStringTables.answerLimit`).
     var keptTableAnswerCount: Int {
-        lock.lock()
-        defer { lock.unlock() }
-        return bundleTables.keptAnswerCount
+        state.withLock { $0.bundleTables.keptAnswerCount }
     }
 
     /// How many times the service read a table through Foundation for an
     /// answer it had not kept — for the tests of the bound's hit rate.
     var tableReadCount: Int {
-        lock.lock()
-        defer { lock.unlock() }
-        return bundleTables.foundationReads
+        state.withLock { $0.bundleTables.foundationReads }
     }
 
     /// Resolves one of TUI's own keys in `language`, whatever the current
@@ -623,74 +623,66 @@ public final class LocalizationService: @unchecked Sendable {
     /// spelt from the tables (`TimeSpan.tableUnitList`) follows the locale it
     /// was formatted in, as Foundation's own spellings do.
     func string(for key: String, in language: Language) -> String {
-        lock.lock()
-        defer { lock.unlock() }
-        if let value = _frameworkValue(key, in: language.rawValue) {
-            return value
+        state.withLock { state in
+            if let value = _frameworkValue(key, in: language.rawValue, state: &state) {
+                return value
+            }
+            if language != .english, let value = _frameworkValue(key, in: Language.english.rawValue, state: &state) {
+                return value
+            }
+            return _frameworkFallback(key, tables: state.bundleTables)
         }
-        if language != .english, let value = _frameworkValue(key, in: Language.english.rawValue) {
-            return value
-        }
-        return _frameworkFallback(key)
     }
 
-    // MARK: - Private Helpers (caller MUST hold lock)
+    // MARK: - Private Helpers (called under the lock, handed what it guards)
 
     /// TUI's own translations in the language `code`, loaded from its JSON
     /// the first time they are asked for; empty for a language TUI ships
     /// none of, which is remembered too. English whose file cannot be read is
     /// the copy compiled in (``builtInEnglish``); any other language whose
     /// file cannot be read is empty, and falls back to English.
-    ///
-    /// - Important: Caller must hold `lock`.
-    private func _translations(for code: String) -> [String: String] {
-        if let cached = translationCache[code] {
+    private func _translations(for code: String, state: inout State) -> [String: String] {
+        if let cached = state.translationCache[code] {
             return cached
         }
         let loaded =
             loadTranslationsFromBundle(language: code)
             ?? (code == Language.english.rawValue ? Self.builtInEnglish : [:])
-        translationCache[code] = loaded
+        state.translationCache[code] = loaded
         return loaded
     }
 
     /// TUI's word for `key` in the language `code`, as the app has set it:
     /// the app's `TUI` table, then TUI's own translation.
-    ///
-    /// - Important: Caller must hold `lock`.
-    private func _tuikitValue(_ key: String, in code: String) -> String? {
+    private func _tuikitValue(_ key: String, in code: String, state: inout State) -> String? {
         // The table costs a stored Bool for an app that ships none.
-        if let value = bundleTables.string(
+        if let value = state.bundleTables.string(
             for: key, tableName: BundleStringTables.frameworkTableName, bundle: nil, language: code)
         {
             return value
         }
-        return _translations(for: code)[key]
+        return _translations(for: code, state: &state)[key]
     }
 
     /// One language's step of ``frameworkString(for:)``: registered, the
     /// app's `TUI` table, TUI's own translation, and — only where TUI
     /// has none — the app's `Localizable` table.
-    ///
-    /// - Important: Caller must hold `lock`.
-    private func _frameworkValue(_ key: String, in code: String) -> String? {
-        if let value = appTranslations[code]?[key] {
+    private func _frameworkValue(_ key: String, in code: String, state: inout State) -> String? {
+        if let value = state.appTranslations[code]?[key] {
             return value
         }
-        if let value = _tuikitValue(key, in: code) {
+        if let value = _tuikitValue(key, in: code, state: &state) {
             return value
         }
-        return bundleTables.string(for: key, tableName: nil, bundle: nil, language: code)
+        return state.bundleTables.string(for: key, tableName: nil, bundle: nil, language: code)
     }
 
     /// The last step of ``frameworkString(for:)``: the app's `TUI` table,
     /// then its `Localizable` one, as Foundation picks them for the bundle,
     /// then the key itself.
-    ///
-    /// - Important: Caller must hold `lock`.
-    private func _frameworkFallback(_ key: String) -> String {
-        bundleTables.fallbackString(for: key, tableName: BundleStringTables.frameworkTableName, bundle: nil)
-            ?? bundleTables.fallbackString(for: key, tableName: nil, bundle: nil)
+    private func _frameworkFallback(_ key: String, tables: BundleStringTables) -> String {
+        tables.fallbackString(for: key, tableName: BundleStringTables.frameworkTableName, bundle: nil)
+            ?? tables.fallbackString(for: key, tableName: nil, bundle: nil)
             ?? key
     }
 
@@ -730,11 +722,11 @@ public final class LocalizationService: @unchecked Sendable {
 
     /// Returns the config file path, using override if set.
     ///
-    /// Its one caller, ``saveLanguagePreference(_:)``, runs OUTSIDE `lock` —
+    /// Its one caller, ``saveLanguagePreference(_:)``, runs OUTSIDE the lock —
     /// deliberately, see ``currentLanguage`` — so reading the override under
-    /// the lock here is not re-entrant.
+    /// the lock here does not take it twice.
     private func configFilePath() -> String {
-        let dir = lock.withLock { configDirectoryOverride } ?? Self.defaultConfigDirectoryPath()
+        let dir = state.withLock { $0.configDirectoryOverride } ?? Self.defaultConfigDirectoryPath()
         return (dir as NSString).appendingPathComponent("language")
     }
 }

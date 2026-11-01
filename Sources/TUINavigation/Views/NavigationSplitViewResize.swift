@@ -56,9 +56,8 @@ extension View {
 /// widths so they re-flow to the style / size-to-fit defaults. `nil` (the
 /// default) never resets.
 private struct NavigationSplitViewColumnWidthResetKey: EnvironmentKey {
-    // `nil` constant, so the unchecked isolation is sound (nothing to mutate) —
-    // AnyHashable isn't Sendable, but the shared default never changes.
-    nonisolated(unsafe) static let defaultValue: AnyHashable? = nil
+    // Computed: `AnyHashable` isn't `Sendable`, so a stored default is refused.
+    static var defaultValue: AnyHashable? { nil }
 }
 
 extension EnvironmentValues {

@@ -40,7 +40,7 @@ public enum QuitBehavior: Sendable {
 ///     StatusBarItem(shortcut: "⎋", label: "cancel")
 /// ])
 /// ```
-public final class StatusBarState: @unchecked Sendable {
+public final class StatusBarState {
     // MARK: - Render Invalidation
 
     /// The app state used to trigger re-renders when status bar items change.
@@ -143,11 +143,15 @@ public final class StatusBarState: @unchecked Sendable {
 
     /// The app's undo manager, whose undo and redo the bar offers; set by the
     /// run loop.
-    package var undoManager: UndoManager? { get { _undoManager } set { _undoManager = newValue } }
+    @MainActor
+    package var undoManager: UndoManager? {
+        get { _undoManager?.manager }
+        set { _undoManager = newValue.map(MainActorUndoManager.init) }
+    }
 
     /// ``undoManager``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
-    private var _undoManager: UndoManager?
+    private var _undoManager: MainActorUndoManager?
 
     /// The app's undo and redo keys, which decide the key the bar names
     /// beside each: the first the terminal can deliver (``UndoShortcuts``'s
@@ -442,7 +446,7 @@ public final class StatusBarState: @unchecked Sendable {
         if showReturnItem, let label = activationLabelOverride {
             items.append(SystemStatusBarItem.returnKey(label: label))
         }
-        if showUndoItems, let undoManager { items += undoItems(undoManager) }
+        if showUndoItems, let reference = _undoManager { items += undoItems(reference) }
         return items
     }
 
@@ -462,8 +466,7 @@ public final class StatusBarState: @unchecked Sendable {
     ///
     /// The bar is not isolated to the main actor, though it only ever runs
     /// there; `UndoManager` is.
-    private func undoItems(_ undoManager: UndoManager) -> [StatusBarItem] {
-        let reference = MainActorUndoManager(undoManager)
+    private func undoItems(_ reference: MainActorUndoManager) -> [StatusBarItem] {
         let (canUndo, canRedo) = MainActor.assumeIsolated { (reference.manager.canUndo, reference.manager.canRedo) }
         guard canUndo || canRedo else { return [] }
         let localization = LocalizationService.shared
@@ -476,14 +479,14 @@ public final class StatusBarState: @unchecked Sendable {
                 StatusBarItem(
                     id: Self.undoItemID, naming: undoKeys.hint(for: .undo, sparing: focus) ?? "",
                     label: localization.string(for: LocalizationKey.StatusBar.undo), order: .undo
-                ) { _ = UndoCommand.undo.perform(on: undoManager) })
+                ) { MainActor.assumeIsolated { _ = UndoCommand.undo.perform(on: reference.manager) } })
         }
         if canRedo {
             items.append(
                 StatusBarItem(
                     id: Self.redoItemID, naming: undoKeys.hint(for: .redo, sparing: focus) ?? "",
                     label: localization.string(for: LocalizationKey.StatusBar.redo), order: .redo
-                ) { _ = UndoCommand.redo.perform(on: undoManager) })
+                ) { MainActor.assumeIsolated { _ = UndoCommand.redo.perform(on: reference.manager) } })
         }
         return items
     }
@@ -880,13 +883,13 @@ extension StatusBarState {
 /// `@inlinable` accessor reads it (module split step A3).
 @usableFromInline
 struct StatusBarKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
-    @usableFromInline static let defaultValue: StatusBarState? = nil
+    @usableFromInline static var defaultValue: StatusBarState? { nil }
 }
 
 /// Environment key for the app's own status bar state, which isolation never
 /// replaces.
 private struct AppStatusBarKey: EnvironmentKey {
-    static let defaultValue: StatusBarState? = nil
+    static var defaultValue: StatusBarState? { nil }
 }
 
 extension EnvironmentValues {

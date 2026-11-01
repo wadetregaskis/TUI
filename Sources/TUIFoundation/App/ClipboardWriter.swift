@@ -276,7 +276,8 @@ enum ClipboardSequence {
 ///
 /// One per ``TUIContext``, never a shared instance: two apps in one process —
 /// a test suite — must not drain each other's writes.
-package final class ClipboardWriter: @unchecked Sendable {
+@MainActor
+package final class ClipboardWriter {
     /// How long the status bar keeps the line about a copy.
     static let noteDuration: UInt64 = 3_000_000_000
 
@@ -313,9 +314,7 @@ package final class ClipboardWriter: @unchecked Sendable {
     /// the screen without waiting for some other event to draw one.
     private let requestFrame: @Sendable () -> Void
 
-    // Touched from the main actor only (copies run in event handlers), and
-    // read by the run loop on the same actor; `@unchecked` because the
-    // environment that carries the writer is `Sendable`.
+    // Written by copies, which run in event handlers, and read by the run loop.
     private var pending: [String] = []
     private var note: (line: LocalizationKey.StatusBar, postedAtNanos: UInt64)?
 
@@ -329,7 +328,7 @@ package final class ClipboardWriter: @unchecked Sendable {
     /// user is at this machine. `requestFrame` asks the app the writer is
     /// drawn in for a frame — its context passes its render state's — and
     /// asks nothing by default, for a writer no app draws.
-    init(
+    nonisolated init(
         terminal: @escaping @MainActor () -> TerminalClient.ClipboardDelivery = {
             TerminalClient.clipboardDelivery
         },

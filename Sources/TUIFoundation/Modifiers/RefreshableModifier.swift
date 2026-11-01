@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import TUICore
 import TUIStyling
 import TUIView
@@ -40,45 +41,55 @@ public struct RefreshAction: Equatable, Sendable {
     /// against nothing and started a second run. The state is persisted by
     /// ``RefreshableModifier`` in `StateStorage` and handed to each frame's
     /// action, so every frame shares one answer.
-    final class RunState: @unchecked Sendable {
-        private let lock = NSLock()
-        private var running = false
+    final class RunState: Sendable {
+        private struct State {
+            var running = false
 
-        /// Whose cached buffers show this state, so a run starting or ending
-        /// can drop them: the render cache of the frame that last rendered the
-        /// `.refreshable`, and its identity.
-        ///
-        /// A value memo above the modifier may serve a buffer instead of
-        /// rendering it, and the key it compares does not change when a run
-        /// starts. Without this the memo kept serving the idle picture, so the
-        /// spinner never drew, and a buffer stored mid-run kept the spinner
-        /// after the run ended. The cache's link, held strongly as a
-        /// `StateBox`'s sink is: it holds nothing that holds this, and a weak
-        /// reference to the cache would put every retain and release of it
-        /// through the runtime's slow path (see `RenderCache.Link`).
-        private var invalidationSink: (any RenderInvalidationSink)?
-        private var identity: ViewIdentity?
+            /// Whose cached buffers show this state, so a run starting or ending
+            /// can drop them: the render cache of the frame that last rendered the
+            /// `.refreshable`, and its identity.
+            ///
+            /// A value memo above the modifier may serve a buffer instead of
+            /// rendering it, and the key it compares does not change when a run
+            /// starts. Without this the memo kept serving the idle picture, so the
+            /// spinner never drew, and a buffer stored mid-run kept the spinner
+            /// after the run ended. The cache's link, held strongly as a
+            /// `StateBox`'s sink is: it holds nothing that holds this, and a weak
+            /// reference to the cache would put every retain and release of it
+            /// through the runtime's slow path (see `RenderCache.Link`).
+            var invalidationSink: RenderCache.Link?
+            var identity: ViewIdentity?
+
+            /// The `.refreshable`'s action as of the last render that drew it.
+            /// Kept here, in the box its modifier keeps across frames, rather than
+            /// in each ``RefreshAction``: a handle made by an earlier render — one
+            /// a memoized row captured in its handler, or that a re-checked row
+            /// was drawn with — runs the CURRENT closure, with what it captures
+            /// now, which is what makes two handles of one run state equal for real.
+            var action: (@Sendable () async -> Void)?
+        }
+
+        private let state = Mutex(State())
 
         init() {}
 
         /// Records where a change of this state has to be seen. Called by each
         /// render of the `.refreshable` that owns it.
-        func bind(to sink: (any RenderInvalidationSink)?, identity: ViewIdentity) {
-            lock.lock()
-            invalidationSink = sink
-            self.identity = identity
-            lock.unlock()
+        func bind(to sink: RenderCache.Link?, identity: ViewIdentity) {
+            state.withLock { state in
+                state.invalidationSink = sink
+                state.identity = identity
+            }
         }
 
         /// Claims the right to run, or reports that someone else already has.
         func beginIfIdle() -> Bool {
-            lock.lock()
-            if running {
-                lock.unlock()
-                return false
+            let claimed = state.withLock { state in
+                if state.running { return false }
+                state.running = true
+                return true
             }
-            running = true
-            lock.unlock()
+            guard claimed else { return false }
             invalidateBound()
             return true
         }
@@ -87,51 +98,34 @@ public struct RefreshAction: Equatable, Sendable {
         /// over with the spinner still cached. The lock is safe to hold: the sink
         /// only queues the identity, and takes nothing that comes back here.
         func finish() {
-            lock.lock()
-            defer { lock.unlock() }
-            running = false
-            // Never `nil`, which would clear the whole cache.
-            if let invalidationSink, let identity {
-                invalidationSink.invalidateRender(for: identity)
+            state.withLock { state in
+                state.running = false
+                // Never `nil`, which would clear the whole cache.
+                if let sink = state.invalidationSink, let identity = state.identity {
+                    sink.invalidateRender(for: identity)
+                }
             }
         }
 
         /// Drops the bound identity's cached buffers, and its ancestors', and
         /// asks for a frame. Thread-safe: the sink only queues the identity.
         private func invalidateBound() {
-            lock.lock()
-            let sink = invalidationSink
-            let identity = identity
-            lock.unlock()
+            let (sink, identity) = state.withLock { ($0.invalidationSink, $0.identity) }
             // Never `nil`, which would clear the whole cache.
             guard let sink, let identity else { return }
             sink.invalidateRender(for: identity)
         }
 
         var isRunning: Bool {
-            lock.lock()
-            defer { lock.unlock() }
-            return running
+            state.withLock { $0.running }
         }
 
-        /// The `.refreshable`'s action as of the last render that drew it.
-        /// Kept here, in the box its modifier keeps across frames, rather than
-        /// in each ``RefreshAction``: a handle made by an earlier render — one
-        /// a memoized row captured in its handler, or that a re-checked row
-        /// was drawn with — runs the CURRENT closure, with what it captures
-        /// now, which is what makes two handles of one run state equal for real.
-        private var action: (@Sendable () async -> Void)?
-
         func setAction(_ action: @escaping @Sendable () async -> Void) {
-            lock.lock()
-            self.action = action
-            lock.unlock()
+            state.withLock { $0.action = action }
         }
 
         var currentAction: (@Sendable () async -> Void)? {
-            lock.lock()
-            defer { lock.unlock() }
-            return action
+            state.withLock { $0.action }
         }
     }
 

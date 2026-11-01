@@ -25,11 +25,8 @@ import TUILists
 /// replaces it.
 ///
 /// Main-actor isolated, because building rows is — a `DisclosureTableRow`'s
-/// children come from its row builder, and a recursive open builds them. The
-/// handler's key dispatch is nonisolated in its type but runs on the main
-/// actor all the same (`StdinArrivalStream` delivers input there): the opening
-/// witness says so with `MainActor.assumeIsolated`, and the parent lookup
-/// reads only a map written once, in the initializer.
+/// children come from its row builder, and a recursive open builds them — and
+/// as the handler's key dispatch is (`StdinArrivalStream` delivers input there).
 @MainActor
 final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// Whether a row has rows beneath it, and whether they show.
@@ -54,11 +51,7 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     private let placements: [Value.ID: Placement]
 
     /// Each visible row's parent, for Left's walk out of a subtree.
-    ///
-    /// `nonisolated(unsafe)` so ``parentRowID(of:)`` can answer from the
-    /// handler's nonisolated key dispatch: written once, in the initializer,
-    /// and only read after — the invariant ``OutlineActivation`` rests on.
-    nonisolated(unsafe) private let parents: [Value.ID: Value.ID]
+    private let parents: [Value.ID: Value.ID]
 
     /// The visible branches, to open or close.
     private let branches: [Value.ID: _TableRowNode<Value>]
@@ -230,15 +223,8 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// every branch beneath it however deep, so reopening it shows it as it
     /// was left.
     @discardableResult
-    nonisolated func setRowExpanded(
-        _ id: AnyHashable, to target: Bool?, includingDescendants: Bool
-    ) -> Bool {
-        // `AnyHashable` is not `Sendable`, but this never leaves the thread it
-        // arrived on: `assumeIsolated` runs the closure here, synchronously.
-        nonisolated(unsafe) let id = id
-        return MainActor.assumeIsolated {
-            setExpanded(id, to: target, includingDescendants: includingDescendants)
-        }
+    func setRowExpanded(_ id: AnyHashable, to target: Bool?, includingDescendants: Bool) -> Bool {
+        setExpanded(id, to: target, includingDescendants: includingDescendants)
     }
 
     /// ``setRowExpanded(_:to:includingDescendants:)``, on the main actor.
@@ -260,7 +246,7 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     }
 
     /// The row this one sits under, or `nil` for a root row.
-    nonisolated func parentRowID(of id: AnyHashable) -> AnyHashable? {
+    func parentRowID(of id: AnyHashable) -> AnyHashable? {
         guard let rowID = id.base as? Value.ID, let parent = parents[rowID] else { return nil }
         return AnyHashable(parent)
     }

@@ -28,7 +28,7 @@ public protocol Focusable: AnyObject {
     ///
     /// - Parameter event: The key event to handle.
     /// - Returns: True if the event was consumed, false to propagate.
-    func handleKeyEvent(_ event: KeyEvent) -> Bool
+    @MainActor func handleKeyEvent(_ event: KeyEvent) -> Bool
 }
 
 /// Defaults so a conformer only writes what it actually needs.

@@ -46,16 +46,13 @@ extension View {
 
 /// An id in a namespace, as ``View/glassEffectUnion(id:namespace:)`` names a
 /// union.
-///
-/// `@unchecked Sendable`: `AnyHashable` is not declared `Sendable`, and the
-/// value it holds is, as the modifiers' parameters require.
-struct GlassNamespacedID: Hashable, @unchecked Sendable {
+struct GlassNamespacedID: Hashable {
     let namespace: Namespace.ID
     let id: AnyHashable
 }
 
 private struct GlassEffectUnionKey: EnvironmentKey {
-    static let defaultValue: GlassNamespacedID? = nil
+    static var defaultValue: GlassNamespacedID? { nil }
 }
 
 extension EnvironmentValues {

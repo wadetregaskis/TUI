@@ -19,7 +19,7 @@ import TUICore
 /// Kept in ``WindowChromeState``, which the bars draw from and the run loop
 /// keeps from frame to frame; the toolbar's module (TUIChrome) fills it and
 /// reads it.
-package final class ToolbarCustomizationGestures: @unchecked Sendable {
+package final class ToolbarCustomizationGestures {
     /// An item the bars drew this walk as one to drag.
     package struct Draggable {
         /// The item.

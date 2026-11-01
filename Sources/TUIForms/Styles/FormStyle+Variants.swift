@@ -100,7 +100,7 @@ extension FormStyle where Self == GroupedFormStyle {
 
 /// Environment key for the form style.
 private struct FormStyleKey: EnvironmentKey {
-    static let defaultValue = StyleChain<any FormStyle>(AutomaticFormStyle())
+    static var defaultValue: StyleChain<any FormStyle> { StyleChain(AutomaticFormStyle()) }
 }
 
 extension EnvironmentValues {

@@ -101,10 +101,7 @@ extension View {
 /// (`PartiallyComparable`), so the render cache declines the memos under such
 /// a renderer rather than reading "unequal" as a change, and clearing them, on
 /// every frame.
-///
-/// `@unchecked Sendable`: a `TextRenderer` need not be `Sendable`, as
-/// SwiftUI's need not; it is read and drawn with on the main actor only.
-package struct AnyTextRenderer: Equatable, PartiallyComparable, @unchecked Sendable {
+package struct AnyTextRenderer: Equatable, PartiallyComparable {
     let renderer: any TextRenderer
     private let isEqual: (any TextRenderer) -> Bool
 
@@ -138,7 +135,7 @@ extension Equatable {
 }
 
 private struct TextRendererKey: EnvironmentKey {
-    static let defaultValue: AnyTextRenderer? = nil
+    static var defaultValue: AnyTextRenderer? { nil }
 }
 
 extension EnvironmentValues {

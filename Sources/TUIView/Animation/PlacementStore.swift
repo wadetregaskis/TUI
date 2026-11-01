@@ -67,10 +67,9 @@ import TUICore
 /// since — `if show { Column() }`, its rows changed while hidden, shown again
 /// under an animation.
 ///
-/// Main-actor by discipline rather than by annotation, exactly as
-/// ``StateStorage`` is — it is a stored property of one, and rendering is
-/// single-threaded on the run loop.
-package final class PlacementStore: @unchecked Sendable {
+/// Not `Sendable`, exactly as ``StateStorage`` is not: it is a stored property
+/// of one, and the compiler keeps it on the main-actor render path that holds it.
+package final class PlacementStore {
 
     /// One container's memory of its children.
     ///

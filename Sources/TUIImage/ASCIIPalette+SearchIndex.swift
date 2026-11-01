@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import TUIStyling
 
 // MARK: - Answering exactly, without walking every entry
@@ -50,7 +51,7 @@ extension ASCIIPalette {
     /// compared with the same strict `<`. ``PaletteSearchIndexTests`` checks
     /// the index against the walk over every cell corner and a broad sample
     /// of the gamut, for the two large built-in palettes and an adaptive one.
-    final class SearchIndex: @unchecked Sendable {
+    final class SearchIndex: Sendable {
         /// `offsets[cell]..<offsets[cell + 1]` indexes `candidates`.
         private let offsets: [Int32]
         private let candidates: [UInt8]
@@ -197,17 +198,16 @@ extension ASCIIPalette {
     /// pays a hash of the entries (once per palette instance) and every later
     /// one pays a lock. The cache behind it is keyed by the entries' RGB and
     /// keeps the last few, the way `Color.quantisedRamp` keeps ramps.
-    final class SearchIndexHandle: @unchecked Sendable {
-        private let lock = NSLock()
-        private var index: SearchIndex?
+    final class SearchIndexHandle: Sendable {
+        private let index = Mutex<SearchIndex?>(nil)
 
         func index(for palette: ASCIIPalette) -> SearchIndex {
-            lock.lock()
-            defer { lock.unlock() }
-            if let index { return index }
-            let built = SearchIndexCache.shared.index(for: palette.entries)
-            index = built
-            return built
+            index.withLock { index in
+                if let index { return index }
+                let built = SearchIndexCache.index(for: palette.entries)
+                index = built
+                return built
+            }
         }
     }
 
@@ -220,8 +220,18 @@ extension ASCIIPalette {
     /// an app or a test to inject. A cache that held anything observable would
     /// not qualify.
     private enum SearchIndexCache {
-        nonisolated(unsafe) static var shared = Store()
+        private struct State {
+            var indexes: [[UInt32]: SearchIndex] = [:]
+            var order: [[UInt32]] = []
+        }
 
+        private static let state = Mutex(State())
+        private static let capacity = 8
+
+        /// The index of `entries`, built under the lock the first time they are
+        /// asked for: it is pure, and two threads asking at once should not
+        /// both pay for it.
+        ///
         /// Keyed by what each entry MEASURES, its RGB packed into a `UInt32`,
         /// not by the colours as written.
         ///
@@ -239,22 +249,15 @@ extension ASCIIPalette {
         ///
         /// Two palettes spelled differently that measure the same now share an
         /// index, which is right for the same reason: they search identically.
-        final class Store: @unchecked Sendable {
-            private let lock = NSLock()
-            private var indexes: [[UInt32]: SearchIndex] = [:]
-            private var order: [[UInt32]] = []
-            private let capacity = 8
-
-            func index(for entries: [Entry]) -> SearchIndex {
-                let key = entries.map { UInt32($0.rgba.r) << 16 | UInt32($0.rgba.g) << 8 | UInt32($0.rgba.b) }
-                lock.lock()
-                defer { lock.unlock() }
-                if let cached = indexes[key] { return cached }
+        static func index(for entries: [Entry]) -> SearchIndex {
+            let key = entries.map { UInt32($0.rgba.r) << 16 | UInt32($0.rgba.g) << 8 | UInt32($0.rgba.b) }
+            return state.withLock { state in
+                if let cached = state.indexes[key] { return cached }
                 let built = SearchIndex(entries: entries)
-                indexes[key] = built
-                order.append(key)
-                if order.count > capacity {
-                    indexes.removeValue(forKey: order.removeFirst())
+                state.indexes[key] = built
+                state.order.append(key)
+                if state.order.count > capacity {
+                    state.indexes.removeValue(forKey: state.order.removeFirst())
                 }
                 return built
             }

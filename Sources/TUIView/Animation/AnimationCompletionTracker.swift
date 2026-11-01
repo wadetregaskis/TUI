@@ -31,8 +31,9 @@ import TUICore
 /// values have all gone fires whatever its deadlines say (a `repeatForever`
 /// animation removed with its view is complete; one still on screen never is).
 ///
-/// Main-actor by discipline, like the stores it serves.
-public final class AnimationCompletionTracker: @unchecked Sendable {
+/// Not `Sendable`, like the stores it serves: the compiler keeps it on the
+/// render path that holds it, which is on the main actor.
+public final class AnimationCompletionTracker {
     private struct Batch {
         var completions: [AnimationCompletion]
         /// The values the pass started animating.
@@ -94,6 +95,7 @@ public final class AnimationCompletionTracker: @unchecked Sendable {
     /// Ends the pass: its completions fire now if it started nothing, and wait
     /// otherwise. Then fires whatever has come due. Called after the stores
     /// have pruned what the tree stopped asking about.
+    @MainActor
     package func endPass(at nowNanos: Int64, animations: AnimationStore) {
         if let batch = collecting {
             collecting = nil
@@ -107,6 +109,7 @@ public final class AnimationCompletionTracker: @unchecked Sendable {
     }
 
     /// Fires every waiting completion whose criteria are met at `nowNanos`.
+    @MainActor
     private func fireDue(at nowNanos: Int64, animations: AnimationStore) {
         guard !waiting.isEmpty else { return }
         var stillWaiting: [Batch] = []

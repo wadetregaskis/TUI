@@ -73,7 +73,9 @@ struct ValueHashOpenerTests {
         #expect(hash(layout, opened) != nil)
         #expect(hash(layout, opened) == hash(layout, cast))
         let boxType = ValueHashOpener.tuikit.first { "\($0.type)" == "AnyLayoutBox" }?.type
-        #expect(boxType != nil)
+        // Out of `#expect`: see CONTRIBUTING, "Testing".
+        let foundBox = boxType != nil
+        #expect(foundBox)
         if let boxType { checked.insert(ObjectIdentifier(boxType)) }
         #expect(opened.plan(for: AnyLayout.self).pointee.stepDescriptions == ["0: existential opened by AnyLayoutBox"])
         // A new opener fails here until it is checked above.

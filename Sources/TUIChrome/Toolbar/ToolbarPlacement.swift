@@ -13,12 +13,12 @@ import TUIFoundation
 
 /// The placement of a bar a bar modifier refers to — mirrors SwiftUI's
 /// `ToolbarPlacement`.
-public struct ToolbarPlacement: Sendable, Equatable {
+public struct ToolbarPlacement: Equatable {
     /// The bar.
     let edge: Edge
 
     /// The bars a placement can name.
-    enum Edge: Sendable, Equatable {
+    enum Edge: Equatable {
         case automatic
         case top
         case bottom
@@ -35,13 +35,13 @@ public struct ToolbarPlacement: Sendable, Equatable {
     }
 
     /// The primary toolbar: in a terminal, the window's top bar.
-    public static let automatic = Self(edge: .automatic)
+    public static var automatic: Self { Self(edge: .automatic) }
 
     /// The window's toolbar: the bar above the page.
-    public static let windowToolbar = Self(edge: .top)
+    public static var windowToolbar: Self { Self(edge: .top) }
 
     /// The bottom toolbar — SwiftUI's iOS spelling, here the bar below the page.
-    public static let bottomBar = Self(edge: .bottom)
+    public static var bottomBar: Self { Self(edge: .bottom) }
 
     /// Creates a unique accessory bar placement — mirrors SwiftUI's
     /// `ToolbarPlacement.accessoryBar(id:)`.

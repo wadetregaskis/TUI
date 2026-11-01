@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import TUI
 
 /// Buttons and focus demo page.
@@ -18,28 +19,35 @@ import TUI
 /// - Live click counter demonstrating `@State` persistence across re-renders
 /// Records the links TUI opened itself.
 ///
-/// A reference type, and `@unchecked Sendable`, because `OpenURLAction`'s
-/// handler is `@Sendable` and so cannot mutate the page's main-actor `@State`
-/// — the same shape `LinkTests` uses for the same reason. It is sound for the
-/// same reason `TerminalImageStore`'s is: every write comes from a `Link`'s
-/// button action and every read from a render, both on the run loop's own
-/// thread, one pass at a time.
+/// A reference type, and locked, because `OpenURLAction`'s handler is `@Sendable`
+/// and so cannot mutate the page's main-actor `@State` — the same shape
+/// `LinkTests` uses for the same reason.
 ///
 /// It needs no change notification of its own. The click that causes an open IS
 /// an input event, so the loop renders a frame straight after it and that frame
 /// reads these values.
-private final class LinkOpenLog: @unchecked Sendable {
-    private(set) var last = ""
+private final class LinkOpenLog: Sendable {
+    private struct State {
+        var last = ""
+        var opens = 0
+    }
+
+    private let state = Mutex(State())
+
+    var last: String { state.withLock { $0.last } }
+
     /// How many opens TUI has performed. Named `opens` rather than `count`
     /// so the emptiness check below reads as arithmetic and not as a
     /// collection being probed — which is what `count > 0` looks like.
-    private(set) var opens = 0
+    var opens: Int { state.withLock { $0.opens } }
 
     var hasOpened: Bool { opens > 0 }
 
     func record(_ url: URL) {
-        last = url.absoluteString
-        opens += 1
+        state.withLock { state in
+            state.last = url.absoluteString
+            state.opens += 1
+        }
     }
 }
 

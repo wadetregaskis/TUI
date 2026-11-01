@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 
 /// A month's name and year as the graphical date picker's header spells it —
 /// `October 2026` — in the calendar's own locale, time zone and era: the
@@ -46,30 +47,33 @@ enum CalendarMonthTitle {
 
     private static let store = Store()
 
-    private final class Store: @unchecked Sendable {
-        private let lock = NSLock()
-        private var titles: [Key: String] = [:]
-        private var order: [Key] = []
+    private final class Store: Sendable {
+        private struct State {
+            var titles: [Key: String] = [:]
+            var order: [Key] = []
+        }
+
+        private let state = Mutex(State())
         private let capacity = 16
 
         func title(_ key: Key) -> String {
-            lock.lock()
-            defer { lock.unlock() }
-            if let title = titles[key] { return title }
-            let formatter = DateFormatter()
-            var calendar = Calendar(identifier: key.calendar)
-            calendar.timeZone = TimeZone(identifier: key.timeZone) ?? calendar.timeZone
-            formatter.calendar = calendar
-            formatter.timeZone = calendar.timeZone
-            formatter.locale = Locale(identifier: key.locale)
-            formatter.setLocalizedDateFormatFromTemplate("MMMMyyyy")
-            let title = formatter.string(from: key.month)
-            titles[key] = title
-            order.append(key)
-            if order.count > capacity {
-                titles.removeValue(forKey: order.removeFirst())
+            state.withLock { state in
+                if let title = state.titles[key] { return title }
+                let formatter = DateFormatter()
+                var calendar = Calendar(identifier: key.calendar)
+                calendar.timeZone = TimeZone(identifier: key.timeZone) ?? calendar.timeZone
+                formatter.calendar = calendar
+                formatter.timeZone = calendar.timeZone
+                formatter.locale = Locale(identifier: key.locale)
+                formatter.setLocalizedDateFormatFromTemplate("MMMMyyyy")
+                let title = formatter.string(from: key.month)
+                state.titles[key] = title
+                state.order.append(key)
+                if state.order.count > capacity {
+                    state.titles.removeValue(forKey: state.order.removeFirst())
+                }
+                return title
             }
-            return title
         }
     }
 }

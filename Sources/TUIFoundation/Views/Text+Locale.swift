@@ -22,7 +22,7 @@ import Foundation
 /// render — hold the same one, and the per-pass memos, which hash a view's
 /// bytes, see equal values as equal. Compared by value too, for the memos that
 /// compare with `==`. Immutable, so sharing it across threads is safe.
-package final class LocalizedTextSource: Equatable, @unchecked Sendable {
+package final class LocalizedTextSource: Equatable, Sendable {
     let key: LocalizedStringKey
     let tableName: String?
     let bundle: Bundle?

@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Synchronization
+
 // MARK: - Terminal Width Traits
 
 /// How many cells the host terminal gives a composed emoji cluster — the
@@ -208,11 +210,11 @@ extension TerminalWidthTraits {
 
     /// The process-wide traits, before any task-local pin.
     ///
-    /// `nonisolated(unsafe)` is intentional and matches
-    /// ``ColorDepth``: the value is set once at startup, from a
-    /// host identification that cannot change for the life of the process, and
-    /// is then read from the render path with no further writes.
-    nonisolated(unsafe) private static var processCurrent: Self = .composing
+    /// Behind a lock, not an atomic, since it is several fields. Set once at
+    /// startup, from a host identification that cannot change for the life of
+    /// the process, and then read from the render path, which pays a task-local
+    /// read here anyway.
+    private static let processCurrent = Mutex<Self>(.composing)
 
     /// A task-scoped pin, bound by ``withTraits(_:operation:)``.
     ///
@@ -233,16 +235,21 @@ extension TerminalWidthTraits {
     ///
     /// Only the process value bumps it. A task-local pin is scoped to work that
     /// opts into it, and the render path is not that work.
-    nonisolated(unsafe) public private(set) static var generation: Int = 0
+    public static var generation: Int { processGeneration.load(ordering: .relaxed) }
+
+    /// ``generation``'s storage.
+    private static let processGeneration = Atomic<Int>(0)
 
     /// The traits in force. Assign to override process-wide — expected before
     /// rendering starts — or use ``withTraits(_:operation:)`` for a scoped pin.
     public static var current: Self {
-        get { taskCurrent ?? processCurrent }
+        get { taskCurrent ?? processCurrent.withLock { $0 } }
         set {
-            guard newValue != processCurrent else { return }
-            processCurrent = newValue
-            generation &+= 1
+            processCurrent.withLock { current in
+                guard newValue != current else { return }
+                current = newValue
+                processGeneration.wrappingAdd(1, ordering: .relaxed)
+            }
         }
     }
 

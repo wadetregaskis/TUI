@@ -24,7 +24,7 @@ import Foundation
 /// success, since a test whose sentinel was clobbered skips instead of
 /// failing. It also keeps the suite from writing to the developer's
 /// pasteboard as a side effect of running.
-package struct ClipboardAccess: Sendable {
+package struct ClipboardAccess {
     /// Puts `text` on the clipboard, and answers what became of it; the flag
     /// is ``write(_:announcingSuccess:)``'s.
     var put: @Sendable (_ text: String, _ announcingSuccess: Bool) -> ClipboardWriteResult
@@ -106,13 +106,13 @@ package struct ClipboardAccess: Sendable {
     /// be copied to anyway: there is no terminal to send OSC 52 to, and this
     /// machine's clipboard is the app layer's to reach (``ClipboardBackend``),
     /// never a stray render's. Stateless, so it answers from any thread.
-    package static let unavailable = Self(
-        put: { text, _ in text.isEmpty ? .nothingToCopy : .unavailable },
-        read: { nil })
+    package static var unavailable: Self {
+        Self(put: { text, _ in text.isEmpty ? .nothingToCopy : .unavailable }, read: { nil })
+    }
 }
 
 private struct ClipboardAccessKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
-    static let defaultValue = ClipboardAccess.unavailable
+    static var defaultValue: ClipboardAccess { .unavailable }
 }
 
 extension EnvironmentValues {

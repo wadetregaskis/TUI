@@ -84,20 +84,12 @@ final class TabStripHandler: PersistedFocusable {
             // The selected tab's context menu, under its chip — the keyboard's
             // way to one, as Shift+F10 (or the Menu key) is to every
             // `.contextMenu`.
-            // `AnyHashable` is not `Sendable`, but this never leaves the thread
-            // it arrived on: `assumeIsolated` runs the closure here,
-            // synchronously, as `TableOutline` does.
-            nonisolated(unsafe) let value = selection.wrappedValue
-            let openers = menuOpeners
-            return MainActor.assumeIsolated { openers.open(value) }
+            return menuOpeners.open(selection.wrappedValue)
         default:
             // The selected tab's drag, carried (A53-KEYBOARD-DRAG): the
             // strip's pick-up chord, as a list's is its rows'.
-            nonisolated(unsafe) let value = selection.wrappedValue
-            let openers = menuOpeners
-            return MainActor.assumeIsolated {
-                KeyboardShortcut.trigger(for: event) == DragAndDropSession.carryChord.trigger && openers.pickUp(value)
-            }
+            return KeyboardShortcut.trigger(for: event) == DragAndDropSession.carryChord.trigger
+                && menuOpeners.pickUp(selection.wrappedValue)
         }
     }
 }

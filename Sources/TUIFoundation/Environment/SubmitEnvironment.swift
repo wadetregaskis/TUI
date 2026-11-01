@@ -9,13 +9,10 @@ import TUICore
 // MARK: - Submit action entry
 
 /// One ``View/onSubmit(of:_:)`` registration cascading through the
-/// environment: the triggers it responds to plus the action to run. It wraps a
-/// plain (non-`Sendable`) closure; `@unchecked Sendable` is sound because the
-/// action is only ever created and invoked on the render loop's single thread —
-/// the same latitude every action closure in the framework relies on (Button,
-/// `TextField.onSubmit`, …). This lets `submitActions` be a concurrency-safe
-/// empty-array default.
-package struct SubmitActionEntry: @unchecked Sendable {
+/// environment: the triggers it responds to plus the action to run, a plain
+/// closure, as every action closure in the framework is (Button,
+/// `TextField.onSubmit`, …).
+package struct SubmitActionEntry {
     package let triggers: SubmitTriggers
     package let action: () -> Void
 }
@@ -25,7 +22,7 @@ package struct SubmitActionEntry: @unchecked Sendable {
 /// The stack of `.onSubmit(of:_:)` actions in scope, outer-first (append order).
 /// A text field runs the ones whose triggers match its role, inner-first.
 private struct SubmitActionsKey: EnvironmentKey {
-    static let defaultValue: [SubmitActionEntry] = []
+    static var defaultValue: [SubmitActionEntry] { [] }
 }
 
 /// Which submit trigger a field in this subtree represents — ``SubmitTriggers/text``

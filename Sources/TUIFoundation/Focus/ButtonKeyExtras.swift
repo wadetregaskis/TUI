@@ -41,11 +41,10 @@ import TUIView
 /// so a registration replayed from a memo asks the keys and the handler as they
 /// stand now, not as they stood when the memo stored it.
 ///
-/// Main-actor by discipline rather than by annotation, as ``DepartureStore``
-/// is: the closure is built during a render pass and called from key dispatch,
-/// both of which run on the single run loop. The `@unchecked` is what lets it
-/// sit in ``EnvironmentValues``, which every view copies.
-package final class ButtonKeyExtras: Equatable, @unchecked Sendable {
+/// Not `Sendable`, as ``DepartureStore`` is not: the closure is built during a
+/// render pass and called from key dispatch, both of which run on the single
+/// run loop.
+package final class ButtonKeyExtras: Equatable {
     /// The keys to intercept. Anything outside this set is not offered.
     var keys: Set<Key>
 
@@ -63,7 +62,7 @@ package final class ButtonKeyExtras: Equatable, @unchecked Sendable {
 }
 
 private struct ButtonKeyExtrasKey: EnvironmentKey {
-    static let defaultValue: ButtonKeyExtras? = nil
+    static var defaultValue: ButtonKeyExtras? { nil }
 }
 
 extension EnvironmentValues {

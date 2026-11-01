@@ -93,7 +93,7 @@ private struct GlassEffectTransitionKey: EnvironmentKey {
 }
 
 private struct GlassEffectIDKey: EnvironmentKey {
-    static let defaultValue: GlassNamespacedID? = nil
+    static var defaultValue: GlassNamespacedID? { nil }
 }
 
 extension EnvironmentValues {

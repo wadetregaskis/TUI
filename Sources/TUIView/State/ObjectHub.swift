@@ -22,9 +22,9 @@ import TUICore
 /// kept: drawn, served from the memo, or retained by a container that windows
 /// its rows. Nothing is done for it on a memo hit.
 ///
-/// `@unchecked Sendable`: ``holders`` is behind its lock, and a write reads
-/// nothing else. The rest is the main actor's, as the walk is.
-final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
+/// Not `Sendable`, so the compiler keeps it on the render path that holds it,
+/// with the boxes it is the sink of.
+final class ObjectHub: RenderInvalidationSink {
     /// The object, held weakly: an object made at a freed one's address is
     /// never taken for it (``StateStorage/objectHub(of:)``).
     private(set) weak var object: AnyObject?
@@ -33,22 +33,20 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
     private let link: RenderCache.Link?
 
     /// The views drawn holding the object, each counted by the fields it holds
-    /// it in, and the last to stop holding it. Behind a lock: a write reads it
-    /// from whatever thread it is made on.
-    private let holders = Lock(initialState: Holders())
+    /// it in, and the last to stop holding it.
+    private var holders = Holders()
 
     /// What the ids of the `@FocusState` and `@Namespace` inside the object
     /// are made from: `obj` and a count of the storage's, so an object keeps
     /// its ids whichever view draws it, and two objects never share theirs —
     /// unless the object is one of a chain made with the values of one view
     /// at one field, which share their first's (``StateStorage/registerHolder(_:of:at:kind:)``).
-    /// Main actor only.
     private(set) var idPath: String
 
     /// Whether ``idPath`` is a chain's, taken from the object the holder
     /// showed before: given up for one of the object's own once a walk finds
     /// the object was made before the pass that walks it
-    /// (``StateStorage/giveOwnIDs(to:)``). Main actor only.
+    /// (``StateStorage/giveOwnIDs(to:)``).
     private(set) var takesChainIDs: Bool
 
     /// Whether ``primary``'s last render walk to reach a property of the
@@ -56,14 +54,13 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
     /// copy shares — a `@FocusState`'s focus manager, `@FocusedValue` — drew
     /// it as a backdrop, the page beneath a modal: another holder's live walk
     /// hands them its environment then (``PropertyWalk/ObjectWalk/sharedStores``).
-    /// Main actor only.
     var primaryDrawsBackdrop = false
 
     /// The view the object reads its environment as at rest: the first
     /// holder drawn on a hub with none, for as long as it holds the object.
     /// Its render walk leaves the object its environment, where every other
     /// walk's is put back after its view's content
-    /// (``StateStorage/notePrimaryEnvironment(_:_:)``). Main actor only.
+    /// (``StateStorage/notePrimaryEnvironment(_:_:)``).
     var primary: ViewIdentity?
 
     /// What the object's `@State` held in each place's box that the object
@@ -73,7 +70,7 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
     /// in a body and kept, not with a view value
     /// (``StateStorage/placeBox(_:at:adopting:from:)``). Each is kept with no
     /// sink until taken: one would be this hub, and the hub and the box would
-    /// keep each other after the object had gone. Main actor only.
+    /// keep each other after the object had gone.
     private var handedOver: [ObjectIdentifier: AnyObject] = [:]
 
     init(object: AnyObject, link: RenderCache.Link?, idPath: String, takesChainIDs: Bool) {
@@ -103,28 +100,25 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
 
     /// Notes that `holder` holds the object in one more field.
     func addHolder(_ holder: ViewIdentity) {
-        holders.withLock { $0.counts[holder, default: 0] += 1 }
+        holders.counts[holder, default: 0] += 1
     }
 
     /// Notes that `holder` holds the object in one field fewer: none left, it
     /// is no longer the object's holder, nor its primary.
     func removeHolder(_ holder: ViewIdentity) {
-        let gone = holders.withLock { holders -> Bool in
-            guard let count = holders.counts[holder] else { return false }
-            if count > 1 {
-                holders.counts[holder] = count - 1
-                return false
-            }
-            holders.counts.removeValue(forKey: holder)
-            holders.departed = holder
-            return true
+        guard let count = holders.counts[holder] else { return }
+        if count > 1 {
+            holders.counts[holder] = count - 1
+            return
         }
-        if gone, primary == holder { primary = nil }
+        holders.counts.removeValue(forKey: holder)
+        holders.departed = holder
+        if primary == holder { primary = nil }
     }
 
     /// Whether `holder` holds the object.
     func isHeld(by holder: ViewIdentity) -> Bool {
-        holders.withLock { $0.counts[holder] != nil }
+        holders.counts[holder] != nil
     }
 
     /// Redraws every view drawn holding the object: what a write to a
@@ -134,10 +128,10 @@ final class ObjectHub: RenderInvalidationSink, @unchecked Sendable {
     /// the object without holding it — through a store, or a closure — as the
     /// view a box was kept for is redrawn by the box's writes after it left.
     func invalidateRender(for _: ViewIdentity?) {
-        let holders = self.holders.withLock { holders -> [ViewIdentity] in
-            guard holders.counts.isEmpty else { return Array(holders.counts.keys) }
-            return holders.departed.map { [$0] } ?? []
-        }
+        let holders: [ViewIdentity] =
+            self.holders.counts.isEmpty
+            ? self.holders.departed.map { [$0] } ?? []
+            : Array(self.holders.counts.keys)
         for holder in holders {
             link?.invalidateRender(for: holder)
         }

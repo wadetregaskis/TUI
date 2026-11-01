@@ -53,7 +53,7 @@ extension ControlStyle: Cyclable {
 
 /// Environment key for the control style manager.
 private struct ControlStyleManagerKey: EnvironmentKey {
-    static let defaultValue: ThemeManager? = nil
+    static var defaultValue: ThemeManager? { nil }
 }
 
 extension EnvironmentValues {

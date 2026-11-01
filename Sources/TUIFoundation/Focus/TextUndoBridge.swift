@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 
 /// What one of a text control's undo steps is registered against in the app's
 /// undo manager: one per state its ``TextUndoHistory`` keeps, carried from
@@ -27,6 +28,7 @@ package final class TextUndoMark: Sendable {
 
 /// A text control that can take one step of its own history back or forward
 /// — the half of undo the app's undo manager calls into.
+@MainActor
 package protocol AppUndoableText: AnyObject {
     /// Takes the step `mark` back, if it is the newest of the control's
     /// history (any newest step for `nil`); `false` when it did nothing.
@@ -64,20 +66,16 @@ package protocol AppUndoableText: AnyObject {
 /// step holds its control weakly, so it can neither keep one alive nor reach
 /// one that is gone.
 ///
-/// The undo manager is isolated to the main actor and the controls are not,
-/// though they only ever run there.
+/// The undo manager, the controls and everything here are isolated to the main
+/// actor.
+@MainActor
 package enum TextUndoBridge {
     /// Registers the step the control just recorded, against `mark`: undone,
     /// it takes the control one state back and registers its redo.
     package static func registerEdit(of control: some AppUndoableText, mark: TextUndoMark, on manager: UndoManager) {
-        // The control is only ever touched on the main actor, where this runs;
-        // the compiler cannot know that of a type that is not isolated.
-        nonisolated(unsafe) let control = control
-        let manager = MainActorUndoManager(manager)
-        MainActor.assumeIsolated { register(control, mark: mark, on: manager.manager, undoing: true) }
+        register(control, mark: mark, on: manager, undoing: true)
     }
 
-    @MainActor
     fileprivate static func register(
         _ control: any AppUndoableText, mark: TextUndoMark, on manager: UndoManager, undoing: Bool
     ) {
@@ -93,9 +91,8 @@ package enum TextUndoBridge {
         manager.registerUndo(withTarget: mark) { [step, mark] _ in
             // The manager runs its steps on the main actor. The macOS 26 SDK's
             // handler says so; the macOS 15 SDK's (the Command Line Tools')
-            // does not, and is `@Sendable` besides — hence the step, which
-            // asserts as much, rather than the control and the manager
-            // captured here.
+            // does not, and is `@Sendable` besides — hence the step, isolated,
+            // rather than the control and the manager captured here.
             MainActor.assumeIsolated { step.run(mark: mark) }
         }
         label(manager, with: mark)
@@ -106,9 +103,7 @@ package enum TextUndoBridge {
     /// ask whether its step is still the newest (``isNewestStep(_:on:)``).
     /// Only inside the step's group: `NSUndoManager` raises with none open,
     /// and with registration disabled the registration opened none.
-    @MainActor
     package static func label(_ manager: UndoManager, with mark: TextUndoMark) {
-        guard #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) else { return }
         guard manager.groupingLevel > 0 else { return }
         manager.setActionUserInfoValue(mark, forKey: UndoManager.UserInfoKey(markKey))
     }
@@ -127,37 +122,19 @@ package enum TextUndoBridge {
     /// undos come back in the order of the edits.
     /// The focus moving away and back with nothing registered meanwhile does
     /// not end the run.
-    ///
-    /// Before macOS 15 a step's user info cannot be asked, and the answer is
-    /// `true`: the run goes on, as it did before this was asked at all.
     package static func isNewestStep(_ mark: TextUndoMark, on manager: UndoManager) -> Bool {
-        let manager = MainActorUndoManager(manager)
-        return MainActor.assumeIsolated { newest(mark, on: manager.manager) }
-    }
-
-    @MainActor
-    private static func newest(_ mark: TextUndoMark, on manager: UndoManager) -> Bool {
-        guard #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) else { return true }
-        return manager.undoActionUserInfoValue(forKey: UndoManager.UserInfoKey(markKey)) as AnyObject? === mark
+        manager.undoActionUserInfoValue(forKey: UndoManager.UserInfoKey(markKey)) as AnyObject? === mark
     }
 
     /// Takes the steps registered against `marks` out of `manager`, at once.
     ///
-    /// Every caller is on the main actor — a render, a key, a click — which
-    /// is asked of the isolation, not of the thread. On Linux the main actor
-    /// is drained by a pool thread after the first suspension (see
-    /// `StackGuard`), so `Thread.isMainThread`, which this asked until the
-    /// 2026-10-05 review, sent every removal there to a `Task` that ran after
-    /// the frame: the status bar went on offering the steps. A control going
-    /// away does not come here: its deinitialiser promises no isolation at
-    /// all, and leaves its steps to ``DepartedUndoSteps``.
+    /// A control going away does not come here: its deinitialiser promises no
+    /// isolation at all, and leaves its steps to ``DepartedUndoSteps``.
     package static func forget(_ marks: [TextUndoMark], on manager: UndoManager) {
         guard !marks.isEmpty else { return }
-        let manager = MainActorUndoManager(manager)
-        MainActor.assumeIsolated { removeActions(of: marks, from: manager.manager) }
+        removeActions(of: marks, from: manager)
     }
 
-    @MainActor
     fileprivate static func removeActions(of marks: [TextUndoMark], from manager: UndoManager) {
         for mark in marks { manager.removeAllActions(withTarget: mark) }
     }
@@ -178,46 +155,40 @@ package enum TextUndoBridge {
 /// control let go of later in a frame has its steps taken out at the next.
 /// One per app, on its `TUIContext`.
 ///
-/// Locked, because a deinitialiser can run on any thread; an empty list costs
-/// a frame one lock and a check.
-package final class DepartedUndoSteps: @unchecked Sendable {
-    private let lock = NSLock()
-
+/// Not `Sendable`, like the controls that leave their steps here: the compiler
+/// keeps them all on the render path, wherever a deinitialiser happens to run.
+package final class DepartedUndoSteps {
     /// The marks of each control that has gone away, with the manager its
-    /// steps are registered with. Under ``lock``.
+    /// steps are registered with, which is touched only in ``takeOut()``.
     private var pending: [(marks: [TextUndoMark], manager: UndoManager)] = []
 
     /// Leaves `marks`, a control's that is going away, to be taken out of
-    /// `manager` at the start of the next frame. Callable from anywhere.
+    /// `manager` at the start of the next frame.
     package func add(_ marks: [TextUndoMark], from manager: UndoManager) {
         guard !marks.isEmpty else { return }
-        lock.lock()
         pending.append((marks, manager))
-        lock.unlock()
     }
 
     /// Takes every step left here out of its manager.
     ///
-    /// Outside the lock, so that whatever letting go of a step frees can
-    /// leave steps here itself.
+    /// A copy, so that whatever letting go of a step frees can leave steps here
+    /// itself.
     @MainActor
     package func takeOut() {
-        var taken: [(marks: [TextUndoMark], manager: UndoManager)] = []
-        lock.lock()
-        swap(&taken, &pending)
-        lock.unlock()
-        for (marks, manager) in taken { TextUndoBridge.removeActions(of: marks, from: manager) }
+        guard !pending.isEmpty else { return }
+        let taken = pending
+        pending = []
+        for (marks, manager) in taken {
+            TextUndoBridge.removeActions(of: marks, from: manager)
+        }
     }
 }
 
 /// One step a text control registered with the undo manager: the control,
 /// held weakly so a step can neither keep one alive nor reach one that is
 /// gone, the manager its inverse goes back to, and which way it moves.
-///
-/// `@unchecked Sendable` because the macOS 15 SDK's `registerUndo` handler is
-/// `@Sendable` and the control and the manager are not; the step is only ever
-/// run on the main actor (``TextUndoBridge``), which the macOS 26 SDK states.
-private final class TextUndoStep: @unchecked Sendable {
+@MainActor
+private final class TextUndoStep {
     weak var control: (any AppUndoableText)?
     let manager: UndoManager
     let undoing: Bool
@@ -230,7 +201,6 @@ private final class TextUndoStep: @unchecked Sendable {
 
     /// Takes the control one state back (or forward), and registers the
     /// opposite step.
-    @MainActor
     func run(mark: TextUndoMark) {
         guard let control else { return }
         let moved = undoing ? control.undoOwnStep(mark: mark) : control.redoOwnStep(mark: mark)

@@ -131,12 +131,11 @@ public struct PresentationDetent: Hashable, Sendable {
     /// A custom detent: its type, which is what two of them are compared by,
     /// and the type's answer.
     ///
-    /// Unchecked because the closure is a call of the type's static
-    /// requirement and holds nothing else; the metatype itself is not
-    /// `Sendable`, as SwiftUI's protocol does not require it to be.
-    private struct CustomDetent: Hashable, @unchecked Sendable {
+    /// The closure is a call of the type's static requirement and holds nothing
+    /// else: a metatype that ``CustomPresentationDetent`` makes `Sendable`.
+    private struct CustomDetent: Hashable, Sendable {
         let type: ObjectIdentifier
-        let height: (Context) -> Int?
+        let height: @Sendable (Context) -> Int?
         /// The type's name, which orders two custom detents (``precedes(_:)``).
         let name: String
 
@@ -166,7 +165,7 @@ public struct PresentationDetent: Hashable, Sendable {
 ///
 /// .presentationDetents([.custom(BarDetent.self), .large])
 /// ```
-public protocol CustomPresentationDetent {
+public protocol CustomPresentationDetent: SendableMetatype {
     /// The context a custom detent's height is decided in.
     typealias Context = PresentationDetent.Context
 

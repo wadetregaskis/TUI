@@ -232,10 +232,7 @@ private enum PictureLocation: Equatable {
         /// Writes the first picture `providers` hold to a temporary file and
         /// hands its path to `show`: the image view loads files and URLs, not
         /// bytes in memory.
-        fileprivate static func showPasted(_ providers: [NSItemProvider], with show: @escaping (String) -> Void) {
-            // Crosses to the provider's queue only to come back: it is called
-            // on the main actor alone.
-            nonisolated(unsafe) let show = show
+        fileprivate static func showPasted(_ providers: [NSItemProvider], with show: @escaping @MainActor (String) -> Void) {
             for provider in providers {
                 guard let type = pastedTypes.first(where: { provider.hasItemConformingToTypeIdentifier($0.identifier) })
                 else { continue }
@@ -255,7 +252,7 @@ private enum PictureLocation: Equatable {
     extension View {
         /// Shows a picture pasted here in place of the page's own, handing
         /// `show` the path of the file it was written to.
-        fileprivate func pastesPictures(_ show: @escaping (String) -> Void) -> some View {
+        fileprivate func pastesPictures(_ show: @escaping @MainActor (String) -> Void) -> some View {
             onPasteCommand(of: ImagesPage.pastedTypes) { providers in
                 ImagesPage.showPasted(providers, with: show)
             }
@@ -265,6 +262,6 @@ private enum PictureLocation: Equatable {
     extension View {
         /// Nothing to paste a picture with: the platform has no type
         /// identifiers to name one.
-        fileprivate func pastesPictures(_ show: @escaping (String) -> Void) -> some View { self }
+        fileprivate func pastesPictures(_ show: @escaping @MainActor (String) -> Void) -> some View { self }
     }
 #endif

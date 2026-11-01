@@ -372,6 +372,7 @@ final class TextEditorHandler: PersistedFocusable {
     ///     that left the caret
     ///     (``TextUndoHistory/record(text:caret:continuingTyping:)``).
     /// - Returns: What `edit` returns.
+    @MainActor
     func recordingUndoStep(typing: Bool = false, continuingTyping: Bool = false, _ edit: () -> Bool) -> Bool {
         let textBefore = text.wrappedValue
         let caretBefore = cursor

@@ -43,9 +43,8 @@ public enum EditMode: Sendable, Equatable {
 /// provides `.environment(\.editMode, $mode)` above both the editable view and
 /// its `EditButton`).
 private struct EditModeKey: EnvironmentKey {
-    // `Binding` is not `Sendable`, so the immutable `nil` default needs
-    // `nonisolated(unsafe)` (the value never mutates, so it is genuinely safe).
-    nonisolated(unsafe) static let defaultValue: Binding<EditMode>? = nil
+    // Computed: `Binding` is not `Sendable`, so a stored default is refused.
+    static var defaultValue: Binding<EditMode>? { nil }
 }
 
 extension EnvironmentValues {

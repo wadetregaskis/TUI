@@ -44,7 +44,7 @@
 ///     // render focused style
 /// }
 /// ```
-public final class FocusManager: @unchecked Sendable {
+public final class FocusManager {
     /// The default section ID for elements registered without an explicit section.
     package static let defaultSectionID = "__default__"
 
@@ -132,7 +132,7 @@ public final class FocusManager: @unchecked Sendable {
     /// which is also what keeps the throwaway managers right: a dimmed
     /// backdrop's manager and the focus-reach probe's scratch one each end up
     /// pointed at the cache their own render used.
-    private var renderCacheLink: RenderCache.Link?
+    private var renderCacheHandle: RenderCache.Handle?
 
     /// The last focused element ID per section, so returning to a section
     /// (e.g. dismissing a modal whose overlay activated its own section)
@@ -597,7 +597,7 @@ extension FocusManager {
     package func noteFocusIdentity(
         _ identity: ViewIdentity, for focusID: String, cachedIn cache: RenderCache?, drawnBelow: Bool = true
     ) {
-        renderCacheLink = cache?.link
+        renderCacheHandle = cache?.handle
         focusIdentities[focusID] = (identity: identity, generation: focusRenderGeneration, drawnBelow: drawnBelow)
     }
 
@@ -630,7 +630,7 @@ extension FocusManager {
     /// whose focus shows only in what it draws itself.
     private func invalidateCachedRender(of focusID: String?) {
         guard let focusID, let known = focusIdentities[focusID] else { return }
-        renderCacheLink?.cache?.clearAffected(by: known.identity, includingDescendants: known.drawnBelow)
+        renderCacheHandle?.cache?.clearAffected(by: known.identity, includingDescendants: known.drawnBelow)
     }
 
     /// Unregisters a focusable element from all sections.
@@ -1013,6 +1013,7 @@ extension FocusManager {
     /// - Parameter event: The key event to dispatch.
     /// - Returns: True if the event was handled.
     @discardableResult
+    @MainActor
     public func dispatchKeyEvent(_ event: KeyEvent) -> Bool {
         dispatchKeyEvent(event, commands: nil)
     }
@@ -1032,6 +1033,7 @@ extension FocusManager {
     ///     answers whether it took it.
     /// - Returns: True if the event was handled.
     @discardableResult
+    @MainActor
     package func dispatchKeyEvent(_ event: KeyEvent, commands: ((KeyEvent) -> Bool)?) -> Bool {
         // Dispatch to focused element first — let it handle keys like Up/Down/Left/Right.
         // If element consumes the event, stop here.

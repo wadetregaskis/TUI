@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Synchronization
+
 // MARK: - OSC 8 hyperlinks
 
 /// A destination the terminal itself can open — the OSC 8 hyperlink, which
@@ -330,13 +332,14 @@ extension TerminalHyperlink {
     /// sequence the host ignores costs a link that does nothing, so the safe
     /// answer before anybody has published one is "no links", not "links".
     public static var isSupported: Bool {
-        get { taskSupported ?? processSupported }
-        set { processSupported = newValue }
+        get { taskSupported ?? processSupported.load(ordering: .relaxed) }
+        set { processSupported.store(newValue, ordering: .relaxed) }
     }
 
-    /// `nonisolated(unsafe)` for the reason ``ColorDepth/current`` gives: set
-    /// during startup, before the render loop exists, and only read after.
-    nonisolated(unsafe) private static var processSupported = false
+    /// Atomic because anything may read it, whatever thread sets it: it is set
+    /// during startup and read by whoever draws after. Relaxed, since no other
+    /// memory is published with it. A read costs what a plain load does.
+    private static let processSupported = Atomic(false)
 
     /// A task-scoped pin, bound by ``withSupport(_:operation:)``.
     @TaskLocal private static var taskSupported: Bool?

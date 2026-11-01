@@ -295,10 +295,14 @@ private final class TransactionValueIdentity {}
 
 /// The part of a ``Transaction`` held by reference: its custom values.
 ///
-/// `@unchecked Sendable` because a key's value need not be `Sendable` — as in
-/// SwiftUI — while a transaction must be, to be a task local. A transaction is
-/// made and read on the main actor by every path TUI has.
-final class TransactionExtras: @unchecked Sendable {
+/// `@unchecked Sendable` because a key's value need not be `Sendable`, as in
+/// SwiftUI, whose `TransactionKey.Value` is unconstrained and whose `Transaction`
+/// is explicitly not `Sendable`, while a transaction here must be, to be the
+/// task local ``Transaction/ambient``: the scope a `withTransaction` has to
+/// reach a state write in, on whatever thread that runs. A lock would not do:
+/// a `Mutex` will not hand a non-`Sendable` value out, and a key's value has to
+/// come out of it.
+final class TransactionExtras: @unchecked Sendable {  // swiftlint:disable:this concurrency_escape
     fileprivate var values: [ObjectIdentifier: TransactionValue] = [:]
 
     /// The completions waiting on the change. See `AnimationCompletion`.
@@ -337,7 +341,7 @@ final class TransactionExtras: @unchecked Sendable {
 
 extension Transaction {
     /// The transaction in force for changes made right now, or `nil` outside
-    /// any ``withTransaction(_:_:)`` scope.
+    /// any ``withTransaction(_:_:isolation:)`` scope.
     ///
     /// A task local rather than a global for the reason
     /// `StateRegistration.activeEnvironment` is: the scoping the mechanism
@@ -378,9 +382,14 @@ extension Transaction {
 /// ending while such an unanimated change waits for its frame, has its
 /// completions held for that frame too (deviation A7).
 ///
+/// `isolation` is beyond SwiftUI's signature, and defaulted: it tells this
+/// function, which is not itself on the main actor, whether a completion that
+/// has to run now can.
+///
 /// - Returns: Whatever `body` returns.
 public func withTransaction<Result>(
-    _ transaction: Transaction, _ body: () throws -> Result
+    _ transaction: Transaction, _ body: () throws -> Result,
+    isolation: isolated (any Actor)? = #isolation
 ) rethrows -> Result {
     let enclosing = transaction.completions.isEmpty ? [] : Transaction.ambient?.completions ?? []
     defer {
@@ -389,7 +398,7 @@ public func withTransaction<Result>(
         AmbientApp.renderState?.transactionScopeEnded(transaction)
         for completion in transaction.completions
         where !completion.isClaimed && !enclosing.contains(where: { $0 === completion }) {
-            completion.fire()
+            completion.fire(from: isolation)
         }
     }
     return try Transaction.$ambient.withValue(transaction, operation: body)

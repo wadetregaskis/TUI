@@ -150,8 +150,6 @@ Three managers finalize the frame:
 - The **`StateStorage`** performs garbage collection: any state whose view identity was not marked active during this render pass, and is not under a subtree retained for the pass (the rows a lazy stack, `List` or `Table` left out of its window, a collapsed `DisclosureGroup`'s content, a memoized subtree served from the cache), is removed. This prevents memory leaks from views that have been permanently removed.
 - The **`RenderCache`** removes inactive entries (subtrees no longer in the view tree) and optionally logs per-frame cache statistics.
 
-All state changes inside the lifecycle manager are `NSLock`-protected. Callbacks execute **outside** the lock to prevent deadlocks.
-
 Once the frame is on the screen, the run loop presses the keys a menu bar's item owes (`KeysAfterFrame`): an item such as Copy does what ⌘C does to the focused view, and the focus is the page's again only in the frame that closed the menu. Each key goes through the whole input chain, as if typed then, and another frame shows what it did.
 
 ### Chrome Rendering (Step 6)

@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 
 /// The fills of a palette's highlighted rows at one colour depth.
 ///
@@ -149,14 +150,13 @@ extension RowFills {
         var shippedTarget: [UInt32]?
     }
 
-    private static let cacheLock = NSLock()
-    nonisolated(unsafe) private static var cache: [RuleKey: RowFills] = [:]
+    private static let cache = Mutex<[RuleKey: RowFills]>([:])
 
     /// The rule's fills for `key`, run once and kept.
     static func ruled(_ key: RuleKey) -> RowFills {
-        if let known = cacheLock.withLock({ cache[key] }) { return known }
+        if let known = cache.withLock({ $0[key] }) { return known }
         let answer = run(key)
-        cacheLock.withLock {
+        cache.withLock { cache in
             // A backstop against unbounded growth, as `Color.pulseRamp`'s cache has: an
             // app has a handful of palettes and tints at one depth.
             if cache.count > 64 { cache.removeAll(keepingCapacity: true) }

@@ -74,12 +74,14 @@ struct ObservationCacheLifetimeTests {
     @Test("A change drawn with a cache that has gone does nothing")
     func deadCacheIsANoOp() {
         var link: RenderCache.Link?
+        var handle: RenderCache.Handle?
         do {
             let cache = RenderCache()
             link = cache.link
-            #expect(link?.cache === cache)
+            handle = cache.handle
+            #expect(handle?.cache === cache)
         }
-        #expect(link?.cache == nil, "the cache's deinit detached its link")
+        #expect(handle?.cache == nil, "the cache's deinit detached its handle")
         var fellBack = false
         reportObservedChange(at: ViewIdentity(rootType: Model.self), to: link) { fellBack = true }
         #expect(!fellBack, "a cache that has gone must not clear another app's")

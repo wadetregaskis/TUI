@@ -17,13 +17,13 @@ import TUITesting
 @testable import TUITestSupport
 
 extension ToolbarItemPlacement {
-    fileprivate static let favorites = accessoryBar(id: "favorites")
-    fileprivate static let tags = accessoryBar(id: "tags")
+    fileprivate static var favorites: Self { accessoryBar(id: "favorites") }
+    fileprivate static var tags: Self { accessoryBar(id: "tags") }
 }
 
 extension ToolbarPlacement {
-    fileprivate static let favorites = accessoryBar(id: "favorites")
-    fileprivate static let tags = accessoryBar(id: "tags")
+    fileprivate static var favorites: Self { accessoryBar(id: "favorites") }
+    fileprivate static var tags: Self { accessoryBar(id: "tags") }
 }
 
 /// What the probe page states about its bars, reachable from an `App`.

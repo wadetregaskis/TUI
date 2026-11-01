@@ -129,13 +129,11 @@ package protocol ImageStoreSignature: Equatable {
 ///
 /// ## Isolation
 ///
-/// `@unchecked Sendable`, exactly as `LifecycleManager` is, and for the same
-/// reason: it is reached from `Renderable.renderToBuffer`, which is not
-/// actor-isolated, and from the run loop, which is — but both run on the run
-/// loop's own thread, one render pass at a time. There is no concurrency here
-/// to check; there is a compiler that cannot see that.
+/// Not `Sendable`: it is reached from `Renderable.renderToBuffer` and from the
+/// run loop, both on the main actor, one render pass at a time, and the compiler
+/// keeps it there.
 @usableFromInline
-package final class TerminalImageStore: @unchecked Sendable {
+package final class TerminalImageStore {
 
     /// One image in the terminal, the cells that draw it, and who is drawing
     /// them.

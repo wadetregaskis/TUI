@@ -8,7 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import Foundation  // `NSLock` — stated, not borrowed from a sibling file (SE-0444)
+import Synchronization
 
 extension Color {
     /// A colour that is one RGB value under a light colour scheme and another
@@ -129,7 +129,7 @@ extension Color {
 /// Asking for a place takes it once; reading a pair, which only drawing a
 /// ``Color/ColorValue/lightDark(_:)`` colour does, takes it once. No other
 /// colour reads the table.
-package final class LightDarkColorTable: @unchecked Sendable {
+package final class LightDarkColorTable: Sendable {
     /// One RGB value.
     package struct Components: Hashable, Sendable {
         package let red: UInt8
@@ -153,11 +153,15 @@ package final class LightDarkColorTable: @unchecked Sendable {
     /// fewer for a test of what happens when it is full.
     package let capacity: Int
 
-    private let lock = NSLock()
-    /// Guarded by `lock`. The pair at each place, in the order they came.
-    private var pairs: [Pair] = []
-    /// Guarded by `lock`. Each pair's place.
-    private var places: [Pair: Int] = [:]
+    /// What the table holds.
+    private struct Contents {
+        /// The pair at each place, in the order they came.
+        var pairs: [Pair] = []
+        /// Each pair's place.
+        var places: [Pair: Int] = [:]
+    }
+
+    private let contents = Mutex(Contents())
 
     /// A table that keeps up to `capacity` pairs, at most ``maximumCapacity``.
     package init(capacity: Int) {
@@ -168,12 +172,12 @@ package final class LightDarkColorTable: @unchecked Sendable {
     /// The place of `pair`: where it already is, or the next free one; `nil`
     /// once the table is full and `pair` is not in it.
     package func index(of pair: Pair) -> Color.LightDarkIndex? {
-        lock.withLock {
-            if let place = places[pair] { return Color.LightDarkIndex(place) }
-            guard pairs.count < capacity else { return nil }
-            pairs.append(pair)
-            places[pair] = pairs.count - 1
-            return Color.LightDarkIndex(pairs.count - 1)
+        contents.withLock { contents in
+            if let place = contents.places[pair] { return Color.LightDarkIndex(place) }
+            guard contents.pairs.count < capacity else { return nil }
+            contents.pairs.append(pair)
+            contents.places[pair] = contents.pairs.count - 1
+            return Color.LightDarkIndex(contents.pairs.count - 1)
         }
     }
 
@@ -181,11 +185,11 @@ package final class LightDarkColorTable: @unchecked Sendable {
     /// programming error (a colour made with another table, in a test, and
     /// drawn).
     package func pair(at index: Color.LightDarkIndex) -> Pair {
-        lock.withLock { pairs[index.index] }
+        contents.withLock { $0.pairs[index.index] }
     }
 
     /// How many pairs the table holds.
     package var count: Int {
-        lock.withLock { pairs.count }
+        contents.withLock { $0.pairs.count }
     }
 }

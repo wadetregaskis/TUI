@@ -10,7 +10,7 @@ import Foundation
 
 extension LocalizationService {
     /// Supported languages
-    public enum Language: String, Codable, CaseIterable {
+    public enum Language: String, Codable, CaseIterable, Sendable {
         case english = "en"
         case german = "de"
         case french = "fr"

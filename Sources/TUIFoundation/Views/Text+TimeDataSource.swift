@@ -11,7 +11,6 @@
 
 import Foundation
 
-@available(macOS 15, *)
 extension Text {
     /// Creates a text view that displays the current system time as defined by
     /// the given format style, keeping the text up to date as time progresses —
@@ -96,7 +95,6 @@ extension Text {
     ///   - input: The underlying value to display.
     ///   - format: A discrete format style that converts `input` into an
     ///     attributed string.
-    @available(macOS 15, *)
     public init<F: DiscreteFormatStyle>(_ input: F.FormatInput, format: F)
     where F.FormatInput: Equatable, F.FormatOutput == AttributedString {
         self.init(format.format(input))
@@ -107,11 +105,12 @@ extension Text {
 
 /// A time data source's value through a discrete format style.
 ///
-/// `@unchecked Sendable` because `FormatStyle` does not refine `Sendable`
-/// while every format style is a value; the source holds one and never shares
-/// mutable state.
-@available(macOS 15, *)
-struct FormattedTimeSource<Value, Format: DiscreteFormatStyle>: LiveTextSource, @unchecked Sendable
+/// `@unchecked Sendable` because ``Text``, like SwiftUI's, must be `Sendable`,
+/// and Foundation's `FormatStyle` does not refine `Sendable`, so SwiftUI's
+/// `Text(_:format:)` signature, which this keeps, can be handed a style that is
+/// not. Every format style Foundation ships is a value, and the source holds one
+/// and never shares mutable state.
+struct FormattedTimeSource<Value, Format: DiscreteFormatStyle>: LiveTextSource, @unchecked Sendable  // swiftlint:disable:this concurrency_escape
 where Format.FormatInput == Value {
     let source: TimeDataSource<Value>
     let format: Format

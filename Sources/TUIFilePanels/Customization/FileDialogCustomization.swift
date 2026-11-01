@@ -24,7 +24,7 @@ import TUIFoundation
 /// so each is an environment value the presenting modifier reads, when it
 /// presents a panel. A change while a panel is up applies the next time one
 /// is presented, as `allowedContentTypes` does.
-struct FileDialogCustomization: Equatable, Sendable {
+struct FileDialogCustomization: Equatable {
     /// The text a panel shows above its folder, like a title.
     var message: String?
 
@@ -64,7 +64,7 @@ struct FileDialogCustomization: Equatable, Sendable {
     /// when it is presented, never while anything draws, so an identity that
     /// does not change says all a memo needs to know (as
     /// `SelectionContextMenu`'s closures are handed down).
-    struct URLEnabled: Equatable, @unchecked Sendable {
+    struct URLEnabled: Equatable {
         /// The box the modifier keeps.
         let box: Box
 
@@ -86,7 +86,7 @@ struct FileDialogCustomization: Equatable, Sendable {
 }
 
 private struct FileDialogCustomizationKey: EnvironmentKey {
-    static let defaultValue = FileDialogCustomization()
+    static var defaultValue: FileDialogCustomization { FileDialogCustomization() }
 }
 
 extension EnvironmentValues {

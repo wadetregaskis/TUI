@@ -15,13 +15,12 @@
 /// Use the ``View/renameAction(_:)-(()->Void)`` modifier to configure the
 /// rename action in the environment; a ``RenameButton`` performs it.
 ///
-/// `@unchecked Sendable` because it holds the caller's closure as SwiftUI's
-/// signature takes it, not `@Sendable`; it is only ever called through
-/// ``callAsFunction()``, which is main-actor isolated, as every render and
-/// event is. Not `Equatable` — a closure has no equality — so, as with any
+/// Not `Sendable`, as SwiftUI's is explicitly not, and it holds the caller's
+/// closure as SwiftUI's signature takes it. Not `Equatable` — a closure has no
+/// equality — so, as with any
 /// environment value that is not, the render memos below the modifier compare
 /// it as changed every frame rather than serve a buffer holding the old one.
-public struct RenameAction: @unchecked Sendable {
+public struct RenameAction {
     /// What a rename does.
     let action: () -> Void
 
@@ -33,7 +32,7 @@ public struct RenameAction: @unchecked Sendable {
 }
 
 private struct RenameActionKey: EnvironmentKey {
-    static let defaultValue: RenameAction? = nil
+    static var defaultValue: RenameAction? { nil }
 }
 
 extension EnvironmentValues {

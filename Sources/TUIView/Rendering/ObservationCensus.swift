@@ -19,6 +19,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Synchronization
 import TUICore
 
 /// Counts the observation registrations TUI arms, the ones that fire, the
@@ -142,14 +143,11 @@ package final class ObservationCensus: Sendable {
     /// runs for a write, as cancelled when it runs for its lease's retirement,
     /// and as dropped when it is freed without having run.
     ///
-    /// `@unchecked Sendable`: its one mutable field is read and written only
-    /// under the census's lock.
-    package final class Registration: @unchecked Sendable {
+    package final class Registration: Sendable {
         private let census: ObservationCensus
         private let kind: Kind
-        /// Whether it has been counted as fired or cancelled. Under the
-        /// census's lock.
-        private var hasFired = false
+        /// Whether it has been counted as fired or cancelled.
+        private let hasFired = Atomic(false)
 
         fileprivate init(census: ObservationCensus, kind: Kind) {
             self.census = census
@@ -160,28 +158,26 @@ package final class ObservationCensus: Sendable {
         /// the closure before either cancels it. Call first thing in the
         /// registration's `onChange`.
         package func fire() {
-            census.counts.withLock { counts in
-                guard !hasFired else { return }
-                hasFired = true
-                counts.fire(kind)
-            }
+            guard takeFiring() else { return }
+            census.counts.withLock { $0.fire(kind) }
         }
 
         /// Counts it as cancelled, once — unless a write fired it first. Call
         /// first thing in the registration's `onChange` when its sentinel is
         /// retired.
         package func cancel() {
-            census.counts.withLock { counts in
-                guard !hasFired else { return }
-                hasFired = true
-                counts.cancel(kind)
-            }
+            guard takeFiring() else { return }
+            census.counts.withLock { $0.cancel(kind) }
         }
 
         deinit {
-            census.counts.withLock { counts in
-                if !hasFired { counts.drop(kind) }
-            }
+            guard takeFiring() else { return }
+            census.counts.withLock { $0.drop(kind) }
+        }
+
+        /// Whether it had yet to be counted, which it now has been.
+        private func takeFiring() -> Bool {
+            !hasFired.exchange(true, ordering: .relaxed)
         }
     }
 

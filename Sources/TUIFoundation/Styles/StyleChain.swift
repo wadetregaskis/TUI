@@ -22,7 +22,7 @@
 /// the memos under it rather than serving them stale, the price the style
 /// protocols' documentation states. Unequal alone, the cache read it as a
 /// change on every pass and cleared everything under it every frame.
-package struct StyleChain<Style>: Equatable, PartiallyComparable, @unchecked Sendable {
+package struct StyleChain<Style>: Equatable, PartiallyComparable {
     /// The style in force.
     package let style: Style
 
@@ -30,9 +30,8 @@ package struct StyleChain<Style>: Equatable, PartiallyComparable, @unchecked Sen
     /// root — the environment's default.
     let outer: Box?
 
-    /// The outer chain, boxed because a struct cannot hold itself. Immutable,
-    /// which is what makes the unchecked `Sendable` true.
-    final class Box: Equatable, @unchecked Sendable {
+    /// The outer chain, boxed because a struct cannot hold itself.
+    final class Box: Equatable {
         let chain: StyleChain
 
         init(_ chain: StyleChain) {

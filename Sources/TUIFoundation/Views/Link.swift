@@ -339,11 +339,7 @@ private struct TerminalHyperlinkModifier: BufferModifier {
 /// `ScrollbarRenderer` already agree on for "one gesture, not two", measured
 /// against a careful click on a one-cell arrow; the same question deserves the
 /// same answer.
-///
-/// `@unchecked Sendable` for the reason `TerminalImageStore`'s is: written
-/// from a key handler and read from the next one, both on the run loop's own
-/// thread, one pass at a time.
-final class LinkActivationGate: @unchecked Sendable {
+final class LinkActivationGate {
     private var lastNanos: UInt64 = 0
 
     /// Milliseconds within which a second activation is a key repeat rather

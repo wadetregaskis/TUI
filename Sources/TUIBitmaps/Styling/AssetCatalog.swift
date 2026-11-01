@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import TUIFoundation
 
 /// The named colours and images of the uncompiled asset catalogues a bundle
@@ -104,33 +105,32 @@ enum AssetCatalog {
         let name: String
     }
 
-    private static let lock = NSLock()
-    nonisolated(unsafe) private static var entries: [Key: Entry] = [:]
+    private static let entries = Mutex<[Key: Entry]>([:])
 
     /// The parsed set `name` of `kind` in `bundle`, read once.
     private static func cached(
         _ kind: Kind, _ name: String, _ bundle: Bundle, parse: (String) -> Entry?
     ) -> Entry? {
         let key = Key(bundlePath: bundle.bundlePath, kind: kind.rawValue, name: name)
-        if let known = lock.withLock({ entries[key] }) {
+        if let known = entries.withLock({ $0[key] }) {
             return known == .missing ? nil : known
         }
         let entry = folder(of: kind, named: name, in: bundle).flatMap(parse) ?? .missing
-        lock.withLock { entries[key] = entry }
+        entries.withLock { $0[key] = entry }
         return entry == .missing ? nil : entry
     }
 
     /// The `.colorset` / `.imageset` folder `actool` would name `name`.
     private static func folder(of kind: Kind, named name: String, in bundle: Bundle) -> String? {
         let bundlePath = bundle.bundlePath
-        if let index = lock.withLock({ names[bundlePath] }) {
+        if let index = names.withLock({ $0[bundlePath] }) {
             return index[NameKey(kind: kind.rawValue, name: name)]
         }
         var index: [NameKey: String] = [:]
         for catalog in catalogs(in: bundle) {
             indexSets(in: catalog, namespace: "", into: &index)
         }
-        lock.withLock { names[bundlePath] = index }
+        names.withLock { $0[bundlePath] = index }
         return index[NameKey(kind: kind.rawValue, name: name)]
     }
 
@@ -141,7 +141,7 @@ enum AssetCatalog {
     }
 
     /// Each bundle's sets by name, read once, by bundle path.
-    nonisolated(unsafe) private static var names: [String: [NameKey: String]] = [:]
+    private static let names = Mutex<[String: [NameKey: String]]>([:])
 
     /// Names every colour and image set under `folder`, in name order, each
     /// under `namespace` (the namespaces of the folders above it, each with a

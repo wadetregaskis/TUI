@@ -57,25 +57,22 @@ import TUIView
 /// ``reportingChanges(to:around:)``: the `@inlinable`
 /// `MouseEventDispatcher.register(in:reportingChangesTo:_:)` builds one and
 /// calls that, with its own generic arguments (module split step A3).
-///
-/// `Sendable` stated, as it was inferred while the type was not usable from
-/// inline code: the compiler infers it only for types that are not.
 @usableFromInline
-package struct HandlerDrawing: Sendable {
-    private let link: RenderCache.Link?
+package struct HandlerDrawing {
+    private let handle: RenderCache.Handle?
     private let identity: ViewIdentity
 
     /// The pictures of the control `context` is rendering.
     @usableFromInline
     package init(_ context: RenderContext) {
-        link = context.renderCache?.link
+        handle = context.renderCache?.handle
         identity = context.identity
     }
 
     /// Drops the control's own cached buffers and those containing it.
     @usableFromInline
     package func changed() {
-        link?.cache?.clearAffected(by: identity, keepingSizes: true, includingDescendants: false)
+        handle?.cache?.clearAffected(by: identity, keepingSizes: true, includingDescendants: false)
     }
 
     /// Runs `body`, and reports a change when `state` reads differently after

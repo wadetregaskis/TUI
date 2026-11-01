@@ -109,6 +109,7 @@ extension TextEditorHandler {
     /// since — and otherwise puts the text back as it was before the newest
     /// edit, with the cursor where it was, and drops the selection. With
     /// nothing to undo it does nothing, and the key is still the editor's.
+    @MainActor
     func undo() {
         block = nil
         if let undoManager {
@@ -120,6 +121,7 @@ extension TextEditorHandler {
 
     /// Ctrl-Shift-Z, the stand-in for ⇧⌘Z, where the terminal tells it from
     /// Ctrl-Z: redoes, as ``undo()`` undoes.
+    @MainActor
     func redo() {
         block = nil
         if let undoManager {
@@ -137,6 +139,7 @@ extension TextEditorHandler {
     /// `TextFieldHandler.forgetHistoryIfReplaced()`), so a replacement (a
     /// document loaded into the same editor) takes the editor's steps out of
     /// the manager before the next key.
+    @MainActor
     func forgetHistoryIfReplaced() {
         undoHistory.forgetIfReplaced(current: text.wrappedValue)
         forgetDroppedSteps()
@@ -144,6 +147,7 @@ extension TextEditorHandler {
 
     /// Takes the steps of the states the history let go of out of the app's
     /// undo manager, so it never offers an undo that does nothing.
+    @MainActor
     func forgetDroppedSteps() {
         let dropped = undoHistory.takeDroppedMarks()
         if let undoManager { TextUndoBridge.forget(dropped, on: undoManager) }

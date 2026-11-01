@@ -68,17 +68,17 @@ public struct DismissAction: Sendable, Equatable {
     /// compared by, and a place to keep one action across renders while what
     /// it does is brought up to date.
     ///
-    /// `@unchecked Sendable`: `action` is written and read on the main actor
-    /// only — by a view's render, and by ``DismissAction/callAsFunction()``,
-    /// which is main-actor isolated — and never shared mutably elsewhere.
-    package final class Box: @unchecked Sendable {
+    /// Isolated to the main actor, where `action` is written, by a view's
+    /// render, and read, by ``DismissAction/callAsFunction()``.
+    @MainActor
+    package final class Box {
         package var action: @MainActor @Sendable () -> Void { get { _action } set { _action = newValue } }
 
         /// ``action``'s storage: private, under the `package` accessor
         /// (CONTRIBUTING.md, "Crossing a module boundary").
         private var _action: @MainActor @Sendable () -> Void
 
-        package init(_ action: @escaping @MainActor @Sendable () -> Void = {}) {
+        nonisolated package init(_ action: @escaping @MainActor @Sendable () -> Void = {}) {
             self._action = action
         }
     }

@@ -34,7 +34,6 @@ struct UsableFromInlineSendabilityTests {
         requireSendable(ScrollIndicatorLine.self)
         requireSendable(ScrollAnchorMode.self)
         requireSendable(MouseHandlerLane.self)
-        requireSendable(HandlerDrawing.self)
         requireSendable(ResolvedScrollIndicators.self)
         requireSendable(SelectionContextMenuReference.self)
     }

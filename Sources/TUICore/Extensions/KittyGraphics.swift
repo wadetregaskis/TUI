@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Synchronization
+
 // MARK: - The Kitty graphics protocol
 
 /// As much of the Kitty graphics protocol as TUI uses: put an image in the
@@ -332,14 +334,13 @@ extension KittyGraphics {
     /// has drawn every image in this framework until now and still draws them
     /// on two of the four hosts (Apple Terminal and Warp).
     public static var isSupported: Bool {
-        get { taskSupported ?? processSupported }
-        set { processSupported = newValue }
+        get { taskSupported ?? processSupported.load(ordering: .relaxed) }
+        set { processSupported.store(newValue, ordering: .relaxed) }
     }
 
-    /// `nonisolated(unsafe)` for the reason ``TerminalHyperlink/isSupported``
-    /// gives: written during startup, before the render loop exists, and only
-    /// read after.
-    nonisolated(unsafe) private static var processSupported = false
+    /// Atomic for the reason ``TerminalHyperlink/isSupported`` gives: written
+    /// during startup and read by whoever draws after.
+    private static let processSupported = Atomic(false)
 
     /// A task-scoped pin, bound by ``withSupport(_:compression:operation:)``.
     @TaskLocal private static var taskSupported: Bool?
@@ -356,11 +357,11 @@ extension KittyGraphics {
     /// Under `q=2` an unsupported `o=z` is a picture that never appears, so
     /// this is `false` until the terminal said otherwise.
     public static var isCompressionSupported: Bool {
-        get { taskCompressionSupported ?? processCompressionSupported }
-        set { processCompressionSupported = newValue }
+        get { taskCompressionSupported ?? processCompressionSupported.load(ordering: .relaxed) }
+        set { processCompressionSupported.store(newValue, ordering: .relaxed) }
     }
 
-    nonisolated(unsafe) private static var processCompressionSupported = false
+    private static let processCompressionSupported = Atomic(false)
 
     @TaskLocal private static var taskCompressionSupported: Bool?
 

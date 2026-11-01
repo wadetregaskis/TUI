@@ -118,7 +118,7 @@ extension MenuStyle where Self == InlineMenuStyle {
 // MARK: - Environment
 
 private struct MenuStyleKey: EnvironmentKey {
-    static let defaultValue = StyleChain<any MenuStyle>(DefaultMenuStyle())
+    static var defaultValue: StyleChain<any MenuStyle> { StyleChain(DefaultMenuStyle()) }
 }
 
 extension EnvironmentValues {

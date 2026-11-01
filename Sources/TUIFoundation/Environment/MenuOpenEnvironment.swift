@@ -22,11 +22,9 @@ import TUICore
 /// closure would be the one the app had then. Through one object, a menu opened
 /// from a served buffer runs the closure the app gave most recently.
 ///
-/// `@unchecked Sendable` on the same terms as every other action closure here:
-/// it is created and invoked only on the render loop's single thread.
 /// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
 @usableFromInline
-package final class MenuOpenAction: Equatable, @unchecked Sendable {
+package final class MenuOpenAction: Equatable {
     /// What opening a menu runs: the closure the modifier's body was given last.
     var action: () -> Void
 
@@ -44,7 +42,7 @@ package final class MenuOpenAction: Equatable, @unchecked Sendable {
 /// `@inlinable` accessor reads it (module split step A3).
 @usableFromInline
 struct MenuOpenKey: EnvironmentKey {
-    @usableFromInline static let defaultValue: MenuOpenAction? = nil
+    @usableFromInline static var defaultValue: MenuOpenAction? { nil }
 }
 
 extension EnvironmentValues {

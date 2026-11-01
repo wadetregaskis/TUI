@@ -219,7 +219,7 @@ package struct MatchedMember {
 ///
 /// One per geometry coordinator; touched only on the render path and at the
 /// end of a frame, both on the main actor.
-package final class MatchedGeometryRegistry: @unchecked Sendable {
+package final class MatchedGeometryRegistry {
     /// This walk's members, in the order they drew.
     private var walk: [MatchedGeometryKey: [MatchedRegistration]] = [:]
 

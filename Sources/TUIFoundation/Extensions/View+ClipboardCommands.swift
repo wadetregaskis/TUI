@@ -10,6 +10,7 @@
 
 #if canImport(UniformTypeIdentifiers)
     import Foundation
+    import Synchronization
     import UniformTypeIdentifiers
 
     // MARK: - Commands
@@ -200,42 +201,32 @@
         }
 
         /// The loaded representations, filled from the providers' queues.
-        private final class LoadedData: @unchecked Sendable {
-            private let lock = NSLock()
-            private var parts: [ClipboardRepresentation?]
+        private final class LoadedData: Sendable {
+            private let parts: Mutex<[ClipboardRepresentation?]>
 
-            init(count: Int) { parts = Array(repeating: nil, count: count) }
+            init(count: Int) { parts = Mutex(Array(repeating: nil, count: count)) }
 
             func set(_ index: Int, _ part: ClipboardRepresentation?) {
-                lock.lock()
-                parts[index] = part
-                lock.unlock()
+                parts.withLock { $0[index] = part }
             }
 
             var all: [ClipboardRepresentation?] {
-                lock.lock()
-                defer { lock.unlock() }
-                return parts
+                parts.withLock { $0 }
             }
         }
 
         /// The loaded texts, filled from the providers' queues.
-        private final class LoadedTexts: @unchecked Sendable {
-            private let lock = NSLock()
-            private var texts: [String?]
+        private final class LoadedTexts: Sendable {
+            private let texts: Mutex<[String?]>
 
-            init(count: Int) { texts = Array(repeating: nil, count: count) }
+            init(count: Int) { texts = Mutex(Array(repeating: nil, count: count)) }
 
             func set(_ index: Int, _ text: String?) {
-                lock.lock()
-                texts[index] = text
-                lock.unlock()
+                texts.withLock { $0[index] = text }
             }
 
             var all: [String?] {
-                lock.lock()
-                defer { lock.unlock() }
-                return texts
+                texts.withLock { $0 }
             }
         }
     }

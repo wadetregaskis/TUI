@@ -13,12 +13,9 @@ import TUI
 /// environment. The autopilot (or real input) bumps `tick`; scenarios that
 /// animate/churn observe it. Using `@Observable` means a bump invalidates only
 /// the views that actually read it.
-///
-/// `@unchecked Sendable`: the autopilot `Task` captures this reference, but
-/// every mutation hops to the main actor (`MainActor.run`) — the same actor the
-/// render reads it on — so the access is in fact serialised.
+@MainActor
 @Observable
-final class StressClock: @unchecked Sendable {
+final class StressClock {
     var tick: Int = 0
     var autopilot: Bool = false
 }

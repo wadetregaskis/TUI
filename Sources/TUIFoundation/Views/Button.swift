@@ -771,12 +771,7 @@ private struct _ButtonCore: View, Renderable, Layoutable {
                         // cadence until the release.
                         if let repeatTimer {
                             focusManager?.focus(id: captureFocusID)
-                            // The timer runs its action on the main actor, where
-                            // this handler and every other use of the action
-                            // run too; the closure is the app's plain `() -> Void`,
-                            // which the timer's `Task` cannot be told is safe.
-                            nonisolated(unsafe) let repeated = captureAction
-                            repeatTimer.start { repeated() }
+                            repeatTimer.start { captureAction() }
                         }
                         return true
                     }

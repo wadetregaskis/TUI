@@ -387,6 +387,7 @@ struct MouseEventDispatcherTests {
             (0, 0, 3, 2, 3, 2),  // region at origin: local == absolute
             (10, 5, 12, 6, 2, 1),  // offset region: absolute (12, 6) arrives local (2, 1)
         ])
+    @MainActor
     func dispatchRoutesAndLocalizes(
         regionOffsetX: Int, regionOffsetY: Int,
         clickX: Int, clickY: Int,
@@ -413,6 +414,7 @@ struct MouseEventDispatcherTests {
     }
 
     @Test("Dispatch ignores events outside any region")
+    @MainActor
     func dispatchMisses() {
         let dispatcher = MouseEventDispatcher()
         dispatcher.beginRenderPass()
@@ -425,6 +427,7 @@ struct MouseEventDispatcherTests {
     }
 
     @Test("Drag capture routes drag and release back to original handler")
+    @MainActor
     func dragCapture() {
         let dispatcher = MouseEventDispatcher()
         dispatcher.beginRenderPass()
@@ -454,6 +457,7 @@ struct MouseEventDispatcherTests {
     }
 
     @Test("Innermost region wins when regions nest")
+    @MainActor
     func innermostWins() {
         let dispatcher = MouseEventDispatcher()
         dispatcher.beginRenderPass()
@@ -485,6 +489,7 @@ struct MouseEventDispatcherTests {
     }
 
     @Test("beginRenderPass clears handlers")
+    @MainActor
     func resetClears() {
         let dispatcher = MouseEventDispatcher()
         dispatcher.beginRenderPass()
@@ -502,6 +507,7 @@ struct MouseEventDispatcherTests {
     // MARK: - Wheel-event fall-through
 
     @Test("Wheel falls through inner non-handler to outer scroll handler")
+    @MainActor
     func wheelFallsThroughToOuter() {
         let dispatcher = MouseEventDispatcher()
         dispatcher.setActiveSupport(.standard)
@@ -540,6 +546,7 @@ struct MouseEventDispatcherTests {
     }
 
     @Test("A declined click falls through; a consumed one blocks")
+    @MainActor
     func declinedClickFallsThrough() {
         // `false` means "not mine" for every button — the left button used
         // to stop at the first matching region regardless, which made a
@@ -582,6 +589,7 @@ struct MouseEventDispatcherTests {
     }
 
     @Test("Wheel falls through chain of non-handlers to deepest handler")
+    @MainActor
     func wheelFallsThroughChain() {
         let dispatcher = MouseEventDispatcher()
         dispatcher.setActiveSupport(.standard)

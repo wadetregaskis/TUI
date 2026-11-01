@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Synchronization
+
 // MARK: - A picture under a cell's glyph, carried by the cell
 
 /// The mark a glyph over a frosted picture leaves on its cell, where the
@@ -152,13 +154,13 @@ extension KittyGraphics {
     /// notes §14.5). **Defaults to `false`**: everywhere else the glyph stands
     /// on the average colour, as it always has.
     public static var isPictureUnderTextSupported: Bool {
-        get { taskPictureUnderTextSupported ?? processPictureUnderTextSupported }
-        set { processPictureUnderTextSupported = newValue }
+        get { taskPictureUnderTextSupported ?? processPictureUnderTextSupported.load(ordering: .relaxed) }
+        set { processPictureUnderTextSupported.store(newValue, ordering: .relaxed) }
     }
 
-    /// `nonisolated(unsafe)` for the reason ``isSupported`` gives: written
-    /// during startup, before the render loop exists, and only read after.
-    nonisolated(unsafe) private static var processPictureUnderTextSupported = false
+    /// Atomic for the reason ``isSupported`` gives: written during startup and
+    /// read by whoever draws after.
+    private static let processPictureUnderTextSupported = Atomic(false)
 
     /// A task-scoped pin, bound by ``withPictureUnderTextSupport(_:operation:)``.
     @TaskLocal private static var taskPictureUnderTextSupported: Bool?

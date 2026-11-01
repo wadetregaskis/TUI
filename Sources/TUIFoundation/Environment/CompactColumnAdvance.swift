@@ -14,7 +14,7 @@
 /// Equal by identity, as ``DismissAction`` is: the split keeps one box for its
 /// life and refreshes the action in it, so the environment holds the same value
 /// every frame and the memos below the column stay on.
-package struct CompactColumnAdvance: Equatable, Sendable {
+package struct CompactColumnAdvance: Equatable {
     private let box: DismissAction.Box
 
     package init(box: DismissAction.Box) {

@@ -39,10 +39,10 @@
 /// button. A framework default is its pane's by the same rule. Where no pane
 /// is drawn, nothing here changes.
 ///
-/// `@unchecked Sendable` like its sibling per-frame services
-/// (`MouseEventDispatcher`, `KeyEventDispatcher`): touched only from the
-/// main run loop (render pass registration + input dispatch).
-package final class KeyboardShortcutRegistry: @unchecked Sendable {
+/// Not `Sendable`, like its sibling per-frame services (`MouseEventDispatcher`,
+/// `KeyEventDispatcher`): touched only from the main run loop (render pass
+/// registration + input dispatch).
+package final class KeyboardShortcutRegistry {
     /// An app shortcut's action, whether a held key's repeats run it again,
     /// and when in the frame it was registered (``registrationCount``).
     struct Entry {
@@ -368,7 +368,7 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
 /// button rendered under the modifier claims it (which is the wrapped button
 /// itself when the modifier is attached directly, the only supported usage).
 /// Main-loop-confined like the registry it feeds.
-final class KeyboardShortcutAssignment: @unchecked Sendable {
+final class KeyboardShortcutAssignment {
     let shortcut: KeyboardShortcut
 
     /// Whether the control claiming it registers its action on the shortcut —
@@ -452,11 +452,11 @@ final class KeyboardShortcutAssignment: @unchecked Sendable {
 // MARK: - Environment
 
 private struct KeyboardShortcutRegistryKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
-    static let defaultValue: KeyboardShortcutRegistry? = nil
+    static var defaultValue: KeyboardShortcutRegistry? { nil }
 }
 
 private struct AssignedKeyboardShortcutKey: EnvironmentKey {
-    static let defaultValue: KeyboardShortcutAssignment? = nil
+    static var defaultValue: KeyboardShortcutAssignment? { nil }
 }
 
 extension EnvironmentValues {

@@ -285,7 +285,7 @@ extension ToggleStyle where Self == SwitchToggleStyle {
 
 /// Environment key for toggle style.
 private struct ToggleStyleKey: EnvironmentKey {
-    static let defaultValue = StyleChain<any ToggleStyle>(DefaultToggleStyle())
+    static var defaultValue: StyleChain<any ToggleStyle> { StyleChain(DefaultToggleStyle()) }
 }
 
 extension EnvironmentValues {

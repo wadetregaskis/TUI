@@ -197,17 +197,17 @@ struct BodyMutationDiagnosticTests {
         diagnostic.beginTraversal()
         _ = renderToBuffer(WellBehavedProbe(), context: context)
 
-        let storage = context.environment.stateStorage!
-        let box: StateBox<Int> = storage.storage(
-            for: StateStorage.StateKey(identity: context.identity, propertyIndex: 0),
-            default: 0)
+        // What a write reaches the cache by, from a thread that is not walking:
+        // an `@Observable` property's, say.
+        let link = context.renderCache!.link
+        let identity = context.identity
 
         // `Thread.detachNewThread` rather than a `Task`: a task can be scheduled
         // onto the very thread doing the walking, which would make this test
         // assert the opposite of what it means to.
         await withCheckedContinuation { continuation in
             Thread.detachNewThread {
-                box.value = 42
+                link.invalidateRender(for: identity)
                 continuation.resume()
             }
         }

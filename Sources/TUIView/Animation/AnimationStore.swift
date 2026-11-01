@@ -33,7 +33,7 @@ import TUICore
 /// same way, and the measure walk does not — it visits subtrees the render
 /// walk skips, and vice versa. A key built from what the code says rather than
 /// from what the walk did is the same in both.
-package final class AnimationStore: @unchecked Sendable {
+package final class AnimationStore {
 
     /// Identifies one animating value at one place in the tree.
     public struct Key: Hashable, Sendable {

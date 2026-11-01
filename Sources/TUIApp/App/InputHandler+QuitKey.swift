@@ -136,6 +136,7 @@ extension InputHandler {
     /// round 6).
     ///
     /// - Returns: Whether one of them took it.
+    @MainActor
     func dispatchToDeclaredBindings(_ event: KeyEvent) -> Bool {
         if focusPathHearsKeys, let focused = focusManager.focusedIdentity,
             keyEventDispatcher.dispatchDeclaredFocusPath(event, focusedIdentity: focused)

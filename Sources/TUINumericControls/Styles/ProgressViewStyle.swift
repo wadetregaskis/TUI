@@ -168,7 +168,7 @@ extension ProgressViewStyle where Self == CircularProgressViewStyle {
 // MARK: - Environment
 
 private struct ProgressViewStyleKey: EnvironmentKey {
-    static let defaultValue = StyleChain<any ProgressViewStyle>(DefaultProgressViewStyle())
+    static var defaultValue: StyleChain<any ProgressViewStyle> { StyleChain(DefaultProgressViewStyle()) }
 }
 
 extension EnvironmentValues {

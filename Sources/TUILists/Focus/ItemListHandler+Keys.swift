@@ -15,6 +15,7 @@ import TUIFoundation
 // MARK: - Key Event Handling
 
 extension ItemListHandler {
+    @MainActor
     package func handleKeyEvent(_ event: KeyEvent) -> Bool {
         guard itemCount > 0 else { return false }
 

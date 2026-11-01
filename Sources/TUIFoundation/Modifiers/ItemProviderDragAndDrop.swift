@@ -239,7 +239,7 @@
 
     /// One drag's progress over a delegate's view: kept across frames, since
     /// a drag outlives the frame its zone was registered in.
-    final class DropDelegateState: @unchecked Sendable {
+    final class DropDelegateState {
         /// What `validateDrop` answered for the drag now over the view, or
         /// `nil` before it has been asked.
         var validated: Bool?

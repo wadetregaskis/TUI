@@ -14,23 +14,24 @@ private struct UndoManagerKey: EnvironmentKey {
     /// SwiftUI's is `nil` "when the environment represents a context that
     /// doesn't support undo and redo operations".
     ///
+    ///
     /// Computed, not stored: the macOS 26 SDK isolates `UndoManager` to the
     /// main actor, which makes it `Sendable`, and the macOS 15 SDK does not,
-    /// where a stored static of the type is a global Swift 6 rejects. Nothing
-    /// is stored, so there is nothing to make safe, under either.
+    /// where a stored static of the type is a global Swift 6 rejects.
     static var defaultValue: UndoManager? { nil }
 }
 
-/// An `UndoManager` carried into `MainActor.assumeIsolated` from code that is
-/// not isolated, though it only ever runs on the main actor.
+/// An `UndoManager` that code not isolated to the main actor can hold and hand
+/// back into `MainActor.assumeIsolated`, though it only ever runs on the main
+/// actor.
 ///
 /// The macOS 26 SDK isolates `UndoManager` to the main actor, which makes it
-/// `Sendable` and this needless; the macOS 15 SDK — the Command Line Tools'
-/// — does not, and there sending the manager into the closure is a data-race
-/// error. A box rather than `nonisolated(unsafe)`, which the 26 SDK would
-/// warn is unnecessary. Use it only where the manager is touched inside the
-/// closure, on the main actor.
-package struct MainActorUndoManager: @unchecked Sendable {
+/// `Sendable` and this needless; the macOS 15 SDK — the Command Line Tools' —
+/// does not, and there sending the manager into the closure is a data-race
+/// error. Isolating the value says the same thing under either, and nothing goes
+/// unchecked.
+@MainActor
+package struct MainActorUndoManager {
     package let manager: UndoManager
 
     package init(_ manager: UndoManager) {
@@ -110,5 +111,5 @@ extension EnvironmentValues {
 }
 
 private struct DepartedUndoStepsKey: EnvironmentKey {
-    static let defaultValue: DepartedUndoSteps? = nil
+    static var defaultValue: DepartedUndoSteps? { nil }
 }

@@ -30,10 +30,9 @@ import Foundation
 ///
 /// One per ``TUIContext``, as the clipboard writer is, so two apps in one
 /// process (a test suite) do not ring each other's.
-package final class TerminalBell: @unchecked Sendable {
+package final class TerminalBell {
     // Rung from event handlers and drained by the run loop, both on the main
-    // actor; `@unchecked` because the environment that carries the bell is
-    // `Sendable`.
+    // actor.
     private var owed = false
 
     /// The messages attention was asked with since the last frame, each once,
@@ -85,7 +84,7 @@ package final class TerminalBell: @unchecked Sendable {
 }
 
 private struct TerminalBellKey: EnvironmentKey {
-    static let defaultValue: TerminalBell? = nil
+    static var defaultValue: TerminalBell? { nil }
 }
 
 extension EnvironmentValues {

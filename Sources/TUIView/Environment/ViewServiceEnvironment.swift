@@ -10,14 +10,14 @@ import TUICore
 
 /// EnvironmentKey for the persistent `@State` value storage.
 private struct StateStorageKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
-    static let defaultValue: StateStorage? = nil
+    static var defaultValue: StateStorage? { nil }
 }
 
 // MARK: - Render Cache
 
 /// EnvironmentKey for memoized subtree rendering results.
 private struct RenderCacheKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
-    static let defaultValue: RenderCache? = nil
+    static var defaultValue: RenderCache? { nil }
 }
 
 // MARK: - Key Channels

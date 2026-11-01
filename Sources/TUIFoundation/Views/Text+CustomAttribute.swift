@@ -23,10 +23,12 @@ public protocol TextAttribute: Hashable {}
 /// The custom attributes on a run of text, one per type
 /// (``Text/customAttribute(_:)``).
 ///
-/// `@unchecked Sendable`: a `TextAttribute` need not be `Sendable`, as
-/// SwiftUI's need not, and a text is drawn on the main actor; the values are
-/// only compared and handed to a renderer there.
-package struct TextAttributes: Hashable, @unchecked Sendable {
+/// `@unchecked Sendable` because ``Text``, like SwiftUI's, must be `Sendable`,
+/// and a `TextAttribute` need not be, as SwiftUI's need not: the source of a
+/// program that writes `.customAttribute(_:)` with a class in it has to compile.
+/// The values are only compared and handed to a renderer, on the main actor. A
+/// lock would change nothing: the values have to come out of it to be compared.
+package struct TextAttributes: Hashable, @unchecked Sendable {  // swiftlint:disable:this concurrency_escape
     /// Each attribute, by its type.
     private var values: [ObjectIdentifier: AnyHashable] = [:]
 

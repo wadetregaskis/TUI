@@ -65,6 +65,7 @@ extension TextFieldHandler {
 
     /// Carries out `chord`, and returns whether the field took the key. A
     /// chord the field declines propagates, as one nothing binds would.
+    @MainActor
     func perform(_ chord: TextFieldChord) -> Bool {
         switch chord {
         case .standIn(let command):
@@ -84,6 +85,7 @@ extension TextFieldHandler {
     /// or cut its contents. Paste, undo, Ctrl-U and Ctrl-W always take it. Undo with
     /// nothing to undo must not decline: an unclaimed Ctrl-Z reaches layer 4,
     /// which suspends the app.
+    @MainActor
     private func perform(_ command: StandInEditingCommand) -> Bool {
         switch command {
         case .copy:
@@ -130,6 +132,7 @@ extension TextFieldHandler {
     /// 15.8): Ctrl-A, Ctrl-E and Ctrl-K act on the line the caret is on — up
     /// to its newline, which Ctrl-K at the line's end deletes — Ctrl-P and
     /// Ctrl-N move a row, and Ctrl-O opens a line.
+    @MainActor
     func perform(_ command: TextEditingCommand) -> Bool {
         if let handled = performOnLines(command) { return handled }
         switch command {
@@ -174,6 +177,7 @@ extension TextFieldHandler {
     /// - Parameter end: Where the kill stops, for a vertical field killing to
     ///   the end of the caret's line (``lineKillEnd()``); `nil` for the end of
     ///   the text.
+    @MainActor
     func killToEnd(at end: Int? = nil) {
         clearSelection()
         let end = end ?? text.wrappedValue.count
@@ -191,6 +195,7 @@ extension TextFieldHandler {
     /// Ctrl-Y: inserts the last kill at the caret. It goes the way a paste
     /// goes, so it replaces a selection, respects the field's content type,
     /// and is one undoable edit.
+    @MainActor
     private func yank() {
         guard !killRing.isEmpty else { return }
         insertText(killRing)
@@ -199,6 +204,7 @@ extension TextFieldHandler {
     /// Ctrl-T: swaps the characters on either side of the caret and steps the
     /// caret on, or swaps the last two at the end of the field. The swap is
     /// the one the editor makes, ``TextEditingCommand/transpose(in:at:)``.
+    @MainActor
     private func transpose() {
         clearSelection()
         var characters = Array(text.wrappedValue)
@@ -218,6 +224,7 @@ extension TextFieldHandler {
     /// - Parameter start: Where the kill stops: the start of the text in a
     ///   field on one line, the start of the caret's line in a vertical one
     ///   (``lineStart()``), so it never takes the line break before it.
+    @MainActor
     func killToStart(at start: Int) {
         clearSelection()
         guard start < cursorPosition else { return }

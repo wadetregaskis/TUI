@@ -47,6 +47,7 @@ struct PressRoleTests {
             ])
         }
 
+        @MainActor
         func left(_ phase: MousePhase, _ x: Int, _ y: Int) {
             dispatcher.dispatch(MouseEvent(button: .left, phase: phase, x: x, y: y))
         }

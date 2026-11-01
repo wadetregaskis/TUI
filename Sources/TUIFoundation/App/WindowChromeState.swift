@@ -49,7 +49,7 @@ import TUICore
 ///   declaration is adopted again, in case the flipping was a person changing
 ///   pages faster than the guard can tell from a layout that cannot settle. A
 ///   declaration of anything else is a real change, and unpins it at once.
-package final class WindowChromeState: @unchecked Sendable {
+package final class WindowChromeState {
     /// Which of the window's bars.
     package enum Edge: CaseIterable {
         /// The top toolbar, above the page.
@@ -924,7 +924,7 @@ package final class WindowChromeState: @unchecked Sendable {
 
 /// Environment key for the window's chrome state.
 private struct WindowChromeKey: EnvironmentKey {
-    static let defaultValue: WindowChromeState? = nil
+    static var defaultValue: WindowChromeState? { nil }
 }
 
 /// Environment key for the first frame's seeding walk.

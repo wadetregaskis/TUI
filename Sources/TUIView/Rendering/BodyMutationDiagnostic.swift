@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import TUICore
 
 // MARK: - Body-mutation diagnostic
@@ -61,7 +62,7 @@ import TUICore
 ///
 /// Comparing thread identity has neither problem. A write from any other thread
 /// does not match, and once the window closes nothing matches at all.
-package final class BodyMutationDiagnostic: @unchecked Sendable {
+package final class BodyMutationDiagnostic: Sendable {
     /// One reported mutation.
     public struct Report: Sendable, Equatable {
         /// The subtree whose state was written, or `nil` for a whole-tree
@@ -78,22 +79,25 @@ package final class BodyMutationDiagnostic: @unchecked Sendable {
     public static let isEnabled: Bool =
         ProcessInfo.processInfo.environment["TUI_DIAGNOSE_BODY_MUTATION"] == "1"
 
-    private let lock = NSLock()
-    /// The thread currently walking the tree, or `nil` outside a walk.
-    private var traversingThread: ObjectIdentifier?
-    /// Identities already reported *this frame*, so a view that mutates does not
-    /// produce one line per invalidation.
-    private var reportedThisFrame: Set<String> = []
-    private var frameNumber = 0
-    private var collected: [Report] = []
-    /// Frames settled, and of those, the ones whose effects wrote state —
-    /// see ``noteSettled(rewalks:stillWriting:)``.
-    private var settledFrames = 0
-    private var framesEffectsWrote = 0
+    private struct State {
+        /// The thread currently walking the tree, or `nil` outside a walk.
+        var traversingThread: ObjectIdentifier?
+        /// Identities already reported *this frame*, so a view that mutates does not
+        /// produce one line per invalidation.
+        var reportedThisFrame: Set<String> = []
+        var frameNumber = 0
+        var collected: [Report] = []
+        /// Frames settled, and of those, the ones whose effects wrote state —
+        /// see ``noteSettled(rewalks:stillWriting:)``.
+        var settledFrames = 0
+        var framesEffectsWrote = 0
+    }
+
+    private let state = Mutex(State())
 
     /// Every mutation reported so far, oldest first.
     public var reports: [Report] {
-        lock.withLock { collected }
+        state.withLock { $0.collected }
     }
 
     /// A token for the calling thread — the whole of what this diagnostic needs
@@ -122,22 +126,20 @@ package final class BodyMutationDiagnostic: @unchecked Sendable {
     /// closes it whoever opened it.
     public func beginTraversal() {
         let thread = Self.callingThread
-        lock.withLock {
-            traversingThread = thread
-        }
+        state.withLock { $0.traversingThread = thread }
     }
 
     /// Closes the window. Nothing is reported until the next ``beginTraversal()``.
     public func endTraversal() {
-        lock.withLock { traversingThread = nil }
+        state.withLock { $0.traversingThread = nil }
     }
 
     /// Starts a new frame, so a per-frame mutation is reported once per frame
     /// rather than once ever — the repetition is the signal.
     public func beginFrame() {
-        lock.withLock {
-            frameNumber += 1
-            reportedThisFrame.removeAll(keepingCapacity: true)
+        state.withLock { state in
+            state.frameNumber += 1
+            state.reportedThisFrame.removeAll(keepingCapacity: true)
         }
     }
 
@@ -148,11 +150,11 @@ package final class BodyMutationDiagnostic: @unchecked Sendable {
     /// more. A write by an effect is not a body mutation — effects run after
     /// the walk, outside it — so this is the count of the writes that are.
     public func noteSettled(rewalks: Int, stillWriting: Bool) {
-        let counts: (frame: Int, wrote: Int, of: Int)? = lock.withLock {
-            settledFrames += 1
+        let counts: (frame: Int, wrote: Int, of: Int)? = state.withLock { state in
+            state.settledFrames += 1
             guard rewalks > 0 else { return nil }
-            framesEffectsWrote += 1
-            return (frameNumber, framesEffectsWrote, settledFrames)
+            state.framesEffectsWrote += 1
+            return (state.frameNumber, state.framesEffectsWrote, state.settledFrames)
         }
         guard let counts else { return }
         let times = rewalks == 1 ? "once" : "\(rewalks) times"
@@ -170,11 +172,12 @@ package final class BodyMutationDiagnostic: @unchecked Sendable {
         // A root identity renders as the empty string, and a report nobody can
         // locate is not a report.
         let key = identity.map { $0.path.isEmpty ? "<root>" : $0.path } ?? "<whole tree>"
-        let report: Report? = lock.withLock {
-            guard traversingThread == Self.callingThread else { return nil }
-            guard reportedThisFrame.insert(key).inserted else { return nil }
-            let report = Report(identity: key, frame: frameNumber)
-            collected.append(report)
+        let thread = Self.callingThread
+        let report: Report? = state.withLock { state in
+            guard state.traversingThread == thread else { return nil }
+            guard state.reportedThisFrame.insert(key).inserted else { return nil }
+            let report = Report(identity: key, frame: state.frameNumber)
+            state.collected.append(report)
             return report
         }
         guard let report else { return }

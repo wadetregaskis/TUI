@@ -119,7 +119,7 @@ extension ScrollViewHandler: ScrollToTarget {}
 /// Not `@MainActor` — like the handlers themselves, it is only ever touched
 /// from the render loop and event dispatch (both main-actor); staying
 /// nonisolated lets `@State` hold it and view inits create it.
-package final class ScrollToRegistry: @unchecked Sendable {
+package final class ScrollToRegistry {
     private struct Entry {
         weak var handler: (any ScrollToTarget)?
         let identity: ViewIdentity
@@ -227,7 +227,7 @@ extension ScrollToRegistry: Equatable {
 // MARK: - Environment
 
 private struct ScrollToRegistryKey: EnvironmentKey {
-    static let defaultValue: ScrollToRegistry? = nil
+    static var defaultValue: ScrollToRegistry? { nil }
 }
 
 extension EnvironmentValues {

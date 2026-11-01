@@ -40,6 +40,7 @@ extension TextFieldHandler {
     /// `NSSecureTextField` both do, and a Cut that silently became a Delete
     /// would destroy the field's contents while looking like it had copied
     /// them. See ``TextFieldHandler/isSecure``.
+    @MainActor
     func cutSelection() {
         guard !isSecure, let range = selectionRange else { return }
 
@@ -57,6 +58,7 @@ extension TextFieldHandler {
     /// Pastes text from the system clipboard at the cursor position.
     ///
     /// Uses `pbpaste` on macOS. Replaces selection if any.
+    @MainActor
     func paste() {
         guard let pastedText = pasteFromClipboard() else { return }
         insertText(pastedText)
@@ -68,6 +70,7 @@ extension TextFieldHandler {
     /// (terminal paste via `Cmd+V`). Replaces selection if any.
     ///
     /// - Parameter string: The text to insert.
+    @MainActor
     func insertText(_ string: String) {
         guard !string.isEmpty else { return }
         resetSuggestionNavigation()

@@ -93,7 +93,7 @@ extension View {
 /// `@usableFromInline`: the `@inlinable` `FocusRegistration.register(context:handler:focusID:)`
 /// reaches it (module split step A3).
 @usableFromInline
-final class FocusHandoffOffer: @unchecked Sendable {
+final class FocusHandoffOffer {
     /// The store's id, read when claimed.
     private let storeID: () -> String
 
@@ -126,7 +126,7 @@ final class FocusHandoffOffer: @unchecked Sendable {
 }
 
 private struct FocusHandoffOfferKey: EnvironmentKey {
-    static let defaultValue: FocusHandoffOffer? = nil
+    static var defaultValue: FocusHandoffOffer? { nil }
 }
 
 extension EnvironmentValues {

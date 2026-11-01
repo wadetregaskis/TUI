@@ -10,7 +10,7 @@
 
 import TUICore
 
-struct ScrollContentWindow: Sendable, Hashable {
+struct ScrollContentWindow: Hashable {
     /// Equality and hashing deliberately **exclude** ``reply``.
     ///
     /// That slot is a per-render mailbox — `ScrollContentReply()` is freshly
@@ -299,9 +299,8 @@ enum TopRowHold: UInt8, Sendable, Hashable {
 
 /// The Stage-6 reply channel from a windowed stack back to its ScrollView:
 /// reference semantics deliberately — the environment value travels down,
-/// the slice report travels back up within the same render call. Main-loop
-/// rendering only (`@unchecked`: never crosses threads).
-final class ScrollContentReply: @unchecked Sendable, Hashable {
+/// the slice report travels back up within the same render call.
+final class ScrollContentReply: Hashable {
     /// Content-space y of the first line the buffer holds.
     var sliceOriginY: Int?
     /// The full content height the slice was cut from (estimated for

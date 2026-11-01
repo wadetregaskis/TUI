@@ -162,16 +162,17 @@ struct RenderCacheLinkTests {
         #expect(queued.identities.count == 1, "the observed body's change was queued: \(queued.identities)")
     }
 
-    /// A holder that outlives the cache reads nothing through the link, as it
+    /// A holder that outlives the cache reads nothing through its handle, as it
     /// would through a weak reference: the cache detaches it as it goes, and a
     /// write to a closed link queues nothing.
-    @Test("A link reads nil once its cache is gone, and queues nothing")
+    @Test("A handle reads nil once its cache is gone, and a link queues nothing")
     func linkOutlivesItsCache() {
         var cache: RenderCache? = RenderCache()
         let link = cache?.link
-        #expect(link?.cache === cache)
+        let handle = cache?.handle
+        #expect(handle?.cache === cache)
         cache = nil
-        #expect(link?.cache == nil)
+        #expect(handle?.cache == nil)
         link?.invalidateRender(for: ViewIdentity(rootType: Project.self))
         #expect(link?.drain().identities.isEmpty == true)
     }

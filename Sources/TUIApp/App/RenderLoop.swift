@@ -161,6 +161,9 @@ internal final class RenderLoop<A: App> {
     /// The focus manager (cleared each frame).
     let focusManager: FocusManager
 
+    /// Forgets the focus manager's presentation docks as the loop goes.
+    private let forgetsDocks: PresentationDockForgetting
+
     /// The palette manager (current theme for environment).
     let paletteManager: ThemeManager
 
@@ -428,16 +431,28 @@ internal final class RenderLoop<A: App> {
         // every other part of one app asks its own (`TUIContext.appState`).
         scenes.requestExit = { [appState = tuiContext.appState] in appState.requestExit() }
         scenes.requestFrame = { [appState = tuiContext.appState] in appState.setNeedsRender() }
+        forgetsDocks = PresentationDockForgetting(focusManager)
+    }
+}
+
+/// The loop's last frame posted the docks of the sheets it drew for a frame that
+/// will never come, and their resolvers hold what reaches the focus manager
+/// (`FocusManager.forgetPresentationDocks()`): forgotten with the loop, so that
+/// the app's objects go with it.
+///
+/// An object of its own, with an isolated deinit, because a `FocusManager` is not
+/// `Sendable`, so a nonisolated deinit cannot reach it, and an isolated deinit in
+/// a generic class like the loop stops swiftc 6.2.4's assertions build
+/// (`emitIsolatingDestructor`).
+@MainActor
+private final class PresentationDockForgetting {
+    private let focusManager: FocusManager
+
+    init(_ focusManager: FocusManager) {
+        self.focusManager = focusManager
     }
 
-    /// The loop's last frame posted the docks of the sheets it drew for a
-    /// frame that will never come, and their resolvers hold what reaches the
-    /// focus manager (`FocusManager.forgetPresentationDocks()`): forgotten
-    /// with the loop, so that the app's objects go with it.
-    ///
-    /// Not isolated: `focusManager` is a `let` of a `Sendable` type, and the
-    /// loop is released where it ran, on the main thread.
-    deinit {
+    isolated deinit {
         focusManager.forgetPresentationDocks()
     }
 }

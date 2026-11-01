@@ -42,7 +42,7 @@ import TUICore
 /// Keeping them apart is what makes "hover wins over focus" a one-line rule
 /// rather than a race between two publishers. The pointer is a deliberate act
 /// aimed at one thing; focus is where the keyboard happens to be.
-public final class TooltipState: @unchecked Sendable {
+public final class TooltipState {
 
     /// What made a tooltip a candidate.
     public enum Source: Sendable, Equatable {
@@ -254,6 +254,7 @@ public final class TooltipState: @unchecked Sendable {
     /// items are enabled only where the open views have any help.
     package internal(set) var helpDrawnThisWalk = 0
 
+    /// Creates a state with no tooltip showing.
     public init() {}
 
     // MARK: - Publishing
@@ -681,7 +682,7 @@ public final class TooltipState: @unchecked Sendable {
 
 /// Environment key for the app's tooltip state.
 private struct TooltipStateKey: EnvironmentKey {
-    static let defaultValue: TooltipState? = nil
+    static var defaultValue: TooltipState? { nil }
 }
 
 extension EnvironmentValues {

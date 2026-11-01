@@ -110,7 +110,7 @@ public struct StatusBarItemOrder: Comparable, Sendable {
 ///
 /// Implement this protocol to create custom status bar items.
 /// The default `StatusBarItem` already conforms to this protocol.
-public protocol StatusBarItemProtocol: Sendable {
+public protocol StatusBarItemProtocol {
     /// The unique identifier for this item.
     var id: String { get }
 
@@ -194,7 +194,7 @@ extension StatusBarItemProtocol {
 ///     save()
 /// }
 /// ```
-public struct StatusBarItem: StatusBarItemProtocol, Identifiable, @unchecked Sendable {
+public struct StatusBarItem: StatusBarItemProtocol, Identifiable {
     /// The unique identifier for this item.
     public let id: String
 

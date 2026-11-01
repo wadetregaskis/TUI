@@ -58,13 +58,10 @@ extension View {
 /// identity: the modifier builds a new one on every body, and an environment
 /// value that changed every frame would turn the memos off below it — the
 /// whole of the searchable content.
-@MainActor
 class SearchFocusOffer: Equatable {
     let storeID: String
-    /// Immutable, and only compared — `AnyHashable` is not `Sendable`, so the
-    /// comparison, which the environment makes from outside the main actor,
-    /// reads it unchecked.
-    nonisolated(unsafe) let value: AnyHashable
+    /// Immutable, and only compared.
+    let value: AnyHashable
 
     init(storeID: String, value: AnyHashable) {
         self.storeID = storeID
@@ -72,9 +69,10 @@ class SearchFocusOffer: Equatable {
     }
 
     /// Binds the field that renders under `focusID` to the focus state.
+    @MainActor
     func bind(focusID: String, context: RenderContext) {}
 
-    nonisolated static func == (lhs: SearchFocusOffer, rhs: SearchFocusOffer) -> Bool {
+    static func == (lhs: SearchFocusOffer, rhs: SearchFocusOffer) -> Bool {
         lhs.storeID == rhs.storeID && lhs.value == rhs.value
     }
 }
@@ -90,6 +88,7 @@ final class TypedSearchFocusOffer<Value: Hashable>: SearchFocusOffer {
         super.init(storeID: store.storeID, value: AnyHashable(value))
     }
 
+    @MainActor
     override func bind(focusID: String, context: RenderContext) {
         FocusBindingRegistrar.bind(store: store, value: boundValue, focusID: focusID, context: context)
     }

@@ -14,13 +14,13 @@ Animate changes, move views in and out with transitions, and draw on a schedule.
 - ``withAnimation(_:_:)``
 - ``Animation``
 - ``Transaction``
-- ``withTransaction(_:_:)``
+- ``withTransaction(_:_:isolation:)``
 - ``AnimationCompletion``
 - ``AnimationCompletionTracker``
 - ``CustomAnimation``
 - ``TransactionKey``
 - ``AnimationContext``
-- ``withAnimation(_:completionCriteria:_:completion:)``
+- ``withAnimation(_:completionCriteria:_:completion:isolation:)``
 - ``withTransaction(_:_:_:)``
 
 ### Animatable Values

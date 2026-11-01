@@ -6,6 +6,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Synchronization
+
 // MARK: - Terminal Colors
 
 /// What the host terminal reported about its own colours: its default
@@ -163,10 +165,10 @@ extension TerminalColors {
 
     /// The process-wide colours, before any task-local pin.
     ///
-    /// `nonisolated(unsafe)` for the reason `TerminalWidthTraits` gives: it is
-    /// assigned from the thread that renders, outside a frame, and read from
-    /// the render path.
-    nonisolated(unsafe) private static var processCurrent: Self = .unknown
+    /// Behind a lock, for the reason `TerminalWidthTraits` gives: it is several
+    /// fields, assigned from the thread that renders, outside a frame, and read
+    /// from the render path, which pays a task-local read here anyway.
+    private static let processCurrent = Mutex<Self>(.unknown)
 
     /// A task-scoped pin, bound by `withCurrent(_:operation:)`.
     ///
@@ -185,7 +187,10 @@ extension TerminalColors {
     ///
     /// Only the process value bumps it. A task-local pin is scoped to work that
     /// opts into it, and the render path is not that work.
-    nonisolated(unsafe) package private(set) static var generation: Int = 0
+    package static var generation: Int { processGeneration.load(ordering: .relaxed) }
+
+    /// ``generation``'s storage.
+    private static let processGeneration = Atomic<Int>(0)
 
     /// The colours in force. Assign to set them process-wide, or use
     /// `withCurrent(_:operation:)` for a scoped pin.
@@ -193,11 +198,13 @@ extension TerminalColors {
     /// Assigning the value already in force changes nothing, so it does not
     /// bump `generation`.
     package static var current: Self {
-        get { taskCurrent ?? processCurrent }
+        get { taskCurrent ?? processCurrent.withLock { $0 } }
         set {
-            guard newValue != processCurrent else { return }
-            processCurrent = newValue
-            generation &+= 1
+            processCurrent.withLock { current in
+                guard newValue != current else { return }
+                current = newValue
+                processGeneration.wrappingAdd(1, ordering: .relaxed)
+            }
         }
     }
 

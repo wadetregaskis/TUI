@@ -18,7 +18,7 @@ import TUICore
 /// the disk and lose the value at the next launch.
 ///
 /// See ``StorageDiagnostics`` for how to observe them.
-public struct StorageFailure: @unchecked Sendable, CustomStringConvertible {
+public struct StorageFailure: Sendable, CustomStringConvertible {
     /// What was being attempted.
     public enum Operation: String, Sendable {
         /// Creating the configuration directory that holds the storage file.
@@ -41,9 +41,6 @@ public struct StorageFailure: @unchecked Sendable, CustomStringConvertible {
     public let path: String?
 
     /// The error the underlying API raised.
-    ///
-    /// Not `Sendable` — Foundation's errors are not — which is why the whole
-    /// struct is `@unchecked`. It is only ever read, never mutated.
     public let underlying: (any Error)?
 
     /// Creates a storage failure record.
@@ -126,9 +123,9 @@ public enum StorageDiagnostics {
     ///
     /// Set to `nil` (the default) to rely on ``lastFailure`` alone.
     ///
-    /// Behind the same lock as the rest of the state, and not
-    /// `nonisolated(unsafe)`, because the two ends of this property are on
-    /// different threads BY DESIGN: the app assigns it from the main actor
+    /// Behind the same lock as the rest of the state, because the two ends of
+    /// this property are on different threads BY DESIGN: the app assigns it
+    /// from the main actor
     /// (installing a handler when a screen appears, clearing it when it goes)
     /// while ``report(_:)`` reads it from the background save queue that
     /// `@AppStorage`'s flush runs on. A closure is a two-word value — context
@@ -156,9 +153,9 @@ public enum StorageDiagnostics {
     /// the built-in ones.
     public static func report(_ failure: StorageFailure) {
         // Taken under the lock, called outside it: a handler is app code and may
-        // do anything — including touching storage again, which would deadlock
-        // on a non-recursive lock. The same snapshot-then-act shape `flushToDisk`
-        // uses on the cache.
+        // do anything — including reading `lastFailure`, and this lock cannot be
+        // taken twice. The same snapshot-then-act shape `flushToDisk` uses on the
+        // cache.
         let handler = state.withLock { state -> (@Sendable (StorageFailure) -> Void)? in
             state.last = failure
             state.count += 1

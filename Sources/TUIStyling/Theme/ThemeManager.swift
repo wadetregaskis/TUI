@@ -61,7 +61,7 @@ public protocol Cyclable: Sendable {
 /// injected render trigger closure. The `RenderLoop` picks up the
 /// current item via ``currentPalette`` / ``currentAppearance`` when
 /// building the environment for the next frame.
-public final class ThemeManager: @unchecked Sendable {
+public final class ThemeManager {
     /// The current item index.
     private var currentIndex: Int = 0
 

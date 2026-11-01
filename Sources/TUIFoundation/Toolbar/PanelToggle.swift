@@ -23,7 +23,7 @@ import TUIView
 /// ``DefaultToolbarItem`` declared there toggles that split —
 /// and offers it to the window (``PanelToggleOffer/offer(_:itemIdentity:context:)``)
 /// for an item declared round any split view.
-package struct PanelToggle: Sendable, Equatable {
+package struct PanelToggle: Equatable {
     /// The panels a toolbar can toggle.
     package enum Panel: Sendable, Hashable {
         /// A ``NavigationSplitView``'s sidebar, the leading column.
@@ -40,10 +40,7 @@ package struct PanelToggle: Sendable, Equatable {
     /// What a toggle does, by reference: kept by its owner across renders, so
     /// two renders' toggles compare equal while the closure is brought up to
     /// date, as ``DismissAction``'s box is.
-    ///
-    /// `@unchecked Sendable`: `perform` is written by the owner's render and
-    /// called by a button's action, both on the main actor.
-    package final class Action: @unchecked Sendable {
+    package final class Action {
         /// Shows the panel if it is hidden, hides it if it is showing.
         package var perform: () -> Void { get { _perform } set { _perform = newValue } }
 
@@ -82,7 +79,7 @@ package struct PanelToggle: Sendable, Equatable {
     }
 
     /// Where a toolbar's button for a panel finds the toggle it works.
-    package enum Scope: Sendable, Equatable {
+    package enum Scope: Equatable {
         /// Outside any view that owns such a panel: the window's
         /// (``WindowChromeState/panelToggle(_:)``).
         case window
@@ -203,12 +200,12 @@ package enum PanelToggleOffer {
 
 /// Environment key for where a sidebar button finds its toggle.
 private struct SidebarToggleScopeKey: EnvironmentKey {
-    static let defaultValue = PanelToggle.Scope.window
+    static var defaultValue: PanelToggle.Scope { .window }
 }
 
 /// Environment key for where a content-column button finds its toggle.
 private struct ContentColumnToggleScopeKey: EnvironmentKey {
-    static let defaultValue = PanelToggle.Scope.window
+    static var defaultValue: PanelToggle.Scope { .window }
 }
 
 extension EnvironmentValues {
@@ -240,13 +237,13 @@ extension EnvironmentValues {
 
 /// Environment key for where an inspector button finds its toggle.
 private struct InspectorToggleScopeKey: EnvironmentKey {
-    static let defaultValue = PanelToggle.Scope.window
+    static var defaultValue: PanelToggle.Scope { .window }
 }
 
 /// Environment key for the toggle of the pane a split view's last divider
 /// hides: an inspector's column.
 private struct TrailingPaneToggleKey: EnvironmentKey {
-    static let defaultValue: PanelToggle? = nil
+    static var defaultValue: PanelToggle? { nil }
 }
 
 extension EnvironmentValues {

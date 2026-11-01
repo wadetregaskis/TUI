@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 
 // MARK: - The protocol
 
@@ -168,7 +169,7 @@ struct CustomCurveID: Hashable, Sendable {
 /// animations share it, so a frame is integrated once whoever asks for it — a
 /// change's transaction, the record its animation runs from, a modifier
 /// rebuilding it with a delay, the same animation made again in a body.
-final class CustomAnimationCurve: @unchecked Sendable {
+final class CustomAnimationCurve: Sendable {
     /// The frames a second the animation is integrated at: the render loop's.
     static let framesPerSecond: Double = 60
 
@@ -179,11 +180,8 @@ final class CustomAnimationCurve: @unchecked Sendable {
     /// The animation.
     let base: any CustomAnimation
 
-    /// ``base``, for equality and hashing.
-    private let key: AnyHashable
-
     /// What has been integrated so far.
-    private struct Table: @unchecked Sendable {
+    private struct Table {
         /// The fraction of the change made at each frame integrated, from 0.
         var values: [Double] = []
         /// The state handed from one frame to the next.
@@ -196,15 +194,14 @@ final class CustomAnimationCurve: @unchecked Sendable {
     }
 
     /// ``Table``, behind a lock: an ``Animation`` is `Sendable`.
-    private let table = Lock(initialState: Table())
+    private let table = Mutex(Table())
 
     private init(_ base: some CustomAnimation) {
         self.base = base
-        self.key = AnyHashable(base)
     }
 
     /// The curves, and where each animation's is.
-    private struct Registry: @unchecked Sendable {
+    private struct Registry {
         var curves: [CustomAnimationCurve] = []
         var indices: [AnyHashable: Int] = [:]
     }
@@ -213,7 +210,7 @@ final class CustomAnimationCurve: @unchecked Sendable {
     /// value's curve is its integration, which an equal value reuses. An
     /// animation finishes in a few dozen frames, so a curve's table is small;
     /// one that runs for ten minutes keeps 36,000 values.
-    private static let registry = Lock(initialState: Registry())
+    private static let registry = Mutex(Registry())
 
     /// The id of `base`'s curve, made the first time `base` is seen.
     static func intern(_ base: some CustomAnimation) -> CustomCurveID {

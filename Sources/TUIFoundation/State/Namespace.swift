@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Synchronization
 import TUIView
 
 // MARK: - Namespace
@@ -58,12 +59,14 @@ public struct Namespace: DynamicProperty, RenderIdentityBindable, Sendable {
 
     /// The namespace's identifier.
     public var wrappedValue: ID {
-        box.id ?? ID(unbound: ObjectIdentifier(box))
+        box.state.withLock { $0.id } ?? ID(unbound: ObjectIdentifier(box))
     }
 
     public func bindRenderIdentity(path: String, propertyIndex: Int) {
         let id = ID(bound: "namespace::\(path)::\(propertyIndex)")
-        if box.id != id { box.id = id }
+        box.state.withLock { state in
+            if state.id != id { state.id = id }
+        }
     }
 
     /// The identifier of a namespace — what the focus-scope modifiers and
@@ -90,13 +93,16 @@ public struct Namespace: DynamicProperty, RenderIdentityBindable, Sendable {
 
     /// The bound id, shared by every copy of the property.
     ///
-    /// Unchecked because it is written only by the render walk and read by
-    /// views and their event closures, all on the main actor — the same
-    /// rationale as `AssignedFocusID`.
-    private final class Box: @unchecked Sendable {
-        var id: ID?
-        /// Where it was last bound (``PlaceBoundIdentity``).
-        var stamp = PlaceStamp<String>()
+    /// Behind a lock since a `Namespace`, like SwiftUI's, is `Sendable`, and its
+    /// `wrappedValue` is not isolated, though the render walk is what writes it.
+    private final class Box: Sendable {
+        let state = Mutex(State())
+
+        struct State {
+            var id: ID?
+            /// Where it was last bound (``PlaceBoundIdentity``).
+            var stamp = PlaceStamp<String>()
+        }
     }
 }
 
@@ -109,17 +115,20 @@ extension Namespace: PlaceBoundIdentity {
     ) -> Bool {
         let namespace = address.assumingMemoryBound(to: Self.self)
         let id = ID(bound: "namespace::\(path)::\(propertyIndex)")
-        let box = namespace.pointee.box
-        if box.stamp.isSecondPlace(path, in: pass) {
-            let own = Box()
-            own.id = id
-            own.stamp.stamp(path, in: pass)
-            namespace.pointee = Namespace(box: own)
-            return true
+        let isSecondPlace = namespace.pointee.box.state.withLock { state in
+            if state.stamp.isSecondPlace(path, in: pass) { return true }
+            if state.id != id { state.id = id }
+            state.stamp.stamp(path, in: pass)
+            return false
         }
-        if box.id != id { box.id = id }
-        box.stamp.stamp(path, in: pass)
-        return false
+        guard isSecondPlace else { return false }
+        let own = Box()
+        own.state.withLock { state in
+            state.id = id
+            state.stamp.stamp(path, in: pass)
+        }
+        namespace.pointee = Namespace(box: own)
+        return true
     }
 }
 

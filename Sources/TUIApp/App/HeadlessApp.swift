@@ -61,7 +61,7 @@ package final class HeadlessApp {
     private let renderer: any HeadlessRendering
     private let inputHandler: InputHandler
     private let tuiContext: TUIContext
-    nonisolated private let lifecycleManager: LifecycleManager
+    private let lifecycleManager: LifecycleManager
     private let focusManager: FocusManager
     private let animationScheduler = AnimationScheduler()
     /// The quits asked for: see ``quitsRequested``.
@@ -145,7 +145,7 @@ package final class HeadlessApp {
     }
 
     /// What tracks the app's views and owns the tasks their `.task`s started.
-    package nonisolated var lifecycle: LifecycleManager { lifecycleManager }
+    package var lifecycle: LifecycleManager { lifecycleManager }
 
     /// How many frames the focus system has asked for, where the app's run
     /// loop is asked (`AppRunner.wireFocusRepaints`): a move of the focus to

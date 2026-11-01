@@ -9,6 +9,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 
 extension Palette {
     /// What an alternating row's stripe paints over `ground` at `depth`, or `nil`
@@ -140,14 +141,13 @@ private struct StripeKey: Hashable {
         UInt32(rgb.red) << 16 | UInt32(rgb.green) << 8 | UInt32(rgb.blue)
     }
 
-    private static let cacheLock = NSLock()
-    nonisolated(unsafe) private static var cache: [Self: Color?] = [:]
+    private static let cache = Mutex<[Self: Color?]>([:])
 
     /// The stripe for `key`, chosen once and kept.
     static func chosen(_ key: Self) -> Color? {
-        if let known = cacheLock.withLock({ cache[key] }) { return known }
+        if let known = cache.withLock({ $0[key] }) { return known }
         let answer = key.choose()
-        cacheLock.withLock {
+        cache.withLock { cache in
             // A backstop against unbounded growth, as `RowFills.ruled`'s has.
             if cache.count > 64 { cache.removeAll(keepingCapacity: true) }
             cache[key] = .some(answer)

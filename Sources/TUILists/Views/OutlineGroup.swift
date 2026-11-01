@@ -165,6 +165,7 @@ extension OutlineGroup: View where Leaf: View {
 /// `primaryAction` is a plain closure: key dispatch reaches the handler from a
 /// nonisolated context, and rendering — the only thing that ever writes here —
 /// is single-threaded on the run loop.
+@MainActor
 package protocol OutlineRowActivating {
     /// Opens, closes or toggles the node with this id.
     ///
@@ -191,7 +192,7 @@ package protocol OutlineRowActivating {
 }
 
 /// The mutable half of ``OutlineRowActivating``, refreshed every pass.
-final class OutlineActivation: @unchecked Sendable {
+final class OutlineActivation {
     /// Installed by ``OutlineGroup/extractListRows(context:)`` with that
     /// frame's real expansion box captured. `nil` before the first render.
     var apply: ((AnyHashable, Bool?, Bool) -> Bool)?
@@ -204,21 +205,15 @@ final class OutlineActivation: @unchecked Sendable {
 /// The frame's tree, in the shape a disclosure keystroke needs to read it:
 /// which rows are branches, and how to reach everything under one.
 ///
-/// Built during the render pass, read from key dispatch — which is *outside*
-/// the main actor. That crossing is the only reason this is a class. The data
-/// it holds is of unconstrained generic type, so capturing it directly in the
-/// activation closure would carry the render pass's isolation into a closure
-/// that has to run without it. A `Sendable` box states the invariant instead,
-/// the same one ``StateBox`` and ``OutlineActivation`` already rest on: written
-/// once while a frame renders, only read afterwards, and replaced wholesale by
-/// the next frame.
+/// Built during the render pass, read from key dispatch: written once while a
+/// frame renders, only read afterwards, and replaced wholesale by the next frame.
 ///
 /// Deliberately holds the *elements* and a walk rather than precomputed id
 /// lists. Precomputing would mean walking every closed branch's descendants on
 /// every frame — and a closed branch is exactly the one whose subtree might be
 /// enormous and is certainly not on screen. This way the walk happens once, on
 /// the keystroke that asks for it.
-final class OutlineSubtreeIndex<Element, ID: Hashable>: @unchecked Sendable {
+final class OutlineSubtreeIndex<Element, ID: Hashable> {
     /// The branch rows of this frame, by the id the LIST knows them by.
     private let branches: [AnyHashable: Element]
 
@@ -390,14 +385,13 @@ extension OutlineGroup: OutlineRowActivating where Leaf: View {
     /// outside the main actor, and everything it touches — a `let` reference
     /// and the closure inside it — is written only by the render loop.
     @discardableResult
-    package nonisolated func setRowExpanded(
+    package func setRowExpanded(
         _ id: AnyHashable, to target: Bool?, includingDescendants: Bool
     ) -> Bool {
         activation.apply?(id, target, includingDescendants) ?? false
     }
 
-    /// Also `nonisolated`, and for the same reason.
-    package nonisolated func parentRowID(of id: AnyHashable) -> AnyHashable? {
+    package func parentRowID(of id: AnyHashable) -> AnyHashable? {
         activation.parentOf?(id)
     }
 }

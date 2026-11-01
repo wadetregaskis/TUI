@@ -97,7 +97,7 @@ extension BuiltInButtonStyle {
 // MARK: - Environment
 
 private struct PrimitiveButtonStyleChainKey: EnvironmentKey {
-    static let defaultValue: StyleChain<any PrimitiveButtonStyle>? = nil
+    static var defaultValue: StyleChain<any PrimitiveButtonStyle>? { nil }
 }
 
 extension EnvironmentValues {
@@ -146,7 +146,7 @@ extension EnvironmentValues {
 /// appearance as an `Equatable` style (every built-in one is), a chain as
 /// ``StyleChain`` compares — and, like the chain, saying when it holds a style
 /// it cannot compare (`PartiallyComparable`).
-enum InstalledPrimitiveButtonStyle: Equatable, PartiallyComparable, @unchecked Sendable {
+enum InstalledPrimitiveButtonStyle: Equatable, PartiallyComparable {
     /// A built-in style's appearance, with no custom style in force.
     case appearance(any ButtonStyle)
     /// A custom style, over the custom styles further out.

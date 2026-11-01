@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import TUIApp
 import TUICore
 import TUIFoundation
@@ -259,7 +260,7 @@ public final class TestApp {
 
     /// The tasks `.task` started end with the app, as they do with a running
     /// one, rather than running on into the next test.
-    deinit {
+    isolated deinit {
         headless.lifecycle.reset()
     }
 }
@@ -305,21 +306,21 @@ public struct TestAppError: Error, CustomStringConvertible, Sendable {
 
 /// The store of a ``TestApp``'s `@AppStorage`: JSON in a dictionary, as the file
 /// store writes it, so a value reads back as it would from there.
-private final class TestAppStorage: StorageBackend, @unchecked Sendable {
-    private let lock = NSLock()
-    private var entries: [String: (data: Data?, key: StoredKey)] = [:]
+private final class TestAppStorage: StorageBackend {
+    private let entries = Mutex<[String: (data: Data?, key: StoredKey)]>([:])
 
     func entry<T: Codable>(forKey key: String, as type: T.Type) -> (value: T?, key: StoredKey) {
-        lock.withLock {
+        let entry = entries.withLock { entries in
             let entry = entries[key] ?? (nil, StoredKey())
             entries[key] = entry
-            return (entry.data.flatMap { try? JSONDecoder().decode(T.self, from: $0) }, entry.key)
+            return entry
         }
+        return (entry.data.flatMap { try? JSONDecoder().decode(T.self, from: $0) }, entry.key)
     }
 
     func store<T: Codable>(_ value: T, forKey key: String) -> StoredKey {
         let data = try? JSONEncoder().encode(value)
-        return lock.withLock {
+        return entries.withLock { entries in
             let stored = entries[key]?.key ?? StoredKey()
             entries[key] = (data, stored)
             return stored
@@ -327,7 +328,7 @@ private final class TestAppStorage: StorageBackend, @unchecked Sendable {
     }
 
     func remove(forKey key: String) -> StoredKey? {
-        lock.withLock {
+        entries.withLock { entries in
             entries[key]?.data = nil
             return entries[key]?.key
         }

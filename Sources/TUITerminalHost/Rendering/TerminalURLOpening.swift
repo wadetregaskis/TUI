@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import TUICore
 
 // MARK: - Whether this process may launch a browser
@@ -17,14 +18,17 @@ import TUICore
 package enum TerminalURLOpening {
     /// `false` unless something turned it on. See ``TerminalClient/urlOpeningSupport``.
     ///
-    /// Its storage is `nonisolated(unsafe)` for the reason `TerminalHyperlink.isSupported` is:
+    /// Its storage is atomic for the reason `TerminalHyperlink.isSupported`'s is:
     /// written once at startup, before anything renders, and read from paths
     /// that have no actor.
-    package static var isEnabled: Bool { get { _isEnabled } set { _isEnabled = newValue } }
+    package static var isEnabled: Bool {
+        get { _isEnabled.load(ordering: .relaxed) }
+        set { _isEnabled.store(newValue, ordering: .relaxed) }
+    }
 
     /// ``isEnabled``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
-    nonisolated(unsafe) private static var _isEnabled = false
+    private static let _isEnabled = Atomic(false)
 
     /// The opener of the app this process is running, for an action no
     /// environment handed one: an ``OpenURLAction`` the app made itself
@@ -48,10 +52,9 @@ package enum TerminalURLOpening {
     /// running context's own opener, published for the callers no context
     /// reaches. An action that carries an opener uses that one first.
     ///
-    /// Behind a lock rather than `nonisolated(unsafe)` like ``isEnabled``: it
-    /// holds a reference and is written twice, and a torn read of a
-    /// reference is a crash rather than a stale answer. Read only when a
-    /// deferral reaches the opener, never per frame.
+    /// Behind a lock rather than an atomic like ``isEnabled``: it holds a
+    /// reference and is written twice. Read only when a deferral reaches the
+    /// opener, never per frame.
     package static var runLoopOpener: (any URLOpenerBackend)? {
         get { runLoopOpenerStore.withLock { $0 } }
         set { runLoopOpenerStore.withLock { $0 = newValue } }

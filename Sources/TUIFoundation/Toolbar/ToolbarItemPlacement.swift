@@ -38,9 +38,9 @@
 /// leading, ``cancellationAction`` then ``confirmationAction`` trailing, the
 /// confirmation button the default button and the cancellation one the cancel
 /// button), every other placement in a row above.
-public struct ToolbarItemPlacement: Sendable, Equatable {
+public struct ToolbarItemPlacement: Equatable {
     /// The roles a placement can have.
-    package enum Role: Sendable, Equatable {
+    package enum Role: Equatable {
         case automatic
         case principal
         case navigation
@@ -63,54 +63,54 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
     /// The system places the item automatically, depending on many factors
     /// including the platform, size class, or presence of other items: in a
     /// terminal, the top bar's trailing end.
-    public static let automatic = Self(role: .automatic)
+    public static var automatic: Self { Self(role: .automatic) }
 
     /// The system places the item in the principal item section: the centre of
     /// the top bar, in place of the title — or beside it, under
     /// `.toolbarRole(.editor)`.
-    public static let principal = Self(role: .principal)
+    public static var principal: Self { Self(role: .principal) }
 
     /// The item represents a navigation action: the top bar's leading end.
-    public static let navigation = Self(role: .navigation)
+    public static var navigation: Self { Self(role: .navigation) }
 
     /// The item represents a primary action: the top bar's trailing end.
-    public static let primaryAction = Self(role: .primaryAction)
+    public static var primaryAction: Self { Self(role: .primaryAction) }
 
     /// The item represents a secondary action: the top bar's trailing end,
     /// before the primary items.
-    public static let secondaryAction = Self(role: .secondaryAction)
+    public static var secondaryAction: Self { Self(role: .secondaryAction) }
 
     /// The item represents a change in status for the current context: the
     /// bottom bar.
-    public static let status = Self(role: .status)
+    public static var status: Self { Self(role: .status) }
 
     /// The item represents a confirmation action for a modal interface: in a
     /// sheet, the trailing end of its button row, as its default button
     /// (Return); elsewhere, the top bar's trailing end.
-    public static let confirmationAction = Self(role: .confirmationAction)
+    public static var confirmationAction: Self { Self(role: .confirmationAction) }
 
     /// The item represents a cancellation action for a modal interface: in a
     /// sheet, its button row, before the confirmation items, as its cancel
     /// button (Escape, where the sheet's own dismissal does not take it);
     /// elsewhere, the top bar's trailing end.
-    public static let cancellationAction = Self(role: .cancellationAction)
+    public static var cancellationAction: Self { Self(role: .cancellationAction) }
 
     /// The item represents a destructive action for a modal interface: in a
     /// sheet, the leading end of its button row; elsewhere, the top bar's
     /// trailing end.
-    public static let destructiveAction = Self(role: .destructiveAction)
+    public static var destructiveAction: Self { Self(role: .destructiveAction) }
 
     /// Places the item in the bottom bar — SwiftUI's iOS spelling, here the bar
     /// below the page. ``StatusBar``'s line of key hints goes here.
-    public static let bottomBar = Self(role: .bottomBar)
+    public static var bottomBar: Self { Self(role: .bottomBar) }
 
     /// Places the item in the leading edge of the top bar — SwiftUI's iOS
     /// spelling of ``navigation``.
-    public static let topBarLeading = Self(role: .topBarLeading)
+    public static var topBarLeading: Self { Self(role: .topBarLeading) }
 
     /// Places the item in the trailing edge of the top bar — SwiftUI's iOS
     /// spelling of ``primaryAction``.
-    public static let topBarTrailing = Self(role: .topBarTrailing)
+    public static var topBarTrailing: Self { Self(role: .topBarTrailing) }
 
     /// The item is placed in the keyboard section: the bottom bar's leading
     /// end, while a text input — a `TextField`, a `SecureField`, a
@@ -121,7 +121,7 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
     /// looks for the keys: beside the line of key hints, for as long as the
     /// typing lasts. Like any change to a bar's rows, the bar that appears or
     /// goes for them does so a frame later.
-    public static let keyboard = Self(role: .keyboard)
+    public static var keyboard: Self { Self(role: .keyboard) }
 
     /// Creates a unique accessory bar placement — mirrors SwiftUI's
     /// `ToolbarItemPlacement.accessoryBar(id:)`.
@@ -135,7 +135,7 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
     ///
     /// ```swift
     /// extension ToolbarItemPlacement {
-    ///     static let favoritesBar = accessoryBar(id: "com.example.favorites")
+    ///     static var favoritesBar: Self { accessoryBar(id: "com.example.favorites") }
     /// }
     /// ```
     ///
@@ -180,10 +180,9 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
 /// ``ToolbarItemPlacement/accessoryBar(id:)``'s, and the bar placement's of
 /// the same name.
 ///
-/// `@unchecked Sendable` because `AnyHashable` is not: the identifiers an app
-/// names its bars with are values — a string, an enumeration case — which
-/// SwiftUI's own placements, themselves `Sendable`, carry the same way.
-package struct AccessoryBarID: Hashable, @unchecked Sendable {
+/// Not `Sendable`, as `AnyHashable` is not, and as SwiftUI's placements are
+/// explicitly not.
+package struct AccessoryBarID: Hashable {
     /// The identifier the app gave.
     let id: AnyHashable
 

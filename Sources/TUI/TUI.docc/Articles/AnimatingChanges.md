@@ -354,7 +354,7 @@ such as a ``TimelineView`` on the animation schedule.
 ### Controlling it
 
 - ``Transaction``
-- ``withTransaction(_:_:)``
+- ``withTransaction(_:_:isolation:)``
 - ``View/transaction(_:)``
 - ``EnvironmentValues/transaction``
 

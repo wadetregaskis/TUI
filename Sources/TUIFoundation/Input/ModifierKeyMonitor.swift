@@ -26,10 +26,10 @@ import TUICore
 /// handler, so every change reaches them, not only the ones a frame happens to
 /// see.
 ///
-/// `@unchecked Sendable` on the same footing as the other dispatchers
-/// (`KeyEventDispatcher`, `MouseEventDispatcher`): touched only from the main
-/// run loop, by the render pass and by input dispatch.
-package final class ModifierKeyMonitor: @unchecked Sendable {
+/// Not `Sendable`, like the other dispatchers (`KeyEventDispatcher`,
+/// `MouseEventDispatcher`): touched only from the main run loop, by the render
+/// pass and by input dispatch.
+package final class ModifierKeyMonitor {
     /// The modifier keys held, and Caps Lock if it is on.
     package private(set) var current: EventModifiers = []
 
@@ -240,7 +240,7 @@ extension EventModifiers {
 // MARK: - Environment
 
 private struct ModifierKeyMonitorKey: EnvironmentKey {
-    static let defaultValue: ModifierKeyMonitor? = nil
+    static var defaultValue: ModifierKeyMonitor? { nil }
 }
 
 extension EnvironmentValues {

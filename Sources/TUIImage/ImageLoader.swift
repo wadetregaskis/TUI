@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 
 // ImageIO, not AppKit, on Apple platforms — and the difference is load-bearing.
 // From the macOS 15 SDK AppKit imports SwiftUICore, and a module that imports
@@ -517,7 +518,7 @@ extension PlatformImageLoader {
         /// capture fd 2 while a first had it pointed at `/dev/null` — and its
         /// "restore" then pins stderr to the null device for the rest of the
         /// process.
-        static let stderrRedirectLock = NSLock()
+        static let stderrRedirectLock = Mutex<Void>(())
 
         /// Runs `body` with stderr (fd 2) temporarily redirected to `/dev/null`.
         ///
@@ -529,24 +530,28 @@ extension PlatformImageLoader {
         ///
         /// Internal (not private) as the test seam: the save/redirect/restore
         /// dance is what the race lives in, and the tests hammer it directly.
+        ///
+        /// `body` runs under the lock, because the redirect has to hold for as
+        /// long as it runs, so it must not suppress again itself: the one in
+        /// the product is a single Core Graphics draw into a bitmap.
         static func suppressingStandardError(_ body: () -> Void) {
-            stderrRedirectLock.lock()
-            defer { stderrRedirectLock.unlock() }
-            fflush(stderr)
-            let saved = dup(STDERR_FILENO)
-            let devNull = open("/dev/null", O_WRONLY)
-            if devNull >= 0 {
-                dup2(devNull, STDERR_FILENO)
-                close(devNull)
-            }
-            defer {
+            stderrRedirectLock.withLock { _ in
                 fflush(stderr)
-                if saved >= 0 {
-                    dup2(saved, STDERR_FILENO)
-                    close(saved)
+                let saved = dup(STDERR_FILENO)
+                let devNull = open("/dev/null", O_WRONLY)
+                if devNull >= 0 {
+                    dup2(devNull, STDERR_FILENO)
+                    close(devNull)
                 }
+                defer {
+                    fflush(stderr)
+                    if saved >= 0 {
+                        dup2(saved, STDERR_FILENO)
+                        close(saved)
+                    }
+                }
+                body()
             }
-            body()
         }
     }
 #endif
@@ -578,7 +583,7 @@ extension PlatformImageLoader {
 /// view showing what it last drew meanwhile where it drew glyphs. A picture
 /// with no cache to go to — made from pixels in memory, larger than the
 /// limit, or drawn outside an app — stays with its view.
-public final class URLImageCache: @unchecked Sendable {
+public final class URLImageCache: Sendable {
     // Each entry is filed with the decode it is (`ImageDecodeID`): a new one
     // for every image set, so a key whose picture was evicted and decoded
     // again is a different decode, though its name is the same.
@@ -622,10 +627,13 @@ public final class URLImageCache: @unchecked Sendable {
     /// The bytes the cache keeps at most.
     public let byteLimit: Int
 
-    private var entries: [String: (image: RGBAImage, lastUse: UInt64, decode: ImageDecodeID)] = [:]
-    private var bytes = 0
-    private var clock: UInt64 = 0
-    private let lock = NSLock()
+    private struct State {
+        var entries: [String: (image: RGBAImage, lastUse: UInt64, decode: ImageDecodeID)] = [:]
+        var bytes = 0
+        var clock: UInt64 = 0
+    }
+
+    private let state = Mutex(State())
 
     /// Creates an empty cache that keeps at most `byteLimit` bytes of images.
     public init(byteLimit: Int = URLImageCache.defaultByteLimit) {
@@ -634,19 +642,12 @@ public final class URLImageCache: @unchecked Sendable {
 
     /// The bytes the cached images take now.
     public var byteCount: Int {
-        lock.lock()
-        defer { lock.unlock() }
-        return bytes
+        state.withLock { $0.bytes }
     }
 
     /// Returns a cached image for the given URL string, or nil.
     public func get(_ urlString: String) -> RGBAImage? {
-        lock.lock()
-        defer { lock.unlock() }
-        guard let entry = entries[urlString] else { return nil }
-        clock &+= 1
-        entries[urlString] = (entry.image, clock, entry.decode)
-        return entry.image
+        entry(urlString)?.image
     }
 
     /// The image cached for `key` and which decode it is
@@ -654,29 +655,31 @@ public final class URLImageCache: @unchecked Sendable {
     /// the decode — not the pixels — reads its pixels back from while it
     /// draws. Counts as a use, as ``get(_:)`` does.
     package func entry(_ key: String) -> (image: RGBAImage, decode: ImageDecodeID)? {
-        lock.lock()
-        defer { lock.unlock() }
-        guard let entry = entries[key] else { return nil }
-        clock &+= 1
-        entries[key] = (entry.image, clock, entry.decode)
-        return (entry.image, entry.decode)
+        state.withLock { state in
+            guard let entry = state.entries[key] else { return nil }
+            state.clock &+= 1
+            state.entries[key] = (entry.image, state.clock, entry.decode)
+            return (entry.image, entry.decode)
+        }
     }
 
     /// Stores an image in the cache for the given URL string, letting the
     /// least recently used go until it fits.
     public func set(_ urlString: String, image: RGBAImage) {
         let cost = Self.cost(of: image)
-        lock.lock()
-        defer { lock.unlock() }
-        if let old = entries.removeValue(forKey: urlString) { bytes -= Self.cost(of: old.image) }
-        guard cost <= byteLimit else { return }
-        while bytes + cost > byteLimit, let oldest = entries.min(by: { $0.value.lastUse < $1.value.lastUse }) {
-            entries.removeValue(forKey: oldest.key)
-            bytes -= Self.cost(of: oldest.value.image)
+        state.withLock { state in
+            if let old = state.entries.removeValue(forKey: urlString) { state.bytes -= Self.cost(of: old.image) }
+            guard cost <= byteLimit else { return }
+            while state.bytes + cost > byteLimit,
+                let oldest = state.entries.min(by: { $0.value.lastUse < $1.value.lastUse })
+            {
+                state.entries.removeValue(forKey: oldest.key)
+                state.bytes -= Self.cost(of: oldest.value.image)
+            }
+            state.clock &+= 1
+            state.entries[urlString] = (image, state.clock, ImageDecodeID())
+            state.bytes += cost
         }
-        clock &+= 1
-        entries[urlString] = (image, clock, ImageDecodeID())
-        bytes += cost
     }
 
     /// What an image costs the cache: four bytes a pixel.
@@ -897,17 +900,20 @@ extension PlatformImageLoader {
 /// the task (cancellation that lands in that window would otherwise be lost,
 /// leaving the continuation to wait out the request's full timeout). Ordering
 /// is therefore settled under the lock: whichever arrives second acts.
-private final class URLTaskHandle: @unchecked Sendable {
-    private let lock = NSLock()
-    private var task: URLSessionDataTask?
-    private var isCancelled = false
+private final class URLTaskHandle: Sendable {
+    private struct State {
+        var task: URLSessionDataTask?
+        var isCancelled = false
+    }
+
+    private let state = Mutex(State())
 
     /// Takes ownership of the task and starts it.
     func adopt(_ task: URLSessionDataTask) {
-        lock.lock()
-        let cancelledFirst = isCancelled
-        if !cancelledFirst { self.task = task }
-        lock.unlock()
+        let cancelledFirst = state.withLock { state in
+            if !state.isCancelled { state.task = task }
+            return state.isCancelled
+        }
 
         // Resume unconditionally, even when already cancelled: only a task
         // that has been started is guaranteed to deliver its completion
@@ -917,11 +923,12 @@ private final class URLTaskHandle: @unchecked Sendable {
     }
 
     func cancel() {
-        lock.lock()
-        let started = task
-        isCancelled = true
-        task = nil
-        lock.unlock()
+        let started = state.withLock { state in
+            let started = state.task
+            state.isCancelled = true
+            state.task = nil
+            return started
+        }
 
         started?.cancel()
     }

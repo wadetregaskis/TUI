@@ -137,6 +137,7 @@ extension TextFieldHandler {
 
     /// A vertical field's own keys, or `nil` for a key it handles as a field
     /// on one line does.
+    @MainActor
     func handleVerticalKeyEvent(_ event: KeyEvent) -> Bool? {
         guard let layout = softWrapLayout() else { return nil }
         switch event.key {
@@ -168,6 +169,7 @@ extension TextFieldHandler {
     /// the field is on one line or the command is not one: Ctrl-A, Ctrl-E and
     /// Ctrl-K on the caret's line, Ctrl-P and Ctrl-N a row up and down, and
     /// Ctrl-O opening a line. Paging down stays the page's.
+    @MainActor
     func performOnLines(_ command: TextEditingCommand) -> Bool? {
         guard let layout = softWrapLayout() else { return nil }
         switch command {
@@ -205,6 +207,7 @@ extension TextFieldHandler {
 
     /// Ctrl-O: inserts a newline and leaves the caret in front of it, opening
     /// the rest of the line onto a new one below.
+    @MainActor
     func openLine() {
         guard textContentType?.isAllowed("\n") ?? true else {
             bell?.ring()

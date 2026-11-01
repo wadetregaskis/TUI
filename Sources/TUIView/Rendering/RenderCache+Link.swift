@@ -10,6 +10,36 @@
 import TUICore
 
 extension RenderCache {
+    /// What names a cache without owning it, for a holder that has to act on
+    /// the cache's tables at once (a focus move, a control's drawing report).
+    ///
+    /// It names the cache `unowned`, which keeps no strong count and, unlike a
+    /// weak reference, moves nothing to a side table: the unowned count is kept
+    /// inline beside the strong one. The cache's `deinit` clears it first thing,
+    /// so a holder that outlives the cache reads `nil`, as through a weak
+    /// reference. `unowned`, not `unowned(unsafe)`: a holder reading a cache
+    /// already deinitializing traps, rather than reading freed memory.
+    ///
+    /// Not `Sendable`, unlike the ``Link``, so the compiler keeps it with its
+    /// holders on the render path, where caches are released: it cannot be
+    /// cleared while it is being read.
+    package final class Handle {
+        /// The cache, or `nil` once it has gone.
+        package private(set) unowned var cache: RenderCache?
+
+        init() {}
+
+        /// Called by the cache's `init`.
+        func attach(_ cache: RenderCache) {
+            self.cache = cache
+        }
+
+        /// Called first thing in the cache's `deinit`.
+        func detach() {
+            cache = nil
+        }
+    }
+
     /// The way back to a render cache for something that keeps it past the
     /// render that made it — a `@State` box, an observation registration, a
     /// control's handler, the focus manager — without a weak reference to the
@@ -32,28 +62,15 @@ extension RenderCache {
     /// it keeps nothing alive and makes no cycle: a buffer's journal, which the
     /// cache keeps, can hold it.
     ///
-    /// Two ways in, for two kinds of holder:
-    ///
-    /// - **From any thread**, ``invalidateRender(for:)``: the queue of
-    ///   invalidations a `@State` write or an `@Observable` change makes, which
-    ///   the cache drains on the main actor at ``RenderCache/beginRenderPass()``,
-    ///   and the frame each one asks for, of the ``AppState`` of the app the
-    ///   cache draws (``requestFrames(from:)``). It lives here, not on the
-    ///   cache, so a write on another thread never touches the cache at all.
-    ///   Once the cache has gone the queue is closed: a report does nothing,
-    ///   and asks for no frame.
-    /// - **On the main actor**, ``cache``: for a holder that has to act on the
-    ///   cache's tables at once (a focus move, a control's drawing report). It
-    ///   names the cache `unowned`, which keeps no strong count and, unlike a
-    ///   weak reference, moves nothing to a side table: the unowned count is
-    ///   kept inline beside the strong one. The cache's `deinit` clears it
-    ///   first thing, so a holder that outlives the cache reads `nil`, as
-    ///   through a weak reference. Read only on the main actor, where caches
-    ///   are released — by the context that renders into them — so it cannot
-    ///   be cleared while it is being read. `unowned`, not `unowned(unsafe)`:
-    ///   a holder that broke that rule and read a cache already deinitializing
-    ///   on another thread traps, rather than reading freed memory.
-    package final class Link: RenderInvalidationSink, @unchecked Sendable {
+    /// It is the way in from any thread, ``invalidateRender(for:)``: the queue of
+    /// invalidations a `@State` write or an `@Observable` change makes, which
+    /// the cache drains on the main actor at ``RenderCache/beginRenderPass()``,
+    /// and the frame each one asks for, of the ``AppState`` of the app the cache
+    /// draws (``requestFrames(from:)``). It lives here, not on the cache, so a
+    /// write on another thread never touches the cache at all. Once the cache has
+    /// gone the queue is closed: a report does nothing, and asks for no frame.
+    /// To act on the cache's tables at once, a holder keeps its ``Handle``.
+    package final class Link: RenderInvalidationSink, Sendable {
         /// What the link's lock guards: the queue, whether the cache is still
         /// there to drain it, the app a write asks for a frame, and the
         /// diagnostic a write reports to.
@@ -101,20 +118,11 @@ extension RenderCache {
 
         private let queue = Lock(initialState: Queue())
 
-        /// The cache, or `nil` once it has gone. Main actor only — see the type.
-        package private(set) unowned var cache: RenderCache?
-
         init() {}
 
-        /// Called by the cache's `init`.
-        func attach(_ cache: RenderCache) {
-            self.cache = cache
-        }
-
-        /// Called first thing in the cache's `deinit`: from here on a holder
-        /// reads `nil`, and a report goes nowhere.
+        /// Called first thing in the cache's `deinit`: from here on a report goes
+        /// nowhere.
         func detach() {
-            cache = nil
             queue.withLock { queue in
                 queue.attached = false
                 queue.clearAll = false

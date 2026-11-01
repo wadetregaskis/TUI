@@ -58,22 +58,17 @@ public enum UndoCommand: Hashable, CaseIterable, Sendable {
 
     /// Undoes or redoes on `manager`, reporting whether there was a step to.
     ///
-    /// The input chain is not isolated to the main actor, though it only ever
-    /// runs there; `UndoManager` is.
+    @MainActor
     package func perform(on manager: UndoManager) -> Bool {
-        let reference = MainActorUndoManager(manager)
-        return MainActor.assumeIsolated {
-            let manager = reference.manager
-            switch self {
-            case .undo:
-                guard manager.canUndo else { return false }
-                manager.undo()
-            case .redo:
-                guard manager.canRedo else { return false }
-                manager.redo()
-            }
-            return true
+        switch self {
+        case .undo:
+            guard manager.canUndo else { return false }
+            manager.undo()
+        case .redo:
+            guard manager.canRedo else { return false }
+            manager.redo()
         }
+        return true
     }
 }
 
@@ -248,11 +243,11 @@ extension KeyboardShortcut {
 /// ``EnvironmentValues/commandKey`` and published by the run loop each frame,
 /// and what the terminal reports, which decides which key the bar can name.
 ///
-/// One per app, held by `TUIContext`. `@unchecked Sendable` on the same footing
-/// as the dispatchers: touched only from the main run loop. ``hint(for:)``
+/// One per app, held by `TUIContext`. Not `Sendable`, like the dispatchers:
+/// touched only from the main run loop. ``hint(for:)``
 /// writes too, keeping its answer, and is asked only there, by the status
 /// bar, which reads the undo manager on the main actor first.
-package final class AppUndoKeys: @unchecked Sendable {
+package final class AppUndoKeys {
     /// The table in force.
     private(set) var shortcuts = UndoShortcuts.default
 

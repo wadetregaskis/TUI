@@ -190,6 +190,7 @@ extension InputHandler {
     ///   when a handler consumes an event.) An unconsumed key returns `false`
     ///   so a genuine no-op key doesn't wake the loop.
     @discardableResult
+    @MainActor
     func handle(_ event: KeyEvent) -> Bool {
         // A key acts from the focused view: an object several views hold
         // reads that view's holder's environment meanwhile (B-DYNVFIX-3 (c)).
@@ -205,6 +206,7 @@ extension InputHandler {
 
     /// Offers `event` to the chain's layers in order, reporting whether one
     /// took it.
+    @MainActor
     private func dispatchKey(_ event: KeyEvent) -> Bool {
         // A release goes to the focus path's key-press handlers and nowhere
         // else. Every other layer acts on a key going down, and a release
@@ -316,6 +318,7 @@ extension InputHandler {
     ///
     /// On macOS the terminal itself may keep the chord for its own contextual
     /// menu, and then it never arrives: nothing relies on it alone.
+    @MainActor
     private func dispatchControlReturn(_ event: KeyEvent) -> Bool {
         if focusPathHearsKeys, let focused = focusManager.focusedIdentity,
             keyEventDispatcher.dispatchFocusPath(event, focusedIdentity: focused, stage: .keyPress)
@@ -369,6 +372,7 @@ extension InputHandler {
 
     /// The five-layer chain for a key going down or repeating — everything
     /// ``handle(_:)`` does but the release and the legacy fallback.
+    @MainActor
     private func dispatchPress(_ event: KeyEvent) -> Bool {
         // The focus path: SwiftUI's `onKeyPress` handlers on the way to the
         // focused view, outermost first, BEFORE the focused control has the
@@ -583,6 +587,7 @@ extension InputHandler {
 
     /// Does what a frame owed once it is on the screen (`KeysAfterFrame`): a
     /// key through the whole chain, or the quit.
+    @MainActor
     func perform(_ owed: KeysAfterFrame.Owed) {
         switch owed {
         case .key(let event): _ = handle(event)
@@ -596,6 +601,7 @@ extension InputHandler {
     /// suspend the app some of the time.
     ///
     /// - Returns: Whether `event` was one of the keys.
+    @MainActor
     func runUndoKey(_ event: KeyEvent) -> Bool {
         guard let undoManager, let command = undoKeys.command(for: event) else { return false }
         _ = command.perform(on: undoManager)

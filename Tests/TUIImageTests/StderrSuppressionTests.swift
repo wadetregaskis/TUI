@@ -15,6 +15,7 @@
 
     import Darwin
     import Foundation
+    import Synchronization
     import Testing
 
     @testable import TUIImage
@@ -43,11 +44,11 @@
         /// case under `swift test --filter 'Image'`, and never alone — which is
         /// exactly the signature of a sibling suite, not of this one.
         private func stderrIdentity() -> (dev: dev_t, ino: ino_t) {
-            PlatformImageLoader.stderrRedirectLock.lock()
-            defer { PlatformImageLoader.stderrRedirectLock.unlock() }
-            var status = stat()
-            fstat(STDERR_FILENO, &status)
-            return (status.st_dev, status.st_ino)
+            PlatformImageLoader.stderrRedirectLock.withLock { _ in
+                var status = stat()
+                fstat(STDERR_FILENO, &status)
+                return (status.st_dev, status.st_ino)
+            }
         }
 
         @Test("stderr is restored after a suppression")
