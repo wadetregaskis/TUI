@@ -9,30 +9,27 @@ import Testing
 
 @testable import Example
 import TUI
-@testable import TUIApp
-
-extension ShortcutsDemo: ExamplePageContent {}
+import TUITesting
 
 @MainActor
 @Suite("The Menus page's ⌘ shortcuts section")
 struct ShortcutsDemoTests {
     @Test("The 'Chose' read-out clears as the pop-up opens, so a choice made twice reads as two")
-    func choseClearsOnOpen() {
-        let driver = ExamplePageDriver(ExamplePageApp<ShortcutsDemo>())
+    func choseClearsOnOpen() throws {
+        let app = TestApp(width: 100, height: 40) { ShortcutsDemo() }
         func chose() -> String? {
-            driver.lines.first { $0.contains("page.menus.chose") }?.trimmingCharacters(in: .whitespaces)
+            app.screen.line(containing: "page.menus.chose")?.trimmingCharacters(in: .whitespaces)
         }
-        #expect(chose()?.hasSuffix("—") == true, "starts cleared: \(driver.lines)")
+        #expect(chose()?.hasSuffix("—") == true, "starts cleared: \(app.screen)")
 
-        driver.click("page.menus.shortcutsFile")
-        guard let menu = driver.position(of: "page.menus.shortcutsFile") else {
-            Issue.record("no menu button: \(driver.lines)")
-            return
-        }
-        #expect(driver.click("page.menus.shortcuts.save", fromRow: menu.row + 1), "the pop-up is open")
+        try app.click("page.menus.shortcutsFile")
+        let menu = try #require(app.screen.location(of: "page.menus.shortcutsFile"), "no menu button: \(app.screen)")
+        // Below the button: the page may name the command above it too.
+        let save = app.screen.locations(of: "page.menus.shortcuts.save").first { $0.y > menu.y }
+        app.click(at: try #require(save, "the pop-up is open: \(app.screen)"))
         #expect(chose()?.hasSuffix("page.menus.shortcuts.save") == true, "\(chose() ?? "none")")
 
-        driver.click("page.menus.shortcutsFile")
+        try app.click("page.menus.shortcutsFile")
         #expect(chose()?.hasSuffix("—") == true, "opening the pop-up again clears it: \(chose() ?? "none")")
     }
 }

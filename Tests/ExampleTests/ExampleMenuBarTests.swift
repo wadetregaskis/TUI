@@ -11,117 +11,81 @@ import Testing
 
 @testable import Example
 import TUI
-@testable import TUIApp
 @testable import TUIFoundation
+import TUITesting
 
 @MainActor
 @Suite("The Example's menu bar", .serialized)
 struct ExampleMenuBarTests {
-    private var now: Int64 = 0
-
-    private mutating func frame(_ app: HeadlessApp) {
-        now += 20_000_000
-        app.frame(atNanos: now)
-    }
-
-    private func rows(_ app: HeadlessApp) -> [String] { app.screen.map(\.stripped) }
-
     /// The Example's string for `key`: in this process its strings are not
     /// registered (another suite reads the keys themselves), so the key.
     private func text(_ key: String) -> String { L(key) }
 
-    private mutating func launched() -> HeadlessApp {
-        let app = HeadlessApp(ExampleApp(), width: 120, height: 40)
-        frame(app)
-        frame(app)
-        return app
+    private func launched() -> TestApp {
+        TestApp(ExampleApp(), width: 120, height: 40)
     }
 
-    /// Opens the menu titled `title` with a click on it.
-    private mutating func open(_ title: String, in app: HeadlessApp) throws {
-        let bar = rows(app)[0]
-        let x = try #require(bar.range(of: " \(title) ")).lowerBound.utf16Offset(in: bar) + 1
-        app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: 0))
-        app.send(MouseEvent(button: .left, phase: .released, x: x, y: 0))
-        frame(app)
+    /// Opens the menu titled `title` with a click on it: the bar is the top
+    /// row, the first place it is looked for.
+    private func open(_ title: String, in app: TestApp) throws {
+        try app.click(" \(title) ")
     }
 
     /// The Example opens several windows, so its File menu holds Close and
     /// Close All (owner ruling O9, 2026-10-26).
     @Test("The bar has File, View and Go, and Go shows its keys")
-    mutating func goMenu() throws {
+    func goMenu() throws {
         let app = launched()
-        let bar = rows(app)[0]
+        let bar = app.screen.lines[0]
         #expect(bar.contains(" View ") && bar.contains(" \(text("commands.go")) "), "\(bar)")
         #expect(bar.contains(" File "), "\(bar)")
         try open(text("commands.go"), in: app)
-        let menu = rows(app)
-        #expect(menu.contains { $0.contains(text("commands.previousPage")) && $0.contains("⌃B") }, "\(menu)")
-        #expect(menu.contains { $0.contains(text("commands.nextPage")) && $0.contains("⌃T") }, "\(menu)")
-        app.send(KeyEvent(key: .escape))
-        frame(app)
+        #expect(app.screen.line(containing: text("commands.previousPage"))?.contains("⌃B") == true, "\(app.screen)")
+        #expect(app.screen.line(containing: text("commands.nextPage"))?.contains("⌃T") == true, "\(app.screen)")
+        app.press(.escape)
     }
 
     @Test("⌃T goes to the next page, and ⌃B back")
-    mutating func goKeys() {
+    func goKeys() {
         let app = launched()
-        let before = rows(app).joined(separator: "\n")
-        app.send(KeyEvent(key: .character("t"), ctrl: true))
-        frame(app)
-        frame(app)
-        let next = rows(app).joined(separator: "\n")
-        #expect(next != before, "a page other than the main menu")
-        app.send(KeyEvent(key: .character("b"), ctrl: true))
-        frame(app)
-        frame(app)
-        #expect(rows(app).joined(separator: "\n") == before, "back on the main menu")
+        let before = app.screen
+        app.press(.character("t"), modifiers: .control)
+        #expect(app.screen.text != before.text, "a page other than the main menu")
+        app.press(.character("b"), modifiers: .control)
+        #expect(app.screen.text == before.text, "back on the main menu")
     }
 
     @Test("View holds TUI's display commands and the text styling toggles, each a submenu")
-    mutating func viewSubmenus() throws {
+    func viewSubmenus() throws {
         let app = launched()
         try open("View", in: app)
-        let menu = rows(app)
         let titles = ["Palette", "Border Style", "Control Style", text("commands.textStyling")]
         for title in titles + ["Customize Toolbar"] {
-            #expect(menu.contains { $0.contains(title) }, "\(title): \(menu)")
+            #expect(app.screen.contains(title), "\(title): \(app.screen)")
         }
-        app.send(KeyEvent(key: .escape))
-        frame(app)
+        app.press(.escape)
     }
 
     /// Opens View with a click, goes to the submenu `row` rows down (a menu
     /// opened by a click has no row highlighted: Down highlights the first),
     /// opens it, and returns its rows; then chooses its `item`th option (from
     /// 0), or closes it where `item` is nil.
-    private mutating func submenu(row: Int, choosing item: Int?, in app: HeadlessApp) throws -> [String] {
+    private func submenu(row: Int, choosing item: Int?, in app: TestApp) throws -> [String] {
         try open("View", in: app)
-        for _ in 0...row {
-            app.send(KeyEvent(key: .down))
-            frame(app)
-        }
-        app.send(KeyEvent(key: .right))
-        frame(app)
-        let shown = rows(app)
+        app.press(.down, times: row + 1)
+        app.press(.right)
+        let shown = app.screen.lines
         guard let item else {
-            app.send(KeyEvent(key: .escape))
-            frame(app)
-            app.send(KeyEvent(key: .escape))
-            frame(app)
+            app.press(.escape, times: 2)
             return shown
         }
-        for _ in 0..<item {
-            app.send(KeyEvent(key: .down))
-            frame(app)
-        }
-        app.send(KeyEvent(key: .enter))
-        frame(app)
-        frame(app)
+        app.press(.down, times: item)
+        app.press(.enter)
         return shown
     }
 
     @Test("View ▸ Palette and Control Style choose into the app's own state; Border Style through the manager")
-    mutating func viewSubmenusChoose() throws {
+    func viewSubmenusChoose() throws {
         let app = launched()
         let amber = PaletteRegistry.all[1].name
         let palettes = try submenu(row: 0, choosing: nil, in: app)
@@ -147,19 +111,10 @@ struct ExampleMenuBarTests {
     }
 
     @Test("The top bar is customizable: Customize Toolbar… opens its panel")
-    mutating func customizeToolbar() throws {
+    func customizeToolbar() throws {
         let app = launched()
         try open("View", in: app)
-        let menu = rows(app)
-        let line = try #require(menu.firstIndex { $0.contains("Customize Toolbar") }, "\(menu)")
-        let x = try #require(menu[line].range(of: "Customize")).lowerBound.utf16Offset(in: menu[line])
-        app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: line))
-        app.send(MouseEvent(button: .left, phase: .released, x: x, y: line))
-        frame(app)
-        frame(app)
-        frame(app)
-        let panel = rows(app)
-        #expect(
-            panel.contains { $0.contains(text("commands.nextPalette")) }, "the panel offers the hidden items: \(panel)")
+        try app.click("Customize Toolbar")
+        #expect(app.screen.contains(text("commands.nextPalette")), "the panel offers the hidden items: \(app.screen)")
     }
 }

@@ -8,8 +8,8 @@ import Testing
 
 @testable import Example
 import TUI
-@testable import TUIApp
 @testable import TUIFoundation
+import TUITesting
 
 /// What the panel says, as the page draws it: the key's English text when the
 /// Example's strings are registered, and the key itself when — as in this
@@ -51,94 +51,42 @@ private struct PanelPage: View {
     }
 }
 
-private struct PanelApp: App {
-    let space: AnimationPage.PanelSpace
-    let transition: AnyTransition
-
-    init() {
-        self.init(space: .closesUp, transition: .opacity)
-    }
-
-    init(reservesSpace: Bool, transition: AnyTransition) {
-        self.init(space: reservesSpace ? .kept : .closesUp, transition: transition)
-    }
-
-    init(space: AnimationPage.PanelSpace, transition: AnyTransition) {
-        self.space = space
-        self.transition = transition
-    }
-
-    var body: some Scene {
-        WindowGroup { PanelPage(space: space, transition: transition) }
-    }
-}
-
-/// The whole Animation page, as the Example opens it.
-private struct AnimationPageApp: App {
-    init() {}
-
-    var body: some Scene {
-        WindowGroup { AnimationPage() }
-    }
-}
-
-/// A page in a ``HeadlessApp``, on a clock that only moves when told to.
-///
-/// Driven through the real render loop and input chain, so the change reaches
-/// the frame the way the app delivers it: a key or a click, a `withAnimation`
-/// in the button's action, and a transaction consumed by the one pass that
-/// shows it.
+/// A page in a ``TestApp``, with what these tests read of it: where a line is,
+/// and what colour it is drawn in.
 @MainActor
-private final class PageDriver<A: App> {
-    private let app: HeadlessApp
+private final class PageDriver {
+    private let app: TestApp
     /// The text on the first line below the panel's slot.
     private let belowText: String
-    /// The instant of the last frame drawn, on the frame clock.
-    private(set) var now: Int64 = 0
-    static var frameNanos: Int64 { 16_666_667 }
 
-    init(_ app: A, width: Int, height: Int, belowText: String) {
-        self.app = HeadlessApp(app, width: width, height: height)
+    init(_ app: TestApp, belowText: String) {
+        self.app = app
         self.belowText = belowText
-        self.app.frame(atNanos: now)
+        _ = app.screen
     }
+
+    /// The instant of the last frame drawn.
+    var now: Duration { app.elapsed }
 
     /// Presses the focused control's key — the page's one button, when there
     /// is only one. Whether it took the key.
-    func pressFocused() -> Bool { app.send(KeyEvent(key: .enter)) }
+    func pressFocused() -> Bool { app.press(.enter) }
 
-    /// Clicks the middle of `text`, where it first appears, as a mouse button
-    /// pressed there, a frame, and the button released. Whether a handler
-    /// took both halves.
-    ///
-    /// At the screen's own row: `HeadlessApp.send(_:)` takes the app header's
-    /// rows off it, as the app's event funnel does a terminal's click.
-    func click(_ text: String) -> Bool {
-        guard let at = position(of: text) else { return false }
-        let x = at.column + text.count / 2
-        let pressed = app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: at.row))
-        advance(byMillis: 17)
-        let released = app.send(MouseEvent(button: .left, phase: .released, x: x, y: at.row))
-        return pressed && released
-    }
+    /// Clicks the middle of `text`, where it first appears. Whether it was there.
+    func click(_ text: String) -> Bool { (try? app.click(text)) != nil }
 
-    /// Renders a frame every 1/60 s until `millis` have passed.
+    /// Moves the clock on by `millis`, drawing the frames the page asks for.
     func advance(byMillis millis: Int) {
-        let target = now + Int64(millis) * 1_000_000
-        while now < target {
-            now += Self.frameNanos
-            app.frame(atNanos: now)
-        }
+        app.advance(by: .milliseconds(millis))
     }
 
     /// Renders ONE frame, `millis` from now: for a page too large to draw
     /// every frame of, where only the instants asked about matter.
     func jump(byMillis millis: Int) {
-        now += Int64(millis) * 1_000_000
-        app.frame(atNanos: now)
+        app.headless.frame(atNanos: app.headless.lastFrameNanos + Int64(millis) * 1_000_000)
     }
 
-    var screen: [String] { app.screen }
+    var screen: [String] { app.screen.styledLines }
 
     /// Where `text` first appears on screen, styling stripped: row and column.
     /// Only the rows above `limit` are searched when one is given.
@@ -200,12 +148,12 @@ private func isBlend(
 @Suite("The Animation page's Show / hide plays the removal")
 struct AnimationPageShowHideTests {
 
-    private typealias PanelDriver = PageDriver<PanelApp>
+    private func panelPage(space: AnimationPage.PanelSpace, transition: AnyTransition) -> PageDriver {
+        PageDriver(TestApp(width: 40, height: 20) { PanelPage(space: space, transition: transition) }, belowText: "below")
+    }
 
-    private func panelPage(reservesSpace: Bool, transition: AnyTransition) -> PanelDriver {
-        PanelDriver(
-            PanelApp(reservesSpace: reservesSpace, transition: transition), width: 40, height: 20,
-            belowText: "below")
+    private func panelPage(reservesSpace: Bool, transition: AnyTransition) -> PageDriver {
+        panelPage(space: reservesSpace ? .kept : .closesUp, transition: transition)
     }
 
     /// SwiftUI's model, measured (`Tools/SwiftUIProbes/Insertion and removal (FB16)/samples.txt`): the space goes on
@@ -268,11 +216,11 @@ struct AnimationPageShowHideTests {
             guard let shownPanel, let shown else { return }
 
             #expect(page.pressFocused(), "precondition: the button took the key")
-            // The removal starts on the first frame after the key.
-            let removedAt = page.now + PanelDriver.frameNanos
+            // The removal starts on the frame the key causes.
+            let removedAt = page.now
             for millis in [250, 250] {
                 page.advance(byMillis: millis)
-                let elapsed = Double(page.now - removedAt) / 1_000_000_000
+                let elapsed = (page.now - removedAt) / .seconds(1)
                 #expect(
                     page.position(of: panelText).map { $0 == shownPanel } == true,
                     "the panel was gone \(elapsed) s into its one-second removal")
@@ -323,8 +271,7 @@ struct AnimationPageShowHideTests {
     /// arrives, part-way part-way through, and drawn back up as it goes.
     @Test("By default the page below glides with the panel as it comes and goes")
     func pageBelowGlides() {
-        let page = PanelDriver(
-            PanelApp(space: .closesUp, transition: .opacity), width: 40, height: 20, belowText: "below")
+        let page = panelPage(space: .closesUp, transition: .opacity)
         let before = page.belowRow
         #expect(page.pressFocused(), "precondition: the button took the key")
         page.advance(byMillis: 500)
@@ -351,8 +298,7 @@ struct AnimationPageShowHideTests {
     /// once when the panel has gone.
     @Test("Held, the page below stands still while the panel leaves, then closes up")
     func heldSpaceStandsStill() {
-        let page = PanelDriver(
-            PanelApp(space: .held, transition: .opacity), width: 40, height: 20, belowText: "below")
+        let page = panelPage(space: .held, transition: .opacity)
         let before = page.belowRow
         #expect(page.pressFocused(), "precondition: the button took the key")
         page.advance(byMillis: 1200)
@@ -385,7 +331,7 @@ struct AnimationPageShowHideTests {
             // Tall enough for the whole page down to its keyboard help, the
             // matched geometry demo above it included.
             let page = PageDriver(
-                AnimationPageApp(), width: 100, height: 100, belowText: "demo.keyboardControls")
+                TestApp(width: 100, height: 100) { AnimationPage() }, belowText: "demo.keyboardControls")
             if reservesSpace {
                 // "Its space" is a picker: opened on its value, then the choice.
                 #expect(page.click("page.animation.space.closesUp"), "precondition: the picker took the click")
