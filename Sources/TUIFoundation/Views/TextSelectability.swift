@@ -49,7 +49,7 @@ extension View {
     /// Controls whether people can select text within this view.
     ///
     /// A terminal app's text is selected by TUI's own selection of what is
-    /// drawn (see <doc:MouseAndGestures>, "Selecting Text"): a drag that no
+    /// drawn (see <doc:SelectingText>): a drag that no
     /// control uses selects the cells it crosses, a double-click a word, a
     /// triple-click the row, and the app's ⌘C — Ctrl-C by default — copies.
     /// With no modifier that selection is already on, wherever a drag does
