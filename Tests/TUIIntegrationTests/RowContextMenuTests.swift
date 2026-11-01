@@ -16,8 +16,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @Observable
@@ -288,12 +290,12 @@ private struct RowsPage: View {
 @MainActor
 private final class Harness {
     let rows = Rows()
-    let app: HeadlessApp
+    let app: TestApp
     private var now: Int64 = 0
 
     init(_ shape: Rows.Shape) {
         rows.shape = shape
-        app = HeadlessApp(RowsApp(rows), width: 40, height: 16)
+        app = TestApp(RowsApp(rows), width: 40, height: 16)
         frame()
         frame()
     }
@@ -304,15 +306,15 @@ private final class Harness {
     }
 
     func position(of text: String) throws -> (x: Int, y: Int) {
-        let y = try #require(app.screen.firstIndex { $0.stripped.contains(text) }, "\(text) is not drawn")
-        let line = app.screen[y].stripped
+        let y = try #require(app.screen.styledLines.firstIndex { $0.stripped.contains(text) }, "\(text) is not drawn")
+        let line = app.screen.styledLines[y].stripped
         let range = try #require(line.range(of: text))
         return (line.distance(from: line.startIndex, to: range.lowerBound), y)
     }
 
-    func shows(_ text: String) -> Bool { app.screen.contains { $0.stripped.contains(text) } }
+    func shows(_ text: String) -> Bool { app.screen.contains(text) }
 
-    var screen: String { app.screen.map(\.stripped).joined(separator: "\n") }
+    var screen: String { app.screen.lines.joined(separator: "\n") }
 
     /// A secondary click — the right button, or Ctrl with the left.
     func secondaryClick(_ point: (x: Int, y: Int), ctrl: Bool = false) {

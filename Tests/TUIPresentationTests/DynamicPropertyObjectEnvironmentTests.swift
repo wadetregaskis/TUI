@@ -18,6 +18,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUIPresentation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -564,15 +565,15 @@ struct DynamicPropertyObjectEnvironmentTests {
     /// moved in the sheet (review of 75c2c226c, S3).
     @Test("A page behind a sheet showing an object's @FocusedValue follows the focus in the sheet")
     func pageBehindASheetShowingAnObjectsFocusedValueFollowsTheFocus() {
-        let app = HeadlessApp(NoteInspectorUnderSheetApp(), width: 40, height: 16)
-        func shows(_ text: String) -> Bool { app.screen.contains { $0.stripped.contains(text) } }
+        let app = TestApp(NoteInspectorUnderSheetApp(), width: 40, height: 16)
+        func shows(_ text: String) -> Bool { app.screen.contains(text) }
         app.frame(atNanos: 0)
         app.frame(atNanos: 16_666_667)
-        #expect(shows("page a"), "\(app.screen.map(\.stripped))")
+        #expect(shows("page a"), "\(app.screen.lines)")
         #expect(shows("sheet a"))
         app.send(KeyEvent(key: .tab))
         app.frame(atNanos: 33_333_334)
-        #expect(shows("page b"), "\(app.screen.map(\.stripped))")
+        #expect(shows("page b"), "\(app.screen.lines)")
         #expect(shows("sheet b"))
     }
 }

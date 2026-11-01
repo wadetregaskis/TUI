@@ -24,8 +24,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUILists
+import TUITesting
 @testable import TUITestSupport
 
 /// A row that counts how often it has appeared, in its own `@State`.
@@ -103,7 +105,7 @@ private struct ArmsPage: View {
 struct ListConditionalArmStateTests {
     @Test("A row a flip brings back starts afresh", arguments: ArmHost.allCases)
     func flippedBackRowStartsAfresh(host: ArmHost) {
-        let app = HeadlessApp(ArmsApp(host: host), width: 30, height: 8)
+        let app = TestApp(ArmsApp(host: host), width: 30, height: 8)
         var now: Int64 = 0
         func frames(_ count: Int = 3) {
             for _ in 0..<count {
@@ -111,17 +113,17 @@ struct ListConditionalArmStateTests {
                 app.frame(atNanos: now)
             }
         }
-        func shows(_ text: String) -> Bool { app.screen.contains { $0.contains(text) } }
+        func shows(_ text: String) -> Bool { app.screen.styledLines.contains { $0.contains(text) } }
 
         frames()
-        #expect(shows("first 1"), "\(host): the first arm appeared once: \(app.screen)")
+        #expect(shows("first 1"), "\(host): the first arm appeared once: \(app.screen.styledLines)")
         _ = app.send(KeyEvent(key: .character("f")))
         frames()
-        #expect(shows("second 1"), "\(host): the second arm appeared once: \(app.screen)")
+        #expect(shows("second 1"), "\(host): the second arm appeared once: \(app.screen.styledLines)")
         _ = app.send(KeyEvent(key: .character("f")))
         frames()
         #expect(
             shows("first 1"),
-            "\(host): the first arm kept its state across the flip: \(app.screen)")
+            "\(host): the first arm kept its state across the flip: \(app.screen.styledLines)")
     }
 }

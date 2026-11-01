@@ -12,7 +12,9 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -50,24 +52,24 @@ private struct ValuedApp: App {
 struct WindowPresentedDataTests {
     private var now: Int64 = 0
 
-    private mutating func launched() -> HeadlessApp {
-        let app = HeadlessApp(ValuedApp(), width: 40, height: 8)
+    private mutating func launched() -> TestApp {
+        let app = TestApp(ValuedApp(), width: 40, height: 8)
         frame(app)
         return app
     }
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private func screen(_ app: HeadlessApp) -> String {
-        app.screen.map(\.stripped).joined(separator: "\n")
+    private func screen(_ app: TestApp) -> String {
+        app.screen.lines.joined(separator: "\n")
     }
 
-    private func open(_ app: HeadlessApp) -> OpenWindowAction {
+    private func open(_ app: TestApp) -> OpenWindowAction {
         OpenWindowAction(handler: app.scenes.actions)
     }
 

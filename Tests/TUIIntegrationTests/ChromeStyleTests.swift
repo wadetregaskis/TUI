@@ -12,9 +12,11 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIChrome
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// A page with a top bar of a title and a version, and a bottom bar of hints,
@@ -65,10 +67,10 @@ struct ChromeStyleTests {
     /// The frame's rows, escapes stripped, two frames in: one to declare the
     /// bars and seed them, one to draw them.
     private func screen(_ app: some App, width: Int = 40, height: Int = 12) -> [String] {
-        let headless = HeadlessApp(app, width: width, height: height)
+        let headless = TestApp(app, width: width, height: height)
         headless.frame(atNanos: 0)
         headless.frame(atNanos: 20_000_000)
-        return headless.screen.map(\.stripped)
+        return headless.screen.lines
     }
 
     // MARK: - Reserved space is drawn space

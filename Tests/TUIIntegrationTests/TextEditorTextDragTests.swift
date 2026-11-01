@@ -13,8 +13,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -44,17 +46,17 @@ struct TextEditorTextDragTests {
     @MainActor
     private final class Harness {
         let text: Box<String>
-        let app: HeadlessApp
+        let app: TestApp
         private var now: Int64 = 0
         /// The screen cell of the editor's first character.
         private(set) var origin = CellPoint.zero
 
         init(_ initial: String) throws {
             text = Box(initial)
-            app = HeadlessApp(EditorApp(text: text), width: 60, height: 10)
+            app = TestApp(EditorApp(text: text), width: 60, height: 10)
             frame()
             frame()
-            let lines = app.screen.map(\.stripped)
+            let lines = app.screen.lines
             let first = String(initial.prefix(5))
             let y = try #require(lines.firstIndex { $0.contains(first) })
             origin = CellPoint(x: try #require(lines[y].range(of: first)).lowerBound.utf16Offset(in: lines[y]), y: y)

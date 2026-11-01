@@ -13,6 +13,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 extension ToolbarItemPlacement {
@@ -66,9 +67,9 @@ struct ToolbarAccessoryBarTests {
     /// The raw screen three frames in: one to declare the bars, one to adopt
     /// their rows, one more to settle.
     private func screen() -> [String] {
-        let app = HeadlessApp(AccessoryApp(), width: 30, height: 8)
+        let app = TestApp(AccessoryApp(), width: 30, height: 8)
         for frame in 1...3 { app.frame(atNanos: Int64(frame) * 20_000_000) }
-        return app.screen
+        return app.screen.styledLines
     }
 
     @Test("Each accessory bar is a row under the top bar's own, in the order first declared")

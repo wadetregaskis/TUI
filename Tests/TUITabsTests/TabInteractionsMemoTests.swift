@@ -15,9 +15,11 @@ import Observation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 @testable import TUITabs
+import TUITesting
 @testable import TUITestSupport
 
 @Observable
@@ -107,12 +109,12 @@ private struct StableSidebarApp: App {
 @MainActor
 private final class Harness {
     let tabs = Tabs()
-    let app: HeadlessApp
+    let app: TestApp
     private var now: Int64 = 0
 
     init(withMenus: Bool) {
         tabs.withMenus = withMenus
-        app = HeadlessApp(TabsApp(tabs), width: 50, height: 14)
+        app = TestApp(TabsApp(tabs), width: 50, height: 14)
         frame()
         frame()
     }
@@ -122,7 +124,7 @@ private final class Harness {
         app.frame(atNanos: now)
     }
 
-    func shows(_ text: String) -> Bool { app.screen.contains { $0.stripped.contains(text) } }
+    func shows(_ text: String) -> Bool { app.screen.contains(text) }
 
     /// The rows served from the row memo on one quiet frame.
     func servedOnAQuietFrame() -> Int {
@@ -174,13 +176,13 @@ struct TabInteractionsMemoTests {
             traits.contextMenu = AnyView(Button("Rename \(index)") { tabs.ran.append("rename \(index)") })
             return traits
         }
-        let app = HeadlessApp(StableSidebarApp(StableSidebarPage(tabs: tabs, traits: traits)), width: 50, height: 14)
+        let app = TestApp(StableSidebarApp(StableSidebarPage(tabs: tabs, traits: traits)), width: 50, height: 14)
         var now: Int64 = 0
         func frame() {
             now += 16_666_667
             app.frame(atNanos: now)
         }
-        func shows(_ text: String) -> Bool { app.screen.contains { $0.stripped.contains(text) } }
+        func shows(_ text: String) -> Bool { app.screen.contains(text) }
         for _ in 0..<4 { frame() }
         // Up and Down move the list's cursor and nothing else: it leaves the
         // selected row, as when the selection is set from outside.
@@ -198,7 +200,7 @@ struct TabInteractionsMemoTests {
         #expect(served >= 6, "precondition: every row is served as the quiet frame draws it (\(served))")
         app.send(KeyEvent(key: .f10, shift: true))
         frame()
-        #expect(shows("Rename 3"), "Shift+F10 did not open the selected tab's menu: \(app.screen.map(\.stripped))")
+        #expect(shows("Rename 3"), "Shift+F10 did not open the selected tab's menu: \(app.screen.lines)")
         app.send(KeyEvent(key: .enter))
         frame()
         #expect(tabs.ran == ["rename 3"], "ran \(tabs.ran)")

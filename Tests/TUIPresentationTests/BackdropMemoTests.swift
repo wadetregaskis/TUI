@@ -17,8 +17,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUIPresentation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -86,7 +88,7 @@ private struct MarkedRowsUnderSheetApp: App {
 @Suite("What a backdrop stores")
 struct BackdropMemoTests {
     /// Rows drawn and rows served by one frame.
-    private func rowWork(_ app: HeadlessApp, atNanos nanos: Int64) -> (drawn: Int, served: Int) {
+    private func rowWork(_ app: TestApp, atNanos nanos: Int64) -> (drawn: Int, served: Int) {
         let before = app.renderCache.rowWork
         app.frame(atNanos: nanos)
         let after = app.renderCache.rowWork
@@ -98,7 +100,7 @@ struct BackdropMemoTests {
     @Test("The page behind a sheet is served while the sheet stays up")
     func thePageBehindASheetIsServed() {
         let sheet = SheetSwitch()
-        let app = HeadlessApp(ButtonsUnderSheetApp(sheet: sheet), width: 40, height: 16)
+        let app = TestApp(ButtonsUnderSheetApp(sheet: sheet), width: 40, height: 16)
         sheet.isUp = true
         app.frame(atNanos: 0)
         app.frame(atNanos: 16_666_667)
@@ -114,7 +116,7 @@ struct BackdropMemoTests {
     @Test("Dismissing a sheet serves the page it left")
     func dismissingASheetServesThePage() {
         let sheet = SheetSwitch()
-        let app = HeadlessApp(ButtonsUnderSheetApp(sheet: sheet), width: 40, height: 16)
+        let app = TestApp(ButtonsUnderSheetApp(sheet: sheet), width: 40, height: 16)
         app.frame(atNanos: 0)
         app.frame(atNanos: 16_666_667)
         sheet.isUp = true
@@ -125,7 +127,7 @@ struct BackdropMemoTests {
         // The focused row and its neighbour draw every frame; the rest are served.
         #expect(dismissed.drawn <= 2, "\(dismissed.drawn) rows of the page it left were drawn again")
         #expect(dismissed.served > 0)
-        #expect(app.screen.contains { $0.stripped.contains("button 1") }, "the page is back")
+        #expect(app.screen.contains("button 1"), "the page is back")
     }
 
     /// Behind the sheet every row draws unfocused, and those pictures are
@@ -135,8 +137,8 @@ struct BackdropMemoTests {
     @Test("The focus is drawn again when the sheet goes")
     func theFocusIsDrawnAgainWhenTheSheetGoes() {
         let sheet = SheetSwitch()
-        let app = HeadlessApp(MarkedRowsUnderSheetApp(sheet: sheet), width: 40, height: 16)
-        func screen() -> [String] { app.screen.map(\.stripped) }
+        let app = TestApp(MarkedRowsUnderSheetApp(sheet: sheet), width: 40, height: 16)
+        func screen() -> [String] { app.screen.lines }
         app.frame(atNanos: 0)
         app.frame(atNanos: 16_666_667)
         #expect(screen().contains { $0.contains("* row 0") }, "the first row holds the focus: \(screen())")

@@ -13,7 +13,9 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -84,7 +86,7 @@ struct HelpArrivalWidthTests {
     @Test("A pointer arriving on help text in a windowed stack does not re-check its width")
     func helpArrivalInTheStack() throws {
         let built = BuildCount()
-        let app = HeadlessApp(HelpPage(count: built), width: 60, height: 16)
+        let app = TestApp(HelpPage(count: built), width: 60, height: 16)
         var frame = 0
         func step() {
             frame += 1
@@ -92,7 +94,7 @@ struct HelpArrivalWidthTests {
         }
         for _ in 0..<5 { step() }
         built.reset()
-        let lines = app.screen.map(\.stripped)
+        let lines = app.screen.lines
         let y = try #require(lines.firstIndex { $0.contains("33333333") }, "precondition: row 3 is on screen")
         let x = lines[y].distance(from: lines[y].startIndex, to: try #require(lines[y].range(of: "33333333")).lowerBound)
         let (generation, clears) = (app.renderCache.sizeClearGeneration, app.renderCache.stats.subtreeClears)

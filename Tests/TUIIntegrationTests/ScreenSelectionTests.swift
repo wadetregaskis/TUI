@@ -12,6 +12,7 @@ import TUI
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUITextInput
 
@@ -601,14 +602,14 @@ struct ScreenSelectionTooltipTests {
     func tooltipMovesThePageAndBack() throws {
         // Eleven rows: the page is centred in what the bar leaves, and at this
         // height one row less moves it (at ten, it would not).
-        let app = HeadlessApp(Page(), width: 40, height: 11)
+        let app = TestApp(Page(), width: 40, height: 11)
         var now: Int64 = 16_666_667
         func frame(after nanos: Int64 = 16_666_667) {
             now += nanos
             app.frame(atNanos: now)
         }
         func position(of text: String) throws -> (x: Int, y: Int) {
-            let lines = app.screen.map(\.stripped)
+            let lines = app.screen.lines
             let row = try #require(lines.firstIndex { $0.contains(text) })
             return (lines[row][..<(try #require(lines[row].range(of: text)).lowerBound)].count, row)
         }
@@ -627,14 +628,14 @@ struct ScreenSelectionTooltipTests {
         app.send(MouseEvent(button: .none, phase: .moved, x: explained.x + 1, y: explained.y))
         frame()
         frame(after: 700_000_000)
-        try #require(app.screen.contains { $0.stripped.contains("about it") }, "precondition: the tooltip shows")
+        try #require(app.screen.contains("about it"), "precondition: the tooltip shows")
         try #require(
             (try position(of: "alpha")).y != alpha.y, "precondition: the tooltip's row moved the page")
         #expect(selection.current?.isHighlighted == false)
         app.send(MouseEvent(button: .none, phase: .moved, x: 39, y: 0))
         frame()
         frame()
-        try #require(!app.screen.contains { $0.stripped.contains("about it") }, "precondition: the tooltip went")
+        try #require(!app.screen.contains("about it"), "precondition: the tooltip went")
         #expect(selection.current?.isHighlighted == true)
         #expect(selection.handleKey(KeyEvent(key: .character("c"), ctrl: true)) == true)
     }

@@ -21,8 +21,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -157,7 +159,7 @@ struct ScrollIndicatorPlacementTests {
 
     @MainActor
     private final class Harness {
-        let app: HeadlessApp
+        let app: TestApp
         private var now: Int64 = 0
 
         init(
@@ -167,7 +169,7 @@ struct ScrollIndicatorPlacementTests {
             var scene = ScrollerApp(placement: placement, style: style)
             scene.kind = kind
             scene.visibility = visibility
-            app = HeadlessApp(scene, width: 30, height: 12)
+            app = TestApp(scene, width: 30, height: 12)
             frame()
             frame()
         }
@@ -187,7 +189,7 @@ struct ScrollIndicatorPlacementTests {
 
         /// The first row of the scroll view's content as drawn.
         var firstRow: String {
-            app.screen.map(\.stripped).first { $0.contains("xxxx") } ?? ""
+            app.screen.lines.first { $0.contains("xxxx") } ?? ""
         }
 
         /// The number the first row drawn starts with.
@@ -196,7 +198,7 @@ struct ScrollIndicatorPlacementTests {
         }
 
         /// The whole screen, as text.
-        var text: String { app.screen.map(\.stripped).joined(separator: "\n") }
+        var text: String { app.screen.lines.joined(separator: "\n") }
 
         func move(to x: Int, _ y: Int) {
             app.send(MouseEvent(button: .none, phase: .moved, x: x, y: y))
@@ -217,7 +219,7 @@ struct ScrollIndicatorPlacementTests {
 
         /// A cell inside the scroll view.
         var inside: (x: Int, y: Int) {
-            let lines = app.screen.map(\.stripped)
+            let lines = app.screen.lines
             let y = lines.firstIndex { $0.contains("xxxx") } ?? 0
             let x = lines[y].range(of: "xxxx").map { lines[y].distance(from: lines[y].startIndex, to: $0.lowerBound) } ?? 0
             return (x + 2, y + 1)
@@ -247,7 +249,7 @@ struct ScrollIndicatorPlacementTests {
     @Test("Over the content, the text lines show for the pointer only")
     func textForThePointer() {
         let harness = Harness(.overContent, style: .text)
-        let screen = { harness.app.screen.map(\.stripped).joined(separator: "\n") }
+        let screen = { harness.app.screen.lines.joined(separator: "\n") }
         #expect(!screen().contains("below"), "no N more line until the pointer comes")
         let inside = harness.inside
         harness.move(to: inside.x, inside.y)
@@ -271,7 +273,7 @@ struct ScrollIndicatorPlacementTests {
     @Test("A list's N more lines are written over its rows for the pointer only")
     func listTextForThePointer() {
         let harness = Harness(.overContent, style: .text, kind: .list())
-        let screen = { harness.app.screen.map(\.stripped).joined(separator: "\n") }
+        let screen = { harness.app.screen.lines.joined(separator: "\n") }
         #expect(!screen().contains("below"), "no N more line until the pointer comes: \(screen())")
         let inside = harness.inside
         harness.move(to: inside.x, inside.y)
@@ -364,12 +366,12 @@ struct ScrollIndicatorPlacementTests {
         let harness = Harness(.overContent, kind: .editor())
         // As drawn, styles and all: at the top, the bar's thumb is a painted
         // blank, over the blank the caret's room leaves after the last column.
-        let before = harness.app.screen
+        let before = harness.app.screen.styledLines
         let inside = harness.inside
         harness.move(to: inside.x, inside.y)
-        #expect(harness.app.screen != before, "the bar covers the last column")
+        #expect(harness.app.screen.styledLines != before, "the bar covers the last column")
         harness.move(to: 29, 9)
-        #expect(harness.app.screen == before, "gone with the pointer")
+        #expect(harness.app.screen.styledLines == before, "gone with the pointer")
     }
 
     @Test("Nothing is drawn over an editor whose text fits")

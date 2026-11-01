@@ -13,6 +13,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// Whether the probe hides its views, reachable from an `App`.
@@ -51,10 +52,10 @@ struct ToolbarItemHiddenTests {
 
     /// The screen, two frames in: one to declare the bar, one to draw it.
     private func screen() -> [String] {
-        let app = HeadlessApp(HiddenItemApp(), width: 30, height: 5)
+        let app = TestApp(HiddenItemApp(), width: 30, height: 5)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        return app.screen.map(\.stripped)
+        return app.screen.lines
     }
 
     @Test("A hidden view of a toolbar item takes no room, and the item closes up round it")

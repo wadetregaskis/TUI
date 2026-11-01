@@ -12,8 +12,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICommands
 @testable import TUIFoundation
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -49,22 +51,22 @@ private struct GroupedApp: App {
 @Suite("The commands of several scenes", .serialized)
 struct SceneCommandsCompositionTests {
     /// `app` after two frames, as its rows, stripped.
-    private func screen(_ app: HeadlessApp) -> [String] {
+    private func screen(_ app: TestApp) -> [String] {
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        return app.screen.map(\.stripped)
+        return app.screen.lines
     }
 
     @Test("Every scene's commands stand in the menu bar, in declaration order")
     func everySceneInOrder() {
-        let rows = screen(HeadlessApp(TwoScenesApp(), width: 40, height: 6))
+        let rows = screen(TestApp(TwoScenesApp(), width: 40, height: 6))
         #expect(rows[0].hasPrefix(" Alpha  Beta"), "\(rows)")
         #expect(rows.contains { $0.contains("PAGE") }, "the first scene is drawn: \(rows)")
     }
 
     @Test("A modifier on a group of scenes applies once, to all of them: one taking theirs away takes both")
     func groupModifierOnce() {
-        let rows = screen(HeadlessApp(GroupedApp(), width: 40, height: 6))
+        let rows = screen(TestApp(GroupedApp(), width: 40, height: 6))
         #expect(rows[0].hasPrefix(" Gamma  Delta"), "\(rows)")
         #expect(!rows[0].contains("Alpha") && !rows[0].contains("Beta"), "\(rows)")
     }

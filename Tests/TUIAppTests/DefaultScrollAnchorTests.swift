@@ -14,8 +14,10 @@ import Observation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -313,9 +315,9 @@ struct DefaultScrollAnchorTests {
     /// around the offset it is given, and the jump was the whole content.
     @Test("An app opens a bottom-anchored view at its end", arguments: TailShape.allCases)
     func anAppOpensAtTheEnd(shape: TailShape) {
-        let app = HeadlessApp(TailApp(shape: shape), width: 30, height: 8)
+        let app = TestApp(TailApp(shape: shape), width: 30, height: 8)
         app.frame(atNanos: 0)
-        let screen = app.screen.map(\.stripped)
+        let screen = app.screen.lines
         #expect(screen.contains { $0.contains("line 199") }, "opened at: \(screen)")
     }
 
@@ -332,19 +334,19 @@ struct DefaultScrollAnchorTests {
           arguments: ConversationShrink.allCases)
     func aShrinkKeepsTheNewestMessage(shrink: ConversationShrink) {
         let count = MessageCount(120)
-        let app = HeadlessApp(ConversationApp(count: count), width: 60, height: 30)
+        let app = TestApp(ConversationApp(count: count), width: 60, height: 30)
         app.frame(atNanos: 0)
-        let opened = app.screen.map(\.stripped)
+        let opened = app.screen.lines
         #expect(opened.contains { $0.contains("#119") }, "opened at: \(opened)")
 
-        app.resize(width: shrink.size.width, height: shrink.size.height)
+        app.setSize(width: shrink.size.width, height: shrink.size.height)
         app.frame(atNanos: 16_666_667)
-        let shrunk = app.screen.map(\.stripped)
+        let shrunk = app.screen.lines
         #expect(shrunk.contains { $0.contains("#119") }, "the shrink's frame lost the tail: \(shrunk)")
 
         count.value += 1
         app.frame(atNanos: 33_333_334)
-        let next = app.screen.map(\.stripped)
+        let next = app.screen.lines
         #expect(next.contains { $0.contains("#120") }, "the follow let go after the shrink: \(next)")
     }
 
@@ -354,11 +356,11 @@ struct DefaultScrollAnchorTests {
     @Test("Several messages arriving at once all land on the screen")
     func severalArrivalsLandOnTheScreen() {
         let count = MessageCount(120)
-        let app = HeadlessApp(ConversationApp(count: count), width: 60, height: 30)
+        let app = TestApp(ConversationApp(count: count), width: 60, height: 30)
         app.frame(atNanos: 0)
         count.value += 6
         app.frame(atNanos: 16_666_667)
-        let screen = app.screen.map(\.stripped)
+        let screen = app.screen.lines
         #expect(screen.contains { $0.contains("#125") }, "the newest arrival is not on the screen: \(screen)")
     }
 

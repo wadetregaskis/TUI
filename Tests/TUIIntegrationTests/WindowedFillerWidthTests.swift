@@ -24,8 +24,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -173,19 +175,19 @@ struct FillerListDriver {
     static let frameNanos: Int64 = 16_666_667
 
     let model: FillerListModel
-    let app: HeadlessApp
+    let app: TestApp
     private var now: Int64 = 0
 
     init(plan: FillerListPlan, width: Int = 60, height: Int = 20) {
         model = FillerListModel()
-        app = HeadlessApp(FillerListApp(model: model, plan: plan), width: width, height: height)
+        app = TestApp(FillerListApp(model: model, plan: plan), width: width, height: height)
     }
 
     /// Draws a frame and returns its lines, styling stripped.
     mutating func frame() -> [String] {
         now += Self.frameNanos
         app.frame(atNanos: now)
-        return app.screen.map(\.stripped)
+        return app.screen.lines
     }
 }
 
@@ -242,7 +244,7 @@ struct WindowedFillerWidthTests {
         var driver = FillerListDriver(plan: plan, width: widths.from)
         _ = driver.frame()
         _ = driver.frame()
-        driver.app.resize(width: widths.to, height: 20)
+        driver.app.setSize(width: widths.to, height: 20)
         let resized = driver.frame()
         let settled = driver.frame()
 
@@ -556,13 +558,13 @@ struct WindowedFillerParentTests {
         let wasVerifying = RenderCache.verifiesMeasureMemo
         RenderCache.verifiesMeasureMemo = true
         defer { RenderCache.verifiesMeasureMemo = wasVerifying }
-        let app = HeadlessApp(FillerParentApp(parent: parent), width: 60, height: 12)
+        let app = TestApp(FillerParentApp(parent: parent), width: 60, height: 12)
         var now: Int64 = 0
         var frames: [[String]] = []
         for _ in 0..<4 {
             now += FillerListDriver.frameNanos
             app.frame(atNanos: now)
-            frames.append(app.screen.map(\.stripped))
+            frames.append(app.screen.lines)
         }
         #expect(frames[1] == frames[0], "\(parent): the second frame differs from the first")
         #expect(frames[3] == frames[2], "\(parent): the fourth frame differs from the third")

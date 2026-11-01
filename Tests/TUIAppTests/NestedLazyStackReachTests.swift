@@ -17,8 +17,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// A header, then a lazy stack of `rows` rows below it — so the stack is one
@@ -229,8 +231,8 @@ private struct MovingPage: View {
 
 /// The screen's lines, styling stripped.
 @MainActor
-private func visible(_ app: HeadlessApp) -> [String] {
-    app.screen.map(\.stripped)
+private func visible(_ app: TestApp) -> [String] {
+    app.screen.lines
 }
 
 /// The row numbers drawn on `screen`: every `row N` label, however the line
@@ -255,7 +257,7 @@ struct NestedLazyStackReachTests {
         // The estimate prices every row at one line (the sample's); rows 16…
         // are two. Pre-fix the stack was given 300 lines, drew rows 0–157 into
         // them, and the bottom of the scroll view was row 157.
-        let app = HeadlessApp(
+        let app = TestApp(
             NestedLazyApp(rows: 300, tallFirst: false, bottomAnchored: true), width: 30, height: 10)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frame)
@@ -267,7 +269,7 @@ struct NestedLazyStackReachTests {
 
     @Test("End reaches the last of 300 rows when the first 16 are shorter")
     func endReachesTheLastRow() {
-        let app = HeadlessApp(
+        let app = TestApp(
             NestedLazyApp(rows: 300, tallFirst: false, bottomAnchored: false), width: 30, height: 10)
         app.frame(atNanos: 0)
         #expect(visible(app).contains { $0.contains("header") }, "precondition: the top is drawn")
@@ -285,7 +287,7 @@ struct NestedLazyStackReachTests {
         // range follows the drawn buffer, so that over-claim never showed here;
         // this pins that the exact measure, which now claims 316, still lands
         // End on the real last row.
-        let app = HeadlessApp(
+        let app = TestApp(
             NestedLazyApp(rows: 300, tallFirst: true, bottomAnchored: false), width: 30, height: 10)
         app.frame(atNanos: 0)
         app.send(KeyEvent(key: .end))
@@ -302,7 +304,7 @@ struct NestedLazyStackReachTests {
         // Collect what each page drew: no row may be skipped. The content is
         // 585 lines (a header, sixteen one-line rows, 284 two-line ones), and
         // eighty pages of a viewport this size cover it with room to spare.
-        let app = HeadlessApp(
+        let app = TestApp(
             NestedLazyApp(rows: 300, tallFirst: false, bottomAnchored: false), width: 30, height: 12)
         app.frame(atNanos: 0)
         var seen = rowsDrawn(on: visible(app))
@@ -321,7 +323,7 @@ struct NestedLazyStackReachTests {
         // inner stack into the height the OUTER stack's slot walk measured for
         // it. Pre-fix that was the inner stack's estimate, and 427 of the 903
         // rows were never drawn: every group stopped at its row 157.
-        let app = HeadlessApp(
+        let app = TestApp(
             GroupsApp(groups: 3, tallAfterSixteen: true, builds: RowBuilds()), width: 30, height: 12)
         app.frame(atNanos: 0)
         var seen = Set<String>()
@@ -357,7 +359,7 @@ struct NestedLazyStackReachTests {
         // taller than the viewport to its first screenful, blank lines after.
         // Group 0 is 1 + 16 + 2 × 284 lines; the viewport, under the tick line
         // and above the status bar, is eight, so 100 pages cover it.
-        let app = HeadlessApp(
+        let app = TestApp(
             GroupsApp(groups: 260, tallAfterSixteen: true, builds: RowBuilds()), width: 30, height: 12)
         app.frame(atNanos: 0)
         var seen = Set<Int>()
@@ -395,7 +397,7 @@ struct NestedLazyStackReachTests {
         // a baseline that is already every row. And not a quiet frame: its
         // measures are all served.)
         let builds = RowBuilds()
-        let app = HeadlessApp(DirectLazyApp(builds: builds), width: 30, height: 10)
+        let app = TestApp(DirectLazyApp(builds: builds), width: 30, height: 10)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frame)
         let before = builds.count
@@ -425,7 +427,7 @@ struct NestedLazyStackReachTests {
         // so the width took two rungs, and the slot walk a third walk.
         let builds = RowBuilds()
         let groups = 20
-        let app = HeadlessApp(
+        let app = TestApp(
             GroupsApp(groups: groups, tallAfterSixteen: false, builds: builds), width: 30, height: 10)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frame)
@@ -455,7 +457,7 @@ struct NestedLazyStackReachTests {
         // the two groups on screen drawn: 7,732.
         let builds = RowBuilds()
         let groups = 20
-        let app = HeadlessApp(
+        let app = TestApp(
             GroupsApp(groups: groups, tallAfterSixteen: false, builds: builds), width: 30, height: 10)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frame)
@@ -495,7 +497,7 @@ struct NestedLazyStackReachTests {
         // count would otherwise show.
         let builds = RowBuilds()
         let groups = 20
-        let app = HeadlessApp(
+        let app = TestApp(
             GroupsApp(groups: groups, tallAfterSixteen: false, axes: [.horizontal, .vertical], builds: builds),
             width: 30, height: 10)
         app.frame(atNanos: 0)
@@ -532,8 +534,8 @@ struct NestedLazyStackReachTests {
             RenderCache.verifiesMeasureMemo = wasVerifyingMeasures
             RenderCache.verifiesRenderMemo = wasVerifyingRenders
         }
-        let cached = HeadlessApp(MovingApp(grouped: grouped), width: 30, height: 10)
-        let fresh = HeadlessApp(MovingApp(grouped: grouped), width: 30, height: 10)
+        let cached = TestApp(MovingApp(grouped: grouped), width: 30, height: 10)
+        let fresh = TestApp(MovingApp(grouped: grouped), width: 30, height: 10)
         fresh.clearsRenderCacheEachFrame = true
         let script: [KeyEvent?] = [
             nil, nil, KeyEvent(key: .pageUp), KeyEvent(key: .pageUp), KeyEvent(key: .character("t")),
@@ -544,8 +546,8 @@ struct NestedLazyStackReachTests {
         var diverged: [String] = []
         for (step, event) in script.enumerated() {
             if step == 12 {
-                cached.resize(width: 22, height: 9)
-                fresh.resize(width: 22, height: 9)
+                cached.setSize(width: 22, height: 9)
+                fresh.setSize(width: 22, height: 9)
             }
             if let event {
                 cached.send(event)

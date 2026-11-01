@@ -16,10 +16,12 @@ import Observation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 @testable import TUILists
 @testable import TUITables
+import TUITesting
 @testable import TUITestSupport
 
 @Observable
@@ -130,14 +132,14 @@ extension ColumnsPage {
 @MainActor
 private final class Harness {
     let columns = Columns()
-    let app: HeadlessApp
+    let app: TestApp
     private var now: Int64 = 0
 
     init(bound: Bool = true, toggles: Bool = false, emptyRowMenu: Bool = false) {
         columns.bound = bound
         columns.toggles = toggles
         columns.emptyRowMenu = emptyRowMenu
-        app = HeadlessApp(ColumnsApp(columns), width: 60, height: 14)
+        app = TestApp(ColumnsApp(columns), width: 60, height: 14)
         frame()
         frame()
     }
@@ -147,7 +149,7 @@ private final class Harness {
         app.frame(atNanos: now)
     }
 
-    var lines: [String] { app.screen.map(\.stripped) }
+    var lines: [String] { app.screen.lines }
 
     var screen: String { lines.joined(separator: "\n") }
 

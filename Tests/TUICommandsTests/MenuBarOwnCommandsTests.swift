@@ -12,9 +12,11 @@ import Foundation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICommands
 @testable import TUIFoundation
 import TUIPresentation
+import TUITesting
 import TUITextInput
 
 // MARK: - Fixtures
@@ -97,25 +99,25 @@ struct MenuBarOwnCommandsTests {
     private var now: Int64 = 0
 
     /// A fresh app after its first frame, its log cleared.
-    private func launched<A: App>(_ app: A, undo: UndoManager? = nil) -> HeadlessApp {
+    private func launched<A: App>(_ app: A, undo: UndoManager? = nil) -> TestApp {
         OwnCommandsProbe.shared.log = []
-        let headless = HeadlessApp(app, width: 60, height: 14)
+        let headless = TestApp(app, width: 60, height: 14)
         if let undo { headless.services.undoManager = undo }
         headless.frame(atNanos: 0)
         return headless
     }
 
     /// Renders a frame after `app`'s last.
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private func rows(_ app: HeadlessApp) -> [String] { app.screen.map(\.stripped) }
+    private func rows(_ app: TestApp) -> [String] { app.screen.lines }
 
     /// Opens the menu at `title` from the keyboard and chooses its item at
     /// `downs` places past the first, drawing a frame between each step.
-    private mutating func choose(_ title: Int, item downs: Int, in app: HeadlessApp) {
+    private mutating func choose(_ title: Int, item downs: Int, in app: TestApp) {
         app.send(KeyEvent(key: .f10))
         frame(app)
         app.send(KeyEvent(key: .down))

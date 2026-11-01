@@ -12,7 +12,9 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -56,15 +58,15 @@ private struct ClosedWatchApp: App {
 struct SceneOnChangeWindowsTests {
     private var now: Int64 = 0
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
+    private mutating func launched<A: App>(_ app: A) -> TestApp {
         WatchProbe.value = 1
         WatchProbe.log = []
-        let headless = HeadlessApp(app, width: 40, height: 6)
+        let headless = TestApp(app, width: 40, height: 6)
         frame(headless)
         frame(headless)
         return headless

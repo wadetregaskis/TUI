@@ -7,8 +7,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUIMenus
+import TUITesting
 @testable import TUITestSupport
 
 private struct MenuApp: App {
@@ -33,7 +35,7 @@ private struct MenuApp: App {
 struct MenuPointerShapeTests {
     @Test("A menu's trigger is given a hand, and its rows are not")
     func menuRowsKeepThePointer() throws {
-        let app = HeadlessApp(MenuApp(), width: 40, height: 12)
+        let app = TestApp(MenuApp(), width: 40, height: 12)
         app.services.terminalFeatures = TerminalFeatures(pointerShapes: true, controlPointerShapes: true)
         var now: Int64 = 0
         func step() {
@@ -41,7 +43,7 @@ struct MenuPointerShapeTests {
             app.frame(atNanos: now)
         }
         func position(of text: String) -> (x: Int, y: Int)? {
-            for (y, line) in app.screen.map(\.stripped).enumerated() {
+            for (y, line) in app.screen.lines.enumerated() {
                 guard let range = line.range(of: text) else { continue }
                 return (line.distance(from: line.startIndex, to: range.lowerBound), y)
             }
@@ -52,13 +54,13 @@ struct MenuPointerShapeTests {
             return app.services.mouseEventDispatcher.pointerShapeUnderPointer()
         }
         step()
-        let trigger = try #require(position(of: "Actions"), "the Menu was not drawn: \(app.screen)")
+        let trigger = try #require(position(of: "Actions"), "the Menu was not drawn: \(app.screen.styledLines)")
         #expect(shape(atX: trigger.x, y: trigger.y) == .link)
         app.send(MouseEvent(button: .left, phase: .pressed, x: trigger.x, y: trigger.y))
         app.send(MouseEvent(button: .left, phase: .released, x: trigger.x, y: trigger.y))
         step()
         step()
-        let row = try #require(position(of: "Second"), "the Menu did not open: \(app.screen)")
+        let row = try #require(position(of: "Second"), "the Menu did not open: \(app.screen.styledLines)")
         #expect(shape(atX: row.x, y: row.y) == nil)
     }
 }

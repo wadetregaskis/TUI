@@ -17,8 +17,10 @@ import Observation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 @testable import TUIPresentation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -205,7 +207,7 @@ struct PresentationCompactAdaptationTests {
     func sheetAcrossAChange() {
         let (log, flag) = (SheetLog(), Flag())
         let isPresented = Binding(get: { flag.value }, set: { flag.value = $0 })
-        let app = HeadlessApp(SheetPage(log: log, isPresented: isPresented), width: 40, height: 12)
+        let app = TestApp(SheetPage(log: log, isPresented: isPresented), width: 40, height: 12)
         var now: Int64 = 0
         func frame() {
             now += 16_666_667
@@ -219,7 +221,7 @@ struct PresentationCompactAdaptationTests {
         frame()
         #expect(log.contentAppearances == 1, "the sheet's content was made anew when it became a cover")
         #expect(log.dismissals == 0, "becoming a cover ran onDismiss")
-        #expect(app.screen.contains { $0.contains("detail") }, "the cover is not drawn: \(app.screen)")
+        #expect(app.screen.styledLines.contains { $0.contains("detail") }, "the cover is not drawn: \(app.screen.styledLines)")
         app.send(KeyEvent(key: .escape))
         frame()
         frame()
@@ -231,7 +233,7 @@ struct PresentationCompactAdaptationTests {
     func acrossAChange() {
         let (classes, flag) = (SizeClasses(), Flag())
         let isPresented = Binding(get: { flag.value }, set: { flag.value = $0 })
-        let app = HeadlessApp(Page(classes: classes, isPresented: isPresented), width: 40, height: 12)
+        let app = TestApp(Page(classes: classes, isPresented: isPresented), width: 40, height: 12)
         var now: Int64 = 0
         func frame() {
             now += 16_666_667
@@ -244,7 +246,7 @@ struct PresentationCompactAdaptationTests {
         frame()
         frame()
         #expect(classes.appearances == 1, "the presenting view was made anew when its popover became a sheet")
-        #expect(app.screen.contains { $0.contains("detail") }, "the sheet is not drawn: \(app.screen)")
+        #expect(app.screen.styledLines.contains { $0.contains("detail") }, "the sheet is not drawn: \(app.screen.styledLines)")
         app.send(KeyEvent(key: .escape))
         frame()
         #expect(flag.value == false, "Escape did not dismiss the sheet the popover became")

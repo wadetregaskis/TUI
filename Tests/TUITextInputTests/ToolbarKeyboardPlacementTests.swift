@@ -14,6 +14,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 import TUITextInput
 
@@ -60,18 +61,18 @@ private struct KeyboardPage: View {
 struct ToolbarKeyboardPlacementTests {
 
     /// The app after `frames` frames.
-    private func frames(_ app: HeadlessApp, _ count: Int, from start: inout Int64) -> [String] {
+    private func frames(_ app: TestApp, _ count: Int, from start: inout Int64) -> [String] {
         for _ in 0..<count {
             start += 20_000_000
             app.frame(atNanos: start)
         }
-        return app.screen.map(\.stripped)
+        return app.screen.lines
     }
 
     @Test("While the declaring view's field has the focus, the item is at the bottom bar's leading end")
     func shownWhileTyping() {
         KeyboardProbe.shared.fieldInside = true
-        let app = HeadlessApp(KeyboardApp(), width: 30, height: 8)
+        let app = TestApp(KeyboardApp(), width: 30, height: 8)
         var now: Int64 = 0
         let rows = frames(app, 3, from: &now)
         #expect(app.focusedID?.contains("textfield") == true, "the field takes the first focus: \(String(describing: app.focusedID))")
@@ -87,7 +88,7 @@ struct ToolbarKeyboardPlacementTests {
     func notForAFieldOutside() {
         KeyboardProbe.shared.fieldInside = false
         defer { KeyboardProbe.shared.fieldInside = true }
-        let app = HeadlessApp(KeyboardApp(), width: 30, height: 8)
+        let app = TestApp(KeyboardApp(), width: 30, height: 8)
         var now: Int64 = 0
         let rows = frames(app, 3, from: &now)
         #expect(app.focusedID?.contains("textfield") == true)

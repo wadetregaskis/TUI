@@ -13,7 +13,9 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// A titled page with an item in its top bar, its title removed or not.
@@ -60,10 +62,10 @@ private struct SheetRemovesTitleApp: App {
 struct ToolbarTitleRemovalTests {
     /// The rows inside the window's top bar.
     private func topBar(_ app: some App) -> [String] {
-        let headless = HeadlessApp(app, width: 60, height: 16)
+        let headless = TestApp(app, width: 60, height: 16)
         headless.frame(atNanos: 0)
         headless.frame(atNanos: 20_000_000)
-        let rows = headless.screen.map(\.stripped)
+        let rows = headless.screen.lines
         guard rows.first?.hasPrefix("╭") == true,
             let bottom = rows.dropFirst().firstIndex(where: { $0.hasPrefix("╰") })
         else { return [] }

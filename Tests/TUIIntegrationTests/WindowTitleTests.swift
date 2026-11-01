@@ -13,8 +13,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// A titled page under a sheet whose content is titled too.
@@ -243,10 +245,10 @@ struct WindowTitleTests {
     /// one to draw. The bar is boxed, so its rows lie between the first two
     /// border rows.
     private func topBar(_ app: some App, width: Int = 60, height: Int = 16) -> [String] {
-        let headless = HeadlessApp(app, width: width, height: height)
+        let headless = TestApp(app, width: width, height: height)
         headless.frame(atNanos: 0)
         headless.frame(atNanos: 20_000_000)
-        let rows = headless.screen.map(\.stripped)
+        let rows = headless.screen.lines
         guard rows.first?.hasPrefix("╭") == true,
             let bottom = rows.dropFirst().firstIndex(where: { $0.hasPrefix("╰") })
         else { return [] }

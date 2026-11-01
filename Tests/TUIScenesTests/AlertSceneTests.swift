@@ -13,9 +13,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUIPresentation
 @testable import TUIScenes
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -96,23 +98,23 @@ private struct WindowSeverityApp: App {
 struct AlertSceneTests {
     private var now: Int64 = 0
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private func screen(_ app: HeadlessApp) -> String {
-        app.screen.map(\.stripped).joined(separator: "\n")
+    private func screen(_ app: TestApp) -> String {
+        app.screen.lines.joined(separator: "\n")
     }
 
-    private mutating func launched<A: App>(_ app: A, presented: Bool = true) -> HeadlessApp {
+    private mutating func launched<A: App>(_ app: A, presented: Bool = true) -> TestApp {
         AlertProbe.shared.isPresented = presented
         AlertProbe.shared.isSuppressed = false
         AlertProbe.shared.pageAlert = false
         AlertProbe.shared.log = []
-        let headless = HeadlessApp(app, width: 60, height: 16)
+        let headless = TestApp(app, width: 60, height: 16)
         frame(headless)
         return headless
     }

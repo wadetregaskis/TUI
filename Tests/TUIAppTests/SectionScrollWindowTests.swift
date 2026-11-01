@@ -26,6 +26,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -509,25 +510,25 @@ struct SectionScrollWindowTests {
         // Out of the band the footer is not drawn, but its controls are
         // carried where they belong, as an off-band row's are: a focus move
         // onto one finds where to scroll.
-        let app = HeadlessApp(
+        let app = TestApp(
             SectionControlsApp(controlInHeader: false, variable: variable), width: 30, height: 10)
         app.frame(atNanos: 0)
         var screen: [String] = []
         for step in 1...3 {
             app.send(KeyEvent(key: .tab))
             app.frame(atNanos: Int64(step) * 16_666_667)
-            screen = app.screen.map(\.stripped)
+            screen = app.screen.lines
             if screen.contains(where: { $0.contains("bottom") }) { break }
         }
         #expect(screen.contains { $0.contains("bottom") }, "the footer's control is revealed: \(screen)")
-        #expect(screen.contains { $0.hasPrefix("row 299 ") }, "…below the last row: \(screen)")
+        #expect(screen.contains { $0 == "row 299" || $0.hasPrefix("row 299 ") }, "…below the last row: \(screen)")
     }
 
     @Test(
         "Shift-Tab onto a section's header control from the end scrolls it into view",
         arguments: [false, true])
     func focusRevealsTheHeadersControl(variable: Bool) {
-        let app = HeadlessApp(
+        let app = TestApp(
             SectionControlsApp(controlInHeader: true, variable: variable), width: 30, height: 10)
         app.frame(atNanos: 0)
         // The header's control, then the scroll view, which End scrolls.
@@ -535,13 +536,13 @@ struct SectionScrollWindowTests {
         app.frame(atNanos: 16_666_667)
         app.send(KeyEvent(key: .end))
         app.frame(atNanos: 33_333_334)
-        let atEnd = app.screen.map(\.stripped)
+        let atEnd = app.screen.lines
         #expect(atEnd.contains { $0.contains("row 299") }, "precondition: at the end: \(atEnd)")
         app.send(KeyEvent(key: .tab, shift: true))
         app.frame(atNanos: 50_000_001)
-        let screen = app.screen.map(\.stripped)
+        let screen = app.screen.lines
         #expect(screen.contains { $0.contains("top") }, "the header's control is revealed: \(screen)")
-        #expect(screen.contains { $0.hasPrefix("row 0 ") }, "…above the first row: \(screen)")
+        #expect(screen.contains { $0 == "row 0" || $0.hasPrefix("row 0 ") }, "…above the first row: \(screen)")
     }
 
     @Test("A full-height reply's drawn lines are moved below the header: every line it names is drawn")

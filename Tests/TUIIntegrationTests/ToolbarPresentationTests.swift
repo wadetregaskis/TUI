@@ -16,6 +16,7 @@ import TUI
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// What the sheet's items did, reachable from an `App`.
@@ -160,8 +161,8 @@ private struct SheetHidingBarApp: App {
 @Suite("A toolbar in a sheet", .serialized)
 struct ToolbarPresentationTests {
 
-    private func settled() -> HeadlessApp {
-        let app = HeadlessApp(SheetToolbarApp(), width: 60, height: 14)
+    private func settled() -> TestApp {
+        let app = TestApp(SheetToolbarApp(), width: 60, height: 14)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
         return app
@@ -169,7 +170,7 @@ struct ToolbarPresentationTests {
 
     @Test("The items are drawn in the sheet, under its content, as a sheet's button row — and the window grows no bar")
     func itemsAreTheSheetsButtonRow() throws {
-        let screen = settled().screen.map(\.stripped)
+        let screen = settled().screen.lines
         let field = try #require(screen.firstIndex { $0.contains("NAME") }, "\(screen)")
         let row = try #require(screen.firstIndex { $0.contains("SAVE") }, "\(screen)")
         #expect(row > field, "below the content: \(screen)")
@@ -189,7 +190,7 @@ struct ToolbarPresentationTests {
         app.send(KeyEvent(key: .enter))
         #expect(SheetItemProbe.shared.saves == 1, "Return, from the text field, is the default button")
         app.frame(atNanos: 40_000_000)
-        let screen = app.screen.map(\.stripped)
+        let screen = app.screen.lines
         let row = try #require(screen.firstIndex { $0.contains("CANCEL") }, "\(screen)")
         let column = screen[row].distance(
             from: screen[row].startIndex, to: try #require(screen[row].range(of: "CANCEL")).lowerBound)
@@ -214,10 +215,10 @@ struct ToolbarPresentationTests {
     @Test("A popover's toolbar is the popover's too: drawn under its content, and live")
     func popoverHostsItsItems() throws {
         SheetItemProbe.shared.reset()
-        let app = HeadlessApp(PopoverToolbarApp(), width: 60, height: 14)
+        let app = TestApp(PopoverToolbarApp(), width: 60, height: 14)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        let screen = app.screen.map(\.stripped)
+        let screen = app.screen.lines
         let body = try #require(screen.firstIndex { $0.contains("BODY") }, "\(screen)")
         let row = try #require(screen.firstIndex { $0.contains("APPLY") }, "\(screen)")
         #expect(row > body, "below the popover's content: \(screen)")
@@ -235,10 +236,10 @@ struct ToolbarPresentationTests {
     @Test("Escape in a sheet presses its cancellation item, as macOS does, rather than dismissing past it")
     func escapePressesTheCancelButton() {
         CancelProbe.shared.reset()
-        let app = HeadlessApp(SheetCancelApp(), width: 60, height: 14)
+        let app = TestApp(SheetCancelApp(), width: 60, height: 14)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        #expect(app.screen.contains { $0.stripped.contains("DRAFT") }, "sanity: the sheet is up")
+        #expect(app.screen.contains("DRAFT"), "sanity: the sheet is up")
         app.send(KeyEvent(key: .escape))
         #expect(CancelProbe.shared.discards == 1, "the cancel button's action ran")
         #expect(!CancelProbe.shared.presented, "and it dismissed the sheet")
@@ -248,7 +249,7 @@ struct ToolbarPresentationTests {
     func escapeIsTheCancelButtonsToDecide() {
         CancelProbe.shared.reset(cancelDismisses: false)
         defer { CancelProbe.shared.reset() }
-        let app = HeadlessApp(SheetCancelApp(), width: 60, height: 14)
+        let app = TestApp(SheetCancelApp(), width: 60, height: 14)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
         app.send(KeyEvent(key: .escape))
@@ -262,10 +263,10 @@ struct ToolbarPresentationTests {
     @Test("Escape in a popover presses its cancel button too")
     func escapePressesAPopoversCancelButton() {
         CancelProbe.shared.reset()
-        let app = HeadlessApp(PopoverCancelApp(), width: 60, height: 14)
+        let app = TestApp(PopoverCancelApp(), width: 60, height: 14)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        #expect(app.screen.contains { $0.stripped.contains("DRAFT") }, "sanity: the popover is up")
+        #expect(app.screen.contains("DRAFT"), "sanity: the popover is up")
         app.send(KeyEvent(key: .escape))
         #expect(CancelProbe.shared.discards == 1, "the cancel button's action ran")
         #expect(!CancelProbe.shared.presented)
@@ -273,10 +274,10 @@ struct ToolbarPresentationTests {
 
     @Test("A sheet's .toolbarVisibility does not take the window's bar, with the key that closes the sheet")
     func sheetVisibilityStaysInTheSheet() {
-        let app = HeadlessApp(SheetHidingBarApp(), width: 50, height: 10)
+        let app = TestApp(SheetHidingBarApp(), width: 50, height: 10)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        let rows = app.screen.map(\.stripped)
+        let rows = app.screen.lines
         #expect(rows[rows.count - 2].contains("dismiss"), "\(rows)")
     }
 }

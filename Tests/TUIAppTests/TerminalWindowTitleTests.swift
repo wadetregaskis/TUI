@@ -12,7 +12,9 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -76,14 +78,14 @@ struct TerminalWindowTitleTests {
 
     private static func set(_ title: String) -> String { "\u{1B}]2;\(title)\u{1B}\\" }
 
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
-        let headless = HeadlessApp(app, width: 50, height: 10)
+    private mutating func launched<A: App>(_ app: A) -> TestApp {
+        let headless = TestApp(app, width: 50, height: 10)
         frame(headless)
         frame(headless)
         return headless
     }
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
@@ -131,7 +133,7 @@ struct TerminalWindowTitleTests {
     @Test("A root navigation title the top bar shows leaves the terminal the scene's")
     mutating func navigationTitleInBar() {
         let app = launched(BarTitledApp())
-        #expect(app.screen.map(\.stripped).joined().contains("Inbox"), "\(app.screen.map(\.stripped))")
+        #expect(app.screen.lines.joined().contains("Inbox"), "\(app.screen.lines)")
         #expect(app.terminalWindowTitle == "Mail", "\(app.hostWrites)")
     }
 

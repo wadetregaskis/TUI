@@ -20,10 +20,12 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 @testable import TUILists
 @testable import TUITables
+import TUITesting
 @testable import TUITestSupport
 
 @Observable
@@ -120,12 +122,12 @@ private struct PopupPage: View {
 @MainActor
 private final class Harness {
     let model = Model()
-    let app: HeadlessApp
+    let app: TestApp
     private var now: Int64 = 0
 
     init(_ shape: Model.Shape) {
         model.shape = shape
-        app = HeadlessApp(PopupApp(model), width: 40, height: 14)
+        app = TestApp(PopupApp(model), width: 40, height: 14)
         frame()
         frame()
     }
@@ -135,7 +137,7 @@ private final class Harness {
         app.frame(atNanos: now)
     }
 
-    var lines: [String] { app.screen.map(\.stripped) }
+    var lines: [String] { app.screen.lines }
 
     var screen: String { lines.joined(separator: "\n") }
 

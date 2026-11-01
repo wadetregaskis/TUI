@@ -12,9 +12,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICommands
 @testable import TUIFoundation
 import TUIPresentation
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -98,21 +100,21 @@ private struct PageF10App: App {
 struct MenuBarOpeningTests {
 
     /// A fresh app, after its first frame, its log cleared.
-    private func launched<A: App>(_ app: A) -> (HeadlessApp, Clock) {
+    private func launched<A: App>(_ app: A) -> (TestApp, Clock) {
         OpeningProbe.shared.log = []
-        let headless = HeadlessApp(app, width: 40, height: 12)
+        let headless = TestApp(app, width: 40, height: 12)
         let clock = Clock()
         clock.frame(headless)
         return (headless, clock)
     }
 
     /// The frame's rows, stripped.
-    private func rows(_ app: HeadlessApp) -> [String] {
-        app.screen.map(\.stripped)
+    private func rows(_ app: TestApp) -> [String] {
+        app.screen.lines
     }
 
     /// Whether the screen shows `text` below the bar's row.
-    private func shows(_ text: String, _ app: HeadlessApp) -> Bool {
+    private func shows(_ text: String, _ app: TestApp) -> Bool {
         rows(app).dropFirst().contains { $0.contains(text) }
     }
 
@@ -120,12 +122,12 @@ struct MenuBarOpeningTests {
     func f10WalksTheTitles() {
         let (app, clock) = launched(TwoMenusApp())
         #expect(!shows("A1", app), "sanity: every menu closed")
-        let bar = app.screen[0]
+        let bar = app.screen.styledLines[0]
         #expect(app.send(KeyEvent(key: .f10)))
         clock.frame(app)
         #expect(!shows("A1", app), "F10 opens no menu: \(rows(app))")
         // The same titles, drawn differently: the first lit, the letters underlined.
-        #expect(app.screen[0].stripped == bar.stripped && app.screen[0] != bar, "\(app.screen[0].debugDescription)")
+        #expect(app.screen.styledLines[0].stripped == bar.stripped && app.screen.styledLines[0] != bar, "\(app.screen.styledLines[0].debugDescription)")
         app.send(KeyEvent(key: .down))
         clock.frame(app)
         #expect(shows("A1", app) && shows("A2", app), "\(rows(app))")
@@ -291,7 +293,7 @@ struct MenuBarOpeningTests {
     }
 
     /// Where `text` first shows below the bar's row: its first cell.
-    private func cell(of text: String, _ app: HeadlessApp) throws -> (x: Int, y: Int) {
+    private func cell(of text: String, _ app: TestApp) throws -> (x: Int, y: Int) {
         let screen = rows(app)
         let y = try #require(screen.indices.dropFirst().first { screen[$0].contains(text) }, "\(screen)")
         let x = try #require(screen[y].range(of: text)).lowerBound.utf16Offset(in: screen[y])
@@ -299,7 +301,7 @@ struct MenuBarOpeningTests {
     }
 
     /// The first cell of the title `name` on the bar's row.
-    private func title(_ name: String, _ app: HeadlessApp) throws -> Int {
+    private func title(_ name: String, _ app: TestApp) throws -> Int {
         let bar = rows(app)[0]
         return try #require(bar.range(of: name)).lowerBound.utf16Offset(in: bar)
     }
@@ -522,7 +524,7 @@ struct MenuBarOpeningTests {
 private final class Clock {
     private var now: Int64 = 0
 
-    func frame(_ app: HeadlessApp) {
+    func frame(_ app: TestApp) {
         app.frame(atNanos: now)
         now += 20_000_000
     }

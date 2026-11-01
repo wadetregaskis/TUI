@@ -11,8 +11,10 @@
 import Testing
 
 import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUINavigation
+import TUITesting
 @testable import TUITestSupport
 
 /// A split view's column visibility, by reference so the binding a frame built
@@ -136,22 +138,22 @@ struct AutomaticSidebarToggleTests {
     /// `app` after five frames: a bar is adopted a frame or two after its items
     /// are first declared, and the split leaves out its edge column the frame
     /// after the bar first draws the button.
-    private func running<A: App>(_ app: A) -> HeadlessApp {
-        let headless = HeadlessApp(app, width: 50, height: 12)
+    private func running<A: App>(_ app: A) -> TestApp {
+        let headless = TestApp(app, width: 50, height: 12)
         for index in 1...5 { headless.frame(atNanos: Int64(index) * 16_666_667) }
         return headless
     }
 
-    private func rows(_ app: HeadlessApp) -> [String] {
-        app.screen.map(\.stripped)
+    private func rows(_ app: TestApp) -> [String] {
+        app.screen.lines
     }
 
     /// The top bar's item row: the one holding "ITEM".
-    private func barRow(_ app: HeadlessApp) -> String? {
+    private func barRow(_ app: TestApp) -> String? {
         rows(app).first { $0.contains("ITEM") }
     }
 
-    private func click(_ app: HeadlessApp, on text: String, in row: Int) {
+    private func click(_ app: TestApp, on text: String, in row: Int) {
         let line = rows(app)[row]
         guard let range = line.range(of: text) else { return }
         let column = line.distance(from: line.startIndex, to: range.lowerBound)

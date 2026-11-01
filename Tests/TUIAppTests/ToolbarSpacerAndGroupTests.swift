@@ -12,8 +12,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// Two trailing items with a spacer of `sizing` between them, or none.
@@ -91,10 +93,10 @@ struct ToolbarSpacerAndGroupTests {
 
     /// The screen two frames in, escapes stripped: one to declare, one to draw.
     private func screen(_ app: some App, width: Int = 60, height: Int = 10) -> [String] {
-        let headless = HeadlessApp(app, width: width, height: height)
+        let headless = TestApp(app, width: width, height: height)
         headless.frame(atNanos: 0)
         headless.frame(atNanos: 20_000_000)
-        return headless.screen.map(\.stripped)
+        return headless.screen.lines
     }
 
     /// The columns between the end of `AAA` and the start of `ZZZ` on the row

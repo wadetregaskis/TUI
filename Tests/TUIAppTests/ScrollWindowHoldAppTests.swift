@@ -15,8 +15,10 @@ import Observation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @Observable
@@ -61,13 +63,13 @@ struct ScrollWindowHoldAppTests {
     @Test("Messages loaded above the ones a wheel scrolled to leave them where they are")
     func loadEarlierKeepsThePlace() {
         let feed = Feed()
-        let app = HeadlessApp(FeedApp(feed), width: 30, height: 10)
+        let app = TestApp(FeedApp(feed), width: 30, height: 10)
         var now: Int64 = 0
         func frame() {
             now += 16_666_667
             app.frame(atNanos: now)
         }
-        func screen() -> [String] { app.screen.map(\.stripped) }
+        func screen() -> [String] { app.screen.lines }
         frame()
         frame()
         for _ in 0..<5 {

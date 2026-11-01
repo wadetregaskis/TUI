@@ -10,9 +10,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICommands
 @testable import TUIFoundation
 import TUIPresentation
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -89,14 +91,14 @@ struct AboutPanelResolutionTests {
 struct MenuBarAboutTests {
     @Test("The stated name titles the app's menu, and About shows the name, version, credits and copyright")
     func statedAbout() {
-        let app = HeadlessApp(StatedApp(), width: 60, height: 16)
+        let app = TestApp(StatedApp(), width: 60, height: 16)
         var now: Int64 = 0
         func frame() {
             now += 20_000_000
             app.frame(atNanos: now)
         }
         frame()
-        let rows = { app.screen.map(\.stripped) }
+        let rows = { app.screen.lines }
         #expect(rows()[0].hasPrefix(" Notes  Edit  Note"), "\(rows()[0])")
         app.send(KeyEvent(key: .f10))
         frame()

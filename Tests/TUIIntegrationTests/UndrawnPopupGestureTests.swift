@@ -17,8 +17,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// The pop-ups a press opens, one per opener that hands its gesture off.
@@ -103,13 +105,13 @@ private struct PopupPage: View {
 @MainActor
 private final class Harness {
     let model = Model()
-    let app: HeadlessApp
+    let app: TestApp
     private var now: Int64 = 0
 
     init(_ surface: PopupSurface = .pullDown, tapOnMenu: Bool = false) {
         model.surface = surface
         model.tapOnMenu = tapOnMenu
-        app = HeadlessApp(PopupApp(model), width: 40, height: 12)
+        app = TestApp(PopupApp(model), width: 40, height: 12)
         frame()
         frame()
     }
@@ -119,9 +121,9 @@ private final class Harness {
         app.frame(atNanos: now)
     }
 
-    var screen: String { app.screen.map(\.stripped).joined(separator: "\n") }
+    var screen: String { app.screen.lines.joined(separator: "\n") }
 
-    func shows(_ text: String) -> Bool { app.screen.contains { $0.stripped.contains(text) } }
+    func shows(_ text: String) -> Bool { app.screen.contains(text) }
 
     /// Where a press opens the surface, with which button, and a text only the
     /// open pop-up shows.
@@ -143,8 +145,8 @@ private final class Harness {
     }
 
     func position(of text: String) throws -> (x: Int, y: Int) {
-        let y = try #require(app.screen.firstIndex { $0.stripped.contains(text) }, "\(text) is not drawn")
-        let line = app.screen[y].stripped
+        let y = try #require(app.screen.styledLines.firstIndex { $0.stripped.contains(text) }, "\(text) is not drawn")
+        let line = app.screen.styledLines[y].stripped
         let range = try #require(line.range(of: text))
         return (line.distance(from: line.startIndex, to: range.lowerBound), y)
     }

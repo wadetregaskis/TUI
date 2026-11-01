@@ -11,8 +11,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICommands
 @testable import TUIFoundation
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -102,22 +104,22 @@ private struct BoundApp: App {
 struct DisplayCommandsTests {
     private var now: Int64 = 0
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private func rows(_ app: HeadlessApp) -> [String] { app.screen.map(\.stripped) }
+    private func rows(_ app: TestApp) -> [String] { app.screen.lines }
 
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
-        let headless = HeadlessApp(app, width: 80, height: 24)
+    private mutating func launched<A: App>(_ app: A) -> TestApp {
+        let headless = TestApp(app, width: 80, height: 24)
         frame(headless)
         frame(headless)
         return headless
     }
 
     /// The readout line that starts with `prefix`, without it.
-    private func readout(_ prefix: String, in app: HeadlessApp) -> String? {
+    private func readout(_ prefix: String, in app: TestApp) -> String? {
         for row in rows(app) {
             guard let range = row.range(of: prefix) else { continue }
             return String(row[range.upperBound...].prefix { $0 != " " })
@@ -127,7 +129,7 @@ struct DisplayCommandsTests {
 
     /// Opens View, goes `row` rows down to a submenu, opens it, and chooses its
     /// `item`th option (from 0).
-    private mutating func choose(row: Int, item: Int, in app: HeadlessApp) {
+    private mutating func choose(row: Int, item: Int, in app: TestApp) {
         for key: Key in [.f10, .down] + Array(repeating: .down, count: row) + [.right] + Array(repeating: .down, count: item)
             + [.enter]
         {
@@ -141,7 +143,7 @@ struct DisplayCommandsTests {
     /// Opens View, goes `row` rows down to a disabled submenu, opens it — a
     /// submenu of disabled items, which opens, as macOS's — presses Return,
     /// which has no item to choose, and closes the menus.
-    private mutating func tryDisabled(row: Int, in app: HeadlessApp) {
+    private mutating func tryDisabled(row: Int, in app: TestApp) {
         for key: Key in [.f10, .down] + Array(repeating: .down, count: row) + [.right, .enter, .escape, .escape] {
             app.send(KeyEvent(key: key))
             frame(app)
@@ -149,7 +151,7 @@ struct DisplayCommandsTests {
     }
 
     /// The rows of the submenu `row` rows down View, opened.
-    private mutating func submenuRows(row: Int, in app: HeadlessApp) -> [String] {
+    private mutating func submenuRows(row: Int, in app: TestApp) -> [String] {
         for key: Key in [.f10, .down] + Array(repeating: .down, count: row) + [.right] {
             app.send(KeyEvent(key: key))
             frame(app)

@@ -16,6 +16,7 @@ import Testing
 @testable import TUICore
 @testable import TUIFoundation
 import TUINavigation
+import TUITesting
 @testable import TUITestSupport
 
 /// The probe's path and what its items did, reachable from an `App`.
@@ -90,12 +91,12 @@ struct NavigationStackToolbarItemsTests {
     }
 
     /// The screen after a few frames: enough to declare, adopt and settle.
-    private func frames(_ app: HeadlessApp, from now: inout Int64) -> [String] {
+    private func frames(_ app: TestApp, from now: inout Int64) -> [String] {
         for _ in 0..<3 {
             now += 20_000_000
             app.frame(atNanos: now)
         }
-        return app.screen.map(\.stripped)
+        return app.screen.lines
     }
 
     @Test("A pushed screen's top items are in the stack's bar, its bottom items in the window's")
@@ -103,7 +104,7 @@ struct NavigationStackToolbarItemsTests {
         reset()
         defer { reset() }
         StackProbe.shared.path = [3]
-        let app = HeadlessApp(StackItemsApp(), width: 50, height: 10)
+        let app = TestApp(StackItemsApp(), width: 50, height: 10)
         var now: Int64 = 0
         let rows = frames(app, from: &now)
         // No window top bar: the root's item went with the root, and the
@@ -129,9 +130,9 @@ struct NavigationStackToolbarItemsTests {
         reset()
         defer { reset() }
         StackProbe.shared.path = [3]
-        let app = HeadlessApp(StackItemsApp(), width: 50, height: 10)
+        let app = TestApp(StackItemsApp(), width: 50, height: 10)
         app.frame(atNanos: 0)
-        let first = app.screen.map(\.stripped)
+        let first = app.screen.lines
         // The stack's bar is the first row from the first frame: no rows of
         // the window's top bar, reserved for items that went to the stack's
         // bar, drawn blank above it and taken away a frame later.
@@ -145,7 +146,7 @@ struct NavigationStackToolbarItemsTests {
     func rootItems() {
         reset()
         defer { reset() }
-        let app = HeadlessApp(StackItemsApp(), width: 50, height: 10)
+        let app = TestApp(StackItemsApp(), width: 50, height: 10)
         var now: Int64 = 0
         let rows = frames(app, from: &now)
         #expect(rows.first?.contains("ROOTITEM") == true, "\(rows)")
@@ -160,7 +161,7 @@ struct NavigationStackToolbarItemsTests {
         reset()
         defer { reset() }
         StackProbe.shared.path = [3]
-        let app = HeadlessApp(StackCustomizableApp(), width: 50, height: 12)
+        let app = TestApp(StackCustomizableApp(), width: 50, height: 12)
         var now: Int64 = 0
         var rows = frames(app, from: &now)
         func position(of text: String) -> (x: Int, y: Int)? {

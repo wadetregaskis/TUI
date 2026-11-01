@@ -11,7 +11,9 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -71,26 +73,26 @@ private struct KeptToggleApp: App {
 struct WindowVisibilityToggleTests {
     private var now: Int64 = 0
 
-    private mutating func launched() -> HeadlessApp {
-        let app = HeadlessApp(ToggleApp(), width: 50, height: 10)
+    private mutating func launched() -> TestApp {
+        let app = TestApp(ToggleApp(), width: 50, height: 10)
         frame(app)
         frame(app)
         return app
     }
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func press(_ key: Key, in app: HeadlessApp) {
+    private mutating func press(_ key: Key, in app: TestApp) {
         app.send(KeyEvent(key: key))
         frame(app)
         frame(app)
     }
 
-    private func screen(_ app: HeadlessApp) -> String {
-        app.screen.map(\.stripped).joined(separator: "\n")
+    private func screen(_ app: TestApp) -> String {
+        app.screen.lines.joined(separator: "\n")
     }
 
     @Test("Its label shows the window while it is not in front, and choosing it shows it")
@@ -114,7 +116,7 @@ struct WindowVisibilityToggleTests {
 
     @Test("Hiding the last window open is disabled, and does not quit the app")
     mutating func lastWindowStays() {
-        let app = HeadlessApp(SoloToggleApp(), width: 50, height: 10)
+        let app = TestApp(SoloToggleApp(), width: 50, height: 10)
         frame(app)
         frame(app)
         #expect(screen(app).contains("Hide Solo"), "\(screen(app))")
@@ -127,7 +129,7 @@ struct WindowVisibilityToggleTests {
 
     @Test("Hiding a window whose content disabled its dismissal is disabled, and leaves it open")
     mutating func keptWindowStays() {
-        let app = HeadlessApp(KeptToggleApp(), width: 50, height: 10)
+        let app = TestApp(KeptToggleApp(), width: 50, height: 10)
         frame(app)
         press(.enter, in: app)
         #expect(screen(app).contains("Hide Kept"), "\(screen(app))")

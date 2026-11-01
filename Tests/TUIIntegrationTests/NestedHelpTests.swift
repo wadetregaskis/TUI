@@ -14,7 +14,9 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// A row with help inside a column with help, at the top-left corner; a key
@@ -55,7 +57,7 @@ struct NestedHelpPage: View {
 struct NestedHelpTests {
     @MainActor
     final class Driver {
-        let app = HeadlessApp(NestedHelpApp(), width: 50, height: 14)
+        let app = TestApp(NestedHelpApp(), width: 50, height: 14)
         private(set) var now: Int64 = 0
 
         init() { step() }
@@ -70,10 +72,10 @@ struct NestedHelpTests {
             while now < end { step() }
         }
 
-        func shows(_ text: String) -> Bool { app.screen.map(\.stripped).contains { $0.contains(text) } }
+        func shows(_ text: String) -> Bool { app.screen.lines.contains { $0.contains(text) } }
 
         func position(of text: String) -> (x: Int, y: Int)? {
-            for (row, line) in app.screen.map(\.stripped).enumerated() {
+            for (row, line) in app.screen.lines.enumerated() {
                 if let range = line.range(of: text) {
                     return (line.distance(from: line.startIndex, to: range.lowerBound), row)
                 }
@@ -93,7 +95,7 @@ struct NestedHelpTests {
         let outer = try #require(driver.position(of: "outer row"))
         driver.move(to: (inner.x + 1, inner.y))
         driver.run(forSeconds: 0.5)
-        #expect(driver.shows("INNER-HELP"), "the inner view's help: \(driver.app.screen.map(\.stripped))")
+        #expect(driver.shows("INNER-HELP"), "the inner view's help: \(driver.app.screen.lines)")
         #expect(!driver.shows("OUTER-HELP"))
         driver.move(to: (outer.x + 1, outer.y))
         driver.run(forSeconds: 0.5)
@@ -115,7 +117,7 @@ struct NestedHelpTests {
         #expect(driver.app.send(KeyEvent(character: "n")))
         driver.run(forSeconds: 0.5)
         #expect(driver.shows("added row"), "precondition: the column grew")
-        #expect(driver.shows("INNER-HELP"), "the inner view's help: \(driver.app.screen.map(\.stripped))")
+        #expect(driver.shows("INNER-HELP"), "the inner view's help: \(driver.app.screen.lines)")
         #expect(!driver.shows("OUTER-HELP"))
     }
 }

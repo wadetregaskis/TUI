@@ -14,10 +14,12 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICommands
 @testable import TUIFoundation
 import TUIPresentation
 @testable import TUIScenes
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -111,25 +113,25 @@ private struct DocumentPage: View {
 struct SceneMenuBarTests {
     private var now: Int64 = 0
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
-        let headless = HeadlessApp(app, width: 60, height: 14)
+    private mutating func launched<A: App>(_ app: A) -> TestApp {
+        let headless = TestApp(app, width: 60, height: 14)
         frame(headless)
         frame(headless)
         return headless
     }
 
-    private func rows(_ app: HeadlessApp) -> [String] { app.screen.map(\.stripped) }
+    private func rows(_ app: TestApp) -> [String] { app.screen.lines }
 
-    private func screen(_ app: HeadlessApp) -> String { rows(app).joined(separator: "\n") }
+    private func screen(_ app: TestApp) -> String { rows(app).joined(separator: "\n") }
 
     /// Opens the menu titled `title` from the keyboard: F10, Right along the
     /// titles to it, and Down.
-    private mutating func open(_ title: String, in app: HeadlessApp) {
+    private mutating func open(_ title: String, in app: TestApp) {
         let titles = rows(app)[0].split(separator: " ").map(String.init)
         let index = titles.firstIndex(of: title) ?? 0
         app.send(KeyEvent(key: .f10))
@@ -143,7 +145,7 @@ struct SceneMenuBarTests {
     }
 
     /// Chooses the item `downs` places past the open menu's first.
-    private mutating func choose(item downs: Int, in app: HeadlessApp) {
+    private mutating func choose(item downs: Int, in app: TestApp) {
         for _ in 0..<downs {
             app.send(KeyEvent(key: .down))
             frame(app)

@@ -16,6 +16,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @Observable
@@ -67,16 +68,16 @@ private struct AppBodyReadingApp: App {
 @Suite("Frame observation")
 struct FrameObservationTests {
 
-    private func draw(_ app: HeadlessApp, at now: inout Int64) -> [String] {
+    private func draw(_ app: TestApp, at now: inout Int64) -> [String] {
         now += 20_000_000
         app.frame(atNanos: now)
-        return app.screen.map(\.stripped)
+        return app.screen.lines
     }
 
     @Test("A top-level Toggle bound to an @Observable asks for a frame when the property is written")
     func toggleBinding() {
         FrameReadModels.toggle = FrameReadModel()
-        let app = HeadlessApp(ToggleApp(), width: 30, height: 6)
+        let app = TestApp(ToggleApp(), width: 30, height: 6)
         var now: Int64 = 0
         _ = draw(app, at: &now)
         let before = draw(app, at: &now)
@@ -89,7 +90,7 @@ struct FrameObservationTests {
     @Test("A custom ButtonStyle's makeBody reading an @Observable asks for a frame")
     func styleBody() {
         FrameReadModels.style = FrameReadModel()
-        let app = HeadlessApp(StyledButtonApp(), width: 30, height: 6)
+        let app = TestApp(StyledButtonApp(), width: 30, height: 6)
         var now: Int64 = 0
         _ = draw(app, at: &now)
         #expect(draw(app, at: &now).contains { $0.contains("[one]") })
@@ -102,7 +103,7 @@ struct FrameObservationTests {
     @Test("The app's body reading an @Observable asks for a frame")
     func appBody() {
         FrameReadModels.app = FrameReadModel()
-        let app = HeadlessApp(AppBodyReadingApp(), width: 30, height: 6)
+        let app = TestApp(AppBodyReadingApp(), width: 30, height: 6)
         var now: Int64 = 0
         _ = draw(app, at: &now)
         _ = draw(app, at: &now)
@@ -115,7 +116,7 @@ struct FrameObservationTests {
     @Test("A property read every frame and never written leaves the frames' scopes behind it retired")
     func framesAreLeased() {
         FrameReadModels.app = FrameReadModel()
-        let app = HeadlessApp(AppBodyReadingApp(), width: 30, height: 6)
+        let app = TestApp(AppBodyReadingApp(), width: 30, height: 6)
         let census = ObservationCensus()
         app.observationCensus = census
         var now: Int64 = 0

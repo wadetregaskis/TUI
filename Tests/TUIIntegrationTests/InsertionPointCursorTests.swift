@@ -13,8 +13,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -64,12 +66,12 @@ struct InsertionPointCursorTests {
     @MainActor
     private final class Harness {
         let text: Box<String>
-        let app: HeadlessApp
+        let app: TestApp
         private var now: Int64 = 0
 
         init(_ control: Control, text: String) {
             self.text = Box(text)
-            app = HeadlessApp(InputApp(text: self.text, control: control), width: 40, height: 12)
+            app = TestApp(InputApp(text: self.text, control: control), width: 40, height: 12)
             frame()
             frame()
         }
@@ -86,7 +88,7 @@ struct InsertionPointCursorTests {
 
         /// The cell just after `text` on the screen.
         func cell(after text: String) throws -> CellPoint {
-            let lines = app.screen.map(\.stripped)
+            let lines = app.screen.lines
             let y = try #require(lines.firstIndex { $0.contains(text) }, "\(text) is on screen")
             let start = try #require(lines[y].range(of: text)).upperBound
             return CellPoint(x: lines[y][..<start].count, y: y)

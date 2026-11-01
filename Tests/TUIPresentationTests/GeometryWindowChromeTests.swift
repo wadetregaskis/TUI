@@ -12,9 +12,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 import TUIPresentation
+import TUITesting
 @testable import TUITestSupport
 
 /// A reader on the page, one in the top bar and one in the bottom bar, each
@@ -66,10 +68,10 @@ private struct SheetReaderApp: App {
 struct GeometryWindowChromeTests {
     @Test("A reader on the page or in either bar draws the screen row it is on, from the first frame")
     func readersAreFoundOnTheScreen() {
-        let app = HeadlessApp(BarReadersApp(), width: 40, height: 12)
+        let app = TestApp(BarReadersApp(), width: 40, height: 12)
         for frame in 0..<3 {
             app.frame(atNanos: Int64(frame) * 20_000_000)
-            let screen = app.screen.map(\.stripped)
+            let screen = app.screen.lines
             // Each reader draws its label and the row it was told it is on.
             for label in ["P", "T", "B"] {
                 let found = screen.enumerated().filter { $0.element.contains("\(label)\($0.offset)") }
@@ -80,10 +82,10 @@ struct GeometryWindowChromeTests {
 
     @Test("A reader inside a sheet draws the screen row it is on, from the sheet's first frame")
     func sheetReaderIsFoundOnTheScreen() {
-        let app = HeadlessApp(SheetReaderApp(), width: 40, height: 12)
+        let app = TestApp(SheetReaderApp(), width: 40, height: 12)
         for frame in 0..<2 {
             app.frame(atNanos: Int64(frame) * 20_000_000)
-            let screen = app.screen.map(\.stripped)
+            let screen = app.screen.lines
             let found = screen.enumerated().filter { $0.element.contains("S\($0.offset)") }
             #expect(found.count == 1, "frame \(frame): \(screen)")
         }

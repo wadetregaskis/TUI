@@ -13,7 +13,9 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -53,15 +55,15 @@ struct TerminalAttentionTests {
 
     private static func notification(_ text: String) -> String { "\u{1B}]9;\(text)\u{1B}\\" }
 
-    private mutating func launched(postsNotifications: Bool) -> (HeadlessApp, RequestAttentionAction) {
+    private mutating func launched(postsNotifications: Bool) -> (TestApp, RequestAttentionAction) {
         let box = ActionBox()
-        let app = HeadlessApp(AttentionApp(box), width: 30, height: 6)
+        let app = TestApp(AttentionApp(box), width: 30, height: 6)
         app.services.terminalFeatures = TerminalFeatures(showsProgress: false, postsNotifications: postsNotifications)
         frame(app)
         return (app, box.requestAttention!)
     }
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }

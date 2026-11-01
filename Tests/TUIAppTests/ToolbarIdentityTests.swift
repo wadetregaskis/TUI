@@ -11,8 +11,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// Whether the conditional item is declared: reachable from an `App`.
@@ -76,13 +78,13 @@ private struct TwoToolbarsApp: App {
 @Suite("A toolbar item's identity", .serialized)
 struct ToolbarIdentityTests {
 
-    private func rows(_ app: HeadlessApp) -> [String] {
-        app.screen.map(\.stripped)
+    private func rows(_ app: TestApp) -> [String] {
+        app.screen.lines
     }
 
     @Test("Two .toolbar modifiers on one view both put their items in the bars", arguments: [false, true])
     func twoToolbarsOnOneView(padded: Bool) {
-        let app = HeadlessApp(TwoToolbarsApp(padded: padded), width: 40, height: 12)
+        let app = TestApp(TwoToolbarsApp(padded: padded), width: 40, height: 12)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
         let screen = rows(app)
@@ -123,7 +125,7 @@ struct ToolbarIdentityTests {
     func stateSurvivesAConditionalItem() {
         ItemSwitch.shared.on = false
         defer { ItemSwitch.shared.on = false }
-        let app = HeadlessApp(ConditionalItemApp(), width: 40, height: 12)
+        let app = TestApp(ConditionalItemApp(), width: 40, height: 12)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
         app.send(KeyEvent(key: .character("c")))

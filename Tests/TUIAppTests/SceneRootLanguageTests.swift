@@ -17,6 +17,7 @@ import Testing
 @testable import TUICore
 @testable import TUIFoundation
 @testable import TUIStrings
+import TUITesting
 @testable import TUITestSupport
 
 /// A page that reads one of TUI's words as the bars read theirs: in its body,
@@ -48,10 +49,10 @@ private struct UnstatedRootApp: App {
 @Suite("The app's language is its scene's root locale", .rendersEnglishUI)
 struct SceneRootLanguageTests {
     private func word(_ app: some App) -> String {
-        let app = HeadlessApp(app, width: 40, height: 4)
+        let app = TestApp(app, width: 40, height: 4)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        let screen = app.screen.map(\.stripped).joined(separator: "\n")
+        let screen = app.screen.lines.joined(separator: "\n")
         guard let open = screen.firstIndex(of: "["), let close = screen[open...].firstIndex(of: "]") else { return screen }
         return String(screen[screen.index(after: open)..<close])
     }

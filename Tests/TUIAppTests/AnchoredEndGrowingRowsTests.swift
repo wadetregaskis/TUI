@@ -15,7 +15,9 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 private struct GrowingGroupsApp: App {
@@ -48,13 +50,13 @@ private struct GrowingGroupsPage: View {
 struct AnchoredEndGrowingRowsTests {
     @Test("End lands on the last row and stays on it")
     func endStaysOnTheLastRow() {
-        let app = HeadlessApp(GrowingGroupsApp(), width: 30, height: 12)
+        let app = TestApp(GrowingGroupsApp(), width: 30, height: 12)
         app.frame(atNanos: 0)
         _ = app.send(KeyEvent(key: .end))
         var screens: [[String]] = []
         for frame in 1...10 {
             app.frame(atNanos: Int64(frame) * 16_666_667)
-            screens.append(app.screen.map(\.stripped))
+            screens.append(app.screen.lines)
         }
         let last = "g259 r148"
         for (index, screen) in screens.enumerated().dropFirst() {

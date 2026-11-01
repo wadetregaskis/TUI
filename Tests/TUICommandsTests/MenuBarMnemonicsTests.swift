@@ -11,9 +11,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICommands
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 import TUITextInput
 
 // MARK: - Fixtures
@@ -85,13 +87,13 @@ struct MenuBarMnemonicRuleTests {
 struct MenuBarMnemonicsTests {
     private var now: Int64 = 0
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private func shows(_ text: String, _ app: HeadlessApp) -> Bool {
-        app.screen.dropFirst().contains { $0.stripped.contains(text) }
+    private func shows(_ text: String, _ app: TestApp) -> Bool {
+        app.screen.styledLines.dropFirst().contains { $0.stripped.contains(text) }
     }
 
     /// Whether `line` turns underlining on anywhere: SGR 4, alone or among
@@ -102,49 +104,49 @@ struct MenuBarMnemonicsTests {
 
     @Test("Of two titles sharing a first letter, the second opens with its next letter")
     mutating func clashingTitles() {
-        let app = HeadlessApp(ClashingApp(), width: 40, height: 10)
+        let app = TestApp(ClashingApp(), width: 40, height: 10)
         frame(app)
         app.send(KeyEvent(key: .character("o"), alt: true))
         frame(app)
-        #expect(shows("G1", app), "\(app.screen.map(\.stripped))")
+        #expect(shows("G1", app), "\(app.screen.lines)")
     }
 
     @Test("While a text field has the focus, it keeps Option-F, and the title that had F takes its next letter")
     mutating func fieldKeepsItsLetters() {
         MnemonicProbe.shared.text = "one two"
-        let app = HeadlessApp(FieldApp(), width: 40, height: 10)
+        let app = TestApp(FieldApp(), width: 40, height: 10)
         frame(app)
         frame(app)
         app.send(KeyEvent(key: .character("f"), alt: true))
         frame(app)
-        #expect(!shows("F1", app), "Option-F is the field's: \(app.screen.map(\.stripped))")
+        #expect(!shows("F1", app), "Option-F is the field's: \(app.screen.lines)")
         app.send(KeyEvent(key: .character("i"), alt: true))
         frame(app)
-        #expect(shows("F1", app), "\(app.screen.map(\.stripped))")
+        #expect(shows("F1", app), "\(app.screen.lines)")
     }
 
     @Test("Where the terminal reports Option held alone, the titles' letters are underlined while it is held")
     mutating func underlinedWhileOptionHeld() {
-        let app = HeadlessApp(ClashingApp(), width: 40, height: 10)
+        let app = TestApp(ClashingApp(), width: 40, height: 10)
         app.keyboardReporting = KeyboardReporting(flags: .requested)
         frame(app)
-        #expect(!underlines(app.screen[0]), "\(app.screen[0].debugDescription)")
+        #expect(!underlines(app.screen.styledLines[0]), "\(app.screen.styledLines[0].debugDescription)")
         #expect(!app.send(ModifierKeyState(shift: true)), "Shift alone asks for no frame")
         #expect(app.send(ModifierKeyState(option: true)), "Option asks for a frame")
         frame(app)
-        #expect(underlines(app.screen[0]), "\(app.screen[0].debugDescription)")
-        #expect(app.screen[0].stripped.hasPrefix(" Fig  Fog "), "\(app.screen[0].stripped)")
+        #expect(underlines(app.screen.styledLines[0]), "\(app.screen.styledLines[0].debugDescription)")
+        #expect(app.screen.styledLines[0].stripped.hasPrefix(" Fig  Fog "), "\(app.screen.styledLines[0].stripped)")
         app.send(ModifierKeyState())
         frame(app)
-        #expect(!underlines(app.screen[0]), "\(app.screen[0].debugDescription)")
+        #expect(!underlines(app.screen.styledLines[0]), "\(app.screen.styledLines[0].debugDescription)")
     }
 
     @Test("Where the terminal does not report modifier keys, nothing is underlined")
     mutating func nothingUnderlinedInALegacyTerminal() {
-        let app = HeadlessApp(ClashingApp(), width: 40, height: 10)
+        let app = TestApp(ClashingApp(), width: 40, height: 10)
         frame(app)
         app.send(ModifierKeyState(option: true))
         frame(app)
-        #expect(!underlines(app.screen[0]), "\(app.screen[0].debugDescription)")
+        #expect(!underlines(app.screen.styledLines[0]), "\(app.screen.styledLines[0].debugDescription)")
     }
 }

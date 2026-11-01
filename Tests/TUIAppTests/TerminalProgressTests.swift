@@ -17,6 +17,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUIFoundation
 @testable import TUITerminalHost
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -73,14 +74,14 @@ struct TerminalProgressTests {
 
     /// `app`, run on a terminal that takes a progress bar, or, with `sends`
     /// `false`, one that does not; one frame drawn.
-    private mutating func launched<A: App>(_ app: A, sends: Bool = true) -> HeadlessApp {
-        let headless = HeadlessApp(app, width: 40, height: 8)
+    private mutating func launched<A: App>(_ app: A, sends: Bool = true) -> TestApp {
+        let headless = TestApp(app, width: 40, height: 8)
         headless.sendsProgressReports = sends
         frame(headless)
         return headless
     }
 
-    private mutating func frame(_ app: HeadlessApp, after nanos: Int64 = 20_000_000) {
+    private mutating func frame(_ app: TestApp, after nanos: Int64 = 20_000_000) {
         now += nanos
         app.frame(atNanos: now)
     }
@@ -177,16 +178,16 @@ struct TerminalProgressTests {
         app.scenes.open(WindowTarget(id: "plain"))
         frame(app)
         frame(app)
-        #expect(app.screen.map(\.stripped).joined().contains("plain window"))
+        #expect(app.screen.lines.joined().contains("plain window"))
         #expect(app.hostWrites == [Self.progress(1, 50)])
     }
 
     @Test("`\\.terminalFeatures` tells a view whether the terminal shows progress")
     mutating func featuresReachViews() {
         let showing = launched(FeaturesApp())
-        #expect(showing.screen.map(\.stripped).joined().contains("shows progress"))
+        #expect(showing.screen.lines.joined().contains("shows progress"))
         let none = launched(FeaturesApp(), sends: false)
-        #expect(none.screen.map(\.stripped).joined().contains("shows none"))
+        #expect(none.screen.lines.joined().contains("shows none"))
     }
 
     /// What tmux says about the clients attached to it, those that draw the

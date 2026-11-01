@@ -17,7 +17,9 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -121,11 +123,11 @@ private func sortPicker(_ title: String) -> some View {
 struct PickerInMenuTests {
     @MainActor
     private final class Driver<Scene: App> {
-        let app: HeadlessApp
+        let app: TestApp
         private var now: Int64 = 0
 
         init(_ scene: Scene) {
-            app = HeadlessApp(scene, width: 60, height: 24)
+            app = TestApp(scene, width: 60, height: 24)
             frame()
             frame()
         }
@@ -140,14 +142,14 @@ struct PickerInMenuTests {
             frame()
         }
 
-        var text: String { app.screen.map(\.stripped).joined(separator: "\n") }
-        func shows(_ label: String) -> Bool { app.screen.contains { $0.stripped.contains(label) } }
-        func line(of label: String) -> String? { app.screen.map(\.stripped).first { $0.contains(label) } }
+        var text: String { app.screen.lines.joined(separator: "\n") }
+        func shows(_ label: String) -> Bool { app.screen.contains(label) }
+        func line(of label: String) -> String? { app.screen.lines.first { $0.contains(label) } }
 
         /// The open menu's lines inside its border, trimmed, a separator as
         /// `-`.
         var menuLines: [String] {
-            app.screen.map(\.stripped).compactMap { line in
+            app.screen.lines.compactMap { line in
                 guard let first = line.firstIndex(of: "│"), let last = line.lastIndex(of: "│"), first < last else {
                     return nil
                 }

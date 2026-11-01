@@ -18,8 +18,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICommands
 @testable import TUIFoundation
+import TUITesting
 
 /// What the menus did, reachable from an `App`.
 private final class SubmenuProbe: @unchecked Sendable {
@@ -54,7 +56,7 @@ private struct SubmenuBarApp: App {
 struct MenuBarSubmenuTests {
     @MainActor
     private final class Driver {
-        let app = HeadlessApp(SubmenuBarApp(), width: 50, height: 12)
+        let app = TestApp(SubmenuBarApp(), width: 50, height: 12)
         private var now: Int64 = 0
 
         init() {
@@ -72,7 +74,7 @@ struct MenuBarSubmenuTests {
             frame()
         }
 
-        var rows: [String] { app.screen.map(\.stripped) }
+        var rows: [String] { app.screen.lines }
 
         /// Whether the screen shows `text` below the bar's row.
         func shows(_ text: String) -> Bool { rows.dropFirst().contains { $0.contains(text) } }

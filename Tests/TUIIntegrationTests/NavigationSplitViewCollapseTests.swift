@@ -18,7 +18,9 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -97,12 +99,12 @@ struct NavigationSplitViewCollapseTests {
 
     /// A headless app over `view`, with its frames 1/60 s apart.
     private final class Driver {
-        let app: HeadlessApp
+        let app: TestApp
         private var now: Int64 = 0
 
         @MainActor
         init(_ view: some View, width: Int = 50, height: Int = 12) {
-            app = HeadlessApp(Page(content: AnyView(view)), width: width, height: height)
+            app = TestApp(Page(content: AnyView(view)), width: width, height: height)
             frame()
             frame()
         }
@@ -124,7 +126,7 @@ struct NavigationSplitViewCollapseTests {
 
         @MainActor
         func shows(_ text: String) -> Bool {
-            app.screen.contains { $0.stripped.contains(text) }
+            app.screen.contains(text)
         }
     }
 
@@ -135,11 +137,11 @@ struct NavigationSplitViewCollapseTests {
         let model = SplitModel()
         let driver = Driver(TwoColumns(model: model))
         #expect(driver.shows("Mercury"))
-        #expect(!driver.shows("about"), "the detail is drawn in a collapsed split: \(driver.app.screen)")
+        #expect(!driver.shows("about"), "the detail is drawn in a collapsed split: \(driver.app.screen.styledLines)")
         model.horizontal = .regular
         driver.frame()
         driver.frame()
-        #expect(driver.shows("Mercury") && driver.shows("about nothing"), "\(driver.app.screen)")
+        #expect(driver.shows("Mercury") && driver.shows("about nothing"), "\(driver.app.screen.styledLines)")
     }
 
     @Test("Choosing a row selects it and shows the next column under a bar, writing the binding")
@@ -150,10 +152,10 @@ struct NavigationSplitViewCollapseTests {
         driver.press(.enter)
         #expect(model.planet == "Venus")
         #expect(model.column == .detail)
-        #expect(driver.shows("about Venus"), "\(driver.app.screen)")
-        #expect(!driver.shows("Mercury"), "the sidebar is drawn over the detail: \(driver.app.screen)")
+        #expect(driver.shows("about Venus"), "\(driver.app.screen.styledLines)")
+        #expect(!driver.shows("Mercury"), "the sidebar is drawn over the detail: \(driver.app.screen.styledLines)")
         // The bar names the way back: the trail of the columns' titles.
-        #expect(driver.shows("Planets › Venus"), "\(driver.app.screen)")
+        #expect(driver.shows("Planets › Venus"), "\(driver.app.screen.styledLines)")
     }
 
     @Test("Escape goes back a column, writing .sidebar, and the row chosen before is chosen again, not cleared")
@@ -164,12 +166,12 @@ struct NavigationSplitViewCollapseTests {
         driver.press(.enter)
         driver.press(.escape)
         #expect(model.column == .sidebar)
-        #expect(driver.shows("Mercury") && !driver.shows("about"), "\(driver.app.screen)")
+        #expect(driver.shows("Mercury") && !driver.shows("about"), "\(driver.app.screen.styledLines)")
         // The list kept its cursor on Venus, and Return goes there again.
         driver.press(.enter)
         #expect(model.planet == "Venus")
         #expect(model.column == .detail)
-        #expect(driver.shows("about Venus"), "\(driver.app.screen)")
+        #expect(driver.shows("about Venus"), "\(driver.app.screen.styledLines)")
     }
 
     @Test("The binding puts a column on top from the start")
@@ -178,7 +180,7 @@ struct NavigationSplitViewCollapseTests {
         model.planet = "Earth"
         model.column = .detail
         let driver = Driver(TwoColumns(model: model))
-        #expect(driver.shows("about Earth") && !driver.shows("Mercury"), "\(driver.app.screen)")
+        #expect(driver.shows("about Earth") && !driver.shows("Mercury"), "\(driver.app.screen.styledLines)")
     }
 
     @Test("\\.dismiss in the column on top goes back a column")
@@ -189,7 +191,7 @@ struct NavigationSplitViewCollapseTests {
         #expect(model.column == .detail)
         // The detail's section holds the keyboard; its one button has the focus.
         driver.press(.enter)
-        #expect(model.column == .sidebar, "\(driver.app.screen)")
+        #expect(model.column == .sidebar, "\(driver.app.screen.styledLines)")
     }
 
     @Test("Column visibility is ignored while collapsed, and the chords do not change it")
@@ -197,7 +199,7 @@ struct NavigationSplitViewCollapseTests {
         let model = SplitModel()
         model.visibility = .detailOnly
         let driver = Driver(TwoColumns(model: model))
-        #expect(driver.shows("Mercury"), "\(driver.app.screen)")
+        #expect(driver.shows("Mercury"), "\(driver.app.screen.styledLines)")
         driver.app.send(KeyEvent(key: .character("s"), ctrl: true))
         driver.frame()
         #expect(model.visibility == .detailOnly)
@@ -207,21 +209,21 @@ struct NavigationSplitViewCollapseTests {
     func threeColumns() {
         let model = SplitModel()
         let driver = Driver(ThreeColumns(model: model))
-        #expect(driver.shows("Mars") && !driver.shows("moon"), "\(driver.app.screen)")
+        #expect(driver.shows("Mars") && !driver.shows("moon"), "\(driver.app.screen.styledLines)")
         driver.press(.enter)
         #expect(model.column == .content)
-        #expect(driver.shows("moon Phobos") && !driver.shows("Jupiter"), "\(driver.app.screen)")
+        #expect(driver.shows("moon Phobos") && !driver.shows("Jupiter"), "\(driver.app.screen.styledLines)")
         driver.press(.down)
         driver.press(.enter)
         #expect(model.column == .detail)
-        #expect(driver.shows("about Deimos"), "\(driver.app.screen)")
-        #expect(driver.shows("Planets › Mars › Deimos"), "\(driver.app.screen)")
+        #expect(driver.shows("about Deimos"), "\(driver.app.screen.styledLines)")
+        #expect(driver.shows("Planets › Mars › Deimos"), "\(driver.app.screen.styledLines)")
         driver.press(.escape)
         #expect(model.column == .content)
-        #expect(driver.shows("moon Deimos"), "\(driver.app.screen)")
+        #expect(driver.shows("moon Deimos"), "\(driver.app.screen.styledLines)")
         driver.press(.escape)
         #expect(model.column == .sidebar)
-        #expect(driver.shows("Jupiter"), "\(driver.app.screen)")
+        #expect(driver.shows("Jupiter"), "\(driver.app.screen.styledLines)")
     }
 
     @Test("The columns keep their state across a change of size class")
@@ -270,7 +272,7 @@ struct NavigationSplitViewCollapseTests {
         driver.press(.enter)
         #expect(model.planet == "Pluto")
         #expect(model.column == .detail)
-        #expect(driver.shows("about Pluto"), "\(driver.app.screen)")
+        #expect(driver.shows("about Pluto"), "\(driver.app.screen.styledLines)")
     }
 
     private struct Unselectable: View {
@@ -326,14 +328,14 @@ struct NavigationSplitViewCollapseTests {
     func linkPushes() {
         let model = SplitModel()
         let driver = Driver(LinkedSidebar(model: model))
-        #expect(driver.shows("Mars") && !driver.shows("orbiting"), "\(driver.app.screen)")
+        #expect(driver.shows("Mars") && !driver.shows("orbiting"), "\(driver.app.screen.styledLines)")
         driver.press(.enter)
-        #expect(driver.shows("orbiting Mars"), "\(driver.app.screen)")
-        #expect(driver.shows("Planets › Mars"), "the bar's trail goes back to the sidebar: \(driver.app.screen)")
+        #expect(driver.shows("orbiting Mars"), "\(driver.app.screen.styledLines)")
+        #expect(driver.shows("Planets › Mars"), "the bar's trail goes back to the sidebar: \(driver.app.screen.styledLines)")
         #expect(model.column == .sidebar, "a link moves no column")
-        #expect(!driver.shows("detail placeholder"), "\(driver.app.screen)")
+        #expect(!driver.shows("detail placeholder"), "\(driver.app.screen.styledLines)")
         driver.press(.escape)
-        #expect(driver.shows("Mars") && driver.shows("Venus") && !driver.shows("orbiting"), "\(driver.app.screen)")
+        #expect(driver.shows("Mars") && driver.shows("Venus") && !driver.shows("orbiting"), "\(driver.app.screen.styledLines)")
     }
 
     @Test("A link in a linked screen pushes again, and each Escape goes back one")
@@ -342,12 +344,12 @@ struct NavigationSplitViewCollapseTests {
         let driver = Driver(LinkedSidebar(model: model))
         driver.press(.down)
         driver.press(.enter)
-        #expect(driver.shows("orbiting Venus"), "\(driver.app.screen)")
+        #expect(driver.shows("orbiting Venus"), "\(driver.app.screen.styledLines)")
         driver.press(.enter)
-        #expect(driver.shows("moon count 5"), "\(driver.app.screen)")
+        #expect(driver.shows("moon count 5"), "\(driver.app.screen.styledLines)")
         driver.press(.escape)
-        #expect(driver.shows("orbiting Venus"), "\(driver.app.screen)")
+        #expect(driver.shows("orbiting Venus"), "\(driver.app.screen.styledLines)")
         driver.press(.escape)
-        #expect(driver.shows("Mars") && driver.shows("Venus"), "\(driver.app.screen)")
+        #expect(driver.shows("Mars") && driver.shows("Venus"), "\(driver.app.screen.styledLines)")
     }
 }

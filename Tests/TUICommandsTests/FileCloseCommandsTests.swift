@@ -14,9 +14,11 @@ import Foundation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICommands
 @testable import TUIFoundation
 import TUIPresentation
+import TUITesting
 import TUITextInput
 
 // MARK: - Fixtures
@@ -92,22 +94,22 @@ struct FileCloseCommandsTests {
     private var now: Int64 = 0
 
     /// The app with its welcome window opened over the main one.
-    private mutating func welcoming(_ content: WelcomeContent) -> HeadlessApp {
+    private mutating func welcoming(_ content: WelcomeContent) -> TestApp {
         CloseProbe.shared.text = ""
         CloseProbe.shared.saves = 0
-        let app = HeadlessApp(TwoWindowApp(content: content), width: 60, height: 14)
+        let app = TestApp(TwoWindowApp(content: content), width: 60, height: 14)
         app.frame(atNanos: 0)
         send(KeyEvent(key: .enter), to: app)
         frame(app)
         return app
     }
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func send(_ key: KeyEvent, to app: HeadlessApp) {
+    private mutating func send(_ key: KeyEvent, to app: TestApp) {
         app.send(key)
         frame(app)
     }
@@ -156,13 +158,13 @@ struct FileCloseCommandsTests {
         send(KeyEvent(key: .f10), to: app)
         send(KeyEvent(key: .down), to: app)
         send(KeyEvent(key: .right), to: app)
-        let screen = app.screen.map(\.stripped).joined(separator: "\n")
+        let screen = app.screen.lines.joined(separator: "\n")
         #expect(screen.contains("Close All"), "\(screen)")
     }
 
     @Test("An app with one window has no Close, and Ctrl-W does nothing")
     mutating func oneWindowHasNoClose() {
-        let app = HeadlessApp(OneWindowApp(), width: 60, height: 14)
+        let app = TestApp(OneWindowApp(), width: 60, height: 14)
         app.frame(atNanos: 0)
         #expect(!app.scenes.opensSeveralWindows)
         send(ctrl("w"), to: app)

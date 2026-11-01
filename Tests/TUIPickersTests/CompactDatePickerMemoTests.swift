@@ -15,9 +15,11 @@ import Observation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 import TUIPickers
+import TUITesting
 @testable import TUITestSupport
 
 @Observable
@@ -63,12 +65,12 @@ private struct DatesPage: View {
 @MainActor
 private final class Harness {
     let dates = Dates()
-    let app: HeadlessApp
+    let app: TestApp
     private var now: Int64 = 0
 
     init(compact: Bool) {
         dates.compact = compact
-        app = HeadlessApp(DatesApp(dates), width: 40, height: 20)
+        app = TestApp(DatesApp(dates), width: 40, height: 20)
         frame()
         frame()
     }
@@ -78,7 +80,7 @@ private final class Harness {
         app.frame(atNanos: now)
     }
 
-    func shows(_ text: String) -> Bool { app.screen.contains { $0.stripped.contains(text) } }
+    func shows(_ text: String) -> Bool { app.screen.contains(text) }
 
     /// The rows served from the row memo on one quiet frame.
     func servedOnAQuietFrame() -> Int {

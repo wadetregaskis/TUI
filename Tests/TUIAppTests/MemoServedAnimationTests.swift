@@ -18,8 +18,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -69,16 +71,16 @@ struct MemoServedAnimationTests {
     /// Every tick for two seconds, rendering each time — which is what an app
     /// does while something else on the page changes — against an instance
     /// with no cache: the ticks whose screens differed, and the warm instance.
-    private func staleTicks<A: App>(_ make: () -> A) -> (ticks: [Int], warm: HeadlessApp) {
-        let warm = HeadlessApp(make(), width: 30, height: 8)
-        let cold = HeadlessApp(make(), width: 30, height: 8)
+    private func staleTicks<A: App>(_ make: () -> A) -> (ticks: [Int], warm: TestApp) {
+        let warm = TestApp(make(), width: 30, height: 8)
+        let cold = TestApp(make(), width: 30, height: 8)
         cold.clearsRenderCacheEachFrame = true
         var stale: [Int] = []
         for tick in 0..<120 {
             let now = AnimationClock.nanoseconds(atTick: Int64(tick))
             warm.frame(atNanos: now)
             cold.frame(atNanos: now)
-            if warm.screen != cold.screen { stale.append(tick) }
+            if warm.screen.styledLines != cold.screen.styledLines { stale.append(tick) }
         }
         return (stale, warm)
     }

@@ -11,9 +11,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICommands
 @testable import TUIFoundation
 import TUIPresentation
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -187,24 +189,24 @@ struct MenuBarTests {
 
     /// `app` after two frames — the second adopts any toolbar the first
     /// declared — as its rows, stripped.
-    private func screen(_ app: HeadlessApp) -> [String] {
+    private func screen(_ app: TestApp) -> [String] {
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        return app.screen.map(\.stripped)
+        return app.screen.lines
     }
 
     @Test("Declaring commands gives the window a menu bar on its top row; a bare scene has none")
     func menuBarRow() {
-        let bare = screen(HeadlessApp(BareApp(), width: 40, height: 8))
+        let bare = screen(TestApp(BareApp(), width: 40, height: 8))
         #expect(!bare.contains { $0.contains("Note") }, "\(bare)")
-        let rows = screen(HeadlessApp(CommandsApp(), width: 40, height: 8))
+        let rows = screen(TestApp(CommandsApp(), width: 40, height: 8))
         #expect(rows[0].hasPrefix(" Note"), "\(rows)")
         #expect(rows.count == 8)
     }
 
     @Test("Above a top bar, the menu bar takes the first row and the top bar the rows below it")
     func aboveTheTopBar() {
-        let rows = screen(HeadlessApp(BarsApp(), width: 30, height: 10))
+        let rows = screen(TestApp(BarsApp(), width: 30, height: 10))
         #expect(rows[0].hasPrefix(" Note"), "\(rows)")
         #expect(rows[1].hasPrefix("╭"), "the top bar's box opens on the row below: \(rows)")
         #expect(rows[2].contains("HEADER"), "\(rows)")
@@ -212,7 +214,7 @@ struct MenuBarTests {
 
     @Test("In a terminal too short for every bar, the menu bar keeps its row and the top bar gives way")
     func shortTerminal() {
-        let rows = screen(HeadlessApp(BarsApp(), width: 30, height: 2))
+        let rows = screen(TestApp(BarsApp(), width: 30, height: 2))
         #expect(rows.count == 2)
         #expect(rows[0].hasPrefix(" Note"), "\(rows)")
         #expect(rows[1].hasPrefix("╭"), "what is left of the top bar: \(rows)")
@@ -221,7 +223,7 @@ struct MenuBarTests {
     @Test("A command's shortcut works with its menu closed, reading the focused view's value of that frame")
     func shortcutReadsTheFocus() {
         MenuBarProbe.shared.log = []
-        let app = HeadlessApp(CommandsApp(), width: 40, height: 8)
+        let app = TestApp(CommandsApp(), width: 40, height: 8)
         app.frame(atNanos: 0)
         app.send(KeyEvent(key: .character("s"), ctrl: true))
         #expect(MenuBarProbe.shared.log == ["show a"])
@@ -234,7 +236,7 @@ struct MenuBarTests {
     @Test("With a menu open, its commands and the page read the focused view's @FocusedValue, as before it opened")
     func openMenuReadsTheFocus() {
         MenuBarProbe.shared.log = []
-        let app = HeadlessApp(GatedApp(), width: 40, height: 10)
+        let app = TestApp(GatedApp(), width: 40, height: 10)
         var now: Int64 = 0
         func frame() {
             app.frame(atNanos: now)
@@ -251,7 +253,7 @@ struct MenuBarTests {
         let asked = app.framesAsked
         frame()
         frame()
-        let rows = app.screen.map(\.stripped)
+        let rows = app.screen.lines
         #expect(rows.dropFirst().contains { $0.contains("Show") }, "the menu is open: \(rows)")
         #expect(rows.contains { $0.contains("note: b") }, "the page's reader still reads B's note: \(rows)")
         #expect(app.framesAsked == asked, "no reading goes stale while the menu is open")
@@ -262,7 +264,7 @@ struct MenuBarTests {
     @Test("A disabled command's shortcut does nothing")
     func disabledCommand() {
         MenuBarProbe.shared.log = []
-        let app = HeadlessApp(CommandsApp(), width: 40, height: 8)
+        let app = TestApp(CommandsApp(), width: 40, height: 8)
         app.frame(atNanos: 0)
         app.send(KeyEvent(key: .character("g"), ctrl: true))
         #expect(MenuBarProbe.shared.log.isEmpty)
@@ -271,7 +273,7 @@ struct MenuBarTests {
     @Test("The page's own shortcut on a command's key is asked first")
     func pageShortcutWins() {
         MenuBarProbe.shared.log = []
-        let app = HeadlessApp(PageKeyApp(), width: 40, height: 8)
+        let app = TestApp(PageKeyApp(), width: 40, height: 8)
         app.frame(atNanos: 0)
         app.send(KeyEvent(key: .character("s"), ctrl: true))
         #expect(MenuBarProbe.shared.log == ["page"])
@@ -280,10 +282,10 @@ struct MenuBarTests {
     @Test("While a modal holds the input, no command's shortcut fires from behind it")
     func inertUnderAModal() {
         MenuBarProbe.shared.log = []
-        let app = HeadlessApp(SheetApp(), width: 40, height: 10)
+        let app = TestApp(SheetApp(), width: 40, height: 10)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        #expect(app.screen.contains { $0.stripped.contains("SHEET") }, "sanity: the sheet is up")
+        #expect(app.screen.contains("SHEET"), "sanity: the sheet is up")
         app.send(KeyEvent(key: .character("s"), ctrl: true))
         #expect(MenuBarProbe.shared.log.isEmpty)
     }
@@ -291,35 +293,35 @@ struct MenuBarTests {
     /// The owner, 2026-10-28: the bar must look disabled when it is.
     @Test("While a modal holds the input, the bar's titles are drawn faint, as a disabled control's are")
     func dimmedUnderAModal() {
-        let sheeted = HeadlessApp(SheetApp(), width: 40, height: 10)
+        let sheeted = TestApp(SheetApp(), width: 40, height: 10)
         sheeted.frame(atNanos: 0)
         sheeted.frame(atNanos: 20_000_000)
-        let plain = HeadlessApp(UnsheetedApp(), width: 40, height: 10)
+        let plain = TestApp(UnsheetedApp(), width: 40, height: 10)
         plain.frame(atNanos: 0)
         plain.frame(atNanos: 20_000_000)
-        #expect(sheeted.screen[0].stripped == plain.screen[0].stripped, "the same titles")
+        #expect(sheeted.screen.styledLines[0].stripped == plain.screen.styledLines[0].stripped, "the same titles")
         #expect(
-            sheeted.screen[0] != plain.screen[0],
-            "drawn in another ink: \(sheeted.screen[0].debugDescription) vs \(plain.screen[0].debugDescription)")
+            sheeted.screen.styledLines[0] != plain.screen.styledLines[0],
+            "drawn in another ink: \(sheeted.screen.styledLines[0].debugDescription) vs \(plain.screen.styledLines[0].debugDescription)")
     }
 
     @Test("Commands of several modifiers add up, the innermost first")
     func modifiersAddUp() {
-        let rows = screen(HeadlessApp(TwoModifiersApp(), width: 40, height: 6))
+        let rows = screen(TestApp(TwoModifiersApp(), width: 40, height: 6))
         #expect(rows[0].hasPrefix(" Alpha  Beta"), "\(rows)")
     }
 
     @Test("commandsRemoved takes away the commands inside it, and commands outside it stay")
     func removed() {
-        let removed = screen(HeadlessApp(RemovedApp(), width: 40, height: 6))
+        let removed = screen(TestApp(RemovedApp(), width: 40, height: 6))
         #expect(!removed.contains { $0.contains("Alpha") }, "no menu bar: \(removed)")
-        let outside = screen(HeadlessApp(RemovedInsideApp(), width: 40, height: 6))
+        let outside = screen(TestApp(RemovedInsideApp(), width: 40, height: 6))
         #expect(outside[0].hasPrefix(" Alpha"), "\(outside)")
     }
 
     @Test("commandsReplaced puts its commands in place of those inside it")
     func replaced() {
-        let rows = screen(HeadlessApp(ReplacedApp(), width: 40, height: 6))
+        let rows = screen(TestApp(ReplacedApp(), width: 40, height: 6))
         #expect(rows[0].hasPrefix(" Beta"), "\(rows)")
         #expect(!rows[0].contains("Alpha"), "\(rows)")
     }

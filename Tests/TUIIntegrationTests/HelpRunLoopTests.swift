@@ -2,7 +2,7 @@
 //  HelpRunLoopTests.swift
 //
 //  `help(_:)` through the real frame sequence: `RenderLoop.render` over an
-//  in-memory terminal (`HeadlessApp`), with the keys and the pointer going
+//  in-memory terminal (`TestApp`), with the keys and the pointer going
 //  through the input chain. The unit suites in `HelpTooltipTests.swift` drive
 //  `TooltipState` directly with one reset a frame, which is how two defects in
 //  the focus path shipped: the run loop sizes the status bar before the walk
@@ -15,7 +15,9 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// A non-focusable `Text` with help, a `Button` with help (focused from the
@@ -326,11 +328,11 @@ private struct FullWindowRowsPage: View {
 private final class HelpDriver<A: App> {
     static var frameNanos: Int64 { 16_666_667 }
 
-    let app: HeadlessApp
+    let app: TestApp
     private(set) var now: Int64 = 0
 
     init(_ page: A, width: Int = 50, height: Int = 14) {
-        app = HeadlessApp(page, width: width, height: height)
+        app = TestApp(page, width: width, height: height)
         step()
     }
 
@@ -360,7 +362,7 @@ private final class HelpDriver<A: App> {
     }
 
     /// The screen, without its escape codes.
-    var lines: [String] { app.screen.map(\.stripped) }
+    var lines: [String] { app.screen.lines }
 
     /// Whether `text` is anywhere on the screen.
     func shows(_ text: String) -> Bool {

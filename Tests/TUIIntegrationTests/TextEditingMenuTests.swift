@@ -13,8 +13,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -76,12 +78,12 @@ struct TextEditingMenuTests {
         let board = FakeClipboard()
         let text: Box<String>
         let second = Box("")
-        let app: HeadlessApp
+        let app: TestApp
         private var now: Int64 = 0
 
         init(_ control: Control, text: String = "hello world", disabled: Bool = false) {
             self.text = Box(text)
-            app = HeadlessApp(
+            app = TestApp(
                 TextApp(board: board, text: self.text, second: second, control: control, disabled: disabled),
                 width: 50, height: 16)
             frame()
@@ -93,14 +95,14 @@ struct TextEditingMenuTests {
             app.frame(atNanos: now)
         }
 
-        func shows(_ text: String) -> Bool { app.screen.map(\.stripped).contains { $0.contains(text) } }
+        func shows(_ text: String) -> Bool { app.screen.lines.contains { $0.contains(text) } }
 
         /// Right-clicks the control's first row, a few cells in — or
         /// Control-clicks it, the secondary click where a terminal keeps the
         /// right button for itself.
         func rightClick(control: Bool = false) {
             let button: MouseButton = control ? .left : .right
-            let y = app.screen.map(\.stripped).firstIndex { !$0.allSatisfy(\.isWhitespace) } ?? 0
+            let y = app.screen.lines.firstIndex { !$0.allSatisfy(\.isWhitespace) } ?? 0
             app.send(MouseEvent(button: button, phase: .pressed, x: 3, y: y, ctrl: control))
             app.send(MouseEvent(button: button, phase: .released, x: 3, y: y, ctrl: control))
             frame()
@@ -109,7 +111,7 @@ struct TextEditingMenuTests {
         /// Opens the menu and clicks its row that says `title`.
         func choose(_ title: String) throws {
             rightClick()
-            let lines = app.screen.map(\.stripped)
+            let lines = app.screen.lines
             let y = try #require(lines.firstIndex { $0.contains(title) }, "\(title) is offered")
             let x = try #require(lines[y].range(of: title)).lowerBound.utf16Offset(in: lines[y])
             app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: y))

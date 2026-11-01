@@ -16,7 +16,9 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -121,7 +123,7 @@ struct PresentationScrollCanvasTests {
     @Test("A sheet or popover presented from a horizontal scroll view sees no scroll canvas", arguments: [false, true])
     func presentedContentLeavesTheCanvas(popover: Bool) {
         let log = CanvasLog()
-        let app = HeadlessApp(StripApp(log: log, popover: popover), width: 40, height: 16)
+        let app = TestApp(StripApp(log: log, popover: popover), width: 40, height: 16)
         app.frame(atNanos: 0)
         log.isUp = true
         app.frame(atNanos: 16_666_667)
@@ -145,12 +147,12 @@ struct PresentationScrollCanvasTests {
     @Test("A popover or sheet presented from a LabeledContent's value leads its lines", arguments: [false, true])
     func presentedFromAValueLeads(popover: Bool) throws {
         let log = CanvasLog()
-        let app = HeadlessApp(LabeledValueApp(log: log, popover: popover), width: 50, height: 16)
+        let app = TestApp(LabeledValueApp(log: log, popover: popover), width: 50, height: 16)
         app.frame(atNanos: 0)
         log.isUp = true
         app.frame(atNanos: 16_666_667)
         app.frame(atNanos: 33_333_334)
-        let lines = app.screen.map(\.stripped)
+        let lines = app.screen.lines
         func start(of text: String) -> Int? {
             lines.lazy.compactMap { line in
                 line.range(of: text).map { line.distance(from: line.startIndex, to: $0.lowerBound) }

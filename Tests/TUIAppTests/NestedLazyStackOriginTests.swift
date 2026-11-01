@@ -20,8 +20,10 @@ import Foundation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// Where the lazy stack sits in the scroll view's content.
@@ -143,11 +145,11 @@ struct NestedLazyStackOriginTests {
         // inner stack took itself for the one the window bands and ESTIMATED
         // that height: 300 lines for the sixteen-row sample, of which the rows
         // filled 0–157, and the bottom of the scroll view was row 157.
-        let app = HeadlessApp(
+        let app = TestApp(
             OriginApp(shape: shape, lazy: true, bottomAnchored: true), width: 30, height: 10)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frame)
-        let screen = app.screen.map(\.stripped)
+        let screen = app.screen.lines
         let rows = originRowsDrawn(on: screen)
         #expect(rows.contains(299), "the tail is drawn: \(screen)")
         #expect(!rows.contains(157), "not stopped at the estimate's end: \(screen)")
@@ -175,14 +177,14 @@ struct NestedLazyStackOriginTests {
             RenderCache.verifiesMeasureMemo = wasVerifyingMeasures
             RenderCache.verifiesRenderMemo = wasVerifyingRenders
         }
-        let lazy = HeadlessApp(OriginApp(shape: shape, lazy: true, bottomAnchored: false), width: 30, height: 12)
-        let eager = HeadlessApp(OriginApp(shape: shape, lazy: false, bottomAnchored: false), width: 30, height: 12)
+        let lazy = TestApp(OriginApp(shape: shape, lazy: true, bottomAnchored: false), width: 30, height: 12)
+        let eager = TestApp(OriginApp(shape: shape, lazy: false, bottomAnchored: false), width: 30, height: 12)
         var script: [KeyEvent?] = [nil, nil]
         script += Array(repeating: KeyEvent(key: .pageDown), count: 4)
         script += [KeyEvent(key: .end), nil, KeyEvent(key: .pageUp), KeyEvent(key: .up), KeyEvent(key: .home)]
         // The status bar's three lines go too: they are the app's, not the scroll view's.
-        let content = { (app: HeadlessApp) in
-            app.screen.dropLast(3).map { String($0.stripped.dropLast()) }
+        let content = { (app: TestApp) in
+            app.screen.styledLines.dropLast(3).map { String($0.stripped.dropLast()) }
         }
         var diverged: [String] = []
         for (step, event) in script.enumerated() {

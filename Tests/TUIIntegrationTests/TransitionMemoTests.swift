@@ -12,8 +12,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// One row's data. `Equatable`, so `ForEach` memoizes the row it builds.
@@ -125,8 +127,8 @@ struct TransitionMemoTests {
         "Each frame of the removal is the frame an uncached app draws",
         arguments: MemoizedRemovalShape.allCases, [AnyTransition.move(edge: .trailing), .opacity])
     func removalMatchesUncached(shape: MemoizedRemovalShape, transition: AnyTransition) {
-        let warm = HeadlessApp(RowsApp(shape: shape, transition: transition), width: 30, height: 14)
-        let cold = HeadlessApp(RowsApp(shape: shape, transition: transition), width: 30, height: 14)
+        let warm = TestApp(RowsApp(shape: shape, transition: transition), width: 30, height: 14)
+        let cold = TestApp(RowsApp(shape: shape, transition: transition), width: 30, height: 14)
         cold.clearsRenderCacheEachFrame = true
         var tick: Int64 = 0
         // Both apps press before either draws: each change's transaction waits
@@ -142,8 +144,8 @@ struct TransitionMemoTests {
             for app in [warm, cold] { app.frame(atNanos: now) }
             tick += 1
         }
-        func showsDetail(_ app: HeadlessApp) -> Bool {
-            app.screen.contains { $0.stripped.contains("DETAIL") }
+        func showsDetail(_ app: TestApp) -> Bool {
+            app.screen.contains("DETAIL")
         }
 
         frame()
@@ -153,11 +155,11 @@ struct TransitionMemoTests {
         var differing: [Int64] = []
         for step in 0..<76 {
             frame(pressing: step == 0)
-            if warm.screen != cold.screen { differing.append(tick - 1) }
+            if warm.screen.styledLines != cold.screen.styledLines { differing.append(tick - 1) }
         }
         #expect(
             differing.isEmpty,
-            "the cached app drew something else at ticks \(differing):\n\(warm.screen.map(\.stripped))")
+            "the cached app drew something else at ticks \(differing):\n\(warm.screen.lines)")
         #expect(!showsDetail(warm), "the detail is still drawn after its removal ended")
         #expect(warm.departureCount == 0, "the finished removal is still tracked")
         #expect(warm.renderCache.rowWork.served > 0, "nothing was ever served, so this proved nothing")
@@ -169,14 +171,14 @@ struct TransitionMemoTests {
     /// (`StackGlide`), in the cached app as in the uncached one.
     @Test("Half-way through, the detail is sliding out in its own row", arguments: MemoizedRemovalShape.allCases)
     func removalIsUnderWayHalfWay(shape: MemoizedRemovalShape) {
-        let app = HeadlessApp(RowsApp(shape: shape, transition: .move(edge: .trailing)), width: 30, height: 14)
+        let app = TestApp(RowsApp(shape: shape, transition: .move(edge: .trailing)), width: 30, height: 14)
         var tick: Int64 = 0
         func frame() {
             app.frame(atNanos: AnimationClock.nanoseconds(atTick: tick))
             tick += 1
         }
         func row(of text: String) -> (row: Int, column: Int)? {
-            for (row, line) in app.screen.map(\.stripped).enumerated() {
+            for (row, line) in app.screen.lines.enumerated() {
                 if let range = line.range(of: text) {
                     return (row, line.distance(from: line.startIndex, to: range.lowerBound))
                 }
@@ -195,7 +197,7 @@ struct TransitionMemoTests {
         let halfWay = row(of: "DET")
         #expect(
             halfWay.map { $0.row == shown.row && $0.column > shown.column } == true,
-            "not sliding out half-way:\n\(app.screen.map(\.stripped))")
+            "not sliding out half-way:\n\(app.screen.lines)")
         #expect(
             row(of: "below").map { (below.row - 1)...below.row ~= $0.row } == true,
             "the page below jumped rather than gliding up the detail's one row")

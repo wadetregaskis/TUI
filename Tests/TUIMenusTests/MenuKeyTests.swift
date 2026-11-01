@@ -12,9 +12,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 import TUIMenus
+import TUITesting
 @testable import TUITestSupport
 
 private struct MenuKeyApp: App {
@@ -32,20 +34,20 @@ private struct MenuKeyApp: App {
 struct MenuKeyTests {
     @Test("The Menu key opens a focused view's context menu, and closes it, as Shift+F10 does")
     func menuKeyTogglesAContextMenu() {
-        let app = HeadlessApp(MenuKeyApp(), width: 30, height: 10)
+        let app = TestApp(MenuKeyApp(), width: 30, height: 10)
         var now: Int64 = 0
         func frame() {
             now += 16_666_667
             app.frame(atNanos: now)
         }
-        func shows(_ text: String) -> Bool { app.screen.contains { $0.stripped.contains(text) } }
+        func shows(_ text: String) -> Bool { app.screen.contains(text) }
         frame()
         frame()
         app.send(KeyEvent(key: .menu))
         frame()
-        #expect(shows("Cut"), "\(app.screen.map(\.stripped).joined(separator: "\n"))")
+        #expect(shows("Cut"), "\(app.screen.lines.joined(separator: "\n"))")
         app.send(KeyEvent(key: .menu))
         frame()
-        #expect(!shows("Cut"), "\(app.screen.map(\.stripped).joined(separator: "\n"))")
+        #expect(!shows("Cut"), "\(app.screen.lines.joined(separator: "\n"))")
     }
 }

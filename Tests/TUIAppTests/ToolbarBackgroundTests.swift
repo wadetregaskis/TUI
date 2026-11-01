@@ -14,6 +14,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// A palette whose page and two bars are three different colours, so a row
@@ -110,10 +111,10 @@ struct ToolbarBackgroundTests {
     /// The screen, two frames in — one to declare the bars, one to draw them —
     /// as raw lines.
     private func screen() -> [String] {
-        let app = HeadlessApp(FillsApp(), width: 30, height: 6)
+        let app = TestApp(FillsApp(), width: 30, height: 6)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        return app.screen
+        return app.screen.styledLines
     }
 
     private func row(_ rows: [String], containing marker: String) -> String {
@@ -167,11 +168,11 @@ struct ToolbarBackgroundTests {
 
     @Test("An item off its group's shared background is drawn on the bar's fill, the one background they share")
     func sharedBackgroundHidden() {
-        let app = HeadlessApp(SoloItemApp(), width: 30, height: 6)
+        let app = TestApp(SoloItemApp(), width: 30, height: 6)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        let top = row(app.screen, containing: "SOLO")
-        #expect(top.contains(ANSIRenderer.backgroundCode(for: .rgb(60, 20, 20))), "\(app.screen)")
+        let top = row(app.screen.styledLines, containing: "SOLO")
+        #expect(top.contains(ANSIRenderer.backgroundCode(for: .rgb(60, 20, 20))), "\(app.screen.styledLines)")
     }
 
     @Test("A gradient is laid across the bar")

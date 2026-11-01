@@ -17,6 +17,7 @@ import TUIApp
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -110,14 +111,14 @@ struct GestureDisableTests {
     }
 
     /// Where `text` is drawn on `app`'s screen: its first cell.
-    private func cell(of text: String, in app: HeadlessApp) throws -> (x: Int, y: Int) {
-        let lines = app.screen.map(\.stripped)
+    private func cell(of text: String, in app: TestApp) throws -> (x: Int, y: Int) {
+        let lines = app.screen.lines
         let y = try #require(lines.firstIndex { $0.contains(text) })
         let range = try #require(lines[y].range(of: text))
         return (lines[y].distance(from: lines[y].startIndex, to: range.lowerBound), y)
     }
 
-    private func click(_ app: HeadlessApp, at cell: (x: Int, y: Int)) {
+    private func click(_ app: TestApp, at cell: (x: Int, y: Int)) {
         app.send(MouseEvent(button: .left, phase: .pressed, x: cell.x, y: cell.y))
         app.send(MouseEvent(button: .left, phase: .released, x: cell.x, y: cell.y))
     }
@@ -130,7 +131,7 @@ struct GestureDisableTests {
     func disableAsksForAFrame() throws {
         let log = Page.log
         log.entries = []
-        let app = HeadlessApp(Page(), width: 40, height: 10)
+        let app = TestApp(Page(), width: 40, height: 10)
         let second: Int64 = 1_000_000_000
         let millisecond: Int64 = 1_000_000
         app.frame(atNanos: second)

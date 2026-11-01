@@ -12,8 +12,10 @@ import Observation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUITabs
+import TUITesting
 @testable import TUITestSupport
 
 /// Reports what a tab's content reads about where the tabs are.
@@ -100,7 +102,7 @@ struct TabViewCompactTests {
     @Test("The selected tab's content keeps its place when the size class changes")
     func contentKeepsItsPlace() {
         let classes = Classes()
-        let app = HeadlessApp(Page(classes: classes), width: 50, height: 10)
+        let app = TestApp(Page(classes: classes), width: 50, height: 10)
         var now: Int64 = 0
         func frame() {
             now += 16_666_667
@@ -112,7 +114,7 @@ struct TabViewCompactTests {
         classes.horizontal = .compact
         frame()
         frame()
-        #expect(app.screen.contains { $0.stripped.contains("INBOX BODY") }, "\(app.screen)")
+        #expect(app.screen.contains("INBOX BODY"), "\(app.screen.styledLines)")
         classes.horizontal = .regular
         frame()
         frame()

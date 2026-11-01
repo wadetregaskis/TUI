@@ -12,9 +12,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUIPresentation
 @testable import TUIScenes
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -83,24 +85,24 @@ private struct NoSettingsApp: App {
 struct SettingsSceneTests {
     private var now: Int64 = 0
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func press(_ key: Key, in app: HeadlessApp) {
+    private mutating func press(_ key: Key, in app: TestApp) {
         app.send(KeyEvent(key: key))
         frame(app)
     }
 
-    private func screen(_ app: HeadlessApp) -> String {
-        app.screen.map(\.stripped).joined(separator: "\n")
+    private func screen(_ app: TestApp) -> String {
+        app.screen.lines.joined(separator: "\n")
     }
 
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
-        let headless = HeadlessApp(app, width: 60, height: 14)
+    private mutating func launched<A: App>(_ app: A) -> TestApp {
+        let headless = TestApp(app, width: 60, height: 14)
         frame(headless)
         return headless
     }

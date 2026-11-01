@@ -13,7 +13,9 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -108,31 +110,31 @@ struct WindowPresentationTests {
     private var now: Int64 = 0
 
     /// `app` after its first two frames, its log cleared.
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
+    private mutating func launched<A: App>(_ app: A) -> TestApp {
         WindowsProbe.shared.log = []
-        let headless = HeadlessApp(app, width: 50, height: 12)
+        let headless = TestApp(app, width: 50, height: 12)
         frame(headless)
         frame(headless)
         return headless
     }
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private func screen(_ app: HeadlessApp) -> String {
-        app.screen.map(\.stripped).joined(separator: "\n")
+    private func screen(_ app: TestApp) -> String {
+        app.screen.lines.joined(separator: "\n")
     }
 
     /// Presses `key` and draws a frame.
-    private mutating func press(_ key: Key, in app: HeadlessApp) {
+    private mutating func press(_ key: Key, in app: TestApp) {
         app.send(KeyEvent(key: key))
         frame(app)
     }
 
     /// Tabs `tabs` times from the first control and presses Return there.
-    private mutating func choose(tabs: Int, in app: HeadlessApp) {
+    private mutating func choose(tabs: Int, in app: TestApp) {
         for _ in 0..<tabs { press(.tab, in: app) }
         press(.enter, in: app)
         frame(app)

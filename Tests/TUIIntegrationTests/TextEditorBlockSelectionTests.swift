@@ -13,8 +13,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -58,17 +60,17 @@ struct TextEditorBlockSelectionTests {
     private final class Harness {
         let board = FakeClipboard()
         let text: Box<String>
-        let app: HeadlessApp
+        let app: TestApp
         private var now: Int64 = 0
         /// The screen cell of the editor's first character.
         private(set) var origin = CellPoint.zero
 
         init(wraps: Bool = true) throws {
             text = Box("alpha\nbravo\ncharlie")
-            app = HeadlessApp(EditorApp(board: board, text: text, wraps: wraps), width: 40, height: 10)
+            app = TestApp(EditorApp(board: board, text: text, wraps: wraps), width: 40, height: 10)
             frame()
             frame()
-            let lines = app.screen.map(\.stripped)
+            let lines = app.screen.lines
             let y = try #require(lines.firstIndex { $0.contains("alpha") })
             origin = CellPoint(x: try #require(lines[y].range(of: "alpha")).lowerBound.utf16Offset(in: lines[y]), y: y)
         }
@@ -139,7 +141,7 @@ struct TextEditorBlockSelectionTests {
         harness.app.send(MouseEvent(button: .right, phase: .pressed, x: harness.origin.x + 1, y: harness.origin.y))
         harness.app.send(MouseEvent(button: .right, phase: .released, x: harness.origin.x + 1, y: harness.origin.y))
         harness.frame()
-        let lines = harness.app.screen.map(\.stripped)
+        let lines = harness.app.screen.lines
         let y = try #require(lines.firstIndex { $0.contains("Cut") })
         let x = try #require(lines[y].range(of: "Cut")).lowerBound.utf16Offset(in: lines[y])
         harness.app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: y))

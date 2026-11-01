@@ -15,7 +15,9 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// A scroll view of rows with help that fills the window, so the bar's row
@@ -106,11 +108,11 @@ struct HeldHelpCoverApp: App {
 struct HeldHelpResidualTests {
     @MainActor
     final class Driver<A: App> {
-        let app: HeadlessApp
+        let app: TestApp
         private(set) var now: Int64 = 0
 
         init(_ page: A) {
-            app = HeadlessApp(page, width: 50, height: 14)
+            app = TestApp(page, width: 50, height: 14)
             step()
         }
 
@@ -127,7 +129,7 @@ struct HeldHelpResidualTests {
             return true
         }
 
-        var lines: [String] { app.screen.map(\.stripped) }
+        var lines: [String] { app.screen.lines }
 
         func shows(_ text: String) -> Bool { lines.contains { $0.contains(text) } }
 

@@ -22,6 +22,7 @@ import TUI
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 // MARK: - Probe apps
@@ -168,29 +169,29 @@ struct ChromeSnapshotTests {
 
     @Test("A top-bar menu's drop-down hangs over the page")
     func headerMenuDropDown() throws {
-        let app = HeadlessApp(HeaderMenuApp(), width: 40, height: 12)
+        let app = TestApp(HeaderMenuApp(), width: 40, height: 12)
         app.frame(atNanos: 0)
-        let file = try #require(cell(of: "File", in: app.screen), "\(app.screen.map(\.stripped))")
+        let file = try #require(cell(of: "File", in: app.screen.styledLines), "\(app.screen.lines)")
         app.send(MouseEvent(button: .left, phase: .pressed, x: file.x, y: file.y))
         app.send(MouseEvent(button: .left, phase: .released, x: file.x, y: file.y))
         app.frame(atNanos: 10 * Self.millisecond)
-        #expect(cell(of: "Open", in: app.screen) != nil, "the menu opened: \(app.screen.map(\.stripped))")
-        assertSnapshot("chrome-header-menu-open", of: screen(app.screen))
+        #expect(cell(of: "Open", in: app.screen.styledLines) != nil, "the menu opened: \(app.screen.lines)")
+        assertSnapshot("chrome-header-menu-open", of: screen(app.screen.styledLines))
     }
 
     @Test("A sheet over a page with a top bar")
     func sheetUnderHeader() {
-        let app = HeadlessApp(HeaderSheetApp(), width: 40, height: 14)
+        let app = TestApp(HeaderSheetApp(), width: 40, height: 14)
         app.frame(atNanos: 0)
-        assertSnapshot("chrome-header-sheet", of: screen(app.screen))
+        assertSnapshot("chrome-header-sheet", of: screen(app.screen.styledLines))
     }
 
     @Test("A drag preview below a top bar sits under the pointer")
     func dragPreviewBelowHeader() throws {
-        let app = HeadlessApp(HeaderDragApp(), width: 30, height: 12)
+        let app = TestApp(HeaderDragApp(), width: 30, height: 12)
         app.frame(atNanos: 0)
-        let chip = try #require(cell(of: "CHIP", in: app.screen), "\(app.screen.map(\.stripped))")
-        let zone = try #require(cell(of: "Drop zone", in: app.screen), "\(app.screen.map(\.stripped))")
+        let chip = try #require(cell(of: "CHIP", in: app.screen.styledLines), "\(app.screen.lines)")
+        let zone = try #require(cell(of: "Drop zone", in: app.screen.styledLines), "\(app.screen.lines)")
         app.send(MouseEvent(button: .left, phase: .pressed, x: chip.x, y: chip.y))
         app.send(MouseEvent(button: .left, phase: .dragged, x: chip.x + 1, y: chip.y))
         app.frame(atNanos: 10 * Self.millisecond)
@@ -198,6 +199,6 @@ struct ChromeSnapshotTests {
         app.frame(atNanos: 20 * Self.millisecond)
         // Past the lift, so the preview sits where the pointer holds it.
         app.frame(atNanos: 300 * Self.millisecond)
-        assertSnapshot("chrome-header-drag-preview", of: screen(app.screen))
+        assertSnapshot("chrome-header-drag-preview", of: screen(app.screen.styledLines))
     }
 }

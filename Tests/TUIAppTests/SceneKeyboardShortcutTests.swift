@@ -12,7 +12,9 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -53,14 +55,14 @@ private struct ClashingApp: App {
 struct SceneKeyboardShortcutTests {
     private var now: Int64 = 0
 
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
-        let headless = HeadlessApp(app, width: 50, height: 10)
+    private mutating func launched<A: App>(_ app: A) -> TestApp {
+        let headless = TestApp(app, width: 50, height: 10)
         frame(headless)
         frame(headless)
         return headless
     }
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
@@ -68,15 +70,15 @@ struct SceneKeyboardShortcutTests {
     /// Presses `character` with Control — ⌘ through the default `commandKey`
     /// — and Shift if `shift`, which a terminal reports with the letter's
     /// capital, and draws.
-    private mutating func press(_ character: Character, shift: Bool = false, in app: HeadlessApp) {
+    private mutating func press(_ character: Character, shift: Bool = false, in app: TestApp) {
         let typed = shift ? Character(character.uppercased()) : character
         app.send(KeyEvent(key: .character(typed), ctrl: true, shift: shift))
         frame(app)
         frame(app)
     }
 
-    private func screen(_ app: HeadlessApp) -> String {
-        app.screen.map(\.stripped).joined(separator: "\n")
+    private func screen(_ app: TestApp) -> String {
+        app.screen.lines.joined(separator: "\n")
     }
 
     @Test("A Window's key opens its window, and brings it to the front: one window")

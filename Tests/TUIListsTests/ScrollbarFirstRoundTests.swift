@@ -16,9 +16,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 import TUILists
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -182,11 +184,11 @@ struct ScrollbarFirstRoundTests {
         _ shape: ScrollbarRoundShape, indicators: ScrollIndicatorVisibility
     ) -> (lookups: Int, rowMeasures: Int, screen: [String], screenBefore: [String], split: String) {
         let measures = RowMeasures()
-        let app = HeadlessApp(
+        let app = TestApp(
             RoundsApp(shape: shape, indicators: indicators, measures: measures), width: 40, height: 20)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frame)
-        let screenBefore = app.screen.map(\.stripped)
+        let screenBefore = app.screen.lines
         let lookupsBefore = app.renderCache.measureMemoTotals
         let measuresBefore = measures.count
         app.send(KeyEvent(key: .character("t")))
@@ -195,7 +197,7 @@ struct ScrollbarFirstRoundTests {
         return (
             lookups: lookupsAfter.hits + lookupsAfter.misses - lookupsBefore.hits - lookupsBefore.misses,
             rowMeasures: measures.count - measuresBefore,
-            screen: app.screen.map(\.stripped),
+            screen: app.screen.lines,
             screenBefore: screenBefore,
             split: "\(lookupsAfter.hits - lookupsBefore.hits) hits, "
                 + "\(lookupsAfter.misses - lookupsBefore.misses) misses, "

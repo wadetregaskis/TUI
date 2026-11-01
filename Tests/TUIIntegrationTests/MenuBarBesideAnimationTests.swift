@@ -18,7 +18,9 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
+import TUITesting
 
 /// A dot cycling between three places for as long as it is drawn — each step
 /// a `withAnimation` of its own — under a menu bar whose titles each have a
@@ -49,16 +51,16 @@ private struct CyclingUnderMenuBar: App {
 struct MenuBarBesideAnimationTests {
     @Test("A page's repeating animation never changes a cell of the menu bar's titles")
     func titlesHoldStill() throws {
-        let app = HeadlessApp(CyclingUnderMenuBar(), width: 60, height: 8)
+        let app = TestApp(CyclingUnderMenuBar(), width: 60, height: 8)
         app.frame(atNanos: 0)
-        let first = app.screen[0].stripped
+        let first = app.screen.styledLines[0].stripped
         #expect(first.contains(" Example  Windows  Help "), "\(first)")
         // Two seconds of 60 Hz frames: four steps and more of the cycle, each
         // a pass carrying its animation.
         var rows: [String] = [first]
         for step in 1...120 {
             app.frame(atNanos: Int64(step) * 16_666_667)
-            let row = app.screen[0].stripped
+            let row = app.screen.styledLines[0].stripped
             if row != rows.last { rows.append(row) }
         }
         #expect(rows.count == 1, "the titles changed: \(rows)")

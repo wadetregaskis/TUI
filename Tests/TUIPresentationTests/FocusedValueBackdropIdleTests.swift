@@ -12,8 +12,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUIPresentation
+import TUITesting
 @testable import TUITestSupport
 
 private struct BackdropNoteKey: FocusedValueKey {
@@ -74,7 +76,7 @@ struct FocusedValueBackdropIdleTests {
     private static let frameNanos: Int64 = 16_666_667
 
     /// Draws `count` frames from `now`, one frame interval apart.
-    private func frames(_ app: HeadlessApp, _ count: Int, from now: inout Int64) {
+    private func frames(_ app: TestApp, _ count: Int, from now: inout Int64) {
         for _ in 0..<count {
             app.frame(atNanos: now)
             now += Self.frameNanos
@@ -83,27 +85,27 @@ struct FocusedValueBackdropIdleTests {
 
     @Test("A reader beneath a sheet reads the sheet's focused value and asks for no frames once settled")
     func readerBeneathASheetIdles() {
-        let app = HeadlessApp(SheetOverReaderApp(), width: 40, height: 12)
+        let app = TestApp(SheetOverReaderApp(), width: 40, height: 12)
         var now: Int64 = 0
         frames(app, 3, from: &now)
         let settled = app.framesAsked
         frames(app, 4, from: &now)
         #expect(app.framesAsked == settled, "frames asked for over four frames that change nothing")
         #expect(
-            app.screen.map(\.stripped).contains { $0.contains("note: sheet") },
-            "the page beneath reads what the focus publishes: \(app.screen.map(\.stripped))")
+            app.screen.lines.contains { $0.contains("note: sheet") },
+            "the page beneath reads what the focus publishes: \(app.screen.lines)")
     }
 
     @Test("A reader in a dimmed card reads the focused value and asks for no frames once settled")
     func readerInADimmedCardIdles() {
-        let app = HeadlessApp(DimmedReaderApp(), width: 40, height: 12)
+        let app = TestApp(DimmedReaderApp(), width: 40, height: 12)
         var now: Int64 = 0
         frames(app, 3, from: &now)
         let settled = app.framesAsked
         frames(app, 4, from: &now)
         #expect(app.framesAsked == settled, "frames asked for over four frames that change nothing")
         #expect(
-            app.screen.map(\.stripped).contains { $0.contains("note: live") },
-            "the dimmed card reads what the focus publishes: \(app.screen.map(\.stripped))")
+            app.screen.lines.contains { $0.contains("note: live") },
+            "the dimmed card reads what the focus publishes: \(app.screen.lines)")
     }
 }

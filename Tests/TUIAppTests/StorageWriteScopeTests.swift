@@ -7,8 +7,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -90,19 +92,19 @@ struct StorageWriteScopeTests {
         }
     }
 
-    private static func draw(_ app: HeadlessApp, _ frame: inout Int64) -> String {
+    private static func draw(_ app: TestApp, _ frame: inout Int64) -> String {
         for _ in 0..<2 {
             frame += 100_000_000
             app.frame(atNanos: frame)
         }
-        return app.screen.joined(separator: "\n").stripped
+        return app.screen.styledLines.joined(separator: "\n").stripped
     }
 
     @Test("A write redraws the views that read the key, keeps a kept view that did not, and clears nothing")
     func writeReachesItsReaders() {
         let (store, counter) = (MockStorageBackend(), Counter())
         let key = "scope.reader"
-        let app = HeadlessApp(Page(store: store, key: key, counter: counter), width: 30, height: 10)
+        let app = TestApp(Page(store: store, key: key, counter: counter), width: 30, height: 10)
         var frame: Int64 = 1_000_000_000
         let before = Self.draw(app, &frame)
         #expect(before.contains("flag false") && before.contains("□ stored"), "sanity:\n\(before)")
@@ -122,7 +124,7 @@ struct StorageWriteScopeTests {
     func storeWritesReachReaders() {
         let (store, counter) = (MockStorageBackend(), Counter())
         let key = "scope.direct"
-        let app = HeadlessApp(Page(store: store, key: key, counter: counter), width: 30, height: 10)
+        let app = TestApp(Page(store: store, key: key, counter: counter), width: 30, height: 10)
         var frame: Int64 = 1_000_000_000
         _ = Self.draw(app, &frame)
 
@@ -141,7 +143,7 @@ struct StorageWriteScopeTests {
     func storesKeepTheirOwnKeys() {
         let (store, elsewhere, counter) = (MockStorageBackend(), MockStorageBackend(), Counter())
         let key = "scope.shared-name"
-        let app = HeadlessApp(Page(store: store, key: key, counter: counter), width: 30, height: 10)
+        let app = TestApp(Page(store: store, key: key, counter: counter), width: 30, height: 10)
         var frame: Int64 = 1_000_000_000
         _ = Self.draw(app, &frame)
         let stats = app.renderCache.stats
@@ -155,7 +157,7 @@ struct StorageWriteScopeTests {
     @Test("A write in one app neither clears nor redraws another app that never read the key")
     func writeStaysInItsApp() {
         let (store, counter) = (MockStorageBackend(), Counter())
-        let bystander = HeadlessApp(
+        let bystander = TestApp(
             Page(store: store, key: "scope.bystander", counter: counter), width: 30, height: 10)
         var frame: Int64 = 1_000_000_000
         _ = Self.draw(bystander, &frame)
@@ -218,7 +220,7 @@ struct StorageWriteScopeTests {
     @Test("Rows that capture a stored value their parent read show the new value after a write")
     func capturedByRows() {
         let store = MockStorageBackend()
-        let app = HeadlessApp(CompactPage(store: store), width: 30, height: 8)
+        let app = TestApp(CompactPage(store: store), width: 30, height: 8)
         var frame: Int64 = 1_000_000_000
         let before = Self.draw(app, &frame)
         #expect(before.contains("alpha") && before.contains("bravo"), "sanity:\n\(before)")

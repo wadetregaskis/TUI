@@ -15,6 +15,7 @@ import Testing
 @testable import TUICore
 @testable import TUIFoundation
 import TUIPresentation
+import TUITesting
 @testable import TUITestSupport
 
 /// A page that marks its first and last rows.
@@ -174,10 +175,10 @@ struct OptInChromeTests {
 
     @Test("In a terminal too short for both bars, the bottom bar stays whole and the top bar gives way")
     func shortTerminalKeepsTheBottomBar() {
-        let app = HeadlessApp(BothBarsApp(), width: 40, height: 4)
+        let app = TestApp(BothBarsApp(), width: 40, height: 4)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        let rows = app.screen.map(\.stripped)
+        let rows = app.screen.lines
         #expect(rows.count == 4, "\(rows)")
         #expect(rows[0].hasPrefix("╭"), "the top bar's first row is all of it there is room for: \(rows)")
         #expect(rows[1].hasPrefix("╭"), "the bottom bar's top border: \(rows)")
@@ -190,10 +191,10 @@ struct OptInChromeTests {
         arguments: [3, 4])
     func cutBarHasNoLiveItem(height: Int) {
         CutBarProbe.shared.deletes = 0
-        let app = HeadlessApp(CutTopBarApp(), width: 40, height: height)
+        let app = TestApp(CutTopBarApp(), width: 40, height: height)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        let rows = app.screen.map(\.stripped)
+        let rows = app.screen.lines
         #expect(rows.contains { $0.contains("Q quit") }, "sanity: the bottom bar is whole: \(rows)")
         #expect(!rows.contains { $0.contains("DEL") }, "sanity: the top bar's item row is cut off: \(rows)")
         app.send(KeyEvent(key: .character("d")))
@@ -207,10 +208,10 @@ struct OptInChromeTests {
     @Test("A bar cut short but showing its item row keeps its items live")
     func cutBarShowingItsItemsIsLive() {
         CutBarProbe.shared.deletes = 0
-        let app = HeadlessApp(CutTopBarApp(), width: 40, height: 5)
+        let app = TestApp(CutTopBarApp(), width: 40, height: 5)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        let rows = app.screen.map(\.stripped)
+        let rows = app.screen.lines
         #expect(rows[1].contains("DEL"), "the top bar's wall and its item row: \(rows)")
         app.send(KeyEvent(key: .character("d")))
         #expect(CutBarProbe.shared.deletes == 1)
@@ -218,7 +219,7 @@ struct OptInChromeTests {
 
     @Test("A bar cut off by a short terminal keeps its items' @State for when the terminal grows")
     func cutBarKeepsItsItemsState() {
-        let app = HeadlessApp(CutTopBarApp(), width: 40, height: 10)
+        let app = TestApp(CutTopBarApp(), width: 40, height: 10)
         var now: Int64 = 0
         func frame() {
             app.frame(atNanos: now)
@@ -230,15 +231,15 @@ struct OptInChromeTests {
         frame()
         app.send(KeyEvent(key: .character("c")))
         frame()
-        #expect(app.screen.contains { $0.stripped.contains("TALLY 2") }, "sanity: \(app.screen.map(\.stripped))")
-        app.resize(width: 40, height: 3)
+        #expect(app.screen.contains("TALLY 2"), "sanity: \(app.screen.lines)")
+        app.setSize(width: 40, height: 3)
         frame()
         frame()
-        #expect(!app.screen.contains { $0.stripped.contains("TALLY") }, "sanity: cut off")
-        app.resize(width: 40, height: 10)
+        #expect(!app.screen.contains("TALLY"), "sanity: cut off")
+        app.setSize(width: 40, height: 10)
         frame()
         frame()
-        let rows = app.screen.map(\.stripped)
+        let rows = app.screen.lines
         #expect(rows.contains { $0.contains("TALLY 2") }, "\(rows)")
     }
 
@@ -246,10 +247,10 @@ struct OptInChromeTests {
     func hintsUnderASheetAreTheSheets() throws {
         SheetProbe.shared.adds = 0
         SheetProbe.shared.presented = true
-        let app = HeadlessApp(HintsUnderSheetApp(), width: 50, height: 10)
+        let app = TestApp(HintsUnderSheetApp(), width: 50, height: 10)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        let rows = app.screen.map(\.stripped)
+        let rows = app.screen.lines
         let line = rows[rows.count - 2]
         #expect(line.contains("dismiss"), "the sheet's Escape: \(rows)")
         #expect(!line.contains("new"), "not the page's item, which does nothing behind the sheet: \(rows)")

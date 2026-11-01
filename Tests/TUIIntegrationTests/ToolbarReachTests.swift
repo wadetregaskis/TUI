@@ -16,6 +16,7 @@ import TUI
 @testable import TUIChrome
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// What the probes' actions did, reachable from an `App`.
@@ -188,16 +189,16 @@ private struct LoadingPageApp: App {
 struct ToolbarReachTests {
 
     /// Two frames: one that declares the bars, one that draws them.
-    private func settled<A: App>(_ app: A, width: Int = 50, height: Int = 12) -> HeadlessApp {
-        let headless = HeadlessApp(app, width: width, height: height)
+    private func settled<A: App>(_ app: A, width: Int = 50, height: Int = 12) -> TestApp {
+        let headless = TestApp(app, width: width, height: height)
         headless.frame(atNanos: 0)
         headless.frame(atNanos: 20_000_000)
         return headless
     }
 
     /// Clicks the first cell of `text` on the screen.
-    private func click(_ text: String, in app: HeadlessApp) throws {
-        let rows = app.screen.map(\.stripped)
+    private func click(_ text: String, in app: TestApp) throws {
+        let rows = app.screen.lines
         let row = try #require(rows.firstIndex { $0.contains(text) }, "\(rows)")
         let column = rows[row].distance(
             from: rows[row].startIndex, to: try #require(rows[row].range(of: text)).lowerBound)
@@ -209,7 +210,7 @@ struct ToolbarReachTests {
     func bottomBarIsInertUnderAModal() throws {
         ReachProbe.shared.reset()
         let app = settled(BottomButtonUnderSheetApp())
-        #expect(app.screen.contains { $0.stripped.contains("DELETE") }, "the bar is still drawn")
+        #expect(app.screen.contains("DELETE"), "the bar is still drawn")
         app.send(KeyEvent(key: .character("d")))
         #expect(ReachProbe.shared.deletes == 0, "not by its key")
         try click("DELETE", in: app)
@@ -220,7 +221,7 @@ struct ToolbarReachTests {
     func coveredRootDeclaresNothing() {
         ReachProbe.shared.reset()
         let shown = settled(CoveredRootApp())
-        #expect(shown.screen.contains { $0.stripped.contains("WIPE") }, "sanity: the root's item, while it shows")
+        #expect(shown.screen.contains("WIPE"), "sanity: the root's item, while it shows")
         shown.send(KeyEvent(key: .character("d")))
         #expect(ReachProbe.shared.deletes == 1, "sanity: and its shortcut")
 
@@ -228,7 +229,7 @@ struct ToolbarReachTests {
         ReachProbe.shared.pushed = true
         defer { ReachProbe.shared.pushed = false }
         let covered = settled(CoveredRootApp())
-        let rows = covered.screen.map(\.stripped)
+        let rows = covered.screen.lines
         #expect(rows.contains { $0.contains("DETAIL 1") }, "sanity: the pushed screen: \(rows)")
         #expect(!rows.contains { $0.contains("WIPE") }, "the covered root's item is not drawn: \(rows)")
         covered.send(KeyEvent(key: .character("d")))
@@ -239,12 +240,12 @@ struct ToolbarReachTests {
     func coveredRootHidesNoBar() {
         ReachProbe.shared.reset()
         let shown = settled(CoveredRootApp())
-        #expect(!shown.screen.contains { $0.stripped.contains("Q quit") }, "sanity: the root hides the hints")
+        #expect(!shown.screen.contains("Q quit"), "sanity: the root hides the hints")
 
         ReachProbe.shared.pushed = true
         defer { ReachProbe.shared.pushed = false }
         let covered = settled(CoveredRootApp())
-        let rows = covered.screen.map(\.stripped)
+        let rows = covered.screen.lines
         #expect(rows.contains { $0.contains("Q quit") }, "the pushed screen has its bottom bar: \(rows)")
     }
 
@@ -264,16 +265,16 @@ struct ToolbarReachTests {
             app.send(KeyEvent(key: .character("c")))
             frames(1)
         }
-        #expect(app.screen.contains { $0.stripped.contains("TALLY 3") }, "sanity: \(app.screen.map(\.stripped))")
+        #expect(app.screen.contains("TALLY 3"), "sanity: \(app.screen.lines)")
 
         ReachProbe.shared.pushed = true
         frames()
-        #expect(app.screen.contains { $0.stripped.contains("DETAIL 1") }, "sanity: pushed")
-        #expect(!app.screen.contains { $0.stripped.contains("TALLY") }, "sanity: the root's item is not drawn")
+        #expect(app.screen.contains("DETAIL 1"), "sanity: pushed")
+        #expect(!app.screen.contains("TALLY"), "sanity: the root's item is not drawn")
 
         ReachProbe.shared.pushed = false
         frames()
-        let rows = app.screen.map(\.stripped)
+        let rows = app.screen.lines
         #expect(rows.contains { $0.contains("TALLY 3") }, "popped, the item has its count: \(rows)")
     }
 
@@ -282,7 +283,7 @@ struct ToolbarReachTests {
         ReachProbe.shared.reset()
         let app = settled(ProbedRowsApp())
         app.frame(atNanos: 40_000_000)
-        let rows = app.screen.map(\.stripped)
+        let rows = app.screen.lines
         #expect(rows.contains { $0.contains("ROW 0") }, "sanity: \(rows)")
         #expect(!rows.contains { $0.contains("ROW 25") }, "sanity: row 25 is off the screen: \(rows)")
         #expect(!rows.contains { $0.contains("LEAK") }, "its item is not in a bar: \(rows)")
@@ -294,7 +295,7 @@ struct ToolbarReachTests {
     func dimmedDeclarationIsInert() throws {
         ReachProbe.shared.reset()
         let app = settled(DimmedDeclarationApp())
-        #expect(app.screen.contains { $0.stripped.contains("WIPE") }, "\(app.screen.map(\.stripped))")
+        #expect(app.screen.contains("WIPE"), "\(app.screen.lines)")
         app.send(KeyEvent(key: .character("d")))
         #expect(ReachProbe.shared.deletes == 0, "not by its key")
         try click("WIPE", in: app)

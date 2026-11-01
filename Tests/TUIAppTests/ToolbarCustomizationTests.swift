@@ -14,6 +14,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// The store the probe's choices are kept in, and what its items did,
@@ -128,11 +129,11 @@ struct ToolbarCustomizationTests {
     /// The app and its frame clock.
     @MainActor
     private final class Driver<Probe: App> {
-        let app: HeadlessApp
+        let app: TestApp
         var now: Int64 = 0
 
         init(_ probe: Probe) {
-            app = HeadlessApp(probe, width: 70, height: 16)
+            app = TestApp(probe, width: 70, height: 16)
             frames(2)
         }
 
@@ -143,7 +144,7 @@ struct ToolbarCustomizationTests {
             }
         }
 
-        var rows: [String] { app.screen.map(\.stripped) }
+        var rows: [String] { app.screen.lines }
 
         /// Clicks the first cell showing `text`, with `button`.
         func click(_ text: String, button: MouseButton = .left, after skip: String? = nil) {
@@ -383,7 +384,7 @@ struct ToolbarCustomizationTests {
     func keyboardCustomizes() {
         reset()
         defer { reset() }
-        let app = HeadlessApp(KeyboardCustomizableApp(), width: 60, height: 14)
+        let app = TestApp(KeyboardCustomizableApp(), width: 60, height: 14)
         var now: Int64 = 0
         func frames() {
             for _ in 0..<2 {
@@ -400,15 +401,15 @@ struct ToolbarCustomizationTests {
         press(KeyEvent(key: .tab))
         #expect(app.focusedID?.contains("button") == true, "\(String(describing: app.focusedID))")
         press(KeyEvent(key: .f10, shift: true))
-        #expect(app.screen.contains { $0.stripped.contains("Customize Toolbar") }, "\(app.screen.map(\.stripped))")
+        #expect(app.screen.contains("Customize Toolbar"), "\(app.screen.lines)")
         press(KeyEvent(key: .enter))
-        let panel = app.screen.map(\.stripped)
+        let panel = app.screen.lines
         #expect(panel.contains { $0.contains("□") && $0.contains("OPEN") }, "\(panel)")
         // The first checkbox is NEW's, which is in the bar; OPEN's is the next stop
         // after NEW's arrows.
         for _ in 0..<3 { press(KeyEvent(key: .tab)) }
         press(KeyEvent(key: .space))
-        #expect(app.screen.first?.stripped.contains("OPEN") == true, "\(app.screen.map(\.stripped))")
+        #expect(app.screen.styledLines.first?.stripped.contains("OPEN") == true, "\(app.screen.lines)")
     }
 
     @Test("Reset forgets every choice")

@@ -14,9 +14,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 import TUIPickers
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -53,11 +55,11 @@ private struct FruitApp: App {
 struct PickerTypeSelectTests {
     @MainActor
     private final class Driver {
-        let app: HeadlessApp
+        let app: TestApp
         private var now: Int64 = 0
 
         init(_ scene: FruitApp) {
-            app = HeadlessApp(scene, width: 40, height: 14)
+            app = TestApp(scene, width: 40, height: 14)
             frame()
             frame()
         }

@@ -14,8 +14,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUIPresentation
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -79,7 +81,7 @@ struct DialogImplicitButtonTests {
     @Test("Return on the implicit OK closes the alert")
     func okCloses() {
         let flag = Flag()
-        let app = HeadlessApp(Page(flag: flag), width: 60, height: 12)
+        let app = TestApp(Page(flag: flag), width: 60, height: 12)
         var now: Int64 = 0
         func frame() {
             now += 16_666_667
@@ -87,7 +89,7 @@ struct DialogImplicitButtonTests {
         }
         frame()
         frame()
-        #expect(app.screen.contains { $0.stripped.contains("OK") }, "\(app.screen.map(\.stripped))")
+        #expect(app.screen.contains("OK"), "\(app.screen.lines)")
         _ = app.send(KeyEvent(key: .enter))
         frame()
         frame()

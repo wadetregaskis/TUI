@@ -16,8 +16,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -61,7 +63,7 @@ struct WindowedEstimateMeasureMemoTests {
         let verified = RenderCache.verifiesMeasureMemo
         RenderCache.verifiesMeasureMemo = true
         defer { RenderCache.verifiesMeasureMemo = verified }
-        let app = HeadlessApp(EstimateApp(anchor: anchor), width: 30, height: 10)
+        let app = TestApp(EstimateApp(anchor: anchor), width: 30, height: 10)
         let script: [KeyEvent?] = [
             nil, KeyEvent(key: .character("t")), KeyEvent(key: .pageUp), KeyEvent(key: .end),
             KeyEvent(key: .character("t")), nil,

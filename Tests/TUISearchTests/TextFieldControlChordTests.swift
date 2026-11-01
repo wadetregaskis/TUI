@@ -20,8 +20,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUISearch
+import TUITesting
 @testable import TUITestSupport
 @testable import TUITextInput
 
@@ -114,7 +116,7 @@ private struct Played {
 @MainActor
 private func play(_ keys: [KeyEvent], into host: ChordHost, from initial: String) -> Played {
     let text = BoundText(initial)
-    let app = HeadlessApp(ChordApp(host: host, text: text), width: 40, height: 10)
+    let app = TestApp(ChordApp(host: host, text: text), width: 40, height: 10)
     var now: Int64 = 0
     // The first frame registers the control and hands it the focus; the
     // second is the one a person would see before pressing anything.

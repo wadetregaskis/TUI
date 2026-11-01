@@ -22,9 +22,11 @@ import Observation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 import TUIMenus
+import TUITesting
 @testable import TUITestSupport
 
 @Observable
@@ -93,11 +95,11 @@ private struct DocumentsPage: View {
 @MainActor
 private final class Harness {
     let documents = Documents()
-    let app: HeadlessApp
+    let app: TestApp
     private var now: Int64 = 0
 
     init(lazy: Bool, followsEnd: Bool = false) {
-        app = HeadlessApp(DocumentsApp(documents, lazy: lazy, followsEnd: followsEnd), width: 40, height: 16)
+        app = TestApp(DocumentsApp(documents, lazy: lazy, followsEnd: followsEnd), width: 40, height: 16)
         frame()
         frame()
     }
@@ -107,12 +109,12 @@ private final class Harness {
         app.frame(atNanos: now)
     }
 
-    func shows(_ text: String) -> Bool { app.screen.contains { $0.stripped.contains(text) } }
+    func shows(_ text: String) -> Bool { app.screen.contains(text) }
 
     /// Opens the context menu of the document on the list's last line (or its
     /// first) with a right-click, and returns its number.
     func openMenu(onFirstRow: Bool) throws -> Int {
-        let lines = app.screen.map(\.stripped)
+        let lines = app.screen.lines
         let y = try #require(
             onFirstRow ? lines.firstIndex { $0.contains("document #") } : lines.lastIndex { $0.contains("document #") })
         let id = try #require(Int(lines[y].split(separator: "#")[1].prefix { $0.isNumber }))
@@ -222,10 +224,10 @@ struct UnheldPopUpScrolledOutTests {
     /// panels showed "tip 29" at the bottom edge, or "tip 26" at the top.
     @Test("A tooltip whose row is out of the viewport is not drawn", arguments: [false, true])
     func tooltipOfAnUnseenRow(followsEnd: Bool) {
-        let app = HeadlessApp(TooltipRowsApp(followsEnd: followsEnd), width: 40, height: 16)
+        let app = TestApp(TooltipRowsApp(followsEnd: followsEnd), width: 40, height: 16)
         app.frame(atNanos: 16_666_667)
         app.frame(atNanos: 33_333_334)
-        let lines = app.screen.map(\.stripped)
+        let lines = app.screen.lines
         let rows = Set(lines.flatMap { $0.matches(of: /row (\d+)/).compactMap { Int($0.output.1) } })
         let inView = followsEnd ? 27..<30 : 0..<2
         #expect(rows.isSubset(of: Set(inView)), "precondition: the rows in view: \(lines)")

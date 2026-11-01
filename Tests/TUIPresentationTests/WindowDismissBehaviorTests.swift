@@ -12,8 +12,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUIPresentation
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -81,20 +83,20 @@ private struct BehaviorApp: App {
 struct WindowDismissBehaviorTests {
     private var now: Int64 = 0
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func press(_ key: Key, in app: HeadlessApp) {
+    private mutating func press(_ key: Key, in app: TestApp) {
         app.send(KeyEvent(key: key))
         frame(app)
     }
 
-    private func screen(_ app: HeadlessApp) -> String {
-        app.screen.map(\.stripped).joined(separator: "\n")
+    private func screen(_ app: TestApp) -> String {
+        app.screen.lines.joined(separator: "\n")
     }
 
     @Test("A transaction's dismiss behavior is interactive unless set")
@@ -109,7 +111,7 @@ struct WindowDismissBehaviorTests {
 
     @Test("Interactive leaves the window in front open while it shows a sheet; destructive closes it")
     mutating func frontWindowWithSheet() {
-        let app = HeadlessApp(BehaviorApp(), width: 50, height: 12)
+        let app = TestApp(BehaviorApp(), width: 50, height: 12)
         frame(app)
         app.scenes.open(WindowTarget(id: "front"))
         frame(app)
@@ -124,7 +126,7 @@ struct WindowDismissBehaviorTests {
 
     @Test("The person's ways to close a window — Close Window, a visibility toggle's Hide — leave one showing a sheet open")
     mutating func personLeavesSheetWindowOpen() {
-        let app = HeadlessApp(BehaviorApp(), width: 50, height: 12)
+        let app = TestApp(BehaviorApp(), width: 50, height: 12)
         frame(app)
         app.scenes.open(WindowTarget(id: "front"))
         frame(app)
@@ -141,7 +143,7 @@ struct WindowDismissBehaviorTests {
 
     @Test("Interactive leaves a window held behind open while it shows a sheet; destructive closes it")
     mutating func heldWindowWithSheet() {
-        let app = HeadlessApp(BehaviorApp(), width: 50, height: 12)
+        let app = TestApp(BehaviorApp(), width: 50, height: 12)
         frame(app)
         press(.enter, in: app)  // present
         press(.enter, in: app)  // open other

@@ -14,8 +14,10 @@ import Foundation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// A row that is sometimes two lines, sometimes a filler right-aligned across
@@ -141,22 +143,22 @@ struct NestedLazyStackTwoAxisTests {
         // past the viewport, and the page scrolls both ways, writes, moves the
         // wide row and narrows. Content only: the vertical bar's thumb, placed
         // from an estimate by design, and the rows under the viewport go.
-        let lazy = HeadlessApp(TwoAxisGroupsApp(lazy: true), width: 34, height: 12)
-        let eager = HeadlessApp(TwoAxisGroupsApp(lazy: false), width: 34, height: 12)
+        let lazy = TestApp(TwoAxisGroupsApp(lazy: true), width: 34, height: 12)
+        let eager = TestApp(TwoAxisGroupsApp(lazy: false), width: 34, height: 12)
         var script: [KeyEvent?] = [nil, nil, KeyEvent(key: .character("t"))]
         script += Array(repeating: KeyEvent(key: .pageDown), count: 12)
         script += Array(repeating: KeyEvent(key: .right), count: 30)
         script += [KeyEvent(key: .character("w")), KeyEvent(key: .end), KeyEvent(key: .character("t")), nil]
         script += Array(repeating: KeyEvent(key: .left), count: 10)
         script += [KeyEvent(key: .home), KeyEvent(key: .character("w")), nil]
-        let content = { (app: HeadlessApp) in
-            app.screen.dropLast(4).map { String($0.stripped.dropLast()) }
+        let content = { (app: TestApp) in
+            app.screen.styledLines.dropLast(4).map { String($0.stripped.dropLast()) }
         }
         var diverged: [String] = []
         for (step, event) in script.enumerated() {
             if step == 50 {
-                lazy.resize(width: 26, height: 10)
-                eager.resize(width: 26, height: 10)
+                lazy.setSize(width: 26, height: 10)
+                eager.setSize(width: 26, height: 10)
             }
             if let event {
                 lazy.send(event)
@@ -179,7 +181,7 @@ struct NestedLazyStackTwoAxisTests {
         // like every other width, the probe missed it: the row wrapped at the
         // viewport and "END" was on a line of its own, never scrolled to.
         for lazy in [true, false] {
-            let app = HeadlessApp(TwoAxisTallApp(lazy: lazy), width: 30, height: 10)
+            let app = TestApp(TwoAxisTallApp(lazy: lazy), width: 30, height: 10)
             app.frame(atNanos: 0)
             app.frame(atNanos: Self.frame)
             app.send(KeyEvent(key: .end))
@@ -188,7 +190,7 @@ struct NestedLazyStackTwoAxisTests {
                 app.send(KeyEvent(key: .right))
                 app.frame(atNanos: Int64(3 + step) * Self.frame)
             }
-            let screen = app.screen.map(\.stripped)
+            let screen = app.screen.lines
             #expect(
                 screen.contains { $0.contains("wwww END") },
                 "\(lazy ? "lazy" : "eager"): the wide row's end, on its own line: \(screen)")

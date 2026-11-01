@@ -12,8 +12,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// How many times the button was pressed.
@@ -60,10 +62,10 @@ struct SpringLoadingRunLoopTests {
     @Test("The frame a pause starts in asks for one at its end, and that frame presses the button")
     func theLoopEndsThePause() throws {
         let presses = Presses()
-        let app = HeadlessApp(SpringPage(presses: presses), width: 30, height: 10)
+        let app = TestApp(SpringPage(presses: presses), width: 30, height: 10)
         app.frame(atNanos: 0)
-        let chip = try #require(cell(of: "CHIP", in: app.screen), "\(app.screen.map(\.stripped))")
-        let button = try #require(cell(of: "GO", in: app.screen), "\(app.screen.map(\.stripped))")
+        let chip = try #require(cell(of: "CHIP", in: app.screen.styledLines), "\(app.screen.lines)")
+        let button = try #require(cell(of: "GO", in: app.screen.styledLines), "\(app.screen.lines)")
 
         app.send(MouseEvent(button: .left, phase: .pressed, x: chip.x, y: chip.y))
         app.send(MouseEvent(button: .left, phase: .dragged, x: chip.x + 1, y: chip.y))

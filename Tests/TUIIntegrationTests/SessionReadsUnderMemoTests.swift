@@ -23,7 +23,9 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -31,11 +33,11 @@ import TUI
 /// empties it before every frame.
 @MainActor
 private final class Twin<A: App> {
-    let warm: HeadlessApp
-    let cold: HeadlessApp
+    let warm: TestApp
+    let cold: TestApp
     /// The script's own clock, a sixtieth of a second a frame from zero as the
     /// Stress sessions' is: an event arrives at the instant of the frame before
-    /// it (see `HeadlessApp`), so whatever counts from an arrival — a tooltip's
+    /// it (see `TestApp`), so whatever counts from an arrival — a tooltip's
     /// delay — counts on this clock alone, the same in both apps however long
     /// the machine takes between them.
     private(set) var now: Int64 = 0
@@ -44,8 +46,8 @@ private final class Twin<A: App> {
     private var frames = 0
 
     init(_ make: () -> A, width: Int = 60, height: Int = 16) {
-        warm = HeadlessApp(make(), width: width, height: height)
-        cold = HeadlessApp(make(), width: width, height: height)
+        warm = TestApp(make(), width: width, height: height)
+        cold = TestApp(make(), width: width, height: height)
         cold.clearsRenderCacheEachFrame = true
         frame()
     }
@@ -59,7 +61,7 @@ private final class Twin<A: App> {
         cold.frame(atNanos: now, date: date)
         // Styled, not stripped: a scrollbar lit under the pointer is the same
         // text in other colours.
-        let (w, c) = (warm.screen, cold.screen)
+        let (w, c) = (warm.screen.styledLines, cold.screen.styledLines)
         guard w != c, let row = w.indices.first(where: { $0 >= c.count || w[$0] != c[$0] }) else { return }
         let (kept, wanted) = (w[row].stripped, row < c.count ? c[row].stripped : "")
         let styled = kept == wanted ? " (the same text, styled differently)" : ""
@@ -78,7 +80,7 @@ private final class Twin<A: App> {
 
     /// Where `text` first appears on the cold screen: column and row.
     func position(of text: String) -> (x: Int, y: Int)? {
-        for (row, line) in cold.screen.map(\.stripped).enumerated() {
+        for (row, line) in cold.screen.lines.enumerated() {
             if let range = line.range(of: text) {
                 return (line.distance(from: line.startIndex, to: range.lowerBound), row)
             }
@@ -421,7 +423,7 @@ struct SessionReadsUnderMemoTests {
             "precondition: the drop is taken exactly when it lands on the zone")
         twin.frames(24)
         #expect(twin.divergences.isEmpty, "\(twin.divergences.prefix(4))")
-        #expect(twin.warm.screen.map(\.stripped).contains { $0.contains("card 1") }, "the card never came back")
+        #expect(twin.warm.screen.lines.contains { $0.contains("card 1") }, "the card never came back")
     }
 
     /// A tooltip appears once the pointer has rested on the view it explains.
@@ -463,7 +465,7 @@ struct SessionReadsUnderMemoTests {
             "the kept app did not ask to be woken for the tooltip: \(String(describing: warmWake)) against \(due)")
         twin.frames(60)
         #expect(
-            twin.cold.screen.map(\.stripped).contains { $0.contains("about card 2") },
+            twin.cold.screen.lines.contains { $0.contains("about card 2") },
             "precondition: the cold app shows the tooltip, or this proves nothing")
         twin.send(MouseEvent(button: .none, phase: .moved, x: row.x + 1, y: row.y + 6))
         twin.frames(10)
@@ -589,13 +591,13 @@ struct SessionReadsUnderMemoTests {
         let twin = Twin({ ScrollersApp(kind: sideways ? .sideways : .scrollView) }, width: 50, height: 14)
         twin.frames(3)
         let (arrow, x, y) = try arrowOfTheRightScrollView(in: twin, sideways: sideways)
-        let resting = twin.cold.screen
+        let resting = twin.cold.screen.styledLines
         twin.send(MouseEvent(button: .none, phase: .moved, x: x + (sideways ? 1 : -1), y: y + (sideways ? -1 : 1)))
         twin.frame()
         twin.send(MouseEvent(button: .none, phase: .moved, x: x, y: y))
         twin.frames(2)
         #expect(
-            twin.cold.screen != resting,
+            twin.cold.screen.styledLines != resting,
             "precondition: the cold app lifted the \(arrow) arrow, or this proves nothing")
         twin.send(MouseEvent(button: .none, phase: .moved, x: x + (sideways ? 1 : -1), y: y + (sideways ? -1 : 1)))
         twin.frames(2)
@@ -609,7 +611,7 @@ struct SessionReadsUnderMemoTests {
     ) throws -> (arrow: Character, x: Int, y: Int) {
         let arrow: Character = sideways ? "◀" : "▲"
         let top = try #require(twin.position(of: "right"))
-        let lines = twin.cold.screen.map(\.stripped)
+        let lines = twin.cold.screen.lines
         for y in top.y..<lines.count {
             let line = lines[y]
             guard let index = line.lastIndex(of: arrow) else { continue }
@@ -628,7 +630,7 @@ struct SessionReadsUnderMemoTests {
         let twin = Twin({ ScrollersApp(kind: .textIndicators) }, width: 50, height: 14)
         twin.frames(3)
         let top = try #require(twin.position(of: "right 0"))
-        let lines = twin.cold.screen.map(\.stripped)
+        let lines = twin.cold.screen.lines
         let belowY = try #require(
             lines.indices.dropFirst(top.y).first { lines[$0].contains("below") },
             "precondition: the right scroll view draws a \"lines below\" line")
@@ -682,14 +684,14 @@ struct SessionReadsUnderMemoTests {
         let twin = Twin(ResizableApp.init)
         twin.frames(3)
         let card = try #require(twin.position(of: "card 2"))
-        let resting = twin.cold.screen
+        let resting = twin.cold.screen.styledLines
         // The corner: eleven cells along the twelve-wide frame, on its second line.
         twin.send(MouseEvent(button: .none, phase: .moved, x: card.x + 11, y: card.y + 1))
         twin.frames(3)
-        #expect(twin.cold.screen != resting, "precondition: the cold app lit the grip, or this proves nothing")
+        #expect(twin.cold.screen.styledLines != resting, "precondition: the cold app lit the grip, or this proves nothing")
         twin.send(MouseEvent(button: .none, phase: .moved, x: card.x + 20, y: card.y + 1))
         twin.frames(3)
-        #expect(twin.cold.screen == resting, "precondition: the cold app put the grip back to rest")
+        #expect(twin.cold.screen.styledLines == resting, "precondition: the cold app put the grip back to rest")
         #expect(twin.divergences.isEmpty, "\(twin.divergences.prefix(4))")
     }
 
@@ -742,7 +744,7 @@ struct SessionReadsUnderMemoTests {
         twin.send(MouseEvent(button: .left, phase: .released, x: menu.x + 1, y: menu.y))
         twin.frames(3)
         #expect(
-            twin.cold.screen.map(\.stripped).contains { $0.contains("one") },
+            twin.cold.screen.lines.contains { $0.contains("one") },
             "precondition: the cold app shows the menu open, or this proves nothing")
         _ = twin.warm.send(KeyEvent(key: .escape))
         _ = twin.cold.send(KeyEvent(key: .escape))
@@ -753,7 +755,7 @@ struct SessionReadsUnderMemoTests {
         twin.send(MouseEvent(button: .right, phase: .released, x: context.x + 1, y: context.y))
         twin.frames(3)
         #expect(
-            twin.cold.screen.map(\.stripped).contains { $0.contains("three") },
+            twin.cold.screen.lines.contains { $0.contains("three") },
             "precondition: the cold app shows the context menu open, or this proves nothing")
         _ = twin.warm.send(KeyEvent(key: .escape))
         _ = twin.cold.send(KeyEvent(key: .escape))

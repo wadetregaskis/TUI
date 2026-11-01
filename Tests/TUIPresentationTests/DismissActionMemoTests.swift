@@ -12,8 +12,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUIPresentation
+import TUITesting
 @testable import TUITestSupport
 
 /// How often the memoized view's `body` ran.
@@ -89,7 +91,7 @@ struct DismissActionMemoTests {
     /// How many more times the memoized view's `body` ran over three frames
     /// after the first, which draws it (a first frame may walk it twice).
     private func laterBodies(of app: some App, count: BodyCount) -> Int {
-        let headless = HeadlessApp(app, width: 30, height: 6)
+        let headless = TestApp(app, width: 30, height: 6)
         headless.frame(atNanos: 0)
         let first = count.bodies
         for index in 1...3 { headless.frame(atNanos: Int64(index) * Self.frame) }

@@ -18,8 +18,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// The frame lengths a key press steps a `.line` spinner through, in ticks.
@@ -106,7 +108,7 @@ struct SpinnerSpeedChangeTests {
     /// replays between renders, so the sequence is what is on screen.
     @Test("Each tick shows the frame before it or the one after, through every change of speed")
     func carriesOnFromTheFrameShowing() {
-        expectContinuous(HeadlessApp(SpeedSteppingApp(), width: 30, height: 8))
+        expectContinuous(TestApp(SpeedSteppingApp(), width: 30, height: 8))
     }
 
     /// The same, where the spinner sits in a memoized row whose value changes with
@@ -114,17 +116,17 @@ struct SpinnerSpeedChangeTests {
     /// is the spinner it was.
     @Test("A spinner in a memoized row carries on too when its row's speed changes")
     func carriesOnInAMemoizedRow() {
-        expectContinuous(HeadlessApp(MemoizedRowsApp(), width: 30, height: 8))
+        expectContinuous(TestApp(MemoizedRowsApp(), width: 30, height: 8))
     }
 
-    private func expectContinuous(_ app: HeadlessApp) {
+    private func expectContinuous(_ app: TestApp) {
         let changes: Set<Int> = [37, 90, 141, 200]
         var shown: [Int] = []
         for tick in 0..<240 {
             if changes.contains(tick) { app.send(KeyEvent(key: .character("s"))) }
             app.frame(atNanos: AnimationClock.nanoseconds(atTick: Int64(tick)))
-            guard let index = frame(of: "stepped", on: app.screen) else {
-                Issue.record("no spinner on screen at tick \(tick): \(app.screen.map(\.stripped))")
+            guard let index = frame(of: "stepped", on: app.screen.styledLines) else {
+                Issue.record("no spinner on screen at tick \(tick): \(app.screen.lines)")
                 return
             }
             shown.append(index)
@@ -147,13 +149,13 @@ struct SpinnerSpeedChangeTests {
     /// stays on the shared clock's, in phase with every other spinner of its style.
     @Test("A spinner that never changes speed stays on the shared clock's phase")
     func anUnchangedSpinnerKeepsTheSharedPhase() {
-        let app = HeadlessApp(SpeedSteppingApp(), width: 30, height: 8)
+        let app = TestApp(SpeedSteppingApp(), width: 30, height: 8)
         for tick in 0..<120 {
             if tick == 37 { app.send(KeyEvent(key: .character("s"))) }
             let now = AnimationClock.nanoseconds(atTick: Int64(tick))
             app.frame(atNanos: now)
             let shared = Int(AnimationClock.step(atElapsed: Double(now) / 1_000_000_000, frameTicks: 8) % 4)
-            #expect(frame(of: "steady", on: app.screen) == shared, "tick \(tick)")
+            #expect(frame(of: "steady", on: app.screen.styledLines) == shared, "tick \(tick)")
         }
     }
 }

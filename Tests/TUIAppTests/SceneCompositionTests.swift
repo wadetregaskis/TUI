@@ -13,7 +13,9 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -100,14 +102,14 @@ private struct StatefulTwoGroupsApp: App {
 @Suite("Several scenes in one body")
 struct SceneCompositionTests {
     /// The app after its first frame.
-    private func launched<A: App>(_ app: A) -> HeadlessApp {
-        let headless = HeadlessApp(app, width: 40, height: 6)
+    private func launched<A: App>(_ app: A) -> TestApp {
+        let headless = TestApp(app, width: 40, height: 6)
         headless.frame(atNanos: 0)
         return headless
     }
 
-    private func screen(_ app: HeadlessApp) -> String {
-        app.screen.map(\.stripped).joined(separator: "\n")
+    private func screen(_ app: TestApp) -> String {
+        app.screen.lines.joined(separator: "\n")
     }
 
     @Test("Of two window groups, the first is the one drawn at launch")

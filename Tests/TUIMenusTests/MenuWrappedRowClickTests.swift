@@ -15,9 +15,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 import TUIMenus
+import TUITesting
 @testable import TUITestSupport
 
 private struct ExportApp: App {
@@ -47,7 +49,7 @@ private struct ExportPage: View {
 
 @MainActor
 private final class Harness {
-    let app = HeadlessApp(ExportApp(), width: 36, height: 16)
+    let app = TestApp(ExportApp(), width: 36, height: 16)
     private var now: Int64 = 0
 
     init() {
@@ -62,7 +64,7 @@ private final class Harness {
 
     /// The column where `text` starts on line `y`.
     func column(of text: String, on y: Int) -> Int? {
-        let line = app.screen[y].stripped
+        let line = app.screen.styledLines[y].stripped
         return line.range(of: text).map { line.distance(from: line.startIndex, to: $0.lowerBound) }
     }
 
@@ -75,14 +77,14 @@ private final class Harness {
     /// Opens the menu with a click on its label, and returns the line the long
     /// item starts on.
     func open() throws -> Int {
-        let y = try #require(app.screen.firstIndex { $0.stripped.contains("Export ▾") })
+        let y = try #require(app.screen.styledLines.firstIndex { $0.stripped.contains("Export ▾") })
         click(x: try #require(column(of: "Export", on: y)), y: y)
-        let first = try #require(app.screen.firstIndex { $0.stripped.contains("Export Everything") })
-        #expect(app.screen[first + 1].stripped.contains("Archive"), "precondition: the item wraps")
+        let first = try #require(app.screen.styledLines.firstIndex { $0.stripped.contains("Export Everything") })
+        #expect(app.screen.styledLines[first + 1].stripped.contains("Archive"), "precondition: the item wraps")
         return first
     }
 
-    var ran: String? { app.screen.first { $0.stripped.contains("ran ") }?.stripped.trimmingCharacters(in: .whitespaces) }
+    var ran: String? { app.screen.styledLines.first { $0.stripped.contains("ran ") }?.stripped.trimmingCharacters(in: .whitespaces) }
 }
 
 @MainActor
@@ -102,9 +104,9 @@ struct MenuWrappedRowClickTests {
         let harness = Harness()
         let first = try harness.open()
         let x = try #require(harness.column(of: "│ ", on: first)) + 2
-        let unlit = harness.app.screen[first]
+        let unlit = harness.app.screen.styledLines[first]
         harness.app.send(MouseEvent(button: .none, phase: .moved, x: x, y: first))
         harness.frame()
-        #expect(harness.app.screen[first] != unlit, "the pointer over the first line lit nothing")
+        #expect(harness.app.screen.styledLines[first] != unlit, "the pointer over the first line lit nothing")
     }
 }

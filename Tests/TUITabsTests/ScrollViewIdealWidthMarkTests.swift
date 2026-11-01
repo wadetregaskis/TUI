@@ -16,9 +16,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 import TUITabs
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -103,13 +105,13 @@ struct ScrollViewIdealWidthMarkTests {
         let verified = RenderCache.verifiesMeasureMemo
         RenderCache.verifiesMeasureMemo = true
         defer { RenderCache.verifiesMeasureMemo = verified }
-        let app = HeadlessApp(IdealWidthMarkApp(shape: shape), width: 60, height: 12)
+        let app = TestApp(IdealWidthMarkApp(shape: shape), width: 60, height: 12)
         var now: Int64 = 0
         var frames: [[String]] = []
         for _ in 0..<5 {
             now += 16_666_667
             app.frame(atNanos: now)
-            frames.append(app.screen.map(\.stripped))
+            frames.append(app.screen.lines)
         }
         for index in 1..<frames.count {
             #expect(frames[index] == frames[0], "frame \(index) differs from frame 0: \(frames[index])")

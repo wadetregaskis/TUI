@@ -15,7 +15,9 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -46,19 +48,19 @@ struct FocusableInteractionsTests {
 
     /// The probe's line after a click on it, and after a Tab from there.
     private func probe(_ interactions: FocusInteractions) -> (afterClick: String, afterTab: String) {
-        let app = HeadlessApp(Page(interactions: interactions), width: 30, height: 4)
+        let app = TestApp(Page(interactions: interactions), width: 30, height: 4)
         var now: Int64 = 0
         func frame() {
             now += 16_666_667
             app.frame(atNanos: now)
         }
-        func line() -> String { app.screen.map(\.stripped).first { $0.contains("probe") } ?? "" }
+        func line() -> String { app.screen.lines.first { $0.contains("probe") } ?? "" }
         frame()
         frame()
-        guard let row = app.screen.firstIndex(where: { $0.stripped.contains("probe") }),
-            let start = app.screen[row].stripped.range(of: "probe")
+        guard let row = app.screen.styledLines.firstIndex(where: { $0.stripped.contains("probe") }),
+            let start = app.screen.styledLines[row].stripped.range(of: "probe")
         else { return ("", "") }
-        let column = app.screen[row].stripped.distance(from: app.screen[row].stripped.startIndex, to: start.lowerBound)
+        let column = app.screen.styledLines[row].stripped.distance(from: app.screen.styledLines[row].stripped.startIndex, to: start.lowerBound)
         _ = app.send(MouseEvent(button: .left, phase: .pressed, x: column + 1, y: row))
         _ = app.send(MouseEvent(button: .left, phase: .released, x: column + 1, y: row))
         frame()

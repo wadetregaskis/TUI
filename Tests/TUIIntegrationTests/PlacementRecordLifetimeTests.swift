@@ -15,7 +15,9 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUIView
 
 /// Where the list is scrolled, which the test moves between frames.
@@ -64,7 +66,7 @@ struct PlacementRecordLifetimeTests {
     @Test("A list scrolled end to end remembers a bounded number of stacks, not every one it has shown")
     func scrolledRowsAreForgotten() {
         let model = ScrolledListModel()
-        let app = HeadlessApp(ScrolledListApp(model: model), width: 30, height: 20)
+        let app = TestApp(ScrolledListApp(model: model), width: 30, height: 20)
         var now: Int64 = 0
         func frame() {
             now += 16_666_667
@@ -83,8 +85,8 @@ struct PlacementRecordLifetimeTests {
             most = max(most, placements.count)
         }
         #expect(
-            app.screen.map(\.stripped).contains { $0.contains("row 2999") },
-            "precondition: the list reached its end:\n\(app.screen.map(\.stripped))")
+            app.screen.lines.contains { $0.contains("row 2999") },
+            "precondition: the list reached its end:\n\(app.screen.lines)")
         // Every row scrolled through was built, so without pruning the table
         // would end near 3,000; with it, it never passes the first threshold
         // by more than a frame's rows.

@@ -14,9 +14,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 import TUIMenus
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -51,11 +53,11 @@ private struct TypeSelectMenuApp: App {
 struct MenuTypeSelectTests {
     @MainActor
     private final class Driver {
-        let app: HeadlessApp
+        let app: TestApp
         private var now: Int64 = 0
 
         init(_ scene: TypeSelectMenuApp) {
-            app = HeadlessApp(scene, width: 50, height: 16)
+            app = TestApp(scene, width: 50, height: 16)
             frame()
             frame()
             // Opened from the keyboard: the first row highlighted.

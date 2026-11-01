@@ -19,8 +19,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -101,14 +103,14 @@ private struct BesideASibling: View {
 struct ButtonFillingLabelTests {
     @Test("A filling button leaves its sibling room", arguments: FillingButtonCase.allCases)
     func leavesItsSiblingRoom(kind: FillingButtonCase) {
-        let app = HeadlessApp(BesideASiblingApp(kind: kind), width: 40, height: 6)
+        let app = TestApp(BesideASiblingApp(kind: kind), width: 40, height: 6)
         var now: Int64 = 0
         // Past the frame the `@State` label's appearing writes its state on.
         for _ in 0..<3 {
             now += 16_666_667
             app.frame(atNanos: now)
         }
-        let row = app.screen.map(\.stripped).first { $0.contains("left") } ?? "<none>"
+        let row = app.screen.lines.first { $0.contains("left") } ?? "<none>"
         #expect(row.contains("OK"), "\(kind): |\(row)|")
         #expect(row.contains("right"), "\(kind): |\(row)|")
     }

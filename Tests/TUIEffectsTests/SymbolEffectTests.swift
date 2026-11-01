@@ -13,10 +13,12 @@
     import Foundation
     import Symbols
     import Testing
+    @testable import TUIAppTestSupport
 
     @testable import TUIApp
 @testable import TUIEffects
     @testable import TUIFoundation
+    import TUITesting
     @testable import TUITestSupport
 
     /// What the glyphs below saw, frame by frame.
@@ -192,7 +194,7 @@
         func theDiscreteModifier() {
             let log = EffectLog()
             let counter = Counter()
-            let app = HeadlessApp(DiscreteApp(log: log, counter: counter), width: 20, height: 3)
+            let app = TestApp(DiscreteApp(log: log, counter: counter), width: 20, height: 3)
             app.frame(atNanos: 0)
             #expect(log.seen.last == .some(nil), "the effect played as the view appeared")
 
@@ -216,7 +218,7 @@
         func theDiscreteModifierBehindAMemo() {
             let log = EffectLog()
             let counter = Counter()
-            let app = HeadlessApp(MemoizedDiscreteApp(log: log, counter: counter), width: 20, height: 3)
+            let app = TestApp(MemoizedDiscreteApp(log: log, counter: counter), width: 20, height: 3)
             app.frame(atNanos: 0)
             app.frame(atNanos: 16_666_667)
             #expect(log.seen.last == .some(nil))

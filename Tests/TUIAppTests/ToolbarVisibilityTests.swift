@@ -14,6 +14,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// Which bars the probe hides, reachable from an `App`.
@@ -143,7 +144,7 @@ struct ToolbarVisibilityTests {
     func hidingKeepsItemState() {
         reset()
         defer { reset() }
-        let app = HeadlessApp(HiddenCounterApp(), width: 40, height: 10)
+        let app = TestApp(HiddenCounterApp(), width: 40, height: 10)
         var now: Int64 = 0
         func frames(_ count: Int) {
             for _ in 0..<count {
@@ -151,7 +152,7 @@ struct ToolbarVisibilityTests {
                 now += 20_000_000
             }
         }
-        let rows = { app.screen.map(\.stripped) }
+        let rows = { app.screen.lines }
         frames(2)
         app.send(KeyEvent(key: .character("c")))
         frames(1)

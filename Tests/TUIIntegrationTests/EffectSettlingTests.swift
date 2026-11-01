@@ -4,7 +4,7 @@
 //  A frame is written once what its views did has settled (decisions
 //  B-D5G-11): the effects run after the walk, in SwiftUI's order, and a walk
 //  whose effects wrote state is walked again before the frame reaches the
-//  terminal. Every test here reads the frame WRITTEN — `HeadlessApp.screen`,
+//  terminal. Every test here reads the frame WRITTEN — `TestApp.screen`,
 //  what the diff writer put on the screen — not the state the effects left.
 //
 //  Created by Wade Tregaskis
@@ -15,8 +15,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -225,11 +227,11 @@ private struct QuietPage: View {
 struct EffectSettlingTests {
     @Test("The first frame written of a page that loads in onAppear shows what it loaded, above and below the loader")
     func onAppearLoadsInTheFirstFrame() {
-        let app = HeadlessApp(PageApp { LoadingPage() }, width: 30, height: 8)
+        let app = TestApp(PageApp { LoadingPage() }, width: 30, height: 8)
         app.frame(atNanos: 0)
-        #expect(shows("above 3", on: app.screen), "\(app.screen.map(\.stripped))")
-        #expect(shows("row c", on: app.screen), "\(app.screen.map(\.stripped))")
-        #expect(shows("below 3", on: app.screen), "\(app.screen.map(\.stripped))")
+        #expect(shows("above 3", on: app.screen.styledLines), "\(app.screen.lines)")
+        #expect(shows("row c", on: app.screen.styledLines), "\(app.screen.lines)")
+        #expect(shows("below 3", on: app.screen.styledLines), "\(app.screen.lines)")
         #expect(app.effectSettling.walkedAgainOnce == 1, "\(app.effectSettling)")
     }
 
@@ -239,66 +241,66 @@ struct EffectSettlingTests {
         // the app's body again, and a lamp made there would be a new one.
         let off = Lamp(isOn: false)
         let on = Lamp(isOn: true)
-        let turnedOn = HeadlessApp(PageApp { LampPage(lamp: off, turnsOnAtAppear: true) }, width: 30, height: 4)
+        let turnedOn = TestApp(PageApp { LampPage(lamp: off, turnsOnAtAppear: true) }, width: 30, height: 4)
         turnedOn.frame(atNanos: 0)
-        let alreadyOn = HeadlessApp(PageApp { LampPage(lamp: on, turnsOnAtAppear: false) }, width: 30, height: 4)
+        let alreadyOn = TestApp(PageApp { LampPage(lamp: on, turnsOnAtAppear: false) }, width: 30, height: 4)
         alreadyOn.frame(atNanos: 0)
-        #expect(turnedOn.screen == alreadyOn.screen, "\(turnedOn.screen.map(\.stripped))")
+        #expect(turnedOn.screen.styledLines == alreadyOn.screen.styledLines, "\(turnedOn.screen.lines)")
         #expect(turnedOn.effectSettling.walkedAgainOnce == 1, "\(turnedOn.effectSettling)")
     }
 
     @Test("A value an onChange derives is drawn in the frame that shows its source, on both sides of it")
     func onChangeDerivesInTheSameFrame() {
         let source = Source()
-        let app = HeadlessApp(PageApp { DerivingPage(source: source) }, width: 30, height: 6)
+        let app = TestApp(PageApp { DerivingPage(source: source) }, width: 30, height: 6)
         app.frame(atNanos: 0)
-        #expect(shows("derived above 0", on: app.screen))
+        #expect(shows("derived above 0", on: app.screen.styledLines))
         source.value = 4
         app.frame(atNanos: 16_666_667)
-        #expect(shows("source 4", on: app.screen))
-        #expect(shows("derived above 40", on: app.screen), "\(app.screen.map(\.stripped))")
-        #expect(shows("derived below 40", on: app.screen), "\(app.screen.map(\.stripped))")
+        #expect(shows("source 4", on: app.screen.styledLines))
+        #expect(shows("derived above 40", on: app.screen.styledLines), "\(app.screen.lines)")
+        #expect(shows("derived below 40", on: app.screen.styledLines), "\(app.screen.lines)")
     }
 
     @Test("Sizes a preference feeds back into the layout are in the first frame written: no flash of the empty layout")
     func preferenceFedLayoutDoesNotFlash() {
-        let app = HeadlessApp(PageApp { MeasuredLayoutPage() }, width: 30, height: 6)
+        let app = TestApp(PageApp { MeasuredLayoutPage() }, width: 30, height: 6)
         app.frame(atNanos: 0)
-        #expect(shows("widest 7", on: app.screen), "\(app.screen.map(\.stripped))")
-        #expect(shows("=======", on: app.screen), "\(app.screen.map(\.stripped))")
-        #expect(!shows("widest 0", on: app.screen))
+        #expect(shows("widest 7", on: app.screen.styledLines), "\(app.screen.lines)")
+        #expect(shows("=======", on: app.screen.styledLines), "\(app.screen.lines)")
+        #expect(!shows("widest 0", on: app.screen.styledLines))
     }
 
     @Test("A width onGeometryChange writes is drawn by a sibling before it in the first frame written")
     func geometryFedSiblingInTheFirstFrame() {
-        let app = HeadlessApp(PageApp { GeometryFedPage() }, width: 30, height: 6)
+        let app = TestApp(PageApp { GeometryFedPage() }, width: 30, height: 6)
         app.frame(atNanos: 0)
-        #expect(shows("width 12", on: app.screen), "\(app.screen.map(\.stripped))")
+        #expect(shows("width 12", on: app.screen.styledLines), "\(app.screen.lines)")
     }
 
     @Test("A chain of effects is walked again twice before the frame is written, then carries on a walk a frame")
     func chainCarriesOn() {
-        let app = HeadlessApp(PageApp { ChainPage() }, width: 30, height: 4)
+        let app = TestApp(PageApp { ChainPage() }, width: 30, height: 4)
         app.frame(atNanos: 0)
         // The onAppear's write, then the first change's: two walks more.
-        #expect(shows("chain 1,1,0,0,0", on: app.screen), "\(app.screen.map(\.stripped))")
+        #expect(shows("chain 1,1,0,0,0", on: app.screen.styledLines), "\(app.screen.lines)")
         #expect(app.effectSettling.walkedAgainTwice == 1 && app.effectSettling.leftWriting == 1, "\(app.effectSettling)")
         app.frame(atNanos: 16_666_667)
-        #expect(shows("chain 1,1,1,1,1", on: app.screen), "\(app.screen.map(\.stripped))")
+        #expect(shows("chain 1,1,1,1,1", on: app.screen.styledLines), "\(app.screen.lines)")
     }
 
     @Test("An onAppear's withAnimation animates from what the walk before it drew, which was never written")
     func appearAnimationStartsFromTheFirstWalk() {
-        let app = HeadlessApp(PageApp { SlidesInPage() }, width: 30, height: 4)
+        let app = TestApp(PageApp { SlidesInPage() }, width: 30, height: 4)
         func column() -> Int? {
-            for line in app.screen.map(\.stripped) {
+            for line in app.screen.lines {
                 if let range = line.range(of: "@") { return line.distance(from: line.startIndex, to: range.lowerBound) }
             }
             return nil
         }
         app.frame(atNanos: 0)
         let first = column()
-        #expect(first == 0, "the slide starts where the first walk drew the marker: \(app.screen.map(\.stripped))")
+        #expect(first == 0, "the slide starts where the first walk drew the marker: \(app.screen.lines)")
         app.frame(atNanos: 500_000_000)
         let middle = column() ?? 0
         #expect(middle > 0 && middle < 10, "part-way at half the animation: \(middle)")
@@ -309,11 +311,11 @@ struct EffectSettlingTests {
     @Test("An onChange that keeps triggering itself runs twice a frame; the third is refused, with SwiftUI's warning")
     func selfTriggeringOnChangeIsCutOff() {
         let source = Source()
-        let app = HeadlessApp(PageApp { SelfLoopPage(source: source) }, width: 30, height: 4)
+        let app = TestApp(PageApp { SelfLoopPage(source: source) }, width: 30, height: 4)
         var drawn: [Int] = []
         for frame in 0..<6 {
             app.frame(atNanos: Int64(frame) * 16_666_667)
-            drawn.append(number(after: "x ", on: app.screen) ?? -1)
+            drawn.append(number(after: "x ", on: app.screen.styledLines) ?? -1)
         }
         #expect(drawn.last.map { $0 < 200 } == true, "the loop ran on: \(drawn)")
         #expect(Set(drawn.suffix(3)).count == 1, "the loop stopped: \(drawn)")
@@ -323,17 +325,17 @@ struct EffectSettlingTests {
         let stopped = drawn.last ?? 0
         source.value = 1
         app.frame(atNanos: 6 * 16_666_667)
-        let restarted = number(after: "x ", on: app.screen) ?? -1
+        let restarted = number(after: "x ", on: app.screen.styledLines) ?? -1
         #expect(restarted > 100 && restarted != stopped, "\(restarted)")
     }
 
     @Test("An onPreferenceChange that feeds its own preference runs twice a frame; the third is refused, with SwiftUI's warning")
     func selfFeedingPreferenceIsCutOff() {
-        let app = HeadlessApp(PageApp { PreferenceLoopPage() }, width: 30, height: 4)
+        let app = TestApp(PageApp { PreferenceLoopPage() }, width: 30, height: 4)
         var drawn: [Int] = []
         for frame in 0..<6 {
             app.frame(atNanos: Int64(frame) * 16_666_667)
-            drawn.append(number(after: "n ", on: app.screen) ?? -1)
+            drawn.append(number(after: "n ", on: app.screen.styledLines) ?? -1)
         }
         #expect(drawn.last.map { $0 < 200 } == true, "the loop ran on: \(drawn)")
         #expect(Set(drawn.suffix(3)).count == 1, "the loop stopped: \(drawn)")
@@ -342,11 +344,11 @@ struct EffectSettlingTests {
 
     @Test("An onGeometryChange whose action moves its view back to the size before last is refused, with SwiftUI's warning")
     func geometryCycleIsCutOff() {
-        let app = HeadlessApp(PageApp { FlippingWidthPage() }, width: 30, height: 4)
+        let app = TestApp(PageApp { FlippingWidthPage() }, width: 30, height: 4)
         var drawn: [String] = []
         for frame in 0..<4 {
             app.frame(atNanos: Int64(frame) * 16_666_667)
-            drawn.append(app.screen.map(\.stripped).first { $0.contains("w") } ?? "")
+            drawn.append(app.screen.lines.first { $0.contains("w") } ?? "")
         }
         #expect(Set(drawn).count == 1, "it settled in the first frame: \(drawn)")
         #expect(SoftTrap.recorded.contains("Geometry action is cycling between duplicate values."))
@@ -355,9 +357,9 @@ struct EffectSettlingTests {
 
     @Test("A frame whose effects write nothing is walked once")
     func quietEffectsWalkOnce() {
-        let app = HeadlessApp(PageApp { QuietPage() }, width: 30, height: 4)
+        let app = TestApp(PageApp { QuietPage() }, width: 30, height: 4)
         for frame in 0..<3 { app.frame(atNanos: Int64(frame) * 16_666_667) }
-        #expect(shows("quiet", on: app.screen))
+        #expect(shows("quiet", on: app.screen.styledLines))
         #expect(app.effectSettling.frames == 3)
         #expect(app.effectSettling.walkedAgainOnce == 0 && app.effectSettling.walkedAgainTwice == 0)
     }

@@ -12,8 +12,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// A card whose detail grows and shrinks, memoized by its value: the row
@@ -75,8 +77,8 @@ struct StackGlideMemoTests {
     /// clears its render cache each frame, and the rows are seen to move.
     @Test("Each frame of a glide is the frame an uncached app draws")
     func glideMatchesUncached() {
-        let warm = HeadlessApp(GlidingApp(), width: 30, height: 14)
-        let cold = HeadlessApp(GlidingApp(), width: 30, height: 14)
+        let warm = TestApp(GlidingApp(), width: 30, height: 14)
+        let cold = TestApp(GlidingApp(), width: 30, height: 14)
         cold.clearsRenderCacheEachFrame = true
         var tick: Int64 = 0
         // Each app presses and draws before the other presses: the change's
@@ -90,8 +92,8 @@ struct StackGlideMemoTests {
             }
             tick += 1
         }
-        func row(of text: String, in app: HeadlessApp) -> Int? {
-            app.screen.map(\.stripped).firstIndex { $0.contains(text) }
+        func row(of text: String, in app: TestApp) -> Int? {
+            app.screen.lines.firstIndex { $0.contains(text) }
         }
 
         frame()
@@ -101,12 +103,12 @@ struct StackGlideMemoTests {
         var tailRows: Set<Int> = []
         for step in 0..<140 {
             frame(pressing: step == 0 || step == 70)
-            if warm.screen != cold.screen { differing.append(tick - 1) }
+            if warm.screen.styledLines != cold.screen.styledLines { differing.append(tick - 1) }
             if let tail = row(of: "tail", in: warm) { tailRows.insert(tail) }
         }
         #expect(
             differing.isEmpty,
-            "the cached app drew something else at ticks \(differing):\n\(warm.screen.map(\.stripped))")
+            "the cached app drew something else at ticks \(differing):\n\(warm.screen.lines)")
         #expect(tailRows.isSuperset(of: [3, 4, 5, 6]), "the tail did not glide through its rows: \(tailRows)")
         #expect(row(of: "tail", in: warm) == 3, "collapsed again")
         #expect(warm.renderCache.rowWork.served > 0, "nothing was ever served, so this proved nothing")

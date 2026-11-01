@@ -15,6 +15,7 @@ import Testing
 @testable import TUIEffects
 @testable import TUIFoundation
 @testable import TUITerminalHost
+import TUITesting
 @testable import TUITestSupport
 
 /// A view that comes and goes, in a slot that survives it — two cells of
@@ -130,13 +131,13 @@ struct ReduceMotionTests {
     }
 
     /// The review's failing input: with `TUI_REDUCE_MOTION=1` exported in
-    /// the shell that ran the tests, every `HeadlessApp` played its moves as
+    /// the shell that ran the tests, every `TestApp` played its moves as
     /// fades, because the loop read the process's environment itself. Only
     /// the app runner reads it now, and hands it to its loop.
     @Test("A headless app and a test's loop draw as if TUI_REDUCE_MOTION were unset, wherever they run")
     func headlessLoopsIgnoreTheProcess() {
         let headlessProbe = ReduceMotionProbe()
-        let headless = HeadlessApp(ReduceMotionProbeApp(probe: headlessProbe), width: 20, height: 4)
+        let headless = TestApp(ReduceMotionProbeApp(probe: headlessProbe), width: 20, height: 4)
         headless.frame(atNanos: 0)
         #expect(headlessProbe.seen == false)
 

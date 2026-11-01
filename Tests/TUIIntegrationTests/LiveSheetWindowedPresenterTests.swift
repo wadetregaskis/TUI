@@ -14,9 +14,11 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIChrome
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -191,8 +193,8 @@ private struct RowHostedApp: App {
 struct LiveSheetWindowedPresenterTests {
     private static let frameNanos: Int64 = 16_666_667
 
-    private func rows(_ app: HeadlessApp) -> [String] {
-        app.screen.map(\.stripped)
+    private func rows(_ app: TestApp) -> [String] {
+        app.screen.lines
     }
 
     /// The presenter drew nothing on the frame it was away, below a `List`
@@ -206,7 +208,7 @@ struct LiveSheetWindowedPresenterTests {
         arguments: [Host.listBranch, .lazyStackBranch, .listDisclosure])
     fileprivate func awayBelowAWindowingContainer(host: Host) {
         let model = WindowedHoldModel()
-        let app = HeadlessApp(BranchPageApp(model: model, host: host), width: 40, height: 20)
+        let app = TestApp(BranchPageApp(model: model, host: host), width: 40, height: 20)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frameNanos)
         // 20 rows, 8 docked: the page's 12.
@@ -235,7 +237,7 @@ struct LiveSheetWindowedPresenterTests {
         arguments: [RowHost.uniformLazyStack, .mixedLazyStack, .longMixedLazyStack, .table, .bottomGluedLazyStack])
     fileprivate func rowHostedSheetDoesNotLoop(host: RowHost) {
         let model = WindowedHoldModel()
-        let app = HeadlessApp(RowHostedApp(model: model, host: host), width: 40, height: 20)
+        let app = TestApp(RowHostedApp(model: model, host: host), width: 40, height: 20)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frameNanos)
         #expect(

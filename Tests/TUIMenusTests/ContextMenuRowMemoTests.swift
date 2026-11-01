@@ -17,9 +17,11 @@ import Observation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 import TUIMenus
+import TUITesting
 @testable import TUITestSupport
 
 @Observable
@@ -73,11 +75,11 @@ private struct DocumentRow: View, @MainActor Equatable {
 @MainActor
 private final class Harness {
     let documents = Documents()
-    let app: HeadlessApp
+    let app: TestApp
     private var now: Int64 = 0
 
     init() {
-        app = HeadlessApp(DocumentsApp(documents), width: 40, height: 16)
+        app = TestApp(DocumentsApp(documents), width: 40, height: 16)
         frame()
         frame()
     }
@@ -87,9 +89,9 @@ private final class Harness {
         app.frame(atNanos: now)
     }
 
-    func shows(_ text: String) -> Bool { app.screen.contains { $0.stripped.contains(text) } }
+    func shows(_ text: String) -> Bool { app.screen.contains(text) }
 
-    func line(of text: String) -> Int? { app.screen.firstIndex { $0.stripped.contains(text) } }
+    func line(of text: String) -> Int? { app.screen.styledLines.firstIndex { $0.stripped.contains(text) } }
 
     var served: Int { app.renderCache.rowWork.served }
 }
@@ -110,7 +112,7 @@ struct ContextMenuRowMemoTests {
         let harness = Harness()
         harness.frame()
         let y = try #require(harness.line(of: "document #3"))
-        let text = harness.app.screen[y].stripped
+        let text = harness.app.screen.styledLines[y].stripped
         let x = try #require(text.range(of: "document").map { text.distance(from: text.startIndex, to: $0.lowerBound) })
         harness.app.send(MouseEvent(button: .right, phase: .pressed, x: x, y: y))
         harness.app.send(MouseEvent(button: .right, phase: .released, x: x, y: y))

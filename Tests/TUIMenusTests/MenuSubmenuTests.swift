@@ -9,7 +9,7 @@
 //  menu it was in; a `Picker` drew a drop-down on a line the menu's arrows
 //  walked past.
 //
-//  Driven through `HeadlessApp`, the whole run loop: keys through the input
+//  Driven through `TestApp`, the whole run loop: keys through the input
 //  handler, clicks through the dispatcher in screen coordinates, a frame
 //  between events.
 //
@@ -19,9 +19,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 import TUIMenus
+import TUITesting
 @testable import TUITestSupport
 
 /// What the menus' items did.
@@ -84,11 +86,11 @@ struct MenuSubmenuTests {
     /// The app, with a clock that steps a frame at a time.
     @MainActor
     private final class Driver<Scene: App> {
-        let app: HeadlessApp
+        let app: TestApp
         private var now: Int64 = 0
 
         init(_ scene: Scene, width: Int = 60, height: Int = 20) {
-            app = HeadlessApp(scene, width: width, height: height)
+            app = TestApp(scene, width: width, height: height)
             frame()
             frame()
         }
@@ -103,13 +105,13 @@ struct MenuSubmenuTests {
             frame()
         }
 
-        var text: String { app.screen.map(\.stripped).joined(separator: "\n") }
+        var text: String { app.screen.lines.joined(separator: "\n") }
 
-        func shows(_ label: String) -> Bool { app.screen.contains { $0.stripped.contains(label) } }
+        func shows(_ label: String) -> Bool { app.screen.contains(label) }
 
         /// Where `label` is drawn: its first cell.
         func cell(of label: String) -> (x: Int, y: Int)? {
-            for (row, line) in app.screen.enumerated() {
+            for (row, line) in app.screen.styledLines.enumerated() {
                 let plain = line.stripped
                 if let range = plain.range(of: label) {
                     return (plain.distance(from: plain.startIndex, to: range.lowerBound), row)
@@ -120,7 +122,7 @@ struct MenuSubmenuTests {
 
         /// The line `label` is drawn on, as drawn.
         func line(of label: String) -> String? {
-            app.screen.map(\.stripped).first { $0.contains(label) }
+            app.screen.lines.first { $0.contains(label) }
         }
 
         func click(_ label: String) {

@@ -8,8 +8,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -31,8 +33,8 @@ struct ScreenSelectionMenuTests {
     }
 
     /// An app with `alpha` selected, its copies going to `log`.
-    func selected(log: SystemClipboardLog) throws -> (HeadlessApp, Clock, x: Int, y: Int) {
-        let app = HeadlessApp(Page(), width: 40, height: 10)
+    func selected(log: SystemClipboardLog) throws -> (TestApp, Clock, x: Int, y: Int) {
+        let app = TestApp(Page(), width: 40, height: 10)
         app.services.clipboardWriter = ClipboardWriter.stated(terminal: .unsupported, isLocal: true, log: log)
         let clock = Clock()
         func frame() {
@@ -41,7 +43,7 @@ struct ScreenSelectionMenuTests {
         }
         frame()
         frame()
-        let lines = app.screen.map(\.stripped)
+        let lines = app.screen.lines
         let y = try #require(lines.firstIndex { $0.contains("alpha") })
         let x = lines[y][..<(try #require(lines[y].range(of: "alpha")).lowerBound)].count
         app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: y))
@@ -53,7 +55,7 @@ struct ScreenSelectionMenuTests {
         return (app, clock, x, y)
     }
 
-    func frame(_ app: HeadlessApp, _ clock: Clock) {
+    func frame(_ app: TestApp, _ clock: Clock) {
         clock.nanos += 16_666_667
         app.frame(atNanos: clock.nanos)
     }
@@ -68,7 +70,7 @@ struct ScreenSelectionMenuTests {
         #expect(app.send(MouseEvent(button: .right, phase: .pressed, x: x + 1, y: y)))
         app.send(MouseEvent(button: .right, phase: .released, x: x + 1, y: y))
         frame(app, clock)
-        #expect(app.screen.map(\.stripped).contains { $0.contains(copyTitle) })
+        #expect(app.screen.lines.contains { $0.contains(copyTitle) })
         // A menu the pointer opened highlights nothing until a key moves in.
         app.send(KeyEvent(key: .down))
         frame(app, clock)
@@ -76,7 +78,7 @@ struct ScreenSelectionMenuTests {
         frame(app, clock)
         #expect(log.writes == ["alpha"])
         #expect(app.services.screenSelection.menuAnchor == nil)
-        #expect(!app.screen.map(\.stripped).contains { $0.contains(copyTitle) })
+        #expect(!app.screen.lines.contains { $0.contains(copyTitle) })
         // The selection outlives its menu, as on a Mac.
         #expect(app.services.screenSelection.hasSelection)
     }
@@ -89,7 +91,7 @@ struct ScreenSelectionMenuTests {
         let (app, clock, x, y) = try selected(log: log)
         app.send(MouseEvent(button: .right, phase: .pressed, x: x + 1, y: y))
         frame(app, clock)
-        let lines = app.screen.map(\.stripped)
+        let lines = app.screen.lines
         let row = try #require(lines.firstIndex { $0.contains(copyTitle) })
         let column = lines[row][..<(try #require(lines[row].range(of: copyTitle)).lowerBound)].count
         app.send(MouseEvent(button: .right, phase: .dragged, x: column + 1, y: row))
@@ -149,7 +151,7 @@ struct ScreenSelectionMenuTests {
     /// keys are the presentation's.
     @Test("A presentation clears the selection")
     func presentationClears() throws {
-        let app = HeadlessApp(AlertPage(), width: 40, height: 12)
+        let app = TestApp(AlertPage(), width: 40, height: 12)
         let clock = Clock()
         func frame() {
             clock.nanos += 16_666_667
@@ -157,7 +159,7 @@ struct ScreenSelectionMenuTests {
         }
         frame()
         frame()
-        let lines = app.screen.map(\.stripped)
+        let lines = app.screen.lines
         let y = try #require(lines.firstIndex { $0.contains("alpha") })
         let x = lines[y][..<(try #require(lines[y].range(of: "alpha")).lowerBound)].count
         app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: y))
@@ -169,7 +171,7 @@ struct ScreenSelectionMenuTests {
         app.send(KeyEvent(key: .enter))
         frame()
         frame()
-        #expect(app.screen.map(\.stripped).contains { $0.contains("Shown") })
+        #expect(app.screen.lines.contains { $0.contains("Shown") })
         #expect(!app.services.screenSelection.hasSelection)
     }
 
@@ -179,7 +181,7 @@ struct ScreenSelectionMenuTests {
         app.send(MouseEvent(button: .right, phase: .pressed, x: x + 10, y: y))
         frame(app, clock)
         #expect(app.services.screenSelection.menuAnchor == nil)
-        #expect(!app.screen.map(\.stripped).contains { $0.contains(copyTitle) })
+        #expect(!app.screen.lines.contains { $0.contains(copyTitle) })
     }
 
     /// The same page under a window top bar: the pointer's rows are the
@@ -201,7 +203,7 @@ struct ScreenSelectionMenuTests {
     /// copied, and how many rows below the clicked row the menu's Copy was.
     func copySecond<A: App>(_ page: A) throws -> (barDrawn: Bool, selected: String?, copied: [String], menuBelow: Int) {
         let log = SystemClipboardLog()
-        let app = HeadlessApp(page, width: 40, height: 12)
+        let app = TestApp(page, width: 40, height: 12)
         app.services.clipboardWriter = ClipboardWriter.stated(terminal: .unsupported, isLocal: true, log: log)
         let clock = Clock()
         func frame() {
@@ -210,7 +212,7 @@ struct ScreenSelectionMenuTests {
         }
         frame()
         frame()
-        let lines = app.screen.map(\.stripped)
+        let lines = app.screen.lines
         let y = try #require(lines.firstIndex { $0.contains("second") })
         let x = lines[y][..<(try #require(lines[y].range(of: "second")).lowerBound)].count
         app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: y))
@@ -221,7 +223,7 @@ struct ScreenSelectionMenuTests {
         app.send(MouseEvent(button: .right, phase: .pressed, x: x + 1, y: y))
         app.send(MouseEvent(button: .right, phase: .released, x: x + 1, y: y))
         frame()
-        let menuRow = try #require(app.screen.map(\.stripped).firstIndex { $0.contains(copyTitle) })
+        let menuRow = try #require(app.screen.lines.firstIndex { $0.contains(copyTitle) })
         app.send(KeyEvent(key: .down))
         frame()
         app.send(KeyEvent(key: .enter))

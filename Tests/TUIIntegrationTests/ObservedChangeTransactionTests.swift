@@ -13,8 +13,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// What a slide reads: how far the mark is, and a count beside it.
@@ -70,8 +72,8 @@ private struct ObservedSlideApp: App {
 @Suite("An observed change made inside withAnimation animates, whichever write fired the observation")
 struct ObservedChangeTransactionTests {
     /// The column the mark is drawn at.
-    private func markColumn(_ app: HeadlessApp) -> Int? {
-        for line in app.screen.map(\.stripped) {
+    private func markColumn(_ app: TestApp) -> Int? {
+        for line in app.screen.lines {
             if let range = line.range(of: "MARK") {
                 return line.distance(from: line.startIndex, to: range.lowerBound)
             }
@@ -88,7 +90,7 @@ struct ObservedChangeTransactionTests {
     /// being recorded nowhere.
     @Test("The slide is under way half-way through", arguments: [false, true])
     func animatedWriteAnimates(animatedFirst: Bool) {
-        let app = HeadlessApp(ObservedSlideApp(model: ObservedSlideModel(), animatedFirst: animatedFirst), width: 40, height: 6)
+        let app = TestApp(ObservedSlideApp(model: ObservedSlideModel(), animatedFirst: animatedFirst), width: 40, height: 6)
         var tick: Int64 = 0
         func frame() {
             app.frame(atNanos: AnimationClock.nanoseconds(atTick: tick))

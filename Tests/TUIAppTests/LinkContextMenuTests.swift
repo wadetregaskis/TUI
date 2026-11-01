@@ -10,10 +10,12 @@
 
 import Foundation
 import Testing
+@testable import TUIAppTestSupport
 import TUICore
 
 @testable import TUIApp
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -71,11 +73,11 @@ struct LinkContextMenuTests {
     private final class Harness {
         let board = FakeClipboard()
         let opened = Opened()
-        let app: HeadlessApp
+        let app: TestApp
         private var now: Int64 = 0
 
         init(activation: LinkActivation = .open, display: LinkDisplay = .popover) {
-            app = HeadlessApp(
+            app = TestApp(
                 LinksApp(board: board, opened: opened, activation: activation, display: display), width: 60,
                 height: 16)
             frame()
@@ -87,13 +89,13 @@ struct LinkContextMenuTests {
             app.frame(atNanos: now)
         }
 
-        func row(_ text: String) -> Int? { app.screen.map(\.stripped).firstIndex { $0.contains(text) } }
+        func row(_ text: String) -> Int? { app.screen.lines.firstIndex { $0.contains(text) } }
 
         func shows(_ text: String) -> Bool { row(text) != nil }
 
         /// Right-clicks the first cell of `text`.
         func rightClick(_ text: String) throws {
-            let lines = app.screen.map(\.stripped)
+            let lines = app.screen.lines
             let y = try #require(lines.firstIndex { $0.contains(text) })
             let x = try #require(lines[y].range(of: text)).lowerBound.utf16Offset(in: lines[y])
             app.send(MouseEvent(button: .right, phase: .pressed, x: x, y: y))
@@ -103,7 +105,7 @@ struct LinkContextMenuTests {
 
         /// Clicks the menu row that says `title`.
         func choose(_ title: String) throws {
-            let lines = app.screen.map(\.stripped)
+            let lines = app.screen.lines
             let y = try #require(lines.firstIndex { $0.contains(title) })
             let x = try #require(lines[y].range(of: title)).lowerBound.utf16Offset(in: lines[y])
             app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: y))

@@ -12,8 +12,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// What the pages below switch for a frame and back, by reference so the
@@ -123,8 +125,8 @@ private struct GlobalReaderPageApp: App {
 struct LiveSheetDockHoldTests {
     private static let frameNanos: Int64 = 16_666_667
 
-    private func rows(_ app: HeadlessApp) -> [String] {
-        app.screen.map(\.stripped)
+    private func rows(_ app: TestApp) -> [String] {
+        app.screen.lines
     }
 
     /// Drawn into the modal's backdrop, the presenter posted no dock, and the
@@ -134,7 +136,7 @@ struct LiveSheetDockHoldTests {
     @Test("A presenter drawn into a modal's backdrop for a frame keeps its sheet docked")
     func backdropFrameDoesNotHoldTheSheet() {
         let model = HoldModel()
-        let app = HeadlessApp(BusyPageApp(model: model), width: 40, height: 20)
+        let app = TestApp(BusyPageApp(model: model), width: 40, height: 20)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frameNanos)
         // 20 rows, 8 docked, the button's 1: the reader's 11.
@@ -160,7 +162,7 @@ struct LiveSheetDockHoldTests {
     @Test("A presenter away for a frame with its page keeps its sheet docked")
     func pageAwayForAFrameDoesNotHoldTheSheet() {
         let model = HoldModel()
-        let app = HeadlessApp(SwitchedPageApp(model: model), width: 40, height: 20)
+        let app = TestApp(SwitchedPageApp(model: model), width: 40, height: 20)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frameNanos)
         #expect(rows(app).contains { $0.contains("page height 12") }, "precondition: docked: \(rows(app))")
@@ -185,7 +187,7 @@ struct LiveSheetDockHoldTests {
     @Test("A live sheet's first frame walked twice by a geometry correction docks once, appears once and stays docked")
     func correctionWalkIsIdempotentForDocks() {
         let model = ReaderSheetModel()
-        let app = HeadlessApp(GlobalReaderPageApp(model: model), width: 40, height: 20)
+        let app = TestApp(GlobalReaderPageApp(model: model), width: 40, height: 20)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frameNanos)
         #expect(rows(app).contains { $0.contains("page height 20") }, "precondition: \(rows(app))")

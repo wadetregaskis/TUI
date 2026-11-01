@@ -16,9 +16,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 import TUIMenus
+import TUITesting
 @testable import TUITestSupport
 
 private struct DocumentsApp: App {
@@ -72,7 +74,7 @@ private struct DocumentRow: View {
 struct ContextMenuRevealTests {
     @Test("Tab down a list of rows with context menus keeps the focused row on the screen", arguments: [true, false])
     func tabKeepsTheFocusedRowVisible(lazy: Bool) {
-        let app = HeadlessApp(DocumentsApp(lazy: lazy), width: 30, height: 12)
+        let app = TestApp(DocumentsApp(lazy: lazy), width: 30, height: 12)
         var now: Int64 = 0
         func frame() {
             now += 16_666_667
@@ -80,14 +82,14 @@ struct ContextMenuRevealTests {
         }
         frame()
         frame()
-        #expect(app.screen.contains { $0.stripped.contains("▶ document #0") }, "precondition: the first row has the focus")
+        #expect(app.screen.contains("▶ document #0"), "precondition: the first row has the focus")
         for tab in 1...8 {
             app.send(KeyEvent(key: .tab))
             frame()
             frame()
             #expect(
-                app.screen.contains { $0.stripped.contains("▶ document #\(tab)") },
-                "after \(tab) Tabs the focused row, #\(tab), is not on the screen: \(app.screen.map(\.stripped))")
+                app.screen.contains("▶ document #\(tab)"),
+                "after \(tab) Tabs the focused row, #\(tab), is not on the screen: \(app.screen.lines)")
         }
     }
 }

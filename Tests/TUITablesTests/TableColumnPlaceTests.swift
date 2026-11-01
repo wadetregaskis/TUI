@@ -16,10 +16,12 @@ import Observation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 @testable import TUILists
 @testable import TUITables
+import TUITesting
 @testable import TUITestSupport
 
 @Observable
@@ -70,11 +72,11 @@ private struct FilesPage: View {
 @MainActor
 private final class Harness {
     let shown = Shown()
-    let app: HeadlessApp
+    let app: TestApp
     private var now: Int64 = 0
 
     init() {
-        app = HeadlessApp(FilesApp(shown), width: 60, height: 14)
+        app = TestApp(FilesApp(shown), width: 60, height: 14)
         frame()
         frame()
     }
@@ -107,7 +109,7 @@ private final class Harness {
         send(MouseEvent(button: .left, phase: .released, x: toX, y: y))
     }
 
-    var lines: [String] { app.screen.map(\.stripped) }
+    var lines: [String] { app.screen.lines }
 
     var screen: String { lines.joined(separator: "\n") }
 

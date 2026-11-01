@@ -15,6 +15,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// Whether the probe page declares a header: reachable from an `App`, which
@@ -146,7 +147,7 @@ struct WindowChromeAdoptionTests {
     @Test("A still screen is woken to adopt the change, and left idle once it has")
     func stillScreenGetsTheAdoption() {
         HeaderSwitch.shared.on = false
-        let app = HeadlessApp(SwitchedHeaderApp(), width: 40, height: 12)
+        let app = TestApp(SwitchedHeaderApp(), width: 40, height: 12)
         app.frame(atNanos: 0)
         #expect(app.nextWake(after: 0) == nil, "pre-condition: nothing to wake for")
 
@@ -154,7 +155,7 @@ struct WindowChromeAdoptionTests {
         app.frame(atNanos: 1_000_000)
         #expect(app.nextWake(after: 1_000_000) != nil, "the declaring frame asks for the adopting one")
         app.frame(atNanos: 20_000_000)
-        #expect(app.screen.contains { $0.stripped.contains("HEADER") })
+        #expect(app.screen.contains("HEADER"))
         #expect(app.nextWake(after: 20_000_000) == nil, "and once adopted, nothing more")
     }
 
@@ -174,12 +175,12 @@ struct WindowChromeAdoptionTests {
 
     @Test("Frame 1 draws a top bar of a title and a subtitle at its full height, so frame 2 moves nothing")
     func firstFrameSeedsTheTitle() {
-        let app = HeadlessApp(TitledToolbarApp(), width: 40, height: 12)
+        let app = TestApp(TitledToolbarApp(), width: 40, height: 12)
         app.frame(atNanos: 0)
-        let first = app.screen.map(\.stripped)
+        let first = app.screen.lines
         #expect(first[1].contains("NOTES") && first[1].contains("NEW"), "\(first)")
         #expect(first[2].contains("THREE"), "the subtitle's row: \(first)")
         app.frame(atNanos: 20_000_000)
-        #expect(app.screen.map(\.stripped) == first, "nothing moved on frame 2")
+        #expect(app.screen.lines == first, "nothing moved on frame 2")
     }
 }

@@ -11,8 +11,10 @@
 import Testing
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// Forty sections of text long enough to wrap onto two lines at 60 columns
@@ -38,8 +40,8 @@ struct ScrollReflowPlaceTests {
     private static let frameNanos: Int64 = 16_666_667
 
     /// The section at the top of the screen, by its number.
-    private func topSection(_ app: HeadlessApp) -> Int? {
-        for line in app.screen {
+    private func topSection(_ app: TestApp) -> Int? {
+        for line in app.screen.styledLines {
             guard let range = line.range(of: "Section ") else { continue }
             let digits = line[range.upperBound...].prefix { $0.isNumber }
             if let number = Int(digits) { return number }
@@ -49,7 +51,7 @@ struct ScrollReflowPlaceTests {
 
     @Test("Narrowed, it keeps the section it showed at the top, near enough")
     func narrowingKeepsThePlace() throws {
-        let app = HeadlessApp(ReflowingPage(), width: 60, height: 20)
+        let app = TestApp(ReflowingPage(), width: 60, height: 20)
         var now: Int64 = 0
         app.frame(atNanos: now)
         for _ in 0..<8 {
@@ -57,14 +59,14 @@ struct ScrollReflowPlaceTests {
             now += Self.frameNanos
             app.frame(atNanos: now)
         }
-        let before = try #require(topSection(app), "\(app.screen)")
-        #expect(before > 4, "precondition: scrolled into the page: \(app.screen)")
-        app.resize(width: 40, height: 20)
+        let before = try #require(topSection(app), "\(app.screen.styledLines)")
+        #expect(before > 4, "precondition: scrolled into the page: \(app.screen.styledLines)")
+        app.setSize(width: 40, height: 20)
         for _ in 0..<2 {
             now += Self.frameNanos
             app.frame(atNanos: now)
         }
-        let after = try #require(topSection(app), "\(app.screen)")
-        #expect(abs(after - before) <= 1, "section \(before) was at the top; now \(after) is: \(app.screen)")
+        let after = try #require(topSection(app), "\(app.screen.styledLines)")
+        #expect(abs(after - before) <= 1, "section \(before) was at the top; now \(after) is: \(app.screen.styledLines)")
     }
 }

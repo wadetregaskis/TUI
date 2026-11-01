@@ -16,6 +16,7 @@ import Testing
 @testable import TUICore
 @testable import TUIFoundation
 import TUIPresentation
+import TUITesting
 @testable import TUITestSupport
 
 /// What the probe's sheet does, reachable from an `App`.
@@ -91,10 +92,10 @@ struct SheetToolbarEdgesTests {
     }
 
     /// The app, `frames` frames in.
-    private func screen(frames: Int) -> (HeadlessApp, [String]) {
-        let app = HeadlessApp(EdgesApp(), width: 50, height: 16)
+    private func screen(frames: Int) -> (TestApp, [String]) {
+        let app = TestApp(EdgesApp(), width: 50, height: 16)
         for frame in 1...frames { app.frame(atNanos: Int64(frame) * 20_000_000) }
-        return (app, app.screen.map(\.stripped))
+        return (app, app.screen.lines)
     }
 
     private func row(_ rows: [String], _ text: String) -> Int? {
@@ -133,7 +134,7 @@ struct SheetToolbarEdgesTests {
         _ = app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: save))
         _ = app.send(MouseEvent(button: .left, phase: .released, x: x, y: save))
         app.frame(atNanos: 100_000_000)
-        #expect(SheetProbe.shared.saves == 1, "\(app.screen.map(\.stripped))")
+        #expect(SheetProbe.shared.saves == 1, "\(app.screen.lines)")
     }
 
     @Test("toolbarVisibility(.hidden, for: .bottomBar) in the sheet takes its button row away")
@@ -148,9 +149,9 @@ struct SheetToolbarEdgesTests {
 
     @Test("A popover over a sheet draws its own toolbar round its view, and its bar statements leave the sheet's rows")
     func popoverInSheet() {
-        let app = HeadlessApp(PopoverInSheetApp(), width: 60, height: 24)
+        let app = TestApp(PopoverInSheetApp(), width: 60, height: 24)
         for frame in 1...3 { app.frame(atNanos: Int64(frame) * 20_000_000) }
-        let rows = app.screen.map(\.stripped)
+        let rows = app.screen.lines
         guard let body = row(rows, "POPBODY"), let apply = row(rows, "APPLY") else {
             Issue.record("the popover draws its content and its item: \(rows)")
             return

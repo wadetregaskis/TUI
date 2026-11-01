@@ -11,6 +11,8 @@ import Foundation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
+import TUITesting
 
 /// Linear over `duration` seconds — `.linear(duration:)` written as a custom
 /// animation, so the two can be held to the same frames.
@@ -50,10 +52,10 @@ private struct CustomSlidingPage: View {
 struct CustomAnimationRenderTests {
     @Test("A custom animation moves a view across its frames as the built-in curve it imitates does")
     func drivesAView() {
-        let app = HeadlessApp(CustomSlidingApp(), width: 40, height: 10)
+        let app = TestApp(CustomSlidingApp(), width: 40, height: 10)
         app.frame(atNanos: 0)
         func column() -> Int? {
-            for line in app.screen.map(\.stripped) {
+            for line in app.screen.lines {
                 if let range = line.range(of: "@") {
                     return line.distance(from: line.startIndex, to: range.lowerBound)
                 }

@@ -14,6 +14,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// The role the probe page states, reachable from an `App`.
@@ -61,10 +62,10 @@ struct ToolbarRoleTests {
 
     /// The top bar's row, two frames in: one to declare, one to draw.
     private func topRow() -> String {
-        let app = HeadlessApp(RoleApp(), width: 40, height: 6)
+        let app = TestApp(RoleApp(), width: 40, height: 6)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        return app.screen.first?.stripped ?? ""
+        return app.screen.styledLines.first?.stripped ?? ""
     }
 
     @Test("By default a principal item takes the title's place")

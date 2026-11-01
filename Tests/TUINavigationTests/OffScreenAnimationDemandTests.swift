@@ -11,6 +11,7 @@ import Testing
 @testable import TUICore
 @testable import TUIFoundation
 import TUINavigation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -335,10 +336,10 @@ struct OffScreenAnimationDemandTests {
     /// Found by the Stress `notes` session's pushed notes.
     @Test("A covered root that measures is drawn under its own tracker, mirror and all")
     func aCoveredRootMeasuresUnderItsOwnTracker() {
-        let app = HeadlessApp(CoveredScrollingRootApp(), width: 40, height: 12)
+        let app = TestApp(CoveredScrollingRootApp(), width: 40, height: 12)
         app.frame(atNanos: 0)
         app.frame(atNanos: 16_666_667)
-        #expect(app.screen.contains { $0.stripped.contains("detail") }, "the pushed screen is drawn")
+        #expect(app.screen.contains("detail"), "the pushed screen is drawn")
     }
 
     @Test("A scheduler-driven animation keeps no clock running")

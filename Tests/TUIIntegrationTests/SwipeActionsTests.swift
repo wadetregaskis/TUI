@@ -16,8 +16,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @Observable
@@ -64,12 +66,12 @@ private struct MailPage: View {
 @MainActor
 private final class Harness {
     let mail = Mail()
-    let app: HeadlessApp
+    let app: TestApp
     private var now: Int64 = 0
 
     init(allowsFullSwipe: Bool = true) {
         mail.allowsFullSwipe = allowsFullSwipe
-        app = HeadlessApp(MailApp(mail), width: 40, height: 10)
+        app = TestApp(MailApp(mail), width: 40, height: 10)
         frame()
         frame()
     }
@@ -84,11 +86,11 @@ private final class Harness {
         frame()
     }
 
-    func shows(_ text: String) -> Bool { app.screen.contains { $0.stripped.contains(text) } }
+    func shows(_ text: String) -> Bool { app.screen.contains(text) }
 
     func position(of text: String) throws -> (x: Int, y: Int) {
-        let y = try #require(app.screen.firstIndex { $0.stripped.contains(text) }, "\(text) is not drawn")
-        let line = app.screen[y].stripped
+        let y = try #require(app.screen.styledLines.firstIndex { $0.stripped.contains(text) }, "\(text) is not drawn")
+        let line = app.screen.styledLines[y].stripped
         let range = try #require(line.range(of: text))
         return (line.distance(from: line.startIndex, to: range.lowerBound), y)
     }
@@ -99,7 +101,7 @@ private final class Harness {
         frame()
     }
 
-    var screen: String { app.screen.map(\.stripped).joined(separator: "\n") }
+    var screen: String { app.screen.lines.joined(separator: "\n") }
 }
 
 @MainActor
@@ -139,7 +141,7 @@ struct SwipeActionsTests {
         harness.key(.down)
         harness.key(.right, shift: true)
         let unread = try harness.position(of: "Unread")
-        let row = try #require(harness.app.screen.firstIndex { $0.stripped.contains("message2") || $0.stripped.contains("Unread") })
+        let row = try #require(harness.app.screen.styledLines.firstIndex { $0.stripped.contains("message2") || $0.stripped.contains("Unread") })
         #expect(unread.y == row, "\(harness.screen)")
         harness.key(.enter)
         #expect(harness.mail.ran == ["unread2"])

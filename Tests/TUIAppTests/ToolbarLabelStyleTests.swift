@@ -13,6 +13,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// The style the probe scene states, and what its page read, reachable from
@@ -87,10 +88,10 @@ struct ToolbarLabelStyleTests {
 
     /// The top bar's row, two frames in: one to declare, one to draw.
     private func topRow<A: App>(_ app: A) -> String {
-        let app = HeadlessApp(app, width: 40, height: 5)
+        let app = TestApp(app, width: 40, height: 5)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
-        return app.screen.first?.stripped.trimmingCharacters(in: .whitespaces) ?? ""
+        return app.screen.styledLines.first?.stripped.trimmingCharacters(in: .whitespaces) ?? ""
     }
 
     @Test("Icon only draws the labels' icons alone")

@@ -12,7 +12,9 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -64,25 +66,25 @@ struct WindowInteractionBehaviorTests {
 
     /// The app with its welcome window opened over the main one, drawn the
     /// one frame.
-    private mutating func welcoming(_ behavior: WindowInteractionBehavior) -> HeadlessApp {
-        let app = HeadlessApp(WelcomeApp(behavior: behavior), width: 50, height: 10)
+    private mutating func welcoming(_ behavior: WindowInteractionBehavior) -> TestApp {
+        let app = TestApp(WelcomeApp(behavior: behavior), width: 50, height: 10)
         frame(app)
         press(.enter, in: app)
         return app
     }
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func press(_ key: Key, in app: HeadlessApp) {
+    private mutating func press(_ key: Key, in app: TestApp) {
         app.send(KeyEvent(key: key))
         frame(app)
     }
 
-    private func screen(_ app: HeadlessApp) -> String {
-        app.screen.map(\.stripped).joined(separator: "\n")
+    private func screen(_ app: TestApp) -> String {
+        app.screen.lines.joined(separator: "\n")
     }
 
     @Test("Disabled, Escape leaves the window open and the status bar does not offer it, from the frame it opens")

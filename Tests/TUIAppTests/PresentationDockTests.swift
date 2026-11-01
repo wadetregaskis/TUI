@@ -11,9 +11,11 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIChrome
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// What the probe posts, and the heights the page was laid out at.
@@ -71,12 +73,12 @@ struct PresentationDockTests {
     @Test("The page is laid out short by the dock, from the frame after the dock is first posted")
     func pageIsLaidOutAboveTheDock() {
         let probe = DockProbe()
-        let app = HeadlessApp(DockingApp(probe: probe), width: 30, height: 20)
+        let app = TestApp(DockingApp(probe: probe), width: 30, height: 20)
         app.frame(atNanos: 0)
         #expect(probe.laidOutHeights.last == 20, "nothing was posted before the first walk")
         app.frame(atNanos: Self.frameNanos)
         #expect(probe.laidOutHeights.last == 15)
-        let rows = app.screen.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+        let rows = app.screen.styledLines.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
         #expect(rows[14] == "row 14", "\(rows)")
         let dockRows = rows[15...18]
         #expect(dockRows.allSatisfy { $0.isEmpty }, "the dock's rows are the page's no longer: \(rows)")
@@ -86,7 +88,7 @@ struct PresentationDockTests {
     @Test("A dock learnt in the walk asks for exactly one more frame")
     func lateDockAsksForOneFrame() {
         let probe = DockProbe()
-        let app = HeadlessApp(DockingApp(probe: probe), width: 30, height: 20)
+        let app = TestApp(DockingApp(probe: probe), width: 30, height: 20)
         app.frame(atNanos: 0)
         #expect(app.nextWake(after: 0) != nil, "the frame laid out without the dock asked for none")
         app.frame(atNanos: Self.frameNanos)
@@ -99,7 +101,7 @@ struct PresentationDockTests {
     @Test("A dock that changes between frames is laid out on the next one, with no frame late")
     func resolverAnswersAtTheNextFrame() {
         let probe = DockProbe()
-        let app = HeadlessApp(DockingApp(probe: probe), width: 30, height: 20)
+        let app = TestApp(DockingApp(probe: probe), width: 30, height: 20)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frameNanos)
         probe.rows = 8
@@ -114,7 +116,7 @@ struct PresentationDockTests {
     @Test("A resolver not posted this frame is dropped the next")
     func unpostedResolverIsDropped() {
         let probe = DockProbe()
-        let app = HeadlessApp(DockingApp(probe: probe), width: 30, height: 20)
+        let app = TestApp(DockingApp(probe: probe), width: 30, height: 20)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frameNanos)
         #expect(probe.laidOutHeights.last == 15, "precondition: docked")
@@ -130,10 +132,10 @@ struct PresentationDockTests {
     func dockIsClampedToTheContentArea() {
         let probe = DockProbe()
         probe.rows = 50
-        let app = HeadlessApp(DockingApp(probe: probe), width: 30, height: 20)
+        let app = TestApp(DockingApp(probe: probe), width: 30, height: 20)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frameNanos)
         #expect(probe.laidOutHeights.last == 0)
-        #expect(app.screen.count == 20, "the frame is still the terminal's height")
+        #expect(app.screen.styledLines.count == 20, "the frame is still the terminal's height")
     }
 }

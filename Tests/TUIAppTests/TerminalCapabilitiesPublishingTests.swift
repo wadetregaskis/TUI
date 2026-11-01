@@ -15,6 +15,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUIFoundation
 @testable import TUITerminalHost
+import TUITesting
 
 // MARK: - Fixtures
 
@@ -56,18 +57,18 @@ private struct CapabilitiesApp: App {
 struct TerminalCapabilitiesPublishingTests {
     private var now: Int64 = 0
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private static func shows(_ app: HeadlessApp, _ text: String) -> Bool {
-        app.screen.map(\.stripped).joined(separator: "\n").contains(text)
+    private static func shows(_ app: TestApp, _ text: String) -> Bool {
+        app.screen.lines.joined(separator: "\n").contains(text)
     }
 
     @Test("A memoized view reads what was published, and draws again when it changes")
     mutating func viewsFollowTheValue() {
-        let app = HeadlessApp(CapabilitiesApp(), width: 30, height: 4)
+        let app = TestApp(CapabilitiesApp(), width: 30, height: 4)
         frame(app)
         #expect(Self.shows(app, "links unknown"), "nothing known outside a run")
 
@@ -82,7 +83,7 @@ struct TerminalCapabilitiesPublishingTests {
 
     @Test("An Option chord read from the terminal settles Option as Meta, and the view says so")
     mutating func optionChordReachesViews() {
-        let app = HeadlessApp(CapabilitiesApp(), width: 30, height: 4)
+        let app = TestApp(CapabilitiesApp(), width: 30, height: 4)
         frame(app)
         #expect(Self.shows(app, "meta unknown"))
 

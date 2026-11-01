@@ -24,6 +24,7 @@ import Testing
 @testable import TUICore
 @testable import TUIFoundation
 @testable import TUIStyling
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -161,19 +162,19 @@ struct RenderGlobalsCacheTests {
     /// and the snapshot did not carry it, so the card went on saying "60x16".
     @Test("A memoized row that reads the terminal's size is not served at another")
     func terminalSize() {
-        func frame(_ app: HeadlessApp, _ index: Int) {
+        func frame(_ app: TestApp, _ index: Int) {
             app.frame(atNanos: 1_000_000_000 + Int64(index) * 16_666_667)
         }
-        let app = HeadlessApp(TerminalSizeApp(), width: 60, height: 16)
+        let app = TestApp(TerminalSizeApp(), width: 60, height: 16)
         for index in 0..<3 { frame(app, index) }
-        app.resize(width: 70, height: 20)
+        app.setSize(width: 70, height: 20)
         frame(app, 3)
-        let control = HeadlessApp(TerminalSizeApp(), width: 70, height: 20)
+        let control = TestApp(TerminalSizeApp(), width: 70, height: 20)
         frame(control, 0)
         #expect(
-            control.screen.contains { $0.contains("70x20") },
+            control.screen.styledLines.contains { $0.contains("70x20") },
             "precondition: the card says the size it was drawn at, or this proves nothing")
-        #expect(app.screen == control.screen, "served the card drawn for the size before")
+        #expect(app.screen.styledLines == control.screen.styledLines, "served the card drawn for the size before")
     }
 
     /// The loop's rule itself, for both halves of the size.

@@ -13,6 +13,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// What the probe's items did, and how it declares its menu, reachable from
@@ -76,13 +77,13 @@ struct ToolbarTitleMenuTests {
     /// The app, and the frame clock it is stepped on.
     @MainActor
     private final class Driver {
-        let app = HeadlessApp(TitleMenuApp(), width: 40, height: 8)
+        let app = TestApp(TitleMenuApp(), width: 40, height: 8)
         var now: Int64 = 0
 
         func frame() -> [String] {
             now += 20_000_000
             app.frame(atNanos: now)
-            return app.screen.map(\.stripped)
+            return app.screen.lines
         }
 
         func click(x: Int, y: Int) {
@@ -140,7 +141,7 @@ struct ToolbarTitleMenuTests {
         _ = driver.frame()
         _ = driver.app.send(KeyEvent(key: .enter))
         _ = driver.frame()
-        #expect(TitleMenuProbe.shared.duplicates == 1, "\(driver.app.screen.map(\.stripped))")
+        #expect(TitleMenuProbe.shared.duplicates == 1, "\(driver.app.screen.lines)")
     }
 
     @Test("toolbarTitleMenu(content:) is the same menu")

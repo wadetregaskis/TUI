@@ -8,8 +8,10 @@ import Observation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -87,17 +89,17 @@ struct KeptResultObservationTests {
     @Test("A toggle bound to an @Observable under an equal .equatable() view redraws when the property changes")
     func toggleUnderAMemoRedraws() {
         let (model, counter) = (Model(), Counter())
-        let app = HeadlessApp(Page(model: model, counter: counter), width: 30, height: 8)
+        let app = TestApp(Page(model: model, counter: counter), width: 30, height: 8)
         app.frame(atNanos: 1_000_000_000)
         app.frame(atNanos: 1_100_000_000)
-        let off = app.screen.joined(separator: "\n").stripped
+        let off = app.screen.styledLines.joined(separator: "\n").stripped
         #expect(off.contains("□ flag"), "sanity: the toggle starts off:\n\(off)")
         let siblingRenders = counter.renders
 
         model.flag = true
         app.frame(atNanos: 1_200_000_000)
         app.frame(atNanos: 1_300_000_000)
-        let on = app.screen.joined(separator: "\n").stripped
+        let on = app.screen.styledLines.joined(separator: "\n").stripped
         #expect(on.contains("■ flag"), "the kept toggle showed the old state:\n\(on)")
         #expect(counter.renders == siblingRenders, "a kept sibling that read nothing was drawn again")
     }

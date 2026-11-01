@@ -9,8 +9,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// What a press other than a plain one does on a row's selectable text: a
@@ -93,13 +95,13 @@ struct TextSelectionRowGestureTests {
 
     @MainActor
     final class Harness {
-        let app: HeadlessApp
+        let app: TestApp
         let page: Page
         var now: Int64 = 0
 
         init(_ shape: Shape) {
             page = Page(shape: shape, selection: Box(nil))
-            app = HeadlessApp(PageApp(page: page), width: 40, height: 14)
+            app = TestApp(PageApp(page: page), width: 40, height: 14)
             frame()
             frame()
         }
@@ -110,13 +112,13 @@ struct TextSelectionRowGestureTests {
         }
 
         func position(of text: String) throws -> (x: Int, y: Int) {
-            let y = try #require(app.screen.firstIndex { $0.stripped.contains(text) }, "\(text) is not drawn")
-            let line = app.screen[y].stripped
+            let y = try #require(app.screen.styledLines.firstIndex { $0.stripped.contains(text) }, "\(text) is not drawn")
+            let line = app.screen.styledLines[y].stripped
             let range = try #require(line.range(of: text))
             return (line.distance(from: line.startIndex, to: range.lowerBound), y)
         }
 
-        func shows(_ text: String) -> Bool { app.screen.contains { $0.stripped.contains(text) } }
+        func shows(_ text: String) -> Bool { app.screen.contains(text) }
 
         func click(_ point: (x: Int, y: Int), button: MouseButton = .left, ctrl: Bool = false) {
             app.send(MouseEvent(button: button, phase: .pressed, x: point.x, y: point.y, ctrl: ctrl))
@@ -393,7 +395,7 @@ struct TextSelectionRowDragTests {
 
     func drag(_ shape: Shape, onText: Bool) throws -> Outcome {
         let page = Page(shape: shape, moves: .init([]))
-        let app = HeadlessApp(PageApp(page: page), width: 40, height: 14)
+        let app = TestApp(PageApp(page: page), width: 40, height: 14)
         var now: Int64 = 0
         func frame() {
             now += 16_666_667
@@ -401,8 +403,8 @@ struct TextSelectionRowDragTests {
         }
         frame()
         frame()
-        let y = try #require(app.screen.firstIndex { $0.stripped.contains("name 1") })
-        let line = app.screen[y].stripped
+        let y = try #require(app.screen.styledLines.firstIndex { $0.stripped.contains("name 1") })
+        let line = app.screen.styledLines[y].stripped
         // In cells: a tab's symbol before its title is two.
         let start = String(line[..<(try #require(line.range(of: "name 1")).lowerBound)]).strippedLength
         let x = onText ? start : start + 25
@@ -473,18 +475,18 @@ struct TextSelectionRowDragTests {
     @Test("Under an enabled scope a click on a sidebar tab's title selects the tab")
     func sidebarTabTitleClick() throws {
         let page = Page(shape: .draggableTabInScope(.sidebar), moves: .init([]))
-        let app = HeadlessApp(PageApp(page: page), width: 40, height: 14)
+        let app = TestApp(PageApp(page: page), width: 40, height: 14)
         app.frame(atNanos: 16_666_667)
         app.frame(atNanos: 33_333_334)
-        try #require(app.screen.contains { $0.stripped.contains("first") })
-        let y = try #require(app.screen.firstIndex { $0.stripped.contains("Two") })
-        let line = app.screen[y].stripped
+        try #require(app.screen.contains("first"))
+        let y = try #require(app.screen.styledLines.firstIndex { $0.stripped.contains("Two") })
+        let line = app.screen.styledLines[y].stripped
         let x = String(line[..<(try #require(line.range(of: "Two")).lowerBound)]).strippedLength
         app.send(MouseEvent(button: .left, phase: .pressed, x: x + 1, y: y))
         app.frame(atNanos: 50_000_001)
         app.send(MouseEvent(button: .left, phase: .released, x: x + 1, y: y))
         app.frame(atNanos: 66_666_668)
-        #expect(app.screen.contains { $0.stripped.contains("second") })
+        #expect(app.screen.contains("second"))
         #expect(app.services.screenSelection.current == nil)
     }
 

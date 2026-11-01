@@ -17,6 +17,7 @@ import Testing
 @testable import TUICore
 @testable import TUIFoundation
 import TUIPresentation
+import TUITesting
 @testable import TUITestSupport
 
 /// What the probes' actions did, reachable from an `App`.
@@ -156,13 +157,13 @@ private struct StyledApp: App {
 struct ToolbarTests {
 
     /// The screen's rows, escapes stripped.
-    private func rows(_ app: HeadlessApp) -> [String] {
-        app.screen.map(\.stripped)
+    private func rows(_ app: TestApp) -> [String] {
+        app.screen.lines
     }
 
     /// Two frames: one that declares the bars, one that draws them.
-    private func settled<A: App>(_ app: A, width: Int = 60, height: Int = 16) -> HeadlessApp {
-        let headless = HeadlessApp(app, width: width, height: height)
+    private func settled<A: App>(_ app: A, width: Int = 60, height: Int = 16) -> TestApp {
+        let headless = TestApp(app, width: width, height: height)
         headless.frame(atNanos: 0)
         headless.frame(atNanos: 20_000_000)
         return headless
@@ -299,13 +300,13 @@ struct ToolbarTests {
 
     @Test("A foreground style above the toolbar reaches its items")
     func foregroundStyleReachesItems() throws {
-        let app = HeadlessApp(StyledApp(), width: 40, height: 10)
+        let app = TestApp(StyledApp(), width: 40, height: 10)
         ColorDepth.withCurrent(.truecolor) {
             app.frame(atNanos: 0)
             app.frame(atNanos: 20_000_000)
         }
-        let item = try #require(app.screen.first { $0.stripped.contains("TINTED") })
-        let page = try #require(app.screen.first { $0.stripped.contains("PAGE") })
+        let item = try #require(app.screen.styledLines.first { $0.stripped.contains("TINTED") })
+        let page = try #require(app.screen.styledLines.first { $0.stripped.contains("PAGE") })
         let itemStyle = try #require(styleBefore("TINTED", in: item))
         let pageStyle = try #require(styleBefore("PAGE", in: page))
         #expect(itemStyle.foregroundColour != nil, "the item is drawn in a colour")

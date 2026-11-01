@@ -14,9 +14,11 @@ import Observation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 import TUITables
+import TUITesting
 @testable import TUITestSupport
 
 @Observable
@@ -139,12 +141,12 @@ private struct ProminenceProbe: View {
 @MainActor
 private final class Harness {
     let produce = Produce()
-    let app: HeadlessApp
+    let app: TestApp
     private var now: Int64 = 0
 
     init(configure: (Produce) -> Void = { _ in }) {
         configure(produce)
-        app = HeadlessApp(ProduceApp(produce), width: 40, height: 18)
+        app = TestApp(ProduceApp(produce), width: 40, height: 18)
         frame()
         frame()
     }
@@ -154,7 +156,7 @@ private final class Harness {
         app.frame(atNanos: now)
     }
 
-    var lines: [String] { app.screen.map(\.stripped) }
+    var lines: [String] { app.screen.lines }
 
     func line(of text: String) -> Int? { lines.firstIndex { $0.contains(text) } }
 

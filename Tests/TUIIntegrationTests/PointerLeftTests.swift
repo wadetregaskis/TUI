@@ -15,7 +15,9 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// A `Text` with help and one with `.onHover`, at the top-left corner, or the
@@ -63,11 +65,11 @@ struct PointerLeftTests {
     /// A headless app and its clock, a 60 Hz frame per step.
     @MainActor
     final class Driver {
-        let app: HeadlessApp
+        let app: TestApp
         private(set) var now: Int64 = 0
 
         init(_ page: PointerPageApp) {
-            app = HeadlessApp(page, width: 50, height: 14)
+            app = TestApp(page, width: 50, height: 14)
             step()
         }
 
@@ -81,7 +83,7 @@ struct PointerLeftTests {
             while now < end { step() }
         }
 
-        var lines: [String] { app.screen.map(\.stripped) }
+        var lines: [String] { app.screen.lines }
 
         func shows(_ text: String) -> Bool { lines.contains { $0.contains(text) } }
 

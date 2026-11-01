@@ -12,8 +12,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// A page that says the height it was laid out at, under a live sheet — in
@@ -175,14 +177,14 @@ private struct RowItemSheetApp: App {
 struct LiveSheetLayoutTests {
     private static let frameNanos: Int64 = 16_666_667
 
-    private func rows(_ app: HeadlessApp) -> [String] {
-        app.screen.map(\.stripped)
+    private func rows(_ app: TestApp) -> [String] {
+        app.screen.lines
     }
 
     @Test("A sheet presented from the start is docked under the page from its second frame")
     func dockedUnderThePage() {
         let model = LiveSheetModel()
-        let app = HeadlessApp(DockedApp(model: model), width: 40, height: 20)
+        let app = TestApp(DockedApp(model: model), width: 40, height: 20)
         app.frame(atNanos: 0)
         #expect(app.nextWake(after: 0) != nil, "the dock learnt on the first frame asked for no second")
         app.frame(atNanos: Self.frameNanos)
@@ -199,7 +201,7 @@ struct LiveSheetLayoutTests {
     func appDrivenOpenIsNotLate() {
         let model = LiveSheetModel()
         model.presented = false
-        let app = HeadlessApp(DockedApp(model: model), width: 40, height: 20)
+        let app = TestApp(DockedApp(model: model), width: 40, height: 20)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frameNanos)
         #expect(rows(app).contains { $0.contains("page height 20") }, "precondition: no sheet")
@@ -216,7 +218,7 @@ struct LiveSheetLayoutTests {
     @Test("Above its upThrough detent the sheet is a modal over the whole page")
     func grownPastUpThroughIsAModal() {
         let model = LiveSheetModel()
-        let app = HeadlessApp(
+        let app = TestApp(
             DockedApp(model: model, interaction: .enabled(upThrough: .height(6))), width: 40, height: 20)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frameNanos)
@@ -236,7 +238,7 @@ struct LiveSheetLayoutTests {
     @Test("A live sheet learnt late from a window toolbar item asks for the frame that docks it")
     func toolbarSheetLearntLateSettles() throws {
         let model = ToolbarSheetModel()
-        let app = HeadlessApp(ToolbarDockApp(model: model), width: 40, height: 20)
+        let app = TestApp(ToolbarDockApp(model: model), width: 40, height: 20)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frameNanos)
         let full = try #require(rows(app).first { $0.contains("page height") }, "\(rows(app))")
@@ -256,7 +258,7 @@ struct LiveSheetLayoutTests {
     @Test("A live sheet whose dock pushes its row out of the list's window settles as a modal and lets the app idle")
     func rowHostedSheetDoesNotLoop() {
         let model = RowSheetModel()
-        let app = HeadlessApp(RowSheetApp(model: model), width: 40, height: 20)
+        let app = TestApp(RowSheetApp(model: model), width: 40, height: 20)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frameNanos)
         #expect(rows(app).contains { $0.contains("row 15") }, "precondition: the row is in the window: \(rows(app))")
@@ -288,7 +290,7 @@ struct LiveSheetLayoutTests {
     @Test("A live sheet with no box fills its detent's rows, at every detent")
     func boxlessSheetFillsItsDetent() {
         let model = LiveSheetModel()
-        let app = HeadlessApp(DockedApp(model: model, boxed: false), width: 40, height: 20)
+        let app = TestApp(DockedApp(model: model, boxed: false), width: 40, height: 20)
         var now: Int64 = 0
         func settle() {
             app.frame(atNanos: now)
@@ -315,7 +317,7 @@ struct LiveSheetLayoutTests {
     @Test("A row-hosted live sheet switched to another item as it comes back stays off the dock")
     func rowHostedItemSwitchKeepsTheSheetOffTheDock() {
         let model = RowItemModel()
-        let app = HeadlessApp(RowItemSheetApp(model: model), width: 40, height: 20)
+        let app = TestApp(RowItemSheetApp(model: model), width: 40, height: 20)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frameNanos)
         model.note = LiveNote(id: 1)
@@ -344,7 +346,7 @@ struct LiveSheetLayoutTests {
     @Test("A row-hosted live sheet held off the dock stays held across item switches")
     func itemSwitchesKeepTheHold() {
         let model = RowItemModel()
-        let app = HeadlessApp(RowItemSheetApp(model: model), width: 40, height: 20)
+        let app = TestApp(RowItemSheetApp(model: model), width: 40, height: 20)
         var now: Int64 = 0
         func run(_ frames: Int) -> [Bool] {
             var drawn: [Bool] = []
@@ -375,7 +377,7 @@ struct LiveSheetLayoutTests {
     @Test("A terminal too short to leave the page three rows presents the sheet as a modal")
     func shortTerminalIsAModal() {
         let model = LiveSheetModel()
-        let app = HeadlessApp(DockedApp(model: model), width: 40, height: 8)
+        let app = TestApp(DockedApp(model: model), width: 40, height: 8)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frameNanos)
         #expect(rows(app).contains { $0.contains("page height 8") }, "the page was laid out short: \(rows(app))")

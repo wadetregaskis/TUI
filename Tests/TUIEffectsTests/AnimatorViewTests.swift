@@ -17,8 +17,10 @@ import Observation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 import TUIEffects
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// What a page's animator is driven by and what it reported. Observable, so a
@@ -153,12 +155,12 @@ private struct NotRepeatingApp: App {
 /// instant and the wall date together.
 @MainActor
 private final class Driver<A: App> {
-    let app: HeadlessApp
+    let app: TestApp
     private var nanos: Int64 = 0
     private let base = Date(timeIntervalSinceReferenceDate: 800_000_000)
 
     init(_ app: A) {
-        self.app = HeadlessApp(app, width: 30, height: 6)
+        self.app = TestApp(app, width: 30, height: 6)
     }
 
     /// The numbers after `prefix` drawn so far, each change once.
@@ -168,7 +170,7 @@ private final class Driver<A: App> {
         for _ in 0..<count {
             nanos += 16_666_667
             app.frame(atNanos: nanos, date: base.addingTimeInterval(Double(nanos) / 1_000_000_000))
-            let screen = app.screen.map(\.stripped).joined()
+            let screen = app.screen.lines.joined()
             if let match = screen.firstMatch(of: /[PV](\d+)/),
                 screen[match.range].first == prefix, let number = Int(match.1), seen.last != number
             {
@@ -220,7 +222,7 @@ struct AnimatorViewTests {
         let model = PhaseModifierApp.model
         let driver = Driver(PhaseModifierApp())
         driver.frames(2, prefix: "P")
-        #expect(driver.app.screen.contains { $0.stripped.contains("P0X") }, "\(driver.app.screen.map(\.stripped))")
+        #expect(driver.app.screen.contains("P0X"), "\(driver.app.screen.lines)")
         model.trigger += 1
         driver.frames(40, prefix: "P")
         #expect(driver.seen == [0, 1, 2, 0], "\(driver.seen)")
@@ -267,7 +269,7 @@ struct AnimatorViewTests {
         let ends = driver.seen.indices.filter { driver.seen[$0] == 10 }
         #expect(ends.count >= 2, "the end reached more than once: \(driver.seen)")
         #expect(ends.first.map { $0 + 1 < driver.seen.count && driver.seen[$0 + 1] < 10 } == true, "\(driver.seen)")
-        #expect(driver.app.screen.contains { $0.stripped.contains("X") }, "the placeholder draws the view")
+        #expect(driver.app.screen.contains("X"), "the placeholder draws the view")
 
         let still = Driver(NotRepeatingApp())
         still.frames(30, prefix: "V")

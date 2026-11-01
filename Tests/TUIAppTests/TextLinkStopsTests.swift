@@ -17,6 +17,7 @@ import TUICore
 @testable import TUIApp
 @testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -75,11 +76,11 @@ struct TextLinkStopsTests {
     private final class Harness {
         let board = FakeClipboard()
         let log = Log()
-        let app: HeadlessApp
+        let app: TestApp
         private var now: Int64 = 0
 
         init(display: LinkDisplay = .popover, enabled: Bool = true) {
-            app = HeadlessApp(
+            app = TestApp(
                 TextLinksApp(board: board, log: log, display: display, enabled: enabled), width: 60, height: 16)
             frame()
             frame()
@@ -95,13 +96,13 @@ struct TextLinkStopsTests {
             frame()
         }
 
-        func row(_ text: String) -> Int? { app.screen.map(\.stripped).firstIndex { $0.contains(text) } }
+        func row(_ text: String) -> Int? { app.screen.lines.firstIndex { $0.contains(text) } }
 
         func shows(_ text: String) -> Bool { row(text) != nil }
 
         /// The cell of the first character of `text` on the screen.
         func cell(_ text: String) throws -> (x: Int, y: Int) {
-            let lines = app.screen.map(\.stripped)
+            let lines = app.screen.lines
             let y = try #require(lines.firstIndex { $0.contains(text) })
             let x = try #require(lines[y].range(of: text)).lowerBound.utf16Offset(in: lines[y])
             return (x, y)
@@ -140,7 +141,7 @@ struct TextLinkStopsTests {
         try harness.click("home")
         let url = try harness.cell(Self.home.absoluteString)
         #expect(url.y > link.y)
-        let row = Array(harness.app.screen.map(\.stripped)[url.y])
+        let row = Array(harness.app.screen.lines[url.y])
         #expect(row[link.x] == "│", "the URL at \(url.x), the link at \(link.x): \(String(row))")
         #expect(row[link.x + 1..<url.x].allSatisfy { $0 == " " }, "\(String(row))")
     }

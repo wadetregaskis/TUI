@@ -11,8 +11,10 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICommands
 @testable import TUIFoundation
+import TUITesting
 import TUITextInput
 
 // MARK: - Fixtures
@@ -83,17 +85,17 @@ private struct FieldHelpApp: App {
 struct MenuBarHelpTests {
     private var now: Int64 = 0
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private func shows(_ text: String, _ app: HeadlessApp) -> Bool {
-        app.screen.contains { $0.stripped.contains(text) }
+    private func shows(_ text: String, _ app: TestApp) -> Bool {
+        app.screen.contains(text)
     }
 
-    private mutating func launched<A: App>(_ app: A) -> HeadlessApp {
-        let headless = HeadlessApp(app, width: 60, height: 16)
+    private mutating func launched<A: App>(_ app: A) -> TestApp {
+        let headless = TestApp(app, width: 60, height: 16)
         frame(headless)
         frame(headless)
         return headless
@@ -101,7 +103,7 @@ struct MenuBarHelpTests {
 
     /// Opens the Help menu, the bar's last, and chooses its item `downs`
     /// places past the first enabled one.
-    private mutating func chooseHelp(item downs: Int, in app: HeadlessApp) {
+    private mutating func chooseHelp(item downs: Int, in app: TestApp) {
         app.send(KeyEvent(key: .f10))
         frame(app)
         app.send(KeyEvent(key: .down))
@@ -120,14 +122,14 @@ struct MenuBarHelpTests {
     @Test("The bar has a Help menu holding Show Tooltips, checked, and Show All Tooltips with ⌥?")
     mutating func helpMenu() {
         let app = launched(HelpfulApp())
-        #expect(app.screen[0].stripped.contains("Help"), "\(app.screen[0].stripped)")
+        #expect(app.screen.styledLines[0].stripped.contains("Help"), "\(app.screen.styledLines[0].stripped)")
         app.send(KeyEvent(key: .f10))
         frame(app)
         app.send(KeyEvent(key: .down))
         frame(app)
         app.send(KeyEvent(key: .left))
         frame(app)
-        let rows = app.screen.map(\.stripped)
+        let rows = app.screen.lines
         #expect(rows.contains { $0.contains("Show Tooltips") && $0.contains("■") }, "\(rows)")
         #expect(rows.contains { $0.contains("Show All Tooltips") && $0.contains("⌥?") }, "\(rows)")
     }
@@ -138,14 +140,14 @@ struct MenuBarHelpTests {
         app.services.tooltipState.showsAllTooltips = false
         #expect(!shows("Explains the label", app), "sanity: no tooltip yet")
         chooseHelp(item: 1, in: app)
-        #expect(shows("Explains the label", app) && shows("Explains the button", app), "\(app.screen.map(\.stripped))")
+        #expect(shows("Explains the label", app) && shows("Explains the button", app), "\(app.screen.lines)")
         app.send(KeyEvent(key: .f10))
         frame(app)
         app.send(KeyEvent(key: .down))
         frame(app)
         app.send(KeyEvent(key: .left))
         frame(app)
-        #expect(shows("Hide All Tooltips", app), "\(app.screen.map(\.stripped))")
+        #expect(shows("Hide All Tooltips", app), "\(app.screen.lines)")
         app.send(KeyEvent(key: .escape))
         frame(app)
     }
@@ -155,15 +157,15 @@ struct MenuBarHelpTests {
         let app = launched(HelpfulApp())
         #expect(app.send(KeyEvent(key: .character("?"), alt: true)))
         frame(app)
-        #expect(shows("Explains the label", app), "\(app.screen.map(\.stripped))")
+        #expect(shows("Explains the label", app), "\(app.screen.lines)")
         app.send(KeyEvent(key: .character("?"), alt: true))
         frame(app)
         frame(app)
-        #expect(!shows("Explains the label", app), "\(app.screen.map(\.stripped))")
+        #expect(!shows("Explains the label", app), "\(app.screen.lines)")
         app.send(KeyEvent(key: .character("?")))
         frame(app)
-        #expect(shows("Explains the button", app), "\(app.screen.map(\.stripped))")
-        #expect(!shows("Explains the label", app), "\(app.screen.map(\.stripped))")
+        #expect(shows("Explains the button", app), "\(app.screen.lines)")
+        #expect(!shows("Explains the label", app), "\(app.screen.lines)")
     }
 
     /// Ghostty's default composes with Option: ⌥⇧/ arrives as `¿` with the
@@ -177,7 +179,7 @@ struct MenuBarHelpTests {
             key: .character("¿"), shift: false, pasteAttachments: [], optionComposedKey: .character("?"))
         #expect(app.send(composed))
         frame(app)
-        #expect(shows("Explains the label", app), "\(app.screen.map(\.stripped))")
+        #expect(shows("Explains the label", app), "\(app.screen.lines)")
     }
 
     @Test("Shift-F1 shows every tooltip, and again hides them, where Option does not arrive")
@@ -185,11 +187,11 @@ struct MenuBarHelpTests {
         let app = launched(HelpfulApp())
         #expect(app.send(KeyEvent(key: .f1, shift: true)))
         frame(app)
-        #expect(shows("Explains the label", app), "\(app.screen.map(\.stripped))")
+        #expect(shows("Explains the label", app), "\(app.screen.lines)")
         app.send(KeyEvent(key: .f1, shift: true))
         frame(app)
         frame(app)
-        #expect(!shows("Explains the label", app), "\(app.screen.map(\.stripped))")
+        #expect(!shows("Explains the label", app), "\(app.screen.lines)")
     }
 
     /// Shift-F1 is the chain's last resort: a handler of the app's on the
@@ -201,7 +203,7 @@ struct MenuBarHelpTests {
         app.send(KeyEvent(key: .f1, shift: true))
         frame(app)
         #expect(FieldProbe.shared.text == "k")
-        #expect(!shows("Explains the label", app), "\(app.screen.map(\.stripped))")
+        #expect(!shows("Explains the label", app), "\(app.screen.lines)")
     }
 
     @Test("Inside a text field, which types ?, ⌥? still shows every tooltip, typing nothing")
@@ -210,7 +212,7 @@ struct MenuBarHelpTests {
         let app = launched(FieldHelpApp())
         #expect(app.send(KeyEvent(key: .character("?"), alt: true)))
         frame(app)
-        #expect(shows("Explains the field", app), "\(app.screen.map(\.stripped))")
+        #expect(shows("Explains the field", app), "\(app.screen.lines)")
         #expect(FieldProbe.shared.text.isEmpty)
     }
 
@@ -221,7 +223,7 @@ struct MenuBarHelpTests {
         #expect(!app.services.tooltipState.showsTooltips)
         app.send(KeyEvent(key: .character("?")))
         frame(app)
-        #expect(!shows("Explains the button", app), "\(app.screen.map(\.stripped))")
+        #expect(!shows("Explains the button", app), "\(app.screen.lines)")
         #expect(!app.send(KeyEvent(key: .character("?"), alt: true)), "nothing to show: the key falls through")
         chooseHelp(item: 0, in: app)
         #expect(app.services.tooltipState.showsTooltips, "Show Tooltips stays enabled to turn them back on")

@@ -14,6 +14,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// What the probe's buttons did, reachable from an `App`.
@@ -49,11 +50,11 @@ struct ToolbarLabelledGroupTests {
 
     /// The app at `width`, after the frame that declares the bar and the one
     /// that draws it.
-    private func app(width: Int) -> (HeadlessApp, [String]) {
-        let app = HeadlessApp(LabelledGroupApp(), width: width, height: 10)
+    private func app(width: Int) -> (TestApp, [String]) {
+        let app = TestApp(LabelledGroupApp(), width: width, height: 10)
         app.frame(atNanos: 20_000_000)
         app.frame(atNanos: 40_000_000)
-        return (app, app.screen.map(\.stripped))
+        return (app, app.screen.lines)
     }
 
     @Test("With room, the group's views are drawn side by side")
@@ -76,7 +77,7 @@ struct ToolbarLabelledGroupTests {
         _ = app.send(MouseEvent(button: .left, phase: .pressed, x: column, y: 0))
         _ = app.send(MouseEvent(button: .left, phase: .released, x: column, y: 0))
         app.frame(atNanos: 60_000_000)
-        let open = app.screen.map(\.stripped)
+        let open = app.screen.lines
         guard let row = open.firstIndex(where: { $0.contains("ITALIC") }), let found = open[row].range(of: "ITALIC")
         else {
             Issue.record("the menu did not open: \(open)")

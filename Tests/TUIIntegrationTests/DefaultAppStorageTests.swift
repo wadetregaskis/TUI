@@ -16,7 +16,9 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -78,7 +80,7 @@ struct DefaultAppStorageTests {
         }
     }
 
-    /// Hosts a page for ``HeadlessApp``.
+    /// Hosts a page for ``TestApp``.
     private struct Page<Content: View>: App {
         let make: @MainActor () -> Content
         /// `App`'s requirement; these apps are built with ``init(content:)``.
@@ -87,12 +89,12 @@ struct DefaultAppStorageTests {
         var body: some Scene { WindowGroup { make() } }
     }
 
-    private static func draw(_ app: HeadlessApp, _ frame: inout Int64) -> String {
+    private static func draw(_ app: TestApp, _ frame: inout Int64) -> String {
         for _ in 0..<2 {
             frame += 100_000_000
             app.frame(atNanos: frame)
         }
-        return app.screen.joined(separator: "\n").stripped
+        return app.screen.styledLines.joined(separator: "\n").stripped
     }
 
     private static func store(holding value: String, forKey key: String = "defaultAppStorage.value")
@@ -113,7 +115,7 @@ struct DefaultAppStorageTests {
             Reader(label: "b").defaultAppStorage(inner)
         }
         .defaultAppStorage(outer)
-        let app = HeadlessApp(Page(content: page), width: 30, height: 6)
+        let app = TestApp(Page(content: page), width: 30, height: 6)
         var frame: Int64 = 1_000_000_000
         let screen = Self.draw(app, &frame)
         #expect(screen.contains("a outer"), "\(screen)")
@@ -124,7 +126,7 @@ struct DefaultAppStorageTests {
     func namedStoreWins() {
         let (environment, named) = (Self.store(holding: "environment"), Self.store(holding: "own"))
         let page = NamedReader(store: named).defaultAppStorage(environment)
-        let app = HeadlessApp(Page(content: page), width: 30, height: 4)
+        let app = TestApp(Page(content: page), width: 30, height: 4)
         var frame: Int64 = 1_000_000_000
         let screen = Self.draw(app, &frame)
         #expect(screen.contains("named own"), "\(screen)")
@@ -147,7 +149,7 @@ struct DefaultAppStorageTests {
                 .defaultAppStorage(scene)
             }
         }
-        let app = HeadlessApp(
+        let app = TestApp(
             ScenePage(scene: Self.store(holding: "scene"), view: Self.store(holding: "view")), width: 30, height: 6)
         var frame: Int64 = 1_000_000_000
         let screen = Self.draw(app, &frame)
@@ -164,7 +166,7 @@ struct DefaultAppStorageTests {
         let (store, captured) = (MockStorageBackend(), Captured())
         let key = "defaultAppStorage.captured.\(UUID().uuidString)"
         let page = Kept(content: BindingReader(captured: captured, key: key)).equatable().defaultAppStorage(store)
-        let app = HeadlessApp(Page(content: page), width: 30, height: 4)
+        let app = TestApp(Page(content: page), width: 30, height: 4)
         var frame: Int64 = 1_000_000_000
         #expect(Self.draw(app, &frame).contains("captured none"))
 
@@ -196,7 +198,7 @@ struct DefaultAppStorageTests {
         let choice = Choice()
         let page = Switching(
             choice: choice, first: Self.store(holding: "first"), second: Self.store(holding: "second"))
-        let app = HeadlessApp(Page(content: page), width: 30, height: 4)
+        let app = TestApp(Page(content: page), width: 30, height: 4)
         var frame: Int64 = 1_000_000_000
         #expect(Self.draw(app, &frame).contains("kept first"))
         choice.second = true
@@ -263,7 +265,7 @@ struct DefaultAppStorageTests {
         func writeThroughAnotherDefaultsObject() throws {
             try Self.withSuite(holding: "one", forKey: "defaultAppStorage.suite") { suite in
                 let page = Kept(content: SuiteReader(suite: suite)).equatable()
-                let app = HeadlessApp(Page(content: page), width: 30, height: 4)
+                let app = TestApp(Page(content: page), width: 30, height: 4)
                 var frame: Int64 = 1_000_000_000
                 #expect(Self.draw(app, &frame).contains("suite one"))
 
@@ -284,7 +286,7 @@ struct DefaultAppStorageTests {
             try Self.withSuite(holding: "from suite", forKey: "defaultAppStorage.value") { suite in
                 let defaults = try #require(UserDefaults(suiteName: suite))
                 let page = Reader(label: "env").defaultAppStorage(defaults)
-                let app = HeadlessApp(Page(content: page), width: 30, height: 4)
+                let app = TestApp(Page(content: page), width: 30, height: 4)
                 var frame: Int64 = 1_000_000_000
                 let screen = Self.draw(app, &frame)
                 #expect(screen.contains("env from suite"), "\(screen)")

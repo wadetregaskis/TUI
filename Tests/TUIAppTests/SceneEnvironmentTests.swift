@@ -12,7 +12,9 @@ import Observation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @Observable
@@ -74,9 +76,9 @@ private struct TransformApp: App {
 struct SceneEnvironmentTests {
 
     private func screen(_ app: some App) -> [String] {
-        let headless = HeadlessApp(app, width: 30, height: 12)
+        let headless = TestApp(app, width: 30, height: 12)
         headless.frame(atNanos: 0)
-        return headless.screen.map(\.stripped)
+        return headless.screen.lines
     }
 
     @Test("An observable object reaches the content and a toolbar item, through .palette")
@@ -128,7 +130,7 @@ struct SceneOnChangeTests {
     func runsOnChange() {
         sceneChanges.entries = []
         SceneChangeSource.value = 1
-        let app = HeadlessApp(ChangingApp(), width: 30, height: 12)
+        let app = TestApp(ChangingApp(), width: 30, height: 12)
         app.frame(atNanos: 0)
         #expect(sceneChanges.entries == ["1→1"])
         app.frame(atNanos: 16_666_667)
@@ -136,6 +138,6 @@ struct SceneOnChangeTests {
         SceneChangeSource.value = 2
         app.frame(atNanos: 33_333_334)
         #expect(sceneChanges.entries == ["1→1", "1→2"])
-        #expect(app.screen.contains { $0.stripped.contains("count 0") }, "and the content still draws")
+        #expect(app.screen.contains("count 0"), "and the content still draws")
     }
 }

@@ -13,7 +13,9 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// The query a page searches, by reference so the binding a frame built reaches
@@ -118,8 +120,8 @@ private struct TitleItemApp: App {
 @Suite("Default toolbar items", .rendersEnglishUI)
 struct DefaultToolbarItemTests {
     /// `app` after three frames.
-    private func running<A: App>(_ app: A) -> HeadlessApp {
-        let headless = HeadlessApp(app, width: 40, height: 12)
+    private func running<A: App>(_ app: A) -> TestApp {
+        let headless = TestApp(app, width: 40, height: 12)
         var now: Int64 = 0
         for _ in 0..<3 {
             now += 16_666_667
@@ -130,7 +132,7 @@ struct DefaultToolbarItemTests {
 
     /// What `app` shows after three frames.
     private func drawn(_ app: some App) -> [String] {
-        running(app).screen.map(\.stripped)
+        running(app).screen.lines
     }
 
     /// The rows holding the search field's prompt, against the page's row.
@@ -164,8 +166,8 @@ struct DefaultToolbarItemTests {
         app.frame(atNanos: 100_000_000)
         for character in "mars" { _ = app.send(KeyEvent(character: character)) }
         app.frame(atNanos: 200_000_000)
-        #expect(query.text == "mars", "\(app.screen.map(\.stripped))")
-        #expect(app.screen.contains { $0.stripped.contains("mars") })
+        #expect(query.text == "mars", "\(app.screen.lines)")
+        #expect(app.screen.contains("mars"))
     }
 
     @Test("toolbar(removing: .search) draws the field nowhere, inside the searchable or round it", arguments: [false, true])

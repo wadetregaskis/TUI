@@ -10,6 +10,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// SwiftUI's `modifierKeyAlternate(_:_:)`, where a terminal speaking the kitty
@@ -235,7 +236,7 @@ struct ModifierKeyAlternateTests {
     @Test("The modified view's lifecycle goes on through its alternate")
     func lifecycleGoesOn() {
         AlternateLifecycleApp.log.entries = []
-        let app = HeadlessApp(AlternateLifecycleApp(), width: 30, height: 6)
+        let app = TestApp(AlternateLifecycleApp(), width: 30, height: 6)
         app.services.keyboardReporting = KeyboardReporting(flags: .requested)
         var now: Int64 = 0
         func frame() {
@@ -247,7 +248,7 @@ struct ModifierKeyAlternateTests {
         for _ in 0..<3 {
             app.services.modifierKeys.record(ModifierKeyState(option: true))
             frame()
-            #expect(app.screen.contains { $0.contains("Go to") }, "precondition: the alternate")
+            #expect(app.screen.styledLines.contains { $0.contains("Go to") }, "precondition: the alternate")
             app.services.modifierKeys.record(ModifierKeyState())
             frame()
         }

@@ -12,8 +12,10 @@ import Observation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// What the action was told, in order.
@@ -125,14 +127,14 @@ struct InteractiveResizeChangeTests {
     @Test("A burst of resizes reports true at its first frame and false once the default 200 ms pass quietly")
     func aBurstBeginsAndEnds() {
         let log = ResizeLog()
-        let app = HeadlessApp(ResizeApp(log: log), width: 40, height: 10)
+        let app = TestApp(ResizeApp(log: log), width: 40, height: 10)
         app.frame(atNanos: 0)
         #expect(log.calls.isEmpty, "the action ran as the view appeared")
 
-        app.resize(width: 50, height: 10)
+        app.setSize(width: 50, height: 10)
         app.frame(atNanos: Self.frame)
         #expect(log.calls == [true])
-        app.resize(width: 60, height: 12)
+        app.setSize(width: 60, height: 12)
         app.frame(atNanos: 2 * Self.frame)
         #expect(log.calls == [true], "a resize inside the burst began another")
 
@@ -147,7 +149,7 @@ struct InteractiveResizeChangeTests {
         #expect(app.nextWake(after: endsAt) == nil, "a quiet terminal still asks for frames")
 
         // And the next burst begins again.
-        app.resize(width: 40, height: 10)
+        app.setSize(width: 40, height: 10)
         app.frame(atNanos: endsAt + Self.frame)
         #expect(log.calls == [true, false, true])
     }
@@ -155,9 +157,9 @@ struct InteractiveResizeChangeTests {
     @Test("A size report that leaves the grid as it was is not a resize")
     func aSameSizeReportIsNotAResize() {
         let log = ResizeLog()
-        let app = HeadlessApp(ResizeApp(log: log), width: 40, height: 10)
+        let app = TestApp(ResizeApp(log: log), width: 40, height: 10)
         app.frame(atNanos: 0)
-        app.resize(width: 40, height: 10)
+        app.setSize(width: 40, height: 10)
         app.frame(atNanos: Self.frame)
         #expect(log.calls.isEmpty)
     }
@@ -165,9 +167,9 @@ struct InteractiveResizeChangeTests {
     @Test("The timeout is the environment's: a view may set its own")
     func theTimeoutIsTheEnvironments() {
         let log = ResizeLog()
-        let app = HeadlessApp(ResizeApp(log: log, timeout: .milliseconds(500)), width: 40, height: 10)
+        let app = TestApp(ResizeApp(log: log, timeout: .milliseconds(500)), width: 40, height: 10)
         app.frame(atNanos: 0)
-        app.resize(width: 50, height: 10)
+        app.setSize(width: 50, height: 10)
         app.frame(atNanos: Self.frame)
         app.frame(atNanos: Self.frame + 400_000_000)
         #expect(log.calls == [true], "the default timeout ended the burst")
@@ -182,13 +184,13 @@ struct InteractiveResizeChangeTests {
     @Test("Behind an equatable memo the end of a burst is heard, and the memo still serves an idle frame")
     func aMemoNeitherSwallowsTheEndNorIsTurnedOff() {
         let log = ResizeLog()
-        let app = HeadlessApp(ResizeApp(log: log, behindMemo: true), width: 40, height: 10)
+        let app = TestApp(ResizeApp(log: log, behindMemo: true), width: 40, height: 10)
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frame)
-        app.resize(width: 50, height: 10)
+        app.setSize(width: 50, height: 10)
         app.frame(atNanos: 2 * Self.frame)
         #expect(log.calls == [true])
-        app.resize(width: 40, height: 10)
+        app.setSize(width: 40, height: 10)
         app.frame(atNanos: 3 * Self.frame)
         let endsAt = 3 * Self.frame + 200_000_000
         app.frame(atNanos: endsAt)
@@ -206,9 +208,9 @@ struct InteractiveResizeChangeTests {
     func aViewLeavingMidBurst() {
         let log = ResizeLog()
         let presence = Presence()
-        let app = HeadlessApp(ComingAndGoingApp(log: log, presence: presence), width: 40, height: 10)
+        let app = TestApp(ComingAndGoingApp(log: log, presence: presence), width: 40, height: 10)
         app.frame(atNanos: 0)
-        app.resize(width: 50, height: 10)
+        app.setSize(width: 50, height: 10)
         app.frame(atNanos: Self.frame)
         #expect(log.calls == [true])
 
@@ -220,7 +222,7 @@ struct InteractiveResizeChangeTests {
 
         // Back during the next burst: it starts again from `false`.
         presence.shown = true
-        app.resize(width: 60, height: 10)
+        app.setSize(width: 60, height: 10)
         app.frame(atNanos: endsAt + Self.frame)
         #expect(log.calls == [true, true])
         app.frame(atNanos: endsAt + Self.frame + 200_000_000)

@@ -15,8 +15,10 @@ import Testing
 import Observation
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// What an `.onHover` heard, in order.
@@ -218,11 +220,11 @@ private struct ReportingGapPage: View {
 /// A headless app and its clock, one 60 Hz frame per step.
 @MainActor
 private final class Driver<A: App> {
-    let app: HeadlessApp
+    let app: TestApp
     private var now: Int64 = 0
 
     init(_ page: A, height: Int = 14) {
-        app = HeadlessApp(page, width: 40, height: height)
+        app = TestApp(page, width: 40, height: height)
         step()
     }
 
@@ -238,7 +240,7 @@ private final class Driver<A: App> {
 
     /// Where `text` first appears on the screen: its column and row.
     func position(of text: String) -> (x: Int, y: Int)? {
-        for (row, line) in app.screen.map(\.stripped).enumerated() {
+        for (row, line) in app.screen.lines.enumerated() {
             if let range = line.range(of: text) {
                 return (line.distance(from: line.startIndex, to: range.lowerBound), row)
             }

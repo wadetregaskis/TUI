@@ -16,9 +16,11 @@ import Foundation
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 import TUILists
+import TUITesting
 @testable import TUITestSupport
 
 /// How many times each row was built.
@@ -183,7 +185,7 @@ private let evenMinute: TimeInterval = 13_333_320 * 60
 /// Draws `app` at `seconds` past the even minute. The monotonic instant
 /// follows the date, as the loop stamps them together.
 @MainActor
-private func frame(_ app: HeadlessApp, at seconds: TimeInterval) {
+private func frame(_ app: TestApp, at seconds: TimeInterval) {
     app.frame(
         atNanos: 1_000_000_000 + Int64(seconds * 1_000_000_000),
         date: Date(timeIntervalSinceReferenceDate: evenMinute + seconds))
@@ -207,14 +209,14 @@ struct TimelineCollectionWidthTests {
     /// suite, alone or beside the rest of its target, ever did; the request was
     /// then an `@AppStorage` or `@SceneStorage` write's, which no longer clears
     /// anything (`StorageWriteScopeTests`).
-    private func drive(
+    private func drive<A: App>(
         _ make: (RowBuilds) -> A, width: Int
     ) -> (widestBuiltInOneMinute: Int, later: [String], control: [String]) {
         var attempt = 0
         while true {
             attempt += 1
             let builds = RowBuilds()
-            let app = HeadlessApp(make(builds), width: width, height: 16)
+            let app = TestApp(make(builds), width: width, height: 16)
             for tick in 0..<5 { frame(app, at: 10 + Double(tick) / 60) }
             builds.reset()
             let clearsBefore = app.renderCache.stats.clears
@@ -223,9 +225,9 @@ struct TimelineCollectionWidthTests {
             if app.renderCache.stats.clears != clearsBefore, attempt < 3 { continue }
             for tick in 0..<3 { frame(app, at: 70 + Double(tick) / 60) }
 
-            let control = HeadlessApp(make(RowBuilds()), width: width, height: 16)
+            let control = TestApp(make(RowBuilds()), width: width, height: 16)
             for tick in 0..<3 { frame(control, at: 70 + Double(tick) / 60) }
-            return (widestBuilt, app.screen, control.screen)
+            return (widestBuilt, app.screen.styledLines, control.screen.styledLines)
         }
     }
 

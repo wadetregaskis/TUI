@@ -15,7 +15,9 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 final class PopoverKeyLog: @unchecked Sendable {
@@ -69,7 +71,7 @@ struct PopoverReturnKeyTests {
     @Test("A popover's content hears its keys with the focus inside it, and the page behind it does not")
     func popoverContentHearsItsKeys() {
         PopoverReturnApp.log.entries = []
-        let app = HeadlessApp(PopoverReturnApp(), width: 40, height: 12)
+        let app = TestApp(PopoverReturnApp(), width: 40, height: 12)
         var now: Int64 = 0
         func frame() {
             now += 16_666_667
@@ -80,7 +82,7 @@ struct PopoverReturnKeyTests {
         app.send(KeyEvent(key: .enter))
         frame()
         frame()
-        #expect(app.screen.contains { $0.contains("POPOVER") }, "precondition: shown")
+        #expect(app.screen.styledLines.contains { $0.contains("POPOVER") }, "precondition: shown")
         app.send(KeyEvent(key: .tab))
         frame()
         #expect(app.focusedID?.hasPrefix("focusable-") == true, "precondition: the focus is inside the popover")

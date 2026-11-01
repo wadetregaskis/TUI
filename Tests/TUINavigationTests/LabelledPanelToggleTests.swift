@@ -12,8 +12,10 @@
 import Testing
 
 import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUINavigation
+import TUITesting
 @testable import TUITestSupport
 
 /// A sidebar on each side, each with a labelled button, and the key hints in
@@ -43,18 +45,18 @@ private struct BothSidesApp: App {
 @MainActor
 @Suite("A toolbar toggle's label", .rendersEnglishUI)
 struct LabelledPanelToggleTests {
-    private func running<A: App>(_ app: A) -> HeadlessApp {
-        let headless = HeadlessApp(app, width: 72, height: 14)
+    private func running<A: App>(_ app: A) -> TestApp {
+        let headless = TestApp(app, width: 72, height: 14)
         for index in 1...5 { headless.frame(atNanos: Int64(index) * 16_666_667) }
         return headless
     }
 
-    private func rows(_ app: HeadlessApp) -> [String] {
-        app.screen.map(\.stripped)
+    private func rows(_ app: TestApp) -> [String] {
+        app.screen.lines
     }
 
     /// A still click at `column` on `row`, and two frames after it.
-    private func click(_ app: HeadlessApp, row: Int, column: Int, frame: Int) {
+    private func click(_ app: TestApp, row: Int, column: Int, frame: Int) {
         _ = app.send(MouseEvent(button: .left, phase: .pressed, x: column, y: row))
         _ = app.send(MouseEvent(button: .left, phase: .released, x: column, y: row))
         for index in frame...(frame + 1) { app.frame(atNanos: Int64(index) * 16_666_667) }

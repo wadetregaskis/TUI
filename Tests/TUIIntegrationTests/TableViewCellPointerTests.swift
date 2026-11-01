@@ -16,8 +16,10 @@ import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @Observable
@@ -109,13 +111,13 @@ private struct LedgerPage: View {
 @MainActor
 private final class Harness {
     let ledger = Ledger()
-    let app: HeadlessApp
+    let app: TestApp
     private var now: Int64 = 0
 
     init(tall: Bool = false, overflow: TruncationMode? = nil) {
         ledger.tall = tall
         ledger.overflow = overflow
-        app = HeadlessApp(LedgerApp(ledger), width: 70, height: 20)
+        app = TestApp(LedgerApp(ledger), width: 70, height: 20)
         frame()
         frame()
     }
@@ -127,13 +129,13 @@ private final class Harness {
 
     /// Where `text` is drawn: its line and the column of its first character.
     func position(of text: String) throws -> (x: Int, y: Int) {
-        let y = try #require(app.screen.firstIndex { $0.stripped.contains(text) }, "\(text) is not drawn")
-        let line = app.screen[y].stripped
+        let y = try #require(app.screen.styledLines.firstIndex { $0.stripped.contains(text) }, "\(text) is not drawn")
+        let line = app.screen.styledLines[y].stripped
         let range = try #require(line.range(of: text))
         return (line.distance(from: line.startIndex, to: range.lowerBound), y)
     }
 
-    func shows(_ text: String) -> Bool { app.screen.contains { $0.stripped.contains(text) } }
+    func shows(_ text: String) -> Bool { app.screen.contains(text) }
 
     /// A click — press and release — at `point`, a frame after each.
     func click(_ point: (x: Int, y: Int), button: MouseButton = .left) {
@@ -186,7 +188,7 @@ struct TableViewCellPointerTests {
         harness.app.send(MouseEvent(button: .right, phase: .pressed, x: menu.x, y: menu.y))
         harness.app.send(MouseEvent(button: .right, phase: .released, x: menu.x, y: menu.y))
         harness.frame()
-        #expect(harness.shows("Rename1"), "the menu was not drawn:\n\(harness.app.screen.map(\.stripped).joined(separator: "\n"))")
+        #expect(harness.shows("Rename1"), "the menu was not drawn:\n\(harness.app.screen.lines.joined(separator: "\n"))")
         harness.app.send(KeyEvent(key: .down))
         harness.frame()
         harness.app.send(KeyEvent(key: .enter))
@@ -225,7 +227,7 @@ struct TableViewCellPointerTests {
         let harness = Harness(overflow: mode)
         // Its first eight cells, as drawn — no ellipsis, nothing moved.
         let cell = try harness.position(of: "pad1xxxx")
-        #expect(!harness.shows("…"), "\(harness.app.screen.map(\.stripped).joined(separator: "\n"))")
+        #expect(!harness.shows("…"), "\(harness.app.screen.lines.joined(separator: "\n"))")
         // The button, past the cut, is not drawn and takes no click there.
         #expect(!harness.shows("G1"))
         harness.click((cell.x + 7, cell.y))

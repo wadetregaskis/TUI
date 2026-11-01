@@ -12,7 +12,9 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 // MARK: - Fixtures
@@ -76,22 +78,22 @@ private struct LateWriteApp: App {
 struct SceneStoragePerWindowTests {
     private var now: Int64 = 0
 
-    private mutating func frame(_ app: HeadlessApp) {
+    private mutating func frame(_ app: TestApp) {
         now += 20_000_000
         app.frame(atNanos: now)
         now += 20_000_000
         app.frame(atNanos: now)
     }
 
-    private mutating func launched() -> HeadlessApp {
+    private mutating func launched() -> TestApp {
         StorageProbe.shared.store = MockStorageBackend()
-        let app = HeadlessApp(StorageApp(), width: 40, height: 6)
+        let app = TestApp(StorageApp(), width: 40, height: 6)
         frame(app)
         return app
     }
 
-    private func screen(_ app: HeadlessApp) -> String {
-        app.screen.map(\.stripped).joined(separator: "\n")
+    private func screen(_ app: TestApp) -> String {
+        app.screen.lines.joined(separator: "\n")
     }
 
     private func stored(_ key: String) -> String? {
@@ -99,7 +101,7 @@ struct SceneStoragePerWindowTests {
     }
 
     /// Opens `id` and presses the new window's button.
-    private mutating func openAndPress(_ id: String, in app: HeadlessApp) {
+    private mutating func openAndPress(_ id: String, in app: TestApp) {
         app.scenes.open(WindowTarget(id: id))
         frame(app)
         app.send(KeyEvent(key: .enter))
@@ -133,7 +135,7 @@ struct SceneStoragePerWindowTests {
     mutating func heldWindowClosureWritesItsOwn() {
         StorageProbe.shared.store = MockStorageBackend()
         LateWrites.byWindow = [:]
-        let app = HeadlessApp(LateWriteApp(), width: 40, height: 6)
+        let app = TestApp(LateWriteApp(), width: 40, height: 6)
         frame(app)
         app.scenes.open(WindowTarget(id: "viewer"))
         frame(app)

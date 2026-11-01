@@ -7,7 +7,9 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// The sidebar's `@State`, handed back by its body so a test can flip it
@@ -68,7 +70,7 @@ private struct ReaderRowsPage: App {
 
 /// One frame of `app`, a sixtieth of a second after the one before.
 @MainActor
-private func step(_ app: HeadlessApp, _ frame: Int) {
+private func step(_ app: TestApp, _ frame: Int) {
     app.frame(atNanos: 1_000_000_000 + Int64(frame) * 16_666_667)
 }
 
@@ -87,16 +89,16 @@ struct GeometryReaderTests {
     @Test("Rows under a GeometryReader that read its size are drawn for the size it has now")
     func rowsReadingTheProxyFollowIt() {
         let handle = SidebarHandle()
-        let app = HeadlessApp(ReaderRowsPage(wide: false, handle: handle), width: 60, height: 16)
+        let app = TestApp(ReaderRowsPage(wide: false, handle: handle), width: 60, height: 16)
         for frame in 0..<3 { step(app, frame) }
-        #expect(app.screen.contains { $0.contains("row 2 in 56") }, "precondition: the rows drew the reader's width")
+        #expect(app.screen.styledLines.contains { $0.contains("row 2 in 56") }, "precondition: the rows drew the reader's width")
         handle.flip()
         for frame in 3..<5 { step(app, frame) }
 
-        let control = HeadlessApp(ReaderRowsPage(wide: true, handle: SidebarHandle()), width: 60, height: 16)
+        let control = TestApp(ReaderRowsPage(wide: true, handle: SidebarHandle()), width: 60, height: 16)
         for frame in 0..<5 { step(control, frame) }
-        #expect(app.screen.contains { $0.contains("row 2 in 30") }, "the rows kept the reader's old width")
-        #expect(app.screen == control.screen)
+        #expect(app.screen.styledLines.contains { $0.contains("row 2 in 30") }, "the rows kept the reader's old width")
+        #expect(app.screen.styledLines == control.screen.styledLines)
     }
 
     /// The reader notes the size it hands its content once a pass, as a
@@ -105,7 +107,7 @@ struct GeometryReaderTests {
     @Test("A reader clears its content once when its size moves, and not when it holds")
     func aReaderClearsOnlyWhenItMoves() {
         let handle = SidebarHandle()
-        let app = HeadlessApp(ReaderRowsPage(wide: false, handle: handle), width: 60, height: 16)
+        let app = TestApp(ReaderRowsPage(wide: false, handle: handle), width: 60, height: 16)
         for frame in 0..<3 { step(app, frame) }
         let settled = app.renderCache.stats.subtreeClears
         for frame in 3..<6 { step(app, frame) }
