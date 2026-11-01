@@ -6,6 +6,7 @@
 
 import Foundation
 import TUIFoundation
+import TUIStyling
 
 #if canImport(Glibc)
     import Glibc
@@ -63,13 +64,13 @@ public enum RenderOnceOutput: Sendable, Equatable {
         case .escapeSequences: return .styled(noColor: false)
         case .automatic: break
         }
-        func stated(_ name: String) -> String? { environment[name].flatMap { $0.isEmpty ? nil : $0 } }
-        if let forced = stated("TUI_FORCE_ESCAPES") {
+        if let forced = ColorRequest.stated("TUI_FORCE_ESCAPES", in: environment) {
             return forced == "0" ? .plainText : .styled(noColor: false)
         }
-        if let forced = stated("FORCE_COLOR"), forced != "0" { return .styled(noColor: false) }
+        let request = ColorRequest(environment: environment)
+        if request == .forced { return .styled(noColor: false) }
         guard stdoutIsTerminal, environment["TERM"] != "dumb" else { return .plainText }
-        return .styled(noColor: stated("FORCE_COLOR") != nil || stated("NO_COLOR") != nil)
+        return .styled(noColor: request == .off)
     }
 }
 
