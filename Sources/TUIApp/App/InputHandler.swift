@@ -283,16 +283,24 @@ extension InputHandler {
     /// only to cancel something. Taken by anything of the app's first: a binding
     /// on it, a selection on the screen, a focused field with text selected.
     ///
-    /// Taken here too where a presentation holds the quit keys, as the quit
-    /// key is: nothing happens.
+    /// Pressed again while TUI's dialog is up, it quits, as a second ⌃\\ does:
+    /// an ordinary quit, since the app is listening. An app's own question
+    /// (`dismissalConfirmationDialog`) keeps it from quitting past that, as does
+    /// a presentation that holds the quit keys, as for the quit key: nothing
+    /// happens. Only a press counts: a key held down repeating is not asked
+    /// twice.
     ///
     /// - Returns: Whether `event` was Control-C and there is something to ask
     ///   with.
     private func runInterruptKey(_ event: KeyEvent) -> Bool {
-        guard quitPrompt != nil, event.phase == .press, event.ctrl, !event.alt, !event.shift, !event.command,
+        guard let quitPrompt, event.phase == .press, event.ctrl, !event.alt, !event.shift, !event.command,
             event.key == .character("c")
         else { return false }
-        quit(.interruptKey)
+        if quitPrompt.isAsking {
+            quitPrompt.confirm()
+        } else {
+            quit(.interruptKey)
+        }
         return true
     }
 
@@ -314,7 +322,7 @@ extension InputHandler {
         } else if statusBar.asksBeforeQuit {
             requestQuit(.signalKey)
         } else {
-            quitPrompt.ask(then: onQuit)
+            quitPrompt.ask(pressAgainKey: event.chordName, then: onQuit)
         }
     }
 
@@ -602,7 +610,7 @@ extension InputHandler {
             guard let quitPrompt,
                 answeredAQuestion ? !quitPrompt.warnings.isEmpty : quitPrompt.asks(before: request)
             else { return onQuit() }
-            quitPrompt.ask(then: onQuit)
+            quitPrompt.ask(pressAgainKey: request == .interruptKey ? Shortcut.ctrl("c") : nil, then: onQuit)
         }
     }
 

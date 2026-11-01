@@ -479,7 +479,7 @@ extension StatusBarItem {
     /// lock — and every item is built afresh each frame. So it is asked last,
     /// of a shortcut no fixed spelling claimed, and never of one printable
     /// ASCII character, which is that key whatever the space bar is called:
-    /// the framework's own items (`q`, `a`, `t`, `⎋`, `↩`) and an app's
+    /// the framework's own items (`⌃Q`, `a`, `t`, `⎋`, `↩`) and an app's
     /// one-key items never ask. In the switch, it was asked of every item that
     /// was not Escape, Return, Tab or a delete key.
     ///

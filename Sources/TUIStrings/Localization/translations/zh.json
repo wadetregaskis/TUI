@@ -229,6 +229,7 @@
   "dialog.quit_message": "未保存的内容将会丢失。",
   "dialog.quit_in_progress": "现在退出将停止：",
   "dialog.quit_action": "退出",
+  "dialog.quit_press_again": "再按一次 %@ 退出。",
   "dialog.quit_work_in_progress": "正在进行的工作",
 
   "noterminal.no_output": "标准输出不是终端，因此无法显示此应用的界面。",

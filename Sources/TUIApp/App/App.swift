@@ -784,7 +784,7 @@ extension AppRunner {
 
     /// What the exit writes before the terminal leaves the alternate screen:
     /// the image deletes and the hairlines' strips, and then a copy made in
-    /// the last moments — a Ctrl-C and then `q` before a frame drew — which is
+    /// the last moments — a Ctrl-C and then Ctrl-Q before a frame drew — which is
     /// still owed to the terminal's clipboard; likewise attention asked for on the way out
     /// (`requestAttention("Done")` and then `dismiss()`), which no frame would
     /// write; and what the app set on the terminal emulator, given back.

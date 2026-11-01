@@ -269,15 +269,39 @@ struct QuitConfirmationTests {
         #expect(app.quitsRequested == 1)
     }
 
-    @Test("⌃C and ⌃Q at the dialog do nothing: it is still up, and nothing quit")
-    func keysAtTheDialog() {
+    @Test("⌃Q at the dialog does nothing: it is still up, and nothing quit")
+    func quitKeyAtTheDialog() {
         let app = app()
         var now: Int64 = 0
-        press(controlC, on: app, at: &now)
         press(controlC, on: app, at: &now)
         press(controlQ, on: app, at: &now)
         #expect(app.quitsRequested == 0)
         #expect(asks(app))
+    }
+
+    @Test("A second ⌃C at the dialog quits, and the dialog says so; a repeat doesn't count")
+    func secondControlC() {
+        let app = app()
+        var now: Int64 = 0
+        press(controlC, on: app, at: &now)
+        #expect(app.screen.contains { $0.stripped.contains("again to quit") })
+        press(KeyEvent(key: .character("c"), ctrl: true, phase: .repeat), on: app, at: &now)
+        #expect(app.quitsRequested == 0)
+        press(controlC, on: app, at: &now)
+        #expect(app.quitsRequested == 1)
+    }
+
+    @Test("Asked by ⌃Q, the dialog has no such line, though a ⌃C there quits as well")
+    func quitKeyDialogSaysNothingOfAgain() {
+        let model = Model()
+        model.warning = "Uploading"
+        let app = app(model: model)
+        var now: Int64 = 0
+        press(controlQ, on: app, at: &now)
+        #expect(asks(app))
+        #expect(!app.screen.contains { $0.stripped.contains("again to quit") })
+        press(controlC, on: app, at: &now)
+        #expect(app.quitsRequested == 1)
     }
 
     @Test("The page behind keeps its state, and its focus, through the dialog")

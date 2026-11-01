@@ -259,6 +259,7 @@ extension LocalizationService {
       "dialog.quit_message": "Anything not saved will be lost.",
       "dialog.quit_in_progress": "Quitting now will stop:",
       "dialog.quit_action": "Quit",
+      "dialog.quit_press_again": "Press %@ again to quit.",
       "dialog.quit_work_in_progress": "Work in progress",
 
       "noterminal.no_output": "standard output is not a terminal, so there is nowhere to draw this app's interface.",

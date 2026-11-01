@@ -5,8 +5,8 @@ not a crash.
 
 By default a running app takes ⌃\\ from the driver (raw mode masks the quit key
 once the first frame is up), so the first one can ask before anything has
-happened, the app's children included. If the loop doesn't read it within a
-second, a thread of its own does, and sends SIGQUIT as the driver would have.
+happened, the app's children included. If the loop doesn't read it within two
+seconds, a thread of its own does, and sends SIGQUIT as the driver would have.
 SIGQUIT's handler pays it as a QUIT: it writes what a normal quit writes (the
 styling reset, every mode the app turned on turned off, the cursor shown, and
 the alternate screen LEFT), puts the shell's termios back, and ends the process
@@ -34,7 +34,8 @@ that answers the startup exchange, and checks:
      stopped nor ended. ⌃C, which nothing takes, then asks; Escape stays.
   4. ⌃\\: the first asks, ending nothing, the app's child left alone; a second
      while it is up ends it by SIGQUIT (the checks of 1), and the child with it.
-     The dialog's keys: Return stays, Tab and Return quits with status 0.
+     A second ⌃C quits too, with status 0. The dialog's keys: Return stays, Tab
+     and Return quits with status 0.
   4b. A bracketed paste holding 0x1C: text, while the app has the key; and a
      quit, as in a shell, while the driver does.
   5. A hung main thread: one ⌃\\ ends it. Other keys at a hung app don't, and a
@@ -261,9 +262,11 @@ class App:
 
     def finish(self):
         if self.status is None:
+            # Reading while it dies: a session leader's exit waits for its terminal's
+            # output to drain, so a blocking wait here hangs on any byte it left unread.
             try:
                 os.kill(self.pid, signal.SIGKILL)
-                os.waitpid(self.pid, 0)
+                self.wait_for_exit(20.0)
             except (OSError, ChildProcessError):
                 pass
         os.close(self.master)
@@ -463,6 +466,19 @@ check_quit(app, mark, "a second ⌃\\")
 check(child is not None and child_ends(child, 3.0), "a second ⌃\\: the app's child ends with it")
 app.finish()
 
+# A second ⌃C while it is up: an ordinary quit, with status 0.
+app = App(env={"IDLE_PROBE_MODE": "keys"})
+app.settle()
+mark = len(app.out)
+os.write(app.master, b"\x03")
+app.pump(0.6)
+check(asks(app, mark) and b"again to quit" in visible(app.out[mark:]), "⌃C: it asks, and says a second ⌃C quits")
+os.write(app.master, b"\x03")
+status = app.wait_for_exit(20.0)
+check(status is not None and os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0,
+      "a second ⌃C: an ordinary quit, with status 0")
+app.finish()
+
 # The dialog's own keys: Return stays, Tab and Return quits.
 app = App(env={"IDLE_PROBE_MODE": "keys"})
 app.settle()
@@ -501,7 +517,7 @@ os.write(app.master, b"\x1b[200~pasted \x1c text\x1b[201~")
 check_quit(app, mark, "whenWarned: a paste holding 0x1C")
 app.finish()
 
-# 5. A hung main thread: one ⌃\ ends it, a second later, with the terminal back.
+# 5. A hung main thread: one ⌃\ ends it, about two seconds later, with the terminal back.
 for env, name in (({}, "hung, ⌃\\"), (WHEN_WARNED, "whenWarned: hung, ⌃\\")):
     app = App(env={"IDLE_PROBE_MODE": "hang", **env})
     app.settle()
@@ -528,7 +544,7 @@ app.settle()
 os.write(app.master, b"s")
 app.pump(0.2)
 os.write(app.master, b"a")
-app.pump(1.6)  # past the watch's grace: the bytes are read for the loop
+app.pump(2.3)  # past the watch's grace: the bytes are read for the loop
 os.write(app.master, b"b")
 app.pump(3.0)
 check(running(app), "a slow frame: it goes on")

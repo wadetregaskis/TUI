@@ -229,6 +229,7 @@
   "dialog.quit_message": "Se perderá todo lo que no se haya guardado.",
   "dialog.quit_in_progress": "Salir ahora detendrá:",
   "dialog.quit_action": "Salir",
+  "dialog.quit_press_again": "Pulse %@ de nuevo para salir.",
   "dialog.quit_work_in_progress": "Trabajo en curso",
 
   "noterminal.no_output": "la salida estándar no es un terminal, así que no hay dónde dibujar la interfaz de esta aplicación.",

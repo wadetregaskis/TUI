@@ -136,7 +136,7 @@ package func departingSlot<Content: View>(
 ///
 /// A wrapper that renders its content a step below its own identity is not one
 /// either, but draws it unchanged as well, and says so as it draws
-/// (``RenderContext/noteDepartureDrawnWhole(of:at:by:)``): any view with a `body`
+/// (`RenderContext.noteDepartureDrawnWhole(of:at:by:)`): any view with a `body`
 /// (`.tag`, `.zIndex`, `.redacted`, `.alignmentGuide`, a view of your own), a
 /// presentation modifier (`.sheet`, `.alert`, `.popover`, `.contextMenu`), `.id`,
 /// a conditional.

@@ -217,6 +217,7 @@ final class LocalizationKeyConsistencyTests {
             LocalizationKey.Dialog.quitMessage,
             LocalizationKey.Dialog.quitInProgress,
             LocalizationKey.Dialog.quitAction,
+            LocalizationKey.Dialog.quitPressAgain,
             LocalizationKey.Dialog.quitWorkInProgress,
         ]
 
@@ -351,6 +352,7 @@ final class LocalizationKeyConsistencyTests {
         enumKeys.insert(LocalizationKey.Dialog.quitMessage.rawValue)
         enumKeys.insert(LocalizationKey.Dialog.quitInProgress.rawValue)
         enumKeys.insert(LocalizationKey.Dialog.quitAction.rawValue)
+        enumKeys.insert(LocalizationKey.Dialog.quitPressAgain.rawValue)
         enumKeys.insert(LocalizationKey.Dialog.quitWorkInProgress.rawValue)
 
         // Validation keys
@@ -413,7 +415,7 @@ final class LocalizationKeyConsistencyTests {
         // button + label + error + placeholder + menu + dialog + validation
         //   + statusbar + appearance + time span + key names + file panels + control styles
         let expectedKeyCount =
-            27 + LocalizationKey.Label.allCases.count + 11 + 6 + LocalizationKey.Menu.allCases.count + 12 + 4
+            27 + LocalizationKey.Label.allCases.count + 11 + 6 + LocalizationKey.Menu.allCases.count + 13 + 4
             + LocalizationKey.StatusBar.allCases.count + 8 + LocalizationKey.TimeSpan.allCases.count
             + LocalizationKey.KeyName.allCases.count + LocalizationKey.FilePanel.allCases.count
             + LocalizationKey.ControlStyle.allCases.count + LocalizationKey.NoTerminal.allCases.count

@@ -203,6 +203,14 @@ struct QuitKeyChords {
 }
 
 extension KeyEvent {
+    /// This Control chord, as a menu names it (`⌃\\`), or `nil` for any other
+    /// event: how the quit dialog names the user's quit key, which they may
+    /// have moved.
+    var chordName: String? {
+        guard ctrl, case .character(let character) = key else { return nil }
+        return Shortcut.ctrl(character)
+    }
+
     /// The C0 byte a legacy encoding sends for this Control chord — Ctrl with
     /// `@`, a letter, `[`, `\`, `]`, `^` or `_` — or `nil` for any other
     /// event. Option does not change it (a legacy encoding sends the byte

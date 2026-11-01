@@ -229,6 +229,7 @@
   "dialog.quit_message": "保存していない内容は失われます。",
   "dialog.quit_in_progress": "今終了すると次の処理が止まります：",
   "dialog.quit_action": "終了",
+  "dialog.quit_press_again": "もう一度 %@ を押すと終了します。",
   "dialog.quit_work_in_progress": "実行中の処理",
 
   "noterminal.no_output": "標準出力が端末ではないため、このアプリの画面を表示できません。",

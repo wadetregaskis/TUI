@@ -101,6 +101,10 @@ final class QuitPrompt: @unchecked Sendable {
     /// What the dialog's Quit does, while the dialog is up.
     private var proceed: (() -> Void)?
 
+    /// The key that quits if pressed again while the dialog is up, if it was
+    /// one of those that put it up, named as the dialog names it.
+    private var pressAgainKey: String?
+
     /// Whether the scene presenter draws the dialog. It stays on once the dialog
     /// has been up: closing it takes a frame with the alert drawn and not
     /// presented, which hands the page its focus back.
@@ -138,7 +142,14 @@ final class QuitPrompt: @unchecked Sendable {
     }
 
     /// Puts the dialog up; its Quit runs `proceed`.
-    func ask(then proceed: @escaping () -> Void) {
+    ///
+    /// - Parameters:
+    ///   - pressAgainKey: The key that put it up and quits if pressed again
+    ///     (Control-C, ⌃\\), for the dialog to say so; `nil` for the quit key,
+    ///     pressing which again does nothing.
+    ///   - proceed: What Quit does.
+    func ask(pressAgainKey: String? = nil, then proceed: @escaping () -> Void) {
+        self.pressAgainKey = pressAgainKey
         self.proceed = proceed
         isHosted = true
         requestFrame()
@@ -161,9 +172,15 @@ final class QuitPrompt: @unchecked Sendable {
     /// means, for a person who pressed Control-C hoping to cancel something.
     var message: String {
         let service = LocalizationService.shared
-        guard !warnings.isEmpty else { return service.string(for: LocalizationKey.Dialog.quitMessage) }
-        let list = warnings.map { "• " + $0 }.joined(separator: "\n")
-        return service.string(for: LocalizationKey.Dialog.quitInProgress) + "\n" + list
+        var message = service.string(for: LocalizationKey.Dialog.quitMessage)
+        if !warnings.isEmpty {
+            let list = warnings.map { "• " + $0 }.joined(separator: "\n")
+            message = service.string(for: LocalizationKey.Dialog.quitInProgress) + "\n" + list
+        }
+        guard let pressAgainKey else { return message }
+        let again = LocalizedStringKey.substituting(
+            [pressAgainKey], into: service.string(for: LocalizationKey.Dialog.quitPressAgain))
+        return message + "\n\n" + again
     }
 
     /// The dialog, as the scene presenter draws it over the window in front;

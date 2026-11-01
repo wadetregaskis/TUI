@@ -196,7 +196,7 @@ enum UnreadQuitKey {
 
 /// A thread that quits the app when the user's quit key, which the main loop
 /// would have asked about, sits unread: a ⌃\\ the loop hasn't acknowledged after
-/// ``grace`` (a second).
+/// ``grace`` (two seconds).
 ///
 /// While the quit key asks before it quits (`QuitConfirmation`), the driver must
 /// not act on its byte: the first ⌃\\ would end every process in the group
@@ -212,8 +212,8 @@ enum UnreadQuitKey {
 /// - Not among it: the bytes stay held, the next read by the loop gets them, and
 ///   a loop that was only slow finds what was typed in order.
 ///
-/// So a hung app dies at its first ⌃\\, a second later. So does one busy for
-/// more than a second on the main thread: it looks the same from here, and
+/// So a hung app dies at its first ⌃\\, two seconds later. So does one busy for
+/// more than that on the main thread: it looks the same from here, and
 /// that is the rule the owner set (a ⌃\\ the loop doesn't acknowledge promptly
 /// quits at once). Once the loop has been found not to be reading, later input
 /// is looked at without waiting again, until it reads.
@@ -266,7 +266,7 @@ final class UnreadQuitKeyWatch: @unchecked Sendable {
     ///   - grace: How long input may wait unread before it is looked at.
     ///   - quit: What quits.
     init(
-        input: SharedStandardInput = SharedStandardInput(), grace: TimeInterval = 1.0,
+        input: SharedStandardInput = SharedStandardInput(), grace: TimeInterval = 2.0,
         quit: @escaping @Sendable () -> Void = { _ = kill(0, SIGQUIT) }
     ) {
         self.input = input

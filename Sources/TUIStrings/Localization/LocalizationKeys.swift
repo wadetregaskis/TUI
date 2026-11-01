@@ -383,6 +383,9 @@ public enum LocalizationKey {
         case quitInProgress = "dialog.quit_in_progress"
         /// The quit confirmation's button that quits.
         case quitAction = "dialog.quit_action"
+        /// The quit confirmation's line for a key that quits if pressed again:
+        /// `%@` is the key.
+        case quitPressAgain = "dialog.quit_press_again"
         /// What the quit confirmation lists for a progress report with no
         /// words of its own (`View.terminalProgress(_:)`).
         case quitWorkInProgress = "dialog.quit_work_in_progress"

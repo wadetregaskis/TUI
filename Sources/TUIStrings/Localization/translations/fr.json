@@ -229,6 +229,7 @@
   "dialog.quit_message": "Tout ce qui n'est pas enregistré sera perdu.",
   "dialog.quit_in_progress": "Quitter maintenant arrêtera :",
   "dialog.quit_action": "Quitter",
+  "dialog.quit_press_again": "Appuyez de nouveau sur %@ pour quitter.",
   "dialog.quit_work_in_progress": "Travail en cours",
 
   "noterminal.no_output": "la sortie standard n'est pas un terminal : l'interface de cette application ne peut donc pas s'afficher.",
