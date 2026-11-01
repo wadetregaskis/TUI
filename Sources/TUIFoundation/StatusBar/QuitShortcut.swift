@@ -137,7 +137,8 @@ extension QuitShortcut {
         shortcutSymbol: Shortcut.ctrl("q")
     )
 
-    /// Quit with Control-C (`⌃C`).
+    /// Quit with Control-C (`⌃C`), which otherwise copies a selection and does
+    /// nothing else. It goes on copying where there is one, ahead of quitting.
     public static let ctrlC = QuitShortcut(
         key: .character("c"),
         ctrl: true,

@@ -97,7 +97,7 @@ screen, so spinners and progress bars go on animating. To draw your own view dif
 
 ## Quitting
 
-A person can quit your app from the keyboard: Control-Q quits, and Control-C and Control-\\ ask first.
+A person can quit your app from the keyboard: Control-Q quits, and Control-\\ asks first.
 <doc:KeyboardShortcuts#Quitting> says what each does, how to change them, and how to keep them from working on some
 screens.
 
@@ -116,7 +116,7 @@ struct UploadsView: View {
 
 Only a view that's drawn can warn, so put a warning for work that goes on behind every screen at the root of the
 scene. To choose when quitting asks, set `.quitConfirmation` on the scene. `.always` asks for every quit, and `.whenWarned`
-only with a warning active, so Control-C and Control-\\ then quit at once:
+only with a warning active, so Control-\\ then quits at once:
 
 ```swift
 @main

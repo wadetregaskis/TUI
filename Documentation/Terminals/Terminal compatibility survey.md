@@ -5559,7 +5559,8 @@ the driver sends 0x03 and 0x1A as bytes instead of raising SIGINT and SIGTSTP,
 and they decode as `.character("c")` and `.character("z")` with `ctrl`. What becomes of them is the
 input chain's business. Ctrl-C goes to anything of the app's first — an app's
 ⌘C under `.control`, or `QuitShortcut.ctrlC` — and where nothing takes it, it
-asks whether to quit (2026-10-31, the owner's choice). Ctrl-Z is the app's undo by default (2026-10-04, the owner's choice; see
+goes nowhere (the owner's ruling, 2026-11-01: it is the copy key, and quitting is
+⌃Q's and ⌃\\'s). Ctrl-Z is the app's undo by default (2026-10-04, the owner's choice; see
 "Undo and redo"), with nothing to undo doing nothing; where the app takes it
 out of its undo keys (`.undoShortcuts`), an unclaimed Ctrl-Z reaches layer 4,
 which re-raises it as SIGTSTP, as it always did. A shortcut on ⌃Z (an app's
@@ -5588,8 +5589,8 @@ and `UnreadQuitKeyWatch` quits a hung app in the driver's place. See "⌃\\ quit
 hung app" in `KeyboardShortcuts.md`. What follows is still so of an app under
 `.whenWarned` with no warning active, and of the moments before its first frame.**
 
-The owner's request: ⌃\\ is the backup to ⌃C, which TUI hands the app as a
-key, and it has to work when the app has HUNG. So it is the kernel's, not the
+The owner's request: ⌃\\ is the backup to the quit key, which only a running
+app can read, and it has to work when the app has HUNG. So it is the kernel's, not the
 app's. `Terminal.rawModeAttributes(from:)` keeps `ISIG` as the user had it and
 turns every signal character off but `VQUIT`: `VINTR` (⌃C) and `VSUSP` (⌃Z),
 and on Darwin `VDSUSP` (⌃Y, the delayed suspend) and `VSTATUS` (⌃T, `SIGINFO`),

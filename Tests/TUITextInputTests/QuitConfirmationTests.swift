@@ -72,6 +72,7 @@ struct QuitConfirmationTests {
 
     private let controlC = KeyEvent(key: .character("c"), ctrl: true)
     private let controlQ = KeyEvent(key: .character("q"), ctrl: true)
+    private let controlBackslash = KeyEvent(key: .character("\\"), ctrl: true)
     private let quitTitle = "Quit "
 
     /// A fresh app, drawn once.
@@ -96,6 +97,28 @@ struct QuitConfirmationTests {
         app.frame(atNanos: nanos)
     }
 
+    /// An app with the dialog up: `.always`, so ⌃Q asks.
+    private func askingApp(at nanos: inout Int64) -> HeadlessApp {
+        let app = app(.always)
+        press(controlQ, on: app, at: &nanos)
+        return app
+    }
+
+    /// An input chain of its own, for what a `HeadlessApp` leaves out: the user's
+    /// quit key and the signal it sends, which `signals` counts apart from `quits`.
+    private func chain(prompt: QuitPrompt, quits: @escaping () -> Void, signals: @escaping () -> Void) -> InputHandler {
+        let tui = TUIContext()
+        var handler = InputHandler(
+            statusBar: StatusBarState(), keyEventDispatcher: tui.keyEventDispatcher, focusManager: FocusManager(),
+            paletteManager: ThemeManager(items: PaletteRegistry.all, renderTrigger: {}),
+            appearanceManager: ThemeManager(items: AppearanceRegistry.all, renderTrigger: {}),
+            keyboardShortcuts: tui.keyboardShortcuts, dragAndDropSession: nil,
+            onQuit: quits, onSuspend: {}, quitPrompt: prompt)
+        handler.quitKey = { 0x1C }
+        handler.onQuitKey = signals
+        return handler
+    }
+
     // MARK: Which keys ask
 
     @Test("⌃Q quits at once, with nothing to warn of")
@@ -107,13 +130,19 @@ struct QuitConfirmationTests {
         #expect(!asks(app))
     }
 
-    @Test("⌃C with nothing taking it asks, and quits nothing")
-    func controlCAsks() {
-        let app = app()
-        var now: Int64 = 0
-        press(controlC, on: app, at: &now)
-        #expect(app.quitsRequested == 0)
-        #expect(asks(app))
+    @Test("⌃C with nothing taking it goes nowhere, under any setting and with a warning active")
+    func controlCGoesNowhere() {
+        for warning in [nil, "Uploading"] {
+            for confirmation in [QuitConfirmation.automatic, .always, .whenWarned] {
+                let model = Model()
+                model.warning = warning
+                let app = app(confirmation, model: model)
+                var now: Int64 = 0
+                press(controlC, on: app, at: &now)
+                #expect(app.quitsRequested == 0, "\(confirmation), \(String(describing: warning))")
+                #expect(!asks(app), "\(confirmation), \(String(describing: warning))")
+            }
+        }
     }
 
     @Test("Under `.always`, ⌃Q asks too")
@@ -125,11 +154,11 @@ struct QuitConfirmationTests {
         #expect(asks(app))
     }
 
-    @Test("Under `.whenWarned`, ⌃C quits at once")
+    @Test("Under `.whenWarned`, ⌃Q quits at once")
     func whenWarned() {
         let app = app(.whenWarned)
         var now: Int64 = 0
-        press(controlC, on: app, at: &now)
+        press(controlQ, on: app, at: &now)
         #expect(app.quitsRequested == 1)
         #expect(!asks(app))
     }
@@ -190,7 +219,7 @@ struct QuitConfirmationTests {
         #expect(!asks(app))
     }
 
-    @Test("A focused field with text selected copies; with none, ⌃C goes on to ask")
+    @Test("A focused field's ⌃C asks nothing, with text selected or with none")
     func fieldCopies() {
         let app = HeadlessApp(Field(), width: 80, height: 24)
         var now: Int64 = 0
@@ -198,10 +227,7 @@ struct QuitConfirmationTests {
         app.send(controlC)
         now += 20_000_000
         app.frame(atNanos: now)
-        #expect(app.screen.contains { $0.stripped.contains("Quit ") }, "nothing selected, so it isn't the field's")
-        app.send(KeyEvent(key: .escape))
-        now += 20_000_000
-        app.frame(atNanos: now)
+        #expect(!app.screen.contains { $0.stripped.contains("Quit ") }, "nothing selected, so it goes nowhere")
         app.send(KeyEvent(key: .left, shift: true))
         now += 20_000_000
         app.frame(atNanos: now)
@@ -219,31 +245,26 @@ struct QuitConfirmationTests {
         }
     }
 
-    @Test("The menu bar's Copy pressing ⌘C asks nothing: only a typed ⌃C does")
-    func pressedKeyDoesNotAsk() {
+    @Test("The chain reports an unbound ⌃C unconsumed, typed or pressed by the menu bar's Copy")
+    func controlCIsUnconsumed() {
         let prompt = QuitPrompt(requestFrame: {})
-        let tui = TUIContext()
         var quits = 0
-        let handler = InputHandler(
-            statusBar: StatusBarState(), keyEventDispatcher: tui.keyEventDispatcher, focusManager: FocusManager(),
-            paletteManager: ThemeManager(items: PaletteRegistry.all, renderTrigger: {}),
-            appearanceManager: ThemeManager(items: AppearanceRegistry.all, renderTrigger: {}),
-            keyboardShortcuts: tui.keyboardShortcuts, dragAndDropSession: nil,
-            onQuit: { quits += 1 }, onSuspend: {}, quitPrompt: prompt)
+        var signals = 0
+        let handler = chain(prompt: prompt, quits: { quits += 1 }, signals: { signals += 1 })
+        #expect(!handler.handle(controlC))
         handler.perform(.key(controlC))
         #expect(!prompt.isAsking)
-        handler.handle(controlC)
-        #expect(prompt.isAsking)
         #expect(quits == 0)
+        #expect(signals == 0)
     }
 
     // MARK: The dialog's keys
 
     @Test("Return stays: the focus starts on Cancel")
     func returnStays() {
-        let app = app()
         var now: Int64 = 0
-        press(controlC, on: app, at: &now)
+        let app = askingApp(at: &now)
+        #expect(asks(app))
         press(KeyEvent(key: .enter), on: app, at: &now)
         #expect(app.quitsRequested == 0)
         #expect(!asks(app))
@@ -251,9 +272,9 @@ struct QuitConfirmationTests {
 
     @Test("Escape stays")
     func escapeStays() {
-        let app = app()
         var now: Int64 = 0
-        press(controlC, on: app, at: &now)
+        let app = askingApp(at: &now)
+        #expect(asks(app))
         press(KeyEvent(key: .escape), on: app, at: &now)
         #expect(app.quitsRequested == 0)
         #expect(!asks(app))
@@ -261,9 +282,8 @@ struct QuitConfirmationTests {
 
     @Test("Tab and Return quit")
     func tabReturnQuits() {
-        let app = app()
         var now: Int64 = 0
-        press(controlC, on: app, at: &now)
+        let app = askingApp(at: &now)
         press(KeyEvent(key: .tab), on: app, at: &now)
         press(KeyEvent(key: .enter), on: app, at: &now)
         #expect(app.quitsRequested == 1)
@@ -271,27 +291,43 @@ struct QuitConfirmationTests {
 
     @Test("⌃Q at the dialog does nothing: it is still up, and nothing quit")
     func quitKeyAtTheDialog() {
-        let app = app()
         var now: Int64 = 0
-        press(controlC, on: app, at: &now)
+        let app = askingApp(at: &now)
         press(controlQ, on: app, at: &now)
         #expect(app.quitsRequested == 0)
         #expect(asks(app))
     }
 
-    @Test("A second ⌃C at the dialog quits, and the dialog says so; a repeat doesn't count")
-    func secondControlC() {
-        let app = app()
+    @Test("⌃C at the dialog does nothing: it is still up, and nothing quit")
+    func controlCAtTheDialog() {
         var now: Int64 = 0
+        let app = askingApp(at: &now)
         press(controlC, on: app, at: &now)
-        #expect(app.screen.contains { $0.stripped.contains("again to quit") })
-        press(KeyEvent(key: .character("c"), ctrl: true, phase: .repeat), on: app, at: &now)
         #expect(app.quitsRequested == 0)
-        press(controlC, on: app, at: &now)
-        #expect(app.quitsRequested == 1)
+        #expect(asks(app))
     }
 
-    @Test("Asked by ⌃Q, the dialog has no such line, though a ⌃C there quits as well")
+    @Test("A second ⌃\\ at the dialog quits, and the dialog says so; a repeat doesn't count")
+    func secondControlBackslash() {
+        let prompt = QuitPrompt(requestFrame: {})
+        var quits = 0
+        var signals = 0
+        let handler = chain(prompt: prompt, quits: { quits += 1 }, signals: { signals += 1 })
+        #expect(handler.handle(controlBackslash))
+        #expect(prompt.isAsking)
+        #expect(prompt.message.contains("again to quit"))
+        #expect(signals == 0)
+        handler.handle(KeyEvent(key: .character("\\"), ctrl: true, phase: .repeat))
+        #expect(signals == 0)
+        handler.handle(controlC)
+        #expect(prompt.isAsking, "⌃C is not the key that asked")
+        #expect(signals == 0)
+        handler.handle(controlBackslash)
+        #expect(signals == 1)
+        #expect(quits == 0)
+    }
+
+    @Test("Asked by ⌃Q, the dialog has no such line, and a ⌃C there does nothing")
     func quitKeyDialogSaysNothingOfAgain() {
         let model = Model()
         model.warning = "Uploading"
@@ -301,18 +337,19 @@ struct QuitConfirmationTests {
         #expect(asks(app))
         #expect(!app.screen.contains { $0.stripped.contains("again to quit") })
         press(controlC, on: app, at: &now)
-        #expect(app.quitsRequested == 1)
+        #expect(app.quitsRequested == 0)
+        #expect(asks(app))
     }
 
     @Test("The page behind keeps its state, and its focus, through the dialog")
     func pageSurvives() {
-        let app = app()
+        let app = app(.always)
         var now: Int64 = 0
         press(KeyEvent(key: .enter), on: app, at: &now)
         #expect(app.screen.contains { $0.stripped.contains("Tap 1") })
         let focused = app.focusedID
 
-        press(controlC, on: app, at: &now)
+        press(controlQ, on: app, at: &now)
         #expect(asks(app))
         #expect(app.focusedID != focused, "the dialog holds the focus")
 
@@ -339,15 +376,15 @@ struct QuitConfirmationTests {
     @Test("Each key's rule, by setting and by whether a warning is active")
     func theTable() {
         let prompt = QuitPrompt(requestFrame: {})
-        let keys: [QuitRequest] = [.quitKey, .interruptKey, .signalKey]
+        let keys: [QuitRequest] = [.quitKey, .signalKey]
         prompt.confirmation = .automatic
-        #expect(keys.map(prompt.asks(before:)) == [false, true, true])
+        #expect(keys.map(prompt.asks(before:)) == [false, true])
         prompt.confirmation = .always
-        #expect(keys.map(prompt.asks(before:)) == [true, true, true])
+        #expect(keys.map(prompt.asks(before:)) == [true, true])
         prompt.confirmation = .whenWarned
-        #expect(keys.map(prompt.asks(before:)) == [false, false, false])
+        #expect(keys.map(prompt.asks(before:)) == [false, false])
         prompt.noteWarnings(["Saving"])
-        #expect(keys.map(prompt.asks(before:)) == [true, true, true])
+        #expect(keys.map(prompt.asks(before:)) == [true, true])
     }
 }
 
@@ -457,6 +494,29 @@ struct UnreadQuitKeyWatchTests {
         var bytes = [UInt8](repeating: 0, count: 64)
         let count = bytes.withUnsafeMutableBufferPointer { rig.watch.input.read(into: $0) }
         return count > 0 ? Array(bytes[..<count]) : []
+    }
+
+    @Test("The key waits two seconds unread, by default")
+    func defaultGrace() {
+        #expect(UnreadQuitKeyWatch().grace == 2.0)
+    }
+
+    @Test("Unread, the key quits no sooner than the grace is up")
+    func keyWaitsOutTheGrace() async throws {
+        let grace: TimeInterval = 0.5
+        let rig = try makeRig(grace: grace)
+        defer {
+            rig.watch.stop()
+            close(rig.writeEnd)
+            close(rig.readEnd)
+        }
+        rig.watch.start()
+        rig.watch.setArmed(byte: 0x1C)
+        let pressed = Date()
+        var byte: UInt8 = 0x1C
+        _ = write(rig.writeEnd, &byte, 1)
+        #expect(await rig.quits.waitUntilRaised(within: 5))
+        #expect(Date().timeIntervalSince(pressed) >= grace)
     }
 
     @Test("Unread, the key quits; and nothing else about it waits on the loop")

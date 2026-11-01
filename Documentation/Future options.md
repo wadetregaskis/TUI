@@ -276,7 +276,7 @@ about half a day.
 
 **Why not now.** Deferred by the owner, 2026-10-05, with no default key: every
 candidate was declined. ⌃] is the partner of ⌃[; ⌃\\ is the shell's quit, kept
-as the backup to ⌃C; ⌥M types µ; ⎋ M would make Escape wait; the F-keys are
+as the backup to the quit key; ⌥M types µ; ⎋ M would make Escape wait; the F-keys are
 prime and do not arrive reliably where the OS takes them; and ⌃^ is too
 obscure (Apple Terminal sends nothing for ⌃6, and `^^` for ⌃⇧6). TUI's own
 selection (A13, shipped 2026-10-05) covers what is drawn.

@@ -112,9 +112,11 @@ If you know SwiftUI, this is the same code you would write there.
 
 Control-Q quits, wherever the keyboard is, and the status bar and menu bar say so if your app has them.
 
-Control-C and Control-\\ work too, because they're what people try in a terminal. In a shell they stop the job in front, though, so here they ask first. Return or Escape stays. Press the same key again, or Tab and Return, to quit.
+Control-\\ works too, and because it ends the job in front in a shell, here it asks first. Return or Escape stays. Press it again, or Tab and Return, to quit.
 
 Control-\\ also quits an app that has stopped responding, about two seconds later. Your shell may then print `Quit: 3`, which only says how the app ended.
+
+Control-C doesn't quit. It copies what's selected, and otherwise does nothing unless your app gives it a job.
 
 Your app gets those keys first, so anything it binds them to wins. <doc:ScenesAndQuitting> shows how to warn about unsaved work, and <doc:KeyboardShortcuts#Quitting> how to change all of this.
 

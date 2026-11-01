@@ -15,17 +15,19 @@ import TUIPresentation
 /// When quitting asks first, with a dialog whose default answer is to stay.
 ///
 /// Control-Q quits on its own word: it can't be pressed by habit in the hope of
-/// something else. Control-C and ⌃\\ can, since in a shell they cancel the job in
-/// front, so by default they ask. All of them ask while a view drawn states a
+/// something else. ⌃\\ can, since in a shell it ends the job in front, so by
+/// default it asks. Both ask while a view drawn states a
 /// `View.quitWarning(_:isActive:)`, and the dialog says what would be lost.
+///
+/// Control-C isn't a way of quitting. It's the copy key, and an app can bind it.
 ///
 /// Set it on the scene, as ``Scene/quitConfirmation(_:)``.
 ///
 /// TUI-specific. AppKit's nearest is the application delegate's
 /// `applicationShouldTerminate(_:)`, which SwiftUI apps reach through an adaptor.
 public enum QuitConfirmation: Sendable, Equatable {
-    /// Control-C and ⌃\\ ask; the quit key and the menu's Quit don't, unless a
-    /// warning is active. The default.
+    /// ⌃\\ asks; the quit key and the menu's Quit don't, unless a warning is
+    /// active. The default.
     case automatic
 
     /// Everything asks: the quit key and the menu's Quit too. For an app where
@@ -33,9 +35,9 @@ public enum QuitConfirmation: Sendable, Equatable {
     /// up again.
     case always
 
-    /// Nothing asks unless a warning is active: Control-C and ⌃\\ quit at once.
-    /// For an app whose users know what those keys do, and ⌃\\ then goes to the
-    /// terminal driver, as in a shell, so it needs no reading by the app at all.
+    /// Nothing asks unless a warning is active: ⌃\\ quits at once. For an app
+    /// whose users know what that key does, and it then goes to the terminal
+    /// driver, as in a shell, so it needs no reading by the app at all.
     case whenWarned
 }
 
@@ -76,9 +78,6 @@ enum QuitRequest {
     /// The status bar's quit key (Control-Q by default), or the menu's Quit:
     /// keys that mean nothing but quitting.
     case quitKey
-
-    /// Control-C, which nothing took: in a shell it cancels the job in front.
-    case interruptKey
 
     /// The user's quit key, ⌃\\ (`Terminal.quitKeyByte`).
     case signalKey
@@ -127,7 +126,7 @@ final class QuitPrompt: @unchecked Sendable {
         guard warnings.isEmpty else { return true }
         switch (confirmation, request) {
         case (.always, _): return true
-        case (.automatic, .interruptKey), (.automatic, .signalKey): return true
+        case (.automatic, .signalKey): return true
         case (.automatic, .quitKey), (.whenWarned, _): return false
         }
     }
@@ -145,8 +144,8 @@ final class QuitPrompt: @unchecked Sendable {
     ///
     /// - Parameters:
     ///   - pressAgainKey: The key that put it up and quits if pressed again
-    ///     (Control-C, ⌃\\), for the dialog to say so; `nil` for the quit key,
-    ///     pressing which again does nothing.
+    ///     (⌃\\), for the dialog to say so; `nil` for the quit key, pressing
+    ///     which again does nothing.
     ///   - proceed: What Quit does.
     func ask(pressAgainKey: String? = nil, then proceed: @escaping () -> Void) {
         self.pressAgainKey = pressAgainKey
@@ -169,7 +168,7 @@ final class QuitPrompt: @unchecked Sendable {
     }
 
     /// The message the dialog shows: what would be lost, or else what quitting
-    /// means, for a person who pressed Control-C hoping to cancel something.
+    /// means, for a person who pressed ⌃\\ hoping to cancel something.
     var message: String {
         let service = LocalizationService.shared
         var message = service.string(for: LocalizationKey.Dialog.quitMessage)

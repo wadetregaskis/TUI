@@ -35,7 +35,7 @@ extension View {
     /// ```
     ///
     /// While any view drawn states one, Control-Q and the menu's Quit ask as well
-    /// as Control-C and ⌃\\, whatever the scene's ``QuitConfirmation``. Everything
+    /// as ⌃\\, whatever the scene's ``QuitConfirmation``. Everything
     /// stated goes in the dialog, as a list, once each. It says nothing about the
     /// app's own ways out: `dismiss()` at the top level quits as it always does,
     /// and a signal from outside (`kill`) does too. Nor about a view that isn't

@@ -178,7 +178,7 @@ Six keys do something by themselves, once nothing else has taken them. Only quit
 | `t` / `T` | Cycle to next color theme | Opt-in: requires `statusBarSystemItems(theme: true)` (or `showThemeItem = true`) |
 | `a` / `A` | Cycle to next appearance | Opt-in: requires `statusBarSystemItems(appearance: true)` (or `showAppearanceItem = true`); then active unless a modal surface has grabbed input |
 
-Two more keys quit, after asking, where nothing takes them first: ⌃C and ⌃\\ (see "Quitting" below).
+One more key quits, after asking, where nothing takes it first: ⌃\\ (see "Quitting" below).
 
 ### The help key, and the one place it cannot reach
 
@@ -208,7 +208,7 @@ The ``QuitBehavior`` enum controls when the quit key is allowed to quit:
 | `.always` | ⌃Q quits from any screen (default) |
 | `.rootOnly` | ⌃Q only quits when no status bar context is pushed |
 
-⌃C goes by the same rule. ⌃\\ doesn't: it asks, and then quits, whatever the value.
+⌃\\ doesn't go by this: it asks, and then quits, whatever the value.
 
 `.rootOnly` is useful for modal dialogs: push a status bar context for the dialog, and ⌃Q will be blocked until the user dismisses it:
 
@@ -261,9 +261,10 @@ other key handler (see <doc:SelectingText>).
 | Key | Where nothing of yours takes it | On a hung app |
 |-----|---------------------------------|---------------|
 | ⌃Q, or whatever ``StatusBarState/quitShortcut`` is; the menu bar's Quit | Quits at once, unless a warning is active or the scene says `.always` | Nothing |
-| ⌃C | Asks; a second while it's up quits | Nothing |
 | ⌃\\ | Asks; a second while it's up quits at once | Quits, about two seconds later |
 | `kill -QUIT`, `kill -INT`, `kill -TERM` from outside | Quits at once, never asks | `kill -QUIT` quits |
+
+⌃C isn't one of them. It copies a selection, and where there's none and nothing of yours binds it, it goes nowhere.
 
 The dialog is an alert: Cancel has the focus, so Return stays, as Escape does, and Quit is a Tab away. It says what
 `quitWarning(_:isActive:)` said, for every view drawn that states one, and a ``View/terminalProgress(_:)`` still
@@ -271,15 +272,15 @@ going counts as one with no words of its own. ``Scene/quitConfirmation(_:)`` set
 
 | Value | Behavior |
 |-------|----------|
-| `.automatic` | ⌃C and ⌃\\ ask. The quit key and the menu's Quit ask only with a warning active (default) |
+| `.automatic` | ⌃\\ asks. The quit key and the menu's Quit ask only with a warning active (default) |
 | `.always` | They all ask |
-| `.whenWarned` | They all ask with a warning active, and otherwise none does: ⌃C and ⌃\\ quit at once |
+| `.whenWarned` | They all ask with a warning active, and otherwise none does: ⌃\\ quits at once |
 
 TUI looks at nothing else to decide whether something would be lost. It has no document type that knows it is unsaved, so
 say so with a warning, or with
-`dismissalConfirmationDialog`, whose question comes first, and which a second ⌃C doesn't quit past. A
+`dismissalConfirmationDialog`, whose question comes first. A
 presentation that holds the quit keys (``View/presentationPreventsAppTermination(_:)``,
-``View/dialogPreventsAppTermination(_:)``) holds ⌃Q and ⌃C too, and ⌃\\ asks over it. `dismiss()` at the top level
+``View/dialogPreventsAppTermination(_:)``) holds ⌃Q too, and ⌃\\ asks over it. `dismiss()` at the top level
 is your code's own way out, and asks only as a dismissal confirmation does. So does closing the last window, which only
 code can do: a person can close a window only while another is open behind it.
 
@@ -636,7 +637,7 @@ Three additional stages refine the layer sequence. When an open drop-down (e.g. 
 
 @Image(source: "keyboard-event-dispatch.svg", alt: "Flowchart of the keyboard dispatch: a hasTextInputFocus check gates Layer 0 (Text Input via focusManager.dispatchKeyEvent for TextField/SecureField/TextEditor), except that an editing chord the focused control gives up to an app shortcut registered on it skips Layer 0 and continues down the chain. Without text focus, an ESC-claimed-by-an-open-surface check pre-routes Escape through the focus system so an open drop-down closes before any page-level handler. Layer 0.5 Drag Navigators (while a drag is in flight, arrows and paging scroll whatever the pointer is over). Layer 1 Status Bar Items (statusBar.handleKeyEvent). Layer 2 View Handlers (keyEventDispatcher.dispatch, deepest view first). A second hasTextInputFocus check skips Layer 3 if text input was focused. Layer 3 Focus System (focusManager.dispatchKeyEvent: focused element delegation, Tab/Shift+Tab, arrow key fallback). Layer 3.5 Semantic Shortcuts (Return fires the default button, Escape the cancel button, and a key-equivalent .keyboardShortcut fires on its key). Layer 4 Default Bindings (⌃Q quit and ? help always; t theme and a appearance gated while a modal grabs input). Unmatched events are dropped.")
 
-`⌃C` is an ordinary key here. A terminal normally turns it into SIGINT, but TUI's raw mode switches that off, so it reaches these layers as `c` held with Control like any other chord, and anything of yours can bind it: a ⌘C shortcut under the default ``EnvironmentValues/commandKey``, or ``QuitShortcut/ctrlC``. Where nothing does, it asks whether to quit (see <doc:KeyboardShortcuts#Quitting>). `⌃Z` arrives the same way, and Layer 4 suspends the app on it only when nothing earlier claimed it (see <doc:KeyboardShortcuts#Default-Bindings>).
+`⌃C` is an ordinary key here. A terminal normally turns it into SIGINT, but TUI's raw mode switches that off, so it reaches these layers as `c` held with Control like any other chord, and anything of yours can bind it: a ⌘C shortcut under the default ``EnvironmentValues/commandKey``, or ``QuitShortcut/ctrlC``. Where nothing does, it goes nowhere. `⌃Z` arrives the same way, and Layer 4 suspends the app on it only when nothing earlier claimed it (see <doc:KeyboardShortcuts#Default-Bindings>).
 
 ## Topics
 

@@ -7,7 +7,8 @@
 import TUI
 
 /// The key that quits the app, which is the app's to choose: Control-Q by
-/// default, or a bare `q` for an app with nothing to type into.
+/// default, a bare `q` for an app with nothing to type into, or Control-C for
+/// an app that wants it, which goes on copying where there is a selection.
 /// TUI-specific — a window's close box has no terminal equivalent, so the
 /// key is the way out, and the status bar names it.
 ///

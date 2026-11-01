@@ -118,7 +118,7 @@ package final class HeadlessApp {
         // As `AppRunner` wires it, so a click on a status-bar item that only
         // names a key goes through the same chain the key does.
         let inputHandler = self.inputHandler
-        tuiContext.synthesizeKeyEvent = { _ = inputHandler.handle($0, isTyped: false) }
+        tuiContext.synthesizeKeyEvent = { _ = inputHandler.handle($0) }
         // The dispatcher's clock is the one an arrival is read on — the hover
         // that starts a tooltip's delay, the press that may make a double click.
         let eventClock = self.eventClock

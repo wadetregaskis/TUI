@@ -470,7 +470,7 @@ extension AppRunner {
         // handler for the consumer side and TUIContext.swift's
         // `synthesizeKeyEvent` doc-comment for why this is a
         // closure threaded through the context.
-        tuiContext.synthesizeKeyEvent = { _ = inputHandler.handle($0, isTyped: false) }
+        tuiContext.synthesizeKeyEvent = { _ = inputHandler.handle($0) }
         let cursorTimer = CursorTimer(renderNotifier: appState)
         // Coalesces the periodic re-render requests of every animating view
         // (Spinner, indeterminate ProgressView, …) into the fewest distinct render

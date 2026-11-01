@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""The ways of quitting a TUI app from the keyboard: ⌃Q at once, ⌃C and ⌃\\
-asking first, ⌃\\ quitting a hung app whatever else; and SIGQUIT, a quit and
-not a crash.
+"""The ways of quitting a TUI app from the keyboard: ⌃Q at once, ⌃\\ asking
+first, ⌃\\ quitting a hung app whatever else; and SIGQUIT, a quit and not a
+crash. ⌃C isn't one of them: unbound, it goes nowhere.
 
 By default a running app takes ⌃\\ from the driver (raw mode masks the quit key
 once the first frame is up), so the first one can ask before anything has
@@ -31,14 +31,17 @@ that answers the startup exchange, and checks:
      the extensions off, flow control off, ⌃C and ⌃Z (and on Darwin ⌃Y and ⌃T)
      turned off as signal characters, and the quit key given up.
   3. ⌃C, ⌃Z, ⌃Y and ⌃T arrive as KEYS: the app shows each, and is neither
-     stopped nor ended. ⌃C, which nothing takes, then asks; Escape stays.
-  4. ⌃\\: the first asks, ending nothing, the app's child left alone; a second
-     while it is up ends it by SIGQUIT (the checks of 1), and the child with it.
-     A second ⌃C quits too, with status 0. The dialog's keys: Return stays, Tab
-     and Return quits with status 0.
+     stopped nor ended. ⌃C, which nothing takes, puts up no dialog, here or
+     under `.always` or `.whenWarned`, with a warning active or not, or as a
+     kitty keyboard protocol report; and it does nothing at the dialog.
+  4. ⌃\\: the first asks, ending nothing, the app's child left alone, and says a
+     second quits; a second while it is up ends it by SIGQUIT (the checks of 1),
+     and the child with it. The dialog's keys: Return and Escape stay, Tab and
+     Return quits with status 0.
   4b. A bracketed paste holding 0x1C: text, while the app has the key; and a
      quit, as in a shell, while the driver does.
-  5. A hung main thread: one ⌃\\ ends it. Other keys at a hung app don't, and a
+  5. A hung main thread: one ⌃\\ ends it, no sooner than two seconds after it was
+     pressed. Other keys at a hung app don't, and a
      ⌃\\ after them does at once. A slow frame: keys typed through it read in
      order; a ⌃\\ through it quits.
   6. A user who turned the quit key off (`stty quit undef`) before the
@@ -51,7 +54,7 @@ that answers the startup exchange, and checks:
      byte for, or ⌃\\ itself: 0x1C runs the binding and asks nothing; the
      termios comes back exactly at the quit. One that binds ⌃⌥\\, which masks it
      without taking 0x1C: the unclaimed byte asks, as in 4. `.whenWarned`: the
-     driver keeps the key, ⌃\\ ends it and its child at once, and ⌃C quits at once.
+     driver keeps the key, and ⌃\\ ends it and its child at once.
  11. ⌃Q: at once, status 0, no dialog; asks under `.always`, and with a
      warning active, where the dialog names it, and only ⌃\\ quits past it.
   8. A terminal that speaks the kitty keyboard protocol sends ⌃\\ as a key
@@ -435,23 +438,19 @@ for byte, name in ((b"\x1a", "ctrl-z"), (b"\x19", "ctrl-y"), (b"\x14", "ctrl-t")
     app.pump(0.6)
     check(("key " + name).encode() in app.out and running(app), name + " arrives as a key, and raises no signal")
 
-# ⌃C: heard as a key, and then it asks, as nothing took it.
+# ⌃C: heard as a key, and nothing takes it, so it goes nowhere.
 mark = len(app.out)
 os.write(app.master, b"\x03")
 app.pump(0.6)
 check(b"key ctrl-c" in app.out and running(app), "ctrl-c arrives as a key, and raises no signal")
-check(asks(app, mark), "ctrl-c: nothing takes it, so it asks")
-# Escape stays.
-mark = len(app.out)
-os.write(app.master, b"\x1b")
-app.pump(0.8)
-check(running(app) and QUIT_TITLE not in visible(app.out[mark:]), "the dialog: Escape stays")
+check(not asks(app, mark), "ctrl-c: nothing takes it, so no dialog")
 
 # ⌃\: the first asks, and touches nobody.
 mark = len(app.out)
 os.write(app.master, b"\x1c")
 app.pump(0.6)
 check(asks(app, mark), "⌃\\ on a responsive app: it asks")
+check(b"again to quit" in visible(app.out[mark:]), "⌃\\ on a responsive app: it says a second ⌃\\ quits")
 check(running(app), "⌃\\ on a responsive app: nothing ends")
 try:
     os.kill(child, 0)
@@ -459,6 +458,10 @@ try:
 except (OSError, TypeError):
     child_alive = False
 check(child_alive, "⌃\\ on a responsive app: the app's child is left alone while it asks")
+# ⌃C at the dialog does nothing.
+os.write(app.master, b"\x03")
+app.pump(0.6)
+check(running(app), "the dialog: ⌃C does nothing")
 # The second, while it is up, quits at once.
 mark = len(app.out)
 os.write(app.master, b"\x1c")
@@ -466,32 +469,27 @@ check_quit(app, mark, "a second ⌃\\")
 check(child is not None and child_ends(child, 3.0), "a second ⌃\\: the app's child ends with it")
 app.finish()
 
-# A second ⌃C while it is up: an ordinary quit, with status 0.
+# The dialog's own keys: Return and Escape stay, Tab and Return quits.
 app = App(env={"IDLE_PROBE_MODE": "keys"})
 app.settle()
-mark = len(app.out)
-os.write(app.master, b"\x03")
-app.pump(0.6)
-check(asks(app, mark) and b"again to quit" in visible(app.out[mark:]), "⌃C: it asks, and says a second ⌃C quits")
-os.write(app.master, b"\x03")
-status = app.wait_for_exit(20.0)
-check(status is not None and os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0,
-      "a second ⌃C: an ordinary quit, with status 0")
-app.finish()
-
-# The dialog's own keys: Return stays, Tab and Return quits.
-app = App(env={"IDLE_PROBE_MODE": "keys"})
-app.settle()
-os.write(app.master, b"\x03")
+os.write(app.master, b"\x1c")
 app.pump(0.5)
 mark = len(app.out)
 os.write(app.master, b"\r")
 app.pump(0.8)
 check(running(app) and QUIT_TITLE not in visible(app.out[mark:]), "the dialog: Return stays")
 mark = len(app.out)
-os.write(app.master, b"\x03")
+os.write(app.master, b"\x1c")
 app.pump(0.5)
-check(asks(app, mark), "the dialog comes back on another ⌃C")
+check(asks(app, mark), "the dialog comes back on another ⌃\\")
+mark = len(app.out)
+os.write(app.master, b"\x1b")
+app.pump(0.8)
+check(running(app) and QUIT_TITLE not in visible(app.out[mark:]), "the dialog: Escape stays")
+mark = len(app.out)
+os.write(app.master, b"\x1c")
+app.pump(0.5)
+check(asks(app, mark), "the dialog comes back after Escape")
 os.write(app.master, b"\t")
 app.pump(0.3)
 os.write(app.master, b"\r")
@@ -523,8 +521,11 @@ for env, name in (({}, "hung, ⌃\\"), (WHEN_WARNED, "whenWarned: hung, ⌃\\"))
     app.settle()
     check(b"hanging" in app.out and running(app), name + ": on screen, and hung")
     mark = len(app.out)
+    pressed = time.time()
     os.write(app.master, b"\x1c")
     check_quit(app, mark, name)
+    if not env:
+        check(time.time() - pressed >= 2.0, name + ": no sooner than the two seconds' grace")
     app.finish()
 
 # A hang's other keys don't end it, and ⌃\ after them still does.
@@ -650,9 +651,12 @@ app.finish()
 
 app = App(env={"IDLE_PROBE_MODE": "keys", **WHEN_WARNED})
 app.settle()
+mark = len(app.out)
 os.write(app.master, b"\x03")
-status = app.wait_for_exit(20.0)
-check(status is not None and os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0, "whenWarned, ⌃C: quits at once")
+app.pump(0.6)
+check(b"key ctrl-c" in app.out and running(app) and not asks(app, mark), "whenWarned, ⌃C: goes nowhere")
+quit_cleanly(app, "whenWarned")
+check(not asks(app, mark), "whenWarned, ⌃Q: no dialog")
 app.finish()
 
 # 11. ⌃Q: at once, unless something says otherwise.
@@ -664,6 +668,9 @@ app.finish()
 
 app = App(env={"IDLE_PROBE_MODE": "keys", "IDLE_PROBE_QUIT_CONFIRMATION": "always"})
 app.settle()
+os.write(app.master, b"\x03")
+app.pump(0.6)
+check(running(app) and not asks(app, 0), ".always: ⌃C goes nowhere")
 os.write(app.master, b"\x11")
 app.pump(0.6)
 check(asks(app, 0) and running(app), ".always: ⌃Q asks")
@@ -671,6 +678,9 @@ app.finish()
 
 app = App(env={"IDLE_PROBE_MODE": "keys", "IDLE_PROBE_QUIT_WARNING": "Uploading 6 photos"})
 app.settle()
+os.write(app.master, b"\x03")
+app.pump(0.6)
+check(running(app) and not asks(app, 0), "a warning active: ⌃C goes nowhere")
 os.write(app.master, b"\x11")
 app.pump(0.6)
 check(asks(app, 0) and running(app), "a warning active: ⌃Q asks")
@@ -688,7 +698,10 @@ app.settle()
 check(quit_key_of(app.termios_now()) == DISABLED, "whenWarned, a warning active: the quit key given up to ask first")
 os.write(app.master, b"\x03")
 app.pump(0.6)
-check(asks(app, 0) and running(app), "whenWarned, a warning active: ⌃C asks")
+check(running(app) and not asks(app, 0), "whenWarned, a warning active: ⌃C goes nowhere")
+os.write(app.master, b"\x11")
+app.pump(0.6)
+check(asks(app, 0) and running(app), "whenWarned, a warning active: ⌃Q asks")
 app.finish()
 
 # 8. The kitty keyboard protocol.
@@ -714,9 +727,12 @@ check(child is not None and child_ends(child, 3.0),
       "kitty, a second ⌃\\ as a report: the app's child ends with it, as the driver's ⌃\\ ends it")
 app.finish()
 
-# ⌃Q, as a report.
+# ⌃C and ⌃Q, as reports.
 app = App(env={"IDLE_PROBE_MODE": "keys"}, kitty=True)
 app.settle()
+os.write(app.master, b"\x1b[99;5u")
+app.pump(0.6)
+check(b"key ctrl-c" in app.out and running(app) and not asks(app, 0), "kitty, ⌃C as a report: goes nowhere")
 os.write(app.master, b"\x1b[113;5u")
 status = app.wait_for_exit(20.0)
 check(status is not None and os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0 and app.stack == [],
