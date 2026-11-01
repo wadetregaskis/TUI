@@ -156,16 +156,18 @@ struct ColorDepthDetectionTests {
     }
 
     @Test(
-        "FORCE_COLOR digits name a level exactly, up as well as down",
+        "FORCE_COLOR digits ask for at least that level, and never lower one",
         arguments: [
             ("0", ColorDepth.noColor), ("00", .noColor), ("1", .basic16), ("01", .basic16), ("2", .palette256),
             ("3", .truecolor), ("4", .truecolor), ("16", .truecolor), ("99999999999999999999999", .truecolor),
         ])
     func forceColorLevels(value: String, depth: ColorDepth) {
         for term in ["xterm", "xterm-256color", "xterm-ghostty", "dumb"] {
-            #expect(ColorDepth.detect(environment: ["FORCE_COLOR": value, "TERM": term]) == depth, "TERM=\(term)")
+            let expected = depth == .noColor ? depth : max(ColorDepth.terminalDepth(environment: ["TERM": term]), depth)
+            #expect(ColorDepth.detect(environment: ["FORCE_COLOR": value, "TERM": term]) == expected, "TERM=\(term)")
         }
-        #expect(ColorDepth.detect(environment: ["FORCE_COLOR": value, "COLORTERM": "truecolor"]) == depth)
+        let onTruecolor: ColorDepth = depth == .noColor ? .noColor : .truecolor
+        #expect(ColorDepth.detect(environment: ["FORCE_COLOR": value, "COLORTERM": "truecolor"]) == onTruecolor)
     }
 
     @Test("FORCE_COLOR=false is off, in any case", arguments: ["false", "False", "FALSE"])
@@ -207,9 +209,9 @@ struct ColorDepthDetectionTests {
         arguments: [
             (["NO_COLOR": "1", "FORCE_COLOR": "3"], ColorDepth.noColor),
             (["NO_COLOR": "1", "CLICOLOR_FORCE": "1"], .noColor),
-            (["NO_COLOR": "", "FORCE_COLOR": "2"], .palette256),
+            (["NO_COLOR": "", "FORCE_COLOR": "2", "TERM": "xterm"], .palette256),
             (["FORCE_COLOR": "0", "CLICOLOR_FORCE": "1"], .noColor),
-            (["FORCE_COLOR": "2", "CLICOLOR_FORCE": "1", "CLICOLOR": "0"], .palette256),
+            (["FORCE_COLOR": "2", "CLICOLOR_FORCE": "1", "CLICOLOR": "0", "TERM": "xterm"], .palette256),
             (["FORCE_COLOR": "", "CLICOLOR_FORCE": "1", "CLICOLOR": "0"], .truecolor),
             (["CLICOLOR_FORCE": "1", "CLICOLOR": "0"], .truecolor),
         ] as [([String: String], ColorDepth)])

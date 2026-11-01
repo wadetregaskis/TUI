@@ -264,7 +264,7 @@ extension ColorDepth {
     ) -> ColorDepth {
         switch ColorRequest(environment: environment) {
         case .off: .noColor
-        case .forced(let depth?): depth
+        case .forced(let depth?): max(terminalDepth(environment: environment), depth)
         case .forced(nil): max(terminalDepth(environment: environment), .basic16)
         case .unstated: terminalDepth(environment: environment)
         }

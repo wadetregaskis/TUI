@@ -116,7 +116,7 @@ TUI reads the variables other command-line tools read, for an app and for `rende
 | Variable | Effect |
 |---|---|
 | `NO_COLOR` | Set to anything, even `0`: no colour. Bold, underline, italics and the other text attributes stay |
-| `FORCE_COLOR` | `0` or `false`: no colour. `1`: 16 colours. `2`: 256. `3` or more: millions. These apply whatever `TERM` says, so `1` can lower as well as raise. Anything else, such as `true`: what the terminal has, but at least 16 |
+| `FORCE_COLOR` | `0` or `false`: no colour. `1`: at least 16 colours. `2`: at least 256. `3` or more: millions. These raise what `TERM` understates, and never lower it. Anything else, such as `true`: what the terminal has, but at least 16 |
 | `CLICOLOR_FORCE` | Set, and not `0` or `false`: what the terminal has, but at least 16 |
 | `CLICOLOR` | `0` or `false`: no colour. Any other value changes nothing, because an app on a terminal uses colour anyway |
 | `COLORTERM=truecolor` or `24bit` | Millions of colours |

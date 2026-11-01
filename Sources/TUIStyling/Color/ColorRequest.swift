@@ -48,9 +48,11 @@
 /// - **`FORCE_COLOR=0` and `false`: off.** As Node and `supports-color` have it, and
 ///   against the letter of force-color.org and Python, which would force colour.
 ///   Nobody writes `0` to mean on.
-/// - **`FORCE_COLOR` digits: that level, exactly, so `1` can lower too.** Both of
-///   the sources that define levels do this. `4` and above is the top level, as
-///   `supports-color` has it, rather than none, as Node does.
+/// - **`FORCE_COLOR` digits: at least that level.** It asks for colour, so it can
+///   raise what `TERM` understates and never takes colour away: `1` leaves a
+///   truecolor terminal at truecolor, where Node and `supports-color` would lower
+///   it. `4` and above is the top level, as `supports-color` has it, rather than
+///   none, as Node does.
 /// - **`FORCE_COLOR` of any other word: on, at the detected level.** `true` is
 ///   `supports-color`'s reading, and force-color.org's "regardless of its value" covers
 ///   the rest, against `supports-color` ignoring them and Node turning colour off.
