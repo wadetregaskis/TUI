@@ -29,7 +29,7 @@
 # targets from 10.14 to 26.0. That library lives in the toolchain, not in macOS.
 # A program run from `.build` finds it through an rpath into the toolchain
 # that built it; the same program copied anywhere else, as a user receives it,
-# does not, and on macOS 14 and 15 a strong load stops it at launch:
+# does not, and on macOS 15 a strong load stops it at launch:
 #
 #   dyld: Library not loaded: @rpath/libswiftCompatibilitySpan.dylib
 #
@@ -96,7 +96,7 @@
 # `@available(macOS 26, *)` generic function appending to an `OutputSpan` gave
 # the executable linking it a strong LC_LOAD_DYLIB of the library). Raising
 # TUI's deployment target to macOS 26 would silence this, and would drop
-# macOS 14 and 15.
+# macOS 15.
 set -u -o pipefail
 
 if [[ "$(uname -s)" != Darwin ]]; then
@@ -134,8 +134,8 @@ check_executable() {
     fi
     status=1
     echo "check-span-compatibility: FAIL: $executable links libswiftCompatibilitySpan.dylib," \
-        "which macOS has only from 26: copied out of .build, a strong load stops it at launch on macOS 14" \
-        "and 15, and a weak one leaves NULL where its symbols should be. Why, and how to read this: the" \
+        "which macOS has only from 26: copied out of .build, a strong load stops it at launch on macOS" \
+        "15, and a weak one leaves NULL where its symbols should be. Why, and how to read this: the" \
         "comment at the top of $0" >&2
     [[ -n "$loads" ]] && echo "  load command: ${loads}" >&2
     if [[ -n "$imports" ]]; then

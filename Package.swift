@@ -17,7 +17,7 @@ let package = Package(
     // Minimum deployment targets for Apple platforms
     // Linux is automatically supported (no platform specification needed)
     platforms: [
-        .macOS(.v14)
+        .macOS(.v15)
     ],
     products: [
         // What a client's target lists among its `dependencies:` decides what SwiftPM compiles and links into

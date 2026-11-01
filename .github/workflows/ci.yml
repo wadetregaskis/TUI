@@ -607,7 +607,7 @@ jobs:
       # until 26: a Span-family type in unspecialised generic code, or a
       # dependency such as swift-collections 1.4+, brings it in with no error
       # or warning, and on 2026-10-10 that stopped every copied-out 6.4 build
-      # at launch on macOS 14 and 15. The script says why at length and how to
+      # at launch on macOS 15 (and 14, then). The script says why at length and how to
       # read a failure. Here because this lane builds release, what ships, with
       # 6.4, whose SwiftPM binds the library strongly where 6.2.4's bound
       # swift-collections' reference weakly; on the 6.2.4 lane's release build

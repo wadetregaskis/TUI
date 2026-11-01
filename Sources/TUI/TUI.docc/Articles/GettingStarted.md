@@ -4,7 +4,7 @@ Create a terminal app with TUI, run it, and make it respond to a key press.
 
 ## Overview
 
-You need Swift 6.2 or newer, which on a Mac comes with Xcode 26 or its Command Line Tools. Swift's package manager does the rest, so there is nothing else to install. Your app will run on macOS 14 or later, and on Linux.
+You need Swift 6.2 or newer, which on a Mac comes with Xcode 26 or its Command Line Tools. Swift's package manager does the rest, so there is nothing else to install. Your app will run on macOS 15 or later, and on Linux.
 
 ## Create a Package
 
@@ -28,7 +28,7 @@ import PackageDescription
 
 let package = Package(
     name: "MyTUIApp",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v15)],
     dependencies: [
         .package(url: "https://github.com/wadetregaskis/TUI.git", branch: "main"),
     ],

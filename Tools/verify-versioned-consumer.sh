@@ -65,7 +65,7 @@ import PackageDescription
 
 let package = Package(
     name: "TUIConsumer",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v15)],
     dependencies: [
         .package(url: "file://$PACKAGE_REPO", exact: "1.0.0")
     ],

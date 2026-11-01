@@ -28,7 +28,7 @@ import PackageDescription
 
 let package = Package(
     name: "Groceries",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v15)],
     dependencies: [
         .package(url: "https://github.com/wadetregaskis/TUI.git", branch: "main"),
     ],

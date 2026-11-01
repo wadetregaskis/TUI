@@ -24,7 +24,7 @@ If running that way should do something useful, such as printing a report, see "
 
 ## The build fails: "requires macos 10.13"
 
-**`error: the executable 'MyApp' requires macos 10.13, but depends on the product 'TUI' which requires macos 14.0`**
+**`error: the executable 'MyApp' requires macos 10.13, but depends on the product 'TUI' which requires macos 15.0`**
 
 Add the `platforms` line to your `Package.swift`:
 
@@ -34,7 +34,7 @@ import PackageDescription
 
 let package = Package(
     name: "MyApp",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v15)],
     dependencies: [
         .package(url: "https://github.com/wadetregaskis/TUI.git", branch: "main"),
     ],
@@ -56,7 +56,7 @@ import PackageDescription
 
 let package = Package(
     name: "MyApp",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v15)],
     dependencies: [
         .package(name: "TUI", path: "../my-tui-fork"),
     ],

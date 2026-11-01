@@ -25,7 +25,7 @@ let products = [
 
 let package = Package(
     name: "TUIProductSmoke",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v15)],
     dependencies: [.package(url: url, exact: "1.0.0")],
     targets: products.map { product in
         .executableTarget(

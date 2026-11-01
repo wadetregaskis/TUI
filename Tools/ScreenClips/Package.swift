@@ -18,7 +18,7 @@ let tuikit = root.lastPathComponent.lowercased()
 
 let package = Package(
     name: "ScreenClips",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v15)],
     dependencies: [.package(path: root.path)],
     targets: [
         // The scenes, and the player that runs one under a pseudo-terminal of its own and types its script into it.

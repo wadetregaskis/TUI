@@ -39,7 +39,7 @@ as on any other.
 Your own targets' resources are separate bundles, and SwiftPM's `Bundle.module` still requires them wherever your
 code reads it.
 
-### A Library for macOS 14 and 15
+### A Library for macOS 15
 
 TUI itself needs no library beside the executable on any macOS it supports. Your program might, if it:
 
@@ -47,7 +47,7 @@ TUI itself needs no library beside the executable on any macOS it supports. Your
 - links swift-collections 1.4 or later.
 
 Either can make it link `libswiftCompatibilitySpan.dylib`, which macOS has only from version 26. Run `otool -L` on the
-executable to see whether it does. A program that links the library stops at launch on macOS 14 and 15, once copied
+executable to see whether it does. A program that links the library stops at launch on macOS 15, once copied
 out of `.build`:
 
 ```

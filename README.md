@@ -156,7 +156,7 @@ Actual screen recordings (demo apps, but otherwise completely real - see [their 
 Add TUI to your package:
 
 ```swift
-platforms: [.macOS(.v14)],
+platforms: [.macOS(.v15)],
 dependencies: [
     .package(url: "https://github.com/wadetregaskis/TUI.git", branch: "main")
 ],
