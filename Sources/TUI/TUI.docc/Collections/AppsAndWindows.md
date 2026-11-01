@@ -10,6 +10,7 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 - <doc:ScenesAndQuitting>
 - <doc:StatusBarGuide>
 - <doc:TerminalSupport>
+- <doc:EnvironmentVariables>
 - <doc:ShippingAnApp>
 - <doc:TestingYourApp>
 
@@ -34,6 +35,12 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 - ``NoTerminal``
 - ``renderOnce(output:content:)``
 - ``RenderOnceOutput``
+
+### Documenting Environment Variables
+
+- ``TUIEnvironmentVariables``
+- ``TUIEnvironmentVariable``
+- ``ManPageFormat``
 
 ### Windows
 

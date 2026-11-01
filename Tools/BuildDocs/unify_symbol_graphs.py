@@ -58,7 +58,7 @@ import sys
 # of a coarse group, joins this set then.
 MODULES = {
     "TUI", "TUIApp", "TUIBitmaps", "TUIChrome", "TUIColorPicker", "TUICommands", "TUICurveEditors",
-    "TUIEffects", "TUIFilePanelImages", "TUIFilePanels", "TUIForms", "TUIGrid", "TUILists", "TUIMenus", "TUINavigation",
+    "TUIEffects", "TUIEnvironmentDocs", "TUIFilePanelImages", "TUIFilePanels", "TUIForms", "TUIGrid", "TUILists", "TUIMenus", "TUINavigation",
     "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes", "TUISearch", "TUITabImages",
     "TUITables", "TUITabs", "TUITesting", "TUITextInput",
     "TUIFoundation", "TUIStrings", "TUITerminalHost", "TUICore", "TUIStyling", "TUIView",

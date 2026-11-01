@@ -129,4 +129,13 @@ if [ "$failed" -gt 0 ]; then
     exit 1
 fi
 
+printf '── Running tui-environment-docs, as a client'"'"'s build script does\n'
+# An executable of a dependency, which `swift run` builds when asked and at no other time. Its
+# standard output has to be the text alone, for a script to redirect it.
+first=$($SWIFT run --package-path "$FIXTURE" tui-environment-docs --format man 2>/dev/null | head -1)
+if [ "$first" != ".SH ENVIRONMENT" ]; then
+    echo "error: tui-environment-docs printed \"$first\" first, not the section's heading" >&2
+    exit 1
+fi
+
 printf '\nEvery library product builds and runs on its own\n'

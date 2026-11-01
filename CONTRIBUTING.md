@@ -689,6 +689,9 @@ anything at run time:
   (`@testable import Example`), for when a test must drive what the app
   ships rather than a copy of its shape: a copy goes on passing after the
   app's view is changed back.
+- A new environment variable goes in the table in `Sources/TUIEnvironmentDocs`, or in
+  the internal list if nobody using TUI would set it. A test fails until it does: see
+  [Environment variables for developing TUI](Documentation/Environment%20variables%20for%20developing%20TUI.md).
 - To run the whole suite faster while developing, see "Running the suite in
   parallel" above. CI runs the suite the same way on macOS and Linux (`-j 4`),
   and plain `swift test` on Windows.
@@ -954,6 +957,9 @@ Sources/
 │   TUISearch on TUITextInput and TUIPickers, TUICurveEditors
 │   on TUIColorPicker), and the umbrella re-exports all twenty.
 │   Inside each: App/, Views/, Modifiers/, Focus/, ...
+├── TUIEnvironmentDocs/  The table of every environment variable TUI reads, and the
+│                         text for a man page. On nothing, and the umbrella doesn't
+│                         re-export it. `swift run tui-environment-docs` prints it
 ├── TUIStrings/        SF Symbols name table, inline Markdown, format styles,
 │                         localization (translations in 7 languages) and VERSION,
 │                         in the resource bundle TUI_TUIStrings
@@ -995,6 +1001,7 @@ Tests/                    ~11,600 tests across ~1,560 suites in ~1,360 files, a 
 ├── TUIIntegrationTests/  Tests needing two feature modules (golden snapshots,
 │                         i18n consistency, cross-control focus): the umbrella
 ├── TUITestingTests/   TUITesting's own, written as an app's tests are: no @testable
+├── TUIEnvironmentDocsTests/  That every environment variable read is documented
 ├── TUITestSupport/    Shared helpers, mocks and golden snapshots; App-, Lists-,
 │                         Tables-… level helpers in TUIAppTestSupport and the like
 ├── TUICoreTests/      The low modules' own unit tests, which cannot lean on

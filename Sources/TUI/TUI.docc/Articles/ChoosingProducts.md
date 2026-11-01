@@ -66,9 +66,10 @@ notifications and `.help`. It links `TUIPresentation` too, for the alert the qui
 | `TUIFilePanelsAppKit` | `.fileDialogSystemIcons()`, the file panels drawn with the Finder's icons (Apple platforms; a product of its own so that `TUIAppKit` does not bring the file panels) | `TUIAppKit`, `TUIFilePanels` |
 | `TUIMacros` | the `@Entry`, `@Animatable` and `@AnimatableIgnored` macros (it builds swift-syntax) | `TUICore` |
 | `TUITesting` | `TestApp`, for running your views in unit tests (<doc:TestingYourApp>). List it in a test target, not in your app; `TUI` does not include it | `TUIApp` |
+| `TUIEnvironmentDocs` | `TUIEnvironmentVariables`, the environment variables TUI reads, as text for your own documentation (<doc:ShippingAnApp#Documenting-Environment-Variables>); `TUI` does not include it | Nothing |
 
-Every product in the table but `TUIMacros` brings `TUIFoundation` too, and every module in it but `TUIAppKit`,
-`TUIFilePanelsAppKit` and `TUIMacros`, which are imported beside the others, re-exports the modules it is built on, so one import covers
+Every product in the table but `TUIMacros` and `TUIEnvironmentDocs` brings `TUIFoundation` too, and every module in it but `TUIAppKit`,
+`TUIFilePanelsAppKit` and `TUIMacros`, which are imported beside the others, and `TUIEnvironmentDocs`, which stands alone, re-exports the modules it is built on, so one import covers
 them: `import TUITables` gives you `List` as well. `TUIFoundation`, `TUICore`, `TUIStyling`,
 `TUIView` and `TUIImage` are products too, for a library that needs nothing more. `TUIFoundation`
 re-exports `TUICore`, `TUIStyling` and `TUIView`; `TUIView` re-exports `TUICore` and
@@ -77,8 +78,8 @@ one import covers either. `TUICore` and `TUIStyling` re-export nothing.
 
 ### What `import TUI` brings
 
-`import TUI` re-exports every module in the table above, except the three imported beside it: `TUIAppKit`,
-`TUIFilePanelsAppKit` and `TUIMacros`. So on the `TUI` product, add `import TUIAppKit` where you use `Color(nsColor:)`,
+`import TUI` re-exports every module in the table above, except `TUITesting`, `TUIEnvironmentDocs` and the three
+imported beside it: `TUIAppKit`, `TUIFilePanelsAppKit` and `TUIMacros`. So on the `TUI` product, add `import TUIAppKit` where you use `Color(nsColor:)`,
 `NSColor(_:)` or `Image(nsImage:)`. They are kept out because AppKit imports SwiftUICore, and a module that imports
 AppKit makes every app importing it see SwiftUI's own extension members beside TUI's.
 

@@ -9,7 +9,7 @@ let umbrellaTestDependencies: [Target.Dependency] = [
     "TUIEffects", "TUIFilePanelImages", "TUIFilePanels", "TUIForms", "TUIFoundation", "TUIGrid", "TUILists",
     "TUIMenus", "TUINavigation", "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes", "TUISearch",
     "TUIStrings", "TUITabImages", "TUITables", "TUITabs", "TUITerminalHost", "TUITesting", "TUITextInput",
-    "TUIAppKit", "TUIFilePanelsAppKit", "TUIWidthCorpus", "CTestSupport",
+    "TUIAppKit", "TUIEnvironmentDocs", "TUIFilePanelsAppKit", "TUIWidthCorpus", "CTestSupport",
 ]
 
 let package = Package(
@@ -30,7 +30,7 @@ let package = Package(
 
         // ── The umbrella: the default ───────────────────────────────────────────────────────────────────
         // `import TUI` is the whole framework, as `import SwiftUI` is the whole of SwiftUI: every module
-        // below but TUIAppKit, TUIFilePanelsAppKit, TUIMacros and TUITesting, which are opt-in. Start here; the README and the docs do.
+        // below but TUIAppKit, TUIEnvironmentDocs, TUIFilePanelsAppKit, TUIMacros and TUITesting, which are opt-in. Start here; the README and the docs do.
         .library(name: "TUI", targets: ["TUI"]),
 
         // ── À la carte: one product per module ──────────────────────────────────────────────────────────
@@ -136,6 +136,17 @@ let package = Package(
         // `dependencies:` and nothing else, so a shipping app never carries it. Uses no `@testable`, and
         // neither Testing nor XCTest. Re-exports TUIApp.
         .library(name: "TUITesting", targets: ["TUITesting"]),
+        // TUIEnvironmentDocs: `TUIEnvironmentVariables`, the table of every environment variable TUI reads, and
+        // the text an app's man page or website needs. A product of its own so that an app that doesn't ask for
+        // it carries none of the text: it depends on nothing, nothing depends on it, and the umbrella doesn't
+        // re-export it. A build script would rather run the executable below, which needs no code in the app.
+        .library(name: "TUIEnvironmentDocs", targets: ["TUIEnvironmentDocs"]),
+        // `swift run tui-environment-docs`, for an app's build or release script. An executable and not a command
+        // plugin: SwiftPM compiles every plugin of a package in the graph at the start of each client's clean
+        // `swift build`, used or not (measured, 2026-11-01: "Compiling plugin" in a hello on TUIApp), where it
+        // builds an executable of a dependency only when asked. `Documentation/Environment variables for
+        // developing TUI.md` says more.
+        .executable(name: "tui-environment-docs", targets: ["TUIEnvironmentDocsTool"]),
 
         // ── Low-level (no deps) ─────────────────────────────────────────────────────────────────────────
         // The four modules beneath TUIFoundation: products of their own since before the split, and the
@@ -710,6 +721,11 @@ let package = Package(
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
+        // The table of environment variables, and `swift run tui-environment-docs`, which prints it. No
+        // dependencies, and no Foundation in the library, so it builds wherever Swift does.
+        .target(name: "TUIEnvironmentDocs"),
+        .executableTarget(name: "TUIEnvironmentDocsTool", dependencies: ["TUIEnvironmentDocs"]),
+
         // ── App & Tests ─────────────────────────────────────────────────────────────────────────────────
         .executableTarget(
             name: "Example",
@@ -1008,6 +1024,10 @@ let package = Package(
         // higher layer stops compiling here — that is the point: it keeps every
         // module provably testable in isolation.
         .testTarget(name: "TUICoreTests", dependencies: ["TUICore", "TUIWidthCorpus"]),
+        .testTarget(
+            name: "TUIEnvironmentDocsTests",
+            dependencies: ["TUIEnvironmentDocs"]
+        ),
         .testTarget(name: "TUIStylingTests", dependencies: ["TUIStyling"]),
         .testTarget(name: "TUIViewTests", dependencies: ["TUIView"]),
         .testTarget(name: "TUIImageTests", dependencies: ["TUIImage"]),

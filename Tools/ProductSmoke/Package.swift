@@ -20,7 +20,7 @@ let products = [
     "TUIMenus", "TUINavigation", "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes",
     "TUISearch",
     "TUITabImages", "TUIFilePanelImages", "TUITables", "TUITabs", "TUITesting", "TUITextInput", "TUICore", "TUIStyling", "TUIView", "TUIImage",
-    "TUIAppKit", "TUIFilePanelsAppKit", "TUIMacros",
+    "TUIEnvironmentDocs", "TUIAppKit", "TUIFilePanelsAppKit", "TUIMacros",
 ]
 
 let package = Package(

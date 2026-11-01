@@ -14,6 +14,7 @@ It leaves your program at `.build/release/MyApp`. Copy that wherever it installs
 beside it, and you are done. Most apps need nothing else, and the rest of this page is for when you want to know more:
 
 - <doc:ShippingAnApp#Shipping-a-Program> says what goes beside the executable.
+- <doc:ShippingAnApp#Documenting-Environment-Variables> puts the variables TUI reads in your man page.
 - <doc:ShippingAnApp#Shipping-Size> lists ways to make the program smaller, and what each one costs.
 - <doc:ShippingAnApp#Build-Time> says why a release build takes minutes, and what helps.
 
@@ -72,6 +73,90 @@ swift build -c release -Xlinker -weak_library -Xlinker <that directory>/libswift
 
 To check a built program, run `Tools/check-span-compatibility.sh <executable>` from a TUI checkout. It fails on any
 load of the library, strong or weak, and on any symbol imported from it.
+
+## Documenting Environment Variables
+
+TUI reads environment variables that the people running your app can set (<doc:EnvironmentVariables>). A man page lists those under ENVIRONMENT, and TUI can write that section for you. If your build or release script writes it each time, upgrading TUI updates your man page.
+
+### From a Build Script
+
+This needs no change to your package, and no code in your app:
+
+```bash
+swift run tui-environment-docs --format man --output man/environment.man
+```
+
+`--format` takes `man`, for a page written in `man(7)`'s macros (one that starts with `.TH`), `mdoc`, for one in `mdoc(7)`'s (one that starts with `.Dd`), or `markdown`, for a README or a website. Without `--output` it prints the text, and SwiftPM's own messages go to standard error, so you can also redirect it.
+
+Keep the rest of your page in a file of its own:
+
+```
+.TH MYAPP 1
+.SH NAME
+myapp \- does what my app does
+.SH SYNOPSIS
+.B myapp
+.RB [ \-\-color=always | never ]
+.SH DESCRIPTION
+What it does.
+```
+
+Then join the two when you build:
+
+```bash
+cat man/myapp.1.in man/environment.man > man/myapp.1
+```
+
+`man ./man/myapp.1` then ends with this, followed by the other topics:
+
+```
+ENVIRONMENT
+       This program is built with TUI, which reads these variables.  An empty
+       variable counts as unset, and a value that isn't listed is ignored.  A
+       setting the program makes itself, such as from a command-line flag,
+       usually comes first.
+
+   Colour
+       NO_COLOR
+              Values: Any value, even 0.  No colour.  Bold, underline, italics
+              and the other text attributes stay.  A picture the terminal
+              draws in real pixels keeps its colours.
+
+       FORCE_COLOR
+              Values: A number, or a word such as true.  0 or false: no
+              colour.  1: 16 colours.  2: 256.  3 or more: millions.  Any
+              other value, such as true: what the terminal has, but at least
+              16.  NO_COLOR beats it.
+```
+
+To list your program's own variables first, write the heading yourself and pass `--no-heading`, which leaves it out:
+
+```
+.SH ENVIRONMENT
+.TP
+.B MYAPP_HOME
+Where myapp keeps its projects.
+```
+
+`--audience developer` lists what's for someone building the app rather than running it. A script can also check that a committed copy is up to date, by writing it again and running `git diff --exit-code man/`.
+
+### From Your Own Code
+
+To print the text from your app, such as for a `--help-environment` flag, add the `TUIEnvironmentDocs` product to your target and call ``TUIEnvironmentVariables``:
+
+```swift
+import TUIEnvironmentDocs
+
+if CommandLine.arguments.contains("--help-environment") {
+    print(TUIEnvironmentVariables.markdownSection())
+}
+```
+
+``TUIEnvironmentVariables/all`` is the table itself, if you'd like another format.
+
+### What It Costs
+
+Nothing, unless you use it. `swift run` builds `tui-environment-docs` when you run it, in seconds, and your app's own build doesn't touch it. An app that doesn't list `TUIEnvironmentDocs` compiles and links none of it. One that does and prints the text is about 50 KB larger, measured on a hello-world app.
 
 ## Shipping Size
 
@@ -207,4 +292,5 @@ generation spreads across cores.
 ## See Also
 
 - <doc:ChoosingProducts>
+- <doc:EnvironmentVariables>
 - <doc:ModuleIndex>
