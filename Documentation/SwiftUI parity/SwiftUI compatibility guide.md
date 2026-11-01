@@ -90,6 +90,15 @@ where a reader learns of it.
 > `onContinuousHover(coordinateSpace:perform:)`, `DragGesture.init` and
 > `SpatialTapGesture.init` (→ their `some CoordinateSpaceProtocol` forms, which
 > `.local`, `.global` and `.named(_:)` bind to).
+>
+> Omitted doesn't have to mean a bad error. A call the type checker can't find,
+> in a long view chain, costs 10 to 20 seconds and then reports nothing useful at
+> `var body`. So the spellings real code uses most, deprecated or not, have an
+> `@available(*, unavailable, message:)` stub saying what to use instead (the files
+> named `*+SwiftUIUnavailable.swift`, proved by `Tools/APIParity/UnavailableCorpus.swift`).
+> A stub isn't API: nothing can call it, and neither code completion, the
+> documentation nor the parity tool sees it. A SwiftUI name that TUI gains
+> for real takes its stub's place.
 
 **This file is about vocabulary; behaviour is audited separately.**
 [SwiftUI semantic audit (2026-08).md](<../Historical/SwiftUI parity process/The semantic audit of August 2026.md>) compares

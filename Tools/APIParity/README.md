@@ -204,7 +204,11 @@ inserts the same space. Three things would, in increasing order of cost:
    does not, because only the labels matched. Mutation-checked — deleting the
    default on `fixedSize(horizontal:)` makes it fail. It is not yet wired into
    CI, and it is a corpus of the calls that could plausibly break rather than
-   an inventory of every symbol.
+   an inventory of every symbol. `UnavailableCorpus.swift` is its other half:
+   SwiftUI source that TUI refuses, each line stating the error it must get, under
+   the compiler's `-verify` mode. Those errors come from the stubs in the files
+   named `*+SwiftUIUnavailable.swift`, which this tool never sees, because it
+   drops what is unavailable.
 2. **Differential rendering.** Compile the *same* snippet against both, render
    SwiftUI headlessly (`NSHostingView` + `cacheDisplay`, which
    `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` already cites for label metrics) and

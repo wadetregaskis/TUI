@@ -170,7 +170,7 @@ ContentView()
 
 ## Things that don't exist
 
-These have no meaning in a grid of cells, or aren't built yet, so using them is a compile error:
+These have no meaning in a grid of cells, or aren't built yet, so using them is a compile error. The compiler tells you what to use instead, here and for an older SwiftUI spelling such as `.foregroundColor`, `.cornerRadius`, `.tabItem` or `NavigationView`, on the line where you wrote it:
 
 | In SwiftUI | In TUI |
 |---|---|

@@ -28,3 +28,7 @@ swiftc -typecheck -I "$modules" "$here/CompileCorpus.swift"
 # for all of them — which is the very leak this one proves is gone.
 swiftc -typecheck -I "$modules" "$here/CompileCorpusTUIOnly.swift"
 echo "compile corpus: every SwiftUI snippet type-checks against TUI"
+# The other way round: SwiftUI code that TUI refuses, each line stating the error
+# it must get. `-verify` fails on a missing error, an extra one, or a wrong message.
+swiftc -typecheck -I "$modules" -Xfrontend -verify "$here/UnavailableCorpus.swift"
+echo "compile corpus: every refused SwiftUI spelling gets its own error"

@@ -372,7 +372,7 @@ Fixes an app may have worked around:
 
 ### Removed deprecated spellings
 
-The project removes SwiftUI API that SwiftUI itself has deprecated, and does not add it. These went:
+The project removes SwiftUI API that SwiftUI itself has deprecated, and does not add it. The spellings real code uses most, and the modifiers a terminal can't honour, now get a compile error saying what to use instead (`'cornerRadius(_:antialiased:)' is unavailable: A cell has square corners...`), on the line that used them, in under a second. They were 10 to 20 seconds of "unable to type-check this expression" at `var body`. They don't appear in code completion or the documentation. These went:
 
 - `Text + Text`, deprecated in SwiftUI on macOS 26. An interpolated `Text` keeps its fragments' styling, which replaces it.
 - `UnitCurve.easeInEaseOut`, renamed `easeInOut` in SwiftUI.
