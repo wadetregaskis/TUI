@@ -31,7 +31,7 @@ import TUIFoundation
 /// window in front the person may not close — the last one open, one whose
 /// content says `windowDismissBehavior(.disabled)`, or one showing a modal
 /// presentation. Decisions O9, B-O9-11.
-public struct WindowVisibilityToggle<Label: View>: View {
+public struct WindowVisibilityToggle<Label: View> {
     /// The `Window` scene's identifier.
     let windowID: String
 
@@ -40,7 +40,8 @@ public struct WindowVisibilityToggle<Label: View>: View {
 
     @Environment(\.scenePresenter) private var presenter
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         let presenter = presenter
         let windowID = windowID
         Button {
@@ -51,6 +52,7 @@ public struct WindowVisibilityToggle<Label: View>: View {
         .disabled(presenter?.canToggleWindow(windowID) != true)
     }
 }
+extension WindowVisibilityToggle: View {}
 
 extension WindowVisibilityToggle where Label == DefaultWindowVisibilityToggleLabel {
     /// Creates a window visibility toggle to alter the visibility of a
@@ -71,7 +73,7 @@ extension WindowVisibilityToggle where Label == DefaultWindowVisibilityToggleLab
 /// the window's title, in the current language.
 ///
 /// You don't make one: ``WindowVisibilityToggle``'s `init(windowID:)` does.
-public struct DefaultWindowVisibilityToggleLabel: View {
+public struct DefaultWindowVisibilityToggleLabel {
     /// The `Window` scene's identifier.
     let windowID: String
 
@@ -82,23 +84,25 @@ public struct DefaultWindowVisibilityToggleLabel: View {
         self.windowID = windowID
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         let isShown = presenter?.isShowingWindow(windowID) == true
         let title = presenter?.listedScenes.first { $0.id == windowID }?.title ?? windowID
         let key = isShown ? LocalizationKey.Menu.hideWindow : LocalizationKey.Menu.showWindow
         Text(LocalizedStringKey.substituting([title], into: LocalizationService.shared.string(for: key)))
     }
 }
+extension DefaultWindowVisibilityToggleLabel: View {}
 
 // MARK: - Environment without reflection
 
-extension WindowVisibilityToggle: ResolvesOwnEnvironment {
+@MainActor extension WindowVisibilityToggle: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _presenter.resolveEnvironment(environment)
     }
 }
 
-extension DefaultWindowVisibilityToggleLabel: ResolvesOwnEnvironment {
+@MainActor extension DefaultWindowVisibilityToggleLabel: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _presenter.resolveEnvironment(environment)
     }

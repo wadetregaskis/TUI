@@ -174,7 +174,7 @@ extension View {
     ///
     /// - Parameter number: The maximum number of lines, or `nil` for no limit.
     /// - Returns: A view whose descendant text is capped at `number` lines.
-    public func lineLimit(_ number: Int?) -> some View {
+    nonisolated public func lineLimit(_ number: Int?) -> some View {
         environment(\.lineLimit, LineLimit(number))
     }
 
@@ -208,7 +208,7 @@ extension View {
     ///     it is shorter.
     /// - Returns: A view whose descendant text is capped, and optionally
     ///   padded, at `limit` lines.
-    public func lineLimit(_ limit: Int, reservesSpace: Bool) -> some View {
+    nonisolated public func lineLimit(_ limit: Int, reservesSpace: Bool) -> some View {
         environment(\.lineLimit, LineLimit(limit, reservesSpace: reservesSpace))
     }
 
@@ -230,7 +230,7 @@ extension View {
     ///
     /// - Parameter limit: The fewest and the most lines.
     /// - Returns: A view whose descendant text occupies that many lines.
-    public func lineLimit(_ limit: ClosedRange<Int>) -> some View {
+    nonisolated public func lineLimit(_ limit: ClosedRange<Int>) -> some View {
         environment(\.lineLimit, LineLimit(limit))
     }
 
@@ -241,7 +241,7 @@ extension View {
     /// - Parameter limit: The fewest lines.
     /// - Returns: A view whose descendant text occupies at least that many
     ///   lines.
-    public func lineLimit(_ limit: PartialRangeFrom<Int>) -> some View {
+    nonisolated public func lineLimit(_ limit: PartialRangeFrom<Int>) -> some View {
         environment(\.lineLimit, LineLimit(limit))
     }
 
@@ -251,7 +251,7 @@ extension View {
     ///
     /// - Parameter limit: The most lines.
     /// - Returns: A view whose descendant text is capped at that many lines.
-    public func lineLimit(_ limit: PartialRangeThrough<Int>) -> some View {
+    nonisolated public func lineLimit(_ limit: PartialRangeThrough<Int>) -> some View {
         environment(\.lineLimit, LineLimit(limit.upperBound))
     }
 }

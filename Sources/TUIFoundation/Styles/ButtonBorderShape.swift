@@ -162,7 +162,7 @@ extension View {
     ///
     /// - Parameter shape: The shape bordered buttons in this view take.
     /// - Returns: A view whose bordered buttons take `shape`.
-    public func buttonBorderShape(_ shape: ButtonBorderShape) -> some View {
+    nonisolated public func buttonBorderShape(_ shape: ButtonBorderShape) -> some View {
         environment(\.buttonBorderShape, shape)
     }
 }

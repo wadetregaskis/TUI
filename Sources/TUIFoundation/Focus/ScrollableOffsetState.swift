@@ -930,7 +930,7 @@ extension View {
     /// enclosing scroller — so momentum finishing a scroll inside a child
     /// doesn't immediately fling the parent. `.zero` chains immediately.
     /// The default is 2 seconds.
-    public func scrollChainingDelay(_ delay: Duration) -> some View {
+    nonisolated public func scrollChainingDelay(_ delay: Duration) -> some View {
         environment(\.scrollChainingDelay, delay)
     }
 
@@ -945,7 +945,7 @@ extension View {
     /// began in (a row reorder can only land in its own list). A page that
     /// scrolled away under a payload it would refuse is just the view running
     /// off — there is nothing there to reveal.
-    public func dragAutoScrollDelay(_ delay: Duration) -> some View {
+    nonisolated public func dragAutoScrollDelay(_ delay: Duration) -> some View {
         environment(\.dragAutoScrollDelay, delay)
     }
 }

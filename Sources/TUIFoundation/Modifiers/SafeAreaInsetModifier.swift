@@ -15,7 +15,7 @@
 //  License: MIT
 
 /// Lays `inset` beside `base` on `edge`, with `base` proposed what is left.
-struct SafeAreaInsetModifier<Base: View, Inset: View>: View {
+nonisolated struct SafeAreaInsetModifier<Base: View, Inset: View>: View {
     /// The modified view.
     let base: Base
 
@@ -32,15 +32,15 @@ struct SafeAreaInsetModifier<Base: View, Inset: View>: View {
     /// Cells between the view and the bar.
     let spacing: Int
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("SafeAreaInsetModifier renders via Renderable")
     }
 
     /// Whether the bar stacks above or below the view, rather than beside it.
-    private var stacksVertically: Bool { edge == .top || edge == .bottom }
+    @MainActor private var stacksVertically: Bool { edge == .top || edge == .bottom }
 
     /// Whether the bar comes first along the stacking axis.
-    private var insetLeads: Bool { edge == .top || edge == .leading }
+    @MainActor private var insetLeads: Bool { edge == .top || edge == .leading }
 
     /// The sizes the two children get for `proposal`: the bar first, at its
     /// natural extent along the stacking axis and the full extent across it,
@@ -48,7 +48,7 @@ struct SafeAreaInsetModifier<Base: View, Inset: View>: View {
     ///
     /// One function for both passes, so the measure and the render cannot
     /// disagree about what either child was offered.
-    private func plan(_ proposal: ProposedSize, context: RenderContext)
+    @MainActor private func plan(_ proposal: ProposedSize, context: RenderContext)
         -> (inset: ViewSize, base: ViewSize, baseProposal: ProposedSize, gap: Int)
     {
         let insetProposal =
@@ -69,7 +69,7 @@ struct SafeAreaInsetModifier<Base: View, Inset: View>: View {
     }
 }
 
-extension SafeAreaInsetModifier: Layoutable {
+@MainActor extension SafeAreaInsetModifier: Layoutable {
     /// The two children's union: summed along the stacking axis, the larger of
     /// the two across it — measured in SwiftUI, a bar wider than its view
     /// makes the result the bar's width.
@@ -90,7 +90,7 @@ extension SafeAreaInsetModifier: Layoutable {
     }
 }
 
-extension SafeAreaInsetModifier: Renderable {
+@MainActor extension SafeAreaInsetModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let proposal = ProposedSize(
             width: max(0, context.availableWidth), height: max(0, context.availableHeight))
@@ -165,7 +165,7 @@ extension View {
     ///     none, as SwiftUI measures it.
     ///   - content: The bar.
     /// - Returns: A view with the bar beside it.
-    public func safeAreaInset<V: View>(
+    nonisolated public func safeAreaInset<V: View>(
         edge: VerticalEdge, alignment: HorizontalAlignment = .center, spacing: Int? = nil,
         @ViewBuilder content: () -> V
     ) -> some View {
@@ -188,7 +188,7 @@ extension View {
     ///     none.
     ///   - content: The bar.
     /// - Returns: A view with the bar beside it.
-    public func safeAreaInset<V: View>(
+    nonisolated public func safeAreaInset<V: View>(
         edge: HorizontalEdge, alignment: VerticalAlignment = .center, spacing: Int? = nil,
         @ViewBuilder content: () -> V
     ) -> some View {
@@ -211,7 +211,7 @@ extension View {
     ///   - spacing: Cells between the view and the bar; `nil` is none.
     ///   - content: The bar.
     /// - Returns: A view with the bar beside it.
-    public func safeAreaBar<V: View>(
+    nonisolated public func safeAreaBar<V: View>(
         edge: VerticalEdge, alignment: HorizontalAlignment = .center, spacing: Int? = nil,
         @ViewBuilder content: () -> V
     ) -> some View {
@@ -227,7 +227,7 @@ extension View {
     ///   - spacing: Cells between the view and the bar; `nil` is none.
     ///   - content: The bar.
     /// - Returns: A view with the bar beside it.
-    public func safeAreaBar<V: View>(
+    nonisolated public func safeAreaBar<V: View>(
         edge: HorizontalEdge, alignment: VerticalAlignment = .center, spacing: Int? = nil,
         @ViewBuilder content: () -> V
     ) -> some View {

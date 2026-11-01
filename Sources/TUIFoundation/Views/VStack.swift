@@ -29,7 +29,7 @@
 ///     Text("Longer text")
 /// }
 /// ```
-public struct VStack<Content: View>: View {
+nonisolated public struct VStack<Content: View>: View {
     /// The horizontal alignment of the children.
     public let alignment: HorizontalAlignment
 
@@ -57,7 +57,7 @@ public struct VStack<Content: View>: View {
         self.content = content()
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _VStackCore(alignment: alignment, spacing: spacing, overflow: .clip, content: content)
     }
 }
@@ -69,7 +69,7 @@ public struct VStack<Content: View>: View {
 /// `VStack` is `.clip` (distribute + clip trailing rows at the cell),
 /// `LazyVStack` is `.window` (append whole rows while they fit `availableHeight`,
 /// stopping at the first that won't).
-package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
+nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     // The one-byte `overflow` after the content, not before it: before, it
     // left seven undefined bytes ahead of the word-aligned content, which the
     // per-pass memos' value hash read then and must skip now; with none, the
@@ -98,12 +98,12 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
         self.pinsSectionFooters = pinnedViews.contains(.sectionFooters)
     }
 
-    package var body: Never {
+    @MainActor package var body: Never {
         fatalError("_VStackCore renders via Renderable")
     }
 
     /// Measures the VStack without rendering.
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let context = context.publishingContainerAxis(.vertical, passesNoWidthOn: isStaticallyOneView(Content.self))
         switch overflow {
         case .clip: return clipSizeThatFits(proposal: proposal, context: context)
@@ -119,7 +119,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// stop once its rows pass the budget: `overflowProbeSizeThatFits`, which
     /// asks this walk with a `stop` — the one walk, so a column that never
     /// reaches it answers from the rows it measured, as it does unasked.
-    func clipSizeThatFits(proposal: ProposedSize, context: RenderContext, stoppingAt stop: Int? = nil) -> ViewSize {
+    @MainActor func clipSizeThatFits(proposal: ProposedSize, context: RenderContext, stoppingAt stop: Int? = nil) -> ViewSize {
         if context.asksOverflow { return overflowProbeSizeThatFits(proposal: proposal, context: context) }
         // A view that has left takes no room (`StackGlide`).
         let children = stackChildren(of: content, context: context).laidOut
@@ -290,7 +290,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// come from distributing the leftover after every sibling has rendered,
     /// which is genuinely a property of the fill, not of any one child.
     /// (`renderWindow` forfeits laziness for spacers for the same reason.)
-    private func windowSizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor private func windowSizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         var measureContext = context
         measureContext.isMeasuring = true
         // Children of a windowed stack are not at the scroll origin; the
@@ -447,7 +447,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             isHeightFlexible: heightFlexible)
     }
 
-    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let context = context.publishingContainerAxis(.vertical, passesNoWidthOn: isStaticallyOneView(Content.self))
         switch overflow {
         case .clip: return renderClip(context: context)
@@ -458,7 +458,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// `.clip` render (eager `VStack`): measure every child, distribute the
     /// available height (clipping trailing rows at the cell), render, align, and
     /// clamp.
-    private func renderClip(context: RenderContext) -> FrameBuffer {
+    @MainActor private func renderClip(context: RenderContext) -> FrameBuffer {
         let window = resolveEagerSeek(context: context)
         // A view that has left takes no room, and is drawn where it was while
         // its removal plays (`StackGlide`).
@@ -605,7 +605,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// `ChildInfoProvider`s, which `ForEach` is not, so `LazyVStack { ForEach }`
     /// pushed the whole `ForEach` through the universal `renderToBuffer` and
     /// rendered nothing at all (issue #8).
-    private func renderWindow(context: RenderContext) -> FrameBuffer {
+    @MainActor private func renderWindow(context: RenderContext) -> FrameBuffer {
         // The seek ladder, checked BEFORE the eager resolve below (which
         // would build every row of a huge ForEach just to count spacers):
         // uniform arithmetic first; for large variable-height content, the
@@ -770,7 +770,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// spacing of an EMPTY buffer — and the row is NOT rendered: it would
     /// show zero lines, and rendering it would fire its lifecycle for an
     /// invisible row.
-    private func appendSaturatedTail(
+    @MainActor private func appendSaturatedTail(
         _ child: ChildView, measuredHeight: Int, spacingToApply: Int, currentHeight: Int,
         availableHeight: Int,
         into collected: inout [(buffer: FrameBuffer, spacingBefore: Int, child: ChildView?)],
@@ -798,7 +798,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// The explicit-guide run over the rows a lazy column actually placed, or
     /// `nil` — the common answer, which is why the question is asked before the
     /// three arrays that would carry it are built. See ``anyAlignmentGuide(in:)``.
-    private func placedGuideRun(
+    @MainActor private func placedGuideRun(
         _ collected: [(buffer: FrameBuffer, spacingBefore: Int, child: ChildView?)],
         fixedExtent: Int?, minimumExtent: Int, context: RenderContext
     ) -> AlignmentGuideRun? {
@@ -813,7 +813,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             context: context)
     }
 
-    private func assembleWindow(
+    @MainActor private func assembleWindow(
         _ collected: [(buffer: FrameBuffer, spacingBefore: Int, child: ChildView?)],
         context: RenderContext
     ) -> FrameBuffer {
@@ -862,7 +862,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// Returns the window this stack consumes, on a render pass, for the
     /// frame's other use of it (``reportEagerTargetLayout(heights:children:window:context:)``),
     /// so the environment is read for it once.
-    private func resolveEagerSeek(context: RenderContext) -> ScrollContentWindow? {
+    @MainActor private func resolveEagerSeek(context: RenderContext) -> ScrollContentWindow? {
         guard !context.isMeasuring, let window = consumableScrollWindow(context: context) else { return nil }
         guard let seek = window.seek, let reply = window.reply else { return window }
         var childContext = context
@@ -895,7 +895,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     ///     whose rows count as drawn.
     ///   - holdsChildrenInside: See
     ///     ``horizontalGuideRun(_:sizes:alignment:fixedExtent:minimumExtent:holdsChildrenInside:context:)``.
-    private func slotGuideRun(
+    @MainActor private func slotGuideRun(
         _ slots: [RowSlot], fixedExtent: Int?, minimumExtent: Int = 0,
         idealWidthLimit: Int? = nil, holdsChildrenInside: Bool = true, context: RenderContext
     ) -> AlignmentGuideRun? {
@@ -916,7 +916,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
             context: context)
     }
 
-    private func renderViewportWindow(
+    @MainActor private func renderViewportWindow(
         children: [ChildView], window: ScrollContentWindow, context: RenderContext
     ) -> FrameBuffer {
         // Off-window rows leave the WINDOW, not the tree: their @State (and
@@ -1097,7 +1097,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// anchored threshold. The collection is resolved only when someone is
     /// actually listening; for a lone `ForEach` it is the lazy form whose
     /// ids come straight from the data.
-    private func reportExactWalkSample(
+    @MainActor private func reportExactWalkSample(
         slots: [RowSlot], window: ScrollContentWindow, top: Int, walkedTotal: Int,
         context childContext: RenderContext
     ) {
@@ -1122,7 +1122,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
     /// no row can match and no per-row path is materialised. When it does,
     /// the scan renders each row's identity path — O(rows) string work, only
     /// on frames where focus (or a pending target) is inside this stack.
-    private func rowIndex(
+    @MainActor private func rowIndex(
         addressedBy focusID: String?, slots: [RowSlot], context: RenderContext
     ) -> Int? {
         guard let focusID else { return nil }
@@ -1136,7 +1136,7 @@ package struct _VStackCore<Content: View>: View, Renderable, Layoutable {
 
 // MARK: - Equatable
 
-extension VStack: @preconcurrency Equatable where Content: Equatable {
+extension VStack: Equatable where Content: Equatable {
     public static func == (lhs: VStack<Content>, rhs: VStack<Content>) -> Bool {
         lhs.alignment == rhs.alignment && lhs.spacing == rhs.spacing && lhs.content == rhs.content
     }

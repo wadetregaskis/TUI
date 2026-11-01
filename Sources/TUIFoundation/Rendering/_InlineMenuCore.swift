@@ -28,7 +28,7 @@ import TUIView
 /// module could only look up at run time, on every call, and `bordered` is a
 /// generic another module could only call unspecialised (CONTRIBUTING.md,
 /// "Crossing a module boundary").
-package struct _InlineMenuCore: View, Renderable, Layoutable {
+nonisolated package struct _InlineMenuCore: View, Renderable, Layoutable {
     let label: MenuStyleConfiguration.Label
     let content: MenuStyleConfiguration.Content
 
@@ -39,7 +39,7 @@ package struct _InlineMenuCore: View, Renderable, Layoutable {
         self.content = content
     }
 
-    package var body: Never {
+    @MainActor package var body: Never {
         fatalError("_InlineMenuCore renders via Renderable")
     }
 
@@ -52,7 +52,7 @@ package struct _InlineMenuCore: View, Renderable, Layoutable {
     /// It used to be one render, discarded. That is the difference between four
     /// walks of a menu's tree per frame and three: the parent stack measures
     /// this view before it renders it, and both used to draw the whole column.
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         var measureContext = context
         measureContext.isMeasuring = true
         // The same preparation `measureFixedByRendering` did before rendering:
@@ -68,7 +68,7 @@ package struct _InlineMenuCore: View, Renderable, Layoutable {
             column, context: measureContext, capHeight: measureContext.availableHeight)
     }
 
-    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Capped at the height it was offered: a menu with more items than the
         // terminal has rows scrolls inside its border rather than running off
         // the bottom, and the focus reveal keeps the focused item in view as
@@ -85,7 +85,7 @@ package struct _InlineMenuCore: View, Renderable, Layoutable {
     }
 
     @ViewBuilder
-    private var column: some View {
+    @MainActor private var column: some View {
         label
             .bold()
             .foregroundStyle(.palette.accent)
@@ -104,7 +104,7 @@ package struct _InlineMenuCore: View, Renderable, Layoutable {
     /// been left. Registered ahead of the ring (view handlers are layer 2, the
     /// focus system layer 3), and scoped to THIS menu's own rows by identity
     /// path so a menu beside other controls does not page through them.
-    private func registerPagingKeys(context: RenderContext) {
+    @MainActor private func registerPagingKeys(context: RenderContext) {
         // Registered straight with the dispatcher rather than through
         // `.onKeyEvent`: a modifier around the column would hide the rows from
         // `renderMenuColumn`, which walks the content to find them.

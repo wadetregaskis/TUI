@@ -181,7 +181,7 @@ extension View {
     /// - Parameter onAppear: Whether the indicators flash when each scrollable
     ///   in the hierarchy first draws.
     /// - Returns: A view whose scrollables flash their indicators on appearing.
-    public func scrollIndicatorsFlash(onAppear: Bool) -> some View {
+    nonisolated public func scrollIndicatorsFlash(onAppear: Bool) -> some View {
         transformEnvironment(\.scrollIndicatorsFlash) { $0.onAppear = onAppear }
     }
 
@@ -201,7 +201,7 @@ extension View {
     /// - Parameter value: The value whose change flashes the indicators.
     /// - Returns: A view whose scrollables flash their indicators when `value`
     ///   changes.
-    public func scrollIndicatorsFlash(trigger value: some Equatable) -> some View {
+    nonisolated public func scrollIndicatorsFlash(trigger value: some Equatable) -> some View {
         _ScrollIndicatorsFlashCore(content: self, value: value)
     }
 }
@@ -213,11 +213,11 @@ extension View {
 /// sits in the reserved negative range of `StateStorage.StateKey`; two of them
 /// at one identity (one modifier on another) are different generic types and
 /// keep theirs apart by type, in one dictionary keyed by the type.
-struct _ScrollIndicatorsFlashCore<Content: View, Value: Equatable>: View {
+nonisolated struct _ScrollIndicatorsFlashCore<Content: View, Value: Equatable>: View {
     let content: Content
     let value: Value
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_ScrollIndicatorsFlashCore renders via Renderable")
     }
 
@@ -236,7 +236,7 @@ struct _ScrollIndicatorsFlashCore<Content: View, Value: Equatable>: View {
     /// `context`, with this trigger's last change in the request the content
     /// reads. A render pass first compares the value with the one kept, and
     /// stamps a change with the frame's time; a measure reads what is kept.
-    private func flashing(_ context: RenderContext) -> RenderContext {
+    @MainActor private func flashing(_ context: RenderContext) -> RenderContext {
         guard let storage = context.stateStorage else { return context }
         let key = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.trigger)
         var memories: [ObjectIdentifier: Any] = storage.trackedValue(for: key) ?? [:]
@@ -274,7 +274,7 @@ struct _ScrollIndicatorsFlashCore<Content: View, Value: Equatable>: View {
     }
 }
 
-extension _ScrollIndicatorsFlashCore: Renderable, Layoutable {
+@MainActor extension _ScrollIndicatorsFlashCore: Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: flashing(context))
     }

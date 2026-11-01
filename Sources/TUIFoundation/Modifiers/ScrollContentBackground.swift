@@ -57,7 +57,7 @@ extension View {
     /// - Parameter visibility: The visibility to use for the background.
     /// - Returns: A view whose scrollables paint, or do not paint, a
     ///   background.
-    public func scrollContentBackground(_ visibility: Visibility) -> some View {
+    nonisolated public func scrollContentBackground(_ visibility: Visibility) -> some View {
         environment(\.scrollContentBackground, visibility)
     }
 
@@ -81,20 +81,20 @@ extension View {
 ///
 /// Applied by the scrollables themselves; apps use
 /// ``TUI/View/scrollContentBackground(_:)``.
-package struct ScrollContentBackgroundModifier: BufferModifier, Equatable {
+nonisolated package struct ScrollContentBackgroundModifier: BufferModifier, Equatable {
     /// Its content stays where it is laid out — a scroll view's background is drawn behind its content, where it is — so a guide inside it
     /// passes unmoved (``BufferModifier/_keepsContentGeometry``).
-    package static var _keepsContentGeometry: Bool { true }
+    @MainActor package static var _keepsContentGeometry: Bool { true }
 
     /// Whether the environment is read at all — see
     /// ``TUI/View/paintingScrollContentBackground(reads:)``.
     let reads: Bool
 
-    package func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+    @MainActor package func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
         _modify(buffer: buffer, context: context, owner: Self.self)
     }
 
-    package func _modify(buffer: FrameBuffer, context: RenderContext, owner: Any.Type) -> FrameBuffer {
+    @MainActor package func _modify(buffer: FrameBuffer, context: RenderContext, owner: Any.Type) -> FrameBuffer {
         guard reads, context.environment.scrollContentBackground == .visible else { return buffer }
         // The `.background(.windowBackground)` fill, keyed on the same owner, so
         // a palette change inside `withAnimation` moves as any background's does.

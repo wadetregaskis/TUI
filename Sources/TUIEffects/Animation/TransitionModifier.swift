@@ -174,7 +174,7 @@ extension View {
     ///
     /// - Parameter transition: How to come and go.
     /// - Returns: A view that transitions.
-    public func transition(_ transition: AnyTransition) -> some View {
+    nonisolated public func transition(_ transition: AnyTransition) -> some View {
         _TransitionView(content: self, transition: transition)
     }
 
@@ -194,7 +194,7 @@ extension View {
     ///
     /// - Parameter transition: How to come and go.
     /// - Returns: A view that transitions.
-    public func transition<T: Transition>(_ transition: T) -> some View {
+    @MainActor public func transition<T: Transition>(_ transition: T) -> some View {
         _TransitionView(content: self, transition: AnyTransition(transition))
     }
 }
@@ -205,11 +205,11 @@ extension View {
 ///
 /// Where the environment reduces motion, a transition with motion plays as a
 /// fade instead (``AnyTransition/reducingMotion(in:)``), decided as it renders.
-struct _TransitionView<Content: View>: View {
+nonisolated struct _TransitionView<Content: View>: View {
     let content: Content
     let transition: AnyTransition
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_TransitionView renders via Renderable")
     }
 }
@@ -219,7 +219,7 @@ private enum StateIndex {
     static let phase = 0
 }
 
-extension _TransitionView: Renderable {
+@MainActor extension _TransitionView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let transition = transition.reducingMotion(in: context.environment)
         if let custom = transition.custom { return renderBody(of: custom, context: context) }
@@ -277,7 +277,7 @@ extension _TransitionView: Renderable {
     }
 }
 
-extension _TransitionView {
+@MainActor extension _TransitionView {
     /// The animation the view arrives with: the one the transition names for
     /// its insertion — `nil`, for none, included — or else the change's, where
     /// the frame can animate. How it leaves is decided on the frame it goes,
@@ -289,7 +289,7 @@ extension _TransitionView {
     }
 }
 
-extension _TransitionView: Layoutable {
+@MainActor extension _TransitionView: Layoutable {
     /// A transition never changes the size of its slot — see ``AnyTransition``
     /// on why the effects are applied to the buffer rather than to layout — so
     /// this measures exactly as its content, or as a custom body at rest.
@@ -307,7 +307,7 @@ extension _TransitionView: Layoutable {
 
 // MARK: - A body of the app's own
 
-extension _TransitionView {
+@MainActor extension _TransitionView {
     /// A ``Transition`` with a body of the app's own: the body at rest, or —
     /// arriving — scrubbed from `.willAppear`, leaving behind the body
     /// scrubbed towards `.didDisappear` around the content's last picture.
@@ -374,9 +374,9 @@ extension _TransitionView {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _TransitionView: CarriesTransition {}
+@MainActor extension _TransitionView: CarriesTransition {}
 
-extension _TransitionView: SingleContentWrapper {
+@MainActor extension _TransitionView: SingleContentWrapper {
     /// Its content's geometry is its own — a transition draws its view displaced, but lays it out where it is, as an offset does — so a guide
     /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
     static var _keepsContentGeometry: Bool { true }
@@ -392,7 +392,7 @@ extension _TransitionView: SingleContentWrapper {
 /// A transition written on a form row — the row an animated `if` holds — is
 /// the row's the form lays out, which keeps its place, as SwiftUI's form keeps
 /// it (measured, `Tools/SwiftUIProbes/Form rows`).
-extension _TransitionView: FormRowRewrapping {
+@MainActor extension _TransitionView: FormRowRewrapping {
     var formRowContent: Content { content }
 
     func rewrappingFormRow<V: View>(_ row: V) -> any View {

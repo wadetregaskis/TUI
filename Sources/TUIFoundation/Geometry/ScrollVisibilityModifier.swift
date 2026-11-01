@@ -53,7 +53,7 @@ extension View {
     ///   - action: Called with `true` when the view becomes shown, and `false`
     ///     when it stops being shown.
     /// - Returns: A view that reports its scroll visibility.
-    public func onScrollVisibilityChange(
+    nonisolated public func onScrollVisibilityChange(
         threshold: Double = 0.5, _ action: @escaping (Bool) -> Void
     ) -> some View {
         ScrollVisibilityModifier(content: self, threshold: threshold, action: action)
@@ -64,17 +64,17 @@ extension View {
 
 /// Draws its content unchanged, stamps a geometry marker at its origin, and
 /// registers what to report — see ``View/onScrollVisibilityChange(threshold:_:)``.
-struct ScrollVisibilityModifier<Content: View>: View {
+nonisolated struct ScrollVisibilityModifier<Content: View>: View {
     let content: Content
     let threshold: Double
     let action: (Bool) -> Void
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("ScrollVisibilityModifier renders via Renderable")
     }
 }
 
-extension ScrollVisibilityModifier: Renderable {
+@MainActor extension ScrollVisibilityModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A measure asks a size, and is not a frame anything is shown in.
         guard !context.isMeasuring, let dispatcher = context.environment.mouseEventDispatcher else {
@@ -96,7 +96,7 @@ extension ScrollVisibilityModifier: Renderable {
     }
 }
 
-extension ScrollVisibilityModifier: Layoutable {
+@MainActor extension ScrollVisibilityModifier: Layoutable {
     /// Measures as its content: watching is the whole of this modifier's
     /// effect, and it contributes no geometry.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -106,7 +106,7 @@ extension ScrollVisibilityModifier: Layoutable {
 
 /// Names its content so a container asking for a z-index or an alignment guide
 /// looks through this wrapper, as it does through `onGeometryChange`'s.
-extension ScrollVisibilityModifier: SingleContentWrapper {
+@MainActor extension ScrollVisibilityModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -115,7 +115,7 @@ extension ScrollVisibilityModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension ScrollVisibilityModifier: DrawsContentUnchanged {}
+@MainActor extension ScrollVisibilityModifier: DrawsContentUnchanged {}
 
 // MARK: - Registration
 

@@ -320,7 +320,7 @@ package func makeContainer<Content: View, Footer: View>(
 ///     }
 /// }
 /// ```
-package struct ContainerView<Content: View, Footer: View>: View {
+nonisolated package struct ContainerView<Content: View, Footer: View>: View {
     /// The container title (rendered in border or header section).
     let title: String?
 
@@ -364,13 +364,13 @@ package struct ContainerView<Content: View, Footer: View>: View {
         self.footer = footer()
     }
 
-    package var body: some View {
+    @MainActor package var body: some View {
         core
     }
 
     /// What `body` returns — named so `bodyHeight(in:)` asks the very value the
     /// render walk descends into, not a second construction of it.
-    private var core: _ContainerViewCore<Content, Footer> {
+    @MainActor private var core: _ContainerViewCore<Content, Footer> {
         _ContainerViewCore(
             title: title,
             titleColor: titleColor,
@@ -388,7 +388,7 @@ package struct ContainerView<Content: View, Footer: View>: View {
     /// view's `body` (`withChildIdentity(type: Body.self)`, exactly as
     /// `renderToBuffer` does), because the footer's identity hangs off it — and
     /// with it any `@State` the footer's height depends on.
-    package func bodyHeight(in context: RenderContext) -> Int {
+    @MainActor package func bodyHeight(in context: RenderContext) -> Int {
         core.bodyHeight(in: context.withChildIdentity(type: Body.self))
     }
 }
@@ -457,7 +457,7 @@ extension _ContainerViewCore {
 
 // MARK: - Equatable Conformance
 
-extension ContainerView: @preconcurrency Equatable where Content: Equatable, Footer: Equatable {
+extension ContainerView: Equatable where Content: Equatable, Footer: Equatable {
     package static func == (lhs: ContainerView<Content, Footer>, rhs: ContainerView<Content, Footer>) -> Bool {
         guard lhs.title == rhs.title, lhs.titleColor == rhs.titleColor, lhs.content == rhs.content,
             lhs.footer == rhs.footer, lhs.style == rhs.style

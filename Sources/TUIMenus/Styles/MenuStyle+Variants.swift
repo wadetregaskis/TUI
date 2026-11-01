@@ -154,7 +154,7 @@ extension View {
     ///
     /// - Parameter style: The menu style to apply.
     /// - Returns: A view whose menus use the specified style.
-    public func menuStyle<S: MenuStyle>(_ style: S) -> some View {
+    nonisolated public func menuStyle<S: MenuStyle>(_ style: S) -> some View {
         environment(\.menuStyle, style)
     }
 }

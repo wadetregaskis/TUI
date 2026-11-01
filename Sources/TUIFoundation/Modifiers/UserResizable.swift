@@ -144,7 +144,7 @@ extension View {
     /// border, heavy lines over a double one.
     ///
     /// - Parameter axes: Which directions may be resized. Defaults to both.
-    public func userResizable(_ axes: ResizableAxes = .all) -> some View {
+    nonisolated public func userResizable(_ axes: ResizableAxes = .all) -> some View {
         _UserResizableCore(
             content: self, axes: axes,
             widthBounds: .unbounded, heightBounds: .unbounded)
@@ -154,7 +154,7 @@ extension View {
     ///
     /// See ``View/userResizable(_:)``. Naming the axis is what makes it
     /// resizable, so this view's height stays the layout's business.
-    public func userResizable<W: RangeExpression>(width: W) -> some View where W.Bound == Int {
+    nonisolated public func userResizable<W: RangeExpression>(width: W) -> some View where W.Bound == Int {
         _UserResizableCore(
             content: self, axes: .horizontal,
             widthBounds: ResizeBounds(width), heightBounds: .unbounded)
@@ -163,7 +163,7 @@ extension View {
     /// Lets the user resize this view's HEIGHT, within `height`.
     ///
     /// See ``View/userResizable(_:)``.
-    public func userResizable<H: RangeExpression>(height: H) -> some View where H.Bound == Int {
+    nonisolated public func userResizable<H: RangeExpression>(height: H) -> some View where H.Bound == Int {
         _UserResizableCore(
             content: self, axes: .vertical,
             widthBounds: .unbounded, heightBounds: ResizeBounds(height))
@@ -175,7 +175,7 @@ extension View {
     /// See ``View/userResizable(_:)``. Either range may be open at one end, so
     /// "resizable both ways, but only the width has a ceiling" is
     /// `width: 20...80, height: 5...`.
-    public func userResizable<W: RangeExpression, H: RangeExpression>(
+    nonisolated public func userResizable<W: RangeExpression, H: RangeExpression>(
         width: W, height: H
     ) -> some View where W.Bound == Int, H.Bound == Int {
         _UserResizableCore(

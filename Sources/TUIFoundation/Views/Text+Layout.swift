@@ -18,7 +18,7 @@
 import Foundation
 import TUICore
 
-extension Text {
+@MainActor extension Text {
     /// A value describing the layout and custom attributes of a tree of
     /// `Text` views — mirrors SwiftUI's `Text.Layout`.
     ///

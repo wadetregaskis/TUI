@@ -134,7 +134,7 @@ extension View {
     /// close.
     ///
     /// - Parameter behavior: Whether an item's action closes its menu.
-    public func menuActionDismissBehavior(
+    nonisolated public func menuActionDismissBehavior(
         _ behavior: MenuActionDismissBehavior
     ) -> some View {
         environment(\.menuActionDismissBehavior, behavior)

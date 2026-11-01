@@ -49,7 +49,7 @@ import TUIView
 /// ``ScrollView``, a clip, a hidden view or an opacity below 1 in the
 /// container is drawn by itself, joining nothing: what the container draws
 /// would not be clipped, hidden or faded with it (decisions B-GLASS-5).
-public struct GlassEffectContainer<Content: View>: View {
+nonisolated public struct GlassEffectContainer<Content: View>: View {
     /// How close glass shapes come before they are drawn as one, in cells.
     let spacing: Int?
 
@@ -68,7 +68,7 @@ public struct GlassEffectContainer<Content: View>: View {
         self.content = content()
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _GlassEffectContainerCore(spacing: spacing ?? 0, content: content)
     }
 }

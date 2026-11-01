@@ -32,7 +32,7 @@ import TUIPresentation
 /// `package`: ``ColorPickerPanel`` and ``GradientEditorPanel`` are here, and
 /// the two curve editors are TUICurveEditors' (C9b moved them out of this
 /// module).
-package struct _EditorPanelChrome<Value, Content: View>: View {
+package struct _EditorPanelChrome<Value, Content: View> {
     /// The dialog's title.
     let title: String
 
@@ -70,7 +70,7 @@ package struct _EditorPanelChrome<Value, Content: View>: View {
     ///
     /// A modifier rather than an init parameter so the content stays the trailing
     /// closure, which is the only shape that reads like a view.
-    package func onDone(_ action: @escaping () -> Void) -> Self {
+    @MainActor package func onDone(_ action: @escaping () -> Void) -> Self {
         var copy = self
         copy.doneAction = action
         return copy
@@ -87,7 +87,7 @@ package struct _EditorPanelChrome<Value, Content: View>: View {
         var applied = false
     }
 
-    package var body: some View {
+    @MainActor @ViewBuilder package var body: some View {
         Dialog(title: title, titleColor: .palette.accent, footerAlignment: .center) {
             content
                 .onAppear { session.original = edited.wrappedValue }
@@ -117,3 +117,4 @@ package struct _EditorPanelChrome<Value, Content: View>: View {
         }
     }
 }
+extension _EditorPanelChrome: View {}

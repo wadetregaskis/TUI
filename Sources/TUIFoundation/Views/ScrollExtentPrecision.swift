@@ -96,7 +96,7 @@ extension View {
     /// ``ScrollExtentPrecision/approximate`` by default. Pass
     /// ``ScrollExtentPrecision/exact`` where a proportionally exact scrollbar
     /// thumb is worth wrapping every row's text on every frame.
-    public func scrollExtentPrecision(_ precision: ScrollExtentPrecision) -> some View {
+    nonisolated public func scrollExtentPrecision(_ precision: ScrollExtentPrecision) -> some View {
         environment(\.scrollExtentPrecision, precision)
     }
 }

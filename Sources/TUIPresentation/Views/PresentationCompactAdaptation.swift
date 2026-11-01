@@ -61,29 +61,29 @@ protocol PresentationCompactAdapting {
 /// The wrapper the `presentationCompactAdaptation` modifiers produce. Renders
 /// and measures as its content; carrying the adaptation is its whole job, as
 /// `interactiveDismissDisabled`'s does.
-struct _PresentationCompactAdaptationView<Content: View>: View, PresentationCompactAdapting {
+nonisolated struct _PresentationCompactAdaptationView<Content: View>: View, PresentationCompactAdapting {
     let content: Content
     let horizontalAdaptation: PresentationAdaptation
     let verticalAdaptation: PresentationAdaptation
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_PresentationCompactAdaptationView renders via Renderable")
     }
 }
 
-extension _PresentationCompactAdaptationView: Renderable {
+@MainActor extension _PresentationCompactAdaptationView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: context)
     }
 }
 
-extension _PresentationCompactAdaptationView: Layoutable {
+@MainActor extension _PresentationCompactAdaptationView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
 
-extension _PresentationCompactAdaptationView: PresentationTraitWrapper {
+@MainActor extension _PresentationCompactAdaptationView: PresentationTraitWrapper {
     var presentationTraitContent: any View { content }
 }
 
@@ -91,7 +91,7 @@ extension _PresentationCompactAdaptationView: PresentationTraitWrapper {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _PresentationCompactAdaptationView: SingleContentWrapper {
+@MainActor extension _PresentationCompactAdaptationView: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -100,7 +100,7 @@ extension _PresentationCompactAdaptationView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _PresentationCompactAdaptationView: DrawsContentUnchanged {}
+@MainActor extension _PresentationCompactAdaptationView: DrawsContentUnchanged {}
 
 extension View {
     /// Specifies how to adapt a presentation to compact size classes —
@@ -123,7 +123,7 @@ extension View {
     ///
     /// - Parameter adaptation: The adaptation in either compact size class.
     /// - Returns: The view, stating how its presentation adapts.
-    public func presentationCompactAdaptation(_ adaptation: PresentationAdaptation) -> some View {
+    nonisolated public func presentationCompactAdaptation(_ adaptation: PresentationAdaptation) -> some View {
         _PresentationCompactAdaptationView(
             content: self, horizontalAdaptation: adaptation, verticalAdaptation: adaptation)
     }
@@ -141,7 +141,7 @@ extension View {
     ///   - verticalAdaptation: The adaptation in a vertically compact size
     ///     class.
     /// - Returns: The view, stating how its presentation adapts.
-    public func presentationCompactAdaptation(
+    nonisolated public func presentationCompactAdaptation(
         horizontal horizontalAdaptation: PresentationAdaptation, vertical verticalAdaptation: PresentationAdaptation
     ) -> some View {
         _PresentationCompactAdaptationView(

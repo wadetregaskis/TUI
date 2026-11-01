@@ -140,7 +140,7 @@ extension View {
     /// reports.
     ///
     /// - Parameter action: Receives the old and the new phase.
-    public func onScrollPhaseChange(
+    nonisolated public func onScrollPhaseChange(
         _ action: @escaping (ScrollPhase, ScrollPhase) -> Void
     ) -> some View {
         onScrollPhaseChange { old, new, _ in action(old, new) }
@@ -152,7 +152,7 @@ extension View {
     ///
     /// - Parameter action: Receives the old and the new phase, and the
     ///   scroll view's geometry.
-    public func onScrollPhaseChange(
+    nonisolated public func onScrollPhaseChange(
         _ action: @escaping (ScrollPhase, ScrollPhase, ScrollPhaseChangeContext) -> Void
     ) -> some View {
         let observer = ScrollPhaseObserver(action: action)
@@ -162,8 +162,7 @@ extension View {
 
 /// One `onScrollPhaseChange`: its action, and the scroll view that has
 /// claimed it (see ``ScrollGeometryObserver/claim(for:)``).
-@MainActor
-final class ScrollPhaseObserver {
+nonisolated final class ScrollPhaseObserver {
     let action: (ScrollPhase, ScrollPhase, ScrollPhaseChangeContext) -> Void
     private var claimant: ViewIdentity?
 
@@ -171,7 +170,7 @@ final class ScrollPhaseObserver {
         self.action = action
     }
 
-    func claim(for identity: ViewIdentity) -> Bool {
+    @MainActor func claim(for identity: ViewIdentity) -> Bool {
         if let claimant { return claimant == identity }
         claimant = identity
         return true

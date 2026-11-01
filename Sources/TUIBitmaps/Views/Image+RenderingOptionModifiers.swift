@@ -20,7 +20,7 @@ extension View {
     ///
     /// - Parameter characterSet: The charset to use.
     /// - Returns: A modified view.
-    public func imageCharacterSet(_ characterSet: ASCIICharacterSet) -> some View {
+    nonisolated public func imageCharacterSet(_ characterSet: ASCIICharacterSet) -> some View {
         environment(\.imageCharacterSet, characterSet)
     }
 
@@ -35,7 +35,7 @@ extension View {
     ///
     /// One of three independent questions an image conversion answers — see
     /// ``imageEdgeContrast(_:)``, which lists all three.
-    public func imageShapeAware(_ shapeAware: Bool = true) -> some View {
+    nonisolated public func imageShapeAware(_ shapeAware: Bool = true) -> some View {
         environment(\.imageShapeAware, shapeAware)
     }
 
@@ -77,7 +77,7 @@ extension View {
     ///
     /// - Parameter colorMode: The color mode to use.
     /// - Returns: A modified view.
-    public func imageColorMode(_ colorMode: ASCIIColorMode) -> some View {
+    nonisolated public func imageColorMode(_ colorMode: ASCIIColorMode) -> some View {
         environment(\.imageColorMode, colorMode)
     }
 
@@ -95,7 +95,7 @@ extension View {
     ///
     /// - Parameter toneCurve: The recolouring, or `nil` for none.
     /// - Returns: A modified view.
-    public func imageToneCurve(_ toneCurve: ASCIIToneCurve?) -> some View {
+    nonisolated public func imageToneCurve(_ toneCurve: ASCIIToneCurve?) -> some View {
         environment(\.imageToneCurve, toneCurve)
     }
 
@@ -107,7 +107,7 @@ extension View {
     /// restore the default (2 for luminance ramps longer than 12 levels,
     /// else 1). Ignored when ``imageShapeAware(_:)`` is on — the shape
     /// matcher already reads 96 staggered samples per cell.
-    public func imageSupersampling(_ factor: Int?) -> some View {
+    nonisolated public func imageSupersampling(_ factor: Int?) -> some View {
         environment(\.imageSupersampling, factor)
     }
 
@@ -122,7 +122,7 @@ extension View {
     /// directional glyphs, so it does not trace edges.
     /// One of three independent questions an image conversion answers — see
     /// ``imageEdgeContrast(_:)``, which lists all three.
-    public func imageEdgeThreshold(_ threshold: Double?) -> some View {
+    nonisolated public func imageEdgeThreshold(_ threshold: Double?) -> some View {
         environment(\.imageEdgeThreshold, threshold)
     }
 
@@ -147,7 +147,7 @@ extension View {
     /// - Parameter amount: `0` (the default) leaves the picture alone; around
     ///   `0.6` is a visible lift, `2` heavy-handed. Negative values are treated
     ///   as zero.
-    public func imageEdgeContrast(_ amount: Double) -> some View {
+    nonisolated public func imageEdgeContrast(_ amount: Double) -> some View {
         environment(\.imageEdgeContrast, amount)
     }
 
@@ -166,7 +166,7 @@ extension View {
     ///
     /// - Parameter threshold: `0...1`, from black to white, or `nil` to
     ///   measure it.
-    public func imageInkThreshold(_ threshold: Double?) -> some View {
+    nonisolated public func imageInkThreshold(_ threshold: Double?) -> some View {
         environment(\.imageInkThreshold, threshold)
     }
 
@@ -181,7 +181,7 @@ extension View {
     ///
     /// - Parameter adjustments: The adjustments; ``ImageAdjustments/none``,
     ///   the default, changes nothing.
-    public func imageAdjustments(_ adjustments: ImageAdjustments) -> some View {
+    nonisolated public func imageAdjustments(_ adjustments: ImageAdjustments) -> some View {
         environment(\.imageAdjustments, adjustments)
     }
 
@@ -207,7 +207,7 @@ extension View {
     ///
     /// - Parameter levels: The values each channel keeps, `2...255`; `nil`,
     ///   the default, leaves the picture alone, as does `256` or more.
-    public func imagePosterization(levels: Int?) -> some View {
+    nonisolated public func imagePosterization(levels: Int?) -> some View {
         environment(\.imagePosterization, levels)
     }
 
@@ -219,7 +219,7 @@ extension View {
     ///
     /// - Parameter dithering: The dithering algorithm.
     /// - Returns: A modified view.
-    public func imageDithering(_ dithering: DitheringMode) -> some View {
+    nonisolated public func imageDithering(_ dithering: DitheringMode) -> some View {
         environment(\.imageDithering, dithering)
     }
 
@@ -231,7 +231,7 @@ extension View {
     ///
     /// - Parameter textKey: The key for the placeholder text.
     /// - Returns: A modified view.
-    public func imagePlaceholder(_ textKey: LocalizedStringKey) -> some View {
+    nonisolated public func imagePlaceholder(_ textKey: LocalizedStringKey) -> some View {
         environment(\.imagePlaceholderText, textKey.localized)
     }
 
@@ -245,7 +245,7 @@ extension View {
     /// - Parameter text: The placeholder text.
     /// - Returns: A modified view.
     @_disfavoredOverload
-    public func imagePlaceholder<S: StringProtocol>(_ text: S) -> some View {
+    nonisolated public func imagePlaceholder<S: StringProtocol>(_ text: S) -> some View {
         environment(\.imagePlaceholderText, String(text))
     }
 
@@ -260,7 +260,7 @@ extension View {
     /// - Parameter text: The placeholder text, or `nil` for no text.
     /// - Returns: A modified view.
     @_disfavoredOverload
-    public func imagePlaceholder(_ text: String?) -> some View {
+    nonisolated public func imagePlaceholder(_ text: String?) -> some View {
         environment(\.imagePlaceholderText, text)
     }
 
@@ -281,7 +281,7 @@ extension View {
     ///
     /// - Parameter showSpinner: Whether to show a spinner.
     /// - Returns: A modified view.
-    public func imagePlaceholderSpinner(_ showSpinner: Bool) -> some View {
+    nonisolated public func imagePlaceholderSpinner(_ showSpinner: Bool) -> some View {
         // `transformEnvironment`, not `environment`: this says only WHETHER there is
         // a spinner, so a style or colour chosen further out has to survive it.
         transformEnvironment(\.imagePlaceholderSpinner) { $0.isShown = showSpinner }
@@ -309,7 +309,7 @@ extension View {
     ///   - color: The colour to draw it in, or `nil` for this view's
     ///     `foregroundStyle`, and failing that the palette's accent.
     /// - Returns: A view whose loading images show that spinner.
-    public func imagePlaceholderSpinner(style: SpinnerStyle = .dots, color: Color? = nil) -> some View {
+    nonisolated public func imagePlaceholderSpinner(style: SpinnerStyle = .dots, color: Color? = nil) -> some View {
         environment(
             \.imagePlaceholderSpinner, ImagePlaceholderSpinner(isShown: true, style: style, color: color))
     }
@@ -332,7 +332,7 @@ extension View {
     ///
     /// - Parameter target: The box to fit within.
     /// - Returns: A modified view.
-    public func imageFitTarget(_ target: ImageFitTarget) -> some View {
+    nonisolated public func imageFitTarget(_ target: ImageFitTarget) -> some View {
         environment(\.imageFitTarget, target)
     }
 
@@ -349,7 +349,7 @@ extension View {
     ///   arbitrarily small factors shrink to a single cell); NaN, infinities
     ///   and non-positive values mean `1`.
     /// - Returns: A modified view.
-    public func imageZoom(_ factor: Double) -> some View {
+    nonisolated public func imageZoom(_ factor: Double) -> some View {
         environment(\.imageZoom, factor)
     }
 
@@ -366,7 +366,7 @@ extension View {
     ///
     /// - Parameter maxPixels: The maximum total pixel count, or `nil` for no limit.
     /// - Returns: A modified view.
-    public func imageMaxPixelCount(_ maxPixels: Int?) -> some View {
+    nonisolated public func imageMaxPixelCount(_ maxPixels: Int?) -> some View {
         environment(\.imageMaxPixelCount, maxPixels)
     }
 
@@ -382,7 +382,7 @@ extension View {
     ///
     /// - Parameter seconds: The timeout in seconds (default: 30).
     /// - Returns: A modified view.
-    public func imageURLTimeout(_ seconds: TimeInterval) -> some View {
+    nonisolated public func imageURLTimeout(_ seconds: TimeInterval) -> some View {
         environment(\.imageURLTimeout, seconds)
     }
 
@@ -408,7 +408,7 @@ extension View {
     /// - Parameter bytes: The largest file decoded on the frame; 0 or less
     ///   for none.
     /// - Returns: A modified view.
-    public func imageSynchronousDecodeLimit(_ bytes: Int) -> some View {
+    nonisolated public func imageSynchronousDecodeLimit(_ bytes: Int) -> some View {
         environment(\.imageSynchronousDecodeLimit, max(0, bytes))
     }
 
@@ -449,7 +449,7 @@ extension View {
     ///
     /// - Parameter cache: The cache, or `nil` for the app's own.
     /// - Returns: A modified view.
-    public func urlImageCache(_ cache: URLImageCache?) -> some View {
+    nonisolated public func urlImageCache(_ cache: URLImageCache?) -> some View {
         environment(\.urlImageCache, cache)
     }
 }

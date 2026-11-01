@@ -66,7 +66,7 @@ import TUIView
 ///   so it works in `NavigationStack { … }` and with a ``NavigationPath``
 ///   binding. A *typed* path binding (`NavigationStack(path: $recipes)`) can by
 ///   definition only carry `Recipe`s — use `NavigationLink(value:)` with one.
-public struct NavigationLink<Label: View, Destination: View>: View {
+nonisolated public struct NavigationLink<Label: View, Destination: View>: View {
 
     /// What this link pushes.
     enum Target {
@@ -80,16 +80,16 @@ public struct NavigationLink<Label: View, Destination: View>: View {
     let target: Target
     let label: Label
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _NavigationLinkCore(target: target, label: label)
     }
 
     /// Static witness: a link to a value can name its list row, so a list reads
     /// it (``TagCarrying``), as it reads a `.tag(_:)`, and builds the row to ask.
-    public static var _providesContainerValues: Bool { Destination.self == Never.self }
+    @MainActor public static var _providesContainerValues: Bool { Destination.self == Never.self }
 }
 
-extension NavigationLink: TagCarrying {
+@MainActor extension NavigationLink: TagCarrying {
     package var carriedTag: (value: AnyHashable, includeOptional: Bool)? {
         guard case .value(let value?) = target else { return nil }
         return (value, true)
@@ -366,7 +366,7 @@ extension View {
     /// macOS's.
     ///
     /// - Parameter visibility: Whether the indicator shows.
-    public func navigationLinkIndicatorVisibility(_ visibility: Visibility) -> some View {
+    nonisolated public func navigationLinkIndicatorVisibility(_ visibility: Visibility) -> some View {
         environment(\.navigationLinkIndicatorVisibility, visibility)
     }
 }

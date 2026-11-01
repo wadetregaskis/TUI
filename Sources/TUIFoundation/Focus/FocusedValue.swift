@@ -193,7 +193,7 @@ public struct FocusedBinding<Value>: DynamicProperty {
     }
 
     /// The published binding, if there is one.
-    private var binding: Binding<Value>? {
+    nonisolated private var binding: Binding<Value>? {
         reader.table[keyPath: keyPath]
     }
 

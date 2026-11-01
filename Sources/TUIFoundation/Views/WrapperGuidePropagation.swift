@@ -15,13 +15,13 @@ import TUIView
 
 // MARK: - Frame
 
-extension FlexibleFrameView {
+@MainActor extension FlexibleFrameView {
     /// Its content's answer: a frame places its one view, so a guide in it
     /// is the frame's to report, moved by where the frame put it.
     public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
-extension FlexibleFrameView: AlignmentGuideQuerying {
+@MainActor extension FlexibleFrameView: AlignmentGuideQuerying {
     /// The content's guide, moved by where the frame places the content: by
     /// the content's own guide for the frame's alignment where it set one
     /// (decisions B-GUIDE-3), else by the alignment — the placement
@@ -70,13 +70,13 @@ extension FlexibleFrameView: AlignmentGuideQuerying {
 
 // MARK: - Offset
 
-extension OffsetView {
+@MainActor extension OffsetView {
     /// Its content's answer: an offset moves only where its content is
     /// drawn, so the content's guides are the offset view's.
     public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
-extension OffsetView: AlignmentGuideQuerying {
+@MainActor extension OffsetView: AlignmentGuideQuerying {
     /// The content's guide, unmoved: an offset is laid out where its content
     /// is and only draws it elsewhere, so SwiftUI reports the guide from the
     /// layout's place (measured: `.offset(x: 3)` after a leading guide of 5
@@ -90,7 +90,7 @@ extension OffsetView: AlignmentGuideQuerying {
 
 // MARK: - Border
 
-extension _BorderRings: AlignmentGuideQuerying {
+@MainActor extension _BorderRings: AlignmentGuideQuerying {
     /// The bordered view's guide, moved in by every ring around it: a line
     /// and the ring's padding on each side (`ring(style:colour:)`).
     ///
@@ -125,7 +125,7 @@ private protocol BorderRingQuerying {
     ) -> Double?
 }
 
-extension ContainerView: BorderRingQuerying where Footer == EmptyView {
+@MainActor extension ContainerView: BorderRingQuerying where Footer == EmptyView {
     /// The content's guide, moved by the ring's line and padding, laid out
     /// where `_ContainerViewCore.renderToBuffer(context:)` lays it out: at
     /// the core's identity, then the content's, between the lines and inside
@@ -154,14 +154,14 @@ extension ContainerView: BorderRingQuerying where Footer == EmptyView {
 
 // MARK: - Position
 
-extension PositionView {
+@MainActor extension PositionView {
     /// Its content's answer: a positioned view places its one view, so a
     /// guide in it is the positioned view's to report, moved by where it put
     /// the view.
     public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
-extension PositionView: AlignmentGuideQuerying {
+@MainActor extension PositionView: AlignmentGuideQuerying {
     /// The content's guide, moved by where the position puts the content:
     /// its centre on the point, in the space the position view fills, as
     /// `renderToBuffer` draws it (SwiftUI: `.position(x: 3, y: 0)` puts a
@@ -180,13 +180,13 @@ extension PositionView: AlignmentGuideQuerying {
 
 // MARK: - Overlay and Background
 
-extension OverlayModifier {
+@MainActor extension OverlayModifier {
     /// Its base's answer: an overlay is laid out at its base's size and
     /// place, so the base's guides are the overlaid view's, as SwiftUI's are.
     public static var _providesAlignmentGuide: Bool { Base._providesAlignmentGuide }
 }
 
-extension OverlayModifier: AlignmentGuideQuerying {
+@MainActor extension OverlayModifier: AlignmentGuideQuerying {
     /// The base's guide, unmoved: the overlay sits on its base, which is
     /// where the overlaid view is (measured: a leading guide of 5 under an
     /// overlay ten wide still reports 5).
@@ -197,12 +197,12 @@ extension OverlayModifier: AlignmentGuideQuerying {
     }
 }
 
-extension BackgroundLayerModifier {
+@MainActor extension BackgroundLayerModifier {
     /// Its base's answer, as an overlay's is.
     static var _providesAlignmentGuide: Bool { Base._providesAlignmentGuide }
 }
 
-extension BackgroundLayerModifier: AlignmentGuideQuerying {
+@MainActor extension BackgroundLayerModifier: AlignmentGuideQuerying {
     /// The base's guide, unmoved, as an overlay's.
     func explicitGuide(
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext

@@ -34,16 +34,16 @@ import TUIView
 /// path's coverage: the box tier cuts a quadrant from every rounded corner
 /// however small its radius, and a radius of a quarter column covers its corner
 /// cell whole.
-struct _ShapeBackground<Content: View, S: Shape, Style: ShapeStyle>: View {
+nonisolated struct _ShapeBackground<Content: View, S: Shape, Style: ShapeStyle>: View {
     let content: Content
     let shape: S
     let style: Style
     let fillStyle: FillStyle
 
-    var body: Never { fatalError("_ShapeBackground renders via Renderable") }
+    @MainActor var body: Never { fatalError("_ShapeBackground renders via Renderable") }
 }
 
-extension _ShapeBackground: Renderable {
+@MainActor extension _ShapeBackground: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var base = TUIView.renderToBuffer(content, context: context.raisingBackgroundProminence(under: style))
         if base.width > 0, base.height > 0 { base.opacityRegions += claims(over: base, context: context) }
@@ -73,7 +73,7 @@ extension _ShapeBackground: Renderable {
     }
 }
 
-extension _ShapeBackground: Layoutable {
+@MainActor extension _ShapeBackground: Layoutable {
     /// The view's size: the shape is laid in it.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context.raisingBackgroundProminence(under: style))

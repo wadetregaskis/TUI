@@ -66,7 +66,7 @@ import TUIView
 /// - Note: SwiftUI's `DisclosureGroupStyle` is not implemented; a terminal
 ///   disclosure is a triangle and an indent, and there is no second geometry to
 ///   express. The glyphs come from `TerminalSymbols`.
-public struct DisclosureGroup<Label: View, Content: View>: View {
+public struct DisclosureGroup<Label: View, Content: View> {
     /// The label shown beside the disclosure triangle.
     let label: Label
 
@@ -115,11 +115,12 @@ public struct DisclosureGroup<Label: View, Content: View>: View {
 
     /// The binding actually in force — the caller's if given, this group's own
     /// otherwise.
-    private var expansion: Binding<Bool> {
+    @MainActor private var expansion: Binding<Bool> {
         externalIsExpanded ?? $localIsExpanded
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         // Drawn through the style in force; the automatic one is the triangle
         // header and indented content this group has always drawn. The content
         // is handed over as a closure, so a collapsed group builds none of it.
@@ -134,6 +135,7 @@ public struct DisclosureGroup<Label: View, Content: View>: View {
         }
     }
 }
+extension DisclosureGroup: View {}
 
 // MARK: - Keeping a closed section's contents
 

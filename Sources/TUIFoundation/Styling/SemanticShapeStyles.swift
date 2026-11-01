@@ -203,7 +203,7 @@ extension View {
     ///   - primary: The primary style to use within the view.
     ///   - secondary: The secondary style to use within the view.
     /// - Returns: A view that uses the given styles.
-    public func foregroundStyle<S1: ShapeStyle, S2: ShapeStyle>(_ primary: S1, _ secondary: S2) -> some View {
+    nonisolated public func foregroundStyle<S1: ShapeStyle, S2: ShapeStyle>(_ primary: S1, _ secondary: S2) -> some View {
         _StyleEnvironmentView(
             content: _StyleEnvironmentView(
                 content: self, style: secondary, slot: \.secondaryForegroundStyle, fades: true),
@@ -218,7 +218,7 @@ extension View {
     ///   - secondary: The secondary style to use within the view.
     ///   - tertiary: The tertiary style to use within the view.
     /// - Returns: A view that uses the given styles.
-    public func foregroundStyle<S1: ShapeStyle, S2: ShapeStyle, S3: ShapeStyle>(
+    nonisolated public func foregroundStyle<S1: ShapeStyle, S2: ShapeStyle, S3: ShapeStyle>(
         _ primary: S1, _ secondary: S2, _ tertiary: S3
     ) -> some View {
         _StyleEnvironmentView(

@@ -28,7 +28,7 @@
 
 import TUICore
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// `width` — the seek's answer from the rows with a width of their own,
     /// capped at `widthLimit` — with the flexible rows, which FILLED their
     /// offer, counted as they are at this ask; and whether the stack is

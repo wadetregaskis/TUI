@@ -37,7 +37,7 @@
 /// ContentUnavailableView.search
 /// ContentUnavailableView.search(text: "query")
 /// ```
-public struct ContentUnavailableView<Label: View, Description: View, Actions: View>: View {
+nonisolated public struct ContentUnavailableView<Label: View, Description: View, Actions: View>: View {
     /// The label view (typically a title or icon).
     let label: Label
 
@@ -63,7 +63,7 @@ public struct ContentUnavailableView<Label: View, Description: View, Actions: Vi
         self.actions = actions()
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _ContentUnavailableViewCore(
             label: label,
             description: description,
@@ -177,7 +177,7 @@ extension ContentUnavailableView where Label == Text, Description == Text, Actio
 
 // MARK: - Search Preset
 
-extension ContentUnavailableView
+@MainActor extension ContentUnavailableView
 where
     Label == SearchUnavailableContent.Label, Description == SearchUnavailableContent.Description,
     Actions == SearchUnavailableContent.Actions
@@ -203,7 +203,7 @@ where
     ///
     /// - Parameter text: The search query that produced no results.
     /// - Returns: A configured content unavailable view.
-    public static func search(text: String) -> Self {
+    nonisolated public static func search(text: String) -> Self {
         Self(
             label: { SearchUnavailableContent.Label(text: text) },
             description: { SearchUnavailableContent.Description() },
@@ -215,7 +215,7 @@ where
 /// name.
 public struct SearchUnavailableContent: Sendable {
     /// The title: "No Results", or "No Results for "…"" naming the query.
-    public struct Label: View {
+    public struct Label {
         /// The query `search(text:)` was given, or `nil` for the enclosing
         /// searchable's.
         let text: String?
@@ -223,7 +223,8 @@ public struct SearchUnavailableContent: Sendable {
         /// The query of the searchable this is in (``EnvironmentValues/searchQuery``).
         @Environment(\.searchQuery) private var searchQuery
 
-        public var body: some View {
+        /// The content and behavior of this view.
+        @MainActor @ViewBuilder public var body: some View {
             // The query goes in through `%@` rather than Swift interpolation,
             // so a translation chooses both the wording AND its own quotation
             // marks — „…" in German, « … » in French. `Text(verbatim:)` around
@@ -240,17 +241,18 @@ public struct SearchUnavailableContent: Sendable {
     }
 
     /// The description: "Check the spelling or try a new search."
-    public struct Description: View {
-        public var body: some View {
+    nonisolated public struct Description: View {
+        @MainActor public var body: some View {
             Text(localized: LocalizationKey.Label.noResultsHint)
         }
     }
 
     /// The actions: none.
-    public struct Actions: View {
-        public var body: some View { EmptyView() }
+    nonisolated public struct Actions: View {
+        @MainActor public var body: some View { EmptyView() }
     }
 }
+extension SearchUnavailableContent.Label: View {}
 
 // MARK: - The search query
 

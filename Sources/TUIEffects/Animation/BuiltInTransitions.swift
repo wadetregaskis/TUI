@@ -24,10 +24,10 @@ import TUIView
 /// interpolated presence — exactly what the buffer path does with the arrival
 /// and departure phases. Two numbers rather than one signed one, so an
 /// arriving spring's overshoot (presence above 1) stays the insertion's.
-struct _TransitionEffectModifier: BufferModifier, Animatable {
+nonisolated struct _TransitionEffectModifier: BufferModifier, Animatable {
     /// Its content stays where it is laid out — a transition draws its view displaced, but lays it out where it is, as an offset does — so a guide inside it
     /// passes unmoved (``BufferModifier/_keepsContentGeometry``).
-    static var _keepsContentGeometry: Bool { true }
+    @MainActor static var _keepsContentGeometry: Bool { true }
 
     let insertion: AnyTransition.Effect
     let removal: AnyTransition.Effect
@@ -46,7 +46,7 @@ struct _TransitionEffectModifier: BufferModifier, Animatable {
         self.init(insertion: effect, removal: effect, phase: phase)
     }
 
-    func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+    @MainActor func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
         var drawn = buffer
         if animatableData.first != 1 {
             drawn = insertion.apply(to: drawn, phase: animatableData.first, context: context)
@@ -63,25 +63,25 @@ struct _TransitionEffectModifier: BufferModifier, Animatable {
 // MARK: - Identity
 
 /// A transition that returns the input view, unmodified, as the output view.
-public struct IdentityTransition: Transition {
+nonisolated public struct IdentityTransition: Transition {
     /// Creates the identity transition.
     public init() {}
 
     /// The content, unchanged.
-    public func body(content: Content, phase: TransitionPhase) -> Content {
+    @MainActor public func body(content: Content, phase: TransitionPhase) -> Content {
         content
     }
 
     /// No motion.
     public static let properties = TransitionProperties(hasMotion: false)
 
-    public var _erased: AnyTransition { .identity }
+    @MainActor public var _erased: AnyTransition { .identity }
 }
 
 extension Transition where Self == IdentityTransition {
     /// A transition that returns the input view, unmodified, as the output
     /// view.
-    public static var identity: IdentityTransition { Self() }
+    nonisolated public static var identity: IdentityTransition { Self() }
 }
 
 // MARK: - Opacity
@@ -91,31 +91,31 @@ extension Transition where Self == IdentityTransition {
 ///
 /// A cell has no alpha: the view's colours are composited toward what is
 /// behind it, as ``View/opacity(_:)`` does.
-public struct OpacityTransition: Transition {
+nonisolated public struct OpacityTransition: Transition {
     /// Creates an opacity transition.
     public init() {}
 
-    public func body(content: Content, phase: TransitionPhase) -> some View {
+    @MainActor public func body(content: Content, phase: TransitionPhase) -> some View {
         content.modifier(_TransitionEffectModifier(.opacity, phase: phase))
     }
 
     /// No motion.
     public static let properties = TransitionProperties(hasMotion: false)
 
-    public var _erased: AnyTransition { .opacity }
+    @MainActor public var _erased: AnyTransition { .opacity }
 }
 
 extension Transition where Self == OpacityTransition {
     /// A transition from transparent to opaque on insertion, and from opaque
     /// to transparent on removal.
-    public static var opacity: OpacityTransition { Self() }
+    nonisolated public static var opacity: OpacityTransition { Self() }
 }
 
 // MARK: - Move
 
 /// A transition that moves the view away, towards the specified edge of the
 /// view — by the view's own width or height, in whole cells.
-public struct MoveTransition: Transition {
+nonisolated public struct MoveTransition: Transition {
     /// The edge to move the view towards.
     public var edge: Edge
 
@@ -125,17 +125,17 @@ public struct MoveTransition: Transition {
         self.edge = edge
     }
 
-    public func body(content: Content, phase: TransitionPhase) -> some View {
+    @MainActor public func body(content: Content, phase: TransitionPhase) -> some View {
         content.modifier(_TransitionEffectModifier(.move(edge: edge), phase: phase))
     }
 
-    public var _erased: AnyTransition { .move(edge: edge) }
+    @MainActor public var _erased: AnyTransition { .move(edge: edge) }
 }
 
 extension Transition where Self == MoveTransition {
     /// Returns a transition that moves the view away, towards the specified
     /// edge of the view.
-    public static func move(edge: Edge) -> Self {
+    nonisolated public static func move(edge: Edge) -> Self {
         Self(edge: edge)
     }
 }
@@ -143,7 +143,7 @@ extension Transition where Self == MoveTransition {
 // MARK: - Offset
 
 /// A transition that offsets the view by the specified amount, in cells.
-public struct OffsetTransition: Transition {
+nonisolated public struct OffsetTransition: Transition {
     /// The amount to offset the view by.
     public var offset: CellSize
 
@@ -152,23 +152,23 @@ public struct OffsetTransition: Transition {
         self.offset = offset
     }
 
-    public func body(content: Content, phase: TransitionPhase) -> some View {
+    @MainActor public func body(content: Content, phase: TransitionPhase) -> some View {
         content.modifier(
             _TransitionEffectModifier(.offset(x: offset.width, y: offset.height), phase: phase))
     }
 
-    public var _erased: AnyTransition { .offset(offset) }
+    @MainActor public var _erased: AnyTransition { .offset(offset) }
 }
 
 extension Transition where Self == OffsetTransition {
     /// Returns a transition that offsets the view by the specified amount.
-    public static func offset(_ offset: CellSize) -> Self {
+    nonisolated public static func offset(_ offset: CellSize) -> Self {
         Self(offset)
     }
 
     /// Returns a transition that offsets the view by the specified x and y
     /// values, in columns and rows.
-    public static func offset(x: Int = 0, y: Int = 0) -> Self {
+    nonisolated public static func offset(x: Int = 0, y: Int = 0) -> Self {
         Self(CellSize(width: x, height: y))
     }
 }
@@ -181,7 +181,7 @@ extension Transition where Self == OffsetTransition {
 /// uncovered from the anchor instead, a whole cell at a time: `scale` is how
 /// much of it shows at the start. See ``AnyTransition/scale(scale:anchor:)``,
 /// including what a scale above 1 draws.
-public struct ScaleTransition: Transition {
+nonisolated public struct ScaleTransition: Transition {
     /// The amount to scale the view by.
     public var scale: Double
 
@@ -194,20 +194,20 @@ public struct ScaleTransition: Transition {
         self.anchor = anchor
     }
 
-    public func body(content: Content, phase: TransitionPhase) -> some View {
+    @MainActor public func body(content: Content, phase: TransitionPhase) -> some View {
         content.modifier(
             _TransitionEffectModifier(.scale(factor: scale, anchor: anchor), phase: phase))
     }
 
-    public var _erased: AnyTransition { .scale(scale: scale, anchor: anchor) }
+    @MainActor public var _erased: AnyTransition { .scale(scale: scale, anchor: anchor) }
 }
 
 extension Transition where Self == ScaleTransition {
     /// Returns a transition that scales the view.
-    public static var scale: ScaleTransition { Self(AnyTransition.defaultScale) }
+    nonisolated public static var scale: ScaleTransition { Self(AnyTransition.defaultScale) }
 
     /// Returns a transition that scales the view by the specified amount.
-    public static func scale(_ scale: Double, anchor: UnitPoint = .center) -> Self {
+    nonisolated public static func scale(_ scale: Double, anchor: UnitPoint = .center) -> Self {
         Self(scale, anchor: anchor)
     }
 }
@@ -216,23 +216,23 @@ extension Transition where Self == ScaleTransition {
 
 /// A transition that inserts by moving in from the leading edge, and removes
 /// by moving out towards the trailing edge.
-public struct SlideTransition: Transition {
+nonisolated public struct SlideTransition: Transition {
     /// Creates a slide transition.
     public init() {}
 
-    public func body(content: Content, phase: TransitionPhase) -> some View {
+    @MainActor public func body(content: Content, phase: TransitionPhase) -> some View {
         content.modifier(
             _TransitionEffectModifier(
                 insertion: .move(edge: .leading), removal: .move(edge: .trailing), phase: phase))
     }
 
-    public var _erased: AnyTransition { .slide }
+    @MainActor public var _erased: AnyTransition { .slide }
 }
 
 extension Transition where Self == SlideTransition {
     /// A transition that inserts by moving in from the leading edge, and
     /// removes by moving out towards the trailing edge.
-    public static var slide: SlideTransition { Self() }
+    nonisolated public static var slide: SlideTransition { Self() }
 }
 
 // MARK: - Push
@@ -240,7 +240,7 @@ extension Transition where Self == SlideTransition {
 /// A transition that when added to a view will animate the view's insertion by
 /// moving it in from the specified edge while fading it in, and animate its
 /// removal by moving it out towards the opposite edge and fading it out.
-public struct PushTransition: Transition {
+nonisolated public struct PushTransition: Transition {
     /// The edge from which the view will be animated in.
     public var edge: Edge
 
@@ -249,14 +249,14 @@ public struct PushTransition: Transition {
         self.edge = edge
     }
 
-    public func body(content: Content, phase: TransitionPhase) -> some View {
+    @MainActor public func body(content: Content, phase: TransitionPhase) -> some View {
         let pushed = AnyTransition.push(from: edge)
         return content.modifier(
             _TransitionEffectModifier(
                 insertion: pushed.insertion, removal: pushed.removal, phase: phase))
     }
 
-    public var _erased: AnyTransition { .push(from: edge) }
+    @MainActor public var _erased: AnyTransition { .push(from: edge) }
 }
 
 extension Transition where Self == PushTransition {
@@ -267,7 +267,7 @@ extension Transition where Self == PushTransition {
     ///
     /// - Parameter edge: The edge from which the view will be animated in.
     /// - Returns: A transition that animates a view by moving and fading it.
-    public static func push(from edge: Edge) -> Self {
+    nonisolated public static func push(from edge: Edge) -> Self {
         Self(edge: edge)
     }
 }
@@ -288,7 +288,7 @@ extension Transition where Self == PushTransition {
 /// ``Configuration-swift.struct/upUp`` scales the view up as it leaves, which
 /// a reveal cannot draw — it would be the view larger than its slot — so its
 /// removal is the fade alone.
-public struct BlurReplaceTransition: Transition {
+nonisolated public struct BlurReplaceTransition: Transition {
     /// Configuration properties for a transition that animates the insertion
     /// or removal of a view by combining blurring and scaling effects.
     public struct Configuration: Equatable, Sendable {
@@ -314,13 +314,13 @@ public struct BlurReplaceTransition: Transition {
         self.configuration = configuration
     }
 
-    public func body(content: Content, phase: TransitionPhase) -> some View {
+    @MainActor public func body(content: Content, phase: TransitionPhase) -> some View {
         content.modifier(
             _TransitionEffectModifier(
                 insertion: Self.insertion, removal: removal, phase: phase))
     }
 
-    public var _erased: AnyTransition {
+    @MainActor public var _erased: AnyTransition {
         AnyTransition(insertion: Self.insertion, removal: removal)
     }
 
@@ -333,7 +333,7 @@ public struct BlurReplaceTransition: Transition {
         .scale(factor: startingScale, anchor: .center), .opacity)
 
     /// Out to 0.9 of the view, fading; or, scaling up, the fade alone.
-    private var removal: AnyTransition.Effect {
+    @MainActor private var removal: AnyTransition.Effect {
         configuration.scalesUpOnRemoval ? .opacity : Self.insertion
     }
 }
@@ -342,14 +342,14 @@ extension Transition where Self == BlurReplaceTransition {
     /// Returns a transition that animates the insertion or removal of a view
     /// by combining blurring and scaling effects. The blur is drawn as a fade;
     /// see ``BlurReplaceTransition``.
-    public static func blurReplace(_ config: BlurReplaceTransition.Configuration = .downUp) -> Self {
+    nonisolated public static func blurReplace(_ config: BlurReplaceTransition.Configuration = .downUp) -> Self {
         Self(configuration: config)
     }
 
     /// A transition that animates the insertion or removal of a view by
     /// combining blurring and scaling effects. The blur is drawn as a fade;
     /// see ``BlurReplaceTransition``.
-    public static var blurReplace: BlurReplaceTransition {
+    nonisolated public static var blurReplace: BlurReplaceTransition {
         blurReplace(.downUp)
     }
 }
@@ -362,7 +362,7 @@ extension Transition where Self == BlurReplaceTransition {
 /// Both halves are in the body at every phase, each at `.identity` except the
 /// one whose turn it is — so the body's structure is the same throughout, and
 /// what each half leaves at rest stays there.
-public struct AsymmetricTransition<Insertion: Transition, Removal: Transition>: Transition {
+nonisolated public struct AsymmetricTransition<Insertion: Transition, Removal: Transition>: Transition {
     /// The `Transition` defining the insertion phase of `self`.
     public var insertion: Insertion
 
@@ -376,7 +376,7 @@ public struct AsymmetricTransition<Insertion: Transition, Removal: Transition>: 
         self.removal = removal
     }
 
-    public func body(content: Content, phase: TransitionPhase) -> some View {
+    @MainActor public func body(content: Content, phase: TransitionPhase) -> some View {
         removal.apply(
             content: insertion.apply(
                 content: content, phase: phase == .willAppear ? .willAppear : .identity),
@@ -384,12 +384,12 @@ public struct AsymmetricTransition<Insertion: Transition, Removal: Transition>: 
     }
 
     /// Motion if either half has it (measured on SwiftUI).
-    public static var properties: TransitionProperties {
+    @MainActor public static var properties: TransitionProperties {
         TransitionProperties(
             hasMotion: Insertion.properties.hasMotion || Removal.properties.hasMotion)
     }
 
-    public var _erased: AnyTransition {
+    @MainActor public var _erased: AnyTransition {
         .asymmetric(insertion: insertion._erased, removal: removal._erased)
     }
 }

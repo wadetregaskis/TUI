@@ -29,7 +29,7 @@ extension Text {
     }
 }
 
-extension Image {
+@MainActor extension Image {
     /// What this image is in a line of text: a system symbol's glyph, or
     /// nothing for a picture (or a symbol with no glyph). `Text(_:)` and a
     /// key's interpolation of an image both read it, so the two agree.

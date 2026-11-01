@@ -90,7 +90,7 @@ enum _PickerEntry<SelectionValue: Hashable> {
 /// between options and Enter or Space selects. A segmented or palette picker is
 /// one stop too: Left and Right move a cursor among the segments, wrapping at
 /// the ends, and Enter or Space chooses the segment under it.
-public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View {
+public struct Picker<Label: View, SelectionValue: Hashable, Content: View> {
     /// A binding to the selected value.
     let selection: Binding<SelectionValue>
 
@@ -145,7 +145,8 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
         self.currentValueLabel = nil
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         // The options are read where the picker is drawn, from its content's
         // members (`_PickerOptionsReader`): a body has no context to resolve
         // them in. The environment's style and layout are read here, in the
@@ -190,7 +191,7 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
     /// option checked. macOS has no menu form for one: it draws the label and
     /// an empty row as disabled items, then the options enabled and none
     /// checked (the same probe), which shows no selection (deviation W16).
-    @ViewBuilder private func pickerBody(
+    @ViewBuilder @MainActor private func pickerBody(
         entries: [_PickerEntry<SelectionValue>], style: any PickerStyle, horizontal: Bool, inPopUpMenu: Bool
     ) -> some View {
         if inPopUpMenu {
@@ -238,7 +239,7 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
     /// a section of the menu — an `.inline` or a radio-group one — rather
     /// than a submenu. The one rule the drawing and the menu's separators
     /// (``drawsAsMenuSection(in:)``) both go by.
-    static func isMenuSection(_ style: any PickerStyle) -> Bool {
+    @MainActor static func isMenuSection(_ style: any PickerStyle) -> Bool {
         !(style.resolvesToMenu || style.resolvesToSegments)
     }
 
@@ -246,7 +247,7 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
     /// styles, reusing ``RadioButtonGroup`` rather than duplicating its
     /// focus and keyboard machinery. Dividers only make sense in a drop-down
     /// list, so they are skipped here.
-    private func radioGroup(
+    @MainActor private func radioGroup(
         entries: [_PickerEntry<SelectionValue>], horizontal: Bool
     ) -> RadioButtonGroup<SelectionValue> {
         let items = entries.compactMap { entry -> RadioButtonItem<SelectionValue>? in
@@ -260,6 +261,7 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
         return identified.disabled(isDisabled)
     }
 }
+extension Picker: View {}
 
 // MARK: - In a Menu
 
@@ -267,7 +269,7 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
 /// menu, which places its separators as it places a `Section`'s
 /// (``MenuSectionDrawing``): asked in the context the picker is drawn in, so
 /// the style and the menu it reads are the ones its body will.
-extension Picker: MenuSectionDrawing {
+@MainActor extension Picker: MenuSectionDrawing {
     package func drawsAsMenuSection(in context: RenderContext) -> Bool {
         context.environment.isInPopUpMenu && Self.isMenuSection(context.environment.pickerStyle)
     }
@@ -344,14 +346,14 @@ extension View {
     /// ```swift
     /// SettingsForm().pickerTextStyle { $0.foreground = .palette.accent }
     /// ```
-    public func pickerTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
+    nonisolated public func pickerTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
         style(.control(.picker), build)
     }
 }
 
 // MARK: - Environment without reflection
 
-extension Picker: ResolvesOwnEnvironment {
+@MainActor extension Picker: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _pickerStyle.resolveEnvironment(environment)
         _horizontalLayout.resolveEnvironment(environment)

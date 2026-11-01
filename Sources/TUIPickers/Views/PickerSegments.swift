@@ -110,7 +110,7 @@ extension View {
     ///
     /// - Parameter effect: The selection effect.
     /// - Returns: A view whose palette pickers use `effect`.
-    public func paletteSelectionEffect(_ effect: PaletteSelectionEffect) -> some View {
+    nonisolated public func paletteSelectionEffect(_ effect: PaletteSelectionEffect) -> some View {
         environment(\.paletteSelectionEffect, effect)
     }
 }

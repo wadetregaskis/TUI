@@ -51,7 +51,7 @@ extension View {
     ///   - allowsFullSwipe: Whether a full swipe performs the first action.
     ///   - content: The actions, as `Button`s.
     /// - Returns: A row with swipe actions.
-    public func swipeActions<T: View>(
+    nonisolated public func swipeActions<T: View>(
         edge: HorizontalEdge = .trailing, allowsFullSwipe: Bool = true, @ViewBuilder content: () -> T
     ) -> some View {
         _SwipeActionsView(content: self, actions: content(), edge: edge, allowsFullSwipe: allowsFullSwipe)
@@ -63,18 +63,18 @@ extension View {
 ///
 /// - Important: Framework infrastructure. Created by
 ///   ``View/swipeActions(edge:allowsFullSwipe:content:)``.
-public struct _SwipeActionsView<Content: View, Actions: View>: View {
+nonisolated public struct _SwipeActionsView<Content: View, Actions: View>: View {
     let content: Content
     let actions: Actions
     let edge: HorizontalEdge
     let allowsFullSwipe: Bool
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("_SwipeActionsView renders via Renderable")
     }
 }
 
-extension _SwipeActionsView: Renderable {
+@MainActor extension _SwipeActionsView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var buffer = TUIView.renderToBuffer(content, context: context)
         guard !context.isMeasuring, let restrictions = context.environment.listRowEditRestrictions,
@@ -183,7 +183,7 @@ extension _SwipeActionsView: Renderable {
     }
 }
 
-extension _SwipeActionsView: Layoutable {
+@MainActor extension _SwipeActionsView: Layoutable {
     /// Measures as its content: the actions are drawn over it.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
@@ -192,7 +192,7 @@ extension _SwipeActionsView: Layoutable {
 
 /// Names its content so a container asking for a z-index or an alignment guide
 /// can look through this wrapper — read-only, as `.deleteDisabled`'s is.
-extension _SwipeActionsView: SingleContentWrapper {
+@MainActor extension _SwipeActionsView: SingleContentWrapper {
     public var wrappedContent: Content { content }
 
     public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
@@ -200,7 +200,7 @@ extension _SwipeActionsView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _SwipeActionsView: DrawsContentUnchanged {}
+@MainActor extension _SwipeActionsView: DrawsContentUnchanged {}
 
 /// `_SwipeActionsView`'s StateStorage property indices, negative: the wrapper
 /// renders its caller's content at its own identity (`StateStorage.StateKey`).

@@ -19,28 +19,28 @@ protocol _TypeSelectEquivalentCarrying {
 }
 
 /// A view with an explicit type-select text. Draws its content unchanged.
-struct _TypeSelectEquivalentModifier<Content: View>: View, Renderable, Layoutable {
+nonisolated struct _TypeSelectEquivalentModifier<Content: View>: View, Renderable, Layoutable {
     let content: Content
     let equivalent: String?
 
-    var body: Never { fatalError("_TypeSelectEquivalentModifier renders via Renderable") }
+    @MainActor var body: Never { fatalError("_TypeSelectEquivalentModifier renders via Renderable") }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: context)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
 
-extension _TypeSelectEquivalentModifier: _TypeSelectEquivalentCarrying {
+@MainActor extension _TypeSelectEquivalentModifier: _TypeSelectEquivalentCarrying {
     var typeSelectEquivalent: String? { equivalent }
 }
 
 /// Names its content, so the peek — and a container asking for a z-index or a
 /// tag — can look through it.
-extension _TypeSelectEquivalentModifier: SingleContentWrapper {
+@MainActor extension _TypeSelectEquivalentModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -49,7 +49,7 @@ extension _TypeSelectEquivalentModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays.
-extension _TypeSelectEquivalentModifier: DrawsContentUnchanged {}
+@MainActor extension _TypeSelectEquivalentModifier: DrawsContentUnchanged {}
 
 /// The stated type-select text of `row`, looking through the single-content
 /// wrappers around it: `.some(nil)` for a row stating none — derive it — and
@@ -164,7 +164,7 @@ extension View {
     ///
     /// - Parameter text: The text a typed prefix matches, or `nil` for the
     ///   row's own.
-    public func typeSelectEquivalent(_ text: Text?) -> some View {
+    nonisolated public func typeSelectEquivalent(_ text: Text?) -> some View {
         _TypeSelectEquivalentModifier(content: self, equivalent: text?.content)
     }
 
@@ -172,7 +172,7 @@ extension View {
     ///
     /// - Parameter stringKey: The key for the text — a literal is looked up,
     ///   see ``LocalizedStringKey``.
-    public func typeSelectEquivalent(_ stringKey: LocalizedStringKey) -> some View {
+    nonisolated public func typeSelectEquivalent(_ stringKey: LocalizedStringKey) -> some View {
         _TypeSelectEquivalentModifier(content: self, equivalent: stringKey.localized)
     }
 
@@ -180,7 +180,7 @@ extension View {
     ///
     /// - Parameter string: The text a typed prefix matches.
     @_disfavoredOverload
-    public func typeSelectEquivalent<S: StringProtocol>(_ string: S) -> some View {
+    nonisolated public func typeSelectEquivalent<S: StringProtocol>(_ string: S) -> some View {
         _TypeSelectEquivalentModifier(content: self, equivalent: String(string))
     }
 }

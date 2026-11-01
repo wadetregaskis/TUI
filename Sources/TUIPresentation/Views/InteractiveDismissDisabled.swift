@@ -10,16 +10,16 @@ import TUIView
 
 /// The wrapper ``View/interactiveDismissDisabled(_:)`` produces. Renders and
 /// measures as its content; carrying the flag is its whole job.
-struct _InteractiveDismissView<Content: View>: View, InteractiveDismissDisabling {
+nonisolated struct _InteractiveDismissView<Content: View>: View, InteractiveDismissDisabling {
     let content: Content
     let interactiveDismissIsDisabled: Bool
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_InteractiveDismissView renders via Renderable")
     }
 }
 
-extension _InteractiveDismissView: Renderable {
+@MainActor extension _InteractiveDismissView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Tells the presentation it is in, wherever in the content this is:
         // the presenter reads the outermost trait chain before the content
@@ -34,13 +34,13 @@ extension _InteractiveDismissView: Renderable {
     }
 }
 
-extension _InteractiveDismissView: Layoutable {
+@MainActor extension _InteractiveDismissView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
 
-extension _InteractiveDismissView: PresentationTraitWrapper {
+@MainActor extension _InteractiveDismissView: PresentationTraitWrapper {
     var presentationTraitContent: any View { content }
 }
 
@@ -83,7 +83,7 @@ extension View {
     ///
     /// - Parameter isDisabled: Whether to prevent interactive dismissal.
     ///   Default `true`.
-    public func interactiveDismissDisabled(_ isDisabled: Bool = true) -> some View {
+    nonisolated public func interactiveDismissDisabled(_ isDisabled: Bool = true) -> some View {
         _InteractiveDismissView(content: self, interactiveDismissIsDisabled: isDisabled)
     }
 }
@@ -94,7 +94,7 @@ extension View {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _InteractiveDismissView: SingleContentWrapper {
+@MainActor extension _InteractiveDismissView: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -105,4 +105,4 @@ extension _InteractiveDismissView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _InteractiveDismissView: DrawsContentUnchanged {}
+@MainActor extension _InteractiveDismissView: DrawsContentUnchanged {}

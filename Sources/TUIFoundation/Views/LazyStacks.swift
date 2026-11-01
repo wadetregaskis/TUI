@@ -105,7 +105,7 @@
 ///   appends whole children while they fit `availableHeight` and stops at the
 ///   first that would overflow (rather than `VStack`'s `.clip`, which distributes
 ///   and clips trailing rows at the cell).
-public struct LazyVStack<Content: View>: View {
+nonisolated public struct LazyVStack<Content: View>: View {
     /// The horizontal alignment of the children.
     public let alignment: HorizontalAlignment
 
@@ -141,7 +141,7 @@ public struct LazyVStack<Content: View>: View {
         self.pinnedViews = pinnedViews
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _VStackCore(
             alignment: alignment, spacing: spacing, overflow: .window, pinnedViews: pinnedViews,
             content: content)
@@ -211,7 +211,7 @@ public struct LazyVStack<Content: View>: View {
 ///   appends whole children while they fit `availableWidth` and stops at the
 ///   first that would overflow (rather than `HStack`'s `.clip`, which distributes
 ///   and clips trailing columns at the cell).
-public struct LazyHStack<Content: View>: View {
+nonisolated public struct LazyHStack<Content: View>: View {
     /// The vertical alignment of the children.
     public let alignment: VerticalAlignment
 
@@ -255,7 +255,7 @@ public struct LazyHStack<Content: View>: View {
         self.resolvesSpacingPerPair = spacing == nil
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _HStackCore(
             alignment: alignment, spacing: spacing, resolvesSpacingPerPair: resolvesSpacingPerPair,
             overflow: .window, pinnedViews: pinnedViews, content: content)
@@ -264,14 +264,14 @@ public struct LazyHStack<Content: View>: View {
 
 // MARK: - Equatable Conformances
 
-extension LazyVStack: @preconcurrency Equatable where Content: Equatable {
+extension LazyVStack: Equatable where Content: Equatable {
     public static func == (lhs: LazyVStack<Content>, rhs: LazyVStack<Content>) -> Bool {
         lhs.alignment == rhs.alignment && lhs.spacing == rhs.spacing && lhs.content == rhs.content
             && lhs.pinnedViews == rhs.pinnedViews
     }
 }
 
-extension LazyHStack: @preconcurrency Equatable where Content: Equatable {
+extension LazyHStack: Equatable where Content: Equatable {
     public static func == (lhs: LazyHStack<Content>, rhs: LazyHStack<Content>) -> Bool {
         lhs.alignment == rhs.alignment && lhs.spacing == rhs.spacing && lhs.content == rhs.content
             && lhs.pinnedViews == rhs.pinnedViews && lhs.resolvesSpacingPerPair == rhs.resolvesSpacingPerPair

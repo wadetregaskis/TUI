@@ -97,7 +97,7 @@ public protocol Transition {
 
 extension Transition {
     /// A transition has motion unless it says otherwise.
-    public static var properties: TransitionProperties { TransitionProperties() }
+    nonisolated public static var properties: TransitionProperties { TransitionProperties() }
 
     /// A transition of the app's own is drawn through its body.
     public var _erased: AnyTransition {
@@ -113,13 +113,13 @@ extension Transition {
     ///         .padding(.leading, phase.isIdentity ? 0 : 2)
     /// }
     /// ```
-    public func apply<V: View>(content: V, phase: TransitionPhase) -> some View {
+    @MainActor public func apply<V: View>(content: V, phase: TransitionPhase) -> some View {
         body(content: PlaceholderContentView(source: PlaceholderSource(view: content)), phase: phase)
     }
 
     /// This transition and `other`, applied together: this one to the view,
     /// and `other` to the result.
-    public func combined<T: Transition>(with other: T) -> some Transition {
+    nonisolated public func combined<T: Transition>(with other: T) -> some Transition {
         _CombinedTransition(first: self, second: other)
     }
 
@@ -128,7 +128,7 @@ extension Transition {
     /// once, even inside `withAnimation`. An animation this transition already
     /// names for a phase is kept: the one nearest the view wins, as
     /// ``AnyTransition/animation(_:)`` says.
-    public func animation(_ animation: Animation?) -> some Transition {
+    nonisolated public func animation(_ animation: Animation?) -> some Transition {
         _AnimatedTransition(base: self, animation: animation)
     }
 }
@@ -218,39 +218,39 @@ public struct TransitionProperties: Sendable, Equatable {
 
 /// Two transitions applied together — what ``Transition/combined(with:)``
 /// returns.
-struct _CombinedTransition<First: Transition, Second: Transition>: Transition {
+nonisolated struct _CombinedTransition<First: Transition, Second: Transition>: Transition {
     let first: First
     let second: Second
 
-    func body(content: Content, phase: TransitionPhase) -> some View {
+    @MainActor func body(content: Content, phase: TransitionPhase) -> some View {
         second.apply(content: first.apply(content: content, phase: phase), phase: phase)
     }
 
     /// Motion if either half has it (measured on SwiftUI: opacity with move
     /// has motion, opacity with opacity has none).
-    static var properties: TransitionProperties {
+    @MainActor static var properties: TransitionProperties {
         TransitionProperties(
             hasMotion: First.properties.hasMotion || Second.properties.hasMotion)
     }
 
-    var _erased: AnyTransition {
+    @MainActor var _erased: AnyTransition {
         first._erased.combined(with: second._erased)
     }
 }
 
 /// A transition with an animation of its own — what
 /// ``Transition/animation(_:)`` returns.
-struct _AnimatedTransition<Base: Transition>: Transition {
+nonisolated struct _AnimatedTransition<Base: Transition>: Transition {
     let base: Base
     let animation: Animation?
 
-    func body(content: Content, phase: TransitionPhase) -> some View {
+    @MainActor func body(content: Content, phase: TransitionPhase) -> some View {
         base.apply(content: content, phase: phase)
     }
 
-    static var properties: TransitionProperties { Base.properties }
+    @MainActor static var properties: TransitionProperties { Base.properties }
 
-    var _erased: AnyTransition {
+    @MainActor var _erased: AnyTransition {
         base._erased.animation(animation)
     }
 }

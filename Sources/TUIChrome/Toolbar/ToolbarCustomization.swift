@@ -56,7 +56,7 @@ extension View {
     ///   - id: A unique identifier for this toolbar.
     ///   - content: The content representing the content of the toolbar.
     /// - Returns: A view that declares the customizable items.
-    public func toolbar<Content: CustomizableToolbarContent>(
+    nonisolated public func toolbar<Content: CustomizableToolbarContent>(
         id: String, @ToolbarContentBuilder content: () -> Content
     ) -> some View {
         _ToolbarModifier(content: self, items: content(), customizationID: id)
@@ -192,7 +192,7 @@ struct _ToolbarCustomizationPlace: Hashable {
 
 // MARK: - Applying It
 
-extension _ToolbarModifier {
+@MainActor extension _ToolbarModifier {
     /// The items this declaration puts in the bars: in a customizable toolbar,
     /// those in the bar as the person arranged them, and the overflow menu of
     /// the always-available ones they removed; elsewhere every item the app

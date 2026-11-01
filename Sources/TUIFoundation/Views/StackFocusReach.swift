@@ -23,7 +23,7 @@
 import TUICore
 import TUIView
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// How far past the focused row the continuation probe reaches, per
     /// direction. A run of more than this many consecutive non-focusable
     /// rows stops the Tab walk at the run (focus then wraps) — pathological,

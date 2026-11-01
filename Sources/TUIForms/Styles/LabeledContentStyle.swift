@@ -179,7 +179,7 @@ extension View {
     ///
     /// - Parameter style: The style to use.
     /// - Returns: A view whose labeled content uses `style`.
-    public func labeledContentStyle<S: LabeledContentStyle>(_ style: S) -> some View {
+    nonisolated public func labeledContentStyle<S: LabeledContentStyle>(_ style: S) -> some View {
         transformEnvironment(\.labeledContentStyleChain) { $0 = $0.pushing(style) }
     }
 }

@@ -66,7 +66,7 @@ extension View {
     /// - Parameter action: The action to perform, given the direction; `nil`
     ///   keeps the command for this view and does nothing.
     /// - Returns: A view that handles move commands while it holds the focus.
-    public func onMoveCommand(perform action: ((MoveCommandDirection) -> Void)?) -> some View {
+    nonisolated public func onMoveCommand(perform action: ((MoveCommandDirection) -> Void)?) -> some View {
         command { press in
             guard let direction = MoveCommandDirection(press.key) else { return false }
             action?(direction)
@@ -88,7 +88,7 @@ extension View {
     /// - Parameter action: The action to perform; `nil` keeps the command for
     ///   this view and does nothing.
     /// - Returns: A view that handles the exit command while it holds the focus.
-    public func onExitCommand(perform action: (() -> Void)?) -> some View {
+    nonisolated public func onExitCommand(perform action: (() -> Void)?) -> some View {
         command { press in
             guard press.key == .escape, press.modifiers.chordModifiers.isSubset(of: .shift) else { return false }
             action?()
@@ -107,7 +107,7 @@ extension View {
     ///   this view and does nothing.
     /// - Returns: A view that handles the delete command while it holds the
     ///   focus.
-    public func onDeleteCommand(perform action: (() -> Void)?) -> some View {
+    nonisolated public func onDeleteCommand(perform action: (() -> Void)?) -> some View {
         command { press in
             guard press.key == .delete || press.key == .deleteForward,
                 press.modifiers.chordModifiers.isSubset(of: .shift)
@@ -119,7 +119,7 @@ extension View {
 
     /// The focus-path modifier a key command is: a handler on the command
     /// stage, given the press, that answers whether it took the key.
-    private func command(_ takes: @escaping (KeyPress) -> Bool) -> FocusPathModifier<Self> {
+    nonisolated private func command(_ takes: @escaping (KeyPress) -> Bool) -> FocusPathModifier<Self> {
         let handler: (KeyEvent) -> Bool = { event in
             KeyPress(event).map(takes) ?? false
         }

@@ -66,7 +66,7 @@ import Foundation
 /// > Terminal.app included. Turn the escape off with
 /// > ``View/terminalHyperlinks(_:)``, which an app that intercepts its own URL
 /// > scheme in ``OpenURLAction`` may well want.
-public struct Link<Label: View>: View {
+nonisolated public struct Link<Label: View>: View {
     let destination: URL
     let label: Label
 
@@ -80,7 +80,7 @@ public struct Link<Label: View>: View {
         self.label = label()
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _Link(destination: destination, label: label)
     }
 }
@@ -149,7 +149,7 @@ extension View {
     ///
     /// - Parameter enabled: Whether links are underlined (default `true`).
     /// - Returns: A view whose links honour the underline setting.
-    public func linkUnderline(_ enabled: Bool = true) -> some View {
+    nonisolated public func linkUnderline(_ enabled: Bool = true) -> some View {
         environment(\.linkUnderline, enabled)
     }
 }
@@ -217,7 +217,7 @@ extension View {
     ///
     /// - Parameter enabled: Whether links carry the escape (default `true`).
     /// - Returns: A view whose links honour the setting.
-    public func terminalHyperlinks(_ enabled: Bool = true) -> some View {
+    nonisolated public func terminalHyperlinks(_ enabled: Bool = true) -> some View {
         environment(\.terminalHyperlinks, enabled)
     }
 
@@ -244,7 +244,7 @@ extension View {
     ///
     /// TUI-specific: SwiftUI draws focus rings the terminal has no equivalent
     /// for, so there is no signature to match.
-    public func linkFocusIndicator(_ indicator: LinkFocusIndicator) -> some View {
+    nonisolated public func linkFocusIndicator(_ indicator: LinkFocusIndicator) -> some View {
         environment(\.linkFocusIndicator, indicator)
     }
 }

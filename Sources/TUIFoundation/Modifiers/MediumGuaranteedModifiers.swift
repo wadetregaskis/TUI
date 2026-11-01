@@ -47,7 +47,7 @@ extension View {
     ///   terminal cannot render *proportionally*, so `false` cannot mean what
     ///   it means in SwiftUI.
     /// - Returns: This view, unchanged.
-    public func monospaced(_ isActive: Bool = true) -> some View {
+    nonisolated public func monospaced(_ isActive: Bool = true) -> some View {
         self
     }
 
@@ -62,7 +62,7 @@ extension View {
     /// group.
     ///
     /// - Returns: This view, unchanged.
-    public func compositingGroup() -> some View {
+    nonisolated public func compositingGroup() -> some View {
         self
     }
 
@@ -75,7 +75,7 @@ extension View {
     /// `Table`'s numeric column has never had to ask.
     ///
     /// - Returns: This view, unchanged.
-    public func monospacedDigit() -> some View {
+    nonisolated public func monospacedDigit() -> some View {
         self
     }
 
@@ -88,7 +88,7 @@ extension View {
     ///
     /// - Parameter design: The font design, or `nil` for the default.
     /// - Returns: This view, unchanged.
-    public func fontDesign(_ design: Font.Design?) -> some View {
+    nonisolated public func fontDesign(_ design: Font.Design?) -> some View {
         self
     }
 
@@ -106,7 +106,7 @@ extension View {
     /// - Parameter disable: Recorded, and otherwise moot — text is never
     ///   corrected, so `false` cannot turn a correction back on.
     /// - Returns: This view, with the request recorded in its environment.
-    public func autocorrectionDisabled(_ disable: Bool = true) -> some View {
+    nonisolated public func autocorrectionDisabled(_ disable: Bool = true) -> some View {
         environment(\.autocorrectionDisabled, disable)
     }
 
@@ -121,7 +121,7 @@ extension View {
     /// move locked to it already.
     ///
     /// - Returns: This view, unchanged.
-    public func geometryGroup() -> some View {
+    nonisolated public func geometryGroup() -> some View {
         self
     }
 
@@ -138,7 +138,7 @@ extension View {
     ///   - edges: The edges to offset from. Moot: every inset is zero.
     ///   - sizeToFit: Whether to shrink rather than move. Moot likewise.
     /// - Returns: This view, unchanged.
-    public func containerCornerOffset(_ edges: Edge.Set, sizeToFit: Bool = false) -> some View {
+    nonisolated public func containerCornerOffset(_ edges: Edge.Set, sizeToFit: Bool = false) -> some View {
         self
     }
 
@@ -154,7 +154,7 @@ extension View {
     ///
     /// - Parameter enabled: Whether to mirror in a right-to-left layout.
     /// - Returns: This view, unchanged.
-    public func flipsForRightToLeftLayoutDirection(_ enabled: Bool) -> some View {
+    nonisolated public func flipsForRightToLeftLayoutDirection(_ enabled: Bool) -> some View {
         self
     }
 }

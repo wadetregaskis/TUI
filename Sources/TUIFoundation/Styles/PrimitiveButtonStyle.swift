@@ -209,7 +209,7 @@ extension View {
     ///
     /// - Parameter style: The style to apply.
     /// - Returns: A view whose buttons use the style.
-    public func buttonStyle<S: PrimitiveButtonStyle>(_ style: S) -> some View {
+    nonisolated public func buttonStyle<S: PrimitiveButtonStyle>(_ style: S) -> some View {
         let appearance = (style as? any BuiltInButtonStyle)?.appearance
         // A built-in installs itself as the appearance and clears any custom
         // primitive style further out; a custom one goes on top of whatever is

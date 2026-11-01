@@ -132,7 +132,7 @@ extension View {
     ///
     /// - Parameter affinity: The affinity.
     /// - Returns: A view whose text fields report selections with it.
-    public func textSelectionAffinity(_ affinity: TextSelectionAffinity) -> some View {
+    nonisolated public func textSelectionAffinity(_ affinity: TextSelectionAffinity) -> some View {
         environment(\.textSelectionAffinity, affinity)
     }
 }

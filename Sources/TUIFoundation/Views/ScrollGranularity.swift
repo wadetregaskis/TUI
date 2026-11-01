@@ -37,7 +37,7 @@ extension View {
     /// partially clipped at the top edge. For whole-row steps, use
     /// `.scrollTargetBehavior(.viewAligned)`. Either way the viewport fills
     /// exactly, the row at the bottom edge drawn as far as it fits.
-    public func scrollGranularity(_ granularity: ScrollGranularity) -> some View {
+    nonisolated public func scrollGranularity(_ granularity: ScrollGranularity) -> some View {
         environment(\.scrollTargetBehavior, _FreeScrollTargetBehavior())
     }
 }

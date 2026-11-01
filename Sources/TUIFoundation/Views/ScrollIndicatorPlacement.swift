@@ -160,7 +160,7 @@ extension View {
     ///
     /// - Parameter placement: Where the indicators go.
     /// - Returns: A view whose scrolling views place their indicators so.
-    public func scrollIndicatorPlacement(_ placement: ScrollIndicatorPlacement) -> some View {
+    nonisolated public func scrollIndicatorPlacement(_ placement: ScrollIndicatorPlacement) -> some View {
         environment(\.scrollIndicatorPlacement, placement)
     }
 }

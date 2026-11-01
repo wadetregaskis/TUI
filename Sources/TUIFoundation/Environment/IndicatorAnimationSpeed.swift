@@ -438,7 +438,7 @@ extension View {
     ///   - speed: The speed.
     ///   - indicators: Which kinds of indicator it applies to. Defaults to all.
     /// - Returns: A view whose indicators of those kinds animate at `speed`.
-    public func indicatorAnimationSpeed(
+    nonisolated public func indicatorAnimationSpeed(
         _ speed: IndicatorAnimationSpeed,
         for indicators: IndicatorAnimations = .all
     ) -> some View {

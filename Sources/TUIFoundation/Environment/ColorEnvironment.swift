@@ -72,7 +72,7 @@ extension View {
     ///
     /// - Parameter style: The color to apply as foreground style.
     /// - Returns: A view with the foreground style set.
-    public func foregroundStyle<S: ShapeStyle>(_ style: S) -> some View {
+    nonisolated public func foregroundStyle<S: ShapeStyle>(_ style: S) -> some View {
         _StyleEnvironmentView(
             content: self, style: style, slot: \.foregroundStyle, fades: true, clearsLevels: true)
     }
@@ -87,7 +87,7 @@ extension View {
     /// the framework would need a `where Self == Color` forwarder to be
     /// reachable.
     @_disfavoredOverload
-    public func foregroundStyle(_ style: Color) -> some View {
+    nonisolated public func foregroundStyle(_ style: Color) -> some View {
         _StyleEnvironmentView(
             content: self, style: style, slot: \.foregroundStyle, fades: true, clearsLevels: true)
     }
@@ -135,7 +135,7 @@ extension View {
     ///
     /// - Parameter style: The style descendants should use as their background.
     /// - Returns: A view that publishes the style to its descendants.
-    public func backgroundStyle<S: ShapeStyle>(_ style: S) -> some View {
+    nonisolated public func backgroundStyle<S: ShapeStyle>(_ style: S) -> some View {
         _StyleEnvironmentView(
             content: self, style: style, slot: \.backgroundStyle, fades: false, implicitIsBackground: true)
     }
@@ -144,7 +144,7 @@ extension View {
     /// same `@_disfavoredOverload` pairing ``View/foregroundStyle(_:)-(S)`` needs, and
     /// for the same reason.
     @_disfavoredOverload
-    public func backgroundStyle(_ style: Color) -> some View {
+    nonisolated public func backgroundStyle(_ style: Color) -> some View {
         _StyleEnvironmentView(
             content: self, style: style, slot: \.backgroundStyle, fades: false, implicitIsBackground: true)
     }
@@ -159,7 +159,7 @@ extension View {
 /// second half is a known bug class — see `RenderContext`'s note on
 /// `setting()` — so both style slots go through this one type rather than
 /// through two copies of the bookkeeping.
-struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
+nonisolated struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
     let content: Content
     let style: S
 
@@ -187,11 +187,11 @@ struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
     /// ``View/backgroundStyle(_:)-(S)``, as SwiftUI documents and draws it.
     var implicitIsBackground = false
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_StyleEnvironmentView renders via Renderable")
     }
 
-    private func childContext(_ context: RenderContext) -> RenderContext {
+    @MainActor private func childContext(_ context: RenderContext) -> RenderContext {
         // The same bookkeeping `EnvironmentModifier` does, and it is not
         // optional: a memoizing view below this one keys on the VIEW value,
         // which does not change when a style applied above it does, so without
@@ -259,13 +259,13 @@ struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
     }
 }
 
-extension _StyleEnvironmentView: Renderable {
+@MainActor extension _StyleEnvironmentView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: childContext(context))
     }
 }
 
-extension _StyleEnvironmentView: Layoutable {
+@MainActor extension _StyleEnvironmentView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: childContext(context))
     }
@@ -277,7 +277,7 @@ extension _StyleEnvironmentView: Layoutable {
 ///   the pair, which is the same thing here: it publishes an environment value,
 ///   and an environment value reaches a subtree whether it was set one level up
 ///   or two.
-extension _StyleEnvironmentView: ContentRewrapping {
+@MainActor extension _StyleEnvironmentView: ContentRewrapping {
     var wrappedContent: Content { content }
 
     /// Its content's context: the style it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -296,7 +296,7 @@ extension _StyleEnvironmentView: ContentRewrapping {
 ///
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _StyleEnvironmentView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _StyleEnvironmentView: ChildViewProvider where Content: ChildViewProvider {}
 
 /// A `.foregroundStyle` on a `GridRow` belongs to the row's CELLS, and without
 /// this the grid did not recognise the wrapped row as a row at all — it fell
@@ -304,10 +304,10 @@ extension _StyleEnvironmentView: ChildViewProvider where Content: ChildViewProvi
 ///
 /// Body deliberately empty, as above: ``GridRowProviding`` has the whole
 /// implementation for a ``SingleContentWrapper``.
-extension _StyleEnvironmentView: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension _StyleEnvironmentView: GridRowProviding where Content: GridRowProviding {}
 
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _StyleEnvironmentView: DrawsContentUnchanged {}
+@MainActor extension _StyleEnvironmentView: DrawsContentUnchanged {}

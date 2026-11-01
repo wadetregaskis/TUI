@@ -36,7 +36,7 @@ extension View {
     ///
     /// - Parameter shows: Whether the slider draws its `NN%` read-out.
     /// - Returns: A view with the preference applied to its sliders.
-    public func sliderShowsValue(_ shows: Bool) -> some View {
+    nonisolated public func sliderShowsValue(_ shows: Bool) -> some View {
         environment(\.sliderShowsValue, shows)
     }
 }

@@ -198,7 +198,7 @@ extension View {
     ///
     /// - Parameter shape: The shape of this container.
     /// - Returns: The view, a container of that shape.
-    public func containerShape(_ shape: some RoundedRectangularShape) -> some View {
+    nonisolated public func containerShape(_ shape: some RoundedRectangularShape) -> some View {
         _ContainerShapeView(content: self, shape: ErasedInsettableShape(shape))
     }
 }

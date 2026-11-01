@@ -27,9 +27,9 @@ import TUIView
 @MainActor
 package protocol DrawsAtItsOwnSize {}
 
-extension _FixedSizeView: DrawsAtItsOwnSize {}
+@MainActor extension _FixedSizeView: DrawsAtItsOwnSize {}
 
-extension Image: DrawsAtItsOwnSize {}
+@MainActor extension Image: DrawsAtItsOwnSize {}
 
 /// Whether views of `type` are drawn at their own size: they say so
 /// (``DrawsAtItsOwnSize``), or the view a single-content wrapper of theirs

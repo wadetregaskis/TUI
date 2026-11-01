@@ -11,7 +11,7 @@
 import Foundation
 import Synchronization
 
-extension Text {
+@MainActor extension Text {
     /// A key's text with its Markdown applied: the plain text, and the runs
     /// that style it — `nil` when one plain run is all there is.
     ///
@@ -29,7 +29,7 @@ extension Text {
     /// one parse of a template serves every `Text` built from it, and a
     /// literal rebuilt each frame only puts its values in. See
     /// ``MarkdownTemplate``.
-    static func markdownRuns(
+    nonisolated static func markdownRuns(
         in template: String, key: LocalizedStringKey
     ) -> (content: String, runs: [Run]?) {
         MarkdownTemplate.parsed(template, for: key).filled(by: key)
@@ -72,7 +72,7 @@ extension LocalizedStringKey {
     /// drawn, as SwiftUI's button title does (measured on macOS 15.8, lane
     /// TEXTFMT); its words as they read now stay the title. Only such keys pay
     /// for the `Text`.
-    @MainActor package var resolvedTitle: (plain: String, styled: Text?) {
+    nonisolated package var resolvedTitle: (plain: String, styled: Text?) {
         if !liveArguments.isEmpty {
             let text = Text(self)
             return (text.content, text)
@@ -99,7 +99,7 @@ extension LocalizedStringKey {
     /// `Tab("**Bold** tab", …)` draws as a `Text` of the key does), so the
     /// delimiters must not show. The styles they ask for are not drawn there
     /// yet (decisions B-PARITYMISC-3).
-    @MainActor package var titleWords: String { resolvedTitle.plain }
+    nonisolated package var titleWords: String { resolvedTitle.plain }
 }
 
 // MARK: - A template's parse, kept
@@ -120,8 +120,7 @@ extension LocalizedStringKey {
 /// destination a placeholder completes — and so which neighbouring spans
 /// merge into one run. Where no value can be live and no link waits on one,
 /// that merge is the template's too, and is kept as well (`plan`).
-@MainActor
-struct MarkdownTemplate: Sendable {
+nonisolated struct MarkdownTemplate: Sendable {
     /// One span of the parse, as far as it goes without values.
     struct Span {
         /// The words, each placeholder a piece of its own.
@@ -175,10 +174,10 @@ struct MarkdownTemplate: Sendable {
 
     /// Whether ``filled(by:)`` answers a key with no live values from
     /// `plan`, for the tests.
-    var fillsFromPlan: Bool { plan != nil }
+    @MainActor var fillsFromPlan: Bool { plan != nil }
 
     /// Parses `template` as `key` reads it.
-    init(parsing template: String, for key: LocalizedStringKey) {
+    nonisolated init(parsing template: String, for key: LocalizedStringKey) {
         var atoms: [InlineMarkdown.Atom] = []
         var placeholders: [LocalizedStringKey.Placeholder] = []
         if key.arguments.isEmpty {
@@ -238,7 +237,7 @@ struct MarkdownTemplate: Sendable {
     }
 
     /// The text and runs `key`'s values make of this template.
-    func filled(by key: LocalizedStringKey) -> (content: String, runs: [Text.Run]?) {
+    nonisolated func filled(by key: LocalizedStringKey) -> (content: String, runs: [Text.Run]?) {
         // An interpolated `Text` with styling of its own is runs to splice,
         // which neither the finished text nor the plan has room for.
         if !key.styledArguments.isEmpty { return filledSplicing(by: key) }
@@ -271,7 +270,7 @@ struct MarkdownTemplate: Sendable {
 
     /// ``filled(by:)`` span by span: any key, live values and links a value
     /// completes included — and the reading the plan must agree with.
-    func filledBySpans(by key: LocalizedStringKey) -> (content: String, runs: [Text.Run]?) {
+    nonisolated func filledBySpans(by key: LocalizedStringKey) -> (content: String, runs: [Text.Run]?) {
         var content = ""
         var runs: [Text.Run] = []
         runs.reserveCapacity(spans.count)
@@ -311,7 +310,7 @@ struct MarkdownTemplate: Sendable {
     /// attributes go on after the traits, as modifiers on a `Text` of them
     /// would (``Text/applyingMarkdownAttributes(_:)``) — once per template,
     /// with the parse, so a span with none costs what it did.
-    private static func style(
+    nonisolated private static func style(
         of traits: InlineMarkdown.Traits, attributes: [InlineMarkdown.Attribute]
     ) -> TextStyle {
         var style = TextStyle()
@@ -345,11 +344,11 @@ struct MarkdownTemplate: Sendable {
     private static let cache = Mutex<[CacheKey: Self]>([:])
 
     /// How many parses are kept, for the tests.
-    static var keptCount: Int { cache.withLock { $0.count } }
+    @MainActor static var keptCount: Int { cache.withLock { $0.count } }
 
     /// The parse of `template` as `key` reads it: the kept one, or one made
     /// now and kept.
-    static func parsed(_ template: String, for key: LocalizedStringKey) -> Self {
+    nonisolated static func parsed(_ template: String, for key: LocalizedStringKey) -> Self {
         let cacheKey = CacheKey(template: template, hasArguments: !key.arguments.isEmpty)
         if let kept = cache.withLock({ $0[cacheKey] }) { return kept }
         let parsed = Self(parsing: template, for: key)

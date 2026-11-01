@@ -271,7 +271,7 @@ extension View {
     ///
     /// - Parameter size: The size to set.
     /// - Returns: A view with the size set.
-    public func dynamicTypeSize(_ size: DynamicTypeSize) -> some View {
+    nonisolated public func dynamicTypeSize(_ size: DynamicTypeSize) -> some View {
         environment(\.dynamicTypeSize, size)
     }
 
@@ -283,7 +283,7 @@ extension View {
     ///
     /// - Parameter range: The sizes the subtree may have.
     /// - Returns: A view with the size limited to `range`.
-    public func dynamicTypeSize<T: RangeExpression>(_ range: T) -> some View
+    nonisolated public func dynamicTypeSize<T: RangeExpression>(_ range: T) -> some View
     where T.Bound == DynamicTypeSize {
         transformEnvironment(\.dynamicTypeSize) { $0 = $0.clamped(to: range) }
     }

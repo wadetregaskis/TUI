@@ -9,7 +9,7 @@
 
 import Foundation
 
-extension Text {
+@MainActor extension Text {
     /// Creates a text view that displays styled attributed content — mirrors
     /// SwiftUI's `init(_:)` for an `AttributedString`.
     ///
@@ -61,7 +61,7 @@ extension Text {
     ///   it `Text("")` would be ambiguous between this and
     ///   ``init(_:tableName:bundle:comment:)`` — and a literal must stay a key.
     @_disfavoredOverload
-    public init(_ attributedContent: AttributedString) {
+    nonisolated public init(_ attributedContent: AttributedString) {
         self.init(verbatim: String(attributedContent.characters))
         runs = Self.styledRuns(of: attributedContent)
     }

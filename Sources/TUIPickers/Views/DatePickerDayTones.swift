@@ -51,7 +51,7 @@ extension View {
     ///
     /// - Parameter distinguishes: Whether the weekend has a tone of its own.
     /// - Returns: A view whose calendars draw the weekend so, or do not.
-    public func datePickerDistinguishesWeekends(_ distinguishes: Bool = true) -> some View {
+    nonisolated public func datePickerDistinguishesWeekends(_ distinguishes: Bool = true) -> some View {
         environment(\.datePickerDistinguishesWeekends, distinguishes)
     }
 
@@ -71,7 +71,7 @@ extension View {
     ///
     /// - Parameter distinguishes: Whether past days are drawn faint.
     /// - Returns: A view whose calendars draw past days so, or do not.
-    public func datePickerDistinguishesPastDays(_ distinguishes: Bool = true) -> some View {
+    nonisolated public func datePickerDistinguishesPastDays(_ distinguishes: Bool = true) -> some View {
         environment(\.datePickerDistinguishesPastDays, distinguishes)
     }
 }

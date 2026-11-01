@@ -134,7 +134,7 @@ extension View {
     /// TUI-specific: SwiftUI's `TextEditor` exposes no tab-stop control (the
     /// underlying text system does, via `NSParagraphStyle`, but not through
     /// SwiftUI), so this is kept separate from the SwiftUI-parity surface.
-    public func tabWidth(_ width: TabWidth) -> some View {
+    nonisolated public func tabWidth(_ width: TabWidth) -> some View {
         environment(\.tabWidth, width)
     }
 }

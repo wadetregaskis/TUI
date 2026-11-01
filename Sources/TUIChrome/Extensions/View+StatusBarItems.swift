@@ -37,7 +37,7 @@ extension View {
     ///
     /// - Parameter items: The status bar items to display.
     /// - Returns: A view that sets the specified status bar items.
-    public func statusBarItems(_ items: [any StatusBarItemProtocol]) -> some View {
+    nonisolated public func statusBarItems(_ items: [any StatusBarItemProtocol]) -> some View {
         StatusBarItemsModifier(content: self, items: items, composition: .merge, context: nil)
     }
 
@@ -65,7 +65,7 @@ extension View {
     ///
     /// - Parameter builder: A closure that returns the status bar items.
     /// - Returns: A view that declares the specified status bar items.
-    public func statusBarItems(
+    nonisolated public func statusBarItems(
         @StatusBarItemBuilder _ builder: () -> [any StatusBarItemProtocol]
     ) -> some View {
         StatusBarItemsModifier(content: self, items: builder(), composition: .merge, context: nil)
@@ -96,7 +96,7 @@ extension View {
     ///   - composition: How to compose with parent items.
     ///   - builder: A closure that returns the status bar items.
     /// - Returns: A view that declares the specified status bar items.
-    public func statusBarItems(
+    nonisolated public func statusBarItems(
         _ composition: StatusBarItemComposition,
         @StatusBarItemBuilder _ builder: () -> [any StatusBarItemProtocol]
     ) -> some View {
@@ -112,7 +112,7 @@ extension View {
     ///   - context: A unique identifier for this context.
     ///   - builder: A closure that returns the status bar items.
     /// - Returns: A view that pushes status bar items to the context stack.
-    public func statusBarItems(
+    nonisolated public func statusBarItems(
         context: String,
         @StatusBarItemBuilder _ builder: () -> [any StatusBarItemProtocol]
     ) -> some View {
@@ -128,7 +128,7 @@ extension View {
     ///   - context: A unique identifier for this context.
     ///   - items: The status bar items to display.
     /// - Returns: A view that pushes status bar items to the context stack.
-    public func statusBarItems(
+    nonisolated public func statusBarItems(
         context: String,
         items: [any StatusBarItemProtocol]
     ) -> some View {

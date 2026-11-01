@@ -83,7 +83,7 @@ extension View {
     ///
     /// - Parameter style: The control style.
     /// - Returns: A view whose controls draw in `style`.
-    public func controlStyle(_ style: ControlStyle) -> some View {
+    nonisolated public func controlStyle(_ style: ControlStyle) -> some View {
         environment(\.controlStyle, style)
     }
 }

@@ -66,7 +66,7 @@ import TUICore
 /// subtrees containing focused interactive views should not be wrapped.
 ///
 /// - SeeAlso: ``View/equatable()``
-public struct EquatableView<Content: View & Equatable>: View {
+nonisolated public struct EquatableView<Content: View & Equatable>: View {
     /// The wrapped view content.
     public var content: Content
 
@@ -77,14 +77,14 @@ public struct EquatableView<Content: View & Equatable>: View {
         self.content = content
     }
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("EquatableView is a primitive view")
     }
 }
 
 // MARK: - Rendering
 
-extension EquatableView: Renderable {
+@MainActor extension EquatableView: Renderable {
     /// Memoized by the whole VIEW value, through the shared value memo — see
     /// `renderValueMemoized(key:viewType:context:build:render:)`.
     ///
@@ -103,7 +103,7 @@ extension EquatableView: Renderable {
 
 // MARK: - Layout
 
-extension EquatableView: Layoutable {
+@MainActor extension EquatableView: Layoutable {
     /// Measures the wrapped content, memoized by the content's *value*
     /// (`Equatable.==`) — the size twin of the buffer memo above, and the same
     /// shared implementation.
@@ -140,7 +140,7 @@ extension View where Self: Equatable {
     /// ```
     ///
     /// - Returns: An ``EquatableView`` wrapping this view.
-    public func equatable() -> EquatableView<Self> {
+    nonisolated public func equatable() -> EquatableView<Self> {
         EquatableView(content: self)
     }
 }
@@ -151,7 +151,7 @@ extension View where Self: Equatable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension EquatableView: SingleContentWrapper {
+@MainActor extension EquatableView: SingleContentWrapper {
     public var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -162,4 +162,4 @@ extension EquatableView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension EquatableView: DrawsContentUnchanged {}
+@MainActor extension EquatableView: DrawsContentUnchanged {}

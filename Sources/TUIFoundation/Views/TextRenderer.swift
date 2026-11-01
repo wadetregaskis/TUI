@@ -88,7 +88,7 @@ extension View {
     ///
     /// - Parameter renderer: What draws the texts.
     /// - Returns: A view whose texts `renderer` draws.
-    public func textRenderer<T: TextRenderer>(_ renderer: T) -> some View {
+    nonisolated public func textRenderer<T: TextRenderer>(_ renderer: T) -> some View {
         environment(\.textRenderer, AnyTextRenderer(renderer))
     }
 }
@@ -149,7 +149,7 @@ extension EnvironmentValues {
 
 // MARK: - Drawing a text with one
 
-extension Text {
+@MainActor extension Text {
     /// The size this text needs: a text renderer in force says it, asking the
     /// text's own through its proxy unless it knows better; with none, one
     /// environment read and the text's own (`ownSize(proposal:context:)`).

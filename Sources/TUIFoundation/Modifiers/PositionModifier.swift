@@ -31,7 +31,7 @@ extension View {
     ///   - x: The column its centre sits on.
     ///   - y: The row its centre sits on.
     /// - Returns: A view drawn at that position, filling the space offered.
-    public func position(x: Int = 0, y: Int = 0) -> some View {
+    nonisolated public func position(x: Int = 0, y: Int = 0) -> some View {
         PositionView(content: self, x: x.heldToStatedLength, y: y.heldToStatedLength)
     }
 
@@ -41,24 +41,24 @@ extension View {
     ///
     /// - Parameter position: Where its centre sits.
     /// - Returns: A view drawn at that position, filling the space offered.
-    public func position(_ position: CellSize) -> some View {
+    nonisolated public func position(_ position: CellSize) -> some View {
         self.position(x: position.width, y: position.height)
     }
 }
 
 /// Draws its content centred on a point, and fills the space it was offered.
 /// See ``View/position(x:y:)``.
-package struct PositionView<Content: View>: View {
+nonisolated package struct PositionView<Content: View>: View {
     let content: Content
     var x: Int
     var y: Int
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("PositionView renders via Renderable")
     }
 }
 
-extension PositionView: Animatable {
+@MainActor extension PositionView: Animatable {
     /// The point is what moves, so a change to it inside
     /// ``withAnimation(_:_:)`` glides rather than jumps — except where
     /// ``EnvironmentValues/accessibilityReduceMotion`` is on, where it jumps:
@@ -74,9 +74,9 @@ extension PositionView: Animatable {
 
 /// Motion: under reduce motion an animated change of position jumps to its
 /// end (owner decision A-D3M-1).
-extension PositionView: SpatialAnimatable {}
+@MainActor extension PositionView: SpatialAnimatable {}
 
-extension PositionView: Renderable, Layoutable {
+@MainActor extension PositionView: Renderable, Layoutable {
     /// Fills what it is offered: a positioned view's own size says nothing
     /// about where it sits, and its parent must reserve the whole space for
     /// the coordinates to mean anything.
@@ -104,7 +104,7 @@ extension PositionView: Renderable, Layoutable {
     }
 }
 
-extension PositionView {
+@MainActor extension PositionView {
     /// `context` with the content's carried geometry origin moved to where
     /// its centre lands on the position — from its MEASURED size, worked out
     /// only when an origin is carried. The ramp a gradient spans stays put, as
@@ -122,7 +122,7 @@ extension PositionView {
 
 /// Names its content so a container asking for a z-index or an alignment guide
 /// can look through this wrapper instead of stopping at it.
-extension PositionView: SingleContentWrapper {
+@MainActor extension PositionView: SingleContentWrapper {
     public var wrappedContent: Content { content }
 
     /// A positioned view fills what it is offered and places its content in
@@ -135,7 +135,7 @@ extension PositionView: SingleContentWrapper {
 /// on a `Group` reaches each member: each fills the space it is given and
 /// centres its member on the point, so `HStack { Group { a; b }.position(x: 1,
 /// y: 0) }` is two positioned views side by side, not one column of two.
-extension PositionView: ContentRewrapping {
+@MainActor extension PositionView: ContentRewrapping {
     public func rewrapping<V: View>(_ view: V) -> any View {
         PositionView<V>(content: view, x: x, y: y)
     }
@@ -143,4 +143,4 @@ extension PositionView: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``ContentRewrapping`` wrapper.
-extension PositionView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension PositionView: ChildViewProvider where Content: ChildViewProvider {}

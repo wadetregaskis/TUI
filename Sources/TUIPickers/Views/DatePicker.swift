@@ -53,7 +53,7 @@ public struct DatePickerComponents: OptionSet, Sendable {
 /// > `\.locale` is deliberately ignored, and only for the layout — a
 /// > locale-ordered field would move its columns about under the caret, which
 /// > the typing model depends on not happening.
-public struct DatePicker<Label: View>: View {
+public struct DatePicker<Label: View> {
     let selection: Binding<Date>
     let range: ClosedRange<Date>?
     let displayedComponents: DatePickerComponents
@@ -81,7 +81,8 @@ public struct DatePicker<Label: View>: View {
 
     @Environment(\.datePickerStyle) private var style
 
-    @ViewBuilder public var body: some View {
+    /// The content and behavior of this view.
+    @ViewBuilder @MainActor public var body: some View {
         let configuration = DatePickerStyleConfiguration(
             label: DatePickerStyleConfiguration.Label(content: AnyView(label)),
             selection: selection,
@@ -107,6 +108,7 @@ public struct DatePicker<Label: View>: View {
         }
     }
 }
+extension DatePicker: View {}
 
 // MARK: - ViewBuilder-label initializers
 
@@ -676,7 +678,7 @@ struct _DatePickerCore: View, Renderable, Layoutable {
 
 // MARK: - Environment without reflection
 
-extension DatePicker: ResolvesOwnEnvironment {
+@MainActor extension DatePicker: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _style.resolveEnvironment(environment)
     }

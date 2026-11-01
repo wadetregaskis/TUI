@@ -18,7 +18,7 @@ import TUICore
 /// dispatcher routes every subsequent `.dragged` / `.released` event
 /// for that button to the same handler regardless of where the cursor
 /// actually is, so drag tracking works naturally.
-package struct OnMouseEventModifier<Content: View>: View {
+nonisolated package struct OnMouseEventModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
@@ -30,14 +30,14 @@ package struct OnMouseEventModifier<Content: View>: View {
     /// The handler. Returns `true` if it consumed the event.
     let handler: (MouseEvent) -> Bool
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("OnMouseEventModifier renders via Renderable")
     }
 }
 
 // MARK: - Renderable
 
-extension OnMouseEventModifier: Renderable {
+@MainActor extension OnMouseEventModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Render first so the buffer dimensions are known; the
         // hit-test region we emit afterwards has to match the rendered
@@ -102,7 +102,7 @@ extension MouseEvent {
 
 // MARK: - Layoutable
 
-extension OnMouseEventModifier: Layoutable {
+@MainActor extension OnMouseEventModifier: Layoutable {
     /// Forwards measurement straight to the content — the mouse
     /// modifier doesn't change layout.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -116,7 +116,7 @@ extension OnMouseEventModifier: Layoutable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension OnMouseEventModifier: SingleContentWrapper {
+@MainActor extension OnMouseEventModifier: SingleContentWrapper {
     public var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -127,4 +127,4 @@ extension OnMouseEventModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension OnMouseEventModifier: DrawsContentUnchanged {}
+@MainActor extension OnMouseEventModifier: DrawsContentUnchanged {}

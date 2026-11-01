@@ -28,7 +28,7 @@ import TUIView
 /// `RenderContext.keepsSectionsWhole`, and a pinned lazy stack's own sections
 /// pin their own headers and footers. A `Form` and a `Table` read their
 /// sections through walks of their own, which never ask.
-extension Section: ChildViewProvider where Parent: View, Content: View, Footer: View {
+@MainActor extension Section: ChildViewProvider where Parent: View, Content: View, Footer: View {
     public func childViews(context: RenderContext) -> [ChildView] {
         // Whole, for a caller that asks a provider for its children without
         // asking first whether it stays whole.
@@ -62,7 +62,7 @@ func sectionPartChildren<Part: View>(
     }
 }
 
-extension Section {
+@MainActor extension Section {
     /// Whether the content is shown: always, unless the section is collapsible
     /// and collapsed.
     package var showsContent: Bool { isExpanded?.wrappedValue ?? true }

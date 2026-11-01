@@ -101,7 +101,7 @@ extension View {
     ///
     /// TUI-specific: SwiftUI has no counterpart, because there a link is
     /// always one process call from a browser.
-    public func linkDisplay(_ display: LinkDisplay) -> some View {
+    nonisolated public func linkDisplay(_ display: LinkDisplay) -> some View {
         environment(\.linkDisplay, display)
     }
 }

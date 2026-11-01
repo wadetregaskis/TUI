@@ -12,7 +12,7 @@
 import TUICore
 import TUIView
 
-extension ConditionalView: AlignmentGuideQuerying {
+@MainActor extension ConditionalView: AlignmentGuideQuerying {
     /// The live branch's guide, laid out where the branch is: at the same
     /// size, at the branch identity it renders at.
     package func explicitGuide(

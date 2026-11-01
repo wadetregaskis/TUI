@@ -38,7 +38,7 @@ extension View {
     ///
     /// - Parameter content: The modal content to display.
     /// - Returns: A view with the modal overlay.
-    public func modal<Modal: View>(
+    nonisolated public func modal<Modal: View>(
         @ViewBuilder content: () -> Modal
     ) -> some View {
         // Always presented, so built at once, and handed over built.

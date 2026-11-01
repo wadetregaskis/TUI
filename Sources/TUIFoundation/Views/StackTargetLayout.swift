@@ -14,7 +14,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// The rows of an EAGER (`.clip`) stack, from the heights its layout just
     /// gave them, placed as `appendVertically` places them — a gap only
     /// between rows that occupy a line. Spacers are not views to settle on.
@@ -191,7 +191,7 @@ extension RenderContext {
     }
 }
 
-extension _HStackCore {
+@MainActor extension _HStackCore {
     /// The lazy row's report: its columns as its walk placed them, each after
     /// the gap the walk gave it.
     func reportTargetLayout(collected: [(FrameBuffer, Int, ChildView?)], context: RenderContext) {
@@ -262,7 +262,7 @@ extension _HStackCore {
 
 // MARK: - A Column Sought
 
-extension _HStackCore {
+@MainActor extension _HStackCore {
     /// Where the column a purely horizontal scroll view seeks sits in a LAZY
     /// row (``ScrollContentWindow/columnSeek``): its place as the walk put it,
     /// for the scroll view to move to. Placed as ``reportTargetLayout(collected:context:)``

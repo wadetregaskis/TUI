@@ -42,7 +42,7 @@ package final class SelectionContextMenu {
 
     /// No arguments, spelled out because the implicit initializer is internal
     /// and TUILists makes these, for its lists.
-    package init() {}
+    nonisolated package init() {}
 
     /// Takes the closures a body just built.
     package func refresh<Item: Hashable, Menu: View>(

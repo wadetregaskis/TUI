@@ -49,7 +49,7 @@ extension View {
     /// re-enable one.
     ///
     /// - Parameter isFocusable: Whether the view can receive focus.
-    public func focusable(_ isFocusable: Bool = true) -> some View {
+    nonisolated public func focusable(_ isFocusable: Bool = true) -> some View {
         FocusableModifier(content: self, isFocusable: isFocusable, interactions: .automatic)
     }
 
@@ -63,7 +63,7 @@ extension View {
     ///   - isFocusable: Whether the view can receive focus.
     ///   - interactions: The interactions the view supports. `.activate` adds
     ///     click-to-focus.
-    public func focusable(_ isFocusable: Bool = true, interactions: FocusInteractions) -> some View {
+    nonisolated public func focusable(_ isFocusable: Bool = true, interactions: FocusInteractions) -> some View {
         FocusableModifier(content: self, isFocusable: isFocusable, interactions: interactions)
     }
 }
@@ -79,19 +79,19 @@ private enum FocusableStateIndex {
 
 /// Registers its content as a focus stop (see ``View/focusable(_:)``). It is
 /// size-neutral: focusability never changes layout, so it measures as `content`.
-struct FocusableModifier<Content: View>: View {
+nonisolated struct FocusableModifier<Content: View>: View {
     let content: Content
     let isFocusable: Bool
     let interactions: FocusInteractions
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("FocusableModifier renders via Renderable")
     }
 }
 
 // MARK: - Renderable
 
-extension FocusableModifier: Renderable {
+@MainActor extension FocusableModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Register the focus stop BEFORE rendering content, so this view precedes
         // any focusable children in the ring (as a control registers before its
@@ -195,7 +195,7 @@ extension FocusableModifier: Renderable {
 
 // MARK: - Layoutable
 
-extension FocusableModifier: Layoutable {
+@MainActor extension FocusableModifier: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: modifiedContext(context))
     }
@@ -216,7 +216,7 @@ extension FocusableModifier: Layoutable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension FocusableModifier: SingleContentWrapper {
+@MainActor extension FocusableModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content's context: the environment depth its measure gives it (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -225,7 +225,7 @@ extension FocusableModifier: SingleContentWrapper {
 
 /// `.focusable` written on a form row makes the row the form lays out a focus
 /// stop, and it keeps its place, as SwiftUI's form keeps a modified row.
-extension FocusableModifier: FormRowRewrapping {
+@MainActor extension FocusableModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
         FocusableModifier<V>(content: row, isFocusable: isFocusable, interactions: interactions)
     }
@@ -235,4 +235,4 @@ extension FocusableModifier: FormRowRewrapping {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension FocusableModifier: DrawsContentUnchanged {}
+@MainActor extension FocusableModifier: DrawsContentUnchanged {}

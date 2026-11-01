@@ -46,7 +46,7 @@ struct StyledArgument: Hashable, Sendable {
 
 // MARK: - Splicing
 
-extension MarkdownTemplate {
+@MainActor extension MarkdownTemplate {
     /// ``filled(by:)`` for a key with styled arguments: the spans' words, with
     /// each styled argument's runs spliced in where its placeholder stands.
     ///
@@ -56,7 +56,7 @@ extension MarkdownTemplate {
     /// italic `Text` inside `**…**` draws bold and italic, a `.bold(false)`
     /// one plain). Neighbouring runs of one style and link merge, as in
     /// ``filledBySpans(by:)``; a live run stays one of its own.
-    func filledSplicing(by key: LocalizedStringKey) -> (content: String, runs: [Text.Run]?) {
+    nonisolated func filledSplicing(by key: LocalizedStringKey) -> (content: String, runs: [Text.Run]?) {
         var runs: [Text.Run] = []
         func append(_ run: Text.Run) {
             guard !run.text.isEmpty || run.live != nil else { return }

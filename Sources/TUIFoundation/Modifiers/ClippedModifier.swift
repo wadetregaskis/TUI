@@ -32,22 +32,22 @@ extension View {
     ///   grid's edges are whole cells, which SwiftUI's antialiasing leaves
     ///   unchanged too, so either value clips the same.
     /// - Returns: A view whose drawing stops at its frame.
-    public func clipped(antialiased: Bool = false) -> some View {
+    nonisolated public func clipped(antialiased: Bool = false) -> some View {
         _ClippedView(content: self)
     }
 }
 
 /// A view's drawing cut to its frame: the floating layers that are pieces of
 /// its content, as a scroll view cuts its own.
-struct _ClippedView<Content: View>: View {
+nonisolated struct _ClippedView<Content: View>: View {
     let content: Content
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_ClippedView renders via Renderable")
     }
 }
 
-extension _ClippedView: Renderable {
+@MainActor extension _ClippedView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // What a glass container draws is not clipped as this is, so the
         // glass in here draws itself.
@@ -64,7 +64,7 @@ extension _ClippedView: Renderable {
     }
 }
 
-extension _ClippedView: Layoutable {
+@MainActor extension _ClippedView: Layoutable {
     /// Clipping changes what draws, never the frame.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)

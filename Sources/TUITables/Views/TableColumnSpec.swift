@@ -154,7 +154,7 @@ struct _TableColumnSpec<Value> {
 
 // MARK: - Plain text
 
-extension Text {
+@MainActor extension Text {
     /// Whether this text draws nothing but its characters, on one line: no
     /// style or styled runs of its own, and no line break.
     ///

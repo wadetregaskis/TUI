@@ -18,7 +18,7 @@ import TUICore
 /// action), an `AnyView`, or anything else whose equality is not decidable.
 ///
 /// - Important: Framework infrastructure. Use ``View/memoized(id:)``.
-public struct _MemoizedView<Content: View, ID: Hashable>: View {
+nonisolated public struct _MemoizedView<Content: View, ID: Hashable>: View {
     /// What the caller says the appearance is a function of.
     let id: ID
 
@@ -38,7 +38,7 @@ public struct _MemoizedView<Content: View, ID: Hashable>: View {
     /// the reason this type exists — and comparing what part of it can be would
     /// be worse than not comparing at all: a promise that holds sometimes reads
     /// as a guarantee.
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("_MemoizedView renders via Renderable")
     }
 }
@@ -67,7 +67,7 @@ private struct MemoKey<ID: Hashable>: Equatable {
 // or removing `.memoized(id:)` would silently reset the state of the subtree it
 // was meant only to speed up. `EquatableView` is `Renderable` for the same
 // reason.
-extension _MemoizedView: Renderable {
+@MainActor extension _MemoizedView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         renderValueMemoized(
             key: memoKey, viewType: Content.self, context: context, build: { content },
@@ -77,7 +77,7 @@ extension _MemoizedView: Renderable {
     private var memoKey: MemoKey<ID> { MemoKey(contentType: ObjectIdentifier(Content.self), id: id) }
 }
 
-extension _MemoizedView: Layoutable {
+@MainActor extension _MemoizedView: Layoutable {
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureValueMemoized(
             key: memoKey, proposal: proposal, context: context, build: { content },
@@ -134,7 +134,7 @@ extension View {
     ///
     /// - Parameter id: What this subtree's appearance is a function of.
     /// - Returns: A view that reuses its rendering while `id` holds.
-    public func memoized<ID: Hashable>(id: ID) -> _MemoizedView<Self, ID> {
+    nonisolated public func memoized<ID: Hashable>(id: ID) -> _MemoizedView<Self, ID> {
         _MemoizedView(id: id, content: self)
     }
 }
@@ -145,7 +145,7 @@ extension View {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _MemoizedView: SingleContentWrapper {
+@MainActor extension _MemoizedView: SingleContentWrapper {
     public var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -156,4 +156,4 @@ extension _MemoizedView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _MemoizedView: DrawsContentUnchanged {}
+@MainActor extension _MemoizedView: DrawsContentUnchanged {}

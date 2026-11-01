@@ -47,7 +47,7 @@ public protocol LayoutValueKey {
 ///
 /// - Important: Framework infrastructure. Created by
 ///   ``View/layoutValue(key:value:)``; do not instantiate directly.
-public struct _LayoutValueView<Content: View>: View {
+nonisolated public struct _LayoutValueView<Content: View>: View {
     /// The key this view sets, identified by its type.
     let key: ObjectIdentifier
 
@@ -58,12 +58,12 @@ public struct _LayoutValueView<Content: View>: View {
     /// The wrapped content view.
     let content: Content
 
-    public var body: some View {
+    @MainActor public var body: some View {
         content
     }
 
     /// See ``View/_providesLayoutValues``.
-    public static var _providesLayoutValues: Bool { true }
+    @MainActor public static var _providesLayoutValues: Bool { true }
 }
 
 /// A view that can answer for the layout values set on it.
@@ -79,7 +79,7 @@ package protocol LayoutValueProviding {
     func layoutValue(for key: ObjectIdentifier) -> Any?
 }
 
-extension _LayoutValueView: LayoutValueProviding {
+@MainActor extension _LayoutValueView: LayoutValueProviding {
     package func layoutValue(for key: ObjectIdentifier) -> Any? {
         if key == self.key { return value }
         // Chained values nest, so a wrapper that cannot answer asks the one it
@@ -101,7 +101,7 @@ extension View {
     ///   - key: The key type.
     ///   - value: The value to associate.
     /// - Returns: A view carrying the layout value.
-    public func layoutValue<K: LayoutValueKey>(key: K.Type, value: K.Value) -> some View {
+    nonisolated public func layoutValue<K: LayoutValueKey>(key: K.Type, value: K.Value) -> some View {
         _LayoutValueView(key: ObjectIdentifier(K.self), value: value, content: self)
     }
 }
@@ -133,7 +133,7 @@ extension View {
     ///
     /// - Parameter value: The priority. Higher wins; the default is `0`.
     /// - Returns: A view carrying the priority.
-    public func layoutPriority(_ value: Double) -> some View {
+    nonisolated public func layoutPriority(_ value: Double) -> some View {
         layoutValue(key: LayoutPriorityKey.self, value: value)
     }
 }
@@ -246,8 +246,8 @@ func statedMinimumLength(of child: ChildView, horizontally: Bool) -> Int {
 @MainActor
 protocol ClampsHeightToOffer {}
 
-extension VStack: ClampsHeightToOffer {}
-extension EnvironmentModifier: ClampsHeightToOffer where Content: ClampsHeightToOffer {}
+@MainActor extension VStack: ClampsHeightToOffer {}
+@MainActor extension EnvironmentModifier: ClampsHeightToOffer where Content: ClampsHeightToOffer {}
 
 /// A view with a minimum length of its own on either axis.
 @MainActor
@@ -256,7 +256,7 @@ protocol StatesMinimumLength {
     func statedMinimumLength(horizontally: Bool) -> Int
 }
 
-extension FlexibleFrameView: StatesMinimumLength {
+@MainActor extension FlexibleFrameView: StatesMinimumLength {
     func statedMinimumLength(horizontally: Bool) -> Int {
         max(0, (horizontally ? minWidth : minHeight) ?? 0)
     }
@@ -282,14 +282,14 @@ func layoutPriorities(of children: [ChildView]) -> [Double]? {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _LayoutValueView: SingleContentWrapper {
+@MainActor extension _LayoutValueView: SingleContentWrapper {
     public var wrappedContent: Content { content }
 }
 
 /// A layout value — a `.layoutPriority(_:)` among them — on several views is
 /// each one's, as SwiftUI's modifier on a `Group` reaches each member: the
 /// members of `Group { a; b }.layoutPriority(1)` are each served first.
-extension _LayoutValueView: ContentRewrapping {
+@MainActor extension _LayoutValueView: ContentRewrapping {
     public func rewrapping<V: View>(_ view: V) -> any View {
         _LayoutValueView<V>(key: key, value: value, content: view)
     }
@@ -297,17 +297,17 @@ extension _LayoutValueView: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``ContentRewrapping`` wrapper.
-extension _LayoutValueView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _LayoutValueView: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Each of a row's cells with the value, as each member is.
-extension _LayoutValueView: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension _LayoutValueView: GridRowProviding where Content: GridRowProviding {}
 
 // MARK: - In a Form
 
 /// A layout value — a ``View/layoutPriority(_:)`` — written on a form row is
 /// the row's the form lays out, which keeps its place, as SwiftUI's form keeps
 /// it (measured, `Tools/SwiftUIProbes/Form rows`).
-extension _LayoutValueView: FormRowRewrapping {
+@MainActor extension _LayoutValueView: FormRowRewrapping {
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {
         _LayoutValueView<V>(key: key, value: value, content: row)
     }

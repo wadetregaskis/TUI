@@ -77,19 +77,19 @@ extension Group {
 ///
 /// You don't use this type directly: ``Group/init(subviews:transform:)``
 /// creates it.
-public struct GroupElementsOfContent<Subviews: View, Content: View>: View {
+nonisolated public struct GroupElementsOfContent<Subviews: View, Content: View>: View {
     /// The view whose members are handed to `transform`.
     let base: Subviews
 
     /// Builds the content from the members.
     let transform: (SubviewsCollection) -> Content
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _GroupElementsCore(elements: self)
     }
 }
 
-extension GroupElementsOfContent: ChildViewProvider {
+@MainActor extension GroupElementsOfContent: ChildViewProvider {
     /// The views `transform` builds, as the enclosing container's children.
     ///
     /// Two scopes, one per side, so nothing on one side can land on an

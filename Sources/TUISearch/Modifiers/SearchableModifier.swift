@@ -12,7 +12,7 @@ import TUITextInput
 
 /// Composes a search field above the searchable content. Pure composition — no
 /// `_*Core`, no overlay, no focus machinery (Box.swift is the reference model).
-struct SearchableModifier<Content: View>: View {
+struct SearchableModifier<Content: View> {
     let content: Content
     let text: Binding<String>
     let prompt: Text?
@@ -75,11 +75,11 @@ struct SearchableModifier<Content: View>: View {
     /// LEFT-pointing so it looks leftward into a leading one. (The Unicode
     /// names read backwards from the rendered shape at a glance — U+1F50E
     /// RIGHT-POINTING is the one whose lens sits on the right.)
-    private var icon: Text {
+    @MainActor private var icon: Text {
         Text(iconPlacement == .leading ? "\u{1F50E}" : "\u{1F50D}")
     }
 
-    var body: some View {
+    @MainActor var body: some View {
         // Refreshed on every evaluation, so the action the content was handed
         // — perhaps frames ago, and served from a memo since — ends the search
         // as it stands now.
@@ -96,7 +96,7 @@ struct SearchableModifier<Content: View>: View {
     /// rather than the field, through `onKeyPress`, which hears the key before
     /// the field does and only while the focus is in the row.
     @ViewBuilder
-    private var fieldRow: some View {
+    @MainActor private var fieldRow: some View {
         let row = HStack(spacing: 1) {
             if supportsEmojiChrome, iconPlacement == .leading {
                 icon
@@ -139,7 +139,7 @@ struct SearchableModifier<Content: View>: View {
     /// the secondary ink: a Dingbat of neutral East Asian width, so one cell
     /// everywhere, where macOS's ⓧ (U+24E7) is ambiguous-width and two cells in
     /// a CJK terminal (Terminal compatibility survey, "The search field's ✕").
-    private var clearButton: some View {
+    @MainActor private var clearButton: some View {
         let text = text
         return Button {
             text.wrappedValue = ""
@@ -155,7 +155,7 @@ struct SearchableModifier<Content: View>: View {
     ///
     /// It stays while the focus is in it, or Tab from the field would hide
     /// what it was heading for.
-    private var accessories: AnyView? {
+    @MainActor private var accessories: AnyView? {
         let hasQuery = !text.wrappedValue.isEmpty
         let focusInRows = dismissal.focusIsInAccessories
         return scopeBar.flatMap { bar in
@@ -166,7 +166,7 @@ struct SearchableModifier<Content: View>: View {
 
     /// The field above the content — or in a bar, or nowhere
     /// (``_SearchFieldPlace``).
-    private var searchStack: some View {
+    @MainActor private var searchStack: some View {
         VStack(alignment: .leading, spacing: 0) {
             // The field, and the rows under it: one child, so the content stays
             // the stack's second whether or not the rows show, and wherever the
@@ -204,7 +204,7 @@ struct SearchableModifier<Content: View>: View {
     /// render is still building, and dismissing writes the query, which is
     /// state this render has already read.
     @ViewBuilder
-    private func presentationSync(_ stack: some View) -> some View {
+    @MainActor private func presentationSync(_ stack: some View) -> some View {
         if let isPresented {
             let dismissal = dismissal
             let isSearching = isSearching
@@ -242,7 +242,7 @@ struct SearchableModifier<Content: View>: View {
     /// branch would make the field a different view whenever a keystroke
     /// filtered the suggestions down to nothing, and its caret and focus with
     /// it.
-    private var queryField: some View {
+    @MainActor private var queryField: some View {
         // The fallback prompt is the framework's word, not the caller's, so it
         // comes from the table. `Text(verbatim:)` because the lookup has
         // already happened — see `ContentUnavailableView.search`.
@@ -274,17 +274,18 @@ struct SearchableModifier<Content: View>: View {
     /// The query field, its selection bound where a `searchSelection` around
     /// the searchable asked — the same field either way, so binding one does
     /// not make the field a different view.
-    private func baseField(prompt: Text) -> TextField<Text> {
+    @MainActor private func baseField(prompt: Text) -> TextField<Text> {
         if let binding = selection?.binding as? Binding<TextSelection?> {
             return TextField("", text: text, selection: binding, prompt: prompt)
         }
         return TextField("", text: text, prompt: prompt)
     }
 }
+extension SearchableModifier: View {}
 
 // MARK: - Environment without reflection
 
-extension SearchableModifier: ResolvesOwnEnvironment {
+@MainActor extension SearchableModifier: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _focusManager.resolveEnvironment(environment)
         _supportsEmojiChrome.resolveEnvironment(environment)

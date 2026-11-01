@@ -8,7 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-extension Image {
+@MainActor extension Image {
     /// The level of quality for rendering an image that requires
     /// interpolation, such as a scaled image — mirrors SwiftUI's
     /// `Image.Interpolation`.
@@ -50,7 +50,7 @@ extension Image {
     ///
     /// - Parameter interpolation: The quality.
     /// - Returns: The image, drawn at that quality.
-    public func interpolation(_ interpolation: Interpolation) -> Image {
+    nonisolated public func interpolation(_ interpolation: Interpolation) -> Image {
         var copy = self
         copy.interpolationQuality = interpolation
         return copy
@@ -66,7 +66,7 @@ extension Image {
     ///
     /// - Parameter isAntialiased: Whether to smooth the image.
     /// - Returns: The image, smoothed or not.
-    public func antialiased(_ isAntialiased: Bool) -> Image {
+    nonisolated public func antialiased(_ isAntialiased: Bool) -> Image {
         var copy = self
         copy.isAntialiased = isAntialiased
         return copy
@@ -95,7 +95,7 @@ extension Image {
     ///
     /// - Parameter renderingMode: The mode, or `nil` for the default.
     /// - Returns: The image, drawn in that mode.
-    public func renderingMode(_ renderingMode: TemplateRenderingMode?) -> Image {
+    nonisolated public func renderingMode(_ renderingMode: TemplateRenderingMode?) -> Image {
         var copy = self
         copy.templateRenderingMode = renderingMode
         return copy

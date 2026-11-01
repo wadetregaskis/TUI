@@ -54,7 +54,7 @@ extension View {
     /// - Parameter enabled: Whether ramps use the terminal's graphics
     ///   protocol where it has one (default `true`).
     /// - Returns: A view whose gradients honour the setting.
-    public func gradientGraphics(_ enabled: Bool = true) -> some View {
+    nonisolated public func gradientGraphics(_ enabled: Bool = true) -> some View {
         environment(\.gradientGraphics, enabled)
     }
 }

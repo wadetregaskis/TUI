@@ -210,7 +210,7 @@ extension EnvironmentValues {
 /// One end cap of a face drawn round several controls (a ``ControlGroup``'s),
 /// as ``ControlEnds`` draws a segmented picker's: in the family in force, at
 /// rest, one row tall. Nothing at all where the family draws no caps.
-package struct ControlFaceCap: View, Renderable, Layoutable {
+nonisolated package struct ControlFaceCap: View, Renderable, Layoutable {
     /// Whether this is the cap before the controls rather than after them.
     let isOpening: Bool
 
@@ -218,15 +218,15 @@ package struct ControlFaceCap: View, Renderable, Layoutable {
         isOpening = opening
     }
 
-    package var body: Never {
+    @MainActor package var body: Never {
         fatalError("ControlFaceCap renders via Renderable")
     }
 
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         ViewSize.fixed(ControlEnds(in: context.environment).width / 2, 1)
     }
 
-    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let ends = ControlEnds(in: context.environment)
         guard ends.kind != .none else { return FrameBuffer() }
         let palette = context.environment.palette
@@ -247,18 +247,18 @@ package struct ControlFaceCap: View, Renderable, Layoutable {
 /// The rule between two controls of a face drawn round several (a
 /// ``ControlGroup``'s): `│`, as between a segmented picker's segments — in the
 /// tertiary ink on a filled face's field, in the lines' ink on no field.
-package struct ControlFaceRule: View, Renderable, Layoutable {
+nonisolated package struct ControlFaceRule: View, Renderable, Layoutable {
     package init() {}
 
-    package var body: Never {
+    @MainActor package var body: Never {
         fatalError("ControlFaceRule renders via Renderable")
     }
 
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         ViewSize.fixed(1, 1)
     }
 
-    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let ends = ControlEnds(in: context.environment)
         let palette = context.environment.palette
         var row = ClaimingRow()

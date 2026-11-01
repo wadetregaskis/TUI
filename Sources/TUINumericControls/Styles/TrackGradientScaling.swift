@@ -87,7 +87,7 @@ extension View {
     /// - Parameter scaling: ``TrackGradientScaling/track`` (the default) to pin
     ///   the ramps to the bar, or ``TrackGradientScaling/region`` to compress
     ///   each into the region it paints.
-    public func trackGradientScaling(_ scaling: TrackGradientScaling) -> some View {
+    nonisolated public func trackGradientScaling(_ scaling: TrackGradientScaling) -> some View {
         trackGradientScaling(fill: scaling, background: scaling)
     }
 
@@ -110,7 +110,7 @@ extension View {
     /// - Parameters:
     ///   - fill: What the fill's ramp spans.
     ///   - background: What the background's ramp spans.
-    public func trackGradientScaling(
+    nonisolated public func trackGradientScaling(
         fill: TrackGradientScaling, background: TrackGradientScaling
     ) -> some View {
         // `background` shadows `View.background(_:)` in this body; it is only

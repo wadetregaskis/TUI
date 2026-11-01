@@ -107,7 +107,7 @@ extension View {
     ///
     /// - Parameter severity: The severity to use for confirmation dialogs and
     ///   alerts.
-    public func dialogSeverity(_ severity: DialogSeverity) -> some View {
+    nonisolated public func dialogSeverity(_ severity: DialogSeverity) -> some View {
         environment(\.dialogSeverity, severity)
     }
 
@@ -121,7 +121,7 @@ extension View {
     ///
     /// - Parameter icon: The custom icon to use for confirmation dialogs and
     ///   alerts, or `nil`.
-    public func dialogIcon(_ icon: Image?) -> some View {
+    nonisolated public func dialogIcon(_ icon: Image?) -> some View {
         environment(\.dialogIcon, icon)
     }
 }

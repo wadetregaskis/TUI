@@ -14,10 +14,10 @@
 /// Generic over the id, which it keeps as its own type rather than as an
 /// `AnyHashable`: the view's value hash reads it as the plain value it is,
 /// where a box would hash a pointer.
-private struct _IDModifier<ID: Hashable>: BufferModifier {
+nonisolated private struct _IDModifier<ID: Hashable>: BufferModifier {
     /// Its content stays where it is laid out — an identity moves nothing — so a guide inside it
     /// passes unmoved (``BufferModifier/_keepsContentGeometry``).
-    static var _keepsContentGeometry: Bool { true }
+    @MainActor static var _keepsContentGeometry: Bool { true }
 
     let key: String
 
@@ -30,24 +30,24 @@ private struct _IDModifier<ID: Hashable>: BufferModifier {
     /// view, where `adjustContext` alone leaves no trace of it: a container
     /// sees only the child's positional step, since the re-keyed step is the
     /// one BELOW. `ScrollViewProxy.scrollTo(_:anchor:)` is what reads it.
-    var _explicitIDKey: String? { key }
+    @MainActor var _explicitIDKey: String? { key }
 
     /// The id, for the read-back (``_explicitIDKey`` is for the seek).
-    var _explicitID: AnyHashable? { AnyHashable(id) }
+    @MainActor var _explicitID: AnyHashable? { AnyHashable(id) }
 
-    func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+    @MainActor func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
         buffer
     }
 
     /// Draws its content unchanged, a keyed step below itself: what a transition
     /// inside it left there is a slot's to play here too, since a `nil` standing in
     /// for this view has no key to find it by.
-    func _modify(buffer: FrameBuffer, context: RenderContext, owner: Any.Type) -> FrameBuffer {
+    @MainActor func _modify(buffer: FrameBuffer, context: RenderContext, owner: Any.Type) -> FrameBuffer {
         context.noteDepartureDrawnWhole(ofContentOf: owner, at: adjustContext(context).identity)
         return buffer
     }
 
-    func adjustContext(_ context: RenderContext) -> RenderContext {
+    @MainActor func adjustContext(_ context: RenderContext) -> RenderContext {
         context.withChildIdentity(erasedType: Self.self, key: key)
     }
 }
@@ -81,7 +81,7 @@ extension View {
     ///
     /// - Parameter id: A value that identifies this view.
     /// - Returns: A view with the given identity bound to it.
-    public func id<ID: Hashable>(_ id: ID) -> some View {
+    nonisolated public func id<ID: Hashable>(_ id: ID) -> some View {
         modifier(_IDModifier(key: identityKey(id), id: id))
     }
 }

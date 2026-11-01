@@ -39,7 +39,7 @@ extension View {
     ///   - id: The union the glass joins, or `nil` for none.
     ///   - namespace: The namespace the id is in.
     /// - Returns: The view, its glass in the union.
-    public func glassEffectUnion(id: (some Hashable & Sendable)?, namespace: Namespace.ID) -> some View {
+    nonisolated public func glassEffectUnion(id: (some Hashable & Sendable)?, namespace: Namespace.ID) -> some View {
         environment(\.glassEffectUnion, id.map { GlassNamespacedID(namespace: namespace, id: AnyHashable($0)) })
     }
 }

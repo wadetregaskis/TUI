@@ -45,7 +45,7 @@ extension View {
     ///   - isPresented: Whether the destination is on the stack.
     ///   - destination: The screen to push.
     /// - Returns: A view that pushes a screen while the binding is true.
-    public func navigationDestination<Destination: View>(
+    nonisolated public func navigationDestination<Destination: View>(
         isPresented: Binding<Bool>,
         @ViewBuilder destination: @escaping () -> Destination
     ) -> some View {
@@ -65,7 +65,7 @@ extension View {
     ///   - item: The value the pushed screen describes. `nil` shows nothing.
     ///   - destination: The screen to push, built from the item.
     /// - Returns: A view that pushes a screen while the binding holds a value.
-    public func navigationDestination<D: Hashable, C: View>(
+    nonisolated public func navigationDestination<D: Hashable, C: View>(
         item: Binding<D?>,
         @ViewBuilder destination: @escaping (D) -> C
     ) -> some View {
@@ -99,18 +99,18 @@ private enum StateIndex {
 /// ``NavigationViewToken`` keyed by this modifier's identity path, which is
 /// stable across frames and unique to it — so the stack can show a screen that
 /// has no value behind it.
-struct NavigationPresentationModifier<Content: View, Destination: View>: View {
+nonisolated struct NavigationPresentationModifier<Content: View, Destination: View>: View {
     let content: Content
     let isPresented: Binding<Bool>
     /// The screen to show, or `nil` when there is nothing to show one about.
     let destination: () -> Destination?
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("NavigationPresentationModifier renders via Renderable")
     }
 }
 
-extension NavigationPresentationModifier: Renderable {
+@MainActor extension NavigationPresentationModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Render passes only: reconciling on a measure would push a screen for
         // a frame that is only asking how big things are, and the two-pass
@@ -207,7 +207,7 @@ extension NavigationPresentationModifier: Renderable {
     }
 }
 
-extension NavigationPresentationModifier: Layoutable {
+@MainActor extension NavigationPresentationModifier: Layoutable {
     /// Measures as its content: the push is the whole of this modifier's
     /// effect, and it contributes no geometry.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -221,7 +221,7 @@ extension NavigationPresentationModifier: Layoutable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension NavigationPresentationModifier: SingleContentWrapper {
+@MainActor extension NavigationPresentationModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -232,4 +232,4 @@ extension NavigationPresentationModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension NavigationPresentationModifier: DrawsContentUnchanged {}
+@MainActor extension NavigationPresentationModifier: DrawsContentUnchanged {}

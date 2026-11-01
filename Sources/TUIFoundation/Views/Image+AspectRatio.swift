@@ -76,7 +76,7 @@ extension View {
     ///     offered.
     /// - Returns: A view that constrains this view's dimensions to the given
     ///   aspect ratio and content mode.
-    public func aspectRatio(_ aspectRatio: Double? = nil, contentMode: ContentMode) -> some View {
+    nonisolated public func aspectRatio(_ aspectRatio: Double? = nil, contentMode: ContentMode) -> some View {
         // A ratio that is not a positive number is none; one finite but past
         // what a box of cells can show — 1e-300, 1e18 — is held to one cell
         // by `Int.statedLengthLimit`. Unheld, it reached the image inside as
@@ -97,7 +97,7 @@ extension View {
     /// Equivalent to `.aspectRatio(contentMode: .fit)`.
     ///
     /// - Returns: A view that scales to fit.
-    public func scaledToFit() -> some View {
+    nonisolated public func scaledToFit() -> some View {
         // This IS the modern spelling SwiftLint's rule points callers to; it is
         // defined in terms of the general modifier, so the rule's advice does
         // not apply to its own definition. The rule autocorrects, too: without
@@ -114,7 +114,7 @@ extension View {
     /// Equivalent to `.aspectRatio(contentMode: .fill)`.
     ///
     /// - Returns: A view that scales to fill.
-    public func scaledToFill() -> some View {
+    nonisolated public func scaledToFill() -> some View {
         // This IS the modern spelling SwiftLint's rule points callers to; it is
         // defined in terms of the general modifier, so the rule's advice does
         // not apply to its own definition. The rule autocorrects, too: without

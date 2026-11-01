@@ -89,7 +89,7 @@
 /// `Box` is purely compositional sugar and carries no rendering logic.
 ///
 /// - Note: This is an internal type. Use `.border()` modifier directly instead.
-package struct Box<Content: View>: View {
+nonisolated package struct Box<Content: View>: View {
     /// The content of the box.
     let content: Content
 
@@ -115,7 +115,7 @@ package struct Box<Content: View>: View {
         self.borderColor = color
     }
 
-    package var body: some View {
+    @MainActor package var body: some View {
         content.bordered(style: borderStyle, colour: borderColor.map(AnimatedColor.init), width: 1)
     }
 }
@@ -151,7 +151,7 @@ extension Box where Content == BufferView {
 /// content into the `Box` rendering pipeline. This lets `Box` handle border
 /// rendering (border style from the current appearance) while the content is controlled
 /// externally.
-package struct BufferView: View, Renderable, Layoutable {
+nonisolated package struct BufferView: View, Renderable, Layoutable {
     /// The pre-built buffer to return during rendering.
     package let buffer: FrameBuffer
 
@@ -161,23 +161,23 @@ package struct BufferView: View, Renderable, Layoutable {
         self.buffer = buffer
     }
 
-    package var body: Never {
+    @MainActor package var body: Never {
         fatalError("BufferView renders via Renderable")
     }
 
-    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         buffer
     }
 
     /// A pre-built buffer is exactly its own size — measured directly, no render.
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         ViewSize.fixed(buffer.width, buffer.height)
     }
 }
 
 // MARK: - Equatable Conformance
 
-extension Box: @preconcurrency Equatable where Content: Equatable {
+extension Box: Equatable where Content: Equatable {
     package static func == (lhs: Box<Content>, rhs: Box<Content>) -> Bool {
         lhs.content == rhs.content && lhs.borderStyle == rhs.borderStyle && lhs.borderColor == rhs.borderColor
     }

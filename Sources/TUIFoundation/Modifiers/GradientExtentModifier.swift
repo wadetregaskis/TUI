@@ -82,21 +82,21 @@ extension View {
     /// the estimating path a very long variable-height list takes past a few
     /// hundred rows, the positions — and so the colours — are approximate and
     /// converge as the stack learns its content.
-    public func gradientExtent(_ extent: GradientExtent) -> some View {
+    nonisolated public func gradientExtent(_ extent: GradientExtent) -> some View {
         GradientExtentModifier(content: self, extent: extent)
     }
 }
 
 // MARK: - The modifier
 
-struct GradientExtentModifier<Content: View>: View {
+nonisolated struct GradientExtentModifier<Content: View>: View {
     let content: Content
     let extent: GradientExtent
 
-    var body: Never { fatalError("GradientExtentModifier renders via Renderable") }
+    @MainActor var body: Never { fatalError("GradientExtentModifier renders via Renderable") }
 }
 
-extension GradientExtentModifier: Renderable {
+@MainActor extension GradientExtentModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var childContext = context
         switch extent {
@@ -119,7 +119,7 @@ extension GradientExtentModifier: Renderable {
     }
 }
 
-extension GradientExtentModifier: Layoutable {
+@MainActor extension GradientExtentModifier: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
@@ -131,7 +131,7 @@ extension GradientExtentModifier: Layoutable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension GradientExtentModifier: SingleContentWrapper {
+@MainActor extension GradientExtentModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -142,4 +142,4 @@ extension GradientExtentModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension GradientExtentModifier: DrawsContentUnchanged {}
+@MainActor extension GradientExtentModifier: DrawsContentUnchanged {}

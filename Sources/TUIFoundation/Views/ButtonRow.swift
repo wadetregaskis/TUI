@@ -43,7 +43,7 @@
 /// `some View`, not `Button`. A dialog's footer is exactly where a
 /// "More options…" button belongs, so the restriction bit precisely where the
 /// type is most used.
-public struct ButtonRow<Content: View>: View {
+nonisolated public struct ButtonRow<Content: View>: View {
     private let content: Content
     private let spacing: Int
 
@@ -67,7 +67,7 @@ public struct ButtonRow<Content: View>: View {
     /// in a footer would have been swallowed even once it could be written.
     /// `.top` because that is where the concatenation put a short button beside
     /// a tall one.
-    public var body: some View {
+    @MainActor public var body: some View {
         HStack(alignment: .top, spacing: spacing) {
             content
         }

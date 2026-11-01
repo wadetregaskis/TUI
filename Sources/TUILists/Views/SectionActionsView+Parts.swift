@@ -11,7 +11,7 @@ import TUIView
 /// A section with actions is its section's parts in a container — the actions
 /// belong to a `List`, which keeps the section whole, as do the section APIs,
 /// which hand them to a custom container.
-extension _SectionActionsView: ChildViewProvider where Content: ChildViewProvider {
+@MainActor extension _SectionActionsView: ChildViewProvider where Content: ChildViewProvider {
     func childViews(context: RenderContext) -> [ChildView] {
         guard !staysWhole(in: context) else { return [ChildView(self)] }
         // A step inside this view, where drawing it through its `body` puts

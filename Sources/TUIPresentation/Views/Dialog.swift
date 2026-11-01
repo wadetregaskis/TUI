@@ -55,7 +55,7 @@ import TUIFoundation
 ///         }
 ///     }
 /// ```
-public struct Dialog<Content: View, Footer: View>: View {
+nonisolated public struct Dialog<Content: View, Footer: View>: View {
     /// The dialog title.
     let title: String
 
@@ -157,7 +157,7 @@ public struct Dialog<Content: View, Footer: View>: View {
         self.footer = footer()
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _DialogCore(
             title: title,
             content: content,
@@ -169,7 +169,7 @@ public struct Dialog<Content: View, Footer: View>: View {
 
 // MARK: - Equatable Conformance
 
-extension Dialog: @preconcurrency Equatable where Content: Equatable, Footer: Equatable {
+extension Dialog: Equatable where Content: Equatable, Footer: Equatable {
     public static func == (lhs: Dialog<Content, Footer>, rhs: Dialog<Content, Footer>) -> Bool {
         lhs.title == rhs.title && lhs.content == rhs.content && lhs.footer == rhs.footer && lhs.config == rhs.config
     }
@@ -398,4 +398,4 @@ extension Dialog where Footer == EmptyView {
 
 /// A dialog draws its own box, so a detented sheet's grabber goes into its
 /// top edge (`SheetGrabber`).
-extension Dialog: SheetContentDrawsBox {}
+@MainActor extension Dialog: SheetContentDrawsBox {}

@@ -8,7 +8,7 @@
 ///
 /// The handler returns a Bool indicating whether the event was consumed.
 /// If false is returned, the event continues to propagate to other handlers.
-package struct KeyEventModifier<Content: View>: View {
+nonisolated package struct KeyEventModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
@@ -19,14 +19,14 @@ package struct KeyEventModifier<Content: View>: View {
     /// Returns true if the event was handled, false to let it propagate.
     let handler: (KeyEvent) -> Bool
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("KeyEventModifier renders via Renderable")
     }
 }
 
 // MARK: - Renderable
 
-extension KeyEventModifier: Renderable {
+@MainActor extension KeyEventModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // The registration is a render-pass side effect, twice over:
         // - never during a measure pass — a render-to-measure ancestor would
@@ -90,7 +90,7 @@ enum KeyEventRegistrar {
 
 // MARK: - Layoutable
 
-extension KeyEventModifier: Layoutable {
+@MainActor extension KeyEventModifier: Layoutable {
     /// Behaviour-only decorator — it renders `content` unchanged. Forwarding the
     /// measure keeps it off `measureChild`'s render-to-measure fallback and lets
     /// the wrapped view's flexibility propagate.
@@ -105,7 +105,7 @@ extension KeyEventModifier: Layoutable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension KeyEventModifier: SingleContentWrapper {
+@MainActor extension KeyEventModifier: SingleContentWrapper {
     public var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -116,4 +116,4 @@ extension KeyEventModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension KeyEventModifier: DrawsContentUnchanged {}
+@MainActor extension KeyEventModifier: DrawsContentUnchanged {}

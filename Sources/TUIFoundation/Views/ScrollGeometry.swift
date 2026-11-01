@@ -136,7 +136,7 @@ extension View {
     ///   - type: The type of the derived value.
     ///   - transform: Derives the value from the scroll view's geometry.
     ///   - action: Receives the old and the new value.
-    public func onScrollGeometryChange<T: Equatable>(
+    nonisolated public func onScrollGeometryChange<T: Equatable>(
         for type: T.Type,
         of transform: @escaping (ScrollGeometry) -> T,
         action: @escaping (T, T) -> Void
@@ -172,8 +172,7 @@ struct ScrollObservers: Equatable {
 
 /// One `onScrollGeometryChange`: its transform and action, type-erased, and
 /// the scroll view that has claimed it.
-@MainActor
-final class ScrollGeometryObserver {
+nonisolated final class ScrollGeometryObserver {
     /// Derives the value and compares it with the last one, keeping it; on a
     /// change — or on the first value, as old and new — returns the action to
     /// take, and otherwise `nil`.
@@ -201,7 +200,7 @@ final class ScrollGeometryObserver {
     /// Whether the scroll view at `identity` reports to this observer: the
     /// first one to ask does, and only it, for as long as this observer is the
     /// one stated — a new one is made with the body that states it.
-    func claim(for identity: ViewIdentity) -> Bool {
+    @MainActor func claim(for identity: ViewIdentity) -> Bool {
         if let claimant { return claimant == identity }
         claimant = identity
         return true
@@ -209,7 +208,7 @@ final class ScrollGeometryObserver {
 
     /// Keeps `geometry`'s value in `last`, and returns what to do about a
     /// change — `nil` for none.
-    func report(_ geometry: ScrollGeometry, last: inout Any?) -> (() -> Void)? {
+    @MainActor func report(_ geometry: ScrollGeometry, last: inout Any?) -> (() -> Void)? {
         report(geometry, &last)
     }
 }

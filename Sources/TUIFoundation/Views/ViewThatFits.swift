@@ -92,7 +92,7 @@ public enum Axis: Int8, CaseIterable, Hashable, Sendable, CustomStringConvertibl
 ///   panel sized to its widest child then rendering a narrower child at the panel
 ///   width must clamp the rendered buffer back to the child's natural width
 ///   rather than re-render it narrower — see `TabView`'s content centring.)
-public struct ViewThatFits<Content: View>: View {
+nonisolated public struct ViewThatFits<Content: View>: View {
     /// The axes along which candidate fit is evaluated.
     let axes: Axis.Set
 
@@ -113,14 +113,14 @@ public struct ViewThatFits<Content: View>: View {
         self.content = content()
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _ViewThatFitsCore(axes: axes, content: content)
     }
 }
 
 // MARK: - Equatable Conformance
 
-extension ViewThatFits: @preconcurrency Equatable where Content: Equatable {
+extension ViewThatFits: Equatable where Content: Equatable {
     public static func == (lhs: ViewThatFits<Content>, rhs: ViewThatFits<Content>) -> Bool {
         lhs.axes == rhs.axes && lhs.content == rhs.content
     }

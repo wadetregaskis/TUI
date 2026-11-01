@@ -11,7 +11,7 @@ extension View {
     ///
     /// Use this when you need to return different view types from
     /// conditional branches.
-    public func asAnyView() -> AnyView {
+    nonisolated public func asAnyView() -> AnyView {
         AnyView(self)
     }
 }

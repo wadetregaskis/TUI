@@ -32,7 +32,7 @@ public enum FrameDimension: Equatable, Sendable, ExpressibleByIntegerLiteral {
 ///
 /// This view handles min/max constraints and renders content with
 /// the appropriate available space.
-package struct FlexibleFrameView<Content: View>: View {
+nonisolated package struct FlexibleFrameView<Content: View>: View {
     // The six constraints are stored one word each — `FrameWord` — rather than
     // as `Int?` / `FrameDimension?`, and declared before the content. An
     // optional word is nine bytes at eight-byte alignment, so each left seven
@@ -74,42 +74,42 @@ package struct FlexibleFrameView<Content: View>: View {
     }
 
     /// The minimum width in characters, or nil for no minimum.
-    package var minWidth: Int? {
+    nonisolated package var minWidth: Int? {
         get { FrameWord.unpack(minWidthWord) }
         set { minWidthWord = FrameWord.pack(newValue) }
     }
 
     /// The ideal width in characters, or nil to use intrinsic size.
-    package var idealWidth: Int? {
+    nonisolated package var idealWidth: Int? {
         get { FrameWord.unpack(idealWidthWord) }
         set { idealWidthWord = FrameWord.pack(newValue) }
     }
 
     /// The maximum width constraint, or nil for no maximum.
-    package var maxWidth: FrameDimension? {
+    nonisolated package var maxWidth: FrameDimension? {
         get { FrameWord.unpackDimension(maxWidthWord) }
         set { maxWidthWord = FrameWord.pack(newValue) }
     }
 
     /// The minimum height in lines, or nil for no minimum.
-    package var minHeight: Int? {
+    nonisolated package var minHeight: Int? {
         get { FrameWord.unpack(minHeightWord) }
         set { minHeightWord = FrameWord.pack(newValue) }
     }
 
     /// The ideal height in lines, or nil to use intrinsic size.
-    package var idealHeight: Int? {
+    nonisolated package var idealHeight: Int? {
         get { FrameWord.unpack(idealHeightWord) }
         set { idealHeightWord = FrameWord.pack(newValue) }
     }
 
     /// The maximum height constraint, or nil for no maximum.
-    package var maxHeight: FrameDimension? {
+    nonisolated package var maxHeight: FrameDimension? {
         get { FrameWord.unpackDimension(maxHeightWord) }
         set { maxHeightWord = FrameWord.pack(newValue) }
     }
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("FlexibleFrameView renders via Renderable")
     }
 }
@@ -154,7 +154,7 @@ private enum FrameWord {
 
 // MARK: - Equatable Conformance
 
-extension FlexibleFrameView: @preconcurrency Equatable where Content: Equatable {
+extension FlexibleFrameView: Equatable where Content: Equatable {
     package static func == (lhs: FlexibleFrameView<Content>, rhs: FlexibleFrameView<Content>) -> Bool {
         guard lhs.content == rhs.content, lhs.minWidth == rhs.minWidth, lhs.idealWidth == rhs.idealWidth,
             lhs.maxWidth == rhs.maxWidth, lhs.minHeight == rhs.minHeight, lhs.idealHeight == rhs.idealHeight,
@@ -166,7 +166,7 @@ extension FlexibleFrameView: @preconcurrency Equatable where Content: Equatable 
 
 // MARK: - Renderable
 
-extension FlexibleFrameView {
+@MainActor extension FlexibleFrameView {
     /// The frame's width constraints, in order (``FlexibleFrameAxis``).
     var widthAxis: FlexibleFrameAxis {
         FlexibleFrameAxis(minimum: minWidth, ideal: idealWidth, maximum: maxWidth)
@@ -250,7 +250,7 @@ extension FlexibleFrameView {
     }
 }
 
-extension FlexibleFrameView: Renderable {
+@MainActor extension FlexibleFrameView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Calculate the target width and height based on constraints (the same
         // computation the measure pass uses, see contentTargetWidth/Height).
@@ -526,7 +526,7 @@ extension FlexibleFrameView: Renderable {
 
 // MARK: - Layoutable
 
-extension FlexibleFrameView: Layoutable {
+@MainActor extension FlexibleFrameView: Layoutable {
     /// Measures the frame, skipping the render-to-measure fallback's double
     /// render for the common fill case.
     ///
@@ -717,7 +717,7 @@ extension FlexibleFrameView: Layoutable {
 
 // MARK: - Animating a fixed frame
 
-extension FlexibleFrameView: Animatable {
+@MainActor extension FlexibleFrameView: Animatable {
     /// A **fixed** frame's width and height — what `.frame(width:height:)`
     /// pins — so growing or shrinking a box inside ``withAnimation(_:_:)``
     /// is a resize rather than a jump — except where
@@ -770,7 +770,7 @@ extension FlexibleFrameView: Animatable {
 
 /// Motion: a frame that grows or shrinks moves its content and what is beside
 /// it, so under reduce motion it jumps to its end (owner decision A-D3M-1).
-extension FlexibleFrameView: SpatialAnimatable {}
+@MainActor extension FlexibleFrameView: SpatialAnimatable {}
 
 // MARK: - Seeing Through the Wrapper
 
@@ -780,7 +780,7 @@ extension FlexibleFrameView: SpatialAnimatable {}
 ///   two texts out at exactly the frames writing `.frame(width: 80)` on each
 ///   member separately produces. A `.frame(maxWidth: .infinity)` on a `Group`
 ///   therefore gives every member the greed, and they share the slack.
-extension FlexibleFrameView: ContentRewrapping {
+@MainActor extension FlexibleFrameView: ContentRewrapping {
     public var wrappedContent: Content { content }
 
     public func rewrapping<V: View>(_ view: V) -> any View {
@@ -800,8 +800,8 @@ extension FlexibleFrameView: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension FlexibleFrameView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension FlexibleFrameView: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension FlexibleFrameView: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension FlexibleFrameView: GridRowProviding where Content: GridRowProviding {}

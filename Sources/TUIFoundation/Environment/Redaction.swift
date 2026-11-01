@@ -158,7 +158,7 @@ extension View {
     ///
     /// - Parameter reason: The reasons to add to those already in force.
     /// - Returns: A view whose content is redacted.
-    public func redacted(reason: RedactionReasons) -> some View {
+    nonisolated public func redacted(reason: RedactionReasons) -> some View {
         RedactionScope(added: reason, content: self)
     }
 
@@ -168,7 +168,7 @@ extension View {
     /// a heading, a control the user can still press.
     ///
     /// - Returns: A view whose content is not redacted.
-    public func unredacted() -> some View {
+    nonisolated public func unredacted() -> some View {
         environment(\.redactionReasons, [])
     }
 }
@@ -182,15 +182,16 @@ extension View {
 /// intact; writing `environment.setting(_:to:)` by hand would skip
 /// `noteAppliedEnvironment`, and a memoized subtree would never learn the
 /// redaction had changed.
-private struct RedactionScope<Content: View>: View {
+private struct RedactionScope<Content: View> {
     @Environment(\.redactionReasons) private var inherited
     let added: RedactionReasons
     let content: Content
 
-    var body: some View {
+    @MainActor @ViewBuilder var body: some View {
         content.environment(\.redactionReasons, inherited.union(added))
     }
 }
+extension RedactionScope: View {}
 
 // MARK: - Seeing Through the Wrapper
 
@@ -198,7 +199,7 @@ private struct RedactionScope<Content: View>: View {
 ///   up or two, so publishing it around each member is the same thing as
 ///   publishing it once around the pair. What changes is only that the members
 ///   stay the enclosing container's own children.
-extension RedactionScope: ContentRewrapping {
+@MainActor extension RedactionScope: ContentRewrapping {
     var wrappedContent: Content { content }
 
     /// Its content's context: the reasons in force, these added, as its body
@@ -215,11 +216,11 @@ extension RedactionScope: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension RedactionScope: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension RedactionScope: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension RedactionScope: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension RedactionScope: GridRowProviding where Content: GridRowProviding {}
 
 extension View {
     /// Marks the view as containing sensitive, private user data.
@@ -239,14 +240,14 @@ extension View {
     /// - Parameter sensitive: Whether the view's content is private; `false`
     ///   un-marks a subtree inside a marked one.
     /// - Returns: A view marked as privacy-sensitive, or not.
-    public func privacySensitive(_ sensitive: Bool = true) -> some View {
+    nonisolated public func privacySensitive(_ sensitive: Bool = true) -> some View {
         environment(\.isPrivacySensitive, sensitive)
     }
 }
 
 // MARK: - Environment without reflection
 
-extension RedactionScope: ResolvesOwnEnvironment {
+@MainActor extension RedactionScope: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _inherited.resolveEnvironment(environment)
     }

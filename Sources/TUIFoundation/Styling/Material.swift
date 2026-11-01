@@ -267,7 +267,7 @@ struct _MaterialActiveAppearanceStyle<Base: ShapeStyle>: ShapeStyle {
 extension View {
     /// Sets the active appearance of the materials in this view — mirrors
     /// SwiftUI's `View.materialActiveAppearance(_:)`.
-    public func materialActiveAppearance(_ appearance: MaterialActiveAppearance) -> some View {
+    nonisolated public func materialActiveAppearance(_ appearance: MaterialActiveAppearance) -> some View {
         environment(\.materialActiveAppearance, appearance)
     }
 }

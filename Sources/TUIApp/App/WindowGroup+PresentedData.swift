@@ -292,7 +292,7 @@ extension WindowGroup {
 
 // MARK: - The Default Value
 
-extension PresentedWindowContent {
+@MainActor extension PresentedWindowContent {
     /// Content built from a binding to a value that is never `nil`: the
     /// window's value, or `defaultValue()` while it presents none.
     static func defaulting(

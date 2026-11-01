@@ -44,7 +44,7 @@ package protocol GridRowMarking {
 /// other question about its content through: layout values (a cell's span,
 /// anchor and column alignment), an explicit `.id(_:)`, a guide, a z-index, a
 /// container value.
-package struct _GridRowMarkView<Content: View>: View {
+nonisolated package struct _GridRowMarkView<Content: View>: View {
     let mark: GridRowMark
     let content: Content
 
@@ -55,35 +55,35 @@ package struct _GridRowMarkView<Content: View>: View {
         self.content = content
     }
 
-    package var body: some View {
+    @MainActor package var body: some View {
         content
     }
 
     /// Size-neutral, so a guide inside the cell is the cell's.
-    package static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
+    @MainActor package static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
-extension _GridRowMarkView: GridRowMarking {
+@MainActor extension _GridRowMarkView: GridRowMarking {
     package var gridRowMark: GridRowMark { mark }
 }
 
-extension _GridRowMarkView: SingleContentWrapper {
+@MainActor extension _GridRowMarkView: SingleContentWrapper {
     package var wrappedContent: Content { content }
 }
 
-extension _GridRowMarkView: ContentRewrapping {
+@MainActor extension _GridRowMarkView: ContentRewrapping {
     package func rewrapping<V: View>(_ view: V) -> any View {
         _GridRowMarkView<V>(mark: mark, content: view)
     }
 }
 
-extension _GridRowMarkView: LayoutValueProviding {
+@MainActor extension _GridRowMarkView: LayoutValueProviding {
     package func layoutValue(for key: ObjectIdentifier) -> Any? {
         (content as? LayoutValueProviding)?.layoutValue(for: key)
     }
 }
 
-extension _GridRowMarkView: ExplicitIDProviding {
+@MainActor extension _GridRowMarkView: ExplicitIDProviding {
     package var explicitIDKey: String? {
         (content as? ExplicitIDProviding)?.explicitIDKey
     }

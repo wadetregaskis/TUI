@@ -38,7 +38,7 @@ extension View {
     /// - Parameter keeps: Whether the state is kept. `false` lets it go as
     ///   usual.
     /// - Returns: A view that keeps its hidden descendants' state.
-    public func keepsStateWhileHidden(_ keeps: Bool = true) -> some View {
+    nonisolated public func keepsStateWhileHidden(_ keeps: Bool = true) -> some View {
         _HiddenStateKeeper(keeps: keeps, content: self)
     }
 }
@@ -49,15 +49,15 @@ extension View {
 /// tells the conditionals below not to drop the branch they turn away from
 /// (``EnvironmentValues/keepsHiddenState``), which they otherwise do the
 /// moment they flip.
-private struct _HiddenStateKeeper<Content: View>: View, Renderable, Layoutable {
+nonisolated private struct _HiddenStateKeeper<Content: View>: View, Renderable, Layoutable {
     let keeps: Bool
     let content: Content
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_HiddenStateKeeper renders via Renderable")
     }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Render path only: a measure must not write persistent state, and the
         // declaration is per pass — the render that follows makes it. A memo
         // serving this subtree keeps its state as it is served.
@@ -72,7 +72,7 @@ private struct _HiddenStateKeeper<Content: View>: View, Renderable, Layoutable {
 
     /// Transparent: no chrome and no identity step, so it measures exactly as
     /// what it wraps.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         guard keeps else { return measureChild(content, proposal: proposal, context: context) }
         var inner = context
         inner.environment.keepsHiddenState = true

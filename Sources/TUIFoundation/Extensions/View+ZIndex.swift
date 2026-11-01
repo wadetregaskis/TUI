@@ -15,7 +15,7 @@
 ///
 /// - Important: Framework infrastructure. Created by ``View/zIndex(_:)``; do
 ///   not instantiate directly.
-public struct _ZIndexView<Content: View>: View {
+nonisolated public struct _ZIndexView<Content: View>: View {
     /// The z-index value. Higher values draw later (on top).
     ///
     /// Public because it witnesses the `public` ``ZIndexProviding`` requirement.
@@ -24,20 +24,20 @@ public struct _ZIndexView<Content: View>: View {
     /// The wrapped content view.
     let content: Content
 
-    public var body: some View {
+    @MainActor public var body: some View {
         content
     }
 
     /// Static witness used by the child-layout path to detect a z-index wrapper
     /// without a runtime `as? ZIndexProviding` cast. See ``View/_providesZIndex``.
-    public static var _providesZIndex: Bool { true }
+    @MainActor public static var _providesZIndex: Bool { true }
 }
 
-extension _ZIndexView: ZIndexProviding {}
+@MainActor extension _ZIndexView: ZIndexProviding {}
 
 // MARK: - Equatable Conformance
 
-extension _ZIndexView: @preconcurrency Equatable where Content: Equatable {
+extension _ZIndexView: Equatable where Content: Equatable {
     public static func == (lhs: _ZIndexView<Content>, rhs: _ZIndexView<Content>) -> Bool {
         lhs.zIndexValue == rhs.zIndexValue && lhs.content == rhs.content
     }
@@ -78,7 +78,7 @@ extension View {
     ///
     /// - Parameter value: The relative drawing order. Higher draws later.
     /// - Returns: A view with the given z-index.
-    public func zIndex(_ value: Double) -> some View {
+    nonisolated public func zIndex(_ value: Double) -> some View {
         _ZIndexView(zIndexValue: value, content: self)
     }
 }
@@ -89,14 +89,14 @@ extension View {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _ZIndexView: SingleContentWrapper {
+@MainActor extension _ZIndexView: SingleContentWrapper {
     public var wrappedContent: Content { content }
 }
 
 /// A z-index on several views is each one's: `ZStack { Group { a; b
 /// }.zIndex(1); c }` draws both `a` and `b` over `c`, and an `HStack` lays the
 /// members side by side, as SwiftUI's modifier on a `Group` reaches each.
-extension _ZIndexView: ContentRewrapping {
+@MainActor extension _ZIndexView: ContentRewrapping {
     public func rewrapping<V: View>(_ view: V) -> any View {
         _ZIndexView<V>(zIndexValue: zIndexValue, content: view)
     }
@@ -104,16 +104,16 @@ extension _ZIndexView: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``ContentRewrapping`` wrapper.
-extension _ZIndexView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _ZIndexView: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Each of a row's cells at the z-index, as each member is.
-extension _ZIndexView: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension _ZIndexView: GridRowProviding where Content: GridRowProviding {}
 
 // MARK: - In a Form
 
 /// A z-index written on a form row is the row's the form lays out, which keeps
 /// its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
-extension _ZIndexView: FormRowRewrapping {
+@MainActor extension _ZIndexView: FormRowRewrapping {
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {
         _ZIndexView<V>(zIndexValue: zIndexValue, content: row)
     }

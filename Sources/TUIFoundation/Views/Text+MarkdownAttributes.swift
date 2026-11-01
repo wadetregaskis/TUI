@@ -8,7 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-extension Text {
+@MainActor extension Text {
     /// This text with the inline Markdown `attributes` applied, each key as
     /// the `Text` modifier it names applies it.
     ///
@@ -42,7 +42,7 @@ extension Text {
     /// inner bracket's before an outer one's (``InlineMarkdown/Span/attributes``).
     /// A key TUI does not know — `inflect` — and a value it cannot read are
     /// passed over, and the text drawn as if they were not there.
-    func applyingMarkdownAttributes(_ attributes: [InlineMarkdown.Attribute]) -> Text {
+    nonisolated func applyingMarkdownAttributes(_ attributes: [InlineMarkdown.Attribute]) -> Text {
         var read = MarkdownAttributes()
         for attribute in attributes {
             read.read(attribute)
@@ -100,7 +100,7 @@ private struct MarkdownAttributes {
     /// `text` with what was read applied, through the modifiers the keys
     /// name. A weight before `dim`, as `.fontWeight(.bold).dim()` reads: the
     /// weight states `dim` too, and the key that says only that should win.
-    @MainActor func applied(to text: Text) -> Text {
+    nonisolated func applied(to text: Text) -> Text {
         var text = text
         if let font { text = text.font(font) }
         if let fontWeight { text = text.fontWeight(fontWeight) }

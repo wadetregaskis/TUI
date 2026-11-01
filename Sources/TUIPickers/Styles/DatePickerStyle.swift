@@ -15,10 +15,10 @@ import TUIFoundation
 /// The properties of a date picker.
 public struct DatePickerStyleConfiguration {
     /// A type-erased label of a date picker.
-    public struct Label: View {
+    nonisolated public struct Label: View {
         let content: AnyView
 
-        public var body: some View { content }
+        @MainActor public var body: some View { content }
     }
 
     /// A description of the date picker.
@@ -236,7 +236,7 @@ extension View {
     ///
     /// - Parameter style: The date picker style.
     /// - Returns: A view whose date pickers use `style`.
-    public func datePickerStyle<S: DatePickerStyle>(_ style: S) -> some View {
+    nonisolated public func datePickerStyle<S: DatePickerStyle>(_ style: S) -> some View {
         environment(\.datePickerStyle, style)
     }
 }

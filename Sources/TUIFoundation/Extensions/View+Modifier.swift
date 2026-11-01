@@ -11,7 +11,7 @@ extension View {
     ///
     /// - Parameter modifier: The modifier to apply.
     /// - Returns: A modified view.
-    public func modifier<M: BufferModifier>(_ modifier: M) -> ModifiedView<Self, M> {
+    nonisolated public func modifier<M: BufferModifier>(_ modifier: M) -> ModifiedView<Self, M> {
         ModifiedView(content: self, modifier: modifier)
     }
 }

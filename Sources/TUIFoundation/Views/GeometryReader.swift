@@ -278,7 +278,7 @@ public struct CellRect: Hashable, Sendable {
 /// GeometryReader { proxy in … }
 ///     .frame(width: 40, height: 10)
 /// ```
-public struct GeometryReader<Content: View>: View {
+nonisolated public struct GeometryReader<Content: View>: View {
     /// Builds the content from the resolved geometry.
     public let content: (GeometryProxy) -> Content
 
@@ -289,7 +289,7 @@ public struct GeometryReader<Content: View>: View {
         self.content = content
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _GeometryReaderCore(content: content)
     }
 }

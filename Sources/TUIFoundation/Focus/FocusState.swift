@@ -267,14 +267,14 @@ extension View {
     /// Binds this view's focus to a `Bool` `@FocusState`: it reads `true` while
     /// this view is focused, and setting it to `true`/`false` focuses/unfocuses
     /// the view.
-    public func focused(_ condition: FocusState<Bool>.Binding) -> some View {
+    nonisolated public func focused(_ condition: FocusState<Bool>.Binding) -> some View {
         _FocusedModifier(content: self, store: condition.store, value: true)
     }
 
     /// Binds this view's focus to a `@FocusState` for a specific `value`: the
     /// state takes `value` while this view is focused, and setting the state to
     /// `value` focuses this view.
-    public func focused<Value: Hashable>(
+    nonisolated public func focused<Value: Hashable>(
         _ binding: FocusState<Value>.Binding, equals value: Value
     ) -> some View {
         _FocusedModifier(content: self, store: binding.store, value: value)
@@ -287,7 +287,7 @@ extension View {
     /// With the default `.automatic` priority this is applied once and then the
     /// user controls focus; `.userInitiated` re-applies it every render, even
     /// after the user has moved focus.
-    public func defaultFocus<Value: Hashable>(
+    nonisolated public func defaultFocus<Value: Hashable>(
         _ binding: FocusState<Value>.Binding, _ value: Value,
         priority: DefaultFocusEvaluationPriority = .automatic
     ) -> some View {
@@ -307,21 +307,21 @@ public enum DefaultFocusEvaluationPriority: Sendable {
 
 /// Forces the wrapped control's focusID (via ``EnvironmentValues/assignedFocusID``)
 /// and registers the value↔focusID binding on the ``FocusManager`` each render.
-struct _FocusedModifier<Content: View, Value: Hashable>: View {
+nonisolated struct _FocusedModifier<Content: View, Value: Hashable>: View {
     let content: Content
     let store: FocusStateStore<Value>
     let value: Value
 
-    var body: some View { content }
+    @MainActor var body: some View { content }
 
     /// The forced id — stable across frames (structural identity of this
     /// modifier), distinct per `.focused` usage.
-    fileprivate func forcedID(_ context: RenderContext) -> String {
+    @MainActor fileprivate func forcedID(_ context: RenderContext) -> String {
         "focused-\(context.identity.path)"
     }
 }
 
-extension _FocusedModifier: Renderable {
+@MainActor extension _FocusedModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let id = forcedID(context)
         FocusBindingRegistrar.bind(store: store, value: value, focusID: id, context: context)
@@ -406,7 +406,7 @@ extension FocusBindingRegistrar {
     }
 }
 
-extension _FocusedModifier: Layoutable {
+@MainActor extension _FocusedModifier: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: modifiedContext(context))
     }
@@ -422,16 +422,16 @@ extension _FocusedModifier: Layoutable {
 /// Declares a store's initial-focus value on the ``FocusManager``; the actual
 /// move happens at `endRenderPass`, once the target's `.focused` binding has
 /// registered this frame (so there is no first-frame focus flash).
-struct _DefaultFocusModifier<Content: View, Value: Hashable>: View {
+nonisolated struct _DefaultFocusModifier<Content: View, Value: Hashable>: View {
     let content: Content
     let store: FocusStateStore<Value>
     let value: Value
     let priority: DefaultFocusEvaluationPriority
 
-    var body: some View { content }
+    @MainActor var body: some View { content }
 }
 
-extension _DefaultFocusModifier: Renderable {
+@MainActor extension _DefaultFocusModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         declareDefaultFocus(context: context)
         return TUIView.renderToBuffer(content, context: context)
@@ -496,7 +496,7 @@ extension _DefaultFocusModifier: Renderable {
     }
 }
 
-extension _DefaultFocusModifier: Layoutable {
+@MainActor extension _DefaultFocusModifier: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
@@ -528,7 +528,7 @@ extension FocusState: EnvironmentResolvable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _FocusedModifier: SingleContentWrapper {
+@MainActor extension _FocusedModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content's context: the focus identity it assigns (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -537,7 +537,7 @@ extension _FocusedModifier: SingleContentWrapper {
 
 /// `.focused` written on a form row binds the control in the row the form lays
 /// out, which keeps its place, as SwiftUI's form keeps a modified row.
-extension _FocusedModifier: FormRowRewrapping {
+@MainActor extension _FocusedModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
         _FocusedModifier<V, Value>(content: row, store: store, value: value)
     }
@@ -547,7 +547,7 @@ extension _FocusedModifier: FormRowRewrapping {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _DefaultFocusModifier: SingleContentWrapper {
+@MainActor extension _DefaultFocusModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -558,8 +558,8 @@ extension _DefaultFocusModifier: SingleContentWrapper {
 
 /// Each draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _FocusedModifier: DrawsContentUnchanged {}
-extension _DefaultFocusModifier: DrawsContentUnchanged {}
+@MainActor extension _FocusedModifier: DrawsContentUnchanged {}
+@MainActor extension _DefaultFocusModifier: DrawsContentUnchanged {}
 
 extension FocusState: FrameworkDynamicProperty {}
 
@@ -593,7 +593,7 @@ extension FocusState: PlaceBoundIdentity {
 /// A default focus written on a form row goes around the row the form lays
 /// out, which keeps its place, as SwiftUI's form keeps a row under the
 /// modifiers measured (`Tools/SwiftUIProbes/Form rows`).
-extension _DefaultFocusModifier: FormRowRewrapping {
+@MainActor extension _DefaultFocusModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
         _DefaultFocusModifier<V, Value>(content: row, store: store, value: value, priority: priority)
     }

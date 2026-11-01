@@ -31,7 +31,7 @@ public protocol ShapeView<Content>: View {
 
     /// The shape that this type draws and provides for other drawing
     /// operations.
-    var shape: Content { get }
+    nonisolated var shape: Content { get }
 }
 
 extension ShapeView {
@@ -42,7 +42,7 @@ extension ShapeView {
     ///     given.
     ///   - style: The fill rule and antialiasing.
     /// - Returns: The shape filled, over this.
-    public func fill<S: ShapeStyle>(
+    nonisolated public func fill<S: ShapeStyle>(
         _ content: S = .foreground, style: FillStyle = FillStyle()
     ) -> FillShapeView<Content, S, Self> {
         FillShapeView(shape: shape, style: content, fillStyle: style, background: self)
@@ -55,7 +55,7 @@ extension ShapeView {
     ///   - lineWidth: The line's width, in columns.
     ///   - antialiased: Whether the rasterized line's edges blend.
     /// - Returns: The shape stroked, over this.
-    public func stroke<S: ShapeStyle>(
+    nonisolated public func stroke<S: ShapeStyle>(
         _ content: S, lineWidth: CGFloat = 1, antialiased: Bool = true
     ) -> StrokeShapeView<Content, S, Self> {
         StrokeShapeView(
@@ -71,7 +71,7 @@ extension ShapeView {
     ///   - style: The stroke's characteristics.
     ///   - antialiased: Whether the rasterized line's edges blend.
     /// - Returns: The shape stroked, over this.
-    public func stroke<S: ShapeStyle>(
+    nonisolated public func stroke<S: ShapeStyle>(
         _ content: S, style: StrokeStyle, antialiased: Bool = true
     ) -> StrokeShapeView<Content, S, Self> {
         StrokeShapeView(shape: shape, style: content, strokeStyle: style, isAntialiased: antialiased, background: self)
@@ -87,7 +87,7 @@ extension ShapeView where Content: InsettableShape {
     ///   - lineWidth: The line's width, in columns.
     ///   - antialiased: Whether the rasterized line's edges blend.
     /// - Returns: The shape's border, over this.
-    public func strokeBorder<S: ShapeStyle>(
+    nonisolated public func strokeBorder<S: ShapeStyle>(
         _ content: S = .foreground, lineWidth: CGFloat = 1, antialiased: Bool = true
     ) -> StrokeBorderShapeView<Content, S, Self> {
         StrokeBorderShapeView(
@@ -104,7 +104,7 @@ extension ShapeView where Content: InsettableShape {
     ///   - style: The stroke's characteristics.
     ///   - antialiased: Whether the rasterized line's edges blend.
     /// - Returns: The shape's border, over this.
-    public func strokeBorder<S: ShapeStyle>(
+    nonisolated public func strokeBorder<S: ShapeStyle>(
         _ content: S = .foreground, style: StrokeStyle, antialiased: Bool = true
     ) -> StrokeBorderShapeView<Content, S, Self> {
         StrokeBorderShapeView(shape: shape, style: content, strokeStyle: style, isAntialiased: antialiased, background: self)

@@ -68,7 +68,7 @@ import TUIFoundation
 /// Composing an `AlertPanel` inline — in a `ZStack`, or through `.overlay` — is
 /// still legitimate when what you want is an alert-SHAPED panel that is part
 /// of the page. It is only "modal" that it cannot give you.
-public struct AlertPanel<Actions: View>: View {
+nonisolated public struct AlertPanel<Actions: View>: View {
     /// The alert title.
     let title: String
 
@@ -100,7 +100,7 @@ public struct AlertPanel<Actions: View>: View {
 
     /// This alert, noting where its title's and message's words came from
     /// (``titleSource``, ``messageSource``).
-    func withSources(title: LocalizedTextSource?, message: LocalizedTextSource?) -> Self {
+    nonisolated func withSources(title: LocalizedTextSource?, message: LocalizedTextSource?) -> Self {
         var sourced = self
         sourced.titleSource = title
         sourced.messageSource = message
@@ -192,7 +192,7 @@ public struct AlertPanel<Actions: View>: View {
         self.verticalButtons = verticalButtons
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _AlertPanelCore(
             title: title,
             message: message,

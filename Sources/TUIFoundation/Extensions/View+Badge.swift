@@ -23,7 +23,7 @@ extension View {
     ///
     /// - Parameter count: The count to display in the badge (0 hides the badge).
     /// - Returns: A view with the badge applied.
-    public func badge(_ count: Int) -> some View {
+    nonisolated public func badge(_ count: Int) -> some View {
         BadgeModifier(content: self, value: .int(count))
     }
 
@@ -46,7 +46,7 @@ extension View {
     ///
     /// - Note: Not optional, unlike the string form: `nil` is how a badge is
     ///   hidden and there is nothing to look up, so it stays on that overload.
-    public func badge(_ labelKey: LocalizedStringKey) -> some View {
+    nonisolated public func badge(_ labelKey: LocalizedStringKey) -> some View {
         badge(labelKey.localized)
     }
 
@@ -55,7 +55,7 @@ extension View {
     /// - Parameter label: The string label to display (nil or empty hides the badge).
     /// - Returns: A view with the badge applied.
     @_disfavoredOverload
-    public func badge<S>(_ label: S?) -> some View where S: StringProtocol {
+    nonisolated public func badge<S>(_ label: S?) -> some View where S: StringProtocol {
         BadgeModifier(content: self, value: .string(label.map { String($0) }))
     }
 }

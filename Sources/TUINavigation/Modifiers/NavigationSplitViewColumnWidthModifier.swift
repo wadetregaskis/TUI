@@ -64,19 +64,19 @@ struct NavigationSplitViewColumnWidth: Equatable, Sendable {
 ///
 /// This view sets a preference that ``NavigationSplitView`` can read to
 /// determine column widths.
-struct NavigationSplitViewColumnWidthView<Content: View>: View {
+nonisolated struct NavigationSplitViewColumnWidthView<Content: View>: View {
     /// The content view.
     let content: Content
 
     /// The column width configuration.
     let columnWidth: NavigationSplitViewColumnWidth
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("NavigationSplitViewColumnWidthView renders via Renderable")
     }
 }
 
-extension NavigationSplitViewColumnWidthView {
+@MainActor extension NavigationSplitViewColumnWidthView {
     /// Publishes this column's width request into the enclosing preference
     /// scope, having first declared it as a per-pass side effect.
     ///
@@ -93,14 +93,14 @@ extension NavigationSplitViewColumnWidthView {
     }
 }
 
-extension NavigationSplitViewColumnWidthView: Renderable {
+@MainActor extension NavigationSplitViewColumnWidthView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         publishColumnWidth(context: context)
         return TUIView.renderToBuffer(content, context: context)
     }
 }
 
-extension NavigationSplitViewColumnWidthView: Layoutable {
+@MainActor extension NavigationSplitViewColumnWidthView: Layoutable {
     /// Publishes the column-width *preference* and then measures as `content`,
     /// which it renders unchanged.
     ///
@@ -148,7 +148,7 @@ extension View {
     ///
     /// - Parameter width: The preferred column width in characters.
     /// - Returns: A view with the column width preference set.
-    public func navigationSplitViewColumnWidth(_ width: Int) -> some View {
+    nonisolated public func navigationSplitViewColumnWidth(_ width: Int) -> some View {
         NavigationSplitViewColumnWidthView(
             content: self,
             columnWidth: NavigationSplitViewColumnWidth(fixed: width)
@@ -185,7 +185,7 @@ extension View {
     ///   - ideal: The ideal column width in characters (optional).
     ///   - max: The maximum column width in characters (optional).
     /// - Returns: A view with the column width preference set.
-    public func navigationSplitViewColumnWidth(
+    nonisolated public func navigationSplitViewColumnWidth(
         min: Int? = nil,
         ideal: Int? = nil,
         max: Int? = nil
@@ -203,7 +203,7 @@ extension View {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension NavigationSplitViewColumnWidthView: SingleContentWrapper {
+@MainActor extension NavigationSplitViewColumnWidthView: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -214,4 +214,4 @@ extension NavigationSplitViewColumnWidthView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension NavigationSplitViewColumnWidthView: DrawsContentUnchanged {}
+@MainActor extension NavigationSplitViewColumnWidthView: DrawsContentUnchanged {}

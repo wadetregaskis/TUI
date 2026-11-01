@@ -144,7 +144,7 @@ extension View {
     ///   - behavior: When the push is allowed.
     ///   - axes: The axes it applies to; vertical by default, as in SwiftUI.
     /// - Returns: A view whose scrollables follow the behaviour.
-    public func scrollBounceBehavior(
+    nonisolated public func scrollBounceBehavior(
         _ behavior: ScrollBounceBehavior, axes: Axis.Set = [.vertical]
     ) -> some View {
         // Each axis written only when named, so two calls compose — the rule

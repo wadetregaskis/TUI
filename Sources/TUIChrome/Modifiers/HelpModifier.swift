@@ -26,21 +26,21 @@ import TUIFoundation
 /// - **Focus.** It writes `EnvironmentValues.helpText` for its content, and the
 ///   focused control claims it from there. Revealed by the help key rather than
 ///   automatically — see `TooltipState.keyboardRevealed`.
-package struct HelpModifier<Content: View>: View {
+nonisolated package struct HelpModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
     /// The localized help text.
     let text: String
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("HelpModifier renders via Renderable")
     }
 }
 
 // MARK: - Renderable
 
-extension HelpModifier: Renderable {
+@MainActor extension HelpModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var childContext = context
         childContext.environment.helpText = text
@@ -195,7 +195,7 @@ private final class HandlerIDBox {
 
 // MARK: - Layoutable
 
-extension HelpModifier: Layoutable {
+@MainActor extension HelpModifier: Layoutable {
     /// Forwards measurement to the content — help text changes no layout. The
     /// child is measured with `helpText` set, so a control that reads it while
     /// measuring sees the same value it will render with.
@@ -230,7 +230,7 @@ extension View {
     /// > a small behavioural change to whatever sits underneath.
     ///
     /// - Parameter textKey: The key for the help text.
-    public func help(_ textKey: LocalizedStringKey) -> some View {
+    nonisolated public func help(_ textKey: LocalizedStringKey) -> some View {
         HelpModifier(content: self, text: textKey.localized)
     }
 
@@ -245,7 +245,7 @@ extension View {
     ///
     /// - Parameter text: The help text.
     @_disfavoredOverload
-    public func help<S: StringProtocol>(_ text: S) -> some View {
+    nonisolated public func help<S: StringProtocol>(_ text: S) -> some View {
         HelpModifier(content: self, text: String(text))
     }
 
@@ -256,7 +256,7 @@ extension View {
     /// weight has nowhere to land.
     ///
     /// - Parameter text: The help text.
-    public func help(_ text: Text) -> some View {
+    nonisolated public func help(_ text: Text) -> some View {
         HelpModifier(content: self, text: text.content)
     }
 }
@@ -267,7 +267,7 @@ extension View {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension HelpModifier: SingleContentWrapper {
+@MainActor extension HelpModifier: SingleContentWrapper {
     /// Its content's geometry is its own — its help text is published to its content, drawn as it is — so a guide
     /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
     public static var _keepsContentGeometry: Bool { true }
@@ -285,7 +285,7 @@ extension HelpModifier: SingleContentWrapper {
 /// Help on several views is each one's, as SwiftUI's modifier on a `Group`
 /// reaches each member: hovering either member of `Group { a; b }.help("…")`
 /// shows it, and an `HStack` lays the members side by side.
-extension HelpModifier: ContentRewrapping {
+@MainActor extension HelpModifier: ContentRewrapping {
     public func rewrapping<V: View>(_ view: V) -> any View {
         HelpModifier<V>(content: view, text: text)
     }
@@ -293,11 +293,11 @@ extension HelpModifier: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``ContentRewrapping`` wrapper.
-extension HelpModifier: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension HelpModifier: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Help written on a form row is the help of the row the form lays out, which
 /// keeps its place: SwiftUI's form keeps a row with help in it (measured).
-extension HelpModifier: FormRowRewrapping {
+@MainActor extension HelpModifier: FormRowRewrapping {
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {
         HelpModifier<V>(content: row, text: text)
     }

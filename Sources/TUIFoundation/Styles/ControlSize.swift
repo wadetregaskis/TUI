@@ -95,7 +95,7 @@ extension View {
     ///
     /// - Parameter controlSize: One of the control sizes in ``ControlSize``.
     /// - Returns: A view that sets the size for controls within it.
-    public func controlSize(_ controlSize: ControlSize) -> some View {
+    nonisolated public func controlSize(_ controlSize: ControlSize) -> some View {
         environment(\.controlSize, controlSize)
     }
 
@@ -114,7 +114,7 @@ extension View {
     /// - Parameter range: The sizes the controls within this view may take.
     /// - Returns: A view that holds the size for controls within it in
     ///   `range`.
-    public func controlSize<T: RangeExpression>(_ range: T) -> some View where T.Bound == ControlSize {
+    nonisolated public func controlSize<T: RangeExpression>(_ range: T) -> some View where T.Bound == ControlSize {
         transformEnvironment(\.controlSize) { size in
             size = ControlSize.clamping(size, to: range)
         }

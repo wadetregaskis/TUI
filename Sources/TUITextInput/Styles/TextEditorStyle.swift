@@ -90,7 +90,7 @@ extension View {
     ///
     /// - Parameter style: The style to apply.
     /// - Returns: A view whose text editors use `style`.
-    public func textEditorStyle<S: TextEditorStyle>(_ style: S) -> some View {
+    nonisolated public func textEditorStyle<S: TextEditorStyle>(_ style: S) -> some View {
         environment(\.textEditorStyle, style)
     }
 }

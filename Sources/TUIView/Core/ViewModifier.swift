@@ -124,7 +124,7 @@ extension ViewModifier {
     ///
     /// - Parameter modifier: The modifier to apply after this one.
     /// - Returns: The two, as one modifier.
-    public func concat<T>(_ modifier: T) -> ModifiedContent<Self, T> {
+    nonisolated public func concat<T>(_ modifier: T) -> ModifiedContent<Self, T> {
         ModifiedContent(content: self, modifier: modifier)
     }
 }
@@ -152,7 +152,7 @@ extension ViewModifier where Self: Animatable {
 /// Generic over the modifier rather than the content, as SwiftUI's is, so one
 /// modifier type has one `Content` type whatever it is applied to: the view it
 /// stands for is held erased.
-public struct _ViewModifier_Content<Modifier: ViewModifier>: View {
+nonisolated public struct _ViewModifier_Content<Modifier: ViewModifier>: View {
     /// The view the modifier was applied to.
     let content: AnyView
 
@@ -160,7 +160,7 @@ public struct _ViewModifier_Content<Modifier: ViewModifier>: View {
         self.content = content
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         content
     }
 }
@@ -281,7 +281,7 @@ extension ModifiedContent: Animatable where Content: Animatable, Modifier: Anima
 
 /// A modifier that leaves the view it is applied to as it is — the identity
 /// that conditional modifier code starts from.
-public struct EmptyModifier: ViewModifier {
+nonisolated public struct EmptyModifier: ViewModifier, Sendable {
     /// The empty modifier.
     public static let identity = Self()
 
@@ -289,7 +289,7 @@ public struct EmptyModifier: ViewModifier {
     public init() {}
 
     /// The content, unchanged.
-    public func body(content: Content) -> some View {
+    @MainActor public func body(content: Content) -> some View {
         content
     }
 }
@@ -301,7 +301,7 @@ extension View {
     ///
     /// - Parameter modifier: The modifier to apply to this view.
     /// - Returns: This view with the modifier applied.
-    public func modifier<T: ViewModifier>(_ modifier: T) -> ModifiedContent<Self, T> {
+    nonisolated public func modifier<T: ViewModifier>(_ modifier: T) -> ModifiedContent<Self, T> {
         ModifiedContent(content: self, modifier: modifier)
     }
 }
@@ -334,7 +334,7 @@ public protocol EnvironmentalModifier: ViewModifier where Body == Never {
 
 extension EnvironmentalModifier {
     /// Never called: an environmental modifier is resolved, not built.
-    public func body(content: Content) -> Never {
+    nonisolated public func body(content: Content) -> Never {
         fatalError("\(Self.self) is resolved through resolve(in:), not built through body(content:)")
     }
 

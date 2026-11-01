@@ -51,7 +51,7 @@ extension View {
     ///     default) means below.
     ///   - content: A ViewBuilder returning the popover's content, called only
     ///     while the popover is presented, each time it is drawn.
-    public func popover<Content: View>(
+    nonisolated public func popover<Content: View>(
         isPresented: Binding<Bool>,
         attachmentAnchor: PopoverAttachmentAnchor = .rect(.bounds),
         arrowEdge: Edge? = nil,
@@ -75,7 +75,7 @@ extension View {
     ///   - arrowEdge: Which side of this view the popover sits on.
     ///   - content: A ViewBuilder building the popover from the unwrapped item,
     ///     called only while the popover is presented.
-    public func popover<Item: Identifiable, Content: View>(
+    nonisolated public func popover<Item: Identifiable, Content: View>(
         item: Binding<Item?>,
         attachmentAnchor: PopoverAttachmentAnchor = .rect(.bounds),
         arrowEdge: Edge? = nil,
@@ -114,7 +114,7 @@ extension View {
 ///
 /// `package` for TUITabs, whose tabs present their popovers with it
 /// (`TabContent.popover`), so a tab's popover adapts as a view's does.
-package struct _AdaptivePopover<Base: View, Popover: View>: View {
+package struct _AdaptivePopover<Base: View, Popover: View> {
     let base: Base
     let isPresented: Binding<Bool>
     let popover: () -> Popover
@@ -137,7 +137,7 @@ package struct _AdaptivePopover<Base: View, Popover: View>: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
-    package var body: some View {
+    @MainActor @ViewBuilder package var body: some View {
         let popover = isPresented.wrappedValue ? self.popover() : nil
         let form =
             popover.map { popoverForm(of: $0, horizontal: horizontalSizeClass, vertical: verticalSizeClass) }
@@ -155,19 +155,20 @@ package struct _AdaptivePopover<Base: View, Popover: View>: View {
 
     /// `isPresented` as `wanted` sees it: presented when it is, and the form
     /// is `wanted`. Writing it — a dismissal — writes the app's binding.
-    private func isPresented(as wanted: PopoverForm, when form: PopoverForm) -> Binding<Bool> {
+    @MainActor private func isPresented(as wanted: PopoverForm, when form: PopoverForm) -> Binding<Bool> {
         let isPresented = self.isPresented
         return Binding(
             get: { form == wanted && isPresented.wrappedValue },
             set: { isPresented.wrappedValue = $0 })
     }
 }
+extension _AdaptivePopover: View {}
 
 // MARK: - In a Form
 
 /// A popover written on a form row goes around the row the form lays out,
 /// which keeps its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
-extension _AdaptivePopover: FormRowRewrapping {
+@MainActor extension _AdaptivePopover: FormRowRewrapping {
     package var formRowContent: Base { base }
 
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {

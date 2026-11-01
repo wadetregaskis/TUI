@@ -12,7 +12,7 @@
 
 // MARK: - Row Slots
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// One child's vertical slot: content origin (below the inter-row spacing
     /// gap), measured size, and the spacing charged before it.
     struct RowSlot {
@@ -223,7 +223,7 @@ extension _VStackCore {
 
 // MARK: - LayoutPlacing
 
-extension _VStackCore: LayoutPlacing {
+@MainActor extension _VStackCore: LayoutPlacing {
     package func placementCount(context: RenderContext) -> Int {
         // O(1) for lazy providers (a ForEach answers from its data's count);
         // eager content pays its (already-paid) resolution.

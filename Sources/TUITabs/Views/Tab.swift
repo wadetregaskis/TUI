@@ -391,7 +391,7 @@ extension Tab where Label == EmptyView {
 
 /// The label of a tab built from a title and an SF Symbol or a named image:
 /// the symbol, where the terminal can draw it, or the picture, then the title.
-public struct DefaultTabLabel: View {
+nonisolated public struct DefaultTabLabel: View {
     /// The title, or `nil` for a tab whose role names it.
     let title: String?
     /// The SF Symbol's name, or `nil`.
@@ -406,7 +406,7 @@ public struct DefaultTabLabel: View {
         self.image = image
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         if let image, let title {
             TUIFoundation.Label { Text(verbatim: title) } icon: { Self.icon(image) }
         } else if let systemImage, let title {
@@ -418,14 +418,14 @@ public struct DefaultTabLabel: View {
 
     /// A tab's picture as its label draws it: in the two cells a symbol
     /// takes, as `Label(_:image:)` draws its icon.
-    static func icon(_ image: Image) -> some View {
+    @MainActor static func icon(_ image: Image) -> some View {
         image.resizable().frame(width: 2, height: 1)
     }
 
     /// The text a tab view's strip draws for this label: the symbol's glyph
     /// and a space where the terminal can draw the symbol, then the title — or,
     /// for a tab with no title, its role's own (``TabRole/search``'s "Search").
-    func stripTitle(role: TabRole?) -> String {
+    @MainActor func stripTitle(role: TabRole?) -> String {
         let text = title ?? role?.defaultTitle ?? ""
         guard let systemImage, SFSymbol.canRender(named: systemImage), let glyph = SFSymbol.glyph(named: systemImage)
         else { return text }

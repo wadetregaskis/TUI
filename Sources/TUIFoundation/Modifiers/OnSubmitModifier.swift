@@ -16,28 +16,28 @@ import TUIView
 /// — a View + Renderable + Layoutable modifier that read-modify-writes the
 /// environment at render time — instead of the plain `.environment(_:_:)` setter,
 /// which would clobber any outer `.onSubmit`.
-package struct OnSubmitModifier<Content: View>: View {
+nonisolated package struct OnSubmitModifier<Content: View>: View {
     public let content: Content
     let triggers: SubmitTriggers
     let action: () -> Void
 
     /// Not used during rendering — ``Renderable`` conformance takes priority.
-    public var body: some View { content }
+    @MainActor public var body: some View { content }
 
-    private func modifiedContext(_ context: RenderContext) -> RenderContext {
+    @MainActor private func modifiedContext(_ context: RenderContext) -> RenderContext {
         var actions = context.environment.submitActions
         actions.append(SubmitActionEntry(triggers: triggers, action: action))
         return context.withEnvironment(context.environment.setting(\.submitActions, to: actions))
     }
 }
 
-extension OnSubmitModifier: Renderable {
+@MainActor extension OnSubmitModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: modifiedContext(context))
     }
 }
 
-extension OnSubmitModifier: Layoutable {
+@MainActor extension OnSubmitModifier: Layoutable {
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: modifiedContext(context))
     }
@@ -50,14 +50,14 @@ extension OnSubmitModifier: Layoutable {
 /// The mirror image of ``OnSubmitModifier``, and built the same way for the
 /// same reason: it has to read-modify-write the environment at render time,
 /// because what it does is relative to what is already there.
-struct SubmitScopeModifier<Content: View>: View {
+nonisolated struct SubmitScopeModifier<Content: View>: View {
     let content: Content
     let isBlocking: Bool
 
     /// Not used during rendering — ``Renderable`` conformance takes priority.
-    var body: some View { content }
+    @MainActor var body: some View { content }
 
-    private func modifiedContext(_ context: RenderContext) -> RenderContext {
+    @MainActor private func modifiedContext(_ context: RenderContext) -> RenderContext {
         guard isBlocking else { return context }
         // Emptying the list is the whole mechanism: an `.onSubmit` INSIDE the
         // scope appends to this empty list and still runs, which is exactly
@@ -71,13 +71,13 @@ struct SubmitScopeModifier<Content: View>: View {
     }
 }
 
-extension SubmitScopeModifier: Renderable {
+@MainActor extension SubmitScopeModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: modifiedContext(context))
     }
 }
 
-extension SubmitScopeModifier: Layoutable {
+@MainActor extension SubmitScopeModifier: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: modifiedContext(context))
     }
@@ -110,7 +110,7 @@ extension View {
     /// - Parameters:
     ///   - triggers: Which submissions the action responds to (default ``SubmitTriggers/text``).
     ///   - action: The action to run on submit.
-    public func onSubmit(
+    nonisolated public func onSubmit(
         of triggers: SubmitTriggers = .text, _ action: @escaping () -> Void
     ) -> some View {
         OnSubmitModifier(content: self, triggers: triggers, action: action)
@@ -137,7 +137,7 @@ extension View {
     /// an off switch — and is SwiftUI's rule too.
     ///
     /// - Parameter isBlocking: Whether to block the cascade. Default `true`.
-    public func submitScope(_ isBlocking: Bool = true) -> some View {
+    nonisolated public func submitScope(_ isBlocking: Bool = true) -> some View {
         SubmitScopeModifier(content: self, isBlocking: isBlocking)
     }
 }
@@ -148,7 +148,7 @@ extension View {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension OnSubmitModifier: SingleContentWrapper {
+@MainActor extension OnSubmitModifier: SingleContentWrapper {
     public var wrappedContent: Content { content }
 
     /// Its content's context: the submit action it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -157,7 +157,7 @@ extension OnSubmitModifier: SingleContentWrapper {
 
 /// A submit action written on a form row goes around the row the form lays
 /// out, which keeps its place, as SwiftUI's form keeps a modified row.
-extension OnSubmitModifier: FormRowRewrapping {
+@MainActor extension OnSubmitModifier: FormRowRewrapping {
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {
         OnSubmitModifier<V>(content: row, triggers: triggers, action: action)
     }
@@ -167,7 +167,7 @@ extension OnSubmitModifier: FormRowRewrapping {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension SubmitScopeModifier: SingleContentWrapper {
+@MainActor extension SubmitScopeModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content's context: the submit scope it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -178,5 +178,5 @@ extension SubmitScopeModifier: SingleContentWrapper {
 
 /// Each draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension OnSubmitModifier: DrawsContentUnchanged {}
-extension SubmitScopeModifier: DrawsContentUnchanged {}
+@MainActor extension OnSubmitModifier: DrawsContentUnchanged {}
+@MainActor extension SubmitScopeModifier: DrawsContentUnchanged {}

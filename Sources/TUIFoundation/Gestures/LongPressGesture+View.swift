@@ -45,7 +45,7 @@ extension View {
     ///   - onPressingChanged: A closure to run when the pressing state of the
     ///     gesture changes, passing the current state as a parameter.
     /// - Returns: The view, with the long press attached.
-    public func onLongPressGesture(
+    nonisolated public func onLongPressGesture(
         minimumDuration: Double = 0.5, maximumDistance: Int = 1, perform action: @escaping () -> Void,
         onPressingChanged: ((Bool) -> Void)? = nil
     ) -> some View {
@@ -60,14 +60,14 @@ extension View {
 
 /// A long press that reports when it starts and stops being pressed — the
 /// gesture behind ``View/onLongPressGesture(minimumDuration:maximumDistance:perform:onPressingChanged:)``.
-struct _PressingLongPressGesture: Gesture {
+nonisolated struct _PressingLongPressGesture: Gesture {
     let base: LongPressGesture
     let onPressingChanged: ((Bool) -> Void)?
 
     typealias Value = Bool
     typealias Body = Never
 
-    static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Bool> {
+    @MainActor static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Bool> {
         let base = LongPressGesture._makeGesture(gesture: gesture.base, inputs: inputs.child(0))
         guard let onPressingChanged = gesture.onPressingChanged else { return base }
         let node = inputs.node { PressingGestureNode() }

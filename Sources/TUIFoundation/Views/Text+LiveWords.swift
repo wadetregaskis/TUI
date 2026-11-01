@@ -35,7 +35,7 @@ package struct LiveWords: Hashable, Sendable {
     }
 }
 
-extension Text {
+@MainActor extension Text {
     /// This text's words as ``LiveWords`` where any of it reads the clock;
     /// `nil` for a text that does not, which is one check of its runs.
     package var liveWords: LiveWords? {

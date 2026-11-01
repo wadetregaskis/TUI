@@ -59,7 +59,7 @@ extension View {
     ///
     /// - Parameter scope: What a selection begun inside keeps to.
     /// - Returns: A view whose containers keep a selection as `scope` says.
-    public func textSelectionScope(_ scope: TextSelectionScope) -> some View {
+    nonisolated public func textSelectionScope(_ scope: TextSelectionScope) -> some View {
         environment(\.textSelectionScope, scope)
     }
 }

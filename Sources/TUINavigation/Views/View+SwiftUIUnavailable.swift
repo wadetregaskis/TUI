@@ -15,10 +15,10 @@ import TUIFoundation
 
 /// SwiftUI's older navigation container, there only for its compile error.
 @available(*, unavailable, renamed: "NavigationStack", message: "For columns, use NavigationSplitView. SwiftUI has deprecated NavigationView too.")
-public struct NavigationView<Content: View>: View {
+nonisolated public struct NavigationView<Content: View>: View {
     private let content: Content
     public init(@ViewBuilder content: () -> Content) { self.content = content() }
-    public var body: some View { content }
+    @MainActor public var body: some View { content }
 }
 
 extension NavigationLink {
@@ -46,23 +46,23 @@ extension NavigationLink {
 extension View {
     @available(*, unavailable, renamed: "navigationTitle(_:)", message: "SwiftUI has deprecated navigationBarTitle too.")
     @_alwaysEmitIntoClient
-    public func navigationBarTitle<Title>(_ title: Title) -> Self { self }
+    nonisolated public func navigationBarTitle<Title>(_ title: Title) -> Self { self }
 
     @available(*, unavailable, message: "Use .navigationTitle. A title is one line of text, so it has no display modes.")
     @_alwaysEmitIntoClient
-    public func navigationBarTitle<Title>(_ title: Title, displayMode: NavigationBarItem.TitleDisplayMode) -> Self { self }
+    nonisolated public func navigationBarTitle<Title>(_ title: Title, displayMode: NavigationBarItem.TitleDisplayMode) -> Self { self }
 
     @available(*, unavailable, message: "A title is one line of text, so it has no display modes. Delete this.")
     @_alwaysEmitIntoClient
-    public func navigationBarTitleDisplayMode(_ displayMode: NavigationBarItem.TitleDisplayMode) -> Self { self }
+    nonisolated public func navigationBarTitleDisplayMode(_ displayMode: NavigationBarItem.TitleDisplayMode) -> Self { self }
 
     @available(*, unavailable, message: "Use .toolbarVisibility(.hidden). SwiftUI has deprecated navigationBarHidden too.")
     @_alwaysEmitIntoClient
-    public func navigationBarHidden(_ hidden: Bool) -> Self { self }
+    nonisolated public func navigationBarHidden(_ hidden: Bool) -> Self { self }
 
     @available(*, unavailable, message: "NavigationStack is always a stack. For columns, use NavigationSplitView, with .navigationSplitViewStyle.")
     @_alwaysEmitIntoClient
-    public func navigationViewStyle(_ style: NavigationViewStyle) -> Self { self }
+    nonisolated public func navigationViewStyle(_ style: NavigationViewStyle) -> Self { self }
 }
 
 /// The home of the display modes `navigationBarTitleDisplayMode(_:)` offers, there

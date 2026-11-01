@@ -34,7 +34,7 @@ import TUIFoundation
 /// A timeline started part-way through another starts at rest: TUI's
 /// keyframes take no initial velocity, so a spring or cubic keyframe does not
 /// carry on the velocity of the one it replaced, as SwiftUI's does.
-public struct KeyframeAnimator<Value, KeyframePath: Keyframes, Content: View>: View
+public struct KeyframeAnimator<Value, KeyframePath: Keyframes, Content: View>
 where Value == KeyframePath.Value {
     private let initialValue: Value
     private let trigger: AnyEquatableBox?
@@ -88,7 +88,8 @@ where Value == KeyframePath.Value {
         self.keyframes = keyframes
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         TimelineView(.animation(paused: !isPlaying)) { context in
             content(value(at: context.date))
         }
@@ -108,7 +109,7 @@ where Value == KeyframePath.Value {
     }
 
     /// Starts a timeline from `start`, timed from the next frame drawn.
-    private func play(from start: Value) {
+    @MainActor private func play(from start: Value) {
         playback.timeline = KeyframeTimeline(initialValue: start) { keyframes(start) }
         playback.startDate = nil
         playback.hasFinished = false
@@ -117,7 +118,7 @@ where Value == KeyframePath.Value {
 
     /// The value at `date`: the playing timeline's, the rest value where none
     /// plays, or — repeating off — the value at the start of the timeline.
-    private func value(at date: Date) -> Value {
+    @MainActor private func value(at date: Date) -> Value {
         guard isPlaying, let timeline = playback.timeline else {
             if trigger == nil, !repeating {
                 let timeline = playback.timeline ?? KeyframeTimeline(initialValue: initialValue) { keyframes(initialValue) }
@@ -157,10 +158,13 @@ where Value == KeyframePath.Value {
         return value
     }
 }
+extension KeyframeAnimator: View {}
 
 /// A keyframe animator's playback, kept across its body's evaluations.
 @MainActor
 private final class KeyframePlayback<Value> {
+    nonisolated init() {}
+
     /// The timeline playing, or last played.
     var timeline: KeyframeTimeline<Value>?
     /// When it started, on the frame clock: `nil` until a frame draws it.
@@ -192,7 +196,7 @@ extension View {
     ///   - content: This view, as a placeholder, and the value: the view at it.
     ///   - keyframes: The keyframes, from the value they start at.
     /// - Returns: This view, animated by the keyframes.
-    public func keyframeAnimator<Value, Result: View, Path: Keyframes<Value>>(
+    @MainActor public func keyframeAnimator<Value, Result: View, Path: Keyframes<Value>>(
         initialValue: Value, repeating: Bool = true,
         @ViewBuilder content: @escaping @MainActor @Sendable (PlaceholderContentView<Self>, Value) -> Result,
         @KeyframesBuilder<Value> keyframes: @escaping (Value) -> Path
@@ -214,7 +218,7 @@ extension View {
     ///   - content: This view, as a placeholder, and the value: the view at it.
     ///   - keyframes: The keyframes, from the value they start at.
     /// - Returns: This view, animated by the keyframes when `trigger` changes.
-    public func keyframeAnimator<Value, Result: View, Path: Keyframes<Value>>(
+    @MainActor public func keyframeAnimator<Value, Result: View, Path: Keyframes<Value>>(
         initialValue: Value, trigger: some Equatable,
         @ViewBuilder content: @escaping @MainActor @Sendable (PlaceholderContentView<Self>, Value) -> Result,
         @KeyframesBuilder<Value> keyframes: @escaping (Value) -> Path

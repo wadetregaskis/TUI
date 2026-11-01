@@ -149,7 +149,7 @@ func alertActions(from view: some View, in context: RenderContext) -> [AlertActi
 
 // MARK: - ButtonProvider Conformances
 
-extension Button: ButtonProvider {
+@MainActor extension Button: ButtonProvider {
     func extractActions(in context: RenderContext) -> [AlertAction] {
         [AlertAction(self)]
     }

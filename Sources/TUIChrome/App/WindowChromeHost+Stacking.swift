@@ -9,7 +9,7 @@
 
 import TUIFoundation
 
-extension _WindowChromeHost {
+@MainActor extension _WindowChromeHost {
     /// What each bar drew this walk, if anything.
     struct Bars {
         var menu: FrameBuffer?

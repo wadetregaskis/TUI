@@ -37,7 +37,7 @@ import TUIFoundation
 /// While it runs the content is drawn every frame its animations draw, as for
 /// any running animation; a trigger-less animator therefore draws every frame
 /// for as long as it is on screen.
-public struct PhaseAnimator<Phase: Equatable, Content: View>: View {
+public struct PhaseAnimator<Phase: Equatable, Content: View> {
     private let phases: [Phase]
     private let trigger: AnyEquatableBox?
     private let content: (Phase) -> Content
@@ -84,7 +84,8 @@ public struct PhaseAnimator<Phase: Equatable, Content: View>: View {
         self.animation = animation
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         // An empty sequence has no phase to draw: SwiftUI warns and draws a
         // warning in its place; here it draws nothing.
         if !phases.isEmpty {
@@ -100,14 +101,14 @@ public struct PhaseAnimator<Phase: Equatable, Content: View>: View {
 
     /// A trigger change: a run through the phases, from the second to the
     /// first. Under way already, the step being taken finishes first.
-    private func beginRun() {
+    @MainActor private func beginRun() {
         run.queue = Array(1..<phases.count) + [0]
         if !run.isStepping { advance() }
     }
 
     /// Takes the next step: the next in the run's queue, or — trigger-less —
     /// the next phase round. Nothing, with no step to take.
-    private func advance() {
+    @MainActor private func advance() {
         guard run.isShown, !phases.isEmpty else { return }
         let next: Int
         if !run.queue.isEmpty {
@@ -150,10 +151,13 @@ public struct PhaseAnimator<Phase: Equatable, Content: View>: View {
         }
     }
 }
+extension PhaseAnimator: View {}
 
 /// A phase animator's run, kept across its body's evaluations.
 @MainActor
 private final class PhaseRun {
+    nonisolated init() {}
+
     /// The phases still to step into, in order, for a trigger's run.
     var queue: [Int] = []
     /// Whether a step's animation is under way.
@@ -185,7 +189,7 @@ extension View {
     ///     that phase.
     ///   - animation: The animation into a phase; `nil` steps into it at once.
     /// - Returns: This view, animated through the phases.
-    public func phaseAnimator<Phase: Equatable, Result: View>(
+    nonisolated public func phaseAnimator<Phase: Equatable, Result: View>(
         _ phases: some Sequence<Phase>, trigger: some Equatable,
         @ViewBuilder content: @escaping (PlaceholderContentView<Self>, Phase) -> Result,
         animation: @escaping (Phase) -> Animation? = { _ in .default }
@@ -204,7 +208,7 @@ extension View {
     ///     that phase.
     ///   - animation: The animation into a phase; `nil` steps into it at once.
     /// - Returns: This view, animated through the phases, round and round.
-    public func phaseAnimator<Phase: Equatable, Result: View>(
+    nonisolated public func phaseAnimator<Phase: Equatable, Result: View>(
         _ phases: some Sequence<Phase>,
         @ViewBuilder content: @escaping (PlaceholderContentView<Self>, Phase) -> Result,
         animation: @escaping (Phase) -> Animation? = { _ in .default }

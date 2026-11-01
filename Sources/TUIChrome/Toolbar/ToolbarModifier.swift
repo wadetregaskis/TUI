@@ -38,7 +38,7 @@ extension View {
     ///
     /// - Parameter content: The items representing the content of the toolbar.
     /// - Returns: A view that declares the items.
-    public func toolbar<Content: ToolbarContent>(@ToolbarContentBuilder content: () -> Content) -> some View {
+    nonisolated public func toolbar<Content: ToolbarContent>(@ToolbarContentBuilder content: () -> Content) -> some View {
         _ToolbarModifier(content: self, items: content())
     }
 
@@ -50,7 +50,7 @@ extension View {
     ///
     /// - Parameter content: The views representing the content of the toolbar.
     /// - Returns: A view that declares the views.
-    public func toolbar<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    nonisolated public func toolbar<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         _ToolbarModifier(content: self, items: ToolbarItemGroup(placement: .automatic, content: content))
     }
 }
@@ -67,7 +67,7 @@ extension View {
 /// Declared on the drawn walk only — a measurement declares nothing — except
 /// the first frame's seeding walk, which is a measurement whose whole purpose
 /// is to find the chrome (``EnvironmentValues/seedsWindowChrome``).
-struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable, Layoutable {
+nonisolated struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable, Layoutable {
     let content: Content
     let items: Items
 
@@ -75,9 +75,9 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
     /// `nil` for an ordinary one.
     var customizationID: String?
 
-    var body: Never { fatalError("_ToolbarModifier renders via Renderable") }
+    @MainActor var body: Never { fatalError("_ToolbarModifier renders via Renderable") }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // In a sheet, a cover or a popover the items are drawn here, round the
         // content (`ToolbarPresentationRows.swift`): the window's bars are
         // inert while the presentation holds the input.
@@ -146,7 +146,7 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
     /// popped again, and a search field there was cleared. The view is still
     /// drawn; so, as far as its state is concerned, are its items — as the
     /// window does for a bar it hides (`retainUndrawnItems`).
-    private func retainItems(depth: Int, storage: StateStorage, context: RenderContext) {
+    @MainActor private func retainItems(depth: Int, storage: StateStorage, context: RenderContext) {
         for item in toolbarItems(of: items) {
             let identity = itemIdentity(item, depth: depth, context: context)
             storage.markActive(identity)
@@ -156,7 +156,7 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
 
     /// The items are drawn by the window's bars, so this measures as `content`
     /// — except in presented content, which draws them round it.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         if context.environment.presentationHostsToolbar {
             guard let host = context.environment.presentationToolbar else {
                 return sizeInPresentation(proposal: proposal, context: context)
@@ -170,7 +170,7 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
 /// The identity step a toolbar item takes under the view that declared it.
 enum _ToolbarItemSlot {}
 
-extension _ToolbarModifier {
+@MainActor extension _ToolbarModifier {
     /// How a navigation stack's bar draws a run of the items a screen put in
     /// it: side by side, as a window bar's run (``_ToolbarItemRun``).
     static var drawsItems: @MainActor ([WindowChromeState.ToolbarEntry]) -> AnyView {
@@ -212,7 +212,7 @@ extension EnvironmentValues {
     }
 }
 
-extension _ToolbarModifier {
+@MainActor extension _ToolbarModifier {
     /// How many `.toolbar`s at this identity enclose this one, and the context
     /// its content is measured and drawn in, which says so to the next one in.
     ///
@@ -252,6 +252,6 @@ extension _ToolbarModifier {
 /// unaffected by views that aren't containers". Read-only: it does NOT conform to
 /// ``ContentRewrapping``, so its declaration is not multiplied across the
 /// members of multi-view content.
-extension _ToolbarModifier: SingleContentWrapper {
+@MainActor extension _ToolbarModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 }

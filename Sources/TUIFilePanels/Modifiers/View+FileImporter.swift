@@ -61,7 +61,7 @@ extension View {
     ///     be imported.
     ///   - onCompletion: A callback that will be invoked when the operation has
     ///     succeeded or failed.
-    public func fileImporter(
+    nonisolated public func fileImporter(
         isPresented: Binding<Bool>, allowedContentTypes: [UTType],
         onCompletion: @escaping (Result<URL, any Error>) -> Void
     ) -> some View {
@@ -98,7 +98,7 @@ extension View {
     ///     select more than one file to import.
     ///   - onCompletion: A callback that will be invoked when the operation has
     ///     succeeded or failed.
-    public func fileImporter(
+    nonisolated public func fileImporter(
         isPresented: Binding<Bool>, allowedContentTypes: [UTType], allowsMultipleSelection: Bool,
         onCompletion: @escaping (Result<[URL], any Error>) -> Void
     ) -> some View {
@@ -125,7 +125,7 @@ extension View {
     ///     succeeded or failed.
     ///   - onCancellation: A callback that will be invoked if the user cancels
     ///     the operation.
-    public func fileImporter(
+    nonisolated public func fileImporter(
         isPresented: Binding<Bool>, allowedContentTypes: [UTType], allowsMultipleSelection: Bool,
         onCompletion: @escaping (Result<[URL], any Error>) -> Void, onCancellation: @escaping () -> Void
     ) -> some View {
@@ -136,7 +136,7 @@ extension View {
     }
 
     /// The three importers' one presentation.
-    private func fileImporterPanel(
+    nonisolated private func fileImporterPanel(
         isPresented: Binding<Bool>, allowedContentTypes: [UTType], allowsMultipleSelection: Bool,
         onChoose: @escaping ([URL]) -> Void, onCancellation: @escaping () -> Void
     ) -> some View {

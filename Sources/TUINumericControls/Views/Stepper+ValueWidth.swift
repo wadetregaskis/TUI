@@ -46,7 +46,7 @@ extension View {
     /// - Parameter width: The cells to reserve, `0` for none, or `nil` to fit
     ///   the bounds.
     /// - Returns: A view whose steppers reserve `width` cells for their value.
-    public func stepperValueWidth(_ width: Int?) -> some View {
+    nonisolated public func stepperValueWidth(_ width: Int?) -> some View {
         environment(\.stepperValueWidth, width.map { max(0, $0) })
     }
 }

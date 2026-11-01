@@ -38,7 +38,7 @@ extension EnvironmentValues {
 /// Disables every control in its content's subtree by ANDing `isEnabled` with
 /// `!disabled` (a read-modify-write at render, so it composes additively — like
 /// ``StyleCascadeModifier`` and ``EnvironmentModifier``).
-package struct DisabledModifier<Content: View>: View {
+nonisolated package struct DisabledModifier<Content: View>: View {
     public let content: Content
     public let disabled: Bool
 
@@ -48,14 +48,14 @@ package struct DisabledModifier<Content: View>: View {
     }
 
     /// Not used during rendering — ``Renderable`` conformance takes priority.
-    public var body: some View { content }
+    @MainActor public var body: some View { content }
 
     /// `context` with `isEnabled` ANDed with `!disabled` — `context` itself
     /// where that changes nothing, as `.disabled(false)` and `.disabled(true)`
     /// in a disabled subtree do: a write copies the whole environment, which
     /// the context shares with its parent's (`framedcolumns`: 0.7% of a
     /// frame, every list and toggle measured under one).
-    private func modifiedContext(_ context: RenderContext) -> RenderContext {
+    @MainActor private func modifiedContext(_ context: RenderContext) -> RenderContext {
         let wasEnabled = context.environment.isEnabled
         let enabled = wasEnabled && !disabled
         guard enabled != wasEnabled else { return context }
@@ -63,13 +63,13 @@ package struct DisabledModifier<Content: View>: View {
     }
 }
 
-extension DisabledModifier: Renderable {
+@MainActor extension DisabledModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: modifiedContext(context))
     }
 }
 
-extension DisabledModifier: Layoutable {
+@MainActor extension DisabledModifier: Layoutable {
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: modifiedContext(context))
     }
@@ -89,7 +89,7 @@ extension View {
     /// }
     /// .disabled(!isEditable)   // both controls disabled together
     /// ```
-    public func disabled(_ disabled: Bool = true) -> some View {
+    nonisolated public func disabled(_ disabled: Bool = true) -> some View {
         DisabledModifier(content: self, disabled: disabled)
     }
 }
@@ -100,7 +100,7 @@ extension View {
 ///   member is the same thing as applying it once around the pair — an
 ///   environment value reaches a subtree whether it was set one level up or
 ///   two.
-extension DisabledModifier: ContentRewrapping {
+@MainActor extension DisabledModifier: ContentRewrapping {
     public var wrappedContent: Content { content }
 
     /// Its content's context: the disabled state it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -121,20 +121,20 @@ package protocol ContentDisabling {
     var disablesContent: Bool { get }
 }
 
-extension DisabledModifier: ContentDisabling {
+@MainActor extension DisabledModifier: ContentDisabling {
     package var disablesContent: Bool { disabled }
 }
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension DisabledModifier: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension DisabledModifier: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension DisabledModifier: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension DisabledModifier: GridRowProviding where Content: GridRowProviding {}
 
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension DisabledModifier: DrawsContentUnchanged {}
+@MainActor extension DisabledModifier: DrawsContentUnchanged {}

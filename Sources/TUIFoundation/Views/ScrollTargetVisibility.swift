@@ -56,7 +56,7 @@ extension View {
     ///   - action: Called with the ids of the views shown.
     /// - Returns: A view that reports which of its scroll view's views it
     ///   shows.
-    public func onScrollTargetVisibilityChange<ID: Hashable>(
+    nonisolated public func onScrollTargetVisibilityChange<ID: Hashable>(
         idType: ID.Type, threshold: Double = 0.5, _ action: @escaping ([ID]) -> Void
     ) -> some View {
         let observer = ScrollTargetVisibilityObserver(idType: idType, threshold: threshold, action: action)
@@ -66,8 +66,7 @@ extension View {
 
 /// One `onScrollTargetVisibilityChange`: its threshold, its action typed by
 /// its ids, and the scroll view that has claimed it.
-@MainActor
-final class ScrollTargetVisibilityObserver {
+nonisolated final class ScrollTargetVisibilityObserver {
     /// How much of a view must be shown for it to count.
     let threshold: Double
 
@@ -93,7 +92,7 @@ final class ScrollTargetVisibilityObserver {
 
     /// Whether the scroll view at `identity` reports to this observer: the
     /// first one to ask does, and only it.
-    func claim(for identity: ViewIdentity) -> Bool {
+    @MainActor func claim(for identity: ViewIdentity) -> Bool {
         if let claimant { return claimant == identity }
         claimant = identity
         return true
@@ -101,7 +100,7 @@ final class ScrollTargetVisibilityObserver {
 
     /// Keeps `ids` in `last`, and returns what to do about a change — `nil`
     /// for none.
-    func report(_ ids: [AnyHashable], last: inout [AnyHashable]?) -> (() -> Void)? {
+    @MainActor func report(_ ids: [AnyHashable], last: inout [AnyHashable]?) -> (() -> Void)? {
         report(ids, &last)
     }
 }

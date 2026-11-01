@@ -54,7 +54,7 @@ import TUIFoundation
 ///     }
 /// }
 /// ```
-public struct Form<Content: View>: View {
+nonisolated public struct Form<Content: View>: View {
     let content: Content
 
     /// Creates a form with the given content.
@@ -64,7 +64,7 @@ public struct Form<Content: View>: View {
         self.content = content()
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _FormLayout(content: content)
             .paintingScrollContentBackground()
     }
@@ -166,7 +166,7 @@ enum _FormElement {
 
 /// A control a ``Form`` lays out as a push button. Conformed by ``Button``.
 protocol FormButtonRow {}
-extension Button: FormButtonRow {}
+@MainActor extension Button: FormButtonRow {}
 
 // MARK: - Per-row alignment override
 
@@ -185,17 +185,17 @@ extension View {
     /// - Parameter alignment: The horizontal alignment for the row within the
     ///   form's content width.
     /// - Returns: A view whose form row uses the given alignment.
-    public func formRowAlignment(_ alignment: HorizontalAlignment) -> some View {
+    nonisolated public func formRowAlignment(_ alignment: HorizontalAlignment) -> some View {
         _FormRowAlignmentModifier(content: self, alignment: alignment)
     }
 }
 
 /// Carries a ``View/formRowAlignment(_:)`` override; transparent
 /// outside a form (it just renders its content).
-struct _FormRowAlignmentModifier<Content: View>: View {
+nonisolated struct _FormRowAlignmentModifier<Content: View>: View {
     let content: Content
     let alignment: HorizontalAlignment
-    var body: some View { content }
+    @MainActor var body: some View { content }
 }
 
 /// A view carrying a per-row alignment override the form applies during extraction.
@@ -207,7 +207,7 @@ protocol FormRowAligning {
     func formRowInnerElements(in walk: RenderContext) -> [_FormElement]
 }
 
-extension _FormRowAlignmentModifier: FormRowAligning {
+@MainActor extension _FormRowAlignmentModifier: FormRowAligning {
     var formRowAlignmentValue: HorizontalAlignment { alignment }
     func formRowInnerElements(in walk: RenderContext) -> [_FormElement] { formElements(from: content, in: walk) }
 }

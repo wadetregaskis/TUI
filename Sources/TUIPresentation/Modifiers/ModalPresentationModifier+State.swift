@@ -30,7 +30,7 @@ enum ModalPresentationStateIndex {
     static let toolbar = 7
 }
 
-extension ModalPresentationModifier {
+@MainActor extension ModalPresentationModifier {
     /// Empties what the presenter keeps for the sheet it presents, so the
     /// next is a new sheet: it opens where an undragged one does, its sticky
     /// sizing starts again from its content, it rests at the bound detent or
@@ -92,7 +92,7 @@ extension ModalPresentationModifier {
 
 private typealias StateIndex = ModalPresentationStateIndex
 
-extension ModalPresentationModifier {
+@MainActor extension ModalPresentationModifier {
     /// The presenter's record of the largest size a sticky sizing has kept.
     func keptSheetSize(context: RenderContext) -> KeptSheetSize? {
         context.stateStorage?.storage(

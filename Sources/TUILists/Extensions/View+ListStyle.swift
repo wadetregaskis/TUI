@@ -36,7 +36,7 @@ extension View {
     ///
     /// - Parameter style: The list style to apply.
     /// - Returns: A view with the list style applied.
-    public func listStyle<S: ListStyle>(_ style: S) -> some View {
+    nonisolated public func listStyle<S: ListStyle>(_ style: S) -> some View {
         environment(\.listStyle, style)
     }
 
@@ -71,7 +71,7 @@ extension View {
     /// - Parameter visibility: The desired visibility.
     /// - Returns: A view with the unfocused-selection visibility
     ///   set on its environment.
-    public func unfocusedSelectionVisibility(_ visibility: Visibility) -> some View {
+    nonisolated public func unfocusedSelectionVisibility(_ visibility: Visibility) -> some View {
         environment(\.unfocusedSelectionVisibility, visibility)
     }
 
@@ -103,7 +103,7 @@ extension View {
     ///   draw it; `.automatic` (the default) as above.
     /// - Returns: A view with the row-selection-indicator visibility set on its
     ///   environment.
-    public func rowSelectionIndicator(_ visibility: Visibility) -> some View {
+    nonisolated public func rowSelectionIndicator(_ visibility: Visibility) -> some View {
         environment(\.rowSelectionIndicator, visibility)
     }
 }

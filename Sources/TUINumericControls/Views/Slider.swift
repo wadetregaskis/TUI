@@ -75,7 +75,7 @@ import TUIFoundation
 ///     print("Editing: \(isEditing)")
 /// }
 /// ```
-public struct Slider<Label: View, ValueLabel: View>: View {
+nonisolated public struct Slider<Label: View, ValueLabel: View>: View {
     /// The binding to the current value.
     let value: Binding<Double>
 
@@ -122,9 +122,9 @@ public struct Slider<Label: View, ValueLabel: View>: View {
     var currentValueLabel: AnyView?
 
     /// Default track width when no explicit frame is set.
-    private static var defaultTrackWidth: Int { 20 }
+    @MainActor private static var defaultTrackWidth: Int { 20 }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         // The label renders inline to the left of the track (SwiftUI parity):
         // "Volume ◀ ━━━●─── ▶ 50%". An empty/absent label collapses, so an
         // unlabelled slider still starts at column 0 with a full-length track.
@@ -338,7 +338,7 @@ extension View {
     /// ```swift
     /// Mixer().sliderTextStyle { $0.bold = true; $0.foreground = .palette.accent }
     /// ```
-    public func sliderTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
+    nonisolated public func sliderTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
         style(.control(.slider), build)
     }
 }

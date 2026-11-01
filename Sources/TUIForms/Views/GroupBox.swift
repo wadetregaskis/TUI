@@ -25,7 +25,7 @@ import TUIFoundation
 /// The default style draws the label, then the content in a bordered box — the
 /// border the current ``Appearance`` draws, as `Box` uses. A style set with
 /// ``View/groupBoxStyle(_:)`` lays it out instead.
-public struct GroupBox<Label: View, Content: View>: View {
+nonisolated public struct GroupBox<Label: View, Content: View>: View {
     let label: Label
     let content: Content
 
@@ -39,7 +39,7 @@ public struct GroupBox<Label: View, Content: View>: View {
         self.label = label()
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _StyledGroupBox(
             configuration: GroupBoxStyleConfiguration(
                 label: AnyView(label), content: _StyledContent(content)))
@@ -178,7 +178,7 @@ extension View {
     ///
     /// - Parameter style: The style to apply to boxes within this view.
     /// - Returns: A view whose group boxes use `style`.
-    public func groupBoxStyle<S: GroupBoxStyle>(_ style: S) -> some View {
+    nonisolated public func groupBoxStyle<S: GroupBoxStyle>(_ style: S) -> some View {
         transformEnvironment(\.groupBoxStyleChain) { $0 = $0.pushing(style) }
     }
 }

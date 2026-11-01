@@ -20,7 +20,7 @@ import TUICore
 ///     EmptyView()
 /// }
 /// ```
-public struct EmptyView: View, Equatable {
+nonisolated public struct EmptyView: View, Equatable {
     /// Creates an empty view.
     ///
     /// `nonisolated`, as SwiftUI's is: it makes nothing, and a shape's
@@ -28,7 +28,7 @@ public struct EmptyView: View, Equatable {
     /// hands one over as the stroke's background.
     nonisolated public init() {}
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("EmptyView has no body")
     }
 }
@@ -41,24 +41,24 @@ public struct EmptyView: View, Equatable {
 ///
 /// - Important: This is framework infrastructure. Created automatically by
 ///   `@ViewBuilder` for `if`/`else` branches. Do not instantiate directly.
-public enum ConditionalView<TrueContent: View, FalseContent: View>: View {
+nonisolated public enum ConditionalView<TrueContent: View, FalseContent: View>: View {
     /// The true branch was executed.
     case trueContent(TrueContent)
 
     /// The false branch was executed.
     case falseContent(FalseContent)
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("ConditionalView renders its children directly")
     }
 
     /// Either branch's answer: the type cannot tell which one a value holds.
-    public static var _providesAlignmentGuide: Bool {
+    @MainActor public static var _providesAlignmentGuide: Bool {
         TrueContent._providesAlignmentGuide || FalseContent._providesAlignmentGuide
     }
 
     /// Either branch's answer, as for a guide.
-    public static var _statesSpacingPreference: Bool {
+    @MainActor public static var _statesSpacingPreference: Bool {
         TrueContent._statesSpacingPreference || FalseContent._statesSpacingPreference
     }
 }
@@ -77,7 +77,7 @@ public enum ConditionalView<TrueContent: View, FalseContent: View>: View {
 ///
 /// - Important: This is framework infrastructure. Created automatically by
 ///   `@ViewBuilder` for array content. Do not instantiate directly.
-public struct ViewArray<Element: View>: View {
+nonisolated public struct ViewArray<Element: View>: View {
     /// The contained views.
     let elements: [Element]
 
@@ -88,7 +88,7 @@ public struct ViewArray<Element: View>: View {
         self.elements = elements
     }
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("ViewArray renders its children directly")
     }
 }
@@ -109,7 +109,7 @@ public struct ViewArray<Element: View>: View {
 ///     }
 /// }
 /// ```
-public struct AnyView: View {
+nonisolated public struct AnyView: View {
     /// The wrapped child, stored as a single existential so the (often large,
     /// deeply-generic) view value is boxed ONCE here rather than captured into a
     /// pair of escaping measure / render closure contexts. The `Renderable` /
@@ -142,19 +142,19 @@ public struct AnyView: View {
         self.init(view)
     }
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("AnyView renders via Renderable")
     }
 
     /// The view this one erases — for a container that reads its content's
     /// structure (a `Form`'s rows) to see through the erasure, as it sees
     /// through a `Group`.
-    package var erasedView: any View { view }
+    @MainActor package var erasedView: any View { view }
 }
 
 // MARK: - ConditionalView's Value
 
-extension ConditionalView: _ValueHashing {
+@MainActor extension ConditionalView: _ValueHashing {
     /// The branch, then its content by its own plan — read by a `switch`,
     /// never from the case's byte, and never the other branch's payload,
     /// which holds whatever the memory held before. `nonisolated`, as every
@@ -175,7 +175,7 @@ extension ConditionalView: _ValueHashing {
 
 // MARK: - AnyView Rendering
 
-extension AnyView: Renderable {
+@MainActor extension AnyView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let buffer = TUIView.renderToBuffer(view, context: contentContext(noting: context))
         // Its content drew at this identity, unchanged: a transition in it
@@ -188,7 +188,7 @@ extension AnyView: Renderable {
 
 // MARK: - AnyView Cache Coherency
 
-extension AnyView {
+@MainActor extension AnyView {
     /// The context the content is drawn and measured in, after telling the
     /// render cache what TYPE of content it is.
     ///
@@ -239,7 +239,7 @@ extension AnyView {
 /// every wrapper that hands its content's members on (``ContentRewrapping``,
 /// a ``ModifiedView``), as a `nil` already was. Drawn on its own — a sheet's
 /// whole content, say — it is still a view that draws nothing.
-extension EmptyView: ChildViewProvider {
+@MainActor extension EmptyView: ChildViewProvider {
     public func childViews(context: RenderContext) -> [ChildView] { [] }
 
     /// It hands its container its members — none — so a view of the app's own
@@ -252,7 +252,7 @@ extension EmptyView: ChildViewProvider {
     public static var _statesSpacingPreference: Bool { false }
 }
 
-extension EmptyView: Renderable {
+@MainActor extension EmptyView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         FrameBuffer()
     }
@@ -266,7 +266,7 @@ extension EmptyView: Renderable {
 /// opaque block. Without this, a `ForEach` under an `if` reached the
 /// bare-`ForEach` render path, which is deliberately empty (`ForEach` has no
 /// standalone rendering), and the rows silently vanished.
-extension ConditionalView: ChildViewProvider {
+@MainActor extension ConditionalView: ChildViewProvider {
     public func childViews(context: RenderContext) -> [ChildView] {
         switch self {
         case .trueContent(let content):
@@ -394,7 +394,7 @@ extension Optional: ChildViewProvider where Wrapped: View {
 
 // MARK: - ConditionalView Rendering
 
-extension ConditionalView: Renderable {
+@MainActor extension ConditionalView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let isTrueBranch: Bool
         switch self {
@@ -459,7 +459,7 @@ extension ConditionalView: Renderable {
 
 // MARK: - ViewArray Rendering
 
-extension ViewArray: Renderable, ChildInfoProvider {
+@MainActor extension ViewArray: Renderable, ChildInfoProvider {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         FrameBuffer(verticallyStacking: childInfos(context: context).compactMap(\.buffer))
     }
@@ -508,7 +508,7 @@ extension ViewArray: Renderable, ChildInfoProvider {
 // this is benign in practice: clean-build after pulling a change to AnyView's
 // storage.
 
-extension AnyView: Layoutable {
+@MainActor extension AnyView: Layoutable {
     /// Forwards measurement to the wrapped view — see the note above — after
     /// noting its type, as the render does (`contentContext(noting:)`): the
     /// measure walk runs first, and a swap noticed only by the render would
@@ -518,14 +518,14 @@ extension AnyView: Layoutable {
     }
 }
 
-extension EmptyView: Layoutable {
+@MainActor extension EmptyView: Layoutable {
     /// An empty view occupies no cells.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         ViewSize.fixed(0, 0)
     }
 }
 
-extension ConditionalView: Layoutable {
+@MainActor extension ConditionalView: Layoutable {
     /// Measures whichever branch is present, using the same branch identity
     /// the render pass uses so `@State` resolves identically. The inactive-
     /// branch state invalidation in `renderToBuffer` is a render-time

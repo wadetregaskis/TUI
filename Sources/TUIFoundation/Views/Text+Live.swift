@@ -116,14 +116,14 @@ final class LiveTextBox: Sendable, Hashable {
 
 // MARK: - Building a live text
 
-extension Text {
+@MainActor extension Text {
     /// A text reading `source`, one run long.
     ///
     /// Its stored ``content`` is the source read once now, in the process's own
     /// locale: what anything that takes a `Text` for its string — a navigation
     /// title, a help tag — gets, since those have no frame to draw it in. The
     /// render reads the source again at the frame's own date.
-    init(live source: some LiveTextSource) {
+    nonisolated init(live source: some LiveTextSource) {
         let now = source.text(at: Date(), in: .current)
         self.init(verbatim: now)
         runs = [Run(text: now, style: TextStyle(), live: LiveTextBox(source))]

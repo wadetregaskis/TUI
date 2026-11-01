@@ -52,7 +52,7 @@ extension View {
     /// - Parameter enabled: Whether images use the terminal's graphics
     ///   protocol where it has one (default `true`).
     /// - Returns: A view whose images honour the setting.
-    public func terminalGraphics(_ enabled: Bool = true) -> some View {
+    nonisolated public func terminalGraphics(_ enabled: Bool = true) -> some View {
         environment(\.terminalGraphics, enabled)
     }
 
@@ -67,7 +67,7 @@ extension View {
     ///
     /// - Parameter pixels: The cell's size.
     /// - Returns: A modified view.
-    public func imageCellPixels(_ pixels: TerminalCellPixels) -> some View {
+    nonisolated public func imageCellPixels(_ pixels: TerminalCellPixels) -> some View {
         environment(\.imageCellPixels, pixels)
     }
 
@@ -81,7 +81,7 @@ extension View {
     ///
     /// - Parameter points: The cell's size, in points, or `nil` for unknown.
     /// - Returns: A modified view.
-    public func imageCellPoints(_ points: TerminalCellPoints?) -> some View {
+    nonisolated public func imageCellPoints(_ points: TerminalCellPoints?) -> some View {
         environment(\.imageCellPoints, points)
     }
 }

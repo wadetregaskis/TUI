@@ -83,7 +83,7 @@ extension View {
     ///   - style: The spinner animation style (default: `.dots`).
     ///   - color: The colour to draw it in, or `nil` for the palette accent.
     /// - Returns: A view whose refreshables use that indicator.
-    public func refreshIndicator(
+    nonisolated public func refreshIndicator(
         style: SpinnerStyle = .dots,
         color: Color? = nil
     ) -> some View {

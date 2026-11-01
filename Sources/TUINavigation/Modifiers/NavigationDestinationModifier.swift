@@ -35,7 +35,7 @@ extension View {
     /// - Parameters:
     ///   - data: The type of value to present a destination for.
     ///   - destination: A view builder that makes the screen for one value.
-    public func navigationDestination<D: Hashable, C: View>(
+    nonisolated public func navigationDestination<D: Hashable, C: View>(
         for data: D.Type,
         @ViewBuilder destination: @escaping (D) -> C
     ) -> some View {
@@ -47,7 +47,7 @@ extension View {
 
 /// Registers `destination` with the enclosing stack's coordinator, and renders
 /// its content unchanged.
-struct NavigationDestinationModifier<Content: View, D: Hashable, C: View>: View {
+nonisolated struct NavigationDestinationModifier<Content: View, D: Hashable, C: View>: View {
     let content: Content
     /// The type of value this presents, named as the coordinator files it.
     ///
@@ -62,12 +62,12 @@ struct NavigationDestinationModifier<Content: View, D: Hashable, C: View>: View 
     let dataType: ObjectIdentifier
     let destination: (D) -> C
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("NavigationDestinationModifier renders via Renderable")
     }
 }
 
-extension NavigationDestinationModifier: Renderable {
+@MainActor extension NavigationDestinationModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Register on render passes only — a measure pass would install the
         // same builder a second time within one frame for no gain. The
@@ -85,7 +85,7 @@ extension NavigationDestinationModifier: Renderable {
     }
 }
 
-extension NavigationDestinationModifier: Layoutable {
+@MainActor extension NavigationDestinationModifier: Layoutable {
     /// Measures as its content: the registration is the whole of this
     /// modifier's effect, and it contributes no geometry.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -99,7 +99,7 @@ extension NavigationDestinationModifier: Layoutable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension NavigationDestinationModifier: SingleContentWrapper {
+@MainActor extension NavigationDestinationModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -110,4 +110,4 @@ extension NavigationDestinationModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension NavigationDestinationModifier: DrawsContentUnchanged {}
+@MainActor extension NavigationDestinationModifier: DrawsContentUnchanged {}

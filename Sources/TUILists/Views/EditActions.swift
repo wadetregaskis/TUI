@@ -47,7 +47,7 @@ extension EditActions where Data: MutableCollection, Data: RangeReplaceableColle
 
 // MARK: - ForEach
 
-extension ForEach where Content: View {
+@MainActor extension ForEach where Content: View {
     /// Creates a `ForEach` over a binding to a collection, performing the named
     /// edits on that collection itself.
     ///
@@ -89,7 +89,7 @@ extension ForEach where Content: View {
     ///   - data: The collection to iterate and edit.
     ///   - editActions: Which edits to perform.
     ///   - content: Builds a row from a binding to its element.
-    public init<C>(
+    nonisolated public init<C>(
         _ data: Binding<C>,
         editActions: EditActions<C>,
         @ViewBuilder content: @escaping (Binding<C.Element>) -> Content
@@ -112,7 +112,7 @@ extension ForEach where Content: View {
     ///   - id: The property identifying each element.
     ///   - editActions: Which edits to perform.
     ///   - content: Builds a row from a binding to its element.
-    public init<C>(
+    nonisolated public init<C>(
         _ data: Binding<C>,
         id: KeyPath<C.Element, ID>,
         editActions: EditActions<C>,
@@ -139,7 +139,7 @@ extension ForEach where Content: View {
     /// above already require both, and duplicating the requirement here to ask
     /// a question about a bit pattern would be the constraint spreading for no
     /// reason.
-    private mutating func applyEditActions<C>(_ actions: EditActions<C>, to data: Binding<C>)
+    nonisolated private mutating func applyEditActions<C>(_ actions: EditActions<C>, to data: Binding<C>)
     where C: MutableCollection, C: RangeReplaceableCollection, C.Index == Int {
         if actions.rawValue & 1 != 0 {
             onMoveAction = { source, destination in

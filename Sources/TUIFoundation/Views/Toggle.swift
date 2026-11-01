@@ -331,7 +331,7 @@ extension View {
     ///
     /// - Parameter style: The toggle style to use.
     /// - Returns: A view with the toggle style set.
-    public func toggleStyle<S: ToggleStyle>(_ style: S) -> some View {
+    nonisolated public func toggleStyle<S: ToggleStyle>(_ style: S) -> some View {
         environment(\.toggleStyle, style)
     }
 
@@ -342,7 +342,7 @@ extension View {
     /// ```swift
     /// SettingsForm().toggleTextStyle { $0.italic = true }
     /// ```
-    public func toggleTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
+    nonisolated public func toggleTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
         style(.control(.toggle), build)
     }
 }
@@ -402,7 +402,7 @@ extension View {
 /// ``Toggle/toggleContent(_:)`` (a menu row is one row; put the controls it
 /// governs on the page). An INLINE menu is unaffected — its rows really are page
 /// focus stops, so a toggle in one is the ordinary control.
-public struct Toggle<Label: View>: View {
+nonisolated public struct Toggle<Label: View>: View {
     // Declared so a toggle titled with a string has no padding: the per-pass
     // memos key a view by a hash of its bytes, and padding is whatever the
     // memory held before — skipped by the hash, where a type with none is
@@ -434,7 +434,7 @@ public struct Toggle<Label: View>: View {
     /// body it is in. Last, and one byte, so the layout above keeps no padding.
     var proxy: ToggleProxy = []
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _ToggleCore(
             focusID: focusID,
             content: content,

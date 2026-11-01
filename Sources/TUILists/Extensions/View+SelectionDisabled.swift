@@ -39,7 +39,7 @@ extension View {
     /// - Parameter isDisabled: Whether selection should be disabled. Default is `true`.
     /// - Returns: A view with selection disabled state applied.
     @inlinable
-    public func selectionDisabled(_ isDisabled: Bool = true) -> some View {
+    nonisolated public func selectionDisabled(_ isDisabled: Bool = true) -> some View {
         SelectionDisabledModifier(content: self, isDisabled: isDisabled)
     }
 }

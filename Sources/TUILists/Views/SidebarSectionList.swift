@@ -106,7 +106,7 @@ struct _SidebarPlace: Hashable {
 /// runtime for it on every evaluation (CONTRIBUTING.md, "Crossing a module
 /// boundary"). Here it is concrete, and the list's initializer and style are
 /// this module's own calls.
-package struct _SidebarSectionList<Row: View>: View {
+package struct _SidebarSectionList<Row: View> {
     /// The sections, in order.
     let sections: [_SidebarSection]
 
@@ -150,7 +150,7 @@ package struct _SidebarSectionList<Row: View>: View {
         self.row = row
     }
 
-    package var body: some View {
+    @MainActor package var body: some View {
         let selection = self.selection
         let placeSelection = Binding<_SidebarPlace?>(
             get: { selection.wrappedValue.map(_SidebarPlace.init) }, set: { selection.wrappedValue = $0?.place })
@@ -180,7 +180,7 @@ package struct _SidebarSectionList<Row: View>: View {
 
     /// Hands the mover what it moves this frame: the movable sections, the
     /// section in hand, how a new order is written, and the keys.
-    private func prepareMover(movable: [Int]) {
+    @MainActor private func prepareMover(movable: [Int]) {
         mover.movable = movable
         mover.held = $held
         mover.commit = moveSections ?? { _ in }
@@ -190,7 +190,7 @@ package struct _SidebarSectionList<Row: View>: View {
     /// `sections` as a move in hand shows them: the movable ones in its order,
     /// each taking a place a movable one had, as a customization's section
     /// order arranges them; as they are with nothing in hand.
-    private func arranged(_ sections: [_SidebarSection], movable: [Int]) -> [_SidebarSection] {
+    @MainActor private func arranged(_ sections: [_SidebarSection], movable: [Int]) -> [_SidebarSection] {
         guard let order = held?.order, Set(order) == Set(movable) else { return sections }
         let slots = sections.indices.filter { movable.contains(sections[$0].id) }
         let byID = Dictionary(slots.map { (sections[$0].id, sections[$0]) }) { first, _ in first }
@@ -202,7 +202,7 @@ package struct _SidebarSectionList<Row: View>: View {
     }
 
     /// Whether the section at `place` is open, as its fold reads and writes it.
-    private func expansion(of place: Int) -> Binding<Bool> {
+    @MainActor private func expansion(of place: Int) -> Binding<Bool> {
         let folded = $folded
         return Binding(
             get: { !folded.wrappedValue.contains(place) },
@@ -215,3 +215,4 @@ package struct _SidebarSectionList<Row: View>: View {
             })
     }
 }
+extension _SidebarSectionList: View {}

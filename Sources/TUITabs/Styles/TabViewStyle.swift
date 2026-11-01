@@ -216,7 +216,7 @@ extension View {
     /// Sets the style for tab views within this view.
     ///
     /// - Parameter style: The style to apply.
-    public func tabViewStyle<S: TabViewStyle>(_ style: S) -> some View {
+    nonisolated public func tabViewStyle<S: TabViewStyle>(_ style: S) -> some View {
         environment(\.tabViewStyle, style)
     }
 }

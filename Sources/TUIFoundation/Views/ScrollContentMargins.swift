@@ -151,7 +151,7 @@ extension View {
     ///   - edges: The edges to add margins to.
     ///   - insets: The margins, in cells; only `edges` of them are used.
     ///   - placement: Where the margins go.
-    public func contentMargins(
+    nonisolated public func contentMargins(
         _ edges: Edge.Set = .all, _ insets: EdgeInsets,
         for placement: ContentMarginPlacement = .automatic
     ) -> some View {
@@ -166,7 +166,7 @@ extension View {
     ///   - length: The margin, in cells. `nil` is none, as it is in SwiftUI
     ///     (measured).
     ///   - placement: Where the margins go.
-    public func contentMargins(
+    nonisolated public func contentMargins(
         _ edges: Edge.Set = .all, _ length: Int?,
         for placement: ContentMarginPlacement = .automatic
     ) -> some View {
@@ -179,7 +179,7 @@ extension View {
     /// - Parameters:
     ///   - length: The margin, in cells.
     ///   - placement: Where the margins go.
-    public func contentMargins(
+    nonisolated public func contentMargins(
         _ length: Int, for placement: ContentMarginPlacement = .automatic
     ) -> some View {
         contentMargins(.all, EdgeInsets(all: length), for: placement)

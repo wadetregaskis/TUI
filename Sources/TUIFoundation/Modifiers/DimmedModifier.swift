@@ -13,18 +13,18 @@
 /// (box-drawing, indicators) — then re-renders each line
 /// with a dimmed foreground on `palette.overlayBackground`.
 /// The result is a flat, de-emphasized text layer with no visual ornaments.
-package struct DimmedModifier<Content: View>: View {
+nonisolated package struct DimmedModifier<Content: View>: View {
     /// The content to dim.
     let content: Content
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("DimmedModifier renders via Renderable")
     }
 }
 
 // MARK: - Equatable Conformance
 
-extension DimmedModifier: @preconcurrency Equatable where Content: Equatable {
+extension DimmedModifier: Equatable where Content: Equatable {
     package static func == (lhs: DimmedModifier<Content>, rhs: DimmedModifier<Content>) -> Bool {
         lhs.content == rhs.content
     }
@@ -63,7 +63,7 @@ private enum DimmedOrnaments {
 
 // MARK: - Renderable
 
-extension DimmedModifier: Renderable {
+@MainActor extension DimmedModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Rendered through the backdrop isolation, so what LOOKS inert IS
         // inert. `.dimmed()` flattens its content to a recessive text layer;
@@ -285,7 +285,7 @@ private struct Flattening {
 
 // MARK: - Layoutable
 
-extension DimmedModifier: Layoutable {
+@MainActor extension DimmedModifier: Layoutable {
     /// Dimming rewrites each line in place — same line count, each padded to the
     /// content width — so the dimmed layer is exactly `content`'s size and
     /// flexibility.
@@ -299,7 +299,7 @@ extension DimmedModifier: Layoutable {
 /// - Note: The dimming is a rewrite of what the content drew, so doing it per
 ///   member and doing it once over the pair produce the same cells — the
 ///   members do not overlap in a stack, and each carries its own styling in.
-extension DimmedModifier: ContentRewrapping {
+@MainActor extension DimmedModifier: ContentRewrapping {
     /// Its content's geometry is its own — it dims the cells its content drew, where they are — so a guide
     /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
     public static var _keepsContentGeometry: Bool { true }
@@ -316,8 +316,8 @@ extension DimmedModifier: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension DimmedModifier: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension DimmedModifier: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension DimmedModifier: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension DimmedModifier: GridRowProviding where Content: GridRowProviding {}

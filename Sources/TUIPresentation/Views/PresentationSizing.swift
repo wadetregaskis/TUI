@@ -242,39 +242,39 @@ protocol PresentationSizingProviding {
 /// The wrapper ``View/presentationSizing(_:)`` produces. Renders and measures
 /// as its content; carrying the sizing is its whole job, read by the presenter
 /// before the content renders — see ``presentationTrait(_:of:)``.
-struct _PresentationSizingView<Content: View>: View, PresentationSizingProviding {
+nonisolated struct _PresentationSizingView<Content: View>: View, PresentationSizingProviding {
     let content: Content
     let sizing: any PresentationSizing
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_PresentationSizingView renders via Renderable")
     }
 }
 
-extension _PresentationSizingView: Renderable {
+@MainActor extension _PresentationSizingView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: context)
     }
 }
 
-extension _PresentationSizingView: Layoutable {
+@MainActor extension _PresentationSizingView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
 
-extension _PresentationSizingView: PresentationTraitWrapper {
+@MainActor extension _PresentationSizingView: PresentationTraitWrapper {
     var presentationTraitContent: any View { content }
 }
 
-extension _PresentationSizingView: SingleContentWrapper {
+@MainActor extension _PresentationSizingView: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
     func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
-extension _PresentationSizingView: DrawsContentUnchanged {}
+@MainActor extension _PresentationSizingView: DrawsContentUnchanged {}
 
 extension View {
     /// Sets the sizing of the containing presentation.
@@ -297,7 +297,7 @@ extension View {
     ///
     /// - Parameter sizing: The sizing of the presentation.
     /// - Returns: A view whose presentation takes `sizing`.
-    public func presentationSizing(_ sizing: some PresentationSizing) -> some View {
+    nonisolated public func presentationSizing(_ sizing: some PresentationSizing) -> some View {
         _PresentationSizingView(content: self, sizing: sizing)
     }
 }

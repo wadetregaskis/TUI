@@ -98,7 +98,7 @@ extension View {
     ///
     /// - Parameter alignment: The line-to-line alignment.
     /// - Returns: A view whose descendant text uses `alignment`.
-    public func multilineTextAlignment(_ alignment: TextAlignment) -> some View {
+    nonisolated public func multilineTextAlignment(_ alignment: TextAlignment) -> some View {
         environment(\.multilineTextAlignment, alignment)
     }
 }

@@ -64,7 +64,7 @@ private func isFlexibleAcross(
 /// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §2.7 gives for a fixed `.frame`'s
 /// default; §2.10 states it for this type. Pass an explicit
 /// `alignment: .center` for the SwiftUI default.
-public struct VStackLayout: Layout, Sendable, Equatable {
+nonisolated public struct VStackLayout: Layout, Sendable, Equatable {
     /// How subviews line up across the stack's width.
     public var alignment: HorizontalAlignment
 
@@ -86,11 +86,11 @@ public struct VStackLayout: Layout, Sendable, Equatable {
 
     /// The spacing in force: the stated one, or the vertical distance views
     /// prefer.
-    private var resolvedSpacing: Int {
+    @MainActor private var resolvedSpacing: Int {
         spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .vertical)
     }
 
-    public func sizeThatFits(
+    @MainActor public func sizeThatFits(
         proposal: ProposedSize, subviews: Subviews, cache: inout ()
     ) -> ViewSize {
         // Natural sizes: the cross axis keeps the proposal, the layout axis
@@ -133,7 +133,7 @@ public struct VStackLayout: Layout, Sendable, Equatable {
             isHeightFlexible: flexible)
     }
 
-    public func placeSubviews(
+    @MainActor public func placeSubviews(
         in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
     ) {
         // The same distribution `VStack` itself uses: the least flexible
@@ -186,7 +186,7 @@ public struct VStackLayout: Layout, Sendable, Equatable {
     /// resolves through `ViewDimensions`, so it asks the guide where it wants
     /// to be. It clamps at zero too: a subview wider than the stack starts at
     /// the leading edge and overflows, rather than being pushed off the front.
-    private func alignedOffset(for width: Int, in available: Int) -> Int {
+    @MainActor private func alignedOffset(for width: Int, in available: Int) -> Int {
         alignment.childOffset(childWidth: width, in: available)
     }
 
@@ -195,7 +195,7 @@ public struct VStackLayout: Layout, Sendable, Equatable {
     /// line, as a `VStack`'s rows are (``horizontalGuideRun(_:sizes:alignment:fixedExtent:minimumExtent:holdsChildrenInside:context:)``).
     /// `nil` where none does — almost every column — and the subviews are
     /// placed by the guide's default instead (``alignedOffset(for:in:)``).
-    private func guideRun(
+    @MainActor private func guideRun(
         _ subviews: Subviews, sizes: [(width: Int, height: Int)], fixedExtent: Int?
     ) -> AlignmentGuideRun? {
         guard subviews.contains(where: { $0.child.providesAlignmentGuide }) else { return nil }
@@ -220,7 +220,7 @@ public struct VStackLayout: Layout, Sendable, Equatable {
 /// `Layout`-value spelling defaults to `.top` instead, to fit more naturally
 /// into the terminal environment. See
 /// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §2.10.
-public struct HStackLayout: Layout, Sendable, Equatable {
+nonisolated public struct HStackLayout: Layout, Sendable, Equatable {
     /// How subviews line up across the stack's height.
     public var alignment: VerticalAlignment
 
@@ -243,11 +243,11 @@ public struct HStackLayout: Layout, Sendable, Equatable {
 
     /// The spacing in force: the stated one, or the horizontal distance views
     /// prefer.
-    private var resolvedSpacing: Int {
+    @MainActor private var resolvedSpacing: Int {
         spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .horizontal)
     }
 
-    public func sizeThatFits(
+    @MainActor public func sizeThatFits(
         proposal: ProposedSize, subviews: Subviews, cache: inout ()
     ) -> ViewSize {
         // See `VStackLayout.sizeThatFits` — same reasoning, other axis.
@@ -280,7 +280,7 @@ public struct HStackLayout: Layout, Sendable, Equatable {
             isHeightFlexible: isFlexibleAcross(subviews, sizes, \.isHeightFlexible))
     }
 
-    public func placeSubviews(
+    @MainActor public func placeSubviews(
         in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
     ) {
         // See `VStackLayout.placeSubviews` — same distribution, other axis.
@@ -330,19 +330,19 @@ public struct HStackLayout: Layout, Sendable, Equatable {
     /// Asked of no subview where the content's type holds nothing that can
     /// state a preference (``LayoutSubviews/mayStateSpacing``), as an
     /// `HStack`'s row is — which is almost every row.
-    func gaps(between subviews: Subviews) -> StackGaps {
+    @MainActor func gaps(between subviews: Subviews) -> StackGaps {
         guard spacing == nil, subviews.mayStateSpacing else { return StackGaps(uniform: resolvedSpacing) }
         return StackGaps(uniform: resolvedSpacing, stating: subviews.children, along: .horizontal, context: subviews.context)
     }
 
     /// See ``VStackLayout/alignedOffset(for:in:)`` — same reasoning, other axis.
-    private func alignedOffset(for height: Int, in available: Int) -> Int {
+    @MainActor private func alignedOffset(for height: Int, in available: Int) -> Int {
         alignment.childOffset(childHeight: height, in: available)
     }
 
     /// See ``VStackLayout/guideRun(_:sizes:fixedExtent:)`` — same rule, other
     /// axis (``verticalGuideRun(_:sizes:alignment:fixedExtent:minimumExtent:holdsChildrenInside:context:)``).
-    private func guideRun(
+    @MainActor private func guideRun(
         _ subviews: Subviews, sizes: [(width: Int, height: Int)], fixedExtent: Int?
     ) -> AlignmentGuideRun? {
         guard subviews.contains(where: { $0.child.providesAlignmentGuide }) else { return nil }
@@ -365,7 +365,7 @@ public struct HStackLayout: Layout, Sendable, Equatable {
 /// `ZStackLayout` is absent on purpose: a ZStack has no axis, and a divider in
 /// one is the horizontal rule it is outside any stack — which is what a `nil`
 /// axis already means.
-extension VStackLayout {
+@MainActor extension VStackLayout {
     /// The stacks keep the default guide merge.
     public static var _definesExplicitAlignment: Bool { false }
 
@@ -377,7 +377,7 @@ extension VStackLayout {
     }
 }
 
-extension HStackLayout {
+@MainActor extension HStackLayout {
     /// The stacks keep the default guide merge.
     public static var _definesExplicitAlignment: Bool { false }
 
@@ -394,17 +394,17 @@ extension HStackLayout {
 /// A `ForEach` of grid rows is cells under a stack layout, as it is under
 /// `GridLayout`, so switching the two through `AnyLayout` keeps each cell's
 /// identity and its `@State`.
-extension VStackLayout: WholeGridRowExpanding {
+@MainActor extension VStackLayout: WholeGridRowExpanding {
     package var expandsWholeGridRows: Bool { true }
 }
 
 /// See ``VStackLayout``'s conformance.
-extension HStackLayout: WholeGridRowExpanding {
+@MainActor extension HStackLayout: WholeGridRowExpanding {
     package var expandsWholeGridRows: Bool { true }
 }
 
 /// See ``VStackLayout``'s conformance.
-extension ZStackLayout: WholeGridRowExpanding {
+@MainActor extension ZStackLayout: WholeGridRowExpanding {
     package var expandsWholeGridRows: Bool { true }
 }
 
@@ -416,21 +416,21 @@ extension ZStackLayout: WholeGridRowExpanding {
 // cache is `Void` — a stack recomputes from its subviews — and the animatable
 // data is empty, as SwiftUI's is.
 
-extension VStackLayout: Animatable {
+@MainActor extension VStackLayout: Animatable {
     /// A stack layout recomputes from its subviews and caches nothing.
     public typealias Cache = Void
     /// A stack layout animates nothing of its own.
     public typealias AnimatableData = EmptyAnimatableData
 }
 
-extension HStackLayout: Animatable {
+@MainActor extension HStackLayout: Animatable {
     /// A stack layout recomputes from its subviews and caches nothing.
     public typealias Cache = Void
     /// A stack layout animates nothing of its own.
     public typealias AnimatableData = EmptyAnimatableData
 }
 
-extension ZStackLayout: Animatable {
+@MainActor extension ZStackLayout: Animatable {
     /// A stack layout recomputes from its subviews and caches nothing.
     public typealias Cache = Void
     /// A stack layout animates nothing of its own.
@@ -452,12 +452,12 @@ extension ZStackLayout: Animatable {
 /// to fit more naturally into the terminal environment (the same reasoning as
 /// ``VStackLayout``'s and ``HStackLayout``'s alignment defaults — see
 /// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` §2.10).
-public struct ZStackLayout: Layout, Sendable, Equatable {
+nonisolated public struct ZStackLayout: Layout, Sendable, Equatable {
     /// Where subviews sit within the stack's own frame.
     public var alignment: Alignment
 
     /// The stacks keep the default guide merge.
-    public static var _definesExplicitAlignment: Bool { false }
+    @MainActor public static var _definesExplicitAlignment: Bool { false }
 
     /// Creates an overlay layout.
     ///
@@ -468,7 +468,7 @@ public struct ZStackLayout: Layout, Sendable, Equatable {
         self.alignment = alignment
     }
 
-    public func sizeThatFits(
+    @MainActor public func sizeThatFits(
         proposal: ProposedSize, subviews: Subviews, cache: inout ()
     ) -> ViewSize {
         let sizes = subviews.map { $0.sizeThatFits(proposal) }
@@ -481,7 +481,7 @@ public struct ZStackLayout: Layout, Sendable, Equatable {
             height: down?.extent ?? sizes.map(\.height).max() ?? 0)
     }
 
-    public func placeSubviews(
+    @MainActor public func placeSubviews(
         in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
     ) {
         let sizes = subviews.map { $0.sizeThatFits(proposal) }
@@ -506,7 +506,7 @@ public struct ZStackLayout: Layout, Sendable, Equatable {
     /// guide for that half of ``alignment`` — see
     /// ``VStackLayout/guideRun(_:sizes:fixedExtent:)``; each `nil` where none
     /// does, and the layers are placed by the guide's default on that axis.
-    private func guideRuns(
+    @MainActor private func guideRuns(
         _ subviews: Subviews, sizes: [(width: Int, height: Int)], bounds: CellRect?
     ) -> (across: AlignmentGuideRun?, down: AlignmentGuideRun?) {
         guard subviews.contains(where: { $0.child.providesAlignmentGuide }) else { return (nil, nil) }

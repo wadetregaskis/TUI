@@ -30,7 +30,7 @@
 /// ```
 ///
 /// Use this for all UI strings that need localization.
-public struct LocalizedString: View {
+public struct LocalizedString {
     /// The dot-notation key for the string to display.
     private let key: String
 
@@ -68,17 +68,19 @@ public struct LocalizedString: View {
         self.isFrameworkKey = true
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         Text(
             verbatim: isFrameworkKey
                 ? service.frameworkReading(key, in: language).text
                 : service.reading(key, swiftUIKey: nil, tableName: nil, bundle: nil, in: language).text)
     }
 }
+extension LocalizedString: View {}
 
 // MARK: - Environment without reflection
 
-extension LocalizedString: ResolvesOwnEnvironment {
+@MainActor extension LocalizedString: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _service.resolveEnvironment(environment)
         _language.resolveEnvironment(environment)

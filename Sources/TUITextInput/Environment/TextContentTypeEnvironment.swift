@@ -56,7 +56,7 @@ extension View {
     ///
     /// - Parameter type: The content type, or `nil` to disable filtering.
     /// - Returns: A view with the content type applied.
-    public func textContentType(_ type: TextContentType?) -> some View {
+    nonisolated public func textContentType(_ type: TextContentType?) -> some View {
         environment(\.textContentType, type)
     }
 }

@@ -44,7 +44,7 @@ import TUIFoundation
 /// │ s save   x action   ↑↓ nav             │ q quit   ? help   t theme    │
 /// └────────────────────────────────────────┴───────────────────────────────┘
 /// ```
-public struct StatusBar: View {
+nonisolated public struct StatusBar: View {
     /// User items (left container).
     public let userItems: [any StatusBarItemProtocol]
 
@@ -184,18 +184,18 @@ public struct StatusBar: View {
     /// System items maintain their fixed order (quit, help, theme).
     /// User items override system items with the same shortcut.
     /// Use this for event handling to check all items.
-    public var allItems: [any StatusBarItemProtocol] {
+    @MainActor public var allItems: [any StatusBarItemProtocol] {
         let userShortcuts = Set(userItems.map { $0.shortcut })
         let filteredSystemItems = systemItems.filter { !userShortcuts.contains($0.shortcut) }
         return userItems.sorted { $0.order < $1.order } + filteredSystemItems
     }
 
     /// Whether the status bar has any items to display.
-    public var hasItems: Bool {
+    @MainActor public var hasItems: Bool {
         !userItems.isEmpty || !systemItems.isEmpty
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         if readsAppState {
             _AppStatusBarCore()
         } else {
@@ -995,7 +995,7 @@ private struct _StatusBarCore: View, Renderable {
 
 // MARK: - Status Bar Height Helper
 
-extension StatusBar {
+@MainActor extension StatusBar {
     /// The height of the status bar in lines: its one row of items, any tooltip
     /// rows above them, plus whatever chrome the style draws around it.
     public var height: Int {

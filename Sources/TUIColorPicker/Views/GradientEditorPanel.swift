@@ -75,7 +75,7 @@ import TUIStyling
 /// it would offer an edit half its callers cannot accept. Present whichever
 /// dialog matches what the binding can hold, and the binding type makes the
 /// wrong choice fail to compile.
-public struct GradientEditorPanel: View {
+public struct GradientEditorPanel {
     private let title: String
     private let gradient: Binding<Gradient>
     private let isPresented: Binding<Bool>
@@ -103,7 +103,7 @@ public struct GradientEditorPanel: View {
 
     /// ``previewWidth``, for the test that asserts the strip IS the quantised
     /// ramp — which has to know how long the ramp is to look for it.
-    static var previewWidthForTesting: Int { previewWidth }
+    @MainActor static var previewWidthForTesting: Int { previewWidth }
 
     /// Creates a gradient-editor panel with a localized title.
     ///
@@ -172,7 +172,8 @@ public struct GradientEditorPanel: View {
         self.init("Gradient" as String, gradient: gradient, isPresented: isPresented)
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         let recents = Self.decodeRecents(recentsRaw)
         _EditorPanelChrome(title: title, edited: gradient, isPresented: isPresented) {
             VStack(alignment: .center, spacing: 1) {
@@ -208,13 +209,13 @@ public struct GradientEditorPanel: View {
 
     /// Whether this is a ramp at all. One stop is a solid colour, and the
     /// dialog shows the colour editor alone for it.
-    private var isGradient: Bool { gradient.wrappedValue.stops.count > 1 }
+    @MainActor private var isGradient: Bool { gradient.wrappedValue.stops.count > 1 }
 
     /// Solid ⇄ gradient, which is collapsing to or expanding from one stop —
     /// the same two edits `−` and `+` make at the floor, so there is one
     /// mechanism (the stop count) reachable two ways rather than a mode flag
     /// that could disagree with the stops.
-    private var modeSwitch: some View {
+    @MainActor private var modeSwitch: some View {
         Toggle(
             LocalizationService.shared.string(for: LocalizationKey.Label.gradient),
             isOn: Binding(
@@ -243,7 +244,7 @@ public struct GradientEditorPanel: View {
     /// (like a row index) would wrap each row in the element-keyed render
     /// memo, which cannot see the stop colours the row captures — the preview
     /// froze until something else invalidated the cache.
-    private var previewStrip: some View {
+    @MainActor private var previewStrip: some View {
         let ramp = gradient.wrappedValue
         // Through the RAMP overload, which quantises the whole strip at once
         // and repairs it into a monotone one. Per cell — which this was — a
@@ -264,7 +265,7 @@ public struct GradientEditorPanel: View {
     /// One row of per-cell coloured blocks. Glyph AND background in the
     /// colour, like the colour panel's swatch: solid in terminals that don't
     /// paint behind spaces, gap-free where the font leaves hairlines.
-    private func colorCellRow(_ cells: [Color]) -> some View {
+    @MainActor private func colorCellRow(_ cells: [Color]) -> some View {
         HStack(spacing: 0) {
             ForEach(Array(cells.enumerated()), id: \.offset) { _, color in
                 Text("█").foregroundStyle(color).background(color)
@@ -291,7 +292,7 @@ public struct GradientEditorPanel: View {
     /// an alternative to the ◀ ▶ single-step buttons. Click-to-select
     /// survives the drag handle because a press released without movement
     /// forwards to the button as an ordinary click.
-    private var stopStrip: some View {
+    @MainActor private var stopStrip: some View {
         let list = gradient.wrappedValue.stops
         let selection = clampedSelection
         let rows = Self.chipRows(count: list.count)
@@ -312,7 +313,7 @@ public struct GradientEditorPanel: View {
         }
     }
 
-    private func stopChip(index: Int, color: Color, isSelected: Bool) -> some View {
+    @MainActor private func stopChip(index: Int, color: Color, isSelected: Bool) -> some View {
         _StopChipDragHandle(
             content: Button("") { selectedStop = index }
                 .buttonStyle(_ColorSwatchButtonStyle(color: color, isSelected: isSelected)),
@@ -341,7 +342,7 @@ public struct GradientEditorPanel: View {
     /// not the only way in: dragging the selected chip to the end disables ▶
     /// without ▶'s action running. The row only shows with two or more stops, so
     /// the two are never disabled together.
-    private var actionRow: some View {
+    @MainActor private var actionRow: some View {
         let ramp = gradient.wrappedValue
         let selection = clampedSelection
         return HStack(spacing: 1) {
@@ -386,7 +387,7 @@ public struct GradientEditorPanel: View {
     /// the recently *applied* gradients (most recent first), each drawn as a
     /// small strip button. Selecting one replaces the stops (live, and
     /// revertable by Cancel like any other edit).
-    @ViewBuilder private func gradientChips(recents: [Gradient]) -> some View {
+    @ViewBuilder @MainActor private func gradientChips(recents: [Gradient]) -> some View {
         chipRows(for: Self.presets)
         if !recents.isEmpty {
             // Dashed: a SUB-division within the library, deliberately
@@ -399,7 +400,7 @@ public struct GradientEditorPanel: View {
     }
 
     /// `gradients` as wrapped rows of strip buttons.
-    private func chipRows(for gradients: [Gradient]) -> some View {
+    @MainActor private func chipRows(for gradients: [Gradient]) -> some View {
         let widths = gradients.map { _ in 2 + Self.chipStripWidth }  // focus prefix + strip
         let rows = Self.wrappedRows(
             itemWidths: widths, spacing: 1, budget: Self.previewWidth)
@@ -417,7 +418,7 @@ public struct GradientEditorPanel: View {
     /// The width of one gradient chip's strip, in cells.
     private static let chipStripWidth = 8
 
-    private func gradientChip(_ ramp: Gradient) -> some View {
+    @MainActor private func gradientChip(_ ramp: Gradient) -> some View {
         let cells = (0..<Self.chipStripWidth).map { index in
             TrackRenderer.gradientColor(
                 ramp, index: index, span: Self.chipStripWidth,
@@ -435,14 +436,14 @@ public struct GradientEditorPanel: View {
     // MARK: Selection plumbing
 
     /// `selectedStop` clamped into the current stop list.
-    private var clampedSelection: Int {
+    @MainActor private var clampedSelection: Int {
         max(0, min(selectedStop, gradient.wrappedValue.stops.count - 1))
     }
 
     /// A colour binding onto the selected stop. The embedded panel re-seeds
     /// itself whenever this reads a different colour (its channel editors
     /// watch the selection), so switching stops refreshes it in place.
-    private var selectedStopBinding: Binding<Color> {
+    @MainActor private var selectedStopBinding: Binding<Color> {
         Binding(
             get: {
                 let list = gradient.wrappedValue.stops
@@ -460,10 +461,11 @@ public struct GradientEditorPanel: View {
             })
     }
 }
+extension GradientEditorPanel: View {}
 
 // MARK: - Stop mutations (pure; unit-tested)
 
-extension GradientEditorPanel {
+@MainActor extension GradientEditorPanel {
     /// Inserts a copy of the stop at `index` in the gap beside it and selects
     /// the copy — duplicating reads as "split here", and editing the copy
     /// diverges it.
@@ -606,7 +608,7 @@ extension GradientEditorPanel {
 
 // MARK: - Chip wrapping (pure; unit-tested)
 
-extension GradientEditorPanel {
+@MainActor extension GradientEditorPanel {
     /// One chip's whole drawn state, carried as the `ForEach` element rather
     /// than read from outside the row.
     ///
@@ -719,7 +721,7 @@ extension GradientEditorPanel {
 
 // MARK: - Presets & recents (pure; unit-tested)
 
-extension GradientEditorPanel {
+@MainActor extension GradientEditorPanel {
     /// The built-in gradients, offered as one-click chips.
     static let presets: [Gradient] = [
         // Rainbow

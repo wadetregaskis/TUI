@@ -11,10 +11,10 @@ import TUIStyling
 ///
 /// - Important: This is framework infrastructure. Use `.background()` on any
 ///   ``View`` instead of instantiating this type directly.
-package struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
+nonisolated package struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
     /// Its content stays where it is laid out — a background is drawn behind the cells its content drew, where they are — so a guide inside it
     /// passes unmoved (``BufferModifier/_keepsContentGeometry``).
-    public static var _keepsContentGeometry: Bool { true }
+    @MainActor public static var _keepsContentGeometry: Bool { true }
 
     /// What to fill with.
     package let style: S
@@ -28,18 +28,18 @@ package struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
     /// The content's context: raised under a style that raises the prominence
     /// of what is drawn over it (`BackgroundProminenceRaising` — the
     /// selection), as is.
-    public func adjustContext(_ context: RenderContext) -> RenderContext {
+    @MainActor public func adjustContext(_ context: RenderContext) -> RenderContext {
         context.raisingBackgroundProminence(under: style)
     }
 
     /// Fills at this modifier's own type, which is the right owner only when
     /// nothing encloses it — a direct call, never the render path. `ModifiedView`
     /// calls `_modify(buffer:context:owner:)` instead and names itself.
-    public func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+    @MainActor public func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
         _modify(buffer: buffer, context: context, owner: Self.self)
     }
 
-    public func _modify(
+    @MainActor public func _modify(
         buffer: FrameBuffer, context: RenderContext, owner: Any.Type
     ) -> FrameBuffer {
         guard !buffer.isEmpty else { return buffer }
@@ -69,7 +69,7 @@ package struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
     ///
     /// The layer is a picture only where a plain fill would be one: behind
     /// nothing.
-    private func shadowedFilling(
+    @MainActor private func shadowedFilling(
         _ buffer: FrameBuffer, with paint: Paint, context: RenderContext, owner: Any.Type
     ) -> FrameBuffer {
         let layer = filling(
@@ -92,7 +92,7 @@ package struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
     ///     lets it be: false for a shadowed style's layer under content that
     ///     is not blank, which would cover the picture's cells.
     /// - Returns: The filled buffer.
-    private func filling(
+    @MainActor private func filling(
         _ buffer: FrameBuffer, with paint: Paint, context: RenderContext, owner: Any.Type, picturing: Bool = true
     ) -> FrameBuffer {
         let width = buffer.width
@@ -332,7 +332,7 @@ package struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
     /// `claim` with `paint`'s mode on it — an opaque claim over `width` ×
     /// `height` where there is no claim but a mode to carry — and its frost (a
     /// material's, ``Paint/frost``), as the one claim a fill makes.
-    private static func withMode(_ claim: OpacityRegion?, _ paint: Paint, width: Int, height: Int)
+    @MainActor private static func withMode(_ claim: OpacityRegion?, _ paint: Paint, width: Int, height: Int)
         -> [OpacityRegion]
     {
         var claim = claim
@@ -367,7 +367,7 @@ package struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
     ///
     /// - Returns: The buffer as the picture's placeholder cells, or `nil` to
     ///   paint cells.
-    private static func pictured(
+    @MainActor private static func pictured(
         _ buffer: FrameBuffer, paint: Paint, extent: GradientFrame, context: RenderContext, owner: Any.Type
     ) -> FrameBuffer? {
         let width = buffer.width
@@ -395,7 +395,7 @@ package struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
     /// said of the ramp alone (`FrameBuffer.claimingPainterField(_:spelledAt:)`, §105):
     /// beneath a field the content states itself, the ramp's entry at that cell, spelled
     /// as the row painted it (`escape`, by entry).
-    private static func saidOfTheRamp(
+    @MainActor private static func saidOfTheRamp(
         for alphaShape: RampSampler.AlphaShape, rowAlphas: [UInt8], over content: FrameBuffer,
         sampler: RampSampler, width: Int, palette: any Palette, escape: (Int) -> String, mode: BlendMode?
     ) -> [OpacityRegion] {
@@ -427,7 +427,7 @@ package struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
     /// with the third shape — and because it is the half of that function with no
     /// bytes in it, which makes the split a real seam rather than a place to hide four
     /// lines.
-    private static func fieldClaims(
+    @MainActor private static func fieldClaims(
         for alphaShape: RampSampler.AlphaShape, width: Int, rows: Int,
         rowAlphas: [UInt8], sampler: RampSampler
     ) -> [OpacityRegion] {
@@ -494,7 +494,7 @@ package struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
     /// so child content that emits its own ANSI resets — Text, a Slider's track,
     /// a Toggle's brackets — doesn't punch holes in the fill. A final reset
     /// closes the run so the colour doesn't bleed past the line.
-    private func filled(_ string: String, with color: Color) -> String {
+    @MainActor private func filled(_ string: String, with color: Color) -> String {
         ANSIRenderer.applyPersistentBackground(string, color: color) + ANSIRenderer.reset
     }
 }

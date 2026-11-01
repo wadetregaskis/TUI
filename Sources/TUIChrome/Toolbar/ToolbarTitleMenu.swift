@@ -37,7 +37,7 @@ import TUIFoundation
 /// SwiftUI fills ``init()``'s menu from the app's commands (`saveItem`,
 /// `printItem`, …); TUI's leaves the title as it is — the commands are in
 /// the menu bar. Give the menu its items with ``init(content:)``.
-public struct ToolbarTitleMenu<Content: View>: ToolbarContent {
+nonisolated public struct ToolbarTitleMenu<Content: View>: ToolbarContent {
     /// The menu's items.
     let content: Content
 
@@ -49,7 +49,7 @@ public struct ToolbarTitleMenu<Content: View>: ToolbarContent {
     }
 
     /// Never called: a title menu hands itself to the bar.
-    public var body: Never { fatalError("ToolbarTitleMenu hands itself to the bar") }
+    @MainActor public var body: Never { fatalError("ToolbarTitleMenu hands itself to the bar") }
 }
 
 extension ToolbarTitleMenu where Content == EmptyView {
@@ -63,7 +63,7 @@ extension ToolbarTitleMenu where Content == EmptyView {
     }
 }
 
-extension ToolbarTitleMenu: _ToolbarContentPrimitive {
+@MainActor extension ToolbarTitleMenu: _ToolbarContentPrimitive {
     func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         // Nothing to open: the title stays a title.
         guard Content.self != EmptyView.self else { return }
@@ -91,7 +91,7 @@ extension View {
     ///
     /// - Parameter content: The content associated to the toolbar title menu.
     /// - Returns: A view whose toolbar's title opens `content`.
-    public func toolbarTitleMenu<C: View>(@ViewBuilder content: () -> C) -> some View {
+    nonisolated public func toolbarTitleMenu<C: View>(@ViewBuilder content: () -> C) -> some View {
         _ToolbarModifier(content: self, items: ToolbarTitleMenu(content: content))
     }
 }

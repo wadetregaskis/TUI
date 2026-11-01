@@ -55,7 +55,7 @@ extension View {
     ///     every cell paints, which a terminal has no use for.
     ///   - colorMode: The working colour space blends in this view mix in.
     /// - Returns: This view, its blends in `colorMode`.
-    public func drawingGroup(opaque: Bool = false, colorMode: ColorRenderingMode = .nonLinear) -> some View {
+    nonisolated public func drawingGroup(opaque: Bool = false, colorMode: ColorRenderingMode = .nonLinear) -> some View {
         environment(\.blendsInLinearLight, colorMode != .nonLinear)
     }
 }

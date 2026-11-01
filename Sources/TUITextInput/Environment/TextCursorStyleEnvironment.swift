@@ -44,7 +44,7 @@ extension View {
     ///
     /// - Parameter style: The cursor style to use.
     /// - Returns: A view with the cursor style applied.
-    public func textCursor(_ style: TextCursorStyle) -> some View {
+    nonisolated public func textCursor(_ style: TextCursorStyle) -> some View {
         environment(\.textCursorStyle, style)
     }
 
@@ -64,7 +64,7 @@ extension View {
     ///   - shape: The cursor shape.
     ///   - animation: The cursor animation. Defaults to `.pulse`.
     /// - Returns: A view with the cursor style applied.
-    public func textCursor(
+    nonisolated public func textCursor(
         _ shape: TextCursorStyle.Shape,
         animation: TextCursorStyle.Animation = .pulse
     ) -> some View {

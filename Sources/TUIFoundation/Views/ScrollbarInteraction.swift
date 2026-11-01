@@ -38,7 +38,7 @@ extension View {
     /// Sets how a click on a scrollbar's track behaves within this view — paging
     /// towards the click (default) or jumping to it. The thumb is always
     /// draggable and the end arrows always step by one regardless.
-    public func scrollbarClickBehavior(_ behavior: ScrollbarClickBehavior) -> some View {
+    nonisolated public func scrollbarClickBehavior(_ behavior: ScrollbarClickBehavior) -> some View {
         environment(\.scrollbarClickBehavior, behavior)
     }
 }

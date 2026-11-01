@@ -103,21 +103,21 @@ extension View {
     ///
     /// - Parameter shape: The shape of this container.
     /// - Returns: The view, a container of that shape.
-    public func containerShape<T: InsettableShape>(_ shape: T) -> some View {
+    nonisolated public func containerShape<T: InsettableShape>(_ shape: T) -> some View {
         _ContainerShapeView(content: self, shape: ErasedInsettableShape(shape))
     }
 }
 
 /// ``View/containerShape(_:)``'s view: its content, told the container's
 /// shape, origin and size.
-struct _ContainerShapeView<Content: View>: View {
+nonisolated struct _ContainerShapeView<Content: View>: View {
     let content: Content
     let shape: ErasedInsettableShape
 
-    var body: Never { fatalError("_ContainerShapeView renders via Renderable") }
+    @MainActor var body: Never { fatalError("_ContainerShapeView renders via Renderable") }
 }
 
-extension _ContainerShapeView: Renderable {
+@MainActor extension _ContainerShapeView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Its content's views are told where they sit relative to here: a
         // carried origin, started here unless one is already in force.
@@ -137,7 +137,7 @@ extension _ContainerShapeView: Renderable {
     }
 }
 
-extension _ContainerShapeView: Layoutable {
+@MainActor extension _ContainerShapeView: Layoutable {
     /// The content's size: a container shape changes nothing about layout.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)

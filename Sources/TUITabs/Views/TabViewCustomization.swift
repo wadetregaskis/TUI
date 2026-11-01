@@ -263,7 +263,7 @@ extension View {
     /// ``TabViewCustomization``.
     ///
     /// - Parameter customization: The customization, or `nil` for none.
-    public func tabViewCustomization(_ customization: Binding<TabViewCustomization>?) -> some View {
+    nonisolated public func tabViewCustomization(_ customization: Binding<TabViewCustomization>?) -> some View {
         environment(
             \.tabViewCustomization,
             customization.map { _BoundTabViewCustomization(value: $0.wrappedValue, binding: $0) })

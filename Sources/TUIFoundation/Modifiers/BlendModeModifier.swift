@@ -35,23 +35,23 @@ extension View {
     ///
     /// - Parameter blendMode: How the colours combine.
     /// - Returns: A view composited with that mode over whatever it is drawn on.
-    public func blendMode(_ blendMode: BlendMode) -> some View {
+    nonisolated public func blendMode(_ blendMode: BlendMode) -> some View {
         _BlendModeView(content: self, blendMode: blendMode)
     }
 }
 
 /// Marks everything `content` draws with a blend mode, for the compositor to
 /// resolve against what is behind it, as ``_OpacityView`` marks a fade.
-package struct _BlendModeView<Content: View>: View {
+nonisolated package struct _BlendModeView<Content: View>: View {
     let content: Content
     let blendMode: BlendMode
 
-    package var body: Never {
+    @MainActor package var body: Never {
         fatalError("_BlendModeView renders via Renderable")
     }
 }
 
-extension _BlendModeView: Renderable {
+@MainActor extension _BlendModeView: Renderable {
     package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var buffer = TUIView.renderToBuffer(content, context: context)
         guard blendMode != .normal, !buffer.isEmpty || !buffer.overlays.isEmpty else { return buffer }
@@ -89,7 +89,7 @@ extension _BlendModeView: Renderable {
     }
 }
 
-extension _BlendModeView: Layoutable {
+@MainActor extension _BlendModeView: Layoutable {
     /// Blending rewrites colours in place: same characters, same cells, same size.
     package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
@@ -98,7 +98,7 @@ extension _BlendModeView: Layoutable {
 
 // MARK: - Seeing Through the Wrapper
 
-extension _BlendModeView: ContentRewrapping {
+@MainActor extension _BlendModeView: ContentRewrapping {
     /// Its content's geometry is its own, as ``_OpacityView``'s is
     /// (``SingleContentWrapper/_keepsContentGeometry``).
     package static var _keepsContentGeometry: Bool { true }
@@ -115,8 +115,8 @@ extension _BlendModeView: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _BlendModeView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _BlendModeView: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _BlendModeView: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension _BlendModeView: GridRowProviding where Content: GridRowProviding {}

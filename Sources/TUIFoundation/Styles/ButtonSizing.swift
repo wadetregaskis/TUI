@@ -61,7 +61,7 @@ extension View {
     ///
     /// - Parameter sizing: The sizing behaviour buttons below should use.
     /// - Returns: A view whose buttons size themselves that way.
-    public func buttonSizing(_ sizing: ButtonSizing) -> some View {
+    nonisolated public func buttonSizing(_ sizing: ButtonSizing) -> some View {
         environment(\.buttonSizing, sizing)
     }
 }

@@ -22,7 +22,7 @@ import TUIView
 /// It lives here, below TUIMenus, whose `.contextMenu(menuItems:)` makes
 /// it, because ``Link`` offers a menu of its own (Show Link, Copy Link) and
 /// TUIFoundation cannot see a module built on it.
-package struct ContextMenuModifier<Content: View, MenuItems: View>: View {
+nonisolated package struct ContextMenuModifier<Content: View, MenuItems: View>: View {
     let content: Content
     let menuItems: MenuItems
     let keyboardRoute: KeyboardRoute
@@ -66,7 +66,7 @@ package struct ContextMenuModifier<Content: View, MenuItems: View>: View {
         self.answersControlReturn = answersControlReturn
     }
 
-    package var body: Never {
+    @MainActor package var body: Never {
         fatalError("ContextMenuModifier renders via Renderable")
     }
 }
@@ -74,7 +74,7 @@ package struct ContextMenuModifier<Content: View, MenuItems: View>: View {
 /// A context menu written on a form row is the menu of the row the form lays
 /// out, which keeps its place, as SwiftUI's form keeps it (measured,
 /// `Tools/SwiftUIProbes/Form rows`).
-extension ContextMenuModifier: FormRowRewrapping {
+@MainActor extension ContextMenuModifier: FormRowRewrapping {
     package var formRowContent: Content { content }
 
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {
@@ -100,7 +100,7 @@ private enum StateIndex {
 
 // MARK: - Renderable
 
-extension ContextMenuModifier: Renderable {
+@MainActor extension ContextMenuModifier: Renderable {
     package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let sectionID = "contextmenu-\(context.identity.path)"
         // Its own child identity, so the content's / menu's @State never collides
@@ -354,7 +354,7 @@ private enum ContextMenuKeyRegistrar {
 
 // MARK: - Layoutable
 
-extension ContextMenuModifier: Layoutable {
+@MainActor extension ContextMenuModifier: Layoutable {
     /// The menu is presented *over* the content, so the layout footprint is just
     /// the content — and forwarding keeps the focus-section / trigger side effects
     /// on the render pass, never a measure.

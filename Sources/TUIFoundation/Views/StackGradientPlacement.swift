@@ -9,7 +9,7 @@
 import TUICore
 import TUIView
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// A child's left edge inside an extent `width` cells wide, under this
     /// stack's horizontal alignment.
     ///
@@ -137,7 +137,7 @@ extension _VStackCore {
     }
 }
 
-extension _HStackCore {
+@MainActor extension _HStackCore {
     /// A child's top edge inside an extent `height` lines tall, under this
     /// row's vertical alignment. The horizontal twin of
     /// ``_VStackCore/gradientX(childWidth:extent:alignment:)``.

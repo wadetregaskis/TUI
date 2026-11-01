@@ -31,7 +31,7 @@ extension View {
     ///
     /// - Parameter isDisabled: Whether to refuse deletion.
     /// - Returns: A row that refuses to be deleted.
-    public func deleteDisabled(_ isDisabled: Bool = true) -> some View {
+    nonisolated public func deleteDisabled(_ isDisabled: Bool = true) -> some View {
         _RowEditRestrictionView(content: self, restriction: .delete, isDisabled: isDisabled)
     }
 
@@ -46,7 +46,7 @@ extension View {
     ///
     /// - Parameter isDisabled: Whether to refuse moving.
     /// - Returns: A row that refuses to be moved.
-    public func moveDisabled(_ isDisabled: Bool = true) -> some View {
+    nonisolated public func moveDisabled(_ isDisabled: Bool = true) -> some View {
         _RowEditRestrictionView(content: self, restriction: .move, isDisabled: isDisabled)
     }
 }
@@ -55,7 +55,7 @@ extension View {
 ///
 /// - Important: Framework infrastructure. Created by ``View/deleteDisabled(_:)``
 ///   and ``View/moveDisabled(_:)``.
-public struct _RowEditRestrictionView<Content: View>: View {
+nonisolated public struct _RowEditRestrictionView<Content: View>: View {
     /// Which edit is being refused.
     enum Restriction {
         case delete
@@ -66,12 +66,12 @@ public struct _RowEditRestrictionView<Content: View>: View {
     let restriction: Restriction
     let isDisabled: Bool
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("_RowEditRestrictionView renders via Renderable")
     }
 }
 
-extension _RowEditRestrictionView: Renderable {
+@MainActor extension _RowEditRestrictionView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         report(context)
         return TUIView.renderToBuffer(content, context: context)
@@ -106,7 +106,7 @@ extension _RowEditRestrictionView: Renderable {
     }
 }
 
-extension _RowEditRestrictionView: Layoutable {
+@MainActor extension _RowEditRestrictionView: Layoutable {
     /// Measures as its content: the report is the whole of this view's effect,
     /// and it contributes no geometry.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -120,7 +120,7 @@ extension _RowEditRestrictionView: Layoutable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _RowEditRestrictionView: SingleContentWrapper {
+@MainActor extension _RowEditRestrictionView: SingleContentWrapper {
     public var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -131,4 +131,4 @@ extension _RowEditRestrictionView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _RowEditRestrictionView: DrawsContentUnchanged {}
+@MainActor extension _RowEditRestrictionView: DrawsContentUnchanged {}

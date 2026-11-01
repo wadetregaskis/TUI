@@ -137,7 +137,7 @@ extension View {
     /// - Parameter disabled: `true` (the default) suppresses the indication for
     ///   this subtree; `false` adds no suppression of its own, and does not
     ///   lift one an ancestor added.
-    public func focusEffectDisabled(_ disabled: Bool = true) -> some View {
+    nonisolated public func focusEffectDisabled(_ disabled: Bool = true) -> some View {
         // `transformEnvironment`, not `environment`: the value is derived from
         // what is inherited (AND), which is what makes the modifier additive.
         // The closure is a pure function of the inherited value, as that helper

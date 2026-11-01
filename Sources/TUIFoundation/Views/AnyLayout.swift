@@ -26,7 +26,7 @@ import TUIView
 ///
 /// ``VStackLayout``, ``HStackLayout`` and ``ZStackLayout`` are the stacks'
 /// arrangements as values, which is what this is usually erasing.
-public struct AnyLayout: Layout {
+nonisolated public struct AnyLayout: Layout {
     /// The erased cache of whichever layout this wraps.
     public struct Cache {
         var base: Any
@@ -39,21 +39,21 @@ public struct AnyLayout: Layout {
         self.box = ConcreteBox(layout: layout)
     }
 
-    public func makeCache(subviews: Subviews) -> Cache {
+    @MainActor public func makeCache(subviews: Subviews) -> Cache {
         Cache(base: box.makeCache(subviews: subviews))
     }
 
-    public func updateCache(_ cache: inout Cache, subviews: Subviews) {
+    @MainActor public func updateCache(_ cache: inout Cache, subviews: Subviews) {
         box.updateCache(&cache.base, subviews: subviews)
     }
 
-    public func sizeThatFits(
+    @MainActor public func sizeThatFits(
         proposal: ProposedSize, subviews: Subviews, cache: inout Cache
     ) -> ViewSize {
         box.sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache.base)
     }
 
-    public func placeSubviews(
+    @MainActor public func placeSubviews(
         in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout Cache
     ) {
         box.placeSubviews(
@@ -61,12 +61,12 @@ public struct AnyLayout: Layout {
     }
 
     /// The erased layout's preference.
-    public func spacing(subviews: Subviews, cache: inout Cache) -> ViewSpacing {
+    @MainActor public func spacing(subviews: Subviews, cache: inout Cache) -> ViewSpacing {
         box.spacing(subviews: subviews, cache: &cache.base)
     }
 
     /// The erased layout's answer.
-    public func explicitAlignment(
+    @MainActor public func explicitAlignment(
         of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
@@ -75,7 +75,7 @@ public struct AnyLayout: Layout {
     }
 
     /// The erased layout's answer.
-    public func explicitAlignment(
+    @MainActor public func explicitAlignment(
         of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
@@ -84,12 +84,12 @@ public struct AnyLayout: Layout {
     }
 }
 
-extension AnyLayout: WholeGridRowExpanding {
+@MainActor extension AnyLayout: WholeGridRowExpanding {
     /// Whether the erased layout lays out grid cells.
     package var expandsWholeGridRows: Bool { box.expandsWholeGridRows }
 }
 
-extension AnyLayout: ExplicitAlignmentForwarding {
+@MainActor extension AnyLayout: ExplicitAlignmentForwarding {
     /// Whether the erased layout defines guides of its own along `axis` —
     /// what the static ``Layout/_definesExplicitAlignment``, `true` here,
     /// cannot know.
@@ -100,11 +100,11 @@ extension AnyLayout: ExplicitAlignmentForwarding {
 /// nothing to forward from the erased layout. (SwiftUI's is an erased type
 /// that carries the wrapped layout's data; it becomes that the day a `Layout`
 /// can animate.)
-extension AnyLayout: Animatable {
+@MainActor extension AnyLayout: Animatable {
     public typealias AnimatableData = EmptyAnimatableData
 }
 
-extension AnyLayout: AxisPublishingLayout {
+@MainActor extension AnyLayout: AxisPublishingLayout {
     /// Forwarded from whatever was erased: `AnyLayout(HStackLayout())` has to
     /// publish `.horizontal` to its subviews, or a ``Divider`` inside it draws
     /// the rule for whatever stack the `AnyLayout` itself happens to sit in —
@@ -114,7 +114,7 @@ extension AnyLayout: AxisPublishingLayout {
 
 // MARK: - Erasure
 
-extension AnyLayout {
+@MainActor extension AnyLayout {
     /// The value hash's opener for the erased box (see `ValueHashOpener`):
     /// declared here because the box's protocol is private to this file, and
     /// `nonisolated` because the value hash runs off the main actor, which a
@@ -154,27 +154,27 @@ private protocol AnyLayoutBox {
         subviews: LayoutSubviews, cache: inout Any) -> Double?
 }
 
-private struct ConcreteBox<L: Layout>: AnyLayoutBox {
+nonisolated private struct ConcreteBox<L: Layout>: AnyLayoutBox {
     let layout: L
 
     /// The wrapped layout's stack orientation. A nested `AnyLayout` states none
     /// of its own and answers through its `AxisPublishingLayout` conformance
     /// instead, so the forwarding recurses.
-    var containerAxis: Axis? {
+    @MainActor var containerAxis: Axis? {
         L.layoutProperties.stackOrientation ?? (layout as? any AxisPublishingLayout)?.containerAxis
     }
 
-    func makeCache(subviews: LayoutSubviews) -> Any {
+    @MainActor func makeCache(subviews: LayoutSubviews) -> Any {
         layout.makeCache(subviews: subviews)
     }
 
-    func updateCache(_ cache: inout Any, subviews: LayoutSubviews) {
+    @MainActor func updateCache(_ cache: inout Any, subviews: LayoutSubviews) {
         guard var typed = cache as? L.Cache else { return }
         layout.updateCache(&typed, subviews: subviews)
         cache = typed
     }
 
-    func sizeThatFits(
+    @MainActor func sizeThatFits(
         proposal: ProposedSize, subviews: LayoutSubviews, cache: inout Any
     ) -> ViewSize {
         guard var typed = cache as? L.Cache else { return ViewSize.fixed(0, 0) }
@@ -183,7 +183,7 @@ private struct ConcreteBox<L: Layout>: AnyLayoutBox {
         return size
     }
 
-    func placeSubviews(
+    @MainActor func placeSubviews(
         in bounds: CellRect, proposal: ProposedSize, subviews: LayoutSubviews, cache: inout Any
     ) {
         guard var typed = cache as? L.Cache else { return }
@@ -192,22 +192,22 @@ private struct ConcreteBox<L: Layout>: AnyLayoutBox {
         cache = typed
     }
 
-    func definesExplicitAlignment(along axis: Axis) -> Bool {
+    @MainActor func definesExplicitAlignment(along axis: Axis) -> Bool {
         layout.definesExplicitAlignment(along: axis)
     }
 
-    var expandsWholeGridRows: Bool {
+    @MainActor var expandsWholeGridRows: Bool {
         (layout as? any WholeGridRowExpanding)?.expandsWholeGridRows ?? false
     }
 
-    func spacing(subviews: LayoutSubviews, cache: inout Any) -> ViewSpacing {
+    @MainActor func spacing(subviews: LayoutSubviews, cache: inout Any) -> ViewSpacing {
         guard var typed = cache as? L.Cache else { return ViewSpacing() }
         let spacing = layout.spacing(subviews: subviews, cache: &typed)
         cache = typed
         return spacing
     }
 
-    func explicitAlignment(
+    @MainActor func explicitAlignment(
         of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
         subviews: LayoutSubviews, cache: inout Any
     ) -> Double? {
@@ -218,7 +218,7 @@ private struct ConcreteBox<L: Layout>: AnyLayoutBox {
         return value
     }
 
-    func explicitAlignment(
+    @MainActor func explicitAlignment(
         of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
         subviews: LayoutSubviews, cache: inout Any
     ) -> Double? {

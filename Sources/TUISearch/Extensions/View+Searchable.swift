@@ -28,7 +28,7 @@ extension View {
     ///   - text: The text to display and edit in the search field.
     ///   - placement: The preferred placement (inert in a terminal — see the note).
     ///   - prompt: A `Text` to display when the search field is empty.
-    public func searchable(
+    nonisolated public func searchable(
         text: Binding<String>,
         placement: SearchFieldPlacement = .automatic,
         prompt: Text? = nil
@@ -41,7 +41,7 @@ extension View {
     ///
     /// A string **literal** binds here, so the prompt is a lookup key — see
     /// ``LocalizedStringKey``.
-    public func searchable(
+    nonisolated public func searchable(
         text: Binding<String>,
         placement: SearchFieldPlacement = .automatic,
         prompt: LocalizedStringKey
@@ -51,7 +51,7 @@ extension View {
 
     /// Marks this view as searchable, with a prompt displayed as written.
     @_disfavoredOverload
-    public func searchable(
+    nonisolated public func searchable(
         text: Binding<String>,
         placement: SearchFieldPlacement = .automatic,
         prompt: some StringProtocol
@@ -75,7 +75,7 @@ extension View {
     ///   - placement: The preferred placement (the field is drawn at the top
     ///     of the searchable subtree, whatever is preferred).
     ///   - prompt: A `Text` to display when the search field is empty.
-    public func searchable(
+    nonisolated public func searchable(
         text: Binding<String>,
         isPresented: Binding<Bool>,
         placement: SearchFieldPlacement = .automatic,
@@ -90,7 +90,7 @@ extension View {
     ///
     /// A string **literal** binds here, so the prompt is a lookup key — see
     /// ``LocalizedStringKey``.
-    public func searchable(
+    nonisolated public func searchable(
         text: Binding<String>,
         isPresented: Binding<Bool>,
         placement: SearchFieldPlacement = .automatic,
@@ -102,7 +102,7 @@ extension View {
     /// Marks this view as searchable, with programmatic presentation and a
     /// prompt displayed as written.
     @_disfavoredOverload
-    public func searchable(
+    nonisolated public func searchable(
         text: Binding<String>,
         isPresented: Binding<Bool>,
         placement: SearchFieldPlacement = .automatic,
@@ -150,7 +150,7 @@ extension View {
     ///
     /// - Parameter suggestions: A view builder of suggestion entries.
     /// - Returns: A view whose enclosed search field offers the suggestions.
-    public func searchSuggestions<S: View>(
+    nonisolated public func searchSuggestions<S: View>(
         @ViewBuilder _ suggestions: () -> S
     ) -> some View {
         _TextSuggestionsReader(content: self, suggestions: suggestions(), keyPath: \.searchSuggestions)
@@ -175,7 +175,7 @@ extension View {
     /// - Parameter completion: The text the field is filled with when this
     ///   suggestion is chosen.
     /// - Returns: A view carrying the completion for the suggestions menu.
-    public func searchCompletion(_ completion: String) -> some View {
+    nonisolated public func searchCompletion(_ completion: String) -> some View {
         textInputCompletion(completion)
     }
 
@@ -200,7 +200,7 @@ extension View {
     ///
     /// - Parameter token: The token added when this suggestion is chosen.
     /// - Returns: A view carrying the token for the suggestions menu.
-    public func searchCompletion<T: Identifiable>(_ token: T) -> some View {
+    nonisolated public func searchCompletion<T: Identifiable>(_ token: T) -> some View {
         containerValue(\.searchTokenCompletion, SearchTokenCompletion(token: token))
     }
 }

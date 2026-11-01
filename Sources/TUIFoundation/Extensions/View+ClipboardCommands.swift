@@ -43,7 +43,7 @@
         ///   the command: the view keeps it and nothing is copied.
         /// - Returns: A view that handles the Copy command while it holds the
         ///   focus.
-        public func onCopyCommand(perform payloadAction: (() -> [NSItemProvider])?) -> some View {
+        nonisolated public func onCopyCommand(perform payloadAction: (() -> [NSItemProvider])?) -> some View {
             clipboardCommand("c") { _, clipboard in
                 if let payloadAction { ClipboardCommand.write(payloadAction(), to: clipboard) }
                 return true
@@ -58,7 +58,7 @@
         ///   view keeps it and nothing is cut.
         /// - Returns: A view that handles the Cut command while it holds the
         ///   focus.
-        public func onCutCommand(perform payloadAction: (() -> [NSItemProvider])?) -> some View {
+        nonisolated public func onCutCommand(perform payloadAction: (() -> [NSItemProvider])?) -> some View {
             clipboardCommand("x") { _, clipboard in
                 if let payloadAction { ClipboardCommand.write(payloadAction(), to: clipboard) }
                 return true
@@ -78,7 +78,7 @@
         ///   - payloadAction: The action, given the pasted items.
         /// - Returns: A view that handles the Paste command while it holds the
         ///   focus.
-        public func onPasteCommand(
+        nonisolated public func onPasteCommand(
             of supportedContentTypes: [UTType], perform payloadAction: @escaping ([NSItemProvider]) -> Void
         ) -> some View {
             onPasteCommand(of: supportedContentTypes, validator: { $0 }, perform: payloadAction)
@@ -95,7 +95,7 @@
         ///   - payloadAction: The action, given what `validator` returned.
         /// - Returns: A view that handles the Paste command while it holds the
         ///   focus.
-        public func onPasteCommand<Payload>(
+        nonisolated public func onPasteCommand<Payload>(
             of supportedContentTypes: [UTType], validator: @escaping ([NSItemProvider]) -> Payload?,
             perform payloadAction: @escaping (Payload) -> Void
         ) -> some View {
@@ -120,7 +120,7 @@
         /// the terminal handed over, by `UTType` conformance — `.image` takes
         /// a PNG, `.pdf` a PDF. What the command declares, so an OSC 5522
         /// paste reads only the types something will take.
-        static func takes(_ event: KeyEvent, _ types: [UTType]) -> Bool {
+        nonisolated static func takes(_ event: KeyEvent, _ types: [UTType]) -> Bool {
             guard case .paste(let text) = event.key else { return false }
             if !text.isEmpty, types.contains(where: { UTType.utf8PlainText.conforms(to: $0) }) { return true }
             return event.pasteAttachments.contains { attachment in
@@ -132,7 +132,7 @@
         /// What a paste offers a paste command: its text, and each of the
         /// clipboard's other types the terminal handed over, as the type a
         /// `UTType` names its MIME type; `nil` where it offers nothing.
-        static func pastedItem(text: String?, attachments: [PasteAttachment]) -> NSItemProvider? {
+        nonisolated static func pastedItem(text: String?, attachments: [PasteAttachment]) -> NSItemProvider? {
             let text = text.flatMap { $0.isEmpty ? nil : $0 }
             guard text != nil || !attachments.isEmpty else { return nil }
             let item = text.map { NSItemProvider(object: $0 as NSString) } ?? NSItemProvider()

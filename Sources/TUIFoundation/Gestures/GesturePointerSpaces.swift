@@ -48,47 +48,47 @@ func namedPointerSpaces<G: Gesture>(of gesture: G) -> [CoordinateSpace] {
     return named
 }
 
-extension DragGesture: PointerSpaceReporting {
+@MainActor extension DragGesture: PointerSpaceReporting {
     var pointerSpaces: [CoordinateSpace] { [coordinateSpace] }
 }
 
-extension SpatialTapGesture: PointerSpaceReporting {
+@MainActor extension SpatialTapGesture: PointerSpaceReporting {
     var pointerSpaces: [CoordinateSpace] { [coordinateSpace] }
 }
 
-extension SimultaneousGesture: PointerSpaceReporting {
+@MainActor extension SimultaneousGesture: PointerSpaceReporting {
     var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: first) + namedPointerSpaces(of: second) }
 }
 
-extension SequenceGesture: PointerSpaceReporting {
+@MainActor extension SequenceGesture: PointerSpaceReporting {
     var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: first) + namedPointerSpaces(of: second) }
 }
 
-extension ExclusiveGesture: PointerSpaceReporting {
+@MainActor extension ExclusiveGesture: PointerSpaceReporting {
     var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: first) + namedPointerSpaces(of: second) }
 }
 
-extension _EndedGesture: PointerSpaceReporting {
+@MainActor extension _EndedGesture: PointerSpaceReporting {
     var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: content) }
 }
 
-extension _ChangedGesture: PointerSpaceReporting {
+@MainActor extension _ChangedGesture: PointerSpaceReporting {
     var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: content) }
 }
 
-extension _MapGesture: PointerSpaceReporting {
+@MainActor extension _MapGesture: PointerSpaceReporting {
     var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: content) }
 }
 
-extension _ModifiersGesture: PointerSpaceReporting {
+@MainActor extension _ModifiersGesture: PointerSpaceReporting {
     var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: content) }
 }
 
-extension GestureStateGesture: PointerSpaceReporting {
+@MainActor extension GestureStateGesture: PointerSpaceReporting {
     var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: base) }
 }
 
-extension AnyGesture: PointerSpaceReporting {}
+@MainActor extension AnyGesture: PointerSpaceReporting {}
 
 extension Optional: PointerSpaceReporting where Wrapped: Gesture {
     var pointerSpaces: [CoordinateSpace] {

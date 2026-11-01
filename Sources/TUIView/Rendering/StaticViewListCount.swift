@@ -62,7 +62,7 @@ private func wrappedViewListCount<W: SingleContentWrapper>(_: W.Type) -> Int? {
     staticViewListCount(W.WrappedContent.self)
 }
 
-extension TupleView: StaticViewListCounting {
+@MainActor extension TupleView: StaticViewListCounting {
     /// The sum of the elements' counts, if each has one.
     package static var staticViewListCount: Int? {
         var total: Int? = 0

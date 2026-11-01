@@ -131,7 +131,7 @@ func appendKeyedRowRuns<V: View>(of view: V, to runs: inout KeyedRowRuns, sectio
 
 /// A tuple's runs, each in its slot: the outermost tuple's slot is the one
 /// its splice stamps on what each slot hands over, over any inner tuple's.
-extension TupleView: KeyedRowProvider {
+@MainActor extension TupleView: KeyedRowProvider {
     package func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         let outermost = runs.slot == nil
         var slot = 0
@@ -150,7 +150,7 @@ extension Group: KeyedRowProvider where Content: View {
     }
 }
 
-extension ConditionalView: KeyedRowProvider {
+@MainActor extension ConditionalView: KeyedRowProvider {
     package func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         switch self {
         case .trueContent(let content):
@@ -163,7 +163,7 @@ extension ConditionalView: KeyedRowProvider {
 
 /// An `AnyView` hands its container what it erases, taken apart where that is
 /// several views, so the loops in it are runs of the container's.
-extension AnyView: KeyedRowProvider {
+@MainActor extension AnyView: KeyedRowProvider {
     package func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         TUIFoundation.appendKeyedRowRuns(of: erasedView, to: &runs, sectionsWhole: sectionsWhole)
     }
@@ -182,7 +182,7 @@ extension Optional: KeyedRowProvider where Wrapped: View {
 /// A section is its parts' children to a walk that takes it apart, so its
 /// parts' loops are runs of the container's; kept whole, it is one positional
 /// child and makes none. A collapsed section's content makes none either.
-extension Section: KeyedRowProvider where Parent: View, Content: View, Footer: View {
+@MainActor extension Section: KeyedRowProvider where Parent: View, Content: View, Footer: View {
     package func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         guard !sectionsWhole else { return }
         TUIFoundation.appendKeyedRowRuns(of: header, to: &runs, sectionsWhole: false)

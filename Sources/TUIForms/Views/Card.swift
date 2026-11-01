@@ -70,7 +70,7 @@ import TUIFoundation
 ///     Text("Styled Card")
 /// }
 /// ```
-public struct Card<Content: View, Footer: View>: View {
+nonisolated public struct Card<Content: View, Footer: View>: View {
     /// The card title (optional).
     let title: String?
 
@@ -227,7 +227,7 @@ public struct Card<Content: View, Footer: View>: View {
         self.backgroundColor = backgroundColor
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _CardCore(
             title: title,
             content: content,
@@ -240,7 +240,7 @@ public struct Card<Content: View, Footer: View>: View {
 
 // MARK: - Equatable Conformance
 
-extension Card: @preconcurrency Equatable where Content: Equatable, Footer: Equatable {
+extension Card: Equatable where Content: Equatable, Footer: Equatable {
     public static func == (lhs: Card<Content, Footer>, rhs: Card<Content, Footer>) -> Bool {
         guard lhs.title == rhs.title, lhs.content == rhs.content, lhs.footer == rhs.footer, lhs.config == rhs.config
         else { return false }

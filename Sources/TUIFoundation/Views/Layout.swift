@@ -275,7 +275,7 @@ extension Layout {
     ///
     /// - Parameter content: The views to arrange.
     /// - Returns: A view that arranges them.
-    public func callAsFunction<V: View>(@ViewBuilder _ content: () -> V) -> some View {
+    nonisolated public func callAsFunction<V: View>(@ViewBuilder _ content: () -> V) -> some View {
         _LayoutCore(layout: self, content: content())
     }
 }
@@ -286,7 +286,7 @@ extension Layout {
 /// for placements, then composites each placed subview into the result.
 ///
 /// - Important: Framework infrastructure. Created by ``Layout/callAsFunction(_:)``.
-public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutable {
+nonisolated public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutable {
     let layout: L
     let content: Content
 
@@ -297,14 +297,14 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
         self.content = content
     }
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("_LayoutCore renders via Renderable")
     }
 
     /// A layout can give a guide an explicit value of its own, which no
     /// static fact rules out unless the layout says so; past that, a subview
     /// may hold one for the default merge to report.
-    public static var _providesAlignmentGuide: Bool {
+    @MainActor public static var _providesAlignmentGuide: Bool {
         L._definesExplicitAlignment || Content._providesAlignmentGuide
     }
 
@@ -313,7 +313,7 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
     /// A layout that lays out grid cells (``GridLayout``, and the stack
     /// layouts it is switched with) sees a `ForEach` row that is a `GridRow`
     /// as the row's cells — see `expandingWholeGridRows(_:context:)`.
-    private func resolve(context: RenderContext) -> (LayoutSubviews, LayoutPlacements, departing: [ChildView]) {
+    @MainActor private func resolve(context: RenderContext) -> (LayoutSubviews, LayoutPlacements, departing: [ChildView]) {
         let placements = LayoutPlacements()
         let all = resolveChildViews(from: content, context: context)
         // Row ids by position among ALL the children, a slot still leaving
@@ -359,7 +359,7 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
     /// `StateStorage` from inside a render, which is the measure-side-effect
     /// bug class: the write invalidates the render cache and the frame that
     /// wrote it schedules another.
-    private func freshCache(_ subviews: LayoutSubviews) -> L.Cache {
+    @MainActor private func freshCache(_ subviews: LayoutSubviews) -> L.Cache {
         var cache = layout.makeCache(subviews: subviews)
         layout.updateCache(&cache, subviews: subviews)
         return cache
@@ -395,7 +395,7 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
     /// along the width or holds statically one view, as SwiftUI's stack
     /// layouts do (`HStackLayout` passes an unspecified width on,
     /// `VStackLayout` and `ZStackLayout` of several do not).
-    private func publishingChildAxis(_ context: RenderContext) -> RenderContext {
+    @MainActor private func publishingChildAxis(_ context: RenderContext) -> RenderContext {
         guard
             let axis = L.layoutProperties.stackOrientation
                 ?? (layout as? any AxisPublishingLayout)?.containerAxis
@@ -406,7 +406,7 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
             axis, passesNoWidthOn: axis == .horizontal || isStaticallyOneView(Content.self))
     }
 
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let context = publishingChildAxis(context)
         let (subviews, _, _) = resolve(context: context)
         var cache = freshCache(subviews)
@@ -427,13 +427,13 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
     ///
     /// Grounding both passes in the same numbers makes measure/render parity
     /// structural here, the way `Text.displayString` does for text.
-    private func grounded(_ proposal: ProposedSize, in context: RenderContext) -> ProposedSize {
+    @MainActor private func grounded(_ proposal: ProposedSize, in context: RenderContext) -> ProposedSize {
         ProposedSize(
             width: proposal.width ?? max(0, context.availableWidth),
             height: proposal.height ?? max(0, context.availableHeight))
     }
 
-    public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let context = publishingChildAxis(context)
         let (subviews, placements, departing) = resolve(context: context)
         guard !subviews.isEmpty else {
@@ -507,7 +507,7 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
 
 // MARK: - Publishing a Guide
 
-extension _LayoutCore: AlignmentGuideQuerying {
+@MainActor extension _LayoutCore: AlignmentGuideQuerying {
     /// The layout's ``Layout/explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``
     /// for the guide asked about, after a layout pass at `dimensions` — the
     /// pass `renderToBuffer` makes, so the subviews are where they will be
@@ -563,9 +563,9 @@ extension _LayoutCore: AlignmentGuideQuerying {
 /// none (measured, decisions A-GUIDE-2).
 protocol PassesEveryGuideOfOneView {}
 
-extension VStackLayout: PassesEveryGuideOfOneView {}
-extension HStackLayout: PassesEveryGuideOfOneView {}
-extension ZStackLayout: PassesEveryGuideOfOneView {}
+@MainActor extension VStackLayout: PassesEveryGuideOfOneView {}
+@MainActor extension HStackLayout: PassesEveryGuideOfOneView {}
+@MainActor extension ZStackLayout: PassesEveryGuideOfOneView {}
 
 /// A layout that knows at run time whether what it wraps defines guides of its
 /// own — `AnyLayout`, whose static answer cannot.
@@ -586,7 +586,7 @@ protocol SpacingPreferenceProviding {
     func preferredSpacing(context: RenderContext) -> ViewSpacing
 }
 
-extension _LayoutCore: SpacingPreferenceProviding {
+@MainActor extension _LayoutCore: SpacingPreferenceProviding {
     /// The layout's ``Layout/spacing(subviews:cache:)``, over its subviews as
     /// they resolve here, with a fresh cache — the one each pass gets.
     func preferredSpacing(context: RenderContext) -> ViewSpacing {

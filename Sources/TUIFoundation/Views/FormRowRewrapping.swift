@@ -53,7 +53,7 @@ extension FormRowRewrapping where Self: SingleContentWrapper {
 
 /// Padding, an id, a background colour, a shadow: a buffer modifier applies
 /// to the row as a whole, as SwiftUI's does.
-extension ModifiedView: FormRowRewrapping {
+@MainActor extension ModifiedView: FormRowRewrapping {
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {
         ModifiedView<V, Modifier>(content: row, modifier: modifier)
     }

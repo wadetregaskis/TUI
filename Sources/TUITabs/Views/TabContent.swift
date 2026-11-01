@@ -305,7 +305,7 @@ where TrueContent: TabContent, FalseContent: TabContent, TrueContent.TabValue ==
 
 // MARK: - ForEach
 
-extension ForEach: TabContent where Content: TabContent {
+@MainActor extension ForEach: TabContent where Content: TabContent {
     /// The type used to drive selection for the containing tab view.
     public typealias TabValue = Content.TabValue
 
@@ -354,7 +354,7 @@ extension ForEach: TabContent where Content: TabContent {
     }
 }
 
-extension ForEach: _TabContentPrimitive where Content: TabContent {
+@MainActor extension ForEach: _TabContentPrimitive where Content: TabContent {
     func appendTabs(to tabs: inout _TabList) {
         for element in data {
             TUITabs.appendTabs(content(element), to: &tabs)

@@ -20,13 +20,13 @@ extension Gesture {
     ///   `action` closure's parameter contains the final value of the gesture.
     /// - Returns: A gesture that triggers `action` when the gesture ends.
     @inlinable
-    public func onEnded(_ action: @escaping (Value) -> Void) -> _EndedGesture<Self> {
+    nonisolated public func onEnded(_ action: @escaping (Value) -> Void) -> _EndedGesture<Self> {
         _EndedGesture(content: self, action: action)
     }
 
     /// Returns a gesture that uses the given closure to map over this
     /// gesture's value.
-    public func map<T>(_ body: @escaping (Value) -> T) -> _MapGesture<Self, T> {
+    nonisolated public func map<T>(_ body: @escaping (Value) -> T) -> _MapGesture<Self, T> {
         _MapGesture(content: self, transform: body)
     }
 
@@ -46,7 +46,7 @@ extension Gesture {
     ///   keys that the user needs to hold down.
     /// - Returns: A new gesture that combines a gesture with keyboard
     ///   modifiers.
-    public func modifiers(_ modifiers: EventModifiers) -> _ModifiersGesture<Self> {
+    nonisolated public func modifiers(_ modifiers: EventModifiers) -> _ModifiersGesture<Self> {
         _ModifiersGesture(content: self, modifiers: modifiers)
     }
 }
@@ -63,7 +63,7 @@ extension Gesture where Value: Equatable {
     ///   value.
     /// - Returns: A gesture that triggers `action` when this gesture's value
     ///   changes.
-    public func onChanged(_ action: @escaping (Value) -> Void) -> _ChangedGesture<Self> {
+    nonisolated public func onChanged(_ action: @escaping (Value) -> Void) -> _ChangedGesture<Self> {
         _ChangedGesture(content: self, action: action)
     }
 }
@@ -79,7 +79,7 @@ extension Gesture where Value: Equatable {
 /// where calling into TUIFoundation's unspecialised `onEnded` looked
 /// `_EndedGesture<TapGesture>`'s metadata up at run time on every call
 /// (CONTRIBUTING.md, "Crossing a module boundary").
-public struct _EndedGesture<Content: Gesture>: Gesture {
+nonisolated public struct _EndedGesture<Content: Gesture>: Gesture {
     @usableFromInline let content: Content
     @usableFromInline let action: (Content.Value) -> Void
 
@@ -95,7 +95,7 @@ public struct _EndedGesture<Content: Gesture>: Gesture {
     public typealias Value = Content.Value
     public typealias Body = Never
 
-    public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
+    @MainActor public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
         let node = inputs.node { EndedGestureNode<Value>() }
         node.child = Content._makeGesture(gesture: gesture.content, inputs: inputs.child(0)).node
         node.action = gesture.action
@@ -105,14 +105,14 @@ public struct _EndedGesture<Content: Gesture>: Gesture {
 
 /// A gesture that runs an action when its content's value changes — what
 /// ``Gesture/onChanged(_:)`` returns.
-public struct _ChangedGesture<Content: Gesture>: Gesture where Content.Value: Equatable {
+nonisolated public struct _ChangedGesture<Content: Gesture>: Gesture where Content.Value: Equatable {
     let content: Content
     let action: (Content.Value) -> Void
 
     public typealias Value = Content.Value
     public typealias Body = Never
 
-    public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
+    @MainActor public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
         let node = inputs.node { ChangedGestureNode<Value>() }
         node.child = Content._makeGesture(gesture: gesture.content, inputs: inputs.child(0)).node
         node.action = gesture.action
@@ -122,13 +122,13 @@ public struct _ChangedGesture<Content: Gesture>: Gesture where Content.Value: Eq
 
 /// A gesture whose value is its content's, transformed — what
 /// ``Gesture/map(_:)`` returns.
-public struct _MapGesture<Content: Gesture, Value>: Gesture {
+nonisolated public struct _MapGesture<Content: Gesture, Value>: Gesture {
     let content: Content
     let transform: (Content.Value) -> Value
 
     public typealias Body = Never
 
-    public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
+    @MainActor public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
         let node = inputs.node { MapGestureNode<Content.Value, Value>() }
         node.child = Content._makeGesture(gesture: gesture.content, inputs: inputs.child(0)).node
         node.transform = gesture.transform
@@ -138,14 +138,14 @@ public struct _MapGesture<Content: Gesture, Value>: Gesture {
 
 /// A gesture that runs only when the press came with certain modifier keys —
 /// what ``Gesture/modifiers(_:)`` returns.
-public struct _ModifiersGesture<Content: Gesture>: Gesture {
+nonisolated public struct _ModifiersGesture<Content: Gesture>: Gesture {
     let content: Content
     let modifiers: EventModifiers
 
     public typealias Value = Content.Value
     public typealias Body = Never
 
-    public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
+    @MainActor public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
         let node = inputs.node { ModifiersGestureNode<Value>() }
         node.child = Content._makeGesture(gesture: gesture.content, inputs: inputs.child(0)).node
         node.required = gesture.modifiers

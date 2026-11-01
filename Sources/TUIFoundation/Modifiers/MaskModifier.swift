@@ -40,7 +40,7 @@ extension View {
     ///   - alignment: Where the mask goes in this view's frame.
     ///   - mask: The view whose drawing masks this one.
     /// - Returns: The view, masked.
-    public func mask<Mask: View>(alignment: Alignment = .center, @ViewBuilder _ mask: () -> Mask) -> some View {
+    nonisolated public func mask<Mask: View>(alignment: Alignment = .center, @ViewBuilder _ mask: () -> Mask) -> some View {
         // Cut to the frame first, as `clipShape(_:style:)` is: the mask is laid
         // in the frame, so nothing past it can be under the mask.
         _MaskView(content: clipped(), mask: mask(), alignment: alignment)
@@ -50,15 +50,15 @@ extension View {
 /// ``View/mask(alignment:_:)``'s view: its content, with every cell its mask
 /// does not draw cleared, and every cell the mask draws translucently faded to
 /// the mask's alpha.
-struct _MaskView<Content: View, Mask: View>: View {
+nonisolated struct _MaskView<Content: View, Mask: View>: View {
     let content: Content
     let mask: Mask
     let alignment: Alignment
 
-    var body: Never { fatalError("_MaskView renders via Renderable") }
+    @MainActor var body: Never { fatalError("_MaskView renders via Renderable") }
 }
 
-extension _MaskView: Renderable {
+@MainActor extension _MaskView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let buffer = TUIView.renderToBuffer(content, context: context)
         let (columns, rows) = (buffer.width, buffer.height)
@@ -86,7 +86,7 @@ extension _MaskView: Renderable {
     }
 }
 
-extension _MaskView: Layoutable {
+@MainActor extension _MaskView: Layoutable {
     /// Masking changes what draws, never the frame.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)

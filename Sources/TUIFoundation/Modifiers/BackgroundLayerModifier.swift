@@ -14,7 +14,7 @@
 /// to it, and the result is the base's size. See
 /// ``compositeLayer(_:under:alignment:context:modifierType:)`` for what "behind"
 /// means in a cell grid.
-struct BackgroundLayerModifier<Base: View, Background: View>: View {
+nonisolated struct BackgroundLayerModifier<Base: View, Background: View>: View {
     /// The base content.
     let base: Base
 
@@ -24,12 +24,12 @@ struct BackgroundLayerModifier<Base: View, Background: View>: View {
     /// The alignment of the background within the base's bounds.
     let alignment: Alignment
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("BackgroundLayerModifier renders via Renderable")
     }
 }
 
-extension BackgroundLayerModifier: Renderable {
+@MainActor extension BackgroundLayerModifier: Renderable {
     /// Nothing on an `EmptyView`, as under `.overlay` (``OverlayModifier``).
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard Base.self != EmptyView.self else { return FrameBuffer() }
@@ -39,7 +39,7 @@ extension BackgroundLayerModifier: Renderable {
     }
 }
 
-extension BackgroundLayerModifier: Layoutable {
+@MainActor extension BackgroundLayerModifier: Layoutable {
     /// The base's size, as ``OverlayModifier``'s is.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         guard Base.self != EmptyView.self else { return ViewSize.fixed(0, 0) }
@@ -74,7 +74,7 @@ extension View {
     ///     `.center`.
     ///   - content: The views to draw behind this view.
     /// - Returns: A view with the background behind it.
-    public func background<V: View>(
+    nonisolated public func background<V: View>(
         alignment: Alignment = .center, @ViewBuilder content: () -> V
     ) -> some View {
         BackgroundLayerModifier(base: self, background: content(), alignment: alignment)
@@ -83,7 +83,7 @@ extension View {
 
 /// A background written on a form row goes behind the row the form lays out,
 /// which keeps its place, as SwiftUI's does (measured).
-extension BackgroundLayerModifier: FormRowRewrapping {
+@MainActor extension BackgroundLayerModifier: FormRowRewrapping {
     var formRowContent: Base { base }
 
     func rewrappingFormRow<V: View>(_ row: V) -> any View {

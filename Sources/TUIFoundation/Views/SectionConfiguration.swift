@@ -43,8 +43,7 @@ public struct SectionConfiguration: Identifiable {
     ///
     /// The view `.sectionActions(content:)` gave the section, and an empty view
     /// for a section given none — every implicit section among them.
-    @MainActor
-    public struct Actions: View {
+    nonisolated public struct Actions: View {
         /// The actions, or `nil` for none.
         let content: AnyView?
 
@@ -52,7 +51,7 @@ public struct SectionConfiguration: Identifiable {
             self.content = content.map { AnyView($0) }
         }
 
-        public var body: some View {
+        @MainActor public var body: some View {
             content ?? AnyView(EmptyView())
         }
     }

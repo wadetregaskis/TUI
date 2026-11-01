@@ -152,7 +152,7 @@ extension View {
     ///   - x: How many columns right the shadow is drawn (negative: left).
     ///   - y: How many rows down the shadow is drawn (negative: up).
     /// - Returns: A view that adds a shadow to this view.
-    public func shadow(
+    nonisolated public func shadow(
         color: Color = Color(.sRGBLinear, white: 0, opacity: 0.33), radius: Int, x: Int = 0, y: Int = 0
     ) -> some View {
         modifier(ShadowModifier(style: .drop(color: color, radius: radius, x: x, y: y)))

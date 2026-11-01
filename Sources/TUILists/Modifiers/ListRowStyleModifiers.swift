@@ -34,7 +34,7 @@ extension View {
     /// - Parameter insets: The insets to apply, or `nil` for the list's own
     ///   defaults (which is what a row without this modifier gets).
     /// - Returns: A row with `insets` around its content.
-    public func listRowInsets(_ insets: EdgeInsets?) -> some View {
+    nonisolated public func listRowInsets(_ insets: EdgeInsets?) -> some View {
         // `nil` is SwiftUI's "use the default", and the default is what an
         // unmodified row already does — so it is the identity, not zero.
         _ListRowInsetsView(content: self, insets: insets)
@@ -57,7 +57,7 @@ extension View {
     ///   - edges: The edges to inset. Defaults to all of them.
     ///   - length: The inset, in cells, or `nil` for the list's default.
     /// - Returns: A row with `length` cells of inset on `edges`.
-    public func listRowInsets(_ edges: Edge.Set = .all, _ length: Int?) -> some View {
+    nonisolated public func listRowInsets(_ edges: Edge.Set = .all, _ length: Int?) -> some View {
         _ListRowInsetsView(
             content: self,
             insets: length.map { length in
@@ -76,23 +76,23 @@ extension View {
 /// "unchanged" without the call site having to branch — and so the row keeps
 /// one identity either way, which is what stops its `@State` resetting when an
 /// app flips insets on and off.
-struct _ListRowInsetsView<Content: View>: View {
+nonisolated struct _ListRowInsetsView<Content: View>: View {
     let content: Content
     let insets: EdgeInsets?
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_ListRowInsetsView renders via Renderable")
     }
 }
 
-extension _ListRowInsetsView: Renderable {
+@MainActor extension _ListRowInsetsView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard let insets else { return TUIView.renderToBuffer(content, context: context) }
         return TUIView.renderToBuffer(content.padding(insets), context: context)
     }
 }
 
-extension _ListRowInsetsView: Layoutable {
+@MainActor extension _ListRowInsetsView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         guard let insets else { return measureChild(content, proposal: proposal, context: context) }
         return measureChild(content.padding(insets), proposal: proposal, context: context)
@@ -122,7 +122,7 @@ extension View {
     ///
     /// - Parameter view: The view to place behind the row, or `nil` for none.
     /// - Returns: A row backed by `view`.
-    public func listRowBackground<V: View>(_ view: V?) -> some View {
+    nonisolated public func listRowBackground<V: View>(_ view: V?) -> some View {
         _ListRowBackgroundView(content: self, background: view)
     }
 
@@ -136,22 +136,22 @@ extension View {
     ///
     /// - Parameter color: The colour to fill the row with, or `nil` for none.
     /// - Returns: A row filled with `color`.
-    public func listRowBackground(_ color: Color?) -> some View {
+    nonisolated public func listRowBackground(_ color: Color?) -> some View {
         _ListRowColorView(content: self, color: color)
     }
 }
 
 /// Fills the row's full width with a colour, under its content.
-struct _ListRowColorView<Content: View>: View {
+nonisolated struct _ListRowColorView<Content: View>: View {
     let content: Content
     let color: Color?
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_ListRowColorView renders via Renderable")
     }
 }
 
-extension _ListRowColorView: Renderable {
+@MainActor extension _ListRowColorView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let foreground = TUIView.renderToBuffer(content, context: context)
         // Resolved against the palette in force, as `.background(_:)`'s colour
@@ -212,7 +212,7 @@ extension _ListRowColorView: Renderable {
     }
 }
 
-extension _ListRowColorView: Layoutable {
+@MainActor extension _ListRowColorView: Layoutable {
     /// Measures as its content: a fill is behind the row, not part of it.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
@@ -220,16 +220,16 @@ extension _ListRowColorView: Layoutable {
 }
 
 /// Renders `background` across the row and composites `content` over it.
-struct _ListRowBackgroundView<Content: View, Background: View>: View {
+nonisolated struct _ListRowBackgroundView<Content: View, Background: View>: View {
     let content: Content
     let background: Background?
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_ListRowBackgroundView renders via Renderable")
     }
 }
 
-extension _ListRowBackgroundView: Renderable {
+@MainActor extension _ListRowBackgroundView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let foreground = TUIView.renderToBuffer(content, context: context)
         guard let background, !foreground.isEmpty else { return foreground }
@@ -293,7 +293,7 @@ extension _ListRowBackgroundView: Renderable {
     }
 }
 
-extension _ListRowBackgroundView: Layoutable {
+@MainActor extension _ListRowBackgroundView: Layoutable {
     /// The row measures as its content: a background is behind it, not beside
     /// it, and must not make the row taller or wider than what it holds.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -321,7 +321,7 @@ extension FrameBuffer {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _ListRowInsetsView: SingleContentWrapper {
+@MainActor extension _ListRowInsetsView: SingleContentWrapper {
     var wrappedContent: Content { content }
 }
 
@@ -329,7 +329,7 @@ extension _ListRowInsetsView: SingleContentWrapper {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _ListRowColorView: SingleContentWrapper {
+@MainActor extension _ListRowColorView: SingleContentWrapper {
     var wrappedContent: Content { content }
 }
 
@@ -337,6 +337,6 @@ extension _ListRowColorView: SingleContentWrapper {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _ListRowBackgroundView: SingleContentWrapper {
+@MainActor extension _ListRowBackgroundView: SingleContentWrapper {
     var wrappedContent: Content { content }
 }

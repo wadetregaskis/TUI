@@ -48,7 +48,7 @@ extension View {
     ///     no fractional stroke, so a thicker border is literally a border
     ///     around a border. `0` draws none; values above 1 nest.
     /// - Returns: A view with a border.
-    public func border(
+    nonisolated public func border(
         _ colour: Color,
         style: BorderStyle? = nil,
         width: Int = 1
@@ -81,7 +81,7 @@ extension View {
     ///   - style: The box-drawing characters (default: the appearance's).
     ///   - width: Concentric rings, in cells. Every ring animates.
     /// - Returns: A view with a border that moves.
-    public func border(
+    nonisolated public func border(
         _ colour: AnimatedColor,
         style: BorderStyle? = nil,
         width: Int = 1
@@ -101,7 +101,7 @@ extension View {
     ///   - style: The box-drawing characters (default: the appearance's).
     ///   - width: Concentric rings, in cells.
     /// - Returns: A view with a border.
-    public func border(
+    nonisolated public func border(
         style: BorderStyle? = nil,
         width: Int = 1
     ) -> some View {
@@ -124,7 +124,7 @@ extension View {
     /// `keepsSelectionInside` is off for a control's own box — a menu's —
     /// whose presses are the control's (``ContainerConfig/keepsSelectionInside``).
     @ViewBuilder
-    func bordered(
+    nonisolated func bordered(
         style: BorderStyle?, colour: AnimatedColor?, width: Int, keepsSelectionInside: Bool = true
     ) -> some View {
         if width <= 0 {
@@ -148,7 +148,7 @@ extension View {
     ///
     /// The inset goes beneath a background the content ends in, which then
     /// reaches the line (`BackgroundBeneathBorderInset.swift`).
-    private func ring(style: BorderStyle?, colour: AnimatedColor?, keepsSelectionInside: Bool) -> AnyView {
+    nonisolated private func ring(style: BorderStyle?, colour: AnimatedColor?, keepsSelectionInside: Bool) -> AnyView {
         let style = ContainerStyle(
             showHeaderSeparator: false,
             showFooterSeparator: false,
@@ -187,20 +187,20 @@ extension View {
 /// measured +20.5% on the `anyview` scenario). The bordered view's type is
 /// kept as a parameter alone, so a guide inside it can be found and reported
 /// out through the rings (`WrapperGuidePropagation.swift`).
-struct _BorderRings<Bordered: View>: View, Renderable, Layoutable {
+nonisolated struct _BorderRings<Bordered: View>: View, Renderable, Layoutable {
     let rings: AnyView
 
-    var body: Never { fatalError("_BorderRings renders via Renderable") }
+    @MainActor var body: Never { fatalError("_BorderRings renders via Renderable") }
 
     /// The bordered view's answer: the rings hold it, and report its guides
     /// moved in by their lines and padding.
-    static var _providesAlignmentGuide: Bool { Bordered._providesAlignmentGuide }
+    @MainActor static var _providesAlignmentGuide: Bool { Bordered._providesAlignmentGuide }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer {
         rings.renderToBuffer(context: context)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         rings.sizeThatFits(proposal: proposal, context: context)
     }
 }
@@ -242,7 +242,7 @@ extension View {
     /// ```
     ///
     /// - Returns: A view with the dimming effect applied.
-    public func dimmed() -> some View {
+    nonisolated public func dimmed() -> some View {
         DimmedModifier(content: self)
     }
 }
@@ -267,7 +267,7 @@ extension View {
     ///
     /// - Parameter style: The background style — a colour, or any gradient.
     /// - Returns: A view with the background applied.
-    public func background<S: ShapeStyle>(_ style: S) -> some View {
+    nonisolated public func background<S: ShapeStyle>(_ style: S) -> some View {
         modifier(BackgroundModifier(style: style))
     }
 
@@ -280,7 +280,7 @@ extension View {
     /// spelling that means something is the only one that compiles.
     ///
     /// - Returns: A view filled with the environment's background style.
-    public func background() -> some View {
+    nonisolated public func background() -> some View {
         background(BackgroundStyle())
     }
 
@@ -289,7 +289,7 @@ extension View {
     /// the same `@_disfavoredOverload` pair `foregroundStyle` uses, and that
     /// Apple ships for `tint`.
     @_disfavoredOverload
-    public func background(_ color: Color) -> some View {
+    nonisolated public func background(_ color: Color) -> some View {
         modifier(BackgroundModifier(style: color))
     }
 }
@@ -319,7 +319,7 @@ extension View {
     ///     by default would surprise TUI authors and silently shift such columns.
     ///     Pass an explicit `alignment:` when you do want centring.
     /// - Returns: A view constrained to the specified frame.
-    public func frame(
+    nonisolated public func frame(
         width: Int? = nil,
         height: Int? = nil,
         alignment: Alignment = .topLeading
@@ -390,7 +390,7 @@ extension View {
     ///     `.infinity` to fill whatever is offered.
     ///   - alignment: The alignment within the frame (default: .center).
     /// - Returns: A view with flexible frame constraints.
-    public func frame(
+    nonisolated public func frame(
         minWidth: Int? = nil,
         idealWidth: Int? = nil,
         maxWidth: FrameDimension? = nil,
@@ -433,7 +433,7 @@ extension View {
     ///   - alignment: The alignment of the overlay (default: .center).
     ///   - content: The overlay content.
     /// - Returns: A view with the overlay applied.
-    public func overlay<Overlay: View>(
+    nonisolated public func overlay<Overlay: View>(
         alignment: Alignment = .center,
         @ViewBuilder content: () -> Overlay
     ) -> some View {
@@ -457,7 +457,7 @@ extension View {
     ///
     /// - Parameter length: The padding amount on all sides.
     /// - Returns: A padded view.
-    public func padding(_ length: Int) -> some View {
+    nonisolated public func padding(_ length: Int) -> some View {
         modifier(PaddingModifier(insets: EdgeInsets(all: length)))
     }
 
@@ -480,7 +480,7 @@ extension View {
     ///   - edges: The edges to pad (default: `.all`).
     ///   - length: The padding amount (default: 1).
     /// - Returns: A padded view.
-    public func padding(_ edges: Edge.Set = .all, _ length: Int = 1) -> some View {
+    nonisolated public func padding(_ edges: Edge.Set = .all, _ length: Int = 1) -> some View {
         let insets = EdgeInsets(
             top: edges.contains(.top) ? length : 0,
             leading: edges.contains(.leading) ? length : 0,
@@ -499,7 +499,7 @@ extension View {
     ///
     /// - Parameter edges: The edges to pad (default: `.all`).
     /// - Returns: A padded view.
-    public func scenePadding(_ edges: Edge.Set = .all) -> some View {
+    nonisolated public func scenePadding(_ edges: Edge.Set = .all) -> some View {
         padding(edges)
     }
 
@@ -510,7 +510,7 @@ extension View {
     ///   - padding: The kind of padding: ``ScenePadding/minimum``, one cell.
     ///   - edges: The edges to pad (default: `.all`).
     /// - Returns: A padded view.
-    public func scenePadding(_ padding: ScenePadding, edges: Edge.Set = .all) -> some View {
+    nonisolated public func scenePadding(_ padding: ScenePadding, edges: Edge.Set = .all) -> some View {
         self.padding(edges, padding.length)
     }
 
@@ -523,7 +523,7 @@ extension View {
     ///
     /// - Parameter insets: The edge insets.
     /// - Returns: A padded view.
-    public func padding(_ insets: EdgeInsets) -> some View {
+    nonisolated public func padding(_ insets: EdgeInsets) -> some View {
         modifier(PaddingModifier(insets: insets))
     }
 }

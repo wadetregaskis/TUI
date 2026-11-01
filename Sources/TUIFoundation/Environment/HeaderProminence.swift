@@ -74,7 +74,7 @@ extension View {
     /// list around it.
     ///
     /// - Parameter prominence: The prominence to apply.
-    public func headerProminence(_ prominence: Prominence) -> some View {
+    nonisolated public func headerProminence(_ prominence: Prominence) -> some View {
         environment(\.headerProminence, prominence)
     }
 }

@@ -24,28 +24,28 @@ protocol PresentationCornerRadiusProviding {
 
 /// The wrapper `.presentationCornerRadius(_:)` produces. Renders and measures
 /// as its content; carrying the radius to the presenter is its whole job.
-struct _PresentationCornerRadiusView<Content: View>: View, PresentationCornerRadiusProviding {
+nonisolated struct _PresentationCornerRadiusView<Content: View>: View, PresentationCornerRadiusProviding {
     let content: Content
     let cornerRadius: CGFloat?
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_PresentationCornerRadiusView renders via Renderable")
     }
 }
 
-extension _PresentationCornerRadiusView: Renderable {
+@MainActor extension _PresentationCornerRadiusView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: context)
     }
 }
 
-extension _PresentationCornerRadiusView: Layoutable {
+@MainActor extension _PresentationCornerRadiusView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
 
-extension _PresentationCornerRadiusView: PresentationTraitWrapper {
+@MainActor extension _PresentationCornerRadiusView: PresentationTraitWrapper {
     var presentationTraitContent: any View { content }
 }
 
@@ -71,7 +71,7 @@ extension View {
     /// - Parameter cornerRadius: The corner radius, or `nil` to use the system
     ///   default.
     /// - Returns: The content, carrying the radius to its presentation.
-    public func presentationCornerRadius(_ cornerRadius: CGFloat?) -> some View {
+    nonisolated public func presentationCornerRadius(_ cornerRadius: CGFloat?) -> some View {
         _PresentationCornerRadiusView(content: self, cornerRadius: cornerRadius)
     }
 }

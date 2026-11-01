@@ -113,7 +113,7 @@ import TUICore
 /// It is `Renderable` (and so adds no child identity), so the inner content
 /// keeps whatever identity it would have had unwrapped: the memo is
 /// identity-transparent to `@State` / focus.
-public struct _MemoizedRow<Element: Equatable, Source, Content: View>: View, Renderable, Layoutable {
+nonisolated public struct _MemoizedRow<Element: Equatable, Source, Content: View>: View, Renderable, Layoutable {
     public let element: Element
     /// The value the row is built FROM, and the builder that builds it.
     ///
@@ -134,7 +134,7 @@ public struct _MemoizedRow<Element: Equatable, Source, Content: View>: View, Ren
 
     /// The row view. **Builds it** — call once, and only where the memo has
     /// already missed.
-    private var content: Content { build(source) }
+    @MainActor private var content: Content { build(source) }
 
     /// Memoizes `build(source)` under the key `element`.
     public init(element: Element, source: Source, build: @escaping (Source) -> Content) {
@@ -154,7 +154,7 @@ public struct _MemoizedRow<Element: Equatable, Source, Content: View>: View, Ren
         self.init(element: element, source: content, build: { $0 })
     }
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("_MemoizedRow renders via Renderable")
     }
 
@@ -177,7 +177,7 @@ public struct _MemoizedRow<Element: Equatable, Source, Content: View>: View, Ren
     /// buffer that harness serves is one of these (no scenario uses
     /// `.equatable()`). It now checks 4,565 of them across 14 of the 21
     /// scenarios.
-    public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         renderValueMemoized(
             key: element, viewType: Content.self, context: context, build: { content },
             render: { TUIView.renderToBuffer($0, context: $1) })
@@ -191,7 +191,7 @@ public struct _MemoizedRow<Element: Equatable, Source, Content: View>: View, Ren
     /// rows hit in the `fanout` stress scenario, and building the view eagerly
     /// once per row per pass was `ForEach.makeChild`'s 21% of that frame, nearly
     /// all of it thrown away.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureValueMemoized(
             key: element, proposal: proposal, context: context, build: { content },
             measure: { measureChild($0, proposal: proposal, context: $1) })
@@ -224,7 +224,7 @@ public protocol _ValueMemoWrapping {
     var memoizedContent: any View { get }
 }
 
-extension _MemoizedRow: _ValueMemoWrapping {
+@MainActor extension _MemoizedRow: _ValueMemoWrapping {
     public var memoizedContentType: any View.Type { Content.self }
     public var memoizedContent: any View { content }
 }

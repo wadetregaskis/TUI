@@ -63,7 +63,7 @@ extension View {
     /// - Parameter action: The closure to run when the rename button is
     ///   activated.
     /// - Returns: A view whose rename buttons perform `action`.
-    public func renameAction(_ action: @escaping () -> Void) -> some View {
+    nonisolated public func renameAction(_ action: @escaping () -> Void) -> some View {
         environment(\.renameAction, RenameAction(action: action))
     }
 
@@ -72,7 +72,7 @@ extension View {
     ///
     /// - Parameter isFocused: The focus state the rename sets to `true`.
     /// - Returns: A view whose rename buttons focus that field.
-    public func renameAction(_ isFocused: FocusState<Bool>.Binding) -> some View {
+    nonisolated public func renameAction(_ isFocused: FocusState<Bool>.Binding) -> some View {
         renameAction { isFocused.wrappedValue = true }
     }
 }
@@ -91,12 +91,13 @@ extension View {
 ///     }
 ///     .renameAction { isRenaming = true }
 /// ```
-public struct RenameButton<Label: View>: View {
+public struct RenameButton<Label: View> {
     let label: Label
 
     @Environment(\.rename) private var rename
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         Button {
             rename?()
         } label: {
@@ -105,6 +106,7 @@ public struct RenameButton<Label: View>: View {
         .disabled(rename == nil)
     }
 }
+extension RenameButton: View {}
 
 extension RenameButton where Label == TUIFoundation.Label<Text, Image> {
     /// Creates a rename button, titled "Rename" in the current language.
@@ -119,7 +121,7 @@ extension RenameButton where Label == TUIFoundation.Label<Text, Image> {
 
 // MARK: - Environment without reflection
 
-extension RenameButton: ResolvesOwnEnvironment {
+@MainActor extension RenameButton: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _rename.resolveEnvironment(environment)
     }

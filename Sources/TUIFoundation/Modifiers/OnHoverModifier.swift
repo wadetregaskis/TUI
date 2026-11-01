@@ -26,7 +26,7 @@ import TUICore
 /// view disappears the request is no longer made and the
 /// dispatcher relaxes back to whatever the base scene-level
 /// ``MouseSupport`` configuration set.
-package struct OnHoverModifier<Content: View>: View {
+nonisolated package struct OnHoverModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
@@ -39,14 +39,14 @@ package struct OnHoverModifier<Content: View>: View {
     /// crossings and not the moves.
     let observe: @MainActor (HoverTransition) -> Void
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("OnHoverModifier renders via Renderable")
     }
 }
 
 // MARK: - Renderable
 
-extension OnHoverModifier: Renderable {
+@MainActor extension OnHoverModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var buffer = TUIView.renderToBuffer(content, context: context)
 
@@ -160,7 +160,7 @@ public enum HoverPhase: Equatable, Sendable {
 
 // MARK: - Layoutable
 
-extension OnHoverModifier: Layoutable {
+@MainActor extension OnHoverModifier: Layoutable {
     /// Forwards measurement straight to the content — the
     /// hover modifier doesn't change layout.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -196,7 +196,7 @@ extension View {
     ///   the cursor enters and `false` when it leaves.
     /// - Returns: A view that reports cursor enter / exit
     ///   transitions to `action`.
-    public func onHover(perform action: @escaping @MainActor (Bool) -> Void) -> some View {
+    nonisolated public func onHover(perform action: @escaping @MainActor (Bool) -> Void) -> some View {
         OnHoverModifier(content: self) { transition in
             switch transition {
             case .entered: action(true)
@@ -210,7 +210,7 @@ extension View {
     /// the form SwiftUI deprecated for the protocol one, internal here: what
     /// the public form attaches by (owner's ruling of 2026-10-12, no
     /// deprecated SwiftUI API).
-    func onContinuousHover(
+    nonisolated func onContinuousHover(
         coordinateSpace: CoordinateSpace = .local, perform action: @escaping @MainActor (HoverPhase) -> Void
     ) -> some View {
         OnHoverModifier(content: self, coordinateSpace: coordinateSpace) { transition in
@@ -250,7 +250,7 @@ extension View {
     ///     (`.global`).
     ///   - action: The action, given the phase.
     /// - Returns: A view that reports the pointer over it to `action`.
-    public func onContinuousHover(
+    nonisolated public func onContinuousHover(
         coordinateSpace: some CoordinateSpaceProtocol = .local,
         perform action: @escaping @MainActor (HoverPhase) -> Void
     ) -> some View {
@@ -264,7 +264,7 @@ extension View {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension OnHoverModifier: SingleContentWrapper {
+@MainActor extension OnHoverModifier: SingleContentWrapper {
     public var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -273,7 +273,7 @@ extension OnHoverModifier: SingleContentWrapper {
 
 /// A hover action written on a form row is the row's the form lays out, which
 /// keeps its place, as SwiftUI's form keeps a modified row.
-extension OnHoverModifier: FormRowRewrapping {
+@MainActor extension OnHoverModifier: FormRowRewrapping {
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {
         OnHoverModifier<V>(content: row, coordinateSpace: coordinateSpace, observe: observe)
     }
@@ -283,4 +283,4 @@ extension OnHoverModifier: FormRowRewrapping {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension OnHoverModifier: DrawsContentUnchanged {}
+@MainActor extension OnHoverModifier: DrawsContentUnchanged {}

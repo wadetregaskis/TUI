@@ -53,7 +53,7 @@ extension View {
     ///   - alternate: A view builder for the modified view's alternate.
     /// - Returns: A modified view with an alternate view to use while specific
     ///   modifier keys are held down.
-    public func modifierKeyAlternate<V: View>(
+    nonisolated public func modifierKeyAlternate<V: View>(
         _ modifiers: EventModifiers, @ViewBuilder _ alternate: () -> V
     ) -> some View {
         ModifierKeyAlternateModifier(content: self, modifiers: modifiers, alternate: alternate())
@@ -83,21 +83,21 @@ protocol ModifierKeyAlternating {
 /// `.task` restarted. So it is walked unseen beside its alternate
 /// (``walkHidden(context:)``), and comes back as it was. The focus comes back
 /// too: see ``ModifierKeyMonitor`` and its held focus.
-struct ModifierKeyAlternateModifier<Content: View, Alternate: View>: View, ModifierKeyAlternating {
+nonisolated struct ModifierKeyAlternateModifier<Content: View, Alternate: View>: View, ModifierKeyAlternating {
     let content: Content
     let modifiers: EventModifiers
     let alternate: Alternate
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("ModifierKeyAlternateModifier renders via Renderable")
     }
 
     /// Whether `held` includes every one of this alternate's keys.
-    private func matches(_ held: EventModifiers) -> Bool {
+    @MainActor private func matches(_ held: EventModifiers) -> Bool {
         !modifiers.isEmpty && held.isSuperset(of: modifiers)
     }
 
-    func mostSpecificMatch(held: EventModifiers) -> EventModifiers? {
+    @MainActor func mostSpecificMatch(held: EventModifiers) -> EventModifiers? {
         let inner = (content as? any ModifierKeyAlternating)?.mostSpecificMatch(held: held)
         guard matches(held) else { return inner }
         guard let inner, inner.rawValue.nonzeroBitCount > modifiers.rawValue.nonzeroBitCount else {
@@ -108,18 +108,18 @@ struct ModifierKeyAlternateModifier<Content: View, Alternate: View>: View, Modif
 
     /// Whether this alternate is the one to draw for `held`: it matches, and
     /// no alternate inside it matches on more keys.
-    func showsAlternate(held: EventModifiers) -> Bool {
+    @MainActor func showsAlternate(held: EventModifiers) -> Bool {
         guard matches(held) else { return false }
         return mostSpecificMatch(held: held) == modifiers
     }
 
     /// The context the alternate draws in: one level below this view.
-    private func alternateContext(_ context: RenderContext) -> RenderContext {
+    @MainActor private func alternateContext(_ context: RenderContext) -> RenderContext {
         context.withChildIdentity(type: Alternate.self, index: 0)
     }
 }
 
-extension ModifierKeyAlternateModifier: Renderable {
+@MainActor extension ModifierKeyAlternateModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard let monitor = context.environment.modifierKeyMonitor else {
             return TUIView.renderToBuffer(content, context: context)
@@ -183,7 +183,7 @@ extension ModifierKeyAlternateModifier: Renderable {
     }
 }
 
-extension ModifierKeyAlternateModifier: Layoutable {
+@MainActor extension ModifierKeyAlternateModifier: Layoutable {
     /// Measures whichever of the two it would draw.
     ///
     /// The choice is the same volatile read as the render's, and recorded as

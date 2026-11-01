@@ -137,7 +137,7 @@ extension View {
     ///
     /// - Parameter style: The form style to apply.
     /// - Returns: A view whose forms use the specified style.
-    public func formStyle<S: FormStyle>(_ style: S) -> some View {
+    nonisolated public func formStyle<S: FormStyle>(_ style: S) -> some View {
         environment(\.formStyle, style)
     }
 }

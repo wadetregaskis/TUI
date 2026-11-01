@@ -53,7 +53,7 @@ extension View {
     ///
     /// The arrows, the wheel and a push into an overscroll allowance do not
     /// glide: they move a line or a few at once.
-    public func scrollKeyboardAnimation(_ animation: Animation? = .default) -> some View {
+    nonisolated public func scrollKeyboardAnimation(_ animation: Animation? = .default) -> some View {
         environment(\.scrollKeyboardAnimation, animation)
     }
 }

@@ -297,7 +297,7 @@ private final class AnchoredWindowFrame {
 
 // MARK: - The anchored render
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// Row counts above this use the anchored walk once uniform arithmetic
     /// is unavailable; at or below it, the exact full walk is cheap and
     /// keeps small stacks byte-exact in absolute space.

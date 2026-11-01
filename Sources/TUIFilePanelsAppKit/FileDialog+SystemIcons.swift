@@ -40,7 +40,7 @@
         /// asked for their own icon, which may be a custom one; any other file
         /// is drawn with its type's, asked for once per type. The icons are
         /// kept while the view lives, so each is sent to the terminal once.
-        public func fileDialogSystemIcons() -> some View {
+        nonisolated public func fileDialogSystemIcons() -> some View {
             FileDialogSystemIconsModifier(content: self)
         }
     }
@@ -54,6 +54,8 @@
     /// may be asked from any thread; the main actor is where the rows are.
     @MainActor
     final class FileDialogSystemIcons {
+        nonisolated init() {}
+
         /// The size, in points, the icons are drawn out of the `NSImage` at:
         /// more pixels than two cells hold at a Retina terminal's cell size
         /// (about 16 by 34), which the picture path scales down to the cells.
@@ -105,7 +107,7 @@
 
     /// `fileDialogSystemIcons()`: a store of icons of this view's own, and a
     /// `fileDialogIcon(_:)` that draws from it where pictures draw.
-    private struct FileDialogSystemIconsModifier<Content: View>: View {
+    private struct FileDialogSystemIconsModifier<Content: View> {
         let content: Content
 
         /// The icons, kept for as long as this view lives.
@@ -115,7 +117,7 @@
         /// panel draws in a sheet that inherits it.
         @Environment(\.terminalGraphics) private var terminalGraphics
 
-        var body: some View {
+        @MainActor var body: some View {
             let icons = icons
             let terminalGraphics = terminalGraphics
             return content.fileDialogIcon { url, type in
@@ -126,4 +128,5 @@
             }
         }
     }
+    extension FileDialogSystemIconsModifier: View {}
 #endif

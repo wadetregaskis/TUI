@@ -68,7 +68,7 @@ extension View {
     ///
     /// - Parameter space: What happens to the room.
     /// - Returns: A view whose stacks treat a removal's room that way.
-    public func transitionSpace(_ space: TransitionSpace) -> some View {
+    nonisolated public func transitionSpace(_ space: TransitionSpace) -> some View {
         environment(\.transitionSpace, space)
     }
 }

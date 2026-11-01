@@ -34,7 +34,7 @@ extension View {
     ///
     /// - Parameter handler: The handler to call on key press. Returns true if handled.
     /// - Returns: A view that handles key presses.
-    public func onKeyEvent(_ handler: @escaping (KeyEvent) -> Bool) -> some View {
+    nonisolated public func onKeyEvent(_ handler: @escaping (KeyEvent) -> Bool) -> some View {
         KeyEventModifier(content: self, keys: nil, handler: handler)
     }
 
@@ -58,7 +58,7 @@ extension View {
     ///   - keys: The keys to listen for.
     ///   - handler: The handler to call on key press. Returns true if handled.
     /// - Returns: A view that handles specific key presses.
-    public func onKeyEvent(keys: Set<Key>, handler: @escaping (KeyEvent) -> Bool) -> some View {
+    nonisolated public func onKeyEvent(keys: Set<Key>, handler: @escaping (KeyEvent) -> Bool) -> some View {
         KeyEventModifier(content: self, keys: keys, handler: handler)
     }
 
@@ -79,7 +79,7 @@ extension View {
     ///   - key: The key to listen for.
     ///   - action: The action to perform.
     /// - Returns: A view that handles the specific key press.
-    public func onKeyEvent(_ key: Key, action: @escaping () -> Void) -> some View {
+    nonisolated public func onKeyEvent(_ key: Key, action: @escaping () -> Void) -> some View {
         KeyEventModifier(
             content: self,
             keys: [key],
@@ -118,7 +118,7 @@ extension View {
     ///
     /// - Parameter handler: The handler. Returns `true` if consumed.
     /// - Returns: A view that handles mouse events landing on it.
-    public func onMouseEvent(_ handler: @escaping (MouseEvent) -> Bool) -> some View {
+    nonisolated public func onMouseEvent(_ handler: @escaping (MouseEvent) -> Bool) -> some View {
         OnMouseEventModifier(content: self, handler: handler)
     }
 
@@ -148,7 +148,7 @@ extension View {
     ///   - action: The action to perform.
     /// - Returns: The view, with the tap gesture attached.
     @inlinable
-    public func onTapGesture(count: Int = 1, perform action: @escaping () -> Void) -> some View {
+    nonisolated public func onTapGesture(count: Int = 1, perform action: @escaping () -> Void) -> some View {
         gesture(TapGesture(count: count).onEnded { action() })
     }
 
@@ -156,7 +156,7 @@ extension View {
     /// SwiftUI deprecated for the protocol one, internal here: what the
     /// public form attaches by (owner's ruling of 2026-10-12, no deprecated
     /// SwiftUI API).
-    func onTapGesture(
+    nonisolated func onTapGesture(
         count: Int = 1, coordinateSpace: CoordinateSpace = .local,
         perform action: @escaping (CellPoint) -> Void
     ) -> some View {
@@ -183,7 +183,7 @@ extension View {
     ///     (`.global`).
     ///   - action: The action to perform, given the location.
     /// - Returns: The view, with the tap gesture attached.
-    public func onTapGesture(
+    nonisolated public func onTapGesture(
         count: Int = 1, coordinateSpace: some CoordinateSpaceProtocol = .local,
         perform action: @escaping (CellPoint) -> Void
     ) -> some View {
@@ -202,7 +202,7 @@ extension View {
     ///   `.up` (toward content moving down) or `.down` (toward
     ///   content moving up), or sideways via `.left` / `.right`.
     /// - Returns: A view that consumes scroll events landing on it.
-    public func onScrollGesture(
+    nonisolated public func onScrollGesture(
         _ action: @escaping (_ direction: ScrollDirection) -> Void
     ) -> some View {
         onMouseEvent { event in
@@ -260,7 +260,7 @@ extension View {
     ///   - action: The action to perform when the value changes, receiving
     ///     the old and new values.
     /// - Returns: A view that triggers an action on value changes.
-    public func onChange<V: Equatable>(
+    nonisolated public func onChange<V: Equatable>(
         of value: V,
         initial: Bool = false,
         _ action: @escaping (V, V) -> Void
@@ -288,7 +288,7 @@ extension View {
     ///     Defaults to `false`.
     ///   - action: The action to perform when the value changes.
     /// - Returns: A view that triggers an action on value changes.
-    public func onChange<V: Equatable>(
+    nonisolated public func onChange<V: Equatable>(
         of value: V,
         initial: Bool = false,
         _ action: @escaping () -> Void
@@ -326,7 +326,7 @@ extension View {
     /// - Parameter action: The action to execute, or `nil` for none, which
     ///   lets a caller decide at run time whether there is one.
     /// - Returns: A view that executes the action on appearance.
-    public func onAppear(perform action: (() -> Void)? = nil) -> some View {
+    nonisolated public func onAppear(perform action: (() -> Void)? = nil) -> some View {
         OnAppearModifier(
             content: self,
             action: action ?? {}
@@ -353,7 +353,7 @@ extension View {
     /// - Parameter action: The action to execute, or `nil` for none, which
     ///   lets a caller decide at run time whether there is one.
     /// - Returns: A view that executes the action on disappearance.
-    public func onDisappear(perform action: (() -> Void)? = nil) -> some View {
+    nonisolated public func onDisappear(perform action: (() -> Void)? = nil) -> some View {
         OnDisappearModifier(
             content: self,
             action: action ?? {}
@@ -400,7 +400,7 @@ extension View {
     ///   - priority: The task priority (default: .userInitiated).
     ///   - action: The async action to execute.
     /// - Returns: A view that starts the task on appearance.
-    public func task(
+    nonisolated public func task(
         priority: TaskPriority = .userInitiated,
         @_inheritActorContext _ action: sending @escaping @isolated(any) @Sendable () async -> Void
     ) -> some View {
@@ -435,7 +435,7 @@ extension View {
     ///   - priority: The task priority (default: .userInitiated).
     ///   - action: The async action to execute.
     /// - Returns: A view that (re)starts the task when `id` changes.
-    public func task<ID: Equatable>(
+    nonisolated public func task<ID: Equatable>(
         id: ID,
         priority: TaskPriority = .userInitiated,
         @_inheritActorContext _ action: sending @escaping @isolated(any) @Sendable () async -> Void
@@ -486,7 +486,7 @@ extension View {
     ///   else has to refer to the section, such as
     ///   ``FocusManager/isActiveSection(_:)``.
     /// - Returns: A view that registers a focus section during rendering.
-    public func focusSection(_ id: String? = nil) -> some View {
+    nonisolated public func focusSection(_ id: String? = nil) -> some View {
         FocusSectionModifier(content: self, declaredSectionID: id)
     }
 }

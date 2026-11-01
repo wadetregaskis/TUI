@@ -149,22 +149,22 @@ struct _ErasedTransition: Transition {
 
 /// What ``_ErasedTransition``'s body draws: the erased body, or the effects as
 /// the one animatable modifier the built-in transitions are made of.
-struct _ErasedTransitionBody<Content: View>: View {
+nonisolated struct _ErasedTransitionBody<Content: View>: View {
     let base: AnyTransition
     let content: Content
     let phase: TransitionPhase
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_ErasedTransitionBody renders via Renderable")
     }
 
-    private var effects: ModifiedView<Content, _TransitionEffectModifier> {
+    @MainActor private var effects: ModifiedView<Content, _TransitionEffectModifier> {
         content.modifier(
             _TransitionEffectModifier(insertion: base.insertion, removal: base.removal, phase: phase))
     }
 }
 
-extension _ErasedTransitionBody: Renderable, Layoutable {
+@MainActor extension _ErasedTransitionBody: Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard let custom = base.custom else {
             return TUIView.renderToBuffer(effects, context: context)

@@ -100,13 +100,13 @@ protocol SpacingReaching {
 // (`edgesFormed(by:along:context:)`): along its own axis its first view's and
 // its last one's, a spacer's among them; across, every view's but a spacer's.
 
-extension _VStackCore: SpacingReaching {
+@MainActor extension _VStackCore: SpacingReaching {
     static func mayStateSpacing(along axis: Axis) -> Bool {
         memberMayStateSpacing(Content.self, along: axis, countingSpacers: axis == .vertical)
     }
 }
 
-extension _HStackCore: SpacingReaching {
+@MainActor extension _HStackCore: SpacingReaching {
     static func mayStateSpacing(along axis: Axis) -> Bool {
         memberMayStateSpacing(Content.self, along: axis, countingSpacers: axis == .horizontal)
     }
@@ -123,20 +123,20 @@ extension _HStackCore: SpacingReaching {
 // resolved — to find the default: `framedcolumns`'s row of two framed
 // columns, each a text, a list and a spacer, spent 4.5% of its frame there.
 
-extension FlexibleFrameView: SpacingReaching {
+@MainActor extension FlexibleFrameView: SpacingReaching {
     static func mayStateSpacing(along axis: Axis) -> Bool {
         TUIFoundation.mayStateSpacing(Content.self, along: axis)
     }
 }
 
-extension ModifiedView: SpacingReaching where Modifier == PaddingModifier {
+@MainActor extension ModifiedView: SpacingReaching where Modifier == PaddingModifier {
     static func mayStateSpacing(along axis: Axis) -> Bool {
         TUIFoundation.mayStateSpacing(Content.self, along: axis)
     }
 }
 
 /// `.position` states the default all round, whatever its content.
-extension PositionView: SpacingReaching {
+@MainActor extension PositionView: SpacingReaching {
     static func mayStateSpacing(along axis: Axis) -> Bool { false }
 }
 
@@ -151,7 +151,7 @@ protocol SpacingMembers {
     static func anyMemberMayStateSpacing(along axis: Axis, countingSpacers: Bool) -> Bool
 }
 
-extension TupleView: SpacingMembers {
+@MainActor extension TupleView: SpacingMembers {
     static func anyMemberMayStateSpacing(along axis: Axis, countingSpacers: Bool) -> Bool {
         var found = false
         func ask<T: View>(_: T.Type) {
@@ -162,7 +162,7 @@ extension TupleView: SpacingMembers {
     }
 }
 
-extension ConditionalView: SpacingMembers {
+@MainActor extension ConditionalView: SpacingMembers {
     static func anyMemberMayStateSpacing(along axis: Axis, countingSpacers: Bool) -> Bool {
         memberMayStateSpacing(TrueContent.self, along: axis, countingSpacers: countingSpacers)
             || memberMayStateSpacing(FalseContent.self, along: axis, countingSpacers: countingSpacers)
@@ -181,7 +181,7 @@ extension Group: SpacingMembers where Content: View {
     }
 }
 
-extension ForEach: SpacingMembers where Content: View {
+@MainActor extension ForEach: SpacingMembers where Content: View {
     static func anyMemberMayStateSpacing(along axis: Axis, countingSpacers: Bool) -> Bool {
         memberMayStateSpacing(Content.self, along: axis, countingSpacers: countingSpacers)
     }

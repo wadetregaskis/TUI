@@ -90,13 +90,13 @@ extension EnvironmentValues {
 /// toggle's for a split view whose column holds it, the title's for a
 /// navigation stack whose screen holds it — declares a title's to the window's
 /// chrome, and renders `content` unchanged.
-struct ToolbarRemovalView<Content: View>: View {
+nonisolated struct ToolbarRemovalView<Content: View>: View {
     let content: Content
 
     /// What this modifier removes; `nil`, which publishes nothing, for `nil`.
     let removes: ToolbarDefaultItemKind.Kind?
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("ToolbarRemovalView renders via Renderable")
     }
 
@@ -104,7 +104,7 @@ struct ToolbarRemovalView<Content: View>: View {
     /// `NavigationSplitViewColumnWidthView` declares its write: a memoising
     /// ancestor serving a cached buffer or measurement would drop the write, and
     /// the split view would put its toggle back.
-    private func publish(context: RenderContext) {
+    @MainActor private func publish(context: RenderContext) {
         guard let removes else { return }
         context.environment.volatileReadTracker?.recordRenderSideEffect()
         switch removes {
@@ -128,7 +128,7 @@ struct ToolbarRemovalView<Content: View>: View {
     /// bar's rows depend on whether there is a title, and a bar's on whether a
     /// search field is in it. `nil` in presented content, whose removal is the
     /// presentation's, not the window's.
-    private func windowChrome(_ context: RenderContext) -> WindowChromeState? {
+    @MainActor private func windowChrome(_ context: RenderContext) -> WindowChromeState? {
         guard !context.isMeasuring || context.environment.seedsWindowChrome,
             !context.environment.presentationHostsToolbar
         else { return nil }
@@ -136,14 +136,14 @@ struct ToolbarRemovalView<Content: View>: View {
     }
 }
 
-extension ToolbarRemovalView: Renderable {
+@MainActor extension ToolbarRemovalView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         publish(context: context)
         return TUIView.renderToBuffer(content, context: context)
     }
 }
 
-extension ToolbarRemovalView: Layoutable {
+@MainActor extension ToolbarRemovalView: Layoutable {
     /// Publishes during a measure too: the split view measures a column to learn
     /// what it asked for before it lays the handles out. The keys' `reduce` is
     /// an OR, so publishing twice in a pass is idempotent, and so is declaring
@@ -219,7 +219,7 @@ extension View {
     ///
     /// - Parameter defaultItemKind: The kind of control to remove, or `nil`.
     /// - Returns: A view whose window and split views omit that control.
-    public func toolbar(removing defaultItemKind: ToolbarDefaultItemKind?) -> some View {
+    nonisolated public func toolbar(removing defaultItemKind: ToolbarDefaultItemKind?) -> some View {
         // Reduced to its kind, and that to Bools, before it reaches the
         // environment or the preference store, neither of which should hold a
         // non-Sendable value.
@@ -250,7 +250,7 @@ extension View {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension ToolbarRemovalView: SingleContentWrapper {
+@MainActor extension ToolbarRemovalView: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -261,4 +261,4 @@ extension ToolbarRemovalView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension ToolbarRemovalView: DrawsContentUnchanged {}
+@MainActor extension ToolbarRemovalView: DrawsContentUnchanged {}

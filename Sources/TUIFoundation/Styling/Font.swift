@@ -345,7 +345,7 @@ extension View {
     /// ```
     ///
     /// - Parameter font: The font to apply, or `nil` to clear an inherited one.
-    public func font(_ font: Font?) -> some View {
+    nonisolated public func font(_ font: Font?) -> some View {
         environment(\.font, font)
     }
 }

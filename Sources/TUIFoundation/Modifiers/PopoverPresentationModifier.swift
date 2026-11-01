@@ -43,7 +43,7 @@ public enum PopoverAttachmentAnchor: Sendable, Equatable {
 // MARK: - Modifier
 
 /// Presents `popover` as a bordered panel anchored to `content`.
-package struct PopoverPresentationModifier<Content: View, Popover: View>: View {
+nonisolated package struct PopoverPresentationModifier<Content: View, Popover: View>: View {
     let content: Content
     let isPresented: Binding<Bool>
     let popover: Popover
@@ -90,12 +90,12 @@ package struct PopoverPresentationModifier<Content: View, Popover: View>: View {
         self.ownsPresentation = ownsPresentation
     }
 
-    package var body: Never {
+    @MainActor package var body: Never {
         fatalError("PopoverPresentationModifier renders via Renderable")
     }
 }
 
-extension PopoverPresentationModifier: Renderable {
+@MainActor extension PopoverPresentationModifier: Renderable {
     package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let contentContext = context.withChildIdentity(type: Content.self, index: 0)
 
@@ -393,7 +393,7 @@ extension PopoverPresentationModifier: Renderable {
     }
 }
 
-extension PopoverPresentationModifier: Layoutable {
+@MainActor extension PopoverPresentationModifier: Layoutable {
     /// The popover floats over the page, so the layout footprint is the
     /// presenting content — presented or not. Forwarding also keeps the
     /// section registration on the render pass.

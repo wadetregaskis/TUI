@@ -201,7 +201,7 @@ extension View {
     ///
     /// - Parameter style: The navigation split view style to apply.
     /// - Returns: A view with the specified navigation split view style.
-    public func navigationSplitViewStyle<S: NavigationSplitViewStyle>(_ style: S) -> some View {
+    nonisolated public func navigationSplitViewStyle<S: NavigationSplitViewStyle>(_ style: S) -> some View {
         environment(\.navigationSplitViewStyle, style)
     }
 }

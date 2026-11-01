@@ -79,7 +79,7 @@ extension View {
     ///
     /// - Parameter spelling: The spelling.
     /// - Returns: A view whose status bar draws its items' keys in `spelling`.
-    public func statusBarKeySpelling(_ spelling: StatusBarKeySpelling) -> some View {
+    nonisolated public func statusBarKeySpelling(_ spelling: StatusBarKeySpelling) -> some View {
         environment(\.statusBarKeySpelling, spelling)
     }
 }

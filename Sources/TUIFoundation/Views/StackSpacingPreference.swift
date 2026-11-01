@@ -13,12 +13,12 @@ import TUIView
 
 // MARK: - The views that state one
 
-extension _LayoutCore {
+@MainActor extension _LayoutCore {
     /// A layout states what its ``Layout/spacing(subviews:cache:)`` says.
     public static var _statesSpacingPreference: Bool { true }
 }
 
-extension Subview {
+@MainActor extension Subview {
     /// A member resolved elsewhere may be anything, a layout among them; asked,
     /// the proxy answers with its member's.
     public static var _statesSpacingPreference: Bool { true }
@@ -27,7 +27,7 @@ extension Subview {
 /// A spacer asks for no space beside it, on any edge, as SwiftUI's does
 /// (decisions A-BITEMS1-1): the stack's gap beside it, where its `spacing` is
 /// `nil`, is none, and its own minimum length is the default gap instead.
-extension Spacer: SpacingPreferenceProviding {
+@MainActor extension Spacer: SpacingPreferenceProviding {
     func preferredSpacing(context: RenderContext) -> ViewSpacing { .zero }
 }
 
@@ -44,7 +44,7 @@ extension Spacer: SpacingPreferenceProviding {
 /// distance from a box beside it once `.padding(4)` wraps it, and none apart
 /// under `.padding(0)` (`Tools/SwiftUIProbes/Stack spacing per pair/spacing.out`).
 /// One-edge padding was not measured; it follows the same rule edge by edge.
-extension ModifiedView: SpacingPreferenceProviding where Modifier == PaddingModifier {
+@MainActor extension ModifiedView: SpacingPreferenceProviding where Modifier == PaddingModifier {
     func preferredSpacing(context: RenderContext) -> ViewSpacing {
         let insets = modifier.insets
         var padded: Edge.Set = []
@@ -67,7 +67,7 @@ extension ModifiedView: SpacingPreferenceProviding where Modifier == PaddingModi
 /// Whatever its width against its content's: a frame that exactly fits it is
 /// the default distance from a box too (`all.frame|box` +8, measured; decisions
 /// B-BITEMS1-3).
-extension FlexibleFrameView: SpacingPreferenceProviding {
+@MainActor extension FlexibleFrameView: SpacingPreferenceProviding {
     func preferredSpacing(context: RenderContext) -> ViewSpacing {
         var framed: Edge.Set = []
         if minWidth != nil || idealWidth != nil || maxWidth != nil { framed.formUnion([.leading, .trailing]) }
@@ -80,7 +80,7 @@ extension FlexibleFrameView: SpacingPreferenceProviding {
 /// a point in it, so none of its edges is its content's: the default all
 /// round. Measured on SwiftUI (`spacing.out`): a layout that asks for no space,
 /// under `.position`, is the default distance from a box beside it.
-extension PositionView: SpacingPreferenceProviding {
+@MainActor extension PositionView: SpacingPreferenceProviding {
     func preferredSpacing(context: RenderContext) -> ViewSpacing { ViewSpacing() }
 }
 
@@ -101,7 +101,7 @@ private func contentSpacing<Content: View>(of content: Content, context: RenderC
 /// `HStack { HStack { tight; Text("x") }; box }` keeps the default gap after
 /// `x`, and `HStack { HStack { Text("x"); tight }; box }` none. A lazy row
 /// states nothing (measured: the default gap).
-extension _HStackCore: SpacingPreferenceProviding {
+@MainActor extension _HStackCore: SpacingPreferenceProviding {
     func preferredSpacing(context: RenderContext) -> ViewSpacing {
         guard overflow == .clip else { return ViewSpacing() }
         let children = stackChildren(of: content, context: context.publishingContainerAxis(.horizontal)).laidOut
@@ -113,7 +113,7 @@ extension _HStackCore: SpacingPreferenceProviding {
 /// last child's, and its leading and trailing edges every child's, merged
 /// (measured: `HStack { VStack { tight; box }; box }` keeps no gap, every row
 /// of the column forming its trailing edge).
-extension _VStackCore: SpacingPreferenceProviding {
+@MainActor extension _VStackCore: SpacingPreferenceProviding {
     func preferredSpacing(context: RenderContext) -> ViewSpacing {
         guard overflow == .clip else { return ViewSpacing() }
         let children = stackChildren(of: content, context: context.publishingContainerAxis(.vertical)).laidOut
@@ -143,34 +143,34 @@ private func edgesFormed(by children: [ChildView], along axis: Axis, context: Re
     return formed
 }
 
-extension VStack {
+@MainActor extension VStack {
     /// Its content's answer: an eager column states the edges its children
     /// form (`_VStackCore.preferredSpacing(context:)`).
     public static var _statesSpacingPreference: Bool { Content._statesSpacingPreference }
 }
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// See ``VStack/_statesSpacingPreference``.
     package static var _statesSpacingPreference: Bool { Content._statesSpacingPreference }
 }
 
-extension HStack {
+@MainActor extension HStack {
     /// Its content's answer: an eager row states the edges its children form.
     public static var _statesSpacingPreference: Bool { Content._statesSpacingPreference }
 }
 
-extension _HStackCore {
+@MainActor extension _HStackCore {
     /// See ``HStack/_statesSpacingPreference``.
     package static var _statesSpacingPreference: Bool { Content._statesSpacingPreference }
 }
 
-extension LazyVStack {
+@MainActor extension LazyVStack {
     /// A lazy stack states nothing, as SwiftUI's does (measured: the default
     /// gap beside a `LazyHStack` of a layout that asks for none).
     public static var _statesSpacingPreference: Bool { false }
 }
 
-extension LazyHStack {
+@MainActor extension LazyHStack {
     /// See ``LazyVStack/_statesSpacingPreference``.
     public static var _statesSpacingPreference: Bool { false }
 }
@@ -178,7 +178,7 @@ extension LazyHStack {
 // MARK: - The shapes a body takes
 
 /// An `if`/`else` states what its live branch states.
-extension ConditionalView: SpacingPreferenceProviding {
+@MainActor extension ConditionalView: SpacingPreferenceProviding {
     func preferredSpacing(context: RenderContext) -> ViewSpacing {
         switch self {
         case .trueContent(let content):

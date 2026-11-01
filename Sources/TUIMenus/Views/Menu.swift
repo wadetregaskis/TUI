@@ -77,7 +77,7 @@ import TUIFoundation
 /// A menu with a `primaryAction:` splits its control: the label performs the
 /// action, and the menu opens from the caret beside it or by the Down arrow —
 /// see ``init(content:label:primaryAction:)``.
-public struct Menu<Label: View, Content: View>: View {
+nonisolated public struct Menu<Label: View, Content: View>: View {
     let content: Content
     let label: Label
 
@@ -102,7 +102,7 @@ public struct Menu<Label: View, Content: View>: View {
         self.label = label()
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _MenuStyleBody(
             configuration: configuration ?? MenuStyleConfiguration(
                 label: MenuStyleConfiguration.Label(content: AnyView(label)),

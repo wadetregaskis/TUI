@@ -18,11 +18,11 @@ public struct ButtonStyleConfiguration {
     ///
     /// It is the button's `@ViewBuilder` label when it was built with one, and
     /// otherwise its title as a `Text`.
-    public struct Label: View {
+    nonisolated public struct Label: View {
         let title: String
         let view: AnyView?
 
-        public var body: some View {
+        @MainActor public var body: some View {
             if let view {
                 view
             } else {
@@ -755,7 +755,7 @@ extension View {
     /// - Parameter style: The button style to apply.
     /// - Returns: A view whose buttons use the specified style.
     @_disfavoredOverload
-    public func buttonStyle<S: ButtonStyle>(_ style: S) -> some View {
+    nonisolated public func buttonStyle<S: ButtonStyle>(_ style: S) -> some View {
         // Disfavoured so `.buttonStyle(.plain)` and its siblings, which name a
         // static on both protocols, resolve to the primitive style.
         //
@@ -767,7 +767,7 @@ extension View {
 
 // MARK: - Button Variants & Targeted Text Styling
 
-extension Button {
+@MainActor extension Button {
     /// A built-in button visual variant, used to scope styling to a specific
     /// kind of button via ``View/buttonTextStyle(_:_:)``.
     public enum Variant: Sendable, Hashable {
@@ -807,7 +807,7 @@ extension View {
     /// The button's structure (brackets, background, focus glow) is unchanged;
     /// only its label colour/attributes are overridden. A `.destructive` role's
     /// error colour stays load-bearing and is not overridden by a broad entry.
-    public func buttonTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
+    nonisolated public func buttonTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
         style(.control(.button), build)
     }
 
@@ -817,7 +817,7 @@ extension View {
     /// ```swift
     /// RootView().buttonTextStyle(.automatic) { $0.foreground = .blue }
     /// ```
-    public func buttonTextStyle(
+    nonisolated public func buttonTextStyle(
         _ variant: Button.Variant, _ build: (inout StyleAttributes) -> Void
     ) -> some View {
         style(.controlVariant(.button, variant.token), build)

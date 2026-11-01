@@ -49,15 +49,15 @@ import TUIView
 extension View {
     @available(*, unavailable, renamed: "foregroundStyle(_:)", message: "SwiftUI has deprecated foregroundColor too.")
     @_alwaysEmitIntoClient
-    public func foregroundColor(_ color: Color?) -> Self { self }
+    nonisolated public func foregroundColor(_ color: Color?) -> Self { self }
 
     @available(*, unavailable, renamed: "tint(_:)", message: "SwiftUI has deprecated accentColor too.")
     @_alwaysEmitIntoClient
-    public func accentColor(_ accentColor: Color?) -> Self { self }
+    nonisolated public func accentColor(_ accentColor: Color?) -> Self { self }
 
     @available(*, unavailable, message: "Set the look of your app with .palette and .appearance instead.")
     @_alwaysEmitIntoClient
-    public func preferredColorScheme(_ colorScheme: ColorScheme?) -> Self { self }
+    nonisolated public func preferredColorScheme(_ colorScheme: ColorScheme?) -> Self { self }
 }
 
 // MARK: - Shape and safe area
@@ -65,15 +65,15 @@ extension View {
 extension View {
     @available(*, unavailable, message: "A cell has square corners. For a frame with round ones, use .border(style: .rounded).")
     @_alwaysEmitIntoClient
-    public func cornerRadius<Radius>(_ radius: Radius, antialiased: Bool = true) -> Self { self }
+    nonisolated public func cornerRadius<Radius>(_ radius: Radius, antialiased: Bool = true) -> Self { self }
 
     @available(*, unavailable, message: "TUI has no safe area to ignore, so delete this. A bar sits beside a view, never behind it.")
     @_alwaysEmitIntoClient
-    public func edgesIgnoringSafeArea(_ edges: Edge.Set) -> Self { self }
+    nonisolated public func edgesIgnoringSafeArea(_ edges: Edge.Set) -> Self { self }
 
     @available(*, unavailable, message: "TUI has no safe area to ignore, so delete this. A bar sits beside a view, never behind it.")
     @_alwaysEmitIntoClient
-    public func ignoresSafeArea(_ regions: SafeAreaRegions = .all, edges: Edge.Set = .all) -> Self { self }
+    nonisolated public func ignoresSafeArea(_ regions: SafeAreaRegions = .all, edges: Edge.Set = .all) -> Self { self }
 }
 
 /// What `ignoresSafeArea(_:edges:)` is told to ignore, there only for that
@@ -88,15 +88,15 @@ public enum SafeAreaRegions {
 extension View {
     @available(*, unavailable, message: "Put the view in a closure: .overlay(alignment: .center) { ... }. SwiftUI has deprecated this form too.")
     @_alwaysEmitIntoClient
-    public func overlay<Overlay: View>(_ overlay: Overlay, alignment: Alignment = .center) -> Self { self }
+    nonisolated public func overlay<Overlay: View>(_ overlay: Overlay, alignment: Alignment = .center) -> Self { self }
 
     @available(*, unavailable, message: "Put the view in a closure: .background(alignment: .center) { ... }. SwiftUI has deprecated this form too.")
     @_alwaysEmitIntoClient
-    public func background<Background: View>(_ background: Background, alignment: Alignment = .center) -> Self { self }
+    nonisolated public func background<Background: View>(_ background: Background, alignment: Alignment = .center) -> Self { self }
 
     @available(*, unavailable, message: "Put the view in a closure: .mask { ... }. SwiftUI has deprecated this form too.")
     @_alwaysEmitIntoClient
-    public func mask<Mask: View>(_ mask: Mask) -> Self { self }
+    nonisolated public func mask<Mask: View>(_ mask: Mask) -> Self { self }
 }
 
 extension Section where Parent: View, Content: View, Footer: View {
@@ -121,15 +121,15 @@ extension Section where Parent: View, Content: View, Footer: View {
 extension View {
     @available(*, unavailable, message: "Say which value to watch: .animation(.default, value: x). SwiftUI has deprecated this form too.")
     @_alwaysEmitIntoClient
-    public func animation(_ animation: Animation?) -> Self { self }
+    nonisolated public func animation(_ animation: Animation?) -> Self { self }
 
     @available(*, unavailable, message: "The closure takes both values, or none: { oldValue, newValue in ... }. SwiftUI has deprecated this form too.")
     @_alwaysEmitIntoClient
-    public func onChange<Value: Equatable>(of value: Value, perform action: @escaping (Value) -> Void) -> Self { self }
+    nonisolated public func onChange<Value: Equatable>(of value: Value, perform action: @escaping (Value) -> Void) -> Self { self }
 
     @available(*, unavailable, renamed: "autocorrectionDisabled(_:)", message: "SwiftUI has deprecated this name too.")
     @_alwaysEmitIntoClient
-    public func disableAutocorrection(_ disable: Bool?) -> Self { self }
+    nonisolated public func disableAutocorrection(_ disable: Bool?) -> Self { self }
 }
 
 extension ScrollView {
@@ -144,19 +144,19 @@ extension ScrollView {
 extension View {
     @available(*, unavailable, message: "Every character takes up whole cells, so the space between them can't change.")
     @_alwaysEmitIntoClient
-    public func kerning<Value>(_ kerning: Value) -> Self { self }
+    nonisolated public func kerning<Value>(_ kerning: Value) -> Self { self }
 
     @available(*, unavailable, message: "Every character takes up whole cells, so the space between them can't change.")
     @_alwaysEmitIntoClient
-    public func tracking<Value>(_ tracking: Value) -> Self { self }
+    nonisolated public func tracking<Value>(_ tracking: Value) -> Self { self }
 
     @available(*, unavailable, message: "All text in a terminal is one size, so it can't shrink to fit. Use .lineLimit, .truncationMode or ViewThatFits.")
     @_alwaysEmitIntoClient
-    public func minimumScaleFactor<Value>(_ factor: Value) -> Self { self }
+    nonisolated public func minimumScaleFactor<Value>(_ factor: Value) -> Self { self }
 
     @available(*, unavailable, message: "Every character takes up whole cells, so they can't be drawn closer. Use .lineLimit, .truncationMode or ViewThatFits.")
     @_alwaysEmitIntoClient
-    public func allowsTightening(_ flag: Bool) -> Self { self }
+    nonisolated public func allowsTightening(_ flag: Bool) -> Self { self }
 }
 
 extension Text {
@@ -198,14 +198,14 @@ extension Font.Design {
 extension View {
     @available(*, unavailable, message: "A symbol is one character, at the terminal's font size, so it has no scale of its own. Delete this.")
     @_alwaysEmitIntoClient
-    public func imageScale(_ scale: Image.Scale) -> Self { self }
+    nonisolated public func imageScale(_ scale: Image.Scale) -> Self { self }
 
     @available(*, unavailable, message: "A symbol is one character, in one colour. To colour it, use .foregroundStyle.")
     @_alwaysEmitIntoClient
-    public func symbolRenderingMode(_ mode: SymbolRenderingMode?) -> Self { self }
+    nonisolated public func symbolRenderingMode(_ mode: SymbolRenderingMode?) -> Self { self }
 }
 
-extension Image {
+@MainActor extension Image {
     /// The sizes `imageScale(_:)` offers, there only for that modifier's compile error.
     @available(*, unavailable, message: "A symbol is one character, at the terminal's font size, so it has no scale of its own.")
     public enum Scale {
@@ -225,22 +225,22 @@ public enum SymbolRenderingMode {
 extension View {
     @available(*, unavailable, message: "Nothing can send a URL to a program run in a terminal. Read one from the command line instead.")
     @_alwaysEmitIntoClient
-    public func onOpenURL(perform action: @escaping (URL) -> Void) -> Self { self }
+    nonisolated public func onOpenURL(perform action: @escaping (URL) -> Void) -> Self { self }
 
     // The closure takes `Any` because naming `Publisher` here would load Combine
     // into every app that imports TUI. A closure that uses its value as what it
     // really is reports that too, after this error.
     @available(*, unavailable, message: "TUI doesn't use Combine. Use a .task, or an @Observable model.")
     @_alwaysEmitIntoClient
-    public func onReceive<Publisher>(_ publisher: Publisher, perform action: @escaping (Any) -> Void) -> Self { self }
+    nonisolated public func onReceive<Publisher>(_ publisher: Publisher, perform action: @escaping (Any) -> Void) -> Self { self }
 
     @available(*, unavailable, message: "A terminal has no haptics, so delete this.")
     @_alwaysEmitIntoClient
-    public func sensoryFeedback<Trigger: Equatable>(_ feedback: SensoryFeedback, trigger: Trigger) -> Self { self }
+    nonisolated public func sensoryFeedback<Trigger: Equatable>(_ feedback: SensoryFeedback, trigger: Trigger) -> Self { self }
 
     @available(*, unavailable, message: "A terminal has no haptics, so delete this.")
     @_alwaysEmitIntoClient
-    public func sensoryFeedback<Trigger: Equatable>(
+    nonisolated public func sensoryFeedback<Trigger: Equatable>(
         _ feedback: SensoryFeedback,
         trigger: Trigger,
         condition: @escaping (Trigger, Trigger) -> Bool
@@ -259,51 +259,51 @@ public enum SensoryFeedback {
 extension View {
     @available(*, unavailable, message: "A terminal has no accessibility tree. A screen reader reads the text on screen, so say it there, and delete this.")
     @_alwaysEmitIntoClient
-    public func accessibilityLabel<Label>(_ label: Label, isEnabled: Bool = true) -> Self { self }
+    nonisolated public func accessibilityLabel<Label>(_ label: Label, isEnabled: Bool = true) -> Self { self }
 
     @available(*, unavailable, message: "A terminal has no accessibility tree. A screen reader reads the text on screen, so say it there, and delete this.")
     @_alwaysEmitIntoClient
-    public func accessibilityHint<Hint>(_ hint: Hint, isEnabled: Bool = true) -> Self { self }
+    nonisolated public func accessibilityHint<Hint>(_ hint: Hint, isEnabled: Bool = true) -> Self { self }
 
     @available(*, unavailable, message: "A terminal has no accessibility tree. A screen reader reads the text on screen, so say it there, and delete this.")
     @_alwaysEmitIntoClient
-    public func accessibilityValue<Value>(_ value: Value, isEnabled: Bool = true) -> Self { self }
+    nonisolated public func accessibilityValue<Value>(_ value: Value, isEnabled: Bool = true) -> Self { self }
 
     @available(*, unavailable, message: "A terminal has no accessibility tree. A screen reader reads the text on screen, so say it there, and delete this.")
     @_alwaysEmitIntoClient
-    public func accessibilityInputLabels<Label>(_ inputLabels: [Label], isEnabled: Bool = true) -> Self { self }
+    nonisolated public func accessibilityInputLabels<Label>(_ inputLabels: [Label], isEnabled: Bool = true) -> Self { self }
 
     @available(*, unavailable, message: "A terminal has no accessibility tree. A screen reader reads the text on screen, so delete this.")
     @_alwaysEmitIntoClient
-    public func accessibilityHidden(_ hidden: Bool, isEnabled: Bool = true) -> Self { self }
+    nonisolated public func accessibilityHidden(_ hidden: Bool, isEnabled: Bool = true) -> Self { self }
 
     @available(*, unavailable, message: "A terminal has no accessibility tree, so delete this. To name a control for its focus, use .focusID.")
     @_alwaysEmitIntoClient
-    public func accessibilityIdentifier(_ identifier: String, isEnabled: Bool = true) -> Self { self }
+    nonisolated public func accessibilityIdentifier(_ identifier: String, isEnabled: Bool = true) -> Self { self }
 
     @available(*, unavailable, message: "A terminal has no accessibility tree. A screen reader reads the text on screen, so delete this.")
     @_alwaysEmitIntoClient
-    public func accessibilitySortPriority<Priority>(_ sortPriority: Priority) -> Self { self }
+    nonisolated public func accessibilitySortPriority<Priority>(_ sortPriority: Priority) -> Self { self }
 
     @available(*, unavailable, message: "A terminal has no accessibility tree. A screen reader reads the text on screen, so delete this.")
     @_alwaysEmitIntoClient
-    public func accessibilityAddTraits(_ traits: AccessibilityTraits) -> Self { self }
+    nonisolated public func accessibilityAddTraits(_ traits: AccessibilityTraits) -> Self { self }
 
     @available(*, unavailable, message: "A terminal has no accessibility tree. A screen reader reads the text on screen, so delete this.")
     @_alwaysEmitIntoClient
-    public func accessibilityRemoveTraits(_ traits: AccessibilityTraits) -> Self { self }
+    nonisolated public func accessibilityRemoveTraits(_ traits: AccessibilityTraits) -> Self { self }
 
     @available(*, unavailable, message: "A terminal has no accessibility tree. A screen reader reads the text on screen, so delete this.")
     @_alwaysEmitIntoClient
-    public func accessibilityElement(children: AccessibilityChildBehavior = .ignore) -> Self { self }
+    nonisolated public func accessibilityElement(children: AccessibilityChildBehavior = .ignore) -> Self { self }
 
     @available(*, unavailable, message: "A terminal has no accessibility tree. To act on a key, use .onKeyPress or .keyboardShortcut.")
     @_alwaysEmitIntoClient
-    public func accessibilityAction(_ actionKind: AccessibilityActionKind = .default, _ handler: @escaping () -> Void) -> Self { self }
+    nonisolated public func accessibilityAction(_ actionKind: AccessibilityActionKind = .default, _ handler: @escaping () -> Void) -> Self { self }
 
     @available(*, unavailable, message: "A terminal has no accessibility tree. To act on a key, use .onKeyPress or .keyboardShortcut.")
     @_alwaysEmitIntoClient
-    public func accessibilityAction<Name>(named name: Name, _ handler: @escaping () -> Void) -> Self { self }
+    nonisolated public func accessibilityAction<Name>(named name: Name, _ handler: @escaping () -> Void) -> Self { self }
 }
 
 /// The traits `accessibilityAddTraits(_:)` offers, there only for that modifier's
@@ -369,7 +369,7 @@ public struct EnvironmentObject<ObjectType> {
 extension View {
     @available(*, unavailable, message: "TUI watches only @Observable models. Mark the class @Observable, and pass it with .environment(model).")
     @_alwaysEmitIntoClient
-    public func environmentObject<Object>(_ object: Object) -> Self { self }
+    nonisolated public func environmentObject<Object>(_ object: Object) -> Self { self }
 }
 
 // swiftlint:enable missing_docs line_length

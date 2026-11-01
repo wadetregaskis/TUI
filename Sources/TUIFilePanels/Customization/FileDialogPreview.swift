@@ -52,7 +52,7 @@ extension View {
     ///
     /// - Parameter preview: The view to draw for the item at a URL, of a
     ///   content type, or `nil` for TUI's own preview.
-    public func fileDialogPreview<Preview: View>(
+    nonisolated public func fileDialogPreview<Preview: View>(
         _ preview: @escaping @MainActor (URL, UTType) -> Preview?
     ) -> some View {
         FileDialogItemViewsModifier(content: self, keyPath: \.fileDialogPreview) { url, type in

@@ -51,7 +51,7 @@ extension View {
     /// - Parameter menuItems: A view builder of the menu's `Button`s (and
     ///   `Divider`s, `Toggle`s, and `Menu`s and `Picker`s as submenus).
     /// - Returns: A view that shows the context menu on secondary-click.
-    public func contextMenu<MenuItems: View>(
+    nonisolated public func contextMenu<MenuItems: View>(
         @ViewBuilder menuItems: () -> MenuItems
     ) -> some View {
         ContextMenuModifier(content: self, menuItems: menuItems())
@@ -69,7 +69,7 @@ extension View {
     ///   - menuItems: A view builder of the menu's `Button`s (and `Divider`s).
     ///   - preview: The view iOS shows beside the menu; not shown here.
     /// - Returns: A view that shows the context menu on secondary-click.
-    public func contextMenu<MenuItems: View, Preview: View>(
+    nonisolated public func contextMenu<MenuItems: View, Preview: View>(
         @ViewBuilder menuItems: () -> MenuItems,
         @ViewBuilder preview: () -> Preview
     ) -> some View {

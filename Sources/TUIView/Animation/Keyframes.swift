@@ -70,7 +70,7 @@ public struct _ResolvedKeyframes<Value> {
 
 /// Two keyframes types in sequence — what ``KeyframesBuilder`` builds from a
 /// block of them. Their tracks all run from the start, in the order written.
-struct _KeyframesSequence<First: Keyframes, Second: Keyframes>: Keyframes
+nonisolated struct _KeyframesSequence<First: Keyframes, Second: Keyframes>: Keyframes
 where First.Value == Second.Value {
     typealias Value = First.Value
 
@@ -79,9 +79,9 @@ where First.Value == Second.Value {
 
     // An explicit return keeps this out of the inferred `@KeyframesBuilder`.
     // swiftlint:disable:next implicit_return
-    var body: Never { return fatalError("_KeyframesSequence resolves itself") }
+    @MainActor var body: Never { return fatalError("_KeyframesSequence resolves itself") }
 
-    func _resolve(into resolved: inout _ResolvedKeyframes<Value>, initialValue: Value, initialVelocity: Value?) {
+    @MainActor func _resolve(into resolved: inout _ResolvedKeyframes<Value>, initialValue: Value, initialVelocity: Value?) {
         first._resolve(into: &resolved, initialValue: initialValue, initialVelocity: initialVelocity)
         second._resolve(into: &resolved, initialValue: initialValue, initialVelocity: initialVelocity)
     }
@@ -99,7 +99,7 @@ struct _EmptyKeyframes<Value>: Keyframes {
 // MARK: - Tracks
 
 /// A sequence of keyframes animating a single property of a root type.
-public struct KeyframeTrack<Root, Value, Content>: Keyframes
+nonisolated public struct KeyframeTrack<Root, Value, Content>: Keyframes
 where Value == Content.Value, Content: KeyframeTrackContent {
     private let keyPath: WritableKeyPath<Root, Value>
     private let content: Content
@@ -134,11 +134,11 @@ where Value == Content.Value, Content: KeyframeTrackContent {
 
     /// Never called: a track resolves itself. (The explicit `return` keeps
     /// this out of the inferred `@KeyframesBuilder`.)
-    public var body: Never { return fatalError("KeyframeTrack resolves itself") }  // swiftlint:disable:this implicit_return
+    @MainActor public var body: Never { return fatalError("KeyframeTrack resolves itself") }  // swiftlint:disable:this implicit_return
 
     /// Adds this track: its keyframes, from where the initial value has the
     /// property, writing the property.
-    public func _resolve(
+    @MainActor public func _resolve(
         into resolved: inout _ResolvedKeyframes<Root>, initialValue: Root, initialVelocity: Root?
     ) {
         var keyframes = _ResolvedKeyframeTrackContent<Value>()

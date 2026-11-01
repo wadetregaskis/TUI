@@ -23,7 +23,7 @@ package protocol ContextResolvedCollection {
     func resolved(in context: RenderContext) -> Self
 }
 
-extension ForEach where Content: View {
+@MainActor extension ForEach where Content: View {
     /// ``data`` resolved in `context`, for a collection that needs one —
     /// see ``ContextResolvedCollection``.
     ///
@@ -69,7 +69,7 @@ extension ForEach where Content: View {
     /// - Parameters:
     ///   - view: The view to extract the subviews of.
     ///   - content: The view builder that creates views from subviews.
-    public init<V: View>(
+    @MainActor public init<V: View>(
         subviews view: V, @ViewBuilder content: @escaping (Subview) -> Content
     ) where Data == ForEachSubviewCollection<Content>, ID == Subview.ID {
         self.init(ForEachSubviewCollection(source: view), id: \.id, content: content)

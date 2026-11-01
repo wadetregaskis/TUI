@@ -193,7 +193,7 @@ extension View {
     ///
     /// - Parameter style: The style to apply — ``TextFieldStyle/automatic`` or
     ///   ``TextFieldStyle/plain``.
-    public func textFieldStyle<S: TextFieldStyle>(_ style: S) -> some View {
+    nonisolated public func textFieldStyle<S: TextFieldStyle>(_ style: S) -> some View {
         environment(\.textFieldStyle, style)
     }
 }

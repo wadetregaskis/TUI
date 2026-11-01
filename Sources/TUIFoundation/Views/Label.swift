@@ -32,7 +32,7 @@
 /// installed). When the symbol can't be resolved — a non-Apple platform, or an
 /// unknown name — the label renders **just its title**, with no icon column and
 /// no stray gap, so the call site stays correct everywhere. See ``SFSymbol``.
-public struct Label<Title: View, Icon: View>: View {
+public struct Label<Title: View, Icon: View> {
     /// How the title and icon are arranged, and which of them is shown. Set by
     /// ``View/labelStyle(_:)`` anywhere above this label.
     @Environment(\.labelStyleChain) private var styles
@@ -62,7 +62,8 @@ public struct Label<Title: View, Icon: View>: View {
         self.iconIsVisible = iconIsVisible
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor public var body: some View {
         // The arrangement itself lives in the style — ``DefaultLabelStyle`` is
         // the icon-gap-title composition this used to inline, including the
         // icon's opt-out from cascaded text decorations.
@@ -82,6 +83,7 @@ public struct Label<Title: View, Icon: View>: View {
         return AnyView(body.environment(\.labelStyleChain, styles.inside))
     }
 }
+extension Label: View {}
 
 // MARK: - From a configuration
 
@@ -164,7 +166,7 @@ extension Label where Title == Text, Icon == _SymbolIcon {
 
 // MARK: - Environment without reflection
 
-extension Label: ResolvesOwnEnvironment {
+@MainActor extension Label: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _styles.resolveEnvironment(environment)
     }

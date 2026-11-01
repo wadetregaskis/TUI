@@ -491,7 +491,7 @@ extension View {
     ///
     /// - Parameter binding: The stand-in; see ``CommandKeyBinding``.
     /// - Returns: A view whose `.command` shortcuts bind to `binding`.
-    public func commandKey(_ binding: CommandKeyBinding) -> some View {
+    nonisolated public func commandKey(_ binding: CommandKeyBinding) -> some View {
         environment(\.commandKey, binding)
     }
 }
@@ -548,7 +548,7 @@ extension View {
     ///
     /// - Parameter matches: Whether a shortcut written with ⌘ fires on a real ⌘.
     /// - Returns: A view whose ⌘ shortcuts fire on a real ⌘ as well.
-    public func keyboardShortcutsMatchCommand(_ matches: Bool = true) -> some View {
+    nonisolated public func keyboardShortcutsMatchCommand(_ matches: Bool = true) -> some View {
         environment(\.keyboardShortcutsMatchCommand, matches)
     }
 }
@@ -611,7 +611,7 @@ extension View {
     /// ``KeyboardShortcut/cancelAction`` (Escape), or a key equivalent. Attach
     /// it directly to a single `Button`; see ``KeyboardShortcut`` for the
     /// fall-through rules.
-    public func keyboardShortcut(_ shortcut: KeyboardShortcut) -> some View {
+    nonisolated public func keyboardShortcut(_ shortcut: KeyboardShortcut) -> some View {
         // Not `environment(\.assignedKeyboardShortcut, …)`: the carrier has to
         // know how deep in the value memos it was planted, and a subtree under
         // an uncomparable environment value can never be cached. See
@@ -627,7 +627,7 @@ extension View {
     /// Button("Save") { save() }
     ///     .keyboardShortcut(isPrimary ? .defaultAction : nil)
     /// ```
-    public func keyboardShortcut(_ shortcut: KeyboardShortcut?) -> some View {
+    nonisolated public func keyboardShortcut(_ shortcut: KeyboardShortcut?) -> some View {
         KeyboardShortcutModifier(content: self, assignment: shortcut.map { KeyboardShortcutAssignment($0) })
     }
 
@@ -654,7 +654,7 @@ extension View {
     /// `modifiers` defaults to SwiftUI's `.command`, which a terminal never
     /// reports — pass `[]` for the bare-key form a TUI actually wants. See
     /// ``EventModifiers``.
-    public func keyboardShortcut(
+    nonisolated public func keyboardShortcut(
         _ key: KeyEquivalent, modifiers: EventModifiers = .command
     ) -> some View {
         keyboardShortcut(KeyboardShortcut(key, modifiers: modifiers))
@@ -665,7 +665,7 @@ extension View {
     ///
     /// The strategy is recorded on the shortcut; a terminal remaps and mirrors
     /// nothing under any of them (see ``KeyboardShortcut/Localization``).
-    public func keyboardShortcut(
+    nonisolated public func keyboardShortcut(
         _ key: KeyEquivalent, modifiers: EventModifiers = .command,
         localization: KeyboardShortcut.Localization
     ) -> some View {

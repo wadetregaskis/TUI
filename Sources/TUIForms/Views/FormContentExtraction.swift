@@ -183,7 +183,7 @@ private func row<Inner: View>(
 /// A view the form lays out as one labelled row: a ``LabeledContent``.
 protocol FormLabeledRow {}
 
-extension LabeledContent: FormLabeledRow {}
+@MainActor extension LabeledContent: FormLabeledRow {}
 
 /// Whether the form reads through the body of a view of type `V`: a view of
 /// the app's own whose body is several views, a loop, an `if` or a section —
@@ -276,7 +276,7 @@ private func sectionRows(of elements: [_FormElement]) -> [_FormElement] {
     }
 }
 
-extension LabeledContent: FormContentExtractor {
+@MainActor extension LabeledContent: FormContentExtractor {
     func extractFormElements(in walk: RenderContext) -> [_FormElement] {
         [.row(_FormRow(.field(label: AnyView(label), content: AnyView(content))))]
     }
@@ -287,7 +287,7 @@ extension LabeledContent: FormContentExtractor {
 /// footer are drawn only while it is expanded, as SwiftUI collapses a form's
 /// section in either style (measured on macOS 15.8,
 /// `Tools/SwiftUIProbes/Sections and subview counting/form.swift`).
-extension Section: FormContentExtractor where Parent: View, Content: View, Footer: View {
+@MainActor extension Section: FormContentExtractor where Parent: View, Content: View, Footer: View {
     func extractFormElements(in walk: RenderContext) -> [_FormElement] {
         let header: AnyView? =
             Parent.self == EmptyView.self
@@ -307,7 +307,7 @@ extension Section: FormContentExtractor where Parent: View, Content: View, Foote
     }
 }
 
-extension TupleView: FormContentExtractor {
+@MainActor extension TupleView: FormContentExtractor {
     func extractFormElements(in walk: RenderContext) -> [_FormElement] {
         var elements: [_FormElement] = []
         var slot = 0
@@ -320,7 +320,7 @@ extension TupleView: FormContentExtractor {
     }
 }
 
-extension ForEach: FormContentExtractor where Content: View {
+@MainActor extension ForEach: FormContentExtractor where Content: View {
     func extractFormElements(in walk: RenderContext) -> [_FormElement] {
         data.flatMap { element in
             formElements(
@@ -332,13 +332,13 @@ extension ForEach: FormContentExtractor where Content: View {
 
 /// A form reads its rows through an erasure, as through a `Group` — which is
 /// what lets ``Form/init(_:)`` lay out a configuration's type-erased content.
-extension AnyView: FormContentExtractor {
+@MainActor extension AnyView: FormContentExtractor {
     func extractFormElements(in walk: RenderContext) -> [_FormElement] {
         formElements(from: erasedView, in: walk)
     }
 }
 
-extension EmptyView: FormContentExtractor {
+@MainActor extension EmptyView: FormContentExtractor {
     func extractFormElements(in walk: RenderContext) -> [_FormElement] { [] }
 }
 
@@ -365,7 +365,7 @@ extension Optional: FormContentExtractor where Wrapped: View {
 
 /// An `if`/`else`'s live arm's elements, kept in one place among the form's
 /// and drawn under the arm's branch, so the arms keep their state apart.
-extension ConditionalView: FormContentExtractor {
+@MainActor extension ConditionalView: FormContentExtractor {
     func extractFormElements(in walk: RenderContext) -> [_FormElement] {
         switch self {
         case .trueContent(let content):

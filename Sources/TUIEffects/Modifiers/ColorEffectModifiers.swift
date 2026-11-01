@@ -19,7 +19,7 @@ extension View {
     ///
     /// - Parameter amount: `-1` through `1`.
     /// - Returns: A view whose colours are brightened.
-    public func brightness(_ amount: Double) -> some View {
+    nonisolated public func brightness(_ amount: Double) -> some View {
         _ColorEffectView(content: self, effect: .brightness, amount: amount)
     }
 
@@ -32,7 +32,7 @@ extension View {
     ///
     /// - Parameter amount: `0` (flat) upward; `1` is unchanged.
     /// - Returns: A view with adjusted contrast.
-    public func contrast(_ amount: Double) -> some View {
+    nonisolated public func contrast(_ amount: Double) -> some View {
         _ColorEffectView(content: self, effect: .contrast, amount: amount)
     }
 
@@ -42,7 +42,7 @@ extension View {
     ///
     /// - Parameter amount: `0` (grey) upward; `1` is unchanged.
     /// - Returns: A view with adjusted saturation.
-    public func saturation(_ amount: Double) -> some View {
+    nonisolated public func saturation(_ amount: Double) -> some View {
         _ColorEffectView(content: self, effect: .saturation, amount: amount)
     }
 
@@ -55,7 +55,7 @@ extension View {
     ///
     /// - Parameter amount: `0` (unchanged) through `1` (grey).
     /// - Returns: A view drained of colour.
-    public func grayscale(_ amount: Double) -> some View {
+    nonisolated public func grayscale(_ amount: Double) -> some View {
         _ColorEffectView(content: self, effect: .grayscale, amount: amount)
     }
 
@@ -66,14 +66,14 @@ extension View {
     ///
     /// - Parameter angle: How far around the wheel.
     /// - Returns: A view with rotated hues.
-    public func hueRotation(_ angle: Angle) -> some View {
+    nonisolated public func hueRotation(_ angle: Angle) -> some View {
         _ColorEffectView(content: self, effect: .hueRotation, amount: angle.degrees)
     }
 
     /// Inverts every colour this view draws.
     ///
     /// - Returns: A view with inverted colours.
-    public func colorInvert() -> some View {
+    nonisolated public func colorInvert() -> some View {
         _ColorEffectView(content: self, effect: .invert, amount: 1)
     }
 
@@ -95,7 +95,7 @@ extension View {
     ///
     /// - Parameter color: The colour to multiply by.
     /// - Returns: A tinted view.
-    public func colorMultiply(_ color: Color) -> some View {
+    nonisolated public func colorMultiply(_ color: Color) -> some View {
         _ColorEffectView(content: self, effect: .multiply(color), amount: 1)
     }
 }
@@ -163,17 +163,17 @@ enum _ColorEffect: Equatable {
 /// name with a function of it (``SGRColorRewrite``). Nothing is re-rendered,
 /// nothing is re-measured, and the cells are exactly the ones the content drew
 /// — which is what makes these affordable enough to animate.
-struct _ColorEffectView<Content: View>: View {
+nonisolated struct _ColorEffectView<Content: View>: View {
     let content: Content
     let effect: _ColorEffect
     var amount: Double
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_ColorEffectView renders via Renderable")
     }
 }
 
-extension _ColorEffectView: Animatable {
+@MainActor extension _ColorEffectView: Animatable {
     /// The amount is the one continuous thing, so `withAnimation` ramps the
     /// effect rather than switching it.
     var animatableData: Double {
@@ -182,7 +182,7 @@ extension _ColorEffectView: Animatable {
     }
 }
 
-extension _ColorEffectView: Renderable {
+@MainActor extension _ColorEffectView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let buffer = TUIView.renderToBuffer(content, context: context)
         // `isEmpty` asks about the LINES, and a subtree can draw nothing in flow
@@ -226,7 +226,7 @@ extension _ColorEffectView: Renderable {
     }
 }
 
-extension _ColorEffectView {
+@MainActor extension _ColorEffectView {
     /// `buffer` with this effect applied to its lines — and to every overlay this
     /// subtree actually DREW.
     ///
@@ -312,7 +312,7 @@ extension _ColorEffectView {
     }
 }
 
-extension _ColorEffectView: Layoutable {
+@MainActor extension _ColorEffectView: Layoutable {
     /// A colour effect rewrites colours in place: same characters, same cells,
     /// same size.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -364,7 +364,7 @@ extension _ColorEffect {
 /// - Note: The arithmetic is per cell, and the members of a stack do not
 ///   overlap, so rewriting each member's colours and rewriting the pair's
 ///   buffer produce the same cells.
-extension _ColorEffectView: ContentRewrapping {
+@MainActor extension _ColorEffectView: ContentRewrapping {
     /// Its content's geometry is its own — it recolours the cells its content drew, where they are — so a guide
     /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
     static var _keepsContentGeometry: Bool { true }
@@ -381,8 +381,8 @@ extension _ColorEffectView: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _ColorEffectView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _ColorEffectView: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _ColorEffectView: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension _ColorEffectView: GridRowProviding where Content: GridRowProviding {}

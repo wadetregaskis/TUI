@@ -49,7 +49,7 @@ extension View {
     /// This is a terminal-specific affordance (there is no SwiftUI equivalent),
     /// kept as a modifier so it propagates the way styling and other environment
     /// values do.
-    public func shiftStepMultiplier(_ factor: Int) -> some View {
+    nonisolated public func shiftStepMultiplier(_ factor: Int) -> some View {
         environment(\.shiftStepMultiplier, factor)
     }
 }

@@ -16,7 +16,7 @@ extension View {
     ///   - value: The value to set.
     /// - Returns: A view with the modified environment.
     @inlinable
-    public func environment<V>(
+    nonisolated public func environment<V>(
         _ keyPath: WritableKeyPath<EnvironmentValues, V>,
         _ value: V
     ) -> some View {
@@ -54,7 +54,7 @@ extension View {
     ///     must be a pure function of the value it is handed — a closure that
     ///     counted its own calls would neither be stable nor mean anything.
     /// - Returns: A view whose subtree sees the transformed value.
-    public func transformEnvironment<V>(
+    nonisolated public func transformEnvironment<V>(
         _ keyPath: WritableKeyPath<EnvironmentValues, V>,
         transform: @escaping (inout V) -> Void
     ) -> some View {
@@ -91,7 +91,7 @@ extension View {
     /// - Parameter object: The observable object to inject, or `nil` to clear
     ///   one of its type.
     /// - Returns: A view with the object available in the environment.
-    public func environment<T: Observable>(_ object: T?) -> some View {
+    nonisolated public func environment<T: Observable>(_ object: T?) -> some View {
         ObjectEnvironmentModifier(content: self, object: object)
     }
 }
@@ -116,7 +116,7 @@ extension View {
     ///
     /// - Parameter appearance: The appearance to apply.
     /// - Returns: A view with the appearance applied.
-    public func appearance(_ appearance: Appearance) -> some View {
+    nonisolated public func appearance(_ appearance: Appearance) -> some View {
         environment(\.appearance, appearance)
     }
 }
@@ -135,7 +135,7 @@ extension View {
     ///
     /// - Parameter palette: The palette to apply.
     /// - Returns: A view with the palette applied.
-    public func palette(_ palette: any Palette) -> some View {
+    nonisolated public func palette(_ palette: any Palette) -> some View {
         environment(\.palette, palette)
     }
 }

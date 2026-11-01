@@ -35,7 +35,7 @@
 /// Both walks plant: a measure pass registers nothing, but it needs the
 /// shortcut to reserve the width the hint prints in, and one carrier serves the
 /// frame's measure and its render (see ``KeyboardShortcutAssignment``).
-struct KeyboardShortcutModifier<Content: View>: View {
+nonisolated struct KeyboardShortcutModifier<Content: View>: View {
     /// The content view, whose first control claims the shortcut.
     let content: Content
 
@@ -44,13 +44,13 @@ struct KeyboardShortcutModifier<Content: View>: View {
     /// `.keyboardShortcut(nil)`, which leaves the environment as it found it.
     let assignment: KeyboardShortcutAssignment?
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("KeyboardShortcutModifier renders via Renderable")
     }
 
     /// The context the content renders or measures under: the carrier in the
     /// environment, stamped with the memo nesting it was planted at.
-    private func planting(into context: RenderContext) -> RenderContext {
+    @MainActor private func planting(into context: RenderContext) -> RenderContext {
         guard let assignment else { return context }
         assignment.planted(atEffectRecordingDepth: context.effectRecordingDepth)
         // `\.keyboardShortcut` reads the carrier's shortcut, so anything below
@@ -77,7 +77,7 @@ struct KeyboardShortcutModifier<Content: View>: View {
 
 // MARK: - Renderable
 
-extension KeyboardShortcutModifier: Renderable {
+@MainActor extension KeyboardShortcutModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: planting(into: context))
     }
@@ -85,7 +85,7 @@ extension KeyboardShortcutModifier: Renderable {
 
 // MARK: - Layoutable
 
-extension KeyboardShortcutModifier: Layoutable {
+@MainActor extension KeyboardShortcutModifier: Layoutable {
     /// Behaviour-only decorator — it renders `content` unchanged. Forwarding the
     /// measure keeps it off `measureChild`'s render-to-measure fallback and lets
     /// the wrapped view's flexibility propagate, exactly as `KeyEventModifier`
@@ -235,7 +235,7 @@ enum KeyboardShortcutRegistrar {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension KeyboardShortcutModifier: SingleContentWrapper {
+@MainActor extension KeyboardShortcutModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content's context: the shortcut it plants (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -246,7 +246,7 @@ extension KeyboardShortcutModifier: SingleContentWrapper {
 /// .keyboardShortcut(.defaultAction)` — goes around the row the form lays out,
 /// which keeps its place, as SwiftUI's form keeps it (measured,
 /// `Tools/SwiftUIProbes/Form rows`).
-extension KeyboardShortcutModifier: FormRowRewrapping {
+@MainActor extension KeyboardShortcutModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
         KeyboardShortcutModifier<V>(content: row, assignment: assignment)
     }
@@ -266,7 +266,7 @@ package protocol KeyboardShortcutBinding {
     var boundShortcut: KeyboardShortcut? { get }
 }
 
-extension KeyboardShortcutModifier: KeyboardShortcutBinding {
+@MainActor extension KeyboardShortcutModifier: KeyboardShortcutBinding {
     package var boundShortcut: KeyboardShortcut? {
         guard let assignment, assignment.registers else { return nil }
         return assignment.shortcut
@@ -277,4 +277,4 @@ extension KeyboardShortcutModifier: KeyboardShortcutBinding {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension KeyboardShortcutModifier: DrawsContentUnchanged {}
+@MainActor extension KeyboardShortcutModifier: DrawsContentUnchanged {}

@@ -330,23 +330,23 @@ extension EnvironmentValues {
 }
 
 /// Sets one of the sidebar's accessory views for `content`.
-struct _TabViewSidebarAccessoryModifier<Content: View>: View, Renderable, Layoutable {
+nonisolated struct _TabViewSidebarAccessoryModifier<Content: View>: View, Renderable, Layoutable {
     let content: Content
     let apply: (inout _TabViewSidebarAccessories) -> Void
 
-    var body: Never { fatalError("_TabViewSidebarAccessoryModifier renders via Renderable") }
+    @MainActor var body: Never { fatalError("_TabViewSidebarAccessoryModifier renders via Renderable") }
 
-    private func accessorized(_ context: RenderContext) -> RenderContext {
+    @MainActor private func accessorized(_ context: RenderContext) -> RenderContext {
         var context = context
         apply(&context.environment.tabViewSidebarAccessories)
         return context
     }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: accessorized(context))
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: accessorized(context))
     }
 }
@@ -359,7 +359,7 @@ extension View {
     /// over it, as over a section's header, and a control in it is a Tab stop.
     ///
     /// - Parameter content: The header.
-    public func tabViewSidebarHeader<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    nonisolated public func tabViewSidebarHeader<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         let header = AnyView(content())
         return _TabViewSidebarAccessoryModifier(content: self) { $0.header = header }
     }
@@ -372,7 +372,7 @@ extension View {
     /// ``View/tabViewSidebarBottomBar(content:)`` is the one that stays put.
     ///
     /// - Parameter content: The footer.
-    public func tabViewSidebarFooter<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    nonisolated public func tabViewSidebarFooter<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         let footer = AnyView(content())
         return _TabViewSidebarAccessoryModifier(content: self) { $0.footer = footer }
     }
@@ -385,7 +385,7 @@ extension View {
     /// scroll.
     ///
     /// - Parameter content: The bottom bar.
-    public func tabViewSidebarBottomBar<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    nonisolated public func tabViewSidebarBottomBar<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         let bottomBar = AnyView(content())
         return _TabViewSidebarAccessoryModifier(content: self) { $0.bottomBar = bottomBar }
     }

@@ -12,8 +12,7 @@
 /// not on, turns everything on, as a macOS mixed checkbox does.
 ///
 /// With no sources the toggle is off, and setting it does nothing.
-@MainActor
-private func collectiveBinding(_ bindings: [Binding<Bool>]) -> Binding<Bool> {
+nonisolated private func collectiveBinding(_ bindings: [Binding<Bool>]) -> Binding<Bool> {
     Binding(
         get: { !bindings.isEmpty && bindings.allSatisfy(\.wrappedValue) },
         set: { value in

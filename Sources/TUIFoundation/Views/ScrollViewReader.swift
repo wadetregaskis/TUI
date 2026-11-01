@@ -78,7 +78,7 @@ public struct ScrollViewProxy {
 ///     Button("Jump to the middle") { proxy.scrollTo(500_000, anchor: .center) }
 /// }
 /// ```
-public struct ScrollViewReader<Content: View>: View {
+public struct ScrollViewReader<Content: View> {
     /// The reader's content, given the proxy.
     public var content: (ScrollViewProxy) -> Content
 
@@ -92,11 +92,13 @@ public struct ScrollViewReader<Content: View>: View {
         self.content = content
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         content(ScrollViewProxy(registry: registry))
             .environment(\.scrollToRegistry, registry)
     }
 }
+extension ScrollViewReader: View {}
 
 // MARK: - Registry
 

@@ -12,7 +12,7 @@ import TUICore
 /// Lays a view built from a preference the base's subtree reduced over, or
 /// under, the base — in the base's frame, as `.overlay` and
 /// `.background(alignment:content:)` lay theirs.
-struct PreferenceLayerModifier<Base: View, K: PreferenceKey, Layer: View>: View {
+nonisolated struct PreferenceLayerModifier<Base: View, K: PreferenceKey, Layer: View>: View {
     /// The base content, whose subtree publishes `K`.
     let base: Base
 
@@ -25,12 +25,12 @@ struct PreferenceLayerModifier<Base: View, K: PreferenceKey, Layer: View>: View 
     /// Whether the layer goes behind the base rather than over it.
     let isBackground: Bool
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("PreferenceLayerModifier renders via Renderable")
     }
 }
 
-extension PreferenceLayerModifier: Renderable {
+@MainActor extension PreferenceLayerModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A measure collects no preferences, so there is no value to build the
         // layer from — and the layer cannot move the size, which is the base's.
@@ -108,7 +108,7 @@ extension PreferenceLayerModifier: Renderable {
     }
 }
 
-extension PreferenceLayerModifier: Layoutable {
+@MainActor extension PreferenceLayerModifier: Layoutable {
     /// The base's size: the layer is laid out inside it and cut to it.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(base, proposal: proposal, context: context)

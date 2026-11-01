@@ -15,18 +15,18 @@ import TUIFoundation
 public struct ProgressViewStyleConfiguration {
     /// A type-erased label describing the task represented by the progress
     /// view.
-    public struct Label: View {
+    nonisolated public struct Label: View {
         let content: AnyView
 
-        public var body: some View { content }
+        @MainActor public var body: some View { content }
     }
 
     /// A type-erased label that describes the current value of a progress
     /// view.
-    public struct CurrentValueLabel: View {
+    nonisolated public struct CurrentValueLabel: View {
         let content: AnyView
 
-        public var body: some View { content }
+        @MainActor public var body: some View { content }
     }
 
     /// The completed fraction of the task represented by the progress view,
@@ -192,7 +192,7 @@ extension View {
     ///
     /// - Parameter style: The progress view style.
     /// - Returns: A view whose progress views use `style`.
-    public func progressViewStyle<S: ProgressViewStyle>(_ style: S) -> some View {
+    nonisolated public func progressViewStyle<S: ProgressViewStyle>(_ style: S) -> some View {
         transformEnvironment(\.progressViewStyleChain) { $0 = $0.pushing(style) }
     }
 }

@@ -103,7 +103,7 @@ extension TableHeaderRowContent {
 
 // MARK: - Section as table rows
 
-extension Section: _TableRowValued
+@MainActor extension Section: _TableRowValued
 where
     Parent: TableRowContent, Content: TableRowContent, Footer: TableRowContent,
     Parent.TableRowValue == Content.TableRowValue, Footer.TableRowValue == Content.TableRowValue
@@ -111,7 +111,7 @@ where
     public typealias TableRowValue = Content.TableRowValue
 }
 
-extension Section: TableRowContent
+@MainActor extension Section: TableRowContent
 where
     Parent: TableRowContent, Content: TableRowContent, Footer: TableRowContent,
     Parent.TableRowValue == Content.TableRowValue, Footer.TableRowValue == Content.TableRowValue
@@ -158,7 +158,7 @@ extension TableHeaderRowContent: _TableSectionHeaderView {
 
 // MARK: - Initializers
 
-extension Section where Content: TableRowContent {
+@MainActor extension Section where Content: TableRowContent {
     /// Creates a section of table rows with a localized title as its header.
     ///
     /// The header is a row of its own across the table, above the section's

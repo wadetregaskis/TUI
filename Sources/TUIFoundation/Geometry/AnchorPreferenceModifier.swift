@@ -30,7 +30,7 @@ extension View {
     ///   - value: The geometry value in the current coordinate space.
     ///   - transform: The function to produce the preference value.
     /// - Returns: A new version of the view that writes the preference.
-    public func anchorPreference<A, K: PreferenceKey>(
+    nonisolated public func anchorPreference<A, K: PreferenceKey>(
         key _: K.Type = K.self, value: Anchor<A>.Source, transform: @escaping (Anchor<A>) -> K.Value
     ) -> some View {
         AnchorPreferenceModifier(content: self, source: value, publish: .value { anchor, preferences in
@@ -52,7 +52,7 @@ extension View {
     ///   - value: The geometry value in the current coordinate space.
     ///   - transform: The function to produce the preference value.
     /// - Returns: A new version of the view that writes the preference.
-    public func transformAnchorPreference<A, K: PreferenceKey>(
+    nonisolated public func transformAnchorPreference<A, K: PreferenceKey>(
         key _: K.Type = K.self, value: Anchor<A>.Source, transform: @escaping (inout K.Value, Anchor<A>) -> Void
     ) -> some View {
         AnchorPreferenceModifier(content: self, source: value, publish: .transform { anchor, values in
@@ -77,17 +77,17 @@ enum AnchorPublish<Value> {
 
 /// Publishes an anchor to this view, and stamps the marker its readers find
 /// it by — see ``View/anchorPreference(key:value:transform:)``.
-struct AnchorPreferenceModifier<Content: View, Value>: View {
+nonisolated struct AnchorPreferenceModifier<Content: View, Value>: View {
     let content: Content
     let source: Anchor<Value>.Source
     let publish: AnchorPublish<Value>
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("AnchorPreferenceModifier renders via Renderable")
     }
 }
 
-extension AnchorPreferenceModifier: Renderable {
+@MainActor extension AnchorPreferenceModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A measure collects no preferences; and a write is a render-pass side
         // effect a cached buffer cannot reproduce — both as
@@ -121,7 +121,7 @@ extension AnchorPreferenceModifier: Renderable {
     }
 }
 
-extension AnchorPreferenceModifier: Layoutable {
+@MainActor extension AnchorPreferenceModifier: Layoutable {
     /// Publishes a preference and renders `content` unchanged, so it measures
     /// as `content`.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -131,7 +131,7 @@ extension AnchorPreferenceModifier: Layoutable {
 
 /// Names its content so a container asking for a z-index or an alignment guide
 /// looks through this wrapper, as it looks through `preference(key:value:)`.
-extension AnchorPreferenceModifier: SingleContentWrapper {
+@MainActor extension AnchorPreferenceModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -140,4 +140,4 @@ extension AnchorPreferenceModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension AnchorPreferenceModifier: DrawsContentUnchanged {}
+@MainActor extension AnchorPreferenceModifier: DrawsContentUnchanged {}

@@ -382,7 +382,7 @@ extension SpinnerStyle {
 /// where the shared clock puts it — and, from then on, it keeps that turn of its
 /// own rather than the phase other spinners of its style share, until it leaves
 /// the screen.
-public struct Spinner: View {
+nonisolated public struct Spinner: View {
     /// The optional label displayed after the spinner.
     let label: String?
 
@@ -464,7 +464,7 @@ public struct Spinner: View {
         self.color = color
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _SpinnerCore(
             label: label,
             style: style,

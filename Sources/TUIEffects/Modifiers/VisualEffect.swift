@@ -102,7 +102,7 @@ extension View {
     ///   first argument provided to the closure is a placeholder representing
     ///   this view. The second argument is a `GeometryProxy`.
     /// - Returns: A view with the effect applied.
-    public func visualEffect<Effect: VisualEffect>(
+    nonisolated public func visualEffect<Effect: VisualEffect>(
         _ effect: @escaping @MainActor @Sendable (EmptyVisualEffect, GeometryProxy) -> Effect
     ) -> some View {
         _VisualEffectView(content: self, effect: effect)
@@ -111,16 +111,16 @@ extension View {
 
 /// Draws its content, then the effect a closure computed from the content's
 /// size. See ``View/visualEffect(_:)``.
-struct _VisualEffectView<Content: View, Effect: VisualEffect>: View {
+nonisolated struct _VisualEffectView<Content: View, Effect: VisualEffect>: View {
     let content: Content
     let effect: @MainActor @Sendable (EmptyVisualEffect, GeometryProxy) -> Effect
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_VisualEffectView renders via Renderable")
     }
 }
 
-extension _VisualEffectView: Renderable, Layoutable {
+@MainActor extension _VisualEffectView: Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // What the effect asks about the spaces around the view goes through
         // this, and is held to by the spaces' owners, as a reader's is — the

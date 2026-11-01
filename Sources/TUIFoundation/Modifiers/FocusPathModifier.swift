@@ -30,7 +30,7 @@ package enum FocusPathStage: Sendable {
 /// only while the focused control renders at that identity or below it. The
 /// focus-blind TUI handler is ``KeyEventModifier``; the two share the
 /// dispatcher and its per-frame lifecycle (see `InputHandler`).
-package struct FocusPathModifier<Content: View>: View {
+nonisolated package struct FocusPathModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
@@ -64,14 +64,14 @@ package struct FocusPathModifier<Content: View>: View {
         self.bind = bind
     }
 
-    package var body: Never {
+    @MainActor package var body: Never {
         fatalError("FocusPathModifier renders via Renderable")
     }
 }
 
 // MARK: - Renderable
 
-extension FocusPathModifier: Renderable {
+@MainActor extension FocusPathModifier: Renderable {
     package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A render-pass side effect, under the same two rules as
         // `KeyEventModifier`'s: never while measuring (a render-to-measure
@@ -133,7 +133,7 @@ enum FocusPathRegistrar {
 
 // MARK: - Layoutable
 
-extension FocusPathModifier: Layoutable {
+@MainActor extension FocusPathModifier: Layoutable {
     /// Behaviour-only decorator — it renders `content` unchanged, so it
     /// measures as its content does.
     package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -146,7 +146,7 @@ extension FocusPathModifier: Layoutable {
 /// Names its content so a container asking for a z-index or an alignment guide
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``.
-extension FocusPathModifier: SingleContentWrapper {
+@MainActor extension FocusPathModifier: SingleContentWrapper {
     package var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -157,7 +157,7 @@ extension FocusPathModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension FocusPathModifier: DrawsContentUnchanged {}
+@MainActor extension FocusPathModifier: DrawsContentUnchanged {}
 
 // MARK: - In a Form
 
@@ -165,7 +165,7 @@ extension FocusPathModifier: DrawsContentUnchanged {}
 /// .onKeyPress(.space) { … }` — goes around the row the form lays out, which
 /// keeps its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`). Every
 /// control in the row renders below it, so it is on their focus path still.
-extension FocusPathModifier: FormRowRewrapping {
+@MainActor extension FocusPathModifier: FormRowRewrapping {
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {
         FocusPathModifier<V>(content: row, stage: stage, declares: declares, bind: bind)
     }

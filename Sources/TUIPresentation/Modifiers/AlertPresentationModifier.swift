@@ -30,7 +30,7 @@ import TUIFoundation
 /// not need to flip `isPresented` itself. Escape is the `.cancel`-role button:
 /// it runs that action, if there is one, and closes the alert either way. The
 /// status bar says so while the alert is up.
-package struct AlertPresentationModifier<Content: View, Actions: View, Message: View>: View {
+nonisolated package struct AlertPresentationModifier<Content: View, Actions: View, Message: View>: View {
     /// The base content to render.
     let content: Content
 
@@ -73,18 +73,18 @@ package struct AlertPresentationModifier<Content: View, Actions: View, Message: 
     /// a confirmation dialog — the vertical form, which nothing else uses —
     /// with no `.cancel` button gets a standard Cancel, and an alert with no
     /// buttons a standard OK.
-    var shownActions: _ImplicitDialogActions<Actions> {
+    @MainActor var shownActions: _ImplicitDialogActions<Actions> {
         _ImplicitDialogActions(actions: actions, isConfirmation: verticalButtons)
     }
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("AlertPresentationModifier renders via Renderable")
     }
 }
 
 // MARK: - Renderable
 
-extension AlertPresentationModifier: Renderable {
+@MainActor extension AlertPresentationModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A focus section unique to THIS alert instance, so stacked alerts /
         // modals each isolate (only the topmost active section is interactive).
@@ -341,7 +341,7 @@ private enum StateIndex {
 
 // MARK: - Layoutable
 
-extension AlertPresentationModifier: Layoutable {
+@MainActor extension AlertPresentationModifier: Layoutable {
     /// The alert is *presented over* the page (a centred overlay on the dimmed
     /// base, which spans the page), so the layout footprint is the base
     /// `content` — both when dismissed and when presented. Forwarding also keeps
@@ -395,7 +395,7 @@ struct _ImplicitDialogActions<A: View>: View, ButtonProvider {
 /// An alert or a confirmation dialog written on a form row — `Button("Delete")
 /// { … }.confirmationDialog(…)` — goes around the row the form lays out, which
 /// keeps its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
-extension AlertPresentationModifier: FormRowRewrapping {
+@MainActor extension AlertPresentationModifier: FormRowRewrapping {
     package var formRowContent: Content { content }
 
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {

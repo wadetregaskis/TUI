@@ -172,7 +172,7 @@ extension View {
     ///
     /// - Parameter transition: The transition to apply when animating the
     ///   content change.
-    public func contentTransition(_ transition: ContentTransition) -> some View {
+    nonisolated public func contentTransition(_ transition: ContentTransition) -> some View {
         environment(\.contentTransition, transition)
     }
 }

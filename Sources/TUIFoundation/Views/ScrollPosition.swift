@@ -353,7 +353,7 @@ extension View {
     ///   - position: The position to read and write.
     ///   - anchor: Which point of the viewport the reported row is sampled at
     ///     — `nil` (the default) means the top.
-    public func scrollPosition(
+    nonisolated public func scrollPosition(
         _ position: Binding<ScrollPosition>, anchor: UnitPoint? = nil
     ) -> some View {
         environment(\.scrollPositionBinding, ScrollPositionBinding(position, anchor: anchor))
@@ -368,7 +368,7 @@ extension View {
     /// - Parameters:
     ///   - id: The row identity to read and write.
     ///   - anchor: Which point of the viewport the row is sampled at.
-    public func scrollPosition<ID: Hashable>(
+    nonisolated public func scrollPosition<ID: Hashable>(
         id: Binding<ID?>, anchor: UnitPoint? = nil
     ) -> some View {
         // Bridged onto the same channel rather than given its own: one scroll
@@ -411,8 +411,7 @@ extension View {
 /// acted on, which id was last written back — lives on the persistent
 /// ``ScrollViewHandler`` instead; kept here it reset every frame, and a
 /// standing `scrollTo` undid the user's scroll on the very next render.
-@MainActor
-package final class ScrollPositionBinding {
+nonisolated package final class ScrollPositionBinding {
     let binding: Binding<ScrollPosition>
     package let anchor: UnitPoint
     /// Where across the viewport a purely horizontal scroll view samples the
@@ -490,7 +489,7 @@ package enum ScrollPositionPlacement {
     case offset(x: Int?, y: Int?)
 }
 
-extension ScrollPositionBinding {
+@MainActor extension ScrollPositionBinding {
     /// The row this binding asks for on this frame, as a seek, or `nil`: none
     /// asked for, an edge or an offset asked for instead, or a request already
     /// acted on — the token, or for the plain `id:` binding the value

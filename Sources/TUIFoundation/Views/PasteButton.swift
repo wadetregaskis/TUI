@@ -24,7 +24,7 @@
 /// machine's clipboard is not the user's — over ssh — the press finds the
 /// app's own latest copy instead (see `Documentation/Terminals/Terminal compatibility survey.md`,
 /// "OSC 52 clipboard writes").
-public struct PasteButton: View {
+public struct PasteButton {
     private let paste: (ClipboardAccess) -> Void
 
     @Environment(\.clipboardAccess) private var clipboard
@@ -45,7 +45,8 @@ public struct PasteButton: View {
         }
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor public var body: some View {
         // Read off the wrappers when the button is drawn, for the press: an
         // event closure sees no environment of its own.
         var clipboard = self.clipboard
@@ -62,6 +63,7 @@ public struct PasteButton: View {
         }
     }
 }
+extension PasteButton: View {}
 
 #if canImport(UniformTypeIdentifiers)
     extension PasteButton {
@@ -86,7 +88,7 @@ public struct PasteButton: View {
 
 // MARK: - Environment without reflection
 
-extension PasteButton: ResolvesOwnEnvironment {
+@MainActor extension PasteButton: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _clipboard.resolveEnvironment(environment)
         _typedClipboard.resolveEnvironment(environment)

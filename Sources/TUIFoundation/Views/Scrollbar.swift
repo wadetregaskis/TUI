@@ -405,7 +405,7 @@ extension View {
     ///   - visibility: When an indicator is drawn.
     ///   - axes: Which axes it applies to. Defaults to both.
     /// - Returns: A view whose scrolling descendants follow the setting.
-    public func scrollIndicators(
+    nonisolated public func scrollIndicators(
         _ visibility: ScrollIndicatorVisibility,
         axes: Axis.Set = [.horizontal, .vertical]
     ) -> some View {
@@ -437,18 +437,18 @@ extension View {
     ///
     /// - Parameter style: The indicator to draw.
     /// - Returns: A view whose scrolling descendants follow the setting.
-    public func scrollIndicatorStyle(_ style: ScrollIndicatorStyle) -> some View {
+    nonisolated public func scrollIndicatorStyle(_ style: ScrollIndicatorStyle) -> some View {
         environment(\.scrollIndicatorStyle, style)
     }
 
     /// Sets the end-arrow style of scrollbars within this view.
-    public func scrollbarArrows(_ arrows: ScrollbarArrows) -> some View {
+    nonisolated public func scrollbarArrows(_ arrows: ScrollbarArrows) -> some View {
         environment(\.scrollbarArrows, arrows)
     }
 
     /// Sets whether scrollbar thumbs within this view are sized proportionally to
     /// the visible region (`true`) or a fixed single cell (`false`).
-    public func scrollbarProportionalThumb(_ proportional: Bool) -> some View {
+    nonisolated public func scrollbarProportionalThumb(_ proportional: Bool) -> some View {
         environment(\.scrollbarProportionalThumb, proportional)
     }
 }

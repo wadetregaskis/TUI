@@ -71,7 +71,7 @@ import TUIFoundation
 ///     Text("Content")
 /// }
 /// ```
-public struct Panel<Content: View, Footer: View>: View {
+nonisolated public struct Panel<Content: View, Footer: View>: View {
     /// The title displayed in the header/border.
     let title: String
 
@@ -149,7 +149,7 @@ public struct Panel<Content: View, Footer: View>: View {
         )
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _PanelCore(
             title: title,
             content: content,
@@ -161,7 +161,7 @@ public struct Panel<Content: View, Footer: View>: View {
 
 // MARK: - Equatable Conformance
 
-extension Panel: @preconcurrency Equatable where Content: Equatable, Footer: Equatable {
+extension Panel: Equatable where Content: Equatable, Footer: Equatable {
     public static func == (lhs: Panel<Content, Footer>, rhs: Panel<Content, Footer>) -> Bool {
         lhs.title == rhs.title && lhs.content == rhs.content && lhs.footer == rhs.footer && lhs.config == rhs.config
     }
@@ -271,4 +271,4 @@ struct _PanelCore<Content: View, Footer: View>: View, Renderable, Layoutable {
 
 /// A panel draws its own box, so a detented sheet's grabber goes into its top
 /// edge (`SheetGrabber`).
-extension Panel: SheetContentDrawsBox {}
+@MainActor extension Panel: SheetContentDrawsBox {}

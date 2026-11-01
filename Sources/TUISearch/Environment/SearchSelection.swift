@@ -32,7 +32,7 @@ extension View {
     ///
     /// - Parameter selection: The selection to bind.
     /// - Returns: The modified view.
-    public func searchSelection(_ selection: Binding<TextSelection?>) -> some View {
+    nonisolated public func searchSelection(_ selection: Binding<TextSelection?>) -> some View {
         _SearchSelectionModifier(content: self, selection: selection)
     }
 }
@@ -50,17 +50,18 @@ final class SearchSelectionBox: Equatable {
 
 /// What ``View/searchSelection(_:)`` makes: the binding, boxed, in the
 /// environment of the searchable it is written around.
-struct _SearchSelectionModifier<Content: View>: View {
+struct _SearchSelectionModifier<Content: View> {
     let content: Content
     let selection: Binding<TextSelection?>
 
     @State private var box = SearchSelectionBox()
 
-    var body: some View {
+    @MainActor var body: some View {
         box.binding = selection
         return content.environment(\.searchSelection, box)
     }
 }
+extension _SearchSelectionModifier: View {}
 
 private struct SearchSelectionKey: EnvironmentKey {
     static var defaultValue: SearchSelectionBox? { nil }

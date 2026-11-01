@@ -13,7 +13,7 @@ import TUIView
 /// content's subtree. The read-modify-write of the cascade happens at render
 /// time, so this mirrors ``EnvironmentModifier`` (View + Renderable + Layoutable)
 /// rather than using the plain `.environment(_:_:)` setter.
-package struct StyleCascadeModifier<Content: View>: View {
+nonisolated package struct StyleCascadeModifier<Content: View>: View {
     public let content: Content
     public let scope: StyleScope
     public let attributes: StyleAttributes
@@ -25,9 +25,9 @@ package struct StyleCascadeModifier<Content: View>: View {
     }
 
     /// Not used during rendering — ``Renderable`` conformance takes priority.
-    public var body: some View { content }
+    @MainActor public var body: some View { content }
 
-    private func modifiedContext(_ context: RenderContext) -> RenderContext {
+    @MainActor private func modifiedContext(_ context: RenderContext) -> RenderContext {
         // Noted, as `EnvironmentModifier` notes the value it writes: a memo
         // below — a `List`'s looped rows, an `.equatable()` view — keys on its
         // own value and size, not on the cascade, so `.bold(flag)` turned on
@@ -52,13 +52,13 @@ package struct StyleCascadeModifier<Content: View>: View {
     }
 }
 
-extension StyleCascadeModifier: Renderable {
+@MainActor extension StyleCascadeModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: modifiedContext(context))
     }
 }
 
-extension StyleCascadeModifier: Layoutable {
+@MainActor extension StyleCascadeModifier: Layoutable {
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: modifiedContext(context))
     }
@@ -69,12 +69,12 @@ extension StyleCascadeModifier: Layoutable {
 extension View {
     /// Applies `attributes` to every descendant matching `scope`. The general
     /// form of the styling cascade; the typed conveniences below build on it.
-    public func style(_ scope: StyleScope, _ attributes: StyleAttributes) -> some View {
+    nonisolated public func style(_ scope: StyleScope, _ attributes: StyleAttributes) -> some View {
         StyleCascadeModifier(content: self, scope: scope, attributes: attributes)
     }
 
     /// Applies attributes built in the closure to every descendant matching `scope`.
-    public func style(_ scope: StyleScope, _ build: (inout StyleAttributes) -> Void) -> some View {
+    nonisolated public func style(_ scope: StyleScope, _ build: (inout StyleAttributes) -> Void) -> some View {
         var attributes = StyleAttributes()
         build(&attributes)
         return style(scope, attributes)
@@ -88,12 +88,12 @@ extension View {
     ///
     /// Cascades through the environment; a descendant can opt out with
     /// `.bold(false)`. (`Text`'s own `.bold()` continues to return `Text`.)
-    public func bold(_ enabled: Bool = true) -> some View {
+    nonisolated public func bold(_ enabled: Bool = true) -> some View {
         style(.text, StyleAttributes(bold: enabled))
     }
 
     /// Applies an italic style to all text in this view's subtree.
-    public func italic(_ enabled: Bool = true) -> some View {
+    nonisolated public func italic(_ enabled: Bool = true) -> some View {
         style(.text, StyleAttributes(italic: enabled))
     }
 
@@ -107,7 +107,7 @@ extension View {
     ///     ancestor's underline.
     ///   - pattern: The line's pattern.
     ///   - color: The line's colour, or `nil` for the text's own.
-    public func underline(
+    nonisolated public func underline(
         _ isActive: Bool = true, pattern: Text.LineStyle.Pattern = .solid, color: Color? = nil
     ) -> some View {
         style(
@@ -129,7 +129,7 @@ extension View {
     ///     ancestor's strikethrough.
     ///   - pattern: The line's pattern.
     ///   - color: The line's colour, or `nil` for the text's own.
-    public func strikethrough(
+    nonisolated public func strikethrough(
         _ isActive: Bool = true, pattern: Text.LineStyle.Pattern = .solid, color: Color? = nil
     ) -> some View {
         modifier(_StrikethroughSweep(progress: isActive ? 1 : 0, line: Text.LineStyle(pattern: pattern, color: color)))
@@ -145,7 +145,7 @@ extension View {
     /// saying nothing — and saying nothing is what it used to do, leaving an
     /// inherited `.bold()` in place with no way to escape it. A `Text`'s own
     /// weight still wins, being closer.
-    public func fontWeight(_ weight: FontWeight?) -> some View {
+    nonisolated public func fontWeight(_ weight: FontWeight?) -> some View {
         style(.text, (weight ?? .regular).styleAttributes)
     }
 
@@ -154,7 +154,7 @@ extension View {
     /// `nil` clears one set further out rather than declining to speak, which
     /// is what SwiftUI's `Text.Case?` environment value means. See
     /// ``StyleAttributes/textCase``.
-    public func textCase(_ textCase: TextCase?) -> some View {
+    nonisolated public func textCase(_ textCase: TextCase?) -> some View {
         style(.text, StyleAttributes(textCase: .some(textCase)))
     }
 
@@ -168,7 +168,7 @@ extension View {
     ///   - scale: The text scale to apply.
     ///   - isEnabled: Whether to apply it; `false` leaves the subtree as it was.
     /// - Returns: A view whose text takes the scale.
-    public func textScale(_ scale: Text.Scale, isEnabled: Bool = true) -> some View {
+    nonisolated public func textScale(_ scale: Text.Scale, isEnabled: Bool = true) -> some View {
         style(.text, isEnabled ? StyleAttributes(textScale: scale) : StyleAttributes())
     }
 }
@@ -179,7 +179,7 @@ extension View {
 ///   up or two, so publishing it around each member is the same thing as
 ///   publishing it once around the pair. What changes is only that the members
 ///   stay the enclosing container's own children.
-extension StyleCascadeModifier: ContentRewrapping {
+@MainActor extension StyleCascadeModifier: ContentRewrapping {
     public var wrappedContent: Content { content }
 
     /// Its content's context: the style it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -192,14 +192,14 @@ extension StyleCascadeModifier: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension StyleCascadeModifier: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension StyleCascadeModifier: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension StyleCascadeModifier: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension StyleCascadeModifier: GridRowProviding where Content: GridRowProviding {}
 
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension StyleCascadeModifier: DrawsContentUnchanged {}
+@MainActor extension StyleCascadeModifier: DrawsContentUnchanged {}

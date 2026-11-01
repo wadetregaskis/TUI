@@ -68,7 +68,7 @@ extension RenderContext {
 
 /// A fixed frame on `axes`, each as long as `length` makes of the nearest
 /// container's extent along it.
-struct _ContainerRelativeFrame<Content: View>: View {
+struct _ContainerRelativeFrame<Content: View> {
     let content: Content
     let axes: Axis.Set
     let alignment: Alignment
@@ -77,7 +77,7 @@ struct _ContainerRelativeFrame<Content: View>: View {
     @Environment(\.containerRelativeSize) private var container
     @Environment(\.containerReadNote) private var readNote
 
-    var body: some View {
+    @MainActor var body: some View {
         // Tells a scroll view its content is sized against its container,
         // so its pages cannot vary in size (``ContainerReadNote``).
         if container != nil, axes.contains(.vertical) { readNote?.read = true }
@@ -90,6 +90,7 @@ struct _ContainerRelativeFrame<Content: View>: View {
             alignment: alignment)
     }
 }
+extension _ContainerRelativeFrame: View {}
 
 extension View {
     /// Positions this view within an invisible frame the size of the nearest
@@ -112,7 +113,7 @@ extension View {
     ///   - axes: The axes to size from the container.
     ///   - alignment: Where the view goes in the frame. Default `.center`.
     /// - Returns: A view framed relative to its container.
-    public func containerRelativeFrame(_ axes: Axis.Set, alignment: Alignment = .center) -> some View {
+    nonisolated public func containerRelativeFrame(_ axes: Axis.Set, alignment: Alignment = .center) -> some View {
         _ContainerRelativeFrame(content: self, axes: axes, alignment: alignment) { length, _ in length }
     }
 
@@ -134,7 +135,7 @@ extension View {
     ///   - spacing: The cells between divisions.
     ///   - alignment: Where the view goes in the frame. Default `.center`.
     /// - Returns: A view framed relative to its container.
-    public func containerRelativeFrame(
+    nonisolated public func containerRelativeFrame(
         _ axes: Axis.Set, count: Int, span: Int = 1, spacing: Int, alignment: Alignment = .center
     ) -> some View {
         // Held, as the division multiplies them: a spacing of `Int.max` across
@@ -156,7 +157,7 @@ extension View {
     ///   - length: Given the container's length along an axis, in cells, and
     ///     the axis, the view's length along it.
     /// - Returns: A view framed relative to its container.
-    public func containerRelativeFrame(
+    nonisolated public func containerRelativeFrame(
         _ axes: Axis.Set, alignment: Alignment = .center, _ length: @escaping (Int, Axis) -> Int
     ) -> some View {
         _ContainerRelativeFrame(content: self, axes: axes, alignment: alignment, length: length)
@@ -165,7 +166,7 @@ extension View {
 
 // MARK: - Environment without reflection
 
-extension _ContainerRelativeFrame: ResolvesOwnEnvironment {
+@MainActor extension _ContainerRelativeFrame: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _container.resolveEnvironment(environment)
         _readNote.resolveEnvironment(environment)

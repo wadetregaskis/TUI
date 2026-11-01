@@ -45,7 +45,7 @@ extension View {
     ///   - placement: The content view whose toolbar to populate.
     ///   - content: The toolbar content.
     /// - Returns: A view whose tab view sidebar's toolbar holds `content`.
-    public func contentToolbar<Content: ToolbarContent>(
+    nonisolated public func contentToolbar<Content: ToolbarContent>(
         for placement: ContentToolbarPlacement, @ToolbarContentBuilder content: () -> Content
     ) -> some View {
         contentToolbar(for: placement, drawing: AnyView(_ContentToolbarRows(content: content())))
@@ -56,11 +56,11 @@ extension View {
 
 /// A content toolbar's items as the sidebar draws them: the top bar's
 /// placements in a row, the bottom bar's in a row under it.
-struct _ContentToolbarRows: View {
+nonisolated struct _ContentToolbarRows: View {
     /// The toolbar content, whose items these are.
     let content: any ToolbarContent
 
-    var body: some View {
+    @MainActor var body: some View {
         let shown = toolbarItems(of: content).filter { !$0.customization.isHiddenByApp && !$0.isTitleMenu && $0.defaultKind == nil }
         let top = shown.filter { $0.placement.bar == .top }
         let bottom = shown.filter { $0.placement.bar == .bottom }
@@ -72,7 +72,7 @@ struct _ContentToolbarRows: View {
 
     /// `items` side by side, each keyed by its place in the declaration (or
     /// its identifier), so its `@State` follows it.
-    private static func row(_ items: [_ToolbarItemSpec]) -> some View {
+    @MainActor private static func row(_ items: [_ToolbarItemSpec]) -> some View {
         HStack(spacing: 1) {
             ForEach(items, id: \.slotKey) { $0.view }
         }

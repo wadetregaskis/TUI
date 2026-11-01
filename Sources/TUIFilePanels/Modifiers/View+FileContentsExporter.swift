@@ -84,7 +84,7 @@ extension View {
     ///   - onCompletion: Called with the URL written, or the error that stopped
     ///     the write.
     ///   - onCancellation: Called if the user cancels.
-    public func fileExporter<C: FileExportContents>(
+    @MainActor public func fileExporter<C: FileExportContents>(
         isPresented: Binding<Bool>, contents: C?, contentType: UTType, defaultFilename: String? = nil,
         onCompletion: @escaping (Result<URL, any Error>) -> Void, onCancellation: @escaping () -> Void = {}
     ) -> some View {
@@ -135,7 +135,7 @@ extension View {
     ///   - onCompletion: Called with the URL written, or the error that stopped
     ///     the encoding or the write.
     ///   - onCancellation: Called if the user cancels.
-    public func fileExporter<Value: Encodable>(
+    @MainActor public func fileExporter<Value: Encodable>(
         isPresented: Binding<Bool>, encoding value: Value?, contentType: UTType = .json,
         defaultFilename: String? = nil,
         onCompletion: @escaping (Result<URL, any Error>) -> Void, onCancellation: @escaping () -> Void = {}

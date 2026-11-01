@@ -28,11 +28,11 @@ public protocol CustomizableToolbarContent: ToolbarContent where Body: Customiza
 /// declare `Body == Never`, as SwiftUI's do.
 extension Never: CustomizableToolbarContent {}
 
-extension ToolbarItem: CustomizableToolbarContent where ID == String {}
+@MainActor extension ToolbarItem: CustomizableToolbarContent where ID == String {}
 
-extension ToolbarSpacer: CustomizableToolbarContent {}
+@MainActor extension ToolbarSpacer: CustomizableToolbarContent {}
 
-extension ToolbarTitleMenu: CustomizableToolbarContent {}
+@MainActor extension ToolbarTitleMenu: CustomizableToolbarContent {}
 
 extension Optional: CustomizableToolbarContent where Wrapped: CustomizableToolbarContent {}
 
@@ -43,9 +43,9 @@ where TrueContent: CustomizableToolbarContent, FalseContent: CustomizableToolbar
 /// handed over as they are, each with what its own modifiers said.
 extension Group: CustomizableToolbarContent where Content: CustomizableToolbarContent {}
 
-extension _TupleToolbarContent: CustomizableToolbarContent {}
+@MainActor extension _TupleToolbarContent: CustomizableToolbarContent {}
 
-extension _AnyToolbarContent: CustomizableToolbarContent {}
+@MainActor extension _AnyToolbarContent: CustomizableToolbarContent {}
 
 // MARK: - Behaviours and Options
 
@@ -113,7 +113,7 @@ extension CustomizableToolbarContent {
     /// - Parameter behavior: The customization behavior of the customizable
     ///   toolbar content.
     /// - Returns: The content, customized as `behavior` says.
-    public func customizationBehavior(_ behavior: ToolbarCustomizationBehavior) -> some CustomizableToolbarContent {
+    nonisolated public func customizationBehavior(_ behavior: ToolbarCustomizationBehavior) -> some CustomizableToolbarContent {
         _AnnotatedToolbarContent(content: self) { $0.customization.behavior = behavior }
     }
 
@@ -132,7 +132,7 @@ extension CustomizableToolbarContent {
     ///   - options: The customization options to configure the behavior of
     ///     toolbar content with the default customization behavior.
     /// - Returns: The content, customized as stated.
-    public func defaultCustomization(
+    nonisolated public func defaultCustomization(
         _ defaultVisibility: Visibility = .automatic, options: ToolbarCustomizationOptions = []
     ) -> some CustomizableToolbarContent {
         _AnnotatedToolbarContent(content: self) { item in
@@ -150,7 +150,7 @@ extension CustomizableToolbarContent {
     ///
     /// - Parameter hidden: Whether the toolbar item is hidden.
     /// - Returns: The content, hidden if `hidden` is `true`.
-    public func hidden(_ hidden: Bool = true) -> some CustomizableToolbarContent {
+    nonisolated public func hidden(_ hidden: Bool = true) -> some CustomizableToolbarContent {
         _AnnotatedToolbarContent(content: self) { if hidden { $0.customization.isHiddenByApp = true } }
     }
 
@@ -162,22 +162,22 @@ extension CustomizableToolbarContent {
     ///
     /// - Parameter visibility: The visibility of the shared background.
     /// - Returns: The content, unchanged in a terminal bar.
-    public func sharedBackgroundVisibility(_ visibility: Visibility) -> some CustomizableToolbarContent {
+    nonisolated public func sharedBackgroundVisibility(_ visibility: Visibility) -> some CustomizableToolbarContent {
         _AnnotatedToolbarContent(content: self) { _ in }
     }
 }
 
 /// Customizable toolbar content whose items a modifier annotates as they are
 /// handed over.
-struct _AnnotatedToolbarContent<Content: CustomizableToolbarContent>: CustomizableToolbarContent,
+nonisolated struct _AnnotatedToolbarContent<Content: CustomizableToolbarContent>: CustomizableToolbarContent,
     _ToolbarContentPrimitive
 {
     let content: Content
     let annotate: (inout _ToolbarItemSpec) -> Void
 
-    var body: Never { fatalError("_AnnotatedToolbarContent hands its items over itself") }
+    @MainActor var body: Never { fatalError("_AnnotatedToolbarContent hands its items over itself") }
 
-    func appendToolbarItems(to items: inout _ToolbarItemCollector) {
+    @MainActor func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         let start = items.items.count
         TUIChrome.appendToolbarItems(content, to: &items)
         items.annotate(from: start, annotate)

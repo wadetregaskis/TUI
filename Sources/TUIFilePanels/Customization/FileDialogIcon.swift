@@ -54,7 +54,7 @@ extension View {
     ///
     /// - Parameter icon: The view to draw for the item at a URL, of a content
     ///   type, or `nil` for TUI's own icon.
-    public func fileDialogIcon<Icon: View>(_ icon: @escaping @MainActor (URL, UTType) -> Icon?) -> some View {
+    nonisolated public func fileDialogIcon<Icon: View>(_ icon: @escaping @MainActor (URL, UTType) -> Icon?) -> some View {
         FileDialogItemViewsModifier(content: self, keyPath: \.fileDialogIcon) { url, type in
             icon(url, type).map { AnyView($0) }
         }

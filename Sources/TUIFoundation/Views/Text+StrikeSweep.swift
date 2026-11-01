@@ -28,7 +28,7 @@ struct StrikeSweep: Animatable {
     }
 }
 
-extension Text {
+@MainActor extension Text {
     /// This text drawn by `draw`, its strikethrough part-way along it while a
     /// change to it animates.
     ///

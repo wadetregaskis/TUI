@@ -9,7 +9,7 @@
 
 import TUIFoundation
 
-extension Slider {
+@MainActor extension Slider {
     /// Creates a slider to select a value from a given range, which displays
     /// the provided labels — mirrors SwiftUI's
     /// `init(value:in:neutralValue:enabledBounds:label:currentValueLabel:minimumValueLabel:maximumValueLabel:onEditingChanged:)`.
@@ -29,7 +29,7 @@ extension Slider {
     ///     parameters share, so the forms without them are their own.
     ///   - onEditingChanged: A callback for when editing begins and ends.
     @_disfavoredOverload
-    public init<V: BinaryFloatingPoint>(
+    nonisolated public init<V: BinaryFloatingPoint>(
         value: Binding<V>,
         in bounds: ClosedRange<V> = 0...1,
         neutralValue: V? = nil,
@@ -70,7 +70,7 @@ extension Slider {
     ///     under it.
     ///   - onEditingChanged: A callback for when editing begins and ends.
     @_disfavoredOverload
-    public init<V>(
+    nonisolated public init<V>(
         value: Binding<V>,
         in bounds: ClosedRange<V> = 0...1,
         neutralValue: V? = nil,
@@ -113,7 +113,7 @@ extension Slider {
     ///   - tick: The tick for each step's value, or `nil` for none there.
     ///   - onEditingChanged: A callback for when editing begins and ends.
     @_disfavoredOverload
-    public init<V: BinaryFloatingPoint>(
+    nonisolated public init<V: BinaryFloatingPoint>(
         value: Binding<V>,
         in bounds: ClosedRange<V>,
         step: V.Stride = 1,
@@ -147,7 +147,7 @@ extension Slider {
 
     /// Records the settings the newer initialisers add, in the slider's own
     /// `Double` units.
-    private mutating func configure<V: BinaryFloatingPoint>(
+    nonisolated private mutating func configure<V: BinaryFloatingPoint>(
         neutralValue: V?, enabledBounds: ClosedRange<V>?, currentValueLabel: some View,
         ticks: some Collection<SliderTick<V>>
     ) {

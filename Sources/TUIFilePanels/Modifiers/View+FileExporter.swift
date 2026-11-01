@@ -25,7 +25,7 @@ extension View {
     ///
     /// - Parameter label: The optional text to use as the label for the file
     ///   name field; `nil` for the panel's own.
-    public func fileExporterFilenameLabel(_ label: Text?) -> some View {
+    nonisolated public func fileExporterFilenameLabel(_ label: Text?) -> some View {
         transformEnvironment(\.fileDialogCustomization) { $0.filenameLabel = label?.content }
     }
 
@@ -33,7 +33,7 @@ extension View {
     /// field.
     ///
     /// - Parameter labelKey: The key to a localized string to display.
-    public func fileExporterFilenameLabel(_ labelKey: LocalizedStringKey) -> some View {
+    nonisolated public func fileExporterFilenameLabel(_ labelKey: LocalizedStringKey) -> some View {
         let label = labelKey.localized
         return transformEnvironment(\.fileDialogCustomization) { $0.filenameLabel = label }
     }
@@ -44,7 +44,7 @@ extension View {
     /// - Parameter label: The string to use as the label for the file name
     ///   field.
     @_disfavoredOverload
-    public func fileExporterFilenameLabel<S: StringProtocol>(_ label: S) -> some View {
+    nonisolated public func fileExporterFilenameLabel<S: StringProtocol>(_ label: S) -> some View {
         let label = String(label)
         return transformEnvironment(\.fileDialogCustomization) { $0.filenameLabel = label }
     }
@@ -181,7 +181,7 @@ enum FileExportWrite {
         ///     has succeeded or failed.
         ///   - onCancellation: A callback that will be invoked if the operation
         ///     was cancelled.
-        public func fileExporter<T: Transferable>(
+        @MainActor public func fileExporter<T: Transferable>(
             isPresented: Binding<Bool>, item: T?, contentTypes: [UTType] = [], defaultFilename: String? = nil,
             onCompletion: @escaping (Result<URL, any Error>) -> Void, onCancellation: @escaping () -> Void = {}
         ) -> some View {
@@ -237,7 +237,7 @@ enum FileExportWrite {
         ///     has succeeded or failed.
         ///   - onCancellation: A callback that will be invoked if the operation
         ///     was cancelled.
-        public func fileExporter<C: Collection, T: Transferable>(
+        @MainActor public func fileExporter<C: Collection, T: Transferable>(
             isPresented: Binding<Bool>, items: C, contentTypes: [UTType] = [],
             onCompletion: @escaping (Result<[URL], any Error>) -> Void, onCancellation: @escaping () -> Void = {}
         ) -> some View where T == C.Element {
@@ -276,8 +276,7 @@ enum FileExportWrite {
         }
     }
 
-    @MainActor
-    struct TransferableExport {
+    nonisolated struct TransferableExport {
         /// The provider the item is registered with. Only read, and only
         /// asked to load.
         private let provider: NSItemProvider
@@ -311,7 +310,7 @@ enum FileExportWrite {
         }
 
         /// The item exported as the type `url`'s name names and written there.
-        func write(to url: URL) async -> Result<URL, any Error> {
+        @MainActor func write(to url: URL) async -> Result<URL, any Error> {
             guard let type = SaveName.type(for: url.lastPathComponent, among: contentTypes) else {
                 return .failure(CocoaError(.fileWriteUnsupportedScheme))
             }
@@ -323,7 +322,7 @@ enum FileExportWrite {
         }
 
         /// The item's data as `type`.
-        private func data(as type: UTType) async throws -> Data {
+        @MainActor private func data(as type: UTType) async throws -> Data {
             try await withCheckedThrowingContinuation { continuation in
                 _ = provider.loadDataRepresentation(for: type) { data, error in
                     if let data {
@@ -338,7 +337,7 @@ enum FileExportWrite {
         /// Writes `exports` into `folder`, each under its name, in order; the
         /// first failure ends the operation — an item of the name made since
         /// the names were chosen (``ExportNames``) one, never replaced.
-        static func write(
+        @MainActor static func write(
             _ exports: [Self], named names: [String], into folder: URL
         ) async -> Result<[URL], any Error> {
             var written: [URL] = []

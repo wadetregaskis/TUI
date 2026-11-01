@@ -43,6 +43,8 @@ protocol TextEditingMenuHandler: AnyObject {
 /// menu is chosen from, the core has drawn at least once.
 @MainActor
 final class TextEditingMenuTarget {
+    nonisolated init() {}
+
     weak var handler: (any TextEditingMenuHandler)?
 }
 

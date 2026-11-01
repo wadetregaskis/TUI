@@ -58,7 +58,7 @@ import TUIFoundation
 /// first item (the first frame of all has it); declared round the searchable, at
 /// once. In a sheet, a cover or a popover, whose items are drawn round its
 /// content, the item draws nothing and the field stays where it is.
-public struct DefaultToolbarItem: ToolbarContent {
+nonisolated public struct DefaultToolbarItem: ToolbarContent {
     /// What the item is.
     let kind: ToolbarDefaultItemKind.Kind
 
@@ -120,10 +120,10 @@ public struct DefaultToolbarItem: ToolbarContent {
     }
 
     /// Never called: an item hands itself to the bar.
-    public var body: Never { fatalError("DefaultToolbarItem hands itself to the bar") }
+    @MainActor public var body: Never { fatalError("DefaultToolbarItem hands itself to the bar") }
 }
 
-extension DefaultToolbarItem: _ToolbarContentPrimitive {
+@MainActor extension DefaultToolbarItem: _ToolbarContentPrimitive {
     func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         items.append(
             placement: placement, view: AnyView(_DefaultToolbarItemCore(kind: kind, label: label)), defaultKind: kind)

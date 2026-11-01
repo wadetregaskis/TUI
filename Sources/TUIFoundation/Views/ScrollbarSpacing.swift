@@ -55,7 +55,7 @@ extension View {
     /// (or goes) its rows are laid out again on the next.
     ///
     /// - Returns: A view whose lists and tables keep that spacing.
-    public func scrollbarSpacing(_ cells: Int) -> some View {
+    nonisolated public func scrollbarSpacing(_ cells: Int) -> some View {
         environment(\.scrollbarSpacing, max(0, cells.heldToStatedLength))
     }
 }
@@ -114,7 +114,7 @@ extension View {
     ///
     /// - Parameter cells: `1` or `2`; anything else is the nearer of the two.
     /// - Returns: A view whose vertical scrollbars are that wide.
-    public func scrollbarWidth(_ cells: Int) -> some View {
+    nonisolated public func scrollbarWidth(_ cells: Int) -> some View {
         environment(\.scrollbarWidth, min(2, max(1, cells)))
     }
 }

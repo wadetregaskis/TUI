@@ -347,7 +347,7 @@ public enum RadioButtonGroupBuilder<Value: Hashable> {
 ///   goes back to being focus movement. See
 ///   ``View/radioButtonGroupEdgeBehavior(_:)`` for what the ON-axis arrow does
 ///   at the first and last option.
-public struct RadioButtonGroup<Value: Hashable>: View {
+nonisolated public struct RadioButtonGroup<Value: Hashable>: View {
     /// The binding to the selected value.
     let selection: Binding<Value>
 
@@ -408,7 +408,7 @@ public struct RadioButtonGroup<Value: Hashable>: View {
         self.isDisabled = isDisabled
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _RadioButtonGroupCore(
             selection: selection,
             items: items,
@@ -1143,9 +1143,9 @@ extension View {
     /// Styles the *label* text of every radio button in this view's subtree
     /// (a `.control(.radioButton)`-scoped style entry). The ●/○ indicator is
     /// unaffected.
-    public func radioButtonTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
+    nonisolated public func radioButtonTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
         style(.control(.radioButton), build)
     }
 }
 
-extension RadioButtonGroup: FormControlRow {}
+@MainActor extension RadioButtonGroup: FormControlRow {}

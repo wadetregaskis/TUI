@@ -35,7 +35,7 @@ extension View {
     /// sheet shows what it is given.)
     ///
     /// - Parameter style: The shape style to fill the presentation with.
-    public func presentationBackground<S: ShapeStyle>(_ style: S) -> some View {
+    nonisolated public func presentationBackground<S: ShapeStyle>(_ style: S) -> some View {
         _PresentationBackgroundView(content: self, fill: .style(AnyShapeStyle(style)), alignment: .center)
     }
 
@@ -49,7 +49,7 @@ extension View {
     /// - Parameters:
     ///   - alignment: Where the background view sits in the presentation.
     ///   - content: The view to fill the presentation with.
-    public func presentationBackground<V: View>(
+    nonisolated public func presentationBackground<V: View>(
         alignment: Alignment = .center, @ViewBuilder content: () -> V
     ) -> some View {
         _PresentationBackgroundView(content: self, fill: .view(AnyView(content())), alignment: alignment)
@@ -58,7 +58,7 @@ extension View {
 
 /// The wrapper the two modifiers produce. Renders and measures as its content;
 /// the presenter, which knows how big the presentation is, draws the fill.
-struct _PresentationBackgroundView<Content: View>: View, PresentationBackgroundProviding {
+nonisolated struct _PresentationBackgroundView<Content: View>: View, PresentationBackgroundProviding {
     /// What fills the presentation.
     enum Fill {
         case style(AnyShapeStyle)
@@ -69,7 +69,7 @@ struct _PresentationBackgroundView<Content: View>: View, PresentationBackgroundP
     let fill: Fill
     let alignment: Alignment
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_PresentationBackgroundView renders via Renderable")
     }
 
@@ -79,7 +79,7 @@ struct _PresentationBackgroundView<Content: View>: View, PresentationBackgroundP
     /// can see, so this module would look its type up at run time on every
     /// frame the presentation is open (CONTRIBUTING.md, "Crossing a module
     /// boundary"). A style's background names no such type.
-    func presentationBackground<V: View>(behind view: V) -> AnyView {
+    @MainActor func presentationBackground<V: View>(behind view: V) -> AnyView {
         switch fill {
         case .style(let style):
             AnyView(view.background(style))
@@ -89,26 +89,26 @@ struct _PresentationBackgroundView<Content: View>: View, PresentationBackgroundP
     }
 }
 
-extension _PresentationBackgroundView: Renderable {
+@MainActor extension _PresentationBackgroundView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: context)
     }
 }
 
-extension _PresentationBackgroundView: Layoutable {
+@MainActor extension _PresentationBackgroundView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
 
-extension _PresentationBackgroundView: PresentationTraitWrapper {
+@MainActor extension _PresentationBackgroundView: PresentationTraitWrapper {
     var presentationTraitContent: any View { content }
 }
 
 /// Names its content so a container asking for a z-index or an alignment guide
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``.
-extension _PresentationBackgroundView: SingleContentWrapper {
+@MainActor extension _PresentationBackgroundView: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -117,4 +117,4 @@ extension _PresentationBackgroundView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _PresentationBackgroundView: DrawsContentUnchanged {}
+@MainActor extension _PresentationBackgroundView: DrawsContentUnchanged {}

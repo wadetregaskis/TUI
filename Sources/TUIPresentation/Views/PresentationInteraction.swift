@@ -168,7 +168,7 @@ extension View {
     ///
     /// - Parameter interaction: How people can interact with the view behind
     ///   the presentation.
-    public func presentationBackgroundInteraction(
+    nonisolated public func presentationBackgroundInteraction(
         _ interaction: PresentationBackgroundInteraction
     ) -> some View {
         _PresentationBackgroundInteractionView(content: self, backgroundInteraction: interaction)
@@ -194,7 +194,7 @@ extension View {
     /// resize: its content scrolls.
     ///
     /// - Parameter behavior: The requested behavior.
-    public func presentationContentInteraction(_ behavior: PresentationContentInteraction) -> some View {
+    nonisolated public func presentationContentInteraction(_ behavior: PresentationContentInteraction) -> some View {
         _PresentationContentInteractionView(content: self, contentInteraction: behavior)
     }
 }
@@ -210,28 +210,28 @@ protocol PresentationContentInteractionProviding {
 
 /// The wrapper ``View/presentationContentInteraction(_:)`` produces. Renders
 /// and measures as its content; carrying the behaviour is its whole job.
-struct _PresentationContentInteractionView<Content: View>: View, PresentationContentInteractionProviding {
+nonisolated struct _PresentationContentInteractionView<Content: View>: View, PresentationContentInteractionProviding {
     let content: Content
     let contentInteraction: PresentationContentInteraction
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_PresentationContentInteractionView renders via Renderable")
     }
 }
 
-extension _PresentationContentInteractionView: Renderable {
+@MainActor extension _PresentationContentInteractionView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: context)
     }
 }
 
-extension _PresentationContentInteractionView: Layoutable {
+@MainActor extension _PresentationContentInteractionView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
 
-extension _PresentationContentInteractionView: PresentationTraitWrapper {
+@MainActor extension _PresentationContentInteractionView: PresentationTraitWrapper {
     var presentationTraitContent: any View { content }
 }
 
@@ -239,7 +239,7 @@ extension _PresentationContentInteractionView: PresentationTraitWrapper {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _PresentationContentInteractionView: SingleContentWrapper {
+@MainActor extension _PresentationContentInteractionView: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -248,7 +248,7 @@ extension _PresentationContentInteractionView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _PresentationContentInteractionView: DrawsContentUnchanged {}
+@MainActor extension _PresentationContentInteractionView: DrawsContentUnchanged {}
 
 // MARK: - The background interaction, as a trait
 
@@ -261,28 +261,28 @@ protocol PresentationBackgroundInteractionProviding {
 
 /// The wrapper ``View/presentationBackgroundInteraction(_:)`` produces. Renders
 /// and measures as its content; carrying the interaction is its whole job.
-struct _PresentationBackgroundInteractionView<Content: View>: View, PresentationBackgroundInteractionProviding {
+nonisolated struct _PresentationBackgroundInteractionView<Content: View>: View, PresentationBackgroundInteractionProviding {
     let content: Content
     let backgroundInteraction: PresentationBackgroundInteraction
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_PresentationBackgroundInteractionView renders via Renderable")
     }
 }
 
-extension _PresentationBackgroundInteractionView: Renderable {
+@MainActor extension _PresentationBackgroundInteractionView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: context)
     }
 }
 
-extension _PresentationBackgroundInteractionView: Layoutable {
+@MainActor extension _PresentationBackgroundInteractionView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
 
-extension _PresentationBackgroundInteractionView: PresentationTraitWrapper {
+@MainActor extension _PresentationBackgroundInteractionView: PresentationTraitWrapper {
     var presentationTraitContent: any View { content }
 }
 
@@ -290,7 +290,7 @@ extension _PresentationBackgroundInteractionView: PresentationTraitWrapper {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _PresentationBackgroundInteractionView: SingleContentWrapper {
+@MainActor extension _PresentationBackgroundInteractionView: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -299,4 +299,4 @@ extension _PresentationBackgroundInteractionView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _PresentationBackgroundInteractionView: DrawsContentUnchanged {}
+@MainActor extension _PresentationBackgroundInteractionView: DrawsContentUnchanged {}

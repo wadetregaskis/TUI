@@ -117,7 +117,7 @@ extension View {
     ///
     /// - Parameter feedback: What to show while a row is being dragged.
     /// - Returns: A view whose lists reorder with that feedback.
-    public func rowReorderFeedback(_ feedback: RowReorderFeedback) -> some View {
+    nonisolated public func rowReorderFeedback(_ feedback: RowReorderFeedback) -> some View {
         environment(\.rowReorderFeedback, feedback)
     }
 }

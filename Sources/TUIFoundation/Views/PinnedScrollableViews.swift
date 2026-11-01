@@ -281,7 +281,7 @@ extension PinningStackCore {
     }
 }
 
-extension _VStackCore: PinningStackCore {
+@MainActor extension _VStackCore: PinningStackCore {
     var contentMayHoldSections: Bool { mayHandOver(.section, in: content) }
 
     /// A column: its sections lay out downward, aligned across by its
@@ -293,7 +293,7 @@ extension _VStackCore: PinningStackCore {
     }
 }
 
-extension _HStackCore: PinningStackCore {
+@MainActor extension _HStackCore: PinningStackCore {
     var contentMayHoldSections: Bool { mayHandOver(.section, in: content) }
 
     /// A row: its sections lay out along it, aligned up and down by its

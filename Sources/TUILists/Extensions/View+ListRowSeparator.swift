@@ -44,7 +44,7 @@ extension View {
     ///   - edges: The set of row edges for which this preference applies. The
     ///     default is ``VerticalEdge/Set/all``.
     /// - Returns: A row carrying the preference.
-    public func listRowSeparator(_ visibility: Visibility, edges: VerticalEdge.Set = .all) -> some View {
+    nonisolated public func listRowSeparator(_ visibility: Visibility, edges: VerticalEdge.Set = .all) -> some View {
         ListRowSeparatorModifier(content: self, visibility: visibility, edges: edges)
     }
 }

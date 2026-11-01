@@ -45,7 +45,7 @@ extension View {
     ///
     /// - Parameter resizable: Whether columns can be resized (default `true`).
     /// - Returns: A view with the resizability preference applied.
-    public func navigationSplitViewResizable(_ resizable: Bool = true) -> some View {
+    nonisolated public func navigationSplitViewResizable(_ resizable: Bool = true) -> some View {
         environment(\.navigationSplitViewResizable, resizable)
     }
 }
@@ -93,7 +93,7 @@ extension View {
     ///
     /// - Parameter token: A value whose change triggers the reset.
     /// - Returns: A view that resets its split columns when `token` changes.
-    public func navigationSplitViewColumnWidthReset(_ token: some Hashable) -> some View {
+    nonisolated public func navigationSplitViewColumnWidthReset(_ token: some Hashable) -> some View {
         environment(\.navigationSplitViewColumnWidthResetToken, AnyHashable(token))
     }
 }

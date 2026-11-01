@@ -255,7 +255,7 @@ extension View {
     ///
     /// - Parameter style: The table style to apply.
     /// - Returns: A view whose tables use the specified style.
-    public func tableStyle<S: TableStyle>(_ style: S) -> some View {
+    nonisolated public func tableStyle<S: TableStyle>(_ style: S) -> some View {
         environment(\.tableStyle, style)
     }
 }

@@ -65,7 +65,7 @@ extension View {
     ///
     /// - Parameter role: The role of the toolbar.
     /// - Returns: A view whose toolbar has `role`.
-    public func toolbarRole(_ role: ToolbarRole) -> some View {
+    nonisolated public func toolbarRole(_ role: ToolbarRole) -> some View {
         _ToolbarBarStatementModifier(content: self, statement: .role(role), bars: [.windowToolbar])
     }
 }

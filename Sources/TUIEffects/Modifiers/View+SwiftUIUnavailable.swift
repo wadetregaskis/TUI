@@ -16,11 +16,11 @@ import TUIFoundation
 extension View {
     @available(*, unavailable, message: "A character cell can't be rotated.")
     @_alwaysEmitIntoClient
-    public func rotationEffect(_ angle: Angle, anchor: UnitPoint = .center) -> Self { self }
+    nonisolated public func rotationEffect(_ angle: Angle, anchor: UnitPoint = .center) -> Self { self }
 
     @available(*, unavailable, message: "A character cell can't be rotated.")
     @_alwaysEmitIntoClient
-    public func rotation3DEffect(
+    nonisolated public func rotation3DEffect(
         _ angle: Angle,
         axis: (x: Double, y: Double, z: Double),
         anchor: UnitPoint = .center,
@@ -30,15 +30,15 @@ extension View {
 
     @available(*, unavailable, message: "A character cell can't be scaled. To draw attention to a view, change its opacity or colour.")
     @_alwaysEmitIntoClient
-    public func scaleEffect<Scale>(_ scale: Scale, anchor: UnitPoint = .center) -> Self { self }
+    nonisolated public func scaleEffect<Scale>(_ scale: Scale, anchor: UnitPoint = .center) -> Self { self }
 
     @available(*, unavailable, message: "A character cell can't be scaled. To draw attention to a view, change its opacity or colour.")
     @_alwaysEmitIntoClient
-    public func scaleEffect(x: Double = 1, y: Double = 1, anchor: UnitPoint = .center) -> Self { self }
+    nonisolated public func scaleEffect(x: Double = 1, y: Double = 1, anchor: UnitPoint = .center) -> Self { self }
 
     @available(*, unavailable, message: "A terminal can't blur a cell. For a frosted look, use a material.")
     @_alwaysEmitIntoClient
-    public func blur<Radius>(radius: Radius, opaque: Bool = false) -> Self { self }
+    nonisolated public func blur<Radius>(radius: Radius, opaque: Bool = false) -> Self { self }
 }
 
 // swiftlint:enable missing_docs

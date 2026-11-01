@@ -51,7 +51,7 @@ import TUIPresentation
 /// one of the terminal's sixteen slots as the colour the terminal reported for
 /// it, or xterm's value while it has reported none. A colour with no RGB (a
 /// semantic colour, or `Color.default`) is treated as black until edited.
-public struct ColorPicker: View {
+public struct ColorPicker {
     private let title: String
     /// The `@ViewBuilder` label, when the picker was built with one; `title` is
     /// then empty, and the full editor goes untitled.
@@ -73,12 +73,12 @@ public struct ColorPicker: View {
     /// How wide the label column is — see ``TUI/View/colorPickerLabelWidth(_:)``.
     @Environment(\.colorPickerLabelWidth) private var labelWidth
     @Environment(\.labelsVisibility) private var labelsVisibility
-    private var labelsHidden: Bool { labelsVisibility == .hidden }
+    @MainActor private var labelsHidden: Bool { labelsVisibility == .hidden }
 
     /// Whether the inline channel sliders are drawn — see
     /// ``TUI/View/colorPickerChannels(_:)``.
     @Environment(\.colorPickerChannels) private var channelsVisibility
-    private var channelsHidden: Bool { channelsVisibility == .hidden }
+    @MainActor private var channelsHidden: Bool { channelsVisibility == .hidden }
 
     /// Creates a colour picker over an RGB binding, with a localized label.
     ///
@@ -149,7 +149,8 @@ public struct ColorPicker: View {
         self.step = 5
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         // Two-column gaps between the swatch and each channel group, so a
         // channel's value field reads as its own ("…102  G ◀…", not "102 G"
         // where the G looks like a suffix of the previous channel's value).
@@ -179,7 +180,7 @@ public struct ColorPicker: View {
     /// body is the colour, opening ``ColorPickerPanel`` on the same binding.
     /// The panel edits live and restores the opening colour on Cancel or `Esc`,
     /// so the two editors are two views of one value, not two values.
-    private var swatch: some View {
+    @MainActor private var swatch: some View {
         Button("") { isEditing = true }
             // A drag paused over the well does not open the editor, under any
             // behavior: SwiftUI's colour well does not spring-load (measured,
@@ -206,7 +207,7 @@ public struct ColorPicker: View {
     }
 
     /// The channels this picker offers, in order.
-    private var channels: [Channel] {
+    @MainActor private var channels: [Channel] {
         supportsOpacity ? Channel.allCases : [.red, .green, .blue]
     }
 
@@ -232,7 +233,7 @@ public struct ColorPicker: View {
 
     /// A labelled slider bound to one channel.
     @ViewBuilder
-    private func channel(_ channel: Channel) -> some View {
+    @MainActor private func channel(_ channel: Channel) -> some View {
         let label = channel.label
         let binding = channelBinding(channel)
         // The gaps come from the stack's `spacing`, NOT leading spaces in the
@@ -259,7 +260,7 @@ public struct ColorPicker: View {
     }
 
     /// The channel binding, for the test that drives an edit without a key event.
-    func channelBindingForTests(_ channel: ChannelForTests) -> Binding<Double> {
+    @MainActor func channelBindingForTests(_ channel: ChannelForTests) -> Binding<Double> {
         let resolved: Channel =
             switch channel {
             case .red: .red
@@ -281,7 +282,7 @@ public struct ColorPicker: View {
     /// first arrow press — a picker that could not edit opacity silently deleted
     /// it instead. That is independent of ``supportsOpacity``: withholding the
     /// editor is not licence to overwrite the value.
-    private func channelBinding(_ channel: Channel) -> Binding<Double> {
+    @MainActor private func channelBinding(_ channel: Channel) -> Binding<Double> {
         Binding(
             get: {
                 let color = selection.wrappedValue
@@ -315,6 +316,7 @@ public struct ColorPicker: View {
         )
     }
 }
+extension ColorPicker: View {}
 
 // MARK: - Label Width
 
@@ -352,7 +354,7 @@ extension View {
     /// column of them with a `Form` or a `Grid`.
     ///
     /// - Parameter width: The column width in cells.
-    public func colorPickerLabelWidth(_ width: Int) -> some View {
+    nonisolated public func colorPickerLabelWidth(_ width: Int) -> some View {
         environment(\.colorPickerLabelWidth, width)
     }
 }
@@ -396,7 +398,7 @@ extension View {
     ///
     /// - Parameter visibility: `.hidden` for the swatch alone; `.visible` or
     ///   `.automatic` for the full row.
-    public func colorPickerChannels(_ visibility: Visibility) -> some View {
+    nonisolated public func colorPickerChannels(_ visibility: Visibility) -> some View {
         environment(\.colorPickerChannels, visibility)
     }
 }
@@ -408,7 +410,7 @@ extension View {
 /// lays it out (measured, `Tools/SwiftUIProbes/Form rows`). The label is drawn
 /// as the column draws the others', not in the secondary style the picker's
 /// own label column takes.
-extension ColorPicker: FormFieldControl {
+@MainActor extension ColorPicker: FormFieldControl {
     package func formFieldParts(in environment: EnvironmentValues) -> (label: AnyView, control: AnyView)? {
         var control = self
         control.drawsLabel = false
@@ -419,7 +421,7 @@ extension ColorPicker: FormFieldControl {
 
 // MARK: - Environment without reflection
 
-extension ColorPicker: ResolvesOwnEnvironment {
+@MainActor extension ColorPicker: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _labelWidth.resolveEnvironment(environment)
         _labelsVisibility.resolveEnvironment(environment)

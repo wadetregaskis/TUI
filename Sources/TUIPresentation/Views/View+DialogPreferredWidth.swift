@@ -33,7 +33,7 @@ extension View {
     ///
     /// - Parameter width: The preferred body width in cells.
     /// - Returns: A view whose dialogs prefer that width.
-    public func dialogPreferredWidth(_ width: Int) -> some View {
+    nonisolated public func dialogPreferredWidth(_ width: Int) -> some View {
         environment(\.dialogPreferredWidth, max(1, width))
     }
 }

@@ -14,18 +14,18 @@ import TUIView
 
 // MARK: - VStack
 
-extension VStack {
+@MainActor extension VStack {
     /// Its content's answer: the column lays its content out as its own
     /// children, so a guide in any of them can be the column's to report.
     public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// See ``VStack/_providesAlignmentGuide``.
     package static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
-extension _VStackCore: AlignmentGuideQuerying {
+@MainActor extension _VStackCore: AlignmentGuideQuerying {
     /// The guide the column's children give, each moved by where the column
     /// puts it, merged by the guide's rule: SwiftUI's measured behaviour — a
     /// custom guide or a text baseline inside a `VStack` inside a `VStack`
@@ -108,7 +108,7 @@ extension _VStackCore: AlignmentGuideQuerying {
 
 // MARK: - Padding
 
-extension PaddingModifier {
+@MainActor extension PaddingModifier {
     /// Padding lays its content out at a fixed inset, so a guide inside it is
     /// the padded view's, moved by that inset — measured in SwiftUI with
     /// `.padding(0)` between a guide and the stack that aligns on it.
@@ -120,7 +120,7 @@ extension PaddingModifier {
     public static var _changesLayout: Bool { true }
 }
 
-extension ModifiedView: AlignmentGuideQuerying {
+@MainActor extension ModifiedView: AlignmentGuideQuerying {
     /// Padded, the content's guide, laid out at the padded view's size less
     /// the insets, moved by the leading and top insets. Under a modifier that
     /// keeps its content where it is (``BufferModifier/_keepsContentGeometry``),

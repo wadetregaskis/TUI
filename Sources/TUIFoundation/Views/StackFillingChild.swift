@@ -11,7 +11,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// Every child's natural size, as `.clip` render's first pass needs it.
     ///
     /// A filling child is answered at the available width and no height,

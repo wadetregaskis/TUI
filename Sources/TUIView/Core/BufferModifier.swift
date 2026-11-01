@@ -260,7 +260,7 @@ extension BufferModifier where Self: Animatable {
 ///
 /// - Important: This is framework infrastructure. Created automatically by
 ///   `.modifier()`. Do not instantiate directly.
-public struct ModifiedView<Content: View, Modifier: BufferModifier>: View {
+nonisolated public struct ModifiedView<Content: View, Modifier: BufferModifier>: View {
     /// The original view.
     public let content: Content
 
@@ -281,14 +281,14 @@ public struct ModifiedView<Content: View, Modifier: BufferModifier>: View {
     }
 
     /// Never called — rendering is handled by `Renderable` conformance.
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("ModifiedView renders via Renderable")
     }
 }
 
 // MARK: - ModifiedView Rendering
 
-extension ModifiedView: Renderable {
+@MainActor extension ModifiedView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let adjustedContext = modifier.adjustContext(context)
         let childBuffer = TUIView.renderToBuffer(content, context: adjustedContext)
@@ -348,14 +348,14 @@ extension ModifiedView: Renderable {
 ///
 /// Not ``ContentRewrapping`` — that is stated separately, below, and is a
 /// different question with a different answer per wrapper.
-extension ModifiedView: SingleContentWrapper {
+@MainActor extension ModifiedView: SingleContentWrapper {
     public var wrappedContent: Content { content }
 
     /// The modifier's answer (``BufferModifier/_keepsContentGeometry``).
     public static var _keepsContentGeometry: Bool { Modifier._keepsContentGeometry }
 }
 
-extension ModifiedView {
+@MainActor extension ModifiedView {
     /// A guide inside the content is the modified view's only when the
     /// modifier translates guides (``BufferModifier/_translatesAlignmentGuides``)
     /// — padding — or keeps its content where it is
@@ -373,7 +373,7 @@ extension ModifiedView {
     }
 }
 
-extension ModifiedView: ExplicitIDProviding {
+@MainActor extension ModifiedView: ExplicitIDProviding {
     public var explicitIDKey: String? {
         modifier._explicitIDKey ?? (content as? ExplicitIDProviding)?.explicitIDKey
     }
@@ -403,7 +403,7 @@ extension ModifiedView: ExplicitIDProviding {
 ///   `ForEach` and return a `ForEach`, so they never build a `ModifiedView` and
 ///   stay scoped to the collection, which is SwiftUI's `DynamicViewContent`
 ///   rule.
-extension ModifiedView: ChildViewProvider where Content: ChildViewProvider {
+@MainActor extension ModifiedView: ChildViewProvider where Content: ChildViewProvider {
     public func childViews(context: RenderContext) -> [ChildView] {
         let children = content.childViews(context: context)
         // A `nil` under `.id`, whose view drew a step below where a `nil` asks. Only
@@ -434,7 +434,7 @@ extension ModifiedView: ChildViewProvider where Content: ChildViewProvider {
 
 // MARK: - Layoutable
 
-extension ModifiedView: Layoutable {
+@MainActor extension ModifiedView: Layoutable {
     /// Measures the wrapped content through the modifier without rendering it.
     ///
     /// `Renderable` views without a `Layoutable` conformance fall through to
@@ -492,7 +492,7 @@ extension ModifiedView: Layoutable {
 
 // MARK: - Animating a modifier
 
-extension ModifiedView: Animatable where Modifier: Animatable {
+@MainActor extension ModifiedView: Animatable where Modifier: Animatable {
     /// A modified view's animatable data is its modifier's.
     ///
     /// The general route by which a *modifier* animates — `.padding`,
@@ -506,7 +506,7 @@ extension ModifiedView: Animatable where Modifier: Animatable {
     }
 }
 
-extension ModifiedView {
+@MainActor extension ModifiedView {
     /// Forwarded from the modifier.
     ///
     /// **Unconditional**, deliberately: the `Animatable` conformance above is

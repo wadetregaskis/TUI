@@ -109,7 +109,7 @@ extension View {
     /// (decisions B-LISTS-1).
     ///
     /// - Parameter prominence: The prominence to apply to badges.
-    public func badgeProminence(_ prominence: BadgeProminence) -> some View {
+    nonisolated public func badgeProminence(_ prominence: BadgeProminence) -> some View {
         environment(\.badgeProminence, prominence)
     }
 }

@@ -326,7 +326,7 @@ extension View {
     ///
     /// - Parameter behavior: The scroll behaviour to use.
     /// - Returns: A view whose scrollables use `behavior`.
-    public func scrollTargetBehavior(_ behavior: some ScrollTargetBehavior) -> some View {
+    nonisolated public func scrollTargetBehavior(_ behavior: some ScrollTargetBehavior) -> some View {
         // The base of a type-erased behaviour, so a memo compares the behaviour
         // itself and the scrollables see which built-in one it is.
         let unwrapped: any ScrollTargetBehavior = (behavior as? AnyScrollTargetBehavior)?.base ?? behavior
@@ -389,7 +389,7 @@ extension View {
     ///
     /// - Parameter isEnabled: Whether the mark applies.
     /// - Returns: A view whose stack is, or is not, a scroll target layout.
-    public func scrollTargetLayout(isEnabled: Bool = true) -> some View {
+    nonisolated public func scrollTargetLayout(isEnabled: Bool = true) -> some View {
         environment(\.isScrollTargetLayout, isEnabled)
     }
 }

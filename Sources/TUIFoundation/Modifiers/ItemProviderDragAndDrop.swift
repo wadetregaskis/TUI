@@ -117,7 +117,7 @@
         ///
         /// - Parameter data: Returns the provider, when the drag begins.
         /// - Returns: A view that can be dragged.
-        public func onDrag(_ data: @escaping () -> NSItemProvider) -> some View {
+        nonisolated public func onDrag(_ data: @escaping () -> NSItemProvider) -> some View {
             DraggableModifier(content: self, payload: data, preview: nil)
         }
 
@@ -129,7 +129,7 @@
         ///   - data: Returns the provider, when the drag begins.
         ///   - preview: The picture that follows the pointer.
         /// - Returns: A view that can be dragged.
-        public func onDrag<V: View>(
+        nonisolated public func onDrag<V: View>(
             _ data: @escaping () -> NSItemProvider, @ViewBuilder preview: () -> V
         ) -> some View {
             DraggableModifier(content: self, payload: data, preview: AnyView(preview()))
@@ -144,7 +144,7 @@
         ///
         /// - Parameter action: Vends the provider when a drag begins.
         /// - Returns: A view whose drag carries the provider.
-        public func itemProvider(_ action: (() -> NSItemProvider?)?) -> some View {
+        nonisolated public func itemProvider(_ action: (() -> NSItemProvider?)?) -> some View {
             DraggableModifier(content: self, payload: { action?() }, preview: nil)
         }
 
@@ -162,7 +162,7 @@
         ///   - action: Performs the drop, given the conforming providers;
         ///     answers whether it took them.
         /// - Returns: A view that can receive drops.
-        public func onDrop(
+        nonisolated public func onDrop(
             of supportedContentTypes: [UTType], isTargeted: Binding<Bool>?,
             perform action: @escaping ([NSItemProvider]) -> Bool
         ) -> some View {
@@ -180,7 +180,7 @@
         ///   - action: Performs the drop, given the conforming providers and
         ///     the cell; answers whether it took them.
         /// - Returns: A view that can receive drops.
-        public func onDrop(
+        nonisolated public func onDrop(
             of supportedContentTypes: [UTType], isTargeted: Binding<Bool>?,
             perform action: @escaping ([NSItemProvider], CellPoint) -> Bool
         ) -> some View {
@@ -197,7 +197,7 @@
         ///   - supportedContentTypes: The types the view takes.
         ///   - delegate: Validates, follows and performs the drop.
         /// - Returns: A view that can receive drops.
-        public func onDrop(of supportedContentTypes: [UTType], delegate: any DropDelegate) -> some View {
+        nonisolated public func onDrop(of supportedContentTypes: [UTType], delegate: any DropDelegate) -> some View {
             ItemProviderDropModifier(
                 content: self, supportedContentTypes: supportedContentTypes, handler: .delegate(delegate))
         }
@@ -295,17 +295,17 @@
 
     /// The view wrapper behind SwiftUI's `onDrop` forms: renders its content
     /// and registers its rectangle as a drop zone, as `install` says.
-    struct ItemProviderDropModifier<Content: View>: View {
+    nonisolated struct ItemProviderDropModifier<Content: View>: View {
         let content: Content
         let supportedContentTypes: [UTType]
         let handler: ItemProviderDropHandler
 
-        var body: Never {
+        @MainActor var body: Never {
             fatalError("ItemProviderDropModifier renders via Renderable")
         }
     }
 
-    extension ItemProviderDropModifier: Renderable, Layoutable {
+    @MainActor extension ItemProviderDropModifier: Renderable, Layoutable {
         func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
             measureChild(content, proposal: proposal, context: context)
         }
@@ -349,12 +349,12 @@
         }
     }
 
-    extension ItemProviderDropModifier: SingleContentWrapper {
+    @MainActor extension ItemProviderDropModifier: SingleContentWrapper {
         var wrappedContent: Content { content }
 
         /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
         func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
     }
 
-    extension ItemProviderDropModifier: DrawsContentUnchanged {}
+    @MainActor extension ItemProviderDropModifier: DrawsContentUnchanged {}
 #endif

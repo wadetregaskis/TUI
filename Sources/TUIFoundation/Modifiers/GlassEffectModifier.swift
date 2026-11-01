@@ -56,7 +56,7 @@ extension View {
     ///   - shape: The shape the glass takes. A capsule
     ///     (``DefaultGlassEffectShape``) unless given.
     /// - Returns: The view, on glass.
-    public func glassEffect(_ glass: Glass = .regular, in shape: some Shape = DefaultGlassEffectShape()) -> some View {
+    nonisolated public func glassEffect(_ glass: Glass = .regular, in shape: some Shape = DefaultGlassEffectShape()) -> some View {
         _GlassEffect(content: self, shape: shape, glass: glass)
     }
 }
@@ -91,15 +91,15 @@ private enum GlassHoverRecord {}
 /// of the joined shape (``GlassPiece``) rather than its own glass, drawn here
 /// all the same: so whatever lies between this view and the container acts
 /// on them as on glass alone.
-struct _GlassEffect<Content: View, S: Shape>: View {
+nonisolated struct _GlassEffect<Content: View, S: Shape>: View {
     let content: Content
     let shape: S
     let glass: Glass
 
-    var body: Never { fatalError("_GlassEffect renders via Renderable") }
+    @MainActor var body: Never { fatalError("_GlassEffect renders via Renderable") }
 }
 
-extension _GlassEffect: Renderable {
+@MainActor extension _GlassEffect: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard !glass.isIdentity else { return TUIView.renderToBuffer(content, context: context) }
         let hover = hoverBox(context)
@@ -238,7 +238,7 @@ extension _GlassEffect: Renderable {
     }
 }
 
-extension _GlassEffect: Layoutable {
+@MainActor extension _GlassEffect: Layoutable {
     /// The content's size: glass changes nothing about layout.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: glass.isIdentity ? context : contentContext(context))

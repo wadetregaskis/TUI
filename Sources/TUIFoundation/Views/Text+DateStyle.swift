@@ -12,7 +12,7 @@ import Foundation
 
 // MARK: - DateStyle
 
-extension Text {
+@MainActor extension Text {
     /// A predefined style used to display a `Date` — mirrors SwiftUI's
     /// `Text.DateStyle`.
     ///
@@ -82,7 +82,7 @@ extension Text {
     /// - Parameters:
     ///   - date: The target date to display.
     ///   - style: The style used when displaying a date.
-    public init(_ date: Date, style: DateStyle) {
+    nonisolated public init(_ date: Date, style: DateStyle) {
         self.init(live: DateStyleSource(date: date, style: style))
     }
 }

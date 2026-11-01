@@ -83,7 +83,7 @@ extension View {
     /// - Parameter behavior: Whether alternating row backgrounds are enabled
     ///   or not.
     /// - Returns: A view whose lists and tables stripe as `behavior` says.
-    public func alternatingRowBackgrounds(
+    nonisolated public func alternatingRowBackgrounds(
         _ behavior: AlternatingRowBackgroundBehavior = .enabled
     ) -> some View {
         environment(\.alternatingRowBackgrounds, behavior)

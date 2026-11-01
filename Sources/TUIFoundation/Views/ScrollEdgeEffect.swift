@@ -61,7 +61,7 @@ extension View {
     ///   - style: The style, or `nil` for the inherited one.
     ///   - edges: The edges the style is for.
     /// - Returns: This view, unchanged.
-    public func scrollEdgeEffectStyle(_ style: ScrollEdgeEffectStyle?, for edges: Edge.Set) -> some View {
+    nonisolated public func scrollEdgeEffectStyle(_ style: ScrollEdgeEffectStyle?, for edges: Edge.Set) -> some View {
         self
     }
 
@@ -77,7 +77,7 @@ extension View {
     ///   - hidden: Whether the effect is hidden.
     ///   - edges: The edges it is hidden for.
     /// - Returns: This view, unchanged.
-    public func scrollEdgeEffectHidden(_ hidden: Bool = true, for edges: Edge.Set = .all) -> some View {
+    nonisolated public func scrollEdgeEffectHidden(_ hidden: Bool = true, for edges: Edge.Set = .all) -> some View {
         self
     }
 }

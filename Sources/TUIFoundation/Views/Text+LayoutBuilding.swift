@@ -15,7 +15,7 @@
 import Foundation
 import TUICore
 
-extension Text {
+@MainActor extension Text {
     /// The layout of `drawn`, this text's own drawing in `context`.
     ///
     /// Each drawn grapheme is matched, in order, to the text's words as they

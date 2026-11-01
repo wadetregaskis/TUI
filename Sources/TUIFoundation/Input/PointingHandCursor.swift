@@ -60,7 +60,7 @@ extension View {
     ///
     /// TUI-specific: SwiftUI has no counterpart, since a Mac app follows the
     /// Mac's convention.
-    public func pointingHandCursor(over scope: PointingHandCursorScope) -> some View {
+    nonisolated public func pointingHandCursor(over scope: PointingHandCursorScope) -> some View {
         environment(\.pointingHandCursorScope, scope)
     }
 }

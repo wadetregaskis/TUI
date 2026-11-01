@@ -9,7 +9,7 @@
 
 import TUIFoundation
 
-extension _WindowChromeHost {
+@MainActor extension _WindowChromeHost {
     /// One row of a toolbar's items: the bar's own, or one of the top bar's
     /// accessory bars (`ToolbarItemPlacement.accessoryBar(id:)`).
     struct BarRow {

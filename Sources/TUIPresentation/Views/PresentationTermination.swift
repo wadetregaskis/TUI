@@ -43,7 +43,7 @@ extension View {
     ///
     /// - Parameter prevents: Whether the presentation prevents quitting, or
     ///   `nil` for the automatic behaviour.
-    public func presentationPreventsAppTermination(_ prevents: Bool?) -> some View {
+    nonisolated public func presentationPreventsAppTermination(_ prevents: Bool?) -> some View {
         _AppTerminationView(content: self, preventsAppTermination: prevents)
     }
 
@@ -68,42 +68,42 @@ extension View {
     ///
     /// - Parameter prevents: Whether the dialogs prevent quitting, or `nil`
     ///   for the automatic behaviour.
-    public func dialogPreventsAppTermination(_ prevents: Bool?) -> some View {
+    nonisolated public func dialogPreventsAppTermination(_ prevents: Bool?) -> some View {
         environment(\.dialogPreventsAppTermination, prevents)
     }
 }
 
 /// The wrapper ``View/presentationPreventsAppTermination(_:)`` produces.
 /// Renders and measures as its content; carrying the flag is its whole job.
-struct _AppTerminationView<Content: View>: View, AppTerminationPreventing {
+nonisolated struct _AppTerminationView<Content: View>: View, AppTerminationPreventing {
     let content: Content
     let preventsAppTermination: Bool?
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_AppTerminationView renders via Renderable")
     }
 }
 
-extension _AppTerminationView: Renderable {
+@MainActor extension _AppTerminationView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: context)
     }
 }
 
-extension _AppTerminationView: Layoutable {
+@MainActor extension _AppTerminationView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
 
-extension _AppTerminationView: PresentationTraitWrapper {
+@MainActor extension _AppTerminationView: PresentationTraitWrapper {
     var presentationTraitContent: any View { content }
 }
 
 /// Names its content so a container asking for a z-index or an alignment guide
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``.
-extension _AppTerminationView: SingleContentWrapper {
+@MainActor extension _AppTerminationView: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -112,11 +112,11 @@ extension _AppTerminationView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _AppTerminationView: DrawsContentUnchanged {}
+@MainActor extension _AppTerminationView: DrawsContentUnchanged {}
 
 // MARK: - The dialogs' rule
 
-extension AlertPresentationModifier {
+@MainActor extension AlertPresentationModifier {
     /// Whether a dialog with `buttons` stops the quit key: as stated, or by
     /// macOS's automatic rule where `stated` is `nil` (decisions B36) — unless
     /// it has a single button that is not destructive, is not critical, and

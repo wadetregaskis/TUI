@@ -134,8 +134,7 @@ extension Picker where Label == TUIFoundation.Label<Text, _SymbolIcon> {
 /// first and writes them all, so picking an option sets every source to it.
 /// Never read for an empty collection — the picker then builds nothing that
 /// asks (``Picker/hasNoSources``).
-@MainActor
-private func collectiveSelection<Value: Hashable>(_ bindings: [Binding<Value>]) -> Binding<Value> {
+nonisolated private func collectiveSelection<Value: Hashable>(_ bindings: [Binding<Value>]) -> Binding<Value> {
     Binding(
         get: {
             guard let first = bindings.first else {
@@ -152,7 +151,7 @@ extension Picker {
     /// This picker over the selections `sources` hold: mixed when they
     /// disagree, empty when there are none. Read when the picker is made, which
     /// is every evaluation of the body holding it.
-    fileprivate init<C: RandomAccessCollection>(
+    nonisolated fileprivate init<C: RandomAccessCollection>(
         sources: C, selection: KeyPath<C.Element, Binding<SelectionValue>>,
         content: () -> Content, label: () -> Label, currentValueLabel: AnyView?
     ) {
@@ -191,7 +190,7 @@ extension Picker {
     ///   - content: A view builder of options, each carrying a ``View/tag(_:includeOptional:)``.
     ///   - label: A view builder for the picker's label.
     ///   - currentValueLabel: A view builder for the current value's label.
-    public init<C: RandomAccessCollection>(
+    nonisolated public init<C: RandomAccessCollection>(
         sources: C, selection: KeyPath<C.Element, Binding<SelectionValue>>,
         @ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label,
         @ViewBuilder currentValueLabel: () -> some View

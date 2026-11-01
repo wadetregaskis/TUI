@@ -20,15 +20,15 @@ import TUIView
 /// claim a shape's own uncovered cells make (`ShapeCells`) — so what is behind
 /// the view shows there, and the content's claims and animated runs over it
 /// are cut away with it.
-struct _ShapeClip<Content: View, S: Shape>: View {
+nonisolated struct _ShapeClip<Content: View, S: Shape>: View {
     let content: Content
     let shape: S
     let fillStyle: FillStyle
 
-    var body: Never { fatalError("_ShapeClip renders via Renderable") }
+    @MainActor var body: Never { fatalError("_ShapeClip renders via Renderable") }
 }
 
-extension _ShapeClip: Renderable {
+@MainActor extension _ShapeClip: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let buffer = TUIView.renderToBuffer(content, context: context)
         let (columns, rows) = (buffer.width, buffer.height)
@@ -123,7 +123,7 @@ extension FrameBuffer {
     }
 }
 
-extension _ShapeClip: Layoutable {
+@MainActor extension _ShapeClip: Layoutable {
     /// Clipping changes what draws, never the frame.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)

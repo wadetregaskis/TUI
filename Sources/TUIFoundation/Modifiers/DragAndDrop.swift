@@ -44,7 +44,7 @@ extension EnvironmentValues {
 extension View {
     /// Sets how the floating preview of drags started in this view's
     /// subtree anchors to the cursor (default: ``DragPreviewAnchor/grabPoint``).
-    public func dragPreviewAnchor(_ anchor: DragPreviewAnchor) -> some View {
+    nonisolated public func dragPreviewAnchor(_ anchor: DragPreviewAnchor) -> some View {
         environment(\.dragPreviewAnchor, anchor)
     }
 }
@@ -93,7 +93,7 @@ extension View {
     ///
     /// - Parameter limit: The most rows the preview shows, or `nil` for all of
     ///   them. A limit below 1 is taken as 1: the grabbed row always shows.
-    public func dragPreviewRowLimit(_ limit: Int?) -> some View {
+    nonisolated public func dragPreviewRowLimit(_ limit: Int?) -> some View {
         environment(\.dragPreviewRowLimit, limit.map { max(1, $0) })
     }
 }
@@ -111,17 +111,17 @@ extension View {
 /// wrapped in `.draggable` still clicks, matching SwiftUI. Hover
 /// transitions forward the same way, so the child keeps its hover
 /// affordance. Only genuine drags (press + movement) are consumed here.
-package struct DraggableModifier<Content: View, Payload>: View {
+nonisolated package struct DraggableModifier<Content: View, Payload>: View {
     let content: Content
     let payload: () -> Payload
     let preview: AnyView?
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("DraggableModifier renders via Renderable")
     }
 }
 
-extension DraggableModifier: Renderable, Layoutable {
+@MainActor extension DraggableModifier: Renderable, Layoutable {
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
@@ -258,7 +258,7 @@ extension DraggableModifier: Renderable, Layoutable {
     }
 }
 
-extension DraggableModifier {
+@MainActor extension DraggableModifier {
     /// The journal kind of a `.draggable`'s payload, told to a container
     /// gathering a selection.
     static var payloadKind: EffectJournal.Kind { EffectJournal.Kind("draggablePayload") }
@@ -437,7 +437,7 @@ private final class DragScratch {
 /// target for payloads of `Payload`. The region's own mouse handler is
 /// inert (clicks fall through to the content) — the rectangle exists so the
 /// active drag session can hit-test it.
-package struct DropDestinationModifier<Content: View, Payload>: View {
+nonisolated package struct DropDestinationModifier<Content: View, Payload>: View {
     let content: Content
     /// Whether the view takes drops at all. Off, it registers no zone, so a
     /// drag passes over it as over anything else.
@@ -445,12 +445,12 @@ package struct DropDestinationModifier<Content: View, Payload>: View {
     let action: ([Payload], DropInfo) -> Bool
     let isTargeted: (Bool) -> Void
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("DropDestinationModifier renders via Renderable")
     }
 }
 
-extension DropDestinationModifier: Renderable, Layoutable {
+@MainActor extension DropDestinationModifier: Renderable, Layoutable {
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
@@ -625,7 +625,7 @@ extension View {
     /// - Parameter payload: The value delivered on drop, evaluated when the
     ///   drag begins.
     /// - Returns: A draggable view.
-    public func draggable<Payload>(
+    nonisolated public func draggable<Payload>(
         _ payload: @autoclosure @escaping () -> Payload
     ) -> some View {
         DraggableModifier(content: self, payload: payload, preview: nil)
@@ -638,7 +638,7 @@ extension View {
     ///   - payload: The value delivered on drop, evaluated at drag start.
     ///   - preview: The floating preview view.
     /// - Returns: A draggable view.
-    public func draggable<Payload, Preview: View>(
+    nonisolated public func draggable<Payload, Preview: View>(
         _ payload: @autoclosure @escaping () -> Payload,
         @ViewBuilder preview: () -> Preview
     ) -> some View {
@@ -660,7 +660,7 @@ extension View {
     ///   - action: Performs the drop; returns `true` if the values were taken.
     ///   - isTargeted: Observes whether a compatible drag is over the view.
     /// - Returns: A view that can receive drops.
-    public func dropDestination<Payload>(
+    nonisolated public func dropDestination<Payload>(
         for payloadType: Payload.Type = Payload.self,
         action: @escaping ([Payload], DropInfo) -> Bool,
         isTargeted: @escaping (Bool) -> Void = { _ in }
@@ -695,7 +695,7 @@ extension View {
     ///   - isEnabled: Whether the view takes drops.
     ///   - action: Performs the drop, given the values and where they landed.
     /// - Returns: A view that can receive drops.
-    public func dropDestination<Payload>(
+    nonisolated public func dropDestination<Payload>(
         for payloadType: Payload.Type = Payload.self, isEnabled: Bool = true,
         action: @escaping ([Payload], DropInfo) -> Void
     ) -> some View {
@@ -715,7 +715,7 @@ extension View {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension DraggableModifier: SingleContentWrapper {
+@MainActor extension DraggableModifier: SingleContentWrapper {
     /// Its content's geometry is its own — it registers a drag source over its content, where it is — so a guide
     /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
     public static var _keepsContentGeometry: Bool { true }
@@ -730,7 +730,7 @@ extension DraggableModifier: SingleContentWrapper {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension DropDestinationModifier: SingleContentWrapper {
+@MainActor extension DropDestinationModifier: SingleContentWrapper {
     public var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -741,4 +741,4 @@ extension DropDestinationModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension DropDestinationModifier: DrawsContentUnchanged {}
+@MainActor extension DropDestinationModifier: DrawsContentUnchanged {}

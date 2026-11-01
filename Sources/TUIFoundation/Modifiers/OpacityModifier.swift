@@ -72,23 +72,23 @@ extension View {
     ///
     /// - Parameter opacity: `0` (invisible) through `1` (fully opaque).
     /// - Returns: A view composited at that opacity over whatever it is drawn on.
-    public func opacity(_ opacity: Double) -> some View {
+    nonisolated public func opacity(_ opacity: Double) -> some View {
         _OpacityView(content: self, opacity: opacity)
     }
 }
 
 /// Marks everything `content` draws as translucent, for the compositor to
 /// resolve against what is behind it. See ``FrameBuffer/resolvingOpacity(over:at:surface:palette:)``.
-package struct _OpacityView<Content: View>: View {
+nonisolated package struct _OpacityView<Content: View>: View {
     let content: Content
     var opacity: Double
 
-    package var body: Never {
+    @MainActor package var body: Never {
         fatalError("_OpacityView renders via Renderable")
     }
 }
 
-extension _OpacityView: Animatable {
+@MainActor extension _OpacityView: Animatable {
     /// Opacity is the one continuous thing about this view, so a change to it
     /// inside ``withAnimation(_:_:)`` is a fade rather than a jump.
     ///
@@ -100,7 +100,7 @@ extension _OpacityView: Animatable {
     }
 }
 
-extension _OpacityView: Renderable {
+@MainActor extension _OpacityView: Renderable {
     package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Glass faded here joins no shape in a glass container: a joined shape
         // has one surface, and the container draws what lies between its
@@ -439,7 +439,7 @@ package enum SGRColorRewrite {
     }
 }
 
-extension _OpacityView: Layoutable {
+@MainActor extension _OpacityView: Layoutable {
     /// Fading rewrites colours in place: same characters, same cells, same
     /// size. An invisible view still occupies its space, as in SwiftUI.
     package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -455,7 +455,7 @@ extension _OpacityView: Layoutable {
 ///   Group { Color.green; Color.red }.opacity(0.5) }` and the same with the
 ///   opacity written on each member — both give rgb(156,99,53) at the centre
 ///   pixel, against rgb(255,84,62) with no opacity at all.
-extension _OpacityView: ContentRewrapping {
+@MainActor extension _OpacityView: ContentRewrapping {
     /// Its content's geometry is its own — it fades the cells its content drew, where they are — so a guide
     /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
     package static var _keepsContentGeometry: Bool { true }
@@ -472,8 +472,8 @@ extension _OpacityView: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _OpacityView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _OpacityView: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _OpacityView: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension _OpacityView: GridRowProviding where Content: GridRowProviding {}

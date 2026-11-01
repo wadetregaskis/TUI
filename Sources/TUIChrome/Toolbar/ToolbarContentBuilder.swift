@@ -19,7 +19,6 @@ import TUIFoundation
 /// `content` parameter is annotated with it, and so is a
 /// ``ToolbarContent/body-swift.property``. An `if` and an `if`/`else` compose
 /// items, as in SwiftUI.
-@MainActor
 @resultBuilder
 public struct ToolbarContentBuilder {
     /// Passes a single expression of toolbar content through unmodified.

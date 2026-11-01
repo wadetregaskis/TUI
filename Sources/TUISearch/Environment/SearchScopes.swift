@@ -63,7 +63,7 @@ extension View {
     /// - Parameters:
     ///   - scope: The active scope of the search field.
     ///   - scopes: The scoping options, each with a ``View/tag(_:includeOptional:)``.
-    public func searchScopes<V: Hashable, S: View>(
+    nonisolated public func searchScopes<V: Hashable, S: View>(
         _ scope: Binding<V>, @ViewBuilder scopes: () -> S
     ) -> some View {
         searchScopes(scope, activation: .automatic, scopes)
@@ -89,7 +89,7 @@ extension View {
     ///   - scope: The active scope of the search field.
     ///   - activation: When the scopes show.
     ///   - scopes: The scoping options, each with a ``View/tag(_:includeOptional:)``.
-    public func searchScopes<V: Hashable, S: View>(
+    nonisolated public func searchScopes<V: Hashable, S: View>(
         _ scope: Binding<V>, activation: SearchScopeActivation, @ViewBuilder _ scopes: () -> S
     ) -> some View {
         _SearchScopesModifier(content: self, scope: scope, activation: activation, scopes: scopes())
@@ -106,6 +106,8 @@ extension View {
 /// be compared turns the memos off below it — the whole searchable content.
 @MainActor
 final class SearchScopeBar: Equatable {
+    nonisolated init() {}
+
     var picker = AnyView(EmptyView())
     var activation = SearchScopeActivation.automatic
 
@@ -123,7 +125,7 @@ extension EnvironmentValues {
     }
 }
 
-struct _SearchScopesModifier<Content: View, V: Hashable, S: View>: View {
+struct _SearchScopesModifier<Content: View, V: Hashable, S: View> {
     let content: Content
     let scope: Binding<V>
     let activation: SearchScopeActivation
@@ -131,7 +133,7 @@ struct _SearchScopesModifier<Content: View, V: Hashable, S: View>: View {
 
     @State private var bar = SearchScopeBar()
 
-    var body: some View {
+    @MainActor var body: some View {
         // Refreshed on every evaluation, so the field draws the scopes and the
         // binding as they stand now.
         bar.picker = AnyView(
@@ -142,6 +144,7 @@ struct _SearchScopesModifier<Content: View, V: Hashable, S: View>: View {
         return content.environment(\.searchScopeBar, bar)
     }
 }
+extension _SearchScopesModifier: View {}
 
 // MARK: - Drawing
 

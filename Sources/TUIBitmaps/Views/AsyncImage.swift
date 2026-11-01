@@ -227,7 +227,7 @@ struct AsyncImageLoadError: LocalizedError, CustomStringConvertible {
 /// over `scale`, in points, as SwiftUI's is — so an image made for a Retina
 /// display, loaded at `scale: 2`, is half its pixel count in points (see the
 /// ``Image`` type's *Sizing*).
-public struct AsyncImage<Content: View>: View {
+nonisolated public struct AsyncImage<Content: View>: View {
     let url: URL?
     let scale: Double
     let transaction: Transaction
@@ -287,17 +287,17 @@ public struct AsyncImage<Content: View>: View {
         self.content = content
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _AsyncImageCore(url: url, scale: scale, transaction: transaction, content: content)
     }
 }
 
 /// What a plain `AsyncImage(url:)` draws: the image once it loads, and
 /// nothing before or after a failure.
-public struct _AsyncImageDefaultContent: View {
+nonisolated public struct _AsyncImageDefaultContent: View {
     let phase: AsyncImagePhase
 
-    public var body: some View {
+    @MainActor public var body: some View {
         if let image = phase.image {
             image
         }

@@ -19,7 +19,7 @@ import TUIView
 /// reaches it, and the pointer crossing it asks for no frame. The run loop
 /// resolves the shape under the pointer after each batch of input and each
 /// frame, and writes it only when it changes.
-struct PointerStyleModifier<Content: View>: View {
+nonisolated struct PointerStyleModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
@@ -27,14 +27,14 @@ struct PointerStyleModifier<Content: View>: View {
     /// further out.
     let style: PointerStyle?
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("PointerStyleModifier renders via Renderable")
     }
 }
 
 // MARK: - Renderable
 
-extension PointerStyleModifier: Renderable {
+@MainActor extension PointerStyleModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var buffer = TUIView.renderToBuffer(content, context: context)
         // Nothing where the terminal shows no shapes: no region, and no motion
@@ -63,7 +63,7 @@ extension PointerStyleModifier: Renderable {
 
 // MARK: - Layoutable
 
-extension PointerStyleModifier: Layoutable {
+@MainActor extension PointerStyleModifier: Layoutable {
     /// Forwards measurement straight to the content: a pointer style changes
     /// no layout.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -76,13 +76,13 @@ extension PointerStyleModifier: Layoutable {
 /// Names its content so a container asking for a z-index or an alignment guide
 /// can look through this wrapper instead of stopping at it, as `.onHover`'s
 /// does.
-extension PointerStyleModifier: SingleContentWrapper {
+@MainActor extension PointerStyleModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 }
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension PointerStyleModifier: DrawsContentUnchanged {}
+@MainActor extension PointerStyleModifier: DrawsContentUnchanged {}
 
 // MARK: - View Extension
 
@@ -111,7 +111,7 @@ extension View {
     ///
     /// - Parameter style: The pointer style to use.
     /// - Returns: A view that changes the style of the pointer when hovered.
-    public func pointerStyle(_ style: PointerStyle?) -> some View {
+    nonisolated public func pointerStyle(_ style: PointerStyle?) -> some View {
         PointerStyleModifier(content: self, style: style)
     }
 }

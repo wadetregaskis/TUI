@@ -332,7 +332,7 @@ final class StackWindowState {
         }
 }
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     func uniformWindowState(context: RenderContext) -> StackWindowState {
         let stateStorage = context.stateStorage!
         let key = StateStorage.StateKey(
@@ -353,7 +353,7 @@ extension _VStackCore {
 
 // MARK: - The rows a band drew
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// Records the rows a band render drew — the uniform and anchored paths,
     /// on the frames they draw: the span of the band's own, for the width
     /// record's challenge (``StackWindowState/drawnOrdinals``); and every row
@@ -381,7 +381,7 @@ extension _VStackCore {
 
 // MARK: - Focus-target key extraction
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// The `ForEach` key of the row a (default, path-derived) focus ID
     /// addresses below this stack, parsed straight out of the ID — the row's
     /// path component is `TypeName[key]` immediately after the stack's path.
@@ -400,7 +400,7 @@ extension _VStackCore {
 
 // MARK: - The seek render
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// Renders the window by arithmetic seek, or returns `nil` when the
     /// uniform hypothesis is unusable (unseeded on a measure-only frame,
     /// previously broken, or falsified by a row measured right now) — the
@@ -868,7 +868,7 @@ extension _VStackCore {
 
 // MARK: - The seek measure
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// `windowSizeThatFits` by arithmetic, or `nil` when the hypothesis is
     /// unavailable (never seeded — seeding is a render-path mutation) or
     /// broken. Mirrors append-while-fits exactly for uniform rows: the fit

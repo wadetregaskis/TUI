@@ -93,7 +93,7 @@ extension View {
     /// - Parameter completion: The text inserted into the field when this
     ///   suggestion is picked.
     /// - Returns: A view carrying the completion for the suggestions menu.
-    public func textInputCompletion(_ completion: String) -> some View {
+    nonisolated public func textInputCompletion(_ completion: String) -> some View {
         containerValue(\.textInputCompletion, completion)
     }
 }
@@ -299,7 +299,7 @@ extension View {
     ///
     /// - Parameter suggestions: A view builder of suggestion entries.
     /// - Returns: A view whose text fields offer the suggestions.
-    public func textInputSuggestions<S: View>(
+    nonisolated public func textInputSuggestions<S: View>(
         @ViewBuilder _ suggestions: () -> S
     ) -> some View {
         _TextSuggestionsReader(content: self, suggestions: suggestions(), keyPath: \.textInputSuggestions)
@@ -312,7 +312,7 @@ extension View {
     ///   - suggestions: The data to build suggestions from.
     ///   - content: A view builder producing each element's suggestion.
     /// - Returns: A view whose text fields offer the suggestions.
-    public func textInputSuggestions<Data: RandomAccessCollection, Content: View>(
+    nonisolated public func textInputSuggestions<Data: RandomAccessCollection, Content: View>(
         _ suggestions: Data,
         @ViewBuilder content: @escaping (Data.Element) -> Content
     ) -> some View where Data.Element: Identifiable {
@@ -328,7 +328,7 @@ extension View {
     ///   - id: The key path to each element's identity.
     ///   - content: A view builder producing each element's suggestion.
     /// - Returns: A view whose text fields offer the suggestions.
-    public func textInputSuggestions<
+    nonisolated public func textInputSuggestions<
         Data: RandomAccessCollection, ID: Hashable, Content: View
     >(
         _ suggestions: Data,
@@ -395,7 +395,7 @@ package func textSuggestionEntries(of suggestions: some View, in scope: RenderCo
 /// makes for each pass — so to the content, and to a container looking
 /// through it, the reader is the `.environment` modifier it was before the
 /// suggestions needed a context to be read in.
-package struct _TextSuggestionsReader<Content: View, Suggestions: View>: View, Renderable, Layoutable {
+nonisolated package struct _TextSuggestionsReader<Content: View, Suggestions: View>: View, Renderable, Layoutable {
     let content: Content
     let suggestions: Suggestions
     let keyPath: WritableKeyPath<EnvironmentValues, TextSuggestions>
@@ -413,20 +413,20 @@ package struct _TextSuggestionsReader<Content: View, Suggestions: View>: View, R
     /// Not used to draw — the ``Renderable`` conformance takes priority — but
     /// the content, as ``EnvironmentModifier``'s is, so a container asking
     /// what this view hands over is asked of the content.
-    package var body: some View {
+    @MainActor package var body: some View {
         content
     }
 
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         publishing(in: context).sizeThatFits(proposal: proposal, context: context)
     }
 
-    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         publishing(in: context).renderToBuffer(context: context)
     }
 
     /// The content under the suggestions resolved in `context`.
-    private func publishing(in context: RenderContext) -> EnvironmentModifier<Content, TextSuggestions> {
+    @MainActor private func publishing(in context: RenderContext) -> EnvironmentModifier<Content, TextSuggestions> {
         let entries = textSuggestionEntries(of: suggestions, in: context.withChildIdentity(type: Self.self, index: 0))
         return EnvironmentModifier(content: content, keyPath: keyPath, value: .offering(entries))
     }
@@ -436,7 +436,7 @@ package struct _TextSuggestionsReader<Content: View, Suggestions: View>: View, R
 /// two, so publishing the suggestions round each member of multi-view content
 /// is the same as publishing them once round the lot — as for
 /// ``EnvironmentModifier``. Each copy resolves them at its member's identity.
-extension _TextSuggestionsReader: ContentRewrapping {
+@MainActor extension _TextSuggestionsReader: ContentRewrapping {
     package var wrappedContent: Content { content }
 
     /// Its content's context: the suggestions it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -449,16 +449,16 @@ extension _TextSuggestionsReader: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _TextSuggestionsReader: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _TextSuggestionsReader: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty, as above: a section with suggestions on it is
 /// still a section.
-extension _TextSuggestionsReader: SectionPartsProviding where Content: SectionPartsProviding {}
+@MainActor extension _TextSuggestionsReader: SectionPartsProviding where Content: SectionPartsProviding {}
 
 /// A section with suggestions on it is still a section to its `List`: its
 /// parts drawn under the suggestions resolved here, as the reader draws its
 /// content.
-extension _TextSuggestionsReader: SectionRowExtractor where Content: SectionRowExtractor {
+@MainActor extension _TextSuggestionsReader: SectionRowExtractor where Content: SectionRowExtractor {
     package func extractSectionInfo(context: RenderContext) -> SectionInfo {
         publishing(in: context).extractSectionInfo(context: context)
     }
@@ -470,11 +470,11 @@ extension _TextSuggestionsReader: SectionRowExtractor where Content: SectionRowE
 
 /// Body deliberately empty, as above: a grid row with suggestions on it is
 /// still a row.
-extension _TextSuggestionsReader: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension _TextSuggestionsReader: GridRowProviding where Content: GridRowProviding {}
 
 /// It draws its content unchanged, at its own identity, so a removal
 /// transition written inside it plays — see `DrawsContentUnchanged`.
-extension _TextSuggestionsReader: DrawsContentUnchanged {}
+@MainActor extension _TextSuggestionsReader: DrawsContentUnchanged {}
 
 // MARK: - The Field's Menu
 

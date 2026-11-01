@@ -30,7 +30,7 @@ extension View {
     ///   - shape: The shape to draw behind the view.
     ///   - fillStyle: The fill rule and antialiasing.
     /// - Returns: A view with the shape behind it.
-    public func background<S: ShapeStyle, T: Shape>(
+    nonisolated public func background<S: ShapeStyle, T: Shape>(
         _ style: S, in shape: T, fillStyle: FillStyle = FillStyle()
     ) -> some View {
         _ShapeBackground(content: self, shape: shape, style: style, fillStyle: fillStyle)
@@ -44,7 +44,7 @@ extension View {
     ///   - shape: The shape to draw behind the view.
     ///   - fillStyle: The fill rule and antialiasing.
     /// - Returns: A view with the shape behind it.
-    public func background<S: Shape>(in shape: S, fillStyle: FillStyle = FillStyle()) -> some View {
+    nonisolated public func background<S: Shape>(in shape: S, fillStyle: FillStyle = FillStyle()) -> some View {
         background(BackgroundStyle(), in: shape, fillStyle: fillStyle)
     }
 
@@ -58,7 +58,7 @@ extension View {
     ///   - shape: The shape to draw over the view.
     ///   - fillStyle: The fill rule and antialiasing.
     /// - Returns: A view with the shape over it.
-    public func overlay<S: ShapeStyle, T: Shape>(
+    nonisolated public func overlay<S: ShapeStyle, T: Shape>(
         _ style: S, in shape: T, fillStyle: FillStyle = FillStyle()
     ) -> some View {
         overlay { shape.fill(style, style: fillStyle) }
@@ -72,7 +72,7 @@ extension View {
     ///
     /// - Parameter style: The style to layer over the view.
     /// - Returns: A view with the style over it.
-    public func overlay<S: ShapeStyle>(_ style: S) -> some View {
+    nonisolated public func overlay<S: ShapeStyle>(_ style: S) -> some View {
         overlay(style, in: Rectangle())
     }
 
@@ -80,7 +80,7 @@ extension View {
     /// both infer, the `@_disfavoredOverload` pair ``View/background(_:)-(Color)``
     /// is.
     @_disfavoredOverload
-    public func overlay(_ color: Color) -> some View {
+    nonisolated public func overlay(_ color: Color) -> some View {
         overlay(color, in: Rectangle())
     }
 }
@@ -109,7 +109,7 @@ extension View {
     ///   - style: The fill rule; antialiasing does not apply to a cell kept
     ///     or not.
     /// - Returns: The view, clipped.
-    public func clipShape<S: Shape>(_ shape: S, style: FillStyle = FillStyle()) -> some View {
+    nonisolated public func clipShape<S: Shape>(_ shape: S, style: FillStyle = FillStyle()) -> some View {
         _ShapeClip(content: clipped(), shape: shape, fillStyle: style)
     }
 }

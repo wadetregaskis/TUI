@@ -8,7 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// `renderClip`'s PASS 3: `children`, drawn as `buffers` (`nil` for a
     /// spacer, `heights` its rows), placed down the column and across it by
     /// `guideRun` or the alignment within `alignmentWidth`, then clamped to

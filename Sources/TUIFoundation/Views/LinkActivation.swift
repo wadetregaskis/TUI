@@ -54,7 +54,7 @@ extension View {
     ///
     /// - Parameter activation: What activating a link does.
     /// - Returns: A view whose links do it.
-    public func linkActivation(_ activation: LinkActivation) -> some View {
+    nonisolated public func linkActivation(_ activation: LinkActivation) -> some View {
         environment(\.linkActivation, activation)
     }
 }

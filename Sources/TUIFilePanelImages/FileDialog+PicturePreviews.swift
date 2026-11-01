@@ -36,7 +36,7 @@ extension View {
     /// the picture is. Any other file keeps TUI's own preview, the opening
     /// lines of a text file. Like any `fileDialogPreview(_:)`, the innermost
     /// one wins: an app's own written inside this replaces it.
-    public func fileDialogPicturePreviews() -> some View {
+    nonisolated public func fileDialogPicturePreviews() -> some View {
         fileDialogPreview { url, type in
             FileDialogPicturePreviews.isPicture(type)
                 ? Image(.file(url.path)).resizable().scaledToFit() : nil

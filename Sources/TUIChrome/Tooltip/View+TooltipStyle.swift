@@ -14,7 +14,7 @@ extension View {
     /// ```swift
     /// ContentView().tooltipStyle(.popover)
     /// ```
-    public func tooltipStyle(_ style: TooltipStyle) -> some View {
+    nonisolated public func tooltipStyle(_ style: TooltipStyle) -> some View {
         environment(\.tooltipStyle, style)
     }
 
@@ -24,7 +24,7 @@ extension View {
     /// ``TooltipTrigger/never``; nothing draws it. That is deliberate — the
     /// alternative is a modifier whose effect depends on where in the tree the
     /// reader happens to look.
-    public func tooltips(_ trigger: TooltipTrigger) -> some View {
+    nonisolated public func tooltips(_ trigger: TooltipTrigger) -> some View {
         environment(\.tooltipTrigger, trigger)
     }
 
@@ -35,7 +35,7 @@ extension View {
     /// at once — a key press has already waited.
     ///
     /// - Parameter seconds: The delay. Clamped at zero when read.
-    public func tooltipDelay(_ seconds: Double) -> some View {
+    nonisolated public func tooltipDelay(_ seconds: Double) -> some View {
         environment(\.tooltipDelay, seconds)
     }
 }

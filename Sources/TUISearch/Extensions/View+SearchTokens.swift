@@ -30,7 +30,7 @@ extension View {
     ///     of the searchable subtree, whatever is preferred).
     ///   - prompt: A `Text` to display when the search field is empty.
     ///   - token: Builds the view for a token.
-    public func searchable<C, T>(
+    nonisolated public func searchable<C, T>(
         text: Binding<String>, tokens: Binding<C>,
         placement: SearchFieldPlacement = .automatic, prompt: Text? = nil,
         @ViewBuilder token: @escaping (C.Element) -> T
@@ -44,7 +44,7 @@ extension View {
 
     /// Marks this view as searchable with text and tokens, and a localized
     /// prompt — a string literal is a lookup key, see ``LocalizedStringKey``.
-    public func searchable<C, T>(
+    nonisolated public func searchable<C, T>(
         text: Binding<String>, tokens: Binding<C>,
         placement: SearchFieldPlacement = .automatic, prompt: LocalizedStringKey,
         @ViewBuilder token: @escaping (C.Element) -> T
@@ -56,7 +56,7 @@ extension View {
     /// Marks this view as searchable with text and tokens, and a prompt
     /// displayed as written.
     @_disfavoredOverload
-    public func searchable<C, T, S: StringProtocol>(
+    nonisolated public func searchable<C, T, S: StringProtocol>(
         text: Binding<String>, tokens: Binding<C>,
         placement: SearchFieldPlacement = .automatic, prompt: S,
         @ViewBuilder token: @escaping (C.Element) -> T
@@ -71,7 +71,7 @@ extension View {
     /// `searchable(text:tokens:isPresented:placement:prompt:token:)`; see
     /// `searchable(text:isPresented:placement:prompt:)`
     /// for `isPresented`.
-    public func searchable<C, T>(
+    nonisolated public func searchable<C, T>(
         text: Binding<String>, tokens: Binding<C>, isPresented: Binding<Bool>,
         placement: SearchFieldPlacement = .automatic, prompt: Text? = nil,
         @ViewBuilder token: @escaping (C.Element) -> T
@@ -84,7 +84,7 @@ extension View {
     }
 
     /// The tokens-and-presentation form, with a localized prompt.
-    public func searchable<C, T>(
+    nonisolated public func searchable<C, T>(
         text: Binding<String>, tokens: Binding<C>, isPresented: Binding<Bool>,
         placement: SearchFieldPlacement = .automatic, prompt: LocalizedStringKey,
         @ViewBuilder token: @escaping (C.Element) -> T
@@ -97,7 +97,7 @@ extension View {
 
     /// The tokens-and-presentation form, with a prompt displayed as written.
     @_disfavoredOverload
-    public func searchable<C, T, S: StringProtocol>(
+    nonisolated public func searchable<C, T, S: StringProtocol>(
         text: Binding<String>, tokens: Binding<C>, isPresented: Binding<Bool>,
         placement: SearchFieldPlacement = .automatic, prompt: S,
         @ViewBuilder token: @escaping (C.Element) -> T
@@ -131,7 +131,7 @@ extension View {
     ///   - placement: The preferred placement.
     ///   - prompt: A `Text` to display when the search field is empty.
     ///   - token: Builds the view for a token.
-    public func searchable<C, T>(
+    nonisolated public func searchable<C, T>(
         text: Binding<String>, tokens: Binding<C>, suggestedTokens: Binding<C>,
         placement: SearchFieldPlacement = .automatic, prompt: Text? = nil,
         @ViewBuilder token: @escaping (C.Element) -> T
@@ -147,7 +147,7 @@ extension View {
     }
 
     /// The suggested-tokens form, with a localized prompt.
-    public func searchable<C, T>(
+    nonisolated public func searchable<C, T>(
         text: Binding<String>, tokens: Binding<C>, suggestedTokens: Binding<C>,
         placement: SearchFieldPlacement = .automatic, prompt: LocalizedStringKey,
         @ViewBuilder token: @escaping (C.Element) -> T
@@ -163,7 +163,7 @@ extension View {
 
     /// The suggested-tokens form, with a prompt displayed as written.
     @_disfavoredOverload
-    public func searchable<C, T, S: StringProtocol>(
+    nonisolated public func searchable<C, T, S: StringProtocol>(
         text: Binding<String>, tokens: Binding<C>, suggestedTokens: Binding<C>,
         placement: SearchFieldPlacement = .automatic, prompt: S,
         @ViewBuilder token: @escaping (C.Element) -> T
@@ -180,7 +180,7 @@ extension View {
     /// Marks this view as searchable with text, tokens, suggested tokens and
     /// programmatic presentation. Mirrors SwiftUI's
     /// `searchable(text:tokens:suggestedTokens:isPresented:placement:prompt:token:)`.
-    public func searchable<C, T>(
+    nonisolated public func searchable<C, T>(
         text: Binding<String>, tokens: Binding<C>, suggestedTokens: Binding<C>,
         isPresented: Binding<Bool>, placement: SearchFieldPlacement = .automatic, prompt: Text? = nil,
         @ViewBuilder token: @escaping (C.Element) -> T
@@ -193,7 +193,7 @@ extension View {
     }
 
     /// The suggested-tokens-and-presentation form, with a localized prompt.
-    public func searchable<C, T>(
+    nonisolated public func searchable<C, T>(
         text: Binding<String>, tokens: Binding<C>, suggestedTokens: Binding<C>,
         isPresented: Binding<Bool>, placement: SearchFieldPlacement = .automatic,
         prompt: LocalizedStringKey, @ViewBuilder token: @escaping (C.Element) -> T
@@ -207,7 +207,7 @@ extension View {
     /// The suggested-tokens-and-presentation form, with a prompt displayed as
     /// written.
     @_disfavoredOverload
-    public func searchable<C, T, S: StringProtocol>(
+    nonisolated public func searchable<C, T, S: StringProtocol>(
         text: Binding<String>, tokens: Binding<C>, suggestedTokens: Binding<C>,
         isPresented: Binding<Bool>, placement: SearchFieldPlacement = .automatic, prompt: S,
         @ViewBuilder token: @escaping (C.Element) -> T
@@ -235,7 +235,7 @@ extension View {
     ///   - placement: The preferred placement.
     ///   - prompt: A `Text` to display when the search field is empty.
     ///   - token: Builds the view for a token, given a binding to it.
-    public func searchable<C>(
+    nonisolated public func searchable<C>(
         text: Binding<String>, editableTokens: Binding<C>,
         placement: SearchFieldPlacement = .automatic, prompt: Text? = nil,
         @ViewBuilder token: @escaping (Binding<C.Element>) -> some View
@@ -247,7 +247,7 @@ extension View {
     }
 
     /// The editable-tokens form, with a localized prompt.
-    public func searchable<C>(
+    nonisolated public func searchable<C>(
         text: Binding<String>, editableTokens: Binding<C>,
         placement: SearchFieldPlacement = .automatic, prompt: LocalizedStringKey,
         @ViewBuilder token: @escaping (Binding<C.Element>) -> some View
@@ -260,7 +260,7 @@ extension View {
 
     /// The editable-tokens form, with a prompt displayed as written.
     @_disfavoredOverload
-    public func searchable<C>(
+    nonisolated public func searchable<C>(
         text: Binding<String>, editableTokens: Binding<C>,
         placement: SearchFieldPlacement = .automatic, prompt: some StringProtocol,
         @ViewBuilder token: @escaping (Binding<C.Element>) -> some View
@@ -274,7 +274,7 @@ extension View {
     /// Marks this view as searchable with text, editable tokens and
     /// programmatic presentation. Mirrors SwiftUI's
     /// `searchable(text:editableTokens:isPresented:placement:prompt:token:)`.
-    public func searchable<C>(
+    nonisolated public func searchable<C>(
         text: Binding<String>, editableTokens: Binding<C>, isPresented: Binding<Bool>,
         placement: SearchFieldPlacement = .automatic, prompt: Text? = nil,
         @ViewBuilder token: @escaping (Binding<C.Element>) -> some View
@@ -287,7 +287,7 @@ extension View {
     }
 
     /// The editable-tokens-and-presentation form, with a localized prompt.
-    public func searchable<C>(
+    nonisolated public func searchable<C>(
         text: Binding<String>, editableTokens: Binding<C>, isPresented: Binding<Bool>,
         placement: SearchFieldPlacement = .automatic, prompt: LocalizedStringKey,
         @ViewBuilder token: @escaping (Binding<C.Element>) -> some View
@@ -301,7 +301,7 @@ extension View {
     /// The editable-tokens-and-presentation form, with a prompt displayed as
     /// written.
     @_disfavoredOverload
-    public func searchable<C>(
+    nonisolated public func searchable<C>(
         text: Binding<String>, editableTokens: Binding<C>, isPresented: Binding<Bool>,
         placement: SearchFieldPlacement = .automatic, prompt: some StringProtocol,
         @ViewBuilder token: @escaping (Binding<C.Element>) -> some View
@@ -334,8 +334,7 @@ struct SearchTokenRow {
     let sink: SearchTokenSink
 
     /// The row for read-only tokens, and their suggestions if any.
-    @MainActor
-    static func plain<C, T: View>(
+    nonisolated static func plain<C, T: View>(
         _ tokens: Binding<C>, suggested: Binding<C>?, token: @escaping (C.Element) -> T
     ) -> Self
     where C: RandomAccessCollection, C: RangeReplaceableCollection, C.Element: Identifiable {
@@ -353,8 +352,7 @@ struct SearchTokenRow {
     }
 
     /// The row for tokens whose views edit them.
-    @MainActor
-    static func editable<C, T: View>(
+    nonisolated static func editable<C, T: View>(
         _ tokens: Binding<C>, token: @escaping (Binding<C.Element>) -> T
     ) -> Self
     where C: RandomAccessCollection, C: RangeReplaceableCollection, C.Element: Identifiable {
@@ -374,8 +372,7 @@ struct SearchTokenRow {
     /// Takes the suggestions menu's tokens of `C.Element`'s type into
     /// `tokens` — never one whose id is there already, as a token's id is its
     /// identity among the chips.
-    @MainActor
-    private static func sink<C>(for tokens: Binding<C>) -> SearchTokenSink
+    nonisolated private static func sink<C>(for tokens: Binding<C>) -> SearchTokenSink
     where C: RandomAccessCollection, C: RangeReplaceableCollection, C.Element: Identifiable {
         SearchTokenSink { value in
             guard let element = value as? C.Element else { return nil }
@@ -418,14 +415,14 @@ struct SearchTokenRow {
 }
 
 /// One token as the field draws it: in brackets, in the accent colour.
-struct SearchTokenChip<Label: View>: View {
+nonisolated struct SearchTokenChip<Label: View>: View {
     let label: Label
 
     /// Styled, and erased, by TUIFoundation (`erasedForegroundStyle(_:)`):
     /// `foregroundStyle(_:)`'s result names a type only it can see, which this
     /// module would look up at run time on every evaluation (CONTRIBUTING.md,
     /// "Crossing a module boundary").
-    var body: some View {
+    @MainActor var body: some View {
         HStack(spacing: 0) {
             Text(verbatim: "[")
             label

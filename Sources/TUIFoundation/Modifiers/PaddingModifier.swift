@@ -122,7 +122,7 @@ public enum Edge: Int8, Sendable, CaseIterable {
 ///
 /// - Important: This is framework infrastructure. Use `.padding()` on any
 ///   ``View`` instead of instantiating this type directly.
-package struct PaddingModifier: BufferModifier {
+nonisolated package struct PaddingModifier: BufferModifier {
     /// The padding insets.
     ///
     /// A `var` so an animation can substitute it — see the `Animatable`
@@ -136,18 +136,18 @@ package struct PaddingModifier: BufferModifier {
     /// edge, the content is offered as many more, and it is drawn at its full
     /// size, past the frame there (``overhanging(_:placement:context:)``). A spring that
     /// overshoots zero draws the same, for as long as it is below.
-    var insets: EdgeInsets {
+    @MainActor var insets: EdgeInsets {
         get { heldInsets }
         set { heldInsets = Self.held(newValue) }
     }
 
     private var heldInsets: EdgeInsets
 
-    init(insets: EdgeInsets) {
+    nonisolated init(insets: EdgeInsets) {
         heldInsets = Self.held(insets)
     }
 
-    private static func held(_ insets: EdgeInsets) -> EdgeInsets {
+    nonisolated private static func held(_ insets: EdgeInsets) -> EdgeInsets {
         EdgeInsets(
             top: insets.top.heldToStatedLength, leading: insets.leading.heldToStatedLength,
             bottom: insets.bottom.heldToStatedLength, trailing: insets.trailing.heldToStatedLength)
@@ -156,10 +156,10 @@ package struct PaddingModifier: BufferModifier {
     /// Whether any inset is negative: the one test a padding without one pays
     /// for the overhang. The OR of four numbers is negative exactly when one
     /// of them is (its sign bit is theirs, OR-ed).
-    var overhangs: Bool { (insets.top | insets.leading | insets.bottom | insets.trailing) < 0 }
+    @MainActor var overhangs: Bool { (insets.top | insets.leading | insets.bottom | insets.trailing) < 0 }
 
     /// The insets drawn as blank cells round the content: the positive ones.
-    private var padding: EdgeInsets {
+    @MainActor private var padding: EdgeInsets {
         EdgeInsets(
             top: max(0, insets.top), leading: max(0, insets.leading), bottom: max(0, insets.bottom),
             trailing: max(0, insets.trailing))
@@ -167,7 +167,7 @@ package struct PaddingModifier: BufferModifier {
 
     /// The negative insets, as the cells the content overhangs its frame by
     /// on each edge.
-    var overhang: EdgeInsets {
+    @MainActor var overhang: EdgeInsets {
         EdgeInsets(
             top: max(0, -insets.top), leading: max(0, -insets.leading), bottom: max(0, -insets.bottom),
             trailing: max(0, -insets.trailing))
@@ -177,13 +177,13 @@ package struct PaddingModifier: BufferModifier {
     /// extent, per axis (`BufferModifier._contentOverhang`): what
     /// ``adjustContext(_:)`` adds back, which the measure takes off the size
     /// the view reports.
-    public var _contentOverhang: (width: Int, height: Int) {
+    @MainActor public var _contentOverhang: (width: Int, height: Int) {
         guard overhangs else { return (0, 0) }
         let overhang = overhang
         return (overhang.leading + overhang.trailing, overhang.top + overhang.bottom)
     }
 
-    public func adjustContext(_ context: RenderContext) -> RenderContext {
+    @MainActor public func adjustContext(_ context: RenderContext) -> RenderContext {
         guard overhangs else { return adjustContext(context, padding: insets, shift: (0, 0)) }
         let overhang = overhang
         // The content is drawn from the frame's leading and top edges less the
@@ -199,7 +199,7 @@ package struct PaddingModifier: BufferModifier {
     /// content is counted from the same space: taken from the frame instead,
     /// `.padding(EdgeInsets(leading: 3, trailing: -3))` round a two-cell text
     /// measured two cells and drew none.
-    private static func grown(_ context: RenderContext, by overhang: EdgeInsets) -> RenderContext {
+    @MainActor private static func grown(_ context: RenderContext, by overhang: EdgeInsets) -> RenderContext {
         var grown = context
         grown.availableWidth += overhang.leading + overhang.trailing
         grown.availableHeight += overhang.top + overhang.bottom
@@ -210,7 +210,7 @@ package struct PaddingModifier: BufferModifier {
     /// origin moved `shift` further: the whole of ``adjustContext(_:)`` for
     /// a padding with no negative inset.
     @inline(__always)
-    private func adjustContext(
+    @MainActor private func adjustContext(
         _ context: RenderContext, padding insets: EdgeInsets, shift: (x: Int, y: Int)
     ) -> RenderContext {
         var adjusted = context
@@ -251,7 +251,7 @@ package struct PaddingModifier: BufferModifier {
     /// implementation: padding and a border are both decoration subtracting
     /// from an extent, and the day the two spellings drift is the day a
     /// `.padding().border()` measures one size and draws another.
-    private static func remaining(_ available: Int, less taken: Int) -> Int {
+    @MainActor private static func remaining(_ available: Int, less taken: Int) -> Int {
         RenderContext.extent(available, insideChrome: taken)
     }
 
@@ -280,7 +280,7 @@ package struct PaddingModifier: BufferModifier {
     /// content's size plus the insets, where a stack hands the view exactly
     /// that. Kept back anyway, `VStack { Text("A"); EmptyView().padding(2);
     /// Text("B") }` measured six rows and drew five.
-    private static func drawnInsets(
+    @MainActor private static func drawnInsets(
         _ before: Int, _ after: Int, in available: Int, contentIsEmpty: Bool
     ) -> (before: Int, after: Int) {
         if contentIsEmpty {
@@ -292,7 +292,7 @@ package struct PaddingModifier: BufferModifier {
         return (drawnBefore, total - drawnBefore)
     }
 
-    public func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+    @MainActor public func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
         var placement: ScrollWindowRelay.Placement?
         guard overhangs else {
             return padded(buffer, by: insets, overhang: EdgeInsets(), context: context, placement: &placement)
@@ -309,7 +309,7 @@ package struct PaddingModifier: BufferModifier {
     /// scroll view's answers are moved by here (`relayingScrollWindow`), and
     /// `placement` says which of a lazy stack's lines that leaves to it.
     @inline(__always)
-    private func padded(
+    @MainActor private func padded(
         _ buffer: FrameBuffer, by insets: EdgeInsets, overhang: EdgeInsets, context: RenderContext,
         placement answered: inout ScrollWindowRelay.Placement?
     ) -> FrameBuffer {
@@ -382,7 +382,7 @@ package struct PaddingModifier: BufferModifier {
 
 // MARK: - The scroll window, relayed
 
-extension PaddingModifier {
+@MainActor extension PaddingModifier {
     /// The padding's lines above and below its content where it is the
     /// scroll content, or a single-child step of it: the window a lazy stack
     /// in the content bands itself against is relayed below the top padding
@@ -461,7 +461,7 @@ extension PaddingModifier {
 
 // MARK: - A negative inset
 
-extension PaddingModifier {
+@MainActor extension PaddingModifier {
     /// `buffer` — the content with the positive insets drawn round it — in
     /// the frame the negative insets pull in over it: SwiftUI's negative
     /// padding.
@@ -507,7 +507,7 @@ extension PaddingModifier {
 
 // MARK: - Animating padding
 
-extension PaddingModifier: Animatable {
+@MainActor extension PaddingModifier: Animatable {
     /// The insets are what moves, so a change to them inside
     /// ``withAnimation(_:_:)`` opens or closes the gap rather than jumping it
     /// — except where ``EnvironmentValues/accessibilityReduceMotion`` is on,
@@ -525,4 +525,4 @@ extension PaddingModifier: Animatable {
 
 /// Motion: an animated padding moves its content, so under reduce motion it
 /// jumps to its end (owner decision A-D3M-1).
-extension PaddingModifier: SpatialAnimatable {}
+@MainActor extension PaddingModifier: SpatialAnimatable {}

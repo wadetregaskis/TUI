@@ -28,7 +28,7 @@ extension View {
     ///   - actions: The alert's actions.
     ///   - message: The message for the alert.
     /// - Returns: A view that presents the alert.
-    public func alert<Actions: View, Message: View>(
+    nonisolated public func alert<Actions: View, Message: View>(
         _ title: Text, isPresented: Binding<Bool>, @ViewBuilder actions: @escaping () -> Actions,
         @ViewBuilder message: @escaping () -> Message
     ) -> some View {
@@ -43,7 +43,7 @@ extension View {
     ///   - isPresented: A binding to whether the alert is presented.
     ///   - actions: The alert's actions.
     /// - Returns: A view that presents the alert.
-    public func alert<Actions: View>(
+    nonisolated public func alert<Actions: View>(
         _ title: Text, isPresented: Binding<Bool>, @ViewBuilder actions: @escaping () -> Actions
     ) -> some View {
         alert(title.content, isPresented: isPresented, actions: actions)
@@ -60,7 +60,7 @@ extension View {
     ///   - actions: The alert's actions, given the data.
     ///   - message: The message for the alert, given the data.
     /// - Returns: A view that presents the alert.
-    public func alert<Actions: View, Message: View, T>(
+    nonisolated public func alert<Actions: View, Message: View, T>(
         _ title: Text, isPresented: Binding<Bool>, presenting data: T?,
         @ViewBuilder actions: @escaping (T) -> Actions, @ViewBuilder message: @escaping (T) -> Message
     ) -> some View {
@@ -76,7 +76,7 @@ extension View {
     ///   - data: The data the actions are made from.
     ///   - actions: The alert's actions, given the data.
     /// - Returns: A view that presents the alert.
-    public func alert<Actions: View, T>(
+    nonisolated public func alert<Actions: View, T>(
         _ title: Text, isPresented: Binding<Bool>, presenting data: T?, @ViewBuilder actions: @escaping (T) -> Actions
     ) -> some View {
         alert(title.content, isPresented: isPresented, presenting: data, actions: actions)
@@ -97,7 +97,7 @@ extension View {
     ///   - actions: The dialog's actions.
     ///   - message: The message for the dialog.
     /// - Returns: A view that presents the dialog.
-    public func confirmationDialog<Actions: View, Message: View>(
+    nonisolated public func confirmationDialog<Actions: View, Message: View>(
         _ title: Text, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic,
         @ViewBuilder actions: @escaping () -> Actions, @ViewBuilder message: @escaping () -> Message
     ) -> some View {
@@ -116,7 +116,7 @@ extension View {
     ///   - titleVisibility: The visibility of the dialog's title.
     ///   - actions: The dialog's actions.
     /// - Returns: A view that presents the dialog.
-    public func confirmationDialog<Actions: View>(
+    nonisolated public func confirmationDialog<Actions: View>(
         _ title: Text, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic,
         @ViewBuilder actions: @escaping () -> Actions
     ) -> some View {
@@ -135,7 +135,7 @@ extension View {
     ///   - actions: The dialog's actions, given the data.
     ///   - message: The message for the dialog, given the data.
     /// - Returns: A view that presents the dialog.
-    public func confirmationDialog<Actions: View, Message: View, T>(
+    nonisolated public func confirmationDialog<Actions: View, Message: View, T>(
         _ title: Text, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic, presenting data: T?,
         @ViewBuilder actions: @escaping (T) -> Actions, @ViewBuilder message: @escaping (T) -> Message
     ) -> some View {
@@ -155,7 +155,7 @@ extension View {
     ///   - data: The data the actions are made from.
     ///   - actions: The dialog's actions, given the data.
     /// - Returns: A view that presents the dialog.
-    public func confirmationDialog<Actions: View, T>(
+    nonisolated public func confirmationDialog<Actions: View, T>(
         _ title: Text, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic, presenting data: T?,
         @ViewBuilder actions: @escaping (T) -> Actions
     ) -> some View {

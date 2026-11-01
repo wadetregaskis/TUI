@@ -140,7 +140,7 @@ func designatedRowKey(context: RenderContext) -> String? {
     return context.environment.anchorPosition?.wrappedValue?.rowKey
 }
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// Re-aims a window so the designated row keeps its screen line, for the
     /// paths that place rows at absolute content y. Returns the window
     /// unchanged (and a `nil` offset to report) when nothing is designated or

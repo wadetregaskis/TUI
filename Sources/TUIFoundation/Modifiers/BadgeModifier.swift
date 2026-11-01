@@ -14,14 +14,14 @@
 /// child views. Badges automatically hide when:
 /// - The count is 0 (for integer badges)
 /// - The label is nil (for optional Text/String badges)
-package struct BadgeModifier<Content: View>: View {
+nonisolated package struct BadgeModifier<Content: View>: View {
     /// The content to apply the badge to.
     let content: Content
 
     /// The badge value (Int, Text, or String).
     let value: BadgeValue
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("BadgeModifier renders via Renderable")
     }
 }
@@ -59,7 +59,7 @@ public enum BadgeValue: Sendable {
 
 // MARK: - Equatable
 
-extension BadgeModifier: @preconcurrency Equatable where Content: Equatable {
+extension BadgeModifier: Equatable where Content: Equatable {
     package static func == (lhs: BadgeModifier<Content>, rhs: BadgeModifier<Content>) -> Bool {
         lhs.content == rhs.content && lhs.value == rhs.value
     }
@@ -93,7 +93,7 @@ private protocol BadgeCarrying {
     var carriedBadgeProminence: BadgeProminence? { get }
 }
 
-extension BadgeModifier: BadgeCarrying {
+@MainActor extension BadgeModifier: BadgeCarrying {
     fileprivate var carriedBadgeValue: BadgeValue { value }
     fileprivate var carriedBadgeProminence: BadgeProminence? { nil }
 }
@@ -114,7 +114,7 @@ extension BadgeModifier: BadgeCarrying {
 /// with `\.badgeProminence`: the environment has one value of that type, and
 /// key-path equality compares getter addresses, which the linker's
 /// deduplication can fold (the `key_path_identity` lint rule).
-extension EnvironmentModifier: BadgeCarrying where Content: BadgeCarrying {
+@MainActor extension EnvironmentModifier: BadgeCarrying where Content: BadgeCarrying {
     fileprivate var carriedBadgeValue: BadgeValue { content.carriedBadgeValue }
     fileprivate var carriedBadgeProminence: BadgeProminence? {
         content.carriedBadgeProminence ?? value as? BadgeProminence
@@ -220,7 +220,7 @@ package func rowCarriesBadge(_ view: any View) -> Bool {
 
 // MARK: - Renderable
 
-extension BadgeModifier: Renderable {
+@MainActor extension BadgeModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: badgeContext(context))
     }
@@ -234,7 +234,7 @@ extension BadgeModifier: Renderable {
 
 // MARK: - Layoutable
 
-extension BadgeModifier: Layoutable {
+@MainActor extension BadgeModifier: Layoutable {
     /// Measures `content` under the *same* badge-bearing environment the render
     /// uses: a child that draws the badge (a tab, a list row) sizes differently
     /// with it set, so the plain context would under-measure.
@@ -247,7 +247,7 @@ extension BadgeModifier: Layoutable {
 
 /// Names its content so a container asking for a z-index or an alignment guide
 /// can look through this wrapper instead of stopping at it.
-extension BadgeModifier: SingleContentWrapper {
+@MainActor extension BadgeModifier: SingleContentWrapper {
     public var wrappedContent: Content { content }
 
     /// Its content's context: the badge value it publishes
@@ -259,7 +259,7 @@ extension BadgeModifier: SingleContentWrapper {
 /// reaches each member: `Group { a; b }.badge(2)` in a `List` badges both
 /// rows, and in an `HStack` lays them side by side, where it drew `a` over
 /// `b`.
-extension BadgeModifier: ContentRewrapping {
+@MainActor extension BadgeModifier: ContentRewrapping {
     public func rewrapping<V: View>(_ view: V) -> any View {
         BadgeModifier<V>(content: view, value: value)
     }
@@ -267,22 +267,22 @@ extension BadgeModifier: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``ContentRewrapping`` wrapper.
-extension BadgeModifier: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension BadgeModifier: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Each of a row's cells badged, as each member is.
-extension BadgeModifier: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension BadgeModifier: GridRowProviding where Content: GridRowProviding {}
 
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension BadgeModifier: DrawsContentUnchanged {}
+@MainActor extension BadgeModifier: DrawsContentUnchanged {}
 
 // MARK: - In a Form
 
 /// A badge written on a form row is the row's the form lays out, which keeps
 /// its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
-extension BadgeModifier: FormRowRewrapping {
+@MainActor extension BadgeModifier: FormRowRewrapping {
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {
         BadgeModifier<V>(content: row, value: value)
     }

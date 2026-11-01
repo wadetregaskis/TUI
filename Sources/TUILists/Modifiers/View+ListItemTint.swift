@@ -18,7 +18,7 @@ extension View {
     ///
     /// - Parameter tint: The tint effect to use, or `nil` to keep the inherited
     ///   tint.
-    public func listItemTint(_ tint: ListItemTint?) -> some View {
+    nonisolated public func listItemTint(_ tint: ListItemTint?) -> some View {
         transformEnvironment(\.listItemTint) { current in
             if let tint { current = tint }
         }
@@ -29,7 +29,7 @@ extension View {
     ///
     /// - Parameter tint: The color to use to tint the content, or `nil` to keep
     ///   the inherited tint.
-    public func listItemTint(_ tint: Color?) -> some View {
+    nonisolated public func listItemTint(_ tint: Color?) -> some View {
         listItemTint(tint.map { ListItemTint.fixed($0) })
     }
 }

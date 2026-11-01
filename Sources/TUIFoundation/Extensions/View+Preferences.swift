@@ -23,7 +23,7 @@ extension View {
     ///   - key: The preference key type.
     ///   - value: The value to set.
     /// - Returns: A view that sets the preference.
-    public func preference<K: PreferenceKey>(key: K.Type, value: K.Value) -> some View {
+    nonisolated public func preference<K: PreferenceKey>(key: K.Type, value: K.Value) -> some View {
         PreferenceModifier<Self, K>(content: self, value: value)
     }
 
@@ -44,7 +44,7 @@ extension View {
     ///   - key: The preference key type.
     ///   - action: The action to perform with the new value.
     /// - Returns: A view that reacts to preference changes.
-    public func onPreferenceChange<K: PreferenceKey>(
+    nonisolated public func onPreferenceChange<K: PreferenceKey>(
         _ key: K.Type,
         perform action: @escaping (K.Value) -> Void
     ) -> some View where K.Value: Equatable {
@@ -66,7 +66,7 @@ extension View {
     ///   - key: The preference key type.
     ///   - callback: Rewrites the value in place.
     /// - Returns: A view that transforms the preference.
-    public func transformPreference<K: PreferenceKey>(
+    nonisolated public func transformPreference<K: PreferenceKey>(
         _ key: K.Type = K.self, _ callback: @escaping (inout K.Value) -> Void
     ) -> some View {
         TransformPreferenceModifier<Self, K>(content: self, transform: callback)
@@ -84,7 +84,7 @@ extension View {
     ///   - transform: A function that produces the overlay view from the
     ///     preference value read from this view's subtree.
     /// - Returns: A view that layers a second view in front of this view.
-    public func overlayPreferenceValue<Key: PreferenceKey, T: View>(
+    nonisolated public func overlayPreferenceValue<Key: PreferenceKey, T: View>(
         _ key: Key.Type = Key.self, @ViewBuilder _ transform: @escaping (Key.Value) -> T
     ) -> some View {
         PreferenceLayerModifier<Self, Key, T>(
@@ -101,7 +101,7 @@ extension View {
     ///   - transform: A function that produces the overlay view from the
     ///     preference value read from this view's subtree.
     /// - Returns: A view that layers a second view in front of this view.
-    public func overlayPreferenceValue<K: PreferenceKey, V: View>(
+    nonisolated public func overlayPreferenceValue<K: PreferenceKey, V: View>(
         _ key: K.Type, alignment: Alignment = .center, @ViewBuilder _ transform: @escaping (K.Value) -> V
     ) -> some View {
         PreferenceLayerModifier<Self, K, V>(
@@ -120,7 +120,7 @@ extension View {
     ///   - transform: A function that produces the background view from the
     ///     preference value read from this view's subtree.
     /// - Returns: A view that layers a second view behind this view.
-    public func backgroundPreferenceValue<Key: PreferenceKey, T: View>(
+    nonisolated public func backgroundPreferenceValue<Key: PreferenceKey, T: View>(
         _ key: Key.Type = Key.self, @ViewBuilder _ transform: @escaping (Key.Value) -> T
     ) -> some View {
         PreferenceLayerModifier<Self, Key, T>(
@@ -137,7 +137,7 @@ extension View {
     ///   - transform: A function that produces the background view from the
     ///     preference value read from this view's subtree.
     /// - Returns: A view that layers a second view behind this view.
-    public func backgroundPreferenceValue<K: PreferenceKey, V: View>(
+    nonisolated public func backgroundPreferenceValue<K: PreferenceKey, V: View>(
         _ key: K.Type, alignment: Alignment = .center, @ViewBuilder _ transform: @escaping (K.Value) -> V
     ) -> some View {
         PreferenceLayerModifier<Self, K, V>(
@@ -164,7 +164,7 @@ extension View {
     ///
     /// - Parameter titleKey: The key for the navigation title.
     /// - Returns: A view with the navigation title preference set.
-    public func navigationTitle(_ titleKey: LocalizedStringKey) -> some View {
+    nonisolated public func navigationTitle(_ titleKey: LocalizedStringKey) -> some View {
         preference(key: NavigationTitleKey.self, value: titleKey.localized)
     }
 
@@ -173,7 +173,7 @@ extension View {
     /// - Parameter title: The navigation title.
     /// - Returns: A view with the navigation title preference set.
     @_disfavoredOverload
-    public func navigationTitle<S: StringProtocol>(_ title: S) -> some View {
+    nonisolated public func navigationTitle<S: StringProtocol>(_ title: S) -> some View {
         preference(key: NavigationTitleKey.self, value: String(title))
     }
 
@@ -185,7 +185,7 @@ extension View {
     ///
     /// - Parameter title: The navigation title as a `Text`.
     /// - Returns: A view with the navigation title preference set.
-    public func navigationTitle(_ title: Text) -> some View {
+    nonisolated public func navigationTitle(_ title: Text) -> some View {
         preference(key: NavigationTitleKey.self, value: title.content)
     }
 
@@ -202,7 +202,7 @@ extension View {
     /// ``LocalizedStringKey``.
     ///
     /// - Parameter subtitleKey: The key for the subtitle.
-    public func navigationSubtitle(_ subtitleKey: LocalizedStringKey) -> some View {
+    nonisolated public func navigationSubtitle(_ subtitleKey: LocalizedStringKey) -> some View {
         preference(key: NavigationSubtitleKey.self, value: subtitleKey.localized)
     }
 
@@ -210,7 +210,7 @@ extension View {
     ///
     /// - Parameter subtitle: The subtitle.
     @_disfavoredOverload
-    public func navigationSubtitle<S: StringProtocol>(_ subtitle: S) -> some View {
+    nonisolated public func navigationSubtitle<S: StringProtocol>(_ subtitle: S) -> some View {
         preference(key: NavigationSubtitleKey.self, value: String(subtitle))
     }
 
@@ -218,7 +218,7 @@ extension View {
     /// as the title is.
     ///
     /// - Parameter subtitle: The subtitle.
-    public func navigationSubtitle(_ subtitle: Text) -> some View {
+    nonisolated public func navigationSubtitle(_ subtitle: Text) -> some View {
         preference(key: NavigationSubtitleKey.self, value: subtitle.content)
     }
 
@@ -250,7 +250,7 @@ extension View {
     ///
     /// - Parameter hidesBackButton: Whether to hide the control. Default `true`.
     /// - Returns: A view that publishes the preference.
-    public func navigationBarBackButtonHidden(_ hidesBackButton: Bool = true) -> some View {
+    nonisolated public func navigationBarBackButtonHidden(_ hidesBackButton: Bool = true) -> some View {
         preference(key: NavigationBackButtonHiddenKey.self, value: hidesBackButton)
     }
 }

@@ -47,6 +47,8 @@ struct _SidebarSectionDrag {
 /// the list's body.
 @MainActor
 final class _SidebarSectionMover: SectionHeaderDecorating {
+    nonisolated init() {}
+
     /// The section in hand, by id, and the order of the movable sections
     /// while it is — the list's state.
     var held: Binding<_HeldSidebarSection?> = .constant(nil)

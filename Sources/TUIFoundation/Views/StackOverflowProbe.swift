@@ -24,7 +24,7 @@ import TUIView
 /// answers apart from every unmarked ask in the pass.
 package protocol OverflowProbedColumn {}
 
-extension VStack: OverflowProbedColumn {}
+@MainActor extension VStack: OverflowProbedColumn {}
 
 /// Whether measuring a `V` is measuring an eager column, by `V`'s type alone:
 /// `V` is a `VStack`, or a view of the app's own whose body is one, at any
@@ -52,7 +52,7 @@ func measuresAsEagerColumn<V: View>(_ type: V.Type, depth: Int = 0) -> Bool {
 
 // MARK: - The column's answer
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// The eager column's size under the overflow mark
     /// (`RenderContext.asksOverflow`): its rows measured as the unmarked
     /// probe measures them, until they reach the column's budget — one line

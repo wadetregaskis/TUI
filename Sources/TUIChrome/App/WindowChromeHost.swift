@@ -60,7 +60,7 @@ import TUIFoundation
 /// ``WindowChromeState`` in its environment — a scene rendered outside an app,
 /// which has no frames to adopt anything in — draws the content with its
 /// overlays composited, and no chrome.
-package struct _WindowChromeHost<Content: View>: View, Renderable {
+nonisolated package struct _WindowChromeHost<Content: View>: View, Renderable {
     /// The window's content.
     let content: Content
 
@@ -70,9 +70,9 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         self.content = content
     }
 
-    package var body: Never { fatalError("_WindowChromeHost renders via Renderable") }
+    @MainActor package var body: Never { fatalError("_WindowChromeHost renders via Renderable") }
 
-    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let width = max(0, context.availableWidth)
         let height = max(0, context.availableHeight)
         let chrome = context.environment.windowChrome
@@ -234,7 +234,7 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
     /// — a popover, a menu, a drop-down (``OverlayLayer/holdsInput``). Not a
     /// tooltip's panel, a toast, a dragged row's picture or a view's own
     /// displaced drawing.
-    static func presentations(in layers: [OverlayLayer]) -> [PresentedSurface] {
+    @MainActor static func presentations(in layers: [OverlayLayer]) -> [PresentedSurface] {
         layers.flatMap { layer in
             let own =
                 layer.isScreenLevel || layer.holdsInput
@@ -272,7 +272,7 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
     /// the writer dropped its last rows: the bottom bar's. The menu bar is the
     /// keyboard's way to the commands that have no key of their own, so it
     /// gives way only to the bottom bar.
-    private func reservedRows(_ chrome: WindowChromeState, tooltipRows: Int, height: Int) -> Rows {
+    @MainActor private func reservedRows(_ chrome: WindowChromeState, tooltipRows: Int, height: Int) -> Rows {
         let bottom = min(
             height, Self.toolbarHeight(contentRows: chrome.rows(.bottom) + tooltipRows, style: chrome.style))
         let menu = chrome.menuBar == nil ? 0 : min(height - bottom, 1)
@@ -291,7 +291,7 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
     /// rows that show, every item drawn is one the person can see, and a bar
     /// that shows none of its rows draws no item (keeping their `@State`, as
     /// a hidden bar's).
-    private func itemRowsShown(_ chrome: WindowChromeState, in shown: Rows, tooltipRows: Int) -> Rows {
+    @MainActor private func itemRowsShown(_ chrome: WindowChromeState, in shown: Rows, tooltipRows: Int) -> Rows {
         func rows(_ edge: WindowChromeState.Edge, shown: Int, before: Int) -> Int {
             let style = chrome.style(edge)
             let above = Self.framedRowsAbove(style: style, ruleAbove: edge == .bottom) + before
@@ -305,7 +305,7 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
     /// Asks for the frame a settlement owes: the next one, through the
     /// scheduler, so a still screen still adopts the change; or one at the
     /// instant an oscillation's pin lapses.
-    private func settle(_ settlement: WindowChromeState.Settlement, context: RenderContext) {
+    @MainActor private func settle(_ settlement: WindowChromeState.Settlement, context: RenderContext) {
         switch settlement {
         case .settled:
             break
@@ -322,7 +322,7 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
     /// learnt late (``FocusManager/postedPresentationDock(in:)``). The frame
     /// drawn is honest at the old height, the sheet over the page's bottom
     /// rows, and the next adopts the new one, as a bar's rows are adopted.
-    private func settleDock(_ dock: Int, focusManager: FocusManager, contentHeight: Int, context: RenderContext) {
+    @MainActor private func settleDock(_ dock: Int, focusManager: FocusManager, contentHeight: Int, context: RenderContext) {
         guard
             focusManager.settlePresentationDock(laidOutBy: dock, in: contentHeight, storage: context.stateStorage)
         else { return }
@@ -334,7 +334,7 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
     /// The content, drawn into the area the bars leave and centred in it — over
     /// the window background, when the content set one — with the drag preview
     /// riding above it.
-    private func placeContent(context: RenderContext, rowsAbove: Int) -> FrameBuffer {
+    @MainActor private func placeContent(context: RenderContext, rowsAbove: Int) -> FrameBuffer {
         // Drop targets re-register as the tree renders (like focus), so the
         // drag session's per-frame registry resets here, before the pass.
         let dragSession = context.environment.dragAndDropSession
@@ -441,7 +441,7 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
     /// Escape naming what they do to it (A53-KEYBOARD-DRAG).
     ///
     /// `‹` (U+2039) is East Asian Width Neutral, one cell on every host.
-    private static func markCarry(
+    @MainActor private static func markCarry(
         _ session: DragAndDropSession, labels: (returnKey: String?, escape: String), rowsAbove: Int,
         on buffer: inout FrameBuffer, context: RenderContext
     ) {
@@ -458,14 +458,14 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         statusBar.escapeClaimGrabsInput = false
     }
 
-    private static func card(_ preview: FrameBuffer, palette: any Palette) -> FrameBuffer {
+    @MainActor private static func card(_ preview: FrameBuffer, palette: any Palette) -> FrameBuffer {
         guard preview.hasFadeOnWhatIsBehind else { return preview }
         return preview.paintedOver(background: ANSIRenderer.backgroundCode(for: palette.background.resolve(with: palette)))
             .resolvingOpacity(onOpaqueFill: { nil }, surface: palette.background, palette: palette)
     }
 
     /// Centers a buffer within the target dimensions.
-    private static func centerBuffer(_ buffer: FrameBuffer, inWidth targetWidth: Int, height targetHeight: Int) -> FrameBuffer {
+    @MainActor private static func centerBuffer(_ buffer: FrameBuffer, inWidth targetWidth: Int, height targetHeight: Int) -> FrameBuffer {
         // If buffer already fills the space exactly, return as-is
         if buffer.width == targetWidth && buffer.height == targetHeight {
             return buffer

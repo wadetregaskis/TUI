@@ -73,6 +73,8 @@ public struct DismissSearchAction: Sendable {
 /// closure would have done what it meant then.
 @MainActor
 final class SearchDismissal: Equatable {
+    nonisolated init() {}
+
     var text: Binding<String>?
     weak var focusManager: FocusManager?
     var isSearching = false

@@ -220,7 +220,7 @@ extension View {
     /// - Parameter action: The async action to run. It is awaited, and the
     ///   spinner shows until it returns.
     /// - Returns: A view that refreshes on <kbd>Ctrl</kbd>-<kbd>R</kbd>.
-    public func refreshable(@_inheritActorContext action: @escaping @Sendable () async -> Void) -> some View {
+    nonisolated public func refreshable(@_inheritActorContext action: @escaping @Sendable () async -> Void) -> some View {
         RefreshableModifier(content: self, action: action)
     }
 }
@@ -236,12 +236,12 @@ private enum RefreshableStateIndex {
 
 /// Publishes a ``RefreshAction`` to its subtree, binds it to
 /// <kbd>Ctrl</kbd>-<kbd>R</kbd>, and shows a spinner while it runs.
-package struct RefreshableModifier<Content: View>: View {
+nonisolated package struct RefreshableModifier<Content: View>: View {
     let content: Content
     let action: @Sendable () async -> Void
 
     /// Not used during rendering — ``Renderable`` conformance takes priority.
-    public var body: some View { content }
+    @MainActor public var body: some View { content }
 
     /// This frame's handle to the refresh: the closure just built, bound to the
     /// run state that has been there all along.
@@ -251,7 +251,7 @@ package struct RefreshableModifier<Content: View>: View {
     /// run. What a measured child can still see is that
     /// ``EnvironmentValues/refresh`` is non-nil, which is the only thing about
     /// it that affects layout.
-    func resolvedAction(_ context: RenderContext) -> RefreshAction {
+    @MainActor func resolvedAction(_ context: RenderContext) -> RefreshAction {
         guard !context.isMeasuring, let storage = context.stateStorage else {
             return RefreshAction(action, state: RefreshAction.RunState())
         }
@@ -268,7 +268,7 @@ package struct RefreshableModifier<Content: View>: View {
     }
 }
 
-extension RefreshableModifier: Renderable {
+@MainActor extension RefreshableModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let action = resolvedAction(context)
         let childContext = context.withEnvironment(
@@ -371,7 +371,7 @@ enum RefreshRegistrar {
     }
 }
 
-extension RefreshableModifier: Layoutable {
+@MainActor extension RefreshableModifier: Layoutable {
     /// The spinner overlays the content rather than displacing it, so the size
     /// is the content's whether a refresh is running or not — which is also
     /// what keeps the layout from twitching when one starts.

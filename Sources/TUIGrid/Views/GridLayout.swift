@@ -31,7 +31,7 @@ import TUIView
 ///
 /// Spacings are whole cells. `nil`, the default, is the grid's: one column
 /// between cells, no row between rows.
-public struct GridLayout: Layout, Sendable, Equatable {
+nonisolated public struct GridLayout: Layout, Sendable, Equatable {
     /// How cells sit inside the boxes the grid gives them.
     public var alignment: Alignment
 
@@ -67,14 +67,14 @@ public struct GridLayout: Layout, Sendable, Equatable {
     }
 
     /// The column gap in force.
-    private var columnGap: Int { horizontalSpacing ?? GridLattice.defaultHorizontalSpacing }
+    @MainActor private var columnGap: Int { horizontalSpacing ?? GridLattice.defaultHorizontalSpacing }
 
     /// The row gap in force.
-    private var rowGap: Int { verticalSpacing ?? GridLattice.defaultVerticalSpacing }
+    @MainActor private var rowGap: Int { verticalSpacing ?? GridLattice.defaultVerticalSpacing }
 
     /// Groups the subviews into rows, by the marks a `GridRow` gives its
     /// cells: a subview in no row spans every column.
-    public func makeCache(subviews: Subviews) -> Cache {
+    @MainActor public func makeCache(subviews: Subviews) -> Cache {
         Cache(
             rows: groupGridRows(
                 Array(subviews.indices), mark: { subviews[$0].child.gridRowMark },
@@ -83,11 +83,11 @@ public struct GridLayout: Layout, Sendable, Equatable {
     }
 
     /// Groups the subviews afresh.
-    public func updateCache(_ cache: inout Cache, subviews: Subviews) {
+    @MainActor public func updateCache(_ cache: inout Cache, subviews: Subviews) {
         cache = makeCache(subviews: subviews)
     }
 
-    public func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout Cache) -> ViewSize {
+    @MainActor public func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout Cache) -> ViewSize {
         let lattice = lattice(cache.rows, subviews: subviews)
         cache.lattice = lattice
         return ViewSize(
@@ -97,7 +97,7 @@ public struct GridLayout: Layout, Sendable, Equatable {
                 max(0, proposal.height ?? lattice.totalHeight(spacing: rowGap))))
     }
 
-    public func placeSubviews(
+    @MainActor public func placeSubviews(
         in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout Cache
     ) {
         let lattice = cache.lattice ?? lattice(cache.rows, subviews: subviews)
@@ -130,13 +130,13 @@ public struct GridLayout: Layout, Sendable, Equatable {
     }
 
     /// Every subview's preference, merged on every edge — the default.
-    public func spacing(subviews: Subviews, cache: inout Cache) -> ViewSpacing {
+    @MainActor public func spacing(subviews: Subviews, cache: inout Cache) -> ViewSpacing {
         subviews.mergedSpacing
     }
 
     /// The subviews' explicit values for a custom guide or a text baseline,
     /// merged — the default; none for an edge or the centre.
-    public func explicitAlignment(
+    @MainActor public func explicitAlignment(
         of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
@@ -146,7 +146,7 @@ public struct GridLayout: Layout, Sendable, Equatable {
 
     /// The subviews' explicit values for a custom guide or a text baseline,
     /// merged — the default; none for an edge or the centre.
-    public func explicitAlignment(
+    @MainActor public func explicitAlignment(
         of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
@@ -156,7 +156,7 @@ public struct GridLayout: Layout, Sendable, Equatable {
 
     /// The grid's lattice over `rows`, from each cell's size at an
     /// unspecified proposal — what ``Grid`` builds from its children.
-    private func lattice(_ rows: [GridRowGroup<Int>], subviews: Subviews) -> GridLattice {
+    @MainActor private func lattice(_ rows: [GridRowGroup<Int>], subviews: Subviews) -> GridLattice {
         GridLattice(
             rows: rows.map { row in
                 GridLattice.Row(
@@ -174,7 +174,7 @@ public struct GridLayout: Layout, Sendable, Equatable {
     }
 }
 
-extension GridLayout {
+@MainActor extension GridLayout {
     /// A grid stacks its rows into a column, so a subview in no row — the
     /// `Divider` between two rows — draws as the horizontal rule it is in a
     /// ``Grid``.
@@ -188,12 +188,12 @@ extension GridLayout {
     public static var _definesExplicitAlignment: Bool { false }
 }
 
-extension GridLayout: Animatable {
+@MainActor extension GridLayout: Animatable {
     /// A grid layout animates nothing of its own.
     public typealias AnimatableData = EmptyAnimatableData
 }
 
 /// A `ForEach` of rows is cells, as in a ``Grid``.
-extension GridLayout: WholeGridRowExpanding {
+@MainActor extension GridLayout: WholeGridRowExpanding {
     package var expandsWholeGridRows: Bool { true }
 }

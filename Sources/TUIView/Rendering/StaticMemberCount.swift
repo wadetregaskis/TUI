@@ -161,7 +161,7 @@ private func wrappedIsOnlyEmptyView<W: SingleContentWrapper>(_: W.Type) -> Bool 
 
 // MARK: - The Framework's Own Providers
 
-extension TupleView: StaticMemberCounting {
+@MainActor extension TupleView: StaticMemberCounting {
     /// The sum of the elements' counts, if each has one.
     package static var staticMemberCount: Int? {
         var total: Int? = 0
@@ -177,7 +177,7 @@ extension TupleView: StaticMemberCounting {
     }
 }
 
-extension ConditionalView: StaticMemberCounting {
+@MainActor extension ConditionalView: StaticMemberCounting {
     /// The arms' count when they agree; otherwise it depends on which is live.
     package static var staticMemberCount: Int? {
         let whenTrue = TUIView.staticMemberCount(TrueContent.self)
@@ -230,7 +230,7 @@ extension Optional: StaticMemberCounting where Wrapped: View {
     }
 }
 
-extension ModifiedView: StaticMemberCounting where Content: ChildViewProvider {
+@MainActor extension ModifiedView: StaticMemberCounting where Content: ChildViewProvider {
     /// The content's: a modifier on several views reaches each of them.
     package static var staticMemberCount: Int? { TUIView.staticMemberCount(Content.self) }
 

@@ -67,4 +67,4 @@ package enum DroppedMember {
 @MainActor
 package protocol AlertActionControl {}
 
-extension Toggle: AlertActionControl {}
+@MainActor extension Toggle: AlertActionControl {}

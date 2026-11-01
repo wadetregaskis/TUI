@@ -61,7 +61,7 @@ extension View {
     ///
     /// - Parameter behavior: The behavior.
     /// - Returns: This view, unchanged.
-    public func searchToolbarBehavior(_ behavior: SearchToolbarBehavior) -> some View {
+    nonisolated public func searchToolbarBehavior(_ behavior: SearchToolbarBehavior) -> some View {
         self
     }
 
@@ -77,7 +77,7 @@ extension View {
     ///
     /// - Parameter behavior: The behavior.
     /// - Returns: This view, unchanged.
-    public func searchPresentationToolbarBehavior(
+    nonisolated public func searchPresentationToolbarBehavior(
         _ behavior: SearchPresentationToolbarBehavior
     ) -> some View {
         self

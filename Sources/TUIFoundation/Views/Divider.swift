@@ -35,7 +35,7 @@
 /// // Result:
 /// // left │ right
 /// ```
-public struct Divider: View, Equatable {
+nonisolated public struct Divider: View, Equatable {
     /// The character used for the line, or `nil` to pick one from the axis of
     /// the enclosing stack.
     var character: Character?
@@ -60,14 +60,14 @@ public struct Divider: View, Equatable {
         self.character = character
     }
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("Divider is a primitive view")
     }
 }
 
 // MARK: - Divider Rendering
 
-extension Divider: Renderable, Layoutable {
+@MainActor extension Divider: Renderable, Layoutable {
     /// Whether this divider is a vertical rule, i.e. sits in a row.
     ///
     /// SwiftUI: "When contained in a stack, the divider extends across the

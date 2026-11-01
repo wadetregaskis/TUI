@@ -57,7 +57,7 @@ struct TimerIntervalSchedule: TimelineSchedule, Sendable {
 /// The default type of the current value label when used by a date-relative
 /// progress view: the time left in the interval, or the time gone when the
 /// view counts up — `0:42`, `12:05`, `1:02:03`.
-public struct DefaultDateProgressLabel: View {
+nonisolated public struct DefaultDateProgressLabel: View {
     /// The interval's bounds, as reference-date seconds.
     let start: Double
     let end: Double
@@ -65,20 +65,20 @@ public struct DefaultDateProgressLabel: View {
     /// Whether to show the time left rather than the time gone.
     let countsDown: Bool
 
-    public var body: some View {
+    @MainActor public var body: some View {
         TimelineView(TimerIntervalSchedule(start: start, end: end)) { timeline in
             Text(verbatim: Self.timerText(seconds: seconds(at: timeline.date)))
         }
     }
 
     /// The whole seconds left (counting down) or gone (counting up) at `date`.
-    private func seconds(at date: Date) -> Int {
+    @MainActor private func seconds(at date: Date) -> Int {
         let now = min(end, max(start, date.timeIntervalSinceReferenceDate))
         return Int((countsDown ? (end - now).rounded(.up) : (now - start).rounded(.down)))
     }
 
     /// `m:ss`, or `h:mm:ss` from an hour.
-    static func timerText(seconds: Int) -> String {
+    @MainActor static func timerText(seconds: Int) -> String {
         let hours = seconds / 3600
         let minutes = seconds / 60 % 60
         let secs = seconds % 60

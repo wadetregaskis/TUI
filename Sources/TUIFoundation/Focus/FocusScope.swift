@@ -42,7 +42,7 @@ extension View {
     ///   preferences.
     /// - Returns: A view that sets the namespace of descendants for default
     ///   focus.
-    public func focusScope(_ namespace: Namespace.ID) -> some View {
+    nonisolated public func focusScope(_ namespace: Namespace.ID) -> some View {
         _FocusScopeModifier(content: self, namespace: namespace)
     }
 
@@ -75,7 +75,7 @@ extension View {
     ///     prefers default focus.
     /// - Returns: A modified view that sets whether it prefers to be focused by
     ///   default.
-    public func prefersDefaultFocus(
+    nonisolated public func prefersDefaultFocus(
         _ prefersDefaultFocus: Bool = true, in namespace: Namespace.ID
     ) -> some View {
         _PrefersDefaultFocusModifier(content: self, prefers: prefersDefaultFocus, namespace: namespace)
@@ -374,16 +374,16 @@ extension EnvironmentValues {
 
 /// Declares its scope each render, and draws its content unchanged at its own
 /// identity — the identity the focus is tested against.
-struct _FocusScopeModifier<Content: View>: View {
+nonisolated struct _FocusScopeModifier<Content: View>: View {
     let content: Content
     let namespace: Namespace.ID
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_FocusScopeModifier renders via Renderable")
     }
 }
 
-extension _FocusScopeModifier: Renderable {
+@MainActor extension _FocusScopeModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         if !context.isMeasuring { declare(context: context) }
         return TUIView.renderToBuffer(content, context: context)
@@ -406,7 +406,7 @@ extension _FocusScopeModifier: Renderable {
     }
 }
 
-extension _FocusScopeModifier: Layoutable {
+@MainActor extension _FocusScopeModifier: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
@@ -429,17 +429,17 @@ enum FocusScopeRegistrar {
 }
 
 /// Puts a fresh ``PreferredFocusOffer`` in the environment on every render.
-struct _PrefersDefaultFocusModifier<Content: View>: View {
+nonisolated struct _PrefersDefaultFocusModifier<Content: View>: View {
     let content: Content
     let prefers: Bool
     let namespace: Namespace.ID
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_PrefersDefaultFocusModifier renders via Renderable")
     }
 }
 
-extension _PrefersDefaultFocusModifier: Renderable {
+@MainActor extension _PrefersDefaultFocusModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard prefers, !context.isMeasuring else {
             return TUIView.renderToBuffer(content, context: context)
@@ -457,7 +457,7 @@ extension _PrefersDefaultFocusModifier: Renderable {
     }
 }
 
-extension _PrefersDefaultFocusModifier: Layoutable {
+@MainActor extension _PrefersDefaultFocusModifier: Layoutable {
     /// Measures as its content, with no offer: a measure pass registers
     /// nothing, so nothing would claim it.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -471,14 +471,14 @@ extension _PrefersDefaultFocusModifier: Layoutable {
 /// guide can look through it instead of stopping at it. Read-only: neither
 /// conforms to ``ContentRewrapping``, so nothing about it is distributed to the
 /// members of multi-view content.
-extension _FocusScopeModifier: SingleContentWrapper {
+@MainActor extension _FocusScopeModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
     func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
-extension _PrefersDefaultFocusModifier: SingleContentWrapper {
+@MainActor extension _PrefersDefaultFocusModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -489,8 +489,8 @@ extension _PrefersDefaultFocusModifier: SingleContentWrapper {
 
 /// Each draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _FocusScopeModifier: DrawsContentUnchanged {}
-extension _PrefersDefaultFocusModifier: DrawsContentUnchanged {}
+@MainActor extension _FocusScopeModifier: DrawsContentUnchanged {}
+@MainActor extension _PrefersDefaultFocusModifier: DrawsContentUnchanged {}
 
 extension MouseEventDispatcher {
     /// ``dispatch(_:)``, then ``FocusManager/notePointerInput(_:consumed:regions:)``:
@@ -514,13 +514,13 @@ extension MouseEventDispatcher {
 /// A focus scope, or a preference for the default focus in one, written on a
 /// form row goes around the row the form lays out, which keeps its place, as
 /// SwiftUI's form keeps a row under the modifiers measured (`Tools/SwiftUIProbes/Form rows`).
-extension _FocusScopeModifier: FormRowRewrapping {
+@MainActor extension _FocusScopeModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
         _FocusScopeModifier<V>(content: row, namespace: namespace)
     }
 }
 
-extension _PrefersDefaultFocusModifier: FormRowRewrapping {
+@MainActor extension _PrefersDefaultFocusModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
         _PrefersDefaultFocusModifier<V>(content: row, prefers: prefers, namespace: namespace)
     }

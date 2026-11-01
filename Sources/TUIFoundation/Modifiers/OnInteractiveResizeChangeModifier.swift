@@ -45,7 +45,7 @@ extension View {
     ///
     /// - Parameter action: A closure to run when the state of the window's
     ///   interactive resize changes.
-    public func onInteractiveResizeChange(_ action: @escaping (Bool) -> Void) -> some View {
+    nonisolated public func onInteractiveResizeChange(_ action: @escaping (Bool) -> Void) -> some View {
         OnInteractiveResizeChangeModifier(content: self, action: action)
     }
 
@@ -60,7 +60,7 @@ extension View {
     ///
     /// A TUI addition: SwiftUI is told when a drag begins and ends, and has
     /// no timeout to set.
-    public func interactiveResizeTimeout(_ timeout: Duration) -> some View {
+    nonisolated public func interactiveResizeTimeout(_ timeout: Duration) -> some View {
         environment(\.interactiveResizeTimeout, timeout)
     }
 }
@@ -87,16 +87,16 @@ extension EnvironmentValues {
 /// pass, compares whether the terminal is in a burst of resizes with what it
 /// last told the action, tells it of a change, and asks for the frame at which
 /// the burst it is in will have ended.
-struct OnInteractiveResizeChangeModifier<Content: View>: View {
+nonisolated struct OnInteractiveResizeChangeModifier<Content: View>: View {
     let content: Content
     let action: (Bool) -> Void
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("OnInteractiveResizeChangeModifier renders via Renderable")
     }
 }
 
-extension OnInteractiveResizeChangeModifier: Renderable {
+@MainActor extension OnInteractiveResizeChangeModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A render side effect, so never on a measure.
         //
@@ -145,7 +145,7 @@ extension OnInteractiveResizeChangeModifier: Renderable {
     }
 }
 
-extension OnInteractiveResizeChangeModifier: Layoutable {
+@MainActor extension OnInteractiveResizeChangeModifier: Layoutable {
     /// Behaviour only: it measures as its content does.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
@@ -154,7 +154,7 @@ extension OnInteractiveResizeChangeModifier: Layoutable {
 
 /// Names its content so a container asking for a z-index or an alignment guide
 /// can look through this wrapper instead of stopping at it.
-extension OnInteractiveResizeChangeModifier: SingleContentWrapper {
+@MainActor extension OnInteractiveResizeChangeModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -163,4 +163,4 @@ extension OnInteractiveResizeChangeModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension OnInteractiveResizeChangeModifier: DrawsContentUnchanged {}
+@MainActor extension OnInteractiveResizeChangeModifier: DrawsContentUnchanged {}

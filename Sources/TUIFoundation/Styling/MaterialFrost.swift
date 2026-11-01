@@ -195,7 +195,7 @@ extension View {
     /// - Parameter frost: The frost: ``MaterialFrost/automatic``,
     ///   ``MaterialFrost/none``, or a box of ``MaterialFrost/radius(columns:rows:)``.
     /// - Returns: A view whose materials and glass frost as `frost` says.
-    public func materialFrost(_ frost: MaterialFrost) -> some View {
+    nonisolated public func materialFrost(_ frost: MaterialFrost) -> some View {
         environment(\.materialFrost, frost)
     }
 
@@ -207,7 +207,7 @@ extension View {
     ///   ``MaterialFrostResolution/native``, or the terminal's pixels
     ///   ``MaterialFrostResolution/downsampled(by:)``.
     /// - Returns: A view whose materials and glass frost pictures at `resolution`.
-    public func materialFrostResolution(_ resolution: MaterialFrostResolution) -> some View {
+    nonisolated public func materialFrostResolution(_ resolution: MaterialFrostResolution) -> some View {
         environment(\.materialFrostResolution, resolution)
     }
 }

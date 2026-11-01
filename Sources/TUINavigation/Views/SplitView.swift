@@ -39,7 +39,7 @@ import TUIFoundation
 /// through. A `.frame(width:)` pins the pane. When the split has too little
 /// room for every pane's minimum, or more than every pane's maximum, the
 /// panes give way from the last.
-public struct HSplitView<Content: View>: View {
+nonisolated public struct HSplitView<Content: View>: View {
     let content: Content
 
     /// Creates a horizontal split view of the given children.
@@ -49,7 +49,7 @@ public struct HSplitView<Content: View>: View {
         self.content = content()
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _SplitViewCore(axis: .horizontal, content: content)
     }
 }
@@ -59,7 +59,7 @@ public struct HSplitView<Content: View>: View {
 ///
 /// The vertical twin of ``HSplitView``: Up and Down move a divider, and a
 /// pane's `.frame(minHeight:idealHeight:maxHeight:)` bounds it.
-public struct VSplitView<Content: View>: View {
+nonisolated public struct VSplitView<Content: View>: View {
     let content: Content
 
     /// Creates a vertical split view of the given children.
@@ -69,7 +69,7 @@ public struct VSplitView<Content: View>: View {
         self.content = content()
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _SplitViewCore(axis: .vertical, content: content)
     }
 }
@@ -114,7 +114,7 @@ protocol SplitPaneBoundsProviding {
     func splitPaneBounds(along axis: Axis) -> SplitPaneBounds
 }
 
-extension FlexibleFrameView: SplitPaneBoundsProviding {
+@MainActor extension FlexibleFrameView: SplitPaneBoundsProviding {
     /// The frame's minimum, ideal and maximum on the split's axis. A
     /// `maxWidth: .infinity` states no maximum, and a maximum below the
     /// minimum is the minimum, as a frame's own layout takes it.

@@ -133,7 +133,7 @@ extension View {
     ///     for other views in the group.
     /// - Returns: A new view that defines an entry in the global database of
     ///   views synchronizing their geometry.
-    public func matchedGeometryEffect<ID: Hashable>(
+    nonisolated public func matchedGeometryEffect<ID: Hashable>(
         id: ID, in namespace: Namespace.ID, properties: MatchedGeometryProperties = .frame,
         anchor: UnitPoint = .center, isSource: Bool = true
     ) -> some View {
@@ -151,19 +151,19 @@ extension View {
 /// A `_*Core` with no public face: like `.offset`, the effect is a modifier on
 /// the view it wraps, and what it does — draw the content at a frame found
 /// from other views' drawings — is procedural.
-struct _MatchedGeometryEffectView<Content: View>: View {
+nonisolated struct _MatchedGeometryEffectView<Content: View>: View {
     let key: MatchedGeometryKey
     let anchor: UnitPoint
     let properties: MatchedGeometryProperties
     let isSource: Bool
     let content: Content
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_MatchedGeometryEffectView renders via Renderable")
     }
 }
 
-extension _MatchedGeometryEffectView: Renderable, Layoutable {
+@MainActor extension _MatchedGeometryEffectView: Renderable, Layoutable {
     /// The effect never changes the view's place in its parent's layout:
     /// this measures as its content.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -473,6 +473,6 @@ enum MatchedGeometryPlacement {
 /// Names its content so a container asking for a z-index can look through
 /// this wrapper. Read-only: it does not conform to ``ContentRewrapping``, so
 /// the effect is not handed to each member of multi-view content.
-extension _MatchedGeometryEffectView: SingleContentWrapper {
+@MainActor extension _MatchedGeometryEffectView: SingleContentWrapper {
     var wrappedContent: Content { content }
 }

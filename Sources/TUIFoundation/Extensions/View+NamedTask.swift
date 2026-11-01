@@ -32,7 +32,7 @@ extension View {
     ///   - line: The line the default name is made from.
     ///   - action: The work to do.
     /// - Returns: A view that runs `action` while it is shown.
-    public func task(
+    nonisolated public func task(
         name: String? = nil,
         priority: TaskPriority = .userInitiated,
         file: String = #fileID,
@@ -71,7 +71,7 @@ extension View {
     ///   - action: The work to do.
     /// - Returns: A view that runs `action` while it is shown, restarting it
     ///   when `id` changes.
-    public func task<T: Equatable>(
+    nonisolated public func task<T: Equatable>(
         id: T,
         name: String? = nil,
         priority: TaskPriority = .userInitiated,

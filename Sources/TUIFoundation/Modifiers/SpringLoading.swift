@@ -124,7 +124,7 @@ extension View {
     /// - Parameter behavior: Whether spring loading is enabled or not. If
     ///   unspecified, the default behavior is `.automatic`.
     /// - Returns: A view whose spring-loading views follow `behavior`.
-    public func springLoadingBehavior(_ behavior: SpringLoadingBehavior) -> some View {
+    nonisolated public func springLoadingBehavior(_ behavior: SpringLoadingBehavior) -> some View {
         environment(\.springLoadingBehavior, behavior)
     }
 }

@@ -15,7 +15,7 @@ import TUIView
 ///
 /// Multiple chained `.onChange(of:)` modifiers on the same view are
 /// disambiguated via ``StateStorage/nextOnChangeIndex(for:)``.
-package struct OnChangeModifier<Content: View, V: Equatable>: View {
+nonisolated package struct OnChangeModifier<Content: View, V: Equatable>: View {
     /// The content view to wrap.
     let content: Content
 
@@ -37,14 +37,14 @@ package struct OnChangeModifier<Content: View, V: Equatable>: View {
         self.action = action
     }
 
-    package var body: Never {
+    @MainActor package var body: Never {
         fatalError("OnChangeModifier renders via Renderable")
     }
 }
 
 // MARK: - Renderable
 
-extension OnChangeModifier: Renderable {
+@MainActor extension OnChangeModifier: Renderable {
     package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Pure passthrough during a measure pass: the comparison, the index
         // claim and the action are render side effects. A measure-pass render
@@ -139,7 +139,7 @@ extension StateStorage {
 
 // MARK: - Layoutable
 
-extension OnChangeModifier: Layoutable {
+@MainActor extension OnChangeModifier: Layoutable {
     /// Renders `content` unchanged, so it measures as `content`. Forwarding is
     /// also what keeps the change-detection and `action` firing on the render
     /// pass — a measure must not observe values or fire `onChange`.
@@ -154,7 +154,7 @@ extension OnChangeModifier: Layoutable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension OnChangeModifier: SingleContentWrapper {
+@MainActor extension OnChangeModifier: SingleContentWrapper {
     package var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -164,7 +164,7 @@ extension OnChangeModifier: SingleContentWrapper {
 /// A change action written on a form row — `Toggle(…).onChange(of: x) { … }`
 /// — goes around the row the form lays out, which keeps its place, as
 /// SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
-extension OnChangeModifier: FormRowRewrapping {
+@MainActor extension OnChangeModifier: FormRowRewrapping {
     package func rewrappingFormRow<R: View>(_ row: R) -> any View {
         OnChangeModifier<R, V>(content: row, value: value, initial: initial, action: action)
     }
@@ -174,4 +174,4 @@ extension OnChangeModifier: FormRowRewrapping {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension OnChangeModifier: DrawsContentUnchanged {}
+@MainActor extension OnChangeModifier: DrawsContentUnchanged {}

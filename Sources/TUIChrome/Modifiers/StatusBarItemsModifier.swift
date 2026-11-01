@@ -32,7 +32,7 @@ import TUIFoundation
 ///     }
 /// }
 /// ```
-struct StatusBarItemsModifier<Content: View>: View {
+nonisolated struct StatusBarItemsModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
@@ -46,7 +46,7 @@ struct StatusBarItemsModifier<Content: View>: View {
     /// Nil for the new composition-based API.
     let context: String?
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("StatusBarItemsModifier renders via Renderable")
     }
 }
@@ -55,7 +55,7 @@ struct StatusBarItemsModifier<Content: View>: View {
 
 /// Draws its content unchanged, at its own identity, so a removal transition written
 /// inside it plays — see `DrawsContentUnchanged`.
-extension StatusBarItemsModifier: DrawsContentUnchanged {
+@MainActor extension StatusBarItemsModifier: DrawsContentUnchanged {
     var wrappedContent: Content { content }
 
     /// It keeps its content's geometry: it only registers its items.
@@ -65,7 +65,7 @@ extension StatusBarItemsModifier: DrawsContentUnchanged {
     func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
-extension StatusBarItemsModifier: Renderable {
+@MainActor extension StatusBarItemsModifier: Renderable {
     func renderToBuffer(context renderContext: RenderContext) -> FrameBuffer {
         // No status bar (a headless render, a test): nothing to register
         // into, and the content still draws.
@@ -141,7 +141,7 @@ enum StatusBarItemsRegistrar {
 
 // MARK: - Layoutable
 
-extension StatusBarItemsModifier: Layoutable {
+@MainActor extension StatusBarItemsModifier: Layoutable {
     /// Status-bar items render on a separate bar, not inline, so this measures as
     /// `content`. Forwarding also keeps the item-registration side-effect to the
     /// render pass — a measure must not mutate the status bar.

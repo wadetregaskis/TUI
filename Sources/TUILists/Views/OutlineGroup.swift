@@ -117,8 +117,7 @@ import TUIView
 /// `OutlineGroup` is not only a view: as in SwiftUI it also builds a table's
 /// rows, and it is a view exactly when what it builds is one. It is
 /// main-actor isolated as a whole, as its `View` conformance made it.
-@MainActor
-public struct OutlineGroup<Data: RandomAccessCollection, ID: Hashable, Leaf> {
+nonisolated public struct OutlineGroup<Data: RandomAccessCollection, ID: Hashable, Leaf> {
     /// The top-level elements, flattened out of whichever initializer was used
     /// so one implementation serves both the `root` and the collection forms.
     package let roots: [Data.Element]
@@ -141,7 +140,7 @@ public struct OutlineGroup<Data: RandomAccessCollection, ID: Hashable, Leaf> {
     let activation = OutlineActivation()
 }
 
-extension OutlineGroup: View where Leaf: View {
+@MainActor extension OutlineGroup: View where Leaf: View {
     /// Never called: an outline is a run of rows, not one view, so it hands its
     /// children to its container instead of rendering itself. `ForEach` says
     /// the same thing the same way.
@@ -247,7 +246,7 @@ final class OutlineSubtreeIndex<Element, ID: Hashable> {
 
 // MARK: - The rows
 
-extension OutlineGroup where Leaf: View {
+@MainActor extension OutlineGroup where Leaf: View {
     /// The rows to draw, depth-first, stopping at every closed branch.
     ///
     /// Recomputed per pass rather than cached: it is a function of the data and
@@ -365,7 +364,7 @@ extension OutlineGroup where Leaf: View {
 
 // MARK: - One row per visible node
 
-extension OutlineGroup: ChildViewProvider where Leaf: View {
+@MainActor extension OutlineGroup: ChildViewProvider where Leaf: View {
     /// One child per visible node, keyed by the node's id — so a stack lays the
     /// tree out as a column of siblings, and each row's own state follows its
     /// node rather than its position.
@@ -380,7 +379,7 @@ extension OutlineGroup: ChildViewProvider where Leaf: View {
     }
 }
 
-extension OutlineGroup: OutlineRowActivating where Leaf: View {
+@MainActor extension OutlineGroup: OutlineRowActivating where Leaf: View {
     /// `nonisolated` because key dispatch is: the handler reaches this from
     /// outside the main actor, and everything it touches — a `let` reference
     /// and the closure inside it — is written only by the render loop.
@@ -396,7 +395,7 @@ extension OutlineGroup: OutlineRowActivating where Leaf: View {
     }
 }
 
-extension OutlineGroup: ListRowExtractor where Leaf: View {
+@MainActor extension OutlineGroup: ListRowExtractor where Leaf: View {
     /// One list row per visible node, so a `List` selects, reveals and scrolls
     /// to *nodes* rather than to the outline as a whole.
     ///
@@ -494,7 +493,7 @@ extension OutlineGroup: ListRowExtractor where Leaf: View {
 ///
 /// Its own type rather than a `@ViewBuilder` result so the row has a name —
 /// which is what a `ChildView` needs to key each node's identity by.
-public struct _OutlineRow<Element, ID: Hashable, Leaf: View>: View {
+public struct _OutlineRow<Element, ID: Hashable, Leaf: View> {
     let element: Element
     let id: ID
     let depth: Int
@@ -518,7 +517,8 @@ public struct _OutlineRow<Element, ID: Hashable, Leaf: View>: View {
     /// click on the triangle itself.
     @FocusState private var triangleFocused: Bool
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         if isBranch {
             branchRow
                 .padding(.leading, depth * DisclosureMetrics.contentIndent)
@@ -542,7 +542,7 @@ public struct _OutlineRow<Element, ID: Hashable, Leaf: View>: View {
     /// so the triangle and anything interactive in the label keep their clicks. In a list
     /// the same region would sit in front of the list's and swallow its selection.
     @ViewBuilder
-    private var branchRow: some View {
+    @MainActor private var branchRow: some View {
         let row = HStack(spacing: 0) {
             //
             // One cell is a small target, so the button is deliberately
@@ -572,7 +572,7 @@ public struct _OutlineRow<Element, ID: Hashable, Leaf: View>: View {
     /// The triangle: a Tab stop of its own when nothing else owns the row, a
     /// bare tappable glyph when a list's cursor does.
     @ViewBuilder
-    private var triangle: some View {
+    @MainActor private var triangle: some View {
         let glyph = Text(verbatim: isExpanded
             ? TerminalSymbols.disclosureExpanded
             : TerminalSymbols.disclosureCollapsed)
@@ -602,14 +602,14 @@ public struct _OutlineRow<Element, ID: Hashable, Leaf: View>: View {
     }
 
     /// Opens a closed node, or closes an open one.
-    private func toggle() {
+    @MainActor private func toggle() {
         setExpanded(!expansion.value.contains(id))
     }
 
     /// Puts this node into a named state, and reports whether that changed
     /// anything — which is what decides if the key was used up.
     @discardableResult
-    private func setExpanded(_ open: Bool) -> Bool {
+    @MainActor private func setExpanded(_ open: Bool) -> Bool {
         guard expansion.value.contains(id) != open else { return open }
         if open {
             expansion.value.insert(id)
@@ -619,6 +619,7 @@ public struct _OutlineRow<Element, ID: Hashable, Leaf: View>: View {
         return true
     }
 }
+extension _OutlineRow: View {}
 
 // MARK: - Initializers (Identifiable)
 
@@ -707,9 +708,9 @@ extension OutlineGroup {
     }
 }
 
-extension _OutlineRow: OutlineRowMarking {}
+@MainActor extension _OutlineRow: OutlineRowMarking {}
 
-extension OutlineGroup: KeyedRowProvider where Leaf: View {
+@MainActor extension OutlineGroup: KeyedRowProvider where Leaf: View {
     package func appendKeyedRowRuns(to runs: inout KeyedRowRuns, sectionsWhole: Bool) {
         runs.append(.outline)
     }

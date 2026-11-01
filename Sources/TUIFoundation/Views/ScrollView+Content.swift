@@ -1001,7 +1001,7 @@ extension _ScrollViewCore {
     }
 }
 
-extension ScrollView {
+@MainActor extension ScrollView {
     /// A scroll view takes all it is offered on both axes, whatever it holds:
     /// `_ScrollViewCore.sizeThatFits` answers flexible on every measure, and
     /// what the body puts round it (`.disabled`, the background) leaves the

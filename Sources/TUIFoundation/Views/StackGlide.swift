@@ -127,7 +127,7 @@ struct StackPlacements {
     var height: Int
 }
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// Where `renderClip`'s PASS 3 puts each child: down the column by the
     /// rows each one draws (`buffers`, or a spacer's height), a gap charged
     /// only between two children that draw rows, as `appendVertically` charges
@@ -156,7 +156,7 @@ extension _VStackCore {
     }
 }
 
-extension _HStackCore {
+@MainActor extension _HStackCore {
     /// Where `renderClip`'s assembly puts each child: along the row by the
     /// columns each one draws (`buffers`, or a spacer's width), a gap charged
     /// only between two children that draw columns, as `appendHorizontally`

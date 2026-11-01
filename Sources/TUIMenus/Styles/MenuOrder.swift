@@ -53,7 +53,7 @@ extension View {
     ///
     /// - Parameter order: The menu item ordering strategy to apply.
     /// - Returns: A view that uses `order` for the menus it presents.
-    public func menuOrder(_ order: MenuOrder) -> some View {
+    nonisolated public func menuOrder(_ order: MenuOrder) -> some View {
         environment(\.menuOrder, order)
     }
 
@@ -63,7 +63,7 @@ extension View {
     /// - Parameter visibility: `.hidden` takes the caret away; `.visible` and
     ///   `.automatic` show it.
     /// - Returns: A view whose menus show or hide their caret.
-    public func menuIndicator(_ visibility: Visibility) -> some View {
+    nonisolated public func menuIndicator(_ visibility: Visibility) -> some View {
         environment(\.menuIndicatorVisibility, visibility)
     }
 }

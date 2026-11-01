@@ -466,11 +466,11 @@ extension TableOutlineGroupContent {
 
 // MARK: - OutlineGroup of table rows
 
-extension OutlineGroup: _TableRowValued where Leaf: TableRowContent, Data.Element == Leaf.TableRowValue {
+@MainActor extension OutlineGroup: _TableRowValued where Leaf: TableRowContent, Data.Element == Leaf.TableRowValue {
     public typealias TableRowValue = Leaf.TableRowValue
 }
 
-extension OutlineGroup: TableRowContent
+@MainActor extension OutlineGroup: TableRowContent
 where Leaf: TableRowContent, Data.Element == Leaf.TableRowValue, ID == Data.Element.ID {
     public typealias TableRowBody = Never
 
@@ -561,7 +561,7 @@ where Leaf: TableRowContent, Data.Element == Leaf.TableRowValue, ID == Data.Elem
     }
 }
 
-extension OutlineGroup
+@MainActor extension OutlineGroup
 where Leaf: TableRowContent, Data.Element == Leaf.TableRowValue, ID == Data.Element.ID {
     /// Appends a tree node for each root.
     @MainActor

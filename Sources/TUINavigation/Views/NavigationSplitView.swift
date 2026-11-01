@@ -144,7 +144,7 @@ import TUIFoundation
 /// - Columns are separated by a vertical line character (`│`).
 /// - The split view renders within the content area between AppHeader and StatusBar.
 /// - Column widths are determined by the ``NavigationSplitViewStyle``.
-public struct NavigationSplitView<Sidebar: View, Content: View, Detail: View>: View {
+nonisolated public struct NavigationSplitView<Sidebar: View, Content: View, Detail: View>: View {
     /// The sidebar column content.
     let sidebar: Sidebar
 
@@ -163,7 +163,7 @@ public struct NavigationSplitView<Sidebar: View, Content: View, Detail: View>: V
     /// Binding to the column on top when the split view collapses (optional).
     let preferredCompactColumn: Binding<NavigationSplitViewColumn>?
 
-    public var body: some View {
+    @MainActor public var body: some View {
         // Through the style in the environment: a built-in style's body IS the
         // columns, and a custom one's `makeBody` draws around them.
         _NavigationSplitViewStyleHost(
@@ -1088,7 +1088,7 @@ extension _NavigationSplitViewCore {
 
 // MARK: - Equatable Conformance
 
-extension NavigationSplitView: @preconcurrency Equatable where Sidebar: Equatable, Content: Equatable, Detail: Equatable {
+extension NavigationSplitView: Equatable where Sidebar: Equatable, Content: Equatable, Detail: Equatable {
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.sidebar == rhs.sidebar && lhs.content == rhs.content && lhs.detail == rhs.detail && lhs.isThreeColumn == rhs.isThreeColumn
     }

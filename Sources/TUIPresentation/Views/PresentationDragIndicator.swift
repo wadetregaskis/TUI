@@ -57,7 +57,7 @@ extension View {
     /// indicator does nothing there, as on macOS.
     ///
     /// - Parameter visibility: The preferred visibility of the drag indicator.
-    public func presentationDragIndicator(_ visibility: Visibility) -> some View {
+    nonisolated public func presentationDragIndicator(_ visibility: Visibility) -> some View {
         _PresentationDragIndicatorView(content: self, dragIndicatorVisibility: visibility)
     }
 }
@@ -73,28 +73,28 @@ protocol PresentationDragIndicatorProviding {
 
 /// The wrapper ``View/presentationDragIndicator(_:)`` produces. Renders and
 /// measures as its content; carrying the visibility is its whole job.
-struct _PresentationDragIndicatorView<Content: View>: View, PresentationDragIndicatorProviding {
+nonisolated struct _PresentationDragIndicatorView<Content: View>: View, PresentationDragIndicatorProviding {
     let content: Content
     let dragIndicatorVisibility: Visibility
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_PresentationDragIndicatorView renders via Renderable")
     }
 }
 
-extension _PresentationDragIndicatorView: Renderable {
+@MainActor extension _PresentationDragIndicatorView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: context)
     }
 }
 
-extension _PresentationDragIndicatorView: Layoutable {
+@MainActor extension _PresentationDragIndicatorView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
 
-extension _PresentationDragIndicatorView: PresentationTraitWrapper {
+@MainActor extension _PresentationDragIndicatorView: PresentationTraitWrapper {
     var presentationTraitContent: any View { content }
 }
 
@@ -104,7 +104,7 @@ extension _PresentationDragIndicatorView: PresentationTraitWrapper {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _PresentationDragIndicatorView: SingleContentWrapper {
+@MainActor extension _PresentationDragIndicatorView: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -115,4 +115,4 @@ extension _PresentationDragIndicatorView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _PresentationDragIndicatorView: DrawsContentUnchanged {}
+@MainActor extension _PresentationDragIndicatorView: DrawsContentUnchanged {}

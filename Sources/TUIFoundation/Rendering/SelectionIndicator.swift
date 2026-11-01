@@ -45,7 +45,7 @@ extension View {
     /// TUI-specific: SwiftUI has no equivalent.
     ///
     /// - Parameter animation: `.none`, `.blink` or `.pulse`.
-    public func selectionIndicatorStyle(_ animation: TextCursorStyle.Animation) -> some View {
+    nonisolated public func selectionIndicatorStyle(_ animation: TextCursorStyle.Animation) -> some View {
         environment(\.selectionIndicatorStyle, animation)
     }
 }

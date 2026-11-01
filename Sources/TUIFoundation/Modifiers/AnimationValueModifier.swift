@@ -41,7 +41,7 @@ extension View {
     ///   - animation: How to animate changes to `value`, or `nil` for none.
     ///   - value: The value to watch.
     /// - Returns: A view whose subtree animates on changes to `value`.
-    public func animation<V: Equatable>(_ animation: Animation?, value: V) -> some View {
+    nonisolated public func animation<V: Equatable>(_ animation: Animation?, value: V) -> some View {
         _AnimationValueModifier(content: self, animation: animation, value: value)
     }
 }
@@ -52,12 +52,12 @@ extension View {
 /// Size-neutral: whether a change is animated never changes what the subtree
 /// measures — only which value it is measured *at*, which the animation store
 /// answers identically on both walks.
-struct _AnimationValueModifier<Content: View, V: Equatable>: View {
+nonisolated struct _AnimationValueModifier<Content: View, V: Equatable>: View {
     let content: Content
     let animation: Animation?
     let value: V
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_AnimationValueModifier renders via Renderable")
     }
 
@@ -67,7 +67,7 @@ struct _AnimationValueModifier<Content: View, V: Equatable>: View {
     /// two of them — `.animation(a, value: x).animation(b, value: y)` — gives
     /// each its own record: the outer one's `Content` is the inner one, so the
     /// types differ.
-    private func childContext(_ context: RenderContext, isMeasuring: Bool) -> RenderContext {
+    @MainActor private func childContext(_ context: RenderContext, isMeasuring: Bool) -> RenderContext {
         guard let storage = context.stateStorage else { return context }
         let key = AnimationStore.Key(
             identity: context.identity, owner: ObjectIdentifier(Self.self))
@@ -87,14 +87,14 @@ struct _AnimationValueModifier<Content: View, V: Equatable>: View {
     }
 }
 
-extension _AnimationValueModifier: Renderable {
+@MainActor extension _AnimationValueModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(
             content, context: childContext(context, isMeasuring: context.isMeasuring))
     }
 }
 
-extension _AnimationValueModifier: Layoutable {
+@MainActor extension _AnimationValueModifier: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(
             content, proposal: proposal,
@@ -108,7 +108,7 @@ extension _AnimationValueModifier: Layoutable {
 ///   up or two, so publishing it around each member is the same thing as
 ///   publishing it once around the pair. What changes is only that the members
 ///   stay the enclosing container's own children.
-extension _AnimationValueModifier: ContentRewrapping {
+@MainActor extension _AnimationValueModifier: ContentRewrapping {
     var wrappedContent: Content { content }
 
     /// Its content's context: the animation it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -121,14 +121,14 @@ extension _AnimationValueModifier: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _AnimationValueModifier: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _AnimationValueModifier: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _AnimationValueModifier: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension _AnimationValueModifier: GridRowProviding where Content: GridRowProviding {}
 
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _AnimationValueModifier: DrawsContentUnchanged {}
+@MainActor extension _AnimationValueModifier: DrawsContentUnchanged {}

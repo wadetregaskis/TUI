@@ -9,7 +9,7 @@
 
 import TUIFoundation
 
-extension _WindowChromeHost {
+@MainActor extension _WindowChromeHost {
     /// The menu bar `bar` draws, in its row, on the bars' background — with the
     /// open menu's layers on it, for the caller to composite over the whole
     /// window.

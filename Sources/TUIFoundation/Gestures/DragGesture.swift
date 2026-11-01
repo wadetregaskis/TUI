@@ -39,7 +39,7 @@ import TUICore
 /// the press itself when that is zero — and ends with the release, which
 /// `onEnded` hears only if the drag started. Its value is in cells
 /// (§2.2 of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`).
-public struct DragGesture: Gesture {
+nonisolated public struct DragGesture: Gesture {
     /// The attributes of a drag gesture.
     public struct Value: Equatable, Sendable {
         /// The time associated with the drag gesture's current event.
@@ -133,7 +133,7 @@ public struct DragGesture: Gesture {
     /// The type of gesture representing the body of `Self`.
     public typealias Body = Never
 
-    public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
+    @MainActor public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
         let node = inputs.node { DragGestureNode() }
         node.minimumDistance = max(0, gesture.minimumDistance)
         node.coordinateSpace = gesture.coordinateSpace

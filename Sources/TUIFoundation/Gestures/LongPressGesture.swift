@@ -49,7 +49,7 @@ import TUICore
 ///
 /// The end lands on a frame the run loop wakes for at the deadline, so it is
 /// as punctual as the frame clock.
-public struct LongPressGesture: Gesture {
+nonisolated public struct LongPressGesture: Gesture {
     /// The minimum duration of the long press that must elapse before the
     /// gesture succeeds.
     public var minimumDuration: Double
@@ -79,7 +79,7 @@ public struct LongPressGesture: Gesture {
     /// The type of gesture representing the body of `Self`.
     public typealias Body = Never
 
-    public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Bool> {
+    @MainActor public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Bool> {
         let node = inputs.node { LongPressGestureNode() }
         node.minimumDuration = gesture.minimumDuration
         node.maximumDistance = max(0, gesture.maximumDistance)

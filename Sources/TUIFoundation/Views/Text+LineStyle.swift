@@ -4,7 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-extension Text {
+@MainActor extension Text {
     /// How a line under or through text is drawn — mirrors SwiftUI's
     /// `Text.LineStyle`.
     ///

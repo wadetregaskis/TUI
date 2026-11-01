@@ -34,7 +34,7 @@ extension View {
     /// - Parameter hidden: Whether the view in a control group toolbar item is
     ///   hidden.
     /// - Returns: The view, hidden within its toolbar item if `hidden`.
-    public func toolbarItemHidden(_ hidden: Bool = true) -> some View {
+    nonisolated public func toolbarItemHidden(_ hidden: Bool = true) -> some View {
         _ToolbarItemHiddenModifier(content: self, isHidden: hidden)
     }
 }
@@ -60,18 +60,18 @@ extension EnvironmentValues {
 
 /// Draws `content`, or — hidden inside a toolbar item — nothing, keeping its
 /// state.
-struct _ToolbarItemHiddenModifier<Content: View>: View, Renderable, Layoutable {
+nonisolated struct _ToolbarItemHiddenModifier<Content: View>: View, Renderable, Layoutable {
     let content: Content
     let isHidden: Bool
 
-    var body: Never { fatalError("_ToolbarItemHiddenModifier renders via Renderable") }
+    @MainActor var body: Never { fatalError("_ToolbarItemHiddenModifier renders via Renderable") }
 
     /// Whether the view is hidden where it is drawn.
-    private func hides(in context: RenderContext) -> Bool {
+    @MainActor private func hides(in context: RenderContext) -> Bool {
         isHidden && context.environment.drawsToolbarItem
     }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard hides(in: context) else { return TUIView.renderToBuffer(content, context: context) }
         // Undrawn, so its state would be collected at the end of the pass:
         // kept, as a hidden bar keeps its items' (`retainUndrawnItems`). The
@@ -84,7 +84,7 @@ struct _ToolbarItemHiddenModifier<Content: View>: View, Renderable, Layoutable {
     }
 
     /// No room at all while hidden, so a stack closes up round it.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         guard hides(in: context) else { return measureChild(content, proposal: proposal, context: context) }
         return ViewSize(width: 0, height: 0)
     }
@@ -95,6 +95,6 @@ struct _ToolbarItemHiddenModifier<Content: View>: View, Renderable, Layoutable {
 /// Names its content so a z-index or a container value written inside it
 /// still reaches the container around it. Read-only: not
 /// ``ContentRewrapping``.
-extension _ToolbarItemHiddenModifier: SingleContentWrapper {
+@MainActor extension _ToolbarItemHiddenModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 }

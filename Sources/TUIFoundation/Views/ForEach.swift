@@ -59,8 +59,7 @@ import Foundation
 /// `ForEach` is not only a view: as in SwiftUI it also computes a table's rows,
 /// and it is a view exactly when what it computes is one. It is main-actor
 /// isolated as a whole, as it was when its `View` conformance said so.
-@MainActor
-public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content> {
+nonisolated public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content> {
     /// The collection of underlying identified data the loop creates its
     /// content from.
     public var data: Data
@@ -117,13 +116,13 @@ public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Content> {
     /// generic-metadata lookups in this unspecialised code: about 4% of a frame
     /// of the `scrolleager` scenario. An `Identifiable` element's `id` read
     /// directly is a witness call.
-    package func elementID(of element: Data.Element) -> ID {
+    @MainActor package func elementID(of element: Data.Element) -> ID {
         if let directID { return directID(element) }
         return element[keyPath: idKeyPath]
     }
 }
 
-extension ForEach: View where Content: View {
+@MainActor extension ForEach: View where Content: View {
     /// Creates a ForEach with an explicit ID key path.
     ///
     /// - Parameters:
@@ -131,7 +130,7 @@ extension ForEach: View where Content: View {
     ///   - id: The key path to the unique ID of each element.
     ///   - content: The closure that creates the view for each element.
     @inlinable
-    public init(
+    nonisolated public init(
         _ data: Data,
         id: KeyPath<Data.Element, ID>,
         @ViewBuilder content: @escaping (Data.Element) -> Content
@@ -161,7 +160,7 @@ extension ForEach: View where Content: View {
 
 // MARK: - Reading the Data
 
-extension ForEach where Content: View {
+@MainActor extension ForEach where Content: View {
     /// The collection this loop iterates, as it stands in `context`: the one
     /// place a walk that has a context reads ``data``.
     ///
@@ -185,7 +184,7 @@ extension ForEach where Content: View {
 
 // MARK: - ForEach rendered on its own
 
-extension ForEach: Renderable, Layoutable where Content: View {
+@MainActor extension ForEach: Renderable, Layoutable where Content: View {
     /// Stacks the elements vertically, for the case where nothing above has
     /// resolved them into siblings of their own.
     ///
@@ -221,7 +220,7 @@ extension ForEach: Renderable, Layoutable where Content: View {
 
 // MARK: - ForEach as a ChildViewProvider
 
-extension ForEach: ChildViewProvider where Content: View {
+@MainActor extension ForEach: ChildViewProvider where Content: View {
     /// Emits one ``ChildView`` per element so containers (HStack/VStack/ZStack)
     /// can lay each iteration out as its own sibling.
     ///
@@ -347,7 +346,7 @@ extension ForEach: ChildViewProvider where Content: View {
 
 // MARK: - ForEach as a LazyChildViewProvider
 
-extension ForEach: LazyChildViewProvider where Content: View {
+@MainActor extension ForEach: LazyChildViewProvider where Content: View {
     /// The rows as an on-demand collection (Stage 4 of "Locating things
     /// without drawing them"): count and keys come straight from `data` —
     /// O(1) and per-touch respectively, with `content` never invoked — and
@@ -442,7 +441,7 @@ extension ForEach where Content: View, Data == Range<Int>, ID == Int {
 
 // MARK: - ForEach over a Binding
 
-extension ForEach where Content: View {
+@MainActor extension ForEach where Content: View {
     /// One `Binding` per element of `data`, each writing back through the
     /// collection binding at its own index.
     ///
@@ -457,7 +456,7 @@ extension ForEach where Content: View {
     /// subscript already carries the out-of-date-index guard this used to spell
     /// out for itself — see it for why an element binding cannot simply
     /// subscript the collection.
-    static func elementBindings<C>(_ data: Binding<C>) -> [Binding<C.Element>]
+    nonisolated static func elementBindings<C>(_ data: Binding<C>) -> [Binding<C.Element>]
     where C: MutableCollection, C: RandomAccessCollection {
         Array(data)
     }
@@ -504,7 +503,7 @@ extension ForEach where Content: View {
     /// The key path names a property of the ELEMENT, as it does in SwiftUI, not
     /// of the binding; it is rebased through `wrappedValue` here so callers
     /// never write `\.wrappedValue.something`.
-    public init<C>(
+    nonisolated public init<C>(
         _ data: Binding<C>,
         id: KeyPath<C.Element, ID>,
         @ViewBuilder content: @escaping (Binding<C.Element>) -> Content

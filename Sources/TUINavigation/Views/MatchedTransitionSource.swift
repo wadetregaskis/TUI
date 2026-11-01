@@ -182,7 +182,7 @@ extension View {
     ///     and reading its value in the view's body method.
     /// - Returns: A view that a zoom transition with the same `id` and
     ///   `namespace` grows from.
-    public func matchedTransitionSource(id: some Hashable, in namespace: Namespace.ID) -> some View {
+    nonisolated public func matchedTransitionSource(id: some Hashable, in namespace: Namespace.ID) -> some View {
         _MatchedTransitionSourceView(
             key: MatchedTransitionSourceID.key(id, in: namespace),
             configuration: _ResolvedMatchedTransitionSourceConfiguration(), content: self)
@@ -214,7 +214,7 @@ extension View {
     ///     source.
     /// - Returns: A view that a zoom transition with the same `id` and
     ///   `namespace` grows from.
-    public func matchedTransitionSource(
+    nonisolated public func matchedTransitionSource(
         id: some Hashable, in namespace: Namespace.ID,
         configuration: (EmptyMatchedTransitionSourceConfiguration) -> some MatchedTransitionSourceConfiguration
     ) -> some View {
@@ -243,20 +243,20 @@ struct MatchedTransitionSourceID: Hashable {
 /// source of its group, so the scene root finds where it is
 /// (``MatchedGeometryRegistry``) and a ``NavigationStack`` zooming from it
 /// knows its frame. Its configuration goes to the enclosing stack.
-private struct _MatchedTransitionSourceView<Content: View>: View, Renderable, Layoutable {
+nonisolated private struct _MatchedTransitionSourceView<Content: View>: View, Renderable, Layoutable {
     let key: MatchedGeometryKey
     let configuration: _ResolvedMatchedTransitionSourceConfiguration
     let content: Content
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_MatchedTransitionSourceView renders via Renderable")
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard !context.isMeasuring, let coordinator = context.geometryCoordinator,
             // Before the content, for the ordinal the marker's id is. Only
             // found, as `onGeometryChange` is: nothing is drawn from where it
@@ -286,6 +286,6 @@ private struct _MatchedTransitionSourceView<Content: View>: View, Renderable, La
 }
 
 /// Draws its content unchanged, at its own identity.
-extension _MatchedTransitionSourceView: SingleContentWrapper {
+@MainActor extension _MatchedTransitionSourceView: SingleContentWrapper {
     var wrappedContent: Content { content }
 }

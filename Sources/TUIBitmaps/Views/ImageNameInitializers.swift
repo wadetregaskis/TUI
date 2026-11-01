@@ -15,10 +15,10 @@ import TUIView
 ///
 /// - Important: Framework infrastructure, public only because it appears in
 ///   ``Label``'s generic signature, as `_SymbolIcon` does.
-public struct _ImageIcon: View {
+nonisolated public struct _ImageIcon: View {
     let image: Image
 
-    public var body: some View {
+    @MainActor public var body: some View {
         // The picture at a glyph's size: an icon beside a title, not a photograph
         // fitted to the row. Stretched to the two cells, as SwiftUI's resizable
         // icon fills its frame.

@@ -58,7 +58,7 @@ import TUIFoundation
 ///     previousColor()
 /// }
 /// ```
-public struct Stepper<Label: View>: View {
+nonisolated public struct Stepper<Label: View>: View {
     /// The label view describing the stepper's purpose.
     let label: Label?
 
@@ -126,7 +126,7 @@ public struct Stepper<Label: View>: View {
         self.onEditingChanged = onEditingChanged
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         // The label renders inline to the left of the control (SwiftUI parity):
         // "Qty ◀ 5 ▶". An empty/absent label collapses so there's no stray
         // leading space ("◀ 5 ▶"). The control's mouse regions are offset by the
@@ -155,8 +155,7 @@ public struct Stepper<Label: View>: View {
 /// over `V` — exactly as SwiftUI's `Stepper<Label>` is not. The persisted
 /// ``StepperHandler`` carries all the `V` arithmetic; only its value binding
 /// needs refreshing each frame (`syncValue`).
-@MainActor
-private func eraseStepperValue<V: Strideable>(
+nonisolated private func eraseStepperValue<V: Strideable>(
     value: Binding<V>,
     bounds: ClosedRange<V>?,
     step: V.Stride,
@@ -915,7 +914,7 @@ extension View {
     /// Styles the *value read-out* text of every stepper in this view's subtree
     /// (a `.control(.stepper)`-scoped style entry). The +/- arrows are
     /// unaffected.
-    public func stepperTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
+    nonisolated public func stepperTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
         style(.control(.stepper), build)
     }
 }

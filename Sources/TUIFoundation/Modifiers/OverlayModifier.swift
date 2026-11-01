@@ -20,7 +20,7 @@
 /// `Tools/SwiftUIProbes/Alignment guides/layout1.out`, case D), an
 /// `EmptyView` being no view at all to the modifier, as it is no member to a
 /// container.
-package struct OverlayModifier<Base: View, Overlay: View>: View {
+nonisolated package struct OverlayModifier<Base: View, Overlay: View>: View {
     /// The base content.
     let base: Base
 
@@ -30,7 +30,7 @@ package struct OverlayModifier<Base: View, Overlay: View>: View {
     /// The alignment of the overlay within the base bounds.
     let alignment: Alignment
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("OverlayModifier renders via Renderable")
     }
 }
@@ -40,7 +40,7 @@ package struct OverlayModifier<Base: View, Overlay: View>: View {
 /// An overlay written on a form row is drawn over the row the form lays out,
 /// which keeps its place, as SwiftUI's form keeps it (measured,
 /// `Tools/SwiftUIProbes/Form rows`).
-extension OverlayModifier: FormRowRewrapping {
+@MainActor extension OverlayModifier: FormRowRewrapping {
     package var formRowContent: Base { base }
 
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {
@@ -50,7 +50,7 @@ extension OverlayModifier: FormRowRewrapping {
 
 // MARK: - Equatable Conformance
 
-extension OverlayModifier: @preconcurrency Equatable where Base: Equatable, Overlay: Equatable {
+extension OverlayModifier: Equatable where Base: Equatable, Overlay: Equatable {
     package static func == (lhs: OverlayModifier<Base, Overlay>, rhs: OverlayModifier<Base, Overlay>) -> Bool {
         lhs.base == rhs.base && lhs.overlay == rhs.overlay && lhs.alignment == rhs.alignment
     }
@@ -58,7 +58,7 @@ extension OverlayModifier: @preconcurrency Equatable where Base: Equatable, Over
 
 // MARK: - Renderable
 
-extension OverlayModifier: Renderable {
+@MainActor extension OverlayModifier: Renderable {
     /// The base at this modifier's identity, then the overlay laid out in its
     /// frame and composited over it — `compositeLayer(_:over:alignment:context:modifierType:)`.
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
@@ -71,7 +71,7 @@ extension OverlayModifier: Renderable {
 
 // MARK: - Layoutable
 
-extension OverlayModifier: Layoutable {
+@MainActor extension OverlayModifier: Layoutable {
     /// The base's size, flexibility and all: the overlay is laid out inside it
     /// and ``renderToBuffer(context:)`` cuts the composite back to it, so the
     /// overlay cannot contribute a cell — see `layeredSize(_:baseSize:proposal:context:modifierType:)`

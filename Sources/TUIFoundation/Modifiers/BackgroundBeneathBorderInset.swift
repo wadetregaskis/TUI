@@ -25,7 +25,6 @@ import TUIView
 /// A view whose outermost layer paints a background behind the rest: a
 /// border around it puts its inset beneath that background, so the background
 /// reaches the line (`BackgroundBeneathBorderInset.swift`).
-@MainActor
 protocol BackgroundBeneathBorderInset {
     /// This view with `insets` of padding between its content and its
     /// background.
@@ -35,7 +34,7 @@ protocol BackgroundBeneathBorderInset {
 /// A buffer modifier that paints a background behind its content.
 protocol PaintsBackground: BufferModifier {}
 
-extension BackgroundModifier: PaintsBackground {}
+@MainActor extension BackgroundModifier: PaintsBackground {}
 
 extension ModifiedView: BackgroundBeneathBorderInset where Modifier: PaintsBackground {
     func paddingBeneathBackground(_ insets: EdgeInsets) -> AnyView {
@@ -56,10 +55,10 @@ extension BackgroundLayerModifier: BackgroundBeneathBorderInset {
 
 /// A view whose background stops at its content: not a
 /// ``BackgroundBeneathBorderInset``, so a border's inset around it stays clear.
-public struct _BackgroundStopsAtContent<Content: View>: View {
+nonisolated public struct _BackgroundStopsAtContent<Content: View>: View {
     let content: Content
 
-    public var body: some View { content }
+    @MainActor public var body: some View { content }
 }
 
 extension View {
@@ -82,7 +81,7 @@ extension View {
     /// inset to fill.
     ///
     /// - Returns: A view whose background a border around it does not extend.
-    public func backgroundStopsAtContent() -> some View {
+    nonisolated public func backgroundStopsAtContent() -> some View {
         _BackgroundStopsAtContent(content: self)
     }
 }

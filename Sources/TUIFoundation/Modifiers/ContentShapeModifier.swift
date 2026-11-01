@@ -49,7 +49,7 @@ extension View {
     ///   - shape: The hit testing shape for the view.
     ///   - eoFill: Whether the shape is read with the even-odd rule.
     /// - Returns: A view that uses the given shape for hit testing.
-    public func contentShape<S: Shape>(_ shape: S, eoFill: Bool = false) -> some View {
+    nonisolated public func contentShape<S: Shape>(_ shape: S, eoFill: Bool = false) -> some View {
         _ContentShapeView(content: self, kinds: .interaction, shape: shape, eoFill: eoFill)
     }
 
@@ -74,7 +74,7 @@ extension View {
     ///   - shape: The shape to use.
     ///   - eoFill: Whether the shape is read with the even-odd rule.
     /// - Returns: A view that uses the given shape for the specified kinds.
-    public func contentShape<S: Shape>(_ kind: ContentShapeKinds, _ shape: S, eoFill: Bool = false) -> some View {
+    nonisolated public func contentShape<S: Shape>(_ kind: ContentShapeKinds, _ shape: S, eoFill: Bool = false) -> some View {
         _ContentShapeView(content: self, kinds: kind, shape: shape, eoFill: eoFill)
     }
 }
@@ -88,16 +88,16 @@ extension View {
 /// a view with no content shape changes: the modifiers that register a region
 /// over a view's frame ask for its cut (`FrameBuffer.frameHitRegions`), which
 /// is the whole frame where there is none.
-struct _ContentShapeView<Content: View, S: Shape>: View {
+nonisolated struct _ContentShapeView<Content: View, S: Shape>: View {
     let content: Content
     let kinds: ContentShapeKinds
     let shape: S
     let eoFill: Bool
 
-    var body: Never { fatalError("_ContentShapeView renders via Renderable") }
+    @MainActor var body: Never { fatalError("_ContentShapeView renders via Renderable") }
 }
 
-extension _ContentShapeView: Renderable {
+@MainActor extension _ContentShapeView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var buffer = TUIView.renderToBuffer(content, context: context)
         let (columns, rows) = (buffer.width, buffer.height)
@@ -123,7 +123,7 @@ extension _ContentShapeView: Renderable {
     }
 }
 
-extension _ContentShapeView: Layoutable {
+@MainActor extension _ContentShapeView: Layoutable {
     /// A content shape changes what takes the pointer, never the frame.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
@@ -141,7 +141,7 @@ extension _ContentShapeView: Layoutable {
 /// `.contentShape(Rectangle())` returned the view itself. Without this a
 /// `ForEach` with a content shape in an `HStack` drew as a column, and a
 /// picker's options lost their tags.
-extension _ContentShapeView: ContentRewrapping {
+@MainActor extension _ContentShapeView: ContentRewrapping {
     var wrappedContent: Content { content }
 
     func rewrapping<V: View>(_ view: V) -> any View {
@@ -151,20 +151,20 @@ extension _ContentShapeView: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _ContentShapeView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _ContentShapeView: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _ContentShapeView: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension _ContentShapeView: GridRowProviding where Content: GridRowProviding {}
 
 /// Answers for the guides its content sets: it lays its content out in its own
 /// frame and context and moves nothing, so a guide inside is its own, unmoved.
-extension _ContentShapeView {
+@MainActor extension _ContentShapeView {
     /// Its content's answer.
     static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
-extension _ContentShapeView: AlignmentGuideQuerying {
+@MainActor extension _ContentShapeView: AlignmentGuideQuerying {
     func explicitGuide(_ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext) -> Double? {
         TUIFoundation.explicitGuide(of: content, query, in: dimensions, context: context)
     }
@@ -174,4 +174,4 @@ extension _ContentShapeView: AlignmentGuideQuerying {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _ContentShapeView: DrawsContentUnchanged {}
+@MainActor extension _ContentShapeView: DrawsContentUnchanged {}

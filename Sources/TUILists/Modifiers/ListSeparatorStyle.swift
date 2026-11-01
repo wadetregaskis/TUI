@@ -105,7 +105,7 @@ extension View {
     /// separator of the lists below.
     ///
     /// - Parameter style: The look. The default is `.automatic`.
-    public func listSeparatorStyle(_ style: ListSeparatorStyle) -> some View {
+    nonisolated public func listSeparatorStyle(_ style: ListSeparatorStyle) -> some View {
         environment(\.listSeparatorStyle, style)
     }
 }

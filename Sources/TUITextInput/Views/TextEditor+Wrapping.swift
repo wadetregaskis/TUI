@@ -28,7 +28,7 @@ extension View {
     ///
     /// - Parameter wraps: Whether long lines wrap.
     /// - Returns: A view whose editors wrap, or scroll sideways.
-    public func textEditorWrapsLines(_ wraps: Bool = true) -> some View {
+    nonisolated public func textEditorWrapsLines(_ wraps: Bool = true) -> some View {
         environment(\.textEditorWrapsLines, wraps)
     }
 }

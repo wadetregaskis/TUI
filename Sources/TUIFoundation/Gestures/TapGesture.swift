@@ -57,7 +57,7 @@ import TUICore
 /// the next press for a removed view, as on macOS; for a disabled one macOS
 /// gives them up at once, and TUI at the next press, as for a removed one
 /// (`Documentation/Historical/Input, keys and gestures/Gestures, taps and the press a control takes.md`, B-F2-2).
-public struct TapGesture: Gesture {
+nonisolated public struct TapGesture: Gesture {
     /// The required number of tap events.
     public var count: Int
 
@@ -75,7 +75,7 @@ public struct TapGesture: Gesture {
     /// The type of gesture representing the body of `Self`.
     public typealias Body = Never
 
-    public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Void> {
+    @MainActor public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Void> {
         let node = inputs.node { TapGestureNode<Void>() }
         node.count = max(1, gesture.count)
         node.makeValue = { _ in () }
@@ -133,7 +133,7 @@ public struct TapGesture: Gesture {
 /// recognized as ``TapGesture`` is, and like it reports nothing until it ends —
 /// SwiftUI's `onChanged` on a spatial tap never runs either (measured on
 /// macOS 15.8).
-public struct SpatialTapGesture: Gesture {
+nonisolated public struct SpatialTapGesture: Gesture {
     /// The attributes of a tap gesture.
     public struct Value: Equatable, Sendable {
         /// The location of the tap gesture's current event.
@@ -175,7 +175,7 @@ public struct SpatialTapGesture: Gesture {
     /// The type of gesture representing the body of `Self`.
     public typealias Body = Never
 
-    public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
+    @MainActor public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
         let node = inputs.node { TapGestureNode<Value>() }
         node.count = max(1, gesture.count)
         let space = gesture.coordinateSpace

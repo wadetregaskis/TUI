@@ -12,19 +12,19 @@ import TUICore
 // MARK: - Preference Modifier
 
 /// A modifier that sets a preference value.
-struct PreferenceModifier<Content: View, K: PreferenceKey>: View {
+nonisolated struct PreferenceModifier<Content: View, K: PreferenceKey>: View {
     /// The content view.
     let content: Content
 
     /// The preference value to set.
     let value: K.Value
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("PreferenceModifier renders via Renderable")
     }
 }
 
-extension PreferenceModifier: Renderable {
+@MainActor extension PreferenceModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // The write is a render-pass side effect, twice over:
         // - never during a measure pass (a measure-render of this subtree —
@@ -50,7 +50,7 @@ extension PreferenceModifier: Renderable {
     }
 }
 
-extension PreferenceModifier {
+@MainActor extension PreferenceModifier {
     /// The line of the window's title slot `K` fills, if any: the
     /// navigation title or subtitle, which the window's chrome takes from the
     /// views that declare them.
@@ -87,7 +87,7 @@ extension PreferenceModifier {
     }
 }
 
-extension PreferenceModifier: Layoutable {
+@MainActor extension PreferenceModifier: Layoutable {
     /// Publishes a preference and renders `content` unchanged, so it measures as
     /// `content` (and the preference write stays a render-pass side-effect).
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -98,7 +98,7 @@ extension PreferenceModifier: Layoutable {
 // MARK: - OnPreferenceChange Modifier
 
 /// A modifier that reacts to preference changes.
-struct OnPreferenceChangeModifier<Content: View, K: PreferenceKey>: View
+nonisolated struct OnPreferenceChangeModifier<Content: View, K: PreferenceKey>: View
 where K.Value: Equatable {
     /// The content view.
     let content: Content
@@ -106,14 +106,14 @@ where K.Value: Equatable {
     /// The action to perform when the preference changes.
     let action: (K.Value) -> Void
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("OnPreferenceChangeModifier renders via Renderable")
     }
 }
 
 /// Draws its content unchanged, at its own identity, so a removal transition written
 /// inside it plays — see `DrawsContentUnchanged`.
-extension OnPreferenceChangeModifier: DrawsContentUnchanged {
+@MainActor extension OnPreferenceChangeModifier: DrawsContentUnchanged {
     var wrappedContent: Content { content }
 
     /// It keeps its content's geometry: it only listens.
@@ -123,7 +123,7 @@ extension OnPreferenceChangeModifier: DrawsContentUnchanged {
     func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
-extension OnPreferenceChangeModifier: Renderable {
+@MainActor extension OnPreferenceChangeModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Pure passthrough during a measure pass: registering the callback and
         // invoking the action are render side effects (the action would fire
@@ -186,7 +186,7 @@ extension OnPreferenceChangeModifier: Renderable {
     }
 }
 
-extension OnPreferenceChangeModifier: Layoutable {
+@MainActor extension OnPreferenceChangeModifier: Layoutable {
     /// Renders `content` unchanged (it only collects/observes preferences), so it
     /// measures as `content`. Forwarding also keeps the push/pop and the change
     /// callback to the render pass — a measure must not fire preference actions.
@@ -199,19 +199,19 @@ extension OnPreferenceChangeModifier: Layoutable {
 
 /// A modifier that rewrites the value of a preference its subtree reduced,
 /// before its ancestors see it.
-struct TransformPreferenceModifier<Content: View, K: PreferenceKey>: View {
+nonisolated struct TransformPreferenceModifier<Content: View, K: PreferenceKey>: View {
     /// The content view.
     let content: Content
 
     /// Rewrites the subtree's value in place.
     let transform: (inout K.Value) -> Void
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("TransformPreferenceModifier renders via Renderable")
     }
 }
 
-extension TransformPreferenceModifier: Renderable {
+@MainActor extension TransformPreferenceModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A measure collects no preferences, so there is nothing to transform;
         // and the write below is a render-pass side effect that a cached
@@ -236,7 +236,7 @@ extension TransformPreferenceModifier: Renderable {
     }
 }
 
-extension TransformPreferenceModifier: Layoutable {
+@MainActor extension TransformPreferenceModifier: Layoutable {
     /// Renders `content` unchanged, so it measures as `content`.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
@@ -274,7 +274,7 @@ public struct NavigationBackButtonHiddenKey: PreferenceKey {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension PreferenceModifier: SingleContentWrapper {
+@MainActor extension PreferenceModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -285,13 +285,13 @@ extension PreferenceModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension PreferenceModifier: DrawsContentUnchanged {}
+@MainActor extension PreferenceModifier: DrawsContentUnchanged {}
 
 // MARK: - In a Form
 
 /// A preference written on a form row is set by the row the form lays out,
 /// which keeps its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
-extension PreferenceModifier: FormRowRewrapping {
+@MainActor extension PreferenceModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
         PreferenceModifier<V, K>(content: row, value: value)
     }

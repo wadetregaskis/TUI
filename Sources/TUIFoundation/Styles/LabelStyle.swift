@@ -288,7 +288,7 @@ extension View {
     ///
     /// - Parameter style: The label style to apply.
     /// - Returns: A view whose labels use the specified style.
-    public func labelStyle<S: LabelStyle>(_ style: S) -> some View {
+    nonisolated public func labelStyle<S: LabelStyle>(_ style: S) -> some View {
         environment(\.labelStyle, style)
     }
 }
@@ -325,7 +325,7 @@ extension View {
     /// - Parameter spacing: The gap, in cells — TUI measures in whole cells
     ///   where SwiftUI measures in points.
     /// - Returns: A view whose labels use `spacing`.
-    public func labelIconToTitleSpacing(_ spacing: Int) -> some View {
+    nonisolated public func labelIconToTitleSpacing(_ spacing: Int) -> some View {
         environment(\.labelIconToTitleSpacing, spacing.heldToStatedLength)
     }
 
@@ -334,7 +334,7 @@ extension View {
     ///
     /// - Parameter value: The width, in cells, the icon is placed in, leading.
     /// - Returns: A view whose labels reserve `value` cells for their icons.
-    public func labelReservedIconWidth(_ value: Int) -> some View {
+    nonisolated public func labelReservedIconWidth(_ value: Int) -> some View {
         environment(\.labelReservedIconWidth, value.heldToStatedLength)
     }
 }

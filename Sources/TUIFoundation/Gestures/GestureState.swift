@@ -187,7 +187,7 @@ extension Gesture {
     ///   as the originating gesture's value changes and that resets the
     ///   `state` to its initial value when the user or the system ends or
     ///   cancels the gesture.
-    public func updating<State>(
+    nonisolated public func updating<State>(
         _ state: GestureState<State>,
         body: @escaping (Value, inout State, inout Transaction) -> Void
     ) -> GestureStateGesture<Self, State> {
@@ -200,7 +200,7 @@ extension Gesture {
 /// A gesture's ``Gesture/updating(_:body:)`` callback returns a
 /// `GestureStateGesture` instance for updating a transient state property
 /// that's annotated with the ``GestureState`` property wrapper.
-public struct GestureStateGesture<Base: Gesture, State>: Gesture {
+nonisolated public struct GestureStateGesture<Base: Gesture, State>: Gesture {
     /// The type representing the gesture's value.
     public typealias Value = Base.Value
 
@@ -233,7 +233,7 @@ public struct GestureStateGesture<Base: Gesture, State>: Gesture {
         self.body = body
     }
 
-    public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
+    @MainActor public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
         let node = inputs.node { GestureStateGestureNode<Value, State>() }
         node.child = Base._makeGesture(gesture: gesture.base, inputs: inputs.child(0)).node
         node.state = gesture.state

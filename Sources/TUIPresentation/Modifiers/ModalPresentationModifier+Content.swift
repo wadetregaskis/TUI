@@ -10,7 +10,7 @@
 import TUIChrome
 import TUIFoundation
 
-extension ModalPresentationModifier {
+@MainActor extension ModalPresentationModifier {
     /// The context the presented content renders in.
     func presentedContext(
         sectionID: String, gate: DismissalGate, overlayHeight: Int, context: RenderContext

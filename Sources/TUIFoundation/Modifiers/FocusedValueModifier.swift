@@ -30,7 +30,7 @@ extension View {
     ///     the existing table of exported focus values.
     ///   - value: The focus value to export.
     /// - Returns: A modified representation of this view.
-    public func focusedValue<Value>(
+    nonisolated public func focusedValue<Value>(
         _ keyPath: WritableKeyPath<FocusedValues, Value?>, _ value: Value
     ) -> some View {
         _FocusedValueModifier(
@@ -51,7 +51,7 @@ extension View {
     ///   - value: The focus value to export, or `nil` if no value is currently
     ///     available.
     /// - Returns: A modified representation of this view.
-    public func focusedValue<Value>(
+    nonisolated public func focusedValue<Value>(
         _ keyPath: WritableKeyPath<FocusedValues, Value?>, _ value: Value?
     ) -> some View {
         _FocusedValueModifier(
@@ -66,7 +66,7 @@ extension View {
     ///
     /// - Parameter object: The `@Observable` object to publish, or `nil`.
     /// - Returns: A modified representation of this view.
-    public func focusedValue<T>(_ object: T?) -> some View where T: AnyObject, T: Observable {
+    nonisolated public func focusedValue<T>(_ object: T?) -> some View where T: AnyObject, T: Observable {
         _FocusedValueModifier(content: self, publishing: ObjectPublishing(object: object), isScene: false)
     }
 
@@ -82,7 +82,7 @@ extension View {
     ///     the existing table of published focus values.
     ///   - value: The focus value to publish.
     /// - Returns: A modified representation of this view.
-    public func focusedSceneValue<T>(
+    nonisolated public func focusedSceneValue<T>(
         _ keyPath: WritableKeyPath<FocusedValues, T?>, _ value: T
     ) -> some View {
         _FocusedValueModifier(
@@ -101,7 +101,7 @@ extension View {
     ///   - value: The focus value to publish, or `nil` if no value is
     ///     currently available.
     /// - Returns: A modified representation of this view.
-    public func focusedSceneValue<T>(
+    nonisolated public func focusedSceneValue<T>(
         _ keyPath: WritableKeyPath<FocusedValues, T?>, _ value: T?
     ) -> some View {
         _FocusedValueModifier(
@@ -116,7 +116,7 @@ extension View {
     ///
     /// - Parameter object: The `@Observable` object to publish, or `nil`.
     /// - Returns: A modified representation of this view.
-    public func focusedSceneValue<T>(_ object: T?) -> some View where T: AnyObject, T: Observable {
+    nonisolated public func focusedSceneValue<T>(_ object: T?) -> some View where T: AnyObject, T: Observable {
         _FocusedValueModifier(content: self, publishing: ObjectPublishing(object: object), isScene: true)
     }
 }
@@ -151,17 +151,17 @@ struct ObjectPublishing<Object: AnyObject>: FocusedValuePublishing {
 
 /// Publishes its table each render, and draws its content unchanged at its
 /// own identity — the identity a reader's focus path is tested against.
-struct _FocusedValueModifier<Content: View, Publishing: FocusedValuePublishing>: View {
+nonisolated struct _FocusedValueModifier<Content: View, Publishing: FocusedValuePublishing>: View {
     let content: Content
     let publishing: Publishing
     let isScene: Bool
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_FocusedValueModifier renders via Renderable")
     }
 }
 
-extension _FocusedValueModifier: Renderable {
+@MainActor extension _FocusedValueModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         if !context.isMeasuring { publish(context: context) }
         return TUIView.renderToBuffer(content, context: context)
@@ -197,7 +197,7 @@ extension _FocusedValueModifier: Renderable {
     }
 }
 
-extension _FocusedValueModifier: Layoutable {
+@MainActor extension _FocusedValueModifier: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
@@ -229,7 +229,7 @@ enum FocusedValueRegistrar {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _FocusedValueModifier: SingleContentWrapper {
+@MainActor extension _FocusedValueModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -240,14 +240,14 @@ extension _FocusedValueModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _FocusedValueModifier: DrawsContentUnchanged {}
+@MainActor extension _FocusedValueModifier: DrawsContentUnchanged {}
 
 // MARK: - In a Form
 
 /// A focused value written on a form row is published by the row the form lays
 /// out, which keeps its place, as SwiftUI's form keeps it (measured,
 /// `Tools/SwiftUIProbes/Form rows`): every control in the row renders below it.
-extension _FocusedValueModifier: FormRowRewrapping {
+@MainActor extension _FocusedValueModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
         _FocusedValueModifier<V, Publishing>(content: row, publishing: publishing, isScene: isScene)
     }

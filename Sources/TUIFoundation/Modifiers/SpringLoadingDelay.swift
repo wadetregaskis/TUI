@@ -52,7 +52,7 @@ extension View {
     ///
     /// - Parameter delay: How long the pause lasts. A negative duration is zero.
     /// - Returns: A view whose spring-loaded controls wait `delay`.
-    public func springLoadingDelay(_ delay: Duration) -> some View {
+    nonisolated public func springLoadingDelay(_ delay: Duration) -> some View {
         environment(\.springLoadingDelay, delay)
     }
 }

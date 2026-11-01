@@ -65,7 +65,7 @@ extension View {
     ///
     /// - Parameter behavior: The behavior for tab bar minimization.
     /// - Returns: A view whose tab views minimize their bar by `behavior`.
-    public func tabBarMinimizeBehavior(_ behavior: TabBarMinimizeBehavior) -> some View {
+    nonisolated public func tabBarMinimizeBehavior(_ behavior: TabBarMinimizeBehavior) -> some View {
         environment(\.tabBarMinimizeBehavior, behavior)
     }
 }

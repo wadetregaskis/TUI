@@ -117,7 +117,7 @@ extension EnvironmentValues {
 /// and every colour the controls derive from that — a gradient stands as its
 /// representative; where one is painted along a control, as a gauge's track
 /// is, the ramp itself (`EnvironmentValues.tintPaint`).
-package struct TintModifier<Content: View, S: ShapeStyle>: View {
+nonisolated package struct TintModifier<Content: View, S: ShapeStyle>: View {
     public let content: Content
     public let tint: S?
 
@@ -127,9 +127,9 @@ package struct TintModifier<Content: View, S: ShapeStyle>: View {
     }
 
     /// Not used during rendering — ``Renderable`` conformance takes priority.
-    public var body: some View { content }
+    @MainActor public var body: some View { content }
 
-    private func modifiedContext(_ context: RenderContext) -> RenderContext {
+    @MainActor private func modifiedContext(_ context: RenderContext) -> RenderContext {
         guard let tint else { return context }
 
         // The same bookkeeping `EnvironmentModifier` and `_StyleEnvironmentView`
@@ -191,13 +191,13 @@ package struct TintModifier<Content: View, S: ShapeStyle>: View {
     }
 }
 
-extension TintModifier: Renderable {
+@MainActor extension TintModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: modifiedContext(context))
     }
 }
 
-extension TintModifier: Layoutable {
+@MainActor extension TintModifier: Layoutable {
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: modifiedContext(context))
     }
@@ -218,7 +218,7 @@ extension View {
     /// arc or bar, a progress bar's fill — and every colour derived from the
     /// tint (a button's face, a toggle's mark) with its representative
     /// (`Gradients where a colour is accepted.md` §5).
-    public func tint<S: ShapeStyle>(_ tint: S?) -> some View {
+    nonisolated public func tint<S: ShapeStyle>(_ tint: S?) -> some View {
         TintModifier(content: self, tint: tint)
     }
 
@@ -226,7 +226,7 @@ extension View {
     /// disfavoured `Color?` twin, as SwiftUI ships one (and as
     /// ``View/foregroundStyle(_:)-(Color)`` is).
     @_disfavoredOverload
-    public func tint(_ tint: Color?) -> some View {
+    nonisolated public func tint(_ tint: Color?) -> some View {
         TintModifier(content: self, tint: tint)
     }
 }
@@ -237,7 +237,7 @@ extension View {
 ///   up or two, so publishing it around each member is the same thing as
 ///   publishing it once around the pair. What changes is only that the members
 ///   stay the enclosing container's own children.
-extension TintModifier: ContentRewrapping {
+@MainActor extension TintModifier: ContentRewrapping {
     public var wrappedContent: Content { content }
 
     /// Its content's context: the tint it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -250,14 +250,14 @@ extension TintModifier: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension TintModifier: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension TintModifier: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension TintModifier: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension TintModifier: GridRowProviding where Content: GridRowProviding {}
 
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension TintModifier: DrawsContentUnchanged {}
+@MainActor extension TintModifier: DrawsContentUnchanged {}

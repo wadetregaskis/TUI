@@ -89,7 +89,7 @@ extension View {
     /// - Parameter selectability: ``TextSelectability/enabled`` or
     ///   ``TextSelectability/disabled``.
     /// - Returns: A view whose text is selectable as `selectability` says.
-    public func textSelection<S: TextSelectability>(_ selectability: S) -> some View {
+    nonisolated public func textSelection<S: TextSelectability>(_ selectability: S) -> some View {
         _TextSelectionScope(content: self, allowsSelection: S.allowsSelection)
     }
 }
@@ -104,13 +104,13 @@ extension View {
 ///
 /// The environment value tells a ``List`` or a ``Table`` inside an enabled
 /// scope to file its rows for the selection, so nothing else pays for it.
-struct _TextSelectionScope<Content: View>: View, Renderable, Layoutable {
+nonisolated struct _TextSelectionScope<Content: View>: View, Renderable, Layoutable {
     let content: Content
     let allowsSelection: Bool
 
-    var body: Never { fatalError("_TextSelectionScope renders via Renderable") }
+    @MainActor var body: Never { fatalError("_TextSelectionScope renders via Renderable") }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var buffer = TUIView.renderToBuffer(
             content.environment(\.textSelectionAllowed, allowsSelection), context: context)
         guard !context.isMeasuring, let dispatcher = context.environment.mouseEventDispatcher
@@ -120,7 +120,7 @@ struct _TextSelectionScope<Content: View>: View, Renderable, Layoutable {
         return buffer
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(
             content.environment(\.textSelectionAllowed, allowsSelection), proposal: proposal, context: context)
     }
@@ -140,7 +140,7 @@ struct _TextSelectionScope<Content: View>: View, Renderable, Layoutable {
 ///   rectangle: what a selection begun on it keeps to, as SwiftUI keeps a
 ///   selection inside one `Text`. A scope is geometry, not an effect, so
 ///   filing it per member multiplies nothing a user sees.
-extension _TextSelectionScope: ContentRewrapping {
+@MainActor extension _TextSelectionScope: ContentRewrapping {
     var wrappedContent: Content { content }
 
     /// Its content's context: the selectability it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -156,22 +156,22 @@ extension _TextSelectionScope: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _TextSelectionScope: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _TextSelectionScope: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _TextSelectionScope: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension _TextSelectionScope: GridRowProviding where Content: GridRowProviding {}
 
 /// Body deliberately empty: ``SectionPartsProviding`` has the whole
 /// implementation for a ``SingleContentWrapper``.
-extension _TextSelectionScope: SectionPartsProviding where Content: SectionPartsProviding {}
+@MainActor extension _TextSelectionScope: SectionPartsProviding where Content: SectionPartsProviding {}
 
 /// A section under a text-selection scope is still a section to its `List`:
 /// its parts drawn with the scope's value written, as the scope draws its
 /// content. The region a scope files is the section's whole rectangle, which
 /// a list's rows have none of; the list files its own rows for the selection
 /// where the value says to.
-extension _TextSelectionScope: SectionRowExtractor where Content: SectionRowExtractor {
+@MainActor extension _TextSelectionScope: SectionRowExtractor where Content: SectionRowExtractor {
     func extractSectionInfo(context: RenderContext) -> SectionInfo {
         EnvironmentModifier(content: content, keyPath: \.textSelectionAllowed, value: allowsSelection)
             .extractSectionInfo(context: context)
@@ -186,7 +186,7 @@ extension _TextSelectionScope: SectionRowExtractor where Content: SectionRowExtr
 /// Draws its content unchanged, at its own identity — the region it files is
 /// geometry, nothing drawn — so a removal transition written inside it plays;
 /// see `DrawsContentUnchanged`.
-extension _TextSelectionScope: DrawsContentUnchanged {}
+@MainActor extension _TextSelectionScope: DrawsContentUnchanged {}
 
 // MARK: - Environment
 

@@ -255,7 +255,7 @@ extension View {
     ///
     /// TUI-specific: SwiftUI has no equivalent, so this is kept separate from the
     /// SwiftUI-parity ``toggleStyle(_:)``.
-    public func toggleCharacterSet(_ style: ToggleCharacterSet) -> some View {
+    nonisolated public func toggleCharacterSet(_ style: ToggleCharacterSet) -> some View {
         environment(\.toggleCharacterSet, style)
     }
 }

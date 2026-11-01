@@ -274,7 +274,7 @@ extension ListRowsPassThrough {
 // two arms that loop over the same ids from sharing a row's `@State`. The label
 // is `identityBranchLabel`'s own, so the step taken here cannot drift from the
 // one the walk takes.
-extension ConditionalView: ListRowsPassThrough {
+@MainActor extension ConditionalView: ListRowsPassThrough {
     package var listRowsContent: any View {
         switch self {
         case .trueContent(let content): content
@@ -302,7 +302,7 @@ extension ConditionalView: ListRowsPassThrough {
 
 // MARK: - ForEach Conformance
 
-extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: View {
+@MainActor extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: View {
     package func extractListRows<RowID: Hashable>(context: RenderContext) -> [ListRow<RowID>] {
         // The row type's shape, once for every row: asked of each, it was a
         // conformance test per row of every section's loop, every frame. A
@@ -578,7 +578,7 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
 
 // MARK: - ForEach's rows among other rows
 
-extension ForEach where Content: View {
+@MainActor extension ForEach where Content: View {
     /// Reports the separator guides the row `build(element)` makes sets
     /// (``HorizontalAlignment/listRowSeparatorLeading``, `…Trailing`;
     /// decisions A47) against list row `row` — building the row only where
@@ -596,7 +596,7 @@ extension ForEach where Content: View {
     }
 }
 
-extension ForEach: KeyedRowProvider, KeyedLoop where Content: View {
+@MainActor extension ForEach: KeyedRowProvider, KeyedLoop where Content: View {
     /// This loop's rows, as the flattening emits them: one child per element,
     /// the same number of each element's views (a row of several, decisions
     /// B15), or as many as each element's row makes — placed by their keys,

@@ -17,17 +17,17 @@ import TUICore
 /// documented on the modifier: the vacated cells show the layer beneath
 /// (there is no transparency, so nothing is painted there), and the
 /// displaced content composites above its siblings.
-package struct OffsetView<Content: View>: View {
+nonisolated package struct OffsetView<Content: View>: View {
     let content: Content
     var x: Int
     var y: Int
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("OffsetView renders via Renderable")
     }
 }
 
-extension OffsetView: Renderable, Layoutable {
+@MainActor extension OffsetView: Renderable, Layoutable {
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         // Layout keeps the content's natural size — the offset displaces
         // only the drawing (SwiftUI semantics).
@@ -70,7 +70,7 @@ extension View {
     ///   - x: Columns to shift right (negative shifts left).
     ///   - y: Rows to shift down (negative shifts up).
     /// - Returns: A view drawn at the offset position.
-    public func offset(x: Int = 0, y: Int = 0) -> some View {
+    nonisolated public func offset(x: Int = 0, y: Int = 0) -> some View {
         OffsetView(content: self, x: x.heldToStatedLength, y: y.heldToStatedLength)
     }
 
@@ -86,14 +86,14 @@ extension View {
     /// - Parameter offset: Columns to shift right in `width`, rows to shift
     ///   down in `height` (negative shifts the other way).
     /// - Returns: A view drawn at the offset position.
-    public func offset(_ offset: CellSize) -> some View {
+    nonisolated public func offset(_ offset: CellSize) -> some View {
         self.offset(x: offset.width, y: offset.height)
     }
 }
 
 // MARK: - Animating the offset
 
-extension OffsetView: Animatable {
+@MainActor extension OffsetView: Animatable {
     /// The displacement is what moves, so a change to it inside
     /// ``withAnimation(_:_:)`` slides rather than jumps — except where
     /// ``EnvironmentValues/accessibilityReduceMotion`` is on, where it jumps:
@@ -113,14 +113,14 @@ extension OffsetView: Animatable {
 
 /// Motion: under reduce motion an animated change of offset jumps to its end
 /// (owner decision A-D3M-1).
-extension OffsetView: SpatialAnimatable {}
+@MainActor extension OffsetView: SpatialAnimatable {}
 
 // MARK: - Seeing Through the Wrapper
 
 /// - Note: Layout is unaffected either way (the content is measured at its
 ///   natural place), so shifting each member by `(x, y)` puts the same cells
 ///   in the same places as shifting the pair by `(x, y)`.
-extension OffsetView: ContentRewrapping {
+@MainActor extension OffsetView: ContentRewrapping {
     public var wrappedContent: Content { content }
 
     public func rewrapping<V: View>(_ view: V) -> any View {
@@ -130,8 +130,8 @@ extension OffsetView: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension OffsetView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension OffsetView: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension OffsetView: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension OffsetView: GridRowProviding where Content: GridRowProviding {}

@@ -82,7 +82,7 @@ extension View {
         /// - Parameter store: The user defaults to use as the default store
         ///   for `AppStorage`.
         /// - Returns: A view whose `@AppStorage` properties use `store`.
-        public func defaultAppStorage(_ store: UserDefaults) -> some View {
+        nonisolated public func defaultAppStorage(_ store: UserDefaults) -> some View {
             environment(\.defaultAppStorage, DefaultAppStorage(store))
         }
     #endif
@@ -96,7 +96,7 @@ extension View {
     ///
     /// - Parameter store: The store to use as the default for `AppStorage`.
     /// - Returns: A view whose `@AppStorage` properties use `store`.
-    public func defaultAppStorage(_ store: any StorageBackend) -> some View {
+    nonisolated public func defaultAppStorage(_ store: any StorageBackend) -> some View {
         environment(\.defaultAppStorage, DefaultAppStorage(store))
     }
 }

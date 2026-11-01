@@ -20,6 +20,8 @@ import TUICore
 /// draws, so a menu chosen frames later copies the words then shown.
 @MainActor
 final class LinkLabelText {
+    nonisolated init() {}
+
     /// The label's words, one space between rows; empty until it draws.
     var text = ""
 }

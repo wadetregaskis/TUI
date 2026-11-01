@@ -35,13 +35,14 @@ import TUIFoundation
 /// > first, and nothing in the framework reads this value. (SwiftUI agrees
 /// > about the platform: it marks `EditMode` and `EditButton` unavailable on
 /// > macOS.) An app may still drive and read it for editing UI of its own.
-public struct EditButton: View {
+public struct EditButton {
     @Environment(\.editMode) private var editMode
 
     /// Creates an edit button.
     public init() {}
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor public var body: some View {
         let isEditing = editMode?.wrappedValue.isEditing ?? false
         return Button(isEditing ? "Done" : "Edit") {
             guard let editMode else { return }
@@ -50,10 +51,11 @@ public struct EditButton: View {
         .disabled(editMode == nil)
     }
 }
+extension EditButton: View {}
 
 // MARK: - Environment without reflection
 
-extension EditButton: ResolvesOwnEnvironment {
+@MainActor extension EditButton: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _editMode.resolveEnvironment(environment)
     }

@@ -15,7 +15,7 @@ import TUIFoundation
 /// section modifiers share (`ListSeparators.swift`; decisions A47). The arguments
 /// are stored so the modifier compares equal only to itself — an `EquatableView`
 /// above it must not treat two differently-configured rows as the same view.
-package struct ListRowSeparatorModifier<Content: View>: View {
+nonisolated package struct ListRowSeparatorModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
@@ -25,14 +25,14 @@ package struct ListRowSeparatorModifier<Content: View>: View {
     /// The edges to apply the separator to.
     let edges: VerticalEdge.Set
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("ListRowSeparatorModifier renders via Renderable")
     }
 }
 
 // MARK: - Equatable
 
-extension ListRowSeparatorModifier: @preconcurrency Equatable where Content: Equatable {
+extension ListRowSeparatorModifier: Equatable where Content: Equatable {
     package static func == (lhs: ListRowSeparatorModifier<Content>, rhs: ListRowSeparatorModifier<Content>) -> Bool {
         lhs.content == rhs.content && lhs.visibility == rhs.visibility && lhs.edges == rhs.edges
     }
@@ -40,7 +40,7 @@ extension ListRowSeparatorModifier: @preconcurrency Equatable where Content: Equ
 
 // MARK: - Renderable
 
-extension ListRowSeparatorModifier: Renderable {
+@MainActor extension ListRowSeparatorModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         renderReportingSeparator(content, change: .visibility(visibility, edges), sections: false, context: context)
     }
@@ -48,7 +48,7 @@ extension ListRowSeparatorModifier: Renderable {
 
 // MARK: - Layoutable
 
-extension ListRowSeparatorModifier: Layoutable {
+@MainActor extension ListRowSeparatorModifier: Layoutable {
     /// Draws `content` unchanged, so it measures as `content`.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
@@ -61,7 +61,7 @@ extension ListRowSeparatorModifier: Layoutable {
 /// this wrapper instead of stopping at it. Read-only: it does NOT conform to
 /// ``ContentRewrapping``, so nothing about it is distributed to the members of
 /// multi-view content.
-extension ListRowSeparatorModifier: SingleContentWrapper {
+@MainActor extension ListRowSeparatorModifier: SingleContentWrapper {
     public var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -75,13 +75,13 @@ extension ListRowSeparatorModifier: SingleContentWrapper {
 /// `.listRowSeparatorLeading` on a view INSIDE the one this modifier is
 /// written on, and a wrapper that does not say it can hold a guide hides every
 /// guide below it.
-extension ListRowSeparatorModifier {
+@MainActor extension ListRowSeparatorModifier {
     /// Its content's answer: it draws its content unchanged, so a guide inside
     /// is its own.
     public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
-extension ListRowSeparatorModifier: AlignmentGuideQuerying {
+@MainActor extension ListRowSeparatorModifier: AlignmentGuideQuerying {
     package func explicitGuide(_ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext) -> Double? {
         TUIFoundation.explicitGuide(of: content, query, in: dimensions, context: context)
     }
@@ -91,4 +91,4 @@ extension ListRowSeparatorModifier: AlignmentGuideQuerying {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension ListRowSeparatorModifier: DrawsContentUnchanged {}
+@MainActor extension ListRowSeparatorModifier: DrawsContentUnchanged {}

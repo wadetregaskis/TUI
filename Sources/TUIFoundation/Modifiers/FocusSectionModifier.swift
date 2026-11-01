@@ -25,7 +25,7 @@
 ///         .focusSection("tracklist")
 /// }
 /// ```
-struct FocusSectionModifier<Content: View>: View {
+nonisolated struct FocusSectionModifier<Content: View>: View {
     /// The content view rendered within this section.
     let content: Content
 
@@ -40,14 +40,14 @@ struct FocusSectionModifier<Content: View>: View {
     /// collide.
     let declaredSectionID: String?
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("FocusSectionModifier renders via Renderable")
     }
 }
 
 // MARK: - Renderable
 
-extension FocusSectionModifier: Renderable {
+@MainActor extension FocusSectionModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let focusManager = context.environment.focusManager
         let sectionID = declaredSectionID ?? "section-\(context.identity.path)"
@@ -142,7 +142,7 @@ enum FocusSectionRegistrar {
 
 // MARK: - Layoutable
 
-extension FocusSectionModifier: Layoutable {
+@MainActor extension FocusSectionModifier: Layoutable {
     /// Focus grouping is size-neutral (the active-section id and the breathing
     /// indicator colour don't change layout), so it measures as `content`.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -156,7 +156,7 @@ extension FocusSectionModifier: Layoutable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension FocusSectionModifier: SingleContentWrapper {
+@MainActor extension FocusSectionModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -167,14 +167,14 @@ extension FocusSectionModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension FocusSectionModifier: DrawsContentUnchanged {}
+@MainActor extension FocusSectionModifier: DrawsContentUnchanged {}
 
 // MARK: - In a Form
 
 /// A focus section written on a form row is the row the form lays out, which
 /// keeps its place, as SwiftUI's form keeps a row under the modifiers
 /// measured (`Tools/SwiftUIProbes/Form rows`).
-extension FocusSectionModifier: FormRowRewrapping {
+@MainActor extension FocusSectionModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
         FocusSectionModifier<V>(content: row, declaredSectionID: declaredSectionID)
     }

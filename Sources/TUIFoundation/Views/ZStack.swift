@@ -35,7 +35,7 @@
 ///     Text("AAA")
 /// }
 /// ```
-public struct ZStack<Content: View>: View {
+nonisolated public struct ZStack<Content: View>: View {
     /// The alignment of the children.
     public let alignment: Alignment
 
@@ -55,7 +55,7 @@ public struct ZStack<Content: View>: View {
         self.content = content()
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _ZStackCore(alignment: alignment, content: content)
     }
 }
@@ -302,7 +302,7 @@ extension _ZStackCore: Layoutable {
 
 // MARK: - Guides Through the Layers
 
-extension ZStack {
+@MainActor extension ZStack {
     /// Its content's answer: the stack lays its content out as its own
     /// layers, so a guide in any of them can be the stack's to report.
     public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
@@ -366,7 +366,7 @@ extension _ZStackCore: AlignmentGuideQuerying {
 
 // MARK: - Spacing Beside the Layers
 
-extension ZStack {
+@MainActor extension ZStack {
     /// Its content's answer: a `ZStack` states its layers' edges, merged.
     public static var _statesSpacingPreference: Bool { Content._statesSpacingPreference }
 }
@@ -403,7 +403,7 @@ extension _ZStackCore: SpacingReaching {
 
 // MARK: - Equatable
 
-extension ZStack: @preconcurrency Equatable where Content: Equatable {
+extension ZStack: Equatable where Content: Equatable {
     public static func == (lhs: ZStack<Content>, rhs: ZStack<Content>) -> Bool {
         lhs.alignment == rhs.alignment && lhs.content == rhs.content
     }

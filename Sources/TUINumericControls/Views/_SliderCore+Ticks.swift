@@ -121,7 +121,7 @@ extension View {
     ///
     /// - Parameter visibility: Whether sliders show their thumb.
     /// - Returns: A view whose sliders draw their thumb accordingly.
-    public func sliderThumbVisibility(_ visibility: Visibility) -> some View {
+    nonisolated public func sliderThumbVisibility(_ visibility: Visibility) -> some View {
         environment(\.sliderThumbVisibility, visibility)
     }
 }

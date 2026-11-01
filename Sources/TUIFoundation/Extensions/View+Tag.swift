@@ -18,7 +18,7 @@
 ///
 /// - Important: Framework infrastructure. Created by
 ///   ``View/tag(_:includeOptional:)``; do not instantiate directly.
-public struct _TaggedView<Content: View>: View {
+nonisolated public struct _TaggedView<Content: View>: View {
     /// The tag value, type-erased.
     package let tagValue: AnyHashable
 
@@ -31,18 +31,18 @@ public struct _TaggedView<Content: View>: View {
     /// The wrapped content view.
     package let content: Content
 
-    public var body: some View {
+    @MainActor public var body: some View {
         content
     }
 
     /// Static witness: a tag is a container value — see
     /// ``View/_providesContainerValues``.
-    public static var _providesContainerValues: Bool { true }
+    @MainActor public static var _providesContainerValues: Bool { true }
 }
 
 /// A tag is one of the view's container values, as in SwiftUI: what
 /// ``ContainerValues/tag(for:)`` and ``ContainerValues/hasTag(_:)`` answer.
-extension _TaggedView: ContainerValueWriting {
+@MainActor extension _TaggedView: ContainerValueWriting {
     func writeContainerValues(into values: inout ContainerValues) {
         values.appendTag(tagValue, includeOptional: includeOptional)
     }
@@ -136,7 +136,7 @@ extension View {
     ///   - includeOptional: Whether the tag also matches a selection of the
     ///     tag's Optional type.
     /// - Returns: A view tagged with the given value.
-    public func tag<V: Hashable>(_ tag: V, includeOptional: Bool = true) -> some View {
+    nonisolated public func tag<V: Hashable>(_ tag: V, includeOptional: Bool = true) -> some View {
         _TaggedView(tagValue: AnyHashable(tag), includeOptional: includeOptional, content: self)
     }
 }
@@ -163,7 +163,7 @@ package protocol TagCarrying {
     var carriedTag: (value: AnyHashable, includeOptional: Bool)? { get }
 }
 
-extension _TaggedView: TagCarrying {
+@MainActor extension _TaggedView: TagCarrying {
     package var carriedTag: (value: AnyHashable, includeOptional: Bool)? {
         (tagValue, includeOptional)
     }
@@ -265,7 +265,7 @@ package func resolveTag<Value: Hashable>(
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _TaggedView: SingleContentWrapper {
+@MainActor extension _TaggedView: SingleContentWrapper {
     public var wrappedContent: Content { content }
 }
 
@@ -273,7 +273,7 @@ extension _TaggedView: SingleContentWrapper {
 /// `Group` reaches each member: `Group { Text("a"); Text("b") }.tag(1)` in a
 /// `List` is two rows tagged `1`, and in an `HStack` two children side by
 /// side, not one column of two.
-extension _TaggedView: ContentRewrapping {
+@MainActor extension _TaggedView: ContentRewrapping {
     public func rewrapping<V: View>(_ view: V) -> any View {
         _TaggedView<V>(tagValue: tagValue, includeOptional: includeOptional, content: view)
     }
@@ -281,14 +281,14 @@ extension _TaggedView: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``ContentRewrapping`` wrapper — each member comes back tagged.
-extension _TaggedView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _TaggedView: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Each of a row's cells tagged, as each member is.
-extension _TaggedView: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension _TaggedView: GridRowProviding where Content: GridRowProviding {}
 
 /// A tag written on a form row tags the row the form lays out, which keeps its
 /// place: SwiftUI's form keeps a tagged row in it (measured).
-extension _TaggedView: FormRowRewrapping {
+@MainActor extension _TaggedView: FormRowRewrapping {
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {
         _TaggedView<V>(tagValue: tagValue, includeOptional: includeOptional, content: row)
     }

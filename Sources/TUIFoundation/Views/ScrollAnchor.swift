@@ -141,7 +141,7 @@ extension View {
     ///
     /// - Parameter anchor: The bound anchor override.
     /// - Returns: A view whose scrollables read and write that anchor.
-    public func anchorPosition<ID: Hashable>(
+    nonisolated public func anchorPosition<ID: Hashable>(
         _ anchor: Binding<ScrollAnchor<ID>?>
     ) -> some View {
         // Erase ID ↔ AnyHashable. `AnyHashable` keeps the base value, so a

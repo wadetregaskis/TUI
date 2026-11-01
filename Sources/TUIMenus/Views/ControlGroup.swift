@@ -27,7 +27,7 @@ import TUIFoundation
 /// two ends and a rule between each pair, as a segmented `Picker` is drawn;
 /// `.menu` and `.compactMenu` put them behind a menu that the group's label
 /// opens.
-public struct ControlGroup<Content: View>: View {
+nonisolated public struct ControlGroup<Content: View>: View {
     let content: Content
 
     /// Creates a new control group with the specified children.
@@ -37,7 +37,7 @@ public struct ControlGroup<Content: View>: View {
         self.content = content()
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         // Through the configuration's content too: `ControlGroup(configuration)`
         // holds its labelled content in one.
         let parts =
@@ -52,11 +52,11 @@ public struct ControlGroup<Content: View>: View {
 
 /// A control group's content together with the label that describes it — what
 /// ``ControlGroup/init(content:label:)`` holds, as SwiftUI's does.
-public struct LabeledControlGroupContent<Content: View, Label: View>: View {
+nonisolated public struct LabeledControlGroupContent<Content: View, Label: View>: View {
     let content: Content
     let label: Label
 
-    public var body: some View {
+    @MainActor public var body: some View {
         content
     }
 }
@@ -68,7 +68,7 @@ private protocol LabeledControlGroupParts {
     var styledContent: _StyledContent { get }
 }
 
-extension LabeledControlGroupContent: LabeledControlGroupParts {
+@MainActor extension LabeledControlGroupContent: LabeledControlGroupParts {
     var erasedLabel: AnyView { AnyView(label) }
     var styledContent: _StyledContent { _StyledContent(content) }
 }
@@ -147,7 +147,7 @@ extension ControlGroup where Content == ControlGroupStyleConfiguration.Content {
     /// it.
     ///
     /// - Parameter configuration: The properties of the control group.
-    public init(_ configuration: ControlGroupStyleConfiguration) {
+    nonisolated public init(_ configuration: ControlGroupStyleConfiguration) {
         self.content = _StyledContent(
             LabeledControlGroupContent(content: configuration.content, label: configuration.label))
     }
@@ -326,7 +326,7 @@ extension View {
     ///
     /// - Parameter style: The style to apply to control groups within this view.
     /// - Returns: A view whose control groups use `style`.
-    public func controlGroupStyle<S: ControlGroupStyle>(_ style: S) -> some View {
+    nonisolated public func controlGroupStyle<S: ControlGroupStyle>(_ style: S) -> some View {
         transformEnvironment(\.controlGroupStyleChain) { $0 = $0.pushing(style) }
     }
 }

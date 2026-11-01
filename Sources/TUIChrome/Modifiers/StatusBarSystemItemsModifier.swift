@@ -26,7 +26,7 @@ import TUIFoundation
 ///     }
 /// }
 /// ```
-struct StatusBarSystemItemsModifier<Content: View>: View {
+nonisolated struct StatusBarSystemItemsModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
@@ -42,7 +42,7 @@ struct StatusBarSystemItemsModifier<Content: View>: View {
     /// Whether the bar carries an Escape entry when something claims the key.
     let showEscape: Bool
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("StatusBarSystemItemsModifier renders via Renderable")
     }
 }
@@ -51,7 +51,7 @@ struct StatusBarSystemItemsModifier<Content: View>: View {
 
 /// Draws its content unchanged, at its own identity, so a removal transition written
 /// inside it plays — see `DrawsContentUnchanged`.
-extension StatusBarSystemItemsModifier: DrawsContentUnchanged {
+@MainActor extension StatusBarSystemItemsModifier: DrawsContentUnchanged {
     var wrappedContent: Content { content }
 
     /// It keeps its content's geometry: it only registers its items.
@@ -61,7 +61,7 @@ extension StatusBarSystemItemsModifier: DrawsContentUnchanged {
     func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
-extension StatusBarSystemItemsModifier: Renderable {
+@MainActor extension StatusBarSystemItemsModifier: Renderable {
     func renderToBuffer(context renderContext: RenderContext) -> FrameBuffer {
         guard let statusBar = renderContext.environment.statusBar else {
             return TUIView.renderToBuffer(content, context: renderContext)
@@ -77,7 +77,7 @@ extension StatusBarSystemItemsModifier: Renderable {
 
 // MARK: - Layoutable
 
-extension StatusBarSystemItemsModifier: Layoutable {
+@MainActor extension StatusBarSystemItemsModifier: Layoutable {
     /// System status-bar items render on a separate bar, not inline, so this
     /// measures as `content` (and the toggle side-effects stay render-only).
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -123,7 +123,7 @@ extension View {
     ///
     /// Turning either off is a display decision and nothing more. The keys go on
     /// working exactly as they did.
-    public func statusBarSystemItems(
+    nonisolated public func statusBarSystemItems(
         theme: Bool = false,
         appearance: Bool = false,
         returnKey: Bool = true,

@@ -142,7 +142,7 @@ extension View {
     /// - Parameter style: The animation to use.
     /// - Returns: A view that publishes the chosen style to its
     ///   descendants.
-    public func indeterminateStyle(_ style: IndeterminateStyle) -> some View {
+    nonisolated public func indeterminateStyle(_ style: IndeterminateStyle) -> some View {
         environment(\.indeterminateStyle, style)
     }
 }

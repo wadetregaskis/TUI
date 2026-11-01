@@ -59,7 +59,7 @@ extension View {
     ///   - shouldPresent: Whether a dismissal should ask first.
     ///   - actions: The dialog's actions.
     ///   - message: The dialog's message.
-    public func dismissalConfirmationDialog<A: View, M: View>(
+    nonisolated public func dismissalConfirmationDialog<A: View, M: View>(
         _ titleKey: LocalizedStringKey, shouldPresent: Bool,
         @ViewBuilder actions: () -> A, @ViewBuilder message: () -> M
     ) -> some View {
@@ -77,7 +77,7 @@ extension View {
     ///   - actions: The dialog's actions.
     ///   - message: The dialog's message.
     @_disfavoredOverload
-    public func dismissalConfirmationDialog<S: StringProtocol, A: View, M: View>(
+    nonisolated public func dismissalConfirmationDialog<S: StringProtocol, A: View, M: View>(
         _ title: S, shouldPresent: Bool,
         @ViewBuilder actions: () -> A, @ViewBuilder message: () -> M
     ) -> some View {
@@ -96,7 +96,7 @@ extension View {
     ///   - shouldPresent: Whether a dismissal should ask first.
     ///   - actions: The dialog's actions.
     ///   - message: The dialog's message.
-    public func dismissalConfirmationDialog<A: View, M: View>(
+    nonisolated public func dismissalConfirmationDialog<A: View, M: View>(
         _ title: Text, shouldPresent: Bool,
         @ViewBuilder actions: () -> A, @ViewBuilder message: () -> M
     ) -> some View {
@@ -113,7 +113,7 @@ extension View {
     ///   - titleKey: The dialog's title.
     ///   - shouldPresent: Whether a dismissal should ask first.
     ///   - actions: The dialog's actions.
-    public func dismissalConfirmationDialog<A: View>(
+    nonisolated public func dismissalConfirmationDialog<A: View>(
         _ titleKey: LocalizedStringKey, shouldPresent: Bool, @ViewBuilder actions: () -> A
     ) -> some View {
         _DismissalConfirmationModifier<Self, A, EmptyView>(
@@ -129,7 +129,7 @@ extension View {
     ///   - shouldPresent: Whether a dismissal should ask first.
     ///   - actions: The dialog's actions.
     @_disfavoredOverload
-    public func dismissalConfirmationDialog<S: StringProtocol, A: View>(
+    nonisolated public func dismissalConfirmationDialog<S: StringProtocol, A: View>(
         _ title: S, shouldPresent: Bool, @ViewBuilder actions: () -> A
     ) -> some View {
         _DismissalConfirmationModifier<Self, A, EmptyView>(
@@ -144,7 +144,7 @@ extension View {
     ///   - title: The dialog's title.
     ///   - shouldPresent: Whether a dismissal should ask first.
     ///   - actions: The dialog's actions.
-    public func dismissalConfirmationDialog<A: View>(
+    nonisolated public func dismissalConfirmationDialog<A: View>(
         _ title: Text, shouldPresent: Bool, @ViewBuilder actions: () -> A
     ) -> some View {
         _DismissalConfirmationModifier<Self, A, EmptyView>(
@@ -159,6 +159,8 @@ extension View {
 /// `\.dismiss`.
 @MainActor
 final class PendingDismissal {
+    nonisolated init() {}
+
     var proceed: (() -> Void)?
 
     /// The content's `\.dismiss`, kept for the modifier's life so the action
@@ -177,7 +179,7 @@ final class PendingDismissal {
     }
 }
 
-struct _DismissalConfirmationModifier<Content: View, A: View, M: View>: View {
+struct _DismissalConfirmationModifier<Content: View, A: View, M: View> {
     let content: Content
     let title: String
     /// The key ``title`` was read from, if it was: the dialog is titled with
@@ -194,7 +196,7 @@ struct _DismissalConfirmationModifier<Content: View, A: View, M: View>: View {
     /// the content is in, or quitting at the top level.
     @Environment(\.dismiss) private var outerDismiss
 
-    var body: some View {
+    @MainActor var body: some View {
         let pending = pending
         let isConfirming = $isConfirming
         let ask: (@escaping () -> Void) -> Void = { proceed in
@@ -233,7 +235,7 @@ struct _DismissalConfirmationModifier<Content: View, A: View, M: View>: View {
     /// `content` with the dialog on it — with a message only when the app
     /// gave one, since an empty one would still keep a blank line.
     @ViewBuilder
-    private func dialog(
+    @MainActor private func dialog(
         _ content: some View, isConfirming: Binding<Bool>, actions: _DismissalActions<A>
     ) -> some View {
         if let titleKey {
@@ -249,6 +251,7 @@ struct _DismissalConfirmationModifier<Content: View, A: View, M: View>: View {
         }
     }
 }
+extension _DismissalConfirmationModifier: View {}
 
 /// Offers `ask` to the nearest presentation's gate, or to the quit key at the
 /// top level, on every frame `shouldPresent` holds.

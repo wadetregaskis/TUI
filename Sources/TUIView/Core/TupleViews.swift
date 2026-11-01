@@ -17,7 +17,7 @@ import TUICore
 ///
 /// - Important: This is framework infrastructure. Created automatically by
 ///   `@ViewBuilder`. Do not instantiate directly.
-public struct TupleView<each V: View>: View {
+nonisolated public struct TupleView<each V: View>: View {
     /// The packed child views.
     public let children: (repeat each V)
 
@@ -37,16 +37,16 @@ public struct TupleView<each V: View>: View {
     }
 
     /// The child views, as a tuple — SwiftUI's name for ``children``.
-    public var value: (repeat each V) { children }
+    @MainActor public var value: (repeat each V) { children }
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("TupleView renders its children directly")
     }
 }
 
 // MARK: - Alignment Guides
 
-extension TupleView {
+@MainActor extension TupleView {
     /// Whether any element holds an explicit alignment guide: a stack whose
     /// content this is lays the elements out as its children, so a guide in
     /// any of them can be the stack's to report.
@@ -89,7 +89,7 @@ extension TupleView: @MainActor Equatable where repeat each V: Equatable {
 
 // MARK: - TupleView Rendering + ChildInfoProvider
 
-extension TupleView: Renderable, ChildInfoProvider {
+@MainActor extension TupleView: Renderable, ChildInfoProvider {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         FrameBuffer(verticallyStacking: childInfos(context: context).compactMap(\.buffer))
     }
@@ -143,7 +143,7 @@ extension TupleView: Renderable, ChildInfoProvider {
 
 // MARK: - TupleView Two-Pass Layout Support
 
-extension TupleView: ChildViewProvider {
+@MainActor extension TupleView: ChildViewProvider {
     public func childViews(context: RenderContext) -> [ChildView] {
         var views: [ChildView] = []
         var slot = 0

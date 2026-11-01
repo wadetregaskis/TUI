@@ -27,7 +27,7 @@ import TUIPresentation
 /// under its `fileDialogCustomizationID(_:)`, the `fileDialogDefaultDirectory(_:)`,
 /// the folder of the last choice made through this view, and the request's
 /// own start folder.
-struct FilePanelPresenter<Content: View>: View {
+struct FilePanelPresenter<Content: View> {
     let content: Content
     let isPresented: Binding<Bool>
 
@@ -72,7 +72,7 @@ struct FilePanelPresenter<Content: View>: View {
         var current: FilePanelRequest?
     }
 
-    var body: some View {
+    @MainActor @ViewBuilder var body: some View {
         content
             .sheet(isPresented: sheetBinding, onDismiss: dismissed) {
                 // Built only while the sheet is presented, so the request is
@@ -88,14 +88,14 @@ struct FilePanelPresenter<Content: View>: View {
     /// `isPresented`, but true only once ``isSheetUp`` has caught up with it, as
     /// this body read it: the `onChange` outside the sheet writes it before the
     /// sheet is drawn, in the same walk, ahead of that frame's other effects.
-    private var sheetBinding: Binding<Bool> {
+    @MainActor private var sheetBinding: Binding<Bool> {
         let isUp = isSheetUp
         return Binding(get: { isPresented.wrappedValue && isUp }, set: { isPresented.wrappedValue = $0 })
     }
 
     /// The request this presentation was made with: made the first time the
     /// sheet's content is built, and kept until it is dismissed.
-    private func currentRequest() -> FilePanelRequest {
+    @MainActor private func currentRequest() -> FilePanelRequest {
         if let current = session.current { return current }
         var made = request()
         made.rule.locale = locale
@@ -116,7 +116,7 @@ struct FilePanelPresenter<Content: View>: View {
     /// `customization` applied to `request`: the words, the default folder,
     /// the browsing options, the URL test, how links are handed back, and
     /// whether the type pop-up and the remote-machine notice show.
-    static func apply(_ customization: FileDialogCustomization, to request: inout FilePanelRequest) {
+    @MainActor static func apply(_ customization: FileDialogCustomization, to request: inout FilePanelRequest) {
         if let message = customization.message { request.message = message }
         if let label = customization.confirmationLabel { request.confirmationLabel = label }
         if let label = customization.filenameLabel { request.filenameLabel = label }
@@ -129,7 +129,7 @@ struct FilePanelPresenter<Content: View>: View {
         request.remoteNotice = customization.remoteNotice
     }
 
-    private func finish(_ outcome: FilePanelOutcome) {
+    @MainActor private func finish(_ outcome: FilePanelOutcome) {
         keep(outcome.ending)
         switch outcome {
         case .chose(let urls, let ending):
@@ -143,7 +143,7 @@ struct FilePanelPresenter<Content: View>: View {
     }
 
     /// The sheet has gone: a cancellation, unless the panel chose.
-    private func dismissed() {
+    @MainActor private func dismissed() {
         let chose = session.chose
         session.chose = false
         session.current = nil
@@ -153,18 +153,18 @@ struct FilePanelPresenter<Content: View>: View {
     // MARK: - fileDialogCustomizationID
 
     /// The store the panel's state is kept in.
-    private var store: any StorageBackend {
+    @MainActor private var store: any StorageBackend {
         defaultAppStorage?.store ?? StorageDefaults.backend
     }
 
     /// The keys the state of the panel with identifier `id` is kept under.
-    static func storageKeys(_ id: String) -> (directory: String, showsHiddenFiles: String) {
+    @MainActor static func storageKeys(_ id: String) -> (directory: String, showsHiddenFiles: String) {
         ("TUIFilePanels.\(id).directory", "TUIFilePanels.\(id).showsHiddenFiles")
     }
 
     /// The state kept under this panel's identifier, when it has one and a
     /// folder is kept that still exists.
-    private func keptState() -> FilePanelEnding? {
+    @MainActor private func keptState() -> FilePanelEnding? {
         guard let id = customization.customizationID else { return nil }
         let keys = Self.storageKeys(id)
         guard let path: String = store.entry(forKey: keys.directory, as: String.self).value else { return nil }
@@ -177,10 +177,11 @@ struct FilePanelPresenter<Content: View>: View {
     }
 
     /// Keeps where the panel ended under its identifier, when it has one.
-    private func keep(_ ending: FilePanelEnding) {
+    @MainActor private func keep(_ ending: FilePanelEnding) {
         guard let id = customization.customizationID else { return }
         let keys = Self.storageKeys(id)
         store.setValue(ending.directory.path, forKey: keys.directory)
         store.setValue(ending.showsHiddenFiles, forKey: keys.showsHiddenFiles)
     }
 }
+extension FilePanelPresenter: View {}

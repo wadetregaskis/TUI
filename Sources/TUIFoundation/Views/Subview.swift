@@ -28,7 +28,7 @@ import TUIView
 /// `.zIndex` or a `.layoutValue` on the view is the proxy's, as SwiftUI's is
 /// (measured on macOS 15.8). A guide or a value written on the proxy itself
 /// wins over the view's, as any modifier outside does.
-public struct Subview: View, @MainActor Identifiable {
+nonisolated public struct Subview: View, @MainActor Identifiable {
     /// The member, its identity pinned where it was resolved.
     let child: ChildView
 
@@ -37,7 +37,7 @@ public struct Subview: View, @MainActor Identifiable {
     private let members: SubviewMembers
     private let index: Int
 
-    init(members: SubviewMembers, index: Int) {
+    @MainActor init(members: SubviewMembers, index: Int) {
         self.child = members.child(at: index)
         self.members = members
         self.index = index
@@ -45,7 +45,7 @@ public struct Subview: View, @MainActor Identifiable {
 
     /// The member's own view, as it was written: what a container that draws
     /// its members itself — a dialog's buttons — looks through.
-    package var memberView: any View { child.wrappedView }
+    @MainActor package var memberView: any View { child.wrappedView }
 
     /// A unique identifier for a subview.
     public struct ID: Hashable, Sendable, CustomStringConvertible {
@@ -59,7 +59,7 @@ public struct Subview: View, @MainActor Identifiable {
     ///
     /// The identity the view resolved to: it persists across updates and
     /// changes to the order of subviews, so it can track a subview's lifetime.
-    public var id: ID {
+    @MainActor public var id: ID {
         guard let identity = child.pinnedIdentity else {
             preconditionFailure("a subview's member is pinned by the walk that resolved it")
         }
@@ -69,40 +69,40 @@ public struct Subview: View, @MainActor Identifiable {
     /// The container values associated with the given subview — what
     /// ``View/containerValue(_:_:)`` and ``View/tag(_:includeOptional:)`` set on
     /// it, and the element id a `ForEach` row is tagged with.
-    public var containerValues: ContainerValues {
+    @MainActor public var containerValues: ContainerValues {
         ContainerValues(of: child, implicitTag: members.implicitTag(at: index))
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _SubviewCore(child: child)
     }
 
     /// MAY be a spacer: the member says, when the proxy's `ChildView` is built
     /// (``LayoutTraitsForwarding``).
-    public static var _isSpacer: Bool { true }
+    @MainActor public static var _isSpacer: Bool { true }
 
     /// MAY carry a z-index: the member's, read as ``_isSpacer`` is.
-    public static var _providesZIndex: Bool { true }
+    @MainActor public static var _providesZIndex: Bool { true }
 
     /// MAY carry an alignment guide: the member's, read as ``_isSpacer`` is.
-    public static var _providesAlignmentGuide: Bool { true }
+    @MainActor public static var _providesAlignmentGuide: Bool { true }
     /// MAY carry a layout value: the member's, read through the proxy as a
     /// z-index is.
-    public static var _providesLayoutValues: Bool { true }
+    @MainActor public static var _providesLayoutValues: Bool { true }
 }
 
 // MARK: - The Member's Layout Traits
 
 /// The proxy lays out as its member: a container building its `ChildView`
 /// takes the member's spacer flag, z-index and guide flag from here.
-extension Subview: LayoutTraitsForwarding {
+@MainActor extension Subview: LayoutTraitsForwarding {
     package var forwardedChild: ChildView { child }
 }
 
 /// The member's guides, worked out where the member is: its pinned identity,
 /// at the dimensions the proxy was laid out at — which are the member's, since
 /// the proxy measures and draws it unchanged.
-extension Subview: AlignmentGuideQuerying {
+@MainActor extension Subview: AlignmentGuideQuerying {
     package func explicitGuide(
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
@@ -111,20 +111,20 @@ extension Subview: AlignmentGuideQuerying {
 }
 
 /// The member's layout values, for the `Layout` the proxy is placed in.
-extension Subview: LayoutValueProviding {
+@MainActor extension Subview: LayoutValueProviding {
     package func layoutValue(for key: ObjectIdentifier) -> Any? {
         (child.wrappedView as? LayoutValueProviding)?.layoutValue(for: key)
     }
 }
 
 /// The member's preferred spacing, when it is a `Layout`.
-extension Subview: SpacingPreferenceProviding {
+@MainActor extension Subview: SpacingPreferenceProviding {
     func preferredSpacing(context: RenderContext) -> ViewSpacing {
         statedSpacing(of: child, context: context) ?? ViewSpacing()
     }
 }
 
-extension Subview {
+@MainActor extension Subview {
     /// Options on how all subviews should be sized when in a container.
     ///
     /// Not about how one view measures alone: it describes the sizing of a
@@ -181,19 +181,19 @@ private struct _SubviewCore: View, Renderable, Layoutable {
 /// them out side by side and `subviews[1...]` contributes all but the first.
 /// Placed where nothing lays its members out, it stacks them vertically, as a
 /// `ForEach` does.
-public struct SubviewsCollection: View {
+nonisolated public struct SubviewsCollection: View {
     let members: SubviewMembers
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _SubviewMembersCore(members: members, range: 0..<members.count)
     }
 
     /// Its members may be anything, a layout among them, and a row takes the
     /// collection apart into them — so, like a ``Subview``, it MAY state one.
-    public static var _statesSpacingPreference: Bool { true }
+    @MainActor public static var _statesSpacingPreference: Bool { true }
 }
 
-extension SubviewsCollection: @MainActor RandomAccessCollection {
+@MainActor extension SubviewsCollection: @MainActor RandomAccessCollection {
     public typealias Element = Subview
     public typealias Index = Int
     public typealias Indices = Range<Int>
@@ -216,7 +216,7 @@ extension SubviewsCollection: @MainActor RandomAccessCollection {
     }
 }
 
-extension SubviewsCollection: ChildViewProvider, LazyChildViewProvider {
+@MainActor extension SubviewsCollection: ChildViewProvider, LazyChildViewProvider {
     public func childViews(context: RenderContext) -> [ChildView] {
         members.children(0..<members.count)
     }
@@ -232,19 +232,19 @@ extension SubviewsCollection: ChildViewProvider, LazyChildViewProvider {
 ///
 /// Keeps its parent's indices, as every `Collection` slice does: in
 /// `subviews[1...]` the first member is at index 1.
-public struct SubviewsCollectionSlice: View {
+nonisolated public struct SubviewsCollectionSlice: View {
     let members: SubviewMembers
     let bounds: Range<Int>
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _SubviewMembersCore(members: members, range: bounds)
     }
 
     /// As for ``SubviewsCollection``: its members may state one.
-    public static var _statesSpacingPreference: Bool { true }
+    @MainActor public static var _statesSpacingPreference: Bool { true }
 }
 
-extension SubviewsCollectionSlice: @MainActor RandomAccessCollection {
+@MainActor extension SubviewsCollectionSlice: @MainActor RandomAccessCollection {
     public typealias Element = Subview
     public typealias Index = Int
     public typealias Indices = Range<Int>
@@ -263,7 +263,7 @@ extension SubviewsCollectionSlice: @MainActor RandomAccessCollection {
     }
 }
 
-extension SubviewsCollectionSlice: ChildViewProvider, LazyChildViewProvider {
+@MainActor extension SubviewsCollectionSlice: ChildViewProvider, LazyChildViewProvider {
     public func childViews(context: RenderContext) -> [ChildView] {
         members.children(bounds)
     }

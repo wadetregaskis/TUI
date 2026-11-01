@@ -478,11 +478,11 @@ where
 
 // MARK: - ForEach
 
-extension ForEach: _TableRowValued where Content: TableRowContent {
+@MainActor extension ForEach: _TableRowValued where Content: TableRowContent {
     public typealias TableRowValue = Content.TableRowValue
 }
 
-extension ForEach: TableRowContent where Content: TableRowContent {
+@MainActor extension ForEach: TableRowContent where Content: TableRowContent {
     public typealias TableRowBody = Never
 
     /// Never called: a loop hands its rows to the table directly.
@@ -565,4 +565,4 @@ public protocol DynamicTableRowContent: TableRowContent {
     var data: Data { get }
 }
 
-extension ForEach: DynamicTableRowContent where Content: TableRowContent {}
+@MainActor extension ForEach: DynamicTableRowContent where Content: TableRowContent {}

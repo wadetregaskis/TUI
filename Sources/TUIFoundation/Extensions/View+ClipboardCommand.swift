@@ -22,7 +22,7 @@ extension View {
     ///   read (`InputHandler.acceptsPaste(ofMIMEType:)`). `nil` declares none.
     ///   - perform: Given the key event and the clipboard, answers whether
     ///     the command took the key.
-    func clipboardCommand(
+    nonisolated func clipboardCommand(
         _ key: KeyEquivalent, declares: ((KeyEvent) -> Bool)? = nil,
         perform: @escaping (KeyEvent, ClipboardAccess) -> Bool
     ) -> FocusPathModifier<Self> {

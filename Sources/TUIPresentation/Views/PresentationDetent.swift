@@ -326,29 +326,29 @@ final class SheetDetentState {
 
 /// The wrapper `.presentationDetents(_:)` produces. Renders and measures as its
 /// content; carrying the detents is its whole job.
-struct _PresentationDetentsView<Content: View>: View, PresentationDetentsProviding {
+nonisolated struct _PresentationDetentsView<Content: View>: View, PresentationDetentsProviding {
     let content: Content
     let detents: Set<PresentationDetent>
     let detentSelection: Binding<PresentationDetent>?
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_PresentationDetentsView renders via Renderable")
     }
 }
 
-extension _PresentationDetentsView: Renderable {
+@MainActor extension _PresentationDetentsView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: context)
     }
 }
 
-extension _PresentationDetentsView: Layoutable {
+@MainActor extension _PresentationDetentsView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
 
-extension _PresentationDetentsView: PresentationTraitWrapper {
+@MainActor extension _PresentationDetentsView: PresentationTraitWrapper {
     var presentationTraitContent: any View { content }
 }
 
@@ -372,7 +372,7 @@ extension View {
     /// keys — between them (see ``presentationDragIndicator(_:)``).
     ///
     /// - Parameter detents: The heights the sheet may rest at.
-    public func presentationDetents(_ detents: Set<PresentationDetent>) -> some View {
+    nonisolated public func presentationDetents(_ detents: Set<PresentationDetent>) -> some View {
         _PresentationDetentsView(content: self, detents: detents, detentSelection: nil)
     }
 
@@ -385,7 +385,7 @@ extension View {
     /// - Parameters:
     ///   - detents: The heights the sheet may rest at.
     ///   - selection: The detent currently in use.
-    public func presentationDetents(
+    nonisolated public func presentationDetents(
         _ detents: Set<PresentationDetent>,
         selection: Binding<PresentationDetent>
     ) -> some View {
@@ -399,7 +399,7 @@ extension View {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _PresentationDetentsView: SingleContentWrapper {
+@MainActor extension _PresentationDetentsView: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -410,4 +410,4 @@ extension _PresentationDetentsView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _PresentationDetentsView: DrawsContentUnchanged {}
+@MainActor extension _PresentationDetentsView: DrawsContentUnchanged {}

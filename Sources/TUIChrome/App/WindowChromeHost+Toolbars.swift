@@ -8,7 +8,7 @@
 
 import TUIFoundation
 
-extension _WindowChromeHost {
+@MainActor extension _WindowChromeHost {
     /// The rows a toolbar of `contentRows` rows takes in `style`, or 0 for
     /// none.
     static func toolbarHeight(contentRows: Int, style: ChromeStyle) -> Int {

@@ -83,7 +83,7 @@ public struct Theme: Sendable {
 // MARK: - Theme modifier
 
 /// Expands a ``Theme`` into the individual environment settings for its content.
-package struct ThemeModifier<Content: View>: View {
+nonisolated package struct ThemeModifier<Content: View>: View {
     public let content: Content
     public let theme: Theme
 
@@ -93,7 +93,7 @@ package struct ThemeModifier<Content: View>: View {
     }
 
     /// Not used during rendering — ``Renderable`` conformance takes priority.
-    public var body: some View { content }
+    @MainActor public var body: some View { content }
 
     /// A control style held so it can be compared with the next frame's — what
     /// ``ComparablePalette`` is for a palette, and for the same reason: the slot
@@ -183,7 +183,7 @@ package struct ThemeModifier<Content: View>: View {
         }
     }
 
-    private func modifiedContext(_ context: RenderContext) -> RenderContext {
+    @MainActor private func modifiedContext(_ context: RenderContext) -> RenderContext {
         // The same bookkeeping `EnvironmentModifier`, `TintModifier` and
         // `_StyleEnvironmentView` do, and not optional here either. The render
         // memo keys on identity, view value and size and deliberately carries
@@ -312,7 +312,7 @@ package struct ThemeModifier<Content: View>: View {
     }
 }
 
-extension ThemeModifier {
+@MainActor extension ThemeModifier {
     /// `inherited`, with `entries` set over it broadest first: the entry naming the
     /// most kinds before the ones naming fewer, and entries naming as many kinds in
     /// the order they are written. The speed counterpart of the specificity order
@@ -333,13 +333,13 @@ extension ThemeModifier {
     }
 }
 
-extension ThemeModifier: Renderable {
+@MainActor extension ThemeModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: modifiedContext(context))
     }
 }
 
-extension ThemeModifier: Layoutable {
+@MainActor extension ThemeModifier: Layoutable {
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: modifiedContext(context))
     }
@@ -349,7 +349,7 @@ extension View {
     /// Applies a ``Theme`` to this view's subtree — its palette, appearance,
     /// tint, scoped style defaults, and any control styles. Anything applied
     /// closer to the content overrides the theme's value for that slice.
-    public func theme(_ theme: Theme) -> some View {
+    nonisolated public func theme(_ theme: Theme) -> some View {
         ThemeModifier(content: self, theme: theme)
     }
 }
@@ -360,7 +360,7 @@ extension View {
 ///   up or two, so publishing it around each member is the same thing as
 ///   publishing it once around the pair. What changes is only that the members
 ///   stay the enclosing container's own children.
-extension ThemeModifier: ContentRewrapping {
+@MainActor extension ThemeModifier: ContentRewrapping {
     public var wrappedContent: Content { content }
 
     /// Its content's context: the theme it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -373,14 +373,14 @@ extension ThemeModifier: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension ThemeModifier: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension ThemeModifier: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension ThemeModifier: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension ThemeModifier: GridRowProviding where Content: GridRowProviding {}
 
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension ThemeModifier: DrawsContentUnchanged {}
+@MainActor extension ThemeModifier: DrawsContentUnchanged {}

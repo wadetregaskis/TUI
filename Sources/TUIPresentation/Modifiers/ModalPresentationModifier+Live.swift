@@ -121,7 +121,7 @@ final class PresentationEntry {
 
 // MARK: - Presenting live
 
-extension ModalPresentationModifier {
+@MainActor extension ModalPresentationModifier {
     /// Posts, for the root, the rows this presented sheet docks
     /// (`FocusManager.notePresentationDock(id:resolver:)`), where its content
     /// lets the page through (`presented`: the content built for this frame,

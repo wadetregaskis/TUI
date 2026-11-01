@@ -17,7 +17,7 @@ import TUIFoundation
 extension View {
     @available(*, unavailable, message: "Write each tab as a Tab: Tab(\"Home\", systemImage: \"house\") { HomeView() }. SwiftUI has replaced tabItem with this too.")
     @_alwaysEmitIntoClient
-    public func tabItem<Label: View>(@ViewBuilder _ label: () -> Label) -> Self { self }
+    nonisolated public func tabItem<Label: View>(@ViewBuilder _ label: () -> Label) -> Self { self }
 }
 
 extension TabContentBuilder {

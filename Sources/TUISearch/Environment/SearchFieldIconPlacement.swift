@@ -53,7 +53,7 @@ extension View {
     ///
     /// - Parameter placement: The side to draw the icon on.
     /// - Returns: A view whose search fields place their icon accordingly.
-    public func searchFieldIconPlacement(
+    nonisolated public func searchFieldIconPlacement(
         _ placement: SearchFieldIconPlacement
     ) -> some View {
         environment(\.searchFieldIconPlacement, placement)

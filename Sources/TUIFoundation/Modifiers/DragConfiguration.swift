@@ -203,7 +203,7 @@ extension View {
     ///
     /// - Parameter configuration: The operations the drags allow.
     /// - Returns: A view whose drags carry the configuration.
-    public func dragConfiguration(_ configuration: DragConfiguration) -> some View {
+    nonisolated public func dragConfiguration(_ configuration: DragConfiguration) -> some View {
         environment(\.dragConfiguration, configuration)
     }
 }

@@ -48,7 +48,7 @@ extension View {
     ///   - transform: Derives the value from the view's geometry.
     ///   - action: Receives the new value.
     /// - Returns: A view that reports its geometry.
-    public func onGeometryChange<T: Equatable>(
+    nonisolated public func onGeometryChange<T: Equatable>(
         for type: T.Type,
         of transform: @escaping (GeometryProxy) -> T,
         action: @escaping (T) -> Void
@@ -68,7 +68,7 @@ extension View {
     ///   - transform: Derives the value from the view's geometry.
     ///   - action: Receives the previous and the new value.
     /// - Returns: A view that reports its geometry.
-    public func onGeometryChange<T: Equatable>(
+    nonisolated public func onGeometryChange<T: Equatable>(
         for type: T.Type,
         of transform: @escaping (GeometryProxy) -> T,
         action: @escaping (T, T) -> Void
@@ -81,17 +81,17 @@ extension View {
 
 /// Renders `content` unchanged and reports a value derived from the size it
 /// came out at.
-struct OnGeometryChangeModifier<Content: View, T: Equatable>: View {
+nonisolated struct OnGeometryChangeModifier<Content: View, T: Equatable>: View {
     let content: Content
     let transform: (GeometryProxy) -> T
     let action: (T, T) -> Void
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("OnGeometryChangeModifier renders via Renderable")
     }
 }
 
-extension OnGeometryChangeModifier: Renderable {
+@MainActor extension OnGeometryChangeModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A measure pass must not fire the action — there are several per frame
         // and they are asking a question, not laying anything out. Same rule
@@ -192,7 +192,7 @@ private struct GeometryReport<T> {
     let pass: UInt32
 }
 
-extension OnGeometryChangeModifier: Layoutable {
+@MainActor extension OnGeometryChangeModifier: Layoutable {
     /// Measures as its content: reporting is the whole of this modifier's
     /// effect, and it contributes no geometry.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -206,7 +206,7 @@ extension OnGeometryChangeModifier: Layoutable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension OnGeometryChangeModifier: SingleContentWrapper {
+@MainActor extension OnGeometryChangeModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -217,13 +217,13 @@ extension OnGeometryChangeModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension OnGeometryChangeModifier: DrawsContentUnchanged {}
+@MainActor extension OnGeometryChangeModifier: DrawsContentUnchanged {}
 
 // MARK: - In a Form
 
 /// A geometry action written on a form row watches the row the form lays out,
 /// which keeps its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
-extension OnGeometryChangeModifier: FormRowRewrapping {
+@MainActor extension OnGeometryChangeModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
         OnGeometryChangeModifier<V, T>(content: row, transform: transform, action: action)
     }

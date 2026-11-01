@@ -46,7 +46,7 @@ import TUITextInput
 /// index, and one of the terminal's sixteen slots as the colour the terminal
 /// reported for it, or xterm's value while it has reported none;
 /// a semantic colour has no fixed RGB and reads as black until edited.
-public struct ColorPickerPanel: View {
+public struct ColorPickerPanel {
     private let title: String
     private let selection: Binding<Color>
     private let supportsOpacity: Bool
@@ -166,12 +166,14 @@ public struct ColorPickerPanel: View {
             isPresented: isPresented)
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         _EditorPanelChrome(title: title, edited: selection, isPresented: isPresented) {
             _ColorPickerBody(selection: selection, supportsOpacity: supportsOpacity)
         }
     }
 }
+extension ColorPickerPanel: View {}
 
 // MARK: - Embeddable panel body
 
@@ -182,7 +184,7 @@ public struct ColorPickerPanel: View {
 ///
 /// `package`: the tone-curve editor, which embeds one too, is
 /// TUICurveEditors' (C9b moved it out of this module).
-package struct _ColorPickerBody: View {
+package struct _ColorPickerBody {
     let selection: Binding<Color>
 
     /// Whether the opacity row is offered. Defaulted on, because a gradient stop —
@@ -213,10 +215,10 @@ package struct _ColorPickerBody: View {
     /// palette role's RGB and leaves your alpha alone even when the role itself is
     /// translucent — picking a hue is not a statement about transparency.
     /// The two bindings, for the test that asserts they are orthogonal.
-    var colorOnlyForTests: Binding<Color> { colorOnly }
-    var alphaBindingForTests: Binding<Double> { alphaBinding }
+    @MainActor var colorOnlyForTests: Binding<Color> { colorOnly }
+    @MainActor var alphaBindingForTests: Binding<Double> { alphaBinding }
 
-    private var colorOnly: Binding<Color> {
+    @MainActor private var colorOnly: Binding<Color> {
         Binding(
             get: { selection.wrappedValue },
             set: { new in
@@ -231,7 +233,7 @@ package struct _ColorPickerBody: View {
     /// No held state, unlike ``_ChannelEditor``'s channels: alpha is the one
     /// channel here that is not over-determined, so reading it back out of the
     /// colour is exact and there is nothing to re-canonicalise.
-    private var alphaBinding: Binding<Double> {
+    @MainActor private var alphaBinding: Binding<Double> {
         Binding(
             get: { Double(selection.wrappedValue.alpha) },
             set: { new in
@@ -247,7 +249,7 @@ package struct _ColorPickerBody: View {
     /// Resolves a semantic ``selection`` to concrete RGB for the read-out.
     @Environment(\.palette) private var palette
 
-    package var body: some View {
+    @MainActor @ViewBuilder package var body: some View {
             // Centre the preview and the tab view relative to each other (the tab
             // view is the widest, so the preview centres within it).
             VStack(alignment: .center, spacing: 1) {
@@ -324,7 +326,7 @@ package struct _ColorPickerBody: View {
     /// and claims an ``OpacityRegion`` over its own cells, so dragging this fades
     /// the block toward the panel actually behind it. No checkerboard, no assumed
     /// backdrop — see `Documentation/Colour and styling/Opacity as composition.md` §27.
-    private var opacityRow: some View {
+    @MainActor private var opacityRow: some View {
         HStack(spacing: 1) {
             Text("Opacity").foregroundStyle(.palette.foregroundTertiary)
             _ChannelRow(label: "A", idBase: "alpha", binding: alphaBinding, range: 0...255)
@@ -344,7 +346,7 @@ package struct _ColorPickerBody: View {
     /// second focus stop for content that already scrolls. Kept as a seam so the
     /// call sites read unchanged.
     @ViewBuilder
-    private func tabBody<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+    @MainActor private func tabBody<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         content()
     }
 
@@ -353,7 +355,7 @@ package struct _ColorPickerBody: View {
     /// A large live swatch plus an editable hex field and the `rgb(…)` read-out.
     /// A semantic selection is resolved against the palette so the read-outs show
     /// its concrete value rather than blanks.
-    private var previewRow: some View {
+    @MainActor private var previewRow: some View {
         let resolved = selection.wrappedValue.resolve(with: palette)
         let components = resolved.estimatedRGB
         return HStack(alignment: .center, spacing: 2) {
@@ -411,7 +413,7 @@ package struct _ColorPickerBody: View {
     /// in terminals that do not paint a background behind spaces, and the
     /// matching background fills any hairline gaps a font leaves between the
     /// block glyphs — so it is solid either way.
-    private static func previewRows(_ color: Color) -> [PreviewRow] {
+    @MainActor private static func previewRows(_ color: Color) -> [PreviewRow] {
         (0..<5).map { PreviewRow(line: $0, color: color) }
     }
 
@@ -428,7 +430,7 @@ package struct _ColorPickerBody: View {
     /// palette must always yield concrete colours, so we resolve before storing.
     /// (`Color.palette.accent` already *is* `.semantic(.accent)`, so each entry
     /// still doubles as the swatch.)
-    private var semanticEditor: some View {
+    @MainActor private var semanticEditor: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(ColorPickerPanel.semanticColors, id: \.name) { entry in
                 semanticRow(entry.name, entry.color)
@@ -439,7 +441,7 @@ package struct _ColorPickerBody: View {
     /// A swatch + name row that selects the semantic colour; the active role is
     /// marked and uses the primary button style.
     @ViewBuilder
-    private func semanticRow(_ name: String, _ color: Color) -> some View {
+    @MainActor private func semanticRow(_ name: String, _ color: Color) -> some View {
         // Snapshot the role's current concrete value (resolve before storing) so
         // the selection — which may be a palette slot — never holds a semantic
         // reference. The swatch keeps the semantic colour: it resolves at render
@@ -457,10 +459,11 @@ package struct _ColorPickerBody: View {
         }
     }
 }
+extension _ColorPickerBody: View {}
 
 // MARK: - Pure helpers (parsing, conversions, read-outs)
 
-extension ColorPickerPanel {
+@MainActor extension ColorPickerPanel {
     /// The palette roles offered on the semantic tab (see
     /// ``_ColorPickerBody``'s semantic editor for why selections snapshot the
     /// concrete colour rather than the semantic reference).
@@ -714,13 +717,13 @@ struct _EditableValueField: View {
 
 // MARK: - Environment without reflection
 
-extension ColorPickerPanel: ResolvesOwnEnvironment {
+@MainActor extension ColorPickerPanel: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _palette.resolveEnvironment(environment)
     }
 }
 
-extension _ColorPickerBody: ResolvesOwnEnvironment {
+@MainActor extension _ColorPickerBody: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _palette.resolveEnvironment(environment)
     }

@@ -24,7 +24,7 @@ extension FormControlRow {
     package var groupedFormRowParts: (label: AnyView, control: AnyView)? { nil }
 }
 
-extension Toggle: FormControlRow {
+@MainActor extension Toggle: FormControlRow {
     /// The label, and the checkbox with its label hidden.
     package var groupedFormRowParts: (label: AnyView, control: AnyView)? {
         (AnyView(label), AnyView(labelsHidden()))

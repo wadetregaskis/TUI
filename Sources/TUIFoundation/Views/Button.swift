@@ -58,10 +58,10 @@ public struct ButtonRole: Equatable, Sendable {
 /// The default label to use for a button: the title its role implies.
 ///
 /// You don't use this type directly; ``Button/init(role:action:)`` shows it.
-public struct DefaultButtonLabel: View {
+nonisolated public struct DefaultButtonLabel: View {
     let role: ButtonRole
 
-    public var body: some View {
+    @MainActor public var body: some View {
         Text(verbatim: role.defaultTitle)
     }
 }
@@ -102,7 +102,7 @@ public struct DefaultButtonLabel: View {
 ///     handleDelete()
 /// }
 /// ```
-public struct Button: View {
+nonisolated public struct Button: View {
     /// The button's label text (used by the built-in styles' string path; empty
     /// when the button was built with a `@ViewBuilder` label — see ``labelView``).
     let label: String
@@ -263,7 +263,7 @@ public struct Button: View {
     /// - Parameters:
     ///   - role: The button's role.
     ///   - action: The action to perform when pressed.
-    public init(role: ButtonRole, action: @escaping @MainActor () -> Void) {
+    @MainActor public init(role: ButtonRole, action: @escaping @MainActor () -> Void) {
         self.init(role.defaultTitle, role: role, action: action)
     }
 
@@ -356,7 +356,7 @@ public struct Button: View {
         self.triggeredMenu = button.triggeredMenu
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _ButtonCore(
             label: label,
             labelView: labelView,
@@ -950,14 +950,14 @@ extension View {
     ///
     /// - Parameter behavior: The repeat behavior.
     /// - Returns: A view whose buttons repeat, or do not, as `behavior` says.
-    public func buttonRepeatBehavior(_ behavior: ButtonRepeatBehavior) -> some View {
+    nonisolated public func buttonRepeatBehavior(_ behavior: ButtonRepeatBehavior) -> some View {
         environment(\.buttonRepeatBehavior, behavior)
     }
 }
 
 // MARK: - Button Convenience Modifiers
 
-extension Button {
+@MainActor extension Button {
     /// Makes this button a pop-up menu's trigger: its action runs on the mouse
     /// PRESS, and the drag and release that follow are handed back to live
     /// hit-testing so they reach the menu the action opened.
@@ -985,7 +985,7 @@ extension Button {
     ///
     /// - Parameter disabled: Whether the button is disabled.
     /// - Returns: A new button with the disabled state.
-    public func disabled(_ disabled: Bool = true) -> Button {
+    nonisolated public func disabled(_ disabled: Bool = true) -> Button {
         var copy = self
         copy.isDisabled = disabled
         return copy
@@ -995,7 +995,7 @@ extension Button {
     ///
     /// - Parameter id: The unique focus identifier.
     /// - Returns: A button with the specified focus identifier.
-    public func focusID(_ id: String) -> Button {
+    nonisolated public func focusID(_ id: String) -> Button {
         var copy = self
         copy.focusID = id
         return copy

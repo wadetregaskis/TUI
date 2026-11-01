@@ -28,7 +28,7 @@ extension View {
     /// Nested calls add up, as SwiftUI's do (measured).
     ///
     /// - Parameter insets: The insets, in cells.
-    public func safeAreaPadding(_ insets: EdgeInsets) -> some View {
+    nonisolated public func safeAreaPadding(_ insets: EdgeInsets) -> some View {
         _SafeAreaPadding(content: self, insets: insets)
     }
 
@@ -37,7 +37,7 @@ extension View {
     /// the `EdgeInsets` form.
     ///
     /// - Parameter length: The inset on every edge, in cells.
-    public func safeAreaPadding(_ length: Int) -> some View {
+    nonisolated public func safeAreaPadding(_ length: Int) -> some View {
         safeAreaPadding(EdgeInsets(all: length))
     }
 
@@ -50,7 +50,7 @@ extension View {
     ///   - length: The inset, in cells; `nil` is the default padding, one
     ///     cell — what SwiftUI's default (16 points, measured) is to
     ///     ``padding(_:_:)``.
-    public func safeAreaPadding(_ edges: Edge.Set = .all, _ length: Int? = nil) -> some View {
+    nonisolated public func safeAreaPadding(_ edges: Edge.Set = .all, _ length: Int? = nil) -> some View {
         let length = length ?? 1
         return safeAreaPadding(
             EdgeInsets(
@@ -63,11 +63,11 @@ extension View {
 
 /// Splits a safe-area inset between the scroll view under it, if there is one,
 /// and padding.
-struct _SafeAreaPadding<Content: View>: View {
+nonisolated struct _SafeAreaPadding<Content: View>: View {
     let content: Content
     let insets: EdgeInsets
 
-    var body: some View {
+    @MainActor var body: some View {
         // The axes are a run-time value of the scroll view, so it is asked; a
         // view that is not one answers none, and the insets are all padding.
         let axes = (content as? any ScrollsUnderSafeArea)?.safeAreaScrollAxes ?? []
@@ -99,19 +99,19 @@ protocol ScrollsUnderSafeArea {
     var safeAreaScrollAxes: Axis.Set { get }
 }
 
-extension ScrollView: ScrollsUnderSafeArea {
+@MainActor extension ScrollView: ScrollsUnderSafeArea {
     var safeAreaScrollAxes: Axis.Set { axes }
 }
 
-extension EnvironmentModifier: ScrollsUnderSafeArea where Content: ScrollsUnderSafeArea {
+@MainActor extension EnvironmentModifier: ScrollsUnderSafeArea where Content: ScrollsUnderSafeArea {
     var safeAreaScrollAxes: Axis.Set { content.safeAreaScrollAxes }
 }
 
-extension TransformEnvironmentModifier: ScrollsUnderSafeArea where Content: ScrollsUnderSafeArea {
+@MainActor extension TransformEnvironmentModifier: ScrollsUnderSafeArea where Content: ScrollsUnderSafeArea {
     var safeAreaScrollAxes: Axis.Set { content.safeAreaScrollAxes }
 }
 
-extension _SafeAreaPadding: ScrollsUnderSafeArea where Content: ScrollsUnderSafeArea {
+@MainActor extension _SafeAreaPadding: ScrollsUnderSafeArea where Content: ScrollsUnderSafeArea {
     var safeAreaScrollAxes: Axis.Set { content.safeAreaScrollAxes }
 }
 

@@ -109,7 +109,7 @@ import TUIFoundation
 ///
 /// When content extends beyond the viewport, scroll indicators (arrows)
 /// appear at the top and/or bottom edges inside the container.
-public struct List<SelectionValue: Hashable & Sendable, Content: View, Footer: View>: View {
+nonisolated public struct List<SelectionValue: Hashable & Sendable, Content: View, Footer: View>: View {
     /// The optional title displayed in the border.
     let title: String?
 
@@ -126,7 +126,7 @@ public struct List<SelectionValue: Hashable & Sendable, Content: View, Footer: V
     let multiSelection: Binding<Set<SelectionValue>>?
 
     /// The selection mode derived from which binding is set.
-    var selectionMode: SelectionMode {
+    @MainActor var selectionMode: SelectionMode {
         multiSelection != nil ? .multi : .single
     }
 
@@ -142,7 +142,7 @@ public struct List<SelectionValue: Hashable & Sendable, Content: View, Footer: V
     /// Whether to show separator before footer.
     var showFooterSeparator: Bool
 
-    public var body: some View {
+    @MainActor public var body: some View {
         // `.disabled(isDisabled)` as well as the stored flag — see the same
         // pairing in `ScrollView.body`. The flag governs this list's own focus;
         // the modifier is what carries the disable into the rows, which is what

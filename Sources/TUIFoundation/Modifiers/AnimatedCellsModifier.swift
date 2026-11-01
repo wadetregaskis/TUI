@@ -34,7 +34,7 @@ extension View {
     ///
     /// - Parameter runs: The animated spans, positioned within this view.
     /// - Returns: A view whose buffer carries those runs.
-    public func animatedCells(_ runs: [AnimatedCellRun]) -> some View {
+    nonisolated public func animatedCells(_ runs: [AnimatedCellRun]) -> some View {
         AnimatedCellsModifier(content: self, runs: runs)
     }
 }
@@ -44,16 +44,16 @@ extension View {
 ///
 /// Size-neutral: which cells animate never changes layout, so it measures as
 /// `content`.
-struct AnimatedCellsModifier<Content: View>: View {
+nonisolated struct AnimatedCellsModifier<Content: View>: View {
     let content: Content
     let runs: [AnimatedCellRun]
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("AnimatedCellsModifier renders via Renderable")
     }
 }
 
-extension AnimatedCellsModifier: Renderable {
+@MainActor extension AnimatedCellsModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var buffer = TUIView.renderToBuffer(content, context: context)
         // A measure pass draws nothing, so a run left on it would describe cells
@@ -65,7 +65,7 @@ extension AnimatedCellsModifier: Renderable {
     }
 }
 
-extension AnimatedCellsModifier: Layoutable {
+@MainActor extension AnimatedCellsModifier: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
@@ -76,7 +76,7 @@ extension AnimatedCellsModifier: Layoutable {
 /// - Note: The runs are attached to whatever buffer the content rendered to, and
 ///   a member's buffer is its own — so each member animates its own cells,
 ///   which is what the same runs over one combined buffer did.
-extension AnimatedCellsModifier: ContentRewrapping {
+@MainActor extension AnimatedCellsModifier: ContentRewrapping {
     /// Its content's geometry is its own — it animates the cells its content drew, where they are — so a guide
     /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
     static var _keepsContentGeometry: Bool { true }
@@ -93,8 +93,8 @@ extension AnimatedCellsModifier: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension AnimatedCellsModifier: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension AnimatedCellsModifier: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension AnimatedCellsModifier: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension AnimatedCellsModifier: GridRowProviding where Content: GridRowProviding {}

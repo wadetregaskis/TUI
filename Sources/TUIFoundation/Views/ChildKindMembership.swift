@@ -160,7 +160,7 @@ private func singleWrappedMayHandOver<W: SingleContentWrapper>(
 
 // MARK: - The Framework's Own Providers
 
-extension TupleView: ChildKindsKnowing {
+@MainActor extension TupleView: ChildKindsKnowing {
     static func mayHandOver(_ kind: ChildKind, visited: inout Set<ObjectIdentifier>) -> Bool {
         var found = false
         func check<T: View>(_: T.Type) {
@@ -171,7 +171,7 @@ extension TupleView: ChildKindsKnowing {
     }
 }
 
-extension ConditionalView: ChildKindsKnowing {
+@MainActor extension ConditionalView: ChildKindsKnowing {
     static func mayHandOver(_ kind: ChildKind, visited: inout Set<ObjectIdentifier>) -> Bool {
         TUIFoundation.mayHandOver(kind, TrueContent.self, visited: &visited)
             || TUIFoundation.mayHandOver(kind, FalseContent.self, visited: &visited)
@@ -184,7 +184,7 @@ extension Optional: ChildKindsKnowing where Wrapped: View {
     }
 }
 
-extension ModifiedView: ChildKindsKnowing where Content: ChildViewProvider {
+@MainActor extension ModifiedView: ChildKindsKnowing where Content: ChildViewProvider {
     static func mayHandOver(_ kind: ChildKind, visited: inout Set<ObjectIdentifier>) -> Bool {
         TUIFoundation.mayHandOver(kind, Content.self, visited: &visited)
     }
@@ -200,7 +200,7 @@ extension Group: ChildKindsKnowing where Content: View {
 /// for the keyed rows it can hand over; kept whole, it hands over none — the
 /// walk that finds the rows skips it too (`appendKeyedRowRuns`). (It is a
 /// section itself: the walk answers that before asking.)
-extension Section: ChildKindsKnowing where Parent: View, Content: View, Footer: View {
+@MainActor extension Section: ChildKindsKnowing where Parent: View, Content: View, Footer: View {
     static func mayHandOver(_ kind: ChildKind, visited: inout Set<ObjectIdentifier>) -> Bool {
         if kind == .keyedRow(sectionsWhole: true) { return false }
         return TUIFoundation.mayHandOver(kind, Parent.self, visited: &visited)
@@ -217,7 +217,7 @@ extension Section: ChildKindsKnowing where Parent: View, Content: View, Footer: 
 /// one: no view of it is a child of the container's, and it is no section type
 /// (one counts none), nor a wrapper the menu looks through. So a lazy stack of
 /// erased rows keeps no section scope, as before an `AnyView` was a provider.
-extension ForEach: ChildKindsKnowing where Content: View {
+@MainActor extension ForEach: ChildKindsKnowing where Content: View {
     static func mayHandOver(_ kind: ChildKind, visited: inout Set<ObjectIdentifier>) -> Bool {
         if kind == .section || kind == .menuSection, Content.self is any ChildViewProvider.Type,
             staticRowMemberCount(Content.self) == 1

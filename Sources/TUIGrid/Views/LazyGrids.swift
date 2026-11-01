@@ -247,7 +247,7 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
 ///   describes the API shape, not deferred construction. A grid whose rows must
 ///   be built lazily belongs inside a ``ScrollView``, which windows what it
 ///   renders — section by section, when it has sections.
-public struct LazyVGrid<Content: View>: View {
+nonisolated public struct LazyVGrid<Content: View>: View {
     /// The column tracks.
     public let columns: [GridItem]
 
@@ -288,7 +288,7 @@ public struct LazyVGrid<Content: View>: View {
         self.pinnedViews = pinnedViews
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _LazyGridSections(
             layout: _LazyGridLayout(
                 axis: .vertical, items: columns,
@@ -454,7 +454,7 @@ private struct _LazyGridSections<Content: View>: View, Renderable, Layoutable {
 ///
 /// A sectioned grid fills the height it is offered, so a section's header
 /// can sit down it.
-public struct LazyHGrid<Content: View>: View {
+nonisolated public struct LazyHGrid<Content: View>: View {
     /// The row tracks.
     public let rows: [GridItem]
 
@@ -498,7 +498,7 @@ public struct LazyHGrid<Content: View>: View {
         self.pinnedViews = pinnedViews
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _LazyGridSections(
             layout: _LazyGridLayout(
                 axis: .horizontal, items: rows,

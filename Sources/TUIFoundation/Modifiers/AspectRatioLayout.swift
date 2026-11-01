@@ -29,18 +29,18 @@ import TUIView
 /// A fill larger than what it is offered is drawn in a frame of that size, so
 /// it is cut to it as a frame cuts any content larger than itself, rather than
 /// drawn past it: a terminal has no outside to draw into.
-struct _AspectRatioView<Content: View>: View {
+nonisolated struct _AspectRatioView<Content: View>: View {
     let content: Content
     /// Width over height, in points, or `nil` for the content's own.
     let aspectRatio: Double?
     let contentMode: ContentMode
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_AspectRatioView renders via Renderable")
     }
 }
 
-extension _AspectRatioView {
+@MainActor extension _AspectRatioView {
     /// The ratio in cells — columns over rows — or `nil` where there is none
     /// to keep.
     private func cellRatio(context: RenderContext) -> Double? {
@@ -84,7 +84,7 @@ extension _AspectRatioView {
     }
 }
 
-extension _AspectRatioView: Layoutable {
+@MainActor extension _AspectRatioView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         guard let ratio = cellRatio(context: context),
             let target = target(width: proposal.width, height: proposal.height, ratio: ratio)
@@ -101,7 +101,7 @@ extension _AspectRatioView: Layoutable {
     }
 }
 
-extension _AspectRatioView: Renderable {
+@MainActor extension _AspectRatioView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let offered = (width: context.availableWidth, height: context.availableHeight)
         guard let ratio = cellRatio(context: context),

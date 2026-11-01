@@ -36,7 +36,7 @@ import TUIFoundation
 /// the presentation's focus section, and the view's first control is the one
 /// focused when it opens. They are part of the view's own layout — it is
 /// proposed what they leave — so they appear and go with it, in the same frame.
-extension _ToolbarModifier {
+@MainActor extension _ToolbarModifier {
     /// Declares the items into the sheet or cover that hosts them at its
     /// edges (``PresentationToolbarItems``) — on a drawn walk, or the
     /// presentation's seeding measure — and hands back this view's content to

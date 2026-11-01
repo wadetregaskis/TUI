@@ -47,7 +47,7 @@ extension View {
     ///   - key: The key to match. Case matters: `"a"` does not match Shift-A.
     ///   - action: The action to perform.
     /// - Returns: A view that handles the key while it holds the focus.
-    public func onKeyPress(
+    nonisolated public func onKeyPress(
         _ key: KeyEquivalent, action: @escaping () -> KeyPress.Result
     ) -> some View {
         onKeyPress(keys: [key], phases: [.down, .repeat]) { _ in action() }
@@ -63,7 +63,7 @@ extension View {
     ///     see ``KeyPress``.
     ///   - action: The action to perform, given the press.
     /// - Returns: A view that handles the key while it holds the focus.
-    public func onKeyPress(
+    nonisolated public func onKeyPress(
         _ key: KeyEquivalent, phases: KeyPress.Phases,
         action: @escaping (KeyPress) -> KeyPress.Result
     ) -> some View {
@@ -85,7 +85,7 @@ extension View {
     ///   - phases: The phases to match; a press and its repeats by default.
     ///   - action: The action to perform, given the press.
     /// - Returns: A view that handles the keys while it holds the focus.
-    public func onKeyPress(
+    nonisolated public func onKeyPress(
         keys: Set<KeyEquivalent>, phases: KeyPress.Phases = [.down, .repeat],
         action: @escaping (KeyPress) -> KeyPress.Result
     ) -> some View {
@@ -104,7 +104,7 @@ extension View {
     ///   - phases: The phases to match; a press and its repeats by default.
     ///   - action: The action to perform, given the press.
     /// - Returns: A view that handles the keys while it holds the focus.
-    public func onKeyPress(
+    nonisolated public func onKeyPress(
         characters: CharacterSet, phases: KeyPress.Phases = [.down, .repeat],
         action: @escaping (KeyPress) -> KeyPress.Result
     ) -> some View {
@@ -133,7 +133,7 @@ extension View {
     ///   - phases: The phases to match; a press and its repeats by default.
     ///   - action: The action to perform, given the press.
     /// - Returns: A view that handles key presses while it holds the focus.
-    public func onKeyPress(
+    nonisolated public func onKeyPress(
         phases: KeyPress.Phases = [.down, .repeat], action: @escaping (KeyPress) -> KeyPress.Result
     ) -> some View {
         onKeyPress(phases: phases, where: { _ in true }, declared: false, action: action)
@@ -160,7 +160,7 @@ extension View {
     ///   Declared, a PIN field's digits would mask the user's quit key, whose
     ///   byte some terminals send for ⌃4, and be offered ⌃\\ again as ⌃4,
     ///   typing a 4 for it (the coordinator's ruling, 2026-10-06).
-    private func onKeyPress(
+    nonisolated private func onKeyPress(
         phases: KeyPress.Phases, where matches: @escaping (KeyPress) -> Bool, declared: Bool = true,
         action: @escaping (KeyPress) -> KeyPress.Result
     ) -> FocusPathModifier<Self> {

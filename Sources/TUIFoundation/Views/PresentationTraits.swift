@@ -70,7 +70,7 @@ func presentationTraits<T>(_ type: T.Type, of view: any View) -> [T] {
 // Anything the author actually wrote (an `AnyView`, a `Group`, a view of their
 // own) still has to be inside the trait, which is the documented rule.
 
-extension ConditionalView: PresentationTraitWrapper {
+@MainActor extension ConditionalView: PresentationTraitWrapper {
     package var presentationTraitContent: any View {
         switch self {
         case .trueContent(let view): view

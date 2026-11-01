@@ -72,7 +72,7 @@ import TUIStyling
 /// Every change writes straight through `channels`, so a live consumer updates
 /// as you edit. **Done** keeps the result; **Cancel** — or any other dismissal,
 /// `Esc` included — restores what the dialog opened with.
-public struct ChannelCurveEditorPanel: View {
+public struct ChannelCurveEditorPanel {
     private let title: String
     private let channels: Binding<ASCIIToneCurve.Channels>
     private let isPresented: Binding<Bool>
@@ -200,7 +200,8 @@ public struct ChannelCurveEditorPanel: View {
         self.init("Channel curves" as String, channels: channels, isPresented: isPresented)
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         _EditorPanelChrome(title: title, edited: channels, isPresented: isPresented) {
             VStack(alignment: .center, spacing: 0) {
                 channelPicker
@@ -217,7 +218,7 @@ public struct ChannelCurveEditorPanel: View {
 
     // MARK: The plot
 
-    private var channelPicker: some View {
+    @MainActor private var channelPicker: some View {
         RadioButtonGroup(selection: $channel, orientation: .horizontal) {
             RadioButtonItem(Channel.red, Channel.red.label)
             RadioButtonItem(Channel.green, Channel.green.label)
@@ -231,7 +232,7 @@ public struct ChannelCurveEditorPanel: View {
     /// `0..<plotHeight`: an `Equatable` element wraps every row in the
     /// element-keyed render memo, which cannot see the ramp the row captured,
     /// so the plot would freeze at whatever it drew first.
-    private var plot: some View {
+    @MainActor private var plot: some View {
         let color = channel.color
         return VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(Self.plotRows(for: ramp).enumerated()), id: \.offset) { _, row in
@@ -266,7 +267,7 @@ public struct ChannelCurveEditorPanel: View {
     /// filled height equals the value the ramp gives at that column — and a
     /// test that had to find these rows inside a bordered, centred dialog would
     /// be testing its own substring arithmetic.
-    static func plotRows(for ramp: ASCIIToneCurve.Ramp) -> [String] {
+    @MainActor static func plotRows(for ramp: ASCIIToneCurve.Ramp) -> [String] {
         let values = (0..<plotWidth).map { ramp.value(at: input(atColumn: $0)) }
         return (0..<plotHeight).map { row in
             // Row 0 is the TOP, so it stands for the highest slice of the range.
@@ -285,7 +286,7 @@ public struct ChannelCurveEditorPanel: View {
     /// A marker under each control point, the selected one in the accent.
     ///
     /// Over the CELLS for the same reason ``plot`` is over the rows.
-    private var markerRow: some View {
+    @MainActor private var markerRow: some View {
         let points = ramp.points
         let selection = clampedSelection
         var owner: [Int: Int] = [:]
@@ -323,7 +324,7 @@ public struct ChannelCurveEditorPanel: View {
     }
 
     /// One labelled 0…100% slider — the two axes of the selected point.
-    private func axisRow(_ caption: String, value: Binding<Double>) -> some View {
+    @MainActor private func axisRow(_ caption: String, value: Binding<Double>) -> some View {
         HStack(spacing: 1) {
             Text(verbatim: caption).dim()
             // No `.frame(maxWidth: .infinity)`: this dialog hugs its content,
@@ -335,7 +336,7 @@ public struct ChannelCurveEditorPanel: View {
         }
     }
 
-    private var actionRow: some View {
+    @MainActor private var actionRow: some View {
         let points = ramp.points
         let selection = clampedSelection
         return HStack(spacing: 1) {
@@ -387,12 +388,12 @@ public struct ChannelCurveEditorPanel: View {
     /// and the sliders underneath are the fine one. Mapping to each row's
     /// CENTRE instead would be finer in the middle and put both extremes out
     /// of reach, and a curve editor you cannot drag to black is not one.
-    static func output(atRow row: Int) -> Double {
+    @MainActor static func output(atRow row: Int) -> Double {
         plotHeight > 1 ? Double(plotHeight - 1 - row) / Double(plotHeight - 1) : 0
     }
 
     /// The point nearest `column`, if any is within ``grabRadius`` of it.
-    static func point(in points: [ASCIIToneCurve.Ramp.Point], near column: Int)
+    @MainActor static func point(in points: [ASCIIToneCurve.Ramp.Point], near column: Int)
         -> ASCIIToneCurve.Ramp.Point?
     {
         points
@@ -403,7 +404,7 @@ public struct ChannelCurveEditorPanel: View {
     }
 
     /// Adds a point where the pointer pressed and returns it, selected.
-    private func addingPoint(atColumn column: Int, row: Int) -> ASCIIToneCurve.Ramp.Point {
+    @MainActor private func addingPoint(atColumn column: Int, row: Int) -> ASCIIToneCurve.Ramp.Point {
         let added = ASCIIToneCurve.Ramp.Point(
             input: Self.input(atColumn: column), output: Self.output(atRow: row))
         let updated = ASCIIToneCurve.Ramp(ramp.points + [added])
@@ -420,7 +421,7 @@ public struct ChannelCurveEditorPanel: View {
     /// `nil` output leaves the point's level alone, which is what the marker
     /// row's one-dimensional drag wants.
     @discardableResult
-    private func moving(
+    @MainActor private func moving(
         _ point: ASCIIToneCurve.Ramp.Point, toInput input: Double, output: Double?
     ) -> ASCIIToneCurve.Ramp.Point {
         var points = ramp.points
@@ -436,7 +437,7 @@ public struct ChannelCurveEditorPanel: View {
     // MARK: Bindings
 
     /// The ramp currently being edited.
-    private var ramp: ASCIIToneCurve.Ramp {
+    @MainActor private var ramp: ASCIIToneCurve.Ramp {
         switch channel {
         case .red: return channels.wrappedValue.red
         case .green: return channels.wrappedValue.green
@@ -445,7 +446,7 @@ public struct ChannelCurveEditorPanel: View {
     }
 
     /// Writes `ramp` back to the channel being edited, leaving the other two.
-    private func write(_ ramp: ASCIIToneCurve.Ramp) {
+    @MainActor private func write(_ ramp: ASCIIToneCurve.Ramp) {
         let current = channels.wrappedValue
         channels.wrappedValue =
             switch channel {
@@ -455,14 +456,14 @@ public struct ChannelCurveEditorPanel: View {
             }
     }
 
-    private var clampedSelection: Int {
+    @MainActor private var clampedSelection: Int {
         min(max(0, selectedPoint), max(0, ramp.points.count - 1))
     }
 
     /// The selected point's input, which re-sorts the ramp as it moves — so the
     /// selection follows the POINT past its neighbours rather than staying in
     /// the slot the point left.
-    private var inputBinding: Binding<Double> {
+    @MainActor private var inputBinding: Binding<Double> {
         Binding(
             get: { ramp.points.isEmpty ? 0 : ramp.points[clampedSelection].input },
             set: { newInput in
@@ -478,7 +479,7 @@ public struct ChannelCurveEditorPanel: View {
             })
     }
 
-    private var outputBinding: Binding<Double> {
+    @MainActor private var outputBinding: Binding<Double> {
         Binding(
             get: { ramp.points.isEmpty ? 0 : ramp.points[clampedSelection].output },
             set: { newOutput in
@@ -495,12 +496,12 @@ public struct ChannelCurveEditorPanel: View {
 
     /// The input a plot column stands for: `0` at the left edge, `1` at the
     /// right, so the plot and the markers agree.
-    static func input(atColumn column: Int) -> Double {
+    @MainActor static func input(atColumn column: Int) -> Double {
         plotWidth > 1 ? Double(column) / Double(plotWidth - 1) : 0
     }
 
     /// The inverse of ``input(atColumn:)``, clamped into the plot.
-    static func column(forInput input: Double) -> Int {
+    @MainActor static func column(forInput input: Double) -> Int {
         min(plotWidth - 1, max(0, Int((input * Double(plotWidth - 1)).rounded())))
     }
 
@@ -513,7 +514,7 @@ public struct ChannelCurveEditorPanel: View {
     /// ``ToneCurveEditorPanel/adding(to:after:)`` gives: the last point is
     /// almost always at the far end, and "+" there must not stack a second one
     /// on top of it.
-    static func adding(to points: [ASCIIToneCurve.Ramp.Point], after index: Int) -> (
+    @MainActor static func adding(to points: [ASCIIToneCurve.Ramp.Point], after index: Int) -> (
         points: [ASCIIToneCurve.Ramp.Point], index: Int
     ) {
         guard !points.isEmpty else {
@@ -537,3 +538,4 @@ public struct ChannelCurveEditorPanel: View {
         return (updated, updated.firstIndex(of: added) ?? at)
     }
 }
+extension ChannelCurveEditorPanel: View {}

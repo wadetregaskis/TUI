@@ -32,7 +32,7 @@ extension View {
     ///
     /// - Parameter binding: The focus state to bind.
     /// - Returns: The modified view.
-    public func searchFocused(_ binding: FocusState<Bool>.Binding) -> some View {
+    @MainActor public func searchFocused(_ binding: FocusState<Bool>.Binding) -> some View {
         environment(\.searchFocusOffer, TypedSearchFocusOffer(store: binding.store, value: true))
     }
 
@@ -47,7 +47,7 @@ extension View {
     ///   - value: The value the state takes while the search field is
     ///     focused.
     /// - Returns: The modified view.
-    public func searchFocused<V: Hashable>(_ binding: FocusState<V>.Binding, equals value: V) -> some View {
+    @MainActor public func searchFocused<V: Hashable>(_ binding: FocusState<V>.Binding, equals value: V) -> some View {
         environment(\.searchFocusOffer, TypedSearchFocusOffer(store: binding.store, value: value))
     }
 }

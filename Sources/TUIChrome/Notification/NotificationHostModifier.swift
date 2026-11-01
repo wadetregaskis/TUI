@@ -28,7 +28,7 @@ import TUIFoundation
 /// or block the background.
 ///
 /// - SeeAlso: ``NotificationService``, ``View/notificationHost(width:)``
-package struct NotificationHostModifier<Content: View>: View {
+nonisolated package struct NotificationHostModifier<Content: View>: View {
     /// The base content to render.
     let content: Content
 
@@ -43,14 +43,14 @@ package struct NotificationHostModifier<Content: View>: View {
         self.width = width
     }
 
-    package var body: Never {
+    @MainActor package var body: Never {
         fatalError("NotificationHostModifier renders via Renderable")
     }
 }
 
 // MARK: - Renderable
 
-extension NotificationHostModifier: Renderable {
+@MainActor extension NotificationHostModifier: Renderable {
     package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let baseBuffer = TUIView.renderToBuffer(content, context: context)
         // Without an app there is no service, so there is nothing to show
@@ -183,7 +183,7 @@ extension NotificationHostModifier: Renderable {
 
 // MARK: - Layoutable
 
-extension NotificationHostModifier: Layoutable {
+@MainActor extension NotificationHostModifier: Layoutable {
     /// Notifications are transient overlays composited onto the page content
     /// (which spans the screen), so the layout footprint is the base `content`.
     /// Forwarding also keeps the animation-timer side-effect on the render pass.
@@ -194,7 +194,7 @@ extension NotificationHostModifier: Layoutable {
 
 // MARK: - Private Helpers
 
-extension NotificationHostModifier {
+@MainActor extension NotificationHostModifier {
     /// Calculates the screen offset for the notification stack (always top-right).
     ///
     /// - Parameters:

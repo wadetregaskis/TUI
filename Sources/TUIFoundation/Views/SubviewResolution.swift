@@ -133,7 +133,7 @@ protocol SubviewsLoop {
     var membersResolveLazily: Bool { get }
 }
 
-extension ForEach: SubviewsLoop where Content: View {
+@MainActor extension ForEach: SubviewsLoop where Content: View {
     var membersResolveLazily: Bool {
         !(Content.self is any SectionPartsProviding.Type)
     }
@@ -230,7 +230,7 @@ package protocol SectionPartsProviding {
     var sectionParts: SectionParts { get }
 }
 
-extension Section: SectionPartsProviding where Parent: View, Content: View, Footer: View {
+@MainActor extension Section: SectionPartsProviding where Parent: View, Content: View, Footer: View {
     package var sectionParts: SectionParts {
         SectionParts(header: header, content: content, footer: footer)
     }
@@ -238,7 +238,7 @@ extension Section: SectionPartsProviding where Parent: View, Content: View, Foot
 
 /// A modified section is still a section, its modifier on each part — the
 /// `GridRowProviding` rule.
-extension ModifiedView: SectionPartsProviding where Content: SectionPartsProviding {
+@MainActor extension ModifiedView: SectionPartsProviding where Content: SectionPartsProviding {
     package var sectionParts: SectionParts {
         content.sectionParts.map { part in
             @MainActor
@@ -258,16 +258,16 @@ extension SectionPartsProviding where Self: ContentRewrapping, WrappedContent: S
 
 /// Body deliberately empty: ``SectionPartsProviding`` has the whole
 /// implementation for a ``ContentRewrapping`` wrapper.
-extension _ContainerValueView: SectionPartsProviding where Content: SectionPartsProviding {}
+@MainActor extension _ContainerValueView: SectionPartsProviding where Content: SectionPartsProviding {}
 
 /// Body deliberately empty, as above.
-extension EnvironmentModifier: SectionPartsProviding where Content: SectionPartsProviding {}
+@MainActor extension EnvironmentModifier: SectionPartsProviding where Content: SectionPartsProviding {}
 
 /// Body deliberately empty, as above.
-extension TransformEnvironmentModifier: SectionPartsProviding where Content: SectionPartsProviding {}
+@MainActor extension TransformEnvironmentModifier: SectionPartsProviding where Content: SectionPartsProviding {}
 
 /// Body deliberately empty, as above.
-extension ObjectEnvironmentModifier: SectionPartsProviding where Content: SectionPartsProviding {}
+@MainActor extension ObjectEnvironmentModifier: SectionPartsProviding where Content: SectionPartsProviding {}
 
 /// The parts of `child` if it is a section — through `ForEach`'s row memo,
 /// whose TYPE is asked first so only a section row is built.

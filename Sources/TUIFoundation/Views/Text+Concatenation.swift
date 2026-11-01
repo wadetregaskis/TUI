@@ -10,7 +10,7 @@ import TUIStyling
 
 // MARK: - Runs
 
-extension Text {
+@MainActor extension Text {
     /// One differently-styled fragment of a ``Text``: a Markdown span of its
     /// key, a run of its attributed string, or an interpolated `Text`'s.
     ///
@@ -41,7 +41,7 @@ extension Text {
     }
 }
 
-extension Text {
+@MainActor extension Text {
     /// This text with `prefix` in front of it, plain, as one text: its own
     /// words keep their runs (or its one style, folded into a run), and the
     /// prefix is a run of no style. For the framework's own chrome in front of

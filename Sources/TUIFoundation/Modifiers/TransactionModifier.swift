@@ -23,7 +23,7 @@ extension View {
     ///   in place. It runs on both the measure and the render walk, so it must
     ///   be a pure function of the value it is handed.
     /// - Returns: A view whose subtree sees the transformed transaction.
-    public func transaction(
+    nonisolated public func transaction(
         _ transform: @escaping (inout Transaction) -> Void
     ) -> some View {
         transformEnvironment(\.transaction, transform: transform)
@@ -69,7 +69,7 @@ extension View {
     ///     place, on the frames `value` moved.
     /// - Returns: A view whose subtree sees the transformed transaction on
     ///   those frames.
-    public func transaction<V: Equatable>(
+    nonisolated public func transaction<V: Equatable>(
         value: V,
         _ transform: @escaping (inout Transaction) -> Void
     ) -> some View {
@@ -81,17 +81,17 @@ extension View {
 ///
 /// - Important: Framework infrastructure. Created by
 ///   ``View/transaction(value:_:)``.
-public struct _ValueScopedTransactionView<Content: View, V: Equatable>: View {
+nonisolated public struct _ValueScopedTransactionView<Content: View, V: Equatable>: View {
     let content: Content
     let value: V
     let transform: (inout Transaction) -> Void
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("_ValueScopedTransactionView renders via Renderable")
     }
 }
 
-extension _ValueScopedTransactionView: Renderable {
+@MainActor extension _ValueScopedTransactionView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: transformedContext(context) ?? context)
     }
@@ -133,7 +133,7 @@ extension _ValueScopedTransactionView: Renderable {
     }
 }
 
-extension _ValueScopedTransactionView: Layoutable {
+@MainActor extension _ValueScopedTransactionView: Layoutable {
     /// Measures as its content — under the same transaction the render will
     /// use, so animatable geometry is measured where it is drawn.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -147,7 +147,7 @@ extension _ValueScopedTransactionView: Layoutable {
 ///   up or two, so publishing it around each member is the same thing as
 ///   publishing it once around the pair. What changes is only that the members
 ///   stay the enclosing container's own children.
-extension _ValueScopedTransactionView: ContentRewrapping {
+@MainActor extension _ValueScopedTransactionView: ContentRewrapping {
     public var wrappedContent: Content { content }
 
     /// Its content's context: the transaction it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -160,14 +160,14 @@ extension _ValueScopedTransactionView: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _ValueScopedTransactionView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _ValueScopedTransactionView: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _ValueScopedTransactionView: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension _ValueScopedTransactionView: GridRowProviding where Content: GridRowProviding {}
 
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _ValueScopedTransactionView: DrawsContentUnchanged {}
+@MainActor extension _ValueScopedTransactionView: DrawsContentUnchanged {}

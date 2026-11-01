@@ -74,14 +74,12 @@ extension LocalizedStringKey {
     /// Where ``localizedTitle(defaultingTo:service:)``'s words come from, to
     /// read them again under a subtree's `\.locale`: TUI's own word where the
     /// title was left as `label`, else this key as a `Text` reads it.
-    @MainActor
-    func textSource(defaultingTo label: LocalizationKey.Label) -> LocalizedTextSource? {
+    nonisolated func textSource(defaultingTo label: LocalizationKey.Label) -> LocalizedTextSource? {
         key == label.rawValue && arguments.isEmpty ? .framework(key) : textSource
     }
 
     /// Where this key's words come from, as a `Text` of it notes them.
-    @MainActor
-    var textSource: LocalizedTextSource? { Text(self).localization }
+    nonisolated var textSource: LocalizedTextSource? { Text(self).localization }
 }
 
 extension AlertPanel {

@@ -57,7 +57,7 @@ extension View {
     ///
     /// - Parameter activation: How search activates.
     /// - Returns: A view whose tab views activate search so.
-    public func tabViewSearchActivation(_ activation: TabSearchActivation) -> some View {
+    nonisolated public func tabViewSearchActivation(_ activation: TabSearchActivation) -> some View {
         environment(\.tabSearchActivation, activation)
     }
 }

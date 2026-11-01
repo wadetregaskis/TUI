@@ -28,7 +28,7 @@ import TUIStyling
 /// > This type is `public` only because it is the underlying type of
 ///   ``Color``'s `body`, which has to be at least as visible as the
 ///   conformance. Nothing outside the framework should name it.
-public struct _StyleFillBlock: View {
+nonisolated public struct _StyleFillBlock: View {
     /// A flat colour to paint, or `nil` for a bare rectangle the umbrella
     /// module's `.background(_:)` will fill.
     ///
@@ -44,10 +44,10 @@ public struct _StyleFillBlock: View {
         self.colour = colour
     }
 
-    public var body: Never { fatalError("_StyleFillBlock renders via Renderable") }
+    @MainActor public var body: Never { fatalError("_StyleFillBlock renders via Renderable") }
 }
 
-extension _StyleFillBlock: Renderable, Layoutable {
+@MainActor extension _StyleFillBlock: Renderable, Layoutable {
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         ViewSize(width: 0, height: 0, isWidthFlexible: true, isHeightFlexible: true)
     }

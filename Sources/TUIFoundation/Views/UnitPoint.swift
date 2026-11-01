@@ -239,7 +239,7 @@ extension View {
     ///
     /// - Parameter anchor: The unit point to anchor content to, or `nil`
     ///   for the default (no anchor — the top).
-    public func defaultScrollAnchor(_ anchor: UnitPoint?) -> some View {
+    nonisolated public func defaultScrollAnchor(_ anchor: UnitPoint?) -> some View {
         environment(\.defaultScrollAnchor, anchor)
     }
 
@@ -278,7 +278,7 @@ extension View {
     ///   - anchor: The unit point to anchor content to, or `nil` to defer to
     ///     the unlabelled anchor.
     ///   - role: Which question this anchor answers.
-    public func defaultScrollAnchor(
+    nonisolated public func defaultScrollAnchor(
         _ anchor: UnitPoint?, for role: ScrollAnchorRole
     ) -> some View {
         transformEnvironment(\.scrollAnchorRoles) { $0[role] = anchor }

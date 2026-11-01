@@ -16,7 +16,7 @@ import TUIStyling
 /// the `body` property below is **never called during rendering**.
 /// It exists only to satisfy the `View` protocol requirement.
 /// All actual work happens in `renderToBuffer(context:)`.
-@usableFromInline package struct EnvironmentModifier<Content: View, V>: View {
+@usableFromInline nonisolated package struct EnvironmentModifier<Content: View, V>: View {
     // The key path, the content, then the value: the per-pass memos key a
     // view by a hash of its bytes, and padding is whatever the memory held
     // before — skipped by the hash, where a type with none is plain words.
@@ -41,12 +41,12 @@ import TUIStyling
         self.value = value
     }
     /// Not used during rendering — ``Renderable`` conformance takes priority.
-    public var body: some View {
+    @MainActor public var body: some View {
         content
     }
 }
 
-extension EnvironmentModifier: Renderable {
+@MainActor extension EnvironmentModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: contentContext(context))
     }
@@ -185,7 +185,7 @@ private func noteEnvironmentChange<V>(
 
 // MARK: - Layoutable
 
-extension EnvironmentModifier: Layoutable {
+@MainActor extension EnvironmentModifier: Layoutable {
     /// Measures the wrapped content under the modified environment without
     /// rendering it.
     ///
@@ -235,7 +235,7 @@ extension EnvironmentModifier: Layoutable {
 /// into a new modifier on every visit, and read the value through the key
 /// path and then wrote it through it again — two projections, the second
 /// re-reading the value before its write — where one does both.
-package struct TransformEnvironmentModifier<Content: View, V>: View {
+nonisolated package struct TransformEnvironmentModifier<Content: View, V>: View {
     // The two word-sized fields, then the content last, so nothing follows it
     // whatever its size: the content first left seven undefined bytes before
     // the key path over a scroll view (`ContainerLayoutPaddingTests`), which
@@ -262,7 +262,7 @@ package struct TransformEnvironmentModifier<Content: View, V>: View {
     }
 
     /// Not used during rendering — ``Renderable`` conformance takes priority.
-    public var body: some View {
+    @MainActor public var body: some View {
         content
     }
 
@@ -285,7 +285,7 @@ package struct TransformEnvironmentModifier<Content: View, V>: View {
     /// instead. Through ONE access, the access to the object's property would
     /// be held across the caller's closure, and a closure that reads that same
     /// property (`{ $0 = model.count + 1 }`) would trap for exclusivity.
-    package func transformed(_ context: RenderContext) -> RenderContext {
+    @MainActor package func transformed(_ context: RenderContext) -> RenderContext {
         var environment = context.environment
         let value: V
         if keyPath is ReferenceWritableKeyPath<EnvironmentValues, V> {
@@ -316,13 +316,13 @@ private func applying<V>(_ transform: (inout V) -> Void, to value: inout V) -> V
     return value
 }
 
-extension TransformEnvironmentModifier: Renderable {
+@MainActor extension TransformEnvironmentModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: transformed(context))
     }
 }
 
-extension TransformEnvironmentModifier: Layoutable {
+@MainActor extension TransformEnvironmentModifier: Layoutable {
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: transformed(context))
     }
@@ -403,7 +403,7 @@ extension EnvironmentValues {
 ///   up or two, so publishing it around each member is the same thing as
 ///   publishing it once around the pair. What changes is only that the members
 ///   stay the enclosing container's own children.
-extension EnvironmentModifier: ContentRewrapping {
+@MainActor extension EnvironmentModifier: ContentRewrapping {
     public var wrappedContent: Content { content }
 
     /// Its content's context: the value it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -416,13 +416,13 @@ extension EnvironmentModifier: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension EnvironmentModifier: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension EnvironmentModifier: ChildViewProvider where Content: ChildViewProvider {}
 
 /// - Note: An environment value reaches a subtree whether it was set one level
 ///   up or two, so publishing it around each member is the same thing as
 ///   publishing it once around the pair. What changes is only that the members
 ///   stay the enclosing container's own children.
-extension TransformEnvironmentModifier: ContentRewrapping {
+@MainActor extension TransformEnvironmentModifier: ContentRewrapping {
     public var wrappedContent: Content { content }
 
     /// Its content's context: the transformed value it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -435,11 +435,11 @@ extension TransformEnvironmentModifier: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension TransformEnvironmentModifier: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension TransformEnvironmentModifier: ChildViewProvider where Content: ChildViewProvider {}
 
 // MARK: - Removal Transitions
 
 /// Each draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension EnvironmentModifier: DrawsContentUnchanged {}
-extension TransformEnvironmentModifier: DrawsContentUnchanged {}
+@MainActor extension EnvironmentModifier: DrawsContentUnchanged {}
+@MainActor extension TransformEnvironmentModifier: DrawsContentUnchanged {}

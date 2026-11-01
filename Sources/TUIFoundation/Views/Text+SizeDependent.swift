@@ -56,17 +56,17 @@ extension TextVariantPreference where Self == SizeDependentTextVariant {
 ///
 /// What `textVariant(_:)` returns for either preference: with
 /// `choosesBySize` false (`.fixed`) it measures and draws the text as it is.
-struct _SizeDependentText: View {
+nonisolated struct _SizeDependentText: View {
     let text: Text
     let choosesBySize: Bool
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_SizeDependentText renders via Renderable")
     }
 
     /// The spelling to draw in `width` × `height` (rows; `nil` for no bound),
     /// having declared the text's next change as a live text does.
-    private func chosen(width: Int, height: Int?, context: RenderContext, measuring: Bool) -> Text {
+    @MainActor private func chosen(width: Int, height: Int?, context: RenderContext, measuring: Bool) -> Text {
         // The declarations a live text makes — its wake, or a measure's
         // clocked read — are the widest spelling's: it changes at least as
         // often as any narrower one.
@@ -78,7 +78,7 @@ struct _SizeDependentText: View {
     }
 }
 
-extension _SizeDependentText: Renderable, Layoutable {
+@MainActor extension _SizeDependentText: Renderable, Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         guard choosesBySize else { return text.sizeThatFits(proposal: proposal, context: context) }
         return chosen(

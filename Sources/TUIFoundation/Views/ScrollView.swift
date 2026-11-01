@@ -73,7 +73,7 @@ import TUICore
 ///   `.horizontal`, or `[.horizontal, .vertical]`. When horizontal
 ///   scrolling is enabled the view also renders a bottom scrollbar and
 ///   responds to a native horizontal wheel (or shift + vertical wheel).
-public struct ScrollView<Content: View>: View {
+nonisolated public struct ScrollView<Content: View>: View {
     /// The axes along which content scrolls (`.vertical`, `.horizontal`,
     /// or both). Both are fully implemented.
     public var axes: Axis.Set
@@ -133,7 +133,7 @@ public struct ScrollView<Content: View>: View {
         self.isDisabled = false
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         // `.disabled(isDisabled)` as well as the stored flag, because the two
         // answer different questions. The flag decides whether this scroll view
         // is a Tab stop; SwiftUI's `.disabled(_:)` is defined on the subtree —
@@ -159,9 +159,9 @@ public struct ScrollView<Content: View>: View {
 
 // MARK: - Convenience Modifiers
 
-extension ScrollView {
+@MainActor extension ScrollView {
     /// Sets an explicit focus identifier on this scroll view.
-    public func focusID(_ id: String) -> ScrollView<Content> {
+    nonisolated public func focusID(_ id: String) -> ScrollView<Content> {
         var copy = self
         copy.explicitFocusID = id
         return copy
@@ -178,7 +178,7 @@ extension ScrollView {
     /// ``TUI/View/scrollDisabled(_:)`` instead: the view stays enabled, and
     /// an unconsumed wheel tick passes out to an enclosing scroller rather
     /// than being swallowed.
-    public func disabled(_ disabled: Bool = true) -> ScrollView<Content> {
+    nonisolated public func disabled(_ disabled: Bool = true) -> ScrollView<Content> {
         var copy = self
         copy.isDisabled = disabled
         return copy
@@ -238,7 +238,7 @@ extension ScrollView {
 
 // MARK: - Equatable
 
-extension ScrollView: @preconcurrency Equatable where Content: Equatable {
+extension ScrollView: Equatable where Content: Equatable {
     public static func == (lhs: ScrollView<Content>, rhs: ScrollView<Content>) -> Bool {
         guard lhs.axes == rhs.axes,
             lhs.content == rhs.content,

@@ -62,7 +62,7 @@ extension View {
     ///   - horizontal: Fix the width at the ideal width. Default `true`.
     ///   - vertical: Fix the height at the ideal height: for most views the
     ///     height they need at the width they are given. Default `true`.
-    public func fixedSize(horizontal: Bool = true, vertical: Bool = true) -> some View {
+    nonisolated public func fixedSize(horizontal: Bool = true, vertical: Bool = true) -> some View {
         _FixedSizeView(content: self, horizontal: horizontal, vertical: vertical)
     }
 }
@@ -85,12 +85,12 @@ extension View {
 /// kept width and the observation that keeps it current, so the probe finds it
 /// filling, as SwiftUI's `List` has no ideal width, and the list's own hug
 /// answers.
-struct _FixedSizeView<Content: View>: View {
+nonisolated struct _FixedSizeView<Content: View>: View {
     let content: Content
     let horizontal: Bool
     let vertical: Bool
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_FixedSizeView renders via Renderable")
     }
 
@@ -101,7 +101,7 @@ struct _FixedSizeView<Content: View>: View {
     /// flag (``flagged(_:)``) at the width it is given, from a width it keeps
     /// for that width. Laid out at its hugged width instead, it missed its kept
     /// width and walked every row again.
-    fileprivate func idealExtents(
+    @MainActor fileprivate func idealExtents(
         width offeredWidth: Int, height offeredHeight: Int, context: RenderContext
     ) -> (width: Int?, height: Int?) {
         let width =
@@ -129,7 +129,7 @@ struct _FixedSizeView<Content: View>: View {
     /// the content keeps reaching it: a row that took the width it was offered
     /// without calling itself flexible (a `List` nested in a hugging `List`)
     /// climbed it to the edge of `Int`, the content laid out at every rung.
-    private func idealExtent(
+    @MainActor private func idealExtent(
         along axis: Axis, proposal: ProposedSize, offered: Int, context: RenderContext
     ) -> ViewSize? {
         let budget = naturalExtentStartingBudget(forVisible: offered)
@@ -155,7 +155,7 @@ struct _FixedSizeView<Content: View>: View {
     /// fixed, cleared where it is not — and with it whether the content was
     /// offered no width (``EnvironmentValues/offeredNoWidth``), which a frame
     /// with an ideal width reads.
-    fileprivate func flagged(_ context: RenderContext) -> RenderContext {
+    @MainActor fileprivate func flagged(_ context: RenderContext) -> RenderContext {
         let environment = context.environment
         guard environment.fixedSizeWidth != horizontal || environment.offeredNoWidth != horizontal else { return context }
         var flagged = context
@@ -165,7 +165,7 @@ struct _FixedSizeView<Content: View>: View {
     }
 }
 
-extension _FixedSizeView: Renderable {
+@MainActor extension _FixedSizeView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var contentContext = flagged(context)
         guard horizontal || vertical else { return TUIView.renderToBuffer(content, context: contentContext) }
@@ -176,7 +176,7 @@ extension _FixedSizeView: Renderable {
     }
 }
 
-extension _FixedSizeView: Layoutable {
+@MainActor extension _FixedSizeView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         var contentContext = flagged(context)
         guard horizontal || vertical else { return measureChild(content, proposal: proposal, context: contentContext) }
@@ -194,7 +194,7 @@ extension _FixedSizeView: Layoutable {
     }
 }
 
-extension _FixedSizeView: ContentRewrapping {
+@MainActor extension _FixedSizeView: ContentRewrapping {
     /// Its content's geometry is its own — its content is laid out at its own size, the ideal one on a fixed axis — so a guide
     /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
     static var _keepsContentGeometry: Bool { true }
@@ -215,4 +215,4 @@ extension _FixedSizeView: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _FixedSizeView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _FixedSizeView: ChildViewProvider where Content: ChildViewProvider {}

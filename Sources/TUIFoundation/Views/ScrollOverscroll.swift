@@ -312,7 +312,7 @@ extension View {
     ///   - top: The allowance above the content. Defaults to ``ScrollOverscroll/none``.
     ///   - bottom: The allowance below it. Defaults to ``ScrollOverscroll/none``.
     /// - Returns: A view whose scrollables permit that overscroll.
-    public func scrollOverscroll(
+    nonisolated public func scrollOverscroll(
         top: ScrollOverscroll = .none, bottom: ScrollOverscroll = .none
     ) -> some View {
         environment(\.scrollOverscrollTop, top)

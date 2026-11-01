@@ -96,19 +96,19 @@ protocol EdgeGuideReaching {
     static var mayReportEdgeOrCentreGuide: Bool { get }
 }
 
-extension _VStackCore: EdgeGuideReaching {
+@MainActor extension _VStackCore: EdgeGuideReaching {
     static var mayReportEdgeOrCentreGuide: Bool {
         TUIFoundation.mayReportEdgeOrCentreGuide(ofStackContent: Content.self)
     }
 }
 
-extension _HStackCore: EdgeGuideReaching {
+@MainActor extension _HStackCore: EdgeGuideReaching {
     static var mayReportEdgeOrCentreGuide: Bool {
         TUIFoundation.mayReportEdgeOrCentreGuide(ofStackContent: Content.self)
     }
 }
 
-extension _LayoutCore: EdgeGuideReaching {
+@MainActor extension _LayoutCore: EdgeGuideReaching {
     /// A layout of its own guides may report any; a stack layout of the
     /// framework's reports its one view's; any other layout's default merges
     /// only baselines and custom guides.
@@ -119,11 +119,11 @@ extension _LayoutCore: EdgeGuideReaching {
     }
 }
 
-extension ModifiedView: EdgeGuideReaching {
+@MainActor extension ModifiedView: EdgeGuideReaching {
     static var mayReportEdgeOrCentreGuide: Bool { TUIFoundation.mayReportEdgeOrCentreGuide(Content.self) }
 }
 
-extension ConditionalView: EdgeGuideReaching {
+@MainActor extension ConditionalView: EdgeGuideReaching {
     static var mayReportEdgeOrCentreGuide: Bool {
         TUIFoundation.mayReportEdgeOrCentreGuide(TrueContent.self)
             || TUIFoundation.mayReportEdgeOrCentreGuide(FalseContent.self)
@@ -134,26 +134,26 @@ extension Optional: EdgeGuideReaching where Wrapped: View {
     static var mayReportEdgeOrCentreGuide: Bool { TUIFoundation.mayReportEdgeOrCentreGuide(Wrapped.self) }
 }
 
-extension FlexibleFrameView: EdgeGuideReaching {
+@MainActor extension FlexibleFrameView: EdgeGuideReaching {
     static var mayReportEdgeOrCentreGuide: Bool { TUIFoundation.mayReportEdgeOrCentreGuide(Content.self) }
 }
 
-extension OffsetView: EdgeGuideReaching {
+@MainActor extension OffsetView: EdgeGuideReaching {
     static var mayReportEdgeOrCentreGuide: Bool { TUIFoundation.mayReportEdgeOrCentreGuide(Content.self) }
 }
 
-extension PositionView: EdgeGuideReaching {
+@MainActor extension PositionView: EdgeGuideReaching {
     static var mayReportEdgeOrCentreGuide: Bool { TUIFoundation.mayReportEdgeOrCentreGuide(Content.self) }
 }
 
-extension _BorderRings: EdgeGuideReaching {
+@MainActor extension _BorderRings: EdgeGuideReaching {
     static var mayReportEdgeOrCentreGuide: Bool { TUIFoundation.mayReportEdgeOrCentreGuide(Bordered.self) }
 }
 
-extension OverlayModifier: EdgeGuideReaching {
+@MainActor extension OverlayModifier: EdgeGuideReaching {
     static var mayReportEdgeOrCentreGuide: Bool { TUIFoundation.mayReportEdgeOrCentreGuide(Base.self) }
 }
 
-extension BackgroundLayerModifier: EdgeGuideReaching {
+@MainActor extension BackgroundLayerModifier: EdgeGuideReaching {
     static var mayReportEdgeOrCentreGuide: Bool { TUIFoundation.mayReportEdgeOrCentreGuide(Base.self) }
 }

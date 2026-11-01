@@ -172,7 +172,7 @@ extension ToolbarContent {
     ///
     /// - Parameter hidden: Whether the toolbar item is hidden.
     /// - Returns: The content, hidden if `hidden` is `true`.
-    public func hidden(_ hidden: Bool = true) -> some ToolbarContent {
+    nonisolated public func hidden(_ hidden: Bool = true) -> some ToolbarContent {
         _HiddenToolbarContent(content: self, isHidden: hidden)
     }
 }
@@ -194,7 +194,7 @@ extension ToolbarContent {
     ///
     /// - Parameter visibility: The visibility of the shared background.
     /// - Returns: The content, unchanged in a terminal bar.
-    public func sharedBackgroundVisibility(_ visibility: Visibility) -> some ToolbarContent {
+    nonisolated public func sharedBackgroundVisibility(_ visibility: Visibility) -> some ToolbarContent {
         _SharedBackgroundToolbarContent(content: self)
     }
 }
@@ -202,24 +202,24 @@ extension ToolbarContent {
 /// Toolbar content with its shared background's visibility stated: it hands
 /// over its items as they are, a terminal bar having no per-group background
 /// to show or hide.
-struct _SharedBackgroundToolbarContent<Content: ToolbarContent>: ToolbarContent, _ToolbarContentPrimitive {
+nonisolated struct _SharedBackgroundToolbarContent<Content: ToolbarContent>: ToolbarContent, _ToolbarContentPrimitive {
     let content: Content
 
-    var body: Never { fatalError("_SharedBackgroundToolbarContent hands its items over itself") }
+    @MainActor var body: Never { fatalError("_SharedBackgroundToolbarContent hands its items over itself") }
 
-    func appendToolbarItems(to items: inout _ToolbarItemCollector) {
+    @MainActor func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         TUIChrome.appendToolbarItems(content, to: &items)
     }
 }
 
 /// Toolbar content that hands over its items unless it is hidden.
-struct _HiddenToolbarContent<Content: ToolbarContent>: ToolbarContent, _ToolbarContentPrimitive {
+nonisolated struct _HiddenToolbarContent<Content: ToolbarContent>: ToolbarContent, _ToolbarContentPrimitive {
     let content: Content
     let isHidden: Bool
 
-    var body: Never { fatalError("_HiddenToolbarContent hands its items over itself") }
+    @MainActor var body: Never { fatalError("_HiddenToolbarContent hands its items over itself") }
 
-    func appendToolbarItems(to items: inout _ToolbarItemCollector) {
+    @MainActor func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         guard !isHidden else { return }
         TUIChrome.appendToolbarItems(content, to: &items)
     }
@@ -286,7 +286,7 @@ extension Group: _ToolbarContentPrimitive where Content: ToolbarContent {
 
 /// Several pieces of toolbar content written one after another in a builder:
 /// they hand their items over in order.
-struct _TupleToolbarContent<each Member: ToolbarContent>: ToolbarContent, _ToolbarContentPrimitive {
+nonisolated struct _TupleToolbarContent<each Member: ToolbarContent>: ToolbarContent, _ToolbarContentPrimitive {
     /// The members, in order.
     let members: (repeat each Member)
 
@@ -294,9 +294,9 @@ struct _TupleToolbarContent<each Member: ToolbarContent>: ToolbarContent, _Toolb
         members = (repeat each member)
     }
 
-    var body: Never { fatalError("_TupleToolbarContent hands its items over itself") }
+    @MainActor var body: Never { fatalError("_TupleToolbarContent hands its items over itself") }
 
-    func appendToolbarItems(to items: inout _ToolbarItemCollector) {
+    @MainActor func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         var index = 0
         for member in repeat each members {
             items.step(index, member)
@@ -306,7 +306,7 @@ struct _TupleToolbarContent<each Member: ToolbarContent>: ToolbarContent, _Toolb
 }
 
 /// Toolbar content whose type `if #available(…)` erased.
-struct _AnyToolbarContent: ToolbarContent, _ToolbarContentPrimitive {
+nonisolated struct _AnyToolbarContent: ToolbarContent, _ToolbarContentPrimitive {
     /// The erased content.
     let content: any ToolbarContent
 
@@ -314,9 +314,9 @@ struct _AnyToolbarContent: ToolbarContent, _ToolbarContentPrimitive {
         self.content = content
     }
 
-    var body: Never { fatalError("_AnyToolbarContent hands its items over itself") }
+    @MainActor var body: Never { fatalError("_AnyToolbarContent hands its items over itself") }
 
-    func appendToolbarItems(to items: inout _ToolbarItemCollector) {
+    @MainActor func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         items.append(contentsOf: toolbarItems(of: content))
     }
 }

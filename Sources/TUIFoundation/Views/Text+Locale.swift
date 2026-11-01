@@ -149,13 +149,13 @@ package final class LocalizedTextSource: Equatable, Sendable {
 
 // MARK: - Reading it again
 
-extension Text {
+@MainActor extension Text {
     /// One of TUI's own keys, read as `Text(localized:)` reads it, in
     /// `language` first where one is given (``relocalized(in:)``); `nil`
     /// reads it in the app's. It notes where its words came from, so a
     /// subtree whose `\.locale` names another language reads it again there,
     /// as SwiftUI's own controls' words follow `\.locale`.
-    init(frameworkKey key: String, language: String?) {
+    nonisolated init(frameworkKey key: String, language: String?) {
         let reading = LocalizationService.shared.frameworkReading(key, in: language)
         self.init(verbatim: reading.text)
         localization = LocalizedTextSource.interned(
@@ -168,7 +168,7 @@ extension Text {
     /// `\.locale` names (``relocalized(in:)``). `nil` reads it in the app's.
     /// Its numbers are written in `locale`, that subtree's `\.locale`, where
     /// one is given, and as the key wrote them, in the app's, where not.
-    init(_ key: LocalizedStringKey, tableName: String?, bundle: Bundle?, language: String?, locale: Locale? = nil) {
+    nonisolated init(_ key: LocalizedStringKey, tableName: String?, bundle: Bundle?, language: String?, locale: Locale? = nil) {
         let reading = LocalizationService.shared.reading(
             key.key, swiftUIKey: key.swiftUIKey, tableName: tableName, bundle: bundle, in: language)
         let template = reading.text

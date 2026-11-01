@@ -76,7 +76,7 @@ final class TextLinkSpans {
 
 // MARK: - Drawing a text
 
-extension Text {
+@MainActor extension Text {
     /// The text drawn.
     ///
     /// - Parameters:
@@ -149,6 +149,8 @@ enum TextLinkStops {
 /// and which holds the focus, for the menu, which opens on the focused link.
 @MainActor
 final class TextLinkStopState {
+    nonisolated init() {}
+
     /// Each link's spans as last drawn on the live page, by run.
     var spans: [Int: [TextLinkSpans.Span]] = [:]
 
@@ -408,7 +410,7 @@ private struct _TextLinksCore: View, Renderable {
 
 // MARK: - Recolouring a link
 
-extension Text {
+@MainActor extension Text {
     /// This text with the run at `index` drawn in `colour`: a link's words at
     /// one moment of its breath.
     fileprivate func recolouringRun(_ index: Int, to colour: Color) -> Text {

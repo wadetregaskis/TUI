@@ -44,7 +44,7 @@ extension View {
     /// ```
     ///
     /// - Parameter content: The actions to show in the section's header.
-    public func sectionActions<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    nonisolated public func sectionActions<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         _SectionActionsView(content: self, actions: content())
     }
 }
@@ -52,16 +52,16 @@ extension View {
 /// A section with the actions `.sectionActions(content:)` gave it — drawn as
 /// its section outside a list, and read by a list as that section with the
 /// actions on its header's line.
-struct _SectionActionsView<Content: View, Actions: View>: View {
+nonisolated struct _SectionActionsView<Content: View, Actions: View>: View {
     let content: Content
     let actions: Actions
 
-    var body: Content { content }
+    @MainActor var body: Content { content }
 }
 
 /// The section's parts, with these actions — what ``SectionConfiguration``
 /// hands a custom container.
-extension _SectionActionsView: SectionPartsProviding where Content: SectionPartsProviding {
+@MainActor extension _SectionActionsView: SectionPartsProviding where Content: SectionPartsProviding {
     var sectionParts: SectionParts {
         var parts = content.sectionParts
         parts.actions = actions
@@ -69,7 +69,7 @@ extension _SectionActionsView: SectionPartsProviding where Content: SectionParts
     }
 }
 
-extension _SectionActionsView: SectionRowExtractor where Content: SectionRowExtractor {
+@MainActor extension _SectionActionsView: SectionRowExtractor where Content: SectionRowExtractor {
     /// The section's rows, a step inside this view's identity — where drawing
     /// the view through its `body` puts the section.
     func extractSectionContentRows<RowID: Hashable>(context: RenderContext) -> SectionContentRows<RowID> {

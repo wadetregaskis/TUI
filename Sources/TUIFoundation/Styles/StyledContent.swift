@@ -14,7 +14,7 @@
 /// A style configuration's content: the views a control was given, which lay
 /// out as separate children of whatever stack the style puts them in — as
 /// `MenuStyleConfiguration.Content` does for a menu's items.
-public struct _StyledContent: View, ChildViewProvider {
+nonisolated public struct _StyledContent: View, ChildViewProvider {
     /// The content, erased, for drawing it as one view.
     let content: AnyView
 
@@ -27,11 +27,11 @@ public struct _StyledContent: View, ChildViewProvider {
         self.underlying = view
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         content
     }
 
-    public func childViews(context: RenderContext) -> [ChildView] {
+    @MainActor public func childViews(context: RenderContext) -> [ChildView] {
         // Opens `underlying`, so its views resolve at their concrete type, which
         // `content`'s erasure would have lost.
         resolveChildViews(from: underlying, context: context)

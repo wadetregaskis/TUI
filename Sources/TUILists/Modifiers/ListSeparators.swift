@@ -67,7 +67,7 @@ extension View {
     ///     the default color for the current list style.
     ///   - edges: The set of row edges for which the tint applies. The default
     ///     is ``VerticalEdge/Set/all``.
-    public func listRowSeparatorTint(_ color: Color?, edges: VerticalEdge.Set = .all) -> some View {
+    nonisolated public func listRowSeparatorTint(_ color: Color?, edges: VerticalEdge.Set = .all) -> some View {
         _ListRowSeparatorPreferenceView(content: self, change: .tint(color, edges))
     }
 }
@@ -75,16 +75,16 @@ extension View {
 /// Reports a row's separator preference to the list the row is in — or,
 /// written outside any row, makes it the default of the lists below
 /// (``renderReportingSeparator(_:change:sections:context:)``).
-struct _ListRowSeparatorPreferenceView<Content: View>: View {
+nonisolated struct _ListRowSeparatorPreferenceView<Content: View>: View {
     let content: Content
     let change: ListSeparatorChange
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_ListRowSeparatorPreferenceView renders via Renderable")
     }
 }
 
-extension _ListRowSeparatorPreferenceView: Renderable, Layoutable {
+@MainActor extension _ListRowSeparatorPreferenceView: Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         renderReportingSeparator(content, change: change, sections: false, context: context)
     }
@@ -95,7 +95,7 @@ extension _ListRowSeparatorPreferenceView: Renderable, Layoutable {
 }
 
 /// Names its content, so a z-index inside is still found.
-extension _ListRowSeparatorPreferenceView: SingleContentWrapper {
+@MainActor extension _ListRowSeparatorPreferenceView: SingleContentWrapper {
     var wrappedContent: Content { content }
 }
 
@@ -103,12 +103,12 @@ extension _ListRowSeparatorPreferenceView: SingleContentWrapper {
 /// identity — the separator guides above all: Apple's documented row writes
 /// `.listRowSeparatorLeading` on a view INSIDE the one the separator modifiers
 /// are written on.
-extension _ListRowSeparatorPreferenceView {
+@MainActor extension _ListRowSeparatorPreferenceView {
     /// See ``ListRowSeparatorModifier/_providesAlignmentGuide``.
     static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
-extension _ListRowSeparatorPreferenceView: AlignmentGuideQuerying {
+@MainActor extension _ListRowSeparatorPreferenceView: AlignmentGuideQuerying {
     func explicitGuide(_ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext) -> Double? {
         TUIFoundation.explicitGuide(of: content, query, in: dimensions, context: context)
     }
@@ -188,7 +188,7 @@ extension View {
     ///   - visibility: The visibility of this section's separators.
     ///   - edges: The set of row edges for which the preference applies. The
     ///     default is ``VerticalEdge/Set/all``.
-    public func listSectionSeparator(_ visibility: Visibility, edges: VerticalEdge.Set = .all) -> some View {
+    nonisolated public func listSectionSeparator(_ visibility: Visibility, edges: VerticalEdge.Set = .all) -> some View {
         _ListSectionSeparatorView(content: self, change: .visibility(visibility, edges))
     }
 
@@ -202,7 +202,7 @@ extension View {
     ///     use the default color for the current list style.
     ///   - edges: The set of row edges for which the tint applies. The default
     ///     is ``VerticalEdge/Set/all``.
-    public func listSectionSeparatorTint(_ color: Color?, edges: VerticalEdge.Set = .all) -> some View {
+    nonisolated public func listSectionSeparatorTint(_ color: Color?, edges: VerticalEdge.Set = .all) -> some View {
         _ListSectionSeparatorView(content: self, change: .tint(color, edges))
     }
 }
@@ -210,16 +210,16 @@ extension View {
 /// A `Section` with a separator preference: read by a list as that section,
 /// its preference in ``SectionInfo/separator``; anywhere else, its content
 /// with the preference the default for the sections of the lists below.
-struct _ListSectionSeparatorView<Content: View>: View {
+nonisolated struct _ListSectionSeparatorView<Content: View>: View {
     let content: Content
     let change: ListSeparatorChange
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_ListSectionSeparatorView renders via Renderable")
     }
 }
 
-extension _ListSectionSeparatorView: Renderable, Layoutable {
+@MainActor extension _ListSectionSeparatorView: Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         renderReportingSeparator(content, change: change, sections: true, context: context)
     }
@@ -229,7 +229,7 @@ extension _ListSectionSeparatorView: Renderable, Layoutable {
     }
 }
 
-extension _ListSectionSeparatorView: SectionRowExtractor where Content: SectionRowExtractor {
+@MainActor extension _ListSectionSeparatorView: SectionRowExtractor where Content: SectionRowExtractor {
     func extractSectionContentRows<RowID: Hashable>(context: RenderContext) -> SectionContentRows<RowID> {
         content.extractSectionContentRows(context: context)
     }
@@ -244,6 +244,6 @@ extension _ListSectionSeparatorView: SectionRowExtractor where Content: SectionR
 /// Seen as the section it wraps by a list whose rows a `ForEach` of sections
 /// makes (`isSectionRowType`). The preference does not travel that way: a
 /// section the loop makes is drawn without it.
-extension _ListSectionSeparatorView: SectionPartsProviding where Content: SectionPartsProviding {
+@MainActor extension _ListSectionSeparatorView: SectionPartsProviding where Content: SectionPartsProviding {
     var sectionParts: SectionParts { content.sectionParts }
 }

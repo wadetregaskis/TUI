@@ -102,7 +102,7 @@ extension View {
     ///
     /// - Parameter style: The transition.
     /// - Returns: A view that says how its screen comes and goes.
-    public func navigationTransition(_ style: some NavigationTransition) -> some View {
+    nonisolated public func navigationTransition(_ style: some NavigationTransition) -> some View {
         preference(key: NavigationZoomKey.self, value: (style as? ZoomNavigationTransition)?.source)
     }
 }

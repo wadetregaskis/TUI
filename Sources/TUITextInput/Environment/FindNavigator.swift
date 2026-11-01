@@ -95,7 +95,7 @@ extension View {
     ///
     /// - Parameter isPresented: Whether the find interface is shown.
     /// - Returns: A view whose text editors present the interface with it.
-    public func findNavigator(isPresented: Binding<Bool>) -> some View {
+    nonisolated public func findNavigator(isPresented: Binding<Bool>) -> some View {
         // Closer to the editor than a `findDisabled(_:)`, it wins, as SwiftUI
         // documents the order mattering.
         transformEnvironment(\.findNavigator) {
@@ -112,7 +112,7 @@ extension View {
     ///
     /// - Parameter isDisabled: Whether find is disabled.
     /// - Returns: A view whose text editors cannot find.
-    public func findDisabled(_ isDisabled: Bool = true) -> some View {
+    nonisolated public func findDisabled(_ isDisabled: Bool = true) -> some View {
         transformEnvironment(\.findNavigator) { $0.isFindDisabled = isDisabled }
     }
 
@@ -123,7 +123,7 @@ extension View {
     ///
     /// - Parameter isDisabled: Whether replace is disabled.
     /// - Returns: A view whose text editors cannot replace.
-    public func replaceDisabled(_ isDisabled: Bool = true) -> some View {
+    nonisolated public func replaceDisabled(_ isDisabled: Bool = true) -> some View {
         transformEnvironment(\.findNavigator) { $0.isReplaceDisabled = isDisabled }
     }
 }

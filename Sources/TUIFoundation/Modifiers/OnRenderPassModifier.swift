@@ -23,16 +23,16 @@ package enum RenderPass: Sendable, Equatable {
 
 /// Instrumentation wrapper behind ``View/onRenderPass(_:)``:
 /// reports every measurement and every real render of its content.
-struct OnRenderPassModifier<Content: View>: View {
+nonisolated struct OnRenderPassModifier<Content: View>: View {
     let content: Content
     let action: (RenderPass) -> Void
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("OnRenderPassModifier renders via Renderable")
     }
 }
 
-extension OnRenderPassModifier: Renderable, Layoutable {
+@MainActor extension OnRenderPassModifier: Renderable, Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         // Observation must not be memoised away: a cached measurement that
         // skips this call would hide real layout participation from the
@@ -75,7 +75,7 @@ extension View {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension OnRenderPassModifier: SingleContentWrapper {
+@MainActor extension OnRenderPassModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -86,4 +86,4 @@ extension OnRenderPassModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension OnRenderPassModifier: DrawsContentUnchanged {}
+@MainActor extension OnRenderPassModifier: DrawsContentUnchanged {}

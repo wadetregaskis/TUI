@@ -45,7 +45,7 @@ extension View {
     /// - Parameter visibility: `.hidden` for a plain rule; `.automatic` (the
     ///   default) or `.visible` for the grip.
     /// - Returns: A view whose split views draw their dividers so.
-    public func splitViewDividerGrip(_ visibility: Visibility) -> some View {
+    nonisolated public func splitViewDividerGrip(_ visibility: Visibility) -> some View {
         environment(\.splitViewDividerGrip, visibility)
     }
 }

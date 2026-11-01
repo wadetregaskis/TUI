@@ -265,7 +265,7 @@ struct RowKeys {
     }
 }
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// The uniform path's placement after its seek: a designated row held
     /// (`holdingDesignatedRow`), or else the row at the top. Returns the
     /// offset to report — the designation's, which wins over the seek's (the

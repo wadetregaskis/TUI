@@ -44,7 +44,7 @@ extension View {
     /// - Parameters:
     ///   - titleKey: The title of the suppression toggle.
     ///   - isSuppressed: Whether the suppression toggle is on.
-    public func dialogSuppressionToggle(
+    nonisolated public func dialogSuppressionToggle(
         _ titleKey: LocalizedStringKey, isSuppressed: Binding<Bool>
     ) -> some View {
         _DialogSuppressionModifier(content: self, label: Text(titleKey), isSuppressed: isSuppressed)
@@ -58,7 +58,7 @@ extension View {
     ///   - title: The title of the suppression toggle.
     ///   - isSuppressed: Whether the suppression toggle is on.
     @_disfavoredOverload
-    public func dialogSuppressionToggle<S: StringProtocol>(
+    nonisolated public func dialogSuppressionToggle<S: StringProtocol>(
         _ title: S, isSuppressed: Binding<Bool>
     ) -> some View {
         _DialogSuppressionModifier(
@@ -71,7 +71,7 @@ extension View {
     /// - Parameters:
     ///   - label: The label of the suppression toggle.
     ///   - isSuppressed: Whether the suppression toggle is on.
-    public func dialogSuppressionToggle(_ label: Text, isSuppressed: Binding<Bool>) -> some View {
+    nonisolated public func dialogSuppressionToggle(_ label: Text, isSuppressed: Binding<Bool>) -> some View {
         _DialogSuppressionModifier(content: self, label: label, isSuppressed: isSuppressed)
     }
 
@@ -81,7 +81,7 @@ extension View {
     /// Mirrors SwiftUI's `dialogSuppressionToggle(isSuppressed:)`.
     ///
     /// - Parameter isSuppressed: Whether the suppression toggle is on.
-    public func dialogSuppressionToggle(isSuppressed: Binding<Bool>) -> some View {
+    nonisolated public func dialogSuppressionToggle(isSuppressed: Binding<Bool>) -> some View {
         _DialogSuppressionModifier(content: self, label: nil, isSuppressed: isSuppressed)
     }
 }
@@ -104,7 +104,7 @@ package final class DialogSuppression: Equatable {
 
     /// A toggle with nothing to show yet: a view modifier's, filled in as its
     /// body is evaluated.
-    init() {}
+    nonisolated init() {}
 
     /// A toggle labelled `label`, or by default, bound to `isSuppressed`: a
     /// scene modifier's (TUIScenes), made with what it states.
@@ -139,14 +139,14 @@ extension EnvironmentValues {
 }
 
 /// Hands the dialogs inside its content a suppression toggle.
-struct _DialogSuppressionModifier<Content: View>: View {
+struct _DialogSuppressionModifier<Content: View> {
     let content: Content
     let label: Text?
     let isSuppressed: Binding<Bool>
 
     @State private var suppression = DialogSuppression()
 
-    var body: some View {
+    @MainActor var body: some View {
         // Refreshed on every evaluation, so a dialog drawn now toggles the
         // binding as it stands now.
         suppression.label = label
@@ -154,6 +154,7 @@ struct _DialogSuppressionModifier<Content: View>: View {
         return content.environment(\.dialogSuppression, suppression)
     }
 }
+extension _DialogSuppressionModifier: View {}
 
 // MARK: - Drawing
 

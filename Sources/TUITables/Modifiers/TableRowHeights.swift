@@ -74,7 +74,7 @@ extension View {
     ///
     /// - Parameter heights: How rows are given their heights.
     /// - Returns: A view whose tables size their rows so.
-    public func tableRowHeights(_ heights: TableRowHeights) -> some View {
+    nonisolated public func tableRowHeights(_ heights: TableRowHeights) -> some View {
         environment(\.tableRowHeights, heights)
     }
 }

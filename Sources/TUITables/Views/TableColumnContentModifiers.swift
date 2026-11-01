@@ -19,7 +19,7 @@ import TUIFoundation
 /// and the one nearest a column wins: `Group { a.alignment(.center); b }
 /// .alignment(.trailing)` centres `a` and right-aligns `b`. So each modifier
 /// states an attribute only where nothing inside has stated it already.
-struct _ModifiedTableColumnContent<Base: TableColumnContent>: TableColumnContent {
+nonisolated struct _ModifiedTableColumnContent<Base: TableColumnContent>: TableColumnContent {
     typealias TableRowValue = Base.TableRowValue
     typealias TableColumnSortComparator = Base.TableColumnSortComparator
     typealias TableColumnBody = Never
@@ -31,10 +31,10 @@ struct _ModifiedTableColumnContent<Base: TableColumnContent>: TableColumnContent
     let modify: (inout _TableColumnSpec<Base.TableRowValue>) -> Void
 
     /// Never called: modified content hands its columns to the table directly.
-    var tableColumnBody: Never { fatalError("_ModifiedTableColumnContent renders its columns directly") }
+    @MainActor var tableColumnBody: Never { fatalError("_ModifiedTableColumnContent renders its columns directly") }
 }
 
-extension _ModifiedTableColumnContent {
+@MainActor extension _ModifiedTableColumnContent {
     static func _appendColumns(_ content: Self, to columns: inout _TableColumnList<Base.TableRowValue>) {
         let start = columns.specs.endIndex
         appendTableColumns(content.base, to: &columns)

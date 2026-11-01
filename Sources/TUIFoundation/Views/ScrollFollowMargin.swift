@@ -173,7 +173,7 @@ extension View {
     /// Menu(items: entries, selection: $choice)
     ///     .scrollFollowMargin(.centered)   // keep the selection centred
     /// ```
-    public func scrollFollowMargin(_ margin: ScrollFollowMargin) -> some View {
+    nonisolated public func scrollFollowMargin(_ margin: ScrollFollowMargin) -> some View {
         environment(\.scrollFollowMargin, margin)
     }
 }

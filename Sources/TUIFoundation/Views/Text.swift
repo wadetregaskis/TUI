@@ -22,7 +22,7 @@ import Foundation
 /// Text("Colored")
 ///     .foregroundStyle(.red)
 /// ```
-public struct Text: View, Equatable {
+nonisolated public struct Text: View, Equatable {
     /// A capitalisation transform — mirrors SwiftUI's `Text.Case`.
     ///
     /// The same type as the top-level ``TextCase``, under SwiftUI's spelling,
@@ -94,7 +94,7 @@ public struct Text: View, Equatable {
     /// went through `Equatable`'s witness table and dispatch thunk on every
     /// cell, as a `package` type's conformance has no witness table another
     /// module can see into. Not `@inlinable`, for the same reason.
-    package var isUnstyled: Bool {
+    @MainActor package var isUnstyled: Bool {
         runs == nil && style == TextStyle()
     }
 
@@ -244,7 +244,7 @@ public struct Text: View, Equatable {
         self.init(format.format(input))
     }
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("Text is a primitive view and renders directly")
     }
 }
@@ -809,7 +809,7 @@ extension TextStyle {
 
 // MARK: - Text Rendering
 
-extension Text: Renderable, Layoutable {
+@MainActor extension Text: Renderable, Layoutable {
     /// The style cascade's attributes for this `Text` — the scopes it matches
     /// (`.all`/`.text`, its semantic colour role, its chrome role, its control
     /// kind and variant) resolved over the chrome role's defaults.

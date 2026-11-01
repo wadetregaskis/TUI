@@ -15,7 +15,7 @@ import TUICore
 public struct MenuStyleConfiguration {
     /// A type-erased view of the menu's label — its title, or whatever the
     /// caller built with the `label:` closure.
-    public struct Label: View {
+    nonisolated public struct Label: View {
         package let content: AnyView
 
         /// The memberwise initializer, spelled out because the synthesized one is internal and
@@ -24,12 +24,12 @@ public struct MenuStyleConfiguration {
             self.content = content
         }
 
-        public var body: some View { content }
+        @MainActor public var body: some View { content }
     }
 
     /// A type-erased view of the menu's items: the `Button`s and `Divider`s
     /// from the `content:` closure.
-    public struct Content: View {
+    nonisolated public struct Content: View {
         package let content: AnyView
 
         /// The items as separate children of whatever stack a style puts this
@@ -44,7 +44,7 @@ public struct MenuStyleConfiguration {
             self.children = children
         }
 
-        public var body: some View { content }
+        @MainActor public var body: some View { content }
     }
 
     /// The menu's label.
@@ -78,7 +78,7 @@ public struct MenuStyleConfiguration {
 /// The children are resolved through a closure captured in ``Menu``, where the
 /// items' concrete type is still known: by the time they are here they have
 /// been erased, and `AnyView` is not itself a child-view provider.
-extension MenuStyleConfiguration.Content: ChildViewProvider {
+@MainActor extension MenuStyleConfiguration.Content: ChildViewProvider {
     public func childViews(context: RenderContext) -> [ChildView] {
         children(context)
     }

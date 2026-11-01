@@ -109,7 +109,7 @@ import TUIFoundation
         ///   - options: The options for the effect.
         ///   - isActive: whether the effect is active or inactive.
         /// - Returns: a copy of the view with a symbol effect added.
-        public func symbolEffect<T: IndefiniteSymbolEffect & SymbolEffect>(
+        nonisolated public func symbolEffect<T: IndefiniteSymbolEffect & SymbolEffect>(
             _ effect: T, options: SymbolEffectOptions = .default, isActive: Bool = true
         ) -> some View {
             let breath = isActive ? SymbolBreath(effect) : nil
@@ -134,7 +134,7 @@ import TUIFoundation
         ///   - value: the value to monitor for changes, the animation is
         ///     triggered each time the value changes.
         /// - Returns: a copy of the view with a symbol effect added.
-        public func symbolEffect<T: DiscreteSymbolEffect & SymbolEffect, U: Equatable>(
+        nonisolated public func symbolEffect<T: DiscreteSymbolEffect & SymbolEffect, U: Equatable>(
             _ effect: T, options: SymbolEffectOptions = .default, value: U
         ) -> some View {
             _DiscreteSymbolEffectModifier(
@@ -151,7 +151,7 @@ import TUIFoundation
         ///   or not.
         /// - Returns: a copy of the view with its symbol effects either
         ///   removed or left unchanged.
-        public func symbolEffectsRemoved(_ isEnabled: Bool = true) -> some View {
+        nonisolated public func symbolEffectsRemoved(_ isEnabled: Bool = true) -> some View {
             transformEnvironment(\.symbolGlyphEffect) { inherited in
                 if isEnabled { inherited = nil }
             }
@@ -163,14 +163,14 @@ import TUIFoundation
     /// The view behind `symbolEffect(_:options:value:)`: compares `value`
     /// with the one the last render saw, as `.onChange` does, and from a
     /// change plays the breath for the glyphs below until it is over.
-    struct _DiscreteSymbolEffectModifier<Content: View, Value: Equatable>: View {
+    nonisolated struct _DiscreteSymbolEffectModifier<Content: View, Value: Equatable>: View {
         let content: Content
         let breath: SymbolBreath?
         let frameTicks: Int
         let cycles: Int
         let value: Value
 
-        var body: Never {
+        @MainActor var body: Never {
             fatalError("_DiscreteSymbolEffectModifier renders via Renderable")
         }
 
@@ -181,7 +181,7 @@ import TUIFoundation
         }
     }
 
-    extension _DiscreteSymbolEffectModifier: Renderable, Layoutable {
+    @MainActor extension _DiscreteSymbolEffectModifier: Renderable, Layoutable {
         /// The content's context: one environment application deeper, as below
         /// any modifier that notes what it applies, so a `symbolEffectsRemoved`
         /// drawn at this identity notes under a slot of its own.
@@ -238,7 +238,7 @@ import TUIFoundation
         }
     }
 
-    extension _DiscreteSymbolEffectModifier: SingleContentWrapper {
+    @MainActor extension _DiscreteSymbolEffectModifier: SingleContentWrapper {
         var wrappedContent: Content { content }
 
         /// Its content's context: the environment depth its measure gives it (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -247,7 +247,7 @@ import TUIFoundation
 
     /// Draws its content unchanged, at its own identity, so a removal
     /// transition written inside it plays — see `DrawsContentUnchanged`.
-    extension _DiscreteSymbolEffectModifier: DrawsContentUnchanged {}
+    @MainActor extension _DiscreteSymbolEffectModifier: DrawsContentUnchanged {}
 
     // MARK: - Transitions
 
@@ -261,26 +261,26 @@ import TUIFoundation
     /// > compositor, as ``OpacityTransition`` does — and fades everything the
     /// > transition is on, where SwiftUI's leaves views other than symbol
     /// > images unaffected. The effect's direction and options are not drawn.
-    public struct SymbolEffectTransition: Transition {
+    nonisolated public struct SymbolEffectTransition: Transition {
         /// Creates a transition for `effect` with `options`.
         public init<T: SymbolEffect & TransitionSymbolEffect>(effect: T, options: SymbolEffectOptions) {}
 
         /// The fade the transition is drawn as.
-        public func body(content: Content, phase: TransitionPhase) -> some View {
+        @MainActor public func body(content: Content, phase: TransitionPhase) -> some View {
             content.modifier(_TransitionEffectModifier(.opacity, phase: phase))
         }
 
         /// No motion: a fade.
         public static let properties = TransitionProperties(hasMotion: false)
 
-        public var _erased: AnyTransition { .opacity }
+        @MainActor public var _erased: AnyTransition { .opacity }
     }
 
     extension Transition where Self == SymbolEffectTransition {
         /// A transition that applies the default symbol effect transition to
         /// symbol images within the inserted or removed view hierarchy —
         /// drawn as a fade (see ``SymbolEffectTransition``).
-        public static var symbolEffect: SymbolEffectTransition {
+        nonisolated public static var symbolEffect: SymbolEffectTransition {
             SymbolEffectTransition(effect: .appear, options: .default)
         }
 
@@ -293,7 +293,7 @@ import TUIFoundation
         ///   - options: the symbol effect options; not drawn, as the effect's
         ///     direction is not.
         /// - Returns: a new transition.
-        public static func symbolEffect<T: SymbolEffect & TransitionSymbolEffect>(
+        nonisolated public static func symbolEffect<T: SymbolEffect & TransitionSymbolEffect>(
             _ effect: T, options: SymbolEffectOptions = .default
         ) -> SymbolEffectTransition {
             SymbolEffectTransition(effect: effect, options: options)

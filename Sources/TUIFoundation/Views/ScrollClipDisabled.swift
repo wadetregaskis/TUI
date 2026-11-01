@@ -78,7 +78,7 @@ extension View {
     ///
     /// - Parameter disabled: Whether to stop clipping.
     /// - Returns: A view whose scroll views clip, or do not clip, their content.
-    public func scrollClipDisabled(_ disabled: Bool = true) -> some View {
+    nonisolated public func scrollClipDisabled(_ disabled: Bool = true) -> some View {
         environment(\.scrollClipDisabled, disabled)
     }
 }

@@ -80,21 +80,21 @@ extension View {
     /// however the menu was opened (click, Return, or <kbd>Shift</kbd>+<kbd>F10</kbd>).
     ///
     /// - Parameter action: Run as the menu opens.
-    public func onMenuOpen(_ action: @escaping () -> Void) -> some View {
+    nonisolated public func onMenuOpen(_ action: @escaping () -> Void) -> some View {
         _MenuOpenModifier(content: self, action: action)
     }
 }
 
 /// ``View/onMenuOpen(_:)``: the app's closure, handed to the subtree through
 /// one ``MenuOpenAction`` for the modifier's life.
-private struct _MenuOpenModifier<Content: View>: View {
+private struct _MenuOpenModifier<Content: View> {
     let content: Content
     let action: () -> Void
 
     /// The object the subtree's menus call, refreshed below.
     @State private var opening = MenuOpenAction()
 
-    var body: some View {
+    @MainActor var body: some View {
         // A write to the object, not to the state: the box stays the one the
         // environment compared equal last frame, and what it runs is now this
         // body's closure.
@@ -102,3 +102,4 @@ private struct _MenuOpenModifier<Content: View>: View {
         return content.environment(\.menuOpenAction, opening)
     }
 }
+extension _MenuOpenModifier: View {}

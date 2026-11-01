@@ -38,7 +38,7 @@ extension View {
     /// - Parameter count: The number of columns to span. Values below 1 are
     ///   treated as 1.
     /// - Returns: A view carrying the span.
-    public func gridCellColumns(_ count: Int) -> some View {
+    nonisolated public func gridCellColumns(_ count: Int) -> some View {
         layoutValue(key: GridCellColumnsKey.self, value: max(1, count.heldToStatedLength))
     }
 
@@ -47,7 +47,7 @@ extension View {
     /// - Parameter anchor: The point of the cell that meets the same point of
     ///   its box.
     /// - Returns: A view carrying the anchor.
-    public func gridCellAnchor(_ anchor: UnitPoint) -> some View {
+    nonisolated public func gridCellAnchor(_ anchor: UnitPoint) -> some View {
         layoutValue(key: GridCellAnchorKey.self, value: anchor)
     }
 
@@ -58,7 +58,7 @@ extension View {
     ///
     /// - Parameter guide: The alignment for the column.
     /// - Returns: A view carrying the column alignment.
-    public func gridColumnAlignment(_ guide: HorizontalAlignment) -> some View {
+    nonisolated public func gridColumnAlignment(_ guide: HorizontalAlignment) -> some View {
         layoutValue(key: GridColumnAlignmentKey.self, value: guide)
     }
 
@@ -84,7 +84,7 @@ extension View {
     ///
     /// - Parameter axes: The axes on which the cell does not size the grid.
     /// - Returns: A view carrying the axes.
-    public func gridCellUnsizedAxes(_ axes: Axis.Set) -> some View {
+    nonisolated public func gridCellUnsizedAxes(_ axes: Axis.Set) -> some View {
         layoutValue(key: GridCellUnsizedAxesKey.self, value: axes)
     }
 }
@@ -101,7 +101,7 @@ extension View {
 /// where one row ends and the next begins. So `VStack { GridRow { a; b } }` is
 /// `VStack { a; b }`, exactly as SwiftUI draws it, and a custom ``Layout``
 /// over two rows of two sees four subviews.
-public struct GridRow<Content: View>: View {
+nonisolated public struct GridRow<Content: View>: View {
     /// Overrides the grid's vertical alignment for this row.
     public let alignment: VerticalAlignment?
 
@@ -123,13 +123,13 @@ public struct GridRow<Content: View>: View {
     /// wherever no grid lays them out — measured on SwiftUI, where `VStack {
     /// GridRow { a; b } }` draws exactly as `VStack { a; b }` and not as
     /// `HStack { a; b }`.
-    public var body: some View {
+    @MainActor public var body: some View {
         content
     }
 
     /// Its cells' answer: they are laid out as the enclosing container's own
     /// children, so a guide in any of them can be one that container reports.
-    public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
+    @MainActor public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
 // MARK: - A Row's Cells as the Container's Children
@@ -139,7 +139,7 @@ public struct GridRow<Content: View>: View {
 /// row — so a grid can tell where one row ends and the next begins once the
 /// rows are flattened into one list of children. Plain values, the same on
 /// every walk, so they never defeat a cell's memo.
-extension GridRow: ChildViewProvider {
+@MainActor extension GridRow: ChildViewProvider {
     public func childViews(context: RenderContext) -> [ChildView] {
         resolveChildViews(from: content, context: context).enumerated().map { index, cell in
             cell.rewrapped(
@@ -150,13 +150,13 @@ extension GridRow: ChildViewProvider {
     }
 }
 
-extension GridRow: ChildInfoProvider {
+@MainActor extension GridRow: ChildInfoProvider {
     public func childInfos(context: RenderContext) -> [ChildInfo] {
         resolveChildInfos(from: content, context: context)
     }
 }
 
-extension GridRow: GridRowProviding {
+@MainActor extension GridRow: GridRowProviding {
     package var rowAlignment: VerticalAlignment? { alignment }
 
     package func gridCells(context: RenderContext) -> [ChildView] {
@@ -197,7 +197,7 @@ extension GridRow: GridRowProviding {
 /// A child that is not in a row already spans the full width without sizing a
 /// column. A cell that should fill its column or row rather than size it says
 /// so with ``View/gridCellUnsizedAxes(_:)``.
-public struct Grid<Content: View>: View {
+nonisolated public struct Grid<Content: View>: View {
     /// How cells sit inside the boxes the grid gives them.
     public let alignment: Alignment
 
@@ -231,7 +231,7 @@ public struct Grid<Content: View>: View {
         self.content = content()
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _GridCore(
             alignment: alignment, horizontalSpacing: horizontalSpacing,
             verticalSpacing: verticalSpacing, content: content)

@@ -12,7 +12,7 @@ import TUICore
 // MARK: - The keyframes
 
 /// A keyframe that uses simple linear interpolation.
-public struct LinearKeyframe<Value: Animatable>: KeyframeTrackContent {
+nonisolated public struct LinearKeyframe<Value: Animatable>: KeyframeTrackContent {
     private let keyframe: Keyframe<Value>
 
     /// Creates a new keyframe using the given value and timestamp.
@@ -26,10 +26,10 @@ public struct LinearKeyframe<Value: Animatable>: KeyframeTrackContent {
     }
 
     /// The keyframe itself.
-    public var body: Self { self }
+    @MainActor public var body: Self { self }
 
     /// Adds this keyframe.
-    public func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>) {
+    @MainActor public func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>) {
         resolved.keyframes.append(keyframe)
     }
 }
@@ -47,7 +47,7 @@ public struct LinearKeyframe<Value: Animatable>: KeyframeTrackContent {
 /// Likewise, if a cubic keyframe is followed by a different type of keyframe,
 /// the initial velocity of the next segment is used as the end velocity of the
 /// segment defined by this keyframe.
-public struct CubicKeyframe<Value: Animatable>: KeyframeTrackContent {
+nonisolated public struct CubicKeyframe<Value: Animatable>: KeyframeTrackContent {
     private let keyframe: Keyframe<Value>
 
     /// Creates a new keyframe using the given value and timestamp.
@@ -70,16 +70,16 @@ public struct CubicKeyframe<Value: Animatable>: KeyframeTrackContent {
     }
 
     /// The keyframe itself.
-    public var body: Self { self }
+    @MainActor public var body: Self { self }
 
     /// Adds this keyframe.
-    public func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>) {
+    @MainActor public func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>) {
         resolved.keyframes.append(keyframe)
     }
 }
 
 /// A keyframe that uses a spring function to interpolate to the given value.
-public struct SpringKeyframe<Value: Animatable>: KeyframeTrackContent {
+nonisolated public struct SpringKeyframe<Value: Animatable>: KeyframeTrackContent {
     private let keyframe: Keyframe<Value>
 
     /// Creates a new keyframe using the given value and timestamp.
@@ -102,17 +102,17 @@ public struct SpringKeyframe<Value: Animatable>: KeyframeTrackContent {
     }
 
     /// The keyframe itself.
-    public var body: Self { self }
+    @MainActor public var body: Self { self }
 
     /// Adds this keyframe.
-    public func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>) {
+    @MainActor public func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>) {
         resolved.keyframes.append(keyframe)
     }
 }
 
 /// A keyframe that immediately moves to the given value without
 /// interpolating.
-public struct MoveKeyframe<Value: Animatable>: KeyframeTrackContent {
+nonisolated public struct MoveKeyframe<Value: Animatable>: KeyframeTrackContent {
     private let keyframe: Keyframe<Value>
 
     /// Creates a new keyframe using the given value.
@@ -123,10 +123,10 @@ public struct MoveKeyframe<Value: Animatable>: KeyframeTrackContent {
     }
 
     /// The keyframe itself.
-    public var body: Self { self }
+    @MainActor public var body: Self { self }
 
     /// Adds this keyframe.
-    public func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>) {
+    @MainActor public func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>) {
         resolved.keyframes.append(keyframe)
     }
 }
@@ -134,7 +134,7 @@ public struct MoveKeyframe<Value: Animatable>: KeyframeTrackContent {
 // MARK: - What the builders build
 
 /// Two runs of track content, one after the other.
-struct _KeyframeTrackSequence<First: KeyframeTrackContent, Second: KeyframeTrackContent>:
+nonisolated struct _KeyframeTrackSequence<First: KeyframeTrackContent, Second: KeyframeTrackContent>:
     KeyframeTrackContent
 where First.Value == Second.Value {
     typealias Value = First.Value
@@ -142,23 +142,23 @@ where First.Value == Second.Value {
     let first: First
     let second: Second
 
-    var body: Self { self }
+    @MainActor var body: Self { self }
 
-    func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>) {
+    @MainActor func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>) {
         first._resolve(into: &resolved)
         second._resolve(into: &resolved)
     }
 }
 
 /// Track content repeated over a collection — a `for` loop in a builder.
-struct _KeyframeTrackArray<Element: KeyframeTrackContent>: KeyframeTrackContent {
+nonisolated struct _KeyframeTrackArray<Element: KeyframeTrackContent>: KeyframeTrackContent {
     typealias Value = Element.Value
 
     let elements: [Element]
 
-    var body: Self { self }
+    @MainActor var body: Self { self }
 
-    func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>) {
+    @MainActor func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>) {
         for element in elements { element._resolve(into: &resolved) }
     }
 }
@@ -174,7 +174,6 @@ struct _EmptyKeyframeTrackContent<Value: Animatable>: KeyframeTrackContent {
 
 /// The builder that creates keyframe track content from the keyframes that you
 /// define within a closure.
-@MainActor
 @resultBuilder
 public struct KeyframeTrackContentBuilder<Value: Animatable> {
     /// A keyframe, or other track content, as written.
@@ -222,7 +221,7 @@ public struct KeyframeTrackContentBuilder<Value: Animatable> {
 
 extension KeyframeTrackContentBuilder {
     /// A conditional result from the result builder.
-    public struct Conditional<ConditionalValue, First, Second>: KeyframeTrackContent
+    nonisolated public struct Conditional<ConditionalValue, First, Second>: KeyframeTrackContent
     where
         ConditionalValue == First.Value, First: KeyframeTrackContent, Second: KeyframeTrackContent,
         First.Value == Second.Value
@@ -238,10 +237,10 @@ extension KeyframeTrackContentBuilder {
         public typealias Value = ConditionalValue
 
         /// The content itself.
-        public var body: Self { self }
+        @MainActor public var body: Self { self }
 
         /// Adds the keyframes of the branch that was taken.
-        public func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<ConditionalValue>) {
+        @MainActor public func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<ConditionalValue>) {
             switch storage {
             case .first(let first): first._resolve(into: &resolved)
             case .second(let second): second._resolve(into: &resolved)
@@ -254,7 +253,6 @@ extension KeyframeTrackContentBuilder {
 ///
 /// It takes either keyframes, which become one track over the whole value, or
 /// tracks (``KeyframeTrack``) — one per property.
-@MainActor
 @resultBuilder
 public struct KeyframesBuilder<Value> {
     /// A keyframe, or other track content, as written.

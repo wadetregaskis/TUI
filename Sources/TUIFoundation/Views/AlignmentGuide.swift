@@ -44,7 +44,7 @@ public protocol AlignmentGuideProviding {
 ///
 /// - Important: Framework infrastructure. Created by
 ///   ``View/alignmentGuide(_:computeValue:)-(HorizontalAlignment,_)``; do not instantiate directly.
-public struct _AlignmentGuideView<Content: View>: View {
+nonisolated public struct _AlignmentGuideView<Content: View>: View {
     /// Which guide this view overrides.
     let key: AlignmentKey
 
@@ -54,14 +54,14 @@ public struct _AlignmentGuideView<Content: View>: View {
     /// The wrapped content view.
     let content: Content
 
-    public var body: some View {
+    @MainActor public var body: some View {
         content
     }
 
     /// Static witness used by the child-layout path to detect a guide wrapper
     /// without a runtime `as? AlignmentGuideProviding` cast. See
     /// `_providesAlignmentGuide`.
-    public static var _providesAlignmentGuide: Bool { true }
+    @MainActor public static var _providesAlignmentGuide: Bool { true }
 }
 
 /// The view that answers for `view`'s explicit guides: `view` itself, or —
@@ -80,7 +80,7 @@ func alignmentGuideProvider(of view: any View) -> AlignmentGuideProviding? {
     return alignmentGuideProvider(of: proxy.forwardedChild.wrappedView)
 }
 
-extension _AlignmentGuideView: AlignmentGuideProviding {
+@MainActor extension _AlignmentGuideView: AlignmentGuideProviding {
     public var explicitAlignmentGuideKeys: [AlignmentKey] {
         guard Content._providesAlignmentGuide,
             let inner = alignmentGuideProvider(of: content)?.explicitAlignmentGuideKeys
@@ -207,7 +207,7 @@ extension View {
     ///     coordinates, given the view's dimensions. It need not lie inside
     ///     the view.
     /// - Returns: A view carrying the explicit guide.
-    public func alignmentGuide(
+    nonisolated public func alignmentGuide(
         _ g: HorizontalAlignment,
         computeValue: @escaping (ViewDimensions) -> Double
     ) -> some View {
@@ -236,7 +236,7 @@ extension View {
     ///     coordinates, given the view's dimensions. It need not lie inside
     ///     the view.
     /// - Returns: A view carrying the explicit guide.
-    public func alignmentGuide(
+    nonisolated public func alignmentGuide(
         _ g: VerticalAlignment,
         computeValue: @escaping (ViewDimensions) -> Double
     ) -> some View {
@@ -429,7 +429,7 @@ func mergedExplicitGuide(
     return query.combine(values)
 }
 
-extension _AlignmentGuideView: AlignmentGuideQuerying {
+@MainActor extension _AlignmentGuideView: AlignmentGuideQuerying {
     /// This wrapper's own guide, or whatever its content has for any other —
     /// a guide set further in, or one a container inside reports.
     package func explicitGuide(
@@ -933,6 +933,6 @@ func verticalGuideRun(
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _AlignmentGuideView: SingleContentWrapper {
+@MainActor extension _AlignmentGuideView: SingleContentWrapper {
     public var wrappedContent: Content { content }
 }

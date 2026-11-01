@@ -49,7 +49,7 @@ extension View {
     ///   - transition: A closure that applies visual effects as a function of
     ///     the provided phase.
     /// - Returns: A view with the transition applied.
-    public func scrollTransition<Effect: VisualEffect>(
+    nonisolated public func scrollTransition<Effect: VisualEffect>(
         _ configuration: ScrollTransitionConfiguration = .interactive, axis: Axis? = nil,
         transition: @escaping @MainActor (EmptyVisualEffect, ScrollTransitionPhase) -> Effect
     ) -> some View {
@@ -76,7 +76,7 @@ extension View {
     ///   - transition: A closure that applies visual effects as a function of
     ///     the provided phase.
     /// - Returns: A view with the transition applied.
-    public func scrollTransition<Effect: VisualEffect>(
+    nonisolated public func scrollTransition<Effect: VisualEffect>(
         topLeading: ScrollTransitionConfiguration, bottomTrailing: ScrollTransitionConfiguration,
         axis: Axis? = nil,
         transition: @escaping @MainActor (EmptyVisualEffect, ScrollTransitionPhase) -> Effect
@@ -92,19 +92,19 @@ extension View {
 /// Draws its content, then the effect its transition gives for where the
 /// content is in the scroll view's viewport — see
 /// ``View/scrollTransition(_:axis:transition:)``.
-struct _ScrollTransitionView<Content: View, Effect: VisualEffect>: View {
+nonisolated struct _ScrollTransitionView<Content: View, Effect: VisualEffect>: View {
     let content: Content
     let topLeading: ScrollTransitionConfiguration
     let bottomTrailing: ScrollTransitionConfiguration
     let axis: Axis?
     let transition: @MainActor (EmptyVisualEffect, ScrollTransitionPhase) -> Effect
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_ScrollTransitionView renders via Renderable")
     }
 }
 
-extension _ScrollTransitionView: Renderable, Layoutable {
+@MainActor extension _ScrollTransitionView: Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Claimed BEFORE the content renders, as every marker slot is (see
         // `ScrollVisibilityModifier`): content at this identity that stamps a

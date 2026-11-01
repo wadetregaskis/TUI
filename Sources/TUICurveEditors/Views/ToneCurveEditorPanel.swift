@@ -79,7 +79,7 @@ import TUIStyling
 ///   a loss — a curve is a function of luminance alone, so only the tone of
 ///   `from` was ever read — and it is the one spelling that says so. See
 ///   ``ASCIIToneCurve/Stop/position``.
-public struct ToneCurveEditorPanel: View {
+public struct ToneCurveEditorPanel {
     private let title: String
     private let stops: Binding<[ASCIIToneCurve.Stop]>
     private let isPresented: Binding<Bool>
@@ -170,7 +170,8 @@ public struct ToneCurveEditorPanel: View {
         self.init("Tone curve" as String, stops: stops, isPresented: isPresented)
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         _EditorPanelChrome(title: title, edited: stops, isPresented: isPresented) {
             VStack(alignment: .center, spacing: 0) {
                 mappingDiagram
@@ -196,7 +197,7 @@ public struct ToneCurveEditorPanel: View {
     // MARK: The mapping
 
     /// The tones going in, where the stops sit, and the colours coming out.
-    private var mappingDiagram: some View {
+    @MainActor private var mappingDiagram: some View {
         let curve = ASCIIToneCurve(ordered)
         let inputs = (0..<Self.stripWidth).map { column -> Color in
             let level = UInt8(clamping: Int((Self.tone(atColumn: column) * 255).rounded()))
@@ -246,7 +247,7 @@ public struct ToneCurveEditorPanel: View {
     /// One captioned row of per-cell coloured blocks. Glyph AND background in
     /// the colour, like the colour panel's swatch: solid in terminals that
     /// don't paint behind spaces, gap-free where the font leaves hairlines.
-    private func strip(caption: String, cells: [Color]) -> some View {
+    @MainActor private func strip(caption: String, cells: [Color]) -> some View {
         HStack(spacing: 0) {
             Text(verbatim: caption)
                 .dim()
@@ -265,7 +266,7 @@ public struct ToneCurveEditorPanel: View {
     /// which stops the loop captured from outside itself, so the row freezes
     /// at whatever it drew first. `GradientEditorPanel`'s preview shipped that
     /// bug once; this one had it for the length of one commit.
-    private var markerRow: some View {
+    @MainActor private var markerRow: some View {
         let list = ordered
         let selection = clampedSelection
         var owner: [Int: Int] = [:]
@@ -295,7 +296,7 @@ public struct ToneCurveEditorPanel: View {
 
     /// One bare 3-cell swatch per stop, in position order, wrapped onto as many
     /// rows as the strip width allows.
-    private var stopStrip: some View {
+    @MainActor private var stopStrip: some View {
         let list = ordered
         let selection = clampedSelection
         let rows = GradientEditorPanel.chipRows(count: list.count)
@@ -329,7 +330,7 @@ public struct ToneCurveEditorPanel: View {
     }
 
     /// Add / remove / select-previous / select-next.
-    private var actionRow: some View {
+    @MainActor private var actionRow: some View {
         let list = ordered
         let selection = clampedSelection
         return HStack(spacing: 1) {
@@ -355,7 +356,7 @@ public struct ToneCurveEditorPanel: View {
     }
 
     /// Where the selected stop sits on the tone axis.
-    private var positionRow: some View {
+    @MainActor private var positionRow: some View {
         let percent = Int((Self.position(of: ordered[clampedSelection]) * 100).rounded())
         return HStack(spacing: 1) {
             Text(localized: LocalizationKey.Label.position).dim()
@@ -392,7 +393,7 @@ public struct ToneCurveEditorPanel: View {
     static let grabRadius = 2
 
     /// The stop nearest `column`, if any is within ``grabRadius`` of it.
-    static func stop(in list: [ASCIIToneCurve.Stop], near column: Int) -> ASCIIToneCurve.Stop? {
+    @MainActor static func stop(in list: [ASCIIToneCurve.Stop], near column: Int) -> ASCIIToneCurve.Stop? {
         list
             .map { (stop: $0, distance: abs(Self.column(forTone: Self.position(of: $0)) - column)) }
             .filter { $0.distance <= grabRadius }
@@ -401,7 +402,7 @@ public struct ToneCurveEditorPanel: View {
     }
 
     /// Adds a stop where the pointer pressed and returns it, selected.
-    private func addingStop(atColumn column: Int) -> ASCIIToneCurve.Stop {
+    @MainActor private func addingStop(atColumn column: Int) -> ASCIIToneCurve.Stop {
         let list = ordered
         let tone = Self.tone(atColumn: column)
         let added = ASCIIToneCurve.Stop(at: tone, to: ASCIIToneCurve(list).color(atTone: tone))
@@ -417,7 +418,7 @@ public struct ToneCurveEditorPanel: View {
     /// past a neighbour changes the stop's index, and an index remembered
     /// across that would go on moving whichever stop had taken the slot.
     @discardableResult
-    private func moving(_ stop: ASCIIToneCurve.Stop, toTone tone: Double) -> ASCIIToneCurve.Stop {
+    @MainActor private func moving(_ stop: ASCIIToneCurve.Stop, toTone tone: Double) -> ASCIIToneCurve.Stop {
         var list = ordered
         guard let index = list.firstIndex(of: stop) else { return stop }
         let moved = ASCIIToneCurve.Stop(at: tone, to: list[index].to)
@@ -432,14 +433,14 @@ public struct ToneCurveEditorPanel: View {
 
     /// The stops in position order — the order the curve evaluates them in, and
     /// the only order in which "the stop after this one" means anything.
-    private var ordered: [ASCIIToneCurve.Stop] { Self.sorted(stops.wrappedValue) }
+    @MainActor private var ordered: [ASCIIToneCurve.Stop] { Self.sorted(stops.wrappedValue) }
 
-    private var clampedSelection: Int {
+    @MainActor private var clampedSelection: Int {
         min(max(0, selectedStop), max(0, stops.wrappedValue.count - 1))
     }
 
     /// The selected stop's OUTPUT colour, for the embedded colour panel.
-    private var selectedColorBinding: Binding<Color> {
+    @MainActor private var selectedColorBinding: Binding<Color> {
         Binding(
             get: { ordered[clampedSelection].to },
             set: { newColor in
@@ -453,7 +454,7 @@ public struct ToneCurveEditorPanel: View {
     /// The selected stop's position, which re-sorts the list as it moves — so
     /// the selection follows the STOP past its neighbours rather than staying
     /// in the slot the stop left.
-    private var positionBinding: Binding<Double> {
+    @MainActor private var positionBinding: Binding<Double> {
         Binding(
             get: { Self.position(of: ordered[clampedSelection]) },
             set: { newPosition in
@@ -474,23 +475,23 @@ public struct ToneCurveEditorPanel: View {
 
     /// The tone a strip column stands for: `0` at the left edge, `1` at the
     /// right, so the two strips and the markers all agree.
-    static func tone(atColumn column: Int) -> Double {
+    @MainActor static func tone(atColumn column: Int) -> Double {
         stripWidth > 1 ? Double(column) / Double(stripWidth - 1) : 0
     }
 
     /// The inverse of ``tone(atColumn:)``, clamped into the strip.
-    static func column(forTone tone: Double) -> Int {
+    @MainActor static func column(forTone tone: Double) -> Int {
         min(stripWidth - 1, max(0, Int((tone * Double(stripWidth - 1)).rounded())))
     }
 
     /// A stop's position, reading an unresolved semantic `from` as black — it
     /// has no tone until a palette resolves it, and the editor has to draw
     /// something.
-    static func position(of stop: ASCIIToneCurve.Stop) -> Double { stop.position ?? 0 }
+    @MainActor static func position(of stop: ASCIIToneCurve.Stop) -> Double { stop.position ?? 0 }
 
     /// `list` in position order. A stable sort, so two stops at the same tone
     /// keep the order they were written in.
-    static func sorted(_ list: [ASCIIToneCurve.Stop]) -> [ASCIIToneCurve.Stop] {
+    @MainActor static func sorted(_ list: [ASCIIToneCurve.Stop]) -> [ASCIIToneCurve.Stop] {
         list.enumerated()
             .sorted {
                 let left = position(of: $0.element)
@@ -510,7 +511,7 @@ public struct ToneCurveEditorPanel: View {
     /// previous one where there is not — which is the case that matters,
     /// because the last stop is almost always at white and "+" on it would
     /// otherwise land a second stop on top of it and appear to do nothing.
-    static func adding(to list: [ASCIIToneCurve.Stop], after index: Int) -> (
+    @MainActor static func adding(to list: [ASCIIToneCurve.Stop], after index: Int) -> (
         list: [ASCIIToneCurve.Stop], index: Int
     ) {
         guard !list.isEmpty else {
@@ -533,3 +534,4 @@ public struct ToneCurveEditorPanel: View {
         return (updated, updated.firstIndex(of: added) ?? at)
     }
 }
+extension ToneCurveEditorPanel: View {}

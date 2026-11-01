@@ -53,7 +53,7 @@ extension View {
     ///   ≤ 0 are ignored (the default `2.0` applies); values outside
     ///   `ASCIIConverter.cellAspectRange` (`0.1…10`) are clamped to it.
     /// - Returns: A modified view.
-    public func imageCellAspect(_ ratio: Double) -> some View {
+    nonisolated public func imageCellAspect(_ ratio: Double) -> some View {
         // No `ratio > 0 ? ratio : 2.0` here any more: the environment's setter
         // applies the one copy of the rule (TUIStyling's
         // `sanitizedCellAspect`, which the converter forwards to), and a second

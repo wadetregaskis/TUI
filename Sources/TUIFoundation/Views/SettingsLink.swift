@@ -23,12 +23,13 @@
 /// A button that calls ``EnvironmentValues/openSettings``: the app's
 /// `Settings` scene comes up as a sheet over the window in front. Its label is
 /// a button's, styled by the `.buttonStyle` and `.labelStyle` around it.
-public struct SettingsLink<Label: View>: View {
+public struct SettingsLink<Label: View> {
     let label: Label
 
     @Environment(\.openSettings) private var openSettings
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         Button {
             openSettings()
         } label: {
@@ -36,6 +37,7 @@ public struct SettingsLink<Label: View>: View {
         }
     }
 }
+extension SettingsLink: View {}
 
 extension SettingsLink where Label == DefaultSettingsLinkLabel {
     /// Creates a settings link with the default system label — mirrors
@@ -62,11 +64,11 @@ extension SettingsLink {
 /// current language, with a gear icon a `.labelStyle` can show or hide.
 ///
 /// You don't use this type directly: ``SettingsLink``'s `init()` makes it.
-public struct DefaultSettingsLinkLabel: View {
+nonisolated public struct DefaultSettingsLinkLabel: View {
     /// Made by ``SettingsLink``'s `init()` only, as SwiftUI's is.
     init() {}
 
-    public var body: some View {
+    @MainActor public var body: some View {
         TUIFoundation.Label {
             Text(localized: LocalizationKey.Menu.settings)
         } icon: {
@@ -77,7 +79,7 @@ public struct DefaultSettingsLinkLabel: View {
 
 // MARK: - Environment without reflection
 
-extension SettingsLink: ResolvesOwnEnvironment {
+@MainActor extension SettingsLink: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _openSettings.resolveEnvironment(environment)
     }

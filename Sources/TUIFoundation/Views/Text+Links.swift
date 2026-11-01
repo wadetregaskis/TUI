@@ -36,7 +36,7 @@ extension Text.Run {
     }
 }
 
-extension Text {
+@MainActor extension Text {
     /// The words this text shows and the runs they are drawn in: its own, or,
     /// under ``LinkDisplay/urlInParentheses`` and ``LinkDisplay/urlOnly``, with
     /// each link's destination written after its label or in its place, as

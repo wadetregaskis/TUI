@@ -42,7 +42,7 @@ extension View {
     ///   - file: The URL of the file to be moved.
     ///   - onCompletion: A callback that will be invoked when the operation has
     ///     succeeded or failed.
-    public func fileMover(
+    @MainActor public func fileMover(
         isPresented: Binding<Bool>, file: URL?, onCompletion: @escaping (Result<URL, any Error>) -> Void
     ) -> some View {
         fileMoverPanel(
@@ -63,7 +63,7 @@ extension View {
     ///     succeeded or failed.
     ///   - onCancellation: A callback that will be invoked if the user cancels
     ///     the operation.
-    public func fileMover(
+    @MainActor public func fileMover(
         isPresented: Binding<Bool>, file: URL?, onCompletion: @escaping (Result<URL, any Error>) -> Void,
         onCancellation: @escaping () -> Void
     ) -> some View {
@@ -90,7 +90,7 @@ extension View {
     ///   - files: A collection of `URL`s for the files to be moved.
     ///   - onCompletion: A callback that will be invoked when the operation has
     ///     succeeded or failed.
-    public func fileMover<C: Collection>(
+    @MainActor public func fileMover<C: Collection>(
         isPresented: Binding<Bool>, files: C, onCompletion: @escaping (Result<[URL], any Error>) -> Void
     ) -> some View where C.Element == URL {
         fileMoverPanel(
@@ -111,7 +111,7 @@ extension View {
     ///     succeeded or failed.
     ///   - onCancellation: A callback that will be invoked if the user cancels
     ///     the operation.
-    public func fileMover<C: Collection>(
+    @MainActor public func fileMover<C: Collection>(
         isPresented: Binding<Bool>, files: C, onCompletion: @escaping (Result<[URL], any Error>) -> Void,
         onCancellation: @escaping () -> Void
     ) -> some View where C.Element == URL {
@@ -122,7 +122,7 @@ extension View {
 
     /// The four movers' one presentation: a panel choosing a folder, shown only
     /// while there are files to move, and the move into the folder chosen.
-    private func fileMoverPanel(
+    @MainActor private func fileMoverPanel(
         isPresented: Binding<Bool>, files: [URL], onCompletion: @escaping (Result<[URL], any Error>) -> Void,
         onCancellation: @escaping () -> Void
     ) -> some View {

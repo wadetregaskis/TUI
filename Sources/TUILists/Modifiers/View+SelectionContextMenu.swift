@@ -11,7 +11,7 @@ import TUIView
 
 /// The view `contextMenu(forSelectionType:menu:primaryAction:)` returns: its
 /// content, with the menu in the environment for the list or table inside.
-struct _SelectionContextMenuModifier<Content: View, Item: Hashable, Menu: View>: View {
+struct _SelectionContextMenuModifier<Content: View, Item: Hashable, Menu: View> {
     let content: Content
     let menu: (Set<Item>) -> Menu
     let primaryAction: ((Set<Item>) -> Void)?
@@ -21,13 +21,14 @@ struct _SelectionContextMenuModifier<Content: View, Item: Hashable, Menu: View>:
     /// `.searchable` gives `\.dismissSearch`.
     @State private var reference = SelectionContextMenu()
 
-    var body: some View {
+    @MainActor var body: some View {
         reference.refresh(menu: menu, primaryAction: primaryAction)
         return content.environment(
             \.selectionContextMenu,
             SelectionContextMenuReference(menu: reference, hasPrimaryAction: primaryAction != nil))
     }
 }
+extension _SelectionContextMenuModifier: View {}
 
 extension View {
     /// Adds an item-based context menu to a view: one menu for the rows of the
@@ -84,7 +85,7 @@ extension View {
     ///   - primaryAction: Performed on the rows a double-click or Return
     ///     acts on.
     /// - Returns: A view whose list or table shows the menu.
-    public func contextMenu<I: Hashable, M: View>(
+    nonisolated public func contextMenu<I: Hashable, M: View>(
         forSelectionType itemType: I.Type = I.self,
         @ViewBuilder menu: @escaping (Set<I>) -> M,
         primaryAction: ((Set<I>) -> Void)? = nil

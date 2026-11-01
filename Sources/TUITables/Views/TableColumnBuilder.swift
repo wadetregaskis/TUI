@@ -178,7 +178,7 @@ struct _AnyTableColumnContent<RowValue: Identifiable, Sort: SortComparator>:
     /// The flattened columns of the erased content, taken when it is erased.
     let columns: [_TableColumnSpec<RowValue>]
 
-    init<Content: TableColumnContent>(_ content: Content) where Content.TableRowValue == RowValue {
+    @MainActor init<Content: TableColumnContent>(_ content: Content) where Content.TableRowValue == RowValue {
         columns = tableColumns(of: content)
     }
 

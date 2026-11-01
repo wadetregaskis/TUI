@@ -63,7 +63,7 @@ package enum ListRowElements {
     }
 }
 
-extension ForEach: DynamicViewContentActions where Content: View {
+@MainActor extension ForEach: DynamicViewContentActions where Content: View {
     package var moveAction: ((IndexSet, Int) -> Void)? { onMoveAction }
     package var deleteAction: ((IndexSet) -> Void)? { onDeleteAction }
     package var dropInsertionAction: (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)? {

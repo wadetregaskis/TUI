@@ -31,21 +31,21 @@
 ///         }
 /// }
 /// ```
-package struct MouseSupportModifier<Content: View>: View {
+nonisolated package struct MouseSupportModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
     /// The mouse-support configuration to install.
     let support: MouseSupport
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("MouseSupportModifier renders via Renderable")
     }
 }
 
 // MARK: - Renderable
 
-extension MouseSupportModifier: Renderable {
+@MainActor extension MouseSupportModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Posting the override needs to happen *during* the render
         // pass so the AppRunner picks it up when computing the
@@ -74,7 +74,7 @@ extension MouseSupportModifier: Renderable {
 
 // MARK: - Layoutable
 
-extension MouseSupportModifier: Layoutable {
+@MainActor extension MouseSupportModifier: Layoutable {
     /// Behaviour-only decorator — renders `content` unchanged, so it measures as
     /// `content` (the terminal-state side-effect above is render-only).
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -101,7 +101,7 @@ extension View {
     ///
     /// - Parameter support: The desired mouse-support configuration.
     /// - Returns: A view that applies the configuration during render.
-    public func mouseSupport(_ support: MouseSupport) -> some View {
+    nonisolated public func mouseSupport(_ support: MouseSupport) -> some View {
         MouseSupportModifier(content: self, support: support)
     }
 }
@@ -112,7 +112,7 @@ extension View {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension MouseSupportModifier: SingleContentWrapper {
+@MainActor extension MouseSupportModifier: SingleContentWrapper {
     public var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -123,4 +123,4 @@ extension MouseSupportModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension MouseSupportModifier: DrawsContentUnchanged {}
+@MainActor extension MouseSupportModifier: DrawsContentUnchanged {}

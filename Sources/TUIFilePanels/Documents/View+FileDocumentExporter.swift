@@ -45,7 +45,7 @@
         ///     has succeeded or failed.
         ///   - onCancellation: A callback that will be invoked if the user
         ///     cancels the operation.
-        public func fileExporter<D: FileDocument>(
+        @MainActor public func fileExporter<D: FileDocument>(
             isPresented: Binding<Bool>, document: D?, contentTypes: [UTType] = [], defaultFilename: String? = nil,
             onCompletion: @escaping (Result<URL, any Error>) -> Void, onCancellation: @escaping () -> Void = {}
         ) -> some View {
@@ -80,7 +80,7 @@
         ///     exported file.
         ///   - onCompletion: A callback that will be invoked when the operation
         ///     has succeeded or failed.
-        public func fileExporter<D: FileDocument>(
+        @MainActor public func fileExporter<D: FileDocument>(
             isPresented: Binding<Bool>, document: D?, contentType: UTType, defaultFilename: String? = nil,
             onCompletion: @escaping (Result<URL, any Error>) -> Void
         ) -> some View {
@@ -114,7 +114,7 @@
         ///     has succeeded or failed.
         ///   - onCancellation: A callback that will be invoked if the user
         ///     cancels the operation.
-        public func fileExporter<C: Collection>(
+        @MainActor public func fileExporter<C: Collection>(
             isPresented: Binding<Bool>, documents: C, contentTypes: [UTType] = [],
             onCompletion: @escaping (Result<[URL], any Error>) -> Void, onCancellation: @escaping () -> Void = {}
         ) -> some View where C.Element: FileDocument {
@@ -150,7 +150,7 @@
         ///   - contentType: The content type to use for the exported files.
         ///   - onCompletion: A callback that will be invoked when the operation
         ///     has succeeded or failed.
-        public func fileExporter<C: Collection>(
+        @MainActor public func fileExporter<C: Collection>(
             isPresented: Binding<Bool>, documents: C, contentType: UTType,
             onCompletion: @escaping (Result<[URL], any Error>) -> Void
         ) -> some View where C.Element: FileDocument {

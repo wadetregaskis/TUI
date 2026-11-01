@@ -29,7 +29,7 @@ import TUICore
 /// several shapes — at rest, recorded at an end phase, drawn part-way — and the
 /// view's `@State` must not move between them, nor be anywhere other than where
 /// it would be with no transition at all.
-public struct PlaceholderContentView<Value>: View {
+nonisolated public struct PlaceholderContentView<Value>: View {
     /// What the placeholder draws.
     let source: PlaceholderSource
 
@@ -39,7 +39,7 @@ public struct PlaceholderContentView<Value>: View {
     }
 
     /// Never called — the placeholder draws its view directly.
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("PlaceholderContentView renders via Renderable")
     }
 }
@@ -121,7 +121,7 @@ private struct PlaceholderView<V: View>: PlaceholderDrawing {
     }
 }
 
-extension PlaceholderContentView: Renderable {
+@MainActor extension PlaceholderContentView: Renderable {
     /// Draws the view the placeholder stands for — which, inside a transition
     /// body being drawn part-way, is not derived from the modifiers around it
     /// (see `TransitionScrub`).
@@ -131,7 +131,7 @@ extension PlaceholderContentView: Renderable {
     }
 }
 
-extension PlaceholderContentView: Layoutable {
+@MainActor extension PlaceholderContentView: Layoutable {
     /// Measures as the view the placeholder stands for.
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         guard let scrub = context.stateStorage?.animations.scrub else {

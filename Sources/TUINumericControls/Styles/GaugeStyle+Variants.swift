@@ -276,7 +276,7 @@ extension View {
     ///
     /// - Parameter style: The gauge style to apply.
     /// - Returns: A view whose gauges use the specified style.
-    public func gaugeStyle<S: GaugeStyle>(_ style: S) -> some View {
+    nonisolated public func gaugeStyle<S: GaugeStyle>(_ style: S) -> some View {
         environment(\.gaugeStyle, style)
     }
 }

@@ -57,7 +57,7 @@ extension View {
     ///
     /// - Parameter behavior: The dismiss behavior.
     /// - Returns: A view whose window closes only as `behavior` allows.
-    public func windowDismissBehavior(_ behavior: WindowInteractionBehavior) -> some View {
+    nonisolated public func windowDismissBehavior(_ behavior: WindowInteractionBehavior) -> some View {
         _WindowDismissBehaviorModifier(content: self, behavior: behavior)
     }
 }
@@ -65,13 +65,13 @@ extension View {
 /// Declares the window's dismiss behavior into its chrome as `content`
 /// renders, as `.toolbarVisibility` declares a bar's visibility: afresh every
 /// walk, the declaration closest to the content winning.
-struct _WindowDismissBehaviorModifier<Content: View>: View, Renderable, Layoutable {
+nonisolated struct _WindowDismissBehaviorModifier<Content: View>: View, Renderable, Layoutable {
     let content: Content
     let behavior: WindowInteractionBehavior
 
-    var body: Never { fatalError("_WindowDismissBehaviorModifier renders via Renderable") }
+    @MainActor var body: Never { fatalError("_WindowDismissBehaviorModifier renders via Renderable") }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Declared by the walk that seeds a new window's chrome too, measuring
         // as it is, as `.toolbar` declares there: the window is closable or not
         // from its first frame.
@@ -87,7 +87,7 @@ struct _WindowDismissBehaviorModifier<Content: View>: View, Renderable, Layoutab
     }
 
     /// Transparent: it measures as its content.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

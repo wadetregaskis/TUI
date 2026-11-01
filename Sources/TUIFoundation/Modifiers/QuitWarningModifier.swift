@@ -59,7 +59,7 @@ extension View {
     ///   - reasonKey: What would be lost, as a phrase.
     ///   - isActive: Whether it would be, right now.
     /// - Returns: A view that says so while it is drawn.
-    public func quitWarning(_ reasonKey: LocalizedStringKey, isActive: Bool = true) -> some View {
+    nonisolated public func quitWarning(_ reasonKey: LocalizedStringKey, isActive: Bool = true) -> some View {
         preference(key: QuitWarningsKey.self, value: isActive ? [reasonKey.localized] : [])
     }
 
@@ -70,7 +70,7 @@ extension View {
     ///   - isActive: Whether it would be, right now.
     /// - Returns: A view that says so while it is drawn.
     @_disfavoredOverload
-    public func quitWarning<S: StringProtocol>(_ reason: S, isActive: Bool = true) -> some View {
+    nonisolated public func quitWarning<S: StringProtocol>(_ reason: S, isActive: Bool = true) -> some View {
         preference(key: QuitWarningsKey.self, value: isActive ? [String(reason)] : [])
     }
 }

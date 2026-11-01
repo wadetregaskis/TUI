@@ -36,7 +36,7 @@ package protocol GridRowProviding {
 /// The companion to `ModifiedView`'s ``ChildViewProvider`` conformance, and the
 /// same shape: resolve through the wrapper, then put the wrapper back around
 /// each thing that came out.
-extension ModifiedView: GridRowProviding where Content: GridRowProviding {
+@MainActor extension ModifiedView: GridRowProviding where Content: GridRowProviding {
     package var rowAlignment: VerticalAlignment? { content.rowAlignment }
 
     package func gridCells(context: RenderContext) -> [ChildView] {
@@ -70,12 +70,12 @@ extension GridRowProviding where Self: ContentRewrapping, WrappedContent: GridRo
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension EnvironmentModifier: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension EnvironmentModifier: GridRowProviding where Content: GridRowProviding {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension TransformEnvironmentModifier: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension TransformEnvironmentModifier: GridRowProviding where Content: GridRowProviding {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension ObjectEnvironmentModifier: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension ObjectEnvironmentModifier: GridRowProviding where Content: GridRowProviding {}

@@ -86,7 +86,7 @@ import Foundation
 /// for them to do to a character. See ``SFSymbol`` for where symbols draw at
 /// all, and ``Label/init(_:systemImage:)-(LocalizedStringKey,_)`` for the icon-with-title shape, which
 /// is usually the better one because it can drop its gap as well as its glyph.
-public struct Image: View {
+nonisolated public struct Image: View {
     /// What this image *is* — the two unrelated things SwiftUI's `Image` also
     /// covers, kept as one type because that is the API being matched.
     ///
@@ -131,7 +131,7 @@ public struct Image: View {
     /// The supersampling factor this image's own modifiers ask for, or `nil`
     /// to take the environment's: an interpolation quality, else `1` for an
     /// image told not to antialias.
-    private var samplingFactor: Int? {
+    @MainActor private var samplingFactor: Int? {
         if let interpolationQuality { return interpolationQuality.samplingFactor }
         return isAntialiased == false ? 1 : nil
     }
@@ -165,7 +165,7 @@ public struct Image: View {
     }
 
     @ViewBuilder
-    public var body: some View {
+    @MainActor public var body: some View {
         switch content {
         case .raster(let raster):
             _ImageRasterHost(
@@ -181,7 +181,7 @@ public struct Image: View {
 
 // MARK: - Equatable
 
-extension Image: @preconcurrency Equatable {
+extension Image: Equatable {
     /// Every stored property, the content through its picture's own equality,
     /// which leaves out pixels already decoded (what the source decodes to):
     /// an image drawn at another quality, or as a template, is a different

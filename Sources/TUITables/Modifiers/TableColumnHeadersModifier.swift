@@ -47,7 +47,7 @@ extension View {
     ///   of `hidden` hides them, and `automatic` defers to the table, which
     ///   shows them.
     /// - Returns: A view whose tables draw their headers as `visibility` says.
-    public func tableColumnHeaders(_ visibility: Visibility) -> some View {
+    nonisolated public func tableColumnHeaders(_ visibility: Visibility) -> some View {
         environment(\.tableColumnHeadersVisibility, visibility)
     }
 }

@@ -36,8 +36,7 @@ extension ForEach where Content: View {
 ///
 /// You don't use this type directly: ``ForEach/init(sections:content:)``
 /// creates it.
-@MainActor
-public struct ForEachSectionCollection<Content: View> {
+nonisolated public struct ForEachSectionCollection<Content: View> {
     /// The view whose sections this iterates.
     let source: any View
 
@@ -55,7 +54,7 @@ public struct ForEachSectionCollection<Content: View> {
     }
 }
 
-extension ForEachSectionCollection: @MainActor RandomAccessCollection {
+@MainActor extension ForEachSectionCollection: @MainActor RandomAccessCollection {
     public typealias Element = SectionConfiguration
     public typealias Index = Int
     public typealias Indices = Range<Int>
@@ -69,7 +68,7 @@ extension ForEachSectionCollection: @MainActor RandomAccessCollection {
     }
 }
 
-extension ForEachSectionCollection: ContextResolvedCollection {
+@MainActor extension ForEachSectionCollection: ContextResolvedCollection {
     /// The source's sections, resolved under a step of their own below the
     /// loop — see ``ForEachSubviewCollection``.
     package func resolved(in context: RenderContext) -> Self {

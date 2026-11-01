@@ -133,7 +133,7 @@ import TUIFoundation
 /// blinking caret alternates the two; a pulsing one holds. A bar or underscore
 /// caret is unaffected, as is a palette that states ordinary colours, on any
 /// terminal. ``TextField`` draws the same way.
-public struct TextEditor: View {
+public struct TextEditor {
     let text: Binding<String>
     var focusID: String?
     var isDisabled: Bool
@@ -186,7 +186,8 @@ public struct TextEditor: View {
     /// Where the editor's context menu finds its handler — see ``TextField``.
     @State private var menuTarget = TextEditingMenuTarget()
 
-    @ViewBuilder public var body: some View {
+    /// The content and behavior of this view.
+    @ViewBuilder @MainActor public var body: some View {
         // The two built-in styles are drawn by the core, which reads which one
         // is in force; a custom style draws its body in the editor's place.
         if style is AutomaticTextEditorStyle || style is PlainTextEditorStyle {
@@ -237,10 +238,11 @@ public struct TextEditor: View {
         }
     }
 }
+extension TextEditor: View {}
 
 // MARK: - Find
 
-extension TextEditor {
+@MainActor extension TextEditor {
     /// Whether the find bar is up: as the app's binding says, or as Ctrl-F and
     /// Done left it.
     private var isFindPresented: Bool {
@@ -794,7 +796,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
 
 // MARK: - Environment without reflection
 
-extension TextEditor: ResolvesOwnEnvironment {
+@MainActor extension TextEditor: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _style.resolveEnvironment(environment)
         _find.resolveEnvironment(environment)
@@ -805,7 +807,7 @@ extension TextEditor: ResolvesOwnEnvironment {
 
 // MARK: - Inside a border
 
-extension TextEditor {
+@MainActor extension TextEditor {
     /// Its field reaches its edges, so `.border()` draws on them, with no
     /// blank cell of page between.
     nonisolated public static var _paintsToItsEdges: Bool { true }

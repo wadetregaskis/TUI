@@ -12,7 +12,7 @@ import Synchronization
 import TUIFoundation
 import TUIImage
 
-extension Image {
+@MainActor extension Image {
     /// Creates a labeled image that you can use as content for controls —
     /// mirrors SwiftUI's `init(_:bundle:)`.
     ///
@@ -45,7 +45,7 @@ extension Image {
     ///   - name: The name of the image resource.
     ///   - bundle: The bundle to search, or `nil` for the main bundle.
     @_disfavoredOverload
-    public init(_ name: String, bundle: Bundle? = nil) {
+    nonisolated public init(_ name: String, bundle: Bundle? = nil) {
         // Disfavoured so `TUIAppKit`'s declaration, which also reads a
         // compiled catalogue, wins where it is imported — see
         // `Color.init(_:bundle:)` for why that takes this attribute.
@@ -63,7 +63,7 @@ extension Image {
     ///   - bundle: The bundle to search, or `nil` for the main bundle.
     ///   - label: The label associated with the image.
     @_disfavoredOverload
-    public init(_ name: String, bundle: Bundle? = nil, label: Text) {
+    nonisolated public init(_ name: String, bundle: Bundle? = nil, label: Text) {
         self = Self.bundleResource(named: name, in: bundle) ?? Image(.file(name))
     }
 
@@ -76,7 +76,7 @@ extension Image {
     ///   - name: The name of the image resource.
     ///   - bundle: The bundle to search, or `nil` for the main bundle.
     @_disfavoredOverload
-    public init(decorative name: String, bundle: Bundle? = nil) {
+    nonisolated public init(decorative name: String, bundle: Bundle? = nil) {
         self = Self.bundleResource(named: name, in: bundle) ?? Image(.file(name))
     }
 
@@ -92,7 +92,7 @@ extension Image {
     /// The image `name` in `bundle` (the main bundle for `nil`): from an
     /// uncompiled asset catalogue, else a plain resource file — or `nil`
     /// where there is neither. `TUIAppKit` asks this before it asks AppKit.
-    package static func bundleResource(named name: String, in bundle: Bundle?) -> Image? {
+    nonisolated package static func bundleResource(named name: String, in bundle: Bundle?) -> Image? {
         let bundle = bundle ?? .main
         if let file = AssetCatalog.imageFile(named: name, in: bundle, for: Color.catalogColorScheme) {
             return Image(.file(file.path), decoded: file.scale != 1 ? AssetCatalog.decodedImage(for: file) : nil)
@@ -108,7 +108,7 @@ extension Image {
     }
 
     /// The path of a plain image file `name` among `bundle`'s resources.
-    private static func plainResourcePath(named name: String, in bundle: Bundle) -> String? {
+    nonisolated private static func plainResourcePath(named name: String, in bundle: Bundle) -> String? {
         if !(name as NSString).pathExtension.isEmpty,
             let url = bundle.url(forResource: name, withExtension: nil)
         {

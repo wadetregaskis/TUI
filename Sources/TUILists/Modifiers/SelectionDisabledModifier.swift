@@ -33,7 +33,7 @@ import TUIFoundation
 ///     }
 /// }
 /// ```
-@usableFromInline package struct SelectionDisabledModifier<Content: View>: View {
+@usableFromInline nonisolated package struct SelectionDisabledModifier<Content: View>: View {
     /// The content to apply selection disabled to.
     ///
     /// `@usableFromInline` for the `@inlinable` ``init(content:isDisabled:)``.
@@ -50,14 +50,14 @@ import TUIFoundation
         self.isDisabled = isDisabled
     }
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("SelectionDisabledModifier renders via Renderable")
     }
 }
 
 // MARK: - Equatable
 
-extension SelectionDisabledModifier: @preconcurrency Equatable where Content: Equatable {
+extension SelectionDisabledModifier: Equatable where Content: Equatable {
     @usableFromInline package static func == (lhs: SelectionDisabledModifier<Content>, rhs: SelectionDisabledModifier<Content>) -> Bool {
         lhs.content == rhs.content && lhs.isDisabled == rhs.isDisabled
     }
@@ -65,7 +65,7 @@ extension SelectionDisabledModifier: @preconcurrency Equatable where Content: Eq
 
 // MARK: - Renderable
 
-extension SelectionDisabledModifier: Renderable {
+@MainActor extension SelectionDisabledModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         report(context)
         let buffer = TUIView.renderToBuffer(content, context: context)
@@ -109,7 +109,7 @@ extension SelectionDisabledModifier: Renderable {
 
 // MARK: - Layoutable
 
-extension SelectionDisabledModifier: Layoutable {
+@MainActor extension SelectionDisabledModifier: Layoutable {
     /// Measures `content` unchanged: dimming a row's colour does not change
     /// its size, and measurement never reports a restriction (`report(_:)`
     /// guards `!context.isMeasuring`, matching `.deleteDisabled()`).
@@ -124,7 +124,7 @@ extension SelectionDisabledModifier: Layoutable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension SelectionDisabledModifier: SingleContentWrapper {
+@MainActor extension SelectionDisabledModifier: SingleContentWrapper {
     /// Its content's geometry is its own — it dims the cells its content drew, where they are — so a guide
     /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
     public static var _keepsContentGeometry: Bool { true }

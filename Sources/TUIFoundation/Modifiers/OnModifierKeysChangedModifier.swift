@@ -49,7 +49,7 @@ extension View {
     ///     changes. The closure receives the old and new values as input.
     /// - Returns: A modified view that updates when hardware modifier keys
     ///   change.
-    public func onModifierKeysChanged(
+    nonisolated public func onModifierKeysChanged(
         mask: EventModifiers = .all, initial: Bool = true,
         _ action: @escaping (EventModifiers, EventModifiers) -> Void
     ) -> some View {
@@ -62,18 +62,18 @@ extension View {
 /// The view behind ``View/onModifierKeysChanged(mask:initial:_:)``: registers
 /// the action with the app's ``ModifierKeyMonitor`` for this walk, and runs it
 /// once with the held keys when the view first appears.
-struct OnModifierKeysChangedModifier<Content: View>: View {
+nonisolated struct OnModifierKeysChangedModifier<Content: View>: View {
     let content: Content
     let mask: EventModifiers
     let initial: Bool
     let action: (EventModifiers, EventModifiers) -> Void
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("OnModifierKeysChangedModifier renders via Renderable")
     }
 }
 
-extension OnModifierKeysChangedModifier: Renderable {
+@MainActor extension OnModifierKeysChangedModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A render side effect, so never on a measure (a render-to-measure
         // ancestor would register and fire twice), and declared to a
@@ -108,7 +108,7 @@ extension OnModifierKeysChangedModifier: Renderable {
     }
 }
 
-extension OnModifierKeysChangedModifier: Layoutable {
+@MainActor extension OnModifierKeysChangedModifier: Layoutable {
     /// Behaviour only: it measures as its content does.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
@@ -117,7 +117,7 @@ extension OnModifierKeysChangedModifier: Layoutable {
 
 /// Names its content so a container asking for a z-index or an alignment guide
 /// can look through this wrapper instead of stopping at it.
-extension OnModifierKeysChangedModifier: SingleContentWrapper {
+@MainActor extension OnModifierKeysChangedModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -126,14 +126,14 @@ extension OnModifierKeysChangedModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension OnModifierKeysChangedModifier: DrawsContentUnchanged {}
+@MainActor extension OnModifierKeysChangedModifier: DrawsContentUnchanged {}
 
 // MARK: - In a Form
 
 /// A modifier-keys action written on a form row goes around the row the form
 /// lays out, which keeps its place, as SwiftUI's form keeps a row under the
 /// modifiers measured (`Tools/SwiftUIProbes/Form rows`).
-extension OnModifierKeysChangedModifier: FormRowRewrapping {
+@MainActor extension OnModifierKeysChangedModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
         OnModifierKeysChangedModifier<V>(content: row, mask: mask, initial: initial, action: action)
     }

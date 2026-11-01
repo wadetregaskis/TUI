@@ -83,7 +83,7 @@ extension View {
     ///     affects other gestures recognized by the view and its subviews.
     ///     Defaults to ``GestureMask/all``.
     /// - Returns: The view, with the gesture attached.
-    public func gesture<T: Gesture>(_ gesture: T, including mask: GestureMask = .all) -> some View {
+    nonisolated public func gesture<T: Gesture>(_ gesture: T, including mask: GestureMask = .all) -> some View {
         GestureAttachment(content: self, gesture: gesture, mask: mask, priority: .normal)
     }
 
@@ -94,7 +94,7 @@ extension View {
     ///   - gesture: A gesture to attach to the view.
     ///   - isEnabled: Whether the added gesture is enabled.
     /// - Returns: The view, with the gesture attached.
-    public func gesture<T: Gesture>(_ gesture: T, isEnabled: Bool) -> some View {
+    nonisolated public func gesture<T: Gesture>(_ gesture: T, isEnabled: Bool) -> some View {
         self.gesture(gesture, including: isEnabled ? .all : .subviews)
     }
 
@@ -108,7 +108,7 @@ extension View {
     ///     none to set up, and neither has a terminal, so it changes nothing.
     ///   - isEnabled: Whether the added gesture is enabled.
     /// - Returns: The view, with the gesture attached.
-    public func gesture<T: Gesture>(_ gesture: T, name: String, isEnabled: Bool = true) -> some View {
+    nonisolated public func gesture<T: Gesture>(_ gesture: T, name: String, isEnabled: Bool = true) -> some View {
         self.gesture(gesture, isEnabled: isEnabled)
     }
 
@@ -127,7 +127,7 @@ extension View {
     ///     affects other gestures recognized by the view and its subviews.
     ///     Defaults to ``GestureMask/all``.
     /// - Returns: The view, with the gesture attached.
-    public func highPriorityGesture<T: Gesture>(_ gesture: T, including mask: GestureMask = .all) -> some View {
+    nonisolated public func highPriorityGesture<T: Gesture>(_ gesture: T, including mask: GestureMask = .all) -> some View {
         GestureAttachment(content: self, gesture: gesture, mask: mask, priority: .high)
     }
 
@@ -138,7 +138,7 @@ extension View {
     ///   - gesture: A gesture to attach to the view.
     ///   - isEnabled: Whether the added gesture is enabled.
     /// - Returns: The view, with the gesture attached.
-    public func highPriorityGesture<T: Gesture>(_ gesture: T, isEnabled: Bool) -> some View {
+    nonisolated public func highPriorityGesture<T: Gesture>(_ gesture: T, isEnabled: Bool) -> some View {
         highPriorityGesture(gesture, including: isEnabled ? .all : .subviews)
     }
 
@@ -151,7 +151,7 @@ extension View {
     ///     ``gesture(_:name:isEnabled:)``, it changes nothing here.
     ///   - isEnabled: Whether the added gesture is enabled.
     /// - Returns: The view, with the gesture attached.
-    public func highPriorityGesture<T: Gesture>(_ gesture: T, name: String, isEnabled: Bool = true) -> some View {
+    nonisolated public func highPriorityGesture<T: Gesture>(_ gesture: T, name: String, isEnabled: Bool = true) -> some View {
         highPriorityGesture(gesture, isEnabled: isEnabled)
     }
 
@@ -169,7 +169,7 @@ extension View {
     ///     affects other gestures recognized by the view and its subviews.
     ///     Defaults to ``GestureMask/all``.
     /// - Returns: The view, with the gesture attached.
-    public func simultaneousGesture<T: Gesture>(_ gesture: T, including mask: GestureMask = .all) -> some View {
+    nonisolated public func simultaneousGesture<T: Gesture>(_ gesture: T, including mask: GestureMask = .all) -> some View {
         GestureAttachment(content: self, gesture: gesture, mask: mask, priority: .simultaneous)
     }
 
@@ -180,7 +180,7 @@ extension View {
     ///   - gesture: A gesture to attach to the view.
     ///   - isEnabled: Whether the added gesture is enabled.
     /// - Returns: The view, with the gesture attached.
-    public func simultaneousGesture<T: Gesture>(_ gesture: T, isEnabled: Bool) -> some View {
+    nonisolated public func simultaneousGesture<T: Gesture>(_ gesture: T, isEnabled: Bool) -> some View {
         simultaneousGesture(gesture, including: isEnabled ? .all : .subviews)
     }
 
@@ -193,7 +193,7 @@ extension View {
     ///     ``gesture(_:name:isEnabled:)``, it changes nothing here.
     ///   - isEnabled: Whether the added gesture is enabled.
     /// - Returns: The view, with the gesture attached.
-    public func simultaneousGesture<T: Gesture>(_ gesture: T, name: String, isEnabled: Bool = true) -> some View {
+    nonisolated public func simultaneousGesture<T: Gesture>(_ gesture: T, name: String, isEnabled: Bool = true) -> some View {
         simultaneousGesture(gesture, isEnabled: isEnabled)
     }
 }
@@ -243,7 +243,7 @@ final class GestureParticipants {
 /// gesture inside the view comes first, which is what makes an attached
 /// gesture rank below the view's own; the dispatcher's ``GestureArena`` does
 /// the rest.
-struct GestureAttachment<Content: View, G: Gesture>: View {
+nonisolated struct GestureAttachment<Content: View, G: Gesture>: View {
     // The four-byte mask before the one-byte priority, and both last: the
     // per-pass memos key a view by the bytes its fields define, and the
     // priority first left three bytes of padding before the mask, so every
@@ -256,12 +256,12 @@ struct GestureAttachment<Content: View, G: Gesture>: View {
     let mask: GestureMask
     let priority: GesturePriority
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("GestureAttachment renders via Renderable")
     }
 }
 
-extension GestureAttachment: Renderable {
+@MainActor extension GestureAttachment: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A measure pass registers nothing and starts no clock.
         guard !context.isMeasuring,
@@ -318,7 +318,7 @@ extension GestureAttachment: Renderable {
     }
 }
 
-extension GestureAttachment: Layoutable {
+@MainActor extension GestureAttachment: Layoutable {
     /// Behaviour-only decorator — it renders `content` unchanged, so it
     /// measures as its content does.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -329,7 +329,7 @@ extension GestureAttachment: Layoutable {
 /// Names its content so a container asking for a z-index or an alignment guide
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``.
-extension GestureAttachment: SingleContentWrapper {
+@MainActor extension GestureAttachment: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -339,7 +339,7 @@ extension GestureAttachment: SingleContentWrapper {
 /// A gesture written on a form row is the gesture of the row the form lays
 /// out, which keeps its place, as SwiftUI's form keeps it (measured,
 /// `Tools/SwiftUIProbes/Form rows`).
-extension GestureAttachment: FormRowRewrapping {
+@MainActor extension GestureAttachment: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
         GestureAttachment<V, G>(content: row, gesture: gesture, mask: mask, priority: priority)
     }
@@ -347,7 +347,7 @@ extension GestureAttachment: FormRowRewrapping {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension GestureAttachment: DrawsContentUnchanged {}
+@MainActor extension GestureAttachment: DrawsContentUnchanged {}
 
 // MARK: - Participant
 

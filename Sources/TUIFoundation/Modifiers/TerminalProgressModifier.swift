@@ -85,7 +85,7 @@ extension View {
     /// - Parameter progress: How far along the work is, or `nil` for no bar.
     /// - Returns: A view that states `progress` for the terminal while it is
     ///   drawn.
-    public func terminalProgress(_ progress: TerminalProgress?) -> some View {
+    nonisolated public func terminalProgress(_ progress: TerminalProgress?) -> some View {
         preference(key: TerminalProgressKey.self, value: progress)
     }
 }

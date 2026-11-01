@@ -51,7 +51,7 @@ struct FileDialogItemViews: Equatable {
 /// A modifier that hands the panels beneath it an app's views at `keyPath`:
 /// the closure kept in a box of this view's own, so the environment value it
 /// writes compares equal from frame to frame (``FileDialogItemViews``).
-struct FileDialogItemViewsModifier<Content: View>: View {
+struct FileDialogItemViewsModifier<Content: View> {
     let content: Content
     let keyPath: WritableKeyPath<EnvironmentValues, FileDialogItemViews?>
     let make: @MainActor (URL, UTType) -> AnyView?
@@ -69,9 +69,10 @@ struct FileDialogItemViewsModifier<Content: View>: View {
         _box = State(initialValue: FileDialogItemViews.Box(make))
     }
 
-    var body: some View {
+    @MainActor var body: some View {
         // The box's contents, not the state itself: nothing redraws for it.
         box.make = make
         return content.environment(keyPath, FileDialogItemViews(box: box))
     }
 }
+extension FileDialogItemViewsModifier: View {}

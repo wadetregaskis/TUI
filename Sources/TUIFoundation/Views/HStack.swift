@@ -27,7 +27,7 @@
 ///     Text("Right")
 /// }
 /// ```
-public struct HStack<Content: View>: View {
+nonisolated public struct HStack<Content: View>: View {
     /// The vertical alignment of the children.
     public let alignment: VerticalAlignment
 
@@ -64,7 +64,7 @@ public struct HStack<Content: View>: View {
         self.resolvesSpacingPerPair = spacing == nil
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _HStackCore(
             alignment: alignment, spacing: spacing, resolvesSpacingPerPair: resolvesSpacingPerPair,
             overflow: .clip, content: content)
@@ -78,7 +78,7 @@ public struct HStack<Content: View>: View {
 /// `HStack` is `.clip` (distribute + clip trailing columns at the cell),
 /// `LazyHStack` is `.window` (append whole columns while they fit
 /// `availableWidth`, stopping at the first that won't).
-package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
+nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     // The one-byte `overflow` after the content, not before it: before, it
     // left seven undefined bytes ahead of the word-aligned content, which the
     // per-pass memos' value hash read then and must skip now; with none, the
@@ -114,7 +114,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         self.resolvesSpacingPerPair = resolvesSpacingPerPair
     }
 
-    package var body: Never {
+    @MainActor package var body: Never {
         fatalError("_HStackCore renders via Renderable")
     }
 
@@ -160,7 +160,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     /// Asked of no child at all where the content's type holds nothing that
     /// can state one (``View/_statesSpacingPreference``, a compile-time
     /// chain), which is almost every row.
-    private func gaps(between children: [ChildView], context: RenderContext) -> StackGaps {
+    @MainActor private func gaps(between children: [ChildView], context: RenderContext) -> StackGaps {
         guard resolvesSpacingPerPair, Content._statesSpacingPreference else { return StackGaps(uniform: spacing) }
         return StackGaps(uniform: spacing, stating: children, along: .horizontal, context: context)
     }
@@ -177,7 +177,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     ///   (``RenderContext/asksIdealWidth`` under a nil width), which a row
     ///   answers with its children's ideal widths summed and nothing
     ///   distributed — see the comment at the distribution.
-    private func resolvedLayout(
+    @MainActor private func resolvedLayout(
         _ children: [ChildView], gaps: StackGaps, availableWidth: Int, asksIdealWidth: Bool = false,
         context: RenderContext
     ) -> ResolvedRowLayout {
@@ -342,7 +342,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     /// The explicit-guide run over the columns a lazy row actually placed, or
     /// `nil` — the common answer, which is why the question is asked before the
     /// three arrays that would carry it are built. See ``anyAlignmentGuide(in:)``.
-    private func placedGuideRun(
+    @MainActor private func placedGuideRun(
         _ collected: [(FrameBuffer, Int, ChildView?)], minimumExtent: Int, context: RenderContext
     ) -> AlignmentGuideRun? {
         guard anyAlignmentGuide(in: collected.compactMap(\.2)) else { return nil }
@@ -356,7 +356,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     }
 
     /// Measures the HStack without rendering.
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let context = context.publishingContainerAxis(.horizontal, passesNoWidthOn: true)
         switch overflow {
         case .clip: return clipSizeThatFits(proposal: proposal, context: context)
@@ -366,7 +366,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
 
     /// `.clip` size: the shared `resolvedLayout` (measure → distribute → height),
     /// reported with its analytic total width clamped to the constraint.
-    private func clipSizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor private func clipSizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         // A view that has left takes no room (`StackGlide`).
         let children = stackChildren(of: content, context: context).laidOut
         guard !children.isEmpty else { return ViewSize.fixed(0, 0) }
@@ -417,7 +417,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     /// come from distributing the leftover after every sibling has rendered,
     /// which is genuinely a property of the fill, not of any one child.
     /// (`renderWindow` forfeits laziness for spacers for the same reason.)
-    private func windowSizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor private func windowSizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         var measureContext = context
         measureContext.isMeasuring = true
 
@@ -494,7 +494,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
             isWidthFlexible: widthFlexible, isHeightFlexible: heightFlexible)
     }
 
-    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let context = context.publishingContainerAxis(.horizontal, passesNoWidthOn: true)
         switch overflow {
         case .clip: return renderClip(context: context)
@@ -505,7 +505,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     /// `.clip` render (eager `HStack`): the shared `resolvedLayout` distributes
     /// the width (clipping trailing columns at the cell), children render into the
     /// row height, are vertically aligned, and the row is clamped.
-    private func renderClip(context: RenderContext) -> FrameBuffer {
+    @MainActor private func renderClip(context: RenderContext) -> FrameBuffer {
         // A view that has left takes no room, and is drawn where it was while
         // its removal plays (`StackGlide`).
         let split = stackChildren(of: content, context: context)
@@ -675,7 +675,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     /// every column (`nil` for a spacer), and each spacer's share of what they
     /// leave — the quotient, and the remainder handed out a column at a time.
     /// Nothing at all for a row with none, which keeps its laziness.
-    private func windowSpacerShares(
+    @MainActor private func windowSpacerShares(
         _ children: [ChildView], spacerCount: Int, gaps: StackGaps, context: RenderContext,
         columnContext: (Int) -> RenderContext
     ) -> (eagerBuffers: [FrameBuffer?], spacerWidth: Int, spacerRemainder: Int) {
@@ -714,7 +714,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     /// legacy single-pass `resolveChildInfos` used here before only expanded
     /// `ChildInfoProvider`s, which `ForEach` is not, so `LazyHStack { ForEach }`
     /// rendered nothing at all (issue #8).
-    private func renderWindow(context: RenderContext) -> FrameBuffer {
+    @MainActor private func renderWindow(context: RenderContext) -> FrameBuffer {
         let children = resolveChildViews(from: content, context: context)
         guard !children.isEmpty else { return FrameBuffer() }
         let availableWidth = context.availableWidth
@@ -856,18 +856,18 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
 
 // MARK: - Guides Through the Row
 
-extension HStack {
+@MainActor extension HStack {
     /// Its content's answer: the row lays its content out as its own children,
     /// so a guide in any of them can be the row's to report.
     public static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
-extension _HStackCore {
+@MainActor extension _HStackCore {
     /// See ``HStack/_providesAlignmentGuide``.
     package static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
 }
 
-extension _HStackCore: AlignmentGuideQuerying {
+@MainActor extension _HStackCore: AlignmentGuideQuerying {
     /// The guide the row's children give, each moved by where the row puts
     /// it, merged by the guide's rule — SwiftUI's measured behaviour. An edge
     /// or centre guide only out of a row that is statically one view
@@ -915,7 +915,7 @@ extension _HStackCore: AlignmentGuideQuerying {
 
 // MARK: - Equatable
 
-extension HStack: @preconcurrency Equatable where Content: Equatable {
+extension HStack: Equatable where Content: Equatable {
     public static func == (lhs: HStack<Content>, rhs: HStack<Content>) -> Bool {
         lhs.alignment == rhs.alignment && lhs.spacing == rhs.spacing && lhs.content == rhs.content
             && lhs.resolvesSpacingPerPair == rhs.resolvesSpacingPerPair

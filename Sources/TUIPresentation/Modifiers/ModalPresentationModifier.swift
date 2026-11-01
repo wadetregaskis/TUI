@@ -25,7 +25,7 @@ import TUIFoundation
 ///     }
 /// }
 /// ```
-package struct ModalPresentationModifier<Content: View, Modal: View>: View {
+nonisolated package struct ModalPresentationModifier<Content: View, Modal: View>: View {
     /// How a presentation fills the screen.
     ///
     /// The two shapes SwiftUI distinguishes, and they differ in a terminal for
@@ -92,7 +92,7 @@ package struct ModalPresentationModifier<Content: View, Modal: View>: View {
     /// describe different items.
     var itemKey: String?
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("ModalPresentationModifier renders via Renderable")
     }
 
@@ -110,7 +110,7 @@ package struct ModalPresentationModifier<Content: View, Modal: View>: View {
     /// `onDismiss` fires off the binding's presented → dismissed transition
     /// (see ``View/modal(isPresented:onDismiss:content:)``), so it
     /// runs for `dismiss()` exactly as it does for ESC.
-    func dismissAction() -> DismissAction {
+    @MainActor func dismissAction() -> DismissAction {
         let isPresented = self.isPresented
         return DismissAction { isPresented.wrappedValue = false }
     }
@@ -118,7 +118,7 @@ package struct ModalPresentationModifier<Content: View, Modal: View>: View {
 
 // MARK: - Renderable
 
-extension ModalPresentationModifier: Renderable {
+@MainActor extension ModalPresentationModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A focus section unique to THIS modal instance (its position in the
         // tree), so stacked modals each get a distinct section. Only the topmost
@@ -506,7 +506,7 @@ private typealias StateIndex = ModalPresentationStateIndex
 
 // MARK: - Layoutable
 
-extension ModalPresentationModifier: Layoutable {
+@MainActor extension ModalPresentationModifier: Layoutable {
     /// The modal is *presented over* the page (a centred overlay on the dimmed
     /// base, which spans the page), so the layout footprint is the base
     /// `content` — both when dismissed and when presented. Forwarding also keeps
@@ -526,7 +526,7 @@ extension ModalPresentationModifier: Layoutable {
 /// full-screen cover `.sheet(…)` and `.fullScreenCover(…)` draw through one —
 /// goes around the row the form lays out, which keeps its place, as SwiftUI's
 /// form keeps a row under a sheet (measured, `Tools/SwiftUIProbes/Form rows`).
-extension ModalPresentationModifier: FormRowRewrapping {
+@MainActor extension ModalPresentationModifier: FormRowRewrapping {
     package var formRowContent: Content { content }
 
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {

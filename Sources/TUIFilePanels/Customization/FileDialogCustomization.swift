@@ -107,7 +107,7 @@ extension View {
     ///
     /// - Parameter message: The optional text to use as the file dialog
     ///   message; `nil` shows none.
-    public func fileDialogMessage(_ message: Text?) -> some View {
+    nonisolated public func fileDialogMessage(_ message: Text?) -> some View {
         transformEnvironment(\.fileDialogCustomization) { $0.message = message?.content }
     }
 
@@ -116,7 +116,7 @@ extension View {
     /// title.
     ///
     /// - Parameter messageKey: The key to a localized string to display.
-    public func fileDialogMessage(_ messageKey: LocalizedStringKey) -> some View {
+    nonisolated public func fileDialogMessage(_ messageKey: LocalizedStringKey) -> some View {
         let message = messageKey.localized
         return transformEnvironment(\.fileDialogCustomization) { $0.message = message }
     }
@@ -127,7 +127,7 @@ extension View {
     ///
     /// - Parameter message: The string to use as the file dialog message.
     @_disfavoredOverload
-    public func fileDialogMessage<S: StringProtocol>(_ message: S) -> some View {
+    nonisolated public func fileDialogMessage<S: StringProtocol>(_ message: S) -> some View {
         let message = String(message)
         return transformEnvironment(\.fileDialogCustomization) { $0.message = message }
     }
@@ -137,7 +137,7 @@ extension View {
     ///
     /// - Parameter label: The optional text to use as the label for the
     ///   confirmation button; `nil` keeps the panel's own (Open, Save, Move).
-    public func fileDialogConfirmationLabel(_ label: Text?) -> some View {
+    nonisolated public func fileDialogConfirmationLabel(_ label: Text?) -> some View {
         transformEnvironment(\.fileDialogCustomization) { $0.confirmationLabel = label?.content }
     }
 
@@ -145,7 +145,7 @@ extension View {
     /// with a custom confirmation button label.
     ///
     /// - Parameter labelKey: The key to a localized string to display.
-    public func fileDialogConfirmationLabel(_ labelKey: LocalizedStringKey) -> some View {
+    nonisolated public func fileDialogConfirmationLabel(_ labelKey: LocalizedStringKey) -> some View {
         let label = labelKey.localized
         return transformEnvironment(\.fileDialogCustomization) { $0.confirmationLabel = label }
     }
@@ -156,7 +156,7 @@ extension View {
     /// - Parameter label: The string to use as the label for the confirmation
     ///   button.
     @_disfavoredOverload
-    public func fileDialogConfirmationLabel<S: StringProtocol>(_ label: S) -> some View {
+    nonisolated public func fileDialogConfirmationLabel<S: StringProtocol>(_ label: S) -> some View {
         let label = String(label)
         return transformEnvironment(\.fileDialogCustomization) { $0.confirmationLabel = label }
     }
@@ -171,7 +171,7 @@ extension View {
     ///
     /// - Parameter defaultDirectory: The directory to show when the file
     ///   dialog launches; `nil` for the panel's own choice.
-    public func fileDialogDefaultDirectory(_ defaultDirectory: URL?) -> some View {
+    nonisolated public func fileDialogDefaultDirectory(_ defaultDirectory: URL?) -> some View {
         transformEnvironment(\.fileDialogCustomization) { $0.defaultDirectory = defaultDirectory }
     }
 
@@ -186,7 +186,7 @@ extension View {
     /// shows every name whole.
     ///
     /// - Parameter options: The search options to apply to a given file dialog.
-    public func fileDialogBrowserOptions(_ options: FileDialogBrowserOptions) -> some View {
+    nonisolated public func fileDialogBrowserOptions(_ options: FileDialogBrowserOptions) -> some View {
         transformEnvironment(\.fileDialogCustomization) { $0.browserOptions = options }
     }
 
@@ -199,7 +199,7 @@ extension View {
     ///
     /// - Parameter imports: A Boolean value that indicates if the application
     ///   receives unresolved or resolved URLs when a user chooses aliases.
-    public func fileDialogImportsUnresolvedAliases(_ imports: Bool) -> some View {
+    nonisolated public func fileDialogImportsUnresolvedAliases(_ imports: Bool) -> some View {
         transformEnvironment(\.fileDialogCustomization) { $0.importsUnresolvedAliases = imports }
     }
 
@@ -215,7 +215,7 @@ extension View {
     /// Without one, it opens on the default each launch.
     ///
     /// - Parameter id: An identifier of the configuration.
-    public func fileDialogCustomizationID(_ id: String) -> some View {
+    nonisolated public func fileDialogCustomizationID(_ id: String) -> some View {
         transformEnvironment(\.fileDialogCustomization) { $0.customizationID = id }
     }
 
@@ -240,7 +240,7 @@ extension View {
     ///   panel has more than one type; `.visible` where it has any (so one
     ///   type and All Files); `.hidden` never. A panel that takes every type,
     ///   or chooses a folder, has none to show.
-    public func fileDialogContentTypePicker(_ visibility: Visibility) -> some View {
+    nonisolated public func fileDialogContentTypePicker(_ visibility: Visibility) -> some View {
         transformEnvironment(\.fileDialogCustomization) { $0.contentTypePicker = visibility }
     }
 
@@ -268,7 +268,7 @@ extension View {
     ///   session kept by GNU screen, zellij or another keeper whose clients
     ///   cannot be asked, which may be attached from anywhere — so the line
     ///   may then be wrong at the desk. `.hidden` never shows it.
-    public func fileDialogRemoteNotice(_ visibility: Visibility) -> some View {
+    nonisolated public func fileDialogRemoteNotice(_ visibility: Visibility) -> some View {
         transformEnvironment(\.fileDialogCustomization) { $0.remoteNotice = visibility }
     }
 
@@ -282,7 +282,7 @@ extension View {
     ///
     /// - Parameter predicate: The predicate that evaluates the URLs presented
     ///   to the user to conditionally disable them.
-    public func fileDialogURLEnabled(_ predicate: Predicate<URL>) -> some View {
+    nonisolated public func fileDialogURLEnabled(_ predicate: Predicate<URL>) -> some View {
         FileDialogURLEnabledModifier(content: self, predicate: predicate)
     }
 }
@@ -290,7 +290,7 @@ extension View {
 /// `fileDialogURLEnabled(_:)`: the predicate kept in a box of this view's own,
 /// so the environment value it writes compares equal from frame to frame
 /// (``FileDialogCustomization/URLEnabled``).
-private struct FileDialogURLEnabledModifier<Content: View>: View {
+private struct FileDialogURLEnabledModifier<Content: View> {
     let content: Content
     let predicate: Predicate<URL>
 
@@ -303,10 +303,11 @@ private struct FileDialogURLEnabledModifier<Content: View>: View {
         _box = State(initialValue: FileDialogCustomization.URLEnabled.Box(predicate))
     }
 
-    var body: some View {
+    @MainActor var body: some View {
         // The box's contents, not the state itself: nothing redraws for it.
         box.predicate = predicate
         let enabled = FileDialogCustomization.URLEnabled(box: box)
         return content.transformEnvironment(\.fileDialogCustomization) { $0.urlEnabled = enabled }
     }
 }
+extension FileDialogURLEnabledModifier: View {}

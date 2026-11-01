@@ -87,7 +87,7 @@ extension View {
     ///
     /// - Parameter style: The picker style to apply.
     /// - Returns: A view whose pickers use the specified style.
-    public func pickerStyle<S: PickerStyle>(_ style: S) -> some View {
+    nonisolated public func pickerStyle<S: PickerStyle>(_ style: S) -> some View {
         environment(\.pickerStyle, style)
     }
 }
@@ -125,7 +125,7 @@ extension View {
     /// Left and Right then walk the options, as in any horizontal radio group.
     ///
     /// - Returns: A view whose radio-group pickers lay out in a row.
-    public func horizontalRadioGroupLayout() -> some View {
+    nonisolated public func horizontalRadioGroupLayout() -> some View {
         environment(\.horizontalRadioGroupLayout, true)
     }
 }

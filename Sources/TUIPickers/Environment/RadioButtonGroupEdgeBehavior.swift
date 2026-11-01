@@ -70,7 +70,7 @@ extension View {
     /// the group at its edges, like ``List`` / ``Table``; use Tab to leave.
     ///
     /// TUI-specific — SwiftUI has no direct equivalent.
-    public func radioButtonGroupEdgeBehavior(
+    nonisolated public func radioButtonGroupEdgeBehavior(
         _ behavior: RadioButtonGroupEdgeBehavior
     ) -> some View {
         environment(\.radioButtonGroupEdgeBehavior, behavior)

@@ -31,7 +31,7 @@ extension View {
     ///
     /// TUI-specific: SwiftUI has no equivalent, so this is kept separate from the
     /// SwiftUI-parity ``tabViewStyle(_:)``.
-    public func tabViewHeaderAlignment(_ alignment: HorizontalAlignment) -> some View {
+    nonisolated public func tabViewHeaderAlignment(_ alignment: HorizontalAlignment) -> some View {
         environment(\.tabViewHeaderAlignment, alignment)
     }
 }
@@ -68,7 +68,7 @@ extension View {
     /// Defaults to ``TabViewHeaderWrap/minimal`` (wrap only on overflow).
     ///
     /// TUI-specific: SwiftUI has no equivalent.
-    public func tabViewHeaderWrap(_ wrap: TabViewHeaderWrap) -> some View {
+    nonisolated public func tabViewHeaderWrap(_ wrap: TabViewHeaderWrap) -> some View {
         environment(\.tabViewHeaderWrap, wrap)
     }
 }
@@ -104,7 +104,7 @@ extension View {
     /// so switching tabs doesn't resize the panel vertically).
     ///
     /// TUI-specific: SwiftUI has no equivalent.
-    public func tabViewContentSizing(_ sizing: TabViewContentSizing) -> some View {
+    nonisolated public func tabViewContentSizing(_ sizing: TabViewContentSizing) -> some View {
         environment(\.tabViewContentSizing, sizing)
     }
 }
@@ -132,12 +132,12 @@ extension View {
     /// application on the `TabView` covers all of its tabs.
     ///
     /// TUI-specific: SwiftUI has no equivalent.
-    public func tabViewContentPadding(_ insets: EdgeInsets) -> some View {
+    nonisolated public func tabViewContentPadding(_ insets: EdgeInsets) -> some View {
         environment(\.tabViewContentPadding, insets)
     }
 
     /// Sets a uniform interior padding around every tab's content.
-    public func tabViewContentPadding(_ length: Int) -> some View {
+    nonisolated public func tabViewContentPadding(_ length: Int) -> some View {
         environment(\.tabViewContentPadding, EdgeInsets(all: length))
     }
 }

@@ -73,7 +73,7 @@ private func proxies(_ members: [SubviewMembers.Member]) -> [Subview] {
     return members.indices.map { Subview(members: collection, index: $0) }
 }
 
-extension Subview {
+@MainActor extension Subview {
     /// Whether this member is a ``Divider``, seen through any modifier on it —
     /// a rule between a picker's options, not one of them.
     package var isDivider: Bool {

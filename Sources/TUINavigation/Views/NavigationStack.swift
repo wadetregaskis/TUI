@@ -71,7 +71,7 @@ import TUIView
 ///   then revealed from its source's frame, and folded back into it when it is
 ///   popped (``ZoomNavigationTransition``); a picture on it is scaled and moved
 ///   with the rectangle rather than cut by it.
-public struct NavigationStack<Root: View>: View {
+public struct NavigationStack<Root: View> {
 
     /// Where the path is kept. Every case is normalised to the same pair of
     /// closures at render time, so the core has one path model to work with.
@@ -134,7 +134,8 @@ public struct NavigationStack<Root: View>: View {
             })
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor public var body: some View {
         let accessors = accessors()
         return _NavigationStackCore(
             root: root,
@@ -144,7 +145,7 @@ public struct NavigationStack<Root: View>: View {
     }
 
     /// The path accessors for whichever storage this stack was built with.
-    private func accessors() -> (read: () -> [AnyHashable], write: ([AnyHashable]) -> Void) {
+    @MainActor private func accessors() -> (read: () -> [AnyHashable], write: ([AnyHashable]) -> Void) {
         switch storage {
         case .owned:
             let binding = $ownedPath
@@ -159,6 +160,7 @@ public struct NavigationStack<Root: View>: View {
         }
     }
 }
+extension NavigationStack: View {}
 
 // MARK: - Core
 

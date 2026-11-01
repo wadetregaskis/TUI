@@ -92,7 +92,7 @@ import TUIFoundation
 ///         authenticate()
 ///     }
 /// ```
-public struct SecureField<Label: View>: View {
+public struct SecureField<Label: View> {
     /// The label view describing the field's purpose.
     let label: Label
 
@@ -114,7 +114,8 @@ public struct SecureField<Label: View>: View {
     /// Where the field's context menu finds its handler — see ``TextField``.
     @State private var menuTarget = TextEditingMenuTarget()
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         _StyledFieldFrame(
             content: _SecureFieldCore(
                 text: text,
@@ -128,6 +129,7 @@ public struct SecureField<Label: View>: View {
         .textEditingMenu(menuTarget)
     }
 }
+extension SecureField: View {}
 
 // MARK: - SecureField Initializers (String Label)
 
@@ -512,7 +514,7 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
 extension View {
     /// Styles the masked *text* of every secure field in this view's subtree
     /// (a `.control(.secureField)`-scoped style entry).
-    public func secureFieldTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
+    nonisolated public func secureFieldTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
         style(.control(.secureField), build)
     }
 }

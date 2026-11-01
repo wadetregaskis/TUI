@@ -56,7 +56,7 @@ extension View {
     ///
     /// - Parameter mode: Which part of the text to keep.
     /// - Returns: A view whose descendant text truncates with `mode`.
-    public func truncationMode(_ mode: TruncationMode) -> some View {
+    nonisolated public func truncationMode(_ mode: TruncationMode) -> some View {
         environment(\.truncationMode, mode)
     }
 }

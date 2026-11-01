@@ -19,7 +19,7 @@ import TUICore
 ///
 /// This is framework infrastructure. Use the `.environment(_:)` modifier
 /// on `View` instead.
-package struct ObjectEnvironmentModifier<Content: View, T: Observable>: View {
+nonisolated package struct ObjectEnvironmentModifier<Content: View, T: Observable>: View {
     /// The content view.
     public let content: Content
 
@@ -38,14 +38,14 @@ package struct ObjectEnvironmentModifier<Content: View, T: Observable>: View {
     }
 
     /// Not used during rendering. ``Renderable`` conformance takes priority.
-    public var body: some View {
+    @MainActor public var body: some View {
         content
     }
 }
 
 // MARK: - Renderable
 
-extension ObjectEnvironmentModifier: Renderable {
+@MainActor extension ObjectEnvironmentModifier: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var modifiedEnvironment = context.environment
         modifiedEnvironment[observable: T.self] = object
@@ -56,7 +56,7 @@ extension ObjectEnvironmentModifier: Renderable {
 
 // MARK: - Layoutable
 
-extension ObjectEnvironmentModifier: Layoutable {
+@MainActor extension ObjectEnvironmentModifier: Layoutable {
     /// Measures the wrapped content under the injected observable, without
     /// rendering. This wrapper imposes no geometry of its own — its size is
     /// exactly the content's — so forwarding the measurement matches the render
@@ -83,7 +83,7 @@ extension ObjectEnvironmentModifier: Layoutable {
 ///   up or two, so publishing it around each member is the same thing as
 ///   publishing it once around the pair. What changes is only that the members
 ///   stay the enclosing container's own children.
-extension ObjectEnvironmentModifier: ContentRewrapping {
+@MainActor extension ObjectEnvironmentModifier: ContentRewrapping {
     public var wrappedContent: Content { content }
 
     /// Its content's context: the object it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -96,10 +96,10 @@ extension ObjectEnvironmentModifier: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension ObjectEnvironmentModifier: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension ObjectEnvironmentModifier: ChildViewProvider where Content: ChildViewProvider {}
 
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension ObjectEnvironmentModifier: DrawsContentUnchanged {}
+@MainActor extension ObjectEnvironmentModifier: DrawsContentUnchanged {}

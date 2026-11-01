@@ -56,7 +56,7 @@ extension View {
     ///     container. Default `.center`.
     ///   - content: The background.
     /// - Returns: A view that sets its container's background.
-    public func containerBackground<V: View>(
+    nonisolated public func containerBackground<V: View>(
         for container: ContainerBackgroundPlacement, alignment: Alignment = .center,
         @ViewBuilder content: () -> V
     ) -> some View {
@@ -72,7 +72,7 @@ extension View {
     ///   - style: The style to fill the container with.
     ///   - container: The container that gets the background.
     /// - Returns: A view that sets its container's background.
-    public func containerBackground<S: ShapeStyle>(
+    nonisolated public func containerBackground<S: ShapeStyle>(
         _ style: S, for container: ContainerBackgroundPlacement
     ) -> some View {
         // A style as a view: a fill block painted with it, as a gradient used

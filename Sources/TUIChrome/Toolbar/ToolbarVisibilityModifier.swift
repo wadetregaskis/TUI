@@ -50,7 +50,7 @@ extension View {
     ///     ``ToolbarPlacement/accessoryBar(id:)`` for one of the top bar's
     ///     accessory bars, which hiding the top bar's own row leaves.
     /// - Returns: A view whose bars' preferred visibility is `visibility`.
-    public func toolbarVisibility(_ visibility: Visibility, for bars: ToolbarPlacement...) -> some View {
+    nonisolated public func toolbarVisibility(_ visibility: Visibility, for bars: ToolbarPlacement...) -> some View {
         _ToolbarBarStatementModifier(content: self, statement: .visibility(visibility), bars: bars)
     }
 
@@ -83,7 +83,7 @@ extension View {
     ///     ``ToolbarPlacement/accessoryBar(id:)`` for an accessory bar's row,
     ///     which is otherwise drawn on the top bar's fill.
     /// - Returns: A view whose bars' preferred background is `style`.
-    public func toolbarBackground<S: ShapeStyle>(_ style: S, for bars: ToolbarPlacement...) -> some View {
+    nonisolated public func toolbarBackground<S: ShapeStyle>(_ style: S, for bars: ToolbarPlacement...) -> some View {
         _ToolbarBarStatementModifier(content: self, statement: .background(AnyShapeStyle(style)), bars: bars)
     }
 
@@ -106,7 +106,7 @@ extension View {
     ///   - visibility: The preferred visibility of the background of the bar.
     ///   - bars: The bars to update, as for ``toolbarBackground(_:for:)``.
     /// - Returns: A view whose bars' fill is shown or not as `visibility` says.
-    public func toolbarBackgroundVisibility(_ visibility: Visibility, for bars: ToolbarPlacement...) -> some View {
+    nonisolated public func toolbarBackgroundVisibility(_ visibility: Visibility, for bars: ToolbarPlacement...) -> some View {
         _ToolbarBarStatementModifier(content: self, statement: .backgroundVisibility(visibility), bars: bars)
     }
 }
@@ -156,14 +156,14 @@ extension _ToolbarBarStatement: _ValueHashing {
 /// Declares a statement about the window's bars into its chrome as `content`
 /// renders — on the drawn walk, and on the first frame's seeding walk, as
 /// `.toolbar` declares its items.
-struct _ToolbarBarStatementModifier<Content: View>: View, Renderable, Layoutable {
+nonisolated struct _ToolbarBarStatementModifier<Content: View>: View, Renderable, Layoutable {
     let content: Content
     let statement: _ToolbarBarStatement
     let bars: [ToolbarPlacement]
 
-    var body: Never { fatalError("_ToolbarBarStatementModifier renders via Renderable") }
+    @MainActor var body: Never { fatalError("_ToolbarBarStatementModifier renders via Renderable") }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // In a sheet or a cover, a visibility is the presentation's, for the
         // rows it hosts its toolbar's items in (`PresentationToolbarItems`).
         if !context.isMeasuring || context.environment.presentationToolbar?.isSeeding == true {
@@ -188,7 +188,7 @@ struct _ToolbarBarStatementModifier<Content: View>: View, Renderable, Layoutable
 
     /// The statement is the window's, so this measures as `content` — but for
     /// a presentation's first frame, whose seed finds its rows by a measure.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         if context.environment.presentationToolbar?.isSeeding == true { declareToPresentation(context: context) }
         return measureChild(content, proposal: proposal, context: context)
     }
@@ -197,7 +197,7 @@ struct _ToolbarBarStatementModifier<Content: View>: View, Renderable, Layoutable
     /// presented in: the top row for the window toolbar's placements, the
     /// button row for the bottom bar's. Nothing else a bar modifier says
     /// reaches them.
-    private func declareToPresentation(context: RenderContext) {
+    @MainActor private func declareToPresentation(context: RenderContext) {
         guard let host = context.environment.presentationToolbar, case .visibility(let visibility) = statement
         else { return }
         context.environment.volatileReadTracker?.recordRenderSideEffect()
@@ -216,7 +216,7 @@ struct _ToolbarBarStatementModifier<Content: View>: View, Renderable, Layoutable
 /// Names its content so a z-index or a container value (a `.tag`) written
 /// inside it still reaches the container around it — see `_ToolbarModifier`'s
 /// conformance. Read-only: not ``ContentRewrapping``.
-extension _ToolbarBarStatementModifier: SingleContentWrapper {
+@MainActor extension _ToolbarBarStatementModifier: SingleContentWrapper {
     /// Its content's geometry is its own — its statement is the window's, and its content is drawn as it is — so a guide
     /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
     static var _keepsContentGeometry: Bool { true }

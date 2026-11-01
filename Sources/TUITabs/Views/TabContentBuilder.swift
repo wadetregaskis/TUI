@@ -27,7 +27,7 @@ public struct TabContentBuilder<TabValue: Hashable> {
     ///
     /// You don't create this; a tab view's initializer does, and draws the
     /// tabs it holds. Drawn on its own it draws nothing.
-    public struct Content<C: TabContent>: View {
+    nonisolated public struct Content<C: TabContent>: View {
         /// The tabs.
         let content: C
 
@@ -36,7 +36,7 @@ public struct TabContentBuilder<TabValue: Hashable> {
         }
 
         /// Nothing: the tab view holding this draws its tabs.
-        public var body: some View {
+        @MainActor public var body: some View {
             EmptyView()
         }
     }

@@ -67,7 +67,7 @@ extension View {
     ///
     /// - Parameter disabled: Whether to prevent user scrolling.
     /// - Returns: A view whose scrollables ignore user scroll input.
-    public func scrollDisabled(_ disabled: Bool) -> some View {
+    nonisolated public func scrollDisabled(_ disabled: Bool) -> some View {
         environment(\.isScrollEnabled, !disabled)
     }
 }

@@ -41,7 +41,7 @@ enum ForEachRowShape: Equatable {
     }
 }
 
-extension ForEach where Content: View {
+@MainActor extension ForEach where Content: View {
     /// The shape of this loop's rows, from the row type alone.
     ///
     /// A row type that is no provider of children — a `Text`, a stack, a view
@@ -232,7 +232,7 @@ extension Optional: SectionRowBranches where Wrapped: View {
     }
 }
 
-extension ConditionalView: SectionRowBranches {
+@MainActor extension ConditionalView: SectionRowBranches {
     /// A section when both arms always are; a section or less when one may be
     /// and the other is too, or is nothing or one view.
     fileprivate static func sectionRowKind(depth: Int) -> SectionRowKind {

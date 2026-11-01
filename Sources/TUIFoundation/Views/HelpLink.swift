@@ -22,7 +22,7 @@ import Foundation
 ///
 /// The standard appearance is a `?` button. SwiftUI's `anchor:` forms open an
 /// Apple Help book, which no terminal has; they are absent.
-public struct HelpLink: View {
+public struct HelpLink {
     /// What the link does, given the environment's URL opener.
     /// What pressing it does: the caller's action, or `nil` to open ``destination``.
     private let action: (() -> Void)?
@@ -48,7 +48,8 @@ public struct HelpLink: View {
         self.destination = destination
     }
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor @ViewBuilder public var body: some View {
         Button {
             if let action {
                 action()
@@ -60,10 +61,11 @@ public struct HelpLink: View {
         }
     }
 }
+extension HelpLink: View {}
 
 // MARK: - Environment without reflection
 
-extension HelpLink: ResolvesOwnEnvironment {
+@MainActor extension HelpLink: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _openURL.resolveEnvironment(environment)
     }

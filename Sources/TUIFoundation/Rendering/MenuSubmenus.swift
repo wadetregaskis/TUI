@@ -56,7 +56,7 @@ final class MenuSubmenu {
 ///
 /// Outside a pop-up column (``EnvironmentValues/isInPopUpMenu``) this is not
 /// drawn; the view that makes it draws itself instead.
-package struct _MenuSubmenuRow<Label: View, Items: View>: View, Renderable, Layoutable {
+nonisolated package struct _MenuSubmenuRow<Label: View, Items: View>: View, Renderable, Layoutable {
     let label: Label
     let items: Items
 
@@ -68,28 +68,28 @@ package struct _MenuSubmenuRow<Label: View, Items: View>: View, Renderable, Layo
         self.items = items
     }
 
-    package var body: Never {
+    @MainActor package var body: Never {
         fatalError("_MenuSubmenuRow renders via Renderable")
     }
 
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(row, proposal: proposal, context: rowContext(context))
     }
 
-    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(row, context: rowContext(context))
     }
 
     /// The row: a button of the menu, which claims an ordinal and draws as a
     /// menu row. Its action is never run — choosing the row opens the submenu
     /// (``MenuPopupController/choose(_:byKeyboard:)``).
-    private var row: Button {
+    @MainActor private var row: Button {
         Button(action: {}, label: { label })
     }
 
     /// The row's context: enabled, carrying the caret, and — on a render —
     /// the submenu, which the row's button publishes with its ordinal.
-    private func rowContext(_ context: RenderContext) -> RenderContext {
+    @MainActor private func rowContext(_ context: RenderContext) -> RenderContext {
         var row = context.withChildIdentity(erasedType: Label.self, index: MenuSubmenuChildIndex.row)
         row.environment.isEnabled = true
         row.environment.menuRowOpensSubmenu = true
@@ -110,7 +110,7 @@ package struct _MenuSubmenuRow<Label: View, Items: View>: View, Renderable, Layo
     /// one identity step in, over the whole screen, with nothing of the
     /// column it sits in — its row width, its inset, its rows' channel, its
     /// highlight — which the submenu's own column states afresh.
-    private static func itemsContext(_ context: RenderContext) -> RenderContext {
+    @MainActor private static func itemsContext(_ context: RenderContext) -> RenderContext {
         var items = context
             .withChildIdentity(erasedType: Items.self, index: MenuSubmenuChildIndex.items)
             .withAvailableWidth(context.environment.terminalWidth)

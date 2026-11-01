@@ -10,7 +10,7 @@
 
 import TUICore
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// `windowSizeThatFits` for anchored (large, variable) content: the
     /// total is the running estimate, exact at the endpoints; width and
     /// flexibility come from a bounded sample. Estimation here is honest —

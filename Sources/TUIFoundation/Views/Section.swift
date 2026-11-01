@@ -62,8 +62,7 @@
 /// A lazy stack that pins its sections' headers or footers (`pinnedViews:`)
 /// keeps its own sections whole, to pin them, and lays each one's parts out as
 /// it lays out its children.
-@MainActor
-public struct Section<Parent, Content, Footer> {
+nonisolated public struct Section<Parent, Content, Footer> {
     /// The header view displayed above the section content.
     package let header: Parent
 
@@ -92,7 +91,7 @@ public struct Section<Parent, Content, Footer> {
 /// A section of views is a view. Its parts are unconstrained for the same
 /// reason `Group`'s content is: so that a section can hold what is not a
 /// view — a table's rows.
-extension Section: View where Parent: View, Content: View, Footer: View {
+@MainActor extension Section: View where Parent: View, Content: View, Footer: View {
     public var body: some View {
         _SectionCore(header: header, content: content, footer: footer, isExpanded: isExpanded)
     }
@@ -294,7 +293,7 @@ extension Section where Parent: View, Content: View, Footer: View, Footer == Emp
 /// collapsible section — the header behind a disclosure triangle, the whole of
 /// it one control that toggles the section (a ``DisclosureGroup``'s header,
 /// with nothing to disclose but the section's own content).
-package struct _SectionHeader<Header: View>: View {
+package struct _SectionHeader<Header: View> {
     let header: Header
     let isExpanded: Binding<Bool>?
 
@@ -310,7 +309,7 @@ package struct _SectionHeader<Header: View>: View {
         self.isExpanded = isExpanded
     }
 
-    package var body: some View {
+    @MainActor @ViewBuilder package var body: some View {
         if let decoration {
             decoration.decorator.decorate(AnyView(drawn), section: decoration.section)
         } else {
@@ -320,7 +319,7 @@ package struct _SectionHeader<Header: View>: View {
 
     /// The header, behind a fold for a collapsible section.
     @ViewBuilder
-    private var drawn: some View {
+    @MainActor private var drawn: some View {
         if let isExpanded {
             DisclosureGroup(isExpanded: isExpanded) {
                 EmptyView()
@@ -332,14 +331,15 @@ package struct _SectionHeader<Header: View>: View {
         }
     }
 }
+extension _SectionHeader: View {}
 
-extension _SectionHeader: ResolvesOwnEnvironment {
+@MainActor extension _SectionHeader: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _decoration.resolveEnvironment(environment)
     }
 }
 
-extension Section where Parent: View, Content: View, Footer: View {
+@MainActor extension Section where Parent: View, Content: View, Footer: View {
     /// The header as it is drawn: ``_SectionHeader``, or nothing for a section
     /// with no header.
     fileprivate var hasHeader: Bool { !(header is EmptyView) }
@@ -528,7 +528,7 @@ package struct SectionHeaderActions {
 /// row: `Section { … }.headerProminence(.increased)` lost its rows'
 /// selection, their tags and their badges, and the section its separators.
 /// The environment writes `SectionPartsProviding` already sees through.
-extension EnvironmentModifier: SectionRowExtractor where Content: SectionRowExtractor {
+@MainActor extension EnvironmentModifier: SectionRowExtractor where Content: SectionRowExtractor {
     package func extractSectionInfo(context: RenderContext) -> SectionInfo {
         content.extractSectionInfo(context: contentContext(context))
     }
@@ -539,7 +539,7 @@ extension EnvironmentModifier: SectionRowExtractor where Content: SectionRowExtr
 }
 
 /// As ``EnvironmentModifier``'s.
-extension TransformEnvironmentModifier: SectionRowExtractor where Content: SectionRowExtractor {
+@MainActor extension TransformEnvironmentModifier: SectionRowExtractor where Content: SectionRowExtractor {
     package func extractSectionInfo(context: RenderContext) -> SectionInfo {
         content.extractSectionInfo(context: transformed(context))
     }
@@ -551,7 +551,7 @@ extension TransformEnvironmentModifier: SectionRowExtractor where Content: Secti
 
 /// As ``EnvironmentModifier``'s: an observable written around a section
 /// reaches each of its parts.
-extension ObjectEnvironmentModifier: SectionRowExtractor where Content: SectionRowExtractor {
+@MainActor extension ObjectEnvironmentModifier: SectionRowExtractor where Content: SectionRowExtractor {
     package func extractSectionInfo(context: RenderContext) -> SectionInfo {
         content.extractSectionInfo(context: objectContext(context))
     }
@@ -572,7 +572,7 @@ extension ObjectEnvironmentModifier: SectionRowExtractor where Content: SectionR
 /// A container value written on a section is its own, and changes nothing
 /// the list draws: the section's parts, a step inside this view's identity —
 /// where drawing it through its `body` puts the section.
-extension _ContainerValueView: SectionRowExtractor where Content: SectionRowExtractor {
+@MainActor extension _ContainerValueView: SectionRowExtractor where Content: SectionRowExtractor {
     package func extractSectionInfo(context: RenderContext) -> SectionInfo {
         content.extractSectionInfo(context: context.withChildIdentity(type: Content.self))
     }
@@ -592,7 +592,7 @@ extension _ContainerValueView: SectionRowExtractor where Content: SectionRowExtr
 /// Each row's content is laid out in the context the modifier gives its
 /// content (`adjustContext`) and its buffer modified as the row renders, so a
 /// looped row is still built only when it is drawn.
-extension ModifiedView: SectionRowExtractor where Content: SectionRowExtractor {
+@MainActor extension ModifiedView: SectionRowExtractor where Content: SectionRowExtractor {
     package func extractSectionInfo(context: RenderContext) -> SectionInfo {
         let info = content.extractSectionInfo(context: modifier.adjustContext(context))
         return SectionInfo(
@@ -620,7 +620,7 @@ extension ModifiedView: SectionRowExtractor where Content: SectionRowExtractor {
     }
 }
 
-extension Section: SectionRowExtractor where Parent: View, Content: View, Footer: View {
+@MainActor extension Section: SectionRowExtractor where Parent: View, Content: View, Footer: View {
     package func extractSectionContentRows<RowID: Hashable>(
         context: RenderContext
     ) -> SectionContentRows<RowID> {
@@ -653,7 +653,7 @@ extension Section: SectionRowExtractor where Parent: View, Content: View, Footer
 
 // MARK: - Section as ChildInfoProvider
 
-extension Section: ChildInfoProvider where Parent: View, Content: View, Footer: View {
+@MainActor extension Section: ChildInfoProvider where Parent: View, Content: View, Footer: View {
     public func childInfos(context: RenderContext) -> [ChildInfo] {
         // For stack layouts, render Section as a single unit
         let buffer = TUIView.renderToBuffer(self, context: context)
@@ -663,7 +663,7 @@ extension Section: ChildInfoProvider where Parent: View, Content: View, Footer: 
 
 // MARK: - Section as ListRowExtractor
 
-extension Section: ListRowExtractor where Parent: View, Content: View, Footer: View {
+@MainActor extension Section: ListRowExtractor where Parent: View, Content: View, Footer: View {
     /// Extracts list rows from the section's content.
     ///
     /// Delegates to the content's `ListRowExtractor` implementation if available

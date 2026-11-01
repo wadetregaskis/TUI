@@ -64,7 +64,7 @@ struct ConditionalRecord {
 /// the conditional's identity, with the branch as the slot.
 private enum BranchPresence {}
 
-extension ConditionalView {
+@MainActor extension ConditionalView {
     /// The branch labelled `isTrueBranch`, as the conditional's identity steps
     /// to it — the labels ``identityBranchLabel`` and the render agree on.
     static func branchLabel(_ isTrueBranch: Bool) -> String {

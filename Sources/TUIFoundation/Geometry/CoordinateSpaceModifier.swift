@@ -37,7 +37,7 @@ extension View {
     ///
     /// - Parameter name: A name used to identify this coordinate space.
     /// - Returns: A view whose coordinate space has that name.
-    public func coordinateSpace(_ name: NamedCoordinateSpace) -> some View {
+    nonisolated public func coordinateSpace(_ name: NamedCoordinateSpace) -> some View {
         CoordinateSpaceModifier(content: self, space: name.coordinateSpace)
     }
 }
@@ -46,16 +46,16 @@ extension View {
 
 /// Draws its content unchanged, and answers for it every view inside asking
 /// about its space — see ``View/coordinateSpace(_:)``.
-struct CoordinateSpaceModifier<Content: View>: View {
+nonisolated struct CoordinateSpaceModifier<Content: View>: View {
     let content: Content
     let space: CoordinateSpace
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("CoordinateSpaceModifier renders via Renderable")
     }
 }
 
-extension CoordinateSpaceModifier: Renderable {
+@MainActor extension CoordinateSpaceModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard !context.isMeasuring, let geometry = context.geometryCoordinator else {
             return TUIView.renderToBuffer(content, context: context)
@@ -117,7 +117,7 @@ extension CoordinateSpaceModifier: Renderable {
     }
 }
 
-extension CoordinateSpaceModifier: Layoutable {
+@MainActor extension CoordinateSpaceModifier: Layoutable {
     /// Measures as its content: naming a space changes no geometry.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
@@ -126,7 +126,7 @@ extension CoordinateSpaceModifier: Layoutable {
 
 /// Names its content so a container asking for a z-index or an alignment guide
 /// looks through this wrapper.
-extension CoordinateSpaceModifier: SingleContentWrapper {
+@MainActor extension CoordinateSpaceModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -135,7 +135,7 @@ extension CoordinateSpaceModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension CoordinateSpaceModifier: DrawsContentUnchanged {}
+@MainActor extension CoordinateSpaceModifier: DrawsContentUnchanged {}
 
 extension FrameBuffer {
     /// The buffer's size, as the cells a coordinate space spans.

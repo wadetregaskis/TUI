@@ -241,7 +241,7 @@ struct ContentWidthRecord {
 
 // MARK: - The ladder
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// The width of the widest row over EVERY row, or `nil` when it cannot be
     /// answered or cannot be kept.
     ///
@@ -665,7 +665,7 @@ extension _VStackCore {
 
 // MARK: - Rows entering the drawn band
 
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// Records the rows a band render drew (``StackWindowState/drawnOrdinals``)
     /// and, where the stack keeps a width record — it is the content of a view
     /// that scrolls across, whose canvas is that record's width — measures the
@@ -750,7 +750,7 @@ extension _VStackCore {
 /// walk — has to apply it too. An arm that said "flexible" for a capped
 /// answer where the walk said not would decide, by being the one that
 /// answered, whether `measureNaturalExtent` climbs past its first rung.
-extension _VStackCore {
+@MainActor extension _VStackCore {
     /// The width a row that filled the stack's width has of its own: asked as
     /// the whole-content walk asks every row (``rowWidthContext(_:width:)``) —
     /// no width proposed, under the ideal-width mark, the stack's width

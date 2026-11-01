@@ -22,7 +22,7 @@ import TUIFoundation
 /// the front.
 ///
 /// You don't create one directly: the window group's initializers do.
-public struct PresentedWindowContent<Data, Content>: View
+nonisolated public struct PresentedWindowContent<Data, Content>: View
 where Data: Decodable & Encodable & Hashable, Content: View {
     /// The window's content for its value.
     let present: (Binding<Data?>) -> Content
@@ -31,7 +31,7 @@ where Data: Decodable & Encodable & Hashable, Content: View {
     /// default; `nil` for one whose windows present `nil` then.
     let defaultValue: (() -> Data)?
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _PresentedWindowCore(present: present, defaultValue: defaultValue)
     }
 }
@@ -44,7 +44,7 @@ protocol PresentingWindowContent {
     static var presentedValueType: Any.Type { get }
 }
 
-extension PresentedWindowContent: PresentingWindowContent {
+@MainActor extension PresentedWindowContent: PresentingWindowContent {
     static var presentedValueType: Any.Type { Data.self }
 }
 

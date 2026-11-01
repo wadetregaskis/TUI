@@ -48,7 +48,7 @@ extension View {
     /// - Parameters:
     ///   - isPresented: Whether the inspector is shown.
     ///   - content: The inspector's content.
-    public func inspector<V: View>(isPresented: Binding<Bool>, @ViewBuilder content: () -> V) -> some View {
+    nonisolated public func inspector<V: View>(isPresented: Binding<Bool>, @ViewBuilder content: () -> V) -> some View {
         _InspectorModifier(content: self, isPresented: isPresented, inspector: content())
     }
 
@@ -61,7 +61,7 @@ extension View {
     /// divider.
     ///
     /// - Parameter width: The inspector column's width, in columns.
-    public func inspectorColumnWidth(_ width: Int) -> some View {
+    nonisolated public func inspectorColumnWidth(_ width: Int) -> some View {
         _InspectorColumnWidthView(content: self, ideal: width)
     }
 
@@ -77,7 +77,7 @@ extension View {
     ///   - min: The narrowest the column should be, in columns.
     ///   - ideal: The width the column starts at, in columns.
     ///   - max: The widest the column should be, in columns.
-    public func inspectorColumnWidth(min: Int? = nil, ideal: Int, max: Int? = nil) -> some View {
+    nonisolated public func inspectorColumnWidth(min: Int? = nil, ideal: Int, max: Int? = nil) -> some View {
         _InspectorColumnWidthView(content: self, minimum: min, ideal: ideal, maximum: max)
     }
 }
@@ -89,16 +89,16 @@ extension View {
 /// The view is the split's first child whether or not the inspector shows, so
 /// its identity — and with it its `@State` — survives the inspector coming and
 /// going.
-struct _InspectorModifier<Content: View, Inspector: View>: View {
+nonisolated struct _InspectorModifier<Content: View, Inspector: View>: View {
     let content: Content
     let isPresented: Binding<Bool>
     let inspector: Inspector
 
     /// The column's width when the content names none — about the 270 points
     /// macOS opens an inspector at, in nine-point columns.
-    static var defaultWidth: Int { 30 }
+    @MainActor static var defaultWidth: Int { 30 }
 
-    var body: some View {
+    @MainActor var body: some View {
         let width = presentationTrait(InspectorColumnWidthProviding.self, of: inspector)
         let ideal = Swift.max(1, width?.idealWidth ?? Self.defaultWidth)
         return _InspectorToggleHost(isPresented: isPresented) {
@@ -198,28 +198,28 @@ protocol InspectorColumnWidthProviding {
 
 /// The wrapper ``View/inspectorColumnWidth(_:)`` produces. Renders and
 /// measures as its content; carrying the width is its whole job.
-struct _InspectorColumnWidthView<Content: View>: View, InspectorColumnWidthProviding {
+nonisolated struct _InspectorColumnWidthView<Content: View>: View, InspectorColumnWidthProviding {
     let content: Content
     var minimum: Int?
     let ideal: Int
     var maximum: Int?
 
-    var minimumWidth: Int? { minimum }
-    var idealWidth: Int { ideal }
-    var maximumWidth: Int? { maximum }
+    @MainActor var minimumWidth: Int? { minimum }
+    @MainActor var idealWidth: Int { ideal }
+    @MainActor var maximumWidth: Int? { maximum }
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_InspectorColumnWidthView renders via Renderable")
     }
 }
 
-extension _InspectorColumnWidthView: Renderable {
+@MainActor extension _InspectorColumnWidthView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: context)
     }
 }
 
-extension _InspectorColumnWidthView: Layoutable {
+@MainActor extension _InspectorColumnWidthView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
@@ -228,14 +228,14 @@ extension _InspectorColumnWidthView: Layoutable {
 /// Seen through like the presentation traits, so the width is found with an
 /// `interactiveDismissDisabled()` either side of it, as SwiftUI's example
 /// writes them.
-extension _InspectorColumnWidthView: PresentationTraitWrapper {
+@MainActor extension _InspectorColumnWidthView: PresentationTraitWrapper {
     var presentationTraitContent: any View { content }
 }
 
 /// Names its content so a container asking for a z-index or an alignment guide
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``.
-extension _InspectorColumnWidthView: SingleContentWrapper {
+@MainActor extension _InspectorColumnWidthView: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -244,4 +244,4 @@ extension _InspectorColumnWidthView: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _InspectorColumnWidthView: DrawsContentUnchanged {}
+@MainActor extension _InspectorColumnWidthView: DrawsContentUnchanged {}

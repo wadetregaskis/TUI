@@ -12,19 +12,19 @@
 /// The properties of a disclosure group instance.
 public struct DisclosureGroupStyleConfiguration {
     /// A type-erased label of a disclosure group.
-    public struct Label: View {
+    nonisolated public struct Label: View {
         let content: AnyView
 
-        public var body: some View { content }
+        @MainActor public var body: some View { content }
     }
 
     /// A type-erased content of a disclosure group, built only when a style
     /// places it — a style that shows it only while expanded builds nothing for
     /// a collapsed group, as the automatic style does.
-    public struct Content: View {
+    nonisolated public struct Content: View {
         let make: @MainActor () -> AnyView
 
-        public var body: some View { make() }
+        @MainActor public var body: some View { make() }
     }
 
     /// The label for the disclosure group.
@@ -163,7 +163,7 @@ extension View {
     ///
     /// - Parameter style: The style to apply.
     /// - Returns: A view whose disclosure groups use `style`.
-    public func disclosureGroupStyle<S: DisclosureGroupStyle>(_ style: S) -> some View {
+    nonisolated public func disclosureGroupStyle<S: DisclosureGroupStyle>(_ style: S) -> some View {
         environment(\.disclosureGroupStyle, style)
     }
 }

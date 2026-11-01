@@ -111,15 +111,15 @@ private enum StateIndex {
 }
 
 /// The rendering half of ``View/userResizable(_:)``.
-struct _UserResizableCore<Content: View>: View, Renderable {
+nonisolated struct _UserResizableCore<Content: View>: View, Renderable {
     let content: Content
     let axes: ResizableAxes
     let widthBounds: ResizeBounds
     let heightBounds: ResizeBounds
 
-    var body: Never { fatalError("_UserResizableCore renders via Renderable") }
+    @MainActor var body: Never { fatalError("_UserResizableCore renders via Renderable") }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Measuring must not register focus or mutate the stored size — the
         // measure pass runs speculatively and more than once per frame. See
         // `Documentation/Performance/Discarded render passes and redundant frames.md`.
@@ -248,7 +248,7 @@ struct _UserResizableCore<Content: View>: View, Renderable {
     /// One function for both passes on purpose: this is the arithmetic that
     /// decides the view's size, and a measure that skipped it answered a
     /// different question from the one the render asked.
-    private func offering(
+    @MainActor private func offering(
         _ context: RenderContext, handler: _UserResizeHandler?
     ) -> RenderContext {
         var childContext = context
@@ -270,7 +270,7 @@ struct _UserResizableCore<Content: View>: View, Renderable {
     /// The drag handler this view has already persisted, or `nil` if it has not
     /// been rendered yet. Never creates one — see
     /// ``StateStorage/existingStorage(for:)``.
-    private func existingHandler(in context: RenderContext) -> _UserResizeHandler? {
+    @MainActor private func existingHandler(in context: RenderContext) -> _UserResizeHandler? {
         let box: StateBox<_UserResizeHandler>? = context.stateStorage?.existingStorage(
             for: StateStorage.StateKey(
                 identity: context.identity, propertyIndex: StateIndex.handler))
@@ -369,7 +369,7 @@ struct _UserResizableCore<Content: View>: View, Renderable {
     /// way about. Treating both as deltas made a corner drag apply a column
     /// number as a width — which, on a box already at its widest, simply looked
     /// like the axis not working at all.
-    private func handleResizeEvent(
+    @MainActor private func handleResizeEvent(
         _ event: MouseEvent, axes dragAxes: ResizableAxes,
         handler: _UserResizeHandler, focusID: String, context: RenderContext
     ) -> Bool {
@@ -440,7 +440,7 @@ struct _UserResizableCore<Content: View>: View, Renderable {
     /// glyph there too (`╡`, `╧`) and it was worse than nothing: an edge handle
     /// already says which edge moves, and a mark on a corner that moves one axis
     /// looks like a corner that moves both.
-    private func drawGrip(
+    @MainActor private func drawGrip(
         into buffer: inout FrameBuffer, axes liveAxes: ResizableAxes, isFocused: Bool,
         isHovered: Bool, context: RenderContext
     ) {
@@ -468,7 +468,7 @@ struct _UserResizableCore<Content: View>: View, Renderable {
     /// Each sits in the border's own run BETWEEN its two corners, and shrinks to
     /// fit that run rather than reserving separation either side of it
     /// (``BorderGrip/centredSpan(in:size:)``).
-    private func drawEdgeGrips(
+    @MainActor private func drawEdgeGrips(
         into buffer: inout FrameBuffer, axes liveAxes: ResizableAxes, glyphs: BorderGrip.Glyphs,
         ink: BorderGrip.Ink
     ) {

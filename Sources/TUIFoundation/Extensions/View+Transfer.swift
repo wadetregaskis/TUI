@@ -22,7 +22,7 @@ extension View {
     ///
     /// - Parameter payload: The items to copy, evaluated at the copy.
     /// - Returns: A view that copies `payload` on the Copy command.
-    public func copyable<T>(_ payload: @autoclosure @escaping () -> [T]) -> some View {
+    nonisolated public func copyable<T>(_ payload: @autoclosure @escaping () -> [T]) -> some View {
         clipboardCommand("c") { _, clipboard in
             clipboard.copy(payload())
             return true
@@ -37,7 +37,7 @@ extension View {
     ///   - payloadType: The type of the items cut.
     ///   - action: Removes the items, returning what was removed.
     /// - Returns: A view that cuts on the Cut command.
-    public func cuttable<T>(for payloadType: T.Type = T.self, action: @escaping () -> [T]) -> some View {
+    nonisolated public func cuttable<T>(for payloadType: T.Type = T.self, action: @escaping () -> [T]) -> some View {
         clipboardCommand("x") { _, clipboard in
             clipboard.copy(action())
             return true
@@ -57,7 +57,7 @@ extension View {
     ///   - validator: Filters the items before `action` sees them. An empty
     ///     result keeps the command from triggering.
     /// - Returns: A view that pastes on the Paste command.
-    public func pasteDestination<T>(
+    nonisolated public func pasteDestination<T>(
         for payloadType: T.Type = T.self, action: @escaping ([T]) -> Void,
         validator: @escaping ([T]) -> [T] = { $0 }
     ) -> some View {

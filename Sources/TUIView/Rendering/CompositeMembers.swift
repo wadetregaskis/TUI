@@ -11,7 +11,7 @@ import TUICore
 
 // MARK: - The Bodies That Are Taken Apart
 
-extension TupleView {
+@MainActor extension TupleView {
     /// A tuple of views is several (``View/_handsOverChildren``).
     public static var _handsOverChildren: Bool { true }
 }
@@ -22,7 +22,7 @@ extension Optional where Wrapped: View {
     public static var _handsOverChildren: Bool { true }
 }
 
-extension ConditionalView {
+@MainActor extension ConditionalView {
     /// An `if`/`else` hands over what its live arm hands over, so it may hand
     /// over several when either arm may (``View/_handsOverChildren``) — and a
     /// view whose body is one is taken apart, as SwiftUI's is (measured,
@@ -38,7 +38,7 @@ extension ConditionalView {
     }
 }
 
-extension ModifiedView {
+@MainActor extension ModifiedView {
     /// A modifier on views that hand over several hands over each of them,
     /// modified (`ModifiedView`'s ``ChildViewProvider`` conformance) — so a
     /// view whose body is `Group { a; b }.padding()` is `a` and `b`, each

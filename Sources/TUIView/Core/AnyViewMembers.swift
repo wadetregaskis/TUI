@@ -33,7 +33,7 @@
 /// type that counts one: its type cannot say how many views it holds, and building
 /// every row to count them would cost a loop of erased rows its row memo and a
 /// lazy stack its window.
-extension AnyView: ChildViewProvider {
+@MainActor extension AnyView: ChildViewProvider {
     public func childViews(context: RenderContext) -> [ChildView] {
         // Whole, for a caller that asks a provider for its children without
         // asking first whether it stays whole.
@@ -49,7 +49,7 @@ extension AnyView: ChildViewProvider {
     }
 }
 
-extension AnyView {
+@MainActor extension AnyView {
     /// Whether `view` is an `AnyView` around one view — one child in every
     /// context, so the tuple splice hands it over before building the step its
     /// views would resolve under (``staysWhole(in:)`` would answer `true`
@@ -69,7 +69,7 @@ private func erasedMembers<V: View>(of view: V, as provider: ChildViewProvider, 
     resolveChildViews(from: view, as: provider, context: context)
 }
 
-extension AnyView: StaticMemberCounting {
+@MainActor extension AnyView: StaticMemberCounting {
     /// Never known: what is erased may be several views.
     package static var staticMemberCount: Int? { nil }
 

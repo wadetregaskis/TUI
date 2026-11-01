@@ -615,12 +615,12 @@ extension LocalizationService {
 /// rather than an overload per family.
 package protocol FrameworkLocalizationKey: RawRepresentable<String> {}
 
-extension LocalizationKey.Button: FrameworkLocalizationKey {}
-extension LocalizationKey.Label: FrameworkLocalizationKey {}
+@MainActor extension LocalizationKey.Button: FrameworkLocalizationKey {}
+@MainActor extension LocalizationKey.Label: FrameworkLocalizationKey {}
 extension LocalizationKey.Error: FrameworkLocalizationKey {}
 extension LocalizationKey.Placeholder: FrameworkLocalizationKey {}
 extension LocalizationKey.FilePanel: FrameworkLocalizationKey {}
-extension LocalizationKey.Menu: FrameworkLocalizationKey {}
-extension LocalizationKey.Dialog: FrameworkLocalizationKey {}
+@MainActor extension LocalizationKey.Menu: FrameworkLocalizationKey {}
+@MainActor extension LocalizationKey.Dialog: FrameworkLocalizationKey {}
 extension LocalizationKey.Validation: FrameworkLocalizationKey {}
-extension LocalizationKey.StatusBar: FrameworkLocalizationKey {}
+@MainActor extension LocalizationKey.StatusBar: FrameworkLocalizationKey {}

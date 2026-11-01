@@ -46,7 +46,7 @@ extension View {
     /// - Parameter shows: Whether a stepper field draws its stepper.
     /// - Returns: A view whose stepper-field date pickers draw their stepper,
     ///   or do not.
-    public func datePickerShowsStepper(_ shows: Bool = true) -> some View {
+    nonisolated public func datePickerShowsStepper(_ shows: Bool = true) -> some View {
         environment(\.datePickerShowsStepper, shows)
     }
 }

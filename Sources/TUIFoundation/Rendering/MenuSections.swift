@@ -242,7 +242,7 @@ extension EnvironmentValues {
 /// no row, as a `Divider` does not. Also the title over an inline `Picker`'s
 /// options in a menu, and over a section of a `Picker`'s submenu
 /// (TUIPickers).
-package struct _MenuSectionHeader: View, Renderable, Layoutable {
+nonisolated package struct _MenuSectionHeader: View, Renderable, Layoutable {
     let header: any View
 
     /// The memberwise initializer, spelled out because the synthesized one is
@@ -251,15 +251,15 @@ package struct _MenuSectionHeader: View, Renderable, Layoutable {
         self.header = header
     }
 
-    package var body: Never {
+    @MainActor package var body: Never {
         fatalError("_MenuSectionHeader renders via Renderable")
     }
 
-    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(header, context: sectionChromeContext(context, .sectionHeader))
     }
 
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(header, proposal: proposal, context: sectionChromeContext(context, .sectionHeader))
     }
 }

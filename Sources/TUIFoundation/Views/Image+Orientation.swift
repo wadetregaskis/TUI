@@ -7,7 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-extension Image {
+@MainActor extension Image {
     /// The orientation of an image — mirrors SwiftUI's `Image.Orientation`.
     ///
     /// Each names how the image is turned from the orientation of its

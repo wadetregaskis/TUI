@@ -18,7 +18,7 @@ import TUICore
 ///
 /// When the wrapped gesture changes type, its recognizer starts afresh, as a
 /// view's state does when its type changes.
-public struct AnyGesture<Value>: Gesture {
+nonisolated public struct AnyGesture<Value>: Gesture {
     /// The erased gesture: what a recognizer needs of it, and the named spaces
     /// it reports locations in (`PointerSpaceReporting`), each of which needs
     /// the main actor, where an `AnyGesture` can be made anywhere. A reference
@@ -34,12 +34,12 @@ public struct AnyGesture<Value>: Gesture {
     }
 
     /// The named spaces the erased gesture reports locations in.
-    var pointerSpaces: [CoordinateSpace] { erased.pointerSpaces }
+    @MainActor var pointerSpaces: [CoordinateSpace] { erased.pointerSpaces }
 
     /// The type of gesture representing the body of `Self`.
     public typealias Body = Never
 
-    public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
+    @MainActor public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
         gesture.erased.make(inputs.child(0))
     }
 }

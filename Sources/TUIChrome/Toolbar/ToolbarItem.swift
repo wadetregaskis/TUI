@@ -27,7 +27,7 @@ import TUIFoundation
 /// `.disabled(_:)` written above `.toolbar` reaches the item, as it would reach
 /// a child. Its controls are in the Tab ring, after the page's, and their
 /// keyboard shortcuts are live.
-public struct ToolbarItem<ID, Content: View>: ToolbarContent {
+nonisolated public struct ToolbarItem<ID, Content: View>: ToolbarContent {
     /// The item's identifier: `()` for an item made without one.
     public let id: ID
 
@@ -38,7 +38,7 @@ public struct ToolbarItem<ID, Content: View>: ToolbarContent {
     let content: Content
 
     /// Never called: an item hands itself to the bar.
-    public var body: Never { fatalError("ToolbarItem hands itself to the bar") }
+    @MainActor public var body: Never { fatalError("ToolbarItem hands itself to the bar") }
 }
 
 extension ToolbarItem where ID == () {
@@ -75,7 +75,7 @@ extension ToolbarItem where ID == String {
 
 extension ToolbarItem: @MainActor Identifiable where ID: Hashable {}
 
-extension ToolbarItem: _ToolbarContentPrimitive {
+@MainActor extension ToolbarItem: _ToolbarContentPrimitive {
     func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         items.append(placement: placement, view: AnyView(content), id: id as? String)
     }
@@ -88,7 +88,7 @@ extension ToolbarItem: _ToolbarContentPrimitive {
 ///
 /// The group's views sit side by side in the bar its placement names, one
 /// column apart.
-public struct ToolbarItemGroup<Content: View>: ToolbarContent {
+nonisolated public struct ToolbarItemGroup<Content: View>: ToolbarContent {
     /// Where the group goes.
     let placement: ToolbarItemPlacement
 
@@ -107,7 +107,7 @@ public struct ToolbarItemGroup<Content: View>: ToolbarContent {
     }
 
     /// Never called: a group hands itself to the bar.
-    public var body: Never { fatalError("ToolbarItemGroup hands itself to the bar") }
+    @MainActor public var body: Never { fatalError("ToolbarItemGroup hands itself to the bar") }
 }
 
 extension ToolbarItemGroup {
@@ -148,14 +148,14 @@ extension ToolbarItemGroup {
 /// ``ToolbarItemGroup/init(placement:content:label:)``. It draws the group's
 /// views side by side where they fit across the room the bar gives it, and
 /// otherwise its label, as a pull-down of the views.
-public struct LabeledToolbarItemGroupContent<Content: View, Label: View>: View {
+nonisolated public struct LabeledToolbarItemGroupContent<Content: View, Label: View>: View {
     /// The group's views.
     let content: Content
 
     /// What the group collapses to.
     let label: Label
 
-    public var body: some View {
+    @MainActor public var body: some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 1) { content }
             _ToolbarPullDown(label: label, items: content)
@@ -163,7 +163,7 @@ public struct LabeledToolbarItemGroupContent<Content: View, Label: View>: View {
     }
 }
 
-extension ToolbarItemGroup: _ToolbarContentPrimitive {
+@MainActor extension ToolbarItemGroup: _ToolbarContentPrimitive {
     func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         items.append(placement: placement, view: AnyView(HStack(spacing: 1) { content }))
     }
@@ -189,7 +189,7 @@ public struct SpacerSizing: Sendable, Equatable {
 ///
 /// A ``SpacerSizing/flexible`` spacer pushes the items after it along the bar;
 /// a ``SpacerSizing/fixed`` one is a column of space.
-public struct ToolbarSpacer: ToolbarContent {
+nonisolated public struct ToolbarSpacer: ToolbarContent {
     /// How the spacer sizes itself.
     let sizing: SpacerSizing
 
@@ -207,10 +207,10 @@ public struct ToolbarSpacer: ToolbarContent {
     }
 
     /// Never called: a spacer hands itself to the bar.
-    public var body: Never { fatalError("ToolbarSpacer hands itself to the bar") }
+    @MainActor public var body: Never { fatalError("ToolbarSpacer hands itself to the bar") }
 }
 
-extension ToolbarSpacer: _ToolbarContentPrimitive {
+@MainActor extension ToolbarSpacer: _ToolbarContentPrimitive {
     /// A fixed spacer is a column of space, drawn as an item; a flexible one is
     /// marked, and the bar lays it out as a `Spacer` of its own — wrapped in an
     /// item it was no spacer to the bar's stack, which tells spacers by type,

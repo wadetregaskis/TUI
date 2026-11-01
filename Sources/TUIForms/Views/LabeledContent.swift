@@ -28,7 +28,7 @@ import TUIFoundation
 /// On its own it hugs, the content right after the label, as SwiftUI's does;
 /// in a ``List``'s row the label leads and a fixed value sits at the trailing
 /// edge. See ``AutomaticLabeledContentStyle``.
-public struct LabeledContent<Label: View, Content: View>: View {
+nonisolated public struct LabeledContent<Label: View, Content: View>: View {
     let label: Label
     let content: Content
 
@@ -45,7 +45,7 @@ public struct LabeledContent<Label: View, Content: View>: View {
         self.label = label()
     }
 
-    public var body: some View {
+    @MainActor public var body: some View {
         // Standalone (outside a Form) this is the style's layout — the automatic
         // one puts the label leading and the content trailing. Inside a Form,
         // the form lays the label and content out itself, in its label column,

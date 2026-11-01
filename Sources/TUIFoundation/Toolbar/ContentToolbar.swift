@@ -65,7 +65,7 @@ extension View {
     ///   - placement: The content view whose toolbar to populate.
     ///   - content: The views of the toolbar.
     /// - Returns: A view whose tab view sidebar's toolbar holds `content`.
-    public func contentToolbar<Content: View>(
+    nonisolated public func contentToolbar<Content: View>(
         for placement: ContentToolbarPlacement, @ViewBuilder content: () -> Content
     ) -> some View {
         contentToolbar(for: placement, drawing: AnyView(HStack(spacing: 1) { content() }))
@@ -74,7 +74,7 @@ extension View {
     /// Makes `toolbar` the content toolbar of `placement`'s content views:
     /// what both forms of ``contentToolbar(for:content:)`` — the views', and
     /// the toolbar content's (TUIChrome) — hand the tab view sidebar.
-    package func contentToolbar(for placement: ContentToolbarPlacement, drawing toolbar: AnyView) -> some View {
+    nonisolated package func contentToolbar(for placement: ContentToolbarPlacement, drawing toolbar: AnyView) -> some View {
         _ContentToolbarModifier(content: self, toolbar: toolbar)
     }
 }
@@ -105,23 +105,23 @@ extension EnvironmentValues {
 // MARK: - The Modifier
 
 /// Sets the tab view sidebar's toolbar for `content`.
-struct _ContentToolbarModifier<Content: View>: View, Renderable, Layoutable {
+nonisolated struct _ContentToolbarModifier<Content: View>: View, Renderable, Layoutable {
     let content: Content
     let toolbar: AnyView
 
-    var body: Never { fatalError("_ContentToolbarModifier renders via Renderable") }
+    @MainActor var body: Never { fatalError("_ContentToolbarModifier renders via Renderable") }
 
-    private func withToolbar(_ context: RenderContext) -> RenderContext {
+    @MainActor private func withToolbar(_ context: RenderContext) -> RenderContext {
         var context = context
         context.environment.tabViewSidebarToolbar = toolbar
         return context
     }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: withToolbar(context))
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: withToolbar(context))
     }
 }

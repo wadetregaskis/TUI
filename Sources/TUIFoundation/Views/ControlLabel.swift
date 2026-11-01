@@ -51,7 +51,7 @@ enum _ControlLabel {
 /// HStack sibling (rather than drawing it inside the control's own core) also
 /// keeps the core's internal x-offsets — hit regions, arrow zones, track
 /// origin — measured from its own buffer, because the stack shifts them.
-package struct _CollapsingLabel<Label: View>: View, Renderable, Layoutable {
+nonisolated package struct _CollapsingLabel<Label: View>: View, Renderable, Layoutable {
     let label: Label?
 
     /// The control's own `.disabled()` flag — it bypasses the environment,
@@ -66,11 +66,11 @@ package struct _CollapsingLabel<Label: View>: View, Renderable, Layoutable {
         self.controlDisabled = controlDisabled
     }
 
-    package var body: Never { fatalError("_CollapsingLabel renders via Renderable") }
+    @MainActor package var body: Never { fatalError("_CollapsingLabel renders via Renderable") }
 
     /// Size from one render (it drops to nothing for a blank label and adds a
     /// trailing space otherwise — both need the render), flexibility from the label.
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let size = measureFixedByRendering(self, proposal: proposal, context: context)
         let labelFlexible = label.map {
             measureChild($0, proposal: proposal, context: context).isWidthFlexible
@@ -78,7 +78,7 @@ package struct _CollapsingLabel<Label: View>: View, Renderable, Layoutable {
         return ViewSize(width: size.width, height: size.height, isWidthFlexible: labelFlexible)
     }
 
-    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // `.labelsHidden()` collapses the label the same way an absent one
         // does — including the separating space — because the point of hiding
         // a label is that the layout closes up around it. Answered here rather
@@ -106,7 +106,7 @@ package struct _CollapsingLabel<Label: View>: View, Renderable, Layoutable {
 /// column (``FormFieldControl``) — dimmed with a disabled control as
 /// ``_CollapsingLabel`` dims it, and with no separating space: the column
 /// supplies the gap.
-package struct _DetachedControlLabel<Label: View>: View, Renderable, Layoutable {
+nonisolated package struct _DetachedControlLabel<Label: View>: View, Renderable, Layoutable {
     let label: Label
 
     /// The control's own `.disabled()` flag, which bypasses the environment.
@@ -117,13 +117,13 @@ package struct _DetachedControlLabel<Label: View>: View, Renderable, Layoutable 
         self.controlDisabled = controlDisabled
     }
 
-    package var body: Never { fatalError("_DetachedControlLabel renders via Renderable") }
+    @MainActor package var body: Never { fatalError("_DetachedControlLabel renders via Renderable") }
 
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(label, proposal: proposal, context: context)
     }
 
-    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(
             _ControlLabel.dimmingWhenDisabled(label, context: context, controlDisabled: controlDisabled),
             context: context)

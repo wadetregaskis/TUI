@@ -40,7 +40,7 @@ extension View {
     ///   - action: The work to do.
     /// - Returns: A view that runs `action` while it is shown, restarting it
     ///   when `id` changes.
-    public func task<T: Equatable>(
+    nonisolated public func task<T: Equatable>(
         id: T,
         name: String? = nil,
         executorPreference taskExecutor: any TaskExecutor,
@@ -83,7 +83,7 @@ extension View {
     ///   - line: The line the default name is made from.
     ///   - action: The work to do.
     /// - Returns: A view that runs `action` while it is shown.
-    public func task(
+    nonisolated public func task(
         name: String? = nil,
         executorPreference taskExecutor: any TaskExecutor,
         priority: TaskPriority = .userInitiated,
@@ -97,7 +97,7 @@ extension View {
     }
 
     /// The task modifier both executor-preferring forms build.
-    private func executorTask(
+    nonisolated private func executorTask(
         id: AnyEquatableBox?,
         name: String,
         taskExecutor: any TaskExecutor,

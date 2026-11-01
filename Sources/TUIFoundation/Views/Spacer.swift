@@ -29,7 +29,7 @@
 ///     Text("Bottom")
 /// }
 /// ```
-public struct Spacer: View, Equatable {
+nonisolated public struct Spacer: View, Equatable {
     /// The minimum length this spacer can be shrunk to, along the axis or axes
     /// of expansion, in cells.
     ///
@@ -52,23 +52,23 @@ public struct Spacer: View, Equatable {
         self.minLength = minLength?.heldToStatedLength
     }
 
-    public var body: Never {
+    @MainActor public var body: Never {
         fatalError("Spacer is a primitive view")
     }
 
     /// Static witness used by the child-layout path to detect a spacer without a
     /// runtime `as? SpacerProtocol` cast. See ``View/_isSpacer``.
-    public static var _isSpacer: Bool { true }
+    @MainActor public static var _isSpacer: Bool { true }
 
     /// A spacer states a spacing preference: none, on every edge (measured
     /// on SwiftUI: `spacer|box` is 0 apart either way —
     /// `Tools/SwiftUIProbes/Stack spacing per pair/distances.out`).
-    public static var _statesSpacingPreference: Bool { true }
+    @MainActor public static var _statesSpacingPreference: Bool { true }
 
     /// The length a spacer with no `minLength` is never shorter than along
     /// `axis`: the distance a stack puts between two views that state no
     /// spacing — one column in a row, none in a column.
-    static func defaultMinLength(along axis: Axis) -> Int {
+    @MainActor static func defaultMinLength(along axis: Axis) -> Int {
         ViewSpacing().distance(to: ViewSpacing(), along: axis)
     }
 }
@@ -87,11 +87,11 @@ extension ChildView {
 // MARK: - Spacer Protocol Conformance
 
 /// ``minLength`` is the requirement, under SwiftUI's name.
-extension Spacer: SpacerProtocol {}
+@MainActor extension Spacer: SpacerProtocol {}
 
 // MARK: - Spacer Rendering
 
-extension Spacer: Renderable, Layoutable {
+@MainActor extension Spacer: Renderable, Layoutable {
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         // Spacer is fully flexible - it expands to fill available space.
         // The minLength is its minimum size requirement; without one, the

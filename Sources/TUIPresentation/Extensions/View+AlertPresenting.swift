@@ -46,7 +46,7 @@ extension View {
     ///   - actions: The alert's buttons, built from `data`.
     ///   - message: The alert's message, built from `data`.
     /// - Returns: A view that presents an alert conditionally.
-    public func alert<Actions: View, Message: View, T>(
+    nonisolated public func alert<Actions: View, Message: View, T>(
         _ titleKey: LocalizedStringKey,
         isPresented: Binding<Bool>,
         presenting data: T?,
@@ -73,7 +73,7 @@ extension View {
     ///   - message: The alert's message, built from `data`.
     /// - Returns: A view that presents an alert conditionally.
     @_disfavoredOverload
-    public func alert<S: StringProtocol, Actions: View, Message: View, T>(
+    nonisolated public func alert<S: StringProtocol, Actions: View, Message: View, T>(
         _ title: S,
         isPresented: Binding<Bool>,
         presenting data: T?,
@@ -94,7 +94,7 @@ extension View {
     ///   - data: The value to present. `nil` withholds the alert.
     ///   - actions: The alert's buttons, built from `data`.
     /// - Returns: A view that presents an alert conditionally.
-    public func alert<Actions: View, T>(
+    nonisolated public func alert<Actions: View, T>(
         _ titleKey: LocalizedStringKey,
         isPresented: Binding<Bool>,
         presenting data: T?,
@@ -117,7 +117,7 @@ extension View {
     ///   - actions: The alert's buttons, built from `data`.
     /// - Returns: A view that presents an alert conditionally.
     @_disfavoredOverload
-    public func alert<S: StringProtocol, Actions: View, T>(
+    nonisolated public func alert<S: StringProtocol, Actions: View, T>(
         _ title: S,
         isPresented: Binding<Bool>,
         presenting data: T?,
@@ -146,7 +146,7 @@ extension View {
     ///   - error: The error to describe. `nil` withholds the alert.
     ///   - actions: The alert's buttons.
     /// - Returns: A view that presents an alert conditionally.
-    public func alert<E: LocalizedError, Actions: View>(
+    nonisolated public func alert<E: LocalizedError, Actions: View>(
         isPresented: Binding<Bool>,
         error: E?,
         @ViewBuilder actions: @escaping () -> Actions
@@ -173,7 +173,7 @@ extension View {
     ///   - actions: The alert's buttons, built from the error.
     ///   - message: The alert's message, built from the error.
     /// - Returns: A view that presents an alert conditionally.
-    public func alert<E: LocalizedError, Actions: View, Message: View>(
+    nonisolated public func alert<E: LocalizedError, Actions: View, Message: View>(
         isPresented: Binding<Bool>,
         error: E?,
         @ViewBuilder actions: @escaping (E) -> Actions,
@@ -205,7 +205,7 @@ extension View {
     ///   - actions: The dialog's buttons, built from `data`.
     ///   - message: The dialog's message, built from `data`.
     /// - Returns: A view that presents a confirmation dialog conditionally.
-    public func confirmationDialog<Actions: View, Message: View, T>(
+    nonisolated public func confirmationDialog<Actions: View, Message: View, T>(
         _ titleKey: LocalizedStringKey,
         isPresented: Binding<Bool>,
         titleVisibility: Visibility = .automatic,
@@ -234,7 +234,7 @@ extension View {
     ///   - message: The dialog's message, built from `data`.
     /// - Returns: A view that presents a confirmation dialog conditionally.
     @_disfavoredOverload
-    public func confirmationDialog<S: StringProtocol, Actions: View, Message: View, T>(
+    nonisolated public func confirmationDialog<S: StringProtocol, Actions: View, Message: View, T>(
         _ title: S,
         isPresented: Binding<Bool>,
         titleVisibility: Visibility = .automatic,
@@ -257,7 +257,7 @@ extension View {
     ///   - data: The value to present. `nil` withholds the dialog.
     ///   - actions: The dialog's buttons, built from `data`.
     /// - Returns: A view that presents a confirmation dialog conditionally.
-    public func confirmationDialog<Actions: View, T>(
+    nonisolated public func confirmationDialog<Actions: View, T>(
         _ titleKey: LocalizedStringKey,
         isPresented: Binding<Bool>,
         titleVisibility: Visibility = .automatic,
@@ -284,7 +284,7 @@ extension View {
     ///   - actions: The dialog's buttons, built from `data`.
     /// - Returns: A view that presents a confirmation dialog conditionally.
     @_disfavoredOverload
-    public func confirmationDialog<S: StringProtocol, Actions: View, T>(
+    nonisolated public func confirmationDialog<S: StringProtocol, Actions: View, T>(
         _ title: S,
         isPresented: Binding<Bool>,
         titleVisibility: Visibility = .automatic,

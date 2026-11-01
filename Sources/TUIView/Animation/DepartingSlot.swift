@@ -302,7 +302,7 @@ extension Optional: DepartingSlotAddressing where Wrapped: View {
 /// itself (`ChildView.resolvingIdentity(inBranch:)`). Whichever branch was
 /// showing, its view's departure is there. Tried in order, since the `nil`
 /// cannot know which branch it was.
-extension ConditionalView: DepartingSlotAddressing {
+@MainActor extension ConditionalView: DepartingSlotAddressing {
     package static func departingSlot(
         context: RenderContext, transparentAtScope: Bool
     ) -> ChildView? {

@@ -70,7 +70,7 @@ extension View {
     ///   - value: The value the target is bound to.
     /// - Returns: A view that hands its focus to the control bound to `value` when
     ///   it can no longer hold it.
-    public func focusHandoff<Value: Hashable>(
+    nonisolated public func focusHandoff<Value: Hashable>(
         _ binding: FocusState<Value>.Binding, _ value: Value
     ) -> some View {
         _FocusHandoffModifier(content: self, store: binding.store, value: value)
@@ -147,15 +147,15 @@ extension EnvironmentValues {
 /// Unlike `_FocusedModifier`, it never wires the store's focus manager, so a
 /// dimmed backdrop's throwaway manager needs no special case: the offer is
 /// claimed there, recorded on the throwaway, and discarded with it.
-struct _FocusHandoffModifier<Content: View, Value: Hashable>: View {
+nonisolated struct _FocusHandoffModifier<Content: View, Value: Hashable>: View {
     let content: Content
     let store: FocusStateStore<Value>
     let value: Value
 
-    var body: some View { content }
+    @MainActor var body: some View { content }
 }
 
-extension _FocusHandoffModifier: Renderable {
+@MainActor extension _FocusHandoffModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A fresh offer per render: the claim is this render's, so the same
         // control takes it again next frame rather than the offer staying spent.
@@ -165,7 +165,7 @@ extension _FocusHandoffModifier: Renderable {
     }
 }
 
-extension _FocusHandoffModifier: Layoutable {
+@MainActor extension _FocusHandoffModifier: Layoutable {
     /// Measures as its content, with no offer: a measure pass registers nothing,
     /// so nothing would claim it.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -179,7 +179,7 @@ extension _FocusHandoffModifier: Layoutable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension _FocusHandoffModifier: SingleContentWrapper {
+@MainActor extension _FocusHandoffModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -190,4 +190,4 @@ extension _FocusHandoffModifier: SingleContentWrapper {
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _FocusHandoffModifier: DrawsContentUnchanged {}
+@MainActor extension _FocusHandoffModifier: DrawsContentUnchanged {}

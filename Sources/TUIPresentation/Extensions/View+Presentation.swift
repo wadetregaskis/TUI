@@ -49,7 +49,7 @@ extension View {
     ///   - borderColor: Custom border color (TUI extension, default: nil).
     ///   - titleColor: Custom title text color (TUI extension, default: nil).
     /// - Returns: A view that presents an alert conditionally.
-    public func alert<Actions: View, Message: View>(
+    nonisolated public func alert<Actions: View, Message: View>(
         _ titleKey: LocalizedStringKey,
         isPresented: Binding<Bool>,
         @ViewBuilder actions: @escaping () -> Actions,
@@ -80,7 +80,7 @@ extension View {
     ///   - titleColor: Custom title text color (TUI extension, default: nil).
     /// - Returns: A view that presents an alert conditionally.
     @_disfavoredOverload
-    public func alert<S: StringProtocol, Actions: View, Message: View>(
+    nonisolated public func alert<S: StringProtocol, Actions: View, Message: View>(
         _ title: S,
         isPresented: Binding<Bool>,
         @ViewBuilder actions: @escaping () -> Actions,
@@ -115,7 +115,7 @@ extension View {
     ///   - borderColor: Optional border color.
     ///   - titleColor: Optional title color.
     /// - Returns: A view that presents an alert conditionally.
-    public func alert<Actions: View>(
+    nonisolated public func alert<Actions: View>(
         _ titleKey: LocalizedStringKey,
         isPresented: Binding<Bool>,
         @ViewBuilder actions: @escaping () -> Actions,
@@ -144,7 +144,7 @@ extension View {
     ///   - titleColor: Optional title color.
     /// - Returns: A view that presents an alert conditionally.
     @_disfavoredOverload
-    public func alert<S: StringProtocol, Actions: View>(
+    nonisolated public func alert<S: StringProtocol, Actions: View>(
         _ title: S,
         isPresented: Binding<Bool>,
         @ViewBuilder actions: @escaping () -> Actions,
@@ -186,7 +186,7 @@ extension View {
     ///   - titleVisibility: Whether the title is shown (default `.automatic`).
     ///   - actions: A ViewBuilder returning the dialog's action buttons.
     ///   - message: A ViewBuilder returning the dialog's message.
-    public func confirmationDialog<Actions: View, Message: View>(
+    nonisolated public func confirmationDialog<Actions: View, Message: View>(
         _ titleKey: LocalizedStringKey,
         isPresented: Binding<Bool>,
         titleVisibility: Visibility = .automatic,
@@ -204,7 +204,7 @@ extension View {
     /// what keeps a *literal* binding to the key overload above — see
     /// ``LocalizedStringKey`` for why the concrete-`String` spelling does not.
     @_disfavoredOverload
-    public func confirmationDialog<S: StringProtocol, Actions: View, Message: View>(
+    nonisolated public func confirmationDialog<S: StringProtocol, Actions: View, Message: View>(
         _ title: S,
         isPresented: Binding<Bool>,
         titleVisibility: Visibility = .automatic,
@@ -225,7 +225,7 @@ extension View {
     }
 
     /// Presents a confirmation dialog (action sheet) with actions only.
-    public func confirmationDialog<Actions: View>(
+    nonisolated public func confirmationDialog<Actions: View>(
         _ titleKey: LocalizedStringKey,
         isPresented: Binding<Bool>,
         titleVisibility: Visibility = .automatic,
@@ -242,7 +242,7 @@ extension View {
     /// that is what keeps a *literal* binding to the key overload rather than
     /// to this one — see ``LocalizedStringKey``.
     @_disfavoredOverload
-    public func confirmationDialog<S: StringProtocol, Actions: View>(
+    nonisolated public func confirmationDialog<S: StringProtocol, Actions: View>(
         _ title: S,
         isPresented: Binding<Bool>,
         titleVisibility: Visibility = .automatic,
@@ -296,7 +296,7 @@ extension View {
     ///   - content: A ViewBuilder returning the modal content, called only
     ///     while the modal is presented, each time it is drawn.
     /// - Returns: A view that presents a modal overlay conditionally.
-    public func modal<Modal: View>(
+    nonisolated public func modal<Modal: View>(
         isPresented: Binding<Bool>,
         onDismiss: (() -> Void)? = nil,
         @ViewBuilder content: @escaping () -> Modal
@@ -332,7 +332,7 @@ extension View {
     ///   - onDismiss: Run on the presented → dismissed transition.
     ///   - modal: Builds the content to present — only while it is presented
     ///     (``ModalPresentationModifier/modal``).
-    private func modalPresentation<Modal: View>(
+    nonisolated private func modalPresentation<Modal: View>(
         isPresented: Binding<Bool>,
         style: ModalPresentationModifier<Self, Modal>.Style,
         itemKey: String?,
@@ -369,7 +369,7 @@ extension View {
     ///   - content: A ViewBuilder returning the sheet content, called only
     ///     while the sheet is presented, each time it is drawn.
     /// - Returns: A view that presents the content modally.
-    public func sheet<Content: View>(
+    nonisolated public func sheet<Content: View>(
         isPresented: Binding<Bool>,
         onDismiss: (() -> Void)? = nil,
         @ViewBuilder content: @escaping () -> Content
@@ -405,7 +405,7 @@ extension View {
     ///   - content: A ViewBuilder building the sheet from the unwrapped item,
     ///     called only while the sheet is presented.
     /// - Returns: A view that presents a sheet for the selected item.
-    public func sheet<Item: Identifiable, Content: View>(
+    nonisolated public func sheet<Item: Identifiable, Content: View>(
         item: Binding<Item?>,
         onDismiss: (() -> Void)? = nil,
         @ViewBuilder content: @escaping (Item) -> Content
@@ -439,7 +439,7 @@ extension View {
 /// built, while it is presented — so a class written while the sheet is up
 /// changes no part of the structure, and both the presenting view and the
 /// presented content keep their state.
-struct _AdaptiveModal<Base: View, Modal: View>: View {
+struct _AdaptiveModal<Base: View, Modal: View> {
     let base: Base
     let isPresented: Binding<Bool>
     let modal: () -> Modal
@@ -450,7 +450,7 @@ struct _AdaptiveModal<Base: View, Modal: View>: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
-    var body: some View {
+    @MainActor @ViewBuilder var body: some View {
         ModalPresentationModifier(
             content: base,
             isPresented: isPresented,
@@ -461,11 +461,12 @@ struct _AdaptiveModal<Base: View, Modal: View>: View {
             itemKey: itemKey)
     }
 }
+extension _AdaptiveModal: View {}
 
 /// A sheet or a full-screen cover written on a form row goes around the row
 /// the form lays out, which keeps its place, as SwiftUI's form keeps a row
 /// under a sheet (measured, `Tools/SwiftUIProbes/Form rows`).
-extension _AdaptiveModal: FormRowRewrapping {
+@MainActor extension _AdaptiveModal: FormRowRewrapping {
     var formRowContent: Base { base }
 
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
@@ -506,7 +507,7 @@ extension View {
     ///   - onDismiss: An optional closure run when the cover is dismissed.
     ///   - content: A ViewBuilder returning the cover's content, called only
     ///     while the cover is presented, each time it is drawn.
-    public func fullScreenCover<Content: View>(
+    nonisolated public func fullScreenCover<Content: View>(
         isPresented: Binding<Bool>,
         onDismiss: (() -> Void)? = nil,
         @ViewBuilder content: @escaping () -> Content
@@ -527,7 +528,7 @@ extension View {
     ///   - onDismiss: An optional closure run when the cover is dismissed.
     ///   - content: A ViewBuilder building the cover from the unwrapped item,
     ///     called only while the cover is presented.
-    public func fullScreenCover<Item: Identifiable, Content: View>(
+    nonisolated public func fullScreenCover<Item: Identifiable, Content: View>(
         item: Binding<Item?>,
         onDismiss: (() -> Void)? = nil,
         @ViewBuilder content: @escaping (Item) -> Content
@@ -584,7 +585,7 @@ extension View {
     ///
     /// - Parameter width: Fixed width of each notification box in characters (default: 40).
     /// - Returns: A view that renders notifications from the environment service.
-    public func notificationHost(
+    nonisolated public func notificationHost(
         width: Int = 40
     ) -> some View {
         NotificationHostModifier(
@@ -603,7 +604,7 @@ extension View {
     /// or untitled where it is `nil`, a dialog whose title is hidden. What
     /// the key-titled overloads make, where the ones titled as written make
     /// the modifier with no source.
-    func titledAlert<Actions: View, Message: View>(
+    nonisolated func titledAlert<Actions: View, Message: View>(
         _ titleKey: LocalizedStringKey?, isPresented: Binding<Bool>, actions: Actions, message: Message?,
         colours: (BorderStyle?, Color?, Color?) = (nil, nil, nil), verticalButtons: Bool = false
     ) -> AlertPresentationModifier<Self, Actions, Message> {

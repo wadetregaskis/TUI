@@ -53,7 +53,7 @@ import TUIFoundation
 ///     Text("180")
 /// }
 /// ```
-public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, MarkedValueLabels: View>: View {
+nonisolated public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, MarkedValueLabels: View>: View {
     /// The normalized position of the value within its bounds (0.0–1.0).
     let fraction: Double
 
@@ -78,7 +78,7 @@ public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, Mar
     /// no built-in style draws marks.
     let markedValueLabels: MarkedValueLabels?
 
-    public var body: some View {
+    @MainActor public var body: some View {
         _GaugeCore(
             fraction: fraction,
             goesBelowZero: goesBelowZero,
@@ -263,9 +263,9 @@ where Label == Text, CurrentValueLabel == EmptyView, BoundsLabel == EmptyView, M
 
 // MARK: - Normalization Helper
 
-extension Gauge {
+@MainActor extension Gauge {
     /// Normalizes a value within bounds to a 0.0–1.0 fraction, clamping.
-    static func normalized<V: BinaryFloatingPoint>(value: V, in bounds: ClosedRange<V>) -> Double {
+    nonisolated static func normalized<V: BinaryFloatingPoint>(value: V, in bounds: ClosedRange<V>) -> Double {
         let lower = Double(bounds.lowerBound)
         let upper = Double(bounds.upperBound)
         guard upper > lower else { return 0 }

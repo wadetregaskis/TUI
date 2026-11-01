@@ -172,7 +172,7 @@ extension View {
     ///
     /// - Parameter variant: The variant to apply.
     /// - Returns: A view whose symbols use the variant.
-    public func symbolVariant(_ variant: SymbolVariants) -> some View {
+    nonisolated public func symbolVariant(_ variant: SymbolVariants) -> some View {
         environment(\.symbolVariants, variant)
     }
 }
@@ -188,7 +188,7 @@ extension View {
 ///
 /// - Important: Framework infrastructure, public only because it appears in
 ///   ``Label``'s generic signature.
-public struct _SymbolIcon: View {
+public struct _SymbolIcon {
     /// The base symbol name, without any variant suffix.
     let name: String
 
@@ -202,7 +202,8 @@ public struct _SymbolIcon: View {
         @Environment(\.symbolGlyphEffect) private var effect
     #endif
 
-    public var body: some View {
+    /// The content and behavior of this view.
+    @MainActor public var body: some View {
         // Nothing at all where the symbol would not really draw. ``Label`` never
         // reaches this — it drops the icon *and* its gap up front — but
         // ``Image/init(systemName:)`` IS this view, with no title to fall back
@@ -227,7 +228,7 @@ public struct _SymbolIcon: View {
     /// `person.square.fill` does not — so a miss is ordinary rather than
     /// exceptional, and drawing the unvaried symbol is much better than drawing
     /// nothing: the label keeps its icon, its width, and its meaning.
-    static func glyph(for name: String, variants: SymbolVariants) -> String {
+    @MainActor static func glyph(for name: String, variants: SymbolVariants) -> String {
         let suffix = variants.nameSuffix
         if !suffix.isEmpty, let varied = SFSymbol.glyph(named: name + suffix) {
             return varied
@@ -235,10 +236,11 @@ public struct _SymbolIcon: View {
         return SFSymbol.glyph(named: name) ?? ""
     }
 }
+extension _SymbolIcon: View {}
 
 // MARK: - Environment without reflection
 
-extension _SymbolIcon: ResolvesOwnEnvironment {
+@MainActor extension _SymbolIcon: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _variants.resolveEnvironment(environment)
         #if canImport(Symbols)

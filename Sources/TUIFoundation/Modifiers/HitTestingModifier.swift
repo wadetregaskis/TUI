@@ -48,7 +48,7 @@ extension View {
     ///
     /// - Parameter enabled: Whether the view may be hit. Default `true`.
     /// - Returns: A view whose hit regions are kept or dropped.
-    public func allowsHitTesting(_ enabled: Bool) -> some View {
+    nonisolated public func allowsHitTesting(_ enabled: Bool) -> some View {
         _HitTestingView(content: self, enabled: enabled)
     }
 }
@@ -92,7 +92,7 @@ extension View {
     /// leave the view out of the hierarchy (`if`/`else`) instead.
     ///
     /// - Returns: A view that occupies its space and shows nothing.
-    public func hidden() -> some View {
+    nonisolated public func hidden() -> some View {
         _HiddenView(content: self)
     }
 }
@@ -106,16 +106,16 @@ extension View {
 /// thing this modifier promises not to do.
 ///
 /// - Important: Framework infrastructure, created by ``View/hidden()``.
-private struct _HiddenView<Content: View>: View, Renderable, Layoutable {
+nonisolated private struct _HiddenView<Content: View>: View, Renderable, Layoutable {
     let content: Content
 
-    var body: Never { fatalError("_HiddenView renders via Renderable") }
+    @MainActor var body: Never { fatalError("_HiddenView renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Rendered with focus SUPPRESSED rather than isolated. Everything a
         // subtree does happens while it renders, and a hidden view is not
         // inert — in SwiftUI it keeps its state, fires its lifecycle, honours
@@ -178,17 +178,17 @@ private struct _HiddenView<Content: View>: View, Renderable, Layoutable {
 ///
 /// - Important: Framework infrastructure, created by
 ///   ``View/allowsHitTesting(_:)``.
-private struct _HitTestingView<Content: View>: View, Renderable, Layoutable {
+nonisolated private struct _HitTestingView<Content: View>: View, Renderable, Layoutable {
     let content: Content
     let enabled: Bool
 
-    var body: Never { fatalError("_HitTestingView renders via Renderable") }
+    @MainActor var body: Never { fatalError("_HitTestingView renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var drawn = TUIView.renderToBuffer(content, context: context)
         guard !enabled else { return drawn }
         // The regions of any ANCHORED overlay the subtree floated have to go
@@ -217,7 +217,7 @@ private struct _HitTestingView<Content: View>: View, Renderable, Layoutable {
 
 /// - Note: Blanking each member is blanking the pair, and the geometry each
 ///   member reports is unchanged — which is the whole point of `.hidden()`.
-extension _HiddenView: ContentRewrapping {
+@MainActor extension _HiddenView: ContentRewrapping {
     /// Its content's geometry is its own — it blanks the cells its content takes, where they are — so a guide
     /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
     static var _keepsContentGeometry: Bool { true }
@@ -234,15 +234,15 @@ extension _HiddenView: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _HiddenView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _HiddenView: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _HiddenView: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension _HiddenView: GridRowProviding where Content: GridRowProviding {}
 
 /// - Note: Dropping each member's hit regions is dropping the pair's; there are
 ///   no regions belonging to the group itself.
-extension _HitTestingView: ContentRewrapping {
+@MainActor extension _HitTestingView: ContentRewrapping {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -255,14 +255,14 @@ extension _HitTestingView: ContentRewrapping {
 
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _HitTestingView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _HitTestingView: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Body deliberately empty: ``GridRowProviding`` has the whole implementation
 /// for a ``SingleContentWrapper``.
-extension _HitTestingView: GridRowProviding where Content: GridRowProviding {}
+@MainActor extension _HitTestingView: GridRowProviding where Content: GridRowProviding {}
 
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension _HitTestingView: DrawsContentUnchanged {}
+@MainActor extension _HitTestingView: DrawsContentUnchanged {}

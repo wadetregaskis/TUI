@@ -56,19 +56,19 @@ private func lifecycleToken(_ prefix: String, _ identity: ViewIdentity) -> Strin
 // MARK: - OnAppear Modifier
 
 /// A modifier that executes an action when a view first appears.
-struct OnAppearModifier<Content: View>: View {
+nonisolated struct OnAppearModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
     /// The action to execute on first appearance.
     let action: () -> Void
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("OnAppearModifier renders via Renderable")
     }
 }
 
-extension OnAppearModifier: Renderable {
+@MainActor extension OnAppearModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Lifecycle bookkeeping is a render-pass side effect: a measure pass must
         // not record appearance, or it would mark the view "appeared" before the
@@ -89,19 +89,19 @@ extension OnAppearModifier: Renderable {
 // MARK: - OnDisappear Modifier
 
 /// A modifier that executes an action when a view disappears.
-struct OnDisappearModifier<Content: View>: View {
+nonisolated struct OnDisappearModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
     /// The action to execute when the view disappears.
     let action: () -> Void
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("OnDisappearModifier renders via Renderable")
     }
 }
 
-extension OnDisappearModifier: Renderable {
+@MainActor extension OnDisappearModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         if !context.isMeasuring {
             // See OnAppearModifier: presence must be re-recorded every frame,
@@ -123,7 +123,7 @@ extension OnDisappearModifier: Renderable {
 /// A modifier that starts an async task when a view appears.
 ///
 /// The task is cancelled when the view disappears.
-struct TaskModifier<Content: View>: View {
+nonisolated struct TaskModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
@@ -160,12 +160,12 @@ struct TaskModifier<Content: View>: View {
     /// The task's name, or `nil` for none.
     var name: String?
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("TaskModifier renders via Renderable")
     }
 }
 
-extension TaskModifier: Renderable {
+@MainActor extension TaskModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         if !context.isMeasuring {
             // See OnAppearModifier: a cached row skipping this bookkeeping
@@ -233,19 +233,19 @@ extension TaskModifier: Renderable {
 // wrapped subtree out of `measureChild`'s render-to-measure fallback, which
 // would otherwise render the content to measure it (on top of the real render).
 
-extension OnAppearModifier: Layoutable {
+@MainActor extension OnAppearModifier: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
 
-extension OnDisappearModifier: Layoutable {
+@MainActor extension OnDisappearModifier: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
 
-extension TaskModifier: Layoutable {
+@MainActor extension TaskModifier: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
@@ -271,7 +271,7 @@ private enum TaskStateIndex {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension OnAppearModifier: SingleContentWrapper {
+@MainActor extension OnAppearModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -282,7 +282,7 @@ extension OnAppearModifier: SingleContentWrapper {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension OnDisappearModifier: SingleContentWrapper {
+@MainActor extension OnDisappearModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -293,7 +293,7 @@ extension OnDisappearModifier: SingleContentWrapper {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
-extension TaskModifier: SingleContentWrapper {
+@MainActor extension TaskModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
@@ -303,19 +303,19 @@ extension TaskModifier: SingleContentWrapper {
 /// An appearance, a disappearance or a task written on a form row is the row's
 /// the form lays out, which keeps its place, as SwiftUI's form keeps it
 /// (measured, `Tools/SwiftUIProbes/Form rows`).
-extension OnAppearModifier: FormRowRewrapping {
+@MainActor extension OnAppearModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
         OnAppearModifier<V>(content: row, action: action)
     }
 }
 
-extension OnDisappearModifier: FormRowRewrapping {
+@MainActor extension OnDisappearModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
         OnDisappearModifier<V>(content: row, action: action)
     }
 }
 
-extension TaskModifier: FormRowRewrapping {
+@MainActor extension TaskModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
         TaskModifier<V>(content: row, task: task, priority: priority, id: id)
     }
@@ -325,6 +325,6 @@ extension TaskModifier: FormRowRewrapping {
 
 /// Each draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
-extension OnAppearModifier: DrawsContentUnchanged {}
-extension OnDisappearModifier: DrawsContentUnchanged {}
-extension TaskModifier: DrawsContentUnchanged {}
+@MainActor extension OnAppearModifier: DrawsContentUnchanged {}
+@MainActor extension OnDisappearModifier: DrawsContentUnchanged {}
+@MainActor extension TaskModifier: DrawsContentUnchanged {}

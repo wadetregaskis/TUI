@@ -182,7 +182,7 @@ import TUIFoundation
 ///         performSearch()
 ///     }
 /// ```
-public struct TextField<Label: View>: View {
+public struct TextField<Label: View> {
     /// The label view describing the field's purpose.
     let label: Label
 
@@ -221,8 +221,9 @@ public struct TextField<Label: View>: View {
     /// frame after frame, so the menu and a memo of it see one value.
     @State private var menuTarget = TextEditingMenuTarget()
 
+    /// The content and behavior of this view.
     @ViewBuilder
-    public var body: some View {
+    @MainActor public var body: some View {
         if let formatting {
             _FormattedFieldBody(
                 formatting: formatting,
@@ -252,6 +253,7 @@ public struct TextField<Label: View>: View {
         }
     }
 }
+extension TextField: View {}
 
 /// What a field shows while it is empty: its prompt, or with none its title,
 /// as SwiftUI's field does — "the text field uses either the prompt or label
@@ -1006,7 +1008,7 @@ extension View {
     /// Styles the entered *text* of every text field in this view's subtree
     /// (a `.control(.textField)`-scoped style entry). The cursor, selection
     /// highlight, and the (dim) prompt keep their own colours.
-    public func textFieldTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
+    nonisolated public func textFieldTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
         style(.control(.textField), build)
     }
 }

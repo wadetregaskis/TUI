@@ -7,7 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-extension Image {
+@MainActor extension Image {
     /// The modes that SwiftUI uses to resize an image to fit within its
     /// containing view — mirrors SwiftUI's `Image.ResizingMode`.
     public enum ResizingMode: Sendable, Hashable {
@@ -62,7 +62,7 @@ extension Image {
     ///   - resizingMode: Whether the parts between the caps stretch or tile.
     ///     Stretch by default.
     /// - Returns: The image, resizable.
-    public func resizable(capInsets: EdgeInsets = EdgeInsets(), resizingMode: ResizingMode = .stretch) -> Image {
+    nonisolated public func resizable(capInsets: EdgeInsets = EdgeInsets(), resizingMode: ResizingMode = .stretch) -> Image {
         var copy = self
         // Held never negative — a cap has no meaning below nothing — and, as
         // every stated length is, short of `Int`'s end, which the slicing's

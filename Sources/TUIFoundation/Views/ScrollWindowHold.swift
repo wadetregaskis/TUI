@@ -98,7 +98,7 @@ extension View {
     ///
     /// - Parameter hold: What stays in place.
     /// - Returns: A view whose scrollables keep `hold` in place.
-    public func scrollWindowHold(_ hold: ScrollWindowHold) -> some View {
+    nonisolated public func scrollWindowHold(_ hold: ScrollWindowHold) -> some View {
         environment(\.scrollWindowHold, hold)
     }
 }

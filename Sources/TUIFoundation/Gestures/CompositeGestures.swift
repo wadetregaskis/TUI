@@ -20,7 +20,7 @@ extension Gesture {
     /// - Parameter other: A gesture that you want to combine with your gesture
     ///   to create a new, combined gesture.
     /// - Returns: A gesture with two simultaneous gestures.
-    public func simultaneously<Other: Gesture>(with other: Other) -> SimultaneousGesture<Self, Other> {
+    nonisolated public func simultaneously<Other: Gesture>(with other: Other) -> SimultaneousGesture<Self, Other> {
         SimultaneousGesture(self, other)
     }
 
@@ -48,7 +48,7 @@ extension Gesture {
     /// - Parameter other: A gesture you want to combine with another gesture
     ///   to create a new, sequenced gesture.
     /// - Returns: A gesture that's a sequence of two gestures.
-    public func sequenced<Other: Gesture>(before other: Other) -> SequenceGesture<Self, Other> {
+    nonisolated public func sequenced<Other: Gesture>(before other: Other) -> SequenceGesture<Self, Other> {
         SequenceGesture(self, other)
     }
 
@@ -65,7 +65,7 @@ extension Gesture {
     /// - Returns: A gesture that's the result of combining two gestures where
     ///   only one of them can succeed. TUI gives precedence to the first
     ///   gesture.
-    public func exclusively<Other: Gesture>(before other: Other) -> ExclusiveGesture<Self, Other> {
+    nonisolated public func exclusively<Other: Gesture>(before other: Other) -> ExclusiveGesture<Self, Other> {
         ExclusiveGesture(self, other)
     }
 }
@@ -74,7 +74,7 @@ extension Gesture {
 
 /// A gesture containing two gestures that can happen at the same time with
 /// neither of them preceding the other.
-public struct SimultaneousGesture<First: Gesture, Second: Gesture>: Gesture {
+nonisolated public struct SimultaneousGesture<First: Gesture, Second: Gesture>: Gesture {
     /// The value of a simultaneous gesture that indicates which of its two
     /// gestures receives events.
     public struct Value {
@@ -105,7 +105,7 @@ public struct SimultaneousGesture<First: Gesture, Second: Gesture>: Gesture {
     /// The type of gesture representing the body of `Self`.
     public typealias Body = Never
 
-    public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
+    @MainActor public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
         let node = inputs.node { SimultaneousGestureNode<First, Second>() }
         node.first = First._makeGesture(gesture: gesture.first, inputs: inputs.child(0)).node
         node.second = Second._makeGesture(gesture: gesture.second, inputs: inputs.child(1)).node
@@ -120,7 +120,7 @@ extension SimultaneousGesture.Value: Hashable where First.Value: Hashable, Secon
 // MARK: - SequenceGesture
 
 /// A gesture that's a sequence of two gestures.
-public struct SequenceGesture<First: Gesture, Second: Gesture>: Gesture {
+nonisolated public struct SequenceGesture<First: Gesture, Second: Gesture>: Gesture {
     /// The value of a sequence gesture that helps to detect whether the first
     /// gesture succeeded, so the second gesture can start.
     public enum Value {
@@ -151,7 +151,7 @@ public struct SequenceGesture<First: Gesture, Second: Gesture>: Gesture {
     /// The type of gesture representing the body of `Self`.
     public typealias Body = Never
 
-    public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
+    @MainActor public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
         let node = inputs.node { SequenceGestureNode<First, Second>() }
         node.first = First._makeGesture(gesture: gesture.first, inputs: inputs.child(0)).node
         node.second = Second._makeGesture(gesture: gesture.second, inputs: inputs.child(1)).node
@@ -166,7 +166,7 @@ extension SequenceGesture.Value: Equatable where First.Value: Equatable, Second.
 
 /// A gesture that consists of two gestures where only one of them can
 /// succeed.
-public struct ExclusiveGesture<First: Gesture, Second: Gesture>: Gesture {
+nonisolated public struct ExclusiveGesture<First: Gesture, Second: Gesture>: Gesture {
     /// The value of an exclusive gesture that indicates which of two gestures
     /// succeeded.
     public enum Value {
@@ -197,7 +197,7 @@ public struct ExclusiveGesture<First: Gesture, Second: Gesture>: Gesture {
     /// The type of gesture representing the body of `Self`.
     public typealias Body = Never
 
-    public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
+    @MainActor public static func _makeGesture(gesture: Self, inputs: _GestureInputs) -> _GestureOutputs<Value> {
         let node = inputs.node { ExclusiveGestureNode<First, Second>() }
         node.first = First._makeGesture(gesture: gesture.first, inputs: inputs.child(0)).node
         node.second = Second._makeGesture(gesture: gesture.second, inputs: inputs.child(1)).node

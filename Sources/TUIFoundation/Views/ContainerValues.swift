@@ -141,20 +141,20 @@ public struct ContainerValues {
 ///
 /// - Important: Framework infrastructure. Created by
 ///   ``View/containerValue(_:_:)``; do not instantiate directly.
-public struct _ContainerValueView<Content: View>: View {
+nonisolated public struct _ContainerValueView<Content: View>: View {
     /// The wrapped content view.
     let content: Content
 
     /// Writes this view's value into a ``ContainerValues``.
     let write: (inout ContainerValues) -> Void
 
-    public var body: some View {
+    @MainActor public var body: some View {
         content
     }
 
     /// Static witness: this view writes a container value — see
     /// ``View/_providesContainerValues``.
-    public static var _providesContainerValues: Bool { true }
+    @MainActor public static var _providesContainerValues: Bool { true }
 }
 
 extension View {
@@ -178,18 +178,18 @@ extension View {
     ///     ``ContainerValues`` structure to update.
     ///   - value: The new value to set for the item specified by `keyPath`.
     /// - Returns: A view that has the given value set in its container values.
-    public func containerValue<V>(
+    nonisolated public func containerValue<V>(
         _ keyPath: WritableKeyPath<ContainerValues, V>, _ value: V
     ) -> some View {
         _ContainerValueView(content: self) { $0[keyPath: keyPath] = value }
     }
 }
 
-extension _ContainerValueView: SingleContentWrapper {
+@MainActor extension _ContainerValueView: SingleContentWrapper {
     public var wrappedContent: Content { content }
 }
 
-extension _ContainerValueView: ContentRewrapping {
+@MainActor extension _ContainerValueView: ContentRewrapping {
     public func rewrapping<V: View>(_ view: V) -> any View {
         _ContainerValueView<V>(content: view, write: write)
     }
@@ -198,7 +198,7 @@ extension _ContainerValueView: ContentRewrapping {
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``ContentRewrapping`` wrapper — each member comes back inside a copy
 /// of this one, carrying the value.
-extension _ContainerValueView: ChildViewProvider where Content: ChildViewProvider {}
+@MainActor extension _ContainerValueView: ChildViewProvider where Content: ChildViewProvider {}
 
 // MARK: - Reading Them
 
@@ -210,7 +210,7 @@ protocol ContainerValueWriting {
     func writeContainerValues(into values: inout ContainerValues)
 }
 
-extension _ContainerValueView: ContainerValueWriting {
+@MainActor extension _ContainerValueView: ContainerValueWriting {
     func writeContainerValues(into values: inout ContainerValues) {
         write(&values)
     }

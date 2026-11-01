@@ -39,7 +39,7 @@ extension View {
     ///     render walk, so it must be a pure function of the value it is handed.
     ///   - body: Builds the modifiers around `content`, a stand-in for this
     ///     view, which keeps the transaction it had.
-    public func transaction<V: View>(
+    nonisolated public func transaction<V: View>(
         _ transform: @escaping (inout Transaction) -> Void,
         @ViewBuilder body: (PlaceholderContentView<Self>) -> V
     ) -> some View {
@@ -69,7 +69,7 @@ extension View {
     /// The modifiers in `body` animate every change of theirs, not only those
     /// made inside `withAnimation`; a subtree that has opted out with
     /// `Transaction.disablesAnimations` stays out.
-    public func animation<V: View>(
+    nonisolated public func animation<V: View>(
         _ animation: Animation?, @ViewBuilder body: (PlaceholderContentView<Self>) -> V
     ) -> some View {
         transaction({ $0.applying(animation) }, body: body)
@@ -91,7 +91,7 @@ extension View where Self: Equatable {
     ///   the view doesn't animate.
     /// - Returns: A view that applies `animation` to this view whenever it
     ///   changes.
-    public func animation(_ animation: Animation?) -> some View {
+    nonisolated public func animation(_ animation: Animation?) -> some View {
         self.animation(animation, value: self)
     }
 }
@@ -102,13 +102,13 @@ extension ViewModifier {
     ///
     /// The view the modifier is applied to keeps the transaction it had, as in
     /// ``View/transaction(_:body:)``.
-    public func transaction(_ transform: @escaping (inout Transaction) -> Void) -> some ViewModifier {
+    nonisolated public func transaction(_ transform: @escaping (inout Transaction) -> Void) -> some ViewModifier {
         _PushPopTransactionModifier(base: self, transform: transform)
     }
 
     /// Returns a new version of the modifier that will apply `animation` to all
     /// animatable values within the modifier.
-    public func animation(_ animation: Animation?) -> some ViewModifier {
+    nonisolated public func animation(_ animation: Animation?) -> some ViewModifier {
         transaction { $0.applying(animation) }
     }
 }
@@ -140,7 +140,7 @@ final class TransactionScope {
 
     /// What the placeholder draws: `content`, at the scope's place, under the
     /// transaction it had.
-    func source<Content: View>(drawing content: Content) -> PlaceholderSource {
+    nonisolated func source<Content: View>(drawing content: Content) -> PlaceholderSource {
         PlaceholderSource(drawing: ScopedPlaceholder(scope: self, content: content))
     }
 
@@ -168,17 +168,17 @@ private struct ScopedPlaceholder<Content: View>: PlaceholderDrawing {
 
 /// The modifiers a ``View/transaction(_:body:)`` built, drawn under the
 /// transformed transaction.
-struct _ScopedTransactionView<Content: View>: View {
+nonisolated struct _ScopedTransactionView<Content: View>: View {
     let content: Content
     let scope: TransactionScope
     let transform: (inout Transaction) -> Void
 
-    var body: Never {
+    @MainActor var body: Never {
         fatalError("_ScopedTransactionView renders via Renderable")
     }
 
     /// `context` under the transformed transaction, having noted what it was.
-    private func scoped(_ context: RenderContext) -> RenderContext {
+    @MainActor private func scoped(_ context: RenderContext) -> RenderContext {
         scope.outer = context.environment.transaction
         scope.identity = context.identity
         var scoped = context
@@ -187,7 +187,7 @@ struct _ScopedTransactionView<Content: View>: View {
     }
 }
 
-extension _ScopedTransactionView: Renderable, Layoutable {
+@MainActor extension _ScopedTransactionView: Renderable, Layoutable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: scoped(context))
     }
@@ -199,11 +199,11 @@ extension _ScopedTransactionView: Renderable, Layoutable {
 
 /// A modifier with a transaction transform of its own — what
 /// ``ViewModifier/transaction(_:)`` returns.
-struct _PushPopTransactionModifier<Base: ViewModifier>: ViewModifier {
+nonisolated struct _PushPopTransactionModifier<Base: ViewModifier>: ViewModifier {
     let base: Base
     let transform: (inout Transaction) -> Void
 
-    func body(content: Content) -> some View {
+    @MainActor func body(content: Content) -> some View {
         content.transaction(transform) { $0.modifier(base) }
     }
 }

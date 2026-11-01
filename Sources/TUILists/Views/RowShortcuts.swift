@@ -331,7 +331,7 @@ extension View {
     ///
     /// - Parameter overrides: The actions to change, and what to bind them to.
     /// - Returns: A view whose lists and tables use those bindings.
-    public func rowShortcuts(_ overrides: [RowAction: ShortcutSet]) -> some View {
+    nonisolated public func rowShortcuts(_ overrides: [RowAction: ShortcutSet]) -> some View {
         environment(\.rowShortcuts, RowShortcuts(overrides))
     }
 }

@@ -14,7 +14,7 @@
     import TUIFoundation
     import TUIImage
 
-    extension Image {
+    @MainActor extension Image {
         /// Creates a labeled image based on a Core Graphics image instance —
         /// mirrors SwiftUI's `init(_:scale:orientation:label:)`.
         ///
@@ -42,7 +42,7 @@
         ///   - scale: The scale factor the image was made for: pixels per point.
         ///   - orientation: The orientation of the image. Up by default.
         ///   - label: The label associated with the image.
-        public init(_ cgImage: CGImage, scale: CGFloat, orientation: Orientation = .up, label: Text) {
+        nonisolated public init(_ cgImage: CGImage, scale: CGFloat, orientation: Orientation = .up, label: Text) {
             self.init(drawingOutOf: cgImage, scale: Double(scale), orientation: orientation)
         }
 
@@ -58,14 +58,14 @@
         ///   - cgImage: The base graphical image.
         ///   - scale: The scale factor the image was made for: pixels per point.
         ///   - orientation: The orientation of the image. Up by default.
-        public init(decorative cgImage: CGImage, scale: CGFloat, orientation: Orientation = .up) {
+        nonisolated public init(decorative cgImage: CGImage, scale: CGFloat, orientation: Orientation = .up) {
             self.init(drawingOutOf: cgImage, scale: Double(scale), orientation: orientation)
         }
 
         /// The scale is in the name as well as in the pixels' sizing, so an
         /// image shown at another scale is another image to a memo that
         /// compares images — their sizes differ.
-        package init(drawingOutOf cgImage: CGImage, scale: Double, orientation: Orientation) {
+        nonisolated package init(drawingOutOf cgImage: CGImage, scale: Double, orientation: Orientation) {
             let scale = _DecodedImage.sanitized(scale)
             let name = "tuikit-cgimage:\(Self.address(of: cgImage))/\(orientation.rawValue)"
             let decoded = _DecodedImage(owner: cgImage, pointSizing: .scale(scale)) {
@@ -76,12 +76,12 @@
 
         /// The address that names an image the app handed over — unique for as
         /// long as the image lives, which `_DecodedImage.owner` sees to.
-        package static func address(of object: AnyObject) -> String {
+        nonisolated package static func address(of object: AnyObject) -> String {
             String(UInt(bitPattern: ObjectIdentifier(object).hashValue), radix: 16)
         }
 
         /// `cgImage`'s pixels, or none if it cannot be drawn out.
-        package static func pixels(of cgImage: CGImage) -> RGBAImage {
+        nonisolated package static func pixels(of cgImage: CGImage) -> RGBAImage {
             (try? PlatformImageLoader().decode(cgImage, maxPixelCount: nil))
                 ?? RGBAImage(width: 0, height: 0, pixels: [])
         }

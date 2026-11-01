@@ -137,7 +137,7 @@ enum _ToolbarItemDrag {
     }
 }
 
-extension _WindowChromeHost {
+@MainActor extension _WindowChromeHost {
     /// Brings the regions of the items drawn to be dragged (``_ToolbarItemDrag``)
     /// in front of every other region of `frame`, the stacked window, and notes
     /// where each is on the screen and the rows of the bar it is drawn in:

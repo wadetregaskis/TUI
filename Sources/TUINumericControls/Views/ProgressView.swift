@@ -72,7 +72,7 @@ import TUIFoundation
 ///
 /// The bar fills the full `availableWidth`. When a label or currentValueLabel
 /// is provided, the view is 2 lines tall; otherwise 1 line.
-public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
+nonisolated public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
     // Declared so the common shape has no padding: the per-pass memos key a
     // view by a hash of its bytes, and padding is whatever the memory held
     // before — skipped by the hash, where a type with none is plain words.
@@ -107,7 +107,7 @@ public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
 
     /// The memberwise shape the stored layout replaced, for the framework's
     /// own callers.
-    init(fractionCompleted: Double?, style: TrackStyle, label: Label?, currentValueLabel: CurrentValueLabel?) {
+    nonisolated init(fractionCompleted: Double?, style: TrackStyle, label: Label?, currentValueLabel: CurrentValueLabel?) {
         (self.fraction, self.flags) = Self.stored(fractionCompleted)
         self.style = style
         self.label = label
@@ -115,14 +115,14 @@ public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
     }
 
     /// The normalized fraction completed (0.0–1.0), or nil for indeterminate.
-    var fractionCompleted: Double? { flags.contains(.determinate) ? fraction : nil }
+    @MainActor var fractionCompleted: Double? { flags.contains(.determinate) ? fraction : nil }
 
     /// The two stored halves of a fraction that may be absent.
-    private static func stored(_ fraction: Double?) -> (Double, ProgressFlags) {
+    nonisolated private static func stored(_ fraction: Double?) -> (Double, ProgressFlags) {
         (fraction ?? 0, fraction != nil ? .determinate : [])
     }
 
-    @ViewBuilder public var body: some View {
+    @ViewBuilder @MainActor public var body: some View {
         if flags.contains(.timer) {
             // One entry a second across the interval, and none after it: the
             // bar and a default label move on whole seconds, as a timer's text
@@ -136,14 +136,14 @@ public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
     }
 
     /// The progress drawn through the style in force.
-    private func styled(fractionCompleted: Double?) -> _StyledProgressView<Label, CurrentValueLabel> {
+    @MainActor private func styled(fractionCompleted: Double?) -> _StyledProgressView<Label, CurrentValueLabel> {
         _StyledProgressView(
             fractionCompleted: fractionCompleted, track: style, label: label, currentValueLabel: currentValueLabel)
     }
 
     /// How far through the timer interval `date` is — what is left of it when
     /// counting down — as a fraction of the whole.
-    private func timerFraction(at date: Date) -> Double {
+    @MainActor private func timerFraction(at date: Date) -> Double {
         let span = timerEnd - timerStart
         guard span > 0 else { return flags.contains(.countsDown) ? 0 : 1 }
         let elapsed = min(1, max(0, (date.timeIntervalSinceReferenceDate - timerStart) / span))
@@ -327,7 +327,7 @@ extension ProgressView {
 
 // MARK: - Equatable Conformance
 
-extension ProgressView: @preconcurrency Equatable where Label: Equatable, CurrentValueLabel: Equatable {
+extension ProgressView: Equatable where Label: Equatable, CurrentValueLabel: Equatable {
     public static func == (lhs: ProgressView<Label, CurrentValueLabel>, rhs: ProgressView<Label, CurrentValueLabel>) -> Bool {
         // Every stored property: two timers over different intervals draw
         // different bars, and a memo keyed on this answer serves one for the
@@ -341,9 +341,9 @@ extension ProgressView: @preconcurrency Equatable where Label: Equatable, Curren
 
 // MARK: - Normalization Helper
 
-extension ProgressView {
+@MainActor extension ProgressView {
     /// Normalizes value/total to a 0.0–1.0 fraction, clamping out-of-range values.
-    static func normalizedFraction<V: BinaryFloatingPoint>(value: V?, total: V) -> Double? {
+    nonisolated static func normalizedFraction<V: BinaryFloatingPoint>(value: V?, total: V) -> Double? {
         guard let value else { return nil }
         guard total > 0 else { return 0.0 }
         return min(1.0, max(0.0, Double(value) / Double(total)))

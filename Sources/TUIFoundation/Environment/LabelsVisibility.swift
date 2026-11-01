@@ -66,7 +66,7 @@ extension View {
     /// content, not the control's label, and stays.
     ///
     /// - Returns: A view whose controls draw no labels.
-    public func labelsHidden() -> some View {
+    nonisolated public func labelsHidden() -> some View {
         labelsVisibility(.hidden)
     }
 
@@ -79,7 +79,7 @@ extension View {
     ///   `.visible` and `.automatic` both draw it, a terminal control having no
     ///   second policy for `.automatic` to defer to.
     /// - Returns: A view whose controls draw labels as stated.
-    public func labelsVisibility(_ visibility: Visibility) -> some View {
+    nonisolated public func labelsVisibility(_ visibility: Visibility) -> some View {
         environment(\.labelsVisibility, visibility)
     }
 }

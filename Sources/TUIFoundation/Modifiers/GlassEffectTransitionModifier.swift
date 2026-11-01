@@ -65,7 +65,7 @@ extension View {
     ///
     /// - Parameter transition: How the glass arrives.
     /// - Returns: The view, its glass arriving so.
-    public func glassEffectTransition(_ transition: GlassEffectTransition) -> some View {
+    nonisolated public func glassEffectTransition(_ transition: GlassEffectTransition) -> some View {
         environment(\.glassEffectTransition, transition)
     }
 
@@ -83,7 +83,7 @@ extension View {
     ///   - id: The glass's identity, or `nil` for none.
     ///   - namespace: The namespace the id is in.
     /// - Returns: The view, its glass identified.
-    public func glassEffectID(_ id: (some Hashable & Sendable)?, in namespace: Namespace.ID) -> some View {
+    nonisolated public func glassEffectID(_ id: (some Hashable & Sendable)?, in namespace: Namespace.ID) -> some View {
         environment(\.glassEffectID, id.map { GlassNamespacedID(namespace: namespace, id: AnyHashable($0)) })
     }
 }
