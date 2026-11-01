@@ -62,6 +62,7 @@ core files (RLIMIT_CORE 0 in the child).
 """
 
 import atexit
+import faulthandler
 import fcntl
 import os
 import re
@@ -97,8 +98,13 @@ SCRATCH = tempfile.mkdtemp(prefix="tuikit-quit-smoke-")
 atexit.register(shutil.rmtree, SCRATCH, ignore_errors=True)
 
 
+# macOS 26's Swift 6.4 lane sat here until its 20-minute step limit, once, and showed
+# nothing, its output still buffered. This says which line it was stuck on, and fails.
+faulthandler.dump_traceback_later(420, exit=True)
+
+
 def check(condition, label):
-    print(("ok   " if condition else "FAIL ") + label)
+    print(("ok   " if condition else "FAIL ") + label, flush=True)
     if not condition:
         failures.append(label)
 
