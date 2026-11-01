@@ -1,0 +1,40 @@
+onScreen=false macOS=Version 15.8.1 (Build 24H32)
+button plain     click  control: actions=2 body-runs-before-each=[0,0] body-runs-total=0
+button plain     click  gated  : actions=1 body-runs-before-each=[0] body-runs-total=1
+button plain     click  paused : actions=1 body-runs-before-each=[0] body-runs-total=1
+button bordered  click  control: actions=2 body-runs-before-each=[0,0] body-runs-total=0
+button bordered  click  gated  : actions=1 body-runs-before-each=[0] body-runs-total=1
+button bordered  click  paused : actions=1 body-runs-before-each=[0] body-runs-total=1
+issue's form     click  control: actions=2 body-runs-before-each=[0,0] body-runs-total=0
+issue's form     click  gated  : actions=1 body-runs-before-each=[0] body-runs-total=1
+issue's form     click  paused : actions=1 body-runs-before-each=[0] body-runs-total=1
+write in a Task  click  control: actions=2 body-runs-before-each=[0,0] body-runs-total=0
+write in a Task  click  gated  : actions=1 body-runs-before-each=[0] body-runs-total=1
+write in a Task  click  paused : actions=1 body-runs-before-each=[0] body-runs-total=1
+write in a Task  cmd-k  control: actions=2 body-runs-before-each=[0,0] body-runs-total=0
+write in a Task  cmd-k  gated  : actions=1 body-runs-before-each=[0] body-runs-total=1
+write in a Task  cmd-k  paused : actions=1 body-runs-before-each=[0] body-runs-total=1
+onTapGesture     click  control: actions=2 body-runs-before-each=[0,0] body-runs-total=0
+onTapGesture     click  gated  : actions=1 body-runs-before-each=[0] body-runs-total=1
+onTapGesture     click  paused : actions=1 body-runs-before-each=[0] body-runs-total=1
+toggle checkbox  click  control: actions=2 body-runs-before-each=[0,1] body-runs-total=2
+toggle checkbox  click  gated  : actions=1 body-runs-before-each=[0] body-runs-total=1
+toggle checkbox  click  paused : actions=1 body-runs-before-each=[0] body-runs-total=1
+link             click  control: actions=2 body-runs-before-each=[0,0] body-runs-total=0
+link             click  gated  : actions=1 body-runs-before-each=[0] body-runs-total=1
+link             click  paused : actions=1 body-runs-before-each=[0] body-runs-total=1
+focused button   space  control: actions=2 body-runs-before-each=[0,0] body-runs-total=0
+focused button   space  gated  : actions=1 body-runs-before-each=[0] body-runs-total=1
+focused button   space  paused : actions=1 body-runs-before-each=[0] body-runs-total=1
+defaultAction    return control: actions=2 body-runs-before-each=[0,0] body-runs-total=0
+defaultAction    return gated  : actions=1 body-runs-before-each=[0] body-runs-total=2
+defaultAction    return paused : actions=1 body-runs-before-each=[0] body-runs-total=2
+keyboardShortcut cmd-k  control: actions=2 body-runs-before-each=[0,0] body-runs-total=0
+keyboardShortcut cmd-k  gated  : actions=1 body-runs-before-each=[0] body-runs-total=2
+keyboardShortcut cmd-k  paused : actions=1 body-runs-before-each=[0] body-runs-total=2
+onSubmit         return control: actions=2 body-runs-before-each=[0,0] body-runs-total=0
+onSubmit         return gated  : actions=1 body-runs-before-each=[0] body-runs-total=2
+onSubmit         return paused : actions=1 body-runs-before-each=[0] body-runs-total=2
+textfield typing a a    control: actions=2 body-runs-before-each=[0,1] body-runs-total=2
+textfield typing a a    gated  : actions=1 body-runs-before-each=[0] body-runs-total=1
+textfield typing a a    paused : actions=1 body-runs-before-each=[0] body-runs-total=1

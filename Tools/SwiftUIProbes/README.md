@@ -1017,6 +1017,21 @@ messages cite that path), and what cites it.
   `Sources/TUIFoundation/Views/KeyboardShortcutRegistry.swift`;
   `Tests/TUICommandsTests/CommandsCollectionTests.swift`.
 
+### Disabled between queued events
+
+- **Asks:** whether a `.disabled` written by one activation applies before a second activation already queued
+  behind it (`queued.swift`). Each case posts all its `NSEvent`s from one main-queue job and lets `NSApp.run()`
+  deliver them: a `Button` clicked (plain and bordered), Space on a focused one, a default action's Return, a
+  `.keyboardShortcut`, an `onTapGesture`, a checkbox `Toggle`, a `Link`, a field's `onSubmit` and a character typed
+  into a field, with the write made at once or first thing in a `Task`. Each runs with no `.disabled`, which runs
+  the action twice, so one is not a lost event; with it, which runs it once in every case; and with it and 0.3 s
+  between the presses. `PROBE_ONSCREEN=1` puts the window on the screen, with the same counts. `menu.swift` asks the
+  same of a `CommandMenu` item's key equivalent, and is **inconclusive**: its `.disabled` did not take effect at all
+  in the probe, even with half a second between the presses.
+- **Ran:** macOS 15.8.1, the macOS 26.2 SDK, 2026-10-31.
+- **Cited by:** `Sources/TUIApp/App/ActivationHold.swift`, `Tools/Smoke/activation_batch_smoke.py`,
+  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`.
+
 ### Dropped members (RC5)
 
 - **Asks:** what SwiftUI shows of content that is not what its container sorts its members by: a `Picker`'s

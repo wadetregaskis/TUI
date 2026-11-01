@@ -47,6 +47,10 @@ import TUI
 // `IDLE_PROBE_CHILD_PIDFILE`, in any mode: a child in the app's process group
 // (bottom of this file). `Tools/Smoke/no_terminal_smoke.py` wants it too, for
 // what an app does with no terminal (`IDLE_PROBE_NO_TERMINAL`, on the app).
+//
+// One mode serves `Tools/Smoke/activation_batch_smoke.py`: `presses` puts one
+// control on screen and logs what the app does to a file (`Presses`), for what
+// the run loop does with presses that arrive together.
 
 // MARK: - Mode
 
@@ -73,6 +77,9 @@ enum ProbeMode: String {
     /// app stuck in a loop or a blocking call: what the user's quit key, `⌃\`,
     /// has to end anyway.
     case hang
+    /// One control, whose action disables it: what two presses read in one
+    /// batch do. See ``Presses``.
+    case presses
 
     static var current: Self {
         ProcessInfo.processInfo.environment["IDLE_PROBE_MODE"]
@@ -86,6 +93,11 @@ private let imagePath =
 // MARK: - The app
 
 struct IdleProbeApp: App {
+    /// The frame-rate cap, from `IDLE_PROBE_MAX_FPS` (`Presses`).
+    var maxFrameRate: Int {
+        ProcessInfo.processInfo.environment["IDLE_PROBE_MAX_FPS"].flatMap(Int.init) ?? 60
+    }
+
     var body: some Scene {
         WindowGroup {
             ProbeContent()
@@ -158,6 +170,99 @@ private struct ProbeContent: View {
                         while true { Thread.sleep(forTimeInterval: 1) }
                     }
                 }
+        case .presses:
+            Presses()
+        }
+    }
+}
+
+/// The `presses` mode: one control (`IDLE_PROBE_CONTROL`), written the way the
+/// common SwiftUI program writes it, its action setting the state that disables
+/// it, and a log of what happened, one line each, with the time, in
+/// `IDLE_PROBE_LOG`: `body`, for each evaluation of this view; `ran n`, for the
+/// action; `key x`, for a key nothing took first.
+///
+/// `IDLE_PROBE_GATED=0` leaves the `.disabled` off, so a test can tell one
+/// action from a lost press. `IDLE_PROBE_TASK_WRITE=1` makes the disabling write
+/// the first thing a `Task` does. `IDLE_PROBE_FRAME_MS` makes every frame take
+/// that long, on the main thread, as an app's slow body would; and
+/// `IDLE_PROBE_MAX_FPS` sets the frame-rate cap.
+private struct Presses: View {
+    @State private var isSaving = false
+    @State private var runs = 0
+    @State private var isOn = false
+    @State private var text = ""
+    @State private var selection: Int?
+
+    private static let environment = ProcessInfo.processInfo.environment
+    private static let control = environment["IDLE_PROBE_CONTROL"] ?? "button"
+    private static let gated = environment["IDLE_PROBE_GATED"] != "0"
+    private static let writesInTask = environment["IDLE_PROBE_TASK_WRITE"] == "1"
+    private static let frameSeconds = (Double(environment["IDLE_PROBE_FRAME_MS"] ?? "") ?? 0) / 1000
+    private static let log: FileHandle? = environment["IDLE_PROBE_LOG"].flatMap { path in
+        FileManager.default.createFile(atPath: path, contents: nil)
+        return FileHandle(forWritingAtPath: path)
+    }
+
+    private static func note(_ line: String) {
+        let time = String(format: "%.3f", Date().timeIntervalSince1970)
+        log?.write(Data("\(time) \(line)\n".utf8))
+    }
+
+    private func ran() {
+        runs += 1
+        Self.note("ran \(runs)")
+        if Self.writesInTask {
+            Task { isSaving = true }
+        } else {
+            isSaving = true
+        }
+    }
+
+    var body: some View {
+        let _ = Self.note("body \(text.count)")
+        let _ = Thread.sleep(forTimeInterval: Self.frameSeconds)
+        VStack(alignment: .leading) {
+            Text("idle probe — presses")
+            subject.disabled(Self.gated && isSaving)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .onKeyEvent { event in
+            if event.phase == .press { Self.note("key \(event.key)") }
+            return false
+        }
+    }
+
+    @ViewBuilder private var subject: some View {
+        switch Self.control {
+        case "toggle":
+            Toggle("Save", isOn: Binding(get: { isOn }, set: { isOn = $0; ran() }))
+        case "tap":
+            Text("Save").onTapGesture { ran() }
+        case "link":
+            Link("Save", destination: URL(string: "https://example.com")!)
+                .environment(\.openURL, OpenURLAction { _ in
+                    MainActor.assumeIsolated { ran() }
+                    return .handled
+                })
+        case "shortcut":
+            Button("Save") { ran() }.keyboardShortcut("s", modifiers: .control)
+        case "default":
+            Button("Save") { ran() }.keyboardShortcut(.defaultAction)
+        case "menu":
+            Menu("Actions") {
+                Button("Save") { ran() }
+            }
+        case "field":
+            TextField("Name", text: $text)
+        case "submit":
+            TextField("Name", text: $text).onSubmit { ran() }
+        case "list":
+            List(selection: $selection) {
+                ForEach(0..<200, id: \.self) { Text("row \($0)") }
+            }
+        default:
+            Button("Save") { ran() }
         }
     }
 }

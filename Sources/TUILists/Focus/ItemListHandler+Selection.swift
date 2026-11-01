@@ -23,6 +23,7 @@ extension ItemListHandler {
     func handleSelectionKey(_ key: Key) {
         isExtendingSelection = false
         if key == .enter, let primaryAction, let id = id(at: focusedIndex) {
+            AmbientApp.renderState?.noteControlActivated()
             primaryAction(id)
             return
         }

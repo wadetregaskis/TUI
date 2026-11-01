@@ -26,6 +26,10 @@ package protocol AppRenderState: AnyObject, Sendable {
     /// Asks the app's run loop to exit.
     func requestExit()
 
+    /// A control has just run its action, in answer to a press: the run loop
+    /// draws what it did before it reads any more input (`ActivationHold`).
+    func noteControlActivated()
+
     /// A ``withTransaction(_:_:)`` scope run in the app's work has ended, with
     /// `transaction` in force for whatever it changed: the app may take it for
     /// a change whose own report carried none.

@@ -28,6 +28,7 @@ func combinedSubmitAction(
     let matching = actions.filter { !$0.triggers.isDisjoint(with: role) }
     guard perField != nil || !matching.isEmpty else { return nil }
     return {
+        AmbientApp.renderState?.noteControlActivated()
         perField?()
         // Inner-first: the environment appends outer-first, so a descendant's
         // `.onSubmit` is later in the array and must fire before an ancestor's.

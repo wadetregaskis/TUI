@@ -408,6 +408,7 @@ public struct StatusBarItem: StatusBarItemProtocol, Identifiable, @unchecked Sen
 extension StatusBarItem {
     /// Executes the item's action.
     public func execute() {
+        if action != nil { AmbientApp.renderState?.noteControlActivated() }
         action?()
     }
 

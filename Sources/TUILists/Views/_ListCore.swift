@@ -3694,6 +3694,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // This gesture is spent: the next press begins a new count, so a
             // second double-click opens once more rather than once per click.
             dispatcher.endMultiClickSequence()
+            AmbientApp.renderState?.noteControlActivated()
             primaryAction(id)
             return
         }

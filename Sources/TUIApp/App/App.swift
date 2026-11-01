@@ -621,6 +621,9 @@ extension AppRunner {
         var pacer = FramePacer(
             maxFrameRate: app.maxFrameRate,
             startedAtNanos: MonotonicClock.nowNanoseconds)
+        // What keeps the input behind a control's action unread until a frame
+        // has drawn the action.
+        var hold = ActivationHold()
         let renderOneFrame = {
             let frame = self.renderFrame(
                 renderer: renderer,
@@ -708,10 +711,14 @@ extension AppRunner {
             // Read + dispatch all pending terminal events (non-blocking),
             // BEFORE the render so a keypress / mouse action shows up in the
             // same frame it triggers. Extracted so the main loop stays legible.
-            drainTerminalEvents(
-                inputHandler: inputHandler,
-                renderer: renderer,
-                cursorTimer: cursorTimer)
+            //
+            // If an action ended it, a `Task` the action started has its first
+            // slice before the frame, so the frame shows what it writes first:
+            // `Task { isSaving = true; … }` disables a button as a plain write
+            // does, in SwiftUI too.
+            if drainTerminalEvents(inputHandler: inputHandler, renderer: renderer, cursorTimer: cursorTimer, hold: &hold) {
+                await Task.yield()
+            }
 
             // Fold a state change, and any animation tick the cheap path could
             // not serve, into the pending-render flag.
@@ -731,7 +738,11 @@ extension AppRunner {
             // cleared. The render moves both the cap and the next deadline
             // strictly past `now`, so the wait computed below is always a real
             // positive interval, never a spurious "block forever".
-            pacer.renderIfDue(now: now, renderOneFrame)
+            //
+            // If an action was waiting for this frame, what is behind it goes
+            // next, with no wait. Bytes already read would wake nothing, and the
+            // wait would be the input poll's, for nothing.
+            if pacer.renderIfDue(now: now, renderOneFrame), hold.frameDrawn() { continue }
 
             // What is owed between frames — the progress bar, sent again where
             // it is due — and then how long to wait, or nil to block until woken.
@@ -1156,20 +1167,47 @@ extension AppRunner {
     /// through plain (non-`@State`) handler properties that don't themselves
     /// call `setNeedsRender()`, so without this an arrow-key List navigation
     /// would move the selection but never repaint.
+    ///
+    /// A control's action ends the reading, whatever is behind it, and it stays
+    /// ended until a frame has drawn the action (``ActivationHold``): a later
+    /// call reads what is left, in order. Until then a call only moves what has
+    /// reached the descriptor into the terminal's buffer. The read source is
+    /// level-triggered, so a byte left there would wake the loop over and over
+    /// until the frame-rate cap cleared.
+    ///
+    /// - Returns: Whether an action ended the reading in this call.
     fileprivate func drainTerminalEvents(
         inputHandler: InputHandler,
         renderer: RenderLoop<A>,
-        cursorTimer: CursorTimer
-    ) {
+        cursorTimer: CursorTimer,
+        hold: inout ActivationHold
+    ) -> Bool {
         // The loop is reading its input: what tells the stall watchdog it is
         // not stalled. If it popped the kitty flags while the loop was, push
         // them back before reading what came in meanwhile.
         #if !canImport(WASILibc)
             if terminal.writeGate.noteDrain() { terminal.recoverFromStall() }
         #endif
+        guard !hold.isHolding else {
+            terminal.appendDrain()
+            return false
+        }
         var eventsProcessed = 0
         let maxEventsPerFrame = 128
-        while eventsProcessed < maxEventsPerFrame, let input = terminal.readEvent() {
+        var stoppedForAction = false
+        while true {
+            // Before each read rather than after each event, so an action run
+            // between drains (a key owed after a frame) holds the next read too.
+            if appState.consumeControlActivated(), hold.actionRan(atNanos: MonotonicClock.nowNanoseconds) {
+                appState.setNeedsRender()
+                stoppedForAction = true
+                break
+            }
+            guard eventsProcessed < maxEventsPerFrame else { break }
+            guard let input = terminal.readEvent() else {
+                hold.readEverything()
+                break
+            }
             switch input {
             case .key(let keyEvent):
                 focusManager.noteInputSource(.keyboard)
@@ -1237,6 +1275,7 @@ extension AppRunner {
         // The pointer may have moved onto another style: shown now, with no
         // frame needed for it.
         showPointerShape()
+        return stoppedForAction
     }
 
     fileprivate func cleanup(renderer: RenderLoop<A>) {

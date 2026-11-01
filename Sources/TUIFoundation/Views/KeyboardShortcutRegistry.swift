@@ -318,6 +318,7 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
                 ?? defaultEntry(
                     for: trigger, activePane: activePane, reachesPage: reachesPage, modalSection: modalSection)?.action
         else { return false }
+        AmbientApp.renderState?.noteControlActivated()
         action()
         return true
     }

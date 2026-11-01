@@ -1,0 +1,10 @@
+--- gated, batched
+gated=true item=["Save"] key=true active=true
+batched: actions=2 itemEnabled=true
+--- gated, paused
+gated=true item=["Save"] key=true active=true
+after first: actions=1 itemEnabled=true
+paused: actions=2 itemEnabled=true
+--- control, batched
+gated=false item=["Save"] key=true active=true
+batched: actions=2 itemEnabled=true

@@ -579,6 +579,9 @@ private struct _ButtonCore: View, Renderable, Layoutable {
             ? context.environment.dismissMenu : nil
         let action = self.action
         let effectiveAction: () -> Void = {
+            // Every way of pressing a button comes through here: Return and
+            // Space, a click, a shortcut, a menu's row.
+            AmbientApp.renderState?.noteControlActivated()
             action()
             dismissMenu?()
         }
@@ -695,6 +698,7 @@ private struct _ButtonCore: View, Renderable, Layoutable {
             role: role,
             label: ButtonStyleConfiguration.Label(title: title(in: context), view: labelView),
             action: {
+                AmbientApp.renderState?.noteControlActivated()
                 action()
                 dismissMenu?()
             })

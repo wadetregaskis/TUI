@@ -60,6 +60,22 @@ The original terminal settings are saved and restored during cleanup.
 
 @Image(source: "lifecycle-main-loop.svg", alt: "Flowchart of the main loop: run() performs terminal setup, registers observers, prepares timers, renders the first frame, then loops checking shouldShutdown, consuming the resize flag to invalidate the diff cache, rendering at most once per frame interval when a render is pending, draining key and mouse events and dispatching them, and otherwise blocking until woken by input, a render request, or a signal. On shouldShutdown, cleanup restores the terminal and exits.")
 
+### Presses that arrive together
+
+Input bunches: over ssh, during a slow frame, when a key repeats faster than the frame rate. The loop handles everything waiting before it draws, so a hundred typed characters or sixty arrow keys cost one frame. A control's action is the exception. The loop stops reading after it, draws, and carries on from the next event, so this works as it does in SwiftUI, however quickly the second press follows:
+
+```swift
+Button("Save") {
+    isSaving = true
+    Task { await model.save(); isSaving = false }
+}
+.disabled(isSaving)
+```
+
+What stops the reading is a `Button` however it is pressed, a `Toggle`, a `Link`, a tap, a `.keyboardShortcut`, a menu's row, `onSubmit`, a status-bar item's action and a row's primary action. Typing, arrow keys, moving the focus, scrolling, a drag, a paste and a `Stepper`'s or a `Slider`'s change of value do not. The frame waits for `App.maxFrameRate` like any other, and nothing is dropped: the rest follows in order. A `Task` the action started runs up to its first suspension before the frame, so a `.disabled` it writes first counts too.
+
+A key held on a button that stays enabled gets a frame per press. If frames are slower than the repeat, the loop falls behind, and after a quarter of a second it stops drawing between actions until it has caught up, so the action stops within a frame or so of that after the key is released.
+
 ### Re-render Triggers
 
 Several sources cause a new frame to be rendered. Each sets state the loop checks and `wake()`s the loop if it is currently idle-blocked:

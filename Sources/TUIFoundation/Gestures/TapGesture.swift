@@ -261,6 +261,7 @@ final class TapGestureNode<Value>: GestureNode<Value> {
                 clicks = 0
                 timer.disarm()
                 phase = .ended
+                AmbientApp.renderState?.noteControlActivated()
                 report(makeValue(pointer))
             } else {
                 releaseTime = pointer.timeNanos

@@ -43,6 +43,9 @@ package final class AppState: Sendable {
         var pendingAnimationClocks: Set<AnimationClock> = []
         var needsCacheClear = false
         var shouldExit = false
+        /// Whether a control ran its action since the run loop last asked
+        /// (``noteControlActivated()``).
+        var controlActivated = false
         /// The language the scene states at its root (``rootLanguage``).
         var rootLanguage: String?
         var observers: [@Sendable () -> Void] = []
@@ -280,6 +283,27 @@ extension AppState {
 /// What code with no handle on its app reaches through `AmbientApp`: the
 /// requests above, of the app whose event, frame or task is running.
 extension AppState: AppRenderState {
+    /// Notes that a control has just run its action, for the run loop, which
+    /// reads this after each event it handles (``consumeControlActivated()``)
+    /// and draws what the action did before it reads the next one. A press read
+    /// right behind it then finds a `.disabled` the action wrote in force, as
+    /// it does in SwiftUI (`ActivationHold`). What notes it is where a control
+    /// runs its action, whichever way it was pressed; typing, moving the focus
+    /// and scrolling do not.
+    package func noteControlActivated() {
+        lock.withLock { $0.controlActivated = true }
+    }
+
+    /// Consumes and returns whether a control has run its action since the last
+    /// call.
+    package func consumeControlActivated() -> Bool {
+        lock.withLock { state in
+            let value = state.controlActivated
+            state.controlActivated = false
+            return value
+        }
+    }
+
     /// The language the app's scene states at its root, as the run loop read
     /// it on the last frame (``noteRootLanguage(_:)``), or `nil` for the
     /// process's own. What `LocalizationService` reads the app's words in,

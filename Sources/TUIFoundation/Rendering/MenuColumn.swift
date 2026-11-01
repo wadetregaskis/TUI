@@ -96,6 +96,7 @@ final class MenuRowSink {
     /// (``MenuPopupController/choose(_:byKeyboard:)``).
     func activate(ordinal: Int) {
         guard let row = rows[ordinal], row.isEnabled, row.submenu == nil else { return }
+        AmbientApp.renderState?.noteControlActivated()
         row.action()
     }
 

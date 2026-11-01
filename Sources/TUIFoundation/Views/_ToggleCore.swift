@@ -740,7 +740,10 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             let binding = context.undoable(isOn, propertyIndex: StateIndex.undo)
             let handler = ActionHandler(
                 focusID: persistedFocusID,
-                action: { binding.wrappedValue.toggle() },
+                action: {
+                    AmbientApp.renderState?.noteControlActivated()
+                    binding.wrappedValue.toggle()
+                },
                 canBeFocused: !isDisabled
             )
             FocusRegistration.register(
@@ -923,6 +926,7 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
                 return true
             case .released where event.button == .left:
                 focusManager?.focus(id: captureFocusID)
+                AmbientApp.renderState?.noteControlActivated()
                 toggleBinding.wrappedValue.toggle()
                 return true
             default:

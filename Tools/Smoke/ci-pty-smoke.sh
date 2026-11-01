@@ -158,6 +158,13 @@ echo "── no terminal, and renderOnce ──"
 echo "── ⌃\\ and SIGQUIT: a quit, not a crash, even when hung ──"
 "$PY" "$HERE/quit_key_smoke.py" "$BUILD_DIR/IdleProbe"
 
+# Presses that arrive together: a control's action is drawn before the next
+# event is read, by every route, while typing, arrows and a paste stay one batch.
+# Only the real loop does this, and nothing but a PTY reaches it. Against
+# IdleProbe's `presses` mode. About forty short runs.
+echo "── presses in one write: each sees what the last one did ──"
+"$PY" "$HERE/activation_batch_smoke.py" "$BUILD_DIR/IdleProbe"
+
 # The same class, for the colour exchange: the terminal's colours are asked
 # once, with the request its host needs, and published before RenderLoop draws
 # its first frame (under tmux the sixteen slots follow that frame, once, rather

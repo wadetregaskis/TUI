@@ -2485,6 +2485,22 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 ---
 
+### F3. Only a control's action is drawn before the next input event
+
+SwiftUI brings a view up to date between any two queued events, so a `.disabled` written by one press stops the
+press right behind it, and a `.disabled` written as a character is typed stops the next character (measured on
+macOS 15.8: `Tools/SwiftUIProbes/Disabled between queued events`). TUI does the first and not the second. It draws
+after a control's action, and reads on: a `Button` however it is pressed, a `Toggle`, a `Link` or a link in a `Text`,
+a tap, a `.keyboardShortcut`, a menu's row, a field's `onSubmit`, a status-bar item's action (which is what Escape
+on an alert is), a row's primary action. Everything else waiting is handled in one batch, as ever, and drawn once: typing, arrow
+keys, moving the focus, scrolling, a drag, a paste, and a `Stepper`'s, a `Slider`'s or a `Picker`'s change of value.
+
+A frame per event would be wasted on them, and a pasted or quickly typed line would cost one frame per character. A
+state a typed character writes, or a value a `Stepper` changes, reaches the view at the end of the batch. Once a
+held key has left the loop behind by a quarter of a second, even an action does not stop it until it has caught up
+(`ActivationHold`), or a key held on slow frames would go on acting for seconds after its release. Every press
+still runs.
+
 ## Slated to change
 
 Known differences that are not meant to stay, and open ones nobody has ruled

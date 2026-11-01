@@ -206,6 +206,7 @@ private struct _TextLinks: View {
         // goes on a machine that may not be the user's.
         let activate: (Int, URL) -> Void = { run, destination in
             guard stops.gate(run).allows(nowNanos: MonotonicClock.nowNanoseconds) else { return }
+            AmbientApp.renderState?.noteControlActivated()
             switch activation {
             case .open: open(destination)
             case .copy: _ = clipboard.write(destination.absoluteString, announcingSuccess: true)
