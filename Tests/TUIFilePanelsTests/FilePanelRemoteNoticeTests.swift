@@ -41,7 +41,7 @@ struct FilePanelRemoteNoticeTests {
     /// A panel over `fixture`'s root, judged on `session`.
     private func panel(
         _ fixture: FilePanelFixture, caller: FilePanelCaller, session: SessionLocality.Judgement,
-        emoji: Bool = false, visibility: Visibility = .automatic
+        emoji: Bool = false, visibility: Visibility = .automatic, hostName: String = "build-box"
     ) -> some View {
         FilePanelPresenter(
             content: Text("Page"), isPresented: caller.binding,
@@ -54,7 +54,7 @@ struct FilePanelRemoteNoticeTests {
         )
         .fileDialogRemoteNotice(visibility)
         .environment(\.supportsEmojiChrome, emoji)
-        .environment(\.filePanelSession, FilePanelSession(judgement: session, hostName: "build-box"))
+        .environment(\.filePanelSession, FilePanelSession(judgement: session, hostName: hostName))
     }
 
     @Test("Browsing another machine, the panel says so on the line above the path, after a bold !")
@@ -76,6 +76,19 @@ struct FilePanelRemoteNoticeTests {
         driver.press(.character("g"))
         driver.press(.enter)
         #expect(caller.chosenPaths == [fixture.url("gamma.pdf").path])
+    }
+
+    /// A cloud machine's name is often this long. It filled the line, and "not
+    /// your local machine", the words that say what the notice means, were cut off.
+    @Test("A long machine name wraps the sentence, and keeps all of it")
+    func longMachineName() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let host = "iad20-fj924-989f5eb8-1b39-4289-816c-d54e8ad40c21"
+        let driver = FilePanelDriver { panel(fixture, caller: caller, session: .remote, hostName: host) }
+        let shown = await driver.waitFor("your local machine.")
+        #expect(shown.contains(host), "\(shown)")
     }
 
     @Test("Where emoji chrome draws, the sign is the alert's ⚠️")

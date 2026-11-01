@@ -78,7 +78,8 @@ extension EnvironmentValues {
 
 /// The notice: a warning sign — the alert's ⚠️ where the terminal draws emoji
 /// chrome legibly, else a bold `!` — and the sentence naming the machine, in
-/// the palette's warning colour, on one line.
+/// the palette's warning colour. A long name, as a cloud machine's often is, wraps
+/// the sentence rather than cutting off the words that say what it means.
 struct FilePanelRemoteNotice: View {
     let hostName: String
 
@@ -95,7 +96,7 @@ struct FilePanelRemoteNotice: View {
                 verbatim: String(
                     format: LocalizationService.shared.string(for: LocalizationKey.FilePanel.remoteNotice), hostName)
             )
-            .lineLimit(1)
+            .lineLimit(3)
         }
         .foregroundStyle(.palette.warning)
     }

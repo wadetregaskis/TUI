@@ -72,11 +72,11 @@ struct FilePanelsPageTests {
     @Test("The simulated ssh session's toggle gives the panels their remote-machine notice")
     func simulatedRemoteSession() async throws {
         let app = makeApp()
-        let notice = "not your local machine"
+        // The sentence's start: this machine's name comes next, and may wrap the rest.
+        let notice = "You are browsing the file system on "
         try app.click("page.files.simulateRemote")
         try app.click("page.files.open ▌")
         try await app.wait(for: notice)
-        #expect(app.screen.contains("You are browsing the file system on "), "\(app.screen)")
         app.press(.escape)
         // Off again: the panel judges this process's own session, which a
         // test run at the desk or in CI does not show it for. Not asserted:
