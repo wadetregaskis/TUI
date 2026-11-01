@@ -9,6 +9,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 
 extension Text {
     /// A key's text with its Markdown applied: the plain text, and the runs
@@ -120,7 +121,7 @@ extension LocalizedStringKey {
 /// merge into one run. Where no value can be live and no link waits on one,
 /// that merge is the template's too, and is kept as well (`plan`).
 @MainActor
-struct MarkdownTemplate {
+struct MarkdownTemplate: Sendable {
     /// One span of the parse, as far as it goes without values.
     struct Span {
         /// The words, each placeholder a piece of its own.
@@ -338,19 +339,24 @@ struct MarkdownTemplate {
     /// occasional re-parse.
     static let cacheLimit = 1024
 
-    private static var cache: [CacheKey: Self] = [:]
+    /// Behind a lock, as the source a `Text` of a key keeps is
+    /// (`LocalizedTextSource`): the parse is a pure function of what it is
+    /// filed under, and a `Text` may be made anywhere.
+    private static let cache = Mutex<[CacheKey: Self]>([:])
 
     /// How many parses are kept, for the tests.
-    static var keptCount: Int { cache.count }
+    static var keptCount: Int { cache.withLock { $0.count } }
 
     /// The parse of `template` as `key` reads it: the kept one, or one made
     /// now and kept.
     static func parsed(_ template: String, for key: LocalizedStringKey) -> Self {
         let cacheKey = CacheKey(template: template, hasArguments: !key.arguments.isEmpty)
-        if let kept = cache[cacheKey] { return kept }
+        if let kept = cache.withLock({ $0[cacheKey] }) { return kept }
         let parsed = Self(parsing: template, for: key)
-        if cache.count >= cacheLimit { cache.removeAll(keepingCapacity: true) }
-        cache[cacheKey] = parsed
+        cache.withLock { cache in
+            if cache.count >= cacheLimit { cache.removeAll(keepingCapacity: true) }
+            cache[cacheKey] = parsed
+        }
         return parsed
     }
 }

@@ -9,6 +9,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 
 // MARK: - Where a text's words came from
 
@@ -83,7 +84,10 @@ package final class LocalizedTextSource: Equatable, Sendable {
     /// of one memo miss each for what was in it.
     static let limit = 4_096
 
-    @MainActor private static var kept: [Filed: LocalizedTextSource] = [:]
+    /// Behind a lock, not the main actor: a `Text` of a literal may be made
+    /// anywhere (`Text` is built in free functions, on other actors), and this
+    /// is the one thing its initialiser touches beyond its own bytes.
+    private static let kept = Mutex<[Filed: LocalizedTextSource]>([:])
 
     /// The most UTF-8 bytes a `String` keeps in its own bytes, with no buffer
     /// of its own: 15 on a 64-bit platform, 10 on a 32-bit one.
@@ -101,7 +105,6 @@ package final class LocalizedTextSource: Equatable, Sendable {
     /// its source, and a lookup would buy no memo hit. Such a text gets a source
     /// of its own instead. On `scrollfollow`, whose rows are such texts, the
     /// lookup was most of a +6.9% (2026-10-18).
-    @MainActor
     static func source(
         _ key: LocalizedStringKey, tableName: String?, bundle: Bundle?, language: String, locale: Locale?,
         words: String
@@ -116,7 +119,6 @@ package final class LocalizedTextSource: Equatable, Sendable {
     /// The one for TUI's own key `key`, read in the app's language: what a
     /// view keeps of a word of TUI's it shows, to read again under a subtree's
     /// `\.locale` (``LocalizedTextSource/words(in:)``).
-    @MainActor
     package static func framework(_ key: String) -> LocalizedTextSource {
         interned(
             LocalizedStringKey(key), tableName: nil, bundle: nil,
@@ -126,7 +128,6 @@ package final class LocalizedTextSource: Equatable, Sendable {
 
     /// The one for `key` read in `language` from `tableName` of `bundle`, its
     /// numbers written in `locale`.
-    @MainActor
     static func interned(
         _ key: LocalizedStringKey, tableName: String?, bundle: Bundle?, language: String, locale: Locale?,
         isFramework: Bool = false
@@ -134,13 +135,15 @@ package final class LocalizedTextSource: Equatable, Sendable {
         let filed = Filed(
             key: key, tableName: tableName, bundle: bundle.map(ObjectIdentifier.init), language: language,
             locale: locale, isFramework: isFramework)
-        if let source = kept[filed] { return source }
-        let source = LocalizedTextSource(
-            key: key, tableName: tableName, bundle: bundle, language: language, locale: locale,
-            isFramework: isFramework)
-        if kept.count >= limit { kept.removeAll(keepingCapacity: true) }
-        kept[filed] = source
-        return source
+        return Self.kept.withLock { kept in
+            if let source = kept[filed] { return source }
+            let source = LocalizedTextSource(
+                key: key, tableName: tableName, bundle: bundle, language: language, locale: locale,
+                isFramework: isFramework)
+            if kept.count >= limit { kept.removeAll(keepingCapacity: true) }
+            kept[filed] = source
+            return source
+        }
     }
 }
 
