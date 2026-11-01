@@ -225,6 +225,11 @@
   "dialog.exit_confirmation": "Do you want to exit?",
   "dialog.success": "Operation completed successfully",
   "dialog.error": "An error occurred",
+  "dialog.quit_title": "Quit %@?",
+  "dialog.quit_message": "Anything not saved will be lost.",
+  "dialog.quit_in_progress": "Quitting now will stop:",
+  "dialog.quit_action": "Quit",
+  "dialog.quit_work_in_progress": "Work in progress",
 
   "noterminal.no_output": "standard output is not a terminal, so there is nowhere to draw this app's interface.",
   "noterminal.no_input": "standard input is not a terminal, so this app cannot read keys.",

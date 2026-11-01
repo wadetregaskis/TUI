@@ -757,7 +757,7 @@
       "why": "Enumerates iOS/macOS/tvOS/watchOS canvases; TUI targets a tty on macOS/Linux (Windows in progress) and has no canvas on any of them."
     },
     "PreviewProvider": {
-      "why": "Xcode's canvas is built for SwiftUI's own protocol: its preview pipeline names it module-qualified, `SwiftUI.PreviewProvider` (strings in Xcode 26.3's PreviewsPipeline, 2026-10-19), and hosts what `previews` returns as SwiftUI content. A TUI protocol of that name is a different protocol, so a TUI preview would compile and not show (rule 2); whether Xcode would list it and fail, or skip it, is untested. A canvas could show a TUI view another way, as a TUI-only feature: `#Preview` takes an NSView, which could draw a `FrameBuffer`. The headless equivalent today is the public `renderOnce(content:)`."
+      "why": "Xcode's canvas is built for SwiftUI's own protocol: its preview pipeline names it module-qualified, `SwiftUI.PreviewProvider` (strings in Xcode 26.3's PreviewsPipeline, 2026-10-19), and hosts what `previews` returns as SwiftUI content. A TUI protocol of that name is a different protocol, so a TUI preview would compile and not show (rule 2); whether Xcode would list it and fail, or skip it, is untested. A canvas could show a TUI view another way, as a TUI-only feature: `#Preview` takes an NSView, which could draw a `FrameBuffer`. The headless equivalent today is the public `renderOnce(output:content:)`."
     },
     "ProjectionTransform": {
       "why": "A 3×3 matrix over continuous coordinates, produced by GeometryEffect and consumed by `projectionEffect`. TUI's geometry is whole cells with no matrix: its only spatial operation is a whole-cell offset. The transforms wait on decisions A27."

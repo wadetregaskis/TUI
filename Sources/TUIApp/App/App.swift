@@ -175,6 +175,9 @@ internal final class AppRunner<A: App> {
     var hostSettings: HostSettingsRefresher?
     private let signals = SignalManager()
 
+    /// Whether quitting asks first, and the dialog that does.
+    private let quitPrompt: QuitPrompt
+
     /// - Parameters:
     ///   - app: The app whose scene this runner drives.
     ///   - appState: The app's render state: the render-request queue the loop
@@ -198,6 +201,7 @@ internal final class AppRunner<A: App> {
         // `Scene.windowToolbarStyle(_:)`. Overriding it here made that default
         // dead code and the footer a box under a ruled header.
         self.statusBar = StatusBarState(appState: appState)
+        self.quitPrompt = QuitPrompt(requestFrame: { [appState] in appState.setNeedsRender() })
         self.terminal = Terminal()
         // The one context whose copies reach this machine's clipboard (where
         // the rule sends them there at all), and whose links reach its URL
@@ -261,16 +265,17 @@ extension AppRunner {
             undoKeys: tuiContext.undoKeys,
             screenSelection: tuiContext.screenSelection,
             quitKey: { [terminal] in terminal.quitKeyByte },
-            // The user's quit key, reported by the kitty keyboard protocol
-            // rather than sent as the byte the driver acts on: the signal the
-            // byte would have raised, to the process group the driver would
-            // have raised it in (`QuitKeyReport`), which leaves the terminal
-            // as a quit does (`FatalSignalTerminalRestore`).
+            // The user's quit key, read by the chain rather than acted on by
+            // the driver, with nothing left to ask: the signal the byte would
+            // have raised, to the process group the driver would have raised it
+            // in (`QuitKeyReport`), which leaves the terminal as a quit does
+            // (`FatalSignalTerminalRestore`).
             onQuitKey: {
                 #if !canImport(WASILibc)
                     QuitKeyReport.quit()
                 #endif
             },
+            quitPrompt: quitPrompt,
             // ⌃\ may be ⌃4, ⌃| or ⌃⇧\ only in the legacy encoding: under the
             // kitty keyboard protocol each arrives as itself.
             quitByteAliasing: { [weak self, terminal] in
@@ -391,6 +396,7 @@ extension AppRunner {
         loop.sendsProgressReports = TerminalClient.progressReportsSupported
         loop.progressAbsence = TerminalCapabilities.progressAbsence(
             program: TerminalHost.program, environment: ProcessInfo.processInfo.environment)
+        loop.scenes.quitPrompt = quitPrompt
         return loop
     }
 
@@ -464,7 +470,7 @@ extension AppRunner {
         // handler for the consumer side and TUIContext.swift's
         // `synthesizeKeyEvent` doc-comment for why this is a
         // closure threaded through the context.
-        tuiContext.synthesizeKeyEvent = { _ = inputHandler.handle($0) }
+        tuiContext.synthesizeKeyEvent = { _ = inputHandler.handle($0, isTyped: false) }
         let cursorTimer = CursorTimer(renderNotifier: appState)
         // Coalesces the periodic re-render requests of every animating view
         // (Spinner, indeterminate ProgressView, …) into the fewest distinct render
@@ -628,7 +634,7 @@ extension AppRunner {
         // loop reads: should the loop stall with input waiting, a thread of
         // its own pops the protocol's flags so the next ⌃\ is the byte the
         // driver quits on.
-        let stopStallWatchdog = startStallWatchdog()
+        let stopStallWatchdog = startStallWatchdog(wakingLoop: stdinArrival)
 
         // Initial render, with an alternate signal stack under it (see the
         // loop's first line).
@@ -797,13 +803,15 @@ extension AppRunner {
 // MARK: - Private Helpers
 
 extension AppRunner {
-    /// Masks the user's quit key in the driver while the bindings the frame
-    /// just registered declare one on a chord its byte could be for, and
-    /// gives it back otherwise (`Terminal.maskQuitKey(for:)`): asked after
-    /// every frame, the line discipline set only when the answer changes.
+    /// Masks the user's quit key in the driver while it is to ask before it
+    /// quits, or the bindings the frame just registered declare one on a chord
+    /// its byte could be for, and gives it back otherwise
+    /// (`Terminal.maskQuitKey(for:confirming:)`): asked after every frame, the
+    /// line discipline set only when the answer changes.
     private func maskQuitKeyForBindings(of inputHandler: InputHandler) {
         terminal.maskQuitKey(
-            for: inputHandler.quitKeyBindings(byte: terminal.quitKeyByte, hostAliases: hostQuitByteAliases))
+            for: inputHandler.quitKeyBindings(byte: terminal.quitKeyByte, hostAliases: hostQuitByteAliases),
+            confirming: quitPrompt.asks(before: .signalKey))
     }
 
     /// What follows every frame once it is on the screen: the driver's quit
@@ -826,18 +834,27 @@ extension AppRunner {
         appState.setNeedsRender()
     }
 
-    /// Starts the stall watchdog (`StallWatchdog`), which pops the kitty
-    /// keyboard protocol's flags while the loop is stalled with input
-    /// waiting, armed only while that can help
-    /// (`Terminal.refreshStallWatch()`). Returns what stops it. wasip1 has
-    /// no driver to hand ⌃\ back to, and no watchdog.
-    private func startStallWatchdog() -> () -> Void {
+    /// Starts what watches for a loop that has stopped reading: the stall
+    /// watchdog (`StallWatchdog`), which pops the kitty keyboard protocol's
+    /// flags while the loop is stalled with input waiting, and the quit key's
+    /// watch (`UnreadQuitKeyWatch`), which quits if ⌃\ is in it; each armed only
+    /// while it can help (`Terminal.refreshStallWatch()`), and the second told
+    /// to wake the loop for what it reads on its behalf. Returns what stops them.
+    /// wasip1 has no driver to hand ⌃\ back to, and neither.
+    private func startStallWatchdog(wakingLoop stdinArrival: StdinArrivalNotifier) -> () -> Void {
         #if canImport(WASILibc)
             return {}
         #else
             let watchdog = StallWatchdog(gate: terminal.writeGate)
             watchdog.start()
-            return watchdog.stop
+            let quitKeyWatch = terminal.quitKeyWatch
+            quitKeyWatch.start { [weak stdinArrival] in
+                Task { @MainActor in stdinArrival?.wake() }
+            }
+            return {
+                watchdog.stop()
+                quitKeyWatch.stop()
+            }
         #endif
     }
 

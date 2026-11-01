@@ -5557,9 +5557,9 @@ not of TUI's: `Terminal.enableRawMode()` turns `VINTR` and `VSUSP` off (until
 2026-10-06 it cleared `ISIG` altogether; see "The quit key, ⌃\\" below), so
 the driver sends 0x03 and 0x1A as bytes instead of raising SIGINT and SIGTSTP,
 and they decode as `.character("c")` and `.character("z")` with `ctrl`. What becomes of them is the
-input chain's business. Nothing binds Ctrl-C unless the app does — an app's
-⌘C under `.control`, or `QuitShortcut.ctrlC` — so by default it does nothing at
-all. Ctrl-Z is the app's undo by default (2026-10-04, the owner's choice; see
+input chain's business. Ctrl-C goes to anything of the app's first — an app's
+⌘C under `.control`, or `QuitShortcut.ctrlC` — and where nothing takes it, it
+asks whether to quit (2026-10-31, the owner's choice). Ctrl-Z is the app's undo by default (2026-10-04, the owner's choice; see
 "Undo and redo"), with nothing to undo doing nothing; where the app takes it
 out of its undo keys (`.undoShortcuts`), an unclaimed Ctrl-Z reaches layer 4,
 which re-raises it as SIGTSTP, as it always did. A shortcut on ⌃Z (an app's
@@ -5567,7 +5567,26 @@ which re-raises it as SIGTSTP, as it always did. A shortcut on ⌃Z (an app's
 SIGINT itself still shuts the app down; it comes from `kill -INT`, not from
 the keyboard.
 
-#### The quit key, ⌃\\ — the driver's, since 2026-10-06
+**Ctrl-Q arrives, as 0x11** (2026-10-31), and is the default quit key since then.
+`Terminal.rawModeAttributes(from:)` clears `IXON`, so the driver has no XON to
+take it for. Measured on a PTY on Darwin 24.6, where nothing but the line
+discipline stands between the bytes and the app (`Tools/Smoke/quit_key_smoke.py`
+checks `IXON` is off and ⌃Q quits), and through tmux 3.7c (`send-keys C-q`,
+into an app in the same raw mode: it quits). Under the kitty keyboard protocol it
+is `CSI 113;5u`, read the same. **Apple Terminal, iTerm2, Ghostty and Warp are
+unmeasured for ⌃Q itself**: this session can't type at a terminal window. Their
+documented defaults keep ⌘Q on a Mac and bind nothing to ⌃Q. On Linux, VS Code's
+integrated terminal is documented to keep ⌃Q for its own Quit unless the user says
+otherwise, and GTK and Qt terminals keep Ctrl-Shift-Q instead, so ⌃Q reaches the
+app there. None of that is measured; `StatusBarState.quitShortcut` moves the key.
+
+#### The quit key, ⌃\\ — asks first since 2026-10-31; the driver's before then, from 2026-10-06
+
+**Since 2026-10-31, the app takes the key from the driver to ask first, while it
+is to (`.quitConfirmation`, by default): `VQUIT` is masked as of the first frame,
+and `UnreadQuitKeyWatch` quits a hung app in the driver's place. See "⌃\\ quits a
+hung app" in `KeyboardShortcuts.md`. What follows is still so of an app under
+`.whenWarned` with no warning active, and of the moments before its first frame.**
 
 The owner's request: ⌃\\ is the backup to ⌃C, which TUI hands the app as a
 key, and it has to work when the app has HUNG. So it is the kernel's, not the

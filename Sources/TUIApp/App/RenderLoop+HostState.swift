@@ -35,6 +35,23 @@ extension RenderLoop {
         tuiContext.preferences.current[TerminalProgressKey.self]
     }
 
+    /// What the views drawn this frame say a quit would lose
+    /// (`.quitWarning(_:isActive:)`), and a progress report still going, which
+    /// says as much without the words (`.terminalProgress(_:)`): what the quit
+    /// keys ask about (`QuitPrompt`). A report in error or paused isn't work
+    /// going on. Read after the walk, from the preferences it collected at the
+    /// root.
+    var quitWarnings: [String] {
+        var warnings = tuiContext.preferences.current[QuitWarningsKey.self]
+        switch terminalProgress {
+        case .value, .indeterminate:
+            warnings.append(LocalizationService.shared.string(for: LocalizationKey.Dialog.quitWorkInProgress))
+        case .error, .paused, nil:
+            break
+        }
+        return warnings
+    }
+
     /// The ledger of what the app has set on the terminal this loop draws on
     /// beyond its screen (``HostStateKeeping``): the terminal's, which the
     /// frames tell what they want, read here.

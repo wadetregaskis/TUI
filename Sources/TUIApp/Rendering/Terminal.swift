@@ -357,18 +357,31 @@ final class Terminal: HostStateKeeping {
     /// The raw byte source feeding the parser. Production reads from stdin;
     /// tests inject a closure to script split reads deterministically, since
     /// the parser is otherwise impossible to drive without a live TTY.
-    var readSource: (UnsafeMutableBufferPointer<UInt8>) -> Int = { buffer in
-        guard let base = buffer.baseAddress else { return 0 }
-        while true {
-            let n = read(STDIN_FILENO, base, buffer.count)
-            // Retry only on EINTR (a signal interrupted the read before any byte
-            // arrived); surface everything else — n >= 0, or a real error / the
-            // benign EAGAIN of a non-blocking fd with no data — unchanged, which
-            // `appendDrain`'s `n > 0` check already handles.
-            if n < 0 && errno == EINTR { continue }
-            return n
+    #if canImport(WASILibc)
+        var readSource: (UnsafeMutableBufferPointer<UInt8>) -> Int = { buffer in
+            guard let base = buffer.baseAddress else { return 0 }
+            while true {
+                let n = read(STDIN_FILENO, base, buffer.count)
+                // Retry only on EINTR (a signal interrupted the read before any byte
+                // arrived); surface everything else — n >= 0, or a real error / the
+                // benign EAGAIN of a non-blocking fd with no data — unchanged, which
+                // `appendDrain`'s `n > 0` check already handles.
+                if n < 0 && errno == EINTR { continue }
+                return n
+            }
         }
-    }
+    #else
+        /// Reads stdin as it shares it with ``quitKeyWatch``, which may have
+        /// read what is next.
+        lazy var readSource: (UnsafeMutableBufferPointer<UInt8>) -> Int = { [input = quitKeyWatch.input] buffer in
+            input.read(into: buffer)
+        }
+
+        /// What quits a hung app on the quit key, while the driver has given it
+        /// up to ask first (``refreshStallWatch()``). Its thread is the run
+        /// loop's to start.
+        let quitKeyWatch = UnreadQuitKeyWatch()
+    #endif
 
     /// Where everything this terminal writes goes, and how a startup exchange
     /// waits for its reply, or `nil` for the real terminal: stdout, and `poll`
@@ -409,14 +422,19 @@ final class Terminal: HostStateKeeping {
     #endif
 
     /// Whether the user's quit key is masked in the driver
-    /// (``maskQuitKey(for:)``): the last state set, which a resume's raw mode
+    /// (``maskQuitKey(for:confirming:)``): the last state set, which a resume's raw mode
     /// is made with too.
     private(set) var quitKeyMasked = false
 
     /// The app's bindings on the chords the quit key's byte could be, as
-    /// last handed to ``maskQuitKey(for:)``: what the mask follows, and what
-    /// arms the stall watchdog (``refreshStallWatch()``).
+    /// last handed to ``maskQuitKey(for:confirming:)``: what the mask follows, and
+    /// what arms the stall watchdog (``refreshStallWatch()``).
     private(set) var quitKeyBindings = QuitKeyBindings.unbound
+
+    /// Whether the user's quit key is to ask before it quits, as last handed to
+    /// ``maskQuitKey(for:confirming:)``: the mask follows it, and it decides what
+    /// watches for a hung app (``refreshStallWatch()``).
+    private(set) var quitKeyConfirms = false
 
     #if !canImport(WASILibc)
         /// The lock every write to standard output takes, shared with the
@@ -746,7 +764,11 @@ extension Terminal {
     /// (`InputHandler.quitKeyBindings(byte:hostAliases:)`), asked after
     /// every frame: masked for a binding on the quit key's own chord, and for
     /// one on ⌃4, ⌃| or ⌃⇧\ only in the legacy encoding, where they may be
-    /// its byte (``QuitKeyBindings/masksQuitKey(inLegacyEncoding:)``).
+    /// its byte (``QuitKeyBindings/masksQuitKey(inLegacyEncoding:)``); and masked
+    /// whenever it is `confirming`, to ask before it quits. The driver can't ask,
+    /// and its signal reaches every process in the group, the app's children among
+    /// them, as soon as the key is pressed. A hung app can't ask either, so what
+    /// quits it then is ``quitKeyWatch``, which needs no driver.
     ///
     /// The owner's rule (2026-10-06): the driver's quit is the backup that
     /// ends a hung app, and stays live unless the app binds the key — ⌃\\
@@ -762,10 +784,12 @@ extension Terminal {
     /// (`TCSANOW`: unlike raw mode's own `TCSAFLUSH`, no typed-ahead input is
     /// thrown away). Kept across a suspend: the resume's raw mode is made
     /// with it. The teardown puts the user's termios back whole, as ever.
-    func maskQuitKey(for bindings: QuitKeyBindings) {
-        let masked = bindings.masksQuitKey(inLegacyEncoding: keyboardEnhancement.isEmpty)
-        guard bindings != quitKeyBindings || masked != quitKeyMasked else { return }
+    func maskQuitKey(for bindings: QuitKeyBindings, confirming: Bool = false) {
+        let confirming = confirming && quitKeyByte != nil
+        let masked = confirming || bindings.masksQuitKey(inLegacyEncoding: keyboardEnhancement.isEmpty)
+        guard bindings != quitKeyBindings || confirming != quitKeyConfirms || masked != quitKeyMasked else { return }
         quitKeyBindings = bindings
+        quitKeyConfirms = confirming
         let maskChanged = masked != quitKeyMasked
         quitKeyMasked = masked
         refreshStallWatch()
@@ -791,10 +815,16 @@ extension Terminal {
     /// the app on the user's ⌃4 during a slow frame. So with one on screen a
     /// hung app does not quit by ⌃\ under the protocol either, as it does
     /// not where the quit is masked.
+    ///
+    /// While the quit key asks first (``quitKeyConfirms``) the watchdog has
+    /// nothing to do, a pop handing the key to a driver that has given it up, and
+    /// the quit key's watch does the job instead: armed with raw mode on, for
+    /// an app whose bindings leave the key's byte its own.
     func refreshStallWatch() {
         #if !canImport(WASILibc)
-            writeGate.setArmed(
-                isRawMode && keyboardFlagsPushed && quitKeyByte != nil && quitKeyBindings == .unbound)
+            let unbound = isRawMode && quitKeyByte != nil && quitKeyBindings == .unbound
+            writeGate.setArmed(unbound && keyboardFlagsPushed && !quitKeyConfirms)
+            quitKeyWatch.setArmed(byte: unbound && quitKeyConfirms ? quitKeyByte : nil)
         #endif
     }
 
@@ -808,7 +838,7 @@ extension Terminal {
     /// report instead, which the input chain offers the app's bindings and
     /// turns into the signal where none takes it (`InputHandler.quitKey`).
     /// The user's key whether or not the driver's quit is masked
-    /// (``maskQuitKey(for:)``).
+    /// (``maskQuitKey(for:confirming:)``).
     var quitKeyByte: UInt8? {
         #if canImport(WASILibc)
             return nil

@@ -71,15 +71,17 @@ extension Terminal {
     ///   the terminal as a quit does (`FatalSignalTerminalRestore`). A key
     ///   the app can never bind, as in a shell. A user who turned it off
     ///   (`stty quit undef`), or `ISIG` with it (`stty -isig`), keeps it off;
-    ///   one who moved it keeps theirs.
+    ///   one who moved it keeps theirs. By default a running app takes it for
+    ///   itself once its first frame is up (``maskQuitKey(for:confirming:)``), to
+    ///   ask before quitting.
     ///
     /// - Parameters:
     ///   - original: The user's termios.
     ///   - maskingQuitKey: Whether the quit key is turned off too, for an app
     ///     that declares a binding its byte could be for
-    ///     (``maskQuitKey(for:)``): its byte then arrives as a key, which the
-    ///     input chain offers the app first and quits on itself where nothing
-    ///     takes it.
+    ///     or that has it ask before it quits (``maskQuitKey(for:confirming:)``):
+    ///     its byte then arrives as a key, which the input chain offers the app
+    ///     first and asks or quits on itself where nothing takes it.
     nonisolated static func rawModeAttributes(from original: termios, maskingQuitKey: Bool = false) -> termios {
         var raw = original
         raw.c_lflag &= ~tcflag_t(ECHO | ICANON | IEXTEN)

@@ -1220,6 +1220,8 @@ extension RenderLoop {
         // `RenderLoop+HostState.swift`.
         let host = hostStateWrites(atNanos: frameNowNanos)
         if !host.isEmpty { terminal.write(host) }
+        // What the quit keys are to ask about, as this frame says.
+        scenes.quitPrompt?.noteWarnings(quitWarnings)
 
         // The terminal holds its display from here to the frame's end, if the
         // frame writes a row. After the transmissions, which draw

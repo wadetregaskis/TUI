@@ -21,10 +21,10 @@ import Glibc
 import Musl
 #endif
 
-/// The user's quit key, ⌃\\, reported by the kitty keyboard protocol
-/// (`CSI 92;5u`) instead of sent as the 0x1C the terminal driver turns into
-/// `SIGQUIT`: what `InputHandler` does in the driver's place
-/// (`InputHandler.onQuitKey`).
+/// The user's quit key, ⌃\\, reaching the input chain as a key, a report of the
+/// kitty keyboard protocol (`CSI 92;5u`) or the byte where the driver has given
+/// it up, with nothing left to ask: what `InputHandler` does in the driver's
+/// place, the `SIGQUIT` the driver would have raised (`InputHandler.onQuitKey`).
 ///
 /// It does what the driver does for the byte, so the key quits the same way
 /// whichever encoding the terminal sends it in: `SIGQUIT` to every process in

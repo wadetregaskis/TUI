@@ -225,6 +225,11 @@
   "dialog.exit_confirmation": "終了しますか？",
   "dialog.success": "操作が正常に完了しました",
   "dialog.error": "エラーが発生しました",
+  "dialog.quit_title": "%@を終了しますか？",
+  "dialog.quit_message": "保存していない内容は失われます。",
+  "dialog.quit_in_progress": "今終了すると次の処理が止まります：",
+  "dialog.quit_action": "終了",
+  "dialog.quit_work_in_progress": "実行中の処理",
 
   "noterminal.no_output": "標準出力が端末ではないため、このアプリの画面を表示できません。",
   "noterminal.no_input": "標準入力が端末ではないため、このアプリはキー入力を読み取れません。",

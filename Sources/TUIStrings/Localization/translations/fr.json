@@ -225,6 +225,11 @@
   "dialog.exit_confirmation": "Voulez-vous quitter?",
   "dialog.success": "Opération complétée avec succès",
   "dialog.error": "Une erreur s'est produite",
+  "dialog.quit_title": "Quitter %@ ?",
+  "dialog.quit_message": "Tout ce qui n'est pas enregistré sera perdu.",
+  "dialog.quit_in_progress": "Quitter maintenant arrêtera :",
+  "dialog.quit_action": "Quitter",
+  "dialog.quit_work_in_progress": "Travail en cours",
 
   "noterminal.no_output": "la sortie standard n'est pas un terminal : l'interface de cette application ne peut donc pas s'afficher.",
   "noterminal.no_input": "l'entrée standard n'est pas un terminal : cette application ne peut donc pas lire les touches.",

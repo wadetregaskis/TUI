@@ -272,7 +272,9 @@ let package = Package(
         // by design: no Windows step builds it (CLAUDE.md).
         .target(
             name: "TUIApp",
-            dependencies: ["TUIChrome", "TUIFoundation"],
+            // TUIPresentation for the alert the quit keys ask with (QuitConfirmation.swift): every app has
+            // it. Not re-exported: `import TUIApp` still doesn't show `alert`, for which list TUIPresentation.
+            dependencies: ["TUIChrome", "TUIFoundation", "TUIPresentation"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 

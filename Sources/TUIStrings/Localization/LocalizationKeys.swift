@@ -375,6 +375,17 @@ public enum LocalizationKey {
         case exitConfirmation = "dialog.exit_confirmation"
         case success = "dialog.success"
         case error = "dialog.error"
+        /// The quit confirmation's title: `%@` is the app's name.
+        case quitTitle = "dialog.quit_title"
+        /// The quit confirmation's message with nothing in progress to name.
+        case quitMessage = "dialog.quit_message"
+        /// The quit confirmation's line before what would be lost.
+        case quitInProgress = "dialog.quit_in_progress"
+        /// The quit confirmation's button that quits.
+        case quitAction = "dialog.quit_action"
+        /// What the quit confirmation lists for a progress report with no
+        /// words of its own (`View.terminalProgress(_:)`).
+        case quitWorkInProgress = "dialog.quit_work_in_progress"
     }
 
     /// What an app with no terminal to draw on says on stderr (`NoTerminal`):

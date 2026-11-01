@@ -67,7 +67,7 @@ enum ProbeMode: String {
     case spinner
     /// Each key the app hears, one row per key (`key ctrl-c`), so a PTY can
     /// tell a key that arrived from one the driver turned into a signal. The
-    /// keys go on down the input chain, so `q` still quits.
+    /// keys go on down the input chain, so ⌃Q still quits.
     case keys
     /// A main thread that never returns once the first frame is up, as an
     /// app stuck in a loop or a blocking call: what the user's quit key, `⌃\`,
@@ -89,6 +89,22 @@ struct IdleProbeApp: App {
     var body: some Scene {
         WindowGroup {
             ProbeContent()
+                .quitWarning(Self.quitWarning ?? "", isActive: Self.quitWarning != nil)
+        }
+        .quitConfirmation(Self.quitConfirmation)
+    }
+
+    /// What `quit_key_smoke.py` asks an app to state: `IDLE_PROBE_QUIT_WARNING`,
+    /// as a warning.
+    private static let quitWarning = ProcessInfo.processInfo.environment["IDLE_PROBE_QUIT_WARNING"]
+
+    /// And `IDLE_PROBE_QUIT_CONFIRMATION`, as when quitting asks: `always` or
+    /// `whenWarned`, and otherwise the default.
+    private static var quitConfirmation: QuitConfirmation {
+        switch ProcessInfo.processInfo.environment["IDLE_PROBE_QUIT_CONFIRMATION"] {
+        case "always": .always
+        case "whenWarned": .whenWarned
+        default: .automatic
         }
     }
 

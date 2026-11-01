@@ -243,14 +243,20 @@ package final class ScenePresenter {
         isPresentingSettings = true
     }
 
+    /// Whether quitting asks first, and the dialog that does: drawn here, over
+    /// the window in front, as an alert scene is. The app's; `nil` in a harness
+    /// that doesn't have one.
+    var quitPrompt: QuitPrompt?
+
     /// The overlay scenes, as the window in front presents them this frame.
     func overlays() -> SceneOverlayList? {
-        guard !overlayEntries.isEmpty else { return nil }
-        return SceneOverlayList(
-            overlayEntries.map { entry in
-                SceneOverlay(
-                    key: entry.identity.path, configuration: entry.configuration, view: entry.scene.overlay(in: self))
-            })
+        var overlays = overlayEntries.map { entry in
+            SceneOverlay(
+                key: entry.identity.path, configuration: entry.configuration, view: entry.scene.overlay(in: self))
+        }
+        // The question the quit keys ask, whichever window is in front.
+        if let quitDialog = quitPrompt?.overlay { overlays.append(quitDialog) }
+        return overlays.isEmpty ? nil : SceneOverlayList(overlays)
     }
 
     // MARK: Opening and Closing

@@ -31,8 +31,9 @@ extension View {
     /// SwiftUI's quit is the app menu's Quit item; a terminal app's is its quit
     /// key (Control-Q by default — ``StatusBarState/quitShortcut``). While a
     /// presentation that prevents termination is on screen the key does
-    /// nothing and the status bar stops offering it. A signal is not stopped:
-    /// Ctrl-C, or `kill`, still ends the app, as a force quit does on macOS.
+    /// nothing and the status bar stops offering it. Control-C does nothing either.
+    /// ⌃\\ asks over it, and quits at a second press, and a signal is not stopped:
+    /// `kill` still ends the app, as a force quit does on macOS.
     ///
     /// `nil` asks for the automatic behaviour, which here is not to prevent
     /// it: in a terminal the quit key is a presentation's escape hatch, offered
@@ -52,7 +53,7 @@ extension View {
     ///
     /// Apply it after the `alert` or `confirmationDialog`, as SwiftUI's
     /// examples do. While such a dialog is up the quit key does nothing and
-    /// the status bar stops offering it; a signal still ends the app. See
+    /// the status bar stops offering it; ⌃\\ and a signal still end the app. See
     /// ``View/presentationPreventsAppTermination(_:)``.
     ///
     /// `nil` asks for the automatic behaviour, which is macOS's rule: the

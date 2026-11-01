@@ -54,8 +54,8 @@ extension InputHandler {
     /// be masked (`Terminal.maskQuitKey(for:)`) so the byte reaches the app.
     /// Asked after every frame, whose render registered the bindings.
     ///
-    /// The owner's rule (2026-10-06): ⌃\ is a hung app's way out, and stays
-    /// the driver's unless the app binds it — or binds ⌃4, ⌃| or ⌃⇧\ where
+    /// The owner's rule (2026-10-06): ⌃\ is a hung app's way out, and an app's
+    /// binding takes it from there — on ⌃\, or on ⌃4, ⌃| or ⌃⇧\ where
     /// the terminal may send ⌃\\'s byte for that chord (`hostAliases`). With
     /// the byte, the chords count with Option too: a legacy encoding sends
     /// Option as an ESC before the byte, which the driver still acts on.

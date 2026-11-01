@@ -69,6 +69,8 @@ extension RenderLoop {
         // (`.undoShortcuts`), resolved through its `\.commandKey`, for the keys
         // that arrive before the next frame. Rebuilt only when they changed.
         tuiContext.undoKeys.publish(environment.undoShortcuts, commandKey: environment.commandKey)
+        // When quitting asks first, for the keys that arrive before the next frame.
+        scenes.quitPrompt?.confirmation = environment.quitConfirmation
         // Capture the scene's base ``MouseSupport`` configuration; the
         // effective per-frame configuration is the union of this and
         // any features requested by view modifiers during render. The

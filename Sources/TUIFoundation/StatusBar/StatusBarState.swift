@@ -200,6 +200,13 @@ public final class StatusBarState: @unchecked Sendable {
     /// Cleared before every walk, like ``quitIsPrevented``.
     private var quitQuestion: ((@escaping () -> Void) -> Void)?
 
+    /// Whether something on screen has asked to be asked before a quit.
+    package var asksBeforeQuit: Bool { quitQuestion != nil }
+
+    /// Whether what is on screen holds the quit key, a dialog's question among
+    /// them.
+    package var holdsQuit: Bool { quitIsPrevented }
+
     /// Has the quit key ask `question` first, this frame.
     package func askBeforeQuitting(_ question: @escaping (@escaping () -> Void) -> Void) {
         quitQuestion = question

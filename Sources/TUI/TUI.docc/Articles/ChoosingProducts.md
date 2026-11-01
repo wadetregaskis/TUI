@@ -36,7 +36,8 @@ import TUITables
 Every app needs `TUIApp`: `App`, `Scene`, `WindowGroup`, the run loop and the terminal. It brings the two modules
 it is built on: `TUIFoundation`, which has `View`, `Text`, the stacks, `ScrollView`, `Button`, `Toggle`, `Label`,
 layout, state, the environment and focus, and `TUIChrome`, which has the status bar, the toolbars, the
-notifications and `.help`. Then add the product of each module whose names you use:
+notifications and `.help`. It links `TUIPresentation` too, for the alert the quit keys ask with, without showing you
+`alert` or `sheet`: for those, list that product. Then add the product of each module whose names you use:
 
 | Product | What it has | Brings with it |
 |---|---|---|

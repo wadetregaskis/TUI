@@ -142,10 +142,15 @@ internal struct InputHandler {
     /// what the driver would have only if none takes it (``onQuitKey``).
     var quitKey: () -> UInt8? = { nil }
 
-    /// Invoked when the user's quit key reaches the end of the chain with
-    /// nothing taking it: the runner sends `SIGQUIT` to the app's process
+    /// Invoked when the user's quit key is to quit at once, nothing taking it
+    /// and nothing left to ask: the runner sends `SIGQUIT` to the app's process
     /// group, as the driver does for the byte (`QuitKeyReport`).
     var onQuitKey: () -> Void = {}
+
+    /// Whether quitting asks first, and the dialog that does: the app's, in a
+    /// running app. `nil` (a test harness that isn't exercising it) asks nothing:
+    /// the quit key and ⌃\ quit, and an unbound Control-C goes nowhere.
+    var quitPrompt: QuitPrompt?
 
     /// Which chords a key that arrives as ⌃\ may be instead — ⌃4, and ⌃|
     /// and ⌃⇧\: those the host may send ⌃\\'s 0x1C for in its legacy
@@ -172,7 +177,11 @@ extension InputHandler {
 
     /// Dispatches a key event through the five-layer priority chain.
     ///
-    /// - Parameter event: The key event to handle.
+    /// - Parameters:
+    ///   - event: The key event to handle.
+    ///   - isTyped: Whether the person pressed it, rather than the menu bar's
+    ///     Copy pressing ⌘C for them: only a Control-C typed at a page that
+    ///     doesn't want it asks to quit.
     /// - Returns: `true` if some layer consumed the event. The run loop uses
     ///   this to request a render — a consumed key has, by definition, done
     ///   something (moved focus, activated a control, typed text, cycled the
@@ -185,10 +194,12 @@ extension InputHandler {
     ///   when a handler consumes an event.) An unconsumed key returns `false`
     ///   so a genuine no-op key doesn't wake the loop.
     @discardableResult
-    func handle(_ event: KeyEvent) -> Bool {
+    func handle(_ event: KeyEvent, isTyped: Bool = true) -> Bool {
         // A key acts from the focused view: an object several views hold
         // reads that view's holder's environment meanwhile (B-DYNVFIX-3 (c)).
-        let taken = StateRegistration.dispatching(from: focusManager.focusedIdentity) { dispatchKey(event) }
+        let taken = StateRegistration.dispatching(from: focusManager.focusedIdentity) {
+            dispatchKey(event) || (isTyped && runInterruptKey(event))
+        }
         // A key press nothing took rings the bell, as an unhandled key does
         // on a Mac (NSBeep): typing at a page with nothing to type into,
         // an arrow at the end of a list that has nowhere to go. A release, or
@@ -259,12 +270,52 @@ extension InputHandler {
         // declares a binding the byte could be for
         // (`Terminal.maskQuitKey(for:)`). A binding on the chord takes it
         // first, as it takes any key: the owner's rule (2026-10-06), that an
-        // app's own ⌃\ overrides the quit.
+        // app's own ⌃\ overrides the quit. By default it asks first.
         if let byte = event.legacyControlByte, byte == quitKey() {
-            onQuitKey()
+            runQuitKey(event)
             return true
         }
         return false
+    }
+
+    /// Control-C, where nothing in the chain took it: what most people try
+    /// first in a terminal, so it asks to quit, by a dialog in case they hoped
+    /// only to cancel something. Taken by anything of the app's first: a binding
+    /// on it, a selection on the screen, a focused field with text selected.
+    ///
+    /// Taken here too where a presentation holds the quit keys, as the quit
+    /// key is: nothing happens.
+    ///
+    /// - Returns: Whether `event` was Control-C and there is something to ask
+    ///   with.
+    private func runInterruptKey(_ event: KeyEvent) -> Bool {
+        guard quitPrompt != nil, event.phase == .press, event.ctrl, !event.alt, !event.shift, !event.command,
+            event.key == .character("c")
+        else { return false }
+        quit(.interruptKey)
+        return true
+    }
+
+    /// The user's quit key, ⌃\, where nothing took it: a hung app's way out,
+    /// which a person may press for a hung app that is merely slow. So on a
+    /// responsive app it asks first, whatever else holds the quit keys, as a
+    /// signal has never asked what they thought; pressed again while that is up
+    /// it quits at once (a key held down repeating does not count as pressing
+    /// it again). `onQuitKey` where it asks nothing, as the driver would.
+    ///
+    /// A hung app reads no key, and `UnreadQuitKeyWatch` quits for it.
+    private func runQuitKey(_ event: KeyEvent) {
+        guard let quitPrompt, quitPrompt.asks(before: .signalKey) else {
+            onQuitKey()
+            return
+        }
+        if quitPrompt.isAsking || (statusBar.asksBeforeQuit && statusBar.holdsQuit) {
+            if event.phase != .repeat { onQuitKey() }
+        } else if statusBar.asksBeforeQuit {
+            requestQuit(.signalKey)
+        } else {
+            quitPrompt.ask(then: onQuit)
+        }
     }
 
     /// Ctrl-Return, which arrives as itself only where the terminal speaks the
@@ -535,10 +586,23 @@ extension InputHandler {
     /// The quit key's quit, with no key: through the status bar, so a
     /// top-level dismissal confirmation can ask first, and nothing where the
     /// bar does not allow a quit. What the menu bar's Quit asks for
-    /// (`KeysAfterFrame.Owed.quit`).
-    func quit() {
-        if statusBar.isQuitAllowed {
-            statusBar.requestQuit(onQuit)
+    /// (`KeysAfterFrame.Owed.quit`), and Control-C, which may ask where they do
+    /// not (`QuitConfirmation`).
+    func quit(_ request: QuitRequest = .quitKey) {
+        if statusBar.isQuitAllowed { requestQuit(request) }
+    }
+
+    /// Quits, or asks first: the app's own question, if it has one
+    /// (`dismissalConfirmationDialog`) and then TUI's only if a warning is still
+    /// active, since the person has just answered; or otherwise TUI's, if
+    /// `request` asks.
+    private func requestQuit(_ request: QuitRequest) {
+        let answeredAQuestion = statusBar.asksBeforeQuit
+        statusBar.requestQuit { [quitPrompt, onQuit] in
+            guard let quitPrompt,
+                answeredAQuestion ? !quitPrompt.warnings.isEmpty : quitPrompt.asks(before: request)
+            else { return onQuit() }
+            quitPrompt.ask(then: onQuit)
         }
     }
 
@@ -546,7 +610,7 @@ extension InputHandler {
     /// key through the whole chain, or the quit.
     func perform(_ owed: KeysAfterFrame.Owed) {
         switch owed {
-        case .key(let event): _ = handle(event)
+        case .key(let event): _ = handle(event, isTyped: false)
         case .quit: quit()
         }
     }

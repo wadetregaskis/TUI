@@ -716,8 +716,17 @@ extension Terminal {
     /// user's next keystroke was swallowed as paste content instead of being
     /// dispatched.
     var hasPendingInput: Bool {
-        !input.isEmpty || pendingBareEsc || pendingAltEsc || inPasteMode || !queuedInputs.isEmpty
+        if !input.isEmpty || pendingBareEsc || pendingAltEsc || inPasteMode || !queuedInputs.isEmpty
             || abandonedSequence != nil
+        {
+            return true
+        }
+        // What the quit key's watch read for the loop, which stdin won't wake it for.
+        #if canImport(WASILibc)
+            return false
+        #else
+            return quitKeyWatch.input.holdsInput
+        #endif
     }
 
     /// Peels sequences off the front of the buffer until one of them is

@@ -225,6 +225,11 @@
   "dialog.exit_confirmation": "要退出吗？",
   "dialog.success": "操作成功完成",
   "dialog.error": "发生错误",
+  "dialog.quit_title": "要退出%@吗？",
+  "dialog.quit_message": "未保存的内容将会丢失。",
+  "dialog.quit_in_progress": "现在退出将停止：",
+  "dialog.quit_action": "退出",
+  "dialog.quit_work_in_progress": "正在进行的工作",
 
   "noterminal.no_output": "标准输出不是终端，因此无法显示此应用的界面。",
   "noterminal.no_input": "标准输入不是终端，因此此应用无法读取按键。",

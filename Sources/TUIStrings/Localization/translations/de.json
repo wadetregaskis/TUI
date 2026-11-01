@@ -225,6 +225,11 @@
   "dialog.exit_confirmation": "Möchten Sie das Programm beenden?",
   "dialog.success": "Operation erfolgreich abgeschlossen",
   "dialog.error": "Ein Fehler ist aufgetreten",
+  "dialog.quit_title": "%@ beenden?",
+  "dialog.quit_message": "Nicht Gesichertes geht verloren.",
+  "dialog.quit_in_progress": "Beenden stoppt jetzt:",
+  "dialog.quit_action": "Beenden",
+  "dialog.quit_work_in_progress": "Laufende Arbeit",
 
   "noterminal.no_output": "Die Standardausgabe ist kein Terminal, daher kann die Oberfläche dieses Programms nicht angezeigt werden.",
   "noterminal.no_input": "Die Standardeingabe ist kein Terminal, daher kann dieses Programm keine Tasten lesen.",

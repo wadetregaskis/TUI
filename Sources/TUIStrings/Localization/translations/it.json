@@ -225,6 +225,11 @@
   "dialog.exit_confirmation": "Vuoi uscire?",
   "dialog.success": "Operazione completata con successo",
   "dialog.error": "Si è verificato un errore",
+  "dialog.quit_title": "Uscire da %@?",
+  "dialog.quit_message": "Tutto ciò che non è stato salvato andrà perso.",
+  "dialog.quit_in_progress": "Uscendo ora si fermerà:",
+  "dialog.quit_action": "Esci",
+  "dialog.quit_work_in_progress": "Lavoro in corso",
 
   "noterminal.no_output": "l'output standard non è un terminale, quindi l'interfaccia di questa app non può essere disegnata.",
   "noterminal.no_input": "l'input standard non è un terminale, quindi questa app non può leggere i tasti.",
