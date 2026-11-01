@@ -50,30 +50,74 @@ public struct PlaceholderContentView<Value>: View {
 /// per-pass memos tell two values of one view type apart by their bytes, and a
 /// reference that lives for the whole of the body it is drawn in is a
 /// discriminator no other placeholder at the same place can share.
-@MainActor
 package final class PlaceholderSource {
-    /// Draws the view the placeholder stands for, in the context the
-    /// placeholder was given.
-    let render: @MainActor (RenderContext) -> FrameBuffer
+    private let drawing: any PlaceholderDrawing
 
-    /// Measures it.
-    let measure: @MainActor (ProposedSize, RenderContext) -> ViewSize
+    /// Creates a source from what it draws.
+    package init(drawing: any PlaceholderDrawing) {
+        self.drawing = drawing
+    }
 
     /// Creates a source from its two halves.
-    package init(
+    package convenience init(
         render: @escaping @MainActor (RenderContext) -> FrameBuffer,
         measure: @escaping @MainActor (ProposedSize, RenderContext) -> ViewSize
     ) {
-        self.render = render
-        self.measure = measure
+        self.init(drawing: PlaceholderClosures(render: render, measure: measure))
     }
 
     /// `view`, drawn where the placeholder stands — the source of a
     /// placeholder built around an arbitrary view (`Transition.apply(content:phase:)`).
     package convenience init<V: View>(view: V) {
-        self.init(
-            render: { TUIView.renderToBuffer(view, context: $0) },
-            measure: { measureChild(view, proposal: $0, context: $1) })
+        self.init(drawing: PlaceholderView(view: view))
+    }
+
+    /// Draws the view the placeholder stands for, in the context the
+    /// placeholder was given.
+    @MainActor func render(_ context: RenderContext) -> FrameBuffer { drawing.render(context) }
+
+    /// Measures it.
+    @MainActor func measure(_ proposal: ProposedSize, _ context: RenderContext) -> ViewSize {
+        drawing.measure(proposal, context)
+    }
+}
+
+/// What a ``PlaceholderSource`` keeps. Its requirements alone are on the main
+/// actor, where the placeholder is drawn: a value of it can be made anywhere,
+/// as a view can, where a `@MainActor` closure could not capture that view.
+package protocol PlaceholderDrawing {
+    @MainActor func render(_ context: RenderContext) -> FrameBuffer
+    @MainActor func measure(_ proposal: ProposedSize, _ context: RenderContext) -> ViewSize
+}
+
+private struct PlaceholderClosures: PlaceholderDrawing {
+    let renderClosure: @MainActor (RenderContext) -> FrameBuffer
+    let measureClosure: @MainActor (ProposedSize, RenderContext) -> ViewSize
+
+    init(
+        render: @escaping @MainActor (RenderContext) -> FrameBuffer,
+        measure: @escaping @MainActor (ProposedSize, RenderContext) -> ViewSize
+    ) {
+        renderClosure = render
+        measureClosure = measure
+    }
+
+    @MainActor func render(_ context: RenderContext) -> FrameBuffer { renderClosure(context) }
+
+    @MainActor func measure(_ proposal: ProposedSize, _ context: RenderContext) -> ViewSize {
+        measureClosure(proposal, context)
+    }
+}
+
+private struct PlaceholderView<V: View>: PlaceholderDrawing {
+    let view: V
+
+    @MainActor func render(_ context: RenderContext) -> FrameBuffer {
+        TUIView.renderToBuffer(view, context: context)
+    }
+
+    @MainActor func measure(_ proposal: ProposedSize, _ context: RenderContext) -> ViewSize {
+        measureChild(view, proposal: proposal, context: context)
     }
 }
 

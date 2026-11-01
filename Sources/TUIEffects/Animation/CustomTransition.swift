@@ -219,7 +219,7 @@ final class TransitionContentPicture {
     var buffer: FrameBuffer?
 }
 
-extension PlaceholderSource {
+@MainActor extension PlaceholderSource {
     /// A transitioning view's live content: drawn at `identity` — the
     /// transition's own, wherever in the body the placeholder stands — under
     /// the environment the body gives it, with any scrub lifted so the

@@ -130,32 +130,39 @@ extension Transaction {
 /// The body is built where the modifier is written — SwiftUI's closure does not
 /// escape — before either is known, so the placeholder handed to it reads them
 /// from here when it draws.
-@MainActor
 final class TransactionScope {
     /// The transaction in force around the scoped modifiers.
-    var outer = Transaction()
+    @MainActor var outer = Transaction()
 
     /// Where the scoped view is drawn: the wrapped view is drawn here too,
     /// as it would be with its modifiers written directly on it.
-    var identity: ViewIdentity?
+    @MainActor var identity: ViewIdentity?
 
     /// What the placeholder draws: `content`, at the scope's place, under the
     /// transaction it had.
     func source<Content: View>(drawing content: Content) -> PlaceholderSource {
-        PlaceholderSource(
-            render: { [self] context in
-                TUIView.renderToBuffer(content, context: restored(context))
-            },
-            measure: { [self] proposal, context in
-                measureChild(content, proposal: proposal, context: restored(context))
-            })
+        PlaceholderSource(drawing: ScopedPlaceholder(scope: self, content: content))
     }
 
-    private func restored(_ context: RenderContext) -> RenderContext {
+    @MainActor fileprivate func restored(_ context: RenderContext) -> RenderContext {
         var restored = context
         restored.environment.transaction = outer
         if let identity { restored.identity = identity }
         return restored
+    }
+}
+
+/// `content`, drawn at its scope's place, under the transaction it had.
+private struct ScopedPlaceholder<Content: View>: PlaceholderDrawing {
+    let scope: TransactionScope
+    let content: Content
+
+    @MainActor func render(_ context: RenderContext) -> FrameBuffer {
+        TUIView.renderToBuffer(content, context: scope.restored(context))
+    }
+
+    @MainActor func measure(_ proposal: ProposedSize, _ context: RenderContext) -> ViewSize {
+        measureChild(content, proposal: proposal, context: scope.restored(context))
     }
 }
 
