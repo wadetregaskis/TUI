@@ -248,6 +248,17 @@ rewriting its outliers.
 
 ## Features
 
+### Compiled hot reload
+
+**What it is.** Saving a source file updates the running app in a second or two, with its objects, globals
+and `@State` intact, by compiling the file's functions into a replacement image and loading it. The whole
+design, with what was measured and the plan, is in [Compiled hot reload](<Compiled hot reload.md>).
+
+**Why not now.** The owner, 2026-11-01: wanted, but after the first release.
+
+**What would reopen it.** The first release. Stage 0 of the design's plan comes first: whether it works on
+Linux, which has not been run.
+
 ### Tooltip placement rules 4 and 5
 
 **What it is.** `Tooltips and help in a terminal.md` §5's popover rules 4 (prefer a placement not
