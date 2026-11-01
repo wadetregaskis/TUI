@@ -377,6 +377,9 @@
         /// `public.html`: HTML text.
         public static let html = UTType(declared: "public.html")
 
+        /// `public.css`: CSS.
+        public static let css = UTType(declared: "public.css")
+
         /// `public.xml`: XML text.
         public static let xml = UTType(declared: "public.xml")
 
@@ -472,6 +475,18 @@
 
         /// `public.heic`: HEIF Image.
         public static let heic = UTType(declared: "public.heic")
+
+        /// `public.heics`: HEIF Image Sequence.
+        public static let heics = UTType(declared: "public.heics")
+
+        /// `public.jpeg-xl`: JPEG XL.
+        public static let jpegxl = UTType(declared: "public.jpeg-xl")
+
+        /// `com.ilm.openexr-image`: OpenEXR image.
+        public static let exr = UTType(declared: "com.ilm.openexr-image")
+
+        /// `com.adobe.raw-image`: Adobe raw image.
+        public static let dng = UTType(declared: "com.adobe.raw-image")
 
         /// `org.webmproject.webp`: WebP Image.
         public static let webP = UTType(declared: "org.webmproject.webp")
