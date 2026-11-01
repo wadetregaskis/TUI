@@ -20,7 +20,7 @@ internal let isFocusDebugEnabled: Bool =
     ProcessInfo.processInfo.environment["TUI_DEBUG_FOCUS"] == "1"
 
 /// Appends a one-line, timestamped diagnostic to
-/// `/tmp/tuikit-debug.log` when `TUI_DEBUG_FOCUS=1`.
+/// `/tmp/tui-debug.log` when `TUI_DEBUG_FOCUS=1`.
 ///
 /// When the flag is unset (the common case) the `message`
 /// autoclosure is not evaluated and the function returns
@@ -37,7 +37,7 @@ package func debugFocusLog(_ message: @autoclosure () -> String) {
     guard isFocusDebugEnabled else { return }
     let stamp = ISO8601DateFormatter().string(from: Date())
     let line = "[\(stamp)] \(message())\n"
-    if let handle = FileHandle(forWritingAtPath: "/tmp/tuikit-debug.log") {
+    if let handle = FileHandle(forWritingAtPath: "/tmp/tui-debug.log") {
         defer { try? handle.close() }
         // The `_ = try?` dance silences Swift 6's "result of
         // 'try?' is unused" warning. We don't care whether
@@ -47,7 +47,7 @@ package func debugFocusLog(_ message: @autoclosure () -> String) {
         _ = try? handle.seekToEnd()
         if let data = line.data(using: .utf8) { try? handle.write(contentsOf: data) }
     } else {
-        try? line.write(toFile: "/tmp/tuikit-debug.log", atomically: false, encoding: .utf8)
+        try? line.write(toFile: "/tmp/tui-debug.log", atomically: false, encoding: .utf8)
     }
 }
 
