@@ -106,6 +106,14 @@ struct ColorDepthDetectionTests {
         #expect(ColorDepth.detect(environment: [:]) == .truecolor)
     }
 
+    @Test("An empty TERM counts as unset, as every other variable here does")
+    func emptyTermIsUnset() {
+        // `TERM= myapp` is how a shell clears it. It used to fall to the bottom
+        // of the table, "set but unrecognized", and draw in 16 colours.
+        #expect(ColorDepth.detect(environment: ["TERM": ""]) == .truecolor)
+        #expect(ColorDepth.detect(environment: ["TERM": "", "NO_COLOR": "1"]) == .noColor)
+    }
+
     @Test(
         "COLORTERM outranks the whole TERM table",
         arguments: ["truecolor", "24bit", "TrueColor", "24BIT"])

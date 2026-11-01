@@ -31,7 +31,7 @@ import Synchronization
 /// Otherwise it is what the terminal can do:
 ///
 /// 1. `COLORTERM` containing `truecolor` or `24bit` → ``truecolor``
-/// 2. `TERM` not set → ``truecolor`` (backward-compatible default)
+/// 2. `TERM` not set, or empty → ``truecolor`` (backward-compatible default)
 /// 3. `TERM` equal to `dumb` → ``noColor``
 /// 4. `TERM` naming a terminal that is truecolour by its own documentation —
 ///    `xterm-ghostty`, `xterm-kitty`, `wezterm`, `alacritty`, `foot` →
@@ -284,12 +284,12 @@ extension ColorDepth {
         }
 
         // TERM encodes the terminal type and sometimes color depth.
-        guard let term = environment["TERM"]?.lowercased() else {
-            // TERM is not set. This typically means the process is not
-            // running in a traditional terminal (e.g. IDE, redirected
-            // output, or env wasn't propagated). Default to truecolor
-            // to preserve backward compatibility — we only downgrade
-            // when there is positive evidence of limited capabilities.
+        guard let term = ColorRequest.stated("TERM", in: environment)?.lowercased() else {
+            // TERM is not set, or empty, which is how a shell clears it. This
+            // typically means the process is not running in a traditional
+            // terminal (e.g. IDE, redirected output, or env wasn't propagated).
+            // Default to truecolor to preserve backward compatibility — we only
+            // downgrade when there is positive evidence of limited capabilities.
             return .truecolor
         }
 

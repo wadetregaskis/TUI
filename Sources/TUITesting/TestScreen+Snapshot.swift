@@ -9,6 +9,14 @@
 import Foundation
 
 extension TestScreen {
+    /// Whether a run writes its snapshots rather than comparing them:
+    /// `TUI_RECORD_SNAPSHOTS=1`, and nothing else. `=0` and an empty value say
+    /// no, as they do of every other `TUI_` switch; a run that took them for yes
+    /// would write over every snapshot, and pass.
+    package static func recordsSnapshots(environment: [String: String]) -> Bool {
+        environment["TUI_RECORD_SNAPSHOTS"] == "1"
+    }
+
     /// Compares the screen's text with a snapshot kept beside the test, in
     /// `__Snapshots__/<name>.txt` in the directory of the test's source file.
     ///
@@ -27,7 +35,7 @@ extension TestScreen {
         let directory = URL(fileURLWithPath: filePath).deletingLastPathComponent()
             .appendingPathComponent("__Snapshots__")
         let file = directory.appendingPathComponent("\(name).txt")
-        let isRecording = ProcessInfo.processInfo.environment["TUI_RECORD_SNAPSHOTS"] != nil
+        let isRecording = Self.recordsSnapshots(environment: ProcessInfo.processInfo.environment)
         let stored = isRecording ? nil : try? String(contentsOf: file, encoding: .utf8)
         guard let stored else {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

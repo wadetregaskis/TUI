@@ -37,7 +37,7 @@ private func snapshotsDirectory() -> URL {
 }
 
 private var isRecordingSnapshots: Bool {
-    ProcessInfo.processInfo.environment["TUI_RECORD_SNAPSHOTS"] != nil
+    ProcessInfo.processInfo.environment["TUI_RECORD_SNAPSHOTS"] == "1"
 }
 
 /// Serialises a buffer to its reviewable snapshot form: a `# WxH` header (so a

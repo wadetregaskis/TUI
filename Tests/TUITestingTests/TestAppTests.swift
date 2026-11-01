@@ -482,4 +482,12 @@ struct TestAppIsolationTests {
         #expect(error?.description.contains("- Hello") == true)
         #expect(error?.description.contains("+ Goodbye") == true)
     }
+
+    @Test("Only TUI_RECORD_SNAPSHOTS=1 records: 0 or empty must not write over a snapshot and pass")
+    func recordingSnapshots() {
+        #expect(TestScreen.recordsSnapshots(environment: ["TUI_RECORD_SNAPSHOTS": "1"]))
+        #expect(!TestScreen.recordsSnapshots(environment: ["TUI_RECORD_SNAPSHOTS": "0"]))
+        #expect(!TestScreen.recordsSnapshots(environment: ["TUI_RECORD_SNAPSHOTS": ""]))
+        #expect(!TestScreen.recordsSnapshots(environment: [:]))
+    }
 }

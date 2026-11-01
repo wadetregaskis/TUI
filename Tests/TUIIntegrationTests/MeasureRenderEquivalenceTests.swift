@@ -54,9 +54,8 @@ struct MeasureRenderEquivalenceTests {
     /// output goes to `flexOut`, which is printed for a reader. The flexibility
     /// contract itself is pinned by ``flexibilityContract()`` and by the size
     /// invariant, neither of which consults the probe, so switching it off
-    /// removes no assertion. Same shape as this suite's neighbours'
-    /// diagnostic switches (`TUI_VERIFY_RENDER_MEMO`,
-    /// `TUI_RECORD_SNAPSHOTS`): any value at all turns it on.
+    /// removes no assertion. Same shape as its neighbour's diagnostic
+    /// switch (`TUI_VERIFY_RENDER_MEMO`): any value at all turns it on.
     private static let runsFlexProbe =
         ProcessInfo.processInfo.environment["TUI_MEASURE_FLEX_PROBE"] != nil
 
