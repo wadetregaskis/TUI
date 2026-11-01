@@ -791,16 +791,16 @@ class KillStalledTests(unittest.TestCase):
                 running = {child.pid: (0, {"log": log, "tag": "g0", "p": child})}
 
                 # First sight of the log, then still inside the limit.
-                parallel_test.kill_stalled(running, now=lambda: 100.0, limit=10)
-                parallel_test.kill_stalled(running, now=lambda: 109.0, limit=10)
+                pt.kill_stalled(running, now=lambda: 100.0, limit=10)
+                pt.kill_stalled(running, now=lambda: 109.0, limit=10)
                 self.assertIsNone(child.poll())
 
                 # It writes, which restarts the wait.
                 handle.write(b" more")
                 handle.flush()
-                parallel_test.kill_stalled(running, now=lambda: 109.5, limit=10)
-                parallel_test.kill_stalled(running, now=lambda: 115.0, limit=10)
+                pt.kill_stalled(running, now=lambda: 109.5, limit=10)
+                pt.kill_stalled(running, now=lambda: 115.0, limit=10)
                 self.assertIsNone(child.poll())
 
-                parallel_test.kill_stalled(running, now=lambda: 120.0, limit=10)
+                pt.kill_stalled(running, now=lambda: 120.0, limit=10)
                 self.assertEqual(child.wait(timeout=5), -signal.SIGKILL)
