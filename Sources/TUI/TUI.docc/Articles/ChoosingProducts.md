@@ -12,6 +12,7 @@ TUI is also built as separate modules, and each module an app may want on its ow
 own. An app can list the products of the modules it uses instead of `TUI`, and SwiftPM then compiles and links
 only those modules and the ones they are built on. A stripped release build of a hello world that depends only on
 `TUIApp` comes out about 40% smaller than one that depends on `TUI`, and it builds a little faster.
+<doc:ShippingAnApp#Shipping-Size> has the other ways to make a program smaller.
 
 ### Depending on modules
 
@@ -59,7 +60,8 @@ notifications and `.help`. Then add the product of each module whose names you u
 | `TUITabImages` | `Tab(_:image:…)`, a tab whose picture is an image resource named by a string (a product of its own so that neither of the two it brings pays for the other) | `TUIBitmaps`, `TUITabs` |
 | `TUIColorPicker` | `ColorPicker`, `ColorPickerPanel`, `GradientEditorPanel` | `TUIPresentation`, `TUITabs`, `TUITextInput`, `TUINumericControls` |
 | `TUICurveEditors` | `ToneCurveEditorPanel`, `ChannelCurveEditorPanel` | `TUIColorPicker`, `TUIImage`, `TUIPickers` |
-| `TUIAppKit` | `Color(nsColor:)`, `NSColor(_:)`, `Image(nsImage:)` and the other bridges to AppKit and Core Graphics (Apple platforms) | `TUIBitmaps` |
+| `TUIAppKit` | `Color(nsColor:)`, `NSColor(_:)`, `Image(nsImage:)` and the other bridges to AppKit (Apple platforms) | `TUIBitmaps` |
+| `TUIFilePanelImages` | `.fileDialogPicturePreviews()`, the file panels previewing the selected picture (a product of its own so that neither of the two it brings pays for the other) | `TUIBitmaps`, `TUIFilePanels` |
 | `TUIFilePanelsAppKit` | `.fileDialogSystemIcons()`, the file panels drawn with the Finder's icons (Apple platforms; a product of its own so that `TUIAppKit` does not bring the file panels) | `TUIAppKit`, `TUIFilePanels` |
 | `TUIMacros` | the `@Entry`, `@Animatable` and `@AnimatableIgnored` macros (it builds swift-syntax) | `TUICore` |
 
@@ -70,6 +72,16 @@ them: `import TUITables` gives you `List` as well. `TUIFoundation`, `TUICore`, `
 re-exports `TUICore`, `TUIStyling` and `TUIView`; `TUIView` re-exports `TUICore` and
 `TUIStyling`, whose `FrameBuffer` and `Color` its API names, and `TUIImage` re-exports `TUIStyling`, so
 one import covers either. `TUICore` and `TUIStyling` re-export nothing.
+
+### What `import TUI` brings
+
+`import TUI` re-exports every module in the table above, except the three imported beside it: `TUIAppKit`,
+`TUIFilePanelsAppKit` and `TUIMacros`. So on the `TUI` product, add `import TUIAppKit` where you use `Color(nsColor:)`,
+`NSColor(_:)` or `Image(nsImage:)`. They are kept out because AppKit imports SwiftUICore, and a module that imports
+AppKit makes every app importing it see SwiftUI's own extension members beside TUI's.
+
+The Core Graphics bridges need only TUI, on Apple platforms: `Color(cgColor:)`, `Color.Resolved.cgColor`,
+`Image(_:scale:orientation:label:)` and `Image(decorative:scale:orientation:)`.
 
 ### The products decide what is built; the imports only what you can see
 
@@ -124,7 +136,7 @@ An app that calls only your library's own API is unaffected, except where that A
 (`extension Color { static var brand }`, `extension View { func card() }`) or conforms one to your protocol: Swift
 names those symbols after the TUI module, so they leave your library's exports with TUI's, and an app calling
 one fails to link unless the compiler copied its body into the app. To export TUI from your library, depend on TUI
-with that trait off and the other default one kept, `.package(url: …, from: …, traits: ["DeadStripUnusedAPI"])`.
+with that trait off and the other default one kept; <doc:ShippingAnApp#The-Two-Default-Traits> shows how.
 
 ## Where the module shows
 

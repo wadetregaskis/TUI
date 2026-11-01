@@ -272,7 +272,7 @@ swift build
 # on its own: while `xcode-select` points at the Command Line Tools it runs
 # THEIR `swift` (6.1.2 here, 2026-10-07). Xcode's also takes ~26% less time
 # over a clean release build than swiftly's 6.2.4, an assertions build — see
-# "Build time" in Documentation/Building and shipping an app.md.
+# "Build time" in Sources/TUI/TUI.docc/Articles/ShippingAnApp.md.
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift build --build-tests --scratch-path .build/xcode
 
 # Run all tests (7,591 tests in 1,082 suites, Swift Testing framework)

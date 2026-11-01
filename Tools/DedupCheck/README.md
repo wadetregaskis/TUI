@@ -1,7 +1,7 @@
 # DedupCheck
 
-Keeps TUI correct in an app linked with `-Xlinker -deduplicate`, which the README offers app developers as a
-size option (README, "Shipping size"). With it, ld merges byte-identical functions, across the whole app, onto one
+Keeps TUI correct in an app linked with `-Xlinker -deduplicate`, which the documentation offers app developers as a
+size option ("Shipping Size" in `Sources/TUI/TUI.docc/Articles/ShippingAnApp.md`). With it, ld merges byte-identical functions, across the whole app, onto one
 address. Swift code can observe a function's address in two ways, and either can change its answer:
 
 - **Key paths.** A key path to a computed property is identified by its getter's address. Two key paths with one

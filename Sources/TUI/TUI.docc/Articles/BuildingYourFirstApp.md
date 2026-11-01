@@ -496,4 +496,4 @@ You've used most of what a small app needs. To take Groceries further:
 - Add sections and reordering with <doc:ListAndTable>.
 - Show the shortcuts along the bottom of the screen with <doc:StatusBarGuide>.
 - Make your own colours with <doc:ThemingGuide>.
-- Build a version to give to other people. `swift build -c release` makes one that's smaller and faster than the debug build `swift run` gives you, and <doc:ChoosingProducts> shows how to make it smaller still.
+- Build a version to give to other people. `swift build -c release` makes one that's smaller and faster than the debug build `swift run` gives you, and <doc:ShippingAnApp> says what to ship and how to make it smaller still.

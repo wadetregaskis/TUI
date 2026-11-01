@@ -1,5 +1,5 @@
 #!/bin/bash
-# ci-check.sh : TUI's programs linked, stripped and run as "Shipping size" in Documentation/Building and shipping an app.md ships them.
+# ci-check.sh : TUI's programs linked, stripped and run as "Shipping size" in Sources/TUI/TUI.docc/Articles/ShippingAnApp.md ships them.
 #
 # That document offers app developers a link flag that changes the whole program, `-Xlinker -deduplicate`, beside
 # TUI's default traits, whose `UnexportTUISymbols` takes TUI's symbols out of the program's export table (it

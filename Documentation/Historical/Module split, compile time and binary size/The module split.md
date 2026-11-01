@@ -3211,7 +3211,7 @@ writes; its text appeared at about 1.5 s for both, because the PTY never answers
 decisions for each step in
 the step records below, and
 [TT2](<Compile time and the test targets.md>);
-README [Depending on fewer modules](<../../Building and shipping an app.md#depending-on-fewer-modules>) and
-[Build time](<../../Building and shipping an app.md#build-time>); the
+README [Depending on fewer modules](<../../../Sources/TUI/TUI.docc/Articles/ChoosingProducts.md#depending-on-modules>) and
+[Build time](<../../../Sources/TUI/TUI.docc/Articles/ShippingAnApp.md#build-time>); the
 [compile time and binary size analysis](<Compile time and the test targets.md>) that led to
 the split; [type-check time on Swift 6.4](<Compile time and the test targets.md>).
