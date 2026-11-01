@@ -12,6 +12,8 @@
 
 import Testing
 
+import Observation
+
 @testable import TUIApp
 @testable import TUICore
 @testable import TUIFoundation
@@ -288,6 +290,46 @@ private struct WidthChangingPage: View {
     }
 }
 
+/// A label whose width something other than its own hover changes: a timer, a
+/// network reply, or a key's action.
+@Observable
+private final class LabelModel {
+    var label: String
+    init(_ label: String) { self.label = label }
+}
+
+private struct ExternallyResizedApp: App {
+    let model: LabelModel
+    let log: HoverLog
+
+    init() {
+        model = LabelModel("")
+        log = HoverLog()
+    }
+
+    init(model: LabelModel, log: HoverLog) {
+        self.model = model
+        self.log = log
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            ExternallyResizedPage(model: model, log: log)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .mouseSupport(.full)
+    }
+}
+
+private struct ExternallyResizedPage: View {
+    let model: LabelModel
+    let log: HoverLog
+
+    var body: some View {
+        Text(verbatim: model.label).onHover { log.heard.append($0) }
+    }
+}
+
 @MainActor
 @Suite("Hover across a reshape, through the run loop")
 struct HoverReshapeRunLoopTests {
@@ -311,6 +353,67 @@ struct HoverReshapeRunLoopTests {
             for _ in 0..<4 { driver.step() }
         }
         #expect(log.heard == [true], "a key changed it: \(log.heard)")
+    }
+
+    /// A view that grows until it covers a resting pointer is what the pointer is
+    /// on now, whatever made it grow.
+    @Test("A view that grows under a resting pointer is entered")
+    func growingOntoThePointerEnters() throws {
+        let log = HoverLog()
+        let wide = "a much wider label"
+        let model = LabelModel("short")
+        let driver = Driver(ExternallyResizedApp(model: model, log: log))
+        let start = try #require(driver.position(of: "short"), "precondition: drawn")
+        // Past the end of the short label, inside where the wide one will reach.
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: start.x + wide.count - 1, y: start.y))
+        for _ in 0..<4 { driver.step() }
+        #expect(log.heard.isEmpty, "precondition: the pointer is on nothing: \(log.heard)")
+        model.label = wide
+        for _ in 0..<4 { driver.step() }
+        #expect(log.heard == [true], "the growth did not enter it: \(log.heard)")
+    }
+
+    /// Something other than its hover shrinks it off the pointer and grows it back,
+    /// with no input between, as a timer or a network reply can. Not entered today:
+    /// `leftByReshape` stops a hover that moves its own view from flickering for
+    /// ever, and it can't tell that apart from this.
+    @Test("A view that shrinks off a resting pointer and grows back is entered again")
+    func growingBackOntoThePointerEnters() throws {
+        let log = HoverLog()
+        let wide = "a much wider label"
+        let model = LabelModel(wide)
+        let driver = Driver(ExternallyResizedApp(model: model, log: log))
+        let start = try #require(driver.position(of: wide), "precondition: drawn")
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: start.x + wide.count - 1, y: start.y))
+        for _ in 0..<4 { driver.step() }
+        #expect(log.heard == [true], "precondition: the move entered it: \(log.heard)")
+        model.label = "short"
+        for _ in 0..<4 { driver.step() }
+        #expect(log.heard == [true, false], "the shrink did not exit it: \(log.heard)")
+        model.label = wide
+        for _ in 0..<4 { driver.step() }
+        withKnownIssue("leftByReshape cannot tell an outside change from the hover's own") {
+            #expect(log.heard == [true, false, true], "growing back did not enter it: \(log.heard)")
+        }
+    }
+
+    /// The same, with a key between, and the growth the key's doing.
+    @Test("A view a key grows back under a resting pointer is entered again")
+    func aKeyGrowingItBackEnters() throws {
+        let log = HoverLog()
+        let wide = "a much wider label"
+        let model = LabelModel(wide)
+        let driver = Driver(ExternallyResizedApp(model: model, log: log))
+        let start = try #require(driver.position(of: wide), "precondition: drawn")
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: start.x + wide.count - 1, y: start.y))
+        for _ in 0..<4 { driver.step() }
+        model.label = "short"
+        for _ in 0..<4 { driver.step() }
+        #expect(log.heard == [true, false], "precondition: \(log.heard)")
+        driver.app.send(KeyEvent(character: "x"))
+        model.label = wide
+        for _ in 0..<4 { driver.step() }
+        #expect(log.heard == [true, false, true], "growing back did not enter it: \(log.heard)")
     }
 
     /// The pointer really has left a view that shrank from under it, and that
