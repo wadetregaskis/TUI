@@ -183,8 +183,7 @@ final class Terminal: HostStateKeeping {
     /// by half, and the one string made from it; the room goes back once the
     /// paste is delivered. (Measured on macOS 15 at 64 MiB, with what the
     /// allocator keeps of freed storage: 2.6 times the paste, where a copy
-    /// into an array on the way made it 3.6. On macOS 14 the decoder still
-    /// makes that copy; see `utf8Text(_:)`.)
+    /// into an array on the way made it 3.6.)
     ///
     /// Until 2026-10-12 there was a limit: 1 MiB from 2026-05-28, when it was
     /// the one way out of a paste whose end marker was lost, and 16 MiB from

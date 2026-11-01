@@ -275,7 +275,7 @@ struct SearchableModifier<Content: View>: View {
     /// the searchable asked — the same field either way, so binding one does
     /// not make the field a different view.
     private func baseField(prompt: Text) -> TextField<Text> {
-        if #available(macOS 15, *), let binding = selection?.binding as? Binding<TextSelection?> {
+        if let binding = selection?.binding as? Binding<TextSelection?> {
             return TextField("", text: text, selection: binding, prompt: prompt)
         }
         return TextField("", text: text, prompt: prompt)

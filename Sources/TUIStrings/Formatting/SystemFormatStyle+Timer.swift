@@ -9,7 +9,6 @@
 
 import Foundation
 
-@available(macOS 15, *)
 extension SystemFormatStyle {
     /// The system timer format style — mirrors SwiftUI's
     /// `SystemFormatStyle.Timer`.
@@ -137,7 +136,6 @@ extension SystemFormatStyle {
     }
 }
 
-@available(macOS 15, *)
 extension FormatStyle where Self == SystemFormatStyle.Timer {
     /// Create a timer format style that counts down in the given interval —
     /// mirrors SwiftUI's `.timer(countingDownIn:…)`.

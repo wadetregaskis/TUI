@@ -28,13 +28,11 @@ struct SystemFormatStyleClockTests {
     }
 
     /// The boundary after `seconds`, as seconds after `base`.
-    @available(macOS 15, *)
     private func after<F: DiscreteFormatStyle>(_ style: F, _ seconds: Double) -> Double?
     where F.FormatInput == Date {
         style.discreteInput(after: at(seconds)).map { $0.timeIntervalSince(base) }
     }
 
-    @available(macOS 15, *)
     private func before<F: DiscreteFormatStyle>(_ style: F, _ seconds: Double) -> Double?
     where F.FormatInput == Date {
         style.discreteInput(before: at(seconds)).map { $0.timeIntervalSince(base) }
@@ -49,7 +47,6 @@ struct SystemFormatStyleClockTests {
             (3_124.9, "10:01"), (3_125.1, "10:00"), (3_724.2, "0:01"), (3_725, "0:00"), (9_000, "0:00"),
         ] as [(Double, String)])
     func countdown(_ seconds: Double, _ expected: String) {
-        guard #available(macOS 15, *) else { return }
         #expect(string(SystemFormatStyle.Timer(countingDownIn: at(0)..<at(3_725)), seconds) == expected)
     }
 
@@ -60,13 +57,11 @@ struct SystemFormatStyleClockTests {
             (3_600, "1:00:00"), (3_724.9, "1:02:04"), (9_000, "1:02:05"),
         ] as [(Double, String)])
     func countUp(_ seconds: Double, _ expected: String) {
-        guard #available(macOS 15, *) else { return }
         #expect(string(SystemFormatStyle.Timer(countingUpIn: at(0)..<at(3_725)), seconds) == expected)
     }
 
     @Test("Hours, field counts and precision change the face as SwiftUI's does")
     func timerOptions() {
-        guard #available(macOS 15, *) else { return }
         let long = at(0)..<at(100_000)
         #expect(string(SystemFormatStyle.Timer(countingUpIn: long, showsHours: false), 3_725) == "62:05")
         #expect(string(SystemFormatStyle.Timer(countingUpIn: long, showsHours: false), 99_999) == "1666:39")
@@ -94,7 +89,6 @@ struct SystemFormatStyleClockTests {
 
     @Test("A timer's boundaries: where its reading next changes, and last changed")
     func timerBoundaries() {
-        guard #available(macOS 15, *) else { return }
         let down = SystemFormatStyle.Timer(countingDownIn: at(0)..<at(3_725))
         #expect(after(down, -10) == 1)
         #expect(after(down, 0.4) == 1)
@@ -132,13 +126,11 @@ struct SystemFormatStyleClockTests {
             (400_000, "111:06:40.00"),
         ] as [(Double, String)])
     func stopwatch(_ seconds: Double, _ expected: String) {
-        guard #available(macOS 15, *) else { return }
         #expect(string(SystemFormatStyle.Stopwatch(startingAt: base), seconds) == expected)
     }
 
     @Test("A stopwatch's hours, field counts and precision")
     func stopwatchOptions() {
-        guard #available(macOS 15, *) else { return }
         #expect(string(SystemFormatStyle.Stopwatch(startingAt: base, showsHours: false), 3_725.25) == "62:05.25")
         #expect(string(SystemFormatStyle.Stopwatch(startingAt: base, maxFieldCount: 1), 65.25) == "1 minute")
         #expect(string(SystemFormatStyle.Stopwatch(startingAt: base, maxFieldCount: 2), 5.25) == "00:05")
@@ -153,7 +145,6 @@ struct SystemFormatStyleClockTests {
 
     @Test("A stopwatch's boundaries are a hundredth apart, none before its start")
     func stopwatchBoundaries() {
-        guard #available(macOS 15, *) else { return }
         let watch = SystemFormatStyle.Stopwatch(startingAt: base)
         #expect(after(watch, -5).map { abs($0 - 0.01) < 1e-6 } == true)
         #expect(after(watch, 1.234).map { abs($0 - 1.24) < 1e-6 } == true)
@@ -164,7 +155,6 @@ struct SystemFormatStyleClockTests {
 
     @Test("The statics build the styles, the locale spells the units, and the styles round-trip as JSON")
     func staticsAndCoding() throws {
-        guard #available(macOS 15, *) else { return }
         let interval = at(0)..<at(100)
         #expect(SystemFormatStyle.Timer.timer(countingDownIn: interval) == SystemFormatStyle.Timer(countingDownIn: interval))
         #expect(SystemFormatStyle.Timer.timer(countingUpIn: interval) == SystemFormatStyle.Timer(countingUpIn: interval))

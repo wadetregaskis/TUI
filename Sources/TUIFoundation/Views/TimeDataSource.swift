@@ -20,7 +20,6 @@ import Foundation
 /// Text(.currentDate, format: .offset(to: startDate))
 /// Text(.durationOffset(to: startDate), format: .time(pattern: .minuteSecond))
 /// ```
-@available(macOS 15, *)
 public struct TimeDataSource<Value>: Sendable {
     /// Which source this is: what equality compares.
     enum Kind: Hashable, Sendable {
@@ -44,7 +43,6 @@ public struct TimeDataSource<Value>: Sendable {
     let risesWithTime: Bool
 }
 
-@available(macOS 15, *)
 extension TimeDataSource where Value == Date {
     /// A time data source that produces `Date.now`.
     public static var currentDate: TimeDataSource<Date> {
@@ -52,7 +50,6 @@ extension TimeDataSource where Value == Date {
     }
 }
 
-@available(macOS 15, *)
 extension TimeDataSource where Value == Range<Date> {
     /// A time data source that produces `min(date, Date.now)..<date`.
     ///
@@ -75,7 +72,6 @@ extension TimeDataSource where Value == Range<Date> {
     }
 }
 
-@available(macOS 15, *)
 extension TimeDataSource where Value == Duration {
     /// A time data source that produces the offset between `Date.now` and the
     /// given `date` as a `Duration`: positive once `date` has passed.

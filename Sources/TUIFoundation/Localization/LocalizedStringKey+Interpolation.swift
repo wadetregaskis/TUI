@@ -154,7 +154,6 @@ extension LocalizedStringKey.StringInterpolation {
     /// `\(date, format: .offset(to: anchor))` TUI's `SystemFormatStyle`
     /// on macOS, where SwiftUI's statics are visible too (see
     /// `SystemFormatStyle+DiscreteStatics.swift`).
-    @available(macOS 15, *)
     public mutating func appendInterpolation<F: DiscreteFormatStyle>(
         _ input: F.FormatInput, format: F
     ) where F.FormatInput: Equatable, F.FormatOutput == AttributedString {

@@ -28,12 +28,10 @@ extension View {
     ///
     /// The field writes its caret and selection to the binding as they move,
     /// and a selection the app writes moves them, as a ``TextField``'s
-    /// `selection:` does. Available from macOS 15, with ``TextSelection``,
-    /// where SwiftUI's is macOS 26's.
+    /// `selection:` does.
     ///
     /// - Parameter selection: The selection to bind.
     /// - Returns: The modified view.
-    @available(macOS 15, *)
     public func searchSelection(_ selection: Binding<TextSelection?>) -> some View {
         _SearchSelectionModifier(content: self, selection: selection)
     }
@@ -44,7 +42,7 @@ extension View {
 /// the same from frame to frame and the memos below are untouched. The binding
 /// in it, a `Binding<TextSelection?>` held as `Any` because ``TextSelection``
 /// is macOS 15's, is refreshed each time the modifier's body runs.
-final class SearchSelectionBox: Equatable, @unchecked Sendable {
+final class SearchSelectionBox: Equatable {
     var binding: Any?
 
     nonisolated static func == (lhs: SearchSelectionBox, rhs: SearchSelectionBox) -> Bool { lhs === rhs }
@@ -52,7 +50,6 @@ final class SearchSelectionBox: Equatable, @unchecked Sendable {
 
 /// What ``View/searchSelection(_:)`` makes: the binding, boxed, in the
 /// environment of the searchable it is written around.
-@available(macOS 15, *)
 struct _SearchSelectionModifier<Content: View>: View {
     let content: Content
     let selection: Binding<TextSelection?>
@@ -66,7 +63,7 @@ struct _SearchSelectionModifier<Content: View>: View {
 }
 
 private struct SearchSelectionKey: EnvironmentKey {
-    static let defaultValue: SearchSelectionBox? = nil
+    static var defaultValue: SearchSelectionBox? { nil }
 }
 
 extension EnvironmentValues {

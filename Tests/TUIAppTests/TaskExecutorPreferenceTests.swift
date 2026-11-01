@@ -16,7 +16,6 @@ import TUIApp
 @testable import TUITestSupport
 
 /// An executor that counts the jobs it is given, and runs each at once.
-@available(macOS 15, *)
 private final class CountingExecutor: TaskExecutor {
     let jobs = Atomic<Int>(0)
 
@@ -38,7 +37,6 @@ struct TaskExecutorPreferenceTests {
 
     @Test("The task's nonisolated work runs on the executor it prefers")
     func preferredExecutorRunsTheWork() async {
-        guard #available(macOS 15, *) else { return }
         let executor = CountingExecutor()
         let (finished, finish) = AsyncStream<Int>.makeStream()
         let harness = InputChainHarness(width: 10, height: 1)
@@ -53,7 +51,6 @@ struct TaskExecutorPreferenceTests {
 
     @Test("The form without an id prefers the executor too")
     func preferredExecutorWithoutAnID() async {
-        guard #available(macOS 15, *) else { return }
         let executor = CountingExecutor()
         let (finished, finish) = AsyncStream<Int>.makeStream()
         let harness = InputChainHarness(width: 10, height: 1)

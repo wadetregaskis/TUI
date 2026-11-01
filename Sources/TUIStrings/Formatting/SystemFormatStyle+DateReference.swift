@@ -10,7 +10,6 @@
 
 import Foundation
 
-@available(macOS 15, *)
 extension SystemFormatStyle {
     /// A system format style to refer to a date in the most natural way —
     /// mirrors SwiftUI's `SystemFormatStyle.DateReference`.
@@ -250,7 +249,6 @@ extension SystemFormatStyle {
     }
 }
 
-@available(macOS 15, *)
 extension FormatStyle where Self == SystemFormatStyle.DateReference {
     /// Create a format style to refer to a date in the most natural way —
     /// mirrors SwiftUI's `.reference(to:allowedFields:maxFieldCount:thresholdField:)`.

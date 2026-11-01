@@ -52,7 +52,6 @@ import Foundation
 // (`SystemFormatStyle.DateOffset(to: d)`) settles it. On Linux there is no
 // SwiftUICore and nothing collides.
 
-@available(macOS 15, *)
 extension DiscreteFormatStyle where Self == SystemFormatStyle.Timer {
     /// Create a timer format style that counts down in the given interval.
     ///
@@ -90,7 +89,6 @@ extension DiscreteFormatStyle where Self == SystemFormatStyle.Timer {
     }
 }
 
-@available(macOS 15, *)
 extension DiscreteFormatStyle where Self == SystemFormatStyle.Stopwatch {
     /// Create a stopwatch format style.
     ///
@@ -110,7 +108,6 @@ extension DiscreteFormatStyle where Self == SystemFormatStyle.Stopwatch {
     }
 }
 
-@available(macOS 15, *)
 extension DiscreteFormatStyle where Self == SystemFormatStyle.DateOffset {
     /// Create a format style to display the offset to a certain date.
     ///
@@ -130,7 +127,6 @@ extension DiscreteFormatStyle where Self == SystemFormatStyle.DateOffset {
     }
 }
 
-@available(macOS 15, *)
 extension DiscreteFormatStyle where Self == SystemFormatStyle.DateReference {
     /// Create a format style to refer to a date in the most natural way.
     ///

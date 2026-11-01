@@ -27,7 +27,6 @@ struct _TextSelectionChannel {
         self.write = write
     }
 
-    @available(macOS 15, *)
     init(_ binding: Binding<TextSelection?>, text: Binding<String>) {
         self.read = {
             guard let range = binding.wrappedValue?.firstRange else { return nil }

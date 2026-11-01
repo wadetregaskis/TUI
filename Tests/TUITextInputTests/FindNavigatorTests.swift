@@ -53,7 +53,6 @@ struct FindNavigatorTests {
 
     @Test("Typing a query selects the first match; Return the next; Escape closes the bar")
     func findAndClose() {
-        guard #available(macOS 15, *) else { return }
         let model = Model()
         var selection: TextSelection?
         let text = Binding(get: { model.text }, set: { model.text = $0 })
@@ -126,7 +125,6 @@ struct FindNavigatorTests {
 
     @Test("After Ctrl-F the keys type into the search field, not the text")
     func controlFFocusesTheQuery() {
-        guard #available(macOS 15, *) else { return }
         let model = Model()
         model.text = "one two"
         var selection: TextSelection?
@@ -170,7 +168,6 @@ struct FindNavigatorTests {
 
     @Test("Ctrl-G finds the next match with the bar closed, and Shift-Ctrl-G the previous")
     func controlGSteps() {
-        guard #available(macOS 15, *) else { return }
         let model = Model()
         model.text = "one two one two one"
         var selection: TextSelection?
@@ -215,7 +212,6 @@ struct FindNavigatorTests {
 
     @Test("Every match is tinted while the bar is up, the current one selected over it")
     func everyMatchIsTinted() {
-        guard #available(macOS 15, *) else { return }
         let model = Model()
         model.text = "one two one"
         var selection: TextSelection?

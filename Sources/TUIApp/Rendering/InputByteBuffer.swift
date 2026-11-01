@@ -22,7 +22,7 @@
 /// TUI's own rather than swift-collections' `UniqueDeque`, which held them
 /// until 2026-10. Linking DequeModule linked `libswiftCompatibilitySpan.dylib`,
 /// a library macOS has only from 26, so a TUI program copied out of `.build`
-/// stopped at launch on macOS 14 and 15 (`Tools/check-span-compatibility.sh`
+/// stopped at launch on macOS 15 (`Tools/check-span-compatibility.sh`
 /// says how, and CI runs it so that it stays gone). For the same reason
 /// nothing here uses `Span`, `OutputSpan` or their kin: `read()` gets an
 /// `UnsafeMutableBufferPointer`.
@@ -127,8 +127,7 @@ struct InputByteBuffer {
     ///
     /// How a bracketed paste becomes its string: the decoder reads the
     /// buffer's storage, so the string is the one copy of the paste made on
-    /// its way to the app (on macOS 14 Foundation's decoder makes one more;
-    /// see `Terminal.utf8Text(_:)`).
+    /// its way to the app (`Terminal.utf8Text(_:)`).
     func withUnsafeBufferPointer<Result>(
         prefix count: Int, _ body: (UnsafeBufferPointer<UInt8>) throws -> Result
     ) rethrows -> Result {

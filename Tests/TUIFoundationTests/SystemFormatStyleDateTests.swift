@@ -29,12 +29,10 @@ struct SystemFormatStyleDateTests {
 
     private func at(_ seconds: Double) -> Date { base.addingTimeInterval(seconds) }
 
-    @available(macOS 15, *)
     private func offset(_ style: SystemFormatStyle.DateOffset, _ seconds: Double) -> String {
         String(style.locale(english).calendar(calendar()).format(at(seconds)).characters)
     }
 
-    @available(macOS 15, *)
     private func reference(_ style: SystemFormatStyle.DateReference, _ seconds: Double, zone: String = "UTC") -> String {
         String(style.locale(english).calendar(calendar(zone)).format(at(seconds)).characters)
     }
@@ -52,13 +50,11 @@ struct SystemFormatStyleDateTests {
             (90_000, "1 day, 1 hour"), (2_678_400, "1 month"), (40_000_000, "1 year, 3 months"),
         ] as [(Double, String)])
     func offsets(_ seconds: Double, _ expected: String) {
-        guard #available(macOS 15, *) else { return }
         #expect(offset(SystemFormatStyle.DateOffset(to: base), seconds) == expected)
     }
 
     @Test("Sign strategies, field counts and allowed fields")
     func offsetOptions() {
-        guard #available(macOS 15, *) else { return }
         let never = SystemFormatStyle.DateOffset(to: base, sign: .never)
         #expect(offset(never, -30) == "30 seconds")
         let always = SystemFormatStyle.DateOffset(to: base, sign: .always())
@@ -86,7 +82,6 @@ struct SystemFormatStyleDateTests {
 
     @Test("An offset's boundaries are SwiftUI's")
     func offsetBoundaries() {
-        guard #available(macOS 15, *) else { return }
         let style = SystemFormatStyle.DateOffset(to: base).calendar(calendar())
         func after(_ seconds: Double) -> Double? { style.discreteInput(after: at(seconds))?.timeIntervalSince(base) }
         #expect(after(-0.6) == 0, "the sign goes at the anchor")
@@ -129,13 +124,11 @@ struct SystemFormatStyleDateTests {
             (86_399, "yesterday"), (90_000, "yesterday"), (172_800, "2 days ago"), (400_000, "4 days ago"),
         ] as [(Double, String)])
     func relativeReferences(_ seconds: Double, _ expected: String) {
-        guard #available(macOS 15, *) else { return }
         #expect(reference(SystemFormatStyle.DateReference(to: base), seconds) == expected)
     }
 
     @Test("A reference far from the date is absolute, in the fields that differ")
     func absoluteReferences() {
-        guard #available(macOS 15, *) else { return }
         let style = SystemFormatStyle.DateReference(to: base)
         let la = "America/Los_Angeles"
         #expect(reference(style, -40_000_000, zone: la) == "May 2026")
@@ -151,7 +144,6 @@ struct SystemFormatStyleDateTests {
 
     @Test("The threshold field decides where the relative form stops")
     func thresholds() {
-        guard #available(macOS 15, *) else { return }
         let la = "America/Los_Angeles"
         let hour = SystemFormatStyle.DateReference(to: base, thresholdField: .hour)
         #expect(reference(hour, -3_725, zone: la) == "in 1 hour")
@@ -169,7 +161,6 @@ struct SystemFormatStyleDateTests {
 
     @Test("A reference's boundaries: the relative form's, and where it turns absolute")
     func referenceBoundaries() {
-        guard #available(macOS 15, *) else { return }
         let style = SystemFormatStyle.DateReference(to: base).locale(english).calendar(calendar())
         func after(_ seconds: Double) -> Double? { style.discreteInput(after: at(seconds))?.timeIntervalSince(base) }
         #expect(after(29.4) == 29.5)
@@ -191,7 +182,6 @@ struct SystemFormatStyleDateTests {
 
     /// A context that takes any discrete style — what `Text(.currentDate,
     /// format:)` is.
-    @available(macOS 15, *)
     private func discrete<F: DiscreteFormatStyle>(_ style: F) -> F { style }
 
     /// On macOS, SwiftUI's own `FormatStyle.offset(to:)` and the rest reach
@@ -200,7 +190,6 @@ struct SystemFormatStyleDateTests {
     /// TUI declares each again on `DiscreteFormatStyle`.
     @Test("In a discrete context the statics are TUI's, though SwiftUI's are visible on macOS")
     func staticsResolveToTUI() {
-        guard #available(macOS 15, *) else { return }
         #expect(discrete(.offset(to: base)) == SystemFormatStyle.DateOffset(to: base, allowedFields: [.year, .month, .day, .hour, .minute, .second]))
         #expect(discrete(.reference(to: base)) == SystemFormatStyle.DateReference(to: base))
         #expect(discrete(.timer(countingDownIn: base..<at(10))) == SystemFormatStyle.Timer(countingDownIn: base..<at(10)))
@@ -210,7 +199,6 @@ struct SystemFormatStyleDateTests {
 
     @Test("A reference in German, and both styles round-trip as JSON")
     func localisedAndCoded() throws {
-        guard #available(macOS 15, *) else { return }
         let german = SystemFormatStyle.DateReference(to: base).locale(Locale(identifier: "de_DE")).calendar(calendar())
         #expect(String(german.format(at(125)).characters) == "vor 2 Minuten")
         #expect(String(german.format(at(-90_000)).characters) == "morgen")

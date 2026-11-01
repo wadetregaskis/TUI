@@ -161,7 +161,6 @@ public struct TextEditor: View {
     /// - Parameters:
     ///   - text: The multi-line text to edit.
     ///   - selection: The current selection.
-    @available(macOS 15, *)
     public init(text: Binding<String>, selection: Binding<TextSelection?>) {
         self.init(text: text)
         self.selection = _TextSelectionChannel(selection, text: text)

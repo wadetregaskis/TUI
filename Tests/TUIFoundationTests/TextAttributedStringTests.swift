@@ -249,12 +249,11 @@ struct TextAttributedStringTests {
         // Foundation's own field attributes say what a run is, not how it
         // looks: a plain text, as before.
         let date = Date(timeIntervalSinceReferenceDate: 0)
-        #expect(Text(date, format: .dateTime.year().attributed).runs == nil)
+        #expect(Text(date, format: .dateTime.year().attributedStyle).runs == nil)
     }
 
     /// A discrete style whose output says how it looks: the seconds since the
     /// reference date, in red unless `isPlain`, changing every second.
-    @available(macOS 15, *)
     private struct HighlightedSeconds: DiscreteFormatStyle {
         var isPlain = false
         func format(_ value: Date) -> AttributedString {
@@ -268,7 +267,6 @@ struct TextAttributedStringTests {
 
     @Test("A live Text(_:format:) draws its attributed output's attributes at every read")
     func liveFormattedOutput() throws {
-        guard #available(macOS 15, *) else { return }
         let text = Text(.currentDate, format: HighlightedSeconds()).bold()
         for seconds in [5.0, 6] {
             let read = try #require(text.readingLive(at: Date(timeIntervalSinceReferenceDate: seconds), in: .current))

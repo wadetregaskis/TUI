@@ -622,8 +622,7 @@ extension Terminal {
     /// (Latin-1) rather than dropped.
     ///
     /// The string is made straight from the buffer's storage, so it is the
-    /// one copy of the paste on its way to the app, except on macOS 14, where
-    /// the decoder makes one more (``utf8Text(_:)``). Until 2026-10-12 the bytes
+    /// one copy of the paste on its way to the app (``utf8Text(_:)``). Until 2026-10-12 the bytes
     /// were copied into an array first: one more copy the size of the paste,
     /// alive with the buffer and the string, which made a 64 MiB paste peak
     /// at 3.6 times its size where it now peaks at 2.6 (measured, macOS 15;
@@ -639,21 +638,9 @@ extension Terminal {
     ///
     /// The standard library's validating initialiser checks the bytes and
     /// then copies them into the string, once: it allocates nothing else (its
-    /// body is inlinable, and reads contiguous storage where it lies). It is
-    /// new in macOS 15. On macOS 14 this is Foundation's decoder, which decoded
-    /// every paste until 2026-10-12, so a paste there decodes as it did, and
-    /// costs what it did: that `String(bytes:encoding:)` is not inlinable, so
-    /// macOS 14's own runs, and its source (the Swift overlay's
-    /// `NSStringAPI.swift`) copies the bytes into an array before decoding
-    /// them, a second copy of the paste while the decode runs (recalled from
-    /// that source, not measured). The two keep a byte-order mark alike
-    /// (measured on macOS 15; these tests run on macOS 15 and later, so the
-    /// macOS 14 path is not exercised by them).
+    /// body is inlinable, and reads contiguous storage where it lies).
     nonisolated static func utf8Text(_ bytes: UnsafeBufferPointer<UInt8>) -> String? {
-        if #available(macOS 15, *) {
-            return String(validating: bytes, as: UTF8.self)
-        }
-        return String(bytes: bytes, encoding: .utf8)
+        String(validating: bytes, as: UTF8.self)
     }
 
     /// `bytes` read a byte to a character, as Latin-1: what a paste that is

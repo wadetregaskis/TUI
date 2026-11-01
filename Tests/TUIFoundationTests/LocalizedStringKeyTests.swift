@@ -421,7 +421,6 @@ struct LocalizedStringKeyTests {
 
     @Test("A time data source through a format style is a live argument")
     func timeDataSourceInterpolation() {
-        guard #available(macOS 15, *) else { return }
         let start = Date(timeIntervalSinceNow: -125)
         let key: LocalizedStringKey = "Started \(.currentDate, format: .offset(to: start))"
         #expect(key.key == "Started %@")

@@ -27,13 +27,8 @@ import Foundation
 /// The outputs carry no attributes: a terminal draws the characters. Their
 /// strings are SwiftUI's, measured on macOS 15 and pinned in the
 /// `SystemFormatStyle…Tests` suites.
-///
-/// Available from macOS 15, as SwiftUI's is: `DiscreteFormatStyle` is new
-/// there.
-@available(macOS 15, *)
 public enum SystemFormatStyle: Sendable {}
 
-@available(macOS 15, *)
 extension SystemFormatStyle {
     /// The instant a reading changes, from the VALUE it changes at and how the
     /// value maps to time.

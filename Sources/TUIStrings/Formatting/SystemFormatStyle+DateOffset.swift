@@ -9,7 +9,6 @@
 
 import Foundation
 
-@available(macOS 15, *)
 extension SystemFormatStyle {
     /// A system format to display the offset to a certain date — mirrors
     /// SwiftUI's `SystemFormatStyle.DateOffset`.
@@ -152,7 +151,6 @@ extension SystemFormatStyle {
     }
 }
 
-@available(macOS 15, *)
 extension FormatStyle where Self == SystemFormatStyle.DateOffset {
     /// Create a format style to display the offset to a certain date —
     /// mirrors SwiftUI's `.offset(to:allowedFields:maxFieldCount:sign:)`.

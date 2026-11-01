@@ -114,11 +114,9 @@
             #expect(SymbolBreath(BounceSymbolEffect.bounce) == nil)
             #expect(SymbolBreath(ScaleSymbolEffect.scale) == nil)
             #expect(SymbolBreath(AppearSymbolEffect.appear) == nil)
-            if #available(macOS 15, *) {
-                #expect(SymbolBreath(BreatheSymbolEffect.breathe) == .breathe)
-                #expect(SymbolBreath(WiggleSymbolEffect.wiggle) == nil)
-                #expect(SymbolBreath(RotateSymbolEffect.rotate) == nil)
-            }
+            #expect(SymbolBreath(BreatheSymbolEffect.breathe) == .breathe)
+            #expect(SymbolBreath(WiggleSymbolEffect.wiggle) == nil)
+            #expect(SymbolBreath(RotateSymbolEffect.rotate) == nil)
         }
 
         @Test("The options' speed and repeat count are read, and default to 1")
@@ -130,9 +128,7 @@
             #expect(SymbolEffectOptions.nonRepeating.tuikitRepeatCount == 1)
             #expect(SymbolEffectOptions.repeating.tuikitRepeatCount == 1, "an indefinite repeat has no count")
             #expect(SymbolEffectOptions.speed(2).repeat(4).tuikitRepeatCount == 4)
-            if #available(macOS 15, *) {
-                #expect(SymbolEffectOptions.repeat(.periodic(5, delay: 1)).tuikitRepeatCount == 5)
-            }
+            #expect(SymbolEffectOptions.repeat(.periodic(5, delay: 1)).tuikitRepeatCount == 5)
             // By its shape, not its printed form.
             let spelled: RepeatOptionSpelledOtherwise? = .count(6)
             #expect(SymbolEffectOptions.repeatCount(stored: spelled as Any) == 6)

@@ -9,7 +9,6 @@
 
 import Foundation
 
-@available(macOS 15, *)
 extension SystemFormatStyle {
     /// The system stopwatch format style — mirrors SwiftUI's
     /// `SystemFormatStyle.Stopwatch`.
@@ -105,7 +104,6 @@ extension SystemFormatStyle {
     }
 }
 
-@available(macOS 15, *)
 extension FormatStyle where Self == SystemFormatStyle.Stopwatch {
     /// Create a stopwatch format style — mirrors SwiftUI's
     /// `.stopwatch(startingAt:…)`.

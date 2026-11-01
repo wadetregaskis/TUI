@@ -251,20 +251,13 @@ struct TextUndoCoalescingTests {
         return manager
     }
 
-    /// Whether an undo step's user info can be asked, which is how a run
-    /// knows its step is no longer the newest: from macOS 15, and always
-    /// where TUI's own `UndoManager` stands in for Foundation's.
-    nonisolated static var stepsCanBeAsked: Bool {
-        if #available(macOS 15, *) { true } else { false }
-    }
-
     /// Measured on macOS 15.8 with two `NSTextView`s sharing a window's undo
     /// manager: "ab" in one, "x" in the other, and "c" back in the first
     /// undo as "c", then "x", then "ab". The first control's run went on
     /// under the other's step, so "c" was undone with "ab", after "x".
     @Test(
         "Typing after another control's step is a step of its own, so the undos keep the edits' order",
-        .enabled(if: stepsCanBeAsked), arguments: Control.allCases)
+        arguments: Control.allCases)
     func runEndsUnderAnotherControlsStep(kind: Control) {
         let manager = makeManager()
         let first = make(kind, manager: manager)
@@ -287,7 +280,7 @@ struct TextUndoCoalescingTests {
     /// Measured the same way: an action the app registers in the middle of a
     /// run ends it.
     @Test(
-        "Typing after a step of the app's is a step of its own", .enabled(if: stepsCanBeAsked),
+        "Typing after a step of the app's is a step of its own",
         arguments: Control.allCases)
     func runEndsUnderTheAppsStep(kind: Control) {
         let manager = makeManager()

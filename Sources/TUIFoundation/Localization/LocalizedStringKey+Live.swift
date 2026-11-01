@@ -76,7 +76,6 @@ extension LocalizedStringKey.StringInterpolation {
     /// - Parameters:
     ///   - source: The source of the value to format, such as `.currentDate`.
     ///   - format: The discrete format style to format it with.
-    @available(macOS 15, *)
     public mutating func appendInterpolation<V, F>(_ source: TimeDataSource<V>, format: F)
     where V == F.FormatInput, F: DiscreteFormatStyle, F.FormatOutput == AttributedString {
         appendLive(FormattedTimeSource(source: source, format: format) { String($0.characters) })
@@ -88,7 +87,6 @@ extension LocalizedStringKey.StringInterpolation {
     /// - Parameters:
     ///   - source: The source of the value to format, such as `.currentDate`.
     ///   - format: The discrete format style to format it with.
-    @available(macOS 15, *)
     @_disfavoredOverload
     public mutating func appendInterpolation<V, F>(_ source: TimeDataSource<V>, format: F)
     where V == F.FormatInput, F: DiscreteFormatStyle, F.FormatOutput == String {

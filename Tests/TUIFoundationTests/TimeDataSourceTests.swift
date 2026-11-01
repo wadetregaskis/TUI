@@ -47,7 +47,6 @@ struct TimeDataSourceTests {
 
     @Test("The system styles over the current date draw what SwiftUI drew")
     func systemStyles() {
-        guard #available(macOS 15, *) else { return }
         #expect(drawn(Text(.currentDate, format: .reference(to: at(-125.5)))) == "2 minutes ago")
         #expect(drawn(Text(.currentDate, format: .offset(to: at(-125.5)))) == "2 minutes, 5 seconds")
         #expect(drawn(Text(.currentDate, format: .timer(countingDownIn: at(-0.5)..<at(90)))) == "1:30")
@@ -56,7 +55,6 @@ struct TimeDataSourceTests {
 
     @Test("A format into a String draws, and the environment's locale reaches it")
     func stringStyles() {
-        guard #available(macOS 15, *) else { return }
         let time = Date.FormatStyle(date: .omitted, time: .standard, timeZone: TimeZone(identifier: "UTC")!)
         #expect(drawn(Text(.currentDate, format: time)).hasPrefix("6:13:20"))
         #expect(drawn(Text(.durationOffset(to: at(-125.5)), format: .time(pattern: .minuteSecond))) == "2:06")
@@ -65,7 +63,6 @@ struct TimeDataSourceTests {
 
     @Test("Each asks for a frame where its style's output next changes")
     func wakes() {
-        guard #available(macOS 15, *) else { return }
         #expect(change(Text(.currentDate, format: .reference(to: at(-125)))) == 24.5)
         #expect(change(Text(.currentDate, format: .offset(to: at(-125.5)))) == 0.5)
         #expect(change(Text(.currentDate, format: .timer(countingDownIn: at(-0.5)..<at(90)))) == 1)
@@ -80,7 +77,6 @@ struct TimeDataSourceTests {
     #if !canImport(FoundationEssentials)
         @Test("Date ranges: since a date, until one, and nothing before it starts")
         func dateRanges() {
-            guard #available(macOS 15, *) else { return }
             let style = Date.ComponentsFormatStyle(style: .wide)
             #expect(drawn(Text(.dateRange(startingAt: at(-125.5)), format: style)) == "2 minutes, 5 seconds")
             #expect(drawn(Text(.dateRange(endingAt: at(125.5)), format: style)) == "2 minutes, 5 seconds")
@@ -95,7 +91,6 @@ struct TimeDataSourceTests {
 
     @Test("Two texts over the same source and style are equal")
     func equality() {
-        guard #available(macOS 15, *) else { return }
         let start = at(-1_000_000)
         let first = Text(.currentDate, format: .reference(to: start))
         let second = Text(.currentDate, format: .reference(to: start))
@@ -105,7 +100,6 @@ struct TimeDataSourceTests {
 
     @Test("An AttributedString style formats a plain value, and interpolates")
     func attributedFormat() {
-        guard #available(macOS 15, *) else { return }
         let offset = SystemFormatStyle.DateOffset(to: base).locale(Locale(identifier: "en_US"))
         #expect(Text(at(125), format: offset).content == "2 minutes, 5 seconds")
         let key: LocalizedStringKey = "In \(at(-125), format: offset)"

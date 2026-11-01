@@ -286,21 +286,19 @@ struct TypeWalkTests {
     @Test("The runtime describes a noncopyable field as () before Swift 6.4, and as its own type from 6.4")
     func spiDescribesNoncopyableFields() {
         #if canImport(Synchronization)
-            if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *) {
-                final class Guarded { let lock = Mutex(0) }
-                var types: [Any.Type] = []
-                RuntimeFields.forEach(of: Guarded.self, options: .classType) { _, _, type, _ in
-                    types.append(type)
-                    return true
-                }
-                #expect(types.count == 1, "\(types)")
-                if Self.runtimeReportsNoncopyableFieldTypes {
-                    #expect(types.first.map { "\($0)" } == "Mutex<Int>", "\(types)")
-                } else {
-                    #expect(types.first == Void.self, "\(types)")
-                }
-                #expect(verdict(Guarded.self) == Self.leaf, "inside a class, a leaf")
+            final class Guarded { let lock = Mutex(0) }
+            var types: [Any.Type] = []
+            RuntimeFields.forEach(of: Guarded.self, options: .classType) { _, _, type, _ in
+                types.append(type)
+                return true
             }
+            #expect(types.count == 1, "\(types)")
+            if Self.runtimeReportsNoncopyableFieldTypes {
+                #expect(types.first.map { "\($0)" } == "Mutex<Int>", "\(types)")
+            } else {
+                #expect(types.first == Void.self, "\(types)")
+            }
+            #expect(verdict(Guarded.self) == Self.leaf, "inside a class, a leaf")
         #endif
     }
 }

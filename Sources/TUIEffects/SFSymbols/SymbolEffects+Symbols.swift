@@ -24,7 +24,7 @@ import TUIFoundation
         init?(_ effect: some SymbolEffect) {
             if effect is PulseSymbolEffect {
                 self = .pulse
-            } else if #available(macOS 15, *), effect is BreatheSymbolEffect {
+            } else if effect is BreatheSymbolEffect {
                 self = .breathe
             } else {
                 return nil

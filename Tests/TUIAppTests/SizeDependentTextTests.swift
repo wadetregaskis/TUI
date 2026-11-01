@@ -63,7 +63,6 @@ struct SizeDependentTextTests {
         #expect(ladder(.timer, 3_725) == ["1:02:05"], "a timer's face has no narrower spelling")
     }
 
-    @available(macOS 15, *)
     @Test("The SystemFormatStyle dates step down as SwiftUI's do")
     func formatStyleLadders() {
         let offset = SystemFormatStyle.DateOffset(to: base).calendar(utc)

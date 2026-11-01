@@ -637,10 +637,8 @@ struct UmbrellaQualifiedNameTests {
         #expect(
             String(reflecting: TUI.LocalizationService.Language.self)
                 == "TUIStrings.LocalizationService.Language")
-        if #available(macOS 15, *) {
-            #expect(
-                String(reflecting: TUI.SystemFormatStyle.Timer.self) == "TUIStrings.SystemFormatStyle.Timer")
-        }
+        #expect(
+            String(reflecting: TUI.SystemFormatStyle.Timer.self) == "TUIStrings.SystemFormatStyle.Timer")
         // Step B3 carved these out (decisions SPB3, "What an app can see");
         // each read `TUIFoundation.` between B1 and B3. A generic type of
         // TUIApp names TUIFoundation for its argument.

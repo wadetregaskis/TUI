@@ -442,7 +442,6 @@ extension TextField where Label == Text {
     ///   - prompt: A `Text` providing guidance on what to type into the field.
     ///   - axis: The axis in which to scroll text when it doesn't fit in the
     ///     available space; `nil` for the field on one line.
-    @available(macOS 15, *)
     public init(
         _ titleKey: LocalizedStringKey, text: Binding<String>, selection: Binding<TextSelection?>,
         prompt: Text? = nil, axis: Axis? = nil
@@ -461,7 +460,6 @@ extension TextField where Label == Text {
     ///   - prompt: A `Text` providing guidance on what to type into the field.
     ///   - axis: The axis in which to scroll text when it doesn't fit in the
     ///     available space; `nil` for the field on one line.
-    @available(macOS 15, *)
     @_disfavoredOverload
     public init<S: StringProtocol>(
         _ title: S, text: Binding<String>, selection: Binding<TextSelection?>, prompt: Text? = nil,
@@ -543,7 +541,6 @@ extension TextField {
     ///   - axis: The axis in which to scroll text when it doesn't fit in the
     ///     available space; `nil` for the field on one line.
     ///   - label: A view that describes the purpose of the text field.
-    @available(macOS 15, *)
     public init(
         text: Binding<String>,
         selection: Binding<TextSelection?>,

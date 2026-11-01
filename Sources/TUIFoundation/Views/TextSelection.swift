@@ -50,7 +50,6 @@ public enum TextSelectionAffinity: Sendable, Hashable {
 ///
 /// TextEditor(text: $text, selection: $selection)
 /// ```
-@available(macOS 15, *)
 public struct TextSelection: Sendable, Hashable {
     /// The selected ranges of a text.
     public enum Indices: Sendable, Hashable {
