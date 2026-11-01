@@ -242,7 +242,7 @@ private enum RefreshableStateIndex {
 
 /// Publishes a ``RefreshAction`` to its subtree, binds it to
 /// <kbd>Ctrl</kbd>-<kbd>R</kbd>, and shows a spinner while it runs.
-public struct RefreshableModifier<Content: View>: View {
+package struct RefreshableModifier<Content: View>: View {
     let content: Content
     let action: @Sendable () async -> Void
 

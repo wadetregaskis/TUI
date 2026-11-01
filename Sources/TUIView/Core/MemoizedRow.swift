@@ -18,7 +18,7 @@ import TUICore
 /// Equatable`) and keys the row by the element OPENED from that, as its own
 /// type, which compares with one cast and its own `==` and hashes as plain
 /// words (see `ForEach.memoizedChild(keyedBy:element:key:)`).
-public struct AnyEquatableBox: Equatable {
+@usableFromInline package struct AnyEquatableBox: Equatable {
     @usableFromInline let value: any Equatable
 
     public init<E: Equatable>(_ value: E) {
@@ -245,7 +245,7 @@ extension _MemoizedRow: _ValueMemoWrapping {
 /// requirement cannot be called through one. The `Any` is narrowed by a cast in
 /// each conformance, and a dynamic-type mismatch answers `false` — the same
 /// shape, and the same conservatism, as ``AnyEquatableBox/==(_:_:)``.
-public protocol PrefixExtending {
+package protocol PrefixExtending {
     /// Whether `previous` is a prefix of this value.
     func extends(_ previous: Any) -> Bool
 }

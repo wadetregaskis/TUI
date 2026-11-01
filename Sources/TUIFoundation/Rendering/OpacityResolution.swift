@@ -49,7 +49,7 @@ import TUIStyling
 
 extension FrameBuffer {
 
-    /// This buffer with its ``opacityRegions`` resolved against `destination`,
+    /// This buffer with its `opacityRegions` resolved against `destination`,
     /// and the regions cleared.
     ///
     /// Call this immediately before compositing, so the result can be

@@ -50,7 +50,7 @@
 /// the sequence into strings and parsed each. Numerals are spelled
 /// canonically on the way out (`07` in reads back as `7`), which a terminal
 /// cannot tell apart; every test model compares the state, not the spelling.
-public struct SGRState: Sendable, Equatable {
+package struct SGRState: Sendable, Equatable {
 
     /// A colour as SGR spells it: a named code as given (`31`, `97`, `44`,
     /// `107`), a 256-colour index, or 24-bit components. Which slot it is in

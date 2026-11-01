@@ -65,7 +65,7 @@ import TUIView
 ///
 /// - Note: SwiftUI's `DisclosureGroupStyle` is not implemented; a terminal
 ///   disclosure is a triangle and an indent, and there is no second geometry to
-///   express. The glyphs come from ``TerminalSymbols``.
+///   express. The glyphs come from `TerminalSymbols`.
 public struct DisclosureGroup<Label: View, Content: View>: View {
     /// The label shown beside the disclosure triangle.
     let label: Label

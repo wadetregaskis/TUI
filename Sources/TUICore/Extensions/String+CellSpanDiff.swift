@@ -9,7 +9,7 @@
 /// One contiguous run of a row that has to be rewritten, ready to write.
 ///
 /// See ``String/ansiCellDiff(replacing:width:mergingGapsUpTo:)``.
-public struct ANSICellSpan: Equatable, Sendable {
+package struct ANSICellSpan: Equatable, Sendable {
     /// The 0-based visible column the run starts at. Move the cursor there
     /// (`column + 1` in the terminal's 1-based coordinates) before writing.
     public let column: Int
@@ -31,7 +31,7 @@ public struct ANSICellSpan: Equatable, Sendable {
 }
 
 /// What a row needs written to bring it from one frame to the next.
-public enum ANSICellDiff: Equatable, Sendable {
+package enum ANSICellDiff: Equatable, Sendable {
     /// The two rows paint the same cells in the same styling. Nothing to write —
     /// which is not the same as the two strings being equal, since two different
     /// escape spellings can land the terminal in the same place.
@@ -135,7 +135,7 @@ extension String {
     ///   - gap: How many unchanged columns may sit inside one span. Bridging a
     ///     short gap is cheaper than closing a span and opening another, which
     ///     costs a cursor move and a fresh statement of styling.
-    public func ansiCellDiff(
+    package func ansiCellDiff(
         replacing previous: String,
         width: Int,
         mergingGapsUpTo gap: Int
@@ -166,7 +166,7 @@ extension String {
 /// this frame's new row is next frame's previous row, and decomposing both sides
 /// every frame doubles the work for no new information. Nothing about the
 /// contents is exposed — the type exists to be handed back in.
-public struct ANSIRowCells: Sendable {
+package struct ANSIRowCells: Sendable {
     /// The scalar drawn at each column — exactly one per column, and exactly
     /// one scalar per character, because a row carrying anything that combines
     /// or claims more than one cell is declined outright.

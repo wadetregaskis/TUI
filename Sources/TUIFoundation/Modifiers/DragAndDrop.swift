@@ -111,7 +111,7 @@ extension View {
 /// wrapped in `.draggable` still clicks, matching SwiftUI. Hover
 /// transitions forward the same way, so the child keeps its hover
 /// affordance. Only genuine drags (press + movement) are consumed here.
-public struct DraggableModifier<Content: View, Payload>: View {
+package struct DraggableModifier<Content: View, Payload>: View {
     let content: Content
     let payload: () -> Payload
     let preview: AnyView?
@@ -437,7 +437,7 @@ private final class DragScratch {
 /// target for payloads of `Payload`. The region's own mouse handler is
 /// inert (clicks fall through to the content) — the rectangle exists so the
 /// active drag session can hit-test it.
-public struct DropDestinationModifier<Content: View, Payload>: View {
+package struct DropDestinationModifier<Content: View, Payload>: View {
     let content: Content
     /// Whether the view takes drops at all. Off, it registers no zone, so a
     /// drag passes over it as over anything else.

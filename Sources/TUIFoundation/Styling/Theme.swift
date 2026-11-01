@@ -83,7 +83,7 @@ public struct Theme: Sendable {
 // MARK: - Theme modifier
 
 /// Expands a ``Theme`` into the individual environment settings for its content.
-public struct ThemeModifier<Content: View>: View {
+package struct ThemeModifier<Content: View>: View {
     public let content: Content
     public let theme: Theme
 

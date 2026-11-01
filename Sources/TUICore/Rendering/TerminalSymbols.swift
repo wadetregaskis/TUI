@@ -10,7 +10,7 @@
 ///
 /// Keeping all terminal drawing characters in one place ensures consistency
 /// and makes it easy to adjust the visual style globally.
-public enum TerminalSymbols {
+package enum TerminalSymbols {
 
     // MARK: - Half-Block Caps
 

@@ -39,7 +39,7 @@ import Foundation
 ///
 /// - Parameter id: The element's identifier.
 /// - Returns: `String(describing: id)`, by a cheaper route for common id types.
-public func identityKey<ID>(_ id: ID) -> String {
+package func identityKey<ID>(_ id: ID) -> String {
     if ID.self == String.self, let value = id as? String { return value }
     if ID.self == Int.self, let value = id as? Int { return String(value) }
     if ID.self == UUID.self, let value = id as? UUID { return value.uuidString }

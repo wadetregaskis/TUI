@@ -33,7 +33,7 @@
 /// mockTerminal.keyEventQueue = [.init(key: .enter)]
 /// ```
 @MainActor
-public protocol TerminalProtocol: AnyObject, Sendable {
+package protocol TerminalProtocol: AnyObject, Sendable {
     /// Returns the current terminal size.
     ///
     /// - Returns: A tuple with width (columns) and height (rows).

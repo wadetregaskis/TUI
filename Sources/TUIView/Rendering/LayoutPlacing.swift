@@ -19,7 +19,7 @@ import TUICore
 /// One child's resolved place within its container: the child itself, the
 /// identity it will measure/render under, and its container-relative rect.
 @MainActor
-public struct Placement {
+package struct Placement {
     /// The child, ready to measure or render further (or to recurse into,
     /// when it is itself a `LayoutPlacing` container).
     public let child: ChildView
@@ -86,7 +86,7 @@ public struct Placement {
 /// an offset; app-level views never implement this — their `body` composes
 /// containers that do.
 @MainActor
-public protocol LayoutPlacing {
+package protocol LayoutPlacing {
     /// The number of placements (children) this container lays out.
     func placementCount(context: RenderContext) -> Int
 

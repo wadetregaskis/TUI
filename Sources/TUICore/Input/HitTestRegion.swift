@@ -8,7 +8,7 @@
 
 /// A rectangular screen region that wants to receive mouse events.
 ///
-/// Hit-test regions ride alongside ``FrameBuffer/overlays`` and follow
+/// Hit-test regions ride alongside `FrameBuffer/overlays` and follow
 /// the exact same compositing dance: every combining operation
 /// (``FrameBuffer/appendVertically(_:spacing:)``,
 /// ``FrameBuffer/appendHorizontally(_:spacing:)``,

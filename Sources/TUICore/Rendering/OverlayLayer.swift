@@ -18,7 +18,7 @@
 /// the old ordering an alert presented while a sibling sheet was up composited
 /// beneath it — owning the keyboard while the sheet's dimming pass buried it,
 /// an invisible dialog holding the app.
-public enum OverlayLevel: Int, Sendable, Comparable, CaseIterable {
+package enum OverlayLevel: Int, Sendable, Comparable, CaseIterable {
     /// A lightweight popover anchored to a control (e.g. a `Picker` drop-down).
     case popover
 
@@ -51,7 +51,7 @@ public enum OverlayLevel: Int, Sendable, Comparable, CaseIterable {
 ///
 /// - Important: This is framework infrastructure. Views emit overlay layers
 ///   by populating ``FrameBuffer/overlays``.
-public struct OverlayLayer: Sendable, Equatable {
+package struct OverlayLayer: Sendable, Equatable {
     /// The column offset of the layer's top-left corner, relative to the
     /// top-left of the ``FrameBuffer`` that carries it.
     public var offsetX: Int

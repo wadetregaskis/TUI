@@ -316,7 +316,7 @@ extension ViewIdentity {
 
     /// The structural hash — what ``hash(into:)`` combines — exposed so a
     /// caller holding many identities can index them by it (see
-    /// ``RetainedSubtreeIndex``) and confirm with `==` only on a hit.
+    /// `RetainedSubtreeIndex`) and confirm with `==` only on a hit.
     public var structuralHash: Int { node.cachedHash }
 
     /// The identity one structural step up, or `nil` at the root.
@@ -597,7 +597,7 @@ func cachedTypeName(_ type: Any.Type) -> String {
 /// depth for every root, and all of them retained. Here the roots' structural
 /// hashes go in a set, the entry's chain is climbed once from its parent, and
 /// `==` (the structural walk) runs only on a hash hit.
-public struct RetainedSubtreeIndex {
+package struct RetainedSubtreeIndex {
     private let roots: [ViewIdentity]
     /// The roots' structural hashes (``PrehashedVerdicts``: asked once per
     /// node climbed through).

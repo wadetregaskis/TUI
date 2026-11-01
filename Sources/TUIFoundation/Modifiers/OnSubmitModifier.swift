@@ -16,7 +16,7 @@ import TUIView
 /// — a View + Renderable + Layoutable modifier that read-modify-writes the
 /// environment at render time — instead of the plain `.environment(_:_:)` setter,
 /// which would clobber any outer `.onSubmit`.
-public struct OnSubmitModifier<Content: View>: View {
+package struct OnSubmitModifier<Content: View>: View {
     public let content: Content
     let triggers: SubmitTriggers
     let action: () -> Void

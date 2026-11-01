@@ -371,7 +371,7 @@ public final class StatusBarState: @unchecked Sendable {
     /// Creates a new status bar state.
     ///
     /// - Parameter appState: The app state instance for triggering re-renders.
-    public init(appState: AppState) {
+    package init(appState: AppState) {
         self.appState = appState
     }
 

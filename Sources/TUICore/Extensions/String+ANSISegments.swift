@@ -16,7 +16,7 @@
 
 /// One segment of a string produced by `String.ansiSegments()`: either a
 /// complete ANSI (CSI) escape sequence or a single visible grapheme cluster.
-public enum ANSISegment {
+package enum ANSISegment {
     /// A complete escape sequence; `isSGR` is `true` for colour/style
     /// (`…m`) sequences and `false` for cursor-movement, erase, etc.
     case ansi(String, isSGR: Bool)
@@ -270,7 +270,7 @@ extension String {
     /// and it cannot stop early for a caller that only wants the first few
     /// cells. The array form stays for the tests that use it as an oracle and
     /// for callers that genuinely want a collection.
-    public func ansiSegments() -> [ANSISegment] {
+    package func ansiSegments() -> [ANSISegment] {
         var segments: [ANSISegment] = []
         segments.reserveCapacity(utf8.count)
         forEachANSISegment { segment in
@@ -304,7 +304,7 @@ extension String {
     /// - Returns: `true` if the walk reached the end of the string, `false` if
     ///   `body` stopped it.
     @discardableResult
-    public func forEachANSISegment(_ body: (ANSISegment) -> Bool) -> Bool {
+    package func forEachANSISegment(_ body: (ANSISegment) -> Bool) -> Bool {
         let scalars = unicodeScalars
         var index = scalars.startIndex
         var runStart = index

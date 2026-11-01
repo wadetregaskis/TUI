@@ -33,7 +33,7 @@ import TUIFoundation
 ///     }
 /// }
 /// ```
-public struct SelectionDisabledModifier<Content: View>: View {
+@usableFromInline package struct SelectionDisabledModifier<Content: View>: View {
     /// The content to apply selection disabled to.
     ///
     /// `@usableFromInline` for the `@inlinable` ``init(content:isDisabled:)``.
@@ -58,7 +58,7 @@ public struct SelectionDisabledModifier<Content: View>: View {
 // MARK: - Equatable
 
 extension SelectionDisabledModifier: @preconcurrency Equatable where Content: Equatable {
-    public static func == (lhs: SelectionDisabledModifier<Content>, rhs: SelectionDisabledModifier<Content>) -> Bool {
+    @usableFromInline package static func == (lhs: SelectionDisabledModifier<Content>, rhs: SelectionDisabledModifier<Content>) -> Bool {
         lhs.content == rhs.content && lhs.isDisabled == rhs.isDisabled
     }
 }

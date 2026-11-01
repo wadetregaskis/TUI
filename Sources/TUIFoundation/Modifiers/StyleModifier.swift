@@ -13,7 +13,7 @@ import TUIView
 /// content's subtree. The read-modify-write of the cascade happens at render
 /// time, so this mirrors ``EnvironmentModifier`` (View + Renderable + Layoutable)
 /// rather than using the plain `.environment(_:_:)` setter.
-public struct StyleCascadeModifier<Content: View>: View {
+package struct StyleCascadeModifier<Content: View>: View {
     public let content: Content
     public let scope: StyleScope
     public let attributes: StyleAttributes

@@ -61,7 +61,7 @@ import TUICore
 ///
 /// Comparing thread identity has neither problem. A write from any other thread
 /// does not match, and once the window closes nothing matches at all.
-public final class BodyMutationDiagnostic: @unchecked Sendable {
+package final class BodyMutationDiagnostic: @unchecked Sendable {
     /// One reported mutation.
     public struct Report: Sendable, Equatable {
         /// The subtree whose state was written, or `nil` for a whole-tree

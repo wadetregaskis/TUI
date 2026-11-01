@@ -17,7 +17,7 @@ import TUICore
 /// documented on the modifier: the vacated cells show the layer beneath
 /// (there is no transparency, so nothing is painted there), and the
 /// displaced content composites above its siblings.
-public struct OffsetView<Content: View>: View {
+package struct OffsetView<Content: View>: View {
     let content: Content
     var x: Int
     var y: Int

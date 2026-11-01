@@ -304,7 +304,7 @@ public struct TerminalClient: Sendable, Equatable {
     /// cursor one — card-read 2026-09-04), so the claim it publishes is
     /// deliberately wider than the advance and the ECH+CUF walk fires for
     /// exactly those glyphs.
-    public static func widthTraits(of program: Program) -> TerminalWidthTraits {
+    package static func widthTraits(of program: Program) -> TerminalWidthTraits {
         switch program {
         case .appleTerminal:
             // The claims for the two classes whose emission the walk REWRITES,

@@ -26,7 +26,7 @@ import TUICore
 ///
 /// A step is ``AnimationClock/standardFrameTicks`` ticks of 1/60 s, 50 ms: a
 /// step, not a tick, because a tick is the 1/60 s unit and a step is three.
-public struct AnimationCycle<Value: VectorArithmetic>: Sendable where Value: Sendable {
+package struct AnimationCycle<Value: VectorArithmetic>: Sendable where Value: Sendable {
     /// One value per step of the cycle, indexed by `step % count`.
     public let values: [Value]
 

@@ -48,7 +48,7 @@ extension View {
 
 /// Draws its content centred on a point, and fills the space it was offered.
 /// See ``View/position(x:y:)``.
-public struct PositionView<Content: View>: View {
+package struct PositionView<Content: View>: View {
     let content: Content
     var x: Int
     var y: Int

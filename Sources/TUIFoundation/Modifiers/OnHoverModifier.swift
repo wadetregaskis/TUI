@@ -26,7 +26,7 @@ import TUICore
 /// view disappears the request is no longer made and the
 /// dispatcher relaxes back to whatever the base scene-level
 /// ``MouseSupport`` configuration set.
-public struct OnHoverModifier<Content: View>: View {
+package struct OnHoverModifier<Content: View>: View {
     /// The content view.
     let content: Content
 

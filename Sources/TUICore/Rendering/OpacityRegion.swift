@@ -53,7 +53,7 @@ public struct OpacityRegion: Equatable, Sendable {
     /// How opaque, `0` through `1`. A region at `1` is the identity and should
     /// not be emitted at all.
     ///
-    /// When ``cycle`` is present this is the phase the lines were DRAWN at —
+    /// When `cycle` is present this is the phase the lines were DRAWN at —
     /// `cycle.phases[step]` — not some other value the animation passes
     /// through. The replay indexes the frames by tick and splices without
     /// consulting the view, so a picture drawn at any other value would be
@@ -91,7 +91,7 @@ public struct OpacityRegion: Equatable, Sendable {
     /// It has to travel with the region rather than be computed by the view,
     /// because the phases cannot be coloured until what is BEHIND the region is
     /// known — which is the same reason the region exists.
-    public var cycle: OpacityCycle?
+    package var cycle: OpacityCycle?
 
     /// Where this is a PAINTER's claim on the translucent field it put under content it
     /// did not draw — a `.background`, a list row's fill — which of that field's two
@@ -105,7 +105,7 @@ public struct OpacityRegion: Equatable, Sendable {
     /// the content stated itself: a red badge inside the same fill came out half red.
     /// Told apart, the resolution composites the painter's field first and the content
     /// over it (`Opacity as composition.md` §105).
-    public var fieldUnderContent: FieldUnderContent?
+    package var fieldUnderContent: FieldUnderContent?
 
     /// How these cells' colours combine with what is behind them
     /// (``View/blendMode(_:)``): ``BlendMode/normal`` for every claim but a
@@ -134,7 +134,7 @@ public struct OpacityRegion: Equatable, Sendable {
     /// composites a drawing group's image into the window.
     public var blendsInLinearLight = false
 
-    public init(
+    package init(
         offsetX: Int, offsetY: Int, width: Int, height: Int, opacity: Double,
         inkOpacity: Double = 1, fieldOpacity: Double = 1,
         cycle: OpacityCycle? = nil, fieldUnderContent: FieldUnderContent? = nil,
@@ -262,7 +262,7 @@ extension OpacityRegion {
 
 /// Which place of a painter's translucent field a claim is about
 /// (``OpacityRegion/fieldUnderContent``).
-public enum FieldUnderContent: Hashable, Sendable {
+package enum FieldUnderContent: Hashable, Sendable {
     /// The field the cell shows: the content leaves the cell's field to the painter,
     /// so the line spells the painter's colour there, and the claim's alpha is that
     /// field's and nothing else's.
@@ -278,7 +278,7 @@ public enum FieldUnderContent: Hashable, Sendable {
 ///
 /// Indexed the way ``AnimatedCellRun/frames`` is — by `tick % count` — so the
 /// run built from it replays in step with every other run on the same clock.
-public struct OpacityCycle: Equatable, Sendable {
+package struct OpacityCycle: Equatable, Sendable {
     /// The opacity at each point of the cycle, in order.
     public var phases: [Double]
 

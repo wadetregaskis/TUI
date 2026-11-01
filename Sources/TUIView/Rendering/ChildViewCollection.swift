@@ -50,7 +50,7 @@ public struct ChildViewCollection {
     /// The collection is built once per measure and already closes over the
     /// data, so the cast happens where the data is rather than where the
     /// question is.
-    public let dataSignature: AnyEquatableBox?
+    package let dataSignature: AnyEquatableBox?
 
     private let build: (Int) -> ChildView
     private let keyAt: ((Int) -> String)?
@@ -60,7 +60,7 @@ public struct ChildViewCollection {
     /// A lazy collection: `build` constructs the child at an ordinal;
     /// `key` returns its stable identity key without building it, and
     /// `anyID` the id VALUE that key was derived from.
-    public init(
+    package init(
         count: Int, key: ((Int) -> String)?, anyID: ((Int) -> AnyHashable?)? = nil,
         dataSignature: AnyEquatableBox? = nil,
         build: @escaping (Int) -> ChildView
@@ -154,7 +154,7 @@ public protocol LazyChildViewProvider {
 /// (`LazyChildViewProvider`), else by wrapping the eager resolution — so
 /// callers get one shape and providers opt into laziness independently.
 @MainActor
-public func resolveChildViewCollection<V: View>(
+package func resolveChildViewCollection<V: View>(
     from content: V, context: RenderContext
 ) -> ChildViewCollection {
     if let lazyProvider = content as? LazyChildViewProvider {

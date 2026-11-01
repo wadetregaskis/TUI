@@ -70,7 +70,7 @@ import TUICore
 /// Main-actor by discipline rather than by annotation, exactly as
 /// ``StateStorage`` is — it is a stored property of one, and rendering is
 /// single-threaded on the run loop.
-public final class PlacementStore: @unchecked Sendable {
+package final class PlacementStore: @unchecked Sendable {
 
     /// One container's memory of its children.
     ///

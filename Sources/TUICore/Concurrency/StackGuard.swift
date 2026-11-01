@@ -80,7 +80,7 @@ import Foundation  // FileHandle, to read the procfs files the Linux bounds come
 ///   in the task allocator — the heap — not the machine stack. The answer
 ///   would then describe the wrong region entirely. Every caller in this
 ///   package (`measureChild`, `renderChild`) is synchronous.
-public enum StackGuard {
+package enum StackGuard {
     /// Stack to keep in reserve below the guard point (bytes). Must comfortably
     /// exceed the deepest non-recursive work that still has to complete once the
     /// guard trips — rendering a leaf, encoding a line, building the placeholder

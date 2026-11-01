@@ -14,7 +14,7 @@
 /// child views. Badges automatically hide when:
 /// - The count is 0 (for integer badges)
 /// - The label is nil (for optional Text/String badges)
-public struct BadgeModifier<Content: View>: View {
+package struct BadgeModifier<Content: View>: View {
     /// The content to apply the badge to.
     let content: Content
 
@@ -60,7 +60,7 @@ public enum BadgeValue: Sendable {
 // MARK: - Equatable
 
 extension BadgeModifier: @preconcurrency Equatable where Content: Equatable {
-    public static func == (lhs: BadgeModifier<Content>, rhs: BadgeModifier<Content>) -> Bool {
+    package static func == (lhs: BadgeModifier<Content>, rhs: BadgeModifier<Content>) -> Bool {
         lhs.content == rhs.content && lhs.value == rhs.value
     }
 }
@@ -150,7 +150,7 @@ package func extractListRowBadge<V: View>(from view: V) -> ListRowBadge? {
 ///
 /// This is used by List to extract badge values during row extraction.
 @MainActor
-public func extractBadgeValue<V: View>(from view: V) -> BadgeValue? {
+package func extractBadgeValue<V: View>(from view: V) -> BadgeValue? {
     (view as? any BadgeCarrying)?.carriedBadgeValue
 }
 
@@ -164,7 +164,7 @@ public func extractBadgeValue<V: View>(from view: V) -> BadgeValue? {
 /// building one every frame just to hear "no badge" was the last per-row
 /// construction left on the hit path.
 @MainActor
-public func viewTypeCarriesBadge<V: View>(_ type: V.Type) -> Bool {
+package func viewTypeCarriesBadge<V: View>(_ type: V.Type) -> Bool {
     type is any BadgeCarrying.Type
 }
 

@@ -18,7 +18,7 @@ import TUICore
 /// dispatcher routes every subsequent `.dragged` / `.released` event
 /// for that button to the same handler regardless of where the cursor
 /// actually is, so drag tracking works naturally.
-public struct OnMouseEventModifier<Content: View>: View {
+package struct OnMouseEventModifier<Content: View>: View {
     /// The content view.
     let content: Content
 

@@ -63,7 +63,7 @@
 /// ``withTraits(_:operation:)`` for a scoped pin — a test, or a diagnostic
 /// rendering as another client — because a plain global mutate-and-restore
 /// bleeds across Swift Testing's parallel runner.
-public struct TerminalWidthTraits: Sendable, Equatable {
+package struct TerminalWidthTraits: Sendable, Equatable {
 
     /// How much room a Fitzpatrick cluster (👍🏽 ✊🏻 ☝🏽) occupies.
     public enum SkinTone: String, Sendable, Equatable, CaseIterable {

@@ -8,7 +8,7 @@
 
 /// The kinds of per-frame work a view can participate in, reported by
 /// ``View/onRenderPass(_:)``.
-public enum RenderPass: Sendable, Equatable {
+package enum RenderPass: Sendable, Equatable {
     /// The view was *measured* — its size was computed (`sizeThatFits`, or a
     /// measuring render), during the layout pass or by a parent sizing its
     /// children. A lazily-windowed container may measure views it never draws.
@@ -64,7 +64,7 @@ extension View {
     /// action can fire several times per frame (parents may size a child more
     /// than once) and runs in the middle of layout/render — record into a
     /// plain sink and read it elsewhere; do NOT mutate view state from it.
-    public func onRenderPass(_ action: @escaping (RenderPass) -> Void) -> some View {
+    package func onRenderPass(_ action: @escaping (RenderPass) -> Void) -> some View {
         OnRenderPassModifier(content: self, action: action)
     }
 }

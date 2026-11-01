@@ -105,7 +105,7 @@ public protocol ChildViewProvider {
     func childViews(context: RenderContext) -> [ChildView]
 
     /// Whether ``childViews(context:)`` is worth remembering for the rest of
-    /// the pass — see ``resolveChildViews(from:context:)``. `false` by
+    /// the pass — see `resolveChildViews(from:context:)`. `false` by
     /// default: a tuple of three views resolves in less time than the memo
     /// takes to look it up. `ForEach` answers `true` once it has enough rows
     /// for the reverse to hold.
@@ -124,7 +124,7 @@ public protocol ChildViewProvider {
     ///
     /// Honoured in exactly three places, and a caller must go through one of
     /// them: the tuple splice (`TupleView.appendChildViews`, a conditional with
-    /// siblings), ``resolveChildViews(from:context:)`` (a conditional that is a
+    /// siblings), `resolveChildViews(from:context:)` (a conditional that is a
     /// container's ONLY content, which `buildBlock` hands over bare), and the
     /// `List`'s and `Section`'s look-through (`ConditionalView.listRowsContext`
     /// in TUI, a conditional around a list's loop). The second was missing,
@@ -151,7 +151,7 @@ public protocol ChildViewProvider {
     /// a lazy stack that pins its own sections' headers and footers. An
     /// `AnyView` answers for what it erases, and is whole around one view. Honoured
     /// wherever a provider is expanded into its container: the tuple splice,
-    /// ``resolveChildViews(from:context:)`` for a provider that is a
+    /// `resolveChildViews(from:context:)` for a provider that is a
     /// container's whole content, and a `ForEach` row.
     func staysWhole(in context: RenderContext) -> Bool
 }
@@ -499,7 +499,7 @@ extension ChildViewProvider where Self: ContentRewrapping, WrappedContent: Child
 ///   - context: The rendering context.
 /// - Returns: A ``ChildInfo`` describing the view.
 @MainActor
-public func makeChildInfo<V: View>(for view: V, context: RenderContext) -> ChildInfo {
+package func makeChildInfo<V: View>(for view: V, context: RenderContext) -> ChildInfo {
     // Static witnesses gate the rare conformance casts: only a z-index wrapper
     // is cast to `ZIndexProviding`, only a spacer to `SpacerProtocol`. The common
     // child (neither) does no speculative cast at all.
@@ -536,7 +536,7 @@ public func makeChildInfo<V: View>(for view: V, context: RenderContext) -> Child
 ///   - context: The rendering context.
 /// - Returns: The size this view needs.
 @MainActor
-public func measureChild<V: View>(_ view: V, proposal: ProposedSize, context: RenderContext) -> ViewSize {
+package func measureChild<V: View>(_ view: V, proposal: ProposedSize, context: RenderContext) -> ViewSize {
     memoizedMeasure(view, proposal: proposal, context: context, remembersDescendants: true)
 }
 
@@ -991,7 +991,7 @@ private func measureCompositeBody<V: View>(
 ///   - context: The rendering context.
 /// - Returns: The view's size, always reported as fixed.
 @MainActor
-public func measureFixedByRendering<V: View>(_ view: V, proposal: ProposedSize, context: RenderContext) -> ViewSize {
+package func measureFixedByRendering<V: View>(_ view: V, proposal: ProposedSize, context: RenderContext) -> ViewSize {
     let buffer = renderToBuffer(view, context: fixedMeasureContext(proposal: proposal, context: context))
     return ViewSize.fixed(buffer.width, buffer.height)
 }
@@ -1028,7 +1028,7 @@ package func fixedMeasureContext(proposal: ProposedSize, context: RenderContext)
 ///   - context: The rendering context.
 /// - Returns: The rendered buffer.
 @MainActor
-public func renderChild<V: View>(_ view: V, width: Int, height: Int, context: RenderContext) -> FrameBuffer {
+package func renderChild<V: View>(_ view: V, width: Int, height: Int, context: RenderContext) -> FrameBuffer {
     // Deep-nesting guard (see measureChild): render a truncation marker instead
     // of recursing another level into a stack overflow.
     if !StackGuard.hasHeadroom() {
@@ -1055,7 +1055,7 @@ public func renderChild<V: View>(_ view: V, width: Int, height: Int, context: Re
 ///   - context: The rendering context.
 /// - Returns: An array of ``ChildInfo``.
 @MainActor
-public func resolveChildInfos<V: View>(from content: V, context: RenderContext) -> [ChildInfo] {
+package func resolveChildInfos<V: View>(from content: V, context: RenderContext) -> [ChildInfo] {
     if let provider = content as? ChildInfoProvider {
         return provider.childInfos(context: context)
     }
@@ -1075,7 +1075,7 @@ public func resolveChildInfos<V: View>(from content: V, context: RenderContext) 
 ///   - context: The rendering context.
 /// - Returns: An array of ``ChildView``.
 @MainActor
-public func resolveChildViews<V: View>(from content: V, context: RenderContext) -> [ChildView] {
+package func resolveChildViews<V: View>(from content: V, context: RenderContext) -> [ChildView] {
     guard let provider = content as? ChildViewProvider, !provider.staysWhole(in: context) else {
         // A view of the app's own whose body is several views is those views,
         // at the identity it would have drawn at — the container's own, as a

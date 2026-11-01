@@ -8,14 +8,14 @@ import TUICore
 import TUIFoundation
 
 extension FrameBuffer {
-    /// Composites every accumulated ``overlays`` layer onto this buffer in
-    /// z-order — ascending ``OverlayLevel`` (popover < modal < alert <
-    /// notification), then ``OverlayLayer/zIndex`` — resolving each layer's
+    /// Composites every accumulated `overlays` layer onto this buffer in
+    /// z-order — ascending `OverlayLevel` (popover < modal < alert <
+    /// notification), then `OverlayLayer/zIndex` — resolving each layer's
     /// placement against a `maxWidth` × `maxHeight` area.
     ///
-    /// A layer that ``OverlayLayer/centered`` is placed in the centre of that
+    /// A layer that `OverlayLayer/centered` is placed in the centre of that
     /// area; otherwise it draws at its (clamped, flip-on-overflow) offset. A layer
-    /// that ``OverlayLayer/dimsBackground`` first dims everything beneath it into a
+    /// that `OverlayLayer/dimsBackground` first dims everything beneath it into a
     /// flat, inert backdrop (using `palette` for the colours) — so a screen-level
     /// modal reads as modal over the whole screen no matter where it was attached.
     ///
@@ -25,7 +25,7 @@ extension FrameBuffer {
     ///
     /// This is exactly what `RenderLoop` runs at the screen root; it's public so
     /// tests can reproduce the composited result a headless `renderToBuffer`
-    /// otherwise leaves pending in ``overlays``.
+    /// otherwise leaves pending in `overlays`.
     public func compositingOverlays(maxWidth: Int, maxHeight: Int, palette: any Palette) -> FrameBuffer {
         compositingOverlays(maxWidth: maxWidth, maxHeight: maxHeight, palette: palette, images: nil)
     }

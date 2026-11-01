@@ -117,7 +117,7 @@ extension EnvironmentValues {
 /// and every colour the controls derive from that — a gradient stands as its
 /// representative; where one is painted along a control, as a gauge's track
 /// is, the ramp itself (`EnvironmentValues.tintPaint`).
-public struct TintModifier<Content: View, S: ShapeStyle>: View {
+package struct TintModifier<Content: View, S: ShapeStyle>: View {
     public let content: Content
     public let tint: S?
 

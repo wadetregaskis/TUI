@@ -16,7 +16,7 @@ import TUICore
 /// not it animates anything. Three of them cost about 1% of a frame on `table`
 /// and `deep`; folded into one they cost a third of that, and the grouping is
 /// honest anyway: these are one thing, published once, read together.
-public struct AnimationFrame: Sendable, Equatable {
+package struct AnimationFrame: Sendable, Equatable {
     /// The frame's monotonic-clock timestamp, in nanoseconds.
     ///
     /// The *frame's*, not a live reading: one pass may walk the tree more than
@@ -72,25 +72,25 @@ private struct AnimationFrameKey: EnvironmentKey, _RenderProjectingEnvironmentKe
 
 extension EnvironmentValues {
     /// What this frame's animations are a function of. See ``AnimationFrame``.
-    public var animationFrame: AnimationFrame {
+    package var animationFrame: AnimationFrame {
         get { self[AnimationFrameKey.self] }
         set { self[AnimationFrameKey.self] = newValue }
     }
 
     /// The current frame's monotonic-clock timestamp (ns).
-    /// See ``AnimationFrame/nowNanos``.
+    /// See `AnimationFrame/nowNanos`.
     public var frameNowNanos: Int64 {
         get { animationFrame.nowNanos }
         set { animationFrame.nowNanos = newValue }
     }
 
-    /// The replay clock's step count for this frame. See ``AnimationFrame/step``.
+    /// The replay clock's step count for this frame. See `AnimationFrame/step`.
     public var animationStep: Int {
         get { animationFrame.step }
         set { animationFrame.step = newValue }
     }
 
-    /// Whether a change may animate at all. See ``AnimationFrame/canAnimate``.
+    /// Whether a change may animate at all. See `AnimationFrame/canAnimate`.
     public var canAnimate: Bool {
         get { animationFrame.canAnimate }
         set { animationFrame.canAnimate = newValue }

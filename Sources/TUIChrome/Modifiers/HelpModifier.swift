@@ -26,7 +26,7 @@ import TUIFoundation
 /// - **Focus.** It writes `EnvironmentValues.helpText` for its content, and the
 ///   focused control claims it from there. Revealed by the help key rather than
 ///   automatically — see `TooltipState.keyboardRevealed`.
-public struct HelpModifier<Content: View>: View {
+package struct HelpModifier<Content: View>: View {
     /// The content view.
     let content: Content
 

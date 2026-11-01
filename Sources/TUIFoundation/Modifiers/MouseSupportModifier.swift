@@ -31,7 +31,7 @@
 ///         }
 /// }
 /// ```
-public struct MouseSupportModifier<Content: View>: View {
+package struct MouseSupportModifier<Content: View>: View {
     /// The content view.
     let content: Content
 

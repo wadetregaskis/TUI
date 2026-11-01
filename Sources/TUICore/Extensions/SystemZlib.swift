@@ -44,7 +44,7 @@
 /// there corrupts memory rather than failing. The one-shot call takes plain
 /// pointers and lengths and is safe to call through a function pointer with
 /// no header at all.
-public enum SystemZlib {
+package enum SystemZlib {
 
     /// Whether the host's zlib was found and both entry points resolved.
     public static var isAvailable: Bool { library != nil }

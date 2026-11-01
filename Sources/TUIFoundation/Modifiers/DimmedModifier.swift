@@ -13,7 +13,7 @@
 /// (box-drawing, indicators) — then re-renders each line
 /// with a dimmed foreground on `palette.overlayBackground`.
 /// The result is a flat, de-emphasized text layer with no visual ornaments.
-public struct DimmedModifier<Content: View>: View {
+package struct DimmedModifier<Content: View>: View {
     /// The content to dim.
     let content: Content
 
@@ -25,7 +25,7 @@ public struct DimmedModifier<Content: View>: View {
 // MARK: - Equatable Conformance
 
 extension DimmedModifier: @preconcurrency Equatable where Content: Equatable {
-    public static func == (lhs: DimmedModifier<Content>, rhs: DimmedModifier<Content>) -> Bool {
+    package static func == (lhs: DimmedModifier<Content>, rhs: DimmedModifier<Content>) -> Bool {
         lhs.content == rhs.content
     }
 }
@@ -95,14 +95,14 @@ extension FrameBuffer {
     /// (the modal intercepts input anyway, but the regions would still be there to
     /// be hit if the modal ever failed to).
     ///
-    /// ``FrameBuffer/overlays`` are **kept**, and this comment used to say they
+    /// `FrameBuffer/overlays` are **kept**, and this comment used to say they
     /// were dropped. They ride through because a backdrop is dimmed *under* a
     /// modal and anything still waiting to be drawn above it must not vanish; the
     /// modal's own panel is one of them. (The concern the old wording named — a
     /// popover left open behind the modal drawing half-bright on top — is handled
     /// where the layers are composited, not by discarding them here.)
     ///
-    /// The content's ``FrameBuffer/opacityRegions`` are dropped, and unlike the hit
+    /// The content's `FrameBuffer/opacityRegions` are dropped, and unlike the hit
     /// regions that is because they have been CONSUMED rather than suppressed. The
     /// flatten rewrites every cell to one foreground on one background, so a region
     /// saying "these cells are 40% translucent" no longer describes anything that is

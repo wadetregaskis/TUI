@@ -30,7 +30,7 @@ import TUIFoundation
 /// not need to flip `isPresented` itself. Escape is the `.cancel`-role button:
 /// it runs that action, if there is one, and closes the alert either way. The
 /// status bar says so while the alert is up.
-public struct AlertPresentationModifier<Content: View, Actions: View, Message: View>: View {
+package struct AlertPresentationModifier<Content: View, Actions: View, Message: View>: View {
     /// The base content to render.
     let content: Content
 

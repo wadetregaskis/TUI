@@ -25,7 +25,7 @@ import TUIFoundation
 ///     }
 /// }
 /// ```
-public struct ModalPresentationModifier<Content: View, Modal: View>: View {
+package struct ModalPresentationModifier<Content: View, Modal: View>: View {
     /// How a presentation fills the screen.
     ///
     /// The two shapes SwiftUI distinguishes, and they differ in a terminal for

@@ -27,7 +27,7 @@ import TUICore
 /// modifier, so it is only as wide as the thing being animated, and finding the
 /// changed columns would mean splitting styled text into cells to save bytes
 /// that a small view does not have.
-public enum AnimatedBufferCycle {
+package enum AnimatedBufferCycle {
 
     /// Runs covering every row that changes across `phases`.
     ///

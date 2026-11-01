@@ -38,7 +38,7 @@ public struct TerminalQuirks: Sendable, Equatable, Codable {
         /// owns the base's width plus two and nothing needs emitting. Warp,
         /// for every base — and what Warp's shipped walk really does. The
         /// caller must publish the matching
-        /// ``TerminalWidthTraits/SkinTone/detached`` claim (``widthTraits``
+        /// `TerminalWidthTraits/SkinTone/detached` claim (`widthTraits`
         /// does); without it the claim is two cells short and the swatch
         /// shears the row, which is the case ``stripAll`` exists for.
         case keepDetached
@@ -151,7 +151,7 @@ public struct TerminalQuirks: Sendable, Equatable, Codable {
     /// either displaced later writes on the row or re-rendered the cluster
     /// stripped). The walk decomposes the sequence in software instead —
     /// segments emitted as independent clusters, joiners removed — and the
-    /// claim follows (``widthTraits``).
+    /// claim follows (`widthTraits`).
     public var zwjSequences: Bool
 
     /// The same divergence for tag-sequence flags (🏴󠁧󠁢󠁳󠁣󠁴󠁿): internal advance
@@ -211,8 +211,8 @@ public struct TerminalQuirks: Sendable, Equatable, Codable {
     /// Apple Terminal, iTerm2 and Warp, measured on both screens — and the
     /// `wcwidth` terminals TUI cannot identify very likely too. Not a
     /// defect the walk repairs but a claim: the switch moves
-    /// ``widthTraits``' ``TerminalWidthTraits/textClusters`` to
-    /// ``TerminalWidthTraits/TextClusters/perCodePoint``, and the layout
+    /// `widthTraits`' `TerminalWidthTraits/textClusters` to
+    /// `TerminalWidthTraits/TextClusters/perCodePoint`, and the layout
     /// allocates what the terminal advances.
     public var advancesTextPerCodePoint: Bool
 
@@ -264,7 +264,7 @@ public struct TerminalQuirks: Sendable, Equatable, Codable {
     /// cluster of text claim its scalars' sum. Whoever renders with a custom quirk
     /// set applies these traits alongside it, exactly as startup applies the
     /// identified host's.
-    public var widthTraits: TerminalWidthTraits {
+    package var widthTraits: TerminalWidthTraits {
         let skinTone: TerminalWidthTraits.SkinTone =
             switch skinTones {
             case .separate: .separated

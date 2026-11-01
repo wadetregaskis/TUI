@@ -31,7 +31,7 @@ import TUICore
 /// - Important: This is framework infrastructure. Use ``State`` and `@Observable`
 ///   models for reactive state in your views: they reach their app's render state
 ///   themselves.
-public final class AppState: Sendable {
+package final class AppState: Sendable {
     /// Internal state protected by a lock.
     private struct StateData: Sendable {
         var needsRender = false
@@ -375,7 +375,7 @@ extension AppState: AppRenderState {
 /// and so does its link, which a box actually holds, and which asks the app the
 /// cache draws for the frame. Keeping the seam a protocol lets ``StateBox`` stay
 /// free of the concrete cache type.
-public protocol RenderInvalidationSink: AnyObject, Sendable {
+package protocol RenderInvalidationSink: AnyObject, Sendable {
     /// Records that the subtree rooted at `identity` (or the whole cache, when
     /// `identity` is `nil`) needs its cached buffers dropped, and requests a
     /// re-render. Thread-safe; the cache mutation itself is deferred to the
@@ -405,7 +405,7 @@ extension RenderInvalidationSink {
 /// identity in `renderToBuffer` / `measureChild` (see
 /// `prepareProperties(of:plan:identity:storage:environment:isMeasuring:)`), not by construction order in
 /// an enclosing scope.
-public enum StateRegistration {
+package enum StateRegistration {
     /// The environment of the `body` currently being evaluated, or `nil`
     /// outside one.
     ///
@@ -1082,7 +1082,7 @@ extension State: StateBindable {
 /// from where it lies there (`NestedScope`). Public so a type in a module
 /// layered above `TUIView` can participate in the same
 /// property walk (`PropertyWalk`) that binds `@State`.
-public protocol RenderIdentityBindable {
+package protocol RenderIdentityBindable {
     /// Binds this property to a stable id derived from its view's render
     /// `path` and declaration `propertyIndex`. For a property nested inside
     /// another the view holds, `path` is followed by `::` and a code for

@@ -34,7 +34,7 @@ import TUICore
 /// a `.task` or an input-thread mouse handler can write one. That path takes no
 /// lock here — it hands off to `RenderCache.invalidateRender(for:)`, which does
 /// (see its Thread Safety note).
-public final class StateStorage: @unchecked Sendable {
+@usableFromInline package final class StateStorage: @unchecked Sendable {
 
     // MARK: - State Key
 
@@ -953,7 +953,7 @@ private let renderPassSerials = Lock(initialState: UInt32(0))
 /// On value change, the box asks its ``RenderInvalidationSink`` to drop the
 /// affected subtree's cached buffers and request a re-render. Invalidation is
 /// identity-aware: only the affected subtree is cleared, not the whole cache.
-public final class StateBox<Value>: @unchecked Sendable {
+package final class StateBox<Value>: @unchecked Sendable {
     /// The identity of the view that owns this state property.
     ///
     /// Set when ``StateStorage`` first keeps the box at a place, and when an

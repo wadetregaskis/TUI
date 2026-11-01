@@ -55,14 +55,14 @@ import Foundation
 /// > the underline is what marks it as a link. Opt out with `.linkUnderline(false)`.
 ///
 /// > Note: On a terminal measured to honour them, the label also carries a real
-/// > **OSC 8 hyperlink** (see ``TerminalHyperlink``), which tells the
+/// > **OSC 8 hyperlink** (see `TerminalHyperlink`), which tells the
 /// > terminal where those cells point — so the URL can be shown on hover and
 /// > copied, even though the label says "Documentation" and the destination is
 /// > nowhere on screen. That is the part keyboard and mouse activation cannot
 /// > give a link. Whether the terminal will also OPEN it on a modified click
 /// > depends on the host, because a TUI app holds mouse reporting open and
 /// > iTerm2 is measured to forward ⌘-click to the application instead — see
-/// > ``TerminalHyperlink``. Everything else still works everywhere,
+/// > `TerminalHyperlink`. Everything else still works everywhere,
 /// > Terminal.app included. Turn the escape off with
 /// > ``View/terminalHyperlinks(_:)``, which an app that intercepts its own URL
 /// > scheme in ``OpenURLAction`` may well want.
@@ -183,7 +183,7 @@ extension EnvironmentValues {
     /// Whether ``Link`` also emits an OSC 8 terminal hyperlink. Set via
     /// ``View/terminalHyperlinks(_:)``. Default: `true` — which still emits
     /// nothing on a host not measured to honour them, because the two
-    /// conditions are ANDed (see ``TerminalHyperlink/isSupported``).
+    /// conditions are ANDed (see `TerminalHyperlink/isSupported`).
     public var terminalHyperlinks: Bool {
         get { self[TerminalHyperlinksKey.self] }
         set { self[TerminalHyperlinksKey.self] = newValue }

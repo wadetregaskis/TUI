@@ -19,7 +19,7 @@ import TUICore
 ///
 /// This is framework infrastructure. Use the `.environment(_:)` modifier
 /// on `View` instead.
-public struct ObjectEnvironmentModifier<Content: View, T: Observable>: View {
+package struct ObjectEnvironmentModifier<Content: View, T: Observable>: View {
     /// The content view.
     public let content: Content
 

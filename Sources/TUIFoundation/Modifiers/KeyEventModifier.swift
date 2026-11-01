@@ -8,7 +8,7 @@
 ///
 /// The handler returns a Bool indicating whether the event was consumed.
 /// If false is returned, the event continues to propagate to other handlers.
-public struct KeyEventModifier<Content: View>: View {
+package struct KeyEventModifier<Content: View>: View {
     /// The content view.
     let content: Content
 

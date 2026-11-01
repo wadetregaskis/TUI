@@ -256,7 +256,7 @@ extension EnvironmentValues {
     /// be rendered at all without it — which is what the `preferences` stress
     /// scenario ran into.
     @inlinable
-    public var preferenceStorage: PreferenceStorage? {
+    package var preferenceStorage: PreferenceStorage? {
         get { self[PreferenceStorageKey.self] }
         set { self[PreferenceStorageKey.self] = newValue }
     }

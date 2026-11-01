@@ -20,7 +20,7 @@
 /// `Tools/SwiftUIProbes/Alignment guides/layout1.out`, case D), an
 /// `EmptyView` being no view at all to the modifier, as it is no member to a
 /// container.
-public struct OverlayModifier<Base: View, Overlay: View>: View {
+package struct OverlayModifier<Base: View, Overlay: View>: View {
     /// The base content.
     let base: Base
 
@@ -51,7 +51,7 @@ extension OverlayModifier: FormRowRewrapping {
 // MARK: - Equatable Conformance
 
 extension OverlayModifier: @preconcurrency Equatable where Base: Equatable, Overlay: Equatable {
-    public static func == (lhs: OverlayModifier<Base, Overlay>, rhs: OverlayModifier<Base, Overlay>) -> Bool {
+    package static func == (lhs: OverlayModifier<Base, Overlay>, rhs: OverlayModifier<Base, Overlay>) -> Bool {
         lhs.base == rhs.base && lhs.overlay == rhs.overlay && lhs.alignment == rhs.alignment
     }
 }

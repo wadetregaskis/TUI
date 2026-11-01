@@ -118,7 +118,7 @@ extension TerminalClient {
 
     /// Whether transmissions to this terminal are deflated: pictures at all,
     /// then the override, the environment, the handshake — and a zlib to do
-    /// it with, since ``SystemZlib`` is what deflates them.
+    /// it with, since `SystemZlib` is what deflates them.
     @MainActor public static var graphicsCompressionSupported: Bool {
         guard graphicsSupported, SystemZlib.isAvailable else { return false }
         if let graphicsCompressionSupport { return graphicsCompressionSupport }

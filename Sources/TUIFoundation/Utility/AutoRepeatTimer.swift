@@ -35,7 +35,7 @@
 /// a new run while one is already going cancels the previous.
 /// Cancelling is idempotent.
 @MainActor
-public final class AutoRepeatTimer {
+package final class AutoRepeatTimer {
     /// The delay every "is this one gesture or two?" decision in the framework
     /// uses, in milliseconds.
     ///

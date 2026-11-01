@@ -16,7 +16,7 @@ import TUIStyling
 /// the `body` property below is **never called during rendering**.
 /// It exists only to satisfy the `View` protocol requirement.
 /// All actual work happens in `renderToBuffer(context:)`.
-public struct EnvironmentModifier<Content: View, V>: View {
+@usableFromInline package struct EnvironmentModifier<Content: View, V>: View {
     // The key path, the content, then the value: the per-pass memos key a
     // view by a hash of its bytes, and padding is whatever the memory held
     // before — skipped by the hash, where a type with none is plain words.
@@ -235,7 +235,7 @@ extension EnvironmentModifier: Layoutable {
 /// into a new modifier on every visit, and read the value through the key
 /// path and then wrote it through it again — two projections, the second
 /// re-reading the value before its write — where one does both.
-public struct TransformEnvironmentModifier<Content: View, V>: View {
+package struct TransformEnvironmentModifier<Content: View, V>: View {
     // The two word-sized fields, then the content last, so nothing follows it
     // whatever its size: the content first left seven undefined bytes before
     // the key path over a scroll view (`ContainerLayoutPaddingTests`), which

@@ -311,7 +311,7 @@ Layout containers combine child buffers using `FrameBuffer` methods:
 | `composited(with:at:)` | Overlay modifier | Character-level compositing at (x, y) position |
 
 Each of these combine operations also offset-shifts any free-floating
-``OverlayLayer`` rides along with the child buffer, so a view such as a
+`OverlayLayer` rides along with the child buffer, so a view such as a
 ``Picker`` drop-down can draw outside its own bounds without disturbing
 sibling layout. The layers travel with their parent buffer up to the root
 and are composited there in z-order; see [Overlay Layers](#Overlay-Layers)
@@ -323,7 +323,7 @@ below.
 in ascending z-index order (stable for ties), so a child with `.zIndex(1)`
 draws on top of an earlier sibling with the default `0`.
 
-Independent of that draw order, a view may emit an ``OverlayLayer`` —
+Independent of that draw order, a view may emit an `OverlayLayer` —
 content tagged with a level (`.popover`, `.alert`, `.modal`, …) and an
 offset relative to the emitting buffer. Combine operations shift the
 offset by however far the underlying lines moved, so by the time the root

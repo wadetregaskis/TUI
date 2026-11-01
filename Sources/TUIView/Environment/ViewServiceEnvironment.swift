@@ -88,13 +88,13 @@ extension EnvironmentValues {
     }
 
     /// The persistent `@State` value storage indexed by `ViewIdentity`.
-    public var stateStorage: StateStorage? {
+    package var stateStorage: StateStorage? {
         get { self[StateStorageKey.self] }
         set { self[StateStorageKey.self] = newValue }
     }
 
     /// Cache for memoized subtree rendering results.
-    public var renderCache: RenderCache? {
+    package var renderCache: RenderCache? {
         get { self[RenderCacheKey.self] }
         set { self[RenderCacheKey.self] = newValue }
     }
@@ -114,7 +114,7 @@ extension EnvironmentValues {
     ///
     /// - Parameter tracker: The pass's tracker — a fresh one per frame in the
     ///   render loop, which derives its pulse-clock demand from the counts.
-    public mutating func installVolatileReadTracker(_ tracker: VolatileReadTracker) {
+    package mutating func installVolatileReadTracker(_ tracker: VolatileReadTracker) {
         volatileReadTracker = tracker
         renderCache?.volatileReadTracker = tracker
     }

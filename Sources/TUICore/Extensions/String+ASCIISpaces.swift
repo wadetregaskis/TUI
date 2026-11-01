@@ -61,7 +61,7 @@ private enum ASCIISpaces {
 ///
 /// - Parameter count: The number of spaces required.
 /// - Returns: Exactly `max(0, count)` space characters.
-public func asciiSpaces(_ count: Int) -> Substring {
+package func asciiSpaces(_ count: Int) -> Substring {
     guard count > 0 else { return "" }
     if count <= ASCIISpaces.count {
         return ASCIISpaces.run[..<ASCIISpaces.indices[count]]

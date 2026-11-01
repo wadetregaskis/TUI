@@ -18,7 +18,7 @@ import Foundation
 ///
 /// This type is `@unchecked Sendable` because the underlying lock implementations
 /// are thread-safe by design.
-public final class Lock<State: Sendable>: @unchecked Sendable {
+package final class Lock<State: Sendable>: @unchecked Sendable {
     #if canImport(os) && os(macOS)
         private let _lock: OSAllocatedUnfairLock<State>
 

@@ -37,7 +37,7 @@ import TUICore
 /// Main-actor by discipline rather than by annotation, exactly as
 /// ``StateStorage`` is — it is a stored property of one, and rendering is
 /// single-threaded on the run loop.
-public final class DepartureStore: @unchecked Sendable {
+package final class DepartureStore: @unchecked Sendable {
 
     /// A view's parting picture.
     public struct Departure {

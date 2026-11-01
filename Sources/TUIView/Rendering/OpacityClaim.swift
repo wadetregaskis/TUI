@@ -49,7 +49,7 @@ extension OpacityRegion {
     ///   - field: The colour the cells' background was painted in, if any. Its
     ///     alpha becomes ``OpacityRegion/fieldOpacity``.
     /// - Returns: The region, or `nil` when there is nothing to resolve.
-    public static func claim(
+    @usableFromInline package static func claim(
         offsetX: Int = 0, offsetY: Int = 0, width: Int, height: Int,
         ink: Color? = nil, field: Color? = nil
     ) -> OpacityRegion? {
@@ -62,7 +62,7 @@ extension OpacityRegion {
     ///
     /// `Double(alpha) / 255`, in the one place that division belongs. Three sites
     /// were spelling it out, which is the drift this file's own note says it exists
-    /// to prevent — and unlike ``claim(offsetX:offsetY:width:height:inkAlpha:fieldAlpha:)``
+    /// to prevent — and unlike `claim(offsetX:offsetY:width:height:inkAlpha:fieldAlpha:)`
     /// this makes no judgement about whether an opaque value is worth a region, which
     /// is what the background ramp path needs: it states a rectangle per row whatever
     /// the alpha, so the claims stay index-aligned with the rows they were painted for.
@@ -90,7 +90,7 @@ extension OpacityRegion {
     /// `claim(width:height:)` matched this overload as readily as that one and the
     /// call was ambiguous — and stating both channels is the right shape here anyway,
     /// since a caller reaching for this one has already decided what each is.
-    public static func claim(
+    package static func claim(
         offsetX: Int = 0, offsetY: Int = 0, width: Int, height: Int,
         inkAlpha: UInt8, fieldAlpha: UInt8
     ) -> OpacityRegion? {
@@ -138,7 +138,7 @@ extension Array where Element == OpacityRegion {
     ///
     /// `nil` appends nothing, so a caller can hand the result of
     /// ``OpacityRegion/claim(offsetX:offsetY:width:height:ink:field:)`` straight in.
-    public mutating func appendCoalescing(_ claim: OpacityRegion?) {
+    @usableFromInline package mutating func appendCoalescing(_ claim: OpacityRegion?) {
         guard let claim else { return }
         if var last, last.inkOpacity == claim.inkOpacity, last.fieldOpacity == claim.fieldOpacity,
             last.opacity == claim.opacity, last.cycle == nil, claim.cycle == nil, last.frost == claim.frost

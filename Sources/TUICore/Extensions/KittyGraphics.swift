@@ -127,7 +127,7 @@ public enum KittyGraphics {
     ///     `o=z`. Only where the terminal answered the compression probe
     ///     (``isCompressionSupported``) — a host that does not understand
     ///     `o=z` draws nothing, silently, under `q=2`. The bytes go through
-    ///     ``SystemZlib``, so a host with no zlib sends them raw whatever is
+    ///     `SystemZlib`, so a host with no zlib sends them raw whatever is
     ///     asked; so does a payload deflate makes no smaller. The chunking is
     ///     the same either way: the protocol compresses BEFORE base64, and
     ///     chunks after.
@@ -314,7 +314,7 @@ extension KittyGraphics {
     /// feature TUI needs — a **virtual placement**, drawn through Unicode
     /// placeholders — published from `TerminalClient.applyGraphicsSupport()`.
     ///
-    /// The same shape as ``TerminalHyperlink/isSupported``, and read from the
+    /// The same shape as `TerminalHyperlink/isSupported`, and read from the
     /// same place: a render path that is not main-actor isolated and cannot go
     /// asking the terminal anything.
     ///
@@ -345,7 +345,7 @@ extension KittyGraphics {
     @TaskLocal private static var taskSupported: Bool?
 
     /// Whether the terminal also takes a transmission deflated (`o=z`) — asked
-    /// at startup alongside the placement, and ANDed with ``SystemZlib``
+    /// at startup alongside the placement, and ANDed with `SystemZlib`
     /// having found a zlib to deflate with. Read by the callers of
     /// ``transmit(pixels:format:width:height:id:compressed:)`` to decide what
     /// to ask for; a transmission never compresses on its own.

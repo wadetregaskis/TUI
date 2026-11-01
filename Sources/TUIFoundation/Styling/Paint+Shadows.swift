@@ -16,7 +16,7 @@ extension Paint {
     ///
     /// Everything that draws with a paint draws this, and casts ``shadows``
     /// from the cells it drew, and marks them with ``blendMode`` and
-    /// ``frost``; a renderer below it never sees any of them.
+    /// `frost`; a renderer below it never sees any of them.
     public var unshadowed: Paint {
         switch self {
         case .shadowed(let base, _), .blended(let base, _), .frosted(let base, _): base.unshadowed
@@ -55,7 +55,7 @@ extension Paint {
 
     /// How what is behind the cells this paint draws is frosted first — a
     /// material's (``frosted(_:_:)``) — or `nil`.
-    public var frost: OpacityRegion.Frost? {
+    package var frost: OpacityRegion.Frost? {
         switch self {
         case .frosted(_, let frost): frost
         case .shadowed(let base, _), .blended(let base, _): base.frost
@@ -64,7 +64,7 @@ extension Paint {
     }
 
     /// Whether what is behind the cells this paint draws is frosted first
-    /// (``frost``).
+    /// (`frost`).
     public var frosts: Bool { frost != nil }
 
     /// Whether whatever draws with this paint has more to do than draw it: a

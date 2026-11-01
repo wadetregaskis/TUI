@@ -92,7 +92,7 @@ import TUIStyling
 /// handler on the input thread). That path therefore only takes a lock and
 /// enqueues; every mutation of `entries` / `sizeEntries` happens on the main
 /// actor when the queue drains.
-public final class RenderCache: @unchecked Sendable {
+@usableFromInline package final class RenderCache: @unchecked Sendable {
 
     /// Cached entries keyed by the view identity's STRUCTURAL HASH.
     ///

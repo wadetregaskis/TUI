@@ -57,7 +57,7 @@
 /// encodes every byte outside printable ASCII rather than assuming the caller
 /// did. That is the same reasoning as ``String/sanitizedForTerminal``:
 /// the gate belongs where the escape is written, not in each caller.
-public struct TerminalHyperlink: Sendable, Equatable {
+package struct TerminalHyperlink: Sendable, Equatable {
 
     /// Where the link points: a URI, such as `URL.absoluteString`.
     ///
@@ -368,7 +368,7 @@ extension String {
     /// - Returns: The string wrapped in the opening and closing sequences, or
     ///   the string as it is when the link is too long to send (see
     ///   ``TerminalHyperlink/opening``).
-    public func hyperlinked(to link: TerminalHyperlink) -> String {
+    package func hyperlinked(to link: TerminalHyperlink) -> String {
         guard let opening = link.opening else { return self }
         return opening + self + TerminalHyperlink.closing
     }

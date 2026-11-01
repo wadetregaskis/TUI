@@ -190,7 +190,7 @@ extension ForEach: Renderable, Layoutable where Content: View {
     /// resolved them into siblings of their own.
     ///
     /// A container asks ``childViews(context:)`` first
-    /// (``resolveChildViews(from:context:)`` tries `ChildViewProvider` before
+    /// (`resolveChildViews(from:context:)` tries `ChildViewProvider` before
     /// anything else), so this path is not how a `ForEach` inside a stack
     /// draws. It is how one draws when it is a view's ENTIRE body —
     ///
@@ -225,7 +225,7 @@ extension ForEach: ChildViewProvider where Content: View {
     /// Emits one ``ChildView`` per element so containers (HStack/VStack/ZStack)
     /// can lay each iteration out as its own sibling.
     ///
-    /// Without this conformance ``resolveChildViews(from:context:)`` falls
+    /// Without this conformance `resolveChildViews(from:context:)` falls
     /// back to wrapping the whole ForEach as a single child, which would draw
     /// through ``renderToBuffer(context:)`` — correct content, but stacked
     /// vertically whatever the surrounding container wanted. This is what

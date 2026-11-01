@@ -30,7 +30,7 @@ import Foundation
 /// thread-local lookup and an access-set insert, then `swift_endAccess`, per
 /// variable). ``cacheUnsafeCount`` alone summed four of them, and every memo
 /// gate reads it twice per measured or rendered node.
-public final class VolatileReadTracker: @unchecked Sendable {
+package final class VolatileReadTracker: @unchecked Sendable {
     /// Every count, and the scope's earliest clock instant — see the
     /// properties of the same names, which read them.
     private struct Counts {
@@ -370,7 +370,7 @@ extension EnvironmentValues {
     /// ``VolatileReadTracker/recordVolatileRead()`` on this when it is present.
     /// It is `nil` everywhere outside a memoized row's render, so the read path
     /// pays only a single optional check.
-    public var volatileReadTracker: VolatileReadTracker? {
+    package var volatileReadTracker: VolatileReadTracker? {
         get { self[VolatileReadTrackerKey.self] }
         set { self[VolatileReadTrackerKey.self] = newValue }
     }

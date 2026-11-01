@@ -164,7 +164,7 @@ extension PreferenceValues {
 /// What makes that sound is that `push`, `pop` and `setValue` only ever run on
 /// the render path, which is main-actor isolated — the same terms, for the same
 /// reason, as `LifecycleManager`.
-public final class PreferenceStorage: @unchecked Sendable {
+@usableFromInline package final class PreferenceStorage: @unchecked Sendable {
     /// Stack of preference values for nested rendering.
     private var stack: [PreferenceValues] = [PreferenceValues()]
 

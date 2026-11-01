@@ -38,7 +38,7 @@ extension EnvironmentValues {
 /// Disables every control in its content's subtree by ANDing `isEnabled` with
 /// `!disabled` (a read-modify-write at render, so it composes additively — like
 /// ``StyleCascadeModifier`` and ``EnvironmentModifier``).
-public struct DisabledModifier<Content: View>: View {
+package struct DisabledModifier<Content: View>: View {
     public let content: Content
     public let disabled: Bool
 

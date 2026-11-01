@@ -32,7 +32,7 @@ public enum FrameDimension: Equatable, Sendable, ExpressibleByIntegerLiteral {
 ///
 /// This view handles min/max constraints and renders content with
 /// the appropriate available space.
-public struct FlexibleFrameView<Content: View>: View {
+package struct FlexibleFrameView<Content: View>: View {
     // The six constraints are stored one word each — `FrameWord` — rather than
     // as `Int?` / `FrameDimension?`, and declared before the content. An
     // optional word is nine bytes at eight-byte alignment, so each left seven
@@ -155,7 +155,7 @@ private enum FrameWord {
 // MARK: - Equatable Conformance
 
 extension FlexibleFrameView: @preconcurrency Equatable where Content: Equatable {
-    public static func == (lhs: FlexibleFrameView<Content>, rhs: FlexibleFrameView<Content>) -> Bool {
+    package static func == (lhs: FlexibleFrameView<Content>, rhs: FlexibleFrameView<Content>) -> Bool {
         guard lhs.content == rhs.content, lhs.minWidth == rhs.minWidth, lhs.idealWidth == rhs.idealWidth,
             lhs.maxWidth == rhs.maxWidth, lhs.minHeight == rhs.minHeight, lhs.idealHeight == rhs.idealHeight,
             lhs.maxHeight == rhs.maxHeight

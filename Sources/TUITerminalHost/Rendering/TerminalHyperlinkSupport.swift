@@ -160,7 +160,7 @@ extension TerminalClient {
     }
 
     /// Publishes ``hyperlinksSupported`` to
-    /// ``TerminalHyperlink/isSupported``, which is what the render
+    /// `TerminalHyperlink/isSupported`, which is what the render
     /// path actually reads.
     ///
     /// The twin of ``applyWidthTraits()``, and for the same reason: the

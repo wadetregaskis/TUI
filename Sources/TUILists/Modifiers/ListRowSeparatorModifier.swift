@@ -15,7 +15,7 @@ import TUIFoundation
 /// section modifiers share (`ListSeparators.swift`; decisions A47). The arguments
 /// are stored so the modifier compares equal only to itself — an `EquatableView`
 /// above it must not treat two differently-configured rows as the same view.
-public struct ListRowSeparatorModifier<Content: View>: View {
+package struct ListRowSeparatorModifier<Content: View>: View {
     /// The content view.
     let content: Content
 
@@ -33,7 +33,7 @@ public struct ListRowSeparatorModifier<Content: View>: View {
 // MARK: - Equatable
 
 extension ListRowSeparatorModifier: @preconcurrency Equatable where Content: Equatable {
-    public static func == (lhs: ListRowSeparatorModifier<Content>, rhs: ListRowSeparatorModifier<Content>) -> Bool {
+    package static func == (lhs: ListRowSeparatorModifier<Content>, rhs: ListRowSeparatorModifier<Content>) -> Bool {
         lhs.content == rhs.content && lhs.visibility == rhs.visibility && lhs.edges == rhs.edges
     }
 }

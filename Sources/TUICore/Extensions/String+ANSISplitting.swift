@@ -833,7 +833,7 @@ extension String {
     /// Wanted by anything that asks what a cell redrawn in place landed on. (The
     /// animation splice no longer asks the line: a run's cells are drawn over the
     /// field recorded beneath them — see `AnimatedCellRun.ground`.)
-    public func ansiSGRStateAt(visibleColumn column: Int) -> SGRState {
+    package func ansiSGRStateAt(visibleColumn column: Int) -> SGRState {
         sgrState(throughColumn: column, includingBoundary: true)
     }
 

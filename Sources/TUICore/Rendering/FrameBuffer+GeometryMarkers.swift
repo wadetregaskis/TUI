@@ -19,7 +19,7 @@ extension FrameBuffer {
     /// carried up as a layer, and a marker inside it is where that view is
     /// drawn. Three kinds of layer are not descended into:
     ///
-    /// - a SURFACE (``OverlayLayer/isOpaque``): a sheet, a popover, a menu, a
+    /// - a SURFACE (`OverlayLayer/isOpaque`): a sheet, a popover, a menu, a
     ///   tooltip is drawn over the page, not in it, and SwiftUI's named spaces
     ///   do not reach across a presentation into its content. The screen root
     ///   finds those after it composites them, where they finally are.

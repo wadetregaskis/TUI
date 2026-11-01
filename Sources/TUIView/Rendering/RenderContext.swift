@@ -67,7 +67,7 @@ public struct RenderContext {
     /// `EnvironmentValues.subscript<K: EnvironmentKey>` (an `ObjectIdentifier`
     /// hash, an `[ObjectIdentifier: Any]` probe, and an `Any` downcast). A
     /// profile showed that getter at ~4.5% of a text-heavy frame.
-    public var renderCache: RenderCache?
+    @usableFromInline package var renderCache: RenderCache?
 
     /// The persistent `@State` storage for this render pass, mirrored from
     /// ``environment`` for the same reason as ``renderCache``.
@@ -78,7 +78,7 @@ public struct RenderContext {
     /// environment dictionary, `EnvironmentValues.stateStorage.getter` measured
     /// **5.2% of all CPU** on the `fanout` stress scenario — one service
     /// lookup, all of it hash, `Any` unbox and `swift_dynamicCast`.
-    public var stateStorage: StateStorage?
+    @usableFromInline package var stateStorage: StateStorage?
 
     /// Re-derives every mirrored service from ``environment``.
     ///
@@ -171,7 +171,7 @@ public struct RenderContext {
     /// Which generation of the environment a measurement belongs to — the
     /// measure memo's only handle on an environment change.
     ///
-    /// ``RenderCache/MeasureKey`` deliberately carries no environment: it keys
+    /// `RenderCache/MeasureKey` deliberately carries no environment: it keys
     /// on the identity, the two widths, the view's type and a hash of the view's
     /// value, and nothing else. That is sound for the case it was
     /// built for, where the environment is fixed for the pass. It is NOT sound
@@ -206,8 +206,8 @@ public struct RenderContext {
     /// Bump it with ``invalidatingMeasureMemo()``.
     ///
     /// BOTH measure keys carry it, and they carry it differently.
-    /// ``RenderCache/MeasureKey`` folds it into its identity hash, because it
-    /// cannot afford an eighth field; ``RenderCache/SizeKey`` stores it as a
+    /// `RenderCache/MeasureKey` folds it into its identity hash, because it
+    /// cannot afford an eighth field; `RenderCache/SizeKey` stores it as a
     /// field, because it must — a hash-only fold leaves the synthesised `==`
     /// calling two keys equal, and that table is cross-frame, so the value memo
     /// would answer a post-change ask with a pre-change size until the memoized
@@ -451,7 +451,7 @@ public struct RenderContext {
     /// A stored field rather than an environment value: it is read on the leaf
     /// path and nudged by every container that places children, and
     /// `EnvironmentValues` is a dictionary whose getter is expensive enough
-    /// that ``renderCache`` and ``stateStorage`` were both hoisted out of it.
+    /// that `renderCache` and `stateStorage` were both hoisted out of it.
     /// Unused, it costs one nil check.
     public var gradientFrame: GradientFrame?
 

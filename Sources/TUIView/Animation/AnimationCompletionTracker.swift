@@ -13,8 +13,8 @@ import TUICore
 /// on the state change made under it; the run loop renders that change in one
 /// pass. "The animations created with this transaction" are therefore the ones
 /// that pass starts, and only the stores know which those are — so while a
-/// pass with completions to place is under way, the ``AnimationStore`` and the
-/// ``DepartureStore`` report every animation they start to this, and at the end
+/// pass with completions to place is under way, the `AnimationStore` and the
+/// `DepartureStore` report every animation they start to this, and at the end
 /// of the pass the completions go into a batch with the deadlines those
 /// animations set.
 ///

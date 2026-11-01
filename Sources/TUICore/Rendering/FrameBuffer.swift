@@ -122,7 +122,7 @@ public struct FrameBuffer: Sendable, Equatable {
     /// Whether the buffer is empty.
     ///
     /// - Note: Reflects only the in-flow ``lines``. A buffer with no visible
-    ///   lines may still carry ``overlays``; combining operations check for
+    ///   lines may still carry `overlays`; combining operations check for
     ///   that case explicitly so overlay layers are never silently dropped.
     public var isEmpty: Bool {
         lines.isEmpty || lines.allSatisfy { $0.isEmpty }
@@ -138,7 +138,7 @@ public struct FrameBuffer: Sendable, Equatable {
     /// draws anything, so an empty title doesn't reserve a blank row.
     ///
     /// - Note: Considers only the in-flow ``lines``; a buffer carrying only
-    ///   ``overlays`` is still reported blank.
+    ///   `overlays` is still reported blank.
     public var isBlank: Bool {
         lines.allSatisfy { $0.stripped.allSatisfy(\.isWhitespace) }
     }
@@ -150,7 +150,7 @@ public struct FrameBuffer: Sendable, Equatable {
     /// layout. Each layer's offset is relative to this buffer's top-left and
     /// is shifted by every combining operation, so it becomes absolute by the
     /// time the buffer reaches the root. See ``OverlayLayer``.
-    public var overlays: [OverlayLayer] = [] {
+    package var overlays: [OverlayLayer] = [] {
         didSet { overlaysAreFreeOfOverflow = false }
     }
 
@@ -181,7 +181,7 @@ public struct FrameBuffer: Sendable, Equatable {
     /// onto something — a `ZStack`, an overlay, or the root — where the
     /// destination is known. See ``OpacityRegion`` and
     /// `Documentation/Colour and styling/Opacity as composition.md`.
-    public var opacityRegions: [OpacityRegion] = []
+    package var opacityRegions: [OpacityRegion] = []
 
     /// Creates an empty buffer.
     public init() {
@@ -289,7 +289,7 @@ public struct FrameBuffer: Sendable, Equatable {
     /// NOT ``init(emptyWithWidth:height:)``, whose rows are spaces. Those
     /// PAINT: compositing is opaque per cell, so a blank-filled buffer erases
     /// whatever is beneath it — the opposite of what a view wants when it has
-    /// floated its drawing somewhere else (``OverlayLayer``) and is leaving
+    /// floated its drawing somewhere else (`OverlayLayer`) and is leaving
     /// behind the space the measure pass promised.
     ///
     /// Both halves are load-bearing, and each was a shipped bug:
@@ -373,8 +373,8 @@ extension FrameBuffer {
     ///
     /// Height is what decides that, not paint: a buffer of N *empty* lines has
     /// a height of N and takes N rows, though it paints nothing in them. That
-    /// is the shape a floated view leaves behind (``OffsetView``,
-    /// ``PositionView``) — the footprint its measure promised, with the drawing
+    /// is the shape a floated view leaves behind (`OffsetView`,
+    /// `PositionView`) — the footprint its measure promised, with the drawing
     /// carried off in an overlay layer. Reading "paints nothing" as "is not
     /// here" collapsed those rows and pulled the following sibling up into
     /// them.
@@ -1019,7 +1019,7 @@ extension FrameBuffer {
     /// region kept for cells that were cut away would be a phantom click
     /// target wherever the next sibling lands. Overlay layers are *kept*
     /// regardless: they float free of the flow and are composited at the root
-    /// (see ``overlays``).
+    /// (see `overlays`).
     ///
     /// - Parameters:
     ///   - width: Maximum width in terminal cells. Negative values clamp to 0.
@@ -1107,7 +1107,7 @@ extension FrameBuffer {
     ///   - dx: The horizontal shift in columns.
     ///   - dy: The vertical shift in rows.
     /// - Returns: The shifted overlay layers (empty if there are none).
-    public func shiftedOverlays(byX dx: Int, y dy: Int) -> [OverlayLayer] {
+    package func shiftedOverlays(byX dx: Int, y dy: Int) -> [OverlayLayer] {
         guard !overlays.isEmpty else { return [] }
         guard dx != 0 || dy != 0 else { return overlays }
         return overlays.map { $0.shifted(byX: dx, y: dy) }
@@ -1180,7 +1180,7 @@ extension FrameBuffer {
 extension FrameBuffer {
     /// Returns this buffer's ``hitTestRegions``, each shifted by `(dx, dy)`.
     ///
-    /// Mirrors ``shiftedOverlays(byX:y:)`` — combining operations call
+    /// Mirrors `shiftedOverlays(byX:y:)` — combining operations call
     /// this so a region tracks the lines it was emitted with as the
     /// surrounding view tree composes its parent.
     /// This buffer's ``animatedCells``, each shifted by `(dx, dy)`.
@@ -1219,7 +1219,7 @@ extension FrameBuffer {
     /// Mirrors ``shiftedAnimatedCells(byX:y:)`` — and for the same reason: a
     /// combining operation that moves the cells must move every claim about
     /// them, or the claim lands on somebody else's content.
-    public func shiftedOpacityRegions(byX dx: Int, y dy: Int) -> [OpacityRegion] {
+    package func shiftedOpacityRegions(byX dx: Int, y dy: Int) -> [OpacityRegion] {
         guard !opacityRegions.isEmpty else { return [] }
         guard dx != 0 || dy != 0 else { return opacityRegions }
         return opacityRegions.map { $0.shifted(byX: dx, y: dy) }
@@ -1227,7 +1227,7 @@ extension FrameBuffer {
 
     /// This buffer's ``hitTestRegions``, each moved by `(dx, dy)`.
     ///
-    /// The sibling of ``shiftedOverlays(byX:y:)`` and
+    /// The sibling of `shiftedOverlays(byX:y:)` and
     /// ``shiftedAnimatedCells(byX:y:)``, and load-bearing for the same reason:
     /// a region records where a control is *clickable*, in this buffer's
     /// coordinates. Any operation that places these cells somewhere else —
