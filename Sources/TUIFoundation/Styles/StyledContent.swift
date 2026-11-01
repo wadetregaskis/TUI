@@ -22,14 +22,9 @@ public struct _StyledContent: View, ChildViewProvider {
     /// of what it was given, as a control group reads its label.
     package let underlying: any View
 
-    /// The content's views, resolved at their concrete type, which an erasure
-    /// would have lost.
-    private let children: @MainActor (RenderContext) -> [ChildView]
-
     package init<V: View>(_ view: V) {
         self.content = AnyView(view)
         self.underlying = view
-        self.children = { resolveChildViews(from: view, context: $0) }
     }
 
     public var body: some View {
@@ -37,6 +32,8 @@ public struct _StyledContent: View, ChildViewProvider {
     }
 
     public func childViews(context: RenderContext) -> [ChildView] {
-        children(context)
+        // Opens `underlying`, so its views resolve at their concrete type, which
+        // `content`'s erasure would have lost.
+        resolveChildViews(from: underlying, context: context)
     }
 }
