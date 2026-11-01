@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import Observation
 import Testing
 
 @testable import TUIApp
@@ -16,10 +17,16 @@ import Testing
 @testable import TUICore
 @testable import TUIFilePanels
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// What a presented panel's caller heard.
+///
+/// Observable, as an app's model is: a view that reads `isPresented` through
+/// `binding` is drawn again when it changes, and a list row is not served from
+/// a frame before the change.
 @MainActor
+@Observable
 final class FilePanelCaller {
     var isPresented = true
     /// Each callback, in order, with whether the binding was still true then.
@@ -49,8 +56,9 @@ final class FilePanelCaller {
     }
 }
 
-/// What an exporter's caller heard.
+/// What an exporter's caller heard. Observable, as ``FilePanelCaller`` is.
 @MainActor
+@Observable
 final class FileExporterCaller {
     var isPresented = true
     var heard: [String] = []
@@ -78,51 +86,12 @@ final class FileExporterCaller {
     }
 }
 
-/// A view with a file panel presented over it, drawn and pressed through the
-/// whole input chain (``InputChainHarness``), rebuilt for every frame.
+/// A view with a file panel presented over it, in a ``TestApp``: with the app
+/// storage and the terminal's circumstances a panel's tests are about, and what
+/// they read of its screen.
 @MainActor
 final class FilePanelDriver<Page: View> {
-    let harness: InputChainHarness
-    let width: Int
-    let height: Int
-    private let build: () -> Page
-
-    init(width: Int = 100, height: Int = 30, _ build: @escaping () -> Page) {
-        self.width = width
-        self.height = height
-        // The terminal's size, as the run loop publishes it: a sheet is sized
-        // against it, and without it a panel was drawn for the defaults'
-        // 80 × 24 whatever size the test drew at.
-        self.harness = InputChainHarness(width: width, height: height) { environment in
-            environment.terminalWidth = width
-            environment.terminalHeight = height
-            environment.overlayContentHeight = height
-        }
-        self.build = build
-    }
-
-    /// Draws a frame and returns the screen, the sheet composited over the page.
-    @discardableResult
-    func screen() -> String {
-        composited().lines.map(\.stripped).joined(separator: "\n")
-    }
-
-    /// Draws a frame and returns the screen's rows as drawn, escapes and all.
-    func styledRows() -> [String] {
-        composited().lines
-    }
-
-    /// Draws a frame, the sheet composited over the page, and points the
-    /// mouse at what that frame shows: the harness hands the dispatcher the
-    /// page's own regions, and the sheet's are where compositing puts them,
-    /// as the run loop hands it the composited frame's.
-    @discardableResult
-    private func composited() -> FrameBuffer {
-        let screen = frame().compositingOverlays(
-            maxWidth: width, maxHeight: height, palette: harness.context.environment.palette)
-        harness.tui.mouseEventDispatcher.setRegions(screen.hitTestRegions)
-        return screen
-    }
+    let app: TestApp
 
     /// The app storage the page is drawn with, unless it names its own: a
     /// test's own, so a panel's view mode switched in one test is not the
@@ -133,63 +102,63 @@ final class FilePanelDriver<Page: View> {
     /// the list's Kind column and puts the splitter's divider, a Tab stop,
     /// before the buttons the tests Tab to. The preview's own tests name a
     /// store of their own.
-    let storage: MockStorageBackend = {
+    let storage: MockStorageBackend
+
+    /// With no icons unless the page asks for them: the SF Symbols are drawn
+    /// where the machine has their font, which a test cannot depend on
+    /// (`filePanelIcons`). And at the desk unless the page says otherwise: the
+    /// remote-machine notice is judged on how the test process was started, and
+    /// inside tmux the judgement asks tmux for its clients (`filePanelSession`).
+    init(width: Int = 100, height: Int = 30, _ build: @escaping () -> Page) {
         let storage = MockStorageBackend()
         storage.setValue(
             FilePanelPreviewVisibility.hidden.rawValue, forKey: FilePanelPreviewVisibility.storageKey(for: nil))
-        return storage
-    }()
-
-    /// One frame of the page, built afresh, with no icons unless the page
-    /// asks for them: the SF Symbols are drawn where the machine has their
-    /// font, which a test cannot depend on (`filePanelIcons`). And at the
-    /// desk unless the page says otherwise: the remote-machine notice is
-    /// judged on how the test process was started, and inside tmux the
-    /// judgement asks tmux for its clients (`filePanelSession`).
-    @discardableResult
-    private func frame() -> FrameBuffer {
-        harness.frame(
+        self.storage = storage
+        self.app = TestApp(width: width, height: height) {
             build().defaultAppStorage(storage).environment(\.filePanelIcons, FilePanelIcon.none)
-                .environment(\.filePanelSession, FilePanelSession(judgement: .local, hostName: "desk")))
+                .environment(\.filePanelSession, FilePanelSession(judgement: .local, hostName: "desk"))
+        }
+    }
+
+    /// Draws a frame and returns the screen.
+    @discardableResult
+    func screen() -> String {
+        app.advance(by: .zero)
+        return app.screen.lines.joined(separator: "\n")
+    }
+
+    /// Draws a frame and returns the screen's rows as drawn, escapes and all.
+    func styledRows() -> [String] {
+        app.advance(by: .zero)
+        return app.screen.styledLines
     }
 
     /// Draws frames until the screen shows `text` — a folder is read on
     /// another thread — and returns that screen.
     @discardableResult
     func waitFor(_ text: String, timeout: Duration = .seconds(60)) async -> String {
-        var last = ""
-        await settle(
-            until: {
-                last = screen()
-                return last.contains(text)
-            }, timeout: timeout)
-        return last
+        do {
+            try await app.wait(for: text, timeout: timeout)
+        } catch {
+            Issue.record("\(error)")
+        }
+        return screen()
     }
 
     /// Presses `keys`, a frame after each.
     func press(_ keys: [KeyEvent]) {
-        for key in keys {
-            harness.press(key)
-            frame()
-        }
+        for key in keys { app.press(key) }
     }
 
     /// Presses `key`, `count` times, a frame after each.
     func press(_ key: Key, times count: Int = 1) {
-        press(Array(repeating: KeyEvent(key: key), count: count))
+        app.press(key, times: count)
     }
 
     /// Where `text` first shows on the screen, in cells, or `nil` where it
-    /// does not: its row, and the column of its first character. The screen
-    /// is the stripped text, so a column is a character's offset — true of
-    /// the panel's rows, whose characters before a name are one cell each.
+    /// does not: its row, and the column of its first character.
     func position(of text: String) -> (x: Int, y: Int)? {
-        for (row, line) in screen().split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
-            if let range = line.range(of: text) {
-                return (line.distance(from: line.startIndex, to: range.lowerBound), row)
-            }
-        }
-        return nil
+        app.screen.location(of: text).map { ($0.x, $0.y) }
     }
 
     /// Clicks the first character of `text` where it first shows, with a
@@ -197,11 +166,8 @@ final class FilePanelDriver<Page: View> {
     /// not show.
     @discardableResult
     func click(_ text: String) -> Bool {
-        guard let point = position(of: text) else { return false }
-        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: point.x, y: point.y))
-        composited()
-        harness.mouse(MouseEvent(button: .left, phase: .released, x: point.x, y: point.y))
-        composited()
+        guard let point = app.screen.location(of: text) else { return false }
+        app.click(at: point)
         return true
     }
 }

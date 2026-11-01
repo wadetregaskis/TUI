@@ -130,9 +130,10 @@ struct FilePanelIconTests {
         #expect(asked["gamma.pdf"] == UTType.pdf.identifier)
         let gamma = try #require(driver.position(of: "gamma.pdf"))
         let beta = try #require(driver.position(of: "beta.txt"))
-        // In cells, the same column: the position is a character's offset,
-        // and the emoji before beta.txt is one character of two cells.
-        #expect(gamma.x == beta.x + 1)
+        // The same column: the position counts cells, and the emoji before
+        // beta.txt takes two, as the one cell drawn in its place does with its
+        // space.
+        #expect(gamma.x == beta.x)
     }
 
     @Test("Without emoji or symbols, an app's icon still draws, and a folder it gives one has no slash")

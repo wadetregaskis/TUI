@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import Observation
 import Testing
 
 @testable import TUIApp
@@ -25,6 +26,34 @@ import Testing
 /// Serialized: each test draws frames until a folder read on another thread
 /// shows, and nine of them drawing at once on the main actor took 40 s where
 /// each alone takes a fifth of one.
+/// What a list row's panel accepts, which a test changes between presentations
+/// as an app's model does.
+@MainActor
+@Observable
+private final class ChosenTypes {
+    var types: [UTType] = [.pdf]
+}
+
+/// A list row presenting a panel for the types it reads in its `body`.
+private struct TypedPanelRow: View {
+    let fixture: FilePanelFixture
+    let caller: FilePanelCaller
+    let chosenTypes: ChosenTypes
+
+    var body: some View {
+        let types = chosenTypes.types
+        return FilePanelPresenter(
+            content: Text("Page"), isPresented: caller.binding,
+            request: {
+                FilePanelRequest(
+                    purpose: .open(allowsMultipleSelection: false),
+                    rule: FileChoiceRule(allowedContentTypes: types), title: "Open", confirmationLabel: "Open",
+                    startDirectory: fixture.root, homeDirectory: fixture.root)
+            },
+            onChoose: { caller.chose($0) }, onCancel: { caller.cancelled() })
+    }
+}
+
 @MainActor
 @Suite("File importer panel", .serialized)
 struct FileImporterPanelTests {
@@ -268,17 +297,18 @@ struct FileImporterPanelTests {
         let fixture = try FilePanelFixture()
         defer { fixture.remove() }
         let caller = FilePanelCaller()
-        var types: [UTType] = [.pdf]
+        let chosenTypes = ChosenTypes()
         let driver = FilePanelDriver {
             List {
-                panel(fixture, caller: caller, types: types)
+                TypedPanelRow(fixture: fixture, caller: caller, chosenTypes: chosenTypes)
             }
         }
         await driver.waitFor("notes.md")
         driver.press(.escape)
+        // Plain text now: beta.txt, the third row, is chosen. A frame between,
+        // so the row has drawn with the new types before the panel asks it.
+        chosenTypes.types = [.plainText]
         driver.screen()
-        // Plain text now: beta.txt, the third row, is chosen.
-        types = [.plainText]
         caller.isPresented = true
         await driver.waitFor("notes.md")
         driver.press(.down, times: 2)
