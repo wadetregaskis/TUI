@@ -390,6 +390,17 @@ Deprecated SwiftUI spellings TUI still has, on purpose:
 
 `Tools/APIParity/api_parity.py --deprecated` lists the SwiftUI declarations deprecated on macOS that TUI still implements (23 against the macOS 26.2 SDK). Most are cases where TUI has the live overload and SwiftUI's deprecated one shares its name.
 
+### Concurrency
+
+The compiler now checks what `@unchecked Sendable` used to assert. If your code stops compiling, it was relying on one of these:
+
+- `EnvironmentValues`, `DropInfo`, `ToolbarItemPlacement`, `ToolbarPlacement` and `RenameAction` are not `Sendable`, as SwiftUI declares them not to be. Their built-in placements are computed, so `static let favorites = ToolbarItemPlacement.accessoryBar(id: "f")` of your own needs to be a `static var`, as it does on SwiftUI in Swift 6 mode. So are `PreferenceValues`, `ThemeManager`, `FocusManager`, `StateStorage`, `RenderCache`, `TUIContext`, `TooltipState`, `StatusBarState`, `StatusBarItem`, and `RequestAttentionAction`, and an `EnvironmentKey`'s default of one of them has to be computed.
+- `GestureState` is no longer `Sendable`, where SwiftUI's is `@unchecked` when its value is. It holds a `State`, which never was.
+- `Focusable.handleKeyEvent(_:)` and `MouseEventDispatcher.dispatch(_:)` are `@MainActor`, where the run loop always called them.
+- An animation completion is `@MainActor`. `withAnimation(_:completionCriteria:_:completion:isolation:)`, and `withTransaction(_:_:isolation:)`, have a defaulted `isolation:`, so a completion can run at once where the caller is on the main actor; elsewhere it runs as soon as the main actor can take it. A closure literal compiles as before. A completion held in a variable is written `{ done() }`.
+- `Lock` is built on `Mutex`, and is no longer re-entrant anywhere, as it was not on macOS. On macOS re-entering one ends the process with a SIGKILL.
+- `CustomPresentationDetent` refines `SendableMetatype`.
+
 ### Dependencies and requirements
 
 - Swift: `swift-tools-version: 6.2`. The README says Swift 6.2 or later. CI builds with Xcode 26 and 27 on macOS and with Swift 6.2, 6.3 and 6.4 on Linux. The tools version is unchanged by the split. On macOS the SDK must be Xcode 26's or Command Line Tools 26's or newer; the macOS 15 SDKs are not supported.
