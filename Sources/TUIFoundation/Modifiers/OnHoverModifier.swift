@@ -171,22 +171,7 @@ extension OnHoverModifier: Layoutable {
 // MARK: - View Extension
 
 extension View {
-    /// Adds an action to perform when the cursor enters or
-    /// leaves the view's hit region.
-    ///
-    /// SwiftUI-compatible signature. The closure receives
-    /// `true` on enter, `false` on leave — driven by the
-    /// dispatcher's hover state machine, not by raw motion, so
-    /// transitions are de-duplicated and only fire on actual
-    /// region crossings.
-    ///
-    /// > Note: Hover requires the terminal's any-event motion
-    ///   reporting mode. This modifier requests it
-    ///   automatically per-frame; the AppRunner unions the
-    ///   request with the base ``MouseSupport`` configuration
-    ///   each frame.
-    ///
-    /// # Example
+    /// Adds an action to perform when the cursor enters or leaves the view.
     ///
     /// ```swift
     /// Text("Hover me")
@@ -194,6 +179,18 @@ extension View {
     ///         print(isHovered ? "in" : "out")
     ///     }
     /// ```
+    ///
+    /// The action runs once each time the cursor crosses the view's edge, not for
+    /// every move inside it.
+    ///
+    /// A hover effect may keep or enlarge the view's bounds, and the view stays
+    /// hovered. It shouldn't shrink them so that they no longer hold the cursor:
+    /// the action then hears that the cursor left, and doesn't hear it come back
+    /// until the cursor next moves, which stops the view flickering between the
+    /// two looks.
+    ///
+    /// > Note: Hover needs a terminal that reports mouse movement. This modifier
+    ///   asks for that itself, whatever the scene's ``MouseSupport``.
     ///
     /// - Parameter action: A closure invoked with `true` when
     ///   the cursor enters and `false` when it leaves.
