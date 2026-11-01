@@ -60,10 +60,34 @@ private struct StormPage: Equatable, Sendable {
 private final class StormLog: @unchecked Sendable {
     private let lock = NSLock()
     private var entries: [String] = []
+    private var refreshes: [RefreshAction] = []
 
     func append(_ entry: String) { lock.withLock { entries.append(entry) } }
     var count: Int { lock.withLock { entries.count } }
     var all: [String] { lock.withLock { entries } }
+
+    /// Remembers a `.refreshable` a render met, for ``isRefreshing``.
+    func note(_ refresh: RefreshAction) {
+        lock.withLock {
+            if !refreshes.contains(refresh) { refreshes.append(refresh) }
+        }
+    }
+
+    /// Whether a run of any `.refreshable` met so far isn't over yet.
+    var isRefreshing: Bool { lock.withLock { refreshes.contains(where: \.isRunning) } }
+}
+
+/// Tells the log about the `.refreshable` above it. A view rather than something
+/// the action does, because a run outlives its action: see ``settle(_:_:reaching:)``.
+private struct RefreshNote<Content: View>: View {
+    let log: StormLog
+    let content: Content
+    @Environment(\.refresh) private var refresh
+
+    var body: some View {
+        if let refresh { log.note(refresh) }
+        return content
+    }
 }
 
 // MARK: - The page
@@ -93,7 +117,7 @@ private struct StormRowView: View, @MainActor Equatable {
                 })
         }
         if row.refreshable {
-            view = AnyView(view.refreshable { log.append("refresh \(row.title)") })
+            view = AnyView(RefreshNote(log: log, content: view).refreshable { log.append("refresh \(row.title)") })
         }
         if row.dimmed { view = AnyView(view.dimmed()) }
         return view
@@ -397,13 +421,15 @@ private final class StormRun {
 /// handlers and item actions ran inside `handle`, on the main actor — and the
 /// loop below then exits without sleeping once.
 ///
-/// Polled, not yielded, deliberately: the action appends its entry and the run
-/// marks itself finished a few instructions later, off the main actor. A 1 ms
-/// poll cannot observe the first without the second; a yield, being
-/// microseconds, could — and a copy still holding a running refresh draws the
-/// in-flight spinner that the other one does not. That is also why the shared
-/// `settle(until:)` is not used here: it yields on all but every fiftieth
-/// iteration, which is the behaviour this one exists to avoid.
+/// The entry alone isn't the end of it: the action appends it, and the run marks
+/// itself finished afterwards, off the main actor, when a contended pool gets to
+/// it. A copy still holding a running refresh draws the in-flight spinner the
+/// other one doesn't, so this waits for the runs to be over as well. It used to
+/// count on a 1 ms poll being too slow to catch the gap, and the storm failed
+/// under load when it wasn't.
+///
+/// Polled, not yielded: the shared `settle(until:)` yields on all but every
+/// fiftieth iteration, which would spin against the pool this is waiting for.
 ///
 /// The bound is a HANG-BREAKER, NOT A SCHEDULE, and it used to be a schedule:
 /// 200 spins of 1 ms, after which the wait simply returned and the storm
@@ -420,7 +446,9 @@ private final class StormRun {
 @MainActor
 private func settle(_ cached: StormRun, _ uncached: StormRun, reaching expected: (Int, Int)) async {
     var wait = HangBreaker(timeout: .seconds(60))
-    while cached.log.count < expected.0 || uncached.log.count < expected.1 {
+    while cached.log.count < expected.0 || uncached.log.count < expected.1
+        || cached.log.isRefreshing || uncached.log.isRefreshing
+    {
         guard !wait.hasTripped else {
             Issue.record(
                 """

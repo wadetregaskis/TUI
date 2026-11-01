@@ -83,11 +83,17 @@ public struct RefreshAction: Equatable, Sendable {
             return true
         }
 
+        /// Ends the run and drops its picture in one step, so nobody can see it
+        /// over with the spinner still cached. The lock is safe to hold: the sink
+        /// only queues the identity, and takes nothing that comes back here.
         func finish() {
             lock.lock()
+            defer { lock.unlock() }
             running = false
-            lock.unlock()
-            invalidateBound()
+            // Never `nil`, which would clear the whole cache.
+            if let invalidationSink, let identity {
+                invalidationSink.invalidateRender(for: identity)
+            }
         }
 
         /// Drops the bound identity's cached buffers, and its ancestors', and
