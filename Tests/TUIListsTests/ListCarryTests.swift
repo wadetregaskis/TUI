@@ -14,6 +14,7 @@ import TUIApp
 @testable import TUICore
 @testable import TUIFoundation
 import TUILists
+import TUITesting
 @testable import TUITestSupport
 
 private let pickUp = KeyEvent(key: .character("r"), ctrl: true)
@@ -26,7 +27,6 @@ struct ListCarryTests {
     private func dropOnList(downs: Int) -> Int? {
         final class Landed: @unchecked Sendable { var index: Int? }
         let landed = Landed()
-        let harness = InputChainHarness()
         let view = {
             VStack(alignment: .leading) {
                 Text("card").draggable("zzz")
@@ -38,7 +38,8 @@ struct ListCarryTests {
             }
         }
         let downs = Array(repeating: KeyEvent(key: .down), count: downs)
-        harness.play([pickUp, KeyEvent(key: .tab)] + downs + [KeyEvent(key: .enter)], view)
+        let app = TestApp(width: 40, height: 12, content: view)
+        for event in [pickUp, KeyEvent(key: .tab)] + downs + [KeyEvent(key: .enter)] { app.press(event) }
         return landed.index
     }
 

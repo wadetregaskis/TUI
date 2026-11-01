@@ -14,6 +14,7 @@ import TUIApp
 @testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUISearch
+import TUITesting
 @testable import TUITestSupport
 
 /// What the page holds, by reference so the bindings a frame built reach it.
@@ -68,94 +69,79 @@ private struct PresentedPage: View {
 @MainActor
 @Suite("Search focus and presentation", .rendersEnglishUI)
 struct SearchPresentationTests {
-    private let tab = KeyEvent(key: .tab)
-
     @Test("searchFocused reads the field's focus and moves it")
     func searchFocusedBool() {
-        let harness = InputChainHarness()
         let probe = Probe()
-        harness.frame(FocusedPage(probe: probe))
-        harness.frame(FocusedPage(probe: probe))
+        let app = TestApp(width: 40, height: 12) { FocusedPage(probe: probe) }
+        app.advance(by: .zero)
         #expect(probe.focus?.wrappedValue == true, "the field, first on the page, holds the focus")
 
-        harness.press(tab)
-        harness.frame(FocusedPage(probe: probe))
+        app.press(.tab)
         #expect(probe.focus?.wrappedValue == false, "Tab took the focus to the result")
 
         probe.focus?.wrappedValue = true
-        harness.frame(FocusedPage(probe: probe))
+        app.advance(by: .zero)
         #expect(probe.focus?.wrappedValue == true, "setting it moved the focus back to the field")
-        harness.press(KeyEvent(character: "!"))
+        app.type("!")
         #expect(probe.query == "hello!", "and the field takes the typing")
     }
 
     /// The owner, 2026-10-28: Ctrl-F in a searchable context focuses the field.
     @Test("Find, ⌃F under the default command key, puts the keys in the search field from the content")
     func findFocusesTheField() {
-        let harness = InputChainHarness()
         let probe = Probe()
-        harness.frame(FocusedPage(probe: probe))
-        harness.frame(FocusedPage(probe: probe))
-        harness.press(tab)
-        harness.frame(FocusedPage(probe: probe))
+        let app = TestApp(width: 40, height: 12) { FocusedPage(probe: probe) }
+        app.press(.tab)
         #expect(probe.focus?.wrappedValue == false, "sanity: the focus is on the result")
-        harness.press(KeyEvent(key: .character("f"), ctrl: true))
-        harness.frame(FocusedPage(probe: probe))
+        app.press(.character("f"), modifiers: .control)
         #expect(probe.focus?.wrappedValue == true, "Find moved the focus to the field")
-        harness.press(KeyEvent(character: "!"))
+        app.type("!")
         #expect(probe.query == "hello!", "and the field takes the typing")
         #expect(probe.pressed == 0)
     }
 
     @Test("searchFocused(_:equals:) gives the field its value in a shared focus state")
     func searchFocusedEquals() {
-        let harness = InputChainHarness()
         var last: Area?
-        let page = { ValuedPage { last = $0 } }
-        harness.frame(page())
-        harness.frame(page())
+        let app = TestApp(width: 40, height: 12) { ValuedPage { last = $0 } }
+        app.advance(by: .zero)
         #expect(last == .search)
-        harness.press(tab)
-        harness.frame(page())
-        harness.frame(page())
+        app.press(.tab)
         #expect(last == .list)
     }
 
     @Test("isPresented follows the field's focus, and presenting from the app focuses the field")
     func isPresentedBothWays() async {
-        let harness = InputChainHarness()
         let probe = Probe()
-        harness.frame(PresentedPage(probe: probe))
-        harness.frame(PresentedPage(probe: probe))
+        let app = TestApp(width: 40, height: 12) { PresentedPage(probe: probe) }
+        app.advance(by: .zero)
         #expect(probe.presented, "the field took the opening focus, so search is presented")
 
-        harness.press(tab)
-        harness.frame(PresentedPage(probe: probe))
+        app.press(.tab)
         #expect(!probe.presented, "the focus left the field")
         #expect(probe.query == "hello", "leaving the field is not cancelling the search")
 
         probe.presented = true
-        harness.frame(PresentedPage(probe: probe))
+        app.advance(by: .zero)
         await Task.yield()
-        harness.frame(PresentedPage(probe: probe))
-        harness.press(KeyEvent(character: "!"))
+        app.advance(by: .zero)
+        app.type("!")
         #expect(probe.query == "hello!", "presenting moved the focus to the field")
     }
 
     @Test("Ending the search from the app empties the query and moves the focus on")
     func endingFromTheApp() async {
-        let harness = InputChainHarness()
         let probe = Probe()
-        harness.frame(PresentedPage(probe: probe))
-        harness.frame(PresentedPage(probe: probe))
+        let app = TestApp(width: 40, height: 12) { PresentedPage(probe: probe) }
+        app.advance(by: .zero)
         #expect(probe.presented)
 
         probe.presented = false
-        harness.frame(PresentedPage(probe: probe))
+        app.advance(by: .zero)
         await Task.yield()
-        harness.frame(PresentedPage(probe: probe))
+        app.advance(by: .zero)
         #expect(probe.query.isEmpty, "the search was dismissed")
-        harness.press(KeyEvent(key: .enter))
+        app.press(.enter)
         #expect(probe.pressed == 1, "and the focus moved on to the content")
     }
 
@@ -165,9 +151,8 @@ struct SearchPresentationTests {
     /// drawn.
     @Test("Presenting search hides nothing around the field")
     func presentingHidesNothing() {
-        let harness = InputChainHarness(width: 50, height: 12)
         let probe = Probe()
-        let page = {
+        let app = TestApp(width: 50, height: 12) {
             VStack {
                 Text("Notes")
                 VStack { Text("first result") }
@@ -176,10 +161,8 @@ struct SearchPresentationTests {
             }
             .searchPresentationToolbarBehavior(.avoidHidingContent)
         }
-        harness.frame(page())
-        let lines = harness.frame(page()).lines.map(\.stripped)
+        #expect(app.screen.contains("Notes"), "what is above the field is still drawn")
+        #expect(app.screen.contains("first result"), "and so is the content")
         #expect(probe.presented, "search is presented: the field holds the focus")
-        #expect(lines.contains { $0.contains("Notes") }, "what is above the field is still drawn")
-        #expect(lines.contains { $0.contains("first result") }, "and so is the content")
     }
 }

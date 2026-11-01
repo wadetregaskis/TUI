@@ -18,6 +18,7 @@ import TUIApp
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 import TUITextInput
 
@@ -39,15 +40,15 @@ struct FocusCommandTests {
     @Test("An arrow is a move command in its direction, whatever modifier is held")
     func moveCommand() {
         let log = CommandLog()
-        let harness = InputChainHarness()
         let events = [
             KeyEvent(key: .up), KeyEvent(key: .down, shift: true), KeyEvent(key: .left, alt: true),
             KeyEvent(key: .right, ctrl: true), KeyEvent(key: .home), KeyEvent(character: "x"),
         ]
-        let consumed = harness.play(events) {
+        let app = TestApp(width: 40, height: 12) {
             Text("leaf").focusable()
                 .onMoveCommand { direction in log.entries.append("\(direction)") }
         }
+        let consumed = (events).map { app.press($0) }
         #expect(log.entries == ["up", "down", "left", "right"])
         #expect(consumed == [true, true, true, true, false, false])
     }
@@ -55,51 +56,50 @@ struct FocusCommandTests {
     @Test("Escape is the exit command alone or with Shift, and not with Control or Option")
     func exitCommand() {
         let log = CommandLog()
-        let harness = InputChainHarness()
         let events = [
             KeyEvent(key: .escape), KeyEvent(key: .escape, shift: true),
             KeyEvent(key: .escape, ctrl: true), KeyEvent(key: .escape, alt: true),
         ]
-        harness.play(events) {
+        let app = TestApp(width: 40, height: 12) {
             Text("leaf").focusable()
                 .onExitCommand { log.entries.append("exit") }
         }
+        for event in events { app.press(event) }
         #expect(log.entries == ["exit", "exit"])
     }
 
     @Test("Backspace and forward Delete are the delete command, alone or with Shift")
     func deleteCommand() {
         let log = CommandLog()
-        let harness = InputChainHarness()
         let events = [
             KeyEvent(key: .backspace), KeyEvent(key: .delete), KeyEvent(key: .backspace, shift: true),
             KeyEvent(key: .backspace, alt: true), KeyEvent(key: .delete, ctrl: true),
         ]
-        harness.play(events) {
+        let app = TestApp(width: 40, height: 12) {
             Text("leaf").focusable()
                 .onDeleteCommand { log.entries.append("delete") }
         }
+        for event in events { app.press(event) }
         #expect(log.entries == ["delete", "delete", "delete"])
     }
 
     @Test("A command is heard only while the focus is on the view or inside it")
     func focusGated() {
         let log = CommandLog()
-        let harness = InputChainHarness()
-        harness.play([KeyEvent(key: .escape), KeyEvent(key: .tab), KeyEvent(key: .escape)]) {
+        let app = TestApp(width: 40, height: 12) {
             VStack {
                 Text("A").focusable().onExitCommand { log.entries.append("A") }
                 Text("B").focusable().onExitCommand { log.entries.append("B") }
             }
         }
+        for event in [KeyEvent(key: .escape), KeyEvent(key: .tab), KeyEvent(key: .escape)] { app.press(event) }
         #expect(log.entries == ["A", "B"])
     }
 
     @Test("The innermost handler runs and consumes the command, a nil one included")
     func innermostWins() {
         let log = CommandLog()
-        let harness = InputChainHarness()
-        harness.play([KeyEvent(key: .escape), KeyEvent(key: .up)]) {
+        let app = TestApp(width: 40, height: 12) {
             VStack {
                 Text("leaf").focusable()
                     .onExitCommand { log.entries.append("inner exit") }
@@ -108,14 +108,14 @@ struct FocusCommandTests {
             .onExitCommand { log.entries.append("outer exit") }
             .onMoveCommand { _ in log.entries.append("outer move") }
         }
+        for event in [KeyEvent(key: .escape), KeyEvent(key: .up)] { app.press(event) }
         #expect(log.entries == ["inner exit"], "a nil move command still keeps the arrow from the container")
     }
 
     @Test("An exit command takes Escape from the cancel button, after onKeyPress has had it")
     func betweenKeyPressAndShortcuts() {
         let log = CommandLog()
-        let harness = InputChainHarness()
-        harness.play([KeyEvent(key: .escape)]) {
+        let app = TestApp(width: 40, height: 12) {
             VStack {
                 Text("leaf").focusable()
                     .onExitCommand { log.entries.append("exit") }
@@ -124,6 +124,7 @@ struct FocusCommandTests {
             }
             .onKeyPress(.escape) { log.entries.append("onKeyPress"); return .ignored }
         }
+        app.press(KeyEvent(key: .escape))
         #expect(log.entries == ["onKeyPress", "exit"])
     }
 
@@ -133,8 +134,7 @@ struct FocusCommandTests {
     @Test("An exit command takes Escape from the page's own key handler while the focus is inside it")
     func beforeThePagesHandler() {
         let log = CommandLog()
-        let harness = InputChainHarness()
-        harness.play([KeyEvent(key: .escape), KeyEvent(key: .tab), KeyEvent(key: .escape)]) {
+        let app = TestApp(width: 40, height: 12) {
             VStack {
                 Text("board").focusable()
                     .onExitCommand { log.entries.append("exit") }
@@ -146,6 +146,7 @@ struct FocusCommandTests {
                 return true
             }
         }
+        for event in [KeyEvent(key: .escape), KeyEvent(key: .tab), KeyEvent(key: .escape)] { app.press(event) }
         #expect(log.entries == ["exit", "page"])
     }
 
@@ -153,10 +154,9 @@ struct FocusCommandTests {
     func afterTheFocusedControl() {
         let log = CommandLog()
         let text = BoundText("ab")
-        let harness = InputChainHarness()
         // The field deletes with Backspace and moves its caret with Left; it
         // lets Escape go.
-        harness.play([KeyEvent(key: .backspace), KeyEvent(key: .left), KeyEvent(key: .escape)]) {
+        let app = TestApp(width: 40, height: 12) {
             VStack {
                 TextField("Name", text: Binding(get: { text.value }, set: { text.value = $0 }))
             }
@@ -164,6 +164,7 @@ struct FocusCommandTests {
             .onMoveCommand { direction in log.entries.append("move \(direction)") }
             .onExitCommand { log.entries.append("exit") }
         }
+        for event in [KeyEvent(key: .backspace), KeyEvent(key: .left), KeyEvent(key: .escape)] { app.press(event) }
         #expect(text.value == "a")
         #expect(log.entries == ["exit"])
     }

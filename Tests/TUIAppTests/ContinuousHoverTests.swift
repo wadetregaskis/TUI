@@ -15,6 +15,7 @@ import TUIApp
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// What the hover actions under test saw, in order.
@@ -41,24 +42,23 @@ struct ContinuousHoverTests {
     @Test("The pointer coming in and moving is active, at its cell in the view; leaving is ended")
     func localPhases() {
         let log = PhaseLog()
-        let harness = InputChainHarness()
-        harness.hover([(x: 1, y: 0), (x: 2, y: 1), (x: 4, y: 1), (x: 0, y: 1)]) { page(.local, log) }
+        let app = TestApp(width: 40, height: 12) { page(.local, log) }
+        for (x, y) in [(x: 1, y: 0), (x: 2, y: 1), (x: 4, y: 1), (x: 0, y: 1)] { app.hover(at: CellPoint(x: x, y: y)) }
         #expect(log.phases == [.active(CellPoint(x: 0, y: 0)), .active(CellPoint(x: 2, y: 0)), .ended])
     }
 
     @Test("Under .global the location is the terminal's cell")
     func globalPhases() {
         let log = PhaseLog()
-        let harness = InputChainHarness()
-        harness.hover([(x: 3, y: 1), (x: 4, y: 1), (x: 9, y: 5)]) { page(.global, log) }
+        let app = TestApp(width: 40, height: 12) { page(.global, log) }
+        for (x, y) in [(x: 3, y: 1), (x: 4, y: 1), (x: 9, y: 5)] { app.hover(at: CellPoint(x: x, y: y)) }
         #expect(log.phases == [.active(CellPoint(x: 3, y: 1)), .active(CellPoint(x: 4, y: 1)), .ended])
     }
 
     @Test("The protocol-typed .global answers as the enum case does")
     func protocolGlobal() {
         let log = PhaseLog()
-        let harness = InputChainHarness()
-        harness.hover([(x: 3, y: 1), (x: 9, y: 5)]) {
+        let app = TestApp(width: 40, height: 12) {
             VStack(alignment: .leading, spacing: 0) {
                 Text("0123")
                 HStack(spacing: 0) {
@@ -67,14 +67,15 @@ struct ContinuousHoverTests {
                 }
             }
         }
+        for (x, y) in [(x: 3, y: 1), (x: 9, y: 5)] { app.hover(at: CellPoint(x: x, y: y)) }
         #expect(log.phases == [.active(CellPoint(x: 3, y: 1)), .ended])
     }
 
     @Test("A view inside .disabled(true) hears nothing")
     func disabledHearsNothing() {
         let log = PhaseLog()
-        let harness = InputChainHarness()
-        harness.hover([(x: 3, y: 1), (x: 9, y: 5)]) { page(.local, log).disabled(true) }
+        let app = TestApp(width: 40, height: 12) { page(.local, log).disabled(true) }
+        for (x, y) in [(x: 3, y: 1), (x: 9, y: 5)] { app.hover(at: CellPoint(x: x, y: y)) }
         #expect(log.phases.isEmpty)
     }
 }

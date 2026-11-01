@@ -15,6 +15,7 @@ import TUIApp
 @testable import TUICore
 @testable import TUIFoundation
 import TUIPickers
+import TUITesting
 @testable import TUITestSupport
 
 private struct Shape: Hashable, Identifiable {
@@ -70,9 +71,9 @@ struct PickerSourcesTests {
     @Test("Picking an option sets every source to it")
     func picking() {
         let store = Shapes([1, 2, 1])
-        let harness = InputChainHarness(width: 40, height: 6)
         // Open the menu, move to the second option, choose it.
-        harness.play([KeyEvent(key: .enter), KeyEvent(key: .down), KeyEvent(key: .enter)]) { picker(store) }
+        let app = TestApp(width: 40, height: 6) { picker(store) }
+        for event in [KeyEvent(key: .enter), KeyEvent(key: .down), KeyEvent(key: .enter)] { app.press(event) }
         let sizes = Set(store.shapes.map(\.size))
         #expect(sizes.count == 1, "\(store.shapes)")
     }

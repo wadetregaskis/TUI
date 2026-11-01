@@ -12,6 +12,7 @@ import Testing
 import TUIApp
 @testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// Counts presses.
@@ -38,8 +39,8 @@ struct ButtonRoleLabelTests {
     @Test("A role-only button acts like any other")
     func acts() {
         let presses = Presses()
-        let harness = InputChainHarness()
-        harness.play([KeyEvent(key: .enter)]) { Button(role: .confirm) { presses.count += 1 } }
+        let app = TestApp(width: 40, height: 12) { Button(role: .confirm) { presses.count += 1 } }
+        app.press(KeyEvent(key: .enter))
         #expect(presses.count == 1)
     }
 }

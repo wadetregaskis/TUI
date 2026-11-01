@@ -16,6 +16,7 @@ import TUIApp
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -30,15 +31,18 @@ struct TapGestureTests {
         InputChainHarness()
     }
 
+    /// A button event at a cell, with the frames it causes.
+    private func send(_ phase: MousePhase, _ x: Int, _ y: Int, to app: TestApp) {
+        app.mouse(MouseEvent(button: .left, phase: phase, x: x, y: y))
+    }
+
     @Test("A click on the view taps once, on the release")
     func click() {
         let log = GestureRecord()
-        let harness = makeHarness()
-        let view = { box(TapGesture().onEnded { log("tap") }) }
-        harness.frame(view())
-        harness.pointer([(.pressed, 2, 1)], view)
+        let app = TestApp(width: 40, height: 12) { box(TapGesture().onEnded { log("tap") }) }
+        send(.pressed, 2, 1, to: app)
         #expect(log.entries.isEmpty, "nothing on the press")
-        harness.pointer([(.released, 2, 1)], view)
+        send(.released, 2, 1, to: app)
         #expect(log.entries == ["tap"])
     }
 
@@ -46,53 +50,41 @@ struct TapGestureTests {
     func releaseOffOrStrayed() {
         for (label, press, release) in [("off the view", (8, 1), (11, 1)), ("past the slop", (2, 1), (8, 1))] {
             let log = GestureRecord()
-            let harness = makeHarness()
-            let view = { box(TapGesture().onEnded { log("tap") }) }
-            harness.frame(view())
-            harness.pointer(
-                [(.pressed, press.0, press.1), (.dragged, release.0, release.1), (.released, release.0, release.1)], view)
+            let app = TestApp(width: 40, height: 12) { box(TapGesture().onEnded { log("tap") }) }
+            app.drag(from: CellPoint(x: press.0, y: press.1), to: CellPoint(x: release.0, y: release.1))
             #expect(log.entries.isEmpty, "\(label)")
         }
         let log = GestureRecord()
-        let harness = makeHarness()
-        let view = { box(TapGesture().onEnded { log("tap") }) }
-        harness.frame(view())
-        harness.pointer([(.pressed, 2, 1), (.dragged, 6, 2), (.released, 6, 2)], view)
+        let app = TestApp(width: 40, height: 12) { box(TapGesture().onEnded { log("tap") }) }
+        app.drag(from: CellPoint(x: 2, y: 1), to: CellPoint(x: 6, y: 2))
         #expect(log.entries == ["tap"], "five columns and one row is within the slop")
     }
 
     @Test("A press held past 0.75 s is no tap")
     func heldTooLong() {
         let log = GestureRecord()
-        let harness = makeHarness()
-        let view = { box(TapGesture().onEnded { log("tap") }) }
-        harness.frame(view())
-        harness.pointer([(.pressed, 2, 1)], view)
-        harness.now = 760 * gestureMillisecond
-        harness.frame(view())
-        harness.pointer([(.released, 2, 1)], view)
+        let app = TestApp(width: 40, height: 12) { box(TapGesture().onEnded { log("tap") }) }
+        send(.pressed, 2, 1, to: app)
+        app.advance(by: .milliseconds(760))
+        send(.released, 2, 1, to: app)
         #expect(log.entries.isEmpty)
     }
 
     @Test("count: 2 taps on the second of two quick clicks, not on a slow pair")
     func doubleTap() {
         let log = GestureRecord()
-        let harness = makeHarness()
-        let view = { box(TapGesture(count: 2).onEnded { log("double") }) }
-        harness.frame(view())
-        harness.click(2, 1, view)
+        let app = TestApp(width: 40, height: 12) { box(TapGesture(count: 2).onEnded { log("double") }) }
+        let cell = CellPoint(x: 2, y: 1)
+        app.click(at: cell)
         #expect(log.entries.isEmpty)
-        harness.now = 200 * gestureMillisecond
-        harness.frame(view())
-        harness.click(2, 1, view)
+        app.advance(by: .milliseconds(200))
+        app.click(at: cell)
         #expect(log.entries == ["double"])
 
-        harness.now = 2_000 * gestureMillisecond
-        harness.frame(view())
-        harness.click(2, 1, view)
-        harness.now = 2_400 * gestureMillisecond
-        harness.frame(view())
-        harness.click(2, 1, view)
+        app.advance(by: .milliseconds(1_800))
+        app.click(at: cell)
+        app.advance(by: .milliseconds(400))
+        app.click(at: cell)
         #expect(log.entries == ["double"], "0.4 s between them is too slow")
     }
 
@@ -133,8 +125,7 @@ struct TapGestureTests {
     func spatial() {
         for space in [CoordinateSpace.local, .global] {
             let log = GestureRecord()
-            let harness = makeHarness()
-            let view = {
+            let app = TestApp(width: 40, height: 12) {
                 VStack(spacing: 0) {
                     Text("header")
                     Text("").frame(width: 10, height: 3)
@@ -145,8 +136,7 @@ struct TapGestureTests {
                 }
                 .frame(width: 40, height: 12, alignment: .topLeading)
             }
-            harness.frame(view())
-            harness.pointer([(.pressed, 2, 2), (.dragged, 3, 2), (.released, 3, 2)], view)
+            app.drag(from: CellPoint(x: 2, y: 2), to: CellPoint(x: 3, y: 2))
             #expect(log.entries == [space == .local ? "3,1" : "3,2"], "\(space)")
         }
     }
@@ -154,10 +144,8 @@ struct TapGestureTests {
     @Test("A view inside .disabled(true) takes no tap")
     func disabled() {
         let log = GestureRecord()
-        let harness = makeHarness()
-        let view = { box(TapGesture().onEnded { log("tap") }).disabled(true) }
-        harness.frame(view())
-        harness.click(2, 1, view)
+        let app = TestApp(width: 40, height: 12) { box(TapGesture().onEnded { log("tap") }).disabled(true) }
+        app.click(at: CellPoint(x: 2, y: 1))
         #expect(log.entries.isEmpty)
     }
 }

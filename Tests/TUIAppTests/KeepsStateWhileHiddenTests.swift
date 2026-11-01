@@ -13,6 +13,7 @@ import TUICore
 
 @testable import TUIAppTestSupport
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 @MainActor
@@ -46,19 +47,13 @@ struct KeepsStateWhileHiddenTests {
     /// Counts twice on page 0, visits page 1, and comes back: what it shows then.
     private func roundTrip(keeps: Bool) -> String? {
         let box = Box()
-        let harness = InputChainHarness()
-        let view = Pages(box: box, keeps: keeps)
-        harness.frame(view)
-        harness.frame(view)
-        for _ in 0..<2 {
-            harness.press(KeyEvent(key: .enter))
-            harness.frame(view)
-        }
+        let app = TestApp(width: 40, height: 12) { Pages(box: box, keeps: keeps) }
+        app.press(.enter, times: 2)
         box.page = 1
-        harness.frame(view)
-        harness.frame(view)
+        app.advance(by: .zero)
         box.page = 0
-        return harness.frame(view).lines.map(\.stripped).first { $0.contains("count") }
+        app.advance(by: .zero)
+        return app.screen.line(containing: "count")
     }
 
     @Test("A page left and come back to has its state, where it would have started afresh")
