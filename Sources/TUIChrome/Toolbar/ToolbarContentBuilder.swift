@@ -68,33 +68,21 @@ extension ToolbarContentBuilder {
     public static func buildBlock<C0: ToolbarContent, C1: ToolbarContent>(
         _ c0: C0, _ c1: C1
     ) -> some ToolbarContent {
-        _TupleToolbarContent { items in
-            items.step(0, c0)
-            items.step(1, c1)
-        }
+        _TupleToolbarContent(c0, c1)
     }
 
     /// Combines three pieces of toolbar content.
     public static func buildBlock<C0: ToolbarContent, C1: ToolbarContent, C2: ToolbarContent>(
         _ c0: C0, _ c1: C1, _ c2: C2
     ) -> some ToolbarContent {
-        _TupleToolbarContent { items in
-            items.step(0, c0)
-            items.step(1, c1)
-            items.step(2, c2)
-        }
+        _TupleToolbarContent(c0, c1, c2)
     }
 
     /// Combines four pieces of toolbar content.
     public static func buildBlock<C0: ToolbarContent, C1: ToolbarContent, C2: ToolbarContent, C3: ToolbarContent>(
         _ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3
     ) -> some ToolbarContent {
-        _TupleToolbarContent { items in
-            items.step(0, c0)
-            items.step(1, c1)
-            items.step(2, c2)
-            items.step(3, c3)
-        }
+        _TupleToolbarContent(c0, c1, c2, c3)
     }
 
     /// Combines five pieces of toolbar content.
@@ -103,13 +91,7 @@ extension ToolbarContentBuilder {
     >(
         _ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4
     ) -> some ToolbarContent {
-        _TupleToolbarContent { items in
-            items.step(0, c0)
-            items.step(1, c1)
-            items.step(2, c2)
-            items.step(3, c3)
-            items.step(4, c4)
-        }
+        _TupleToolbarContent(c0, c1, c2, c3, c4)
     }
 
     /// Combines six pieces of toolbar content.
@@ -119,14 +101,7 @@ extension ToolbarContentBuilder {
     >(
         _ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5
     ) -> some ToolbarContent {
-        _TupleToolbarContent { items in
-            items.step(0, c0)
-            items.step(1, c1)
-            items.step(2, c2)
-            items.step(3, c3)
-            items.step(4, c4)
-            items.step(5, c5)
-        }
+        _TupleToolbarContent(c0, c1, c2, c3, c4, c5)
     }
 
     /// Combines seven pieces of toolbar content.
@@ -136,15 +111,7 @@ extension ToolbarContentBuilder {
     >(
         _ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6
     ) -> some ToolbarContent {
-        _TupleToolbarContent { items in
-            items.step(0, c0)
-            items.step(1, c1)
-            items.step(2, c2)
-            items.step(3, c3)
-            items.step(4, c4)
-            items.step(5, c5)
-            items.step(6, c6)
-        }
+        _TupleToolbarContent(c0, c1, c2, c3, c4, c5, c6)
     }
 
     /// Combines eight pieces of toolbar content.
@@ -154,16 +121,7 @@ extension ToolbarContentBuilder {
     >(
         _ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6, _ c7: C7
     ) -> some ToolbarContent {
-        _TupleToolbarContent { items in
-            items.step(0, c0)
-            items.step(1, c1)
-            items.step(2, c2)
-            items.step(3, c3)
-            items.step(4, c4)
-            items.step(5, c5)
-            items.step(6, c6)
-            items.step(7, c7)
-        }
+        _TupleToolbarContent(c0, c1, c2, c3, c4, c5, c6, c7)
     }
 
     /// Combines nine pieces of toolbar content.
@@ -173,17 +131,7 @@ extension ToolbarContentBuilder {
     >(
         _ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6, _ c7: C7, _ c8: C8
     ) -> some ToolbarContent {
-        _TupleToolbarContent { items in
-            items.step(0, c0)
-            items.step(1, c1)
-            items.step(2, c2)
-            items.step(3, c3)
-            items.step(4, c4)
-            items.step(5, c5)
-            items.step(6, c6)
-            items.step(7, c7)
-            items.step(8, c8)
-        }
+        _TupleToolbarContent(c0, c1, c2, c3, c4, c5, c6, c7, c8)
     }
 
     /// Combines ten pieces of toolbar content.
@@ -193,18 +141,7 @@ extension ToolbarContentBuilder {
     >(
         _ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6, _ c7: C7, _ c8: C8, _ c9: C9
     ) -> some ToolbarContent {
-        _TupleToolbarContent { items in
-            items.step(0, c0)
-            items.step(1, c1)
-            items.step(2, c2)
-            items.step(3, c3)
-            items.step(4, c4)
-            items.step(5, c5)
-            items.step(6, c6)
-            items.step(7, c7)
-            items.step(8, c8)
-            items.step(9, c9)
-        }
+        _TupleToolbarContent(c0, c1, c2, c3, c4, c5, c6, c7, c8, c9)
     }
 }
 

@@ -286,31 +286,37 @@ extension Group: _ToolbarContentPrimitive where Content: ToolbarContent {
 
 /// Several pieces of toolbar content written one after another in a builder:
 /// they hand their items over in order.
-struct _TupleToolbarContent: ToolbarContent, _ToolbarContentPrimitive {
-    /// Appends every member's items, captured where their types were known.
-    let appendMembers: @MainActor (inout _ToolbarItemCollector) -> Void
+struct _TupleToolbarContent<each Member: ToolbarContent>: ToolbarContent, _ToolbarContentPrimitive {
+    /// The members, in order.
+    let members: (repeat each Member)
+
+    init(_ member: repeat each Member) {
+        members = (repeat each member)
+    }
 
     var body: Never { fatalError("_TupleToolbarContent hands its items over itself") }
 
     func appendToolbarItems(to items: inout _ToolbarItemCollector) {
-        appendMembers(&items)
+        var index = 0
+        for member in repeat each members {
+            items.step(index, member)
+            index += 1
+        }
     }
 }
 
 /// Toolbar content whose type `if #available(…)` erased.
 struct _AnyToolbarContent: ToolbarContent, _ToolbarContentPrimitive {
-    /// The erased content's items.
-    let items: [_ToolbarItemSpec]
+    /// The erased content.
+    let content: any ToolbarContent
 
-    @MainActor
     init(_ content: any ToolbarContent) {
-        func open<C: ToolbarContent>(_ content: C) -> [_ToolbarItemSpec] { toolbarItems(of: content) }
-        items = open(content)
+        self.content = content
     }
 
     var body: Never { fatalError("_AnyToolbarContent hands its items over itself") }
 
     func appendToolbarItems(to items: inout _ToolbarItemCollector) {
-        items.append(contentsOf: self.items)
+        items.append(contentsOf: toolbarItems(of: content))
     }
 }

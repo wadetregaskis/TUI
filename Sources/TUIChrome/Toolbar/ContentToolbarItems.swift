@@ -48,7 +48,7 @@ extension View {
     public func contentToolbar<Content: ToolbarContent>(
         for placement: ContentToolbarPlacement, @ToolbarContentBuilder content: () -> Content
     ) -> some View {
-        contentToolbar(for: placement, drawing: AnyView(_ContentToolbarRows(items: toolbarItems(of: content()))))
+        contentToolbar(for: placement, drawing: AnyView(_ContentToolbarRows(content: content())))
     }
 }
 
@@ -57,11 +57,11 @@ extension View {
 /// A content toolbar's items as the sidebar draws them: the top bar's
 /// placements in a row, the bottom bar's in a row under it.
 struct _ContentToolbarRows: View {
-    /// The items the toolbar content declared, in order.
-    let items: [_ToolbarItemSpec]
+    /// The toolbar content, whose items these are.
+    let content: any ToolbarContent
 
     var body: some View {
-        let shown = items.filter { !$0.customization.isHiddenByApp && !$0.isTitleMenu && $0.defaultKind == nil }
+        let shown = toolbarItems(of: content).filter { !$0.customization.isHiddenByApp && !$0.isTitleMenu && $0.defaultKind == nil }
         let top = shown.filter { $0.placement.bar == .top }
         let bottom = shown.filter { $0.placement.bar == .bottom }
         VStack(alignment: .leading, spacing: 0) {
