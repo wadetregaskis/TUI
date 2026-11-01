@@ -310,10 +310,18 @@ extension MouseEventDispatcher {
     }
 
     /// Whether two regions are the same CONTROL across a reshape: their
-    /// focusIDs when both have one, their rectangles otherwise.
+    /// focusIDs when both have one, otherwise one handler id, which is interned
+    /// per view, or one rectangle.
+    ///
+    /// The id comes first because a view can change its own size under the
+    /// pointer: a label that widens as it's hovered is still what the pointer is
+    /// on, and by rectangle alone it read as another control, was exited, and was
+    /// remembered as left, so it never lit again. A view that moved off the
+    /// pointer doesn't get here: it isn't what the pointer resolves to now.
     private func isSameControl(_ a: HitTestRegion?, _ b: HitTestRegion) -> Bool {
         guard let a else { return false }
         if let fa = a.focusID, let fb = b.focusID { return fa == fb }
+        if a.handlerID == b.handlerID { return true }
         return a.offsetX == b.offsetX && a.offsetY == b.offsetY
             && a.width == b.width && a.height == b.height
     }

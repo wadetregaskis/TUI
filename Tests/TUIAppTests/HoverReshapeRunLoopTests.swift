@@ -245,9 +245,89 @@ private final class Driver<A: App> {
     }
 }
 
+/// An `.onHover` whose state changes its own view's width, its left edge staying
+/// where it is.
+private struct WidthChangingApp: App {
+    let log: HoverLog
+    let hoveredLabel: String
+    let restingLabel: String
+
+    init() {
+        log = HoverLog()
+        hoveredLabel = ""
+        restingLabel = ""
+    }
+
+    init(log: HoverLog, hoveredLabel: String, restingLabel: String) {
+        self.log = log
+        self.hoveredLabel = hoveredLabel
+        self.restingLabel = restingLabel
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            WidthChangingPage(log: log, hoveredLabel: hoveredLabel, restingLabel: restingLabel)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .mouseSupport(.full)
+    }
+}
+
+private struct WidthChangingPage: View {
+    let log: HoverLog
+    let hoveredLabel: String
+    let restingLabel: String
+    @State private var isHovered = false
+
+    var body: some View {
+        Text(verbatim: isHovered ? hoveredLabel : restingLabel)
+            .onHover { hovering in
+                log.heard.append(hovering)
+                isHovered = hovering
+            }
+    }
+}
+
 @MainActor
 @Suite("Hover across a reshape, through the run loop")
 struct HoverReshapeRunLoopTests {
+    /// The hover used to be compared by rectangle where a region has no focus id,
+    /// so a view that grew or shrank under the pointer read as another control:
+    /// exited, and remembered as left, so it never lit again. SwiftUI keeps it
+    /// hovered: the pointer has not left it.
+    @Test("A view that changes its own width under the pointer stays hovered",
+          arguments: [("short", "a much wider label"), ("a much wider label", "short")])
+    func widthChangeKeepsTheHover(restingLabel: String, hoveredLabel: String) throws {
+        let log = HoverLog()
+        let driver = Driver(WidthChangingApp(log: log, hoveredLabel: hoveredLabel, restingLabel: restingLabel))
+        let start = try #require(driver.position(of: restingLabel), "precondition: drawn")
+        // On its first column, which both labels cover.
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: start.x, y: start.y))
+        for _ in 0..<12 { driver.step() }
+        #expect(log.heard == [true], "it was un-hovered: \(log.heard)")
+        #expect(driver.shows(hoveredLabel))
+        for character in "ab" {
+            driver.app.send(KeyEvent(character: character))
+            for _ in 0..<4 { driver.step() }
+        }
+        #expect(log.heard == [true], "a key changed it: \(log.heard)")
+    }
+
+    /// The pointer really has left a view that shrank from under it, and that
+    /// stays settled rather than flickering as the view grows back beneath it.
+    @Test("A view that shrinks out from under the pointer is exited once and settles")
+    func shrinkingOffThePointerSettles() throws {
+        let log = HoverLog()
+        let wide = "a much wider label"
+        let driver = Driver(WidthChangingApp(log: log, hoveredLabel: "short", restingLabel: wide))
+        let start = try #require(driver.position(of: wide), "precondition: drawn")
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: start.x + wide.count - 1, y: start.y))
+        for _ in 0..<12 { driver.step() }
+        #expect(log.heard == [true, false], "it flickers: \(log.heard)")
+        for _ in 0..<12 { driver.step() }
+        #expect(log.heard == [true, false], "it went on after it settled: \(log.heard)")
+    }
+
     /// Found by the BUGS13 lane's review: once a lane resting on nothing
     /// entered what a reshape put under the pointer, this page entered,
     /// moved its row away and exited, moved it back and entered again, on
