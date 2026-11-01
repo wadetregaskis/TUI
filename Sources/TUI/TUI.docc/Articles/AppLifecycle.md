@@ -1,55 +1,13 @@
-# App Lifecycle
+# Inside the App Lifecycle
 
-Understand how a TUI application starts, runs, and shuts down.
+How TUI starts an app, runs its loop, handles signals and keys, and shuts it down.
 
 ## Overview
 
-A TUI application starts from a type conforming to ``App``, runs until something quits it, and hands the terminal back on the way out. The framework looks after the terminal, its signals and the drawing, so you can stick to your views.
+This page describes what the framework does for you. You don't need it to write an app: <doc:ScenesAndQuitting> has
+what you do need.
 
-## Entry Point
-
-Every TUI application starts with a type conforming to ``App``, annotated with `@main`:
-
-```swift
-@main
-struct MyApp: App {
-    var body: some Scene {
-        WindowGroup {
-            Text("Hello, TUI!")
-        }
-    }
-}
-```
-
-The `@main` attribute tells Swift to call the static `main()` method the ``App`` protocol provides, which sets up the terminal and runs your app until it quits.
-
-## Quitting
-
-People quit with `q`, or with ⌃\\, which works even if the app has hung; <doc:KeyboardShortcuts#Default-Bindings> has the details. ⌃C doesn't quit by default.
-
-To quit from your own code, call the ``DismissAction`` at
-``EnvironmentValues/dismiss``, as you would in SwiftUI:
-
-```swift
-struct ContentView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        Button("Quit") { dismiss() }
-    }
-}
-```
-
-The terminal is restored to its prior state and `App.main()` returns normally,
-as it does for the built-in `q` key. This is the recommended way to exit.
-Calling `exit(0)` skips part of the teardown: the terminal is still handed
-back, but a setting stored a moment before may not reach disk.
-
-## How It Works
-
-The rest of this page describes what the framework does for you. You don't need it to write an app.
-
-### Starting Up
+## Starting Up
 
 `App.main()` makes an instance of your app with its parameterless `init()`, creates an internal `AppRunner` that owns all the subsystems, and calls `run()` to enter the main loop:
 

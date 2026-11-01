@@ -7,7 +7,7 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 ### Essentials
 
 - <doc:BuildingYourFirstApp>
-- <doc:AppLifecycle>
+- <doc:ScenesAndQuitting>
 - <doc:StatusBarGuide>
 - <doc:TerminalSupport>
 - <doc:ShippingAnApp>

@@ -7,6 +7,7 @@ How TUI draws, and the lower-level types for custom rendering and for talking to
 ### Essentials
 
 - <doc:Architecture>
+- <doc:AppLifecycle>
 - <doc:RenderCycle>
 - <doc:ModuleIndex>
 
