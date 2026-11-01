@@ -126,8 +126,13 @@ nonisolated public struct Button: View {
     /// (`ControlLayoutPaddingTests`).
     private(set) var localizedTitle: LocalizedTextSource?
 
-    /// The action to perform when pressed.
-    package let action: () -> Void
+    /// The action to perform when pressed: ``action``.
+    private let storedAction: () -> Void
+
+    /// The action to perform when pressed. Read on the main actor, where a
+    /// button is pressed: what makes keeping a `@MainActor` closure as a plain
+    /// one sound (``mainActorAction(_:)``).
+    @MainActor package var action: () -> Void { storedAction }
 
     /// The button's semantic role.
     ///
@@ -168,9 +173,9 @@ nonisolated public struct Button: View {
     ///   - action: The action to perform when pressed.
     public init(
         _ titleKey: LocalizedStringKey,
-        action: @escaping () -> Void
+        action: @escaping @MainActor () -> Void
     ) {
-        self.init(titleKey, role: nil, action: action)
+        self.init(storedAction: mainActorAction(action), titleKey: titleKey, role: nil)
     }
 
     /// Creates a button with a title and action, displayed as written.
@@ -185,15 +190,9 @@ nonisolated public struct Button: View {
     @_disfavoredOverload
     public init<S: StringProtocol>(
         _ title: S,
-        action: @escaping () -> Void
+        action: @escaping @MainActor () -> Void
     ) {
-        self.label = String(title)
-        self.labelView = nil
-        self.action = action
-        self.role = nil
-        // Auto-generated focusID from view identity (collision-free)
-        self.focusID = nil
-        self.isDisabled = false
+        self.init(storedAction: mainActorAction(action), title: title, role: nil)
     }
 
     /// Creates a button with an optional role for semantic meaning.
@@ -211,14 +210,21 @@ nonisolated public struct Button: View {
     public init(
         _ titleKey: LocalizedStringKey,
         role: ButtonRole?,
-        action: @escaping () -> Void
+        action: @escaping @MainActor () -> Void
     ) {
+        self.init(storedAction: mainActorAction(action), titleKey: titleKey, role: role)
+    }
+
+    /// A key's title and an action kept as it is. The action comes first so
+    /// that a trailing closure can never bind to it, as it would otherwise beat
+    /// the public initializers for a caller in this module.
+    init(storedAction: @escaping () -> Void, titleKey: LocalizedStringKey, role: ButtonRole?) {
         // A key whose Markdown styles it is drawn as its `Text`, as SwiftUI's
         // is; the plain words stay the title.
         let title = titleKey.resolvedTitle
         self.label = title.plain
         self.labelView = title.styled.map { AnyView($0) }
-        self.action = action
+        self.storedAction = storedAction
         self.role = role
         self.focusID = nil
         self.isDisabled = false
@@ -242,11 +248,16 @@ nonisolated public struct Button: View {
     public init<S: StringProtocol>(
         _ title: S,
         role: ButtonRole?,
-        action: @escaping () -> Void
+        action: @escaping @MainActor () -> Void
     ) {
+        self.init(storedAction: mainActorAction(action), title: title, role: role)
+    }
+
+    /// A title displayed as written and an action kept as it is.
+    init<S: StringProtocol>(storedAction: @escaping () -> Void, title: S, role: ButtonRole?) {
         self.label = String(title)
         self.labelView = nil
-        self.action = action
+        self.storedAction = storedAction
         self.role = role
         // Auto-generated focusID from view identity (collision-free)
         self.focusID = nil
@@ -263,8 +274,13 @@ nonisolated public struct Button: View {
     /// - Parameters:
     ///   - role: The button's role.
     ///   - action: The action to perform when pressed.
-    @MainActor public init(role: ButtonRole, action: @escaping @MainActor () -> Void) {
-        self.init(role.defaultTitle, role: role, action: action)
+    public init(role: ButtonRole, action: @escaping @MainActor () -> Void) {
+        self.init(storedAction: mainActorAction(action), role: role)
+    }
+
+    /// A role's default title and an action kept as it is.
+    init(storedAction: @escaping () -> Void, role: ButtonRole) {
+        self.init(storedAction: storedAction, title: role.defaultTitle, role: role)
     }
 
     /// Creates a button with a custom `@ViewBuilder` label.
@@ -278,15 +294,10 @@ nonisolated public struct Button: View {
     ///   - action: The action to perform when pressed.
     ///   - label: A view builder producing the button's label.
     public init<Label: View>(
-        action: @escaping () -> Void,
+        action: @escaping @MainActor () -> Void,
         @ViewBuilder label: () -> Label
     ) {
-        self.label = ""
-        self.labelView = AnyView(label())
-        self.action = action
-        self.role = nil
-        self.focusID = nil
-        self.isDisabled = false
+        self.init(storedAction: mainActorAction(action), role: nil, label: label)
     }
 
     /// Creates a button based on a configuration for a style with a custom
@@ -310,7 +321,7 @@ nonisolated public struct Button: View {
     public init(_ configuration: PrimitiveButtonStyleConfiguration) {
         self.label = configuration.label.title
         self.labelView = configuration.label.view
-        self.action = configuration.action
+        self.storedAction = configuration.action
         self.role = configuration.role
         self.focusID = nil
         self.isDisabled = false
@@ -326,12 +337,17 @@ nonisolated public struct Button: View {
     ///   - label: A view builder producing the button's label.
     public init<Label: View>(
         role: ButtonRole?,
-        action: @escaping () -> Void,
+        action: @escaping @MainActor () -> Void,
         @ViewBuilder label: () -> Label
     ) {
+        self.init(storedAction: mainActorAction(action), role: role, label: label)
+    }
+
+    /// A composed label and an action kept as it is.
+    init<Label: View>(storedAction: @escaping () -> Void, role: ButtonRole?, @ViewBuilder label: () -> Label) {
         self.label = ""
         self.labelView = AnyView(label())
-        self.action = action
+        self.storedAction = storedAction
         self.role = role
         self.focusID = nil
         self.isDisabled = false
@@ -349,7 +365,7 @@ nonisolated public struct Button: View {
         self.label = button.label
         self.labelView = button.labelView
         self.localizedTitle = button.localizedTitle
-        self.action = action
+        self.storedAction = action
         self.role = button.role
         self.focusID = button.focusID
         self.isDisabled = button.isDisabled
@@ -381,7 +397,7 @@ extension Button {
         localized key: some FrameworkLocalizationKey, role: ButtonRole? = nil, action: @escaping () -> Void
     ) {
         let reading = LocalizationService.shared.frameworkReading(key.rawValue, in: nil)
-        self.init(reading.text, role: role, action: action)
+        self.init(storedAction: action, title: reading.text, role: role)
         localizedTitle = LocalizedTextSource.interned(
             LocalizedStringKey(key.rawValue), tableName: nil, bundle: nil, language: reading.language, locale: nil,
             isFramework: true)

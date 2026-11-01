@@ -48,7 +48,7 @@ extension Button {
     public init(
         _ titleKey: LocalizedStringKey,
         systemImage: String,
-        action: @escaping () -> Void
+        action: @escaping @MainActor () -> Void
     ) {
         self.init(titleKey, systemImage: systemImage, role: nil, action: action)
     }
@@ -63,7 +63,7 @@ extension Button {
     public init<S: StringProtocol>(
         _ title: S,
         systemImage: String,
-        action: @escaping () -> Void
+        action: @escaping @MainActor () -> Void
     ) {
         self.init(title, systemImage: systemImage, role: nil, action: action)
     }
@@ -79,7 +79,7 @@ extension Button {
         _ titleKey: LocalizedStringKey,
         systemImage: String,
         role: ButtonRole?,
-        action: @escaping () -> Void
+        action: @escaping @MainActor () -> Void
     ) {
         self.init(role: role, action: action) {
             Label(titleKey, systemImage: systemImage)
@@ -99,7 +99,7 @@ extension Button {
         _ title: S,
         systemImage: String,
         role: ButtonRole?,
-        action: @escaping () -> Void
+        action: @escaping @MainActor () -> Void
     ) {
         // The composed-label path, not the string one: `Button` is not generic
         // over its label (see the type's own note on why), so an icon can only

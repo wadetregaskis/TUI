@@ -76,7 +76,7 @@ struct SceneOwnCommands {
         let service = LocalizationService.shared
         switch group {
         case .appInfo:
-            return Self.items("about") { Button(environment.resolvedAboutPanel.aboutTitle, action: showAbout) }
+            return Self.items("about") { Button(environment.resolvedAboutPanel.aboutTitle) { showAbout() } }
         case .appSettings:
             return settingsItems(environment)
         case .windowArrangement, .windowList, .singleWindowList:
