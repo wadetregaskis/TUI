@@ -35,7 +35,7 @@ extension ExampleStrings {
             "page.state.notePlaceholder": "Type something…",
             "page.state.whereSection": "Where it's stored",
             "page.state.savedTo": "Saved to",
-            "page.state.relaunchHint": "Change a value, press q to quit, relaunch — the values carry over.",
+            "page.state.relaunchHint": "Change a value, press ⌃Q to quit, relaunch — the values carry over.",
 
             // Lifecycle page
             "page.lifecycle.countersSection": "Live hook counters",
@@ -162,7 +162,7 @@ extension ExampleStrings {
             "page.state.notePlaceholder": "Schreibe etwas…",
             "page.state.whereSection": "Wo es gespeichert wird",
             "page.state.savedTo": "Gespeichert in",
-            "page.state.relaunchHint": "Ändere einen Wert, drücke q zum Beenden, starte neu — die Werte bleiben erhalten.",
+            "page.state.relaunchHint": "Ändere einen Wert, drücke ⌃Q zum Beenden, starte neu — die Werte bleiben erhalten.",
 
             "page.lifecycle.countersSection": "Live-Hook-Zähler",
             "page.lifecycle.description": "Jeder Zähler steigt, wenn sein Lebenszyklus-Hook auslöst. Besuche die Seite erneut, um .onAppear steigen zu sehen; .task tickt kurz nach dem ersten Frame.",
@@ -283,7 +283,7 @@ extension ExampleStrings {
             "page.state.notePlaceholder": "Tapez quelque chose…",
             "page.state.whereSection": "Où c'est stocké",
             "page.state.savedTo": "Enregistré dans",
-            "page.state.relaunchHint": "Modifiez une valeur, appuyez sur q pour quitter, relancez — les valeurs sont conservées.",
+            "page.state.relaunchHint": "Modifiez une valeur, appuyez sur ⌃Q pour quitter, relancez — les valeurs sont conservées.",
 
             "page.lifecycle.countersSection": "Compteurs de hooks en direct",
             "page.lifecycle.description": "Chaque compteur augmente quand son hook de cycle de vie se déclenche. Revenez sur la page pour voir .onAppear grimper ; .task s'incrémente juste après la première image.",
@@ -404,7 +404,7 @@ extension ExampleStrings {
             "page.state.notePlaceholder": "Scrivi qualcosa…",
             "page.state.whereSection": "Dove è memorizzata",
             "page.state.savedTo": "Salvato in",
-            "page.state.relaunchHint": "Cambia un valore, premi q per uscire, riavvia — i valori vengono mantenuti.",
+            "page.state.relaunchHint": "Cambia un valore, premi ⌃Q per uscire, riavvia — i valori vengono mantenuti.",
 
             "page.lifecycle.countersSection": "Contatori dei hook in tempo reale",
             "page.lifecycle.description": "Ogni contatore aumenta quando il suo hook del ciclo di vita si attiva. Rivisita la pagina per vedere .onAppear salire; .task scatta poco dopo il primo frame.",
@@ -525,7 +525,7 @@ extension ExampleStrings {
             "page.state.notePlaceholder": "Escribe algo…",
             "page.state.whereSection": "Dónde se almacena",
             "page.state.savedTo": "Guardado en",
-            "page.state.relaunchHint": "Cambia un valor, pulsa q para salir, reinicia — los valores se conservan.",
+            "page.state.relaunchHint": "Cambia un valor, pulsa ⌃Q para salir, reinicia — los valores se conservan.",
 
             "page.lifecycle.countersSection": "Contadores de hooks en vivo",
             "page.lifecycle.description": "Cada contador sube cuando su hook de ciclo de vida se dispara. Vuelve a la página para ver subir .onAppear; .task se incrementa poco después del primer fotograma.",
@@ -646,7 +646,7 @@ extension ExampleStrings {
             "page.state.notePlaceholder": "输入一些内容…",
             "page.state.whereSection": "存储位置",
             "page.state.savedTo": "保存到",
-            "page.state.relaunchHint": "更改一个值，按 q 退出，重新启动——这些值会保留下来。",
+            "page.state.relaunchHint": "更改一个值，按 ⌃Q 退出，重新启动——这些值会保留下来。",
 
             "page.lifecycle.countersSection": "实时钩子计数器",
             "page.lifecycle.description": "每个计数器在其生命周期钩子触发时递增。重新进入该页面以观察 .onAppear 上升；.task 会在第一帧后不久递增。",
@@ -767,7 +767,7 @@ extension ExampleStrings {
             "page.state.notePlaceholder": "何か入力…",
             "page.state.whereSection": "保存場所",
             "page.state.savedTo": "保存先",
-            "page.state.relaunchHint": "値を変更し、q を押して終了し、再起動すると値が引き継がれます。",
+            "page.state.relaunchHint": "値を変更し、⌃Q を押して終了し、再起動すると値が引き継がれます。",
 
             "page.lifecycle.countersSection": "ライブフックカウンター",
             "page.lifecycle.description": "各カウンターは対応するライフサイクルフックが発火するたびに増えます。ページを再訪すると .onAppear が増えるのが見え、.task は最初のフレームの直後に増えます。",
