@@ -9,10 +9,12 @@
 
 import Observation
 import Testing
+@testable import TUIAppTestSupport
 
 import TUI
 @testable import TUIApp
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -48,14 +50,14 @@ struct OptionalLifecycleActionTests {
     }
 
     private func run(_ log: Log, appear: (() -> Void)?, disappear: (() -> Void)?) {
-        let app = HeadlessApp(Page(content: AnyView(Row(log: log, appear: appear, disappear: disappear))), width: 20, height: 4)
+        let app = TestApp(Page(content: AnyView(Row(log: log, appear: appear, disappear: disappear))), width: 20, height: 4)
         app.frame(atNanos: 16_666_667)
         app.frame(atNanos: 33_333_334)
-        #expect(app.screen.contains { $0.stripped.contains("row") })
+        #expect(app.screen.contains("row"))
         log.showsRow = false
         app.frame(atNanos: 50_000_001)
         app.frame(atNanos: 66_666_668)
-        #expect(!app.screen.contains { $0.stripped.contains("row") })
+        #expect(!app.screen.contains("row"))
     }
 
     @Test("A closure held in an optional runs")
@@ -73,15 +75,15 @@ struct OptionalLifecycleActionTests {
 
     @Test("The argument can be left out")
     func argumentLeftOut() {
-        let app = HeadlessApp(Page(content: AnyView(Text("row").onAppear().onDisappear())), width: 20, height: 4)
+        let app = TestApp(Page(content: AnyView(Text("row").onAppear().onDisappear())), width: 20, height: 4)
         app.frame(atNanos: 16_666_667)
-        #expect(app.screen.contains { $0.stripped.contains("row") })
+        #expect(app.screen.contains("row"))
     }
 
     @Test("A trailing closure still binds")
     func trailingClosure() {
         let log = Log()
-        let app = HeadlessApp(
+        let app = TestApp(
             Page(content: AnyView(Text("row").onAppear { log.appeared += 1 })), width: 20, height: 4)
         app.frame(atNanos: 16_666_667)
         app.frame(atNanos: 33_333_334)

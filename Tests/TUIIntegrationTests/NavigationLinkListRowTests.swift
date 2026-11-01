@@ -9,10 +9,12 @@
 
 import Observation
 import Testing
+@testable import TUIAppTestSupport
 
 import TUI
 @testable import TUIApp
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -47,12 +49,12 @@ struct NavigationLinkListRowTests {
 
     /// A headless app over `view`, with its frames 1/60 s apart.
     private final class Driver {
-        let app: HeadlessApp<Page>
+        let app: TestApp
         private var now: Int64 = 0
 
         @MainActor
         init(_ view: some View, width: Int = 60, height: Int = 12) {
-            app = HeadlessApp(Page(content: AnyView(view)), width: width, height: height)
+            app = TestApp(Page(content: AnyView(view)), width: width, height: height)
             frame()
             frame()
         }
@@ -75,13 +77,13 @@ struct NavigationLinkListRowTests {
         /// Presses and releases the left button on the first cell showing `text`.
         @MainActor
         func click(_ text: String) {
-            guard let y = app.screen.firstIndex(where: { $0.stripped.contains(text) }),
-                let range = app.screen[y].stripped.range(of: text)
+            guard let y = app.screen.styledLines.firstIndex(where: { $0.stripped.contains(text) }),
+                let range = app.screen.styledLines[y].stripped.range(of: text)
             else {
-                Issue.record("\(text) is not on screen: \(app.screen)")
+                Issue.record("\(text) is not on screen: \(app.screen.styledLines)")
                 return
             }
-            let x = app.screen[y].stripped.distance(from: app.screen[y].stripped.startIndex, to: range.lowerBound)
+            let x = app.screen.styledLines[y].stripped.distance(from: app.screen.styledLines[y].stripped.startIndex, to: range.lowerBound)
             app.send(MouseEvent(button: .left, phase: .pressed, x: x, y: y))
             app.send(MouseEvent(button: .left, phase: .released, x: x, y: y))
             frame()
@@ -90,7 +92,7 @@ struct NavigationLinkListRowTests {
 
         @MainActor
         func shows(_ text: String) -> Bool {
-            app.screen.contains { $0.stripped.contains(text) }
+            app.screen.contains(text)
         }
 
         /// Whether a filled button's caps are on screen.
@@ -119,12 +121,12 @@ struct NavigationLinkListRowTests {
     func sidebarReturn() {
         let model = Model()
         let driver = Driver(Sidebar(model: model), width: 100)
-        #expect(driver.shows("showing none"), "\(driver.app.screen)")
+        #expect(driver.shows("showing none"), "\(driver.app.screen.styledLines)")
         driver.press(.down)
         #expect(model.category == nil, "the cursor moved; nothing was chosen")
         driver.press(.enter)
         #expect(model.category == .vegetables)
-        #expect(driver.shows("showing vegetables"), "\(driver.app.screen)")
+        #expect(driver.shows("showing vegetables"), "\(driver.app.screen.styledLines)")
     }
 
     @Test("Space selects it too, and on the selected row clears it")
@@ -133,7 +135,7 @@ struct NavigationLinkListRowTests {
         let driver = Driver(Sidebar(model: model))
         driver.press(.space)
         #expect(model.category == .fruit)
-        #expect(driver.shows("showing fruit"), "\(driver.app.screen)")
+        #expect(driver.shows("showing fruit"), "\(driver.app.screen.styledLines)")
         driver.press(.space)
         #expect(model.category == nil)
     }
@@ -143,15 +145,15 @@ struct NavigationLinkListRowTests {
         let model = Model()
         let driver = Driver(Sidebar(model: model))
         driver.click("nuts")
-        #expect(model.category == .nuts, "\(driver.app.screen)")
-        #expect(driver.shows("showing nuts"), "\(driver.app.screen)")
+        #expect(model.category == .nuts, "\(driver.app.screen.styledLines)")
+        #expect(driver.shows("showing nuts"), "\(driver.app.screen.styledLines)")
     }
 
     @Test("A row the list can select draws its link as a label")
     func sidebarDrawsLabels() {
         let driver = Driver(Sidebar(model: Model()))
         #expect(driver.shows("vegetables"))
-        #expect(!driver.showsButtons, "\(driver.app.screen)")
+        #expect(!driver.showsButtons, "\(driver.app.screen.styledLines)")
     }
 
     @Test("A hugging list is as wide with links as with the same words tagged")
@@ -159,7 +161,7 @@ struct NavigationLinkListRowTests {
         let words = String(repeating: "w", count: 30)
         func column(of list: some View) -> Int? {
             let driver = Driver(HStack(spacing: 0) { list.fixedSize(horizontal: true, vertical: false); Text("next") }, width: 80)
-            let row = driver.app.screen.first { $0.stripped.contains("next") }?.stripped ?? ""
+            let row = driver.app.screen.styledLines.first { $0.stripped.contains("next") }?.stripped ?? ""
             return row.range(of: "next").map { row.distance(from: row.startIndex, to: $0.lowerBound) }
         }
         var selection: Int?
@@ -182,7 +184,7 @@ struct NavigationLinkListRowTests {
             })
         driver.press(.tab)
         driver.press(.enter)
-        #expect(model.number == 1, "Return went to the button after the list: \(driver.app.screen)")
+        #expect(model.number == 1, "Return went to the button after the list: \(driver.app.screen.styledLines)")
         #expect(model.category == nil)
     }
 
@@ -193,9 +195,9 @@ struct NavigationLinkListRowTests {
             Sidebar(model: model).environment(\.horizontalSizeClass, .compact), width: 40)
         driver.press(.enter)
         #expect(model.category == .fruit)
-        #expect(driver.shows("showing fruit"), "\(driver.app.screen)")
+        #expect(driver.shows("showing fruit"), "\(driver.app.screen.styledLines)")
         driver.press(.escape)
-        #expect(driver.shows("nuts"), "one Escape comes back: \(driver.app.screen)")
+        #expect(driver.shows("nuts"), "one Escape comes back: \(driver.app.screen.styledLines)")
     }
 
     // MARK: - The other forms
@@ -264,10 +266,10 @@ struct NavigationLinkListRowTests {
                 }
                 .navigationDestination(for: Int.self) { Text("count \($0)") }
             })
-        #expect(!driver.showsButtons, "\(driver.app.screen)")
+        #expect(!driver.showsButtons, "\(driver.app.screen.styledLines)")
         driver.press(.enter)
         #expect(model.category == .fruit)
-        #expect(driver.shows("count 5"), "the row's link is followed too: \(driver.app.screen)")
+        #expect(driver.shows("count 5"), "the row's link is followed too: \(driver.app.screen.styledLines)")
     }
 
     @Test("A row the list cannot select keeps its button, which still pushes")
@@ -280,10 +282,10 @@ struct NavigationLinkListRowTests {
                 }
                 .navigationDestination(for: String.self) { Text("pushed \($0)") }
             })
-        #expect(driver.showsButtons, "\(driver.app.screen)")
+        #expect(driver.showsButtons, "\(driver.app.screen.styledLines)")
         driver.press(.tab)
         driver.press(.enter)
-        #expect(driver.shows("pushed fruit"), "\(driver.app.screen)")
+        #expect(driver.shows("pushed fruit"), "\(driver.app.screen.styledLines)")
         #expect(model.category == nil)
     }
 
@@ -294,10 +296,10 @@ struct NavigationLinkListRowTests {
             List(Category.allCases, selection: model.categoryBinding) { category in
                 NavigationLink(category.rawValue, value: category == .vegetables ? nil : category)
             })
-        #expect(driver.shows("vegetables"), "\(driver.app.screen)")
+        #expect(driver.shows("vegetables"), "\(driver.app.screen.styledLines)")
         driver.press(.down)
         driver.press(.enter)
-        #expect(model.category == nil, "\(driver.app.screen)")
+        #expect(model.category == nil, "\(driver.app.screen.styledLines)")
         driver.press(.down)
         driver.press(.enter)
         #expect(model.category == .nuts)
@@ -325,7 +327,7 @@ struct NavigationLinkListRowTests {
         driver.press(.enter)
         #expect(model.category == .vegetables)
         #expect(model.path == [.vegetables])
-        #expect(driver.shows("pushed vegetables"), "\(driver.app.screen)")
+        #expect(driver.shows("pushed vegetables"), "\(driver.app.screen.styledLines)")
     }
 
     @Test("Clearing the selection follows nothing")
@@ -335,7 +337,7 @@ struct NavigationLinkListRowTests {
         let driver = Driver(SelectingStack(model: model))
         driver.press(.space)
         #expect(model.category == nil)
-        #expect(model.path.isEmpty, "\(driver.app.screen)")
+        #expect(model.path.isEmpty, "\(driver.app.screen.styledLines)")
     }
 
     @Test("A click on the row selects it and follows its link")
@@ -344,7 +346,7 @@ struct NavigationLinkListRowTests {
         let driver = Driver(SelectingStack(model: model))
         driver.click("nuts")
         #expect(model.category == .nuts)
-        #expect(model.path == [.nuts], "\(driver.app.screen)")
+        #expect(model.path == [.nuts], "\(driver.app.screen.styledLines)")
     }
 
     // MARK: - A list without a selection
@@ -363,11 +365,11 @@ struct NavigationLinkListRowTests {
     @Test("Return on the cursor row follows its link, with no Tab first", arguments: [Key.enter, Key.space])
     func plainListFollows(key: Key) {
         let driver = Driver(Plain())
-        #expect(driver.showsButtons, "the row keeps its button: \(driver.app.screen)")
+        #expect(driver.showsButtons, "the row keeps its button: \(driver.app.screen.styledLines)")
         driver.press(.down)
         #expect(!driver.shows("pushed"), "moving the cursor follows nothing")
         driver.press(key)
-        #expect(driver.shows("pushed vegetables"), "\(driver.app.screen)")
+        #expect(driver.shows("pushed vegetables"), "\(driver.app.screen.styledLines)")
     }
 
     @Test("The report survives the row being served from its memo")
@@ -375,7 +377,7 @@ struct NavigationLinkListRowTests {
         let driver = Driver(Plain())
         for _ in 0..<5 { driver.frame() }
         driver.press(.enter)
-        #expect(driver.shows("pushed fruit"), "\(driver.app.screen)")
+        #expect(driver.shows("pushed fruit"), "\(driver.app.screen.styledLines)")
     }
 
     @Test("Tab and Return reach the link's button as before")
@@ -383,7 +385,7 @@ struct NavigationLinkListRowTests {
         let driver = Driver(Plain())
         driver.press(.tab)
         driver.press(.enter)
-        #expect(driver.shows("pushed fruit"), "\(driver.app.screen)")
+        #expect(driver.shows("pushed fruit"), "\(driver.app.screen.styledLines)")
     }
 
     @Test("A link to a view is followed from the row")
@@ -395,7 +397,7 @@ struct NavigationLinkListRowTests {
                 }
             })
         driver.press(.enter)
-        #expect(driver.shows("screen fruit"), "\(driver.app.screen)")
+        #expect(driver.shows("screen fruit"), "\(driver.app.screen.styledLines)")
     }
 
     @Test("The row follows nothing where no stack is around it")
@@ -405,6 +407,6 @@ struct NavigationLinkListRowTests {
                 NavigationLink(category.rawValue, value: category)
             })
         driver.press(.enter)
-        #expect(driver.shows("fruit"), "\(driver.app.screen)")
+        #expect(driver.shows("fruit"), "\(driver.app.screen.styledLines)")
     }
 }

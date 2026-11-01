@@ -8,10 +8,12 @@
 //  License: MIT
 
 import Testing
+@testable import TUIAppTestSupport
 
 import TUI
 @testable import TUIApp
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 @testable import TUIView
 
@@ -37,7 +39,7 @@ struct ListSelectionTypeTests {
     func dataFormWithTag() {
         var selected: Int?
         let binding = Binding(get: { selected }, set: { selected = $0 })
-        let app = HeadlessApp(
+        let app = TestApp(
             Page(content: AnyView(
                 List(["a", "b"], id: \.self, selection: binding) { Text($0).tag($0.count + 41) }
             )), width: 20, height: 6)
@@ -51,7 +53,7 @@ struct ListSelectionTypeTests {
     func dataFormWithoutTag() {
         var selected: Node?
         let binding = Binding(get: { selected }, set: { selected = $0 })
-        let app = HeadlessApp(
+        let app = TestApp(
             Page(content: AnyView(
                 List([Node(id: "only")], selection: binding) { Text($0.id) }
             )), width: 20, height: 6)
@@ -59,14 +61,14 @@ struct ListSelectionTypeTests {
         app.send(KeyEvent(key: .enter))
         app.frame(atNanos: 33_333_334)
         #expect(selected == nil)
-        #expect(app.screen.contains { $0.stripped.contains("only") })
+        #expect(app.screen.contains("only"))
     }
 
     @Test("A range's rows take a selection of any type")
     func rangeForm() {
         var selected: String?
         let binding = Binding(get: { selected }, set: { selected = $0 })
-        let app = HeadlessApp(
+        let app = TestApp(
             Page(content: AnyView(
                 List(0..<2, selection: binding) { Text("row \($0)").tag("\($0)") }
             )), width: 20, height: 6)
