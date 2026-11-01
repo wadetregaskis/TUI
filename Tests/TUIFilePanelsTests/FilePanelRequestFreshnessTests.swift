@@ -23,6 +23,9 @@ import Observation
     import UniformTypeIdentifiers
 #endif
 
+// `fileExporter(item:contentTypes:)` takes a `Transferable`, which Linux has no
+// CoreTransferable for, and it's the one way to offer a panel several types.
+#if canImport(CoreTransferable)
 private let markdown = UTType("net.daringfireball.markdown") ?? .plainText
 
 /// When the page changes the panel's types, relative to opening it.
@@ -63,15 +66,6 @@ private struct Page: View {
     }
 }
 
-/// A page as an app, to be drawn through the run loop's own frames.
-private struct PageApp<Page: View>: App {
-    let page: @MainActor () -> Page
-    /// `App`'s requirement; these apps are built with ``init(_:)``.
-    init() { self.page = { fatalError("built with init(_:)") } }
-    init(_ page: @escaping @MainActor () -> Page) { self.page = page }
-    var body: some Scene { WindowGroup { page() } }
-}
-
 @Observable
 @MainActor
 private final class TypesModel {
@@ -89,6 +83,16 @@ private struct ModelPage: View {
                 isPresented: Binding(get: { model.showing }, set: { model.showing = $0 }),
                 item: note, contentTypes: model.types, onCompletion: { _ in })
     }
+}
+#endif
+
+/// A page as an app, to be drawn through the run loop's own frames.
+private struct PageApp<Page: View>: App {
+    let page: @MainActor () -> Page
+    /// `App`'s requirement; these apps are built with ``init(_:)``.
+    init() { self.page = { fatalError("built with init(_:)") } }
+    init(_ page: @escaping @MainActor () -> Page) { self.page = page }
+    var body: some Scene { WindowGroup { page() } }
 }
 
 /// The everyday shape: an action says what to show, and shows it.
@@ -138,6 +142,7 @@ private struct HoldingSheetPage: View {
 @MainActor
 @Suite("A file panel opens with what the app says now")
 struct FilePanelRequestFreshnessTests {
+    #if canImport(CoreTransferable)
     @Test("Its content types are those of the frame that opens it",
           arguments: [Change.inTheAction, .inAnEffect, .aFrameBefore])
     fileprivate func contentTypes(change: Change) {
@@ -150,6 +155,22 @@ struct FilePanelRequestFreshnessTests {
         let shown = app.screen.map(\.stripped).joined(separator: "\n")
         #expect(capless(shown).contains("Format: Markdown"), "\(change): \(shown)")
     }
+
+    /// Once it's up, what the app changes applies the next time it opens.
+    @Test("A change once the panel is up applies the next time it opens")
+    func aChangeOnceOpenWaits() {
+        let model = TypesModel()
+        let app = HeadlessApp(PageApp({ ModelPage(model: model) }), width: 100, height: 30)
+        app.frame(atNanos: 0)
+        model.showing = true
+        app.frame(atNanos: 16_666_667)
+        app.frame(atNanos: 33_333_334)
+        model.types = [markdown, .plainText]
+        app.frame(atNanos: 50_000_001)
+        let shown = app.screen.map(\.stripped).joined(separator: "\n")
+        #expect(capless(shown).contains("Format: Text"), "it changed while open: \(shown)")
+    }
+    #endif
 
     /// Nothing here is a file panel's: a sheet's content is built from this
     /// frame's values wherever the closure is held.
@@ -171,20 +192,5 @@ struct FilePanelRequestFreshnessTests {
         app.frame(atNanos: 16_666_667)
         let shown = app.screen.map(\.stripped).joined(separator: "\n")
         #expect(shown.contains("sheet says new"), "\(shown)")
-    }
-
-    /// Once it's up, what the app changes applies the next time it opens.
-    @Test("A change once the panel is up applies the next time it opens")
-    func aChangeOnceOpenWaits() {
-        let model = TypesModel()
-        let app = HeadlessApp(PageApp({ ModelPage(model: model) }), width: 100, height: 30)
-        app.frame(atNanos: 0)
-        model.showing = true
-        app.frame(atNanos: 16_666_667)
-        app.frame(atNanos: 33_333_334)
-        model.types = [markdown, .plainText]
-        app.frame(atNanos: 50_000_001)
-        let shown = app.screen.map(\.stripped).joined(separator: "\n")
-        #expect(capless(shown).contains("Format: Text"), "it changed while open: \(shown)")
     }
 }
