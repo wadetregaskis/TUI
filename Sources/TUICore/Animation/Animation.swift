@@ -724,7 +724,8 @@ extension Animation {
     /// anyone writes, and reads back as what they wrote.
     private static func solved(_ value: Double) -> String {
         guard value.isFinite else { return "\(value)" }
-        return "\((value * 1_000_000).rounded() / 1_000_000)"
+        let rounded: Double = (value * 1_000_000).rounded() / 1_000_000
+        return "\(rounded)"
     }
 }
 
