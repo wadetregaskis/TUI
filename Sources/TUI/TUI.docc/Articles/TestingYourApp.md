@@ -51,8 +51,8 @@ frame to frame, `.onAppear` and `.task` run, a key goes to the control with the 
 the last frame drew at that cell. Only the terminal is missing, so a test needs none, and runs on macOS and Linux.
 
 `TestApp` must be used on the main actor, so mark your test or its suite `@MainActor`. It works the same way in XCTest
-and Swift Testing, and depends on neither. You don't need `@testable` for your tests to use it, only if your own code
-needs it. The rest of this page shows each thing it does.
+and Swift Testing, and depends on neither. It needs no `@testable`: write that only where a test reaches into your own
+app. The rest of this page shows each thing it does.
 
 ### Running a view or an app
 
@@ -245,8 +245,8 @@ The first run writes it and throws, so that you look at it. When a change is wha
 - **A view's own reading of the clock is real.** `Date()` in a `body` reads the machine's clock, not ``TestApp/date``.
 - **A view notices a change the way it does in your app.** Make it through `@State` or an `@Observable` model. A plain
   variable that the content closure reads can go unnoticed by a part of the screen TUI has kept from an earlier frame.
-- **It runs one thing at a time.** ``TestApp`` is on the main actor, and tests of it run side by side only as your other
-  main-actor tests do.
+- **`main` does not run.** `TestApp(MyApp())` runs your app's `body`, and the `init()` you called. If your app registers
+  its translations in `main`, a `Text` shows its key in a test. Register them in the test, or in `init()`.
 - **It needs `TUIApp`,** so it has no Windows build, where TUI's console layer has none yet.
 - **Colours are in the escape codes.** ``TestScreen/styledLines`` has them, but TUI has no API for asking what colour a
   cell is. To test that something changes colour, compare rows of `styledLines`.
