@@ -14,6 +14,8 @@ known issues out of runs that had 21).
 
 import importlib.util
 import os
+import signal
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -772,3 +774,33 @@ class TestReportFailingLogs(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class KillStalledTests(unittest.TestCase):
+    """A child that stops writing is killed once the limit passes, and not before."""
+
+    def test_only_a_silent_child_past_the_limit_is_killed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            log = os.path.join(folder, "g0.log")
+            with open(log, "wb") as handle:
+                handle.write(b"started")
+                handle.flush()
+                child = subprocess.Popen(["sleep", "30"], stdout=handle)
+                self.addCleanup(child.wait)
+                self.addCleanup(child.kill)
+                running = {child.pid: (0, {"log": log, "tag": "g0", "p": child})}
+
+                # First sight of the log, then still inside the limit.
+                parallel_test.kill_stalled(running, now=lambda: 100.0, limit=10)
+                parallel_test.kill_stalled(running, now=lambda: 109.0, limit=10)
+                self.assertIsNone(child.poll())
+
+                # It writes, which restarts the wait.
+                handle.write(b" more")
+                handle.flush()
+                parallel_test.kill_stalled(running, now=lambda: 109.5, limit=10)
+                parallel_test.kill_stalled(running, now=lambda: 115.0, limit=10)
+                self.assertIsNone(child.poll())
+
+                parallel_test.kill_stalled(running, now=lambda: 120.0, limit=10)
+                self.assertEqual(child.wait(timeout=5), -signal.SIGKILL)

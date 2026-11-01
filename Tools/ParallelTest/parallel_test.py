@@ -104,6 +104,8 @@ WEIGHTS = os.path.join(WORK, "weights.json")
 # rather than a pid file: the kernel drops it when its holder exits, however
 # that happens, so a crashed run never leaves the next one waiting.
 LOCK_PATH = os.environ.get("TUI_PARALLEL_TEST_LOCK", "/tmp/tuikit-parallel-test.lock")
+# How long a test process may write nothing before it counts as hung (`kill_stalled`).
+STALL_SECONDS = int(os.environ.get("TUI_PARALLEL_TEST_STALL_SECONDS", "1800"))
 
 # swift-testing's final line. Everything after "seconds" is one clause built
 # from a three-way switch on (any error, any warning, any known issue), and it
@@ -764,7 +766,11 @@ def run_processes(invocations, tc, slot_of):
         start(slot)
     done = []
     while running:
-        pid, status, ru = os.wait4(-1, 0)
+        pid, status, ru = os.wait4(-1, os.WNOHANG)
+        if pid == 0:
+            kill_stalled(running)
+            time.sleep(0.05)
+            continue
         if pid not in running:
             continue
         slot, r = running.pop(pid)
@@ -779,6 +785,26 @@ def run_processes(invocations, tc, slot_of):
         if queues[slot]:
             start(slot)
     return done, time.time() - t0
+
+
+def kill_stalled(running, now=time.time, limit=None):
+    """Kills any child whose log has not grown for the stall limit.
+
+    A test that spins for ever holds this run's machine-wide lock and its caller's
+    build slot, so every other run on the machine waits behind it: one did for over
+    three hours on 2026-11-01. A killed group's tests never finish, so the run fails
+    and says which ones. Long enough for any real test, as the log grows with every
+    test that starts or ends in the group.
+    """
+    limit = STALL_SECONDS if limit is None else limit
+    for slot, r in running.values():
+        size = os.path.getsize(r["log"])
+        if size != r.get("logged"):
+            r["logged"] = size
+            r["grew"] = now()
+        elif now() - r["grew"] > limit and r["p"].poll() is None:
+            print("parallel-test: %s wrote nothing for %d s: killing it" % (r["tag"], limit), flush=True)
+            r["p"].kill()
 
 
 # The lines of a group's log that explain a failure, for the job log. An issue
