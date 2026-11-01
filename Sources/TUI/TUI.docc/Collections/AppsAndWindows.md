@@ -17,12 +17,22 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 - ``App``
 - ``Scene``
 - ``WindowGroup``
-- ``renderOnce(output:content:)``
-- ``RenderOnceOutput``
-- ``NoTerminal``
 - ``ScenePhase``
+
+### Quitting
+
 - ``QuitBehavior``
 - ``QuitConfirmation``
+- ``Scene/quitConfirmation(_:)``
+- ``View/quitWarning(_:isActive:)-(LocalizedStringKey,_)``
+- ``View/quitWarning(_:isActive:)-(S,_)``
+
+### Running Without a Terminal
+
+- ``App/runWithoutTerminal(_:)``
+- ``NoTerminal``
+- ``renderOnce(output:content:)``
+- ``RenderOnceOutput``
 
 ### Windows
 

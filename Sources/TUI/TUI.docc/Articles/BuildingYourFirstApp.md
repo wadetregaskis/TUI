@@ -52,15 +52,12 @@ struct Groceries: App {
 
 struct ShoppingList: View {
     @State private var items = ["Apples", "Bread", "Coffee"]
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(alignment: .leading) {
             List(items, id: \.self) { item in
                 Text(item)
             }
-            Button("Quit") { dismiss() }
-                .keyboardShortcut("q")
         }
         .navigationTitle("Groceries")
     }
@@ -83,14 +80,11 @@ The first build downloads TUI and compiles it, which takes a few minutes. After 
 │                                                      │
 │                                                      │
 ╰──────────────────────────────────────────────────────╯
-▐ Quit ▌
 ```
 
 Press the Down arrow to move through the rows, or type a letter to jump to the row that starts with it. The title doesn't take up a row on the screen. It goes in your terminal's window or tab title, in the terminals that show one.
 
-Press Control-Q to quit. A SwiftUI shortcut written for ⌘ answers to Control here, because most terminals keep ⌘ for themselves.
-
-> Tip: Plain `q` is TUI's built-in quit key, but it doesn't work here. A focused list takes every letter you type, to jump to a row. That's why this app has a Quit button with a shortcut, right from the start. Control-\\ also ends a TUI app, even one that's stuck.
+Press Control-Q to quit.
 
 ## Step 2: Add items
 
@@ -100,7 +94,6 @@ To add items, the app needs somewhere to type. Replace `ShoppingList` with this:
 struct ShoppingList: View {
     @State private var items = ["Apples", "Bread", "Coffee"]
     @State private var newName = ""
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -112,8 +105,6 @@ struct ShoppingList: View {
             List(items, id: \.self) { item in
                 Text(item)
             }
-            Button("Quit") { dismiss() }
-                .keyboardShortcut("q")
         }
         .navigationTitle("Groceries")
     }
@@ -138,7 +129,6 @@ Run it again with `swift run`. The first control on the screen takes the keyboar
 │ Milk                                                 │
 │                                                      │
 ╰──────────────────────────────────────────────────────╯
-▐ Quit ▌
 ```
 
 Press Tab to move to the next control and Shift-Tab to move back. With a mouse, you can click on any of them.
@@ -159,7 +149,6 @@ struct ShoppingList: View {
         Item(name: "Apples"), Item(name: "Bread"), Item(name: "Coffee"),
     ]
     @State private var newName = ""
-    @Environment(\.dismiss) private var dismiss
 
     private var bought: [Item] { items.filter(\.isBought) }
 
@@ -173,12 +162,7 @@ struct ShoppingList: View {
             List($items) { $item in
                 Toggle(item.name, isOn: $item.isBought)
             }
-            HStack {
-                Text("\(items.count - bought.count) to buy")
-                Spacer()
-                Button("Quit") { dismiss() }
-                    .keyboardShortcut("q")
-            }
+            Text("\(items.count - bought.count) to buy")
         }
         .navigationTitle("Groceries")
     }
@@ -203,7 +187,7 @@ struct ShoppingList: View {
 │                                                      │
 │                                                      │
 ╰──────────────────────────────────────────────────────╯
-2 to buy                                        ▐ Quit ▌
+2 to buy
 ```
 
 Tab stops at the list first, then at each checkbox you can see. To reach one further down a long list, use the arrow keys while the list has the keyboard, and then press Tab.
@@ -226,7 +210,6 @@ struct ShoppingList: View {
         Item(name: "Apples"), Item(name: "Bread"), Item(name: "Coffee"),
     ]
     @State private var newName = ""
-    @Environment(\.dismiss) private var dismiss
 
     private var bought: [Item] { items.filter(\.isBought) }
 
@@ -240,12 +223,7 @@ struct ShoppingList: View {
             List($items) { $item in
                 Toggle(item.name, isOn: $item.isBought)
             }
-            HStack {
-                Text("\(items.count - bought.count) to buy")
-                Spacer()
-                Button("Quit") { dismiss() }
-                    .keyboardShortcut("q")
-            }
+            Text("\(items.count - bought.count) to buy")
         }
         .navigationTitle("Groceries")
     }
@@ -270,7 +248,7 @@ Run it, add `Milk`, tick `Apples`, and quit with Control-Q. Run it again, and th
 │ □ Milk                                               │
 │                                                      │
 ╰──────────────────────────────────────────────────────╯
-3 to buy                                        ▐ Quit ▌
+3 to buy
 ```
 
 On a Mac the list goes in the app's `UserDefaults`, under the name `Groceries`. On Linux it goes in `~/.config/Groceries/settings.json`. To start again from three items, run `defaults delete Groceries` on a Mac, or delete that file on Linux.
@@ -313,7 +291,6 @@ struct ShoppingList: View {
     ]
     @State private var newName = ""
     @State private var isConfirmingClear = false
-    @Environment(\.dismiss) private var dismiss
 
     private var bought: [Item] { items.filter(\.isBought) }
 
@@ -332,8 +309,6 @@ struct ShoppingList: View {
                 Spacer()
                 Button("Clear bought…") { isConfirmingClear = true }
                     .disabled(bought.isEmpty)
-                Button("Quit") { dismiss() }
-                    .keyboardShortcut("q")
             }
         }
         .navigationTitle("Groceries")
@@ -366,10 +341,10 @@ Tick something and click **Clear bought…**, or press Tab until you reach it an
 
 │                                                      │
 ╰──────────────────────────────────────────────────────╯
-2 to buy                      ▐ Clear bought… ▌ ▐ Quit ▌
+2 to buy                               ▐ Clear bought… ▌
 ```
 
-The sheet's first button takes the keyboard, so a stray Return keeps your items. Press Tab and Return to clear them, or click **Clear**. Escape presses **Keep** from anywhere in the sheet, which is what `.cancelAction` means. `dismiss` is the same action as before, but inside a sheet it closes the sheet rather than the app.
+The sheet's first button takes the keyboard, so a stray Return keeps your items. Press Tab and Return to clear them, or click **Clear**. Escape presses **Keep** from anywhere in the sheet, which is what `.cancelAction` means. `dismiss` closes the sheet here, not the app: it closes whatever the view is inside.
 
 ## Step 6: Add shortcuts and a theme
 
@@ -425,7 +400,6 @@ struct ShoppingList: View {
     @AppStorage("theme") private var theme = 0
     @State private var newName = ""
     @State private var isConfirmingClear = false
-    @Environment(\.dismiss) private var dismiss
 
     private var bought: [Item] { items.filter(\.isBought) }
     private var palettes: [any Palette] { PaletteRegistry.all }
@@ -448,8 +422,6 @@ struct ShoppingList: View {
                 Button("Clear bought…") { isConfirmingClear = true }
                     .keyboardShortcut("k")
                     .disabled(bought.isEmpty)
-                Button("Quit") { dismiss() }
-                    .keyboardShortcut("q")
             }
         }
         .navigationTitle("Groceries")
@@ -481,10 +453,10 @@ Run it one last time:
 │                                                      │
 │                                                      │
 ╰──────────────────────────────────────────────────────╯
-3 to buy            ▐ Theme ▌ ▐ Clear bought… ▌ ▐ Quit ▌
+3 to buy                     ▐ Theme ▌ ▐ Clear bought… ▌
 ```
 
-Press Control-T to step through the palettes. Press Control-K to bring up the sheet, whether or not the text field has the keyboard. Quit and run again, and the app comes back in the colours you left it in.
+A SwiftUI shortcut written for ⌘ answers to Control here, because most terminals keep ⌘ for themselves. So press Control-T to step through the palettes, and Control-K to bring up the sheet, whether or not the text field has the keyboard. Quit and run again, and the app comes back in the colours you left it in.
 
 ## Where to go next
 

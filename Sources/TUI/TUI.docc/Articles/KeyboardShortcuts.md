@@ -171,20 +171,19 @@ Six keys do something by themselves, once nothing else has taken them. Only quit
 
 | Key | Action | Condition |
 |-----|--------|-----------|
-| `q` / `Q` | Quit application | Enabled by default; gated by ``QuitBehavior`` |
+| ⌃Q | Quit application | Enabled by default; gated by ``QuitBehavior`` |
 | Undo and redo | ``UndoCommand/defaultShortcuts``: ⌃Z, ⌃- and ⌃/ undo; ⌃⇧Z, ⌃_ and ⌥_ redo | Always, after your shortcuts; set app-wide with ``Scene/undoShortcuts(_:)``. A bound key is taken whether or not there is a step, so ⌃Z with nothing to undo does nothing |
 | ⌃Z | Suspend the app, as the shell's `^Z` would | Only where the undo keys leave it out, and only once no view has claimed the key, so a focused text field's or editor's undo wins |
 | `?` | Show the focused view's `View.help(_:)` tooltip | Enabled by default; falls through when the focused view has no help text. Reachable behind a modal, unlike `t` and `a` |
 | `t` / `T` | Cycle to next color theme | Opt-in: requires `statusBarSystemItems(theme: true)` (or `showThemeItem = true`) |
 | `a` / `A` | Cycle to next appearance | Opt-in: requires `statusBarSystemItems(appearance: true)` (or `showAppearanceItem = true`); then active unless a modal surface has grabbed input |
 
-One more key quits: ⌃\\, which the terminal driver takes before any layer
-unless you bind it (see "⌃\\ quits, unless you bind it" below).
+Two more keys quit, after asking, where nothing takes them first: ⌃C and ⌃\\ (see "Quitting" below).
 
 ### The help key, and the one place it cannot reach
 
 `?` toggles the tooltip for whatever holds the focus. It is settable —
-`tooltipState.helpKey = .f1`, or `nil` to claim no key at all — and, like `q`, an
+`tooltipState.helpKey = .f1`, or `nil` to claim no key at all — and, like the quit key, an
 app beats it at any earlier layer: a status-bar item with shortcut `"?"`, an
 `.onKeyEvent`, or a `.keyboardShortcut(KeyboardShortcut("?", modifiers: []))`.
 
@@ -202,16 +201,16 @@ app beats it at any earlier layer: a status-bar item with shortcut `"?"`, an
 
 ### Quit Behavior
 
-The ``QuitBehavior`` enum controls when `q` is allowed to quit:
+The ``QuitBehavior`` enum controls when the quit key is allowed to quit:
 
 | Value | Behavior |
 |-------|----------|
-| `.always` | `q` quits from any screen, unless the focused control takes the letter (default) |
-| `.rootOnly` | `q` only quits when no status bar context is pushed |
+| `.always` | ⌃Q quits from any screen (default) |
+| `.rootOnly` | ⌃Q only quits when no status bar context is pushed |
 
-A focused text field types `q`, and a focused list, table or open menu uses it to find a row, so under either value it doesn't quit from there. Tab to another control first, or use ⌃\\.
+⌃C goes by the same rule. ⌃\\ doesn't: it asks, and then quits, whatever the value.
 
-`.rootOnly` is useful for modal dialogs: push a status bar context for the dialog, and `q` will be blocked until the user dismisses it:
+`.rootOnly` is useful for modal dialogs: push a status bar context for the dialog, and ⌃Q will be blocked until the user dismisses it:
 
 ```swift
 Dialog(title: "Confirm") {
@@ -230,7 +229,7 @@ Dialog(title: "Confirm") {
 
 ### Changing the built-in quit key
 
-The default quit binding is configurable through ``StatusBarState/quitShortcut``:
+The default quit binding, ⌃Q, is configurable through ``StatusBarState/quitShortcut``. A bare `q`, ``QuitShortcut/q``, suits an app with nothing to type into; elsewhere a focused text field types the letter, and a focused list or an open menu searches for it, before the quit key is reached.
 
 ```swift
 struct RootScreen: View {
@@ -239,13 +238,13 @@ struct RootScreen: View {
     var body: some View {
         MainView()
             .task {
-                statusBar?.quitShortcut = .ctrlQ
+                statusBar?.quitShortcut = .q
             }
     }
 }
 ```
 
-The presets are ``QuitShortcut/q``, ``QuitShortcut/escape``, ``QuitShortcut/ctrlQ`` and ``QuitShortcut/ctrlC``, and you can make your own:
+The presets are ``QuitShortcut/ctrlQ``, ``QuitShortcut/q``, ``QuitShortcut/escape`` and ``QuitShortcut/ctrlC``, and you can make your own:
 
 ```swift
 QuitShortcut(key: .f12, shortcutSymbol: Shortcut.f12, label: "exit")
@@ -257,32 +256,64 @@ selected there: then ⌃C copies it. Nor does it quit while something on the
 screen is selected with the mouse: then ⌃C copies that, ahead of every
 other key handler (see <doc:SelectingText>).
 
-### ⌃\\ quits, unless you bind it
+### Quitting
 
-Whatever the quit binding, ⌃\\ quits — the backup for when `q` or a
-⌃C your app binds cannot: when the app has hung. Raw mode leaves the
-terminal's line discipline one signal character, the user's quit key, ⌃\\
-unless they changed it; ⌃C and ⌃Z are turned off as signals and arrive as
-keys. So the terminal driver turns ⌃\\ into `SIGQUIT` before the app reads a
-byte, over ssh too, and the app leaves the terminal as a quit does: the
-alternate screen left, the cursor shown, the shell's line discipline back.
-The shell then reports `Quit: 3`. A user who turned the quit key off with
-`stty quit undef` keeps it off.
+| Key | Where nothing of yours takes it | On a hung app |
+|-----|---------------------------------|---------------|
+| ⌃Q, or whatever ``StatusBarState/quitShortcut`` is; the menu bar's Quit | Quits at once, unless a warning is active or the scene says `.always` | Nothing |
+| ⌃C | Asks; a second while it's up quits | Nothing |
+| ⌃\\ | Asks; a second while it's up quits at once | Quits, about two seconds later |
+| `kill -QUIT`, `kill -INT`, `kill -TERM` from outside | Quits at once, never asks | `kill -QUIT` quits |
+
+The dialog is an alert: Cancel has the focus, so Return stays, as Escape does, and Quit is a Tab away. It says what
+`quitWarning(_:isActive:)` said, for every view drawn that states one, and a ``View/terminalProgress(_:)`` still
+going counts as one with no words of its own. ``Scene/quitConfirmation(_:)`` sets when it appears:
+
+| Value | Behavior |
+|-------|----------|
+| `.automatic` | ⌃C and ⌃\\ ask. The quit key and the menu's Quit ask only with a warning active (default) |
+| `.always` | They all ask |
+| `.whenWarned` | They all ask with a warning active, and otherwise none does: ⌃C and ⌃\\ quit at once |
+
+TUI looks at nothing else to decide whether something would be lost. It has no document type that knows it is unsaved, so
+say so with a warning, or with
+`dismissalConfirmationDialog`, whose question comes first, and which a second ⌃C doesn't quit past. A
+presentation that holds the quit keys (``View/presentationPreventsAppTermination(_:)``,
+``View/dialogPreventsAppTermination(_:)``) holds ⌃Q and ⌃C too, and ⌃\\ asks over it. `dismiss()` at the top level
+is your code's own way out, and asks only as a dismissal confirmation does. So does closing the last window, which only
+code can do: a person can close a window only while another is open behind it.
+
+### ⌃\\ quits a hung app, unless you bind it
+
+⌃\\ is the way out when nothing else can be: when the app has hung. Raw mode leaves the terminal's line discipline one
+signal character, the user's quit key, ⌃\\ unless they changed it; ⌃C and ⌃Z are turned off as signals and arrive as
+keys. For as long as the quit key is to ask first, the app takes that one too, once its first frame is up: the driver
+could not ask, and its signal reaches every process in the terminal's foreground group the moment the key is pressed,
+children of the app included. So the byte reaches the input chain, and pasted text holding it is only text.
+
+A thread of its own watches for a loop that has stopped reading. Input left unread for two seconds, it reads for the
+loop, and looks for the key, as the byte or as a kitty keyboard protocol report. If it's there, the thread sends `SIGQUIT`
+to the app's process group, as the driver would have, and the app leaves the terminal as a quit does: the alternate
+screen left, the cursor shown, the shell's line discipline back. The shell then reports `Quit: 3`. If not, the keys wait
+for the loop, in order, and a loop that was only slow finds them. So a frame of over two seconds on the main thread with a
+⌃\\ in it quits too: from outside it looks the same.
+
+A user who turned the quit key off with `stty quit undef` keeps it off. Under `.whenWarned` with no warning active
+nothing asks, so the driver keeps the key as in a shell, and turns it into `SIGQUIT` before the app reads a byte, over ssh
+too, pasted text included.
 
 Your own binding on ⌃\\ wins. While your app declares one — a
 `.keyboardShortcut` (a live sheet's too, whichever pane holds the focus,
 though it fires, as any shortcut, only from its own), an `onKeyPress` on the
 key on the path to the focused view, the status bar's quit key or an item,
-an undo key — TUI masks the
-driver's quit, so the key reaches the input chain, and your binding has it
-first. A ⌃\\ none of your bindings takes still quits:
-TUI sends `SIGQUIT` itself, as the driver would have. The same goes for
+an undo key — it has the key first, and a ⌃\\ none of your bindings takes still
+goes on to ask. The same goes for
 ⌃4, ⌃| and ⌃⇧\\, for which some terminals send ⌃\\'s byte in their legacy
 encoding — iTerm2 and Warp for both, Ghostty for ⌃4, Apple Terminal for ⌃⇧\\
 (Apple Terminal sends nothing for ⌃4), and xterm, VTE,
 Konsole and the Linux console for both by their tables (not measured; a
 terminal not measured is assumed to) — where the terminal may: with a ⌘4 shortcut on
-screen — ⌃4 under `.commandKey(.control)` — the quit is masked, the byte
+screen — ⌃4 under `.commandKey(.control)` — the byte
 arrives as ⌃\\, and where nothing takes ⌃\\ it is offered as ⌃4, ⌃| and ⌃⇧\\
 in turn to the bindings declared for them, so your ⌘4 fires — a handler that
 hears every key hears the byte once, as ⌃\\. Bind both ⌃\\ and ⌃4 and the byte is ⌃\\'s: it
@@ -291,8 +322,9 @@ cannot be told apart. So ``KeyboardShortcut/isDeliverableInTerminal`` is
 
 Two things to know. A handler that hears every key — `onKeyEvent`,
 `onKeyPress(phases:action:)` — cannot be read without running it, so it does
-not mask the quit, and does not see ⌃\\ while the driver has it. Nor does an
-`onKeyPress` on a set of characters, which asks for typed text, not chords:
+not count as a binding: it hears ⌃\\ on its way through while the app has the key,
+and not at all while the driver does. Nor does an
+`onKeyPress` on a set of characters count, which asks for typed text, not chords:
 Control is not looked at, so a field's `.decimalDigits` would otherwise
 claim ⌃4, and type a 4 for the user's ⌃\\. Nor does an `onKeyPress` on a key
 count for a Control chord the key does not name: `onKeyPress("|")` counts for
@@ -305,12 +337,12 @@ it.
 
 A terminal that speaks the kitty keyboard protocol sends ⌃\\ as a key report
 rather than the byte the driver acts on. TUI offers that report to your
-bindings first, as any key — a ⌃\\ shortcut or handler of yours takes it —
-and where none does, sends `SIGQUIT` itself, to the app's process group as
-the driver would, so ⌃\\ quits there too. A hung app reads no report, so
+bindings first, as any key, and where none takes it, it asks, as the byte does. Under
+`.whenWarned`, where nothing asks, it sends `SIGQUIT` itself, to the app's process group as
+the driver would, and a hung app reads no report, so
 TUI's stall watchdog pops the protocol's flags once input has waited
 unread for 1.5 s: the next ⌃\\ reaches the driver as its byte and quits, so
-under the protocol a hung app quits at the second ⌃\\. There ⌃4 and ⌃|
+there a hung app quits at the second ⌃\\. There ⌃4 and ⌃|
 arrive as themselves, and a shortcut on them fires without masking the
 driver's quit. But the watchdog's pop puts the terminal back in its legacy
 encoding, where ⌃4 may be ⌃\\'s byte again, and the driver would quit your
@@ -318,20 +350,20 @@ app on the user's ⌃4 during a slow frame — so while a binding on ⌃4, ⌃| 
 ⌃⇧\\ is on screen there is no watchdog, and a hung app does not quit by ⌃\\
 under the protocol either.
 
-### Overriding `q` in a local view context
+### Overriding the quit key in a local view context
 
-A user-defined status bar item with shortcut `q` and an action intercepts the key before the default quit binding runs:
+A user-defined status bar item with the quit key's shortcut and an action intercepts the key before the default quit binding runs:
 
 ```swift
 EditorView()
     .statusBarItems {
-        StatusBarItem(shortcut: "q", label: "close") {
+        StatusBarItem(shortcut: Shortcut.quit, label: "close") {
             dismissEditor()
         }
     }
 ```
 
-This is the correct way to repurpose `q` for a specific screen, dialog, or focus section. The matching item takes the key first, so the built-in quit never runs.
+This is the correct way to repurpose ⌃Q for a specific screen, dialog, or focus section. The matching item takes the key first, so the built-in quit never runs.
 
 ## Focus Navigation
 
@@ -602,9 +634,9 @@ Before any of them comes the **focus path**: SwiftUI's `onKeyPress` handlers on 
 
 Three additional stages refine the layer sequence. When an open drop-down (e.g. a ``Picker`` menu) has claimed Escape for the frame, ESC is pre-routed through the focus system *before* Layer 1, so the surface closes instead of a page-level handler firing. Layer 0.5 then offers the key to a drag in flight, which is how you scroll to an off-screen destination without letting go — it has to beat every layer below, all of which would otherwise spend the key on the focused control. And between Layer 3 and Layer 4, a shortcut stage (Layer 3.5) fires your `.keyboardShortcut`s — the default button on Return and the cancel button on Escape, à la SwiftUI's `.keyboardShortcut(.defaultAction)` / `.keyboardShortcut(.cancelAction)`, and any other key equivalent on its key — when the focused control let the key fall through.
 
-@Image(source: "keyboard-event-dispatch.svg", alt: "Flowchart of the keyboard dispatch: a hasTextInputFocus check gates Layer 0 (Text Input via focusManager.dispatchKeyEvent for TextField/SecureField/TextEditor), except that an editing chord the focused control gives up to an app shortcut registered on it skips Layer 0 and continues down the chain. Without text focus, an ESC-claimed-by-an-open-surface check pre-routes Escape through the focus system so an open drop-down closes before any page-level handler. Layer 0.5 Drag Navigators (while a drag is in flight, arrows and paging scroll whatever the pointer is over). Layer 1 Status Bar Items (statusBar.handleKeyEvent). Layer 2 View Handlers (keyEventDispatcher.dispatch, deepest view first). A second hasTextInputFocus check skips Layer 3 if text input was focused. Layer 3 Focus System (focusManager.dispatchKeyEvent: focused element delegation, Tab/Shift+Tab, arrow key fallback). Layer 3.5 Semantic Shortcuts (Return fires the default button, Escape the cancel button, and a key-equivalent .keyboardShortcut fires on its key). Layer 4 Default Bindings (q quit and ? help always; t theme and a appearance gated while a modal grabs input). Unmatched events are dropped.")
+@Image(source: "keyboard-event-dispatch.svg", alt: "Flowchart of the keyboard dispatch: a hasTextInputFocus check gates Layer 0 (Text Input via focusManager.dispatchKeyEvent for TextField/SecureField/TextEditor), except that an editing chord the focused control gives up to an app shortcut registered on it skips Layer 0 and continues down the chain. Without text focus, an ESC-claimed-by-an-open-surface check pre-routes Escape through the focus system so an open drop-down closes before any page-level handler. Layer 0.5 Drag Navigators (while a drag is in flight, arrows and paging scroll whatever the pointer is over). Layer 1 Status Bar Items (statusBar.handleKeyEvent). Layer 2 View Handlers (keyEventDispatcher.dispatch, deepest view first). A second hasTextInputFocus check skips Layer 3 if text input was focused. Layer 3 Focus System (focusManager.dispatchKeyEvent: focused element delegation, Tab/Shift+Tab, arrow key fallback). Layer 3.5 Semantic Shortcuts (Return fires the default button, Escape the cancel button, and a key-equivalent .keyboardShortcut fires on its key). Layer 4 Default Bindings (⌃Q quit and ? help always; t theme and a appearance gated while a modal grabs input). Unmatched events are dropped.")
 
-`⌃C` is an ordinary key here. A terminal normally turns it into SIGINT, but TUI's raw mode switches that off, so it reaches these layers as `c` held with Control like any other chord, and nothing binds it unless you do: a ⌘C shortcut under the default ``EnvironmentValues/commandKey``, or ``QuitShortcut/ctrlC``. `⌃Z` arrives the same way, and Layer 4 suspends the app on it only when nothing earlier claimed it (see <doc:KeyboardShortcuts#Default-Bindings>).
+`⌃C` is an ordinary key here. A terminal normally turns it into SIGINT, but TUI's raw mode switches that off, so it reaches these layers as `c` held with Control like any other chord, and anything of yours can bind it: a ⌘C shortcut under the default ``EnvironmentValues/commandKey``, or ``QuitShortcut/ctrlC``. Where nothing does, it asks whether to quit (see <doc:KeyboardShortcuts#Quitting>). `⌃Z` arrives the same way, and Layer 4 suspends the app on it only when nothing earlier claimed it (see <doc:KeyboardShortcuts#Default-Bindings>).
 
 ## Topics
 

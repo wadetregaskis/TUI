@@ -149,6 +149,7 @@ A terminal has one surface, so app structure changes a little.
 
 - **One window at a time.** `openWindow` opens a window over the whole terminal, and only the front one is drawn or gets input. The ones behind keep running, and come back when it closes.
 - **Closing the last window quits the app**, whether by `dismissWindow` or by `dismiss()` at the window's root. Escape closes a window only while another is open behind it.
+- **Control-Q quits.** ⌘Q never reaches a terminal app, and Control-Q is what the status bar and the Quit menu item name. Control-C and Control-\\ ask first. There's no `applicationShouldTerminate`: say what's at stake with `.quitWarning(_:isActive:)` (see <doc:ScenesAndQuitting>).
 - **Toolbars are bars.** `.toolbar` items go into one bar above the page or one below it, each drawn only when it has something in it. `.principal` replaces the title, and `.status` goes in the bottom bar.
 - **Sheets fit their content.** There's no minimum size.
 - **Help appears in the status bar.** `.help("…")` shows there when the mouse rests on a view, or when the user presses `?` on a focused control. For a panel beside the view, write `.tooltipStyle(.popover)`.

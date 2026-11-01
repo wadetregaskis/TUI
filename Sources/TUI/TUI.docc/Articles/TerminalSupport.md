@@ -104,9 +104,10 @@ These environment variables settle a question without asking the terminal. Set t
 | `TUI_GRAPHICS=0` or `1` | Pictures in text characters, or in real pixels |
 | `TUI_KEYBOARD_PROTOCOL=0` | Doesn't use the keyboard protocol |
 | `TUI_HYPERLINKS=0` or `1` | Links the terminal can follow, off or on |
+| `TUI_FORCE_ESCAPES=0` or `1` | What `renderOnce` writes: plain text, or its escape sequences even down a pipe. `FORCE_COLOR` and `NO_COLOR` also count |
 | `TUI_TERM_PROGRAM=name` | Says which terminal this is: `Apple_Terminal`, `iTerm.app`, `ghostty`, `WarpTerminal`, `tmux` or `gnome-terminal` |
 | `COLORTERM=truecolor` | Uses millions of colours |
-| `TERM=xterm-256color` | Uses 256 colours, if `COLORTERM` isn't set |
+| `TERM=xterm-256color` | Uses 256 colours, if `COLORTERM` isn't set. `TERM=dumb` won't run an app at all: see <doc:ScenesAndQuitting> |
 
 To turn off real pixels for part of an app, because a blocky look is part of the design, write `.terminalGraphics(false)` around those views.
 

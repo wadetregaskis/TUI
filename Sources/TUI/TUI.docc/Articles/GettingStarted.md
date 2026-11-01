@@ -55,7 +55,7 @@ struct MyTUIApp: App {
             VStack {
                 Text("Hello, TUI!")
                     .bold()
-                Text("Press q to quit")
+                Text("Press Control-Q to quit")
                     .foregroundStyle(.secondary)
             }
         }
@@ -71,7 +71,7 @@ swift run
 
 The first run downloads and compiles TUI, which takes a few minutes. Later runs take seconds.
 
-The terminal clears, and your two lines of text appear in the middle of it. Press `q` to quit, and the terminal goes back to how it was.
+The terminal clears, and your two lines of text appear in the middle of it. Press Control-Q to quit, and the terminal goes back to how it was.
 
 ## Count Something
 
@@ -110,13 +110,13 @@ If you know SwiftUI, this is the same code you would write there.
 
 ## Quitting
 
-`q` quits from anywhere, as long as the control with the focus isn't using the letter itself. A text field types it, and a list or table uses it to jump to a row starting with "q". Press Tab to move the focus to another control, then press `q`.
+Control-Q quits, wherever the keyboard is, and the status bar and menu bar say so if your app has them.
 
-Control-\\ always quits, and it works even if the app has stopped responding. Your shell may then print `Quit: 3`, which only says how the app ended.
+Control-C and Control-\\ work too, because they're what people try in a terminal. In a shell they stop the job in front, though, so here they ask first. Return or Escape stays. Press the same key again, or Tab and Return, to quit.
 
-Control-C doesn't quit by default. It reaches your app as an ordinary key.
+Control-\\ also quits an app that has stopped responding, about two seconds later. Your shell may then print `Quit: 3`, which only says how the app ended.
 
-<doc:KeyboardShortcuts#Default-Bindings> shows how to change the quit key.
+Your app gets those keys first, so anything it binds them to wins. <doc:ScenesAndQuitting> shows how to warn about unsaved work, and <doc:KeyboardShortcuts#Quitting> how to change all of this.
 
 ## Next
 

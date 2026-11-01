@@ -104,7 +104,7 @@ Shortcut.range("1", "9")
 
 | Constant | Value |
 |----------|-------|
-| `Shortcut.quit` | `q` |
+| `Shortcut.quit` | `⌃Q` |
 | `Shortcut.yes` | `y` |
 | `Shortcut.no` | `n` |
 | `Shortcut.cancel` | `c` |
@@ -185,7 +185,7 @@ A user-defined status bar item with the quit key's shortcut overrides the built-
 ```swift
 EditorView()
     .statusBarItems {
-        StatusBarItem(shortcut: "q", label: "close") {
+        StatusBarItem(shortcut: Shortcut.quit, label: "close") {
             closeEditor()
         }
     }

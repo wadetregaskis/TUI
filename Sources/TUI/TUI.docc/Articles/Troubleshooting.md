@@ -8,40 +8,19 @@ Each section below starts with what you'll see, then says what to do. They begin
 
 ## I can't quit my app
 
-**Control-C does nothing, and `q` types a letter or moves around a list.**
+Press **Control-Q**.
 
-Press **Control-\\**. It ends the app, and your terminal goes back to normal. Your shell may print `Quit: 3`, which you can ignore.
+If nothing happens, your app has bound that key to something else, or a sheet or dialog is holding it. Press **Control-\\** and answer the question it asks, or press it twice. It ends the app and puts your terminal back, even if the app has stopped responding, though that takes about two seconds. Your shell may print `Quit: 3`, which you can ignore.
 
-Plain `q` is the built-in quit key, but a focused text field or list takes every letter first. Press Tab until a button has the keyboard, and `q` will quit.
+To choose another key, see <doc:KeyboardShortcuts#Quitting>.
 
-Control-C is an ordinary key while a TUI app runs, and nothing uses it unless you ask. To give people a dependable way out, add a Quit button with a shortcut, or choose the quit key:
+## "standard output is not a terminal", or the app won't start
 
-```swift
-struct ContentView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.statusBar) private var statusBar
+**The app prints one line like `MyApp: standard output is not a terminal` and exits. It might be running in an IDE's output pane, in CI, or with its output going to a pipe.**
 
-    var body: some View {
-        VStack {
-            MainScreen()
+A TUI app needs a real terminal for its keyboard and screen. Run it from a terminal window with `swift run`. The same goes for `TERM=dumb`, which some editors' shells set: set `TERM` to your terminal's type.
 
-            // Control-Q, wherever the keyboard is.
-            Button("Quit") { dismiss() }
-                .keyboardShortcut("q")
-        }
-        // Or make Control-C quit, as it does in most command-line tools.
-        .onAppear { statusBar?.quitShortcut = .ctrlC }
-    }
-}
-```
-
-## Nothing appears, or the app seems to hang
-
-**You see no output, or stray escape codes, and the app never exits. It might be running in an IDE's output pane, in CI, or with its output going to a pipe.**
-
-A TUI app needs a real terminal for its keyboard and screen. Without one, it waits for keys that can't arrive, with no error message.
-
-Run it from a terminal window with `swift run`. If it's stuck in the background, stop it with your IDE's stop button, or with `kill`.
+If running that way should do something useful, such as printing a report, see "Running Without a Terminal" in <doc:ScenesAndQuitting>.
 
 ## The build fails: "requires macos 10.13"
 

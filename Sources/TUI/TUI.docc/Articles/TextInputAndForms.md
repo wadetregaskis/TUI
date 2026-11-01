@@ -21,7 +21,7 @@ struct Greeting: View {
 
 The first control on a screen takes the keyboard by itself, so you can type straight away. The field updates `name` with every key press. While it's empty, it shows its title as a hint.
 
-While a field has the keyboard, it takes every letter you type, so TUI's built-in `q` to quit types a `q` there instead. Press Tab to move to the next control, and Shift-Tab to move back. A click works too.
+While a field has the keyboard, it takes every letter you type. Control-Q still quits. Press Tab to move to the next control, and Shift-Tab to move back. A click works too.
 
 ## Text fields
 

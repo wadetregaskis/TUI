@@ -1,6 +1,6 @@
 # Scenes, Phases and Quitting
 
-Say what your app shows, notice when it is suspended or loses focus, and end it cleanly.
+Say what your app shows, notice when it is suspended or loses focus, end it cleanly, and decide what it does with no terminal.
 
 ## Overview
 
@@ -97,8 +97,36 @@ screen, so spinners and progress bars go on animating. To draw your own view dif
 
 ## Quitting
 
-A person can quit your app from the keyboard. <doc:KeyboardShortcuts> says which keys do it, how to change them, and
-how to keep them from working on some screens.
+A person can quit your app from the keyboard: Control-Q quits, and Control-C and Control-\\ ask first.
+<doc:KeyboardShortcuts#Quitting> says what each does, how to change them, and how to keep them from working on some
+screens.
+
+If quitting now would lose something, say so, and every key asks first and names it:
+
+```swift
+struct UploadsView: View {
+    let isUploading: Bool
+
+    var body: some View {
+        Text("Photos")
+            .quitWarning("Uploading 6 photos", isActive: isUploading)
+    }
+}
+```
+
+Only a view that's drawn can warn, so put a warning for work that goes on behind every screen at the root of the
+scene. To choose when quitting asks, set `.quitConfirmation` on the scene. `.always` asks for every quit, and `.whenWarned`
+only with a warning active, so Control-C and Control-\\ then quit at once:
+
+```swift
+@main
+struct Notes: App {
+    var body: some Scene {
+        WindowGroup { ContentView() }
+            .quitConfirmation(.always)
+    }
+}
+```
 
 To quit from your own code, call `dismiss` from the environment:
 
@@ -113,11 +141,43 @@ struct ContentView: View {
 ```
 
 The same call does what you would expect wherever you write it. Inside a sheet, an alert or a pushed navigation
-screen, it closes that and leaves the app running. It quits only where nothing encloses the view. The terminal is
-then restored, and `main()` returns.
+screen, it closes that and leaves the app running. It quits only where nothing encloses the view, without asking,
+because your code has decided. The terminal is then restored, and `main()` returns.
 
 > Tip: Prefer `dismiss()` to `exit(0)`. TUI still restores the terminal after `exit(0)`, but the rest of the shutdown
 > does not run, so a setting stored a moment before may not reach the disk.
+
+## Running Without a Terminal
+
+An app needs a terminal to draw on. If stdout or stdin isn't one, as in `myapp > out.txt`, `myapp | grep x`,
+`myapp < /dev/null` or a CI step, or if `TERM` is `dumb`, the app prints one line to stderr saying so and exits with status
+1. No escape codes go down the pipe.
+
+Where running that way makes sense for your app, implement ``App/runWithoutTerminal(_:)``. It's called in place of the
+interface, and is told what's missing and why (``NoTerminal``). Return an exit status:
+
+```swift
+@main
+struct Inventory: App {
+    var body: some Scene { WindowGroup { Text("Stock") } }
+
+    static func runWithoutTerminal(_ situation: NoTerminal) async -> NoTerminal.Outcome {
+        // `inventory > stock.txt` gets the same data, as a report.
+        guard situation.lacksOutput else { return situation.reportFailure() }
+        renderOnce { Text("12 apples") }
+        return 0
+    }
+}
+```
+
+``renderOnce(output:content:)`` draws a view once from the line the cursor is on, and works with or without an ``App``.
+When stdout isn't a terminal it writes plain text, unless you pass `output: .escapeSequences` or whoever runs the program
+sets `TUI_FORCE_ESCAPES=1` or `FORCE_COLOR=1`.
+
+A tool like `fzf`, which reads its data from a pipe and draws on the terminal anyway, returns
+``NoTerminal/Outcome/drawOnControllingTerminal``. The app then runs as usual on the process's controlling terminal, and
+the pipes stay reachable as ``NoTerminal/pipedInput`` and ``NoTerminal/pipedOutput``. Read and write those rather than
+using `readLine()` or `print`, which now reach the terminal.
 
 ## See Also
 

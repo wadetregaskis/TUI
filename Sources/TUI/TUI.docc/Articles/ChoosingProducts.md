@@ -11,7 +11,7 @@ nothing below needs your attention.
 TUI is also built as separate modules, and each module an app may want on its own is a library product of its
 own. An app can list the products of the modules it uses instead of `TUI`, and SwiftPM then compiles and links
 only those modules and the ones they are built on. A stripped release build of a hello world that depends only on
-`TUIApp` comes out about 40% smaller than one that depends on `TUI`, and it builds a little faster.
+`TUIApp` comes out about 40% smaller than one that depends on `TUI`, and it builds a little faster. Some of that was given back on 2026-10-31, when `TUIApp` began linking `TUIPresentation` for its quit dialog: with Swift 6.2.4 its hello world went from 8,742,344 to 9,059,544 stripped bytes (+3.6%).
 <doc:ShippingAnApp#Shipping-Size> has the other ways to make a program smaller.
 
 ### Depending on modules

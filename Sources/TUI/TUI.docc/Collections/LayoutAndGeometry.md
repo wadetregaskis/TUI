@@ -65,6 +65,7 @@ Arrange views with stacks, grids and containers, and read where they ended up.
 ### Sizes and Positions
 
 - ``ProposedSize``
+- ``ProposedViewSize``
 - ``ViewSize``
 - ``ContentMode``
 - ``EdgeInsets``
