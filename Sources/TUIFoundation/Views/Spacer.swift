@@ -29,7 +29,7 @@
 ///     Text("Bottom")
 /// }
 /// ```
-nonisolated public struct Spacer: View, Equatable {
+nonisolated public struct Spacer: View, Equatable, Sendable {
     /// The minimum length this spacer can be shrunk to, along the axis or axes
     /// of expansion, in cells.
     ///

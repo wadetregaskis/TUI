@@ -20,7 +20,7 @@ import TUICore
 ///     EmptyView()
 /// }
 /// ```
-nonisolated public struct EmptyView: View, Equatable {
+nonisolated public struct EmptyView: View, Equatable, Sendable {
     /// Creates an empty view.
     ///
     /// `nonisolated`, as SwiftUI's is: it makes nothing, and a shape's

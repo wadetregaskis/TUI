@@ -22,7 +22,7 @@ import Foundation
 /// Text("Colored")
 ///     .foregroundStyle(.red)
 /// ```
-nonisolated public struct Text: View, Equatable {
+nonisolated public struct Text: View, Equatable, Sendable {
     /// A capitalisation transform — mirrors SwiftUI's `Text.Case`.
     ///
     /// The same type as the top-level ``TextCase``, under SwiftUI's spelling,
