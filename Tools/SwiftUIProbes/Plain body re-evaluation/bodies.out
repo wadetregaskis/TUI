@@ -1,0 +1,95 @@
+--- first draw, the state in a leaf
+1	@Environment, unchanged
+1	@Observable, property unchanged
+1	AnyView field
+1	Array field, built anew
+1	Binding field, not read
+1	Binding field, read
+1	ViewBuilder content field, Text
+1	children
+1	class field, new object each build
+1	class field, same object
+1	closure, Equatable view (id only)
+1	closure, captures a let
+1	closure, no capture
+1	existential field, Int inside
+1	leaf
+1	long String field, built anew
+1	no fields, under padding
+1	own @State, unchanged
+1	page
+1	pod Int field
+1	short String field
+--- after the leaf's write
+1	leaf
+--- after a write to an @Observable property nobody read
+--- first draw, the state in the parent, a composite between
+1	@Environment, unchanged
+1	@Observable, property unchanged
+1	AnyView field
+1	Array field, built anew
+1	Binding field, not read
+1	Binding field, read
+1	ViewBuilder content field, Text
+1	children
+1	class field, new object each build
+1	class field, same object
+1	closure, Equatable view (id only)
+1	closure, captures a let
+1	closure, no capture
+1	existential field, Int inside
+1	long String field, built anew
+1	no fields, under padding
+1	own @State, unchanged
+1	page
+1	pod Int field
+1	short String field
+--- after the parent's write, a composite between
+1	page
+--- first draw, children built directly in the writer's body
+1	@Environment, unchanged
+1	@Observable, property unchanged
+1	AnyView field
+1	Array field, built anew
+1	Binding field, not read
+1	Binding field, read
+1	ViewBuilder content field, Text
+1	class field, new object each build
+1	class field, same object
+1	closure, Equatable view (id only)
+1	closure, captures a let
+1	closure, captures parent's state value
+1	closure, no capture
+1	existential field, Int inside
+1	long String field, built anew
+1	no fields, under padding
+1	own @State, unchanged
+1	page
+1	pod Int field
+1	short String field
+--- after the write, children built directly in the writer's body
+1	AnyView field
+1	Array field, built anew
+1	ViewBuilder content field, Text
+1	class field, new object each build
+1	closure, Equatable view (id only)
+1	closure, captures a let
+1	closure, captures parent's state value
+1	long String field, built anew
+1	page
+--- after a second write, children built directly in the writer's body
+1	AnyView field
+1	class field, new object each build
+1	closure, captures a let
+1	closure, captures parent's state value
+1	page
+--- after a third write, children built directly in the writer's body
+1	AnyView field
+1	class field, new object each build
+1	closure, captures parent's state value
+1	page
+--- after a fourth write, children built directly in the writer's body
+1	AnyView field
+1	class field, new object each build
+1	closure, captures parent's state value
+1	page

@@ -127,6 +127,17 @@ messages cite that path), and what cites it.
   `Tests/TUIFoundationTests/DynamicPropertyStateKeyTests.swift`;
   `Documentation/Historical/State and dynamic properties/Finding dynamic properties, and writing back what update() changes.md`.
 
+### Plain body re-evaluation
+
+- **Asks:** when SwiftUI runs a plain child's `body` again: a write in a sibling leaf, a write to an `@Observable`
+  property nobody read, and a write in the parent whose body builds the child, repeated four times, for one child
+  per kind of stored field (a value, a string or array built anew, a class, closures capturing nothing, an unchanged
+  value and the changed value, a `Binding`, `@State`, `@Environment`, `AnyView`, an existential, `@ViewBuilder`
+  content).
+- **Files:** `bodies.swift`, `bodies.out`.
+- **Ran:** macOS 15.8, Xcode's Swift 6.2.4, 2026-11-01.
+- **Cited by:** the plain-body memo study (working notes, `plain-body-memo-study.md`).
+
 ### Row state lifetime
 
 - **Asks:** when SwiftUI drops a row's `@State`: a row of a `List` and of a `LazyVStack` whose id leaves the
