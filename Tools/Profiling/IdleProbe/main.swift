@@ -200,7 +200,7 @@ private struct Presses: View {
     private static let writesInTask = environment["IDLE_PROBE_TASK_WRITE"] == "1"
     private static let frameSeconds = (Double(environment["IDLE_PROBE_FRAME_MS"] ?? "") ?? 0) / 1000
     private static let log: FileHandle? = environment["IDLE_PROBE_LOG"].flatMap { path in
-        FileManager.default.createFile(atPath: path, contents: nil)
+        _ = FileManager.default.createFile(atPath: path, contents: nil)
         return FileHandle(forWritingAtPath: path)
     }
 
