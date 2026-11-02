@@ -320,9 +320,9 @@ struct ClassicPlacementLayerTests {
     @Test("A block the host cannot be shown is not placed, and goes if it was")
     func keeping() {
         let layer = PicturePlacementLayer(z: PicturePlacementLayer.overCells)
-        layer.prepare(rows: [[run(0, height: 200)]]) { $0.run.height == 200 }
+        layer.prepare(rows: [[run(0, height: 200)]]) { $0.height == 200 ? $0 : nil }
         #expect(placed(layer).contains("a=p"))
-        layer.prepare(rows: [[run(0, height: 100)]]) { $0.run.height == 200 }
+        layer.prepare(rows: [[run(0, height: 100)]]) { $0.height == 200 ? $0 : nil }
         let out = placed(layer)
         #expect(!out.contains("a=p"))
         #expect(out.contains("a=d,d=i,i=9,p=1"))

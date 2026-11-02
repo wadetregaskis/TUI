@@ -14,7 +14,8 @@ import TUIFoundation
 /// on a frosted picture (``PictureUnderTextMarker``), at `z=-1` — below the
 /// glyphs, above the cells' default field (graphics notes §14.5). The other
 /// draws every picture on a host with no Unicode placeholders
-/// (`KittyGraphics.drawsPicturesByClassicPlacement`, §15).
+/// (`KittyGraphics.drawsPicturesByClassicPlacement`, §15), each block an image of
+/// its own there if the host ignores a source rectangle.
 ///
 /// ## Blocks
 ///
@@ -23,6 +24,10 @@ import TUIFoundation
 /// cell of whose frost backdrop is marked, it is the whole glass, placed once:
 /// the terminal scales it as one picture, so no seam shows where one row's
 /// crop or one run's would meet the next (§14.6).
+///
+/// Whatever shape a clip or a cover leaves of a picture, its blocks are rectangles
+/// of whole cells that cover what is left exactly, and do not overlap: each run is
+/// in one block, and a run's cells are the picture's cells the row still shows.
 ///
 /// ## What it keeps
 ///
@@ -96,10 +101,15 @@ final class PicturePlacementLayer {
     /// Works out what this frame owes the terminal for `rows`, one entry per
     /// screen row in screen order.
     ///
-    /// - Parameter keeping: Which blocks to place, for a host that can draw only
-    ///   some of them. Asked after their placement ids are given out, so a block
-    ///   left out does not renumber the ones beside it.
-    func prepare(rows: [[PictureUnderTextMarker.Run]], keeping: ((Block) -> Bool)? = nil) {
+    /// - Parameter drawing: What to place for a block's run, for a host that can
+    ///   draw only some runs as they are, or `nil` for a block it cannot draw at
+    ///   all. Asked after their placement ids are given out, so a block left out
+    ///   does not renumber the ones beside it, and in placement order, as it may
+    ///   send an image, so a frame's bytes do not depend on a dictionary's order.
+    func prepare(
+        rows: [[PictureUnderTextMarker.Run]],
+        drawing: ((PictureUnderTextMarker.Run) -> PictureUnderTextMarker.Run?)? = nil
+    ) {
         places.removeAll(keepingCapacity: true)
         if isInvalid {
             deletes += everyPlacement()
@@ -107,7 +117,12 @@ final class PicturePlacementLayer {
             isInvalid = false
         }
         var wanted = Self.blocks(of: rows)
-        if let keeping { wanted = wanted.filter { keeping($0.value) } }
+        if let drawing {
+            for placement in wanted.keys.sorted() {
+                guard let block = wanted[placement] else { continue }
+                wanted[placement] = drawing(block.run).map { Block(row: block.row, rows: block.rows, run: $0) }
+            }
+        }
         for (placement, before) in placed where wanted[placement] == nil {
             deletes.append((before.run.image, placement))
         }

@@ -4,6 +4,11 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**On Warp, a picture partly covered or clipped draws the part that shows.** Warp ignores a placement's source rectangle, so
+a picture with a view over it, or scrolled partly out of sight, used to be blank until it was whole again. What is left of it
+now goes as images of just those pixels, one for each rectangle of cells, kept for when they are asked for again. No other
+terminal is sent a byte more.
+
 **A view of yours doesn't run `body` on a frame where nothing it depends on changed, as in SwiftUI.** What it holds is
 compared, field by field, with no `Equatable` asked of it, and the picture it drew is handed back: two sibling bodies of
 50 ms beside a written leaf took 201 ms a key before this and take 1 ms. A closure or a `Binding` it holds counts as

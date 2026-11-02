@@ -4788,11 +4788,16 @@ reports, asked off row 1, as `CSI 1;m R` is a modified F3. A transmission that m
 virtual placement that moves it was read as a classic one, whatever was
 answered. A classic placement that moves it was placed, answer or none.
 
+- **WezTerm** passes `x,y,w,h` on as `source_origin_x` and `source_width` to
+  `assign_image_to_cells` (`kitty.rs`, read 2026-11-02). So it crops, as Konsole does,
+  and Warp is the only host known to ignore the source rectangle.
+
 What TUI does with it: a host with no placeholders draws `Image` by classic
 placements at `z=1` over blank cells (graphics notes §15). Warp, ignoring the
-source rectangle, is sent whole pictures only, by a table of one
-(`TerminalClient.classicPlacementsCrop`): a picture partly covered or clipped there
-is blank until it is whole.
+source rectangle, by a table of one (`TerminalClient.classicPlacementsCrop`), is sent
+each rectangle a cover or a clip leaves of a picture as an image of its own. Measured
+2026-11-02: a view in the middle of a picture, over a corner, two views, and a scroll
+clip all drew exactly, with no seam showing; bytes in graphics notes §15.
 
 ### A picture under text: a classic placement at z=-1 — measured 2026-10-26, Ghostty 1.3.1 and iTerm2 3.7.6
 

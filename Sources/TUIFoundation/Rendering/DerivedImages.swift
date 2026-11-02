@@ -108,6 +108,10 @@ struct DerivedImages {
     /// copies from (a fade, a veil), whose detail a small copy loses: a
     /// photograph a screen wide. A larger picture's copies are made from its
     /// small copy, soft rather than unbounded.
+    ///
+    /// Not a limit on a host that ignores a source rectangle, where a partly
+    /// covered picture is drawn from these pixels (``cropped(_:x:y:width:height:sent:)``),
+    /// and a limit would make a large one soft only there.
     static let fullPixelLimit = 4 << 20
 
     /// A picture's small copy, as RGBA bytes, and its derived copies.
@@ -168,7 +172,7 @@ struct DerivedImages {
             columns: columns, rows: rows, across: pixelsPerCell.across, down: pixelsPerCell.down,
             pixels: Self.downsampled(
                 pixels, to: (columns * pixelsPerCell.across, rows * pixelsPerCell.down)))
-        if keepsOwnPixels, pixels.width * pixels.height * 4 <= Self.fullPixelLimit {
+        if keepsOwnPixels, pixels.width * pixels.height * 4 <= Self.fullPixelLimit || !KittyGraphics.classicPlacementsCrop {
             source.full = (Self.rgba(pixels), pixels.width, pixels.height)
         }
         sources[id] = source
@@ -313,6 +317,60 @@ struct DerivedImages {
         let bottom = (row + 1) * copy.sentHeight / source.rows
         guard right > left, bottom > top else { return nil }
         return (left, top, right - left, bottom - top)
+    }
+
+    /// The rectangle of image `id` — a picture, or a copy of one — that its pixels
+    /// as `sent` count `x`, `y`, `width` and `height` across, as RGBA, from the
+    /// finest pixels kept: what a host that ignores a source rectangle is sent
+    /// instead of it (``CroppedImages``). `nil` for an unknown image.
+    ///
+    /// A picture's own pixels where they were kept, a copy's changed as its
+    /// picture's were, and otherwise the small copy, at its fewer pixels.
+    func cropped(
+        _ id: KittyGraphics.ImageID, x: Int, y: Int, width: Int, height: Int, sent: (width: Int, height: Int)
+    ) -> (bytes: [UInt8], width: Int, height: Int)? {
+        func cut(_ image: (bytes: [UInt8], width: Int, height: Int)) -> (bytes: [UInt8], width: Int, height: Int)? {
+            Self.cutting(image, x: x, y: y, width: width, height: height, sent: sent)
+        }
+        if let source = sources[id] {
+            return cut(source.full ?? (source.pixels, source.width, source.height))
+        }
+        guard let origin = origins[id], let source = sources[origin.source],
+            let copy = source.copies[origin.transform]
+        else { return nil }
+        // As ``make(of:by:as:)`` chose: an unblurred copy changes each pixel alone,
+        // so changing only the pixels cut is the same as cutting the changed ones.
+        if !origin.transform.blurs, let full = source.full, let part = cut(full) {
+            let changed = Self.applying(origin.transform, to: part.bytes, width: part.width, height: part.height)
+            return (changed, part.width, part.height)
+        }
+        return cut((copy.pixels, source.width, source.height))
+    }
+
+    /// The rectangle of `image` that pixels as `sent` count `x`, `y`, `width` and
+    /// `height` across: edges at `x × image.width / sent.width`, rounded down, so a
+    /// rectangle's right edge is the next one's left, and a pixel at least each way.
+    /// `nil` where it falls outside.
+    static func cutting(
+        _ image: (bytes: [UInt8], width: Int, height: Int), x: Int, y: Int, width: Int, height: Int,
+        sent: (width: Int, height: Int)
+    ) -> (bytes: [UInt8], width: Int, height: Int)? {
+        guard sent.width > 0, sent.height > 0, image.width > 0, image.height > 0, x >= 0, y >= 0,
+            image.bytes.count >= image.width * image.height * 4
+        else { return nil }
+        let left = x * image.width / sent.width
+        let top = y * image.height / sent.height
+        let right = max(left + 1, (x + width) * image.width / sent.width)
+        let bottom = max(top + 1, (y + height) * image.height / sent.height)
+        guard right <= image.width, bottom <= image.height else { return nil }
+        let across = right - left
+        var out: [UInt8] = []
+        out.reserveCapacity(across * (bottom - top) * 4)
+        for row in top..<bottom {
+            let start = (row * image.width + left) * 4
+            out += image.bytes[start..<(start + across * 4)]
+        }
+        return (out, across, bottom - top)
     }
 
     /// The average colour of cell (`column`, `row`) of picture `id` changed by

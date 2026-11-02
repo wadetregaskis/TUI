@@ -560,9 +560,9 @@ Windows Terminal (§6.5). "Measured" is on this machine.
 Two things follow.
 
 **The iTerm2 protocol reaches no one Sixel does not.** Five of those fourteen have
-`File=` (mintty, mlterm, Tabby, Hyper, VS Code), and all five have Sixel too. Its
-one remaining use would be cropping on Warp, which ignores Kitty's source rectangle
-(§15), at the price of a PNG encoder and a host table. Not worth it **[inferred]**.
+`File=` (mintty, mlterm, Tabby, Hyper, VS Code), and all five have Sixel too. It was
+once a way to crop on Warp, which ignores Kitty's source rectangle, and Warp is now
+sent cropped copies in the Kitty protocol instead (§15).
 
 **The last group stays on glyphs for good.** Nothing here helps Apple Terminal or
 Alacritty. Half blocks remain the universal path.
@@ -1679,17 +1679,45 @@ while a run is on screen (`marksOnScreen`), as it does not for the other two kin
 of mark. A suspend and a quit delete the placements.
 
 **Warp ignores the source rectangle.** Every spelling drew the whole picture, and
-no reply shows it, so `classicPlacementsCrop` is a table of one. There a block that
-is not a whole picture is not placed, because the picture would be drawn entire in
-the crop's cells. So on Warp, a picture a modal covers part of, or a scroll view
-clips, draws blank cells until it is whole. A veil or a fade over ALL of one still
-draws: its copy is a whole picture of its own. Warp also ignores `z`, and draws
-over the text; TUI's blank cells make that no matter.
+no reply shows it, so `classicPlacementsCrop` is a table of one. A crop placed there
+would draw the whole picture in the crop's cells, so each block that is not a whole
+picture is sent as an image of its own, of just its pixels, and placed whole
+(`TerminalImageStore.croppedRun`, `CroppedImages`). The blocks are already rectangles
+of whole cells that cover what a clip or a cover leaves, with no overlap, whatever its
+shape: a view in the middle of a picture leaves four, one over a corner two, and a
+scroll clip one. No other host is known to need this: Ghostty and iTerm2 were
+measured to crop, and Konsole and WezTerm crop in their source. Warp also ignores
+`z`, and draws over the text; TUI's blank cells make that no matter.
+
+The pixels are the store's: a picture's own where it kept them, a copy's changed as
+its picture's were, and otherwise the small copy, at 2 x 4 pixels a cell. Where
+`classicPlacementsCrop` is `false` it keeps a picture's own pixels whatever their size
+(`DerivedImages.fullPixelLimit` does not apply) and a playing picture's frames' as
+well, so that host pays one RGBA copy of what the terminal already holds. A crop holds
+no pixels here. One in use stays. What is left in the terminal for a crop to be asked
+for again keeps to 64 crops and 32 MiB, least recently used going first, and a crop
+goes with its picture.
+
+Measured in Warp v0.2026.10.21, 2026-11-02, looked at and through a proxy logging the
+app's bytes (photo 448 x 343 px, deflated, 345 KB whole):
+
+| | Bytes | Images sent |
+|---|---|---|
+| A view appears in the middle | 334 KB | 4 |
+| Moves to a corner | 360 KB | 2 |
+| Two views | 316 KB | 3 |
+| A step of a scroll, 266 x 279 px of a logo zoomed 3x | 83 to 109 KB | 1 |
+| The same step back, its crop still held | about 450 B | 0 |
+
+No seam showed where the rectangles meet, at the eagle's face at twice the size.
+
+Only the host that needs this pays for it. Elsewhere `prepare`'s closure is `nil` and
+the placements are the ones they were.
 
 **What is not done.**
 
-- A snapshot (`ViewRenderer`) draws blank cells there: it keeps no placement to
-  delete and its image goes with it.
+- A snapshot (`ViewRenderer`) draws blank cells on a host with no placeholders: it
+  keeps no placement to delete and its image goes with it.
 - A host's quota can evict an image with no placement (the spec's rule) and under
   `q=2` the placement of it is then silently nothing. The hairlines delete a strip
   rather than risk this. A picture's image is held by the store while a view draws

@@ -284,8 +284,11 @@ extension _ImageCore {
                 token: token, signature: signature,
                 columns: target.width, rows: target.height,
                 // A frame's own pixels, kept beside a picture to make its copies
-                // from, would be a second copy of every frame.
-                keepsOwnPixels: playing == nil,
+                // from, would be a second copy of every frame: paid for only on a
+                // host that needs them to draw a playing picture partly covered,
+                // and bounded there by the frames kept in the terminal
+                // (``ImageAnimationPlayback/terminalByteBudget``).
+                keepsOwnPixels: playing == nil || !KittyGraphics.classicPlacementsCrop,
                 pixels: {
                     // Only on a miss: this resamples and recolours the decoded
                     // image and can be megabytes. The common case, by a wide

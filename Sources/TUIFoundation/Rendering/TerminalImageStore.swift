@@ -215,6 +215,9 @@ package final class TerminalImageStore {
     private var retiring: [KittyGraphics.ImageID] = []
     /// Copies of the pictures, changed for a translucent layer over them.
     private var derivedImages = DerivedImages()
+    /// Rectangles of the pictures and their copies, sent as pictures of their own
+    /// to a host that ignores a source rectangle.
+    private var crops = CroppedImages()
     private var nextID: KittyGraphics.ImageID = 1
     /// The next image's arrival.
     private var nextArrival = 0
@@ -539,6 +542,48 @@ package final class TerminalImageStore {
         return run.x == 0 && run.y == 0 && run.width == size.width && run.height == size.height
     }
 
+    /// `run` as a host that ignores a source rectangle can draw it
+    /// (``KittyGraphics/classicPlacementsCrop``), or `nil` where it cannot: as it
+    /// is if it is all of its image's pixels, and otherwise all of an image of just
+    /// those pixels, sent first if the terminal does not hold it. Sent by
+    /// ``takePending()``, so ask before the frame's placements.
+    package func croppedRun(_ run: PictureUnderTextMarker.Run) -> PictureUnderTextMarker.Run? {
+        if isWholePicture(run) { return run }
+        guard let size = pixelSize(of: run.image) else { return nil }
+        let key = CroppedImages.Key(image: run.image, x: run.x, y: run.y, width: run.width, height: run.height)
+        var drawn = run
+        drawn.x = 0
+        drawn.y = 0
+        if let crop = crops.use(key) {
+            drawn.image = crop.id
+            drawn.width = crop.width
+            drawn.height = crop.height
+            return drawn
+        }
+        guard
+            let pixels = derivedImages.cropped(
+                run.image, x: run.x, y: run.y, width: run.width, height: run.height, sent: size)
+        else { return nil }
+        let id = claimID()
+        let transmit = KittyGraphics.transmit(
+            pixels: pixels.bytes, format: .rgba, width: pixels.width, height: pixels.height, id: id,
+            compressed: KittyGraphics.isCompressionSupported)
+        guard !transmit.isEmpty else { return nil }
+        pending += transmit
+        crops.add(key, id: id, width: pixels.width, height: pixels.height)
+        _generation += 1
+        drawn.image = id
+        drawn.width = pixels.width
+        drawn.height = pixels.height
+        return drawn
+    }
+
+    /// Ends a frame's ``croppedRun(_:)``s: the crops past their limits go, after
+    /// the frame's cells as every delete does (``CroppedImages``).
+    package func endCroppedFrame() {
+        for id in crops.endFrame() { retire(id) }
+    }
+
     /// The size image `id` — a picture, or a copy of one — was sent at.
     private func pixelSize(of id: KittyGraphics.ImageID) -> (width: Int, height: Int)? {
         images[id]?.pixelSize ?? derivedImages.sentSize(ofCopy: id)
@@ -631,6 +676,7 @@ package final class TerminalImageStore {
         entries.removeAll()
         for backdrop in backdrops { derivedImages.forget(backdrop.id) }
         backdrops.removeAll()
+        crops = CroppedImages()
         _generation += 1
     }
 
@@ -657,6 +703,7 @@ package final class TerminalImageStore {
             [$0.id] + derivedImages.copyIDs(of: $0.id)
         }
         for backdrop in backdrops { ids += derivedImages.copyIDs(of: backdrop.id) }
+        ids += crops.ids
         for id in retiring + ids {
             let delete = KittyGraphics.delete(id: id)
             guard farewell.utf8.count + delete.utf8.count <= limit else { break }
@@ -739,6 +786,8 @@ package final class TerminalImageStore {
         retiring.append(id)
         // The delete takes the image's placements with it, the scaled one too.
         scaledBoxes[id] = nil
+        // A crop is of pixels that have gone, and nothing can ask for it again.
+        for crop in crops.forget(image: id) { retire(crop) }
     }
 
     private func file(_ image: Image) {
@@ -781,7 +830,7 @@ package final class TerminalImageStore {
             let candidate = nextID
             nextID = candidate >= KittyGraphics.maximumImageID - 2 ? 1 : candidate + 1
             if images[candidate] == nil, !derivedImages.isCopy(candidate), !isBackdrop(candidate),
-                !retiring.contains(candidate)
+                !retiring.contains(candidate), crops.isEmpty || !crops.contains(candidate)
             {
                 return candidate
             }

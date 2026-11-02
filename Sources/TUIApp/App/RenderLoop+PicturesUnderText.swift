@@ -33,10 +33,10 @@ extension RenderLoop {
     ///
     /// A static read and nothing else on a host with placeholders.
     ///
-    /// On a host that ignores a source rectangle only a whole picture is placed,
-    /// since a crop would draw the whole picture in the crop's cells: over whatever
-    /// a modal or a clip left beside it. So a picture partly covered or clipped
-    /// there draws nothing but its blank cells until it is whole again
+    /// On a host that ignores a source rectangle a crop would draw the whole picture
+    /// in the crop's cells: over whatever a modal or a clip left beside it. So each
+    /// block that is not a whole picture is placed as an image of its own, of just
+    /// its pixels, sent here since the frame's other images have already gone
     /// (`Terminal graphics protocols.md` §15).
     ///
     /// - Returns: Whether the layer has placements and deletes to write in the
@@ -47,8 +47,14 @@ extension RenderLoop {
         let store = tuiContext.terminalImageStore
         var rows: [[PictureUnderTextMarker.Run]] = []
         if drawn { rows = diffWriter.imagePlaceholderRows.map { $0.compactMap { store.placementRun(for: $0) } } }
-        classicPictures.prepare(
-            rows: rows, keeping: KittyGraphics.classicPlacementsCrop ? nil : { store.isWholePicture($0.run) })
+        let crops = KittyGraphics.classicPlacementsCrop
+        classicPictures.prepare(rows: rows, drawing: crops ? nil : { store.croppedRun($0) })
+        if !crops {
+            store.endCroppedFrame()
+            // Ahead of the cells and outside the hold, as `writeFrame`'s images are.
+            let sent = store.takePending()
+            if !sent.isEmpty { terminal.write(sent) }
+        }
         return true
     }
 

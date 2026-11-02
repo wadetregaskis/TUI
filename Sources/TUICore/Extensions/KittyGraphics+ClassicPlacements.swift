@@ -112,9 +112,10 @@ extension KittyGraphics {
 
     /// Whether such a host honours a placement's source rectangle: a table, as no
     /// reply shows it. `false` on Warp, measured to draw the whole picture for
-    /// every crop. **Defaults to `true`**, the protocol's word.
+    /// every crop. Where it is `false`, a rectangle of a picture is sent as an image
+    /// of its own. **Defaults to `true`**, the protocol's word.
     package static var classicPlacementsCrop: Bool {
-        get { processClassicPlacementsCrop.load(ordering: .relaxed) }
+        get { taskClassicPlacementsCrop ?? processClassicPlacementsCrop.load(ordering: .relaxed) }
         set { processClassicPlacementsCrop.store(newValue, ordering: .relaxed) }
     }
 
@@ -125,6 +126,16 @@ extension KittyGraphics {
 
     /// A task-scoped pin, bound by ``withClassicPlacements(_:operation:)``.
     @TaskLocal private static var taskClassicPlacements: Bool?
+
+    /// A task-scoped pin, bound by ``withClassicPlacementsCrop(_:operation:)``.
+    @TaskLocal private static var taskClassicPlacementsCrop: Bool?
+
+    /// Runs `operation` with ``classicPlacementsCrop`` pinned on this task only:
+    /// tests run in parallel.
+    @discardableResult
+    package static func withClassicPlacementsCrop<T>(_ crops: Bool, operation: () throws -> T) rethrows -> T {
+        try $taskClassicPlacementsCrop.withValue(crops, operation: operation)
+    }
 
     /// Runs `operation` with `drawsPicturesByClassicPlacement` pinned on this
     /// task only: tests run in parallel.
