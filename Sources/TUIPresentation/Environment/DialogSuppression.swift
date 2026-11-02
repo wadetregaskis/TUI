@@ -191,13 +191,19 @@ struct _AlertFooter: View, Renderable, Layoutable {
             context: context.withChildIdentity(type: _AlertButtons.self, index: ChildIndex.buttons))
         guard let suppression else { return buttonsBuffer }
         let toggle = TUIView.renderToBuffer(
-            suppression.toggle,
+            toggleView(suppression),
             context: context.withChildIdentity(type: DialogSuppression.self, index: ChildIndex.toggle))
         let inset = max(0, (buttonsBuffer.width - toggle.width) / 2)
         var result = FrameBuffer(emptyWithWidth: inset, height: toggle.height)
         result.appendHorizontally(toggle)
         result.appendVertically(buttonsBuffer, spacing: Self.toggleSpacing)
         return result
+    }
+
+    /// The toggle at its own width. Given the footer's, it takes all of it, with
+    /// its box at the leading edge, and there is nothing left to centre.
+    private func toggleView(_ suppression: DialogSuppression) -> some View {
+        suppression.toggle.fixedSize()
     }
 
     /// The blank rows between the toggle and the buttons.
@@ -209,7 +215,7 @@ struct _AlertFooter: View, Renderable, Layoutable {
             context: context.withChildIdentity(type: _AlertButtons.self, index: ChildIndex.buttons))
         guard let suppression else { return buttonsSize }
         let toggleSize = measureChild(
-            suppression.toggle, proposal: proposal,
+            toggleView(suppression), proposal: proposal,
             context: context.withChildIdentity(type: DialogSuppression.self, index: ChildIndex.toggle))
         return ViewSize(
             width: max(buttonsSize.width, toggleSize.width),

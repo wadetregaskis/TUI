@@ -165,6 +165,24 @@ struct DialogModifierTests {
         #expect(screen(suppressible(Flags(), label: "Never ask")).contains { $0.stripped.contains("Never ask") })
     }
 
+    @Test("A toggle shorter than the dialog is centred in it, rather than filling it from the leading edge")
+    func shortSuppressionToggleIsCentred() throws {
+        let view = Text("base")
+            .alert(
+                "Erase?", isPresented: .constant(true), actions: { Button("Erase") {} },
+                message: { Text("A message a good deal wider than the toggle below it.") }
+            )
+            .dialogSuppressionToggle("Never", isSuppressed: .constant(false))
+        let lines = screen(view).map(\.stripped)
+        let row = Array(try #require(lines.first { $0.contains("Never") }))
+        let left = try #require(row.firstIndex(of: "│"))
+        let right = try #require(row.lastIndex(of: "│"))
+        let drawn = row.indices.filter { $0 > left && $0 < right && row[$0] != " " }
+        let first = try #require(drawn.first)
+        let last = try #require(drawn.last)
+        #expect(abs((first - left) - (right - last)) <= 1, "centred in the dialog: \(lines)")
+    }
+
     @Test("The alert's button keeps the opening focus; the toggle is a Tab away and writes the binding")
     func suppressionFocusAndBinding() {
         let harness = InputChainHarness(width: 60, height: 16)
