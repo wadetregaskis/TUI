@@ -292,6 +292,19 @@ package struct ANSIRowCells: Sendable {
 
         var differs = [Bool](repeating: false, count: width)
         var any = false
+        forEachDifference(from: previous, columns: 0..<width) { column in
+            differs[column] = true
+            any = true
+        }
+        guard any else { return .identical }
+        return .spans(
+            spans(covering: differs, width: width, mergingGapsUpTo: gap, emitted: &emitted))
+    }
+
+    /// Calls `body` with each column in `columns` that shows something different
+    /// from the same column of `previous`, in order.
+    @inline(__always)
+    private func forEachDifference(from previous: Self, columns: Range<Int>, _ body: (Int) -> Void) {
         // Style comparisons repeat for every column of a run, so the last
         // answer is kept: a row passes through a handful of distinct styles, not
         // one per cell. Two answers per pair, because what counts as the same
@@ -300,10 +313,9 @@ package struct ANSIRowCells: Sendable {
         var lastPair = (-1, -1)
         var lastPairEqual = true
         var lastPairBlankEqual = true
-        for column in 0..<width {
+        for column in columns {
             if cells[column] != previous.cells[column] {
-                differs[column] = true
-                any = true
+                body(column)
                 continue
             }
             let pair = (styleRun[column], previous.styleRun[column])
@@ -318,14 +330,8 @@ package struct ANSIRowCells: Sendable {
             // than what its styling says. Most of a terminal UI is blank cells
             // carrying a foreground colour nobody can see.
             let same = cells[column] == " " ? lastPairBlankEqual : lastPairEqual
-            if !same {
-                differs[column] = true
-                any = true
-            }
+            if !same { body(column) }
         }
-        guard any else { return .identical }
-        return .spans(
-            spans(covering: differs, width: width, mergingGapsUpTo: gap, emitted: &emitted))
     }
 
     /// The runs to write, from the columns that differ: consecutive differing
