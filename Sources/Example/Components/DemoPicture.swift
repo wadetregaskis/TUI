@@ -3,7 +3,7 @@
 //
 //  The pictures the image page carries, to flick between without finding one
 //  of your own: the mascot of each platform TUI runs on, the one it is
-//  running on shown first, and a photograph.
+//  running on shown first, a photograph, and a little animation.
 //
 //  Credits and licences are in THIRD-PARTY-NOTICES.md.
 //
@@ -30,6 +30,7 @@ enum DemoPicture: CaseIterable {
     case linux
     case wasm
     case photo
+    case animation
 
     /// The mascot of the platform the Example is running on: Lil' Finder Guy
     /// on macOS, Tux on Linux, Touko Madobe on Windows, and the Swift
@@ -68,6 +69,7 @@ enum DemoPicture: CaseIterable {
         case .windows: ("mascot-windows", "jpg")
         case .wasm: ("mascot-wasm", "png")
         case .photo: ("demo-image", "jpg")
+        case .animation: ("bouncing-ball", "gif")
         }
     }
 
@@ -88,6 +90,7 @@ enum DemoPicture: CaseIterable {
         case .windows: "Touko Madobe"
         case .wasm: "Swift"
         case .photo: "Eagle"
+        case .animation: "Bouncing Ball"
         }
     }
 
@@ -107,6 +110,7 @@ enum DemoPicture: CaseIterable {
         case .windows: "picture:touko"
         case .wasm: "picture:swift"
         case .photo: "picture:eagle"
+        case .animation: "picture:ball"
         }
     }
 
