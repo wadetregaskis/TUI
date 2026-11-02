@@ -3,7 +3,7 @@
 Written by a probe and never by hand. These are the evidence behind the
 tables in `Documentation/Terminals/Terminal compatibility survey.md`. The doc explains what
 the numbers *mean*; these say who measured what, when, and under which
-conditions. Sixteen kinds of file live here:
+conditions. Twenty kinds of file live here:
 
 - **`width-corpus.json`** — the shared cluster corpus: every cluster the
   probes measure and the Swift tests ask about, one id per row, duplicated
@@ -19,6 +19,11 @@ conditions. Sixteen kinds of file live here:
   corpus row no landing record has yet measured must be listed in the
   suite's `awaitingLandingMeasurement` set, so its absence cannot read as
   a pass.
+- **`<terminal>-<version>-scroll.json`** — MOVING A BAND (`scroll_region_probe.py`): per operation,
+  the hypothesis the pixels matched, and how many cells each hypothesis got wrong; **`<terminal>-<version>-scroll-replay.json`**,
+  the pixel differential of a session's frames at two levels; **`<terminal>-<version>-scroll-cpu.json`**, the terminal's
+  CPU time over the same notches sent two ways; **`tmux-<version>-scroll.json`** (`tmux_scroll_probe.py`), the bytes tmux
+  sends its client.
 - **`<terminal>-<version>-hyperlinks.json`** — OSC 8 SAFETY records
   (`hyperlink_probe.py`): the DSR column after a known-width label wrapped
   in each spelling of the sequence, on both screen buffers, against the same

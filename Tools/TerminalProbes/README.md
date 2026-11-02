@@ -18,6 +18,15 @@ when unset), the visual/aspect probes print to the terminal.
   wrong. Verified — with Warp's Plane-16 case removed, every row still summed
   to the terminal width while every SF Symbol sheared a cell. Found three real
   shears on 2026-08-26 that no unit test saw.
+- `scroll_region_probe.py` — what a host does when told to move a band of rows: DECSTBM with
+  SU, SD, IL, DL, IND and RI, DECSLRM margins, DECCRA, and what happens to a Kitty placement,
+  a placeholder or a compensated emoji row in the band, read off its pixels. Two halves: `card`
+  runs in the terminal, `drive` launches it (never `-e` on Ghostty) and captures the screen, and
+  `drive --replay` plays a `Stress` session's frames two ways and compares their pixels, `drive --cpu`
+  reads the terminal's CPU time over the same notches sent two ways. The survey's "Moving a band of rows".
+- `tmux_scroll_probe.py` — what tmux sends its CLIENT when an app in a pane scrolls, holds a
+  frame, or changes one cell, per layout; `--app` for a real TUI app in the pane. No GUI. The survey's
+  "tmux repaints a held pane".
 - `probe_stamp.py` — not a probe: the shared provenance stamp every probe
   result carries (date, OS, terminal version, screen buffer, and DEC mode 2027,
   the two conditions this project has been bitten by not recording). It asks

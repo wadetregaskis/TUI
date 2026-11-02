@@ -1,0 +1,189 @@
+{
+ "terminal": "ghostty",
+ "geometry": {
+  "ready": true,
+  "cols": 56,
+  "rows": 19
+ },
+ "date": "2026-11-01",
+ "table": [
+  {
+   "workload": "wheel 3 rows at 30/s",
+   "kind": "whole",
+   "repeat": 0,
+   "cpu_s": 0.31999999999999984,
+   "idle_cpu_s": 0.020000000000000018,
+   "bytes": 391200,
+   "elapsed_s": 10.010171332999999
+  },
+  {
+   "workload": "wheel 3 rows at 30/s",
+   "kind": "region",
+   "repeat": 0,
+   "cpu_s": 0.2999999999999998,
+   "idle_cpu_s": 0.020000000000000018,
+   "bytes": 76500,
+   "elapsed_s": 10.008249249999999
+  },
+  {
+   "workload": "wheel 3 rows at 30/s",
+   "kind": "whole",
+   "repeat": 1,
+   "cpu_s": 0.28000000000000025,
+   "idle_cpu_s": 0.020000000000000018,
+   "bytes": 391200,
+   "elapsed_s": 10.009225417000003
+  },
+  {
+   "workload": "wheel 3 rows at 30/s",
+   "kind": "region",
+   "repeat": 1,
+   "cpu_s": 0.2799999999999998,
+   "idle_cpu_s": 0.020000000000000018,
+   "bytes": 76500,
+   "elapsed_s": 10.001700042000003
+  },
+  {
+   "workload": "wheel 3 rows at 30/s",
+   "kind": "whole",
+   "repeat": 2,
+   "cpu_s": 0.28000000000000025,
+   "idle_cpu_s": 0.020000000000000018,
+   "bytes": 391200,
+   "elapsed_s": 10.010137083000004
+  },
+  {
+   "workload": "wheel 3 rows at 30/s",
+   "kind": "region",
+   "repeat": 2,
+   "cpu_s": 0.3600000000000003,
+   "idle_cpu_s": 0.020000000000000018,
+   "bytes": 76500,
+   "elapsed_s": 10.00398541700001
+  },
+  {
+   "workload": "held key 1 row at 30/s",
+   "kind": "whole",
+   "repeat": 0,
+   "cpu_s": 0.27999999999999936,
+   "idle_cpu_s": 0.019999999999999574,
+   "bytes": 391200,
+   "elapsed_s": 10.010496000000003
+  },
+  {
+   "workload": "held key 1 row at 30/s",
+   "kind": "region",
+   "repeat": 0,
+   "cpu_s": 0.3100000000000005,
+   "idle_cpu_s": 0.019999999999999574,
+   "bytes": 36300,
+   "elapsed_s": 10.010177040999992
+  },
+  {
+   "workload": "held key 1 row at 30/s",
+   "kind": "whole",
+   "repeat": 1,
+   "cpu_s": 0.3100000000000005,
+   "idle_cpu_s": 0.019999999999999574,
+   "bytes": 391200,
+   "elapsed_s": 10.010138584000003
+  },
+  {
+   "workload": "held key 1 row at 30/s",
+   "kind": "region",
+   "repeat": 1,
+   "cpu_s": 0.27999999999999936,
+   "idle_cpu_s": 0.019999999999999574,
+   "bytes": 36300,
+   "elapsed_s": 10.010556209000015
+  },
+  {
+   "workload": "held key 1 row at 30/s",
+   "kind": "whole",
+   "repeat": 2,
+   "cpu_s": 0.28000000000000025,
+   "idle_cpu_s": 0.020000000000000462,
+   "bytes": 391200,
+   "elapsed_s": 10.010573000000022
+  },
+  {
+   "workload": "held key 1 row at 30/s",
+   "kind": "region",
+   "repeat": 2,
+   "cpu_s": 0.3100000000000005,
+   "idle_cpu_s": 0.020000000000000462,
+   "bytes": 36300,
+   "elapsed_s": 10.010156749999993
+  },
+  {
+   "workload": "smooth 1 row at 120/s",
+   "kind": "whole",
+   "repeat": 0,
+   "cpu_s": 0.2599999999999998,
+   "idle_cpu_s": 0.009999999999999787,
+   "bytes": 782400,
+   "elapsed_s": 5.003380749999991
+  },
+  {
+   "workload": "smooth 1 row at 120/s",
+   "kind": "region",
+   "repeat": 0,
+   "cpu_s": 0.23000000000000043,
+   "idle_cpu_s": 0.009999999999999787,
+   "bytes": 72600,
+   "elapsed_s": 5.003282999999982
+  },
+  {
+   "workload": "smooth 1 row at 120/s",
+   "kind": "whole",
+   "repeat": 1,
+   "cpu_s": 0.27999999999999936,
+   "idle_cpu_s": 0.009999999999999787,
+   "bytes": 782400,
+   "elapsed_s": 5.002875582999991
+  },
+  {
+   "workload": "smooth 1 row at 120/s",
+   "kind": "region",
+   "repeat": 1,
+   "cpu_s": 0.23000000000000043,
+   "idle_cpu_s": 0.009999999999999787,
+   "bytes": 72600,
+   "elapsed_s": 5.003021249999989
+  },
+  {
+   "workload": "smooth 1 row at 120/s",
+   "kind": "whole",
+   "repeat": 2,
+   "cpu_s": 0.2699999999999996,
+   "idle_cpu_s": 0.009999999999999787,
+   "bytes": 782400,
+   "elapsed_s": 5.003011583000017
+  },
+  {
+   "workload": "smooth 1 row at 120/s",
+   "kind": "region",
+   "repeat": 2,
+   "cpu_s": 0.25,
+   "idle_cpu_s": 0.009999999999999787,
+   "bytes": 72600,
+   "elapsed_s": 5.003119291000019
+  },
+  {
+   "workload": "fenced, unpaced",
+   "kind": "whole",
+   "p50_ms": 0.1039579999826401,
+   "elapsed_s": 0.02302695799997423,
+   "cpu_s": 0.040000000000000924,
+   "bytes": 260800
+  },
+  {
+   "workload": "fenced, unpaced",
+   "kind": "region",
+   "p50_ms": 0.06191700001068057,
+   "elapsed_s": 0.013787541999988662,
+   "cpu_s": 0.02999999999999936,
+   "bytes": 51000
+  }
+ ]
+}

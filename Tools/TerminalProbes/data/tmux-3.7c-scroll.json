@@ -1,0 +1,430 @@
+{
+ "tmux": "tmux 3.7c",
+ "apps": [
+  {
+   "env": {},
+   "idle_bytes_per_second": 152292.2,
+   "bytes_per_down_key": 11332.4
+  },
+  {
+   "env": {
+    "TUI_SYNCHRONIZED_OUTPUT": "0"
+   },
+   "idle_bytes_per_second": 2154.0,
+   "bytes_per_down_key": 43.03333333333333
+  },
+  {
+   "env": {
+    "TUI_SYNCHRONIZED_OUTPUT": "0",
+    "TUI_SCROLL_OUTPUT": "exact"
+   },
+   "idle_bytes_per_second": 2154.0,
+   "bytes_per_down_key": 43.03333333333333
+  }
+ ],
+ "cols": 120,
+ "rows": 40,
+ "by": 3,
+ "date": "2026-11-01",
+ "cases": [
+  {
+   "layout": "alone",
+   "mode": "whole",
+   "bytes_per_notch": 6379.1,
+   "finals": {
+    "m": 6363,
+    "H": 1764,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1,
+    "?1002l": 1
+   },
+   "held": false,
+   "pane_matches_document": true
+  },
+  {
+   "layout": "alone",
+   "mode": "region",
+   "bytes_per_notch": 6349.175,
+   "finals": {
+    "m": 6363,
+    "H": 1605,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1,
+    "?1002l": 1
+   },
+   "held": false,
+   "pane_matches_document": true
+  },
+  {
+   "layout": "alone",
+   "mode": "cell",
+   "bytes_per_notch": 6352.025,
+   "finals": {
+    "m": 6363,
+    "H": 1644,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1,
+    "?1002l": 1
+   },
+   "held": false,
+   "pane_matches_document": null
+  },
+  {
+   "layout": "alone",
+   "mode": "whole-nosync",
+   "bytes_per_notch": 5245.175,
+   "finals": {
+    "H": 1605,
+    "m": 763,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1,
+    "?1002l": 1
+   },
+   "held": false,
+   "pane_matches_document": true
+  },
+  {
+   "layout": "alone",
+   "mode": "region-nosync",
+   "bytes_per_notch": 625.375,
+   "finals": {
+    "m": 283,
+    "H": 245,
+    "K": 120,
+    "r": 81,
+    "S": 40,
+    "d": 40,
+    "A": 40,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1
+   },
+   "held": false,
+   "pane_matches_document": true
+  },
+  {
+   "layout": "alone",
+   "mode": "region-nosync,pen",
+   "bytes_per_notch": 625.375,
+   "finals": {
+    "m": 283,
+    "H": 245,
+    "K": 120,
+    "r": 81,
+    "S": 40,
+    "d": 40,
+    "A": 40,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1
+   },
+   "held": false,
+   "pane_matches_document": true
+  },
+  {
+   "layout": "alone",
+   "mode": "cell-nosync",
+   "bytes_per_notch": 191.225,
+   "finals": {
+    "m": 283,
+    "H": 46,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1,
+    "?1002l": 1
+   },
+   "held": false,
+   "pane_matches_document": null
+  },
+  {
+   "layout": "above",
+   "mode": "whole",
+   "bytes_per_notch": 3138.425,
+   "finals": {
+    "m": 3087,
+    "H": 867,
+    "K": 19,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1
+   },
+   "held": false,
+   "pane_matches_document": true
+  },
+  {
+   "layout": "above",
+   "mode": "region",
+   "bytes_per_notch": 3120.425,
+   "finals": {
+    "m": 3087,
+    "H": 787,
+    "K": 19,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1
+   },
+   "held": false,
+   "pane_matches_document": true
+  },
+  {
+   "layout": "above",
+   "mode": "cell",
+   "bytes_per_notch": 3127.1,
+   "finals": {
+    "m": 3087,
+    "H": 826,
+    "K": 19,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1
+   },
+   "held": false,
+   "pane_matches_document": null
+  },
+  {
+   "layout": "above",
+   "mode": "whole-nosync",
+   "bytes_per_notch": 2600.425,
+   "finals": {
+    "H": 787,
+    "m": 447,
+    "K": 19,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1
+   },
+   "held": false,
+   "pane_matches_document": true
+  },
+  {
+   "layout": "above",
+   "mode": "region-nosync",
+   "bytes_per_notch": 568.6,
+   "finals": {
+    "H": 228,
+    "m": 207,
+    "K": 139,
+    "r": 81,
+    "S": 40,
+    "d": 40,
+    "A": 40,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1
+   },
+   "held": false,
+   "pane_matches_document": true
+  },
+  {
+   "layout": "above",
+   "mode": "region-nosync,pen",
+   "bytes_per_notch": 568.6,
+   "finals": {
+    "H": 228,
+    "m": 207,
+    "K": 139,
+    "r": 81,
+    "S": 40,
+    "d": 40,
+    "A": 40,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1
+   },
+   "held": false,
+   "pane_matches_document": true
+  },
+  {
+   "layout": "above",
+   "mode": "cell-nosync",
+   "bytes_per_notch": 133.425,
+   "finals": {
+    "m": 207,
+    "H": 28,
+    "K": 19,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1
+   },
+   "held": false,
+   "pane_matches_document": null
+  },
+  {
+   "layout": "beside",
+   "mode": "whole",
+   "bytes_per_notch": 3994.125,
+   "finals": {
+    "m": 6367,
+    "H": 1762,
+    "K": 39,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1
+   },
+   "held": false,
+   "pane_matches_document": true
+  },
+  {
+   "layout": "beside",
+   "mode": "region",
+   "bytes_per_notch": 3977.35,
+   "finals": {
+    "m": 6367,
+    "H": 1683,
+    "K": 39,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1
+   },
+   "held": false,
+   "pane_matches_document": true
+  },
+  {
+   "layout": "beside",
+   "mode": "cell",
+   "bytes_per_notch": 3984.025,
+   "finals": {
+    "m": 6367,
+    "H": 1722,
+    "K": 39,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1
+   },
+   "held": false,
+   "pane_matches_document": null
+  },
+  {
+   "layout": "beside",
+   "mode": "whole-nosync",
+   "bytes_per_notch": 2817.35,
+   "finals": {
+    "H": 1683,
+    "m": 527,
+    "K": 39,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1
+   },
+   "held": false,
+   "pane_matches_document": true
+  },
+  {
+   "layout": "beside",
+   "mode": "region-nosync",
+   "bytes_per_notch": 3977.35,
+   "finals": {
+    "m": 6367,
+    "H": 1683,
+    "K": 39,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1
+   },
+   "held": false,
+   "pane_matches_document": true
+  },
+  {
+   "layout": "beside",
+   "mode": "region-nosync,pen",
+   "bytes_per_notch": 3977.35,
+   "finals": {
+    "m": 6367,
+    "H": 1683,
+    "K": 39,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1
+   },
+   "held": false,
+   "pane_matches_document": true
+  },
+  {
+   "layout": "beside",
+   "mode": "cell-nosync",
+   "bytes_per_notch": 159.35,
+   "finals": {
+    "m": 287,
+    "H": 124,
+    "K": 39,
+    "X": 2,
+    "C": 2,
+    "?7727h": 1,
+    "?12l": 1,
+    "?25h": 1,
+    "?1006l": 1,
+    "?1000l": 1
+   },
+   "held": false,
+   "pane_matches_document": null
+  }
+ ]
+}

@@ -1,0 +1,83 @@
+{
+ "terminal": "ghostty",
+ "program": "ghostty",
+ "version": "1.4.0",
+ "level": "margins",
+ "cols": 56,
+ "rows": 19,
+ "date": "2026-11-01",
+ "sessions": [
+  {
+   "session": "log",
+   "stops": [
+    2,
+    40,
+    66,
+    88,
+    107,
+    121,
+    150
+   ],
+   "moved_steps": 74,
+   "off_bytes": 96215,
+   "level_bytes": 59302,
+   "stops_compared": 7,
+   "differing_stops": [],
+   "worst_pixels": 0
+  },
+  {
+   "session": "inbox",
+   "stops": [
+    45,
+    50,
+    68,
+    88,
+    102,
+    134,
+    150
+   ],
+   "moved_steps": 24,
+   "off_bytes": 29253,
+   "level_bytes": 23483,
+   "stops_compared": 7,
+   "differing_stops": [],
+   "worst_pixels": 0
+  },
+  {
+   "session": "chat",
+   "stops": [
+    6,
+    35,
+    64,
+    76,
+    84,
+    89,
+    150
+   ],
+   "moved_steps": 23,
+   "off_bytes": 33648,
+   "level_bytes": 25405,
+   "stops_compared": 7,
+   "differing_stops": [],
+   "worst_pixels": 0
+  },
+  {
+   "session": "processes",
+   "stops": [
+    13,
+    36,
+    95,
+    128,
+    140,
+    146,
+    150
+   ],
+   "moved_steps": 30,
+   "off_bytes": 49615,
+   "level_bytes": 38634,
+   "stops_compared": 7,
+   "differing_stops": [],
+   "worst_pixels": 0
+  }
+ ]
+}

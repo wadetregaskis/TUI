@@ -1,0 +1,83 @@
+{
+ "terminal": "iterm2",
+ "program": "iTerm.app",
+ "version": "3.7.6",
+ "level": "margins",
+ "cols": 80,
+ "rows": 25,
+ "date": "2026-11-01",
+ "sessions": [
+  {
+   "session": "log",
+   "stops": [
+    2,
+    40,
+    54,
+    88,
+    104,
+    120,
+    150
+   ],
+   "moved_steps": 75,
+   "off_bytes": 175928,
+   "level_bytes": 87070,
+   "stops_compared": 7,
+   "differing_stops": [],
+   "worst_pixels": 0
+  },
+  {
+   "session": "inbox",
+   "stops": [
+    45,
+    72,
+    88,
+    95,
+    127,
+    147,
+    150
+   ],
+   "moved_steps": 18,
+   "off_bytes": 41326,
+   "level_bytes": 28528,
+   "stops_compared": 7,
+   "differing_stops": [],
+   "worst_pixels": 0
+  },
+  {
+   "session": "chat",
+   "stops": [
+    6,
+    61,
+    66,
+    79,
+    89,
+    100,
+    150
+   ],
+   "moved_steps": 25,
+   "off_bytes": 61558,
+   "level_bytes": 44040,
+   "stops_compared": 7,
+   "differing_stops": [],
+   "worst_pixels": 0
+  },
+  {
+   "session": "processes",
+   "stops": [
+    12,
+    22,
+    35,
+    39,
+    121,
+    136,
+    150
+   ],
+   "moved_steps": 21,
+   "off_bytes": 85900,
+   "level_bytes": 69277,
+   "stops_compared": 7,
+   "differing_stops": [],
+   "worst_pixels": 0
+  }
+ ]
+}

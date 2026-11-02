@@ -1,0 +1,83 @@
+{
+ "terminal": "apple",
+ "program": "Apple_Terminal",
+ "version": "455.1",
+ "level": "exact",
+ "cols": 80,
+ "rows": 24,
+ "date": "2026-11-01",
+ "sessions": [
+  {
+   "session": "log",
+   "stops": [
+    2,
+    41,
+    55,
+    89,
+    107,
+    124,
+    150
+   ],
+   "moved_steps": 78,
+   "off_bytes": 168325,
+   "level_bytes": 85890,
+   "stops_compared": 7,
+   "differing_stops": [],
+   "worst_pixels": 0
+  },
+  {
+   "session": "inbox",
+   "stops": [
+    45,
+    72,
+    88,
+    95,
+    127,
+    147,
+    150
+   ],
+   "moved_steps": 18,
+   "off_bytes": 39693,
+   "level_bytes": 28192,
+   "stops_compared": 7,
+   "differing_stops": [],
+   "worst_pixels": 0
+  },
+  {
+   "session": "chat",
+   "stops": [
+    6,
+    37,
+    65,
+    84,
+    90,
+    101,
+    150
+   ],
+   "moved_steps": 24,
+   "off_bytes": 52687,
+   "level_bytes": 42827,
+   "stops_compared": 7,
+   "differing_stops": [],
+   "worst_pixels": 0
+  },
+  {
+   "session": "processes",
+   "stops": [
+    13,
+    28,
+    39,
+    118,
+    133,
+    140,
+    150
+   ],
+   "moved_steps": 28,
+   "off_bytes": 89412,
+   "level_bytes": 71207,
+   "stops_compared": 7,
+   "differing_stops": [],
+   "worst_pixels": 0
+  }
+ ]
+}

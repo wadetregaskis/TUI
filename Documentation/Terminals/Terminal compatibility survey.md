@@ -6752,7 +6752,7 @@ rendered frame included.
 | kitty, Warp | hypothesis: yes | unknown |
 | Apple Terminal 455.1 | hypothesis: no, ignored | — |
 | GNOME Terminal 3.56.2 | no (DECRQM `?2026` reports permanently reset `0`, measured 2026-10-23) | — |
-| tmux 3.7c | unknown, and unknown whether a pane's hold reaches the client | unknown |
+| tmux 3.7c | **takes the pane's hold, does not forward it, and at its end repaints the whole pane at the client** (measured 2026-11-01, below) | unknown |
 
 Ghostty's facts are read from its source on 2026-10-04, not measured. A
 process killed mid-frame (SIGKILL, which no handler sees) freezes Ghostty's
@@ -6764,6 +6764,23 @@ do about that is specific to the hold: a stopped process also leaves raw mode,
 the alternate screen and mouse tracking on. The window is one frame's write.
 `Ctrl-Z` is `SIGTSTP`, which TUI handles: its suspend sends the end marker
 first.
+
+### tmux repaints a held pane — measured 2026-11-01, tmux 3.7c
+
+`Tools/TerminalProbes/tmux_scroll_probe.py` plays the terminal on a pty, and counts what tmux sends its client, which is
+what travels over ssh. A pane of 120×39, in a client with `TERM=xterm-256color`:
+
+| The app writes | Held (`?2026`) | Not held |
+|---|---:|---:|
+| One cell | **6,198 bytes** | 38 bytes |
+| Every row, dissimilar | 6,225 | 5,091 |
+| A region, SU, and the 3 rows it exposes | 6,195 | 472 |
+
+Beside another pane, so not full width, tmux redraws the region itself: 3,891 with or without a hold, against 2,731 for whole
+rows not held. No `?2026` reached the client in any of these. So **TUI, which holds every frame that writes a row, repaints the whole pane
+on every frame under tmux.** Example on its Lists page in a pane: 153,192 bytes a second idle, and 10,356 per Down key, against
+2,148 and 39 with `TUI_SYNCHRONIZED_OUTPUT=0`. Not changed yet. See the recommendation in
+`Documentation/Performance/Scroll regions for output.md`.
 
 ### To measure — `Tools/TerminalProbes/sync_probe.py`
 
@@ -6794,9 +6811,9 @@ off wrote 211 KB, the drag's frame count moving with its timing.
 | Host | Pair prints nothing | DECRQM `?2026` | Hold timeout | Tearing on `splitdrag`, off → on |
 |---|---|---|---|---|
 | Apple Terminal | UNMEASURED | not asked | UNMEASURED | UNMEASURED |
-| iTerm2 | clean, 3.7.3 | `reset`, 3.7.3 | UNMEASURED | UNMEASURED |
-| Ghostty | clean, 1.3.1 | `reset`, 1.3.1 | UNMEASURED | UNMEASURED |
-| Warp | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| iTerm2 | clean, 3.7.3 | `reset`, 3.7.3 and 3.7.6 | UNMEASURED | UNMEASURED |
+| Ghostty | clean, 1.3.1 | `reset`, 1.3.1 and 1.4.0 | UNMEASURED | UNMEASURED |
+| Warp | UNMEASURED | `reset`, v0.2026.10.21 (`scroll_region_probe.py`) | UNMEASURED | UNMEASURED |
 | kitty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
 | tmux in Ghostty, in iTerm2 | UNMEASURED | UNMEASURED (the pane's) | UNMEASURED | UNMEASURED |
 
@@ -7215,7 +7232,7 @@ anything else, `Terminal.inheritedDefaults`:
 
 | Sequence | Puts back | What it cost when left changed |
 |---|---|---|
-| `CSI r` | the scrolling region (DECSTBM) to the whole screen | scrolling confined to the old region. With origin mode off no absolute cursor move minds a region, and no frame scrolls today; hardware scrolling (O2 in the adoption plan) will, with a region of its own |
+| `CSI r` | the scrolling region (DECSTBM) to the whole screen | scrolling confined to the old region. With origin mode off no absolute cursor move minds a region, and no frame scrolls today unless `TUI_SCROLL_OUTPUT` says so: a prototype of hardware scrolling (O2 in the adoption plan; `Documentation/Performance/Scroll regions for output.md`) sets a region of its own and lets it go in the same write |
 | `CSI ? 69 l` | left-right margin mode (DECLRMM) off, and with it any left and right margins (DECSLRM) | every row stopped (autowrap off) or wrapped (on) at the old right margin, and `CSI s` read as DECSLRM rather than a cursor save. tmux sets such margins where the terminal has them |
 | `CSI ? 6 l` | origin mode (DECOM) off | every row and column number taken relative to the region and margins and clamped into them: what offsets or clamps a frame |
 | `CSI ? 1 l` | normal cursor keys (DECCKM) | arrows, Home and End sent as `ESC O A`… |
@@ -7251,6 +7268,53 @@ where `?69h` took; elsewhere it is a cursor save, harmless.)
 Found by reading Ghostty's VT reference (`Documentation/Terminals/Ghostty VT reference adoption study.md`,
 K2). It must land before any hardware scrolling (O2 there), which sets a
 region of its own and must not inherit one.
+
+## Moving a band of rows: DECSTBM, DECSLRM, DECCRA — measured 2026-11-01
+
+Off by default, behind `TUI_SCROLL_OUTPUT`: `FrameDiffWriter` can move a band rather than rewrite it. The study is
+`Documentation/Performance/Scroll regions for output.md`. This section is what the hosts did, read off their pixels by
+`Tools/TerminalProbes/scroll_region_probe.py`: a grid of colours painted, one operation, the whole screen captured, each
+cell's colour compared with each hypothesis. Records: `data/*-scroll.json`. Operations are sent in held updates only where
+the row says so, in the alternate screen, with the pen's background set to a colour of its own so the exposed rows
+say what they were filled with.
+
+| | Apple Terminal 455.1 | iTerm2 3.7.6 | Ghostty 1.4.0 | Warp v0.2026.10.21.08.25 |
+|---|---|---|---|---|
+| `CSI 5;14 r`, `CSI 2 S`, `CSI r`; and `CSI 2 T` | as told | as told | as told | as told |
+| The same, in a held update (2026) | as told | as told | as told | as told |
+| `CSI 2 M`, `CSI 2 L` at the region's top | as told | as told | as told | as told |
+| IND twice at the bottom margin, RI twice at the top | as told | as told | as told | as told |
+| What fills the exposed rows | the pen's background (BCE) | the pen's background | the pen's background | the pen's background |
+| The cursor after `CSI r` | home | home | home | home |
+| An absolute move with a region set | as told | as told | as told | as told |
+| DECSLRM: `CSI ? 69 h`, `CSI 11;70 s`, then SU, SD or DL | **ignored; the whole width moves** | as told | as told | **ignored; the whole width moves** |
+| DECRQM `?69` | not asked (it prints) | 2, reset | 2, reset | no reply |
+| DECRQM `?2026` | not asked | 2, reset | 2, reset | 2, reset |
+| DECCRA, `CSI 7;11;14;70;1;5;11;1 $ v` | ignored, nothing printed | **done, with the destination's row and column swapped** | ignored | ignored |
+| A Kitty classic placement (`a=T,p=1,c=,r=`) on rows of the band, SU and SD | — | **stays where it was placed** | **moves with the band** | stays where it was placed |
+| A Kitty Unicode placeholder on rows of the band | — | moves (it is text) | moves (it is text) | not conclusive: a dialog covered part of the card |
+| A treated VS-16 row and a treated flag row, scrolled, then a marker written at column 40 | lands at column 40, as with no scroll | column 40 | column 40 | column 40 |
+
+**What this settles.**
+
+- SU and SD are safe on all four. Nothing needs IND, RI, IL or DL.
+- **DECSLRM ignored is not harmless:** the region still scrolls, across the whole width, so a writer that believed its
+  margins has a screen wrong in the columns it left alone. It cannot be sent on a guess, and the question is the shape Apple
+  Terminal prints. By named host, then: iTerm2 and Ghostty.
+- DECCRA helps nobody: three of the four cannot do it as written.
+- A classic placement is a fact the hosts disagree on, so `HairlineLayer` and `PictureUnderTextLayer`, which keep a model of
+  what the terminal holds, cannot have a band move behind them. The writer refuses to move anything while a mark is on screen.
+- **Apple Terminal's row store travels with the row**, for the two treated classes tried (VS-16: `ECH 2`, glyph, `CUF 1`; a
+  flag: `CUB 1`, `DCH 1`, `CUF 1`). Not the whole table of treatments; a row carrying the quirk is refused there anyway.
+
+kitty 0.49.1 cannot open a window on this VM (OpenGL 3.3), xterm, foot and WezTerm are not installed: all UNMEASURED.
+
+**The pixel differential.** `scroll_region_probe.py drive --replay` plays one session's frames twice on the terminal, `off`
+and scrolling, as held updates, and compares the two pictures at the same steps. No pixel differed on any host: see the
+study. Apple Terminal at `exact`, Warp at `residue`, iTerm2 and Ghostty at `margins`.
+
+**A crash.** `Terminal.outputModesOff` owes `ESC 7`, `CSI r`, `CSI ? 69 l`, `ESC 8` when scrolling is on, so a signal in
+the middle of a frame cannot leave the shell a region. SIGSEGV, SIGQUIT and SIGTERM each paid it on a real process.
 
 ## Autowrap off while the app runs — since 2026-10-05, NOT yet measured; not on Apple Terminal
 

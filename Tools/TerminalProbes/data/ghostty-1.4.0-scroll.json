@@ -1,0 +1,296 @@
+{
+ "terminal": "ghostty",
+ "program": "ghostty",
+ "version": "1.4.0",
+ "modes": {
+  "2026": 2,
+  "69": 2
+ },
+ "date": "2026-11-01",
+ "results": [
+  {
+   "test": "SU 2 in DECSTBM",
+   "cursor_after": [
+    1,
+    1
+   ],
+   "verdict": "as told, exposed in the background in force (BCE)",
+   "wrong_cells": {
+    "as told, exposed in the background in force (BCE)": 0,
+    "as told, exposed in the default background": 112,
+    "the whole width moved instead, BCE": 0,
+    "the whole width moved instead, default": 112,
+    "nothing moved": 560
+   },
+   "cells": 1064
+  },
+  {
+   "test": "SD 2 in DECSTBM",
+   "cursor_after": [
+    1,
+    1
+   ],
+   "verdict": "as told, exposed in the background in force (BCE)",
+   "wrong_cells": {
+    "as told, exposed in the background in force (BCE)": 0,
+    "as told, exposed in the default background": 112,
+    "the whole width moved instead, BCE": 0,
+    "the whole width moved instead, default": 112,
+    "nothing moved": 560
+   },
+   "cells": 1064
+  },
+  {
+   "test": "SU 2, DECSTBM still set after",
+   "cursor_after": [
+    1,
+    1
+   ],
+   "verdict": "as told, exposed in the background in force (BCE)",
+   "wrong_cells": {
+    "as told, exposed in the background in force (BCE)": 0,
+    "as told, exposed in the default background": 112,
+    "the whole width moved instead, BCE": 0,
+    "the whole width moved instead, default": 112,
+    "nothing moved": 560
+   },
+   "cells": 1064
+  },
+  {
+   "test": "DL 2 at the region's top",
+   "cursor_after": [
+    1,
+    1
+   ],
+   "verdict": "as told, exposed in the background in force (BCE)",
+   "wrong_cells": {
+    "as told, exposed in the background in force (BCE)": 0,
+    "as told, exposed in the default background": 112,
+    "the whole width moved instead, BCE": 0,
+    "the whole width moved instead, default": 112,
+    "nothing moved": 560
+   },
+   "cells": 1064
+  },
+  {
+   "test": "IL 2 at the region's top",
+   "cursor_after": [
+    1,
+    1
+   ],
+   "verdict": "as told, exposed in the background in force (BCE)",
+   "wrong_cells": {
+    "as told, exposed in the background in force (BCE)": 0,
+    "as told, exposed in the default background": 112,
+    "the whole width moved instead, BCE": 0,
+    "the whole width moved instead, default": 112,
+    "nothing moved": 560
+   },
+   "cells": 1064
+  },
+  {
+   "test": "IND twice at the bottom margin",
+   "cursor_after": [
+    1,
+    1
+   ],
+   "verdict": "as told, exposed in the background in force (BCE)",
+   "wrong_cells": {
+    "as told, exposed in the background in force (BCE)": 0,
+    "as told, exposed in the default background": 112,
+    "the whole width moved instead, BCE": 0,
+    "the whole width moved instead, default": 112,
+    "nothing moved": 560
+   },
+   "cells": 1064
+  },
+  {
+   "test": "RI twice at the top margin",
+   "cursor_after": [
+    1,
+    1
+   ],
+   "verdict": "as told, exposed in the background in force (BCE)",
+   "wrong_cells": {
+    "as told, exposed in the background in force (BCE)": 0,
+    "as told, exposed in the default background": 112,
+    "the whole width moved instead, BCE": 0,
+    "the whole width moved instead, default": 112,
+    "nothing moved": 560
+   },
+   "cells": 1064
+  },
+  {
+   "test": "SU 2 in DECSTBM + DECSLRM",
+   "cursor_after": [
+    1,
+    1
+   ],
+   "verdict": "as told, exposed in the background in force (BCE)",
+   "wrong_cells": {
+    "as told, exposed in the background in force (BCE)": 0,
+    "as told, exposed in the default background": 72,
+    "the whole width moved instead, BCE": 200,
+    "the whole width moved instead, default": 242,
+    "nothing moved": 360
+   },
+   "cells": 1064
+  },
+  {
+   "test": "SD 2 in DECSTBM + DECSLRM",
+   "cursor_after": [
+    1,
+    1
+   ],
+   "verdict": "as told, exposed in the background in force (BCE)",
+   "wrong_cells": {
+    "as told, exposed in the background in force (BCE)": 0,
+    "as told, exposed in the default background": 72,
+    "the whole width moved instead, BCE": 200,
+    "the whole width moved instead, default": 252,
+    "nothing moved": 360
+   },
+   "cells": 1064
+  },
+  {
+   "test": "DL 2 in DECSTBM + DECSLRM",
+   "cursor_after": [
+    1,
+    1
+   ],
+   "verdict": "as told, exposed in the background in force (BCE)",
+   "wrong_cells": {
+    "as told, exposed in the background in force (BCE)": 0,
+    "as told, exposed in the default background": 72,
+    "the whole width moved instead, BCE": 200,
+    "the whole width moved instead, default": 242,
+    "nothing moved": 360
+   },
+   "cells": 1064
+  },
+  {
+   "test": "DECCRA up 2",
+   "cursor_after": [
+    18,
+    1
+   ],
+   "verdict": "nothing moved",
+   "wrong_cells": {
+    "as told, source kept": 288,
+    "nothing moved": 0,
+    "destination row and column swapped": 288
+   },
+   "cells": 1064
+  },
+  {
+   "test": "SU 2 inside a held update (2026)",
+   "cursor_after": [
+    1,
+    1
+   ],
+   "verdict": "as told, exposed in the background in force (BCE)",
+   "wrong_cells": {
+    "as told, exposed in the background in force (BCE)": 0,
+    "as told, exposed in the default background": 112,
+    "the whole width moved instead, BCE": 0,
+    "the whole width moved instead, default": 112,
+    "nothing moved": 560
+   },
+   "cells": 1064
+  },
+  {
+   "test": "Absolute move with a region set",
+   "cursor_after": [
+    1,
+    1
+   ],
+   "verdict": "as told",
+   "wrong_cells": {
+    "as told": 0,
+    "nothing moved": 2
+   },
+   "cells": 1064
+  },
+  {
+   "test": "placement in a band, SU 2",
+   "cursor_after": null,
+   "verdict": "the picture moved with the band",
+   "wrong_cells": {
+    "the picture moved with the band": 0,
+    "the picture stayed where it was placed": 40,
+    "the picture went": 20
+   },
+   "cells": 1064
+  },
+  {
+   "test": "placement in a band, SD 2",
+   "cursor_after": null,
+   "verdict": "the picture moved with the band",
+   "wrong_cells": {
+    "the picture moved with the band": 0,
+    "the picture stayed where it was placed": 40,
+    "the picture went": 20
+   },
+   "cells": 1064
+  },
+  {
+   "test": "placeholder in a band, SU 2",
+   "cursor_after": null,
+   "verdict": "the picture moved with the band",
+   "wrong_cells": {
+    "the picture moved with the band": 0,
+    "the picture stayed where it was placed": 40,
+    "the picture went": 20
+   },
+   "cells": 1064
+  },
+  {
+   "test": "marker after a scroll over emoji rows, SU 2",
+   "cursor_after": null,
+   "verdict": [
+    {
+     "row": 6,
+     "marker_columns": [
+      40
+     ]
+    },
+    {
+     "row": 7,
+     "marker_columns": [
+      40
+     ]
+    },
+    {
+     "row": 8,
+     "marker_columns": [
+      40
+     ]
+    }
+   ]
+  },
+  {
+   "test": "marker with no scroll, emoji rows",
+   "cursor_after": null,
+   "verdict": [
+    {
+     "row": 8,
+     "marker_columns": [
+      40
+     ]
+    },
+    {
+     "row": 9,
+     "marker_columns": [
+      40
+     ]
+    },
+    {
+     "row": 10,
+     "marker_columns": [
+      40
+     ]
+    }
+   ]
+  }
+ ]
+}
