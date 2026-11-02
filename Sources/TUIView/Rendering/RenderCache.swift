@@ -619,6 +619,9 @@ import TUIStyling
     /// than drop it — see ``RevalidationState``.
     package let revalidation = RevalidationState()
 
+    /// The bodies this walk's measures evaluated: see ``BodyKeep``.
+    package let bodyKeep = BodyKeep()
+
     /// The memo on plain composites, and whether it is on: see ``PlainMemo``.
     package let plainMemo = PlainMemo()
 
@@ -1313,6 +1316,7 @@ extension RenderCache {
         frameCounter &+= 1
         // The measure memo is this frame's scratch space and nothing more.
         measureScratch.endOfPass(&measureEntries)
+        bodyKeep.beginPass()
         passLeases.removeAll(keepingCapacity: true)
         revalidation.beginPass()
         plainMemo.beginPass()
@@ -1332,6 +1336,7 @@ extension RenderCache {
         drainPendingInvalidations()
         measureEntries.removeAll(keepingCapacity: true)
         childViewEntries.removeAll(keepingCapacity: true)
+        bodyKeep.reset()
     }
 
     /// Records that a body of `reader` armed an observation registration under
@@ -1372,6 +1377,7 @@ extension RenderCache {
     /// Any entry whose identity was not marked active during this render pass
     /// is removed. Prevents memory leaks from permanently removed views.
     public func removeInactive() {
+        bodyKeep.reset()
         var retainedChecks = 0
         var retained = retainedIndex()
         // Read once: a read of a class's stored property is checked for

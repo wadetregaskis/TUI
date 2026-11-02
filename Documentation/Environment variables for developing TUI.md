@@ -54,6 +54,7 @@ Read by the library modules, for debugging them.
 | `TUI_DEBUG_FOCUS` | `1` | Logs the focus system, mouse dispatch and text fields to `/tmp/tui-debug.log`. Read once. |
 | `TUI_HEADLESS_STREAM` | A path | Writes every byte a `HeadlessApp` sends its terminal to that file, for the output tools. |
 | `TUI_OBSERVATION_RETIREMENT` | A name of `ObservationLeases.Retirement` | Which rule a new render cache cancels its observation scopes by, to compare them. `leases` by default. |
+| `TUI_KEEP_BODIES` | `0` | Turns off keeping what a measure of an app's slow `body` evaluated for the draw after it in the same walk, so that it runs twice, to compare. `all` keeps every body of an app's, however quick, for a run of the tests. |
 | `TUI_OPTION_C` | `0` | Turns off the render cache's re-checking of a row's value when its data moves (Option C), to compare with and without. |
 | `TUI_PLAIN_TEXT` | `1` or `0` | Sends the terminal ASCII alone, or doesn't, whatever the locale says. By default it's sent ASCII alone if `LC_ALL`, `LC_CTYPE` or `LANG`, whichever comes first, names a character set other than UTF-8; `C` and `POSIX` name none. For testing that: nothing should encourage it otherwise. Read once. |
 | `TUI_PLAIN_MEMO` | `1` | Turns on the memo on an app's plain composites, off by default: an unchanged view's `body` does not run at all. See `plain-body-memo-study.md` in the working notes. |

@@ -237,6 +237,21 @@ This path is used by:
 - **Composite views**: ``Card`` returns `content.padding().border(...)`, which wraps in a `ContainerView` (whose `_ContainerViewCore` is `Renderable`)
 - **User-defined views**: Your custom views compose other views in `body`
 
+A view's `body` runs on every frame, whether or not anything it depends on changed. SwiftUI would not run it at all unless something it holds or reads had changed. So a `body` that does real work, such as sorting a long array, costs that work every frame: once, after the first few frames, where one that takes no time at all may run twice, to be measured and to be drawn. If yours does, make the view `Equatable` and apply `.equatable()`: its `body` then runs only when `==` says the view changed, and `@State` and `@Observable` reads still bring it up to date.
+
+```swift
+struct SortedRows: View, Equatable {
+    let rows: [Row]
+
+    var body: some View {
+        ForEach(rows.sorted { $0.name < $1.name }) { RowView(row: $0) }
+    }
+}
+
+// In the parent:
+SortedRows(rows: rows).equatable()
+```
+
 ### The Dispatch Function
 
 The free function `renderToBuffer()` is the single entry point for all view rendering:

@@ -601,3 +601,4 @@ extension FocusState: PlaceBoundIdentity {
 }
 
 extension FocusState: _BoundFromTheWalk {}
+extension FocusState: _DecidedDuringTheWalk {}

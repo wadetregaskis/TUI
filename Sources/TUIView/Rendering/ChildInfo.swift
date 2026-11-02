@@ -956,15 +956,35 @@ private func measureCompositeBody<V: View>(
     // the render path puts it back (`StateStorage.restoreEnvironments(to:)`).
     let restoreDepth = context.stateStorage?.environmentRestoreDepth ?? 0
     defer { context.stateStorage?.restoreEnvironments(to: restoreDepth) }
+    // Evaluated once a walk and kept (`BodyKeep`), and so always observed, since
+    // the draw that takes it evaluates nothing to be observed under.
+    if let cache = context.renderCache, cache.bodyKeep.isSlow(V.self), cache.bodyKeep.mayKeep(view, plan: plan) {
+        if let kept = cache.bodyKeep.take(view, context: context, cache: cache) {
+            return measureChild(kept, proposal: proposal, context: childContext)
+        }
+        let mark = cache.leases.beginComputation()
+        let sentinel = cache.scopeSentinel(forReader: V.self, at: context.identity)
+        let body = withObservationTracking(
+            {
+                sentinel?.touch()
+                guard let plan else { return view.body }
+                return preparedBody(of: view, plan: plan, context: context, isMeasuring: true)
+            },
+            onChange: observedChange(of: context, kind: .bodyMeasure, reader: V.self, sentinel: sentinel))
+        let lease = cache.leases.endComputation(mark)
+        cache.bodyKeep.keep(body, of: view, lease: lease, context: context, cache: cache)
+        return measureChild(body, proposal: proposal, context: childContext)
+    }
     // As the render path evaluates it, `update()` inside the scope where there
     // is one: see `evaluateCompositeBody`.
     guard let cache = context.renderCache, cache.readingTypes.contains(V.self) else {
-        guard let plan else { return measureChild(view.body, proposal: proposal, context: childContext) }
-        return measureChild(
-            preparedBody(of: view, plan: plan, context: context, isMeasuring: true), proposal: proposal,
-            context: childContext)
+        let started = context.renderCache?.bodyKeep.startTiming()
+        let body = plan.map { preparedBody(of: view, plan: $0, context: context, isMeasuring: true) } ?? view.body
+        context.renderCache?.bodyKeep.noteEvaluation(of: V.self, since: started)
+        return measureChild(body, proposal: proposal, context: childContext)
     }
     let sentinel = cache.leases.isActive ? cache.leases.sentinel(at: context.identity) : nil
+    let started = cache.bodyKeep.startTiming()
     let body = withObservationTracking(
         {
             sentinel?.touch()
@@ -972,6 +992,7 @@ private func measureCompositeBody<V: View>(
             return preparedBody(of: view, plan: plan, context: context, isMeasuring: true)
         },
         onChange: observedChange(of: context, kind: .bodyMeasure, reader: V.self, sentinel: sentinel))
+    cache.bodyKeep.noteEvaluation(of: V.self, since: started)
     return measureChild(body, proposal: proposal, context: childContext)
 }
 

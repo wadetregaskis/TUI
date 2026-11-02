@@ -259,13 +259,33 @@ private func renderComposite<V: View>(_ view: V, context: RenderContext) -> Fram
     // while the body's content is drawn, and is put back after: a load
     // and a compare when it handed none (`StateStorage.restoreEnvironments(to:)`).
     let restoreDepth = context.stateStorage?.environmentRestoreDepth ?? 0
-    let body = evaluateCompositeBody(of: view, context: context)
+    let body = keptBody(of: view, context: context) ?? evaluateCompositeBody(of: view, context: context)
     let buffer = TUIView.renderToBuffer(body, context: childContext)
     context.stateStorage?.restoreEnvironments(to: restoreDepth)
     // What the body drew is all this view draws: a transition on the root of a
     // `body` leaves its picture a step below the address a `nil` claims.
     context.noteDepartureDrawnWhole(of: V.Body.self, at: childContext.identity, by: V.self)
     return buffer
+}
+
+/// What a measure of `view` evaluated this walk, prepared as an evaluation would
+/// have left it (`BodyKeep`), or `nil`.
+@inline(__always)
+@MainActor
+private func keptBody<V: View>(of view: V, context: RenderContext) -> V.Body? {
+    guard let cache = context.renderCache, !context.isMeasuring, cache.bodyKeep.hasKept else { return nil }
+    let plan = propertyPlan(for: V.self)
+    guard cache.bodyKeep.mayKeep(view, plan: plan),
+        let kept = cache.bodyKeep.take(view, context: context, cache: cache)
+    else { return nil }
+    if let plan {
+        var prepared = view
+        prepareProperties(
+            of: &prepared, plan: plan, identity: context.identity, storage: context.stateStorage,
+            environment: context.environment, isMeasuring: false)
+    }
+    context.stateStorage?.markActive(context.identity)
+    return kept
 }
 
 // MARK: - Evaluating a composite's body

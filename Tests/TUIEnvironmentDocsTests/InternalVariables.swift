@@ -11,8 +11,8 @@
 enum InternalVariables {
     /// Read by the framework, for debugging the framework.
     static let framework: Set<String> = [
-        "TUI_DEBUG_FOCUS", "TUI_HEADLESS_STREAM", "TUI_OBSERVATION_RETIREMENT", "TUI_OPTION_C", "TUI_PLAIN_MEMO",
-        "TUI_PLAIN_TEXT", "TUI_SCROLL_CENSUS", "TUI_SCROLL_OUTPUT", "TUI_STILL",
+        "TUI_DEBUG_FOCUS", "TUI_HEADLESS_STREAM", "TUI_KEEP_BODIES", "TUI_OBSERVATION_RETIREMENT", "TUI_OPTION_C",
+        "TUI_PLAIN_MEMO", "TUI_PLAIN_TEXT", "TUI_SCROLL_CENSUS", "TUI_SCROLL_OUTPUT", "TUI_STILL",
     ]
 
     /// Read by the Example and Stress targets alone, which aren't what an app links.

@@ -257,4 +257,6 @@ extension FocusedBinding: FrameworkDynamicProperty {}
 // Each reads a table it does not hold: a view holding one compares equal to
 // another reading a different focus. See `TypeWalk`.
 extension FocusedValue: _ReadsItsSource {}
+extension FocusedValue: _DecidedDuringTheWalk {}
 extension FocusedBinding: _ReadsItsSource {}
+extension FocusedBinding: _DecidedDuringTheWalk {}

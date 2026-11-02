@@ -301,6 +301,9 @@ struct ContentWidthChallengeTests {
         let rows = WidthBox(cells: Self.rows)
         let moving = MovingFlag()
         let tuiContext = TUIContext()
+        // Changes what a row reads between asks in one pass, which a real one never
+        // sees: a body kept for the pass would be what was first read.
+        tuiContext.renderCache.bodyKeep.isOn = false
         let ask = contentWidthAsks(
             tuiContext: tuiContext, rows: { rows.cells },
             row: { index in MaybeMovingRow(index: index, width: wide, moving: moving) })

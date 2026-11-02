@@ -204,6 +204,7 @@ extension ViewRenderer {
         )
         // In the pass, as the run loop draws a frame: a `@State` made in it
         // notes it (`StateStorage.inRenderPass(_:)`).
+        defer { context.renderCache.endOneOffWalk() }
         let buffer = context.stateStorage.inRenderPass { renderToBuffer(view, context: renderContext) }
         // Any image the view drew has to reach the terminal before the cells
         // that name it — the same ordering the run loop keeps at `beginFrame`,
