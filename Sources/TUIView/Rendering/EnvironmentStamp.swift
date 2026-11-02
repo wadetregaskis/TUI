@@ -219,11 +219,21 @@ package final class EnvironmentStamps {
     /// How each value type stored is compared, by the type's identity.
     private var valueRules: [ObjectIdentifier: ValueRule] = [:]
 
+    /// How many of this pass's environments are kept. Each is a dictionary of a
+    /// few KB that would otherwise be freed as the walk leaves it, and a page asks
+    /// about hundreds: all of them, kept to the pass's end, were 10 MB of
+    /// `session/notes`'s footprint, with nothing live to show for it. One let go
+    /// costs another walk of its keys if it is asked about again, and a stamp's
+    /// interning makes that the same stamp.
+    private static let passEnvironmentLimit = 32
+
     /// This pass's stamps by environment storage, and the environments
-    /// themselves, kept so that no storage word is reused within the pass by
-    /// another environment.
+    /// themselves, kept so that no storage word in the table is reused by another
+    /// environment: one let go leaves the table with it.
     private var passStamps: [UInt: EnvironmentStamp?] = [:]
     private var passEnvironments: [EnvironmentValues] = []
+    /// Where the next of ``passEnvironments`` goes, once they have come to the limit.
+    private var nextPassEnvironment = 0
     /// The last of ``passStamps`` asked for. Within the pass only, as the
     /// table is: its environment is kept alive by ``passEnvironments``.
     private var lastWord: UInt?
@@ -272,6 +282,7 @@ package final class EnvironmentStamps {
     package func endPass() {
         passStamps.removeAll(keepingCapacity: true)
         passEnvironments.removeAll(keepingCapacity: true)
+        nextPassEnvironment = 0
         lastWord = nil
         lastStamp = nil
         anchor = nil
@@ -307,11 +318,21 @@ package final class EnvironmentStamps {
             made = build(environment).map(intern)
             if let made, anchor == nil { setAnchor(environment, made) }
         }
-        passStamps[word] = made
-        passEnvironments.append(environment)
+        keepForThePass(environment, word: word, stamp: made)
         lastWord = word
         lastStamp = made
         return made
+    }
+
+    private func keepForThePass(_ environment: EnvironmentValues, word: UInt, stamp: EnvironmentStamp?) {
+        if passEnvironments.count < Self.passEnvironmentLimit {
+            passEnvironments.append(environment)
+        } else {
+            passStamps.removeValue(forKey: passEnvironments[nextPassEnvironment].storageWord)
+            passEnvironments[nextPassEnvironment] = environment
+            nextPassEnvironment = (nextPassEnvironment + 1) % Self.passEnvironmentLimit
+        }
+        passStamps[word] = stamp
     }
 
     /// The stamp made from `environment`, not interned.
