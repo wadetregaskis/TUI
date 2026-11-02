@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Observation
 import Testing
 
 import TUI
@@ -11,9 +12,12 @@ import TUI
 @testable import TUIFoundation
 @testable import TUITestSupport
 
-/// Which word a highlighter shows as chosen, kept outside the view so the test
+/// Which word a highlighter shows as chosen, observed since a body's read of a
+/// class nothing tracks stays as it was drawn, as in SwiftUI
+/// (`PlainMemoCorrectnessTests.untrackedRead`). Kept outside the view so the test
 /// can change it between frames as a write would.
 @MainActor
+@Observable
 private final class Chosen {
     var index = 0
 }

@@ -154,6 +154,8 @@ struct FilePanelIconTests {
     @Test("The icon modifier's environment value is the same from frame to frame")
     func appIconsCompareEqual() {
         let harness = InputChainHarness(width: 40, height: 4) { _ in }
+        // Asked of the second frame's walk, which the memo would serve.
+        harness.tui.renderCache.plainMemo.isOn = false
         var seen: [FileDialogItemViews?] = []
         // Made inside each pass, as an app's body makes it: a new modifier
         // value each frame, whose kept box is what makes the two equal.

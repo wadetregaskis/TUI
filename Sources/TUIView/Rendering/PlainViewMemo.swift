@@ -2,8 +2,9 @@
 //  PlainViewMemo.swift
 //
 //  A memo on the plain composites of an app: what stops a body running on a
-//  frame in which nothing it depends on changed, as SwiftUI's does not. Off
-//  unless `TUI_PLAIN_MEMO=1`. See Documentation/Working notes/plain-body-memo-study.md.
+//  frame in which nothing it depends on changed, as SwiftUI's does not.
+//  `TUI_RUN_BODY_ON_EVERY_FRAME=1` turns it off. See
+//  Documentation/Working notes/plain-body-memo-study.md.
 //
 //  It is the value memo (`renderValueMemoized`, `measureValueMemoized`), and so
 //  its journal, its leases, its verifiers, its store gates and its invalidations
@@ -19,10 +20,10 @@ import TUICore
 /// tables are.
 package final class PlainMemo {
     /// Whether composites are memoized under this cache. Read once a process
-    /// from `TUI_PLAIN_MEMO`; a test sets it per cache.
+    /// from `TUI_RUN_BODY_ON_EVERY_FRAME`; a test sets it per cache.
     package var isOn = PlainMemo.isOnByDefault
 
-    private static let isOnByDefault = ProcessInfo.processInfo.environment["TUI_PLAIN_MEMO"] == "1"
+    private static let isOnByDefault = ProcessInfo.processInfo.environment["TUI_RUN_BODY_ON_EVERY_FRAME"] != "1"
 
     /// Each type asked about: how its values compare, or `nil` for one that is
     /// not memoized.

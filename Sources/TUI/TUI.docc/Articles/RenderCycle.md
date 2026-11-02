@@ -237,7 +237,7 @@ This path is used by:
 - **Composite views**: ``Card`` returns `content.padding().border(...)`, which wraps in a `ContainerView` (whose `_ContainerViewCore` is `Renderable`)
 - **User-defined views**: Your custom views compose other views in `body`
 
-A view's `body` runs on every frame, whether or not anything it depends on changed. SwiftUI would not run it at all unless something it holds or reads had changed. So a `body` that does real work, such as sorting a long array, costs that work every frame: once, after the first few frames, where one that takes no time at all may run twice, to be measured and to be drawn. If yours does, make the view `Equatable` and apply `.equatable()`: its `body` then runs only when `==` says the view changed, and `@State` and `@Observable` reads still bring it up to date.
+A view of yours doesn't run its `body` on a frame where nothing it depends on changed, as in SwiftUI (<doc:RenderCycle#Memoizing-Your-Own-Views>). Where it does run, a `body` that does real work, such as sorting a long array, costs that work: once a frame, after the first few frames, where one that takes no time at all may run twice, to be measured and to be drawn. If the cache can't compare yours by what it holds, make the view `Equatable` and apply `.equatable()`: its `body` then runs only when `==` says the view changed, and `@State` and `@Observable` reads still bring it up to date.
 
 ```swift
 struct SortedRows: View, Equatable {
@@ -472,13 +472,13 @@ All terminal writes during a frame are collected in an internal `[UInt8]` buffer
 
 ### What Is NOT Diffed
 
-The view tree is re-evaluated each frame: there is no virtual DOM. However, views wrapped in ``EquatableView`` (via `.equatable()`) can skip subtree rendering when their properties are unchanged. See <doc:RenderCycle#Subtree-Memoization> below.
+The view tree is walked each frame: there is no virtual DOM. However, a view of yours whose fields are unchanged, and a view wrapped in ``EquatableView`` (via `.equatable()`), skip rendering their subtree. See <doc:RenderCycle#Subtree-Memoization> below.
 
 The alternate screen buffer (entered during setup) ensures that the user's previous terminal content is preserved and restored on exit.
 
 ## Subtree Memoization
 
-While the view tree is reconstructed each frame, ``EquatableView`` allows **individual subtrees** to skip rendering when their inputs haven't changed. This combines the simplicity of full tree evaluation with targeted caching for expensive or static subtrees.
+While the view tree is walked each frame, **individual subtrees** skip rendering when their inputs haven't changed: a view of your own by what it holds (<doc:RenderCycle#Memoizing-Your-Own-Views>), and one in ``EquatableView`` by its `==`. This combines the simplicity of full tree evaluation with caching for what stays the same.
 
 ### How It Works
 
@@ -645,7 +645,43 @@ row draws a title — is served showing the old title after the parent writes a
 new one, as SwiftUI would show it. Run with `TUI_VERIFY_RENDER_MEMO=1` to find
 such a row: every served buffer is drawn again and compared, and a mismatch is
 reported and the fresh one drawn (<doc:RenderCycle#Checking-What-the-Cache-Serves>).
-A row that is not `Equatable` is drawn again after its parent writes, as before.
+A view of your own, `Equatable` or not, is re-checked the same way, by what it
+holds (<doc:RenderCycle#Memoizing-Your-Own-Views>).
+
+### Memoizing Your Own Views
+
+A composite from the app's own modules is memoized without asking: this is the
+same memo as an `.equatable()` view's, with its journal, its leases and its
+verifiers, and what is new is the key. The framework's own composites are not,
+since their bodies only forward. Nor is a composite a `ForEach` row or an
+`.equatable()` holds at its own identity, whose value already says whether it
+changed. `TUI_RUN_BODY_ON_EVERY_FRAME=1` turns this memo off, for a program that
+goes stale.
+
+**What it compares.** Each field, by a comparison made once per type from its
+field metadata: `@State`, `@Environment`, `@FocusState` and `@Namespace` are
+skipped, since a write to them invalidates by itself; `==` where the field has
+it; a struct, a tuple, an optional by its parts; a class by identity. A type
+holding what can't be compared, an existential or a payload enum, isn't
+memoized. And the environment it is drawn under, by stamp, on every hit.
+
+**A closure or a `Binding`** has bytes that differ each time it is made, and
+TUI can't see what a closure captured. So there are two questions. Where nothing
+above the entry wrote, its parent's body ran only because the walk runs it, and
+by purity built the same closure: it is ignored. Below a parent's write the
+entry is re-checked (above), strictly: the closure counts as changed, since it
+may have captured what was written, and the view is drawn again.
+
+**The contract is SwiftUI's.** A read in `body` that nothing tracks, of a global,
+a plain class or the clock, stays as it was drawn until something else draws the
+view again. So do a body's side effects: a body that logs or counts doesn't, on a
+frame that serves it. `TUI_VERIFY_RENDER_MEMO=1` names such a view.
+
+**What stops asking.** A composite that has to be drawn on every frame, since its
+data moves, or something under it writes, or holds what can't be replayed, would
+pay to look and to keep and be served nothing. One whose attempt has failed twice
+running is left out of the memo for 4, 8 … up to 64 passes, and its children go on
+asking for themselves. One that is served is never left out.
 
 ### What Declines the Cache
 
@@ -916,9 +952,9 @@ Stress harness fails a run on any.
 
 Each frame TUI renders evaluates `app.body` again and walks the view tree from the root,
 so the views it meets are new values, built again by their parents' bodies. Not every body
-runs, though. A memoized subtree whose cached buffer is still valid, such as an
-`.equatable()` view or a `ForEach` row over an `Equatable` element, is served from the
-render cache, and nothing below it is visited. A lazy stack in a `ScrollView`, a `List` or
+runs, though. A memoized subtree whose cached buffer is still valid, such as a view of
+yours whose fields are unchanged, an `.equatable()` view or a `ForEach` row over an
+`Equatable` element, is served from the render cache, and nothing below it is visited. A lazy stack in a `ScrollView`, a `List` or
 a `Table` renders only the rows in its window. Either way, `@State` values persist: while a view stays in the
 tree, its state is never reset to its initial value.
 

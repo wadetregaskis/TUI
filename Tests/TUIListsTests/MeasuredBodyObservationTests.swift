@@ -166,6 +166,8 @@ struct MeasuredBodyObservationTests {
         let tui = TUIContext()
         // A slow body is kept for its draw, and so is observed here: `BodyKeepTests`.
         tui.renderCache.bodyKeep.isOn = false
+        // And a composite's own memo observes what it measures: `observingKeptResult`.
+        tui.renderCache.plainMemo.isOn = false
         let census = ObservationCensus()
         tui.renderCache.observationCensus = census
         for _ in 0..<3 { _ = observedFrame(HiddenPage(model: model), tui: tui, width: 20) }

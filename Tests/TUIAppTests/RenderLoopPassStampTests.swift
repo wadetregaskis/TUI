@@ -66,6 +66,8 @@ struct RenderLoopPassStampTests {
     func frameBindsItsRenderPass(run _: Int) {
         let log = PassLog()
         let app = TestApp(PassNotingApp(log: log), width: 20, height: 4)
+        // The view's body has to run in both frames to say so.
+        app.renderCache.plainMemo.isOn = false
         app.frame(atNanos: 0)
         app.frame(atNanos: 16_666_667)
         #expect(!log.appBody.isEmpty && !log.appBody.contains(0), "app body: \(log.appBody)")

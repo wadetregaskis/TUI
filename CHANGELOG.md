@@ -4,6 +4,13 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**A view of yours doesn't run `body` on a frame where nothing it depends on changed, as in SwiftUI.** What it holds is
+compared, field by field, with no `Equatable` asked of it, and the picture it drew is handed back: two sibling bodies of
+50 ms beside a written leaf took 201 ms a key before this and take 1 ms. A closure or a `Binding` it holds counts as
+changed only below a write. A read in `body` that nothing tracks, of a global, a plain class or the clock, now stays as it
+was drawn, as in SwiftUI, and a body's side effects don't happen on a frame that serves it. If part of a screen goes
+stale, `TUI_RUN_BODY_ON_EVERY_FRAME=1` runs every `body` on every frame, and `TUI_VERIFY_RENDER_MEMO=1` names the view.
+
 **`App.run()` runs an app you made yourself.** A program that works something out before starting its app, such as from
 its command line, makes the app with those values and calls `await Viewer(path: path).run()`, with no global to carry
 them. See `Starting an App Yourself` in `Scenes and Quitting`.

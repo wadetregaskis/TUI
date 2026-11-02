@@ -12,13 +12,17 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Observation
 import Testing
 
 import TUI
 @testable import TUIAppTestSupport
 @testable import TUITestSupport
 
+/// Observed: a body's read of a class nothing tracks stays as it was drawn, as in
+/// SwiftUI (`PlainMemoCorrectnessTests.untrackedRead`).
 @MainActor
+@Observable
 private final class Shown {
     var isShown = true
 }

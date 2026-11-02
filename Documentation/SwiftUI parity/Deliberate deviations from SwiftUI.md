@@ -640,35 +640,45 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 ---
 
-### S8. Only an `Equatable` row is re-checked after its parent writes, and its environment is compared whole
+### S8. A closure or `Binding` counts as changed below a parent's write, and an environment is compared whole
 
 - **SwiftUI:** when a parent's body runs again, compares each child's new value
   with its old one, and draws the child again only if the value changed or a
   dependency it tracked did — its state, an environment key it read, an
-  observed property it read. A partial `==`, or a read it cannot track, is
-  served stale (Apple's documentation of `Equatable` views and of the
-  Observation framework; the comparison of child values not measured).
-- **TUI:** re-checks a row kept below a parent's write — a view's own
-  `@State`, or an `@Observable` property its body read — only if the row's
-  view is `Equatable` and holds no `Binding` and no existential
-  (`RevalidationState.eligibility(ofRowsOf:)`); any other row is drawn again,
-  as before. A row of plain values is compared by its `==`, never by its bytes.
-  Its environment is compared whole — every key, but the few no row can draw
-  differently for — not key by key as the row read them
+  observed property it read. A child holding a `Binding`, or a closure whose
+  captures didn't change, stops being drawn again after a write or two; one
+  whose closure captured what changed goes on being drawn (measured:
+  `Tools/SwiftUIProbes/Plain body re-evaluation`). A partial `==`, or a read it
+  cannot track, is served stale.
+- **TUI:** does the same by comparing fields, for a `ForEach` row, an
+  `.equatable()` view and any composite from an app's own modules, and for those
+  serves stale as SwiftUI does what nothing tracks. Below a parent's write — a
+  view's own `@State`, or an `@Observable` property its body read — a closure or
+  a `Binding` in a composite counts as changed, for good, so the view is drawn
+  again each time; a `ForEach` row or `.equatable()` view holding either isn't
+  re-checked and is drawn again too. A type holding an existential isn't
+  memoized at all. A row of plain values is compared by its `==`, or by its
+  fields, never by its bytes. Its environment is compared whole — every key, but
+  the few no row can draw differently for — not key by key as the row read them
   ([RenderCycle.md](../../Sources/TUI/TUI.docc/Articles/RenderCycle.md),
-  "Re-checking Rows After a Parent Writes"; `RecheckTests`, `SoftDrainTests`,
-  `EnvironmentStampTests`). What a `ForEach` closure or a row's builder reads
-  marks every row below the row's parent for a re-check, rather than the one
-  row that read it.
-- **Why:** a row whose view is not `Equatable` could be compared only through
-  reflection, which cost `scrollfollow` +32% in Option C's first measurement
-  (2026-09-23); a `Binding`'s value is not in the bytes of the row that holds
-  it; comparing the environment whole costs one comparison per environment
-  instead of a record of every key each row read, and can only lose a saving,
-  never draw a wrong cell. A builder's reads are the parent's view of its rows,
+  "Re-checking Rows After a Parent Writes" and "Memoizing Your Own Views";
+  `RecheckTests`, `SoftDrainTests`, `EnvironmentStampTests`,
+  `PlainMemoCorrectnessTests`). What a `ForEach` closure or a row's builder reads
+  marks every row below the row's parent for a re-check, rather than the one row
+  that read it. Above no write, a closure or a `Binding` is ignored, since the
+  parent only ran because the walk runs it: there, TUI matches SwiftUI.
+- **Why:** TUI can't see into a closure's context without reflection the runtime
+  does not offer, and giving up can only lose a saving, never draw a wrong cell;
+  a `Binding`'s value is not in the bytes of the row that holds it; comparing the
+  environment whole costs one comparison per environment instead of a record of
+  every key each row read. A builder's reads are the parent's view of its rows,
   as SwiftUI re-evaluates a `ForEach` whose closure read what changed.
+  `TUI_RUN_BODY_ON_EVERY_FRAME=1` turns the memo on composites off: every
+  composite's `body` then runs each frame, and a read nothing tracks is refreshed
+  by any frame.
 - **Decided:** Option C, approved by the owner on 2026-09-26 and again on
-  2026-10-25 ("land convergence now, and then Option C"). Current.
+  2026-10-25 ("land convergence now, and then Option C"). The memo on an app's
+  composites, on by default, the owner on 2026-11-02. Current.
 
 ## Environment
 

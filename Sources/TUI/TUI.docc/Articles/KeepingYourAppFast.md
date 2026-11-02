@@ -20,9 +20,9 @@ A frame is drawn when something asks for one: a key, the mouse, a state change, 
 
 **A frame walks the view tree from its root.** There's no list of what changed, kept between frames, to go to directly. What makes this affordable is the render cache, which hands back the picture a subtree drew last time if it can tell that nothing has changed.
 
-**The cache can tell for `.equatable()` views and for `ForEach` rows.** Anything else draws again.
+**The cache can tell for a view of yours, by comparing what it holds, and for `.equatable()` views and `ForEach` rows, by their `==`.** Anything else draws again.
 
-**A plain view's `body` runs on every frame, usually twice: once to measure the view and once to draw it.** This is the one that surprises people coming from SwiftUI, where a `body` whose inputs didn't change doesn't run again.
+**A view of yours whose inputs didn't change doesn't run `body` again, as in SwiftUI.** A closure or a `Binding` it holds counts as changed only when something above it wrote. What the cache can't compare, an existential say, or a subtree with an `.onAppear` or a focused control in it, draws on every frame, usually running `body` twice: once to measure the view and once to draw it. A read nothing tracks, of a global, a plain class or the clock, stays as it was drawn: if a part of your screen goes stale, `TUI_VERIFY_RENDER_MEMO=1` names the view, and `TUI_RUN_BODY_ON_EVERY_FRAME=1` shows it fresh.
 
 ## Measure First
 
@@ -78,7 +78,7 @@ A hit rate near zero on a page that shouldn't be changing says that something is
 `body` says what the view looks like. Anything slower than that belongs somewhere that doesn't run on every frame: in the action that changes the data, or in a `.task`, with the answer kept in state.
 
 ```swift
-// Sorted on every frame, and more than once:
+// Sorted each time this view is drawn, which may be every frame:
 struct Report: View {
     let entries: [Entry]
 
@@ -103,7 +103,7 @@ The same goes for reading a file, formatting a long string and building a large 
 
 ## Wrap What Doesn't Change
 
-``View/equatable()`` tells the cache that it can compare this view with the one it drew last time, and hand back the same picture if they're equal, without running `body`:
+The cache does this by itself for a view of yours whose fields it can compare. ``View/equatable()`` is for one it can't, or where you know better than its fields do. It tells the cache to compare this view with the one it drew last time by your `==`, and hand back the same picture if they're equal, without running `body`:
 
 ```swift
 struct Header: View, Equatable {

@@ -29,6 +29,9 @@ private final class SuggestionLoop {
     let focus = FocusManager()
     var cache: RenderCache { tui.renderCache }
 
+    /// Off, to count the rows: a memo on `Rows` would serve them as one.
+    init() { tui.renderCache.plainMemo.isOn = false }
+
     /// Draws `view` and returns the composited lines, styling kept.
     @discardableResult
     func frame(_ view: some View) -> [String] {

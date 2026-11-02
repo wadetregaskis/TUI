@@ -92,6 +92,9 @@ struct DismissActionMemoTests {
     /// after the first, which draws it (a first frame may walk it twice).
     private func laterBodies(of app: some App, count: BodyCount) -> Int {
         let headless = TestApp(app, width: 30, height: 6)
+        // What the `.equatable()` below decides: a memo on the composite above it
+        // would serve the whole of it.
+        headless.renderCache.plainMemo.isOn = false
         headless.frame(atNanos: 0)
         let first = count.bodies
         for index in 1...3 { headless.frame(atNanos: Int64(index) * Self.frame) }

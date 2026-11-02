@@ -45,6 +45,9 @@ private final class LeaseModel {
 private func leaseContext(_ rule: ObservationLeases.Retirement, readers: [Any.Type]) -> (TUIContext, ObservationCensus) {
     let tui = TUIContext()
     tui.renderCache.leases.retirement = rule
+    // The rules are told apart by the scopes of one memo. A memo on each composite
+    // holds the holes these controls open: `leasesAreBoundedUnderThePlainMemo`.
+    tui.renderCache.plainMemo.isOn = false
     for reader in readers { tui.renderCache.noteReads(reader) }
     let census = ObservationCensus()
     tui.renderCache.observationCensus = census
@@ -247,6 +250,17 @@ struct ObservationLeaseTests {
             // frame 900.
             #expect(live <= 45, "\(rule): bounded by the window, \(live)")
         }
+    }
+
+    /// The same window with a memo on each composite: it adds no scope to a row
+    /// a `ForEach` already holds, and none outlives its entry.
+    @Test("Readers that come and go leave a bounded number alive under the plain memo")
+    func leasesAreBoundedUnderThePlainMemo() {
+        let model = LeaseModel()
+        let (tui, census) = leaseContext(.leases, readers: [SharedReader.self])
+        tui.renderCache.plainMemo.isOn = true
+        for first in 0..<300 { _ = observedFrame(SlidingWindow(first: first, model: model), tui: tui, height: 12) }
+        #expect(census.snapshot.live <= 45, "bounded by the window, \(census.snapshot.live)")
     }
 
     /// The type's first scope, before the cache knew it reads, is the one no

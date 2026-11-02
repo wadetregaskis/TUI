@@ -575,7 +575,10 @@ struct SessionReadsUnderMemoTests {
             let reports = try reported(Twin({ ScrollersApp(kind: kind) }, width: 50, height: 14), at: "right")
             #expect(reports == 3, "the wheel under a memo reported \(reports) of its 3 ticks")
         } else {
-            let reports = try reported(Twin({ BareScrollerApp(kind: kind) }, width: 50, height: 14), at: "bare")
+            // A memo on the composite would hold it: that's the arm above.
+            let bare = Twin({ BareScrollerApp(kind: kind) }, width: 50, height: 14)
+            bare.warm.renderCache.plainMemo.isOn = false
+            let reports = try reported(bare, at: "bare")
             #expect(reports == 0, "the wheel over a scrollable no memo holds walked the cache \(reports) times")
         }
     }

@@ -232,6 +232,9 @@ private final class LoopHarness {
     var cache: RenderCache { tuiContext.renderCache }
 
     init() {
+        // The card's `.equatable()` is what these serve: a page that declares focus
+        // misses, and a memo on it would count that.
+        tuiContext.renderCache.plainMemo.isOn = false
         focusManager.onFocusChange = { [weak self] in self?.repaintRequests += 1 }
     }
 

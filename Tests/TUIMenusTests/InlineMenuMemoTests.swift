@@ -103,6 +103,8 @@ struct InlineMenuMemoTests {
         let sink = PathSink()
         let rendering = FocusManager()
         let journal = tui.renderCache.effectJournal
+        // The menu's own entries: a composite's memo would add its animation records.
+        tui.renderCache.plainMemo.isOn = false
 
         // What a memo around the menu would store: the entries its render
         // appends while the memo records.

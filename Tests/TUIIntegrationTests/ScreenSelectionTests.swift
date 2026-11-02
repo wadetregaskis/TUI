@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Observation
 import Testing
 
 import TUI
@@ -398,8 +399,16 @@ struct ScreenSelectionGestureTests {
         #expect(selection.current?.text == text)
     }
 
+    /// Observed: a body's read of a class nothing tracks stays as it was drawn, as
+    /// in SwiftUI (`PlainMemoCorrectnessTests.untrackedRead`).
+    @Observable
+    final class LogLines {
+        var value: String
+        init(_ value: String) { self.value = value }
+    }
+
     struct Log: View {
-        let lines: Box
+        let lines: LogLines
         var body: some View {
             VStack(alignment: .leading) {
                 ForEach(Array(lines.value.split(separator: "\n").enumerated()), id: \.offset) { entry in
@@ -414,7 +423,7 @@ struct ScreenSelectionGestureTests {
     @Test("An equal line scrolling onto a selection's cells does not bring it back")
     func scrollingLogDoesNotRevive() throws {
         let entries = (0..<12).map { $0.isMultiple(of: 2) ? "OK" : "step \($0)" }
-        let lines = Box(entries[0..<6].joined(separator: "\n"))
+        let lines = LogLines(entries[0..<6].joined(separator: "\n"))
         let page = Log(lines: lines)
         let harness = InputChainHarness(width: 40, height: 8)
         harness.frame(page)

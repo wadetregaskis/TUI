@@ -217,6 +217,10 @@ extension TUIEnvironmentVariables {
             values: "A size, such as `256M` or `1 GiB`, in bytes or with a `K`, `M` or `G`. `0` keeps nothing",
             effect: "How much memory the program may use to keep pictures it has decoded. 64 MiB by default.",
             code: .overrides("`.urlImageCache(_:)` with a `URLImageCache(byteLimit:)` of the app's own.")),
+        TUIEnvironmentVariable(
+            "TUI_RUN_BODY_ON_EVERY_FRAME", .endUser, .behaviour,
+            values: "`1`",
+            effect: "Works out every view in the program afresh each time the screen is drawn, rather than keeping those whose inputs didn't change. Try this if part of the screen stays out of date until you go away and come back: the program may be reading something that TUI can't see change. It costs more processor time, and if it helps, it's worth telling the program's authors."),
     ]
 
     private static let files: [TUIEnvironmentVariable] = [

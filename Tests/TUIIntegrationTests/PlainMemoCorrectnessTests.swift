@@ -437,9 +437,9 @@ struct PlainMemoCorrectnessTests {
     }
 
     /// Not what anyone would want, and what SwiftUI does: a read no key sees is
-    /// not seen. The contract the memo takes, which `TUI_VERIFY_RENDER_MEMO`
-    /// finds. Today TUI redraws on the next frame of any cause.
-    @Test("What the contract gives up: a read nothing tracks stays as it was drawn")
+    /// not seen. The contract the memo takes, as SwiftUI's does, which
+    /// `TUI_VERIFY_RENDER_MEMO` finds and `TUI_RUN_BODY_ON_EVERY_FRAME=1` undoes.
+    @Test("A read nothing tracks stays as it was drawn")
     func untrackedRead() {
         let app = app(
             VStack {
@@ -452,7 +452,6 @@ struct PlainMemoCorrectnessTests {
         Unwatched.shared.value = 5
         Probe.write?()
         settle(app, nanos: &nanos, frames: 1)
-        print("[stale] unwatched read after a sibling's write: \(text(app).contains("unwatched=5") ? "fresh" : "stale")")
         #expect(text(app).contains("unwatched=0"))
     }
 

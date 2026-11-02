@@ -145,6 +145,7 @@ Don't write a variable to state a setting. Many are read once, and `setenv` isn'
 | `TUI_OPEN_URLS` | `0` or `1` | Whether the program may start your browser for a link. It's off by default, because the program can't tell that it's on the machine in front of you. `1` turns it on, unless the program says no. `0` keeps it off, whatever the program says. |
 | `TUI_SPRING_LOADING_DELAY` | Seconds, such as `0.3` or `1` | How long a drag has to rest on a control before the control opens. It overrides the setting on your machine. |
 | `TUI_IMAGE_CACHE_SIZE` | A size, such as `256M` or `1 GiB`, in bytes or with a `K`, `M` or `G`. `0` keeps nothing | How much memory the program may use to keep pictures it has decoded. 64 MiB by default. |
+| `TUI_RUN_BODY_ON_EVERY_FRAME` | `1` | Works out every view in the program afresh each time the screen is drawn, rather than keeping those whose inputs didn't change. Try this if part of the screen stays out of date until you go away and come back: the program may be reading something that TUI can't see change. It costs more processor time, and if it helps, it's worth telling the program's authors. |
 
 ### Files
 
@@ -248,6 +249,7 @@ Two of the variables above are worth knowing for tests too. `TUI_CONFIG_DIR` kee
 | `TUI_OPEN_URLS` | Can't undo it | `TerminalClient.urlOpeningSupport` wins over `1` and over no setting, but not over `0`: the person is saying "not on this machine", which the program can't know better than they do. An `OpenURLAction` that opens URLs its own way isn't affected. | Each use |
 | `TUI_SPRING_LOADING_DELAY` | Wins | `.springLoadingDelay(_:)`, or `.environment(\.springLoadingDelay, _)`, for part of an app. | Once |
 | `TUI_IMAGE_CACHE_SIZE` | Wins | `.urlImageCache(_:)` with a `URLImageCache(byteLimit:)` of the app's own. | Once |
+| `TUI_RUN_BODY_ON_EVERY_FRAME` | No setting | The variable is the only way. | Once |
 | `TUI_CONFIG_DIR` | Wins | `StorageDefaults.backend`, or `.defaultAppStorage(_:)` for part of an app. `LocalizationService` still keeps the language it saved here. | Each use |
 | `XDG_CONFIG_HOME` | Wins | `StorageDefaults.backend`, or `.defaultAppStorage(_:)` for part of an app. | Each use |
 | `XDG_DATA_HOME` | Wins | `StorageDefaults.backend`, or `.defaultAppStorage(_:)` for part of an app. | Each use |
