@@ -199,6 +199,59 @@ let path = CommandLine.arguments.dropFirst().first ?? "."
 await Viewer(path: path).run()
 ```
 
+Parse the command line before starting the app, and not in the app's `init()`. `App.main()` checks for a terminal before
+it makes the app, so `myapp --help | less` would never reach a parser there.
+
+### With swift-argument-parser
+
+TUI doesn't parse arguments and doesn't need swift-argument-parser. If you want it, the `TUIArgumentParser` product
+brings it. Your package fetches that dependency only if it turns on TUI's `ArgumentParser` trait:
+
+```swift
+.package(url: "https://github.com/wadetregaskis/TUI.git", branch: "main", traits: [.defaults, "ArgumentParser"]),
+```
+
+List `TUIArgumentParser` in your target's dependencies, beside `TUI`. `.defaults` keeps
+<doc:ShippingAnApp#The-Two-Default-Traits>. An ``App`` is then started by an `AppCommand`, a command that says which app
+to run:
+
+```swift
+import TUI
+import TUIArgumentParser
+
+@main
+struct ViewerCommand: AppCommand {
+    @Option(help: "The folder to show.")
+    var path = "."
+
+    var app: some App { Viewer(path: path) }
+}
+```
+
+`--help` and `--version` print to stdout and a mistake prints to stderr with status 64, all before the app starts and
+with the terminal untouched, even down a pipe. Only a command line that parses reaches `app`.
+
+Put `@main` on the command. In a `main.swift`, `await ViewerCommand.main()` can compile to the parser's synchronous `main()`, which can't run an async command.
+
+Subcommands work as usual. Some can be `AppCommand`s, and others plain commands that print a report and exit.
+
+Without the product you need only your own dependency on swift-argument-parser and three lines:
+
+```swift
+@main
+struct ViewerCommand: AsyncParsableCommand {
+    @Option(help: "The folder to show.")
+    var path = "."
+
+    func run() async {
+        await Viewer(path: path).run()
+    }
+}
+```
+
+A flag that sets something TUI also reads from an environment variable is covered by
+<doc:EnvironmentVariables#Command-line-flags>.
+
 ## See Also
 
 - <doc:KeyboardShortcuts>

@@ -38,6 +38,11 @@
 # A flag reached for to chase a profiling question, and left in, is the
 # realistic way an ungated one arrives.
 #
+# And swift-argument-parser only behind a trait that is off by default. SwiftPM
+# fetches a dependency for every client unless no target needs it under the
+# traits enabled, so one target naming it without the trait hands it to every
+# client (Package.swift's trait comment has the measurements).
+#
 # This is the cheap half of the consumer gate — milliseconds, every push. The
 # expensive half (Tools/verify-versioned-consumer.sh) actually resolves and
 # builds the package as a dependency, and runs only on tags.
@@ -65,7 +70,7 @@ cd "$(dirname "$0")/.."
 # The patterns match JSON *keys*, which dump-package emits verbatim, so a
 # dependency URL that happens to contain the word "branch" cannot trip them.
 check_manifest() {
-    local json="$1" failures=0 flat targets settings unsafe gated
+    local json="$1" failures=0 flat targets settings unsafe gated uses traited
     # dump-package sorts its keys, so once the whitespace is gone a setting
     # reads {"condition":{…,"traits":[…]},"kind":{"unsafeFlags":{"_0":[…]}},
     # "tool":"…"}. Here-strings rather than `printf | grep -q`: under
@@ -157,6 +162,15 @@ check_manifest() {
             "$((unsafe - gated))" "$unsafe"
         printf '     client can undo such a flag only by turning off the trait that\n'
         printf '     adds it: gate it with .when(…, traits: [...]).\n'
+        failures=$((failures + 1))
+    fi
+
+    uses=$(grep -oE '"product":\["[^"]*","swift-argument-parser"' <<<"$flat" | wc -l | tr -d ' ')
+    traited=$(grep -oE '"product":\["[^"]*","swift-argument-parser",[^,]*,\{[^}]*"traits":\["' <<<"$flat" | wc -l | tr -d ' ')
+    if [ "$uses" != "$traited" ] || grep -qE '"enabledTraits":\[[^]]*"ArgumentParser"' <<<"$flat"; then
+        printf 'FAIL swift-argument-parser reaches a client who did not ask for it\n'
+        printf '     Every use of it needs .when(traits: ["ArgumentParser"]), and no trait\n'
+        printf '     may turn that one on: a client must never fetch it unasked.\n'
         failures=$((failures + 1))
     fi
 
@@ -259,6 +273,17 @@ self_test() {
         "{\"targets\":[{\"name\":\"T\",\"settings\":[$linker_gated,$swift_gated]}]}" "$linker"
     run_case "a setting with no tool cannot be read" \
         '{"targets":[{"name":"T","settings":[{"condition":{"traits":["T"]},"kind":{"unsafeFlags":{"_0":["-x"]}}}]}]}' 'an unsafeFlags setting names no tool'
+    local unasked='swift-argument-parser reaches a client who did not ask for it'
+    run_case "swift-argument-parser behind a trait passes" \
+        '{"targets":[{"dependencies":[{"product":["ArgumentParser","swift-argument-parser",null,{"platformNames":[],"traits":["ArgumentParser"]}]}],"name":"T","settings":[]}]}' pass
+    run_case "swift-argument-parser without a condition caught" \
+        '{"targets":[{"dependencies":[{"product":["ArgumentParser","swift-argument-parser",null,null]}],"name":"T","settings":[]}]}' "$unasked"
+    run_case "swift-argument-parser behind a platform alone caught" \
+        '{"targets":[{"dependencies":[{"product":["ArgumentParser","swift-argument-parser",null,{"platformNames":["macos"]}]}],"name":"T","settings":[]}]}' "$unasked"
+    run_case "one use behind the trait and one not caught" \
+        '{"targets":[{"dependencies":[{"product":["ArgumentParser","swift-argument-parser",null,{"platformNames":[],"traits":["ArgumentParser"]}]},{"product":["ArgumentParser","swift-argument-parser",null,null]}],"name":"T","settings":[]}]}' "$unasked"
+    run_case "the default trait turning it on caught" \
+        '{"traits":[{"enabledTraits":["DeadStripUnusedAPI","ArgumentParser"],"name":"default"}],"targets":[{"name":"T","settings":[]}]}' "$unasked"
     run_case "path dependency caught" \
         '{"dependencies":[{"fileSystem":[{"identity":"local","path":"/Users/someone/dep"}]}]}' 'local path dependency'
     run_case "branch dependency caught" \
@@ -286,7 +311,7 @@ fi
 manifest_json="$(swift package dump-package)"
 
 if check_manifest "$manifest_json"; then
-    printf 'Package.swift is consumable: no linker unsafeFlags but the TUI unexport patterns, every unsafeFlags behind a trait, no path/branch/revision dependencies\n'
+    printf 'Package.swift is consumable: no linker unsafeFlags but the TUI unexport patterns, every unsafeFlags behind a trait, swift-argument-parser behind one too, no path/branch/revision dependencies\n'
     exit 0
 fi
 

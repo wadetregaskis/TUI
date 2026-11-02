@@ -33,6 +33,9 @@
 #
 # No dynamic product in the fixture (Package.swift says why).
 #
+# TUIArgumentParser needs a trait, which the fixture turns on as a client does: so this is also what builds and tests
+# that module, whose tests are in the fixture, and sees its help and its mistakes printed before the app starts.
+#
 # Cost: one debug build of every TUI module, and 26 small apps. Measured on
 # the shared development machine with swift.org 6.4.0 (2026-10-11): 47.9 s in
 # all, 25.4 s of it the build. SwiftPM used a prebuilt swift-syntax for
@@ -90,7 +93,7 @@ printf '── Staging the working tree as a versioned package\n'
 Tools/stage-versioned-package.sh "$PACKAGE_REPO" 1.0.0
 # The fixture is copied out, so that its build and Package.resolved stay out of the tree.
 mkdir -p "$FIXTURE"
-cp -R Tools/ProductSmoke/Package.swift Tools/ProductSmoke/Sources "$FIXTURE/"
+cp -R Tools/ProductSmoke/Package.swift Tools/ProductSmoke/Sources Tools/ProductSmoke/Tests "$FIXTURE/"
 export TUI_PRODUCT_SMOKE_URL="file://$PACKAGE_REPO"
 
 printf '── Building every app\n'
@@ -128,6 +131,23 @@ if [ "$failed" -gt 0 ]; then
     echo "error: $failed of the apps failed to run" >&2
     exit 1
 fi
+
+printf '── A command line, before the app takes the screen (TUIArgumentParser)\n'
+parser="$bin/UsesTUIArgumentParser"
+help=$("$parser" --help)
+grep -q -- '--name' <<<"$help" || { echo "error: --help did not list --name: $help" >&2; exit 1; }
+set +e
+mistake=$("$parser" --nonsense 2>&1 >"$TEMP_DIR/mistake.out")
+status=$?
+set -e
+[ "$status" -eq 64 ] || { echo "error: a mistake on the command line exited $status, not 64" >&2; exit 1; }
+grep -q 'nonsense' <<<"$mistake" || { echo "error: a mistake said nothing on stderr: $mistake" >&2; exit 1; }
+[ ! -s "$TEMP_DIR/mistake.out" ] || { echo "error: a mistake wrote to stdout" >&2; exit 1; }
+if grep -q $'\x1b' <<<"$help$mistake"; then
+    echo "error: help or a mistake wrote an escape sequence" >&2
+    exit 1
+fi
+$SWIFT test --package-path "$FIXTURE" --filter TUIArgumentParserTests
 
 printf '── Running tui-environment-docs, as a client'"'"'s build script does\n'
 # An executable of a dependency, which `swift run` builds when asked and at no other time. Its

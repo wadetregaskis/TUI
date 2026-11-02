@@ -20,13 +20,14 @@ let products = [
     "TUIMenus", "TUINavigation", "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes",
     "TUISearch",
     "TUITabImages", "TUIFilePanelImages", "TUITables", "TUITabs", "TUITesting", "TUITextInput", "TUICore", "TUIStyling", "TUIView", "TUIImage",
-    "TUIEnvironmentDocs", "TUIAppKit", "TUIFilePanelsAppKit", "TUIMacros",
+    "TUIEnvironmentDocs", "TUIAppKit", "TUIFilePanelsAppKit", "TUIMacros", "TUIArgumentParser",
 ]
 
 let package = Package(
     name: "TUIProductSmoke",
     platforms: [.macOS(.v15)],
-    dependencies: [.package(url: url, exact: "1.0.0")],
+    // The trait is what `TUIArgumentParser` needs. Every app here sees it, and only that one uses it.
+    dependencies: [.package(url: url, exact: "1.0.0", traits: [.defaults, "ArgumentParser"])],
     targets: products.map { product in
         .executableTarget(
             name: "Uses" + product,
@@ -34,5 +35,10 @@ let package = Package(
             // As strict as a client can be: a member is visible only in a file that imports its module.
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         )
-    }
+    } + [
+        .testTarget(
+            name: "TUIArgumentParserTests",
+            dependencies: [.product(name: "TUIArgumentParser", package: "TUI")]
+        )
+    ]
 )

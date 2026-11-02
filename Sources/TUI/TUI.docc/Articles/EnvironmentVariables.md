@@ -55,6 +55,29 @@ Set these before the first frame, since some are read once. <doc:EnvironmentVari
 
 A tool that uses ``renderOnce(output:content:)`` also says how its output should be written when a flag decides: `output: .escapeSequences` for `--color=always`, even down a pipe, and `output: .plainText` for `--color=never`.
 
+So the order is your code, then a flag, then a variable, then TUI's default:
+
+1. A value your code states outright leaves no flag to read.
+2. A flag wins over a variable when your code passes what it says to the setting.
+3. A variable wins when your code states nothing, which includes a flag that wasn't given.
+4. TUI's default applies when nothing else says.
+
+Step 3 depends on how you read the flag. Only pass it on if it was given, or a flag's default overrides the variable. With swift-argument-parser (<doc:ScenesAndQuitting#With-swift-argument-parser>), that means an optional value rather than a default:
+
+```swift
+struct ViewerCommand: AppCommand {
+    @Option var color: String?  // nil when not given, and then NO_COLOR still counts
+
+    var app: some App {
+        if color == "always" { ColorDepth.current = .truecolor }
+        if color == "never" { ColorDepth.current = .noColor }
+        return Viewer()
+    }
+}
+```
+
+The exception at the top of this page still holds: `.reduceMotion(false)` doesn't undo `TUI_REDUCE_MOTION=1`, whether or not a flag asked for it.
+
 ### Setting a variable from code
 
 Don't write a variable to state a setting. Many are read once, and `setenv` isn't safe while another thread reads the environment. Use the setting <doc:EnvironmentVariables#What-code-can-do-about-each-variable> gives. Where it gives none, the variable is for the person running the program.
