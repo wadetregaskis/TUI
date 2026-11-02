@@ -17,7 +17,10 @@ struct TextEffectsDemo: View {
     var body: some View {
         DemoSection("page.textStyles.section.effects") {
             TimelineView(.animation) { context in
-                let time = context.date.timeIntervalSinceReferenceDate
+                // Seconds into the day, not since 2001: the effects multiply it
+                // and convert to `Int`, which on WebAssembly is 32 bits, and that
+                // many seconds at 15 steps each is more than it holds.
+                let time = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 86_400)
                 // The sample's characters, which the renderers that change a
                 // glyph's shape or find words read by each glyph's
                 // `characterIndices`, as a SwiftUI renderer reads its text.

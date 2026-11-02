@@ -174,7 +174,7 @@ private struct TimelineRow: View, Equatable {
         HStack(spacing: 1) {
             Text(verbatim: "\(index) \(text)")
             TimelineView(.animation) { context in
-                let phase = Int(context.date.timeIntervalSinceReferenceDate * 8) % 4
+                let phase = Int((context.date.timeIntervalSinceReferenceDate * 8).truncatingRemainder(dividingBy: 4))
                 Text(verbatim: ["◐", "◓", "◑", "◒"][phase])
             }
         }
