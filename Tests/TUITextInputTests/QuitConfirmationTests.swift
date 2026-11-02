@@ -549,8 +549,14 @@ struct UnreadQuitKeyWatchTests {
         #expect(await held.waitUntilRaised(within: 3))
         #expect(rig.watch.input.holdsInput)
         _ = write(rig.writeEnd, "c", 1)
-        #expect(read(rig) == Array("ab".utf8), "what it held comes first")
-        #expect(read(rig) == Array("c".utf8))
+        // The watch may hold `c` too before this reads, so the reads can split
+        // either way: what is fixed is the order.
+        var bytes = read(rig)
+        for _ in 0..<300 where bytes.count < 3 {
+            try await Task.sleep(for: .milliseconds(10))
+            bytes += read(rig)
+        }
+        #expect(bytes == Array("abc".utf8), "what it held comes first")
         #expect(rig.quits.raised == 0)
     }
 
