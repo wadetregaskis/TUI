@@ -332,15 +332,33 @@ import WASILibc
 /// how the page stays responsive rather than how it stops being.
 ///
 /// The one real difference from the POSIX arm: a `wake()` cannot interrupt a
-/// wait in progress. It does not need to. Every caller of `wake()` is main-actor
-/// isolated, and the main actor is inside this call for the duration — so a wake
-/// can only land before the wait (caught by ``pendingWake``) or after it.
+/// `poll` in progress, because whatever would call it needs this thread. So the
+/// wait is cut into slices (``sliceMilliseconds``), and each gives the executor
+/// a turn. Without them a `Task.sleep` never ended while the loop was blocked,
+/// and whatever a sleeping task drives stood still until a key or a mouse report
+/// ended the `poll`: every animation on a page, while the mouse did not move.
+///
+/// ## A turn can last until the next timer
+///
+/// After running its jobs, `CooperativeExecutor.runUntil` (6.3.3) sleeps until
+/// its next timer without looking at its run queue, so with a timer pending every
+/// trip through it lasts until that timer, the yield below included: on the
+/// Progress page a demo's 500 ms `Task.sleep` paced the whole app at 3 frames a
+/// second. Nothing here can get round that, since whatever is ready to run is
+/// what the executor is not looking at. The browser's host does: it ends any sleep
+/// without a descriptor after 2 ms (`Tools/Web/site/wasi.js`), and the executor
+/// goes round again. A host without that gets the stalls.
 @MainActor
 final class StdinArrivalNotifier {
 
     /// A wake delivered while nobody was waiting, so the next wait returns at
     /// once. Same contract as the POSIX arm's flag of the same name.
     private var pendingWake = false
+
+    /// How long one `poll` runs before the executor gets a turn, so how late a
+    /// timer can fire: half a frame at 60 Hz, and nothing is drawn for a slice
+    /// in which nothing woke the loop.
+    private static let sliceMilliseconds: Int32 = 8
 
     /// Nothing to install: `poll` is asked per wait, not armed in advance.
     func start() {}
@@ -365,25 +383,29 @@ final class StdinArrivalNotifier {
             pendingWake = false
             return
         }
-        let milliseconds: Int32
-        if let timeoutNanoseconds {
-            let rounded = (timeoutNanoseconds + 999_999) / 1_000_000
-            milliseconds = Int32(clamping: rounded)
-        } else {
-            milliseconds = -1
+        let deadline = timeoutNanoseconds.map { MonotonicClock.nowNanoseconds &+ $0 }
+        while true {
+            var slice = Self.sliceMilliseconds
+            if let deadline {
+                let left = deadline &- min(deadline, MonotonicClock.nowNanoseconds)
+                slice = min(slice, Int32(clamping: (left + 999_999) / 1_000_000))
+            }
+            var descriptor = pollfd(fd: STDIN_FILENO, events: Int16(POLLIN), revents: 0)
+            let ready = withUnsafeMutablePointer(to: &descriptor) { poll($0, 1, slice) } != 0
+            // A `poll` is synchronous, and this is what keeps that from
+            // eating the stack. On the single-threaded executor a resumption is a
+            // direct call rather than a return to a scheduler — so an `async`
+            // function with no suspension point inside it leaves the caller's frame
+            // in place, and a run loop awaiting one grows the stack by a few frames
+            // per frame drawn until wasm traps. (Measured: the Example ran for a
+            // few hundred frames, then `call stack exhausted`.) Yielding is a real
+            // suspension: the continuation is enqueued and the stack unwinds to the
+            // executor before it runs.
+            await Task.yield()
+            if ready || pendingWake { break }
+            if let deadline, MonotonicClock.nowNanoseconds >= deadline { break }
         }
-        var descriptor = pollfd(fd: STDIN_FILENO, events: Int16(POLLIN), revents: 0)
-        _ = withUnsafeMutablePointer(to: &descriptor) { poll($0, 1, milliseconds) }
-        // The wait above is synchronous, and this is what keeps that from
-        // eating the stack. On the single-threaded executor a resumption is a
-        // direct call rather than a return to a scheduler — so an `async`
-        // function with no suspension point inside it leaves the caller's frame
-        // in place, and a run loop awaiting one grows the stack by a few frames
-        // per frame drawn until wasm traps. (Measured: the Example ran for a
-        // few hundred frames, then `call stack exhausted`.) Yielding is a real
-        // suspension: the continuation is enqueued and the stack unwinds to the
-        // executor before it runs.
-        await Task.yield()
+        pendingWake = false
     }
 }
 

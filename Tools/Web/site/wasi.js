@@ -43,6 +43,8 @@ export const CONTROL_WRITE_INDEX = 1;
 export const CONTROL_READ_INDEX = 2;
 export const CONTROL_SLOTS = 4;
 
+const LONGEST_PURE_SLEEP_MS = 2;
+
 export class BrowserWASI {
   /**
    * @param {object} options
@@ -274,10 +276,13 @@ export class BrowserWASI {
         if (wantsInput) {
           self.waitForInput(timeoutMs);
         } else if (timeoutMs !== null && timeoutMs > 0) {
-          // A pure sleep: park on a word nothing will bump — after flushing,
-          // for the reason `waitForInput` gives.
+          // A pure sleep, which is the Swift executor waiting for its next
+          // timer: it does so with jobs ready to run as well, and they wait with
+          // it (`StdinArrivalNotifier` has the story). So no longer than this,
+          // and it goes round again. And after flushing, for the reason
+          // `waitForInput` gives.
           self.beforeBlock();
-          Atomics.wait(self.control, CONTROL_SEQUENCE, Atomics.load(self.control, CONTROL_SEQUENCE), timeoutMs);
+          Atomics.wait(self.control, CONTROL_SEQUENCE, Atomics.load(self.control, CONTROL_SEQUENCE), Math.min(timeoutMs, LONGEST_PURE_SLEEP_MS));
         }
 
         // A clock subscription is always ready once the wait is over — that is
