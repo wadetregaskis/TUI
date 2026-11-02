@@ -81,27 +81,25 @@ import Testing
             #expect(contents(fixture.url("Alpha/note 2.txt")) == "new")
         }
 
-        #if canImport(ObjectiveC)
-            @Test("Documents saved where an Untitled is already are numbered past it")
-            func documentsPastUntitled() async throws {
-                let fixture = try FilePanelFixture()
-                defer { fixture.remove() }
-                try Data("kept".utf8).write(to: fixture.url("Alpha/Untitled.txt"))
-                let caller = FileExporterCaller()
-                let documents = [TextFile(text: "one"), TextFile(text: "two")]
-                let driver = FilePanelDriver {
-                    Text("Page")
-                        .fileExporter(
-                            isPresented: caller.binding, documents: documents, contentType: .plainText,
-                            onCompletion: { caller.completedAll($0) }
-                        )
-                        .fileDialogDefaultDirectory(fixture.root)
-                }
-                await saveIntoAlpha(driver, caller: caller)
-                #expect(caller.failure == nil, "\(String(describing: caller.failure))")
-                #expect(caller.saved.map(\.lastPathComponent) == ["Untitled 2.txt", "Untitled 3.txt"])
-                #expect(contents(fixture.url("Alpha/Untitled.txt")) == "kept")
+        @Test("Documents saved where an Untitled is already are numbered past it")
+        func documentsPastUntitled() async throws {
+            let fixture = try FilePanelFixture()
+            defer { fixture.remove() }
+            try Data("kept".utf8).write(to: fixture.url("Alpha/Untitled.txt"))
+            let caller = FileExporterCaller()
+            let documents = [TextFile(text: "one"), TextFile(text: "two")]
+            let driver = FilePanelDriver {
+                Text("Page")
+                    .fileExporter(
+                        isPresented: caller.binding, documents: documents, contentType: .plainText,
+                        onCompletion: { caller.completedAll($0) }
+                    )
+                    .fileDialogDefaultDirectory(fixture.root)
             }
-        #endif
+            await saveIntoAlpha(driver, caller: caller)
+            #expect(caller.failure == nil, "\(String(describing: caller.failure))")
+            #expect(caller.saved.map(\.lastPathComponent) == ["Untitled 2.txt", "Untitled 3.txt"])
+            #expect(contents(fixture.url("Alpha/Untitled.txt")) == "kept")
+        }
     }
 #endif

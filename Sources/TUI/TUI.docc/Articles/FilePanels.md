@@ -147,8 +147,8 @@ CoreTransferable's — and `fileExporterFilenameLabel(_:)` labels the field.
 }
 ```
 
-On Apple platforms a `FileDocument` exports the same way, written through its
-`fileWrapper(configuration:)`:
+A `FileDocument` exports the same way, written through its
+`fileWrapper(configuration:)`, on Linux as well, where `FileWrapper` is TUI's:
 
 ```swift
 .fileExporter(isPresented: $exporting, document: TextFile(text: draft), contentType: .plainText,

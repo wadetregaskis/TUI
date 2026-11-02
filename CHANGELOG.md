@@ -40,6 +40,11 @@ new names throughout, for the package as it was on 1 October as well.
   so is the `TUIKIT_TEST_SUPPORT` compilation condition; the old names are not read.
 - Unchanged: the folders and defaults keys where an app's settings are kept, so nothing a user saved is lost.
 
+### `FileDocument` on Linux
+
+- `FileDocument`, and the `fileExporter` forms that write one, now exist on Linux, over a `FileWrapper` of TUI's with
+  Foundation's API. Remove any `#if canImport(ObjectiveC)` around them. Apple platforms keep Foundation's.
+
 ### If you only need the short version
 
 - If your target depends on the `TUI` product and writes `import TUI`, it still compiles the same framework with the same names. Nothing about the split forces a change.
