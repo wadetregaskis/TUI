@@ -76,22 +76,42 @@ nonisolated struct ScrollVisibilityModifier<Content: View>: View {
 
 @MainActor extension ScrollVisibilityModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        // A measure asks a size, and is not a frame anything is shown in.
-        guard !context.isMeasuring, let dispatcher = context.environment.mouseEventDispatcher else {
-            return TUIView.renderToBuffer(content, context: context)
+        context.watchingScrollVisibility(threshold: threshold, action: action) {
+            TUIView.renderToBuffer(content, context: context)
         }
+    }
+}
+
+extension RenderContext {
+    /// Whether ``watchingScrollVisibility(threshold:action:draw:)`` will report
+    /// anything: not in a measure, and not where there is no frame's hit testing
+    /// to carry its marker, as in a one-off snapshot.
+    @MainActor
+    package var canWatchScrollVisibility: Bool {
+        !isMeasuring && environment.mouseEventDispatcher != nil
+    }
+
+    /// What `draw` draws, watched as ``View/onScrollVisibilityChange(threshold:_:)``
+    /// watches a view: for a view that stops work of its own when it is not shown,
+    /// as an animated `Image` does.
+    @MainActor
+    package func watchingScrollVisibility(
+        threshold: Double, action: @escaping (Bool) -> Void, draw: () -> FrameBuffer
+    ) -> FrameBuffer {
+        // A measure asks a size, and is not a frame anything is shown in.
+        guard canWatchScrollVisibility, let dispatcher = environment.mouseEventDispatcher else { return draw() }
         // Claimed BEFORE the content renders, for the reason
         // `OnGeometryChangeModifier` claims its slot first: the id is the
         // ordinal of this registration at this identity, and content drawn at
         // the same identity (an `if`, an `AnyView`) would move one claimed
         // afterwards from frame to frame.
-        let id = dispatcher.geometryMarkerID(in: context)
-        var buffer = TUIView.renderToBuffer(content, context: context)
+        let id = dispatcher.geometryMarkerID(in: self)
+        var buffer = draw()
         buffer.hitTestRegions.append(.geometryMarker(id))
         ScrollVisibilityRegistrar.register(
-            id: id, identity: context.identity,
+            id: id, identity: identity,
             size: CellSize(width: buffer.width, height: buffer.height),
-            threshold: threshold, action: action, context: context)
+            threshold: threshold, action: action, context: self)
         return buffer
     }
 }
