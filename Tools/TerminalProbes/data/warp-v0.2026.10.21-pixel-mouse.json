@@ -1,0 +1,24 @@
+{
+ "host": "WarpTerminal v0.2026.10.21.08.25.stable_02",
+ "term": "xterm-256color",
+ "decrqm": {
+  "1006 at start": null,
+  "1016 at start": null
+ },
+ "phases": {},
+ "grid": [
+  124,
+  47
+ ],
+ "ioctl": [
+  124,
+  47,
+  1029,
+  763
+ ],
+ "text_area": [
+  752,
+  992
+ ],
+ "cell": null
+}

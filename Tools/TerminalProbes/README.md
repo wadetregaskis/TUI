@@ -206,6 +206,14 @@ when unset), the visual/aspect probes print to the terminal.
   presumably off), Warp, Ghostty 1.3.1, and tmux 3.7c with `set-clipboard on`
   and `external` under an Apple Terminal client (`data/*-clipboard*.json`).
   Owed: iTerm2 with the setting on, kitty, and `--destructive` anywhere.
+- **`pixel_mouse_probe.py`** with **`pixel_mouse_driver.swift`**: what SGR-Pixels
+  (`?1016`) really reports. The driver opens a window of the terminal and posts
+  clicks and moves into it, so the same physical points are reported once in cells
+  and once in pixels; it takes the pointer for a minute and refuses to click on
+  anything but its own window. `pixel_mouse_probe.py --analyze RECORD.json` says what
+  the unit and the origin are, and how many clicks each candidate cell size would
+  misplace. Needs the Accessibility permission to post events. Fills "SGR-Pixels
+  mouse" in the compatibility survey; records in `data/*-pixel-mouse.json`.
 - `clipboard_mime_probe.py` — does the terminal speak OSC 5522, kitty's
   clipboard protocol for any MIME type? DECRQM for mode 5522, then a write of
   text/plain, text/html, text/markdown and a 2×2 PNG, the acknowledgement,
