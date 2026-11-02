@@ -100,7 +100,8 @@ def command_run(args):
     bins = {}
     session = measures.Session(bins, args.scratch, alloc, args.out, frameworks, runs=args.runs, presses=args.presses,
                                only=set(args.only.split(',')) if args.only else None,
-                               memory_limit_gb=args.memory_limit_gb)
+                               memory_limit_gb=args.memory_limit_gb,
+                               extra_env=dict(pair.split('=', 1) for pair in args.env))
     for framework in frameworks:
         apps = build.write_apps(framework, roots[framework])
         output = os.path.join(roots[framework], 'build')
@@ -183,6 +184,8 @@ def main():
     run.add_argument('--runs', type=int, help='process runs per scene (default per phase, mostly 3)')
     run.add_argument('--presses', type=int, help='inputs per run (default per phase, 10 to 40)')
     run.add_argument('--toolchain', default=None, help="swiftly version, or 'system' for the swift on PATH")
+    run.add_argument('--env', action='append', default=[], metavar='NAME=VALUE',
+                     help='set for every measured program, whose environment is otherwise scrubbed: a switch to compare')
     run.add_argument('--memory-limit-gb', type=float, default=8.0, help='kill a measured program past this footprint; 0 for no limit')
     run.add_argument('--dedup', action='store_true', help='in the size phase, also relink with -Xlinker -deduplicate')
     run.add_argument('--large', action='store_true', help="in the size phase, also build each framework's large example")

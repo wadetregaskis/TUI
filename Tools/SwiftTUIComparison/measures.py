@@ -26,10 +26,11 @@ class Session:
     """What a run shares: the binaries, where results go, and what was asked for."""
 
     def __init__(self, bins, work_dir, alloc_dylib, out_dir, frameworks, runs=None, presses=None, only=None,
-                 memory_limit_gb=8.0):
+                 memory_limit_gb=8.0, extra_env=None):
         self.bins, self.work_dir, self.alloc_dylib, self.out_dir = bins, work_dir, alloc_dylib, out_dir
         self.frameworks, self.runs, self.presses, self.only = frameworks, runs, presses, only
         self.guard = MemoryGuard(memory_limit_gb)
+        self.extra_env = extra_env or {}
         os.makedirs(out_dir, exist_ok=True)
         self.results_path = os.path.join(out_dir, 'results.jsonl')
 
@@ -37,7 +38,7 @@ class Session:
         return not self.only or scenario in self.only
 
     def spawn(self, framework, scenario=None, binary='bench', env=None):
-        environment = dict(env or {})
+        environment = {**self.extra_env, **(env or {})}
         if scenario:
             environment['BENCH'] = scenario
         app = App(os.path.join(self.bins[framework], binary), self.work_dir, self.alloc_dylib, env=environment,
