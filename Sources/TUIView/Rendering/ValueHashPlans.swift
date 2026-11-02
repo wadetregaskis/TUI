@@ -61,6 +61,9 @@ package final class ValueHashPlans {
         /// last entry ran on, set by ``armStackCheck()``. 0 until then —
         /// no check — which only a test calling the steps directly sees.
         var stackFloor: UInt = 0
+        /// Whether a step gave up at ``stackFloor`` since this was last taken
+        /// (``takeStackRanShort()``).
+        var stackRanShort = false
     }
 
     private let table: UnsafeMutablePointer<Table>
@@ -248,6 +251,21 @@ extension ValueHashPlans {
     @inline(__always)
     var hasStackHeadroom: Bool {
         StackGuard.currentStackPointer() > running.pointee.stackFloor
+    }
+
+    /// Notes that a step gave up, the stack having run short. Off the path of
+    /// every step that does not.
+    func noteStackRanShort() {
+        running.pointee.stackRanShort = true
+    }
+
+    /// Whether a step has given up since this was last asked: whether a `nil`
+    /// from a hash cost a whole stack of steps, rather than none, as it does for
+    /// a value whose type cannot be hashed.
+    @MainActor
+    func takeStackRanShort() -> Bool {
+        defer { running.pointee.stackRanShort = false }
+        return running.pointee.stackRanShort
     }
 
     /// The hash of a value whose plan is not dense: its runs, then its steps,

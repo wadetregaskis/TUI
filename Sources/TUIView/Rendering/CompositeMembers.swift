@@ -92,9 +92,12 @@ extension View where Self: ContentRewrapping {
 @MainActor
 package func compositeMembers<V: View>(of view: V, context: RenderContext) -> [ChildView]? {
     guard V._handsOverChildren, V.Body.self != Never.self, context.stateStorage != nil,
-        !(V.self is any ChildViewProvider.Type), !(V.self is any Renderable.Type),
-        StackGuard.hasHeadroomUncounted()
+        !(V.self is any ChildViewProvider.Type), !(V.self is any Renderable.Type)
     else { return nil }
+    guard StackGuard.hasHeadroomUncounted() else {
+        StackGuard.noteReadThroughStop()
+        return nil
+    }
     // What the body's walk hands the `@Environment`s in a class property the
     // view holds, as other than the object's primary holder, is put back only
     // after the content of the composite around the container, not after

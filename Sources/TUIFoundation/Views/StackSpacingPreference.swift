@@ -226,7 +226,9 @@ private func statedSpacing<V: View>(ofView view: V, context: RenderContext) -> V
     guard V._statesSpacingPreference else { return nil }
     if let provider = view as? any SpacingPreferenceProviding { return provider.preferredSpacing(context: context) }
     if let wrapper = view as? any SingleContentWrapper { return statedSpacing(ofContentOf: wrapper, context: context) }
-    guard V.Body.self != Never.self, !(view is Renderable) else { return nil }
+    // A view nested in itself states nothing at the end of this walk, which stops
+    // where the stack runs short and says it found nothing.
+    guard V.Body.self != Never.self, !(view is Renderable), StackGuard.hasHeadroomUncounted() else { return nil }
     let bodyContext = context.withChildIdentity(type: V.Body.self)
     guard let plan = propertyPlan(for: V.self) else {
         return statedSpacing(ofView: view.body, context: bodyContext)

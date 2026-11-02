@@ -249,8 +249,9 @@ enum Headless {
             let staleServes = context.environment.renderCache?.renderMemoMismatches ?? []
             let trimmed = StackGuard.truncationCount - trimmedBefore
             // Dimensions alone are too weak a check: a frame of the right size
-            // holding nothing passes it, which is exactly what a tripped stack
-            // guard produces. Require visible content, and a whole tree.
+            // holding nothing passes it, and so does one the stack guard cut
+            // short, which draws a notice. Require visible content, and a whole
+            // tree.
             let ok =
                 buffer.width > 0 && buffer.height > 0 && !isBlank(buffer) && trimmed == 0
                 && staleServes.isEmpty

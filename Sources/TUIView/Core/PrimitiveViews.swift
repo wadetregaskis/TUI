@@ -177,6 +177,9 @@ nonisolated public struct AnyView: View {
 
 @MainActor extension AnyView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        // A chain of these built at run time passes no `body` on the way down,
+        // the other place the draw's guard is (`renderToBuffer(_:context:)`).
+        if !StackGuard.hasHeadroom() { return DepthLimit.drawn(AnyView.self, context: context) }
         let buffer = TUIView.renderToBuffer(view, context: contentContext(noting: context))
         // Its content drew at this identity, unchanged: a transition in it
         // left the picture a slot that held this `AnyView` would play. Said

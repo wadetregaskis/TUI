@@ -350,7 +350,9 @@ package func explicitGuide<V: View>(
     if let wrapper = view as? any SingleContentWrapper, keepsItsContentGeometry(wrapper) {
         return explicitGuide(ofContentOf: wrapper, query, in: dimensions, context: context)
     }
-    guard V.Body.self != Never.self, !(view is Renderable) else { return nil }
+    // A view nested in itself has no guide to find at the end of this walk, which
+    // stops where the stack runs short and says it found none.
+    guard V.Body.self != Never.self, !(view is Renderable), StackGuard.hasHeadroomUncounted() else { return nil }
     // The body as the measure walk evaluates it: `@Environment` resolved and
     // `@State` bound at this view's identity, so it is the body that is drawn.
     let childContext = context.withChildIdentity(type: V.Body.self)

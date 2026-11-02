@@ -105,6 +105,34 @@ VStack(spacing: 1) {
 
 <doc:ComingFromSwiftUI> lists the other differences.
 
+## "⋯ nested too deeply to draw"
+
+**Part of the page shows this line where a view should be, or the last row of the screen does.**
+
+Your views are nested too deeply for the call stack. Measuring and drawing a view uses stack for every level it's nested, and the stack is a fixed size, so TUI stops descending where it would run out. It draws everything above that point and this line in place of what's below, rather than crash. A `VStack` inside a `VStack` runs out at about 800 levels in a release build, 700 if each level is in an `AnyView`, and 500 for a `ScrollView` inside a `ScrollView`. A debug build has about half that.
+
+Your app reports it once, with the view it stopped at, the first time it happens. The report goes to the file named by `TUI_DIAGNOSTICS_FILE`, or otherwise to stderr when the app quits. SwiftUI's own limit is about the same, but there the app crashes.
+
+- **Does a view contain itself?** A view with no case that stops, such as a `body` that holds another of the same view, goes on until the stack runs out. Add a case that stops:
+
+  ```swift
+  struct Branch: View {
+      let node: Node
+
+      var body: some View {
+          VStack(alignment: .leading) {
+              Text(node.name)
+              // Stops where a node has no children.
+              ForEach(node.children) { Branch(node: $0) }
+          }
+      }
+  }
+  ```
+
+- **Is the data really that deep?** Show it a few levels at a time. A `List` with `children:` lays its open rows out flat, so it can show a tree of any depth, and a `NavigationStack` can go into a tree one level per screen.
+
+A page that's past the limit draws from scratch on every frame, with nothing kept from the frame before. Its views below the limit aren't drawn, and their `.onAppear` and `.onDisappear` run as they would for any view that leaves the screen, but their `@State` is kept. What's below comes back as it was when the page is shallower again.
+
 ## A view doesn't update
 
 **The state changes, but the screen doesn't, or changes only when you press a key.**

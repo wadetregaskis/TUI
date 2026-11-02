@@ -1,0 +1,17 @@
+macOS 15.8.1, 2026-11-01, swiftc -O, one process per line.
+
+plain 100:    alive; fitting (34.0, 16.0); leaf body ran
+plain 500:    alive; fitting (34.0, 16.0); leaf body ran
+plain 1000:   alive; fitting (34.0, 16.0); leaf body ran
+plain 2000:   SIGSEGV
+plain 5000:   SIGSEGV
+plain 20000:  SIGSEGV
+any 100:      alive; fitting (34.0, 16.0); leaf body ran
+any 500:      alive; fitting (34.0, 16.0); leaf body ran
+any 2000:     SIGSEGV
+any 5000:     SIGSEGV
+forever:      SIGSEGV
+
+SwiftUI has no depth limit of its own to copy: past about the depth TUI's stack
+guard stops at, the process dies. TUI does not follow it there (owner's rule:
+never crash).

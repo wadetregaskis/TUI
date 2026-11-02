@@ -12,7 +12,7 @@ import Testing
 /// A view nested inside itself to a configurable depth — the same shape as the
 /// `deep` stress scenario, minimised. Each level wraps the next in a container
 /// (`VStack` + `border` + `padding`), so the measure/render recursion descends
-/// through the guarded `measureChild`/`renderChild` funnels once per level. The
+/// through the guarded `measureChild` and composite draw once per level. The
 /// outermost label is always `L0`; the innermost, if reached, is `leaf`.
 private struct DeepNest: View {
     let level: Int

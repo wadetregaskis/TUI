@@ -214,6 +214,7 @@ package func mixOpened<Payload>(_ value: Payload, into hash: inout UInt64, plans
         #if TUI_VALUE_HASH_CENSUS
         plans.census.noteStepBypass("too deep to hash: the stack ran low at \(Payload.self)")
         #endif
+        plans.noteStackRanShort()
         return false
     }
     hash = mixHashWord(hash, UInt64(UInt(bitPattern: ObjectIdentifier(Payload.self))))

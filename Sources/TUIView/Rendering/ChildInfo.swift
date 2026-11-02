@@ -580,10 +580,11 @@ private func memoizedMeasure<V: View>(
     _ view: V, proposal: ProposedSize, context: RenderContext, remembersDescendants: Bool
 ) -> ViewSize {
     // Deep-nesting guard: if the recursion is about to overflow the stack, stop
-    // descending and report the (untruncated part of the) subtree as zero-size
-    // rather than crashing with SIGSEGV. See StackGuard — this measures the real
-    // remaining stack, so it only ever trips on pathologically deep trees.
-    if !StackGuard.hasHeadroom() { return ViewSize.fixed(0, 0) }
+    // descending and answer the size of the notice drawn in its place, rather
+    // than crash with SIGSEGV. See StackGuard — this measures the real remaining
+    // stack, so it only ever trips on pathologically deep trees. Not zero: see
+    // `DepthLimit`.
+    if !StackGuard.hasHeadroom() { return DepthLimit.measured(V.self, proposal: proposal, context: context) }
 
     // Serve this pass's memo if the same view has already been measured at the
     // same proposal. Two-pass layout re-measures a subtree once per enclosing
@@ -714,6 +715,9 @@ private func measureKey<V: View>(
 ) -> RenderCache.MeasureKey? {
     guard let valueHash = viewValueHash(view, plans: cache.valueHashPlans) else {
         cache.noteMeasureMemoBypass()
+        // A chain of `AnyView`s too long to hash asks for a whole stack of steps
+        // at every level: it counts toward what stops the walk.
+        if cache.valueHashPlans.takeStackRanShort() { StackGuard.noteStop() }
         return nil
     }
     return RenderCache.MeasureKey(
@@ -1029,11 +1033,6 @@ package func fixedMeasureContext(proposal: ProposedSize, context: RenderContext)
 /// - Returns: The rendered buffer.
 @MainActor
 package func renderChild<V: View>(_ view: V, width: Int, height: Int, context: RenderContext) -> FrameBuffer {
-    // Deep-nesting guard (see measureChild): render a truncation marker instead
-    // of recursing another level into a stack overflow.
-    if !StackGuard.hasHeadroom() {
-        return FrameBuffer(text: "⋯").clamped(toWidth: width, height: height)
-    }
     var renderContext = context
     renderContext.availableWidth = width
     renderContext.availableHeight = height

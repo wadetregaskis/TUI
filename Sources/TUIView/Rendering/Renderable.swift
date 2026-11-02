@@ -227,6 +227,14 @@ private func renderResolved<V: View>(_ view: V, context: RenderContext) -> Frame
     // resolve its @Environment, then recurse into body, which renders one
     // identity step further in (the body's type).
     if V.Body.self != Never.self {
+        // Deep-nesting guard, on the draw's way down (the measure's is in
+        // `measureChild`). Here and in `AnyView`, because a view nested in itself
+        // to any depth passes through one or the other at every level: types are
+        // finite, so a chain with no end goes through a `body` or an erasure. A
+        // guard on the children of containers alone let a chain with no container
+        // in it — a view whose body is itself with a modifier, a `Group`, an
+        // `if` — run off the end of the stack. See `DepthLimit`.
+        if !StackGuard.hasHeadroom() { return DepthLimit.drawn(V.self, context: context) }
         let childContext = context.withChildIdentity(type: V.Body.self)
         // What the body's walk hands the `@Environment`s inside a class
         // property it holds, as other than the object's first holder, lasts

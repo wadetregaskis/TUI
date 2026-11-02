@@ -55,7 +55,10 @@ func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElemen
     // under the render's guard, which counts. Unguarded, a tree of a few
     // thousand levels in a form overflowed the stack — through views of the
     // app's own, or through a chain of `AnyView`s built at run time.
-    guard StackGuard.hasHeadroomUncounted() else { return [.row(_FormRow(.plain(AnyView(view))))] }
+    guard StackGuard.hasHeadroomUncounted() else {
+        StackGuard.noteReadThroughStop()
+        return [.row(_FormRow(.plain(AnyView(view))))]
+    }
     if let aligned = view as? FormRowAligning {
         let alignment = aligned.formRowAlignmentValue
         return aligned.formRowInnerElements(in: walk).map { stamped($0, alignment: alignment) }

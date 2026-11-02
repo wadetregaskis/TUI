@@ -24,11 +24,23 @@ import Foundation  // FileHandle, to read the procfs files the Linux bounds come
 /// uncatchable crash that also skips terminal restore.
 ///
 /// `StackGuard` replaces that hard crash with graceful truncation: the measure
-/// and render funnels ask ``hasHeadroom()`` before recursing another level, and
-/// when the remaining stack falls under ``reserveBytes`` they stop descending
-/// and return a small placeholder instead. The measurement is against the
-/// *actual* remaining stack, not an arbitrary depth cap, so it adapts to the
-/// thread's real stack size and the tree's real per-level cost.
+/// funnel and the draw's way down (a composite's `body`, an `AnyView`) ask
+/// ``hasHeadroom()`` before recursing another level, and when the remaining stack
+/// falls under ``reserveBytes`` they stop descending and answer for a notice
+/// instead (`DepthLimit`, in `TUIView`). The measurement is against the *actual*
+/// remaining stack, not an arbitrary depth cap, so it adapts to the thread's real
+/// stack size and the tree's real per-level cost.
+///
+/// Not a bigger stack. `@MainActor` code cannot be moved to a thread with a
+/// larger one: `MainActor.assumeIsolated` traps there (measured, 2026-11-01),
+/// and anything that got round that would lose the thread-locals observation
+/// tracking reads. On Darwin `setrlimit(RLIMIT_STACK)` does grow the running main
+/// thread's stack, to 64 MiB at most, while `pthread_get_stacksize_np` goes on
+/// saying 8 (measured, the same day: 16 MiB of recursion lives with it and dies
+/// without). That gives Linux nothing, where a pool thread drains the main actor,
+/// and it is inherited by every process the app starts; and SwiftUI is no deeper,
+/// its process dying between 1,000 and 2,000 levels of the same `VStack`
+/// (`Tools/SwiftUIProbes/Depth limit (nesting)`, macOS 15).
 ///
 /// ## Thread correctness
 ///
@@ -60,8 +72,9 @@ import Foundation  // FileHandle, to read the procfs files the Linux bounds come
 ///
 /// That matters: a `pthread_getspecific` design was measured at +1.14 ns per
 /// call (2.25 vs 1.10 ns), landing as +2–5% per frame on measure-heavy trees,
-/// because the guard sits atop every `measureChild`/`renderChild`. The range
-/// check costs one extra compare against a value in the same cache line.
+/// because the guard sits atop every `measureChild` and every composite's draw.
+/// The range check costs one extra compare against a value in the same cache
+/// line.
 ///
 /// - Note: Re-establishing the bound reads `/proc/self/maps` on Linux, which
 ///   measured 276 µs. That is paid once per thread *change*, not once per
@@ -79,7 +92,7 @@ import Foundation  // FileHandle, to read the procfs files the Linux bounds come
 ///   local, which in a function that has been inlined into an `async` frame is
 ///   in the task allocator — the heap — not the machine stack. The answer
 ///   would then describe the wrong region entirely. Every caller in this
-///   package (`measureChild`, `renderChild`) is synchronous.
+///   package (`measureChild`, `renderToBuffer`) is synchronous.
 package enum StackGuard {
     /// Stack to keep in reserve below the guard point (bytes). Must comfortably
     /// exceed the deepest non-recursive work that still has to complete once the
@@ -131,15 +144,89 @@ package enum StackGuard {
     /// Diagnostic, for harnesses that need to know whether the tree they just
     /// rendered is the whole tree — a profile or a benchmark of a truncated
     /// tree is not a measurement of the scenario, and is otherwise very hard to
-    /// notice: a truncated child is measured at zero size first, so the `"⋯"`
-    /// marker `renderChild` substitutes is immediately clamped away to nothing.
-    /// The frame just quietly comes back emptier, and faster.
+    /// notice: the frame just comes back with a row less, and faster.
     ///
     /// Costs the hot path nothing: ``hasHeadroom()`` only ever answers `false`
     /// from its out-of-line slow path, so the counter lives there. A `false`
     /// from `hasHeadroomUncounted()` stops no descent, and is not counted.
     @MainActor
     public static var truncationCount = 0
+
+    /// How many times one walk stops before it starts stopping sooner: a page
+    /// that reaches the limit stops a handful of times, a dozen or two with its
+    /// re-measures, and a view that holds itself twice would stop 2^depth times.
+    package static let stopsBeforeNarrowing = 64
+
+    /// How many times this walk has stopped, or `nil` outside a walk begun with
+    /// ``beginWalk()``.
+    @MainActor
+    private static var stopsThisWalk: Int?
+
+    /// What ``noteStop()`` moved the running thread's floor from, while it has
+    /// moved it.
+    @MainActor
+    private static var floorBeforeNarrowing: UInt?
+
+    /// Begins a walk that ``noteStop()`` bounds, giving back whatever the last
+    /// one narrowed. For the run loop, around every walk of the scene.
+    @MainActor
+    package static func beginWalk() {
+        endWalk()
+        stopsThisWalk = 0
+    }
+
+    /// Ends a walk ``noteStop()`` bounded, with its floor put back: a draw with
+    /// nothing to end its walk does not narrow, and stops where the stack ends.
+    @MainActor
+    package static func endWalk() {
+        stopsThisWalk = nil
+        if let floor = floorBeforeNarrowing {
+            floorBeforeNarrowing = nil
+            cachedExtent.floor = floor
+        }
+    }
+
+    /// Counts a stop that cut the tree short, and past ``stopsBeforeNarrowing``
+    /// halves the stack the walk may still use below this point.
+    ///
+    /// The guard bounds how deep a descent goes, not how many there are: a view
+    /// that holds itself twice has 2^depth of them, and its first frame would
+    /// never end, in an app whose input is read by the same stuck loop. Raising
+    /// the floor costs the path that never gets here nothing, and each stop after
+    /// the first narrowing halves what is left, so the walk is over in a few more.
+    @MainActor
+    package static func noteStop() {
+        guard let stops = stopsThisWalk else { return }
+        stopsThisWalk = stops + 1
+        if stops >= stopsBeforeNarrowing { narrowFloor() }
+    }
+
+    /// Counts a stop of a walk that reads through views to learn what they hold
+    /// (a stack taking a view apart into its members), which narrows the walk
+    /// straight away.
+    ///
+    /// Such a walk returns before its answer is drawn, giving its stack back, so
+    /// the draw of what it stopped at starts another from nearly where this one
+    /// started, and the descent makes little headway. Each costs a whole stack of
+    /// bodies: `ForEach { ForEach { … } }` with no end took 25 s for 1.6 MB of
+    /// debug stack with 64 of them allowed. Only a chain of such views past the
+    /// limit gets here, so nothing else is cut sooner for it.
+    @MainActor
+    package static func noteReadThroughStop() {
+        guard stopsThisWalk != nil else { return }
+        narrowFloor()
+    }
+
+    /// Halves the stack the walk may still use below this point, until
+    /// ``endWalk()``.
+    @MainActor
+    private static func narrowFloor() {
+        let stackPointer = currentStackPointer()
+        let extent = cachedExtent
+        guard extent != .disabled, stackPointer >= extent.low, stackPointer < extent.high else { return }
+        if floorBeforeNarrowing == nil { floorBeforeNarrowing = extent.floor }
+        cachedExtent.floor = max(extent.floor, stackPointer + (extent.high - stackPointer) / 2)
+    }
 
     /// Consecutive failures to establish bounds. Reset by any success.
     @MainActor
@@ -226,7 +313,7 @@ package enum StackGuard {
     ///
     /// Deliberately not inlined — it is the cold path, and keeping the
     /// procfs read out of the caller keeps the hot path small enough to inline
-    /// into every `measureChild`/`renderChild`.
+    /// into every `measureChild` and every composite's draw.
     @MainActor
     private static func headroomSlowPath(stackPointer: UInt, countsTruncation: Bool) -> Bool {
         // Checked before the containment test below, not after: `disabled`
@@ -253,6 +340,7 @@ package enum StackGuard {
         }
         derivationFailures = 0
         cachedExtent = extent
+        floorBeforeNarrowing = nil
         let headroom = stackPointer > extent.floor && stackPointer < extent.high
         if !headroom && countsTruncation { truncationCount += 1 }
         return headroom

@@ -70,6 +70,13 @@ package func listRowsBody<V: View>(of view: V, context: RenderContext) -> ListRo
         return optional.listRowsBodyOfWrapped(context: context)
     }
     guard viewTypeHoldsListRowsInBody(V.self) else { return nil }
+    // A view nested in itself through sections is read through at every level,
+    // each a descent of this walk, as `compositeMembers(of:context:)` stops: the
+    // view is then one row, drawn whole, under the render's guard.
+    guard StackGuard.hasHeadroomUncounted() else {
+        StackGuard.noteReadThroughStop()
+        return nil
+    }
     return ListRowsBody(
         content: evaluateCompositeBody(of: view, context: context),
         context: context.withChildIdentity(type: V.Body.self))

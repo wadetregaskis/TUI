@@ -624,10 +624,25 @@ import TUIStyling
     /// too. See ``ReadingTypes`` and ``noteReads(_:)``.
     package let readingTypes = ReadingTypes()
 
-    /// Whether a type learned to read since the last pass asks for the whole
-    /// cache to be dropped at the next — see ``noteReads(_:)``. Main actor
+    /// Whether something the walk learned asks for the whole cache to be dropped
+    /// at the next pass — at the next, not now, because a memo around the walk is
+    /// still drawing, and would store what it drew over the clear. Main actor
     /// only: set from the walk, read by ``beginRenderPass()``.
-    private var clearsForNewReadingType = false
+    ///
+    /// A type learned to read: see ``noteReads(_:)``. Or a walk stopped at the
+    /// depth limit (``DepthLimit``), so that what is kept from it may hold the
+    /// limit's notice. Where the limit falls is the thread's stack as well as the
+    /// tree, and a page that has become shallower need not change a kept view's
+    /// value or identity, so nothing else would drop such a buffer. A page past
+    /// the limit therefore draws cold every frame, which only such a page pays.
+    package var clearsAtNextPass = false
+
+    /// Whether the walk being drawn has drawn the limit's notice somewhere, which
+    /// the frame is then checked for. A measure's stop does not set it: a measure
+    /// from a draw already deep in the stack can stop where the draw itself goes
+    /// on to reach the leaf, and that frame has lost nothing. Main actor only:
+    /// cleared before each walk by whoever draws frames, read once a frame.
+    package var drewDepthLimitNotice = false
 
     /// The computations this cache's walks arm observation scopes under, and
     /// when a scope may be cancelled — see ``ObservationLeases``.
@@ -1302,11 +1317,11 @@ extension RenderCache {
         let widthMoved = measuredUnderWidthGeneration != TerminalWidthTraits.generation
         let coloursMoved = renderedUnderTerminalColorsGeneration != TerminalColors.generation
         let now = RenderedUnder.now
-        if widthMoved || coloursMoved || now != renderedUnder || clearsForNewReadingType {
+        if widthMoved || coloursMoved || now != renderedUnder || clearsAtNextPass {
             measuredUnderWidthGeneration = TerminalWidthTraits.generation
             renderedUnderTerminalColorsGeneration = TerminalColors.generation
             renderedUnder = now
-            clearsForNewReadingType = false
+            clearsAtNextPass = false
             clearAll()
         }
 
@@ -1363,7 +1378,7 @@ extension RenderCache {
     @inline(__always)
     package func noteReads(_ reader: Any.Type) {
         guard readingTypes.learn(reader) else { return }
-        clearsForNewReadingType = true
+        clearsAtNextPass = true
         leases.noteReaderLearned()
     }
 

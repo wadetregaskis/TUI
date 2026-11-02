@@ -569,7 +569,12 @@ extension RenderLoop {
             beginRewalk: { [self] in
                 if let reservation { windowChrome.reservation = reservation }
             })
-        let buffer = walk.frame
+        // A page too deep says so, even where the place it stopped had no room
+        // for the notice. One load a frame for every other page.
+        let buffer =
+            tuiContext.renderCache.drewDepthLimitNotice
+            ? DepthLimit.showingNotice(on: walk.frame, width: terminalWidth, height: terminalHeight)
+            : walk.frame
         let environment = walk.environment
         let tooltipMovedThePage = walk.tooltipMovedThePage
 
@@ -1154,6 +1159,8 @@ extension RenderLoop {
     /// every corrected frame. That is why `beginSceneRender` on `StateStorage`
     /// is deliberately narrower than its `beginRenderPass`.
     fileprivate func beginSceneRender() {
+        StackGuard.beginWalk()
+        tuiContext.renderCache.drewDepthLimitNotice = false
         tuiContext.keyEventDispatcher.clearHandlers()
         tuiContext.mouseEventDispatcher.beginRenderPass()
         tuiContext.keyboardShortcuts.beginRenderPass()
@@ -1344,6 +1351,8 @@ extension RenderLoop {
         tuiContext.lifecycle.endRenderPass()
         tuiContext.stateStorage.endRenderPass()
         tuiContext.renderCache.removeInactive()
+        // No draw outside the walks should stop where they stopped.
+        StackGuard.endWalk()
         tuiContext.renderCache.logFrameStats()
         tuiContext.tooltipState.endFrame()
     }
