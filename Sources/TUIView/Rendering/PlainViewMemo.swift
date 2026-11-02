@@ -37,12 +37,34 @@ package final class PlainMemo {
     /// below it can have stored last.
     var lastStored = 0
 
-    /// The identity of the value memo (`.equatable()`, a `ForEach` row) that last
-    /// drew or measured what it holds, by its structural hash. A composite at that
-    /// identity is what that memo holds, and the memo's value already says whether
-    /// it changed: another entry for it would hold the same buffer and the same
-    /// size under a second key, with its own observation scopes.
-    var valueMemoIdentity = 0
+    /// How many value memos (`.equatable()`, a `ForEach` row) are drawing or
+    /// measuring what they hold around this point in the walk. Inside one, the
+    /// memo's value says whether its subtree changed, and it has a buffer and a size
+    /// for it. Asking again costs a key, a kept scope and a store at each composite,
+    /// which for a cheap one is more than its body: 6% of `session/notes`. So only a
+    /// composite that's seen to take real time asks (``asksInsideValueMemo(_:)``).
+    /// One does, since a row can be dropped where what it holds would still be served:
+    /// a row that isn't `Equatable` goes when its parent writes, and a page of them is
+    /// `tree-root`, 2 ms against 19.
+    var valueMemoDepth = 0
+
+    /// The types seen to take ``heavySubtree`` to measure, whole, inside a value memo.
+    private var heavyTypes: Set<ObjectIdentifier> = []
+
+    /// How many timed measures running each other type has been over the line. A
+    /// type's first is its metadata being made, and any one can be preempted, and a
+    /// row of a few `Text`s that got in on that would pay for asking from then on.
+    private var overTheLine: [ObjectIdentifier: Int] = [:]
+
+    /// Worth asking for: several times what a miss adds. `session/notes`'s rows of two
+    /// `Text`s and a `Spacer` are well under it, and `tree-root`'s of 80 well over. A
+    /// debug build's times are many times a release build's, so that's a line of its
+    /// own, and a test that means to go over it sets it.
+    #if DEBUG
+        package var heavySubtree = Duration.milliseconds(5)
+    #else
+        package var heavySubtree = Duration.microseconds(100)
+    #endif
 
     /// What each composite that has failed to be served has come to.
     private var gates: [Int: Gate] = [:]
@@ -77,6 +99,27 @@ package final class PlainMemo {
     }
 
     package init() {}
+
+    /// Whether a composite of `V` inside a value memo goes to the memo.
+    @inline(__always)
+    func asksInsideValueMemo<V: View>(_: V.Type) -> Bool {
+        !heavyTypes.isEmpty && heavyTypes.contains(ObjectIdentifier(V.self))
+    }
+
+    /// Notes how long a composite of `V` inside a value memo took to measure, where
+    /// that was timed.
+    @inline(__always)
+    func noteMeasured<V: View>(_: V.Type, since start: ContinuousClock.Instant?) {
+        guard let start else { return }
+        let type = ObjectIdentifier(V.self)
+        guard ContinuousClock.now - start >= heavySubtree else {
+            if !overTheLine.isEmpty { overTheLine[type] = nil }
+            return
+        }
+        let seen = overTheLine[type, default: 0] + 1
+        overTheLine[type] = seen
+        if seen >= 3 { heavyTypes.insert(type) }
+    }
 
     /// Starts a pass.
     func beginPass() {
@@ -204,7 +247,7 @@ func renderPlainMemoized<V: View>(
 ) -> FrameBuffer {
     let cache = context.renderCache.unsafelyUnwrapped
     let memo = cache.plainMemo
-    if memo.valueMemoIdentity == context.identity.structuralHash { return render(view, context) }
+    if memo.valueMemoDepth > 0, !memo.asksInsideValueMemo(V.self) { return render(view, context) }
     let hash = context.identity.structuralHash ^ plainMemoSlot
     if memo.isCoolingDown(hash) {
         memo.counts.cooled += 1
@@ -231,10 +274,14 @@ func measurePlainMemoized<V: View>(
     measure: (V, RenderContext) -> ViewSize
 ) -> ViewSize {
     let cache = context.renderCache.unsafelyUnwrapped
-    let identityHash = context.identity.structuralHash
-    if cache.plainMemo.valueMemoIdentity == identityHash || cache.plainMemo.isCoolingDown(identityHash ^ plainMemoSlot) {
-        return measure(view, context)
+    let memo = cache.plainMemo
+    if memo.valueMemoDepth > 0, !memo.asksInsideValueMemo(V.self) {
+        let started = cache.bodyKeep.startTiming()
+        let size = measure(view, context)
+        memo.noteMeasured(V.self, since: started)
+        return size
     }
+    if memo.isCoolingDown(context.identity.structuralHash ^ plainMemoSlot) { return measure(view, context) }
     let plans = cache.valueHashPlans
     return measureValueMemoized(
         key: PlainKey(

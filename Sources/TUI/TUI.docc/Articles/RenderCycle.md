@@ -653,10 +653,11 @@ holds (<doc:RenderCycle#Memoizing-Your-Own-Views>).
 A composite from the app's own modules is memoized without asking: this is the
 same memo as an `.equatable()` view's, with its journal, its leases and its
 verifiers, and what is new is the key. The framework's own composites are not,
-since their bodies only forward. Nor is a composite a `ForEach` row or an
-`.equatable()` holds at its own identity, whose value already says whether it
-changed. `TUI_RUN_BODY_ON_EVERY_FRAME=1` turns this memo off, for a program that
-goes stale.
+since their bodies only forward. Nor is a cheap one inside a `ForEach` row or an
+`.equatable()`, whose value already says whether what's in it changed: asking costs
+more than its `body`, so inside one, a composite asks only once it has been seen to
+take real time. `TUI_RUN_BODY_ON_EVERY_FRAME=1` turns this memo off, for a program
+that goes stale.
 
 **What it compares.** Each field, by a comparison made once per type from its
 field metadata: `@State`, `@Environment`, `@FocusState` and `@Namespace` are

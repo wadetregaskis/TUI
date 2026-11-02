@@ -68,6 +68,32 @@ private struct OwnState: View {
     }
 }
 
+/// A `ForEach` row whose element moves, with a composite in it that doesn't.
+private struct MovingRow: View {
+    struct Item: Identifiable, Equatable {
+        let id: Int
+        let text: String
+    }
+
+    let item: Item
+    var body: some View {
+        VStack {
+            Text(verbatim: item.text)
+            Label(tag: "inside", value: 7)
+        }
+    }
+}
+
+private struct MovingRowPage: View {
+    @State private var text = "a"
+    var body: some View {
+        Probe.write = { text += "b" }
+        return VStack {
+            ForEach([MovingRow.Item(id: 1, text: text)]) { MovingRow(item: $0) }
+        }
+    }
+}
+
 private struct PassesField: View {
     @State private var count = 0
     var body: some View {
@@ -453,6 +479,35 @@ struct PlainMemoCorrectnessTests {
         Probe.write?()
         settle(app, nanos: &nanos, frames: 1)
         #expect(text(app).contains("unwatched=0"))
+    }
+
+    /// The row's value says whether what's in it changed, and it has a buffer and a
+    /// size. A cheap composite in there asks nothing of its own, which `session/notes`
+    /// paid 6% a frame for. One that takes real time does: `tree-root`'s rows are
+    /// dropped by their parent's write, and what they hold is served.
+    @Test("A composite inside a row has a memo only if it takes real time", arguments: [false, true])
+    func compositeInsideARow(takesRealTime: Bool) {
+        let app = app(MovingRowPage())
+        // Anything measured is over the line, or nothing is, whatever this machine's speed.
+        app.renderCache.plainMemo.heavySubtree = takesRealTime ? .zero : .seconds(100)
+        app.renderCache.bodyKeep.keepsEveryBody = false
+        var nanos: Int64 = 0
+        settle(app, nanos: &nanos)
+        // Only a row that misses has what's in it measured: three times to be seen,
+        // and then stored.
+        for _ in 0..<4 {
+            Probe.write?()
+            settle(app, nanos: &nanos, frames: 1)
+        }
+        _ = Probe.take("inside")
+        Probe.write?()
+        settle(app, nanos: &nanos, frames: 1)
+        #expect(text(app).contains("abbbbb"))
+        if takesRealTime {
+            #expect(Probe.take("inside") == 0)
+        } else {
+            #expect(Probe.take("inside") > 0)
+        }
     }
 
     @Test("What changes every frame stops asking, and what settles is served again")

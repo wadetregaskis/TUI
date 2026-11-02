@@ -196,7 +196,8 @@ func renderValueMemoized<Key: Equatable, Row>(
     // long as that is kept — and, stored or not, by what encloses this memo
     // (see `ObservationLeases`).
     let leaseMark = cache.leases.beginComputation()
-    if slot == 0 { cache.plainMemo.valueMemoIdentity = identity.structuralHash }
+    if slot == 0 { cache.plainMemo.valueMemoDepth += 1 }
+    defer { if slot == 0 { cache.plainMemo.valueMemoDepth -= 1 } }
     // Built once and kept: what the buffer is re-checked by (Option C). Under
     // the kept scope — a read the row's builder makes is the kept buffer's
     // too — unless the row can be re-checked, when its builder's reads are
@@ -367,16 +368,14 @@ private func verifyServe(
     // catch the case that matters here, a control that now holds the focus
     // drawn as it looked without it.
     guard (tracker?.unreplayableCount ?? 0) == unreplayableBefore else { return fresh }
-    // Animation records count as one, however many entries they came in: each memo
-    // between here and a record has an entry holding it (a memo logs what those
-    // inside it declare, served or not), and declaring one twice is declaring it.
+    // Animation records count as one, however many entries they came in and wherever
+    // they fall among the others: each memo between here and a record has an entry
+    // holding it (a memo logs what those inside it declare, served or not), so which
+    // memos there are moves them, and declaring one twice or sooner is declaring it.
     func kinds(_ effects: [EffectJournal.Entry]) -> [EffectJournal.Kind] {
-        var seenAnimationRecords = false
-        return effects.compactMap { effect in
-            guard effect.kind == animationRecordsKind else { return effect.kind }
-            defer { seenAnimationRecords = true }
-            return seenAnimationRecords ? nil : effect.kind
-        }
+        var kinds = effects.map(\.kind).filter { $0 != animationRecordsKind }
+        if effects.contains(where: { $0.kind == animationRecordsKind }) { kinds.append(animationRecordsKind) }
+        return kinds
     }
     let freshKinds = kinds(ownChannelEffects(journal, since: start, context: context))
     let servedKinds = kinds(entry.effects)
@@ -496,7 +495,8 @@ func measureValueMemoized<Key: Equatable, Row>(
     // The scopes this measure arms are kept alive by the size it stores — see
     // the buffer half.
     let leaseMark = cache.leases.beginComputation()
-    if slot == 0 { cache.plainMemo.valueMemoIdentity = context.identity.structuralHash }
+    if slot == 0 { cache.plainMemo.valueMemoDepth += 1 }
+    defer { if slot == 0 { cache.plainMemo.valueMemoDepth -= 1 } }
     // As the buffer half: under the kept scope, or for a row that can be
     // re-checked, under its parent's soft one.
     var built: Row?
