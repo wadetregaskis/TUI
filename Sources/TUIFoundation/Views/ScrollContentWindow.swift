@@ -518,3 +518,58 @@ package struct ScrollToRequest: Sendable, Hashable {
         return max(0, min(raw, max(0, totalHeight - viewportHeight)))
     }
 }
+
+// MARK: - A served stack's reply
+
+extension ScrollContentReply {
+    static let replayKind = EffectJournal.Kind("scrollContentReply")
+
+    /// Everything a windowed stack said to its scroll view.
+    private func take(_ other: ScrollContentReply) {
+        sliceOriginY = other.sliceOriginY
+        sliceTotalHeight = other.sliceTotalHeight
+        sliceTotalIsEstimate = other.sliceTotalIsEstimate
+        sliceHoldsFirstRow = other.sliceHoldsFirstRow
+        sliceHoldsLastRow = other.sliceHoldsLastRow
+        anchorID = other.anchorID
+        seekResolvedOffset = other.seekResolvedOffset
+        resolvedOffsetIsHold = other.resolvedOffsetIsHold
+        drawnLines = other.drawnLines
+        targetLayoutRows = other.targetLayoutRows
+        targetLayoutColumns = other.targetLayoutColumns
+        targetVisibleRows = other.targetVisibleRows
+        targetVisibleColumns = other.targetVisibleColumns
+        pendingRelay = other.pendingRelay
+        targetIDs = other.targetIDs
+        seekResolvedColumn = other.seekResolvedColumn
+        measureWentStale = other.measureWentStale
+    }
+
+    /// Journals what a windowed stack has just said to its scroll view, for a memo
+    /// between them to say again when it is served.
+    ///
+    /// The reply is a mailbox of the scroll view's own, made new for each render
+    /// and read after it: a served subtree writes nothing to it, and nothing in the
+    /// buffer says so. So the scroll view took the band it was handed for the whole
+    /// content, and its thumb filled the track: the frame-to-frame difference a plain
+    /// composite's memo first showed, and an `.equatable()` view around a `LazyVStack`
+    /// would have too.
+    ///
+    /// Only into the same content's mailbox: a memo above the scroll view keeps this
+    /// entry too, and is served under an outer scroll view's, if any.
+    @MainActor
+    static func journal(from context: RenderContext) {
+        guard let window = context.environment.scrollContentWindow, let reply = window.reply,
+            let journal = context.renderCache?.effectJournal, journal.isRecording
+        else { return }
+        let said = ScrollContentReply()
+        said.take(reply)
+        let content = window.contentIdentity
+        journal.append(
+            EffectJournal.Entry(kind: replayKind, channelToken: context.environment.keyChannelToken) { served in
+                guard let window = served.environment.scrollContentWindow, window.contentIdentity == content else { return }
+                window.reply?.take(said)
+            })
+        context.environment.volatileReadTracker?.recordReplayableEffect()
+    }
+}

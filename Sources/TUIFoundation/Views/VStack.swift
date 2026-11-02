@@ -452,7 +452,10 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         let context = context.publishingContainerAxis(.vertical, passesNoWidthOn: isStaticallyOneView(Content.self))
         switch overflow {
         case .clip: return renderClip(context: context)
-        case .window: return renderWindow(context: scopingPinnedSections(context))
+        case .window:
+            let drawn = renderWindow(context: scopingPinnedSections(context))
+            ScrollContentReply.journal(from: context)
+            return drawn
         }
     }
 

@@ -295,6 +295,9 @@ struct PlainMemoRegistryTests {
         compare("ScrollView") { _ in
             ScrollView { VStack { ForEach(0..<30) { Text(verbatim: "\($0)") } } }
         }
+        compare("LazyVStack in a ScrollView", keys: [KeyEvent(key: .pageDown)]) { _ in
+            ScrollView { LazyHolder() }
+        }
         compare("Toggle") { _ in Toggle("t", isOn: .constant(true)) }
         compare("TextField", keys: [KeyEvent(key: .tab), KeyEvent(character: "k")]) { _ in
             TextField("name", text: .constant(""))
@@ -326,6 +329,16 @@ struct PlainMemoRegistryTests {
         compare("ProgressView", expectServed: false) { _ in ProgressView() }
         compare("TimelineView", expectServed: false) { _ in
             TimelineView(.periodic(from: .now, by: 1)) { context in Text(verbatim: "\(context.date.timeIntervalSince1970 > 0)") }
+        }
+    }
+}
+
+/// A composite between a scroll view and its windowed stack, which the stack
+/// answers through: see `ScrollContentReply.journal(from:)`.
+private struct LazyHolder: View {
+    var body: some View {
+        LazyVStack(alignment: .leading, spacing: 0) {
+            ForEach(0..<200) { Text(verbatim: "row \($0)") }
         }
     }
 }
