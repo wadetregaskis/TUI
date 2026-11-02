@@ -6738,7 +6738,8 @@ content). Adopted from Ghostty's VT reference
   the same shape, printed nothing on five hosts. Its DECRQM query
   (`CSI ? 2026 $ p`) is the shape Apple Terminal prints, and setting the mode
   needs no answer, so TUI never sends it.
-- **`TUI_SYNCHRONIZED_OUTPUT=0`** turns it off: no markers, and none owed.
+- **Not under tmux** (since 2026-11-01). tmux 3.7c accepts a pane's hold and answers its end by repainting the whole pane at its client: one changed cell cost 6,198 bytes against 38, the Example idling 153 KB/s against 2 KB/s, a Down key about 10,400 bytes against about 40 (`Tools/TerminalProbes/tmux_scroll_probe.py`). What's given up is tmux's guard against showing a pane between two reads of a frame, which is one `write()`. Not yet soaked over ssh.
+- **`TUI_SYNCHRONIZED_OUTPUT=0`** turns it off: no markers, and none owed. `1` turns it on under tmux.
 
 `SynchronizedOutputTests` pins all of the above, the marker's place in a
 rendered frame included.
@@ -6752,7 +6753,7 @@ rendered frame included.
 | kitty, Warp | hypothesis: yes | unknown |
 | Apple Terminal 455.1 | hypothesis: no, ignored | — |
 | GNOME Terminal 3.56.2 | no (DECRQM `?2026` reports permanently reset `0`, measured 2026-10-23) | — |
-| tmux 3.7c | **takes the pane's hold, does not forward it, and at its end repaints the whole pane at the client** (measured 2026-11-01, below) | unknown |
+| tmux 3.7c | **takes the pane's hold, does not forward it, and at its end repaints the whole pane at the client** (measured 2026-11-01, below), so TUI doesn't send it | unknown |
 
 Ghostty's facts are read from its source on 2026-10-04, not measured. A
 process killed mid-frame (SIGKILL, which no handler sees) freezes Ghostty's
@@ -6779,8 +6780,8 @@ what travels over ssh. A pane of 120×39, in a client with `TERM=xterm-256color`
 Beside another pane, so not full width, tmux redraws the region itself: 3,891 with or without a hold, against 2,731 for whole
 rows not held. No `?2026` reached the client in any of these. So **TUI, which holds every frame that writes a row, repaints the whole pane
 on every frame under tmux.** Example on its Lists page in a pane: 153,192 bytes a second idle, and 10,356 per Down key, against
-2,148 and 39 with `TUI_SYNCHRONIZED_OUTPUT=0`. Not changed yet. See the recommendation in
-`Documentation/Performance/Scroll regions for output.md`.
+2,148 and 39 with `TUI_SYNCHRONIZED_OUTPUT=0`. So TUI no longer holds under tmux; `TUI_SYNCHRONIZED_OUTPUT=1` asks for it anyway.
+See `Documentation/Performance/Scroll regions for output.md`.
 
 ### To measure — `Tools/TerminalProbes/sync_probe.py`
 

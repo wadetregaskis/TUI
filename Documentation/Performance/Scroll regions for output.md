@@ -361,7 +361,7 @@ Which says, for this study, that:
   5,091). Beside another pane, without margins in the client's terminfo, it redraws the region itself, which is worse than
   rewriting (3,891 against 2,731), and the writer's price cannot see that. Which sort of pane it is in, it cannot know.
 
-And for TUI, whatever comes of this study: **stop sending the hold under tmux.** That is the survey's open question
+And for TUI, whatever comes of this study: **stop sending the hold under tmux** (done 2026-11-01, not yet soaked over ssh). That is the survey's open question
 ("unknown whether a pane's hold reaches the client"), answered. What is lost is tmux's own guard against showing a pane
 half-drawn, between two reads of the app's frame, which is one `write()`. I would take that. tmux does not hold its client in
 these runs either way (no `?2026` reached the client, `TERM=xterm-256color`). It needs a soak over a real ssh link, by
@@ -457,8 +457,8 @@ the environment switch, which stays as the way out as `TUI_SYNCHRONIZED_OUTPUT` 
 
 1. **Default on, or a soak with it off?** I recommend on, after you have watched one scroll on Apple Terminal and on tmux.
 2. **`margins` and `residue`: keep or drop?** I would drop them for now.
-3. **Stop holding under tmux**, separately and first? It is a one-line change worth 70 times more than anything here,
-   for anyone using tmux. I recommend yes, after a soak over ssh. It is out of this study's scope and I have not done it.
+3. **Stop holding under tmux**, separately and first? Done 2026-11-01 (`TUI_SYNCHRONIZED_OUTPUT=1` asks for it anyway). A soak over
+   ssh is still to come.
 4. **Hairlines.** A page with `.hairline` list separators does not scroll in hardware at all, in the prototype. Making
    `HairlineLayer` follow a band is a known piece of work, if you use them often enough to care.
 

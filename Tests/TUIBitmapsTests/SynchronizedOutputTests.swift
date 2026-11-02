@@ -91,6 +91,18 @@ struct SynchronizedOutputTests {
         #expect(Terminal.synchronizedOutputAllowed(environment: ["TUI_SYNCHRONIZED_OUTPUT": "1"]))
     }
 
+    /// tmux answers a hold's end by repainting the whole pane at its client.
+    @Test("Under tmux a frame isn't held, unless the variable asks for it")
+    func notUnderTmux() {
+        let tmux = "/private/tmp/tmux-501/default,1,0"
+        #expect(!Terminal.synchronizedOutputAllowed(environment: ["TMUX": tmux]))
+        #expect(Terminal.synchronizedOutputAllowed(environment: ["TMUX": tmux, "TUI_SYNCHRONIZED_OUTPUT": "1"]))
+        #expect(!Terminal.synchronizedOutputAllowed(environment: ["TMUX": tmux, "TUI_SYNCHRONIZED_OUTPUT": "0"]))
+        let (terminal, output) = ScriptedTerminalOutput.terminal(environment: ["TMUX": tmux])
+        frame(on: terminal, rows: [1, 2, 3])
+        #expect(output.writes == ["\u{1B}[1;1Hx\u{1B}[2;1Hx\u{1B}[3;1Hx"])
+    }
+
     @Test("The end marker is the first thing the teardown sends, and leads the debt a fatal signal pays")
     func endMarkerInTeardownAndDebt() {
         let (terminal, output) = ScriptedTerminalOutput.terminal()

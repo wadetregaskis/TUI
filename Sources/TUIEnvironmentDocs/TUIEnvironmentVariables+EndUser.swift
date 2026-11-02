@@ -151,8 +151,8 @@ extension TUIEnvironmentVariables {
             reading: .eachUse),
         TUIEnvironmentVariable(
             "TUI_SYNCHRONIZED_OUTPUT", .endUser, .terminal,
-            values: "`0`",
-            effect: "Doesn't ask the terminal to hold each frame until it's complete: the way out if a terminal gets that wrong.",
+            values: "`0` or `1`",
+            effect: "`0`: doesn't ask the terminal to hold each frame until it's complete, the way out if a terminal gets that wrong. `1`: asks under tmux too, which otherwise isn't asked because it repaints the whole pane after each hold.",
             reading: .eachUse),
         TUIEnvironmentVariable(
             "TUI_HYPERLINKS", .endUser, .terminal,

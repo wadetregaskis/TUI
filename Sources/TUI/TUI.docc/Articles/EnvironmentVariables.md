@@ -105,7 +105,7 @@ Don't write a variable to state a setting. Many are read once, and `setenv` isn'
 | `TUI_PICTURES_UNDER_TEXT` | `0` or `1` | Whether text over a frosted picture stands on the picture itself, off or on, whatever the terminal. |
 | `TUI_KEYBOARD_PROTOCOL` | `0` | Doesn't ask for the Kitty keyboard protocol: the way out if a terminal says it has it, and then keys go wrong. |
 | `TUI_SHIFT_CLICKS` | `0` | Leaves Shift-clicks to the terminal, which usually selects text with them, rather than asking for them to reach the program. |
-| `TUI_SYNCHRONIZED_OUTPUT` | `0` | Doesn't ask the terminal to hold each frame until it's complete: the way out if a terminal gets that wrong. |
+| `TUI_SYNCHRONIZED_OUTPUT` | `0` or `1` | `0`: doesn't ask the terminal to hold each frame until it's complete, the way out if a terminal gets that wrong. `1`: asks under tmux too, which otherwise isn't asked because it repaints the whole pane after each hold. |
 | `TUI_HYPERLINKS` | `0` or `1` | Whether links are sent as links the terminal can follow (OSC 8), off or on, whatever the terminal. |
 | `TUI_OSC52` | `0` or `1` | Whether a copy goes through the terminal to your clipboard (OSC 52), off or on, whatever the terminal. |
 | `TUI_OSC5522` | `0` or `1` | Whether a copy or a paste carries more than text through the terminal (OSC 5522), off or on, whatever the terminal says. |

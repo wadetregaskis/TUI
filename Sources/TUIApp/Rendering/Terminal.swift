@@ -1300,14 +1300,21 @@ extension Terminal {
     /// can be megabytes, which inside it could outlast Ghostty's one-second
     /// limit on a hold (`sync_reset_ms`) and show the frame half drawn anyway.
     ///
-    /// Sent to every host, as the startup's mode requests are. A terminal
+    /// Not sent under tmux: tmux 3.7c accepts a pane's hold and answers its end by
+    /// repainting the whole pane at its client, so one changed cell cost 6,198
+    /// bytes against 38 (`Tools/TerminalProbes/tmux_scroll_probe.py`). The frame is
+    /// one write, so what's lost is only tmux's guard against showing a pane
+    /// between two reads of it.
+    ///
+    /// Otherwise sent to every host, as the startup's mode requests are. A terminal
     /// without the mode ignores it: `CSI ? Pm h` has a `?` and no intermediate
     /// byte, the shape measured clean on Apple Terminal, iTerm2, Ghostty and
     /// Warp (`Documentation/Terminals/Terminal compatibility survey.md`, "Asking the terminal —
     /// Device Attributes"). Nothing is asked first: its DECRQM query is the
     /// one shape Apple Terminal prints, and setting the mode needs no answer.
     /// `TUI_SYNCHRONIZED_OUTPUT=0` turns it off, should a terminal take it
-    /// badly; see "Synchronized output (mode 2026)" there.
+    /// badly, and `1` turns it on under tmux; see "Synchronized output (mode
+    /// 2026)" there.
     ///
     /// Does nothing outside a frame, a second time in one, or when turned off.
     func beginSynchronizedUpdate() {
@@ -1317,11 +1324,15 @@ extension Terminal {
         frameBuffer.append(contentsOf: Self.synchronizedUpdateBegin.utf8)
     }
 
-    /// Whether the environment lets frames be held at all: yes, unless
-    /// `TUI_SYNCHRONIZED_OUTPUT` is `0` — the user's way out, in the shape
-    /// of `TUI_KEYBOARD_PROTOCOL=0`.
+    /// Whether frames are held at all: what `TUI_SYNCHRONIZED_OUTPUT` says, `0`
+    /// or `1`, in the shape of `TUI_KEYBOARD_PROTOCOL=0`; otherwise yes, unless
+    /// the app is under tmux.
     nonisolated static func synchronizedOutputAllowed(environment: [String: String]) -> Bool {
-        environment["TUI_SYNCHRONIZED_OUTPUT"] != "0"
+        switch environment["TUI_SYNCHRONIZED_OUTPUT"] {
+        case "0": false
+        case "1": true
+        default: !TerminalHost.detectTmux(environment: environment)
+        }
     }
 
     /// Writes a string to the terminal.
