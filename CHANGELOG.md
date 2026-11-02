@@ -4,6 +4,10 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**A terminal that can only show ASCII gets the best ASCII we can give it.** Where the locale names a character
+set other than UTF-8, each character goes out as ASCII in the cells it had: `é` as `e`, a box's corners as `+`, and
+`你` as `ni`. This isn't a mode to choose.
+
 **The pointer's locations have SwiftUI's types.** `DragGesture.Value` (`location`, `startLocation`: `CGPoint`;
 `translation`, `velocity` and the predictions: `CGPoint` and `CGSize`), `DragGesture.minimumDistance` (`CGFloat`),
 `SpatialTapGesture.Value.location`, `HoverPhase.active`, the action of `onTapGesture(count:coordinateSpace:perform:)`,

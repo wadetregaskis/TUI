@@ -7583,6 +7583,12 @@ K3).
 
 ## Where the adaptations live
 
+- `PlainTerminalText` (`FrameDiffWriter.compensatingCursorAdvance`, which every row and
+  replayed cell goes through): for a terminal that truly can't show anything but ASCII.
+  Not measured on any terminal. It goes by what the locale says, and only where the
+  locale names a character set other than UTF-8: `C` and `POSIX` name none, and are
+  common in front of a terminal showing UTF-8 perfectly well. Cell for cell, so that
+  nothing above it has to know. `TUI_PLAIN_TEXT` forces it, for testing.
 - `TerminalHost` — `TERM_PROGRAM` detection (`Apple_Terminal`,
   `iTerm.app`, `ghostty`, `WarpTerminal`) + the `supportsEmojiChrome`
   allowlist (all four; Ghostty only because its CUF fixes the VS-15

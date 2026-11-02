@@ -250,6 +250,9 @@ final class FrameDiffWriter {
     /// `TUI_SCROLL_CENSUS`: what each level would have done with each frame.
     let scrollCensus = ScrollCensus.fromEnvironment()
 
+    /// Whether this terminal can only be sent plain ASCII. See ``PlainTerminalText``.
+    let sendsPlainText = PlainTerminalText.isNeeded(in: ProcessInfo.processInfo.environment)
+
     /// Whether the frame on screen has marks a terminal keeps apart from its
     /// cells (``RowMarks``): a placement some hosts move with a band and some
     /// do not, measured, so a band declines to move while one is up.
@@ -647,6 +650,10 @@ extension FrameDiffWriter {
     /// - Parameters:
     ///   - text: A whole row, or a fragment of one.
     func compensatingCursorAdvance(_ text: String) -> String {
+        // Every row and every replayed cell comes through here, and it's where a
+        // terminal's other shortcomings are made up for. The result is ASCII, one cell
+        // to a byte, which no advance model has anything to say about.
+        if sendsPlainText { return PlainTerminalText.folding(text) }
         switch model {
         case .custom(let quirks):
             return text.withCursorCompensation(for: quirks)
