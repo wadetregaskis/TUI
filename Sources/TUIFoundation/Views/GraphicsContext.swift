@@ -1,11 +1,12 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  GraphicsContext.swift
 //
-//  SwiftUI's `GraphicsContext`, the part of it a `TextRenderer` draws text
-//  with (the owner's TEXT-EFFECTS ruling, 2026-10-28; `TextRenderer design
-//  study, O16`): opacity, a transform, colour filters, layers, and drawing a
-//  text's lines, runs and glyphs — into cells. `Canvas` will draw with the
-//  same context, with paths and images, later.
+//  SwiftUI's `GraphicsContext`: its state (opacity, a transform, a blend mode,
+//  filters, a clip) and drawing a text's lines, runs and glyphs, which is what
+//  a `TextRenderer` draws with (the owner's TEXT-EFFECTS ruling, 2026-10-28;
+//  `TextRenderer design study, O16`). `Canvas` draws with the same context;
+//  paths and shadings, images and symbols, and filters are in the extensions
+//  beside this file.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -17,27 +18,53 @@ import Foundation
 import TUICore
 
 /// An immediate-mode drawing destination — mirrors SwiftUI's
-/// `GraphicsContext`, as far as a text renderer draws with it.
+/// `GraphicsContext`.
 ///
-/// Positions are in cells: a point is a cell across and a row down. A glyph
-/// is drawn at the cell its origin lands on under the ``transform``, rounded
-/// to whole cells — a cell cannot hold part of a glyph — and at its own size
-/// and angle whatever the transform scales or turns, since a glyph cannot be
-/// scaled or rotated either. Colours are faded and filtered cell by cell, as
-/// `View.opacity(_:)` and the colour-effect modifiers fade and filter them.
+/// **Units.** In a ``Canvas`` a position is in the square units a ``Shape``'s
+/// is: a column across, and ``EnvironmentValues/imageCellAspect`` of them, about
+/// two, down a row, so a circle is round. In a ``TextRenderer`` a position is in
+/// cells, a cell across and a row down, as its ``Text/Layout`` is.
 ///
-/// A value: copying a context copies its state (opacity, transform, filters),
-/// and both copies draw into the same destination, as SwiftUI's do.
+/// **Paths, images and shadings** paint pixels at the finest grain the terminal
+/// offers (``CanvasGrain``), honouring the whole transform. **Text and symbols**
+/// are cells: a glyph is drawn at the cell its origin lands on under the
+/// ``transform``, rounded to whole cells — a cell cannot hold part of a glyph —
+/// and at its own size and angle whatever the transform scales or turns, since a
+/// glyph cannot be scaled or rotated either. Its colours are faded and filtered
+/// cell by cell, as `View.opacity(_:)` and the colour-effect modifiers fade and
+/// filter them. A shape painted over at least half of a glyph's cell covers the
+/// glyph; a glyph drawn over pixels takes them as its field.
+///
+/// A value: copying a context copies its state (opacity, transform, filters,
+/// clip), and both copies draw into the same destination, as SwiftUI's do.
 public struct GraphicsContext {
     /// Where the drawing goes.
-    let canvas: Canvas
+    let surface: Surface
+
+    /// The layer paths and images paint into: `nil` for the surface's own
+    /// pixels. See ``drawLayer(content:)``.
+    var layer: CanvasRaster?
+
+    /// The serial the layer began at: what it covers when it lands is older.
+    var layerStart = 0
+
+    /// The clip in force, or `nil` for the whole surface.
+    var clipMask: CanvasMask?
+
+    /// The opacity and filters of the contexts this one's layer is inside,
+    /// which a glyph, drawn straight into its cell, takes at once.
+    var enclosing = (opacity: 1.0, filters: [Filter]())
+
+    /// How what is drawn next combines with what it lands on.
+    public var blendMode = BlendMode.normal
 
     /// The opacity of what is drawn next, 0 to 1 — composited as
     /// `View.opacity(_:)` composites, over whatever is beneath the cell.
     public var opacity: Double = 1
 
-    /// The transform from the drawing's coordinates to the text's cells.
-    /// Only where a glyph's origin lands is honoured; see the type's note.
+    /// The transform from the drawing's coordinates to the canvas's or the
+    /// text's. Of a glyph, only where its origin lands is honoured; see the
+    /// type's note.
     public var transform = CGAffineTransform.identity
 
     /// The colour filters what is drawn next is drawn through, in the order
@@ -50,9 +77,13 @@ public struct GraphicsContext {
     /// word. A `nil` field keeps the run's.
     public var textAttributes = TextCellAttributes()
 
-    init(canvas: Canvas) {
-        self.canvas = canvas
+    init(surface: Surface) {
+        self.surface = surface
     }
+
+    /// The environment of the view this context draws — mirrors SwiftUI's
+    /// `environment`.
+    public var environment: EnvironmentValues { surface.environment }
 
     // MARK: Transforming
 
@@ -78,77 +109,6 @@ public struct GraphicsContext {
     /// `rotate(by:)`. Moves where glyphs are drawn; a glyph keeps its angle.
     public mutating func rotate(by angle: Angle) {
         transform = CGAffineTransform(rotationAngle: CGFloat(angle.radians)).concatenating(transform)
-    }
-
-    // MARK: Filters
-
-    /// A colour filter — mirrors SwiftUI's `GraphicsContext.Filter`, the
-    /// filters a cell's colours can take. Blurs, shaders and projections,
-    /// which need pixels, are not offered.
-    public struct Filter: Sendable {
-        enum Kind: Sendable {
-            case multiply(Color)
-            case hueRotation(Double)
-            case saturation(Double)
-            case brightness(Double)
-            case contrast(Double)
-            case invert(Double)
-            case grayscale(Double)
-        }
-
-        let kind: Kind
-
-        /// Multiplies each colour by `color`, channel by channel.
-        public static func colorMultiply(_ color: Color) -> Self { Self(kind: .multiply(color)) }
-        /// Turns each colour's hue by `angle`.
-        public static func hueRotation(_ angle: Angle) -> Self { Self(kind: .hueRotation(angle.degrees)) }
-        /// Keeps `amount` of each colour's saturation (above 1 adds).
-        public static func saturation(_ amount: Double) -> Self { Self(kind: .saturation(amount)) }
-        /// Adds `amount` of the full range to each channel.
-        public static func brightness(_ amount: Double) -> Self { Self(kind: .brightness(amount)) }
-        /// Scales each channel's distance from the middle grey by `amount`.
-        public static func contrast(_ amount: Double) -> Self { Self(kind: .contrast(amount)) }
-        /// Inverts each colour, `amount` of the way.
-        public static func colorInvert(_ amount: Double = 1) -> Self { Self(kind: .invert(amount)) }
-        /// Takes `amount` of each colour's colour out, toward its grey.
-        public static func grayscale(_ amount: Double) -> Self { Self(kind: .grayscale(amount)) }
-
-        /// `color` through this filter; itself where it has no RGB.
-        func applied(to color: Color) -> Color {
-            switch kind {
-            case .multiply(let tint): color.multiplied(by: tint)
-            case .hueRotation(let degrees): color.hueRotated(byDegrees: degrees)
-            case .saturation(let amount): color.saturated(keeping: amount)
-            case .brightness(let amount): color.brightened(by: amount)
-            case .contrast(let amount): color.contrasted(by: amount)
-            case .invert(let amount): Color.lerp(color, color.inverted, phase: amount)
-            case .grayscale(let amount): color.saturated(keeping: 1 - amount)
-            }
-        }
-    }
-
-    /// Options for a filter — mirrors SwiftUI's `GraphicsContext.FilterOptions`.
-    /// None changes how a cell's colours are filtered.
-    public struct FilterOptions: OptionSet, Sendable {
-        public let rawValue: UInt32
-        public init(rawValue: UInt32) { self.rawValue = rawValue }
-    }
-
-    /// Adds `filter` to what the next draws are drawn through — mirrors
-    /// SwiftUI's `addFilter(_:options:)`.
-    public mutating func addFilter(_ filter: Filter, options: FilterOptions = FilterOptions()) {
-        filters.append(filter)
-    }
-
-    // MARK: Layers
-
-    /// Draws `content` into a layer of this context's: what it draws takes
-    /// this context's opacity, filters and transform as well as its own —
-    /// mirrors SwiftUI's `drawLayer(content:)`. A cell has no layer to blend
-    /// as a group beyond its own colours, so the layer composes cell by cell.
-    public func drawLayer(content: (inout Self) throws -> Void) rethrows {
-        var layer = self
-        try content(&layer)
     }
 
     // MARK: Drawing text
@@ -182,21 +142,46 @@ public struct GraphicsContext {
 
     /// Writes one glyph to the canvas under this context's state.
     private func place(_ glyph: Text.Layout.Glyph, as character: Character?, style: SGRState) {
-        let origin = CGPoint(x: CGFloat(glyph.column), y: CGFloat(glyph.row)).applying(transform)
-        // Within the canvas's reach, which also keeps `Int(_:)` from trapping
-        // on a huge or non-finite coordinate (NaN fails both comparisons).
-        guard canvas.reaches(origin) else { return }
         let shown = character.map(String.init) ?? glyph.character
-        canvas.write(
-            Canvas.Cell(
-                character: shown, width: character.map { max(1, $0.terminalWidth) } ?? glyph.width,
-                style: textAttributes.applied(to: filtered(style)), opacity: opacity),
-            column: Int(origin.x.rounded()), row: Int(origin.y.rounded()))
+        let origin = CGPoint(x: CGFloat(glyph.column), y: CGFloat(glyph.row) * surface.unitsPerRow)
+        writeGlyph(
+            shown, width: character.map { max(1, $0.terminalWidth) } ?? glyph.width, style: style,
+            atCellOf: origin.applying(transform))
+    }
+
+    /// Writes one glyph to the cell `origin`, in this context's units past its
+    /// transform, lands on, under this context's state.
+    func writeGlyph(_ character: String, width: Int, style: SGRState, atCellOf origin: CGPoint) {
+        let cell = CGPoint(x: origin.x, y: origin.y / surface.unitsPerRow)
+        // Within the surface's reach, which also keeps `Int(_:)` from trapping
+        // on a huge or non-finite coordinate (NaN fails both comparisons).
+        guard surface.reaches(cell) else { return }
+        writeGlyph(character, width: width, style: style, column: Int(cell.x.rounded()), row: Int(cell.y.rounded()))
+    }
+
+    /// Writes one glyph to cell (`column`, `row`) under this context's state.
+    func writeGlyph(_ character: String, width: Int, style: SGRState, column: Int, row: Int) {
+        guard clipKeeps(column: column, row: row) else { return }
+        surface.write(
+            Surface.Cell(
+                character: character, width: width, style: textAttributes.applied(to: filtered(style)),
+                opacity: opacity * enclosing.opacity, serial: surface.nextSerial()),
+            column: column, row: row)
+    }
+
+    /// Whether the clip keeps at least half of a cell, which is all of it or
+    /// none: a glyph cannot be cut.
+    private func clipKeeps(column: Int, row: Int) -> Bool {
+        guard let clipMask else { return true }
+        let grid = surface.grid
+        guard column >= 0, row >= 0, (column + 1) * grid.across <= clipMask.width, (row + 1) * grid.down <= clipMask.height
+        else { return false }
+        return clipMask.meanShare(column: column, row: row, across: grid.across, down: grid.down) >= 0.5
     }
 
     /// `style` with its RGB colours through the filters.
     private func filtered(_ style: SGRState) -> SGRState {
-        guard !filters.isEmpty else { return style }
+        guard !filters.isEmpty || !enclosing.filters.isEmpty else { return style }
         var style = style
         func through(_ colour: SGRState.Colour?) -> SGRState.Colour? {
             // A pattern reading the channels, not a colour this draws with.
@@ -205,7 +190,7 @@ public struct GraphicsContext {
             // The cell's own colour, filtered: content, not a framework ink.
             // swiftlint:disable:next framework_colour_literal
             var color = Color.rgb(UInt8(clamping: red), UInt8(clamping: green), UInt8(clamping: blue))
-            for filter in filters { color = filter.applied(to: color) }
+            for filter in filters + enclosing.filters { color = filter.applied(to: color) }
             guard let rgb = color.rgbComponents else { return colour }
             // The filtered colour's channels, restated: content, not an ink.
             // swiftlint:disable:next framework_colour_literal
@@ -265,119 +250,5 @@ public struct TextCellAttributes: Equatable, Sendable {
         set(inverse, on: 7, off: 27)
         set(strikethrough, on: 9, off: 29)
         return style
-    }
-}
-
-// MARK: - The canvas
-
-extension GraphicsContext {
-    /// The cells a context draws into, shared by its copies: each written
-    /// cell, the last write to a cell winning, as later drawing covers
-    /// earlier.
-    final class Canvas {
-        struct Cell: Equatable {
-            var character: String
-            var width: Int
-            var style: SGRState
-            var opacity: Double
-        }
-
-        /// Row → column → cell.
-        private(set) var rows: [Int: [Int: Cell]] = [:]
-
-        /// How far past the text's frame a glyph may be drawn, in columns and
-        /// rows: farther is past any screen a person reads, and the buffer
-        /// made from the canvas spans every cell between, so a renderer that
-        /// translated by `1 / sin(t)` near zero would otherwise allocate
-        /// millions of rows a frame.
-        static let reach = (columns: 256, rows: 128)
-
-        /// The rectangle a glyph's origin must lie in: the text's frame,
-        /// `width` × `height` at the origin, and ``reach`` round it.
-        private let bounds: (minX: CGFloat, minY: CGFloat, maxX: CGFloat, maxY: CGFloat)
-
-        /// A canvas for a text whose frame is `width` × `height` cells.
-        init(width: Int, height: Int) {
-            bounds = (
-                CGFloat(-Self.reach.columns), CGFloat(-Self.reach.rows),
-                CGFloat(width + Self.reach.columns), CGFloat(height + Self.reach.rows))
-        }
-
-        /// Whether a glyph at `origin` is drawn: inside ``bounds``, which a
-        /// non-finite coordinate never is.
-        func reaches(_ origin: CGPoint) -> Bool {
-            origin.x >= bounds.minX && origin.x <= bounds.maxX && origin.y >= bounds.minY && origin.y <= bounds.maxY
-        }
-
-        func write(_ cell: Cell, column: Int, row: Int) {
-            guard cell.opacity > 0 else { return }
-            var line = rows[row] ?? [:]
-            // A wide glyph covers the cell after it, and a glyph written over
-            // either half of a wide one removes it.
-            if let before = line[column - 1], before.width > 1 { line[column - 1] = nil }
-            for covered in column..<(column + cell.width) where covered != column { line[covered] = nil }
-            line[column] = cell
-            rows[row] = line
-        }
-
-        /// The extent drawn: the smallest rectangle holding every cell
-        /// written and the text's own frame, `width` × `height` at the origin.
-        func extent(including width: Int, _ height: Int) -> (minX: Int, minY: Int, maxX: Int, maxY: Int) {
-            var extent = (minX: 0, minY: 0, maxX: width, maxY: height)
-            for (row, line) in rows {
-                for (column, cell) in line {
-                    extent.minX = min(extent.minX, column)
-                    extent.maxX = max(extent.maxX, column + cell.width)
-                    extent.minY = min(extent.minY, row)
-                    extent.maxY = max(extent.maxY, row + 1)
-                }
-            }
-            return extent
-        }
-
-        /// The cells as a buffer covering `extent`, its top-left the
-        /// extent's, with the fade each cell was drawn at claimed for the
-        /// compositor (`OpacityRegion`), and a cell nothing was drawn in left
-        /// blank: what is beneath shows there.
-        func buffer(covering extent: (minX: Int, minY: Int, maxX: Int, maxY: Int)) -> FrameBuffer {
-            var lines: [String] = []
-            var widths: [Int] = []
-            var claims: [OpacityRegion] = []
-            for row in extent.minY..<extent.maxY {
-                var line = ""
-                var state = SGRState()
-                var column = extent.minX
-                var drawnWidth = 0
-                let cells = rows[row] ?? [:]
-                while column < extent.maxX {
-                    guard let cell = cells[column] else {
-                        if !state.isDefault {
-                            line += "\u{1B}[0m"
-                            state = SGRState()
-                        }
-                        line += " "
-                        column += 1
-                        continue
-                    }
-                    line += cell.style.rendered(changingFrom: state)
-                    state = cell.style
-                    line += cell.character
-                    if cell.opacity < 1 {
-                        claims.append(
-                            OpacityRegion(
-                                offsetX: column - extent.minX, offsetY: row - extent.minY, width: cell.width, height: 1,
-                                opacity: cell.opacity))
-                    }
-                    column += cell.width
-                    drawnWidth = column - extent.minX
-                }
-                if !state.isDefault { line += "\u{1B}[0m" }
-                lines.append(line)
-                widths.append(max(drawnWidth, extent.maxX - extent.minX))
-            }
-            var buffer = FrameBuffer(lines: lines, width: extent.maxX - extent.minX, lineWidths: widths)
-            buffer.opacityRegions = claims
-            return buffer
-        }
     }
 }

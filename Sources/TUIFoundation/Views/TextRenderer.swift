@@ -174,11 +174,11 @@ extension EnvironmentValues {
     private func redrawn<R: TextRenderer>(_ drawn: FrameBuffer, by renderer: R, context: RenderContext) -> FrameBuffer {
         let shown = animatedValue(of: renderer, owner: R.self, context: context, isMeasuring: false) ?? renderer
         let layout = layout(of: drawn, context: context)
-        let canvas = GraphicsContext.Canvas(width: drawn.width, height: drawn.height)
-        var graphics = GraphicsContext(canvas: canvas)
+        let surface = GraphicsContext.Surface(textOf: drawn.width, drawn.height, context: context)
+        var graphics = GraphicsContext(surface: surface)
         shown.draw(layout: layout, in: &graphics)
-        let extent = canvas.extent(including: drawn.width, drawn.height)
-        var redrawn = canvas.buffer(covering: extent)
+        let extent = surface.extent(including: drawn.width, drawn.height)
+        var redrawn = surface.bufferOverPixels(covering: extent)
         // Links and other regions stay where the words were laid out.
         redrawn.hitTestRegions = drawn.hitTestRegions.map { region in
             var region = region

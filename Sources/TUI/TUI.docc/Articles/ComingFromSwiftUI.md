@@ -142,6 +142,7 @@ Shapes work, within the limits of the grid.
 
 - `Rectangle`, `RoundedRectangle` and `Capsule`, when stroked, draw as a box of line characters. A corner is either square or round, whatever radius you ask for.
 - Materials really do frost what's behind them, but they do it cell by cell, and the text underneath is dropped rather than blurred.
+- `Canvas` works as it does in SwiftUI, drawing in the terminal's own pixels where it has them and in the shapes of its glyphs otherwise. Text and symbols on a canvas are cells, so a transform moves them without scaling or turning them. See <doc:DrawingWithCanvas>.
 
 ## Windows fill the terminal
 

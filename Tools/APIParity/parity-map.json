@@ -528,32 +528,13 @@
     },
     {
       "match": [
-        "GraphicsContext.fill*",
-        "GraphicsContext.stroke*",
-        "GraphicsContext.draw(_:in:*",
-        "GraphicsContext.draw(_:at:*",
-        "GraphicsContext.resolve*",
-        "GraphicsContext.Resolved*",
-        "GraphicsContext.Shading*",
-        "GraphicsContext.clip*",
-        "GraphicsContext.ClipOptions*",
         "GraphicsContext.withCGContext*",
-        "GraphicsContext.environment",
-        "GraphicsContext.BlendMode*",
-        "GraphicsContext.blendMode",
-        "GraphicsContext.GradientOptions*",
-        "GraphicsContext.BlurOptions*",
-        "GraphicsContext.ShadowOptions*",
-        "GraphicsContext.Filter.blur*",
         "GraphicsContext.Filter.*Shader*",
         "GraphicsContext.Filter.projectionTransform*",
-        "GraphicsContext.Filter.luminanceToAlpha",
-        "GraphicsContext.Filter.alphaThreshold*",
-        "GraphicsContext.Filter.colorMatrix*",
-        "GraphicsContext.Filter.shadow*",
+        "GraphicsContext.Shading.shader*",
         "GraphicsContext.FilterOptions.linearColor"
       ],
-      "why": "GraphicsContext ships with what a TextRenderer draws text with (the owner's TEXT-EFFECTS ruling, 2026-10-28): opacity, a transform honoured where a glyph's origin lands, the colour filters a cell's colours can take, layers, and drawing a layout's lines, runs and glyphs. Paths, shadings, images, resolved text and symbols, clipping and blend modes are the Canvas half of the context, phase 2 of the TextRenderer design study (O16). Blurs, shaders, a projection, a colour matrix, alpha thresholds and luminance-to-alpha act on pixels or sub-cell coverage, which a cell does not have; a shadow is the whole-cell `.shadow` modifier's, not a filter's. `FilterOptions.linearColor` asks a filter to work in linear light; the colour filters here work on a cell's encoded colour, as the colour-effect modifiers do (Opacity as composition, rule 5), and an option that changed nothing would be a stub."
+      "why": "GraphicsContext ships whole for a Canvas and a TextRenderer, and these are what a terminal cannot run: `withCGContext` needs a CoreGraphics context and the shaders a GPU, which a process drawing cells over a pty has neither of; `projectionTransform` needs `ProjectionTransform`, which TUI has no effect for. `FilterOptions.linearColor` asks a filter to work in linear light; the colour filters here work on a colour's encoded value, as the colour-effect modifiers do (Opacity as composition, rule 5), and an option that changed nothing would be a stub."
     }
   ],
   "renamed": {
@@ -650,9 +631,6 @@
     },
     "Color.transferRepresentation": {
       "why": "Color's Transferable conformance. CoreTransferable is Apple-only, and the terminal's clipboard holds text: TUI's copyable/draggable payloads need no Transferable conformance, so there is no representation for a colour to declare (as for Image.transferRepresentation)."
-    },
-    "ColorMatrix": {
-      "why": "It exists only as the payload of `GraphicsContext.Filter.colorMatrix`, applied per pixel, and with no `GraphicsContext` there is nothing to apply it. A channel transform of a cell's foreground and background is the colour-effect modifiers' ground (`ColorEffectModifiers.swift`)."
     },
     "ContentShapeKinds.accessibility": {
       "why": "The accessibility frame and path of a view's accessibility element, for VoiceOver's focus ring and ordering. A screen reader reads a terminal from the text on screen; TUI publishes no accessibility elements with frames for a shape to replace. Omitted so the kind fails to compile rather than shape nothing (refusal review P3); ContentShapeKinds ships `.interaction` and `.dragPreview`."
@@ -891,10 +869,6 @@
     "AccessibilityFocusState": {
       "how": "FocusState / @FocusState",
       "why": "SwiftUI needs a second focus-state wrapper because VoiceOver's cursor moves independently of keyboard focus. A terminal has one focus, which `@FocusState` with `focused(_:)` and `focused(_:equals:)` binds (`Sources/TUIFoundation/Focus/FocusState.swift`)."
-    },
-    "Canvas": {
-      "how": "Renderable + FrameBuffer",
-      "why": "The immediate-mode drawing surface is a conformance: `Renderable`'s `renderToBuffer(context:) -> FrameBuffer`, with FrameBuffer's public initialisers to build the cells. A SwiftUI-shaped `Canvas` over a `GraphicsContext` waits on shapes (O0 of the refusal review), as the review's D3 note says."
     },
     "DynamicViewContent": {
       "how": "DynamicViewContentActions (internal protocol) on ForEach",

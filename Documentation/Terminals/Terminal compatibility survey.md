@@ -8622,3 +8622,7 @@ Run both inside each of the four hosts this document records, then delete the
 measured ids from `awaitingLandingMeasurement`. Read `advance` before believing
 anything: it is the internal column, which governs wrapping, and on Apple
 Terminal it has disagreed with the paint by nine cells.
+
+## Canvas glyph grains (2026-11-01, not measured)
+
+`Canvas` draws in a picture where the handshake says the terminal places them (`KittyGraphics.isSupported`), and otherwise over a grain of glyphs. Its default grain is quadrants (U+2596–259F, Block Elements), which rounded rectangle fills already depend on. Sextants (U+1FB00, Unicode 13) and octants (U+1CD00, Unicode 16) are only drawn where an app asks with `.canvasGrain(_:)`, because no probe in `Tools/TerminalProbes/` measures which hosts or fonts have them and a missing glyph draws a box. The width model gives both one cell, which `CanvasTests` checks. Measuring them per host would let the default reach further on those that do.

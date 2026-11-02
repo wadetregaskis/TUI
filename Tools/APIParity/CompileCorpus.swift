@@ -4785,3 +4785,72 @@ private struct CorpusSmallParity: View {
         }
     }
 }
+
+// MARK: - Canvas
+
+/// `Canvas` and `GraphicsContext`, as SwiftUI's documentation draws with them.
+@MainActor
+private struct CorpusCanvas: View {
+    var body: some View {
+        VStack {
+            Canvas(opaque: true, colorMode: .linear, rendersAsynchronously: true) { context, size in
+                context.opacity = 0.5
+                context.blendMode = .multiply
+                context.translateBy(x: 1, y: 1)
+                context.scaleBy(x: 2, y: 2)
+                context.rotate(by: .degrees(45))
+                context.concatenate(.identity)
+                let disc = Path(ellipseIn: CGRect(origin: .zero, size: size))
+                context.clip(to: disc, style: FillStyle(eoFill: true), options: .inverse)
+                context.clipToLayer(opacity: 0.5) { layer in layer.fill(disc, with: .foreground) }
+                _ = context.clipBoundingRect
+                context.addFilter(.blur(radius: 1))
+                context.addFilter(.shadow(color: .black, radius: 2, x: 1, y: 1))
+                context.addFilter(.colorMultiply(.red))
+                context.addFilter(.luminanceToAlpha)
+                context.addFilter(.alphaThreshold(min: 0.5))
+                context.addFilter(.colorMatrix(ColorMatrix()))
+                context.fill(disc, with: .color(.red))
+                context.fill(disc, with: .color(red: 1, green: 0, blue: 0))
+                context.fill(disc, with: .style(.tint))
+                context.fill(disc, with: .backdrop)
+                context.stroke(disc, with: .palette([.foreground]), lineWidth: 2)
+                context.stroke(disc, with: .color(white: 0.5), style: StrokeStyle(lineWidth: 1, dash: [2]))
+                let ramp = Gradient(colors: [.red, .blue])
+                context.fill(disc, with: .linearGradient(ramp, startPoint: .zero, endPoint: CGPoint(x: 9, y: 9), options: .mirror))
+                context.fill(disc, with: .radialGradient(ramp, center: .zero, startRadius: 0, endRadius: 9))
+                context.fill(disc, with: .conicGradient(ramp, center: .zero, angle: .degrees(90)))
+                context.fill(disc, with: .tiledImage(Image(systemName: "star")))
+                context.fill(disc, with: context.resolve(.foreground))
+                context.drawLayer { layer in
+                    layer.draw(Text("a"), at: .zero)
+                    layer.draw(Text("b"), at: .zero, anchor: .topLeading)
+                    layer.draw(Text("c"), in: CGRect(origin: .zero, size: size))
+                }
+                var text = context.resolve(Text("d"))
+                text.shading = .color(.green)
+                _ = text.measure(in: size)
+                _ = text.firstBaseline(in: size)
+                _ = text.lastBaseline(in: size)
+                context.draw(text, at: .zero)
+                let image = context.resolve(Image(systemName: "star"))
+                _ = image.size
+                _ = image.baseline
+                context.draw(image, at: .zero, anchor: .center)
+                context.draw(image, in: CGRect(origin: .zero, size: size), style: FillStyle())
+                context.draw(Image(systemName: "star"), at: .zero)
+                if let symbol = context.resolveSymbol(id: 1) {
+                    _ = symbol.size
+                    context.draw(symbol, at: .zero)
+                    context.draw(symbol, in: CGRect(origin: .zero, size: size))
+                }
+                _ = context.environment
+            } symbols: {
+                Text("e").tag(1)
+            }
+            Canvas { context, size in
+                context.fill(Rectangle().path(in: CGRect(origin: .zero, size: size)), with: .color(.blue))
+            }
+        }
+    }
+}

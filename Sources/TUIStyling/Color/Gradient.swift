@@ -217,7 +217,7 @@ extension Gradient {
     /// always — `init(colors:)` produces them sorted and people write them that
     /// way. That makes the common path a comparison per stop and **no
     /// allocation**, which matters because this is consulted per painted cell.
-    var ordered: [Stop] {
+    package var ordered: [Stop] {
         var previous = -Double.infinity
         for stop in stops {
             if stop.location < previous { return sortedStops() }

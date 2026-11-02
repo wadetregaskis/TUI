@@ -9,6 +9,7 @@ Show text, pictures, shapes and other content, and compose views of your own.
 - <doc:CustomViews>
 - <doc:TextStyling>
 - <doc:WorkingWithImages>
+- <doc:DrawingWithCanvas>
 - <doc:Localization>
 
 ### Views
@@ -89,7 +90,10 @@ Show text, pictures, shapes and other content, and compose views of your own.
 - ``Shape``
 - ``Angle``
 - ``AnyShape``
+- ``Canvas``
+- ``CanvasGrain``
 - ``Capsule``
+- ``ColorMatrix``
 - ``Circle``
 - ``ConcentricRectangle``
 - ``ContainerRelativeShape``
