@@ -153,7 +153,8 @@ extension GraphicsContext {
             }
         case .conic(let gradient, let center, let angle, let options):
             return gradientSource(gradient, options: options) { point in
-                let turn = (atan2(Double(point.y - center.y), Double(point.x - center.x)) - angle.radians) / (2 * .pi)
+                let bearing: Double = atan2(Double(point.y - center.y), Double(point.x - center.x))
+                let turn: Double = (bearing - angle.radians) / (2 * Double.pi)
                 return turn - turn.rounded(.down)
             }
         case .tiled(let image, let origin, let sourceRect, let scale):
@@ -201,17 +202,20 @@ extension GraphicsContext {
         let table = rampTable(gradient, linear: options.contains(.linearColor))
         let inverse = transform.concatenating(surface.deviceMatrix).inverted()
         let (mirrors, repeats) = (options.contains(.mirror), options.contains(.repeat))
-        return .sampled { x, y in
+        let lastStep = Double(table.count - 1)
+        return .sampled { (x: Int, y: Int) -> CanvasRGBA in
             let point = CGPoint(x: CGFloat(x) + 0.5, y: CGFloat(y) + 0.5).applying(inverse)
-            var t = phase(point)
+            var t: Double = phase(point)
             guard t.isFinite else { return table[0] }
             if mirrors {
-                let wrapped = t / 2 - (t / 2).rounded(.down)
+                let half: Double = t / 2
+                let wrapped: Double = half - half.rounded(.down)
                 t = wrapped < 0.5 ? wrapped * 2 : 2 - wrapped * 2
             } else if repeats {
                 t -= t.rounded(.down)
             }
-            return table[Int(min(1, max(0, t)) * Double(table.count - 1))]
+            let clamped: Double = min(1, max(0, t))
+            return table[Int(clamped * lastStep)]
         }
     }
 

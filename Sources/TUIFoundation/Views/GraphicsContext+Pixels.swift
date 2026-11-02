@@ -106,18 +106,19 @@ extension GraphicsContext {
         let polygons = Path(rect).applying(device).contours(tolerance: Self.flattening).map(\.points)
         let source = CanvasSource.sampled { x, y in
             let point = CGPoint(x: CGFloat(x) + 0.5, y: CGFloat(y) + 0.5).applying(inverse)
-            let column = Double((point.x - rect.minX) / rect.width) * Double(width)
-            let row = Double((point.y - rect.minY) / rect.height) * Double(height)
+            let column: Double = Double((point.x - rect.minX) / rect.width) * Double(width)
+            let row: Double = Double((point.y - rect.minY) / rect.height) * Double(height)
             let across = Int(max(0, min(Double(width - 1), column.rounded(.down))))
             let down = Int(max(0, min(Double(height - 1), row.rounded(.down))))
             return colours[down * width + across]
         }
+        let across = CGFloat(surface.grid.across)
+        let down = CGFloat(surface.grid.down)
         paint(source) { raster, source, opacity, mode, clip in
             raster.paint(polygons: polygons, evenOdd: false, antialiased: false, source: source, opacity: opacity, mode: mode, clip: clip)
-        } covering: { [surface] column, row in
-            let centre = CGPoint(
-                x: (CGFloat(column) + 0.5) * CGFloat(surface.grid.across), y: (CGFloat(row) + 0.5) * CGFloat(surface.grid.down))
-            return rect.contains(centre.applying(inverse)) ? 1 : 0
+        } covering: { column, row in
+            let centre = CGPoint(x: (CGFloat(column) + 0.5) * across, y: (CGFloat(row) + 0.5) * down)
+            return rect.contains(centre.applying(inverse)) ? 1.0 : 0.0
         }
     }
 

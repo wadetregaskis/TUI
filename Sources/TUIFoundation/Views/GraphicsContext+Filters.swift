@@ -200,10 +200,7 @@ extension GraphicsContext {
         case .colorMatrix(let matrix):
             drawing.transformPixels { _, _, colour in matrix.applied(to: colour) }
         case .luminanceToAlpha:
-            drawing.transformPixels { _, _, colour in
-                let luminance = 0.2126 * Double(colour.red) + 0.7152 * Double(colour.green) + 0.0722 * Double(colour.blue)
-                return CanvasRGBA(red: 0, green: 0, blue: 0, alpha: UInt8((luminance * Double(colour.alpha) / 255).rounded()))
-            }
+            drawing.transformPixels { _, _, colour in luminanceAsAlpha(colour) }
         case .alphaThreshold(let low, let high, let color):
             let inked = surface.pixel(of: color)
             drawing.transformPixels { _, _, colour in
@@ -326,4 +323,16 @@ extension CanvasRaster {
             }
         }
     }
+}
+
+/// `colour`'s luminance, Rec. 709, as the alpha of a black pixel. Apart from its
+/// one caller because, inside the filter switch's closure, the sum runs past the
+/// type-check budget.
+private func luminanceAsAlpha(_ colour: CanvasRGBA) -> CanvasRGBA {
+    let red: Double = 0.2126 * Double(colour.red)
+    let green: Double = 0.7152 * Double(colour.green)
+    let blue: Double = 0.0722 * Double(colour.blue)
+    let luminance: Double = red + green + blue
+    let alpha: Double = luminance * Double(colour.alpha) / 255
+    return CanvasRGBA(red: 0, green: 0, blue: 0, alpha: UInt8(alpha.rounded()))
 }

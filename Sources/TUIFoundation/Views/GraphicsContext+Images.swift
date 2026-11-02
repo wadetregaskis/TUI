@@ -124,27 +124,8 @@ extension GraphicsContext {
         guard rect.width > 0, rect.height > 0, pixels.width > 0, pixels.height > 0 else { return .flat(.clear) }
         let taps = max(1, min(4, Int(pixelScale.rounded(.up))))
         return .sampled { x, y in
-            var sums = (red: 0.0, green: 0.0, blue: 0.0, alpha: 0.0)
-            for tapY in 0..<taps {
-                for tapX in 0..<taps {
-                    let point = CGPoint(
-                        x: CGFloat(x) + (CGFloat(tapX) + 0.5) / CGFloat(taps),
-                        y: CGFloat(y) + (CGFloat(tapY) + 0.5) / CGFloat(taps)
-                    ).applying(inverse)
-                    let across = Double((point.x - rect.minX) / rect.width) * Double(pixels.width)
-                    let down = Double((point.y - rect.minY) / rect.height) * Double(pixels.height)
-                    let colour = smooth && taps == 1 ? pixels.blended(across, down) : pixels.nearest(across, down)
-                    let alpha = Double(colour.alpha)
-                    sums.red += Double(colour.red) * alpha
-                    sums.green += Double(colour.green) * alpha
-                    sums.blue += Double(colour.blue) * alpha
-                    sums.alpha += alpha
-                }
-            }
-            guard sums.alpha > 0 else { return .clear }
-            return CanvasRGBA(
-                red: UInt8((sums.red / sums.alpha).rounded()), green: UInt8((sums.green / sums.alpha).rounded()),
-                blue: UInt8((sums.blue / sums.alpha).rounded()), alpha: UInt8((sums.alpha / Double(taps * taps)).rounded()))
+            averagedPictureSample(
+                x: x, y: y, taps: taps, pixels: pixels, rect: rect, inverse: inverse, smooth: smooth)
         }
     }
 
@@ -234,4 +215,37 @@ extension GraphicsContext.Surface {
     func unitSize(of pixels: ImagePaintPixels) -> CGSize {
         CanvasViews.unitSize(of: pixels, environment: environment, unitsPerRow: unitsPerRow)
     }
+}
+
+/// What `pixels`, stretched over `rect`, show at the canvas pixel (`x`, `y`): the
+/// average of `taps` × `taps` samples across it. Apart from its one caller because,
+/// inside the closure, the arithmetic runs past the type-check budget.
+private func averagedPictureSample(
+    x: Int, y: Int, taps: Int, pixels: ImagePaintPixels, rect: CGRect, inverse: CGAffineTransform, smooth: Bool
+) -> CanvasRGBA {
+    let step = CGFloat(taps)
+    var red = 0.0
+    var green = 0.0
+    var blue = 0.0
+    var total = 0.0
+    for tapY in 0..<taps {
+        for tapX in 0..<taps {
+            let offsetX: CGFloat = (CGFloat(tapX) + 0.5) / step
+            let offsetY: CGFloat = (CGFloat(tapY) + 0.5) / step
+            let point = CGPoint(x: CGFloat(x) + offsetX, y: CGFloat(y) + offsetY).applying(inverse)
+            let across: Double = Double((point.x - rect.minX) / rect.width) * Double(pixels.width)
+            let down: Double = Double((point.y - rect.minY) / rect.height) * Double(pixels.height)
+            let colour = smooth && taps == 1 ? pixels.blended(across, down) : pixels.nearest(across, down)
+            let alpha = Double(colour.alpha)
+            red += Double(colour.red) * alpha
+            green += Double(colour.green) * alpha
+            blue += Double(colour.blue) * alpha
+            total += alpha
+        }
+    }
+    guard total > 0 else { return .clear }
+    let samples = Double(taps * taps)
+    return CanvasRGBA(
+        red: UInt8((red / total).rounded()), green: UInt8((green / total).rounded()),
+        blue: UInt8((blue / total).rounded()), alpha: UInt8((total / samples).rounded()))
 }
