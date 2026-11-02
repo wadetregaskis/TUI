@@ -52,8 +52,11 @@ Read by the library modules, for debugging them.
 | Variable | Values | What it does |
 |---|---|---|
 | `TUI_DEBUG_FOCUS` | `1` | Logs the focus system, mouse dispatch and text fields to `/tmp/tui-debug.log`. Read once. |
+| `TUI_HEADLESS_STREAM` | A path | Writes every byte a `HeadlessApp` sends its terminal to that file, for the output tools. |
 | `TUI_OBSERVATION_RETIREMENT` | A name of `ObservationLeases.Retirement` | Which rule a new render cache cancels its observation scopes by, to compare them. `leases` by default. |
 | `TUI_OPTION_C` | `0` | Turns off the render cache's re-checking of a row's value when its data moves (Option C), to compare with and without. |
+| `TUI_SCROLL_CENSUS` | A path | Writes one line per frame to that file, saying what each scroll level would have done. |
+| `TUI_SCROLL_OUTPUT` | `off` (default), `exact`, `residue`, `margins` | Moves rows with scroll regions rather than rewriting them. Off until the owner's decision `SCROLL-REGIONS`. |
 
 ## The Example and Stress targets
 
