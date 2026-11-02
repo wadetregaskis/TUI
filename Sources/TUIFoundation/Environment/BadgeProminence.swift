@@ -29,9 +29,10 @@ import TUIView
 ///
 /// A `List` draws its badges in the palette's tertiary foreground, and a
 /// ``decreased`` badge in its quaternary, the dimmest text it has. An
-/// ``increased`` badge draws as a ``standard`` one does: measured on macOS
-/// 15.8, a list's `.increased` badge is the same capsule as its `.standard`
-/// one, in the default style and the sidebar style alike.
+/// ``increased`` badge is a ``standard`` one with its text in bold. Measured on
+/// macOS 15.8, a list's `.increased` badge is the same capsule as its
+/// `.standard` one, in the default style and the sidebar style alike; here the
+/// level says something, or nobody could tell which they had asked for.
 public struct BadgeProminence: Hashable, Sendable {
     /// Where this prominence sits: below, at or above the standard.
     private let level: Int8

@@ -3,7 +3,7 @@
 //
 //  `.badgeProminence(_:)`: a `List` draws its rows' badges in the ink the
 //  prominence in its environment names — the palette's tertiary foreground for
-//  `.standard` and `.increased` (as macOS 15.8 draws those two alike), its
+//  `.standard` and `.increased` (the second in bold), its
 //  quaternary for `.decreased`.
 //
 //  Created by Wade Tregaskis
@@ -71,9 +71,11 @@ struct BadgeProminenceTests {
         #expect(!row.contains(badge(in: palette.foregroundTertiary)), "\(row.debugDescription)")
     }
 
-    @Test("An .increased badge draws as a .standard one does, as measured on macOS 15.8")
-    func increasedIsStandard() {
-        #expect(badgedRow(.increased) == badgedRow(.standard))
+    @Test("An .increased badge is a .standard one in bold: the same text, in the same place")
+    func increasedIsBold() {
+        #expect(badgedRow(.increased) != badgedRow(.standard))
+        #expect(badgedRow(.increased).stripped == badgedRow(.standard).stripped)
+        #expect(badgedRow(.increased).contains("\u{1B}[1;") || badgedRow(.increased).contains("\u{1B}[1m"))
     }
 
     /// The line of `list`'s row `name`.

@@ -103,10 +103,12 @@ struct ListBadgeCapsule {
     }
 }
 
-/// A row's badge as the list draws it: its value, and the capsule round it.
+/// A row's badge as the list draws it: its value, the capsule round it, and
+/// whether it is ``BadgeProminence/increased``, which draws its text in bold.
 struct DrawnBadge {
     let value: BadgeValue
     let capsule: ListBadgeCapsule
+    let isIncreased: Bool
 
     /// The cells the badge takes, its capsule's included.
     var width: Int { value.displayText.strippedLength + capsule.cells }

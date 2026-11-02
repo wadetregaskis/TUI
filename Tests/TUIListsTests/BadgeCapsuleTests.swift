@@ -50,9 +50,9 @@ struct BadgeCapsuleTests {
                 "\(line.debugDescription)")
     }
 
-    @Test(".increased is drawn as .standard; .decreased stays plain text")
+    @Test(".increased is in .standard's capsule; .decreased stays plain text")
     func prominence() {
-        #expect(row("Inbox", in: inbox(.increased)) == row("Inbox", in: inbox(.standard)))
+        #expect(row("Inbox", in: inbox(.increased)).stripped == row("Inbox", in: inbox(.standard)).stripped)
         let quiet = row("Inbox", in: inbox(.decreased)).stripped
         #expect(quiet.hasSuffix(" 12 │") && !quiet.hasSuffix(" 12  │"), "\(quiet)")
     }

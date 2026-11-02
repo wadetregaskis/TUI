@@ -4955,7 +4955,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         }
         let prominence = row.badgeProminence ?? context.environment.badgeProminence
         let capsule = ListBadgeCapsule(prominence: prominence, environment: context.environment)
-        return (DrawnBadge(value: value, capsule: capsule), capsule.textInk(prominence.badgeInk(in: palette)))
+        return (
+            DrawnBadge(value: value, capsule: capsule, isIncreased: prominence == .increased),
+            capsule.textInk(prominence.badgeInk(in: palette))
+        )
     }
 
     /// How a badged first line, `line`, is fitted beside `badge`, for its runs: by the
@@ -5342,8 +5345,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // trapped (§68.2). Its alpha is claimed by `renderRow`, over the columns
         // `placement` names, so both come from the one arithmetic.
         // `bold` under a bold legibility weight: the badge is text, a tier
-        // heavier as the row's own is.
-        let styledBadge = badge.capsule.drawn(badge.value.displayText, ink: ink, bold: bold)
+        // heavier as the row's own is. An increased badge is always: a terminal
+        // has no fill to give it that the standard one lacks.
+        let styledBadge = badge.capsule.drawn(badge.value.displayText, ink: ink, bold: bold || badge.isIncreased)
         let paddedLine =
             gutter + placement.fitted
             + String.spaces(placement.fillPadding) + styledBadge + " "
