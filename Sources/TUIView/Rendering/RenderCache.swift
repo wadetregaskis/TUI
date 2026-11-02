@@ -619,6 +619,9 @@ import TUIStyling
     /// than drop it — see ``RevalidationState``.
     package let revalidation = RevalidationState()
 
+    /// The memo on plain composites, and whether it is on: see ``PlainMemo``.
+    package let plainMemo = PlainMemo()
+
     /// The view types whose bodies have armed an observation registration
     /// under this cache — whose bodies are therefore observed when measured
     /// too. See ``ReadingTypes`` and ``noteReads(_:)``.
@@ -794,7 +797,8 @@ extension RenderCache {
         animationMustBeCurrent: Bool,
         rebuild: () -> Row,
         recheckingUnder environment: EnvironmentValues?,
-        depth: Int
+        depth: Int,
+        slot: Int = 0
     ) -> CacheEntry? {
         // Read at most once, and only for an entry that has registrations.
         var scopeRead: EffectScope?
@@ -804,7 +808,7 @@ extension RenderCache {
             scopeRead = read
             return read
         }
-        guard let entry = scopedEntry(for: identity, effectScope: scope) else {
+        guard let entry = scopedEntry(for: identity, slot: slot, effectScope: scope) else {
             stats.misses += 1
             logDebug("MISS (no entry) \(identity.path)")
             return nil
@@ -819,7 +823,7 @@ extension RenderCache {
                 recheck: { record in
                     environment.map { recheckRow(record, rebuild: rebuild, environment: $0, depth: depth) } ?? .off
                 },
-                drop: { dropSuspect(entry, at: identity) })
+                drop: { dropSuspect(entry, at: identity, slot: slot) })
         else {
             stats.misses += 1
             logDebug("MISS (suspect) \(identity.path)")
@@ -875,40 +879,6 @@ extension RenderCache {
         return entry
     }
 
-    /// The entry a lookup under `effectScope` should compare: the one in the
-    /// identity's own slot, or — for a backdrop, when that slot holds the live
-    /// page's registrations — the one a backdrop keeps beside it.
-    ///
-    /// A picture drawn as a backdrop and one drawn live are never served for
-    /// each other (see ``EffectScope``), and with one slot per identity each
-    /// replaced the other: presenting a sheet overwrote every row the page had
-    /// stored, and dismissing it drew them all again. So an entry that recorded
-    /// registrations while drawn as a backdrop is stored under a second key
-    /// (``backdropKey(_:)``), and the live one stays where it was, served again
-    /// the moment the sheet goes. Everything else — no registrations, so the
-    /// same picture either way — keeps the one slot.
-    ///
-    /// The scope is read only when the own slot is empty or holds registrations,
-    /// as the check after it always was: the common entry costs no environment
-    /// read.
-    /// Removes `entry`, a suspect looked up at `identity`, from whichever of
-    /// the identity's two slots holds it (``scopedEntry(for:effectScope:)``).
-    private func dropSuspect(_ entry: CacheEntry, at identity: ViewIdentity) {
-        revalidation.counts.suspectsDropped += 1
-        if entries[identity.structuralHash] === entry {
-            entries[identity.structuralHash] = nil
-        } else {
-            entries[Self.backdropKey(identity.structuralHash)] = nil
-        }
-    }
-
-    private func scopedEntry(for identity: ViewIdentity, effectScope: () -> EffectScope) -> CacheEntry? {
-        let own = entries[identity.structuralHash]
-        if let own, own.effects.isEmpty { return own }
-        guard effectScope().isBackdrop else { return own }
-        return entries[Self.backdropKey(identity.structuralHash)] ?? own
-    }
-
     /// Where an entry drawn as a backdrop with registrations is kept: beside
     /// the identity's own slot, not in it — see
     /// ``scopedEntry(for:effectScope:)``. A mix of the structural hash, under
@@ -922,7 +892,7 @@ extension RenderCache {
     /// two spellings are the same bits (wrapping arithmetic is sign-blind), so
     /// no key moves; on a 32-bit one the low word is kept, which depends only
     /// on the low words of the operands and is still a mix.
-    private static func backdropKey(_ hash: Int) -> Int {
+    static func backdropKey(_ hash: Int) -> Int {
         Int(truncatingIfNeeded:
             UInt64(truncatingIfNeeded: hash) &* 0x5851_F42D_4C95_7F2D &+ 0x1405_7B7E_F767_814F)
     }
@@ -978,12 +948,15 @@ extension RenderCache {
         gradientFrame: GradientFrame?,
         surfaceBackground: Color?,
         recorded: (effects: [EffectJournal.Entry], scope: EffectScope, lease: ObservationLease?),
-        revalidation: Revalidation? = nil
+        revalidation: Revalidation? = nil,
+        slot: Int = 0
     ) {
         stats.stores += 1
+        let hash = identity.structuralHash ^ slot
+        if slot != 0 { plainMemo.lastStored = hash }
         let key =
             !recorded.effects.isEmpty && recorded.scope.isBackdrop
-            ? Self.backdropKey(identity.structuralHash) : identity.structuralHash
+            ? Self.backdropKey(hash) : hash
         entries[key] = CacheEntry(
             identity: identity,
             viewSnapshot: view,
@@ -1342,6 +1315,7 @@ extension RenderCache {
         measureScratch.endOfPass(&measureEntries)
         passLeases.removeAll(keepingCapacity: true)
         revalidation.beginPass()
+        plainMemo.beginPass()
         childViewScratch.endOfPass(&childViewEntries)
         measureHits = 0
         measureMisses = 0
@@ -1498,6 +1472,7 @@ extension RenderCache {
         clearGeneration &+= 1
         stats.clears += 1
         logDebug("CLEAR ALL (\(entries.count) entries)")
+        plainMemo.forgetAttempts()
         entries.removeAll(keepingCapacity: true)
         sizeEntries.removeAll(keepingCapacity: true)
     }

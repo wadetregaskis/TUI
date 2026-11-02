@@ -418,6 +418,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
     /// which is genuinely a property of the fill, not of any one child.
     /// (`renderWindow` forfeits laziness for spacers for the same reason.)
     @MainActor private func windowSizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        context.environment.volatileReadTracker?.recordWindowedMeasure()
         var measureContext = context
         measureContext.isMeasuring = true
 

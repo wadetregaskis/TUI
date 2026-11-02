@@ -235,24 +235,37 @@ private func renderResolved<V: View>(_ view: V, context: RenderContext) -> Frame
         // in it — a view whose body is itself with a modifier, a `Group`, an
         // `if` — run off the end of the stack. See `DepthLimit`.
         if !StackGuard.hasHeadroom() { return DepthLimit.drawn(V.self, context: context) }
-        let childContext = context.withChildIdentity(type: V.Body.self)
-        // What the body's walk hands the `@Environment`s inside a class
-        // property it holds, as other than the object's first holder, lasts
-        // while the body's content is drawn, and is put back after: a load
-        // and a compare when it handed none (`StateStorage.restoreEnvironments(to:)`).
-        let restoreDepth = context.stateStorage?.environmentRestoreDepth ?? 0
-        let body = evaluateCompositeBody(of: view, context: context)
-        let buffer = TUIView.renderToBuffer(body, context: childContext)
-        context.stateStorage?.restoreEnvironments(to: restoreDepth)
-        // What the body drew is all this view draws: a transition on the root of a
-        // `body` leaves its picture a step below the address a `nil` claims.
-        context.noteDepartureDrawnWhole(of: V.Body.self, at: childContext.identity, by: V.self)
-        return buffer
+        if let comparison = context.plainMemoComparison(of: V.self) {
+            return renderPlainMemoized(view, comparison: comparison, context: context) {
+                renderComposite($0, context: $1)
+            }
+        }
+        return renderComposite(view, context: context)
     }
 
     // Priority 3: No rendering path — return empty buffer silently.
     // This happens for types with body: Never that forgot Renderable conformance.
     return FrameBuffer()
+}
+
+/// The composite branch of ``renderResolved(_:context:)``: the body evaluated and
+/// drawn, one identity step further in.
+@inline(__always)
+@MainActor
+private func renderComposite<V: View>(_ view: V, context: RenderContext) -> FrameBuffer {
+    let childContext = context.withChildIdentity(type: V.Body.self)
+    // What the body's walk hands the `@Environment`s inside a class
+    // property it holds, as other than the object's first holder, lasts
+    // while the body's content is drawn, and is put back after: a load
+    // and a compare when it handed none (`StateStorage.restoreEnvironments(to:)`).
+    let restoreDepth = context.stateStorage?.environmentRestoreDepth ?? 0
+    let body = evaluateCompositeBody(of: view, context: context)
+    let buffer = TUIView.renderToBuffer(body, context: childContext)
+    context.stateStorage?.restoreEnvironments(to: restoreDepth)
+    // What the body drew is all this view draws: a transition on the root of a
+    // `body` leaves its picture a step below the address a `nil` claims.
+    context.noteDepartureDrawnWhole(of: V.Body.self, at: childContext.identity, by: V.self)
+    return buffer
 }
 
 // MARK: - Evaluating a composite's body
@@ -393,8 +406,13 @@ package func observedChange(
     // A body's read is a parent's: its body runs again, and with it the
     // values of the views it makes (Option C, §2.1). A kept result's scope
     // collects reads made anywhere beneath it, a control's core's included,
-    // so its change stays hard.
-    let softly = kind == .bodyRender || kind == .bodyMeasure
+    // so its change stays hard: unless composites are memoized (`PlainMemo`),
+    // when there is one at every composite, a hard report fired at a page would
+    // take every row below it, and what a scope did not read itself has a scope
+    // of its own.
+    let softly =
+        kind == .bodyRender || kind == .bodyMeasure
+        || (cache?.plainMemo.isOn == true && (kind == .keptRender || kind == .keptMeasure))
     return { [link = cache?.link, identity = context.identity] in
         if let sentinel, sentinel.isRetired {
             registration?.cancel()

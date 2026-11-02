@@ -167,3 +167,43 @@ extension RenderCache {
         }
     }
 }
+
+// MARK: - Which of an identity's entries
+
+extension RenderCache {
+    /// Removes `entry`, a suspect looked up at `identity`, from whichever of
+    /// the identity's two slots holds it (``scopedEntry(for:effectScope:)``).
+    func dropSuspect(_ entry: CacheEntry, at identity: ViewIdentity, slot: Int = 0) {
+        revalidation.counts.suspectsDropped += 1
+        let hash = identity.structuralHash ^ slot
+        if entries[hash] === entry {
+            entries[hash] = nil
+        } else {
+            entries[Self.backdropKey(hash)] = nil
+        }
+    }
+
+    /// The entry a lookup under `effectScope` should compare: the one in the
+    /// identity's own slot, or — for a backdrop, when that slot holds the live
+    /// page's registrations — the one a backdrop keeps beside it.
+    ///
+    /// A picture drawn as a backdrop and one drawn live are never served for
+    /// each other (see ``EffectScope``), and with one slot per identity each
+    /// replaced the other: presenting a sheet overwrote every row the page had
+    /// stored, and dismissing it drew them all again. So an entry that recorded
+    /// registrations while drawn as a backdrop is stored under a second key
+    /// (``backdropKey(_:)``), and the live one stays where it was, served again
+    /// the moment the sheet goes. Everything else — no registrations, so the
+    /// same picture either way — keeps the one slot.
+    ///
+    /// The scope is read only when the own slot is empty or holds registrations,
+    /// as the check after it always was: the common entry costs no environment
+    /// read.
+    func scopedEntry(for identity: ViewIdentity, slot: Int = 0, effectScope: () -> EffectScope) -> CacheEntry? {
+        let hash = identity.structuralHash ^ slot
+        let own = entries[hash]
+        if let own, own.effects.isEmpty { return own }
+        guard effectScope().isBackdrop else { return own }
+        return entries[Self.backdropKey(hash)] ?? own
+    }
+}

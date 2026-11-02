@@ -40,6 +40,7 @@ package final class VolatileReadTracker {
         var replayableEffects = 0
         var unkeyedReads = 0
         var clockedReads = 0
+        var windowedMeasures = 0
         var clockMovesAt: Date?
     }
 
@@ -189,6 +190,13 @@ package final class VolatileReadTracker {
     /// otherwise keep the run loop ticking for as long as it was on screen.
     package var unkeyedReads: Int { counts.pointee.unkeyedReads }
 
+    /// Monotonic count of measures of a windowed stack, whose size depends on
+    /// its window and on what it has sampled, which no key above it sees. Fine
+    /// for a size kept within a pass, so it is not in ``cacheUnsafeCount``. A size
+    /// kept across frames by a plain composite above it declines, since nothing
+    /// else would ever move it: `served 6x300, fresh 6x600`.
+    package var windowedMeasures: Int { counts.pointee.windowedMeasures }
+
     /// Of ``unkeyedReads``, those a live `TimelineView`'s measure made. The
     /// clock moves such a timeline's entry, and with it its size, but only at
     /// instants the timeline knows in advance. ``clockMovesAt`` is the earliest
@@ -262,6 +270,11 @@ package final class VolatileReadTracker {
     /// ``replayableEffects``.
     public func recordReplayableEffect() {
         counts.pointee.replayableEffects &+= 1
+    }
+
+    /// Records that a windowed stack was measured: see ``windowedMeasures``.
+    package func recordWindowedMeasure() {
+        counts.pointee.windowedMeasures &+= 1
     }
 
     /// Records a read of a value no memo keys on — see ``unkeyedReads``.

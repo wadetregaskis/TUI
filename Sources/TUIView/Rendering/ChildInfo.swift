@@ -876,6 +876,11 @@ private func measureResolved<V: View>(
     // injection) lives in renderToBuffer, not in body. They fall through
     // to the single-render fallback below.
     if !(view is Renderable), V.Body.self != Never.self {
+        if let comparison = context.plainMemoComparison(of: V.self) {
+            return measurePlainMemoized(view, comparison: comparison, proposal: proposal, context: context) {
+                measureCompositeBody($0, proposal: proposal, context: $1)
+            }
+        }
         return measureCompositeBody(view, proposal: proposal, context: context)
     }
 

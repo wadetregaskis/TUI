@@ -54,6 +54,8 @@ import TUICore
 ///     over a metatype, so neither the metadata read nor `String(describing:)` is
 ///     paid on the paths that never report — which is all of them, almost always.
 ///   - context: The render context.
+///   - slot: Where the entry is filed beside another memo's at the same identity:
+///     0, or ``plainMemoSlot``.
 ///   - build: Builds the memoized content's view. Called at most once per call,
 ///     and only where it is drawn — on a miss, or for the verifier's fresh
 ///     render — which is what lets `_MemoizedRow` defer building the row view
@@ -73,6 +75,7 @@ func renderValueMemoized<Key: Equatable, Row>(
     key: Key,
     viewType: @autoclosure () -> Any.Type,
     context: RenderContext,
+    slot: Int = 0,
     build: () -> Row,
     render: (Row, RenderContext) -> FrameBuffer
 ) -> FrameBuffer {
@@ -93,7 +96,7 @@ func renderValueMemoized<Key: Equatable, Row>(
         effectScope: context.effectScope,
         // A measure draws nothing, and a run's frames are all one width.
         animationMustBeCurrent: !context.isMeasuring,
-        rebuild: build, recheckingUnder: context.environment, depth: context.environmentApplicationDepth)
+        rebuild: build, recheckingUnder: context.environment, depth: context.environmentApplicationDepth, slot: slot)
     {
         // Keep the cached subtree's state alive for GC — the WHOLE subtree, not
         // just this identity: nothing below is visited on a hit, so a `@State`
@@ -228,7 +231,7 @@ func renderValueMemoized<Key: Equatable, Row>(
             gradientFrame: context.gradientFrame,
             surfaceBackground: context.environment.surfaceBackground,
             recorded: (effects, effects.isEmpty ? .none : context.effectScope, lease),
-            revalidation: built.flatMap { cache.revalidationRecord(for: $0, context: context) })
+            revalidation: built.flatMap { cache.revalidationRecord(for: $0, context: context) }, slot: slot)
     }
     // Empties the journal when this was the outermost recording memo. An inner
     // one leaves its entries in place for the memo enclosing it.
@@ -241,6 +244,8 @@ func renderValueMemoized<Key: Equatable, Row>(
 /// replays, since nothing in a served subtree is drawn and so nothing in it
 /// would. One entry for them all, into the journal like any registration, so
 /// a memo enclosing this one keeps it too, and the verifier sees it.
+private let animationRecordsKind = EffectJournal.Kind("animationRecords")
+
 @MainActor
 private func journalAnimationRecords(
     _ declared: AnimationStore.DeclaredRecords?, in journal: EffectJournal, context: RenderContext
@@ -248,7 +253,7 @@ private func journalAnimationRecords(
     guard let declared else { return }
     journal.append(
         EffectJournal.Entry(
-            kind: EffectJournal.Kind("animationRecords"), channelToken: context.environment.keyChannelToken
+            kind: animationRecordsKind, channelToken: context.environment.keyChannelToken
         ) { served in served.stateStorage?.animations.declareAgain(declared) })
 }
 
@@ -361,8 +366,19 @@ private func verifyServe(
     // catch the case that matters here, a control that now holds the focus
     // drawn as it looked without it.
     guard (tracker?.unreplayableCount ?? 0) == unreplayableBefore else { return fresh }
-    let freshKinds = ownChannelEffects(journal, since: start, context: context).map(\.kind)
-    let servedKinds = entry.effects.map(\.kind)
+    // Animation records count as one, however many entries they came in: each memo
+    // between here and a record has an entry holding it (a memo logs what those
+    // inside it declare, served or not), and declaring one twice is declaring it.
+    func kinds(_ effects: [EffectJournal.Entry]) -> [EffectJournal.Kind] {
+        var seenAnimationRecords = false
+        return effects.compactMap { effect in
+            guard effect.kind == animationRecordsKind else { return effect.kind }
+            defer { seenAnimationRecords = true }
+            return seenAnimationRecords ? nil : effect.kind
+        }
+    }
+    let freshKinds = kinds(ownChannelEffects(journal, since: start, context: context))
+    let servedKinds = kinds(entry.effects)
     if freshKinds != servedKinds {
         cache.noteRenderMemoEffectMismatch(
             viewType: String(describing: viewType()), served: servedKinds,
@@ -420,6 +436,7 @@ package func verifyServedSize(
 ///   - key: As the buffer half's.
 ///   - proposal: The proposed size, which is part of the key here.
 ///   - context: The render context.
+///   - slot: As the buffer half's.
 ///   - build: As the buffer half's: called at most once per call, and only
 ///     where the content is measured — on a miss, or for the verifier.
 ///   - measure: Measures a built view.
@@ -429,6 +446,7 @@ func measureValueMemoized<Key: Equatable, Row>(
     key: Key,
     proposal: ProposedSize,
     context: RenderContext,
+    slot: Int = 0,
     build: () -> Row,
     measure: (Row, RenderContext) -> ViewSize
 ) -> ViewSize {
@@ -442,7 +460,7 @@ func measureValueMemoized<Key: Equatable, Row>(
     // measured the subtree at all. From the CROSS-frame table, so it stood until
     // the memoized value itself changed.
     let sizeKey = RenderCache.SizeKey(
-        identityHash: context.identity.structuralHash,
+        identityHash: context.identity.structuralHash ^ slot,
         proposalWidth: proposal.width, proposalHeight: proposal.height,
         availableWidth: context.availableWidth, availableHeight: context.availableHeight,
         hasExplicitWidth: context.hasExplicitWidth, hasExplicitHeight: context.hasExplicitHeight,
@@ -473,6 +491,7 @@ func measureValueMemoized<Key: Equatable, Row>(
         ? context.withEnvironment(context.environment.setting(\.volatileReadTracker, to: tracker))
         : context
     let unsafeBefore = tracker.cacheUnsafeCount
+    let windowedBefore = tracker.windowedMeasures
     // The scopes this measure arms are kept alive by the size it stores — see
     // the buffer half.
     let leaseMark = cache.leases.beginComputation()
@@ -499,7 +518,8 @@ func measureValueMemoized<Key: Equatable, Row>(
     // the buffer half was unified", and a Form row under an injected uncomparable
     // value measured once and served that size forever.
     if tracker.cacheUnsafeCount == unsafeBefore,
-        !context.environment.hasUncomparableEnvironmentValue
+        !context.environment.hasUncomparableEnvironmentValue,
+        slot == 0 || tracker.windowedMeasures == windowedBefore
     {
         cache.storeSize(
             key: sizeKey, identity: context.identity, view: key, size: size, lease: lease,
