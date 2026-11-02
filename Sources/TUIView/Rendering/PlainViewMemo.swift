@@ -36,6 +36,13 @@ package final class PlainMemo {
     /// below it can have stored last.
     var lastStored = 0
 
+    /// The identity of the value memo (`.equatable()`, a `ForEach` row) that last
+    /// drew or measured what it holds, by its structural hash. A composite at that
+    /// identity is what that memo holds, and the memo's value already says whether
+    /// it changed: another entry for it would hold the same buffer and the same
+    /// size under a second key, with its own observation scopes.
+    var valueMemoIdentity = 0
+
     /// What each composite that has failed to be served has come to.
     private var gates: [Int: Gate] = [:]
 
@@ -196,6 +203,7 @@ func renderPlainMemoized<V: View>(
 ) -> FrameBuffer {
     let cache = context.renderCache.unsafelyUnwrapped
     let memo = cache.plainMemo
+    if memo.valueMemoIdentity == context.identity.structuralHash { return render(view, context) }
     let hash = context.identity.structuralHash ^ plainMemoSlot
     if memo.isCoolingDown(hash) {
         memo.counts.cooled += 1
@@ -222,7 +230,8 @@ func measurePlainMemoized<V: View>(
     measure: (V, RenderContext) -> ViewSize
 ) -> ViewSize {
     let cache = context.renderCache.unsafelyUnwrapped
-    if cache.plainMemo.isCoolingDown(context.identity.structuralHash ^ plainMemoSlot) {
+    let identityHash = context.identity.structuralHash
+    if cache.plainMemo.valueMemoIdentity == identityHash || cache.plainMemo.isCoolingDown(identityHash ^ plainMemoSlot) {
         return measure(view, context)
     }
     let plans = cache.valueHashPlans
