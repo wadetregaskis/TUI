@@ -201,6 +201,15 @@ final class LocalizationKeyConsistencyTests {
         }
     }
 
+    // MARK: - Document Key Tests
+
+    @Test("All document keys exist in translations")
+    func allDocumentKeysExist() {
+        for key in LocalizationKey.Document.allCases {
+            #expect(englishTranslations[key.rawValue] != nil, "Document key '\(key.rawValue)' not found in translations")
+        }
+    }
+
     // MARK: - Dialog Key Tests
 
     @Test("All dialog keys exist in translations")
@@ -398,6 +407,11 @@ final class LocalizationKeyConsistencyTests {
             enumKeys.insert(key.rawValue)
         }
 
+        // A document scene's words — enumerated, as the status bar's are.
+        for key in LocalizationKey.Document.allCases {
+            enumKeys.insert(key.rawValue)
+        }
+
         // What an app with no terminal says — enumerated, as the status bar's are.
         for key in LocalizationKey.NoTerminal.allCases {
             enumKeys.insert(key.rawValue)
@@ -418,6 +432,7 @@ final class LocalizationKeyConsistencyTests {
             27 + LocalizationKey.Label.allCases.count + 11 + 6 + LocalizationKey.Menu.allCases.count + 13 + 4
             + LocalizationKey.StatusBar.allCases.count + 8 + LocalizationKey.TimeSpan.allCases.count
             + LocalizationKey.KeyName.allCases.count + LocalizationKey.FilePanel.allCases.count
+            + LocalizationKey.Document.allCases.count
             + LocalizationKey.ControlStyle.allCases.count + LocalizationKey.NoTerminal.allCases.count
         #expect(
             englishTranslations.count == expectedKeyCount,

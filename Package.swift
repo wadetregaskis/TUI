@@ -6,7 +6,8 @@ import PackageDescription
 /// Every library module: what TUIIntegrationTests, the one test target that can see everything, depends on.
 let umbrellaTestDependencies: [Target.Dependency] = [
     "TUI", "TUIApp", "TUIBitmaps", "TUIChrome", "TUIColorPicker", "TUICommands", "TUICurveEditors",
-    "TUIEffects", "TUIFilePanelImages", "TUIFilePanels", "TUIForms", "TUIFoundation", "TUIGrid", "TUILists",
+    "TUIDocuments", "TUIEffects", "TUIFilePanelImages", "TUIFilePanels", "TUIForms", "TUIFoundation", "TUIGrid",
+    "TUILists",
     "TUIMenus", "TUINavigation", "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes", "TUISearch",
     "TUIStrings", "TUITabImages", "TUITables", "TUITabs", "TUITerminalHost", "TUITesting", "TUITextInput",
     "TUIAppKit", "TUIEnvironmentDocs", "TUIFilePanelsAppKit", "TUIWidthCorpus", "CTestSupport",
@@ -93,6 +94,9 @@ let package = Package(
         // and `UTType` where UniformTypeIdentifiers is absent. Re-exports TUIPresentation, TUITables and
         // TUITextInput, which its panel is made of.
         .library(name: "TUIFilePanels", targets: ["TUIFilePanels"]),
+        // TUIDocuments: `DocumentGroup` and its configurations, and the File menu that opens and saves.
+        // Re-exports TUIApp, TUICommands, TUIFilePanels and TUIPresentation, which it is built on.
+        .library(name: "TUIDocuments", targets: ["TUIDocuments"]),
         // TUIForms: `Form`, `LabeledContent`, `GroupBox`, `Card` and `Panel`, and their styles.
         .library(name: "TUIForms", targets: ["TUIForms"]),
         // TUIGrid: `Grid`, `GridRow`, `LazyVGrid`, `LazyHGrid` and `GridItem`.
@@ -183,6 +187,8 @@ let package = Package(
 
         // ── App ─────────────────────────────────────────────────────────────────────────────────────────
         .executable(name: "Example", targets: ["Example"]),
+        // A small text editor written as a SwiftUI document app is: one `DocumentGroup`.
+        .executable(name: "DocumentEditor", targets: ["DocumentEditor"]),
 
         // ── Stress test (perf instrument; secondarily a complex-TUI demo) ────────────────────────────────
         .executable(name: "Stress", targets: ["Stress"]),
@@ -627,9 +633,18 @@ let package = Package(
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
+        // `DocumentGroup`, a scene (Scene is TUIApp's) with a File menu (TUICommands') through the file panels
+        // (TUIFilePanels') and alerts (TUIPresentation's), in a module of its own so that an app with file
+        // panels pays for no menu bar, and neither pays for this (the owner, 2026-11-01).
+        .target(
+            name: "TUIDocuments",
+            dependencies: ["TUIApp", "TUICommands", "TUIFilePanels", "TUIFoundation", "TUIPresentation", "TUIView"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
         // The umbrella: Sources/TUI/Exports.swift `@_exported import`s the leaves carved so far (TUIApp,
-        // TUIBitmaps, TUIChrome, TUIColorPicker, TUICommands, TUICurveEditors, TUIEffects,
+        // TUIBitmaps, TUIChrome, TUIColorPicker, TUICommands, TUICurveEditors, TUIDocuments, TUIEffects,
         // TUIFilePanels, TUIForms, TUIGrid, TUILists, TUIMenus, TUINavigation, TUINumericControls,
         // TUIPickers, TUIPresentation, TUIScenes, TUISearch, TUITabImages, TUITables, TUITabs,
         // TUITextInput, TUIFilePanelImages),
@@ -641,7 +656,7 @@ let package = Package(
             name: "TUI",
             dependencies: [
                 "TUIApp", "TUIBitmaps", "TUIChrome", "TUIColorPicker", "TUICommands", "TUICurveEditors",
-                "TUIEffects", "TUIFilePanelImages", "TUIFilePanels", "TUIForms", "TUIGrid", "TUILists", "TUIMenus",
+                "TUIDocuments", "TUIEffects", "TUIFilePanelImages", "TUIFilePanels", "TUIForms", "TUIGrid", "TUILists", "TUIMenus",
                 "TUINavigation", "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes",
                 "TUISearch", "TUITabImages", "TUITables", "TUITabs", "TUITextInput", "TUIFoundation",
                 "TUICore", "TUIStyling", "TUIImage", "TUIView",
@@ -880,6 +895,14 @@ let package = Package(
             ]
         ),
         .testTarget(
+            name: "TUIDocumentsTests",
+            dependencies: [
+                "TUIApp", "TUIAppTestSupport", "TUICommands", "TUICore", "TUIDocuments", "TUIFilePanels",
+                "TUIFoundation", "TUIPresentation", "TUITestSupport", "TUITesting", "TUIView",
+            ],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+        .testTarget(
             name: "TUIFilePanelsTests",
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUIChrome", "TUICore", "TUIFilePanelImages", "TUIFilePanels",
@@ -1049,6 +1072,8 @@ let package = Package(
             dependencies: ["TUI", "TUIWidthCorpus"],
             exclude: ["README.md"]  // documentation, not a bundled resource
         ),
+        // A small text editor, written as a SwiftUI document app is (Sources/DocumentEditor/DocumentEditor.swift).
+        .executableTarget(name: "DocumentEditor", dependencies: ["TUI"]),
         .executableTarget(
             name: "Stress",
             dependencies: ["TUI"],

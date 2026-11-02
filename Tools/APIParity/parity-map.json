@@ -259,15 +259,6 @@
     },
     {
       "match": [
-        "DocumentGroup*",
-        "FileDocumentConfiguration*",
-        "ReferenceFileDocumentConfiguration*",
-        "DocumentConfiguration*",
-        "EnvironmentValues.documentConfiguration",
-        "EnvironmentValues.newDocument",
-        "EnvironmentValues.openDocument",
-        "NewDocumentAction*",
-        "OpenDocumentAction*",
         "View.exportableToServices*",
         "View.importableFromServices*",
         "View.exportsItemProviders*",
@@ -277,7 +268,7 @@
         "DocumentBaseBox*",
         "DefaultDocumentGroupLaunchActions*"
       ],
-      "why": "The document architecture and the Services menu. DocumentGroup and its configurations (FileDocumentConfiguration, DocumentConfiguration, the new and open document actions) open, edit and save documents in windows of their own, one per document; a terminal app has one surface, the terminal (the same reason as the scene family above), and a document scene is a scene. The Services menu (exportsItemProviders, importsItemProviders, exportableToServices, importableFromServices) is macOS's system-wide menu of other apps' services, which a terminal app has no way into, and navigationDocument names a window's represented file. The file panels themselves ship: TUI draws them (TUIFilePanels; decisions File panels (O10)), and FileDocument with them, on Apple platforms."
+      "why": "What is left of the document architecture, and the Services menu. DocumentGroup itself ships (TUIDocuments, one document at a time); the launch scene, its actions and NewDocumentButton are iOS's document browser, which macOS does not have either. The Services menu (exportsItemProviders, importsItemProviders, exportableToServices, importableFromServices) is macOS's system-wide menu of other apps' services, which a terminal app has no way into, and navigationDocument names a window's represented file."
     },
     {
       "match": [

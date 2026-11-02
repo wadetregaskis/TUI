@@ -779,3 +779,43 @@ says why it cannot be made in an alert of its own. From the keyboard the
 button is a Tab stop, and **+** in the folder asks too, named in the status
 bar: the Mac's ⇧⌘N is a chord no terminal sends as itself, and `+`, like `/`
 and `~`, is typed. The panel's words are in the seven languages.
+
+## `DocumentGroup` ships, one document at a time (the owner, 2026-11-01)
+
+Overturns C-O10-1's last two sentences and the parity map's reason ("a window per
+document, and a terminal app has one surface"), and B-O10-12 ("nothing in TUI reads
+one"). The owner's words: one-at-a-time windows are no barrier, and a `FileWrapper` on
+Linux seemed the only real challenge. It was measured absent on the static Linux SDK,
+and option 4 of A-O10-1 is what was built.
+
+- **`TUIDocuments`, a new module** on `TUIApp` (a scene), `TUICommands` (File),
+  `TUIFilePanels` (the panels, `FileDocument`) and `TUIPresentation` (the alerts), so
+  that an app with file panels pays for no menu bar. `DocumentGroup` composes: its body
+  is a `WindowGroup` with `.commands`, and a `@FocusedValue` takes the window's state to
+  the commands.
+- **Opening a second document replaces the first**, after Save, Don't Save or Cancel.
+  The open panel comes before the question, so cancelling it asks nothing.
+- **`FileWrapper` is `#if !canImport(ObjectiveC)`, as `UndoManager` is**: the same name
+  and API, so a document compiles unchanged, and the tests that pin it run against
+  Foundation's on macOS, measured first, and TUI's on Linux. If corelibs ships one, the
+  name turns ambiguous in an app's code and this one goes. Foundation's raises an
+  exception for a wrapper asked for another kind's contents; TUI's answers `nil`.
+- **`ReferenceFileDocument` refines `ObservableObject` where Combine exists and
+  `AnyObject` elsewhere**, so a SwiftUI document with `@Published` compiles, on macOS,
+  and an `@Observable` one everywhere. C-O10-1's objection, that TUI has no
+  `ObservableObject` family, is met by the group subscribing to `objectWillChange`
+  itself; nothing else in TUI watches one. Its `$document` cannot be
+  `ObservedObject.Wrapper` (that type is a compile-error stub), so it is
+  `ReferenceFileDocumentObject`, which spells the same at a use.
+- **What counts as an edit.** SwiftUI's value documents: a write through the binding.
+  Its reference documents: an undo registration, and nothing else. Here a reference
+  document is edited when `objectWillChange` fires or when what `snapshot(contentType:)`
+  read changes, found by calling it inside `withObservationTracking`. That is one
+  snapshot per save, whatever the number of edits, and it needs no undo registration.
+  So an app that does register undo loses nothing, and one that does not still gets the
+  question rather than silently losing work.
+- **Declined:** autosave (macOS can undo one through versions; there are none here),
+  Close (a window with nothing in it), Duplicate, Rename, Move To, Revert To (AppKit's),
+  a second `DocumentGroup` in one app, and `FileWrapper.serializedRepresentation` (an
+  RTFD pasteboard format).
+- **`Transferable` stays gated** on `CoreTransferable`: nothing here touches it.

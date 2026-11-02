@@ -19,11 +19,25 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 - ``App``
 - ``Scene``
 - ``WindowGroup``
+- ``DocumentGroup``
 - ``ScenePhase``
 
 ### Keyboard Shortcuts
 
 - ``Scene/keyboardShortcutOverlayDisabled(_:)``
+
+### Documents
+
+- ``DocumentGroup``
+- ``FileDocumentConfiguration``
+- ``ReferenceFileDocumentConfiguration``
+- ``ReferenceFileDocumentObject``
+- ``DocumentConfiguration``
+- ``NewDocumentAction``
+- ``OpenDocumentAction``
+- ``EnvironmentValues/documentConfiguration``
+- ``EnvironmentValues/newDocument``
+- ``EnvironmentValues/openDocument``
 
 ### Quitting
 

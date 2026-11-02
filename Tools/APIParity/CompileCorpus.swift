@@ -4680,6 +4680,24 @@ private struct CorpusFileExporters: View {
 
 /// A `FileDocument` as Apple's documentation writes one, and the four
 /// exporters that write one.
+/// A reference document, as Apple's documentation writes one.
+final class CorpusSketch: ReferenceFileDocument, @unchecked Sendable {
+    static var readableContentTypes: [UTType] { [.plainText] }
+    @Published var text = ""
+
+    init() {}
+
+    init(configuration: ReadConfiguration) throws {
+        text = String(bytes: configuration.file.regularFileContents ?? Data(), encoding: .utf8) ?? ""
+    }
+
+    func snapshot(contentType: UTType) throws -> String { text }
+
+    func fileWrapper(snapshot: String, configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: Data(snapshot.utf8))
+    }
+}
+
 private struct CorpusTextDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.plainText] }
     var text = ""
@@ -4696,6 +4714,58 @@ private struct CorpusTextDocument: FileDocument {
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
         _ = (configuration.contentType, configuration.existingFile)
         return FileWrapper(regularFileWithContents: Data(text.utf8))
+    }
+}
+
+/// A SwiftUI document app's scene, as it is written: an editor and a viewer, of
+/// a value and of an object.
+@MainActor
+private struct CorpusDocumentScenes {
+    @SceneBuilder var editor: some Scene {
+        DocumentGroup(newDocument: CorpusTextDocument(text: "")) { file in
+            TextEditor(text: file.$document.text)
+                .disabled(!file.isEditable)
+                .help(file.fileURL?.path ?? "")
+        }
+    }
+
+    @SceneBuilder var viewer: some Scene {
+        DocumentGroup(viewing: CorpusTextDocument.self) { file in
+            Text(file.document.text)
+        }
+    }
+
+    @SceneBuilder var referenceEditor: some Scene {
+        DocumentGroup(
+            newDocument: { CorpusSketch() },
+            editor: { file in
+                TextEditor(text: file.$document.text)
+                    .disabled(!file.isEditable)
+                    .help(file.fileURL?.path ?? "")
+            })
+    }
+
+    @SceneBuilder var referenceViewer: some Scene {
+        DocumentGroup(viewing: CorpusSketch.self) { file in
+            Text(file.document.text)
+        }
+    }
+}
+
+@MainActor
+private struct CorpusDocumentEnvironment: View {
+    @Environment(\.newDocument) private var newDocument
+    @Environment(\.openDocument) private var openDocument
+    @Environment(\.documentConfiguration) private var configuration
+
+    var body: some View {
+        Button(configuration?.fileURL?.path ?? "") {
+            newDocument(CorpusTextDocument(text: ""))
+            newDocument { CorpusSketch() }
+            newDocument(contentType: .plainText)
+            Task { try? await openDocument(at: URL(fileURLWithPath: "/")) }
+        }
+        .disabled(configuration?.isEditable == false)
     }
 }
 

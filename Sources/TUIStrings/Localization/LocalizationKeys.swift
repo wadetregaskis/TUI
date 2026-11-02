@@ -382,6 +382,32 @@ public enum LocalizationKey {
         case yank = "menu.yank"
     }
 
+    /// The words of a `DocumentGroup` that the menu and the file panels do not
+    /// already have. Internal to the package, as ``FilePanel``'s are.
+    package enum Document: String, CaseIterable {
+        /// File ▸ Open…, and the button on a viewer's page with no document.
+        case open = "document.open"
+        /// File ▸ Save As….
+        case saveAs = "document.saveAs"
+        /// The answer to ``saveChanges`` that loses the changes.
+        case dontSave = "document.dontSave"
+        /// What a window's title says after the name of an edited document.
+        case edited = "document.edited"
+        /// A viewer's page with no document.
+        case none = "document.none"
+        /// The alert's title when a document cannot be written, its name as `%@`.
+        case saveFailed = "document.saveFailed"
+        /// The alert's title when a document cannot be read, its name as `%@`.
+        case openFailed = "document.openFailed"
+        /// The title of the question before unsaved changes go: short, since a
+        /// dialog clips its title to its box, where the document's name would go.
+        case unsavedChanges = "document.unsavedChanges"
+        /// The question before unsaved changes go, the document's name as `%@`.
+        case saveChanges = "document.saveChanges"
+        /// What the question adds.
+        case changesLost = "document.changesLost"
+    }
+
     /// Dialog titles and messages
     public enum Dialog: String {
         case confirm = "dialog.confirm"
@@ -600,6 +626,11 @@ extension LocalizationService {
 
     /// Retrieves a localized string for a file panel key.
     package func string(for key: LocalizationKey.FilePanel) -> String {
+        frameworkString(for: key.rawValue)
+    }
+
+    /// Retrieves a localized string for a document scene's key.
+    package func string(for key: LocalizationKey.Document) -> String {
         frameworkString(for: key.rawValue)
     }
 

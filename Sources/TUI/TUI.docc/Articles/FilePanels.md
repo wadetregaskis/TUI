@@ -155,6 +155,27 @@ A `FileDocument` exports the same way, written through its
               defaultFilename: "Draft") { result in … }
 ```
 
+## An App That Is a Document
+
+For an app that edits one kind of file, ``DocumentGroup`` does all of this: it
+puts New, Open…, Save and Save As… in the File menu, through these panels, and
+asks before unsaved changes are lost. SwiftUI's document apps compile as written.
+
+```swift
+@main
+struct TextEdit: App {
+    var body: some Scene {
+        DocumentGroup(newDocument: TextFile()) { file in
+            TextEditor(text: file.$document.text)
+        }
+    }
+}
+```
+
+A terminal has one window, so one document is open at a time, and opening
+another replaces it, after that question. `swift run DocumentEditor` is the
+example above, the whole of it.
+
 ## Customizing the Panel
 
 The `fileDialog` modifiers customize the panel, written outside the modifier

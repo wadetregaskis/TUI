@@ -70,7 +70,7 @@ SWIFTUI_MODULES = ["SwiftUI", "SwiftUICore"]
 # of TUIFoundation, or peeled out of a coarse group, joins this list then.
 TUIKIT_MODULES = [
     "TUI", "TUIApp", "TUIBitmaps", "TUIChrome", "TUIColorPicker", "TUICommands", "TUICurveEditors",
-    "TUIEffects", "TUIFilePanels", "TUIForms", "TUIGrid", "TUILists", "TUIMenus", "TUINavigation",
+    "TUIDocuments", "TUIEffects", "TUIFilePanels", "TUIForms", "TUIGrid", "TUILists", "TUIMenus", "TUINavigation",
     "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes", "TUISearch", "TUITabImages",
     "TUITables", "TUITabs", "TUITextInput",
     "TUIFoundation", "TUIStrings", "TUITerminalHost", "TUICore", "TUIStyling", "TUIView",
@@ -238,7 +238,7 @@ def load_symbols(directory, modules, collect_defaults=False, follow_aliases=Fals
 
 # The property wrappers whose `projectedValue` makes `$name` part of a public
 # property's API.
-PROJECTING_WRAPPERS = {"Binding", "Bindable", "State", "FocusState", "GestureState"}
+PROJECTING_WRAPPERS = {"Binding", "Bindable", "State", "FocusState", "GestureState", "ReferenceFileDocumentObject"}
 
 
 def projected_wrapper(symbol):

@@ -16,7 +16,7 @@ let url = Context.environment["TUI_PRODUCT_SMOKE_URL"] ?? "file:///run-Tools/Pro
 /// Every library product of TUI. verify-products.sh fails if this and the package's own list differ.
 let products = [
     "TUI", "TUIApp", "TUIFoundation", "TUIBitmaps", "TUIChrome", "TUIColorPicker", "TUICommands",
-    "TUICurveEditors", "TUIEffects", "TUIFilePanels", "TUIForms", "TUIGrid", "TUILists",
+    "TUICurveEditors", "TUIDocuments", "TUIEffects", "TUIFilePanels", "TUIForms", "TUIGrid", "TUILists",
     "TUIMenus", "TUINavigation", "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes",
     "TUISearch",
     "TUITabImages", "TUIFilePanelImages", "TUITables", "TUITabs", "TUITesting", "TUITextInput", "TUICore", "TUIStyling", "TUIView", "TUIImage",

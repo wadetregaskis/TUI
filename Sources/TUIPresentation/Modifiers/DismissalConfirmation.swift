@@ -286,6 +286,18 @@ struct _DismissalConfirmationRegistrar<Content: View>: View, Renderable, Layouta
     }
 }
 
+extension View {
+    /// Offers `ask` to the nearest presentation's gate, or to the quit key at the
+    /// top level, on every frame `shouldAsk` holds: what a
+    /// `dismissalConfirmationDialog` does, for a scene that has to answer later
+    /// than the dialog's actions return, as a save by way of a panel does.
+    @MainActor package func askingBeforeDismissal(
+        when shouldAsk: Bool, ask: @escaping (@escaping () -> Void) -> Void
+    ) -> some View {
+        _DismissalConfirmationRegistrar(content: self, shouldPresent: shouldAsk, ask: ask)
+    }
+}
+
 // MARK: - The dialog's actions
 
 /// The app's actions, each letting the held dismissal go ahead once it has

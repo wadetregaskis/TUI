@@ -16,7 +16,8 @@
 // (`App`, `Scene` and the run loop, since step B3), TUIColorPicker
 // (`ColorPicker` and its panel, since step B4), TUICommands (the
 // commands and the menu bar they draw, since lane O13), TUIFilePanels (the
-// file panels, since lane O10), TUICurveEditors (the
+// file panels, since lane O10), TUIDocuments (`DocumentGroup`, built on
+// TUICommands and TUIFilePanels), TUICurveEditors (the
 // tone-curve and channel-curve editors, TUIColorPicker's until C9b and
 // TUIColorEditors' until 2026-10-12), TUINavigation (the
 // navigation containers, since step B5, and the presentations until step C1),
@@ -67,6 +68,7 @@
 @_exported import TUICommands
 @_exported import TUICore
 @_exported import TUICurveEditors
+@_exported import TUIDocuments
 @_exported import TUIEffects
 @_exported import TUIFilePanelImages
 @_exported import TUIFilePanels

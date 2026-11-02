@@ -60,7 +60,7 @@ Text("Details").font(.caption)      // faint, not smaller
 TUI watches only the Observation framework, so use `@Observable` for a model.
 
 - `@StateObject`, `@ObservedObject`, `@EnvironmentObject` and `.onReceive(_:perform:)` don't compile.
-- `ObservableObject` and `@Published` do compile on macOS, because Foundation brings them in, but TUI doesn't watch them. Writing to a `@Published` property doesn't redraw anything, and nothing tells you so. Check for this first if you've moved a model over from SwiftUI and the screen doesn't update.
+- `ObservableObject` and `@Published` do compile on macOS, because Foundation brings them in, but TUI doesn't watch them. Writing to a `@Published` property doesn't redraw anything, and nothing tells you so. The one exception is a `ReferenceFileDocument` in a `DocumentGroup`, whose `objectWillChange` the group does watch. Check for this first if you've moved a model over from SwiftUI and the screen doesn't update.
 
 ```swift
 // SwiftUI, the older way
@@ -190,7 +190,6 @@ These have no meaning in a grid of cells, or aren't built yet, so using them is 
 | `.imageScale` | None. Leave it out: a symbol is one glyph of the terminal's font. |
 | `.ignoresSafeArea` | None. Leave it out: a terminal has no safe area, and your views already reach its edges. |
 | `ShareLink` | None. A terminal has no share sheet. To open something, use `Link`. |
-| `DocumentGroup` | A `WindowGroup`, with `.fileImporter` and `.fileExporter`. |
 | `.onOpenURL` | None. Nothing sends a terminal app a URL. Read `CommandLine.arguments` at launch. |
 | `.defaultSize`, `.windowResizability` | None. Leave them out: a window is the size of the terminal. |
 | `@Entry` | Add `import TUIMacros`, and the `TUIMacros` product to your target (<doc:ChoosingProducts>). It's a product of its own because it builds swift-syntax. |

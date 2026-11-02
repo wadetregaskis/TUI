@@ -40,11 +40,18 @@ new names throughout, for the package as it was on 1 October as well.
   so is the `TUIKIT_TEST_SUPPORT` compilation condition; the old names are not read.
 - Unchanged: the folders and defaults keys where an app's settings are kept, so nothing a user saved is lost.
 
-### `FileDocument` on Linux
+### `DocumentGroup`, and `FileDocument` on Linux
+
+`DocumentGroup` is new (product `TUIDocuments`, in the umbrella), with SwiftUI's signatures: `DocumentGroup(newDocument:editor:)`
+and `DocumentGroup(viewing:viewer:)`, for a `FileDocument` and a `ReferenceFileDocument`; `FileDocumentConfiguration`,
+`ReferenceFileDocumentConfiguration`, `DocumentConfiguration`, and the `newDocument`, `openDocument` and `documentConfiguration`
+environment values. File has New, Open…, Save and Save As…, through the file panels. A terminal has one window, so one document
+is open at a time: opening or creating another replaces it, after asking Save, Don't Save or Cancel, and so does quitting.
 
 - `FileDocument`, and the `fileExporter` forms that write one, now exist on Linux, over a `FileWrapper` of TUI's with
   Foundation's API. Remove any `#if canImport(ObjectiveC)` around them. Apple platforms keep Foundation's.
 - `ReferenceFileDocument` is new, and so are the four `fileExporter` forms that write one.
+- `swift run DocumentEditor` is a small text editor written with it.
 
 ### If you only need the short version
 
