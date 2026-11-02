@@ -553,6 +553,9 @@ Uppercase detection: when a capital letter is typed, the resulting ``KeyEvent`` 
 |-----|-------------|
 | `.f1` … `.f12` | Function keys F1 through F12 |
 
+A ``KeyboardShortcut`` names one by AppKit's function-key scalars, as SwiftUI
+source does: `KeyEquivalent("\u{F704}")` is F1, and so on up to F20 at U+F717.
+
 ## Key Events and Modifiers
 
 A ``KeyEvent`` combines a ``Key`` with modifier flags:

@@ -89,3 +89,34 @@ struct KeyboardShortcutDefaultTierTests {
         #expect(log.ran.isEmpty)
     }
 }
+
+@MainActor
+@Suite("A shortcut on a function key")
+struct KeyboardShortcutFunctionKeyTests {
+    /// `NSF1FunctionKey`, which is how SwiftUI source names F1.
+    private let f1 = KeyboardShortcut(KeyEquivalent("\u{F704}"), modifiers: [])
+
+    @Test("AppKit's scalar for a function key names it, drawn as itself")
+    func namedAndDrawn() {
+        #expect(f1.displayString == "F1")
+        #expect(KeyboardShortcut(KeyEquivalent("\u{F70D}"), modifiers: .shift).displayString == "⇧F10")
+    }
+
+    @Test("It fires on its key, and not with a modifier the shortcut doesn't state")
+    func fires() {
+        let registry = KeyboardShortcutRegistry()
+        var fired = 0
+        registry.register(f1) { fired += 1 }
+        #expect(registry.trigger(for: KeyEvent(key: .f1)))
+        #expect(fired == 1)
+        #expect(registry.trigger(for: KeyEvent(key: .f1, shift: true)) == false)
+        #expect(registry.trigger(for: KeyEvent(key: .f2)) == false)
+    }
+
+    @Test("onKeyPress reports the same scalars it always did, and the Menu key")
+    func keyPress() {
+        #expect(KeyPress(KeyEvent(key: .f1))?.key == KeyEquivalent("\u{F704}"))
+        #expect(KeyPress(KeyEvent(key: .f20))?.key == KeyEquivalent("\u{F717}"))
+        #expect(KeyPress(KeyEvent(key: .menu))?.key == KeyEquivalent("\u{F735}"))
+    }
+}

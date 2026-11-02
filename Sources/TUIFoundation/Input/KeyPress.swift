@@ -100,28 +100,11 @@ public struct KeyPress: Sendable, CustomDebugStringConvertible {
     }
 
     /// The parsed keys that type nothing, as the ``KeyEquivalent`` SwiftUI
-    /// reports for each: the named ones, and AppKit's function-key block for
-    /// F1…F20 (`NSF1FunctionKey` is U+F704).
-    private static let equivalents: [Key: KeyEquivalent] = {
-        var table: [Key: KeyEquivalent] = [
-            .enter: .return, .escape: .escape, .tab: .tab, .space: .space,
-            .backspace: .delete, .delete: .deleteForward,
-            .up: .upArrow, .down: .downArrow, .left: .leftArrow, .right: .rightArrow,
-            .home: .home, .end: .end, .pageUp: .pageUp, .pageDown: .pageDown,
-            // AppKit's `NSMenuFunctionKey`.
-            .menu: KeyEquivalent("\u{F735}"),
-        ]
-        let functionKeys: [Key] = [
-            .f1, .f2, .f3, .f4, .f5, .f6, .f7, .f8, .f9, .f10,
-            .f11, .f12, .f13, .f14, .f15, .f16, .f17, .f18, .f19, .f20,
-        ]
-        for (offset, functionKey) in functionKeys.enumerated() {
-            if let scalar = Unicode.Scalar(UInt32(0xF704 + offset)) {
-                table[functionKey] = KeyEquivalent(Character(scalar))
-            }
-        }
-        return table
-    }()
+    /// reports for each: those a shortcut can name, and the Menu key, AppKit's
+    /// `NSMenuFunctionKey`.
+    private static let equivalents: [Key: KeyEquivalent] = KeyboardShortcut.equivalents.merging(
+        [.menu: KeyEquivalent("\u{F735}")]
+    ) { first, _ in first }
 }
 
 // MARK: - Phases

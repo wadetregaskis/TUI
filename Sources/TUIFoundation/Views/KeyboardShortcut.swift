@@ -389,8 +389,8 @@ public struct KeyboardShortcut: Hashable, Sendable {
             if shifted { modifiers.insert(.shift) }
             return .key(key, modifiers)
         default:
-            // The non-printable keys, via the table below. Function keys and
-            // pasted text are not bindable, and map to nothing.
+            // The non-printable keys, via the table below. Pasted text is not
+            // a key, and maps to nothing.
             return equivalents[event.key].map { .key($0, modifiers) }
         }
     }
@@ -399,12 +399,28 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// sends these as escape sequences, never as the scalars themselves, so this
     /// is the only way one is ever produced. Read backwards, it is how a
     /// shortcut's key is named (`Key.init(_:)`).
-    static let equivalents: [Key: KeyEquivalent] = [
-        .enter: .return, .escape: .escape, .tab: .tab, .space: .space,
-        .up: .upArrow, .down: .downArrow, .left: .leftArrow, .right: .rightArrow,
-        .pageUp: .pageUp, .pageDown: .pageDown, .home: .home, .end: .end,
-        .backspace: .delete, .delete: .deleteForward,
-    ]
+    ///
+    /// F1 to F20 stand as AppKit's function-key block (`NSF1FunctionKey` is
+    /// U+F704), which is how SwiftUI source names them, having no constants
+    /// for them: `KeyEquivalent("\u{F704}")` is F1.
+    static let equivalents: [Key: KeyEquivalent] = {
+        var table: [Key: KeyEquivalent] = [
+            .enter: .return, .escape: .escape, .tab: .tab, .space: .space,
+            .up: .upArrow, .down: .downArrow, .left: .leftArrow, .right: .rightArrow,
+            .pageUp: .pageUp, .pageDown: .pageDown, .home: .home, .end: .end,
+            .backspace: .delete, .delete: .deleteForward,
+        ]
+        let functionKeys: [Key] = [
+            .f1, .f2, .f3, .f4, .f5, .f6, .f7, .f8, .f9, .f10,
+            .f11, .f12, .f13, .f14, .f15, .f16, .f17, .f18, .f19, .f20,
+        ]
+        for (offset, functionKey) in functionKeys.enumerated() {
+            if let scalar = Unicode.Scalar(UInt32(0xF704 + offset)) {
+                table[functionKey] = KeyEquivalent(Character(scalar))
+            }
+        }
+        return table
+    }()
 
     /// The printable form of this shortcut — what a menu row prints in its
     /// shortcut column — or `nil` for the semantic roles, which have no key to
