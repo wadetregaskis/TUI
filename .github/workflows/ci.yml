@@ -248,6 +248,13 @@ jobs:
           python3 Tools/validate-markdown-tables.py --self-test
           python3 Tools/validate-markdown-tables.py
 
+      # A count meant only to fall: the exceptions to `concurrency_escape`, and the
+      # sleeps in the tests. Self-test first, as the checks around it have.
+      - name: Ratcheted counts have not risen
+        run: |
+          python3 Tools/check-ratchets.py --self-test
+          python3 Tools/check-ratchets.py
+
       # A path Windows cannot check out ends every Windows lane at its first
       # step, and passes here and on macOS and Linux otherwise.
       - name: Every path can be checked out on Windows
