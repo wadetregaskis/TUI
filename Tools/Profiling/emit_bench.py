@@ -66,7 +66,7 @@ def cputime_secs(pid):
     return secs + days * 86400
 
 
-def measure(binary, scenario, host, settle, window, cols, rows):
+def measure(binary, scenario, host, settle, window, cols, rows, extra_env=None):
     """CPU seconds and emitted bytes over `window`, for one autopilot run."""
     master, slave = pty.openpty()
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
@@ -88,6 +88,7 @@ def measure(binary, scenario, host, settle, window, cols, rows):
             env["TUI_CONFIG_DIR"] = os.environ.get(
                 "TUI_CONFIG_DIR", "/tmp/tuikit-emit-bench-config")
             env.pop("TMUX", None)
+            env.update(extra_env or {})
             os.execve(binary, [binary, "--autopilot", "--scenario", scenario], env)
         except Exception:
             pass
@@ -147,7 +148,14 @@ def main():
     parser.add_argument("--settle", type=float, default=2.0)
     parser.add_argument("--cols", type=int, default=120)
     parser.add_argument("--rows", type=int, default=40)
+    parser.add_argument("--env-old", action="append", default=[], metavar="K=V",
+                        help="environment for the old arm, so one binary can be its own A/B")
+    parser.add_argument("--env-new", action="append", default=[], metavar="K=V")
+    parser.add_argument("--bytes", action="store_true",
+                        help="report the bytes each arm emitted per second too")
     args = parser.parse_args()
+    env_old = dict(item.split("=", 1) for item in args.env_old)
+    env_new = dict(item.split("=", 1) for item in args.env_new)
 
     print(f"metric=process CPU seconds over {args.window}s of autopilot  "
           f"host={args.host}  reps={args.reps}  order randomised per rep\n")
@@ -157,14 +165,16 @@ def main():
     rng = random.Random(20260828)
     for scenario in args.scenarios:
         ratios, olds, news = [], [], []
+        old_bytes, new_bytes = [], []
         for _ in range(args.reps):
             order = [("old", args.old), ("new", args.new)]
             rng.shuffle(order)
             result = {}
             for label, binary in order:
-                cpu, _ = measure(binary, scenario, args.host, args.settle,
-                                 args.window, args.cols, args.rows)
+                cpu, emitted = measure(binary, scenario, args.host, args.settle, args.window,
+                                       args.cols, args.rows, env_old if label == "old" else env_new)
                 result[label] = cpu
+                (old_bytes if label == "old" else new_bytes).append(emitted / args.window)
             if result["old"] <= 0 or result["new"] <= 0:
                 continue
             olds.append(result["old"])
@@ -186,6 +196,8 @@ def main():
         print(f"{scenario:<16}{statistics.median(olds):>9.3f}"
               f"{statistics.median(news):>9.3f}{(median - 1) * 100:>8.1f}%"
               f"{(low - 1) * 100:>8.1f}% {(high - 1) * 100:>7.1f}%  {verdict}")
+        if args.bytes:
+            print(f"{'':<16}bytes/s: old {statistics.median(old_bytes):,.0f}  new {statistics.median(new_bytes):,.0f}")
     return 0
 
 

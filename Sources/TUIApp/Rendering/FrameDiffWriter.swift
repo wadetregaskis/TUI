@@ -138,7 +138,7 @@ final class FrameDiffWriter {
     /// comparison in the case that matters; anything that changes what is on
     /// screen behind this cache's back — an animation replay patching a row, a
     /// rebuild, a resize — simply misses and decomposes again.
-    private struct CellCache {
+    struct CellCache {
         var lines: [String] = []
         var cells: [ANSIRowCells?] = []
 
@@ -222,6 +222,21 @@ final class FrameDiffWriter {
     /// `buildReusingOutputLines(…)` call; the remainder were reused from the
     /// previous frame. Exposed for tests and profiling.
     private(set) var rowsBuiltInLastBuild = 0
+
+    /// Whether this writer may move a band of rows rather than rewrite them,
+    /// before the host has a say. See ``ScrollOutput``.
+    var scrollOutput = ScrollOutput.configured
+
+    /// Whether frames are held (mode 2026), which the host's say depends on.
+    var framesAreHeld = Terminal.synchronizedOutputAllowed(environment: ProcessInfo.processInfo.environment)
+
+    /// `TUI_SCROLL_CENSUS`: what each level would have done with each frame.
+    let scrollCensus = ScrollCensus.fromEnvironment()
+
+    /// Whether the frame on screen has marks a terminal keeps apart from its
+    /// cells (``RowMarks``): a placement some hosts move with a band and some
+    /// do not, measured, so a band declines to move while one is up.
+    private var marksOnScreen = false
 
     init(program: TerminalClient.Program = TerminalClient.current.program) {
         self.detectedProgram = program
@@ -722,7 +737,7 @@ extension FrameDiffWriter {
         movedCursor = false
         let changedRows = writeDiff(
             newLines: newLines, previousLines: previousContentLines, terminal: terminal,
-            startRow: startRow, terminalWidth: terminalWidth)
+            startRow: startRow, terminalWidth: terminalWidth, bgCode: bgCode)
         repaintRightEdge(
             changedRows: changedRows,
             in: newLines,
@@ -733,6 +748,7 @@ extension FrameDiffWriter {
             reset: reset
         )
         previousContentLines = newLines
+        marksOnScreen = marksOnBuiltRows
         return movedCursor
     }
 
@@ -805,9 +821,10 @@ extension FrameDiffWriter {
     @discardableResult
     fileprivate func writeDiff(
         newLines: [String], previousLines: [String], terminal: any TerminalProtocol,
-        startRow: Int, terminalWidth: Int
+        startRow: Int, terminalWidth: Int, bgCode: String
     ) -> [Int] {
-        let changedRows = Self.computeChangedRows(newLines: newLines, previousLines: previousLines)
+        var previousLines = previousLines
+        var changedRows = Self.computeChangedRows(newLines: newLines, previousLines: previousLines)
         var cache = contentCells
         cache.fit(to: newLines.count)
         defer { contentCells = cache }
@@ -825,10 +842,21 @@ extension FrameDiffWriter {
         // writer has written anything, or after something else has.
         var emitted = terminalStyle
         defer { terminalStyle = emitted }
+
+        // A band that moved, if this frame is one. One comparison for the frames
+        // that change a few rows, which is nearly all of them.
+        var newCells: [ANSIRowCells??] = []
+        if changedRows.count >= ScrollPlanner.minimumChangedRows, scrollOutput > .off || scrollCensus != nil {
+            newCells = movingBand(
+                newLines: newLines, previousLines: &previousLines, changedRows: &changedRows,
+                onto: BandTarget(terminal: terminal, startRow: startRow, width: terminalWidth, bgCode: bgCode),
+                cache: &cache, emitted: &emitted)
+        }
+
         for row in changedRows {
             switch spanDiff(
                 newLines: newLines, previousLines: previousLines, row: row,
-                terminalWidth: terminalWidth, cache: &cache, emitted: &emitted)
+                terminalWidth: terminalWidth, newCells: newCells, cache: &cache, emitted: &emitted)
             {
             case .identical:
                 // The two spellings land the terminal in the same place, so
@@ -884,6 +912,82 @@ extension FrameDiffWriter {
         return changedRows
     }
 
+    /// Where a moved band goes, and what the rows it exposes are to show.
+    private struct BandTarget {
+        let terminal: any TerminalProtocol
+        let startRow: Int
+        let width: Int
+        let bgCode: String
+    }
+
+    /// Whether a row of the frame last built carries a mark.
+    private var marksOnBuiltRows: Bool {
+        markRows.contains { !$0.hairlines.isEmpty || !$0.pictures.isEmpty }
+    }
+
+    /// Moves a band of rows if that is cheaper than writing them, and leaves
+    /// `previousLines`, `cache` and `changedRows` saying what is on screen then:
+    /// everything after this is the ordinary diff, against the moved screen.
+    ///
+    /// - Returns: The rows the planner took apart, for the diff to reuse.
+    private func movingBand(
+        newLines: [String], previousLines: inout [String], changedRows: inout [Int],
+        onto target: BandTarget, cache: inout CellCache, emitted: inout SGRState?
+    ) -> [ANSIRowCells??] {
+        let old = previousLines
+        let oldCells = cache
+        let width = target.width
+        let apple = isAppleTerminal
+        let changed = changedRows
+        func make() -> ScrollPlanner {
+            ScrollPlanner(
+                new: newLines, old: old, changed: changed, width: width,
+                oldRowCells: { row in
+                    oldCells.cells(matching: old[row], at: row)
+                        ?? ANSIRowCells(decomposing: old[row], width: width)
+                },
+                rowMayRide: { line in
+                    // Nothing that is not cells: an image's payload, a link. And
+                    // on Apple Terminal no row its emoji model is at work on: its
+                    // right-edge repaint assumes the row was written, not moved.
+                    !line.containsStringFamilyEscape && !(apple && line.containsTerminalAppCursorAdvanceQuirk)
+                })
+        }
+        var program = TerminalClient.Program.unidentified
+        if case .program(let named) = model { program = named }
+        let level: ScrollOutput =
+            marksOnScreen || marksOnBuiltRows
+            ? .off : ScrollOutput.level(scrollOutput, on: program, holds: framesAreHeld)
+        var planner = make()
+        let plan = planner.plan(at: level)
+        if let scrollCensus {
+            var exact = make()
+            var residue = make()
+            var margins = make()
+            let plans = (exact.plan(at: .exact), residue.plan(at: .residue), margins.plan(at: .margins))
+            scrollCensus.record(
+                rows: newLines.count, width: width, changed: changed, findings: margins.findings,
+                exact: plans.0, residue: plans.1, margins: plans.2)
+        }
+        guard let plan else { return planner.newCells }
+
+        // The page's background, so that a host which shows the exposed rows
+        // before they are written shows nothing worse than the page.
+        moveCursor(on: target.terminal, toRow: target.startRow + plan.top, column: 1)
+        if emitted?.isDefault != true { target.terminal.write("\u{1B}[0m") }
+        target.terminal.write(target.bgCode + plan.sequences(startRow: target.startRow))
+        var state = SGRState()
+        if !target.bgCode.isEmpty { state.apply(target.bgCode) }
+        emitted = state
+
+        previousLines = plan.movedLines(old)
+        plan.move(&cache, lines: previousLines) { row in
+            oldCells.cells(matching: old[row], at: row) ?? ANSIRowCells(decomposing: old[row], width: width)
+        }
+        changedRows = Self.computeChangedRows(newLines: newLines, previousLines: previousLines)
+        return planner.newCells
+    }
+
     /// How many unchanged columns may sit inside one written run.
     ///
     /// Closing a run and opening another costs a cursor move plus a restatement
@@ -900,14 +1004,15 @@ extension FrameDiffWriter {
     /// row to diff against or the row is one the cell walk declines.
     private func spanDiff(
         newLines: [String], previousLines: [String], row: Int, terminalWidth: Int,
-        cache: inout CellCache, emitted: inout SGRState?
+        newCells: [ANSIRowCells??], cache: inout CellCache, emitted: inout SGRState?
     ) -> ANSICellDiff {
         guard row < previousLines.count else { return .wholeLine }
         let previous =
             cache.cells(matching: previousLines[row], at: row)
             ?? ANSIRowCells(decomposing: previousLines[row], width: terminalWidth)
+        let taken: ANSIRowCells?? = row < newCells.count ? newCells[row] : nil
         guard let previous,
-            let new = ANSIRowCells(decomposing: newLines[row], width: terminalWidth)
+            let new = taken ?? ANSIRowCells(decomposing: newLines[row], width: terminalWidth)
         else { return .wholeLine }
         cache.remember(new, line: newLines[row], at: row)
         return new.diff(

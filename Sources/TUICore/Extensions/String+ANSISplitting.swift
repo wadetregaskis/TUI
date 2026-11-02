@@ -109,7 +109,7 @@ extension String {
     /// at the first one. A CSI — the escape a styled line is actually made of —
     /// is not one of these, so an ordinary coloured row answers `false` after
     /// looking at its bytes once.
-    private var containsStringFamilyEscape: Bool {
+    package var containsStringFamilyEscape: Bool {
         func scan(_ bytes: UnsafeBufferPointer<UInt8>) -> Bool {
             var sawESC = false
             for byte in bytes {

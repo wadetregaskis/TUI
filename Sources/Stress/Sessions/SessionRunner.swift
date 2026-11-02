@@ -271,7 +271,8 @@ enum SessionRunner {
         let input = step.keys.map { "\($0.key)" } + step.mouse.map { "\($0.button) \($0.phase)@\($0.x),\($0.y)" }
         let keys = input.joined(separator: " ")
         let micros = String(format: "%.1f", Double(cpu) / 1_000)
-        Swift.print("  step \(index): \(step.action)\(keys.isEmpty ? "" : " [\(keys)]") — \(micros) µs, \(bytes) bytes")
+        let size = step.resize.map { " to \($0.width)x\($0.height)" } ?? ""
+        Swift.print("  step \(index): \(step.action)\(size)\(keys.isEmpty ? "" : " [\(keys)]") — \(micros) µs, \(bytes) bytes")
     }
 
     /// What the runner does with the frame a step drew besides timing it:

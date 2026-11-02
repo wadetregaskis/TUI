@@ -896,8 +896,8 @@ extension Terminal {
     ///   whole screen. With origin mode off an absolute cursor move ignores a
     ///   region; what one left by a crashed program confines is scrolling — a
     ///   line feed at its bottom margin scrolls only the region — which no
-    ///   frame does today, and which hardware scrolling (the adoption plan's
-    ///   O2) will rely on, with a region of its own.
+    ///   frame does unless `TUI_SCROLL_OUTPUT` says so (``ScrollOutput``), with
+    ///   a region of its own.
     /// - `CSI ? 69 l`: left-right margin mode (DECLRMM) off. While it is on,
     ///   left and right margins a program set (DECSLRM; tmux sets them where
     ///   the terminal has them) stop or wrap every row at the right margin,
@@ -1041,6 +1041,7 @@ extension Terminal {
     ///   colours and as one link to the app's last URL.
     var outputModesOff: String {
         (synchronizesOutput ? Self.synchronizedUpdateEnd : "") + Self.autowrapOn + Self.penReset
+            + (ScrollOutput.configured > .off ? Self.scrollRegionReset : "")
     }
 
     /// `ESC ] 8 ; ; ST` and `CSI 0 m`: whatever hyperlink is open closed
@@ -1048,6 +1049,13 @@ extension Terminal {
     /// styling reset. Shapes every host consumes: an OSC, which even Apple
     /// Terminal parses, and a plain SGR.
     static let penReset = TerminalHyperlink.closing + ANSIRenderer.reset
+
+    /// A band's region and margins back to the whole screen, should a signal or
+    /// a failed write cut a frame between setting them and letting them go.
+    /// `CSI r` homes the cursor, so it is saved around them: a crash's report
+    /// starts where the frame left it, not over the top row. Sent only when
+    /// frames can set either (``ScrollOutput``).
+    static let scrollRegionReset = "\u{1B}7\u{1B}[r\u{1B}[?69l\u{1B}8"
 
     /// What the terminal is owed, should the process die of a signal now:
     /// everything it has been changed by — the output modes and the pen

@@ -389,3 +389,78 @@ package struct ANSIRowCells: Sendable {
         return spans
     }
 }
+
+// MARK: - Comparing with a row somewhere else
+
+extension ANSIRowCells {
+    /// A scalar no row holds, so a column holding it differs from every other:
+    /// a cell a scroll exposed, whose contents nobody should rely on.
+    private static let unknownCell = Unicode.Scalar(UInt32(0xFFFF)) ?? " "
+
+    /// Adds one to `counts[column]` for each column that differs from `previous`.
+    package func addDifferences(from previous: Self, to counts: inout [Int32]) {
+        guard previous.cells.count == cells.count, counts.count == cells.count else { return }
+        forEachDifference(from: previous, columns: 0..<cells.count) { counts[$0] += 1 }
+    }
+
+    /// A hash of the text in `columns`, styling aside: a row whose highlight
+    /// moved still says where it came from.
+    package func textSignature(columns: Range<Int>) -> UInt64 {
+        var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+        for column in columns where column < cells.count {
+            hash = (hash ^ UInt64(cells[column].value)) &* 0x0000_0100_0000_01b3
+        }
+        return hash
+    }
+
+    /// About what ``diff(replacing:mergingGapsUpTo:continuing:)`` would write in
+    /// `columns`, without building it: each span's move, each style change on
+    /// the way, and the cells, gaps bridged as the diff bridges them.
+    package func estimatedWriteBytes(
+        replacing previous: Self, columns: Range<Int>, mergingGapsUpTo gap: Int
+    ) -> Int {
+        guard previous.cells.count == cells.count else { return Int.max / 4 }
+        var bytes = 0
+        var last = Int.min / 2
+        // What a span says of its styling is a delta from the last thing written,
+        // carried from span to span and from row to row, so a run in the style
+        // already in force costs nothing, and a row's first run is given the
+        // benefit of the doubt: the rows of a band are mostly in one style.
+        var inForce: SGRState?
+        var run = -1
+        forEachDifference(from: previous, columns: columns) { column in
+            if column - last > gap + 1 {
+                bytes += 8  // ESC [ row ; col H
+            } else {
+                for bridged in (last + 1)..<column {
+                    bytes += UTF8.width(cells[bridged])
+                }
+            }
+            if styleRun[column] != run {
+                run = styleRun[column]
+                if let inForce, inForce != styles[run] { bytes += 12 }
+                inForce = styles[run]
+            }
+            bytes += UTF8.width(cells[column])
+            last = column
+        }
+        return bytes
+    }
+
+    /// This row with `columns` replaced by the same columns of `source`, or by
+    /// unknown cells where it is `nil`: the row on screen after a band moved.
+    package func splicing(columns: Range<Int>, from source: Self?) -> Self {
+        var spliced = self
+        let offset = spliced.styles.count
+        if let source { spliced.styles.append(contentsOf: source.styles) }
+        for column in columns where column < spliced.cells.count {
+            if let source, column < source.cells.count {
+                spliced.cells[column] = source.cells[column]
+                spliced.styleRun[column] = source.styleRun[column] + offset
+            } else {
+                spliced.cells[column] = Self.unknownCell
+            }
+        }
+        return spliced
+    }
+}

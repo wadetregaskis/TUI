@@ -436,13 +436,25 @@ final class InMemoryTerminal: HostStateKeeping {
     /// What the frames have set on this terminal beyond its cells.
     var hostState = TerminalHostState()
 
+    /// `TUI_HEADLESS_STREAM`: every byte this terminal is sent, to a file, so
+    /// a tool can play a session's output through a real terminal or a model of
+    /// one (`Tools/Profiling/scroll_verify.py`).
+    private let stream: FileHandle?
+
     init(width: Int, height: Int) {
         size = (width, height)
+        if let path = ProcessInfo.processInfo.environment["TUI_HEADLESS_STREAM"], !path.isEmpty {
+            FileManager.default.createFile(atPath: path, contents: nil)
+            stream = FileHandle(forWritingAtPath: path)
+        } else {
+            stream = nil
+        }
     }
 
     func getSize() -> (width: Int, height: Int) { size }
     func write(_ string: String) {
         bytesWritten &+= string.utf8.count
+        stream?.write(Data(string.utf8))
         if string == "\u{07}" { bellsWritten += 1 }
         if string.hasPrefix(TerminalHostState.saveTitle) || string.hasPrefix(TerminalHostState.restoreTitle)
             || string.hasPrefix("\u{1B}]2;") || string.hasPrefix("\u{1B}]9;")
