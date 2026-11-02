@@ -220,7 +220,7 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_RUN_BODY_ON_EVERY_FRAME", .endUser, .behaviour,
             values: "`1`",
-            effect: "Works out every view in the program afresh each time the screen is drawn, rather than keeping those whose inputs didn't change. Try this if part of the screen stays out of date until you go away and come back: the program may be reading something that TUI can't see change. It costs more processor time, and if it helps, it's worth telling the program's authors."),
+            effect: "Works out the views in the program afresh each time the screen is drawn, rather than keeping those whose inputs didn't change, except the rows of a list and any view its authors asked to keep. Try this if part of the screen stays out of date until you go away and come back: the program may be reading something that TUI can't see change. It costs more processor time, and if it helps, it's worth telling the program's authors."),
     ]
 
     private static let files: [TUIEnvironmentVariable] = [
