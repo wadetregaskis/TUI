@@ -277,8 +277,10 @@ class RestoreTests(unittest.TestCase):
 class NamingTests(unittest.TestCase):
 
     def test_hosts_are_named_as_the_committed_records_name_them(self):
-        records = sorted(glob.glob(os.path.join(DATA, "*-placement.json"))
-                         + glob.glob(os.path.join(DATA, "*-graphics.json")))
+        # `*-classic-placement.json` is another probe's record, with no `env`.
+        records = sorted(path for path in glob.glob(os.path.join(DATA, "*-placement.json"))
+                         + glob.glob(os.path.join(DATA, "*-graphics.json"))
+                         if not path.endswith("-classic-placement.json"))
         self.assertGreater(len(records), 0)
         for path in records:
             with open(path) as handle:
