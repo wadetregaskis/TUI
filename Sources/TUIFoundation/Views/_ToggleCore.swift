@@ -753,6 +753,7 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             // once: a toggle has no repeat behaviour to ask for more.
             KeyboardShortcutRegistrar.claim(
                 action: { binding.wrappedValue.toggle() }, isDisabled: isDisabled, repeats: false,
+                title: KeyboardShortcutRegistrar.title(words: "", label: label, context: context),
                 context: context)
             // Drawing only — see `RenderContext.indicatesFocus(_:)`. Space still
             // flips it.

@@ -34,7 +34,8 @@ import TUIView
 ///    on focused buttons
 /// 4. **Default bindings** — Control-Q (quit), undo and redo (``UndoShortcuts``),
 ///    Ctrl-Z where neither binds it (re-raised as SIGTSTP, so the key and the
-///    external signal suspend by one path), `t` (theme), `a` (appearance)
+///    external signal suspend by one path), F1 (the list of shortcuts), `t`
+///    (theme), `a` (appearance)
 ///
 /// Layers 0 and 3 are mutually exclusive, gated on
 /// `focusManager.hasTextInputFocus`: when a text-input element is focused,
@@ -102,6 +103,10 @@ internal struct InputHandler {
     /// The bell rung for a key press nothing took — the app's, set by the
     /// runner. `nil` (a test harness) rings nothing.
     var unhandledKeyBell: TerminalBell?
+
+    /// The list of shortcuts F1 shows. Optional and defaulted, as
+    /// ``tooltipState`` is.
+    var shortcutOverlay: KeyboardShortcutOverlay?
 
     /// Called when the user requests to quit the application.
     let onQuit: () -> Void
@@ -592,6 +597,7 @@ extension InputHandler {
         switch owed {
         case .key(let event): _ = handle(event)
         case .quit: quit()
+        case .keyboardShortcutOverlay: showKeyboardShortcutOverlay()
         }
     }
 
@@ -705,6 +711,8 @@ extension InputHandler {
             return tooltipState.toggleShowsAllTooltips()
         }
         guard !event.ctrl, !event.alt else { return false }
+        // F1, the list of what's in force, wherever nothing above took it.
+        if runKeyboardShortcutOverlayKey(event, inputGrabbed: inputGrabbed) { return true }
         // The help key, before the chrome shortcuts and NOT suppressed by
         // `inputGrabbed`: a tooltip explains the control that has the focus, and
         // inside a modal that control is the one the reader is looking at. It

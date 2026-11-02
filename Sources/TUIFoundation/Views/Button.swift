@@ -663,12 +663,15 @@ private struct _ButtonCore: View, Renderable, Layoutable {
         // and registers its action for the frame. A held shortcut repeats the
         // action only under `.buttonRepeatBehavior(.enabled)`, as a held Return
         // does.
+        let words = title(in: context)
         let resolvedShortcut = KeyboardShortcutRegistrar.claim(
             action: effectiveAction, isDisabled: isDisabled,
-            repeats: context.environment.buttonRepeatBehavior == .enabled, context: context)
+            repeats: context.environment.buttonRepeatBehavior == .enabled,
+            title: KeyboardShortcutRegistrar.title(words: words, label: labelView, context: context),
+            context: context)
 
         let configuration = ButtonStyleConfiguration(
-            title: title(in: context),
+            title: words,
             labelView: labelView,
             role: role,
             isPressed: isPressed,

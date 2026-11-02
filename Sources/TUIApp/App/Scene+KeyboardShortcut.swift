@@ -105,14 +105,19 @@ extension ScenePresenter {
     func registerSceneShortcuts(
         in registry: KeyboardShortcutRegistry, commandKey: CommandKeyBinding, matchesCommand: Bool = false
     ) {
-        var keys: [(shortcut: KeyboardShortcut, action: () -> Void)] = []
+        let service = LocalizationService.shared
+        var keys: [(shortcut: KeyboardShortcut, title: (() -> String)?, action: () -> Void)] = []
         for entry in entries {
             guard let shortcut = shortcut(of: entry) else { continue }
             let identity = entry.identity
-            keys.append((shortcut, { [weak self] in self?.openWindow(ofSceneAt: identity) }))
+            let title = entry.window.windowTitle?.content ?? entry.window.sceneID
+            keys.append((shortcut, title.map { title in { title } }, { [weak self] in self?.openWindow(ofSceneAt: identity) }))
         }
         if let shortcut = settingsShortcut {
-            keys.append((shortcut, { [weak self] in self?.presentSettings() }))
+            keys.append((
+                shortcut, { service.string(for: LocalizationKey.Menu.settings) },
+                { [weak self] in self?.presentSettings() }
+            ))
         }
         // File ▸ Close and Close All, for an app that can have more than one
         // window open. Registered as commands, so a key of the window's own
@@ -120,15 +125,27 @@ extension ScenePresenter {
         // the word rubout, which gives way to a shortcut on its chord (the
         // owner, 2026-10-29, replacing O9's "⌃W is the field's").
         if opensSeveralWindows {
-            keys.append((Self.closeShortcut, { [weak self] in self?.closeFrontWindow() }))
-            keys.append((Self.closeAllShortcut, { [weak self] in self?.closeAllWindows() }))
+            // Named only where they'd do something, as their menu items are
+            // enabled: otherwise the key is bound and closes nothing, so the list
+            // of what's in force leaves it off.
+            keys.append((
+                Self.closeShortcut,
+                canCloseFrontWindow ? { service.string(for: LocalizationKey.Menu.close) } : nil,
+                { [weak self] in self?.closeFrontWindow() }
+            ))
+            keys.append((
+                Self.closeAllShortcut,
+                windowsCloseAllCloses.isEmpty ? nil : { service.string(for: LocalizationKey.Menu.closeAll) },
+                { [weak self] in self?.closeAllWindows() }
+            ))
         }
         guard !keys.isEmpty else { return }
         registry.registeringCommands {
             for key in keys {
                 guard let resolved = key.shortcut.resolved(commandKey: commandKey) else { continue }
                 registry.registerCommand(
-                    resolved, commandChord: key.shortcut.commandChord(matching: matchesCommand), action: key.action)
+                    resolved, commandChord: key.shortcut.commandChord(matching: matchesCommand), title: key.title,
+                    action: key.action)
             }
         }
     }

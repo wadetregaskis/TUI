@@ -248,6 +248,10 @@ package final class ScenePresenter {
     /// that doesn't have one.
     var quitPrompt: QuitPrompt?
 
+    /// The list of keyboard shortcuts on F1: drawn here too, over the window in
+    /// front. The app's; `nil` in a harness that doesn't have one.
+    var shortcutOverlay: KeyboardShortcutOverlay?
+
     /// The overlay scenes, as the window in front presents them this frame.
     func overlays() -> SceneOverlayList? {
         var overlays = overlayEntries.map { entry in
@@ -255,6 +259,7 @@ package final class ScenePresenter {
                 key: entry.identity.path, configuration: entry.configuration, view: entry.scene.overlay(in: self))
         }
         // The question the quit keys ask, whichever window is in front.
+        if let list = shortcutOverlay?.overlay { overlays.append(list) }
         if let quitDialog = quitPrompt?.overlay { overlays.append(quitDialog) }
         return overlays.isEmpty ? nil : SceneOverlayList(overlays)
     }

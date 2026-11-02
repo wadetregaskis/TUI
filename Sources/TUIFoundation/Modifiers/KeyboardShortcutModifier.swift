@@ -4,6 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
+
 // MARK: - Keyboard Shortcut Modifier
 
 /// Plants the claimable carrier ``View/keyboardShortcut(_:)`` offers to the
@@ -21,7 +23,7 @@
 ///   might draw from and nothing could compare; it is the wrong one here,
 ///   because the only reader is `Button`, and what a `Button` does with it —
 ///   register an action for the frame — is declared to the memo on its own
-///   (`KeyboardShortcutRegistrar/declare(_:action:carrier:context:)`). So the
+///   (`KeyboardShortcutRegistrar/declare(_:commandChord:repeats:title:action:carrier:context:)`). So the
 ///   carrier is assigned straight into the environment, as `.focusSection`
 ///   assigns its section, and the subtree keeps its cache.
 /// - **It could not say where it was planted.** A registration may be replayed
@@ -120,19 +122,25 @@ enum KeyboardShortcutRegistrar {
     /// before every walk, so a control whose subtree was served from a value
     /// memo has to register again or its key equivalent is dead while it is
     /// still on screen. Declared to any value-memoizing ancestor either way
-    /// (``declare(_:commandChord:repeats:action:carrier:context:)``).
+    /// (``declare(_:commandChord:repeats:title:action:carrier:context:)``).
+    ///
+    /// A hint (``View/keyboardShortcutHint(_:)``) binds nothing, but its key is
+    /// in force under the control's name all the same, which it notes in the
+    /// same place, and which a replay must note again.
     ///
     /// - Parameters:
     ///   - action: What the shortcut does: the control's primary action.
     ///   - isDisabled: Whether the control is disabled, which claims nothing.
     ///   - repeats: Whether a held key's repeats run the action again.
+    ///   - title: What the control is called, for the list of what is in force.
     ///   - context: Where the control renders.
     /// - Returns: The shortcut as resolved here, or `nil` where none was
     ///   offered, the control is disabled, or another control claimed it.
     @MainActor
     @discardableResult
     static func claim(
-        action: @escaping () -> Void, isDisabled: Bool, repeats: Bool, context: RenderContext
+        action: @escaping () -> Void, isDisabled: Bool, repeats: Bool, title: @escaping () -> String,
+        context: RenderContext
     ) -> KeyboardShortcut? {
         guard !isDisabled, let assignment = context.environment.assignedKeyboardShortcut,
             let shortcut = assignment.claim(by: context.identity, isMeasuring: context.isMeasuring)
@@ -141,14 +149,33 @@ enum KeyboardShortcutRegistrar {
         // The shortcut as written too, where the app asked for a real ⌘ to
         // fire it (`.keyboardShortcutsMatchCommand()`); `nil` by default.
         let commandChord = shortcut.commandChord(matching: context.environment.keyboardShortcutsMatchCommand)
-        if let resolved, assignment.registers, !context.isMeasuring,
-            register(resolved, commandChord: commandChord, repeats: repeats, action: action, context: context)
-        {
-            declare(
-                resolved, commandChord: commandChord, repeats: repeats, action: action, carrier: assignment,
-                context: context)
+        if let resolved, !context.isMeasuring {
+            let binding = assignment.registers ? action : nil
+            if register(
+                resolved, commandChord: commandChord, repeats: repeats, title: title, action: binding, context: context)
+            {
+                declare(
+                    resolved, commandChord: commandChord, repeats: repeats, title: title, action: binding,
+                    carrier: assignment, context: context)
+            }
         }
         return resolved
+    }
+
+    /// What a control is called: its `words`, or else what its `label` reads,
+    /// drawn only if the list of what is in force asks. Drawn as a measure is, so
+    /// that drawing it then, between frames, registers nothing.
+    @MainActor
+    static func title<Label: View>(words: String, label: Label?, context: RenderContext) -> () -> String {
+        guard words.isEmpty, let label else { return { words } }
+        var reading = context
+        reading.isMeasuring = true
+        return {
+            MainActor.assumeIsolated {
+                TUIView.renderToBuffer(label, context: reading).lines.map(\.stripped)
+                    .joined(separator: " ").trimmingCharacters(in: .whitespaces)
+            }
+        }
     }
 
     /// Registers `action` for `shortcut` with `context`'s shortcut registry,
@@ -164,18 +191,24 @@ enum KeyboardShortcutRegistrar {
     ///   (``ButtonRepeatBehavior/enabled``); see
     ///   ``KeyboardShortcutRegistry/register(_:commandChord:repeats:action:)``,
     ///   which takes `commandChord` too.
+    /// - Parameter action: What it does, or `nil` for a hint, which only notes
+    ///   the key.
     /// - Returns: `false` outside a running app, where there is no registry and
     ///   nothing was registered — so the caller declares nothing either.
     @MainActor
     @discardableResult
     static func register(
         _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil, repeats: Bool = true,
-        action: @escaping () -> Void, context: RenderContext
+        title: @escaping () -> String, action: (() -> Void)?, context: RenderContext
     ) -> Bool {
         guard let registry = context.environment.keyboardShortcutRegistry else { return false }
-        registry.register(
-            shortcut, commandChord: commandChord, repeats: repeats,
-            section: context.environment.activeFocusSectionID, action: action)
+        let section = context.environment.activeFocusSectionID
+        if let action {
+            registry.register(
+                shortcut, commandChord: commandChord, repeats: repeats, section: section, title: title, action: action)
+        } else {
+            registry.noteHint(shortcut, title: title, section: section)
+        }
         return true
     }
 
@@ -207,7 +240,8 @@ enum KeyboardShortcutRegistrar {
     @MainActor
     static func declare(
         _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil, repeats: Bool = true,
-        action: @escaping () -> Void, carrier: KeyboardShortcutAssignment, context: RenderContext
+        title: @escaping () -> String, action: (() -> Void)?, carrier: KeyboardShortcutAssignment,
+        context: RenderContext
     ) {
         let tracker = context.environment.volatileReadTracker
         guard carrier.isPlanted(insideMemoAtDepth: context.effectRecordingDepth) else {
@@ -224,7 +258,9 @@ enum KeyboardShortcutRegistrar {
             EffectJournal.Entry(
                 kind: kind, channelToken: context.environment.keyChannelToken
             ) { replay in
-                register(shortcut, commandChord: commandChord, repeats: repeats, action: action, context: replay)
+                register(
+                    shortcut, commandChord: commandChord, repeats: repeats, title: title, action: action,
+                    context: replay)
             })
     }
 }

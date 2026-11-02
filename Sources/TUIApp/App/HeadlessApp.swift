@@ -106,6 +106,9 @@ package final class HeadlessApp {
             appearanceManager: appearanceManager, tuiContext: tuiContext, isTmux: false)
         let quitPrompt = QuitPrompt(requestFrame: { [appState = tuiContext.appState] in appState.setNeedsRender() })
         renderer.scenes.quitPrompt = quitPrompt
+        let shortcutOverlay = KeyboardShortcutOverlay(
+            requestFrame: { [appState = tuiContext.appState] in appState.setNeedsRender() })
+        renderer.scenes.shortcutOverlay = shortcutOverlay
         self.renderer = renderer
         self.inputHandler = InputHandler(
             statusBar: statusBar, keyEventDispatcher: tuiContext.keyEventDispatcher,
@@ -113,6 +116,7 @@ package final class HeadlessApp {
             appearanceManager: appearanceManager, keyboardShortcuts: tuiContext.keyboardShortcuts,
             dragAndDropSession: tuiContext.dragAndDropSession,
             tooltipState: tuiContext.tooltipState, unhandledKeyBell: tuiContext.terminalBell,
+            shortcutOverlay: shortcutOverlay,
             // A script has no process to quit or suspend: a quit is counted.
             onQuit: { quits.count += 1 }, onSuspend: {}, screenSelection: tuiContext.screenSelection,
             quitPrompt: quitPrompt)

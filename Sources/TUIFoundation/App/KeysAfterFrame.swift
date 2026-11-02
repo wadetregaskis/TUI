@@ -35,6 +35,11 @@ package final class KeysAfterFrame {
         /// top-level dismissal confirmation) or refuse
         /// (`StatusBarState.isQuitAllowed`). No key goes anywhere.
         case quit
+
+        /// The list of keyboard shortcuts, as F1 asks for it where nothing else
+        /// takes the key, of the frame with the menu closed. No key goes
+        /// anywhere: an app's own F1 is not what the Help menu's item means.
+        case keyboardShortcutOverlay
     }
 
     /// What is owed, in the order asked for.
@@ -57,6 +62,13 @@ package final class KeysAfterFrame {
     /// Asks for the app's quit once the next frame is on the screen.
     package func quit() {
         owed.append(.quit)
+        requestFrame()
+    }
+
+    /// Asks for the list of keyboard shortcuts once the next frame is on the
+    /// screen.
+    package func showKeyboardShortcutOverlay() {
+        owed.append(.keyboardShortcutOverlay)
         requestFrame()
     }
 

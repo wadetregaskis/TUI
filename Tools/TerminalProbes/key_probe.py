@@ -19,11 +19,15 @@ and the menu bar's (F10, and ⌥F for Alt with a title's first letter) — see t
 survey's "The menu bar's keys". On a Mac keyboard F10 is the mute key unless fn is
 held or System Settings → Keyboard says to use F1, F2, etc. as standard function
 keys, so it asks for F10 twice, without fn and with it: record that setting. And
-⇧F1, which shows help at the lowest priority (B-HELP-2): what each host sends
-for it is unmeasured.
+⇧F1, which shows help at the lowest priority (B-HELP-2). And F1 and ⌃F1, for the
+list of keyboard shortcuts: F1 alone, without fn and with it, and ⌃F1 with fn,
+which macOS keeps for "Turn keyboard access on or off" unless that shortcut is
+off, and which no terminal should then see (the survey's "The list of keyboard
+shortcuts' key").
 
 `PROBE_KEYS` asks only the keys it names, by the ids in KEYS, comma-separated —
-`PROBE_KEYS=f10,fn_f10,shift_f1` for the menu bar's and help's keys alone.
+`PROBE_KEYS=f10,fn_f10,shift_f1` for the menu bar's and help's keys alone, and
+`PROBE_KEYS=f1,fn_f1,shift_f1,ctrl_f1` for the list of shortcuts' alone.
 
 Run INSIDE the terminal under test, from its DEFAULT profile, once on each
 screen: TUI draws on the alternate screen (`PROBE_ALT=1`), and a host's
@@ -56,6 +60,9 @@ KEYS = [
     ("fn_f10", "fn-F10 (hold fn)"),
     ("shift_f1", "⇧F1 Shift-F1 (with fn if F1 alone dims the screen)"),
     ("option_f", "⌥F Option-F"),
+    ("f1", "F1 alone, without fn"),
+    ("fn_f1", "fn-F1 (hold fn)"),
+    ("ctrl_f1", "⌃F1 Control-F1 (with fn if F1 alone dims the screen)"),
 ]
 
 # The legacy spellings each could arrive as, in the xterm family's grammar.

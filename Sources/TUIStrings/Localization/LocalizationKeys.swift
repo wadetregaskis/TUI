@@ -330,6 +330,22 @@ public enum LocalizationKey {
         case showAllTooltips = "menu.showAllTooltips"
         /// The same item while every tooltip shows.
         case hideAllTooltips = "menu.hideAllTooltips"
+        /// The list of keyboard shortcuts: the section of what the page binds.
+        case shortcutsOnThisScreen = "menu.shortcutsOnThisScreen"
+        /// The list of keyboard shortcuts: the status bar's section.
+        case shortcutsStatusBar = "menu.shortcutsStatusBar"
+        /// The list of keyboard shortcuts: the section of TUI's own keys.
+        case shortcutsGeneral = "menu.shortcutsGeneral"
+        /// The list of keyboard shortcuts: what Tab does.
+        case shortcutsNextControl = "menu.shortcutsNextControl"
+        /// The list of keyboard shortcuts: what Shift-Tab does.
+        case shortcutsPreviousControl = "menu.shortcutsPreviousControl"
+        /// The list of keyboard shortcuts: what F10 does.
+        case shortcutsMenuBar = "menu.shortcutsMenuBar"
+        /// The list of keyboard shortcuts: what the help key does.
+        case shortcutsShowTooltip = "menu.shortcutsShowTooltip"
+        /// The menu bar's Help ▸ Keyboard Shortcuts, and the heading of the list it shows.
+        case keyboardShortcuts = "menu.keyboardShortcuts"
         /// The menu bar's View ▸ Palette ▸ (`DisplayCommands`).
         case palette = "menu.palette"
         /// The menu bar's View ▸ Border Style ▸ (`DisplayCommands`).

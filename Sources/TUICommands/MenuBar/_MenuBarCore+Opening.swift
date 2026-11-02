@@ -127,6 +127,12 @@ extension _MenuBarCore {
             return true
         }
         guard let registry = context.environment.keyboardShortcutRegistry else { return }
+        // F10 is no shortcut, but it is in force, and the list of them says so.
+        let service = LocalizationService.shared
+        registry.noteHint(
+            KeyboardShortcut(KeyEquivalent(Self.functionKeyF10), modifiers: []),
+            title: { service.string(for: LocalizationKey.Menu.shortcutsMenuBar) },
+            menu: service.string(for: LocalizationKey.Menu.shortcutsGeneral))
         for (index, mnemonic) in titles.mnemonics.enumerated() {
             guard let mnemonic else { continue }
             registry.registerDefault(KeyboardShortcut(KeyEquivalent(mnemonic), modifiers: .option)) { [weak state] in
@@ -134,6 +140,9 @@ extension _MenuBarCore {
             }
         }
     }
+
+    /// F10 as a key equivalent: AppKit's `NSF10FunctionKey`.
+    private static let functionKeyF10: Character = "\u{F70D}"
 
     /// With a menu open, in its section, ahead of its own keys: F10 closes it,
     /// and Alt with another title's first letter opens that menu instead.

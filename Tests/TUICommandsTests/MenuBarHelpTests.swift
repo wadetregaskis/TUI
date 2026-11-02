@@ -101,8 +101,8 @@ struct MenuBarHelpTests {
         return headless
     }
 
-    /// Opens the Help menu, the bar's last, and chooses its item `downs`
-    /// places past the first enabled one.
+    /// Opens the Help menu, the bar's last, and chooses its tooltip item `downs`
+    /// places past the first enabled one, Keyboard Shortcuts being above them.
     private mutating func chooseHelp(item downs: Int, in app: TestApp) {
         app.send(KeyEvent(key: .f10))
         frame(app)
@@ -110,7 +110,7 @@ struct MenuBarHelpTests {
         frame(app)
         app.send(KeyEvent(key: .left))
         frame(app)
-        for _ in 0..<downs {
+        for _ in 0...downs {
             app.send(KeyEvent(key: .down))
             frame(app)
         }

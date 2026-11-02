@@ -167,7 +167,7 @@ A `Button`'s own shortcut is registered again the same way, on one condition: th
 
 ## Default Bindings
 
-Six keys do something by themselves, once nothing else has taken them. Only quit, undo and redo, and help are on without configuration:
+Seven keys do something by themselves, once nothing else has taken them. Only quit, undo and redo, help and the list of shortcuts are on without configuration:
 
 | Key | Action | Condition |
 |-----|--------|-----------|
@@ -175,6 +175,7 @@ Six keys do something by themselves, once nothing else has taken them. Only quit
 | Undo and redo | ``UndoCommand/defaultShortcuts``: ⌃Z, ⌃- and ⌃/ undo; ⌃⇧Z, ⌃_ and ⌥_ redo | Always, after your shortcuts; set app-wide with ``Scene/undoShortcuts(_:)``. A bound key is taken whether or not there is a step, so ⌃Z with nothing to undo does nothing |
 | ⌃Z | Suspend the app, as the shell's `^Z` would | Only where the undo keys leave it out, and only once no view has claimed the key, so a focused text field's or editor's undo wins |
 | `?` | Show the focused view's `View.help(_:)` tooltip | Enabled by default; falls through when the focused view has no help text. Reachable behind a modal, unlike `t` and `a` |
+| F1 (fn-F1 on a Mac keyboard) | Show the list of the shortcuts in force, or take it down | Enabled by default; see "The List of Shortcuts" below |
 | `t` / `T` | Cycle to next color theme | Opt-in: requires `statusBarSystemItems(theme: true)` (or `showThemeItem = true`) |
 | `a` / `A` | Cycle to next appearance | Opt-in: requires `statusBarSystemItems(appearance: true)` (or `showAppearanceItem = true`); then active unless a modal surface has grabbed input |
 
@@ -479,6 +480,45 @@ everything of yours on the same keys comes first:
   own shortcuts can take one of those, as the next section describes.
 
 A `.disabled()` split view ignores them.
+
+## The List of Shortcuts
+
+F1 shows a sheet listing the keys in force right now, and needs nothing from
+you. Each comes from what the framework already knows, under a heading:
+
+| Heading | What's listed |
+|---------|---------------|
+| On This Screen | Each `.keyboardShortcut` on a button or toggle the page draws, by its label |
+| Each menu's title | The menu bar's commands, the scene's own included |
+| Status Bar | Its items, those of `.statusBarItems` among them |
+| General | F1, Tab and Shift-Tab, F10 with a menu bar, and the help keys where a view on the screen has help |
+
+"In force" is meant strictly. A disabled control isn't listed, a key the page and
+a menu both bind is listed as the page's, and a key appears once. Over a sheet or
+an alert, the list is what that presentation answers to. A handler that hears
+keys for itself, `onKeyPress` or `onKeyEvent`, isn't listed: it's a closure, and
+nothing can ask it what it answers to.
+
+The arrow and paging keys scroll a list too long for the window. Escape, F1 or
+Done takes it down, and the page's shortcuts don't fire while it's up. The menu
+bar's Help ▸ Keyboard Shortcuts shows it too.
+
+**F1 is yours if you bind it.** The list is a default binding, in the chain's last
+layer, so anything of yours on F1 comes first: `onKeyPress`, `onKeyEvent`, a
+status-bar item, or a `.keyboardShortcut`, which names F1 as SwiftUI source does,
+by AppKit's scalar (`KeyEquivalent("\u{F704}")`). The Help menu's item still shows
+the list, and no longer claims the key.
+
+To turn it off, F1 and the menu item alike:
+
+```swift
+WindowGroup { EditorView() }
+    .keyboardShortcutOverlayDisabled()
+```
+
+F1 was chosen over ⇧F1 and ⌃F1 because those don't reach an app everywhere: Apple
+Terminal sends nothing for ⇧F1, and macOS keeps ⌃F1 by default. See "The list of
+keyboard shortcuts' key" in `Documentation/Terminals/Terminal compatibility survey.md`.
 
 ## The Menu Bar's Keys
 

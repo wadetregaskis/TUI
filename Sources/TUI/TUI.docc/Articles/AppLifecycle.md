@@ -158,6 +158,7 @@ Built-in key bindings that apply when no handler consumed the event, and the one
 | ⌃Q | Quit application | `statusBar.isQuitAllowed` — offered even behind a modal, as its escape hatch |
 | Undo, redo | The app's undo manager's undo and redo, on the scene's `UndoShortcuts`: by default ⌃Z, ⌃- and ⌃/ undo, ⌃⇧Z, ⌃_ and ⌥_ redo | Always, after the app's own shortcuts; a bound key is taken whether or not there is a step |
 | ⌃Z | Suspend the app | Only where the undo keys leave it out (`.undoShortcuts([.undo: …])`). Raw mode turns `^Z` off as a signal character, so the driver never turns it into SIGTSTP; reaching layer 4 unbound means no view claimed it (a focused text field's or editor's undo wins), so it is re-raised as the signal |
+| F1 | Show or take down the list of keyboard shortcuts | Unless the scene turned it off (`keyboardShortcutOverlayDisabled()`); not while an open drop-down holds the keyboard |
 | `t` / `T` | Cycle to next palette | `statusBar.showThemeItem`, and no transient surface has grabbed input |
 | `a` / `A` | Cycle to next appearance | No transient surface has grabbed input — otherwise `a` would restyle the app from behind a modal the user cannot see the controls for |
 | ⌃\\ | Asks whether to quit (`QuitConfirmation`), and at a second press while that's up quits; quits even when the app hangs | Unless the app binds it, or a chord its byte may stand for (below) |

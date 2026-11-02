@@ -28,7 +28,7 @@ import TUIFoundation
 /// | `appTermination` | Quit *app* | quits as the quit key does, after the menu closes | `StatusBarState.quitShortcut` |
 /// | `undoRedo` | Undo, Redo | the app's `UndoManager`; disabled with nothing to undo or redo | the scene's undo and redo keys |
 /// | `pasteboard` | Cut, Copy, Paste | ⌘X, ⌘C, ⌘V to the focused view, after the menu closes | the same, through `commandKey` |
-/// | `help` | Show Tooltips; Show All Tooltips | whether tooltips show at all; every tooltip on the screen at once (`TooltipState`); each disabled where no view on the screen has help | —; ⌥ and the help key (⌥?), and Shift-F1, the chain's last resort, where Option does not arrive |
+/// | `help` | Keyboard Shortcuts; Show Tooltips; Show All Tooltips | the list of the keys in force, unless the scene turned it off (`Scene.keyboardShortcutOverlayDisabled`); whether tooltips show at all; every tooltip on the screen at once (`TooltipState`); each of the last two disabled where no view on the screen has help | F1, unless an app shortcut has it; —; ⌥ and the help key (⌥?), and Shift-F1, the chain's last resort, where Option does not arrive |
 /// | `toolbar` | Customize Toolbar… | opens the customization panel of the page's customizable toolbar (`toolbar(id:content:)`), as its right-click does; only while the page shows one, and not where the commands offer it themselves (`ToolbarCommands`) | — |
 /// | `saveItem` | Close; Close All | closes the window in front; every window that may close but the one at the back; each disabled where it would close nothing (the Window menu's rule) | ⌘W; ⌥⌘W — a focused text field keeps Ctrl-W, its word rubout |
 /// | `windowArrangement` | Close Window | closes the window in front; disabled where the person may not: the last, one whose content disabled its dismissal, one showing a sheet | Escape |
@@ -219,10 +219,16 @@ struct SceneOwnCommands {
     /// (`TooltipState.menuTrigger`). Each disabled while no view on the screen
     /// has help — Show All, too, while tooltips are off — except to take back
     /// what it chose: tooltips off, or all of them showing. None outside a
-    /// running app, which has no tooltips.
+    /// running app, which has no tooltips. Before them, Keyboard Shortcuts, for
+    /// a host or an app where F1 doesn't reach the list, which waits for the
+    /// frame with the menu closed so as to list the page's keys.
     private func helpItems(_ environment: EnvironmentValues) -> CommandItems? {
         guard let tooltips = environment.tooltipState else { return nil }
         let service = LocalizationService.shared
+        let keys = environment.keysAfterFrame
+        let showsList = !environment.keyboardShortcutOverlayDisabled && keys != nil
+        let f1 = KeyboardShortcut(KeyEquivalent("\u{F704}"), modifiers: [])
+        let f1IsTheApps = environment.keyboardShortcutRegistry?.hasAppShortcut(for: KeyEvent(key: .f1)) ?? false
         let hasHelp = tooltips.hasHelpOnScreen
         let showsAll = tooltips.showsAllTooltips
         let shows = Binding(get: { tooltips.showsTooltips }, set: { tooltips.showsTooltips = $0 })
@@ -231,6 +237,12 @@ struct SceneOwnCommands {
             showAllKey = KeyboardShortcut(KeyEquivalent(character), modifiers: .option)
         }
         return Self.items("help") {
+            if showsList {
+                Button(service.string(for: LocalizationKey.Menu.keyboardShortcuts)) {
+                    keys?.showKeyboardShortcutOverlay()
+                }
+                .keyboardShortcutHint(f1IsTheApps ? nil : f1)
+            }
             Toggle(service.string(for: LocalizationKey.Menu.showTooltips), isOn: shows)
                 .disabled(!hasHelp && tooltips.showsTooltips)
             Button(service.string(for: showsAll ? LocalizationKey.Menu.hideAllTooltips : .showAllTooltips)) {

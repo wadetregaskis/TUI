@@ -6175,6 +6175,34 @@ that send it, where Option may compose instead (iTerm2's and Warp's defaults).
 *Still to measure:* `⌥?` with `Tools/TerminalProbes/key_probe.py` in Apple
 Terminal, iTerm2 and Warp, with each Option setting.
 
+### The list of keyboard shortcuts' key: F1 — ⇧F1 measured, F1 and ⌃F1 read from configuration, not pressed
+
+Added 2026-11-01 (the owner: an F1 key feels right, maybe ⌃F1). The list of the
+keys in force (`KeyboardShortcutOverlay`) needs a key that reaches an app on every
+host. The rule is to choose what arrives everywhere and let an app's own binding
+on it win, and the list is also Help ▸ Keyboard Shortcuts (F10, ← to Help, ↓), so
+no host is left without it.
+
+| Key | What a host sends | Evidence | Verdict |
+|---|---|---|---|
+| **F1** | `ESC O P` in every legacy encoding (xterm's ctlseqs, and no host below binds it); `CSI P` or `CSI 1 P` under the kitty keyboard protocol | **Not pressed.** Read 2026-11-01 from each host's configuration on macOS 15.8.1: Apple Terminal 455.1's default profile (Basic) has no F1 in `keyMapBoundKeys`; iTerm2's default profile and global key map have no `0xF704` entry; Ghostty 1.4.0's `+list-keybinds --default` has no `f1`. Warp v0.2026.10.21's bindings weren't read. TUI decodes all of these forms (`F1ArrivalTests`), and the Example draws the list from `ESC O P` written to it on a PTY | **Chosen** |
+| ⇧F1 | `CSI 1;2P` in iTerm2, Ghostty and Warp; **nothing in Apple Terminal 455.1** (measured 2026-10-28, above) | pressed | Rejected: it doesn't arrive everywhere, and it shows every tooltip (B-HELP-2) |
+| ⌃F1 | `CSI 1;5P` in xterm's encoding, where a host is given it | macOS's own "Turn keyboard access on or off" is ⌃F1 by default (System Settings → Keyboard → Keyboard Shortcuts → Keyboard). This Mac's `com.apple.symbolichotkeys` has no entry for it (id 12), so the default stands, which should mean no terminal sees the chord. **Not pressed** | Rejected, as the owner suspected: the system takes it by default |
+
+**On a Mac keyboard** F1 is the brightness key unless fn is held, or System
+Settings → Keyboard says to use F1, F2, etc. as standard function keys, as for
+F10 above. This Mac has `com.apple.keyboard.fnState` unset, the default. So the key
+is fn-F1 on a default Mac, and the menu item is the way for someone who doesn't
+know that. No macOS default shortcut is on F1 alone (unverified).
+
+*To measure, with a person at the keyboard:* synthesised keys aren't available
+to a session (the terminals take only clicks from it). In each of Apple Terminal,
+iTerm2, Ghostty and Warp, from the default profile:
+`PROBE_KEYS=f1,fn_f1,shift_f1,ctrl_f1 python3 Tools/TerminalProbes/key_probe.py`.
+Expected: `f1` nothing on a default Mac (the brightness key), `fn_f1` `ESC O P`,
+and `ctrl_f1` nothing. If a host doesn't deliver fn-F1, F1 is still the choice unless
+another key arrives on all four; the menu item covers that host meanwhile.
+
 ### Modified F1–F4 are CSI letters (xterm) — decoded since 2026-10-05
 
 F1–F4 alone arrive as SS3 (`ESC O P` … `ESC O S`), but with a modifier xterm,

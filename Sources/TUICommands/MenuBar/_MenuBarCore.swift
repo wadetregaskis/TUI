@@ -81,11 +81,10 @@ struct _MenuBarCore: View, Renderable {
         if isInert { state.close() }
         let menus = resolvedMenus(context: context)
         if let open = state.openMenu ?? state.highlightedTitle, open >= menus.count { state.close() }
-        registerShortcuts(of: menus, except: state.openMenu, context: context)
-
         let titles = titleRow(
             menus, open: state.openMenu ?? state.highlightedTitle, walking: state.highlightedTitle != nil,
             context: context)
+        registerShortcuts(of: menus, named: titles.names, except: state.openMenu, context: context)
         var buffer = FrameBuffer(lines: [titles.line])
         guard !isInert else { return buffer }
         let titleIDs = attachTitleRegions(to: &buffer, titles, state: state, context: context)
@@ -158,8 +157,11 @@ struct _MenuBarCore: View, Renderable {
 
     /// Registers the key equivalents of `menus`' items but the open one's,
     /// which registers as it draws, each menu rendered at an identity of its
-    /// own for its registrations alone.
-    private func registerShortcuts(of menus: [ResolvedCommandMenu], except open: Int?, context: RenderContext) {
+    /// own for its registrations alone, and listed under its title (`names`:
+    /// ``KeyboardShortcutRegistry/currentCommandMenu``).
+    private func registerShortcuts(
+        of menus: [ResolvedCommandMenu], named names: [String], except open: Int?, context: RenderContext
+    ) {
         guard let registry = context.environment.keyboardShortcutRegistry else { return }
         context.withThrowawayFrameDemand { quiet in
             var unseen = quiet.withRegistrationOnlyChannels()
@@ -168,7 +170,9 @@ struct _MenuBarCore: View, Renderable {
             unseen.availableHeight = Self.registrationCanvasHeight
             unseen.hasExplicitHeight = false
             registry.registeringCommands {
+                defer { registry.currentCommandMenu = nil }
                 for (index, menu) in menus.enumerated() where index != open {
+                    registry.currentCommandMenu = names[index]
                     _ = TUIView.renderToBuffer(
                         _CommandMenuItems(groups: menu.groups),
                         context: unseen.withChildIdentity(erasedType: _CommandMenuItems.self, key: menu.key))
@@ -198,6 +202,9 @@ extension _MenuBarCore {
         /// Each title's mnemonic, lowercased (``MenuBarMnemonics``); none for
         /// the app's menu.
         let mnemonics: [Character?]
+
+        /// Each title's words.
+        let names: [String]
     }
 
     /// Where each title is drawn: one identity per title, keyed by its place
@@ -232,10 +239,11 @@ extension _MenuBarCore {
                 chunk(title(of: menu, appName: appName), open: index == open, context),
                 at: context.withChildIdentity(type: TitleLabel.self, index: index))
         }
-        let plain: [String?] = zip(menus, drawn).map { menu, line in
+        let names = drawn.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+        let plain: [String?] = zip(menus, names).map { menu, name in
             // The app's menu has no letter (``MenuBarMnemonics``).
             if case .standard(.app) = menu.title { return nil }
-            return line.stripped.trimmingCharacters(in: .whitespaces)
+            return name
         }
         let kept = MenuBarMnemonics.kept(by: context.environment.focusManager?.currentFocused)
         let mnemonics = MenuBarMnemonics.assign(plain, keeping: kept)
@@ -261,7 +269,7 @@ extension _MenuBarCore {
             widths.append(title.strippedLength)
             line += title
         }
-        return TitleRow(line: line, columns: columns, widths: widths, mnemonics: mnemonics)
+        return TitleRow(line: line, columns: columns, widths: widths, mnemonics: mnemonics, names: names)
     }
 
     /// `name` with a cell on each side, in reverse if its menu is `open`.

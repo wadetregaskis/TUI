@@ -38,6 +38,11 @@
 /// button. A framework default is its pane's by the same rule. Where no pane
 /// is drawn, nothing here changes.
 ///
+/// It also knows what each shortcut is called, for the list of what is in force
+/// (``listing(activePane:reachesPage:modalSection:)``): a control says, as it
+/// registers, and a menu row that only shows a key something else binds says so
+/// too (``noteHint(_:title:menu:section:)``).
+///
 /// Not `Sendable`, like its sibling per-frame services (`MouseEventDispatcher`,
 /// `KeyEventDispatcher`): touched only from the main run loop (render pass
 /// registration + input dispatch).
@@ -51,6 +56,24 @@ package final class KeyboardShortcutRegistry {
         /// Where it was declared, which decides whether it fires while a modal
         /// holds the keyboard (``Scope``).
         var scope = Scope()
+        /// What it is called, where it says.
+        var name: Name?
+    }
+
+    /// What a shortcut is called, for the list of what is in force.
+    struct Name {
+        /// The control's words. A closure, because a control with a view for a
+        /// label has to draw it to read it, which only the list needs.
+        let title: () -> String
+        /// The menu it is on (``currentCommandMenu``), or `nil` for the page's.
+        let menu: String?
+        /// Its place in the frame's registrations.
+        let serial: Int
+        /// Whether a menu row showing the key names it better: a scene's key
+        /// (``registerCommand(_:commandChord:title:action:)``), which the menu
+        /// bar's item only shows, and which only says what it is for an app
+        /// with no menu bar.
+        var yieldsToHint = false
     }
 
     /// Where a shortcut was declared: the focus section. While a modal section
@@ -87,8 +110,19 @@ package final class KeyboardShortcutRegistry {
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _currentPane: String?
 
-    /// How many app shortcuts this frame has registered so far: a mark a
-    /// presenter takes before its content renders, and hands back to
+    /// The menu whose commands are registering now, if any: set around them by
+    /// the menu bar, so what registers meanwhile is listed under it.
+    package var currentCommandMenu: String? {
+        get { _currentCommandMenu }
+        set { _currentCommandMenu = newValue }
+    }
+
+    /// ``currentCommandMenu``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _currentCommandMenu: String?
+
+    /// How many shortcuts this frame has registered so far: a mark a presenter
+    /// takes before its content renders, and hands back to
     /// ``entry(for:registeredAfter:)`` once it has.
     private(set) var registrationCount = 0
 
@@ -98,7 +132,11 @@ package final class KeyboardShortcutRegistry {
         let holdsFocus: Bool
         let action: () -> Void
         var scope = Scope()
+        var name: Name?
     }
+
+    /// The keys menu rows show and something else binds (``noteHint(_:title:menu:section:)``).
+    private var hints: [KeyboardShortcut.Trigger: (name: Name, scope: Scope)] = [:]
 
     /// The framework defaults registered outside every pane, consulted only
     /// when no app shortcut has the trigger.
@@ -114,6 +152,8 @@ package final class KeyboardShortcutRegistry {
         currentPane = nil
         defaults.removeAll(keepingCapacity: true)
         if !paneDefaults.isEmpty { paneDefaults.removeAll() }
+        if !hints.isEmpty { hints.removeAll(keepingCapacity: true) }
+        currentCommandMenu = nil
         registrationCount = 0
     }
 
@@ -132,16 +172,38 @@ package final class KeyboardShortcutRegistry {
     ///   the same action is registered on that trigger too. `nil` — the
     ///   default, and every shortcut's unless the app asked — registers
     ///   nothing more.
+    /// - Parameter title: What the control is called, for the list of what is
+    ///   in force. `nil` leaves it off the list.
     func register(
         _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil, repeats: Bool = true,
-        section: String? = nil, action: @escaping () -> Void
+        section: String? = nil, title: (() -> String)? = nil, action: @escaping () -> Void
     ) {
         registrationCount += 1
         let entry = Entry(
             repeats: repeats, action: action, serial: registrationCount,
-            scope: Scope(section: section))
+            scope: Scope(section: section), name: name(title))
         insert(entry, on: shortcut.trigger)
         if let commandChord { insert(entry, on: commandChord.trigger) }
+    }
+
+    /// `title`, as a name registered now.
+    private func name(_ title: (() -> String)?) -> Name? {
+        title.map { Name(title: $0, menu: currentCommandMenu, serial: registrationCount) }
+    }
+
+    /// Records that a menu row shows `shortcut`, called `title`, without binding
+    /// it (`View.keyboardShortcutHint(_:)`): whatever does bind the key does what
+    /// the row does, so the key is in force under the row's name. A binding that
+    /// says what it is called comes first.
+    ///
+    /// - Parameter menu: The section to list it under, where that is not
+    ///   ``currentCommandMenu``.
+    package func noteHint(
+        _ shortcut: KeyboardShortcut, title: @escaping () -> String, menu: String? = nil, section: String? = nil
+    ) {
+        registrationCount += 1
+        let name = Name(title: title, menu: menu ?? currentCommandMenu, serial: registrationCount)
+        hints[shortcut.trigger] = (name, Scope(section: section))
     }
 
     /// Puts `entry` on `trigger`, in the pane rendering now or on the page —
@@ -161,11 +223,15 @@ package final class KeyboardShortcutRegistry {
     /// has resolved: for a framework command outside a view — a scene's
     /// `.keyboardShortcut` (TUIApp) — inside ``registeringCommands(_:)``,
     /// so the window's own shortcut on the key keeps it. A held key does not
-    /// repeat it. `commandChord` is ``register(_:commandChord:repeats:action:)``'s.
+    /// repeat it. `commandChord` and `title` are ``register(_:commandChord:repeats:section:title:action:)``'s.
     package func registerCommand(
-        _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil, action: @escaping () -> Void
+        _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil, title: (() -> String)? = nil,
+        action: @escaping () -> Void
     ) {
-        register(shortcut, commandChord: commandChord, repeats: false, action: action)
+        register(shortcut, commandChord: commandChord, repeats: false, title: title, action: action)
+        if let entry = actions[shortcut.trigger], entry.serial == registrationCount {
+            actions[shortcut.trigger]?.name?.yieldsToHint = true
+        }
     }
 
     /// Whether what registers now is the menu bar's commands — see
@@ -254,6 +320,49 @@ package final class KeyboardShortcutRegistry {
         }
     }
 
+    /// The shortcuts that would fire now, among those that say what they are
+    /// called, in the order they registered: what was on the screen when the
+    /// frame was drawn, by the rules ``trigger(for:activePane:reachesPage:modalSection:)``
+    /// fires by, so each key appears once, under whatever a press would reach.
+    ///
+    /// Only what registers here. An `onKeyPress` or `onKeyEvent` handler is a
+    /// closure that nothing can ask what it answers to.
+    package func listing(
+        activePane: String? = nil, reachesPage: Bool = true, modalSection: String? = nil
+    ) -> [ListedShortcut] {
+        var triggers = Set(actions.keys).union(defaults.keys).union(hints.keys)
+        if let activePane {
+            if let own = paneActions[activePane] { triggers.formUnion(own.keys) }
+            if let own = paneDefaults[activePane] { triggers.formUnion(own.keys) }
+        }
+        var named: [(trigger: KeyboardShortcut.Trigger, name: Name)] = []
+        for trigger in triggers {
+            let app = appEntry(
+                for: trigger, activePane: activePane, reachesPage: reachesPage, modalSection: modalSection)
+            let bound =
+                app == nil
+                ? defaultEntry(
+                    for: trigger, activePane: activePane, reachesPage: reachesPage, modalSection: modalSection)?.name
+                : app?.name
+            let hint = hints[trigger].flatMap { $0.scope.fires(under: modalSection) ? $0.name : nil }
+            if let name = (bound?.yieldsToHint == true ? hint : nil) ?? bound ?? hint {
+                named.append((trigger, name))
+            }
+        }
+        return named.sorted { $0.name.serial < $1.name.serial }.map {
+            ListedShortcut(key: Self.keyName(of: $0.trigger), title: $0.name.title(), menu: $0.name.menu)
+        }
+    }
+
+    /// `trigger` as it is drawn.
+    private static func keyName(of trigger: KeyboardShortcut.Trigger) -> String {
+        switch trigger {
+        case .defaultAction: KeySymbols.key(.enter)
+        case .cancelAction: KeySymbols.key(.escape)
+        case .key(let key, let modifiers): KeySymbols.chord(Key(key), modifiers)
+        }
+    }
+
     /// Registers a framework default for `shortcut`, which fires only when no
     /// app shortcut has the same trigger, however the two were ordered.
     ///
@@ -266,15 +375,19 @@ package final class KeyboardShortcutRegistry {
     ///
     /// Like an app shortcut, a default registered inside a pane is the pane's
     /// (``currentPane``).
+    ///
+    /// - Parameter title: What it is called, for the list of what is in force.
+    ///   `nil` leaves it off the list.
     package func registerDefault(
         _ shortcut: KeyboardShortcut, holdsFocus: Bool = false, section: String? = nil,
-        action: @escaping () -> Void
+        title: (() -> String)? = nil, action: @escaping () -> Void
     ) {
         let trigger = shortcut.trigger
         let existing = currentPane.map { paneDefaults[$0]?[trigger] } ?? defaults[trigger]
         if let existing, existing.holdsFocus || !holdsFocus { return }
+        registrationCount += 1
         let entry = Default(
-            holdsFocus: holdsFocus, action: action, scope: Scope(section: section))
+            holdsFocus: holdsFocus, action: action, scope: Scope(section: section), name: name(title))
         if let currentPane {
             paneDefaults[currentPane, default: [:]][trigger] = entry
         } else {
@@ -353,5 +466,21 @@ package final class KeyboardShortcutRegistry {
         return actions[trigger] != nil || defaults[trigger] != nil
             || paneActions.values.contains { $0[trigger] != nil }
             || paneDefaults.values.contains { $0[trigger] != nil }
+    }
+}
+
+// MARK: - Listing
+
+/// One shortcut in force: its key as it is drawn, what it is called, and the
+/// menu it is on, or `nil` for the page's.
+package struct ListedShortcut: Equatable, Sendable {
+    package let key: String
+    package let title: String
+    package let menu: String?
+
+    package init(key: String, title: String, menu: String? = nil) {
+        self.key = key
+        self.title = title
+        self.menu = menu
     }
 }
