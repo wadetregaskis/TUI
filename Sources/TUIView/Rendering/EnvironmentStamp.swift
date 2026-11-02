@@ -38,8 +38,9 @@ import TUICore
 ///    no stamp, and what is drawn under it cannot be re-checked.
 ///
 /// How each key and each value type is classified is worked out once per
-/// type (``EnvironmentStamps``). A stamp never refers to another stamp, so a
-/// table of them can never keep a chain alive.
+/// type (``EnvironmentStamps``). A stamp refers to at most one other, a flat one
+/// (`EnvironmentStamp+Derived.swift`), so a table of them can never keep a chain
+/// alive.
 package final class EnvironmentStamp {
     /// What one key holds, as compared.
     package enum Token {
@@ -60,18 +61,40 @@ package final class EnvironmentStamp {
         package let token: Token
     }
 
-    /// The keys, sorted, each with its token.
-    package let entries: [Entry]
+    /// The keys, sorted, each with its token. For a stamp on a ``base``, worked
+    /// out when first asked: nothing asks when stamps are compared by identity.
+    package var entries: [Entry] {
+        if let flat { return flat }
+        let made = Self.merged(base.unsafelyUnwrapped, changes)
+        flat = made
+        return made
+    }
+    private var flat: [Entry]?
+
+    /// The flat stamp this one is made on, and what differs from it, in key
+    /// order: see `EnvironmentStamp+Derived.swift`. `nil` and empty for a flat
+    /// stamp.
+    let base: EnvironmentStamp?
+    let changes: [Change]
 
     /// A hash of the keys and of each token's cheap part — its kind, an
     /// object's identity, a value's type, a hashable value's hash, a
-    /// collection's count — which two equal stamps share: where a stamp is
+    /// collection's count — which two equal flat stamps share: where a stamp is
     /// looked for among those already made (``EnvironmentStamps/intern(_:)``).
+    /// 0 for a stamp on a ``base``, which is looked for by its changes.
     package let shallowHash: Int
 
     init(entries: [Entry], shallowHash: Int) {
-        self.entries = entries
+        flat = entries
+        base = nil
+        changes = []
         self.shallowHash = shallowHash
+    }
+
+    init(base: EnvironmentStamp, changes: [Change]) {
+        self.base = base
+        self.changes = changes
+        shallowHash = 0
     }
 
     /// Whether a render below `self` and below `other` would read the same
@@ -79,7 +102,12 @@ package final class EnvironmentStamp {
     /// sorted lists.
     package func isEquivalent(to other: EnvironmentStamp) -> Bool {
         if self === other { return true }
-        guard entries.count == other.entries.count, shallowHash == other.shallowHash else { return false }
+        // Two on one anchor are the same only if their changes are; the walk below
+        // answers that too, a flat stamp's worth of work later.
+        if let base, base === other.base { return other.holds(changes, on: base) }
+        guard entries.count == other.entries.count,
+            base != nil || other.base != nil || shallowHash == other.shallowHash
+        else { return false }
         for (mine, theirs) in zip(entries, other.entries) {
             guard mine.key == theirs.key, Self.equal(mine.token, theirs.token) else { return false }
         }
@@ -106,7 +134,7 @@ package final class EnvironmentStamp {
         }
     }
 
-    private static func equal(_ lhs: Token, _ rhs: Token) -> Bool {
+    static func equal(_ lhs: Token, _ rhs: Token) -> Bool {
         switch (lhs, rhs) {
         case (.explicitNil, .explicitNil):
             return true
@@ -159,7 +187,9 @@ package final class EnvironmentStamps {
         package var built = 0
         /// Asks answered from this pass's memo, by storage.
         package var memoHits = 0
-        /// Built stamps that turned out equal to one already made.
+        /// Stamps made from what differs from the anchor, rather than built.
+        package var derived = 0
+        /// Stamps that turned out equal to one already made.
         package var internHits = 0
         /// Comparisons made while interning.
         package var mergeWalks = 0
@@ -169,11 +199,11 @@ package final class EnvironmentStamps {
         package var uncomparable = 0
     }
 
-    package private(set) var counts = Counts()
+    package internal(set) var counts = Counts()
 
     /// The keys that made an environment uncomparable, and how often: what a
     /// diagnostic names (``debugName(of:)``).
-    package private(set) var uncomparableKeys: [ObjectIdentifier: Int] = [:]
+    package internal(set) var uncomparableKeys: [ObjectIdentifier: Int] = [:]
 
     /// When on (the census), every key's distinct cheap hashes as stamps are
     /// built: a key with many is one whose value moves from frame to frame,
@@ -202,6 +232,16 @@ package final class EnvironmentStamps {
     /// Every live stamp by shallow hash, most recently used first.
     private var buckets: [Int: [WeakStamp]] = [:]
 
+    /// This pass's first stamp and what it holds by key, and every stamp made on
+    /// an anchor by the hash of its changes: `EnvironmentStamp+Derived.swift`.
+    var anchor: EnvironmentStamp?
+    var anchorSlots: [ObjectIdentifier: AnchorSlot] = [:]
+    var anchorComparedKeys = 0
+    var derivedBuckets: [Int: [WeakStamp]] = [:]
+    var shortcuts: [ObjectIdentifier: AnchorSlot.Compare] = [:]
+    var changeScratch: [EnvironmentStamp.Change] = []
+    var tokenWasUncomparable = false
+
     package init() {}
 
     /// Forgets this pass's memo, and the stamps that have died since. Called
@@ -215,6 +255,10 @@ package final class EnvironmentStamps {
             } else if alive.count != bucket.count {
                 buckets[hash] = alive
             }
+        }
+        for (hash, bucket) in derivedBuckets where bucket.contains(where: { $0.stamp == nil }) {
+            let alive = bucket.filter { $0.stamp != nil }
+            derivedBuckets[hash] = alive.isEmpty ? nil : alive
         }
     }
 
@@ -230,6 +274,8 @@ package final class EnvironmentStamps {
         passEnvironments.removeAll(keepingCapacity: true)
         lastWord = nil
         lastStamp = nil
+        anchor = nil
+        anchorSlots.removeAll(keepingCapacity: true)
     }
 
     /// The stamp of `environment`, or `nil` when something in it cannot be
@@ -250,7 +296,17 @@ package final class EnvironmentStamps {
             counts.memoHits += 1
             return known
         }
-        let made = build(environment).map(intern)
+        let made: EnvironmentStamp?
+        switch derive(environment) {
+        case .stamp(let derived):
+            made = derived
+        case .uncomparable:
+            counts.uncomparable += 1
+            made = nil
+        case .flat:
+            made = build(environment).map(intern)
+            if let made, anchor == nil { setAnchor(environment, made) }
+        }
         passStamps[word] = made
         passEnvironments.append(environment)
         lastWord = word
@@ -309,6 +365,8 @@ package final class EnvironmentStamps {
     /// `stamp`, or the live stamp equal to it already made.
     package func intern(_ stamp: EnvironmentStamp) -> EnvironmentStamp {
         var bucket = buckets[stamp.shallowHash] ?? []
+        // A stamp on an anchor has none to be looked for by, and is one already.
+        guard stamp.base == nil else { return stamp }
         for (index, candidate) in bucket.enumerated() {
             guard let existing = candidate.stamp else { continue }
             counts.mergeWalks += 1
@@ -350,7 +408,7 @@ package final class EnvironmentStamps {
 
     // MARK: Classification
 
-    private func keyRule(_ key: ObjectIdentifier) -> KeyRule {
+    func keyRule(_ key: ObjectIdentifier) -> KeyRule {
         if let known = keyRules[key] { return known }
         let type = unsafeBitCast(key, to: Any.Type.self)
         let rule: KeyRule
@@ -367,7 +425,7 @@ package final class EnvironmentStamps {
 
     /// The token for `value`, folding its cheap part into `hasher`, or `nil`
     /// when it cannot be compared.
-    private func token(for value: Any, hasher: inout Hasher) -> EnvironmentStamp.Token? {
+    func token(for value: Any, hasher: inout Hasher) -> EnvironmentStamp.Token? {
         let rule = rule(for: value)
         hasher.combine(rule.kind)
         switch rule {
@@ -407,7 +465,7 @@ package final class EnvironmentStamps {
 }
 
 /// How a stored key is treated: decided once per key type.
-private enum KeyRule {
+enum KeyRule {
     /// Declared ``_RenderNeutralEnvironmentKey``: skipped.
     case neutral
     /// Declared ``_RenderProjectingEnvironmentKey``: its value compared by
@@ -418,7 +476,7 @@ private enum KeyRule {
 }
 
 /// A stamp held weakly by the intern table.
-private struct WeakStamp {
+struct WeakStamp {
     weak var stamp: EnvironmentStamp?
 
     init(_ stamp: EnvironmentStamp) {

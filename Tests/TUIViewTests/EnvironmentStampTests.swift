@@ -237,7 +237,9 @@ struct EnvironmentStampTests {
         let stamps = EnvironmentStamps()
         var held: [EnvironmentStamp] = []
         for value in 0..<40 {
-            if let made = stamps.stamp(of: environment { $0[UnhashedKey.self] = Unhashed(value: value) }) {
+            // Built and interned, as an anchor is: what is made on one has a
+            // bucket of its own (`EnvironmentStampDerivedTests`).
+            if let made = stamps.build(environment { $0[UnhashedKey.self] = Unhashed(value: value) }).map(stamps.intern) {
                 held.append(made)
             }
         }
@@ -246,7 +248,7 @@ struct EnvironmentStampTests {
         // The first is the least recently used and was pushed out; a stamp of
         // the same environment is now a new object.
         stamps.beginPass()
-        let again = stamps.stamp(of: environment { $0[UnhashedKey.self] = Unhashed(value: 0) })
+        let again = stamps.build(environment { $0[UnhashedKey.self] = Unhashed(value: 0) }).map(stamps.intern)
         #expect(again !== held[0])
         #expect(again?.isEquivalent(to: held[0]) == true)
     }
@@ -282,6 +284,7 @@ struct EnvironmentStampTests {
         "KeyboardShortcutRegistryKey": "a per-walk channel: shortcuts are registered into the one in force",
         "SynthesizeKeyEventKey": "an app service called at event time, installed once from the TUIContext",
         "ClipboardAccessKey": "an app service called at event time, installed once from the TUIContext",
+        "URLOpenerKey": "an app service called at event time, installed once from the TUIContext",
     ]
 
     @Test("Every key declared neutral is listed with why")
