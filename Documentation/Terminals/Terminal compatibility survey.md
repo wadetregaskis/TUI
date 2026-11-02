@@ -4744,6 +4744,38 @@ fresh id almost every time. kitty 0.49.1 is not measured (it needs OpenGL
 3.3, which the VM the probe ran in lacks); the protocol says a placement
 with an existing placement id replaces it, which is the behaviour E relies on.
 
+### Sixel — measured 2026-11-02, iTerm2 3.7.6 (a Retina Mac)
+
+`Tools/TerminalProbes/sixel_probe.py`, record `data/iterm2-3.7.6-sixel.json`, the cards
+looked at. Design and bytes: `Terminal graphics protocols.md` §16.
+
+**Who says `4` in DA1, asked 2026-11-02:** iTerm2 3.7.6 only
+(`?64;1;2;4;6;17;18;21;22;52c`). Not Ghostty 1.4.0 (`?62;22;52c`), Warp v0.2026.10.21
+(`?62c`) or Apple Terminal 455.1 (`?1;2c`). kitty cannot open a window on this machine.
+`XTSMGRAPHICS` answers on iTerm2: 256 registers, geometry 1120 x 850 for 80 x 25.
+
+| | iTerm2 3.7.6 |
+|---|---|
+| Written space, `ECH`, `EL`, `ED`, text over pixels | Erase them, cell by cell |
+| One-row picture over a row, no erase | Replaces that row, no seam |
+| Pixels of a cell | `TIOCGWINSZ` 14 x 34 is right. `CSI 16 t` 7 x 17 and `CSI 14 t` are points |
+| A part-filled last cell | Default field below the picture, to the cell's edge |
+| `P2=1` unset pixels | Default field; what was under is gone |
+| Second picture's registers | Its own |
+| Scroll region | Pixels move with their rows |
+| Cursor after, no mode | The picture's last row, its first column (5,5 → 6,5 for 2 rows) |
+| Last row, no mode | No scroll |
+| `?80h` | Draws at the screen's top left; cursor does not move |
+| `?8452h` | Ignored |
+| 887 KB in a `?2026` hold | Reply 28 ms; shown in about a second |
+| Column 1 | The margin left of a picture there is the default field, a sliver (not fixed) |
+
+iTerm2 3.7.6 has no setting to turn its Kitty graphics off, read from its binary's
+strings. `no_kitty_proxy.py` drops APC on the wire, and its Sixel chooses itself.
+
+Live, `Example --page images` through it: mascot, photo, animated ball, a menu over a
+picture and off it, zoom and scroll, all looked at, and every frame's bytes logged.
+
 ### A whole picture as a classic placement — measured 2026-11-01, Warp v0.2026.10.21, Ghostty 1.4.0 and iTerm2 3.7.6
 
 `Tools/TerminalProbes/classic_placement_probe.py`; records in its `data/`

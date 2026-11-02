@@ -320,6 +320,14 @@ when unset), the visual/aspect probes print to the terminal.
   encoder has written all three marks on every cell since 0d4d2015. The probe
   also reports what U+10EEEE advances the cursor by; iTerm2's line was never
   captured, so `Terminal compatibility survey.md`'s advance table still omits it.
+- `sixel_probe.py` — does `Image` work by Sixel: DA1's `4`, `XTSMGRAPHICS`, the cell
+  in pixels, what erases pixels, a row's repair, registers, the last row under each
+  mode, half a megabyte in a hold, on cards that wait for `$PROBE_STEP.N`.
+- `no_kitty_proxy.py` — runs a command with every APC dropped on the wire, so a
+  terminal with Kitty looks like one without, its settings untouched, and logs each
+  held frame's bytes (`$PROXY_LOG`) and types keys from a file (`$PROXY_KEYS`).
+- `byte_compare.py` — two builds on a pty answering as a plain terminal, the same
+  keys: do they write the same distinct frames?
 - `classic_placement_probe.py` — what `Image` needs of a Kitty **classic**
   placement: the replies and cursor moves the startup handshake reads, and two
   cards (`PROBE_CARD=2`) of crops, replacement, deletion, erases and `z`. Warp
