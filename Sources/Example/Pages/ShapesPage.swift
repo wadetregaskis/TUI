@@ -34,6 +34,7 @@ struct ShapesPage: View {
                 fills
                 rasterized
                 transformed
+                CanvasDemo()
                 modifiers
             }
             .padding(.horizontal, 1)
