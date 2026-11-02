@@ -58,9 +58,12 @@ struct GraphicsCheckView: View {
         switch ProcessInfo.processInfo.environment["TUI_GRAPHICS"] {
         case "1": return "TUI_GRAPHICS=1 — the handshake was skipped"
         case "0": return "TUI_GRAPHICS=0 — the handshake was skipped"
+        case "classic": return "TUI_GRAPHICS=classic — the handshake was skipped"
         default:
             switch TerminalClient.detectedGraphics {
             case true: return "the terminal acknowledged a virtual placement"
+            case false where KittyGraphics.drawsPicturesByClassicPlacement:
+                return "no virtual placement, and the terminal placed a classic one"
             case false: return "asked, and the terminal did not acknowledge one"
             case nil: return "never asked — no terminal, or a host that prints APC"
             }

@@ -38,8 +38,8 @@ PNG, JPEG, GIF and BMP files work everywhere. On a Mac, so does anything else th
 
 Every terminal is a grid of character cells, so there are two ways to show a picture in one:
 
-- **Real pixels.** Terminals with the Kitty graphics protocol, such as Ghostty and iTerm2, draw the picture itself, as sharp as your screen allows.
-- **Text characters.** Everywhere else, including Apple's Terminal, Warp and tmux, TUI draws the picture in coloured block characters. Each cell shows two pixels of colour, one above the other, so it's blocky but easy to recognise.
+- **Real pixels.** Terminals with the Kitty graphics protocol, such as Ghostty, iTerm2 and Warp, draw the picture itself, as sharp as your screen allows. Warp can't draw part of a picture, so while something covers or clips part of one there, its cells are empty until it's whole again.
+- **Text characters.** Everywhere else, including Apple's Terminal and tmux, TUI draws the picture in coloured block characters. Each cell shows two pixels of colour, one above the other, so it's blocky but easy to recognise.
 
 You don't need to do anything to choose. TUI asks the terminal when your app starts, and uses the best it can. The picture takes up the same cells either way, so your layout doesn't change. To see the text version in a terminal that has real pixels, run your app with `TUI_GRAPHICS=0`.
 

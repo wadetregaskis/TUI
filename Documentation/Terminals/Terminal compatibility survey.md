@@ -4706,6 +4706,12 @@ reports, asked off row 1, as `CSI 1;m R` is a modified F3. A transmission that m
 virtual placement that moves it was read as a classic one, whatever was
 answered. A classic placement that moves it was placed, answer or none.
 
+What TUI does with it: a host with no placeholders draws `Image` by classic
+placements at `z=1` over blank cells (graphics notes §15). Warp, ignoring the
+source rectangle, is sent whole pictures only, by a table of one
+(`TerminalClient.classicPlacementsCrop`): a picture partly covered or clipped there
+is blank until it is whole.
+
 ### A picture under text: a classic placement at z=-1 — measured 2026-10-26, Ghostty 1.3.1 and iTerm2 3.7.6
 
 A glyph over a frosted picture cannot be the picture's placeholder cell, so

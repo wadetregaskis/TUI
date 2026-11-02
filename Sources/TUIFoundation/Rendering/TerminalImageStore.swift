@@ -151,6 +151,9 @@ package final class TerminalImageStore {
         let arrival: Int
         /// The placeholder cells, which are a function of the id and the box.
         var cells: [String]
+        /// Its size in pixels as it was sent, which a classic placement's crop
+        /// is counted in (``placementRun(for:)``).
+        let pixelSize: (width: Int, height: Int)
         /// The tokens currently drawing this image. Empty means nobody, and
         /// nobody means deleted — an image is never kept on the chance that
         /// someone comes back for it.
@@ -365,7 +368,10 @@ package final class TerminalImageStore {
         pending += transmit
         pending += KittyGraphics.placement(id: id, columns: columns, rows: rows)
         derivedImages.remember(id, columns: columns, rows: rows, pixels: payload)
-        file(Image(id: id, signature: wanted, slot: slot, arrival: nextArrival, cells: cells, holders: [token]))
+        file(
+            Image(
+                id: id, signature: wanted, slot: slot, arrival: nextArrival, cells: cells,
+                pixelSize: (payload.width, payload.height), holders: [token]))
         nextArrival += 1
         entries[token] = id
         return cells
@@ -492,6 +498,46 @@ package final class TerminalImageStore {
     package func placementBox(of id: KittyGraphics.ImageID) -> (columns: Int, rows: Int)? {
         if let image = images[id] { return (image.slot.columns, image.slot.rows) }
         return derivedImages.box(ofCopy: id)
+    }
+
+    // MARK: - Classic placements
+
+    /// Run `run`'s cells as a rectangle of its image's pixels, for a host that
+    /// draws them by a classic placement (``KittyGraphics/drawsPicturesByClassicPlacement``),
+    /// or `nil` for an image this store does not hold or a cell outside it.
+    ///
+    /// Counted across the box its cells count across: its placement's, or for a
+    /// navigation zoom's cells its second one's. Edges at `column × width /
+    /// columns`, rounded down, so one row's rectangle tiles with the next's, as
+    /// ``DerivedImages/pixelRect(ofCopy:column:row:)`` tiles a copy's. A picture
+    /// with fewer pixels than cells gives each cell one, rather than none, which
+    /// the protocol has no way to say.
+    package func placementRun(for run: KittyGraphics.PlaceholderRun) -> PictureUnderTextMarker.Run? {
+        guard let size = pixelSize(of: run.image),
+            let box = run.placement == 2 ? scaledBoxes[run.image] : placementBox(of: run.image),
+            (0..<box.columns).contains(run.imageColumn), (0..<box.rows).contains(run.imageRow)
+        else { return nil }
+        let left = run.imageColumn * size.width / box.columns
+        let right = min(run.imageColumn + run.columns, box.columns) * size.width / box.columns
+        let top = run.imageRow * size.height / box.rows
+        let bottom = (run.imageRow + 1) * size.height / box.rows
+        let x = min(left, size.width - 1)
+        let y = min(top, size.height - 1)
+        return PictureUnderTextMarker.Run(
+            column: run.column, columns: run.columns, image: run.image,
+            x: x, y: y, width: max(1, right - x), height: max(1, bottom - y))
+    }
+
+    /// Whether `run` is all of its image's pixels: what a host that ignores a
+    /// source rectangle draws anyway (``KittyGraphics/classicPlacementsCrop``).
+    package func isWholePicture(_ run: PictureUnderTextMarker.Run) -> Bool {
+        guard let size = pixelSize(of: run.image) else { return false }
+        return run.x == 0 && run.y == 0 && run.width == size.width && run.height == size.height
+    }
+
+    /// The size image `id` — a picture, or a copy of one — was sent at.
+    private func pixelSize(of id: KittyGraphics.ImageID) -> (width: Int, height: Int)? {
+        images[id]?.pixelSize ?? derivedImages.sentSize(ofCopy: id)
     }
 
     // MARK: - Owning

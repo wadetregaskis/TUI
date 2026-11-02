@@ -297,6 +297,9 @@ partial, **?** unknown.
 | …unknown | 3 — wayst, AbsoluteTelnet, Mobile SSH |
 | Placeholder hosts that *also* speak Sixel or iTerm2 | 2 — iTerm2 and Rio |
 
+(2026-11-01: §15 builds the second placement model. Warp is measured to draw by
+it; the rest of the six are unmeasured.)
+
 So the ecosystem does not say what §3.1 says. **TUI's pictures reach five
 terminals**, and the largest single group of hosts it misses is not the Sixel
 crowd at all: it is the **six that implement the Kitty protocol and not the
@@ -1219,6 +1222,8 @@ classic-placement question either; the lines are gated on a measured host
 `TUI_HAIRLINES=1` to try any other. The per-host rules are in
 `Documentation/Terminals/Terminal compatibility survey.md`, "What TUI draws".
 
+§15 is what §12 was about.
+
 ## 14. Frosting a picture the terminal draws — probed 2026-10-26
 
 The owner asked whether glass, materials and fades work over a Kitty image,
@@ -1454,3 +1459,57 @@ is no copy to draw — no store, a tint with no RGB, a picture the store cannot
 copy — the cell keeps its own id, and the picture is drawn as it was rather
 than blanked. A translucent multiply tint's alpha fades the layer as before,
 and the fade's resolution draws its own copy (§14.3).
+
+## 15. Pictures by classic placement: `Image` — built 2026-11-01
+
+§12 made real, with its §12.4 questions measured on the one such host here. The
+numbers are in `Documentation/Terminals/Terminal compatibility survey.md`, "A
+whole picture as a classic placement".
+
+**Nothing above the writer changed.** `_ImageCore`, gradients, the store, opacity,
+frost and the veil go on making placeholder cells, so clipping, covering and
+scrolling are still done on cells. `FrameDiffWriter.buildLine` turns each cell
+into a space (`KittyGraphics.extractingPlaceholders`), keeping its styling, and
+reports the runs. The store turns a run into pixels (`placementRun(for:)`),
+counting across the box its cells count across. `PicturePlacementLayer`, the
+layer pictures under text were already using, gathers them into blocks and keeps
+the terminal in step: a second instance, at `z=1`, since the cells under it are
+blank. No virtual placement is sent (`KittyGraphics.placement` answers `""`).
+
+**Looked at live, 2026-11-01:** `Example --page images` drew its photograph in real
+pixels in Warp v0.2026.10.21, by the handshake, and in iTerm2 3.7.6 under
+`TUI_GRAPHICS=classic`. Neither had a key pressed in it: a picture moving, covered
+or resized has been run only through the tests.
+
+**Which hosts.** `KittyGraphics.drawsPicturesByClassicPlacement`: the handshake
+said no virtual placement and yes to a classic one, or `TUI_GRAPHICS=classic`,
+which is how to try it on a terminal that has both. Placeholders win where there
+are both. So a host needs no table to get pictures. `TUI_GRAPHICS=0` is the answer
+to one that answers and draws nothing, as it always was.
+
+**The damage model (§11.3).** A resize or a resume invalidates the layer, as it
+does the hairlines'. A block across a row the frame wrote is placed again by its
+`(i, p)`: WezTerm keeps a picture in its cells (source read), so a row written
+over it would lose that row of the picture. About sixty bytes a block. Warp and
+iTerm2 were measured to need no such thing. The diff writer moves no band of rows
+while a run is on screen (`marksOnScreen`), as it does not for the other two kinds
+of mark. A suspend and a quit delete the placements.
+
+**Warp ignores the source rectangle.** Every spelling drew the whole picture, and
+no reply shows it, so `classicPlacementsCrop` is a table of one. There a block that
+is not a whole picture is not placed, because the picture would be drawn entire in
+the crop's cells. So on Warp, a picture a modal covers part of, or a scroll view
+clips, draws blank cells until it is whole. A veil or a fade over ALL of one still
+draws: its copy is a whole picture of its own. Warp also ignores `z`, and draws
+over the text; TUI's blank cells make that no matter.
+
+**What is not done.**
+
+- A snapshot (`ViewRenderer`) draws blank cells there: it keeps no placement to
+  delete and its image goes with it.
+- A host's quota can evict an image with no placement (the spec's rule) and under
+  `q=2` the placement of it is then silently nothing. The hairlines delete a strip
+  rather than risk this. A picture's image is held by the store while a view draws
+  it, and a picture scrolled wholly out of its clip on Warp has none.
+- A cell of text over a picture is a cut in the picture, as under placeholders.
+  Pictures under text remain Ghostty's (§14.5).

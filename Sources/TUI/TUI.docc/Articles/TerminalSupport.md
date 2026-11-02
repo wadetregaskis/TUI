@@ -14,7 +14,7 @@ This page is for when you want to know what your users will see.
 |---|---|---|---|---|
 | Ghostty | Yes | Yes | Yes | Millions |
 | iTerm2 | Yes, see below | Yes | Yes | Millions |
-| Warp | Yes | No, text characters | Yes | Millions |
+| Warp | Yes | Yes, whole pictures only | Yes | Millions |
 | Apple's Terminal | Yes, see below | No, text characters | No | 256 |
 | GNOME Terminal | Yes | No, text characters | No | Millions |
 | tmux | Passed on | No, text characters | No | Millions |

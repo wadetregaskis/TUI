@@ -117,8 +117,8 @@ extension TUIEnvironmentVariables {
             code: .overrides("`TerminalClient.simulated`, which draws for another terminal: for diagnosis, not for shipping.")),
         TUIEnvironmentVariable(
             "TUI_GRAPHICS", .endUser, .terminal,
-            values: "`0` or `1`",
-            effect: "Pictures in text characters, or in real pixels, without asking the terminal.",
+            values: "`0`, `1` or `classic`",
+            effect: "Pictures in text characters, or in real pixels, without asking the terminal. `classic` draws them without Unicode placeholders, for a terminal that has none.",
             code: .overrides("`TerminalClient.graphicsSupport`. `.terminalGraphics(false)` for part of an app; `.terminalGraphics(true)` doesn't turn on what this turned off."),
             reading: .eachUse),
         TUIEnvironmentVariable(

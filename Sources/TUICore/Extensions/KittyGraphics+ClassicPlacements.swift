@@ -92,6 +92,48 @@ extension KittyGraphics {
     }
 }
 
+// MARK: - Whether this terminal draws pictures by classic placement
+
+extension KittyGraphics {
+
+    /// Whether the terminal painting this app's output speaks the Kitty graphics
+    /// protocol with no Unicode placeholders, so that a picture's cells become
+    /// spaces at the writer and a classic placement draws what they covered
+    /// (`Terminal graphics protocols.md` §15). Published from
+    /// `TerminalClient.applyGraphicsSupport()`.
+    ///
+    /// Everything above the writer goes on making placeholder cells, so a picture
+    /// is still clipped, scrolled and composited as cells are. Asked of the
+    /// terminal, as ``isSupported`` is. **Defaults to `false`.**
+    package static var drawsPicturesByClassicPlacement: Bool {
+        get { taskClassicPlacements ?? processClassicPlacements.load(ordering: .relaxed) }
+        set { processClassicPlacements.store(newValue, ordering: .relaxed) }
+    }
+
+    /// Whether such a host honours a placement's source rectangle: a table, as no
+    /// reply shows it. `false` on Warp, measured to draw the whole picture for
+    /// every crop. **Defaults to `true`**, the protocol's word.
+    package static var classicPlacementsCrop: Bool {
+        get { processClassicPlacementsCrop.load(ordering: .relaxed) }
+        set { processClassicPlacementsCrop.store(newValue, ordering: .relaxed) }
+    }
+
+    /// Atomic for the reason ``isSupported`` gives: written during startup and
+    /// read by whoever draws after.
+    private static let processClassicPlacements = Atomic(false)
+    private static let processClassicPlacementsCrop = Atomic(true)
+
+    /// A task-scoped pin, bound by ``withClassicPlacements(_:operation:)``.
+    @TaskLocal private static var taskClassicPlacements: Bool?
+
+    /// Runs `operation` with ``drawsPicturesByClassicPlacement`` pinned on this
+    /// task only: tests run in parallel.
+    @discardableResult
+    package static func withClassicPlacements<T>(_ drawn: Bool, operation: () throws -> T) rethrows -> T {
+        try $taskClassicPlacements.withValue(drawn, operation: operation)
+    }
+}
+
 // MARK: - Whether this terminal draws a line between rows
 
 extension KittyGraphics {

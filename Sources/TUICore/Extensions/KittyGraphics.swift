@@ -215,8 +215,15 @@ public enum KittyGraphics {
     ///   drawn by, or another — a navigation zoom's scaled picture is `2` —
     ///   which cells name in their underline colour
     ///   (``placeholderRows(id:columns:rows:placement:)``).
+    ///
+    /// - Returns: the escape, or `""` for a request the protocol cannot express,
+    ///   or on a host drawing by classic placements
+    ///   (``drawsPicturesByClassicPlacement``): one that has no virtual
+    ///   placements either refuses this or draws it at the cursor.
     public static func placement(id: ImageID, columns: Int, rows: Int, placement: UInt32 = 1) -> String {
-        guard id > 0, id <= maximumImageID, columns > 0, rows > 0, placement > 0 else { return "" }
+        guard id > 0, id <= maximumImageID, columns > 0, rows > 0, placement > 0,
+            !drawsPicturesByClassicPlacement
+        else { return "" }
         return "\u{1B}_Ga=p,U=1,q=2,i=\(id),p=\(placement),c=\(columns),r=\(rows)\u{1B}\\"
     }
 
@@ -312,9 +319,11 @@ public enum KittyGraphics {
 
 extension KittyGraphics {
 
-    /// Whether the terminal painting this app's output supports the one
-    /// feature TUI needs — a **virtual placement**, drawn through Unicode
-    /// placeholders — published from `TerminalClient.applyGraphicsSupport()`.
+    /// Whether the terminal painting this app's output draws pictures — by a
+    /// **virtual placement**, through Unicode placeholders, or where it has none
+    /// by a classic placement (``drawsPicturesByClassicPlacement``), which the
+    /// writer swaps for the same cells: nothing that reads this has to care which.
+    /// Published from `TerminalClient.applyGraphicsSupport()`.
     ///
     /// The same shape as `TerminalHyperlink/isSupported`, and read from the
     /// same place: a render path that is not main-actor isolated and cannot go
@@ -326,13 +335,13 @@ extension KittyGraphics {
     /// a placement request at startup and either says `OK` or does not, so an
     /// unknown terminal that supports the protocol gets pictures without
     /// anybody adding it to a list, and Warp — which answers the protocol
-    /// query `OK` and refuses the placement by name — is excluded by its own
-    /// answer rather than by a maintainer noticing.
+    /// query `OK` and refuses a virtual placement by name — is sent classic
+    /// ones by its own answer rather than by a maintainer noticing.
     ///
     /// **Defaults to `false`**, which is what makes the whole feature safe to
     /// add: every path that reads this falls back to the glyph renderer, which
     /// has drawn every image in this framework until now and still draws them
-    /// on two of the four hosts (Apple Terminal and Warp).
+    /// wherever nothing answered (Apple Terminal among them).
     public static var isSupported: Bool {
         get { taskSupported ?? processSupported.load(ordering: .relaxed) }
         set { processSupported.store(newValue, ordering: .relaxed) }

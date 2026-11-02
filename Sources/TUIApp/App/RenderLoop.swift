@@ -227,6 +227,9 @@ internal final class RenderLoop<A: App> {
     /// host that draws none.
     let picturesUnderText = PicturePlacementLayer(z: PicturePlacementLayer.underText)
 
+    /// Every picture, on a host with no Unicode placeholders.
+    let classicPictures = PicturePlacementLayer(z: PicturePlacementLayer.overCells)
+
     /// The push-refreshed emoji-chrome answer (see ``ClientCapabilityRefresher``):
     /// seeded synchronously before the first frame, re-probed asynchronously
     /// when the tmux client-change hooks (or a real resize) send a SIGWINCH,
@@ -939,6 +942,7 @@ extension RenderLoop {
         // again by the next frame.
         hairlines.invalidate()
         picturesUnderText.invalidate()
+        classicPictures.invalidate()
         // A SIGWINCH is also our signal that the tmux CLIENT may have changed —
         // either a real resize (attaching from a different-sized terminal), or
         // the synthetic one our tmux hooks send for a SAME-size attach/detach
@@ -1257,6 +1261,7 @@ extension RenderLoop {
         // other images: they draw nothing.
         let hairlinesPrepared = prepareHairlines(environment: environment, terminalWidth: terminalWidth)
         let picturesPrepared = preparePicturesUnderText()
+        let classicPrepared = prepareClassicPictures()
 
         // Copies owed to the terminal's clipboard (OSC 52), made between frames
         // by a key or a release. They draw nothing and move no cursor, so they
@@ -1293,6 +1298,11 @@ extension RenderLoop {
         let placedHairlines = hairlinesPrepared && hairlines.place(on: terminal, startRow: 1)
         // The pictures under the glyphs, likewise.
         let placedPictures = picturesPrepared && picturesUnderText.place(on: terminal, startRow: 1)
+        // And every picture on a host with no placeholders, after the spaces its
+        // cells went out as.
+        let placedClassic =
+            classicPrepared
+            && classicPictures.place(on: terminal, startRow: 1, rewritten: diffWriter.rowsWrittenInLastDiff)
         // The images this frame let go of, after the cells that stopped naming
         // them and inside the same hold: a picture swapped for another goes in
         // one held update, never blank in between. See
@@ -1302,7 +1312,7 @@ extension RenderLoop {
         parkCursor(
             at: insertionPointOnScreen(
                 in: buffer.hitTestRegions, width: terminalWidth, height: outputLines.count),
-            afterWriting: wrote || placedHairlines || placedPictures)
+            afterWriting: wrote || placedHairlines || placedPictures || placedClassic)
 
         // Keep what an animation tick would need to patch: the lines actually on
         // screen, the runs composited into absolute positions, and the geometry

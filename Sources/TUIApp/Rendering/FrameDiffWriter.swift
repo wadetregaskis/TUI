@@ -196,12 +196,19 @@ final class FrameDiffWriter {
     /// text (``PictureUnderTextMarker``), on the same terms as ``appliedHairlines``.
     private var appliedPicturesUnderText = false
 
+    /// Whether the rows were last built for a host that draws pictures by classic
+    /// placement (``KittyGraphics/drawsPicturesByClassicPlacement``), on the same
+    /// terms as ``appliedHairlines``.
+    private var appliedClassicPlacements = false
+
     /// The marks one built row carried, read and taken out of it: the hairline
-    /// runs along its top and the picture runs under its text, each cut to the
+    /// runs along its top, the picture runs under its text, and on a host with
+    /// no placeholders the runs of them that became spaces, each cut to the
     /// terminal's width.
     struct RowMarks {
         var hairlines: [HairlineMarker.Run] = []
         var pictures: [PictureUnderTextMarker.Run] = []
+        var placeholders: [KittyGraphics.PlaceholderRun] = []
     }
 
     /// The marks the last ``buildReusingOutputLines(buffer:terminalWidth:terminalHeight:bgCode:reset:)``
@@ -217,6 +224,16 @@ final class FrameDiffWriter {
     var pictureUnderTextRows: [[PictureUnderTextMarker.Run]] {
         appliedPicturesUnderText ? markRows.map(\.pictures) : []
     }
+
+    /// The picture cells on each row that went out as spaces: what the run loop
+    /// places instead. Empty on a host with placeholders.
+    var imagePlaceholderRows: [[KittyGraphics.PlaceholderRun]] {
+        appliedClassicPlacements ? markRows.map(\.placeholders) : []
+    }
+
+    /// The rows the last ``writeContentDiff(newLines:terminal:startRow:terminalWidth:bgCode:reset:)``
+    /// wrote, counted from the first row of the content.
+    private(set) var rowsWrittenInLastDiff: [Int] = []
 
     /// Number of rows actually (re)built by the most recent
     /// `buildReusingOutputLines(…)` call; the remainder were reused from the
@@ -332,7 +349,7 @@ extension FrameDiffWriter {
         let eraseLine = "\u{1B}[2K"
         let emptyLine = bgCode + eraseLine + reset
         let params = LineParams(width: terminalWidth, bgCode: bgCode, reset: reset)
-        let extractsMarks = appliedHairlines || appliedPicturesUnderText
+        let extractsMarks = appliedHairlines || appliedPicturesUnderText || appliedClassicPlacements
 
         let cache = contentReuse
         let previousBuilt = cache.builtLines
@@ -464,6 +481,13 @@ extension FrameDiffWriter {
             sanitized = extracted.line
             marks.pictures = Self.cut(extracted.runs, toWidth: terminalWidth)
         }
+        // A picture's own cells, on a host with no placeholders to draw them:
+        // spaces from here on, and a placement beside the row.
+        if appliedClassicPlacements {
+            let extracted = KittyGraphics.extractingPlaceholders(sanitized)
+            sanitized = extracted.line
+            marks.placeholders = Self.cut(extracted.runs, toWidth: terminalWidth)
+        }
         // Clip first so over-wide content (a layout that does not shrink to fit
         // a narrower terminal) cannot wrap past the right edge.  Cursor
         // compensation is applied AFTER clipping so any CUF sequences are scoped
@@ -546,15 +570,32 @@ extension FrameDiffWriter {
         }
     }
 
-    /// Drops every cache if whether this host draws hairlines, or pictures
-    /// under text, changed since the last frame (``appliedHairlines``,
-    /// ``appliedPicturesUnderText``).
+    /// `runs` cut to the first `width` cells.
+    private static func cut(
+        _ runs: [KittyGraphics.PlaceholderRun], toWidth width: Int
+    ) -> [KittyGraphics.PlaceholderRun] {
+        runs.compactMap { run in
+            guard run.column < width else { return nil }
+            var cut = run
+            cut.columns = min(run.columns, width - run.column)
+            return cut
+        }
+    }
+
+    /// Drops every cache if whether this host draws hairlines, pictures under
+    /// text, or pictures by classic placement changed since the last frame
+    /// (``appliedHairlines``, ``appliedPicturesUnderText``,
+    /// ``appliedClassicPlacements``).
     private func invalidateIfMarksChanged() {
         let hairlines = KittyGraphics.isHairlineSupported
         let pictures = KittyGraphics.isPictureUnderTextSupported
-        guard appliedHairlines != hairlines || appliedPicturesUnderText != pictures else { return }
+        let classic = KittyGraphics.drawsPicturesByClassicPlacement
+        guard appliedHairlines != hairlines || appliedPicturesUnderText != pictures
+            || appliedClassicPlacements != classic
+        else { return }
         appliedHairlines = hairlines
         appliedPicturesUnderText = pictures
+        appliedClassicPlacements = classic
         markRows = []
         invalidate()
     }
@@ -717,6 +758,7 @@ extension FrameDiffWriter {
         // mark is taken out here and the layer is not told (``HairlineLayer``).
         var frame = appliedHairlines ? HairlineMarker.stripping(frame) : frame
         if appliedPicturesUnderText { frame = PictureUnderTextMarker.stripping(frame) }
+        if appliedClassicPlacements { frame = KittyGraphics.strippingPlaceholders(frame) }
         return FrameBuffer.patchingAnimatedCells(
             in: line, with: frame, atColumn: run.offsetX, width: run.width,
             fields: fields, compensating: compensatingCursorAdvance)
@@ -735,11 +777,11 @@ extension FrameDiffWriter {
         reset: String
     ) -> Bool {
         movedCursor = false
-        let changedRows = writeDiff(
+        rowsWrittenInLastDiff = writeDiff(
             newLines: newLines, previousLines: previousContentLines, terminal: terminal,
             startRow: startRow, terminalWidth: terminalWidth, bgCode: bgCode)
         repaintRightEdge(
-            changedRows: changedRows,
+            changedRows: rowsWrittenInLastDiff,
             in: newLines,
             terminal: terminal,
             startRow: startRow,
@@ -922,7 +964,7 @@ extension FrameDiffWriter {
 
     /// Whether a row of the frame last built carries a mark.
     private var marksOnBuiltRows: Bool {
-        markRows.contains { !$0.hairlines.isEmpty || !$0.pictures.isEmpty }
+        markRows.contains { !$0.hairlines.isEmpty || !$0.pictures.isEmpty || !$0.placeholders.isEmpty }
     }
 
     /// Moves a band of rows if that is cheaper than writing them, and leaves

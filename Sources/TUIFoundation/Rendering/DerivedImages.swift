@@ -285,6 +285,14 @@ struct DerivedImages {
         return (source.columns, source.rows)
     }
 
+    /// The size copy `copyID` was sent at.
+    func sentSize(ofCopy copyID: KittyGraphics.ImageID) -> (width: Int, height: Int)? {
+        guard let origin = origins[copyID], let copy = sources[origin.source]?.copies[origin.transform] else {
+            return nil
+        }
+        return (copy.sentWidth, copy.sentHeight)
+    }
+
     /// The rectangle of copy `copyID`'s pixels, as it was sent, that its cell
     /// (`column`, `row`) draws: what a classic placement crops it to, to lay
     /// that cell of it under a glyph (`PictureUnderTextMarker`). Edges at

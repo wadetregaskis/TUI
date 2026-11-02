@@ -272,11 +272,14 @@ extension ViewRenderer {
     /// a hairline's mark (`HairlineMarker`), which a list makes on a host that
     /// draws hairlines: a one-off render places no lines, so the mark only has
     /// to go. And without a glyph's mark for a picture under it
-    /// (`PictureUnderTextMarker`), which places nothing here either.
+    /// (`PictureUnderTextMarker`), which places nothing here either. And on a
+    /// host with no placeholders, a picture's cells go as blanks: a one-off render
+    /// keeps no placement, and its image goes with it (graphics notes §15).
     private func terminalRow(_ line: String) -> String {
         var sanitized = line.sanitizedForTerminalRow()
         if KittyGraphics.isHairlineSupported { sanitized = HairlineMarker.stripping(sanitized) }
         if KittyGraphics.isPictureUnderTextSupported { sanitized = PictureUnderTextMarker.stripping(sanitized) }
+        if KittyGraphics.drawsPicturesByClassicPlacement { sanitized = KittyGraphics.strippingPlaceholders(sanitized) }
         return writer.compensatingCursorAdvance(sanitized)
     }
 }

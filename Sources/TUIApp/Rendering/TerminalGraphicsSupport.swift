@@ -88,11 +88,50 @@ extension TerminalClient {
         KittyGraphics.isSupported = graphicsSupported
         KittyGraphics.isCompressionSupported = graphicsCompressionSupported
         KittyGraphics.isHairlineSupported = hairlinesSupported
-        KittyGraphics.isPictureUnderTextSupported = picturesUnderTextSupported
+        let classic = graphicsSupported && classicPlacementsInUse
+        KittyGraphics.drawsPicturesByClassicPlacement = classic
+        KittyGraphics.classicPlacementsCrop = classicPlacementsCrop(program: current.program)
+        // The two layers name their placements alike, so one image's could
+        // collide, and a host with no placeholders stands a glyph on the average
+        // colour as a host with neither does.
+        KittyGraphics.isPictureUnderTextSupported = picturesUnderTextSupported && !classic
     }
 
-    /// Whether the terminal painting this app's output will place an image in
-    /// its cell grid — the override, then the environment, then the handshake.
+    /// Whether this terminal's pictures are drawn by classic placements: see
+    /// ``classicPlacementsInUse(override:environment:detectedPlacement:detectedClassic:)``.
+    @MainActor static var classicPlacementsInUse: Bool {
+        classicPlacementsInUse(
+            override: graphicsSupport, environment: ProcessInfo.processInfo.environment,
+            detectedPlacement: detectedGraphics, detectedClassic: detectedClassicPlacements)
+    }
+
+    /// Whether pictures go by classic placement, posed on its inputs: the
+    /// override's `false`, then `TUI_GRAPHICS` (`classic` to ask for them on any
+    /// host, `1` and `0` for no classic placement), then the handshake: a host
+    /// that placed one and has no virtual placement. Placeholders win where
+    /// there are both, since a picture made of cells is what a terminal clips,
+    /// covers and scrolls by itself.
+    static func classicPlacementsInUse(
+        override: Bool?, environment: [String: String], detectedPlacement: Bool?, detectedClassic: Bool?
+    ) -> Bool {
+        if override == false { return false }
+        switch environment["TUI_GRAPHICS"] {
+        case "classic": return true
+        case "1", "0": return false
+        default: return detectedPlacement != true && detectedClassic == true
+        }
+    }
+
+    /// Whether `program` honours a classic placement's source rectangle: every
+    /// host but Warp, measured to draw the whole picture for every crop. No
+    /// reply shows it, so it is a table; a host not in it takes the protocol's word.
+    static func classicPlacementsCrop(program: Program) -> Bool {
+        program != .warp
+    }
+
+    /// Whether the terminal painting this app's output draws pictures — the
+    /// override, then the environment, then the handshake, whichever kind of
+    /// placement it said yes to.
     ///
     /// Unlike ``hyperlinksSupported`` this does **not** read through
     /// ``effective``, so ``simulated`` does not change it. Simulating Apple
@@ -102,7 +141,12 @@ extension TerminalClient {
     @MainActor public static var graphicsSupported: Bool {
         graphicsSupported(
             override: graphicsSupport, environment: ProcessInfo.processInfo.environment,
-            detected: detectedGraphics)
+            detected: detectedPictures)
+    }
+
+    /// What the handshake said to either question, or `nil` if it never ran.
+    @MainActor static var detectedPictures: Bool? {
+        detectedGraphics.map { $0 || detectedClassicPlacements == true }
     }
 
     /// The ladder behind ``graphicsSupported``, posed on its inputs — the
@@ -115,7 +159,7 @@ extension TerminalClient {
     ) -> Bool {
         if let override { return override }
         switch environment["TUI_GRAPHICS"] {
-        case "1": return true
+        case "1", "classic": return true
         case "0": return false
         default: return detected ?? false
         }
@@ -250,7 +294,7 @@ extension TerminalClient {
         detectedCellPixels = terminal.cellPixelSize() != nil
         guard graphicsSupport == nil else { return }
         let forced = ProcessInfo.processInfo.environment["TUI_GRAPHICS"]
-        guard forced != "1", forced != "0" else { return }
+        guard forced != "1", forced != "0", forced != "classic" else { return }
         let answers = terminal.queryGraphicsSupport()
         detectedGraphics = answers.placement
         detectedGraphicsCompression = answers.compression

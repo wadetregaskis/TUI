@@ -770,6 +770,13 @@ package struct SGRState: Sendable, Equatable {
     /// twin of ``backgroundColour``, for the same kind of caller.
     package var foregroundColour: Colour? { foreground }
 
+    /// The underline colour in force, where it is a palette index, which is how
+    /// a Kitty placeholder cell names a placement.
+    package var underlineColourIndex: Int? {
+        if case .indexed(let index)? = underlineColour { return index }
+        return nil
+    }
+
     /// `colour` as the escape that puts it in force as the background: what
     /// ``renderedBackground`` spells for a state holding it, and `ESC[49m` for
     /// `nil`, which the rendered form spells as nothing because it starts from

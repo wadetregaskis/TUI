@@ -53,10 +53,12 @@ extension TerminalCapabilities {
     /// undetermined where it never ran.
     @MainActor
     static func picturesStatus(environment: [String: String]) -> Status {
-        if isForced(override: TerminalClient.graphicsSupport, variable: "TUI_GRAPHICS", in: environment) {
+        if isForced(override: TerminalClient.graphicsSupport, variable: "TUI_GRAPHICS", in: environment)
+            || environment["TUI_GRAPHICS"] == "classic"
+        {
             return TerminalClient.graphicsSupported ? .supported : .unsupported
         }
-        switch TerminalClient.detectedGraphics {
+        switch TerminalClient.detectedPictures {
         case .some(true): return .supported
         case .some(false): return .unsupported
         case .none: return .undetermined
