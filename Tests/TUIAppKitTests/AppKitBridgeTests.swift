@@ -59,9 +59,8 @@ struct AppKitBridgeTests {
         // because the module split gives each planned module a directory of
         // its own (Sources/TUIFoundation, Sources/TUILists …), and a
         // list would miss the next one. They may import each other.
-        // `TUIArgumentParser` too: only an app that turns its trait on builds it.
         let notBuiltFrom: Set<String> = [
-            "TUIAppKit", "TUIArgumentParser", "TUIFilePanelsAppKit", "TUIMacros", "TUIMacrosPlugin", "TUIWidthCorpus",
+            "TUIAppKit", "TUIFilePanelsAppKit", "TUIMacros", "TUIMacrosPlugin", "TUIWidthCorpus",
         ]
         let modules = try FileManager.default.contentsOfDirectory(atPath: sources.path)
             .filter { $0.hasPrefix("TUI") && !notBuiltFrom.contains($0) }

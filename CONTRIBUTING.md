@@ -897,7 +897,6 @@ For example:
 
 - [swift-docc-plugin](https://github.com/swiftlang/swift-docc-plugin) — documentation
 - [swift-syntax](https://github.com/swiftlang/swift-syntax) — the `@Animatable` and `@Entry` macros' compiler plugin, built only for an app that depends on the `TUIMacros` product (every client resolves and fetches it)
-- [swift-argument-parser](https://github.com/apple/swift-argument-parser) — for the `TUIArgumentParser` product, fetched only by a client that turns on the trait `ArgumentParser`, this package's own build included (`swift build --traits default,ArgumentParser`)
 - [ordo-one/benchmark](https://github.com/ordo-one/package-benchmark) — performance benchmarks, opt-in via the `TUI_BENCHMARKS` flag: `TUI_BENCHMARKS=1 swift package benchmark` (kept out of the default build/test graph)
 
 ## Project structure
@@ -959,8 +958,6 @@ Sources/
 │   TUISearch on TUITextInput and TUIPickers, TUICurveEditors
 │   on TUIColorPicker), and the umbrella re-exports all twenty.
 │   Inside each: App/, Views/, Modifiers/, Focus/, ...
-├── TUIArgumentParser/  `AppCommand`, on TUIApp. Empty without the trait `ArgumentParser`,
-│                         and the umbrella doesn't re-export it. Tested in Tools/ProductSmoke
 ├── TUIEnvironmentDocs/  The table of every environment variable TUI reads, and the
 │                         text for a man page. On nothing, and the umbrella doesn't
 │                         re-export it. `swift run tui-environment-docs` prints it

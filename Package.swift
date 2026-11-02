@@ -31,7 +31,7 @@ let package = Package(
 
         // ── The umbrella: the default ───────────────────────────────────────────────────────────────────
         // `import TUI` is the whole framework, as `import SwiftUI` is the whole of SwiftUI: every module
-        // below but TUIAppKit, TUIArgumentParser, TUIEnvironmentDocs, TUIFilePanelsAppKit, TUIMacros and TUITesting, which are opt-in. Start here; the README and the docs do.
+        // below but TUIAppKit, TUIEnvironmentDocs, TUIFilePanelsAppKit, TUIMacros and TUITesting, which are opt-in. Start here; the README and the docs do.
         .library(name: "TUI", targets: ["TUI"]),
 
         // ── À la carte: one product per module ──────────────────────────────────────────────────────────
@@ -140,10 +140,6 @@ let package = Package(
         // `dependencies:` and nothing else, so a shipping app never carries it. Uses no `@testable`, and
         // neither Testing nor XCTest. Re-exports TUIApp.
         .library(name: "TUITesting", targets: ["TUITesting"]),
-        // TUIArgumentParser: `AppCommand`, a swift-argument-parser command that parses its command line and runs
-        // an `App` made from it. Needs the trait `ArgumentParser`, at the end of this file, and without it is
-        // empty. The umbrella doesn't re-export it. Re-exports TUIApp and, with the trait, ArgumentParser.
-        .library(name: "TUIArgumentParser", targets: ["TUIArgumentParser"]),
         // TUIEnvironmentDocs: `TUIEnvironmentVariables`, the table of every environment variable TUI reads, and
         // the text an app's man page or website needs. A product of its own so that an app that doesn't ask for
         // it carries none of the text: it depends on nothing, nothing depends on it, and the umbrella doesn't
@@ -220,9 +216,6 @@ let package = Package(
         // 6.2 that wants them pins `exact: "602.0.0"` itself. See decisions
         // B-D6M-2.
         .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"700.0.0"),
-        // For the `TUIArgumentParser` product alone, and fetched only by a client that turns on the trait
-        // `ArgumentParser` (at the end of this file, with what was measured).
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
         // ordo-one/benchmark is added conditionally at the bottom of this file
         // (gated on TUI_BENCHMARKS), so the default build/test graph stays
         // free of its plugin's upstream deprecation warnings and the jemalloc
@@ -743,19 +736,6 @@ let package = Package(
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
-        // `AppCommand`. Its one link to swift-argument-parser is behind the trait, which is what keeps that package
-        // from every other client (the trait's comment; Tools/validate-package-manifest.sh holds the rule).
-        .target(
-            name: "TUIArgumentParser",
-            dependencies: [
-                "TUIApp",
-                .product(
-                    name: "ArgumentParser", package: "swift-argument-parser",
-                    condition: .when(traits: ["ArgumentParser"])),
-            ],
-            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
-        ),
-
         // The table of environment variables, and `swift run tui-environment-docs`, which prints it. No
         // dependencies, and no Foundation in the library, so it builds wherever Swift does.
         .target(name: "TUIEnvironmentDocs"),
@@ -1212,21 +1192,6 @@ package.traits.formUnion([
             + "every program and library linking it (macOS release builds)."
     ),
 ])
-// ── swift-argument-parser: the trait `ArgumentParser` (default off) ──────────────────────────────────────────
-// SwiftPM fetches a package dependency for every client, whichever products that client uses, unless no target
-// needs it under the traits enabled. So one used only behind a trait that is off is neither cloned nor pinned.
-// Measured 2026-11-02 with a consumer of `TUI` and of `TUIFoundation`, by path and by version, on Swift 6.2.4,
-// 6.3.3, 6.4.0 and Xcode's 6.2.4: with an unconditional dependency and a product of its own, swift-argument-parser
-// is in `.build/checkouts` and Package.resolved for all of them; behind this trait, in neither, unless the
-// consumer says `traits: [.defaults, "ArgumentParser"]`. A package in a subdirectory of this repository is no way
-// out: a URL names a repository's root, so only a local clone could reach it. Tools/verify-versioned-consumer.sh
-// checks the result on every tag.
-package.traits.insert(
-    .trait(
-        name: "ArgumentParser",
-        description: "Brings swift-argument-parser, for the TUIArgumentParser product. Nothing else uses it."
-    )
-)
 let libraryModules: Set<String> = {
     let targets = Dictionary(uniqueKeysWithValues: package.targets.map { ($0.name, $0) })
     var pending = package.products.compactMap { $0 as? Product.Library }.flatMap(\.targets)

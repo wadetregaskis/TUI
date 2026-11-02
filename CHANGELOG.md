@@ -4,12 +4,6 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
-**`TUIArgumentParser` runs an app from a swift-argument-parser command.** An `AppCommand` parses its command line, prints
-help and mistakes before the app takes the screen, and runs the app it makes from the values parsed. Opt-in twice over:
-it needs the product and TUI's `ArgumentParser` trait, and a package without that trait doesn't fetch swift-argument-parser
-at all. See `With swift-argument-parser` in `Scenes and Quitting`, and `Environment Variables` for which of a flag and a
-variable wins.
-
 **`App.run()` runs an app you made yourself.** A program that works something out before starting its app, such as from
 its command line, makes the app with those values and calls `await Viewer(path: path).run()`, with no global to carry
 them. See `Starting an App Yourself` in `Scenes and Quitting`.

@@ -65,13 +65,13 @@ So the order is your code, then a flag, then a variable, then TUI's default:
 Step 3 depends on how you read the flag. Only pass it on if it was given, or a flag's default overrides the variable. With swift-argument-parser (<doc:ScenesAndQuitting#With-swift-argument-parser>), that means an optional value rather than a default:
 
 ```swift
-struct ViewerCommand: AppCommand {
+struct ViewerCommand: AsyncParsableCommand {
     @Option var color: String?  // nil when not given, and then NO_COLOR still counts
 
-    var app: some App {
+    func run() async {
         if color == "always" { ColorDepth.current = .truecolor }
         if color == "never" { ColorDepth.current = .noColor }
-        return Viewer()
+        await Viewer().run()
     }
 }
 ```

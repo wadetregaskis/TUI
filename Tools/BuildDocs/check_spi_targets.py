@@ -32,9 +32,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from unify_symbol_graphs import MODULES, UMBRELLA  # noqa: E402
 
 # Apple-only bridges and the macro product: the unified build runs on any platform
-# and reads no macro declarations. And the product that is empty without a trait the
-# unified build leaves off.
-NOT_DOCUMENTED = {"TUIAppKit", "TUIArgumentParser", "TUIFilePanelsAppKit", "TUIMacros"}
+# and reads no macro declarations.
+NOT_DOCUMENTED = {"TUIAppKit", "TUIFilePanelsAppKit", "TUIMacros"}
 
 KEY = re.compile(r"^[ \t]*(?:-[ \t]*)?documentation_targets[ \t]*:(.*)$", re.MULTILINE)
 FLOW = re.compile(r"[ \t]*\[([^\]]*)\]")

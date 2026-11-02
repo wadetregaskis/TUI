@@ -68,7 +68,6 @@ notifications and `.help`. It links `TUIPresentation` too, for the alert the qui
 | `TUIMacros` | the `@Entry`, `@Animatable` and `@AnimatableIgnored` macros (it builds swift-syntax) | `TUICore` |
 | `TUITesting` | `TestApp`, for running your views in unit tests (<doc:TestingYourApp>). List it in a test target, not in your app; `TUI` does not include it | `TUIApp` |
 | `TUIEnvironmentDocs` | `TUIEnvironmentVariables`, the environment variables TUI reads, as text for your own documentation (<doc:ShippingAnApp#Documenting-Environment-Variables>); `TUI` does not include it | Nothing |
-| `TUIArgumentParser` | `AppCommand`, a swift-argument-parser command that runs an app (<doc:ScenesAndQuitting#With-swift-argument-parser>). It needs TUI's `ArgumentParser` trait, and only with that trait does your package fetch swift-argument-parser; `TUI` does not include it | `TUIApp`, and with the trait `ArgumentParser` |
 
 Every product in the table but `TUIMacros` and `TUIEnvironmentDocs` brings `TUIFoundation` too, and every module in it but `TUIAppKit`,
 `TUIFilePanelsAppKit` and `TUIMacros`, which are imported beside the others, and `TUIEnvironmentDocs`, which stands alone, re-exports the modules it is built on, so one import covers
@@ -80,7 +79,7 @@ one import covers either. `TUICore` and `TUIStyling` re-export nothing.
 
 ### What `import TUI` brings
 
-`import TUI` re-exports every module in the table above, except `TUITesting`, `TUIEnvironmentDocs`, `TUIArgumentParser` and the three
+`import TUI` re-exports every module in the table above, except `TUITesting`, `TUIEnvironmentDocs` and the three
 imported beside it: `TUIAppKit`, `TUIFilePanelsAppKit` and `TUIMacros`. So on the `TUI` product, add `import TUIAppKit` where you use `Color(nsColor:)`,
 `NSColor(_:)` or `Image(nsImage:)`. They are kept out because AppKit imports SwiftUICore, and a module that imports
 AppKit makes every app importing it see SwiftUI's own extension members beside TUI's.

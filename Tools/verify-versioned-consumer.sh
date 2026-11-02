@@ -125,14 +125,6 @@ EOF
 printf '── Resolving\n'
 swift package --package-path "$CONSUMER_DIR" resolve
 
-printf '── Checking that a client without the trait does not get swift-argument-parser\n'
-# The condition TUIArgumentParser exists under. Read from what was resolved, since it is SwiftPM's decision.
-if [ -e "$CONSUMER_DIR/.build/checkouts/swift-argument-parser" ] \
-    || grep -q swift-argument-parser "$CONSUMER_DIR/Package.resolved"; then
-    echo "error: a client that did not turn on the trait ArgumentParser fetched swift-argument-parser" >&2
-    exit 1
-fi
-
 printf '── Building\n'
 swift build --package-path "$CONSUMER_DIR"
 

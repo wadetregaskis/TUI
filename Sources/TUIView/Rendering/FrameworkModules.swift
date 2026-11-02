@@ -16,7 +16,7 @@
 /// on each, where this is one list and a test.
 package enum FrameworkModules {
     package static let names: Set<Substring> = [
-        "TUI", "TUIApp", "TUIAppKit", "TUIArgumentParser", "TUIBitmaps", "TUIChrome", "TUIColorPicker", "TUICommands",
+        "TUI", "TUIApp", "TUIAppKit", "TUIBitmaps", "TUIChrome", "TUIColorPicker", "TUICommands",
         "TUICore", "TUICurveEditors", "TUIDocuments", "TUIEffects", "TUIFilePanelImages", "TUIFilePanels", "TUIFilePanelsAppKit", "TUIForms",
         "TUIFoundation", "TUIGrid", "TUIImage", "TUILists", "TUIMenus", "TUINavigation", "TUINumericControls",
         "TUIPickers", "TUIPresentation", "TUIScenes", "TUISearch", "TUIStrings", "TUIStyling", "TUITabImages",
