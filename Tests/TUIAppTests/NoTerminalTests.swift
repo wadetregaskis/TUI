@@ -98,9 +98,9 @@ struct NoTerminalTests {
         defer { try? FileManager.default.removeItem(atPath: path) }
         let file = open(path, O_RDONLY)
         defer { close(file) }
-        var closed = dup(file)
-        close(closed)
-        defer { closed = -1 }
+        // -1, not a descriptor opened and closed here: tests run in parallel, and another
+        // test's pipe can be handed the number just freed, which then reads as a pipe.
+        let closed: Int32 = -1
         let situation = try #require(NoTerminal.current(input: file, output: closed, environment: colour))
         #expect(situation.input == .file)
         #expect(situation.output == .closed)
