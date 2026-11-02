@@ -37,6 +37,8 @@ The page exposes a small handle for when something does not arrive:
 __tuikit.pending()      // keystroke bytes the guest has not taken yet
 __tuikit.indices()      // [wake sequence, write index, read index, spare]
 __tuikit.send("q")      // put bytes in without going through the keyboard
+__tuikit.writes()       // batches of output so far: a rate says whether frames are flowing
+__tuikit.screen()       // the screen as text, whichever renderer is drawing it
 ```
 
 ## Emoji

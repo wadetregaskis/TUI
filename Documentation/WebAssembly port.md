@@ -125,6 +125,31 @@ Three details in `wasi.js` are load-bearing, and each one was a bug first:
   A guest told stdin is readable reads it, and the read has to have something
   behind it.
 
+**The terminal fills the page, and says when that changes.** The page measures
+how many cells fit (`@xterm/addon-fit`) and starts the guest with that in
+`COLUMNS`/`LINES`. wasip1 has no `ioctl` and no SIGWINCH, so a later size goes
+down the keystroke ring as the in-band resize report a terminal sends under mode
+2048, `ESC [ 48 ; rows ; columns ; 0 ; 0 t`, which the input parser takes for the
+new size (`Terminal.windowSizeReport`).
+
+**A wait is cut into slices, and the host cuts the executor's sleeps short.** A
+`poll` holds the only thread, so no `Task.sleep` ends during one: waiting for a
+key with no timeout stopped every animation driven by a task until the next key
+or mouse report. `StdinArrivalNotifier` polls for 8 ms at a time and yields
+between. And the yield needs help, because `CooperativeExecutor.runUntil` (6.3.3,
+and still on `main` on 2026-11-01) sleeps until its next timer without looking at
+its run queue: with a 500 ms timer pending, whatever was ready waited for it, and
+the Progress page drew 3 frames a second. Nothing in the guest can get round that,
+a task kept waking for the purpose included, since at the moment the executor
+decides to sleep that task is itself in the run queue. So `wasi.js` ends any sleep
+with no descriptor after 2 ms, and the executor goes round again. Another WASI host
+gets the stalls.
+
+**`Int` is 32 bits.** Seconds since 2001 times a rate does not fit, and converting
+it traps: that was the Text Styles page, which then filled the terminal with the
+stack trace. A trap now resets the terminal and says so in one line, with the
+stack in the browser's console.
+
 **The stack has to be raised at link time.** A view tree renders by recursion,
 and wasm's default linear-memory stack runs out inside the Example's deeper
 pages. `Tools/Web/build.sh` links with `-z stack-size=16777216`.
@@ -132,8 +157,14 @@ pages. `Tools/Web/build.sh` links with `-z stack-size=16777216`.
 ## What works, and what does not
 
 Works: the whole Example — every page, the focus ring's pulse, animations,
-gradients, mouse-free navigation, `@AppStorage` within a session, all seven
-languages, and a clean exit on `q`.
+gradients, the mouse, pictures, resizing, `@AppStorage` within a session, all seven
+languages, and a clean exit on ⌃Q.
+
+**The WebGL renderer, for the block elements.** xterm.js's default renderer draws
+box drawing and block elements from the font, as DOM text, so a three-row button's
+quadrant corners are whatever the font and the browser's line box make of them. The
+WebGL renderer (`@xterm/addon-webgl`) draws those characters itself to fill the cell.
+The page falls back to the default where WebGL2 is missing or its context is lost.
 
 **Emoji need an addon, and this is not optional.** xterm.js ships Unicode 6
 width tables, under which an emoji is one cell: the glyph is drawn clipped and
@@ -152,10 +183,9 @@ Does not, and why:
 
 | | |
 |---|---|
-| Resize | wasip1 has no `ioctl` and the browser has no way to tell the guest; the size is fixed at start from `COLUMNS`/`LINES`. An in-band resize channel would fix it and is not built. |
 | Remote images | no sockets. A file image works; `Image(url:)` reports that the platform has no URL loading. |
 | Clipboard | the page has one; the guest cannot reach it. OSC 52 lets the *terminal* do it, and TUI sends it where the terminal is known to write it (`Terminal compatibility survey.md`, "OSC 52 clipboard writes"); xterm.js writes it only with its clipboard addon, which TUI cannot see, so a copy says "Not copied" unless `TUI_OSC52=1` says the page has the addon. |
-| Opening links | no subprocess. OSC 8 hyperlinks still work, because the terminal opens those, not the app. |
+| Opening links | no subprocess. OSC 8 hyperlinks still work, because the terminal opens those, not the app: the page opens one in a new tab, as well as whatever the app does with the click. |
 | Terminal graphics | the released xterm.js implements no picture protocol at all, so the handshake gets silence and pictures fall back to cells. The beta image addon (with the beta core) *acknowledges* Kitty and decodes the pixels but does not place a virtual placement — the only kind TUI emits — so turning it on draws blank space where the ramps belong. Measured; see the xterm.js section of `Terminal compatibility survey.md`. |
 | Some glyph widths | 29 of 145 corpus clusters still disagree with the framework even with the addon — newer emoji than its Unicode 15 tables, SF Symbols (private-use codepoints have no width anywhere), and Indic vowel signs. The SF Symbols page will shift; no terminal measured does better on that row. |
 | Grapheme-clustering mode | `DECRQM ?2027` answers "not recognised", so the framework keeps its own advance model rather than pinning the terminal's. |

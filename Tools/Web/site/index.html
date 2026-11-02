@@ -34,10 +34,14 @@
         font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
         display: flex;
         flex-direction: column;
-        min-height: 100vh;
+        /* The terminal takes what the page leaves, so the page is exactly the
+           viewport: `dvh` because a phone's toolbars come and go. */
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
       }
       header {
-        padding: 14px 20px 10px;
+        padding: 8px 16px 6px;
         border-bottom: 1px solid #2b2f38;
       }
       h1 {
@@ -47,25 +51,38 @@
         letter-spacing: 0.01em;
       }
       p {
-        margin: 4px 0 0;
+        margin: 2px 0 0;
         color: var(--muted);
         font-size: 12.5px;
       }
       main {
         flex: 1;
+        min-height: 0;
         display: flex;
         justify-content: center;
-        padding: 18px;
+        padding: 8px 16px;
       }
       #frame {
         background: var(--panel);
         border: 1px solid #2b2f38;
         border-radius: 8px;
-        padding: 10px;
+        padding: 6px;
         box-shadow: 0 10px 40px #0006;
+        display: flex;
+        min-width: 0;
+      }
+      #frame.running {
+        flex: 1;
+      }
+      /* Sized by the page, not by its content: the fit addon reads this box's
+         size and works out how many cells fit in it. */
+      #terminal {
+        flex: 1;
+        min-width: 0;
+        min-height: 0;
       }
       footer {
-        padding: 8px 20px 16px;
+        padding: 2px 16px 8px;
         color: var(--muted);
         font-size: 12px;
         display: flex;
@@ -160,11 +177,17 @@
          Ghostty's 63 among the terminals this project has measured. See
          `Tools/Web/glyph-probe.html`. -->
     <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@xterm/addon-unicode-graphemes@0.5.0-beta.301/lib/addon-unicode-graphemes.js"></script>
+    <!-- How many cells fit the space the page leaves. -->
+    <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.11.0/lib/addon-fit.js"></script>
+    <!-- Not only for speed. xterm.js's default renderer draws box drawing and
+         block elements from the font, as DOM text, so what a corner looks like
+         is whatever the font and the browser's line box make of it; the WebGL
+         renderer draws those characters itself, to fill the cell exactly. A
+         three-row button's quadrant corners are what show the difference. -->
+    <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@xterm/addon-webgl@0.19.0/lib/addon-webgl.js"></script>
     <script type="module">
       const status = document.getElementById("status");
       const runButton = document.getElementById("run");
-      const COLUMNS = 100;
-      const ROWS = 32;
       // What the page carries across the one reload that installing the
       // isolation worker takes: "the visitor already pressed Run".
       const RUN_AFTER_RELOAD = "#run";
@@ -229,23 +252,42 @@
 
       async function start() {
         document.getElementById("launch").remove();
+        document.getElementById("frame").classList.add("running");
         const terminalElement = document.getElementById("terminal");
         terminalElement.hidden = false;
         const terminal = new Terminal({
-          cols: COLUMNS,
-          rows: ROWS,
           fontFamily: 'ui-monospace, SFMono-Regular, Menlo, "Cascadia Mono", monospace',
           fontSize: 13,
           theme: { background: "#1e2128", foreground: "#d7dae0" },
           allowProposedApi: true,
           convertEol: false,
           scrollback: 0,
+          // Without this xterm.js asks `confirm()` before following a link.
+          linkHandler: {
+            activate: (_event, uri) => window.open(uri, "_blank", "noopener"),
+          },
         });
         const graphemes = new UnicodeGraphemesAddon.UnicodeGraphemesAddon();
         terminal.loadAddon(graphemes);
         terminal.unicode.activeVersion = "15-graphemes";
+        const fit = new FitAddon.FitAddon();
+        terminal.loadAddon(fit);
         terminal.open(terminalElement);
+        try {
+          const webgl = new WebglAddon.WebglAddon();
+          // A lost context (a GPU reset, too many tabs) falls back to the DOM
+          // renderer rather than to a blank terminal.
+          webgl.onContextLoss(() => webgl.dispose());
+          terminal.loadAddon(webgl);
+        } catch {
+          // No WebGL2: the DOM renderer it already has.
+        }
+        fit.fit();
         terminal.focus();
+
+        // The app's right-click is the app's: xterm.js reports the button, and
+        // the browser's menu would open over whatever the app opened.
+        terminalElement.addEventListener("contextmenu", (event) => event.preventDefault());
 
         // The two shared buffers. The ring is generous: a paste is the only
         // thing that arrives faster than the guest drains it, and 64 KB is more
@@ -273,20 +315,44 @@
         // does not arrive: `__tuikit.pending()` is how many keystroke bytes the
         // worker has not taken yet, and `__tuikit.send("q")` puts bytes in
         // without going through the keyboard at all.
+        let writes = 0;
         window.__tuikit = {
           send,
           pending: () => Atomics.load(controlView, 1) - Atomics.load(controlView, 2),
           indices: () => [...controlView],
+          writes: () => writes,
+          screen: () => {
+            const buffer = terminal.buffer.active;
+            const rows = [];
+            for (let row = 0; row < terminal.rows; row++) {
+              rows.push(buffer.getLine(buffer.viewportY + row)?.translateToString(true) ?? "");
+            }
+            return rows.join("\n");
+          },
         };
 
         terminal.onData(send);
         terminal.onBinary((data) => send(data));
+
+        // wasip1 has no `ioctl` and no SIGWINCH, so a new size goes down the
+        // keystroke ring, spelled as the in-band resize report a terminal sends
+        // under mode 2048: rows and columns in cells, then the same in pixels,
+        // which this page has no use for. See `Terminal.windowSizeReport`.
+        terminal.onResize(({ cols, rows }) => send(`\x1b[48;${rows};${cols};0;0t`));
+        let refit = null;
+        new ResizeObserver(() => {
+          // A dragged window edge reports continuously; a new size repaints
+          // the whole screen, so one per pause rather than one per pixel.
+          clearTimeout(refit);
+          refit = setTimeout(() => fit.fit(), 100);
+        }).observe(terminalElement);
 
         const worker = new Worker("./worker.js", { type: "module" });
         const decoder = new TextDecoder();
         worker.onmessage = (event) => {
           const message = event.data;
           if (message.kind === "stdout") {
+            writes += 1;
             terminal.write(decoder.decode(message.bytes, { stream: true }));
           } else if (message.kind === "status") {
             status.textContent = message.text;
@@ -294,8 +360,15 @@
             status.textContent = `exited (${message.code})`;
             terminal.write("\r\n[2m— the program exited; reload to run it again —[0m\r\n");
           } else if (message.kind === "error") {
+            // A trap, usually, and its stack is hundreds of mangled names: for
+            // the console. The terminal was still in the app's modes, colours
+            // and alternate screen, so it starts again from nothing.
             status.textContent = "failed";
-            terminal.write(`\r\n[31m${message.message.replace(/\n/g, "\r\n")}[0m\r\n`);
+            console.error(message.message);
+            terminal.reset();
+            terminal.write(
+              `\x1b[31mThe program stopped: ${message.message.split("\n")[0]}\x1b[0m\r\n` +
+                "The browser's console has the details. Reload to run it again.\r\n");
           }
         };
 
@@ -304,8 +377,8 @@
           kind: "start",
           wasmURL: manifest.wasm,
           manifest,
-          columns: COLUMNS,
-          rows: ROWS,
+          columns: terminal.cols,
+          rows: terminal.rows,
           control,
           input,
         });

@@ -737,6 +737,11 @@ extension Terminal {
     private func extractDeliverableEvent() -> TerminalInput? {
         while let bytes = tryExtractRegularEvent() {
             staleFrames = 0
+            if let size = Self.windowSizeReport(bytes) {
+                reportedWindowSize = size
+                windowSizeReportPending = true
+                continue
+            }
             if let paste = completedMIMEPaste {
                 completedMIMEPaste = nil
                 return paste
@@ -748,6 +753,28 @@ extension Terminal {
             if inPasteMode { return nil }
         }
         return nil
+    }
+
+    /// The size in an in-band resize report, `ESC [ 48 ; rows ; columns ; …  t`, or
+    /// `nil` for any other sequence.
+    ///
+    /// What a terminal sends under mode 2048, and what stands in for SIGWINCH
+    /// where there is no signal to send: wasip1 has neither, and the browser page
+    /// sends this down the keystroke ring (`Tools/Web/site/index.html`). TUI does
+    /// not ask for the mode, so nothing else sends it.
+    static func windowSizeReport(_ bytes: [UInt8]) -> (width: Int, height: Int)? {
+        guard bytes.count > 5, bytes[0] == 0x1B, bytes[1] == 0x5B, bytes[bytes.count - 1] == 0x74 else { return nil }
+        let fields = bytes[2..<(bytes.count - 1)].split(separator: 0x3B, omittingEmptySubsequences: false)
+            .map { field in String(bytes: field, encoding: .utf8).flatMap { Int($0) } }
+        guard fields.count >= 3, fields[0] == 48, let rows = fields[1], let columns = fields[2], rows > 0, columns > 0
+        else { return nil }
+        return (columns, rows)
+    }
+
+    /// Whether an in-band resize report has arrived since this was last asked.
+    func consumeWindowSizeReport() -> Bool {
+        defer { windowSizeReportPending = false }
+        return windowSizeReportPending
     }
 
     /// One `readEvent()` round while a bracketed paste is open: everything in

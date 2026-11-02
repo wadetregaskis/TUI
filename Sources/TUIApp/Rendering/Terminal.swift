@@ -229,6 +229,15 @@ final class Terminal: HostStateKeeping {
     ///   let the parser try again.
     var staleFrames: Int = 0
 
+    /// The size the last in-band resize report gave, which outranks asking: on
+    /// a host that sends one, it is the only thing that follows the window
+    /// (``windowSizeReport(_:)``).
+    var reportedWindowSize: (width: Int, height: Int)?
+
+    /// Whether a report has come in that ``consumeWindowSizeReport()`` has not
+    /// yet told the run loop about.
+    var windowSizeReportPending = false
+
     /// Set when a lone `ESC` has gone stale and we've removed it from the
     /// buffer but not yet committed it as the Escape key.
     ///
@@ -576,6 +585,8 @@ extension Terminal {
     ///
     /// - Returns: A tuple with width and height in characters/lines.
     func getSize() -> (width: Int, height: Int) {
+        if let reportedWindowSize { return reportedWindowSize }
+
         // No `ioctl` on wasip1, and nothing to ask it: a wasm program has no
         // controlling terminal to measure. The environment fallback below is
         // the whole answer there, which is why a WebAssembly host has to put the

@@ -725,7 +725,7 @@ extension AppRunner {
             // Fold a state change, and any animation tick the cheap path could
             // not serve, into the pending-render flag.
             if foldPendingWork(
-                alreadyPending: pacer.isRenderPending, renderer: renderer,
+                alreadyPending: applyWindowSizeReport(renderer: renderer) || pacer.isRenderPending, renderer: renderer,
                 cursorTimer: cursorTimer) {
                 pacer.requestRender()
             }
@@ -869,6 +869,15 @@ extension AppRunner {
                 quitKeyWatch.stop()
             }
         #endif
+    }
+
+    /// Whether a host with no SIGWINCH said it has a new size, among the input just
+    /// read, and every line is to be rewritten at it, as the signal's branch in the
+    /// loop has them.
+    private func applyWindowSizeReport(renderer: RenderLoop<A>) -> Bool {
+        guard terminal.consumeWindowSizeReport() else { return false }
+        renderer.invalidateDiffCache()
+        return true
     }
 
     /// Folds this iteration's reasons to render into one flag.
