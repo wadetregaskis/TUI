@@ -181,6 +181,23 @@ A built-in ``Spinner``, an indeterminate ``ProgressView`` and the breathing focu
 
 A view that asks what time it is as it draws does the opposite: it costs a walk of the whole tree for every frame of its animation. A ``SpinnerStyle/custom(_:)`` spinner whose frames differ in width has to work this way, so its neighbours are the views that gain most from ``View/equatable()``.
 
+## The Frame Rate
+
+An app renders at most 60 frames a second, unless you say otherwise. To say otherwise, give your `App` a `maxFrameRate`:
+
+```swift
+@main
+struct MyApp: App {
+    var maxFrameRate: Int { 30 }
+
+    var body: some Scene {
+        WindowGroup { ContentView() }
+    }
+}
+```
+
+It's a cap and not a rate. A burst of changes draws one frame rather than many, and a screen with nothing changing draws nothing. Lowering it limits what a busy screen costs in CPU and in bytes, which can help over a slow link. Raising it only helps animation on a terminal and a link that can keep up.
+
 ## Topics
 
 ### Related Articles
