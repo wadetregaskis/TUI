@@ -226,9 +226,11 @@ struct TerminalExchangeTests {
         #expect(!TerminalQueryReplies.isStatusFence(Array("\u{1B}[A".utf8)[...]))
     }
 
-    @Test("The graphics exchange's replies are Kitty acknowledgements, and nothing else")
+    @Test("The graphics exchange's replies are Kitty acknowledgements and cursor reports off row 1, and nothing else")
     func graphicsReplies() {
         #expect(TerminalGraphicsQuery.isReply(Array("\u{1B}_Gi=1;OK\u{1B}\\".utf8)[...]))
+        #expect(TerminalGraphicsQuery.isReply(Array("\u{1B}[2;1R".utf8)[...]))
+        #expect(!TerminalGraphicsQuery.isReply(Array("\u{1B}[1;2R".utf8)[...]), "Shift-F3")
         #expect(!TerminalGraphicsQuery.isReply(Array("\u{1B}]11;rgb:0/0/0\u{07}".utf8)[...]))
         #expect(!TerminalGraphicsQuery.isReply(Array(Self.focusIn.utf8)[...]))
     }
@@ -255,13 +257,17 @@ struct TerminalExchangeTests {
         #expect(script.reads.isEmpty)
     }
 
-    @Test("Each exchange's request ends with the status fence, and asks for no cursor report")
+    /// The graphics exchange asks for cursor reports as data, what its placements
+    /// did to the cursor (`TerminalGraphicsQuery.cursorReports(in:)`), and is
+    /// fenced by status like the rest.
+    @Test("Each exchange's request ends with the status fence, and only the graphics one asks for a cursor report")
     func requestsAreFencedByStatus() {
         for request in [
             TerminalModeQuery.request(mode: 2027), TerminalGraphicsQuery.request, TerminalTextAreaQuery.request,
         ] {
             #expect(request.hasSuffix(TerminalQueryReplies.statusFence))
-            #expect(!request.contains("\u{1B}[6n"))
         }
+        #expect(!TerminalModeQuery.request(mode: 2027).contains("\u{1B}[6n"))
+        #expect(!TerminalTextAreaQuery.request.contains("\u{1B}[6n"))
     }
 }

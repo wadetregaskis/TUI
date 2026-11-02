@@ -1,0 +1,57 @@
+{
+  "stamp": {
+    "probe": "classic_placement_probe",
+    "measured": "2026-11-01T21:06:32-08:00",
+    "screen": "primary",
+    "os": "macOS 15.8.1",
+    "machine": "arm64",
+    "env": {
+      "TERM": "xterm-256color",
+      "TERM_PROGRAM": "iTerm.app",
+      "TERM_PROGRAM_VERSION": "3.7.6",
+      "COLORTERM": "truecolor",
+      "TERM_SESSION_ID": "w0t0p0:DB34DD0E-2809-446D-8FC1-E612294D67E7",
+      "ITERM_SESSION_ID": "w0t0p0:DB34DD0E-2809-446D-8FC1-E612294D67E7",
+      "ITERM_PROFILE": "Default",
+      "LC_TERMINAL": "iTerm2",
+      "LC_TERMINAL_VERSION": "3.7.6",
+      "COLORFGBG": "0;15",
+      "TERMINFO_DIRS": "/Applications/iTerm.app/Contents/Resources/terminfo:/usr/share/terminfo",
+      "__CFBundleIdentifier": "com.googlecode.iterm2"
+    },
+    "mode_2027_grapheme_clustering": "permanently reset",
+    "method": "DSR cursor report — confirm any disagreement with visual_card.py"
+  },
+  "handshake": {
+    "moved_by_transmit": false,
+    "virtual": {
+      "reply": "b'\\x1b_Gi=3201;OK\\x1b\\\\'",
+      "moved": false
+    },
+    "classic": {
+      "reply": "b'\\x1b_Gp=1,i=3202;OK\\x1b\\\\'",
+      "moved": true,
+      "positions": [
+        [
+          3,
+          3
+        ],
+        [
+          4,
+          4
+        ]
+      ]
+    }
+  },
+  "c1_on_last_row": {
+    "bottom": [
+      25,
+      1
+    ],
+    "after": [
+      25,
+      1
+    ],
+    "stayed": true
+  }
+}

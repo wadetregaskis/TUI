@@ -60,7 +60,7 @@ struct TerminalGraphicsQueryTests {
         #expect(request.contains("\u{1B}8\u{1B}[J"), "…restored by DECRC, and the screen wiped from there")
         // Small enough that what a printing host shows fits in a row or two:
         // one pixel, not one image.
-        #expect(request.count < 300, "one pixel and twenty-six deflated bytes, and nothing that grows")
+        #expect(request.count < 450, "two pixels and twenty-six deflated bytes, and nothing that grows")
     }
 
     /// Every byte, so a change to any of it is a decision someone made here.
@@ -73,11 +73,20 @@ struct TerminalGraphicsQueryTests {
     func requestBytesArePinned() {
         let placement = TerminalGraphicsQuery.probeID
         let compression = TerminalGraphicsQuery.compressionProbeID
+        let classic = TerminalGraphicsQuery.classicProbeID
         let expected =
             "\u{1B}7"
+            + "\u{1B}[B"
+            + "\u{1B}[6n"
             + "\u{1B}_Ga=t,q=2,f=32,t=d,s=1,v=1,i=\(placement);AAAAAA==\u{1B}\\"
+            + "\u{1B}_Ga=t,q=2,f=32,t=d,s=1,v=1,i=\(classic);AAAAAA==\u{1B}\\"
+            + "\u{1B}[6n"
             + "\u{1B}_Ga=p,U=1,q=0,i=\(placement),c=1,r=1\u{1B}\\"
+            + "\u{1B}[6n"
+            + "\u{1B}_Ga=p,q=0,i=\(classic),p=1,c=1,r=1,z=1\u{1B}\\"
+            + "\u{1B}[6n"
             + "\u{1B}_Ga=d,d=I,q=2,i=\(placement)\u{1B}\\"
+            + "\u{1B}_Ga=d,d=I,q=2,i=\(classic)\u{1B}\\"
             + "\u{1B}_Ga=t,q=0,f=32,t=d,o=z,s=32,v=32,i=\(compression);"
             + "eJztwQENAAAAwqD3T20PBxQAAADwbhAAAAE=\u{1B}\\"
             + "\u{1B}_Ga=d,d=I,q=2,i=\(compression)\u{1B}\\"
@@ -139,7 +148,7 @@ struct TerminalGraphicsQueryTests {
         #expect(request.contains(probe), "the transmission is the question, so it speaks")
         #expect(request.contains("a=d,d=I,q=2,i=\(TerminalGraphicsQuery.compressionProbeID)"), "…and is freed")
         #expect(TerminalGraphicsQuery.compressionProbeID == TerminalGraphicsQuery.probeID - 1)
-        #expect(request.count < 300, "twenty-six deflated bytes, base64")
+        #expect(request.count < 450, "twenty-six deflated bytes, base64")
     }
 
     @Test("Each OK is credited to the id that asked, and an unknown id to nobody")
@@ -156,5 +165,111 @@ struct TerminalGraphicsQueryTests {
         // the split exists for.
         let refused = placement + "\u{1B}_Gi=\(TerminalGraphicsQuery.compressionProbeID);EINVAL:unsupported\u{1B}\\"
         #expect(TerminalGraphicsQuery.parse(Array(refused.utf8)) == .init(placement: true, compression: false))
+    }
+
+    // MARK: - The third question, and the cursor
+
+    private let virtualOK = "\u{1B}_Gi=\(TerminalGraphicsQuery.probeID);OK\u{1B}\\"
+    private let classicOK = "\u{1B}_Gi=\(TerminalGraphicsQuery.classicProbeID),p=1;OK\u{1B}\\"
+
+    /// `reply`, between the four cursor reports the request asks for, at these
+    /// columns of row 3.
+    private func answers(columns: [Int], virtual: String = "", classic: String = "") -> TerminalGraphicsQuery.Answers {
+        let report = columns.map { "\u{1B}[3;\($0)R" }
+        return TerminalGraphicsQuery.parse(
+            Array((report[0] + report[1] + virtual + report[2] + classic + report[3] + "\u{1B}[0n").utf8))
+    }
+
+    @Test("The classic probe's id is below every strip's")
+    func classicProbeIDIsFree() {
+        let lowestStrip = HairlineLayer.firstStripID - KittyGraphics.ImageID(HairlineLayer.maximumStrips - 1)
+        #expect(TerminalGraphicsQuery.classicProbeID == lowestStrip - 1)
+    }
+
+    /// What `classic_placement_probe.py` read, 2026-11-01.
+    @Test("Ghostty and iTerm2: a virtual placement stays put, a classic one moves on")
+    func aHostWithPlaceholders() {
+        let said = answers(columns: [3, 3, 3, 4], virtual: virtualOK, classic: classicOK)
+        #expect(said.placement)
+        #expect(said.classicPlacement)
+    }
+
+    /// Warp's replies verbatim, cursor as measured.
+    @Test("Warp refuses the virtual placement by name and takes the classic one")
+    func warp() {
+        let refused =
+            "\u{1B}_Gi=\(TerminalGraphicsQuery.probeID);"
+            + "InvalidKittyAction(InvalidControlData(UnicodePlaceholderUnsupported))\u{1B}\\"
+        let said = answers(columns: [3, 3, 3, 4], virtual: refused, classic: classicOK)
+        #expect(!said.placement)
+        #expect(said.classicPlacement)
+    }
+
+    /// Konsole reads no `U`, and acknowledges every placement (source read).
+    @Test("An OK to a virtual placement that moved the cursor is not a virtual placement")
+    func aHostThatDoesNotKnowU() {
+        let said = answers(columns: [3, 3, 4, 5], virtual: virtualOK, classic: classicOK)
+        #expect(!said.placement)
+        #expect(said.classicPlacement)
+    }
+
+    /// WezTerm's `a=p` sends no reply at all (source read).
+    @Test("A placement that moved the cursor is a placement, answer or none")
+    func aHostThatDoesNotAnswer() {
+        let said = answers(columns: [3, 3, 4, 5])
+        #expect(!said.placement)
+        #expect(said.classicPlacement)
+    }
+
+    @Test("A cursor moved by a quiet transmission is a host that prints APC, whatever it said")
+    func aHostThatPrints() {
+        #expect(answers(columns: [3, 60, 90, 120], virtual: virtualOK, classic: classicOK) == .init())
+    }
+
+    @Test("A cursor that never moves adds nothing, as under tmux")
+    func aHostThatStaysPut() {
+        #expect(answers(columns: [3, 3, 3, 3]) == .init())
+    }
+
+    /// `CSI 1;m R` is a modified F3, which is why the request leaves row 1 before
+    /// it asks (`CursorReportRequestScanTests`).
+    @Test("The request leaves row 1 before its first cursor report, so none can be a key")
+    func noReportCanBeAKey() throws {
+        let request = TerminalGraphicsQuery.request
+        let move = try #require(request.range(of: "\u{1B}[B"))
+        let report = try #require(request.range(of: "\u{1B}[6n"))
+        #expect(move.upperBound <= report.lowerBound)
+        #expect(TerminalGraphicsQuery.cursorReports(in: Array("\u{1B}[1;2R".utf8)).isEmpty)
+        #expect(TerminalGraphicsQuery.cursorReports(in: Array("\u{1B}[2;2R".utf8)) == [[2, 2]])
+        // And so one that arrives after the fence's timeout is not typed.
+        #expect(KeyEvent.parse(Array("\u{1B}[1;2R".utf8))?.key == .f3)
+        #expect(KeyEvent.parse(Array("\u{1B}[2;2R".utf8))?.key != .f3)
+    }
+
+    @Test("A modified F3 among the reports is not one of them")
+    func aKeystrokeAmongTheReports() {
+        let buffer = "\u{1B}[1;2R\u{1B}[3;3R\u{1B}[3;3R" + virtualOK + "\u{1B}[3;3R" + classicOK + "\u{1B}[3;4R\u{1B}[0n"
+        let said = TerminalGraphicsQuery.parse(Array(buffer.utf8))
+        #expect(said.placement)
+        #expect(said.classicPlacement)
+    }
+
+    /// A host that does not answer `CSI 6 n`, or a report cut off by the timeout.
+    @Test("A wrong number of reports leaves the acknowledgements to stand")
+    func tooFewReports() {
+        let buffer = "\u{1B}[3;3R" + virtualOK + "\u{1B}[3;9R\u{1B}[0n"
+        #expect(TerminalGraphicsQuery.parse(Array(buffer.utf8)).placement)
+    }
+
+    private func keptForTheParser(_ reply: String) -> [UInt8] {
+        TerminalQueryReplies.unconsumed(
+            Array(reply.utf8), isReply: TerminalGraphicsQuery.isReply, isFence: TerminalQueryReplies.isStatusFence)
+    }
+
+    @Test("Cursor reports are this exchange's and go no further, and a key goes to the parser")
+    func repliesAndKeys() {
+        let reports = "\u{1B}[3;3R\u{1B}[3;3R\u{1B}[3;3R\u{1B}[3;4R"
+        #expect(keptForTheParser("q" + reports + "\u{1B}[0nx") == Array("qx".utf8))
+        #expect(keptForTheParser("\u{1B}[1;2R" + reports + "\u{1B}[0n") == Array("\u{1B}[1;2R".utf8))
     }
 }

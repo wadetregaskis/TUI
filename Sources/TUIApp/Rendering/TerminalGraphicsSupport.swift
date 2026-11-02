@@ -34,6 +34,11 @@ extension TerminalClient {
     /// separately.
     @MainActor public private(set) static var detectedGraphicsCompression: Bool?
 
+    /// What the handshake said to its third question — whether the terminal
+    /// places a picture at the cursor, as a Kitty classic placement — or `nil`
+    /// if it never ran.
+    @MainActor static var detectedClassicPlacements: Bool?
+
     /// Force the answer for the terminal in front of you, whatever was
     /// detected.
     ///
@@ -249,5 +254,6 @@ extension TerminalClient {
         let answers = terminal.queryGraphicsSupport()
         detectedGraphics = answers.placement
         detectedGraphicsCompression = answers.compression
+        detectedClassicPlacements = answers.classicPlacement
     }
 }

@@ -1,0 +1,52 @@
+{
+  "stamp": {
+    "probe": "classic_placement_probe",
+    "measured": "2026-11-01T21:06:32-08:00",
+    "screen": "primary",
+    "os": "macOS 15.8.1",
+    "machine": "arm64",
+    "env": {
+      "TERM": "xterm-ghostty",
+      "TERM_PROGRAM": "ghostty",
+      "TERM_PROGRAM_VERSION": "1.4.0",
+      "COLORTERM": "truecolor",
+      "TERMINFO": "/Applications/Ghostty.app/Contents/Resources/terminfo",
+      "__CFBundleIdentifier": "com.mitchellh.ghostty",
+      "GHOSTTY_RESOURCES_DIR": "/Applications/Ghostty.app/Contents/Resources/ghostty"
+    },
+    "mode_2027_grapheme_clustering": "set",
+    "method": "DSR cursor report — confirm any disagreement with visual_card.py"
+  },
+  "handshake": {
+    "moved_by_transmit": false,
+    "virtual": {
+      "reply": "b'\\x1b_Gi=3201;OK\\x1b\\\\'",
+      "moved": false
+    },
+    "classic": {
+      "reply": "b'\\x1b_Gi=3202,p=1;OK\\x1b\\\\'",
+      "moved": true,
+      "positions": [
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    }
+  },
+  "c1_on_last_row": {
+    "bottom": [
+      19,
+      1
+    ],
+    "after": [
+      19,
+      1
+    ],
+    "stayed": true
+  }
+}

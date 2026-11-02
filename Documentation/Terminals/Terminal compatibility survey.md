@@ -4662,6 +4662,50 @@ fresh id almost every time. kitty 0.49.1 is not measured (it needs OpenGL
 3.3, which the VM the probe ran in lacks); the protocol says a placement
 with an existing placement id replaces it, which is the behaviour E relies on.
 
+### A whole picture as a classic placement — measured 2026-11-01, Warp v0.2026.10.21, Ghostty 1.4.0 and iTerm2 3.7.6
+
+`Tools/TerminalProbes/classic_placement_probe.py`; records in its `data/`
+(`*-classic-placement*.json`). The replies and cursor positions are read from
+the record. Warp's and iTerm2's cards were looked at; Ghostty's window could not
+be captured, so its row rests on the record.
+
+| | Ghostty 1.4.0 | iTerm2 3.7.6 | Warp v0.2026.10.21 |
+|---|---|---|---|
+| `a=p,U=1,q=0` answers | `OK` | `OK` | refused by name, `UnicodePlaceholderUnsupported` |
+| …and the cursor | stays | stays | stays |
+| `a=p,q=0`, no `C`, answers | `i,p;OK` | `p,i;OK` | `i;OK`, no `p` echoed |
+| …and the cursor, from (3,3) | (3,4) | **(4,4)** | (3,4) |
+| `C=1` on the last row, `c=4,r=3` | stays, no scroll | stays, no scroll | stays, no scroll |
+| `c`,`r` scale it to the box | not looked at | yes | yes |
+| Source rectangle `x,y,w,h` | not looked at | yes, two crops tile with no seam | **IGNORED: each half drew the whole picture** |
+| Same `(i, p)` replaces it | not looked at | yes | yes |
+| `a=d,d=i,p` deletes it, keeps the pixels | not looked at | yes | yes |
+| Spaces written over it, then `ESC[2K` | not looked at | stays (spaces) | stays (both) |
+| It outlives `ESC[2J`, re-placed unsent | not looked at | not looked at | yes |
+| `z=-1` over a painted field; over a default one | not looked at | not looked at | drawn over both: **`z` has no effect** |
+| Text written over `z=1` | not looked at | not looked at | hidden: the picture is above the text |
+
+Warp's crop was tried three ways (`c,r` with `x,y,w,h`; `x,y,w,h` alone; `a=T`
+with them), and each drew the whole picture.
+
+Read from source on 2026-11-01, **not measured**, no such terminal being on this
+machine:
+
+- **Konsole** reads no `U` key, answers `OK` to any `a=p` with `q=0`, moves the
+  cursor unless `C=1`, crops by `x,y,w,h`, replaces by `(i, p)`
+  (`Vt102Emulation.cpp`, `Screen.cpp`). So it answers the virtual-placement
+  question `OK` and could not draw one: before this handshake it was a host of
+  tofu cells.
+- **WezTerm**'s `kitty_img_place` sends **no reply**, and replaces by `(i, p)`.
+  It has no virtual branch (`term/src/terminalstate/kitty.rs`).
+- **kitty** moves the cursor only `!g->unicode_placement` (`graphics.c`), so the
+  cursor test below does not take its placeholders away.
+
+So the handshake (`TerminalGraphicsQuery`) has a third question and four cursor
+reports, asked off row 1, as `CSI 1;m R` is a modified F3. A transmission that moves the cursor is a host printing APC. A
+virtual placement that moves it was read as a classic one, whatever was
+answered. A classic placement that moves it was placed, answer or none.
+
 ### A picture under text: a classic placement at z=-1 — measured 2026-10-26, Ghostty 1.3.1 and iTerm2 3.7.6
 
 A glyph over a frosted picture cannot be the picture's placeholder cell, so

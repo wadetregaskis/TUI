@@ -1,0 +1,39 @@
+{
+  "stamp": {
+    "probe": "classic_placement_probe",
+    "measured": "2026-11-01T21:07:28-08:00",
+    "screen": "primary",
+    "os": "macOS 15.8.1",
+    "machine": "arm64",
+    "env": {
+      "TERM": "xterm-256color",
+      "TERM_PROGRAM": "WarpTerminal",
+      "TERM_PROGRAM_VERSION": "v0.2026.10.21.08.25.stable_02",
+      "COLORTERM": "truecolor",
+      "__CFBundleIdentifier": "dev.warp.Warp-Stable"
+    },
+    "mode_2027_grapheme_clustering": null,
+    "method": "DSR cursor report — confirm any disagreement with visual_card.py"
+  },
+  "handshake": {
+    "moved_by_transmit": false,
+    "virtual": {
+      "reply": "b'\\x1b_Gi=3201;InvalidKittyAction(InvalidControlData(UnicodePlaceholderUnsupported))\\x1b\\\\'",
+      "moved": false
+    },
+    "classic": {
+      "reply": "b'\\x1b_Gi=3202;OK\\x1b\\\\'",
+      "moved": true,
+      "positions": [
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    }
+  }
+}

@@ -312,6 +312,10 @@ when unset), the visual/aspect probes print to the terminal.
   encoder has written all three marks on every cell since 0d4d2015. The probe
   also reports what U+10EEEE advances the cursor by; iTerm2's line was never
   captured, so `Terminal compatibility survey.md`'s advance table still omits it.
+- `classic_placement_probe.py` — what `Image` needs of a Kitty **classic**
+  placement: the replies and cursor moves the startup handshake reads, and two
+  cards (`PROBE_CARD=2`) of crops, replacement, deletion, erases and `z`. Warp
+  answers and scales and ignores the source rectangle.
 - `hairline_probe.py` — can a Kitty **classic** placement (not a placeholder)
   draw a line one or two pixels thick exactly on the boundary between two text
   rows, so a list separator costs no row? Runs on the alternate screen and

@@ -44,6 +44,19 @@ import WASILibc
 /// virtual placement of it is requested, and the image is deleted again. Only
 /// `OK` to the *placement* counts.
 ///
+/// ## Why the cursor is asked about too
+///
+/// `OK` is not enough. A host that does not know the `U` key reads a virtual
+/// placement as a classic one, draws it at the cursor and answers `OK`: Konsole
+/// reads no `U` and acknowledges every `a=p` (source, 2026-11-01), and its
+/// placeholder cells would print as tofu. And a host may place a picture and
+/// answer nothing: WezTerm's `a=p` sends no reply (source, 2026-11-01). What
+/// tells them apart is what a placement does to the **cursor**: a classic one
+/// moves it (unless `C=1`), a virtual one has no position to move it from. So
+/// four cursor reports go around the questions, read by ``parse(_:)``. Measured
+/// on Ghostty 1.4.0, iTerm2 3.7.6 and Warp, `classic_placement_probe.py`; kitty
+/// moves it only `!g->unicode_placement` (source, `graphics.c`).
+///
 /// ## Why it is not asked of everybody
 ///
 /// This is an APC sequence, and **Apple Terminal does not parse APC** — it
@@ -67,7 +80,18 @@ enum TerminalGraphicsQuery {
     /// and equally out of the store's reach.
     static let compressionProbeID: KittyGraphics.ImageID = KittyGraphics.maximumImageID - 1
 
-    /// One black pixel, RGBA.
+    /// The id the classic placement borrows: below the hairlines' sixteen strips
+    /// (``HairlineLayer/firstStripID``), which count down from below the other
+    /// two. Deleted before the store hands out its first id, so never in its way.
+    static let classicProbeID: KittyGraphics.ImageID = KittyGraphics.maximumImageID - 18
+
+    /// `CSI 6 n`: where the cursor is, which the host says as `CSI row;col R`.
+    private static let cursorReport = "\u{1B}[6n"
+
+    /// How many ``cursorReport``s the request asks for, around its questions.
+    fileprivate static let cursorReportCount = 4
+
+    /// One transparent pixel, RGBA: a classic placement of it draws nothing.
     private static let onePixel: [UInt8] = [0, 0, 0, 0]
 
     /// A 32×32 black RGBA image, deflated: 4,096 bytes that any zlib inflates
@@ -91,9 +115,11 @@ enum TerminalGraphicsQuery {
     /// too; tidy up, and fence with DSR so a silent terminal reports silence
     /// instead of hanging.
     ///
-    /// Two commands speak, and they are told apart by id — see ``parse(_:)``.
-    /// Everything else is `q=2`, so the reply holds exactly the two answers
+    /// Three commands speak, and they are told apart by id — see ``parse(_:)``.
+    /// Everything else is `q=2`, so the reply holds exactly the three answers
     /// and not a chorus of acknowledgements in the same `ESC _ G i=…;` shape.
+    /// The classic placement states no `C`, so a host that places it moves the
+    /// cursor, and asks for a `z` that is not 0 as every placement does.
     ///
     /// The cursor is saved with DECSC (`ESC 7`) and restored with DECRC
     /// (`ESC 8`), not SCOSC/SCORC (`CSI s`/`CSI u`). Ghostty's VT reference
@@ -105,9 +131,17 @@ enum TerminalGraphicsQuery {
     /// (`Documentation/Terminals/Ghostty VT reference adoption study.md`, K6).
     static var request: String {
         "\u{1B}7"  // DECSC: save the cursor, in case the payload is printed
+            + "\u{1B}[B"  // CUD: off row 1, so no report can be read as a key
+            + cursorReport
             + KittyGraphics.transmit(pixels: onePixel, width: 1, height: 1, id: probeID)
+            + KittyGraphics.transmit(pixels: onePixel, width: 1, height: 1, id: classicProbeID)
+            + cursorReport
             + "\u{1B}_Ga=p,U=1,q=0,i=\(probeID),c=1,r=1\u{1B}\\"
+            + cursorReport
+            + "\u{1B}_Ga=p,q=0,i=\(classicProbeID),p=1,c=1,r=1,z=1\u{1B}\\"
+            + cursorReport
             + KittyGraphics.delete(id: probeID)
+            + KittyGraphics.delete(id: classicProbeID)
             + compressionRequest
             + "\u{1B}8\u{1B}[J"  // DECRC, and wipe whatever was printed
             + TerminalQueryReplies.statusFence
@@ -131,6 +165,8 @@ enum TerminalGraphicsQuery {
         var placement = false
         /// It accepted a deflated transmission.
         var compression = false
+        /// It drew, or acknowledged, a classic placement.
+        var classicPlacement = false
     }
 
     /// The acknowledgements in `bytes`, each credited to the question that
@@ -143,8 +179,10 @@ enum TerminalGraphicsQuery {
     /// for `OK` would not have distinguished from success on its own. The id
     /// decides WHICH question was answered, which is what lets two of them
     /// share one exchange: a placement `OK` carries ``probeID``, a compression
-    /// `OK` carries ``compressionProbeID``, and an `OK` naming neither — a
-    /// stray acknowledgement of something else — credits nothing.
+    /// `OK` carries ``compressionProbeID``, a classic one ``classicProbeID``, and
+    /// an `OK` naming none of them — a stray acknowledgement of something else —
+    /// credits nothing. Then the cursor has its say
+    /// (``Answers/correctedByCursor(_:)``).
     static func parse(_ bytes: [UInt8]) -> Answers {
         var answers = Answers()
         var index = bytes.startIndex
@@ -169,19 +207,80 @@ enum TerminalGraphicsQuery {
                 }.first
                 if id == probeID { answers.placement = true }
                 if id == compressionProbeID { answers.compression = true }
+                if id == classicProbeID { answers.classicPlacement = true }
             }
             index = end
         }
-        return answers
+        return answers.correctedByCursor(cursorReports(in: bytes))
     }
 
-    /// Whether one complete escape sequence is a Kitty graphics reply,
-    /// `ESC _ G … ST`, whichever id it names. No key sends one.
+    /// The cursor reports in `bytes`, in order: `CSI row;col R` on any row but
+    /// the first.
+    ///
+    /// `CSI 1;m R` is a modified F3 (`KeyEvent.parse`), so a report for row 1 is
+    /// one that could not be told from a key. The request moves off row 1 before
+    /// it asks (``request``), which is what makes this one exchange a safe place
+    /// for `CSI 6 n`, here or arriving late, past the fence's timeout. A key stays
+    /// a key. On a terminal one row high no report counts, and
+    /// ``Answers/correctedByCursor(_:)`` goes by the acknowledgements alone.
+    static func cursorReports(in bytes: [UInt8]) -> [[Int]] {
+        var reports: [[Int]] = []
+        var index = bytes.startIndex
+        while index + 1 < bytes.endIndex {
+            guard bytes[index] == 0x1B, bytes[index + 1] == 0x5B else {
+                index += 1
+                continue
+            }
+            var end = index + 2
+            var fields = [0]
+            while end < bytes.endIndex, (0x30...0x3B).contains(bytes[end]), bytes[end] != 0x3A {
+                if bytes[end] == 0x3B {  // ';'
+                    fields.append(0)
+                } else {
+                    fields[fields.count - 1] = min(fields[fields.count - 1] * 10 + Int(bytes[end] - 0x30), 0xFFFF)
+                }
+                end += 1
+            }
+            if end < bytes.endIndex, bytes[end] == 0x52, fields.count == 2, fields[0] > 1 {  // 'R'
+                reports.append(fields)
+            }
+            index = end
+        }
+        return reports
+    }
+
+    /// Whether one complete escape sequence is a reply of this exchange: a Kitty
+    /// graphics reply, `ESC _ G … ST`, whichever id it names, which no key sends;
+    /// or a cursor report off row 1, which no key sends either
+    /// (``cursorReports(in:)``).
     static func isReply(_ sequence: ArraySlice<UInt8>) -> Bool {
-        guard sequence.count >= 3, sequence.first == 0x1B,
-            sequence[sequence.startIndex + 1] == 0x5F  // '_'
-        else { return false }
-        return sequence[sequence.startIndex + 2] == 0x47  // 'G'
+        guard sequence.count >= 3, sequence.first == 0x1B else { return false }
+        if sequence[sequence.startIndex + 1] == 0x5F {  // '_'
+            return sequence[sequence.startIndex + 2] == 0x47  // 'G'
+        }
+        return cursorReports(in: Array(sequence)).count == 1
+    }
+}
+
+extension TerminalGraphicsQuery.Answers {
+    /// These answers, given what the placements did to the cursor: `reports` is
+    /// the four the request asks for, or the acknowledgements stand as they are.
+    ///
+    /// - Moved by the **transmissions**: the host printed them. It has no
+    ///   graphics protocol, whatever else it seemed to say.
+    /// - Moved by the **virtual placement**: the host read it as a classic one.
+    ///   Its `OK` was not to a virtual placement, and it did place a picture.
+    /// - Moved by the **classic placement**: it placed a picture, answer or none.
+    fileprivate func correctedByCursor(_ reports: [[Int]]) -> Self {
+        guard reports.count == TerminalGraphicsQuery.cursorReportCount else { return self }
+        guard reports[0] == reports[1] else { return Self() }
+        var answers = self
+        if reports[1] != reports[2] {
+            answers.placement = false
+            answers.classicPlacement = true
+        }
+        if reports[2] != reports[3] { answers.classicPlacement = true }
+        return answers
     }
 }
 
