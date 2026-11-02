@@ -531,57 +531,6 @@ extension _ImageCore {
         }
     }
 
-    /// The phase `cache` already holds the answer for: the picture, or the
-    /// failure of one past `maxPixelCount` — `nil` where it holds nothing, or
-    /// there is no cache. A lookup, cheap enough to make while drawing.
-    static func cachedPhase(
-        of source: ImageSource, cache: URLImageCache?, maxPixelCount: Int?
-    ) -> ImageLoadingPhase? {
-        guard let cache else { return nil }
-        let loader = PlatformImageLoader()
-        do {
-            let image =
-                switch source {
-                case .file(let path): try loader.cachedImage(fromFile: path, cache: cache, maxPixelCount: maxPixelCount)
-                case .url(let address): try loader.cachedImage(fromURL: address, cache: cache, maxPixelCount: maxPixelCount)
-                }
-            return image.map { .loaded($0, from: source, cache: cache) }
-        } catch let loadError as ImageLoadError {
-            return .failure(loadError.description)
-        } catch {
-            return .failure(error.localizedDescription)
-        }
-    }
-
-    /// The phase of a file of at most `settings.synchronousDecodeLimit` bytes
-    /// (`imageSynchronousDecodeLimit`, 256 KB unless an app says otherwise),
-    /// decoded here, or `nil` for a larger file or one whose size cannot be
-    /// read, which the task loads as before.
-    ///
-    /// A picture from a file drew a placeholder on its first frames while a
-    /// task decoded it, so a small icon flashed in, and an app wanting it at
-    /// once had to decode it itself (the Materials clip, 2026-10-27). A small
-    /// file decodes in a few milliseconds, within a frame, so it draws on the
-    /// first, as a SwiftUI `Image` of a local picture does. A larger one still
-    /// loads in a task, so the frame does not wait on it. The owner
-    /// (2026-10-28): keep it, configurable down to none.
-    static func smallFilePhase(path: String, settings: LoadSettings) -> ImageLoadingPhase? {
-        guard settings.synchronousDecodeLimit > 0,
-            let size = (try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? Int,
-            size <= settings.synchronousDecodeLimit
-        else { return nil }
-        do {
-            return .loaded(
-                try PlatformImageLoader().loadImage(
-                    from: path, cache: settings.urlCache, maxPixelCount: settings.maxPixelCount),
-                from: .file(path), cache: settings.urlCache)
-        } catch let loadError as ImageLoadError {
-            return .failure(loadError.description)
-        } catch {
-            return .failure(error.localizedDescription)
-        }
-    }
-
     /// Loads and decodes the image, returning what to publish — or `nil`
     /// if the load was cancelled, which is not a phase: the view has left the
     /// tree (or its source changed), and a replacement task may already be
