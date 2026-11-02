@@ -159,6 +159,10 @@ private enum ImportScan {
         // 2026-10-19 the same way: with only `import CoreTransferable`,
         // neither `NSColor` nor `FormatStyle.offset(to:)` is in scope.
         "CoreTransferable",
+        // `ObservableObject`, which a `ReferenceFileDocument` refines and a
+        // `DocumentGroup` subscribes to. Checked 2026-11-02 the same way: with
+        // only `import Combine`, `NSColor` is not in scope.
+        "Combine",
     ]
 
     /// The kinds a scoped import names (`import struct AppKit.NSColor`).

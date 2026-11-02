@@ -44,6 +44,7 @@ new names throughout, for the package as it was on 1 October as well.
 
 - `FileDocument`, and the `fileExporter` forms that write one, now exist on Linux, over a `FileWrapper` of TUI's with
   Foundation's API. Remove any `#if canImport(ObjectiveC)` around them. Apple platforms keep Foundation's.
+- `ReferenceFileDocument` is new, and so are the four `fileExporter` forms that write one.
 
 ### If you only need the short version
 

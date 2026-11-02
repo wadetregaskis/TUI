@@ -77,6 +77,7 @@ Move between screens with stacks, split views and tabs, and present sheets, dial
 ### Documents and File Panels
 
 - ``FileDocument``
+- ``ReferenceFileDocument``
 - ``FileExportContents``
 - ``FileDialogBrowserOptions``
 - ``FileDocumentReadConfiguration``

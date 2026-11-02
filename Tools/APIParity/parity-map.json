@@ -824,9 +824,6 @@
     "DropSession.ID.matches(_:)": {
       "why": "It compares a drop session with AppKit's NSDraggingInfo, an Apple-only protocol a TUI drag never conforms to: a terminal app's drags happen inside it, without AppKit (and on Linux without it at all). DropSession and its ID, phase and local session ship as values."
     },
-    "ReferenceFileDocument": {
-      "why": "Declined (decisions File panels (O10), C-O10-1): a ReferenceFileDocument is an ObservableObject, a family TUI does not have (compatibility guide §2.3, Observable only), and its snapshot(contentType:) exists for DocumentGroup's undo and autosave, which TUI does not have either. fileExporter writes a FileDocument; a reference document exports through a FileDocument value made from its snapshot."
-    },
     "EnvironmentValues.scrollDismissesKeyboardMode": {
       "why": "The environment half of `scrollDismissesKeyboard(_:)`, refused with it (ScrollDismissesKeyboardMode's family; ruling O8)."
     },
