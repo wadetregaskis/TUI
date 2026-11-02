@@ -179,6 +179,26 @@ A tool like `fzf`, which reads its data from a pipe and draws on the terminal an
 the pipes stay reachable as ``NoTerminal/pipedInput`` and ``NoTerminal/pipedOutput``. Read and write those rather than
 using `readLine()` or `print`, which now reach the terminal.
 
+## Starting an App Yourself
+
+`@main` on an ``App`` makes it with `init()`, which takes no values. If your program works something out first, write
+your own entry point, make the app with those values and call ``App/run()``. It returns when the app quits. The values
+reach `body` as stored properties, with no global to carry them:
+
+```swift
+struct Viewer: App {
+    var path = "."
+
+    var body: some Scene {
+        WindowGroup { FileList(path: path) }
+    }
+}
+
+// main.swift
+let path = CommandLine.arguments.dropFirst().first ?? "."
+await Viewer(path: path).run()
+```
+
 ## See Also
 
 - <doc:KeyboardShortcuts>

@@ -21,8 +21,25 @@ import Testing
     import Musl
 #endif
 
+/// An app that says it reached its launch by the status it exits with.
+private struct LaunchReachedApp: App {
+    var body: some Scene { WindowGroup { Text("Not drawn") } }
+
+    static func runWithoutTerminal(_ situation: NoTerminal) async -> NoTerminal.Outcome {
+        .exit(23)
+    }
+}
+
 @Suite("NoTerminal")
 struct NoTerminalTests {
+    /// An exit test's standard streams are no terminal. On a terminal, `run()` is `main()`'s last two lines.
+    @Test("An app run from an instance asks what to do without a terminal, as main() does")
+    func instanceRunAsks() async {
+        await #expect(processExitsWith: .exitCode(23)) {
+            await LaunchReachedApp().run()
+        }
+    }
+
     /// A pseudo-terminal's two ends, closed at the end of `body`.
     private func withTerminal(_ body: (Int32) throws -> Void) throws {
         var controller: Int32 = -1

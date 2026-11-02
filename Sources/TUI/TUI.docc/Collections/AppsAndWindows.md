@@ -50,6 +50,7 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 ### Running Without a Terminal
 
 - ``App/runWithoutTerminal(_:)``
+- ``App/run()``
 - ``NoTerminal``
 - ``renderOnce(output:content:)``
 - ``RenderOnceOutput``

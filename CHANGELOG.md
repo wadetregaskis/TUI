@@ -4,6 +4,10 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**`App.run()` runs an app you made yourself.** A program that works something out before starting its app, such as from
+its command line, makes the app with those values and calls `await Viewer(path: path).run()`, with no global to carry
+them. See `Starting an App Yourself` in `Scenes and Quitting`.
+
 **`TUI_FRAME_TRACE=<path>` says what each frame was for.** One tab-separated line per frame: when it began, how long
 it took, the bytes it sent, its render cache hits and misses, and what caused it. See `Keeping Your App Fast`.
 

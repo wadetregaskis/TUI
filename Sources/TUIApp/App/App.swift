@@ -114,6 +114,35 @@ extension App {
         let runner = AppRunner<Self>(app: app)
         await runner.run()
     }
+
+    /// Runs this app, as ``main()`` runs one it makes with `init()`.
+    ///
+    /// For a program that works out what its app needs before starting it, such
+    /// as from its command line: it makes the app with those values, and they
+    /// reach `body` as stored properties, with no global to carry them.
+    ///
+    /// ```swift
+    /// struct Viewer: App {
+    ///     var path = "."
+    ///
+    ///     var body: some Scene {
+    ///         WindowGroup { FileList(path: path) }
+    ///     }
+    /// }
+    ///
+    /// await Viewer(path: chosenPath).run()
+    /// ```
+    ///
+    /// Returns when the app quits. Without a terminal it asks
+    /// ``runWithoutTerminal(_:)``, as ``main()`` does, although here the app
+    /// already exists. Not part of SwiftUI, whose apps are started only by the
+    /// system.
+    @MainActor
+    public func run() async {
+        await Self.settleTerminal()
+        let runner = AppRunner<Self>(app: self)
+        await runner.run()
+    }
 }
 
 // MARK: - Having a terminal
