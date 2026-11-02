@@ -85,7 +85,7 @@ private enum AllocationCount {
         count = 0
         // MALLOC_LOG_TYPE_ALLOCATE is 2. A realloc logs as both.
         slot.pointee = { type, _, _, _, _, _ in
-            if type & 2 != 0 { AllocationCount.count &+= 1 }
+            if type & 2 != 0 { Self.count &+= 1 }
         }
         work()
         slot.pointee = nil
@@ -365,6 +365,7 @@ private struct ChurnRow: View {
 
 private struct ProbeApp<Content: View>: App {
     let content: Content
+    // swiftlint:disable:next unavailable_function
     init() { fatalError("built with its content") }
     init(content: Content) { self.content = content }
     var body: some Scene { WindowGroup { content } }
@@ -569,7 +570,7 @@ struct PlainBodyRunCountTests {
         run("button-label", tags: ["a"]) {
             VStack {
                 Leaf()
-                Button(action: {}) { Plain(tag: "a") }
+                Button(action: {}, label: { Plain(tag: "a") })
             }
         }
         run("viewthatfits", tags: ["a", "b"]) {

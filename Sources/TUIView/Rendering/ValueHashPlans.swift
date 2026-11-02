@@ -70,6 +70,10 @@ package final class ValueHashPlans {
     private let running: UnsafeMutablePointer<Running>
     private let builder: ValueHashPlanBuilder
 
+    /// Every ``ValueComparison`` made, by type: `nil` for a type that has none.
+    /// A fact about the type, as a plan is.
+    private var comparisons: [ObjectIdentifier: ValueComparison?] = [:]
+
     #if TUI_VALUE_HASH_CENSUS
     /// What the hash did with these plans — see ``ValueHashCensus``.
     package var census = ValueHashCensus()
@@ -192,6 +196,9 @@ package final class ValueHashPlans {
                     break
                 case .step(let step):
                     steps.append(step)
+                case .compared:
+                    // Only a comparison's walk makes these (`comparing`).
+                    break
                 }
             }
             if !steps.isEmpty {
@@ -210,6 +217,25 @@ package final class ValueHashPlans {
         let storage = UnsafeMutableBufferPointer<Element>.allocate(capacity: elements.count)
         _ = storage.initialize(from: elements)
         return UnsafeBufferPointer(storage)
+    }
+}
+
+// MARK: - Comparisons
+
+extension ValueHashPlans {
+    /// How two values of `type` compare, made the first time it is asked for by
+    /// the walk that makes `type`'s plan; `nil` when they cannot be.
+    package func comparison(for type: Any.Type) -> ValueComparison? {
+        let id = ObjectIdentifier(type)
+        if let known = comparisons[id] { return known }
+        let walk = ValueHashPlanBuilder(listFields: builder.listFields, openers: [], comparing: true)
+        let made: ValueComparison? =
+            switch walk.items(for: type) {
+            case .success(let items): ValueComparison(items)
+            case .failure: nil
+            }
+        comparisons[id] = .some(made)
+        return made
     }
 }
 

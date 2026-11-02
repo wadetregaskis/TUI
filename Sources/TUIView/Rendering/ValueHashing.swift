@@ -101,7 +101,7 @@ extension UUID: _ValueHashing {
 /// Whether `value` is `nil`, borrowed: no copy of the payload, and no retain
 /// of one.
 @inline(__always)
-private func isNone<Wrapped>(_ value: borrowing Wrapped?) -> Bool {
+func isNone<Wrapped>(_ value: borrowing Wrapped?) -> Bool {
     value == nil
 }
 

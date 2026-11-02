@@ -162,6 +162,9 @@ struct ValueHashPlanBuilder {
     enum Item {
         case bytes(offset: Int, count: Int, leaf: Leaf)
         case step(ValueHashPlan.Step)
+        /// What a comparison reads through something other than bytes: only
+        /// when ``comparing``.
+        case compared(offset: Int, ValueComparison.Field)
     }
 
     /// What a run of bytes is, for the optional rule's "one leaf" test.
@@ -210,11 +213,18 @@ struct ValueHashPlanBuilder {
     let listFields: FieldLister
     /// The openers the table was made with, by the static type they open.
     let openers: [ObjectIdentifier: ValueHashOpener]
+    /// Whether this walk is for a ``ValueComparison``, not a hash: a field
+    /// goes by what it means to compare (``describeForComparison(_:at:path:into:)``)
+    /// before it goes by these rules, and everything else about the walk, what
+    /// it refuses above all, is the same walk.
+    let comparing: Bool
 
     init(
-        listFields: @escaping FieldLister = { RuntimeFields.fields(of: $0) }, openers: [ValueHashOpener] = []
+        listFields: @escaping FieldLister = { RuntimeFields.fields(of: $0) }, openers: [ValueHashOpener] = [],
+        comparing: Bool = false
     ) {
         self.listFields = listFields
+        self.comparing = comparing
         self.openers = Dictionary(openers.map { (ObjectIdentifier($0.type), $0) }, uniquingKeysWith: { first, _ in first })
     }
 
@@ -238,8 +248,18 @@ struct ValueHashPlanBuilder {
     private func describe(
         _ type: Any.Type, at base: Int, path: PlanPath, into items: inout [Item]
     ) throws {
+        if comparing, try describeForComparison(type, at: base, path: path, into: &items) { return }
         let layout = Self.layout(of: type)
-        guard layout.size > 0 else { return }
+        guard layout.size > 0 else {
+            // Nothing to read, but a dynamic property of no size can still read
+            // anything, however many structs of no size it lies in.
+            if comparing {
+                for field in listFields(type) {
+                    try describe(field.type, at: base, path: .field(path, field), into: &items)
+                }
+            }
+            return
+        }
         let kind = RuntimeFields.Kind(of: type)
         if kind == .optional {
             try describeOptional(type, at: base, size: layout.size, path: path, into: &items)
@@ -254,6 +274,7 @@ struct ValueHashPlanBuilder {
         }
         #endif
         if let typed = type as? any _ValueHashing.Type {
+            if comparing { throw Bypass(reason: "\(path): \(type) has no comparison") }
             items.append(.step(.init(offset: base, action: .typed(typed))))
             return
         }
@@ -296,6 +317,8 @@ struct ValueHashPlanBuilder {
             // `Any.Type`, `AnyObject.Type`: a metatype with no witness tables,
             // one pointer — and so a metatype for the optional rule.
             items.append(.bytes(offset: base, count: size, leaf: .metatype))
+        case .function where comparing:
+            items.append(.compared(offset: base, .opaque))
         case .existentialMetatype, .function:
             items.append(.bytes(offset: base, count: size, leaf: .other))
         case .opaque:
@@ -305,12 +328,41 @@ struct ValueHashPlanBuilder {
         case .enum:
             throw Bypass(reason: "\(path): a payload enum, \(type)")
         case .existential:
+            if comparing { throw Bypass(reason: "\(path): an existential, \(type), has no comparison") }
             items.append(.step(.init(offset: base, action: .existential(ExistentialField(type, openers: openers)))))
         case .fixedArray:
             try describeFixedArray(type, at: base, size: size, path: path, into: &items)
         default:
             throw Bypass(reason: "\(path): a kind the walk does not know (\(kind))")
         }
+    }
+
+    /// What a comparison reads of `type` other than by the rules a hash goes by:
+    /// `true` when that is all there is to it. In this order: a field the walk
+    /// binds says nothing in its bytes, and is skipped; a `Binding` is `.opaque`;
+    /// another dynamic property is unknown, and refused; a type that reads itself (an optional's case, a conditional's branch) does, if
+    /// what it holds can be compared; and an `Equatable` type has its own `==`,
+    /// whatever its bytes or its fields would say.
+    private func describeForComparison(
+        _ type: Any.Type, at base: Int, path: PlanPath, into items: inout [Item]
+    ) throws -> Bool {
+        if type is any _BoundFromTheWalk.Type { return true }
+        if type is any _ComparedOpaquely.Type {
+            items.append(.compared(offset: base, .opaque))
+            return true
+        }
+        if type is any DynamicProperty.Type { throw Bypass(reason: "\(path): a dynamic property, \(type)") }
+        if let typed = type as? any _ValueComparing.Type {
+            var held: [Item] = []
+            for payload in typed.comparedPayloads { try describe(payload, at: 0, path: .unwrapped(path), into: &held) }
+            items.append(.compared(offset: base, .typed(typed)))
+            return true
+        }
+        if let equatable = type as? any Equatable.Type {
+            items.append(.compared(offset: base, .equatable(ValueComparison.equality(of: equatable))))
+            return true
+        }
+        return false
     }
 
     /// The most elements of a fixed-size array whose element is not all bytes that a
@@ -368,7 +420,11 @@ struct ValueHashPlanBuilder {
             // Nothing to read, and no byte of its own: where a layout is fixed
             // at compile time, the runtime reports a field of no size at
             // offset 0, whatever was declared before it.
-            if fieldLayout.size == 0 { continue }
+            if fieldLayout.size == 0 {
+                // A dynamic property of no size can still read anything.
+                if comparing { try describe(field.type, at: base, path: .field(path, field), into: &items) }
+                continue
+            }
             guard field.offset >= end else {
                 throw Bypass(reason: "\(PlanPath.field(path, field)): overlaps the field before")
             }

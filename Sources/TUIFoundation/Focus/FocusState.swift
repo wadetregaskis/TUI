@@ -507,6 +507,7 @@ nonisolated struct _DefaultFocusModifier<Content: View, Value: Hashable>: View {
 // A focus binding reads a `FocusState` it does not hold: a row holding one
 // compares equal to a row bound to another field. See `TypeWalk`.
 extension FocusState.Binding: _ReadsItsSource {}
+extension FocusState.Binding: _ComparedOpaquely {}
 
 extension FocusState: EnvironmentResolvable {
     /// Hands this `@FocusState` the focus manager of the environment its view
@@ -598,3 +599,5 @@ extension FocusState: PlaceBoundIdentity {
         _DefaultFocusModifier<V, Value>(content: row, store: store, value: value, priority: priority)
     }
 }
+
+extension FocusState: _BoundFromTheWalk {}

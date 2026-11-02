@@ -135,3 +135,5 @@ extension Namespace: PlaceBoundIdentity {
 /// Handled by the property walks directly (``RenderIdentityBindable``), so
 /// they need not look inside it.
 extension Namespace: FrameworkDynamicProperty {}
+
+extension Namespace: _BoundFromTheWalk {}
