@@ -70,4 +70,5 @@ struct Hello: App {
 
 ### Go Deeper
 
+- <doc:KeepingYourAppFast>
 - <doc:UnderTheHood>

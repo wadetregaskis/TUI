@@ -4,6 +4,9 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**A page on keeping an app fast.** What an author can do, and how to find out which of it a screen needs:
+`Keeping Your App Fast` in the documentation.
+
 **A terminal that can only show ASCII gets the best ASCII we can give it.** Where the locale names a character
 set other than UTF-8, each character goes out as ASCII in the cells it had: `é` as `e`, a box's corners as `+`, and
 `你` as `ni`. This isn't a mode to choose.
