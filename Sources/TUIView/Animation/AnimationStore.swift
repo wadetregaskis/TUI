@@ -160,7 +160,11 @@ package final class AnimationStore {
     /// keys stay in the log for the memo around it.
     public func endLogging(from start: Int) -> DeclaredRecords? {
         loggingDepth -= 1
-        let declared = start < declaredLog.count ? DeclaredRecords(Array(declaredLog[start...])) : nil
+        // A copy, and of exactly this slice. `Array(_:)` of a slice that is the whole
+        // log shares the log's buffer: an entry kept all the capacity an enclosing
+        // memo's page had grown it to, and the `removeAll` below, no longer unique,
+        // allocated as much again, 8 KB a row on `session/log`.
+        let declared = start < declaredLog.count ? DeclaredRecords(declaredLog[start...].map(\.self)) : nil
         if loggingDepth == 0 { declaredLog.removeAll(keepingCapacity: true) }
         return declared
     }

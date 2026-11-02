@@ -169,4 +169,21 @@ struct AnimationStoreTests {
         #expect(store.presentsEveryTarget)
         #expect(store.arrivalPhase(for: key, animation: animation, nowNanos: 2 * second, isMeasuring: false) == 1)
     }
+
+    /// What a memo keeps for good, the keys it declared, holds them and not the
+    /// capacity the log had grown to for a whole page that was logged before it.
+    @Test("A memo's declared records don't keep the log's capacity")
+    func declaredRecordsAreExact() throws {
+        let store = AnimationStore()
+        let page = store.beginLogging()
+        let keys = Array(repeating: makeKey(), count: 300)
+        store.declareAgain(AnimationStore.DeclaredRecords(keys))
+        #expect(store.endLogging(from: page)?.keys.count == 300)
+
+        let row = store.beginLogging()
+        store.declareAgain(AnimationStore.DeclaredRecords([makeKey()]))
+        let declared = try #require(store.endLogging(from: row))
+        #expect(declared.keys.count == 1)
+        #expect(declared.keys.capacity < 8, "\(declared.keys.capacity)")
+    }
 }
