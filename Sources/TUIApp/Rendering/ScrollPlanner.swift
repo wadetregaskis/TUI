@@ -407,7 +407,7 @@ final class ScrollCensus {
         if destination == "-" {
             handle = nil
         } else {
-            FileManager.default.createFile(atPath: destination, contents: nil)
+            _ = FileManager.default.createFile(atPath: destination, contents: nil)
             guard let opened = FileHandle(forWritingAtPath: destination) else { return nil }
             handle = opened
         }

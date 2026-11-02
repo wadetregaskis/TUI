@@ -444,7 +444,7 @@ final class InMemoryTerminal: HostStateKeeping {
     init(width: Int, height: Int) {
         size = (width, height)
         if let path = ProcessInfo.processInfo.environment["TUI_HEADLESS_STREAM"], !path.isEmpty {
-            FileManager.default.createFile(atPath: path, contents: nil)
+            _ = FileManager.default.createFile(atPath: path, contents: nil)
             stream = FileHandle(forWritingAtPath: path)
         } else {
             stream = nil
