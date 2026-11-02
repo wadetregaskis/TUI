@@ -583,7 +583,7 @@ extension FrameBuffer {
         return faded
     }
 
-    private static func foldedAlphas(
+    static func foldedAlphas(
         of regions: [OpacityRegion], over columns: Range<Int>, row: Int,
         substituting: (OpacityRegion) -> FrameBuffer.CellAlpha?
     ) -> [FrameBuffer.CellAlpha?] {

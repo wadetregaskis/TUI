@@ -7746,3 +7746,39 @@ read; a sheet resets it, being a window of its own. `.extendedLinear` is
 `opaque` is the caller's promise that every pixel paints, which a cell grid
 has no use for.
 
+
+## 114. A stack of fades is folded in cells (2026-11-02)
+
+A stack composites its layers one at a time, and each one takes both sides apart,
+blends, spells the answer and composites those bytes, for the next layer to take
+apart again. Thirty full-screen gradients spent a frame of 1.2 s that way, about a
+twentieth of it on the arithmetic. Between two such layers nothing draws the bytes,
+so `FrameBuffer.foldingBlendedLayers` keeps the canvas in cells instead, and
+`blendLayer` still answers every cell.
+
+It takes a layer only where skipping its bytes changes no cell:
+
+- the layer covers the whole canvas under fades that cover all of it, with no run,
+  overlay or hit region. So one alpha serves every cell, and nothing is carried up
+  (§108);
+- every cell of the layer and of the canvas is plain: one column, no picture, no
+  attribute, opaque 24-bit colours, a field of its own, and an ink if it has a glyph.
+  A plain cell over a plain cell is a plain cell, and a plain cell comes back from its
+  bytes as it was;
+- the colour depth is 24-bit. At any other depth a blend's answer is quantised as it
+  is spelled, and the next layer blends over the quantised colour;
+- no mode decides which side shows. `sourceAtop`, `destinationOver` and
+  `destinationOut` can empty a cell, and an emptied cell is not plain;
+- the next layer qualifies too. It goes through the ordinary composite, over lines
+  the fold spelled, and replaces every cell of them, so the fold's spelling is never
+  drawn. Whatever follows it is laid over the ordinary path's cells.
+
+Anything else leaves the layer to the ordinary path, a stack's first two among them:
+the first lands on nothing and carries its claim up, and the second settles that
+claim. A layer's rows that repeat are blended once.
+
+The cells are the ordinary path's, and so is every byte up to a row's last cell. After
+it the fold leaves less: a composite keeps its base's closing escapes behind the
+overlay and adds its own, so one composite per layer ended each row in thirty layers'
+worth of escapes that draw nothing. `BlendedLayerFoldTests` draws its stacks both ways
+and compares every cell.

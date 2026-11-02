@@ -45,8 +45,14 @@ extension FrameBuffer {
         // The runs of a lower layer a later one shows the field of, whose frames turn
         // it: punched under the later layer, they ask for a render at their steps.
         var showingThrough: [AnimatedCellRun] = []
-        for layer in layers {
-            var (buffer, dx, dy) = layer
+        let composite = CompositeEnvironment(context.environment)
+        var next = 0
+        while next < layers.count {
+            // Translucent layers the composite would only parse back, drawn in cells.
+            next += result.foldingBlendedLayers(layers[next...], width: width, height: height, in: composite)
+            // The fold never takes the last layer of a run, so one is always left.
+            var (buffer, dx, dy) = layers[next]
+            next += 1
             if splitsOverhang, !buffer.fits(at: (x: dx, y: dy), inWidth: width, height: height) {
                 let placement = buffer.splitPlacing(at: (x: dx, y: dy), inWidth: width, height: height)
                 // Before this layer's cells land, so the layers after it cut
@@ -56,7 +62,7 @@ extension FrameBuffer {
             }
             showingThrough += result.runsShowingThrough(buffer, at: (x: dx, y: dy))
             result = result.compositedCarryingClaimsOverNothing(
-                with: buffer, at: (x: dx, y: dy), in: CompositeEnvironment(context.environment))
+                with: buffer, at: (x: dx, y: dy), in: composite)
         }
         if !showingThrough.isEmpty {
             context.requestWake(
