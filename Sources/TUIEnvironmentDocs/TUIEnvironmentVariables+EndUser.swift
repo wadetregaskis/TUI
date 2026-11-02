@@ -88,6 +88,10 @@ extension TUIEnvironmentVariables {
             effect: "The language, unless `LANGUAGE` says otherwise, and the region that dates and numbers are written for.",
             code: .overrides("`LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\\.locale, _)` for part of an app.")),
         TUIEnvironmentVariable(
+            "LC_CTYPE", .endUser, .language,
+            values: "A locale, such as `de_DE.ISO8859-1`",
+            effect: "Its character set, unless `LC_ALL` says otherwise. One other than UTF-8 says that the terminal can't show anything else, so the app sends it ASCII alone. `LANG` says the same where neither does."),
+        TUIEnvironmentVariable(
             "LC_MESSAGES", .endUser, .language,
             values: "A locale, such as `de_DE.UTF-8`",
             effect: "The language, unless `LANGUAGE` or `LC_ALL` says otherwise.",

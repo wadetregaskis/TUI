@@ -51,7 +51,6 @@ Read by the library modules, for debugging them.
 
 | Variable | Values | What it does |
 |---|---|---|
-| `LC_CTYPE` | A locale | Read with `LC_ALL` and `LANG` for its character set alone. See `TUI_PLAIN_TEXT`. |
 | `TUI_DEBUG_FOCUS` | `1` | Logs the focus system, mouse dispatch and text fields to `/tmp/tui-debug.log`. Read once. |
 | `TUI_HEADLESS_STREAM` | A path | Writes every byte a `HeadlessApp` sends its terminal to that file, for the output tools. |
 | `TUI_OBSERVATION_RETIREMENT` | A name of `ObservationLeases.Retirement` | Which rule a new render cache cancels its observation scopes by, to compare them. `leases` by default. |

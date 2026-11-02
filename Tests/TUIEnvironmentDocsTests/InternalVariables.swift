@@ -11,8 +11,7 @@
 enum InternalVariables {
     /// Read by the framework, for debugging the framework.
     static let framework: Set<String> = [
-        "LC_CTYPE", "TUI_DEBUG_FOCUS", "TUI_HEADLESS_STREAM", "TUI_OBSERVATION_RETIREMENT", "TUI_OPTION_C",
-        "TUI_PLAIN_TEXT",
+        "TUI_DEBUG_FOCUS", "TUI_HEADLESS_STREAM", "TUI_OBSERVATION_RETIREMENT", "TUI_OPTION_C", "TUI_PLAIN_TEXT",
         "TUI_SCROLL_CENSUS", "TUI_SCROLL_OUTPUT", "TUI_STILL",
     ]
 

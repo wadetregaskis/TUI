@@ -89,6 +89,7 @@ Don't write a variable to state a setting. Many are read once, and `setenv` isn'
 |---|---|---|
 | `LANGUAGE` | A list of languages, such as `pt:es` | The languages to use, most preferred first. It comes before the variables below. A language you chose inside the program comes before it. |
 | `LC_ALL` | A locale, such as `de_DE.UTF-8` | The language, unless `LANGUAGE` says otherwise, and the region that dates and numbers are written for. |
+| `LC_CTYPE` | A locale, such as `de_DE.ISO8859-1` | Its character set, unless `LC_ALL` says otherwise. One other than UTF-8 says that the terminal can't show anything else, so the app sends it ASCII alone. `LANG` says the same where neither does. |
 | `LC_MESSAGES` | A locale, such as `de_DE.UTF-8` | The language, unless `LANGUAGE` or `LC_ALL` says otherwise. |
 | `LC_TIME` | A locale, such as `de_DE.UTF-8` | The region that dates and numbers are written for, unless `LC_ALL` says otherwise. |
 | `LC_NUMERIC` | A locale, such as `de_DE.UTF-8` | The region that dates and numbers are written for, unless `LC_ALL` or `LC_TIME` says otherwise. |
@@ -201,6 +202,7 @@ Two of the variables above are worth knowing for tests too. `TUI_CONFIG_DIR` kee
 | `TUI_KEY_SYMBOLS` | Can't undo it | `Scene.keyNotation(.spelledOut)` asks for the names too, but `.symbols` doesn't undo this. `keyNotation` is read-only. | Once |
 | `LANGUAGE` | Wins | `LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\.locale, _)` for part of an app. | Once |
 | `LC_ALL` | Wins | `LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\.locale, _)` for part of an app. | Once |
+| `LC_CTYPE` | No setting | The variable is the only way. | Once |
 | `LC_MESSAGES` | Wins | `LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\.locale, _)` for part of an app. | Once |
 | `LC_TIME` | Wins | `.environment(\.locale, _)`. | Once |
 | `LC_NUMERIC` | Wins | `.environment(\.locale, _)`. | Once |
