@@ -230,6 +230,11 @@ internal final class RenderLoop<A: App> {
     /// Every picture, on a host with no Unicode placeholders.
     let classicPictures = PicturePlacementLayer(z: PicturePlacementLayer.overCells)
 
+    /// Every picture on a host that speaks Sixel and no Kitty graphics.
+    let sixelPictures = SixelPictureLayer()
+    /// Whether a wake is coming for the pixels ``sixelPictures`` still owes.
+    var sixelRetryPending = false
+
     /// The push-refreshed emoji-chrome answer (see ``ClientCapabilityRefresher``):
     /// seeded synchronously before the first frame, re-probed asynchronously
     /// when the tmux client-change hooks (or a real resize) send a SIGWINCH,
@@ -947,6 +952,7 @@ extension RenderLoop {
         hairlines.invalidate()
         picturesUnderText.invalidate()
         classicPictures.invalidate()
+        sixelPictures.invalidate()
         // A SIGWINCH is also our signal that the tmux CLIENT may have changed —
         // either a real resize (attaching from a different-sized terminal), or
         // the synthetic one our tmux hooks send for a SAME-size attach/detach
@@ -1307,6 +1313,8 @@ extension RenderLoop {
         let placedClassic =
             classicPrepared
             && classicPictures.place(on: terminal, startRow: 1, rewritten: diffWriter.rowsWrittenInLastDiff)
+        let drewSixel = drawSixelPictures(
+            palette: palette, terminalHeight: terminalHeight, nowNanos: UInt64(max(0, frameNowNanos)))
         // The images this frame let go of, after the cells that stopped naming
         // them and inside the same hold: a picture swapped for another goes in
         // one held update, never blank in between. See
@@ -1316,7 +1324,7 @@ extension RenderLoop {
         parkCursor(
             at: insertionPointOnScreen(
                 in: buffer.hitTestRegions, width: terminalWidth, height: outputLines.count),
-            afterWriting: wrote || placedHairlines || placedPictures || placedClassic)
+            afterWriting: wrote || placedHairlines || placedPictures || placedClassic || drewSixel)
 
         // Keep what an animation tick would need to patch: the lines actually on
         // screen, the runs composited into absolute positions, and the geometry

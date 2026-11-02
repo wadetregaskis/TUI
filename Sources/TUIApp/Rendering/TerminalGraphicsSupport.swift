@@ -85,12 +85,16 @@ extension TerminalClient {
     /// asked; the answer is read from a render path that cannot ask anything.
     @MainActor
     public static func applyGraphicsSupport() {
+        let sixel = sixelInUse
+        KittyGraphics.drawsPicturesBySixel = sixel
         KittyGraphics.isSupported = graphicsSupported
-        KittyGraphics.isCompressionSupported = graphicsCompressionSupported
-        KittyGraphics.isHairlineSupported = hairlinesSupported
-        let classic = graphicsSupported && classicPlacementsInUse
+        KittyGraphics.isCompressionSupported = graphicsCompressionSupported && !sixel
+        KittyGraphics.isHairlineSupported = hairlinesSupported && !sixel
+        // Sixel builds on the classic path: cells become marks at the writer, and the
+        // store keeps a picture's own pixels.
+        let classic = (graphicsSupported && classicPlacementsInUse) || sixel
         KittyGraphics.drawsPicturesByClassicPlacement = classic
-        KittyGraphics.classicPlacementsCrop = classicPlacementsCrop(program: current.program)
+        KittyGraphics.classicPlacementsCrop = !sixel && classicPlacementsCrop(program: current.program)
         // The two layers name their placements alike, so one image's could
         // collide, and a host with no placeholders stands a glyph on the average
         // colour as a host with neither does.
@@ -117,7 +121,7 @@ extension TerminalClient {
         if override == false { return false }
         switch environment["TUI_GRAPHICS"] {
         case "classic": return true
-        case "1", "0": return false
+        case "1", "0", "sixel": return false
         default: return detectedPlacement != true && detectedClassic == true
         }
     }
@@ -141,7 +145,7 @@ extension TerminalClient {
     @MainActor public static var graphicsSupported: Bool {
         graphicsSupported(
             override: graphicsSupport, environment: ProcessInfo.processInfo.environment,
-            detected: detectedPictures)
+            detected: detectedPictures) || sixelInUse
     }
 
     /// What the handshake said to either question, or `nil` if it never ran.
@@ -159,7 +163,7 @@ extension TerminalClient {
     ) -> Bool {
         if let override { return override }
         switch environment["TUI_GRAPHICS"] {
-        case "1", "classic": return true
+        case "1", "classic", "sixel": return true
         case "0": return false
         default: return detected ?? false
         }
@@ -294,10 +298,19 @@ extension TerminalClient {
         detectedCellPixels = terminal.cellPixelSize() != nil
         guard graphicsSupport == nil else { return }
         let forced = ProcessInfo.processInfo.environment["TUI_GRAPHICS"]
-        guard forced != "1", forced != "0", forced != "classic" else { return }
-        let answers = terminal.queryGraphicsSupport()
-        detectedGraphics = answers.placement
-        detectedGraphicsCompression = answers.compression
-        detectedClassicPlacements = answers.classicPlacement
+        guard forced != "0" else { return }
+        if forced != "1", forced != "classic", forced != "sixel" {
+            let answers = terminal.queryGraphicsSupport()
+            detectedGraphics = answers.placement
+            detectedGraphicsCompression = answers.compression
+            detectedClassicPlacements = answers.classicPlacement
+        }
+        // A host the environment named was not asked who it is, so not this either:
+        // asked here, and only of one with no Kitty, so that one with Kitty pays nothing.
+        if detectedPictures == false, current.primaryDeviceAttributes == nil, !TerminalHost.isTmux {
+            detectedPrimaryAttributes = terminal.queryPrimaryAttributes()
+        }
+        // Only of a host that will draw by it, so no other pays a round trip.
+        if sixelInUse { (detectedSixelRegisters, detectedSixelCell) = terminal.querySixelGeometry() }
     }
 }

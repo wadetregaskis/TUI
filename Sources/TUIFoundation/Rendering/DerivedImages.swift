@@ -265,15 +265,23 @@ struct DerivedImages {
         // An unblurred copy keeps the picture's detail, from its own pixels where
         // they were kept; a blurred one has none to keep, and the small copy is it.
         let sent: (width: Int, height: Int)
+        // Sixel has no images to hold, so only the size is of use: `cropped` changes
+        // the pixels of what it cuts.
+        let sendsNothing = KittyGraphics.drawsPicturesBySixel
         if !transform.blurs, let full = source.full {
-            escapes += KittyGraphics.transmit(
-                pixels: Self.applying(transform, to: full.bytes, width: full.width, height: full.height), format: .rgba,
-                width: full.width, height: full.height, id: copyID, compressed: KittyGraphics.isCompressionSupported)
+            if !sendsNothing {
+                escapes += KittyGraphics.transmit(
+                    pixels: Self.applying(transform, to: full.bytes, width: full.width, height: full.height),
+                    format: .rgba, width: full.width, height: full.height, id: copyID,
+                    compressed: KittyGraphics.isCompressionSupported)
+            }
             sent = (full.width, full.height)
         } else {
-            escapes += KittyGraphics.transmit(
-                pixels: pixels, format: .rgba, width: source.width, height: source.height, id: copyID,
-                compressed: KittyGraphics.isCompressionSupported)
+            if !sendsNothing {
+                escapes += KittyGraphics.transmit(
+                    pixels: pixels, format: .rgba, width: source.width, height: source.height, id: copyID,
+                    compressed: KittyGraphics.isCompressionSupported)
+            }
             sent = (source.width, source.height)
         }
         escapes += KittyGraphics.placement(id: copyID, columns: source.columns, rows: source.rows)

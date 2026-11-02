@@ -201,6 +201,11 @@ final class FrameDiffWriter {
     /// terms as ``appliedHairlines``.
     private var appliedClassicPlacements = false
 
+    /// Whether the rows were last built for a host that draws pictures by Sixel
+    /// (`KittyGraphics.drawsPicturesBySixel`), on the same terms: a picture's cells
+    /// stay bare placeholders, and are moved past as they are written.
+    private var appliedSixel = false
+
     /// The marks one built row carried, read and taken out of it: the hairline
     /// runs along its top, the picture runs under its text, and on a host with
     /// no placeholders the runs of them that became spaces, each cut to the
@@ -487,7 +492,7 @@ extension FrameDiffWriter {
         // A picture's own cells, on a host with no placeholders to draw them:
         // spaces from here on, and a placement beside the row.
         if appliedClassicPlacements {
-            let extracted = KittyGraphics.extractingPlaceholders(sanitized)
+            let extracted = KittyGraphics.extractingPlaceholders(sanitized, keepingCells: appliedSixel)
             sanitized = extracted.line
             marks.placeholders = Self.cut(extracted.runs, toWidth: terminalWidth)
         }
@@ -594,11 +599,12 @@ extension FrameDiffWriter {
         let pictures = KittyGraphics.isPictureUnderTextSupported
         let classic = KittyGraphics.drawsPicturesByClassicPlacement
         guard appliedHairlines != hairlines || appliedPicturesUnderText != pictures
-            || appliedClassicPlacements != classic
+            || appliedClassicPlacements != classic || appliedSixel != KittyGraphics.drawsPicturesBySixel
         else { return }
         appliedHairlines = hairlines
         appliedPicturesUnderText = pictures
         appliedClassicPlacements = classic
+        appliedSixel = KittyGraphics.drawsPicturesBySixel
         markRows = []
         invalidate()
     }
@@ -916,7 +922,7 @@ extension FrameDiffWriter {
             case .spans(let spans):
                 for span in spans {
                     moveCursor(on: terminal, toRow: startRow + row, column: span.column + 1)
-                    terminal.write(span.content)
+                    terminal.write(appliedSixel ? KittyGraphics.skippingPictureCells(span.content) : span.content)
                 }
             case .wholeLine:
                 moveCursor(on: terminal, toRow: startRow + row, column: 1)
@@ -931,7 +937,7 @@ extension FrameDiffWriter {
                 // first whole row after a resize kept the previous pass's
                 // underline or reverse across its erase and its glyphs.
                 if emitted?.isDefault != true { terminal.write("\u{1B}[0m") }
-                terminal.write(newLines[row])
+                terminal.write(appliedSixel ? KittyGraphics.skippingPictureCells(newLines[row]) : newLines[row])
                 emitted = SGRState()  // every built row ends with a reset
             }
         }

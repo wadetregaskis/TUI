@@ -5,13 +5,18 @@ host pays nothing for a path it does not take.
 Runs each binary on a pty that answers as a plain terminal would (DA1 with no Sixel,
 DSR, CPR; nothing to Kitty's questions), types the same keys at the same times, and
 compares the distinct held frames (`?2026h` to `?2026l`). Distinct, because how many
-times an idle frame repeats depends on the clock.
+times an idle frame repeats depends on the clock. And with the numbers of each colour
+taken out, because a focus ring's breath depends on it too: the frames compared say
+which cells were written with which text, escapes and picture data.
+
+An old build against itself is the control: what differs there is the clock.
 
     python3 Tools/TerminalProbes/byte_compare.py OLD NEW [--page images] [--keys pppp]
 """
 import argparse
 import hashlib
 import os
+import re
 import select
 import struct
 import fcntl
@@ -20,6 +25,7 @@ import time
 
 HOLD_ON = b"\x1b[?2026h"
 HOLD_OFF = b"\x1b[?2026l"
+COLOUR = re.compile(rb"(?:38|48|58);(?:5;\d+|2;\d+;\d+)")
 
 
 def capture(binary, page, keys, env_extra):
@@ -78,7 +84,7 @@ def frames(data):
         if end < 0:
             break
         frame = data[begin:end]
-        found[hashlib.sha256(frame).hexdigest()] = frame
+        found[hashlib.sha256(COLOUR.sub(b"C", frame)).hexdigest()] = frame
         start = end + len(HOLD_OFF)
     return found
 

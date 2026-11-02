@@ -367,12 +367,15 @@ package final class TerminalImageStore {
         // Deflated where the terminal said it would take it — a photograph
         // gains a little, a gradient rendered as pixels gains an order of
         // magnitude — and raw everywhere else. See ``KittyGraphics/isCompressionSupported``.
-        let transmit = KittyGraphics.transmit(
-            pixels: payload.bytes, format: payload.format,
-            width: payload.width, height: payload.height, id: id,
-            compressed: KittyGraphics.isCompressionSupported)
-        guard !transmit.isEmpty else { return nil }
-        pending += transmit
+        // Sixel has no images to hold: the pixels stay here until they are drawn.
+        if !KittyGraphics.drawsPicturesBySixel {
+            let transmit = KittyGraphics.transmit(
+                pixels: payload.bytes, format: payload.format,
+                width: payload.width, height: payload.height, id: id,
+                compressed: KittyGraphics.isCompressionSupported)
+            guard !transmit.isEmpty else { return nil }
+            pending += transmit
+        }
         pending += KittyGraphics.placement(id: id, columns: columns, rows: rows)
         derivedImages.remember(id, columns: columns, rows: rows, pixels: payload, keepsOwnPixels: keepsOwnPixels)
         file(
@@ -576,6 +579,19 @@ package final class TerminalImageStore {
         drawn.width = pixels.width
         drawn.height = pixels.height
         return drawn
+    }
+
+    /// `run`'s pixels as RGBA, for a host that draws them itself (Sixel), or `nil`
+    /// where the store holds none.
+    package func pixels(of run: PictureUnderTextMarker.Run) -> (bytes: [UInt8], width: Int, height: Int)? {
+        guard let size = pixelSize(of: run.image) else { return nil }
+        return derivedImages.cropped(run.image, x: run.x, y: run.y, width: run.width, height: run.height, sent: size)
+    }
+
+    /// All of image `id`'s pixels as RGBA, or `nil` where the store holds none.
+    package func pixels(ofWhole id: KittyGraphics.ImageID) -> (bytes: [UInt8], width: Int, height: Int)? {
+        guard let size = pixelSize(of: id) else { return nil }
+        return derivedImages.cropped(id, x: 0, y: 0, width: size.width, height: size.height, sent: size)
     }
 
     /// Ends a frame's ``croppedRun(_:)``s: the crops past their limits go, after

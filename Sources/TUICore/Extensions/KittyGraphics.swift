@@ -235,7 +235,7 @@ public enum KittyGraphics {
     /// long as the terminal runs, which is a resource TUI now owns and
     /// nothing else will clean up.
     public static func delete(id: ImageID) -> String {
-        guard id > 0, id <= maximumImageID else { return "" }
+        guard id > 0, id <= maximumImageID, !drawsPicturesBySixel else { return "" }
         return "\u{1B}_Ga=d,d=I,q=2,i=\(id)\u{1B}\\"
     }
 

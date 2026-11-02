@@ -48,7 +48,14 @@ extension KittyGraphics {
     ///
     /// The spaces keep the styling in force, so a cell's background is still
     /// what shows through a transparent picture, as it is under a placeholder.
-    package static func extractingPlaceholders(_ line: String) -> (line: String, runs: [PlaceholderRun]) {
+    ///
+    /// - Parameter keepingCells: A bare placeholder for each cell rather than a
+    ///   space: on a Sixel host a written space would erase the pixels, so the writer
+    ///   turns these into a move past them as it writes
+    ///   (``skippingPictureCells(_:)``), and a cell's width still counts until then.
+    package static func extractingPlaceholders(
+        _ line: String, keepingCells: Bool = false
+    ) -> (line: String, runs: [PlaceholderRun]) {
         guard line.unicodeScalars.contains(.terminalImagePlaceholder) else { return (line, []) }
         var result = ""
         result.reserveCapacity(line.utf8.count)
@@ -67,7 +74,11 @@ extension KittyGraphics {
                     column += character.terminalWidth
                     return true
                 }
-                result.append(" ")
+                if keepingCells {
+                    result.unicodeScalars.append(.terminalImagePlaceholder)
+                } else {
+                    result.append(" ")
+                }
                 append(character, at: column, under: state, to: &runs)
                 column += 1
             }

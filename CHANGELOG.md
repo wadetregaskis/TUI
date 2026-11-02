@@ -4,6 +4,14 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**Pictures draw in real pixels on a terminal with Sixel and no Kitty graphics.** TUI asks: no answer to its Kitty
+questions and attribute 4 in the terminal's device attributes, outside tmux. Foot, mintty, mlterm and, once TUI runs on
+Windows, Windows Terminal should all get pictures this way; it has only been run on iTerm2, with Kitty hidden from it.
+`TUI_GRAPHICS=sixel` asks for it anywhere. A picture is sent again only for the cells that need it, so a menu opening
+over one costs nothing and closing it costs what it uncovered, and at most about a megabyte a second goes out: a picture
+moving faster than that keeps its last frame, or shows text characters, until it can catch up. Other terminals write the
+same bytes as before, apart from one short question at startup on a terminal with no Kitty graphics.
+
 **On Warp, a picture partly covered or clipped draws the part that shows.** Warp ignores a placement's source rectangle, so
 a picture with a view over it, or scrolled partly out of sight, used to be blank until it was whole again. What is left of it
 now goes as images of just those pixels, one for each rectangle of cells, kept for when they are asked for again. No other

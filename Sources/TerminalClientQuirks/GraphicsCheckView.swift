@@ -59,7 +59,9 @@ struct GraphicsCheckView: View {
         case "1": return "TUI_GRAPHICS=1 — the handshake was skipped"
         case "0": return "TUI_GRAPHICS=0 — the handshake was skipped"
         case "classic": return "TUI_GRAPHICS=classic — the handshake was skipped"
+        case "sixel": return "TUI_GRAPHICS=sixel — the handshake was skipped"
         default:
+            if KittyGraphics.drawsPicturesBySixel { return "no Kitty graphics, and DA1 says Sixel" }
             switch TerminalClient.detectedGraphics {
             case true: return "the terminal acknowledged a virtual placement"
             case false where KittyGraphics.drawsPicturesByClassicPlacement:

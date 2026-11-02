@@ -16,8 +16,8 @@ cells.
 **Revisited 2026-11-02, for Sixel only:** with classic placements built (§15),
 the hosts still on glyphs that could draw pixels all speak Sixel, Windows
 Terminal among them, and the writer work §11 priced mostly exists. The answer is
-now "Sixel last of all, one probe first, and the iTerm2 protocol still no". §6
-has the case and the question for the owner.
+now "Sixel last of all, and the iTerm2 protocol still no". §6 has the case, and
+§16 what was built: the owner chose to probe and build at once, on 2026-11-02.
 
 Everything measured here was measured on 2026-09-02 with
 `Tools/TerminalProbes/graphics_probe.py`; the records are under
@@ -463,11 +463,11 @@ With that fixed, each idea sorts cleanly:
 ## 6. Recommendation
 
 **The answer as of 2026-11-02: reverse "do not ship Sixel", and keep "do not ship
-the iTerm2 protocol".** Sixel becomes the last path before glyphs, for a host that
-says `4` in DA1 and has no Kitty at all. Run one probe first, because one of its
-answers could still kill it (§6.4). Build it when the Windows port of `TUIApp`
-starts, or sooner if the owner prefers (§6.7). Nothing is built yet, and a host
-with any Kitty placement never takes this path.
+the iTerm2 protocol".** Sixel is the last path before glyphs, for a host that says
+`4` in DA1 and has no Kitty at all, and a host with any Kitty placement never takes
+it. The owner chose option b of §6.7. The probe passed on iTerm2, the one host here
+that speaks it, and it is built: §16 has what was measured and how it differs from
+what this section planned.
 
 §6.1 is the recommendation of 2026-09 as it stood, kept because later sections
 argue with it. §6.2 onward is the revisit. Evidence there is marked **[measured]**,
@@ -578,7 +578,7 @@ pictures in a browser with no change to the addon **[inferred]**.
 | **No alpha.** A register is opaque; P2=1 only leaves unset pixels alone, which is one bit of alpha | A translucent picture cannot blend with what is under it | Flatten at encode time over the cells' stated background. A fade or frost is already a copy of the picture (§14.3, §14.4), so it follows the same path. On the terminal's own default field the colour comes from OSC 11, and where that is unknown a pixel is either on or off | **[inferred]** |
 | **Nothing retained** | The terminal keeps no copy, so TUI must. Today `DerivedImages.remember` keeps a small copy, and the full pixels only up to a limit | Keep each on-screen picture's pixels: about 0.5 MB RGB at 49×17 cells on a 10×20 cell, 1.4 MB on Retina. New memory, but only on these hosts | **[read]** the store; arithmetic |
 | **Every repair is pixels** | See the table below | A byte budget a frame; over it, a block stays blank until it settles, as a partial picture on Warp already does (§15) | **[measured]** bytes; policy **[inferred]** |
-| **No placements**: no delete, no replace, no z, no crop on the wire | A picture that goes away must be overwritten. Under §15 its cells are spaces before and after, so the diff sees nothing to write | The layer writes those cells itself. Crops are free: the encoder takes a rectangle. No hairlines, no pictures under text | Whether a written space erases Sixel pixels is **unmeasured** and **the one answer that could kill this**: a host that does not erase needs a repaint of what was under it, and nothing holds that |
+| **No placements**: no delete, no replace, no z, no crop on the wire | A picture that goes away must be overwritten. Under §15 its cells are spaces before and after, so the diff sees nothing to write | The layer writes those cells itself. Crops are free: the encoder takes a rectangle. No hairlines, no pictures under text | Whether a written space erases Sixel pixels was **the one answer that could kill this**: on iTerm2 3.7.6 it does, cell by cell **[measured, §16]**. Elsewhere it is unmeasured, and a host that does not erase needs a repaint of what was under it, which nothing holds |
 | **No cursor policy** | The cursor after an image is the host's choice, and on the last row it can scroll the screen. DECSDM's sense has varied between hosts (§11.4) | Decline a block that reaches the last row, or set DECSDM where a record says which way it goes. The cursor itself does no harm: every span has its own `CUP` (§11.2) | **unmeasured** except by reading Windows Terminal (§6.5) |
 | **Sized in pixels** | The picture must be resampled to the cell's true pixels. There is no `c`,`r` to fit a box | `cellPixelSize()` where `TIOCGWINSZ` answers. A font change re-sends everything. Windows has no such ioctl (§6.5) | **[read]** |
 | **Palette** | 256 registers or so, per host, read by XTSMGRAPHICS | `ASCIIPalette+Adaptive`'s median cut, with the seam §11.4 names | **[read]**, unbuilt |
@@ -676,8 +676,7 @@ under motion.
 
 ### 6.7 The question for the owner
 
-**SIXEL: which of these?** Also listed in [Open owner
-decisions](<../Open owner decisions.md>).
+**SIXEL: which of these?** Answered 2026-11-02: **b**. Kept for the prices.
 
 | | What happens | Cost | What you get |
 |---|---|---|---|
@@ -685,7 +684,6 @@ decisions](<../Open owner decisions.md>).
 | **b** | Run the probe, and if it passes, build now | About two weeks of one lane now, and a third picture path to keep working from then on, tested here only on iTerm2 | Pictures on foot, mintty, mlterm, DomTerm, Yaft and Eat straight away, and on those behind a switch once it is on; Windows Terminal is ready the day `TUIApp` builds there |
 | **c** | Keep "do not ship" | Nothing now; Windows Terminal stays on glyphs unless it ships Kitty | No third path. Half blocks would draw there |
 
-If you don't answer, nothing is built and the probe is not run.
 
 ---
 
@@ -1724,3 +1722,153 @@ the placements are the ones they were.
   it, and a picture scrolled wholly out of its clip on Warp has none.
 - A cell of text over a picture is a cut in the picture, as under placeholders.
   Pictures under text remain Ghostty's (§14.5).
+
+## 16. Pictures by Sixel — probed and built 2026-11-02
+
+§6's plan, measured on the one host here that speaks it. Everything measured is
+iTerm2 3.7.6 on a Retina Mac; numbers are in `Documentation/Terminals/Terminal
+compatibility survey.md`, "Sixel". **No other Sixel host has been run:** foot,
+mintty, mlterm and Windows Terminal may disagree with any row below.
+
+### 16.1 What the probe found
+
+`Tools/TerminalProbes/sixel_probe.py`, looked at card by card:
+
+| Question | iTerm2 3.7.6 |
+|---|---|
+| Does a written space erase pixels? | **Yes, exactly its cell**, and in its own background. So do `ECH`, `EL`, `ED` and text |
+| A row's repair | A picture of one row over a row needs no erase and shows no seam. Rows tiled alike show none |
+| The cell, for a whole-cell picture | `TIOCGWINSZ`'s 14 x 34 is Sixel's pixel; `CSI 16 t` answers 7 x 17, in points. A picture sized by that draws at half the size with white beyond it |
+| A height that is no multiple of 6 | With raster attributes and `P2=1`, exactly that height: text on the row below stays |
+| `P2=1`, unset pixels | They show the terminal's default field, **not** the text or colour under them: one bit of alpha, over one colour |
+| Registers | Each picture's own: a second picture's `#1` did not change the first |
+| Scroll region | Pixels go with their rows |
+| The last row, no mode | **Does not scroll.** The cursor is on the picture's last row, in its first column |
+| `?80h` (DECSDM) | The picture goes to the screen's top left, whatever the cursor. Never set |
+| `?8452h` | Ignored |
+| 887 KB inside `?2026` | The reply took 28 ms. The picture showed within about a second, and later than the hold's end |
+
+So the answer that could have killed it passed, and more simply than §6.4 feared:
+pixels behave as cells do.
+
+### 16.2 What was built, against §6.6's plan
+
+**The cells are not written.** §6.4 expected the layer to erase what had gone, and
+§6.6 the writer to report spans. Neither was needed. On a Sixel host a picture's
+cells stay in the row as bare `U+10EEEE`, which counts as a cell everywhere, and go
+out as a move past them (`KittyGraphics.skippingPictureCells`), so:
+
+- a row written beside a picture does not touch it, however it is written. A whole
+  row loses its opening `ESC[2K`, which would take the pixels; it is padded anyway;
+- a cell that stops being a picture differs from last frame's and is written, and
+  that erases it. There is no erase path of its own.
+
+**What is on screen is kept by the cell** (`SixelPictureLayer`): which image, and
+which cell of it. Only cells showing something else are drawn, gathered by
+`PicturePlacementLayer.blocks`. Opening a menu over a picture costs no Sixel, and
+closing it costs the rectangle it uncovered: 915 bytes for the corner it was over.
+
+**The store sends nothing.** No APC goes to the terminal: not the image, not its
+copies, not a delete. As on Warp (§15) it keeps a picture's own pixels and a playing
+one's frames, and copies are changed as they are cut, so fade, frost and veil need
+nothing new. That is one RGBA copy of what is drawn, and only on these hosts.
+
+**Detection** is on the capability route, in this order: placeholders, classic
+placements, Sixel, glyphs. `TerminalClient.sixelInUse` wants no answer to either Kitty
+question, `4` in DA1 and no tmux. DA1 was asked at startup only of a host the
+environment could not name, so it is now also asked of a named host with no Kitty:
+seven bytes and a round trip, once, on those hosts only. Hosts with Kitty pay nothing.
+`TUI_GRAPHICS=sixel` forces it on any host, tmux too, and is how to prefer it on a
+terminal that has both. A host about to draw this way is also asked `XTSMGRAPHICS`
+for its registers and `CSI 16 t`, the fallback where `TIOCGWINSZ` says nothing.
+
+**iTerm2 has no setting for its Kitty graphics** (none in its binary's strings), so
+nothing on the terminal's side could turn them off. `Tools/TerminalProbes/no_kitty_proxy.py`
+sits on the wire and drops every APC, so the app's own handshake finds none and DA1's
+`4` by itself: that is how everything here was run, with iTerm2's settings untouched.
+
+**Colours:** at most what `XTSMGRAPHICS` says, else 256, chosen once per picture by
+median cut, so two rectangles of a picture match and no seam shows. No dither.
+
+**Alpha:** flattened over the page's background (the palette's where it states one,
+else OSC 11). A translucent picture on a panel of another colour flattens over the
+page, not the panel. Where neither is known a pixel is on or off, and off shows the
+default field, which on iTerm2 is what was there.
+
+**The last row:** `?8452h` around a block that reaches it, as xterm and foot are read
+to put the cursor below a picture and so would scroll. iTerm2 ignores it and does not
+scroll. A host that does neither would shift the screen by a row **[inferred, none
+known]**; `TUI_GRAPHICS=0` is the answer there. §6.4's other answer, declining the row,
+costs every picture touching the bottom its last row.
+
+### 16.3 The bound on bytes
+
+Two limits, in `SixelPictureLayer`: 1 MiB a frame past its first block, so a page of
+many pictures draws over a few frames rather than stalling on one write, and 1 MiB a
+second over time, about what iTerm2 was measured to show (887 KB within a second of
+its write), so that motion cannot fall behind the screen.
+
+Past either, **a cell already showing pixels keeps them**, and any other gets half
+blocks, about 40 bytes a cell, written once. A timed wake draws what is owed. Chosen
+over blank cells because a picture appearing should appear, and over half blocks
+everywhere because a sharp picture alternating with a blurred one is worse than one
+that is a frame or two late. On the scroll below, 16 steps at 8 a second drew 6 of
+them and it settled on the right picture; no half block was written, as every cell
+already held pixels. So half blocks have run only in the tests. The policy was not
+chosen by a measured comparison of looks: one host, one page.
+
+### 16.4 What it costs
+
+Measured through the proxy, `Example --page images`, 80 x 25 at 14 x 34 pixels a cell:
+
+| | Sixel bytes |
+|---|---|
+| The mascot, about 23 x 13 cells, first draw | 95,551 |
+| The eagle, about 26 x 8 cells | 137,997 |
+| Idle, focus breathing | 0 |
+| A menu opening over the corner of a picture | 0 |
+| It closing | 915 |
+| The animated ball, each frame, about 10 a second | 661 to 729 |
+| A scroll step of a photo zoomed 4 times, about 25 x 11 cells | 84,656 to 136,142 |
+
+So the 16 x 34 row of §6.4 was about right, and a flat picture is far cheaper. An
+animated picture's frames go as whole pictures, drawn through the same store, so a
+small flat one plays and a large photographic one falls to what the second's limit
+lets through, keeping its last frame between. §6.6 left them on glyphs; nothing had to
+be done to play them.
+
+A host without Sixel pays one read of a flag a frame. `byte_compare.py`, base against
+this, `Example --page images` with the same keys on a pty answering as a plain terminal:
+
+| | Bytes, old → new | Distinct frames |
+|---|---|---|
+| `TUI_GRAPHICS=1`, placeholders | 1,834,877 → 1,834,877 | all the same |
+| No Kitty, no `4` | 42,849 → 42,856 and 42,665 → 42,672 | all the same |
+| `TUI_GRAPHICS=0` | 40,267 → 40,137 | one differs |
+
+The seven bytes are `ESC[c` and its fence, above. The last row's difference is the
+clock: the old build against itself differs the same way (40,204 → 40,230, one frame).
+A first run after a build once differed in four frames and did not again.
+
+A/B of `Stress`, base against this, 8 pairs, with the box busy, so noisy:
+`session/image-rows` 949 → 950 µs (+0.6%, CI -2.3% to +1.0%) and `gradients` 23,462 →
+23,574 µs (+0.3%, CI -0.2% to +2.8%), both indistinguishable, and resident memory down
+0.9 MB in each, which nothing here explains.
+
+### 16.5 How far Windows is
+
+The encoder is in `TUICore`, pure and free of POSIX, and `KittyGraphics.skippingPictureCells`
+beside it, so both build on Windows today. `TerminalSixelSupport.swift` and
+`TerminalSixelQuery.swift` and `SixelPictureLayer.swift` are in `TUIApp`, which has no Windows build: what stands in the
+way is the console layer of `CONTRIBUTING.md`'s list, and nothing here adds to it. The
+cell is a table of one for Windows Terminal, its fixed 10 x 20 (§6.5), read from
+source. **Not run on Windows, foot or mintty:** whether text erases pixels there is the
+first thing to check, with `sixel_probe.py`, and #8389 before relying on any of this.
+
+### 16.6 What is not done
+
+- A resize or a font change, through a real window: redraws by the same path as a
+  resume, tested only in unit tests here.
+- Hairlines, gradients as pixels and pictures under text stay in glyphs or their
+  placeholders' absence, as §6.6 chose.
+- Encoding time on a release build is unmeasured.

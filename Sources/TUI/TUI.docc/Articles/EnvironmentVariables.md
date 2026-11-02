@@ -123,7 +123,7 @@ Don't write a variable to state a setting. Many are read once, and `setenv` isn'
 | Variable | Values | Effect |
 |---|---|---|
 | `TUI_TERM_PROGRAM` | `Apple_Terminal`, `iTerm.app`, `ghostty`, `WarpTerminal`, `tmux` or `gnome-terminal` | Says which terminal this is, when the program can't work it out and emoji or borders look out of line. Under tmux, tmux decides. |
-| `TUI_GRAPHICS` | `0`, `1` or `classic` | Pictures in text characters, or in real pixels, without asking the terminal. `classic` draws them without Unicode placeholders, for a terminal that has none. |
+| `TUI_GRAPHICS` | `0`, `1`, `classic` or `sixel` | Pictures in text characters, or in real pixels, without asking the terminal. `classic` draws them without Unicode placeholders, for a terminal that has none. `sixel` draws them by Sixel, on any terminal. |
 | `TUI_GRAPHICS_COMPRESSION` | `0` or `1` | Whether pictures sent to the terminal are compressed, without asking the terminal. |
 | `TUI_HAIRLINES` | `0` or `1` | Whether the thin lines between a list's rows are drawn as pictures, off or on, whatever the terminal. |
 | `TUI_PICTURES_UNDER_TEXT` | `0` or `1` | Whether text over a frosted picture stands on the picture itself, off or on, whatever the terminal. |
@@ -283,6 +283,7 @@ A terminal, a multiplexer or ssh sets these, and TUI reads them to work out wher
 | `GNOME_TERMINAL_SCREEN` | This is GNOME Terminal. |
 | `GNOME_TERMINAL_SERVICE` | This is GNOME Terminal. |
 | `VTE_VERSION` | This terminal is built on VTE, as GNOME Terminal is. |
+| `WT_SESSION` | This is Windows Terminal, which draws Sixel on a fixed cell of 10 x 20 pixels. |
 | `KITTY_WINDOW_ID` | This is kitty, which takes clipboard writes and pointer shapes. |
 | `XTERM_VERSION` | This is xterm, and which version, which says whether it can set the pointer's shape. |
 | `COLORFGBG` | The terminal's foreground and background, which say whether it's dark, when the terminal doesn't answer and there's no multiplexer. |

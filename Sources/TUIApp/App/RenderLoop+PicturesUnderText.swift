@@ -42,7 +42,8 @@ extension RenderLoop {
     /// - Returns: Whether the layer has placements and deletes to write in the
     ///   hold (``PicturePlacementLayer/place(on:startRow:rewritten:)``).
     func prepareClassicPictures() -> Bool {
-        let drawn = KittyGraphics.drawsPicturesByClassicPlacement
+        // Sixel has its own layer, after the cells: `drawSixelPictures`.
+        let drawn = KittyGraphics.drawsPicturesByClassicPlacement && !KittyGraphics.drawsPicturesBySixel
         guard drawn || !classicPictures.isIdle else { return false }
         let store = tuiContext.terminalImageStore
         var rows: [[PictureUnderTextMarker.Run]] = []
@@ -58,10 +59,41 @@ extension RenderLoop {
         return true
     }
 
+    /// Draws the picture cells this frame left unwritten on a Sixel host, inside the
+    /// frame's hold, after its cells: one DCS draws as it arrives (§16).
+    ///
+    /// A static read and nothing else on any other host.
+    ///
+    /// - Returns: Whether it moved the cursor.
+    func drawSixelPictures(palette: any Palette, terminalHeight: Int, nowNanos: UInt64) -> Bool {
+        guard KittyGraphics.drawsPicturesBySixel else { return false }
+        if let cell = TerminalClient.sixelCell(reported: (terminal as? any CellGeometryReporting)?.cellPixelSize()) {
+            sixelPictures.cell = cell
+        }
+        sixelPictures.colourLimit = TerminalClient.detectedSixelRegisters ?? 256
+        let stated = palette.background.rgbComponents
+        let known = TerminalColors.current.background
+        let result = sixelPictures.draw(
+            rows: diffWriter.imagePlaceholderRows, store: tuiContext.terminalImageStore,
+            background: stated ?? known.map { ($0.red, $0.green, $0.blue) },
+            screenRows: terminalHeight, nowNanos: nowNanos, on: terminal, startRow: 1)
+        if result.styled { diffWriter.forgetTerminalStyling() }
+        if let retry = result.retryNanos, !sixelRetryPending {
+            sixelRetryPending = true
+            Task { @MainActor [weak self, appState = tuiContext.appState] in
+                try? await Task.sleep(nanoseconds: retry)
+                self?.sixelRetryPending = false
+                appState.setNeedsRender()
+            }
+        }
+        return result.moved
+    }
+
     /// What the terminal is owed for the pictures this layer and
     /// ``classicPictures`` placed before the app lets go of it — a suspend, a
     /// quit: every placement deleted. See ``PicturePlacementLayer/farewell()``.
     func handBackPicturesUnderText() -> String {
-        picturesUnderText.farewell() + classicPictures.farewell()
+        sixelPictures.farewell()
+        return picturesUnderText.farewell() + classicPictures.farewell()
     }
 }

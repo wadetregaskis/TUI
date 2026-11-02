@@ -21,7 +21,7 @@ This page is for when you want to know what your users will see.
 | A web browser, through xterm.js | Yes | No, text characters | Yes | Millions |
 
 - **Mouse** means clicks, drags and the scroll wheel. Every control also works from the keyboard, so nothing depends on it.
-- **Pictures** are drawn in real pixels where the terminal has the Kitty graphics protocol, and as coloured text characters everywhere else. Either way, an ``Image`` takes up the same cells.
+- **Pictures** are drawn in real pixels where the terminal has the Kitty graphics protocol or, failing that, Sixel, and as coloured text characters everywhere else. Either way, an ``Image`` takes up the same cells.
 - **Keyboard protocol** is the Kitty keyboard protocol, a newer way for a terminal to report keys. With it, an app can tell Control-I from Tab and Control-Shift-Z from Control-Z, and hear a key being released. Without it, those keys arrive looking the same, so a shortcut on one of them may never fire.
 - **Colours** that a terminal can't show are replaced by the nearest it can. Fine gradients show steps at 256 colours.
 

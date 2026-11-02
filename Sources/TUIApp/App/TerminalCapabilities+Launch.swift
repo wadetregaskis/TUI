@@ -54,7 +54,8 @@ extension TerminalCapabilities {
     @MainActor
     static func picturesStatus(environment: [String: String]) -> Status {
         if isForced(override: TerminalClient.graphicsSupport, variable: "TUI_GRAPHICS", in: environment)
-            || environment["TUI_GRAPHICS"] == "classic"
+            || environment["TUI_GRAPHICS"] == "classic" || environment["TUI_GRAPHICS"] == "sixel"
+            || TerminalClient.sixelInUse
         {
             return TerminalClient.graphicsSupported ? .supported : .unsupported
         }

@@ -63,6 +63,7 @@ extension TUIEnvironmentVariables {
         terminalSets("GNOME_TERMINAL_SCREEN", .identity, "This is GNOME Terminal."),
         terminalSets("GNOME_TERMINAL_SERVICE", .identity, "This is GNOME Terminal."),
         terminalSets("VTE_VERSION", .identity, "This terminal is built on VTE, as GNOME Terminal is."),
+        terminalSets("WT_SESSION", .identity, "This is Windows Terminal, which draws Sixel on a fixed cell of 10 x 20 pixels."),
         terminalSets("KITTY_WINDOW_ID", .identity, "This is kitty, which takes clipboard writes and pointer shapes."),
         terminalSets("XTERM_VERSION", .identity, "This is xterm, and which version, which says whether it can set the pointer's shape."),
         terminalSets("COLORFGBG", .identity, "The terminal's foreground and background, which say whether it's dark, when the terminal doesn't answer and there's no multiplexer."),
