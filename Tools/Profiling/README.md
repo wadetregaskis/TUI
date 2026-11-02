@@ -601,7 +601,9 @@ labeled-container measure path), `memoRows` (a column of `.equatable()`
 bordered rows — the value-based measure memo), `stackRows` (plain
 `ForEach` rows in a `VStack` — the automatic `Equatable`-element row
 memo), `list` (a long `List` of `ForEach` rows — the lazy visible-window
-row rendering), and `form` (a settings page of interactive controls).
+row rendering), `form` (a settings page of interactive controls), and `blend`
+(thirty blended gradients, the comparison's `lat-blend`, which also prints a digest
+of every row up to its last cell, so two builds can be shown to draw the same frames).
 Seeds: the shapes in `Benchmarks/TUIBenchmarks/RenderBenchmarks.swift`
 and the layout tests.
 

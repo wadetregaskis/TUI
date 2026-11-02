@@ -33,6 +33,8 @@ import TUI
 @main
 struct RenderHarness {
     @MainActor
+    // One argument loop and one case per tree: nothing here is hard to follow.
+    // swiftlint:disable:next cyclomatic_complexity
     static func main() {
         var tree = "alignment"
         var iterations = 200_000
@@ -122,6 +124,7 @@ struct RenderHarness {
         case "list": checksum = renderLoop(Trees.list(), context, iterations)
         case "form": checksum = renderLoop(Trees.mixedForm(), context, iterations)
         case "menu": checksum = renderLoop(Trees.menu(), context, iterations)
+        case "blend": checksum = blendLoop(context, iterations)
         default:
             FileHandle.standardError.write(Data("unknown tree: \(tree)\n".utf8))
             print(usage)
@@ -158,12 +161,42 @@ struct RenderHarness {
         return checksum
     }
 
+    /// `iterations` frames of ``Trees/blendStack(tick:)``, each resolved as the root
+    /// resolves it, and each row's bytes up to its last cell folded into the answer with
+    /// FNV-1a (which, unlike `Hasher`, reads the same in every process). So two builds
+    /// printing one checksum drew the same cells in the same spelling, which is what a
+    /// change to the blend path has to show, and the tick moves each frame as the
+    /// comparison's `lat-blend` ticker does. Escapes after the last cell draw nothing,
+    /// and one composite per layer leaves a different number of them than a fold.
+    @MainActor
+    private static func blendLoop(_ context: RenderContext, _ iterations: Int) -> Int {
+        var digest: UInt64 = 0xcbf2_9ce4_8422_2325
+        let palette = context.environment.palette
+        for tick in 0..<iterations {
+            context.environment.stateStorage?.beginRenderPass()
+            context.environment.renderCache?.beginRenderPass()
+            let buffer = renderToBuffer(Trees.blendStack(tick: tick), context: context)
+                .resolvingOpacity(surface: palette.background, palette: palette)
+            context.environment.stateStorage?.endRenderPass()
+            context.environment.renderCache?.removeInactive()
+            for line in buffer.lines {
+                var bytes = Array(line.utf8)
+                // A closing `ESC[…m` run: each ends in `m`, and a cell here is a blank.
+                while bytes.last == UInt8(ascii: "m"), let start = bytes.lastIndex(of: 0x1B) {
+                    bytes.removeSubrange(start...)
+                }
+                for byte in bytes { digest = (digest ^ UInt64(byte)) &* 0x100_0000_01b3 }
+            }
+        }
+        return Int(truncatingIfNeeded: digest)
+    }
+
     /// The type the harness's identity tree is rooted at — the stand-in for the
     /// `App` type `RenderLoop` roots a real tree at.
     private enum HarnessRoot {}
 
     static let usage = """
         RenderHarness — Mode A profiling harness (xctrace --launch).
-        Usage: RenderHarness [--tree alignment|nested|frames|paneled|memoRows|stackRows|list|form|menu] [--iterations N] [--cols C] [--rows R]
+        Usage: RenderHarness [--tree alignment|nested|frames|paneled|memoRows|stackRows|list|form|menu|blend] [--iterations N] [--cols C] [--rows R]
         """
 }

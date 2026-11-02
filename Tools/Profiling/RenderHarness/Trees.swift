@@ -24,6 +24,21 @@ import TUI
 ///   the menu path and the only shape CI has ever failed on, and a budget you
 ///   cannot profile is a budget you can only argue about.
 enum Trees {
+    /// Thirty full-size gradients blended per cell: the view of the same name in
+    /// `Tools/SwiftTUIComparison/Benchmark/Common.swift`, behind its `lat-blend`, at one
+    /// tick of its ticker.
+    @MainActor
+    static func blendStack(tick: Int) -> some View {
+        ZStack {
+            ForEach(0..<30, id: \.self) { layer in
+                Rectangle()
+                    .fill(LinearGradient(colors: [Color.red, Color.blue], startPoint: .leading, endPoint: .trailing))
+                    .opacity(0.02 + Double((tick + layer) % 10) / 100)
+                    .blendMode(.screen)
+            }
+        }
+    }
+
     /// Three flexible bordered boxes sharing a row. Mirrors the
     /// "Content Alignment" demo and `AlignmentBoxSquishTests`.
     @MainActor
