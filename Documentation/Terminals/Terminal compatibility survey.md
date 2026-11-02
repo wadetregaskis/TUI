@@ -4812,6 +4812,16 @@ everywhere else the glyph stands on the copy's average colour, a block behind
 each letter. `TUI_PICTURES_UNDER_TEXT=1` tries it anywhere. Graphics notes
 §14.5.
 
+### Windows Terminal and Sixel — read 2026-11-02, not measured
+
+No Windows machine here. Read from `microsoft/terminal`'s main branch, through
+summaries of `SixelParser.cpp` and `ImageSlice.cpp` rather than line by line. A
+Sixel cell is a fixed 10×20 at conformance level 2 and up, whatever the font;
+pictures are stored per row on the text buffer (`ImageSlice`); without DECSDM the
+cursor ends on the row of the last band and the image scrolls if it must, and with
+DECSDM set it is clamped and the cursor stays. Kitty graphics: issue #8389, open and
+locked, "experimenting" per a maintainer on 2026-08-01. Graphics notes §6.5.
+
 ## Measured advance table (divergences and key rows)
 
 DSR-measured on the ALTERNATE screen (the app's buffer). Terminal.app +
