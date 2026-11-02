@@ -189,6 +189,11 @@ How output items are measured:
 
 #### O2. Hardware scrolling of full-width bands (DECSTBM + SU/SD) — adopt if the estimate pays
 
+> **Measured and prototyped, 2026-11-01:** `Documentation/Performance/Scroll regions for output.md`. The estimate
+> pays: 28.6% of the bytes over 13 `Stress` sessions. What follows is the plan as first written. It has moved in places: the
+> row's cells go with it, so an Apple Terminal row need not be excluded for its store, and animation-replay rows need no exclusion.
+
+
 - **Mechanism.** In `writeDiff`, before the row loop:
   1. Find a shift *k* (|k| ≤ height/2) and the longest contiguous band
      [a, b] where `newLines[i] == previousLines[i+k]`. This is string
