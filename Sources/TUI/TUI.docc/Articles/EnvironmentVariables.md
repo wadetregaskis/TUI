@@ -167,6 +167,7 @@ These help you test and debug your app. They're no use to the person running it,
 | `TUI_VERIFY_RENDER_MEMO` | Any value, even `0`, or a path with a `/` in it to log to | Renders again every picture the render cache serves, draws the fresh one, and reports any that differ. For finding a view that doesn't update. |
 | `TUI_VERIFY_MEASURE_MEMO` | Any value, even `0`, or a path with a `/` in it to log to | Measures again every size the render cache serves, uses the fresh one, and reports any that differ. |
 | `TUI_DEBUG_RENDER` | `1` | Writes the render cache's statistics to stderr each frame. Redirect stderr, or it lands on the screen. |
+| `TUI_FRAME_TRACE` | A file | Writes one tab-separated line per frame to that file: its number, when it began and how long it took in milliseconds, the bytes it sent, its render cache hits and misses, and what caused it. |
 | `TUI_DIAGNOSE_BODY_MUTATION` | `1` | Reports a view whose `body` changes state as it draws, naming where it is in the tree. |
 | `TUI_DIAGNOSTICS_FILE` | A file | Appends TUI's diagnostics to this file, rather than writing them to stderr, where they'd land on the screen. |
 | `TUI_DEBUG_FRAME_DUMP` | `1` | Arms the backtick key, which writes the raw bytes of the last frame to a file in the working directory. |
@@ -232,6 +233,7 @@ Two of the variables above are worth knowing for tests too. `TUI_CONFIG_DIR` kee
 | `TUI_VERIFY_RENDER_MEMO` | Wins | Assign `RenderCache.verifiesRenderMemo`. | Once |
 | `TUI_VERIFY_MEASURE_MEMO` | Wins | Assign `RenderCache.verifiesMeasureMemo`. | Once |
 | `TUI_DEBUG_RENDER` | No setting | The variable is the only way. | Once |
+| `TUI_FRAME_TRACE` | No setting | The variable is the only way. | Once |
 | `TUI_DIAGNOSE_BODY_MUTATION` | No setting | The variable is the only way. | Once |
 | `TUI_DIAGNOSTICS_FILE` | No setting | The variable is the only way. | Once |
 | `TUI_DEBUG_FRAME_DUMP` | No setting | The variable is the only way. | Once |

@@ -43,6 +43,7 @@ extension AppRunner {
             // is, and the caret and focus breath restart at their bright end.
             cursorTimer.restartFocusPhase()
             tuiContext.scenePhase = .active
+            frameTrace?.note(.resume)
             pacer.requestRender()
         }
 
@@ -54,6 +55,7 @@ extension AppRunner {
             recoverFromExternalStop(renderer: renderer)
             // The same long gap as Ctrl-Z's, so the same restart.
             cursorTimer.restartFocusPhase()
+            frameTrace?.note(.resume)
             pacer.requestRender()
         }
     }

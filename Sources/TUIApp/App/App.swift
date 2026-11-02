@@ -175,6 +175,9 @@ internal final class AppRunner<A: App> {
     var hostSettings: HostSettingsRefresher?
     let signals = SignalManager()
 
+    /// `TUI_FRAME_TRACE`: `nil` unless it is set, and then a line per frame.
+    let frameTrace = FrameTrace.fromEnvironment()
+
     /// Whether quitting asks first, and the dialog that does.
     private let quitPrompt: QuitPrompt
 
@@ -636,11 +639,15 @@ extension AppRunner {
         // has drawn the action.
         var hold = ActivationHold()
         let renderOneFrame = {
+            let startNanos = self.frameTrace == nil ? 0 : MonotonicClock.nowNanoseconds
             let frame = self.renderFrame(
                 renderer: renderer,
                 cursorTimer: cursorTimer,
                 scheduler: animationScheduler)
             self.finishFrame(with: inputHandler)
+            self.frameTrace?.record(
+                startNanos: startNanos, totalBytes: self.terminal.frameBytesSent,
+                cache: self.tuiContext.renderCache)
             return frame
         }
 
@@ -685,6 +692,7 @@ extension AppRunner {
 
             // Terminal resize (SIGWINCH): rewrite every line at the new size.
             if signals.consumeResizeFlag() {
+                frameTrace?.note(.resize)
                 renderer.invalidateDiffCache()
                 pacer.requestRender()
             }
@@ -715,6 +723,7 @@ extension AppRunner {
             // animation-fired test, the render-now test, and the wait length all
             // share it, so none can disagree about whether a deadline has passed.
             let now = MonotonicClock.nowNanoseconds
+            if let frameTrace, pacer.isAnimationDue(now: now) { frameTrace.note(.wake) }
 
             // Render if a frame is due — a state change, or an animation lattice
             // or wake whose deadline `now` has reached — AND the frame-rate cap has
@@ -877,6 +886,7 @@ extension AppRunner {
     ) -> Bool {
         var pending = alreadyPending
         if appState.needsRender {
+            frameTrace?.note(.state)
             appState.didRender()
             pending = true
         }
@@ -886,7 +896,9 @@ extension AppRunner {
             _ = appState.consumePendingAnimationClocks()
             return true
         }
-        return !serveAnimationTicks(renderer: renderer, cursorTimer: cursorTimer)
+        let needsFrame = !serveAnimationTicks(renderer: renderer, cursorTimer: cursorTimer)
+        if needsFrame { frameTrace?.note(.tick) }
+        return needsFrame
     }
 
     /// Advances the clocks that ticked, without rendering, by replaying the
@@ -916,7 +928,13 @@ extension AppRunner {
         // No re-plan of the sleep here, although there used to be one. By the time this
         // runs the timer has already begun its next sleep — the plan it needed was the
         // one made at its wake, which `CursorTimer.planner` now makes.
-        return renderer.replayAnimations(elapsed: elapsed)
+        let startNanos = frameTrace == nil ? 0 : MonotonicClock.nowNanoseconds
+        let replayed = renderer.replayAnimations(elapsed: elapsed)
+        if replayed {
+            frameTrace?.recordReplay(
+                startNanos: startNanos, totalBytes: terminal.frameBytesSent, cache: tuiContext.renderCache)
+        }
+        return replayed
     }
 
     /// Makes an update between frames what `renderFrame` makes a frame, with
@@ -1163,6 +1181,7 @@ extension AppRunner {
                 }
             }
             eventsProcessed += 1
+            frameTrace?.note(.input)
         }
         // Colour answers that came in among those bytes: one that missed the
         // startup exchange's deadline (under tmux that is the normal case for the

@@ -506,6 +506,9 @@ final class Terminal: HostStateKeeping {
     /// written without re-rendering.
     private(set) var lastFrameData: [UInt8] = []
 
+    /// How many bytes every frame so far has sent: what `TUI_FRAME_TRACE` subtracts.
+    private(set) var frameBytesSent = 0
+
     /// Whether a frame that writes a row holds the terminal's
     /// display while it is drawn (DEC mode 2026, synchronized output): yes,
     /// unless `TUI_SYNCHRONIZED_OUTPUT=0`. See
@@ -1261,6 +1264,7 @@ extension Terminal {
         guard isBuffering else { return }
         isBuffering = false
         defer {
+            frameBytesSent &+= lastFrameData.count
             if hostStateOwedInFrame {
                 hostStateOwedInFrame = false
                 armSignalRestore()

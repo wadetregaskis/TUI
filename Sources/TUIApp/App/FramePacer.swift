@@ -98,6 +98,11 @@ struct FramePacer {
         return true
     }
 
+    /// Whether an animation's deadline is what owes a frame at `now`.
+    func isAnimationDue(now: UInt64) -> Bool {
+        animationDeadlineNanos.map { now >= $0 } ?? false
+    }
+
     /// The delay until the next render is due, or `nil` to block until woken.
     ///
     /// Folds the frame-rate cap and the next animation deadline into ONE instant:

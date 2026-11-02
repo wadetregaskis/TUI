@@ -4,6 +4,9 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**`TUI_FRAME_TRACE=<path>` says what each frame was for.** One tab-separated line per frame: when it began, how long
+it took, the bytes it sent, its render cache hits and misses, and what caused it. See `Keeping Your App Fast`.
+
 **A page on keeping an app fast.** What an author can do, and how to find out which of it a screen needs:
 `Keeping Your App Fast` in the documentation.
 

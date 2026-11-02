@@ -34,6 +34,35 @@ swift build -c release
 
 Then ask what your app draws and why.
 
+**What each frame was for.** `TUI_FRAME_TRACE` writes one tab-separated line per frame to the file you name, as it happens, so that it can be read while the app runs:
+
+```sh
+TUI_FRAME_TRACE=frames.tsv .build/release/MyApp
+```
+
+```
+#frame	at_ms	ms	bytes	hits	misses	cause
+1	1510	197.2	9781	0	153	launch
+2	1727	54.8	183	93	33	input+state
+3	1915	0.3	68	0	0	replay
+```
+
+Each line says when the frame began, how long it took, how many bytes it sent, what it found in the render cache, and what caused it, with a `+` where several things did:
+
+| Cause | What it means |
+|---|---|
+| `launch` | The first frame. |
+| `input` | A key, the mouse or a report from the terminal has been read since the last frame. |
+| `state` | State changed. Without `input`, it was changed by a timer or a task of your app's. |
+| `tick` | An animation clock ticked, and showing it took a walk of the view tree. |
+| `replay` | An animation clock ticked, and the frames were written with no walk, which is the cheap way. |
+| `wake` | Something asked for a frame at this instant, such as a `TimelineView`. |
+| `resize` | The terminal changed size. |
+| `resume` | The app was stopped, and is running again. |
+| `other` | None of those, such as a report of the window's size. |
+
+A screen that should be quiet and isn't shows up here at once, as a stream of `state`, `tick` or `wake`. A line with a large `ms` and many `misses` is a frame that drew everything.
+
 **The render cache's own numbers.** `TUI_DEBUG_RENDER=1` writes the cache's hits, misses and stores for each frame to standard error, so send that to a file:
 
 ```sh

@@ -32,6 +32,10 @@ extension TUIEnvironmentVariables {
             values: "`1`",
             effect: "Writes the render cache's statistics to stderr each frame. Redirect stderr, or it lands on the screen."),
         TUIEnvironmentVariable(
+            "TUI_FRAME_TRACE", .developer, .diagnostics,
+            values: "A file",
+            effect: "Writes one tab-separated line per frame to that file: its number, when it began and how long it took in milliseconds, the bytes it sent, its render cache hits and misses, and what caused it."),
+        TUIEnvironmentVariable(
             "TUI_DIAGNOSE_BODY_MUTATION", .developer, .diagnostics,
             values: "`1`",
             effect: "Reports a view whose `body` changes state as it draws, naming where it is in the tree."),
