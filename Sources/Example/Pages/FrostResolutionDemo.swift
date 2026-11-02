@@ -74,7 +74,7 @@ struct FrostResolutionDemo: View {
 
     /// The photograph, with `panel` laid over it as drawn.
     @ViewBuilder private func photo(@ViewBuilder panel: () -> some View) -> some View {
-        if let path = Bundle.module.path(forResource: "demo-image", ofType: "jpg", inDirectory: "Resources") {
+        if let path = bundledResourcePath("demo-image", type: "jpg") {
             Image(.file(path))
                 .resizable()
                 .scaledToFit()

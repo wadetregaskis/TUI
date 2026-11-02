@@ -13,6 +13,15 @@
 import Foundation
 import TUI
 
+/// Where a file of the Example's `Resources/` is, or `nil` if the bundle lacks
+/// it. Asked of the bundle first, then looked for: on WebAssembly Foundation's
+/// lookup answers `nil` for a file sitting in the directory the bundle names.
+func bundledResourcePath(_ name: String, type: String) -> String? {
+    if let path = Bundle.module.path(forResource: name, ofType: type, inDirectory: "Resources") { return path }
+    let path = Bundle.module.bundleURL.appendingPathComponent("Resources/\(name).\(type)").path
+    return FileManager.default.fileExists(atPath: path) ? path : nil
+}
+
 /// A picture bundled with the Example, in `Resources/`, in the order the
 /// image page's combo box lists them and `p` steps through them.
 enum DemoPicture: CaseIterable {
@@ -64,7 +73,7 @@ enum DemoPicture: CaseIterable {
 
     /// Where the bundled file is, or `nil` if the bundle lacks it.
     var path: String? {
-        Bundle.module.path(forResource: resource.name, ofType: resource.type, inDirectory: "Resources")
+        bundledResourcePath(resource.name, type: resource.type)
     }
 
     /// The file's name, for the message when it is missing.
