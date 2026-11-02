@@ -6,8 +6,8 @@
 
 import TUI
 
-/// Following the pointer cell by cell (`.onContinuousHover`, where `.onHover`
-/// says only in or out), and the modifier keys held (`.onModifierKeysChanged`
+/// Following the pointer (`.onContinuousHover`, where `.onHover` says only in
+/// or out), to a fraction of a cell where the terminal can report one, and the modifier keys held (`.onModifierKeysChanged`
 /// — which a terminal reports on its own only under the kitty keyboard
 /// protocol; elsewhere they are seen when a key or a click carries them).
 struct PointerTrackingDemo: View {
@@ -25,7 +25,7 @@ struct PointerTrackingDemo: View {
                     .border(.palette.border)
                     .onContinuousHover { phase in
                         switch phase {
-                        case .active(let point): position = "(\(point.x), \(point.y))"
+                        case .active(let point): position = Self.spelling(of: point)
                         case .ended: position = "—"
                         }
                     }
@@ -38,6 +38,15 @@ struct PointerTrackingDemo: View {
         .onModifierKeysChanged { _, held in
             modifiers = Self.describe(held)
         }
+    }
+
+    /// A location in cells: whole, as most terminals report it, or to two places.
+    private static func spelling(of point: CGPoint) -> String {
+        guard point.x != point.x.rounded() || point.y != point.y.rounded() else {
+            let cell = CellPoint(point)
+            return "(\(cell.x), \(cell.y))"
+        }
+        return String(format: "(%.2f, %.2f)", point.x, point.y)
     }
 
     /// The modifiers held, as a menu writes them — `⌃⌥⇧⌘` — or a dash.

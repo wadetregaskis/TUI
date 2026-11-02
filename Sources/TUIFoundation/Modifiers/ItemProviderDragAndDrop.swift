@@ -172,7 +172,7 @@
         /// Makes this view a destination for drags carrying items of
         /// `supportedContentTypes`, telling the action where the drop landed —
         /// SwiftUI's `onDrop(of:isTargeted:perform:)` with a location, a
-        /// ``CellPoint`` in the view's own cells where SwiftUI's is a `CGPoint`.
+        /// `CGPoint` as SwiftUI's is, measured in the view's own cells.
         ///
         /// - Parameters:
         ///   - supportedContentTypes: The types the view takes.
@@ -182,7 +182,7 @@
         /// - Returns: A view that can receive drops.
         nonisolated public func onDrop(
             of supportedContentTypes: [UTType], isTargeted: Binding<Bool>?,
-            perform action: @escaping ([NSItemProvider], CellPoint) -> Bool
+            perform action: @escaping ([NSItemProvider], CGPoint) -> Bool
         ) -> some View {
             ItemProviderDropModifier(
                 content: self, supportedContentTypes: supportedContentTypes,
@@ -239,7 +239,7 @@
     /// What a drop does: kept as the caller gave it, and installed where the
     /// view draws, on the main actor.
     enum ItemProviderDropHandler {
-        case perform(([NSItemProvider], CellPoint) -> Bool, isTargeted: Binding<Bool>?)
+        case perform(([NSItemProvider], CGPoint) -> Bool, isTargeted: Binding<Bool>?)
         case delegate(any DropDelegate)
     }
 

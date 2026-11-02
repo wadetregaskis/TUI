@@ -10,6 +10,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 import TUIApp
@@ -41,7 +42,7 @@ struct CompositeGestureTests {
     private static func describe(_ value: SequenceGesture<LongPressGesture, DragGesture>.Value) -> String {
         switch value {
         case .first(let pressed): "first(\(pressed))"
-        case .second(let pressed, let drag): "second(\(pressed), \(drag.map { "\($0.translation.width)" } ?? "nil"))"
+        case .second(let pressed, let drag): "second(\(pressed), \(drag.map { "\(Int($0.translation.width))" } ?? "nil"))"
         }
     }
 
@@ -174,8 +175,8 @@ struct CompositeGestureTests {
                     box(
                         tap.sequenced(
                             before: DragGesture()
-                                .onChanged { log("drag \($0.translation.width)") }
-                                .onEnded { log("drag ended \($0.translation.width)") }
+                                .onChanged { log("drag \(Int($0.translation.width))") }
+                                .onEnded { log("drag ended \(Int($0.translation.width))") }
                         )
                         .onEnded { _ in log("seq") }))
         }
@@ -235,12 +236,12 @@ struct CompositeGestureTests {
                     box(
                         tap.sequenced(
                             before: DragGesture(minimumDistance: 0)
-                                .onChanged { log("drag \($0.translation.width)") }
-                                .onEnded { log("drag ended \($0.translation.width)") }
+                                .onChanged { log("drag \(Int($0.translation.width))") }
+                                .onEnded { log("drag ended \(Int($0.translation.width))") }
                         )
                         .onEnded { value in
                             if case .second(_, let drag) = value {
-                                log("seq \(drag.map { "\($0.translation.width)" } ?? "nil")")
+                                log("seq \(drag.map { "\(Int($0.translation.width))" } ?? "nil")")
                             }
                         }))
         }
@@ -339,11 +340,11 @@ struct CompositeGestureTests {
         let harness = makeHarness()
         let view = {
             box(
-                DragGesture().onEnded { log("drag ended \($0.translation.width)") }
+                DragGesture().onEnded { log("drag ended \(Int($0.translation.width))") }
                     .sequenced(before: TapGesture().onEnded { log("tap") })
                     .onEnded { value in
                         if case .second(let drag, let tap) = value {
-                            log("seq \(drag.translation.width) \(tap != nil)")
+                            log("seq \(Int(drag.translation.width)) \(tap != nil)")
                         }
                     })
         }
@@ -382,7 +383,7 @@ struct CompositeGestureTests {
 
     private static func describe(_ value: ExclusiveGesture<DragGesture, LongPressGesture>.Value) -> String {
         switch value {
-        case .first(let drag): "first(\(drag.translation.width))"
+        case .first(let drag): "first(\(Int(drag.translation.width)))"
         case .second(let pressed): "second(\(pressed))"
         }
     }
@@ -445,7 +446,7 @@ struct CompositeGestureTests {
         let log = GestureRecord()
         let harness = makeHarness()
         let describe: (SimultaneousGesture<DragGesture, LongPressGesture>.Value) -> String = {
-            "\($0.first.map { "\($0.translation.width)" } ?? "nil") \(String(describing: $0.second))"
+            "\($0.first.map { "\(Int($0.translation.width))" } ?? "nil") \(String(describing: $0.second))"
         }
         let view = {
             box(

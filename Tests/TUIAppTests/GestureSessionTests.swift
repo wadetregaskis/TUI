@@ -51,7 +51,7 @@ struct GestureSessionTests {
             box.onTapGesture(count: 2) { log("a") }
             box.onTapGesture(count: 2) { log("b") }
         }
-        .onTapGesture(coordinateSpace: .global) { log("single at \($0.x),\($0.y)") }
+        .onTapGesture(coordinateSpace: .global) { log("single at \(Int($0.x)),\(Int($0.y))") }
         .frame(width: 40, height: 12, alignment: .topLeading)
     }
 
@@ -99,7 +99,7 @@ struct GestureSessionTests {
             box.onTapGesture(count: 2) { log("a") }
             second
         }
-        .onTapGesture(coordinateSpace: .global) { log("single at \($0.x),\($0.y)") }
+        .onTapGesture(coordinateSpace: .global) { log("single at \(Int($0.x)),\(Int($0.y))") }
         .frame(width: 40, height: 12, alignment: .topLeading)
     }
 
@@ -413,8 +413,8 @@ struct GestureSessionTests {
             .onTapGesture(count: 2) { log("double") }
             .gesture(
                 DragGesture()
-                    .onChanged { log("changed \($0.translation.width)") }
-                    .onEnded { log("ended \($0.translation.width)") })
+                    .onChanged { log("changed \(Int($0.translation.width))") }
+                    .onEnded { log("ended \(Int($0.translation.width))") })
             .frame(width: 40, height: 12, alignment: .topLeading)
     }
 
@@ -478,7 +478,7 @@ struct GestureSessionTests {
         let harness = makeHarness()
         let view = {
             Text("").frame(width: 10, height: 3)
-                .gesture(DragGesture().onEnded { log("ended \($0.translation.width)") })
+                .gesture(DragGesture().onEnded { log("ended \(Int($0.translation.width))") })
                 .simultaneousGesture(TapGesture(count: 2).onEnded { log("sim double") })
                 .frame(width: 40, height: 12, alignment: .topLeading)
         }

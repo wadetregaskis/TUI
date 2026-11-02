@@ -36,7 +36,8 @@ struct GesturesDemo: View {
                         }
                     tile("page.mouse.gestures.where", spot)
                         .gesture(SpatialTapGesture().onEnded { tap in
-                            spot = "(\(tap.location.x), \(tap.location.y))"
+                            let cell = CellPoint(tap.location)
+                            spot = "(\(cell.x), \(cell.y))"
                         })
                     tile("page.mouse.gestures.either", composed)
                         .gesture(

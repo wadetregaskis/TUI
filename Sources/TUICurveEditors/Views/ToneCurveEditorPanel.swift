@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUIColorPicker
 import TUIFoundation
 import TUIImage
@@ -223,7 +224,7 @@ public struct ToneCurveEditorPanel {
                     // because they are four readings of the same one and a
                     // marker is a single cell to aim at. The gutter is not:
                     // `in` and `out` are captions.
-                    let x = drag.location.x
+                    let x = CellPoint(drag.location).x
                     let column = min(Self.stripWidth - 1, max(0, x - Self.gutter))
                     if case .idle = grab {
                         // The press and the drag after it are one step, back

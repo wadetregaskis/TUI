@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUIColorPicker
 import TUIFoundation
 import TUIImage
@@ -243,8 +244,9 @@ public struct ChannelCurveEditorPanel {
         .gesture(
             DragGesture(minimumDistance: 0)
                 .updating($plotGrab) { drag, grab, _ in
-                    let column = min(Self.plotWidth - 1, max(0, drag.location.x))
-                    let row = min(Self.plotHeight - 1, max(0, drag.location.y))
+                    let cell = CellPoint(drag.location)
+                    let column = min(Self.plotWidth - 1, max(0, cell.x))
+                    let row = min(Self.plotHeight - 1, max(0, cell.y))
                     if case .idle = grab {
                         // Grab what is under the pointer, or put a point there.
                         // Adding on a press into empty chart is what a curve
@@ -310,7 +312,7 @@ public struct ChannelCurveEditorPanel {
         .gesture(
             DragGesture(minimumDistance: 0)
                 .updating($markerGrab) { drag, grab, _ in
-                    let column = min(Self.plotWidth - 1, max(0, drag.location.x))
+                    let column = min(Self.plotWidth - 1, max(0, CellPoint(drag.location).x))
                     // The markers are handles, not a canvas: a press that lands
                     // on nothing does nothing, where the same press on the plot
                     // would add a point. And the drag moves the point along ONE

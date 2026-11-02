@@ -258,24 +258,32 @@ is or holds such a layout, a nested `HStack` whose first or last child does, a
 `Tools/SwiftUIProbes/Stack spacing per pair/nested.out`); a lazy stack states
 none, as SwiftUI's does. Pass an explicit `spacing:` for SwiftUI-like air.
 
-### 2.2 Geometry is integer, never `CGPoint`/`CGSize`/`CGRect`
+### 2.2 Geometry is integer; only the pointer's location is a `CGPoint`
 
 ```swift
-// SwiftUI                              // TUI
-.onContinuousHover { … } // CGPoint     .onContinuousHover { … } // .active(CellPoint)
-.onTapGesture { /* () */ }              .onTapGesture { … }  // count defaults to 1, as there
-.onTapGesture { loc in … } // CGPoint   .onTapGesture { cell in … } // CellPoint, .local or .global
-.onTapGesture(count: 2) { /* () */ }    .onTapGesture(count: 2) { … }
-DragGesture().onChanged { $0.location } // CGPoint  →  the same source; the location is a CellPoint
+// SwiftUI and TUI, the same source and the same types
+.onContinuousHover { … }                 // .active(CGPoint)
+.onTapGesture { loc in … }               // CGPoint, .local, .global or named
+DragGesture().onChanged { $0.location }  // CGPoint; translation, velocity: CGSize
+DragGesture(minimumDistance: 0.5)        // CGFloat
+.offset(drag.translation)                // to the nearest cell
+.position(drag.location)                 // on the cell it falls in
 ```
 
-**Why it's intentional / should NOT change:** the same cell-grid reasoning as
-§2.1, applied to composite values. A tap or drag resolves to a `(column, row)`
-cell, full stop. Surfacing a `CGPoint` of `Double`s would be a fiction. TUI
-deliberately exposes integer coordinates (`x`/`y` ints, `DragGesture.Value` with
-integer fields). `UnitPoint` is the exception that is not one: it is
-SwiftUI's own, `Double` fractions of a box, and a fraction is not a sub-cell
-position — it resolves to a cell where it is applied.
+**The pointer** reports SwiftUI's own types, **measured in cells**: 2.5 is half way
+across the third column. Most terminals report whole cells, and there the numbers
+are whole. A terminal that can report more does (§ "SGR-Pixels mouse" of the
+compatibility survey). What needs a cell asks for one: `CellPoint(location)` is the
+cell a location falls in, and `CellSize(translation)` the nearest whole cells.
+`SpatialTapGesture.Value`, `DragSession`, `DropSession` and `DropInfo` have the same
+types. So does a `GestureState` holding a translation, and a ported drag compiles
+untouched.
+
+**Everything else is whole cells**, and that part is intentional and should NOT
+change: a view is laid out and drawn on the grid, so a position between cells would
+be a fiction. `UnitPoint` is the exception that is not one: it is SwiftUI's own,
+`Double` fractions of a box, and a fraction is not a sub-cell position — it resolves
+to a cell where it is applied.
 
 The same rule shapes the layout read-back API: `GeometryProxy.size` is a
 `CellSize` of `Int` cells and `frame(in:)` returns a `CellRect`, not `CGSize`
@@ -295,8 +303,9 @@ floating point used to hide:
 A RATE is not a measurement: `ScrollPhaseChangeContext.velocity` is a
 `CellVector` of `Double` components, cells per second, the counterpart of
 `CGVector` (always `(0, 0)` at a phase change, as SwiftUI reports it, a
-terminal's scrolling having no speed to measure). `DragGesture.Value.velocity` is one too: cells per second, estimated from
-the times the motion reports arrive.
+terminal's scrolling having no speed to measure). `DragGesture.Value.velocity` is a
+`CGSize`, as SwiftUI's is: cells per second, estimated from the times the motion
+reports arrive.
 
 The one deliberate exception is an **alignment guide's value**, which is
 `Double`. A guide is not a size — it is a reference line in a view's own

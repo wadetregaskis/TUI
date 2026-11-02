@@ -35,7 +35,7 @@ struct AnyGestureTests {
             box(
                 (double
                     ? AnyGesture(TapGesture(count: 2).map { "double" })
-                    : AnyGesture(SpatialTapGesture().map { "single at \($0.location.x)" }))
+                    : AnyGesture(SpatialTapGesture().map { "single at \(Int($0.location.x))" }))
                     .onEnded { log($0) })
         }
         harness.frame(view())

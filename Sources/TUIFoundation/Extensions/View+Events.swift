@@ -158,7 +158,7 @@ extension View {
     /// SwiftUI API).
     nonisolated func onTapGesture(
         count: Int = 1, coordinateSpace: CoordinateSpace = .local,
-        perform action: @escaping (CellPoint) -> Void
+        perform action: @escaping (CGPoint) -> Void
     ) -> some View {
         gesture(SpatialTapGesture(count: count, coordinateSpace: coordinateSpace).onEnded { action($0.location) })
     }
@@ -168,12 +168,15 @@ extension View {
     ///
     /// ```swift
     /// Grid { … }
-    ///     .onTapGesture { cell in select(column: cell.x, row: cell.y) }
+    ///     .onTapGesture { location in
+    ///         let cell = CellPoint(location)
+    ///         select(column: cell.x, row: cell.y)
+    ///     }
     /// ```
     ///
     /// The ``SpatialTapGesture`` it attaches with ``gesture(_:including:)``: the
-    /// location is the cell of the click's release, a ``CellPoint`` where
-    /// SwiftUI's is a `CGPoint` (§2.2 of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`).
+    /// location is the click's release, a `CGPoint` as SwiftUI's is, measured in
+    /// cells (§2.2 of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`).
     ///
     /// - Parameters:
     ///   - count: The number of taps or clicks required to trigger the action
@@ -185,7 +188,7 @@ extension View {
     /// - Returns: The view, with the tap gesture attached.
     nonisolated public func onTapGesture(
         count: Int = 1, coordinateSpace: some CoordinateSpaceProtocol = .local,
-        perform action: @escaping (CellPoint) -> Void
+        perform action: @escaping (CGPoint) -> Void
     ) -> some View {
         onTapGesture(count: count, coordinateSpace: coordinateSpace.coordinateSpace, perform: action)
     }

@@ -424,8 +424,8 @@ struct GestureArenaLifetimeTests {
                 } else {
                     box.gesture(
                         DragGesture()
-                            .onChanged { log("changed \($0.translation.width)") }
-                            .onEnded { log("ended \($0.translation.width)") }
+                            .onChanged { log("changed \(Int($0.translation.width))") }
+                            .onEnded { log("ended \(Int($0.translation.width))") }
                     )
                     .disabled(gone.value)
                 }

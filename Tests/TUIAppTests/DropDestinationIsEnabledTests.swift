@@ -32,7 +32,7 @@ struct DropDestinationIsEnabledTests {
             Text("").frame(height: 3)
             Text("ZONE========")
                 .dropDestination(for: String.self, isEnabled: enabled) { titles, info in
-                    dropped.entries.append("\(titles) at \(info.location.x),\(info.location.y)")
+                    dropped.entries.append("\(titles) at \(Int(info.location.x)),\(Int(info.location.y))")
                 }
         }
     }

@@ -162,7 +162,8 @@ struct MousePage: View {
                         .foregroundStyle(.palette.accent)
                         .padding(EdgeInsets(horizontal: 2, vertical: 0))
                         .border(.palette.border)
-                        .onTapGesture { cell in
+                        .onTapGesture { location in
+                            let cell = CellPoint(location)
                             tapCount += 1
                             // Coordinates are local but the box's own
                             // border + padding mean the reported x/y
@@ -633,10 +634,12 @@ struct MousePage: View {
         // Clamp the drag position to the visible box. A drag keeps reporting
         // when the cursor leaves the box, so without clamping the reported
         // coords can go negative or grow huge.
-        dragX = max(0, min(dragBoxWidth - 1, drag.location.x))
-        dragY = max(0, min(dragBoxHeight - 1, drag.location.y))
-        dragDeltaX = drag.translation.width
-        dragDeltaY = drag.translation.height
+        let cell = CellPoint(drag.location)
+        let delta = CellSize(drag.translation)
+        dragX = max(0, min(dragBoxWidth - 1, cell.x))
+        dragY = max(0, min(dragBoxHeight - 1, cell.y))
+        dragDeltaX = delta.width
+        dragDeltaY = delta.height
     }
 
     /// The wider of the two hover captions, in cells.

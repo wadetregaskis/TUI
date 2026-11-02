@@ -100,8 +100,8 @@ struct LongPressAndDragGestureTests {
         let view = {
             box(
                 DragGesture(minimumDistance: 2)
-                    .onChanged { log("changed \($0.startLocation.x),\($0.location.x) \($0.translation.width)") }
-                    .onEnded { log("ended \($0.translation.width),\($0.translation.height)") })
+                    .onChanged { log("changed \(Int($0.startLocation.x)),\(Int($0.location.x)) \(Int($0.translation.width))") }
+                    .onEnded { log("ended \(Int($0.translation.width)),\(Int($0.translation.height))") })
         }
         harness.frame(view())
         harness.pointer([(.pressed, 2, 1), (.dragged, 3, 1)], view)
@@ -121,7 +121,10 @@ struct LongPressAndDragGestureTests {
 
         let zero = GestureRecord()
         let view0 = {
-            box(DragGesture(minimumDistance: 0).onChanged { zero("changed \($0.translation.width)") }.onEnded { zero("ended \($0.translation.width)") })
+            box(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { zero("changed \(Int($0.translation.width))") }
+                    .onEnded { zero("ended \(Int($0.translation.width))") })
         }
         harness.frame(view0())
         harness.click(2, 1, view0)
@@ -137,15 +140,15 @@ struct LongPressAndDragGestureTests {
         harness.pointer([(.pressed, 0, 0)], view)
         harness.now = 100 * gestureMillisecond
         harness.pointer([(.dragged, 4, 0)], view)
-        #expect(values.last?.velocity == CellVector(dx: 40, dy: 0), "four cells in a tenth of a second")
-        #expect(values.last?.predictedEndLocation == CellPoint(x: 14, y: 0))
-        #expect(values.last?.predictedEndTranslation == CellSize(width: 14, height: 0))
+        #expect(values.last?.velocity == CGSize(width: 40, height: 0), "four cells in a tenth of a second")
+        #expect(values.last?.predictedEndLocation == CGPoint(x: 14, y: 0))
+        #expect(values.last?.predictedEndTranslation == CGSize(width: 14, height: 0))
         harness.now = 200 * gestureMillisecond
         harness.pointer([(.dragged, 4, 2)], view)
-        #expect(values.last?.velocity == CellVector(dx: 0, dy: 20), "fitted to the last 100 ms of moves")
+        #expect(values.last?.velocity == CGSize(width: 0, height: 20), "fitted to the last 100 ms of moves")
         harness.now = 900 * gestureMillisecond
         harness.pointer([(.released, 4, 2)], view)
-        #expect(values.last?.velocity == CellVector(dx: 0, dy: 20), "a still pointer reports nothing, so its velocity stands")
+        #expect(values.last?.velocity == CGSize(width: 0, height: 20), "a still pointer reports nothing, so its velocity stands")
     }
 
     /// Reports read at once arrive microseconds apart (TUI stamps a
@@ -169,8 +172,8 @@ struct LongPressAndDragGestureTests {
         let velocity = try #require(values.last?.velocity)
         // The least-squares slope of the moves at 20, 40, 60, 80, 100 and
         // 100.002 ms: 56.25 cells a second.
-        #expect(abs(velocity.dx - 56.2495) < 0.001, "\(velocity)")
-        #expect(velocity.dy == 0)
+        #expect(abs(velocity.width - 56.2495) < 0.001, "\(velocity)")
+        #expect(velocity.height == 0)
     }
 
     /// One move after a pause is the only report in the window: the fit
@@ -184,10 +187,10 @@ struct LongPressAndDragGestureTests {
         harness.pointer([(.pressed, 0, 0)], view)
         harness.now = 50 * gestureMillisecond
         harness.pointer([(.dragged, 5, 0)], view)
-        #expect(values.last?.velocity == CellVector(dx: 100, dy: 0))
+        #expect(values.last?.velocity == CGSize(width: 100, height: 0))
         harness.now = 550 * gestureMillisecond
         harness.pointer([(.dragged, 6, 0)], view)
-        #expect(values.last?.velocity == CellVector(dx: 2, dy: 0))
+        #expect(values.last?.velocity == CGSize(width: 2, height: 0))
     }
 
     @Test("A drag in the global space reports terminal cells")
@@ -198,7 +201,7 @@ struct LongPressAndDragGestureTests {
             VStack(spacing: 0) {
                 Text("header")
                 Text("").frame(width: 10, height: 3)
-                    .gesture(DragGesture(coordinateSpace: .global).onEnded { log("\($0.startLocation.y)→\($0.location.y)") })
+                    .gesture(DragGesture(coordinateSpace: .global).onEnded { log("\(Int($0.startLocation.y))→\(Int($0.location.y))") })
             }
             .frame(width: 40, height: 12, alignment: .topLeading)
         }

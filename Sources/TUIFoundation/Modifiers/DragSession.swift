@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
+
 // MARK: - Drag Session
 
 /// Describes the ongoing dragging session — SwiftUI's `DragSession`, as a
@@ -63,10 +65,10 @@ public struct DragSession: Identifiable {
     /// The current phase of the drag session.
     public let phase: Phase
 
-    /// Location of the drag session in the local coordinate space — in the
-    /// source view's own cells, a ``CellPoint`` where SwiftUI's is a `CGPoint`
-    /// (§2.2 of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`).
-    public var location: CellPoint
+    /// Location of the drag session in the local coordinate space — a `CGPoint`
+    /// as SwiftUI's is, measured in the source view's own cells (§2.2 of
+    /// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`).
+    public var location: CGPoint
 
     /// The index of the dragged item under the cursor.
     public let draggedItemIndex: Int
@@ -78,7 +80,7 @@ public struct DragSession: Identifiable {
     init(id: ID, phase: Phase, location: CellPoint, draggedItemIndex: Int = 0, itemIDs: [AnyHashable] = []) {
         self.id = id
         self.phase = phase
-        self.location = location
+        self.location = CGPoint(location)
         self.draggedItemIndex = draggedItemIndex
         self.itemIDs = itemIDs
     }
@@ -165,10 +167,10 @@ public struct DropSession: Identifiable, CustomDebugStringConvertible {
     /// The phase of the current drop session.
     public let phase: Phase
 
-    /// Location of the drop in the local coordinate space — the destination's
-    /// own cells, a ``CellPoint`` where SwiftUI's is a `CGPoint`, as
+    /// Location of the drop in the local coordinate space — a `CGPoint` as
+    /// SwiftUI's is, measured in the destination's own cells, as
     /// ``DropInfo/location`` is.
-    public var location: CellPoint
+    public var location: CGPoint
 
     /// Size of the drop destination view, in cells.
     public var size: CellSize
@@ -191,7 +193,7 @@ public struct DropSession: Identifiable, CustomDebugStringConvertible {
     ) {
         self.id = id
         self.phase = phase
-        self.location = location
+        self.location = CGPoint(location)
         self.size = size
         self.itemsCount = itemsCount
         self.localSession = localSession
@@ -201,7 +203,7 @@ public struct DropSession: Identifiable, CustomDebugStringConvertible {
     /// `DropSession(id: 3, phase: .active, location: (2, 1), size: 10×4,
     /// itemsCount: 1, suggestedOperations: [.copy])`.
     public var debugDescription: String {
-        "DropSession(id: \(id.raw), phase: \(phase), location: (\(location.x), \(location.y)), "
+        "DropSession(id: \(id.raw), phase: \(phase), location: (\(CellPoint(location).x), \(CellPoint(location).y)), "
             + "size: \(size.width)×\(size.height), itemsCount: \(itemsCount), "
             + "suggestedOperations: \(suggestedOperations))"
     }

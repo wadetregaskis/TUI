@@ -110,6 +110,13 @@ struct GesturePointer {
             return CellPoint(x: location.x + offset.x, y: location.y + offset.y)
         }
     }
+
+    /// The location in the requested coordinate space, as a gesture reports it
+    /// to the app. A recognizer's own decisions go by whole cells
+    /// (``location(in:)``).
+    func preciseLocation(in space: CoordinateSpace) -> CGPoint {
+        CGPoint(location(in: space))
+    }
 }
 
 /// What a recognizer is fed: a pointer report, or the passing of time.

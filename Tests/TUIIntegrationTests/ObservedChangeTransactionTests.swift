@@ -9,6 +9,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Observation
 import Testing
 

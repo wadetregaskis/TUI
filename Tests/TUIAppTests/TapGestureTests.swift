@@ -132,7 +132,7 @@ struct TapGestureTests {
                         .gesture(
                             SpatialTapGesture(coordinateSpace: space)
                                 .onChanged { log("changed \($0.location)") }
-                                .onEnded { log("\($0.location.x),\($0.location.y)") })
+                                .onEnded { log("\(Int($0.location.x)),\(Int($0.location.y))") })
                 }
                 .frame(width: 40, height: 12, alignment: .topLeading)
             }

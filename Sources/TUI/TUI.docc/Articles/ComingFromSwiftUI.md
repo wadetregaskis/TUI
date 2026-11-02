@@ -28,7 +28,7 @@ VStack(spacing: 1) { ... }
 ```
 
 - These all take `Int`, so a fractional value such as `width / 2.5` doesn't compile.
-- Geometry uses `CellPoint`, `CellSize` and `CellRect` rather than `CGPoint`, `CGSize` and `CGRect`. You'll see them from `GeometryReader`, gestures and custom layouts. `CellRect` has no `midX` or `midY`.
+- Geometry uses `CellPoint`, `CellSize` and `CellRect` rather than `CGPoint`, `CGSize` and `CGRect`. You'll see them from `GeometryReader` and custom layouts. The pointer is the exception: a gesture's or a hover's location is a `CGPoint`, as in SwiftUI, measured in cells, so a drag ports as it is. `CellPoint(location)` is the cell it falls in. `CellRect` has no `midX` or `midY`.
 - Gesture distances are cells too: `DragGesture(minimumDistance: 10)` waits for the mouse to move ten cells. The default of one cell is usually what you want.
 - Default spacing is tight. `VStack` puts no blank row between its views, `HStack` puts one column, and `.padding()` is one cell on each side.
 

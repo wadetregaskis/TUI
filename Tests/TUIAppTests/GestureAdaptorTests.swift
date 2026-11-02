@@ -42,7 +42,7 @@ struct GestureAdaptorTests {
     func modifiersReadAtPress() {
         let log = GestureRecord()
         let harness = makeHarness()
-        let view = { box(DragGesture().modifiers(.option).onEnded { log("ended \($0.translation.width)") }) }
+        let view = { box(DragGesture().modifiers(.option).onEnded { log("ended \(Int($0.translation.width))") }) }
         harness.frame(view())
         harness.pointer([(.pressed, 1, 1)], modifiers: (false, false, true), view)
         harness.pointer([(.dragged, 4, 1), (.released, 4, 1)], view)

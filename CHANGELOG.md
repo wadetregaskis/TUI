@@ -4,6 +4,13 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**The pointer's locations have SwiftUI's types.** `DragGesture.Value` (`location`, `startLocation`: `CGPoint`;
+`translation`, `velocity` and the predictions: `CGPoint` and `CGSize`), `DragGesture.minimumDistance` (`CGFloat`),
+`SpatialTapGesture.Value.location`, `HoverPhase.active`, the action of `onTapGesture(count:coordinateSpace:perform:)`,
+and `DragSession`, `DropSession`, `DropInfo` and `onDrop`'s locations, all measured in cells. A ported drag compiles
+untouched, with new overloads `offset(_: CGSize)`, `offset(x: CGFloat, y: CGFloat)` and `position(_: CGPoint)`.
+Code that wants a cell writes `CellPoint(location)`, the cell a location falls in, or `CellSize(translation)`.
+
 These notes cover the change from the single-module package (a `TUI` target plus `TUICore`, `TUIStyling`, `TUIView` and `TUIImage`, as of 1 October 2026) to current `main` (29 October 2026). The module split itself landed between 8 and 19 October. If you were already building against a commit from after 8 October, skip the parts that describe things you already have. What changed from 23 to 29 October that an existing app may notice, and is not described elsewhere, is under "Since 23 October" in the upgrade-affecting changes.
 
 ### TUIkit is now TUI

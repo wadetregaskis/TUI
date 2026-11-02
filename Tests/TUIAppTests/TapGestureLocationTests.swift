@@ -9,6 +9,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 import TUIApp
@@ -61,9 +62,9 @@ struct TapGestureLocationTests {
         let view = {
             page(
                 Text("XYZ")
-                    .onTapGesture { cell in log.entries.append("local \(cell.x),\(cell.y)") }
+                    .onTapGesture { cell in log.entries.append("local \(Int(cell.x)),\(Int(cell.y))") }
                     .onTapGesture(coordinateSpace: .global) { cell in
-                        log.entries.append("global \(cell.x),\(cell.y)")
+                        log.entries.append("global \(Int(cell.x)),\(Int(cell.y))")
                     })
         }
         harness.frame(view())
@@ -74,7 +75,7 @@ struct TapGestureLocationTests {
 
         log.entries = []
         let outer = {
-            page(Text("XYZ").onTapGesture(coordinateSpace: .global) { cell in log.entries.append("global \(cell.x),\(cell.y)") })
+            page(Text("XYZ").onTapGesture(coordinateSpace: .global) { cell in log.entries.append("global \(Int(cell.x)),\(Int(cell.y))") })
         }
         harness.frame(outer())
         click(harness, 4, 1)
@@ -86,11 +87,11 @@ struct TapGestureLocationTests {
         let log = TapLog()
         let harness = InputChainHarness()
         harness.frame(page(Text("XYZ").onTapGesture(coordinateSpace: GlobalCoordinateSpace()) { cell in
-            log.entries.append("global \(cell.x),\(cell.y)")
+            log.entries.append("global \(Int(cell.x)),\(Int(cell.y))")
         }))
         click(harness, 3, 1)
         harness.frame(page(Text("XYZ").onTapGesture(coordinateSpace: LocalCoordinateSpace()) { cell in
-            log.entries.append("local \(cell.x),\(cell.y)")
+            log.entries.append("local \(Int(cell.x)),\(Int(cell.y))")
         }))
         click(harness, 4, 1)
         #expect(log.entries == ["global 3,1", "local 2,0"])
@@ -125,7 +126,7 @@ struct TapGestureLocationTests {
     func locatedDoubleTap() {
         let log = TapLog()
         let harness = InputChainHarness()
-        let view = { page(Text("XYZ").onTapGesture(count: 2) { cell in log.entries.append("\(cell.x),\(cell.y)") }) }
+        let view = { page(Text("XYZ").onTapGesture(count: 2) { cell in log.entries.append("\(Int(cell.x)),\(Int(cell.y))") }) }
         harness.frame(view())
         click(harness, 2, 1)
         #expect(log.entries.isEmpty)

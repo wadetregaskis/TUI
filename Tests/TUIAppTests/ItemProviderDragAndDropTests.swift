@@ -37,12 +37,12 @@
         var proposal: DropProposal?
 
         func validateDrop(info: DropInfo) -> Bool {
-            log.entries.append("validate \(info.location.x),\(info.location.y)")
+            log.entries.append("validate \(Int(info.location.x)),\(Int(info.location.y))")
             return valid
         }
         func dropEntered(info: DropInfo) { log.entries.append("entered") }
         func dropUpdated(info: DropInfo) -> DropProposal? {
-            log.entries.append("updated \(info.location.x),\(info.location.y)")
+            log.entries.append("updated \(Int(info.location.x)),\(Int(info.location.y))")
             return proposal
         }
         func dropExited(info: DropInfo) { log.entries.append("exited") }
@@ -99,7 +99,7 @@
                 tree(
                     Text("CHIP").draggable("apple"),
                     Text("ZONE========").onDrop(of: [.text], isTargeted: nil) { providers, cell in
-                        log.entries.append("dropped \(providers.count) at \(cell.x),\(cell.y)")
+                        log.entries.append("dropped \(providers.count) at \(Int(cell.x)),\(Int(cell.y))")
                         return true
                     }))
             carry(harness)

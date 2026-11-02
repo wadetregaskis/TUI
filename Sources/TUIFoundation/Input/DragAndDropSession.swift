@@ -9,6 +9,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUICore
 
 // MARK: - Drop Info
@@ -54,10 +55,10 @@ public struct DropInfo: Equatable {
     public let previewHeight: Int
 
     /// Where the drop is, in the destination's own cells — SwiftUI's
-    /// `location`, a ``CellPoint`` where SwiftUI's is a `CGPoint` (§2.2 of
+    /// `location`, a `CGPoint` as SwiftUI's is, measured in cells (§2.2 of
     /// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`). The same cell as ``x`` and
     /// ``y``.
-    public var location: CellPoint { CellPoint(x: x, y: y) }
+    public var location: CGPoint { CGPoint(x: Double(x), y: Double(y)) }
 
     /// What the drag carries, for SwiftUI's item-provider queries
     /// (`itemProviders(for:)`, `hasItemsConforming(to:)`).

@@ -71,15 +71,16 @@ Text("Tap or drag")
 behave as macOS's do, measured: a tap ends on a release over the view, a long
 press is `true` from the press and ends at its minimum duration with the button
 still down, and a drag starts at its minimum distance with the press as its
-start. Positions are ``CellPoint``s, translations ``CellSize``s, and a drag's
-velocity is a ``CellVector`` in cells per second.
+start. A location is a `CGPoint` and a translation or a velocity a `CGSize`, as
+SwiftUI's are, measured in cells: `CellPoint(location)` is the cell a location falls
+in, and `CellSize(translation)` the nearest whole cells.
 
 A ``GestureState`` holds what a gesture is doing while it runs, and goes back
 to its initial value when the gesture is over:
 
 ```swift
 struct Draggable: View {
-    @GestureState private var offset = CellSize(width: 0, height: 0)
+    @GestureState private var offset = CGSize.zero
 
     var body: some View {
         Text("Drag me")

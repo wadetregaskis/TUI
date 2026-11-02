@@ -10,6 +10,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 import TUIApp
@@ -611,7 +612,7 @@ struct CoordinateSpaceTests {
             Text("0123")
             HStack(spacing: 0) {
                 Text("ab")
-                Text("XYZ").onTapGesture(coordinateSpace: .named("page")) { taps.append($0) }
+                Text("XYZ").onTapGesture(coordinateSpace: .named("page")) { taps.append(CellPoint($0)) }
             }
         }
         .padding(.leading, 3)
@@ -635,7 +636,7 @@ struct CoordinateSpaceTests {
                 DroppingMarkers {
                     Text("point here")
                         .onContinuousHover(coordinateSpace: .named("box")) { hovered.append($0) }
-                        .gesture(DragGesture(coordinateSpace: .named("box")).onEnded { dragged.append($0.location) })
+                        .gesture(DragGesture(coordinateSpace: .named("box")).onEnded { dragged.append(CellPoint($0.location)) })
                         .padding(.leading, 3)
                 }
             }
@@ -644,7 +645,7 @@ struct CoordinateSpaceTests {
         harness.hover([(x: 5, y: 1)], page)
         // (5, 1) on screen, two cells into the view: the box is the screen
         // here, and nothing found the view in it.
-        #expect(hovered.last == .active(CellPoint(x: 5, y: 1)))
+        #expect(hovered.last == .active(CGPoint(x: 5, y: 1)))
         harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 5, y: 1))
         harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 8, y: 1))
         harness.mouse(MouseEvent(button: .left, phase: .released, x: 8, y: 1))
@@ -654,13 +655,12 @@ struct CoordinateSpaceTests {
     @Test("A drag located in a named space, and a name nothing declared answering in the global space")
     func dragInNamedSpace() {
         let harness = InputChainHarness()
-        var named: [CellPoint] = []
-        var unknown: [CellPoint] = []
+        var (named, unknown): ([CellPoint], [CellPoint]) = ([], [])
         let view = VStack(alignment: .leading, spacing: 0) {
             Text("top")
             Text("drag me")
-                .gesture(DragGesture(coordinateSpace: .named("box")).onEnded { named.append($0.location) })
-                .simultaneousGesture(DragGesture(coordinateSpace: .named("missing")).onEnded { unknown.append($0.location) })
+                .gesture(DragGesture(coordinateSpace: .named("box")).onEnded { named.append(CellPoint($0.location)) })
+                .simultaneousGesture(DragGesture(coordinateSpace: .named("missing")).onEnded { unknown.append(CellPoint($0.location)) })
                 .padding(.leading, 2)
         }
         .coordinateSpace(.named("box"))

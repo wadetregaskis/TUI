@@ -46,7 +46,7 @@ struct OnTapGestureModifierTests {
     func pressReleaseFiresTap() {
         let ctx = context()
         let recorder = Recorder()
-        let view = Text("btn").onTapGesture { cell in recorder.taps.append((cell.x, cell.y)) }
+        let view = Text("btn").onTapGesture { cell in recorder.taps.append((Int(cell.x), Int(cell.y))) }
         let (region, dispatcher) = regionAndDispatcher(view, ctx)
 
         _ = dispatcher.dispatch(
@@ -69,7 +69,7 @@ struct OnTapGestureModifierTests {
     func releaseOutsideDoesNotTap() {
         let ctx = context()
         let recorder = Recorder()
-        let view = Text("btn").onTapGesture { cell in recorder.taps.append((cell.x, cell.y)) }
+        let view = Text("btn").onTapGesture { cell in recorder.taps.append((Int(cell.x), Int(cell.y))) }
         let (region, dispatcher) = regionAndDispatcher(view, ctx)
 
         _ = dispatcher.dispatch(
@@ -85,7 +85,7 @@ struct OnTapGestureModifierTests {
     func rightClickIgnored() {
         let ctx = context()
         let recorder = Recorder()
-        let view = Text("btn").onTapGesture { cell in recorder.taps.append((cell.x, cell.y)) }
+        let view = Text("btn").onTapGesture { cell in recorder.taps.append((Int(cell.x), Int(cell.y))) }
         let (region, dispatcher) = regionAndDispatcher(view, ctx)
 
         _ = dispatcher.dispatch(

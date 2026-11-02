@@ -1,8 +1,8 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  DragGesture.swift
 //
-//  SwiftUI's `DragGesture`, in cells, with a velocity read from the times the
-//  terminal's motion reports arrive.
+//  SwiftUI's `DragGesture`, measured in cells, with a velocity read from the
+//  times the terminal's motion reports arrive.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -37,7 +37,8 @@ import TUICore
 /// The drag is the left mouse button, held and moved. It starts once the
 /// pointer is `minimumDistance` cells from the press along either axis — at
 /// the press itself when that is zero — and ends with the release, which
-/// `onEnded` hears only if the drag started. Its value is in cells
+/// `onEnded` hears only if the drag started. Its value has SwiftUI's types,
+/// measured in cells where SwiftUI's are in points
 /// (§2.2 of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`).
 nonisolated public struct DragGesture: Gesture {
     /// The attributes of a drag gesture.
@@ -46,45 +47,43 @@ nonisolated public struct DragGesture: Gesture {
         public var time: Date
 
         /// The location of the drag gesture's current event.
-        public var location: CellPoint
+        public var location: CGPoint
 
         /// The location of the drag gesture's first event.
-        public var startLocation: CellPoint
+        public var startLocation: CGPoint
 
-        /// The current drag velocity, in cells per second: a rate, so
-        /// fractional where a position is whole (a ``CellVector``, the
-        /// counterpart of the `CGSize` SwiftUI reports).
+        /// The current drag velocity, in cells per second.
         ///
         /// Estimated from the times the terminal's motion reports arrived, as a
         /// Mac mouse's is from its events' timestamps: a least-squares fit of
         /// the moves of the last 100 ms, as UIKit's pan recognizer fits them.
         /// A pointer held still sends no reports, so the velocity is the last
         /// motion's — as macOS 15.8's is, measured.
-        public internal(set) var velocity: CellVector
+        public internal(set) var velocity: CGSize
 
         /// The total translation from the start of the drag gesture to the
         /// current event of the drag gesture.
         ///
         /// This is equivalent to `location.{x,y} - startLocation.{x,y}`.
-        public var translation: CellSize {
-            CellSize(width: location.x - startLocation.x, height: location.y - startLocation.y)
+        public var translation: CGSize {
+            CGSize(width: location.x - startLocation.x, height: location.y - startLocation.y)
         }
 
         /// A prediction, based on the current drag velocity, of where the
         /// final location will be if dragging stopped now: a quarter of a
         /// second at the current velocity on from the location, the horizon
         /// SwiftUI's own `velocity` is defined against.
-        public var predictedEndLocation: CellPoint {
-            CellPoint(
-                x: location.x + Int((velocity.dx * Self.predictionHorizon).rounded()),
-                y: location.y + Int((velocity.dy * Self.predictionHorizon).rounded()))
+        public var predictedEndLocation: CGPoint {
+            CGPoint(
+                x: location.x + velocity.width * Self.predictionHorizon,
+                y: location.y + velocity.height * Self.predictionHorizon)
         }
 
         /// A prediction, based on the current drag velocity, of what the final
         /// translation will be if dragging stopped now.
-        public var predictedEndTranslation: CellSize {
+        public var predictedEndTranslation: CGSize {
             let end = predictedEndLocation
-            return CellSize(width: end.x - startLocation.x, height: end.y - startLocation.y)
+            return CGSize(width: end.x - startLocation.x, height: end.y - startLocation.y)
         }
 
         /// How far ahead the prediction looks, in seconds. SwiftUI defines its
@@ -95,7 +94,7 @@ nonisolated public struct DragGesture: Gesture {
 
     /// The minimum dragging distance before the gesture succeeds, in cells
     /// along either axis.
-    public var minimumDistance: Int
+    public var minimumDistance: CGFloat
 
     /// The coordinate space in which to receive location values.
     public var coordinateSpace: CoordinateSpace
@@ -111,7 +110,7 @@ nonisolated public struct DragGesture: Gesture {
     ///     points.
     ///   - coordinateSpace: The coordinate space of the dragging gesture's
     ///     location: `.local`, the view's own top-left cell, or `.global`.
-    public init(minimumDistance: Int = 1, coordinateSpace: some CoordinateSpaceProtocol = .local) {
+    public init(minimumDistance: CGFloat = 1, coordinateSpace: some CoordinateSpaceProtocol = .local) {
         self.init(minimumDistance: minimumDistance, coordinateSpace: coordinateSpace.coordinateSpace)
     }
 
@@ -125,7 +124,7 @@ nonisolated public struct DragGesture: Gesture {
     ///     succeed, in cells along either axis.
     ///   - coordinateSpace: `.local` or `.global`.
     @_disfavoredOverload
-    init(minimumDistance: Int = 1, coordinateSpace: CoordinateSpace = .local) {
+    init(minimumDistance: CGFloat = 1, coordinateSpace: CoordinateSpace = .local) {
         self.minimumDistance = minimumDistance
         self.coordinateSpace = coordinateSpace
     }
@@ -146,11 +145,11 @@ nonisolated public struct DragGesture: Gesture {
 /// Recognizes a press moved at least a minimum distance, and follows it to
 /// its release.
 final class DragGestureNode: GestureNode<DragGesture.Value> {
-    var minimumDistance = 1
+    var minimumDistance: CGFloat = 1
     var coordinateSpace = CoordinateSpace.local
 
-    private var start = CellPoint.zero
-    private var velocity = CellVector(dx: 0, dy: 0)
+    private var start = CGPoint()
+    private var velocity = CGSize()
 
     /// The press and the moves since, as far back as a fit reaches
     /// (``track(_:at:)``).
@@ -158,11 +157,11 @@ final class DragGestureNode: GestureNode<DragGesture.Value> {
 
     override func receive(_ input: GestureInput, deliver: Bool) {
         guard case .pointer(let pointer) = input else { return }
-        let location = pointer.location(in: coordinateSpace)
+        let location = pointer.preciseLocation(in: coordinateSpace)
         switch pointer.kind {
         case .down:
             start = location
-            velocity = CellVector(dx: 0, dy: 0)
+            velocity = CGSize()
             samples.removeAll(keepingCapacity: true)
             samples.append(DragSample(time: pointer.timeNanos, location: location))
             if minimumDistance == 0 {
@@ -213,7 +212,7 @@ final class DragGestureNode: GestureNode<DragGesture.Value> {
     /// once arrive microseconds apart. When the window holds too little to
     /// fit — one report, after a pause; or a burst read at once and nothing
     /// before it — it reaches back to the report before it.
-    private func track(_ location: CellPoint, at time: Int64) {
+    private func track(_ location: CGPoint, at time: Int64) {
         guard let previous = samples.last, location != previous.location else { return }
         samples.append(DragSample(time: time, location: location))
         // What no later fit reaches: everything before the last report
@@ -226,7 +225,7 @@ final class DragGestureNode: GestureNode<DragGesture.Value> {
         if let fitted = DragSample.fit(samples, horizon: horizon) { velocity = fitted }
     }
 
-    private func currentValue(at location: CellPoint) -> DragGesture.Value {
+    private func currentValue(at location: CGPoint) -> DragGesture.Value {
         DragGesture.Value(time: Date(), location: location, startLocation: start, velocity: velocity)
     }
 }
@@ -234,7 +233,7 @@ final class DragGestureNode: GestureNode<DragGesture.Value> {
 /// One report a drag's velocity is fitted to: when it arrived, and where.
 struct DragSample {
     var time: Int64
-    var location: CellPoint
+    var location: CGPoint
 
     /// How far back a fit reads: 100 ms, UIKit's pan recognizer's window.
     static let window: Int64 = 100_000_000
@@ -252,7 +251,7 @@ struct DragSample {
     /// those at or after `horizon` — or, where those span less than
     /// ``minimumSpan``, over them and the one before. `nil` when even that
     /// spans no time at all.
-    static func fit(_ samples: [Self], horizon: Int64) -> CellVector? {
+    static func fit(_ samples: [Self], horizon: Int64) -> CGSize? {
         guard let last = samples.last else { return nil }
         var first = samples.firstIndex { $0.time >= horizon } ?? samples.count - 1
         if first > 0, last.time &- samples[first].time < minimumSpan { first -= 1 }
@@ -267,8 +266,8 @@ struct DragSample {
         var meanY = 0.0
         for sample in fitted {
             meanT += Double(sample.time &- last.time)
-            meanX += Double(sample.location.x)
-            meanY += Double(sample.location.y)
+            meanX += sample.location.x
+            meanY += sample.location.y
         }
         meanT /= count
         meanX /= count
@@ -279,10 +278,10 @@ struct DragSample {
         for sample in fitted {
             let t = Double(sample.time &- last.time) - meanT
             spread += t * t
-            alongX += t * (Double(sample.location.x) - meanX)
-            alongY += t * (Double(sample.location.y) - meanY)
+            alongX += t * (sample.location.x - meanX)
+            alongY += t * (sample.location.y - meanY)
         }
         guard spread > 0 else { return nil }
-        return CellVector(dx: alongX * 1_000_000_000 / spread, dy: alongY * 1_000_000_000 / spread)
+        return CGSize(width: alongX * 1_000_000_000 / spread, height: alongY * 1_000_000_000 / spread)
     }
 }

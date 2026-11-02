@@ -4,6 +4,7 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
 import TUICore
 
 // MARK: - On Hover Modifier
@@ -85,10 +86,10 @@ nonisolated package struct OnHoverModifier<Content: View>: View {
         // never lit up, where SwiftUI keeps both. See
         // `MouseEventDispatcher.registerHoverObserver(in:_:)`.
         let handlerID = dispatcher.registerHoverObserver(in: context) { event in
-            let cell = pointerCell(of: event, in: space, origin: spaceOrigin)
+            let location = pointerLocation(of: event, in: space, origin: spaceOrigin)
             switch event.phase {
             case .entered:
-                capturedObserve(.entered(cell))
+                capturedObserve(.entered(location))
                 return true
             case .exited:
                 capturedObserve(.exited)
@@ -97,7 +98,7 @@ nonisolated package struct OnHoverModifier<Content: View>: View {
                 // Offered while the pointer stays inside; answering `false`
                 // asks for no frame of its own — an action that changes state
                 // asks for one through that state.
-                capturedObserve(.moved(cell))
+                capturedObserve(.moved(location))
                 return false
             default:
                 // Don't claim any non-hover event so other
@@ -135,10 +136,10 @@ final class RegionOrigin {
 
 /// What a hover observer is told about the pointer, in its coordinate space.
 enum HoverTransition {
-    /// It came into the region, at this cell.
-    case entered(CellPoint)
-    /// It moved to this cell without leaving.
-    case moved(CellPoint)
+    /// It came into the region, here.
+    case entered(CGPoint)
+    /// It moved here without leaving.
+    case moved(CGPoint)
     /// It left.
     case exited
 }
@@ -148,12 +149,11 @@ enum HoverTransition {
 /// Where the pointer is over a view — SwiftUI's `HoverPhase`, as
 /// ``View/onContinuousHover(coordinateSpace:perform:)`` hands it to its action.
 ///
-/// The location is a ``CellPoint`` where SwiftUI's is a `CGPoint`: a terminal
-/// reports the pointer's cell and nothing finer (§2.2 of
+/// The location is a `CGPoint`, as SwiftUI's is, measured in cells (§2.2 of
 /// `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`).
 public enum HoverPhase: Equatable, Sendable {
-    /// The pointer is over the view, at this cell.
-    case active(CellPoint)
+    /// The pointer is over the view, at this location.
+    case active(CGPoint)
     /// The pointer has left the view.
     case ended
 }
@@ -215,7 +215,7 @@ extension View {
     ) -> some View {
         OnHoverModifier(content: self, coordinateSpace: coordinateSpace) { transition in
             switch transition {
-            case .entered(let cell), .moved(let cell): action(.active(cell))
+            case .entered(let location), .moved(let location): action(.active(location))
             case .exited: action(.ended)
             }
         }
@@ -230,7 +230,7 @@ extension View {
     /// Grid { … }
     ///     .onContinuousHover { phase in
     ///         switch phase {
-    ///         case .active(let cell): hoverCell = cell
+    ///         case .active(let location): hoverCell = CellPoint(location)
     ///         case .ended: hoverCell = nil
     ///         }
     ///     }

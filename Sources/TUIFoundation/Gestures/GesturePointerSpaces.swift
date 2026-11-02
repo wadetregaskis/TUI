@@ -7,6 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUICore
 import TUIView
 
@@ -185,6 +186,11 @@ final class PointerSpaceOrigin {
 /// where `origin` found the region's view there (the global space for a name
 /// no owner found it in) — or left where it is when nothing says, a handler
 /// with no region to measure from.
+func pointerLocation(of event: MouseEvent, in space: CoordinateSpace, origin: PointerSpaceOrigin?) -> CGPoint {
+    CGPoint(pointerCell(of: event, in: space, origin: origin))
+}
+
+/// The cell of ``pointerLocation(of:in:origin:)``.
 func pointerCell(of event: MouseEvent, in space: CoordinateSpace, origin: PointerSpaceOrigin?) -> CellPoint {
     guard space != .local, let offset = origin?.offset(in: space) else {
         return CellPoint(x: event.x, y: event.y)

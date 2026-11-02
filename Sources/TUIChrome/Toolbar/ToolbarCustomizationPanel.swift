@@ -7,6 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUIFoundation
 
 // MARK: - The Bar's Customization
@@ -181,7 +182,7 @@ private struct _ToolbarCustomizationGrip: View {
                         // of its place there is no neighbour to pass, and a
                         // move counted there took the item back a place the
                         // moment the pointer turned.
-                        let rows = value.translation.height
+                        let rows = CellSize(value.translation).height
                         var done = moved
                         while done != rows {
                             let step = done < rows ? 1 : -1

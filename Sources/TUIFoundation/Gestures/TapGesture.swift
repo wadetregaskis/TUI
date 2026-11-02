@@ -7,6 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUICore
 
 /// A gesture that recognizes one or more taps.
@@ -112,7 +113,7 @@ nonisolated public struct TapGesture: Gesture {
 ///
 /// ```swift
 /// struct TapGestureView: View {
-///     @State private var location: CellPoint = .zero
+///     @State private var location: CGPoint = .zero
 ///
 ///     var tap: some Gesture {
 ///         SpatialTapGesture()
@@ -128,8 +129,8 @@ nonisolated public struct TapGesture: Gesture {
 /// }
 /// ```
 ///
-/// The location is the release's cell, a ``CellPoint`` where SwiftUI's is a
-/// `CGPoint` (§2.2 of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`). It is
+/// The location is the release's, a `CGPoint` as SwiftUI's is, measured in cells
+/// (§2.2 of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`). It is
 /// recognized as ``TapGesture`` is, and like it reports nothing until it ends —
 /// SwiftUI's `onChanged` on a spatial tap never runs either (measured on
 /// macOS 15.8).
@@ -137,7 +138,7 @@ nonisolated public struct SpatialTapGesture: Gesture {
     /// The attributes of a tap gesture.
     public struct Value: Equatable, Sendable {
         /// The location of the tap gesture's current event.
-        public var location: CellPoint
+        public var location: CGPoint
     }
 
     /// The required number of tap events.
@@ -179,7 +180,7 @@ nonisolated public struct SpatialTapGesture: Gesture {
         let node = inputs.node { TapGestureNode<Value>() }
         node.count = max(1, gesture.count)
         let space = gesture.coordinateSpace
-        node.makeValue = { Value(location: $0.location(in: space)) }
+        node.makeValue = { Value(location: $0.preciseLocation(in: space)) }
         return _GestureOutputs(node)
     }
 }

@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUICore
 import TUIView
 
@@ -43,6 +44,16 @@ extension View {
     /// - Returns: A view drawn at that position, filling the space offered.
     nonisolated public func position(_ position: CellSize) -> some View {
         self.position(x: position.width, y: position.height)
+    }
+
+    /// Places this view's centre at a point in SwiftUI's own type, as a drag's
+    /// `location` is: on the cell the point falls in.
+    ///
+    /// - Parameter position: Where its centre sits, in cells.
+    /// - Returns: A view drawn at that position, filling the space offered.
+    nonisolated public func position(_ position: CGPoint) -> some View {
+        let cell = CellPoint(position)
+        return self.position(x: cell.x, y: cell.y)
     }
 }
 

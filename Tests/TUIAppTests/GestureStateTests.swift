@@ -8,6 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 import TUIApp
@@ -41,7 +42,7 @@ struct GestureStateTests {
             return Text("").frame(width: 10, height: 3)
                 .gesture(
                     DragGesture(minimumDistance: 0)
-                        .updating($offset) { value, state, _ in state = value.translation }
+                        .updating($offset) { value, state, _ in state = CellSize(value.translation) }
                         .onEnded { [log] _ in log("ended") })
                 .frame(width: 40, height: 12, alignment: .topLeading)
         }

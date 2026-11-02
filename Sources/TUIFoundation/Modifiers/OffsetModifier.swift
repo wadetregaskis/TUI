@@ -7,6 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUICore
 
 /// The view wrapper created by ``View/offset(x:y:)``.
@@ -88,6 +89,28 @@ extension View {
     /// - Returns: A view drawn at the offset position.
     nonisolated public func offset(_ offset: CellSize) -> some View {
         self.offset(x: offset.width, y: offset.height)
+    }
+
+    /// Offsets this view's drawn position by a size in SwiftUI's own type, as a
+    /// drag's `translation` is, to the nearest cell.
+    ///
+    /// - Parameter offset: Cells to shift right in `width`, down in `height`.
+    /// - Returns: A view drawn at the offset position.
+    nonisolated public func offset(_ offset: CGSize) -> some View {
+        self.offset(x: offset.width, y: offset.height)
+    }
+
+    /// Offsets this view's drawn position by SwiftUI's `CGFloat`s, as a drag's
+    /// `translation.width` is, to the nearest cell. Disfavoured: a literal
+    /// belongs to ``offset(x:y:)``.
+    ///
+    /// - Parameters:
+    ///   - x: Cells to shift right (negative shifts left).
+    ///   - y: Rows to shift down (negative shifts up).
+    /// - Returns: A view drawn at the offset position.
+    @_disfavoredOverload
+    nonisolated public func offset(x: CGFloat = 0, y: CGFloat = 0) -> some View {
+        self.offset(x: x.nearestCell, y: y.nearestCell)
     }
 }
 

@@ -31,10 +31,10 @@ import TUIView
 /// ## What a terminal changes
 ///
 /// A gesture is the **pointer's** API: the left mouse button, as the terminal
-/// reports it in SGR mouse mode. Geometry is in whole cells — a location is a
-/// ``CellPoint``, a translation a ``CellSize`` and a velocity a ``CellVector``
-/// (§2.2 of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`) — and distances are
-/// counted in cells along either axis. A terminal reports no touches, pressure,
+/// reports it in SGR mouse mode. A location is a `CGPoint`, a translation and a
+/// velocity a `CGSize`, as SwiftUI's are, measured in cells where SwiftUI's are
+/// in points (§2.2 of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`), and
+/// distances are counted in cells along either axis. A terminal reports no touches, pressure,
 /// pinch or rotation, so `MagnifyGesture`, `RotateGesture` and the other
 /// multi-touch gestures are absent.
 ///
