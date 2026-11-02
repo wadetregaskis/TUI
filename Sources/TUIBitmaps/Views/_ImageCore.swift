@@ -35,6 +35,10 @@ private enum StateIndex {
     /// The pixels of a picture the cache keeps, held while the view is drawn
     /// (``ImagePixelPin``).
     static let pin = 5
+
+    /// A playing picture's frames and what has been made of them
+    /// (``ImageAnimationPlayback``).
+    static let animation = 6
 }
 
 extension _ImageCore {
@@ -44,6 +48,8 @@ extension _ImageCore {
     /// pixels' drawing in its own file.
     static let renderCacheStateIndex = StateIndex.renderCache
     static let pinStateIndex = StateIndex.pin
+    /// ``StateIndex/animation``, for the playing picture in its own file.
+    static let animationStateIndex = StateIndex.animation
 }
 
 // MARK: - Image Core
@@ -296,7 +302,8 @@ struct _ImageCore: View, Renderable, Layoutable {
                     maxPixelCount: maxPixelCount, urlTimeout: urlTimeout,
                     urlCache: context.environment.resolvedURLImageCache,
                     synchronousDecodeLimit: context.environment.imageSynchronousDecodeLimit),
-                imageStore: context.environment.terminalImageStore, pin: pin.value, loads: decoded == nil)
+                imageStore: context.environment.terminalImageStore, pin: pin.value,
+                playback: animationPlayback(context: context).value, loads: decoded == nil)
             // Written only when the owner changes, as the source is: a write
             // asks for a frame.
             let ownerBox: StateBox<_DecodedImage?> = stateStorage.storage(
@@ -342,10 +349,14 @@ struct _ImageCore: View, Renderable, Layoutable {
                 width: renderWidth, height: renderHeight, text: placeholderText, spinner: spinner, context: context)
 
         case .success(let loadedImage):
+            // The file's current frame, if it plays: drawn in the still's place,
+            // and in the still's box.
+            let playing = playingFrame(token: token, context: context)
             // What is drawn into which box: at its natural size, the image's
             // own box; otherwise the box it was handed, to fit or fill.
             let (rawImage, drawWidth, drawHeight, resizing, keepsAspect) = drawing(
-                loadedImage, in: (renderWidth, renderHeight), zoom: zoom, environment: context.environment)
+                playing?.image ?? loadedImage, laidOutAs: playing?.canvas, in: (renderWidth, renderHeight), zoom: zoom,
+                environment: context.environment)
             // Real pixels first, where the terminal will take them. Falls
             // through to the glyph renderer for every terminal that did not
             // answer the startup handshake, every subtree that asked for
@@ -359,10 +370,10 @@ struct _ImageCore: View, Renderable, Layoutable {
             let picture: FrameBuffer
             // Each keyed on which load its pixels are (`DecodedPixels`): the
             // LOADED buffer, not the drawn one, which a crop makes every frame.
-            let decodedPixels = decodedPixels ?? DecodedPixels(loadedImage)
+            let decodedPixels = playing.map { DecodedPixels(decode: $0.decode) } ?? decodedPixels ?? DecodedPixels(loadedImage)
             if !isTemplate, resizing?.slices != true, let drawn = renderWithTerminalGraphics(
                 rawImage, decodedPixels: decodedPixels, width: drawWidth, height: drawHeight,
-                stretches: resizing != nil && !keepsAspect, context: context)
+                stretches: resizing != nil && !keepsAspect, playing: playing, context: context)
             {
                 picture = drawn
             } else {
@@ -380,6 +391,7 @@ struct _ImageCore: View, Renderable, Layoutable {
                     monoColours: monoColours,
                     templateInk: isTemplate ? Self.templateInk(in: context.environment) : nil,
                     resizing: resizing,
+                    playing: playing,
                     stateStorage: stateStorage,
                     identity: identity
                 )
@@ -387,10 +399,9 @@ struct _ImageCore: View, Renderable, Layoutable {
             // A picture drawn in the foreground style — a template's pixels, a
             // mono picture's ink — casts a shadowed style's shadows from the
             // cells it drew (`ShapeStyle.shadow(_:)`).
-            guard isTemplate || monoColours != nil, let paint = context.environment.foregroundStyle else {
-                return picture
-            }
-            return picture.castingShadows(of: paint, context: context, owner: Self.self)
+            let paint = isTemplate || monoColours != nil ? context.environment.foregroundStyle : nil
+            let shaded = paint.map { picture.castingShadows(of: $0, context: context, owner: Self.self) } ?? picture
+            return watchingVisibility(of: shaded, context: context)
 
         case .failure(let message):
             return renderError(message, width: renderWidth, height: renderHeight, context: context)
@@ -429,6 +440,7 @@ extension _ImageCore {
         load settings: LoadSettings,
         imageStore: TerminalImageStore?,
         pin: ImagePixelPin? = nil,
+        playback: ImageAnimationPlayback? = nil,
         loads: Bool
     ) {
         // Detect source change and force reload
@@ -528,6 +540,7 @@ extension _ImageCore {
             lifecycle.cancelTask(token: token)
             imageStore?.release(token: token)
             pin?.release()
+            playback?.stop(token: token, lifecycle: lifecycle, store: imageStore)
         }
     }
 
@@ -608,12 +621,13 @@ extension _ImageCore {
         monoColours: ImageMonoColours?,
         templateInk: RGBA?,
         resizing: _ImageResizing?,
+        playing: PlayingFrame?,
         stateStorage: StateStorage,
         identity: ViewIdentity
     ) -> FrameBuffer {
         let targetSize = Self.cellBox(
-            imageWidth: rawImage.width,
-            imageHeight: rawImage.height,
+            imageWidth: playing?.canvas.width ?? rawImage.width,
+            imageHeight: playing?.canvas.height ?? rawImage.height,
             maxWidth: width,
             maxHeight: height,
             stretches: resizing != nil,
@@ -636,7 +650,10 @@ extension _ImageCore {
         let colorDepth = ColorDepth.current
         let cacheKey = StateStorage.StateKey(identity: identity, propertyIndex: StateIndex.renderCache)
         let cacheBox: StateBox<ImageRenderCache?> = stateStorage.storage(for: cacheKey, default: nil)
-        if let cache = cacheBox.value, cache.matches(
+        // A playing picture's conversions are kept per frame, and a frame's is
+        // no write to the view's state, which would ask for a frame.
+        let held = playing.map { $0.playback.conversion(ofFrame: $0.index) } ?? cacheBox.value
+        if let cache = held, cache.matches(
             source: source,
             decodedPixels: decodedPixels,
             rawImageWidth: rawImage.width,
@@ -685,7 +702,7 @@ extension _ImageCore {
         }
         let art = converter.convert(pixels, width: targetSize.width, height: targetSize.height)
 
-        cacheBox.value = ImageRenderCache(
+        let conversion = ImageRenderCache(
             source: source,
             decodedPixels: decodedPixels,
             rawImageWidth: rawImage.width,
@@ -712,6 +729,11 @@ extension _ImageCore {
             resizing: resizing,
             art: art
         )
+        if let playing {
+            playing.playback.keep(conversion, ofFrame: playing.index)
+        } else {
+            cacheBox.value = conversion
+        }
 
         return Self.buffer(for: art, monoColours: monoColours)
     }

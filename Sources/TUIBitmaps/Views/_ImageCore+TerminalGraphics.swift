@@ -139,7 +139,7 @@ extension _ImageCore {
 
     func renderWithTerminalGraphics(
         _ rawImage: RGBAImage, decodedPixels: DecodedPixels, width: Int, height: Int, stretches: Bool,
-        context: RenderContext
+        playing: PlayingFrame? = nil, context: RenderContext
     ) -> FrameBuffer? {
         guard KittyGraphics.isSupported,
             context.environment.terminalGraphics,
@@ -151,7 +151,7 @@ extension _ImageCore {
         // function — so switching renderers cannot move the image or change
         // what the layout around it was told.
         let target = Self.cellBox(
-            imageWidth: rawImage.width, imageHeight: rawImage.height,
+            imageWidth: playing?.canvas.width ?? rawImage.width, imageHeight: playing?.canvas.height ?? rawImage.height,
             maxWidth: width, maxHeight: height,
             stretches: stretches,
             contentMode: context.environment.imageContentMode,
@@ -217,9 +217,17 @@ extension _ImageCore {
         // The transmitted resolution, not the cell box: two boxes that resample
         // to the same pixels are the same picture, and the store answers the
         // second with a placement instead of megabytes.
-        let token = "image-\(context.identity.path)"
+        let viewToken = "image-\(context.identity.path)"
         let fit = PixelFit(stretches: stretches, contentMode: context.environment.imageContentMode)
         let boxPixels = fit.pixels(of: rawImage, fitting: (wantedWidth, wantedHeight))
+        // A playing picture's frames stay in the terminal, each its own picture,
+        // so that a loop's second time round costs only the cells naming them.
+        let token =
+            playing.map {
+                $0.playback.storeToken(
+                    viewToken, frame: $0.index, of: $0.frameCount, pixelBytes: boxPixels.width * boxPixels.height * 4,
+                    cells: target.width * target.height, store: store)
+            } ?? viewToken
         var signature = TerminalImageSignature(
             source: source, decodedPixels: decodedPixels,
             rawWidth: rawImage.width, rawHeight: rawImage.height,
@@ -259,7 +267,7 @@ extension _ImageCore {
                 (held.pixelWidth, held.pixelHeight), (signature.pixelWidth, signature.pixelHeight),
                 in: (wantedWidth, wantedHeight)),
             (held.pixelWidth, held.pixelHeight) == (signature.pixelWidth, signature.pixelHeight)
-                || !PictureSettle.isSettled(box: (wantedWidth, wantedHeight), context: context, token: token)
+                || !PictureSettle.isSettled(box: (wantedWidth, wantedHeight), context: context, token: viewToken)
         {
             if held.pixelWidth >= signature.pixelWidth - 1, held.pixelHeight >= signature.pixelHeight - 1 {
                 (signature.pixelWidth, signature.pixelHeight) = (held.pixelWidth, held.pixelHeight)
@@ -275,6 +283,9 @@ extension _ImageCore {
             let lines = store.placeholderRows(
                 token: token, signature: signature,
                 columns: target.width, rows: target.height,
+                // A frame's own pixels, kept beside a picture to make its copies
+                // from, would be a second copy of every frame.
+                keepsOwnPixels: playing == nil,
                 pixels: {
                     // Only on a miss: this resamples and recolours the decoded
                     // image and can be megabytes. The common case, by a wide

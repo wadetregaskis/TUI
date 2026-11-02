@@ -1,4 +1,5 @@
 module CSTBImage {
     header "stb_image.h"
+    header "stb_gif_reader.h"
     export *
 }

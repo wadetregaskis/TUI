@@ -161,13 +161,14 @@ struct DerivedImages {
     mutating func remember(
         _ id: KittyGraphics.ImageID, columns: Int, rows: Int,
         pixels: (bytes: [UInt8], format: KittyGraphics.PixelFormat, width: Int, height: Int),
-        pixelsPerCell: (across: Int, down: Int) = (Self.pixelsAcross, Self.pixelsDown)
+        pixelsPerCell: (across: Int, down: Int) = (Self.pixelsAcross, Self.pixelsDown),
+        keepsOwnPixels: Bool = true
     ) {
         var source = Source(
             columns: columns, rows: rows, across: pixelsPerCell.across, down: pixelsPerCell.down,
             pixels: Self.downsampled(
                 pixels, to: (columns * pixelsPerCell.across, rows * pixelsPerCell.down)))
-        if pixels.width * pixels.height * 4 <= Self.fullPixelLimit {
+        if keepsOwnPixels, pixels.width * pixels.height * 4 <= Self.fullPixelLimit {
             source.full = (Self.rgba(pixels), pixels.width, pixels.height)
         }
         sources[id] = source

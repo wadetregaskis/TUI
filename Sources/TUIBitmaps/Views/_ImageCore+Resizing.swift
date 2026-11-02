@@ -95,10 +95,15 @@ extension _ImageCore {
     /// 80-column terminal, converts 80 columns.
     ///
     /// Otherwise it is the image whole, in `space`, with its own resizing.
+    ///
+    /// `size`, where `image` is a playing picture's frame, is the size the
+    /// picture is laid out as (``PlayingFrame/canvas``), which a frame scaled
+    /// down to keep it in memory is not.
     func drawing(
-        _ image: RGBAImage, in space: (width: Int, height: Int), zoom: Double, environment: EnvironmentValues
+        _ image: RGBAImage, laidOutAs size: (width: Int, height: Int)? = nil, in space: (width: Int, height: Int),
+        zoom: Double, environment: EnvironmentValues
     ) -> (image: RGBAImage, width: Int, height: Int, resizing: _ImageResizing?, keepsAspect: Bool) {
-        guard let natural = naturalBox(of: image, in: environment) else {
+        guard let natural = naturalBox(ofPixels: size ?? (image.width, image.height), in: environment) else {
             let resizing = slicing(effectiveResizing(in: environment), of: image, in: environment)
             return (image, space.width, space.height, resizing, false)
         }

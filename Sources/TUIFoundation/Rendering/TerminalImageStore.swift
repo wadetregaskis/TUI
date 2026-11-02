@@ -260,6 +260,10 @@ package final class TerminalImageStore {
     ///     does not already hold this picture** — it is a resample of the
     ///     decoded image and megabytes of it, and the common case by a wide
     ///     margin is that nothing has changed since last frame.
+    ///   - keepsOwnPixels: Whether its own pixels are kept, where they are few
+    ///     enough, for the copies made of it to have its detail
+    ///     (``DerivedImages/fullPixelLimit``), or only its small copy: a playing
+    ///     picture's frames have their pixels held elsewhere, and there are many.
     /// - Returns: the rows, or `nil` for a request the protocol cannot express
     ///   — at which point the caller draws the picture out of glyphs, as it
     ///   always has.
@@ -278,12 +282,12 @@ package final class TerminalImageStore {
     @inlinable
     package func placeholderRows<Signature: ImageStoreSignature>(
         token: String, signature: Signature,
-        columns: Int, rows: Int,
+        columns: Int, rows: Int, keepsOwnPixels: Bool = true,
         pixels: () -> (bytes: [UInt8], format: KittyGraphics.PixelFormat, width: Int, height: Int)
     ) -> [String]? {
         placeholderRows(
             token: token, signature: AnyImageSignature(signature), bucket: { AnyHashable(signature.storeBucket) },
-            columns: columns, rows: rows, pixels: pixels)
+            columns: columns, rows: rows, keepsOwnPixels: keepsOwnPixels, pixels: pixels)
     }
 
     /// ``placeholderRows(token:signature:columns:rows:pixels:)``, with the
@@ -293,7 +297,7 @@ package final class TerminalImageStore {
     @usableFromInline
     func placeholderRows(
         token: String, signature wanted: AnyImageSignature, bucket: () -> AnyHashable,
-        columns: Int, rows: Int,
+        columns: Int, rows: Int, keepsOwnPixels: Bool,
         pixels: () -> (bytes: [UInt8], format: KittyGraphics.PixelFormat, width: Int, height: Int)
     ) -> [String]? {
         guard columns > 0, rows > 0,
@@ -367,7 +371,7 @@ package final class TerminalImageStore {
         guard !transmit.isEmpty else { return nil }
         pending += transmit
         pending += KittyGraphics.placement(id: id, columns: columns, rows: rows)
-        derivedImages.remember(id, columns: columns, rows: rows, pixels: payload)
+        derivedImages.remember(id, columns: columns, rows: rows, pixels: payload, keepsOwnPixels: keepsOwnPixels)
         file(
             Image(
                 id: id, signature: wanted, slot: slot, arrival: nextArrival, cells: cells,

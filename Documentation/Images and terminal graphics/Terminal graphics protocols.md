@@ -450,7 +450,7 @@ With that fixed, each idea sorts cleanly:
 | **Layer composition / `.opacity`** | **no** | TUI blends colours in software because the terminal has no alpha for text. The content being faded is text, and see the boundary above. A protocol that composites images with cells does not help composite cells with cells. |
 | **Rounded corners, borders, shadows** | **no, for chrome around text** | Same boundary. Feasible only for ornament that contains no text, which is not what a border is for. |
 | **Icons / SF Symbols** | **marginal** | They already render from the font where the font has them, at zero bytes. An image version would work on more hosts at the cost of transmitting bitmaps and matching the font's metrics. |
-| **Animation / video** | **defer** | Kitty can drive animation frames itself, which would let a spinner run with no app-side clock at all — attractive against the idle-render work in `Full performance profile of Stress and the Example (2026-08).md`, and far too narrow a win to lead with. |
+| **Animation / video** | **defer** | Kitty can drive animation frames itself, which would let a spinner run with no app-side clock at all — attractive against the idle-render work in `Full performance profile of Stress and the Example (2026-08).md`, and far too narrow a win to lead with. An animated `Image` (2026-11-01) does not use it: each frame is an ordinary picture under an id of its own, kept in the terminal up to a budget, and a tick rewrites the cells to name the next, so about 12 bytes a cell per tick by placeholders and one placement a block by classic ones, on every host that draws a still. `a=f`/`a=a` would make a tick about 30 bytes, but no host beyond kitty has been measured for it, and WezTerm has none. |
 
 ---
 

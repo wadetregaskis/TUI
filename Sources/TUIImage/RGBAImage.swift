@@ -148,6 +148,20 @@ extension RGBAImage {
 // MARK: - Image Scaling
 
 extension RGBAImage {
+    /// An image of `width` × `height` pixels from the straight-alpha RGBA bytes
+    /// at `bytes`, row by row: what stb_image hands back.
+    init(rgbaBytes bytes: UnsafePointer<UInt8>, width: Int, height: Int) {
+        let count = width * height
+        var pixels = [RGBA](repeating: RGBA(r: 0, g: 0, b: 0), count: count)
+        for index in 0..<count {
+            let offset = index * 4
+            pixels[index] = RGBA(r: bytes[offset], g: bytes[offset + 1], b: bytes[offset + 2], a: bytes[offset + 3])
+        }
+        self.init(width: width, height: height, pixels: pixels)
+    }
+}
+
+extension RGBAImage {
 
     /// Returns a scaled copy using nearest-neighbor interpolation.
     ///

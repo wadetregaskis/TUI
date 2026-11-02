@@ -251,29 +251,7 @@ extension PlatformImageLoader {
                 throw ImageLoadError.imageTooLarge(pixelCount: pixelCount, limit: limit)
             }
 
-            return pixelsFromRaw(pixels, width: Int(width), height: Int(height))
-        }
-
-        /// Converts raw stb_image RGBA output to an `RGBAImage`.
-        private func pixelsFromRaw(
-            _ rawPixels: UnsafeMutablePointer<UInt8>,
-            width: Int,
-            height: Int
-        ) -> RGBAImage {
-            let count = width * height
-            var pixels = [RGBA](repeating: RGBA(r: 0, g: 0, b: 0), count: count)
-
-            for pixelIndex in 0..<count {
-                let offset = pixelIndex * 4
-                pixels[pixelIndex] = RGBA(
-                    r: rawPixels[offset],
-                    g: rawPixels[offset + 1],
-                    b: rawPixels[offset + 2],
-                    a: rawPixels[offset + 3]
-                )
-            }
-
-            return RGBAImage(width: width, height: height, pixels: pixels)
+            return RGBAImage(rgbaBytes: pixels, width: Int(width), height: Int(height))
         }
     }
 #endif

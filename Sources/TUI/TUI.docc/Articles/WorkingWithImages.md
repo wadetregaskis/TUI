@@ -74,6 +74,20 @@ Image(.file("photo.png"))
     .frame(maxWidth: .infinity)
 ```
 
+## Animated pictures
+
+An animated file plays by itself, with no code of its own:
+
+```swift
+Image(.file("waving.gif"))
+```
+
+It shows each frame for as long as the file says, and repeats as many times as the file says. GIF plays everywhere. APNG and animated WebP play on a Mac, and elsewhere show their first frame, or an error if that platform can't read the format at all. So does a picture from a URL: only files play.
+
+It plays only while someone can see it. Scrolled out of view it stops, and carries on from where it stopped when it comes back. A view that has gone starts again from the first frame if it returns. With Reduce Motion on, whether set by `TUI_REDUCE_MOTION` or ``Scene/reduceMotion(_:)``, it shows its first frame and doesn't move.
+
+One picture keeps at most 64 MiB of frames in memory. A larger file has every frame scaled down evenly to fit, and one with more than 1,024 frames keeps only every so many, each showing for as long as the ones it replaces. In real pixels, a frame is sent to the terminal once and kept there for the next time round, up to 64 MiB of them. Frames beyond that are sent again each time they show.
+
 ## Pictures that take time to load
 
 A small file loads straight away, on the frame that first draws it. A larger file, or a URL, loads in the background. Meanwhile your app keeps running, and the image shows a spinner in its frame.
