@@ -11,6 +11,13 @@ and `DragSession`, `DropSession`, `DropInfo` and `onDrop`'s locations, all measu
 untouched, with new overloads `offset(_: CGSize)`, `offset(x: CGFloat, y: CGFloat)` and `position(_: CGPoint)`.
 Code that wants a cell writes `CellPoint(location)`, the cell a location falls in, or `CellSize(translation)`.
 
+**The pixel mouse.** Where a terminal can report the mouse in pixels (xterm's SGR-Pixels, `?1016`), a gesture's or a
+`onContinuousHover`'s location is fractional, in cells. Measured on Ghostty 1.4.0 and iTerm2 3.7.6; asked by DECRQM of
+those, of xterm.js, and of kitty, WezTerm, foot and xterm when the environment names them; every other terminal reports
+whole cells as before. It is on only while such a view is on screen, or under the new `MouseSupport.subCellLocations`
+for an `onMouseEvent` handler, which reads the new `MouseEvent.preciseX` and `preciseY`. Hit tests stay on whole cells.
+`TUI_PIXEL_MOUSE=0` turns it off.
+
 These notes cover the change from the single-module package (a `TUI` target plus `TUICore`, `TUIStyling`, `TUIView` and `TUIImage`, as of 1 October 2026) to current `main` (29 October 2026). The module split itself landed between 8 and 19 October. If you were already building against a commit from after 8 October, skip the parts that describe things you already have. What changed from 23 to 29 October that an existing app may notice, and is not described elsewhere, is under "Since 23 October" in the upgrade-affecting changes.
 
 ### TUIkit is now TUI

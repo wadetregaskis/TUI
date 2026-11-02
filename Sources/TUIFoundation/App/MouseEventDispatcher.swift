@@ -16,6 +16,7 @@ public enum MouseFeature: Sendable {
     case scrolling
     case drag
     case motion
+    case subCellLocations
 }
 
 // MARK: - Mouse Event Dispatcher
@@ -316,6 +317,9 @@ package final class MouseEventDispatcher {
     /// currently in flight. See ``endsHeldGesture(_:)``.
     private var pointerMovedSincePress = false
 
+    /// The last press or drag report the controls were told of.
+    private var lastDragReport: MouseEvent?
+
     /// The region the held gesture's last drag was hit-tested to, while a
     /// press handed back to live hit-testing (``handOffGesture()``) is held —
     /// what ``redeliverHeldDrag()`` compares a reshaped frame against.
@@ -491,6 +495,7 @@ extension MouseEventDispatcher {
         case .scrolling: requestedFeatures.scrolling = true
         case .drag: requestedFeatures.drag = true
         case .motion: requestedFeatures.motion = true
+        case .subCellLocations: requestedFeatures.subCellLocations = true
         }
     }
 
@@ -912,6 +917,7 @@ extension MouseEventDispatcher {
         switch event.phase {
         case .pressed:
             pressOrigin = (event.x, event.y)
+            lastDragReport = event
             pointerMovedSincePress = false
             heldDragTarget = nil
             // Cleared before the press is routed, so the handler about to
@@ -929,6 +935,19 @@ extension MouseEventDispatcher {
         default:
             break
         }
+    }
+
+    /// Whether `event` is a drag report that says nothing but where in the cell
+    /// the pointer is: pixel reporting sends them, for a gesture to read, which
+    /// ``dispatch(_:)`` has given it by now. A control hears what it would hear
+    /// from a terminal reporting cells, where a press that wobbles by a pixel has
+    /// not been dragged. A change of modifiers is news at any place.
+    private func saysOnlyWhereInTheCell(_ event: MouseEvent) -> Bool {
+        guard event.phase == .dragged else { return false }
+        defer { lastDragReport = event }
+        guard let last = lastDragReport else { return false }
+        return last.x == event.x && last.y == event.y && last.shift == event.shift && last.ctrl == event.ctrl
+            && last.meta == event.meta
     }
 
     /// Dispatches one mouse event to the appropriate handler.
@@ -1024,6 +1043,8 @@ extension MouseEventDispatcher {
         if let settled = routeThroughGestures(event, matching: { matchingRegions(at: event.x, y: event.y) }) {
             return settled
         }
+
+        if saysOnlyWhereInTheCell(event) { return false }
 
         // Drag capture: when a button is currently held, route every
         // subsequent event for that button to the handler that took
@@ -1314,7 +1335,7 @@ extension MouseEventDispatcher {
                     button: event.button, phase: phase,
                     x: x - region.localOriginX, y: y - region.localOriginY,
                     shift: event.shift, ctrl: event.ctrl, meta: event.meta,
-                    clickCount: event.clickCount)
+                    clickCount: event.clickCount, subcellX: event.subcellX, subcellY: event.subcellY)
             }
             guard handler(synthesised(.pressed)) else { continue }
             _ = handler(synthesised(.released))
@@ -1381,7 +1402,9 @@ extension MouseEventDispatcher {
             shift: event.shift,
             ctrl: event.ctrl,
             meta: event.meta,
-            clickCount: event.clickCount
+            clickCount: event.clickCount,
+            subcellX: event.subcellX,
+            subcellY: event.subcellY
         )
     }
 

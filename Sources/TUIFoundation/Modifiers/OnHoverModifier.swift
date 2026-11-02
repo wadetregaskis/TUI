@@ -35,6 +35,10 @@ nonisolated package struct OnHoverModifier<Content: View>: View {
     /// own top-left (`.local`) or the terminal's (`.global`).
     var coordinateSpace: CoordinateSpace = .local
 
+    /// Whether the callback reads where the pointer is, which asks the terminal
+    /// to report it within the cell where it can. `.onHover` doesn't.
+    var readsLocation = false
+
     /// The hover callback: told when the cursor enters the view's hit region,
     /// moves within it, and leaves it, with where it is. `.onHover` hears the
     /// crossings and not the moves.
@@ -68,6 +72,7 @@ nonisolated package struct OnHoverModifier<Content: View>: View {
         // frame — necessary because the terminal only emits
         // `.moved` events when motion tracking is active.
         dispatcher.requestFeature(.motion, in: context)
+        if readsLocation { dispatcher.requestFeature(.subCellLocations, in: context) }
 
         let capturedObserve = observe
         // The dispatcher hands a handler cells local to its region; the
@@ -213,7 +218,7 @@ extension View {
     nonisolated func onContinuousHover(
         coordinateSpace: CoordinateSpace = .local, perform action: @escaping @MainActor (HoverPhase) -> Void
     ) -> some View {
-        OnHoverModifier(content: self, coordinateSpace: coordinateSpace) { transition in
+        OnHoverModifier(content: self, coordinateSpace: coordinateSpace, readsLocation: true) { transition in
             switch transition {
             case .entered(let location), .moved(let location): action(.active(location))
             case .exited: action(.ended)
@@ -238,8 +243,9 @@ extension View {
     ///
     /// The action runs with ``HoverPhase/active(_:)`` when the pointer comes
     /// in and each time the terminal reports it moving within, and with
-    /// ``HoverPhase/ended`` when it leaves. A terminal reports the pointer's
-    /// cell, so a move is the pointer reaching another cell.
+    /// ``HoverPhase/ended`` when it leaves. Most terminals report the pointer's
+    /// cell, so a move is the pointer reaching another cell and the location a
+    /// whole number; one in pixel reporting reports it within the cell.
     /// Like ``View/onHover(perform:)`` it needs the terminal's any-event mouse
     /// reporting, which it asks for while the view is on screen, and a view
     /// inside `.disabled(true)` hears nothing.

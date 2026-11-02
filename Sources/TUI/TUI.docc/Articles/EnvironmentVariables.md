@@ -109,6 +109,7 @@ Don't write a variable to state a setting. Many are read once, and `setenv` isn'
 | `TUI_HYPERLINKS` | `0` or `1` | Whether links are sent as links the terminal can follow (OSC 8), off or on, whatever the terminal. |
 | `TUI_OSC52` | `0` or `1` | Whether a copy goes through the terminal to your clipboard (OSC 52), off or on, whatever the terminal. |
 | `TUI_OSC5522` | `0` or `1` | Whether a copy or a paste carries more than text through the terminal (OSC 5522), off or on, whatever the terminal says. |
+| `TUI_PIXEL_MOUSE` | `0` | Never asks the terminal to report the mouse in pixels (`?1016`), so that every report is a whole cell, the way it is on a terminal without the mode. Worth trying if clicks land in the wrong place while an app shows a drag or a continuous hover. |
 | `TUI_NOTIFICATIONS` | `0` or `1` | Whether notifications go to the terminal, off or on, whatever the terminal. With `0`, each one is only a bell. |
 | `TUI_PROGRESS` | `0` or `1` | Whether the terminal is told about progress, to show in its own window or tab, off or on, whatever the terminal. |
 | `TUI_POINTER_SHAPES` | `0`, `1` or `apps` | Whether the pointer changes shape over the program, off or on, whatever the terminal. `apps` is on, but only for the shapes the program itself asks for, not those of its controls, such as the I-beam over a text field. |
@@ -214,6 +215,7 @@ Two of the variables above are worth knowing for tests too. `TUI_CONFIG_DIR` kee
 | `TUI_HYPERLINKS` | Wins | `TerminalClient.hyperlinkSupport`. A `Link` in a view doesn't count as choosing: under `0` it's still there, without the terminal's link. | Each use |
 | `TUI_OSC52` | Wins | `TerminalClient.clipboardWriteSupport`. | Each use |
 | `TUI_OSC5522` | Wins | `TerminalClient.mimeClipboardSupport`. | Each use |
+| `TUI_PIXEL_MOUSE` | No setting | The variable is the only way. | Once |
 | `TUI_NOTIFICATIONS` | No setting | The variable is the only way. | Each use |
 | `TUI_PROGRESS` | No setting | The variable is the only way. | Each use |
 | `TUI_POINTER_SHAPES` | Wins | `TerminalClient.pointerShapeSupport`, before the first frame. `.pointerStyle(_:)` in a view doesn't count as choosing: under `0` the pointer stays as it is. Nothing in code undoes `apps`. | Each use |

@@ -272,8 +272,9 @@ DragGesture(minimumDistance: 0.5)        // CGFloat
 
 **The pointer** reports SwiftUI's own types, **measured in cells**: 2.5 is half way
 across the third column. Most terminals report whole cells, and there the numbers
-are whole. A terminal that can report more does (§ "SGR-Pixels mouse" of the
-compatibility survey). What needs a cell asks for one: `CellPoint(location)` is the
+are whole. On a terminal that can report pixels (Ghostty and iTerm2, measured; see
+"SGR-Pixels mouse" in the compatibility survey) they are fractional while a view on
+screen reads them. What needs a cell asks for one: `CellPoint(location)` is the
 cell a location falls in, and `CellSize(translation)` the nearest whole cells.
 `SpatialTapGesture.Value`, `DragSession`, `DropSession` and `DropInfo` have the same
 types. So does a `GestureState` holding a translation, and a ported drag compiles

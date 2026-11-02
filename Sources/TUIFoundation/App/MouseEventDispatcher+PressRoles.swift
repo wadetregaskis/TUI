@@ -453,7 +453,7 @@ final class HeldPress {
             MouseEvent(
                 button: event.button, phase: event.phase, x: event.x - claimer.originX,
                 y: event.y - claimer.originY, shift: event.shift, ctrl: event.ctrl, meta: event.meta,
-                clickCount: event.clickCount)
+                clickCount: event.clickCount, subcellX: event.subcellX, subcellY: event.subcellY)
         }
         guard claimer.handler(local(press)) else { return }
         _ = claimer.handler(local(release))

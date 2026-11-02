@@ -289,14 +289,18 @@ nonisolated struct GestureAttachment<Content: View, G: Gesture>: View {
 
         // A gesture reporting locations in a named space asks to be found in
         // it; claimed before the content renders, as every marker slot is.
+        let spaces = TUIFoundation.pointerSpaces(of: gesture)
         let pointerSpaces = PointerSpaceOrigin(
-            named: namedPointerSpaces(of: gesture), global: false, context: context)
+            named: namedPointerSpaces(of: spaces), global: false, context: context)
         var buffer = TUIView.renderToBuffer(content, context: context)
         pointerSpaces?.stamp(into: &buffer, context: context)
         participant.pointerSpaces = pointerSpaces
 
         let isLive = mask.contains(.gesture)
         if isLive { participant.update(gesture) }
+        // A gesture that reports a location reports it within the cell, where the
+        // terminal can say. One that reports none has no use for that.
+        if isLive, !spaces.isEmpty { dispatcher.requestFeature(.subCellLocations, in: context) }
         // Nothing to arbitrate: the gesture is off and its subviews' are not.
         guard isLive || !mask.contains(.subviews) else { return buffer }
 

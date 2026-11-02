@@ -742,6 +742,10 @@ extension Terminal {
                 windowSizeReportPending = true
                 continue
             }
+            if pixelMouse.isListening, let write = pixelMouse.hear(bytes) {
+                if !write.isEmpty { writeImmediate(write) }
+                continue
+            }
             if let paste = completedMIMEPaste {
                 completedMIMEPaste = nil
                 return paste
@@ -1051,7 +1055,7 @@ extension Terminal {
         // SGR mouse report: ESC [ < … M / m
         if bytes.count >= 9, bytes[0] == 0x1B, bytes[1] == 0x5B, bytes[2] == 0x3C {
             if let mouse = MouseEvent.parseSGR(bytes) {
-                return .mouse(mouse)
+                return pixelMouse.readsPixels ? convertPixelReport(mouse) : .mouse(mouse)
             }
         }
 

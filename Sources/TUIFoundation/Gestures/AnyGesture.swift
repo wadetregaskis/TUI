@@ -68,7 +68,7 @@ private final class ConcreteErasedGesture<G: Gesture>: ErasedGesture<G.Value> {
         G._makeGesture(gesture: gesture, inputs: inputs)
     }
 
-    @MainActor override var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: gesture) }
+    @MainActor override var pointerSpaces: [CoordinateSpace] { TUIFoundation.pointerSpaces(of: gesture) }
 }
 
 // MARK: - Optional

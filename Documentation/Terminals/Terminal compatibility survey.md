@@ -2689,6 +2689,81 @@ Compensated via `String.withGnomeTerminalCursorCompensation()` which uses `withC
 
 ---
 
+## SGR-Pixels mouse (`?1016`) — measured 2026-11-01
+
+Mode 1016 reports the mouse in pixels rather than cells: the SGR shape,
+`CSI < b ; x ; y M`, with `x` and `y` in pixels. The numbers below come from
+`Tools/TerminalProbes/pixel_mouse_probe.py` with `pixel_mouse_driver.swift`,
+which clicks the same 24 physical points once in cell mode and once in pixel
+mode, so each pixel report can be checked against the cell the terminal itself
+named for that click (`data/*-pixel-mouse.json`). One Retina Mac, default config
+for Ghostty, default profile for iTerm2.
+
+| Host | DECRQM `?1016` | `?1016h` works | Unit | Counts from | `CSI 16 t` | `CSI 14 t` | `TIOCGWINSZ` per cell | Wrong cells, `16 t` |
+|---|---|---|---|---|---|---|---|---|
+| Ghostty 1.4.0 | `2`, then `1` once set | yes | device pixels (2 per point) | 0, from the text area | 16 × 34 | 896 × 646 = grid × `16 t` | 904 × 664 over 56 × 19, **padding included** | **0 of 24** |
+| iTerm2 3.7.6 | **`4` always, set or not** | **yes, despite that** | points | 1, from the text area | 7 × 17 | 570 × 458: **the window**, margins and title bar in it | 14 × 34, device pixels | **0 of 24** |
+| Apple Terminal 455.1 | no reply (prints `$p`-shape queries, see above) | no: reports stay cells | — | — | no reply | 570 × 343 | 7 × 14 | — |
+| Warp v0.2026.10.21 | no reply | not exercised: the probe opened as a tab of the owner's window, so nothing was clicked | — | — | no reply | 992 × 752 | 8 × 16 | — |
+| xterm.js 6.0.0 | `2`, then `1` once set (**source**: `InputHandler.requestMode`) | yes (source) | CSS pixels, floored | 0, from the screen element | off unless `windowOptions.getCellSizePixels`; rounded | off unless `windowOptions.getWinSizePixels` | none in a browser | not measured |
+
+Not measured: kitty cannot open a window on this VM (no OpenGL 3.3); foot,
+WezTerm and xterm are not installed. Their sources say they have the mode (session
+notes `SCROLLX/notes.md`, 2026-10-12). tmux would answer DECRQM for itself, and is
+never asked.
+
+**What else the probe found, on both Ghostty and iTerm2:**
+
+- **`?1006` and `?1016` are one setting, and the last one set wins.** `?1006h`
+  after `?1016h` brought back cell reports. TUI re-sends `?1006h` with every
+  change of tracking mode, so it re-sends `?1016h` after it.
+- **`?1016l` leaves the legacy encoding behind**, not SGR: six legacy reports
+  from three clicks, whatever `?1006` had been. Going back to cells takes
+  `?1016l` and then `?1006h`.
+- **A move costs far more.** Sweeping the pointer through 64 one-point steps:
+  8 reports on Ghostty and 12 on iTerm2 in cells, 64 and 64 in pixels. Both report
+  every event in pixel mode, cell crossed or not.
+
+**What TUI does with it** (`PixelMouseNegotiation`):
+
+- **Only while something wants it.** A gesture that reports a location, an
+  `onContinuousHover`, or `MouseSupport.subCellLocations`. An app with none is
+  never asked about the mode and keeps cell reports.
+- **Asked of hosts known to answer DECRQM:** Ghostty, iTerm2, xterm.js, and
+  kitty, WezTerm, foot and xterm where the environment names them. Never Apple
+  Terminal, which prints the question, nor tmux. `TUI_PIXEL_MOUSE=0` turns it off.
+- **iTerm2's "permanently reset" is not believed.** Its `?1006` does move, from `1`
+  to `2`, when `?1016h` takes, so that is what is asked after setting it. Should a
+  version not move it, TUI stays on cells.
+- **The reply to the mode's query is the fence.** Reports before it are read in the
+  old unit and those after it in the new one, since nothing in a report says which.
+- **The cell size is `CSI 16 t` on the measured hosts**, never `TIOCGWINSZ`. On a
+  host nobody has measured, `16 t` must agree with `14 t` over the grid to within a
+  cell, or the mode is not used. xterm.js, whose cell is fractional and whose
+  `16 t` rounds it, uses `14 t` over the grid, checked against `16 t`.
+- **Asked again whenever the grid or the `TIOCGWINSZ` reading changes**, which is
+  what a font change or a move to a display of another scale looks like.
+- **A press beyond the grid proves the size wrong:** it is dropped and the mode
+  given back for the session. A press can only land in the window; a drag can
+  leave it, and is held to the last cell as a cell report is. What this does not
+  catch is a unit smaller than the cell size claims, where every report still lands
+  on the grid: that is what the measurements and the agreement rule are for.
+- **Every hit test still reads a whole cell.** Only a gesture's or a hover's
+  location reads the fraction, and a same-cell drag report reaches only gestures,
+  so a control hears what it heard before.
+
+**End to end, the same day:** a small app with a full-window `onTapGesture` in the
+global space, run in each terminal and clicked at 16 scattered points. On Ghostty
+1.4.0 and iTerm2 3.7.6 every tap landed in the right cell, and its fraction matched
+what the fit above predicts for that point exactly. Other fonts, a window on a
+display of another scale and a font change mid-session were not tried.
+
+**The xterm.js demo stays on cells.** Its answer to `?1016` is yes, but
+`Tools/Web/site/index.html` does not turn on `windowOptions`, so `14 t` and `16 t`
+go unanswered, there is no cell size, and TUI never sets the mode. Setting
+`getWinSizePixels` and `getCellSizePixels` there should make it work; that is read
+from the source, and has not been tried in a browser.
+
 ## A cell's size in points — what the hosts report, and in which unit
 
 An `Image` that is not resizable takes its natural size, as SwiftUI's does
@@ -2705,6 +2780,13 @@ all on one Retina Mac); this section is what they say about units:
 | Warp v0.2026.08.26 | 8 × 16 | (aspect 2.000) | points | 8 × 16 |
 | iTerm2 3.6.11 | 14 × 34 | 7.125 × 18.32 | ioctl retina-scaled; `14 t` in points | 7.125 × 18.32 |
 | Ghostty 1.3.1 | 16 × 34 | (aspect 2.125) | device pixels | 8 × 17 at scale 2 |
+
+**A correction, measured 2026-11-01** ("SGR-Pixels mouse" above): iTerm2 3.7.6's
+`CSI 14 t` is its window, margins and title bar in it, not its text area: 570 × 458
+for 80 × 25 cells of 7 × 17 points, which `CSI 16 t` and the mouse reports both
+give. So the 7.125 × 18.32 above is too big, by 2% across and 8% down, and an
+image's natural size with it. `CellPointsCalibration` still uses it; nothing has
+been changed here.
 
 **What TUI does with it** (`CellPointsCalibration`, chosen once at startup,
 applied to every frame's `TIOCGWINSZ` reading, so a font change moves the
@@ -6492,7 +6574,7 @@ No terminal sends a scroll delta, a phase or a velocity (session notes
 `ScrollPhaseChangeContext.velocity` is therefore (0, 0) at the start and end of
 scrolling (B27). Mode 1016 (SGR-Pixels) reports pixel positions, not scroll
 amounts, and shares one setting with 1006 (the last mode set wins); see
-[Future options](<../Future options.md#sgr-pixels-mouse-reports-mode-1016>).
+"SGR-Pixels mouse (`?1016`) — measured 2026-11-01" in this document.
 
 ## Shift-clicks reaching the app (XTSHIFTESCAPE)
 

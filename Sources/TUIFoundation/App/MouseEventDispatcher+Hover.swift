@@ -419,7 +419,8 @@ extension MouseEventDispatcher {
         // each lane back with its pending exit dropped.
         lastMotionPosition = (event.x, event.y)
         var fired = false
-        hover = advancing(hover, to: resolved.target, by: event, fired: &fired)
+        // Only what asked for the pointer's place hears a move within a cell.
+        hover = advancing(hover, to: resolved.target, by: event, offeringMove: movedCell, fired: &fired)
         observedHovers = advancingObservers(observedHovers, to: resolved.observers, by: event, fired: &fired)
         syncHoveredHelp()
         // After the lanes, whose `.entered` takes back a tooltip held through
@@ -440,11 +441,11 @@ extension MouseEventDispatcher {
     ) -> [HoverSlot] {
         let currentIDs = Set(current.map(\.handlerID))
         for slot in slots.reversed() where slot.handlerID.map({ !currentIDs.contains($0) }) ?? false {
-            _ = advancing(slot, to: nil, by: event, fired: &fired)
+            _ = advancing(slot, to: nil, by: event, offeringMove: true, fired: &fired)
         }
         return current.map { region in
             let slot = slots.first { $0.handlerID == region.handlerID } ?? HoverSlot()
-            return advancing(slot, to: region, by: event, fired: &fired)
+            return advancing(slot, to: region, by: event, offeringMove: true, fired: &fired)
         }
     }
 
@@ -452,7 +453,7 @@ extension MouseEventDispatcher {
     /// region its lane resolves under the pointer, with the transitions that
     /// takes delivered on the way. Sets `fired` when the move wants a render.
     private func advancing(
-        _ slot: HoverSlot, to current: HitTestRegion?, by event: MouseEvent, fired: inout Bool
+        _ slot: HoverSlot, to current: HitTestRegion?, by event: MouseEvent, offeringMove: Bool, fired: inout Bool
     ) -> HoverSlot {
         let currentID = current?.handlerID
         let next = HoverSlot(handlerID: currentID, region: current, pendingExit: nil)
@@ -462,11 +463,12 @@ extension MouseEventDispatcher {
         // under the pointer is what lifts — so the move is offered to the
         // handler, which answers whether it changed anything.
         if currentID == slot.handlerID {
-            if let currentID, let handler = handlers[currentID], let current {
+            if offeringMove, let currentID, let handler = handlers[currentID], let current {
                 let moved = MouseEvent(
                     button: .none, phase: .moved,
                     x: event.x - current.localOriginX, y: event.y - current.localOriginY,
-                    shift: event.shift, ctrl: event.ctrl, meta: event.meta
+                    shift: event.shift, ctrl: event.ctrl, meta: event.meta,
+                    subcellX: event.subcellX, subcellY: event.subcellY
                 )
                 if handler(moved) { fired = true }
             }
@@ -497,7 +499,8 @@ extension MouseEventDispatcher {
             let enter = MouseEvent(
                 button: .none, phase: .entered,
                 x: event.x - current.localOriginX, y: event.y - current.localOriginY,
-                shift: event.shift, ctrl: event.ctrl, meta: event.meta
+                shift: event.shift, ctrl: event.ctrl, meta: event.meta,
+                subcellX: event.subcellX, subcellY: event.subcellY
             )
             _ = newHandler(enter)
             fired = true

@@ -120,7 +120,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   frame was drawn ([§1](<SwiftUI compatibility guide.md#1-match>), the Env / prefs row).
 - **Why:** U1's reason. Flooring a midpoint before subtracting a half-size
   moves a centred view by a cell in 210 of 861 (extent, size) cases.
-- **Decided:** [§2.2](<SwiftUI compatibility guide.md#22-geometry-is-integer-never-cgpointcgsizecgrect>), [B-D5G-5](<../Historical/Layout and geometry/Where a view is - coordinate spaces, geometry readers and scroll visibility.md#b-d5g-5-cellrect-gains-minx-miny-origin-and-size--and-still-no-midxmidy>). **Recorded.**
+- **Decided:** [§2.2](<SwiftUI compatibility guide.md#22-geometry-is-integer-only-the-pointers-location-is-a-cgpoint>), [B-D5G-5](<../Historical/Layout and geometry/Where a view is - coordinate spaces, geometry readers and scroll visibility.md#b-d5g-5-cellrect-gains-minx-miny-origin-and-size--and-still-no-midxmidy>). **Recorded.**
 
 ### U3. Default spacing and padding are one cell or none
 

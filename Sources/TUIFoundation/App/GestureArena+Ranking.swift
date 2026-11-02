@@ -8,6 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUICore
 
 // MARK: - Role
@@ -163,6 +164,7 @@ extension GestureArena {
             location: CellPoint(x: event.x - region.localOriginX, y: event.y - region.localOriginY),
             globalLocation: CellPoint(x: event.x, y: event.y),
             modifiers: modifiers, timeNanos: time,
-            isInside: region.contains(x: event.x, y: event.y))
+            isInside: region.contains(x: event.x, y: event.y),
+            subcell: CGSize(width: event.subcellX, height: event.subcellY))
     }
 }

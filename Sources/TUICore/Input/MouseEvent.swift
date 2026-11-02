@@ -95,7 +95,9 @@ public enum MousePhase: Sendable, Equatable {
 ///
 /// Positions are expressed in zero-indexed terminal cells with the
 /// origin at the top-left corner of the rendered viewport (`x` increases
-/// to the right, `y` downward).
+/// to the right, `y` downward). The whole cell is what every hit test reads. A
+/// terminal in pixel reporting says as well how far across that cell the pointer
+/// is (``subcellX``), which a handler reads as ``preciseX``.
 public struct MouseEvent: Sendable, Equatable {
     /// The button (or wheel direction) the event refers to.
     public let button: MouseButton
@@ -127,6 +129,20 @@ public struct MouseEvent: Sendable, Equatable {
     /// dispatch. Read it via ``View/onTapGesture(count:perform:)``.
     public let clickCount: Int
 
+    /// How far across the cell the pointer is, from 0 up to but not including 1:
+    /// always 0 on a terminal that reports whole cells. Ask for it with
+    /// `MouseSupport.subCellLocations`.
+    public let subcellX: Double
+
+    /// How far down the cell the pointer is, as ``subcellX`` is across it.
+    public let subcellY: Double
+
+    /// The column and how far across it, in cells.
+    public var preciseX: Double { Double(x) + subcellX }
+
+    /// The row and how far down it, in cells.
+    public var preciseY: Double { Double(y) + subcellY }
+
     /// Creates a mouse event.
     public init(
         button: MouseButton,
@@ -136,7 +152,9 @@ public struct MouseEvent: Sendable, Equatable {
         shift: Bool = false,
         ctrl: Bool = false,
         meta: Bool = false,
-        clickCount: Int = 1
+        clickCount: Int = 1,
+        subcellX: Double = 0,
+        subcellY: Double = 0
     ) {
         self.button = button
         self.phase = phase
@@ -146,13 +164,23 @@ public struct MouseEvent: Sendable, Equatable {
         self.ctrl = ctrl
         self.meta = meta
         self.clickCount = clickCount
+        self.subcellX = subcellX
+        self.subcellY = subcellY
+    }
+
+    /// Returns a copy at another cell and place within it: what localising to a
+    /// region, or working out the cell from a pixel report, makes of an event.
+    public func movedTo(x: Int, y: Int, subcellX: Double, subcellY: Double) -> Self {
+        Self(
+            button: button, phase: phase, x: x, y: y, shift: shift, ctrl: ctrl, meta: meta,
+            clickCount: clickCount, subcellX: subcellX, subcellY: subcellY)
     }
 
     /// Returns a copy of this event with its ``clickCount`` replaced.
     public func withClickCount(_ count: Int) -> Self {
         Self(
             button: button, phase: phase, x: x, y: y,
-            shift: shift, ctrl: ctrl, meta: meta, clickCount: count)
+            shift: shift, ctrl: ctrl, meta: meta, clickCount: count, subcellX: subcellX, subcellY: subcellY)
     }
 
     /// Returns a copy with the ``clickCount`` and modifier flags replaced.
@@ -167,7 +195,7 @@ public struct MouseEvent: Sendable, Equatable {
     public func withClick(count: Int, shift: Bool, ctrl: Bool, meta: Bool) -> Self {
         Self(
             button: button, phase: phase, x: x, y: y,
-            shift: shift, ctrl: ctrl, meta: meta, clickCount: count)
+            shift: shift, ctrl: ctrl, meta: meta, clickCount: count, subcellX: subcellX, subcellY: subcellY)
     }
 }
 
@@ -188,7 +216,9 @@ extension MouseEvent {
     /// the motion bit (`+32`), and the wheel-event bit (`+64`).
     ///
     /// Positions in the wire format are 1-indexed; the returned
-    /// `MouseEvent` uses 0-indexed coordinates.
+    /// `MouseEvent` uses 0-indexed coordinates. A position may be negative in the
+    /// pixel form (`?1016`), for a drag that left the window to the left or the
+    /// top, and is held at 0 as one that is already 0 is.
     ///
     /// - Parameter bytes: The full escape sequence, *including* the
     ///   leading `ESC [`.
@@ -433,7 +463,11 @@ extension MouseEvent {
     /// Now ``ASCIIDecimal``, which is this function promoted: the key parser
     /// needed the same guarantee and had `Int(_: String)` instead, so the
     /// reasoning that used to live in this comment lives there.
+    ///
+    /// A minus sign is taken only so a pixel report past the window's edge is not
+    /// lost, the release of a drag among them: it comes out as a position of 0.
     private static func parseInt(_ slice: ArraySlice<UInt8>) -> Int? {
-        ASCIIDecimal.value(of: slice)
+        if slice.first == 0x2D /* - */ { return ASCIIDecimal.value(of: slice.dropFirst()).map { _ in 0 } }
+        return ASCIIDecimal.value(of: slice)
     }
 }

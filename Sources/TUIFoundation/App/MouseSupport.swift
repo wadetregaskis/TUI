@@ -95,6 +95,18 @@ public struct MouseSupport: Sendable, Equatable {
     /// need it.
     public var motion: Bool
 
+    /// Whether to report the pointer's place within a cell, on a terminal that
+    /// can say (`MouseEvent/subcellX`).
+    ///
+    /// A gesture that reports a location and `onContinuousHover` ask for this
+    /// themselves while they are on screen; state it only for an
+    /// ``View/onMouseEvent(_:)`` handler that reads `MouseEvent/preciseX`. A
+    /// terminal that cannot say goes on reporting whole cells. Where one can, the
+    /// whole cell is worked out from the pixels it reports, and a pointer moved
+    /// across one cell sends a report per step of the mouse, which is why this is
+    /// not always on.
+    public var subCellLocations: Bool
+
     /// Creates a mouse-support configuration.
     ///
     /// - Parameters:
@@ -102,16 +114,20 @@ public struct MouseSupport: Sendable, Equatable {
     ///   - scrolling: Report scroll-wheel events.
     ///   - drag: Report drag motion while a button is held.
     ///   - motion: Report cursor motion regardless of button state.
+    ///   - subCellLocations: Report the pointer's place within a cell, where the
+    ///     terminal can.
     public init(
         clicks: Bool = false,
         scrolling: Bool = false,
         drag: Bool = false,
-        motion: Bool = false
+        motion: Bool = false,
+        subCellLocations: Bool = false
     ) {
         self.clicks = clicks
         self.scrolling = scrolling
         self.drag = drag
         self.motion = motion
+        self.subCellLocations = subCellLocations
     }
 
     /// No mouse capture — terminal native behaviour is fully preserved.
@@ -151,7 +167,8 @@ extension MouseSupport {
             clicks: clicks || other.clicks,
             scrolling: scrolling || other.scrolling,
             drag: drag || other.drag,
-            motion: motion || other.motion
+            motion: motion || other.motion,
+            subCellLocations: subCellLocations || other.subCellLocations
         )
     }
 }

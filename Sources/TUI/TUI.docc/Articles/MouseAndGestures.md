@@ -75,6 +75,15 @@ start. A location is a `CGPoint` and a translation or a velocity a `CGSize`, as
 SwiftUI's are, measured in cells: `CellPoint(location)` is the cell a location falls
 in, and `CellSize(translation)` the nearest whole cells.
 
+Most terminals report which cell the pointer is in, and these numbers are whole
+there. While a view on screen reads a location, TUI asks the terminal whether it can
+report pixels instead (xterm's SGR-Pixels mode), and where it can, a location is
+fractional: 2.5 is half way across the third column. That is measured on Ghostty and
+iTerm2. Nothing else changes: a click still hits the whole cell it is in, and every
+terminal without the mode goes on as before. An ``View/onMouseEvent(_:)`` handler can
+read the same through `MouseEvent.preciseX`, by asking with
+``MouseSupport/subCellLocations``. `TUI_PIXEL_MOUSE=0` turns it off.
+
 A ``GestureState`` holds what a gesture is doing while it runs, and goes back
 to its initial value when the gesture is over:
 

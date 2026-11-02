@@ -369,7 +369,7 @@ extension TerminalClient {
     /// `TERM` is the variable that crosses ssh (it travels in the pty request),
     /// which is where OSC 52 matters most; kitty and foot set one that names
     /// them. The others are set only on the machine the terminal runs on.
-    static func namesClipboardWritingTerminal(_ environment: [String: String]) -> Bool {
+    package static func namesClipboardWritingTerminal(_ environment: [String: String]) -> Bool {
         let term = environment["TERM"] ?? ""
         if term == "xterm-kitty" || term == "wezterm" || term == "foot" || term.hasPrefix("foot-") {
             return true

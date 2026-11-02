@@ -70,6 +70,9 @@ struct GesturePointer {
     /// Whether the pointer is over the view.
     var isInside: Bool
 
+    /// How far across its cell the pointer is, on a terminal that reports it.
+    var subcell = CGSize()
+
     /// Whether this press is already over: the press ``asDown`` makes of a
     /// release. A long press reads it as not pressing.
     var isOver = false
@@ -115,7 +118,8 @@ struct GesturePointer {
     /// to the app. A recognizer's own decisions go by whole cells
     /// (``location(in:)``).
     func preciseLocation(in space: CoordinateSpace) -> CGPoint {
-        CGPoint(location(in: space))
+        let cell = location(in: space)
+        return CGPoint(x: Double(cell.x) + subcell.width, y: Double(cell.y) + subcell.height)
     }
 }
 

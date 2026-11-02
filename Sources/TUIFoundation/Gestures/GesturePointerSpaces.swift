@@ -29,18 +29,18 @@ protocol PointerSpaceReporting {
     var pointerSpaces: [CoordinateSpace] { get }
 }
 
-/// The named spaces `gesture` reports locations in — what its attachment must
-/// be found in. A gesture of the app's own reports what its `body` does.
+/// The spaces `gesture` reports locations in, none if it reports none: a gesture
+/// of the app's own reports what its `body` does.
 @MainActor
-func namedPointerSpaces<G: Gesture>(of gesture: G) -> [CoordinateSpace] {
-    let spaces: [CoordinateSpace]
-    if let reporting = gesture as? any PointerSpaceReporting {
-        spaces = reporting.pointerSpaces
-    } else if G.Body.self == Never.self {
-        return []
-    } else {
-        spaces = namedPointerSpaces(of: gesture.body)
-    }
+func pointerSpaces<G: Gesture>(of gesture: G) -> [CoordinateSpace] {
+    if let reporting = gesture as? any PointerSpaceReporting { return reporting.pointerSpaces }
+    return G.Body.self == Never.self ? [] : pointerSpaces(of: gesture.body)
+}
+
+/// The named spaces `gesture` reports locations in — what its attachment must
+/// be found in.
+@MainActor
+func namedPointerSpaces(of spaces: [CoordinateSpace]) -> [CoordinateSpace] {
     var named: [CoordinateSpace] = []
     for space in spaces {
         guard case .named = space, !named.contains(space) else { continue }
@@ -58,35 +58,35 @@ func namedPointerSpaces<G: Gesture>(of gesture: G) -> [CoordinateSpace] {
 }
 
 @MainActor extension SimultaneousGesture: PointerSpaceReporting {
-    var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: first) + namedPointerSpaces(of: second) }
+    var pointerSpaces: [CoordinateSpace] { TUIFoundation.pointerSpaces(of: first) + TUIFoundation.pointerSpaces(of: second) }
 }
 
 @MainActor extension SequenceGesture: PointerSpaceReporting {
-    var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: first) + namedPointerSpaces(of: second) }
+    var pointerSpaces: [CoordinateSpace] { TUIFoundation.pointerSpaces(of: first) + TUIFoundation.pointerSpaces(of: second) }
 }
 
 @MainActor extension ExclusiveGesture: PointerSpaceReporting {
-    var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: first) + namedPointerSpaces(of: second) }
+    var pointerSpaces: [CoordinateSpace] { TUIFoundation.pointerSpaces(of: first) + TUIFoundation.pointerSpaces(of: second) }
 }
 
 @MainActor extension _EndedGesture: PointerSpaceReporting {
-    var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: content) }
+    var pointerSpaces: [CoordinateSpace] { TUIFoundation.pointerSpaces(of: content) }
 }
 
 @MainActor extension _ChangedGesture: PointerSpaceReporting {
-    var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: content) }
+    var pointerSpaces: [CoordinateSpace] { TUIFoundation.pointerSpaces(of: content) }
 }
 
 @MainActor extension _MapGesture: PointerSpaceReporting {
-    var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: content) }
+    var pointerSpaces: [CoordinateSpace] { TUIFoundation.pointerSpaces(of: content) }
 }
 
 @MainActor extension _ModifiersGesture: PointerSpaceReporting {
-    var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: content) }
+    var pointerSpaces: [CoordinateSpace] { TUIFoundation.pointerSpaces(of: content) }
 }
 
 @MainActor extension GestureStateGesture: PointerSpaceReporting {
-    var pointerSpaces: [CoordinateSpace] { namedPointerSpaces(of: base) }
+    var pointerSpaces: [CoordinateSpace] { TUIFoundation.pointerSpaces(of: base) }
 }
 
 @MainActor extension AnyGesture: PointerSpaceReporting {}
@@ -94,7 +94,7 @@ func namedPointerSpaces<G: Gesture>(of gesture: G) -> [CoordinateSpace] {
 extension Optional: PointerSpaceReporting where Wrapped: Gesture {
     var pointerSpaces: [CoordinateSpace] {
         switch self {
-        case .some(let wrapped): namedPointerSpaces(of: wrapped)
+        case .some(let wrapped): TUIFoundation.pointerSpaces(of: wrapped)
         case .none: []
         }
     }
@@ -187,7 +187,8 @@ final class PointerSpaceOrigin {
 /// no owner found it in) — or left where it is when nothing says, a handler
 /// with no region to measure from.
 func pointerLocation(of event: MouseEvent, in space: CoordinateSpace, origin: PointerSpaceOrigin?) -> CGPoint {
-    CGPoint(pointerCell(of: event, in: space, origin: origin))
+    let cell = pointerCell(of: event, in: space, origin: origin)
+    return CGPoint(x: Double(cell.x) + event.subcellX, y: Double(cell.y) + event.subcellY)
 }
 
 /// The cell of ``pointerLocation(of:in:origin:)``.

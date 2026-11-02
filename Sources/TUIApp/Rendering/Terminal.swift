@@ -63,6 +63,9 @@ final class Terminal: HostStateKeeping {
     /// frame at no cost.
     private var appliedMouseMode: MouseTrackingMode = .none
 
+    /// Where the terminal's reports in pixels have got to: ``PixelMouseNegotiation``.
+    var pixelMouse = PixelMouseNegotiation()
+
     /// Whether TUI asks for Shift-modified mouse events while it reports
     /// the mouse (XTSHIFTESCAPE, ``shiftEscapeOn``): not where
     /// `TUI_SHIFT_CLICKS=0` is set, the user's way back to the terminal's
@@ -874,6 +877,7 @@ extension Terminal {
         writeImmediate(inputModesOwed)
         hostState.noteResets()
         appliedMouseMode = .none
+        pixelMouse.noteModesReset()
 
         // Put grapheme clustering back only if we turned it on: the mode
         // outlives the process, so leaving it changed would hand the next
@@ -962,7 +966,7 @@ extension Terminal {
     /// for: see ``inputModesOwed``.
     static let inputModesOff =
         "\u{1B}[>1m"
-        + "\u{1B}[?1006l\u{1B}[?1003l\u{1B}[?1002l\u{1B}[?1000l"
+        + "\u{1B}[?1016l\u{1B}[?1006l\u{1B}[?1003l\u{1B}[?1002l\u{1B}[?1000l"
         + "\u{1B}[?1004l"
         + "\u{1B}[?2031l"
         + "\u{1B}[?5522l"
@@ -1149,6 +1153,7 @@ extension Terminal {
     /// every frame.
     func applyMouseSupport(_ support: MouseSupport) {
         let target = trackingMode(for: support)
+        defer { updatePixelMouse(wanted: support.subCellLocations && target != .none, tracking: target != .none) }
         guard target != appliedMouseMode else { return }
 
         // Turn off the previous mode (if any) before turning on the
@@ -1162,6 +1167,8 @@ extension Terminal {
             writeImmediate("\u{1B}[?\(target.escapeNumber)h")
             // SGR coords are paired with whichever tracking mode is on.
             writeImmediate("\u{1B}[?1006h")
+            // One setting with `?1006`, and the last one set wins.
+            if pixelMouse.holdsPixels { writeImmediate("\u{1B}[?1016h") }
             // Shift-clicks to the app while it reports the mouse, asked once
             // as reporting comes on (``shiftEscapeOn``).
             if appliedMouseMode == .none, capturesShiftClicks { writeImmediate(Self.shiftEscapeOn) }

@@ -173,6 +173,12 @@ extension TUIEnvironmentVariables {
             code: .overrides("`TerminalClient.mimeClipboardSupport`."),
             reading: .eachUse),
         TUIEnvironmentVariable(
+            "TUI_PIXEL_MOUSE", .endUser, .terminal,
+            values: "`0`",
+            effect: "Never asks the terminal to report the mouse in pixels (`?1016`), so that every report is a whole cell, the way it is on a terminal without the mode. Worth trying if clicks land in the wrong place while an app shows a drag or a continuous hover.",
+            code: .none,
+            reading: .once),
+        TUIEnvironmentVariable(
             "TUI_NOTIFICATIONS", .endUser, .terminal,
             values: "`0` or `1`",
             effect: "Whether notifications go to the terminal, off or on, whatever the terminal. With `0`, each one is only a bell.",
