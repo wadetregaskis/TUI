@@ -91,7 +91,7 @@ struct FrostBackdropTests {
             #expect(pictureCells(row.line).allSatisfy { $0 == nil }, "no cell draws the backdrop itself")
             #expect(row.runs.map(\.column) == [0] && row.runs.map(\.columns) == [7], "every cell marked, glyph or none")
         }
-        let blocks = PictureUnderTextLayer.blocks(of: rows.map(\.runs))
+        let blocks = PicturePlacementLayer.blocks(of: rows.map(\.runs))
         let block = try #require(blocks.values.first)
         #expect(blocks.count == 1 && block.row == 0 && block.rows == 2, "one placement for the glass")
     }

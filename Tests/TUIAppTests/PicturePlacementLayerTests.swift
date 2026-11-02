@@ -1,5 +1,5 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
-//  PictureUnderTextLayerTests.swift
+//  PicturePlacementLayerTests.swift
 //
 //  The pictures laid under glyphs that stand on a frosted picture, between the
 //  diff writer that finds their runs in a frame and the terminal that holds
@@ -57,7 +57,7 @@ struct PictureUnderTextHostTests {
 
 @MainActor
 @Suite("Pictures under text: the layer")
-struct PictureUnderTextLayerTests {
+struct PicturePlacementLayerTests {
 
     private func run(_ column: Int, _ columns: Int, image: UInt32 = 42, x: Int = 0) -> PictureUnderTextMarker.Run {
         PictureUnderTextMarker.Run(column: column, columns: columns, image: image, x: x, y: 4, width: columns * 2, height: 4)
@@ -66,7 +66,7 @@ struct PictureUnderTextLayerTests {
     /// One frame through the layer: what it wrote in the hold, and where it
     /// moved the cursor.
     private func frame(
-        _ layer: PictureUnderTextLayer, _ rows: [[PictureUnderTextMarker.Run]]
+        _ layer: PicturePlacementLayer, _ rows: [[PictureUnderTextMarker.Run]]
     ) -> (hold: String, moves: [(row: Int, column: Int)]) {
         let terminal = MockTerminal()
         layer.prepare(rows: rows)
@@ -76,24 +76,24 @@ struct PictureUnderTextLayerTests {
 
     @Test("A run is one placement at its first cell, cropped to its pixels and scaled to its cells, under the text")
     func firstFrame() {
-        let layer = PictureUnderTextLayer()
+        let layer = PicturePlacementLayer(z: PicturePlacementLayer.underText)
         let sent = frame(layer, [[], [run(3, 5, x: 6)]])
         #expect(sent.moves.map(\.row) == [2])
         #expect(sent.moves.map(\.column) == [4])
-        let placement = PictureUnderTextLayer.placementID(row: 1, index: 0)
+        let placement = PicturePlacementLayer.placementID(row: 1, index: 0)
         #expect(sent.hold.contains("a=p,i=42,p=\(placement),x=6,y=4,w=10,h=4,c=5,r=1,C=1,z=-1,q=2"))
     }
 
     @Test("Runs on rows below one another that carry on the image's pixels are one placement, as tall as they are")
     func blocks() {
-        let layer = PictureUnderTextLayer()
+        let layer = PicturePlacementLayer(z: PicturePlacementLayer.underText)
         let column = (0..<3).map { [PictureUnderTextMarker.Run(column: 2, columns: 5, image: 42, x: 0, y: $0 * 4, width: 10, height: 4)] }
         let sent = frame(layer, [[]] + column)
         #expect(sent.moves.map(\.row) == [2])
-        let placement = PictureUnderTextLayer.placementID(row: 1, index: 0)
+        let placement = PicturePlacementLayer.placementID(row: 1, index: 0)
         #expect(sent.hold.contains("a=p,i=42,p=\(placement),x=0,y=0,w=10,h=12,c=5,r=3,C=1,z=-1,q=2"))
         // A run that does not carry on — other pixels across — starts a block of its own.
-        let broken = PictureUnderTextLayer.blocks(of: [
+        let broken = PicturePlacementLayer.blocks(of: [
             [run(0, 4)], [PictureUnderTextMarker.Run(column: 0, columns: 4, image: 42, x: 2, y: 8, width: 8, height: 4)],
         ])
         #expect(broken.count == 2)
@@ -101,36 +101,36 @@ struct PictureUnderTextLayerTests {
 
     @Test("An unchanged frame sends nothing")
     func idleFrame() {
-        let layer = PictureUnderTextLayer()
+        let layer = PicturePlacementLayer(z: PicturePlacementLayer.underText)
         _ = frame(layer, [[run(0, 4)]])
         #expect(frame(layer, [[run(0, 4)]]).hold.isEmpty)
     }
 
     @Test("A run that moves on its image is placed again under its own id, with no delete")
     func moved() {
-        let layer = PictureUnderTextLayer()
+        let layer = PicturePlacementLayer(z: PicturePlacementLayer.underText)
         _ = frame(layer, [[run(0, 4)]])
         let moved = frame(layer, [[run(2, 4, x: 4)]])
         #expect(!moved.hold.contains("a=d"))
-        #expect(moved.hold.contains("p=\(PictureUnderTextLayer.placementID(row: 0, index: 0)),x=4,"))
+        #expect(moved.hold.contains("p=\(PicturePlacementLayer.placementID(row: 0, index: 0)),x=4,"))
     }
 
     @Test("A run that goes, or turns to another image, deletes the old placement")
     func goneOrSwapped() {
-        let layer = PictureUnderTextLayer()
+        let layer = PicturePlacementLayer(z: PicturePlacementLayer.underText)
         _ = frame(layer, [[run(0, 4)], [run(0, 4)]])
         let swapped = frame(layer, [[run(0, 4, image: 43)], [run(0, 4)]])
-        #expect(swapped.hold.contains("a=d,d=i,i=42,p=\(PictureUnderTextLayer.placementID(row: 0, index: 0))"))
+        #expect(swapped.hold.contains("a=d,d=i,i=42,p=\(PicturePlacementLayer.placementID(row: 0, index: 0))"))
         #expect(swapped.hold.contains("a=p,i=43,"))
         let gone = frame(layer, [])
         #expect(gone.hold.contains("a=d,d=i,i=43,"))
-        #expect(gone.hold.contains("a=d,d=i,i=42,p=\(PictureUnderTextLayer.placementID(row: 1, index: 0))"))
+        #expect(gone.hold.contains("a=d,d=i,i=42,p=\(PicturePlacementLayer.placementID(row: 1, index: 0))"))
         #expect(layer.isIdle)
     }
 
     @Test("After an invalidation every placement is deleted and every run placed again")
     func invalidated() {
-        let layer = PictureUnderTextLayer()
+        let layer = PicturePlacementLayer(z: PicturePlacementLayer.underText)
         _ = frame(layer, [[run(0, 4)]])
         layer.invalidate()
         let again = frame(layer, [[run(0, 4)]])
@@ -140,7 +140,7 @@ struct PictureUnderTextLayerTests {
 
     @Test("The farewell deletes every placement and leaves the layer idle")
     func farewell() {
-        let layer = PictureUnderTextLayer()
+        let layer = PicturePlacementLayer(z: PicturePlacementLayer.underText)
         _ = frame(layer, [[run(0, 4)], [], [run(1, 2, image: 9)]])
         let farewell = layer.farewell()
         #expect(farewell.contains("i=42,") && farewell.contains("i=9,"))

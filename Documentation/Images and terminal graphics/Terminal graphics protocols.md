@@ -1381,7 +1381,7 @@ frosted picture stands on the terminal's own field and carries a private
 mark, `ESC[7745:…m`, naming the copy and the rectangle of its pixels the
 cell covers (`PictureUnderTextMarker`, sharing `SGRMarks` with the hairline
 mark). The diff writer reads the marked runs back off the finished frame and
-takes the marks out; `PictureUnderTextLayer` places each run — the copy
+takes the marks out; `PicturePlacementLayer` places each run — the copy
 cropped to the run's pixels, scaled to its cells, `z=-1` — and deletes it
 when it goes, sending only what changed. Everywhere else the glyph stands on
 the copy's average colour, as before
@@ -1416,7 +1416,7 @@ glyphs laid, a seam showed around each word, where a placeholder cell met a
 laid one — two drawings of a few pixels a cell, each scaled and sampled on
 its own. The layer gathers runs of rows below one another — the same cells
 across, the same image, the next row of its pixels — into blocks
-(`PictureUnderTextLayer.blocks(of:)`), so the whole glass is one classic
+(`PicturePlacementLayer.blocks(of:)`), so the whole glass is one classic
 placement, scaled as one picture.
 
 **How fine (2026-10-26).** The backdrop has 2 × 4 pixels a cell by default,

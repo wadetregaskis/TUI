@@ -225,7 +225,7 @@ internal final class RenderLoop<A: App> {
     /// The pictures laid under glyphs that stand on a frosted picture
     /// (`RenderLoop+PicturesUnderText.swift`). Idle, and never asked, on a
     /// host that draws none.
-    let picturesUnderText = PictureUnderTextLayer()
+    let picturesUnderText = PicturePlacementLayer(z: PicturePlacementLayer.underText)
 
     /// The push-refreshed emoji-chrome answer (see ``ClientCapabilityRefresher``):
     /// seeded synchronously before the first frame, re-probed asynchronously

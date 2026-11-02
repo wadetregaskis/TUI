@@ -1,17 +1,18 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
-//  PictureUnderTextLayer.swift
+//  PicturePlacementLayer.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import TUIFoundation
 
-/// The pictures laid under glyphs that stand on a frosted picture, kept in
-/// step with the terminal: one Kitty classic placement per block of marked
-/// cells the diff writer found (``PictureUnderTextMarker``), cropped to the
-/// pixels of the picture's copy those cells cover and scaled to fill them, at
-/// `z=-1` — below the glyphs, above the cells' default field (graphics notes
-/// §14.5).
+/// Pictures drawn by Kitty classic placements, kept in step with the terminal:
+/// one placement per block of cells the diff writer found, cropped to the
+/// pixels those cells cover and scaled to fill them.
+///
+/// The first of them are the pictures laid under glyphs that stand on a
+/// frosted picture (``PictureUnderTextMarker``), at `z=-1` — below the glyphs,
+/// above the cells' default field (graphics notes §14.5).
 ///
 /// ## Blocks
 ///
@@ -36,11 +37,18 @@ import TUIFoundation
 /// placements only. A copy the store deletes takes its placements with it,
 /// and the cells that named it name another copy, whose block is placed anew.
 @MainActor
-final class PictureUnderTextLayer {
+final class PicturePlacementLayer {
 
     /// Below the glyphs, above a cell's default field: the spec's `z<0`, and
-    /// Ghostty's (measured, §14.5). Never 0.
-    static let z: Int32 = -1
+    /// Ghostty's (measured, §14.5).
+    static let underText: Int32 = -1
+
+    /// The z-index every placement of this layer is made at. Never 0.
+    let z: Int32
+
+    init(z: Int32) {
+        self.z = z
+    }
 
     /// How many blocks can start on one row: a placement id carries the row
     /// above eight bits and the block below, as a hairline's does.
@@ -160,7 +168,7 @@ final class PictureUnderTextLayer {
             terminal.write(
                 KittyGraphics.classicPlacement(
                     id: run.image, placement: place.placement, crop: (run.x, run.y, run.width, run.height),
-                    columns: run.columns, rows: place.block.rows, z: Self.z))
+                    columns: run.columns, rows: place.block.rows, z: z))
         }
         return true
     }
@@ -191,7 +199,7 @@ final class PictureUnderTextLayer {
     }
 }
 
-extension PictureUnderTextLayer.Block {
+extension PicturePlacementLayer.Block {
     /// Whether `run`, on the row below this block's last, carries it on: the
     /// same cells across, the same image and pixels across, and its pixels
     /// starting where the block's end.

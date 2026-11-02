@@ -213,7 +213,7 @@ final class FrameDiffWriter {
     var hairlineRows: [[HairlineMarker.Run]] { appliedHairlines ? markRows.map(\.hairlines) : [] }
 
     /// The picture runs under each row's text: what the run loop's
-    /// ``PictureUnderTextLayer`` places. Empty when the host draws none.
+    /// ``PicturePlacementLayer`` places. Empty when the host draws none.
     var pictureUnderTextRows: [[PictureUnderTextMarker.Run]] {
         appliedPicturesUnderText ? markRows.map(\.pictures) : []
     }

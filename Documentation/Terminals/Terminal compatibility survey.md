@@ -7320,7 +7320,7 @@ say what they were filled with.
   margins has a screen wrong in the columns it left alone. It cannot be sent on a guess, and the question is the shape Apple
   Terminal prints. By named host, then: iTerm2 and Ghostty.
 - DECCRA helps nobody: three of the four cannot do it as written.
-- A classic placement is a fact the hosts disagree on, so `HairlineLayer` and `PictureUnderTextLayer`, which keep a model of
+- A classic placement is a fact the hosts disagree on, so `HairlineLayer` and `PicturePlacementLayer`, which keep a model of
   what the terminal holds, cannot have a band move behind them. The writer refuses to move anything while a mark is on screen.
 - **Apple Terminal's row store travels with the row**, for the two treated classes tried (VS-16: `ECH 2`, glyph, `CUF 1`; a
   flag: `CUB 1`, `DCH 1`, `CUF 1`). Not the whole table of treatments; a row carrying the quirk is refused there anyway.

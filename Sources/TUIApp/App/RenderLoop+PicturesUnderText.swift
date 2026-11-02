@@ -19,7 +19,7 @@ extension RenderLoop {
     /// layer is handed no runs and takes its placements away.
     ///
     /// - Returns: Whether the layer has placements and deletes to write in the
-    ///   hold (``PictureUnderTextLayer/place(on:startRow:)``).
+    ///   hold (``PicturePlacementLayer/place(on:startRow:)``).
     func preparePicturesUnderText() -> Bool {
         let drawn = KittyGraphics.isPictureUnderTextSupported
         guard drawn || !picturesUnderText.isIdle else { return false }
@@ -29,7 +29,7 @@ extension RenderLoop {
 
     /// What the terminal is owed for the pictures under text before the app
     /// lets go of it — a suspend, a quit: every placement deleted. See
-    /// ``PictureUnderTextLayer/farewell()``.
+    /// ``PicturePlacementLayer/farewell()``.
     func handBackPicturesUnderText() -> String {
         picturesUnderText.farewell()
     }
