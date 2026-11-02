@@ -10,7 +10,7 @@
 import Foundation
 import TUICore
 
-/// The view wrapper created by ``View/offset(x:y:)``.
+/// The view wrapper created by ``View/offset(x:y:)-(Int,Int)``.
 ///
 /// The content is measured at its natural place (layout is unaffected, as in
 /// SwiftUI) but DRAWN `x` columns right and `y` rows down of it, floating
@@ -78,7 +78,7 @@ extension View {
     /// Offsets this view's drawn position by a size — SwiftUI's
     /// `offset(_ offset: CGSize)`, in whole cells.
     ///
-    /// The same modifier as ``offset(x:y:)``, spelled the way SwiftUI spells it
+    /// The same modifier as ``offset(x:y:)-(Int,Int)``, spelled the way SwiftUI spells it
     /// when the displacement is already a value rather than two numbers. A size
     /// used as a displacement is SwiftUI's own idiom, not this framework's
     /// invention; ``CellSize`` is the counterpart of the `CGSize` it takes,
@@ -102,7 +102,7 @@ extension View {
 
     /// Offsets this view's drawn position by SwiftUI's `CGFloat`s, as a drag's
     /// `translation.width` is, to the nearest cell. Disfavoured: a literal
-    /// belongs to ``offset(x:y:)``.
+    /// belongs to ``offset(x:y:)-(Int,Int)``.
     ///
     /// - Parameters:
     ///   - x: Cells to shift right (negative shifts left).

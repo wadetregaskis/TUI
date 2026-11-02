@@ -197,7 +197,7 @@ final class FrameDiffWriter {
     private var appliedPicturesUnderText = false
 
     /// Whether the rows were last built for a host that draws pictures by classic
-    /// placement (``KittyGraphics/drawsPicturesByClassicPlacement``), on the same
+    /// placement (`KittyGraphics.drawsPicturesByClassicPlacement`), on the same
     /// terms as ``appliedHairlines``.
     private var appliedClassicPlacements = false
 

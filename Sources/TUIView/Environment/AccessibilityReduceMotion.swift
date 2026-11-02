@@ -27,7 +27,7 @@ extension EnvironmentValues {
     /// SwiftUI's does.
     ///
     /// TUI also holds still what would move in X and Y: an animated change
-    /// of ``View/offset(x:y:)``, ``View/position(x:y:)``, padding or a fixed
+    /// of ``View/offset(x:y:)-(Int,Int)``, ``View/position(x:y:)``, padding or a fixed
     /// frame — and an offset in a ``View/visualEffect(_:)`` or a
     /// ``View/shadow(color:radius:x:y:)`` — jumps to its end value (a shadow's
     /// radius still grows), and a dragged view's picture neither lifts out of

@@ -507,7 +507,7 @@ package final class TerminalImageStore {
     // MARK: - Classic placements
 
     /// Run `run`'s cells as a rectangle of its image's pixels, for a host that
-    /// draws them by a classic placement (``KittyGraphics/drawsPicturesByClassicPlacement``),
+    /// draws them by a classic placement (`KittyGraphics.drawsPicturesByClassicPlacement`),
     /// or `nil` for an image this store does not hold or a cell outside it.
     ///
     /// Counted across the box its cells count across: its placement's, or for a

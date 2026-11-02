@@ -126,7 +126,7 @@ extension KittyGraphics {
     /// A task-scoped pin, bound by ``withClassicPlacements(_:operation:)``.
     @TaskLocal private static var taskClassicPlacements: Bool?
 
-    /// Runs `operation` with ``drawsPicturesByClassicPlacement`` pinned on this
+    /// Runs `operation` with `drawsPicturesByClassicPlacement` pinned on this
     /// task only: tests run in parallel.
     @discardableResult
     package static func withClassicPlacements<T>(_ drawn: Bool, operation: () throws -> T) rethrows -> T {

@@ -143,7 +143,7 @@ public struct CellSize: Hashable, Sendable {
     /// Creates a size in whole cells.
     ///
     /// Public because a `CellSize` is not only something a ``GeometryProxy``
-    /// hands out: ``View/offset(_:)`` takes one, and a caller comparing against
+    /// hands out: ``View/offset(_:)-(CellSize)`` takes one, and a caller comparing against
     /// a proxy's size has to be able to write the value it expects.
     ///
     /// - Parameters:

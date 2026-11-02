@@ -11,7 +11,7 @@ import TUIView
 extension View {
     /// Places this view's centre at a point in its parent's coordinate space.
     ///
-    /// The absolute counterpart of ``offset(x:y:)``, and it differs from it in
+    /// The absolute counterpart of ``offset(x:y:)-(Int,Int)``, and it differs from it in
     /// layout as well as in arithmetic: an offset keeps the view's natural
     /// place and displaces the drawing, while a positioned view **takes the
     /// space it is offered** and draws itself at the point given. That is

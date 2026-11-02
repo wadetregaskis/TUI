@@ -14,7 +14,7 @@ import TUIFoundation
 /// on a frosted picture (``PictureUnderTextMarker``), at `z=-1` — below the
 /// glyphs, above the cells' default field (graphics notes §14.5). The other
 /// draws every picture on a host with no Unicode placeholders
-/// (``KittyGraphics/drawsPicturesByClassicPlacement``, §15).
+/// (`KittyGraphics.drawsPicturesByClassicPlacement`, §15).
 ///
 /// ## Blocks
 ///

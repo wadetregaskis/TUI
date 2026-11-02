@@ -14,7 +14,7 @@ extension View {
     /// `clipped(antialiased:)`.
     ///
     /// A view's frame is used only for layout, and what it draws past the
-    /// frame — moved by ``offset(x:y:)`` or ``position(x:y:)``, or overshooting
+    /// frame — moved by ``offset(x:y:)-(Int,Int)`` or ``position(x:y:)``, or overshooting
     /// on its way in with a transition — still shows, over its neighbours.
     /// This cuts it at the frame:
     ///

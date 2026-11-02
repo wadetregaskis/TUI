@@ -218,7 +218,7 @@ public enum KittyGraphics {
     ///
     /// - Returns: the escape, or `""` for a request the protocol cannot express,
     ///   or on a host drawing by classic placements
-    ///   (``drawsPicturesByClassicPlacement``): one that has no virtual
+    ///   (`drawsPicturesByClassicPlacement`): one that has no virtual
     ///   placements either refuses this or draws it at the cursor.
     public static func placement(id: ImageID, columns: Int, rows: Int, placement: UInt32 = 1) -> String {
         guard id > 0, id <= maximumImageID, columns > 0, rows > 0, placement > 0,
@@ -321,7 +321,7 @@ extension KittyGraphics {
 
     /// Whether the terminal painting this app's output draws pictures — by a
     /// **virtual placement**, through Unicode placeholders, or where it has none
-    /// by a classic placement (``drawsPicturesByClassicPlacement``), which the
+    /// by a classic placement (`drawsPicturesByClassicPlacement`), which the
     /// writer swaps for the same cells: nothing that reads this has to care which.
     /// Published from `TerminalClient.applyGraphicsSupport()`.
     ///
