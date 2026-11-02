@@ -14,6 +14,12 @@ variable wins.
 its command line, makes the app with those values and calls `await Viewer(path: path).run()`, with no global to carry
 them. See `Starting an App Yourself` in `Scenes and Quitting`.
 
+**`maxFrameRate` counts from the start of a frame.** It counted from the end, so a frame's own time was added to the
+interval: a screen taking 22 ms a frame drew 25 frames a second under a cap of 60, and a key pressed in the gap waited
+for it. With a ticker keeping the program busy, key to frame on a 1,920-cell screen goes from about 42 to 24 ms, and
+with a 50 ms body from 99 to 51. A program that asks for frames without pause now draws in the time it was leaving idle,
+so it uses more CPU (52% to 90% on that screen). A lower `maxFrameRate` gives that back.
+
 **`TUI_FRAME_TRACE=<path>` says what each frame was for.** One tab-separated line per frame: when it began, how long
 it took, the bytes it sent, its render cache hits and misses, and what caused it. See `Keeping Your App Fast`.
 

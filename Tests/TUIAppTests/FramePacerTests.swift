@@ -21,16 +21,49 @@ struct FramePacerTests {
         at t0: UInt64, deadline: UInt64? = nil, maxFrameRate: Int = 60
     ) -> FramePacer {
         var pacer = FramePacer(maxFrameRate: maxFrameRate, startedAtNanos: 0)
-        pacer.render { FramePacer.Frame(renderedAtNanos: t0, animationDeadlineNanos: deadline) }
+        pacer.render(now: t0) { FramePacer.Frame(animationDeadlineNanos: deadline) }
         return pacer
     }
 
     /// Renders whatever the clock says, and counts.
-    private func frame(at time: UInt64, deadline: UInt64? = nil) -> FramePacer.Frame {
-        FramePacer.Frame(renderedAtNanos: time, animationDeadlineNanos: deadline)
+    private func frame(deadline: UInt64? = nil) -> FramePacer.Frame {
+        FramePacer.Frame(animationDeadlineNanos: deadline)
     }
 
     // MARK: - The cap
+
+    @Test("The cap counts from when a frame began, however long the frame took")
+    func capCountsFromTheFramesStart() {
+        var pacer = FramePacer(maxFrameRate: 60, startedAtNanos: 0)
+        let began = interval * 10
+        pacer.requestRender()
+        // A frame that takes three intervals: its body is where the time goes, and
+        // the pacer is told only when it began.
+        #expect(pacer.renderIfDue(now: began) { frame() })
+        let ended = began + 3 * interval
+        pacer.requestRender()
+        // Owed at once, with no wait: not `ended + interval`.
+        #expect(pacer.waitNanos(now: ended) == 0)
+        var renders = 0
+        pacer.renderIfDue(now: ended) {
+            renders += 1
+            return frame()
+        }
+        #expect(renders == 1)
+    }
+
+    @Test("A frame shorter than the interval waits out the rest of it, not the whole of it")
+    func aQuickFrameWaitsTheRemainder() {
+        var pacer = FramePacer(maxFrameRate: 60, startedAtNanos: 0)
+        let began = interval * 10
+        pacer.requestRender()
+        #expect(pacer.renderIfDue(now: began) { frame() })
+        pacer.requestRender()
+        let ended = began + interval / 4
+        #expect(pacer.waitNanos(now: ended) == interval - interval / 4)
+        #expect(!pacer.renderIfDue(now: ended) { frame() })
+        #expect(pacer.renderIfDue(now: began + interval) { frame() })
+    }
 
     @Test("A burst of requests inside one interval renders exactly one frame")
     func burstCoalesces() {
@@ -40,14 +73,14 @@ struct FramePacerTests {
             pacer.requestRender()
             pacer.renderIfDue(now: 1_000 + step) {
                 renders += 1
-                return frame(at: 1_000 + step)
+                return frame()
             }
         }
         #expect(renders == 0)
         // The instant the cap clears, the coalesced burst renders — once.
         pacer.renderIfDue(now: 1_000 + interval) {
             renders += 1
-            return frame(at: 1_000 + interval)
+            return frame()
         }
         #expect(renders == 1)
         #expect(!pacer.isRenderPending)
@@ -60,7 +93,7 @@ struct FramePacerTests {
         pacer.requestRender()
         pacer.renderIfDue(now: 1_000 + interval) {
             renders += 1
-            return frame(at: 1_000 + interval)
+            return frame()
         }
         #expect(renders == 1)
     }
@@ -71,32 +104,9 @@ struct FramePacerTests {
         var renders = 0
         pacer.renderIfDue(now: 1_000 + 10 * interval) {
             renders += 1
-            return frame(at: 0)
+            return frame()
         }
         #expect(renders == 0)
-    }
-
-    @Test("The cap runs from when the render finished, not from when it was asked for")
-    func capMeasuresFromFrameCompletion() {
-        var pacer = rendered(at: 1_000)
-        pacer.requestRender()
-        // The frame is due at 1_000 + interval but takes half an interval to
-        // produce, so the next one may not render until 1.5 intervals in.
-        pacer.renderIfDue(now: 1_000 + interval) {
-            frame(at: 1_000 + interval + interval / 2)
-        }
-        pacer.requestRender()
-        var renders = 0
-        pacer.renderIfDue(now: 1_000 + 2 * interval) {
-            renders += 1
-            return frame(at: 0)
-        }
-        #expect(renders == 0)
-        pacer.renderIfDue(now: 1_000 + interval + interval / 2 + interval) {
-            renders += 1
-            return frame(at: 0)
-        }
-        #expect(renders == 1)
     }
 
     @Test("A nonsense frame rate is clamped to 1 FPS rather than dividing by zero")
@@ -114,12 +124,12 @@ struct FramePacerTests {
         // Cap long clear, deadline not yet reached: nothing is owed.
         pacer.renderIfDue(now: 1_000 + 2 * interval) {
             renders += 1
-            return frame(at: 0)
+            return frame()
         }
         #expect(renders == 0)
         pacer.renderIfDue(now: 1_000 + 3 * interval) {
             renders += 1
-            return frame(at: 1_000 + 3 * interval)
+            return frame()
         }
         #expect(renders == 1)
     }
@@ -133,13 +143,13 @@ struct FramePacerTests {
         var renders = 0
         pacer.renderIfDue(now: 1_000 + interval / 3) {
             renders += 1
-            return frame(at: 0)
+            return frame()
         }
         #expect(renders == 0)
         #expect(pacer.isRenderPending)
         pacer.renderIfDue(now: 1_000 + interval) {
             renders += 1
-            return frame(at: 1_000 + interval, deadline: 1_000 + interval + interval / 3)
+            return frame(deadline: 1_000 + interval + interval / 3)
         }
         #expect(renders == 1)
     }
@@ -150,13 +160,13 @@ struct FramePacerTests {
         #expect(pacer.waitNanos(now: 1_000) != nil)
         pacer.requestRender()
         pacer.renderIfDue(now: 1_000 + interval) {
-            frame(at: 1_000 + interval, deadline: nil)
+            frame(deadline: nil)
         }
         #expect(pacer.waitNanos(now: 1_000 + interval) == nil)
         var renders = 0
         pacer.renderIfDue(now: 1_000 + 10 * interval) {
             renders += 1
-            return frame(at: 0)
+            return frame()
         }
         #expect(renders == 0)
     }
@@ -238,7 +248,7 @@ struct FramePacerTests {
         #expect(pacer.waitNanos(now: 1_000, until: wake) == 5_000_000_000)
         // Reached, it is the loop's to serve: nothing renders for it.
         var renders = 0
-        #expect(!pacer.renderIfDue(now: wake) { renders += 1; return frame(at: wake) })
+        #expect(!pacer.renderIfDue(now: wake) { renders += 1; return frame() })
         #expect(renders == 0)
         #expect(pacer.waitNanos(now: wake, until: wake) == 0)
     }

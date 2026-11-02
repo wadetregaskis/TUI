@@ -691,7 +691,7 @@ extension AppRunner {
         // Initial render, with an alternate signal stack under it (see the
         // loop's first line).
         FatalSignalTerminalRestore.provideAlternateStack()
-        pacer.render(renderOneFrame)
+        pacer.render(now: MonotonicClock.nowNanoseconds, renderOneFrame)
 
         // Main loop
         while isRunning {
@@ -748,9 +748,9 @@ extension AppRunner {
                 pacer.requestRender()
             }
 
-            // One monotonic reading drives every decision this iteration — the
-            // animation-fired test, the render-now test, and the wait length all
-            // share it, so none can disagree about whether a deadline has passed.
+            // One monotonic reading drives every decision up to the frame — the
+            // animation-fired test and the render-now test share it, so neither
+            // can disagree about whether a deadline has passed.
             let now = MonotonicClock.nowNanoseconds
             if let frameTrace, pacer.isAnimationDue(now: now) { frameTrace.note(.wake) }
 
@@ -763,11 +763,15 @@ extension AppRunner {
             // If an action was waiting for this frame, what is behind it goes
             // next, with no wait. Bytes already read would wake nothing, and the
             // wait would be the input poll's, for nothing.
-            if pacer.renderIfDue(now: now, renderOneFrame), hold.frameDrawn() { continue }
+            let rendered = pacer.renderIfDue(now: now, renderOneFrame)
+            if rendered, hold.frameDrawn() { continue }
 
             // What is owed between frames — the progress bar, sent again where
             // it is due — and then how long to wait, or nil to block until woken.
-            let waitNanos = betweenFrames(renderer: renderer, pacer: pacer, now: now)
+            // Read again after a frame: the wait runs from here, and counted from
+            // before the frame it would be too long by what the frame took.
+            let waitNanos = betweenFrames(
+                renderer: renderer, pacer: pacer, now: rendered ? MonotonicClock.nowNanoseconds : now)
 
             // Block until woken (stdin data or a render-request `wake()`), or —
             // when a render is pending or an animation is due — until that target.
@@ -1051,9 +1055,7 @@ extension AppRunner {
         // the title it saved, the terminal's ledger owed as the frame went
         // out: `Terminal.hostState`.)
         terminal.oweFarewell(for: tuiContext.terminalImageStore, hairlines: renderer.hairlines)
-        return FramePacer.Frame(
-            renderedAtNanos: MonotonicClock.nowNanoseconds,
-            animationDeadlineNanos: deadline)
+        return FramePacer.Frame(animationDeadlineNanos: deadline)
     }
 
     /// A frame rendered outside the pacer — the one before a Ctrl-Z suspend, the

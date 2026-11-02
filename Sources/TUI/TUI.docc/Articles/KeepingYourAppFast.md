@@ -183,7 +183,7 @@ A view that asks what time it is as it draws does the opposite: it costs a walk 
 
 ## The Frame Rate
 
-An app renders at most 60 frames a second, unless you say otherwise. To say otherwise, give your `App` a `maxFrameRate`:
+An app renders at most 60 frames a second, unless you say otherwise. That counts from the start of one frame to the start of the next, so a frame that takes 20 ms is followed straight away by the next one, if anything has asked for it. To say otherwise, give your `App` a `maxFrameRate`:
 
 ```swift
 @main

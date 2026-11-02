@@ -17,9 +17,9 @@ import TUIFoundation
 /// three facts across the loop body is what made that interaction impossible to
 /// exercise without a live terminal.
 ///
-/// Time is passed in, never read. One monotonic reading drives every decision
-/// of a loop iteration, so the render test and the sleep length cannot disagree
-/// about whether a deadline has passed.
+/// Time is passed in, never read. One monotonic reading drives the decisions on
+/// either side of a frame, so the render test and the sleep length cannot
+/// disagree about whether a deadline has passed.
 ///
 /// Rendering goes through ``renderIfDue(now:_:)`` rather than a "may I?" query
 /// the caller answers itself, because adopting the frame's timestamp and its
@@ -27,10 +27,9 @@ import TUIFoundation
 /// left in the past fires on every iteration, which turns a demand-driven loop
 /// into a spin.
 struct FramePacer {
-    /// What one render reports back: when it happened, and the soonest instant
-    /// any animation grid it declared next fires (`nil` when nothing animates).
+    /// What one render reports back: the soonest instant any animation grid it
+    /// declared next fires (`nil` when nothing animates).
     struct Frame {
-        let renderedAtNanos: UInt64
         let animationDeadlineNanos: UInt64?
     }
 
@@ -41,14 +40,19 @@ struct FramePacer {
     /// activity to wake the loop.
     static let pendingInputPollNanos: UInt64 = 25_000_000
 
-    /// The frame-rate cap: two frames are never rendered closer together than
-    /// this.
+    /// The frame-rate cap: two frames never begin closer together than this.
+    ///
+    /// Counted from when a frame began, not from when it ended. From its end,
+    /// the gap after a frame that takes `c` is the whole interval, so the period
+    /// is `c` + 16.7 ms: a 22 ms frame ran at 25 frames a second under a cap of
+    /// 60, idle for nearly half of each, with a key pressed in that time waiting
+    /// it out.
     let frameIntervalNanos: UInt64
 
     /// Whether something has asked for a frame that has not yet rendered.
     private(set) var isRenderPending = false
 
-    private var lastRenderAtNanos: UInt64
+    private var lastFrameBeganAtNanos: UInt64
     private var animationDeadlineNanos: UInt64?
 
     /// - Parameters:
@@ -59,7 +63,7 @@ struct FramePacer {
     ///     frame renders.
     init(maxFrameRate: Int, startedAtNanos: UInt64) {
         self.frameIntervalNanos = 1_000_000_000 / UInt64(max(1, maxFrameRate))
-        self.lastRenderAtNanos = startedAtNanos
+        self.lastFrameBeganAtNanos = startedAtNanos
     }
 
     /// Notes that a frame is owed. It renders at the next iteration in which the
@@ -72,9 +76,11 @@ struct FramePacer {
     ///
     /// For the frame that has no earlier one to be paced against — the initial
     /// render, before the loop starts.
-    mutating func render(_ body: () -> Frame) {
+    ///
+    /// - Parameter now: The instant the frame begins, which the cap counts from.
+    mutating func render(now: UInt64, _ body: () -> Frame) {
         let frame = body()
-        lastRenderAtNanos = frame.renderedAtNanos
+        lastFrameBeganAtNanos = now
         animationDeadlineNanos = frame.animationDeadlineNanos
         isRenderPending = false
     }
@@ -91,10 +97,10 @@ struct FramePacer {
         if let deadline = animationDeadlineNanos, now >= deadline {
             isRenderPending = true
         }
-        guard isRenderPending, now >= lastRenderAtNanos &+ frameIntervalNanos else {
+        guard isRenderPending, now >= lastFrameBeganAtNanos &+ frameIntervalNanos else {
             return false
         }
-        render(body)
+        render(now: now, body)
         return true
     }
 
@@ -124,7 +130,7 @@ struct FramePacer {
     ///     shortens the wait, and unlike an animation deadline it owes no frame
     ///     and ignores the cap: what it does draws nothing.
     func waitNanos(now: UInt64, pollingPendingInput: Bool = false, until wakeDeadline: UInt64? = nil) -> UInt64? {
-        let capDeadline = lastRenderAtNanos &+ frameIntervalNanos
+        let capDeadline = lastFrameBeganAtNanos &+ frameIntervalNanos
         var target: UInt64?
         if isRenderPending {
             target = capDeadline
