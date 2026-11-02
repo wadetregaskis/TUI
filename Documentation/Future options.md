@@ -271,6 +271,18 @@ a probe now, the build when the `TUIApp` Windows port starts.
 **What would reopen it.** The `TUIApp` Windows port, or the owner's yes. Windows Terminal shipping Kitty graphics
 (its issue #8389) would remove the largest reason.
 
+### Partial TUI
+
+**What it is.** An app that draws in a few rows at the end of the terminal's normal output, with no alternate screen,
+printing into scrollback above itself and leaving its last frame behind on exit. The design, with the direct answer on
+accessibility, is in [Partial TUI](<Partial TUI.md>).
+
+**Why not now.** The owner called it a tangent, and it isn't needed for the first release. About 13 commits (an estimate).
+It wouldn't do much for accessibility on its own: the real cursor and "still" come first.
+
+**What would reopen it.** The first release, or an app that needs its output in scrollback. Commits 1 and 2 of the design
+come first: what a resize does on each host, and the primary screen's advance models.
+
 ### Tooltip placement rules 4 and 5
 
 **What it is.** `Tooltips and help in a terminal.md` §5's popover rules 4 (prefer a placement not

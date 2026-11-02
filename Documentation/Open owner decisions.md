@@ -34,6 +34,7 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 | SCROLL-REGIONS | Moving rows with a scroll region rather than rewriting them: 28.6% fewer bytes over the sessions, no noticeable cost, on every terminal measured ([the study](<Performance/Scroll regions for output.md>)). On by default at the `exact` level, after you have watched one scroll on Apple Terminal? Keep or drop `residue` and `margins`, which add 1.4 points? | On, `exact`; drop the other two for now | Stays off, on its branch |
 | TMUX-HOLD | Under tmux a held frame repaints the whole pane at the client: Example idles at 153 KB/s where it should at 2 KB/s, and a Down key costs 10,356 bytes where it should 39. Stop sending the hold under tmux, after a soak over ssh? | Yes | As it is |
 | SIXEL | Reverse "do not ship Sixel", as the last path before glyphs, for Windows Terminal, foot, mintty and the rest? a: the probe now (half a day), build when the `TUIApp` Windows port starts (about two weeks); b: probe, then build now; c: stay as it is ([the case](<Images and terminal graphics/Terminal graphics protocols.md#67-the-question-for-the-owner>)) | a | Nothing built, no probe run |
+| PARTIAL-TUI | A grid at the foot of the terminal, scrollback above ([the design](<Partial TUI.md>)): about 13 commits. It suits tools rather than page apps, and helps accessibility only a little. Build it after 1.0, or sooner? | After 1.0; the real cursor and "still" first if accessibility is the reason | After 1.0 |
 
 ### Open on 2026-10-28
 
