@@ -45,12 +45,22 @@ if ($Image) {
     # ── Launcher ──
     $workspace = if ($env:GITHUB_WORKSPACE) { $env:GITHUB_WORKSPACE } else { (Get-Location).Path }
 
-    docker run --rm `
-        --volume "${workspace}:C:\source" `
-        $Image `
-        powershell.exe -NoLogo -File C:\source\Tools\ci-windows-swift.ps1 -Arguments "$Arguments"
+    # One retry, for a swift that dies with nothing to say. Runs 89 and 90 each
+    # lost one lane that way (Server 2022, a different Swift each time), straight
+    # after resolving packages and before compiling anything, while the same
+    # source passed on the others. A run that names an error is not retried.
+    for ($attempt = 1; $attempt -le 2; $attempt++) {
+        docker run --rm `
+            --volume "${workspace}:C:\source" `
+            $Image `
+            powershell.exe -NoLogo -File C:\source\Tools\ci-windows-swift.ps1 -Arguments "$Arguments" `
+            2>&1 | Tee-Object -Variable lines
+        $code = $LASTEXITCODE
+        if ($code -eq 0 -or ($lines -match 'error:')) { break }
+        Write-Host "swift exited $code with no error on attempt $attempt"
+    }
 
-    exit $LASTEXITCODE
+    exit $code
 }
 
 # ── Payload (inside the container) ──
