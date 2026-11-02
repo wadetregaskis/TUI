@@ -544,7 +544,7 @@ private struct _SpinnerCore: View, Renderable, Layoutable {
         // (§74). A cycle whose frames are not all one width leaves no run and reads the
         // same clock; it used to need a branch of its own (§66), and a render with no
         // timer at all drew the run-backed spinner's first frame whatever the time.
-        let elapsed = Double(context.environment.frameNowNanos) / 1_000_000_000
+        let elapsed = Double(context.environment.animationFrame.motionNanos) / 1_000_000_000
         // The style's interval at the speed set for spinners here. One value for the
         // frame drawn, the run left and the fallback's wake, so none of them can step
         // at a different rate from the others.

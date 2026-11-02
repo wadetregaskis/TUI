@@ -57,6 +57,7 @@ Read by the library modules, for debugging them.
 | `TUI_OPTION_C` | `0` | Turns off the render cache's re-checking of a row's value when its data moves (Option C), to compare with and without. |
 | `TUI_SCROLL_CENSUS` | A path | Writes one line per frame to that file, saying what each scroll level would have done. |
 | `TUI_SCROLL_OUTPUT` | `off` (default), `exact`, `residue`, `margins` | Moves rows with scroll regions rather than rewriting them. Off until the owner's decision `SCROLL-REGIONS`. |
+| `TUI_STILL` | `1` | Nothing on screen changes except as the direct result of user interaction: no breathing, no blinking caret, no spinner motion, no animation ticks, and a change snaps to its end. A `TimelineView` stays at the launch date. An app's own timers aren't stopped, and neither is what the terminal does itself, such as blinking its own cursor. Read once. |
 
 ## The Example and Stress targets
 

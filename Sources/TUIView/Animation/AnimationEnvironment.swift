@@ -46,6 +46,20 @@ package struct AnimationFrame: Sendable, Equatable {
     /// when this is false.
     public var canAnimate: Bool = false
 
+    /// Whether this frame belongs to a still run (`TUI_STILL`), where nothing on
+    /// screen changes but as the direct result of user interaction.
+    ///
+    /// ``canAnimate`` is false on such a frame too, and that is what snaps a change.
+    /// This says the other half: that the frame's instant is not to be drawn from.
+    /// ``nowNanos`` stays the true time, because what isn't motion runs on it: how
+    /// long a tooltip has waited, whether a resize has ended.
+    package var isStill: Bool = false
+
+    /// The instant a view that draws from the clock draws at, such as the step of a
+    /// spinner whose frames aren't all one width: ``nowNanos``, or the start of time
+    /// on a still frame, so the spinner stays where a one-off render puts it.
+    package var motionNanos: Int64 { isStill ? 0 : nowNanos }
+
     /// Creates a frame description. The defaults describe a one-off render at
     /// the start of time, which is what a headless render is.
     public init(nowNanos: Int64 = 0, step: Int = 0, canAnimate: Bool = false) {

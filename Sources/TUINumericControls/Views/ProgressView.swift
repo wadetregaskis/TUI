@@ -438,7 +438,7 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
         // a replay splices and a declined run needs no clock of its own. A determinate
         // bar ignores it entirely: its value comes from the caller's data, and it does
         // not animate.
-        let elapsed = Double(context.environment.frameNowNanos) / 1_000_000_000
+        let elapsed = Double(context.environment.animationFrame.motionNanos) / 1_000_000_000
 
         // An indeterminate bar leaves its whole cycle behind, so the loop can
         // splice the next frame over these cells without re-rendering anything.

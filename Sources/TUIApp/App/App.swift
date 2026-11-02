@@ -571,6 +571,12 @@ extension AppRunner {
         startHostSettings(renderer: renderer)
 
         // Under tmux, have it PUSH a SIGWINCH at us whenever a client attaches,
+        // Nothing on screen changes but as the direct result of user interaction: for
+        // clips and screen readers. Not advertised (`Documentation/Environment variables
+        // for developing TUI.md`).
+        if ProcessInfo.processInfo.environment["TUI_STILL"] == "1" {
+            renderer.stillDate = FrameClock.nowDate
+        }
         // detaches, or changes session — the only events that can change which
         // terminal is painting our output (and so the emoji-chrome answer). A
         // same-size attach sends no SIGWINCH of its own, so without this the
@@ -1007,7 +1013,7 @@ extension AppRunner {
         // indeterminate bars.
         let clockLive =
             activity.usesPulse || activity.usesCursor || !activity.animatedClocks.isEmpty
-        if clockLive {
+        if clockLive, renderer.stillDate == nil {
             // Sleep exactly as long as nothing can change — see
             // `RenderLoop.timeUntilNextChange(elapsed:)`.
             cursorTimer.advance(by: renderer.timeUntilNextChange(elapsed: cursorTimer.elapsed))

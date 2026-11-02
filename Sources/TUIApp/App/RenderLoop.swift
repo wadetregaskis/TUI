@@ -403,6 +403,10 @@ internal final class RenderLoop<A: App> {
     /// every loop but the app runner's, which takes macOS's default instead.
     var hostSpringLoadingDelay: Duration?
 
+    /// The date every frame of a still run says it is, or `nil` for a run that moves:
+    /// `TUI_STILL`, which the app runner reads. See ``publishAnimationValues``.
+    var stillDate: Date?
+
     init(
         app: A,
         terminal: any HostStateKeeping,

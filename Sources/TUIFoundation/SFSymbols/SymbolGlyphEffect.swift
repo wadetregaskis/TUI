@@ -126,7 +126,7 @@
         /// ink of the effect's own rather than in the foreground style.
         private func breathing(context: RenderContext) -> (buffer: FrameBuffer, inked: Bool) {
             guard let effect, !context.isMeasuring else { return (drawn(nil, context: context), false) }
-            let now = context.environment.frameNowNanos
+            let now = context.environment.animationFrame.motionNanos
             switch effect {
             case .breathing(let breath, let frameTicks):
                 let frames = (0..<SymbolBreath.frameCount).map {

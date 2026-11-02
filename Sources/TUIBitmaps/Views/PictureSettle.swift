@@ -32,6 +32,8 @@ struct PictureSettle: Equatable {
     @MainActor
     static func isSettled(box: (width: Int, height: Int), context: RenderContext, token: String) -> Bool {
         guard let storage = context.stateStorage else { return true }
+        // A still run asks for no frames, so a wait here would last until the next key.
+        guard !context.environment.animationFrame.isStill else { return true }
         let now = context.environment.frameNowNanos
         let kept: StateBox<Self> = storage.storage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: _ImageCore.settleStateIndex),

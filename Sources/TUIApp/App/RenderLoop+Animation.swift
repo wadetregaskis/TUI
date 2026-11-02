@@ -37,7 +37,13 @@ extension RenderLoop {
         frameNowNanos: Int64,
         frameDate: Date
     ) {
-        environment.pulsePhase = pulsePhase
+        // A still run (`TUI_STILL`) shows its views what a one-off render shows them:
+        // no timer and no scheduler, so whatever draws from a clock draws its first
+        // frame and asks for no other, every way of doing that at once. The loop's own
+        // timed input still has the real scheduler: a long press or a drag IS the user.
+        let cursorTimer = stillDate == nil ? cursorTimer : nil
+        let animationScheduler = stillDate == nil ? animationScheduler : nil
+        environment.pulsePhase = stillDate == nil ? pulsePhase : 0
         environment.cursorTimer = cursorTimer
         environment.animationScheduler = animationScheduler
         // One value, one dictionary entry: see `AnimationFrame`. The tick is
@@ -53,22 +59,24 @@ extension RenderLoop {
         // step here restarted every such animation whenever the focus moved,
         // which is what made the Animation page's breathing label jump back to
         // full opacity on Tab.
-        environment.animationFrame = AnimationFrame(
+        var animationFrame = AnimationFrame(
             nowNanos: frameNowNanos,
             step: cursorTimer?.steps(for: .content) ?? 0,
             canAnimate: animationScheduler != nil)
+        animationFrame.isStill = stillDate != nil
+        environment.animationFrame = animationFrame
         // The same instant, for the render cache, read as the views read it: a
         // spinner or a bar indexes the frame's own timestamp, and a focus breath or
         // a caret the cursor timer's focus clock, 0 without a timer. The cache stamps
         // what it stores with it, and serves a stored buffer only while its animated
         // cells would show the same frames now — see `RenderCache.frameInstant`.
         tuiContext.renderCache.frameInstant = AnimationInstant(
-            content: Double(frameNowNanos) / 1_000_000_000,
+            content: Double(animationFrame.motionNanos) / 1_000_000_000,
             cursor: cursorTimer?.elapsed(for: .cursor) ?? 0)
         // And the wall clock at that instant, the one date every walk of this
         // frame resolves a timeline's schedule against — see
         // `RenderCache.frameDate`.
-        tuiContext.renderCache.frameDate = frameDate
+        tuiContext.renderCache.frameDate = stillDate ?? frameDate
         // Consumed, not merely read, so it applies to exactly one pass: the one
         // that first shows the change. A frame that renders for some other
         // reason must not restart animations that already began.
