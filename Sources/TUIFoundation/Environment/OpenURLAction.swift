@@ -230,7 +230,12 @@ private struct OpenURLActionKey: EnvironmentKey {
 
 /// Environment key for this machine's URL opener — `nil` where no context's
 /// services reached the environment.
-private struct URLOpenerKey: EnvironmentKey {
+/// Render neutral: what opens a URL is asked when a URL is opened, and no picture
+/// depends on it. A real app's is a value with nothing to compare by, unlike the
+/// object a test's context holds, so left a plain key it took the stamp from every
+/// environment of every real app: nothing below a parent's write was ever re-checked
+/// there, and no plain composite ever served, while every test said they were.
+private struct URLOpenerKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     static let defaultValue: (any URLOpenerBackend)? = nil
 }
 
