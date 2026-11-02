@@ -85,6 +85,21 @@ nonisolated package struct AlertPresentationModifier<Content: View, Actions: Vie
 // MARK: - Renderable
 
 @MainActor extension AlertPresentationModifier: Renderable {
+    /// The message as a string, or an empty one for none. Unconfined by where the
+    /// alert happens to be written: under a menu bar's single row or a
+    /// `.lineLimit(1)` it came out as one line, cut at the terminal's width, and
+    /// wrapped at this context's width it would break early in the panel, which
+    /// wraps it again at its own.
+    private func renderedMessage(context: RenderContext) -> String {
+        guard let message else { return "" }
+        var messageContext = context.withChildIdentity(type: Message.self, index: 2)
+        messageContext.availableWidth = unconfinedMessageSize
+        messageContext.availableHeight = unconfinedMessageSize
+        messageContext.environment.lineLimit = .unlimited
+        let messageBuffer = TUIView.renderToBuffer(message, context: messageContext)
+        return messageBuffer.lines.joined(separator: "\n").stripped
+    }
+
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // A focus section unique to THIS alert instance, so stacked alerts /
         // modals each isolate (only the topmost active section is interactive).
@@ -116,15 +131,7 @@ nonisolated package struct AlertPresentationModifier<Content: View, Actions: Vie
             return buffer
         }
 
-        // Render message content to string if provided
-        let messageString: String
-        if let message {
-            let messageBuffer = TUIView.renderToBuffer(
-                message, context: context.withChildIdentity(type: Message.self, index: 2))
-            messageString = messageBuffer.lines.joined(separator: "\n").stripped
-        } else {
-            messageString = ""
-        }
+        let messageString = renderedMessage(context: context)
 
         // Build the alert view
         let alert = AlertPanel(
@@ -332,6 +339,9 @@ nonisolated package struct AlertPresentationModifier<Content: View, Actions: Vie
         return baseBuffer
     }
 }
+
+/// The room a message is rendered in, before the panel wraps it at its own width.
+private let unconfinedMessageSize = 4096
 
 /// StateStorage property indices for ``AlertPresentationModifier``. A free enum
 /// because the modifier is generic (which can't hold static stored properties).

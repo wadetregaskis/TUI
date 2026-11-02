@@ -143,11 +143,17 @@ struct _AlertMessage: View {
         if let icon {
             HStack(alignment: .top, spacing: 2) {
                 iconView(icon)
-                Text(message)
+                messageText
             }
         } else {
-            Text(message)
+            messageText
         }
+    }
+
+    /// The whole message: a `.lineLimit` around where the alert was written is
+    /// about what is written there, not about what the alert has to say.
+    private var messageText: Text {
+        Text(message).lineLimit(nil)
     }
 
     @ViewBuilder

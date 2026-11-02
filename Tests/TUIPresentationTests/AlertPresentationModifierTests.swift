@@ -75,6 +75,31 @@ struct AlertPresentationModifierTests {
         #expect(rawContent.contains("\u{1B}["))  // Contains ANSI codes
     }
 
+    @Test("A message keeps its lines and its length, wherever the alert is written")
+    func messageIsNotConfined() {
+        let line = String(repeating: "word ", count: 30) + "end"
+        let message = "first\n\(line)\nlast"
+        func shown(_ view: some View) -> String { render(view).lines.joined(separator: "\n").stripped }
+        for content in [
+            shown(
+                Text("Base").frame(height: 1)
+                    .alert("Title", isPresented: .constant(true), actions: { EmptyView() }, message: { Text(message) })),
+            shown(
+                Text("Base").lineLimit(1)
+                    .alert("Title", isPresented: .constant(true), actions: { EmptyView() }, message: { Text(message) })
+                    .frame(height: 1)),
+            shown(
+                Text("Base")
+                    .alert("Title", isPresented: .constant(true), actions: { EmptyView() }, message: { Text(message) })
+                    .lineLimit(1)),
+        ] {
+            #expect(content.contains("end"), "\(content)")
+            #expect(content.contains("last"), "\(content)")
+            // Its own line, as the message wrote it, not run on after `first`.
+            #expect(!content.contains("first word"), "\(content)")
+        }
+    }
+
     @Test("Alert with actions renders action buttons")
     func alertWithActions() {
         let isPresented = Binding.constant(true)
