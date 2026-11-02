@@ -47,11 +47,14 @@ extension LayoutPage {
                         Text(Self.gridWords[index + 6]).foregroundStyle(.palette.foregroundSecondary)
                     }
                 }
-                // Wide enough for the flexible column to reach its maximum and
-                // the last to take a visibly larger share of what is left; at
-                // its own width the grid is only as wide as its words.
-                .frame(width: 40)
+                // Filling whatever the handle offers, from where every column is
+                // at its least to where the flexible one has long reached its
+                // maximum and the last takes all the rest. It opens wide enough
+                // for that to show; at its own width the grid is only as wide
+                // as its words.
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .border(.palette.border)
+                .userResizable(width: 14...70)
                 // Rows instead of columns: two of them, filled down then across,
                 // in a scroll view that scrolls sideways.
                 Text("page.layout.lazyGridsRows").bold()
