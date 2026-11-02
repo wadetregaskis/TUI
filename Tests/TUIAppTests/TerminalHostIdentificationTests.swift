@@ -247,7 +247,7 @@ struct TerminalHostIdentificationTests {
                 #expect(TerminalHost.supportsEmojiChrome(for: program))
                 #expect(TerminalHost.blockElementsFillTheLine(for: program))
                 #expect(TerminalHost.cornerTrianglesFillTheCell(for: program))
-            case .tmux, .unidentified:
+            case .xtermJS, .tmux, .unidentified:
                 #expect(!TerminalHost.supportsEmojiChrome(for: program))
                 #expect(TerminalHost.blockElementsFillTheLine(for: program))
                 #expect(TerminalHost.cornerTrianglesFillTheCell(for: program))

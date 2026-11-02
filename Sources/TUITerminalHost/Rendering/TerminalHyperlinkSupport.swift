@@ -107,6 +107,7 @@ extension TerminalClient {
     /// | iTerm2 | yes | its own "Drawing: Underline OSC 8 hyperlinks" setting; tmux gives it the `hyperlinks` feature |
     /// | Ghostty | yes | per-page hyperlink storage in its cell model; `link-previews` has an `osc8` mode; ⌘-shift-hover shows the destination |
     /// | tmux | yes | stores links in its grid — `capture-pane -H` reads them back |
+    /// | xterm.js | yes | the buffer keeps the link against the cells; the page says how to follow one (`linkHandler`) |
     /// | Apple Terminal | no | swallows the sequence and keeps nothing; no hyperlink support anywhere in the app |
     /// | Warp | no | see below |
     /// | unidentified | no | an unmeasured host gets the answer that cannot hurt |
@@ -131,7 +132,7 @@ extension TerminalClient {
     /// wherever the user has told tmux it can.
     public static func honoursHyperlinks(_ program: Program) -> Bool {
         switch program {
-        case .iTerm2, .ghostty, .tmux, .gnomeTerminal: true
+        case .iTerm2, .ghostty, .tmux, .gnomeTerminal, .xtermJS: true
         case .appleTerminal, .warp, .unidentified: false
         }
     }

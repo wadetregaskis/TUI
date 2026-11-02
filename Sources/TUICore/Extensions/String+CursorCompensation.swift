@@ -113,6 +113,15 @@ extension String {
         } ?? true
     }
 
+    /// Whether this may hold a spacing vowel sign, by its UTF-8 lead bytes: `E0`
+    /// and `E1` are U+0800–U+1FFF, the Indic scripts, Thai, Lao and Khmer among
+    /// them; `EA` is U+A000–U+AFFF, with Javanese and Meetei Mayek. Everything
+    /// above those is already through ``utf8MayNeedCompensation``, and leaving
+    /// out `E3`–`E9` keeps CJK text off the walk.
+    var utf8MayHoldSpacingMark: Bool {
+        utf8.contains { $0 == 0xE0 || $0 == 0xE1 || $0 == 0xEA }
+    }
+
     /// Returns a copy safe to emit as a single terminal row.
     ///
     /// Every C0 control character that would move the cursor off the row — a
@@ -635,6 +644,14 @@ extension String {
         withCursorForwardCompensation(erasingUnderGlyph: true) { $0.gnomeTerminalCursorAdvance }
     }
 
+    /// Returns a copy of this string with xterm.js's cursor-advance divergences
+    /// worked around by CUF (``Character/xtermJSCursorAdvance``), erasing the
+    /// cell a CUF skips, which a glyph drawn into one cell no longer covers.
+    /// ANSI escape sequences are preserved.
+    public func withXtermJSCursorCompensation() -> String {
+        withCursorForwardCompensation(erasingUnderGlyph: true, admittingSpacingMarks: true) { $0.xtermJSCursorAdvance }
+    }
+
     /// Returns a copy of this string with tmux's cursor-advance divergences
     /// worked around by the same CUF injection the other hosts use: Plane-16
     /// PUA (SF Symbols), bare SMP pictographs — including the `Emoji=No`
@@ -744,12 +761,16 @@ extension String {
         erasingUnderGlyph: Bool = false,
         normalizing: Bool = true,
         flagsAsCountryCodes: Bool = false,
+        admittingSpacingMarks: Bool = false,
         advance: (Character) -> Int
     ) -> String {
         // Fast path: every quirk cluster is non-ASCII (same reasoning and
         // same gates as the Terminal.app walk, the second of which is what
-        // keeps a box-drawing border off this path).
-        guard utf8ContainsNonASCII, utf8MayNeedCompensation else { return self }
+        // keeps a box-drawing border off this path). A host that advances a
+        // spacing vowel sign short needs more than the shared gate lets in.
+        guard utf8ContainsNonASCII,
+            utf8MayNeedCompensation || (admittingSpacingMarks && utf8MayHoldSpacingMark)
+        else { return self }
 
         let traits = TerminalWidthTraits.current
         var result = ""

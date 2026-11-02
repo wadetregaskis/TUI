@@ -191,7 +191,7 @@ extension TerminalClient {
         textArea: () -> (width: Int, height: Int)?, localDisplayScale: () -> Double?
     ) -> CellPointsCalibration? {
         switch program {
-        case .tmux, .gnomeTerminal, .unidentified:
+        case .tmux, .gnomeTerminal, .xtermJS, .unidentified:
             return nil
         case .appleTerminal, .warp:
             return .points

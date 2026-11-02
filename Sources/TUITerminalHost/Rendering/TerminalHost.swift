@@ -83,7 +83,7 @@ package enum TerminalHost {
         switch program {
         case .appleTerminal, .iTerm2, .ghostty, .warp, .gnomeTerminal:
             true
-        case .tmux, .unidentified:
+        case .tmux, .xtermJS, .unidentified:
             false
         }
     }
@@ -102,7 +102,7 @@ package enum TerminalHost {
         switch program {
         case .appleTerminal:
             false
-        case .iTerm2, .ghostty, .warp, .gnomeTerminal, .tmux, .unidentified:
+        case .iTerm2, .ghostty, .warp, .gnomeTerminal, .xtermJS, .tmux, .unidentified:
             true
         }
     }
@@ -123,7 +123,7 @@ package enum TerminalHost {
         switch program {
         case .appleTerminal, .warp:
             false
-        case .iTerm2, .ghostty, .gnomeTerminal, .tmux, .unidentified:
+        case .iTerm2, .ghostty, .gnomeTerminal, .xtermJS, .tmux, .unidentified:
             true
         }
     }

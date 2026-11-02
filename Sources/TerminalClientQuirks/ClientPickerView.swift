@@ -86,6 +86,8 @@ struct ClientPickerView: View {
             "ECH+CUF for lone RI, SF Symbols, bare pictographs; tones detach; ZWJ decomposed"
         case .gnomeTerminal:
             "ECH+CUF for VS-16, bare pictographs, keycaps, SF Symbols, pre-Unicode 16; tones detach; ZWJ decomposed"
+        case .xtermJS:
+            "ECH+CUF for SF Symbols, bare pictographs, lone RI, Unicode 15+ emoji, spacing vowel signs; keeps skin tones"
         case .tmux:
             "compositor: its own grid, its own model; strips BMP-base skin tones"
         case .unidentified:
@@ -117,6 +119,7 @@ struct ClientPickerView: View {
         case .ghostty: "Ghostty"
         case .warp: "Warp"
         case .gnomeTerminal: "GNOME Terminal"
+        case .xtermJS: "xterm.js"
         case .tmux: "tmux"
         case .unidentified: "unidentified"
         }

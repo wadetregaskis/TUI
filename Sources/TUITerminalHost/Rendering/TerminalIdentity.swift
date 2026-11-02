@@ -124,6 +124,16 @@ extension TerminalHost {
         {
             return "gnome-terminal"
         }
+        // xterm.js answers as xterm patch 276 and has no XTVERSION: read from
+        // it (`Tools/Web/glyph-probe.html`). A real xterm that old is the only
+        // thing this could also name, and one recent enough to matter has
+        // moved on from 276.
+        if !identity.answeredVersion,
+            identity.primaryAttributes == "\u{1B}[?1;2c",
+            identity.secondaryAttributes == "\u{1B}[>0;276;0c"
+        {
+            return "xterm.js"
+        }
         return nil
     }
 }

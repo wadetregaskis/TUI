@@ -189,6 +189,7 @@ struct IdentificationView: View {
         case .ghostty: "Ghostty"
         case .warp: "Warp"
         case .gnomeTerminal: "GNOME Terminal"
+        case .xtermJS: "xterm.js"
         case .tmux: "tmux"
         case .unidentified: "unidentified"
         }

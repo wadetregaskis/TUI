@@ -85,6 +85,7 @@ struct QuirkTableView: View {
             // host — not a two-way switch: only tmux still strips.
             switch client.program {
             case .ghostty: return "kept — Ghostty merges them correctly"
+            case .xtermJS: return "kept — its graphemes addon merges them correctly"
             case .appleTerminal: return "separated — base, ZWNJ, modifier (withTerminalAppCursorCompensation)"
             case .iTerm2, .warp, .gnomeTerminal: return "kept, detached — advance measured per host"
             case .tmux: return "modifier stripped (withSkinToneFallback)"
@@ -121,6 +122,7 @@ struct QuirkTableView: View {
         case .ghostty: "Ghostty"
         case .warp: "Warp"
         case .gnomeTerminal: "GNOME Terminal"
+        case .xtermJS: "xterm.js"
         case .tmux: "tmux"
         case .unidentified: "an unidentified terminal"
         }

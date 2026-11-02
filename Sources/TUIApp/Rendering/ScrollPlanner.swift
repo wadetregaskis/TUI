@@ -57,7 +57,7 @@ enum ScrollOutput: Int, Comparable, Sendable {
         case .ghostty, .iTerm2: level
         case .warp: min(level, .residue)
         case .tmux: holds ? .off : min(level, .exact)
-        case .appleTerminal, .gnomeTerminal, .unidentified: min(level, .exact)
+        case .appleTerminal, .gnomeTerminal, .xtermJS, .unidentified: min(level, .exact)
         }
     }
 }

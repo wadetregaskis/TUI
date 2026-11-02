@@ -74,7 +74,7 @@ extension TerminalCapabilities {
             switch program {
             case .tmux: .unknown
             case .unidentified: .unidentified
-            case .appleTerminal, .iTerm2, .ghostty, .warp, .gnomeTerminal: .known
+            case .appleTerminal, .iTerm2, .ghostty, .warp, .gnomeTerminal, .xtermJS: .known
             }
         return status(
             uses: TerminalClient.hyperlinksSupported,
@@ -105,7 +105,7 @@ extension TerminalCapabilities {
     static func pointerShapesEvidence(_ program: TerminalClient.Program) -> HostEvidence {
         switch program {
         case .appleTerminal, .iTerm2, .ghostty, .warp: .known
-        case .gnomeTerminal, .tmux: .unknown
+        case .gnomeTerminal, .xtermJS, .tmux: .unknown
         case .unidentified: .unidentified
         }
     }

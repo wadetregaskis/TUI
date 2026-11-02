@@ -23,7 +23,7 @@ extension TerminalCapabilities {
     /// *Terminal compatibility survey*, "Underline shapes and colours".
     package static func textDecorations(of program: TerminalClient.Program) -> Self {
         switch program {
-        case .appleTerminal, .iTerm2, .ghostty, .warp:
+        case .appleTerminal, .iTerm2, .ghostty, .warp, .xtermJS:
             let styles = TerminalHost.lineStyles(for: program)
             return nothingKnown
                 .settling(.doubleUnderline, drawn: styles.doubleUnderline)

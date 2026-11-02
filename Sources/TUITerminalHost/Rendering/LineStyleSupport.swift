@@ -82,6 +82,12 @@ extension TerminalHost {
             return .all
         case .ghostty:
             return .underlines
+        case .xtermJS:
+            // All five underline shapes and a colour for them, in either
+            // renderer; a strikethrough takes the text's colour, there being
+            // no sequence it reads for one.
+            return LineStyleSupport(
+                doubleUnderline: true, patternedUnderlines: true, underlineColour: true, strikethroughColour: false)
         case .warp:
             return LineStyleSupport(
                 doubleUnderline: true, patternedUnderlines: false, underlineColour: false, strikethroughColour: false)

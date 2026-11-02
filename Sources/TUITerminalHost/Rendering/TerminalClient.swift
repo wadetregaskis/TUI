@@ -52,6 +52,10 @@ public struct TerminalClient: Sendable, Equatable {
         case warp
         /// GNOME Terminal (VTE).
         case gnomeTerminal
+        /// xterm.js, with its Unicode graphemes addon, as the browser demo
+        /// runs it (`Tools/Web/`). A page embedding it may load other addons or
+        /// none, and nothing here can see which.
+        case xtermJS
         /// A tmux pane. tmux is a compositor, not a passthrough — it parses our
         /// output into its own grid with its own width tables — so it, and not
         /// the terminal attached to it, is the host whose model applies.
@@ -69,6 +73,7 @@ public struct TerminalClient: Sendable, Equatable {
             case .ghostty: "ghostty"
             case .warp: "WarpTerminal"
             case .gnomeTerminal: "gnome-terminal"
+            case .xtermJS: "xterm.js"
             case .tmux: "tmux"
             case .unidentified: nil
             }
@@ -82,6 +87,7 @@ public struct TerminalClient: Sendable, Equatable {
             case "ghostty": self = .ghostty
             case "WarpTerminal": self = .warp
             case "gnome-terminal", "GNOME_Terminal", "vte": self = .gnomeTerminal
+            case "xterm.js": self = .xtermJS
             case "tmux": self = .tmux
             default: self = .unidentified
             }
@@ -389,6 +395,14 @@ public struct TerminalClient: Sendable, Equatable {
                 zwjSequences: .decomposedDroppingJoiners,
                 skinTone: .detached,
                 textClusters: .perCodePoint)
+        case .xtermJS:
+            // With the graphemes addon it composes ZWJ sequences and merges
+            // skin tones (`xtermjs-6.0.0-graphemes-advance.json`). Its chrome's
+            // ink is unread, so it takes `.contained` with the other unread
+            // hosts. Text clusters are neither of TUI's prices: it advances
+            // स्त्र and स्त्री both 3 and कि 1, so the first over-advances by
+            // one and the second is squared by a CUF.
+            .composing
         case .tmux:
             // NOT widened, deliberately. Measured 2026-08-26, tmux 3.7b does
             // not split by base plane the way iTerm2 does: 👍🏽 🙏🏽 👋🏽 merge
@@ -461,6 +475,7 @@ public struct TerminalClient: Sendable, Equatable {
         case .ghostty: cluster.ghosttyCursorAdvance
         case .warp: cluster.warpCursorAdvance
         case .gnomeTerminal: cluster.gnomeTerminalCursorAdvance
+        case .xtermJS: cluster.xtermJSCursorAdvance
         case .tmux: cluster.tmuxCursorAdvance
         case .unidentified: cluster.unidentifiedHostCursorAdvance
         }
@@ -531,6 +546,8 @@ public struct TerminalClient: Sendable, Equatable {
             return strippingSkinTonesIfUnclaimed(text).withWarpCursorCompensation()
         case .gnomeTerminal:
             return strippingSkinTonesIfUnclaimed(text).withGnomeTerminalCursorCompensation()
+        case .xtermJS:
+            return text.withXtermJSCursorCompensation()
         case .unidentified:
             // Not "no compensation" any more, but "no HOST compensation". An
             // unidentified terminal is still assumed to have no defects of its

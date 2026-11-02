@@ -134,7 +134,7 @@ struct TerminalCapabilitiesTests {
             let known = TerminalCapabilities.textDecorations(of: program)
             #expect(known.undetermined.isSuperset(of: Feature.all.subtracting(.textDecorations)))
             switch program {
-            case .appleTerminal, .iTerm2, .ghostty, .warp:
+            case .appleTerminal, .iTerm2, .ghostty, .warp, .xtermJS:
                 // As the renderer reduces a style by, so the two cannot disagree.
                 let styles = TerminalHost.lineStyles(for: program)
                 #expect(known.supports(.doubleUnderline) == styles.doubleUnderline)

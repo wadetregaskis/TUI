@@ -72,6 +72,10 @@ self.onmessage = async (event) => {
       LINES: String(rows),
       TERM: "xterm-256color",
       COLORTERM: "truecolor",
+      // Who the page is. The page loads the graphemes addon, which is part of
+      // what the name stands for here (`TerminalClient.Program.xtermJS`).
+      TERM_PROGRAM: "xterm.js",
+      TERM_PROGRAM_VERSION: "6.0.0",
       LANG: message.language ?? "en_US.UTF-8",
       TUI_CONFIG_DIR: "/config",
       ...(message.env ?? {}),

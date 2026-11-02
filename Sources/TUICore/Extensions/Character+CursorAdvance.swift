@@ -898,6 +898,34 @@ extension Character {
     /// already accepted for SF Symbols there, and strictly better than the
     /// shear, since a claim is host-independent and must cover the widest
     /// painter (Apple) or content would be overwritten.
+    /// What xterm.js 6 with its graphemes addon advances this cluster by, as far
+    /// as a CUF can repair it (`xtermjs-6.0.0-graphemes-advance.json`, read from
+    /// its buffer, where advance and paint cannot differ):
+    ///
+    /// - **SF Symbols, bare pictographs, a lone regional indicator**: 1, against
+    ///   a 2-cell claim
+    /// - **Emoji of Unicode 15 and later**: 1, against 2: its tables stop short
+    /// - **A spacing vowel sign, Thai or Lao sara am**: 1, against 2: a
+    ///   regression from its own default tables, which say 2
+    ///
+    /// Two classes over-advance, and no forward movement can repair them, so
+    /// they read as the claim here: a Devanagari conjunct (3 against 2) and a
+    /// bidi mark (1 against 0). ZWJ sequences and skin tones already agree.
+    public var xtermJSCursorAdvance: Int {
+        let claim = terminalWidth
+        guard claim == 2 else { return claim }
+        if isLoneRegionalIndicator || isBarePictographUnderAdvancer { return 1 }
+        if unicodeScalars.count == 1, let only = unicodeScalars.first {
+            if Self.isPlaneSixteenGlyph(only.value) { return 1 }
+            if only.properties.isEmojiPresentation, let age = only.properties.age, age.major >= 15 { return 1 }
+        }
+        let hasVirama = unicodeScalars.contains { $0.properties.canonicalCombiningClass == .virama }
+        let isVowelSigned = unicodeScalars.contains {
+            $0.properties.generalCategory == .spacingMark || $0.value == 0x0E33 || $0.value == 0x0EB3
+        }
+        return isVowelSigned && !hasVirama ? 1 : claim
+    }
+
     var isBarePictographUnderAdvancer: Bool {
         let scalars = unicodeScalars
         guard scalars.count == 1, let only = scalars.first else { return false }

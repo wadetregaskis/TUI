@@ -2185,6 +2185,23 @@ Sixel and IIP are a different question, and an open one: the addon decodes both,
 and TUI implements neither. Nothing here recommends adding them — it only
 records that the browser could receive them.
 
+### What TUI does about it — `TerminalClient.Program.xtermJS`, 2026-11-01
+
+**Named by** `TERM_PROGRAM=xterm.js`, which the demo's worker sets, or by its Device
+Attributes: `CSI ?1;2c`, `CSI >0;276;0c` and no XTVERSION. An embedder that sets its
+own name keeps it: VS Code says `vscode` and stays unidentified. Nothing can see which
+addons a page loaded, and everything below is the demo's configuration.
+
+| | |
+|---|---|
+| Hyperlinks | on. The buffer keeps the link against the cells, and the page's `linkHandler` follows one. With mouse tracking on, a click still follows it, after at least one mouse move over it, and the app gets the click too. Without a `linkHandler` xterm.js asks `confirm()` first |
+| Advance | `Character.xtermJSCursorAdvance`: one cell for SF Symbols, bare pictographs, a lone regional indicator, emoji of Unicode 15 and later (the record has 10 of them; Unicode 15 and 16 both miss, so the addon's tables stop before 15, whatever its name says) and spacing vowel signs. ECH + CUF squares all of those |
+| Not repaired | a Devanagari conjunct (3 against 2) and a bidi mark (1 against 0) over-advance, which no forward movement can undo. Text clusters are neither of TUI's prices here: स्त्र and स्त्री both 3, कि 1 |
+| Line styles | double, curly, dotted and dashed underlines and an underline colour, read off the Text Styles page at three times the size (WebGL renderer, Chromium 152). A strikethrough has no colour of its own |
+| Block elements, corner triangles | fill the cell under the WebGL renderer, which draws them itself. Not under the DOM renderer, which takes them from the font: in Safari 27.2 a three-row button came apart, owner's report 2026-11-01. The demo loads WebGL; a page that does not would want `blockElementsFillTheLine` false, and nothing can see which it did |
+| Clipboard | not assumed: OSC 52 needs its clipboard addon, which nothing can see (`TUI_OSC52=1` says the page has it) |
+| Emoji chrome, pointer shapes, notifications, progress reports | not assumed, unmeasured or absent |
+
 ### Why not something else
 
 The browser-terminal field is smaller than it looks. Everything that ships a
