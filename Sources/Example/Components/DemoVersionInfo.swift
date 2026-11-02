@@ -43,6 +43,8 @@ extension DemoVersionInfo {
             return "macOS"
         #elseif os(Linux)
             return linuxDistroName
+        #elseif os(WASI)
+            return "WebAssembly"
         #else
             return "Unknown"
         #endif
@@ -60,7 +62,9 @@ extension DemoVersionInfo {
     }
 
     private var architecture: String {
-        #if arch(arm64)
+        #if arch(wasm32)
+            return "wasm32"
+        #elseif arch(arm64)
             return "arm64"
         #elseif arch(x86_64)
             return "x86_64"
