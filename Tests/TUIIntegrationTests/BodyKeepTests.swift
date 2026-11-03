@@ -100,6 +100,28 @@ private struct Slow: View {
     }
 }
 
+/// A row over the line, in a list whose rows change every frame.
+private struct SlowRow: View {
+    let index: Int
+    let tick: Int
+    @State private var taps = 0
+    var body: some View {
+        Runs.note("row")
+        Thread.sleep(forTimeInterval: 0.0002)
+        return Text(verbatim: "\(index) \(tick + taps)")
+    }
+}
+
+private struct SlowRows: View {
+    @State private var tick = 0
+    var body: some View {
+        Runs.write = { tick += 1 }
+        return VStack {
+            ForEach(0..<4, id: \.self) { SlowRow(index: $0, tick: tick) }
+        }
+    }
+}
+
 @Observable
 @MainActor
 private final class Model {
@@ -251,6 +273,27 @@ struct BodyKeepTests {
         frames(app)
         #expect(Runs.take("slow") == 1)
         #expect(Runs.take("quick") == 2)
+    }
+
+    @Test("What a draw doesn't take stops being kept")
+    func untakenStopsBeingKept() {
+        let app = app(SlowRows())
+        app.renderCache.bodyKeep.keepsEveryBody = false
+        for _ in 0..<12 {
+            Runs.write?()
+            frames(app)
+        }
+        let keep = app.renderCache.bodyKeep
+        let before = keep.counts
+        for _ in 0..<3 {
+            Runs.write?()
+            frames(app)
+        }
+        // No draw of these rows finds what its measure kept, as none of `stateful`'s
+        // does: what was kept is pure cost.
+        #expect(keep.counts.taken == before.taken)
+        #expect(keep.counts.kept == before.kept, "kept \(before.kept) then \(keep.counts.kept)")
+        #expect(text(app).contains("3 14"))
     }
 
     @Test("Nothing is kept past the walk: the table holds environments, which hold the cache")

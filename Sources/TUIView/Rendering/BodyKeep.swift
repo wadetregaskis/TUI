@@ -11,7 +11,8 @@
 //  Only a body seen to take real time: keeping one costs a hash, an allocation, a
 //  table and a look at the environment, more than most bodies, which only build a
 //  few values (+28% of `session/notes` keeping them all). So measures are timed, on
-//  a sample, and a type seen over the line is kept from then on.
+//  a sample, and a type seen over the line is kept from then on, unless its draws
+//  seldom take what is kept, when it rests for a while (`judgeKeeps`).
 //
 //  Nothing but the body is kept, and only until the walk ends. No buffer: see
 //  `render-memo-store-rules`.
@@ -93,6 +94,32 @@ package final class BodyKeep {
     }
     package var counts = Counts()
 
+    /// The passes begun: what a type's cooldown is counted in.
+    private var pass = 0
+
+    /// What each slow type kept and had taken this pass: the bodies a draw took
+    /// against the different ones a measure kept.
+    private var tally: [ObjectIdentifier: (kept: Int, taken: Int)] = [:]
+
+    /// What each type whose keeps go untaken has come to.
+    private var gates: [ObjectIdentifier: Gate] = [:]
+
+    private struct Gate {
+        /// Passes running in which too few of its bodies were taken.
+        var strikes = 0
+        /// The pass until which its bodies are not kept.
+        var until = 0
+    }
+
+    /// A slow type stops being kept when fewer than one in this many of the bodies
+    /// a pass keeps for it are taken. A keep and a take that misses cost about 0.8 µs
+    /// together (`gradients`: 2.7% of a 23 ms frame over 812 keeps), and a body is
+    /// kept only once seen to take 20 µs, so a keep pays for itself once 1 in 25 is
+    /// taken. A draw's environment can differ from its measure's every time, as it
+    /// does for `gradients`' rows (1 taken in 200), or a draw never ask, as for
+    /// `stateful`'s (none in 50 a pass).
+    private static let takenAtLeastOneIn = 16
+
     package init() {}
 
     /// Lets go of what is kept. Between walks too: a walk made again reads what the
@@ -105,6 +132,25 @@ package final class BodyKeep {
     func beginPass() {
         reset()
         if passesTimedWhole > 0 { passesTimedWhole -= 1 }
+        pass &+= 1
+        if !tally.isEmpty { judgeKeeps() }
+    }
+
+    /// Cools each type whose keeps went untaken two passes running, for 4, 8 … at
+    /// most 64 passes, as the plain memo's gate does (``PlainMemo``); one whose keeps
+    /// are taken is forgotten.
+    private func judgeKeeps() {
+        for (type, counted) in tally {
+            guard counted.taken * Self.takenAtLeastOneIn < counted.kept else {
+                gates[type] = nil
+                continue
+            }
+            var gate = gates[type] ?? Gate()
+            gate.strikes += 1
+            if gate.strikes >= 2 { gate.until = pass + min(64, 1 << min(gate.strikes, 6)) }
+            gates[type] = gate
+        }
+        tally.removeAll(keepingCapacity: true)
     }
 
     /// Whether a composite of `V` is one to keep: seen to be slow, or a test says so.
@@ -112,7 +158,10 @@ package final class BodyKeep {
     func isSlow<V: View>(_: V.Type) -> Bool {
         guard isOn else { return false }
         if keepsEveryBody { return true }
-        return !slowTypes.isEmpty && slowTypes.contains(ObjectIdentifier(V.self))
+        let type = ObjectIdentifier(V.self)
+        guard !slowTypes.isEmpty, slowTypes.contains(type) else { return false }
+        guard !gates.isEmpty, let gate = gates[type] else { return true }
+        return gate.until <= pass
     }
 
     /// The instant to time this measure's evaluation from, if it is timed.
@@ -214,6 +263,7 @@ package final class BodyKeep {
             }
         }
         counts.taken += 1
+        if !keepsEveryBody { tally[ObjectIdentifier(V.self), default: (0, 0)].taken += 1 }
         cache.leases.use(kept.lease)
         return unsafeDowncast(kept.box, to: Box<V>.self).body
     }
@@ -223,7 +273,10 @@ package final class BodyKeep {
     func keep<V: View>(_ body: V.Body, of view: V, lease: ObservationLease?, context: RenderContext, cache: RenderCache) {
         guard let key = key(view, context: context, cache: cache) else { return }
         counts.kept += 1
-        table[key] = Kept(box: Box(view: view, body: body), lease: lease, environment: context.environment)
+        let replaced = table.updateValue(
+            Kept(box: Box(view: view, body: body), lease: lease, environment: context.environment), forKey: key)
+        // A body kept again under the same key is one a draw could take, once.
+        if replaced == nil, !keepsEveryBody { tally[ObjectIdentifier(V.self), default: (0, 0)].kept += 1 }
     }
 }
 
