@@ -1,6 +1,6 @@
 # Open owner decisions
 
-What is waiting on you, re-checked on the morning of 2026-10-28 against `main`. Most questions were put to you between
+What is waiting on you, re-checked on 2026-11-02 against `main`. Most questions were put to you between
 2026-10-18 and 2026-10-26. The full write-ups of those asked by 2026-10-25, with the options and the
 evidence, are in the historical record, [Owner decisions, 2026-10-18 to 2026-10-25](<Historical/SwiftUI parity process/The owner's decisions, 2026-10-18 to 2026-10-25.md>). That record also holds every
 question you have already answered and what each answer set in motion. None of these blocks other work:
@@ -15,6 +15,8 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
   once, wait about two seconds, and press it again: the app should quit at the second press, the terminal
   restored. Under the kitty keyboard protocol ⌃\\ arrives as a key report, and only the stall watchdog
   makes a hung app quit.
+- **Animated pictures:** run `python3 Tools/TerminalProbes/animation_probe.py` in Ghostty. Its result decides whether a
+  terminal playing an animated picture by itself (`TUI_GRAPHICS_PLAYBACK`, off today) goes on by default.
 - **Push `main`.** Local `main` is several hundred commits ahead of GitHub (last pushed 2026-10-24, `9f8439764`).
   It includes the rename to TUI (`c5cdfca27`): pushing it renames every module and product for anyone
   depending on `main`.
@@ -32,18 +34,31 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
 | SCROLL-REGIONS | Moving rows with a scroll region rather than rewriting them: 28.6% fewer bytes over the sessions, no noticeable cost, on every terminal measured ([the study](<Performance/Scroll regions for output.md>)). On by default at the `exact` level, after you have watched one scroll on Apple Terminal? Keep or drop `residue` and `margins`, which add 1.4 points? | On, `exact`; drop the other two for now | Stays off, on its branch |
-| TMUX-HOLD | Under tmux a held frame repaints the whole pane at the client: Example idles at 153 KB/s where it should at 2 KB/s, and a Down key costs 10,356 bytes where it should 39. Stop sending the hold under tmux, after a soak over ssh? | Yes | As it is |
 | PARTIAL-TUI | A grid at the foot of the terminal, scrollback above ([the design](<Partial TUI.md>)): about 13 commits. It suits tools rather than page apps, and helps accessibility only a little. Build it after 1.0, or sooner? | After 1.0; the real cursor and "still" first if accessibility is the reason | After 1.0 |
+| HR-1 to HR-6 | Compiled hot reload, for when it's picked up: [section 10 of the design](<Compiled hot reload.md#10-what-the-owner-decides-when-this-is-picked-up>). | The design's defaults for HR-1 to HR-5 | Waits; nothing is built |
 
 ### Open on 2026-10-28
 
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
-| A-APPSTATE-1 (root) | The locale is the language (your (b)); words drawn in views follow a subtree's `\.locale`. About 130 places read words where no view draws (the status bar's and menu bar's labels, undo titles, clipboard notes), at the app's root: where does the app's own language live? | The root `\.locale` of the app's scene (`WindowGroup { … }.environment(\.locale, …)`, SwiftUI's idiom for an in-app language), which TUI's chrome reads too. | They keep reading the process's language. |
-| NEW-FOLDER | The file panels have no way to make a folder; a Mac's save panel has New Folder (`NSSavePanel.canCreateDirectories`, on by default), its open panel not by default. | A New Folder button, with a keyboard route, in the save and move panels (`fileExporter`, `fileMover`). About half a day. | None. |
-| SMALL-IMAGE-ON-FRAME | Landed: an image file up to 256 KB is decoded on the frame that first shows it (a few ms), so icons no longer flash in after a placeholder; larger files still load in a task. Keep, or keep every load off the frame? | Keep. | Kept. |
-| PICTURE-ASPECT | A resized picture: always drawn the same (more bytes while resizing), reuse while moving and exact once settled, sent at its own aspect, or reuse as now? You asked to see them. | Pending: each filmed in Ghostty, kitty and iTerm2, with bytes. | Reuse as now. |
 | SCROLLBAR-PLACEMENT | Try `.overContent` before the final say: the Example's Theme page now switches it (Scroll indicators). Hover a list, then click it: the bar moves from over the rows to beside them. | — | Both stay, beside the content by default. |
+
+## Answered on 2026-11-02
+
+| Id | Answer | Status |
+|---|---|---|
+| ENV-PRECEDENCE | `TUI_REDUCE_MOTION`, if set, overrides the system's setting. `COLUMNS` and `LINES`, if set, are taken as gospel, even where the terminal's size can be detected and differs. | Done. An in-band resize report still outranks them, for the browser page. A stale export now pins the size, as the Environment Variables article says. |
+| A-APPSTATE-1 (root) | The root `\.locale` of the app's scene (`WindowGroup { … }.environment(\.locale, …)`), which TUI's chrome reads too. | Done (`5dfa4b45f`, built ahead of the answer): the status bar, the menu bar and undo titles follow it, and a subtree's locale doesn't change them. |
+| NEW-FOLDER | The save dialog has a New Folder button; the open dialog doesn't. | Done: on `fileExporter`'s panel and, by judgement, `fileMover`'s, which picks where something goes. Off an importer of folders, which had one. A failure shows in the sheet. |
+| SMALL-IMAGE-ON-FRAME | Keep: an image file up to 256 KB is decoded on the frame that first shows it. | As built. |
+| PLAIN-TEXT | As built: it turns on by itself only when `LC_ALL`, `LC_CTYPE` or `LANG` names a non-UTF-8 charset, and `TUI_PLAIN_TEXT` forces it. | As built. It hasn't been run on Linux. |
+| PIXEL-HOSTS | Allowed on the hosts that couldn't be measured (kitty, foot, WezTerm, xterm), until there's a concrete case against. | As built. |
+| HANDSHAKE-CPR | Keep the classic-placement handshake's `CSI 6 n`. | As built. |
+| DOC-EDITED | The more sensitive check: a reference document counts as edited on `objectWillChange` or when what `snapshot` reads changes, not only on undo registration. | As built. |
+| CANVAS-GRAIN | Keep: quadrants by default, sextants and octants by `.canvasGrain`. | As built. |
+| ARG-PARSER | Drop the `TUIArgumentParser` module; keep `App.run()` and the three lines that show how. | Dropped. |
+| PLAIN-MEMO | On: a plain view's body needn't run when nothing tracked says it must, as in SwiftUI. | On by default. |
+| TMUX-HOLD | Stop sending the hold under tmux. | Done. It still wants a soak over ssh. |
 
 ## Answered on 2026-10-29
 
@@ -55,6 +70,7 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 
 | Id | Answer | Status |
 |---|---|---|
+| PICTURE-ASPECT | Each picture sent at the aspect its mode asks for. | Done ([Terminal graphics protocols, section 8](<Images and terminal graphics/Terminal graphics protocols.md>)); it stayed listed as open here by mistake. |
 | VEIL | 25% of each colour kept, 60% of its colour taken out ("25d60"). | Done (g263): pictures behind a sheet are muted the same way. |
 | PREVIEW-IMAGES | Glue: a module on the file panels and the image decoders. | Done (TUIFilePanelImages, `.fileDialogPicturePreviews()`). |
 | TEXT-EFFECTS | SwiftUI's `TextRenderer`, `Text.Layout` and `customAttribute`, on the part of `GraphicsContext` text needs, plus a TUI glyph swap. | Design first. |
@@ -73,7 +89,7 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 | A-LAYOUT-1 | Optimise it, then decide. | Done: a column's minimum height is answered without measuring, and columns share (`stateful` +1.5%, `tables-vstack` +7.5% for drawing all eight tables). |
 | A-WIDTHS-1 | Assume a perfect terminal by default; optional features never assumed. | Done. |
 | A-FB16-1 | Option 3: every frame glides with relayout. | Queued, after the transitions below. |
-| A-APPSTATE-1 | (b): the locale is the language. | Built in four slices (keys, buttons, alerts, dialogs); the root's language is open above. |
+| A-APPSTATE-1 | (b): the locale is the language. | Built in four slices (keys, buttons, alerts, dialogs); the root's language: see 2026-11-02. |
 | A-CHURN-1 | Keep the exact first round. | Nothing to change. |
 | A-O9-1 | `true`. | As shipped. |
 | A-PARITYMISC-1 | 2: build Core Data's `FetchRequest` when an app asks. | Not built. |
