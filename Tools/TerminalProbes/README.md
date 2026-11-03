@@ -323,6 +323,13 @@ when unset), the visual/aspect probes print to the terminal.
 - `sixel_probe.py` — does `Image` work by Sixel: DA1's `4`, `XTSMGRAPHICS`, the cell
   in pixels, what erases pixels, a row's repair, registers, the last row under each
   mode, half a megabyte in a hold, on cards that wait for `$PROBE_STEP.N`.
+- `animation_probe.py` — does this terminal PLAY a Kitty animation: the replies to
+  `a=f`, `a=a`, `a=c` and the feature queries, then a card of eight panels to look at
+  more than once, for playback, loop counts, stopping and transparency. `PROBE_TTY`
+  draws the card alone on another window's terminal.
+- `animation_kitty_headless.py` — kitty's own graphics code with no window, for a
+  machine where kitty cannot open one: replies, composed frames, gaps, state, of the
+  commands or of an app's output (`PROBE_STREAM`). Not whether it plays.
 - `no_kitty_proxy.py` — runs a command with every APC dropped on the wire, so a
   terminal with Kitty looks like one without, its settings untouched, and logs each
   held frame's bytes (`$PROXY_LOG`) and types keys from a file (`$PROXY_KEYS`).

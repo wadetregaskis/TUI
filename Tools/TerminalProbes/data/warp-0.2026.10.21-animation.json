@@ -1,0 +1,33 @@
+{
+  "stamp": {
+    "probe": "animation_probe",
+    "measured": "2026-11-02T15:46:47-08:00",
+    "screen": "alternate",
+    "os": "macOS 15.8.1",
+    "machine": "arm64",
+    "env": {
+      "TERM": "xterm-256color",
+      "TERM_PROGRAM": "WarpTerminal",
+      "TERM_PROGRAM_VERSION": "v0.2026.10.21.08.25.stable_02",
+      "COLORTERM": "truecolor",
+      "__CFBundleIdentifier": "dev.warp.Warp-Stable"
+    },
+    "mode_2027_grapheme_clustering": null,
+    "method": "DSR cursor report \u2014 confirm any disagreement with visual_card.py"
+  },
+  "features": {
+    "f": "b'\\x1b_Gi=3499;OK\\x1b\\\\'",
+    "a": "b'\\x1b_Gi=3499;InvalidKittyAction(InvalidKittyPayload(InvalidKittyImage(KittyRgbError(ExpectedDataSizeMismatch { expected_bytes: 12, actual_bytes: 0 }))))\\x1b\\\\'",
+    "c": "b'\\x1b_Gi=3499;OK\\x1b\\\\'"
+  },
+  "frame": "b'\\x1b_Gi=3499;InvalidKittyAction(UnsupportedAction)\\x1b\\\\'",
+  "control": {
+    "select": "b'\\x1b_Gi=3499;InvalidKittyAction(UnsupportedAction)\\x1b\\\\'",
+    "gap": "b'\\x1b_Gi=3499;InvalidKittyAction(UnsupportedAction)\\x1b\\\\'",
+    "run": "b'\\x1b_Gi=3499;InvalidKittyAction(UnsupportedAction)\\x1b\\\\'",
+    "stop": "b'\\x1b_Gi=3499;InvalidKittyAction(UnsupportedAction)\\x1b\\\\'"
+  },
+  "compose": "b'\\x1b_Gi=3499;InvalidKittyAction(UnsupportedAction)\\x1b\\\\'",
+  "moved": false,
+  "card_at": 1793663207.9930098
+}

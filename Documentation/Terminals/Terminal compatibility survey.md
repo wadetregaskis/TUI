@@ -4849,6 +4849,45 @@ everywhere else the glyph stands on the copy's average colour, a block behind
 each letter. `TUI_PICTURES_UNDER_TEXT=1` tries it anywhere. Graphics notes
 §14.5.
 
+### Kitty graphics animation — measured 2026-11-02, and Ghostty's pixels NOT seen
+
+`Tools/TerminalProbes/animation_probe.py`, records `data/*-animation.json`;
+`animation_kitty_headless.py` for kitty, which cannot open a window on this machine
+and so ran its parser and compositor only.
+
+| | Ghostty 1.4.0 | iTerm2 3.7.6 | Warp v0.2026.10.21 | kitty 0.49.1, no window |
+|---|---|---|---|---|
+| `a=f`, `q=0` | `i=…,r=2;OK` | Nothing | `InvalidKittyAction(UnsupportedAction)` | `i=…,r=3;OK` for a third frame |
+| `a=a`, `q=0` | Nothing (source: success never replies) | Nothing | `UnsupportedAction` | Not asked aloud |
+| `a=c`, `q=0` | `OK` | Nothing | `UnsupportedAction` | Not asked |
+| Feature query `e=f` (kitty 0.50) | `EINVAL: dimensions required` | `invalid payload` | Plain `OK`, no `e` | Too old to have it |
+| Plays, as drawn | **Not seen** | No: every panel held its first frame, 4 captures over 5 s | No: the same, 2 captures over 1.7 s | Not run: its loop is in the renderer |
+| `a=a,c=N` selects, as drawn | **Not seen** | No | No | Yes, by state |
+| `X=1` over a clear canvas | Source only | No | No | Yes, on TUI's bytes: a cleared half stays alpha 0 |
+
+The reply is the only thing that separates them, so the handshake asks for it, and
+takes `r=2` rather than `OK`. A bare `OK` would have been fooled: Warp says it to a
+feature query, and Ghostty says it to `a=c`.
+
+**Why Ghostty's pixels were not seen.** A probe in Ghostty has to be a second instance
+(`--initial-command`, no consent prompt). The window tools only find the first, which
+had no windows, and it would not open one. Full-screen capture needed an approval that
+went unanswered three times. So playback is off by default (`playbackTrustsHandshake`).
+To settle it, run `animation_probe.py` in Ghostty and look twice, a second apart: B, C
+and H should move, A should be white, D should end on yellow, E should hold, and F
+should never show both blocks.
+
+**What it rounds to, read and not measured.** Both keep whole milliseconds (`z`), so a
+file's delay survives as it is. Neither rounds to a grid. Each advances at most one
+frame per render, with no catch-up (Ghostty `animationTick`, kitty
+`scan_active_animations`), so a delay shorter than the terminal's render interval runs
+**slow**, where TUI's own clock skips frames and keeps time. Both stay on the last
+frame when the plays end, as a browser does. kitty pauses a picture with no visible
+cell by itself; Ghostty goes on while it has a placement, so TUI's stop is what stops it.
+
+**`v`, stated plainly.** `v=1` is for ever and `v=n` is `n - 1` passes (both sources),
+counting the pass it is in, and any `s` resets the count. TUI sends passes left + 1.
+
 ### Windows Terminal and Sixel — read 2026-11-02, not measured
 
 No Windows machine here. Read from `microsoft/terminal`'s main branch, through

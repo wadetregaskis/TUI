@@ -1,0 +1,35 @@
+{
+  "stamp": {
+    "probe": "animation_probe",
+    "measured": "2026-11-02T15:27:49-08:00",
+    "screen": "alternate",
+    "os": "macOS 15.8.1",
+    "machine": "arm64",
+    "env": {
+      "TERM": "xterm-ghostty",
+      "TERM_PROGRAM": "ghostty",
+      "TERM_PROGRAM_VERSION": "1.4.0",
+      "COLORTERM": "truecolor",
+      "TERMINFO": "/Applications/Ghostty.app/Contents/Resources/terminfo",
+      "__CFBundleIdentifier": "com.mitchellh.ghostty",
+      "GHOSTTY_RESOURCES_DIR": "/Applications/Ghostty.app/Contents/Resources/ghostty"
+    },
+    "mode_2027_grapheme_clustering": "set",
+    "method": "DSR cursor report \u2014 confirm any disagreement with visual_card.py"
+  },
+  "features": {
+    "f": "b'\\x1b_Gi=3499;EINVAL: dimensions required\\x1b\\\\'",
+    "a": "b'\\x1b_Gi=3499;EINVAL: invalid data\\x1b\\\\'",
+    "c": "b'\\x1b_Gi=3499;EINVAL: dimensions required\\x1b\\\\'"
+  },
+  "frame": "b'\\x1b_Gi=3499,r=2;OK\\x1b\\\\'",
+  "control": {
+    "select": "b''",
+    "gap": "b''",
+    "run": "b''",
+    "stop": "b''"
+  },
+  "compose": "b'\\x1b_Gi=3499;OK\\x1b\\\\'",
+  "moved": false,
+  "card_at": 1793662069.545534
+}
