@@ -49,6 +49,11 @@ struct FilePanelRequest {
     /// The folder the panel opens on.
     var startDirectory: URL
 
+    /// Whether a panel that opens things has New Folder, as
+    /// `NSOpenPanel.canCreateDirectories` says, off unless asked: a mover's is on.
+    /// A save panel always has it (``FilePanel/createsFolders``).
+    var opensWithNewFolder = false
+
     /// Whether the panel opens with the hidden items listed.
     var showsHiddenFiles = false
 

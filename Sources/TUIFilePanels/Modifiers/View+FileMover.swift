@@ -141,7 +141,11 @@ extension View {
                     confirmationLabel: move,
                     // Until a choice is made through this view, which the
                     // presenter opens on instead.
-                    startDirectory: files.first?.deletingLastPathComponent() ?? FilePanelRequest.defaultStartDirectory)
+                    startDirectory: files.first?.deletingLastPathComponent() ?? FilePanelRequest.defaultStartDirectory,
+                    // Where to move something is often a folder that isn't
+                    // there yet, as in the Finder's Move To. An importer of
+                    // folders chooses among what exists, and has none.
+                    opensWithNewFolder: true)
             },
             onChoose: { folders in
                 guard let folder = folders.first else { return }

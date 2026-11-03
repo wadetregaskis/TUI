@@ -768,14 +768,19 @@ on by default); its open panel has none unless the app asks. TUI's panels had
 none, so a save into a folder that did not exist yet meant leaving the app.
 Answered on 2026-10-28: add it.
 
-The save panel and any panel that chooses a folder (a mover's destination, an
-importer of folders) have **New Folder** at the start of the footer; a panel
-that opens only files has none, as the Mac's. It asks the new folder's name in
+The save panel and a mover's have **New Folder** at the start of the footer; an
+open panel has none, as the Mac's has none by default (both defaults measured
+2026-11-02: `canCreateDirectories` is true on an `NSSavePanel`, false on an
+`NSOpenPanel`), even if it chooses folders. That is the owner's word of
+2026-11-02, "the open dialog should not", which took it off an importer of
+folders, which had one until then. The mover keeps its own: it is picking where
+something goes, and that is often a folder that isn't there yet. It asks the new folder's name in
 a sheet over the panel, as the Mac's does (an alert holds only buttons): "Name
-of new folder:", a field holding "untitled folder", numbered past any the
-folder holds already ("untitled folder 2"), and Cancel and Create. Create, or
-Return in the field, makes the folder in the folder shown and opens it; a name the folder holds already, or one with a `/`,
-says why it cannot be made in an alert of its own. From the keyboard the
+of new folder:", a field with the focus holding "untitled folder", numbered past any the
+folder holds already ("untitled folder 2"), all selected so that typing replaces it, and Cancel and Create. Create, or
+Return in the field, makes the folder in the folder shown and opens it; a name the folder holds already, a
+folder the user may not write to, or a name with a `/`, says why in the sheet, which stays up
+with the name in its field to change. From the keyboard the
 button is a Tab stop, and **+** in the folder asks too, named in the status
 bar: the Mac's ⇧⌘N is a chord no terminal sends as itself, and `+`, like `/`
 and `~`, is typed. The panel's words are in the seven languages.

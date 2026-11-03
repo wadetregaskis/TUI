@@ -216,14 +216,21 @@ public enum LocalizationKey {
         case open = "filePanel.open"
         /// The toggle that lists the files a folder hides.
         case showHiddenFiles = "filePanel.showHiddenFiles"
-        /// The button, and the alert's title, that make a folder in the folder shown.
+        /// The button, and the sheet's title, that make a folder in the folder shown.
         case newFolder = "filePanel.newFolder"
-        /// The New Folder alert's message, over the name field.
+        /// The New Folder sheet's label, over the name field.
         case newFolderName = "filePanel.newFolderName"
-        /// The name the New Folder alert offers.
+        /// The name the New Folder sheet offers.
         case untitledFolder = "filePanel.untitledFolder"
-        /// The alert's title when a folder cannot be made, its name as `%@`.
+        /// What the sheet says when a folder cannot be made for a reason of the
+        /// system's, which follows it, the folder's name as `%@`.
         case newFolderFailed = "filePanel.newFolderFailed"
+        /// What the sheet says when the folder holds that name already, as `%@`.
+        case newFolderNameTaken = "filePanel.newFolderNameTaken"
+        /// What the sheet says when the user may not make a folder here.
+        case newFolderNoPermission = "filePanel.newFolderNoPermission"
+        /// What the sheet says of a name that cannot be used, as `%@`.
+        case newFolderBadName = "filePanel.newFolderBadName"
         /// The status bar's word for the key that makes a folder.
         case statusNewFolder = "filePanel.status.newFolder"
         /// The path bar's button to the folder above.

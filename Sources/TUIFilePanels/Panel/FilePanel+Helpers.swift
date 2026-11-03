@@ -38,11 +38,11 @@ extension FilePanel {
         }
     }
 
-    /// Whether the panel makes folders: a save panel, or one that chooses a
-    /// folder (a mover's destination, an importer of folders), as a macOS
-    /// save panel does and an open panel does not by default.
+    /// Whether the panel makes folders: a save panel, as a macOS save panel does
+    /// by default (`canCreateDirectories`), and a mover's. An open panel doesn't,
+    /// as a macOS one doesn't by default, even if it chooses folders.
     var createsFolders: Bool {
-        request.saveContentTypes != nil || request.rule.choosesFolders
+        request.saveContentTypes != nil || request.opensWithNewFolder
     }
 
     /// The one folder of `selected`, when it is one folder that cannot be
