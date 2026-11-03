@@ -61,6 +61,9 @@ package final class HeadlessApp {
     private let renderer: any HeadlessRendering
     private let inputHandler: InputHandler
     private let tuiContext: TUIContext
+
+    /// The status bar, for ``adoptUndoManager()``.
+    private let statusBar: StatusBarState
     private let lifecycleManager: LifecycleManager
     private let focusManager: FocusManager
     private let animationScheduler = AnimationScheduler()
@@ -81,6 +84,15 @@ package final class HeadlessApp {
     /// exactly when a frame drawn through it is the frame drawn without it.
     package var clearsRenderCacheEachFrame = false
 
+    /// Gives the app the undo manager `AppRunner` makes for every app and this
+    /// doesn't, so that what no test asked for doesn't change what a frame draws:
+    /// for a test of the undo items in the bars.
+    package func adoptUndoManager() {
+        let undoManager = UndoManager()
+        tuiContext.undoManager = undoManager
+        statusBar.undoManager = undoManager
+    }
+
     /// Assembles `app` over an in-memory terminal of `width` × `height` cells.
     package init<A: App>(_ app: A, width: Int, height: Int) {
         let terminal = InMemoryTerminal(width: width, height: height)
@@ -98,6 +110,7 @@ package final class HeadlessApp {
         let appearanceManager = ThemeManager(items: AppearanceRegistry.all, renderTrigger: {})
         self.terminal = terminal
         self.tuiContext = tuiContext
+        self.statusBar = statusBar
         self.lifecycleManager = tuiContext.lifecycle
         self.focusManager = focusManager
         let renderer = RenderLoop(

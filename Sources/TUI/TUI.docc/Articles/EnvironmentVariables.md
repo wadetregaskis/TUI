@@ -225,7 +225,7 @@ Two of the variables above are worth knowing for tests too. `TUI_CONFIG_DIR` kee
 | `TUI_DIFFERENTIATE_WITHOUT_COLOR` | Can't undo it | `accessibilityDifferentiateWithoutColor` is read-only, as in SwiftUI. `_accessibilityDifferentiateWithoutColor` writes it for a preview or a test. | Once |
 | `TUI_INCREASE_CONTRAST` | Can't undo it | `colorSchemeContrast` is read-only, as in SwiftUI. `_colorSchemeContrast` writes it for a preview or a test. | Once |
 | `TUI_KEY_SYMBOLS` | Can't undo it | `Scene.keyNotation(.spelledOut)` asks for the names too, but `.symbols` doesn't undo this. `keyNotation` is read-only. | Once |
-| `LANGUAGE` | Wins | `LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\.locale, _)` for part of an app. | Once |
+| `LANGUAGE` | Wins | `LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\.locale, _)` at the scene's root for the whole app, or on a view for part of it. | Once |
 | `LC_ALL` | Wins | `LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\.locale, _)` for part of an app. | Once |
 | `LC_CTYPE` | No setting | The variable is the only way. | Once |
 | `LC_MESSAGES` | Wins | `LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\.locale, _)` for part of an app. | Once |

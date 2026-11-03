@@ -81,7 +81,7 @@ extension TUIEnvironmentVariables {
             "LANGUAGE", .endUser, .language,
             values: "A list of languages, such as `pt:es`",
             effect: "The languages to use, most preferred first. It comes before the variables below. A language you chose inside the program comes before it.",
-            code: .overrides("`LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\\.locale, _)` for part of an app.")),
+            code: .overrides("`LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\\.locale, _)` at the scene's root for the whole app, or on a view for part of it.")),
         TUIEnvironmentVariable(
             "LC_ALL", .endUser, .language,
             values: "A locale, such as `de_DE.UTF-8`",
