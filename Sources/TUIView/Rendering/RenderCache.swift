@@ -1478,7 +1478,7 @@ extension RenderCache {
         clearGeneration &+= 1
         stats.clears += 1
         logDebug("CLEAR ALL (\(entries.count) entries)")
-        plainMemo.forgetAttempts()
+        plainMemo.noteCleared()
         entries.removeAll(keepingCapacity: true)
         sizeEntries.removeAll(keepingCapacity: true)
     }

@@ -534,6 +534,27 @@ struct PlainMemoCorrectnessTests {
         #expect(Probe.take("changes") == 0)
     }
 
+    /// `session/glides` empties the cache on each animated change, and a page whose
+    /// glides keep it from being stored asked again after every one.
+    @Test("Emptying the cache leaves what has stopped asking where it was")
+    func gateOutlivesAClear() {
+        let app = app(PassesField())
+        var nanos: Int64 = 0
+        settle(app, nanos: &nanos)
+        for _ in 0..<12 {
+            Probe.write?()
+            settle(app, nanos: &nanos, frames: 1)
+        }
+        app.renderCache.clearAll()
+        let cooled = app.renderCache.plainMemo.counts.cooled
+        for _ in 0..<3 {
+            Probe.write?()
+            settle(app, nanos: &nanos, frames: 1)
+        }
+        #expect(app.renderCache.plainMemo.counts.cooled > cooled)
+        #expect(text(app).contains("changes=15"))
+    }
+
     @Test("A real app's services leave its environment comparable, as a test's do")
     func realAppEnvironmentIsStamped() {
         let context = TUIContext(clipboard: SystemClipboard.Backend(), urlOpener: SystemURLOpener())

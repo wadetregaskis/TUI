@@ -127,12 +127,22 @@ package final class PlainMemo {
         if pass.isMultiple(of: 64), !gates.isEmpty { gates = gates.filter { $0.value.until >= pass - 64 || $0.value.stored >= pass - 64 } }
     }
 
-    /// Forgets what has failed: the cache is being emptied, as it is when the
-    /// terminal answers a question or a type is first seen to read something, which
-    /// says nothing of what its composites will do. Left counted, the frames of a
-    /// program's start cooled a page of slow bodies for its first few keys.
-    func forgetAttempts() {
-        if !gates.isEmpty { gates.removeAll(keepingCapacity: true) }
+    /// The pass in which the cache was last emptied.
+    private var clearedAt = Int.min
+
+    /// Notes that the cache is being emptied, as it is when the terminal answers
+    /// a question, a type is first seen to read something, or a change is made
+    /// under another transaction than the one pending. The misses that follow say
+    /// nothing of what a composite will do, so the pass it is emptied in and the
+    /// next count as no evidence: counted, the frames of a program's start cooled
+    /// a page of slow bodies for its first few keys.
+    ///
+    /// What was counted before stays counted. Forgetting it, as this once did,
+    /// let `session/glides` ask again after each of its animated changes, which
+    /// each empty the cache: a page whose glides keep it from being stored, and a
+    /// clock that changes every frame, asked on 1 frame in 3 and were never served.
+    func noteCleared() {
+        clearedAt = pass
     }
 
     /// Whether the composite filed under `hash` is left out of the memo this pass.
@@ -159,7 +169,7 @@ package final class PlainMemo {
     private func noteMissed(at hash: Int) {
         var gate = gates[hash] ?? Gate()
         let storedNow = lastStored == hash
-        let evidence = !storedNow || gate.stored == pass - 1
+        let evidence = (!storedNow || gate.stored == pass - 1) && pass > clearedAt &+ 1
         if storedNow { gate.stored = pass }
         if evidence {
             gate.run += 1
