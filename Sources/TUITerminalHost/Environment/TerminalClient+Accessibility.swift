@@ -79,6 +79,20 @@ extension TerminalClient {
             if environment[named.variable] == "1" { asked.insert(named.preference) }
         }
     }
+
+    /// What the user turned off in the environment the app was started in, whatever
+    /// the host's own setting says: `TUI_REDUCE_MOTION=0`. Read once, at first use;
+    /// only the app runner reads it.
+    ///
+    /// Only that one of the four, as the owner ruled it (2026-11-02). The other
+    /// three mean `1` or nothing.
+    package static let accessibilityDeclined: AccessibilityPreferences =
+        accessibilityDeclined(environment: ProcessInfo.processInfo.environment)
+
+    /// The rule behind ``accessibilityDeclined``, posed on its input.
+    static func accessibilityDeclined(environment: [String: String]) -> AccessibilityPreferences {
+        environment["TUI_REDUCE_MOTION"] == "0" ? .reduceMotion : []
+    }
 }
 
 // MARK: - The host's setting

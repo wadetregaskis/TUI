@@ -113,4 +113,44 @@ struct EnvironmentVariablePrecedenceTests {
         #expect(!opens(false, "1"))
         #expect(!opens(true, "0"))
     }
+
+    /// The system's setting is one of the things TUI would otherwise do, so the
+    /// variable beats it each way, and the scene can only add to what's left.
+    @Test("TUI_REDUCE_MOTION beats the system's Reduce Motion, each way")
+    func reduceMotionOverSystem() {
+        func reduced(_ variable: String?, system: Bool) -> Bool {
+            let environment = Self.environment("TUI_REDUCE_MOTION", variable)
+            let host: AccessibilityPreferences = system ? .reduceMotion : []
+            return TerminalClient.accessibilityRequested(environment: environment)
+                .union(host.subtracting(TerminalClient.accessibilityDeclined(environment: environment)))
+                .contains(.reduceMotion)
+        }
+        #expect(!reduced(nil, system: false))
+        #expect(reduced(nil, system: true))
+        #expect(reduced("1", system: false))
+        #expect(!reduced("0", system: true))
+        // A value it doesn't know is ignored, and an empty one is unset.
+        #expect(reduced("yes", system: true))
+        #expect(reduced("", system: true))
+    }
+
+    @Test("COLUMNS and LINES beat what the terminal measures, and a report beats them")
+    func sizeOverTerminal() {
+        func size(
+            reported: (width: Int, height: Int)? = nil, columns: Int? = nil, lines: Int? = nil,
+            measured: (width: Int, height: Int)? = (100, 30)
+        ) -> (width: Int, height: Int) {
+            Terminal.size(reported: reported, columns: columns, lines: lines, measured: measured)
+        }
+        #expect(size() == (100, 30))
+        #expect(size(measured: nil) == (80, 24))
+        // Gospel, each on its own axis, measured or not.
+        #expect(size(columns: 60, lines: 20) == (60, 20))
+        #expect(size(columns: 60) == (60, 30))
+        #expect(size(lines: 20) == (100, 20))
+        #expect(size(columns: 60, measured: nil) == (60, 24))
+        #expect(size(lines: 20, measured: nil) == (80, 20))
+        // The browser page: started with the variables, then reporting each new size.
+        #expect(size(reported: (164, 45), columns: 60, lines: 20) == (164, 45))
+    }
 }

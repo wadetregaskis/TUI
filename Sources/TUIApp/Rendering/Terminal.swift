@@ -587,17 +587,52 @@ final class Terminal: HostStateKeeping {
 // MARK: - Internal API
 
 extension Terminal {
-    /// Returns the current terminal size.
+    /// The size to draw at: an in-band report, then `COLUMNS` and `LINES`, each on
+    /// its own axis, then what the terminal measures, then 80x24.
+    ///
+    /// A report comes first because a host that sends one (the browser page) starts
+    /// its guest with the first size in `COLUMNS`/`LINES` and the later ones as
+    /// reports. No terminal sends one unasked, and TUI doesn't ask, so everywhere
+    /// else the variables are the last word: the owner's ruling of 2026-11-02, which
+    /// means an export left over from a window since resized pins the size, and a
+    /// SIGWINCH finds nothing to change on an axis one of them states.
     ///
     /// - Returns: A tuple with width and height in characters/lines.
     func getSize() -> (width: Int, height: Int) {
-        if let reportedWindowSize { return reportedWindowSize }
+        Self.size(
+            reported: reportedWindowSize,
+            columns: terminalDimension(fromEnvironment: "COLUMNS"),
+            lines: terminalDimension(fromEnvironment: "LINES"),
+            measured: measuredSize())
+    }
 
+    /// The rule behind ``getSize()``, posed on its inputs. `measured` costs a system
+    /// call, so it is asked for only if a variable leaves an axis open.
+    static func size(
+        reported: (width: Int, height: Int)?, columns: Int?, lines: Int?,
+        measured: @autoclosure () -> (width: Int, height: Int)?
+    ) -> (width: Int, height: Int) {
+        if let reported { return reported }
+        if let columns, let lines { return (columns, lines) }
+        let measured = measured()
+        return (columns ?? measured?.width ?? 80, lines ?? measured?.height ?? 24)
+    }
+
+    /// The cells the window really has, whatever `COLUMNS` and `LINES` say: what a
+    /// terminal's reply in pixels, which is about the window, has to be divided by.
+    func windowGrid() -> (width: Int, height: Int) {
+        reportedWindowSize ?? measuredSize() ?? getSize()
+    }
+
+    /// What the terminal says its size is, or `nil` where it can't say.
+    private func measuredSize() -> (width: Int, height: Int)? {
         // No `ioctl` on wasip1, and nothing to ask it: a wasm program has no
-        // controlling terminal to measure. The environment fallback below is
-        // the whole answer there, which is why a WebAssembly host has to put the
-        // size in `COLUMNS`/`LINES` — see `Documentation/WebAssembly port.md`.
-        #if !canImport(WASILibc)
+        // controlling terminal to measure. The environment is the whole answer
+        // there, which is why a WebAssembly host has to put the size in
+        // `COLUMNS`/`LINES` — see `Documentation/WebAssembly port.md`.
+        #if canImport(WASILibc)
+            return nil
+        #else
             var windowSize = winsize()
 
             #if canImport(Glibc) || canImport(Musl)
@@ -606,41 +641,34 @@ extension Terminal {
                 let result = ioctl(STDOUT_FILENO, TIOCGWINSZ, &windowSize)
             #endif
 
-            if result == 0 && windowSize.ws_col > 0 && windowSize.ws_row > 0 {
-                return (Int(windowSize.ws_col), Int(windowSize.ws_row))
-            }
+            guard result == 0 && windowSize.ws_col > 0 && windowSize.ws_row > 0 else { return nil }
+            return (Int(windowSize.ws_col), Int(windowSize.ws_row))
         #endif
-
-        // Fallback to environment variables.
-        //
-        // Validated, not just parsed: `COLUMNS` / `LINES` are ordinary
-        // environment variables that anything may set — a shell's
-        // `checkwinsize`, a multiplexer, a CI runner, a stale export inherited
-        // from a since-resized window. `Int("0")` succeeds, so an unvalidated
-        // parse hands back a 0-row terminal from a *fallback* path that exists
-        // precisely because the real size was unavailable. Only a positive
-        // value is a size; anything else means "unknown", which is what the
-        // 80x24 default is for.
-        let cols = terminalDimension(fromEnvironment: "COLUMNS") ?? 80
-        let rows = terminalDimension(fromEnvironment: "LINES") ?? 24
-
-        return (cols, rows)
     }
 
-    /// Parses an environment variable as a terminal dimension, accepting only a
-    /// positive count; `nil` when unset, unparseable, or non-positive.
+    /// An environment variable of the process's as a terminal dimension. By `getenv`,
+    /// which walks the environment, where `ProcessInfo` would build a dictionary of
+    /// all of it: this runs on every frame.
+    func terminalDimension(fromEnvironment name: String) -> Int? {
+        getenv(name).flatMap { Self.terminalDimension(String(cString: $0)) }
+    }
+
+    /// An environment variable in `environment` as a terminal dimension, a question
+    /// posed on a dictionary, as `ColorDepth.detect(environment:)` poses its own,
+    /// without writing the one environment every thread reads.
+    func terminalDimension(fromEnvironment name: String, in environment: [String: String]) -> Int? {
+        environment[name].flatMap(Self.terminalDimension)
+    }
+
+    /// `raw` as a terminal dimension, accepting only a positive count; `nil` when
+    /// unparseable or non-positive.
     ///
-    /// `environment` is the process's own unless a caller poses the question
-    /// on a dictionary, as `ColorDepth.detect(environment:)` does, which asks
-    /// it without writing the one environment every thread reads.
-    func terminalDimension(
-        fromEnvironment name: String,
-        in environment: [String: String] = ProcessInfo.processInfo.environment
-    ) -> Int? {
-        guard let raw = environment[name],
-            let value = Int(raw),
-            value > 0
-        else { return nil }
+    /// Validated, not just parsed: `COLUMNS` / `LINES` are ordinary environment
+    /// variables that anything may set, and `Int("0")` succeeds, so an unvalidated
+    /// parse hands back a 0-row terminal. Only a positive value is a size; anything
+    /// else leaves the axis to the terminal, and then to the 80x24 default.
+    private static func terminalDimension(_ raw: String) -> Int? {
+        guard let value = Int(raw), value > 0 else { return nil }
         return value
     }
 

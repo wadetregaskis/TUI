@@ -289,6 +289,19 @@ struct HostReduceMotionTests {
         #expect(probe.seen == false)
     }
 
+    @Test("TUI_REDUCE_MOTION=0, as the app runner reads it, keeps the host's setting from the root")
+    func declinedKeepsTheHostOut() {
+        let declined = TerminalClient.accessibilityDeclined(environment: ["TUI_REDUCE_MOTION": "0"])
+        #expect(declined == .reduceMotion)
+        #expect(TerminalClient.accessibilityDeclined(environment: ["TUI_REDUCE_MOTION": "1"]).isEmpty)
+        #expect(TerminalClient.accessibilityDeclined(environment: [:]).isEmpty)
+        let probe = ReduceMotionProbe()
+        let loop = RenderLoopHarness().loop(ReduceMotionProbeApp(probe: probe), declinedAccessibility: declined)
+        loop.hostAccessibility = [.reduceMotion]
+        loop.render()
+        #expect(probe.seen == false)
+    }
+
     @Test("The terminal regaining the focus reads the host's setting again")
     func focusInReadsAgain() async throws {
         let appState = AppState()

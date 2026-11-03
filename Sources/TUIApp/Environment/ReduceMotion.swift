@@ -4,9 +4,9 @@
 //  Where `\.accessibilityReduceMotion` (declared in TUIView) comes from in a
 //  terminal — the user's `TUI_REDUCE_MOTION`, the operating system's own
 //  setting where TUI is sure the user is at this machine
-//  (`HostSettingsRefresher`), or the app's own `.reduceMotion()` on its
-//  scene. The operating system's setting counts only there: the machine the app
-//  runs on need not be the one the user sits at.
+//  (`HostSettingsRefresher`) and the variable doesn't say otherwise, or the app's
+//  own `.reduceMotion()` on its scene. The operating system's setting counts only
+//  there: the machine the app runs on need not be the one the user sits at.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -39,7 +39,8 @@ extension Scene {
     /// does not ask for less motion, and a user who asked for it — with
     /// `TUI_REDUCE_MOTION=1`, or with Reduce Motion on the machine they are
     /// at — still gets it: less motion is the direction to err in, and the
-    /// user is the one who knows they need it.
+    /// user is the one who knows they need it. `true` still reduces motion under
+    /// `TUI_REDUCE_MOTION=0`, which only overrides the system's setting.
     ///
     /// - Parameter reduces: Whether to reduce motion. `true` by default.
     /// - Returns: A scene whose environment reduces motion if `reduces` is

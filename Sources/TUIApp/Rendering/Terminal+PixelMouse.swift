@@ -17,7 +17,7 @@ extension Terminal {
     func updatePixelMouse(wanted: Bool, tracking: Bool) {
         guard wanted || pixelMouse.holdsPixels else { return }
         let write = pixelMouse.update(
-            wanted: wanted, tracking: tracking, grid: getSize(), cellReading: cellPixelSize(),
+            wanted: wanted, tracking: tracking, grid: windowGrid(), cellReading: cellPixelSize(),
             host: PixelMouseNegotiation.Host.of(
                 program: TerminalHost.program, environment: ProcessInfo.processInfo.environment))
         if !write.isEmpty { writeImmediate(write) }

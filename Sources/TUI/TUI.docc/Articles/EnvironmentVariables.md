@@ -18,7 +18,7 @@ This page says which setting wins, then lists every variable: <doc:EnvironmentVa
 
 ## Which Setting Wins
 
-**What your code states wins over a variable, and a variable wins over what TUI would otherwise do.** Your code can state a setting in a view modifier, an environment write or an assignment.
+**What your code states wins over a variable, and a variable wins over what TUI would otherwise do.** Your code can state a setting in a view modifier, an environment write or an assignment. What TUI would otherwise do includes what it reads from the system: `TUI_REDUCE_MOTION=0` turns off a machine-wide Reduce Motion, and `COLUMNS` and `LINES` win over the size the terminal reports, even if they're out of date.
 
 There's one deliberate exception, and one thing that doesn't count as stating anything:
 
@@ -100,7 +100,7 @@ Don't write a variable to state a setting. Many are read once, and `setenv` isn'
 
 | Variable | Values | Effect |
 |---|---|---|
-| `TUI_REDUCE_MOTION` | `1` | Less motion: things jump to where they're going rather than glide. Reduce Motion in your system's settings does the same, if you're at the machine the program runs on. |
+| `TUI_REDUCE_MOTION` | `1`, `0` | `1`: less motion: things jump to where they're going rather than glide. `0`: full motion, even with Reduce Motion on in your system's settings. With neither, Reduce Motion in your system's settings decides, if you're at the machine the program runs on. |
 | `TUI_REDUCE_TRANSPARENCY` | `1` | Less transparency: materials and glass are drawn opaque. Reduce Transparency in your system's settings does the same, if you're at the machine the program runs on. |
 | `TUI_DIFFERENTIATE_WITHOUT_COLOR` | `1` | Asks the program for cues that don't rest on colour alone, where it has them. The setting of that name in your system's settings does the same, if you're at the machine the program runs on. |
 | `TUI_INCREASE_CONTRAST` | `1` | Asks the program for more contrast, where it has it. Increase Contrast in your system's settings does the same, if you're at the machine the program runs on. |
@@ -161,8 +161,8 @@ Don't write a variable to state a setting. Many are read once, and `setenv` isn'
 | Variable | Values | Effect |
 |---|---|---|
 | `TUI_FORCE_ESCAPES` | `0`, or any other value | What a program writes when it prints a view once, rather than taking over the screen. `0`: plain text. Anything else: styled text, even down a pipe. `NO_COLOR` still takes out the colour. |
-| `COLUMNS` | A whole number above 0 | How wide the terminal is, where the system can't say, such as when the output goes down a pipe. 80 by default. It doesn't change what a terminal reports for itself. |
-| `LINES` | A whole number above 0 | How tall the terminal is, where the system can't say, such as when the output goes down a pipe. 24 by default. It doesn't change what a terminal reports for itself. |
+| `COLUMNS` | A whole number above 0 | How wide to draw, whatever the terminal says. Without it, the terminal's width, or 80 where it can't say, such as when the output goes down a pipe. While it's set the program doesn't follow the window, so an export left over from a window since resized pins the width: if a program draws at the wrong size, look for this first (`echo $COLUMNS`) and `unset COLUMNS`. |
+| `LINES` | A whole number above 0 | How tall to draw, whatever the terminal says. Without it, the terminal's height, or 24 where it can't say, such as when the output goes down a pipe. While it's set the program doesn't follow the window, so an export left over from a window since resized pins the height: if a program draws at the wrong size, look for this first (`echo $LINES`) and `unset LINES`. |
 <!-- /tui-environment-docs -->
 
 ### How the colour variables agree
@@ -220,7 +220,7 @@ Two of the variables above are worth knowing for tests too. `TUI_CONFIG_DIR` kee
 | `CLICOLOR` | Wins | Assign `ColorDepth.current`. | Once |
 | `COLORTERM` | Wins | Assign `ColorDepth.current`. | Once |
 | `TERM` | Wins | Assign `ColorDepth.current` for its colours. Whether there's a terminal to draw on stays as `TERM` says. | Once |
-| `TUI_REDUCE_MOTION` | Can't undo it | `Scene.reduceMotion(_:)` can ask for less motion too, but `false` doesn't undo this. | Once |
+| `TUI_REDUCE_MOTION` | Can't undo it | `Scene.reduceMotion(_:)` can ask for less motion too, even under `0`, but `false` doesn't undo `1`. | Once |
 | `TUI_REDUCE_TRANSPARENCY` | Can't undo it | `accessibilityReduceTransparency` is read-only, as in SwiftUI. `_accessibilityReduceTransparency` writes it for a preview or a test. | Once |
 | `TUI_DIFFERENTIATE_WITHOUT_COLOR` | Can't undo it | `accessibilityDifferentiateWithoutColor` is read-only, as in SwiftUI. `_accessibilityDifferentiateWithoutColor` writes it for a preview or a test. | Once |
 | `TUI_INCREASE_CONTRAST` | Can't undo it | `colorSchemeContrast` is read-only, as in SwiftUI. `_colorSchemeContrast` writes it for a preview or a test. | Once |

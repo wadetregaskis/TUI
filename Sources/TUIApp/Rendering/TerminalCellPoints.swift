@@ -160,7 +160,7 @@ extension TerminalClient {
         cellPointsCalibration = calibration(
             program: TerminalHost.program,
             reportedCell: terminal.cellPixelSize(),
-            grid: terminal.getSize(),
+            grid: terminal.windowGrid(),
             textArea: { TerminalHost.program == .iTerm2 ? terminal.queryTextAreaSize() : nil },
             localDisplayScale: { SessionLocality.isLikelyLocal(environment: environment) ? mainDisplayScale() : nil })
     }

@@ -424,6 +424,7 @@ extension AppRunner {
             // The one loop that reads the process's environment for it: an
             // app in a real terminal, run by the user who set it.
             requestedAccessibility: TerminalClient.accessibilityRequested,
+            declinedAccessibility: TerminalClient.accessibilityDeclined,
             keyNotation: TerminalClient.keyNotationRequested,
             springLoadingDelayRequested: TerminalClient.springLoadingDelayRequested
         )

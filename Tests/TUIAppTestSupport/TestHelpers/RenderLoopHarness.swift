@@ -78,11 +78,13 @@ final class RenderLoopHarness {
     /// — in place of asking the process's own host.
     func loop<A: App>(
         _ app: A, isTmux: Bool = false, accessibility: AccessibilityPreferences = [],
+        declinedAccessibility: AccessibilityPreferences = [],
         keyNotation: KeyNotation = .symbols, clientCapabilities: ClientCapabilities? = nil,
         springLoadingDelay: Duration? = nil
     ) -> RenderLoop<A> {
         loop(
-            app, on: terminal, isTmux: isTmux, accessibility: accessibility, keyNotation: keyNotation,
+            app, on: terminal, isTmux: isTmux, accessibility: accessibility, declinedAccessibility: declinedAccessibility,
+            keyNotation: keyNotation,
             clientCapabilities: clientCapabilities, springLoadingDelay: springLoadingDelay)
     }
 
@@ -90,7 +92,8 @@ final class RenderLoopHarness {
     /// (`ScriptedTerminalOutput`), for a test of the bytes a frame is sent as.
     func loop<A: App>(
         _ app: A, on terminal: any HostStateKeeping, isTmux: Bool = false,
-        accessibility: AccessibilityPreferences = [], keyNotation: KeyNotation = .symbols,
+        accessibility: AccessibilityPreferences = [], declinedAccessibility: AccessibilityPreferences = [],
+        keyNotation: KeyNotation = .symbols,
         clientCapabilities: ClientCapabilities? = nil, springLoadingDelay: Duration? = nil
     ) -> RenderLoop<A> {
         RenderLoop(
@@ -105,6 +108,7 @@ final class RenderLoopHarness {
             publishTerminalColors: { [colourRecord] in colourRecord.published.append($0) },
             probeClientCapabilities: Self.probe(answering: clientCapabilities),
             requestedAccessibility: accessibility,
+            declinedAccessibility: declinedAccessibility,
             keyNotation: keyNotation,
             springLoadingDelayRequested: springLoadingDelay)
     }

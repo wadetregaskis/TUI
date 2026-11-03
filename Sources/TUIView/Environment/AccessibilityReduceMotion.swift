@@ -63,10 +63,11 @@ extension EnvironmentValues {
     /// parents, and inside tmux every attached client passing the same test —
     /// because over ssh the preference would be the server's. It is read at
     /// launch and whenever the terminal regains the focus: macOS's Reduce
-    /// motion, or GNOME's animations switched off. It is also `true` when the
-    /// user set `TUI_REDUCE_MOTION=1` in the environment the app runs in
-    /// (``TerminalClient/reduceMotionRequested``), wherever that is, or the
-    /// app asked for it with the TUI-specific `Scene.reduceMotion(_:)`.
+    /// motion, or GNOME's animations switched off. `TUI_REDUCE_MOTION` in the
+    /// environment the app runs in overrides that either way: `1` is `true`
+    /// (``TerminalClient/reduceMotionRequested``) wherever the user is, and `0`
+    /// is `false` unless the app asks for less motion itself, with the TUI-specific
+    /// `Scene.reduceMotion(_:)`, which also makes it `true`.
     /// Read-only, as SwiftUI's is.
     public package(set) var accessibilityReduceMotion: Bool {
         get { self[AccessibilityReduceMotionKey.self] }

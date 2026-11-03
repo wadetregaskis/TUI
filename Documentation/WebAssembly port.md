@@ -70,7 +70,7 @@ remained genuinely needed a platform arm:
 | `SignalManager` | a whole stub: no signals, no job control, no resize notification |
 | `StdinArrivalNotifier` | `poll` — one call that waits on stdin *and* a timeout, which is exactly what the dispatch-source-plus-`Task.sleep` race was emulating |
 | `Terminal` raw mode | the `termios` calls go; every escape sequence stays, because bracketed paste, mouse tracking and the modifier-key mode are the terminal's business, not the kernel's |
-| `Terminal` size | no `ioctl`, so `COLUMNS`/`LINES` from the environment — the fallback that was already there |
+| `Terminal` size | no `ioctl`, so `COLUMNS`/`LINES` from the environment, which come first everywhere |
 | `SystemClipboard`, `SystemURLOpener`, tmux queries | stubs: all three are subprocesses, and wasip1 cannot start one |
 | `@AppStorage`'s file backend | writes inline instead of on a queue, and non-atomically — WASI's Foundation refuses `.atomic`, which needs a temporary file |
 
@@ -130,7 +130,8 @@ how many cells fit (`@xterm/addon-fit`) and starts the guest with that in
 `COLUMNS`/`LINES`. wasip1 has no `ioctl` and no SIGWINCH, so a later size goes
 down the keystroke ring as the in-band resize report a terminal sends under mode
 2048, `ESC [ 48 ; rows ; columns ; 0 ; 0 t`, which the input parser takes for the
-new size (`Terminal.windowSizeReport`).
+new size (`Terminal.windowSizeReport`). A report outranks the two variables, so a
+guest started with them still follows the page.
 
 **A wait is cut into slices, and the host cuts the executor's sleeps short.** A
 `poll` holds the only thread, so no `Task.sleep` ends during one: waiting for a

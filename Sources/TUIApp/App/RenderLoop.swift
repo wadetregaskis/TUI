@@ -379,10 +379,15 @@ internal final class RenderLoop<A: App> {
     /// into a fade.
     private let requestedAccessibility: AccessibilityPreferences
 
+    /// What the user turned off with a variable (`TUI_REDUCE_MOTION=0`), as the app
+    /// runner read it from the process: taken out of ``hostAccessibility`` at the root
+    /// of every frame. Empty in every other loop, for the same reason.
+    private let declinedAccessibility: AccessibilityPreferences
+
     /// The host's own accessibility settings, where the app runner is sure the
     /// user is at this machine (``HostSettingsRefresher``): added to
-    /// ``requestedAccessibility`` at the root of every frame. Empty in every
-    /// loop but the app runner's, for the same reason.
+    /// ``requestedAccessibility``, less ``declinedAccessibility``, at the root of
+    /// every frame. Empty in every loop but the app runner's, for the same reason.
     var hostAccessibility: AccessibilityPreferences = []
 
     /// How the user asked for keys to be written with `TUI_KEY_SYMBOLS`, as
@@ -425,6 +430,7 @@ internal final class RenderLoop<A: App> {
             TerminalColorRefresher.publishProcessWide,
         probeClientCapabilities: @escaping @Sendable () -> ClientCapabilities? = ClientCapabilityRefresher.probeHost,
         requestedAccessibility: AccessibilityPreferences = [],
+        declinedAccessibility: AccessibilityPreferences = [],
         keyNotation: KeyNotation = .symbols,
         springLoadingDelayRequested: Duration? = nil
     ) {
@@ -435,6 +441,7 @@ internal final class RenderLoop<A: App> {
         self.publishTerminalColors = publishTerminalColors
         self.probeClientCapabilities = probeClientCapabilities
         self.requestedAccessibility = requestedAccessibility
+        self.declinedAccessibility = declinedAccessibility
         self.keyNotation = keyNotation
         self.springLoadingDelayRequested = springLoadingDelayRequested
         self.app = app
@@ -1021,9 +1028,10 @@ extension RenderLoop {
         // The user's `TUI_REDUCE_MOTION`, and the host's own Reduce Motion
         // where the user is provably at this machine, at the root, where the
         // app runner passed them (see `requestedAccessibility`,
-        // `hostAccessibility`); a scene's own `.reduceMotion(_:)` is applied
+        // `hostAccessibility`), the variable winning over the host either way
+        // (`declinedAccessibility`); a scene's own `.reduceMotion(_:)` is applied
         // over them with the scene's other writes.
-        let accessibility = requestedAccessibility.union(hostAccessibility)
+        let accessibility = requestedAccessibility.union(hostAccessibility.subtracting(declinedAccessibility))
         environment.accessibilityReduceMotion = accessibility.contains(.reduceMotion)
         // And the three P5 reads beside it, which no scene adds to.
         environment.accessibilityReduceTransparency = accessibility.contains(.reduceTransparency)

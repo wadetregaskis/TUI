@@ -4,6 +4,12 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**`TUI_REDUCE_MOTION`, `COLUMNS` and `LINES` beat what TUI reads from the system.** `TUI_REDUCE_MOTION=0` turns off a
+machine-wide Reduce Motion, as `=1` already turned it on. `COLUMNS` and `LINES`, each on its own axis, now win over the size
+the terminal reports, where they used to be only a fallback, so an export left over from a window since resized pins the size:
+if a program draws at the wrong size, look there first. An in-band resize report still outranks them, so the browser page's
+guest goes on following the page.
+
 **A terminal can play an animated picture by itself, if you ask.** With `TUI_GRAPHICS_PLAYBACK=1`, the frames are handed
 to the terminal after one pass, and from then on a tick costs no bytes and no wake (7,243 bytes a tick for a picture of
 40 x 16 cells before). The picture still stops when nothing on screen shows it. This is off by default: Ghostty 1.4.0 and

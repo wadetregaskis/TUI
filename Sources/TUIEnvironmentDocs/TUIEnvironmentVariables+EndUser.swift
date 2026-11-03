@@ -51,9 +51,9 @@ extension TUIEnvironmentVariables {
     private static let accessibility: [TUIEnvironmentVariable] = [
         TUIEnvironmentVariable(
             "TUI_REDUCE_MOTION", .endUser, .accessibility,
-            values: "`1`",
-            effect: "Less motion: things jump to where they're going rather than glide. Reduce Motion in your system's settings does the same, if you're at the machine the program runs on.",
-            code: .cannotOverride("`Scene.reduceMotion(_:)` can ask for less motion too, but `false` doesn't undo this.")),
+            values: "`1`, `0`",
+            effect: "`1`: less motion: things jump to where they're going rather than glide. `0`: full motion, even with Reduce Motion on in your system's settings. With neither, Reduce Motion in your system's settings decides, if you're at the machine the program runs on.",
+            code: .cannotOverride("`Scene.reduceMotion(_:)` can ask for less motion too, even under `0`, but `false` doesn't undo `1`.")),
         TUIEnvironmentVariable(
             "TUI_REDUCE_TRANSPARENCY", .endUser, .accessibility,
             values: "`1`",
@@ -260,12 +260,12 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "COLUMNS", .endUser, .output,
             values: "A whole number above 0",
-            effect: "How wide the terminal is, where the system can't say, such as when the output goes down a pipe. 80 by default. It doesn't change what a terminal reports for itself.",
+            effect: "How wide to draw, whatever the terminal says. Without it, the terminal's width, or 80 where it can't say, such as when the output goes down a pipe. While it's set the program doesn't follow the window, so an export left over from a window since resized pins the width: if a program draws at the wrong size, look for this first (`echo $COLUMNS`) and `unset COLUMNS`.",
             reading: .eachUse),
         TUIEnvironmentVariable(
             "LINES", .endUser, .output,
             values: "A whole number above 0",
-            effect: "How tall the terminal is, where the system can't say, such as when the output goes down a pipe. 24 by default. It doesn't change what a terminal reports for itself.",
+            effect: "How tall to draw, whatever the terminal says. Without it, the terminal's height, or 24 where it can't say, such as when the output goes down a pipe. While it's set the program doesn't follow the window, so an export left over from a window since resized pins the height: if a program draws at the wrong size, look for this first (`echo $LINES`) and `unset LINES`.",
             reading: .eachUse),
     ]
 }

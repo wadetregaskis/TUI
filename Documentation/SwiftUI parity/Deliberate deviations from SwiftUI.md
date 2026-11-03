@@ -707,7 +707,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   progress still animate. An app's own
   `Animatable` values are left to the app, as in SwiftUI. The value comes from
   the user's `TUI_REDUCE_MOTION`, the app's TUI-only
-  `Scene.reduceMotion(_:)`, or the system setting only where TUI is sure
+  `Scene.reduceMotion(_:)`, or, unless the variable says otherwise, the system
+  setting only where TUI is sure
   the user is at this machine (refusal review O1, 2026-10-14): the machine an
   app runs on need not be the one its user sits at
   ([ReduceMotion.swift](../../Sources/TUIApp/Environment/ReduceMotion.swift#L4-L9)).

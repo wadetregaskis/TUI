@@ -1,12 +1,11 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  TerminalSizeFallbackTests.swift
 //
-//  `Terminal.getSize()` falls back to the `COLUMNS` / `LINES` environment
-//  variables when `TIOCGWINSZ` is unavailable. Those are ordinary environment
-//  variables — a shell's `checkwinsize`, a multiplexer, a CI runner, or a stale
-//  export from a since-resized window can all set them — and `Int("0")` parses
-//  fine, so an unvalidated read handed back a zero-row terminal from the very
-//  path that exists because the real size was unknown.
+//  `Terminal.getSize()` reads the `COLUMNS` / `LINES` environment variables
+//  ahead of `TIOCGWINSZ`. Those are ordinary environment variables — a shell's
+//  `checkwinsize`, a multiplexer, a CI runner, or a stale export from a
+//  since-resized window can all set them — and `Int("0")` parses fine, so an
+//  unvalidated read would hand back a zero-row terminal.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -57,6 +56,23 @@ struct TerminalSizeFallbackTests {
             await MainActor.run {
                 ProcessWideState.setEnvironment("LINES", to: "37")
                 #expect(Terminal().terminalDimension(fromEnvironment: "LINES") == 37)
+            }
+        }
+    }
+
+    /// The whole of it through the real `getSize()`, whatever this process's stdout
+    /// is: a terminal under `swift test`, or nothing under the parallel runner.
+    @Test("COLUMNS and LINES are what getSize() says, until a report comes in")
+    func getSizeReadsThemFirst() async {
+        await #expect(processExitsWith: .success) {
+            await MainActor.run {
+                ProcessWideState.setEnvironment("COLUMNS", to: "123")
+                ProcessWideState.setEnvironment("LINES", to: "45")
+                let terminal = Terminal()
+                #expect(terminal.getSize() == (123, 45))
+                terminal.reportedWindowSize = (164, 50)
+                #expect(terminal.getSize() == (164, 50))
+                #expect(terminal.windowGrid() == (164, 50))
             }
         }
     }
