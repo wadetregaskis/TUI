@@ -21,6 +21,8 @@ struct GIFFixture {
         /// What happens to it after it shows: 1 leaves it, 2 clears it, 3 restores
         /// what was under it.
         var disposal: UInt8 = 1
+        /// The colour index this frame reads as transparent, if any.
+        var transparent: UInt8?
     }
 
     var width = 8
@@ -47,9 +49,9 @@ struct GIFFixture {
             bytes.append(0)
         }
         for frame in frames {
-            bytes += [0x21, 0xF9, 4, frame.disposal << 2]
+            bytes += [0x21, 0xF9, 4, frame.disposal << 2 | (frame.transparent == nil ? 0 : 1)]
             bytes += little(frame.delay)
-            bytes += [0, 0]
+            bytes += [frame.transparent ?? 0, 0]
             let rect = frame.rect ?? (0, 0, width, height)
             bytes.append(0x2C)
             for field in [rect.x, rect.y, rect.width, rect.height] { bytes += little(field) }

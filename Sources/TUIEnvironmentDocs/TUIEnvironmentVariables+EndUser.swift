@@ -132,6 +132,12 @@ extension TUIEnvironmentVariables {
             code: .overrides("`TerminalClient.graphicsCompressionSupport`."),
             reading: .eachUse),
         TUIEnvironmentVariable(
+            "TUI_GRAPHICS_PLAYBACK", .endUser, .terminal,
+            values: "`0` or `1`",
+            effect: "Whether an animated picture is handed to the terminal to play, after one pass sent as usual. Off unless this is `1`, as nobody has yet seen it draw. Then a tick costs no bytes and no wake. Only for a terminal that plays Kitty animation: on any other the picture holds its first frame.",
+            code: .overrides("`TerminalClient.graphicsPlaybackSupport`."),
+            reading: .eachUse),
+        TUIEnvironmentVariable(
             "TUI_HAIRLINES", .endUser, .terminal,
             values: "`0` or `1`",
             effect: "Whether the thin lines between a list's rows are drawn as pictures, off or on, whatever the terminal.",

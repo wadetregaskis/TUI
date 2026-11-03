@@ -314,6 +314,19 @@ package final class HeadlessApp {
     /// How many bytes every frame so far has written to the terminal.
     package var bytesWritten: Int { terminal.bytesWritten }
 
+    /// Whether the picture commands written are kept for ``graphicsWritten``.
+    package var recordsGraphics: Bool {
+        get { terminal.recordsGraphics }
+        set { terminal.recordsGraphics = newValue }
+    }
+
+    /// The picture commands written since ``clearGraphicsWritten()``, each of a
+    /// frame's writes that held any, whole.
+    package var graphicsWritten: String { terminal.graphicsWritten }
+
+    /// Forgets ``graphicsWritten``.
+    package func clearGraphicsWritten() { terminal.graphicsWritten = "" }
+
     /// How many times a frame rang the terminal's bell (``TerminalBell``).
     package var bellsWritten: Int { terminal.bellsWritten }
 
@@ -428,6 +441,10 @@ private final class EventClock {
 final class InMemoryTerminal: HostStateKeeping {
     var size: (width: Int, height: Int)
     private(set) var bytesWritten = 0
+    /// Whether ``graphicsWritten`` is kept: off unless a test asks, as a session
+    /// run here can be long.
+    var recordsGraphics = false
+    var graphicsWritten = ""
     /// How many lone `BEL`s were written: the terminal's bell, which a frame
     /// writes as a write of its own (``TerminalBell/takePending()``).
     private(set) var bellsWritten = 0
@@ -459,6 +476,7 @@ final class InMemoryTerminal: HostStateKeeping {
     func write(_ string: String) {
         bytesWritten &+= string.utf8.count
         stream?.write(Data(string.utf8))
+        if recordsGraphics, string.contains("\u{1B}_G") { graphicsWritten += string }
         if string == "\u{07}" { bellsWritten += 1 }
         if string.hasPrefix(TerminalHostState.saveTitle) || string.hasPrefix(TerminalHostState.restoreTitle)
             || string.hasPrefix("\u{1B}]2;") || string.hasPrefix("\u{1B}]9;")

@@ -3,7 +3,9 @@
 //
 //  A file of several frames plays by itself: its frames decoded once in the
 //  background, the one showing chosen by the frame clock, and a wake asked for
-//  the next, re-declared only while the view is drawn.
+//  the next, re-declared only while the view is drawn. On a terminal that plays
+//  frames by itself, its first pass goes that way and the terminal does the rest
+//  (`TerminalImageStore+Playback.swift`).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -68,11 +70,16 @@ final class ImageAnimationPlayback {
     private var artBytes = 0
     /// How many frames have a store token of their own.
     private var placedFrames = 0
+    /// Whether the terminal is not to play these frames by itself: something
+    /// needs them one at a time here, as a copy of the picture does.
+    var keepsFramesHere = false
+    /// Whether the picture the terminal was playing is still to be let go of.
+    var owesTerminalRelease = false
 
     /// The token the frames decode under, beside the view's own.
     static func decodeToken(_ token: String) -> String { token + "-frames" }
 
-    private static func frameToken(_ token: String, _ index: Int) -> String { "\(token)-frame-\(index)" }
+    static func frameToken(_ token: String, _ index: Int) -> String { "\(token)-frame-\(index)" }
 
     /// Lets go of everything, for a picture that will start again from its first
     /// frame if it comes back: the view's disappear handler, or a new source.
@@ -80,6 +87,8 @@ final class ImageAnimationPlayback {
         lifecycle.cancelTask(token: Self.decodeToken(token))
         for index in 0..<placedFrames { store?.release(token: Self.frameToken(token, index)) }
         placedFrames = 0
+        keepsFramesHere = false
+        owesTerminalRelease = false
         progress = .unasked
         startedAt = nil
         pausedAt = nil
@@ -129,6 +138,50 @@ struct PlayingFrame {
     /// frames arrive and however far they were scaled down.
     let canvas: (width: Int, height: Int)
     let playback: ImageAnimationPlayback
+    /// Where this picture goes to the terminal to play: ``image`` is then the
+    /// first frame, always, and this says how far the terminal should have got.
+    var inTerminal: TerminalPlayingFrame?
+}
+
+/// How far a picture the terminal is to play has got, by the frame clock.
+struct TerminalPlayingFrame {
+    let animation: AnimatedImage
+    /// The frame showing now.
+    let index: Int
+    let elapsedNanos: Int64
+    let nowNanos: Int64
+    /// Called once, between frames, if something makes a copy of the picture,
+    /// which could only be of its first frame.
+    let keepFramesHere: () -> Void
+
+    /// Brings the picture `token` draws in `store` up to this frame, its frames
+    /// packed at `size` by `pixels`.
+    func advance(
+        token: String, store: TerminalImageStore, size: (width: Int, height: Int),
+        pixels: (RGBAImage) -> (bytes: [UInt8], format: KittyGraphics.PixelFormat)
+    ) {
+        store.advancePlayedPicture(
+            token: token, to: index,
+            timing: PlayedPictureTiming(
+                frameCount: animation.frames.count,
+                durationNanos: animation.frames.reduce(0) { $0 + $1.delayNanos }, plays: animation.plays,
+                elapsedNanos: elapsedNanos, nowNanos: nowNanos),
+            delayNanos: { animation.frames[$0].delayNanos },
+            size: size,
+            pixels: { pixels(animation.frames[$0].image) },
+            whenCopied: keepFramesHere)
+    }
+}
+
+extension PlayingFrame {
+    /// Puts a picture meant for the terminal back on this clock, for this render
+    /// falling through to glyphs, which have to be told each frame.
+    @MainActor
+    func keepFramesHereForGlyphs(token: String, context: RenderContext) {
+        guard let inTerminal else { return }
+        playback.keepsFramesHere = true
+        context.requestWake(token: "picture-frame-" + token, atNanos: inTerminal.nowNanos &+ 1)
+    }
 }
 
 // MARK: - Choosing the frame
@@ -190,15 +243,52 @@ extension _ImageCore {
             store?.release(token: token)
         }
         let position = animation.position(atElapsed: elapsed)
-        if playback.isPlaying, let next = position.nextChange {
+        let inTerminal = playsInTerminal(animation, playback: playback, context: context)
+        let terminalToken = ImageAnimationPlayback.frameToken("image-\(context.identity.path)", 0)
+        if playback.owesTerminalRelease {
+            playback.owesTerminalRelease = false
+            store?.release(token: terminalToken)
+        }
+        // Once it has them all, the terminal needs nothing more from this clock.
+        let handedOver = inTerminal && store?.hasHandedOverPlayedPicture(token: terminalToken) == true
+        if playback.isPlaying, !handedOver, let next = position.nextChange {
             context.requestWake(
                 token: "picture-frame-" + token,
                 atNanos: AnimationClock.nanoseconds(ofNextTickMultiple: 1, after: now &+ (next &- elapsed) &- 1))
+        }
+        if inTerminal {
+            let root = animation.frames[0]
+            return PlayingFrame(
+                image: root.image, decode: root.decode, index: 0, frameCount: animation.frames.count,
+                canvas: (animation.width, animation.height), playback: playback,
+                inTerminal: TerminalPlayingFrame(
+                    animation: animation, index: position.index, elapsedNanos: elapsed, nowNanos: now,
+                    keepFramesHere: {
+                        playback.keepsFramesHere = true
+                        playback.owesTerminalRelease = true
+                        // A write, to ask for the frame that draws them here.
+                        box.value = playback
+                    }))
         }
         let frame = animation.frames[position.index]
         return PlayingFrame(
             image: frame.image, decode: frame.decode, index: position.index, frameCount: animation.frames.count,
             canvas: (animation.width, animation.height), playback: playback)
+    }
+
+    /// Whether `animation` goes to the terminal to play. Only as placeholders, the
+    /// one way a picture stays one image whichever frame shows; only drawn in real
+    /// pixels; and within what ``ImageAnimationPlayback/terminalByteBudget`` leaves
+    /// in the terminal, all of it being there at once.
+    private func playsInTerminal(
+        _ animation: AnimatedImage, playback: ImageAnimationPlayback, context: RenderContext
+    ) -> Bool {
+        guard KittyGraphics.playsFramesItself, KittyGraphics.isSupported, !KittyGraphics.drawsPicturesByClassicPlacement,
+            !KittyGraphics.drawsPicturesBySixel, context.environment.terminalGraphics, !isTemplate,
+            !playback.keepsFramesHere, animation.frames.count > 1, let first = animation.frames.first
+        else { return false }
+        let frameBytes: Int = first.image.width * first.image.height * 4
+        return frameBytes * animation.frames.count <= ImageAnimationPlayback.terminalByteBudget
     }
 
     /// `picture` as this view's drawing, watched for whether a scroll view shows

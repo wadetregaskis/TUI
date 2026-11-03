@@ -106,6 +106,8 @@ var body: some View {
 
 One picture keeps at most 64 MiB of frames in memory. A larger file has every frame scaled down evenly to fit, and one with more than 1,024 frames keeps only every so many, each showing for as long as the ones it replaces. In real pixels, a frame is sent to the terminal once and kept there for the next time round, up to 64 MiB of them. Frames beyond that are sent again each time they show.
 
+Each time a frame shows, its cells are written again, about 12 bytes a cell. A terminal with Kitty's animation commands could play the picture itself, at no cost at all after the first time round. `TUI_GRAPHICS_PLAYBACK=1` asks for that. It isn't on by default yet, because its drawing hasn't been checked by eye on any terminal.
+
 ## Pictures that take time to load
 
 A small file loads straight away, on the frame that first draws it. A larger file, or a URL, loads in the background. Meanwhile your app keeps running, and the image shows a spinner in its frame.

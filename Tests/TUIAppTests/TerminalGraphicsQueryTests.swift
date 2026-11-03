@@ -60,7 +60,7 @@ struct TerminalGraphicsQueryTests {
         #expect(request.contains("\u{1B}8\u{1B}[J"), "…restored by DECRC, and the screen wiped from there")
         // Small enough that what a printing host shows fits in a row or two:
         // one pixel, not one image.
-        #expect(request.count < 450, "two pixels and twenty-six deflated bytes, and nothing that grows")
+        #expect(request.count < 600, "three pixels and twenty-six deflated bytes, and nothing that grows")
     }
 
     /// Every byte, so a change to any of it is a decision someone made here.
@@ -74,6 +74,7 @@ struct TerminalGraphicsQueryTests {
         let placement = TerminalGraphicsQuery.probeID
         let compression = TerminalGraphicsQuery.compressionProbeID
         let classic = TerminalGraphicsQuery.classicProbeID
+        let playback = TerminalGraphicsQuery.playbackProbeID
         let expected =
             "\u{1B}7"
             + "\u{1B}[B"
@@ -90,11 +91,51 @@ struct TerminalGraphicsQueryTests {
             + "\u{1B}_Ga=t,q=0,f=32,t=d,o=z,s=32,v=32,i=\(compression);"
             + "eJztwQENAAAAwqD3T20PBxQAAADwbhAAAAE=\u{1B}\\"
             + "\u{1B}_Ga=d,d=I,q=2,i=\(compression)\u{1B}\\"
+            + "\u{1B}_Ga=t,q=2,f=32,t=d,s=1,v=1,i=\(playback);AAAAAA==\u{1B}\\"
+            + "\u{1B}_Ga=f,q=0,f=32,t=d,s=1,v=1,z=40,i=\(playback);AAAAAA==\u{1B}\\"
+            + "\u{1B}_Ga=d,d=I,q=2,i=\(playback)\u{1B}\\"
             + "\u{1B}8\u{1B}[J"
             + "\u{1B}[5n"
         #expect(TerminalGraphicsQuery.request == expected)
         #expect(!TerminalGraphicsQuery.request.contains("\u{1B}[s"))
         #expect(!TerminalGraphicsQuery.request.contains("\u{1B}[u"))
+    }
+
+    /// Each reply is what `animation_probe.py` read, 2026-11-02, but kitty's, which
+    /// is read from its source.
+    @Test("Playing frames takes an OK that names the frame it made")
+    func playbackNamesTheFrame() {
+        let id = TerminalGraphicsQuery.playbackProbeID
+        func answered(_ body: String) -> Bool {
+            TerminalGraphicsQuery.parse(Array("\u{1B}_G\(body)\u{1B}\\".utf8)).framePlayback
+        }
+        #expect(answered("i=\(id),r=2;OK"), "Ghostty 1.4.0, and kitty")
+        #expect(!answered("i=\(id);OK"), "acknowledging is not adding a frame")
+        #expect(!answered("i=\(id);InvalidKittyAction(UnsupportedAction)"), "Warp")
+        #expect(!answered("i=\(TerminalGraphicsQuery.probeID),r=2;OK"), "another question's id")
+        #expect(!TerminalGraphicsQuery.parse([]).framePlayback, "iTerm2 3.7.6 says nothing")
+    }
+
+    @Test("The handshake does not turn playing frames on until someone has seen it draw")
+    func playbackOffByDefault() {
+        #expect(!TerminalClient.playbackTrustsHandshake)
+    }
+
+    @Test("Playing frames: pictures, then the override, the environment, the handshake")
+    func playbackLadder() {
+        func ladder(pictures: Bool = true, override: Bool? = nil, env: String? = nil, detected: Bool? = nil) -> Bool {
+            TerminalClient.graphicsPlaybackSupported(
+                pictures: pictures, override: override,
+                environment: env.map { ["TUI_GRAPHICS_PLAYBACK": $0] } ?? [:], detected: detected)
+        }
+        #expect(!ladder(), "nobody asked")
+        #expect(ladder(detected: true))
+        #expect(!ladder(detected: false))
+        #expect(!ladder(env: "0", detected: true), "for a terminal that says so and draws nothing")
+        #expect(ladder(env: "1", detected: false))
+        #expect(!ladder(override: false, env: "1", detected: true))
+        #expect(ladder(override: true, env: "0"))
+        #expect(!ladder(pictures: false, override: true, env: "1", detected: true), "no pictures, nothing to play")
     }
 
     @Test("Only an acknowledged placement counts as support")
@@ -148,7 +189,7 @@ struct TerminalGraphicsQueryTests {
         #expect(request.contains(probe), "the transmission is the question, so it speaks")
         #expect(request.contains("a=d,d=I,q=2,i=\(TerminalGraphicsQuery.compressionProbeID)"), "…and is freed")
         #expect(TerminalGraphicsQuery.compressionProbeID == TerminalGraphicsQuery.probeID - 1)
-        #expect(request.count < 450, "twenty-six deflated bytes, base64")
+        #expect(request.count < 600, "twenty-six deflated bytes, base64")
     }
 
     @Test("Each OK is credited to the id that asked, and an unknown id to nobody")

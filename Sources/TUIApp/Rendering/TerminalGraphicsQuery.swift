@@ -85,6 +85,10 @@ enum TerminalGraphicsQuery {
     /// two. Deleted before the store hands out its first id, so never in its way.
     static let classicProbeID: KittyGraphics.ImageID = KittyGraphics.maximumImageID - 18
 
+    /// The id the frame question borrows, the one below the classic placement's.
+    /// Deleted before the store hands out its first id.
+    static let playbackProbeID: KittyGraphics.ImageID = KittyGraphics.maximumImageID - 19
+
     /// `CSI 6 n`: where the cursor is, which the host says as `CSI row;col R`.
     private static let cursorReport = "\u{1B}[6n"
 
@@ -115,8 +119,8 @@ enum TerminalGraphicsQuery {
     /// too; tidy up, and fence with DSR so a silent terminal reports silence
     /// instead of hanging.
     ///
-    /// Three commands speak, and they are told apart by id — see ``parse(_:)``.
-    /// Everything else is `q=2`, so the reply holds exactly the three answers
+    /// Four commands speak, and they are told apart by id — see ``parse(_:)``.
+    /// Everything else is `q=2`, so the reply holds exactly the four answers
     /// and not a chorus of acknowledgements in the same `ESC _ G i=…;` shape.
     /// The classic placement states no `C`, so a host that places it moves the
     /// cursor, and asks for a `z` that is not 0 as every placement does.
@@ -143,6 +147,7 @@ enum TerminalGraphicsQuery {
             + KittyGraphics.delete(id: probeID)
             + KittyGraphics.delete(id: classicProbeID)
             + compressionRequest
+            + playbackRequest
             + "\u{1B}8\u{1B}[J"  // DECRC, and wipe whatever was printed
             + TerminalQueryReplies.statusFence
     }
@@ -159,7 +164,20 @@ enum TerminalGraphicsQuery {
             + KittyGraphics.delete(id: compressionProbeID)
     }
 
-    /// What the terminal said to each of the two questions.
+    /// The playback half: a second frame added to a one-pixel picture, out loud.
+    /// Credited only for naming the frame it made (`r=2`), as kitty's and Ghostty's
+    /// replies do: a host that acknowledges what it does not read cannot know the
+    /// number. Warp refuses this by name and iTerm2 says nothing
+    /// (`animation_probe.py`).
+    private static var playbackRequest: String {
+        var encoded: [UInt8] = []
+        KittyGraphics.base64(onePixel, into: &encoded)
+        return KittyGraphics.transmit(pixels: onePixel, width: 1, height: 1, id: playbackProbeID)
+            + "\u{1B}_Ga=f,q=0,f=32,t=d,s=1,v=1,z=40,i=\(playbackProbeID);" + KittyGraphics.ascii(encoded) + "\u{1B}\\"
+            + KittyGraphics.delete(id: playbackProbeID)
+    }
+
+    /// What the terminal said to each of the questions.
     struct Answers: Equatable {
         /// It drew — accepted — a virtual placement.
         var placement = false
@@ -167,6 +185,8 @@ enum TerminalGraphicsQuery {
         var compression = false
         /// It drew, or acknowledged, a classic placement.
         var classicPlacement = false
+        /// It added a frame to a picture, and said which.
+        var framePlayback = false
     }
 
     /// The acknowledgements in `bytes`, each credited to the question that
@@ -208,6 +228,7 @@ enum TerminalGraphicsQuery {
                 if id == probeID { answers.placement = true }
                 if id == compressionProbeID { answers.compression = true }
                 if id == classicProbeID { answers.classicPlacement = true }
+                if id == playbackProbeID, keys.contains("r=2") { answers.framePlayback = true }
             }
             index = end
         }

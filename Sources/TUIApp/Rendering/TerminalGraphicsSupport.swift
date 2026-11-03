@@ -38,6 +38,8 @@ extension TerminalClient {
     /// places a picture at the cursor, as a Kitty classic placement — or `nil`
     /// if it never ran.
     @MainActor static var detectedClassicPlacements: Bool?
+    /// What the handshake made of adding a frame to a picture, or `nil` if it never ran.
+    @MainActor static var detectedGraphicsPlayback: Bool?
 
     /// Force the answer for the terminal in front of you, whatever was
     /// detected.
@@ -76,6 +78,15 @@ extension TerminalClient {
         }
     }
 
+    /// Force whether a picture's frames are handed to the terminal to play, where
+    /// pictures go by placeholders. See ``graphicsPlaybackSupported``.
+    @MainActor public static var graphicsPlaybackSupport: Bool? {
+        didSet {
+            guard graphicsPlaybackSupport != oldValue else { return }
+            applyGraphicsSupport()
+        }
+    }
+
     /// Publishes ``graphicsSupported`` to
     /// ``KittyGraphics/isSupported``, which is what the render path
     /// actually reads.
@@ -99,6 +110,7 @@ extension TerminalClient {
         // collide, and a host with no placeholders stands a glyph on the average
         // colour as a host with neither does.
         KittyGraphics.isPictureUnderTextSupported = picturesUnderTextSupported && !classic
+        KittyGraphics.playsFramesItself = graphicsPlaybackSupported && !classic
     }
 
     /// Whether this terminal's pictures are drawn by classic placements: see
@@ -179,6 +191,43 @@ extension TerminalClient {
         case "1": return true
         case "0": return false
         default: return detectedGraphicsCompression ?? false
+        }
+    }
+
+    /// Whether the handshake's answer is taken for playing frames, or only an
+    /// explicit `TUI_GRAPHICS_PLAYBACK=1` or ``graphicsPlaybackSupport`` turns it on.
+    ///
+    /// `false` until someone has seen it draw: Ghostty 1.4.0 adds the frame and says
+    /// which, and its source plays them, but an `OK` has misled this project before
+    /// and nobody has looked at the pixels (`Terminal compatibility survey.md`).
+    /// Seeing panels B, C and F of `animation_probe.py` move on Ghostty is what would
+    /// change this line.
+    static let playbackTrustsHandshake = false
+
+    /// Whether an animated picture's frames are handed to the terminal to play:
+    /// pictures at all, then the override, `TUI_GRAPHICS_PLAYBACK` (`1` or `0`), then
+    /// the handshake, in which the terminal has to add a frame and say which, once
+    /// ``playbackTrustsHandshake`` lets it.
+    ///
+    /// Off with `0` is the answer to give a terminal that said so and then drew
+    /// nothing, as ``graphicsCompressionSupport`` has it.
+    @MainActor public static var graphicsPlaybackSupported: Bool {
+        graphicsPlaybackSupported(
+            pictures: graphicsSupported, override: graphicsPlaybackSupport,
+            environment: ProcessInfo.processInfo.environment,
+            detected: playbackTrustsHandshake ? detectedGraphicsPlayback : false)
+    }
+
+    /// The ladder behind ``graphicsPlaybackSupported``, posed on its inputs.
+    static func graphicsPlaybackSupported(
+        pictures: Bool, override: Bool?, environment: [String: String], detected: Bool?
+    ) -> Bool {
+        guard pictures else { return false }
+        if let override { return override }
+        switch environment["TUI_GRAPHICS_PLAYBACK"] {
+        case "1": return true
+        case "0": return false
+        default: return detected ?? false
         }
     }
 
@@ -304,6 +353,7 @@ extension TerminalClient {
             detectedGraphics = answers.placement
             detectedGraphicsCompression = answers.compression
             detectedClassicPlacements = answers.classicPlacement
+            detectedGraphicsPlayback = answers.framePlayback
         }
         // A host the environment named was not asked who it is, so not this either:
         // asked here, and only of one with no Kitty, so that one with Kitty pays nothing.

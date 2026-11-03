@@ -222,10 +222,12 @@ extension _ImageCore {
         let boxPixels = fit.pixels(of: rawImage, fitting: (wantedWidth, wantedHeight))
         // A playing picture's frames stay in the terminal, each its own picture,
         // so that a loop's second time round costs only the cells naming them.
+        // One the terminal plays by itself is one picture, whichever frame shows.
         let token =
             playing.map {
                 $0.playback.storeToken(
-                    viewToken, frame: $0.index, of: $0.frameCount, pixelBytes: boxPixels.width * boxPixels.height * 4,
+                    viewToken, frame: $0.index, of: $0.inTerminal == nil ? $0.frameCount : 1,
+                    pixelBytes: boxPixels.width * boxPixels.height * 4,
                     cells: target.width * target.height, store: store)
             } ?? viewToken
         var signature = TerminalImageSignature(
@@ -311,6 +313,9 @@ extension _ImageCore {
                     return (packed.bytes, packed.format, pixelWidth, pixelHeight)
                 })
         else { return nil }
+
+        playing?.inTerminal?.advance(
+            token: token, store: store, size: (pixelWidth, pixelHeight), pixels: packedPixels)
 
         // Every row is exactly `target.width` cells by construction — one
         // placeholder each, and `KittyGraphics.placeholderRows` builds nothing

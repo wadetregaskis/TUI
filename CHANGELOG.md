@@ -4,6 +4,11 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**A terminal can play an animated picture by itself, if you ask.** With `TUI_GRAPHICS_PLAYBACK=1`, the frames are handed
+to the terminal after one pass, and from then on a tick costs no bytes and no wake (7,243 bytes a tick for a picture of
+40 x 16 cells before). The picture still stops when nothing on screen shows it. This is off by default: Ghostty 1.4.0 and
+kitty both take the commands, but nobody has yet seen them draw this way. iTerm2 3.7.6 and Warp ignore or refuse them.
+
 **An animated picture can play under Reduce Motion.** It still shows its first frame by default, which suits chrome.
 `.imageAnimationRespectsReduceMotion(false)`, on a picture or a subtree, says this one is the app's content and should
 play regardless. To choose for yourself, read `\.accessibilityReduceMotion`, as in SwiftUI.

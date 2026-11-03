@@ -174,7 +174,7 @@ package final class TerminalImageStore {
     /// The images filed in each slot.
     private var slots: [Slot: [KittyGraphics.ImageID]] = [:]
     /// Which image each token is drawing.
-    private var entries: [String: KittyGraphics.ImageID] = [:]
+    var entries: [String: KittyGraphics.ImageID] = [:]
     /// The images each holding token keeps (``hold(picturesIn:for:)``): a
     /// token that draws none of them itself.
     private var holds: [String: Set<KittyGraphics.ImageID>] = [:]
@@ -206,13 +206,15 @@ package final class TerminalImageStore {
     /// for the life of the app: one entry for every picture or copy a zoom
     /// ever scaled.
     private var scaledBoxes: [KittyGraphics.ImageID: (columns: Int, rows: Int)] = [:]
-    private var pending = ""
+    var pending = ""
     /// The deletes owed after the frame's cells (``takeDeletes()``).
     private var deletes = ""
     /// The ids ``deletes`` names, in the order they were let go. Not handed
     /// out again until the deletes are taken: a picture sent on one before
     /// then would be deleted by them.
     private var retiring: [KittyGraphics.ImageID] = []
+    /// The images the terminal holds several frames of (``PlayedPicture``).
+    var played: [KittyGraphics.ImageID: PlayedPicture] = [:]
     /// Copies of the pictures, changed for a translucent layer over them.
     private var derivedImages = DerivedImages()
     /// Rectangles of the pictures and their copies, sent as pictures of their own
@@ -407,6 +409,7 @@ package final class TerminalImageStore {
                 by: origin.transform.followed(by: transform))
         }
         guard images[cell.id] != nil || isBackdrop(cell.id) else { return nil }
+        played[cell.id]?.wasCopied = true
         if let copy = derivedImages.existingCopy(of: cell.id, by: transform) {
             return KittyGraphics.PlaceholderCell(id: copy, row: cell.row, column: cell.column)
         }
@@ -591,6 +594,7 @@ package final class TerminalImageStore {
     /// All of image `id`'s pixels as RGBA, or `nil` where the store holds none.
     package func pixels(ofWhole id: KittyGraphics.ImageID) -> (bytes: [UInt8], width: Int, height: Int)? {
         guard let size = pixelSize(of: id) else { return nil }
+        played[id]?.wasCopied = true
         return derivedImages.cropped(id, x: 0, y: 0, width: size.width, height: size.height, sent: size)
     }
 
@@ -807,6 +811,7 @@ package final class TerminalImageStore {
     private func retire(_ id: KittyGraphics.ImageID) {
         deletes += KittyGraphics.delete(id: id)
         retiring.append(id)
+        played[id] = nil
         // The delete takes the image's placements with it, the scaled one too.
         scaledBoxes[id] = nil
         // A crop is of pixels that have gone, and nothing can ask for it again.

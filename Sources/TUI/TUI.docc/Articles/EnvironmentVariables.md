@@ -125,6 +125,7 @@ Don't write a variable to state a setting. Many are read once, and `setenv` isn'
 | `TUI_TERM_PROGRAM` | `Apple_Terminal`, `iTerm.app`, `ghostty`, `WarpTerminal`, `tmux` or `gnome-terminal` | Says which terminal this is, when the program can't work it out and emoji or borders look out of line. Under tmux, tmux decides. |
 | `TUI_GRAPHICS` | `0`, `1`, `classic` or `sixel` | Pictures in text characters, or in real pixels, without asking the terminal. `classic` draws them without Unicode placeholders, for a terminal that has none. `sixel` draws them by Sixel, on any terminal. |
 | `TUI_GRAPHICS_COMPRESSION` | `0` or `1` | Whether pictures sent to the terminal are compressed, without asking the terminal. |
+| `TUI_GRAPHICS_PLAYBACK` | `0` or `1` | Whether an animated picture is handed to the terminal to play, after one pass sent as usual. Off unless this is `1`, as nobody has yet seen it draw. Then a tick costs no bytes and no wake. Only for a terminal that plays Kitty animation: on any other the picture holds its first frame. |
 | `TUI_HAIRLINES` | `0` or `1` | Whether the thin lines between a list's rows are drawn as pictures, off or on, whatever the terminal. |
 | `TUI_PICTURES_UNDER_TEXT` | `0` or `1` | Whether text over a frosted picture stands on the picture itself, off or on, whatever the terminal. |
 | `TUI_KEYBOARD_PROTOCOL` | `0` | Doesn't ask for the Kitty keyboard protocol: the way out if a terminal says it has it, and then keys go wrong. |
@@ -234,6 +235,7 @@ Two of the variables above are worth knowing for tests too. `TUI_CONFIG_DIR` kee
 | `TUI_TERM_PROGRAM` | Wins | `TerminalClient.simulated`, which draws for another terminal: for diagnosis, not for shipping. | Once |
 | `TUI_GRAPHICS` | Wins | `TerminalClient.graphicsSupport`. `.terminalGraphics(false)` for part of an app; `.terminalGraphics(true)` doesn't turn on what this turned off. | Each use |
 | `TUI_GRAPHICS_COMPRESSION` | Wins | `TerminalClient.graphicsCompressionSupport`. | Each use |
+| `TUI_GRAPHICS_PLAYBACK` | Wins | `TerminalClient.graphicsPlaybackSupport`. | Each use |
 | `TUI_HAIRLINES` | Wins | `TerminalClient.hairlineSupport`. | Each use |
 | `TUI_PICTURES_UNDER_TEXT` | Wins | `TerminalClient.pictureUnderTextSupport`. | Each use |
 | `TUI_KEYBOARD_PROTOCOL` | No setting | The variable is the only way. | Each use |

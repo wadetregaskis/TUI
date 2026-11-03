@@ -377,6 +377,7 @@ struct _ImageCore: View, Renderable, Layoutable {
             {
                 picture = drawn
             } else {
+                playing?.keepFramesHereForGlyphs(token: token, context: context)
                 picture = renderImage(
                     rawImage, decodedPixels: decodedPixels, width: drawWidth, height: drawHeight,
                     characterSet: characterSet, shapeAware: shapeAware, colorMode: colorMode, dithering: dithering,

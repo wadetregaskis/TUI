@@ -1265,6 +1265,8 @@ extension RenderLoop {
         // draws nothing, and would go on drawing nothing until something
         // happened to make that row dirty again. Inside `beginFrame` so it
         // joins this frame's single write rather than issuing one of its own.
+        // A picture the terminal plays by itself runs while this frame shows it.
+        tuiContext.terminalImageStore.updatePlayedPictures(onScreen: outputLines, nowNanos: frameNowNanos)
         let graphics = tuiContext.terminalImageStore.takePending()
         if !graphics.isEmpty { terminal.write(graphics) }
         // The hairlines' strips, and the deletes an invalidation owes, with the
