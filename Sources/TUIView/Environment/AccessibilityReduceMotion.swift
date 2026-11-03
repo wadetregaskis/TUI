@@ -39,9 +39,23 @@ extension EnvironmentValues {
     /// A scroll is held still: a `ScrollView`'s, a `List`'s or a `Table`'s
     /// `scrollTo` or `ScrollPosition` request made inside an animation, and
     /// the page keys under `scrollKeyboardAnimation(_:)`, jump to their target
-    /// rather than glide there. An ``Animatable`` view of the app's own, a keyframe animator's
+    /// rather than glide there. An animated `Image` shows its first frame, unless
+    /// the app says that picture is content to play regardless, with the TUI-specific
+    /// `imageAnimationRespectsReduceMotion(_:)`. An ``Animatable`` view of the app's own, a keyframe animator's
     /// tracks and a custom layout's data animate as they did; read this value
-    /// to hold them still too, as in SwiftUI.
+    /// to hold them still too, as in SwiftUI:
+    ///
+    /// ```swift
+    /// @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    ///
+    /// var body: some View {
+    ///     if reduceMotion {
+    ///         Image(.file("waving.png"))
+    ///     } else {
+    ///         Image(.file("waving.gif"))
+    ///     }
+    /// }
+    /// ```
     ///
     /// SwiftUI reads the system's Reduce Motion preference. TUI reads it
     /// only where it is sure the user is at the machine the app runs on — no

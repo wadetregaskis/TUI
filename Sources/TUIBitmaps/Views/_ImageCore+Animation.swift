@@ -146,7 +146,8 @@ extension _ImageCore {
     /// frames still decoding, or nothing to animate for.
     ///
     /// Reduce Motion shows the still, the file's first frame, as a playing
-    /// picture is motion nobody asked for. So does a drawing with no scheduler (a
+    /// picture is motion nobody asked for, unless the view says this one was
+    /// (``View/imageAnimationRespectsReduceMotion(_:)``). So does a drawing with no scheduler (a
     /// one-off snapshot, which could never wake to draw the next), and a measure,
     /// which has no business starting anything and is the same size either way.
     ///
@@ -158,7 +159,8 @@ extension _ImageCore {
     /// it has nothing to wake for.
     func playingFrame(token: String, context: RenderContext) -> PlayingFrame? {
         guard !context.isMeasuring, decoded == nil, resizing?.slices != true, case .file(let path) = source,
-            !context.environment.accessibilityReduceMotion, context.environment.animationScheduler != nil,
+            !context.environment.accessibilityReduceMotion || !context.environment.imageAnimationRespectsReduceMotion,
+            context.environment.animationScheduler != nil,
             context.canWatchScrollVisibility, let lifecycle = context.environment.lifecycle
         else { return nil }
         let box = animationPlayback(context: context)

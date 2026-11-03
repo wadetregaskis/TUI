@@ -139,6 +139,41 @@ struct AnimatedImagePlaybackTests {
         }
     }
 
+    @Test(
+        "The override decides whether Reduce Motion stills a picture, and only then",
+        arguments: [
+            (reduceMotion: true, respects: true, plays: false),
+            (reduceMotion: true, respects: false, plays: true),
+            (reduceMotion: false, respects: true, plays: true),
+            (reduceMotion: false, respects: false, plays: true),
+        ])
+    func override(reduceMotion: Bool, respects: Bool, plays: Bool) async throws {
+        let path = try threeFrames().write()
+        let app = HeadlessApp(
+            PageApp { picture(path).imageAnimationRespectsReduceMotion(respects) }, width: 20, height: 10)
+        app.configureEnvironment { $0.accessibilityReduceMotion = reduceMotion }
+        if plays {
+            try await untilPlaying(app, at: 0)
+            let first = app.screen
+            let due = try #require(app.nextWake(after: 0))
+            app.frame(atNanos: due)
+            #expect(app.screen != first, "the next frame")
+        } else {
+            try await settle(app, at: 0)
+            #expect(app.nextWake(after: 0) == nil, "nothing to wake for")
+        }
+    }
+
+    @Test("Left alone, a picture respects Reduce Motion, and a subtree's setting reaches it")
+    func overrideDefaultAndSubtree() async throws {
+        #expect(EnvironmentValues().imageAnimationRespectsReduceMotion)
+        let path = try threeFrames().write()
+        let app = HeadlessApp(
+            PageApp { VStack { picture(path) }.imageAnimationRespectsReduceMotion(false) }, width: 20, height: 10)
+        app.configureEnvironment { $0.accessibilityReduceMotion = true }
+        try await untilPlaying(app, at: 0)
+    }
+
     @Test("Reduce Motion shows the first frame, still")
     func reduceMotion() async throws {
         let path = try threeFrames().write()

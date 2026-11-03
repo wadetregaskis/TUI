@@ -87,6 +87,23 @@ It shows each frame for as long as the file says, and repeats as many times as t
 
 It plays only while someone can see it. Scrolled out of view it stops, and carries on from where it stopped when it comes back. A view that has gone starts again from the first frame if it returns. With Reduce Motion on, whether set by `TUI_REDUCE_MOTION` or ``Scene/reduceMotion(_:)``, it shows its first frame and doesn't move.
 
+That suits a picture that is chrome: a mascot or a decoration that nobody came for. A picture that is the app's content, such as the GIF in a message or the file a viewer was opened on, probably should play regardless, and ``View/imageAnimationRespectsReduceMotion(_:)`` says so for a view or a whole subtree:
+
+```swift
+Image(.file(attachment.path))
+    .imageAnimationRespectsReduceMotion(false)
+```
+
+To choose for yourself, read the setting as you would in SwiftUI, and the view updates when it changes:
+
+```swift
+@Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+var body: some View {
+    Image(.file(reduceMotion ? "waving.png" : "waving.gif"))
+}
+```
+
 One picture keeps at most 64 MiB of frames in memory. A larger file has every frame scaled down evenly to fit, and one with more than 1,024 frames keeps only every so many, each showing for as long as the ones it replaces. In real pixels, a frame is sent to the terminal once and kept there for the next time round, up to 64 MiB of them. Frames beyond that are sent again each time they show.
 
 ## Pictures that take time to load

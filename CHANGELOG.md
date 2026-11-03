@@ -4,6 +4,10 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**An animated picture can play under Reduce Motion.** It still shows its first frame by default, which suits chrome.
+`.imageAnimationRespectsReduceMotion(false)`, on a picture or a subtree, says this one is the app's content and should
+play regardless. To choose for yourself, read `\.accessibilityReduceMotion`, as in SwiftUI.
+
 **Pictures draw in real pixels on a terminal with Sixel and no Kitty graphics.** TUI asks: no answer to its Kitty
 questions and attribute 4 in the terminal's device attributes, outside tmux. Foot, mintty, mlterm and, once TUI runs on
 Windows, Windows Terminal should all get pictures this way; it has only been run on iTerm2, with Kitty hidden from it.
