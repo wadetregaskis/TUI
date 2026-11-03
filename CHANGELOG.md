@@ -4,7 +4,7 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
-**`TUI_REDUCE_MOTION`, `COLUMNS` and `LINES` beat what TUI reads from the system.** `TUI_REDUCE_MOTION=0` turns off a
+**`TUI_REDUCE_MOTION`, `COLUMNS` and `LINES` beat what TUI reads from the system.** `TUI_REDUCE_MOTION=0`, and `=0` on `TUI_REDUCE_TRANSPARENCY`, `TUI_DIFFERENTIATE_WITHOUT_COLOR` and `TUI_INCREASE_CONTRAST`, turns off a
 machine-wide Reduce Motion, as `=1` already turned it on. `COLUMNS` and `LINES`, each on its own axis, now win over the size
 the terminal reports, where they used to be only a fallback, so an export left over from a window since resized pins the size:
 if a program draws at the wrong size, look there first. An in-band resize report still outranks them, so the browser page's

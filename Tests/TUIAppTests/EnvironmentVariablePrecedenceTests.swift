@@ -116,22 +116,24 @@ struct EnvironmentVariablePrecedenceTests {
 
     /// The system's setting is one of the things TUI would otherwise do, so the
     /// variable beats it each way, and the scene can only add to what's left.
-    @Test("TUI_REDUCE_MOTION beats the system's Reduce Motion, each way")
-    func reduceMotionOverSystem() {
-        func reduced(_ variable: String?, system: Bool) -> Bool {
-            let environment = Self.environment("TUI_REDUCE_MOTION", variable)
-            let host: AccessibilityPreferences = system ? .reduceMotion : []
-            return TerminalClient.accessibilityRequested(environment: environment)
-                .union(host.subtracting(TerminalClient.accessibilityDeclined(environment: environment)))
-                .contains(.reduceMotion)
+    @Test("Each accessibility variable beats the system's setting, each way")
+    func accessibilityOverSystem() {
+        for (preference, name, _) in AccessibilityPreferences.named {
+            func applies(_ variable: String?, system: Bool) -> Bool {
+                let environment = Self.environment(name, variable)
+                let host: AccessibilityPreferences = system ? preference : []
+                return TerminalClient.accessibilityRequested(environment: environment)
+                    .union(host.subtracting(TerminalClient.accessibilityDeclined(environment: environment)))
+                    .contains(preference)
+            }
+            #expect(!applies(nil, system: false), "\(name)")
+            #expect(applies(nil, system: true), "\(name)")
+            #expect(applies("1", system: false), "\(name)")
+            #expect(!applies("0", system: true), "\(name)")
+            // A value it doesn't know is ignored, and an empty one is unset.
+            #expect(applies("yes", system: true), "\(name)")
+            #expect(applies("", system: true), "\(name)")
         }
-        #expect(!reduced(nil, system: false))
-        #expect(reduced(nil, system: true))
-        #expect(reduced("1", system: false))
-        #expect(!reduced("0", system: true))
-        // A value it doesn't know is ignored, and an empty one is unset.
-        #expect(reduced("yes", system: true))
-        #expect(reduced("", system: true))
     }
 
     @Test("COLUMNS and LINES beat what the terminal measures, and a report beats them")

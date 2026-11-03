@@ -101,9 +101,9 @@ Don't write a variable to state a setting. Many are read once, and `setenv` isn'
 | Variable | Values | Effect |
 |---|---|---|
 | `TUI_REDUCE_MOTION` | `1`, `0` | `1`: less motion: things jump to where they're going rather than glide. `0`: full motion, even with Reduce Motion on in your system's settings. With neither, Reduce Motion in your system's settings decides, if you're at the machine the program runs on. |
-| `TUI_REDUCE_TRANSPARENCY` | `1` | Less transparency: materials and glass are drawn opaque. Reduce Transparency in your system's settings does the same, if you're at the machine the program runs on. |
-| `TUI_DIFFERENTIATE_WITHOUT_COLOR` | `1` | Asks the program for cues that don't rest on colour alone, where it has them. The setting of that name in your system's settings does the same, if you're at the machine the program runs on. |
-| `TUI_INCREASE_CONTRAST` | `1` | Asks the program for more contrast, where it has it. Increase Contrast in your system's settings does the same, if you're at the machine the program runs on. |
+| `TUI_REDUCE_TRANSPARENCY` | `1`, `0` | `1`: less transparency: materials and glass are drawn opaque. `0`: full transparency, even with Reduce Transparency on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on. |
+| `TUI_DIFFERENTIATE_WITHOUT_COLOR` | `1`, `0` | `1`: asks the program for cues that don't rest on colour alone, where it has them. `0`: doesn't, even with the setting of that name on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on. |
+| `TUI_INCREASE_CONTRAST` | `1`, `0` | `1`: asks the program for more contrast, where it has it. `0`: standard contrast, even with Increase Contrast on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on. |
 | `TUI_KEY_SYMBOLS` | `0` | Writes keys by name, such as `Ctrl-Shift-Z`, rather than in symbols, for a font that has no glyphs for the symbols. |
 
 ### Language and region

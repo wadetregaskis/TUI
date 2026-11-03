@@ -56,18 +56,18 @@ extension TUIEnvironmentVariables {
             code: .cannotOverride("`Scene.reduceMotion(_:)` can ask for less motion too, even under `0`, but `false` doesn't undo `1`.")),
         TUIEnvironmentVariable(
             "TUI_REDUCE_TRANSPARENCY", .endUser, .accessibility,
-            values: "`1`",
-            effect: "Less transparency: materials and glass are drawn opaque. Reduce Transparency in your system's settings does the same, if you're at the machine the program runs on.",
+            values: "`1`, `0`",
+            effect: "`1`: less transparency: materials and glass are drawn opaque. `0`: full transparency, even with Reduce Transparency on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on.",
             code: .cannotOverride("`accessibilityReduceTransparency` is read-only, as in SwiftUI. `_accessibilityReduceTransparency` writes it for a preview or a test.")),
         TUIEnvironmentVariable(
             "TUI_DIFFERENTIATE_WITHOUT_COLOR", .endUser, .accessibility,
-            values: "`1`",
-            effect: "Asks the program for cues that don't rest on colour alone, where it has them. The setting of that name in your system's settings does the same, if you're at the machine the program runs on.",
+            values: "`1`, `0`",
+            effect: "`1`: asks the program for cues that don't rest on colour alone, where it has them. `0`: doesn't, even with the setting of that name on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on.",
             code: .cannotOverride("`accessibilityDifferentiateWithoutColor` is read-only, as in SwiftUI. `_accessibilityDifferentiateWithoutColor` writes it for a preview or a test.")),
         TUIEnvironmentVariable(
             "TUI_INCREASE_CONTRAST", .endUser, .accessibility,
-            values: "`1`",
-            effect: "Asks the program for more contrast, where it has it. Increase Contrast in your system's settings does the same, if you're at the machine the program runs on.",
+            values: "`1`, `0`",
+            effect: "`1`: asks the program for more contrast, where it has it. `0`: standard contrast, even with Increase Contrast on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on.",
             code: .cannotOverride("`colorSchemeContrast` is read-only, as in SwiftUI. `_colorSchemeContrast` writes it for a preview or a test.")),
         TUIEnvironmentVariable(
             "TUI_KEY_SYMBOLS", .endUser, .accessibility,
