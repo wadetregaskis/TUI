@@ -140,6 +140,18 @@ public enum KittyGraphics {
         pixels: [UInt8], format: PixelFormat = .rgba, width: Int, height: Int, id: ImageID,
         compressed: Bool = false
     ) -> String {
+        transmission(
+            action: "a=t", continuation: "", pixels: pixels, format: format, width: width, height: height, id: id,
+            compressed: compressed)
+    }
+
+    /// ``transmit(pixels:format:width:height:id:compressed:)``'s escapes for a
+    /// picture sent as `action`, whose every chunk after the first starts with
+    /// `continuation`.
+    static func transmission(
+        action: String, continuation: String, pixels: [UInt8], format: PixelFormat, width: Int, height: Int, id: ImageID,
+        compressed: Bool
+    ) -> String {
         guard width > 0, height > 0, id > 0, id <= maximumImageID,
             pixels.count >= width * height * format.stride
         else { return "" }
@@ -166,7 +178,7 @@ public enum KittyGraphics {
             let head: String
             if index == 0 {
                 let chunked = chunks > 1 ? ",m=1" : ""
-                head = "a=t,q=2,f=\(format.rawValue),t=d,s=\(width),v=\(height),i=\(id)"
+                head = "\(action),q=2,f=\(format.rawValue),t=d,s=\(width),v=\(height),i=\(id)"
                     + (deflated ? ",o=z" : "") + chunked
             } else {
                 // `q=2` on EVERY chunk, not just the first. The terminal's
@@ -176,7 +188,7 @@ public enum KittyGraphics {
                 // bytes per chunk against a reply arriving on the
                 // application's stdin, where the input parser would read it as
                 // typing.
-                head = (end < encoded.count ? "m=1" : "m=0") + ",q=2"
+                head = continuation + (end < encoded.count ? "m=1" : "m=0") + ",q=2"
             }
             out.append(contentsOf: introducer)
             out.append(contentsOf: head.utf8)

@@ -279,6 +279,20 @@ extension _ImageCore {
         let pixelWidth = signature.pixelWidth
         let pixelHeight = signature.pixelHeight
 
+        func packedPixels(_ image: RGBAImage) -> (bytes: [UInt8], format: KittyGraphics.PixelFormat) {
+            let converter = ASCIIConverter(
+                colorMode: colorMode, dithering: dithering,
+                toneCurve: toneCurve, edgeContrast: edgeContrast, inkThreshold: inkThreshold,
+                adjustments: adjustments, posterizationLevels: posterizationLevels)
+            // A filled picture is the part of it its box shows, at
+            // its own aspect; any other, the whole picture.
+            let source = fit == .crop ? image.centreCropped(toAspectOf: pixelWidth, pixelHeight) : image
+            return Self.pixelBytes(
+                converter.recoloured(
+                    source, width: pixelWidth, height: pixelHeight,
+                    monoInk: mono.ink, monoPaper: mono.paper))
+        }
+
         guard
             let lines = store.placeholderRows(
                 token: token, signature: signature,
@@ -293,17 +307,7 @@ extension _ImageCore {
                     // Only on a miss: this resamples and recolours the decoded
                     // image and can be megabytes. The common case, by a wide
                     // margin, is that nothing has changed since last frame.
-                    let converter = ASCIIConverter(
-                        colorMode: colorMode, dithering: dithering,
-                        toneCurve: toneCurve, edgeContrast: edgeContrast, inkThreshold: inkThreshold,
-                        adjustments: adjustments, posterizationLevels: posterizationLevels)
-                    // A filled picture is the part of it its box shows, at
-                    // its own aspect; any other, the whole picture.
-                    let source = fit == .crop ? rawImage.centreCropped(toAspectOf: pixelWidth, pixelHeight) : rawImage
-                    let packed = Self.pixelBytes(
-                        converter.recoloured(
-                            source, width: pixelWidth, height: pixelHeight,
-                            monoInk: mono.ink, monoPaper: mono.paper))
+                    let packed = packedPixels(rawImage)
                     return (packed.bytes, packed.format, pixelWidth, pixelHeight)
                 })
         else { return nil }

@@ -646,6 +646,19 @@ package final class TerminalImageStore {
     package func hold(picturesIn lines: [String], for token: String) {
         let before = holds.removeValue(forKey: token) ?? []
         var held = Set<KittyGraphics.ImageID>()
+        forEachPictureCell(in: lines) { cell in
+            let id = derivedImages.origin(of: cell.id)?.source ?? cell.id
+            guard images[id] != nil, held.insert(id).inserted else { return }
+            images[id]?.holders.insert(token)
+        }
+        if !held.isEmpty { holds[token] = held }
+        // After the new holds, so a picture in both is kept, not deleted and
+        // sent again.
+        for id in before.subtracting(held) { letGo(of: id, by: token) }
+    }
+
+    /// Calls `body` with every picture cell in `lines`, as their ink names it.
+    func forEachPictureCell(in lines: [String], _ body: (KittyGraphics.PlaceholderCell) -> Void) {
         for line in lines where line.unicodeScalars.contains(.terminalImagePlaceholder) {
             // The ink in force, which names each picture cell's image.
             var state = SGRState()
@@ -661,9 +674,7 @@ package final class TerminalImageStore {
                             character,
                             foreground: (UInt8(clamping: red), UInt8(clamping: green), UInt8(clamping: blue)))
                     else { return true }
-                    let id = derivedImages.origin(of: cell.id)?.source ?? cell.id
-                    guard images[id] != nil, held.insert(id).inserted else { return true }
-                    images[id]?.holders.insert(token)
+                    body(cell)
                 // A rendered line's escape segment, not a colour: the rule
                 // matches `.ansi(` wherever it is written.
                 // swiftlint:disable:next framework_colour_literal
@@ -673,10 +684,6 @@ package final class TerminalImageStore {
                 return true
             }
         }
-        if !held.isEmpty { holds[token] = held }
-        // After the new holds, so a picture in both is kept, not deleted and
-        // sent again.
-        for id in before.subtracting(held) { letGo(of: id, by: token) }
     }
 
     /// Gives back every image, for a shutdown that wants to leave the terminal
