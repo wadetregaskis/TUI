@@ -768,7 +768,7 @@ on by default); its open panel has none unless the app asks. TUI's panels had
 none, so a save into a folder that did not exist yet meant leaving the app.
 Answered on 2026-10-28: add it.
 
-The save panel and a mover's have **New Folder** at the start of the footer; an
+The save panel, the panel that saves several files into a folder, and a mover's have **New Folder** at the start of the footer; an
 open panel has none, as the Mac's has none by default (both defaults measured
 2026-11-02: `canCreateDirectories` is true on an `NSSavePanel`, false on an
 `NSOpenPanel`), even if it chooses folders. That is the owner's word of

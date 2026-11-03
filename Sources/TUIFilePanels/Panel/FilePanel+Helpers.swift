@@ -39,7 +39,8 @@ extension FilePanel {
     }
 
     /// Whether the panel makes folders: a save panel, as a macOS save panel does
-    /// by default (`canCreateDirectories`), and a mover's. An open panel doesn't,
+    /// by default (`canCreateDirectories`), and one saving several files or moving
+    /// them, which picks a folder for it (``FilePanelRequest/opensWithNewFolder``). An open panel doesn't,
     /// as a macOS one doesn't by default, even if it chooses folders.
     var createsFolders: Bool {
         request.saveContentTypes != nil || request.opensWithNewFolder

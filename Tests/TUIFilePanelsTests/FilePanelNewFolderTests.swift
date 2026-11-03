@@ -113,6 +113,23 @@ struct FilePanelNewFolderTests {
         #expect(!shown.contains("New Folder"), "\(shown)")
     }
 
+    @Test("The panel that saves several files into a folder has New Folder")
+    func savingSeveralHasIt() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let driver = FilePanelDriver {
+            FilePanelPresenter(
+                content: Text("Page"), isPresented: caller.binding,
+                request: {
+                    var request = FilePanelRequest.saveInto()
+                    request.startDirectory = fixture.root
+                    return request
+                },
+                onChoose: { _ in }, onCancel: {})
+        }
+        await driver.waitFor("New Folder")
+    }
+
     @Test("A mover has New Folder")
     func moverHasIt() async throws {
         let fixture = try FilePanelFixture()

@@ -74,7 +74,9 @@ extension FilePanelRequest {
         return Self(
             purpose: .open(allowsMultipleSelection: false),
             rule: FileChoiceRule(allowedContentTypes: [.folder], choosesFiles: false), title: save,
-            confirmationLabel: save, startDirectory: defaultStartDirectory)
+            confirmationLabel: save, startDirectory: defaultStartDirectory,
+            // It saves, though it picks a folder to do it.
+            opensWithNewFolder: true)
     }
 }
 
