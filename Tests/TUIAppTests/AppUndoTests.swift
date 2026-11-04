@@ -19,6 +19,7 @@ import Testing
 @Suite("The app's undo manager")
 struct AppUndoTests {
 
+    @MainActor
     private final class Model {
         var value = 0
     }
@@ -35,8 +36,12 @@ struct AppUndoTests {
         let old = model.value
         model.value = value
         manager.beginUndoGrouping()
-        manager.registerUndo(withTarget: model) { [self] model in
-            self.set(model, to: old, on: manager)
+        // The manager runs the handler on the main actor; the macOS 15 SDK's
+        // handler is only `@Sendable`, so the manager and the model cross into
+        // it as `UndoManager.registerRestoring` does (`MainActorUndoManager`).
+        let reference = MainActorUndoManager(manager)
+        manager.registerUndo(withTarget: model) { [self, model, reference] _ in
+            MainActor.assumeIsolated { self.set(model, to: old, on: reference.manager) }
         }
         manager.endUndoGrouping()
     }

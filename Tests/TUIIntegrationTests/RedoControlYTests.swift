@@ -22,6 +22,7 @@ import TUI
 @MainActor
 @Suite("⌃Y redoes, but in a text field")
 struct RedoControlYTests {
+    @MainActor
     private final class Model {
         var value = 0
     }
@@ -45,8 +46,9 @@ struct RedoControlYTests {
         let old = model.value
         model.value = value
         manager.beginUndoGrouping()
-        manager.registerUndo(withTarget: model) { [self] model in
-            self.set(model, to: old, on: manager)
+        let reference = MainActorUndoManager(manager)
+        manager.registerUndo(withTarget: model) { [self, model, reference] _ in
+            MainActor.assumeIsolated { self.set(model, to: old, on: reference.manager) }
         }
         manager.endUndoGrouping()
     }

@@ -101,9 +101,14 @@ struct FileDialogCustomizationTests {
         defer { fixture.remove() }
         let caller = FilePanelCaller()
         let refused = fixture.url("beta.txt").lastPathComponent
+        let predicate = Predicate<URL> {
+            PredicateExpressions.build_NotEqual(
+                lhs: PredicateExpressions.build_KeyPath(root: PredicateExpressions.build_Arg($0), keyPath: \.lastPathComponent),
+                rhs: PredicateExpressions.build_Arg(refused))
+        }
         let driver = FilePanelDriver {
             importer(fixture, caller: caller)
-                .fileDialogURLEnabled(#Predicate<URL> { $0.lastPathComponent != refused })
+                .fileDialogURLEnabled(predicate)
         }
         await driver.waitFor("notes.md")
         // Alpha/, linked/, then beta.txt — refused: Return chooses nothing —
