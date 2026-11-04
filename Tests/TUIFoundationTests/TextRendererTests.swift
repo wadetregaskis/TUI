@@ -51,7 +51,7 @@ private struct PerGlyph: TextRenderer {
 private struct Emphasis: TextAttribute {}
 
 @MainActor
-@Suite("Text renderers", .rendersEnglishUI)
+@Suite("Text renderers", .serialized, .rendersEnglishUI)
 struct TextRendererTests {
     private func rendered(_ view: some View, width: Int = 20, height: Int = 4) -> FrameBuffer {
         renderToBuffer(view, context: makeBareRenderContext(width: width, height: height))
@@ -172,6 +172,35 @@ struct TextRendererTests {
                 ctx.draw(glyph)
             }))
         #expect(buffer.lines[0].contains("38;2;55;155;205"), "\(buffer.lines[0].debugDescription)")
+    }
+
+    @Test("A filter changes a glyph's colours at 256-colour depth and emits 256-colour codes")
+    func filterAtPalette256() {
+        ColorDepth.withCurrent(.palette256) {
+            let view = Text(verbatim: "abcd")
+                .foregroundStyle(.palette.accent)
+                .textRenderer(PerGlyph { index, glyph, ctx in
+                    ctx.addFilter(.hueRotation(.degrees(Double(index) * 90)))
+                    ctx.draw(glyph)
+                })
+            let line = rendered(view, width: 8, height: 1).lines[0]
+            #expect(!line.contains("38;2;"), "256-colour depth must not emit truecolour: \(line.debugDescription)")
+            var foregrounds: [SGRState.Colour?] = []
+            var state = SGRState()
+            _ = line.forEachANSISegment { segment in
+                switch segment {
+                case .ansi(let sequence, let isSGR):
+                    if isSGR { state.apply(sequence) }
+                case .visible:
+                    foregrounds.append(state.foregroundColour)
+                }
+                return true
+            }
+            #expect(foregrounds.count == 4)
+            #expect(
+                foregrounds.contains { $0 != foregrounds[0] },
+                "hue rotation across glyphs must change the 256-colour foreground: \(foregrounds)")
+        }
     }
 
     @Test("Cell attributes are stated over a run's own")

@@ -179,25 +179,45 @@ public struct GraphicsContext {
         return clipMask.meanShare(column: column, row: row, across: grid.across, down: grid.down) >= 0.5
     }
 
-    /// `style` with its RGB colours through the filters.
+    /// `style` with its colours through the filters.
     private func filtered(_ style: SGRState) -> SGRState {
         guard !filters.isEmpty || !enclosing.filters.isEmpty else { return style }
         var style = style
-        func through(_ colour: SGRState.Colour?) -> SGRState.Colour? {
+        func colour(_ raw: SGRState.Colour?, background: Bool) -> Color? {
             // A pattern reading the channels, not a colour this draws with.
-            // swiftlint:disable:next framework_colour_literal
-            guard case .rgb(let red, let green, let blue)? = colour else { return colour }
-            // The cell's own colour, filtered: content, not a framework ink.
-            // swiftlint:disable:next framework_colour_literal
-            var color = Color.rgb(UInt8(clamping: red), UInt8(clamping: green), UInt8(clamping: blue))
-            for filter in filters + enclosing.filters { color = filter.applied(to: color) }
-            guard let rgb = color.rgbComponents else { return colour }
-            // The filtered colour's channels, restated: content, not an ink.
-            // swiftlint:disable:next framework_colour_literal
-            return .rgb(Int(rgb.red), Int(rgb.green), Int(rgb.blue))
+            // swiftlint:disable framework_colour_literal
+            switch raw {
+            case .rgb(let red, let green, let blue):
+                return Color.rgb(UInt8(clamping: red), UInt8(clamping: green), UInt8(clamping: blue))
+            case .indexed(let index):
+                return UInt8(exactly: index).map(Color.palette256)
+            case .named(let code):
+                let base = background ? 40 : 30
+                let isBright = code >= 90
+                let slot = code - (isBright ? base + 60 : base)
+                return SGRColorRewrite.basicColor(base: slot, isBright: isBright)
+            case nil:
+                guard !background else { return nil }
+                let resolved = surface.environment.palette.foreground.resolve(with: surface.environment.palette)
+                if case .terminalDefault = resolved.value { return .terminalForeground }
+                return resolved
+            }
+            // swiftlint:enable framework_colour_literal
         }
-        style.setForeground(through(style.foregroundColour))
-        style.setBackground(through(style.backgroundColour))
+        func through(_ color: Color) -> Color {
+            var color = color
+            for filter in filters + enclosing.filters { color = filter.applied(to: color) }
+            return color
+        }
+        if let foreground = colour(style.foregroundColour, background: false) {
+            let filtered = through(foreground)
+            if style.foregroundColour != nil || filtered != foreground {
+                style = style.settingForeground(filtered)
+            }
+        }
+        if let background = colour(style.backgroundColour, background: true) {
+            style = style.settingBackground(through(background))
+        }
         return style
     }
 }
