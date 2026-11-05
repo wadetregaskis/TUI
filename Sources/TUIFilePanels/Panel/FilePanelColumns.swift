@@ -126,11 +126,7 @@ enum FilePanelColumns {
     @ViewBuilder
     private static func nameCellContent(_ entry: FileEntry, browser: FileBrowser) -> some View {
         if entry.isPlaceholder {
-            Text(localized: LocalizationKey.FilePanel.loading)
-                .foregroundStyle(.palette.foregroundTertiary)
-                .onAppear {
-                    Task { await browser.loadFolder(entry.placeholderFolder) }
-                }
+            FilePanelPlaceholderCell(entry: entry, browser: browser)
         } else {
             FilePanelNameCell(entry: entry)
         }
@@ -141,5 +137,26 @@ enum FilePanelColumns {
     static func cell(_ text: String, _ entry: FileEntry, bold: Bool = false) -> Text {
         let drawn = Text(text).bold(bold)
         return entry.isDimmed ? drawn.foregroundStyle(.palette.foregroundTertiary) : drawn
+    }
+}
+
+/// An unread folder's placeholder row in the list view outline: starts reading the folder
+/// on appear, and delays showing "Loading…" until ``FileBrowser/loadingPlaceholderDelay`` has elapsed.
+private struct FilePanelPlaceholderCell: View {
+    let entry: FileEntry
+    let browser: FileBrowser
+
+    var body: some View {
+        Group {
+            if browser.foldersShowingLoading.contains(entry.placeholderFolder.path) {
+                Text(localized: LocalizationKey.FilePanel.loading)
+                    .foregroundStyle(.palette.foregroundTertiary)
+            } else {
+                Text(verbatim: "")
+            }
+        }
+        .onAppear {
+            Task { await browser.loadFolder(entry.placeholderFolder) }
+        }
     }
 }

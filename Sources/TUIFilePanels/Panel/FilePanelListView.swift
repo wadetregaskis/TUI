@@ -76,7 +76,9 @@ extension FileBrowser {
     var emptyText: String {
         switch state {
         case .loading:
-            LocalizationService.shared.string(for: LocalizationKey.FilePanel.loading)
+            showsLoadingPlaceholder
+                ? LocalizationService.shared.string(for: LocalizationKey.FilePanel.loading)
+                : ""
         case .loaded:
             LocalizationService.shared.string(for: LocalizationKey.FilePanel.emptyFolder)
         case .failed(let failure):

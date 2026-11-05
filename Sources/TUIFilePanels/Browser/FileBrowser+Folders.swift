@@ -33,6 +33,14 @@ extension FileBrowser {
             return
         }
         let started = generation
+        let timer = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: Self.loadingPlaceholderDelay)
+            guard !Task.isCancelled, let self else { return }
+            if self.foldersReading[path]?.generation == started {
+                self.foldersShowingLoading.insert(path)
+            }
+        }
+        folderLoadingTimers[path] = timer
         let read = Task { await self.read(path, generation: started) }
         foldersReading[path] = (started, read)
         await read.value
@@ -41,7 +49,14 @@ extension FileBrowser {
     /// Reads the folder at `path` for ``loadFolder(_:)``, and publishes it
     /// unless the folder shown has been read again since `generation`.
     private func read(_ path: String, generation started: Int) async {
-        defer { if foldersReading[path]?.generation == started { foldersReading[path] = nil } }
+        defer {
+            if foldersReading[path]?.generation == started {
+                foldersReading[path] = nil
+                folderLoadingTimers[path]?.cancel()
+                folderLoadingTimers[path] = nil
+                foldersShowingLoading.remove(path)
+            }
+        }
         let result = await DirectoryListing.load(URL(fileURLWithPath: path), rule: rule)
         guard generation == started else { return }
         // Named through the folder as it was asked for: a branch beneath a
@@ -148,11 +163,20 @@ extension FileBrowser {
             let folder = entry.value.isPlaceholder ? entry.value.placeholderFolder : entry.key.deletingLastPathComponent()
             return kept.contains(folder.standardizedFileURL.path)
         }
+        let keptSet = Set(kept)
+        for (path, timer) in folderLoadingTimers where !keptSet.contains(path) {
+            timer.cancel()
+            folderLoadingTimers.removeValue(forKey: path)
+            foldersShowingLoading.remove(path)
+        }
     }
 
     /// Forgets every folder read but the one shown: they are read again as
     /// they are asked for.
     func forgetFolders() {
+        folderLoadingTimers.values.forEach { $0.cancel() }
+        folderLoadingTimers = [:]
+        foldersShowingLoading = []
         folderListings = [:]
         folderRows = [:]
         folderIndex = [:]

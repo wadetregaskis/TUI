@@ -255,8 +255,12 @@ struct FilePanelColumnView: View {
     /// it is being read, or is empty.
     private func emptyText(of path: String) -> String {
         if path == browser.directory.path { return browser.emptyText }
-        return LocalizationService.shared.string(
-            for: browser.folderRows[path] == nil ? LocalizationKey.FilePanel.loading : LocalizationKey.FilePanel.emptyFolder)
+        guard browser.folderRows[path] == nil else {
+            return LocalizationService.shared.string(for: LocalizationKey.FilePanel.emptyFolder)
+        }
+        return browser.foldersShowingLoading.contains(path)
+            ? LocalizationService.shared.string(for: LocalizationKey.FilePanel.loading)
+            : ""
     }
 
     /// Reads a folder on the way, unless it is the folder shown, which the

@@ -50,8 +50,25 @@ final class FileBrowser {
     /// What the panel lets the user choose, and how it words its rows.
     private(set) var rule: FileChoiceRule
 
+    /// How long a folder load waits before showing the "Loading…" placeholder,
+    /// so fast folder loads avoid confusing visual flicker and wasted rendering.
+    package static let loadingPlaceholderDelay: Duration = .milliseconds(250)
+
     /// What the panel shows of the folder.
     private(set) var state: State = .loading
+
+    /// Whether the main folder loading placeholder has timed out and should be shown.
+    package private(set) var showsLoadingPlaceholder = false
+
+    /// The task driving the delay before showing the main folder's loading placeholder.
+    @ObservationIgnored private var loadingPlaceholderTask: Task<Void, Never>?
+
+    /// Which folder paths have exceeded ``loadingPlaceholderDelay`` while reading
+    /// and should display the "Loading…" placeholder.
+    var foldersShowingLoading: Set<String> = []
+
+    /// Timer tasks driving the delay before showing placeholders for individual folders.
+    @ObservationIgnored var folderLoadingTimers: [String: Task<Void, Never>] = [:]
 
     /// The rows, in order: the folder's items, hidden ones left out unless
     /// ``showsHiddenFiles``, folders first, each folder's with the rows
@@ -104,6 +121,27 @@ final class FileBrowser {
         self.rule = rule
         self.showsHiddenFiles = showsHiddenFiles
         self.sortOrder = [Self.nameOrder]
+        startLoadingPlaceholderTimer()
+    }
+
+    deinit {
+        loadingPlaceholderTask?.cancel()
+    }
+
+    private func startLoadingPlaceholderTimer() {
+        showsLoadingPlaceholder = false
+        loadingPlaceholderTask?.cancel()
+        loadingPlaceholderTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: Self.loadingPlaceholderDelay)
+            guard !Task.isCancelled, let self, self.state == .loading else { return }
+            self.showsLoadingPlaceholder = true
+        }
+    }
+
+    private func cancelLoadingPlaceholderTimer() {
+        loadingPlaceholderTask?.cancel()
+        loadingPlaceholderTask = nil
+        showsLoadingPlaceholder = false
     }
 
     /// The order a panel starts in: by name, as Finder compares names (so
@@ -137,6 +175,7 @@ final class FileBrowser {
         hiddenCount = 0
         if let read = folderListings[folder.path] {
             // Arranged when it was read; `refresh()` arranges it again.
+            cancelLoadingPlaceholderTimer()
             listed = (folder, generation, read)
             rows = folderRows[folder.path] ?? []
             rowIndex = Dictionary(
@@ -145,6 +184,7 @@ final class FileBrowser {
         } else {
             rows = []
             state = .loading
+            startLoadingPlaceholderTimer()
         }
     }
 
@@ -160,6 +200,8 @@ final class FileBrowser {
     func reload() {
         generation += 1
         forgetFolders()
+        state = .loading
+        startLoadingPlaceholderTimer()
     }
 
     /// Lets the user choose files of `types` — `nil` for the caller's own,
@@ -211,6 +253,7 @@ final class FileBrowser {
                 listed = (key.directory, key.generation, read)
                 entries = read
             case .failure(let failure):
+                cancelLoadingPlaceholderTimer()
                 listed = nil
                 rows = []
                 rowIndex = [:]
@@ -225,6 +268,7 @@ final class FileBrowser {
         // later folder or order owns the rows, whether or not this one was
         // cancelled in time.
         guard !Task.isCancelled, refreshKey == key else { return }
+        cancelLoadingPlaceholderTimer()
         rows = arranged.rows
         rowIndex = arranged.rowIndex
         hiddenCount = arranged.hiddenCount
