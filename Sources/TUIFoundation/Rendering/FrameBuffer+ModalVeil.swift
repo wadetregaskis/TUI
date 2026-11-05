@@ -101,13 +101,15 @@ extension FrameBuffer {
         let ink = palette.foreground.resolve(with: palette)
         var page = opacityRegions.isEmpty ? self : resolvingOpacity(surface: surface, palette: palette, images: images)
         var veil = Veil(scrim: scrim)
+        let depth = ColorDepth.current
         // Where the scrim has no RGB (the terminal's own background, not yet
         // reported) nothing can be blended toward it: the page is drawn faint
         // (SGR 2) instead, which every terminal can do without knowing its
         // colours.
         let faint = scrim.rgbComponents == nil
-        let inkCodes = faint ? ["2"] : veil[ink].foregroundCodes()
-        let fieldCodes = faint ? [] : veil[surface].backgroundCodes()
+        let veiledInk = faint ? ink : veil.legible(ink, over: surface, depth: depth)
+        let inkCodes = faint ? ["2"] : veiledInk.foregroundCodes(depth: depth)
+        let fieldCodes = faint ? [] : veil[surface].backgroundCodes(depth: depth)
         let lineDefaults = "\u{1B}[" + (inkCodes + fieldCodes).joined(separator: ";") + "m"
         let frameDefaults = "\u{1B}[" + inkCodes.joined(separator: ";") + "m"
         // A row and a run's records of what is under it start in the veiled
@@ -123,6 +125,7 @@ extension FrameBuffer {
             // Where the row draws a picture, the ink in force, to read each
             // picture cell's image by.
             var state = SGRState()
+            var active = Veil.LineState(foreground: ink, background: surface)
             result.reserveCapacity(line.utf8.count + restated.utf8.count * 2)
             line.forEachANSISegment { segment in
                 switch segment {
@@ -142,18 +145,9 @@ extension FrameBuffer {
                 // swiftlint:disable:next framework_colour_literal
                 case .ansi(let sequence, _):
                     if drawsPictures { state.apply(sequence) }
-                    guard !faint else {
-                        result += sequence
-                        var reset = false
-                        SGRColorRewrite.readingColors(sequence) { slot, _ in if case .reset = slot { reset = true } }
-                        if reset { result += restated }
-                        return true
-                    }
-                    var reset = false
-                    result += SGRColorRewrite.rewritingSGR(
-                        sequence, defaultForeground: ink, defaultBackground: surface,
-                        transform: { veil[$0] }, emitted: { slot, _ in if case .reset = slot { reset = true } })
-                    if reset { result += restated }
+                    result += veil.rewriting(
+                        sequence, state: &active, defaultForeground: ink, defaultBackground: surface,
+                        faint: faint, defaults: defaults, afterAReset: restated, fieldCodes: fieldCodes, depth: depth)
                 }
                 return true
             }
@@ -200,8 +194,20 @@ extension FrameBuffer {
 /// Each colour a page names, veiled: blended once, then looked up. A page names
 /// a few dozen colours over thousands of cells.
 private struct Veil {
+    struct LineState {
+        var foreground: Color
+        var background: Color
+    }
+
+    private struct Pair: Hashable {
+        let foreground: Color
+        let background: Color
+        let depth: ColorDepth
+    }
+
     let scrim: Color
     private var memo: [Color: Color] = [:]
+    private var pairMemo: [Pair: Color] = [:]
 
     init(scrim: Color) { self.scrim = scrim }
 
@@ -213,5 +219,88 @@ private struct Veil {
             memo[colour] = veiled
             return veiled
         }
+    }
+
+    /// Rewrites `sequence`, tracking the active foreground and background in
+    /// `state` and restating defaults after a reset.
+    mutating func rewriting(  // swiftlint:disable:this function_parameter_count
+        _ sequence: String, state: inout LineState, defaultForeground ink: Color, defaultBackground surface: Color,
+        faint: Bool, defaults: String?, afterAReset restated: String, fieldCodes: [String], depth: ColorDepth
+    ) -> String {
+        guard !faint else {
+            var reset = false
+            SGRColorRewrite.readingColors(sequence) { slot, _ in if case .reset = slot { reset = true } }
+            return reset ? sequence + restated : sequence
+        }
+        var setsForeground = false
+        var setsBackground = false
+        SGRColorRewrite.readingColors(sequence) { slot, color in
+            switch slot {
+            case .reset:
+                state = LineState(foreground: ink, background: surface)
+                setsForeground = false
+                setsBackground = false
+            case .foreground:
+                state.foreground = color ?? ink
+                setsForeground = true
+            case .background:
+                state.background = color ?? surface
+                setsBackground = true
+            }
+        }
+        var reset = false
+        let background = state.background
+        var result = SGRColorRewrite.rewritingSGR(
+            sequence, defaultForeground: ink, defaultBackground: surface,
+            transform: { self.legible($0, over: background, depth: depth) },
+            emitted: { slot, _ in if case .reset = slot { reset = true } })
+        if reset, !setsForeground, !setsBackground {
+            result += restated
+        } else if setsBackground, !setsForeground {
+            let adjusted = legible(state.foreground, over: background, depth: depth)
+            if reset || adjusted != self[state.foreground] {
+                let codes = adjusted.foregroundCodes(depth: depth)
+                if !codes.isEmpty { result += "\u{1B}[" + codes.joined(separator: ";") + "m" }
+            }
+        } else if reset, setsForeground, !setsBackground, defaults != nil, !fieldCodes.isEmpty {
+            result += "\u{1B}[" + fieldCodes.joined(separator: ";") + "m"
+        }
+        return result
+    }
+
+    /// `colour` veiled over `background` so that when the two were distinct at
+    /// `depth` before veiling, they do not quantise to the same entry after it
+    /// (e.g. a button's label and face both landing on the darkest cube entry of
+    /// their hue at 256 colours).
+    mutating func legible(_ colour: Color, over background: Color, depth: ColorDepth) -> Color {
+        let veiled = self[colour]
+        guard depth == .palette256 || depth == .basic16 else { return veiled }
+        let key = Pair(foreground: colour, background: background, depth: depth)
+        if let known = pairMemo[key] { return known }
+        let shownBg = self[background].downsampled(to: depth)
+        guard veiled.downsampled(to: depth) == shownBg,
+            colour.downsampled(to: depth) != background.downsampled(to: depth)
+        else {
+            pairMemo[key] = veiled
+            return veiled
+        }
+        let muted = colour.saturated(keeping: FrameBuffer.modalVeilSaturation)
+        for step in 1...16 {
+            let alpha = FrameBuffer.modalVeilOpacity + (1 - FrameBuffer.modalVeilOpacity) * Double(step) / 16
+            let candidate = muted.compositing(alpha, over: scrim).opaqueSpelling
+            if candidate.downsampled(to: depth) != shownBg {
+                pairMemo[key] = candidate
+                return candidate
+            }
+        }
+        for step in 1...16 {
+            let candidate = colour.compositing(Double(step) / 16, over: muted).opaqueSpelling
+            if candidate.downsampled(to: depth) != shownBg {
+                pairMemo[key] = candidate
+                return candidate
+            }
+        }
+        pairMemo[key] = colour
+        return colour
     }
 }

@@ -158,4 +158,31 @@ struct BackdropAnimationTests {
             AnimatedPage().fullScreenCover(isPresented: presented.binding) { Text("COVER") })
         #expect(composited.animatedCells.isEmpty)
     }
+
+    @Test("A button veiled behind a modal keeps its label legible against its face at 256 colours")
+    func veiledButtonsKeepLegibleLabelsAtPalette256() throws {
+        let presented = BoolBox()
+        let page = VStack(alignment: .leading, spacing: 1) {
+            Button("Delete") {}
+            Button("Proceed") {}.buttonStyle(.borderedProminent)
+            Spacer()
+        }
+        .modal(isPresented: presented.binding) { Text("DIALOG") }
+
+        try ColorDepth.withCurrent(.palette256) {
+            let composited = screen(page)
+            let deleteCells = paintedCells(composited.lines[0])
+            let deleteIndex = try #require(
+                composited.lines[0].stripped.firstIndex(of: "D").map {
+                    composited.lines[0].stripped.distance(from: composited.lines[0].stripped.startIndex, to: $0)
+                }
+            )
+            let cell = deleteCells[deleteIndex]
+            #expect(cell.glyph == "D")
+            #expect(
+                cell.shownInk != cell.shownField,
+                "veiled button label ink (\(cell.shownInk)) collided with its face (\(cell.shownField)): \(composited.lines[0].debugDescription)"
+            )
+        }
+    }
 }
