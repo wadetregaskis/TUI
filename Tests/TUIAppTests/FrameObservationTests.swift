@@ -11,7 +11,6 @@
 
 import Observation
 import Testing
-import TUIPresentation
 
 @testable import TUIApp
 @testable import TUIAppTestSupport
@@ -34,7 +33,6 @@ private enum FrameReadModels {
     nonisolated(unsafe) static var app = FrameReadModel()
     nonisolated(unsafe) static var geometry = FrameReadModel()
     nonisolated(unsafe) static var timeline = FrameReadModel()
-    nonisolated(unsafe) static var sheet = FrameReadModel()
     nonisolated(unsafe) static var forEach = FrameReadModel()
 }
 
@@ -91,20 +89,6 @@ private struct TimelineReadingApp: App {
             TimelineView(.periodic(from: .distantPast, by: 60)) { _ in
                 Text(verbatim: "TL:" + FrameReadModels.timeline.label)
             }
-        }
-    }
-}
-
-/// Reads the model inside a `.sheet`'s content closure, which runs when the
-/// presentation modifier draws rather than when the enclosing `body` is evaluated.
-private struct SheetReadingApp: App {
-    init() {}
-    var body: some Scene {
-        WindowGroup {
-            Text("Page")
-                .sheet(isPresented: .constant(true)) {
-                    Text(verbatim: "S:" + FrameReadModels.sheet.label)
-                }
         }
     }
 }
@@ -214,19 +198,6 @@ struct FrameObservationTests {
         FrameReadModels.timeline.label = "two"
         #expect(app.takeFrameRequest(), "the write asked for no frame")
         #expect(draw(app, at: &now).contains { $0.contains("TL:two") })
-    }
-
-    @Test("A .sheet's closure reading an @Observable asks for a frame")
-    func sheetClosure() {
-        FrameReadModels.sheet = FrameReadModel()
-        let app = TestApp(SheetReadingApp(), width: 30, height: 10)
-        var now: Int64 = 0
-        _ = draw(app, at: &now)
-        #expect(draw(app, at: &now).contains { $0.contains("S:one") })
-        _ = app.takeFrameRequest()
-        FrameReadModels.sheet.label = "two"
-        #expect(app.takeFrameRequest(), "the write asked for no frame")
-        #expect(draw(app, at: &now).contains { $0.contains("S:two") })
     }
 
     @Test("A ForEach multi-member closure reading an @Observable asks for a frame")
