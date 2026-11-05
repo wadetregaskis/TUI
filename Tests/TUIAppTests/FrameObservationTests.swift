@@ -35,6 +35,7 @@ private enum FrameReadModels {
     nonisolated(unsafe) static var geometry = FrameReadModel()
     nonisolated(unsafe) static var timeline = FrameReadModel()
     nonisolated(unsafe) static var sheet = FrameReadModel()
+    nonisolated(unsafe) static var forEach = FrameReadModel()
 }
 
 private struct ReadingButtonStyle: ButtonStyle, Equatable {
@@ -104,6 +105,22 @@ private struct SheetReadingApp: App {
                 .sheet(isPresented: .constant(true)) {
                     Text(verbatim: "S:" + FrameReadModels.sheet.label)
                 }
+        }
+    }
+}
+
+/// Reads the model inside a `ForEach` closure with a multi-member row over
+/// non-`Equatable` elements (`enumerated()`), which runs outside `_MemoizedRow`.
+private struct ForEachMultiMemberReadingApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            HStack {
+                ForEach(Array(["a"].enumerated()), id: \.element) { index, _ in
+                    if index > 0 { Divider() }
+                    Text(verbatim: "FE:" + FrameReadModels.forEach.label)
+                }
+            }
         }
     }
 }
@@ -210,5 +227,18 @@ struct FrameObservationTests {
         FrameReadModels.sheet.label = "two"
         #expect(app.takeFrameRequest(), "the write asked for no frame")
         #expect(draw(app, at: &now).contains { $0.contains("S:two") })
+    }
+
+    @Test("A ForEach multi-member closure reading an @Observable asks for a frame")
+    func forEachMultiMemberClosure() {
+        FrameReadModels.forEach = FrameReadModel()
+        let app = TestApp(ForEachMultiMemberReadingApp(), width: 30, height: 6)
+        var now: Int64 = 0
+        _ = draw(app, at: &now)
+        #expect(draw(app, at: &now).contains { $0.contains("FE:one") })
+        _ = app.takeFrameRequest()
+        FrameReadModels.forEach.label = "two"
+        #expect(app.takeFrameRequest(), "the write asked for no frame")
+        #expect(draw(app, at: &now).contains { $0.contains("FE:two") })
     }
 }

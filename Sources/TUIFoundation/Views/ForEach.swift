@@ -241,7 +241,7 @@ nonisolated public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Co
     public func childViews(context: RenderContext) -> [ChildView] {
         let data = data(in: context)
         switch rowShape(sectionWholeness: context.sectionWholeness) {
-        case .single: return data.map(makeChild(for:))
+        case .single: return data.map { makeChild(for: $0, context: context) }
         case .none: return []
         case .fixed, .varying: return data.flatMap { rowMembers(of: $0, context: context) }
         }
@@ -266,7 +266,7 @@ nonisolated public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Co
     /// the cache. `identityType: Content.self` keeps the per-child
     /// identity exactly what it is unwrapped — the memo is identity-
     /// transparent (the wrapper is Renderable, adds no identity).
-    func makeChild(for element: Data.Element) -> ChildView {
+    func makeChild(for element: Data.Element, context: RenderContext) -> ChildView {
         let key = identityKey(elementID(of: element))
         // A row carrying an explicit `.alignmentGuide` is handed over bare. The
         // memo wrapper is `Renderable` and opaque, so a container reading its
@@ -308,7 +308,9 @@ nonisolated public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Co
         if memoisable, let equatableElement = element as? any Equatable {
             return memoizedChild(keyedBy: equatableElement, element: element, key: key)
         }
-        return ChildView(content(element), identityType: Content.self, key: key)
+        let rowScope = context.withChildIdentity(erasedType: Content.self, key: key)
+        let built = observingBodyClosure(of: Self.self, context: rowScope) { content(element) }
+        return ChildView(built, identityType: Content.self, key: key)
     }
 
     /// The row for `element`, memoised by `rowKey`: the element again, as the
@@ -401,7 +403,7 @@ nonisolated public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Co
             // than by a `content as? any WindowedListRowExtractor` at each ask.
             dataSignature: listRowsSignature,
             build: { ordinal in
-                makeChild(for: data[data.index(data.startIndex, offsetBy: ordinal)])
+                makeChild(for: data[data.index(data.startIndex, offsetBy: ordinal)], context: context)
             })
     }
 }

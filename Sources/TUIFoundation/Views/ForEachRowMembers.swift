@@ -103,9 +103,9 @@ enum ForEachRowShape: Equatable {
     func rowMembers(of element: Data.Element, context: RenderContext) -> [ChildView] {
         let key = identityKey(elementID(of: element))
         let rowScope = context.withChildIdentity(erasedType: Content.self, key: key)
-        let row = content(element)
+        let row = observingBodyClosure(of: Self.self, context: rowScope) { content(element) }
         if let provider = row as? ChildViewProvider, provider.staysWhole(in: rowScope) {
-            return [makeChild(for: element)]
+            return [makeChild(for: element, context: context)]
         }
         return resolveChildViews(from: row, context: rowScope).compactMap { member in
             guard !isEmptyMember(member) else { return nil }
