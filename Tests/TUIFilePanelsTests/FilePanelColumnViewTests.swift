@@ -200,6 +200,33 @@ struct FilePanelColumnViewTests {
         #expect(await FilePanelPreview.excerpt(of: entry) == nil)
     }
 
+    @Test("UTF-8 text files without a declared text UTType are previewed, while binary files are not")
+    func untypedTextFilesAndBinaryFiles() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        try Data("{\n  \"pins\" : []\n}\n".utf8).write(to: fixture.url("Package.resolved"))
+        try Data("* text=auto\n".utf8).write(to: fixture.url(".gitattributes"))
+        try Data("{\n  \"version\" : 1\n}\n".utf8).write(to: fixture.url(".swift-format"))
+        try Data([0xCF, 0xFA, 0xED, 0xFE, 0x00, 0x01, 0x02, 0x03]).write(to: fixture.url("blob.bin"))
+        try Data("header\0binary".utf8).write(to: fixture.url("raw-binary"))
+        let listed = try DirectoryListing.read(fixture.root, rule: FileChoiceRule()).get()
+        let byName = Dictionary(uniqueKeysWithValues: listed.map { ($0.name, $0) })
+
+        let resolved = try #require(byName["Package.resolved"])
+        let gitattributes = try #require(byName[".gitattributes"])
+        let swiftFormat = try #require(byName[".swift-format"])
+        let blob = try #require(byName["blob.bin"])
+        let rawBinary = try #require(byName["raw-binary"])
+        let pdf = try #require(byName["gamma.pdf"])
+
+        #expect(await FilePanelPreview.excerpt(of: resolved)?.contains("\"pins\"") == true)
+        #expect(await FilePanelPreview.excerpt(of: gitattributes)?.contains("* text=auto") == true)
+        #expect(await FilePanelPreview.excerpt(of: swiftFormat)?.contains("\"version\"") == true)
+        #expect(await FilePanelPreview.excerpt(of: blob) == nil)
+        #expect(await FilePanelPreview.excerpt(of: rawBinary) == nil)
+        #expect(await FilePanelPreview.excerpt(of: pdf) == nil)
+    }
+
     /// How many times `text` shows on `screen`.
     private func count(_ text: String, in screen: String) -> Int {
         screen.components(separatedBy: text).count - 1
@@ -254,28 +281,38 @@ struct FilePanelColumnViewTests {
 
     @Test("fileDialogPicturePreviews() previews a picture, and leaves a text file its excerpt")
     func picturePreviews() async throws {
-        let fixture = try FilePanelFixture()
-        defer { fixture.remove() }
-        try Self.redPicture.write(to: fixture.url("picture.png"))
-        let caller = FilePanelCaller()
-        let driver = FilePanelDriver { panel(fixture, caller: caller, store: columnsStore()).fileDialogPicturePreviews() }
-        // A text file keeps TUI's own preview.
-        _ = await previewingBeta(with: driver)
-        await settle { driver.screen().split(separator: "\n").contains { $0.hasSuffix("│ beta") || $0.contains("│ beta ") } }
-        // ↓ past gamma.pdf and notes.md to picture.png, and Space selects it.
-        driver.press(.down, times: 3)
-        driver.press(.space)
-        await settle { count("picture.png", in: driver.screen()) >= 2 }
-        let shown = driver.screen()
-        let rows = shown.split(separator: "\n").map(String.init)
-        let name = try #require(rows.firstIndex { $0.contains("│ picture.png") && count("picture.png", in: $0) == 1 })
-        // Above the name, the picture drawn in cells, in its red: a test
-        // terminal has no graphics, and a picture all one colour is drawn as
-        // cells of that colour, so the stripped screen shows nothing there.
-        let styled = driver.styledRows()
-        let red = styled[..<name].contains { $0.contains("2;255;0;0m") }
-        #expect(red, "\(shown)")
-        #expect(FileDialogPicturePreviews.isPicture(.png) && !FileDialogPicturePreviews.isPicture(.plainText))
+        try await ColorDepth.withCurrent(.truecolor) {
+            let fixture = try FilePanelFixture()
+            defer { fixture.remove() }
+            try Self.redPicture.write(to: fixture.url("picture.png"))
+            let caller = FilePanelCaller()
+            let driver = FilePanelDriver {
+                panel(fixture, caller: caller, store: columnsStore()).fileDialogPicturePreviews()
+            }
+            // A text file keeps TUI's own preview.
+            _ = await previewingBeta(with: driver)
+            await settle {
+                driver.screen().split(separator: "\n").contains { $0.hasSuffix("│ beta") || $0.contains("│ beta ") }
+            }
+            // ↓ past gamma.pdf and notes.md to picture.png, and Space selects it.
+            driver.press(.down, times: 3)
+            driver.press(.space)
+            await settle { count("picture.png", in: driver.screen()) >= 2 }
+            let shown = driver.screen()
+            let rows = shown.split(separator: "\n").map(String.init)
+            let name = try #require(
+                rows.firstIndex { $0.contains("│ picture.png") && count("picture.png", in: $0) == 1 })
+            // Above the name, the picture drawn in cells, in its red: a test
+            // terminal has no graphics, and a picture all one colour is drawn as
+            // cells of that colour, so the stripped screen shows nothing there.
+            await settle {
+                driver.styledRows()[..<name].contains { $0.contains("2;255;0;0m") }
+            }
+            let styled = driver.styledRows()
+            let red = styled[..<name].contains { $0.contains("2;255;0;0m") }
+            #expect(red, "\(shown)")
+            #expect(FileDialogPicturePreviews.isPicture(.png) && !FileDialogPicturePreviews.isPicture(.plainText))
+        }
     }
 
     @Test("A click on a folder in an earlier column goes to it")

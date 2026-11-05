@@ -67,6 +67,40 @@ struct FilePanelPreview: View {
     /// The most lines an excerpt keeps.
     nonisolated static let excerptLines = 12
 
+    /// Whether `type` is a declared text type or an untyped/dynamic file whose
+    /// opening bytes may be UTF-8 text (`Package.resolved`, `.gitattributes`,
+    /// `.swift-format`, logs, scripts without extensions). Known non-text
+    /// formats (`.pdf`, images, archives, bundles) are excluded without
+    /// reading the file.
+    nonisolated static func mayContainText(_ type: UTType) -> Bool {
+        if type.conforms(to: .text) || type.isDynamic { return true }
+        return type == .data || type == .item || type == .content
+            || type == .log || type == .unixExecutable || type == .propertyList
+    }
+
+    /// Decodes `data` as UTF-8 text when it contains no binary control bytes
+    /// and is valid UTF-8 (trimming up to three trailing bytes of a split
+    /// multi-byte scalar when `truncated` is true); `nil` for binary data.
+    nonisolated static func utf8Text(from data: Data, truncated: Bool) -> String? {
+        guard !data.isEmpty else { return nil }
+        for byte in data {
+            if (byte < 0x20 && byte != 0x09 && byte != 0x0A && byte != 0x0C && byte != 0x0D) || byte == 0x7F {
+                return nil
+            }
+        }
+        if let text = String(data: data, encoding: .utf8) {
+            return text
+        }
+        if truncated {
+            for trim in 1...min(3, data.count - 1) {
+                if let text = String(data: data.dropLast(trim), encoding: .utf8) {
+                    return text
+                }
+            }
+        }
+        return nil
+    }
+
     /// The opening lines of `entry` if it is a text file, read off the main
     /// actor; `nil` for anything else, or a file that cannot be read.
     ///
@@ -77,17 +111,15 @@ struct FilePanelPreview: View {
     @concurrent
     static func excerpt(of entry: FileEntry) async -> String? {
         let file = entry.url.resolvingSymlinksInPath()
-        guard entry.contentType.conforms(to: .text),
+        guard mayContainText(entry.contentType),
             (try? file.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true,
             let handle = try? FileHandle(forReadingFrom: file)
         else { return nil }
         defer { try? handle.close() }
-        guard let data = try? handle.read(upToCount: excerptBytes) else { return nil }
-        // Lossy, so a read that ends inside a character keeps the lines
-        // before it, where the failable initialiser the rule prefers drops
-        // them all; tabs as a terminal would draw them in a narrow column.
-        // swiftlint:disable:next optional_data_string_conversion
-        let text = String(decoding: data, as: UTF8.self).replacingOccurrences(of: "\t", with: "  ")
+        guard let data = try? handle.read(upToCount: excerptBytes),
+            let decoded = utf8Text(from: data, truncated: data.count == excerptBytes)
+        else { return nil }
+        let text = decoded.replacingOccurrences(of: "\t", with: "  ")
         return text.split(separator: "\n", omittingEmptySubsequences: false)
             .prefix(excerptLines).joined(separator: "\n")
     }
