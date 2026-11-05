@@ -121,33 +121,31 @@ enum DialogDrag {
         guard width > 0, height > 0 else { return }
 
         func register(mode: _DialogDragHandler.DragMode, shape: PointerShape? = nil) -> HitTestRegion.HandlerID {
-            let id = mouseDispatcher.register(
-                in: context,
-                reportingChangesTo: { mode != .move ? handler.isHovered : false },
-                { event in
-                    switch event.phase {
-                    case .entered:
-                        if mode != .move { handler.isHovered = true }
-                        return true
-                    case .exited:
-                        if mode != .move { handler.isHovered = false }
-                        return true
-                    case .pressed where event.button == .left:
-                        handler.beginDrag(mode: mode, atX: event.x, y: event.y)
-                        return true
-                    case .dragged:
-                        handler.updateDrag(
-                            toX: event.x, y: event.y,
-                            screenWidth: context.environment.terminalWidth,
-                            screenHeight: context.environment.overlayContentHeight)
-                        return true
-                    case .released where event.button == .left:
-                        handler.endDrag()
-                        return true
-                    default:
-                        return false
-                    }
-                })
+            let id = mouseDispatcher.register(in: context) { [weak handler] event in
+                guard let handler else { return false }
+                switch event.phase {
+                case .entered:
+                    if mode != .move { handler.isHovered = true }
+                    return true
+                case .exited:
+                    if mode != .move { handler.isHovered = false }
+                    return true
+                case .pressed where event.button == .left:
+                    handler.beginDrag(mode: mode, atX: event.x, y: event.y)
+                    return true
+                case .dragged:
+                    handler.updateDrag(
+                        toX: event.x, y: event.y,
+                        screenWidth: context.environment.terminalWidth,
+                        screenHeight: context.environment.overlayContentHeight)
+                    return true
+                case .released where event.button == .left:
+                    handler.endDrag()
+                    return true
+                default:
+                    return false
+                }
+            }
             if let shape {
                 mouseDispatcher.fileControlPointerShape(shape, for: id, in: context)
             }
