@@ -71,13 +71,12 @@ struct CanvasPictureTests {
 
     @Test("The same drawing again sends nothing, and a changed one replaces it")
     func pictureIsSentOnce() {
-        var side: CGFloat = 1
         let tui = TUIContext()
         var environment = EnvironmentValues()
         environment.applyRuntimeServices(from: tui)
         environment.imageCellPixels = TerminalCellPixels(width: 8, height: 16)
         let context = RenderContext(availableWidth: 2, availableHeight: 1, environment: environment, tuiContext: tui)
-        func frame() -> String {
+        func frame(_ side: CGFloat) -> String {
             let canvas = Canvas { context, _ in
                 context.fill(Path(CGRect(x: 0, y: 0, width: side, height: 2)), with: .color(red))
             }
@@ -86,10 +85,9 @@ struct CanvasPictureTests {
             _ = pictures { renderToBuffer(canvas, context: context) }
             return tui.terminalImageStore.takePending()
         }
-        #expect(frame().contains("a=t,"))
-        #expect(!frame().contains("a=t,"), "the terminal has it")
-        side = 2
-        #expect(frame().contains("a=t,"))
+        #expect(frame(1).contains("a=t,"))
+        #expect(!frame(1).contains("a=t,"), "the terminal has it")
+        #expect(frame(2).contains("a=t,"))
     }
 
     @Test("Asking for a grain draws glyphs even where pictures are on offer")
