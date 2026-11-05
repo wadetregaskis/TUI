@@ -181,6 +181,28 @@ struct DialogModifierTests {
         let first = try #require(drawn.first)
         let last = try #require(drawn.last)
         #expect(abs((first - left) - (right - last)) <= 1, "centred in the dialog: \(lines)")
+
+        let confirmation = Text("base")
+            .confirmationDialog(
+                "Delete \"Project.tui\"?", isPresented: .constant(true), titleVisibility: .visible,
+                actions: {
+                    Button("Delete", role: .destructive) {}
+                    Button("Cancel", role: .cancel) {}
+                },
+                message: { Text("This item will be deleted immediately. You can't undo this action.") }
+            )
+            .dialogSeverity(.critical)
+            .dialogSuppressionToggle("Do not ask again", isSuppressed: .constant(false))
+        let confirmationLines = screen(confirmation).map(\.stripped)
+        let toggleRow = Array(try #require(confirmationLines.first { $0.contains("Do not ask again") }))
+        let cLeft = try #require(toggleRow.firstIndex(of: "│"))
+        let cRight = try #require(toggleRow.lastIndex(of: "│"))
+        let cDrawn = toggleRow.indices.filter { $0 > cLeft && $0 < cRight && toggleRow[$0] != " " }
+        let cFirst = try #require(cDrawn.first)
+        let cLast = try #require(cDrawn.last)
+        #expect(
+            abs((cFirst - cLeft) - (cRight - cLast)) <= 1,
+            "the suppression toggle is centred in a confirmation dialog: \(confirmationLines)")
     }
 
     @Test("The alert's button keeps the opening focus; the toggle is a Tab away and writes the binding")

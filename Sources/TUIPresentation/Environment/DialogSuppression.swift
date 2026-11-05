@@ -193,7 +193,8 @@ struct _AlertFooter: View, Renderable, Layoutable {
         let toggle = TUIView.renderToBuffer(
             toggleView(suppression),
             context: context.withChildIdentity(type: DialogSuppression.self, index: ChildIndex.toggle))
-        let inset = max(0, (buttonsBuffer.width - toggle.width) / 2)
+        let width = max(context.availableWidth, buttonsBuffer.width)
+        let inset = max(0, (width - toggle.width) / 2)
         var result = FrameBuffer(emptyWithWidth: inset, height: toggle.height)
         result.appendHorizontally(toggle)
         result.appendVertically(buttonsBuffer, spacing: Self.toggleSpacing)
