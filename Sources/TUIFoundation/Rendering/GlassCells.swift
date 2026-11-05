@@ -61,7 +61,7 @@ enum GlassCells {
         let environment = context.environment
         let frame = ShapeFrame(columns: columns, rows: rows, aspect: environment.imageCellAspect)
         let drawn = resolvedShape(shape, in: context, columns: columns, rows: rows)
-        let target = glass.surface(in: environment)
+        let target = glass.surface(in: environment).resolve(with: environment.palette)
         let animated = owner.map { ColorAnimation.resolving(target, owner: $0, context: context) } ?? target
         let surface = presence < 1 ? animated.opacity(presence) : animated
         let painter = ShapePainter(

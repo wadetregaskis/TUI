@@ -244,6 +244,26 @@ struct GlassEffectTests {
         #expect(onPlain == .some(nil))
     }
 
+    @Test("When Block Elements do not fill the line, a box rim's uncovered corners resolve a semantic glass surface")
+    func wholeCellCornersResolveSemanticSurface() {
+        let renderContext = makeRenderContext(width: 6, height: 3) { environment, _ in
+            environment.palette = SystemPalette.green
+            environment.appearance = .rounded
+            environment.blockElementsFillTheLine = false
+        }
+        for depth: ColorDepth in [.palette256, .truecolor] {
+            ColorDepth.withCurrent(depth) {
+                let regular = renderToScreen(Text("Flag").padding().glassEffect(), context: renderContext).lines
+                #expect(regular.map(\.stripped) == ["╭────╮", "│Flag│", "╰────╯"])
+                let accented = renderToScreen(
+                    Text("Flag").padding().glassEffect(.regular.tint(.palette.accent)),
+                    context: renderContext
+                ).lines
+                #expect(accented.map(\.stripped) == ["╭────╮", "│Flag│", "╰────╯"])
+            }
+        }
+    }
+
     // MARK: - Interactive glass
 
     @Test("Interactive glass lifts its rim while the pointer is over it; plain glass watches no pointer")
