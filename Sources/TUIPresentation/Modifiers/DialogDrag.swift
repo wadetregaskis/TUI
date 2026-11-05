@@ -120,6 +120,9 @@ enum DialogDrag {
         let height = buffer.height
         guard width > 0, height > 0 else { return }
 
+        let screenWidth = context.environment.terminalWidth
+        let screenHeight = context.environment.overlayContentHeight
+
         func register(mode: _DialogDragHandler.DragMode, shape: PointerShape? = nil) -> HitTestRegion.HandlerID {
             let id = mouseDispatcher.register(in: context) { [weak handler] event in
                 guard let handler else { return false }
@@ -136,8 +139,8 @@ enum DialogDrag {
                 case .dragged:
                     handler.updateDrag(
                         toX: event.x, y: event.y,
-                        screenWidth: context.environment.terminalWidth,
-                        screenHeight: context.environment.overlayContentHeight)
+                        screenWidth: screenWidth,
+                        screenHeight: screenHeight)
                     return true
                 case .released where event.button == .left:
                     handler.endDrag()

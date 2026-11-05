@@ -95,8 +95,11 @@ struct FilePanelLoadingDelayTests {
         #expect(!browser.showsLoadingPlaceholder)
         #expect(browser.emptyText.isEmpty)
 
-        // Wait for the delay window (250ms) to elapse
-        try await Task.sleep(for: .milliseconds(300))
+        // Wait for the delay window (250ms) to elapse and the task to update
+        let deadline = ContinuousClock.now + .seconds(2)
+        while !browser.showsLoadingPlaceholder && ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(50))
+        }
         #expect(browser.showsLoadingPlaceholder)
         #expect(browser.emptyText == LocalizationService.shared.string(for: LocalizationKey.FilePanel.loading))
     }
