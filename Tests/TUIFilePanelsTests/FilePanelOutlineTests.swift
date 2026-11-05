@@ -102,4 +102,23 @@ struct FilePanelOutlineTests {
         #expect(
             Set(caller.chosenPaths) == [fixture.url("Alpha/inner.txt").path, fixture.url("beta.txt").path])
     }
+
+    @Test("Opening a folder or toggling hidden files after moving the cursor redraws without further input")
+    func redrawsAfterCooldownWithoutFurtherInput() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver { panel(fixture, caller: caller) }
+        await driver.waitFor("notes.md")
+        // Moving the cursor a couple of times puts PlainMemo into cooldown on
+        // the unstored table views before opening the folder or toggling hidden files.
+        driver.press(.down)
+        driver.press(.up)
+        driver.press(.right)
+        try await driver.app.wait(for: "inner.txt", timeout: .seconds(2))
+        // Toggling Show Hidden Files also redraws as soon as the folder is read.
+        driver.press(.tab)
+        driver.press(.space)
+        try await driver.app.wait(for: ".hidden", timeout: .seconds(2))
+    }
 }

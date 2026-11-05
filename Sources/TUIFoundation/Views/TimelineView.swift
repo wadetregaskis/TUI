@@ -226,7 +226,8 @@ private struct _TimelineViewCore<Schedule: TimelineSchedule, Content: View>: Vie
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let (timeline, next, contentContext) = timelineContext(now: frameDate(context), noting: context)
         declareMeasure(next: next, context: context)
-        return measureChild(content(timeline), proposal: proposal, context: contentContext)
+        let built = observingBodyClosure(of: Self.self, context: context) { content(timeline) }
+        return measureChild(built, proposal: proposal, context: contentContext)
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
@@ -252,6 +253,7 @@ private struct _TimelineViewCore<Schedule: TimelineSchedule, Content: View>: Vie
                 context.requestWake(token: token, afterSeconds: next.timeIntervalSince(now))
             }
         }
-        return TUIView.renderToBuffer(content(timeline), context: contentContext)
+        let built = observingBodyClosure(of: Self.self, context: context) { content(timeline) }
+        return TUIView.renderToBuffer(built, context: contentContext)
     }
 }

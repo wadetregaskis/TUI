@@ -175,7 +175,7 @@ nonisolated package struct ModalPresentationModifier<Content: View, Modal: View>
 
         // Built now it is presented, once for the frame, and presented as a
         // cover where the size classes make a sheet one.
-        let modal = self.modal()
+        let modal = observingBodyClosure(of: Self.self, context: context) { self.modal() }
         let style = presentedStyle(of: modal)
         // A sheet whose content lets the page through posts the rows it docks
         // (`postDock`).

@@ -377,6 +377,35 @@ package func evaluateCompositeBody<V: View>(of view: V, context: RenderContext) 
     return body
 }
 
+/// Evaluates a deferred view-building closure — a `GeometryReader`'s, a
+/// `TimelineView`'s, or a modal presentation's — under observation tracking at
+/// `context`'s identity, as ``evaluateCompositeBody(of:context:)`` and
+/// `measureCompositeBody` observe a composite view's `body`.
+///
+/// The closure is the view's body, deferred until the core has resolved what
+/// it hands the closure (a `GeometryProxy`, a `TimelineView.Context`, or
+/// whether a sheet is presented). Only the closure itself runs inside the
+/// scope, not the render of what it returns, so nested bodies keep their own
+/// scopes.
+@inline(__always)
+@MainActor
+package func observingBodyClosure<T>(
+    of reader: Any.Type, context: RenderContext, _ build: () -> T
+) -> T {
+    if context.isMeasuring, context.renderCache?.readingTypes.contains(reader) != true {
+        return build()
+    }
+    let sentinel = context.renderCache?.scopeSentinel(forReader: reader, at: context.identity)
+    return withObservationTracking(
+        {
+            sentinel?.touch()
+            return build()
+        },
+        onChange: observedChange(
+            of: context, kind: context.isMeasuring ? .bodyMeasure : .bodyRender, reader: reader,
+            sentinel: sentinel))
+}
+
 /// The `onChange` a scope of `kind` arms at `context`'s identity, counted in
 /// the cache's ``ObservationCensus`` when one is installed.
 ///

@@ -11,6 +11,7 @@
 
 import Observation
 import Testing
+import TUIPresentation
 
 @testable import TUIApp
 @testable import TUIAppTestSupport
@@ -31,6 +32,9 @@ private enum FrameReadModels {
     nonisolated(unsafe) static var toggle = FrameReadModel()
     nonisolated(unsafe) static var style = FrameReadModel()
     nonisolated(unsafe) static var app = FrameReadModel()
+    nonisolated(unsafe) static var geometry = FrameReadModel()
+    nonisolated(unsafe) static var timeline = FrameReadModel()
+    nonisolated(unsafe) static var sheet = FrameReadModel()
 }
 
 private struct ReadingButtonStyle: ButtonStyle, Equatable {
@@ -61,6 +65,46 @@ private struct AppBodyReadingApp: App {
     var body: some Scene {
         let title = FrameReadModels.app.title
         WindowGroup { Text(verbatim: "T:" + title) }
+    }
+}
+
+/// Reads the model inside a `GeometryReader`'s closure, which runs when the
+/// core draws rather than when the enclosing `body` is evaluated.
+private struct GeometryReadingApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            GeometryReader { _ in
+                Text(verbatim: "G:" + FrameReadModels.geometry.label)
+            }
+        }
+    }
+}
+
+/// Reads the model inside a `TimelineView`'s closure, which runs when the
+/// core measures or draws rather than when the enclosing `body` is evaluated.
+private struct TimelineReadingApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            TimelineView(.periodic(from: .distantPast, by: 60)) { _ in
+                Text(verbatim: "TL:" + FrameReadModels.timeline.label)
+            }
+        }
+    }
+}
+
+/// Reads the model inside a `.sheet`'s content closure, which runs when the
+/// presentation modifier draws rather than when the enclosing `body` is evaluated.
+private struct SheetReadingApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            Text("Page")
+                .sheet(isPresented: .constant(true)) {
+                    Text(verbatim: "S:" + FrameReadModels.sheet.label)
+                }
+        }
     }
 }
 
@@ -127,5 +171,44 @@ struct FrameObservationTests {
         let counts = census.snapshot
         #expect(counts.armed(.frame) >= 40)
         #expect(counts.live(.frame) <= 3, "frame scopes alive after 40 frames: \(counts.live(.frame))")
+    }
+
+    @Test("A GeometryReader's closure reading an @Observable asks for a frame")
+    func geometryReaderClosure() {
+        FrameReadModels.geometry = FrameReadModel()
+        let app = TestApp(GeometryReadingApp(), width: 30, height: 6)
+        var now: Int64 = 0
+        _ = draw(app, at: &now)
+        #expect(draw(app, at: &now).contains { $0.contains("G:one") })
+        _ = app.takeFrameRequest()
+        FrameReadModels.geometry.label = "two"
+        #expect(app.takeFrameRequest(), "the write asked for no frame")
+        #expect(draw(app, at: &now).contains { $0.contains("G:two") })
+    }
+
+    @Test("A TimelineView's closure reading an @Observable asks for a frame")
+    func timelineViewClosure() {
+        FrameReadModels.timeline = FrameReadModel()
+        let app = TestApp(TimelineReadingApp(), width: 30, height: 6)
+        var now: Int64 = 0
+        _ = draw(app, at: &now)
+        #expect(draw(app, at: &now).contains { $0.contains("TL:one") })
+        _ = app.takeFrameRequest()
+        FrameReadModels.timeline.label = "two"
+        #expect(app.takeFrameRequest(), "the write asked for no frame")
+        #expect(draw(app, at: &now).contains { $0.contains("TL:two") })
+    }
+
+    @Test("A .sheet's closure reading an @Observable asks for a frame")
+    func sheetClosure() {
+        FrameReadModels.sheet = FrameReadModel()
+        let app = TestApp(SheetReadingApp(), width: 30, height: 10)
+        var now: Int64 = 0
+        _ = draw(app, at: &now)
+        #expect(draw(app, at: &now).contains { $0.contains("S:one") })
+        _ = app.takeFrameRequest()
+        FrameReadModels.sheet.label = "two"
+        #expect(app.takeFrameRequest(), "the write asked for no frame")
+        #expect(draw(app, at: &now).contains { $0.contains("S:two") })
     }
 }

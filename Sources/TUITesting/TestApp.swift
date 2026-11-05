@@ -214,15 +214,14 @@ public final class TestApp {
             }
             let turn = wait.nextTurn()
             // Mostly a yield: work on the main actor needs only that. Every so
-            // often a nap, for work on the pool, and a frame, for a change that
-            // asked for none, such as a variable `content` reads.
+            // often a nap, for work on the pool; a frame is drawn only when the
+            // app has asked for one, as a running app's render loop draws.
             if wait.isOverdue || turn.isMultiple(of: 50) {
                 try? await Task.sleep(for: .milliseconds(1))
-                drawFrames()
             } else {
                 await Task.yield()
-                if headless.takeFrameRequest() { drawFrames() }
             }
+            if headless.takeFrameRequest() { drawFrames() }
         }
     }
 

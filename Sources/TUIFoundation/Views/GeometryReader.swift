@@ -323,7 +323,8 @@ private struct _GeometryReaderCore<Content: View>: View, Renderable, Layoutable 
         let ask = context.makeGeometryAsk(role: .reader)
         let proxy = GeometryProxy(width: width, height: height, ask: ask)
 
-        var buffer = TUIView.renderToBuffer(content(proxy), context: contentContext(noting: proxy, in: context))
+        let built = observingBodyClosure(of: Self.self, context: context) { content(proxy) }
+        var buffer = TUIView.renderToBuffer(built, context: contentContext(noting: proxy, in: context))
 
         // The reader occupies everything it was offered even when its content
         // does not, so a sibling below starts where the reader ends rather than

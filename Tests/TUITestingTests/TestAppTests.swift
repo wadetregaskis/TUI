@@ -380,11 +380,14 @@ struct TestAppTimeTests {
 
     @Test("A wait reads a change a condition can see and no frame asked for")
     func waitUntil() async throws {
-        var label = "before"
-        let app = TestApp(width: 40, height: 3) { Text(label) }
-        #expect(app.screen.contains("before"))
-        label = "after"
-        try await app.wait(until: { app.screen.contains("after") })
+        let box = Box()
+        let app = TestApp(width: 40, height: 3) { Text("Still") }
+        #expect(app.screen.contains("Still"))
+        Task { @MainActor in
+            await Task.yield()
+            box.ended = true
+        }
+        try await app.wait(until: { box.ended })
     }
 
     @Test("A view that sleeps on a TestClock wakes when the test moves it")
