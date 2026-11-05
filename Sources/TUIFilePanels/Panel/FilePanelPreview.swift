@@ -32,9 +32,12 @@ struct FilePanelPreview: View {
             if let preview = appPreviews?.view(for: entry) {
                 preview.frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let excerpt {
-                Text(verbatim: excerpt)
-                    .foregroundStyle(.palette.foregroundSecondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                ScrollView {
+                    Text(verbatim: excerpt)
+                        .foregroundStyle(.palette.foregroundSecondary)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 Spacer(minLength: 0)
             }
@@ -61,11 +64,17 @@ struct FilePanelPreview: View {
         }
     }
 
-    /// The most of a file read for its excerpt, in bytes.
-    nonisolated static let excerptBytes = 2_048
+    /// The most of a file read for its preview, in bytes (64 KiB).
+    nonisolated static let previewByteCap = 64 * 1024
 
-    /// The most lines an excerpt keeps.
-    nonisolated static let excerptLines = 12
+    /// Legacy alias for ``previewByteCap``.
+    nonisolated static var excerptBytes: Int { previewByteCap }
+
+    /// The most lines a preview keeps before truncating.
+    nonisolated static let previewLineCap = 250
+
+    /// Legacy alias for ``previewLineCap``.
+    nonisolated static var excerptLines: Int { previewLineCap }
 
     /// Whether `type` is a declared text type or an untyped/dynamic file whose
     /// opening bytes may be UTF-8 text (`Package.resolved`, `.gitattributes`,
@@ -101,8 +110,8 @@ struct FilePanelPreview: View {
         return nil
     }
 
-    /// The opening lines of `entry` if it is a text file, read off the main
-    /// actor; `nil` for anything else, or a file that cannot be read.
+    /// The preview text of `entry` if it is a text file, read off the main actor
+    /// using memory-mapping; `nil` for anything else, or a file that cannot be read.
     ///
     /// Only a regular file (or a link to one) is opened: on Linux a type is
     /// its extension's, so a named pipe called `x.log` is "text", and opening
@@ -112,15 +121,40 @@ struct FilePanelPreview: View {
     static func excerpt(of entry: FileEntry) async -> String? {
         let file = entry.url.resolvingSymlinksInPath()
         guard mayContainText(entry.contentType),
-            (try? file.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true,
-            let handle = try? FileHandle(forReadingFrom: file)
+            (try? file.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true
         else { return nil }
-        defer { try? handle.close() }
-        guard let data = try? handle.read(upToCount: excerptBytes),
-            let decoded = utf8Text(from: data, truncated: data.count == excerptBytes)
-        else { return nil }
+        let totalSize = (try? file.resourceValues(forKeys: [.fileSizeKey]))?.fileSize.map(Int64.init)
+            ?? entry.size
+        let data: Data
+        do {
+            data = try Data(contentsOf: file, options: [.alwaysMapped])
+        } catch {
+            guard let handle = try? FileHandle(forReadingFrom: file),
+                let read = try? handle.read(upToCount: previewByteCap)
+            else { return nil }
+            data = read
+        }
+        guard !data.isEmpty else { return nil }
+        let cappedSlice = data.prefix(previewByteCap)
+        let total = totalSize ?? Int64(data.count)
+        let isTruncatedByBytes = cappedSlice.count < total
+        guard let decoded = utf8Text(from: cappedSlice, truncated: isTruncatedByBytes) else { return nil }
         let text = decoded.replacingOccurrences(of: "\t", with: "  ")
-        return text.split(separator: "\n", omittingEmptySubsequences: false)
-            .prefix(excerptLines).joined(separator: "\n")
+        var lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        let isTruncatedByLines = lines.count > previewLineCap
+        if isTruncatedByLines {
+            lines = Array(lines.prefix(previewLineCap))
+            let shownBytes = Int64(lines.reduce(0) { $0 + $1.utf8.count + 1 })
+            let remaining = max(0, total - shownBytes)
+            let formatted = ByteCountFormatStyle(style: .file).format(remaining)
+            lines.append("…")
+            lines.append("(plus \(formatted) more)")
+        } else if isTruncatedByBytes {
+            let remaining = max(0, total - Int64(cappedSlice.count))
+            let formatted = ByteCountFormatStyle(style: .file).format(remaining)
+            lines.append("…")
+            lines.append("(plus \(formatted) more)")
+        }
+        return lines.joined(separator: "\n")
     }
 }
