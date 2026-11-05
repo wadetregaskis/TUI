@@ -39,7 +39,7 @@ package enum BorderGrip {
     package struct Glyphs {
         package let horizontal: String
         let vertical: String
-        let corner: String
+        package let corner: String
 
         /// Doubled lines against a single-line or heavy border; heavy ones
         /// against a double-line border, where doubles would BE the border and
@@ -72,7 +72,7 @@ package enum BorderGrip {
     /// edge — the mark would read as damage rather than as an affordance — so
     /// such a border keeps its glyph and is marked by the TINT alone, which is
     /// the same three-step vocabulary either way.
-    static func paintsItsCells(_ cell: Character?) -> Bool {
+    package static func paintsItsCells(_ cell: Character?) -> Bool {
         cell.map { ("\u{2580}"..."\u{259F}").contains($0) } ?? false
     }
 

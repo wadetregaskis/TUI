@@ -93,6 +93,13 @@ enum ModalPresentationStateIndex {
 private typealias StateIndex = ModalPresentationStateIndex
 
 @MainActor extension ModalPresentationModifier {
+    /// The presenter's drag handler for moving and resizing the sheet.
+    func dragHandler(context: RenderContext) -> _DialogDragHandler? {
+        (context.stateStorage?.existingStorage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.dragHandler))
+            as StateBox<_DialogDragHandler>?)?.value
+    }
+
     /// The presenter's record of the largest size a sticky sizing has kept.
     func keptSheetSize(context: RenderContext) -> KeptSheetSize? {
         context.stateStorage?.storage(

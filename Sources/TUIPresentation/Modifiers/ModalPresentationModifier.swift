@@ -347,7 +347,8 @@ nonisolated package struct ModalPresentationModifier<Content: View, Modal: View>
             style == .fullScreen
             ? (x: 0, y: 0)
             : DialogDrag.offset(
-                for: &modalBuffer, context: context, propertyIndex: StateIndex.dragHandler)
+                for: &modalBuffer, context: context, propertyIndex: StateIndex.dragHandler,
+                resizable: style == .sheet)
 
         // Float the modal to the screen root: it composites centred over the whole
         // screen and dims everything beneath — so it presents over the full screen

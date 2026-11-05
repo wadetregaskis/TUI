@@ -339,4 +339,47 @@ struct FileImporterPanelTests {
         let home = await driver.waitFor("beta.txt")
         #expect(!home.contains("inner.txt"))
     }
+
+    @Test("Dragging the bottom-right corner resizes the open dialog")
+    func resizeFileImporterPanel() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver(width: 120, height: 40) { panel(fixture, caller: caller) }
+        await driver.waitFor("notes.md")
+
+        let screenBefore = driver.screen()
+        guard screenBefore.contains("╝") else {
+            Issue.record("Expected corner grip '╝' on presented sheet")
+            return
+        }
+        let lines = screenBefore.split(separator: "\n", omittingEmptySubsequences: false)
+        var cornerX = 0
+        var cornerY = 0
+        for (y, line) in lines.enumerated() {
+            if let col = line.firstIndex(of: "╝") {
+                cornerX = line.distance(from: line.startIndex, to: col)
+                cornerY = y
+                break
+            }
+        }
+        #expect(cornerX > 0 && cornerY > 0)
+
+        // Drag the corner up and left by 10 columns and 5 rows
+        driver.app.drag(from: CellPoint(x: cornerX, y: cornerY), to: CellPoint(x: cornerX - 10, y: cornerY - 5))
+
+        let screenAfter = driver.screen()
+        let linesAfter = screenAfter.split(separator: "\n", omittingEmptySubsequences: false)
+        var newCornerX = 0
+        var newCornerY = 0
+        for (y, line) in linesAfter.enumerated() {
+            if let col = line.firstIndex(of: "╝") {
+                newCornerX = line.distance(from: line.startIndex, to: col)
+                newCornerY = y
+                break
+            }
+        }
+        #expect(newCornerX == cornerX - 10)
+        #expect(newCornerY == cornerY - 5)
+    }
 }

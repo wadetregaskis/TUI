@@ -106,12 +106,19 @@ import TUIFoundation
     /// grabber dragged up changed the detent — past a live sheet's
     /// `upThrough`, dimming the page — and drew the sheet no taller. Laid on
     /// blank cells of the box's size, it is the box a `Dialog`'s interior is.
-    static func sheetBox(_ buffer: FrameBuffer, detentHeight: Int?, palette: any Palette) -> FrameBuffer {
+    static func sheetBox(
+        _ buffer: FrameBuffer, userWidth: Int? = nil, detentHeight: Int?, palette: any Palette
+    ) -> FrameBuffer {
+        let width = max(buffer.width, userWidth ?? 0)
         let height = max(buffer.height, detentHeight ?? 0)
-        guard buffer.width > 0, !(buffer.linesAreUniformWidth && height == buffer.height) else { return buffer }
-        var box = FrameBuffer(emptyWithWidth: buffer.width, height: height)
+        guard width > 0, !(buffer.linesAreUniformWidth && height == buffer.height && width == buffer.width) else {
+            return buffer
+        }
+        var box = FrameBuffer(emptyWithWidth: width, height: height)
         // A sheet is outside any drawing group its presenter is in.
-        box.compositeCarryingClaimsOverNothing(with: buffer, at: (x: 0, y: 0), in: CompositeEnvironment(palette: palette, linearLight: false))
+        box.compositeCarryingClaimsOverNothing(
+            with: buffer, at: (x: 0, y: 0),
+            in: CompositeEnvironment(palette: palette, linearLight: false))
         return box
     }
 
@@ -186,6 +193,16 @@ import TUIFoundation
                 sheetContext.environment.sheetDetentHeight = detentHeight
                 capHeight = detentHeight
             }
+            let drag = dragHandler(context: context)
+            if let userWidth = drag?.userWidth {
+                sheetContext.availableWidth = min(userWidth, modalContext.availableWidth)
+                sheetContext.environment.sheetProposedWidth = userWidth
+            }
+            if let userHeight = drag?.userHeight, detentHeight == nil {
+                sheetContext.availableHeight = min(userHeight, modalContext.availableHeight)
+                sheetContext.environment.sheetDetentHeight = userHeight
+                capHeight = userHeight
+            }
             if let background {
                 return hostingToolbar(context: sheetContext, capHeight: capHeight) { inner, cap in
                     renderPresentedDialog(background.presentationBackground(behind: modal), context: inner, capHeight: cap)
@@ -195,7 +212,8 @@ import TUIFoundation
                 hostingToolbar(context: sheetContext, capHeight: capHeight) { inner, cap in
                     renderPresentedDialog(modal, context: inner, capHeight: cap)
                 },
-                detentHeight: detentHeight, palette: context.environment.palette)
+                userWidth: drag?.userWidth,
+                detentHeight: detentHeight ?? drag?.userHeight, palette: context.environment.palette)
         case .fullScreen:
             // The cover IS the screen: full width and the whole content area,
             // so there is nothing of the page left to show through and nothing

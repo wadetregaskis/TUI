@@ -382,4 +382,194 @@ struct ModalIsolationTests {
         #expect(sink.hits.contains("modal"),
                 "the modal's control still fires despite the overlapping drag grab region: \(sink.hits)")
     }
+
+    @Test("Dragging a modal by its bottom-right corner resizes both dimensions while keeping top-left fixed")
+    func draggingCornerResizesModal() {
+        let view = VStack { Text("bg") }
+            .modal(isPresented: .constant(true)) {
+                Dialog(title: "Resizable") { Text("body") }
+            }
+
+        let tui = TUIContext()
+        let fm = FocusManager()
+        var env = EnvironmentValues()
+        env.focusManager = fm
+        env.applyRuntimeServices(from: tui)
+        let width = 70, height = 24
+        let context = RenderContext(
+            availableWidth: width, availableHeight: height, environment: env, tuiContext: tui)
+
+        func frame() -> FrameBuffer {
+            fm.beginRenderPass()
+            let raw = renderToBuffer(view, context: context)
+            fm.endRenderPass()
+            return raw.compositingOverlays(
+                maxWidth: width, maxHeight: height, palette: context.environment.palette)
+        }
+
+        let before = frame()
+        guard let title = titleRegion(before) else {
+            Issue.record("no title grab region")
+            return
+        }
+
+        // Find corner grab region (near bottom-right)
+        guard let corner = before.hitTestRegions
+            .filter({ $0.width <= 2 && $0.height <= 2 })
+            .max(by: { ($0.offsetX + $0.offsetY) < ($1.offsetX + $1.offsetY) })
+        else {
+            Issue.record("no corner grab region")
+            return
+        }
+
+        let dispatcher = tui.mouseEventDispatcher
+        dispatcher.setActiveSupport(.standard)
+        dispatcher.setRegions(before.hitTestRegions)
+        let px = corner.offsetX + corner.width - 1
+        let py = corner.offsetY + corner.height - 1
+        let dx = 8, dy = 3
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: px, y: py))
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .dragged, x: px + dx, y: py + dy))
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: px + dx, y: py + dy))
+
+        let after = frame()
+        guard let movedTitle = titleRegion(after) else {
+            Issue.record("no title grab region after drag")
+            return
+        }
+        #expect(movedTitle.offsetX == title.offsetX, "top-left anchor did not move horizontally")
+        #expect(movedTitle.offsetY == title.offsetY, "top-left anchor did not move vertically")
+        #expect(movedTitle.width == title.width + dx, "dialog width grew by \(dx)")
+    }
+
+    @Test("Dragging a modal by its right border resizes width only while keeping height and top-left fixed")
+    func draggingRightBorderResizesModalWidthOnly() {
+        let view = VStack { Text("bg") }
+            .modal(isPresented: .constant(true)) {
+                Dialog(title: "Resizable") { Text("body") }
+            }
+
+        let tui = TUIContext()
+        let fm = FocusManager()
+        var env = EnvironmentValues()
+        env.focusManager = fm
+        env.applyRuntimeServices(from: tui)
+        let width = 70, height = 24
+        let context = RenderContext(
+            availableWidth: width, availableHeight: height, environment: env, tuiContext: tui)
+
+        func frame() -> FrameBuffer {
+            fm.beginRenderPass()
+            let raw = renderToBuffer(view, context: context)
+            fm.endRenderPass()
+            return raw.compositingOverlays(
+                maxWidth: width, maxHeight: height, palette: context.environment.palette)
+        }
+
+        let before = frame()
+        guard let title = titleRegion(before) else {
+            Issue.record("no title grab region")
+            return
+        }
+        guard let rightBorder = before.hitTestRegions
+            .filter({ $0.width == 1 && $0.height > 1 })
+            .max(by: { $0.offsetX < $1.offsetX })
+        else {
+            Issue.record("no right border grab region")
+            return
+        }
+        guard let bottomBorder = before.hitTestRegions
+            .filter({ $0.width == title.width && $0.height == 1 })
+            .max(by: { $0.offsetY < $1.offsetY })
+        else {
+            Issue.record("no bottom border grab region")
+            return
+        }
+
+        let dispatcher = tui.mouseEventDispatcher
+        dispatcher.setActiveSupport(.standard)
+        dispatcher.setRegions(before.hitTestRegions)
+        let px = rightBorder.offsetX
+        let py = rightBorder.offsetY + 2
+        let dx = 6
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: px, y: py))
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .dragged, x: px + dx, y: py))
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: px + dx, y: py))
+
+        let after = frame()
+        guard let movedTitle = titleRegion(after),
+              let movedBottom = after.hitTestRegions
+                  .filter({ $0.width == movedTitle.width && $0.height == 1 })
+                  .max(by: { $0.offsetY < $1.offsetY })
+        else {
+            Issue.record("regions missing after drag")
+            return
+        }
+        #expect(movedTitle.offsetX == title.offsetX, "top-left anchor did not move horizontally")
+        #expect(movedTitle.offsetY == title.offsetY, "top-left anchor did not move vertically")
+        #expect(movedTitle.width == title.width + dx, "dialog width grew by \(dx)")
+        #expect(movedBottom.offsetY == bottomBorder.offsetY, "dialog height did not change")
+    }
+
+    @Test("Dragging a modal by its bottom border resizes height only while keeping width and top-left fixed")
+    func draggingBottomBorderResizesModalHeightOnly() {
+        let view = VStack { Text("bg") }
+            .modal(isPresented: .constant(true)) {
+                Dialog(title: "Resizable") { Text("body") }
+            }
+
+        let tui = TUIContext()
+        let fm = FocusManager()
+        var env = EnvironmentValues()
+        env.focusManager = fm
+        env.applyRuntimeServices(from: tui)
+        let width = 70, height = 24
+        let context = RenderContext(
+            availableWidth: width, availableHeight: height, environment: env, tuiContext: tui)
+
+        func frame() -> FrameBuffer {
+            fm.beginRenderPass()
+            let raw = renderToBuffer(view, context: context)
+            fm.endRenderPass()
+            return raw.compositingOverlays(
+                maxWidth: width, maxHeight: height, palette: context.environment.palette)
+        }
+
+        let before = frame()
+        guard let title = titleRegion(before) else {
+            Issue.record("no title grab region")
+            return
+        }
+        guard let bottomBorder = before.hitTestRegions
+            .filter({ $0.width == title.width && $0.height == 1 })
+            .max(by: { $0.offsetY < $1.offsetY })
+        else {
+            Issue.record("no bottom border grab region")
+            return
+        }
+
+        let dispatcher = tui.mouseEventDispatcher
+        dispatcher.setActiveSupport(.standard)
+        dispatcher.setRegions(before.hitTestRegions)
+        let px = bottomBorder.offsetX + 5
+        let py = bottomBorder.offsetY
+        let dy = 4
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: px, y: py))
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .dragged, x: px, y: py + dy))
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: px, y: py + dy))
+
+        let after = frame()
+        guard let movedTitle = titleRegion(after),
+              let movedBottom = after.hitTestRegions
+                  .filter({ $0.width == movedTitle.width && $0.height == 1 })
+                  .max(by: { $0.offsetY < $1.offsetY })
+        else {
+            Issue.record("regions missing after drag")
+            return
+        }
+        #expect(movedTitle.offsetX == title.offsetX, "top-left anchor did not move horizontally")
+        #expect(movedTitle.offsetY == title.offsetY, "top-left anchor did not move vertically")
+        #expect(movedTitle.width == title.width, "dialog width did not change")
+        #expect(movedBottom.offsetY == bottomBorder.offsetY + dy, "dialog height grew by \(dy)")
+    }
 }
