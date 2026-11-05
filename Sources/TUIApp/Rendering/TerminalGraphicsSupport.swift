@@ -207,7 +207,7 @@ extension TerminalClient {
     /// Whether an animated picture's frames are handed to the terminal to play:
     /// pictures at all, then the override, `TUI_GRAPHICS_PLAYBACK` (`1` or `0`), then
     /// the handshake, in which the terminal has to add a frame and say which, once
-    /// ``playbackTrustsHandshake`` lets it.
+    /// `playbackTrustsHandshake` lets it.
     ///
     /// Off with `0` is the answer to give a terminal that said so and then drew
     /// nothing, as ``graphicsCompressionSupport`` has it.
