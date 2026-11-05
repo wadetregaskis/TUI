@@ -251,7 +251,7 @@ struct FileImporterPanelTests {
         #expect(caller.chosenPaths == [fixture.url("gamma.pdf").path])
     }
 
-    @Test("The hidden-files switch lists the hidden items, and takes them away again")
+    @Test("The hidden-files switch lists the hidden items, takes them away again, and is remembered across panels")
     func hiddenSwitch() async throws {
         let fixture = try FilePanelFixture()
         defer { fixture.remove() }
@@ -263,9 +263,19 @@ struct FileImporterPanelTests {
         driver.press(.space)
         let shown = await driver.waitFor(".hidden")
         #expect(shown.contains(".hidden"))
+        #expect(driver.storage.entry(forKey: "TUIFilePanels.showsHiddenFiles", as: Bool.self).value == true)
+        // Dismiss and re-present: the next panel remembers the setting.
+        driver.press(.escape)
+        #expect(caller.heard == ["cancelled (presented: false)"])
+        caller.isPresented = true
+        let reopened = await driver.waitFor(".hidden")
+        #expect(reopened.contains(".hidden"))
+        // Tab to the switch, Space to turn it off again.
+        driver.press(.tab)
         driver.press(.space)
         await settle { !driver.screen().contains(".hidden") }
         #expect(!driver.screen().contains(".hidden"))
+        #expect(driver.storage.entry(forKey: "TUIFilePanels.showsHiddenFiles", as: Bool.self).value == false)
     }
 
     @Test("A panel presented again is a new panel, even from a list row, which keeps its rows' state")

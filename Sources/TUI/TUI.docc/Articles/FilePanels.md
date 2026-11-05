@@ -194,13 +194,15 @@ that presents it, as with SwiftUI:
 ```
 
 The message is a line above the folder and the label the confirmation
-button's. `.includeHiddenFiles` starts the hidden-files switch on and
-`.enumeratePackages` opens a package as a folder. `fileDialogURLEnabled(_:)`
+button's. `.includeHiddenFiles` starts the hidden-files switch on (the user's
+choice on the switch is kept in the app's storage, as the view and preview are)
+and `.enumeratePackages` opens a package as a folder. `fileDialogURLEnabled(_:)`
 dims, and refuses, the items whose URL its predicate rejects, and
 `fileDialogImportsUnresolvedAliases(true)` hands back a chosen link rather
 than what it leads to. With a `fileDialogCustomizationID(_:)` the panel keeps
-the folder it was left in, and its hidden-files switch, in the app's storage,
-and opens there next time, launches later included.
+the folder it was left in, and its view, preview and hidden-files settings,
+under that identifier in the app's storage, and opens there next time, launches
+later included.
 
 ## File Types
 

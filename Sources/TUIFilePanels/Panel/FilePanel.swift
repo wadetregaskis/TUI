@@ -103,6 +103,10 @@ struct FilePanel: View {
     /// mode (``FilePanelPreviewVisibility``).
     @AppStorage private var previewVisibility: FilePanelPreviewVisibility
 
+    /// Whether hidden files are listed, kept in the app's storage beside the
+    /// view mode and preview (``FilePanelRequest/showsHiddenFilesStorageKey(for:)``).
+    @AppStorage private var showsHiddenFiles: Bool
+
     /// The control size in force, which decides how much room the panel's
     /// parts have between them (``spacing(controlSize:verticalSizeClass:)``).
     @Environment(\.controlSize) private var controlSize
@@ -137,6 +141,7 @@ struct FilePanel: View {
         _typeChoice = State(initialValue: request.initialTypeChoice)
         _viewMode = AppStorage(wrappedValue: .list, request.viewModeKey)
         _previewVisibility = AppStorage(wrappedValue: .automatic, request.previewKey)
+        _showsHiddenFiles = AppStorage(wrappedValue: request.showsHiddenFiles, request.showsHiddenFilesKey)
     }
 
     var body: some View {
@@ -146,6 +151,11 @@ struct FilePanel: View {
         // greedy — so the reader changes nothing of it.
         GeometryReader { proxy in
             box(folderWidth: proxy.size.width - Self.boxChrome)
+        }
+        .onChange(of: showsHiddenFiles, initial: true) { _, hidden in
+            if browser.showsHiddenFiles != hidden {
+                browser.showsHiddenFiles = hidden
+            }
         }
         .task(id: browser.refreshKey) { await browser.refresh() }
         .task(id: pinnedSession) {
@@ -402,7 +412,12 @@ struct FilePanel: View {
             }
             Toggle(
                 LocalizationService.shared.string(for: LocalizationKey.FilePanel.showHiddenFiles),
-                isOn: Binding(get: { browser.showsHiddenFiles }, set: { browser.showsHiddenFiles = $0 }))
+                isOn: Binding(
+                    get: { browser.showsHiddenFiles },
+                    set: {
+                        showsHiddenFiles = $0
+                        browser.showsHiddenFiles = $0
+                    }))
             Spacer()
             Button(localized: LocalizationKey.Button.cancel) {
                 finish(.cancelled(ending))
@@ -546,7 +561,9 @@ struct FilePanel: View {
             guard createsFolders else { return false }
             askingNewFolder = true
         case .toggleHiddenFiles:
-            browser.showsHiddenFiles.toggle()
+            let hidden = !browser.showsHiddenFiles
+            showsHiddenFiles = hidden
+            browser.showsHiddenFiles = hidden
         case .cancel:
             if typedPath != nil { closeGoToField() } else { finish(.cancelled(ending)) }
         }

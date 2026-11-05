@@ -80,6 +80,18 @@ struct FilePanelRequest {
     /// view mode's (``FilePanelPreviewVisibility/storageKey(for:)``).
     var previewKey = FilePanelPreviewVisibility.storageKey(for: nil)
 
+    /// The key whether the panel lists hidden files is kept under, beside the
+    /// view mode's and preview's (``showsHiddenFilesStorageKey(for:)``).
+    var showsHiddenFilesKey = Self.showsHiddenFilesStorageKey(for: nil)
+
+    /// The key whether the panel lists hidden files is kept under:
+    /// `TUIFilePanels.showsHiddenFiles` for every panel of the app, or
+    /// `TUIFilePanels.<id>.showsHiddenFiles` for one with the customization
+    /// identifier `id`.
+    static func showsHiddenFilesStorageKey(for id: String?) -> String {
+        id.map { "TUIFilePanels.\($0).showsHiddenFiles" } ?? "TUIFilePanels.showsHiddenFiles"
+    }
+
     /// The folder `~` stands for: the user's home folder, which `~` goes to
     /// and the path bar abbreviates. A test names a folder of its own.
     var homeDirectory = FileManager.default.homeDirectoryForCurrentUser

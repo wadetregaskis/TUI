@@ -107,8 +107,13 @@ struct FilePanelPresenter<Content: View> {
             made.startDirectory = kept.directory
             made.showsHiddenFiles = kept.showsHiddenFiles
         }
+        let hiddenKey = FilePanelRequest.showsHiddenFilesStorageKey(for: customization.customizationID)
+        if let storedHidden = store.entry(forKey: hiddenKey, as: Bool.self).value {
+            made.showsHiddenFiles = storedHidden
+        }
         made.viewModeKey = FilePanelViewMode.storageKey(for: customization.customizationID)
         made.previewKey = FilePanelPreviewVisibility.storageKey(for: customization.customizationID)
+        made.showsHiddenFilesKey = hiddenKey
         session.current = made
         return made
     }
@@ -159,7 +164,7 @@ struct FilePanelPresenter<Content: View> {
 
     /// The keys the state of the panel with identifier `id` is kept under.
     @MainActor static func storageKeys(_ id: String) -> (directory: String, showsHiddenFiles: String) {
-        ("TUIFilePanels.\(id).directory", "TUIFilePanels.\(id).showsHiddenFiles")
+        ("TUIFilePanels.\(id).directory", FilePanelRequest.showsHiddenFilesStorageKey(for: id))
     }
 
     /// The state kept under this panel's identifier, when it has one and a
