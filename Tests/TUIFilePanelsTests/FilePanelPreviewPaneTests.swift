@@ -65,11 +65,12 @@ struct FilePanelPreviewPaneTests {
         let open = await wide.waitFor("No Selection")
         // The list keeps its Size and Date Modified beside the pane.
         #expect(open.contains("Date Modified"), "\(open)")
+        #expect(open.contains("Hide Preview"), "\(open)")
         // 80 columns: a folder of 76, too narrow for both.
         let narrow = FilePanelDriver(width: 80) { panel(fixture, caller: caller, store: store()) }
         let closed = await narrow.waitFor("notes.md")
         #expect(!closed.contains("No Selection"), "\(closed)")
-        #expect(closed.contains("Preview"), "the button stays to open it: \(closed)")
+        #expect(closed.contains("Show Preview"), "the button stays to open it: \(closed)")
         // The rule, in cells of the folder: the list's name, Size and Date
         // Modified, the divider, and a column's width.
         #expect(FilePanelPreviewVisibility.opensByDefault(inWidth: 82))
@@ -106,8 +107,9 @@ struct FilePanelPreviewPaneTests {
         let kept = store()
         let driver = FilePanelDriver { panel(fixture, caller: caller, store: kept) }
         await driver.waitFor("No Selection")
-        #expect(driver.click("Preview"))
+        #expect(driver.click("Hide Preview"))
         await settle { !driver.screen().contains("No Selection") }
+        #expect(driver.screen().contains("Show Preview"))
         #expect(
             kept.entry(forKey: FilePanelPreviewVisibility.storageKey(for: nil), as: String.self).value == "hidden")
         // Presented again, as wide, it opens closed.
@@ -116,8 +118,9 @@ struct FilePanelPreviewPaneTests {
         let again = await driver.waitFor("notes.md")
         #expect(!again.contains("No Selection"), "\(again)")
         // And the button opens it again.
-        #expect(driver.click("Preview"))
+        #expect(driver.click("Show Preview"))
         await driver.waitFor("No Selection")
+        #expect(driver.screen().contains("Hide Preview"))
         #expect(
             kept.entry(forKey: FilePanelPreviewVisibility.storageKey(for: nil), as: String.self).value == "shown")
     }

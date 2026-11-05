@@ -91,14 +91,16 @@ struct FilePanelPreviewPane: View {
 }
 
 /// The button beside the view switcher that opens and closes the preview: a
-/// toggle in the button style, pressed in while the preview shows, as
-/// Finder's toolbar has a Preview button. A Tab stop, as the switcher is,
-/// whose Space toggles it; ⇧⌘P does the same from anywhere in the panel.
+/// toggle in the button style labelled "Show Preview" or "Hide Preview" (as
+/// Finder's View ▸ Show/Hide Preview menu item is), pressed in while the
+/// preview shows. A Tab stop, as the switcher is, whose Space toggles it;
+/// ⇧⌘P does the same from anywhere in the panel.
 struct FilePanelPreviewToggle: View {
     let isOn: Binding<Bool>
 
     var body: some View {
-        Toggle(LocalizationService.shared.string(for: LocalizationKey.FilePanel.preview), isOn: isOn)
+        let key = isOn.wrappedValue ? LocalizationKey.FilePanel.hidePreview : LocalizationKey.FilePanel.showPreview
+        Toggle(LocalizationService.shared.string(for: key), isOn: isOn)
             .toggleStyle(.button)
     }
 }

@@ -104,8 +104,9 @@ list a pane behind a splitter, whose divider a drag moves, or ← and → once
 <kbd>Tab</kbd> reaches it; in the column view a column of its own after a
 file's folder. It shows a file's opening lines, or the app's preview
 (`fileDialogPreview(_:)`), then its name, kind, size and date, and "No
-Selection" while there is no one item to show. The Preview button after the
-view switcher, or <kbd>⇧⌘P</kbd>, opens and closes it. Until the user does,
+Selection" while there is no one item to show. The Show Preview / Hide Preview
+button after the view switcher, or <kbd>⇧⌘P</kbd>, opens and closes it. Until
+the user does,
 it is open where the folder has room for it beside a list that keeps its
 Size and Date Modified — 82 cells, as in a terminal 90 columns wide — and
 closed in a narrower panel, such as an 80-column terminal's; the user's
