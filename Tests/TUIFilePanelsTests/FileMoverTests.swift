@@ -7,6 +7,7 @@
 //  License: MIT
 
 import Foundation
+import Observation
 import Testing
 
 @testable import TUIApp
@@ -16,8 +17,9 @@ import Testing
 @testable import TUIFoundation
 @testable import TUITestSupport
 
-/// What a mover's caller heard.
+/// What a mover's caller heard. Observable, as ``FilePanelCaller`` is.
 @MainActor
+@Observable
 final class FileMoverCaller {
     var isPresented = true
     var heard: [String] = []
