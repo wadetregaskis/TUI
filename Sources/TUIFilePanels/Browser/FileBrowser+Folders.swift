@@ -38,6 +38,7 @@ extension FileBrowser {
             guard !Task.isCancelled, let self else { return }
             if self.foldersReading[path]?.generation == started {
                 self.foldersShowingLoading.insert(path)
+                self.attachBranches()
             }
         }
         folderLoadingTimers[path] = timer
@@ -107,20 +108,25 @@ extension FileBrowser {
     }
 
     /// Puts each folder read under its row, all the way down, as the
-    /// outline's branches: a folder not read yet keeps its placeholder.
+    /// outline's branches: a folder not read yet keeps its placeholder once delay elapses.
     func attachBranches() {
-        guard !folderRows.isEmpty else { return }
+        guard !folderRows.isEmpty || !foldersShowingLoading.isEmpty else { return }
         for index in rows.indices where rows[index].isFolder {
             rows[index].children = branch(of: rows[index].url)
         }
     }
 
     /// The rows beneath `folder` in the outline: its items, each folder among
-    /// them with its own, or a placeholder where it is not read yet. Recursion
-    /// goes only as deep as folders have been read, so a link that leads back
-    /// up ends where the reading did.
+    /// them with its own, or a placeholder where it is not read yet once the
+    /// loading delay has elapsed. Recursion goes only as deep as folders have
+    /// been read, so a link that leads back up ends where the reading did.
     private func branch(of folder: URL) -> [FileEntry] {
-        guard let items = folderRows[folder.standardizedFileURL.path] else { return [.placeholder(in: folder)] }
+        guard let items = folderRows[folder.standardizedFileURL.path] else {
+            if foldersShowingLoading.contains(folder.standardizedFileURL.path) {
+                return [.placeholder(in: folder)]
+            }
+            return []
+        }
         return items.map { item in
             guard item.isFolder else { return item }
             var folder = item

@@ -140,23 +140,17 @@ enum FilePanelColumns {
     }
 }
 
-/// An unread folder's placeholder row in the list view outline: starts reading the folder
-/// on appear, and delays showing "Loading…" until ``FileBrowser/loadingPlaceholderDelay`` has elapsed.
+/// An unread folder's placeholder row in the list view outline: shown after
+/// ``FileBrowser/loadingPlaceholderDelay`` has elapsed and the folder is still being read.
 private struct FilePanelPlaceholderCell: View {
     let entry: FileEntry
     let browser: FileBrowser
 
     var body: some View {
-        Group {
-            if browser.foldersShowingLoading.contains(entry.placeholderFolder.path) {
-                Text(localized: LocalizationKey.FilePanel.loading)
-                    .foregroundStyle(.palette.foregroundTertiary)
-            } else {
-                Text(verbatim: "")
+        Text(localized: LocalizationKey.FilePanel.loading)
+            .foregroundStyle(.palette.foregroundTertiary)
+            .onAppear {
+                Task { await browser.loadFolder(entry.placeholderFolder) }
             }
-        }
-        .onAppear {
-            Task { await browser.loadFolder(entry.placeholderFolder) }
-        }
     }
 }

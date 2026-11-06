@@ -200,6 +200,9 @@ public struct Table<Value: Identifiable>: View {
     /// payload type; the erased pair is `(accepts, perform)`.
     var dropInsertion: _TableDropInsertion?
 
+    /// Called when any branch in an outline table is expanded or collapsed.
+    var onOutlineExpansionChange: ((Value.ID, Bool) -> Void)?
+
     /// The customization the table's columns are shown by, when it was given
     /// one with a `columnCustomization:` initializer.
     let columnCustomization: Binding<TableColumnCustomization<Value>>?
@@ -244,7 +247,8 @@ public struct Table<Value: Identifiable>: View {
             rowTraits: rowTraits,
             sectionHeaders: sectionHeaders,
             declaredColumns: columns,
-            columnCustomization: columnCustomization
+            columnCustomization: columnCustomization,
+            onOutlineExpansionChange: onOutlineExpansionChange
         )
         // The same pairing as `ScrollView.body` and `List.body`. A table's rows
         // are its own focus stops, so its stored flag alone already suppressed
@@ -560,6 +564,13 @@ extension Table {
         return copy
     }
 
+    /// Adds an action to be called when any branch in this outline table is expanded or collapsed.
+    package func onTableOutlineExpansionChange(_ perform: @escaping (Value.ID, Bool) -> Void) -> Table {
+        var copy = self
+        copy.onOutlineExpansionChange = perform
+        return copy
+    }
+
     /// Creates a disabled version of this table.
     ///
     /// - Parameter disabled: Whether the table is disabled.
@@ -674,6 +685,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// columns are the app's alone, as SwiftUI's are to reorder.
     var columnCustomization: Binding<TableColumnCustomization<Value>>?
 
+    /// Called when any branch in an outline table is expanded or collapsed.
+    var onOutlineExpansionChange: ((Value.ID, Bool) -> Void)?
+
     /// Where those headers fall among this frame's rows, when there are any.
     /// Filled in by ``resolveRows(_:)``.
     var sections: _TableSectionLayout?
@@ -736,6 +750,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             } else {
                 outline = _TableOutline(tree: rowTree, expansion: expansion)
             }
+            outline.onExpansionChange = onOutlineExpansionChange
             data = outline.values
             rowTraits = outline.traits
             self.outline = outline

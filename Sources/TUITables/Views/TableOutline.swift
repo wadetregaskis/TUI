@@ -59,6 +59,9 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// The expansion of every branch that keeps no binding of its own.
     private let expansion: StateBox<Set<AnyHashable>>
 
+    /// Called when any branch in the outline is expanded or collapsed.
+    var onExpansionChange: ((Value.ID, Bool) -> Void)?
+
     /// The loops among the shown rows that take payloads in between their
     /// rows, as one table-wide insertion over the shown rows' slots — `nil`
     /// where no shown loop takes any (``_TableOutlineInsertions``).
@@ -259,6 +262,7 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
         } else {
             expansion.value.remove(AnyHashable(node.value.id))
         }
+        onExpansionChange?(node.value.id, open)
     }
 }
 

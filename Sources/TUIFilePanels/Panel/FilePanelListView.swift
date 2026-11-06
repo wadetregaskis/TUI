@@ -49,11 +49,17 @@ struct FilePanelListView: View {
                     FilePanelColumns.fitting(width, browser: browser)
                 }
                 .tableEmptyPlaceholder(emptyText)
+                .onTableOutlineExpansionChange { url, open in
+                    if open { Task { await browser.loadFolder(url) } }
+                }
             } else {
                 Table(browser.rows, children: \.children, selection: singleSelection, sortOrder: sortOrder) {
                     FilePanelColumns.fitting(width, browser: browser)
                 }
                 .tableEmptyPlaceholder(emptyText)
+                .onTableOutlineExpansionChange { url, open in
+                    if open { Task { await browser.loadFolder(url) } }
+                }
             }
         }
         // Inset, not bordered: the panel's box is the table's border.

@@ -296,12 +296,12 @@ final class FileBrowser {
             }
             return false
         }
-            // A folder's row stands for its items in the outline until it is
-            // read (``FileEntry/placeholder(in:)``).
+            // A folder's row is a branch in the outline that starts with no children
+            // until read or until the loading delay elapses.
             .map { entry in
                 guard entry.isFolder, entry.children == nil else { return entry }
                 var folder = entry
-                folder.children = [.placeholder(in: entry.url)]
+                folder.children = []
                 return folder
             }
         // A folder names each item once; should a URL come twice all the
