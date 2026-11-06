@@ -199,23 +199,25 @@ enum DialogDrag {
 /// During a drag the dispatcher delivers coordinates localized to the press
 /// region's origin, so the delta to apply is the difference between the current
 /// localized coordinate and the one recorded at press time.
-final class _DialogDragHandler {
-    enum DragMode: Sendable {
+package final class _DialogDragHandler {
+    package enum DragMode: Sendable {
         case move
         case resizeWidth
         case resizeHeight
         case resizeBoth
     }
 
-    private(set) var offsetX = 0
-    private(set) var offsetY = 0
+    package private(set) var offsetX = 0
+    package private(set) var offsetY = 0
 
-    private(set) var userWidth: Int?
-    private(set) var userHeight: Int?
+    package private(set) var userWidth: Int?
+    package private(set) var userHeight: Int?
 
-    var currentWidth = 0
-    var currentHeight = 0
-    var isHovered = false
+    package var currentWidth = 0
+    package var currentHeight = 0
+    package var isHovered = false
+
+    package var onResize: ((Int, Int) -> Void)?
 
     private var pressLocalX = 0
     private var pressLocalY = 0
@@ -225,11 +227,19 @@ final class _DialogDragHandler {
     private var pressHeight = 0
     private var dragMode: DragMode = .move
 
-    static let minWidth = 16
-    static let minHeight = 4
+    package static let minWidth = 16
+    package static let minHeight = 4
+
+    package func setUserWidth(_ width: Int?) {
+        userWidth = width
+    }
+
+    package func setUserHeight(_ height: Int?) {
+        userHeight = height
+    }
 
     /// Records the press point (region-local) and the offset at that moment.
-    func beginDrag(mode: DragMode, atX x: Int, y: Int) {
+    package func beginDrag(mode: DragMode, atX x: Int, y: Int) {
         pressLocalX = x
         pressLocalY = y
         pressOffsetX = offsetX
@@ -240,49 +250,88 @@ final class _DialogDragHandler {
     }
 
     /// Legacy convenience for move-only drags.
-    func beginDrag(atX x: Int, y: Int) {
+    package func beginDrag(atX x: Int, y: Int) {
         beginDrag(mode: .move, atX: x, y: y)
     }
 
+    /// Calculates the updated dimension and offset for a single axis during a resize drag.
+    /// When the dialog was centred (`pressOffset == 0`), the resize applies symmetrically
+    /// to both sides (changing the dimension by `2 * pressDelta`) while remaining centred (`offset = 0`).
+    /// When off-centre (`pressOffset != 0`), the opposite edge remains anchored in place on screen.
+    private func updatedDimension(
+        pressDelta: Int,
+        pressDimension: Int,
+        pressOffset: Int,
+        minDimension: Int,
+        screenDimension: Int
+    ) -> (dimension: Int, offset: Int) {
+        let minD = min(minDimension, screenDimension)
+        if pressOffset == 0 {
+            let targetD = min(max(minD, pressDimension + 2 * pressDelta), screenDimension)
+            return (targetD, 0)
+        } else {
+            let targetD = min(max(minD, pressDimension + pressDelta), screenDimension)
+            let pressCentre = max(0, screenDimension - pressDimension) / 2
+            let targetCentre = max(0, screenDimension - targetD) / 2
+            let targetOffset = pressOffset + (pressCentre - targetCentre)
+            return (targetD, targetOffset)
+        }
+    }
+
     /// Applies the drag: either translates the dialog or resizes one or both dimensions.
-    /// When resizing, the opposite edges (top and left) remain anchored in place on screen.
-    func updateDrag(toX x: Int, y: Int, screenWidth: Int = Int.max, screenHeight: Int = Int.max) {
+    package func updateDrag(toX x: Int, y: Int, screenWidth: Int = Int.max, screenHeight: Int = Int.max) {
         switch dragMode {
         case .move:
             offsetX = pressOffsetX + (x - pressLocalX)
             offsetY = pressOffsetY + (y - pressLocalY)
         case .resizeWidth:
-            let minW = min(Self.minWidth, screenWidth)
-            let targetW = min(max(minW, pressWidth + (x - pressLocalX)), screenWidth)
-            userWidth = targetW
-            let pressCentre = max(0, screenWidth - pressWidth) / 2
-            let targetCentre = max(0, screenWidth - targetW) / 2
-            offsetX = pressOffsetX + (pressCentre - targetCentre)
+            let (w, ox) = updatedDimension(
+                pressDelta: x - pressLocalX,
+                pressDimension: pressWidth,
+                pressOffset: pressOffsetX,
+                minDimension: Self.minWidth,
+                screenDimension: screenWidth)
+            userWidth = w
+            offsetX = ox
         case .resizeHeight:
-            let minH = min(Self.minHeight, screenHeight)
-            let targetH = min(max(minH, pressHeight + (y - pressLocalY)), screenHeight)
-            userHeight = targetH
-            let pressYCentre = max(0, screenHeight - pressHeight) / 2
-            let targetYCentre = max(0, screenHeight - targetH) / 2
-            offsetY = pressOffsetY + (pressYCentre - targetYCentre)
+            let (h, oy) = updatedDimension(
+                pressDelta: y - pressLocalY,
+                pressDimension: pressHeight,
+                pressOffset: pressOffsetY,
+                minDimension: Self.minHeight,
+                screenDimension: screenHeight)
+            userHeight = h
+            offsetY = oy
         case .resizeBoth:
-            let minW = min(Self.minWidth, screenWidth)
-            let targetW = min(max(minW, pressWidth + (x - pressLocalX)), screenWidth)
-            userWidth = targetW
-            let pressCentre = max(0, screenWidth - pressWidth) / 2
-            let targetCentre = max(0, screenWidth - targetW) / 2
-            offsetX = pressOffsetX + (pressCentre - targetCentre)
+            let (w, ox) = updatedDimension(
+                pressDelta: x - pressLocalX,
+                pressDimension: pressWidth,
+                pressOffset: pressOffsetX,
+                minDimension: Self.minWidth,
+                screenDimension: screenWidth)
+            userWidth = w
+            offsetX = ox
 
-            let minH = min(Self.minHeight, screenHeight)
-            let targetH = min(max(minH, pressHeight + (y - pressLocalY)), screenHeight)
-            userHeight = targetH
-            let pressYCentre = max(0, screenHeight - pressHeight) / 2
-            let targetYCentre = max(0, screenHeight - targetH) / 2
-            offsetY = pressOffsetY + (pressYCentre - targetYCentre)
+            let (h, oy) = updatedDimension(
+                pressDelta: y - pressLocalY,
+                pressDimension: pressHeight,
+                pressOffset: pressOffsetY,
+                minDimension: Self.minHeight,
+                screenDimension: screenHeight)
+            userHeight = h
+            offsetY = oy
         }
     }
 
-    func endDrag() {}
+    package func endDrag() {
+        if dragMode != .move {
+            let finalW = userWidth ?? currentWidth
+            let finalH = userHeight ?? currentHeight
+            userWidth = finalW
+            userHeight = finalH
+            onResize?(finalW, finalH)
+        }
+    }
 
     /// Trims the offset to the range that keeps the whole dialog on screen —
     /// the same range ``OverlayLayer/placed(maxWidth:maxHeight:)`` uses for
