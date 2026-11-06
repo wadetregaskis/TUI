@@ -30,7 +30,9 @@ struct FilePanelPreview: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             if let preview = appPreviews?.view(for: entry) {
-                preview.frame(maxWidth: .infinity, maxHeight: .infinity)
+                preview
+                    .id(entry.url)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let excerpt {
                 ScrollView {
                     Text(verbatim: excerpt)

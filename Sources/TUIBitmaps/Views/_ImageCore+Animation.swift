@@ -223,6 +223,7 @@ extension _ImageCore {
             AnimatedImageDecoder.mayAnimate(atPath: path)
         }
         if playback.startsDecoding {
+            context.environment.volatileReadTracker?.recordRenderSideEffect()
             let maxPixelCount = context.environment.imageMaxPixelCount
             lifecycle.startTask(token: ImageAnimationPlayback.decodeToken(token), priority: .userInitiated) {
                 let animation = await Self.decodedAnimation(path: path, maxPixelCount: maxPixelCount)
@@ -237,6 +238,7 @@ extension _ImageCore {
             }
         }
         guard let animation = playback.animation else { return nil }
+        context.environment.volatileReadTracker?.recordRenderSideEffect()
         let now = context.environment.frameNowNanos
         let elapsed = playback.elapsed(at: now) {
             // The still has given way to the frames, in the terminal too.

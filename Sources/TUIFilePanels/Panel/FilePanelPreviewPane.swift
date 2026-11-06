@@ -82,6 +82,7 @@ struct FilePanelPreviewPane: View {
     var body: some View {
         if let entry {
             FilePanelPreview(entry: entry)
+                .id(entry.url)
         } else {
             Text(localized: LocalizationKey.FilePanel.noSelection)
                 .foregroundStyle(.palette.foregroundTertiary)
