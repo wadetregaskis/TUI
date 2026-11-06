@@ -236,10 +236,9 @@
                 do {
                     try writeNode(to: temporary)
                     if FileManager.default.fileExists(atPath: url.path) {
-                        _ = try FileManager.default.replaceItemAt(url, withItemAt: temporary)
-                    } else {
-                        try FileManager.default.moveItem(at: temporary, to: url)
+                        try? FileManager.default.removeItem(at: url)
                     }
+                    try FileManager.default.moveItem(at: temporary, to: url)
                 } catch {
                     try? FileManager.default.removeItem(at: temporary)
                     throw error
