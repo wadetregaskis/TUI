@@ -226,6 +226,8 @@ package final class _DialogDragHandler {
     private var pressWidth = 0
     private var pressHeight = 0
     private var dragMode: DragMode = .move
+    private var isDragging = false
+    private var didResize = false
 
     package static let minWidth = 16
     package static let minHeight = 4
@@ -240,6 +242,8 @@ package final class _DialogDragHandler {
 
     /// Records the press point (region-local) and the offset at that moment.
     package func beginDrag(mode: DragMode, atX x: Int, y: Int) {
+        isDragging = true
+        didResize = false
         pressLocalX = x
         pressLocalY = y
         pressOffsetX = offsetX
@@ -280,11 +284,13 @@ package final class _DialogDragHandler {
 
     /// Applies the drag: either translates the dialog or resizes one or both dimensions.
     package func updateDrag(toX x: Int, y: Int, screenWidth: Int = Int.max, screenHeight: Int = Int.max) {
+        guard isDragging else { return }
         switch dragMode {
         case .move:
             offsetX = pressOffsetX + (x - pressLocalX)
             offsetY = pressOffsetY + (y - pressLocalY)
         case .resizeWidth:
+            didResize = true
             let (w, ox) = updatedDimension(
                 pressDelta: x - pressLocalX,
                 pressDimension: pressWidth,
@@ -294,6 +300,7 @@ package final class _DialogDragHandler {
             userWidth = w
             offsetX = ox
         case .resizeHeight:
+            didResize = true
             let (h, oy) = updatedDimension(
                 pressDelta: y - pressLocalY,
                 pressDimension: pressHeight,
@@ -303,6 +310,7 @@ package final class _DialogDragHandler {
             userHeight = h
             offsetY = oy
         case .resizeBoth:
+            didResize = true
             let (w, ox) = updatedDimension(
                 pressDelta: x - pressLocalX,
                 pressDimension: pressWidth,
@@ -324,13 +332,16 @@ package final class _DialogDragHandler {
     }
 
     package func endDrag() {
-        if dragMode != .move {
+        guard isDragging else { return }
+        isDragging = false
+        if dragMode != .move && didResize {
             let finalW = userWidth ?? currentWidth
             let finalH = userHeight ?? currentHeight
             userWidth = finalW
             userHeight = finalH
             onResize?(finalW, finalH)
         }
+        dragMode = .move
     }
 
     /// Trims the offset to the range that keeps the whole dialog on screen —
@@ -353,6 +364,9 @@ package final class _DialogDragHandler {
 
     /// Recentres the dialog and clears user-requested size overrides.
     func reset() {
+        isDragging = false
+        didResize = false
+        dragMode = .move
         offsetX = 0
         offsetY = 0
         userWidth = nil

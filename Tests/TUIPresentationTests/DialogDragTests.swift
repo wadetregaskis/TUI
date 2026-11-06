@@ -97,4 +97,103 @@ struct DialogDragTests {
         #expect(reportedWidth == 66)
         #expect(reportedHeight == 26)
     }
+
+    @Test("Plain click on resize border does not commit size or invoke onResize")
+    func plainClickOnResizeBorderDoesNotCommitSize() {
+        let handler = _DialogDragHandler()
+        handler.currentWidth = 60
+        handler.currentHeight = 20
+
+        var resizeCalled = false
+        handler.onResize = { _, _ in
+            resizeCalled = true
+        }
+
+        // Click on right border (resizeWidth) with no movement
+        handler.beginDrag(mode: .resizeWidth, atX: 59, y: 10)
+        handler.endDrag()
+
+        #expect(!resizeCalled)
+        #expect(handler.userWidth == nil)
+        #expect(handler.userHeight == nil)
+
+        // Click on bottom-right corner (resizeBoth) with no movement
+        handler.beginDrag(mode: .resizeBoth, atX: 59, y: 19)
+        handler.endDrag()
+
+        #expect(!resizeCalled)
+        #expect(handler.userWidth == nil)
+        #expect(handler.userHeight == nil)
+    }
+
+    @Test("endDrag without beginDrag does nothing")
+    func endDragWithoutBeginDragDoesNothing() {
+        let handler = _DialogDragHandler()
+        handler.currentWidth = 60
+        handler.currentHeight = 20
+
+        var resizeCalled = false
+        handler.onResize = { _, _ in
+            resizeCalled = true
+        }
+
+        // updateDrag without beginDrag should be ignored
+        handler.updateDrag(toX: 70, y: 30, screenWidth: 100, screenHeight: 40)
+        #expect(handler.userWidth == nil)
+        #expect(handler.userHeight == nil)
+        #expect(handler.offsetX == 0)
+        #expect(handler.offsetY == 0)
+
+        // endDrag without beginDrag should do nothing
+        handler.endDrag()
+        #expect(!resizeCalled)
+        #expect(handler.userWidth == nil)
+        #expect(handler.userHeight == nil)
+
+        // Also test: after a successful resize, a subsequent stray endDrag does not re-commit
+        handler.beginDrag(mode: .resizeBoth, atX: 59, y: 19)
+        handler.updateDrag(toX: 62, y: 22, screenWidth: 100, screenHeight: 40)
+        handler.endDrag()
+
+        #expect(resizeCalled)
+        resizeCalled = false
+
+        // Stray endDrag later
+        handler.endDrag()
+        #expect(!resizeCalled)
+    }
+
+    @Test("Dismissing mid-drag and then releasing saves nothing")
+    func dismissingMidDragAndReleasingSavesNothing() {
+        let handler = _DialogDragHandler()
+        handler.currentWidth = 60
+        handler.currentHeight = 20
+
+        var resizeCalled = false
+        handler.onResize = { _, _ in
+            resizeCalled = true
+        }
+
+        // Drag begins and resizes
+        handler.beginDrag(mode: .resizeBoth, atX: 59, y: 19)
+        handler.updateDrag(toX: 62, y: 22, screenWidth: 100, screenHeight: 40)
+        #expect(handler.userWidth == 66)
+        #expect(handler.userHeight == 26)
+
+        // Esc or dismissal runs reset() mid-drag
+        handler.reset()
+        #expect(handler.userWidth == nil)
+        #expect(handler.userHeight == nil)
+        #expect(handler.offsetX == 0)
+        #expect(handler.offsetY == 0)
+
+        // Late release arrives
+        handler.endDrag()
+
+        #expect(!resizeCalled)
+        #expect(handler.userWidth == nil)
+        #expect(handler.userHeight == nil)
+        #expect(handler.offsetX == 0)
+        #expect(handler.offsetY == 0)
+    }
 }
