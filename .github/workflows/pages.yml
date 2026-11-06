@@ -218,3 +218,6 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+        with:
+          # The site holds ~126,000 files (nearly all DocC reference); syncing can exceed the default 10-minute timeout.
+          timeout: 1200000
