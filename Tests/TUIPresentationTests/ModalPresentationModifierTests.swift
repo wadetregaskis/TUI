@@ -383,7 +383,7 @@ struct ModalIsolationTests {
                 "the modal's control still fires despite the overlapping drag grab region: \(sink.hits)")
     }
 
-    @Test("Dragging a modal by its bottom-right corner resizes both dimensions while keeping top-left fixed")
+    @Test("Dragging a modal by its bottom-right corner resizes both dimensions symmetrically when centred")
     func draggingCornerResizesModal() {
         let view = VStack { Text("bg") }
             .modal(isPresented: .constant(true)) {
@@ -437,12 +437,12 @@ struct ModalIsolationTests {
             Issue.record("no title grab region after drag")
             return
         }
-        #expect(movedTitle.offsetX == title.offsetX, "top-left anchor did not move horizontally")
-        #expect(movedTitle.offsetY == title.offsetY, "top-left anchor did not move vertically")
-        #expect(movedTitle.width == title.width + dx, "dialog width grew by \(dx)")
+        #expect(movedTitle.offsetX == title.offsetX - dx, "dialog expanded symmetrically to the left by \(dx)")
+        #expect(movedTitle.offsetY == title.offsetY - dy, "dialog expanded symmetrically upward by \(dy)")
+        #expect(movedTitle.width == title.width + 2 * dx, "dialog width grew symmetrically by \(2 * dx)")
     }
 
-    @Test("Dragging a modal by its right border resizes width only while keeping height and top-left fixed")
+    @Test("Dragging a modal by its right border resizes width symmetrically while keeping height unchanged")
     func draggingRightBorderResizesModalWidthOnly() {
         let view = VStack { Text("bg") }
             .modal(isPresented: .constant(true)) {
@@ -505,13 +505,13 @@ struct ModalIsolationTests {
             Issue.record("regions missing after drag")
             return
         }
-        #expect(movedTitle.offsetX == title.offsetX, "top-left anchor did not move horizontally")
+        #expect(movedTitle.offsetX == title.offsetX - dx, "dialog expanded symmetrically to the left by \(dx)")
         #expect(movedTitle.offsetY == title.offsetY, "top-left anchor did not move vertically")
-        #expect(movedTitle.width == title.width + dx, "dialog width grew by \(dx)")
+        #expect(movedTitle.width == title.width + 2 * dx, "dialog width grew symmetrically by \(2 * dx)")
         #expect(movedBottom.offsetY == bottomBorder.offsetY, "dialog height did not change")
     }
 
-    @Test("Dragging a modal by its bottom border resizes height only while keeping width and top-left fixed")
+    @Test("Dragging a modal by its bottom border resizes height symmetrically while keeping width unchanged")
     func draggingBottomBorderResizesModalHeightOnly() {
         let view = VStack { Text("bg") }
             .modal(isPresented: .constant(true)) {
@@ -567,9 +567,9 @@ struct ModalIsolationTests {
             Issue.record("regions missing after drag")
             return
         }
-        #expect(movedTitle.offsetX == title.offsetX, "top-left anchor did not move horizontally")
-        #expect(movedTitle.offsetY == title.offsetY, "top-left anchor did not move vertically")
+        #expect(movedTitle.offsetX == title.offsetX, "dialog horizontal position did not change")
+        #expect(movedTitle.offsetY == title.offsetY - dy, "dialog expanded symmetrically upward by \(dy)")
         #expect(movedTitle.width == title.width, "dialog width did not change")
-        #expect(movedBottom.offsetY == bottomBorder.offsetY + dy, "dialog height grew by \(dy)")
+        #expect(movedBottom.offsetY == bottomBorder.offsetY + dy, "bottom edge shifted down by \(dy)")
     }
 }
