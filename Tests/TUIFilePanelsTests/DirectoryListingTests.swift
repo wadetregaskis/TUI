@@ -276,4 +276,32 @@ struct FileBrowserTests {
         #expect(failure.folderName == "missing")
         #expect(browser.rows.isEmpty)
     }
+
+    @Test("Toggling hidden files updates opened folders without dropping visible child rows")
+    func togglingHiddenFilesPreservesOpenedFolders() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let alpha = fixture.url("Alpha")
+        FileManager.default.createFile(
+            atPath: alpha.appendingPathComponent(".secret.txt").path, contents: nil)
+        let browser = FileBrowser(directory: fixture.root, rule: FileChoiceRule())
+        await browser.refresh()
+        await browser.loadFolder(alpha)
+        browser.attachBranches()
+
+        let alphaRowBefore = try #require(browser.rows.first { $0.url == alpha.standardizedFileURL })
+        #expect(alphaRowBefore.children?.map(\.name) == ["inner.txt"])
+
+        browser.showsHiddenFiles = true
+        await browser.refresh()
+
+        let alphaRowAfter = try #require(browser.rows.first { $0.url == alpha.standardizedFileURL })
+        #expect(alphaRowAfter.children?.map(\.name) == [".secret.txt", "inner.txt"])
+
+        browser.showsHiddenFiles = false
+        await browser.refresh()
+
+        let alphaRowFinal = try #require(browser.rows.first { $0.url == alpha.standardizedFileURL })
+        #expect(alphaRowFinal.children?.map(\.name) == ["inner.txt"])
+    }
 }

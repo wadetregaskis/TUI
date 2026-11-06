@@ -269,11 +269,12 @@ final class FileBrowser {
         // cancelled in time.
         guard !Task.isCancelled, refreshKey == key else { return }
         cancelLoadingPlaceholderTimer()
-        rows = arranged.rows
+        await arrangeFolders(as: key)
+        guard !Task.isCancelled, refreshKey == key else { return }
+        rows = branches(for: arranged.rows)
         rowIndex = arranged.rowIndex
         hiddenCount = arranged.hiddenCount
         state = .loaded
-        await arrangeFolders(as: key)
     }
 
     /// `entries` as the rows show them, off the main actor: hidden ones left

@@ -107,13 +107,21 @@ extension FileBrowser {
         attachBranches()
     }
 
+    /// Attaches the read folders to `rows` all the way down, as the
+    /// outline's branches.
+    func branches(for rows: [FileEntry]) -> [FileEntry] {
+        guard !folderRows.isEmpty || !foldersShowingLoading.isEmpty else { return rows }
+        var updated = rows
+        for index in updated.indices where updated[index].isFolder {
+            updated[index].children = branch(of: updated[index].url)
+        }
+        return updated
+    }
+
     /// Puts each folder read under its row, all the way down, as the
     /// outline's branches: a folder not read yet keeps its placeholder once delay elapses.
     func attachBranches() {
-        guard !folderRows.isEmpty || !foldersShowingLoading.isEmpty else { return }
-        for index in rows.indices where rows[index].isFolder {
-            rows[index].children = branch(of: rows[index].url)
-        }
+        rows = branches(for: rows)
     }
 
     /// The rows beneath `folder` in the outline: its items, each folder among
