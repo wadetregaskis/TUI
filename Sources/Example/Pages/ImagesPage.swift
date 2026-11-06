@@ -49,6 +49,11 @@ struct ImagesPage: View {
     /// How many typed paths and URLs the combo box remembers.
     private static let recentEntryLimit = 8
 
+    init(picture: DemoPicture = .first) {
+        _picture = State(initialValue: picture)
+        _entry = State(initialValue: picture.name)
+    }
+
     var body: some View {
         // The image lives in a two-axis ScrollView fitted to the viewport: at zoom 1
         // the whole image shows with no scrollbars; `+`/`-` zoom in and out, and the

@@ -104,7 +104,6 @@ extension FileBrowser {
         for rows in arranged.values {
             for row in rows { index(row) }
         }
-        attachBranches()
     }
 
     /// Attaches the read folders to `rows` all the way down, as the

@@ -402,4 +402,17 @@ extension KittyGraphics {
                 compression ?? taskCompressionSupported, operation: operation)
         }
     }
+
+    /// Runs `operation` with ``isSupported`` — and, when given,
+    /// ``isCompressionSupported`` — pinned on this task only.
+    @discardableResult
+    public static func withSupport<T>(
+        _ supported: Bool, compression: Bool? = nil, isolation: isolated (any Actor)? = #isolation,
+        operation: () async throws -> T
+    ) async rethrows -> T {
+        try await $taskSupported.withValue(supported, operation: {
+            try await $taskCompressionSupported.withValue(
+                compression ?? taskCompressionSupported, operation: operation, isolation: isolation)
+        }, isolation: isolation)
+    }
 }
