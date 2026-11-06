@@ -25,11 +25,8 @@ import Observation
 
 // `fileExporter(item:contentTypes:)` takes a `Transferable`, which Linux has no
 // CoreTransferable for, and it's the one way to offer a panel several types.
-#if canImport(CoreTransferable)
-private let markdown = UTType("net.daringfireball.markdown") ?? .plainText
-
-/// When the page changes the panel's types, relative to opening it.
-private enum Change {
+/// When the page changes the panel's configuration, relative to opening it.
+private enum Change: Sendable {
     /// In the button's action, with the opening.
     case inTheAction
     /// In an `onChange` of the opening, which runs in the frame that opens it.
@@ -37,6 +34,9 @@ private enum Change {
     /// In the frame before, with the opening in the frame after.
     case aFrameBefore
 }
+
+#if canImport(CoreTransferable)
+private let markdown = UTType("net.daringfireball.markdown") ?? .plainText
 
 private struct Page: View {
     let change: Change
@@ -85,6 +85,80 @@ private struct ModelPage: View {
     }
 }
 #endif
+
+private struct MessagePage: View {
+    let change: Change
+    @State private var message = "old message"
+    @State private var showing = false
+
+    var body: some View {
+        Button("Open") {
+            switch change {
+            case .inTheAction:
+                message = "new message"
+                showing = true
+            case .inAnEffect:
+                showing = true
+            case .aFrameBefore:
+                message = "new message"
+            }
+        }
+        .fileImporter(isPresented: $showing, allowedContentTypes: [.plainText], onCompletion: { _ in })
+        .fileDialogMessage(message)
+        .onChange(of: showing) { _, isShowing in
+            if change == .inAnEffect, isShowing { message = "new message" }
+        }
+        .onChange(of: message) { _, _ in
+            if change == .aFrameBefore { showing = true }
+        }
+    }
+}
+
+private struct PresenterFreshnessPage: View {
+    @State private var message = "old message"
+    @State private var showing = false
+
+    var body: some View {
+        let text = message
+        FilePanelPresenter(
+            content: Button("Open") {
+                message = "new message"
+                showing = true
+            },
+            isPresented: $showing,
+            request: {
+                var req = FilePanelRequest(
+                    purpose: .open(allowsMultipleSelection: false),
+                    rule: FileChoiceRule(allowedContentTypes: [.plainText]),
+                    title: "Open",
+                    confirmationLabel: "Open",
+                    startDirectory: FilePanelRequest.defaultStartDirectory)
+                req.message = text
+                return req
+            },
+            onChoose: { _ in },
+            onCancel: {})
+    }
+}
+
+@Observable
+@MainActor
+private final class MessageModel {
+    var message = "initial message"
+    var showing = false
+}
+
+private struct ModelMessagePage: View {
+    let model: MessageModel
+
+    var body: some View {
+        Text("page")
+            .fileImporter(
+                isPresented: Binding(get: { model.showing }, set: { model.showing = $0 }),
+                allowedContentTypes: [.plainText], onCompletion: { _ in })
+            .fileDialogMessage(model.message)
+    }
+}
 
 /// A page as an app, to be drawn through the run loop's own frames.
 private struct PageApp<Page: View>: App {
@@ -171,6 +245,46 @@ struct FilePanelRequestFreshnessTests {
         #expect(capless(shown).contains("Format: Text"), "it changed while open: \(shown)")
     }
     #endif
+
+    @Test("Its message is that of the frame that opens it",
+          arguments: [Change.inTheAction, .inAnEffect, .aFrameBefore])
+    fileprivate func message(change: Change) {
+        let app = HeadlessApp(PageApp({ MessagePage(change: change) }), width: 100, height: 30)
+        app.frame(atNanos: 0)
+        app.send(KeyEvent(key: .enter))
+        app.frame(atNanos: 16_666_667)
+        app.frame(atNanos: 33_333_334)
+        let shown = app.screen.map(\.stripped).joined(separator: "\n")
+        #expect(shown.contains("new message"), "\(change): \(shown)")
+        #expect(!shown.contains("old message"), "\(change): \(shown)")
+    }
+
+    @Test("A direct FilePanelPresenter request closure reads the value from when it opens")
+    func directPresenterRequestFreshness() {
+        let app = HeadlessApp(PageApp({ PresenterFreshnessPage() }), width: 100, height: 30)
+        app.frame(atNanos: 0)
+        app.send(KeyEvent(key: .enter))
+        app.frame(atNanos: 16_666_667)
+        app.frame(atNanos: 33_333_334)
+        let shown = app.screen.map(\.stripped).joined(separator: "\n")
+        #expect(shown.contains("new message"), "\(shown)")
+        #expect(!shown.contains("old message"), "\(shown)")
+    }
+
+    @Test("A message change once the panel is up applies the next time it opens")
+    func aMessageChangeOnceOpenWaits() {
+        let model = MessageModel()
+        let app = HeadlessApp(PageApp({ ModelMessagePage(model: model) }), width: 100, height: 30)
+        app.frame(atNanos: 0)
+        model.showing = true
+        app.frame(atNanos: 16_666_667)
+        app.frame(atNanos: 33_333_334)
+        model.message = "changed while open"
+        app.frame(atNanos: 50_000_001)
+        let shown = app.screen.map(\.stripped).joined(separator: "\n")
+        #expect(shown.contains("initial message"), "it changed while open: \(shown)")
+        #expect(!shown.contains("changed while open"), "it changed while open: \(shown)")
+    }
 
     /// Nothing here is a file panel's: a sheet's content is built from this
     /// frame's values wherever the closure is held.
