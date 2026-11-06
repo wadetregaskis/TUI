@@ -767,12 +767,21 @@ def main():
         built = run(["swift", "build"], cwd=REPO)
         if built.returncode:
             sys.exit(f"swift build failed:\n{built.stderr}")
-        modules = os.path.join(REPO, ".build", "arm64-apple-macosx", "debug", "Modules")
+        bin_dir = run(["swift", "build", "--show-bin-path"], cwd=REPO).stdout.strip()
+        modules = os.path.join(bin_dir, "Modules")
+        if not os.path.isdir(modules):
+            modules = os.path.join(REPO, ".build", "arm64-apple-macosx", "debug", "Modules")
         if not os.path.isdir(modules):
             sys.exit(f"built modules not found at {modules}")
 
+        include_paths = [
+            os.path.join(REPO, "Sources", entry, "include")
+            for entry in sorted(os.listdir(os.path.join(REPO, "Sources")))
+            if os.path.isdir(os.path.join(REPO, "Sources", entry, "include"))
+        ]
+
         extract(SWIFTUI_MODULES, swiftui_dir, [], sdk, args.target)
-        extract(TUIKIT_MODULES, tuikit_dir, [modules], sdk, args.target)
+        extract(TUIKIT_MODULES, tuikit_dir, [modules] + include_paths, sdk, args.target)
 
         swiftui = load_symbols(swiftui_dir, SWIFTUI_MODULES)
         tuikit, tuikit_defaults = load_symbols(
