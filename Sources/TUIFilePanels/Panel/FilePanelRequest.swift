@@ -92,6 +92,26 @@ struct FilePanelRequest {
         id.map { "TUIFilePanels.\($0).showsHiddenFiles" } ?? "TUIFilePanels.showsHiddenFiles"
     }
 
+    /// Whether the panel is saving an item rather than opening existing items.
+    var isSave: Bool {
+        switch purpose {
+        case .save: true
+        case .open: false
+        }
+    }
+
+    /// The keys a file panel's width and height are kept under in storage:
+    /// kept separately for open vs save dialogs, app-wide or under the
+    /// customization identifier `id`.
+    static func sizeStorageKeys(for id: String?, isSave: Bool) -> (width: String, height: String) {
+        let mode = isSave ? "save" : "open"
+        if let id {
+            return ("TUIFilePanels.\(id).\(mode).width", "TUIFilePanels.\(id).\(mode).height")
+        } else {
+            return ("TUIFilePanels.\(mode).width", "TUIFilePanels.\(mode).height")
+        }
+    }
+
     /// The folder `~` stands for: the user's home folder, which `~` goes to
     /// and the path bar abbreviates. A test names a folder of its own.
     var homeDirectory = FileManager.default.homeDirectoryForCurrentUser

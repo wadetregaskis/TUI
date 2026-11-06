@@ -73,12 +73,20 @@ struct FilePanelPresenter<Content: View> {
     }
 
     @MainActor @ViewBuilder var body: some View {
+        let req = currentRequest()
+        let sizeKeys = FilePanelRequest.sizeStorageKeys(for: customization.customizationID, isSave: req.isSave)
+        let storedW = store.entry(forKey: sizeKeys.width, as: Int.self).value
+        let storedH = store.entry(forKey: sizeKeys.height, as: Int.self).value
         content
             .sheet(isPresented: sheetBinding, onDismiss: dismissed) {
                 // Built only while the sheet is presented, so the request is
                 // made when it is.
-                FilePanel(request: currentRequest(), finish: finish)
+                FilePanel(request: req, finish: finish)
                     .presentationSizing(.page)
+                    .presentationPersistedSize(width: storedW, height: storedH) { newW, newH in
+                        store.setValue(newW, forKey: sizeKeys.width)
+                        store.setValue(newH, forKey: sizeKeys.height)
+                    }
             }
             .onChange(of: isPresented.wrappedValue, initial: true) { _, presented in
                 isSheetUp = presented

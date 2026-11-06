@@ -194,6 +194,15 @@ import TUIFoundation
                 capHeight = detentHeight
             }
             let drag = dragHandler(context: context)
+            if let persisted = presentationTrait(PresentationPersistedSizeProviding.self, of: modal) {
+                if drag?.userWidth == nil, let w = persisted.persistedWidth {
+                    drag?.setUserWidth(w)
+                }
+                if drag?.userHeight == nil, let h = persisted.persistedHeight {
+                    drag?.setUserHeight(h)
+                }
+                drag?.onResize = persisted.onResize
+            }
             if let userWidth = drag?.userWidth {
                 sheetContext.availableWidth = min(userWidth, modalContext.availableWidth)
                 sheetContext.environment.sheetProposedWidth = userWidth

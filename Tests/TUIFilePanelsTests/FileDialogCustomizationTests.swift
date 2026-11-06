@@ -182,4 +182,23 @@ struct FileDialogCustomizationTests {
             #expect(request.rule.enumeratesPackages)
         }
     #endif
+
+    @Test("Open and save dialogs use separate size storage keys")
+    func sizeStorageSeparation() {
+        let openDefault = FilePanelRequest.sizeStorageKeys(for: nil, isSave: false)
+        let saveDefault = FilePanelRequest.sizeStorageKeys(for: nil, isSave: true)
+        #expect(openDefault.width == "TUIFilePanels.open.width")
+        #expect(openDefault.height == "TUIFilePanels.open.height")
+        #expect(saveDefault.width == "TUIFilePanels.save.width")
+        #expect(saveDefault.height == "TUIFilePanels.save.height")
+        #expect(openDefault != saveDefault)
+
+        let openCustom = FilePanelRequest.sizeStorageKeys(for: "editor", isSave: false)
+        let saveCustom = FilePanelRequest.sizeStorageKeys(for: "editor", isSave: true)
+        #expect(openCustom.width == "TUIFilePanels.editor.open.width")
+        #expect(openCustom.height == "TUIFilePanels.editor.open.height")
+        #expect(saveCustom.width == "TUIFilePanels.editor.save.width")
+        #expect(saveCustom.height == "TUIFilePanels.editor.save.height")
+        #expect(openCustom != saveCustom)
+    }
 }
