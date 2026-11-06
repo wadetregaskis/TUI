@@ -110,7 +110,7 @@ extension GeometryCoordinator {
     func endVisibilityFrame(frame: FrameBuffer, isRetained: (ViewIdentity) -> Bool) {
         guard !observers.isEmpty || !reported.isEmpty else { return }
         if unmeasuredObservers > 0 {
-            frame.forEachGeometryMarker { id, _, _ in observers[id]?.reachedFrame = true }
+            frame.forEachGeometryMarker(includingSurfaces: true) { id, _, _ in observers[id]?.reachedFrame = true }
         }
         var reports: [(action: (Bool) -> Void, isVisible: Bool)] = []
         var drawn: Set<HitTestRegion.HandlerID> = []

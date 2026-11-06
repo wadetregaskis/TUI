@@ -103,6 +103,20 @@ struct AnimatedImagePlaybackTests {
         #expect(app.screen == first, "round to the first again")
     }
 
+    @Test("A file:// URL plays just as a file path does")
+    func playsFileURL() async throws {
+        let path = try threeFrames().write()
+        let fileURL = URL(fileURLWithPath: path).absoluteString
+        let app = HeadlessApp(PageApp { Image(.url(fileURL)).frame(width: 8, height: 4) }, width: 20, height: 10)
+        try await untilPlaying(app, at: 0)
+
+        let first = app.screen
+        let due = try #require(app.nextWake(after: 0))
+        app.frame(atNanos: due)
+        let second = app.screen
+        #expect(second != first)
+    }
+
     @Test("Its loop count ends on the last frame, and then nothing is asked for", arguments: [nil, 1] as [Int?])
     func loopsEnd(repeats: Int?) async throws {
         let path = try threeFrames(repeats: repeats).write()

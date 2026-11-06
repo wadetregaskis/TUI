@@ -33,24 +33,40 @@ extension FrameBuffer {
     /// - Parameters:
     ///   - offsetX: Added to every column reported.
     ///   - offsetY: Added to every row reported.
+    ///   - includingSurfaces: Whether to descend into modal, sheet, popover and
+    ///     menu surfaces that are drawn over the page, for observers measuring
+    ///     presence in the frame rather than coordinate spaces within the flow.
     ///   - body: Receives each marker's id and its position.
     public func forEachGeometryMarker(
-        offsetX: Int = 0, offsetY: Int = 0, _ body: (HitTestRegion.HandlerID, _ x: Int, _ y: Int) -> Void
+        offsetX: Int = 0, offsetY: Int = 0, includingSurfaces: Bool = false,
+        _ body: (HitTestRegion.HandlerID, _ x: Int, _ y: Int) -> Void
     ) {
         for region in hitTestRegions where region.isGeometryMarker {
             body(region.handlerID, offsetX + region.offsetX, offsetY + region.offsetY)
         }
-        for layer in overlays where layer.carriesDisplacedDrawing {
+        for layer in overlays where layer.carriesDisplacedDrawing
+            || (includingSurfaces && !layer.isOverflow && layer.scrollPin == nil)
+        {
             layer.content.forEachGeometryMarker(
-                offsetX: offsetX + layer.offsetX, offsetY: offsetY + layer.offsetY, body)
+                offsetX: offsetX + layer.offsetX, offsetY: offsetY + layer.offsetY,
+                includingSurfaces: includingSurfaces, body)
         }
+    }
+
+    /// Whether this buffer carries any geometry marker that
+    /// ``forEachGeometryMarker(offsetX:offsetY:includingSurfaces:_:)`` would report.
+    public func carriesGeometryMarkers(includingSurfaces: Bool = false) -> Bool {
+        hitTestRegions.contains(where: \.isGeometryMarker)
+            || overlays.contains {
+                ($0.carriesDisplacedDrawing || (includingSurfaces && !$0.isOverflow && $0.scrollPin == nil))
+                    && $0.content.carriesGeometryMarkers(includingSurfaces: includingSurfaces)
+            }
     }
 
     /// Whether this buffer carries any geometry marker that
     /// ``forEachGeometryMarker(offsetX:offsetY:_:)`` would report.
     public var carriesGeometryMarkers: Bool {
-        hitTestRegions.contains(where: \.isGeometryMarker)
-            || overlays.contains { $0.carriesDisplacedDrawing && $0.content.carriesGeometryMarkers }
+        carriesGeometryMarkers(includingSurfaces: false)
     }
 
     /// Removes every hit-test TARGET, keeping the geometry markers and the

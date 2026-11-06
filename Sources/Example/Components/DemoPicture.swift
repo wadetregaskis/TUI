@@ -98,7 +98,11 @@ enum DemoPicture: CaseIterable {
     /// it, or `nil` if none is.
     static func named(_ name: String) -> Self? {
         let name = name.trimmingCharacters(in: .whitespaces)
-        return allCases.first { $0.name.caseInsensitiveCompare(name) == .orderedSame }
+        return allCases.first {
+            $0.name.caseInsensitiveCompare(name) == .orderedSame
+                || $0.fileName.caseInsensitiveCompare(name) == .orderedSame
+                || $0.resource.name.caseInsensitiveCompare(name) == .orderedSame
+        }
     }
 
     /// The status bar's label: the picture's name, as `chars:` names the

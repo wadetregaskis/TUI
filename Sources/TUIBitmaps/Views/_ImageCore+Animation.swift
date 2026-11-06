@@ -10,6 +10,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUICore
 import TUIFoundation
 import TUIImage
@@ -194,6 +195,18 @@ extension _ImageCore {
             default: ImageAnimationPlayback())
     }
 
+    /// The local file path this image can animate from, or `nil` if none.
+    private var animationFilePath: String? {
+        switch source {
+        case .file(let path): return path
+        case .url(let string):
+            if let url = URL(string: string), url.isFileURL {
+                return url.path
+            }
+            return nil
+        }
+    }
+
     /// The frame to draw instead of the still picture that was loaded, or `nil`
     /// to draw that: a file that holds no animation a decoder here can play, or
     /// frames still decoding, or nothing to animate for.
@@ -211,7 +224,7 @@ extension _ImageCore {
     /// draws but does not show, and one past its last play. A page with none on
     /// it has nothing to wake for.
     func playingFrame(token: String, context: RenderContext) -> PlayingFrame? {
-        guard !context.isMeasuring, decoded == nil, resizing?.slices != true, case .file(let path) = source,
+        guard !context.isMeasuring, resizing?.slices != true, let path = animationFilePath,
             !context.environment.accessibilityReduceMotion || !context.environment.imageAnimationRespectsReduceMotion,
             context.environment.animationScheduler != nil,
             context.canWatchScrollVisibility, let lifecycle = context.environment.lifecycle
@@ -297,7 +310,7 @@ extension _ImageCore {
     /// any of it, where it holds frames to play or to decode. A report that
     /// changes anything asks for a frame: to start, or to carry on.
     func watchingVisibility(of picture: FrameBuffer, context: RenderContext) -> FrameBuffer {
-        guard context.canWatchScrollVisibility, decoded == nil, case .file = source else { return picture }
+        guard context.canWatchScrollVisibility, animationFilePath != nil else { return picture }
         let box = animationPlayback(context: context)
         let playback = box.value
         guard playback.watchesVisibility else { return picture }
@@ -343,7 +356,7 @@ extension ImageAnimationPlayback {
     /// that first drew it is done, so one drawn where nobody can see it decodes
     /// nothing.
     var startsDecoding: Bool {
-        guard case .candidate = progress, isShown == true else { return false }
+        guard case .candidate = progress, isShown != false else { return false }
         progress = .decoding
         return true
     }

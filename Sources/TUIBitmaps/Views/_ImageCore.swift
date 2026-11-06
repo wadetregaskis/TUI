@@ -246,19 +246,6 @@ struct _ImageCore: View, Renderable, Layoutable {
         guard width > 0, height > 0 else { return FrameBuffer() }
 
         // Read environment values
-        let characterSet = context.environment.imageCharacterSet
-        let shapeAware = context.environment.imageShapeAware
-        // Resolved HERE, against the theme, and not inside the converter: a
-        // `.palette` mode may name `.palette.accent`, which has no colour of its
-        // own until a palette says so. Resolving before the render cache is
-        // consulted is what makes the image follow a theme change — the
-        // unresolved mode is identical either side of it, so a cache keyed on
-        // that would serve the old colours forever.
-        let colorMode = context.environment.imageColorMode.resolved(
-            with: context.environment.palette)
-        let dithering = context.environment.imageDithering
-        let contentMode = context.environment.imageContentMode
-        let aspectRatioOverride = context.environment.imageAspectRatio
         let placeholderText = context.environment.imagePlaceholderText
         let spinner = context.environment.imagePlaceholderSpinner
         let maxPixelCount = context.environment.imageMaxPixelCount
@@ -345,68 +332,91 @@ struct _ImageCore: View, Renderable, Layoutable {
         // Render based on current phase
         switch phase {
         case .loading, .cached:
-            return renderPlaceholder(
+            let placeholder = renderPlaceholder(
                 width: renderWidth, height: renderHeight, text: placeholderText, spinner: spinner, context: context)
+            return watchingVisibility(of: placeholder, context: context)
 
         case .success(let loadedImage):
-            // The file's current frame, if it plays: drawn in the still's place,
-            // and in the still's box.
-            let playing = playingFrame(token: token, context: context)
-            // What is drawn into which box: at its natural size, the image's
-            // own box; otherwise the box it was handed, to fit or fill.
-            let (rawImage, drawWidth, drawHeight, resizing, keepsAspect) = drawing(
-                playing?.image ?? loadedImage, laidOutAs: playing?.canvas, in: (renderWidth, renderHeight), zoom: zoom,
-                environment: context.environment)
-            // Real pixels first, where the terminal will take them. Falls
-            // through to the glyph renderer for every terminal that did not
-            // answer the startup handshake, every subtree that asked for
-            // glyphs, and every request the protocol cannot express — which is
-            // why this is an `if let` and not a branch: the fallback is not an
-            // error path, it is the path this framework has always taken.
-            // A template is drawn as cells: its pixels are recoloured, and a
-            // picture of them would be one more thing to keep current.
-            // So is an image in slices: its pixels are made for the box.
-            let monoColours = ImageMonoColours(for: colorMode, in: context.environment)
-            let picture: FrameBuffer
-            // Each keyed on which load its pixels are (`DecodedPixels`): the
-            // LOADED buffer, not the drawn one, which a crop makes every frame.
-            let decodedPixels = playing.map { DecodedPixels(decode: $0.decode) } ?? decodedPixels ?? DecodedPixels(loadedImage)
-            if !isTemplate, resizing?.slices != true, let drawn = renderWithTerminalGraphics(
-                rawImage, decodedPixels: decodedPixels, width: drawWidth, height: drawHeight,
-                stretches: resizing != nil && !keepsAspect, playing: playing, context: context)
-            {
-                picture = drawn
-            } else {
-                playing?.keepFramesHereForGlyphs(token: token, context: context)
-                picture = renderImage(
-                    rawImage, decodedPixels: decodedPixels, width: drawWidth, height: drawHeight,
-                    characterSet: characterSet, shapeAware: shapeAware, colorMode: colorMode, dithering: dithering,
-                    toneCurve: context.environment.imageToneCurve?.resolved(
-                        with: context.environment.palette),
-                    supersampling: context.environment.imageSupersampling, edgeThreshold: context.environment.imageEdgeThreshold,
-                    edgeContrast: context.environment.imageEdgeContrast,
-                    inkThreshold: context.environment.imageInkThreshold,
-                    adjustments: context.environment.imageAdjustments, posterizationLevels: context.environment.imagePosterization,
-                    contentMode: contentMode, aspectRatioOverride: aspectRatioOverride,
-                    cellAspect: context.environment.imageCellAspect,
-                    monoColours: monoColours,
-                    templateInk: isTemplate ? Self.templateInk(in: context.environment) : nil,
-                    resizing: resizing,
-                    playing: playing,
-                    stateStorage: stateStorage,
-                    identity: identity
-                )
-            }
-            // A picture drawn in the foreground style — a template's pixels, a
-            // mono picture's ink — casts a shadowed style's shadows from the
-            // cells it drew (`ShapeStyle.shadow(_:)`).
-            let paint = isTemplate || monoColours != nil ? context.environment.foregroundStyle : nil
-            let shaded = paint.map { picture.castingShadows(of: $0, context: context, owner: Self.self) } ?? picture
-            return watchingVisibility(of: shaded, context: context)
+            return renderSuccess(
+                loadedImage, decodedPixels: decodedPixels, renderWidth: renderWidth, renderHeight: renderHeight,
+                zoom: zoom, token: token, context: context)
 
         case .failure(let message):
             return renderError(message, width: renderWidth, height: renderHeight, context: context)
         }
+    }
+
+    private func renderSuccess(
+        _ loadedImage: RGBAImage,
+        decodedPixels: DecodedPixels?,
+        renderWidth: Int,
+        renderHeight: Int,
+        zoom: Double,
+        token: String,
+        context: RenderContext
+    ) -> FrameBuffer {
+        let characterSet = context.environment.imageCharacterSet
+        let shapeAware = context.environment.imageShapeAware
+        let colorMode = context.environment.imageColorMode.resolved(
+            with: context.environment.palette)
+        let dithering = context.environment.imageDithering
+        let contentMode = context.environment.imageContentMode
+        let aspectRatioOverride = context.environment.imageAspectRatio
+
+        // The file's current frame, if it plays: drawn in the still's place,
+        // and in the still's box.
+        let playing = playingFrame(token: token, context: context)
+        // What is drawn into which box: at its natural size, the image's
+        // own box; otherwise the box it was handed, to fit or fill.
+        let (rawImage, drawWidth, drawHeight, resizing, keepsAspect) = drawing(
+            playing?.image ?? loadedImage, laidOutAs: playing?.canvas, in: (renderWidth, renderHeight), zoom: zoom,
+            environment: context.environment)
+        // Real pixels first, where the terminal will take them. Falls
+        // through to the glyph renderer for every terminal that did not
+        // answer the startup handshake, every subtree that asked for
+        // glyphs, and every request the protocol cannot express — which is
+        // why this is an `if let` and not a branch: the fallback is not an
+        // error path, it is the path this framework has always taken.
+        // A template is drawn as cells: its pixels are recoloured, and a
+        // picture of them would be one more thing to keep current.
+        // So is an image in slices: its pixels are made for the box.
+        let monoColours = ImageMonoColours(for: colorMode, in: context.environment)
+        let picture: FrameBuffer
+        // Each keyed on which load its pixels are (`DecodedPixels`): the
+        // LOADED buffer, not the drawn one, which a crop makes every frame.
+        let decodedPixels = playing.map { DecodedPixels(decode: $0.decode) } ?? decodedPixels ?? DecodedPixels(loadedImage)
+        if !isTemplate, resizing?.slices != true, let drawn = renderWithTerminalGraphics(
+            rawImage, decodedPixels: decodedPixels, width: drawWidth, height: drawHeight,
+            stretches: resizing != nil && !keepsAspect, playing: playing, context: context)
+        {
+            picture = drawn
+        } else {
+            playing?.keepFramesHereForGlyphs(token: token, context: context)
+            picture = renderImage(
+                rawImage, decodedPixels: decodedPixels, width: drawWidth, height: drawHeight,
+                characterSet: characterSet, shapeAware: shapeAware, colorMode: colorMode, dithering: dithering,
+                toneCurve: context.environment.imageToneCurve?.resolved(
+                    with: context.environment.palette),
+                supersampling: context.environment.imageSupersampling, edgeThreshold: context.environment.imageEdgeThreshold,
+                edgeContrast: context.environment.imageEdgeContrast,
+                inkThreshold: context.environment.imageInkThreshold,
+                adjustments: context.environment.imageAdjustments, posterizationLevels: context.environment.imagePosterization,
+                contentMode: contentMode, aspectRatioOverride: aspectRatioOverride,
+                cellAspect: context.environment.imageCellAspect,
+                monoColours: monoColours,
+                templateInk: isTemplate ? Self.templateInk(in: context.environment) : nil,
+                resizing: resizing,
+                playing: playing,
+                stateStorage: context.stateStorage!,
+                identity: context.identity
+            )
+        }
+        // A picture drawn in the foreground style — a template's pixels, a
+        // mono picture's ink — casts a shadowed style's shadows from the
+        // cells it drew (`ShapeStyle.shadow(_:)`).
+        let paint = isTemplate || monoColours != nil ? context.environment.foregroundStyle : nil
+        let shaded = paint.map { picture.castingShadows(of: $0, context: context, owner: Self.self) } ?? picture
+        return watchingVisibility(of: shaded, context: context)
     }
 }
 
