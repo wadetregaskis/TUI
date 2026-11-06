@@ -51,6 +51,12 @@ struct MIMEPasteSession {
 
     private var phase = Phase.idle
 
+    /// Whether the session is currently idle (not in the middle of listing or reading a paste).
+    var isIdle: Bool {
+        if case .idle = phase { return true }
+        return false
+    }
+
     /// Whether the app takes a paste of a MIME type, asked of each type a
     /// paste event lists that is not text: the focused view's paste commands
     /// answer (`onPasteCommand(of:)`, by `UTType` conformance). `nil` reads
@@ -189,7 +195,15 @@ extension Terminal {
             (0..<introducer.count).allSatisfy({ input[$0] == introducer[$0] })
         else { return }
         // Up to the terminator: ST (two bytes) or BEL (one).
-        let end = input[length - 1] == 0x07 ? length - 1 : length - 2
+        let end: Int
+        if input[length - 1] == 0x07 {
+            end = length - 1
+        } else if length >= 2, input[length - 2] == 0x1B, input[length - 1] == 0x5C {
+            end = length - 2
+        } else {
+            return  // Cut short by a new ESC: not a packet
+        }
+        guard end >= introducer.count else { return }
         var bytes: [UInt8] = []
         bytes.reserveCapacity(end - introducer.count)
         for index in introducer.count..<end { bytes.append(input[index]) }

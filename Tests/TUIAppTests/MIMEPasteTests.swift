@@ -163,6 +163,59 @@ struct MIMEPasteTests {
         #expect(x.key == .character("x"))
     }
 
+    @Test("A cut-short OSC 5522 packet does not crash, delivers the next event, and leaves session idle")
+    func cutShortPacket() {
+        let terminal = Terminal()
+        var inputBytes = Array("\u{1B}]5522;X\u{1B}[A".utf8)
+        terminal.readSource = { buffer in
+            guard !inputBytes.isEmpty else { return 0 }
+            let count = min(inputBytes.count, buffer.count)
+            for index in 0..<count { buffer[index] = inputBytes[index] }
+            inputBytes.removeFirst(count)
+            return count
+        }
+        let event = terminal.readEvent()
+        guard case .key(let key)? = event else {
+            Issue.record("expected Up key event, got \(String(describing: event))")
+            return
+        }
+        #expect(key.key == .up)
+        #expect(terminal.mimePaste.isIdle)
+    }
+
+    @Test("Well-formed OSC 5522 packets ending in BEL or ST arrive with their bodies whole")
+    func terminatorsBelAndST() {
+        let terminal = Terminal()
+
+        // 1. Packet ending in ST (ESC \)
+        var bytesST = Array(Self.packet("type=read:status=OK:pw=\(Self.password)").utf8)
+        terminal.readSource = { buffer in
+            guard !bytesST.isEmpty else { return 0 }
+            let count = min(bytesST.count, buffer.count)
+            for index in 0..<count { buffer[index] = bytesST[index] }
+            bytesST.removeFirst(count)
+            return count
+        }
+        _ = terminal.readEvent()
+        #expect(!terminal.mimePaste.isIdle, "ST packet should be received and transition session from idle")
+
+        // Reset session
+        terminal.mimePaste = MIMEPasteSession()
+        #expect(terminal.mimePaste.isIdle)
+
+        // 2. Packet ending in BEL (\u{07})
+        var bytesBEL = Array("\u{1B}]5522;type=read:status=OK:pw=\(Self.password)\u{07}".utf8)
+        terminal.readSource = { buffer in
+            guard !bytesBEL.isEmpty else { return 0 }
+            let count = min(bytesBEL.count, buffer.count)
+            for index in 0..<count { buffer[index] = bytesBEL[index] }
+            bytesBEL.removeFirst(count)
+            return count
+        }
+        _ = terminal.readEvent()
+        #expect(!terminal.mimePaste.isIdle, "BEL packet should be received and transition session from idle")
+    }
+
     #if canImport(UniformTypeIdentifiers)
     @Test("A paste command takes a paste whose types conform to its own, and declares no other")
     func pasteCommandTakes() {
