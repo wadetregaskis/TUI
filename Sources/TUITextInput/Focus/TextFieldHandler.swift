@@ -389,8 +389,20 @@ extension TextFieldHandler {
         let count = displayWidths.count
         let clamped = max(0, min(cursorPosition, count))
         let cursorCellX = displayWidths[0..<clamped].reduce(0, +)
+        let caretCells: Int
+        if clamped < count {
+            let str = text.wrappedValue
+            if clamped < str.count {
+                let char = str[str.index(str.startIndex, offsetBy: clamped)]
+                caretCells = char == "\t" ? 1 : displayWidths[clamped]
+            } else {
+                caretCells = displayWidths[clamped]
+            }
+        } else {
+            caretCells = 1
+        }
         let scrollStart = TextFieldContentRenderer.scrollCells(
-            cursorCellX: cursorCellX, width: contentWidth)
+            cursorCellX: cursorCellX, caretCells: caretCells, width: contentWidth)
         // Valid content columns are 0..<contentWidth. A column past the right
         // edge — the closing cap, or a combo box's ▾ — must clamp INTO the
         // window: without this it landed on the first OFF-SCREEN character, and

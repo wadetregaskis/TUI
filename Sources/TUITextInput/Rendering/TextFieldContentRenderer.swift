@@ -317,8 +317,9 @@ struct TextFieldContentRenderer: FieldTextLayout {
     /// The horizontal scroll offset, in cells, that keeps the caret visible:
     /// end-anchored, reserving one cell for the caret itself. The inverse
     /// lives in ``TextFieldHandler/characterIndex(forColumn:contentWidth:displayWidths:)``.
-    nonisolated static func scrollCells(cursorCellX: Int, width: Int) -> Int {
-        max(0, cursorCellX - (max(1, width) - 1))
+    nonisolated static func scrollCells(cursorCellX: Int, caretCells: Int = 1, width: Int) -> Int {
+        let w = max(1, width)
+        return max(0, cursorCellX + min(caretCells, w) - w)
     }
 
     // MARK: - Prompt
@@ -425,7 +426,15 @@ struct TextFieldContentRenderer: FieldTextLayout {
     ) -> (widths: [Int], scrollStart: Int, windowEnd: Int) {
         let widths = Self.displayCellWidths(of: text, displayCharacter: displayCharacter)
         let cursorCellX = widths[0..<clampedPosition].reduce(0, +)
-        let scrollStart = Self.scrollCells(cursorCellX: cursorCellX, width: width)
+        let caretCells: Int
+        if clampedPosition < widths.count {
+            let char = text[text.index(text.startIndex, offsetBy: clampedPosition)]
+            caretCells = char == "\t" ? 1 : widths[clampedPosition]
+        } else {
+            caretCells = 1
+        }
+        let scrollStart = Self.scrollCells(
+            cursorCellX: cursorCellX, caretCells: caretCells, width: width)
         return (widths, scrollStart, scrollStart + width)
     }
 

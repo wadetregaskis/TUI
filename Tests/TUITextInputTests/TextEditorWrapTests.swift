@@ -338,6 +338,14 @@ struct TextEditorWrapTests {
         #expect(drawn.count == 12 && drawn[3].trimmingTrailingSpaces().isEmpty)
     }
 
+    @Test("TextEditor scrolls horizontally so wide character at right boundary is fully visible")
+    func editorFollowCursorWideChar() throws {
+        let (harness, page, handler) = try editor("012345678😀", width: 10, height: 4, wraps: false)
+        handler.moveCursor(toLine: 0, column: 9)
+        _ = harness.frame(page)
+        #expect(handler.scrollColumn == 1)
+    }
+
     @Test("The wheel scrolls the text and leaves the caret, until a key brings the view back to it")
     func wheelScrolls() throws {
         let (harness, page, handler) = try editor(height: 4)

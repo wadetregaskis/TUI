@@ -523,4 +523,26 @@ struct TextFieldHandlerTests {
         // in a 9-cell window emoji 4 occupies cells 8-9, and cell 8 is its own.
         #expect(handler.characterIndex(forColumn: 8, contentWidth: 9, displayWidths: widths) == 4)
     }
+
+    @Test("Wide character at right edge keeps room for two cells in scrollCells")
+    func scrollCellsWideCharacter() {
+        // In a 10-wide content area:
+        // Text: 12 'a's (12 cells) followed by '😀' (2 cells) at index 12.
+        // Caret on emoji (cursorCellX = 12):
+        // When caretCells is 1, scrollCells would be 12 - 9 = 3 (window 3..<13, emoji at 12..14 is cut off).
+        // When caretCells is 2, scrollCells is 12 + 2 - 10 = 4 (window 4..<14, emoji at 12..14 fits!).
+        let scrollSingle = TextFieldContentRenderer.scrollCells(cursorCellX: 12, caretCells: 1, width: 10)
+        #expect(scrollSingle == 3)
+        let scrollWide = TextFieldContentRenderer.scrollCells(cursorCellX: 12, caretCells: 2, width: 10)
+        #expect(scrollWide == 4)
+
+        // characterIndex maps through the wide-character scroll
+        var text = "aaaaaaaaaaaa😀b"
+        let binding = Binding(get: { text }, set: { text = $0 })
+        let handler = TextFieldHandler(focusID: "test", text: binding, cursorPosition: 12)
+        let widths = Array(repeating: 1, count: 12) + [2, 1]
+        // In a 10-wide content area with scrollStart = 4:
+        // Column 8 is cell 4 + 8 = 12, which is index 12 (the emoji)
+        #expect(handler.characterIndex(forColumn: 8, contentWidth: 10, displayWidths: widths) == 12)
+    }
 }

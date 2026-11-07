@@ -620,11 +620,19 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             let caretColumn = TabLayout.displayColumn(
                 ofCharIndex: handler.cursorColumn, in: lines[min(handler.cursorLine, lines.count - 1)],
                 tabWidth: tabWidth)
+            let currentLine = lines.isEmpty ? [] : lines[min(handler.cursorLine, lines.count - 1)]
+            let caretCells: Int
+            if handler.cursorColumn >= 0 && handler.cursorColumn < currentLine.count {
+                let char = currentLine[handler.cursorColumn]
+                caretCells = char == "\t" ? 1 : max(1, char.terminalWidth)
+            } else {
+                caretCells = 1
+            }
             if follows, handler.isWheelScrolled {
                 handler.clampWheelScroll(rowCount: lines.count, height: height, in: nil)
             } else if follows {
                 followCursor(
-                    handler, cursorDisplayColumn: caretColumn, lineCount: lines.count, width: contentWidth,
+                    handler, cursorDisplayColumn: caretColumn, caretCells: caretCells, lineCount: lines.count, width: contentWidth,
                     height: height)
             }
             return Window(
@@ -675,7 +683,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     /// the caret's on-screen cell, which runs ahead of the character index
     /// on tab-bearing lines).
     private func followCursor(
-        _ handler: TextEditorHandler, cursorDisplayColumn: Int,
+        _ handler: TextEditorHandler, cursorDisplayColumn: Int, caretCells: Int = 1,
         lineCount: Int, width: Int, height: Int
     ) {
         if handler.cursorLine < handler.scrollLine {
@@ -685,10 +693,11 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         }
         handler.scrollLine = max(0, min(handler.scrollLine, max(0, lineCount - height)))
 
+        let w = max(1, width)
         if cursorDisplayColumn < handler.scrollColumn {
             handler.scrollColumn = cursorDisplayColumn
-        } else if cursorDisplayColumn >= handler.scrollColumn + width {
-            handler.scrollColumn = cursorDisplayColumn - width + 1
+        } else if cursorDisplayColumn + min(caretCells, w) > handler.scrollColumn + w {
+            handler.scrollColumn = cursorDisplayColumn + min(caretCells, w) - w
         }
         handler.scrollColumn = max(0, handler.scrollColumn)
     }

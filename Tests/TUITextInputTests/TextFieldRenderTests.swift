@@ -12,6 +12,7 @@
 
 import Testing
 
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 @testable import TUITestSupport
 @testable import TUITextInput
@@ -34,8 +35,11 @@ private let closeCap = String(TerminalSymbols.closeCap)
 /// marker.
 @MainActor
 private func hasCaretCell(_ rawLine: String, palette: (any Palette)? = nil) -> Bool {
+    if rawLine.contains("\u{1B}[7m") { return true }
     let cursorColor = (palette ?? EnvironmentValues().palette).cursorColor
-    let fragment = cursorColor.backgroundCodes().joined(separator: ";") + "m"
+    let codes = cursorColor.backgroundCodes()
+    guard !codes.isEmpty else { return false }
+    let fragment = codes.joined(separator: ";") + "m"
     return rawLine.contains(fragment)
 }
 
@@ -459,5 +463,29 @@ struct TextFieldRenderTests {
         #expect(lines[0] == "\(openCap)one" + String(repeating: " ", count: 19) + closeCap)
         #expect(lines[1] == "\(openCap)two" + String(repeating: " ", count: 19) + closeCap)
         #expect(lines[2] == "\(openCap)three" + String(repeating: " ", count: 17) + closeCap)
+    }
+
+    @Test("Wide character at right edge keeps character and caret visible")
+    func wideCharacterAtRightEdgeKeepsCaretVisible() throws {
+        final class Box: @unchecked Sendable {
+            var text = "aaaaaaaaaaaa😀b"
+        }
+        let box = Box()
+        let harness = InputChainHarness(width: 20, height: 1)
+        struct Page: View {
+            let box: Box
+            var body: some View {
+                TextField("N", text: Binding(get: { box.text }, set: { box.text = $0 }))
+                    .frame(width: 12) // 12 width: 10 content + 2 caps
+            }
+        }
+        let page = Page(box: box)
+        _ = harness.frame(page)
+        let handler = try #require(harness.focusManager.currentFocused as? TextFieldHandler)
+        handler.cursorPosition = 12 // on the emoji 😀
+        let frame = harness.frame(page)
+        let line = frame.lines[0].stripped
+        #expect(line.contains("😀"))
+        #expect(hasCaretCell(frame.lines[0]))
     }
 }
