@@ -64,7 +64,7 @@ extension FrameBuffer {
     }
 
     /// Whether this buffer carries any geometry marker that
-    /// ``forEachGeometryMarker(offsetX:offsetY:_:)`` would report.
+    /// ``forEachGeometryMarker(offsetX:offsetY:includingSurfaces:_:)`` would report.
     public var carriesGeometryMarkers: Bool {
         carriesGeometryMarkers(includingSurfaces: false)
     }
@@ -86,7 +86,7 @@ extension FrameBuffer {
 extension OverlayLayer {
     /// Whether this layer is its carrier's own drawing, displaced — where a
     /// geometry marker inside it is where its view is drawn. See
-    /// ``FrameBuffer/forEachGeometryMarker(offsetX:offsetY:_:)``.
+    /// ``FrameBuffer/forEachGeometryMarker(offsetX:offsetY:includingSurfaces:_:)``.
     var carriesDisplacedDrawing: Bool {
         !isOpaque && scrollPin == nil && !isOverflow
     }

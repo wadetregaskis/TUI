@@ -158,7 +158,7 @@ extension FrameBuffer {
     /// (``_TableRowPayload/absorb(_:atColumn:width:lines:alignment:)``); the
     /// cell's own regions' markers come up with the row, where it is drawn.
     ///
-    /// Every layer, not only those ``forEachGeometryMarker(offsetX:offsetY:_:)``
+    /// Every layer, not only those ``forEachGeometryMarker(offsetX:offsetY:includingSurfaces:_:)``
     /// reads: a surface's markers (a cell's open menu) are found by the screen
     /// root once it composites the surface, which would locate the cell's view
     /// a second time, where the menu is. Copies nothing that holds no marker.
