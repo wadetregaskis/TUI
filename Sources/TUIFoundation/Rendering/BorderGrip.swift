@@ -119,6 +119,66 @@ package enum BorderGrip {
         return (1 + (run - size) / 2)..<(1 + (run - size) / 2 + size)
     }
 
+    /// The resize handles on a box's live edges, drawn over its border: a
+    /// handle in the middle of each live edge, and — only when BOTH axes are
+    /// live — the corner that moves them together. What `.userResizable`
+    /// draws, and a resizable sheet too, so every box the user can resize says
+    /// so in the same marks.
+    ///
+    /// Purely a hint; the whole of each live edge takes the drag, as it did
+    /// before these existed.
+    ///
+    /// A single-axis view marks only its own edge. The corner used to carry a
+    /// glyph there too (`╡`, `╧`) and it was worse than nothing: an edge handle
+    /// already says which edge moves, and a mark on a corner that moves one axis
+    /// looks like a corner that moves both.
+    package static func drawResizeGrips(
+        into buffer: inout FrameBuffer, axes liveAxes: ResizableAxes, isFocused: Bool,
+        isHovered: Bool, environment: EnvironmentValues
+    ) {
+        guard !liveAxes.isEmpty else { return }
+        let existing = buffer.lines.last?.stripped.last
+        let glyphs = Glyphs.standingOut(from: existing)
+        let ink = Self.ink(isFocused: isFocused, isHovered: isHovered, environment: environment)
+
+        // The corner belongs to a two-axis drag. A painted border has no line to
+        // replace, so its corner is marked by tint alone — which is the only
+        // mark it can carry, and the reason the block case stops there.
+        let corner = (x: buffer.width - 1, y: buffer.height - 1)
+        if paintsItsCells(existing), let existing {
+            mark(String(existing), cells: 1, into: &buffer, at: corner, ink: ink)
+            return
+        }
+        if liveAxes == .all {
+            mark(glyphs.corner, cells: 1, into: &buffer, at: corner, ink: ink)
+        }
+        drawEdgeGrips(into: &buffer, axes: liveAxes, glyphs: glyphs, ink: ink)
+    }
+
+    /// The handles in the middle of each live border.
+    ///
+    /// Each sits in the border's own run BETWEEN its two corners, and shrinks to
+    /// fit that run rather than reserving separation either side of it
+    /// (``centredSpan(in:size:)``).
+    private static func drawEdgeGrips(
+        into buffer: inout FrameBuffer, axes liveAxes: ResizableAxes, glyphs: Glyphs, ink: Ink
+    ) {
+        // The bottom border is dragged for HEIGHT, so it is marked when the
+        // vertical axis is live; the right border likewise for width.
+        if liveAxes.contains(.vertical), let span = centredSpan(in: buffer.width, size: Size.horizontal) {
+            mark(
+                String(repeating: glyphs.horizontal, count: span.count), cells: span.count,
+                into: &buffer, at: (x: span.lowerBound, y: buffer.height - 1), ink: ink)
+        }
+
+        if liveAxes.contains(.horizontal), let span = centredSpan(in: buffer.height, size: Size.vertical) {
+            let x = buffer.width - 1
+            for row in span {
+                mark(glyphs.vertical, cells: 1, into: &buffer, at: (x: x, y: row), ink: ink)
+            }
+        }
+    }
+
     /// Paints `text`, `cells` wide, over the border at `cell` — in `ink`, on
     /// the page's own background — and leaves the focused breath's run over
     /// it.

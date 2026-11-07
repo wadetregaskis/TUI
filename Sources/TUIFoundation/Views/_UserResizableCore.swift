@@ -219,9 +219,9 @@ nonisolated struct _UserResizableCore<Content: View>: View, Renderable {
         registerDragTarget(
             handler: handler, axes: liveAxes, buffer: &buffer, focusID: focusID,
             context: context)
-        drawGrip(
+        BorderGrip.drawResizeGrips(
             into: &buffer, axes: liveAxes, isFocused: isFocused,
-            isHovered: handler.isHovered, context: context)
+            isHovered: handler.isHovered, environment: context.environment)
         return buffer
     }
 
@@ -425,70 +425,6 @@ nonisolated struct _UserResizableCore<Content: View>: View, Renderable {
             return true
         default:
             return false
-        }
-    }
-
-    // MARK: - The mark
-
-    /// The three marks: a handle in the middle of each live edge, and — only
-    /// when BOTH axes are live — the corner that moves them together.
-    ///
-    /// Purely a hint; the whole of each live edge takes the drag, as it did
-    /// before these existed (see ``BorderGrip``).
-    ///
-    /// A single-axis view marks only its own edge. The corner used to carry a
-    /// glyph there too (`╡`, `╧`) and it was worse than nothing: an edge handle
-    /// already says which edge moves, and a mark on a corner that moves one axis
-    /// looks like a corner that moves both.
-    @MainActor private func drawGrip(
-        into buffer: inout FrameBuffer, axes liveAxes: ResizableAxes, isFocused: Bool,
-        isHovered: Bool, context: RenderContext
-    ) {
-        guard !liveAxes.isEmpty else { return }
-        let existing = buffer.lines.last?.stripped.last
-        let glyphs = BorderGrip.Glyphs.standingOut(from: existing)
-        let ink = BorderGrip.ink(isFocused: isFocused, isHovered: isHovered, environment: context.environment)
-
-        // The corner belongs to a two-axis drag. A painted border has no line to
-        // replace, so its corner is marked by tint alone — which is the only
-        // mark it can carry, and the reason the block case stops there.
-        let corner = (x: buffer.width - 1, y: buffer.height - 1)
-        if BorderGrip.paintsItsCells(existing), let existing {
-            BorderGrip.mark(String(existing), cells: 1, into: &buffer, at: corner, ink: ink)
-            return
-        }
-        if liveAxes == .all {
-            BorderGrip.mark(glyphs.corner, cells: 1, into: &buffer, at: corner, ink: ink)
-        }
-        drawEdgeGrips(into: &buffer, axes: liveAxes, glyphs: glyphs, ink: ink)
-    }
-
-    /// The handles in the middle of each live border.
-    ///
-    /// Each sits in the border's own run BETWEEN its two corners, and shrinks to
-    /// fit that run rather than reserving separation either side of it
-    /// (``BorderGrip/centredSpan(in:size:)``).
-    @MainActor private func drawEdgeGrips(
-        into buffer: inout FrameBuffer, axes liveAxes: ResizableAxes, glyphs: BorderGrip.Glyphs,
-        ink: BorderGrip.Ink
-    ) {
-        // The bottom border is dragged for HEIGHT, so it is marked when the
-        // vertical axis is live; the right border likewise for width.
-        if liveAxes.contains(.vertical),
-            let span = BorderGrip.centredSpan(in: buffer.width, size: BorderGrip.Size.horizontal)
-        {
-            BorderGrip.mark(
-                String(repeating: glyphs.horizontal, count: span.count), cells: span.count,
-                into: &buffer, at: (x: span.lowerBound, y: buffer.height - 1), ink: ink)
-        }
-
-        if liveAxes.contains(.horizontal),
-            let span = BorderGrip.centredSpan(in: buffer.height, size: BorderGrip.Size.vertical)
-        {
-            let x = buffer.width - 1
-            for row in span {
-                BorderGrip.mark(glyphs.vertical, cells: 1, into: &buffer, at: (x: x, y: row), ink: ink)
-            }
         }
     }
 }
