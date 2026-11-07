@@ -3,7 +3,7 @@
 What is waiting on you, re-checked on 2026-11-02 against `main`. Most questions were put to you between
 2026-10-18 and 2026-10-26. The full write-ups of those asked by 2026-10-25, with the options and the
 evidence, are in the historical record, [Owner decisions, 2026-10-18 to 2026-10-25](<Historical/SwiftUI parity process/The owner's decisions, 2026-10-18 to 2026-10-25.md>). That record also holds every
-question you have already answered and what each answer set in motion. None of these blocks other work:
+question you have already answered and what each answer set in motion. The rulings since, with the reasons you gave, are in [Owner decisions, 2026-10-27 to 2026-11-07](<Historical/SwiftUI parity process/The owner's decisions, 2026-10-27 to 2026-11-07.md>). None of these blocks other work:
 each has a default, which holds until you answer.
 
 Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.

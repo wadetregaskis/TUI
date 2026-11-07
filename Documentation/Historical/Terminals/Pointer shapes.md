@@ -9,7 +9,11 @@ The owner's ruling (2026-10-12): option (b), inert where unsupported. The
 pointer shape is emitted only where a host documents OSC 22, in its own
 names; the innermost style under the pointer wins; it is written as the
 pointer moves and put back before the mouse modes go off. TUI's own controls'
-shapes are built, and off until a host's reset is read. Which controls get a
+shapes were built off until a host's reset was read (B-O12-6); on 2026-10-28
+the owner turned them on for every terminal documenting OSC 22, assuming a
+terminal restores the pointer on quit and resetting it on exit anyway
+(CURSOR-GATE, in [the owner's decisions](<../SwiftUI parity process/The owner's decisions, 2026-10-27 to 2026-11-07.md>)),
+with the shapes chosen there (CURSOR-CHOICES). Which controls get a
 hand is the app's choice (A-O12-1, answered 2026-10-27): links only by default,
 as on a Mac, or every clickable control under `.pointingHandCursor(over: .everythingClickable)`.
 
