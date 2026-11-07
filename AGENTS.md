@@ -21,9 +21,9 @@ A compile error of the form `'x' is unavailable: …` is deliberate. It's a Swif
 
 ```bash
 swift build                                      # zero warnings, on every target
-swift test --filter SuiteTypeName                # the Swift type, not the display name
+Tools/Dev/quick.py test SuiteTypeName            # the Swift type, not the display name; failures only
 Tools/ParallelTest/parallel_test.py -j 8         # the whole suite, far faster than swift test
-swiftlint                                        # zero violations
+Tools/Dev/quick.py lint                          # zero violations, in what you changed
 Tools/BuildDocs/build-docs.sh --strict           # the documentation, as CI builds it
 ```
 
@@ -43,6 +43,7 @@ CI also builds and tests on Linux and builds four lower modules on Windows, so d
 | API parity with SwiftUI | `Tools/APIParity`, and [the compatibility guide](<Documentation/SwiftUI parity/SwiftUI compatibility guide.md>) |
 | Deliberate differences from SwiftUI | [`Deliberate deviations from SwiftUI.md`](<Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md>). Check here before "fixing" one |
 | Decisions still open | [`Documentation/Open owner decisions.md`](<Documentation/Open owner decisions.md>) |
+| The cheapest build, test and lint loop, and habits that save time | [`Tools/Dev/README.md`](Tools/Dev/README.md) |
 | Profiling and benchmarks | [`Tools/Profiling/README.md`](Tools/Profiling/README.md). `ab_bench.py` is the A/B tool, and its verdict is the result |
 | Driving a real app in a pseudo-terminal | `Tools/Smoke` |
 

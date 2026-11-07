@@ -95,6 +95,7 @@ could see and wouldn't set.
 | `TUI_PARALLEL_TEST_LOCK` | `Tools/ParallelTest/parallel_test.py` | The path of the lock that keeps a second run out. |
 | `TUI_PARALLEL_TEST_STALL_SECONDS` | `Tools/ParallelTest/parallel_test.py` | How long a shard may say nothing before it counts as stuck. |
 | `TUI_PRODUCT_SMOKE_URL` | `Tools/ProductSmoke` | Where the fixture resolves TUI from. |
+| `TUI_RUN_WRAPPER` | `Tools/Dev/quick.py` | A command to prefix its build and test steps with, such as a machine-wide build slot. |
 | `TUI_WASM_TOOLCHAIN` | `Tools/Web/build.sh` | The Swift version to build the web demo with. |
 | `TUI_WASM_SDK` | `Tools/Web/build.sh` | The WebAssembly SDK's name. |
 | `TUI_WASM_SWIFT` | `Tools/Web/build.sh` | The `swift` command to use. |
