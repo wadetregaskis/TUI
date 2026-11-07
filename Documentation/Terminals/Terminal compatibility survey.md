@@ -8354,9 +8354,14 @@ zero-width now (`BidiControlWidthTests`).
 
 Likewise, the word joiner (U+2060), invisible math operators (U+2061–2064)
 and Mongolian vowel separator (U+180E) are `Default_Ignorable_Code_Point`
-formatting characters with no advance: measured at 0 cells with
-`advance_probe.py` on tmux 3.7c (2026-11-07), they are treated as zero-width
-scalars in `String+TerminalWidth` (`ZeroWidthScalarTests`).
+formatting characters with no advance, and TUI counts them as zero-width
+scalars in `String+TerminalWidth` since 2026-11-07 (`ZeroWidthScalarTests`),
+on the Unicode properties alone. **Not measured:** `advance_probe.py` has
+rows for them, but no host's record holds them yet — a headless tmux 3.7c run
+on 2026-11-07 read every row of its battery, plain `a` included, as 0, and was
+discarded. Expect the bidi controls' split: Apple Terminal and xterm.js
+advance LRM and RLM a cell each (`Apple-Terminal-advance.json`), so a row
+carrying one of these there likely draws a cell longer than it measures.
 
 ### RTL characters as image PIXELS — measured 2026-09-01, still OPEN
 
