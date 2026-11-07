@@ -170,12 +170,14 @@ struct DocumentSceneTests {
         #expect(DocumentProbe.shared.hadExistingFile == false)
     }
 
+    /// Skipped where permissions don't bind, as for root, which CI's Linux containers are.
     @Test("A read-only file's document cannot be edited, and Save asks where")
     func readOnly() async throws {
         let folder = try DocumentFolder()
         let url = try folder.write("hello", "locked.txt")
         try FileManager.default.setAttributes([.posixPermissions: 0o444], ofItemAtPath: url.path)
         defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path) }
+        guard !FileManager.default.isWritableFile(atPath: url.path) else { return }
         let app = await launched(opening: url)
         #expect(app.text.contains("file=locked.txt editable=false"))
         app.tap("change")
