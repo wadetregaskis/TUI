@@ -85,7 +85,7 @@ extension Terminal {
     nonisolated static func rawModeAttributes(from original: termios, maskingQuitKey: Bool = false) -> termios {
         var raw = original
         raw.c_lflag &= ~tcflag_t(ECHO | ICANON | IEXTEN)
-        raw.c_iflag &= ~tcflag_t(IXON | ICRNL | BRKINT | INPCK | ISTRIP)
+        raw.c_iflag &= ~tcflag_t(IXON | ICRNL | INLCR | IGNCR | BRKINT | INPCK | ISTRIP)
         raw.c_oflag &= ~tcflag_t(OPOST)
         raw.c_cflag |= tcflag_t(CS8)
 

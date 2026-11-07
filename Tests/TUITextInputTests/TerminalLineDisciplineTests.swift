@@ -79,9 +79,17 @@ struct TerminalLineDisciplineTests {
         #endif
         #expect(Self.character(raw, VMIN) == 0 && Self.character(raw, VTIME) == 0)
         #expect(Self.character(raw, VEOF) == 0x04 && Self.character(raw, VERASE) == 0x7F, "the rest untouched")
-        #expect(raw.c_iflag & tcflag_t(IXON | ICRNL | BRKINT) == 0)
+        #expect(raw.c_iflag & tcflag_t(IXON | ICRNL | INLCR | IGNCR | BRKINT) == 0)
         #expect(raw.c_oflag & tcflag_t(OPOST) == 0)
         #expect(raw.c_cflag & tcflag_t(CS8) == tcflag_t(CS8))
+    }
+
+    @Test("Raw mode clears INLCR and IGNCR flags")
+    func rawModeClearsInputCRNLFlags() {
+        var cooked = Self.cooked()
+        cooked.c_iflag |= tcflag_t(INLCR | IGNCR)
+        let raw = Terminal.rawModeAttributes(from: cooked)
+        #expect(raw.c_iflag & tcflag_t(INLCR | IGNCR) == 0)
     }
 
     @Test("A quit key the user turned off, or moved, or signals the user turned off, stay as they were")
