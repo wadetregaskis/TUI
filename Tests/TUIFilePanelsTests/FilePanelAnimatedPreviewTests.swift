@@ -66,10 +66,10 @@ struct FilePanelAnimatedPreviewTests {
             // A still shows at most two pictures — the placeholder and the
             // picture — so a third is a frame played.
             var seenFrames: Set<[String]> = []
-            for _ in 0..<30 {
+            await settle {
                 driver.app.advance(by: .milliseconds(50))
-                try await Task.sleep(for: .milliseconds(10))
                 seenFrames.insert(driver.styledRows())
+                return seenFrames.count >= 6
             }
             #expect(seenFrames.count >= 6, "the preview never moved past its first frame: \(driver.screen())")
         }

@@ -211,7 +211,7 @@ struct LifecycleManagerTaskTests {
         manager.startTask(token: "task-1", priority: .medium) {
             executed = true
         }
-        try await Task.sleep(for: .milliseconds(50))
+        await settle { executed }
         #expect(executed == true)
     }
 
@@ -239,7 +239,7 @@ struct LifecycleManagerTaskTests {
             box.onMain = true
             box.ran = true
         }
-        try await Task.sleep(for: .milliseconds(50))
+        await settle { box.ran }
         #expect(box.ran, "the task ran at all")
         #expect(box.onMain, "and it ran on the main actor")
     }
@@ -280,9 +280,7 @@ struct LifecycleManagerTaskTests {
         // Polled, not slept, for the reason `cancellationReachesTheClosureBody`
         // gives below: under a full parallel suite a fixed wait is a coin toss
         // on when the cancelled sleep unwinds.
-        for _ in 0..<200 where target.value == nil {
-            try await Task.sleep(for: .milliseconds(5))
-        }
+        await settle { target.value != nil }
         #expect(target.value == true, "cancelTask never reached its own token's task")
 
         // An untargeted cancel would unwind the bystander at the same instant
@@ -294,9 +292,7 @@ struct LifecycleManagerTaskTests {
         // …and it was alive to be spared rather than already finished, which
         // its own token proves by reaching it.
         manager.cancelTask(token: "task-2")
-        for _ in 0..<200 where bystander.value == nil {
-            try await Task.sleep(for: .milliseconds(5))
-        }
+        await settle { bystander.value != nil }
         #expect(bystander.value == true)
     }
 
@@ -307,13 +303,13 @@ struct LifecycleManagerTaskTests {
 
         manager.startTask(token: "task-1", priority: .medium) {
             // Long-running first task
-            try? await Task.sleep(for: .seconds(10))
+            await waitUntilCancelled()
         }
         // Replace immediately with short task
         manager.startTask(token: "task-1", priority: .medium) {
             secondExecuted = true
         }
-        try await Task.sleep(for: .milliseconds(50))
+        await settle { secondExecuted }
         #expect(secondExecuted == true)
     }
 
@@ -338,9 +334,7 @@ struct LifecycleManagerTaskTests {
         // Polled, not slept: under a full parallel suite a fixed wait is a
         // coin toss on when the cancelled sleep unwinds and the main-actor hop
         // lands.
-        for _ in 0..<200 where observed.value == nil {
-            try await Task.sleep(for: .milliseconds(5))
-        }
+        await settle { observed.value != nil }
         #expect(observed.value == true, "the publish site must be able to see the cancel")
     }
 
@@ -348,10 +342,10 @@ struct LifecycleManagerTaskTests {
     func resetWithRunningTasks() async throws {
         let manager = LifecycleManager()
         manager.startTask(token: "task-1", priority: .medium) {
-            try? await Task.sleep(for: .seconds(10))
+            await waitUntilCancelled()
         }
         manager.startTask(token: "task-2", priority: .medium) {
-            try? await Task.sleep(for: .seconds(10))
+            await waitUntilCancelled()
         }
         // Reset should cancel all tasks without crashing
         manager.reset()

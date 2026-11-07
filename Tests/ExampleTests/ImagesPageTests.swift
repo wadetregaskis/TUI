@@ -22,16 +22,13 @@ struct ImagesPageTests {
                 ImagesPage(picture: .animation)
             }
 
-            var screens: [String] = [app.screen.styledLines.joined(separator: "\n")]
-            for _ in 1...10 {
-                try await Task.sleep(nanoseconds: 50_000_000)
+            // The frames decode on a task: the clock is stepped until they
+            // have landed and the picture moves, however long that takes.
+            let first = app.screen.styledLines.joined(separator: "\n")
+            try await app.wait(until: {
                 app.advance(by: .milliseconds(100))
-                let current = app.screen.styledLines.joined(separator: "\n")
-                screens.append(current)
-            }
-
-            let distinctScreens = Set(screens)
-            #expect(distinctScreens.count > 1, "The animation never advanced past its first frame with KittyGraphics!")
+                return app.screen.styledLines.joined(separator: "\n") != first
+            })
         }
     }
 
@@ -42,16 +39,13 @@ struct ImagesPageTests {
                 ImagesPage(picture: .animation)
             }
 
-            var screens: [String] = [app.screen.description]
-            for _ in 1...10 {
-                try await Task.sleep(nanoseconds: 50_000_000)
+            // The frames decode on a task: the clock is stepped until they
+            // have landed and the picture moves, however long that takes.
+            let first = app.screen.description
+            try await app.wait(until: {
                 app.advance(by: .milliseconds(100))
-                let current = app.screen.description
-                screens.append(current)
-            }
-
-            let distinctScreens = Set(screens)
-            #expect(distinctScreens.count > 1, "The animation never advanced past its first frame with Glyphs!")
+                return app.screen.description != first
+            })
         }
     }
 }
