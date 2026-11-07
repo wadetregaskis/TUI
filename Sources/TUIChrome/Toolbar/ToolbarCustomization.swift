@@ -198,7 +198,7 @@ struct _ToolbarCustomizationPlace: Hashable {
     /// the always-available ones they removed; elsewhere every item the app
     /// does not hide.
     func shownItems(context: RenderContext) -> [_ToolbarItemSpec] {
-        let declared = toolbarItems(of: items)
+        let declared = toolbarItems(of: items, in: context)
         guard let customizationID else { return declared.filter { !$0.customization.isHiddenByApp } }
         let store = context.environment.defaultAppStorage?.store ?? StorageDefaults.backend
         let record = _ToolbarCustomizationRecord.load(customizationID, from: store)
@@ -254,7 +254,7 @@ struct _ToolbarCustomizationPlace: Hashable {
         guard let customizationID else { return }
         let store = context.environment.defaultAppStorage?.store ?? StorageDefaults.backend
         let record = _ToolbarCustomizationRecord.load(customizationID, from: store)
-        let declared = toolbarItems(of: items)
+        let declared = toolbarItems(of: items, in: context)
         let (_, listed, neighbours) = Self.arrangement(of: declared, by: record)
         let items = listed.map { item in
             let id = item.id ?? ""

@@ -61,7 +61,8 @@ nonisolated struct _ContentToolbarRows: View {
     let content: any ToolbarContent
 
     @MainActor var body: some View {
-        let shown = toolbarItems(of: content).filter { !$0.customization.isHiddenByApp && !$0.isTitleMenu && $0.defaultKind == nil }
+        // No context: this body's own scope observes what the items read.
+        let shown = toolbarItems(of: content, in: nil).filter { !$0.customization.isHiddenByApp && !$0.isTitleMenu && $0.defaultKind == nil }
         let top = shown.filter { $0.placement.bar == .top }
         let bottom = shown.filter { $0.placement.bar == .bottom }
         VStack(alignment: .leading, spacing: 0) {

@@ -54,6 +54,15 @@ private struct LabelBesideModifier: ViewModifier {
     }
 }
 
+/// Toolbar content of the app's own, whose body reads the model.
+private struct ReadingToolbarContent: ToolbarContent {
+    let model: ClosureReadModel
+    var body: some ToolbarContent {
+        let label = model.label
+        ToolbarItem(placement: .primaryAction) { Text(verbatim: "TB:" + label) }
+    }
+}
+
 @MainActor
 @Suite("Deferred closures are observed", .serialized)
 struct DeferredClosureObservationTests {
@@ -130,5 +139,14 @@ struct DeferredClosureObservationTests {
             Text("base").modifier(LabelResolvingModifier(model: model))
         }
         expectRedraw(app, model: model, from: "EM:one", to: "EM:two")
+    }
+
+    @Test("A ToolbarContent type's body reading an @Observable asks for a frame")
+    mutating func toolbarContentBody() {
+        let model = ClosureReadModel()
+        let app = TestApp(width: 40, height: 8) {
+            Text("page").toolbar { ReadingToolbarContent(model: model) }
+        }
+        expectRedraw(app, model: model, from: "TB:one", to: "TB:two")
     }
 }

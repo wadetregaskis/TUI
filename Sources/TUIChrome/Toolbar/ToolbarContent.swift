@@ -97,6 +97,15 @@ struct _ToolbarItemCollector {
     /// The place being collected: one step per block member and `if` branch.
     private var path: [Int] = []
 
+    /// Where the declaration is drawn, under which a toolbar content type's
+    /// own `body` is evaluated; `nil` where the collection already runs in a
+    /// body, whose scope observes it.
+    let context: RenderContext?
+
+    init(context: RenderContext?) {
+        self.context = context
+    }
+
     /// Adds an item at the current place.
     mutating func append(
         placement: ToolbarItemPlacement, view: AnyView, id: String? = nil, isFlexibleSpace: Bool = false,
@@ -142,10 +151,11 @@ protocol _ToolbarContentPrimitive {
     func appendToolbarItems(to items: inout _ToolbarItemCollector)
 }
 
-/// The items `content` declares, in order.
+/// The items `content` declares, in order, its content types' bodies
+/// observed at `context` (see ``_ToolbarItemCollector/context``).
 @MainActor
-func toolbarItems<Content: ToolbarContent>(of content: Content) -> [_ToolbarItemSpec] {
-    var collector = _ToolbarItemCollector()
+func toolbarItems<Content: ToolbarContent>(of content: Content, in context: RenderContext?) -> [_ToolbarItemSpec] {
+    var collector = _ToolbarItemCollector(context: context)
     appendToolbarItems(content, to: &collector)
     return collector.items
 }
@@ -158,7 +168,14 @@ func appendToolbarItems<Content: ToolbarContent>(_ content: Content, to items: i
         primitive.appendToolbarItems(to: &items)
         return
     }
-    appendToolbarItems(content.body, to: &items)
+    // A content type's `body` is evaluated here, in the modifier's core,
+    // after the view's own body has returned: observed as a body is, or a
+    // write to what it read asked for no frame.
+    guard let context = items.context else {
+        appendToolbarItems(content.body, to: &items)
+        return
+    }
+    appendToolbarItems(observingBodyClosure(of: Content.self, context: context) { content.body }, to: &items)
 }
 
 // MARK: - Hiding
@@ -317,6 +334,6 @@ nonisolated struct _AnyToolbarContent: ToolbarContent, _ToolbarContentPrimitive 
     @MainActor var body: Never { fatalError("_AnyToolbarContent hands its items over itself") }
 
     @MainActor func appendToolbarItems(to items: inout _ToolbarItemCollector) {
-        items.append(contentsOf: toolbarItems(of: content))
+        items.append(contentsOf: toolbarItems(of: content, in: items.context))
     }
 }

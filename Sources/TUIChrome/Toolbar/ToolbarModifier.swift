@@ -147,7 +147,7 @@ nonisolated struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View,
     /// drawn; so, as far as its state is concerned, are its items — as the
     /// window does for a bar it hides (`retainUndrawnItems`).
     @MainActor private func retainItems(depth: Int, storage: StateStorage, context: RenderContext) {
-        for item in toolbarItems(of: items) {
+        for item in toolbarItems(of: items, in: context) {
             let identity = itemIdentity(item, depth: depth, context: context)
             storage.markActive(identity)
             storage.retainSubtree(identity)
