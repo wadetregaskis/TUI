@@ -103,6 +103,7 @@ struct FilePanelPreview: View {
             return text
         }
         if truncated {
+            guard data.count > 1 else { return nil }
             for trim in 1...min(3, data.count - 1) {
                 if let text = String(data: data.dropLast(trim), encoding: .utf8) {
                     return text

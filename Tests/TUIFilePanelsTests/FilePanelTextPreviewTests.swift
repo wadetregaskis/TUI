@@ -69,4 +69,10 @@ struct FilePanelTextPreviewTests {
         #expect(excerpt.contains("(plus"))
         #expect(excerpt.contains("more)"))
     }
+
+    @Test("Truncated single-byte incomplete UTF-8 sequence does not trap")
+    func truncatedSingleByteDoesNotTrap() {
+        let data = Data([0xC3])
+        #expect(FilePanelPreview.utf8Text(from: data, truncated: true) == nil)
+    }
 }
