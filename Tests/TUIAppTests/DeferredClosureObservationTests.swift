@@ -1,0 +1,86 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  DeferredClosureObservationTests.swift
+//
+//  A closure a view keeps and calls later, in its core — what a toggle
+//  governs, a `Group(subviews:)` transform, a preference layer, an
+//  environmental modifier's `resolve(in:)`, a toolbar content type's body,
+//  a window's content — is the body of what it builds, deferred. Each was
+//  called outside any observation scope: a write to an `@Observable` it read,
+//  made outside an event, asked for no frame and the screen kept the old
+//  value until something else drew. `FrameObservationTests` covers the
+//  first such closures (a `GeometryReader`'s, a `TimelineView`'s, …).
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Observation
+import Testing
+
+@testable import TUIApp
+@testable import TUIAppTestSupport
+@testable import TUIChrome
+@testable import TUICore
+@testable import TUIFoundation
+import TUITesting
+@testable import TUITestSupport
+@testable import TUIView
+
+@Observable
+private final class ClosureReadModel {
+    var label = "one"
+}
+
+/// Resolves to a modifier showing the model's label beside the content.
+private struct LabelResolvingModifier: EnvironmentalModifier {
+    let model: ClosureReadModel
+    func resolve(in environment: EnvironmentValues) -> LabelBesideModifier {
+        LabelBesideModifier(label: model.label)
+    }
+}
+
+private struct LabelBesideModifier: ViewModifier {
+    let label: String
+    func body(content: Content) -> some View {
+        HStack {
+            content
+            Text(verbatim: "EM:" + label)
+        }
+    }
+}
+
+@MainActor
+@Suite("Deferred closures are observed", .serialized)
+struct DeferredClosureObservationTests {
+    private var now: Int64 = 0
+
+    private mutating func draw(_ app: TestApp) -> String {
+        now += 20_000_000
+        app.frame(atNanos: now)
+        return app.screen.lines.joined(separator: "\n")
+    }
+
+    /// Draws `app` until `before` shows, writes `"two"` to `model`, and
+    /// expects the write to ask for a frame that shows `after`.
+    private mutating func expectRedraw(
+        _ app: TestApp, model: ClosureReadModel, from before: String, to after: String,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) {
+        _ = draw(app)
+        let first = draw(app)
+        #expect(first.contains(before), "\(first)", sourceLocation: sourceLocation)
+        _ = app.takeFrameRequest()
+        model.label = "two"
+        #expect(app.takeFrameRequest(), "the write asked for no frame", sourceLocation: sourceLocation)
+        let second = draw(app)
+        #expect(second.contains(after), "\(second)", sourceLocation: sourceLocation)
+    }
+
+    @Test("An EnvironmentalModifier's resolve(in:) reading an @Observable asks for a frame")
+    mutating func environmentalModifier() {
+        let model = ClosureReadModel()
+        let app = TestApp(width: 30, height: 6) {
+            Text("base").modifier(LabelResolvingModifier(model: model))
+        }
+        expectRedraw(app, model: model, from: "EM:one", to: "EM:two")
+    }
+}

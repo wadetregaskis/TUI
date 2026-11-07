@@ -218,13 +218,17 @@ extension ModifiedContent: View where Content: View, Modifier: ViewModifier {
     /// resolves to is applied instead. Drawn here rather than through `body`
     /// so every other modifier's body keeps its shape — a constant `false`
     /// the specialiser folds away.
+    ///
+    /// `resolve(in:)` is observed as a body is, at the identity what it
+    /// resolves to is drawn at: it is evaluated here, in the walk, after the
+    /// body that applied it has returned, so without the scope a write to
+    /// what it read asked for no frame.
     @MainActor
     public static func _renderSelf(_ view: Self, context: RenderContext) -> FrameBuffer? {
-        guard Modifier._isEnvironmentalModifier,
-            let resolved = Modifier._resolvedBody(
-                view.modifier, content: AnyView(view.content), environment: context.environment)
-        else { return nil }
-        return renderToBuffer(resolved, context: context.withChildIdentity(type: AnyView.self, index: 0))
+        guard Modifier._isEnvironmentalModifier else { return nil }
+        let resolvedContext = context.withChildIdentity(type: AnyView.self, index: 0)
+        guard let resolved = resolvedBody(of: view, context: context, at: resolvedContext) else { return nil }
+        return renderToBuffer(resolved, context: resolvedContext)
     }
 
     /// The measure-side twin of ``_renderSelf(_:context:)``.
@@ -232,13 +236,22 @@ extension ModifiedContent: View where Content: View, Modifier: ViewModifier {
     public static func _measureSelf(
         _ view: Self, proposal: ProposedSize, context: RenderContext
     ) -> ViewSize? {
-        guard Modifier._isEnvironmentalModifier,
-            let resolved = Modifier._resolvedBody(
-                view.modifier, content: AnyView(view.content), environment: context.environment)
-        else { return nil }
-        return measureChild(
-            resolved, proposal: proposal,
-            context: context.withChildIdentity(type: AnyView.self, index: 0))
+        guard Modifier._isEnvironmentalModifier else { return nil }
+        let resolvedContext = context.withChildIdentity(type: AnyView.self, index: 0)
+        guard let resolved = resolvedBody(of: view, context: context, at: resolvedContext) else { return nil }
+        return measureChild(resolved, proposal: proposal, context: resolvedContext)
+    }
+
+    /// The modifier `view`'s environmental modifier resolves to in
+    /// `context`'s environment, applied to its content, observed at
+    /// `resolvedContext`.
+    @MainActor
+    private static func resolvedBody(
+        of view: Self, context: RenderContext, at resolvedContext: RenderContext
+    ) -> AnyView? {
+        observingBodyClosure(of: Self.self, context: resolvedContext) {
+            Modifier._resolvedBody(view.modifier, content: AnyView(view.content), environment: context.environment)
+        }
     }
 
     /// Forwarded to the modifier, keyed by this view's type so two of the
