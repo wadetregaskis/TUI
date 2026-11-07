@@ -111,19 +111,27 @@ extension String {
             // bounded scan stopped early, which is when it has nothing to give.
             let visible = measured ?? strippedLength
             let suffix = ansiAwareSuffix(droppingVisible: max(0, visible - keep))
-            if atWordBoundary, let trimmed = Self.keepingTrailingWords(of: suffix) {
-                return ellipsis + trimmed
-            }
-            return ellipsis + Self.droppingLeadingSpaces(suffix)
+            let body =
+                atWordBoundary
+                ? (Self.keepingTrailingWords(of: suffix) ?? Self.droppingLeadingSpaces(suffix))
+                : Self.droppingLeadingSpaces(suffix)
+            let bodyStart = max(0, visible - body.strippedLength)
+            let style = ansiStateBefore(visibleColumn: bodyStart)
+            let result = style + ellipsis + body
+            return result + (result.leavesSGROpen ? ANSIRenderer.reset : "")
         case .middle:
             // A word-boundary cut in the middle is ill-defined; `.middle`
             // always cuts by character.
             let leftKeep = keep / 2
             let rightKeep = keep - leftKeep
             let visible = measured ?? strippedLength
-            return ansiAwarePrefix(visibleCount: leftKeep, knownVisibleWidth: visible)
-                + ellipsis
-                + ansiAwareSuffix(droppingVisible: max(0, visible - rightKeep))
+            let left = ansiAwarePrefix(visibleCount: leftKeep, knownVisibleWidth: visible)
+            let rightDrop = max(0, visible - rightKeep)
+            let rightStyle = ansiStateBefore(visibleColumn: rightDrop)
+            let rightSuffix = ansiAwareSuffix(droppingVisible: rightDrop)
+            let leftReset = left.leavesSGROpen ? ANSIRenderer.reset : ""
+            let result = left + ellipsis + leftReset + rightStyle + rightSuffix
+            return result + (result.leavesSGROpen ? ANSIRenderer.reset : "")
         }
     }
 

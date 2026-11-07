@@ -142,4 +142,56 @@ struct AnsiAwareScannerTests {
         let mixed = "\u{1B}[4mAB\(reset) plain tail text"
         #expect(!mixed.truncatedToWidth(8).hasSuffix(reset))
     }
+
+    @Test("Head truncation preserves styling and closes open runs")
+    func headTruncationPreservesStyling() {
+        let reset = "\u{1B}[0m"
+        let underline = "\u{1B}[4m"
+        let styled = "\(underline)Supercalifragilistic\(reset)"
+        let cut = styled.truncatedToWidth(10, mode: .head)
+        #expect(cut.hasPrefix(underline))
+        #expect(cut.hasSuffix(reset))
+        #expect(cut.stripped == "…agilistic")
+        #expect(cut.strippedLength == 10)
+
+        // Plain text gains nothing
+        #expect("Supercalifragilistic".truncatedToWidth(10, mode: .head) == "…agilistic")
+
+        // Cut that lands after a style run already closed does not inherit the closed style
+        let mixed = "\(underline)AB\(reset) plain head text"
+        let mixedCut = mixed.truncatedToWidth(10, mode: .head)
+        #expect(!mixedCut.hasPrefix(underline))
+        #expect(!mixedCut.hasSuffix(reset))
+        #expect(mixedCut.stripped == "…head text")
+    }
+
+    @Test("Middle truncation preserves styling and closes open runs")
+    func middleTruncationPreservesStyling() {
+        let reset = "\u{1B}[0m"
+        let underline = "\u{1B}[4m"
+        let styled = "\(underline)Supercalifragilistic\(reset)"
+        let cut = styled.truncatedToWidth(10, mode: .middle)
+        #expect(cut.hasPrefix(underline))
+        #expect(cut.hasSuffix(reset))
+        #expect(cut.stripped == "Supe…istic")
+        #expect(cut.strippedLength == 10)
+
+        // Plain text gains nothing
+        #expect("Supercalifragilistic".truncatedToWidth(10, mode: .middle) == "Supe…istic")
+
+        // Style in the left half does not bleed into an unstyled right half
+        let mixed = "\(underline)Supercali\(reset)fragilistic"
+        let mixedCut = mixed.truncatedToWidth(10, mode: .middle)
+        #expect(mixedCut.stripped == "Supe…istic")
+        #expect(mixedCut.hasPrefix(underline))
+        #expect(!mixedCut.hasSuffix(underline))
+
+        // Style in the right half is preserved even when cut from the left
+        let rightStyled = "Supercali\(underline)fragilistic\(reset)"
+        let rightCut = rightStyled.truncatedToWidth(10, mode: .middle)
+        #expect(rightCut.stripped == "Supe…istic")
+        #expect(!rightCut.hasPrefix(underline))
+        #expect(rightCut.contains(underline))
+        #expect(rightCut.hasSuffix(reset))
+    }
 }
