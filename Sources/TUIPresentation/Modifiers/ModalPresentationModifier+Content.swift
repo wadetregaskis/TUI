@@ -203,12 +203,18 @@ import TUIFoundation
                 }
                 drag?.onResize = persisted.onResize
             }
-            if let userWidth = drag?.userWidth {
-                sheetContext.availableWidth = min(userWidth, modalContext.availableWidth)
+            let availW = modalContext.availableWidth
+            let availH = modalContext.availableHeight
+            let minWidth = _DialogDragHandler.minWidth
+            let minHeight = _DialogDragHandler.minHeight
+            let userWidth = drag?.userWidth.map { min(max($0, min(minWidth, availW)), availW) }
+            let userHeight = drag?.userHeight.map { min(max($0, min(minHeight, availH)), availH) }
+            if let userWidth {
+                sheetContext.availableWidth = min(userWidth, availW)
                 sheetContext.environment.sheetProposedWidth = userWidth
             }
-            if let userHeight = drag?.userHeight, detentHeight == nil {
-                sheetContext.availableHeight = min(userHeight, modalContext.availableHeight)
+            if let userHeight, detentHeight == nil {
+                sheetContext.availableHeight = min(userHeight, availH)
                 sheetContext.environment.sheetDetentHeight = userHeight
                 capHeight = userHeight
             }
@@ -221,8 +227,8 @@ import TUIFoundation
                 hostingToolbar(context: sheetContext, capHeight: capHeight) { inner, cap in
                     renderPresentedDialog(modal, context: inner, capHeight: cap)
                 },
-                userWidth: drag?.userWidth,
-                detentHeight: detentHeight ?? drag?.userHeight, palette: context.environment.palette)
+                userWidth: userWidth,
+                detentHeight: detentHeight ?? userHeight, palette: context.environment.palette)
         case .fullScreen:
             // The cover IS the screen: full width and the whole content area,
             // so there is nothing of the page left to show through and nothing

@@ -335,11 +335,24 @@ package final class _DialogDragHandler {
         guard isDragging else { return }
         isDragging = false
         if dragMode != .move && didResize {
-            let finalW = userWidth ?? currentWidth
-            let finalH = userHeight ?? currentHeight
-            userWidth = finalW
-            userHeight = finalH
-            onResize?(finalW, finalH)
+            switch dragMode {
+            case .resizeWidth:
+                let finalW = userWidth ?? currentWidth
+                userWidth = finalW
+                onResize?(finalW, userHeight ?? currentHeight)
+            case .resizeHeight:
+                let finalH = userHeight ?? currentHeight
+                userHeight = finalH
+                onResize?(userWidth ?? currentWidth, finalH)
+            case .resizeBoth:
+                let finalW = userWidth ?? currentWidth
+                let finalH = userHeight ?? currentHeight
+                userWidth = finalW
+                userHeight = finalH
+                onResize?(finalW, finalH)
+            case .move:
+                break
+            }
         }
         dragMode = .move
     }

@@ -11,7 +11,7 @@ import Testing
 
 @testable import TUIApp
 @testable import TUIFoundation
-import TUIPresentation
+@testable import TUIPresentation
 @testable import TUITestSupport
 
 @MainActor
@@ -571,5 +571,95 @@ struct ModalIsolationTests {
         #expect(movedTitle.offsetY == title.offsetY - dy, "dialog expanded symmetrically upward by \(dy)")
         #expect(movedTitle.width == title.width, "dialog width did not change")
         #expect(movedBottom.offsetY == bottomBorder.offsetY + dy, "bottom edge shifted down by \(dy)")
+    }
+
+    @Test("A saved 200×60 sheet in an 80×24 terminal still has reachable grips")
+    func savedOversizedSheetHasReachableGrips() {
+        let view = VStack { Text("bg") }
+            .sheet(isPresented: .constant(true)) {
+                Dialog(title: "Resizable") { Text("body") }
+                    .presentationPersistedSize(width: 200, height: 60)
+            }
+
+        let tui = TUIContext()
+        let fm = FocusManager()
+        var env = EnvironmentValues()
+        env.focusManager = fm
+        env.applyRuntimeServices(from: tui)
+        let width = 80, height = 24
+        let context = RenderContext(
+            availableWidth: width, availableHeight: height, environment: env, tuiContext: tui)
+
+        fm.beginRenderPass()
+        let raw = renderToBuffer(view, context: context)
+        fm.endRenderPass()
+        let frame = raw.compositingOverlays(
+            maxWidth: width, maxHeight: height, palette: context.environment.palette)
+
+        // In an 80×24 terminal, the grips must be within the terminal bounds and reachable.
+        let corner = frame.hitTestRegions
+            .filter({ $0.width <= 2 && $0.height <= 2 })
+            .max(by: { ($0.offsetX + $0.offsetY) < ($1.offsetX + $1.offsetY) })
+        #expect(corner != nil, "corner grab region must be present and reachable")
+
+        let rightBorder = frame.hitTestRegions
+            .filter({ $0.width == 1 && $0.height > 1 })
+            .max(by: { $0.offsetX < $1.offsetX })
+        #expect(rightBorder != nil, "right border grab region must be present")
+        if let rightBorder {
+            #expect(rightBorder.offsetX < width, "right border must be within terminal bounds")
+        }
+
+        let bottomBorder = frame.hitTestRegions
+            .filter({ $0.height == 1 && $0.width > 2 })
+            .max(by: { $0.offsetY < $1.offsetY })
+        #expect(bottomBorder != nil, "bottom border grab region must be present")
+        if let bottomBorder {
+            #expect(bottomBorder.offsetY < height, "bottom border must be within terminal bounds")
+        }
+
+        // When the terminal grows again, the unclamped user size comes back.
+        var largerEnv = env
+        largerEnv.terminalWidth = 250
+        largerEnv.overlayContentHeight = 80
+        let largerContext = RenderContext(
+            availableWidth: 250, availableHeight: 80, environment: largerEnv, tuiContext: tui)
+        fm.beginRenderPass()
+        let largerRaw = renderToBuffer(view, context: largerContext)
+        fm.endRenderPass()
+        guard let modalOverlay = largerRaw.overlays.first(where: { $0.level == .modal }) else {
+            Issue.record("no modal overlay in larger terminal")
+            return
+        }
+        #expect(modalOverlay.content.width == 200, "user's saved size returns when the terminal grows")
+        #expect(modalOverlay.content.height == 60, "user's saved size returns when the terminal grows")
+    }
+
+    @Test("A saved width of 0 renders at the minimum")
+    func savedZeroWidthRendersAtMinimum() {
+        let view = VStack { Text("bg") }
+            .sheet(isPresented: .constant(true)) {
+                Text("x")
+                    .presentationPersistedSize(width: 0, height: nil)
+            }
+
+        let tui = TUIContext()
+        let fm = FocusManager()
+        var env = EnvironmentValues()
+        env.focusManager = fm
+        env.applyRuntimeServices(from: tui)
+        let width = 80, height = 24
+        let context = RenderContext(
+            availableWidth: width, availableHeight: height, environment: env, tuiContext: tui)
+
+        fm.beginRenderPass()
+        let raw = renderToBuffer(view, context: context)
+        fm.endRenderPass()
+
+        guard let modalOverlay = raw.overlays.first(where: { $0.level == .modal }) else {
+            Issue.record("no modal overlay")
+            return
+        }
+        #expect(modalOverlay.content.width == _DialogDragHandler.minWidth)
     }
 }
