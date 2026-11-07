@@ -143,6 +143,28 @@ struct FilePanelOutlineTests {
             onChoose: { caller.chose($0) }, onCancel: { caller.cancelled() })
     }
 
+    @Test("A reload reads an open branch again, so its rows are back once the folder is")
+    func reloadReadsOpenBranchesAgain() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let alpha = fixture.url("Alpha").standardizedFileURL
+        let browser = FileBrowser(directory: fixture.root, rule: FileChoiceRule())
+        await browser.refresh()
+        browser.openBranches.insert(alpha)
+        await browser.loadFolder(alpha)
+        #expect(browser.folderRows[alpha.path]?.contains { $0.name == "inner.txt" } == true)
+
+        // The type pop-up's change: every folder forgotten, the folder read again.
+        browser.filterFiles(by: [])
+        #expect(browser.folderRows[alpha.path] == nil)
+        await browser.refresh()
+        #expect(
+            browser.folderRows[alpha.path]?.contains { $0.name == "inner.txt" } == true,
+            "the open branch was left empty")
+        let alphaRow = browser.rows.first { $0.url.standardizedFileURL == alpha }
+        #expect(alphaRow?.children?.contains { $0.name == "inner.txt" } == true)
+    }
+
     @Test("Expanded list-view folder stays populated after type pop-up change")
     func expandedFolderStaysPopulatedAfterTypeChange() async throws {
         let fixture = try FilePanelFixture()
