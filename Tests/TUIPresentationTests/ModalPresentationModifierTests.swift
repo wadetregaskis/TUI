@@ -919,4 +919,76 @@ struct ModalIsolationTests {
         }
         #expect(modalOverlay.content.width == _DialogDragHandler.minWidth)
     }
+
+    @Test("onResize closure does not survive when sheet content changes to one without persisted size")
+    func staleOnResizeDoesNotSurviveContentChange() {
+        var callCount = 0
+        var showPersisted = true
+
+        struct TestView: View {
+            @Binding var showPersisted: Bool
+            let onResize: () -> Void
+
+            var body: some View {
+                VStack { Text("bg") }
+                    .modal(isPresented: .constant(true)) {
+                        if showPersisted {
+                            Dialog(title: "Resizable") { Text("body") }
+                                .presentationPersistedSize(width: 40, height: 10, onResize: { _, _ in onResize() })
+                        } else {
+                            Dialog(title: "Resizable") { Text("body") }
+                        }
+                    }
+            }
+        }
+
+        let tui = TUIContext()
+        let fm = FocusManager()
+        var env = EnvironmentValues()
+        env.focusManager = fm
+        env.applyRuntimeServices(from: tui)
+        let width = 70, height = 24
+        env.terminalWidth = width
+        env.overlayContentHeight = height
+        let context = RenderContext(
+            availableWidth: width, availableHeight: height, environment: env, tuiContext: tui)
+
+        let binding = Binding(get: { showPersisted }, set: { showPersisted = $0 })
+        let view = TestView(showPersisted: binding, onResize: { callCount += 1 })
+
+        func frame() -> FrameBuffer {
+            fm.beginRenderPass()
+            let raw = renderToBuffer(view, context: context)
+            fm.endRenderPass()
+            return raw.compositingOverlays(
+                maxWidth: width, maxHeight: height, palette: context.environment.palette)
+        }
+
+        // Pass 1: Render with persisted size and onResize
+        _ = frame()
+
+        // Pass 2: Switch to content without persisted size
+        showPersisted = false
+        let secondFrame = frame()
+
+        // Drag corner in Pass 2
+        guard let corner = secondFrame.hitTestRegions
+            .filter({ $0.width <= 2 && $0.height <= 2 })
+            .max(by: { ($0.offsetX + $0.offsetY) < ($1.offsetX + $1.offsetY) })
+        else {
+            Issue.record("no corner grab region")
+            return
+        }
+
+        let dispatcher = tui.mouseEventDispatcher
+        dispatcher.setActiveSupport(.standard)
+        dispatcher.setRegions(secondFrame.hitTestRegions)
+        let px = corner.offsetX + corner.width - 1
+        let py = corner.offsetY + corner.height - 1
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: px, y: py))
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .dragged, x: px + 2, y: py + 2))
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: px + 2, y: py + 2))
+
+        #expect(callCount == 0, "stale onResize must not be called after content changes to one without persisted size")
+    }
 }

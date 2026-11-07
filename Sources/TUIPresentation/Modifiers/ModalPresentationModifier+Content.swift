@@ -194,15 +194,16 @@ import TUIFoundation
                 capHeight = detentHeight
             }
             let drag = dragHandler(context: context)
-            if let persisted = presentationTrait(PresentationPersistedSizeProviding.self, of: modal) {
+            let persisted = presentationTrait(PresentationPersistedSizeProviding.self, of: modal)
+            if let persisted {
                 if drag?.userWidth == nil, let w = persisted.persistedWidth {
                     drag?.setUserWidth(w)
                 }
                 if drag?.userHeight == nil, let h = persisted.persistedHeight {
                     drag?.setUserHeight(h)
                 }
-                drag?.onResize = persisted.onResize
             }
+            drag?.onResize = persisted?.onResize
             let availW = modalContext.availableWidth
             let availH = modalContext.availableHeight
             let minWidth = _DialogDragHandler.minWidth
