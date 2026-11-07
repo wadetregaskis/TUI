@@ -4,17 +4,20 @@
 that keeps working, and how the page behind a modal sheet is drawn and kept
 inert. Ids: A19 (the design study, appended), A24, B-D7S-1 to 5, B-D2C-3 to
 5, A-MODALS-1, B-MODALS-1 to 4, B-BUGS13-1; DRAWERS (the retired draft,
-appended); the modal veil.*
+appended); the modal veil; SHEET-KEYBOARD (2026-11-07).*
 
 ## In short
 
 A sheet sizes to its content up to `.form`'s 25 rows, with no minimum; a
 sheet with two or more detents can be resized, and one that enables background
 interaction is a live sheet, docked as a pane beside a page that stays live. A
-modal sheet's page is drawn behind it, veiled (faded half way toward the
-overlay background) since 2026-10-25, and inert to the mouse, focus and the
-page's own key handlers, and since 2026-10-27 to the shortcuts and status bar
-items declared outside it as well (A-MODALS-1).
+modal sheet's page is drawn behind it, veiled since 2026-10-25 (since
+2026-10-28 keeping 25% of each colour with 60% of its colour taken out, the
+owner's "25d60"), and inert to the mouse, focus and the page's own key
+handlers, and since 2026-10-27 to the shortcuts and status bar items declared
+outside it as well (A-MODALS-1). Since 2026-11-05 a sheet can be resized by
+dragging its bottom and right borders; on 2026-11-07 the owner designed its
+keyboard route, two focus stops after the sheet's contents (SHEET-KEYBOARD).
 
 ## How it unfolded
 
@@ -32,10 +35,23 @@ items declared outside it as well (A-MODALS-1).
    `@FocusedValue` behind a sheet.)
 6. **2026-10-25, the owner:** the page behind a sheet or alert is veiled, not
    flattened (+6.4% on a frame with a sheet open in the notes session).
+   **2026-10-27**, after seeing it: flattened hid borders and progress bars,
+   and veiled was too bright; it should be dimmed and muted more, so the page
+   reads as disabled and unimportant yet stays visible on a close look.
+   **2026-10-28, the owner:** "25d60" (`fe67268b3`); no further reason recorded.
+7. **2026-11-05, another author** made sheets, modals and the file panels
+   resizable by dragging the bottom and right borders and the corner
+   (`4daf05ce9` and follow-ups). Moving by the title row already existed.
+   Both were mouse-only, which the
+   [review of 2026-11-07](<../Reviews and audits/A review of 71 commits by another author (2026-11-07).md>)
+   flagged.
+8. **2026-11-07, the owner's design** for resizing and moving a sheet from
+   the keyboard (SHEET-KEYBOARD, below).
 
 ## Where it stands
 
-Shipped, A-MODALS-1 included (2026-10-27).
+Shipped, A-MODALS-1 included (2026-10-27). SHEET-KEYBOARD is decided and
+queued, not built.
 
 ## For a future reader
 
@@ -513,6 +529,39 @@ the registry's reading per presentation, kept while it is up and dropped with
 it. About half a day with tests; it would make the page beneath a sheet
 honest about being a picture, but it is a different contract from SwiftUI's
 live window beneath, whichever focus that window reads.
+
+### SHEET-KEYBOARD. Resizing and moving a sheet from the keyboard
+
+**The problem (2026-11-07).** Sheets could be resized and moved only by
+dragging, against the owner's rule that every interaction has a keyboard
+route or none, and the drag targets were invisible border cells.
+
+**Rejected, and why (the owner's reasons):**
+
+- **A modal "arrange mode"** entered by a key: the owner dislikes modality.
+- **Modifier-based schemes** (an arrow with Option or Shift to resize or
+  move): Option is unreliable across terminals, and Terminal.app strips the
+  modifiers from Up and Down.
+- **One stop doing both:** without reliable modifiers there are not enough
+  arrow keys for two jobs.
+
+**Chosen (the owner's design):**
+
+- **Visible grips** on a resizable sheet, the same glyphs resizable views
+  draw (`BorderGrip`, as `_UserResizableCore.drawGrip` uses): they are needed
+  anyway as mouse targets and as the cue, so the keyboard route uses them too.
+- **Two focus stops, after all the sheet's contents in Tab order**, since
+  moving and resizing are rarer than its fields and buttons; **Resize before
+  Move**, since resizing is expected to be the more common.
+  - Resize: the grips breathe; the arrows resize (one stop, not one per
+    grip); Home restores the sheet's default size.
+  - Move: the border breathes except the grips; the arrows move; Home
+    restores the default position.
+
+Proposed alongside and accepted: a status-bar hint while a stop has the
+focus; Shift for steps of 5 where the terminal sends it; no stops on alerts
+and confirmation dialogs; a sheet that can't be resized gets only Move; resizing
+stays on for every sheet, with no opt-in.
 
 ## Appendix: the live sheets design study, A19 (2026-10-04)
 
