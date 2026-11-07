@@ -54,6 +54,15 @@ package struct _PresentationPersistedSizeView<Content: View>: View, Presentation
     package var presentationTraitContent: any View { content }
 }
 
+@MainActor extension _PresentationPersistedSizeView: SingleContentWrapper {
+    package var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    package func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
+}
+
+@MainActor extension _PresentationPersistedSizeView: DrawsContentUnchanged {}
+
 extension View {
     /// Carries initial persisted dimensions and a resize callback to the presenter of a sheet.
     @MainActor
