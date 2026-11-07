@@ -259,18 +259,6 @@ design, with what was measured and the plan, is in [Compiled hot reload](<Compil
 **What would reopen it.** The first release. Stage 0 of the design's plan comes first: whether it works on
 Linux, which has not been run.
 
-### Sixel
-
-**What it is.** Real pixels for `Image` on the hosts that have no Kitty graphics: Windows Terminal, foot, mintty
-and others. The case, the limits and the price are in [Terminal graphics
-protocols](<Images and terminal graphics/Terminal graphics protocols.md#6-recommendation>), §6.
-
-**Why not now.** Waiting on the owner (SIXEL in [Open owner decisions](<Open owner decisions.md>)). Recommended:
-a probe now, the build when the `TUIApp` Windows port starts.
-
-**What would reopen it.** The `TUIApp` Windows port, or the owner's yes. Windows Terminal shipping Kitty graphics
-(its issue #8389) would remove the largest reason.
-
 ### Partial TUI
 
 **What it is.** An app that draws in a few rows at the end of the terminal's normal output, with no alternate screen,
