@@ -19,13 +19,34 @@
 //  License: MIT
 
 import Foundation
+import Observation
 import Testing
 
 import TUI
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
+@testable import TUIView
+
+@Observable
+private final class ObservedItem: Identifiable {
+    let id: Int
+    var name: String
+    init(id: Int, name: String) {
+        self.id = id
+        self.name = name
+    }
+}
+
+@Observable
+private final class ObservedGroupModel {
+    var label = "Option A"
+    var content = "Content A"
+    var dest = "Dest A"
+}
 
 @MainActor
 @Suite("Bug-class siblings")
@@ -263,5 +284,75 @@ struct BugClassSiblingTests {
             line.strippedLength == 7,  // │ + 5 interior cells + │
             "the bordered line is exactly innerWidth+2 cells: '\(line.stripped)' (\(line.strippedLength))")
         #expect(line.stripped.hasSuffix("│"), "the right border survives: '\(line.stripped)'")
+    }
+
+    // MARK: - @Observable closure reads
+
+    @Test("List over non-Equatable elements reading @Observable is tracked")
+    func listNonEquatableObservable() {
+        let items = [ObservedItem(id: 1, name: "One"), ObservedItem(id: 2, name: "Two")]
+        let app = TestApp(width: 30, height: 10) {
+            List(items, id: \.id) { item in
+                Text(item.name)
+            }
+        }
+        _ = app.screen
+        _ = app.takeFrameRequest()
+        items[0].name = "Updated"
+        #expect(app.takeFrameRequest(), "List row mutation must request a frame")
+        app.advance(by: .milliseconds(100))
+        #expect(app.screen.contains("Updated"))
+    }
+
+    @Test("Table row reading @Observable is tracked")
+    func tableRowObservable() {
+        let rows = [ObservedItem(id: 1, name: "First")]
+        let app = TestApp(width: 30, height: 10) {
+            Table(rows) {
+                TableColumn("Name") { Text($0.name) }.width(15)
+            }
+        }
+        _ = app.screen
+        _ = app.takeFrameRequest()
+        rows[0].name = "Updated"
+        #expect(app.takeFrameRequest(), "Table cell mutation must request a frame")
+        app.advance(by: .milliseconds(100))
+        #expect(app.screen.contains("Updated"))
+    }
+
+    @Test("RadioButtonItem label and content reading @Observable are tracked")
+    func radioButtonObservable() {
+        let model = ObservedGroupModel()
+        let app = TestApp(width: 30, height: 10) {
+            RadioButtonGroup(selection: .constant("a")) {
+                RadioButtonItem("a", content: { Text(model.content) }, label: { Text(model.label) })
+            }
+        }
+        _ = app.screen
+        _ = app.takeFrameRequest()
+        model.label = "Updated"
+        #expect(app.takeFrameRequest(), "RadioButtonItem label mutation must request a frame")
+        app.advance(by: .milliseconds(100))
+        #expect(app.screen.contains("Updated"))
+    }
+
+    @Test("NavigationStack destination reading @Observable is tracked")
+    func navigationDestinationObservable() {
+        let model = ObservedGroupModel()
+        var path = ["screen"]
+        let app = TestApp(width: 30, height: 10) {
+            NavigationStack(path: Binding(get: { path }, set: { path = $0 })) {
+                Text("Root")
+                    .navigationDestination(for: String.self) { _ in
+                        Text(model.dest)
+                    }
+            }
+        }
+        _ = app.screen
+        _ = app.takeFrameRequest()
+        model.dest = "Updated"
+        #expect(app.takeFrameRequest(), "Navigation destination mutation must request a frame")
+        app.advance(by: .milliseconds(100))
+        #expect(app.screen.contains("Updated"))
     }
 }

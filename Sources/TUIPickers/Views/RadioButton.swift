@@ -845,7 +845,8 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
                 \.foregroundStyle,
                 to: labelContext.environment.foregroundStyle.keepingShadows(on: .color(palette.hoveredForeground(base))), paint: true)
         }
-        let labelBuffer = item.labelBuilder().renderToBuffer(context: labelContext)
+        let labelView = observingBodyClosure(of: Self.self, context: labelContext) { item.labelBuilder() }
+        let labelBuffer = labelView.renderToBuffer(context: labelContext)
 
         // The indicator is one cell wide by construction — all three glyphs are
         // — and the space after it makes two.
@@ -885,13 +886,14 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
             // option's controls are neither editable nor focus stops, and
             // whatever the keyboard reaches below the group belongs to the
             // option that is actually selected. See ``RadioButtonItem``.
-            let contentView = contentBuilder()
+            let contentChildContext = itemContext.withChildIdentity(erasedType: AnyView.self, index: 1)
+            let contentView = observingBodyClosure(of: Self.self, context: contentChildContext) { contentBuilder() }
                 .padding(.leading, indentWidth)
                 .disabled(isDisabled || !isSelected)
             buffer.appendVertically(
                 TUIView.renderToBuffer(
                     contentView,
-                    context: itemContext.withChildIdentity(erasedType: AnyView.self, index: 1)))
+                    context: contentChildContext))
         }
 
         return RenderedItem(buffer: buffer, optionWidth: optionWidth)

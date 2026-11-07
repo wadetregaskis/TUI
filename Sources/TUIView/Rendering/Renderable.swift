@@ -390,9 +390,9 @@ package func evaluateCompositeBody<V: View>(of view: V, context: RenderContext) 
 @inline(__always)
 @MainActor
 package func observingBodyClosure<T>(
-    of reader: Any.Type, context: RenderContext, _ build: () -> T
+    of reader: Any.Type, context: RenderContext, observesWhenMeasuring: Bool = false, _ build: () -> T
 ) -> T {
-    if context.isMeasuring, context.renderCache?.readingTypes.contains(reader) != true {
+    if !observesWhenMeasuring, context.isMeasuring, context.renderCache?.readingTypes.contains(reader) != true {
         return build()
     }
     let sentinel = context.renderCache?.scopeSentinel(forReader: reader, at: context.identity)

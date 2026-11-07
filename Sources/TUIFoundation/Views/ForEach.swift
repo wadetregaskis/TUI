@@ -309,7 +309,7 @@ nonisolated public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Co
             return memoizedChild(keyedBy: equatableElement, element: element, key: key)
         }
         let rowScope = context.withChildIdentity(erasedType: Content.self, key: key)
-        let built = observingBodyClosure(of: Self.self, context: rowScope) { content(element) }
+        let built = observingBodyClosure(of: Self.self, context: rowScope, observesWhenMeasuring: true) { content(element) }
         return ChildView(built, identityType: Content.self, key: key)
     }
 

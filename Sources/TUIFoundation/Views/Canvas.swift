@@ -169,7 +169,9 @@ private struct _CanvasCore<Symbols: View>: View, Renderable, Layoutable {
             canvasOf: columns, rows, unitsPerRow: aspect, grid: grid, grain: grain, backdrop: backdrop,
             isLinear: colorMode != .nonLinear, symbols: members, context: context)
         var graphics = GraphicsContext(surface: surface)
-        renderer(&graphics, CGSize(width: CGFloat(columns), height: CGFloat(rows) * aspect))
+        observingBodyClosure(of: Self.self, context: context) {
+            renderer(&graphics, CGSize(width: CGFloat(columns), height: CGFloat(rows) * aspect))
+        }
         return surface
     }
 

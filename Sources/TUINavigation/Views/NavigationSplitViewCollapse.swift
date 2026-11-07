@@ -298,10 +298,13 @@ extension _NavigationSplitViewCore {
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             preferences?.push()
         }
+        let screenContext = columnContext.withChildIdentity(type: LinkedScreen.self)
         let column =
             if let link {
-                coordinator.destination(for: link).map {
-                    TUIView.renderToBuffer($0, context: columnContext.withChildIdentity(type: LinkedScreen.self))
+                observingBodyClosure(of: Self.self, context: screenContext) {
+                    coordinator.destination(for: link)
+                }.map {
+                    TUIView.renderToBuffer($0, context: screenContext)
                 } ?? FrameBuffer()
             } else {
                 renderColumn(top, context: columnContext, toggleState: toggleState)

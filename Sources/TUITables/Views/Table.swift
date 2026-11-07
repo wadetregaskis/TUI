@@ -968,6 +968,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// render exactly (`isMeasuring`, cleared `hasExplicitWidth`, proposed size),
     /// so the reported size is identical to what the fallback produced.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        if isPrepared {
+            return measuredSizeThatFits(proposal: proposal, context: context)
+        }
+        return observingBodyClosure(of: Self.self, context: context, observesWhenMeasuring: true) {
+            measuredSizeThatFits(proposal: proposal, context: context)
+        }
+    }
+
+    private func measuredSizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         var context = RowSelectionIndicator.resolvingForTable(context)
         Self.claimCellText(in: &context)
         if let style = customStyle(context.environment) {
@@ -1314,7 +1323,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        drawn(context: context).fadedWithoutColor(if: isDisabled(in: context))
+        let buffer = isPrepared
+            ? drawn(context: context)
+            : observingBodyClosure(of: Self.self, context: context) { drawn(context: context) }
+        return buffer.fadedWithoutColor(if: isDisabled(in: context))
     }
 
     private func drawn(context: RenderContext) -> FrameBuffer {

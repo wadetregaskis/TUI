@@ -34,6 +34,7 @@ private enum FrameReadModels {
     nonisolated(unsafe) static var geometry = FrameReadModel()
     nonisolated(unsafe) static var timeline = FrameReadModel()
     nonisolated(unsafe) static var forEach = FrameReadModel()
+    nonisolated(unsafe) static var canvas = FrameReadModel()
 }
 
 private struct ReadingButtonStyle: ButtonStyle, Equatable {
@@ -88,6 +89,47 @@ private struct TimelineReadingApp: App {
         WindowGroup {
             TimelineView(.periodic(from: .distantPast, by: 60)) { _ in
                 Text(verbatim: "TL:" + FrameReadModels.timeline.label)
+            }
+        }
+    }
+}
+
+private struct NonEquatableModel {
+    let id: Int
+}
+
+private enum ForEachTestConfig {
+    nonisolated(unsafe) static var count = 1
+    nonisolated(unsafe) static var multiMember = false
+}
+
+private struct ForEachNestedVStackApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            VStack {
+                VStack {
+                    ForEach(Array((0..<ForEachTestConfig.count).map { NonEquatableModel(id: $0) }), id: \.id) { item in
+                        if ForEachTestConfig.multiMember {
+                            Text(verbatim: "FE:\(item.id):" + FrameReadModels.forEach.label)
+                            Divider()
+                        } else {
+                            Text(verbatim: "FE:\(item.id):" + FrameReadModels.forEach.label)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct CanvasReadingApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            Canvas { _, _ in
+                let _ = FrameReadModels.canvas.label
             }
         }
     }
@@ -211,5 +253,34 @@ struct FrameObservationTests {
         FrameReadModels.forEach.label = "two"
         #expect(app.takeFrameRequest(), "the write asked for no frame")
         #expect(draw(app, at: &now).contains { $0.contains("FE:two") })
+    }
+
+    @Test(
+        "A ForEach nested in a VStack reading an @Observable asks for a frame",
+        arguments: [false, true], [1, 20]
+    )
+    func forEachNestedVStack(multiMember: Bool, count: Int) {
+        ForEachTestConfig.count = count
+        ForEachTestConfig.multiMember = multiMember
+        FrameReadModels.forEach = FrameReadModel()
+        let app = TestApp(ForEachNestedVStackApp(), width: 40, height: 45)
+        var now: Int64 = 0
+        _ = draw(app, at: &now)
+        #expect(draw(app, at: &now).contains { $0.contains("FE:0:one") })
+        _ = app.takeFrameRequest()
+        FrameReadModels.forEach.label = "two"
+        #expect(app.takeFrameRequest(), "the write asked for no frame with count \(count) multiMember \(multiMember)")
+        #expect(draw(app, at: &now).contains { $0.contains("FE:0:two") })
+    }
+
+    @Test("A Canvas closure reading an @Observable asks for a frame")
+    func canvasClosure() {
+        FrameReadModels.canvas = FrameReadModel()
+        let app = TestApp(CanvasReadingApp(), width: 30, height: 6)
+        var now: Int64 = 0
+        _ = draw(app, at: &now)
+        _ = app.takeFrameRequest()
+        FrameReadModels.canvas.label = "two"
+        #expect(app.takeFrameRequest(), "the write asked for no frame")
     }
 }

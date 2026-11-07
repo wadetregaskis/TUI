@@ -414,7 +414,8 @@ extension ListRowsPassThrough {
                         keyedBy: equatableElement, element: element, build: content,
                         proposal: proposal, context: rowContext)
                 } else {
-                    size = measureChild(content(element), proposal: proposal, context: rowContext)
+                    let view = observingBodyClosure(of: Self.self, context: rowContext, observesWhenMeasuring: true) { content(element) }
+                    size = measureChild(view, proposal: proposal, context: rowContext)
                 }
                 return (size, rowContext.availableWidth)
             },
@@ -471,7 +472,7 @@ extension ListRowsPassThrough {
                 }
                 // Non-equatable elements cannot memoize, so the view is built for
                 // the render regardless; the badge peek reuses it.
-                let view = content(element)
+                let view = observingBodyClosure(of: Self.self, context: rowContext) { content(element) }
                 let buffer = TUIView.renderToBuffer(view, context: rowContext)
                 Self.reportSeparatorGuides(
                     build: { _ in view }, element: element, buffer: buffer, row: listRowIndex, context: rowContext)

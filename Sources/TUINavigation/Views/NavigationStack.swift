@@ -208,14 +208,18 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             width: childContext.availableWidth,
             height: max(0, childContext.availableHeight - bar))
 
-        guard let destination = coordinator.destination(for: top) else {
+        let screenChildContext = childContext.withChildIdentity(type: NavigationScreen.self)
+        let destination = observingBodyClosure(of: Self.self, context: screenChildContext, observesWhenMeasuring: true) {
+            coordinator.destination(for: top)
+        }
+        guard let destination else {
             return ViewSize(
                 width: proposal.width ?? 0, height: bar,
                 isWidthFlexible: true, isHeightFlexible: false)
         }
         let size = measureChild(
             destination, proposal: inner,
-            context: childContext.withChildIdentity(type: NavigationScreen.self))
+            context: screenChildContext)
         return ViewSize(
             width: size.width, height: size.height + bar,
             isWidthFlexible: size.isWidthFlexible, isHeightFlexible: size.isHeightFlexible)
@@ -378,10 +382,13 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             }
         }
         preferences?.push()
+        let screenChildContext = screenContext.withChildIdentity(type: NavigationScreen.self)
         var content =
-            coordinator.destination(for: top).map {
+            observingBodyClosure(of: Self.self, context: screenChildContext) {
+                coordinator.destination(for: top)
+            }.map {
                 TUIView.renderToBuffer(
-                    $0, context: screenContext.withChildIdentity(type: NavigationScreen.self))
+                    $0, context: screenChildContext)
             } ?? FrameBuffer()
         // The screen's transition is this stack's alone: merged up, it was
         // the transition of the screen of a stack this one is in, which

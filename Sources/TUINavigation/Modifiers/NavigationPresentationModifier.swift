@@ -185,7 +185,7 @@ nonisolated struct NavigationPresentationModifier<Content: View, Destination: Vi
                 didPush.value = false
                 isPresented.wrappedValue = false
             } else {
-                register(coordinator: coordinator, token: token)
+                register(coordinator: coordinator, token: token, context: context)
                 coordinator.push(token)
                 didPush.value = true
             }
@@ -195,14 +195,15 @@ nonisolated struct NavigationPresentationModifier<Content: View, Destination: Vi
         // Still up: re-register, so the screen is rebuilt from whatever the
         // surrounding view holds THIS frame. `navigationDestination(for:)` does
         // the same, and for the same reason.
-        register(coordinator: coordinator, token: token)
+        register(coordinator: coordinator, token: token, context: context)
     }
 
     /// Hands the coordinator the screen this token stands for.
     @MainActor
-    private func register(coordinator: NavigationCoordinator, token: AnyHashable) {
-        guard let id = (token.base as? NavigationViewToken)?.id, let screen = destination()
-        else { return }
+    private func register(coordinator: NavigationCoordinator, token: AnyHashable, context: RenderContext) {
+        guard let id = (token.base as? NavigationViewToken)?.id else { return }
+        let screen = observingBodyClosure(of: Self.self, context: context) { destination() }
+        guard let screen else { return }
         coordinator.register(viewDestination: AnyView(screen), forToken: id)
     }
 }

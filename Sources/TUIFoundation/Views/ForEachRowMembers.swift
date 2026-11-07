@@ -103,7 +103,7 @@ enum ForEachRowShape: Equatable {
     func rowMembers(of element: Data.Element, context: RenderContext) -> [ChildView] {
         let key = identityKey(elementID(of: element))
         let rowScope = context.withChildIdentity(erasedType: Content.self, key: key)
-        let row = observingBodyClosure(of: Self.self, context: rowScope) { content(element) }
+        let row = observingBodyClosure(of: Self.self, context: rowScope, observesWhenMeasuring: true) { content(element) }
         if let provider = row as? ChildViewProvider, provider.staysWhole(in: rowScope) {
             return [makeChild(for: element, context: context)]
         }
