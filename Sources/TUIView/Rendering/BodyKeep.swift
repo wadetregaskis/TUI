@@ -74,11 +74,8 @@ package final class BodyKeep {
     /// The types seen to take it: only ever added to, so at most one per type.
     private var slowTypes: Set<ObjectIdentifier> = []
 
-    /// Every 16th measure is timed, once the first few passes have been, when a
-    /// page's bodies are all seen. Two reads of a clock on every measure were 9% of
-    /// `fanout`'s frame; a sample finds a body that stays slow within a few frames.
-    private var measuresToNextTiming = 0
-    private var passesTimedWhole = 8
+    /// Which measures are timed.
+    private var sampler = TimingSampler()
 
     private var table: [Key: Kept] = [:]
 
@@ -131,7 +128,7 @@ package final class BodyKeep {
     /// Starts a pass.
     func beginPass() {
         reset()
-        if passesTimedWhole > 0 { passesTimedWhole -= 1 }
+        sampler.beginPass()
         pass &+= 1
         if !tally.isEmpty { judgeKeeps() }
     }
@@ -168,12 +165,7 @@ package final class BodyKeep {
     @inline(__always)
     func startTiming() -> ContinuousClock.Instant? {
         guard isOn else { return nil }
-        if passesTimedWhole == 0 {
-            measuresToNextTiming -= 1
-            guard measuresToNextTiming < 0 else { return nil }
-            measuresToNextTiming = 15
-        }
-        return ContinuousClock.now
+        return sampler.startTiming()
     }
 
     /// Notes how long an evaluation of a `V` took, since ``startTiming()``.

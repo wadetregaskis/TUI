@@ -25,20 +25,14 @@ package final class PlainMemo {
 
     private static let isOnByDefault = ProcessInfo.processInfo.environment["TUI_RUN_BODY_ON_EVERY_FRAME"] != "1"
 
-    /// Measures until the next 1-in-16 timing sample.
-    private var measuresToNextTiming = 0
-    private var passesTimedWhole = 8
+    /// Which measures are timed.
+    private var sampler = TimingSampler()
 
     /// The instant to time this measure from, if it is sampled.
     @inline(__always)
     func startTiming() -> ContinuousClock.Instant? {
         guard isOn else { return nil }
-        if passesTimedWhole == 0 {
-            measuresToNextTiming -= 1
-            guard measuresToNextTiming < 0 else { return nil }
-            measuresToNextTiming = 15
-        }
-        return ContinuousClock.now
+        return sampler.startTiming()
     }
 
     /// Each type asked about: how its values compare, or `nil` for one that is
@@ -139,7 +133,7 @@ package final class PlainMemo {
 
     /// Starts a pass.
     func beginPass() {
-        if passesTimedWhole > 0 { passesTimedWhole -= 1 }
+        sampler.beginPass()
         pass &+= 1
         if pass.isMultiple(of: 64), !gates.isEmpty { gates = gates.filter { $0.value.until >= pass - 64 || $0.value.stored >= pass - 64 } }
     }
