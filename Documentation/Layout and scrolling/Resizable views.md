@@ -187,6 +187,33 @@ not what shipped, and deliberately stays unshipped: a section per resizable
 would turn Tab into section hops, with per-section focus memory, for every
 resizable view on a page.
 
+## Sheets
+
+A sheet (`.sheet`, `.modal`, the open and save panels) is resized by dragging
+its bottom and right borders or its bottom-right corner, and moved by its title
+row and left border (`DialogDrag.swift`). Since 2026-11-07 it draws **these same
+grips** — `BorderGrip.drawResizeGrips`, shared with `_UserResizableCore` — in
+the same three inks, so a resizable sheet looks resizable before anyone tries
+its edges. Before that it marked only its corner. They are drawn only where the
+sheet's corner is a border cell: plain content with no box keeps its text.
+
+The keyboard route is two focus stops in the sheet's section, registered after
+its content, so they come last in its Tab order: **Resize**, then **Move**
+(`DialogDrag+Keyboard.swift`). On Resize the grips breathe, and the arrows step
+the size exactly as a drag of the right or bottom edge does: about the centre
+while the sheet is centred, so a step is two cells, and with the other edge
+anchored once it has been moved. Shift steps five, and Home goes back to the
+sheet's own size. That clears the user's size and tells the presenter to forget
+a saved one (`presentationPersistedSize`'s `onResetSize`, which the file panels
+answer by removing their size keys). It is a separate signal from `onResize`,
+whose `nil` means "this axis was never set". On Move the border breathes, apart
+from the grips. The arrows move the sheet within the screen, and Home centres it.
+The status bar names the keys while either stop has the focus.
+
+A sheet one row tall cannot be resized and gets only Move. Alerts and
+confirmation dialogs get neither stop and no grips, and keep their move-only
+drag. A detented sheet has its grabber, and a cover has nothing.
+
 ## Persistence, and what it should not do
 
 - Sizes persist through the same store the split view uses, keyed by focus

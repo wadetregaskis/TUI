@@ -18,6 +18,9 @@ package protocol PresentationPersistedSizeProviding {
     var persistedWidth: Int? { get }
     var persistedHeight: Int? { get }
     var onResize: ((Int?, Int?) -> Void)? { get }
+    /// Told when the user puts the sheet back at its own size (Home on its
+    /// Resize stop), so the size saved for it can go.
+    var onResetSize: (() -> Void)? { get }
 }
 
 package struct _PresentationPersistedSizeView<Content: View>: View, PresentationPersistedSizeProviding {
@@ -25,12 +28,17 @@ package struct _PresentationPersistedSizeView<Content: View>: View, Presentation
     package let persistedWidth: Int?
     package let persistedHeight: Int?
     package let onResize: ((Int?, Int?) -> Void)?
+    package let onResetSize: (() -> Void)?
 
-    package init(content: Content, width: Int?, height: Int?, onResize: ((Int?, Int?) -> Void)?) {
+    package init(
+        content: Content, width: Int?, height: Int?, onResize: ((Int?, Int?) -> Void)?,
+        onResetSize: (() -> Void)? = nil
+    ) {
         self.content = content
         self.persistedWidth = width
         self.persistedHeight = height
         self.onResize = onResize
+        self.onResetSize = onResetSize
     }
 
     @MainActor package var body: Never {
@@ -68,12 +76,16 @@ extension View {
     ///
     /// `onResize` hears the size the user left the sheet at, axis by axis: `nil`
     /// for one the user has never set, which is to be left unsaved.
+    /// `onResetSize` hears the user put the sheet back at its own size — Home
+    /// on its Resize stop — when what was saved is to go.
     @MainActor
     package func presentationPersistedSize(
         width: Int?,
         height: Int?,
-        onResize: ((Int?, Int?) -> Void)? = nil
+        onResize: ((Int?, Int?) -> Void)? = nil,
+        onResetSize: (() -> Void)? = nil
     ) -> some View {
-        _PresentationPersistedSizeView(content: self, width: width, height: height, onResize: onResize)
+        _PresentationPersistedSizeView(
+            content: self, width: width, height: height, onResize: onResize, onResetSize: onResetSize)
     }
 }

@@ -98,7 +98,10 @@ struct PresentationSizingTests {
             context: context())
         let lines = buffer.overlays.first?.content.lines.map(\.stripped) ?? []
         #expect(lines.count == 25)
-        #expect(lines.dropFirst().dropLast().allSatisfy { $0.hasPrefix("│") && $0.hasSuffix("│") }, "\(lines)")
+        // The right wall carries the resize grip's handle (`║`) mid-height.
+        #expect(
+            lines.dropFirst().dropLast().allSatisfy { $0.hasPrefix("│") && ($0.hasSuffix("│") || $0.hasSuffix("║")) },
+            "\(lines)")
     }
 
     @Test("fitted(horizontal:vertical:) fits the content on the axes it names")

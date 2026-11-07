@@ -4,7 +4,7 @@ Present alerts, sheets and other overlays above the current screen.
 
 ## Overview
 
-An alert or a sheet is a centred panel that dims the screen behind it and takes the keyboard. You can attach one to any view, wherever it is in the tree: TUI draws it at the top. <kbd>Esc</kbd> dismisses it, and the status bar says so while it's up. A presented panel can also be dragged by its title or border, and stays on screen.
+An alert or a sheet is a centred panel that dims the screen behind it and takes the keyboard. You can attach one to any view, wherever it is in the tree: TUI draws it at the top. <kbd>Esc</kbd> dismisses it, and the status bar says so while it's up. A presented panel can also be dragged by its title or border, and stays on screen. A sheet can be resized too, and moved and resized from the keyboard (<doc:Presentation#Moving-and-resizing-a-sheet>).
 
 ## Alerts
 
@@ -90,6 +90,30 @@ programmatic change.
 `modal(isPresented:onDismiss:content:)` is the same presentation under TUI's own
 name. Its always-on form, `modal { … }`, is for content that should be presented
 for as long as its host is on screen.
+
+### Moving and resizing a sheet
+
+The reader can move a sheet and change its size, with the mouse or the keys.
+Its bottom and right edges and its bottom-right corner carry the grips a
+`.userResizable()` view draws: a handle in the middle of each edge and a mark on
+the corner, lit under the pointer. Dragging an edge or the corner resizes the
+sheet. While the sheet is centred it grows or shrinks on both sides; once it has
+been moved off centre, the opposite edge stays put. Dragging the title row or the
+left edge moves it. Either way it stays on screen and no smaller than 16 × 4.
+
+From the keyboard, Tab reaches two stops after everything in the sheet:
+
+- **Resize**: the grips breathe. The arrows change the width (← →) and the
+  height (↑ ↓) as a drag of the edge would, five cells at a time with Shift.
+  <kbd>Home</kbd> puts the sheet back at its own size.
+- **Move**: the sheet's border breathes, apart from its grips. The arrows move
+  the sheet, five cells at a time with Shift, and <kbd>Home</kbd> centres it again.
+
+The status bar names the keys while either stop has the focus. A sheet only one
+row tall has nothing to resize, so it gets only the Move stop. A sheet with detents
+rests on the bottom edge and has its grabber instead (<doc:Presentation#The-grabber>), and
+alerts, confirmation dialogs and full-screen covers have neither stop.
+<kbd>Esc</kbd> still dismisses the sheet from either stop.
 
 ### A Sheet for an Item
 

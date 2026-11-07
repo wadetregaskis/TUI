@@ -4,6 +4,14 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**A sheet can be resized and moved from the keyboard, and shows where to grab it.** A sheet's bottom and right edges
+and its corner carry the grips a `.userResizable()` view draws, lit under the pointer. Tab now ends a sheet's focus
+order with two more stops. On **Resize** the grips breathe, the arrows change the size as dragging the edge does (Shift
+for five), and Home puts the sheet back at its own size, which also makes an open or save panel forget the size it
+saved. On **Move** the border breathes, the arrows move the sheet within the screen, and Home centres it. The status bar
+names the keys while either stop has the focus. A one-row sheet has only Move. Alerts and confirmation dialogs have
+neither stop and no grips.
+
 **`TUI_REDUCE_MOTION`, `COLUMNS` and `LINES` beat what TUI reads from the system.** `TUI_REDUCE_MOTION=0`, and `=0` on `TUI_REDUCE_TRANSPARENCY`, `TUI_DIFFERENTIATE_WITHOUT_COLOR` and `TUI_INCREASE_CONTRAST`, turns off a
 machine-wide Reduce Motion, as `=1` already turned it on. `COLUMNS` and `LINES`, each on its own axis, now win over the size
 the terminal reports, where they used to be only a fallback, so an export left over from a window since resized pins the size:

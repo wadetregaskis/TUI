@@ -88,6 +88,10 @@ struct FilePanelPresenter<Content: View> {
                         // following the terminal.
                         if let newW { store.setValue(newW, forKey: sizeKeys.width) }
                         if let newH { store.setValue(newH, forKey: sizeKeys.height) }
+                    } onResetSize: {
+                        // Put back at its own size, it follows the terminal again.
+                        store.removeValue(forKey: sizeKeys.width)
+                        store.removeValue(forKey: sizeKeys.height)
                     }
             }
             .onChange(of: isPresented.wrappedValue, initial: true) { _, presented in

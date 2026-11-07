@@ -112,4 +112,4 @@ package protocol PersistedFocusable: Focusable {
 /// Conform only when that is true of everything the control will ever put
 /// below itself, including through the environment. A `List` does not qualify:
 /// its rows draw the selection differently while it holds the focus.
-protocol FocusDrawnOnlyAtItself: Focusable {}
+package protocol FocusDrawnOnlyAtItself: Focusable {}

@@ -19,17 +19,25 @@ import TUIFoundation
 ///
 /// The grab region is only the title row and the border frame — the interior is
 /// left free so the dialog's own controls still receive their clicks.
+///
+/// A sheet is moved and resized from the keyboard too, through two focus stops
+/// after its content (`DialogDrag+Keyboard.swift`); an alert is not.
 @MainActor
 enum DialogDrag {
     /// Wires the dialog `buffer`'s title/border cells as a drag handle and
     /// returns the current offset to feed into the centred ``OverlayLayer``.
     /// Returns `(0, 0)` while measuring or when no dispatcher/state is available.
+    ///
+    /// With `keyStops`, the dialog's keyboard route as well: a Resize stop
+    /// (where it is `resizable`) and a Move stop, registered after its
+    /// content, which has drawn (``registerKeyStops(_:handler:resizes:context:)``).
     @MainActor
     static func offset(
         for buffer: inout FrameBuffer,
         context: RenderContext,
         propertyIndex: Int,
-        resizable: Bool = false
+        resizable: Bool = false,
+        keyStops: KeyStops? = nil
     ) -> (x: Int, y: Int) {
         guard !context.isMeasuring, let stateStorage = context.stateStorage else {
             return (0, 0)
@@ -40,6 +48,12 @@ enum DialogDrag {
         let handler = box.value
         handler.currentWidth = buffer.width
         handler.currentHeight = buffer.height
+        // What the keys step within, as a drag does (`appendGrabRegions`).
+        handler.screenWidth = context.environment.terminalWidth
+        handler.screenHeight = context.environment.overlayContentHeight
+        // A one-row dialog has no bottom border to grab apart from its title:
+        // it moves, and does not resize.
+        let resizes = resizable && buffer.height > 1
 
         if let mouseDispatcher = context.environment.mouseEventDispatcher {
             // Clicks claim the press; drag reporting moves the dialog.
@@ -62,8 +76,15 @@ enum DialogDrag {
             screenWidth: context.environment.terminalWidth,
             screenHeight: context.environment.terminalHeight)
 
-        if resizable, buffer.width > 0, buffer.height > 1 {
-            drawCornerGrip(into: &buffer, isHovered: handler.isHovered, context: context)
+        let focused = keyStops.flatMap {
+            registerKeyStops($0, handler: handler, resizes: resizes, context: context)
+        }
+        // Moving, the border breathes; the grips, drawn over it, keep their
+        // own ink.
+        if focused == .move { breatheBorder(of: &buffer, environment: context.environment) }
+        if resizes, buffer.width > 0 {
+            drawGrips(
+                into: &buffer, isFocused: focused == .resize, isHovered: handler.isHovered, context: context)
         }
 
         return (handler.offsetX, handler.offsetY)
@@ -79,23 +100,22 @@ enum DialogDrag {
         box.value.reset()
     }
 
-    /// Draws the corner grip mark at the bottom-right corner of a resizable dialog
-    /// when the corner is a border cell (preventing damage to arbitrary text content).
-    private static func drawCornerGrip(into buffer: inout FrameBuffer, isHovered: Bool, context: RenderContext) {
-        let corner = (x: buffer.width - 1, y: buffer.height - 1)
-        guard corner.x >= 0, corner.y >= 0, corner.y < buffer.lines.count else { return }
-        let existing = buffer.lines[corner.y].stripped.last
-        guard let existing, isBorderCell(existing) else { return }
-        let glyphs = BorderGrip.Glyphs.standingOut(from: existing)
-        let ink = BorderGrip.ink(isFocused: false, isHovered: isHovered, environment: context.environment)
-        if BorderGrip.paintsItsCells(existing) {
-            BorderGrip.mark(String(existing), cells: 1, into: &buffer, at: corner, ink: ink)
-        } else {
-            BorderGrip.mark(glyphs.corner, cells: 1, into: &buffer, at: corner, ink: ink)
-        }
+    /// Draws a resizable dialog's grips — the ones `.userResizable` draws
+    /// (``BorderGrip/drawResizeGrips(into:axes:isFocused:isHovered:environment:)``):
+    /// the corner, and a handle in the middle of the bottom and right edges —
+    /// where the corner is a border cell, so plain content without a box
+    /// keeps its text.
+    private static func drawGrips(
+        into buffer: inout FrameBuffer, isFocused: Bool, isHovered: Bool, context: RenderContext
+    ) {
+        guard let corner = buffer.lines.last?.stripped.last, isBorderCell(corner) else { return }
+        BorderGrip.drawResizeGrips(
+            into: &buffer, axes: .all, isFocused: isFocused, isHovered: isHovered,
+            environment: context.environment)
     }
 
-    private static func isBorderCell(_ cell: Character) -> Bool {
+    /// Whether `cell` is a box's: a Box Drawing glyph, or a block border's.
+    static func isBorderCell(_ cell: Character) -> Bool {
         ("\u{2500}"..."\u{257F}").contains(cell) || ("\u{2580}"..."\u{259F}").contains(cell)
     }
 
@@ -217,7 +237,22 @@ package final class _DialogDragHandler {
     package var currentHeight = 0
     package var isHovered = false
 
+    /// The room the dialog is placed in, as of its last frame: what a key's
+    /// step is kept within, as a drag's is.
+    package var screenWidth = Int.max
+    package var screenHeight = Int.max
+
+    /// Whether the user put the dialog back at its own size
+    /// (``resetSize()``) and has not resized it since: the presenter then
+    /// sizes it as its content does, rather than at a persisted size.
+    package private(set) var isSizeReset = false
+
     package var onResize: ((Int?, Int?) -> Void)?
+
+    /// Told when the user puts the dialog back at its own size, so a size
+    /// saved for it can go. Separate from ``onResize``, whose `nil` means "this
+    /// axis was never set", not "unset it".
+    package var onResetSize: (() -> Void)?
 
     private var pressLocalX = 0
     private var pressLocalY = 0
@@ -262,7 +297,7 @@ package final class _DialogDragHandler {
     /// When the dialog was centred (`pressOffset == 0`), the resize applies symmetrically
     /// to both sides (changing the dimension by `2 * pressDelta`) while remaining centred (`offset = 0`).
     /// When off-centre (`pressOffset != 0`), the opposite edge remains anchored in place on screen.
-    private func updatedDimension(
+    func updatedDimension(
         pressDelta: Int,
         pressDimension: Int,
         pressOffset: Int,
@@ -335,6 +370,7 @@ package final class _DialogDragHandler {
         guard isDragging else { return }
         isDragging = false
         if dragMode != .move && didResize {
+            isSizeReset = false
             switch dragMode {
             // The axis not dragged is reported only where the user has set it
             // before: its drawn size is the presentation's choice, perhaps cut
@@ -359,6 +395,56 @@ package final class _DialogDragHandler {
             }
         }
         dragMode = .move
+    }
+
+    // MARK: The keys
+
+    /// Resizes the dialog by a key's step, `width` and `height` cells, as a
+    /// drag of its right or bottom border by as much does: about its centre
+    /// while centred, its other edge anchored where moved off it, within the
+    /// room it was last drawn in. Reports the size as a drag's end does.
+    ///
+    /// Steps from the size drawn, as a drag does, and moves that on, so a
+    /// second key before the next frame steps from the first.
+    package func resize(width: Int, height: Int) {
+        if width != 0 {
+            (userWidth, offsetX) = updatedDimension(
+                pressDelta: width, pressDimension: currentWidth > 0 ? currentWidth : (userWidth ?? 0),
+                pressOffset: offsetX, minDimension: Self.minWidth, screenDimension: screenWidth)
+            currentWidth = userWidth ?? currentWidth
+        }
+        if height != 0 {
+            (userHeight, offsetY) = updatedDimension(
+                pressDelta: height, pressDimension: currentHeight > 0 ? currentHeight : (userHeight ?? 0),
+                pressOffset: offsetY, minDimension: Self.minHeight, screenDimension: screenHeight)
+            currentHeight = userHeight ?? currentHeight
+        }
+        isSizeReset = false
+        onResize?(userWidth, userHeight)
+    }
+
+    /// Moves the dialog by a key's step, kept on screen.
+    package func move(x: Int, y: Int) {
+        offsetX += x
+        offsetY += y
+        clampOffset(
+            dialogWidth: currentWidth, dialogHeight: currentHeight, screenWidth: screenWidth,
+            screenHeight: screenHeight)
+    }
+
+    /// Puts the dialog back at its own size: no size the user set, and none a
+    /// presenter persisted, which ``onResetSize`` is told to forget.
+    package func resetSize() {
+        userWidth = nil
+        userHeight = nil
+        isSizeReset = true
+        onResetSize?()
+    }
+
+    /// Puts the dialog back in the middle of the screen.
+    package func centre() {
+        offsetX = 0
+        offsetY = 0
     }
 
     /// Trims the offset to the range that keeps the whole dialog on screen —
@@ -388,6 +474,7 @@ package final class _DialogDragHandler {
         offsetY = 0
         userWidth = nil
         userHeight = nil
+        isSizeReset = false
         isHovered = false
     }
 }

@@ -342,13 +342,18 @@ nonisolated package struct ModalPresentationModifier<Content: View, Modal: View>
         // Make the dialog draggable by its title/border, and read back the offset
         // to place it at. The compositor clamps it fully on screen. A full-screen
         // cover is not draggable — there is nowhere for it to go, and grabbing
-        // its border would only shift the screen off itself.
+        // its border would only shift the screen off itself. The keys move and
+        // resize it too, from the Resize and Move stops after its content.
         let dragOffset =
             style == .fullScreen
             ? (x: 0, y: 0)
             : DialogDrag.offset(
                 for: &modalBuffer, context: context, propertyIndex: StateIndex.dragHandler,
-                resizable: style == .sheet)
+                resizable: style == .sheet,
+                keyStops: DialogDrag.KeyStops(
+                    sectionID: sectionID, resizeFocusIDIndex: StateIndex.resizeFocusID,
+                    resizeIndex: StateIndex.resizeStop, moveFocusIDIndex: StateIndex.moveFocusID,
+                    moveIndex: StateIndex.moveStop))
 
         // Float the modal to the screen root: it composites centred over the whole
         // screen and dims everything beneath — so it presents over the full screen

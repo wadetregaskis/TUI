@@ -207,7 +207,8 @@ struct ToolbarPresentationTests {
         _ = loop.render()
         _ = loop.render()
         let ring = harness.focusManager.activeSection?.focusables.map(\.focusID) ?? []
-        #expect(ring.count == 4, "the field and the three buttons, in the sheet's section: \(ring)")
+        #expect(ring.count == 6, "the field, the three buttons, then the sheet's Resize and Move stops: \(ring)")
+        #expect(ring.suffix(2).map { $0.prefix(11) } == ["sheet-resiz", "sheet-move-"], "\(ring)")
         #expect(ring.first.map { !$0.hasPrefix("button-") } == true, "the field first, then the buttons: \(ring)")
         #expect(harness.focusManager.currentFocusedID == ring.first, "the field has the focus")
     }

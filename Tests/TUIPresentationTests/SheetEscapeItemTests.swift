@@ -84,7 +84,14 @@ struct SheetEscapeItemTests {
         let harness = InputChainHarness(width: 60, height: 20)
         harness.frame(sheetWithItems(model, .replace))
         harness.frame(sheetWithItems(model, .replace))
-        #expect(Set(items(harness)) == ["r reload", "⎋ dismiss"], "\(items(harness))")
+        // Nothing in the sheet takes the focus, so its Move stop holds it, and
+        // names its keys among the sheet's items.
+        let strings = LocalizationService.shared
+        let moveHint: Set = [
+            "\(Shortcut.arrowsAll) \(strings.string(for: LocalizationKey.StatusBar.move))",
+            "\(Shortcut.home) \(strings.string(for: LocalizationKey.StatusBar.centre))",
+        ]
+        #expect(Set(items(harness)) == moveHint.union(["r reload", "⎋ dismiss"]), "\(items(harness))")
         harness.play([KeyEvent(key: .escape)]) { sheetWithItems(model, .replace) }
         #expect(!model.presented)
         #expect(model.pageWentBack == 0)

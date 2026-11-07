@@ -28,6 +28,12 @@ enum ModalPresentationStateIndex {
     /// which item (`PresentationEntry`): a live sheet takes it on entry only.
     static let entry = 6
     static let toolbar = 7
+    /// The sheet's keyboard stops, their focus ids and handlers
+    /// (`DialogDrag+Keyboard.swift`).
+    static let resizeFocusID = 8
+    static let resizeStop = 9
+    static let moveFocusID = 10
+    static let moveStop = 11
 }
 
 @MainActor extension ModalPresentationModifier {

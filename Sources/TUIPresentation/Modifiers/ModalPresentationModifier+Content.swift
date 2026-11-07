@@ -195,7 +195,9 @@ import TUIFoundation
             }
             let drag = dragHandler(context: context)
             let persisted = presentationTrait(PresentationPersistedSizeProviding.self, of: modal)
-            if let persisted {
+            // Not once the user has put the sheet back at its own size: a
+            // persisted size is where it opens, not where Home takes it.
+            if let persisted, drag?.isSizeReset != true {
                 if drag?.userWidth == nil, let w = persisted.persistedWidth {
                     drag?.setUserWidth(w)
                 }
@@ -204,6 +206,7 @@ import TUIFoundation
                 }
             }
             drag?.onResize = persisted?.onResize
+            drag?.onResetSize = persisted?.onResetSize
             let availW = modalContext.availableWidth
             let availH = modalContext.availableHeight
             let minWidth = _DialogDragHandler.minWidth

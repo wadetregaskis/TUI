@@ -380,6 +380,18 @@ The focused control is offered every key first. Whatever it doesn't use, these m
 
 For more details, see <doc:FocusSystem>.
 
+### A sheet's Resize and Move stops
+
+A sheet ends its Tab order with two stops, Resize and then Move, which do from
+the keyboard what dragging its border does (see <doc:Presentation>):
+
+| Key | On Resize | On Move |
+|-----|-----------|---------|
+| ← / → | Narrower / wider | Left / right |
+| ↑ / ↓ | Shorter / taller | Up / down |
+| Shift with an arrow | Five cells at a time | Five cells at a time |
+| Home | Back to the sheet's own size | Back to the centre |
+
 ## Your Shortcuts and the Editing Chords
 
 A focused control is offered a key before your shortcuts are, so as a rule a focused control that uses a key

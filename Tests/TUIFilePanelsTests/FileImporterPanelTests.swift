@@ -382,4 +382,26 @@ struct FileImporterPanelTests {
         #expect(newCornerX == cornerX - 10)
         #expect(newCornerY == cornerY - 5)
     }
+
+    @Test("Resized from the keyboard, the panel saves only the axis the user set; Home forgets its size")
+    func keyboardResizeSavesAndResets() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver(width: 120, height: 40) { panel(fixture, caller: caller) }
+        await driver.waitFor("notes.md")
+        for _ in 0..<40 where driver.app.focusedID?.hasPrefix("sheet-resize") != true {
+            driver.press(.tab)
+        }
+        #expect(driver.app.focusedID?.hasPrefix("sheet-resize") == true, "the Resize stop, after the panel's controls")
+        let keys = FilePanelRequest.sizeStorageKeys(for: nil, isSave: false)
+        func stored(_ key: String) -> Int? { driver.storage.entry(forKey: key, as: Int.self).value }
+        driver.press(.left)
+        #expect(stored(keys.width) != nil)
+        #expect(stored(keys.height) == nil, "the height was never set: it keeps following the terminal")
+        driver.press(.up)
+        #expect(stored(keys.height) != nil)
+        driver.press(.home)
+        #expect(stored(keys.width) == nil && stored(keys.height) == nil)
+    }
 }

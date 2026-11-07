@@ -548,6 +548,17 @@ public enum LocalizationKey {
         /// A table's column picked from the keyboard (Ctrl-K).
         case stopEditingColumns = "statusbar.stopEditingColumns"
 
+        // MARK: What a sheet's Resize and Move stops' keys do
+
+        /// The arrows on a sheet's Resize stop.
+        case resize = "statusbar.resize"
+        /// Home on a sheet's Resize stop, which puts it back at its own size.
+        case resetSize = "statusbar.resetSize"
+        /// The arrows on a sheet's Move stop.
+        case move = "statusbar.move"
+        /// Home on a sheet's Move stop, which puts it back in the middle.
+        case centre = "statusbar.centre"
+
         // MARK: What became of a copy (`ClipboardWriter`)
 
         /// On the clipboard: written here while the user is here, or sent to a
