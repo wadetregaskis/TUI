@@ -181,4 +181,42 @@ struct TextLineStyleTests {
         #expect(!drawn.contains("58:2::255:0:0"), "Original red underline must be dimmed: \(drawn)")
         #expect(drawn.contains("58:2::"), "Underline colour must still be present: \(drawn)")
     }
+
+    @Test("A picture row's placement id (58) is kept, not rewritten as a colour")
+    func placementIDKept() {
+        let rewritten = ColorDepth.withCurrent(.truecolor) {
+            SGRColorRewrite.rewritingSGR(
+                "\u{1B}[38;2;0;0;7;58;5;2m", defaultForeground: .white, defaultBackground: .black,
+                keepsUnderline: true, transform: { _ in Color.rgb(255, 0, 0) })
+        }
+        #expect(rewritten.hasSuffix("58;5;2m"), "\(rewritten.debugDescription)")
+    }
+
+    @Test("At no colour an underline colour goes, arguments and all; the terminal's own is 59, not an index")
+    func underlineColourAtNoColourAndDefault() {
+        let none = ColorDepth.withCurrent(.noColor) {
+            SGRColorRewrite.rewritingSGR(
+                "\u{1B}[4;58;5;196m", defaultForeground: .white, defaultBackground: .black, transform: { $0 })
+        }
+        #expect(none == "\u{1B}[4m", "\(none.debugDescription)")
+        let terminal = ColorDepth.withCurrent(.truecolor) {
+            SGRColorRewrite.rewritingSGR(
+                "\u{1B}[58:5:1m", defaultForeground: .white, defaultBackground: .black,
+                transform: { _ in .terminalForeground })
+        }
+        #expect(terminal == "\u{1B}[59m", "\(terminal.debugDescription)")
+    }
+
+    @Test("A colon-form colour is written as it is reported: transformed")
+    func colonFormForegroundTransformed() {
+        var reported: [Color?] = []
+        let rewritten = ColorDepth.withCurrent(.truecolor) {
+            SGRColorRewrite.rewritingSGR(
+                "\u{1B}[38:2::0:0:255m", defaultForeground: .white, defaultBackground: .black,
+                transform: { _ in Color.rgb(255, 0, 0) }, emitted: { _, colour in reported.append(colour) })
+        }
+        #expect(reported == [Color.rgb(255, 0, 0)])
+        #expect(rewritten.contains("255;0;0"), "\(rewritten.debugDescription)")
+        #expect(!rewritten.contains("0:0:255"))
+    }
 }

@@ -44,7 +44,7 @@ extension SGRColorRewrite {
         func rewritten(_ sequence: String) -> String {
             rewritingSGR(
                 sequence, defaultForeground: defaultForeground, defaultBackground: defaultBackground,
-                transform: transform)
+                keepsUnderline: true, transform: transform)
         }
         var result = ""
         result.reserveCapacity(line.utf8.count)

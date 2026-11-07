@@ -174,6 +174,20 @@ struct TextRendererTests {
         #expect(buffer.lines[0].contains("38;2;55;155;205"), "\(buffer.lines[0].debugDescription)")
     }
 
+    @Test("A filtered glyph's underline with no colour of its own stays the text's colour")
+    func filterLeavesUnsetUnderlineColour() {
+        let buffer = ColorDepth.withCurrent(.truecolor) {
+            rendered(
+                Text(verbatim: "a").foregroundStyle(Color.rgb(200, 100, 50)).underline()
+                    .textRenderer(PerGlyph { _, glyph, ctx in
+                        ctx.addFilter(.colorInvert())
+                        ctx.draw(glyph)
+                    }))
+        }
+        #expect(buffer.lines[0].contains("38;2;55;155;205"), "\(buffer.lines[0].debugDescription)")
+        #expect(!buffer.lines[0].contains("58"), "\(buffer.lines[0].debugDescription)")
+    }
+
     @Test("A filter changes a glyph's colours at 256-colour depth and emits 256-colour codes")
     func filterAtPalette256() {
         ColorDepth.withCurrent(.palette256) {

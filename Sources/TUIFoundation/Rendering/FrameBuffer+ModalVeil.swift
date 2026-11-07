@@ -147,7 +147,8 @@ extension FrameBuffer {
                     if drawsPictures { state.apply(sequence) }
                     result += veil.rewriting(
                         sequence, state: &active, defaultForeground: ink, defaultBackground: surface,
-                        faint: faint, defaults: defaults, afterAReset: restated, fieldCodes: fieldCodes, depth: depth)
+                        faint: faint, defaults: defaults, afterAReset: restated, fieldCodes: fieldCodes, depth: depth,
+                        keepsUnderline: drawsPictures)
                 }
                 return true
             }
@@ -226,7 +227,8 @@ private struct Veil {
     /// `state` and restating defaults after a reset.
     mutating func rewriting(  // swiftlint:disable:this function_parameter_count
         _ sequence: String, state: inout LineState, defaultForeground ink: Color, defaultBackground surface: Color,
-        faint: Bool, defaults: String?, afterAReset restated: String, fieldCodes: [String], depth: ColorDepth
+        faint: Bool, defaults: String?, afterAReset restated: String, fieldCodes: [String], depth: ColorDepth,
+        keepsUnderline: Bool
     ) -> String {
         guard !faint else {
             var reset = false
@@ -255,7 +257,7 @@ private struct Veil {
         var newlyEmittedForeground: Color?
         let background = state.background
         var result = SGRColorRewrite.rewritingSGR(
-            sequence, defaultForeground: ink, defaultBackground: surface,
+            sequence, defaultForeground: ink, defaultBackground: surface, keepsUnderline: keepsUnderline,
             transform: { self.legible($0, over: background, depth: depth) },
             emitted: { slot, color in
                 switch slot {

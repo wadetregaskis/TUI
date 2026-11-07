@@ -227,8 +227,13 @@ package enum SGRColorRewrite {
     /// colour, a colon-form colour passed through as it was written, and
     /// `.reset` for SGR 0. What a later glyph is drawn in is that, not what
     /// the original sequence named.
+    ///
+    /// `keepsUnderline` passes an underline colour (`58`) through as written:
+    /// on a row of picture cells (Kitty's Unicode placeholders) it is no colour
+    /// but the picture's placement id, which a changed value points at no
+    /// placement (`KittyGraphics.placeholderRows(id:columns:rows:placement:)`).
     package static func rewritingSGR(
-        _ sequence: String, defaultForeground: Color, defaultBackground: Color,
+        _ sequence: String, defaultForeground: Color, defaultBackground: Color, keepsUnderline: Bool = false,
         transform: (Color) -> Color, emitted: (ColorSlot, Color?) -> Void = { _, _ in }
     ) -> String {
         // Only SGR (`ESC [ … m`) carries colour; anything else passes through
@@ -243,25 +248,27 @@ package enum SGRColorRewrite {
         while index < parameters.count {
             let parameter = Int(parameters[index]) ?? 0
             switch parameter {
+            case 58 where keepsUnderline:
+                // A picture's placement id, not a colour (see `keepsUnderline`).
+                let (_, consumed) = Self.extendedColor(parameters, from: index)
+                rewritten += parameters[index..<min(parameters.count, index + max(1, consumed))]
+                index += max(1, consumed)
+                continue
             case 38, 48, 58:
                 // Extended colour: `38;5;n` or `38;2;r;g;b` (48 for background, 58 for underline).
                 let (color, consumed) = Self.extendedColor(parameters, from: index)
                 if let color {
                     let faded = transform(color)
-                    if parameter == 58 {
+                    switch parameter {
+                    case 38:
+                        emitted(.foreground, faded)
+                        rewritten += faded.foregroundCodes()
+                    case 48:
+                        emitted(.background, faded)
+                        rewritten += faded.backgroundCodes()
+                    default:
                         emitted(.underline, faded)
-                        if ColorDepth.current != .noColor {
-                            var param = ""
-                            faded.sgrForeground(depth: .current).appendUnderlineColour(to: &param)
-                            rewritten.append(param)
-                        } else {
-                            rewritten.append(parameters[index])
-                        }
-                    } else {
-                        emitted(parameter == 38 ? .foreground : .background, faded)
-                        rewritten += parameter == 38
-                            ? faded.foregroundCodes()
-                            : faded.backgroundCodes()
+                        rewritten += Self.underlineCodes(faded)
                     }
                 } else {
                     rewritten.append(parameters[index])
@@ -284,24 +291,19 @@ package enum SGRColorRewrite {
             default:
                 // 0 (reset), 1 (bold), 2 (dim), 4 (underline), 7 (inverse), …
                 // A colon-form colour lands here too (it is not an Int), and
-                // passes through as written unless transformed.
+                // is transformed as its semicolon form is.
                 let raw = parameters[index]
                 if raw.isEmpty || Int(raw) == 0 {
                     emitted(.reset, nil)
                     rewritten.append(raw)
-                } else if let (slot, color) = Self.colonFormColor(raw) {
+                } else if let (slot, color) = Self.colonFormColor(raw), !(slot == .underline && keepsUnderline) {
                     let transformed = transform(color)
                     emitted(slot, transformed)
-                    if slot == .underline {
-                        if ColorDepth.current != .noColor {
-                            var param = ""
-                            transformed.sgrForeground(depth: .current).appendUnderlineColour(to: &param)
-                            rewritten.append(param)
-                        } else {
-                            rewritten.append(raw)
-                        }
-                    } else {
-                        rewritten.append(raw)
+                    switch slot {
+                    case .foreground: rewritten += transformed.foregroundCodes()
+                    case .background: rewritten += transformed.backgroundCodes()
+                    case .underline: rewritten += Self.underlineCodes(transformed)
+                    case .reset: rewritten.append(raw)
                     }
                 } else {
                     rewritten.append(raw)
@@ -310,6 +312,19 @@ package enum SGRColorRewrite {
             index += 1
         }
         return "\u{1B}[" + rewritten.joined(separator: ";") + "m"
+    }
+
+    /// `color` as an underline colour's parameters at the depth in force: none
+    /// at `.noColor`, where nothing has a colour, and `59` — the underline's
+    /// default, the text's colour — for the terminal's foreground, which `58`
+    /// has no spelling for (`.named(39)` spelled as an index is 9, bright red).
+    private static func underlineCodes(_ color: Color) -> [String] {
+        guard ColorDepth.current != .noColor else { return [] }
+        let sgr = color.sgrForeground(depth: .current)
+        if case .named(39) = sgr { return ["59"] }
+        var parameter = ""
+        sgr.appendUnderlineColour(to: &parameter)
+        return [parameter]
     }
 
     /// Which colour an SGR parameter set, for ``readingColors(_:_:)`` and for

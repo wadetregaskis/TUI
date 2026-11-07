@@ -218,7 +218,11 @@ public struct GraphicsContext {
         if let background = colour(style.backgroundColour, background: true) {
             style = style.settingBackground(through(background))
         }
-        if character?.unicodeScalars.first != .terminalImagePlaceholder,
+        // Only an underline colour the run states: one it leaves unset is the
+        // text's colour, filtered above, and resolving it here made it the
+        // palette's foreground instead (or, from the terminal's own, SGR 39
+        // written as 58:5:9, a red underline).
+        if character?.unicodeScalars.first != .terminalImagePlaceholder, style.underlineColour != nil,
             let underline = colour(style.underlineColour, background: false)
         {
             style = style.settingUnderlineColour(through(underline))
