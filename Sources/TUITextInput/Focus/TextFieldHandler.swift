@@ -432,6 +432,18 @@ extension TextFieldHandler {
         return count
     }
 
+    /// What a text field draws for `character`: a tab as one space (since a
+    /// raw tab would move the terminal's cursor to its next tab stop) and any
+    /// other control character as a replacement character `\u{FFFD}` so escape
+    /// injection and raw control characters cannot reach the screen.
+    nonisolated static func displayCharacter(_ character: Character) -> Character {
+        if character == "\t" { return " " }
+        if character.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }) {
+            return "\u{FFFD}"
+        }
+        return character
+    }
+
     /// Deletes the text in the given range and positions cursor at start.
     ///
     /// Pushes the current state to the undo stack before deleting.

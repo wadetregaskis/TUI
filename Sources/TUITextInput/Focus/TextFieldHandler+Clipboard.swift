@@ -77,12 +77,21 @@ extension TextFieldHandler {
 
         // A field on one line strips the line breaks from pasted text; a
         // vertical one keeps them, each as one newline whatever convention
-        // the clipboard used.
+        // the clipboard used. Control characters (category Cc) are stripped on
+        // paste so escape sequences and control codes cannot enter the field.
+        // Vertical fields preserve \n and \r (handled by normalizingLineBreaks);
+        // U+2028 is category Zl so it is naturally preserved.
+        let filteredScalars = string.unicodeScalars.filter { scalar in
+            if isVertical && (scalar == "\n" || scalar == "\r") {
+                return true
+            }
+            return scalar.properties.generalCategory != .control
+        }
+        let filtered = String(filteredScalars)
         var sanitized =
             isVertical
-            ? Self.normalizingLineBreaks(string)
-            : string.replacingOccurrences(of: "\n", with: "")
-                .replacingOccurrences(of: "\r", with: "")
+            ? Self.normalizingLineBreaks(filtered)
+            : filtered
 
         // Filter by content type if set, and ring the bell once for whatever
         // it turned away, so a paste is never cut short in silence.

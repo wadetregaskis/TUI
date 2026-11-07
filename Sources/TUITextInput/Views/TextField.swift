@@ -798,9 +798,9 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         // honours a `.control(.textField)` cascade foreground (`.textFieldTextStyle`).
         let cascaded = context.environment.styleCascade.resolve(
             for: [.all, .text, .control(.textField)])
-        // Identity: a text field draws what was typed. Written out rather than
-        // passed as `{ $0 }` so the secure field's bullet has a visible twin.
-        let displayCharacter: (Character) -> Character = { $0 }
+        // A text field draws what was typed, mapping tabs to spaces and control
+        // characters to replacement characters (\u{FFFD}).
+        let displayCharacter = TextFieldHandler.displayCharacter
         let renderer = TextFieldContentRenderer(
             prompt: prompt,
             isDisabled: isDisabled,
@@ -904,10 +904,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
             persistedFocusID: persistedFocusID,
             hoverBox: hoverBox,
             contentWidth: textWidth,
-            // A text field draws what was typed. Written out here rather than threaded
-            // through as a ninth parameter, and the secure field's bullet is the visible
-            // twin of this line.
-            displayCharacter: { $0 },
+            displayCharacter: TextFieldHandler.displayCharacter,
             leadingCapWidth: leading,
             disclosureRange: disclosureRange)
     }

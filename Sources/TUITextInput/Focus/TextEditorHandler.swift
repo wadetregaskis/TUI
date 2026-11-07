@@ -602,11 +602,19 @@ final class TextEditorHandler: PersistedFocusable {
         var lines = readLines()
         // Character-level: CRLF is ONE Character, so both it and a lone CR
         // compare directly. (No Foundation here, deliberately.)
+        // Filter out control scalars (Cc), preserving \r, \n, and \t.
         var normalized = ""
         normalized.reserveCapacity(string.count)
         for character in string {
-            normalized.append(character == "\r\n" || character == "\r" ? "\n" : character)
+            if character == "\r\n" || character == "\r" {
+                normalized.append("\n")
+            } else if character == "\n" || character == "\t" {
+                normalized.append(character)
+            } else if !character.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }) {
+                normalized.append(character)
+            }
         }
+        guard !normalized.isEmpty else { return }
         let inserted = normalized
             .split(separator: "\n", omittingEmptySubsequences: false)
             .map { Array($0) }

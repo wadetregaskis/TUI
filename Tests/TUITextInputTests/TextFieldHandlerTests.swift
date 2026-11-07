@@ -558,4 +558,46 @@ struct TextFieldHandlerTests {
         // Clicking column 3 of the 10-wide content area must land on character 3, not 24
         #expect(handler.characterIndex(forColumn: 3, contentWidth: 10, displayWidths: widths) == 3)
     }
+
+    @Test("displayCharacter maps tabs to space and control characters to replacement character")
+    func displayCharacterSanitization() {
+        #expect(TextFieldHandler.displayCharacter("\t") == " ")
+        #expect(TextFieldHandler.displayCharacter("\u{1B}") == "\u{FFFD}")
+        #expect(TextFieldHandler.displayCharacter("\u{00}") == "\u{FFFD}")
+        #expect(TextFieldHandler.displayCharacter("\u{07}") == "\u{FFFD}")
+        #expect(TextFieldHandler.displayCharacter("a") == "a")
+        #expect(TextFieldHandler.displayCharacter("\u{2028}") == "\u{2028}")
+    }
+
+    @Test("Pasted control characters are stripped in TextFieldHandler")
+    func pastedControlCharactersAreStripped() {
+        var text = ""
+        let binding = Binding(get: { text }, set: { text = $0 })
+        let handler = TextFieldHandler(focusID: "test", text: binding, cursorPosition: 0)
+
+        // Escape injection is stripped
+        handler.insertText("\u{1B}[2Jhello")
+        #expect(text == "[2Jhello")
+
+        // Tab in single-line field is dropped as control character
+        text = ""
+        handler.cursorPosition = 0
+        handler.insertText("col1\tcol2")
+        #expect(text == "col1col2")
+
+        // Stray pure control string does nothing
+        handler.insertText("\u{1B}\u{07}")
+        #expect(text == "col1col2")
+    }
+
+    @Test("Pasting in vertical field preserves newlines but strips escape characters")
+    func verticalFieldPasting() {
+        var text = ""
+        let binding = Binding(get: { text }, set: { text = $0 })
+        let handler = TextFieldHandler(focusID: "test", text: binding, cursorPosition: 0)
+        handler.wrapWidth = 20
+
+        handler.insertText("hello\r\n\u{1B}[31mworld\nline3")
+        #expect(text == "hello\n[31mworld\nline3")
+    }
 }

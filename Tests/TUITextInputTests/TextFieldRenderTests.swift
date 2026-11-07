@@ -520,4 +520,16 @@ struct TextFieldRenderTests {
         let targetHandler = try #require(harness.focusManager.currentFocused as? TextFieldHandler)
         #expect(targetHandler.cursorPosition == 3)
     }
+
+    @Test("TextField renders tabs as spaces and control characters as replacement characters")
+    func rendersTabsAndControlCharactersSafely() {
+        let ctx = fieldContext(width: 20, focusManager: FocusManager(), identityPath: "safe")
+        let raw = rawLines(
+            TextField("Test", text: .constant("a\tb\u{1B}c")).focusID("tf"),
+            context: ctx
+        )
+        #expect(raw.count == 1)
+        let visible = raw[0].stripped
+        #expect(visible.contains("a b\u{FFFD}c"))
+    }
 }

@@ -51,6 +51,14 @@ struct TextEditorTests {
         #expect(editor.cursorColumn == 0)
     }
 
+    @Test("TextEditor insert drops control characters but keeps tabs and newlines")
+    func insertDropsControlCharacters() {
+        let sink = StringSink()
+        let editor = handler(sink)
+        editor.insert("hello\tworld\u{1B}[2J\nsecond\r\nthird")
+        #expect(sink.value == "hello\tworld[2J\nsecond\nthird")
+    }
+
     @Test("Backspace at column 0 joins the previous line")
     func backspaceJoinsLines() {
         let sink = StringSink("a\nb")
