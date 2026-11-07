@@ -248,8 +248,8 @@ package final class _DialogDragHandler {
         pressLocalY = y
         pressOffsetX = offsetX
         pressOffsetY = offsetY
-        pressWidth = userWidth ?? currentWidth
-        pressHeight = userHeight ?? currentHeight
+        pressWidth = currentWidth > 0 ? currentWidth : (userWidth ?? 0)
+        pressHeight = currentHeight > 0 ? currentHeight : (userHeight ?? 0)
         dragMode = mode
     }
 

@@ -196,4 +196,34 @@ struct DialogDragTests {
         #expect(handler.offsetX == 0)
         #expect(handler.offsetY == 0)
     }
+
+    @Test("Resize drag starts from drawn size rather than stored size")
+    func resizeDragStartsFromDrawnSize() {
+        let handler = _DialogDragHandler()
+        handler.setUserWidth(100)
+        handler.setUserHeight(50)
+        handler.currentWidth = 80
+        handler.currentHeight = 24
+
+        // Drag right by 2 while centred
+        handler.beginDrag(mode: .resizeWidth, atX: 79, y: 23)
+        handler.updateDrag(toX: 81, y: 23, screenWidth: 120, screenHeight: 40)
+
+        // Should expand from drawn width (80), not stored width (100):
+        // 80 + 2 * 2 = 84 (symmetrical)
+        #expect(handler.userWidth == 84)
+
+        // Drag down by 3 while centred
+        let handlerH = _DialogDragHandler()
+        handlerH.setUserWidth(100)
+        handlerH.setUserHeight(50)
+        handlerH.currentWidth = 80
+        handlerH.currentHeight = 24
+        handlerH.beginDrag(mode: .resizeHeight, atX: 79, y: 23)
+        handlerH.updateDrag(toX: 79, y: 26, screenWidth: 120, screenHeight: 40)
+
+        // Should expand from drawn height (24), not stored height (50):
+        // 24 + 2 * 3 = 30 (symmetrical)
+        #expect(handlerH.userHeight == 30)
+    }
 }
