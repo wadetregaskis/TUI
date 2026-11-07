@@ -153,6 +153,15 @@ struct AssetCatalogTests {
             "color-space": "gray-gamma-22", "components": ["white": "0.500", "alpha": "1.000"],
         ])
         #expect(grey.map(components) == components(Color(white: 0.5)))
+        let hex = AssetCatalog.color(from: [
+            "color-space": "srgb", "components": ["red": "0xCC", "green": "0x66", "blue": "0x33", "alpha": "1.000"],
+        ])
+        #expect(hex.map(components) == [204, 102, 51, 255])
+        // A sign is no hex digit, though Int(_:radix:) takes one.
+        let signed = AssetCatalog.color(from: [
+            "color-space": "srgb", "components": ["red": "0x+CC", "green": "0x-01", "blue": "0x33", "alpha": "1.000"],
+        ])
+        #expect(signed.map(components)?.first != 204)
         #expect(AssetCatalog.color(from: ["platform": "osx", "reference": "systemRedColor"]) == .red)
         #expect(AssetCatalog.color(from: ["platform": "osx", "reference": "unknownColor"]) == nil)
     }

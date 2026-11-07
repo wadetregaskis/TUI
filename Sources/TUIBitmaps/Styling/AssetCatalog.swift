@@ -243,7 +243,13 @@ enum AssetCatalog {
             if let number = raw as? Double { return number }
             guard let text = (raw as? String)?.trimmingCharacters(in: .whitespaces) else { return nil }
             let lowered = text.lowercased()
-            if lowered.hasPrefix("0x"), let hex = Int(lowered.dropFirst(2), radix: 16) {
+            // Digits only: `Int(_:radix:)` takes a sign, so "0x+CC" read as
+            // CC and "0x-01" as a negative channel (as `Color.hex` did).
+            if lowered.hasPrefix("0x") {
+                let digits = lowered.dropFirst(2)
+                guard !digits.isEmpty, digits.allSatisfy(\.isHexDigit), let hex = Int(digits, radix: 16) else {
+                    return nil
+                }
                 return Double(hex) / 255
             }
             if !text.isEmpty, text.utf8.allSatisfy({ $0 >= UInt8(ascii: "0") && $0 <= UInt8(ascii: "9") }),
