@@ -36,6 +36,8 @@ extension GraphicsContext {
             raster.paintPixel(x: x, y: y, source: source, opacity: opacity, mode: mode, clip: clip)
         } covering: { [surface] column, row in
             let (across, down) = (surface.grid.across, surface.grid.down)
+            let (width, height) = (surface.frame.columns * across, surface.frame.rows * down)
+            guard x >= 0, y >= 0, x < width, y < height else { return 0 }
             return x / across == column && y / down == row ? 1 / Double(across * down) : 0
         }
     }

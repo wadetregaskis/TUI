@@ -83,6 +83,16 @@ struct CanvasGlyphAndPixelTests {
         #expect(buffer.lines[0].stripped == "a  c")
     }
 
+    @Test("setPixel with negative y does not erase glyph in row 0 at half-block grain")
+    func setPixelNegativeYDoesNotEraseGlyph() {
+        let canvas = Canvas { context, _ in
+            context.draw(Text(verbatim: "a"), at: .zero, anchor: .topLeading)
+            context.setPixel(x: 0, y: -1, to: red)
+        }
+        let buffer = canvasDrawn(canvas.canvasGrain(.halfBlocks), columns: 2, rows: 1)
+        #expect(buffer.lines[0].stripped.hasPrefix("a"))
+    }
+
     @Test("A clip keeps a glyph whole or not at all")
     func clipKeepsGlyphsWhole() {
         let canvas = Canvas { context, _ in
