@@ -35,7 +35,7 @@ struct RawMode {
         tcgetattr(STDIN_FILENO, &original)
         var raw = original
         let lflagOff: UInt = UInt(ECHO | ICANON | ISIG | IEXTEN)
-        let iflagOff: UInt = UInt(IXON | ICRNL | BRKINT | INPCK | ISTRIP)
+        let iflagOff: UInt = UInt(IXON | ICRNL | INLCR | IGNCR | BRKINT | INPCK | ISTRIP)
         let oflagOff: UInt = UInt(OPOST)
         raw.c_lflag &= ~tcflag_t(lflagOff)
         raw.c_iflag &= ~tcflag_t(iflagOff)

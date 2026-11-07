@@ -53,7 +53,8 @@ extension Terminal {
     ///   `IEXTEN`) off: each key is read as it comes, unechoed, with no line
     ///   editing and no literal-next. Input and output processing off as
     ///   before: no flow control (`IXON`, so ⌃S and ⌃Q are keys), no CR to
-    ///   NL, no break or parity handling, no stripping, no output
+    ///   NL, NL to CR or dropped CR (`ICRNL`, `INLCR`, `IGNCR`: Return and ⌃J
+    ///   arrive as the bytes they are), no break or parity handling, no stripping, no output
     ///   translation (`OPOST`), eight-bit characters; and a read returns at
     ///   once (`VMIN` and `VTIME` 0).
     /// - Signals (`ISIG`) left as the user had them, with every signal
