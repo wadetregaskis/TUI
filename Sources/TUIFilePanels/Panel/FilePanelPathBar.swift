@@ -40,8 +40,8 @@ struct FilePanelPathBar: View {
     /// end chooses.
     let viewMode: Binding<FilePanelViewMode>
 
-    /// Whether the preview shows, which the Preview button after the view
-    /// switcher opens and closes (``FilePanelPreviewToggle``).
+    /// Whether the preview shows, which the Show Preview / Hide Preview button
+    /// after the view switcher opens and closes (``FilePanelPreviewToggle``).
     let showsPreview: Binding<Bool>
 
     /// The size the path control is drawn at, which decides what its

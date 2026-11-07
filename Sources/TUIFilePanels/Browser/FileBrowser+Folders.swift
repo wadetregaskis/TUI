@@ -130,7 +130,10 @@ extension FileBrowser {
     private func branch(of folder: URL) -> [FileEntry] {
         guard let items = folderRows[folder.standardizedFileURL.path] else {
             if foldersShowingLoading.contains(folder.standardizedFileURL.path) {
-                return [.placeholder(in: folder)]
+                // Indexed, so the selection finds it dimmed and refuses it.
+                let placeholder = FileEntry.placeholder(in: folder)
+                folderIndex[placeholder.url] = placeholder
+                return [placeholder]
             }
             return []
         }
@@ -145,9 +148,6 @@ extension FileBrowser {
     /// Indexes `row` for the selection's lookups.
     private func index(_ row: FileEntry) {
         folderIndex[row.url] = row
-        if let placeholder = row.children?.first, placeholder.isPlaceholder {
-            folderIndex[placeholder.url] = placeholder
-        }
     }
 
     /// Before the folder shown becomes `folder`: the folder shown joins the

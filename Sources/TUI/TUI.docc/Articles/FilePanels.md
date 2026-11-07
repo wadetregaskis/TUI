@@ -115,6 +115,12 @@ Size and Date Modified — 82 cells, as in a terminal 90 columns wide — and
 closed in a narrower panel, such as an 80-column terminal's; the user's
 choice is kept in the app's storage beside the view.
 
+The panel fills the terminal, as a sheet sized `.page` does, until the user
+drags its right or bottom border, or its corner, to resize it. The width or
+height the user sets is kept in the app's storage, an open panel's apart
+from a save panel's, and each axis left alone goes on following the
+terminal.
+
 ## What Happens When the Panel Closes
 
 The callbacks come in SwiftUI's order: `isPresented` becomes `false`, then

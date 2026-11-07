@@ -66,9 +66,10 @@ struct FileEntry: Identifiable, Sendable {
     let isChoosable: Bool
 
     /// The rows beneath a folder's in the list view's outline: its items once
-    /// the folder has been read, else one ``placeholder(in:)`` row, whose
-    /// drawing asks for it to be read. `nil` for a file, which has none, so
-    /// the outline draws no triangle for it (`Table(_:children:…)`).
+    /// the folder has been read; none while it is read, and one
+    /// ``placeholder(in:)`` row ("Loading…") once that has taken longer than
+    /// `FileBrowser.loadingPlaceholderDelay`. `nil` for a file, which has
+    /// none, so the outline draws no triangle for it (`Table(_:children:…)`).
     var children: [Self]?
 
     /// Whether this is the row that stands for a folder's items while they
