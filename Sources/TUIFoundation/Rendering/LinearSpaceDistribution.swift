@@ -127,8 +127,8 @@ func distributeLinearSpace(
             return measured
         }
         return distributeLinearSpace(
-            byPriority: priorities, naturalSizes: naturalSizes, isFlexible: isFlexible, available: available,
-            gaps: gaps, minimum: minimum
+            byPriority: priorities, naturalSizes: naturalSizes, isFlexible: isFlexible, isSpacer: isSpacer,
+            available: available, gaps: gaps, minimum: minimum
         ) { members, space in
             let memberNaturals = members.map { naturalSizes[$0] }
             let memberFlexible = members.map { isFlexible[$0] }
@@ -700,26 +700,35 @@ struct StackGapWalk {
 /// The gaps between the children that occupy the axis are charged first, as
 /// the one-priority path charges them.
 private func distributeLinearSpace(
-    byPriority priorities: [Double], naturalSizes: [Int], isFlexible: [Bool], available: Int, gaps: StackGaps,
+    byPriority priorities: [Double], naturalSizes: [Int], isFlexible: [Bool], isSpacer: (Int) -> Bool, available: Int, gaps: StackGaps,
     minimum: (Int) -> Int, group: (_ members: [Int], _ available: Int) -> [Int]
 ) -> [Int] {
-    // Every gap between the children that occupy the axis, as the
-    // one-priority path charges them.
-    let occupies = { (index: Int) in isFlexible[index] || naturalSizes[index] > 0 }
-    let allSpacing =
-        gaps.isUniform
-        ? totalLinearSpacing(
-            occupiedChildren: naturalSizes.indices.count(where: occupies), spacing: max(0, gaps.uniform))
-        : gaps.total(count: naturalSizes.count, occupies: occupies)
-    var remaining = max(0, max(0, available) - allSpacing)
-    var result = [Int](repeating: 0, count: naturalSizes.count)
-    for level in Set(priorities).sorted(by: >) {
-        let members = naturalSizes.indices.filter { priorities[$0] == level }
-        var reserved = 0
-        for index in naturalSizes.indices where priorities[index] < level { reserved += minimum(index) }
-        let sizes = group(members, max(0, remaining - reserved))
-        for (offset, index) in members.enumerated() { result[index] = sizes[offset] }
-        remaining = max(0, remaining - sizes.reduce(0, +))
+    func deal(excluding: Set<Int>) -> [Int] {
+        // Every gap between the children that occupy the axis, as the
+        // one-priority path charges them.
+        let occupies = { (index: Int) in !excluding.contains(index) && (isFlexible[index] || naturalSizes[index] > 0) }
+        let allSpacing =
+            gaps.isUniform
+            ? totalLinearSpacing(
+                occupiedChildren: naturalSizes.indices.count(where: occupies), spacing: max(0, gaps.uniform))
+            : gaps.total(count: naturalSizes.count, occupies: occupies)
+        var remaining = max(0, max(0, available) - allSpacing)
+        var result = [Int](repeating: 0, count: naturalSizes.count)
+        for level in Set(priorities).sorted(by: >) {
+            let members = naturalSizes.indices.filter { priorities[$0] == level }
+            var reserved = 0
+            for index in naturalSizes.indices where priorities[index] < level { reserved += minimum(index) }
+            let sizes = group(members, max(0, remaining - reserved))
+            for (offset, index) in members.enumerated() { result[index] = sizes[offset] }
+            remaining = max(0, remaining - sizes.reduce(0, +))
+        }
+        return result
     }
-    return result
+
+    // A spacer left nothing occupies no part of the axis, so the gap reserved
+    // beside it is drawn by nobody: dealt again without it, the space goes to
+    // the children it was kept from.
+    let first = deal(excluding: [])
+    let zeroSpacers = Set(naturalSizes.indices.filter { isSpacer($0) && first[$0] == 0 })
+    return zeroSpacers.isEmpty ? first : deal(excluding: zeroSpacers)
 }

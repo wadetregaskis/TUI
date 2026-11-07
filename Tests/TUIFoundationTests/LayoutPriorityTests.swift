@@ -205,4 +205,22 @@ struct LayoutPriorityTests {
         #expect(layoutPriorities(of: children) == nil)
         #expect(distributeLinearSpace(naturalSizes: [10, 10], isFlexible: [false, false], available: 12) == [10, 2])
     }
+
+    @Test("Gap beside zero-width Spacer is given back under layoutPriority")
+    func zeroWidthSpacerUnderPriorityGivesBackGap() {
+        let drawn = lines(
+            HStack(spacing: 1) {
+                Text("abc").layoutPriority(1)
+                Spacer(minLength: 0)
+            }, width: 3, height: 1
+        ).first ?? ""
+        #expect(drawn == "abc", "Expected 'abc', got '\(drawn)'")
+
+        #expect(
+            distributeLinearSpace(
+                naturalSizes: [3, 0], isFlexible: [false, true], available: 3, spacing: 1,
+                isSpacer: { $0 == 1 }, priorities: [1, 0], minimumSize: { _ in 0 }
+            ) == [3, 0]
+        )
+    }
 }
