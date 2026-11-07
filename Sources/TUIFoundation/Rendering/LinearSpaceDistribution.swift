@@ -715,7 +715,10 @@ private func distributeLinearSpace(
         var remaining = max(0, max(0, available) - allSpacing)
         var result = [Int](repeating: 0, count: naturalSizes.count)
         for level in Set(priorities).sorted(by: >) {
-            let members = naturalSizes.indices.filter { priorities[$0] == level }
+            // A spacer left out stays out: dealt a share here, it would take
+            // back the cell its gap gave up, and the stack would run past
+            // `available` by that gap.
+            let members = naturalSizes.indices.filter { priorities[$0] == level && !excluding.contains($0) }
             var reserved = 0
             for index in naturalSizes.indices where priorities[index] < level { reserved += minimum(index) }
             let sizes = group(members, max(0, remaining - reserved))

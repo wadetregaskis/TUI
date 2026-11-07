@@ -223,4 +223,29 @@ struct LayoutPriorityTests {
             ) == [3, 0]
         )
     }
+
+    @Test("A Spacer left out under layoutPriority gets nothing on the second deal, so the row still fits")
+    func zeroWidthSpacerStaysOutOnSecondDeal() {
+        // Before: [3, 1, 2] and two gaps, 8 cells in 7, and "de" clipped.
+        #expect(
+            distributeLinearSpace(
+                naturalSizes: [3, 0, 2], isFlexible: [false, true, false], available: 7, spacing: 1,
+                isSpacer: { $0 == 1 }, priorities: [1, 0, 0], minimumSize: { _ in 0 }
+            ) == [3, 0, 2]
+        )
+        #expect(
+            distributeLinearSpace(
+                naturalSizes: [3, 0], isFlexible: [false, true], available: 4, spacing: 1,
+                isSpacer: { $0 == 1 }, priorities: [1, 0], minimumSize: { _ in 0 }
+            ) == [3, 0]
+        )
+        let drawn = lines(
+            HStack(spacing: 1) {
+                Text("abc").layoutPriority(1)
+                Spacer(minLength: 0)
+                Text("de")
+            }, width: 7, height: 1
+        ).first ?? ""
+        #expect(drawn.hasPrefix("abc de"), "got '\(drawn)'")
+    }
 }
