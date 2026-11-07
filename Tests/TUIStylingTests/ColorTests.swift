@@ -18,6 +18,26 @@ struct ColorTests {
         #expect(color == Color.rgb(255, 128, 64))
     }
 
+    @Test("Hex string parsing accepts valid hex and rejects invalid input")
+    func hexStringParsing() {
+        #expect(Color.hex("#FF5500") == Color.rgb(255, 85, 0))
+        #expect(Color.hex("FF5500") == Color.rgb(255, 85, 0))
+        #expect(Color.hex("#F50") == Color.rgb(255, 85, 0))
+        #expect(Color.hex("abc") == Color.rgb(170, 187, 204))
+        #expect(Color.hex("  #112233 \n") == Color.rgb(17, 34, 51))
+
+        // Invalid inputs
+        #expect(Color.hex("+FFFFF") == nil)
+        #expect(Color.hex("#+FFFF") == nil)
+        #expect(Color.hex("+FF") == nil)
+        #expect(Color.hex("-FFFFF") == nil)
+        #expect(Color.hex("GGGGGG") == nil)
+        #expect(Color.hex("#12345") == nil)
+        #expect(Color.hex("#1234567") == nil)
+        #expect(Color.hex("") == nil)
+        #expect(Color.hex("#") == nil)
+    }
+
     @Test("Standard and bright colors are distinct")
     func standardVsBright() {
         #expect(Color.ansi(.red) != Color.ansi(.brightRed))

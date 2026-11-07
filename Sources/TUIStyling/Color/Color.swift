@@ -678,6 +678,8 @@ extension Color {
             hexString.removeFirst()
         }
 
+        guard hexString.allSatisfy(\.isHexDigit) else { return nil }
+
         // Handle shorthand format (RGB -> RRGGBB)
         if hexString.count == 3 {
             let chars = Array(hexString)
