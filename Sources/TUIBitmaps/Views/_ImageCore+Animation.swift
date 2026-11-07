@@ -196,7 +196,14 @@ extension _ImageCore {
     }
 
     /// The local file path this image can animate from, or `nil` if none.
+    ///
+    /// Pixels handed over (``Image/init(_:decoded:)``) animate only where they
+    /// are the file's own at a pixel a point: an ``AsyncImage``'s load of a
+    /// `file:` URL. An asset's @2x picture, an `AsyncImage` at another scale,
+    /// a `CGImage` or an `NSImage` are drawn at their own size, and the file's
+    /// frames, at the file's, would draw a corner of the picture instead.
     private var animationFilePath: String? {
+        if let decoded, decoded.cachedPicture == nil || decoded.pointSizing != .scale(1) { return nil }
         switch source {
         case .file(let path): return path
         case .url(let string):
@@ -356,7 +363,7 @@ extension ImageAnimationPlayback {
     /// that first drew it is done, so one drawn where nobody can see it decodes
     /// nothing.
     var startsDecoding: Bool {
-        guard case .candidate = progress, isShown != false else { return false }
+        guard case .candidate = progress, isShown == true else { return false }
         progress = .decoding
         return true
     }
