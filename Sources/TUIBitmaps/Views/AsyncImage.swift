@@ -360,12 +360,14 @@ private struct _AsyncImageCore<Content: View>: View, Renderable, Layoutable {
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let current = stored(context)?.value ?? .empty
-        return measureChild(content(phase(current)), proposal: proposal, context: childContext(context))
+        let child = childContext(context)
+        return measureChild(built(phase(current), child), proposal: proposal, context: child)
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard let box = stored(context) else {
-            return TUIView.renderToBuffer(content(.empty), context: childContext(context))
+            let child = childContext(context)
+            return TUIView.renderToBuffer(built(.empty, child), context: child)
         }
         // Kept from frame to frame, as any view's state is while it is drawn:
         // without this the pass drops the boxes, the next frame reads a new URL,
@@ -376,7 +378,16 @@ private struct _AsyncImageCore<Content: View>: View, Renderable, Layoutable {
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             manageLoad(box: box, lifecycle: lifecycle, context: context)
         }
-        return TUIView.renderToBuffer(content(phase(box.value)), context: childContext(context))
+        let child = childContext(context)
+        return TUIView.renderToBuffer(built(phase(box.value), child), context: child)
+    }
+
+    /// The content for `phase`, built under observation tracking at `child`,
+    /// where it is drawn: the closure is the content's body, deferred until
+    /// the phase is known, so what it reads asks for a frame as a body's read
+    /// does (as a `GeometryReader`'s closure).
+    private func built(_ phase: AsyncImagePhase, _ child: RenderContext) -> Content {
+        observingBodyClosure(of: Self.self, context: child) { content(phase) }
     }
 
     /// Starts the load on first appearance or a new URL, publishes its result
