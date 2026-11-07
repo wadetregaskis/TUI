@@ -603,6 +603,21 @@ extension FrameBuffer {
             surface: surface, defaultForeground: defaultForeground)
     }
 
+    /// `cell`'s style with its stated underline colour blended over `field` as
+    /// its ink is: a picture cell's `58` is its placement id, and stays.
+    private static func blendingUnderline(
+        of cell: RowCell, mode: BlendMode, alpha: CellAlpha, over field: Color
+    ) -> SGRState {
+        guard cell.character.unicodeScalars.first != .terminalImagePlaceholder,
+            let underline = cell.style.underlineColour?.asColor()
+        else { return cell.style }
+        let blended =
+            mode == .normal
+            ? mixing(underline, alpha.layer, over: field, in: alpha)
+            : underline.blending(mode, at: alpha.layer * alpha.ink, over: field, linearLight: alpha.linearLight)
+        return cell.style.settingUnderlineColour(blended)
+    }
+
     /// One layer's answer over what is behind it: the whole of the blend for a cell
     /// no painter's translucent field is under.
     static func blendLayer(
@@ -814,19 +829,7 @@ extension FrameBuffer {
         result.foreground = foreground
         result.background = background
         result.style = result.style.settingForeground(foreground).settingBackground(background)
-        if result.character.unicodeScalars.first != .terminalImagePlaceholder,
-            let underlineRaw = result.style.underlineColour,
-            let underlineColor = underlineRaw.asColor()
-        {
-            let blendedUnderline: Color
-            if mode == .normal {
-                blendedUnderline = mixing(underlineColor, alpha.layer, over: destinationField, in: alpha)
-            } else {
-                blendedUnderline = underlineColor.blending(
-                    mode, at: alpha.layer * alpha.ink, over: destinationField, linearLight: alpha.linearLight)
-            }
-            result.style = result.style.settingUnderlineColour(blendedUnderline)
-        }
+        result.style = blendingUnderline(of: result, mode: mode, alpha: alpha, over: destinationField)
         // A translucent ink the display cannot show — `.tertiary` text at 16 colours,
         // whose nearest colour is the page — is drawn legibly instead: faint (SGR 2)
         // in its own colour at 16, the first step toward its colour that the 256
@@ -1151,7 +1154,6 @@ extension SGRState {
 extension SGRState.Colour {
     /// Maps this SGR colour representation back to a ``Color``.
     package func asColor() -> Color? {
-        // swiftlint:disable framework_colour_literal
         switch self {
         case .rgb(let red, let green, let blue):
             return Color.rgb(UInt8(clamping: red), UInt8(clamping: green), UInt8(clamping: blue))
@@ -1162,7 +1164,6 @@ extension SGRState.Colour {
             let slot = code - (isBright ? 90 : 30)
             return SGRColorRewrite.basicColor(base: slot, isBright: isBright)
         }
-        // swiftlint:enable framework_colour_literal
     }
 }
 
