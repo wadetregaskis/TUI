@@ -258,18 +258,10 @@ package enum SGRColorRewrite {
                 // Extended colour: `38;5;n` or `38;2;r;g;b` (48 for background, 58 for underline).
                 let (color, consumed) = Self.extendedColor(parameters, from: index)
                 if let color {
+                    let slot: ColorSlot = parameter == 38 ? .foreground : parameter == 48 ? .background : .underline
                     let faded = transform(color)
-                    switch parameter {
-                    case 38:
-                        emitted(.foreground, faded)
-                        rewritten += faded.foregroundCodes()
-                    case 48:
-                        emitted(.background, faded)
-                        rewritten += faded.backgroundCodes()
-                    default:
-                        emitted(.underline, faded)
-                        rewritten += Self.underlineCodes(faded)
-                    }
+                    emitted(slot, faded)
+                    rewritten += Self.codes(slot, faded)
                 } else {
                     rewritten.append(parameters[index])
                 }
@@ -299,12 +291,7 @@ package enum SGRColorRewrite {
                 } else if let (slot, color) = Self.colonFormColor(raw), !(slot == .underline && keepsUnderline) {
                     let transformed = transform(color)
                     emitted(slot, transformed)
-                    switch slot {
-                    case .foreground: rewritten += transformed.foregroundCodes()
-                    case .background: rewritten += transformed.backgroundCodes()
-                    case .underline: rewritten += Self.underlineCodes(transformed)
-                    case .reset: rewritten.append(raw)
-                    }
+                    rewritten += Self.codes(slot, transformed)
                 } else {
                     rewritten.append(raw)
                 }
@@ -312,6 +299,16 @@ package enum SGRColorRewrite {
             index += 1
         }
         return "\u{1B}[" + rewritten.joined(separator: ";") + "m"
+    }
+
+    /// `color` as the parameters that set `slot` to it, at the depth in force.
+    private static func codes(_ slot: ColorSlot, _ color: Color) -> [String] {
+        switch slot {
+        case .foreground: color.foregroundCodes()
+        case .background: color.backgroundCodes()
+        case .underline: underlineCodes(color)
+        case .reset: ["0"]
+        }
     }
 
     /// `color` as an underline colour's parameters at the depth in force: none
