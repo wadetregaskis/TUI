@@ -71,4 +71,15 @@ struct DeferredClosureObservationIntegrationTests {
         }
         expectRedraw(app, from: "AI:one", to: "AI:two") { model.label = "two" }
     }
+
+    @Test("A Form's ForEach row reading an @Observable asks for a frame")
+    mutating func formForEachRow() {
+        let model = DeferredReadModel()
+        let app = TestApp(width: 30, height: 6) {
+            Form {
+                ForEach(0..<1, id: \.self) { _ in Text(verbatim: "FF:" + model.label) }
+            }
+        }
+        expectRedraw(app, from: "FF:one", to: "FF:two") { model.label = "two" }
+    }
 }
