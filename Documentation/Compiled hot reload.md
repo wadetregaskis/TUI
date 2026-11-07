@@ -1096,6 +1096,6 @@ same type-checking and code generation.
   Kyle Ye. Third-party accounts of a private system, not Apple's own.
 - [Flutter hot reload](https://docs.flutter.dev/tools/hot-reload),
   [Subsecond](https://docs.rs/subsecond/0.7.10/subsecond/)
-- Question 4 of `Documentation/Working notes/swifttui-answers-features.md`, the working notes this began from,
-  not in the repository. Its recommendation of hot restart first was declined by the owner. Its facts about
+- [Question 4 of the SwiftTUI comparison's feature answers](<Historical/SwiftTUI comparison, 2026-11/Answers, features.md#4-compiled-hot-reload>),
+  the notes this began from. Its recommendation of hot restart first was declined by the owner. Its facts about
   TUI were checked in section 3.
