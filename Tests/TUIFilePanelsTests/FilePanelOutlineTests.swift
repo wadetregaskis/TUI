@@ -10,6 +10,10 @@
 import Foundation
 import Testing
 
+#if canImport(UniformTypeIdentifiers)
+    import UniformTypeIdentifiers
+#endif
+
 @testable import TUIApp
 @testable import TUIAppTestSupport
 @testable import TUICore
@@ -120,5 +124,51 @@ struct FilePanelOutlineTests {
         driver.press(.tab)
         driver.press(.space)
         try await driver.app.wait(for: ".hidden", timeout: .seconds(2))
+    }
+
+    private func panelWithTypePopUp(_ fixture: FilePanelFixture, caller: FilePanelCaller) -> some View {
+        FilePanelPresenter(
+            content: Text("Page"), isPresented: caller.binding,
+            request: {
+                var req = FilePanelRequest(
+                    purpose: .open(allowsMultipleSelection: false),
+                    rule: FileChoiceRule(allowedContentTypes: [.plainText, .json]),
+                    title: "Open",
+                    confirmationLabel: "Open",
+                    startDirectory: fixture.root,
+                    homeDirectory: fixture.root)
+                req.contentTypePicker = .visible
+                return req
+            },
+            onChoose: { caller.chose($0) }, onCancel: { caller.cancelled() })
+    }
+
+    @Test("Expanded list-view folder stays populated after type pop-up change")
+    func expandedFolderStaysPopulatedAfterTypeChange() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver { panelWithTypePopUp(fixture, caller: caller) }
+        let shown = await driver.waitFor("notes.md")
+        #expect(!shown.contains("inner.txt"))
+
+        // Expand Alpha/
+        driver.press(.right)
+        let open = await driver.waitFor("inner.txt")
+        #expect(open.contains("inner.txt"))
+
+        // Tab to the Show: type pop-up, open it, pick All Files
+        driver.press(.tab)
+        driver.press(.enter)
+        driver.press(.end)
+        driver.press(.enter)
+
+        // Wait for type pop-up change to take effect and for the open branch to reload
+        try await driver.app.wait(for: "All Files", timeout: .seconds(2))
+        try await driver.app.wait(for: "inner.txt", timeout: .seconds(2))
+
+        // Assert that Alpha/ remains expanded and still shows inner.txt
+        let afterScreen = driver.screen()
+        #expect(afterScreen.contains("inner.txt"), "Expanded folder must not go blank: \(afterScreen)")
     }
 }

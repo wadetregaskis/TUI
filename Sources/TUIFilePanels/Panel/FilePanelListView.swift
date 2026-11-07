@@ -50,7 +50,12 @@ struct FilePanelListView: View {
                 }
                 .tableEmptyPlaceholder(emptyText)
                 .onTableOutlineExpansionChange { url, open in
-                    if open { Task { await browser.loadFolder(url) } }
+                    if open {
+                        browser.openBranches.insert(url)
+                        Task { await browser.loadFolder(url) }
+                    } else {
+                        browser.openBranches.remove(url)
+                    }
                 }
             } else {
                 Table(browser.rows, children: \.children, selection: singleSelection, sortOrder: sortOrder) {
@@ -58,7 +63,12 @@ struct FilePanelListView: View {
                 }
                 .tableEmptyPlaceholder(emptyText)
                 .onTableOutlineExpansionChange { url, open in
-                    if open { Task { await browser.loadFolder(url) } }
+                    if open {
+                        browser.openBranches.insert(url)
+                        Task { await browser.loadFolder(url) }
+                    } else {
+                        browser.openBranches.remove(url)
+                    }
                 }
             }
         }

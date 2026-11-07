@@ -104,6 +104,10 @@ final class FileBrowser {
     /// arranges them again without reading them again.
     @ObservationIgnored var folderListings: [String: [FileEntry]] = [:]
 
+    /// The outline branches currently open in list view, kept so that a reload
+    /// (e.g. from changing file types) reloads their contents.
+    @ObservationIgnored var openBranches: Set<URL> = []
+
     /// The same folders' items as rows: arranged as ``rows`` are, each a
     /// folder's own. The panel redraws as one arrives.
     var folderRows: [String: [FileEntry]] = [:]
@@ -169,6 +173,7 @@ final class FileBrowser {
     func open(_ folder: URL) {
         let folder = folder.standardizedFileURL
         guard folder.path != directory.path else { return }
+        openBranches.removeAll()
         keepFolders(onTheWayTo: folder)
         directory = folder
         rowIndex = [:]
@@ -275,6 +280,15 @@ final class FileBrowser {
         rowIndex = arranged.rowIndex
         hiddenCount = arranged.hiddenCount
         state = .loaded
+        let toLoad = openBranches.filter { folderListings[$0.standardizedFileURL.path] == nil }
+        if !toLoad.isEmpty {
+            let tasks = toLoad.map { branch in
+                Task { await self.loadFolder(branch) }
+            }
+            for task in tasks {
+                await task.value
+            }
+        }
     }
 
     /// `entries` as the rows show them, off the main actor: hidden ones left
