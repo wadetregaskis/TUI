@@ -140,6 +140,7 @@
   "filePanel.noSelection": "Keine Auswahl",
   "filePanel.status.preview": "Vorschau",
   "filePanel.status.view": "Darstellung",
+  "filePanel.previewMore": "(plus %@ mehr)",
 
   "menu.file": "Datei",
   "menu.edit": "Bearbeiten",

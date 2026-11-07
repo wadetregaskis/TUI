@@ -157,14 +157,16 @@ struct FilePanelPreview: View {
             if remaining > 0 {
                 let formatted = ByteCountFormatStyle(style: .file).format(remaining)
                 lines.append("…")
-                lines.append("(plus \(formatted) more)")
+                let format = LocalizationService.shared.string(for: LocalizationKey.FilePanel.previewMore)
+                lines.append(String(format: format, formatted))
             }
         } else if isTruncatedByBytes {
             let remaining = max(0, total - Int64(cappedSlice.count))
             if remaining > 0 {
                 let formatted = ByteCountFormatStyle(style: .file).format(remaining)
                 lines.append("…")
-                lines.append("(plus \(formatted) more)")
+                let format = LocalizationService.shared.string(for: LocalizationKey.FilePanel.previewMore)
+                lines.append(String(format: format, formatted))
             }
         }
         return lines.joined(separator: "\n")

@@ -140,6 +140,7 @@
   "filePanel.noSelection": "選択されていません",
   "filePanel.status.preview": "プレビュー",
   "filePanel.status.view": "表示",
+  "filePanel.previewMore": "（さらに%@）",
 
   "menu.file": "ファイル",
   "menu.edit": "編集",

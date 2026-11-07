@@ -140,6 +140,7 @@
   "filePanel.noSelection": "未选择",
   "filePanel.status.preview": "预览",
   "filePanel.status.view": "显示方式",
+  "filePanel.previewMore": "（还有%@）",
 
   "menu.file": "文件",
   "menu.edit": "编辑",

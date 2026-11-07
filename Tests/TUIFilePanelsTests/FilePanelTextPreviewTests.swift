@@ -10,6 +10,7 @@ import Testing
 @testable import TUICore
 @testable import TUIFilePanels
 @testable import TUIFoundation
+@testable import TUIStrings
 @testable import TUITestSupport
 
 @MainActor
@@ -120,5 +121,29 @@ struct FilePanelTextPreviewTests {
         #expect(excerpt.contains("Line 250"))
         #expect(!excerpt.contains("…"))
         #expect(!excerpt.contains("(plus"))
+    }
+
+    @Test("Truncation indicator uses localized text")
+    func localizedTruncationIndicator() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let url = fixture.url("trunc.txt")
+        let lines = (1...300).map { "Line \($0)" }
+        let content = lines.joined(separator: "\n")
+        try Data(content.utf8).write(to: url)
+
+        let entry = entry(for: url, size: Int64(content.utf8.count))
+        let excerpt = try #require(await FilePanelPreview.excerpt(of: entry))
+        let template = LocalizationService.shared.string(for: LocalizationKey.FilePanel.previewMore)
+        #expect(excerpt.contains("…"))
+        #expect(template.contains("%@"))
+
+        // Check translation in an isolated service without mutating the shared service
+        let configDir = NSTemporaryDirectory() + "tuikit-loc-\(UUID().uuidString)"
+        defer { try? FileManager.default.removeItem(atPath: configDir) }
+        let service = LocalizationService(configDirectoryPath: configDir)
+        service.setLanguageWithoutRendering(.german)
+        let germanText = service.string(for: LocalizationKey.FilePanel.previewMore)
+        #expect(germanText.contains("mehr"))
     }
 }

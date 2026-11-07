@@ -170,6 +170,7 @@ extension LocalizationService {
       "filePanel.noSelection": "No Selection",
       "filePanel.status.preview": "preview",
       "filePanel.status.view": "view",
+      "filePanel.previewMore": "(plus %@ more)",
 
       "menu.file": "File",
       "menu.edit": "Edit",

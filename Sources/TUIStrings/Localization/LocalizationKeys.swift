@@ -294,6 +294,8 @@ public enum LocalizationKey {
         case statusPreview = "filePanel.status.preview"
         /// The status bar's word for the chords that choose the view.
         case statusView = "filePanel.status.view"
+        /// Shown below a truncated text preview, with the remaining byte count as `%@`.
+        case previewMore = "filePanel.previewMore"
     }
 
     /// Menu items and sections
