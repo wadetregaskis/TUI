@@ -675,7 +675,22 @@ extension PlatformImageLoader {
     /// - Throws: `ImageLoadError.imageTooLarge` for a held picture past
     ///   `maxPixelCount`.
     public func cachedImage(fromURL urlString: String, cache: URLImageCache?, maxPixelCount: Int?) throws -> RGBAImage? {
-        try Self.clearingLimit(cache?.get(urlString), maxPixelCount: maxPixelCount)
+        if let path = Self.filePath(ofURL: urlString) {
+            return try cachedImage(fromFile: path, cache: cache, maxPixelCount: maxPixelCount)
+        }
+        return try Self.clearingLimit(cache?.get(urlString), maxPixelCount: maxPixelCount)
+    }
+
+    /// The path a `file:` URL names, or `nil` for any other URL.
+    ///
+    /// Such a URL is loaded as the file it names, never fetched: `URLSession`
+    /// on Linux has no `file:` protocol (the picture failed to load there),
+    /// WebAssembly has no `URLSession` at all, and either way the file's own
+    /// cache key (``cacheKey(forFile:)``) notices an edit, where a URL's key
+    /// would hand back the picture as it was first read for good.
+    static func filePath(ofURL urlString: String) -> String? {
+        guard let url = URL(string: urlString), url.isFileURL else { return nil }
+        return url.path
     }
 
     /// The picture `cache` holds for the file at `path` as the file is now —
@@ -777,6 +792,10 @@ extension PlatformImageLoader {
         timeout: TimeInterval = 30,
         maxPixelCount: Int? = nil
     ) async throws -> RGBAImage {
+        if let path = Self.filePath(ofURL: urlString) {
+            try Task.checkCancellation()
+            return try loadImage(from: path, cache: cache, maxPixelCount: maxPixelCount)
+        }
         if let cached = try cachedImage(fromURL: urlString, cache: cache, maxPixelCount: maxPixelCount) {
             return cached
         }

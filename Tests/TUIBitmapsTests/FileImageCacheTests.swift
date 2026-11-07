@@ -50,6 +50,19 @@ struct FileImageCacheTests {
         #expect(try loader.loadImage(from: fixture.path, cache: cache, maxPixelCount: nil).width == 8)
     }
 
+    @Test("A file: URL loads as the file it names, through the file's own cache key")
+    func fileURLLoadsAsFile() async throws {
+        let fixture = try BitmapFixture(width: 6, height: 4)
+        let address = URL(fileURLWithPath: fixture.path).absoluteString
+        let cache = URLImageCache()
+        let loader = PlatformImageLoader()
+        // Linux's URLSession has no file: protocol, so this failed there.
+        let loaded = try await loader.loadImage(fromURL: address, cache: cache)
+        #expect(loaded.width == 6 && loaded.height == 4)
+        #expect(try loader.cachedImage(fromFile: fixture.path, cache: cache, maxPixelCount: nil)?.width == 6)
+        #expect(try loader.cachedImage(fromURL: address, cache: cache, maxPixelCount: nil)?.width == 6)
+    }
+
     @Test("A held picture still has to clear the asker's limit")
     func heldPictureClearsTheLimit() throws {
         let fixture = try BitmapFixture(width: 6, height: 4)
