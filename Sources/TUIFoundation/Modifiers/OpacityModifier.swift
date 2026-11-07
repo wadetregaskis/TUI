@@ -243,15 +243,26 @@ package enum SGRColorRewrite {
         while index < parameters.count {
             let parameter = Int(parameters[index]) ?? 0
             switch parameter {
-            case 38, 48:
-                // Extended colour: `38;5;n` or `38;2;r;g;b` (48 for background).
+            case 38, 48, 58:
+                // Extended colour: `38;5;n` or `38;2;r;g;b` (48 for background, 58 for underline).
                 let (color, consumed) = Self.extendedColor(parameters, from: index)
                 if let color {
                     let faded = transform(color)
-                    emitted(parameter == 38 ? .foreground : .background, faded)
-                    rewritten += parameter == 38
-                        ? faded.foregroundCodes()
-                        : faded.backgroundCodes()
+                    if parameter == 58 {
+                        emitted(.underline, faded)
+                        if ColorDepth.current != .noColor {
+                            var param = ""
+                            faded.sgrForeground(depth: .current).appendUnderlineColour(to: &param)
+                            rewritten.append(param)
+                        } else {
+                            rewritten.append(parameters[index])
+                        }
+                    } else {
+                        emitted(parameter == 38 ? .foreground : .background, faded)
+                        rewritten += parameter == 38
+                            ? faded.foregroundCodes()
+                            : faded.backgroundCodes()
+                    }
                 } else {
                     rewritten.append(parameters[index])
                 }
@@ -273,14 +284,28 @@ package enum SGRColorRewrite {
             default:
                 // 0 (reset), 1 (bold), 2 (dim), 4 (underline), 7 (inverse), …
                 // A colon-form colour lands here too (it is not an Int), and
-                // passes through as written.
+                // passes through as written unless transformed.
                 let raw = parameters[index]
                 if raw.isEmpty || Int(raw) == 0 {
                     emitted(.reset, nil)
+                    rewritten.append(raw)
                 } else if let (slot, color) = Self.colonFormColor(raw) {
-                    emitted(slot, color)
+                    let transformed = transform(color)
+                    emitted(slot, transformed)
+                    if slot == .underline {
+                        if ColorDepth.current != .noColor {
+                            var param = ""
+                            transformed.sgrForeground(depth: .current).appendUnderlineColour(to: &param)
+                            rewritten.append(param)
+                        } else {
+                            rewritten.append(raw)
+                        }
+                    } else {
+                        rewritten.append(raw)
+                    }
+                } else {
+                    rewritten.append(raw)
                 }
-                rewritten.append(raw)
             }
             index += 1
         }
@@ -293,6 +318,7 @@ package enum SGRColorRewrite {
     package enum ColorSlot {
         case foreground
         case background
+        case underline
         /// SGR 0 — both colours back to the terminal's default at once.
         case reset
     }
@@ -370,7 +396,7 @@ package enum SGRColorRewrite {
     private static func colonFormColor(_ raw: String) -> (ColorSlot, Color)? {
         guard raw.contains(":") else { return nil }
         var parts = raw.split(separator: ":", omittingEmptySubsequences: false).map(String.init)
-        guard let introducer = Int(parts[0]), introducer == 38 || introducer == 48 else {
+        guard let introducer = Int(parts[0]), introducer == 38 || introducer == 48 || introducer == 58 else {
             return nil
         }
         if parts.count >= 3, parts[1] == "2", parts.count > 5 {
@@ -378,7 +404,14 @@ package enum SGRColorRewrite {
         }
         let (color, _) = Self.extendedColor(parts, from: 0)
         guard let color else { return nil }
-        return (introducer == 38 ? .foreground : .background, color)
+        let slot: ColorSlot
+        switch introducer {
+        case 38: slot = .foreground
+        case 48: slot = .background
+        case 58: slot = .underline
+        default: return nil
+        }
+        return (slot, color)
     }
 
     /// The colour named by `38;5;n` / `38;2;r;g;b` (or the `48` background

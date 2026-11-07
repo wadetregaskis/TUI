@@ -246,6 +246,8 @@ private struct Veil {
             case .background:
                 state.background = color ?? surface
                 setsBackground = true
+            case .underline:
+                break
             }
         }
         var reset = false

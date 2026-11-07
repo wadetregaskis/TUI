@@ -109,7 +109,7 @@ package struct SGRState: Sendable, Equatable {
         /// the 46 as a colour — where the colon form is one parameter they
         /// ignore. There is no named form; a named colour is spelled by its
         /// index, which is what it is.
-        func appendUnderlineColour(to parameters: inout String) {
+        package func appendUnderlineColour(to parameters: inout String) {
             switch self {
             case .named(let code):
                 parameters += "58:5:"
@@ -203,7 +203,7 @@ package struct SGRState: Sendable, Equatable {
     /// The underline's colour (SGR 58), or `nil` for the text's own (SGR 59).
     /// It outlives the underline, as a terminal's does: SGR 24 ends the line,
     /// not its colour.
-    private var underlineColour: Colour?
+    package var underlineColour: Colour?
 
     /// Codes this model does not understand, kept verbatim and in order.
     private var passthrough: [String] = []
@@ -319,6 +319,13 @@ package struct SGRState: Sendable, Equatable {
     /// - Parameter colour: The colour, or `nil` for the terminal's default.
     package mutating func setBackground(_ colour: Colour?) {
         background = colour
+    }
+
+    /// Sets the underline colour (SGR 58, or SGR 59 for `nil`).
+    ///
+    /// - Parameter colour: The colour, or `nil` for the text's own colour.
+    package mutating func setUnderlineColour(_ colour: Colour?) {
+        underlineColour = colour
     }
 
     /// Folds one complete escape sequence into the state.

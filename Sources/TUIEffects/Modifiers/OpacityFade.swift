@@ -95,6 +95,7 @@ enum OpacityFade {
                     switch slot {
                     case .foreground: ink = colour
                     case .background: field = colour
+                    case .underline: break
                     case .reset: (ink, field) = (nil, nil)
                     }
                 }

@@ -814,6 +814,19 @@ extension FrameBuffer {
         result.foreground = foreground
         result.background = background
         result.style = result.style.settingForeground(foreground).settingBackground(background)
+        if result.character.unicodeScalars.first != .terminalImagePlaceholder,
+            let underlineRaw = result.style.underlineColour,
+            let underlineColor = underlineRaw.asColor()
+        {
+            let blendedUnderline: Color
+            if mode == .normal {
+                blendedUnderline = mixing(underlineColor, alpha.layer, over: destinationField, in: alpha)
+            } else {
+                blendedUnderline = underlineColor.blending(
+                    mode, at: alpha.layer * alpha.ink, over: destinationField, linearLight: alpha.linearLight)
+            }
+            result.style = result.style.settingUnderlineColour(blendedUnderline)
+        }
         // A translucent ink the display cannot show — `.tertiary` text at 16 colours,
         // whose nearest colour is the page — is drawn legibly instead: faint (SGR 2)
         // in its own colour at 16, the first step toward its colour that the 256
@@ -996,6 +1009,7 @@ extension FrameBuffer {
                         background = color ?? .terminalBackground
                         statesTerminalField = color == nil
                     case .reset: foreground = nil; background = nil; statesTerminalField = false
+                    case .underline: break
                     }
                 }
             case .visible(let character):
@@ -1116,6 +1130,40 @@ extension SGRState {
         result.setBackground(color.sgrBackground(depth: depth))
         return result
     }
+
+    /// The underline twin of ``settingForeground(_:depth:)``.
+    ///
+    /// - Parameters:
+    ///   - color: The colour, or `nil` for the text's own colour (SGR 59).
+    ///   - depth: The depth to quantise for.
+    func settingUnderlineColour(_ color: Color?, depth: ColorDepth = ColorDepth.current) -> Self {
+        var result = self
+        guard let color else {
+            result.setUnderlineColour(nil)
+            return result
+        }
+        guard depth != .noColor else { return result }
+        result.setUnderlineColour(color.sgrForeground(depth: depth))
+        return result
+    }
+}
+
+extension SGRState.Colour {
+    /// Maps this SGR colour representation back to a ``Color``.
+    package func asColor() -> Color? {
+        // swiftlint:disable framework_colour_literal
+        switch self {
+        case .rgb(let red, let green, let blue):
+            return Color.rgb(UInt8(clamping: red), UInt8(clamping: green), UInt8(clamping: blue))
+        case .indexed(let index):
+            return UInt8(exactly: index).map(Color.palette256)
+        case .named(let code):
+            let isBright = code >= 90
+            let slot = code - (isBright ? 90 : 30)
+            return SGRColorRewrite.basicColor(base: slot, isBright: isBright)
+        }
+        // swiftlint:enable framework_colour_literal
+    }
 }
 
 // MARK: - A colour in the form the state keeps
@@ -1143,7 +1191,7 @@ extension Color {
     ///
     /// - Parameter depth: The colour depth to quantise for, never `.noColor`.
     /// - Returns: The colour in `SGRState`'s own form.
-    fileprivate func sgrForeground(depth: ColorDepth) -> SGRState.Colour {
+    package func sgrForeground(depth: ColorDepth) -> SGRState.Colour {
         assert(isOpaque, "translucent colour reached sgrForeground: alpha \(alpha)")
         switch downsampled(to: depth).value {
         case .ansi(let slot): return .named(Int(slot.foregroundCode))

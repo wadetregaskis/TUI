@@ -84,8 +84,8 @@ extension SGRColorRewrite {
             switch parameter {
             case 0:
                 report(.reset, nil)
-            case 38, 48:
-                let slot: ColorSlot = parameter == 38 ? .foreground : .background
+            case 38, 48, 58:
+                let slot: ColorSlot = parameter == 38 ? .foreground : (parameter == 48 ? .background : .underline)
                 if index + 2 < parameters.count, parameters[index + 1].isDigit(5),
                     let value = parameters[index + 2].component
                 {

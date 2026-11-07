@@ -142,4 +142,43 @@ struct TextLineStyleTests {
         style.isUnderlined = nil
         #expect(style.underline == nil)
     }
+
+    @Test("Underline colours (SGR 58) are transformed by SGRColorRewrite in colon form")
+    func underlineColorRewriting() {
+        var slots: [SGRColorRewrite.ColorSlot] = []
+        SGRColorRewrite.readingColors("\u{1B}[4;58:2::0:0:255m") { slot, _ in
+            slots.append(slot)
+        }
+        #expect(slots == [.underline])
+
+        let colonInput = "\u{1B}[4;58:2::0:0:255m"
+        let rewrittenColon = SGRColorRewrite.rewritingSGR(
+            colonInput, defaultForeground: .white, defaultBackground: .black,
+            transform: { _ in Color.rgb(255, 0, 0) }
+        )
+        #expect(rewrittenColon.contains("58:2::255:0:0"), "\(rewrittenColon)")
+        #expect(!rewrittenColon.contains(";58;"), "Never emit semicolon form")
+
+        // Semicolon input is normalized to colon form on output
+        let semicolonInput = "\u{1B}[4;58;5;196m"
+        let rewrittenSemicolon = SGRColorRewrite.rewritingSGR(
+            semicolonInput, defaultForeground: .white, defaultBackground: .black,
+            transform: { _ in Color.rgb(0, 255, 0) }
+        )
+        #expect(rewrittenSemicolon.contains("58:2::0:255:0"), "\(rewrittenSemicolon)")
+        #expect(!rewrittenSemicolon.contains("58;"), "Never emit semicolon form")
+    }
+
+    @Test("Underline colour is dimmed under opacity")
+    func underlineColorDimmedUnderOpacity() {
+        var context = RenderContext(availableWidth: 20, availableHeight: 1, tuiContext: TUIContext())
+            .isolatingRenderCache()
+        context.environment.lineStyleSupport = .underlines
+        let view = Text("test").underline(color: .rgb(255, 0, 0)).opacity(0.5)
+        let drawn = ColorDepth.withCurrent(.truecolor) {
+            renderToScreen(view, context: context).lines.joined()
+        }
+        #expect(!drawn.contains("58:2::255:0:0"), "Original red underline must be dimmed: \(drawn)")
+        #expect(drawn.contains("58:2::"), "Underline colour must still be present: \(drawn)")
+    }
 }

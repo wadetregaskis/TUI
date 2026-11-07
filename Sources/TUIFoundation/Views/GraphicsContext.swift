@@ -164,7 +164,7 @@ public struct GraphicsContext {
         guard clipKeeps(column: column, row: row) else { return }
         surface.write(
             Surface.Cell(
-                character: character, width: width, style: textAttributes.applied(to: filtered(style)),
+                character: character, width: width, style: textAttributes.applied(to: filtered(style, for: character)),
                 opacity: opacity * enclosing.opacity, serial: surface.nextSerial()),
             column: column, row: row)
     }
@@ -180,7 +180,7 @@ public struct GraphicsContext {
     }
 
     /// `style` with its colours through the filters.
-    private func filtered(_ style: SGRState) -> SGRState {
+    private func filtered(_ style: SGRState, for character: String? = nil) -> SGRState {
         guard !filters.isEmpty || !enclosing.filters.isEmpty else { return style }
         var style = style
         func colour(_ raw: SGRState.Colour?, background: Bool) -> Color? {
@@ -217,6 +217,11 @@ public struct GraphicsContext {
         }
         if let background = colour(style.backgroundColour, background: true) {
             style = style.settingBackground(through(background))
+        }
+        if character?.unicodeScalars.first != .terminalImagePlaceholder,
+            let underline = colour(style.underlineColour, background: false)
+        {
+            style = style.settingUnderlineColour(through(underline))
         }
         return style
     }
