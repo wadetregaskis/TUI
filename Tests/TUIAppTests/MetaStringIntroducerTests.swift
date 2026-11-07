@@ -54,6 +54,22 @@ struct MetaStringIntroducerTests {
         #expect(events(terminal) == [.key(KeyEvent(key: .character(character), alt: true, shift: character.isUppercase))])
     }
 
+    @Test("A string introducer pressed twice quickly decodes as two chords", arguments: Array("]P^X_".utf8))
+    func twiceQuickly(byte: UInt8) {
+        let (terminal, stage) = makeTerminal()
+        stage([0x1B, byte, 0x1B, byte])
+        let character = Character(Unicode.Scalar(byte))
+        let chord = TerminalInput.key(KeyEvent(key: .character(character), alt: true, shift: character.isUppercase))
+        #expect(events(terminal) == [chord, chord])
+    }
+
+    @Test("A cut-short reply with a body is swallowed ahead of a second chord")
+    func cutShortReplyWithBodySwallowed() {
+        let (terminal, stage) = makeTerminal()
+        stage(Array("\u{1B}_Gi=1;OK\u{1B}_".utf8))
+        #expect(events(terminal) == [.key(KeyEvent(key: .character("_"), alt: true))])
+    }
+
     @Test("A reply that arrives whole is still swallowed")
     func wholeReplySwallowed() {
         let (terminal, stage) = makeTerminal()

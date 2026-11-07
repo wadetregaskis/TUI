@@ -157,6 +157,10 @@ extension Terminal {
                 // No terminator yet, and none in as many bytes as a reply runs to.
                 return input.count >= Self.maxStringSequenceBytes ? abandonSequence(.string) : nil
             }
+            if length == 2 {
+                consume(2)
+                return [first, second]
+            }
             noteVolunteeredColorReply(headOfInputLength: length)
             noteClipboardReply(headOfInputLength: length)
             consume(length)
