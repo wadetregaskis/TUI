@@ -424,13 +424,13 @@ struct TextTruncationTests {
     @Test("Text with lineLimit(1) measures width after folding remaining lines")
     func lineLimitFoldsMeasuredWidth() {
         // "abc\nd" without lineLimit has wrapped widths [3, 1], max = 3.
-        // With lineLimit(1) at width 10, remaining lines are folded into "abc d" (width 5).
+        // With lineLimit(1) at width 10, remaining lines are folded into "abc d…" (width 6).
         let text = Text("abc\nd").lineLimit(1)
         let size = text.sizeThatFits(
             proposal: ProposedSize(width: 10, height: nil),
             context: context(width: 10)
         )
-        #expect(size.width == 5, "Text folded into one line should measure width 5, got \(size.width)")
+        #expect(size.width == 6, "Text folded into one line should measure width 6, got \(size.width)")
         #expect(size.height == 1)
     }
 
@@ -442,7 +442,7 @@ struct TextTruncationTests {
         }
         let buffer = renderToBuffer(view, context: context(width: 10, height: 1))
         let row = buffer.lines[0].stripped.trimmingCharacters(in: .whitespaces)
-        #expect(row == "abc d", "Expected 'abc d', got '\(row)'")
+        #expect(row == "abc d…", "Expected 'abc d…', got '\(row)'")
     }
 }
 
