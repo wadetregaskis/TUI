@@ -378,8 +378,8 @@ struct TestAppTimeTests {
         #expect(error?.description.contains("Patience") == true)
     }
 
-    @Test("A wait reads a change a condition can see and no frame asked for")
-    func waitUntil() async throws {
+    @Test("wait(until:) returns once its condition holds, though nothing on the screen changes")
+    func waitUntilConditionHolds() async throws {
         let box = Box()
         let app = TestApp(width: 40, height: 3) { Text("Still") }
         #expect(app.screen.contains("Still"))

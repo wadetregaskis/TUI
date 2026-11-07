@@ -180,6 +180,14 @@ public final class TestApp {
     /// Draws frames until the screen shows `text`, for work that runs on its
     /// own time, such as a `.task` that loads something.
     ///
+    /// A frame is drawn only when the app asks for one, as a running app's
+    /// is: a write to a `@State`, to an `@Observable` property a view read,
+    /// or to `@AppStorage` asks for one. A view reading a plain variable —
+    /// neither `@State` nor an `@Observable`'s property — that is changed
+    /// outside an event asks for none, so a wait for what it would draw times
+    /// out, where a running app would go on showing the old value. Make the
+    /// variable `@State` or a property of an `@Observable`.
+    ///
     /// - Parameters:
     ///   - text: What to wait for, as ``TestScreen/contains(_:)`` finds it.
     ///   - timeout: How long to wait before giving up. It is only there to end
@@ -192,6 +200,10 @@ public final class TestApp {
 
     /// Draws frames until `condition` is true, for work that runs on its own
     /// time, such as a `.task` that loads something.
+    ///
+    /// A frame is drawn only when the app asks for one, so a view reading a
+    /// plain variable changed outside an event is not redrawn: see
+    /// ``wait(for:timeout:)``.
     ///
     /// - Parameters:
     ///   - condition: What to wait for. Read ``screen`` in it, or your own state.
