@@ -113,9 +113,10 @@ extension TextFieldHandler {
         // Insert text
         var current = text.wrappedValue
         let index = current.index(current.startIndex, offsetBy: min(cursorPosition, current.count))
+        let prefixLength = (current[..<index] + sanitized).count
         current.insert(contentsOf: sanitized, at: index)
         write(current)
-        cursorPosition += sanitized.count
+        cursorPosition = prefixLength
     }
 }
 

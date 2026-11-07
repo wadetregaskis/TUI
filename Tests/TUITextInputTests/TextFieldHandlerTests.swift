@@ -600,4 +600,23 @@ struct TextFieldHandlerTests {
         handler.insertText("hello\r\n\u{1B}[31mworld\nline3")
         #expect(text == "hello\n[31mworld\nline3")
     }
+
+    @Test("Pasting a combining mark merges with previous character and places caret correctly")
+    func pastingCombiningMarkMerges() {
+        var text = "e"
+        let binding = Binding(get: { text }, set: { text = $0 })
+        let handler = TextFieldHandler(focusID: "test", text: binding, cursorPosition: 1)
+
+        // Paste combining acute accent (U+0301) after "e"
+        handler.insertText("\u{0301}")
+        #expect(text == "é")
+        #expect(handler.cursorPosition == 1)
+
+        // Paste combining mark followed by regular characters in the middle of text
+        text = "ef"
+        handler.cursorPosition = 1
+        handler.insertText("\u{0301}x")
+        #expect(text == "éxf")
+        #expect(handler.cursorPosition == 2)
+    }
 }
