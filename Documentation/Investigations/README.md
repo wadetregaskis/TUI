@@ -43,6 +43,9 @@ holds it.
 
 | summary | decision | working notes |
 |---|---|---|
+| Rendering: [Running plain bodies less](<../Historical/State and dynamic properties/When a body runs - the plain-body memo.md>) (2026-11-01, 2026-11-02) | landed: the plain-body memo, on by default (PLAIN-MEMO, `66159dae8`); a slow body kept for its draw (`0476bb1da`) | `perf/results/plainmemo` |
+| Concurrency: [Building views off the main actor](<../Historical/Swift language and platforms/Building views off the main actor.md>) (2026-10-31, 2026-11-01) | landed: nonisolated view values, `Button`'s `@MainActor` action (`20dc95860`, `cc23e33d9`); async overloads declined (MAINACTOR) | none kept |
+| Platforms: [Raising the floor to macOS 15](<../Historical/Swift language and platforms/Raising the floor to macOS 15.md>) (2026-10-31) | landed: the floor (`2b2a82d1f`), `Mutex` and `Atomic`, the dead gates removed | none kept |
 | Architecture: [SwiftUI's update model beside TUI's](<../Historical/State and dynamic properties/The update model - when effects run.md>) (2026-10-24) | landed: effects run after the walk in SwiftUI's order, and a frame they change is walked again before it is written (`910819db3`, decisions B-D5G-11); §6 step 3, toolbars and focused values through the same loop, is not built | none |
 | SwiftUI behaviour: [SwiftUI's update and effect ordering, measured](<../Historical/State and dynamic properties/The update model - when effects run.md>) (2026-10-24) | informed the convergence above; context only | none |
 | Terminal graphics: [Thin lines between rows with Kitty graphics](<../Historical/Lists, tables and tabs/Stripes, surfaces and separators.md#appendix-thin-lines-between-rows-with-kitty-graphics-2026-10-08>) (2026-10-08) | landed: the `.hairline` separator look on Ghostty (decisions A-D6L-2), its row marking memoised (`e807fce55`) | `KGP` |
