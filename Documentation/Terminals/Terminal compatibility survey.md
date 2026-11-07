@@ -3430,11 +3430,25 @@ attributes and glyphs that every terminal must then draw.
   section. A bare 7 at this depth exchanges the terminal's own two colours, which is what
   no-colour means. That bare 7 itself, on a whole label or button face, is inferred from
   those measurements rather than measured.
-- **Faint (SGR 2) for disabled and for a text field's prompt.** Measured on Apple Terminal
-  only (`ESC[2m` draws faint text; see "Reverse video" below). **Not measured on iTerm2,
-  Ghostty, Warp, tmux or GNOME Terminal.** A terminal that ignores it shows a disabled control
-  as an enabled one. It would still not take the keyboard, and `RadioButton`'s ◌ and a
-  `DatePicker`'s missing underline don't rest on it.
+- **Faint (SGR 2) for disabled and for a text field's prompt.** A terminal that ignores it
+  shows a disabled control as an enabled one. It would still not take the keyboard, and
+  `RadioButton`'s ◌ and a `DatePicker`'s missing underline don't rest on it. Measured
+  2026-11-07 with `Tools/TerminalProbes/faint_card.py` (plain beside faint, in the default
+  foreground, a named, a 256-colour and a 24-bit colour, on a background, with bold, and a
+  button as TUI draws it at no colour), each host in its own default theme:
+
+  | Host | Faint | A disabled button at no colour |
+  |---|---|---|
+  | Apple Terminal (light theme) | **Dims** every row, toward the background | distinct |
+  | iTerm2 3.x (light theme) | **Dims** every row, toward the background | distinct |
+  | Warp (light theme) | **Darkens** instead of dimming: named red and the 24-bit green go darker, and the default foreground (black), bright blue and 256-colour orange **don't change at all** | **identical to enabled** |
+  | Ghostty 1.3.1 | not measured: the capture tool reached a second, windowless Ghostty instance rather than the probe's window. Its documentation has a `faint-opacity` setting (0.5 by default) | — |
+  | kitty | not measurable here: it can't open a window on this VM (no OpenGL 3.3) | — |
+
+  Warp draws italic (SGR 3), strikethrough (SGR 9) and a dotted underline (SGR 4:4) as asked
+  in the same theme, so each is open to it as a second cue for disabled. Warp's darkening
+  presumably dims as wanted in a dark theme, where the foreground is light (inferred, not
+  measured).
 - **Bold** for a selected tab or segment, and a cursor row's breath where
   `TerminalClient.drawsBold` says so. See "Bold is a COLOUR on some hosts" above: with no
   colour stated, a host that brightens bold has nothing here to clash with.
