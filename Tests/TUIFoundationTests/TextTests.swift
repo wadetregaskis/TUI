@@ -420,6 +420,30 @@ struct TextTruncationTests {
         let buffer = renderToBuffer(text, context: context(width: 10, height: 24))
         #expect(buffer.height > 2, "lineLimit(nil) should not cap the lines, got \(buffer.height)")
     }
+
+    @Test("Text with lineLimit(1) measures width after folding remaining lines")
+    func lineLimitFoldsMeasuredWidth() {
+        // "abc\nd" without lineLimit has wrapped widths [3, 1], max = 3.
+        // With lineLimit(1) at width 10, remaining lines are folded into "abc d" (width 5).
+        let text = Text("abc\nd").lineLimit(1)
+        let size = text.sizeThatFits(
+            proposal: ProposedSize(width: 10, height: nil),
+            context: context(width: 10)
+        )
+        #expect(size.width == 5, "Text folded into one line should measure width 5, got \(size.width)")
+        #expect(size.height == 1)
+    }
+
+    @Test("HStack allocates folded width to lineLimit(1) text beside a Spacer")
+    func lineLimitTextInHStackBesideSpacer() {
+        let view = HStack(spacing: 0) {
+            Text("abc\nd").lineLimit(1)
+            Spacer()
+        }
+        let buffer = renderToBuffer(view, context: context(width: 10, height: 1))
+        let row = buffer.lines[0].stripped.trimmingCharacters(in: .whitespaces)
+        #expect(row == "abc d", "Expected 'abc d', got '\(row)'")
+    }
 }
 
 /// The line-limit fold rebuilt from the source: a boundary contributes what

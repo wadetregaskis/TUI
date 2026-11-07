@@ -994,15 +994,28 @@ extension TextStyle {
         // number of cells for it.
         let font = resolvedFont(stating: style.font, context: context)
         let textCase = cascadedAttributes(context: context, font: font).effectiveTextCase
+        let contentString = Self.displayString(
+            shownWords(in: context.environment).content, textCase: textCase,
+            redaction: context.environment.effectiveRedactionReasons)
         let wrapped = TextWrapping.wrapMeasured(
-            Self.displayString(
-                shownWords(in: context.environment).content, textCase: textCase,
-                redaction: context.environment.effectiveRedactionReasons),
+            contentString,
             width: maxWidth)
 
         // Reuse the per-line widths the wrap already computed instead of
-        // re-`strippedLength`-ing every line.
-        let naturalWidth = wrapped.widths.max() ?? 0
+        // re-`strippedLength`-ing every line. When there is a line limit and
+        // more lines than it allows, the render folds the extra lines into the
+        // last kept line, which can make it wider; measure via `fitMeasured`.
+        let policy = resolvedLineLimitPolicy(context: context)
+        let naturalWidth: Int
+        if let limit = policy.rowCount, wrapped.lines.count > limit {
+            let mode = style.truncationMode ?? context.environment.truncationMode
+            let atWordBoundary = style.truncatesAtWordBoundary
+            let fitted = TextWrapping.fitMeasured(
+                contentString, width: maxWidth, maxLines: limit, mode: mode, atWordBoundary: atWordBoundary)
+            naturalWidth = fitted.widths.max() ?? 0
+        } else {
+            naturalWidth = wrapped.widths.max() ?? 0
+        }
         // Never advertise a width wider than the wrap boundary: a word
         // longer than `maxWidth` is truncated at render time, so claiming
         // its full width would make the parent reserve unusable space. A
@@ -1015,7 +1028,6 @@ extension TextStyle {
         // the rows the text is allowed to occupy. Resolved against the
         // environment exactly as the render does, or a cascaded
         // `.lineLimit(_:)` would reserve rows the render then refuses to draw.
-        let policy = resolvedLineLimitPolicy(context: context)
         var drawnLines = min(wrapped.lines.count, policy.rowCount ?? wrapped.lines.count)
         // …and a reservation is a FLOOR on the same number, so a text shorter
         // than its limit still asks its parent for the rows it will pad out to.
