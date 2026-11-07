@@ -116,14 +116,18 @@ struct TextFieldContentRenderer: FieldTextLayout {
         /// scrolled out of the window.
         let insertionColumn: Int?
 
+        /// The horizontal scroll offset, in cells, that was actually drawn.
+        let scrollStart: Int
+
         init(
             line: String, caret: AnimatedCellRun? = nil, claims: [OpacityRegion] = [],
-            insertionColumn: Int? = nil
+            insertionColumn: Int? = nil, scrollStart: Int = 0
         ) {
             self.line = line
             self.caret = caret
             self.claims = claims
             self.insertionColumn = insertionColumn
+            self.scrollStart = scrollStart
         }
     }
 
@@ -204,7 +208,8 @@ struct TextFieldContentRenderer: FieldTextLayout {
         guard legibilityWeight.drawsPlainBold else { return content }
         return FieldContent(
             line: ANSIRenderer.applyPersistentBold(content.line), caret: content.caret?.drawnBold(),
-            claims: content.claims, insertionColumn: content.insertionColumn)
+            claims: content.claims, insertionColumn: content.insertionColumn,
+            scrollStart: content.scrollStart)
     }
 
     /// The coalescing accumulator a focused field's cells are written into:
@@ -586,7 +591,9 @@ struct TextFieldContentRenderer: FieldTextLayout {
         }
         flushRun()
 
-        return FieldContent(line: runs.line, caret: caret, claims: runs.claims, insertionColumn: insertionColumn)
+        return FieldContent(
+            line: runs.line, caret: caret, claims: runs.claims,
+            insertionColumn: insertionColumn, scrollStart: scrollStart)
     }
 
     /// The caret's blink cycle and the five colours its frames pick between —

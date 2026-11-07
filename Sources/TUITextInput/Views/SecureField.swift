@@ -475,6 +475,7 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
         if !context.isMeasuring {
             if let caret = fieldContent.caret { buffer.animatedCells = [caret.shifted(byX: chrome.leadingCells, y: 0)] }
             handler.insertionPoint = fieldContent.insertionColumn.map { CellPoint(x: chrome.leadingCells + $0, y: 0) }
+            handler.drawnScrollCells = fieldContent.scrollStart
         }
 
         // The content's translucent colours, shifted by exactly what the caret is

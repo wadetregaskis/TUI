@@ -488,4 +488,36 @@ struct TextFieldRenderTests {
         #expect(line.contains("😀"))
         #expect(hasCaretCell(frame.lines[0]))
     }
+
+    @Test("Clicking an unfocused long TextField puts the caret at the clicked column")
+    func clickUnfocusedLongTextField() throws {
+        final class Model: @unchecked Sendable {
+            var decoy = "first"
+            var text = "abcdefghijklmnopqrstuvwxyz0123"
+        }
+        let model = Model()
+        let harness = InputChainHarness(width: 20, height: 4)
+        struct Page: View {
+            let model: Model
+            var body: some View {
+                VStack(spacing: 0) {
+                    TextField("Decoy", text: Binding(get: { model.decoy }, set: { model.decoy = $0 }))
+                        .focusID("decoy")
+                        .frame(width: 12)
+                    TextField("Target", text: Binding(get: { model.text }, set: { model.text = $0 }))
+                        .focusID("target")
+                        .frame(width: 12)
+                }
+            }
+        }
+        let page = Page(model: model)
+        _ = harness.frame(page)
+        #expect(harness.focusManager.currentFocusedID == "decoy")
+        // Row 1 is the Target field. Leading cap is 1 cell at x: 0, so content column 3 is at x: 4.
+        _ = harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 4, y: 1))
+        _ = harness.frame(page)
+        #expect(harness.focusManager.currentFocusedID == "target")
+        let targetHandler = try #require(harness.focusManager.currentFocused as? TextFieldHandler)
+        #expect(targetHandler.cursorPosition == 3)
+    }
 }

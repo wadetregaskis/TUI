@@ -545,4 +545,17 @@ struct TextFieldHandlerTests {
         // Column 8 is cell 4 + 8 = 12, which is index 12 (the emoji)
         #expect(handler.characterIndex(forColumn: 8, contentWidth: 10, displayWidths: widths) == 12)
     }
+
+    @Test("Clicking an unfocused field maps through drawnScrollCells 0")
+    func unfocusedFieldClickMapsThroughDrawnScroll() {
+        var text = "abcdefghijklmnopqrstuvwxyz0123" // 30 characters
+        let binding = Binding(get: { text }, set: { text = $0 })
+        // Previous cursor was left at the end (position 30)
+        let handler = TextFieldHandler(focusID: "test", text: binding, cursorPosition: 30)
+        let widths = narrowWidths(30)
+        // When unfocused, drawnScrollCells is 0
+        handler.drawnScrollCells = 0
+        // Clicking column 3 of the 10-wide content area must land on character 3, not 24
+        #expect(handler.characterIndex(forColumn: 3, contentWidth: 10, displayWidths: widths) == 3)
+    }
 }
