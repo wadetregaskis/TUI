@@ -49,6 +49,7 @@ import TUIFoundation
 /// | Ctrl+V | Paste at cursor |
 /// | Ctrl+Z | Undo |
 /// | Ctrl+U | Erase the entire field |
+/// | Ctrl+W | Delete one character before the cursor — never a word |
 /// | Enter | Trigger onSubmit action |
 ///
 /// The Control chords are the ones ``TextField`` answers, and give way to an

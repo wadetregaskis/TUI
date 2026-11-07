@@ -99,8 +99,9 @@ extension TextFieldHandler {
         case .redo: redo()
         case .killToStartOfLine: killToStart(at: lineKillStart())
         case .killWordBackward:
+            // A secure field's "word" is one character (``wordBoundary(forward:)``).
             let start = isSecure
-                ? max(cursorPosition - 1, lineKillStart())
+                ? max(wordBoundary(forward: false), lineKillStart())
                 : StandInEditingCommand.wordRuboutStart(
                     in: Array(text.wrappedValue), before: cursorPosition, lineStart: lineKillStart())
             killToStart(at: start)

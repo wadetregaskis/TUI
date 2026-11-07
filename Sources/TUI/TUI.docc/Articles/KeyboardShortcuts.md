@@ -415,7 +415,7 @@ such a chord, the focused text control isn't offered it, and your button fires.
 | ⌃Z | Undo | The control's |
 | ⌃V | Paste, in a field or a `TextEditor` | The control's |
 | ⌃U | Kill to the start of the line, readline's `unix-line-discard`: in a field everything before the caret, in a vertical field or a `TextEditor` the caret's line; ⌃Y yanks it back (a `SecureField` keeps no kill to yank) | Yours |
-| ⌃W | Kill the word before the caret, readline's `unix-word-rubout`, on the caret's line; ⌃Y yanks it back (a `SecureField` keeps no kill to yank) | Yours |
+| ⌃W | Kill the word before the caret, readline's `unix-word-rubout`, on the caret's line; ⌃Y yanks it back. A `SecureField` deletes one character, as its every word command goes one, and keeps no kill to yank | Yours |
 
 Every editing chord gives way, even where it is the control's only key for
 what it does (select-all, the editor's ⌃A and ⌃E): an app that binds the chord
