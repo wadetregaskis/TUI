@@ -104,4 +104,21 @@ struct FilePanelTextPreviewTests {
         #expect(crlfExcerpt.contains("(plus"))
         #expect(!crlfExcerpt.contains("Line 299"))
     }
+
+    @Test("Exactly 250 lines ending in a newline has no truncation indicator")
+    func exactly250LinesEndingInNewline() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let url = fixture.url("exact250.txt")
+        let lines = (1...250).map { "Line \($0)" }
+        let content = lines.joined(separator: "\n") + "\n"
+        try Data(content.utf8).write(to: url)
+
+        let entry = entry(for: url, size: Int64(content.utf8.count))
+        let excerpt = try #require(await FilePanelPreview.excerpt(of: entry))
+        #expect(excerpt.contains("Line 1"))
+        #expect(excerpt.contains("Line 250"))
+        #expect(!excerpt.contains("…"))
+        #expect(!excerpt.contains("(plus"))
+    }
 }

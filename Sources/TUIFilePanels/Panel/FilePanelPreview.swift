@@ -143,10 +143,13 @@ struct FilePanelPreview: View {
         let isTruncatedByBytes = cappedSlice.count < total
         guard let decoded = utf8Text(from: cappedSlice, truncated: isTruncatedByBytes) else { return nil }
         let text = decoded.replacingOccurrences(of: "\t", with: "  ")
-        let rawLines = text.split(
+        var rawLines = text.split(
             omittingEmptySubsequences: false,
             whereSeparator: { $0 == "\n" || $0 == "\r\n" || $0 == "\r" }
         )
+        if rawLines.last?.isEmpty == true, rawLines.count > 1 {
+            rawLines.removeLast()
+        }
         var lines = rawLines.map(String.init)
         let isTruncatedByLines = lines.count > previewLineCap
         if isTruncatedByLines {
@@ -156,14 +159,18 @@ struct FilePanelPreview: View {
             })
             lines = Array(lines.prefix(previewLineCap))
             let remaining = max(0, total - shownBytes)
-            let formatted = ByteCountFormatStyle(style: .file).format(remaining)
-            lines.append("…")
-            lines.append("(plus \(formatted) more)")
+            if remaining > 0 {
+                let formatted = ByteCountFormatStyle(style: .file).format(remaining)
+                lines.append("…")
+                lines.append("(plus \(formatted) more)")
+            }
         } else if isTruncatedByBytes {
             let remaining = max(0, total - Int64(cappedSlice.count))
-            let formatted = ByteCountFormatStyle(style: .file).format(remaining)
-            lines.append("…")
-            lines.append("(plus \(formatted) more)")
+            if remaining > 0 {
+                let formatted = ByteCountFormatStyle(style: .file).format(remaining)
+                lines.append("…")
+                lines.append("(plus \(formatted) more)")
+            }
         }
         return lines.joined(separator: "\n")
     }
