@@ -877,9 +877,12 @@ extension TextFieldHandler {
         let current = text.wrappedValue
         var updated = current
         let index = updated.index(updated.startIndex, offsetBy: min(cursorPosition, updated.count))
+        // Counted, not +1: a combining mark, a vowel sign or a skin-tone
+        // modifier merges into the character before it, as a paste's does.
+        let prefixLength = (updated[..<index] + String(char)).count
         updated.insert(char, at: index)
         write(updated)
-        cursorPosition += 1
+        cursorPosition = prefixLength
 
         // Diagnostic (TUI_DEBUG_FOCUS=1): identify which @State
         // we actually wrote through. Bindings don't carry identity,

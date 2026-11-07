@@ -623,22 +623,26 @@ final class TextEditorHandler: PersistedFocusable {
         let tail = Array(line[cursorColumn...])
         line.removeSubrange(cursorColumn..<line.count)
 
+        // Each line's characters as its string has them: a combining mark, a
+        // vowel sign or a skin-tone modifier typed or pasted merges into the
+        // character before it, and an array that kept it apart put the caret a
+        // column late, and later than the text's own lines once read again.
+        func merged(_ characters: [Character]) -> [Character] { Array(String(characters)) }
         if inserted.count == 1 {
-            line.append(contentsOf: inserted[0])
-            cursorColumn = line.count
-            line.append(contentsOf: tail)
+            let head = merged(line + inserted[0])
+            line = merged(head + tail)
+            cursorColumn = min(head.count, line.count)
             lines[cursorLine] = line
         } else {
-            line.append(contentsOf: inserted[0])
-            lines[cursorLine] = line
+            lines[cursorLine] = merged(line + inserted[0])
             var insertAt = cursorLine + 1
             for middle in inserted[1..<(inserted.count - 1)] {
                 lines.insert(middle, at: insertAt)
                 insertAt += 1
             }
-            var last = inserted[inserted.count - 1]
-            cursorColumn = last.count
-            last.append(contentsOf: tail)
+            let head = inserted[inserted.count - 1]
+            let last = merged(head + tail)
+            cursorColumn = min(head.count, last.count)
             lines.insert(last, at: insertAt)
             cursorLine = insertAt
         }

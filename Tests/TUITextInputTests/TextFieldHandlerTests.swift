@@ -619,4 +619,15 @@ struct TextFieldHandlerTests {
         #expect(text == "éxf")
         #expect(handler.cursorPosition == 2)
     }
+
+    @Test("Typing a mark that merges into the character before keeps the caret after that character")
+    func typingMergingMarkPlacesCaret() {
+        var text = "कब"
+        let binding = Binding(get: { text }, set: { text = $0 })
+        let handler = TextFieldHandler(focusID: "test", text: binding, cursorPosition: 1)
+        // A Hindi keyboard sends the vowel sign as a key of its own.
+        handler.insertCharacter("\u{093F}")
+        #expect(text == "किब")
+        #expect(handler.cursorPosition == 1, "after कि, before ब")
+    }
 }

@@ -59,6 +59,16 @@ struct TextEditorTests {
         #expect(sink.value == "hello\tworld[2J\nsecond\nthird")
     }
 
+    @Test("A typed mark that merges into the character before puts the caret after that character")
+    func mergingMarkCaret() {
+        let sink = StringSink("कब")
+        let editor = handler(sink)
+        editor.cursorColumn = 1
+        editor.insert("\u{093F}")
+        #expect(sink.value == "किब")
+        #expect(editor.cursorColumn == 1, "after कि, before ब")
+    }
+
     @Test("Backspace at column 0 joins the previous line")
     func backspaceJoinsLines() {
         let sink = StringSink("a\nb")
