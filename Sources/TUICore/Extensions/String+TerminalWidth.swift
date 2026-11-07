@@ -114,22 +114,20 @@ extension Character {
         // them: a line carrying one measured a cell wider than it drew, so
         // every column after it was placed wrong. Text pasted from a
         // bidirectional document already carried them.
-        case 0x200E, 0x200F, 0x061C:  // LRM, RLM, ALM
+        case 0x200E, 0x200F, 0x061C,  // LRM, RLM, ALM
+            0x202A...0x202E,  // LRE, RLE, PDF, LRO, RLO
+            0x2066...0x2069:  // LRI, RLI, FSI, PDI
             return true
-        case 0x202A...0x202E:  // LRE, RLE, PDF, LRO, RLO
+        // Word joiner, function application, invisible times, separator and
+        // plus, and the Mongolian vowel separator: format characters, as
+        // Default_Ignorable as the bidi controls.
+        case 0x2060...0x2064, 0x180E:
             return true
-        case 0x2060...0x2064:  // WJ, function application, invisible times/sep/plus
-            return true
-        case 0x180E:  // Mongolian vowel separator
-            return true
-        case 0x2066...0x2069:  // LRI, RLI, FSI, PDI
-            return true
-        case 0xFE00...0xFE0F, 0xE0100...0xE01EF:  // variation selectors (+ supplement)
+        case 0xFE00...0xFE0F, 0xE0100...0xE01EF,  // variation selectors (+ supplement)
+            0xE0000...0xE007F:  // tags block
             return true
         case 0x0300...0x036F, 0x1AB0...0x1AFF, 0x1DC0...0x1DFF,  // combining diacriticals (+ ext/supp)
             0x20D0...0x20FF, 0xFE20...0xFE2F:  // combining marks for symbols, half marks
-            return true
-        case 0xE0000...0xE007F:  // tags block
             return true
         default:
             return false
