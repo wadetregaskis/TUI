@@ -30,6 +30,12 @@ private final class ClosureReadModel {
     var label = "one"
 }
 
+/// A preference nothing sets: the layer is built from its default.
+private struct UnsetPreference: PreferenceKey {
+    static let defaultValue = 0
+    static func reduce(value: inout Int, nextValue: () -> Int) { value = nextValue() }
+}
+
 /// Resolves to a modifier showing the model's label beside the content.
 private struct LabelResolvingModifier: EnvironmentalModifier {
     let model: ClosureReadModel
@@ -73,6 +79,48 @@ struct DeferredClosureObservationTests {
         #expect(app.takeFrameRequest(), "the write asked for no frame", sourceLocation: sourceLocation)
         let second = draw(app)
         #expect(second.contains(after), "\(second)", sourceLocation: sourceLocation)
+    }
+
+    @Test("What a toggle governs, reading an @Observable, asks for a frame")
+    mutating func toggleContent() {
+        let model = ClosureReadModel()
+        let app = TestApp(width: 30, height: 6) {
+            Toggle("lamp", isOn: .constant(true)).toggleContent { Text(verbatim: "TC:" + model.label) }
+        }
+        expectRedraw(app, model: model, from: "TC:one", to: "TC:two")
+    }
+
+    @Test("A Group(subviews:) transform reading an @Observable asks for a frame")
+    mutating func groupSubviews() {
+        let model = ClosureReadModel()
+        let app = TestApp(width: 30, height: 6) {
+            VStack {
+                Group(subviews: Text("a")) { _ in Text(verbatim: "GS:" + model.label) }
+            }
+        }
+        expectRedraw(app, model: model, from: "GS:one", to: "GS:two")
+    }
+
+    @Test("A Group(sections:) transform reading an @Observable asks for a frame")
+    mutating func groupSections() {
+        let model = ClosureReadModel()
+        let app = TestApp(width: 30, height: 6) {
+            VStack {
+                Group(sections: Text("a")) { _ in Text(verbatim: "GX:" + model.label) }
+            }
+        }
+        expectRedraw(app, model: model, from: "GX:one", to: "GX:two")
+    }
+
+    @Test("An overlayPreferenceValue transform reading an @Observable asks for a frame")
+    mutating func preferenceLayer() {
+        let model = ClosureReadModel()
+        let app = TestApp(width: 30, height: 6) {
+            Text("..........").overlayPreferenceValue(UnsetPreference.self) { _ in
+                Text(verbatim: "PL:" + model.label)
+            }
+        }
+        expectRedraw(app, model: model, from: "PL:one", to: "PL:two")
     }
 
     @Test("An EnvironmentalModifier's resolve(in:) reading an @Observable asks for a frame")

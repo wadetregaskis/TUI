@@ -68,8 +68,12 @@ nonisolated public struct GroupSectionsOfContent<Sections: View, Content: View>:
     public func childViews(context: RenderContext) -> [ChildView] {
         let sections = SectionCollection(
             resolving: base, in: context.withChildIdentity(type: Sections.self, index: 0))
-        let result = transform(sections)
         let resultScope = context.withChildIdentity(type: Content.self, index: 1)
+        // Observed, measuring too: a stack asks for these to measure, and the
+        // transform is the result's body, deferred to here.
+        let result = observingBodyClosure(of: Self.self, context: resultScope, observesWhenMeasuring: true) {
+            transform(sections)
+        }
         return resolveChildViews(from: result, context: resultScope).map {
             $0.pinningIdentity(to: resultScope.identity)
         }

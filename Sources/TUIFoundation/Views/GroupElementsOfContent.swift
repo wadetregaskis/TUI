@@ -103,8 +103,12 @@ nonisolated public struct GroupElementsOfContent<Subviews: View, Content: View>:
         let subviews = SubviewsCollection(
             members: SubviewMembers(
                 resolving: base, in: context.withChildIdentity(type: Subviews.self, index: 0)))
-        let result = transform(subviews)
         let resultScope = context.withChildIdentity(type: Content.self, index: 1)
+        // Observed, measuring too: a stack asks for these to measure, and the
+        // transform is the result's body, deferred to here.
+        let result = observingBodyClosure(of: Self.self, context: resultScope, observesWhenMeasuring: true) {
+            transform(subviews)
+        }
         return resolveChildViews(from: result, context: resultScope).map {
             $0.pinningIdentity(to: resultScope.identity)
         }

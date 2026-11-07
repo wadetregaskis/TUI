@@ -99,7 +99,12 @@ nonisolated struct PreferenceLayerModifier<Base: View, K: PreferenceKey, Layer: 
 
     /// The layer built from `value`, laid over (or under) `baseBuffer`.
     private func composite(_ value: K.Value, over baseBuffer: FrameBuffer, _ context: RenderContext) -> FrameBuffer {
-        let layer = transform(value)
+        // Observed at the layer's identity, where it is drawn: the transform
+        // is the layer's body, deferred until the preference is known, so what
+        // it reads asks for a frame as a body's read does.
+        let layer = observingBodyClosure(of: Self.self, context: layerContext(context, modifierType: Self.self)) {
+            transform(value)
+        }
         return isBackground
             ? compositeLayer(
                 layer, under: baseBuffer, alignment: alignment, context: context, modifierType: Self.self)

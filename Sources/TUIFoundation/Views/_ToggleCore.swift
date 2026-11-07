@@ -885,14 +885,14 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
         // step off the core's, because indices 0... at the core's identity
         // belong to a composite LABEL's `@State`.
         if let content {
-            let governed = content()
+            let governedContext = context.withChildIdentity(
+                erasedType: AnyView.self, index: ChildIndex.governedContent)
+            // Observed: the closure is the content's body, deferred to here,
+            // so what it reads asks for a frame as a body's read does.
+            let governed = observingBodyClosure(of: Self.self, context: governedContext) { content() }
                 .padding(.leading, contentIndent)
                 .disabled(isDisabled || !isOnValue)
-            buffer.appendVertically(
-                TUIView.renderToBuffer(
-                    governed,
-                    context: context.withChildIdentity(
-                        erasedType: AnyView.self, index: ChildIndex.governedContent)))
+            buffer.appendVertically(TUIView.renderToBuffer(governed, context: governedContext))
         }
 
         if !isProxy {
