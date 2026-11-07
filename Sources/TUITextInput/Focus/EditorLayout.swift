@@ -24,6 +24,9 @@ final class EditorLayout {
     /// empty: an empty text is one empty line.
     let lines: [[Character]]
 
+    /// The line ending separator detected from the text ("\n", "\r\n", or "\r").
+    let lineEnding: String
+
     /// The lines wrapped at the widths asked for this frame and the last
     /// (``wrapped(width:tabWidth:)``), each with the frame that last asked.
     var wrappings: [(rows: WrappedRows, tabWidth: TabWidth, frame: UInt)] = []
@@ -38,14 +41,26 @@ final class EditorLayout {
     /// Splits `text` into its lines.
     init(text: String) {
         self.text = text
-        let parts = text.split(separator: "\n", omittingEmptySubsequences: false).map { Array($0) }
+        let separator: String
+        if text.contains("\r\n") {
+            separator = "\r\n"
+        } else if text.contains("\r") {
+            separator = "\r"
+        } else {
+            separator = "\n"
+        }
+        self.lineEnding = separator
+        let parts = text.split(omittingEmptySubsequences: false, whereSeparator: {
+            $0 == "\n" || $0 == "\r\n" || $0 == "\r"
+        }).map { Array($0) }
         lines = parts.isEmpty ? [[]] : parts
     }
 
     /// The layout of `text`, whose lines the caller already has — the editor's
     /// own edit, written as these lines joined.
-    init(text: String, lines: [[Character]]) {
+    init(text: String, lines: [[Character]], lineEnding: String = "\n") {
         self.text = text
         self.lines = lines.isEmpty ? [[]] : lines
+        self.lineEnding = lineEnding
     }
 }

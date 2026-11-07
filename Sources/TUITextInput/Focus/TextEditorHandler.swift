@@ -234,12 +234,13 @@ final class TextEditorHandler: PersistedFocusable {
     }
 
     func writeLines(_ lines: [[Character]]) {
-        let joined = lines.map { String($0) }.joined(separator: "\n")
+        let ending = layout().lineEnding
+        let joined = lines.map { String($0) }.joined(separator: ending)
         write(joined)
         // The lines just written are the layout of the text just written —
         // unless the binding kept something else (one that transforms what it
         // is given), which the next read lays out afresh.
-        if text.wrappedValue == joined { cachedLayout = EditorLayout(text: joined, lines: lines) }
+        if text.wrappedValue == joined { cachedLayout = EditorLayout(text: joined, lines: lines, lineEnding: ending) }
     }
 
     /// Writes `newText` to the bound text. Every edit the editor makes goes

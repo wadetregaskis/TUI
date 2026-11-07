@@ -27,6 +27,28 @@ struct EditorLayoutTests {
         #expect(EditorLayout(text: "a\n").lines == [["a"], []])
     }
 
+    @Test("CRLF and lone CR split into lines correctly and preserve line separator")
+    func crlfAndLoneCR() {
+        let crlf = EditorLayout(text: "line1\r\nline2\r\n")
+        #expect(crlf.lines == [["l", "i", "n", "e", "1"], ["l", "i", "n", "e", "2"], []])
+        #expect(crlf.lineEnding == "\r\n")
+
+        let cr = EditorLayout(text: "alpha\rbeta")
+        #expect(cr.lines == [["a", "l", "p", "h", "a"], ["b", "e", "t", "a"]])
+        #expect(cr.lineEnding == "\r")
+    }
+
+    @Test("Editing text with CRLF preserves the CRLF line endings")
+    func editPreservesCRLF() {
+        let box = Box("first\r\nsecond")
+        let handler = TextEditorHandler(
+            focusID: "e", text: Binding(get: { box.value }, set: { box.value = $0 }))
+        #expect(handler.lineCount == 2)
+        handler.moveCursor(toLine: 0, column: 5)
+        handler.insert("!")
+        #expect(box.value == "first!\r\nsecond")
+    }
+
     @Test("An untouched document is laid out once")
     func reusedWhileUnchanged() {
         let box = Box("one\ntwo")
