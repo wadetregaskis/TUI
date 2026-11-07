@@ -89,16 +89,17 @@ struct FilePanelPreview: View {
             || type == .log || type == .unixExecutable || type == .propertyList
     }
 
+    /// Whether `data` contains ASCII control characters that indicate binary data
+    /// (excluding standard text whitespace: tab, LF, FF, CR).
+    nonisolated static func containsBinaryControlBytes(_ data: Data) -> Bool {
+        data.contains { ($0 < 0x20 && $0 != 0x09 && $0 != 0x0A && $0 != 0x0C && $0 != 0x0D) || $0 == 0x7F }
+    }
+
     /// Decodes `data` as UTF-8 text when it contains no binary control bytes
     /// and is valid UTF-8 (trimming up to three trailing bytes of a split
     /// multi-byte scalar when `truncated` is true); `nil` for binary data.
     nonisolated static func utf8Text(from data: Data, truncated: Bool) -> String? {
-        guard !data.isEmpty else { return nil }
-        for byte in data {
-            if (byte < 0x20 && byte != 0x09 && byte != 0x0A && byte != 0x0C && byte != 0x0D) || byte == 0x7F {
-                return nil
-            }
-        }
+        guard !data.isEmpty, !containsBinaryControlBytes(data) else { return nil }
         if let text = String(data: data, encoding: .utf8) {
             return text
         }
@@ -136,7 +137,18 @@ struct FilePanelPreview: View {
         let cappedSlice = data.prefix(previewByteCap)
         let total = totalSize ?? Int64(data.count)
         let isTruncatedByBytes = cappedSlice.count < total
-        guard let decoded = utf8Text(from: cappedSlice, truncated: isTruncatedByBytes) else { return nil }
+        let decoded: String
+        if let text = utf8Text(from: cappedSlice, truncated: isTruncatedByBytes) {
+            decoded = text
+        } else if entry.contentType.conforms(to: .text), !containsBinaryControlBytes(cappedSlice) {
+            // Lossy fallback for non-UTF-8 declared text files (e.g. ISO-8859-1,
+            // Windows-1252), matching behaviour prior to 426893104 while continuing
+            // to reject binary data.
+            // swiftlint:disable:next optional_data_string_conversion
+            decoded = String(decoding: cappedSlice, as: UTF8.self)
+        } else {
+            return nil
+        }
         let text = decoded.replacingOccurrences(of: "\t", with: "  ")
         var rawLines = text.split(
             omittingEmptySubsequences: false,

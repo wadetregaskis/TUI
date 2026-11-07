@@ -146,4 +146,32 @@ struct FilePanelTextPreviewTests {
         let germanText = service.string(for: LocalizationKey.FilePanel.previewMore)
         #expect(germanText.contains("mehr"))
     }
+
+    @Test("Non-UTF-8 declared text file (e.g. ISO-8859-1) previews with lossy decoding")
+    func nonUtf8TextFilePreview() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let url = fixture.url("latin1.txt")
+        // "Café\nCrème\n" encoded in ISO-8859-1 (where 'é' is 0xE9, 'è' is 0xE8; invalid UTF-8)
+        let latin1Bytes: [UInt8] = [0x43, 0x61, 0x66, 0xE9, 0x0A, 0x43, 0x72, 0xE8, 0x6D, 0x65, 0x0A]
+        try Data(latin1Bytes).write(to: url)
+
+        let entry = entry(for: url, size: Int64(latin1Bytes.count))
+        let excerpt = try #require(await FilePanelPreview.excerpt(of: entry))
+        #expect(excerpt.contains("Caf"))
+        #expect(excerpt.contains("me"))
+    }
+
+    @Test("Declared text file containing binary control bytes is rejected")
+    func declaredTextWithBinaryBytesRejected() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let url = fixture.url("binary.txt")
+        let binaryBytes: [UInt8] = [0x00, 0x01, 0x02, 0x41, 0x42]
+        try Data(binaryBytes).write(to: url)
+
+        let entry = entry(for: url, size: Int64(binaryBytes.count))
+        let excerpt = await FilePanelPreview.excerpt(of: entry)
+        #expect(excerpt == nil)
+    }
 }
