@@ -113,8 +113,8 @@ struct FilePanelPreview: View {
         return nil
     }
 
-    /// The preview text of `entry` if it is a text file, read off the main actor
-    /// using memory-mapping; `nil` for anything else, or a file that cannot be read.
+    /// The preview text of `entry` if it is a text file, read off the main actor;
+    /// `nil` for anything else, or a file that cannot be read.
     ///
     /// Only a regular file (or a link to one) is opened: on Linux a type is
     /// its extension's, so a named pipe called `x.log` is "text", and opening
@@ -128,16 +128,11 @@ struct FilePanelPreview: View {
         else { return nil }
         let totalSize = (try? file.resourceValues(forKeys: [.fileSizeKey]))?.fileSize.map(Int64.init)
             ?? entry.size
-        let data: Data
-        do {
-            data = try Data(contentsOf: file, options: [.alwaysMapped])
-        } catch {
-            guard let handle = try? FileHandle(forReadingFrom: file),
-                let read = try? handle.read(upToCount: previewByteCap)
-            else { return nil }
-            data = read
-        }
-        guard !data.isEmpty else { return nil }
+        guard let handle = try? FileHandle(forReadingFrom: file),
+            let data = try? handle.read(upToCount: previewByteCap),
+            !data.isEmpty
+        else { return nil }
+        try? handle.close()
         let cappedSlice = data.prefix(previewByteCap)
         let total = totalSize ?? Int64(data.count)
         let isTruncatedByBytes = cappedSlice.count < total
