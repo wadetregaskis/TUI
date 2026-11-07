@@ -62,8 +62,10 @@
             }
 
             /// Writes beside the destination and moves into place, replacing what
-            /// is there. Without it, a directory or a symbolic link written over
-            /// something that exists fails.
+            /// is there: the destination names the old node or the new one,
+            /// whole, throughout, and a write that fails leaves the old one.
+            /// Without it, a directory or a symbolic link written over something
+            /// that exists fails.
             public static let atomic = Self(rawValue: 1 << 0)
 
             /// Sets each descendant's ``FileWrapper/filename`` to the name it was
@@ -235,10 +237,7 @@
                     .appendingPathComponent(".\(url.lastPathComponent).\(UUID().uuidString)")
                 do {
                     try writeNode(to: temporary)
-                    if FileManager.default.fileExists(atPath: url.path) {
-                        try? FileManager.default.removeItem(at: url)
-                    }
-                    try FileManager.default.moveItem(at: temporary, to: url)
+                    try Self.replace(url, with: temporary)
                 } catch {
                     try? FileManager.default.removeItem(at: temporary)
                     throw error
@@ -250,6 +249,38 @@
         }
 
         // MARK: Private
+
+        /// Moves `replacement` to `url`, replacing whatever is there, so that
+        /// `url` names the old node or the new one whole at every moment, and a
+        /// failure leaves the old one where it was.
+        ///
+        /// `rename(2)` does that in one step for a file over a file (a save's
+        /// usual case). Where it can't — a folder over a folder that holds
+        /// anything, a node over one of another kind, or Windows, whose
+        /// `rename` replaces nothing — the old node is moved aside first, and
+        /// back again if the new one can't take its place. Never deleted first:
+        /// a crash between a delete and the move left the document only in a
+        /// hidden temporary, and a delete that failed partway through a package
+        /// went unnoticed until the move then failed too.
+        private static func replace(_ url: URL, with replacement: URL) throws {
+            if rename(replacement.path, url.path) == 0 { return }
+            // lstat's view: a dangling link is still something to move aside.
+            guard (try? FileManager.default.attributesOfItem(atPath: url.path)) != nil else {
+                try FileManager.default.moveItem(at: replacement, to: url)
+                return
+            }
+            let aside = url.deletingLastPathComponent()
+                .appendingPathComponent(".\(url.lastPathComponent).\(UUID().uuidString).old")
+            try FileManager.default.moveItem(at: url, to: aside)
+            do {
+                try FileManager.default.moveItem(at: replacement, to: url)
+            } catch {
+                try? FileManager.default.moveItem(at: aside, to: url)
+                throw error
+            }
+            // Left behind, it is a stray hidden copy, not lost data.
+            try? FileManager.default.removeItem(at: aside)
+        }
 
         /// `name`, or if it is taken, the key Foundation's makes of it.
         private static func unusedKey(for name: String, in children: [String: FileWrapper]) -> String {
