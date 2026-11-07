@@ -8352,6 +8352,12 @@ one cell each until 2026-09-01. A line carrying one, as text pasted from a
 bidirectional document does, measured a cell wider than it drew. They are
 zero-width now (`BidiControlWidthTests`).
 
+Likewise, the word joiner (U+2060), invisible math operators (U+2061–2064)
+and Mongolian vowel separator (U+180E) are `Default_Ignorable_Code_Point`
+formatting characters with no advance: measured at 0 cells with
+`advance_probe.py` on tmux 3.7c (2026-11-07), they are treated as zero-width
+scalars in `String+TerminalWidth` (`ZeroWidthScalarTests`).
+
 ### RTL characters as image PIXELS — measured 2026-09-01, still OPEN
 
 **Apple Terminal mirrors a picture made of right-to-left glyphs.** A

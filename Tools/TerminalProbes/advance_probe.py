@@ -184,6 +184,12 @@ BATTERY.update({
     "latin_zwnj": "a\u200C",
     "bidi_lrm": "\u200E",
     "bidi_rlm": "\u200F",
+    "word_joiner": "\u2060",
+    "function_application": "\u2061",
+    "invisible_times": "\u2062",
+    "invisible_separator": "\u2063",
+    "invisible_plus": "\u2064",
+    "mongolian_vowel_separator": "\u180E",
     # Fullwidth Latin and a three-mark NFD stack, the two rows added to
     # existing corpus classes on the same date.
     "fullwidth_latin_a": "\uFF21",

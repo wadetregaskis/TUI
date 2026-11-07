@@ -375,6 +375,44 @@ struct BidiControlWidthTests {
     }
 }
 
+// MARK: - Zero-width format controls
+
+@Suite("Invisible format controls take no cells")
+struct ZeroWidthScalarTests {
+
+    private static let controls: [(String, UInt32)] = [
+        ("Word Joiner (WJ)", 0x2060),
+        ("Function Application", 0x2061),
+        ("Invisible Times", 0x2062),
+        ("Invisible Separator", 0x2063),
+        ("Invisible Plus", 0x2064),
+        ("Mongolian Vowel Separator", 0x180E),
+    ]
+
+    @Test("each invisible control on its own measures zero")
+    func invisibleControlsAreZeroWidth() {
+        for (name, value) in Self.controls {
+            guard let scalar = Unicode.Scalar(value) else {
+                Issue.record("invalid scalar \(value)")
+                continue
+            }
+            #expect(scalar.loneTerminalWidth == 0, "\(name) loneTerminalWidth")
+            #expect(Character(scalar).terminalWidth == 0, "\(name) terminalWidth")
+            let text = String(scalar)
+            #expect(text.strippedLength == 0, "\(name) (U+\(String(value, radix: 16))) strippedLength")
+        }
+    }
+
+    @Test("an invisible control between letters does not widen the line")
+    func invisibleControlsDoNotWidenText() {
+        for (name, value) in Self.controls {
+            guard let scalar = Unicode.Scalar(value) else { continue }
+            let control = String(scalar)
+            #expect("a\(control)b".strippedLength == 2, "\(name) widened \"ab\"")
+        }
+    }
+}
+
 // MARK: - Combining marks
 
 /// The sibling of the bidi-control suite above, found the same way and wrong

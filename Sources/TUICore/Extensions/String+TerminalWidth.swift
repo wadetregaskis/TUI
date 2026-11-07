@@ -118,6 +118,10 @@ extension Character {
             return true
         case 0x202A...0x202E:  // LRE, RLE, PDF, LRO, RLO
             return true
+        case 0x2060...0x2064:  // WJ, function application, invisible times/sep/plus
+            return true
+        case 0x180E:  // Mongolian vowel separator
+            return true
         case 0x2066...0x2069:  // LRI, RLI, FSI, PDI
             return true
         case 0xFE00...0xFE0F, 0xE0100...0xE01EF:  // variation selectors (+ supplement)
