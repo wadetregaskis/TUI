@@ -75,4 +75,33 @@ struct FilePanelTextPreviewTests {
         let data = Data([0xC3])
         #expect(FilePanelPreview.utf8Text(from: data, truncated: true) == nil)
     }
+
+    @Test("CR-only and CRLF files respect the line cap")
+    func lineCapWithDifferentLineEndings() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+
+        // CR-only
+        let crUrl = fixture.url("cronly.txt")
+        let crLines = (1...300).map { "Line \($0)" }
+        let crContent = crLines.joined(separator: "\r")
+        try Data(crContent.utf8).write(to: crUrl)
+        let crEntry = entry(for: crUrl, size: Int64(crContent.utf8.count))
+        let crExcerpt = try #require(await FilePanelPreview.excerpt(of: crEntry))
+        #expect(crExcerpt.contains("Line 1"))
+        #expect(crExcerpt.contains("…"))
+        #expect(crExcerpt.contains("(plus"))
+        #expect(!crExcerpt.contains("Line 299"))
+
+        // CRLF
+        let crlfUrl = fixture.url("crlf.txt")
+        let crlfContent = crLines.joined(separator: "\r\n")
+        try Data(crlfContent.utf8).write(to: crlfUrl)
+        let crlfEntry = entry(for: crlfUrl, size: Int64(crlfContent.utf8.count))
+        let crlfExcerpt = try #require(await FilePanelPreview.excerpt(of: crlfEntry))
+        #expect(crlfExcerpt.contains("Line 1"))
+        #expect(crlfExcerpt.contains("…"))
+        #expect(crlfExcerpt.contains("(plus"))
+        #expect(!crlfExcerpt.contains("Line 299"))
+    }
 }

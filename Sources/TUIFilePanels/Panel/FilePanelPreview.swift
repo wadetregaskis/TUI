@@ -143,11 +143,18 @@ struct FilePanelPreview: View {
         let isTruncatedByBytes = cappedSlice.count < total
         guard let decoded = utf8Text(from: cappedSlice, truncated: isTruncatedByBytes) else { return nil }
         let text = decoded.replacingOccurrences(of: "\t", with: "  ")
-        var lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        let rawLines = text.split(
+            omittingEmptySubsequences: false,
+            whereSeparator: { $0 == "\n" || $0 == "\r\n" || $0 == "\r" }
+        )
+        var lines = rawLines.map(String.init)
         let isTruncatedByLines = lines.count > previewLineCap
         if isTruncatedByLines {
+            let shownBytes = Int64((0..<previewLineCap).reduce(0) { total, index in
+                let sepEnd = index + 1 < rawLines.count ? rawLines[index + 1].startIndex : text.endIndex
+                return total + rawLines[index].utf8.count + text[rawLines[index].endIndex..<sepEnd].utf8.count
+            })
             lines = Array(lines.prefix(previewLineCap))
-            let shownBytes = Int64(lines.reduce(0) { $0 + $1.utf8.count + 1 })
             let remaining = max(0, total - shownBytes)
             let formatted = ByteCountFormatStyle(style: .file).format(remaining)
             lines.append("…")
