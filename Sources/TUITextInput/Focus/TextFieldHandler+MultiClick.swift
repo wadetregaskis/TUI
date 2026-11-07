@@ -47,8 +47,9 @@ extension TextFieldHandler {
             return WordBoundary.run(in: characters, around: offset)
         case .paragraph:
             let offset = min(max(0, offset), characters.count)
-            let start = characters[..<offset].lastIndex(of: "\n").map { $0 + 1 } ?? 0
-            let end = characters[offset...].firstIndex(of: "\n").map { $0 + 1 } ?? characters.count
+            // `isNewline`, not "\n": CR LF is one Character, and not "\n".
+            let start = characters[..<offset].lastIndex(where: \.isNewline).map { $0 + 1 } ?? 0
+            let end = characters[offset...].firstIndex(where: \.isNewline).map { $0 + 1 } ?? characters.count
             return start..<end
         }
     }

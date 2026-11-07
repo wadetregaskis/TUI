@@ -630,4 +630,14 @@ struct TextFieldHandlerTests {
         #expect(text == "किब")
         #expect(handler.cursorPosition == 1, "after कि, before ब")
     }
+
+    @Test("A triple-click's paragraph ends at a CR LF break, which is one Character")
+    func paragraphEndsAtCRLF() {
+        var text = "ab\r\ncd"
+        let binding = Binding(get: { text }, set: { text = $0 })
+        let handler = TextFieldHandler(focusID: "test", text: binding, cursorPosition: 0)
+        handler.wrapWidth = 20
+        #expect(handler.range(of: .paragraph, around: 1) == 0..<3)
+        #expect(handler.range(of: .paragraph, around: 3) == 3..<5)
+    }
 }
