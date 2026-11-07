@@ -200,6 +200,7 @@ public struct TextEditor {
                     _FindBar(
                         text: text, query: $findQuery, replacement: $findReplacement, current: $findMatch,
                         options: $findOptions, supportsReplace: !find.isReplaceDisabled && !isDisabled,
+                        menuTarget: menuTarget,
                         select: { selectMatch($0) }, close: { setFindPresented(false) })
                 }
                 _TextEditorCore(

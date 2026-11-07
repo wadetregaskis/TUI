@@ -100,6 +100,7 @@ struct _FindBar: View {
     @Binding var current: Int
     @Binding var options: FindOptions
     let supportsReplace: Bool
+    var menuTarget: TextEditingMenuTarget?
     /// Selects a match, as character offsets, in the editor.
     let select: (Range<Int>) -> Void
     /// Closes the bar.
@@ -192,11 +193,23 @@ struct _FindBar: View {
         select(matches[current])
     }
 
+    private func writeText(_ newText: String) {
+        if let handler = menuTarget?.handler as? TextEditorHandler {
+            _ = handler.recordingUndoStep {
+                handler.write(newText)
+                return true
+            }
+        } else {
+            text.wrappedValue = newText
+        }
+    }
+
     /// Replaces the current match, then shows the one that takes its place.
     private func replaceCurrent(in matches: [Range<Int>]) {
         guard !matches.isEmpty else { return }
         let index = min(current, matches.count - 1)
-        text.wrappedValue = FindMatches.replacing(matches[index], in: text.wrappedValue, with: replacement)
+        let newText = FindMatches.replacing(matches[index], in: text.wrappedValue, with: replacement)
+        writeText(newText)
         let remaining = FindMatches.ranges(of: query, in: text.wrappedValue, options: options)
         guard !remaining.isEmpty else { return }
         // The next match after the replacement, which now sits at this index
@@ -213,7 +226,7 @@ struct _FindBar: View {
         for match in matches.reversed() {
             result = FindMatches.replacing(match, in: result, with: replacement)
         }
-        text.wrappedValue = result
+        writeText(result)
         current = 0
     }
 }

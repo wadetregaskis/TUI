@@ -8,6 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 import TUIApp
@@ -212,33 +213,35 @@ struct FindNavigatorTests {
 
     @Test("Every match is tinted while the bar is up, the current one selected over it")
     func everyMatchIsTinted() {
-        let model = Model()
-        model.text = "one two one"
-        var selection: TextSelection?
-        let text = Binding(get: { model.text }, set: { model.text = $0 })
-        let selectionBinding = Binding<TextSelection?>(get: { selection }, set: { selection = $0 })
-        let harness = InputChainHarness(width: 50, height: 8)
-        func view() -> some View {
-            TextEditor(text: text, selection: selectionBinding).findNavigator(isPresented: .constant(true))
-        }
-        harness.frame(view())
-        harness.frame(view())
-        for character in "one" {
-            harness.press(KeyEvent(character: character))
+        ColorDepth.withCurrent(.truecolor) {
+            let model = Model()
+            model.text = "one two one"
+            var selection: TextSelection?
+            let text = Binding(get: { model.text }, set: { model.text = $0 })
+            let selectionBinding = Binding<TextSelection?>(get: { selection }, set: { selection = $0 })
+            let harness = InputChainHarness(width: 50, height: 8)
+            func view() -> some View {
+                TextEditor(text: text, selection: selectionBinding).findNavigator(isPresented: .constant(true))
+            }
             harness.frame(view())
+            harness.frame(view())
+            for character in "one" {
+                harness.press(KeyEvent(character: character))
+                harness.frame(view())
+            }
+            let lines = harness.frame(view()).lines
+            // The text is the line after the bar's two rows; its fields at the first
+            // match (selected), between the matches, and at the second (tinted).
+            guard let row = lines.first(where: { $0.stripped.hasPrefix("one two one") }) else {
+                Issue.record("no text row: \(lines.map { $0.stripped })")
+                return
+            }
+            let selected = row.ansiSGRStateAt(visibleColumn: 0).renderedBackground
+            let between = row.ansiSGRStateAt(visibleColumn: 5).renderedBackground
+            let tinted = row.ansiSGRStateAt(visibleColumn: 9).renderedBackground
+            #expect(tinted != between, "the second match is not tinted: \(row.debugDescription)")
+            #expect(tinted != selected, "the second match is drawn as the selection: \(row.debugDescription)")
         }
-        let lines = harness.frame(view()).lines
-        // The text is the line after the bar's two rows; its fields at the first
-        // match (selected), between the matches, and at the second (tinted).
-        guard let row = lines.first(where: { $0.stripped.hasPrefix("one two one") }) else {
-            Issue.record("no text row: \(lines.map(\.stripped))")
-            return
-        }
-        let selected = row.ansiSGRStateAt(visibleColumn: 0).renderedBackground
-        let between = row.ansiSGRStateAt(visibleColumn: 5).renderedBackground
-        let tinted = row.ansiSGRStateAt(visibleColumn: 9).renderedBackground
-        #expect(tinted != between, "the second match is not tinted: \(row.debugDescription)")
-        #expect(tinted != selected, "the second match is drawn as the selection: \(row.debugDescription)")
     }
 
     @Test("The find context reports the modifiers above")
@@ -249,5 +252,127 @@ struct FindNavigatorTests {
         #expect(environment.findContext?.supportsReplace == false)
         environment.findNavigator.isFindDisabled = true
         #expect(environment.findContext == nil)
+    }
+
+    @Test("Find bar Replace All can be undone in one step and preserves earlier undo history")
+    func replaceAllCanBeUndone() {
+        ColorDepth.withCurrent(.truecolor) {
+            let manager = UndoManager()
+            manager.groupsByEvent = false
+            let model = Model()
+            model.text = ""
+            let text = Binding(get: { model.text }, set: { model.text = $0 })
+            var isPresented = false
+            let presented = Binding(get: { isPresented }, set: { isPresented = $0 })
+            let harness = InputChainHarness(width: 60, height: 10, undoManager: manager)
+            func view() -> some View {
+                TextEditor(text: text)
+                    .findNavigator(isPresented: presented)
+            }
+
+            // 1. Initial frame, focus the editor and type "first cat and cat"
+            harness.frame(view())
+            harness.frame(view())
+            for ch in "first cat and cat" {
+                harness.press(KeyEvent(character: ch))
+                harness.frame(view())
+            }
+            #expect(model.text == "first cat and cat")
+
+            // 2. Present find bar and search for "cat"
+            isPresented = true
+            harness.frame(view())
+            harness.frame(view())
+            for ch in "cat" {
+                harness.press(KeyEvent(character: ch))
+                harness.frame(view())
+            }
+
+            // 3. Click Replace All
+            let frame = harness.frame(view())
+            guard let lineIndex = frame.lines.firstIndex(where: { $0.stripped.contains("Replace All") }) else {
+                Issue.record("No Replace All row in \(frame.lines.map { $0.stripped })")
+                return
+            }
+            let stripped = frame.lines[lineIndex].stripped
+            guard let range = stripped.range(of: "Replace All") else {
+                Issue.record("Replace All button text not found")
+                return
+            }
+            let col = stripped.distance(from: stripped.startIndex, to: range.lowerBound) + 2
+            let y = lineIndex
+
+            harness.mouse(MouseEvent(button: .left, phase: .pressed, x: col, y: y))
+            harness.frame(view())
+            harness.mouse(MouseEvent(button: .left, phase: .released, x: col, y: y))
+            harness.frame(view())
+
+            #expect(model.text == "first  and ")
+            #expect(manager.canUndo)
+
+            // 4. Undo Replace All -> restores "first cat and cat" in one step
+            manager.undo()
+            harness.frame(view())
+            #expect(model.text == "first cat and cat")
+
+            // 5. Earlier undo history is preserved -> can continue undoing earlier typing
+            #expect(manager.canUndo)
+            while manager.canUndo {
+                manager.undo()
+                harness.frame(view())
+            }
+            #expect(model.text == "")
+        }
+    }
+
+    @Test("Find bar Replace can be undone")
+    func replaceCurrentCanBeUndone() {
+        ColorDepth.withCurrent(.truecolor) {
+            let manager = UndoManager()
+            manager.groupsByEvent = false
+            let model = Model()
+            model.text = "one two one"
+            let text = Binding(get: { model.text }, set: { model.text = $0 })
+            let harness = InputChainHarness(width: 60, height: 10, undoManager: manager)
+            func view() -> some View {
+                TextEditor(text: text)
+                    .findNavigator(isPresented: .constant(true))
+            }
+
+            harness.frame(view())
+            harness.frame(view())
+            for ch in "one" {
+                harness.press(KeyEvent(character: ch))
+                harness.frame(view())
+            }
+
+            // Click Replace (the first match, distinct from "Replace with" and "Replace All")
+            let frame = harness.frame(view())
+            guard let lineIndex = frame.lines.firstIndex(where: { $0.stripped.contains("Replace All") }) else {
+                Issue.record("No Replace row in \(frame.lines.map { $0.stripped })")
+                return
+            }
+            let stripped = frame.lines[lineIndex].stripped
+            guard let allRange = stripped.range(of: "Replace All"),
+                  let replaceRange = stripped[..<allRange.lowerBound].range(of: "Replace", options: .backwards)
+            else {
+                Issue.record("Replace button text not found")
+                return
+            }
+            let col = stripped.distance(from: stripped.startIndex, to: replaceRange.lowerBound) + 2
+            let y = lineIndex
+
+            harness.mouse(MouseEvent(button: .left, phase: .pressed, x: col, y: y))
+            harness.frame(view())
+            harness.mouse(MouseEvent(button: .left, phase: .released, x: col, y: y))
+            harness.frame(view())
+
+            #expect(model.text == " two one")
+            #expect(manager.canUndo)
+
+            manager.undo()
+            harness.frame(view())
+            #expect(model.text == "one two one")
+        }
     }
 }
