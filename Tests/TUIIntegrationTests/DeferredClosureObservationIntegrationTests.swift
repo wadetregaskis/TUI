@@ -109,4 +109,18 @@ struct DeferredClosureObservationIntegrationTests {
         let app = TestApp(CommandsReadingApp(), width: 40, height: 6)
         expectRedraw(app, from: "CMone", to: "CMtwo") { DeferredReadModels.commands.label = "two" }
     }
+
+    @Test("An open list selection menu reading an @Observable asks for a frame")
+    mutating func listSelectionMenu() {
+        let model = DeferredReadModel()
+        let app = TestApp(width: 30, height: 10) {
+            List(selection: .constant(Set<Int>())) {
+                ForEach(0..<3, id: \.self) { Text("row \($0)") }
+            }
+            .contextMenu(forSelectionType: Int.self) { _ in Button("LM:" + model.label) {} }
+        }
+        _ = draw(app)
+        app.send(KeyEvent(key: .f10, shift: true))
+        expectRedraw(app, from: "LM:one", to: "LM:two") { model.label = "two" }
+    }
 }

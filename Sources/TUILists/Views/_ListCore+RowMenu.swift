@@ -108,7 +108,10 @@ extension _ListCore {
             ? cursorRow().map { (x: rowLeft, y: $0.y, height: max(1, $0.height)) } : nil
         let items: AnyView?
         if case .selection(let ids) = box.value.target {
-            items = selection.menu(for: ids)
+            // Observed as a body is (Table's is, under its draw's scope): the
+            // closure builds the menu here, in the core, so a write to what it
+            // read would otherwise ask for no frame while the menu is open.
+            items = observingBodyClosure(of: Self.self, context: context) { selection.menu(for: ids) }
         } else {
             items = nil
         }
