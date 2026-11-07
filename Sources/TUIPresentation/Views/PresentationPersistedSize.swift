@@ -17,16 +17,16 @@ import TUIView
 package protocol PresentationPersistedSizeProviding {
     var persistedWidth: Int? { get }
     var persistedHeight: Int? { get }
-    var onResize: ((Int, Int) -> Void)? { get }
+    var onResize: ((Int?, Int?) -> Void)? { get }
 }
 
 package struct _PresentationPersistedSizeView<Content: View>: View, PresentationPersistedSizeProviding {
     package let content: Content
     package let persistedWidth: Int?
     package let persistedHeight: Int?
-    package let onResize: ((Int, Int) -> Void)?
+    package let onResize: ((Int?, Int?) -> Void)?
 
-    package init(content: Content, width: Int?, height: Int?, onResize: ((Int, Int) -> Void)?) {
+    package init(content: Content, width: Int?, height: Int?, onResize: ((Int?, Int?) -> Void)?) {
         self.content = content
         self.persistedWidth = width
         self.persistedHeight = height
@@ -65,11 +65,14 @@ package struct _PresentationPersistedSizeView<Content: View>: View, Presentation
 
 extension View {
     /// Carries initial persisted dimensions and a resize callback to the presenter of a sheet.
+    ///
+    /// `onResize` hears the size the user left the sheet at, axis by axis: `nil`
+    /// for one the user has never set, which is to be left unsaved.
     @MainActor
     package func presentationPersistedSize(
         width: Int?,
         height: Int?,
-        onResize: ((Int, Int) -> Void)? = nil
+        onResize: ((Int?, Int?) -> Void)? = nil
     ) -> some View {
         _PresentationPersistedSizeView(content: self, width: width, height: height, onResize: onResize)
     }

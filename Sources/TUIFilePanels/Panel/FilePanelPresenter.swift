@@ -84,8 +84,10 @@ struct FilePanelPresenter<Content: View> {
                 FilePanel(request: req, finish: finish)
                     .presentationSizing(.page)
                     .presentationPersistedSize(width: storedW, height: storedH) { newW, newH in
-                        store.setValue(newW, forKey: sizeKeys.width)
-                        store.setValue(newH, forKey: sizeKeys.height)
+                        // Only what the user has set: an axis not dragged keeps
+                        // following the terminal.
+                        if let newW { store.setValue(newW, forKey: sizeKeys.width) }
+                        if let newH { store.setValue(newH, forKey: sizeKeys.height) }
                     }
             }
             .onChange(of: isPresented.wrappedValue, initial: true) { _, presented in

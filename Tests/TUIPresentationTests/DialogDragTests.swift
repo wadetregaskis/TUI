@@ -226,4 +226,24 @@ struct DialogDragTests {
         // 24 + 2 * 3 = 30 (symmetrical)
         #expect(handlerH.userHeight == 30)
     }
+
+    @Test("A drag of one border reports that axis, and the other only where the user set it")
+    func oneAxisDragReportsOneAxis() {
+        let handler = _DialogDragHandler()
+        handler.currentWidth = 60
+        handler.currentHeight = 20
+        var reported: [(Int?, Int?)] = []
+        handler.onResize = { reported.append(($0, $1)) }
+
+        handler.beginDrag(mode: .resizeWidth, atX: 59, y: 10)
+        handler.updateDrag(toX: 62, y: 10, screenWidth: 100, screenHeight: 40)
+        handler.endDrag()
+        // The drawn height, 20, may be a small terminal's cut: not saved.
+        #expect(reported.count == 1 && reported[0].0 == 66 && reported[0].1 == nil)
+
+        handler.beginDrag(mode: .resizeHeight, atX: 30, y: 19)
+        handler.updateDrag(toX: 30, y: 21, screenWidth: 100, screenHeight: 40)
+        handler.endDrag()
+        #expect(reported.count == 2 && reported[1].0 == 66 && reported[1].1 == 24)
+    }
 }

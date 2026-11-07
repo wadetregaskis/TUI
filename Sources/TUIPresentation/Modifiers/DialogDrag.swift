@@ -217,7 +217,7 @@ package final class _DialogDragHandler {
     package var currentHeight = 0
     package var isHovered = false
 
-    package var onResize: ((Int, Int) -> Void)?
+    package var onResize: ((Int?, Int?) -> Void)?
 
     private var pressLocalX = 0
     private var pressLocalY = 0
@@ -336,14 +336,18 @@ package final class _DialogDragHandler {
         isDragging = false
         if dragMode != .move && didResize {
             switch dragMode {
+            // The axis not dragged is reported only where the user has set it
+            // before: its drawn size is the presentation's choice, perhaps cut
+            // to a small terminal, and saved it would be the size next time in
+            // a large one.
             case .resizeWidth:
                 let finalW = userWidth ?? currentWidth
                 userWidth = finalW
-                onResize?(finalW, userHeight ?? currentHeight)
+                onResize?(finalW, userHeight)
             case .resizeHeight:
                 let finalH = userHeight ?? currentHeight
                 userHeight = finalH
-                onResize?(userWidth ?? currentWidth, finalH)
+                onResize?(userWidth, finalH)
             case .resizeBoth:
                 let finalW = userWidth ?? currentWidth
                 let finalH = userHeight ?? currentHeight
