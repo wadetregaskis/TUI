@@ -125,7 +125,7 @@ extension FrameBuffer {
             // Where the row draws a picture, the ink in force, to read each
             // picture cell's image by.
             var state = SGRState()
-            var active = Veil.LineState(foreground: ink, background: surface)
+            var active = Veil.LineState(foreground: ink, background: surface, emittedForeground: veiledInk)
             result.reserveCapacity(line.utf8.count + restated.utf8.count * 2)
             line.forEachANSISegment { segment in
                 switch segment {
@@ -197,6 +197,7 @@ private struct Veil {
     struct LineState {
         var foreground: Color
         var background: Color
+        var emittedForeground: Color
     }
 
     private struct Pair: Hashable {
@@ -237,7 +238,7 @@ private struct Veil {
         SGRColorRewrite.readingColors(sequence) { slot, color in
             switch slot {
             case .reset:
-                state = LineState(foreground: ink, background: surface)
+                state = LineState(foreground: ink, background: surface, emittedForeground: state.emittedForeground)
                 setsForeground = false
                 setsBackground = false
             case .foreground:
@@ -251,18 +252,30 @@ private struct Veil {
             }
         }
         var reset = false
+        var newlyEmittedForeground: Color?
         let background = state.background
         var result = SGRColorRewrite.rewritingSGR(
             sequence, defaultForeground: ink, defaultBackground: surface,
             transform: { self.legible($0, over: background, depth: depth) },
-            emitted: { slot, _ in if case .reset = slot { reset = true } })
+            emitted: { slot, color in
+                switch slot {
+                case .reset: reset = true
+                case .foreground: newlyEmittedForeground = color
+                case .background, .underline: break
+                }
+            })
+        if let newlyEmittedForeground {
+            state.emittedForeground = newlyEmittedForeground
+        }
         if reset, !setsForeground, !setsBackground {
             result += restated
+            state.emittedForeground = legible(ink, over: surface, depth: depth)
         } else if setsBackground, !setsForeground {
             let adjusted = legible(state.foreground, over: background, depth: depth)
-            if reset || adjusted != self[state.foreground] {
+            if reset || adjusted != state.emittedForeground {
                 let codes = adjusted.foregroundCodes(depth: depth)
                 if !codes.isEmpty { result += "\u{1B}[" + codes.joined(separator: ";") + "m" }
+                state.emittedForeground = adjusted
             }
         } else if reset, setsForeground, !setsBackground, defaults != nil, !fieldCodes.isEmpty {
             result += "\u{1B}[" + fieldCodes.joined(separator: ";") + "m"
