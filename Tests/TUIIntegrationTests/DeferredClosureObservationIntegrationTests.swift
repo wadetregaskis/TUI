@@ -31,6 +31,26 @@ private final class DeferredReadModel {
     var shift = 0
 }
 
+/// Commands of the app's own, whose body reads the model.
+private struct ReadingCommands: Commands {
+    var body: some Commands {
+        CommandMenu("CM" + DeferredReadModels.commands.label) {}
+    }
+}
+
+/// The models the apps read: an `App` is made by its type's `init()`.
+private enum DeferredReadModels {
+    nonisolated(unsafe) static var commands = DeferredReadModel()
+}
+
+private struct CommandsReadingApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { Text("page") }
+            .commands { ReadingCommands() }
+    }
+}
+
 @MainActor
 @Suite("Deferred closures above TUIApp are observed", .serialized)
 struct DeferredClosureObservationIntegrationTests {
@@ -81,5 +101,12 @@ struct DeferredClosureObservationIntegrationTests {
             }
         }
         expectRedraw(app, from: "FF:one", to: "FF:two") { model.label = "two" }
+    }
+
+    @Test("A Commands type's body reading an @Observable asks for a frame")
+    mutating func commandsBody() {
+        DeferredReadModels.commands = DeferredReadModel()
+        let app = TestApp(CommandsReadingApp(), width: 40, height: 6)
+        expectRedraw(app, from: "CMone", to: "CMtwo") { DeferredReadModels.commands.label = "two" }
     }
 }

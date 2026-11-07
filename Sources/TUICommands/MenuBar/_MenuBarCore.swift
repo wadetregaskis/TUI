@@ -122,7 +122,7 @@ struct _MenuBarCore: View, Renderable {
     private func resolvedMenus(context: RenderContext) -> [ResolvedCommandMenu] {
         var collector = CommandsCollector(
             environment: context.environment, storage: context.stateStorage,
-            identity: context.identity.child(type: Self.self))
+            identity: context.identity.child(type: Self.self), observingAt: context)
         for (index, declaration) in commands.declarations.enumerated() {
             guard let commands = (declaration as? CommandsDeclaration)?.commands else { continue }
             collector.step(index, commands)

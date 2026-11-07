@@ -49,7 +49,7 @@ struct CommandsCollectionTests {
         defaults: (CommandGroupPlacement.Group) -> CommandItems? = { _ in nil }
     ) -> [ResolvedCommandMenu] {
         var collector = CommandsCollector(
-            environment: environment, storage: nil, identity: ViewIdentity(rootType: Self.self))
+            environment: environment, storage: nil, identity: ViewIdentity(rootType: Self.self), observingAt: nil)
         collector.collect(commands)
         return collector.resolvedMenus(defaults: defaults)
     }

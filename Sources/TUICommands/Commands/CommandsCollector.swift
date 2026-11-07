@@ -72,6 +72,10 @@ struct CommandsCollector {
     /// The identity the commands' identities are keyed under.
     private let identity: ViewIdentity
 
+    /// Where the walk runs, under which a set of commands' own `body` is
+    /// observed; `nil` where nothing draws again when it changes.
+    private let observingContext: RenderContext?
+
     /// The menus of the app's own, in declaration order.
     private(set) var menus: [DeclaredCommandMenu] = []
 
@@ -87,11 +91,16 @@ struct CommandsCollector {
     private var path: [Int] = []
 
     /// A collector whose commands resolve their properties in `environment`,
-    /// keep their `@State` in `storage`, and are keyed under `identity`.
-    init(environment: EnvironmentValues, storage: StateStorage?, identity: ViewIdentity) {
+    /// keep their `@State` in `storage`, are keyed under `identity`, and have
+    /// what their bodies read observed at `context`.
+    init(
+        environment: EnvironmentValues, storage: StateStorage?, identity: ViewIdentity,
+        observingAt context: RenderContext?
+    ) {
         self.environment = environment
         self.storage = storage
         self.identity = identity
+        self.observingContext = context
     }
 
     /// Collects `commands`.
@@ -100,6 +109,19 @@ struct CommandsCollector {
             primitive.collectCommands(into: &self)
             return
         }
+        // The body is evaluated here, in the menu bar's core, after every
+        // view's body has returned: observed as a view's body is (its
+        // properties prepared inside the scope, as there), or a write to what
+        // it read asked for no frame and the bar kept the old menus.
+        if let observingContext {
+            collect(observingBodyClosure(of: C.self, context: observingContext) { bodyPrepared(of: commands) })
+        } else {
+            collect(bodyPrepared(of: commands))
+        }
+    }
+
+    /// `commands`' body, its properties resolved first.
+    private func bodyPrepared<C: Commands>(of commands: C) -> C.Body {
         var prepared = commands
         if let plan = propertyPlan(for: C.self) {
             let identity = identity.child(erasedType: C.self, key: pathKey)
@@ -108,7 +130,7 @@ struct CommandsCollector {
                 isMeasuring: false)
             storage?.markActive(identity)
         }
-        collect(prepared.body)
+        return prepared.body
     }
 
     /// Collects `commands` one step further in, at `index`: a block's member,
