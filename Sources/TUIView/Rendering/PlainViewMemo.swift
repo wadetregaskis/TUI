@@ -25,6 +25,22 @@ package final class PlainMemo {
 
     private static let isOnByDefault = ProcessInfo.processInfo.environment["TUI_RUN_BODY_ON_EVERY_FRAME"] != "1"
 
+    /// Measures until the next 1-in-16 timing sample.
+    private var measuresToNextTiming = 0
+    private var passesTimedWhole = 8
+
+    /// The instant to time this measure from, if it is sampled.
+    @inline(__always)
+    func startTiming() -> ContinuousClock.Instant? {
+        guard isOn else { return nil }
+        if passesTimedWhole == 0 {
+            measuresToNextTiming -= 1
+            guard measuresToNextTiming < 0 else { return nil }
+            measuresToNextTiming = 15
+        }
+        return ContinuousClock.now
+    }
+
     /// Each type asked about: how its values compare, or `nil` for one that is
     /// not memoized.
     private var roots: [ObjectIdentifier: ValueComparison?] = [:]
@@ -123,6 +139,7 @@ package final class PlainMemo {
 
     /// Starts a pass.
     func beginPass() {
+        if passesTimedWhole > 0 { passesTimedWhole -= 1 }
         pass &+= 1
         if pass.isMultiple(of: 64), !gates.isEmpty { gates = gates.filter { $0.value.until >= pass - 64 || $0.value.stored >= pass - 64 } }
     }
@@ -286,7 +303,7 @@ func measurePlainMemoized<V: View>(
     let cache = context.renderCache.unsafelyUnwrapped
     let memo = cache.plainMemo
     if memo.valueMemoDepth > 0, !memo.asksInsideValueMemo(V.self) {
-        let started = cache.bodyKeep.startTiming()
+        let started = memo.startTiming()
         let size = measure(view, context)
         memo.noteMeasured(V.self, since: started)
         return size

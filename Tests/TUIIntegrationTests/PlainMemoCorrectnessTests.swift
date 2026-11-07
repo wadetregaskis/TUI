@@ -510,6 +510,24 @@ struct PlainMemoCorrectnessTests {
         }
     }
 
+    @Test("PlainMemo learns heavy composites even when BodyKeep is off")
+    func plainMemoLearnsWhenBodyKeepIsOff() {
+        let app = app(MovingRowPage())
+        app.renderCache.plainMemo.heavySubtree = .zero
+        app.renderCache.bodyKeep.isOn = false
+        var nanos: Int64 = 0
+        settle(app, nanos: &nanos)
+        for _ in 0..<4 {
+            Probe.write?()
+            settle(app, nanos: &nanos, frames: 1)
+        }
+        _ = Probe.take("inside")
+        Probe.write?()
+        settle(app, nanos: &nanos, frames: 1)
+        #expect(text(app).contains("abbbbb"))
+        #expect(Probe.take("inside") == 0, "PlainMemo should learn heavy composite even with bodyKeep.isOn = false")
+    }
+
     @Test("What changes every frame stops asking, and what settles is served again")
     func gate() {
         let app = app(PassesField())
