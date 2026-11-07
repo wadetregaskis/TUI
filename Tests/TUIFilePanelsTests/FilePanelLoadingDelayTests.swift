@@ -11,8 +11,8 @@ import Testing
 @testable import TUICore
 @testable import TUIFilePanels
 @testable import TUIFoundation
-@testable import TUITestSupport
 import TUITesting
+@testable import TUITestSupport
 
 @MainActor
 @Suite("File panel loading placeholder delay", .serialized)

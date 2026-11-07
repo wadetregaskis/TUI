@@ -321,7 +321,7 @@ struct FindNavigatorTests {
                 manager.undo()
                 harness.frame(view())
             }
-            #expect(model.text == "")
+            #expect(model.text.isEmpty)
         }
     }
 

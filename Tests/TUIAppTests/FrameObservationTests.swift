@@ -129,7 +129,7 @@ private struct CanvasReadingApp: App {
     var body: some Scene {
         WindowGroup {
             Canvas { _, _ in
-                let _ = FrameReadModels.canvas.label
+                _ = FrameReadModels.canvas.label
             }
         }
     }
