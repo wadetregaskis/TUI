@@ -116,8 +116,13 @@ final class _AnyTransitionBox: Equatable, Sendable {
 private func renderTransitionBody<T: Transition>(
     _ transition: T, phase: TransitionPhase, content: PlaceholderSource, context: RenderContext
 ) -> FrameBuffer {
-    let body = transition.body(content: PlaceholderContentView(source: content), phase: phase)
-    return TUIView.renderToBuffer(body, context: context.withChildIdentity(type: T.Body.self))
+    let bodyContext = context.withChildIdentity(type: T.Body.self)
+    // Observed as a view's body is: it is evaluated here, in the walk, after
+    // the body that applied the transition has returned.
+    let body = observingBodyClosure(of: T.self, context: bodyContext) {
+        transition.body(content: PlaceholderContentView(source: content), phase: phase)
+    }
+    return TUIView.renderToBuffer(body, context: bodyContext)
 }
 
 /// The measuring twin of `renderTransitionBody(_:phase:content:context:)`.
@@ -126,9 +131,11 @@ private func measureTransitionBody<T: Transition>(
     _ transition: T, phase: TransitionPhase, content: PlaceholderSource, proposal: ProposedSize,
     context: RenderContext
 ) -> ViewSize {
-    let body = transition.body(content: PlaceholderContentView(source: content), phase: phase)
-    return measureChild(
-        body, proposal: proposal, context: context.withChildIdentity(type: T.Body.self))
+    let bodyContext = context.withChildIdentity(type: T.Body.self)
+    let body = observingBodyClosure(of: T.self, context: bodyContext) {
+        transition.body(content: PlaceholderContentView(source: content), phase: phase)
+    }
+    return measureChild(body, proposal: proposal, context: bodyContext)
 }
 
 /// An ``AnyTransition`` as a ``Transition`` — how one made of effects is

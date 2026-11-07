@@ -145,25 +145,16 @@ nonisolated struct _ScrollTransitionView<Content: View, Effect: VisualEffect>: V
     /// The effect for a view at `place`: the identity phase's where there is
     /// no scroll view's viewport to be in.
     private func effect(at place: ScrollTransitionPlace?, context: RenderContext) -> Effect {
-        guard let place else { return transition(EmptyVisualEffect(), .identity) }
+        // Observed as a `visualEffect`'s closure is: what the transition
+        // closure reads asks for a frame when it is written.
+        guard let place else {
+            return observingBodyClosure(of: Self.self, context: context) { transition(EmptyVisualEffect(), .identity) }
+        }
         let (edge, depth) = place.approach
         let configuration = edge == .topLeading ? topLeading : bottomTrailing
         let progress = place.progress(depth: depth, threshold: configuration.visibleThreshold)
-        var effect: Effect
-        switch configuration.kind {
-        case .identity:
-            effect = transition(EmptyVisualEffect(), .identity)
-        case .animated:
-            effect = transition(EmptyVisualEffect(), progress >= 1 ? .identity : edge)
-        case .interactive(let curve):
-            // The two phases' effects, and the point between them the view has
-            // reached, paced by the curve: SwiftUI interpolates the effect, not
-            // the phase, which only ever has its three values.
-            let identity = transition(EmptyVisualEffect(), .identity)
-            effect = transition(EmptyVisualEffect(), edge)
-            var data = effect.animatableData
-            data.interpolate(towards: identity.animatableData, amount: curve.value(at: progress))
-            effect.animatableData = data
+        let effect = observingBodyClosure(of: Self.self, context: context) {
+            phaseEffect(configuration.kind, edge: edge, progress: progress)
         }
         // Moved there by the configuration's animation, when it has one — and
         // otherwise drawn where the scroll put it, whatever transaction the
@@ -173,6 +164,29 @@ nonisolated struct _ScrollTransitionView<Content: View, Effect: VisualEffect>: V
         var animating = context
         animating.environment.transaction.animation = configuration.transitionAnimation
         return animatedEffect(effect, owner: Self.self, context: animating, isMeasuring: context.isMeasuring)
+    }
+
+    /// The transition's effect for a view `progress` of the way in from
+    /// `edge`, as `kind` paces it.
+    private func phaseEffect(
+        _ kind: ScrollTransitionConfiguration.Kind, edge: ScrollTransitionPhase, progress: Double
+    ) -> Effect {
+        switch kind {
+        case .identity:
+            return transition(EmptyVisualEffect(), .identity)
+        case .animated:
+            return transition(EmptyVisualEffect(), progress >= 1 ? .identity : edge)
+        case .interactive(let curve):
+            // The two phases' effects, and the point between them the view has
+            // reached, paced by the curve: SwiftUI interpolates the effect, not
+            // the phase, which only ever has its three values.
+            let identity = transition(EmptyVisualEffect(), .identity)
+            var effect = transition(EmptyVisualEffect(), edge)
+            var data = effect.animatableData
+            data.interpolate(towards: identity.animatableData, amount: curve.value(at: progress))
+            effect.animatableData = data
+            return effect
+        }
     }
 
     /// Effects do not change layout: this measures as its content.

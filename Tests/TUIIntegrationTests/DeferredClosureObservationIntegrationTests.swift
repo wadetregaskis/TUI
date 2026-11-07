@@ -31,6 +31,17 @@ private final class DeferredReadModel {
     var shift = 0
 }
 
+/// A `Transition` whose body shows the model's label beside its content.
+private struct LabellingTransition: Transition {
+    let model: DeferredReadModel
+    func body(content: Content, phase: TransitionPhase) -> some View {
+        HStack {
+            content
+            Text(verbatim: "TR:" + model.label)
+        }
+    }
+}
+
 /// Commands of the app's own, whose body reads the model.
 private struct ReadingCommands: Commands {
     var body: some Commands {
@@ -122,5 +133,32 @@ struct DeferredClosureObservationIntegrationTests {
         _ = draw(app)
         app.send(KeyEvent(key: .f10, shift: true))
         expectRedraw(app, from: "LM:one", to: "LM:two") { model.label = "two" }
+    }
+
+    @Test("A visualEffect closure reading an @Observable asks for a frame")
+    mutating func visualEffectClosure() {
+        let model = DeferredReadModel()
+        let app = TestApp(width: 30, height: 6) {
+            Text("VE").visualEffect { effect, _ in effect.offset(x: model.shift) }
+        }
+        expectRedraw(app, from: "VE", to: nil) { model.shift = 3 }
+    }
+
+    @Test("A scrollTransition closure reading an @Observable asks for a frame")
+    mutating func scrollTransitionClosure() {
+        let model = DeferredReadModel()
+        let app = TestApp(width: 30, height: 6) {
+            Text("ST").scrollTransition { effect, _ in effect.offset(x: model.shift) }
+        }
+        expectRedraw(app, from: "ST", to: nil) { model.shift = 3 }
+    }
+
+    @Test("A Transition's body reading an @Observable asks for a frame")
+    mutating func transitionBody() {
+        let model = DeferredReadModel()
+        let app = TestApp(width: 30, height: 6) {
+            Text("x").transition(LabellingTransition(model: model))
+        }
+        expectRedraw(app, from: "TR:one", to: "TR:two") { model.label = "two" }
     }
 }

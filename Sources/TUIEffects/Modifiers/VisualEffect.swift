@@ -133,9 +133,11 @@ nonisolated struct _VisualEffectView<Content: View, Effect: VisualEffect>: View 
         // and with it what was found for this view.
         let ask = context.makeGeometryAsk(role: .reader)
         let buffer = TUIView.renderToBuffer(content, context: context)
-        let applied = animatedEffect(
-            effect(EmptyVisualEffect(), GeometryProxy(width: buffer.width, height: buffer.height, ask: ask)),
-            owner: Self.self, context: context, isMeasuring: context.isMeasuring)
+        // Observed, as a `GeometryReader`'s closure is: what the closure reads
+        // asks for a frame when it is written.
+        let proxy = GeometryProxy(width: buffer.width, height: buffer.height, ask: ask)
+        let built = observingBodyClosure(of: Self.self, context: context) { effect(EmptyVisualEffect(), proxy) }
+        let applied = animatedEffect(built, owner: Self.self, context: context, isMeasuring: context.isMeasuring)
         var drawn = applied._applied(to: buffer, context: context)
         // An effect that asked another space stamps where the view is laid out
         // — the drawing's own frame, which no effect moves — for that space's
