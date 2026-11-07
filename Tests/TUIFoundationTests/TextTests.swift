@@ -475,4 +475,11 @@ struct FoldSeparatorTests {
         let tail = folded.lines[1]
         #expect(!tail.contains("語 で") && !tail.contains("本 語"), "\(folded.lines)")
     }
+
+    @Test("A line-limited fold keeps paragraph's leading indent when nothing has been kept yet")
+    func lineLimitPreservesLeadingIndent() {
+        let folded = TextWrapping.fitMeasured("  hello\nworld", width: 20, maxLines: 1)
+        #expect(folded.lines.count == 1)
+        #expect(folded.lines[0].hasPrefix("  hello"), "Expected leading indent preserved, got \(folded.lines[0])")
+    }
 }

@@ -349,8 +349,14 @@ package enum TextWrapping {
                 cursor = text.index(after: cursor)
             }
         }
-        while cursor < text.endIndex, text[cursor].isWhitespace || text[cursor].isNewline {
-            cursor = text.index(after: cursor)
+        if kept.isEmpty {
+            while cursor < text.endIndex, text[cursor].isNewline {
+                cursor = text.index(after: cursor)
+            }
+        } else {
+            while cursor < text.endIndex, text[cursor].isWhitespace || text[cursor].isNewline {
+                cursor = text.index(after: cursor)
+            }
         }
         return String(text[cursor...]).replacingOccurrences(
             of: "[\r\n]+", with: " ", options: .regularExpression)
