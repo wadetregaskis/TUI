@@ -63,6 +63,30 @@ private struct ReadingToolbarContent: ToolbarContent {
     }
 }
 
+/// The models the apps read: an `App` is made by its type's `init()`.
+private enum ClosureReadModels {
+    nonisolated(unsafe) static var presented = ClosureReadModel()
+    nonisolated(unsafe) static var opened = ClosureReadModel()
+}
+
+/// A window group presenting data, whose content closure reads the model.
+private struct PresentedReadingApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup(for: Int.self) { _ in Text(verbatim: "PW:" + ClosureReadModels.presented.label) }
+    }
+}
+
+/// A second window group, whose window is opened after launch and built by
+/// its content closure then.
+private struct OpenedReadingApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { Text("main window") }
+        WindowGroup(id: "second") { Text(verbatim: "OW:" + ClosureReadModels.opened.label) }
+    }
+}
+
 @MainActor
 @Suite("Deferred closures are observed", .serialized)
 struct DeferredClosureObservationTests {
@@ -148,5 +172,21 @@ struct DeferredClosureObservationTests {
             Text("page").toolbar { ReadingToolbarContent(model: model) }
         }
         expectRedraw(app, model: model, from: "TB:one", to: "TB:two")
+    }
+
+    @Test("A WindowGroup(for:) content closure reading an @Observable asks for a frame")
+    mutating func presentedWindowContent() {
+        ClosureReadModels.presented = ClosureReadModel()
+        let app = TestApp(PresentedReadingApp(), width: 30, height: 6)
+        expectRedraw(app, model: ClosureReadModels.presented, from: "PW:one", to: "PW:two")
+    }
+
+    @Test("A window opened after launch, its content reading an @Observable, asks for a frame")
+    mutating func windowOpenedAfterLaunch() {
+        ClosureReadModels.opened = ClosureReadModel()
+        let app = TestApp(OpenedReadingApp(), width: 30, height: 6)
+        _ = draw(app)
+        OpenWindowAction(handler: app.scenes.actions)(id: "second")
+        expectRedraw(app, model: ClosureReadModels.opened, from: "OW:one", to: "OW:two")
     }
 }

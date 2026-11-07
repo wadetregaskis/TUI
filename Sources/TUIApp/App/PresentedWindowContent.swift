@@ -67,11 +67,21 @@ private struct _PresentedWindowCore<Data: Hashable, Content: View>: View, Render
         if !context.isMeasuring, let presented = context.environment.presentedWindow {
             if let value = binding.wrappedValue { presented.report(AnyHashable(value)) } else { presented.report(nil) }
         }
-        return TUIView.renderToBuffer(present(binding), context: contentContext(context))
+        let content = contentContext(context)
+        return TUIView.renderToBuffer(built(binding, at: content), context: content)
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(present(valueBinding(context: context)), proposal: proposal, context: contentContext(context))
+        let content = contentContext(context)
+        return measureChild(built(valueBinding(context: context), at: content), proposal: proposal, context: content)
+    }
+
+    /// The window's content for `binding`, built under observation tracking
+    /// at `content`, where it is drawn: the closure is the content's body,
+    /// deferred until the value is known, so what it reads asks for a frame
+    /// as a body's read does.
+    private func built(_ binding: Binding<Data?>, at content: RenderContext) -> Content {
+        observingBodyClosure(of: Self.self, context: content) { present(binding) }
     }
 
     /// The context the content draws in: a child identity of this view's.
