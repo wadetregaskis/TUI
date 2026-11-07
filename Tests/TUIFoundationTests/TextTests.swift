@@ -482,4 +482,14 @@ struct FoldSeparatorTests {
         #expect(folded.lines.count == 1)
         #expect(folded.lines[0].hasPrefix("  hello"), "Expected leading indent preserved, got \(folded.lines[0])")
     }
+
+    @Test("A fold keeps the indent of a paragraph that starts after the kept lines, and not a soft wrap's space")
+    func lineLimitPreservesLaterParagraphIndent() {
+        let folded = TextWrapping.fitMeasured("Title\n  indented body\nmore", width: 30, maxLines: 2)
+        #expect(folded.lines.count == 2)
+        #expect(folded.lines[1].hasPrefix("  indented body"), "\(folded.lines)")
+        let wrapped = TextWrapping.fitMeasured("one two  three four five", width: 9, maxLines: 2)
+        #expect(wrapped.lines.count == 2)
+        #expect(!wrapped.lines[1].hasPrefix(" "), "\(wrapped.lines)")
+    }
 }

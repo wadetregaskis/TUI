@@ -354,8 +354,16 @@ package enum TextWrapping {
                 cursor = text.index(after: cursor)
             }
         } else {
+            // The break the wrap consumed, and where a paragraph starts after a
+            // newline, the spaces it opens with: its indent, which is content,
+            // as `wrapParagraph` keeps it.
+            var paragraphStart: String.Index?
             while cursor < text.endIndex, text[cursor].isWhitespace || text[cursor].isNewline {
+                if text[cursor].isNewline { paragraphStart = text.index(after: cursor) }
                 cursor = text.index(after: cursor)
+            }
+            if let paragraphStart, text[paragraphStart..<cursor].allSatisfy({ $0 == " " }) {
+                cursor = paragraphStart
             }
         }
         return String(text[cursor...]).replacingOccurrences(
