@@ -62,9 +62,12 @@ extension FrameBuffer {
             let width = line.strippedLength
             let span = (columns ?? 0..<width).clamped(to: 0..<width)
             guard !span.isEmpty else { continue }
+            // The reversed span ends in a reset, so the row's styling in force
+            // past it is restated: a bold label after a reversed mark stays bold.
             result.lines[row] =
                 line.ansiAwarePrefix(visibleCount: span.lowerBound)
                 + reversed(line.ansiAwareSlice(visibleStart: span.lowerBound, visibleCount: span.count))
+                + line.ansiStateBefore(visibleColumn: span.upperBound)
                 + line.ansiAwareSuffix(droppingVisible: span.upperBound)
         }
         // A run wholly inside what was reversed replays reversed, as a faded buffer's
