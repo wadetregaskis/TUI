@@ -99,9 +99,11 @@ extension TextFieldHandler {
         case .redo: redo()
         case .killToStartOfLine: killToStart(at: lineKillStart())
         case .killWordBackward:
-            killToStart(
-                at: StandInEditingCommand.wordRuboutStart(
-                    in: Array(text.wrappedValue), before: cursorPosition, lineStart: lineKillStart()))
+            let start = isSecure
+                ? max(cursorPosition - 1, lineKillStart())
+                : StandInEditingCommand.wordRuboutStart(
+                    in: Array(text.wrappedValue), before: cursorPosition, lineStart: lineKillStart())
+            killToStart(at: start)
         }
         return true
     }

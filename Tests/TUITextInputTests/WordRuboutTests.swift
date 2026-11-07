@@ -97,11 +97,12 @@ struct WordRuboutTests {
         #expect(field.killRing == "one ", "an empty kill replaced the last one")
     }
 
-    @Test("A SecureField deletes the word and keeps nothing for Ctrl-Y")
+    @Test("A SecureField deletes one character and keeps nothing for Ctrl-Y")
     func secureFieldKeepsNoKill() {
         let (field, box) = makeField("pass word", caret: 9, secure: true)
         #expect(field.handleKeyEvent(ctrl("w")))
-        #expect(box.text == "pass ")
+        #expect(box.text == "pass wor")
+        #expect(field.cursorPosition == 8)
         #expect(field.killRing.isEmpty)
     }
 
