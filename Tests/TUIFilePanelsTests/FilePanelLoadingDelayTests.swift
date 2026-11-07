@@ -119,4 +119,29 @@ struct FilePanelLoadingDelayTests {
         // Fast load completed, folder was never added to foldersShowingLoading
         #expect(!browser.foldersShowingLoading.contains(emptySubfolder.path))
     }
+
+    @Test("Navigating on the way to a loading folder preserves its loading timer")
+    func loadingTimerPreservedOnTheWay() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let keepUrl = fixture.url("Alpha")
+        let dropUrl = fixture.url("Other")
+
+        let browser = FileBrowser(directory: fixture.root, rule: FileChoiceRule())
+        let keepTask: Task<Void, Never> = Task { _ = try? await Task.sleep(for: .seconds(10)) }
+        let dropTask: Task<Void, Never> = Task { _ = try? await Task.sleep(for: .seconds(10)) }
+        browser.folderLoadingTimers[keepUrl.path] = keepTask
+        browser.folderLoadingTimers[dropUrl.path] = dropTask
+
+        // Navigating to keepUrl is "on the way"
+        browser.keepFolders(onTheWayTo: keepUrl)
+        #expect(browser.folderLoadingTimers[keepUrl.path] != nil, "Timer for folder on the way should be preserved")
+        #expect(!keepTask.isCancelled)
+
+        // dropUrl is not on the way and should be cancelled
+        #expect(browser.folderLoadingTimers[dropUrl.path] == nil, "Timer for unrelated folder should be cancelled")
+        #expect(dropTask.isCancelled)
+
+        keepTask.cancel()
+    }
 }

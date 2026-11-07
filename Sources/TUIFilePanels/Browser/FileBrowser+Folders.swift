@@ -167,17 +167,16 @@ extension FileBrowser {
         }
         let target = folder.standardizedFileURL.path
         let inside = target.hasSuffix("/") ? target : target + "/"
-        let kept = folderListings.keys.filter { path in
+        let isKeptPath: (String) -> Bool = { path in
             path == target || path == "/" || target.hasPrefix(path + "/") || path.hasPrefix(inside)
         }
-        folderListings = folderListings.filter { kept.contains($0.key) }
-        folderRows = folderRows.filter { kept.contains($0.key) }
+        folderListings = folderListings.filter { isKeptPath($0.key) }
+        folderRows = folderRows.filter { isKeptPath($0.key) }
         folderIndex = folderIndex.filter { entry in
             let folder = entry.value.isPlaceholder ? entry.value.placeholderFolder : entry.key.deletingLastPathComponent()
-            return kept.contains(folder.standardizedFileURL.path)
+            return isKeptPath(folder.standardizedFileURL.path)
         }
-        let keptSet = Set(kept)
-        for (path, timer) in folderLoadingTimers where !keptSet.contains(path) {
+        for (path, timer) in folderLoadingTimers where !isKeptPath(path) {
             timer.cancel()
             folderLoadingTimers.removeValue(forKey: path)
             foldersShowingLoading.remove(path)
