@@ -579,15 +579,15 @@ struct TextFieldHandlerTests {
         handler.insertText("\u{1B}[2Jhello")
         #expect(text == "[2Jhello")
 
-        // Tab in single-line field is dropped as control character
+        // A tab is text, kept as TextEditor and an AppKit field keep it
         text = ""
         handler.cursorPosition = 0
         handler.insertText("col1\tcol2")
-        #expect(text == "col1col2")
+        #expect(text == "col1\tcol2")
 
         // Stray pure control string does nothing
         handler.insertText("\u{1B}\u{07}")
-        #expect(text == "col1col2")
+        #expect(text == "col1\tcol2")
     }
 
     @Test("Pasting in vertical field preserves newlines but strips escape characters")

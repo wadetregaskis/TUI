@@ -160,6 +160,16 @@ struct TextEditorTests {
         #expect(text.contains("three"))
     }
 
+    @Test("A control character the text holds is drawn as U+FFFD, never sent to the terminal")
+    func controlCharactersDrawnSafely() {
+        let sink = StringSink("log \u{1B}[2Jend")
+        let raw = renderToBuffer(
+            TextEditor(text: sink.binding), context: makeRenderContext(width: 20, height: 2)
+        ).lines.joined()
+        #expect(!raw.contains("\u{1B}[2J"), "an ESC from the text is never emitted")
+        #expect(raw.stripped.contains("log \u{FFFD}[2Jend"))
+    }
+
     @Test("The editor paints a field background by default")
     func fieldBackground() {
         let sink = StringSink("hi")

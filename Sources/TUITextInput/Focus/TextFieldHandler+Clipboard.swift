@@ -80,9 +80,12 @@ extension TextFieldHandler {
         // the clipboard used. Control characters (category Cc) are stripped on
         // paste so escape sequences and control codes cannot enter the field.
         // Vertical fields preserve \n and \r (handled by normalizingLineBreaks);
-        // U+2028 is category Zl so it is naturally preserved.
+        // U+2028 is category Zl so it is naturally preserved. A tab is kept,
+        // as an AppKit field keeps a pasted one and as TextEditor does: it is
+        // text, a column separator copied from a table, and the field draws it
+        // as a space (``displayCharacter(_:)``).
         let filteredScalars = string.unicodeScalars.filter { scalar in
-            if isVertical && (scalar == "\n" || scalar == "\r") {
+            if scalar == "\t" || (isVertical && (scalar == "\n" || scalar == "\r")) {
                 return true
             }
             return scalar.properties.generalCategory != .control

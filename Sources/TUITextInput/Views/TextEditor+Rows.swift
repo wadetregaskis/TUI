@@ -363,7 +363,9 @@ extension _TextEditorCore {
                             reversed: isSelected && selectionStyle.isReversed)
                     }
                 } else {
-                    emitCaret(character, cells: cells, cycle: caret.cycle, isSelected: isSelected)
+                    emitCaret(
+                        TextFieldHandler.displayCharacter(character), cells: cells, cycle: caret.cycle,
+                        isSelected: isSelected)
                 }
                 continue
             }
@@ -380,7 +382,13 @@ extension _TextEditorCore {
                     emitClipped(" ", cells: 1, foreground: foreground, background: cellBackground, reversed: reversed)
                 }
             } else {
-                emitClipped(character, cells: cells, foreground: foreground, background: cellBackground, reversed: reversed)
+                // A control character the text holds — an app's binding can
+                // hold anything, past what a paste lets in — is drawn as U+FFFD,
+                // as a field draws it: an ESC sent as it is would be obeyed, a
+                // log's \u{1B}[2J clearing the screen.
+                emitClipped(
+                    TextFieldHandler.displayCharacter(character), cells: cells, foreground: foreground,
+                    background: cellBackground, reversed: reversed)
             }
         }
         // The caret past the last character sits on its own cell.
