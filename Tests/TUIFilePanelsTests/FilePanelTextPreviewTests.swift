@@ -33,7 +33,7 @@ struct FilePanelTextPreviewTests {
 
         let entry = entry(for: url, size: Int64(content.utf8.count))
         let excerpt = await FilePanelPreview.excerpt(of: entry)
-        #expect(excerpt == content)
+        #expect(excerpt == FilePanelPreview.Excerpt(text: content))
     }
 
     @Test("Large text file exceeding line cap is truncated with an indicator")
@@ -47,11 +47,12 @@ struct FilePanelTextPreviewTests {
 
         let entry = entry(for: url, size: Int64(content.utf8.count))
         let excerpt = try #require(await FilePanelPreview.excerpt(of: entry))
-        #expect(excerpt.contains("Line 1"))
-        #expect(excerpt.contains("…"))
-        #expect(excerpt.contains("(plus"))
-        #expect(excerpt.contains("more)"))
-        #expect(!excerpt.contains("Line 299"))
+        #expect(excerpt.text.hasPrefix("Line 1\n"))
+        #expect(excerpt.text.hasSuffix("\nLine 250"))
+        #expect(excerpt.isTruncated)
+        let shownBytes = (1...250).map { "Line \($0)\n" }.joined().utf8.count
+        #expect(excerpt.omittedBytes == Int64(content.utf8.count - shownBytes))
+        #expect(excerpt.shown(locale: Locale(identifier: "en_US")).contains("\n…\n"))
     }
 
     @Test("Large text file exceeding byte cap is truncated with an indicator")
@@ -66,9 +67,9 @@ struct FilePanelTextPreviewTests {
 
         let entry = entry(for: url, size: Int64(content.utf8.count))
         let excerpt = try #require(await FilePanelPreview.excerpt(of: entry))
-        #expect(excerpt.contains("…"))
-        #expect(excerpt.contains("(plus"))
-        #expect(excerpt.contains("more)"))
+        #expect(excerpt.isTruncated)
+        #expect(excerpt.text.utf8.count == FilePanelPreview.previewByteCap)
+        #expect(excerpt.omittedBytes == Int64(content.utf8.count - FilePanelPreview.previewByteCap))
     }
 
     @Test("Truncated single-byte incomplete UTF-8 sequence does not trap")
@@ -89,10 +90,11 @@ struct FilePanelTextPreviewTests {
         try Data(crContent.utf8).write(to: crUrl)
         let crEntry = entry(for: crUrl, size: Int64(crContent.utf8.count))
         let crExcerpt = try #require(await FilePanelPreview.excerpt(of: crEntry))
-        #expect(crExcerpt.contains("Line 1"))
-        #expect(crExcerpt.contains("…"))
-        #expect(crExcerpt.contains("(plus"))
-        #expect(!crExcerpt.contains("Line 299"))
+        #expect(crExcerpt.text.hasSuffix("\nLine 250"))
+        #expect(crExcerpt.isTruncated)
+        #expect(
+            crExcerpt.omittedBytes
+                == Int64(crContent.utf8.count - (1...250).map { "Line \($0)\r" }.joined().utf8.count))
 
         // CRLF
         let crlfUrl = fixture.url("crlf.txt")
@@ -100,10 +102,11 @@ struct FilePanelTextPreviewTests {
         try Data(crlfContent.utf8).write(to: crlfUrl)
         let crlfEntry = entry(for: crlfUrl, size: Int64(crlfContent.utf8.count))
         let crlfExcerpt = try #require(await FilePanelPreview.excerpt(of: crlfEntry))
-        #expect(crlfExcerpt.contains("Line 1"))
-        #expect(crlfExcerpt.contains("…"))
-        #expect(crlfExcerpt.contains("(plus"))
-        #expect(!crlfExcerpt.contains("Line 299"))
+        #expect(crlfExcerpt.text.hasSuffix("\nLine 250"))
+        #expect(crlfExcerpt.isTruncated)
+        #expect(
+            crlfExcerpt.omittedBytes
+                == Int64(crlfContent.utf8.count - (1...250).map { "Line \($0)\r\n" }.joined().utf8.count))
     }
 
     @Test("Exactly 250 lines ending in a newline has no truncation indicator")
@@ -117,10 +120,7 @@ struct FilePanelTextPreviewTests {
 
         let entry = entry(for: url, size: Int64(content.utf8.count))
         let excerpt = try #require(await FilePanelPreview.excerpt(of: entry))
-        #expect(excerpt.contains("Line 1"))
-        #expect(excerpt.contains("Line 250"))
-        #expect(!excerpt.contains("…"))
-        #expect(!excerpt.contains("(plus"))
+        #expect(excerpt == FilePanelPreview.Excerpt(text: lines.joined(separator: "\n")))
     }
 
     @Test("Truncation indicator uses localized text")
@@ -135,8 +135,11 @@ struct FilePanelTextPreviewTests {
         let entry = entry(for: url, size: Int64(content.utf8.count))
         let excerpt = try #require(await FilePanelPreview.excerpt(of: entry))
         let template = LocalizationService.shared.string(for: LocalizationKey.FilePanel.previewMore)
-        #expect(excerpt.contains("…"))
         #expect(template.contains("%@"))
+        // In the language the app is in, and the size in the panel's locale.
+        let german = Locale(identifier: "de_DE")
+        let size = ByteCountFormatStyle(style: .file, locale: german).format(try #require(excerpt.omittedBytes))
+        #expect(excerpt.shown(locale: german).hasSuffix("\n…\n" + String(format: template, size)))
 
         // Check translation in an isolated service without mutating the shared service
         let configDir = NSTemporaryDirectory() + "tuikit-loc-\(UUID().uuidString)"
@@ -158,8 +161,7 @@ struct FilePanelTextPreviewTests {
 
         let entry = entry(for: url, size: Int64(latin1Bytes.count))
         let excerpt = try #require(await FilePanelPreview.excerpt(of: entry))
-        #expect(excerpt.contains("Caf"))
-        #expect(excerpt.contains("me"))
+        #expect(excerpt.text == "Caf\u{FFFD}\nCr\u{FFFD}me")
     }
 
     @Test("Declared text file containing binary control bytes is rejected")
@@ -173,5 +175,42 @@ struct FilePanelTextPreviewTests {
         let entry = entry(for: url, size: Int64(binaryBytes.count))
         let excerpt = await FilePanelPreview.excerpt(of: entry)
         #expect(excerpt == nil)
+    }
+
+    @Test("Tab-indented lines past the cap are counted in the file's bytes, and the cut still says so")
+    func tabIndentedLineCap() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let url = fixture.url("indented.txt")
+        // Each tab is drawn as two spaces: counted in the drawn text, 250 of
+        // these lines came to more than the whole file, and the cut went unsaid.
+        let content = (1...300).map { _ in "\t\t\treturn x\n" }.joined()
+        try Data(content.utf8).write(to: url)
+
+        let excerpt = try #require(await FilePanelPreview.excerpt(of: entry(for: url)))
+        #expect(excerpt.isTruncated)
+        #expect(excerpt.omittedBytes == Int64(50 * "\t\t\treturn x\n".utf8.count))
+    }
+
+    @Test("A cut is known from the read, not the size: a size of nothing still says the file goes on")
+    func cutKnownFromTheRead() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let url = fixture.url("big.txt")
+        let content = String(repeating: "x", count: FilePanelPreview.previewByteCap + 10)
+        try Data(content.utf8).write(to: url)
+        let excerpt = try #require(await FilePanelPreview.excerpt(of: entry(for: url)))
+        #expect(excerpt.isTruncated)
+        #expect(excerpt.text.utf8.count == FilePanelPreview.previewByteCap)
+    }
+
+    @Test("A declared text file with escapes, a closing ⌃Z or backspaces previews")
+    func declaredTextWithControlBytes() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let url = fixture.url("build.log")
+        try Data("\u{1B}[31mred\u{1B}[0m\nend\u{1A}".utf8).write(to: url)
+        let excerpt = try #require(await FilePanelPreview.excerpt(of: entry(for: url)))
+        #expect(excerpt.text.contains("red"))
     }
 }

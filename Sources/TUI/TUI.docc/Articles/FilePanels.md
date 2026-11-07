@@ -102,9 +102,12 @@ kept in the app's storage.
 While it shows, a preview of the item selected follows the folder: in the
 list a pane behind a splitter, whose divider a drag moves, or ← and → once
 <kbd>Tab</kbd> reaches it; in the column view a column of its own after a
-file's folder. It shows a file's opening lines, or the app's preview
-(`fileDialogPreview(_:)`), then its name, kind, size and date, and "No
-Selection" while there is no one item to show. The Show Preview / Hide Preview
+file's folder. It shows a text file's opening lines — up to 250 of them, or
+64 KiB, in a scroll view, then "…" and how much more the file holds — or the
+app's preview (`fileDialogPreview(_:)`), then its name, kind, size and date.
+A file of a text type is shown in any encoding, and a file of no known type
+when it reads as UTF-8 text. It shows "No Selection" while there is no one
+item to show. The Show Preview / Hide Preview
 button after the view switcher, or <kbd>⇧⌘P</kbd>, opens and closes it. Until
 the user does,
 it is open where the folder has room for it beside a list that keeps its

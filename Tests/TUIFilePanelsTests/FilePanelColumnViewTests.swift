@@ -219,9 +219,9 @@ struct FilePanelColumnViewTests {
         let rawBinary = try #require(byName["raw-binary"])
         let pdf = try #require(byName["gamma.pdf"])
 
-        #expect(await FilePanelPreview.excerpt(of: resolved)?.contains("\"pins\"") == true)
-        #expect(await FilePanelPreview.excerpt(of: gitattributes)?.contains("* text=auto") == true)
-        #expect(await FilePanelPreview.excerpt(of: swiftFormat)?.contains("\"version\"") == true)
+        #expect(await FilePanelPreview.excerpt(of: resolved)?.text.contains("\"pins\"") == true)
+        #expect(await FilePanelPreview.excerpt(of: gitattributes)?.text.contains("* text=auto") == true)
+        #expect(await FilePanelPreview.excerpt(of: swiftFormat)?.text.contains("\"version\"") == true)
         #expect(await FilePanelPreview.excerpt(of: blob) == nil)
         #expect(await FilePanelPreview.excerpt(of: rawBinary) == nil)
         #expect(await FilePanelPreview.excerpt(of: pdf) == nil)

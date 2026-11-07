@@ -162,7 +162,10 @@ struct FilePanelColumnView: View {
             }
             if let previewed {
                 Divider()
+                // A preview of each file its own: its scroll position, its
+                // excerpt, as the list's pane has them (`FilePanelPreviewPane`).
                 FilePanelPreview(entry: previewed)
+                    .id(previewed.url)
                     .frame(width: previewWidth)
                     .frame(maxHeight: .infinity)
             }

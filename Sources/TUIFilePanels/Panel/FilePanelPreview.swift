@@ -25,7 +25,10 @@ struct FilePanelPreview: View {
     @Environment(\.fileDialogPreview) private var appPreviews
 
     /// The opening lines of a text file, once read; `nil` for anything else.
-    @State private var excerpt: String?
+    @State private var excerpt: Excerpt?
+
+    /// The locale the panel writes its sizes in.
+    @Environment(\.locale) private var locale
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
@@ -35,7 +38,7 @@ struct FilePanelPreview: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let excerpt {
                 ScrollView {
-                    Text(verbatim: excerpt)
+                    Text(verbatim: excerpt.shown(locale: locale))
                         .foregroundStyle(.palette.foregroundSecondary)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
@@ -69,14 +72,35 @@ struct FilePanelPreview: View {
     /// The most of a file read for its preview, in bytes (64 KiB).
     nonisolated static let previewByteCap = 64 * 1024
 
-    /// Legacy alias for ``previewByteCap``.
-    nonisolated static var excerptBytes: Int { previewByteCap }
-
     /// The most lines a preview keeps before truncating.
     nonisolated static let previewLineCap = 250
 
-    /// Legacy alias for ``previewLineCap``.
-    nonisolated static var excerptLines: Int { previewLineCap }
+    /// A text file's opening lines, as read for its preview.
+    struct Excerpt: Equatable, Sendable {
+        /// The lines shown, joined by newlines, tabs as two spaces.
+        var text: String
+
+        /// Whether the file goes on past them.
+        var isTruncated = false
+
+        /// How many bytes it goes on for, where the file's size says: `nil`
+        /// where it doesn't, as a Linux `/proc` file's size of 0 doesn't.
+        var omittedBytes: Int64?
+
+        /// The text, and after it where the file goes on, an ellipsis, and
+        /// "(plus 12 KB more)" in the language and `locale` it is drawn in:
+        /// built as it is drawn, so a change of either shows at once.
+        func shown(locale: Locale) -> String {
+            guard isTruncated else { return text }
+            var shown = text + "\n…"
+            if let omittedBytes, omittedBytes > 0 {
+                let size = ByteCountFormatStyle(style: .file, locale: locale).format(omittedBytes)
+                let format = LocalizationService.shared.string(for: LocalizationKey.FilePanel.previewMore)
+                shown += "\n" + String(format: format, size)
+            }
+            return shown
+        }
+    }
 
     /// Whether `type` is a declared text type or an untyped/dynamic file whose
     /// opening bytes may be UTF-8 text (`Package.resolved`, `.gitattributes`,
@@ -95,11 +119,10 @@ struct FilePanelPreview: View {
         data.contains { ($0 < 0x20 && $0 != 0x09 && $0 != 0x0A && $0 != 0x0C && $0 != 0x0D) || $0 == 0x7F }
     }
 
-    /// Decodes `data` as UTF-8 text when it contains no binary control bytes
-    /// and is valid UTF-8 (trimming up to three trailing bytes of a split
-    /// multi-byte scalar when `truncated` is true); `nil` for binary data.
+    /// `data` decoded as UTF-8, up to three trailing bytes of a scalar split
+    /// by the cap trimmed when `truncated`; `nil` where it is not UTF-8.
     nonisolated static func utf8Text(from data: Data, truncated: Bool) -> String? {
-        guard !data.isEmpty, !containsBinaryControlBytes(data) else { return nil }
+        guard !data.isEmpty else { return nil }
         if let text = String(data: data, encoding: .utf8) {
             return text
         }
@@ -114,73 +137,88 @@ struct FilePanelPreview: View {
         return nil
     }
 
-    /// The preview text of `entry` if it is a text file, read off the main actor;
+    /// `data` as the preview's text, or `nil` for what is not text.
+    ///
+    /// A file of a declared text type is refused only for a NUL, which no
+    /// text holds: a log's colour escapes, a DOS file's closing ⌃Z or saved
+    /// `man` output's backspaces are text, and the renderer draws such bytes
+    /// safely. One in another encoding is shown, its stray bytes as U+FFFD.
+    /// An untyped file has to look like text: UTF-8 with no control bytes
+    /// past tab, line breaks and form feed.
+    nonisolated static func previewText(of data: Data, declaredText: Bool, truncated: Bool) -> String? {
+        if declaredText {
+            guard !data.contains(0) else { return nil }
+        } else {
+            guard !containsBinaryControlBytes(data) else { return nil }
+        }
+        if let text = utf8Text(from: data, truncated: truncated) { return text }
+        guard declaredText else { return nil }
+        // swiftlint:disable:next optional_data_string_conversion
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    /// The byte offset just past `data`'s `count`th line ending (a CR LF one
+    /// ending, as it is one line break), or `nil` where it has fewer. Counted
+    /// in the bytes, not in the text: tabs drawn as two spaces and stray bytes
+    /// drawn as U+FFFD take more bytes there than they did in the file.
+    nonisolated static func offset(afterLines count: Int, in data: Data) -> Int? {
+        var seen = 0
+        var index = data.startIndex
+        while index < data.endIndex {
+            let byte = data[index]
+            index = data.index(after: index)
+            guard byte == 0x0A || byte == 0x0D else { continue }
+            if byte == 0x0D, index < data.endIndex, data[index] == 0x0A { index = data.index(after: index) }
+            seen += 1
+            if seen == count { return data.distance(from: data.startIndex, to: index) }
+        }
+        return nil
+    }
+
+    /// The preview of `entry` if it is a text file, read off the main actor;
     /// `nil` for anything else, or a file that cannot be read.
     ///
     /// Only a regular file (or a link to one) is opened: on Linux a type is
     /// its extension's, so a named pipe called `x.log` is "text", and opening
     /// it waits for a writer — holding a thread of the cooperative pool for
     /// good.
+    ///
+    /// It reads one byte past ``previewByteCap``, which says whether the file
+    /// goes on whatever its size claims: a `/proc` file's is 0, and a file can
+    /// grow between its size being read and the read.
     @concurrent
-    static func excerpt(of entry: FileEntry) async -> String? {
+    static func excerpt(of entry: FileEntry) async -> Excerpt? {
         let file = entry.url.resolvingSymlinksInPath()
         guard mayContainText(entry.contentType),
-            (try? file.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true
+            (try? file.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true,
+            let handle = try? FileHandle(forReadingFrom: file)
         else { return nil }
-        let totalSize = (try? file.resourceValues(forKeys: [.fileSizeKey]))?.fileSize.map(Int64.init)
-            ?? entry.size
-        guard let handle = try? FileHandle(forReadingFrom: file),
-            let data = try? handle.read(upToCount: previewByteCap),
-            !data.isEmpty
+        defer { try? handle.close() }
+        guard let read = try? handle.read(upToCount: previewByteCap + 1), !read.isEmpty else { return nil }
+        let cutByBytes = read.count > previewByteCap
+        let data = read.prefix(previewByteCap)
+        // The lines past the cap go, where there are any past it.
+        var shown = data
+        var isTruncated = cutByBytes
+        if let end = offset(afterLines: previewLineCap, in: data), end < data.count || cutByBytes {
+            shown = data.prefix(end)
+            isTruncated = true
+        }
+        // Only a cut by bytes can split a scalar: a cut by lines falls after a line break.
+        let splitsScalar = cutByBytes && shown.count == data.count
+        guard
+            let decoded = previewText(
+                of: shown, declaredText: entry.contentType.conforms(to: .text), truncated: splitsScalar)
         else { return nil }
-        try? handle.close()
-        let cappedSlice = data.prefix(previewByteCap)
-        let total = totalSize ?? Int64(data.count)
-        let isTruncatedByBytes = cappedSlice.count < total
-        let decoded: String
-        if let text = utf8Text(from: cappedSlice, truncated: isTruncatedByBytes) {
-            decoded = text
-        } else if entry.contentType.conforms(to: .text), !containsBinaryControlBytes(cappedSlice) {
-            // Lossy fallback for non-UTF-8 declared text files (e.g. ISO-8859-1,
-            // Windows-1252), matching behaviour prior to 426893104 while continuing
-            // to reject binary data.
-            // swiftlint:disable:next optional_data_string_conversion
-            decoded = String(decoding: cappedSlice, as: UTF8.self)
-        } else {
-            return nil
+        var lines = decoded.replacingOccurrences(of: "\t", with: "  ")
+            .split(omittingEmptySubsequences: false, whereSeparator: { $0 == "\n" || $0 == "\r\n" || $0 == "\r" })
+        // The break that ends the last line starts no line of its own.
+        if lines.last?.isEmpty == true, lines.count > 1 { lines.removeLast() }
+        var excerpt = Excerpt(text: lines.joined(separator: "\n"), isTruncated: isTruncated)
+        if isTruncated {
+            let size = (try? file.resourceValues(forKeys: [.fileSizeKey]))?.fileSize.map(Int64.init) ?? entry.size
+            if let size, size > Int64(shown.count) { excerpt.omittedBytes = size - Int64(shown.count) }
         }
-        let text = decoded.replacingOccurrences(of: "\t", with: "  ")
-        var rawLines = text.split(
-            omittingEmptySubsequences: false,
-            whereSeparator: { $0 == "\n" || $0 == "\r\n" || $0 == "\r" }
-        )
-        if rawLines.last?.isEmpty == true, rawLines.count > 1 {
-            rawLines.removeLast()
-        }
-        var lines = rawLines.map(String.init)
-        let isTruncatedByLines = lines.count > previewLineCap
-        if isTruncatedByLines {
-            let shownBytes = Int64((0..<previewLineCap).reduce(0) { total, index in
-                let sepEnd = index + 1 < rawLines.count ? rawLines[index + 1].startIndex : text.endIndex
-                return total + rawLines[index].utf8.count + text[rawLines[index].endIndex..<sepEnd].utf8.count
-            })
-            lines = Array(lines.prefix(previewLineCap))
-            let remaining = max(0, total - shownBytes)
-            if remaining > 0 {
-                let formatted = ByteCountFormatStyle(style: .file).format(remaining)
-                lines.append("…")
-                let format = LocalizationService.shared.string(for: LocalizationKey.FilePanel.previewMore)
-                lines.append(String(format: format, formatted))
-            }
-        } else if isTruncatedByBytes {
-            let remaining = max(0, total - Int64(cappedSlice.count))
-            if remaining > 0 {
-                let formatted = ByteCountFormatStyle(style: .file).format(remaining)
-                lines.append("…")
-                let format = LocalizationService.shared.string(for: LocalizationKey.FilePanel.previewMore)
-                lines.append(String(format: format, formatted))
-            }
-        }
-        return lines.joined(separator: "\n")
+        return excerpt
     }
 }
