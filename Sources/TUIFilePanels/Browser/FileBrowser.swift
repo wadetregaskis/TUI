@@ -61,7 +61,12 @@ final class FileBrowser {
     package private(set) var showsLoadingPlaceholder = false
 
     /// The task driving the delay before showing the main folder's loading placeholder.
-    @ObservationIgnored private var loadingPlaceholderTask: Task<Void, Never>?
+    @ObservationIgnored private(set) var loadingPlaceholderTask: Task<Void, Never>?
+
+    /// The clock the loading delays run on: the machine's in an app, a test's
+    /// own in a test, which steps it to either side of the delay rather than
+    /// waiting it out (and racing it on a busy machine).
+    @ObservationIgnored let clock: any Clock<Duration>
 
     /// Which folder paths have exceeded ``loadingPlaceholderDelay`` while reading
     /// and should display the "Loading…" placeholder.
@@ -120,7 +125,11 @@ final class FileBrowser {
     /// task, which every ask awaits, and the generation it began in.
     @ObservationIgnored var foldersReading: [String: (generation: Int, read: Task<Void, Never>)] = [:]
 
-    init(directory: URL, rule: FileChoiceRule, showsHiddenFiles: Bool = false) {
+    init(
+        directory: URL, rule: FileChoiceRule, showsHiddenFiles: Bool = false,
+        clock: any Clock<Duration> = ContinuousClock()
+    ) {
+        self.clock = clock
         self.directory = directory.standardizedFileURL
         self.rule = rule
         self.showsHiddenFiles = showsHiddenFiles
@@ -135,8 +144,9 @@ final class FileBrowser {
     private func startLoadingPlaceholderTimer() {
         showsLoadingPlaceholder = false
         loadingPlaceholderTask?.cancel()
+        let clock = clock
         loadingPlaceholderTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: Self.loadingPlaceholderDelay)
+            try? await clock.sleep(for: Self.loadingPlaceholderDelay)
             guard !Task.isCancelled, let self, self.state == .loading else { return }
             self.showsLoadingPlaceholder = true
         }

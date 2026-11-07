@@ -33,8 +33,9 @@ extension FileBrowser {
             return
         }
         let started = generation
+        let clock = clock
         let timer = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: Self.loadingPlaceholderDelay)
+            try? await clock.sleep(for: Self.loadingPlaceholderDelay)
             guard !Task.isCancelled, let self else { return }
             if self.foldersReading[path]?.generation == started {
                 self.foldersShowingLoading.insert(path)

@@ -12,6 +12,7 @@ import Testing
 @testable import TUIFilePanels
 @testable import TUIFoundation
 @testable import TUITestSupport
+import TUITesting
 
 @MainActor
 @Suite("File panel loading placeholder delay", .serialized)
@@ -86,20 +87,24 @@ struct FilePanelLoadingDelayTests {
         }
     }
 
-    @Test("Loading placeholder appears after delay if folder is still loading")
+    @Test("Loading placeholder appears once the delay has passed, not a moment before")
     func loadingPlaceholderAppearsAfterDelay() async throws {
         let fixture = try FilePanelFixture()
         defer { fixture.remove() }
 
-        let browser = FileBrowser(directory: fixture.root, rule: FileChoiceRule())
+        let clock = TestClock()
+        let browser = FileBrowser(directory: fixture.root, rule: FileChoiceRule(), clock: clock)
+        await settle(until: { clock.sleepers == 1 })
+        #expect(clock.sleepers == 1)
+
+        clock.advance(by: FileBrowser.loadingPlaceholderDelay - .milliseconds(1))
+        // Turns enough for a woken timer to have run; none is due.
+        for _ in 0..<100 { await Task.yield() }
         #expect(!browser.showsLoadingPlaceholder)
         #expect(browser.emptyText.isEmpty)
 
-        // Wait for the delay window (250ms) to elapse and the task to update
-        let deadline = ContinuousClock.now + .seconds(2)
-        while !browser.showsLoadingPlaceholder && ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(50))
-        }
+        clock.advance(by: .milliseconds(1))
+        await browser.loadingPlaceholderTask?.value
         #expect(browser.showsLoadingPlaceholder)
         #expect(browser.emptyText == LocalizationService.shared.string(for: LocalizationKey.FilePanel.loading))
     }
@@ -128,8 +133,9 @@ struct FilePanelLoadingDelayTests {
         let dropUrl = fixture.url("Other")
 
         let browser = FileBrowser(directory: fixture.root, rule: FileChoiceRule())
-        let keepTask: Task<Void, Never> = Task { _ = try? await Task.sleep(for: .seconds(10)) }
-        let dropTask: Task<Void, Never> = Task { _ = try? await Task.sleep(for: .seconds(10)) }
+        let clock = TestClock()
+        let keepTask: Task<Void, Never> = Task { _ = try? await clock.sleep(for: .seconds(10)) }
+        let dropTask: Task<Void, Never> = Task { _ = try? await clock.sleep(for: .seconds(10)) }
         browser.folderLoadingTimers[keepUrl.path] = keepTask
         browser.folderLoadingTimers[dropUrl.path] = dropTask
 
