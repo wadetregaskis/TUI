@@ -25,7 +25,7 @@ From `Answers, engine, size and safety.md`, which has ranges, caveats and method
 | Hello, stripped size, selective modules | 8.56 MB | 21.45 MB |
 | Deepest plain `VStack` nesting drawn | about 1,000 | about 180 |
 
-The rows in bold are where SwiftTUI wins, and they are the ones to improve first.
+The rows in bold are where SwiftTUI wins, and they are the ones to improve first. The first of them was 1.0 ms by 2026-11-02, with a plain view's body no longer run when nothing it depends on changed: [When a body runs: the plain-body memo](<../State and dynamic properties/When a body runs - the plain-body memo.md>).
 
 ## What is here
 

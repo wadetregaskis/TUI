@@ -57,7 +57,7 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 | DOC-EDITED | The more sensitive check: a reference document counts as edited on `objectWillChange` or when what `snapshot` reads changes, not only on undo registration. | As built. |
 | CANVAS-GRAIN | Keep: quadrants by default, sextants and octants by `.canvasGrain`. | As built. |
 | ARG-PARSER | Drop the `TUIArgumentParser` module; keep `App.run()` and the three lines that show how. | Dropped. |
-| PLAIN-MEMO | On: a plain view's body needn't run when nothing tracked says it must, as in SwiftUI. | On by default. |
+| PLAIN-MEMO | On: a plain view's body needn't run when nothing tracked says it must, as in SwiftUI. | On by default ([the story](<Historical/State and dynamic properties/When a body runs - the plain-body memo.md>)). |
 | TMUX-HOLD | Stop sending the hold under tmux. | Done. It still wants a soak over ssh. |
 
 ## Answered on 2026-10-29

@@ -22,6 +22,8 @@ its parent's write is re-checked and served when unchanged, by default
 
 - **The memory "memos die on an ancestor write"** records the problem Option
   C answers, and its design.
+- **Option C's contract reaches every app view since 2026-11-02:** see
+  [When a body runs: the plain-body memo](<When a body runs - the plain-body memo.md>).
 
 
 

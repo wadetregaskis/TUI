@@ -35,7 +35,7 @@ place:
 | [Reviews and audits](<Reviews and audits/>) | The first reviews of the codebase and its tests (May 2026). |
 | [Scrolling](Scrolling/) | Holding the reader's place; paging and view-aligned scrolling; content past a scroll view's edge; scroll phases, animated scrolling, flash and bounce; scroll position and visibility; measuring a scroll view's content. |
 | [Shapes, effects and animation](<Shapes, effects and animation/>) | Transitions; animation timing; shapes; shadows; matched geometry; materials and glass; pixel effects; accessibility settings. |
-| [State and dynamic properties](<State and dynamic properties/>) | Finding dynamic properties; class properties held by several views; per-app render state; the update model. |
+| [State and dynamic properties](<State and dynamic properties/>) | Finding dynamic properties; class properties held by several views; per-app render state; the update model; when a body runs (the plain-body memo); how long a row's state lives. |
 | [SwiftUI parity process](<SwiftUI parity process/>) | The refusals re-examined; the semantic audit; completing the SwiftUI API; Apple-only API; the owner's decisions record. |
 | [SwiftTUI comparison, 2026-11](<SwiftTUI comparison, 2026-11/>) | TUI against SwiftTUI: engines, size, features, tests and safety, measured; the owner's decisions; the numbers to beat. |
 | [Terminals](<Terminals/>) | Adopting Ghostty's documented features; the host ledger; pointer shapes; grapheme widths; terminal capabilities for apps. |
