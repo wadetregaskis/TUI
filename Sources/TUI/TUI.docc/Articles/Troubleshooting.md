@@ -174,7 +174,7 @@ Each time the body runs it writes one line: `Counter: _count changed.` names the
 parent passed a different value, `@identity` means the view is new at its place, and `unchanged.` means none of those, so
 an `@Observable` object or an environment value it read is the likely cause. stdout is the screen, so set
 `TUI_DIAGNOSTICS_FILE=/tmp/changes.log` and `tail -f` that file from another terminal. Without it, the lines go to stderr, held
-until the app quits. ``View/_logChanges()`` writes the same lines to the unified log on a Mac.
+until the app quits. `_logChanges()` writes the same lines to the unified log on a Mac.
 
 ## Colours look wrong
 
