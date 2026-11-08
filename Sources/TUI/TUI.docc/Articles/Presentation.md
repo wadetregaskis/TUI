@@ -46,6 +46,34 @@ standard **Cancel** below its own. Each does nothing but close the dialog.
 Each action is a separate focusable control: <kbd>Tab</kbd> moves between them
 in drawn order and <kbd>Return</kbd> activates the focused one.
 
+### Alerts for an error or a value
+
+``View/alert(isPresented:error:actions:)`` presents an alert describing a
+`LocalizedError`: its `errorDescription` is the title, and its
+`recoverySuggestion`, if it has one, the message. A `nil` error withholds the
+alert. ``View/alert(isPresented:error:actions:message:)`` hands the error to the
+closures, so the buttons and the message can depend on it:
+
+```swift
+.alert(isPresented: $showingError, error: saveError) { _ in
+    Button("OK") {}
+} message: { error in
+    Text(error.recoverySuggestion ?? "")
+}
+```
+
+The `presenting:` overloads, such as
+`alert(_:isPresented:presenting:actions:message:)` and
+`confirmationDialog(_:isPresented:titleVisibility:presenting:actions:message:)`,
+do the same for any value: the closures receive it, and while it is `nil`
+nothing is presented.
+
+```swift
+.confirmationDialog("Delete file?", isPresented: $confirming, presenting: fileToDelete) { file in
+    Button("Delete \(file.name)", role: .destructive) { delete(file) }
+}
+```
+
 ## Confirmation Dialogs
 
 `confirmationDialog(_:isPresented:titleVisibility:actions:message:)` is the same
@@ -64,6 +92,17 @@ Button("Delete item…") { confirming = true }
 ```
 
 Dismissal works exactly as it does for an alert, Escape included.
+
+### Dialogs and quitting
+
+By default an alert or dialog that asks a question — more than one button, a destructive
+one, or a critical severity — keeps the quit key from quitting until it is
+answered, and a one-button notice doesn't. ``View/dialogPreventsAppTermination(_:)``,
+applied after the `alert` or `confirmationDialog`, says otherwise, and
+``View/presentationPreventsAppTermination(_:)`` on a sheet's, cover's or popover's
+content does the same for those. While one is up the status bar stops offering
+the quit key; ⌃\\ still asks, and quits at a second press. See
+<doc:ScenesAndQuitting>.
 
 ## Sheets
 
@@ -114,6 +153,19 @@ row tall has nothing to resize, so it gets only the Move stop. A sheet with dete
 rests on the bottom edge and has its grabber instead (<doc:Presentation#The-grabber>), and
 alerts, confirmation dialogs and full-screen covers have neither stop.
 <kbd>Esc</kbd> still dismisses the sheet from either stop.
+
+A sheet does not save the size or place the reader gives it. The open and save
+panels are the exception: they remember their size (<doc:FilePanels>).
+
+### Styling and sizing
+
+On the presented content, ``View/presentationBackground(_:)`` (or
+``View/presentationBackground(alignment:content:)`` for a view) fills the
+sheet's background, and ``View/presentationCornerRadius(_:)`` picks its corners:
+`0` square, any other radius rounded, `nil` the appearance's. A dialog hugs its
+content up to a preferred body width, 100 cells by default;
+``View/dialogPreferredWidth(_:)`` raises or lowers it, for a dialog built around
+a wide table, say.
 
 ### A Sheet for an Item
 
@@ -383,7 +435,7 @@ Button("Details") { showing = true }
 ```
 
 `arrowEdge` decides which side it sits on — a terminal draws no arrow, but the
-edge still means something: `.bottom` (the default) puts it below the view,
+edge still means something: left out (`nil`, the default) or `.bottom` puts it below the view,
 `.top` above, `.leading` / `.trailing` beside. `attachmentAnchor` decides where
 along that edge: `.rect(.bounds)` centres it on the view, `.rect(.rect(_:))` on
 a rectangle in the view's cells (an `Anchor<CellRect>.Source`, as SwiftUI's
@@ -494,7 +546,8 @@ has a button. A toast doesn't fade while its button has the focus, and one
 posted with `duration: nil` and no actions gets a Close button.
 
 A ``NotificationLayer`` says whether a toast is drawn above the sheets, alerts
-and dialogs presented over the window, or below them. One above stays
+and dialogs presented over the window (`.abovePresentations`), or below them
+(`.belowPresentations`). One above stays
 reachable while a sheet is up: F6 moves the focus to its buttons, and Escape
 closes the sheet unless the toast has the focus. One below is drawn under the
 sheet, out of reach, and its timer waits until the sheet closes. Without a
@@ -516,11 +569,15 @@ var body: some View {
 ```
 
 A text notification can also be posted on the desktop, where the person sees
-it from another window: ``NotificationDesktopDelivery``. It goes through the
+it from another window: ``NotificationDesktopDelivery``. `.never`, the default,
+draws only the toast; `.whenInactive` posts it on the desktop too while the
+terminal's window doesn't have the focus, where the toast would go unseen; and
+`.always` posts it whatever has the focus. It goes through the
 terminal where the terminal posts one (Ghostty and iTerm2); elsewhere this
 machine posts it itself, with `osascript` on macOS or `notify-send` on Linux,
 but only where the person is at this machine — never over ssh. One or the
-other, never both. It is one-way: no buttons, and nothing reports whether it
+other, never both. The person running the app can turn this machine's own
+posting on or off with `TUI_SYSTEM_NOTIFICATIONS` (<doc:EnvironmentVariables>). It is one-way: no buttons, and nothing reports whether it
 was seen.
 
 ```swift
@@ -537,6 +594,10 @@ They have a page of their own: <doc:FilePanels>.
 ### Presentation
 
 - ``PresentationDetent``
+- ``CustomPresentationDetent``
+- ``PresentationSizing``
+- ``PresentationBackgroundInteraction``
+- ``PresentationContentInteraction``
 - ``PopoverAttachmentAnchor``
 - ``PresentationAdaptation``
 

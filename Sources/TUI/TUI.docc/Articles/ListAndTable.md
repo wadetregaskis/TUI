@@ -125,6 +125,13 @@ Both List and Table support the same keyboard shortcuts:
 | Page Down | Move down by viewport height |
 | Space | Toggle selection |
 | Enter | Activate the row (primary action) when one is set, otherwise toggle selection |
+| A typed character | Move to the next row whose text starts with what was typed (type select); a pause of a second starts afresh |
+| Delete / Backspace | Delete the focused row, where its `ForEach` has `onDelete` |
+| ⇧→ / ⇧← (⌃L / ⌃T) | Reveal the cursor row's leading / trailing swipe actions (see "Row Actions" below) |
+
+Type select takes every printable character but Space while the list or table
+has the focus, whether or not a row matches, so a bare-key status-bar item or
+shortcut doesn't hear one there; the row shortcuts are all Control chords.
 
 Hold Shift with Up/Down to move the cursor by several rows at once (clamping at
 the ends rather than wrapping). The step count is the `.shiftStepMultiplier(_:)`
@@ -487,6 +494,25 @@ Table(logEntries) { ... }
 Single-line rows are unaffected — there a line *is* a row, so the extent is
 already exact at no cost.
 
+## Row Actions
+
+A row can carry actions besides its selection:
+
+- **Swipe actions.** ``View/swipeActions(edge:allowsFullSwipe:content:)`` on a
+  row gives it buttons revealed at its edge. A terminal reports no swipe, so
+  ⇧→ reveals the leading edge's and ⇧← the trailing edge's on the cursor row
+  (⌃L and ⌃T where the terminal doesn't report Shift on the arrows); the same
+  chord again is the full swipe. Revealed, ← → and Tab move between the
+  buttons, Return presses one and Escape slides them away.
+- **Delete.** `onDelete(perform:)` on the `ForEach` makes Delete and Backspace
+  remove the focused row; ``View/deleteDisabled(_:)`` exempts a row, as
+  ``View/moveDisabled(_:)`` does from reordering.
+- **Context menu.** `contextMenu(forSelectionType:menu:primaryAction:)` on the
+  list or table shows a menu for the selected rows, opened by a secondary click
+  or ⇧F10; its `primaryAction` runs on a double-click or Return.
+- **Refresh.** `refreshable(action:)` on a list makes ⌃R run the action, with a
+  spinner over the top row while it runs.
+
 ## Reordering from the Keyboard
 
 A list or table that takes `onMove` can be reordered without a mouse.
@@ -539,7 +565,19 @@ A mouse drag needs no indication that it is happening; the pointer is one.
 invisible, and `.live` — which only shuffles the data — would show nothing at
 all.
 
-Every chord here is rebindable — see ``RowShortcuts``.
+The feedback and every chord here are set by modifiers on the list, table or anything around it:
+``View/rowReorderFeedback(_:)`` picks `.live`, `.dimmed` or `.cursor` for a
+pointer's drag, and ``View/rowShortcuts(_:)`` rebinds a chord (see
+``RowShortcuts``):
+
+```swift
+List(selection: $selection) {
+    ForEach(tasks) { task in Text(task.title) }
+        .onMove { from, to in tasks.move(fromOffsets: from, toOffset: to) }
+}
+.rowReorderFeedback(.dimmed)
+.rowShortcuts([.pickUpRow: .only(KeyboardShortcut("m", modifiers: .control))])
+```
 
 ### Reordering Several Rows
 
@@ -643,7 +681,13 @@ List("Items", selection: $selected) { ... }
 
 ## List Modifiers
 
-Lists support several TUI-specific modifiers:
+How rows look is set on the row: `listRowBackground(_:)`,
+`listRowInsets(_:)`, `listItemTint(_:)` and, on the list,
+``View/listSeparatorStyle(_:)``; `sectionActions(content:)` puts buttons in a
+section's header. `.listStyle(_:)` picks among `.automatic`, `.bordered`,
+`.inset`, `.insetGrouped`, `.plain`, `.sidebar` and `.surface` (see <doc:ControlStyles>).
+
+Lists also support several TUI-specific modifiers:
 
 ```swift
 List("Items", selection: $selected) {
@@ -663,6 +707,14 @@ List("Items", selection: $selected) {
 | `.listEmptyPlaceholder(_:)` | Text shown when the list has no items (default: "No items"), in the secondary ink where a row's text would start |
 | `.listFooterSeparator(_:)` | Controls the separator line before the footer |
 | `.disabled(_:)` | Prevents keyboard interaction |
+
+A ``Table`` has its own:
+
+| Modifier | Description |
+|----------|-------------|
+| `.tableEmptyPlaceholder(_:)` | Text shown when the table has no rows |
+| `.tableColumnSpacing(_:)` | Cells between columns |
+| ``View/tableRowHeights(_:)`` | Whether rows keep to one line or grow to their tallest cell (``TableRowHeights``) |
 
 ## Environment Propagation
 
@@ -747,3 +799,4 @@ which cells carry it.
 - ``SelectionMode``
 - <doc:FocusSystem>
 - <doc:DragAndDrop>
+- <doc:ControlStyles>
