@@ -213,7 +213,7 @@ struct ImageRenderingControls: View {
                         Slider(value: $settings.edgeThreshold, in: 0.3...2.0, step: 0.1)
                             .sliderShowsValue(false)
                             .frame(maxWidth: .infinity)
-                        unsafe Text(String(unsafeFormat: "%.1f", settings.edgeThreshold)).dim()
+                        Text(settings.edgeThreshold.formatted(.number.precision(.fractionLength(1)))).dim()
                     }
                 }
                 // The block repertoire carries its own directional glyphs and a
@@ -235,7 +235,7 @@ struct ImageRenderingControls: View {
                         Slider(value: $settings.edgeContrastAmount, in: 0.1...2.0, step: 0.1)
                             .sliderShowsValue(false)
                             .frame(maxWidth: .infinity)
-                        unsafe Text(String(unsafeFormat: "%.1f", settings.edgeContrastAmount)).dim()
+                        Text(settings.edgeContrastAmount.formatted(.number.precision(.fractionLength(1)))).dim()
                     }
                 }
 
@@ -250,7 +250,7 @@ struct ImageRenderingControls: View {
                         Slider(value: $settings.inkThreshold, in: 0...1, step: 0.05)
                             .sliderShowsValue(false)
                             .frame(maxWidth: .infinity)
-                        unsafe Text(String(unsafeFormat: "%.2f", settings.inkThreshold)).dim()
+                        Text(settings.inkThreshold.formatted(.number.precision(.fractionLength(2)))).dim()
                     }
                 }
                 .disabled(!settings.usesInkThreshold)

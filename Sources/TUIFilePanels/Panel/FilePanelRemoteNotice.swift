@@ -93,9 +93,9 @@ struct FilePanelRemoteNotice: View {
             } else {
                 Text(verbatim: "!").bold()
             }
-            unsafe Text(
-                verbatim: String(
-                    unsafeFormat: LocalizationService.shared.string(for: LocalizationKey.FilePanel.remoteNotice), hostName)
+            Text(
+                verbatim: LocalizedStringKey.substituting(
+                    [hostName], into: LocalizationService.shared.string(for: LocalizationKey.FilePanel.remoteNotice))
             )
             .lineLimit(3)
         }

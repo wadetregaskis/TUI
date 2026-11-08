@@ -188,7 +188,7 @@ func pad(_ s: String, to width: Int, leftAlign: Bool = true) -> String {
     return leftAlign ? s + pad : pad + s
 }
 func ns(_ s: Double) -> String {
-    return unsafe pad(String(unsafeFormat: "%.1f", s) + "ns", to: 11, leftAlign: false)
+    return pad(s.formatted(.fixed(1)) + "ns", to: 11, leftAlign: false)
 }
 
 func run() {

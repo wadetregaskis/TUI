@@ -67,7 +67,7 @@ struct MemoCounts {
     /// One line, per frame over `frames`.
     func report(frames: Int) -> String {
         let divisor = Double(max(1, frames))
-        let perFrame = { (count: Int) in unsafe String(unsafeFormat: "%.1f", Double(count) / divisor) }
+        let perFrame = { (count: Int) in (Double(count) / divisor).formatted(.fixed(1)) }
         return "  memos/frame: measure \(perFrame(measureHits + measureMisses)) lookups, "
             + "\(perFrame(measureHits)) hits, \(perFrame(measureMisses)) misses, "
             + "\(perFrame(measureStores)) stores, \(perFrame(measureBypasses)) unkeyed; "

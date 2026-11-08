@@ -155,7 +155,7 @@ struct LogViewerApp: View {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(shown) { line in
                         HStack(alignment: .top, spacing: 1) {
-                            unsafe Text(String(unsafeFormat: "%7d", line.id)).dim()
+                            Text(line.id.digits(width: 7, padding: " ")).dim()
                             Text(line.level.label).foregroundStyle(line.level.colour)
                             Text(line.source).foregroundStyle(.blue)
                             Text(line.message)
@@ -195,7 +195,7 @@ struct ProcessMonitorApp: View {
         return VStack(alignment: .leading, spacing: 0) {
             Text(Lf("stress.scenario.app-shapes.heading", "process-monitor", count)).bold()
             HStack(spacing: 2) {
-                Text(unsafe "load \(String(unsafeFormat: "%.1f", load))%")
+                Text("load \(load.formatted(.fixed(1)))%")
                 ProgressView(value: load, total: 100)
                 Text(resident.formatted(.byteCount(style: .memory)))
             }
@@ -382,7 +382,7 @@ struct CodeEditorApp: View {
                         // of it. This scenario is here to measure the two-axis
                         // render, so its caret sits still.
                         HStack(spacing: 1) {
-                            unsafe Text(String(unsafeFormat: "%5d", index + 1))
+                            Text((index + 1).digits(width: 5, padding: " "))
                                 .foregroundStyle(index == count / 2 ? .orange : .gray)
                             Text(Self.source(index, seed: seed))
                         }

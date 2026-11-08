@@ -1,7 +1,7 @@
-# Strict memory safety: the last `@safe`
+# Strict memory safety: the last `@safe`, and printf formats
 
-How the package came to build under strict memory safety (SE-0458) with no type marked `@safe`. The rules
-themselves are in [CONTRIBUTING](<../../../CONTRIBUTING.md>), "Memory safety".
+How the package came to build under strict memory safety (SE-0458) with no type marked `@safe`, and how it writes numbers
+without a printf format. The rules themselves are in [CONTRIBUTING](<../../../CONTRIBUTING.md>), "Memory safety".
 
 ## The `@safe` exception: `ValueHashPlans` (2026-11-08)
 
@@ -68,3 +68,35 @@ stripped `Stress` binary grew by 224 bytes.
 0. A new type with unsafe storage takes the same route first — arrays and `@exclusivity(unchecked)`, values rather than
 pointers handed out, a protocol metatype rather than a stored closure over a pointer — before it asks for an
 exception.
+
+## Printf formats: `String(unsafeFormat:)` (2026-11-08)
+
+**What it was.** Apple's Foundation declares `String(format:)` `@unsafe` and swift-corelibs-foundation doesn't, so
+the `unsafe` Swift 6.4 wants on macOS is an "unnecessary `unsafe`" warning on Linux and WebAssembly. A shared helper,
+`String(unsafeFormat:)` in TUICore, unsafe everywhere, gave the package one spelling; 77 calls used it.
+
+**The owner's ruling.** He disliked the helper and asked for a more elegant route, with the helper acceptable as a
+fallback.
+
+**What was done.** Each call went the way of what it wrote:
+
+| What | Now | Why |
+|---|---|---|
+| A number for a person (the Example's readouts) | `.formatted(.number.precision(.fractionLength(n)))` | The locale's own marks, as a SwiftUI app writes it |
+| A number a program reads back, or a frame a checksum covers (Stress's reports and scenarios, the tools, the gradient codecs) | `.formatted(.fixed(n))`, a TUICore style | A full stop, no grouping, in every locale (`en_US_POSIX`) |
+| Hex, and integers padded with zeros or spaces | `digits(width:radix:uppercase:padding:)` on `BinaryInteger`, TUICore | `String(_:radix:)` and the padding, which several files wrote by hand |
+| A translation's `%@` (the file panels) | `LocalizedStringKey.substituting(_:into:)` | Already the package's substitution, `%1$@` included |
+
+What stays on the helper needs printf itself: `Text`'s `specifier:`, a format chosen at run time that SwiftUI
+documents as printf's (`FormatSpecifiable`, `InterpolatedNumber`), and `Path`'s description, which writes C's `%g`, whose
+switch to an exponent by magnitude no `FormatStyle` writes.
+
+**Two differences, both accepted.** `FormatStyle` rounds the shortest decimal half to even, where printf rounds the
+binary value exactly: 0.05 at one place is `0.0` here and `0.1` from `%.1f`. Nothing converted depends on such a tie.
+And the Example's numbers now follow the locale: `0,50` in German.
+
+**What it cost.** Measured on macOS, `-O`, 200,000 calls each, on a loaded box: `%.1f` 890 ns, `.fixed(1)` 737 ns,
+`.number.precision(.fractionLength(1))` 817 ns; `%7d` 797 ns, `digits(width: 7, padding: " ")` 55 ns. So the Stress
+scenarios that format every frame (the processes table, the log view's line numbers) cost no more than they did.
+FormatStyle builds on Linux and WebAssembly (it is FoundationInternationalization, which both SDKs ship; TUIFoundation
+already used it).

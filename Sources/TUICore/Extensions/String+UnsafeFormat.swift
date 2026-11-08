@@ -22,6 +22,16 @@ extension String {
     /// right on every platform. It is not a way around the check: the
     /// declaration says unsafe, so every caller still marks it.
     ///
+    /// The last resort, not the way to write a number: a fixed number of
+    /// digits is a `FormatStyle` (`.number.precision(.fractionLength(2))`
+    /// for a person, `.fixed(_:)` for a program), a width or a
+    /// radix `digits(width:radix:uppercase:padding:)`, and a
+    /// translation's `%@` `LocalizedStringKey.substituting(_:into:)`. What is
+    /// left needs printf itself: a format chosen at run time (`Text`'s
+    /// `specifier:`, which SwiftUI documents as a printf format) and C's `%g`
+    /// (`Path`'s description), whose switch to an exponent by magnitude no
+    /// `FormatStyle` writes.
+    ///
     /// The package's own; not public API.
     @unsafe package init(unsafeFormat format: String, _ arguments: any CVarArg...) {
         #if canImport(Darwin)

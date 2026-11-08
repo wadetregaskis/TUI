@@ -46,7 +46,8 @@ struct PointerTrackingDemo: View {
             let cell = CellPoint(point)
             return "(\(cell.x), \(cell.y))"
         }
-        return unsafe String(unsafeFormat: "(%.2f, %.2f)", point.x, point.y)
+        let places = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(2))
+        return "(\(Double(point.x).formatted(places)), \(Double(point.y).formatted(places)))"
     }
 
     /// The modifiers held, as a menu writes them — `⌃⌥⇧⌘` — or a dash.

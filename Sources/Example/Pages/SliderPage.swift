@@ -88,10 +88,10 @@ struct SliderPage: View {
 
             DemoSection("page.slider.currentValuesSection") {
                 VStack(alignment: .leading, spacing: 1) {
-                    unsafe ValueDisplayRow("page.slider.volume", String(unsafeFormat: "%.0f%%", volume * 100))
-                    unsafe ValueDisplayRow("page.slider.brightness", String(unsafeFormat: "%.0f", brightness))
-                    unsafe ValueDisplayRow("page.slider.rating", String(unsafeFormat: "%.0f", rating))
-                    unsafe ValueDisplayRow("page.slider.precision", String(unsafeFormat: "%.2f", precision))
+                    ValueDisplayRow("page.slider.volume", (volume * 100).formatted(.number.precision(.fractionLength(0))) + "%")
+                    ValueDisplayRow("page.slider.brightness", brightness.formatted(.number.precision(.fractionLength(0))))
+                    ValueDisplayRow("page.slider.rating", rating.formatted(.number.precision(.fractionLength(0))))
+                    ValueDisplayRow("page.slider.precision", precision.formatted(.number.precision(.fractionLength(2))))
                 }
             }
 

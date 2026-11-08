@@ -37,7 +37,7 @@ struct ScreenCell: Equatable {
     static func name(_ colour: Color?) -> String {
         guard let colour else { return "default" }
         if let rgb = colour.rgbComponents {
-            return "#" + [rgb.red, rgb.green, rgb.blue].map { unsafe String(unsafeFormat: "%02x", $0) }.joined()
+            return "#" + [rgb.red, rgb.green, rgb.blue].map { $0.digits(width: 2, radix: 16, uppercase: false) }.joined()
         }
         return colour.foregroundCodes(depth: .truecolor).joined(separator: ";")
     }

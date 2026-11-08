@@ -19,16 +19,16 @@ extension ImageRenderingControls {
             heading("component.imageControls.adjustments")
             adjustmentRow(
                 "component.imageControls.exposure", value: $settings.adjustments.exposure, in: -2...2, step: 0.1,
-                format: "%+.1f")
+                format: .number.precision(.fractionLength(1)).sign(strategy: .always()))
             adjustmentRow(
                 "component.imageControls.blackPoint", value: $settings.adjustments.blackPoint, in: 0...0.5,
-                step: 0.01, format: "%.2f")
+                step: 0.01, format: .number.precision(.fractionLength(2)))
             adjustmentRow(
                 "component.imageControls.adjustHighlights", value: $settings.adjustments.highlights, in: -1...1,
-                step: 0.05, format: "%+.2f")
+                step: 0.05, format: .number.precision(.fractionLength(2)).sign(strategy: .always()))
             adjustmentRow(
                 "component.imageControls.contrast", value: $settings.adjustments.contrast, in: -1...1, step: 0.05,
-                format: "%+.2f")
+                format: .number.precision(.fractionLength(2)).sign(strategy: .always()))
             Button("component.imageControls.adjustmentsReset") { settings.adjustments = .none }
                 .disabled(settings.adjustments.isIdentity)
         }
@@ -37,14 +37,14 @@ extension ImageRenderingControls {
     /// One adjustment: its name, a slider, and the value it is at.
     private func adjustmentRow(
         _ label: LocalizedStringKey, value: Binding<Double>, in range: ClosedRange<Double>, step: Double,
-        format: String
+        format: FloatingPointFormatStyle<Double>
     ) -> some View {
         HStack(spacing: 1) {
             Text(label).frame(width: 16, alignment: .leading)
             Slider(value: value, in: range, step: step)
                 .sliderShowsValue(false)
                 .frame(maxWidth: .infinity)
-            unsafe Text(String(unsafeFormat: format, value.wrappedValue)).dim()
+            Text(value.wrappedValue.formatted(format)).dim()
         }
     }
 }

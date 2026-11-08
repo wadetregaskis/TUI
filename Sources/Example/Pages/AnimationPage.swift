@@ -196,12 +196,12 @@ struct AnimationPage: View {
     private var paceSliders: some View {
         VStack(alignment: .leading, spacing: 0) {
             Slider(value: $duration, in: 0.1...2.5, step: 0.05) {
-                caption(unsafe "\(L("page.animation.duration")) \(String(unsafeFormat: "%.2fs", duration))")
+                caption("\(L("page.animation.duration")) \(duration.formatted(.number.precision(.fractionLength(2))))s")
             }
             Slider(value: $speed, in: 0.25...4, step: 0.25) {
                 caption(
-                    unsafe "\(L("page.animation.speed")) "
-                        + String(unsafeFormat: "%.2f× → %.2fs", speed, duration / speed))
+                    "\(L("page.animation.speed")) \(speed.formatted(.number.precision(.fractionLength(2))))× → "
+                        + "\((duration / speed).formatted(.number.precision(.fractionLength(2))))s")
             }
         }
     }
@@ -212,7 +212,7 @@ struct AnimationPage: View {
     @ViewBuilder private var shapeSliders: some View {
         VStack(alignment: .leading, spacing: 0) {
             Slider(value: $bounce, in: -0.5...0.9, step: 0.05) {
-                caption(unsafe "\(L("page.animation.bounce")) \(String(unsafeFormat: "%.2f", bounce))")
+                caption("\(L("page.animation.bounce")) \(bounce.formatted(.number.precision(.fractionLength(2))))")
             }
             .disabled(selectedCurve != .spring)
             // Four tracks abreast need real width to stay readable; two rows of

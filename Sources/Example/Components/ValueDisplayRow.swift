@@ -13,7 +13,7 @@ import TUI
 /// # Example
 ///
 /// ```swift
-/// ValueDisplayRow("page.slider.volume", String(unsafeFormat: "%.0f%%", volume * 100))
+/// ValueDisplayRow("page.slider.volume", (volume * 100).formatted(.number.precision(.fractionLength(0))) + "%")
 /// ValueDisplayRow("page.list.selection", selection ?? L("common.none"))
 /// ```
 ///

@@ -147,8 +147,8 @@ struct ScrollViewPage: View {
 
                             Text("page.scrollView.sliderLabel").bold()
                             Slider(value: $sliderValue, in: 0...100, step: 1)
-                            unsafe ValueDisplayRow(
-                                "page.scrollView.sliderValue", String(unsafeFormat: "%.0f", sliderValue))
+                            ValueDisplayRow(
+                                "page.scrollView.sliderValue", sliderValue.formatted(.number.precision(.fractionLength(0))))
 
                             Text("page.scrollView.trailingLabel").bold()
                             ForEach(Array(loremLines.prefix(20)), id: \.self) { Text($0) }

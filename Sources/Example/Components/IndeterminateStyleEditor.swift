@@ -105,7 +105,7 @@ struct IndeterminateStyleEditor: View {
             }
 
             Slider(value: $period, in: 0.2...6, step: 0.1) {
-                Text(unsafe "\(L("component.indeterminateEditor.period")) \(String(unsafeFormat: "%.1f s", period))")
+                Text("\(L("component.indeterminateEditor.period")) \(period.formatted(.number.precision(.fractionLength(1)))) s")
             }
             Slider(value: $extent, in: 0.05...1, step: 0.05) {
                 Text(

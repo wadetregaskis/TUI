@@ -272,7 +272,7 @@ func enumerateFlags() -> [String] {
 // MARK: - Output
 
 func formatCodepoints(_ scalars: [Unicode.Scalar]) -> String {
-    return scalars.map { unsafe String(unsafeFormat: "U+%04X", $0.value) }.joined(separator: " ")
+    return scalars.map { "U+" + $0.value.digits(width: 4, radix: 16, uppercase: true) }.joined(separator: " ")
 }
 
 func writeReport(_ results: [Result], to handle: FileHandle, format: OutputFormat) {
@@ -411,7 +411,7 @@ func main() {
             let rate = Double(i + 1) / elapsed
             // Status on row 1 so it doesn't interfere with the test row.
             writeString("\u{1B}[1;1H\u{1B}[2K")
-            writeString(unsafe "[\(i + 1)/\(corpus.count)  \(String(unsafeFormat: "%.0f", rate))/s] ")
+            writeString("[\(i + 1)/\(corpus.count)  \(rate.formatted(.fixed(0)))/s] ")
             writeString(cluster)
         }
     }
@@ -445,14 +445,14 @@ func main() {
     let overAdvance  = results.filter { $0.verdict == .overAdvance  }.count
     let parseFail    = results.filter { $0.verdict == .parseFailure }.count
     let normal       = results.filter { $0.verdict == .normal       }.count
-    let summary = unsafe """
+    let summary = """
 
     scanned: \(results.count)
       normal:        \(normal)
       under-advance: \(underAdvance)
       over-advance:  \(overAdvance)
       parse-failure: \(parseFail)
-    elapsed: \(String(unsafeFormat: "%.2f", Date().timeIntervalSince(startTime)))s
+    elapsed: \(Date().timeIntervalSince(startTime).formatted(.fixed(2)))s
 
     """
     FileHandle.standardError.write(summary.data(using: .utf8)!)

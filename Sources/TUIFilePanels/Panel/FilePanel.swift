@@ -285,18 +285,18 @@ struct FilePanel: View {
                 if let replacing { finish(.chose([replacing], ending)) }
             }
         } message: {
-            unsafe Text(
-                String(
-                    unsafeFormat: LocalizationService.shared.string(for: LocalizationKey.FilePanel.replaceMessage),
-                    DirectoryListing.displayName(of: browser.directory)))
+            Text(
+                LocalizedStringKey.substituting(
+                    [DirectoryListing.displayName(of: browser.directory)],
+                    into: LocalizationService.shared.string(for: LocalizationKey.FilePanel.replaceMessage)))
         }
     }
 
     /// The replace alert's title, naming the file.
     private var replaceTitle: String {
-        unsafe String(
-            unsafeFormat: LocalizationService.shared.string(for: LocalizationKey.FilePanel.replaceTitle),
-            replacing?.lastPathComponent ?? "")
+        LocalizedStringKey.substituting(
+            [replacing?.lastPathComponent ?? ""],
+            into: LocalizationService.shared.string(for: LocalizationKey.FilePanel.replaceTitle))
     }
 
     // MARK: - The folder's items

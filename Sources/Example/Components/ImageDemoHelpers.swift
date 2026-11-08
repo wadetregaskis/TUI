@@ -130,7 +130,7 @@ enum ImageDemoHelpers {
             let denominator = Int((1.0 / zoom).rounded())
             return "zoom:1/\(denominator)x"
         }
-        return unsafe "zoom:\(String(unsafeFormat: "%.1f", zoom))x"
+        return "zoom:\(zoom.formatted(.number.precision(.fractionLength(1))))x"
     }
 
     // MARK: - Custom palettes

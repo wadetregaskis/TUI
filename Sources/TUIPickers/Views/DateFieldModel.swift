@@ -116,7 +116,7 @@ struct DateFieldModel {
 
     /// The zero-padded text of a component within `date`.
     func text(_ kind: Kind, of date: Date) -> String {
-        unsafe String(unsafeFormat: kind == .year ? "%04d" : "%02d", value(kind, of: date))
+        value(kind, of: date).digits(width: kind == .year ? 4 : 2)
     }
 
     /// The laid-out cells of the field, with absolute column ranges.

@@ -205,7 +205,7 @@ private struct Presses: View {
     }
 
     private static func note(_ line: String) {
-        let time = unsafe String(unsafeFormat: "%.3f", Date().timeIntervalSince1970)
+        let time = Date().timeIntervalSince1970.formatted(.fixed(3))
         log?.write(Data("\(time) \(line)\n".utf8))
     }
 

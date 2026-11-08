@@ -116,12 +116,12 @@ struct ImageHarness {
             + Double(elapsed.components.attoseconds) / 1e18
         let perIteration = seconds / Double(iterations)
         let perUnit = perIteration / Double(units) * 1e9
-        print(unsafe """
+        print("""
             path=\(path) mode=\(mode) dither=\(dither) edge=\(edgeContrast) \
             out=\(width)x\(height) src=\(source.width)x\(source.height) \
             iterations=\(iterations)
-            \(String(unsafeFormat: "%.3f ms/iteration   %.2f ns/%@   checksum=%d",
-                     perIteration * 1000, perUnit, path == "pixel" ? "pixel" : "cell", checksum))
+            \((perIteration * 1000).formatted(.fixed(3))) ms/iteration   \
+            \(perUnit.formatted(.fixed(2))) ns/\(path == "pixel" ? "pixel" : "cell")   checksum=\(checksum)
             """)
     }
 
@@ -181,11 +181,11 @@ struct ImageHarness {
         let elapsed = clock.now - start
         let seconds = Double(elapsed.components.seconds)
             + Double(elapsed.components.attoseconds) / 1e18
-        print(unsafe """
+        let perColour = seconds / Double(iterations) / Double(count) * 1e9
+        print("""
             path=colour colours=\(count) iterations=\(iterations)
-            \(String(unsafeFormat: "%.3f ms/iteration   %.1f ns/colour   checksum=%d",
-                     seconds / Double(iterations) * 1000,
-                     seconds / Double(iterations) / Double(count) * 1e9, checksum))
+            \((seconds / Double(iterations) * 1000).formatted(.fixed(3))) ms/iteration   \
+            \(perColour.formatted(.fixed(1))) ns/colour   checksum=\(checksum)
             """)
     }
 
@@ -231,10 +231,11 @@ struct ImageHarness {
         let seconds = Double(elapsed.components.seconds)
             + Double(elapsed.components.attoseconds) / 1e18
         let perIteration = seconds / Double(iterations)
-        print(unsafe """
+        let perPixel = perIteration / Double(cols * rows) * 1e9
+        print("""
             path=palette depth=\(depth) src=\(source.width)x\(source.height) iterations=\(iterations)
-            \(String(unsafeFormat: "%.3f ms/derivation   %.2f ns/pixel   checksum=%d",
-                     perIteration * 1000, perIteration / Double(cols * rows) * 1e9, checksum))
+            \((perIteration * 1000).formatted(.fixed(3))) ms/derivation   \
+            \(perPixel.formatted(.fixed(2))) ns/pixel   checksum=\(checksum)
             """)
     }
 

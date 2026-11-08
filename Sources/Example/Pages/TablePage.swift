@@ -116,7 +116,7 @@ private struct TransferEntry: Identifiable, Sendable {
             (name: "backup.sqlite", rate: 1),
         ]
         let seconds = tick / 4
-        let elapsed = unsafe String(unsafeFormat: "%d:%02d", seconds / 60, seconds % 60)
+        let elapsed = "\(seconds / 60):\((seconds % 60).digits(width: 2))"
         return jobs.enumerated().map { index, job in
             // Progress climbs at a per-row rate, holds at 100% for a stretch,
             // then wraps and starts over — so the demo never goes static.
