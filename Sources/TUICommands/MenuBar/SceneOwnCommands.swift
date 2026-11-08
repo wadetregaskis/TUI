@@ -151,22 +151,9 @@ struct SceneOwnCommands {
         return Self.items("view-preferences") {
             ForEach(ViewPreference.allCases, id: \.self) { preference in
                 Toggle(
-                    service.string(for: Self.title(of: preference)),
+                    service.string(for: preference.title),
                     isOn: Binding(get: { on.contains(preference) }, set: { overrides[preference] = $0 }))
             }
-        }
-    }
-
-    /// The View menu's title for `preference`.
-    private static func title(of preference: ViewPreference) -> LocalizationKey.Menu {
-        switch preference {
-        case .differentiateWithoutColor: .differentiateWithoutColor
-        case .reduceMotion: .reduceMotion
-        case .reduceTransparency: .reduceTransparency
-        case .increaseContrast: .increaseContrast
-        case .focusBreathing: .focusBreathing
-        case .spelledOutKeys: .spelledOutKeys
-        case .focusFollowsPointer: .focusFollowsPointer
         }
     }
 

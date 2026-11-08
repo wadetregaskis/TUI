@@ -51,6 +51,19 @@ package enum ViewPreference: CaseIterable, Hashable, Sendable {
         }
     }
 
+    /// What the View menu and the settings panel's Accessibility tab call it.
+    package var title: LocalizationKey.Menu {
+        switch self {
+        case .differentiateWithoutColor: .differentiateWithoutColor
+        case .reduceMotion: .reduceMotion
+        case .reduceTransparency: .reduceTransparency
+        case .increaseContrast: .increaseContrast
+        case .focusBreathing: .focusBreathing
+        case .spelledOutKeys: .spelledOutKeys
+        case .focusFollowsPointer: .focusFollowsPointer
+        }
+    }
+
     /// Turns the preference on or off in `environment`.
     func set(_ isOn: Bool, in environment: inout EnvironmentValues) {
         switch self {
