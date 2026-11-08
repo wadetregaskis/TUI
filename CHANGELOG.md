@@ -4,6 +4,10 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**`Divider(character:)` with a wide glyph draws a rule of the width it is given.** An ideograph or an emoji drew a
+horizontal rule twice as wide as offered, and in a row a vertical rule two cells wide where the divider had said it
+was one, over its neighbour. A glyph that takes no cell now draws the axis's own rule.
+
 **A `scrollTo` made as a keyboard glide lands is the app's own.** It replaced the glide's parked landing but kept
 its landing mark, so it was sought again by position and jumped to, whatever animation it was made in.
 

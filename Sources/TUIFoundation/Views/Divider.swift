@@ -55,6 +55,11 @@ nonisolated public struct Divider: View, Equatable {
     /// the caller has named a specific glyph; only ``init()`` picks one from
     /// the axis.
     ///
+    /// A glyph two cells wide (an ideograph, most emoji) draws a vertical rule
+    /// two cells wide, and a horizontal rule of as many glyphs as fit, a cell
+    /// left blank where one does not. A glyph that takes no cell (a lone
+    /// combining mark) cannot draw a rule, and the axis's own is drawn instead.
+    ///
     /// - Parameter character: The character for the separator line.
     public init(character: Character) {
         self.character = character
@@ -77,6 +82,16 @@ nonisolated public struct Divider: View, Equatable {
         context.environment.containerAxis == .horizontal
     }
 
+    /// The glyph the rule is drawn in and the cells each one takes: the stated
+    /// character, counted in cells and not as one character, or the axis's own
+    /// rule where none was stated or the stated one takes no cell.
+    private func drawnGlyph(vertical: Bool) -> (glyph: Character, cells: Int) {
+        let rule: Character = vertical ? "│" : "─"
+        guard let character else { return (rule, 1) }
+        let cells: Int = character.terminalWidth
+        return cells > 0 ? (character, cells) : (rule, 1)
+    }
+
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         // One cell across, flexible along the stack's minor axis so it spans
         // the row or column. In a row it must NOT be width-flexible: a
@@ -84,8 +99,10 @@ nonisolated public struct Divider: View, Equatable {
         // the divider's siblings to the two ends.
         // Natural: one cell across either way, and which way is an environment
         // question (the enclosing stack's axis), not a question of budget.
-        (isVertical(in: context)
-            ? ViewSize.flexibleHeight(width: 1, minHeight: 1)
+        // A vertical rule is as wide as its glyph: two cells for a wide one.
+        let vertical = isVertical(in: context)
+        return (vertical
+            ? ViewSize.flexibleHeight(width: drawnGlyph(vertical: true).cells, minHeight: 1)
             : ViewSize.flexibleWidth(minWidth: 1, height: 1))
             .declaringNaturalSize()
     }
@@ -103,7 +120,7 @@ nonisolated public struct Divider: View, Equatable {
     /// palette's border.
     private func drawnRule(in paint: Paint?, context: RenderContext) -> FrameBuffer {
         let vertical = isVertical(in: context)
-        let glyph = character ?? (vertical ? "│" : "─")
+        let (glyph, cells) = drawnGlyph(vertical: vertical)
         // A separator is chrome, not content: it defaults to the palette's
         // muted border colour (matching SwiftUI's grey rule and the rules
         // containers draw), rather than shouting in the body-text colour. A
@@ -119,18 +136,22 @@ nonisolated public struct Divider: View, Equatable {
             let cell = ANSIRenderer.colorize(String(glyph), foreground: color.opaqueSpelling)
             var buffer = FrameBuffer(lines: Array(repeating: cell, count: height))
             buffer.opacityRegions = OpacityRegion.claim(
-                width: 1, height: height, ink: color).map { [$0] } ?? []
+                width: cells, height: height, ink: color).map { [$0] } ?? []
             return buffer
         }
         // Clamped like the vertical branch above: `String(repeating:count:)`
         // requires a non-negative count, and the offered width can be negative
         // — a caller's `.frame(width: available - labelWidth)` on a terminal
         // too narrow for the label. A rule with no cells to draw draws none.
+        // As many glyphs as fit whole — a count of cells is not a count of
+        // glyphs once one takes two — and a blank for the cell left over.
         let width = max(0, context.availableWidth)
-        let line = String(repeating: glyph, count: width)
-        var buffer = FrameBuffer(text: ANSIRenderer.colorize(line, foreground: color.opaqueSpelling))
+        let count: Int = width / cells
+        let line = String(repeating: glyph, count: count)
+        var buffer = FrameBuffer(
+            text: ANSIRenderer.colorize(line, foreground: color.opaqueSpelling) + String.spaces(width - count * cells))
         buffer.opacityRegions = OpacityRegion.claim(
-            width: width, height: 1, ink: color).map { [$0] } ?? []
+            width: count * cells, height: 1, ink: color).map { [$0] } ?? []
         return buffer
     }
 }
