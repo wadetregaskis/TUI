@@ -100,6 +100,15 @@ internal final class RenderLoop<A: App> {
     /// frame's last write ended.
     var parkedCursor: CellPoint?
 
+    /// Whether the terminal's own cursor follows the focus, and is shown
+    /// there, or `nil`: the proof of concept `TUI_CURSOR_FOLLOWS_FOCUS` turns
+    /// on, which the app runner reads (`RenderLoop+Cursor.swift`). `nil` in
+    /// every other loop unless a test says otherwise.
+    var cursorFollowsFocus: CursorFollowsFocus?
+
+    /// Whether the last frame left the cursor shown (``cursorFollowsFocus``).
+    var showsCursor = false
+
     /// The terminal's size at the previous frame, `nil` before the first: a
     /// frame drawn at another size stamps `RenderCache.terminalResizedAtNanos`.
     private(set) var lastFrameSize: (width: Int, height: Int)?
@@ -1350,7 +1359,7 @@ extension RenderLoop {
         let deletes = tuiContext.terminalImageStore.takeDeletes()
         if !deletes.isEmpty { terminal.write(deletes) }
         parkCursor(
-            at: insertionPointOnScreen(
+            at: cursorTarget(
                 in: buffer.hitTestRegions, width: terminalWidth, height: outputLines.count),
             afterWriting: wrote || placedHairlines || placedPictures || placedClassic || drewSixel)
 

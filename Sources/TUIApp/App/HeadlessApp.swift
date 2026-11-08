@@ -408,6 +408,17 @@ package final class HeadlessApp {
         set { renderer.sendsProgressReports = newValue }
     }
 
+    /// Whether the terminal's own cursor follows the focus, as
+    /// `TUI_CURSOR_FOLLOWS_FOCUS` asks the app runner (`RenderLoop.cursorFollowsFocus`):
+    /// `nil` until a test says so.
+    var cursorFollowsFocus: CursorFollowsFocus? {
+        get { renderer.cursorFollowsFocus }
+        set { renderer.cursorFollowsFocus = newValue }
+    }
+
+    /// Whether the frames so far left the terminal's cursor shown.
+    var cursorVisible: Bool { terminal.cursorVisible }
+
     /// How many views' parting pictures the app is holding — every view with a
     /// transition that is on screen, and every removal still playing. A removal
     /// that has played out is no longer counted.
@@ -441,6 +452,7 @@ private protocol HeadlessRendering: AnyObject {
     var scenes: ScenePresenter { get }
     var hostState: TerminalHostState { get }
     var sendsProgressReports: Bool { get set }
+    var cursorFollowsFocus: CursorFollowsFocus? { get set }
     var configureEnvironment: ((inout EnvironmentValues) -> Void)? { get set }
 }
 
@@ -474,6 +486,9 @@ final class InMemoryTerminal: HostStateKeeping {
     /// Where the cursor was last put, in cells from the top-left, or `nil`
     /// once something has been drawn after it, which moved it on.
     private(set) var cursor: CellPoint?
+    /// Whether the cursor was last shown rather than hidden: hidden, as the
+    /// app runner leaves it for the whole run, until something shows it.
+    private(set) var cursorVisible = false
     /// The writes that set or restored the window title, or reported progress
     /// (``TerminalHostState``).
     private(set) var hostWrites: [String] = []
@@ -519,8 +534,16 @@ final class InMemoryTerminal: HostStateKeeping {
         write(ANSIRenderer.moveCursor(toRow: row, column: column))
         cursor = CellPoint(x: column - 1, y: row - 1)
     }
-    func hideCursor() {}
-    func showCursor() {}
+    // Written, and counted, as a real terminal is sent them; only the proof of
+    // concept that shows the cursor on the focus calls these here.
+    func hideCursor() {
+        write(ANSIRenderer.hideCursor)
+        cursorVisible = false
+    }
+    func showCursor() {
+        write(ANSIRenderer.showCursor)
+        cursorVisible = true
+    }
     func enterAlternateScreen() {}
     func exitAlternateScreen() {}
 }

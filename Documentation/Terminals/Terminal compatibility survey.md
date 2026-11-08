@@ -3712,6 +3712,15 @@ Warp may lighten a named foreground. Which of a reversed cell's two colours it
 treats as the foreground is unknown. Reading the setting "off" would mean
 changing a Warp preference, and that is for the owner to do.
 
+**The terminal's own cursor shown on the focus: UNMEASURED on every host
+(2026-11-07).** `TUI_CURSOR_FOLLOWS_FOCUS=1` (a proof of concept, see
+`Documentation/Input and focus/Cursor follows focus (proof of concept).md`)
+leaves the cursor shown on a focused control's first cell, over its focus
+colours: the card's keys 1–6 row above asks the same of a reversed cell. Open
+per host: whether the cursor hides the cell under it, whether it is seen
+travelling through a frame's writes where there is no synchronized output
+(Terminal.app), and what a screen reader or magnifier follows.
+
 **Not measured, and why:**
 - **Ghostty 1.3.1, until 2026-10-19:** two launches with
   `open -na Ghostty.app --args -e <script>` on 2026-09-14 each opened a window

@@ -3,14 +3,54 @@
 //
 //  Where a frame leaves the terminal's hidden cursor: on the focused text
 //  control's insertion point, so that what an input method composes there —
-//  Apple Terminal's pending accent after ⌥E — appears on the caret.
+//  Apple Terminal's pending accent after ⌥E — appears on the caret. And, in
+//  the proof of concept `TUI_CURSOR_FOLLOWS_FOCUS` turns on, on any focused
+//  control, shown or not (`Documentation/Input and focus/Cursor follows focus
+//  (proof of concept).md`).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import TUIFoundation
 
+/// Whether the terminal's own cursor follows the focus: the proof of concept
+/// `TUI_CURSOR_FOLLOWS_FOCUS` turns on, off by default.
+enum CursorFollowsFocus: Equatable {
+    /// On the focused control, and shown: `1` or `show`.
+    case shown
+
+    /// On the focused control, and kept hidden, for whatever tracks a hidden
+    /// cursor's place: `hidden`.
+    case hidden
+
+    /// What `environment` asks for, or `nil` for the cursor hidden and parked
+    /// on a text control's insertion point alone, as without the variable.
+    static func requested(environment: [String: String]) -> Self? {
+        switch environment["TUI_CURSOR_FOLLOWS_FOCUS"] {
+        case "1", "show": .shown
+        case "hidden": .hidden
+        default: nil
+        }
+    }
+}
+
 extension RenderLoop {
+    /// Where a frame leaves the terminal's cursor: the focused text control's
+    /// insertion point (``insertionPointOnScreen(in:width:height:)``), and,
+    /// while the cursor follows the focus (``cursorFollowsFocus``), any other
+    /// focused control's first cell on screen — the top-left of the first
+    /// region carrying its focus id, which for a `List` or a `Table` is the
+    /// cursor row's (the one an enclosing `ScrollView` reveals).
+    func cursorTarget(in regions: [HitTestRegion], width: Int, height: Int) -> CellPoint? {
+        if let caret = insertionPointOnScreen(in: regions, width: width, height: height) { return caret }
+        guard cursorFollowsFocus != nil, let focusID = focusManager.currentFocusedID,
+            let region = regions.first(where: { $0.focusID == focusID && $0.width > 0 && $0.height > 0 })
+        else { return nil }
+        let corner = CellPoint(x: region.offsetX, y: region.offsetY)
+        guard corner.x >= 0, corner.y >= 0, corner.x < width, corner.y < height else { return nil }
+        return corner
+    }
+
     /// The focused text control's insertion point on screen, in cells from
     /// the top-left, or `nil` where no text control has the focus, it keeps
     /// no insertion point, or the point is off the visible part of its region.
@@ -49,9 +89,27 @@ extension RenderLoop {
     /// Moved only when something put it elsewhere — the write — or the point
     /// itself moved, so a frame that writes nothing writes nothing for this
     /// either.
+    ///
+    /// While the cursor follows the focus and is shown (``CursorFollowsFocus/shown``),
+    /// each move is followed by showing it, and a frame with nothing focused on
+    /// screen hides it again. Shown at every move rather than once, because a
+    /// resume from a suspend hides it behind the loop's back
+    /// (`AppRunner.retakeTerminal`); the repaint after one moves it here again.
     func parkCursor(at point: CellPoint?, afterWriting wrote: Bool) {
         defer { parkedCursor = point }
-        guard let point, wrote || point != parkedCursor else { return }
+        let shows = cursorFollowsFocus == .shown
+        guard let point else {
+            if shows, showsCursor {
+                terminal.hideCursor()
+                showsCursor = false
+            }
+            return
+        }
+        guard wrote || point != parkedCursor else { return }
         terminal.moveCursor(toRow: point.y + 1, column: point.x + 1)
+        if shows {
+            terminal.showCursor()
+            showsCursor = true
+        }
     }
 }

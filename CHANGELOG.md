@@ -4,6 +4,11 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**`TUI_CURSOR_FOLLOWS_FOCUS=1` tries out the terminal's own cursor on the focused control.** An experiment, off by
+default, for judging what screen readers, braille displays and magnifiers make of it: after each frame the real cursor
+goes to the focused control's first cell (a text field's insertion point, as before) and is shown there; `hidden` puts it
+there and keeps it hidden. See `Documentation/Input and focus/Cursor follows focus (proof of concept).md`.
+
 **The focus can follow the mouse pointer.** With `TUI_FOCUS_FOLLOWS_POINTER=1`, or the app's
 `Scene.focusFollowsPointer()`, the control the pointer moves onto takes the focus, as a click there would, without
 pressing it. A resting pointer takes nothing back from the keyboard; its next move does. A text field you've typed in

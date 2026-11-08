@@ -60,6 +60,10 @@ extension TUIEnvironmentVariables {
             effect: "Holds still what shows where the keyboard is: the control that has it is picked out by colour and bold alone, rather than breathing or blinking. The text cursor still blinks. Reduce Motion doesn't do this.",
             code: .cannotOverride("`Scene.focusBreathing(false)` holds it still too, but `true` doesn't undo `0`. `.selectionIndicatorStyle(.none)` holds part of a screen still. `focusBreathes` is read-only.")),
         TUIEnvironmentVariable(
+            "TUI_CURSOR_FOLLOWS_FOCUS", .endUser, .accessibility,
+            values: "`1`, `show` or `hidden`",
+            effect: "An experiment, for trying out: the terminal's own cursor goes to the control that has the keyboard after each change, for a screen reader, a braille display or a magnifier that follows the cursor. `1` or `show` shows it there. `hidden` puts it there and keeps it hidden. Without it the cursor stays hidden, on a text field's insertion point when one has the keyboard."),
+        TUIEnvironmentVariable(
             "TUI_REDUCE_TRANSPARENCY", .endUser, .accessibility,
             values: "`1`, `0`",
             effect: "`1`: less transparency: materials and glass are drawn opaque. `0`: full transparency, even with Reduce Transparency on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on.",

@@ -80,6 +80,13 @@ extension TestApp {
         set { headless.sendsProgressReports = newValue }
     }
 
+    var cursorFollowsFocus: CursorFollowsFocus? {
+        get { headless.cursorFollowsFocus }
+        set { headless.cursorFollowsFocus = newValue }
+    }
+
+    var cursorVisible: Bool { headless.cursorVisible }
+
     func takeFrameRequest() -> Bool { headless.takeFrameRequest() }
     func reportFocus(_ isFocused: Bool) { headless.reportFocus(isFocused) }
     func handBackHostState() { headless.handBackHostState() }
