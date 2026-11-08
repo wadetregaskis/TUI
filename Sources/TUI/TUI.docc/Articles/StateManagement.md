@@ -288,6 +288,39 @@ there is only the last saved. A store keeps the 32 sessions written most recentl
 It is stored where an `@AppStorage` with the same `store:`, or none, would be: <doc:StateManagement#Which-store>
 applies as it stands.
 
+## Where Saved State Lives
+
+A terminal app often runs on one machine while the person using it sits at another, at the far end of an ssh
+connection. TUI decides each kind of state by whose it is.
+
+**On the machine the app runs on**, as SwiftUI keeps it on the machine it runs on:
+
+- `@AppStorage` and `@SceneStorage` values, in `UserDefaults` on macOS and in `settings.json` in the app's configuration
+  directory elsewhere (`TUI_CONFIG_DIR` moves it).
+- The language chosen in the app, in the same directory.
+- A toolbar's customization, and a file panel's view mode, last folder and size.
+- Documents, and whatever a file panel opens, saves or creates.
+- Pictures downloaded for an `Image` or an `AsyncImage`, which go through `URLSession.shared` and so through Foundation's
+  shared `URLCache`, which Foundation may keep on disk.
+
+That is the right place for them: they describe the app and the files it works on, and over ssh those files are on the
+app's machine. A file panel that opens over ssh says so.
+
+**With the person**, where they are, wherever the app runs:
+
+- The clipboard, the system notifications, and the host's accessibility settings (Reduce Motion and the like) and
+  spring-loading delay. TUI uses the host's only where it can tell the person is at the machine the app runs on: not
+  over ssh or mosh, in tmux only when every attached client is local, and not in a session keeper that can't say who
+  is attached, such as screen. Elsewhere it uses what the terminal offers: OSC 52 for the
+  clipboard, the terminal's own notifications, and the `TUI_` environment variables for the settings.
+- A language saved in the app beats `LANG`. ssh forwards `LANG` from the person's machine, which is a good guess, but a
+  choice made in the app is a choice, and it stays made from any machine.
+
+**Never saved:** anything TUI measures about a terminal, such as character widths, capabilities, quirks and colours. It
+is measured again at each launch, because the next launch may be from another terminal. If such a measurement is ever
+cached, key it by the terminal's fingerprint (its answers to the device-attribute queries, and its version), never by
+its name in `TERM_PROGRAM`: several people, or one person's several terminals, can share one account and one name.
+
 ## How Long State Lasts
 
 A view's `body` runs many times, but its `@State` isn't reset each time. The value lasts for as long as the view stays in the tree, wherever the tree puts it:
