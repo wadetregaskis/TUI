@@ -158,7 +158,7 @@ struct SystemNotifier: SystemNotificationBackend {
             title: ProcessInfo.processInfo.processName,
             isLocal: { SessionLocality.isLocal() },
             launch: Self.launchProcess,
-            perform: { DispatchQueue.global(qos: .utility).async(execute: $0) })
+            perform: Self.performInBackground)
     }
 
     /// A notifier with every part given: a test's, which launches nothing.
@@ -187,6 +187,17 @@ struct SystemNotifier: SystemNotificationBackend {
             guard setting == .always || isLocal() else { return }
             launch(helper.path, helper.arguments(title: title, message: text))
         }
+    }
+
+    /// Runs `work` on a utility queue, so the frame never waits on it; inline
+    /// where there is no Dispatch (wasip1, which starts no processes anyway,
+    /// so the work there is only the locality test).
+    private static func performInBackground(_ work: @escaping @Sendable () -> Void) {
+        #if canImport(Dispatch)
+        DispatchQueue.global(qos: .utility).async(execute: work)
+        #else
+        work()
+        #endif
     }
 
     /// Starts `executable` with `arguments` and returns: its input and output
