@@ -599,6 +599,32 @@ custom_rules:
       - string
     severity: error
 
+  # Strict memory safety (SE-0458, on from Swift 6.4: Package.swift) warns at
+  # each use of something unsafe that is not marked `unsafe`. `@safe` on a type
+  # tells it the type's unsafe storage is encapsulated, and silences it for every
+  # use of the type, so it is refused: remove the unsafe storage (a stored
+  # variable marked `@exclusivity(unchecked)` instead of a pointer to state, a
+  # protocol instead of a closure over a pointer), or mark the type `@unsafe`.
+  # One that truly has to stay says why and disables this rule on its line:
+  # `grep -rn "disable:this safe_escape" Sources` is the allowlist, and
+  # Tools/check-ratchets.py caps it. The tests are held to it too.
+  safe_escape:
+    name: "Safe escape"
+    message: >-
+      @safe claims a type's unsafe storage is encapsulated, and silences strict
+      memory safety for every use of the type. Remove the unsafe storage, or mark
+      the type @unsafe. If neither can do it, say why in a comment and disable
+      this rule on the line.
+    regex: '@safe\b'
+    excluded_match_kinds:
+      - comment
+      - doccomment
+      - comment.mark
+      - comment.url
+      - doccomment.field
+      - string
+    severity: error
+
   # The other way Swift code sees a function's address: reinterpreting a
   # function value (a closure, a @convention(c) pointer) as bits. ld does not
   # fold a @convention(c) entry point, but does fold Swift closures whose

@@ -22,6 +22,15 @@ RATCHETS = [
         "limit": 12,
         "instead": "try dropping Sendable, a Mutex, an Atomic, @MainActor or sending",
     },
+    # The exceptions to the SwiftLint rule `safe_escape`: a type marked `@safe`, which
+    # silences strict memory safety for every use of it. Each says why on its line.
+    {
+        "name": "@safe exceptions",
+        "pattern": r"disable:this safe_escape",
+        "paths": ["Sources", "Tests"],
+        "limit": 0,
+        "instead": "remove the unsafe storage, or mark the type @unsafe",
+    },
     # A test that sleeps is slow, or racy, or both. A thread's sleep is as much
     # one as a task's, so `Thread.sleep`, `usleep` and `nanosleep` count too.
     {

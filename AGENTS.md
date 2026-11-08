@@ -53,3 +53,4 @@ CI also builds and tests on Linux and builds four lower modules on Windows, so d
 - **Test through the real thing.** A test that can't fail when the feature breaks is worse than none. Prefer driving the app with `TUITesting`, and use the PTY smokes for what only a terminal shows.
 - **Measure before claiming.** Say what you measured and what you inferred, and don't state a cause you haven't established.
 - **A performance change quotes its profile in the commit message.** Never commit `.trace` bundles.
+- **Mark what is unsafe.** Swift 6.4 builds with strict memory safety: write `unsafe` where the compiler asks, and never `@safe` (SwiftLint `safe_escape`). Remove the unsafe storage, or mark the type `@unsafe`.

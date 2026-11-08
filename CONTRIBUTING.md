@@ -453,6 +453,29 @@ the same for sleeps in the tests (`Task.sleep`, `Thread.sleep`, `usleep`). In or
   `first(where:)` or `Mutex.withLock`; leave it not `Sendable` instead.
 - **`sending`, or a `let` of `Sendable` content.**
 
+### Memory safety
+
+On Swift 6.4 every target builds with strict memory safety (SE-0458,
+`Package.swift`): the compiler warns at each use of something unsafe (a
+pointer, `unsafeBitCast`, `nonisolated(unsafe)`, `@exclusivity(unchecked)`)
+that is not marked `unsafe`, so `git grep -w unsafe` lists every place memory
+can be corrupted. It changes no generated code. 6.2 and 6.3 build without the
+flag: they want `unsafe` on a call whose closure takes a pointer, which 6.4
+calls unnecessary, and no one spelling suits both, so the code is marked as
+6.4 checks it.
+
+A type holding unsafe storage must say so. `@safe`, which claims the storage
+encapsulated and silences the checker at every use, is refused by the SwiftLint
+rule `safe_escape`; the one exception (`ValueHashPlans`) says why on its line,
+and `Tools/check-ratchets.py` caps the count. In order of preference:
+
+- **No unsafe storage.** State a class reached through a pointer, to skip
+  the run-time exclusivity check, is a stored variable marked
+  `@exclusivity(unchecked)` instead; a stored closure over a pointer is a
+  protocol held as an existential (`TerminalByteSource`).
+- **`@unsafe` on the type,** when it is unsafe to use and its holders are
+  statics, locals or other `@unsafe` types.
+
 ### Crossing a module boundary
 
 The module split puts
