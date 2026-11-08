@@ -38,6 +38,17 @@ struct NotificationEntry: Identifiable, Sendable {
     /// Where it is drawn: the channel it stacks in.
     let placement: NotificationPlacement
 
+    /// The buttons on it, in order.
+    let actions: [NotificationAction]
+
+    /// Whether it was posted with no duration, to stay until dismissed: such
+    /// a toast with no actions carries a Close button.
+    let staysUntilDismissed: Bool
+
+    /// Whether it has been dismissed, so it is fading out and nothing holds it
+    /// visible any more.
+    private(set) var isDismissed = false
+
     /// How long the notification stays visible (in seconds): infinite for
     /// one that stays until it is dismissed, and cut short by a dismissal
     /// (``dismissed(atNanos:)``).
@@ -56,13 +67,17 @@ struct NotificationEntry: Identifiable, Sendable {
     ///   - duration: Display duration in seconds.
     ///   - postedAtNanos: The service clock's reading at the post.
     ///   - content: The views it draws in place of `message`, or `nil`.
+    ///   - actions: The buttons on it.
     init(
         message: String, content: (@MainActor @Sendable () -> AnyView)? = nil, style: NotificationStyle = .plain,
-        placement: NotificationPlacement = .topTrailing, duration: TimeInterval, postedAtNanos: UInt64
+        placement: NotificationPlacement = .topTrailing, actions: [NotificationAction] = [], duration: TimeInterval,
+        postedAtNanos: UInt64
     ) {
         self.id = NotificationID()
         self.message = message
         self.content = content
+        self.actions = actions
+        self.staysUntilDismissed = duration == .infinity
         self.style = style
         self.placement = placement
         // A NaN duration has no end to count to: taken as none, so the toast
@@ -87,7 +102,25 @@ struct NotificationEntry: Identifiable, Sendable {
     func dismissed(atNanos now: UInt64) -> Self {
         var dismissed = self
         dismissed.duration = min(duration, max(0, age(atNanos: now) - NotificationTiming.fadeInDuration))
+        dismissed.isDismissed = true
         return dismissed
+    }
+
+    /// How long a toast whose button has the focus stays visible after the
+    /// focus leaves it, at the least, in seconds.
+    static let heldVisible: TimeInterval = 2
+
+    /// This notification, held visible at `now` because a button on it has
+    /// the focus: its visible stretch runs at least ``heldVisible`` past
+    /// `now`, extended a stretch at a time — so a held toast changes its
+    /// timing about once every ``heldVisible`` seconds, not every frame. One
+    /// dismissed is unchanged.
+    func held(atNanos now: UInt64) -> Self {
+        let visibleSoFar = age(atNanos: now) - NotificationTiming.fadeInDuration
+        guard !isDismissed, duration - visibleSoFar < Self.heldVisible / 2 else { return self }
+        var held = self
+        held.duration = max(duration, visibleSoFar + Self.heldVisible)
+        return held
     }
 
     /// The service clock's reading at which this notification has finished fading out.

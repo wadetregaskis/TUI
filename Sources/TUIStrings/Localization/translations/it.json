@@ -215,6 +215,7 @@
   "statusbar.closePopover": "chiudi il popover",
   "statusbar.closeSuggestions": "chiudi i suggerimenti",
   "statusbar.closeWindow": "chiudi la finestra",
+  "statusbar.focusNotification": "notifica",
   "statusbar.cancelMove": "annulla spostamento",
   "statusbar.dropCarried": "rilascia",
   "statusbar.clearSelection": "deseleziona tutto",

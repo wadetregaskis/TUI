@@ -85,6 +85,10 @@ public struct StatusBarItemOrder: Comparable, Sendable {
     /// nearest the page's own items.
     public static let escapeKey = Self(850)
 
+    /// F6, to a toast's buttons, while a toast has one: before the common
+    /// keys, as it is about the page's surroundings rather than its focus.
+    package static let notifications = Self(845)
+
     /// See ``escapeKey``.
     public static let returnKey = Self(860)
 

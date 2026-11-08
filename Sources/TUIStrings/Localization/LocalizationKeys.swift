@@ -539,6 +539,8 @@ public enum LocalizationKey {
         /// A window opened over another (`openWindow`), which Escape closes
         /// when nothing in it takes the key.
         case closeWindow = "statusbar.closeWindow"
+        /// F6, which moves the focus to the newest notification with a button.
+        case focusNotification = "statusbar.focusNotification"
         /// A keyboard drag in progress.
         case cancelMove = "statusbar.cancelMove"
         /// A drag the keyboard carries, over a destination: what Return does.

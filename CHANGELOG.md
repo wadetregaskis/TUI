@@ -18,6 +18,13 @@ focus only within it, and while a menu is open, not at all. Off by default: it h
 **`TUI_BREATHING=0` holds every focus indication still.** The control that has the keyboard is picked out by colour
 and bold alone, rather than breathing or blinking; the text cursor still blinks. An app can do the same with
 `Scene.focusBreathing(false)`, which can't undo the person's `0`. Reduce Motion still leaves the breath alone.
+**Notifications can carry buttons, and the keyboard reaches them.** `post(_:actions:)` takes `NotificationAction`s, each
+a title, an optional `ButtonRole` and an action; choosing one runs it and dismisses the toast. F6 moves the focus to the
+newest toast with a button, F6 again to the next older one, and past the oldest back where it was. Escape dismisses the
+toast holding the focus, and Tab reaches toasts after the page. The status bar shows "F6 notification" while a toast has
+a button. A toast does not fade while its button has the focus. A toast posted with `duration: nil` and no actions gets a
+Close button. While a sheet or alert holds the keyboard, toasts still draw but their buttons do nothing until it closes.
+
 **A notification can draw any views.** `post(style:duration:placement:content:)` takes a `@ViewBuilder` closure in place
 of a message. It is called each frame the toast is drawn, so the toast shows what its content reads now, such as a
 download's progress.

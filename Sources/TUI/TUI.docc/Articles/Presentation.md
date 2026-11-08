@@ -477,6 +477,24 @@ NotificationService.current.post(style: .success) {
 }
 ```
 
+A toast can carry buttons. Choosing one runs its action and dismisses the
+toast:
+
+```swift
+NotificationService.current.post(
+    "Deleted 3 files", style: .success,
+    actions: [NotificationAction("Undo") { restore(files) }])
+```
+
+The keyboard always reaches them. **F6** moves the focus to the newest toast
+with a button, F6 again to the next older one, and past the oldest back where
+it was; Tab reaches them too, after the page. Return chooses the focused
+button and Escape dismisses its toast. The status bar names F6 while a toast
+has a button. A toast doesn't fade while its button has the focus, and one
+posted with `duration: nil` and no actions gets a Close button. While a sheet
+or an alert holds the keyboard, toasts still draw, but their buttons do nothing
+until it closes.
+
 ## Open and Save Panels
 
 `fileImporter`, `fileExporter` and `fileMover` draw their panels in the terminal.
@@ -496,6 +514,7 @@ They have a page of their own: <doc:FilePanels>.
 - ``NotificationStyle``
 - ``NotificationID``
 - ``NotificationPlacement``
+- ``NotificationAction``
 
 ## See Also
 

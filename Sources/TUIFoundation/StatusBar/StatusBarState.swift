@@ -323,6 +323,12 @@ public final class StatusBarState {
     /// (``escapeLabelOverride``). Emptied before each walk.
     package var escapeFallbackLabel: String?
 
+    /// What the status bar calls F6, which moves the focus to the newest toast
+    /// with a button: set by the scene's toasts on a walk that draws one while
+    /// the focus is elsewhere, and cleared before every walk
+    /// (``beginSceneRender()``).
+    package var notificationFocusLabel: String?
+
     /// The page's claim on Escape this frame — made outside every pane — if
     /// anything has made one: see ``EscapeClaim``.
     var escapeClaim: EscapeClaim?
@@ -447,6 +453,12 @@ public final class StatusBarState {
             items.append(SystemStatusBarItem.returnKey(label: label))
         }
         if showUndoItems, let reference = _undoManager { items += undoItems(reference) }
+        // F6, to a toast's buttons, while one is drawn and the focus is
+        // elsewhere: named, not bound — the toasts' own key handler takes it,
+        // and a click on the item presses the key.
+        if let label = notificationFocusLabel {
+            items.append(StatusBarItem(shortcut: Shortcut.f6, label: label, order: .notifications))
+        }
         return items
     }
 
@@ -841,6 +853,7 @@ extension StatusBarState {
         if !paneEscapeClaims.isEmpty { paneEscapeClaims.removeAll() }
         pendingEscapeClaimFlag = nil
         escapeFallbackLabel = nil
+        notificationFocusLabel = nil
         itemActionsSuppressed = false
         // Same contract for the Return verb: published by whichever control
         // holds the focus this frame, so its absence has to be the default or a

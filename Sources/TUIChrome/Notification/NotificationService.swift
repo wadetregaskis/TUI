@@ -159,13 +159,14 @@ extension NotificationService {
     ///     until it is dismissed.
     ///   - placement: Where it is drawn, the channel it stacks in (default: `nil`, the service's
     ///     ``defaultPlacement``).
+    ///   - actions: The buttons on it (default: none); choosing one runs its action and dismisses the toast.
     /// - Returns: The notification's identifier, for ``dismiss(_:)``.
     @discardableResult
     public func post(
         _ messageKey: LocalizedStringKey, style: NotificationStyle = .plain, duration: TimeInterval? = 3.0,
-        placement: NotificationPlacement? = nil
+        placement: NotificationPlacement? = nil, actions: [NotificationAction] = []
     ) -> NotificationID {
-        post(messageKey.localized, style: style, duration: duration, placement: placement)
+        post(messageKey.localized, style: style, duration: duration, placement: placement, actions: actions)
     }
 
     /// Posts a new notification, displayed as written.
@@ -186,16 +187,17 @@ extension NotificationService {
     ///     until it is dismissed.
     ///   - placement: Where it is drawn, the channel it stacks in (default: `nil`, the service's
     ///     ``defaultPlacement``).
+    ///   - actions: The buttons on it (default: none); choosing one runs its action and dismisses the toast.
     /// - Returns: The notification's identifier, for ``dismiss(_:)``.
     @_disfavoredOverload
     @discardableResult
     public func post<S: StringProtocol>(
         _ message: S, style: NotificationStyle = .plain, duration: TimeInterval? = 3.0,
-        placement: NotificationPlacement? = nil
+        placement: NotificationPlacement? = nil, actions: [NotificationAction] = []
     ) -> NotificationID {
         let now = nowNanos()
         let entry = NotificationEntry(
-            message: String(message), style: style, placement: placement ?? defaultPlacement,
+            message: String(message), style: style, placement: placement ?? defaultPlacement, actions: actions,
             duration: duration ?? .infinity, postedAtNanos: now)
         add(entry, now: now)
         return entry.id
@@ -227,17 +229,18 @@ extension NotificationService {
     ///     until it is dismissed.
     ///   - placement: Where it is drawn, the channel it stacks in (default: `nil`, the service's
     ///     ``defaultPlacement``).
+    ///   - actions: The buttons on it (default: none); choosing one runs its action and dismisses the toast.
     ///   - content: The views the toast draws.
     /// - Returns: The notification's identifier, for ``dismiss(_:)``.
     @discardableResult
     public func post<Content: View>(
         style: NotificationStyle = .plain, duration: TimeInterval? = 3.0, placement: NotificationPlacement? = nil,
-        @ViewBuilder content: @escaping @MainActor @Sendable () -> Content
+        actions: [NotificationAction] = [], @ViewBuilder content: @escaping @MainActor @Sendable () -> Content
     ) -> NotificationID {
         let now = nowNanos()
         let entry = NotificationEntry(
             message: "", content: { AnyView(content()) }, style: style, placement: placement ?? defaultPlacement,
-            duration: duration ?? .infinity, postedAtNanos: now)
+            actions: actions, duration: duration ?? .infinity, postedAtNanos: now)
         add(entry, now: now)
         return entry.id
     }
@@ -264,6 +267,15 @@ extension NotificationService {
     /// channel's, leaving the others'.
     public func dismissAll(at placement: NotificationPlacement) {
         dismiss { $0.placement == placement }
+    }
+
+    /// Holds the notification `id` names visible at `now`, as long as a
+    /// button on it has the focus (``NotificationEntry/held(atNanos:)``).
+    func keepVisible(_ id: NotificationID, atNanos now: UInt64) {
+        state.withLock { state in
+            guard let index = state.entries.firstIndex(where: { $0.id == id }) else { return }
+            state.entries[index] = state.entries[index].held(atNanos: now)
+        }
     }
 
     /// Fades out the notifications `matches` picks, and asks the apps that

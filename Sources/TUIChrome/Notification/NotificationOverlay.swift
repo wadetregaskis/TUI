@@ -60,16 +60,86 @@ enum NotificationOverlay {
         let frame = context.environment.animationFrame
         let now = frame.canAnimate ? UInt64(bitPattern: frame.nowNanos) : service.nowNanos()
         let width = min(service.width, max(1, areaWidth - 2))
+        let toasts = ToastContext(service: service, context: context, now: now, entries: activeEntries)
         // A layer per placement, each its own stack: the channels.
-        return NotificationPlacement.allCases.compactMap { placement in
-            let channel = activeEntries.filter { $0.placement == placement }
+        var shown: [NotificationEntry] = []
+        let layers: [OverlayLayer] = NotificationPlacement.allCases.compactMap { placement in
+            let channel = toasts.entries.filter { $0.placement == placement }
             guard !channel.isEmpty else { return nil }
-            let stack = stackBuffer(
-                channel, placement: placement, width: width, maxHeight: areaHeight - 2, now: now, context: context)
+            let (stack, drawn) = stackBuffer(
+                channel, placement: placement, width: width, maxHeight: areaHeight - 2, toasts: toasts)
+            shown += drawn
             guard !stack.isEmpty else { return nil }
             let origin = placement.origin(
                 width: stack.width, height: stack.height, areaWidth: areaWidth, areaHeight: areaHeight)
             return OverlayLayer(offsetX: origin.x, offsetY: origin.y, content: stack, level: .notification)
+        }
+        // The keys that reach the buttons drawn, newest first; none behind a modal, where they are inert.
+        if !toasts.isModal {
+            let reachable = shown.filter { !$0.isDismissed && !NotificationToast.buttons(of: $0).isEmpty }
+                .sorted { $0.postedAtNanos > $1.postedAtNanos }.map(\.id)
+            NotificationKeyboard.register(toasts: reachable, service: service, context: context)
+        }
+        return layers
+    }
+
+    /// What every toast of one walk is drawn with.
+    @MainActor
+    private struct ToastContext {
+        /// The service the toasts are the notifications of.
+        let service: NotificationService
+        /// The context they are drawn in: their buttons' focus section, or
+        /// inert behind a modal.
+        let context: RenderContext
+        /// The frame's instant, on the service's clock.
+        let now: UInt64
+        /// The notifications to draw, the one whose button has the focus held
+        /// visible.
+        let entries: [NotificationEntry]
+        /// Whether a modal holds the keyboard, so the toasts' buttons are
+        /// drawn inert, as the toolbars' are.
+        let isModal: Bool
+        /// The toasts with buttons, newest first, for the focus to move on
+        /// among when one is chosen.
+        let withButtons: [NotificationID]
+
+        init(service: NotificationService, context: RenderContext, now: UInt64, entries: [NotificationEntry]) {
+            self.service = service
+            self.now = now
+            let focusManager = context.environment.focusManager
+            isModal = focusManager?.activeSectionIsModal == true
+            let withButtons = entries.filter { !NotificationToast.buttons(of: $0).isEmpty }
+                .sorted { $0.postedAtNanos > $1.postedAtNanos }.map(\.id)
+            self.withButtons = withButtons
+            // A toast whose button has the focus waits: its fade starts no
+            // sooner than a moment after the focus leaves it.
+            if let held = NotificationKeyboard.focused(among: withButtons, focusManager: focusManager) {
+                service.keepVisible(held, atNanos: now)
+                self.entries = service.activeEntries()
+            } else {
+                self.entries = entries
+            }
+            var drawing = context
+            if isModal {
+                drawing = drawing.isolatedForBackground()
+            } else if !withButtons.isEmpty {
+                // Passive, as the toolbars' are: Tab reaches it after the page,
+                // and it never takes the keyboard by itself.
+                focusManager?.registerPassiveSection(id: NotificationKeyboard.sectionID)
+                drawing.environment.activeFocusSectionID = NotificationKeyboard.sectionID
+            }
+            self.context = drawing
+        }
+
+        /// What choosing a button on the toast of `id` does after its action:
+        /// dismisses the toast and moves the focus on.
+        func chosen(_ id: NotificationID) -> @MainActor () -> Void {
+            let (service, withButtons) = (service, withButtons)
+            let focusManager = context.environment.focusManager
+            return { [weak focusManager] in
+                service.dismiss(id)
+                if let focusManager { NotificationKeyboard.moveOn(after: id, among: withButtons, focusManager: focusManager) }
+            }
         }
     }
 
@@ -83,28 +153,35 @@ enum NotificationOverlay {
     ///
     /// Each toast is drawn at an identity of its own, keyed by its
     /// notification, so what it holds keeps its state for its whole life
-    /// whatever comes and goes around it.
+    /// whatever comes and goes around it. Measured before it is drawn, so one
+    /// that does not fit registers no buttons the focus could reach.
+    ///
+    /// - Returns: The stack, and the notifications drawn in it.
     @MainActor
     private static func stackBuffer(
-        _ entries: [NotificationEntry], placement: NotificationPlacement, width: Int, maxHeight: Int, now: UInt64,
-        context: RenderContext
-    ) -> FrameBuffer {
+        _ entries: [NotificationEntry], placement: NotificationPlacement, width: Int, maxHeight: Int,
+        toasts context: ToastContext
+    ) -> (FrameBuffer, [NotificationEntry]) {
         var toasts: [FrameBuffer] = []
+        var drawn: [NotificationEntry] = []
         var height = 0
         for entry in entries.reversed() {
-            let opacity = NotificationTiming.opacity(elapsed: entry.age(atNanos: now), visibleDuration: entry.duration)
-            var toastContext = context.withChildIdentity(
+            let opacity = NotificationTiming.opacity(
+                elapsed: entry.age(atNanos: context.now), visibleDuration: entry.duration)
+            var toastContext = context.context.withChildIdentity(
                 erasedType: NotificationToast.self, key: entry.id.rawValue.uuidString)
             toastContext.availableWidth = width
-            let toast = TUIView.renderToBuffer(
-                NotificationToast(entry: entry, width: width, opacity: opacity), context: toastContext)
-            guard toasts.isEmpty || height + toast.height <= maxHeight else { break }
-            height += toast.height
-            toasts.append(toast)
+            let toast = NotificationToast(entry: entry, width: width, opacity: opacity, chosen: context.chosen(entry.id))
+            let size = measureChild(toast, proposal: ProposedSize(width: width, height: nil), context: toastContext)
+            guard toasts.isEmpty || height + size.height <= maxHeight else { break }
+            let buffer = TUIView.renderToBuffer(toast, context: toastContext)
+            height += buffer.height
+            toasts.append(buffer)
+            drawn.append(entry)
         }
         var stack = FrameBuffer()
         for toast in placement.isTop ? toasts : toasts.reversed() { stack.appendVertically(toast) }
-        return stack
+        return (stack, drawn)
     }
 }
 

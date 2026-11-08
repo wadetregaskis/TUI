@@ -245,6 +245,7 @@ extension LocalizationService {
       "statusbar.closePopover": "close popover",
       "statusbar.closeSuggestions": "close suggestions",
       "statusbar.closeWindow": "close window",
+      "statusbar.focusNotification": "notification",
       "statusbar.cancelMove": "cancel move",
       "statusbar.dropCarried": "drop",
       "statusbar.clearSelection": "clear selection",
