@@ -167,3 +167,13 @@ NotificationAction("Delete", role: .destructive) { … }
    from the library, same machine only), or leave OS notifications to the
    terminal route.
 5. **Toasts over a modal** draw but their buttons are inert until it closes.
+
+## Known gaps
+
+- In a `TUITesting` `TestApp`, whose frames run on a clock of their own from
+  zero, a toast's age is measured on the machine's clock, so it never gets past
+  the first instant of its fade-in and draws blank (its buttons still work). It
+  was so before this work too. Measuring the age on the frame clock from the
+  first frame that draws a toast would fix it; not done here.
+- A toast's live content is redrawn only when something asks for a frame: a
+  `TimelineView` inside it does (the Example's download does that).
