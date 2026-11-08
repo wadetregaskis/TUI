@@ -232,10 +232,11 @@ NotificationAction("Undo") { undo() }
 NotificationAction("Delete", role: .destructive) { … }
 ```
 
-## Decisions to confirm
+## Decisions
 
-1. **F6** as the key that reaches a toast's buttons, and Escape dismissing the
-   focused toast. Alternatives: a configurable key on the service.
+1. **Decided 2026-11-08: F6** as the key that reaches a toast's buttons, and
+   Escape dismissing the focused toast; the owner answered "Keep" (no reason
+   recorded). A configurable key on the service was the alternative.
 2. **Decided 2026-11-08: emoji glyphs**, ℹ️ ✅ ⚠️ ❌. The owner: "it's fine
    that they're two cells wide, isn't it? We can compensate for terminal
    clients which mess up the cursor." Built in the forms that are emoji
@@ -247,9 +248,11 @@ NotificationAction("Delete", role: .destructive) { … }
    gated on `supportsEmojiChrome`, which is about the monochrome VS-15 squares.
    ❌ for an error rather than the alert's 🛑: a failure reported, not a stop.
    A terminal that shows only ASCII gets `! i ok X` (`PlainTerminalText`).
-   **`.plain`** as the default style (the old look) was not asked about.
-3. **Close** as the button a persistent, action-less toast gets (TUI's
-   existing "Close" string, translated already).
+   **`.plain`** as the default style (the old look) and the Close button (3)
+   were on the same question, and the owner changed only the glyphs: both
+   stand.
+3. **Decided 2026-11-08 (stands, see 2): Close** as the button a persistent,
+   action-less toast gets (TUI's existing "Close" string, translated already).
 4. **Decided 2026-11-08: build the direct-OS route** too — `osascript` on
    macOS, `notify-send` on Linux — "ONLY when confident the person is at this
    machine": `SessionLocality`, conservative, any doubt means not local, and
