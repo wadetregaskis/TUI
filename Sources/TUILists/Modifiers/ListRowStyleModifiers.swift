@@ -31,13 +31,18 @@ extension View {
     /// }
     /// ```
     ///
+    /// Written twice on one row, the inner statement replaces the outer one
+    /// on the edges both name, as SwiftUI's does: a row's insets are one
+    /// setting, not padding stacked on padding.
+    ///
     /// - Parameter insets: The insets to apply, or `nil` for the list's own
     ///   defaults (which is what a row without this modifier gets).
     /// - Returns: A row with `insets` around its content.
     nonisolated public func listRowInsets(_ insets: EdgeInsets?) -> some View {
         // `nil` is SwiftUI's "use the default", and the default is what an
-        // unmodified row already does — so it is the identity, not zero.
-        _ListRowInsetsView(content: self, insets: insets)
+        // unmodified row already does — so it is the identity, not zero. It
+        // still names every edge, so it replaces an outer statement's insets.
+        _ListRowInsetsView(content: self, edges: .all, insets: insets ?? EdgeInsets())
     }
 
     /// Sets the insets of this list row's content on the given edges. Matches
@@ -50,51 +55,104 @@ extension View {
     ///
     /// The edges not named keep the list's default, as they do in SwiftUI; a
     /// list row's default insets here are none, so they are left as they are.
-    /// Written twice on one row, the two insets add up, where SwiftUI's inner
-    /// statement replaces the outer one on the edges they share.
+    /// Written twice on one row, the inner statement replaces the outer one on
+    /// the edges both name, as SwiftUI's does; an edge only one names keeps
+    /// that one's inset.
     ///
     /// - Parameters:
     ///   - edges: The edges to inset. Defaults to all of them.
     ///   - length: The inset, in cells, or `nil` for the list's default.
     /// - Returns: A row with `length` cells of inset on `edges`.
     nonisolated public func listRowInsets(_ edges: Edge.Set = .all, _ length: Int?) -> some View {
-        _ListRowInsetsView(
+        // A `nil` length is the default — none — on the edges named, and still
+        // names them, so it replaces an outer statement's insets there.
+        let length = length ?? 0
+        return _ListRowInsetsView(
             content: self,
-            insets: length.map { length in
-                EdgeInsets(
-                    top: edges.contains(.top) ? length : 0,
-                    leading: edges.contains(.leading) ? length : 0,
-                    bottom: edges.contains(.bottom) ? length : 0,
-                    trailing: edges.contains(.trailing) ? length : 0)
-            })
+            edges: edges,
+            insets: EdgeInsets(
+                top: edges.contains(.top) ? length : 0,
+                leading: edges.contains(.leading) ? length : 0,
+                bottom: edges.contains(.bottom) ? length : 0,
+                trailing: edges.contains(.trailing) ? length : 0))
     }
 }
 
-/// Applies `insets` to `content`, or nothing at all when they are `nil`.
+/// One `listRowInsets` statement: the edges it names and the inset on each.
 ///
-/// A wrapper rather than a plain `padding` call so that `nil` can mean
-/// "unchanged" without the call site having to branch — and so the row keeps
-/// one identity either way, which is what stops its `@State` resetting when an
-/// app flips insets on and off.
+/// A wrapper rather than a plain `padding` call so that a statement inside it
+/// can take an edge back: the row's insets are one setting, and of two
+/// statements on one row the inner one wins on the edges both name, as
+/// SwiftUI's does (until 2026-11-08 the two added up). So each pads only the
+/// edges no statement inside it names (``innerEdges``), and pads nothing at
+/// all — the content drawn as it is — when that leaves no inset, as `nil`
+/// always did.
 nonisolated struct _ListRowInsetsView<Content: View>: View {
     let content: Content
-    let insets: EdgeInsets?
+    /// The edges this statement names.
+    let edges: Edge.Set
+    /// The inset on each edge it names; zero on the rest.
+    let insets: EdgeInsets
 
     @MainActor var body: Never {
         fatalError("_ListRowInsetsView renders via Renderable")
     }
 }
 
+/// A `listRowInsets` statement seen from outside, whatever its content's type.
+@MainActor
+private protocol ListRowInsetsStatement {
+    var edges: Edge.Set { get }
+    var statementContent: any View { get }
+}
+
+extension _ListRowInsetsView: ListRowInsetsStatement {
+    var statementContent: any View { content }
+}
+
+@MainActor extension _ListRowInsetsView {
+    /// The edges the `listRowInsets` statements inside this one name: those
+    /// reached through the row's single-content modifiers (a `.foregroundStyle`
+    /// between two statements does not hide the inner one). A walk over the
+    /// value, which a statement's insets are a pure function of.
+    private var innerEdges: Edge.Set {
+        var named: Edge.Set = []
+        var view: any View = content
+        while true {
+            if let statement = view as? any ListRowInsetsStatement {
+                named.formUnion(statement.edges)
+                view = statement.statementContent
+            } else if let wrapper = view as? any SingleContentWrapper {
+                view = wrapper.wrappedContent
+            } else {
+                return named
+            }
+        }
+    }
+
+    /// This statement's insets, less every edge a statement inside it names:
+    /// that one's inset stands there instead. `nil` where nothing is left.
+    private var effectiveInsets: EdgeInsets? {
+        let taken = innerEdges
+        let insets = EdgeInsets(
+            top: taken.contains(.top) ? 0 : self.insets.top,
+            leading: taken.contains(.leading) ? 0 : self.insets.leading,
+            bottom: taken.contains(.bottom) ? 0 : self.insets.bottom,
+            trailing: taken.contains(.trailing) ? 0 : self.insets.trailing)
+        return insets == EdgeInsets() ? nil : insets
+    }
+}
+
 @MainActor extension _ListRowInsetsView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        guard let insets else { return TUIView.renderToBuffer(content, context: context) }
+        guard let insets = effectiveInsets else { return TUIView.renderToBuffer(content, context: context) }
         return TUIView.renderToBuffer(content.padding(insets), context: context)
     }
 }
 
 @MainActor extension _ListRowInsetsView: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        guard let insets else { return measureChild(content, proposal: proposal, context: context) }
+        guard let insets = effectiveInsets else { return measureChild(content, proposal: proposal, context: context) }
         return measureChild(content.padding(insets), proposal: proposal, context: context)
     }
 }

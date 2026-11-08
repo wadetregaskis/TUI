@@ -4,6 +4,10 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**`listRowInsets` written twice on a row: the inner one wins, as in SwiftUI.** The two added up, so a row given a
+default and an override closer in got both. The inner statement now replaces the outer on the edges both name; an
+edge only one names keeps its inset, and an inner `nil` sets the default on every edge.
+
 **An edit a text binding refuses leaves the caret where it was.** A binding whose setter keeps the old text (a
 digits-only field handed a letter) kept the text, but the caret moved as if the edit had been made, so the next
 Delete or Backspace acted in the wrong place. In `TextField`, `SecureField` and `TextEditor`.
