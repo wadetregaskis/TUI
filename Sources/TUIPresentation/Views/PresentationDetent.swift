@@ -6,6 +6,7 @@
 
 import TUICore
 import TUIFoundation
+import TUIStyling
 import TUIView
 
 // MARK: - PresentationDetent
@@ -80,7 +81,9 @@ public struct PresentationDetent: Hashable, Sendable {
         switch kind {
         case .medium: raw = extent / 2
         case .large: raw = extent
-        case .fraction(let fraction): raw = Int((Double(extent) * fraction).rounded(.down))
+        // `Int(clamping:)`, because `Int(_:)` traps on NaN, an infinity or a
+        // product past `Int` — before the clamp below could hold it.
+        case .fraction(let fraction): raw = Int(clamping: (Double(extent) * fraction).rounded(.down))
         case .height(let rows): raw = rows
         case .custom(let custom):
             guard let rows = custom.height(Context(maxDetentValue: extent, environment: environment)) else {

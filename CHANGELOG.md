@@ -60,6 +60,10 @@ included, though a click or Return on such a row selected nothing. They skip it 
 reorderable `List` or `Table` (or a `.draggable` view) inside one could never pick a row up from the keyboard: the
 refresh ran instead. The focused control now has the key first, and the refresh runs when it lets the key go.
 
+**A NaN or infinite fraction no longer traps.** `.presentationDetents([.fraction(x)])` and
+`.scrollFollowMargin(.fraction(x))` with `x` NaN (a 0 / 0 ratio), infinite or huge crashed; the detent now resolves
+within the screen and the margin to none.
+
 **An app that has run leaves ⌃C, `kill` and ⌃Z working** (macOS). The signals it watched stayed ignored
 after it stopped, for the rest of the process and anything it launched.
 

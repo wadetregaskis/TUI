@@ -204,6 +204,16 @@ struct PresentationVariantsTests {
         #expect(PresentationDetent.fraction(0).resolved(in: 20) == 1)
     }
 
+    @Test("A fraction no row count describes resolves within the extent rather than trapping")
+    func detentFractionsNeverTrap() {
+        // `Int(_:)` traps on NaN, on an infinity and past `Int`'s range, and it
+        // ran before the clamp. A ratio computed as 0 / 0 is NaN.
+        #expect(PresentationDetent.fraction(.nan).resolved(in: 20) == 1)
+        #expect(PresentationDetent.fraction(.infinity).resolved(in: 20) == 20)
+        #expect(PresentationDetent.fraction(-.infinity).resolved(in: 20) == 1)
+        #expect(PresentationDetent.fraction(1e30).resolved(in: 20) == 20)
+    }
+
     /// A quarter of the content area, and taller when presented — so the
     /// context's environment is seen as well as its maximum.
     private struct QuarterDetent: CustomPresentationDetent {

@@ -46,6 +46,10 @@ struct ScrollFollowMarginTests {
         #expect(ScrollFollowMargin.steps(-5).resolvedLines(viewportLines: 8) == 0)
         #expect(ScrollFollowMargin.fraction(2.0) == ScrollFollowMargin.fraction(0.5))
         #expect(ScrollFollowMargin.fraction(-1) == ScrollFollowMargin.fraction(0))
+        // NaN slips past `min` and `max` — every comparison with it is false —
+        // and trapped in `Int(_:)` when the margin was resolved.
+        #expect(ScrollFollowMargin.fraction(.nan) == ScrollFollowMargin.fraction(0))
+        #expect(ScrollFollowMargin.fraction(.nan).resolvedLines(viewportLines: 12) == 0)
         // Degenerate viewports never produce a negative margin.
         #expect(ScrollFollowMargin.centered.resolvedLines(viewportLines: 1) == 0)
         #expect(ScrollFollowMargin.steps(1).resolvedLines(viewportLines: 0) == 0)

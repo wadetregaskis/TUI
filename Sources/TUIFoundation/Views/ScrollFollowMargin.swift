@@ -105,7 +105,9 @@ public struct ScrollFollowMargin: Sendable, Hashable {
     /// A margin that is `fraction` of the viewport height (clamped to
     /// `0...0.5`; `0.5` keeps the selection centred).
     public static func fraction(_ fraction: Double) -> Self {
-        Self(value: .fraction(min(max(fraction, 0), 0.5)))
+        // NaN first: it passes `min` and `max` unchanged, and trapped where
+        // the margin was turned into lines.
+        Self(value: .fraction(fraction.isNaN ? 0 : min(max(fraction, 0), 0.5)))
     }
 
     /// The margin in terminal lines for a viewport of `viewportLines` lines,
