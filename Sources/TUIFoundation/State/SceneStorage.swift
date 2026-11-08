@@ -56,9 +56,9 @@ import Foundation
 /// each task — starts from wherever they last left it.
 ///
 /// Where the terminal names no session, as over a plain ssh connection, there
-/// is only the last saved. A store keeps the 32 sessions written most
-/// recently, each for 30 days after its last write; one dropped starts from
-/// the last saved, as a new one does.
+/// is only the last saved. A store keeps each session for 30 days after its
+/// last write, however many there are; one dropped starts from the last
+/// saved, as a new one does.
 ///
 /// ## Where it is stored
 ///

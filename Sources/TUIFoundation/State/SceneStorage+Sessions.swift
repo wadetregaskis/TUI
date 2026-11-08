@@ -55,19 +55,14 @@ enum SceneStorageSessions {
     /// session's keys can be it.
     static let ledgerKey = "scene@sessions"
 
-    /// How many sessions a store keeps, the most recently written first.
-    ///
-    /// A session's own copy matters only where it differs from the last
-    /// saved, so only the sessions in use lately are worth their space: 32 is
-    /// more windows, tabs and panes than one person keeps an app open in, and
-    /// keeps the store to a few hundred keys for an app with a dozen
-    /// scene-stored values. A session dropped from it starts from the last
-    /// saved, as a new one does.
-    static let sessionLimit = 32
-
     /// How long a session that wrote nothing is kept: 30 days, longer than a
     /// window is left alone and still come back to, short enough that a
     /// terminal's ended sessions do not pile up.
+    ///
+    /// The only bound: there is no cap on how many sessions a store keeps
+    /// (the owner, 2026-11-08: "let's not put any limit on how many sessions
+    /// there can be. If it somehow becomes a problem, such as for performance,
+    /// then we will address that as it rises").
     static let sessionLifetime: TimeInterval = 30 * 24 * 60 * 60
 
     /// How stale a session's last-written stamp may grow before a write
@@ -86,7 +81,7 @@ enum SceneStorageSessions {
     }
 
     /// Notes in `store`'s ledger that `session` wrote `key` at `now`, and
-    /// drops the sessions past ``sessionLimit`` or ``sessionLifetime`` with
+    /// drops the sessions that wrote nothing for ``sessionLifetime``, with
     /// their keys.
     ///
     /// Read and written past observation: no view reads the ledger.
@@ -100,10 +95,7 @@ enum SceneStorageSessions {
         record.lastWritten = stamp
         ledger[session] = record
 
-        let kept = ledger.sorted { $0.value.lastWritten > $1.value.lastWritten }
-            .enumerated()
-            .filter { $0.offset < sessionLimit && stamp - $0.element.value.lastWritten <= sessionLifetime }
-            .map(\.element.key)
+        let kept = Set(ledger.filter { stamp - $0.value.lastWritten <= sessionLifetime }.keys)
         for (dropped, record) in ledger where !kept.contains(dropped) {
             for key in record.keys { store.removeValue(forKey: key) }
             ledger[dropped] = nil

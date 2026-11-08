@@ -283,7 +283,7 @@ takes the session's copy, else the last saved, else the default. So:
 The session is what the terminal names in the environment it started the shell with: a tmux pane, a screen window,
 `TERM_SESSION_ID` (Apple Terminal), `ITERM_SESSION_ID` (iTerm2), `KITTY_WINDOW_ID`, `WEZTERM_PANE`, `WT_SESSION`
 (Windows Terminal) and the like. Where there's none, as over a plain ssh connection or in Ghostty, which names no window,
-there is only the last saved. A store keeps the 32 sessions written most recently, each for 30 days after its last write.
+there is only the last saved. A store keeps each session for 30 days after its last write, however many there are.
 
 It is stored where an `@AppStorage` with the same `store:`, or none, would be: <doc:StateManagement#Which-store>
 applies as it stands.

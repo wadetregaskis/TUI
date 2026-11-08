@@ -51,10 +51,11 @@ The owner, 2026-11-08:
   depends on the terminal it was started from.
 - **Bounds.** A ledger under `scene@sessions` records each session's last write and the keys it wrote (a store can't
   list its keys). A write renews the stamp when it adds a key or the stamp is an hour old, so a slider bound to scene
-  storage costs one ledger read per tick, not a ledger write. Whenever the ledger is written, sessions beyond the 32
-  most recently written, or with no write for 30 days, are dropped with their keys. A session's own copy matters only
-  where it differs from the last saved, so only recent sessions are worth their space. 32 is more windows, tabs and
-  panes than one person keeps an app open in, and a dropped session starts from the last saved, as a new one does.
+  storage costs one ledger read per tick, not a ledger write. Whenever the ledger is written, sessions with no write for 30 days are dropped with their
+  keys; a dropped session starts from the last saved, as a new one does. There is no cap on how many sessions a store
+  keeps: the first version kept the 32 most recently written, and the owner removed the cap the same day ("let's not
+  put any limit on how many sessions there can be. If it somehow becomes a problem, such as for performance, then we
+  will address that as it rises").
 
 ## Store resolution
 

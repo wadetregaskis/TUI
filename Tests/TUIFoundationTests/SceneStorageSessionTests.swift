@@ -67,12 +67,12 @@ struct SceneStorageSessionTests {
         #expect(property("tab", in: store, session: "A").wrappedValue == "default", "the launch window's is its own")
     }
 
-    @Test("Sessions past the limit go, oldest first, with their keys")
-    func sessionLimit() {
+    @Test("A store keeps every session written within the lifetime, however many")
+    func noSessionLimit() {
         let store = MockStorageBackend()
         let start = Date(timeIntervalSince1970: 1_000_000)
-        let limit = SceneStorageSessions.sessionLimit
-        for index in 0...limit {
+        let count = 100
+        for index in 0..<count {
             let session = "S\(index)"
             let key = SceneStorageSessions.key("scene.tab", session: session)
             store.setValue(session, forKey: key)
@@ -80,10 +80,9 @@ struct SceneStorageSessionTests {
                 of: key, session: session, in: store, now: start.addingTimeInterval(TimeInterval(index)))
         }
         let ledger: [String: SceneStorageSessions.Record]? = store.value(forKey: SceneStorageSessions.ledgerKey)
-        #expect(ledger?.count == limit)
-        #expect(ledger?["S0"] == nil)
-        #expect(store.value(forKey: SceneStorageSessions.key("scene.tab", session: "S0")) as String? == nil)
-        #expect(store.value(forKey: SceneStorageSessions.key("scene.tab", session: "S1")) == Optional("S1"))
+        #expect(ledger?.count == count)
+        #expect(store.value(forKey: SceneStorageSessions.key("scene.tab", session: "S0")) == Optional("S0"))
+        #expect(store.value(forKey: SceneStorageSessions.key("scene.tab", session: "S99")) == Optional("S99"))
     }
 
     @Test("A session that wrote nothing for longer than its lifetime goes when another writes")
