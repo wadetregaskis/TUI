@@ -143,13 +143,13 @@ struct NavigationBar {
         let titled = navigationBar(
             back: back,
             hidesBack: hidesBack,
-            title: hidesTitle ? "" : title.truncatedToWidth(titleWidth),
+            title: hidesTitle ? "" : barContext.spelled(title).truncatedToWidth(titleWidth),
             subtitle: hidesTitle ? "" : subtitle,
             crumbs: hidesBack || hidesTitle
                 ? nil
                 : NavigationCrumbs.trail(
-                    titles: coordinator.titles(upTo: coordinator.depth),
-                    fittingWidth: max(0, leftWidth - runs.leadingWidth)),
+                    titles: coordinator.titles(upTo: coordinator.depth).map(barContext.spelled),
+                    fittingWidth: max(0, leftWidth - runs.leadingWidth), spelling: barContext.textSpelling),
             runs: runs, leftWidth: leftWidth,
             coordinator: coordinator)
 

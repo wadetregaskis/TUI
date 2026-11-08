@@ -81,9 +81,10 @@ struct ShortcutOverlayListing: Equatable {
         }
     }
 
-    /// The width in cells of the widest key, the width of the keys' column.
-    var keyColumnWidth: Int {
-        sections.lazy.flatMap(\.rows).map(\.key.strippedLength).max() ?? 0
+    /// The width in cells of the widest key, the width of the keys' column, as
+    /// the keys' `Text`s spell them (`spelling`).
+    func keyColumnWidth(spelling: TextSpelling) -> Int {
+        sections.lazy.flatMap(\.rows).map { TextTransliteration.spelled($0.key, as: spelling).strippedLength }.max() ?? 0
     }
 }
 
@@ -236,9 +237,11 @@ private struct _KeyboardShortcutOverlayContent: View {
     let listing: ShortcutOverlayListing
     let done: () -> Void
 
+    @Environment(\.textSpelling) private var textSpelling
+
     var body: some View {
         let service = LocalizationService.shared
-        let keyWidth = listing.keyColumnWidth
+        let keyWidth = listing.keyColumnWidth(spelling: textSpelling)
         VStack(alignment: .leading, spacing: 1) {
             Text(verbatim: service.string(for: LocalizationKey.Menu.keyboardShortcuts)).bold()
             ScrollView {

@@ -12,8 +12,12 @@ try it on. See `Documentation/Input and focus/Geometric arrow focus.md`.
 **`TUI_PLAIN_TEXT=transliterate` tries spelling text in ASCII before layout, an experiment.** For a terminal that shows
 only ASCII, every `Text`, button title, table cell and header, panel title and field prompt is spelled in Latin letters
 before it's measured, so `你好` is `ni hao` in six cells, where `TUI_PLAIN_TEXT=1` (and a non-UTF-8 locale) cut it to
-`niha` in the four it was laid out in. What's typed into a field keeps its own characters. Off unless named; the folding
-at output stays for everything else. See `Documentation/Historical/Text, editing and the clipboard/ASCII
+`niha` in the four it was laid out in. So is every string the framework draws without a `Text`: tab titles and badges,
+list badges and placeholders, status bar items, tooltips, navigation crumbs, a spinner's label, a stepper's read-out, a
+date picker's month. Japanese is read as Japanese (`日本語` `nippon go`, on macOS), Cyrillic by BGN/PCGN (`Имя`
+`Imya`), Greek by UNGEGN, emoji as short ASCII (`🙂` `:)`, `🚀` `:rocket:`). `TestApp` and `renderOnce` honour it too.
+What's typed into a field keeps its own characters. Off unless named, and free when off; the folding at output stays
+for everything else. See `Documentation/Historical/Text, editing and the clipboard/ASCII
 transliteration before layout.md`.
 
 **Every menu bar's View menu turns the accessibility and display preferences on and off.** Differentiate Without Color,

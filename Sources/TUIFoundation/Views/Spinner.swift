@@ -569,7 +569,7 @@ private struct _SpinnerCore: View, Renderable, Layoutable {
             // some apps use for alignment — U+00A0 satisfies `isWhitespace`).
             // The label is text: a tier heavier under a bold legibility weight.
             let styledLabel = ANSIRenderer.colorize(
-                label, foreground: palette.foreground.opaqueSpelling,
+                context.spelled(label), foreground: palette.foreground.opaqueSpelling,
                 bold: context.environment.legibilityWeight.drawsPlainBold)
             output = coloredSpinner + " " + styledLabel
             labelColumns = (coloredSpinner.strippedLength + 1, styledLabel.strippedLength)

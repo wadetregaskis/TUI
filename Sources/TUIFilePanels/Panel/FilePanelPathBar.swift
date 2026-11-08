@@ -48,6 +48,10 @@ struct FilePanelPathBar: View {
     /// segments' chrome costs.
     @Environment(\.controlSize) private var controlSize
 
+    /// How words are spelled here: the segments are measured to choose which
+    /// fit, so they are spelled first, as their `Text`s will spell them.
+    @Environment(\.textSpelling) private var textSpelling
+
     /// The enclosing-folder button's glyph: ↰ (U+21B0), an arrow up and to
     /// the leading side, as a macOS panel's toolbar would show "enclosing
     /// folder". Neutral East Asian width, so one cell everywhere; a new
@@ -72,7 +76,8 @@ struct FilePanelPathBar: View {
     private func pathControl(width: Int) -> some View {
         let browser = browser
         let segments = FilePanelPathSegment.fitting(
-            FilePanelPathSegment.all(of: browser.directory, home: home), width: width, controlSize: controlSize)
+            FilePanelPathSegment.all(of: browser.directory, home: home, spelling: textSpelling), width: width,
+            controlSize: controlSize, spelling: textSpelling)
         // No label: an empty one reserves nothing, and the segments say
         // what the control is.
         return Picker(
@@ -137,7 +142,7 @@ struct FilePanelPathSegment: Equatable {
 
     /// The segments of `folder`'s path, from the root, or from `home`, which
     /// is written `~`, when the folder is in it.
-    static func all(of folder: URL, home: URL) -> [Self] {
+    static func all(of folder: URL, home: URL, spelling: TextSpelling = .asWritten) -> [Self] {
         let path = folder.standardizedFileURL.path
         let homePath = home.standardizedFileURL.path
         var segments: [Self]
@@ -152,7 +157,7 @@ struct FilePanelPathSegment: Equatable {
         var walked = segments[0].path == "/" ? "" : segments[0].path
         for name in rest.split(separator: "/") {
             walked += "/" + name
-            segments.append(Self(label: String(name), path: walked))
+            segments.append(Self(label: TextTransliteration.spelled(String(name), as: spelling), path: walked))
         }
         return segments
     }
@@ -174,8 +179,11 @@ struct FilePanelPathSegment: Equatable {
     /// middle if it must be. A `…` goes to the deepest folder it stands for.
     /// A path of two segments keeps both, the last shortened, since a `…`
     /// would stand for the first alone.
-    static func fitting(_ segments: [Self], width: Int, controlSize: ControlSize) -> [Self] {
+    static func fitting(
+        _ segments: [Self], width: Int, controlSize: ControlSize, spelling: TextSpelling = .asWritten
+    ) -> [Self] {
         guard let last = segments.last else { return [] }
+        let ellipsis = TextTransliteration.spelled(Self.ellipsis, as: spelling)
         if Self.width(of: segments, controlSize: controlSize) <= width { return segments }
         let count = segments.count
         // Keep the first and the last `kept`; `…` stands for the ones between.

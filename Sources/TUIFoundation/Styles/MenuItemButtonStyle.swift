@@ -88,9 +88,11 @@ private struct _MenuItemRowBar: View, Renderable, Layoutable {
     /// A row that opens a submenu prints the submenu caret there instead
     /// (``DropdownMenu/submenuCaret``), as a desktop menu draws its chevron.
     private func hint(in context: RenderContext) -> String {
-        if context.environment.menuRowOpensSubmenu { return DropdownMenu.submenuCaret }
+        // Spelled as the `Text` that draws it will spell it, so the column the
+        // row reserves for it is the width it is drawn at.
+        if context.environment.menuRowOpensSubmenu { return context.spelled(DropdownMenu.submenuCaret) }
         guard let symbols = configuration.keyboardShortcut?.displayString else { return "" }
-        return context.environment.keyNotation.spelling(symbols)
+        return context.spelled(context.environment.keyNotation.spelling(symbols))
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {

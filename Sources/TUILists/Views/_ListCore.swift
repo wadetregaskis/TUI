@@ -650,7 +650,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         }
         let source = extractRows(from: content, context: rowContext)
         let widest = widestRowWidth(source: source, context: rowContext)
-        let titleWidth = title.map { $0.strippedLength + 2 } ?? 0
+        let titleWidth = title.map { context.spelled($0).strippedLength + 2 } ?? 0
         // The widest row still gets its gutters when composed, so the hugged
         // width must include them or the row's trailing cells are clipped — and
         // the style's border and row padding around them, for the same reason.
@@ -730,7 +730,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     rowContext.environment.fixedSizeWidth = false
                     Self.tellRows(hugging: true, in: &rowContext.environment)
                     return ViewSize.fixed(
-                        walkForWidestRow(extractRows(from: content, context: rowContext), environment: rowContext.environment),
+                        walkForWidestRow(
+                            extractRows(from: content, context: rowContext), environment: rowContext.environment,
+                            spelling: rowContext.textSpelling),
                         0)
                 }.width
             }
@@ -749,7 +751,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // however the rows are drawn meanwhile (see `ObservationLeases`).
         let leaseMark = context.renderCache?.leases.beginComputation()
         let widest = observingKeptResult(of: Self.self, kind: .keptMeasure, context: context) {
-            walkForWidestRow(source, environment: context.environment)
+            walkForWidestRow(source, environment: context.environment, spelling: context.textSpelling)
         }
         let lease = context.renderCache?.leases.endComputation(leaseMark)
         // Kept until the clock next moves a row's timeline, when that is all
@@ -770,7 +772,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     ///
     /// A badge's capsule is the same in every row it is drawn in, but for a
     /// `.decreased` badge's, which has none (``ListBadgeCapsule``): asked once.
-    private func walkForWidestRow(_ source: RowSource<SelectionValue>, environment: EnvironmentValues) -> Int {
+    private func walkForWidestRow(
+        _ source: RowSource<SelectionValue>, environment: EnvironmentValues, spelling: TextSpelling
+    ) -> Int {
         let capsuleCells = ListBadgeCapsule.cells(prominence: .standard, environment: environment)
         return (0..<source.count).map { index in
             // The content alone: a width needs no selection value, and the
@@ -791,7 +795,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 if content.carriesBadge, let badge = content.badge, !badge.isHidden,
                     case .content = source.type(at: index)
                 {
-                    badge.displayText.strippedLength + 1
+                    badge.spelled(as: spelling).displayText.strippedLength + 1
                         + ((content.badgeProminence ?? environment.badgeProminence) == .decreased ? 0 : capsuleCells)
                 } else {
                     0
@@ -1220,9 +1224,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// empty and is not a row, where flush against the border in the rows'
     /// ink it read as an accident (owner #18, 2026-10-23).
     private func emptyStateContent(context: RenderContext) -> _ListContentView {
+        // Spelled as a `Text` is (``RenderContext/spelled(_:)``): it is drawn
+        // here, not by one.
+        let emptyPlaceholder = context.spelled(self.emptyPlaceholder)
         let placeholderWidth = emptyPlaceholder.strippedLength
         // +2 for the "─ … ─" border decorations around the title.
-        let titleWidth = title.map { $0.strippedLength + 2 } ?? 0
+        let titleWidth = title.map { context.spelled($0).strippedLength + 2 } ?? 0
         let intrinsicWidth = max(listRowGutter + placeholderWidth, titleWidth)
         let targetWidth: Int
         if context.hasExplicitWidth {
@@ -4956,7 +4963,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let prominence = row.badgeProminence ?? context.environment.badgeProminence
         let capsule = ListBadgeCapsule(prominence: prominence, environment: context.environment)
         return (
-            DrawnBadge(value: value, capsule: capsule, isIncreased: prominence == .increased),
+            DrawnBadge(
+                value: value.spelled(as: context.textSpelling), capsule: capsule,
+                isIncreased: prominence == .increased),
             capsule.textInk(prominence.badgeInk(in: palette))
         )
     }

@@ -330,7 +330,7 @@ struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
         guard let payload = traits.dragPayload, let dispatcher = context.environment.mouseEventDispatcher,
             let session = context.environment.dragAndDropSession
         else { return }
-        let preview = FrameBuffer(lines: [" \(title) "])
+        let preview = FrameBuffer(lines: [" \(context.spelled(title)) "])
         let anchor = context.environment.dragPreviewAnchor
         let allowed = context.environment.allowedDragOperations
         let handle = _DragHandle.install(

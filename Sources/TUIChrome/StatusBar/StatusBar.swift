@@ -344,7 +344,8 @@ private struct _StatusBarCore: View, Renderable {
                 keys: keys,
                 activationOverride: activationOverride,
                 isHovered: item.id == hoveredID && itemIsClickable(item),
-                legibility: context.environment.legibilityWeight
+                legibility: context.environment.legibilityWeight,
+                spelling: context.textSpelling
             )
             return ItemLayout(
                 item: item,
@@ -517,7 +518,7 @@ private struct _StatusBarCore: View, Renderable {
         keys: KeyWriting,
         activationOverride: String?,
         isHovered: Bool,
-        legibility: LegibilityWeight?
+        legibility: LegibilityWeight?, spelling: TextSpelling
     ) -> String {
         let shortcutStyled = ANSIRenderer.render(
             keys.writing(item.shortcut),
@@ -542,8 +543,10 @@ private struct _StatusBarCore: View, Renderable {
             effectiveLabel = item.label
         }
 
+        // Spelled as a `Text` is: the bar draws its labels itself, and the
+        // item's width is measured from what this returns.
         let labelStyled = ANSIRenderer.render(
-            " " + effectiveLabel,
+            " " + TextTransliteration.spelled(effectiveLabel, as: spelling),
             with: {
                 var textStyle = TextStyle()
                 textStyle.foregroundColor = colours.label.opaqueSpelling

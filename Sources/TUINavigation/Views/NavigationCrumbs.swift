@@ -51,9 +51,15 @@ enum NavigationCrumbs {
     /// The root is kept rather than the nearest parent because "how do I get
     /// all the way out" is the question a deep trail is usually being asked,
     /// and the parent is one Escape away regardless.
-    static func trail(titles: [String], fittingWidth width: Int) -> [Crumb]? {
+    ///
+    /// `titles` come spelled as the bar spells words; `spelling` spells the
+    /// trail's own `…` and `›` the same way, since they are drawn as `Text`
+    /// and measured here.
+    static func trail(titles: [String], fittingWidth width: Int, spelling: TextSpelling = .asWritten) -> [Crumb]? {
+        let ellipsis = TextTransliteration.spelled("…", as: spelling)
+        let separator = TextTransliteration.spelled(Self.separator, as: spelling)
         let named = titles.enumerated().map { depth, title in
-            (depth: depth, label: title.isEmpty ? "…" : title)
+            (depth: depth, label: title.isEmpty ? ellipsis : title)
         }
         guard named.count > 1 else { return nil }  // the root alone is not a trail
 
@@ -61,14 +67,14 @@ enum NavigationCrumbs {
             var crumbs: [Crumb] = []
             for (index, part) in parts.enumerated() {
                 if index > 0 {
-                    crumbs.append(Crumb(label: Self.separator, popsTo: nil, isChrome: true))
+                    crumbs.append(Crumb(label: separator, popsTo: nil, isChrome: true))
                 }
                 let isCurrent = part.depth == (titles.count - 1)
                 crumbs.append(Crumb(label: part.label, popsTo: isCurrent ? nil : part.depth))
             }
             if elided, crumbs.count > 2 {
-                crumbs.insert(Crumb(label: "…", popsTo: nil, isChrome: true), at: 1)
-                crumbs.insert(Crumb(label: Self.separator, popsTo: nil, isChrome: true), at: 1)
+                crumbs.insert(Crumb(label: ellipsis, popsTo: nil, isChrome: true), at: 1)
+                crumbs.insert(Crumb(label: separator, popsTo: nil, isChrome: true), at: 1)
             }
             return crumbs
         }

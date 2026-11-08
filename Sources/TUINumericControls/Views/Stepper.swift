@@ -76,7 +76,7 @@ nonisolated public struct Stepper<Label: View>: View {
     /// formatted as the value is: what the read-out reserves by default, so
     /// that ▶ stays put as the value gains a digit (``View/stepperValueWidth(_:)``).
     /// 0 for a stepper with no bounds, or one showing ``stepperValueText(_:)``.
-    var boundsWidth: () -> Int
+    var boundsWidth: (TextSpelling) -> Int
 
     /// Builds the (value-type-erased) focus handler from a focusID and whether
     /// it may take focus. Captures the value binding, bounds, and step in `V`.
@@ -107,7 +107,7 @@ nonisolated public struct Stepper<Label: View>: View {
     fileprivate init(
         label: Label?,
         display: @escaping () -> String,
-        boundsWidth: @escaping () -> Int = { 0 },
+        boundsWidth: @escaping (TextSpelling) -> Int = { _ in 0 },
         makeHandler: @escaping (String, Bool) -> any StepperDriving,
         syncValue: any StepperValueSync,
         onIncrement: (() -> Void)?,
@@ -162,7 +162,7 @@ nonisolated private func eraseStepperValue<V: Strideable>(
     format: ((V) -> String)? = nil
 ) -> (
     display: () -> String,
-    boundsWidth: () -> Int,
+    boundsWidth: (TextSpelling) -> Int,
     makeHandler: (String, Bool) -> any StepperDriving,
     syncValue: any StepperValueSync
 ) {
@@ -170,8 +170,12 @@ nonisolated private func eraseStepperValue<V: Strideable>(
     let display: () -> String = { text(value.wrappedValue) }
     // A closure, not a number: it runs where the read-out is drawn, so a
     // stepper that is built but never drawn formats nothing.
-    let boundsWidth: () -> Int = {
-        bounds.map { max(text($0.lowerBound).strippedLength, text($0.upperBound).strippedLength) } ?? 0
+    let boundsWidth: (TextSpelling) -> Int = { spelling in
+        bounds.map {
+            max(
+                TextTransliteration.spelled(text($0.lowerBound), as: spelling).strippedLength,
+                TextTransliteration.spelled(text($0.upperBound), as: spelling).strippedLength)
+        } ?? 0
     }
     let makeHandler: (String, Bool) -> any StepperDriving = { focusID, canBeFocused in
         StepperHandler(focusID: focusID, value: value, bounds: bounds, step: step, canBeFocused: canBeFocused)
@@ -442,7 +446,7 @@ extension Stepper {
         var copy = self
         copy.display = { text }
         // The bounds' formatted ends say nothing about how wide `text` is.
-        copy.boundsWidth = { 0 }
+        copy.boundsWidth = { _ in 0 }
         return copy
     }
 }
@@ -473,7 +477,7 @@ enum StepperUndoIndex {
 /// sibling in ``Stepper``'s body, so the core has none of its own.
 private struct _StepperCore: View, Renderable, Layoutable {
     let display: () -> String
-    let boundsWidth: () -> Int
+    let boundsWidth: (TextSpelling) -> Int
     let makeHandler: (String, Bool) -> any StepperDriving
     let syncValue: any StepperValueSync
     let onIncrement: (() -> Void)?
@@ -562,7 +566,8 @@ private struct _StepperCore: View, Renderable, Layoutable {
             readOut: (
                 // The bordered button's density table, round the value.
                 padding: context.environment.controlSize.padding(regular: 1),
-                width: context.environment.stepperValueWidth ?? boundsWidth())
+                width: context.environment.stepperValueWidth ?? boundsWidth(context.textSpelling),
+                spelling: context.textSpelling)
         )
 
         var buffer = FrameBuffer(text: content).statingWithoutColor(focused: isFocused, disabled: isDisabled, context: context)
@@ -835,7 +840,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
         valueStyle: StyleAttributes,
         legibilityWeight: LegibilityWeight?,
         isDisabled: Bool,
-        readOut: (padding: Int, width: Int)
+        readOut: (padding: Int, width: Int, spelling: TextSpelling)
     ) -> (content: String, valueClaim: OpacityRegion?) {
         // Arrow and value colors:
         //   - Focused: pulsing accent
@@ -876,7 +881,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
         // stepper has nothing to show unless `.stepperValueText(_:)` gives it
         // something, and two dead cells there are a click target that does
         // nothing and a gap that looks like a missing value.
-        var shown = display()
+        var shown = TextTransliteration.spelled(display(), as: readOut.spelling)
         guard !shown.isEmpty else { return ("\(leftArrow)\(rightArrow)", nil) }
         // Narrower than the width reserved, the read-out stands at its trailing
         // edge, so ▶ stays put as the value gains a digit and the digits keep

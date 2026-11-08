@@ -532,6 +532,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        if let spelled = spellingTitles(context) { return spelled.sizeThatFits(proposal: proposal, context: context) }
         if let measured = measuringCustomLabels(context) {
             return measured.sizeThatFits(proposal: proposal, context: context)
         }
@@ -581,6 +582,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if let spelled = spellingTitles(context) { return spelled.renderToBuffer(context: context) }
         if let measured = measuringCustomLabels(context) { return measured.renderToBuffer(context: context) }
         guard !tabs.isEmpty else { return FrameBuffer() }
         let style = context.environment.tabStripLook

@@ -92,7 +92,7 @@ enum TooltipPopover {
     static func panel(text: String, maxWidth: Int, context: RenderContext) -> FrameBuffer {
         let chrome = BorderRenderer.borderWidthOverhead + 2  // walls + a space each side
         let textWidth = max(1, min(maxTextWidth, maxWidth - chrome))
-        let wrapped = TextWrapping.wrap(text, width: textWidth)
+        let wrapped = TextWrapping.wrap(context.spelled(text), width: textWidth)
         guard !wrapped.isEmpty else { return FrameBuffer() }
 
         // Boxed at the WIDEST line rather than at `textWidth`, so a short

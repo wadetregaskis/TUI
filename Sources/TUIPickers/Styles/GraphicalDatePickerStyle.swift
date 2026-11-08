@@ -221,11 +221,13 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         let month = handler.displayedMonth
         let legibility = context.environment.legibilityWeight
         var lines = [
-            header(month: month, isFocused: isFocused, legibility: legibility, calendar: calendar, palette: palette)
+            header(
+                month: month, isFocused: isFocused, legibility: legibility, calendar: calendar, palette: palette,
+                spelling: context.textSpelling)
         ]
         // The weekdays and the days are all text, so under a bold legibility
         // weight each line of them is drawn a tier heavier, whole.
-        var grid = [weekdayRow(calendar: calendar, palette: palette)]
+        var grid = [weekdayRow(calendar: calendar, palette: palette, spelling: context.textSpelling)]
         let days = monthGrid(month: month, calendar: calendar)
         let marks = DayMarks(
             selection: selection.wrappedValue, range: range, calendar: calendar,
@@ -284,11 +286,14 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
 
     // MARK: Drawing
 
-    /// ` ◀   October 2026   ▶`: the month centred between the two arrows.
+    /// ` ◀   October 2026   ▶`: the month centred between the two arrows, spelled
+    /// as a `Text` would be (`spelling`), since it is drawn here.
     private func header(
-        month: Date, isFocused: Bool, legibility: LegibilityWeight?, calendar: Calendar, palette: any Palette
+        month: Date, isFocused: Bool, legibility: LegibilityWeight?, calendar: Calendar, palette: any Palette,
+        spelling: TextSpelling
     ) -> String {
-        let title = CalendarMonthTitle.title(of: month, calendar: calendar, locale: calendar.locale ?? .current)
+        let title = TextTransliteration.spelled(
+            CalendarMonthTitle.title(of: month, calendar: calendar, locale: calendar.locale ?? .current), as: spelling)
         let inner = Self.width - 4
         let fitted = title.count > inner ? String(title.prefix(inner)) : title
         let left = (inner - fitted.count) / 2
@@ -302,14 +307,15 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
             + ANSIRenderer.colorize("\(TerminalSymbols.rightArrow) ", foreground: arrow)
     }
 
-    /// The weekday initials, starting on the calendar's first weekday.
-    private func weekdayRow(calendar: Calendar, palette: any Palette) -> String {
+    /// The weekday initials, starting on the calendar's first weekday, spelled
+    /// as `spelling` says before they are cut to two.
+    private func weekdayRow(calendar: Calendar, palette: any Palette, spelling: TextSpelling) -> String {
         let symbols: [String] = calendar.veryShortStandaloneWeekdaySymbols.isEmpty
             ? calendar.shortWeekdaySymbols : calendar.shortStandaloneWeekdaySymbols
         let first: Int = calendar.firstWeekday - 1
         let count: Int = symbols.count
         let ordered: [String] = (0..<7).map { (offset: Int) -> String in
-            symbols[(first + offset) % count]
+            TextTransliteration.spelled(symbols[(first + offset) % count], as: spelling)
         }
         let cells: [String] = ordered.map { (symbol: String) -> String in
             " " + String(symbol.prefix(2)).padding(toLength: 2, withPad: " ", startingAt: 0)

@@ -33,6 +33,26 @@ extension _TabViewCore {
         return Self(selection: selection, tabs: measured)
     }
 
+    /// This tab view with its tabs' titles and badges spelled as the context
+    /// spells words (``RenderContext/spelled(_:)``), where that changes any:
+    /// the strip draws them itself, not through a `Text`, and every width in
+    /// it is derived from them (``tabWidth(_:style:)``), so they are spelled
+    /// once, before the first measure, and the copy is measured and drawn.
+    /// `nil` where nothing changes, as the copy finds: the spelling's output
+    /// spells as itself.
+    func spellingTitles(_ context: RenderContext) -> Self? {
+        guard context.textSpelling.isASCII else { return nil }
+        var changed = false
+        let spelled = tabs.map { tab -> _RawTab in
+            var spelledTab = tab
+            spelledTab.title = context.spelled(tab.title)
+            spelledTab.badge = tab.badge?.spelled(as: context.textSpelling)
+            if spelledTab.title != tab.title || spelledTab.badgeSuffix != tab.badgeSuffix { changed = true }
+            return spelledTab
+        }
+        return changed ? Self(selection: selection, tabs: spelled) : nil
+    }
+
     /// The branch a tab's own label renders under, measured and drawn alike.
     private static func labelBranch(_ tab: _RawTab) -> String { "tab-label-\(tab.value)" }
 

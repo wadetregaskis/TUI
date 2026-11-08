@@ -109,7 +109,7 @@ extension RenderLoop {
         statusBar.lineShowsItems = false
         statusBarTooltipText = statusBarTooltip(nowNanos: nowNanos)
         if let text = statusBarTooltipText {
-            statusBar.tooltipLines = TextWrapping.wrap(text, width: width)
+            statusBar.tooltipLines = TextWrapping.wrap(TextTransliteration.spelled(text, as: textSpelling), width: width)
             return
         }
         // The copy's line yields to a tooltip, which the user asked for, and
@@ -122,7 +122,7 @@ extension RenderLoop {
         // wrapped to two, and the second was a row taken from the page. It
         // asks for the frame that takes it away: nothing else would draw one.
         if let note = tuiContext.clipboardWriter.statusNote(atNanos: UInt64(bitPattern: nowNanos)) {
-            statusBar.tooltipLines = [note.text.truncatedToWidth(width)]
+            statusBar.tooltipLines = [TextTransliteration.spelled(note.text, as: textSpelling).truncatedToWidth(width)]
             statusBar.showsNoteInPlaceOfItems = lineShowedItems
             scheduler?.requestWake("clipboard-note", at: Int64(bitPattern: note.expiresAtNanos))
             return

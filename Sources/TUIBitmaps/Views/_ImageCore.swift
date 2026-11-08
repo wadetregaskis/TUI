@@ -949,7 +949,7 @@ extension _ImageCore {
         var contentLines: [(text: String, ink: Color)] = []
 
         if let text {
-            contentLines.append((text: text, ink: palette.foregroundSecondary))
+            contentLines.append((text: context.spelled(text), ink: palette.foregroundSecondary))
         }
 
         if contentLines.isEmpty {
@@ -968,7 +968,7 @@ extension _ImageCore {
     ) -> FrameBuffer {
         let palette = context.environment.palette
         return centerContent(
-            [(text: "Error: \(message)", ink: palette.error)], width: width, height: height)
+            [(text: "Error: \(context.spelled(message))", ink: palette.error)], width: width, height: height)
     }
 
     /// Centers content lines vertically and horizontally within the given
