@@ -22,7 +22,11 @@ import TUIFoundation
 /// It goes through the terminal, as `requestAttention(_:)`'s notification
 /// does: written with the next frame as iTerm2's `OSC 9`, to a terminal
 /// documented to post one (Ghostty and iTerm2; `TUI_NOTIFICATIONS=1` or `0`
-/// overrides), and sent nowhere else. Unlike `requestAttention`, it never
+/// overrides). Where the terminal posts none, this machine posts it itself —
+/// `osascript` on macOS, `notify-send` on a Linux desktop — but only where the
+/// person is at this machine (never over ssh, nor in a tmux attached from
+/// elsewhere; `TUI_SYSTEM_NOTIFICATIONS=0` turns it off). One route or the
+/// other, never both, so it arrives once. Unlike `requestAttention`, it never
 /// rings the bell instead: the toast is already on the screen. It is one-way
 /// — nothing reports whether the person saw it, and its buttons are the
 /// toast's alone — and carries the message as text, with its control

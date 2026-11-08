@@ -203,6 +203,12 @@ extension TUIEnvironmentVariables {
             effect: "Whether notifications go to the terminal, off or on, whatever the terminal. With `0`, each one is only a bell.",
             reading: .eachUse),
         TUIEnvironmentVariable(
+            "TUI_SYSTEM_NOTIFICATIONS", .endUser, .session,
+            values: "`0` or `1`",
+            effect: "Whether a notification the terminal can't post is posted by this machine itself, with `osascript` on macOS or `notify-send` on Linux. Without it, that happens only where TUI can tell you're at this machine, and never over ssh. `0` turns it off; `1` turns it on wherever TUI can't tell, such as inside zellij or GNU screen at your own desk. A terminal that posts notifications always gets them instead, so none comes twice.",
+            code: .none,
+            reading: .once),
+        TUIEnvironmentVariable(
             "TUI_PROGRESS", .endUser, .terminal,
             values: "`0` or `1`",
             effect: "Whether the terminal is told about progress, to show in its own window or tab, off or on, whatever the terminal.",

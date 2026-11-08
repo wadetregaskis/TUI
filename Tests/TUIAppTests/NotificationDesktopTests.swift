@@ -74,14 +74,27 @@ struct NotificationDesktopTests {
         #expect(app.hostWrites.isEmpty)
     }
 
-    @Test("A terminal that posts no notifications is sent nothing, and no bell")
-    mutating func noBellInstead() {
+    @Test("A terminal that posts no notifications is sent nothing, and no bell: the system's notifications get it")
+    mutating func noBellInstead() throws {
         let (app, service) = launched(postsNotifications: false)
         defer { Self.release(service) }
         service.post("Build finished", desktop: .always)
         frame(app)
         #expect(app.hostWrites.isEmpty)
         #expect(app.bellsWritten == 0)
+        let system = try #require(app.services.systemNotifier as? InMemorySystemNotifier)
+        #expect(system.posted == ["Build finished"])
+    }
+
+    @Test("A terminal that posts notifications gets the toast's, and the system's notifications nothing: never twice")
+    mutating func neverTwice() throws {
+        let (app, service) = launched(postsNotifications: true)
+        defer { Self.release(service) }
+        service.post("Build finished", desktop: .always)
+        frame(app)
+        #expect(app.hostWrites == [Self.notification("Build finished")])
+        let system = try #require(app.services.systemNotifier as? InMemorySystemNotifier)
+        #expect(system.posted.isEmpty)
     }
 
     @Test(

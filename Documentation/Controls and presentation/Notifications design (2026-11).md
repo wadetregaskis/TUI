@@ -127,15 +127,27 @@ uses, to the hosts documented to post one (Ghostty, iTerm2;
 `requestAttention`, it never falls back to the bell, because the toast is
 already on screen. It is one-way.
 
-**Proposed (not built):** a direct-OS route behind the same option, used only
-when TUI can be sure the app runs on the user's machine: no `SSH_CONNECTION`,
-`SSH_CLIENT` or `SSH_TTY`, and not inside tmux or screen attached from
-elsewhere. On macOS `osascript` works unbundled but carries no actions and
-names Script Editor as the sender; `UNUserNotificationCenter` needs a bundle,
-which a SwiftPM executable lacks. On Linux, D-Bus is the route with actions,
-which would need a D-Bus client (no Foundation API) or a `notify-send`
-subprocess (no actions back). Launching processes from a library is a policy
-question, hence the owner's call below.
+**Chosen (built 2026-11-08, decision 4):** a direct-OS route behind the same
+option, `SystemNotifier` (TUIApp), the app's run loop's only: `osascript`'s
+`display notification` on macOS, `notify-send` on a Linux desktop (a session
+bus and a display), each only where `SessionLocality.isLocal()` finds positive
+evidence the person is at this machine — no ssh variables, no remote-session
+daemon or session keeper among the process's parents, and in tmux every
+attached client local. **How it combines with the terminal route:** per
+message, the terminal (`OSC 9`) where it posts notifications, else the OS, else
+nothing — never both. The terminal goes first because its notification is its
+own (its icon; a click raises its window), where `osascript`'s names Script
+Editor and a click opens that. `TUI_SYSTEM_NOTIFICATIONS=0` turns the route
+off; `1` uses it where TUI cannot tell (zellij, GNU screen at the desk).
+`TUI_NOTIFICATIONS=0` turns the terminal route off, so the OS route then
+carries toasts, where it is on. The locality test (which can ask tmux for its
+clients) and the launch run on a utility queue; the helper's standard streams
+are the null device; the message is an argument of its own after `--` — the
+AppleScript reads it from `argv`, so nothing in it is ever AppleScript source —
+with its control characters dropped, and `notify-send`'s body has its markup
+characters escaped. `UNUserNotificationCenter` stays out: it needs a bundle.
+Neither helper reports a click back, so the route is one-way, as the terminal's
+is.
 
 ## API sketch
 
@@ -177,9 +189,12 @@ NotificationAction("Delete", role: .destructive) { … }
    **`.plain`** as the default style (the old look) was not asked about.
 3. **Close** as the button a persistent, action-less toast gets (TUI's
    existing "Close" string, translated already).
-4. **The direct-OS route**: build it (spawning `osascript` / `notify-send`
-   from the library, same machine only), or leave OS notifications to the
-   terminal route.
+4. **Decided 2026-11-08: build the direct-OS route** too — `osascript` on
+   macOS, `notify-send` on Linux — "ONLY when confident the person is at this
+   machine": `SessionLocality`, conservative, any doubt means not local, and
+   `TUI_SYSTEM_NOTIFICATIONS` (named after `TUI_NOTIFICATIONS`) disables it.
+   Decided here: the terminal route first, the OS route only where the
+   terminal posts none, so a notification never arrives twice (§8).
 5. **Toasts over a modal** draw but their buttons are inert until it closes.
 
 ## Known gaps

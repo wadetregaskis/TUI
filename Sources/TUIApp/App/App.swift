@@ -240,11 +240,14 @@ internal final class AppRunner<A: App> {
         self.shortcutOverlay = KeyboardShortcutOverlay(requestFrame: { [appState] in appState.setNeedsRender() })
         self.terminal = Terminal()
         // The one context whose copies reach this machine's clipboard (where
-        // the rule sends them there at all), and whose links reach its URL
-        // opener (where opening URLs is on): the app's, which runs the
-        // platform's helpers. Every other context keeps both in memory.
+        // the rule sends them there at all), whose links reach its URL opener
+        // (where opening URLs is on), and whose toasts reach its own
+        // notifications (where the terminal posts none and the person is
+        // here): the app's, which runs the platform's helpers. Every other
+        // context keeps all three in memory.
         self.tuiContext = TUIContext(
-            clipboard: SystemClipboard.Backend(), urlOpener: SystemURLOpener(), appState: appState)
+            clipboard: SystemClipboard.Backend(), urlOpener: SystemURLOpener(), systemNotifier: SystemNotifier(),
+            appState: appState)
     }
 }
 

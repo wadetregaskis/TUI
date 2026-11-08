@@ -21,8 +21,11 @@ and bold alone, rather than breathing or blinking; the text cursor still blinks.
 **A notification can also be posted on the desktop, through the terminal.** `post(_:desktop:)` takes
 `NotificationDesktopDelivery.always`, or `.whenInactive` for only while the terminal's window doesn't have the focus.
 It sends the message as `OSC 9` with the frame that draws the toast, to the terminals that post one (Ghostty and iTerm2,
-or any terminal under `TUI_NOTIFICATIONS=1`). Unlike `requestAttention(_:)`, it never rings the bell instead. It is
-one-way: the desktop notification has no buttons, and nothing reports whether the person saw it.
+or any terminal under `TUI_NOTIFICATIONS=1`). Where the terminal posts none, the machine posts it itself — `osascript`
+on macOS, `notify-send` on a Linux desktop — but only when TUI can tell you're at this machine, never over ssh; one
+route or the other, never both. `TUI_SYSTEM_NOTIFICATIONS=0` turns that off, and `1` turns it on where TUI can't tell.
+Unlike `requestAttention(_:)`, it never rings the bell instead. It is one-way: the desktop notification has no buttons,
+and nothing reports whether the person saw it.
 
 **Notifications can carry buttons, and the keyboard reaches them.** `post(_:actions:)` takes `NotificationAction`s, each
 a title, an optional `ButtonRole` and an action; choosing one runs it and dismisses the toast. F6 moves the focus to the

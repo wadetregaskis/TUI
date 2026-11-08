@@ -4288,7 +4288,7 @@ runs itself in the pane to send every sequence):
 | The same, anywhere else, or with a message that is nothing but spaces once sanitised | `BEL`, outside any string sequence |
 | Several requests between two frames | each message once, in order; the bell once, with any a control rang for input it turned away |
 | Requests made as the app quits | written in the exit's farewell, before the alternate screen is left |
-| A toast posted with `desktop: .always`, or `.whenInactive` while the scene is not active (`NotificationDesktopDelivery`), with the frame that first draws it | the same `OSC 9`, sanitised the same way, on a host that posts notifications; **nothing** anywhere else — no bell, as the toast is already on the screen (2026-11-07) |
+| A toast posted with `desktop: .always`, or `.whenInactive` while the scene is not active (`NotificationDesktopDelivery`), with the frame that first draws it | the same `OSC 9`, sanitised the same way, on a host that posts notifications; anywhere else, this machine's own notification (`osascript`, `notify-send`) where the person is at it (`SessionLocality`; `TUI_SYSTEM_NOTIFICATIONS`), else **nothing** — never both, and no bell, as the toast is already on the screen (2026-11-07, the system route 2026-11-08) |
 
 Only to a host documented to post one (`TerminalClient.honoursNotifications`):
 Ghostty and iTerm2. `\.terminalCapabilities`' `.notifications` says which

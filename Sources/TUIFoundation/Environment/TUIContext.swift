@@ -385,7 +385,7 @@ package final class TUIContext {
     /// ``ClipboardWriter``.
     ///
     /// This machine's clipboard behind it is the one the context was made
-    /// with (``init(clipboard:urlOpener:appState:)``): the app's run loop passes the system's,
+    /// with (``init(clipboard:urlOpener:systemNotifier:appState:)``): the app's run loop passes the system's,
     /// and every other context keeps its copies in memory.
     ///
     /// Settable, unlike its neighbours, so a test can hand a context a writer
@@ -421,10 +421,17 @@ package final class TUIContext {
     private lazy var _clipboardAccess = ClipboardAccess(writer: _clipboardWriter)
 
     /// This machine's URL opener, for an ``OpenURLAction`` that defers to the
-    /// system: the one the context was made with (``init(clipboard:urlOpener:appState:)``).
+    /// system: the one the context was made with (``init(clipboard:urlOpener:systemNotifier:appState:)``).
     /// The app's run loop passes the system's; every other context's keeps
     /// what it is handed in memory and launches nothing.
     package let urlOpener: any URLOpenerBackend
+
+    /// The operating system's own notifications, for a toast posted to the
+    /// desktop that the terminal cannot carry: the one the context was made
+    /// with (``init(clipboard:urlOpener:systemNotifier:appState:)``). The app's
+    /// run loop passes this machine's; every other context's keeps what it is
+    /// handed in memory and posts nothing.
+    package let systemNotifier: any SystemNotificationBackend
 
     /// App-wide drag-and-drop state (active drag + per-frame drop targets).
     package let dragAndDropSession: DragAndDropSession
@@ -580,11 +587,15 @@ package final class TUIContext {
     ///   - urlOpener: This machine's URL opener (``urlOpener``). The app's run
     ///     loop passes the system's (`SystemURLOpener`); every other context
     ///     keeps what it is handed in memory, and never launches a browser.
+    ///   - systemNotifier: This machine's notifications (``systemNotifier``).
+    ///     The app's run loop passes the system's (`SystemNotifier`); every
+    ///     other context keeps what it is handed in memory, and posts nothing.
     ///   - appState: The app's render state (``appState``): a fresh one unless
     ///     the caller holds one the context's frame requests must reach.
     package init(
         clipboard: any ClipboardBackend = InMemoryClipboard(),
         urlOpener: any URLOpenerBackend = InMemoryURLOpener(),
+        systemNotifier: any SystemNotificationBackend = InMemorySystemNotifier(),
         appState: AppState = AppState()
     ) {
         self.appState = appState
@@ -594,6 +605,7 @@ package final class TUIContext {
         self._clipboardWriter = ClipboardWriter(
             system: clipboard, requestFrame: { [appState] in appState.setNeedsRender() })
         self.urlOpener = urlOpener
+        self.systemNotifier = systemNotifier
         self.lifecycle = LifecycleManager()
         self.keyEventDispatcher = KeyEventDispatcher()
         self.mouseEventDispatcher = MouseEventDispatcher()
@@ -656,10 +668,11 @@ package final class TUIContext {
         self.terminalBell = TerminalBell(requestFrame: { [appState] in appState.setNeedsRender() })
         self.keysAfterFrame = KeysAfterFrame(requestFrame: { [appState] in appState.setNeedsRender() })
         // A snapshot's or a test's: its copies and URLs stay in memory (see
-        // init(clipboard:urlOpener:appState:)).
+        // init(clipboard:urlOpener:systemNotifier:appState:)).
         self._clipboardWriter = ClipboardWriter(
             system: InMemoryClipboard(), requestFrame: { [appState] in appState.setNeedsRender() })
         self.urlOpener = InMemoryURLOpener()
+        self.systemNotifier = InMemorySystemNotifier()
         self.lifecycle = lifecycle
         self.keyEventDispatcher = keyEventDispatcher
         self.mouseEventDispatcher = mouseEventDispatcher
@@ -671,7 +684,7 @@ package final class TUIContext {
         self.mouseEventDispatcher.tooltipState = self.tooltipState
         self.preferences = preferences
         self.stateStorage = stateStorage
-        // See init(clipboard:urlOpener:appState:): one stage for every effect.
+        // See init(clipboard:urlOpener:systemNotifier:appState:): one stage for every effect.
         self.lifecycle.effectStage = stateStorage.effectStage
         self.renderCache = renderCache
         // See init(): wire state-change invalidation to this context's cache,

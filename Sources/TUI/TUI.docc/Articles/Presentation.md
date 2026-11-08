@@ -496,9 +496,12 @@ or an alert holds the keyboard, toasts still draw, but their buttons do nothing
 until it closes.
 
 A text notification can also be posted on the desktop, where the person sees
-it from another window, through the terminal: ``NotificationDesktopDelivery``.
-It goes to the terminals that post one (Ghostty and iTerm2), and nowhere else.
-It is one-way: no buttons, and nothing reports whether it was seen.
+it from another window: ``NotificationDesktopDelivery``. It goes through the
+terminal where the terminal posts one (Ghostty and iTerm2); elsewhere this
+machine posts it itself, with `osascript` on macOS or `notify-send` on Linux,
+but only where the person is at this machine — never over ssh. One or the
+other, never both. It is one-way: no buttons, and nothing reports whether it
+was seen.
 
 ```swift
 NotificationService.current.post("Build finished", style: .success, desktop: .whenInactive)

@@ -166,6 +166,12 @@ Don't write a variable to state a setting. Many are read once, and `setenv` isn'
 | `TUI_FORCE_ESCAPES` | `0`, or any other value | What a program writes when it prints a view once, rather than taking over the screen. `0`: plain text. Anything else: styled text, even down a pipe. `NO_COLOR` still takes out the colour. |
 | `COLUMNS` | A whole number above 0 | How wide to draw, whatever the terminal says. Without it, the terminal's width, or 80 where it can't say, such as when the output goes down a pipe. While it's set the program doesn't follow the window, so an export left over from a window since resized pins the width: if a program draws at the wrong size, look for this first (`echo $COLUMNS`) and `unset COLUMNS`. |
 | `LINES` | A whole number above 0 | How tall to draw, whatever the terminal says. Without it, the terminal's height, or 24 where it can't say, such as when the output goes down a pipe. While it's set the program doesn't follow the window, so an export left over from a window since resized pins the height: if a program draws at the wrong size, look for this first (`echo $LINES`) and `unset LINES`. |
+
+### Where the person is
+
+| Variable | Values | Effect |
+|---|---|---|
+| `TUI_SYSTEM_NOTIFICATIONS` | `0` or `1` | Whether a notification the terminal can't post is posted by this machine itself, with `osascript` on macOS or `notify-send` on Linux. Without it, that happens only where TUI can tell you're at this machine, and never over ssh. `0` turns it off; `1` turns it on wherever TUI can't tell, such as inside zellij or GNU screen at your own desk. A terminal that posts notifications always gets them instead, so none comes twice. |
 <!-- /tui-environment-docs -->
 
 ### How the colour variables agree
@@ -251,6 +257,7 @@ Two of the variables above are worth knowing for tests too. `TUI_CONFIG_DIR` kee
 | `TUI_OSC5522` | Wins | `TerminalClient.mimeClipboardSupport`. | Each use |
 | `TUI_PIXEL_MOUSE` | No setting | The variable is the only way. | Once |
 | `TUI_NOTIFICATIONS` | No setting | The variable is the only way. | Each use |
+| `TUI_SYSTEM_NOTIFICATIONS` | No setting | The variable is the only way. | Once |
 | `TUI_PROGRESS` | No setting | The variable is the only way. | Each use |
 | `TUI_POINTER_SHAPES` | Wins | `TerminalClient.pointerShapeSupport`, before the first frame. `.pointerStyle(_:)` in a view doesn't count as choosing: under `0` the pointer stays as it is. Nothing in code undoes `apps`. | Each use |
 | `TUI_FOCUS_FOLLOWS_POINTER` | Wins | `Scene.focusFollowsPointer(_:)`. | Once |
