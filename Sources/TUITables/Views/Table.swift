@@ -577,7 +577,7 @@ extension Table {
     /// - Returns: A new table with the disabled state.
     public func disabled(_ disabled: Bool = true) -> Table {
         var copy = self
-        copy.isDisabled = disabled
+        copy.isDisabled = isDisabled || disabled
         return copy
     }
 }

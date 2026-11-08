@@ -180,7 +180,7 @@ nonisolated public struct ScrollView<Content: View>: View {
     /// than being swallowed.
     nonisolated public func disabled(_ disabled: Bool = true) -> ScrollView<Content> {
         var copy = self
-        copy.isDisabled = disabled
+        copy.isDisabled = isDisabled || disabled
         return copy
     }
 

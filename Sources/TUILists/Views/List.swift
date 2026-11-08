@@ -901,7 +901,7 @@ extension List {
     /// - Returns: A new list with the disabled state.
     public func disabled(_ disabled: Bool = true) -> List<SelectionValue, Content, Footer> {
         var copy = self
-        copy.isDisabled = disabled
+        copy.isDisabled = isDisabled || disabled
         return copy
     }
 

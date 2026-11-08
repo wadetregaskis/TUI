@@ -261,7 +261,7 @@ extension DatePicker {
     /// Disables the picker.
     public func disabled(_ disabled: Bool = true) -> DatePicker {
         var copy = self
-        copy.isDisabled = disabled
+        copy.isDisabled = isDisabled || disabled
         return copy
     }
 

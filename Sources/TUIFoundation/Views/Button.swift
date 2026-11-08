@@ -1008,7 +1008,7 @@ extension View {
     /// - Returns: A new button with the disabled state.
     nonisolated public func disabled(_ disabled: Bool = true) -> Button {
         var copy = self
-        copy.isDisabled = disabled
+        copy.isDisabled = isDisabled || disabled
         return copy
     }
 

@@ -554,7 +554,7 @@ extension Toggle {
     /// - Returns: A new toggle with the disabled state.
     public func disabled(_ disabled: Bool = true) -> Toggle {
         var copy = self
-        copy.isDisabled = disabled
+        copy.isDisabled = isDisabled || disabled
         return copy
     }
 

@@ -80,7 +80,7 @@ public struct RadioButtonItem<Value: Hashable> {
     /// - Returns: The option, disabled or not.
     public func disabled(_ disabled: Bool = true) -> Self {
         var copy = self
-        copy.isDisabled = disabled
+        copy.isDisabled = isDisabled || disabled
         return copy
     }
 
@@ -1128,7 +1128,7 @@ extension RadioButtonGroup {
     /// - Returns: A new group with the disabled state.
     public func disabled(_ disabled: Bool = true) -> RadioButtonGroup<Value> {
         var newGroup = self
-        newGroup.isDisabled = disabled
+        newGroup.isDisabled = isDisabled || disabled
         return newGroup
     }
 

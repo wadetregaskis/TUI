@@ -406,7 +406,7 @@ extension Stepper {
     /// - Returns: A new stepper with the disabled state.
     public func disabled(_ disabled: Bool = true) -> Stepper {
         var copy = self
-        copy.isDisabled = disabled
+        copy.isDisabled = isDisabled || disabled
         return copy
     }
 
