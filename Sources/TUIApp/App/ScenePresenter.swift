@@ -138,9 +138,15 @@ package final class ScenePresenter {
     /// as last catalogued.
     private(set) var overlayEntries: [SceneCatalog.OverlayEntry] = []
 
-    /// Whether the `Settings` scene is presented, over the window in front.
-    package var isPresentingSettings = false {
-        didSet { if isPresentingSettings != oldValue { requestFrame() } }
+    /// The settings panel, on F2: the `Settings` scene's tabs and TUI's. The
+    /// app's, shared with its input chain; a harness that doesn't wire one has
+    /// the presenter's own, which asks the presenter for frames.
+    lazy var settingsPanel = SettingsPanel(requestFrame: { [weak self] in self?.requestFrame() })
+
+    /// Whether the settings panel is presented, over the window in front.
+    package var isPresentingSettings: Bool {
+        get { settingsPanel.isPresented }
+        set { if newValue { settingsPanel.present() } else { settingsPanel.dismiss() } }
     }
 
     /// The serial number the next window opened takes.
@@ -196,7 +202,10 @@ package final class ScenePresenter {
     func sync(with catalog: SceneCatalog) {
         entries = catalog.windows
         overlayEntries = catalog.overlays
-        if !hasSettings { isPresentingSettings = false }
+        // What the scenes say of the settings panel, for the keys that
+        // arrive before the next frame.
+        settingsPanel.isAvailable = hasSettings
+        settingsPanel.key = settingsPanelKey
         windows.removeAll { window in !entries.contains { $0.identity == window.sceneKey } }
         if !hasLaunched {
             hasLaunched = true
@@ -229,19 +238,7 @@ package final class ScenePresenter {
     /// open: what the run loop's chrome is this frame.
     var frontChrome: WindowChromeState { front?.chrome ?? closedChrome }
 
-    // MARK: Settings and Other Overlays
-
-    /// Whether the app declares a `Settings` scene.
-    var hasSettings: Bool {
-        overlayEntries.contains { $0.scene.isSettings }
-    }
-
-    /// Presents the `Settings` scene over the window in front, if the app
-    /// declares one; where it is up already, it stays.
-    func presentSettings() {
-        guard hasSettings else { return }
-        isPresentingSettings = true
-    }
+    // MARK: Overlays
 
     /// Whether quitting asks first, and the dialog that does: drawn here, over
     /// the window in front, as an alert scene is. The app's; `nil` in a harness
@@ -254,10 +251,13 @@ package final class ScenePresenter {
 
     /// The overlay scenes, as the window in front presents them this frame.
     func overlays() -> SceneOverlayList? {
-        var overlays = overlayEntries.map { entry in
+        // The `Settings` scene draws nothing of its own: its tabs are the
+        // settings panel's.
+        var overlays = overlayEntries.filter { !$0.scene.isSettings }.map { entry in
             SceneOverlay(
                 key: entry.identity.path, configuration: entry.configuration, view: entry.scene.overlay(in: self))
         }
+        if let panel = settingsPanelOverlay { overlays.append(panel) }
         // The question the quit keys ask, whichever window is in front.
         if let list = shortcutOverlay?.overlay { overlays.append(list) }
         if let quitDialog = quitPrompt?.overlay { overlays.append(quitDialog) }

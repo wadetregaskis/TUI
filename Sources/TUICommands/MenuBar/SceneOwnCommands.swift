@@ -26,7 +26,7 @@ import TUIFoundation
 /// | Group | Item | What choosing it does | Key shown |
 /// |---|---|---|---|
 /// | `appInfo` | About *app* | an alert naming the app, with its version, credits and copyright where the scene states them (`Scene.aboutPanel`) or its Info.plist has them | — |
-/// | `appSettings` | Settings… | presents the `Settings` scene (`openSettings`), where the app declares one | the scene's key: ⌘, unless its `.keyboardShortcut` says otherwise |
+/// | `appSettings` | Settings… | presents the settings panel (`openSettings`): the `Settings` scene's tabs, then TUI's View and Accessibility; in every app whose panel has a tab | the scene's key: ⌘, unless the `Settings` scene's `.keyboardShortcut` says otherwise |
 /// | `appTermination` | Quit *app* | quits as the quit key does, after the menu closes | `StatusBarState.quitShortcut` |
 /// | `undoRedo` | Undo, Redo | the app's `UndoManager`; disabled with nothing to undo or redo | the scene's undo and redo keys |
 /// | `pasteboard` | Cut, Copy, Paste | ⌘X, ⌘C, ⌘V to the focused view, after the menu closes | the same, through `commandKey` |
@@ -115,8 +115,9 @@ struct SceneOwnCommands {
         }
     }
 
-    /// Settings…, presenting the app's `Settings` scene, showing its key; none
-    /// for an app that declares no `Settings` scene.
+    /// Settings…, presenting the settings panel, showing its key: SwiftUI's
+    /// automatic item, which every app has here, its panel having TUI's tabs
+    /// with or without a `Settings` scene; none where the app hid them all.
     private func settingsItems(_ environment: EnvironmentValues) -> CommandItems? {
         let openSettings = environment.openSettings
         guard openSettings.isAvailable else { return nil }

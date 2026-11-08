@@ -177,6 +177,8 @@
   "menu.shortcutsMenuBar": "メニューバー",
   "menu.shortcutsShowTooltip": "ヘルプタグを表示",
   "menu.keyboardShortcuts": "キーボードショートカット",
+  "menu.settingsPanel": "設定",
+  "menu.accessibility": "アクセシビリティ",
   "menu.palette": "パレット",
   "menu.borderStyle": "枠線スタイル",
   "menu.controlStyle": "コントロールスタイル",

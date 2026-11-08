@@ -74,6 +74,7 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 - ``Window``
 - ``Settings``
 - ``SettingsLink``
+- ``BuiltInSettingsTab``
 - ``WindowVisibilityToggle``
 - ``WindowInteractionBehavior``
 - ``SceneBuilder``

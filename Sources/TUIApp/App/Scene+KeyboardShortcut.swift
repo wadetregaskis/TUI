@@ -75,12 +75,14 @@ extension _SceneKeyboardShortcut: SceneRenderable {
 // MARK: - Registering the Keys
 
 extension ScenePresenter {
-    /// The key that presents the `Settings` scene: the one its
-    /// `.keyboardShortcut` states, SwiftUI's ⌘, where it states none, or
-    /// `nil` where it took the key away or the app declares no `Settings`.
+    /// The key that presents the settings panel, as SwiftUI's ⌘, presents
+    /// the `Settings` scene: the one that scene's `.keyboardShortcut` states,
+    /// ⌘, where it states none or the app declares no `Settings`, or `nil`
+    /// where it took the key away or the panel has no tab to show.
     package var settingsShortcut: KeyboardShortcut? {
-        guard let settings = overlayEntries.first(where: { $0.scene.isSettings }) else { return nil }
-        return settings.configuration.keyboardShortcut ?? KeyboardShortcut(",", modifiers: .command)
+        guard hasSettings else { return nil }
+        if let stated = settingsEntry?.configuration.keyboardShortcut { return stated }
+        return KeyboardShortcut(",", modifiers: .command)
     }
 
     /// File ▸ Close's key, ⌘W, as on macOS.
@@ -103,7 +105,8 @@ extension ScenePresenter {
     /// the same key: each opens its scene, whether or not the app shows a
     /// menu bar, whose items only show them.
     func registerSceneShortcuts(
-        in registry: KeyboardShortcutRegistry, commandKey: CommandKeyBinding, matchesCommand: Bool = false
+        in registry: KeyboardShortcutRegistry, commandKey: CommandKeyBinding, matchesCommand: Bool = false,
+        disambiguatesKeys: Bool = false
     ) {
         let service = LocalizationService.shared
         var keys: [(shortcut: KeyboardShortcut, title: (() -> String)?, action: () -> Void)] = []
@@ -114,8 +117,14 @@ extension ScenePresenter {
             keys.append((shortcut, title.map { title in { title } }, { [weak self] in self?.openWindow(ofSceneAt: identity) }))
         }
         if let shortcut = settingsShortcut {
+            // Named in the list of keys in force only where the terminal can
+            // send it: ⌃, has no legacy encoding, and arrives only under the
+            // kitty keyboard protocol's disambiguate mode.
+            let arrives =
+                disambiguatesKeys
+                || shortcut.keyEvent(commandKey: commandKey).map(Self.arrivesInLegacyEncoding) ?? false
             keys.append((
-                shortcut, { service.string(for: LocalizationKey.Menu.settings) },
+                shortcut, arrives ? { service.string(for: LocalizationKey.Menu.settings) } : nil,
                 { [weak self] in self?.presentSettings() }
             ))
         }
@@ -148,6 +157,14 @@ extension ScenePresenter {
                     action: key.action)
             }
         }
+    }
+
+    /// Whether a terminal speaking only its legacy encodings can send
+    /// `event`: Control has a byte only with a letter or one of `@ [ \\ ] ^
+    /// _` and Space, so Control with a comma, ⌃, the settings key, has none.
+    static func arrivesInLegacyEncoding(_ event: KeyEvent) -> Bool {
+        guard event.ctrl, case .character(let character) = event.key else { return true }
+        return character.isLetter || "@[\\]^_ ".contains(character)
     }
 
     /// Opens a window of the scene at `identity` as its key does: brings a

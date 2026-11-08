@@ -4,6 +4,16 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**F2 opens a settings panel in every app, with or without a menu bar.** Its tabs are the app's `Settings` scene first
+(a `TabView`'s `Tab`s one each, any other content one tab named after the app), then TUI's View (palette, border style,
+control style) and Accessibility (the View menu's seven checks), after a divider. TUI's choices override the system,
+the `TUI_*` variables and the scene's modifiers for the run, are never saved, and are the menu bar's own, so the two
+agree. ⌃, opens it too where the terminal sends it (the kitty keyboard protocol), as `openSettings`, `SettingsLink` and
+the menu bar's Settings… do, now in every app. An app's own binding on F2 or ⌃, comes first;
+`.settingsPanelKey(_:)` moves F2, and `.builtInSettingsTab(_:visibility:)` and `.builtInSettingsTab(_:content:)` hide or
+replace TUI's tabs. F1's list names F2. TUIApp links TUIPickers and TUIForms for the panel. See "The Settings Panel" in
+the KeyboardShortcuts article.
+
 **A `Divider` among a segmented picker's options sets the groups apart.** It draws a heavier rule, `┃`, between the
 segments either side, where it drew nothing; a menu-style picker still draws it as a separator.
 

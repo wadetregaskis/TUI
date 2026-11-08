@@ -133,7 +133,7 @@ package final class HeadlessApp {
             appearanceManager: appearanceManager, keyboardShortcuts: tuiContext.keyboardShortcuts,
             dragAndDropSession: tuiContext.dragAndDropSession,
             tooltipState: tuiContext.tooltipState, unhandledKeyBell: tuiContext.terminalBell,
-            shortcutOverlay: shortcutOverlay,
+            shortcutOverlay: shortcutOverlay, settingsPanel: renderer.scenes.settingsPanel,
             // A script has no process to quit or suspend: a quit is counted.
             onQuit: { quits.count += 1 }, onSuspend: {}, screenSelection: tuiContext.screenSelection,
             quitPrompt: quitPrompt)

@@ -6364,6 +6364,26 @@ Expected: `f1` nothing on a default Mac (the brightness key), `fn_f1` `ESC O P`,
 and `ctrl_f1` nothing. If a host doesn't deliver fn-F1, F1 is still the choice unless
 another key arrives on all four; the menu item covers that host meanwhile.
 
+### The settings panel's keys: F2, and ⌃, under the kitty protocol — read from the encodings, not pressed
+
+Added 2026-11-08 (the owner: "maybe F2, then? If we're going to take multiple
+F-keys it'd make some sense to have them together", and "supporting control-,
+as the terminal analogue of the Mac convention would be good, too"). The panel
+(`SettingsPanel`) has two keys, both answered after the app's own bindings, and
+the menu bar's Settings… and `SettingsLink` besides. The design note is
+`Documentation/Historical/Presentation and windows/The settings panel on F2.md`.
+
+| Key | What a host sends | Evidence | Verdict |
+|---|---|---|---|
+| **F2** | `ESC O Q` in every legacy encoding (xterm's ctlseqs); `CSI Q` or `CSI 1 Q` under the kitty keyboard protocol | **Not pressed, and no host's bindings read.** TUI decodes each form as it does F1's. On a Mac keyboard it is fn-F2 unless the function keys are standard keys, as for F1 above; macOS's Control-F2 (the menu bar's keyboard focus) is a different chord and isn't used | **Chosen**: beside F1 |
+| **⌃,** | **Nothing distinct in any legacy encoding**: there is no C0 byte for Control with a comma, so a host sends a plain `,` or nothing. `CSI 44;5u` under the kitty keyboard protocol's disambiguate mode (flag 1), which TUI asks for at startup | Read from the encodings (xterm's ctlseqs; the kitty protocol's spec). **Not pressed** | **Also bound**, as the `Settings` scene's ⌘, through the command key; listed among the keys in force (F1) only where the terminal took disambiguate mode (`KeyboardReporting.disambiguatesKeys`) |
+
+*To measure, with a person at the keyboard:* in each host's default profile,
+`PROBE_KEYS=f2,fn_f2,ctrl_comma python3 Tools/TerminalProbes/key_probe.py`
+(with and without the kitty protocol pushed). Expected: `fn_f2` `ESC O Q`, and
+`ctrl_comma` either `,` or nothing in legacy mode, `CSI 44;5u` with the
+protocol on.
+
 ### Modified F1–F4 are CSI letters (xterm) — decoded since 2026-10-05
 
 F1–F4 alone arrive as SS3 (`ESC O P` … `ESC O S`), but with a modifier xterm,

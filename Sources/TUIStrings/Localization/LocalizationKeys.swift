@@ -373,6 +373,10 @@ public enum LocalizationKey {
         case shortcutsShowTooltip = "menu.shortcutsShowTooltip"
         /// The menu bar's Help ▸ Keyboard Shortcuts, and the heading of the list it shows.
         case keyboardShortcuts = "menu.keyboardShortcuts"
+        /// The settings panel's name (F2), which its tab strip is labelled with.
+        case settingsPanel = "menu.settingsPanel"
+        /// The settings panel's Accessibility tab.
+        case accessibility = "menu.accessibility"
         /// The menu bar's View ▸ Palette ▸ (`DisplayCommands`).
         case palette = "menu.palette"
         /// The menu bar's View ▸ Border Style ▸ (`DisplayCommands`).

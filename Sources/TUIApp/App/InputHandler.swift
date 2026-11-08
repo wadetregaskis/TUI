@@ -108,6 +108,10 @@ internal struct InputHandler {
     /// ``tooltipState`` is.
     var shortcutOverlay: KeyboardShortcutOverlay?
 
+    /// The settings panel F2 opens: the scene presenter's. Optional and
+    /// defaulted, as ``tooltipState`` is.
+    var settingsPanel: SettingsPanel?
+
     /// Called when the user requests to quit the application.
     let onQuit: () -> Void
 
@@ -713,6 +717,8 @@ extension InputHandler {
         guard !event.ctrl, !event.alt else { return false }
         // F1, the list of what's in force, wherever nothing above took it.
         if runKeyboardShortcutOverlayKey(event, inputGrabbed: inputGrabbed) { return true }
+        // F2, the settings panel, likewise (the owner, 2026-11-08).
+        if runSettingsPanelKey(event, inputGrabbed: inputGrabbed) { return true }
         // The help key, before the chrome shortcuts and NOT suppressed by
         // `inputGrabbed`: a tooltip explains the control that has the focus, and
         // inside a modal that control is the one the reader is looking at. It

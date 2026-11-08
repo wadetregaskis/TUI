@@ -13,24 +13,35 @@ import TUIFoundation
 // MARK: - Overlay Scenes
 
 /// A scene the presenter shows over the window in front rather than as a
-/// window of its own: TUIScenes' `Settings`, presented as a sheet, and
-/// `AlertScene`, as an alert.
+/// window of its own: TUIScenes' `Settings`, whose tabs are the settings
+/// panel's first (``SettingsPanel``), and `AlertScene`, an alert.
 ///
 /// Opaque to this module, which cannot see the presentations they are drawn
-/// with: each hands over the view that presents it — an empty view carrying
-/// the presentation modifier — which the presenter draws beside the window's
-/// content (``_SceneOverlayHost``), as a `.sheet` written on a view in the
-/// page presents over the whole page.
+/// with: an alert scene hands over the view that presents it — an empty view
+/// carrying the presentation modifier — which the presenter draws beside the
+/// window's content (``_SceneOverlayHost``), as a `.sheet` written on a view in
+/// the page presents over the whole page; a `Settings` scene hands over its
+/// tabs, which the panel draws.
 package protocol OverlayScene: Scene {
-    /// Whether ``EnvironmentValues/openSettings`` presents it: a `Settings`
-    /// scene.
+    /// Whether it is a `Settings` scene, whose tabs the settings panel shows
+    /// (``settingsTabs``) and which draws nothing of its own.
     var isSettings: Bool { get }
 
+    /// A `Settings` scene's tabs: one for each of a `TabView`'s tabs, or one,
+    /// named after the app, for any other content. Empty for any other scene.
+    @MainActor
+    var settingsTabs: [SettingsTab] { get }
+
     /// The view that presents the scene, in `presenter`'s app: an empty view
-    /// whose presentation modifier is bound to the presenter's state (the
-    /// Settings sheet's) or the scene's own (an alert scene's binding).
+    /// whose presentation modifier is bound to the scene's own state (an alert
+    /// scene's binding). Not asked of a `Settings` scene.
     @MainActor
     func overlay(in presenter: ScenePresenter) -> AnyView
+}
+
+extension OverlayScene {
+    /// None: the scene is no `Settings` scene.
+    package var settingsTabs: [SettingsTab] { [] }
 }
 
 /// One overlay scene, as the presenter shows it this frame: its view and what

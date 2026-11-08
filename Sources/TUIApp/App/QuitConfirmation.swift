@@ -222,7 +222,7 @@ struct _QuitConfirmationDialog: View {
 
 extension QuitPrompt {
     /// The app's name, as a Mac would show it in the same question.
-    fileprivate static var applicationName: String {
+    static var applicationName: String {
         let bundle = Bundle.main.infoDictionary
         return bundle?["CFBundleDisplayName"] as? String ?? bundle?["CFBundleName"] as? String
             ?? ProcessInfo.processInfo.processName

@@ -2,8 +2,8 @@
 //  ExampleScenes.swift
 //
 //  The Example's scenes beside its main window: an Inspector window, opened
-//  over it with `openWindow(id:)`, and the Settings scene, presented as a
-//  sheet.
+//  over it with `openWindow(id:)`, and the Settings scene, the settings
+//  panel's first tab.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -50,27 +50,22 @@ struct ExampleInspector: View {
 
 // MARK: - The Settings
 
-/// The Settings scene's content, presented as a sheet over the window in
-/// front by the app menu's Settings…, ⌃, or a `SettingsLink`: two of the
+/// The Settings scene's content, the first tab of the settings panel, which
+/// F2, the app menu's Settings…, ⌃, or a `SettingsLink` presents over the
+/// window in front, before TUI's View and Accessibility tabs: two of the
 /// app-wide styling switches the Theme page has, bound to the app's state, so
 /// a change shows on every page at once.
 struct ExampleSettings: View {
     @Binding var styling: ExampleStyling
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        Dialog(title: "settings.title") {
-            VStack(alignment: .leading, spacing: 1) {
+        Form {
+            Section("settings.title") {
                 Text("settings.explain")
                     .foregroundStyle(.palette.foregroundSecondary)
                 Toggle("settings.uppercaseHeaders", isOn: $styling.uppercaseSectionHeaders)
                 Toggle("settings.boldButtons", isOn: $styling.boldButtons)
-                HStack {
-                    Spacer()
-                    Button("settings.done") { dismiss() }
-                }
             }
         }
-        .presentationSizing(.form)
     }
 }

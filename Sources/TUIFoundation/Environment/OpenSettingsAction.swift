@@ -27,9 +27,12 @@ import TUICore
 /// }
 /// ```
 ///
-/// The app's `Settings` scene is presented as a sheet over the window in
-/// front (refusal review O9, ruled (b)); where it is up already, this does
-/// nothing more. An app that declares no `Settings` scene presents nothing.
+/// The settings panel every app has — the `Settings` scene's tabs, then TUI's
+/// View and Accessibility — is presented as a sheet over the window in front
+/// (refusal review O9, ruled (b); the owner's panel, 2026-11-08), as F2
+/// presents it; where it is up already, this does nothing more. An app that
+/// declares no `Settings` scene presents TUI's tabs alone, and one that has
+/// hidden those too presents nothing.
 ///
 /// Equal to another when both reach the same app: the memos below a view that
 /// reads it stay on.
@@ -43,15 +46,15 @@ public struct OpenSettingsAction: Sendable, Equatable {
     }
 
     /// Opens the window associated to the `Settings` scene defined by this
-    /// app, if one exists — mirrors SwiftUI's `callAsFunction()`: here, its
-    /// sheet, over the window in front.
+    /// app, if one exists — mirrors SwiftUI's `callAsFunction()`: here, the
+    /// settings panel, over the window in front.
     @MainActor
     public func callAsFunction() {
         handler?.openSettings()
     }
 
-    /// Whether the app declares a `Settings` scene to present: what the menu
-    /// bar's Settings… item is shown by.
+    /// Whether the settings panel has a tab to show: what the menu bar's
+    /// Settings… item is shown by.
     @MainActor
     package var isAvailable: Bool {
         handler?.hasSettings() ?? false

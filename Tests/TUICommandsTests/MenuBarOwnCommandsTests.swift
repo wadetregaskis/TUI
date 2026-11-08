@@ -158,8 +158,9 @@ struct MenuBarOwnCommandsTests {
     @Test("Quit quits as the quit key does, and sends the focused view no key")
     mutating func quitQuits() {
         let app = launched(OwnApp())
-        // The app's menu: About, then Quit.
-        choose(0, item: 1, in: app)
+        // The app's menu: About, Settings… (every app has the settings
+        // panel since 2026-11-08), then Quit.
+        choose(0, item: 2, in: app)
         #expect(app.quitsRequested == 1, "\(rows(app))")
         #expect(OwnCommandsProbe.shared.log.isEmpty, "the page heard no q")
     }
@@ -168,7 +169,7 @@ struct MenuBarOwnCommandsTests {
     mutating func quitOverATextField() {
         let app = launched(FieldApp())
         frame(app)
-        choose(0, item: 1, in: app)
+        choose(0, item: 2, in: app)  // past About and Settings…
         #expect(app.quitsRequested == 1, "\(rows(app))")
         #expect(OwnCommandsProbe.shared.log.isEmpty, "the field took no q: \(OwnCommandsProbe.shared.log)")
     }
@@ -253,7 +254,7 @@ struct MenuBarOwnCommandsTests {
     @Test("A replacement takes Quit's place")
     mutating func replacedQuit() {
         let app = launched(ReplacedQuitApp())
-        choose(0, item: 1, in: app)
+        choose(0, item: 2, in: app)  // past About and Settings…
         #expect(OwnCommandsProbe.shared.log == ["leave"])
     }
 }

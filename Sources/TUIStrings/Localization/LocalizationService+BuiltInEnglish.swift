@@ -207,6 +207,8 @@ extension LocalizationService {
       "menu.shortcutsMenuBar": "Menu Bar",
       "menu.shortcutsShowTooltip": "Show Tooltip",
       "menu.keyboardShortcuts": "Keyboard Shortcuts",
+      "menu.settingsPanel": "Settings",
+      "menu.accessibility": "Accessibility",
       "menu.palette": "Palette",
       "menu.borderStyle": "Border Style",
       "menu.controlStyle": "Control Style",

@@ -297,8 +297,10 @@ let package = Package(
             // TUIPresentation for the alert the quit keys ask with (QuitConfirmation.swift): every app has
             // it. Not re-exported: `import TUIApp` still doesn't show `alert`, for which list TUIPresentation.
             // TUIPickers for the display choices' `Picker`s (DisplayChoices.swift), which the menu bar's
-            // `DisplayCommands` and the settings panel share; not re-exported either.
-            dependencies: ["TUIChrome", "TUIFoundation", "TUIPickers", "TUIPresentation"],
+            // `DisplayCommands` and the settings panel share, and TUIForms for the panel's `Form`s
+            // (SettingsPanel+Views.swift): every app has the panel, on F2 (owner, 2026-11-08). Neither is
+            // re-exported.
+            dependencies: ["TUIChrome", "TUIFoundation", "TUIForms", "TUIPickers", "TUIPresentation"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
@@ -880,7 +882,7 @@ let package = Package(
             name: "TUIScenesTests",
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUICommands", "TUICore", "TUIFoundation",
-                "TUIPresentation", "TUIScenes", "TUITestSupport", "TUITesting", "TUIView",
+                "TUIPresentation", "TUIScenes", "TUITabs", "TUITestSupport", "TUITesting", "TUIView",
             ]
         ),
         .testTarget(

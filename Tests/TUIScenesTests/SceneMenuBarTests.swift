@@ -40,6 +40,18 @@ private struct PlainMenuApp: App {
     }
 }
 
+/// The same, with TUI's settings tabs hidden: a settings panel with nothing
+/// to show.
+private struct NoSettingsTabsMenuApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { Text("main window") }
+            .commands { CommandMenu("Note") {} }
+            .builtInSettingsTab(.view, visibility: .hidden)
+            .builtInSettingsTab(.accessibility, visibility: .hidden)
+    }
+}
+
 /// A Settings scene on a key of its own.
 private struct SettingsKeyApp: App {
     init() {}
@@ -208,11 +220,17 @@ struct SceneMenuBarTests {
         #expect(screen(app).contains("settings content"), "\(screen(app))")
     }
 
-    @Test("An app with no Settings scene has no Settings… item")
+    // Until 2026-11-08 an app with no `Settings` scene had no item: now
+    // every app has the settings panel, with TUI's tabs, as SwiftUI adds
+    // Settings… to every app menu.
+    @Test("An app with no Settings scene has Settings… for TUI's tabs, and none once it hides them")
     mutating func noSettingsItem() {
         let app = launched(PlainMenuApp())
         open(EnvironmentValues().resolvedAboutPanel.name, in: app)
-        #expect(screen(app).contains("About") && !screen(app).contains("Settings…"), "\(screen(app))")
+        #expect(screen(app).contains("About") && screen(app).contains("Settings…"), "\(screen(app))")
+        let hidden = launched(NoSettingsTabsMenuApp())
+        open(EnvironmentValues().resolvedAboutPanel.name, in: hidden)
+        #expect(screen(hidden).contains("About") && !screen(hidden).contains("Settings…"), "\(screen(hidden))")
     }
 
     @Test("An app of one window scene has no Window menu")

@@ -27,7 +27,8 @@ shortcuts' key").
 
 `PROBE_KEYS` asks only the keys it names, by the ids in KEYS, comma-separated —
 `PROBE_KEYS=f10,fn_f10,shift_f1` for the menu bar's and help's keys alone, and
-`PROBE_KEYS=f1,fn_f1,shift_f1,ctrl_f1` for the list of shortcuts' alone.
+`PROBE_KEYS=f1,fn_f1,shift_f1,ctrl_f1` for the list of shortcuts' alone, and
+`PROBE_KEYS=f2,fn_f2,ctrl_comma` for the settings panel's.
 
 Run INSIDE the terminal under test, from its DEFAULT profile, once on each
 screen: TUI draws on the alternate screen (`PROBE_ALT=1`), and a host's
@@ -63,6 +64,9 @@ KEYS = [
     ("f1", "F1 alone, without fn"),
     ("fn_f1", "fn-F1 (hold fn)"),
     ("ctrl_f1", "⌃F1 Control-F1 (with fn if F1 alone dims the screen)"),
+    ("f2", "F2 alone, without fn"),
+    ("fn_f2", "fn-F2 (hold fn)"),
+    ("ctrl_comma", "⌃, Control-comma"),
 ]
 
 # The legacy spellings each could arrive as, in the xterm family's grammar.

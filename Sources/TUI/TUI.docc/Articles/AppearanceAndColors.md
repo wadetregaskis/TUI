@@ -44,7 +44,7 @@ Controls such as sliders and toggles take their look from ``View/controlStyle(_:
 
 ### Cycling Appearances at Runtime
 
-People can pick a border style from the menu bar's View menu, which also offers the palette and the control style. Once an app has turned on the status bar's appearance item with `statusBarSystemItems(appearance: true)`, they can also press `a` to cycle through appearances.
+People can pick a border style from the settings panel's View tab (F2), or from the menu bar's View menu, which both also offer the palette and the control style. Once an app has turned on the status bar's appearance item with `statusBarSystemItems(appearance: true)`, they can also press `a` to cycle through appearances.
 
 ### Custom Appearances
 

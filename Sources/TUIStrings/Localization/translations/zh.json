@@ -177,6 +177,8 @@
   "menu.shortcutsMenuBar": "菜单栏",
   "menu.shortcutsShowTooltip": "显示提示",
   "menu.keyboardShortcuts": "键盘快捷键",
+  "menu.settingsPanel": "设置",
+  "menu.accessibility": "辅助功能",
   "menu.palette": "调色板",
   "menu.borderStyle": "边框样式",
   "menu.controlStyle": "控件样式",

@@ -66,6 +66,14 @@ struct SceneConfiguration {
     /// where it took the scene's default key away.
     var keyboardShortcut: KeyboardShortcut??
 
+    /// What a `.builtInSettingsTab` said of each of TUI's tabs in the
+    /// settings panel; a tab it says nothing of is shown.
+    var builtInSettingsTabs: [BuiltInSettingsTab: BuiltInSettingsTabChoice] = [:]
+
+    /// The key a `.settingsPanelKey(_:)` moved the settings panel to:
+    /// `.some(nil)` where it took the panel's key away.
+    var settingsPanelKey: Key??
+
     /// Runs the scene's environment writes over `environment`, in order.
     func applyEnvironmentWrites(to environment: inout EnvironmentValues) {
         for write in environmentWrites { write(&environment) }

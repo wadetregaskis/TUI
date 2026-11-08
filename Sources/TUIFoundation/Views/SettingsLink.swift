@@ -20,9 +20,10 @@
 /// }
 /// ```
 ///
-/// A button that calls ``EnvironmentValues/openSettings``: the app's
-/// `Settings` scene comes up as a sheet over the window in front. Its label is
-/// a button's, styled by the `.buttonStyle` and `.labelStyle` around it.
+/// A button that calls ``EnvironmentValues/openSettings``: the settings panel,
+/// the app's `Settings` scene's tabs first, comes up as a sheet over the
+/// window in front, as F2 brings it up. Its label is a button's, styled by the
+/// `.buttonStyle` and `.labelStyle` around it.
 public struct SettingsLink<Label: View> {
     let label: Label
 

@@ -1,10 +1,11 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  SettingsSceneTests.swift
 //
-//  The `Settings` scene (lane O9; decisions A26's settings scene): presented as
-//  a sheet over the window in front by `openSettings` and `SettingsLink`,
-//  closed by Escape or `dismiss()`, its own modifiers reaching its content
-//  alone; and nothing at all where the app declares none.
+//  The `Settings` scene (lane O9; decisions A26's settings scene): the first
+//  tab of the settings panel, presented as a sheet over the window in front by
+//  `openSettings` and `SettingsLink`, closed by Escape or `dismiss()`, its own
+//  modifiers reaching its content alone; and the panel with TUI's tabs alone
+//  where the app declares none (the owner's panel, 2026-11-08).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -115,7 +116,11 @@ struct SettingsSceneTests {
         press(.enter, in: app)  // settings
         let text = screen(app)
         #expect(text.contains("settings note=settings-only"), "\(text)")
-        #expect(text.contains("main note=unset"), "the window shows through, dimmed: \(text)")
+        // The settings are the panel's first tab, named after the app, before
+        // TUI's own. The panel, its strip over the tab, covers the page's
+        // centred lines at this size, as the bare sheet it replaced did not:
+        // the window is still there, behind it.
+        #expect(text.contains("┃ View │ Accessibility"), "\(text)")
         #expect(app.scenes.isPresentingSettings)
         #expect(app.scenes.windows.count == 1, "a sheet, not a window")
     }
@@ -137,6 +142,8 @@ struct SettingsSceneTests {
         let app = launched(SettingsApp())
         press(.tab, in: app)
         press(.enter, in: app)  // settings
+        // The panel's tab strip is its first stop, and the app's tab is shown.
+        press(.tab, in: app)
         press(.enter, in: app)  // done
         #expect(!app.scenes.isPresentingSettings)
         #expect(!screen(app).contains("settings note"))
@@ -153,15 +160,17 @@ struct SettingsSceneTests {
         #expect(screen(app).contains("settings note=settings-only"), "\(screen(app))")
     }
 
-    @Test("With no Settings scene, openSettings presents nothing and says so")
+    // Until 2026-11-08 an app with no `Settings` scene presented nothing: now
+    // every app has the settings panel, whose TUI tabs need no scene.
+    @Test("With no Settings scene, openSettings presents the panel with TUI's tabs alone")
     mutating func noSettingsScene() {
         let app = launched(NoSettingsApp())
         press(.tab, in: app)
         press(.enter, in: app)
-        #expect(!app.scenes.isPresentingSettings)
-        #expect(!OpenSettingsAction(handler: app.scenes.actions).isAvailable)
-        let withSettings = launched(SettingsApp())
-        #expect(OpenSettingsAction(handler: withSettings.scenes.actions).isAvailable)
-        withExtendedLifetime(withSettings) {}
+        #expect(app.scenes.isPresentingSettings)
+        #expect(OpenSettingsAction(handler: app.scenes.actions).isAvailable)
+        let text = screen(app)
+        #expect(text.contains("View │ Accessibility"), "\(text)")
+        #expect(!text.contains("┃"), "no app tabs, so no divider: \(text)")
     }
 }

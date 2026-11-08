@@ -175,6 +175,7 @@ These keys do something by themselves, once nothing else has taken them. All but
 | ⌃Z | Suspend the app, as the shell's `^Z` would | Only where the undo keys leave it out, and only once no view has claimed the key, so a focused text field's or editor's undo wins |
 | `?` | Show the focused view's `View.help(_:)` tooltip | Enabled by default; falls through when the focused view has no help text. Reachable behind a modal, unlike `t` and `a` |
 | F1 (fn-F1 on a Mac keyboard) | Show the list of the shortcuts in force, or take it down | Enabled by default; see "The List of Shortcuts" below |
+| F2 (fn-F2 on a Mac keyboard), or ⌃, | Open the settings panel, or close it | Enabled by default. ⌃, is the `Settings` scene's ⌘, through the command key, and arrives only under the kitty keyboard protocol; see "The Settings Panel" below |
 | ⌥ with the help key (⌥?), or ⇧F1 | Show every tooltip on the screen at once, or hide them (Help ▸ Show All Tooltips) | Enabled by default. ⇧F1 is for a terminal that doesn't send Option; Apple Terminal sends neither by default, so there the menu item is the way |
 | ⇧F10, or the PC keyboard's Menu key | Open the context menu of what has the focus, or close an open one | Where the focused view has a `.contextMenu`, or is a list, table or tab row with one. The Menu key arrives only under the kitty keyboard protocol |
 | `t` / `T` | Cycle to next color theme | Opt-in: requires `statusBarSystemItems(theme: true)` (or `showThemeItem = true`) |
@@ -509,7 +510,7 @@ you. Each comes from what the framework already knows, under a heading:
 | On This Screen | Each `.keyboardShortcut` on a button or toggle the page draws, by its label |
 | Each menu's title | The menu bar's commands, the scene's own included |
 | Status Bar | Its items, those of `.statusBarItems` among them |
-| General | F1, Tab and Shift-Tab, F10 with a menu bar, and the help keys where a view on the screen has help |
+| General | F1, F2, Tab and Shift-Tab, F10 with a menu bar, and the help keys where a view on the screen has help |
 
 "In force" is meant strictly. A disabled control isn't listed, a key the page and
 a menu both bind is listed as the page's, and a key appears once. Over a sheet or
@@ -537,6 +538,75 @@ WindowGroup { EditorView() }
 F1 was chosen over ⇧F1 and ⌃F1 because those don't reach an app everywhere: Apple
 Terminal sends nothing for ⇧F1, and macOS keeps ⌃F1 by default. See "The list of
 keyboard shortcuts' key" in `Documentation/Terminals/Terminal compatibility survey.md`.
+
+## The Settings Panel
+
+F2 opens a small panel of settings in every app, with a menu bar or without
+one. Its tabs are the app's own settings first, from its ``Settings`` scene,
+then TUI's, after a divider:
+
+| Tab | What it holds |
+|-----|---------------|
+| Your app's | A `TabView` of `Tab`s in your `Settings` scene becomes one tab each; any other content becomes one tab, named after the app |
+| View | The palette, the border style and the control style, as the menu bar's `DisplayCommands` offers them |
+| Accessibility | Differentiate Without Color, Reduce Motion, Reduce Transparency, Increase Contrast, Breathing Focus, Spell Out Keys and Focus Follows Pointer, the View menu's checks |
+
+```swift
+@main
+struct EditorApp: App {
+    var body: some Scene {
+        WindowGroup { EditorView() }
+        Settings {
+            TabView {
+                Tab("General", systemImage: "gear") { GeneralSettings() }
+                Tab("Editing", systemImage: "pencil") { EditingSettings() }
+            }
+        }
+    }
+}
+```
+
+Build your tabs from `Form`, `Section`, `Toggle`, `Picker` and `Stepper`, as
+TUI's are, and they look alike. Your settings persist however you store them,
+usually with `@AppStorage`; TUI's last for the run, win over the system's
+settings, the `TUI_*` variables and your scene's modifiers, and are never
+saved. The View menu's checks and the Accessibility tab change the same
+choices, so they always agree. Settings are app-wide: nothing deeper in the
+view tree adds to them.
+
+The tab strip is a segmented control: ← and → move along it and Space
+chooses. Tab moves into the tab, and the arrow and paging keys scroll a tab too
+tall for the terminal while the strip stays put. Escape, F2 or Done closes it.
+``EnvironmentValues/openSettings``, a ``SettingsLink`` and the menu bar's
+Settings… open it too, and with a menu bar the View menu still offers the same
+choices.
+
+**F2 and ⌃, are yours if you bind them.** F2 is answered in the chain's last
+layer, as F1 is, so anything of yours on it comes first; ⌃, is the `Settings`
+scene's key, which a shortcut of your window's on the same chord comes before,
+and which the scene's `.keyboardShortcut(_:)` moves. ⌃, arrives only where the
+terminal speaks the kitty keyboard protocol, so the list of shortcuts names it
+only there. Move F2, or take it away, at the scene:
+
+```swift
+WindowGroup { EditorView() }
+    .settingsPanelKey(.f3)      // or nil for no key: Settings… still opens it
+```
+
+**Hide or replace TUI's tabs** if you have reason to, each on its own:
+
+```swift
+WindowGroup { EditorView() }
+    .builtInSettingsTab(.view, visibility: .hidden)
+    .builtInSettingsTab(.accessibility) { MyAccessibilitySettings() }
+```
+
+These are app-wide, read from any scene; the `Settings` scene's statement wins,
+then the window scenes' in the order you declare them. With no tab at all, F2
+does nothing and the menu bar has no Settings….
+
+F2 was chosen to sit beside F1, TUI's other key. See "The settings panel's
+keys" in `Documentation/Terminals/Terminal compatibility survey.md`.
 
 ## The Menu Bar's Keys
 

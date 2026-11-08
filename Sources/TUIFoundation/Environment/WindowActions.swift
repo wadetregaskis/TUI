@@ -29,10 +29,10 @@ package final class SceneActionHandler {
     /// Closes the windows `dismissal` names, as `behavior` allows.
     package var dismissWindow: (_ dismissal: WindowDismissal, _ behavior: DismissBehavior) -> Void = { _, _ in }
 
-    /// Presents the app's `Settings` scene.
+    /// Presents the settings panel: the `Settings` scene's tabs and TUI's.
     package var openSettings: () -> Void = {}
 
-    /// Whether the app declares a `Settings` scene.
+    /// Whether the settings panel has a tab to show.
     package var hasSettings: () -> Bool = { false }
 
     package init() {}

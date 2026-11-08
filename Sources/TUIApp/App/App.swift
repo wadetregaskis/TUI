@@ -213,6 +213,9 @@ internal final class AppRunner<A: App> {
     /// The list of keyboard shortcuts on F1, shared as ``quitPrompt`` is.
     private let shortcutOverlay: KeyboardShortcutOverlay
 
+    /// The settings panel on F2, shared likewise.
+    private let settingsPanel: SettingsPanel
+
     /// - Parameters:
     ///   - app: The app whose scene this runner drives.
     ///   - appState: The app's render state: the render-request queue the loop
@@ -238,6 +241,7 @@ internal final class AppRunner<A: App> {
         self.statusBar = StatusBarState(appState: appState)
         self.quitPrompt = QuitPrompt(requestFrame: { [appState] in appState.setNeedsRender() })
         self.shortcutOverlay = KeyboardShortcutOverlay(requestFrame: { [appState] in appState.setNeedsRender() })
+        self.settingsPanel = SettingsPanel(requestFrame: { [appState] in appState.setNeedsRender() })
         self.terminal = Terminal()
         // The one context whose copies reach this machine's clipboard (where
         // the rule sends them there at all), whose links reach its URL opener
@@ -284,7 +288,7 @@ extension AppRunner {
             keyboardShortcuts: tuiContext.keyboardShortcuts,
             dragAndDropSession: tuiContext.dragAndDropSession,
             tooltipState: tuiContext.tooltipState,
-            unhandledKeyBell: tuiContext.terminalBell, shortcutOverlay: shortcutOverlay,
+            unhandledKeyBell: tuiContext.terminalBell, shortcutOverlay: shortcutOverlay, settingsPanel: settingsPanel,
             onQuit: { [weak self] in
                 self?.isRunning = false
             },
@@ -444,6 +448,7 @@ extension AppRunner {
             program: TerminalHost.program, environment: ProcessInfo.processInfo.environment)
         loop.scenes.quitPrompt = quitPrompt
         loop.scenes.shortcutOverlay = shortcutOverlay
+        loop.scenes.settingsPanel = settingsPanel
         return loop
     }
 

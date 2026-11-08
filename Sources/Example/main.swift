@@ -31,7 +31,7 @@ struct ExampleApp: App {
     var body: some Scene {
         // Three scenes, styled together: the scene modifiers below are written
         // on the group, so each reaches all three — the Inspector and the
-        // Settings sheet are themed as the main window is.
+        // settings panel are themed as the main window is.
         Group {
             // Titled: the title is the terminal's window or tab title while
             // this window is in front, as the Inspector's is while it is.
@@ -43,7 +43,8 @@ struct ExampleApp: App {
             Window(L("inspector.title"), id: "inspector") {
                 ExampleInspector()
             }
-            // Presented as a sheet by Settings… (⌃,) or a `SettingsLink`.
+            // The settings panel's first tab: F2, Settings… (⌃,) or a
+            // `SettingsLink` presents it, TUI's View and Accessibility after.
             Settings {
                 ExampleSettings(styling: $styling)
             }

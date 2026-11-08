@@ -38,7 +38,7 @@ A terminal shows one surface, so any other scene appears over the first when som
 | Scene | What it is | How it opens |
 |---|---|---|
 | ``Window`` | A second screen, by its identifier | ``EnvironmentValues/openWindow`` |
-| ``Settings`` | The app's settings, as a sheet | ``EnvironmentValues/openSettings``, a ``SettingsLink``, or the menu bar's Settings… (⌃, under the default command key) |
+| ``Settings`` | The app's settings: the first tabs of the settings panel, a sheet, before TUI's View and Accessibility | F2, ``EnvironmentValues/openSettings``, a ``SettingsLink``, or the menu bar's Settings… (⌃, under the default command key); see <doc:KeyboardShortcuts#The-Settings-Panel> |
 
 ```swift
 @main

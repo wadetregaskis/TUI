@@ -114,6 +114,11 @@ extension InputHandler {
             listing.add(ListedShortcut(key: chord, title: service.string(for: title)), to: general)
         }
         addGeneral(.f1, .keyboardShortcuts)
+        // The settings panel's key, unless the app has it: its own row, from
+        // the page's section above, then holds the key.
+        if let settingsPanel, settingsPanel.isAvailable, let key = settingsPanel.key, tooltipState?.helpKey != key {
+            addGeneral(key, .settings)
+        }
         addGeneral(.tab, .shortcutsNextControl)
         addGeneral(.tab, .shortcutsPreviousControl, shift: true)
         if let tooltipState, tooltipState.hasHelpOnScreen, tooltipState.showsTooltips {

@@ -177,6 +177,8 @@
   "menu.shortcutsMenuBar": "Barra de menús",
   "menu.shortcutsShowTooltip": "Mostrar descripción",
   "menu.keyboardShortcuts": "Atajos de teclado",
+  "menu.settingsPanel": "Ajustes",
+  "menu.accessibility": "Accesibilidad",
   "menu.palette": "Paleta",
   "menu.borderStyle": "Estilo de borde",
   "menu.controlStyle": "Estilo de controles",
