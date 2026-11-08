@@ -18,6 +18,10 @@ focus only within it, and while a menu is open, not at all. Off by default: it h
 **`TUI_BREATHING=0` holds every focus indication still.** The control that has the keyboard is picked out by colour
 and bold alone, rather than breathing or blinking; the text cursor still blinks. An app can do the same with
 `Scene.focusBreathing(false)`, which can't undo the person's `0`. Reduce Motion still leaves the breath alone.
+**Notifications show with no host to add.** Every scene draws the toasts `NotificationService` holds over its content,
+between the window's bars and above any sheet or alert, so a post shows whatever the app's views are. A page smaller
+than the window no longer moves when a toast appears. `.notificationHost(width:)` is gone: delete it from your root
+view, where it would now draw every toast twice.
 
 **A sheet can be resized and moved from the keyboard, and shows where to grab it.** A sheet's bottom and right edges
 and its corner carry the grips a `.userResizable()` view draws, lit under the pointer. Tab now ends a sheet's focus

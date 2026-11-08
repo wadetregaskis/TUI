@@ -12,7 +12,7 @@ import TUIFoundation
 /// Constants and utilities for notification animation timing.
 ///
 /// Provides fade-in/fade-out durations, opacity calculation, and word-wrap
-/// logic used by the `NotificationHostModifier` during rendering.
+/// logic used by ``NotificationOverlay`` during rendering.
 enum NotificationTiming {
     /// Duration of the fade-in phase in seconds.
     static let fadeInDuration: TimeInterval = 0.2

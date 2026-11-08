@@ -4,7 +4,6 @@
 //  Created by LAYERED.work
 //  License: MIT
 
-import TUIChrome
 import TUIFoundation
 
 // MARK: - Alert Presentation
@@ -547,51 +546,6 @@ extension View {
             isAboutAnItem: true,
             onDismiss: onDismiss,
             modal: { shown.map(content) })
-    }
-}
-
-// MARK: - Notification Host
-
-extension View {
-    /// Makes this view the notification rendering host.
-    ///
-    /// Attach this modifier **once, at the root of your view tree** (e.g. on the
-    /// content of your `WindowGroup`). Notifications are posted to a process-wide
-    /// ``NotificationService`` and live there until they expire, independently of
-    /// the view tree — so the host's placement decides only *where they are
-    /// drawn*. Hosting at the root means a toast posted on one screen stays
-    /// visible until it expires even after the user navigates elsewhere, which is
-    /// almost always what transient status messages want. Hosting it on a single
-    /// screen instead scopes the toast to that screen: it disappears the moment
-    /// you navigate away (the notification is still active, but nothing is drawing
-    /// it). Apply it on exactly one view — two hosts would draw every toast twice.
-    ///
-    /// It reads active notifications from the environment's ``NotificationService``
-    /// and renders them as a stacked overlay at the configured position.
-    ///
-    /// Notifications are posted via the service, not declared in the view tree:
-    ///
-    /// ```swift
-    /// // At the root:
-    /// ContentView()
-    ///     .notificationHost()
-    ///
-    /// // Anywhere in the hierarchy:
-    /// NotificationService.current.post("Saved!")
-    /// ```
-    ///
-    /// The base content remains fully interactive — notifications do not dim
-    /// or block the background.
-    ///
-    /// - Parameter width: Fixed width of each notification box in characters (default: 40).
-    /// - Returns: A view that renders notifications from the environment service.
-    nonisolated public func notificationHost(
-        width: Int = 40
-    ) -> some View {
-        NotificationHostModifier(
-            content: self,
-            width: width
-        )
     }
 }
 

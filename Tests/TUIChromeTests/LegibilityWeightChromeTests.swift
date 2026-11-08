@@ -34,7 +34,7 @@ struct LegibilityWeightChromeTests {
             let service = NotificationService()
             service.post("Alert!")
             context.environment.notificationService = service
-            let buffer = renderToBuffer(NotificationHostModifier(content: Text("Base"), width: 40), context: context)
+            let buffer = renderToBuffer(NotificationHostModifier(content: Text("Base")), context: context)
             let screen = buffer.compositingOverlays(maxWidth: 40, maxHeight: 24, palette: context.environment.palette)
             #expect(sgrState(of: "Alert!", in: screen.lines)?.isBold == (weight == .bold), "\(String(describing: weight))")
         }

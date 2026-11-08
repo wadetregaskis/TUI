@@ -424,20 +424,17 @@ because there is nowhere for it to go.
 ## Notifications
 
 Notifications are toast-style messages that appear briefly and then fade,
-**without** dimming or blocking the background. Add a host where they should be
-drawn with `notificationHost(width:)`, then post from anywhere — they are
-delivered out of band, not declared in the view tree:
+**without** dimming or blocking the background. Post them from anywhere — they
+are delivered out of band, not declared in the view tree — and every scene
+draws them over its content, between the window's bars and above any sheet or
+alert. There is no host to add:
 
 ```swift
-// Install the host once, near the root:
-ContentView()
-    .notificationHost()
-
-// Post from anywhere, including non-view code:
+// From a button's action, a task, a callback — anywhere:
 NotificationService.current.post("Saved!", duration: 2.0)
 ```
 
-Because the host is independent of the view that posts, a notification survives
+Because the scene draws them, not the view that posts, a notification survives
 navigation between screens.
 
 ## Open and Save Panels

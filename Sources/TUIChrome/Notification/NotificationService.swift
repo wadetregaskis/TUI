@@ -14,7 +14,7 @@ import TUIFoundation
 ///
 /// Each entry carries the message, timing, and a unique identifier
 /// for lifecycle tracking. Entries are created by ``NotificationService/post(_:duration:)``
-/// and consumed by the `NotificationHostModifier` during rendering.
+/// and drawn by ``NotificationOverlay``.
 struct NotificationEntry: Identifiable, Sendable {
     /// Unique identifier for this notification.
     let id: UUID
@@ -65,9 +65,9 @@ struct NotificationEntry: Identifiable, Sendable {
 /// Central service for posting and managing notifications.
 ///
 /// `NotificationService` lives in the environment and accepts fire-and-forget
-/// notification posts from anywhere in the view hierarchy. The
-/// `NotificationHostModifier` reads the active entries and renders them
-/// as a stacked overlay.
+/// notification posts from anywhere in the view hierarchy. Every scene
+/// draws the active entries over its content, as a stack of toasts: there is
+/// no host for the app to add.
 ///
 /// ## Usage
 ///
@@ -76,13 +76,6 @@ struct NotificationEntry: Identifiable, Sendable {
 /// ```swift
 /// NotificationService.current.post("Saved!")
 /// NotificationService.current.post("Connection lost", duration: 5.0)
-/// ```
-///
-/// Attach the host once at the root of your view tree:
-///
-/// ```swift
-/// ContentView()
-///     .notificationHost()
 /// ```
 ///
 /// ## Lifecycle
@@ -128,8 +121,8 @@ public final class NotificationService: Sendable {
         var entries: [NotificationEntry] = []
 
         /// The links of the render caches of the apps that draw this service's
-        /// notifications, which a post asks for a frame: one per app, noted by
-        /// its host as it draws (``noteDisplayed(by:)``).
+        /// notifications, which a post asks for a frame: one per app, noted as
+        /// its scene draws them (``noteDisplayed(by:)``).
         ///
         /// A post can come from anywhere — an event handler, a task, a callback on
         /// a queue of its own — so it cannot ask "the app" for a frame: the host
@@ -197,10 +190,9 @@ extension NotificationService {
         let entry = NotificationEntry(message: String(message), duration: duration, postedAtNanos: now)
         let displays = state.withLock { state in
             // The expired go here too, not only in `activeEntries()`: that is the
-            // host's to call, and a service no host draws (an app that posts but
-            // never shows a toast, or one whose host has gone) kept every post it
-            // was ever given. The same rule as `activeEntries()`, so what the host
-            // reads next is unchanged.
+            // drawing's to call, and a service nothing draws (a program that posts
+            // with no scene up) kept every post it was ever given. The same rule as
+            // `activeEntries()`, so what is drawn next is unchanged.
             state.entries.removeAll { now > $0.expiresAtNanos }
             state.entries.append(entry)
             return state.displays
@@ -210,8 +202,8 @@ extension NotificationService {
     }
 
     /// Notes that the app whose render cache `link` is draws this service's
-    /// notifications, so a post asks it for a frame. Called by the host on
-    /// every frame it draws; `nil` — a render with no cache — notes nothing.
+    /// notifications, so a post asks it for a frame. Called on every frame
+    /// that draws them; `nil` — a render with no cache — notes nothing.
     package func noteDisplayed(by link: RenderCache.Link?) {
         guard let link else { return }
         state.withLock { state in
@@ -252,7 +244,7 @@ extension NotificationService {
 extension EnvironmentValues {
     /// The notification service for posting and managing notifications.
     ///
-    /// Used internally by the `NotificationHostModifier` to read active entries.
+    /// Read by the scene, which draws the active entries over its content.
     /// Post notifications via the static accessor:
     ///
     /// ```swift

@@ -214,8 +214,7 @@ struct NotificationTests {
         env.notificationService = service
 
         let view = NotificationHostModifier(
-            content: Text("Base"),
-            width: 40
+            content: Text("Base")
         )
 
         let buffer = renderToBuffer(view, context: context.withEnvironment(env))
@@ -232,8 +231,7 @@ struct NotificationTests {
         env.notificationService = service
 
         let view = NotificationHostModifier(
-            content: Text("Base"),
-            width: 40
+            content: Text("Base")
         )
 
         // The toast is a LAYER at .notification — the topmost level — not

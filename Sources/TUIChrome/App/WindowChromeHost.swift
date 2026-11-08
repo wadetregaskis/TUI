@@ -43,7 +43,9 @@ import TUIFoundation
 ///    view stores nothing of its own, so no `@State` or focus ID moves — less
 ///    the rows a sheet docked live at the bottom takes, which last frame's
 ///    presenters said (``FocusManager/presentationDock(in:storage:)``): the page is
-///    laid out in the rows above it.
+///    laid out in the rows above it. Then the toasts the app's
+///    ``NotificationService`` holds, as layers over the content area
+///    (``NotificationOverlay``): every scene hosts them, so no app adds a host.
 /// 3. Draws each bar's items after the content, so their focus sections follow
 ///    the page's, and composites the content's overlay layers — with the bars'
 ///    anchored ones lifted onto them — inside the content area, so a modal's
@@ -132,6 +134,12 @@ nonisolated package struct _WindowChromeHost<Content: View>: View, Renderable {
 
         let palette = context.environment.palette
         let isModal = context.environment.focusManager?.activeSectionIsModal == true
+        // The scene's toasts, layers over the whole content area — dock
+        // included — so no app has a host of its own to add. After the page,
+        // whose posts in this walk they show, and before the bars.
+        page.overlays += NotificationOverlay.layers(
+            context: contentContext.withChildIdentity(type: NotificationOverlay.self), areaWidth: width,
+            areaHeight: contentHeight)
         // The toolbars, after the content, so their sections follow the page's
         // in the Tab ring. Their anchored layers (a `Menu`'s drop-down) go onto
         // the page, to be composited with its own. Their items are laid out in

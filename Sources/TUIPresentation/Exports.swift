@@ -9,9 +9,8 @@
 // split plan, revision 4, §4), so `import TUIPresentation` gives an app
 // the presentations (alerts, confirmation dialogs, `Dialog`, sheets,
 // full-screen covers and modals):
-// TUIFoundation, and TUIChrome (a presentation draws its notifications
-// with Chrome's `notificationHost(width:)`, and a modal docks its presenter's
-// focus through Chrome's presentation dock), so `.toolbar`, `.help` and
+// TUIFoundation, and TUIChrome (a modal docks its presenter's focus
+// through Chrome's presentation dock), so `.toolbar`, `.help` and
 // `.statusBarItems` come with it too (plan §4). Beside what it gives an
 // importer, it keeps their names, and through TUIFoundation's own
 // re-exports the lower and side modules', in scope in every file of this

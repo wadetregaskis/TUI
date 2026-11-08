@@ -37,12 +37,6 @@ struct ExampleApp: App {
             // this window is in front, as the Inspector's is while it is.
             WindowGroup(L("app.windowTitle")) {
                 ContentView(palette: $palette, styling: $styling)
-                    // Host notifications once, at the app root, so a toast posted on
-                    // any page stays visible until it expires — even after the user
-                    // navigates to a different page. (A per-page host would drop the
-                    // toast the instant you left that page, though the global
-                    // `NotificationService` still holds it.)
-                    .notificationHost()
             }
             // A second window, opened over the main one by `openWindow(id:)`
             // (the Menus page, or the menu bar's Window menu).
