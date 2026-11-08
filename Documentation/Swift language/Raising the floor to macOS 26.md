@@ -2,7 +2,7 @@
 
 TUI's floor is macOS 15, and it can't rise yet. This note says what a rise to macOS 26 or later would gain, and what to change on the day, so nobody has to rediscover it. Nothing here has been built at a macOS 26 target unless it says so.
 
-Each macOS carries a Swift runtime: macOS 15.0 has Swift 6.0's, 15.4 has 6.1's, 26.0 has 6.2's and 26.4 has 6.3's (`utils/availability-macros.def` in the Swift repo). Raising the deployment target changes what's available at run time. The compiler TUI requires is a separate question, with Swift 6.2 its minimum today.
+Each macOS carries a Swift runtime: macOS 15.0 has Swift 6.0's, 15.4 has 6.1's, 26.0 has 6.2's and 26.4 has 6.3's (`utils/availability-macros.def` in the Swift repo). Raising the deployment target changes what's available at run time. The compiler TUI requires is a separate question, with Swift 6.2 its minimum today: [Raising the minimum Swift to 6.4](<Raising the minimum Swift to 6.4.md>) found that a newer compiler unlocks almost none of the `Span` APIs, because the deployment target is what gates them.
 
 ## What it would gain
 
