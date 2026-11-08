@@ -297,9 +297,17 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// handshake and adopts the offset the content answers with. Cleared
     /// whether or not the key was found: an unknown id is a no-op, as in
     /// SwiftUI, not a standing intent.
+    ///
+    /// Setting it clears ``pendingScrollToIsLanding``: a new request is never a
+    /// glide's landing, and an app's `scrollTo` made over a parked landing
+    /// replaces it whole. The landing marks itself after setting the request
+    /// (`parkLandingSeek`).
     package var pendingScrollTo: ScrollToRequest? {
         get { _pendingScrollTo }
-        set { _pendingScrollTo = newValue }
+        set {
+            _pendingScrollTo = newValue
+            pendingScrollToIsLanding = false
+        }
     }
 
     /// ``pendingScrollTo``'s storage: private, under the `package` accessor

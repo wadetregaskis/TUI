@@ -4,6 +4,9 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**A `scrollTo` made as a keyboard glide lands is the app's own.** It replaced the glide's parked landing but kept
+its landing mark, so it was sought again by position and jumped to, whatever animation it was made in.
+
 **Select-all and a range leave `.selectionDisabled()` rows out.** ⌃A, Shift with an arrow, Home or End, a Shift-click
 and the extend mode selected every row they covered in a multi-selection `List` or `Table`, the locked ones
 included, though a click or Return on such a row selected nothing. They skip it now, as SwiftUI's do.
