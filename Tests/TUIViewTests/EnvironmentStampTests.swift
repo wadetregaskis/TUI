@@ -289,6 +289,7 @@ struct EnvironmentStampTests {
         "SynthesizeKeyEventKey": "an app service called at event time, installed once from the TUIContext",
         "ClipboardAccessKey": "an app service called at event time, installed once from the TUIContext",
         "URLOpenerKey": "an app service called at event time, installed once from the TUIContext",
+        "AutoRepeatClockKey": "a service: a control's timer is made on it, and nothing is drawn from it",
     ]
 
     @Test("Every key declared neutral is listed with why")

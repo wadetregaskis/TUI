@@ -806,7 +806,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
         let key = StateStorage.StateKey(
             identity: context.identity, propertyIndex: propertyIndex)
         let box: StateBox<AutoRepeatTimer> = stateStorage.storage(
-            for: key, default: AutoRepeatTimer())
+            for: key, default: AutoRepeatTimer(clock: context.environment.autoRepeatClock))
         return box.value
     }
 

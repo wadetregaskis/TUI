@@ -34,6 +34,12 @@
 /// Internally a single `Task` runs on the main actor. Starting
 /// a new run while one is already going cancels the previous.
 /// Cancelling is idempotent.
+///
+/// It waits on the clock it is given: the machine's in an app, and in a test a
+/// clock the test steps (`TestClock`), which makes a press, a hold, and a
+/// frame that outlasts the initial delay exact rather than a race against the
+/// wall. A control's timer takes the environment's
+/// (`EnvironmentValues.autoRepeatClock`).
 @MainActor
 package final class AutoRepeatTimer {
     /// The delay every "is this one gesture or two?" decision in the framework
@@ -75,14 +81,31 @@ package final class AutoRepeatTimer {
     /// The running task, or `nil` if not currently active.
     private var task: Task<Void, Never>?
 
+    /// What the delays are waited on and measured by.
+    ///
+    /// An existential, kept, and opened once a hold by the generic
+    /// `run(on:initialDelay:repeatInterval:action:)`: so no `Clock` reaches
+    /// the type's signature, where a generic class could not keep
+    /// ``defaultInitialDelayMs`` (a static stored property), and the four
+    /// controls that keep one need not name its clock. Not a hot path either
+    /// way: one wait every 80 ms of a hold.
+    private let clock: any Clock<Duration>
+
     /// Creates a timer in the stopped state.
     ///
     /// - Parameters:
     ///   - initialDelayMs: See ``initialDelayMs``.
     ///   - repeatIntervalMs: See ``repeatIntervalMs``.
-    public init(initialDelayMs: Int = AutoRepeatTimer.defaultInitialDelayMs, repeatIntervalMs: Int = 80) {
+    ///   - clock: What the delays are waited on: by default the clock that
+    ///     stops while the machine sleeps, as `MonotonicClock`, and the
+    ///     `Task.sleep(nanoseconds:)` this used to make, do.
+    public init(
+        initialDelayMs: Int = AutoRepeatTimer.defaultInitialDelayMs, repeatIntervalMs: Int = 80,
+        clock: any Clock<Duration> = SuspendingClock()
+    ) {
         self.initialDelayMs = initialDelayMs
         self.repeatIntervalMs = repeatIntervalMs
+        self.clock = clock
     }
 
     /// Whether the timer is currently scheduled.
@@ -98,60 +121,68 @@ package final class AutoRepeatTimer {
     /// - Parameter action: The closure to invoke on each tick.
     public func start(action: @escaping @MainActor () -> Void) {
         stop()
-        let initialDelayNanos = UInt64(initialDelayMs) * 1_000_000
-        let repeatIntervalNanos = UInt64(repeatIntervalMs) * 1_000_000
-        let toleranceNanos = UInt64(Self.latenessToleranceMs) * 1_000_000
+        let clock = clock
+        let initialDelay = Duration.milliseconds(initialDelayMs)
+        let repeatInterval = Duration.milliseconds(repeatIntervalMs)
         task = Task { @MainActor in
-            // Fire once immediately so a normal click still
-            // gets one action — same as the previous
-            // non-auto-repeating behaviour.
-            action()
+            await Self.run(on: clock, initialDelay: initialDelay, repeatInterval: repeatInterval, action: action)
+        }
+    }
 
-            // Wait the initial delay before kicking off the
-            // repeat loop. If the user released the press
-            // during this window the task has already been
-            // cancelled and the sleep throws; we swallow it
-            // because cancellation is the expected path.
-            //
-            // A loop around that sleep, not a bare sleep, and it is the whole
-            // tap-versus-hold decision: the delay only counts while the app was
-            // awake to see a release. The release that ends a click reaches
-            // stdin within a few tens of milliseconds, but the run loop can
-            // only read stdin between frames — so a frame that takes longer
-            // than the delay (a debug build reconverting an image, say) leaves
-            // the click's own release sitting unread while this task wakes and
-            // fires a repeat. One click, two steps.
-            //
-            // A sleep that returns late IS that state: the main actor was busy,
-            // so nothing was reading stdin, so silence is not evidence that the
-            // button is still down. Wait again rather than guess. A release
-            // cancels this task, so waiting again costs at most a late first
-            // repeat on a genuine hold — never an extra step on a click, which
-            // is the one the user cannot take back.
-            while true {
-                let startedAt = MonotonicClock.nowNanoseconds
-                do {
-                    try await Task.sleep(nanoseconds: initialDelayNanos)
-                } catch {
-                    return
-                }
-                let waited = MonotonicClock.nowNanoseconds - startedAt
-                if waited <= initialDelayNanos + toleranceNanos { break }
+    /// What the task runs: the press's action, the initial delay, and the
+    /// repeats, on `clock`.
+    private static func run<C: Clock<Duration>>(
+        on clock: C, initialDelay: Duration, repeatInterval: Duration, action: @MainActor () -> Void
+    ) async {
+        // Fire once immediately so a normal click still
+        // gets one action — same as the previous
+        // non-auto-repeating behaviour.
+        action()
+
+        // Wait the initial delay before kicking off the
+        // repeat loop. If the user released the press
+        // during this window the task has already been
+        // cancelled and the sleep throws; we swallow it
+        // because cancellation is the expected path.
+        //
+        // A loop around that sleep, not a bare sleep, and it is the whole
+        // tap-versus-hold decision: the delay only counts while the app was
+        // awake to see a release. The release that ends a click reaches
+        // stdin within a few tens of milliseconds, but the run loop can
+        // only read stdin between frames — so a frame that takes longer
+        // than the delay (a debug build reconverting an image, say) leaves
+        // the click's own release sitting unread while this task wakes and
+        // fires a repeat. One click, two steps.
+        //
+        // A sleep that returns late IS that state: the main actor was busy,
+        // so nothing was reading stdin, so silence is not evidence that the
+        // button is still down. Wait again rather than guess. A release
+        // cancels this task, so waiting again costs at most a late first
+        // repeat on a genuine hold — never an extra step on a click, which
+        // is the one the user cannot take back.
+        let latest = initialDelay + Duration.milliseconds(latenessToleranceMs)
+        while true {
+            let startedAt = clock.now
+            do {
+                try await clock.sleep(for: initialDelay)
+            } catch {
+                return
             }
+            if startedAt.duration(to: clock.now) <= latest { break }
+        }
 
-            // Past that decision the cadence is deliberately NOT gated the same
-            // way: a late repeat is still a repeat the user asked for by
-            // holding, and an app whose frames outlast the 80 ms interval would
-            // otherwise never repeat at all.
-            while !Task.isCancelled {
-                // A held press is a continuous action: these repeats are the
-                // sequence it produces (the first, a plain click's, is not).
-                withTransaction(\.isContinuous, true) { action() }
-                do {
-                    try await Task.sleep(nanoseconds: repeatIntervalNanos)
-                } catch {
-                    return
-                }
+        // Past that decision the cadence is deliberately NOT gated the same
+        // way: a late repeat is still a repeat the user asked for by
+        // holding, and an app whose frames outlast the 80 ms interval would
+        // otherwise never repeat at all.
+        while !Task.isCancelled {
+            // A held press is a continuous action: these repeats are the
+            // sequence it produces (the first, a plain click's, is not).
+            withTransaction(\.isContinuous, true) { action() }
+            do {
+                try await clock.sleep(for: repeatInterval)
+            } catch {
+                return
             }
         }
     }
@@ -165,5 +196,26 @@ package final class AutoRepeatTimer {
 
     deinit {
         task?.cancel()
+    }
+}
+
+// MARK: - The clock a control's timer waits on
+
+/// What the auto-repeat timers of the controls beneath wait on.
+private struct AutoRepeatClockKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
+    static let defaultValue: any Clock<Duration> = SuspendingClock()
+}
+
+extension EnvironmentValues {
+    /// The clock the auto-repeat of a `Button`, `Stepper`, `Slider` or date
+    /// picker made beneath waits its delays on (``AutoRepeatTimer``): the
+    /// machine's, unless a test hands in one it steps (`TestClock`).
+    ///
+    /// Package, not API: SwiftUI has no such value, and an app has no reason to
+    /// change the clock its controls keep. Read once a control, when its timer
+    /// is made, so it costs a frame nothing.
+    package var autoRepeatClock: any Clock<Duration> {
+        get { self[AutoRepeatClockKey.self] }
+        set { self[AutoRepeatClockKey.self] = newValue }
     }
 }

@@ -924,7 +924,7 @@ let package = Package(
             name: "TUIFoundationTests",
             dependencies: [
                 "CTestSupport", "TUICore", "TUIFoundation", "TUIImage", "TUIStrings", "TUIStyling",
-                "TUITerminalHost", "TUITestSupport", "TUIView",
+                "TUITerminalHost", "TUITestSupport", "TUITesting", "TUIView",
             ]
         ),
         .testTarget(

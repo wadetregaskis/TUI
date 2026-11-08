@@ -891,7 +891,7 @@ extension _ButtonCore {
         else { return nil }
         let box: StateBox<AutoRepeatTimer> = stateStorage.storage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.repeatTimer),
-            default: AutoRepeatTimer())
+            default: AutoRepeatTimer(clock: context.environment.autoRepeatClock))
         return box.value
     }
 }

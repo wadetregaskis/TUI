@@ -6,54 +6,35 @@
 //  worthless while the main actor is busy, because the run loop reads stdin
 //  between frames and a busy main actor is a loop that is not reading: a frame
 //  slower than the initial delay turned one click on a Slider / Stepper arrow
-//  into two steps. These tests wait by the wall on purpose — main-actor
-//  starvation is the thing under test, and it cannot be faked with a clock —
-//  so the cadences here are shrunk to tens of milliseconds.
+//  into two steps.
+//
+//  On a clock the test steps (`TestClock`), so nothing here waits on the wall:
+//  a busy main actor is, to the timer, a sleep that came back late, and a step
+//  of the clock past the delay and its tolerance is exactly that. They used to
+//  wait by the wall, at shrunk cadences, and block the main actor by spinning;
+//  every such wait was a race some loaded runner lost.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import Dispatch
 import Testing
+import TUITesting
 
 @testable import TUIFoundation
 @testable import TUITestSupport
 
 @MainActor
-/// `.serialized` because the whole point of one of these is to occupy the
-/// main actor: run in parallel, the blocking test starves its siblings'
-/// timers and the hold below never gets to repeat.
-@Suite("AutoRepeatTimer tap versus hold", .serialized)
+@Suite("AutoRepeatTimer tap versus hold")
 struct AutoRepeatTimerTests {
-    /// Shrunk cadence: the shipping 400 ms / 80 ms would make every case here
-    /// a wall-clock second or more.
-    private static let delayMs = 40
-    private static let intervalMs = 10
+    /// The shipping cadence: on a stepped clock it costs no time.
+    private static let delay = Duration.milliseconds(AutoRepeatTimer.defaultInitialDelayMs)
+    private static let interval = Duration.milliseconds(AutoRepeatTimer().repeatIntervalMs)
 
-    /// The most polls of ``delayMs`` a test waits for repeats that are owed.
-    private static let pollLimit = 100
-
-    private static func timer() -> AutoRepeatTimer {
-        AutoRepeatTimer(initialDelayMs: delayMs, repeatIntervalMs: intervalMs)
-    }
-
-    /// Yields long enough for the timer's task to reach its next suspension.
-    /// Real time, on purpose — see the file's header: the timer takes no clock,
-    /// and main-actor starvation against its wall-clock delay is under test.
-    private static func settle(ms: Int) async {
-        try? await Task.sleep(nanoseconds: UInt64(ms) * 1_000_000)
-    }
-
-    /// Occupies the main actor for `ms`, the way a long render does: no
-    /// suspension point, so nothing else queued on it can run. A spin rather
-    /// than a sleep because `Thread.sleep` is unavailable from an async
-    /// context — and because a render burns the actor rather than parking it,
-    /// which is exactly the state being reproduced.
-    private static func blockMainActor(ms: Int) {
-        let until = DispatchTime.now().uptimeNanoseconds + UInt64(ms) * 1_000_000
-        while DispatchTime.now().uptimeNanoseconds < until {
-            // Spin.
-        }
+    /// Waits until the timer's task is asleep on `clock`: an edge it crosses,
+    /// counted, where a step of the clock would otherwise land before the wait
+    /// it is meant to end.
+    private static func asleep(on clock: TestClock) async {
+        await settle(until: { clock.sleepers == 1 })
     }
 
     /// A scrollbar arrow and a slider arrow are the same gesture, and the two
@@ -71,47 +52,49 @@ struct AutoRepeatTimerTests {
     @Test("A tap fires exactly once")
     func tapFiresOnce() async {
         var fires = 0
-        let timer = Self.timer()
+        let clock = TestClock()
+        let timer = AutoRepeatTimer(clock: clock)
         timer.start { fires += 1 }
-        // The press acts on the next main-actor turn and the release is read
-        // on the one after — a yield, not a sleep, for the reason given in
-        // `slowFrameDoesNotDoubleATap`: a timed wake can lose to the timer's.
-        await Task.yield()
+        await Self.asleep(on: clock)
+        #expect(fires == 1, "the press acted")
         timer.stop()
-        await Self.settle(ms: Self.delayMs * 3)
+        #expect(clock.sleepers == 0, "the release ended the wait: nothing is left to fire")
+        clock.advance(by: Self.delay * 3)
+        await yieldToSpawnedWork()
         #expect(fires == 1, "the press acted, the release ended it before any repeat")
     }
 
     @Test("A hold still repeats")
     func holdRepeats() async {
         var fires = 0
-        let timer = Self.timer()
+        let clock = TestClock()
+        let timer = AutoRepeatTimer(clock: clock)
         timer.start { fires += 1 }
-        // Polled rather than waited out in one go: another main-actor test
-        // running alongside this one can starve the timer through a window,
-        // and the gate's whole job is then to wait for the next one. That
-        // delays the first repeat; it does not prevent it. Up to four seconds:
-        // under a loaded machine (a build beside the suite, 2026-10-28) the
-        // 800 ms this allowed ran out with the repeat still owed, and the poll
-        // ends as soon as it comes.
-        for _ in 0..<Self.pollLimit where fires <= 1 {
-            await Self.settle(ms: Self.delayMs)
-        }
+        await Self.asleep(on: clock)
+        clock.advance(by: Self.delay)
+        await settle(until: { fires == 2 })
+        await Self.asleep(on: clock)
+        clock.advance(by: Self.interval)
+        await settle(until: { fires == 3 })
         timer.stop()
-        #expect(fires > 1, "past the initial delay the repeat loop runs (\(fires) fires)")
+        #expect(fires == 3, "past the initial delay the repeat loop runs, one fire an interval")
     }
 
     @Test("A hold's repeats are continuous changes; the press that began it is not")
     func repeatsAreContinuous() async {
         var continuous: [Bool] = []
-        let timer = Self.timer()
+        let clock = TestClock()
+        let timer = AutoRepeatTimer(clock: clock)
         timer.start { continuous.append(Transaction.ambient?.isContinuous ?? false) }
-        for _ in 0..<Self.pollLimit where continuous.count <= 2 {
-            await Self.settle(ms: Self.delayMs)
-        }
+        await Self.asleep(on: clock)
+        clock.advance(by: Self.delay)
+        await settle(until: { continuous.count == 2 })
+        await Self.asleep(on: clock)
+        clock.advance(by: Self.interval)
+        await settle(until: { continuous.count == 3 })
         timer.stop()
         #expect(continuous.first == false, "the press itself is a single action")
-        #expect(continuous.count > 1 && continuous.dropFirst().allSatisfy { $0 }, "\(continuous)")
+        #expect(continuous.count == 3 && continuous.dropFirst().allSatisfy { $0 }, "\(continuous)")
     }
 
     /// The regression. The main actor is blocked right through the initial
@@ -121,49 +104,25 @@ struct AutoRepeatTimerTests {
     @Test("A frame longer than the initial delay does not turn a tap into two")
     func slowFrameDoesNotDoubleATap() async {
         var fires = 0
-        let timer = Self.timer()
+        let clock = TestClock()
+        let timer = AutoRepeatTimer(clock: clock)
         timer.start { fires += 1 }
-        // A yield, not a sleep, for the reason given below: the timer's task is
-        // queued on the main actor ahead of this one, so a yield lets it fire
-        // the press and reach its sleep before the test goes on. It was a 5 ms
-        // sleep, and on a saturated runner that sleep's wake reached the main
-        // actor after the timer's 40 ms one — the app awake and nothing
-        // released, which is a hold, and the timer rightly repeated it:
-        // `(fires → 3) == 1` (2026-10-01, macOS 27 · Xcode 27).
-        await Task.yield()
+        await Self.asleep(on: clock)
         #expect(fires == 1, "the press acted")
 
-        // Block the main actor the way a long render does: synchronously, with
-        // no suspension point for the timer's task to be resumed at.
-        Self.blockMainActor(ms: Self.delayMs * 3)
-
-        // The first await after the frame — the run loop's own, where it waits
-        // for stdin. Queued main-actor work runs here, the timer's included.
-        //
-        // A yield, not a sleep. The timer's wake has been queued on the main
-        // actor since the delay elapsed, so a yield re-queues this test BEHIND
-        // it and the actor runs the two in that order: the timer re-arms, then
-        // the test reads the release below. Whichever order they run in, the
-        // outcome is one fire — the timer either waits again or is cancelled
-        // mid-sleep — so nothing here depends on timing any more.
-        //
-        // It did. A `settle(intervalMs)` here read the release 10 ms into the
-        // timer's 40 ms re-arm, and that 30 ms was a race: a sleep's wake
-        // crosses the global pool before it reaches the main actor, so two
-        // wakes 30 ms apart can arrive in either order once the process is
-        // oversubscribed. The only way to a second fire is the timer's wake
-        // arriving first — its sleep then returns on time, passes the gate, and
-        // fires before the release is read — and on a CI runner saturated by
-        // the rest of the suite that is what one run in eight showed:
-        // `(fires → 2) == 1`. The gate was right; the test had entered a race
-        // it had no reason to enter.
-        await Task.yield()
+        // The frame: the timer's sleep comes back three delays after it began,
+        // as one does from behind a main actor that was busy all that while.
+        clock.advance(by: Self.delay * 3)
+        // It woke late and went back to sleep, rather than firing. Without the
+        // gate it fires and then sleeps the interval, so this wait ends either
+        // way, and the count below tells the two apart.
+        await Self.asleep(on: clock)
         #expect(fires == 1, "the timer woke late and waited again, rather than firing (\(fires) fires)")
 
         // Only NOW does the loop reach the release that has been sitting in the
         // input buffer since the click.
         timer.stop()
-        await Self.settle(ms: Self.delayMs * 2)
+        #expect(clock.sleepers == 0, "the release ended the wait")
         #expect(fires == 1, "still one step, not two (\(fires) fires)")
     }
 }

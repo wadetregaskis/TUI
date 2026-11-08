@@ -14,6 +14,7 @@ import TUIApp
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITesting
 @testable import TUITestSupport
 
 /// Counts presses of the button under test.
@@ -55,19 +56,23 @@ struct ButtonRepeatBehaviorTests {
     @Test("A held repeat stops when the button is disabled")
     func disablingStopsTheRepeat() async {
         let count = PressCount()
+        let clock = TestClock()
         let harness = InputChainHarness()
         func page(disabled: Bool) -> some View {
             Button("+") { count.value += 1 }.buttonRepeatBehavior(.enabled).disabled(disabled)
+                .environment(\.autoRepeatClock, clock)
         }
         harness.frame(page(disabled: false))
         harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 2, y: 0))
         await Self.settle(until: count, reaches: 1)
         #expect(count.value == 1)
+        // The timer is asleep on the test's clock, its initial delay to go.
+        await TUITestSupport.settle(until: { clock.sleepers == 1 })
         harness.frame(page(disabled: true))
-        // Real time, on purpose: the repeat this rules out is the timer's
-        // own, due a wall-clock initial delay after the press, and
-        // `AutoRepeatTimer` takes no clock a test could step instead.
-        try? await Task.sleep(nanoseconds: UInt64(AutoRepeatTimer.defaultInitialDelayMs + 300) * 1_000_000)
+        #expect(clock.sleepers == 0, "the frame that disabled it ended the timer's wait")
+        // Past the delay, where a repeat left running would fire.
+        clock.advance(by: .milliseconds(AutoRepeatTimer.defaultInitialDelayMs * 2))
+        await Self.settle()
         #expect(count.value == 1, "no repeat once disabled")
     }
 

@@ -104,7 +104,7 @@ extension _DatePickerCore {
         else { return }
         let timerBox: StateBox<AutoRepeatTimer> = stateStorage.storage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.stepperTimer),
-            default: AutoRepeatTimer())
+            default: AutoRepeatTimer(clock: context.environment.autoRepeatClock))
         let timer = timerBox.value
         let hoverBox: StateBox<Int> = stateStorage.storage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.hoveredArrow),

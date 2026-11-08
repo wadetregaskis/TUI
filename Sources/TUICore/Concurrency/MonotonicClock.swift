@@ -19,12 +19,13 @@
 ///
 /// Every part of the framework that measures an *interval* reads this: the run
 /// loop's frame pacing, the animation clocks (whose content clock IS this reading,
-/// so its zero is wherever the process first read it), auto-repeat's awake-time gate,
-/// the mouse dispatcher's double-click window, the scroll animator, and the
-/// hyperlink activation gate. None of them care what time it is — only how much
-/// has passed — which is the whole reason a monotonic reading is the right one:
-/// a wall clock can be set backwards, and an interval measured across that
-/// moves backwards with it.
+/// so its zero is wherever the process first read it), the mouse dispatcher's
+/// double-click window, the scroll animator, and the hyperlink activation gate.
+/// None of them care what time it is — only how much has passed — which is the
+/// whole reason a monotonic reading is the right one: a wall clock can be set
+/// backwards, and an interval measured across that moves backwards with it.
+/// (Auto-repeat's awake-time gate reads the same `SuspendingClock` through a
+/// `Clock` it is handed, which a test can step: `AutoRepeatTimer`.)
 ///
 /// ## Why not `DispatchTime`
 ///
