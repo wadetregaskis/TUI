@@ -331,14 +331,30 @@ nonisolated struct GestureAttachment<Content: View, G: Gesture>: View {
 }
 
 /// Names its content so a container asking for a z-index or an alignment guide
-/// can look through this wrapper instead of stopping at it. Read-only: it does
-/// NOT conform to ``ContentRewrapping``.
+/// can look through this wrapper instead of stopping at it.
 @MainActor extension GestureAttachment: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
     func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
+
+/// A gesture written on multi-view content is each member's:
+/// `HStack { Group { a; b }.onTapGesture { … } }` lays `a` beside `b`, and a
+/// click on either is a tap — one, since a click lands on one member — as
+/// SwiftUI's group applies a modifier to each of its members. Each copy keeps
+/// its recognizers at its member's identity, as a gesture written on each
+/// member would.
+@MainActor extension GestureAttachment: ContentRewrapping {
+    func rewrapping<V: View>(_ view: V) -> any View {
+        GestureAttachment<V, G>(content: view, gesture: gesture, mask: mask, priority: priority)
+    }
+}
+
+/// Body deliberately empty: ``ContentRewrapping`` has the whole implementation.
+@MainActor extension GestureAttachment: ChildViewProvider where Content: ChildViewProvider {}
+/// Body deliberately empty: ``ContentRewrapping`` has the whole implementation.
+@MainActor extension GestureAttachment: GridRowProviding where Content: GridRowProviding {}
 
 /// A gesture written on a form row is the gesture of the row the form lays
 /// out, which keeps its place, as SwiftUI's form keeps it (measured,

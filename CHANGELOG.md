@@ -4,6 +4,12 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**`.onAppear`, `.onDisappear`, `.task`, `.onChange`, the gestures and `.keyboardShortcut` on several views leave them
+side by side.** `HStack { Group { a; b }.onAppear { … } }` drew `a` over `b`, and a `GridRow` carrying one of them left
+the grid's columns; now the members reach the stack or grid one by one, as SwiftUI's do, and the lifecycle actions still
+run once for the group (a `ForEach` of fifty rows with a `.task` starts one task). A gesture is each member's, and a
+shortcut still goes to the first control among them.
+
 **`TUI_ARROW_FOCUS=geometric` tries out arrow keys that go by the screen.** An experiment, off by default: an arrow the
 focused control doesn't use moves to the nearest control in its direction, one overlapping the focused control's
 columns (or rows) first, then the nearer, then the earlier in Tab order; with none it stays put, at the end of a row or

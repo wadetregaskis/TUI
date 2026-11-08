@@ -29,6 +29,17 @@ private func lifecycleIdentity<Owner>(
     context.identity.child(type: owner)
 }
 
+/// The place a lifecycle modifier keys its token: its own
+/// (``lifecycleIdentity(_:_:)``), or the anchor a copy standing around one
+/// member of content the modifier was written on whole carries — the place
+/// the modifier written once keys it (``OnceAcrossMembers``). An anchor
+/// already set is kept, so a copy taken apart again is still the one modifier.
+private func lifecycleAnchor<Owner>(
+    _ anchor: ViewIdentity?, _ owner: Owner.Type, _ context: RenderContext
+) -> ViewIdentity {
+    anchor ?? lifecycleIdentity(owner, context)
+}
+
 /// Derives the stable lifecycle token for one `.onAppear` / `.onDisappear` /
 /// `.task` from its **structural identity**, not a per-construction `UUID`.
 ///
@@ -63,6 +74,11 @@ nonisolated struct OnAppearModifier<Content: View>: View {
     /// The action to execute on first appearance.
     let action: () -> Void
 
+    /// Where the token is keyed when this is one of the copies standing
+    /// around the members of content the modifier was written on whole
+    /// (``OnceAcrossMembers``); `nil` for the modifier as written.
+    var anchor: ViewIdentity?
+
     @MainActor var body: Never {
         fatalError("OnAppearModifier renders via Renderable")
     }
@@ -79,7 +95,7 @@ nonisolated struct OnAppearModifier<Content: View>: View {
             // so endRenderPass fires the disappear machinery for a row that is
             // still on screen. Declare the side effect so the memos decline.
             context.environment.volatileReadTracker?.recordRenderSideEffect()
-            let token = lifecycleToken("appear", lifecycleIdentity(Self.self, context))
+            let token = lifecycleToken("appear", lifecycleAnchor(anchor, Self.self, context))
             _ = context.environment.lifecycle!.recordAppear(token: token, action: action)
         }
         return TUIView.renderToBuffer(content, context: context)
@@ -96,6 +112,10 @@ nonisolated struct OnDisappearModifier<Content: View>: View {
     /// The action to execute when the view disappears.
     let action: () -> Void
 
+    /// Where the token is keyed for a copy around one member
+    /// (``OnceAcrossMembers``); `nil` for the modifier as written.
+    var anchor: ViewIdentity?
+
     @MainActor var body: Never {
         fatalError("OnDisappearModifier renders via Renderable")
     }
@@ -107,7 +127,7 @@ nonisolated struct OnDisappearModifier<Content: View>: View {
             // See OnAppearModifier: presence must be re-recorded every frame,
             // or the row "disappears" (firing the action) while still visible.
             context.environment.volatileReadTracker?.recordRenderSideEffect()
-            let token = lifecycleToken("disappear", lifecycleIdentity(Self.self, context))
+            let token = lifecycleToken("disappear", lifecycleAnchor(anchor, Self.self, context))
             // Register the disappear callback…
             context.environment.lifecycle!.registerDisappear(token: token, action: action)
             // …and mark the view visible this render so it only "disappears"
@@ -160,6 +180,10 @@ nonisolated struct TaskModifier<Content: View>: View {
     /// The task's name, or `nil` for none.
     var name: String?
 
+    /// Where the token and the id's generation are keyed for a copy around
+    /// one member (``OnceAcrossMembers``); `nil` for the modifier as written.
+    var anchor: ViewIdentity?
+
     @MainActor var body: Never {
         fatalError("TaskModifier renders via Renderable")
     }
@@ -173,7 +197,7 @@ nonisolated struct TaskModifier<Content: View>: View {
             // still on screen (and restarting it on the next cache miss).
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             let lifecycle = context.environment.lifecycle!
-            let identity = lifecycleIdentity(Self.self, context)
+            let identity = lifecycleAnchor(anchor, Self.self, context)
             var token = lifecycleToken("task", identity)
             if let id {
                 token += "-gen\(generation(for: id, identity: identity, context: context))"
@@ -268,9 +292,9 @@ private enum TaskStateIndex {
 // MARK: - Seeing Through the Wrapper (the READ direction)
 
 /// Names its content so a container asking for a z-index or an alignment guide
-/// can look through this wrapper instead of stopping at it. Read-only: it does
-/// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
-/// the members of multi-view content.
+/// can look through this wrapper instead of stopping at it, and hands the
+/// members of multi-view content on to their container, each in a copy whose
+/// token is the one the modifier written once keys (``OnceAcrossMembers``).
 @MainActor extension OnAppearModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
@@ -279,9 +303,9 @@ private enum TaskStateIndex {
 }
 
 /// Names its content so a container asking for a z-index or an alignment guide
-/// can look through this wrapper instead of stopping at it. Read-only: it does
-/// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
-/// the members of multi-view content.
+/// can look through this wrapper instead of stopping at it, and hands the
+/// members of multi-view content on to their container, each in a copy whose
+/// token is the one the modifier written once keys (``OnceAcrossMembers``).
 @MainActor extension OnDisappearModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
@@ -290,15 +314,70 @@ private enum TaskStateIndex {
 }
 
 /// Names its content so a container asking for a z-index or an alignment guide
-/// can look through this wrapper instead of stopping at it. Read-only: it does
-/// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
-/// the members of multi-view content.
+/// can look through this wrapper instead of stopping at it, and hands the
+/// members of multi-view content on to their container, each in a copy whose
+/// token is the one the modifier written once keys (``OnceAcrossMembers``).
 @MainActor extension TaskModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
     func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
+
+// MARK: - Multi-Member Content
+
+// `HStack { Group { a; b }.onAppear { … } }` lays `a` beside `b` and runs the
+// action once, as SwiftUI does (measured): the members reach the stack one by
+// one, each in a copy keyed to one token. See ``OnceAcrossMembers``.
+
+@MainActor extension OnAppearModifier: OnceAcrossMembers {
+    func rewrapping<V: View>(_ view: V) -> any View {
+        OnAppearModifier<V>(content: view, action: action, anchor: anchor)
+    }
+
+    func anchoringEffect(at context: RenderContext) -> Self {
+        var anchored = self
+        anchored.anchor = lifecycleAnchor(anchor, Self.self, context)
+        return anchored
+    }
+}
+
+@MainActor extension OnDisappearModifier: OnceAcrossMembers {
+    func rewrapping<V: View>(_ view: V) -> any View {
+        OnDisappearModifier<V>(content: view, action: action, anchor: anchor)
+    }
+
+    func anchoringEffect(at context: RenderContext) -> Self {
+        var anchored = self
+        anchored.anchor = lifecycleAnchor(anchor, Self.self, context)
+        return anchored
+    }
+}
+
+@MainActor extension TaskModifier: OnceAcrossMembers {
+    func rewrapping<V: View>(_ view: V) -> any View {
+        TaskModifier<V>(content: view, task: task, priority: priority, id: id, name: name, anchor: anchor)
+    }
+
+    func anchoringEffect(at context: RenderContext) -> Self {
+        var anchored = self
+        anchored.anchor = lifecycleAnchor(anchor, Self.self, context)
+        return anchored
+    }
+}
+
+/// Body deliberately empty: ``OnceAcrossMembers`` has the whole implementation.
+@MainActor extension OnAppearModifier: ChildViewProvider where Content: ChildViewProvider {}
+/// Body deliberately empty: ``OnceAcrossMembers`` has the whole implementation.
+@MainActor extension OnDisappearModifier: ChildViewProvider where Content: ChildViewProvider {}
+/// Body deliberately empty: ``OnceAcrossMembers`` has the whole implementation.
+@MainActor extension TaskModifier: ChildViewProvider where Content: ChildViewProvider {}
+/// Body deliberately empty: ``OnceAcrossMembers`` has the whole implementation.
+@MainActor extension OnAppearModifier: GridRowProviding where Content: GridRowProviding {}
+/// Body deliberately empty: ``OnceAcrossMembers`` has the whole implementation.
+@MainActor extension OnDisappearModifier: GridRowProviding where Content: GridRowProviding {}
+/// Body deliberately empty: ``OnceAcrossMembers`` has the whole implementation.
+@MainActor extension TaskModifier: GridRowProviding where Content: GridRowProviding {}
 
 /// An appearance, a disappearance or a task written on a form row is the row's
 /// the form lays out, which keeps its place, as SwiftUI's form keeps it

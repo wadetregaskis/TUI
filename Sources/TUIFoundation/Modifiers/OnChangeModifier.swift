@@ -28,6 +28,12 @@ nonisolated package struct OnChangeModifier<Content: View, V: Equatable>: View {
     /// The action to call with old and new values when a change is detected.
     let action: (V, V) -> Void
 
+    /// Where the value is tracked when this is one of the copies standing
+    /// around the members of content the modifier was written on whole
+    /// (``OnceAcrossMembers``); `nil` for the modifier as written, which
+    /// claims a slot at its own identity instead.
+    var anchor: ViewIdentity?
+
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and `Scene.onChange(of:initial:_:)` (TUIApp) makes these.
     package init(content: Content, value: V, initial: Bool, action: @escaping (V, V) -> Void) {
@@ -63,16 +69,30 @@ nonisolated package struct OnChangeModifier<Content: View, V: Equatable>: View {
         // decline to cache this subtree.
         context.environment.volatileReadTracker?.recordRenderSideEffect()
 
-        // Claim unique index for this onChange at this identity
-        let index = storage.nextOnChangeIndex(for: context.identity)
-        let key = StateStorage.StateKey(identity: context.identity, propertyIndex: index)
+        // A copy around one member compares at the anchor every copy shares:
+        // the first drawn this pass sees the change, runs the action and
+        // tracks the new value, so the rest see none — once for the group.
+        // The modifier as written claims a unique slot at its own identity.
+        let identity = anchor ?? context.identity
+        let index = anchor == nil ? storage.nextOnChangeIndex(for: identity) : OnChangeStateIndex.anchored
+        let key = StateStorage.StateKey(identity: identity, propertyIndex: index)
         storage.compareTrackedValue(value, at: key, initial: initial, action: action)
 
         // Keep tracked values alive through GC
-        storage.markActive(context.identity)
+        storage.markActive(identity)
 
         return TUIView.renderToBuffer(content, context: context)
     }
+}
+
+/// StateStorage property indices for ``OnChangeModifier``. A free enum because
+/// the modifier is generic (which can't hold static stored properties).
+private enum OnChangeStateIndex {
+    /// The one value an anchored copy tracks. The anchor is a place of the
+    /// modifier's own, one type step below the identity the members were
+    /// resolved at (``OnChangeModifier/anchoringEffect(at:)``), which no
+    /// composite view's `@State` shares, so slot 0 is free.
+    static let anchored = 0
 }
 
 // MARK: - The Comparison
@@ -151,15 +171,42 @@ extension StateStorage {
 // MARK: - Seeing Through the Wrapper (the READ direction)
 
 /// Names its content so a container asking for a z-index or an alignment guide
-/// can look through this wrapper instead of stopping at it. Read-only: it does
-/// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
-/// the members of multi-view content.
+/// can look through this wrapper instead of stopping at it, and hands the
+/// members of multi-view content on to their container, each in a copy that
+/// tracks the value at one place (``OnceAcrossMembers``).
 @MainActor extension OnChangeModifier: SingleContentWrapper {
     package var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
     package func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
+
+// MARK: - Multi-Member Content
+
+/// `HStack { Group { a; b }.onChange(of: x) { … } }` lays `a` beside `b` and
+/// runs the action once a change, as SwiftUI runs a lifecycle effect written
+/// on a group once (measured for `.onAppear` and `.task`).
+@MainActor extension OnChangeModifier: OnceAcrossMembers {
+    package func rewrapping<R: View>(_ view: R) -> any View {
+        var copy = OnChangeModifier<R, V>(content: view, value: value, initial: initial, action: action)
+        copy.anchor = anchor
+        return copy
+    }
+
+    /// Anchored one type step below the identity the members were resolved
+    /// at — the chained modifier's type nests the one inside it, so two
+    /// `.onChange`s on one group keep apart.
+    package func anchoringEffect(at context: RenderContext) -> Self {
+        var anchored = self
+        anchored.anchor = anchor ?? context.identity.child(type: Self.self)
+        return anchored
+    }
+}
+
+/// Body deliberately empty: ``OnceAcrossMembers`` has the whole implementation.
+@MainActor extension OnChangeModifier: ChildViewProvider where Content: ChildViewProvider {}
+/// Body deliberately empty: ``OnceAcrossMembers`` has the whole implementation.
+@MainActor extension OnChangeModifier: GridRowProviding where Content: GridRowProviding {}
 
 /// A change action written on a form row — `Toggle(…).onChange(of: x) { … }`
 /// — goes around the row the form lays out, which keeps its place, as

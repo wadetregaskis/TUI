@@ -268,15 +268,30 @@ enum KeyboardShortcutRegistrar {
 // MARK: - Seeing Through the Wrapper (the READ direction)
 
 /// Names its content so a container asking for a z-index or an alignment guide
-/// can look through this wrapper instead of stopping at it. Read-only: it does
-/// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
-/// the members of multi-view content.
+/// can look through this wrapper instead of stopping at it.
 @MainActor extension KeyboardShortcutModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content's context: the shortcut it plants (``SingleContentWrapper/wrappedContentContext(_:)``).
     func wrappedContentContext(_ context: RenderContext) -> RenderContext? { planting(into: context) }
 }
+
+/// A shortcut written on multi-view content —
+/// `HStack { Group { Button("A") { … }; Button("B") { … } }.keyboardShortcut("k") }`
+/// — leaves the members side by side, and is still the one shortcut: every
+/// copy plants the same claim box (``KeyboardShortcutAssignment``), so the
+/// first control among all the members claims it, as the first control in the
+/// content drawn whole does.
+@MainActor extension KeyboardShortcutModifier: ContentRewrapping {
+    func rewrapping<V: View>(_ view: V) -> any View {
+        KeyboardShortcutModifier<V>(content: view, assignment: assignment)
+    }
+}
+
+/// Body deliberately empty: ``ContentRewrapping`` has the whole implementation.
+@MainActor extension KeyboardShortcutModifier: ChildViewProvider where Content: ChildViewProvider {}
+/// Body deliberately empty: ``ContentRewrapping`` has the whole implementation.
+@MainActor extension KeyboardShortcutModifier: GridRowProviding where Content: GridRowProviding {}
 
 /// A shortcut written on a form's button — `Button("Save") { … }
 /// .keyboardShortcut(.defaultAction)` — goes around the row the form lays out,

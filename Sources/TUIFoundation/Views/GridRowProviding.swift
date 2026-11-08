@@ -61,6 +61,15 @@ extension GridRowProviding where Self: ContentRewrapping, WrappedContent: GridRo
     }
 }
 
+/// The same rule for an effect wrapper (``OnceAcrossMembers``): each cell
+/// inside a copy of the wrapper, every copy keyed to the one place, so
+/// `GridRow { … }.onAppear { … }` is still a row and its action runs once.
+extension GridRowProviding where Self: OnceAcrossMembers, WrappedContent: GridRowProviding {
+    package func gridCells(context: RenderContext) -> [ChildView] {
+        anchoredMembers(wrappedContent.gridCells(context: context), context: context)
+    }
+}
+
 // The three environment wrappers live in `TUIView`, which is below this
 // module and cannot see `GridRowProviding` — so their conformances are written
 // here rather than beside their `ChildViewProvider` ones. Nothing else differs:

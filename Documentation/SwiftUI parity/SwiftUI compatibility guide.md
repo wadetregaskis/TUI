@@ -1437,7 +1437,7 @@ per wrapper rather than a blanket conformance. A blanket one would leave every
 layout test green while turning one `.onAppear` on a fifty-row `ForEach` into
 fifty calls.
 
-TUI does that for two kinds of wrapper today.
+TUI does that for three kinds of wrapper today.
 
 **Through `ModifiedView`**, which forwards `ChildViewProvider` (and
 `GridRowProviding`) when its content is one, re-wrapping each resolved member in
@@ -1484,6 +1484,30 @@ or measured rather than assumed, and two the framework uses inside:
   (`ChildView.rewrapped(by:)`), the outermost winning as on one view.
 - *Internal* — `_GridRowMarkView` (how a `GridRow` hands its cells on) and
   `_TextSuggestionsReader` (how a text field finds its suggestions).
+- *Per member, since 2026-11-08* — `GestureAttachment` (`.gesture`,
+  `.onTapGesture` and the other gesture spellings), whose copies keep their
+  recognizers at their members' identities, so a click on either member is
+  one tap, as a gesture written on each would be; and
+  `KeyboardShortcutModifier` (`.keyboardShortcut`), whose copies all plant
+  the one claim box, so the first control among all the members claims the
+  shortcut, as the first control in the content drawn whole does.
+
+**Through `OnceAcrossMembers`, since 2026-11-08**, for the wrappers that
+perform an effect: `.onAppear`, `.onDisappear`, `.task` and `.onChange`. A
+plain re-wrap would key each copy's effect to its own member and fire it once
+per member, so the wrapper is first anchored: told the place it keys its
+effect drawn whole, which every copy carries. The lifecycle machinery already
+tells a second sighting of a token in one frame from a first, so the first
+copy drawn fires `.onAppear` and starts `.task`, the rest find them done, and
+the token stays present while any member is drawn (a lazy stack that windows
+the first member out keeps it); a copy's `.onChange` compares at the shared
+place, so the first copy sees the change and tracks the new value, and the
+rest see none. Content with no members — an empty `ForEach` with a `.task`
+that loads its rows, `Group { if false { … } }` — is handed on as one child
+that draws nothing and takes no cells, carrying the effect, so it still fires
+as it did. `HStack { Group { a; b }.onAppear {} }` lays `a` beside `b`, a
+`GridRow` carrying `.onAppear` stays a row, and each fires once, as measured;
+pinned by `EffectOnMultiMemberContentTests`.
 
 Content with NO members gets nothing, which is the rule's other edge and the
 one that bites: an `Optional` that is `nil` — an `if` whose condition is
@@ -1510,14 +1534,16 @@ background on it draws nothing. Drawn on its own rather than by a container
 (a sheet's whole content), a padded `EmptyView` is still padding round a view
 that draws nothing. One wrapper shape still keeps its rows: a frame around an
 effect modifier on it (`EmptyView().onAppear {}.frame(height: 5)`), since an
-effect wrapper does not hand its content's members on (it must fire once,
-not per member). Pinned by `EmptyContentLayoutTests`.
+effect wrapper whose content has no members hands on one child carrying the
+effect, so that it still has somewhere to fire. Pinned by
+`EmptyContentLayoutTests`.
 
-**Every other wrapper is still opaque to child resolution** — the effect
-wrappers (`.onAppear`, `.task`, `.onChange`, the gesture, focus, key and
-mouse modifiers, `.keyboardShortcut`), which must fire once rather than once
-per member, the presentation and list-row traits, `.toolbar`, `.transition`,
-`.coordinateSpace`, the preference writers and `.alignmentGuide`, and so on.
+**Every other wrapper is still opaque to child resolution** — the focus,
+key, hover and mouse modifiers (`.focusable`, `.onKeyPress`, `.onHover`,
+`.onSubmit`, …), each of which needs its own answer to whether a copy per
+member registers once or once per member, the presentation and list-row
+traits, `.toolbar`, `.transition`, `.coordinateSpace`, the preference writers
+and `.alignmentGuide`, and so on.
 The scale was dozens, not a handful — walking
 every `extension View` factory that returns `some View` and taking the first
 `View`-conforming type each body builds names 85 distinct types, which is an
@@ -1530,11 +1556,12 @@ stacked vertically with no spacing. So
 ```swift
 HStack { Group { Text("A"); Text("B") } }                       // "A B"
 HStack { Group { Text("A"); Text("B") }.foregroundStyle(.red) } // "A B"  (conforms)
-HStack { Group { Text("A"); Text("B") }.onAppear {} }           // A over B
+HStack { Group { Text("A"); Text("B") }.onAppear {} }           // "A B"  (anchored, fires once)
+HStack { Group { Text("A"); Text("B") }.onHover { _ in } }      // A over B
 ```
 
-— an effect modifier rotates the row 90° — and a `GridRow` carrying one
-stops being a row, leaving the grid's columns to be laid out by `GridRow`'s own
+— such a modifier rotates the row 90° — and a `GridRow` carrying one stops
+being a row, leaving the grid's columns to be laid out by `GridRow`'s own
 fallback `HStack`.
 
 The READ direction — metadata a container reads off a child through the
