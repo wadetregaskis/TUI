@@ -30,6 +30,14 @@ Two terminals keep some of the mouse for themselves:
 - **iTerm2** opens its own menu on a right-click unless you change that in its Pointer settings. A ``View/contextMenu(menuItems:)`` also opens on a Control-click for this reason.
 - **Apple's Terminal** scrolls its own history on Shift and the scroll wheel, so an app never sees it. Use a trackpad's sideways swipe to scroll sideways.
 
+A few more things depend on the terminal, and fall back quietly where it can't:
+
+- **Notifications.** A toast is drawn in the app, in every terminal. One posted to the desktop as well (<doc:Presentation#Notifications>) goes through the terminal where it posts notifications. Where it doesn't, this machine posts it itself, with `osascript` on macOS or `notify-send` on Linux, but only when TUI can tell you're at this machine, so never over ssh, or under tmux attached from elsewhere. `TUI_NOTIFICATIONS` and `TUI_SYSTEM_NOTIFICATIONS` change that.
+- **Progress.** A ``View/terminalProgress(_:)`` report shows in the terminal's own tab or window where the terminal has a place for it. `TUI_PROGRESS` turns that off or on.
+- **The pointer's shape.** ``View/pointerStyle(_:)``, and the I-beam over a text field, change the pointer where the terminal lets an app do so. `TUI_POINTER_SHAPES` turns that off or on.
+
+<doc:EnvironmentVariables> describes each variable.
+
 A terminal that isn't in the table will probably work well too. TUI asks each terminal at launch whether it has pictures and the keyboard protocol, so those two follow whatever it can do.
 
 ## Test your terminal

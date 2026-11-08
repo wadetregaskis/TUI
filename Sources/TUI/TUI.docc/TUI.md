@@ -28,6 +28,8 @@ struct Hello: App {
 }
 ```
 
+Everything works from the keyboard (<doc:FocusSystem>), and a person running your app can ask for less motion, more contrast or cues that don't rest on colour, which TUI's own controls follow (<doc:EnvironmentVariables>). Apps can post notifications (<doc:Presentation#Notifications>), keep settings in a ``Settings`` scene, and bring each terminal window back where it was with ``SceneStorage``.
+
 [See TUI in action](https://swift-tui.com/), or [try the demo in your browser](https://swift-tui.com/demo/).
 
 ## Topics

@@ -21,6 +21,8 @@ Canvas { context, size in
 
 A canvas fills what it's offered, as a shape does, and clips to its frame. Reach for one when you're drawing several things at once, or something computed. For a single shape, use the ``Shape`` itself. To animate one, draw it inside a ``TimelineView``.
 
+The initializer's other parameters are SwiftUI's too: `opaque: true` starts every pixel at the palette's background, so nothing behind shows through, and `colorMode: .linear` mixes gradients and blends in linear light rather than the default `.nonLinear` (``ColorRenderingMode``). `rendersAsynchronously` is accepted and changes nothing; the canvas draws on the main actor as the frame does.
+
 ## Sizes are a shape's
 
 `size` and every position are in the square units a ``Shape`` uses: a column across, and about two of them down a row (``EnvironmentValues/imageCellAspect``). So a 24 × 12-cell frame is a 24 × 24 canvas, and a circle in it is round. Line widths and offsets are in the same units.

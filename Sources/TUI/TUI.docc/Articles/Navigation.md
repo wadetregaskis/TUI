@@ -207,6 +207,14 @@ which column is on top. While the split is collapsed its visibility, handles,
 widths and sidebar chords are set aside; the columns behind the one on top keep
 their state, and one ahead of it is not drawn until it comes to the top.
 
+## More
+
+- `.navigationSubtitle(_:)` adds a second line under a screen's title.
+- ``View/inspector(isPresented:content:)`` puts a column of detail at the trailing edge, with a divider that can be
+  dragged or moved from the keyboard; ``View/inspectorColumnWidth(min:ideal:max:)`` sizes it.
+- ``View/navigationTransition(_:)`` with `.zoom(sourceID:in:)`, and
+  ``View/matchedTransitionSource(id:in:)`` on the view it starts from, makes a pushed screen grow out of that view.
+
 ## Topics
 
 ### Stack navigation

@@ -129,6 +129,7 @@ try app.scroll(.down, by: 3, over: "Inbox")
 try app.drag(from: "Report.pdf", to: "Archive")
 
 app.click(at: CellPoint(x: 4, y: 0))
+app.hover(at: CellPoint(x: 4, y: 0))
 app.scroll(.down, by: 3)
 ```
 
@@ -142,6 +143,21 @@ click, as they would be for a person. To make them two clicks, move the clock be
 
 As in a terminal, the pointer's moves arrive only if the app has asked to hear of them, which `.onHover`,
 `.onContinuousHover` and `.help` do.
+
+For what these cannot say, such as a button held down while the clock moves (a long press), deliver the
+``MouseEvent`` yourself with ``TestApp/mouse(_:)``.
+
+### Resizing and quitting
+
+``TestApp/resize(width:height:)`` changes the terminal's size, as dragging its window would, and draws what that causes.
+``TestApp/hasRequestedQuit`` says whether the app asked to quit, by its quit key, its Quit menu item or its last window
+closing. A test has no process to end, so the app carries on drawing:
+
+```swift
+app.resize(width: 60, height: 20)
+app.press(.character("q"), modifiers: .control)
+#expect(app.hasRequestedQuit)
+```
 
 ### Moving time
 

@@ -251,7 +251,7 @@ Run it, add `Milk`, tick `Apples`, and quit with Control-Q. Run it again, and th
 3 to buy
 ```
 
-On a Mac the list goes in the app's `UserDefaults`, under the name `Groceries`. On Linux it goes in `~/.config/Groceries/settings.json`. To start again from three items, run `defaults delete Groceries` on a Mac, or delete that file on Linux.
+On a Mac the list goes in the app's `UserDefaults`, under the name `Groceries`. On Linux it goes in `~/.config/Groceries/settings.json` (under `$XDG_CONFIG_HOME` instead of `~/.config` where that is set). To start again from three items, run `defaults delete Groceries` on a Mac, or delete that file on Linux.
 
 ## Step 5: Confirm in a sheet
 

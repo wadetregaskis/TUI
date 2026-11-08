@@ -38,7 +38,7 @@ A terminal shows one surface, so any other scene appears over the first when som
 | Scene | What it is | How it opens |
 |---|---|---|
 | ``Window`` | A second screen, by its identifier | ``EnvironmentValues/openWindow`` |
-| ``Settings`` | The app's settings, as a sheet | ``EnvironmentValues/openSettings`` |
+| ``Settings`` | The app's settings, as a sheet | ``EnvironmentValues/openSettings``, a ``SettingsLink``, or the menu bar's Settings… (⌃, under the default command key) |
 
 ```swift
 @main
@@ -61,6 +61,15 @@ struct DoctorView: View {
     var body: some View { Text("All good") }
 }
 ```
+
+A `WindowGroup` that presents a value opens with `openWindow(value:)`, and ``EnvironmentValues/dismissWindow`` closes a
+window again, by its identifier or from inside it.
+
+### Restoring a scene
+
+What a person was doing in a window, such as the tab they had open or where they had scrolled to, can come back when
+they run the app again: keep it in ``SceneStorage``. TUI keeps it per terminal window, tab or pane, so two windows
+running the app each come back to their own place. <doc:StateManagement#SceneStorage> has the details.
 
 ## Knowing the Scene's Phase
 
@@ -115,8 +124,11 @@ struct UploadsView: View {
 ```
 
 Only a view that's drawn can warn, so put a warning for work that goes on behind every screen at the root of the
-scene. To choose when quitting asks, set `.quitConfirmation` on the scene. `.always` asks for every quit, and `.whenWarned`
-only with a warning active, so Control-\\ then quits at once:
+scene. A progress report shown with ``View/terminalProgress(_:)`` that is still going warns too, as "work in progress".
+
+To choose when quitting asks, set `.quitConfirmation` on the scene. The default, `.automatic`, asks on Control-\\ and
+otherwise only with a warning active. `.always` asks for every quit, and `.whenWarned` only with a warning active, so
+Control-\\ then quits at once:
 
 ```swift
 @main

@@ -182,6 +182,8 @@ ScrollView { content }
     .scrollIndicatorStyle(.text)   // "35 more lines below"
 ```
 
+`.scrollbar` is the default; write it further in to bring the bar back under a `.text` set higher up.
+
 Both of these apply to every scrolling view inside the one you write them on, so writing them once at the top of your app changes them all.
 
 ## Advanced
