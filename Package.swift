@@ -1251,3 +1251,23 @@ if Context.environment["TUI_BENCHMARKS"] != nil {
         )
     )
 }
+
+// ── Strict memory safety (SE-0458) ────────────────────────────────────────────────────────────────
+// Every Swift target, the opt-in benchmarks too, so the compiler warns wherever code uses something declared
+// unsafe (a pointer, `unsafeBitCast`, `nonisolated(unsafe)`, `@exclusivity(unchecked)`, `unowned(unsafe)`) and the
+// expression isn't marked `unsafe`. With zero warnings the rule, `git grep -w unsafe` is the whole list of what can
+// corrupt memory. It changes no generated code, and it reaches only this package's own modules: an app that
+// depends on TUI compiles its own code as before, and sees no new warnings. `@safe` is banned
+// (Tools/check-ratchets.py): it would silence the checker by claiming a type safe.
+//
+// From Swift 6.4 only. 6.2 and 6.3 take the flag too, but disagree with 6.4 about one shape: a call whose closure
+// takes an unsafe type (`withUnsafeBufferPointer { … }`, `withContiguousStorageIfAvailable { … }`) needs `unsafe`
+// on 6.2 and 6.3, and on 6.4 that `unsafe` is a warning, "no unsafe operations occur within 'unsafe' expression",
+// which no flag silences (measured 2026-11-02 on 6.2.4, 6.3.3 and 6.4.0). No one spelling is clean on both, so
+// the code is marked as 6.4 checks it, and 6.2 and 6.3 build it unchecked: without the flag they have nothing to
+// say about an `unsafe` that 6.4 needs. CI's 6.4 lanes do the checking.
+#if compiler(>=6.4)
+    for target in package.targets where [.regular, .executable, .test, .macro].contains(target.type) {
+        target.swiftSettings = (target.swiftSettings ?? []) + [.strictMemorySafety()]
+    }
+#endif
