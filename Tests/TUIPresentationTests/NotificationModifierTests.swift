@@ -98,48 +98,7 @@ struct NotificationTests {
         #expect(abs(half - 0.5) < 0.01)
     }
 
-    // MARK: - Word Wrap
-
-    @Test("Short text stays on one line")
-    func wordWrapShortText() {
-        let lines = NotificationTiming.wordWrap("Hello world", maxWidth: 40)
-        #expect(lines == ["Hello world"])
-    }
-
-    @Test("Long text wraps at word boundaries")
-    func wordWrapLongText() {
-        let text = "This is a longer message that should wrap across multiple lines"
-        let lines = NotificationTiming.wordWrap(text, maxWidth: 20)
-        #expect(lines.count > 1)
-        for line in lines {
-            #expect(line.count <= 20)
-        }
-    }
-
-    @Test("Single word longer than maxWidth gets its own line")
-    func wordWrapLongWord() {
-        let lines = NotificationTiming.wordWrap("Supercalifragilistic", maxWidth: 10)
-        #expect(lines == ["Supercalifragilistic"])
-    }
-
-    @Test("Empty text returns single empty line")
-    func wordWrapEmpty() {
-        let lines = NotificationTiming.wordWrap("", maxWidth: 40)
-        #expect(lines == [""])
-    }
-
-    @Test("CJK text wraps at correct terminal width boundary")
-    func wordWrapCJKText() {
-        // "你好 世界" = "你好" (4 cells) + space + "世界" (4 cells) = 9 cells
-        // With maxWidth 6, "你好 世界" won't fit on one line (9 > 6)
-        // but each word alone fits (4 <= 6), so should wrap to 2 lines
-        let lines = NotificationTiming.wordWrap("你好 世界", maxWidth: 6)
-        #expect(lines.count == 2, "CJK text should wrap to 2 lines at width 6, got \(lines.count)")
-        #expect(lines[0] == "你好")
-        #expect(lines[1] == "世界")
-    }
-
-    // MARK: - NotificationService
+    // MARK: - Service
 
     @Test("Post adds an entry to the service")
     func postAddsEntry() {

@@ -22,6 +22,9 @@ struct NotificationEntry: Identifiable, Sendable {
     /// The notification message text.
     let message: String
 
+    /// What it is about, which its colour and glyph say.
+    let style: NotificationStyle
+
     /// How long the notification stays visible (in seconds).
     let duration: TimeInterval
 
@@ -33,11 +36,13 @@ struct NotificationEntry: Identifiable, Sendable {
     ///
     /// - Parameters:
     ///   - message: The notification message text.
+    ///   - style: What it is about.
     ///   - duration: Display duration in seconds.
     ///   - postedAtNanos: The service clock's reading at the post.
-    init(message: String, duration: TimeInterval, postedAtNanos: UInt64) {
+    init(message: String, style: NotificationStyle = .plain, duration: TimeInterval, postedAtNanos: UInt64) {
         self.id = UUID()
         self.message = message
+        self.style = style
         // A NaN duration has no end to count to: taken as none, so the toast
         // fades in and straight back out. An infinite one stays, and the
         // clock saturates at its end (``AnimationClock/nanoseconds(_:)``).
@@ -75,8 +80,12 @@ struct NotificationEntry: Identifiable, Sendable {
 ///
 /// ```swift
 /// NotificationService.current.post("Saved!")
-/// NotificationService.current.post("Connection lost", duration: 5.0)
+/// NotificationService.current.post("Connection lost", style: .error, duration: 5.0)
 /// ```
+///
+/// A ``NotificationStyle`` says what a notification is about — news, a
+/// success, a warning, an error — in the palette's colour for it and with a
+/// glyph, so the meaning never rests on colour alone.
 ///
 /// ## Lifecycle
 ///
@@ -166,9 +175,10 @@ extension NotificationService {
     ///
     /// - Parameters:
     ///   - messageKey: The key for the notification message text.
+    ///   - style: What it is about, which its colour and glyph say (default: ``NotificationStyle/plain``).
     ///   - duration: How long the notification stays visible in seconds (default: 3.0).
-    public func post(_ messageKey: LocalizedStringKey, duration: TimeInterval = 3.0) {
-        post(messageKey.localized, duration: duration)
+    public func post(_ messageKey: LocalizedStringKey, style: NotificationStyle = .plain, duration: TimeInterval = 3.0) {
+        post(messageKey.localized, style: style, duration: duration)
     }
 
     /// Posts a new notification, displayed as written.
@@ -183,11 +193,12 @@ extension NotificationService {
     ///
     /// - Parameters:
     ///   - message: The notification message text.
+    ///   - style: What it is about, which its colour and glyph say (default: ``NotificationStyle/plain``).
     ///   - duration: How long the notification stays visible in seconds (default: 3.0).
     @_disfavoredOverload
-    public func post<S: StringProtocol>(_ message: S, duration: TimeInterval = 3.0) {
+    public func post<S: StringProtocol>(_ message: S, style: NotificationStyle = .plain, duration: TimeInterval = 3.0) {
         let now = nowNanos()
-        let entry = NotificationEntry(message: String(message), duration: duration, postedAtNanos: now)
+        let entry = NotificationEntry(message: String(message), style: style, duration: duration, postedAtNanos: now)
         let displays = state.withLock { state in
             // The expired go here too, not only in `activeEntries()`: that is the
             // drawing's to call, and a service nothing draws (a program that posts

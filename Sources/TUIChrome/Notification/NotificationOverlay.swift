@@ -72,37 +72,22 @@ enum NotificationOverlay {
 
     /// The toasts of `entries`, `width` cells wide, stacked top to bottom in
     /// the order they were posted.
+    ///
+    /// Each toast is drawn at an identity of its own, keyed by its
+    /// notification, so what it holds keeps its state for its whole life
+    /// whatever comes and goes around it.
     @MainActor
     private static func stackBuffer(
         _ entries: [NotificationEntry], width: Int, now: UInt64, context: RenderContext
     ) -> FrameBuffer {
-        let palette = context.environment.palette
-        let horizontalPadding = 1
-        let innerWidth = max(1, width - BorderRenderer.borderWidthOverhead)
-        let textWidth = max(1, innerWidth - horizontalPadding * 2)
-        let pad = String.spaces(horizontalPadding)
-
         var stackedBuffer = FrameBuffer()
         for entry in entries {
             let opacity = NotificationTiming.opacity(elapsed: entry.age(atNanos: now), visibleDuration: entry.duration)
-            let fadedBorderColor = palette.border.opacity(opacity, over: palette.background)
-            let fgColor = Color.palette.foreground.resolve(with: palette).opacity(opacity, over: palette.background)
-
-            // Content lines with horizontal padding, padded to the full inner
-            // width so the Box spans the intended width.
-            var contentLines: [String] = []
-            for line in NotificationTiming.wordWrap(entry.message, maxWidth: textWidth) {
-                // A tier heavier under a bold legibility weight: the message is text.
-                let styledLine =
-                    pad
-                    + ANSIRenderer.colorize(
-                        line, foreground: fgColor, bold: context.environment.legibilityWeight.drawsPlainBold)
-                contentLines.append(styledLine.padToVisibleWidth(innerWidth))
-            }
-            var boxContext = context
-            boxContext.availableWidth = width
+            var toastContext = context.withChildIdentity(erasedType: NotificationToast.self, key: entry.id.uuidString)
+            toastContext.availableWidth = width
             stackedBuffer.appendVertically(
-                TUIView.renderToBuffer(Box(lines: contentLines, color: fadedBorderColor), context: boxContext))
+                TUIView.renderToBuffer(
+                    NotificationToast(entry: entry, width: width, opacity: opacity), context: toastContext))
         }
         return stackedBuffer
     }

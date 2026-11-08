@@ -437,6 +437,14 @@ NotificationService.current.post("Saved!", duration: 2.0)
 Because the scene draws them, not the view that posts, a notification survives
 navigation between screens.
 
+A ``NotificationStyle`` says what a notification is about. Each style draws the
+toast's border and a leading glyph in the palette's colour for it, so the
+meaning never rests on colour alone:
+
+```swift
+NotificationService.current.post("Upload failed", style: .error)
+```
+
 ## Open and Save Panels
 
 `fileImporter`, `fileExporter` and `fileMover` draw their panels in the terminal.
@@ -453,6 +461,7 @@ They have a page of their own: <doc:FilePanels>.
 ### Notifications
 
 - ``NotificationService``
+- ``NotificationStyle``
 
 ## See Also
 
