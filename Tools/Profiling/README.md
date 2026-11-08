@@ -253,6 +253,38 @@ before believing a small number — the same measurement went from ±5.2% at
 `--window 3.0` to ±3.5% at 8.0. A tie is reported as indistinguishable, not
 as a verdict.
 
+## What a change did, in counts — `ab_counters.py`
+
+Times need a quiet machine; counts don't. `ab_counters.py` runs every scenario
+(`--bench`, a fixed `--iterations`) and every session (`--session --census`, a
+fixed `--steps`) on two builds and prints each count that moved by more than
+`--threshold` percent (1 by default): memo hits, lookups and stores, rows
+composed and served, cell values, bytes written per step and per action, the
+observation census, the re-check, and with `--allocs` every allocation the
+process makes (`AllocCount/alloc_count.c`, macOS). The counts are read off the
+harness's output, not listed in the script, so a counter `Stress` starts
+printing is compared from then on; times, sizes, percentages and per-step rates
+are left out. A bench's `checksum` is compared for equality: a difference means
+the two builds drew different pictures.
+
+```sh
+Tools/Profiling/ab_counters.py /tmp/old /tmp/new                     # two binaries
+Tools/Profiling/ab_counters.py main WORKTREE --allocs                # builds both
+Tools/Profiling/ab_counters.py HEAD~1 HEAD --scenarios fanout session/inbox --all
+```
+
+Each side is a `Stress` binary, a git revision, or `WORKTREE`. A revision is
+built in release in a temporary checkout, which is removed with its build once
+the binary is copied out: a few GB of disk while it lasts. `TUI_RUN_WRAPPER`
+prefixes the builds, as in `Tools/Dev/quick.py`.
+
+An A/B tool, not a gate: nothing is checked in, nothing fails. A count moving
+can be the point of the change — a memo serving more — so read what moved
+against what the change meant to do. Allocation counts repeat to within about
+1% between runs of one binary (a session measured −0.7% against a copy of
+itself); everything else here repeats exactly. It has no count of body runs:
+nothing in the harness counts them yet.
+
 ## The pieces
 
 ### `record.sh` — orchestrator
