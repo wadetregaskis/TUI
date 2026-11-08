@@ -71,6 +71,17 @@ struct ImagesPage: View {
             elsewhere = .file(path)
             entry = path
         }
+        // A pasted picture's file is the page's to delete: when another
+        // picture takes its place, and when the page goes. Not while it is
+        // shown, since a resize or a zoom may load it again.
+        .onChange(of: elsewhere) { previous, _ in
+            previous?.removePastedFile()
+        }
+        .onDisappear {
+            guard elsewhere?.removePastedFile() == true else { return }
+            elsewhere = nil
+            entry = picture.name
+        }
         .statusBarItems(statusBarItems)
         .navigationTitle("menu.item.images")
     }
@@ -193,6 +204,24 @@ struct ImagesPage: View {
 
 /// A picture the Example does not carry: a local file, or one on the web.
 private enum PictureLocation: Equatable {
+    /// How the file a pasted picture is written to is named, in the
+    /// temporary directory: this, then a UUID.
+    static let pastedFilePrefix = "tuikit-pasted-"
+
+    /// Deletes the file this names if a paste wrote it, and says whether it
+    /// was one.
+    @discardableResult
+    func removePastedFile() -> Bool {
+        guard case .file(let path) = self else { return false }
+        let file = URL(fileURLWithPath: path)
+        guard file.lastPathComponent.hasPrefix(Self.pastedFilePrefix),
+            file.deletingLastPathComponent().standardizedFileURL
+                == FileManager.default.temporaryDirectory.standardizedFileURL
+        else { return false }
+        try? FileManager.default.removeItem(at: file)
+        return true
+    }
+
     case file(String)
     case url(URL)
 
@@ -244,7 +273,7 @@ private enum PictureLocation: Equatable {
                 _ = provider.loadDataRepresentation(forTypeIdentifier: type.identifier) { data, _ in
                     guard let data else { return }
                     let file = FileManager.default.temporaryDirectory
-                        .appendingPathComponent("tuikit-pasted-\(UUID().uuidString)")
+                        .appendingPathComponent(PictureLocation.pastedFilePrefix + UUID().uuidString)
                         .appendingPathExtension(type.preferredFilenameExtension ?? "png")
                     guard (try? data.write(to: file)) != nil else { return }
                     Task { @MainActor in show(file.path) }
