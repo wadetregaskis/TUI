@@ -234,7 +234,9 @@ struct StallWatchdogTests {
         gate.setArmed(true)
         let client = try listener.connect()
         defer { Foundation.close(client) }
-        // Long enough for many looks: it checks four times a second.
+        // Long enough for many looks: it checks four times a second. Real
+        // time, on purpose: the watchdog is a thread on a wall-clock grace, and
+        // what is asserted is that none of its looks in that time popped.
         Thread.sleep(forTimeInterval: 0.8)
         #expect(!gate.isStopped, "no hang-up")
         #expect(gate.isArmed, "nothing popped: there was nothing to read")
@@ -281,7 +283,8 @@ struct StallWatchdogTests {
         let filled = rig.fillOutput()
         rig.gate.setArmed(true)
         rig.type()
-        // Several graces, each a pop tried and given up.
+        // Several graces, each a pop tried and given up. Real time, on purpose,
+        // as above: the graces are the watchdog's own wall-clock ones.
         Thread.sleep(forTimeInterval: 0.6)
         #expect(rig.gate.isArmed, "nothing popped: still armed")
         #expect(!rig.gate.noteDrain(), "and nothing for the loop to push back")

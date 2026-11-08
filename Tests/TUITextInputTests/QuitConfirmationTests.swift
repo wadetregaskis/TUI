@@ -446,6 +446,7 @@ struct UnreadQuitKeyTests {
 // MARK: - The watch
 
 #if !canImport(WASILibc)
+@MainActor
 @Suite("The quit key's watch")
 struct UnreadQuitKeyWatchTests {
     /// A flag a test can wait on from another thread.
@@ -462,12 +463,11 @@ struct UnreadQuitKeyWatchTests {
             defer { lock.unlock() }
             return count
         }
-        func waitUntilRaised(within seconds: TimeInterval) async -> Bool {
-            let deadline = Date(timeIntervalSinceNow: seconds)
-            while Date() < deadline {
-                if raised > 0 { return true }
-                try? await Task.sleep(nanoseconds: 10_000_000)
-            }
+        /// Waits for the flag rather than polling a sleep; `settle(until:)`'s
+        /// own hang-breaker ends a wait that never comes.
+        @MainActor
+        func waitUntilRaised() async -> Bool {
+            await settle(until: { self.raised > 0 })
             return raised > 0
         }
     }
@@ -515,7 +515,7 @@ struct UnreadQuitKeyWatchTests {
         let pressed = Date()
         var byte: UInt8 = 0x1C
         _ = write(rig.writeEnd, &byte, 1)
-        #expect(await rig.quits.waitUntilRaised(within: 5))
+        #expect(await rig.quits.waitUntilRaised())
         #expect(Date().timeIntervalSince(pressed) >= grace)
     }
 
@@ -531,7 +531,7 @@ struct UnreadQuitKeyWatchTests {
         rig.watch.setArmed(byte: 0x1C)
         var byte: UInt8 = 0x1C
         _ = write(rig.writeEnd, &byte, 1)
-        #expect(await rig.quits.waitUntilRaised(within: 3))
+        #expect(await rig.quits.waitUntilRaised())
     }
 
     @Test("Other keys it holds for the loop, in order, and tells it")
@@ -546,16 +546,16 @@ struct UnreadQuitKeyWatchTests {
         rig.watch.start(inputHeld: { held.raise() })
         rig.watch.setArmed(byte: 0x1C)
         _ = write(rig.writeEnd, "ab", 2)
-        #expect(await held.waitUntilRaised(within: 3))
+        #expect(await held.waitUntilRaised())
         #expect(rig.watch.input.holdsInput)
         _ = write(rig.writeEnd, "c", 1)
         // The watch may hold `c` too before this reads, so the reads can split
         // either way: what is fixed is the order.
         var bytes = read(rig)
-        for _ in 0..<300 where bytes.count < 3 {
-            try await Task.sleep(for: .milliseconds(10))
+        await settle(until: {
             bytes += read(rig)
-        }
+            return bytes.count >= 3
+        })
         #expect(bytes == Array("abc".utf8), "what it held comes first")
         #expect(rig.quits.raised == 0)
     }
@@ -573,6 +573,8 @@ struct UnreadQuitKeyWatchTests {
         var byte: UInt8 = 0x1C
         _ = write(rig.writeEnd, &byte, 1)
         #expect(read(rig) == [0x1C])
+        // Real time, on purpose: the watch is a thread on a wall-clock grace
+        // (0.3 s here), and what is asserted is that it let that grace pass.
         try await Task.sleep(nanoseconds: 600_000_000)
         #expect(rig.quits.raised == 0)
         #expect(!rig.watch.input.holdsInput)
@@ -589,6 +591,7 @@ struct UnreadQuitKeyWatchTests {
         rig.watch.start()
         var byte: UInt8 = 0x1C
         _ = write(rig.writeEnd, &byte, 1)
+        // Real time, on purpose, as in `aReadingLoop`: past the 0.1 s grace.
         try await Task.sleep(nanoseconds: 400_000_000)
         #expect(rig.quits.raised == 0)
         #expect(read(rig) == [0x1C])

@@ -95,6 +95,8 @@ private struct ReadsFocus: View {
 private struct Slow: View {
     var body: some View {
         Runs.note("slow")
+        // Real time, on purpose: what makes a body worth keeping is the wall
+        // time its runs are measured taking (`BodyKeep.slowBody`).
         Thread.sleep(forTimeInterval: 0.002)
         return Text(verbatim: "slow")
     }
@@ -107,6 +109,7 @@ private struct SlowRow: View {
     @State private var taps = 0
     var body: some View {
         Runs.note("row")
+        // Real time, as `Slow`'s: over the line `BodyKeep` measures.
         Thread.sleep(forTimeInterval: 0.0002)
         return Text(verbatim: "\(index) \(tick + taps)")
     }

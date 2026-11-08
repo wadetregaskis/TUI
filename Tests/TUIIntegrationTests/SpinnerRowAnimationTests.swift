@@ -107,10 +107,9 @@ struct SpinnerRowAnimationTests {
         var nowNanos: Int64 = 0
 
         for frame in 0..<frames {
-            if frame > 0 {
-                try await Task.sleep(for: .milliseconds(40))
-                nowNanos += 40_000_000
-            }
+            // The frame's time is handed in (`frameNowNanos`), so stepping it is
+            // all a frame needs: a 40 ms sleep beside each step bought nothing.
+            if frame > 0 { nowNanos += 40_000_000 }
             let buffer = renderFrame(
                 view, tuiContext: tuiContext, scheduler: scheduler,
                 focusManager: focusManager, nowNanos: nowNanos)

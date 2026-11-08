@@ -119,18 +119,15 @@ struct ImagePixelsOutOfStateTests {
         let view = column(fixtures.map(\.path))
         // Every file loads in a task (`imageSynchronousDecodeLimit(0)`).
         var first: [String] = []
-        for _ in 0..<200 {
+        await settle(until: {
             first = frame(view, tui, cache: cache, offset: 0, syncLimit: 0)
-            if !first.prefix(4).contains(where: { $0.contains("Loading") }) { break }
-            try await Task.sleep(nanoseconds: 5_000_000)
-        }
+            return !first.prefix(4).contains(where: { $0.contains("Loading") })
+        })
         #expect(!first.prefix(4).contains { $0.contains("Loading") }, "sanity: the pictures loaded")
         for offset in stride(from: 8, to: 20, by: 4) {
-            for _ in 0..<50 {
-                let lines = frame(view, tui, cache: cache, offset: offset, syncLimit: 0)
-                if !lines.contains(where: { $0.contains("Loading") }) { break }
-                try await Task.sleep(nanoseconds: 5_000_000)
-            }
+            await settle(until: {
+                !frame(view, tui, cache: cache, offset: offset, syncLimit: 0).contains(where: { $0.contains("Loading") })
+            })
         }
         let back = frame(view, tui, cache: cache, offset: 0, syncLimit: 0)
         #expect(back.prefix(4) == first.prefix(4), "the last drawing, while the picture loads again")
@@ -153,11 +150,9 @@ struct ImagePixelsOutOfStateTests {
                 }
             }
         }
-        for _ in 0..<200 {
-            let lines = frame(view, tui, cache: cache, offset: 0)
-            if !lines.prefix(4).contains(where: { $0.contains("empty") }) { break }
-            try await Task.sleep(nanoseconds: 5_000_000)
-        }
+        await settle(until: {
+            !frame(view, tui, cache: cache, offset: 0).prefix(4).contains(where: { $0.contains("empty") })
+        })
         #expect(heldPixelBytes(tui.stateStorage) > 0, "sanity: the rows on screen hold what they draw")
         // No await between: the rows now on screen have not had their loads
         // land, so whatever is held is the rows that went.

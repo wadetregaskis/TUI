@@ -136,9 +136,7 @@ struct FocusClockUnityTests {
     /// 150 ms wait sometimes saw zero of them — these passed alone and failed
     /// in the suite, which is the worst way for a test to be wrong.
     private func awaitFirstTick(_ timer: CursorTimer) async {
-        for _ in 0..<200 where timer.elapsed(for: .content) == 0 {
-            try? await Task.sleep(for: .milliseconds(20))
-        }
+        await settle(until: { timer.elapsed(for: .content) != 0 })
     }
 
     /// 100,000 s of uptime, on the 50 ms lattice: far past any real reading of the
@@ -158,9 +156,7 @@ struct FocusClockUnityTests {
         // cannot run until this lets go.
         let deadline = ContinuousClock.now.advanced(by: .milliseconds(250))
         while ContinuousClock.now < deadline {}
-        for _ in 0..<2000 where timer.elapsed(for: .content) == before {
-            try? await Task.sleep(for: .milliseconds(1))
-        }
+        await settle(until: { timer.elapsed(for: .content) != before })
 
         // The clock added the sleep it had ASKED for — 0.05 s, however late the wake
         // was — so every wake lost its lateness, and every animation ran slow.

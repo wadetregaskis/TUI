@@ -51,6 +51,9 @@ struct FatalSignalTerminalRestoreTests {
         let expected = filled + debt.count
         let drained = DrainedBytes()
         let thread = Thread {
+            // Real time, on purpose: the writer gives a full descriptor a
+            // wall-clock while to drain, and this reader is the one that
+            // drains "a little later" — within it.
             usleep(100_000)
             var chunk = [UInt8](repeating: 0, count: 65536)
             while drained.count < expected {

@@ -458,6 +458,8 @@ private func settle(_ cached: StormRun, _ uncached: StormRun, reaching expected:
             return
         }
         wait.nextTurn()
+        // A deliberate nap, which `check-ratchets.py` counts: a backoff while
+        // the pool does the work, for the reason above, not a wait for it.
         try? await Task.sleep(for: .milliseconds(1))
     }
 }

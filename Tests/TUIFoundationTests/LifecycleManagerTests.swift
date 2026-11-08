@@ -255,6 +255,7 @@ struct LifecycleManagerTaskTests {
         let manager = LifecycleManager()
         let target = Cancellation()
         let bystander = Cancellation()
+        let started = Started()
         // Both tasks have to still be IN FLIGHT when the cancels land — a task
         // that finished on its own reports `isCancelled == false` and says
         // nothing about either half — so they wait for their cancel and for
@@ -267,14 +268,16 @@ struct LifecycleManagerTaskTests {
         // tasks are cancelled before the test returns, so nothing is left
         // running.
         manager.startTask(token: "task-1", priority: .medium) {
+            started.count += 1
             await waitUntilCancelled()
             await MainActor.run { target.record(Task.isCancelled) }
         }
         manager.startTask(token: "task-2", priority: .medium) {
+            started.count += 1
             await waitUntilCancelled()
             await MainActor.run { bystander.record(Task.isCancelled) }
         }
-        try await Task.sleep(for: .milliseconds(20))
+        await settle { started.count == 2 }
 
         manager.cancelTask(token: "task-1")
         // Polled, not slept, for the reason `cancellationReachesTheClosureBody`
@@ -284,9 +287,10 @@ struct LifecycleManagerTaskTests {
         #expect(target.value == true, "cancelTask never reached its own token's task")
 
         // An untargeted cancel would unwind the bystander at the same instant
-        // as the target, so once the target has landed a short grace period is
-        // enough to see it; otherwise the bystander is still asleep.
-        try await Task.sleep(for: .milliseconds(50))
+        // as the target, so once the target has landed a budget of turns is
+        // enough to see it; otherwise the bystander is still asleep. (A budget
+        // only ever weakens an assertion that something did NOT happen.)
+        await yieldToSpawnedWork()
         #expect(bystander.value == nil, "cancelTask cancelled a task it was not given")
 
         // …and it was alive to be spared rather than already finished, which
@@ -323,13 +327,15 @@ struct LifecycleManagerTaskTests {
     func cancellationReachesTheClosureBody() async throws {
         let manager = LifecycleManager()
         let observed = Cancellation()
+        let started = Started()
         manager.startTask(token: "load", priority: .medium) {
+            started.count += 1
             // Stand-in for the decode, still in flight when the cancel lands
             // however starved the main actor is (see `cancelTask`).
             await waitUntilCancelled()
             await MainActor.run { observed.record(Task.isCancelled) }
         }
-        try await Task.sleep(for: .milliseconds(20))
+        await settle { started.count == 1 }
         manager.cancelTask(token: "load")
         // Polled, not slept: under a full parallel suite a fixed wait is a
         // coin toss on when the cancelled sleep unwinds and the main-actor hop
@@ -431,6 +437,13 @@ private func waitUntilCancelled() async {
     let (stream, continuation) = AsyncStream<Never>.makeStream()
     for await _ in stream {}
     withExtendedLifetime(continuation) {}
+}
+
+/// How many of a test's tasks have begun: a task body written in a test runs
+/// on the main actor, so this needs no lock.
+@MainActor
+private final class Started {
+    var count = 0
 }
 
 /// A main-actor-written flag a detached task can report into.

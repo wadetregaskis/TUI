@@ -104,6 +104,17 @@ private final class Tarpit {
 
     var urlString: String { "http://127.0.0.1:\(port)/tarpit.png" }
 
+    /// Waits until a connection is queued on the listener — a request has
+    /// reached the tarpit — or `seconds` pass: `true` if one came.
+    ///
+    /// Blocks in `poll`, which a listening socket reports readable once a
+    /// connection is waiting to be accepted. Nothing accepts it, so it stays
+    /// queued and stalled, which is the point of a tarpit.
+    func waitForConnection(within seconds: Int32 = 60) -> Bool {
+        var target = pollfd(fd: listener, events: Int16(POLLIN), revents: 0)
+        return poll(&target, 1, seconds * 1000) > 0
+    }
+
     deinit { close(listener) }
 
     enum TarpitError: Error { case failed(String) }
@@ -217,7 +228,7 @@ struct URLImageDownloadTests {
 
             // Let the task start and its request reach the tarpit, so what is
             // cancelled is a transfer in flight rather than a task not yet begun.
-            try await Task.sleep(for: .milliseconds(250))
+            #expect(tarpit.waitForConnection(), "the request never reached the tarpit")
             let clock = ContinuousClock()
             let begin = clock.now
             // Whether the load was still running when it was cancelled: the premise.
@@ -264,7 +275,7 @@ struct URLImageDownloadTests {
             // unrelated work. Without this the downloads might still be queued
             // rather than stalled, and a pool nothing is occupying yet proves
             // nothing about a pool full of stalled transfers.
-            try await Task.sleep(for: .milliseconds(250))
+            #expect(tarpit.waitForConnection(), "no request reached the tarpit")
 
             // Unrelated async work, started after the downloads and expected to
             // finish while they are all still in flight.

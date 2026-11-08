@@ -242,11 +242,7 @@ struct HostReduceMotionTests {
 
     /// Waits for the refresher's reading, which hops through a detached task.
     private func settle(_ refresher: HostSettingsRefresher) async throws {
-        for _ in 0..<200 {
-            try await Task.sleep(nanoseconds: 5_000_000)
-            if refresher.isIdleForTesting { return }
-        }
-        Issue.record("the refresher never settled")
+        await TUITestSupport.settle(until: { refresher.isIdleForTesting })
     }
 
     @Test("GNOME's animations off is reduced motion, and anything else it prints says nothing")

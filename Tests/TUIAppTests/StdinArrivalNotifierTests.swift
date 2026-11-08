@@ -94,16 +94,18 @@ struct StdinArrivalNotifierTests {
     @Test("stop() promptly resumes a waiter that would otherwise wait a long time")
     func stopResumesPendingWaiter() async {
         let notifier = StdinArrivalNotifier()
+        let started = Started()
 
         let waiter = Task { @MainActor in
+            started.value = true
             // A 60-second timeout: if stop() fails to resume us, the test
             // hangs far past any reasonable runtime, surfacing the bug
             // rather than passing spuriously.
             await notifier.waitForArrival(timeoutNanoseconds: 60_000_000_000)
         }
 
-        // Give the waiter a chance to register its continuation first.
-        try? await Task.sleep(nanoseconds: 20_000_000)  // 20 ms
+        // Wait for the waiter to register its continuation first.
+        await started.waitUntilWaiting()
         notifier.stop()
 
         await waiter.value  // returns only because stop() resumed the waiter
@@ -134,7 +136,7 @@ struct StdinArrivalNotifierTests {
         defer { notifier.stop() }
 
         // Let the source fire and take itself down before measuring.
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        await settle(until: { !notifier.isWatching })
 
         let clock = ContinuousClock()
         let start = clock.now
@@ -222,10 +224,12 @@ struct StdinArrivalNotifierTests {
     @Test("wake() promptly resumes a suspended waiter")
     func wakeResumesPendingWaiter() async {
         let notifier = StdinArrivalNotifier()
+        let started = Started()
         let waiter = Task { @MainActor in
+            started.value = true
             await notifier.waitForArrival(timeoutNanoseconds: 60_000_000_000)
         }
-        try? await Task.sleep(nanoseconds: 20_000_000)  // let it register
+        await started.waitUntilWaiting()
         notifier.wake()
         await waiter.value  // returns only because wake() resumed it
     }
@@ -234,10 +238,12 @@ struct StdinArrivalNotifierTests {
     @Test("wake() that resumes a waiter leaves no spurious pending wake")
     func wakeResumeLeavesNoPendingWake() async {
         let notifier = StdinArrivalNotifier()
+        let started = Started()
         let waiter = Task { @MainActor in
+            started.value = true
             await notifier.waitForArrival(timeoutNanoseconds: 60_000_000_000)
         }
-        try? await Task.sleep(nanoseconds: 20_000_000)
+        await started.waitUntilWaiting()
         notifier.wake()  // resumes the waiter; the wake is consumed
         await waiter.value
 
@@ -276,15 +282,9 @@ struct StdinArrivalNotifierTests {
         /// it is contended by hundreds of other `@MainActor` tests — a fixed
         /// 20 ms sleep was enough when this suite ran alone and nowhere near it
         /// when the whole suite ran, so the test failed on scheduling rather
-        /// than on behaviour. The bound is generous because it costs nothing
-        /// when the condition holds: the loop returns the moment it does.
+        /// than on behaviour.
         func waitUntil(_ condition: @MainActor () -> Bool) async -> Bool {
-            let clock = ContinuousClock()
-            let deadline = clock.now.advanced(by: .seconds(30))
-            while clock.now < deadline {
-                if condition() { return true }
-                try? await Task.sleep(nanoseconds: 1_000_000)
-            }
+            await settle(until: condition)
             return condition()
         }
 
@@ -339,6 +339,7 @@ struct StdinArrivalNotifierTests {
         // with correct behaviour only a handful complete in the window; a cascade
         // races straight to the loop's safety cap.
         @MainActor final class Counter {
+            var entered = 0
             var completed = 0
             var stop = false
         }
@@ -350,6 +351,7 @@ struct StdinArrivalNotifierTests {
             // completes only a handful (timeouts + the explicit wakes).
             for _ in 0..<10_000 {
                 if counter.stop { break }
+                counter.entered += 1
                 await notifier.waitForArrival(timeoutNanoseconds: 50_000_000)
                 counter.completed += 1
             }
@@ -360,20 +362,36 @@ struct StdinArrivalNotifierTests {
         // cancelled timeout's stale signal() resumed the NEXT wait and cancelled
         // ITS timeout, self-sustaining. Many tight wakes make the triggering race
         // overwhelmingly likely to land at least once if the bug is present.
+        //
+        // Each wake goes to a waiter that is there: one counted in and not yet
+        // out is suspended in the wait, because the notifier registers its
+        // continuation on this same actor before the loop can give it back.
         for _ in 0..<40 {
-            try? await Task.sleep(nanoseconds: 5_000_000)  // 5 ms
+            await settle(until: { counter.entered > counter.completed })
             notifier.wake()
         }
-        try? await Task.sleep(nanoseconds: 100_000_000)
+        // A cascade, if there is one, spins on its own from here: a budget is
+        // enough for it to show, and sound for an assertion that it did not.
+        await yieldToSpawnedWork()
 
         counter.stop = true
         notifier.wake()  // release the final wait so the loop exits
         await loop.value
 
-        // Correct behaviour completes ~one wait per wake (≈40) plus a few 50 ms
-        // timeouts — well under 100. The cascade instead spins between wakes; the
+        // Correct behaviour completes ~one wait per wake (≈40) plus any 50 ms
+        // timeouts a starved actor let run out — well under 100. The cascade instead spins between wakes; the
         // pre-fix code recorded 300+. The wide gap keeps the bound robust under
         // load while still failing decisively on a regression.
         #expect(counter.completed < 100)
     }
+}
+
+/// Whether a waiter task has begun — which, on the main actor, means it has
+/// also registered its continuation: `waitForArrival` is same-actor, so the
+/// task runs on to its suspension before the test gets the actor back.
+@MainActor
+private final class Started {
+    var value = false
+
+    func waitUntilWaiting() async { await settle(until: { self.value }) }
 }

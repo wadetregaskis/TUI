@@ -171,7 +171,9 @@ struct TerminalColorReQueryTests {
             sink.sent == [TerminalColorQuery.nativeRequest, TerminalColorQuery.nativeRequest],
             "a lost fence was never asked for again: \(sink.sent.count) request(s)")
 
-        try await Task.sleep(nanoseconds: 40_000_000)
+        // Idle: no resend is sleeping toward its deadline, so a budget is
+        // enough to catch one that came anyway.
+        await yieldToSpawnedWork()
         #expect(sink.sent.count == 2, "a terminal that answers no fence must not be polled")
 
         // Given up, not wedged: the next thrown-away screen asks again.
@@ -187,11 +189,7 @@ struct TerminalColorReQueryTests {
     }
 
     private func waitUntilSettled(_ requester: TerminalColorRequester) async throws {
-        for _ in 0..<200 {
-            try await Task.sleep(nanoseconds: 5_000_000)
-            if requester.isIdleForTesting { return }
-        }
-        Issue.record("the requester never settled")
+        await settle(until: { requester.isIdleForTesting })
     }
 }
 

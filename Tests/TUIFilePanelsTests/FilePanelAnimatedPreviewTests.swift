@@ -94,7 +94,8 @@ struct FilePanelAnimatedPreviewTests {
             var seen: Set<[String]> = [driver.styledRows()]
             for _ in 0..<60 {
                 driver.app.advance(by: .milliseconds(50))
-                try await Task.sleep(for: .milliseconds(5))
+                // A budget, sound for an assertion that the still did NOT move.
+                await yieldToSpawnedWork()
                 seen.insert(driver.styledRows())
             }
             #expect(seen.count < 3, "a still changed \(seen.count - 1) times")

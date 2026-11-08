@@ -184,20 +184,25 @@ struct FilePanelColumnViewTests {
             contentType: .plainText, size: nil, modified: nil, sizeText: "", modifiedText: "", kind: "",
             isChoosable: true)
         // A writer comes along, should a reader be waiting, and writes a
-        // line: a test that opens the pipe fails rather than hangs.
-        let writer = Task.detached {
-            for _ in 0..<30 {
-                try? await Task.sleep(for: .milliseconds(100))
-                let descriptor = open(pipe.path, O_WRONLY | O_NONBLOCK)
-                if descriptor >= 0 {
-                    _ = "piped\n".withCString { write(descriptor, $0, 6) }
-                    close(descriptor)
-                    return
-                }
+        // line: a test that opens the pipe fails rather than hangs. Its open
+        // blocks until there is a reader — on a thread of its own, not the
+        // pool's — which is waiting for exactly that, where it polled every
+        // 100 ms.
+        let writerDone = Lock(initialState: false)
+        Thread.detachNewThread {
+            let descriptor = open(pipe.path, O_WRONLY)
+            if descriptor >= 0 {
+                _ = "piped\n".withCString { write(descriptor, $0, 6) }
+                close(descriptor)
             }
+            writerDone.withLock { $0 = true }
         }
-        defer { writer.cancel() }
         #expect(await FilePanelPreview.excerpt(of: entry) == nil)
+        // No reader came, so the writer still waits: be its reader, and hold
+        // the read end until it has written, so its write has somewhere to go.
+        let reader = open(pipe.path, O_RDONLY | O_NONBLOCK)
+        await settle { writerDone.withLock { $0 } }
+        if reader >= 0 { close(reader) }
     }
 
     @Test("UTF-8 text files without a declared text UTType are previewed, while binary files are not")

@@ -95,9 +95,10 @@ struct ClientCapabilityRefresherTests {
         _ = refresher.resolve()
         refresher.refresh()
         refresher.refresh()
-        // Give any (wrongly) spawned task a chance to run before asserting.
-        await Task.yield()
-        try? await Task.sleep(nanoseconds: 50_000_000)
+        // Give any (wrongly) spawned task a chance to run before asserting: a
+        // budget, sound for an assertion that something did NOT happen.
+        await settle(until: { refresher.isIdleForTesting })
+        await yieldToSpawnedWork()
         #expect(probes == 1, "off tmux, refresh must never probe")
     }
 
@@ -205,7 +206,9 @@ struct ClientCapabilityRefresherTests {
         // The seed plus at most the full retry budget — never a poll loop.
         #expect(probes <= 4, "retries must burn out, got \(probes) probes")
         let probesAfterSettling = probes
-        try await Task.sleep(nanoseconds: 50_000_000)
+        // Idle means no retry is sleeping, so nothing is left to probe: a
+        // budget is enough to catch a probe that came anyway.
+        await yieldToSpawnedWork()
         #expect(probes == probesAfterSettling, "no probes after the budget is spent")
     }
 
@@ -225,7 +228,7 @@ struct ClientCapabilityRefresherTests {
         _ = refresher.resolve()
         refresher.refresh()
         try await waitUntilSettled(refresher)
-        try await Task.sleep(nanoseconds: 30_000_000)
+        await yieldToSpawnedWork()
         #expect(probes == 2, "seed + one refresh, no retries, got \(probes)")
     }
 
@@ -233,11 +236,7 @@ struct ClientCapabilityRefresherTests {
     /// has landed. The probe hops through a detached task, so tests must wait
     /// for the main-actor completion rather than assert immediately.
     private func waitUntilSettled(_ refresher: ClientCapabilityRefresher) async throws {
-        for _ in 0..<200 {
-            try await Task.sleep(nanoseconds: 5_000_000)
-            if refresher.isIdleForTesting { return }
-        }
-        Issue.record("refresher never settled")
+        await settle(until: { refresher.isIdleForTesting })
     }
 }
 

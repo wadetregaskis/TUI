@@ -330,10 +330,17 @@ struct SliderTrackStyleTests {
 @Suite("Slider arrow click zones", .serialized)
 struct SliderArrowZoneTests {
 
-    /// Long enough for `AutoRepeatTimer`'s task to fire its immediate action —
-    /// without it the assertions pass vacuously, because nothing has run yet.
+    /// Waits for `AutoRepeatTimer`'s task to fire its immediate action —
+    /// without it the assertions pass vacuously, because nothing has run yet —
+    /// by waiting for the value to move, where it should.
+    private static func settle(until moved: @MainActor () -> Bool) async {
+        await TUITestSupport.settle(until: moved)
+    }
+
+    /// Gives that action its chance to run where it should NOT move the value:
+    /// a budget, which can only weaken an assertion that nothing happened.
     private static func settle() async {
-        try? await Task.sleep(nanoseconds: 5_000_000)
+        await yieldToSpawnedWork()
     }
 
     /// Chrome is a constant 9 columns with the value shown at `.regular`
@@ -369,7 +376,7 @@ struct SliderArrowZoneTests {
 
         value = 42
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: arrow, y: 0))
-        await Self.settle()
+        await Self.settle(until: { value != 42 })
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: arrow, y: 0))
         #expect(value == 43, "the ▶ cell itself still increments, got \(value)")
     }
@@ -394,7 +401,7 @@ struct SliderArrowZoneTests {
             let arrow = 1 + gap + (buffer.width - (2 + 2 * gap + 5)) + gap
             value = 50
             _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: arrow, y: 0))
-            await Self.settle()
+            await Self.settle(until: { value != 50 })
             _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: arrow, y: 0))
             #expect(value == 51, "\(size): ▶ at \(arrow) set \(value)")
         }
@@ -428,7 +435,7 @@ struct SliderArrowZoneTests {
         let arrow = String(painted[painted.startIndex..<mark]).strippedLength
 
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: arrow, y: 0))
-        await Self.settle()
+        await Self.settle(until: { value != 42 })
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: arrow, y: 0))
         #expect(value == 43, "the drawn ▶ did not increment, got \(value)")
 
@@ -459,7 +466,7 @@ struct SliderArrowZoneTests {
 
         value = 42
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: 0, y: 0))
-        await Self.settle()
+        await Self.settle(until: { value != 42 })
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: 0, y: 0))
         #expect(value == 41, "the ◀ cell itself still decrements, got \(value)")
     }

@@ -24,9 +24,16 @@ private final class PressCount: @unchecked Sendable {
 @MainActor
 @Suite("buttonRepeatBehavior")
 struct ButtonRepeatBehaviorTests {
-    /// Lets the repeat timer's first, immediate firing run.
+    /// Waits for the repeat timer's first, immediate firing: `presses` of
+    /// them, counted, rather than a sleep long enough for one on a good day.
+    private static func settle(until count: PressCount, reaches presses: Int) async {
+        await TUITestSupport.settle(until: { count.value >= presses })
+    }
+
+    /// Gives a firing that should NOT come its chance to come — a budget, which
+    /// can only make an assertion that nothing happened weaker, never false.
     private static func settle() async {
-        try? await Task.sleep(nanoseconds: 5_000_000)
+        await yieldToSpawnedWork()
     }
 
     @Test("Enabled, the press acts at once and the release adds nothing")
@@ -35,7 +42,7 @@ struct ButtonRepeatBehaviorTests {
         let harness = InputChainHarness()
         harness.frame(Button("+") { count.value += 1 }.buttonRepeatBehavior(.enabled))
         harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 2, y: 0))
-        await Self.settle()
+        await Self.settle(until: count, reaches: 1)
         #expect(count.value == 1)
         harness.mouse(MouseEvent(button: .left, phase: .released, x: 2, y: 0))
         await Self.settle()
@@ -54,9 +61,12 @@ struct ButtonRepeatBehaviorTests {
         }
         harness.frame(page(disabled: false))
         harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 2, y: 0))
-        await Self.settle()
+        await Self.settle(until: count, reaches: 1)
         #expect(count.value == 1)
         harness.frame(page(disabled: true))
+        // Real time, on purpose: the repeat this rules out is the timer's
+        // own, due a wall-clock initial delay after the press, and
+        // `AutoRepeatTimer` takes no clock a test could step instead.
         try? await Task.sleep(nanoseconds: UInt64(AutoRepeatTimer.defaultInitialDelayMs + 300) * 1_000_000)
         #expect(count.value == 1, "no repeat once disabled")
     }

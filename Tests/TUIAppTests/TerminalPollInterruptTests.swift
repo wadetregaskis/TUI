@@ -12,6 +12,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Dispatch
 import Foundation
 import Testing
 
@@ -69,6 +70,10 @@ struct TerminalPollInterruptTests {
         thenWrite writeEnd: Int32? = nil
     ) -> (readable: Bool, elapsed: TimeInterval) {
         let outcome = Lock(initialState: WaitOutcome())
+        // Signalled once the thread has announced itself, and once its wait has
+        // returned: what this function waits for, rather than polling a sleep.
+        let announced = DispatchSemaphore(value: 0)
+        let returned = DispatchSemaphore(value: 0)
         let previous = signal(SIGUSR1, { _ in })
         defer { signal(SIGUSR1, previous) }
 
@@ -82,16 +87,18 @@ struct TerminalPollInterruptTests {
             pthread_sigmask(SIG_UNBLOCK, &wanted, nil)
 
             outcome.withLock { $0.thread = ThreadHandle(value: pthread_self()) }
+            announced.signal()
             let start = Date()
             let readable = Terminal.waitForInput(on: descriptor, until: deadline)
             outcome.withLock {
                 $0.elapsed = Date().timeIntervalSince(start)
                 $0.readable = readable
             }
+            returned.signal()
         }
 
         // Wait for the thread to announce itself, then signal it for the window.
-        while outcome.withLock({ $0.thread }) == nil { Thread.sleep(forTimeInterval: 0.001) }
+        announced.wait()
         guard let thread = outcome.withLock({ $0.thread }) else { return (false, 0) }
         // The first send is asserted, because a signal that cannot be
         // delivered makes every assertion below vacuous. The rest are not: once
@@ -102,6 +109,9 @@ struct TerminalPollInterruptTests {
             "the signal never reached the waiting thread — the test proves nothing")
         let stopSignalling = Date().addingTimeInterval(interruptWindow)
         while Date() < stopSignalling {
+            // Real time, on purpose: what is under test is a wait to a
+            // wall-clock deadline that interruptions spread across a real
+            // window must not end early or make late.
             Thread.sleep(forTimeInterval: 0.01)
             if pthread_kill(thread.value, SIGUSR1) != 0 { break }
         }
@@ -110,7 +120,7 @@ struct TerminalPollInterruptTests {
             #expect(write(writeEnd, &byte, 1) == 1)
         }
 
-        while outcome.withLock({ $0.readable }) == nil { Thread.sleep(forTimeInterval: 0.001) }
+        returned.wait()
         let final = outcome.withLock { $0 }
         return (final.readable ?? false, final.elapsed)
     }

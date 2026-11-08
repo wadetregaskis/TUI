@@ -38,6 +38,8 @@ struct AutoRepeatTimerTests {
     }
 
     /// Yields long enough for the timer's task to reach its next suspension.
+    /// Real time, on purpose — see the file's header: the timer takes no clock,
+    /// and main-actor starvation against its wall-clock delay is under test.
     private static func settle(ms: Int) async {
         try? await Task.sleep(nanoseconds: UInt64(ms) * 1_000_000)
     }
