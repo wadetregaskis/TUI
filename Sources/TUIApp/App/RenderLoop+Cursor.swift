@@ -65,7 +65,7 @@ extension RenderLoop {
     func insertionPointOnScreen(in regions: [HitTestRegion], width: Int, height: Int) -> CellPoint? {
         guard let focused = focusManager.currentFocused,
             let point = (focused as? any TextInputFocusHandler)?.insertionPoint,
-            let region = regions.last(where: { $0.focusID == focused.focusID })
+            let region = regions.last(where: { $0.focusID == focused.focusID && !$0.isGeometryMarker })
         else { return nil }
         let onScreen = CellPoint(x: region.localOriginX + point.x, y: region.localOriginY + point.y)
         guard region.contains(x: onScreen.x, y: onScreen.y), onScreen.x < width, onScreen.y < height else {

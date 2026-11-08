@@ -553,6 +553,9 @@ extension _ScrollViewCore {
     /// - Parameter clipsLayers: Whether the content's floating layers are cut
     ///   at the viewport — `false` under `scrollClipDisabled`, which lets them
     ///   float past it (``viewportOverlay(_:shiftedByX:y:width:height:clips:)``).
+    /// - Parameter keepsFocusFrames: Whether a focusable control the clip cuts
+    ///   leaves its frame behind as corner markers, for the geometric arrows
+    ///   (``RenderContext/keepsFocusFrames``).
     func windowedBuffer(
         full: FrameBuffer,
         scrollOffset: Int,
@@ -560,7 +563,8 @@ extension _ScrollViewCore {
         viewportWidth: Int,
         horizontalEnabled: Bool,
         horizontalOffset: Int,
-        clipsLayers: Bool = true
+        clipsLayers: Bool = true,
+        keepsFocusFrames: Bool = false
     ) -> FrameBuffer {
         guard viewportHeight > 0 else {
             return FrameBuffer(lines: [], width: viewportWidth)
@@ -635,7 +639,7 @@ extension _ScrollViewCore {
         // The same filter-and-shift the overlays got, and the same trim — which
         // the overlay pass gets for free from `OverlayLayer.placed()`'s own clip
         // and this one has to ask for.
-        let visibleRegions = full.hitTestRegions.compactMap { region -> HitTestRegion? in
+        var visibleRegions = full.hitTestRegions.compactMap { region -> HitTestRegion? in
             // Into viewport coordinates first, then trimmed to the viewport —
             // which is the SAME clip a region gets from any other clipping
             // container, so it is the shared one rather than a second copy of
@@ -670,6 +674,14 @@ extension _ScrollViewCore {
             // defect, and the vertical scrollbar was one of its victims.
             region.shifted(byX: dx, y: -scrollOffset)
                 .clipped(toColumns: 0..<viewportWidth, rows: 0..<viewportHeight)
+        }
+        // What the clip cut, the geometric arrows still need to find: where
+        // each control scrolled out of sight is, so an arrow can go to it and
+        // the reveal bring it in. A second pass, and only in that mode.
+        if keepsFocusFrames {
+            visibleRegions.appendFocusFrameCorners(
+                of: full.hitTestRegions.map { $0.shifted(byX: dx, y: -scrollOffset) },
+                clippedTo: 0..<viewportWidth, rows: 0..<viewportHeight)
         }
 
         // Animated runs are a claim about single rows, so unlike a region they

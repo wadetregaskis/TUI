@@ -1,8 +1,9 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  FocusManagerGeometricArrows.swift
 //
-//  Arrow keys that move the focus to the nearest control on screen in their
-//  direction, rather than to the next or previous in Tab order: an experiment,
+//  Arrow keys that move the focus to the nearest control in their direction,
+//  on screen or scrolled out of sight, rather than to the next or previous in
+//  Tab order: an experiment,
 //  on with `TUI_ARROW_FOCUS=geometric`. See `Documentation/Input and focus/
 //  Geometric arrow focus.md` for the design and what keeping both modes costs.
 //
@@ -17,8 +18,8 @@ package enum ArrowFocus: Sendable, Equatable {
     /// To the next (→, ↓) or previous (←, ↑) control in Tab order. The default.
     case tabOrder
 
-    /// To the nearest control on screen in the arrow's direction, and in Tab
-    /// order only where there is none.
+    /// To the nearest control in the arrow's direction, on screen or scrolled
+    /// out of sight, and in Tab order only where there is none.
     case geometric
 
     /// What the user asked for: `.geometric` with `TUI_ARROW_FOCUS=geometric`
@@ -35,14 +36,16 @@ struct ArrowFocusState {
     var mode: ArrowFocus = .tabOrder
 
     /// The hit-test regions of the last frame drawn, in screen coordinates,
-    /// where the geometric arrows find each control's frame by its focus id.
-    /// Posted by the render loop only while ``mode`` is `.geometric`.
+    /// where the geometric arrows find each control's frame by its focus id:
+    /// the cells it drew, and the corners a scroll view left where it clipped
+    /// it (``Swift/Array/appendFocusFrameCorners(of:clippedTo:rows:)``). Posted
+    /// by the render loop only while ``mode`` is `.geometric`.
     var laidOutRegions: [HitTestRegion] = []
 }
 
 extension FocusManager {
     /// How the arrow keys a focused control leaves unused move the focus: in
-    /// Tab order, or to the nearest control on screen in the arrow's direction.
+    /// Tab order, or to the nearest control in the arrow's direction.
     package var arrowFocus: ArrowFocus {
         get { arrows.mode }
         set { arrows.mode = newValue }
@@ -76,7 +79,8 @@ extension FocusManager {
     /// Moves the focus to the nearest focusable control in `key`'s direction in
     /// the active section, when ``arrowFocus`` is `.geometric`.
     ///
-    /// The candidates are the section's controls the last frame drew whose
+    /// The candidates are the section's controls the last frame laid out —
+    /// drew, or drew and a scroll view then clipped out of sight — whose
     /// frames lie wholly beyond the focused control's edge in that direction —
     /// below its bottom for ↓, and so on. Of those, one that overlaps the
     /// focused control on the other axis (its *beam*: the columns it spans for
@@ -86,6 +90,10 @@ extension FocusManager {
     ///
     /// The active section is all it looks in, as the Tab-order arrows are: a
     /// sheet's, an alert's or a popover's section keeps the arrows inside it.
+    ///
+    /// Focusing a control out of sight is all it does: the scroll views around
+    /// it reveal it on the frame that follows, as they do a control Tab
+    /// reached, the innermost first.
     ///
     /// - Returns: Whether the focus moved. `false` — in Tab-order mode, with
     ///   nothing focused, with the focused control not drawn, or with no
@@ -108,12 +116,15 @@ extension FocusManager {
         return true
     }
 
-    /// Each focus id's frame on screen: the smallest rectangle holding every
-    /// non-empty region the frame drew for it. A control drawn in pieces — a
-    /// wrapped label, a border's rule — is one frame.
+    /// Each focus id's frame in screen coordinates: the smallest rectangle
+    /// holding every non-empty region the frame drew for it, and every corner
+    /// a scroll view left where it clipped it, so a control half or wholly out
+    /// of sight is its whole frame, where it lies off the viewport's edge. A
+    /// control drawn in pieces — a wrapped label, a border's rule — is one
+    /// frame.
     private static func focusFrames(in regions: [HitTestRegion]) -> [String: CellFrame] {
         var frames: [String: CellFrame] = [:]
-        for region in regions where region.width > 0 && region.height > 0 {
+        for region in regions where (region.width > 0 && region.height > 0) || region.isGeometryMarker {
             guard let focusID = region.focusID else { continue }
             let frame = CellFrame(
                 minX: region.offsetX, minY: region.offsetY,

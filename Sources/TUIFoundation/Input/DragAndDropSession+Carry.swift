@@ -308,7 +308,8 @@ extension DragAndDropSession {
 
     /// Where the focus stop `id` is drawn: the largest region carrying it.
     private func stopRect(_ id: String) -> HitTestRegion? {
-        dispatcher?.regions.lazy.filter { $0.focusID == id }.max { $0.width * $0.height < $1.width * $1.height }
+        dispatcher?.regions.lazy.filter { $0.focusID == id && !$0.isGeometryMarker }
+            .max { $0.width * $0.height < $1.width * $1.height }
     }
 
     /// The cell a carry at `rect` points at: its top row's last cell, so the

@@ -825,7 +825,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             viewportWidth: width,
             horizontalEnabled: horizontal,
             horizontalOffset: handler.horizontal.scrollOffset - handler.horizontalAlignmentShift,
-            clipsLayers: clips
+            clipsLayers: clips,
+            keepsFocusFrames: context.keepsFocusFrames
         )
         var drawn = applyOverscroll(to: window, handler: handler, width: width, clips: clips, context: context)
         if !clips {
@@ -915,9 +916,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // pushed off stays clickable over the half still drawn.
         let viewportRows = 0..<lines.count
         let viewportColumns = 0..<max(0, width)
-        slid.hitTestRegions = slid.hitTestRegions.compactMap {
-            $0.clipped(toColumns: viewportColumns, rows: viewportRows)
-        }
+        slid.hitTestRegions.clip(
+            toColumns: viewportColumns, rows: viewportRows, keepingFocusFrames: context.keepsFocusFrames)
         slid.opacityRegions = slid.opacityRegions.compactMap {
             $0.clipped(toColumns: viewportColumns, rows: viewportRows)
         }

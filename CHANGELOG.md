@@ -8,7 +8,9 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 focused control doesn't use moves to the nearest control in its direction, one overlapping the focused control's
 columns (or rows) first, then the nearer, then the earlier in Tab order; with none it goes on in Tab order as before.
 Tab is unchanged, and arrows still stay inside the active section and a sheet. The Example's Focus page has a grid to
-try it on. See `Documentation/Input and focus/Geometric arrow focus.md`.
+try it on. See `Documentation/Input and focus/Geometric arrow focus.md`. The arrows reach controls a `ScrollView` has
+scrolled out of sight too, and the scroll views around one bring it into view, so a grid much larger than its scroll
+view is walked with the arrows alone.
 **`TUI_PLAIN_TEXT=transliterate` tries spelling text in ASCII before layout, an experiment.** For a terminal that shows
 only ASCII, every `Text`, button title, table cell and header, panel title and field prompt is spelled in Latin letters
 before it's measured, so `你好` is `ni hao` in six cells, where `TUI_PLAIN_TEXT=1` (and a non-UTF-8 locale) cut it to

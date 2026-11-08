@@ -27,11 +27,16 @@ extension FrameBuffer {
     /// Revealing the union in BOTH cases pushes the cursor off-screen on every
     /// arrow key; revealing the row in both leaves a bordered control's top rule
     /// just above the fold. Hence the split.
+    ///
+    /// Only the cells the control drew count: a geometry marker carrying its
+    /// focus id (the corners an inner scroll view leaves where it clipped the
+    /// control, for the geometric arrows) is where the control lies beyond that
+    /// view's edge, which an inner reveal has already dealt with.
     public func revealTarget(focusID: String, wholeControl: Bool) -> (top: Int, height: Int)? {
         var top = Int.max
         var bottom = Int.min
         var smallest: HitTestRegion?
-        for region in hitTestRegions where region.focusID == focusID {
+        for region in hitTestRegions where region.focusID == focusID && !region.isGeometryMarker {
             // The union grows by whatever chrome an ancestor drew flush against
             // the region — the border it is framed by is part of "the control"
             // when you have just arrived at it. The smallest region, which the
@@ -53,7 +58,7 @@ extension FrameBuffer {
         var left = Int.max
         var right = Int.min
         var smallest: HitTestRegion?
-        for region in hitTestRegions where region.focusID == focusID {
+        for region in hitTestRegions where region.focusID == focusID && !region.isGeometryMarker {
             left = Swift.min(left, region.offsetX)
             right = Swift.max(right, region.offsetX + region.width)
             if smallest == nil || region.height < smallest!.height { smallest = region }
