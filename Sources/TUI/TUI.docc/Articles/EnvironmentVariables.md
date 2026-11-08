@@ -317,8 +317,11 @@ A terminal, a multiplexer or ssh sets these, and TUI reads them to work out wher
 | `SSH_CONNECTION` | The program is running over ssh, so the person isn't at this machine. |
 | `SSH_CLIENT` | The program is running over ssh, so the person isn't at this machine. |
 | `SSH_TTY` | The program is running over ssh, so the person isn't at this machine. |
-| `DISPLAY` | On Linux, an X11 clipboard helper may be usable. |
-| `WAYLAND_DISPLAY` | On Linux, a Wayland clipboard helper may be usable. |
+| `DISPLAY` | On Linux, an X11 clipboard helper may be usable, and so may `notify-send` for a notification the terminal can't post. |
+| `WAYLAND_DISPLAY` | On Linux, a Wayland clipboard helper may be usable, and so may `notify-send` for a notification the terminal can't post. |
+| `DBUS_SESSION_BUS_ADDRESS` | On Linux, there is a desktop session's bus, which `notify-send` needs to post a notification. |
+| `XDG_RUNTIME_DIR` | On Linux, where a desktop session's bus may be, when `DBUS_SESSION_BUS_ADDRESS` doesn't say. |
+| `PATH` | Where to look for `notify-send`, to post a notification the terminal can't. |
 <!-- /tui-environment-docs -->
 
 ## See Also

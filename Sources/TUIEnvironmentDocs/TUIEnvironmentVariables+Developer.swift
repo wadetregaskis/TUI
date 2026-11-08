@@ -77,8 +77,11 @@ extension TUIEnvironmentVariables {
         terminalSets("SSH_CONNECTION", .session, "The program is running over ssh, so the person isn't at this machine."),
         terminalSets("SSH_CLIENT", .session, "The program is running over ssh, so the person isn't at this machine."),
         terminalSets("SSH_TTY", .session, "The program is running over ssh, so the person isn't at this machine."),
-        terminalSets("DISPLAY", .session, "On Linux, an X11 clipboard helper may be usable."),
-        terminalSets("WAYLAND_DISPLAY", .session, "On Linux, a Wayland clipboard helper may be usable."),
+        terminalSets("DISPLAY", .session, "On Linux, an X11 clipboard helper may be usable, and so may `notify-send` for a notification the terminal can't post."),
+        terminalSets("WAYLAND_DISPLAY", .session, "On Linux, a Wayland clipboard helper may be usable, and so may `notify-send` for a notification the terminal can't post."),
+        terminalSets("DBUS_SESSION_BUS_ADDRESS", .session, "On Linux, there is a desktop session's bus, which `notify-send` needs to post a notification."),
+        terminalSets("XDG_RUNTIME_DIR", .session, "On Linux, where a desktop session's bus may be, when `DBUS_SESSION_BUS_ADDRESS` doesn't say."),
+        terminalSets("PATH", .session, "Where to look for `notify-send`, to post a notification the terminal can't."),
     ]
 
     private static func terminalSets(
