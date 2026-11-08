@@ -60,6 +60,9 @@ included, though a click or Return on such a row selected nothing. They skip it 
 reorderable `List` or `Table` (or a `.draggable` view) inside one could never pick a row up from the keyboard: the
 refresh ran instead. The focused control now has the key first, and the refresh runs when it lets the key go.
 
+**A palette's search index is built without holding up other palettes' lookups.** Building one held the
+store's lock, so converting a picture with any other palette, on any thread, waited for it.
+
 **Choosing a format in the save panel no longer keeps a trailing space before the extension.** "report "
 saved as Markdown was `report .md`.
 

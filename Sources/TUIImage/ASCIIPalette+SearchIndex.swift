@@ -219,18 +219,32 @@ extension ASCIIPalette {
     /// nothing outside it can tell a hit from a miss, so there is nothing for
     /// an app or a test to inject. A cache that held anything observable would
     /// not qualify.
-    private enum SearchIndexCache {
+    enum SearchIndexCache {
+        /// One palette's index, built once, by whichever thread asks first.
+        private final class Slot: Sendable {
+            let index = Mutex<SearchIndex?>(nil)
+        }
+
         private struct State {
-            var indexes: [[UInt32]: SearchIndex] = [:]
+            var slots: [[UInt32]: Slot] = [:]
             var order: [[UInt32]] = []
         }
 
         private static let state = Mutex(State())
         private static let capacity = 8
 
-        /// The index of `entries`, built under the lock the first time they are
-        /// asked for: it is pure, and two threads asking at once should not
-        /// both pay for it.
+        /// The index of `entries`, built the first time they are asked for: it
+        /// is pure, and two threads asking at once should not both pay for it.
+        ///
+        /// Built under the lock of its own slot, never under the store's. The
+        /// store's lock is held only to find a slot, so a thread asking for an
+        /// index already built — or for another palette's — does not wait for a
+        /// build; only a thread asking for the very index being built waits,
+        /// for the one build it would otherwise make itself. Built under the
+        /// store's lock, as it was, a build — tens of milliseconds optimised,
+        /// seconds not — held up every lookup of every palette, and a picture
+        /// converted on the cooperative pool parked a pool thread behind a
+        /// palette it did not use (`PaletteSearchIndexStoreTests`).
         ///
         /// Keyed by what each entry MEASURES, its RGB packed into a `UInt32`,
         /// not by the colours as written.
@@ -249,16 +263,25 @@ extension ASCIIPalette {
         ///
         /// Two palettes spelled differently that measure the same now share an
         /// index, which is right for the same reason: they search identically.
-        static func index(for entries: [Entry]) -> SearchIndex {
+        static func index(
+            for entries: [Entry], build: ([Entry]) -> SearchIndex = { SearchIndex(entries: $0) }
+        ) -> SearchIndex {
             let key = entries.map { UInt32($0.rgba.r) << 16 | UInt32($0.rgba.g) << 8 | UInt32($0.rgba.b) }
-            return state.withLock { state in
-                if let cached = state.indexes[key] { return cached }
-                let built = SearchIndex(entries: entries)
-                state.indexes[key] = built
+            let slot = state.withLock { state in
+                if let slot = state.slots[key] { return slot }
+                let slot = Slot()
+                state.slots[key] = slot
                 state.order.append(key)
                 if state.order.count > capacity {
-                    state.indexes.removeValue(forKey: state.order.removeFirst())
+                    // A thread holding an evicted slot still gets its index.
+                    state.slots.removeValue(forKey: state.order.removeFirst())
                 }
+                return slot
+            }
+            return slot.index.withLock { index in
+                if let index { return index }
+                let built = build(entries)
+                index = built
                 return built
             }
         }
