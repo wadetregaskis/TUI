@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUIImage
@@ -41,6 +42,16 @@ import Testing
 /// ``everySubjectIsCovered`` and ``theGamutPhasesPartitionTheStride`` hold the
 /// split to that claim: they fail if a palette or a sample ever stops being
 /// covered by exactly one function.
+///
+/// ## Why the walks run on threads of their own
+///
+/// Each check is seconds of arithmetic that never suspends. Run on the task a
+/// test is given, a dozen of them took twelve of the fourteen threads of the
+/// cooperative pool at a full run's start and kept them, so every other test
+/// in the process waited for them — and the ones with a wall-clock deadline
+/// of their own, a download's request timeout, failed waiting (2026-11-08,
+/// commit f1d58459b). So each check hands its walk to a thread of its own and
+/// awaits it (``offThePool(_:)``), leaving the pool its threads.
 @Suite("Palette search index")
 struct PaletteSearchIndexTests {
 
@@ -148,67 +159,79 @@ struct PaletteSearchIndexTests {
     /// The one check, so that every function below makes byte-identical
     /// assertions and differs only in which pixels and which palette it is
     /// handed.
-    private func agrees(_ name: String, _ pixels: [RGBA], _ what: String) throws {
+    private func agrees(_ name: String, _ pixels: @escaping @Sendable () -> [RGBA], _ what: String) async throws {
         let palette = try #require(Self.subjects[name])
-        var disagreements = 0
-        for pixel in pixels where palette.nearestIndex(to: pixel) != Self.walked(palette, pixel) {
-            disagreements += 1
+        let disagreements = await Self.offThePool {
+            var disagreements = 0
+            for pixel in pixels() where palette.nearestIndex(to: pixel) != Self.walked(palette, pixel) {
+                disagreements += 1
+            }
+            return disagreements
         }
         #expect(disagreements == 0, "\(name): \(disagreements) \(what) differ from the walk")
+    }
+
+    /// `work`, done on a thread of its own while the caller's task waits
+    /// without holding a thread of the cooperative pool — see the suite's
+    /// "Why the walks run on threads of their own".
+    private static func offThePool<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {
+        await withCheckedContinuation { continuation in
+            Thread { continuation.resume(returning: work()) }.start()
+        }
     }
 
     // MARK: - Every cell corner
 
     @Test("Every cell corner agrees with the walk, tie-break included", arguments: smallSubjects)
-    func cornersAgree(_ name: String) throws {
-        try agrees(name, Self.corners(), "corner colours")
+    func cornersAgree(_ name: String) async throws {
+        try await agrees(name, { Self.corners() }, "corner colours")
     }
 
     @Test("Every cell corner agrees with the walk for the terminal's 256")
-    func cornersAgreeForANSI256() throws {
-        try agrees(Self.ansi256Subject, Self.corners(), "corner colours")
+    func cornersAgreeForANSI256() async throws {
+        try await agrees(Self.ansi256Subject, { Self.corners() }, "corner colours")
     }
 
     @Test("Every cell corner agrees with the walk for 256 shades")
-    func cornersAgreeForShades256() throws {
-        try agrees(Self.shades256Subject, Self.corners(), "corner colours")
+    func cornersAgreeForShades256() async throws {
+        try await agrees(Self.shades256Subject, { Self.corners() }, "corner colours")
     }
 
     // MARK: - A stride across the gamut
 
     @Test("A stride across the gamut agrees with the walk", arguments: smallSubjects)
-    func gamutSampleAgrees(_ name: String) throws {
-        try agrees(name, Self.strided(from: 0, step: Self.gamutStep), "sampled colours")
+    func gamutSampleAgrees(_ name: String) async throws {
+        try await agrees(name, { Self.strided(from: 0, step: Self.gamutStep) }, "sampled colours")
     }
 
     @Test("A third of the gamut stride agrees with the walk for the terminal's 256")
-    func gamutSampleAgreesForANSI256FirstThird() throws {
-        try agrees(Self.ansi256Subject, Self.gamutSlice(0), "sampled colours")
+    func gamutSampleAgreesForANSI256FirstThird() async throws {
+        try await agrees(Self.ansi256Subject, { Self.gamutSlice(0) }, "sampled colours")
     }
 
     @Test("The second third of the gamut stride agrees with the walk for the terminal's 256")
-    func gamutSampleAgreesForANSI256SecondThird() throws {
-        try agrees(Self.ansi256Subject, Self.gamutSlice(1), "sampled colours")
+    func gamutSampleAgreesForANSI256SecondThird() async throws {
+        try await agrees(Self.ansi256Subject, { Self.gamutSlice(1) }, "sampled colours")
     }
 
     @Test("The last third of the gamut stride agrees with the walk for the terminal's 256")
-    func gamutSampleAgreesForANSI256LastThird() throws {
-        try agrees(Self.ansi256Subject, Self.gamutSlice(2), "sampled colours")
+    func gamutSampleAgreesForANSI256LastThird() async throws {
+        try await agrees(Self.ansi256Subject, { Self.gamutSlice(2) }, "sampled colours")
     }
 
     @Test("A third of the gamut stride agrees with the walk for 256 shades")
-    func gamutSampleAgreesForShades256FirstThird() throws {
-        try agrees(Self.shades256Subject, Self.gamutSlice(0), "sampled colours")
+    func gamutSampleAgreesForShades256FirstThird() async throws {
+        try await agrees(Self.shades256Subject, { Self.gamutSlice(0) }, "sampled colours")
     }
 
     @Test("The second third of the gamut stride agrees with the walk for 256 shades")
-    func gamutSampleAgreesForShades256SecondThird() throws {
-        try agrees(Self.shades256Subject, Self.gamutSlice(1), "sampled colours")
+    func gamutSampleAgreesForShades256SecondThird() async throws {
+        try await agrees(Self.shades256Subject, { Self.gamutSlice(1) }, "sampled colours")
     }
 
     @Test("The last third of the gamut stride agrees with the walk for 256 shades")
-    func gamutSampleAgreesForShades256LastThird() throws {
-        try agrees(Self.shades256Subject, Self.gamutSlice(2), "sampled colours")
+    func gamutSampleAgreesForShades256LastThird() async throws {
+        try await agrees(Self.shades256Subject, { Self.gamutSlice(2) }, "sampled colours")
     }
 
     // MARK: - The split covers what one function used to
@@ -253,15 +276,21 @@ struct PaletteSearchIndexTests {
     // MARK: - The index itself
 
     @Test("The lists are short: a few candidates a cell, not the palette")
-    func listsAreShort() throws {
+    func listsAreShort() async throws {
         // 240 entries, so it is comfortably within the bound and has an index.
-        let index = try #require(ASCIIPalette.ansi256.searchIndex)
-        let perCell = Double(index.candidateCount) / Double(ASCIIPalette.quantisationCells)
+        // Built off the pool, as the walks are: a build is seconds unoptimised.
+        let candidates = await Self.offThePool { ASCIIPalette.ansi256.searchIndex?.candidateCount }
+        let perCell = Double(try #require(candidates)) / Double(ASCIIPalette.quantisationCells)
         #expect(perCell < 12, "\(perCell) candidates a cell against 240 entries")
     }
 
     @Test("Palettes below the threshold still walk; every copy of a large one shares an index")
-    func thresholdAndSharing() {
+    func thresholdAndSharing() async {
+        // The two builds off the pool, as the walks are; what follows finds them.
+        await Self.offThePool {
+            _ = ASCIIPalette.shades(256).searchIndex
+            _ = ASCIIPalette.ansi256.searchIndex
+        }
         #expect(ASCIIPalette.ansi16.entries.count == ASCIIPalette.indexedEntryThreshold)
         let one = ASCIIPalette.shades(256)
         let copy = one
