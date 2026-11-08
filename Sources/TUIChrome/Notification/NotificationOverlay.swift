@@ -27,9 +27,6 @@ import TUIFoundation
 /// A toast is a layer, never baked into the page's lines: a presentation
 /// composited at the root after the lines would otherwise dim and cover it.
 enum NotificationOverlay {
-    /// The width of each toast, in cells, before a narrow area narrows it.
-    static let toastWidth = 40
-
     /// The layers that draw the service's active notifications over an area
     /// `areaWidth` by `areaHeight` cells, its top-left corner the origin of
     /// the buffer they are added to; none when there is no service, or
@@ -62,34 +59,52 @@ enum NotificationOverlay {
         // which is what the toast was posted on.
         let frame = context.environment.animationFrame
         let now = frame.canAnimate ? UInt64(bitPattern: frame.nowNanos) : service.nowNanos()
-        let width = min(toastWidth, max(1, areaWidth - 2))
-        let stack = stackBuffer(activeEntries, width: width, now: now, context: context)
-        guard !stack.isEmpty else { return [] }
-        // One cell in from the trailing edge, one row down from the top.
-        let offsetX = max(0, areaWidth - stack.width - 1)
-        return [OverlayLayer(offsetX: offsetX, offsetY: 1, content: stack, level: .notification)]
+        let width = min(service.width, max(1, areaWidth - 2))
+        // A layer per placement, each its own stack: the channels.
+        return NotificationPlacement.allCases.compactMap { placement in
+            let channel = activeEntries.filter { $0.placement == placement }
+            guard !channel.isEmpty else { return nil }
+            let stack = stackBuffer(
+                channel, placement: placement, width: width, maxHeight: areaHeight - 2, now: now, context: context)
+            guard !stack.isEmpty else { return nil }
+            let origin = placement.origin(
+                width: stack.width, height: stack.height, areaWidth: areaWidth, areaHeight: areaHeight)
+            return OverlayLayer(offsetX: origin.x, offsetY: origin.y, content: stack, level: .notification)
+        }
     }
 
-    /// The toasts of `entries`, `width` cells wide, stacked top to bottom in
-    /// the order they were posted.
+    /// The toasts of one channel's `entries`, `width` cells wide, stacked
+    /// with the newest nearest `placement`'s edge: first on the top edge, last
+    /// on the bottom.
+    ///
+    /// As many as fit in `maxHeight` rows, newest first, and always the newest:
+    /// the older ones wait off screen for room, rather than being cut in half
+    /// at the area's edge.
     ///
     /// Each toast is drawn at an identity of its own, keyed by its
     /// notification, so what it holds keeps its state for its whole life
     /// whatever comes and goes around it.
     @MainActor
     private static func stackBuffer(
-        _ entries: [NotificationEntry], width: Int, now: UInt64, context: RenderContext
+        _ entries: [NotificationEntry], placement: NotificationPlacement, width: Int, maxHeight: Int, now: UInt64,
+        context: RenderContext
     ) -> FrameBuffer {
-        var stackedBuffer = FrameBuffer()
-        for entry in entries {
+        var toasts: [FrameBuffer] = []
+        var height = 0
+        for entry in entries.reversed() {
             let opacity = NotificationTiming.opacity(elapsed: entry.age(atNanos: now), visibleDuration: entry.duration)
-            var toastContext = context.withChildIdentity(erasedType: NotificationToast.self, key: entry.id.rawValue.uuidString)
+            var toastContext = context.withChildIdentity(
+                erasedType: NotificationToast.self, key: entry.id.rawValue.uuidString)
             toastContext.availableWidth = width
-            stackedBuffer.appendVertically(
-                TUIView.renderToBuffer(
-                    NotificationToast(entry: entry, width: width, opacity: opacity), context: toastContext))
+            let toast = TUIView.renderToBuffer(
+                NotificationToast(entry: entry, width: width, opacity: opacity), context: toastContext)
+            guard toasts.isEmpty || height + toast.height <= maxHeight else { break }
+            height += toast.height
+            toasts.append(toast)
         }
-        return stackedBuffer
+        var stack = FrameBuffer()
+        for toast in placement.isTop ? toasts : toasts.reversed() { stack.appendVertically(toast) }
+        return stack
     }
 }
 

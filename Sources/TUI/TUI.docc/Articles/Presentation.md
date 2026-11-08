@@ -455,6 +455,16 @@ try await document.save()
 NotificationService.current.dismiss(saving)
 ```
 
+Each ``NotificationPlacement`` — a corner, or the middle of the top or bottom
+edge — is a channel that stacks its own toasts, newest nearest its edge, so an
+app can use several at once. A post that names none goes to the service's
+``NotificationService/defaultPlacement``:
+
+```swift
+NotificationService.current.post("Copying 12 files…", placement: .bottom)
+NotificationService.current.post("Disk full", style: .error, placement: .topTrailing)
+```
+
 ## Open and Save Panels
 
 `fileImporter`, `fileExporter` and `fileMover` draw their panels in the terminal.
@@ -473,6 +483,7 @@ They have a page of their own: <doc:FilePanels>.
 - ``NotificationService``
 - ``NotificationStyle``
 - ``NotificationID``
+- ``NotificationPlacement``
 
 ## See Also
 

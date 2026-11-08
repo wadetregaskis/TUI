@@ -28,6 +28,10 @@ import TUIFoundation
 /// NotificationService.current.dismiss(saving)
 /// ```
 ///
+/// Each ``NotificationPlacement`` is a channel stacking its own toasts, so an
+/// app can show several at once: a post names one, or goes to
+/// ``defaultPlacement``.
+///
 /// A ``NotificationStyle`` says what a notification is about — news, a
 /// success, a warning, an error — in the palette's colour for it and with a
 /// glyph, so the meaning never rests on colour alone.
@@ -75,6 +79,12 @@ public final class NotificationService: Sendable {
         /// The active notification entries, ordered by posting time.
         var entries: [NotificationEntry] = []
 
+        /// Where a post that names no placement goes (``defaultPlacement``).
+        var defaultPlacement = NotificationPlacement.topTrailing
+
+        /// How wide a toast is (``width``).
+        var width = 40
+
         /// The links of the render caches of the apps that draw this service's
         /// notifications, which a post asks for a frame: one per app, noted as
         /// its scene draws them (``noteDisplayed(by:)``).
@@ -97,6 +107,28 @@ public final class NotificationService: Sendable {
     /// `Date()`, which can be set backwards (or forwards) while a toast is up, and which
     /// no test could step.
     let nowNanos: @Sendable () -> UInt64
+
+    /// Where a post that names no placement draws its toast:
+    /// ``NotificationPlacement/topTrailing`` unless the app sets another.
+    ///
+    /// ```swift
+    /// NotificationService.current.defaultPlacement = .bottomTrailing
+    /// ```
+    ///
+    /// Read at the post, so a change moves the toasts posted after it, and
+    /// leaves those already up where they are.
+    public var defaultPlacement: NotificationPlacement {
+        get { state.withLock { $0.defaultPlacement } }
+        set { state.withLock { $0.defaultPlacement = newValue } }
+    }
+
+    /// How wide a toast is, in cells, border included: 40 unless the app sets
+    /// another, and never less than 8. A terminal too narrow for it narrows
+    /// the toasts to fit, a cell in from either side.
+    public var width: Int {
+        get { state.withLock { $0.width } }
+        set { state.withLock { $0.width = max(8, newValue) } }
+    }
 
     /// Creates an empty notification service.
     public convenience init() {
@@ -125,12 +157,15 @@ extension NotificationService {
     ///   - style: What it is about, which its colour and glyph say (default: ``NotificationStyle/plain``).
     ///   - duration: How long the notification stays visible in seconds (default: 3.0), or `nil` to keep it
     ///     until it is dismissed.
+    ///   - placement: Where it is drawn, the channel it stacks in (default: `nil`, the service's
+    ///     ``defaultPlacement``).
     /// - Returns: The notification's identifier, for ``dismiss(_:)``.
     @discardableResult
     public func post(
-        _ messageKey: LocalizedStringKey, style: NotificationStyle = .plain, duration: TimeInterval? = 3.0
+        _ messageKey: LocalizedStringKey, style: NotificationStyle = .plain, duration: TimeInterval? = 3.0,
+        placement: NotificationPlacement? = nil
     ) -> NotificationID {
-        post(messageKey.localized, style: style, duration: duration)
+        post(messageKey.localized, style: style, duration: duration, placement: placement)
     }
 
     /// Posts a new notification, displayed as written.
@@ -149,15 +184,19 @@ extension NotificationService {
     ///   - style: What it is about, which its colour and glyph say (default: ``NotificationStyle/plain``).
     ///   - duration: How long the notification stays visible in seconds (default: 3.0), or `nil` to keep it
     ///     until it is dismissed.
+    ///   - placement: Where it is drawn, the channel it stacks in (default: `nil`, the service's
+    ///     ``defaultPlacement``).
     /// - Returns: The notification's identifier, for ``dismiss(_:)``.
     @_disfavoredOverload
     @discardableResult
     public func post<S: StringProtocol>(
-        _ message: S, style: NotificationStyle = .plain, duration: TimeInterval? = 3.0
+        _ message: S, style: NotificationStyle = .plain, duration: TimeInterval? = 3.0,
+        placement: NotificationPlacement? = nil
     ) -> NotificationID {
         let now = nowNanos()
         let entry = NotificationEntry(
-            message: String(message), style: style, duration: duration ?? .infinity, postedAtNanos: now)
+            message: String(message), style: style, placement: placement ?? defaultPlacement,
+            duration: duration ?? .infinity, postedAtNanos: now)
         add(entry, now: now)
         return entry.id
     }
@@ -178,6 +217,12 @@ extension NotificationService {
     /// Fades out every notification, at once.
     public func dismissAll() {
         dismiss { _ in true }
+    }
+
+    /// Fades out every notification drawn at `placement`, at once: one
+    /// channel's, leaving the others'.
+    public func dismissAll(at placement: NotificationPlacement) {
+        dismiss { $0.placement == placement }
     }
 
     /// Fades out the notifications `matches` picks, and asks the apps that

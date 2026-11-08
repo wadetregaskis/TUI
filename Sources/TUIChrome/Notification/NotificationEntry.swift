@@ -26,6 +26,9 @@ struct NotificationEntry: Identifiable, Sendable {
     /// What it is about, which its colour and glyph say.
     let style: NotificationStyle
 
+    /// Where it is drawn: the channel it stacks in.
+    let placement: NotificationPlacement
+
     /// How long the notification stays visible (in seconds): infinite for
     /// one that stays until it is dismissed, and cut short by a dismissal
     /// (``dismissed(atNanos:)``).
@@ -40,12 +43,17 @@ struct NotificationEntry: Identifiable, Sendable {
     /// - Parameters:
     ///   - message: The notification message text.
     ///   - style: What it is about.
+    ///   - placement: Where it is drawn.
     ///   - duration: Display duration in seconds.
     ///   - postedAtNanos: The service clock's reading at the post.
-    init(message: String, style: NotificationStyle = .plain, duration: TimeInterval, postedAtNanos: UInt64) {
+    init(
+        message: String, style: NotificationStyle = .plain, placement: NotificationPlacement = .topTrailing,
+        duration: TimeInterval, postedAtNanos: UInt64
+    ) {
         self.id = NotificationID()
         self.message = message
         self.style = style
+        self.placement = placement
         // A NaN duration has no end to count to: taken as none, so the toast
         // fades in and straight back out. An infinite one stays, and the
         // clock saturates at its end (``AnimationClock/nanoseconds(_:)``).

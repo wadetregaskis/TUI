@@ -18,6 +18,12 @@ focus only within it, and while a menu is open, not at all. Off by default: it h
 **`TUI_BREATHING=0` holds every focus indication still.** The control that has the keyboard is picked out by colour
 and bold alone, rather than breathing or blinking; the text cursor still blinks. An app can do the same with
 `Scene.focusBreathing(false)`, which can't undo the person's `0`. Reduce Motion still leaves the breath alone.
+**Notifications can go to any of six places, several at once.** `post(_:placement:)` takes a `NotificationPlacement`:
+a corner, or the middle of the top or bottom edge. Each placement stacks its own toasts with the newest nearest its edge,
+so an app can show progress at the bottom and errors at the top right. `defaultPlacement` sets where posts that name
+none go (top right unless changed), `width` sets how wide toasts are, and `dismissAll(at:)` clears one placement. A
+stack taller than the window shows its newest toasts that fit, and no toast is cut in half.
+
 **A notification can stay until it is dismissed, and code can dismiss it.** `post` returns a `NotificationID`;
 `dismiss(_:)` fades that toast out at once, and `dismissAll()` fades out every one. `duration: nil` keeps a toast up
 until something dismisses it. While toasts are up but none is fading, TUI no longer redraws the screen four times a second.
