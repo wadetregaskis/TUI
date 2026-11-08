@@ -128,12 +128,14 @@ package struct RowSelectionIndicator: Equatable {
     /// left `.automatic`: no mark where colour can show the selection — the
     /// highlight says which rows are selected, and the mark's two cells go
     /// back to the columns — and the mark where it cannot, a terminal with no
-    /// colour at all, where nothing else tells a selected row from the rest.
-    /// A `List`'s mark costs it no cells, so a list keeps it.
+    /// colour at all, where nothing else tells a selected row from the rest,
+    /// or where the person asked not to rely on colour
+    /// (`RenderContext.statesWithoutColor`), the tint being a weak cue without
+    /// hue. A `List`'s mark costs it no cells, so a list keeps it.
     package static func resolvingForTable(_ context: RenderContext) -> RenderContext {
         guard context.environment.rowSelectionIndicator == .automatic else { return context }
         var context = context
-        context.environment.rowSelectionIndicator = ColorDepth.current == .noColor ? .visible : .hidden
+        context.environment.rowSelectionIndicator = context.statesWithoutColor ? .visible : .hidden
         return context
     }
 

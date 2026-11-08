@@ -4,6 +4,11 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**Differentiate without colour now changes how TUI's controls draw.** With macOS's setting on (when you're at the
+machine the app runs on) or `TUI_DIFFERENTIATE_WITHOUT_COLOR=1`, the controls say their state as they do on a terminal
+without colour, over their colours: the focus in reverse video, a disabled control faint, a `Table`'s selected rows
+marked `●`, and a radio button's `●` only on the selected option. Off by default.
+
 **A graphical `DatePicker` draws today in bold.** It was told apart by the accent colour alone, a difference of hue that
 colour-vision deficiency loses and that a terminal without colour doesn't draw at all.
 

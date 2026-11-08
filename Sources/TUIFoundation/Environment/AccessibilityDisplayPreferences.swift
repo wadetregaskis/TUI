@@ -55,9 +55,11 @@ extension EnvironmentValues {
     /// enabled — mirrors SwiftUI's `accessibilityDifferentiateWithoutColor`.
     ///
     /// If it is `true`, a view should not convey information by colour alone.
-    /// TUI reads it for your views; its own focus and selection cues do not
-    /// change with it yet (they are designed apart, under the focus colour
-    /// rules: owner ruling P5).
+    /// TUI's own controls then say their state as they do at no colour, over
+    /// their colours (owner, 2026-11-08): the focus in reverse video, a
+    /// disabled control faint, a `Table`'s selected rows marked `●`, and a
+    /// radio button's `●` only on the selected option. See
+    /// `Documentation/Colour and styling/Colour-only cues audit (2026-11).md`.
     ///
     /// `true` when the user set `TUI_DIFFERENTIATE_WITHOUT_COLOR=1` in the
     /// environment the app runs in, or when macOS's Differentiate without

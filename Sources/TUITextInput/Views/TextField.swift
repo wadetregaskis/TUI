@@ -873,7 +873,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
                 menu: suggestionMenu, to: &buffer, handler: handler, context: context)
         }
 
-        return buffer.fadedWithoutColor(if: isDisabled)
+        return buffer.fadedWithoutColor(if: isDisabled, context: context)
     }
 
     /// Fetches (or creates) the persistent editing handler from StateStorage

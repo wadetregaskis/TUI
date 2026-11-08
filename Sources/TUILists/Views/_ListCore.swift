@@ -896,7 +896,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// list's content window, not by a scroll view around the list.
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         context.drawingAsVerticalScroller { renderFrame(context: context) }
-            .fadedWithoutColor(if: isDisabled(in: context))
+            .fadedWithoutColor(if: isDisabled(in: context), context: context)
     }
 
     /// The list's frame, and its content window within it: the rows' lines,

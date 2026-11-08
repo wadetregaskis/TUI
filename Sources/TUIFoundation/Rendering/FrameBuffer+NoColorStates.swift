@@ -18,13 +18,16 @@ import TUIStyling
 /// `SelectionDisabledModifier` already uses for a row that can't be selected —
 /// italic too where the host doesn't show faint (``TerminalClient/drawsFaint``).
 ///
-/// Both are no-ops at any other depth, so the colours keep the job there.
+/// At any other depth the colours keep the job, unless the person asked for cues that
+/// don't rest on colour (``EnvironmentValues/accessibilityDifferentiateWithoutColor``):
+/// then these are drawn over the colours too (``RenderContext/statesWithoutColor``).
 extension FrameBuffer {
-    /// This buffer drawn faint, if `isDisabled`, at ``ColorDepth/noColor``: italic
-    /// too where faint doesn't show (``ANSIRenderer/applyPersistentDisabled(_:)``).
+    /// This buffer drawn faint, if `isDisabled`, where a control says its state without
+    /// colour (``RenderContext/statesWithoutColor``): italic too where faint doesn't
+    /// show (``ANSIRenderer/applyPersistentDisabled(_:)``).
     @MainActor
-    package func fadedWithoutColor(if isDisabled: Bool) -> FrameBuffer {
-        guard isDisabled, ColorDepth.current == .noColor else { return self }
+    package func fadedWithoutColor(if isDisabled: Bool, context: RenderContext) -> FrameBuffer {
+        guard isDisabled, context.statesWithoutColor else { return self }
         return drawnDisabled()
     }
 
@@ -40,15 +43,20 @@ extension FrameBuffer {
         return faded
     }
 
-    /// This whole buffer saying `state`, at ``ColorDepth/noColor``, for a control with no
-    /// part of it that means anything by being lit.
+    /// This whole buffer saying `state` without colour (``RenderContext/statesWithoutColor``),
+    /// for a control with no part of it that means anything by being lit.
     @MainActor
-    package func statingWithoutColor(focused: Bool, disabled: Bool) -> FrameBuffer {
-        reversedWithoutColor(if: focused && !disabled).fadedWithoutColor(if: disabled)
+    package func statingWithoutColor(focused: Bool, disabled: Bool, context: RenderContext) -> FrameBuffer {
+        reversedWithoutColor(if: focused && !disabled, context: context)
+            .fadedWithoutColor(if: disabled, context: context)
     }
 
-    /// This buffer with `columns` of `rows` in reverse video, if `isFocused`, at
-    /// ``ColorDepth/noColor``.
+    /// This buffer with `columns` of `rows` in reverse video, if `isFocused`, where a
+    /// control says its state without colour (``RenderContext/statesWithoutColor``).
+    ///
+    /// At no colour the 7 alone; over colours, the palette's own pair restated with it
+    /// after every reset, so the reversal exchanges the palette's colours rather than
+    /// the terminal's (``ANSIRenderer/applyPersistentReverse(_:ink:field:bold:padding:)``).
     ///
     /// A column range rather than the whole buffer because a control's indicator can
     /// mean something by which part of it is lit, as a checkbox's mark and a slider's
@@ -58,13 +66,18 @@ extension FrameBuffer {
     ///   - isFocused: Whether the control shows the focus.
     ///   - rows: The rows to reverse, or all of them.
     ///   - columns: The columns to reverse, or all of them.
+    ///   - context: Where the control is drawn.
     package func reversedWithoutColor(
-        if isFocused: Bool, rows: Range<Int>? = nil, columns: Range<Int>? = nil
+        if isFocused: Bool, rows: Range<Int>? = nil, columns: Range<Int>? = nil, context: RenderContext
     ) -> FrameBuffer {
-        guard isFocused, ColorDepth.current == .noColor else { return self }
+        guard isFocused, context.statesWithoutColor else { return self }
+        // At no colour the two colours spell nothing, and only the 7 is left.
+        let palette = context.environment.palette
+        let colored = ColorDepth.current != .noColor
+        let ink: Color = colored ? palette.foreground : .default
+        let field: Color = colored ? palette.background : .default
         func reversed(_ text: String) -> String {
-            // At this depth the two colours spell nothing, and only the 7 is left.
-            ANSIRenderer.applyPersistentReverse(text, ink: .default, field: .default)
+            ANSIRenderer.applyPersistentReverse(text, ink: ink, field: field)
         }
         let rows = rows ?? 0..<lines.count
         var result = self
@@ -100,15 +113,28 @@ extension _ButtonStyleBody {
     /// label only breathes, and a face only breathes its caps, so those reverse: all
     /// of the face but half-block caps, whose reversal would light the half facing
     /// away from the label and leave a gap beside it.
-    func statingStateWithoutColor(_ buffer: FrameBuffer) -> FrameBuffer {
-        guard ColorDepth.current == .noColor else { return buffer }
+    func statingStateWithoutColor(_ buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+        guard context.statesWithoutColor else { return buffer }
         let edges = appearance.edges
         let hasCaps = !appearance.isPlain && edges.caps != nil && !edges.capsAreFace && !edges.isOutline
         return
             buffer
-            .fadedWithoutColor(if: !configuration.isEnabled)
+            .fadedWithoutColor(if: !configuration.isEnabled, context: context)
             .reversedWithoutColor(
                 if: configuration.isFocused && (!appearance.isPlain || appearance.indicatesFocusInLabel),
-                columns: hasCaps ? 1..<max(1, buffer.width - 1) : nil)
+                columns: hasCaps ? 1..<max(1, buffer.width - 1) : nil, context: context)
+    }
+}
+
+extension RenderContext {
+    /// Whether a control says its state in attributes and glyphs, not by colour alone:
+    /// at ``ColorDepth/noColor``, where they are all it has, and wherever the person
+    /// asked for cues that don't rest on colour
+    /// (``EnvironmentValues/accessibilityDifferentiateWithoutColor``: macOS's
+    /// Differentiate Without Colour where they're at this machine, or
+    /// `TUI_DIFFERENTIATE_WITHOUT_COLOR`), over the colours. The one test every
+    /// control's no-colour cues ask, so that they all turn on together.
+    package var statesWithoutColor: Bool {
+        ColorDepth.current == .noColor || environment.accessibilityDifferentiateWithoutColor
     }
 }

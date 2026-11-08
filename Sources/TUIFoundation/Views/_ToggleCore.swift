@@ -851,7 +851,7 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             // the toggle is on, and reversing it would say the opposite.
             buffer = built.buffer.reversedWithoutColor(
                 if: isFocused && !isDisabled, rows: 0..<built.clickHeight,
-                columns: built.clickWidth > built.indent ? built.indent..<built.clickWidth : nil)
+                columns: built.clickWidth > built.indent ? built.indent..<built.clickWidth : nil, context: context)
             clickWidth = built.clickWidth
             clickHeight = built.clickHeight
             contentIndent = built.indent
@@ -876,7 +876,7 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             contentIndent = 0
         }
 
-        buffer = buffer.fadedWithoutColor(if: isDisabled)
+        buffer = buffer.fadedWithoutColor(if: isDisabled, context: context)
 
         // What the toggle governs, under it and indented to its label. Drawn
         // whether the toggle is on or off — so the rows below do not move as it

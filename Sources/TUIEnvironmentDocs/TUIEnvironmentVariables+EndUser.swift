@@ -71,7 +71,7 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_DIFFERENTIATE_WITHOUT_COLOR", .endUser, .accessibility,
             values: "`1`, `0`",
-            effect: "`1`: asks the program for cues that don't rest on colour alone, where it has them. `0`: doesn't, even with the setting of that name on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on.",
+            effect: "`1`: asks the program for cues that don't rest on colour alone, where it has them. TUI's own controls show the keyboard focus in reverse video and a disabled control faint, over their colours, and mark a table's selected rows with a dot. `0`: doesn't, even with the setting of that name on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on.",
             code: .cannotOverride("`accessibilityDifferentiateWithoutColor` is read-only, as in SwiftUI. `_accessibilityDifferentiateWithoutColor` writes it for a preview or a test.")),
         TUIEnvironmentVariable(
             "TUI_INCREASE_CONTRAST", .endUser, .accessibility,

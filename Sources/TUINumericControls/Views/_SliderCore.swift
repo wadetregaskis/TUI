@@ -243,9 +243,10 @@ struct _SliderCore: View, Renderable, Layoutable {
         let rightArrow = Self.trackLeft(gap: gap) + drawnTrackWidth + gap
         var buffer = FrameBuffer(
             lines: [content] + tickRows(drawnTrackWidth: drawnTrackWidth, isDisabled: isDisabled, context: context))
-            .reversedWithoutColor(if: isFocused && !isDisabled, rows: 0..<1, columns: 0..<1)
-            .reversedWithoutColor(if: isFocused && !isDisabled, rows: 0..<1, columns: rightArrow..<(rightArrow + 1))
-            .fadedWithoutColor(if: isDisabled)
+            .reversedWithoutColor(if: isFocused && !isDisabled, rows: 0..<1, columns: 0..<1, context: context)
+            .reversedWithoutColor(
+                if: isFocused && !isDisabled, rows: 0..<1, columns: rightArrow..<(rightArrow + 1), context: context)
+            .fadedWithoutColor(if: isDisabled, context: context)
         buffer.opacityRegions += valueClaim.map { [$0] } ?? []
         // The track's own claims, in the track's coordinates, moved to where the
         // layout actually puts it: `"◀ "`, two cells at `.regular`, which

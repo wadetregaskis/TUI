@@ -565,7 +565,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
                 width: context.environment.stepperValueWidth ?? boundsWidth())
         )
 
-        var buffer = FrameBuffer(text: content).statingWithoutColor(focused: isFocused, disabled: isDisabled)
+        var buffer = FrameBuffer(text: content).statingWithoutColor(focused: isFocused, disabled: isDisabled, context: context)
         buffer.opacityRegions += valueClaim.map { [$0] } ?? []
         if !context.isMeasuring {
             buffer.animatedCells = arrowRuns(

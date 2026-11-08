@@ -113,6 +113,8 @@ An app draws without colour under `NO_COLOR`, among others, and where the termin
 
 Without colour, a control says with an attribute what it would have said in colour. The focus is reverse video, on a button's face, a checkbox's label, a slider's arrows or a list's cursor row, and a scroll bar's thumb turns solid. Disabled is faint, and so is a text field's prompt. Nothing breathes except a text cursor's blink and a list's cursor row, so a focused control doesn't wake the app, and an indeterminate `ProgressView` that only changes colour sweeps instead. A gradient drawn as a picture goes back to cells and a list's hairlines go, since each is a colour sent as a picture. An ``Image`` keeps its pixels where the terminal draws pictures, since it's the app's content rather than its colouring. In text characters it's drawn in shades, without colour.
 
+The same cues are drawn over the colours when the person asks for cues that don't rest on colour alone: macOS's Differentiate without colour, read when they're at the machine the app runs on, or `TUI_DIFFERENTIATE_WITHOUT_COLOR=1`. The focus is then reverse video and a disabled control faint at any colour depth, a `Table` marks its selected rows with `●`, and a radio button keeps its `●` for the selected option. Your own views can read the same setting as `accessibilityDifferentiateWithoutColor`.
+
 ## See Also
 
 - <doc:EnvironmentVariables>

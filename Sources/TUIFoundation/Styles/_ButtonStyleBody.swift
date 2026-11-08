@@ -27,7 +27,7 @@ struct _ButtonStyleBody: View, Renderable {
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let sized = sized(in: context)
-        return sized.statingStateWithoutColor(sized.draw(context: context))
+        return sized.statingStateWithoutColor(sized.draw(context: context), context: context)
     }
 
     /// This body with its appearance at the ``ControlSize`` and

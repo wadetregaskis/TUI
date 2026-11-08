@@ -34,6 +34,9 @@ struct DisabledFaintTests {
     /// A line with a reset inside it, which a bare wrapper would die at.
     private let styledLine = "\u{1B}[1mOK\u{1B}[0m Cancel"
 
+    /// Where the buffers are drawn: an environment with nothing asked of it.
+    private let context = RenderContext(availableWidth: 20, availableHeight: 1)
+
     @Test("Only Warp with a light background is said not to draw faint")
     func decision() {
         #expect(!TerminalClient.drawsFaint(on: .warp, prefersDark: false))
@@ -48,7 +51,7 @@ struct DisabledFaintTests {
     func italicWhereFaintIsLost() {
         let line = TerminalClient.$drawsFaintPin.withValue(false) {
             ColorDepth.withCurrent(.noColor) {
-                FrameBuffer(lines: [styledLine]).fadedWithoutColor(if: true).lines[0]
+                FrameBuffer(lines: [styledLine]).fadedWithoutColor(if: true, context: context).lines[0]
             }
         }
         #expect(line.stripped == "OK Cancel")
@@ -61,7 +64,7 @@ struct DisabledFaintTests {
     func unchangedWhereFaintShows() {
         let line = TerminalClient.$drawsFaintPin.withValue(true) {
             ColorDepth.withCurrent(.noColor) {
-                FrameBuffer(lines: [styledLine]).fadedWithoutColor(if: true).lines[0]
+                FrameBuffer(lines: [styledLine]).fadedWithoutColor(if: true, context: context).lines[0]
             }
         }
         #expect(line == ANSIRenderer.applyPersistentDim(styledLine))
@@ -72,7 +75,7 @@ struct DisabledFaintTests {
     func colourDepthLeftAlone() {
         let line = TerminalClient.$drawsFaintPin.withValue(false) {
             ColorDepth.withCurrent(.truecolor) {
-                FrameBuffer(lines: [styledLine]).fadedWithoutColor(if: true).lines[0]
+                FrameBuffer(lines: [styledLine]).fadedWithoutColor(if: true, context: context).lines[0]
             }
         }
         #expect(line == styledLine)
