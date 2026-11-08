@@ -404,4 +404,43 @@ struct FileImporterPanelTests {
         driver.press(.home)
         #expect(stored(keys.width) == nil && stored(keys.height) == nil)
     }
+
+    @Test("A saved size bigger than the terminal is clamped to it on opening and on resizing, and kept")
+    func savedSizeIsClampedToTheTerminal() async throws {
+        // The size stays in cells (owner, 2026-11-08): it decides how much is
+        // visible, and the terminal's size is the only thing that limits it.
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver(width: 80, height: 24) { panel(fixture, caller: caller) }
+        let keys = FilePanelRequest.sizeStorageKeys(for: nil, isSave: false)
+        driver.storage.setValue(300, forKey: keys.width)
+        driver.storage.setValue(100, forKey: keys.height)
+
+        /// The panel's width and height as drawn, from its bottom corners (the
+        /// right one is the resize grip, `╝`) and its top-left one, or `nil`
+        /// where a corner is off the screen.
+        func drawnSize() -> (width: Int, height: Int)? {
+            let rows = driver.screen().split(separator: "\n", omittingEmptySubsequences: false).map(Array.init)
+            guard let top = rows.firstIndex(where: { $0.contains("╭") }),
+                let bottom = rows.lastIndex(where: { $0.contains("╝") }),
+                let left = rows[bottom].firstIndex(of: "╰"), let right = rows[bottom].firstIndex(of: "╝")
+            else { return nil }
+            return (right - left + 1, bottom - top + 1)
+        }
+
+        await driver.waitFor("notes.md")
+        let opened = try #require(drawnSize(), "the whole panel is on the screen")
+        #expect(opened.width <= 80 && opened.height <= 24)
+
+        driver.app.resize(width: 60, height: 20)
+        let shrunk = try #require(drawnSize(), "the whole panel is still on the screen")
+        #expect(shrunk.width <= 60 && shrunk.height <= 20)
+
+        #expect(driver.storage.entry(forKey: keys.width, as: Int.self).value == 300, "clamping is not saving")
+        #expect(driver.storage.entry(forKey: keys.height, as: Int.self).value == 100)
+        driver.app.resize(width: 320, height: 110)
+        let grown = try #require(drawnSize())
+        #expect(grown.width == 300 && grown.height == 100, "the saved size comes back where it fits")
+    }
 }
