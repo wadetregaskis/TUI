@@ -4,6 +4,11 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**Typing a `DatePicker` component changes only that component.** Each digit was applied to the date the previous one
+had written, so the partial values re-clamped the rest: typing the year 2027 in a range starting 15 March 2020 gave
+15 March 2027, and typing 2024 over 29 February gave the 28th. Each digit is now applied to the date as it was before
+the first.
+
 **A click on another `DatePicker` component starts typing afresh there.** The digits half-typed into the component
 left behind were kept, so the next digit was appended to them: "2" into the year, a click on the month and "5"
 set the month to 25, clamped to 12.

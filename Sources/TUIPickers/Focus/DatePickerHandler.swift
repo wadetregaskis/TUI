@@ -50,7 +50,19 @@ final class DatePickerHandler: PersistedFocusable {
     var onActivate: (() -> Void)?
 
     /// Digits typed into the active component before it auto-advances.
-    private var digitBuffer = ""
+    private var digitBuffer = "" {
+        didSet { if digitBuffer.isEmpty { typingBase = nil } }
+    }
+
+    /// The date as it was before the first of the ``digitBuffer``'s digits:
+    /// what each partial value is applied to, so only the component being
+    /// typed changes. Applied to the date the previous digit wrote instead,
+    /// each partial year re-clamped the day to its month and the date to the
+    /// range from an already-damaged date: "2027" went through years 2, 20 and
+    /// 202 at the range's floor and kept the floor's month and day, and
+    /// "2024" over 29 February went through year 2 and lost the leap day.
+    /// `nil` while no digits are pending.
+    private var typingBase: Date?
 
     init(focusID: String, selection: Binding<Date>, model: DateFieldModel, canBeFocused: Bool = true) {
         self.focusID = focusID
@@ -163,13 +175,15 @@ final class DatePickerHandler: PersistedFocusable {
     }
 
     private func typeDigit(_ digit: Int) {
+        let base = typingBase ?? selection.wrappedValue
         digitBuffer += String(digit)
+        typingBase = base
         // Every character in the buffer is an ASCII digit that `String(digit)`
         // wrote, and the buffer is cleared once it reaches `model.width(kind)`,
         // so this parse can neither fail nor overflow.
         let raw = Int(digitBuffer) ?? 0
         let kind = activeKind
-        selection.wrappedValue = model.setting(date: selection.wrappedValue, kind: kind, to: raw)
+        selection.wrappedValue = model.setting(date: base, kind: kind, to: raw)
         // Advance once the component is full (max digits typed).
         if digitBuffer.count >= model.width(kind) {
             digitBuffer = ""
