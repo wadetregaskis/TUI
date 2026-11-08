@@ -46,7 +46,10 @@ struct ScrollbarPulseFloorTests {
                         .contrastRatio(against: track.downsampledToPalette256())
                     #expect(
                         ratio >= ViewConstants.chromeSeparationFloor,
-                        "\(palette.name) at \(depth): the lifted end of the breath is \(String(unsafeFormat: "%.2f", ratio)):1 from its own track")
+                        """
+                        \(palette.name) at \(depth): the lifted end of the breath is \
+                        \(ratio.formatted(.number.precision(.fractionLength(2)))):1 from its own track
+                        """)
                 }
             }
         }
@@ -123,7 +126,7 @@ struct ScrollbarPulseFloorTests {
                     ratio >= ViewConstants.chromePulseFloor,
                     """
                     \(palette.name): the two ends of the breath stand \
-                    \(String(unsafeFormat: "%.2f", ratio)):1 apart, which is not a breath
+                    \(ratio.formatted(.number.precision(.fractionLength(2)))):1 apart, which is not a breath
                     """)
             }
         }
@@ -170,8 +173,8 @@ struct ScrollbarPulseFloorTests {
                         stands >= groove,
                         """
                         \(palette.name) at \(depth): the resting thumb stands \
-                        \(String(unsafeFormat: "%.2f", stands)):1 off the page where its own track \
-                        stands \(String(unsafeFormat: "%.2f", groove)):1
+                        \(stands.formatted(.number.precision(.fractionLength(2)))):1 off the page where its own track \
+                        stands \(groove.formatted(.number.precision(.fractionLength(2)))):1
                         """)
                 }
             }
@@ -206,7 +209,7 @@ struct ScrollbarTrackTests {
                 #expect(
                     ratio >= ViewConstants.chromeSeparationFloor,
                     """
-                    \(palette.name): the track stands \(String(unsafeFormat: "%.2f", ratio)):1 from the \
+                    \(palette.name): the track stands \(ratio.formatted(.number.precision(.fractionLength(2)))):1 from the \
                     accent drawn on it
                     """)
             }
@@ -227,7 +230,7 @@ struct ScrollbarTrackTests {
                 #expect(
                     ratio >= ViewConstants.chromeGrooveFloor,
                     """
-                    \(palette.name): the track stands \(String(unsafeFormat: "%.2f", ratio)):1 from the \
+                    \(palette.name): the track stands \(ratio.formatted(.number.precision(.fractionLength(2)))):1 from the \
                     page, which is not a groove
                     """)
             }

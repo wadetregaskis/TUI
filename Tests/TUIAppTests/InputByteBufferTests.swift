@@ -284,9 +284,13 @@ struct InputByteBufferTests {
         var buffer = InputByteBuffer(minimumCapacity: 8)
         buffer.append(contentsOf: [1, 2, 3, 4, 5, 6])
         buffer.removeFirst(2)
-        unsafe #expect(buffer.withUnsafeBufferPointer(prefix: 3) { Array($0) } == [3, 4, 5])
-        unsafe #expect(buffer.withUnsafeBufferPointer(prefix: 0) { $0.count } == 0)
-        unsafe #expect(buffer.withUnsafeBufferPointer(prefix: 4) { Array($0) } == [3, 4, 5, 6])
+        // Read before each `#expect`, whose expansion an `unsafe` outside it does not reach.
+        let three = unsafe buffer.withUnsafeBufferPointer(prefix: 3) { unsafe Array($0) }
+        let none = unsafe buffer.withUnsafeBufferPointer(prefix: 0) { $0.count }
+        let four = unsafe buffer.withUnsafeBufferPointer(prefix: 4) { unsafe Array($0) }
+        #expect(three == [3, 4, 5])
+        #expect(none == 0)
+        #expect(four == [3, 4, 5, 6])
         #expect(buffer.bytesMoved == 0, "lending copies nothing")
     }
 

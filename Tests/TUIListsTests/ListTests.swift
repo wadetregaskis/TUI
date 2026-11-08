@@ -712,7 +712,7 @@ struct ListRenderingTests {
         let dispatcher = context.environment.mouseEventDispatcher!
         dispatcher.setActiveSupport(.standard)
 
-        let items = (0..<100).map { unsafe String(unsafeFormat: "row-%03d", $0) }
+        let items = (0..<100).map { "row-" + String(repeating: "0", count: 3 - String($0).count) + String($0) }
         // A fixed block on top + a trailing Spacer force the List to render into
         // only part of the content area, so its measured height (the full area)
         // exceeds its rendered height — the condition that triggered the bug.

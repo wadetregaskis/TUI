@@ -464,6 +464,14 @@ flag: they want `unsafe` on a call whose closure takes a pointer, which 6.4
 calls unnecessary, and no one spelling suits both, so the code is marked as
 6.4 checks it.
 
+In a test, an `unsafe` in front of `#expect` or `#require` does not reach into
+the macro's expansion, and the warning names the expansion, not your file
+(`macro expansion #expect:1:157: warning: …`, the line after it says where it
+came from). Read the unsafe value into a `let` marked `unsafe` above the
+expectation. Format a number in a message with Swift's own formatting
+(`ratio.formatted(.number.precision(.fractionLength(2)))`, `String(value,
+radix: 16, uppercase: true)`), not a printf format, which is unsafe.
+
 A type holding unsafe storage must say so. `@safe`, which claims the storage
 encapsulated and silences the checker at every use, is refused by the SwiftLint
 rule `safe_escape`; the one exception (`ValueHashPlans`) says why on its line,

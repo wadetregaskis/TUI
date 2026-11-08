@@ -139,7 +139,7 @@ struct FilePanelTextPreviewTests {
         // In the language the app is in, and the size in the panel's locale.
         let german = Locale(identifier: "de_DE")
         let size = ByteCountFormatStyle(style: .file, locale: german).format(try #require(excerpt.omittedBytes))
-        #expect(excerpt.shown(locale: german).hasSuffix("\n…\n" + String(unsafeFormat: template, size)))
+        #expect(excerpt.shown(locale: german).hasSuffix("\n…\n" + template.replacingOccurrences(of: "%@", with: size)))
 
         // Check translation in an isolated service without mutating the shared service
         let configDir = NSTemporaryDirectory() + "tuikit-loc-\(UUID().uuidString)"

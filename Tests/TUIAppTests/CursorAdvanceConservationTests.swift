@@ -50,6 +50,12 @@ struct CursorAdvanceConservationTests {
         text.cursorAdvance { TerminalClient.cursorAdvance(of: $0, on: program) }
     }
 
+    /// `scalar` as `U+` and at least four uppercase hex digits.
+    private func codePoint(_ scalar: Unicode.Scalar) -> String {
+        let hex = String(scalar.value, radix: 16, uppercase: true)
+        return "U+" + String(repeating: "0", count: max(0, 4 - hex.count)) + hex
+    }
+
     // MARK: - Every cluster, every host
 
     @Test(
@@ -146,7 +152,7 @@ struct CursorAdvanceConservationTests {
             let emitted = TerminalClient.compensating(row, for: program)
             #expect(
                 landing(emitted, on: program) == claim,
-                "\(cluster.unicodeScalars.map { String(unsafeFormat: "U+%04X", $0.value) }) on \(program.rawValue)")
+                "\(cluster.unicodeScalars.map(codePoint)) on \(program.rawValue)")
         }
     }
 

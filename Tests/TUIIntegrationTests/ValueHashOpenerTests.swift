@@ -79,7 +79,8 @@ struct ValueHashOpenerTests {
         if let boxType { checked.insert(ObjectIdentifier(boxType)) }
         unsafe #expect(opened.plan(for: AnyLayout.self).pointee.stepDescriptions == ["0: existential opened by AnyLayoutBox"])
         // A new opener fails here until it is checked above.
-        unsafe #expect(Set(ValueHashOpener.tuikit.map { ObjectIdentifier($0.type) }) == checked)
+        let openers = unsafe Set(ValueHashOpener.tuikit.map { unsafe ObjectIdentifier($0.type) })
+        #expect(openers == checked)
     }
 
     @Test("Different payloads behind one opener hash apart")

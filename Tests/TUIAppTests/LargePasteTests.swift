@@ -273,7 +273,7 @@ struct LargePasteTests {
         await #expect(processExitsWith: .success) {
             let content = [UInt8](repeating: 0xE9, count: 16 << 20)
             let before = Self.peakResidentBytes()
-            let text = content.withUnsafeBufferPointer { Terminal.latin1Text($0) }
+            let text = content.withUnsafeBufferPointer { unsafe Terminal.latin1Text($0) }
             let grown = Self.peakResidentBytes() - before
             #expect(text.utf8.count == 2 * content.count)
             #expect(text.unicodeScalars.allSatisfy { $0 == "\u{E9}" })

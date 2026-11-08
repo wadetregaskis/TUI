@@ -150,7 +150,7 @@ struct LabelContrastTests {
                     painted.renderedRatio >= ViewConstants.labelContrastFloor - 0.01,
                     """
                     \(control.name) under \(palette.name) is at \
-                    \(String(unsafeFormat: "%.2f", painted.renderedRatio)):1 as rendered, below the \
+                    \(painted.renderedRatio.formatted(.number.precision(.fractionLength(2)))):1 as rendered, below the \
                     \(ViewConstants.labelContrastFloor):1 floor
                     """)
             }
@@ -189,7 +189,7 @@ struct LabelContrastTests {
                     ratio >= ViewConstants.disabledLabelContrastFloor - 0.01,
                     """
                     \(control.name) under \(palette.name) is at \
-                    \(String(unsafeFormat: "%.2f", ratio)):1, below the \
+                    \(ratio.formatted(.number.precision(.fractionLength(2)))):1, below the \
                     \(ViewConstants.disabledLabelContrastFloor):1 disabled floor
                     """)
             }
@@ -243,8 +243,8 @@ struct LabelContrastTests {
                 offRatio <= onRatio + tolerance,
                 """
                 \(palette.name) inverts the states: disabled \
-                \(String(unsafeFormat: "%.2f", offRatio)):1 vs enabled \
-                \(String(unsafeFormat: "%.2f", onRatio)):1
+                \(offRatio.formatted(.number.precision(.fractionLength(2)))):1 vs enabled \
+                \(onRatio.formatted(.number.precision(.fractionLength(2)))):1
                 """)
         }
     }

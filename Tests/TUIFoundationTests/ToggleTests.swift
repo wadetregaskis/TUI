@@ -470,7 +470,7 @@ struct ToggleHoverTests {
             let ratio = hovered.contrastRatio(against: page)
             #expect(
                 ratio >= ViewConstants.labelContrastFloor,
-                "\(palette.name): a hovered label at \(String(unsafeFormat: "%.2f", ratio)):1")
+                "\(palette.name): a hovered label at \(ratio.formatted(.number.precision(.fractionLength(2)))):1")
         }
     }
 

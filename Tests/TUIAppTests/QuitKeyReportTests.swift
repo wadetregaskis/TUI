@@ -99,10 +99,12 @@ struct QuitKeyReportTests {
     @Test("It waits only where SIGQUIT ends the process: TUI's handler or the default")
     func waitsOnlyWhereTheSignalEnds() {
         let foreign: @convention(c) (Int32) -> Void = { _ in }
+        // Out of `#expect`, whose expansion an `unsafe` outside it does not reach.
+        let foreignAddress = unsafe unsafeBitCast(foreign, to: Int.self)
         #expect(FatalSignalTerminalRestore.endsTheProcess(handlerAddress: 0), "SIG_DFL")
         #expect(FatalSignalTerminalRestore.endsTheProcess(handlerAddress: FatalSignalTerminalRestore.handlerAddress))
         #expect(!FatalSignalTerminalRestore.endsTheProcess(handlerAddress: 1), "SIG_IGN")
-        #expect(!FatalSignalTerminalRestore.endsTheProcess(handlerAddress: unsafeBitCast(foreign, to: Int.self)))
+        #expect(!FatalSignalTerminalRestore.endsTheProcess(handlerAddress: foreignAddress))
     }
 }
 

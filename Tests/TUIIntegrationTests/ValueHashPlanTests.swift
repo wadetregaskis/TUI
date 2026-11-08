@@ -356,14 +356,14 @@ struct ValueHashPlanTests {
     /// runtime's tuple has it at 8.
     @Test("A metatype bypasses, and so does an optional or a tuple holding one")
     func metatypesBypass() {
-        // Stored, and as the runtime has it.
+        // Stored, and as the runtime has it. A pointer's size is read out of
+        // `#expect`, whose expansion an `unsafe` outside it does not reach.
+        let pointerSize = unsafe MemoryLayout<UnsafeRawPointer>.size
         #expect(MemoryLayout<HoldsMetatype>.size == 0)
         #expect(MemoryLayout<HoldsMetatypeOptionalAlone>.size == 1)
-        #expect(MemoryLayout<Int.Type>.size == MemoryLayout<UnsafeRawPointer>.size)
-        #expect(MemoryLayout<Int.Type?>.size == MemoryLayout<UnsafeRawPointer>.size)
-        #expect(
-            RuntimeFields.fields(of: (UInt8, Int.Type?).self).map(\.offset)
-                == [0, MemoryLayout<UnsafeRawPointer>.size])
+        #expect(MemoryLayout<Int.Type>.size == pointerSize)
+        #expect(MemoryLayout<Int.Type?>.size == pointerSize)
+        #expect(RuntimeFields.fields(of: (UInt8, Int.Type?).self).map(\.offset) == [0, pointerSize])
         // A type parameter's is a pointer, and bypasses too: nothing the
         // runtime says tells it from a thin one, nor a class's from either.
         let types: [Any.Type] = [

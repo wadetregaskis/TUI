@@ -80,7 +80,7 @@ struct PaletteSurfaceTests {
             let raw = plane.lightnessDifference(from: page)
             #expect(
                 raw >= SystemPalette.planeSeparation,
-                "\(palette.id): the plane is ΔL* \(String(unsafeFormat: "%.1f", raw)) off the page")
+                "\(palette.id): the plane is ΔL* \(raw.formatted(.number.precision(.fractionLength(1)))) off the page")
         }
     }
 
@@ -98,7 +98,7 @@ struct PaletteSurfaceTests {
             let raw = field.lightnessDifference(from: page)
             #expect(
                 raw >= SystemPalette.wellSeparation,
-                "\(palette.id): the field is ΔL* \(String(unsafeFormat: "%.1f", raw)) off the page")
+                "\(palette.id): the field is ΔL* \(raw.formatted(.number.precision(.fractionLength(1)))) off the page")
         }
     }
 
@@ -117,7 +117,7 @@ struct PaletteSurfaceTests {
                 let rendered = field.lightnessDifference(from: page)
                 #expect(
                     rendered >= SystemPalette.wellSeparation / 2,
-                    "\(palette.id): the field quantises to ΔL* \(String(unsafeFormat: "%.1f", rendered))")
+                    "\(palette.id): the field quantises to ΔL* \(rendered.formatted(.number.precision(.fractionLength(1))))")
             }
         }
     }
@@ -130,7 +130,7 @@ struct PaletteSurfaceTests {
         for palette in palettes {
             let tab = palette.liftedBackground.resolve(with: palette)
             let field = palette.fieldBackground(on: tab).resolve(with: palette)
-            let gap = unsafe String(unsafeFormat: "%.1f", field.lightnessDifference(from: tab))
+            let gap = field.lightnessDifference(from: tab).formatted(.number.precision(.fractionLength(1)))
             #expect(
                 SystemPalette.isVisiblySeparate(
                     field, from: tab, separation: SystemPalette.wellSeparation),
@@ -152,8 +152,8 @@ struct PaletteSurfaceTests {
             let field = palette.fieldBackground(on: tab).resolve(with: palette)
             let tabGap = tab.lightnessDifference(from: page)
             let fieldGap = field.lightnessDifference(from: page)
-            let gaps = unsafe "field ΔL* \(String(unsafeFormat: "%.1f", fieldGap)), "
-                + "tab ΔL* \(String(unsafeFormat: "%.1f", tabGap))"
+            let gaps = "field ΔL* \(fieldGap.formatted(.number.precision(.fractionLength(1)))), "
+                + "tab ΔL* \(tabGap.formatted(.number.precision(.fractionLength(1))))"
             #expect(fieldGap > tabGap, "\(palette.id): the ladder folded back — \(gaps)")
             #expect(
                 field != page, "\(palette.id): the field came out the page colour exactly")

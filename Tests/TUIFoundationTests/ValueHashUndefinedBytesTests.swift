@@ -280,13 +280,14 @@ struct ValueHashUndefinedBytesTests {
         // anything is written there.
         let box = withUnsafeBytes(of: erased) { unsafe $0.load(as: UnsafeMutableRawPointer.self) }
         let content = unsafe box + 16
-        try #require(
-            withUnsafeBytes(of: row) { source in
-                (0..<source.count).allSatisfy { index in
-                    gaps.contains { $0.contains(index) }
-                        || source[index] == content.load(fromByteOffset: index, as: UInt8.self)
-                }
-            })
+        // Read before the `#require`, whose expansion an `unsafe` outside it does not reach.
+        let copied = withUnsafeBytes(of: row) { source in
+            (0..<source.count).allSatisfy { index in
+                unsafe gaps.contains { $0.contains(index) }
+                    || source[index] == content.load(fromByteOffset: index, as: UInt8.self)
+            }
+        }
+        try #require(copied)
         let unspecified = ProposedSize(width: nil, height: nil)
         unsafe poke(content, gaps, 0xAA)
         let first = measureChild(erased, proposal: unspecified, context: context)
