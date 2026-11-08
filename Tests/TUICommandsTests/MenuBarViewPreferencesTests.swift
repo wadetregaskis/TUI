@@ -15,7 +15,6 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICommands
 @testable import TUIFoundation
-@testable import TUITerminalHost
 import TUITesting
 
 // MARK: - Fixtures
