@@ -58,8 +58,9 @@ struct SharedURLImageTests {
         await settle(until: {
             server.requestCount == keys.count && keys.contains { cache.get($0) != nil }
         })
-        // The second landing, and both hops to the main actor to publish.
-        try await Task.sleep(for: .milliseconds(200))
+        // The second landing, and both hops to the main actor to publish: the
+        // load tasks' own ends.
+        await finishStartedTasks(of: harness.tui.lifecycle)
     }
 
     /// Draws `view` until both of its pictures show, with nothing left waiting.

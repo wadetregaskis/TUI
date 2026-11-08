@@ -27,6 +27,7 @@ final class RefreshGate: @unchecked Sendable {
     private let lock = NSLock()
     private var open = false
     private var entries = 0
+    private var parked: [CheckedContinuation<Void, Never>] = []
 
     /// How many refresh bodies have reached the gate.
     ///
@@ -50,15 +51,37 @@ final class RefreshGate: @unchecked Sendable {
     /// and it never showed; with waits that actually wait, several bodies spun
     /// at once and starved the pool, failing five tests together in three full
     /// runs out of five. Parked, a held body occupies nothing.
+    ///
+    /// Parked on a continuation that ``release()`` resumes, not on a 1 ms
+    /// sleep polled until the gate opens: that occupied nothing either, but
+    /// woke a thousand times a second to find out what the release can say.
+    /// Cancellation does not open the gate, as it did not open the polled one.
     func hold() async {
-        lock.withLock { entries += 1 }
-        while lock.withLock({ !open }) {
-            try? await Task.sleep(for: .milliseconds(1))
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let mustWait = lock.withLock { () -> Bool in
+                entries += 1
+                if !open { parked.append(continuation) }
+                return !open
+            }
+            if !mustWait { continuation.resume() }
         }
     }
 
     /// Lets every waiting body finish.
-    func release() { lock.withLock { open = true } }
+    func release() {
+        let waiting = lock.withLock { () -> [CheckedContinuation<Void, Never>] in
+            open = true
+            defer { parked.removeAll() }
+            return parked
+        }
+        for body in waiting { body.resume() }
+    }
+
+    /// A body still held when the test is done goes on, rather than leaking
+    /// its continuation.
+    deinit {
+        for body in parked { body.resume() }
+    }
 
     /// Shuts the gate again, for a test that runs a second body through it.
     func reset() { lock.withLock { open = false } }

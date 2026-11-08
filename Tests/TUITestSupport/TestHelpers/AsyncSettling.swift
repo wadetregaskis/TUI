@@ -86,6 +86,8 @@ func settle(
         }
         let turn = wait.nextTurn()
         if wait.isOverdue || turn.isMultiple(of: 50) {
+            // A deliberate nap, which `check-ratchets.py` counts: a
+            // backoff, not a wait for anything, for the measured reason above.
             try? await Task.sleep(for: .milliseconds(1))
         } else {
             await Task.yield()
@@ -103,6 +105,16 @@ func settle(
 @MainActor
 func yieldToSpawnedWork() async {
     for _ in 0..<20 { await Task.yield() }
+}
+
+/// Waits for every task `lifecycle` has started — a view's `.task`, an image's
+/// load — to finish: the end of that work itself, rather than a sleep long
+/// enough for it on a good day.
+///
+/// Only for tasks that end; one that loops until cancelled waits for ever.
+@MainActor
+func finishStartedTasks(of lifecycle: LifecycleManager) async {
+    for task in lifecycle.startedTasksForTesting { await task.value }
 }
 
 #endif

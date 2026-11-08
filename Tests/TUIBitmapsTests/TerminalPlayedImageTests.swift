@@ -58,12 +58,10 @@ struct TerminalPlayedImageTests {
     /// Draws at `start` until the frames have landed and the view has asked for its
     /// next one.
     private func untilPlaying(_ app: HeadlessApp, at start: Int64) async throws {
-        for _ in 0..<2_000 {
+        await settle(until: {
             draw(app, at: start)
-            if app.nextWake(after: start) != nil { return }
-            try await Task.sleep(nanoseconds: 2_000_000)
-        }
-        Issue.record("the frames never landed")
+            return app.nextWake(after: start) != nil
+        })
     }
 
     /// Follows the wakes until there are none, and says when that was.
@@ -180,12 +178,12 @@ struct TerminalPlayedImageTests {
     @Test("Under .hidden() the terminal is never told to run it")
     func hidden() async throws {
         let path = try threeFrames().write()
-        try await KittyGraphics.withPlaysFramesItself(true) {
+        await KittyGraphics.withPlaysFramesItself(true) {
             let app = HeadlessApp(PageApp { picture(path).hidden() }, width: 20, height: 10)
             app.recordsGraphics = true
             for _ in 0..<20 {
                 draw(app, at: 0)
-                try await Task.sleep(nanoseconds: 2_000_000)
+                await finishStartedTasks(of: app.lifecycle)
             }
             #expect(!app.graphicsWritten.contains("s=3"))
             #expect(app.nextWake(after: 0) == nil)

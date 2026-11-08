@@ -57,20 +57,19 @@ struct AnimatedImagePlaybackTests {
     private func untilPlaying(
         _ app: HeadlessApp, at start: Int64, draw: (() -> Void)? = nil
     ) async throws {
-        for _ in 0..<2_000 {
+        await TUITestSupport.settle(until: {
             if let draw { draw() } else { app.frame(atNanos: start) }
-            if app.nextWake(after: start) != nil { return }
-            try await Task.sleep(nanoseconds: 2_000_000)
-        }
-        Issue.record("the frames never landed")
+            return app.nextWake(after: start) != nil
+        })
     }
 
     /// Lets anything already started finish, however long a decode could take,
-    /// then draws: for a test that nothing is asked for afterwards.
+    /// then draws: for a test that nothing is asked for afterwards. Awaits the
+    /// decodes themselves, a frame at a time, where it slept 5 ms a frame.
     private func settle(_ app: HeadlessApp, at start: Int64) async throws {
         for _ in 0..<12 {
             app.frame(atNanos: start)
-            try await Task.sleep(nanoseconds: 5_000_000)
+            await finishStartedTasks(of: app.lifecycle)
         }
     }
 

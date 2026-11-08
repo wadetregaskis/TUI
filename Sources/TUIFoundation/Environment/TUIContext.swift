@@ -267,6 +267,13 @@ extension LifecycleManager {
         }
     }
 
+    /// Every task started and not cancelled since, finished or not — for a test
+    /// to await, where it would otherwise sleep and hope the work was done.
+    ///
+    /// Only for tasks that end: awaiting one that loops until cancelled (an
+    /// animation's) waits for ever.
+    package var startedTasksForTesting: [Task<Void, Never>] { Array(tasks.values) }
+
     /// Cancels and removes the task associated with the given token.
     package func cancelTask(token: String) {
         tasks[token]?.cancel()

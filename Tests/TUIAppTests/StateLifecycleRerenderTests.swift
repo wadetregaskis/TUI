@@ -144,7 +144,7 @@ struct StateLifecycleRerenderTests {
 
         // Frame 1 starts the task; the append lands asynchronously afterward.
         _ = renderFrame(view, context: ctx)
-        try? await Task.sleep(for: .milliseconds(80))
+        if let lifecycle = ctx.environment.lifecycle { await finishStartedTasks(of: lifecycle) }
         let frame2 = renderFrame(view, context: ctx)
 
         #expect(frame2.contains("beta"), "frame 2 should show 'beta' after the task ran — got:\n\(frame2)")

@@ -45,14 +45,15 @@ struct LifecycleModifierTests {
     }
 
     /// Renders `view` for `frames` frames, mimicking the run loop's per-frame
-    /// `beginRenderPass` / `endRenderPass` bracket, sleeping briefly between
-    /// frames so spawned `.task`s can run.
+    /// `beginRenderPass` / `endRenderPass` bracket, and waits between frames
+    /// for the `.task`s a frame started to finish, so that a duplicate one
+    /// would have run (and counted) before the next.
     private func renderFrames<V: View>(_ view: V, frames: Int, context: RenderContext) async {
         for _ in 0..<frames {
             context.environment.lifecycle?.beginRenderPass()
             _ = renderToBuffer(view, context: context)
             context.environment.lifecycle?.endRenderPass()
-            try? await Task.sleep(for: .milliseconds(15))
+            if let lifecycle = context.environment.lifecycle { await finishStartedTasks(of: lifecycle) }
         }
     }
 
@@ -107,7 +108,7 @@ struct LifecycleModifierTests {
         let frame1 = renderToBuffer(view, context: ctx).lines.joined(separator: "\n")
         #expect(frame1.contains("not run"), "frame 1 should show 'not run'")
 
-        try? await Task.sleep(for: .milliseconds(60))
+        if let lifecycle = ctx.environment.lifecycle { await finishStartedTasks(of: lifecycle) }
 
         ctx.environment.lifecycle?.beginRenderPass()
         let frame2 = renderToBuffer(view, context: ctx).lines.joined(separator: "\n")
