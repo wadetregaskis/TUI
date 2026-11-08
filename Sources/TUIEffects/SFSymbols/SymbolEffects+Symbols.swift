@@ -86,16 +86,21 @@ import TUIFoundation
         /// .symbolEffect(.pulse)
         /// ```
         ///
-        /// > Important: **Two of SF Symbols' effects are drawn: pulse and
-        /// > breathe.** A symbol in a terminal is one glyph in one cell, so what
-        /// > it can show is its ink fading toward what is behind it and back —
-        /// > pulse fades it to a third, breathe to two thirds (breathe's swell
-        /// > in size is not drawn). Bounce, scale, wiggle, rotate and variable
-        /// > colour need the symbol's layers or its geometry: they compile,
-        /// > being Apple's own types, and change nothing. Told apart by type,
-        /// > so `.pulse.byLayer` pulses as `.pulse` does. The options' speed is
-        /// > honoured; a repeat count is not, here — the effect breathes while
-        /// > it is active.
+        /// > Important: **Three of SF Symbols' effects are drawn: pulse,
+        /// > breathe and disappear.** A symbol in a terminal is one glyph in one
+        /// > cell, so what it can show is its ink fading toward what is behind
+        /// > it and back — pulse fades it to a third, breathe to two thirds
+        /// > (breathe's swell in size is not drawn) — or its absence: an active
+        /// > disappear leaves the glyph's cells blank, at once, where SF Symbols
+        /// > draws it off. Bounce, scale, wiggle and rotate need the symbol's
+        /// > geometry: they compile, being Apple's own types, and change
+        /// > nothing. Variable colour changes the opacity of a symbol's variable
+        /// > layers and "has no effect for non-variable color symbol images"
+        /// > (Symbols' own documentation), which a font's glyph is, so it
+        /// > changes nothing here either; appear, active, leaves the symbol
+        /// > shown. Told apart by type, so `.pulse.byLayer` pulses as `.pulse`
+        /// > does. The options' speed is honoured; a repeat count is not, here —
+        /// > the effect breathes while it is active.
         ///
         /// macOS only, as the Symbols framework is. An `Image(systemName:)`
         /// draws only where the terminal has the SF Symbols font (see
@@ -113,8 +118,13 @@ import TUIFoundation
             _ effect: T, options: SymbolEffectOptions = .default, isActive: Bool = true
         ) -> some View {
             let breath = isActive ? SymbolBreath(effect) : nil
+            let hides = isActive && effect is DisappearSymbolEffect
             let frameTicks = SymbolBreath.frameTicks(speed: options.tuikitSpeed)
             return transformEnvironment(\.symbolGlyphEffect) { inherited in
+                if hides {
+                    inherited = .hidden
+                    return
+                }
                 guard let breath else { return }
                 inherited = .breathing(breath, frameTicks: frameTicks)
             }

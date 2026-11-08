@@ -171,6 +171,25 @@
             #expect(environmentEffect { $0.symbolEffectsRemoved(false).symbolEffect(.pulse) } == .breathing(.pulse, frameTicks: 3))
         }
 
+        @Test("An active disappear hides the glyphs below, inner over outer; an appear or an inactive one leaves them")
+        func theDisappearEffect() {
+            #expect(environmentEffect { $0.symbolEffect(.disappear) } == .hidden)
+            #expect(environmentEffect { $0.symbolEffect(.disappear.down, isActive: true) } == .hidden)
+            #expect(environmentEffect { $0.symbolEffect(.disappear, isActive: false) } == nil)
+            #expect(environmentEffect { $0.symbolEffect(.appear) } == nil)
+            #expect(environmentEffect { $0.symbolEffect(.disappear).symbolEffect(.pulse) } == .hidden)
+            #expect(environmentEffect { $0.symbolEffect(.disappear, isActive: false).symbolEffect(.pulse) } == .breathing(.pulse, frameTicks: 3))
+        }
+
+        @Test("A hidden glyph leaves its cells blank, at its width")
+        func theHiddenGlyph() {
+            let (_, context) = harness()
+            let shown = renderToBuffer(_SymbolEffectGlyph(glyph: "@", effect: nil), context: context)
+            let hidden = renderToBuffer(_SymbolEffectGlyph(glyph: "@", effect: .hidden), context: context)
+            #expect(hidden.width == shown.width)
+            #expect(hidden.lines.map(\.stripped) == [" "])
+        }
+
         @Test("A breathing glyph is one run of a full breath, its ink fading and returning, drawn at the frame's step")
         func theBreathIsARun() {
             let (_, context) = harness()

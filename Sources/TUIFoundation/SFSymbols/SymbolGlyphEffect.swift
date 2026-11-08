@@ -58,6 +58,11 @@
         case breathing(SymbolBreath, frameTicks: Int)
         /// `cycles` breaths from `startNanos` on the frame clock, then still.
         case playing(SymbolBreath, frameTicks: Int, startNanos: Int64, cycles: Int)
+        /// Hidden, for as long as it is in the environment: an active
+        /// `.disappear`, which "makes the symbol hidden" (Symbols' own
+        /// documentation). The glyph's cells are left blank, at once: SF
+        /// Symbols draws the symbol off as it goes, which one glyph cannot.
+        case hidden
 
         /// How long a play lasts, in nanoseconds.
         package static func playLength(frameTicks: Int, cycles: Int) -> Int64 {
@@ -128,6 +133,10 @@
             guard let effect, !context.isMeasuring else { return (drawn(nil, context: context), false) }
             let now = context.environment.animationFrame.motionNanos
             switch effect {
+            case .hidden:
+                // Blank cells, the glyph's width, so the layout around it holds.
+                let width = drawn(nil, context: context).width
+                return (TUIView.renderToBuffer(Text(verbatim: String.spaces(width)), context: context), false)
             case .breathing(let breath, let frameTicks):
                 let frames = (0..<SymbolBreath.frameCount).map {
                     drawn(ink(breath.opacity(atFrame: $0), context: context), context: context).lines.first ?? ""

@@ -4,6 +4,9 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**An active `.symbolEffect(.disappear)` hides the symbol** (macOS). The glyph's cells are left blank while it is active,
+at once, where SF Symbols draws the symbol off; it was drawn as if no effect were set.
+
 **A `List` row's `.badge(_:)` with a modifier after it is still drawn.** `Text("Inbox").badge(5).padding()`, or with a
 `.foregroundStyle` or an `.onTapGesture` after the badge, drew the row with no badge; only environment writes were read
 through. A `.badgeProminence(_:)` written around such a modifier reaches the badge, as SwiftUI's does.
