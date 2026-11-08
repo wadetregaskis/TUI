@@ -14,11 +14,11 @@ import TUIFoundation
 /// A single notification in the service queue.
 ///
 /// Each entry carries the message, timing, and a unique identifier
-/// for lifecycle tracking. Entries are created by ``NotificationService/post(_:duration:)``
+/// for lifecycle tracking. Entries are created by ``NotificationService``'s `post` methods
 /// and drawn by ``NotificationOverlay``.
 struct NotificationEntry: Identifiable, Sendable {
-    /// Unique identifier for this notification.
-    let id: UUID
+    /// Unique identifier for this notification: what its post returned.
+    let id: NotificationID
 
     /// The notification message text.
     let message: String
@@ -26,8 +26,10 @@ struct NotificationEntry: Identifiable, Sendable {
     /// What it is about, which its colour and glyph say.
     let style: NotificationStyle
 
-    /// How long the notification stays visible (in seconds).
-    let duration: TimeInterval
+    /// How long the notification stays visible (in seconds): infinite for
+    /// one that stays until it is dismissed, and cut short by a dismissal
+    /// (``dismissed(atNanos:)``).
+    var duration: TimeInterval
 
     /// When this notification was posted, in nanoseconds on the service's clock —
     /// ``MonotonicClock`` in an app, the clock the frames are stamped with.
@@ -41,7 +43,7 @@ struct NotificationEntry: Identifiable, Sendable {
     ///   - duration: Display duration in seconds.
     ///   - postedAtNanos: The service clock's reading at the post.
     init(message: String, style: NotificationStyle = .plain, duration: TimeInterval, postedAtNanos: UInt64) {
-        self.id = UUID()
+        self.id = NotificationID()
         self.message = message
         self.style = style
         // A NaN duration has no end to count to: taken as none, so the toast
@@ -57,6 +59,16 @@ struct NotificationEntry: Identifiable, Sendable {
     /// frame: a toast posted while a frame renders is younger than that frame's stamp.
     func age(atNanos now: UInt64) -> TimeInterval {
         now > postedAtNanos ? Double(now - postedAtNanos) / 1_000_000_000 : 0
+    }
+
+    /// This notification, dismissed at `now`: its visible stretch ends there,
+    /// so it fades out from `now` — or from the end of its fade-in, for one
+    /// dismissed while it fades in. One already fading out, or gone, is
+    /// unchanged.
+    func dismissed(atNanos now: UInt64) -> Self {
+        var dismissed = self
+        dismissed.duration = min(duration, max(0, age(atNanos: now) - NotificationTiming.fadeInDuration))
+        return dismissed
     }
 
     /// The service clock's reading at which this notification has finished fading out.

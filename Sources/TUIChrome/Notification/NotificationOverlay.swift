@@ -83,7 +83,7 @@ enum NotificationOverlay {
         var stackedBuffer = FrameBuffer()
         for entry in entries {
             let opacity = NotificationTiming.opacity(elapsed: entry.age(atNanos: now), visibleDuration: entry.duration)
-            var toastContext = context.withChildIdentity(erasedType: NotificationToast.self, key: entry.id.uuidString)
+            var toastContext = context.withChildIdentity(erasedType: NotificationToast.self, key: entry.id.rawValue.uuidString)
             toastContext.availableWidth = width
             stackedBuffer.appendVertically(
                 TUIView.renderToBuffer(
@@ -129,6 +129,10 @@ enum NotificationAnimation {
         let nowNanos = service.nowNanos
 
         lifecycle.startTask(token: token, priority: .medium) { [lifecycle] in
+            // What the last frame asked for showed: which notifications, and
+            // when each is to fade out. A wake that finds it changed — a post,
+            // a dismissal — asks for a frame even with no fade under way.
+            var shown: [NotificationTiming.Shown] = []
             while !Task.isCancelled {
                 // The entries as they are NOW, read at every wake: one posted
                 // while this sleeps fades in on its own schedule, and the task
@@ -164,7 +168,16 @@ enum NotificationAnimation {
                 let current = nowNanos()
                 try? await Task.sleep(nanoseconds: wake > current ? wake - current : 0)
                 guard !Task.isCancelled else { break }
-                frames?.requestFrame()
+                // A frame only where it would draw something new: a wake that
+                // only bounds the sleep (``NotificationTiming/longestSleep``)
+                // draws the screen already there. Asked every wake, a toast
+                // that stays until dismissed kept the app rendering four times
+                // a second for as long as it stayed.
+                let showing = entries.map { NotificationTiming.Shown(id: $0.id, duration: $0.duration) }
+                if NotificationTiming.wakeDraws(due: due, shown: showing, lastShown: shown) {
+                    shown = showing
+                    frames?.requestFrame()
+                }
             }
 
             // Only when the loop ran to its own end. A CANCELLED task is being

@@ -18,6 +18,10 @@ focus only within it, and while a menu is open, not at all. Off by default: it h
 **`TUI_BREATHING=0` holds every focus indication still.** The control that has the keyboard is picked out by colour
 and bold alone, rather than breathing or blinking; the text cursor still blinks. An app can do the same with
 `Scene.focusBreathing(false)`, which can't undo the person's `0`. Reduce Motion still leaves the breath alone.
+**A notification can stay until it is dismissed, and code can dismiss it.** `post` returns a `NotificationID`;
+`dismiss(_:)` fades that toast out at once, and `dismissAll()` fades out every one. `duration: nil` keeps a toast up
+until something dismisses it. While toasts are up but none is fading, TUI no longer redraws the screen four times a second.
+
 **A notification can say what it is about.** `post("Upload failed", style: .error)` draws the toast's border and a
 leading glyph in the palette's colour for it: `.info` (`i`), `.success` (`✓`), `.warning` (`!`) or `.error` (`✗`). The
 glyph means the style never rests on colour alone. `.plain`, the default, looks as toasts did. A long message now wraps as

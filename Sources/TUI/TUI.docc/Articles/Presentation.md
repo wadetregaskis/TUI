@@ -445,6 +445,16 @@ meaning never rests on colour alone:
 NotificationService.current.post("Upload failed", style: .error)
 ```
 
+A toast stays for its `duration`, three seconds unless you give another, or
+until it is dismissed where the duration is `nil`. Every post returns a
+``NotificationID`` for ``NotificationService/dismiss(_:)``:
+
+```swift
+let saving = NotificationService.current.post("Saving…", duration: nil)
+try await document.save()
+NotificationService.current.dismiss(saving)
+```
+
 ## Open and Save Panels
 
 `fileImporter`, `fileExporter` and `fileMover` draw their panels in the terminal.
@@ -462,6 +472,7 @@ They have a page of their own: <doc:FilePanels>.
 
 - ``NotificationService``
 - ``NotificationStyle``
+- ``NotificationID``
 
 ## See Also
 

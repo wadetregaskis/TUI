@@ -65,6 +65,28 @@ enum NotificationTiming {
         return .infinity
     }
 
+    /// What one frame showed of one notification, for the animation task to
+    /// tell whether a wake has anything new to draw.
+    struct Shown: Equatable {
+        /// The notification.
+        let id: NotificationID
+        /// Its duration then, which a dismissal shortens.
+        let duration: TimeInterval
+    }
+
+    /// Whether the animation task's wake should ask for a frame: where the
+    /// soonest change it slept towards was `due` seconds off when it went to
+    /// sleep, and the notifications are `shown` now and were `lastShown` at
+    /// the last frame it asked for.
+    ///
+    /// Yes for a change it slept to — mid-fade, or the end of a visible
+    /// stretch no further off than ``longestSleep`` — and where what is shown
+    /// has changed since. No for a wake that only bounds the sleep, which would
+    /// draw what is already on the screen.
+    static func wakeDraws(due: TimeInterval, shown: [Shown], lastShown: [Shown]) -> Bool {
+        due <= longestSleep || shown != lastShown
+    }
+
     /// The instant the animation task wakes next, in nanoseconds on its clock, when it
     /// is `now` and the soonest opacity change is `due` seconds away
     /// (``timeUntilOpacityChanges(elapsed:visibleDuration:)``): the first instant a

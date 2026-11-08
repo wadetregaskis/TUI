@@ -24,6 +24,8 @@ import TUIFoundation
 /// ```swift
 /// NotificationService.current.post("Saved!")
 /// NotificationService.current.post("Connection lost", style: .error, duration: 5.0)
+/// let saving = NotificationService.current.post("Saving…", duration: nil)
+/// NotificationService.current.dismiss(saving)
 /// ```
 ///
 /// A ``NotificationStyle`` says what a notification is about — news, a
@@ -34,7 +36,8 @@ import TUIFoundation
 ///
 /// Each notification goes through three phases:
 /// 1. **Fade-in** (0.2s) — opacity ramps from 0 to 1
-/// 2. **Visible** — stays at full opacity for `duration` seconds
+/// 2. **Visible** — stays at full opacity for `duration` seconds, or until
+///    it is dismissed (``dismiss(_:)``) where `duration` is `nil`
 /// 3. **Fade-out** (0.3s) — opacity ramps from 1 to 0, then entry is removed
 ///
 /// The service automatically removes expired entries and triggers re-renders
@@ -114,34 +117,85 @@ extension NotificationService {
     ///
     /// A string **literal** binds here, so it is a lookup key — see
     /// ``LocalizedStringKey``. The notification appears immediately and
-    /// auto-dismisses after `duration` seconds.
+    /// auto-dismisses after `duration` seconds, or stays until it is
+    /// dismissed where `duration` is `nil`.
     ///
     /// - Parameters:
     ///   - messageKey: The key for the notification message text.
     ///   - style: What it is about, which its colour and glyph say (default: ``NotificationStyle/plain``).
-    ///   - duration: How long the notification stays visible in seconds (default: 3.0).
-    public func post(_ messageKey: LocalizedStringKey, style: NotificationStyle = .plain, duration: TimeInterval = 3.0) {
+    ///   - duration: How long the notification stays visible in seconds (default: 3.0), or `nil` to keep it
+    ///     until it is dismissed.
+    /// - Returns: The notification's identifier, for ``dismiss(_:)``.
+    @discardableResult
+    public func post(
+        _ messageKey: LocalizedStringKey, style: NotificationStyle = .plain, duration: TimeInterval? = 3.0
+    ) -> NotificationID {
         post(messageKey.localized, style: style, duration: duration)
     }
 
     /// Posts a new notification, displayed as written.
     ///
-    /// The notification appears immediately and auto-dismisses after `duration` seconds.
+    /// The notification appears immediately and auto-dismisses after `duration`
+    /// seconds, or stays until it is dismissed where `duration` is `nil`.
     ///
     /// Generic over `StringProtocol` rather than taking a concrete `String`,
     /// which is what keeps a *literal* binding to the key overload above — see
     /// ``LocalizedStringKey``. `duration`'s default survives the change: it is
     /// the generic parameter itself that cannot carry one (there would be
-    /// nothing left to infer `S` from), and `duration` is a `TimeInterval`.
+    /// nothing left to infer `S` from), and `duration` is not generic.
     ///
     /// - Parameters:
     ///   - message: The notification message text.
     ///   - style: What it is about, which its colour and glyph say (default: ``NotificationStyle/plain``).
-    ///   - duration: How long the notification stays visible in seconds (default: 3.0).
+    ///   - duration: How long the notification stays visible in seconds (default: 3.0), or `nil` to keep it
+    ///     until it is dismissed.
+    /// - Returns: The notification's identifier, for ``dismiss(_:)``.
     @_disfavoredOverload
-    public func post<S: StringProtocol>(_ message: S, style: NotificationStyle = .plain, duration: TimeInterval = 3.0) {
+    @discardableResult
+    public func post<S: StringProtocol>(
+        _ message: S, style: NotificationStyle = .plain, duration: TimeInterval? = 3.0
+    ) -> NotificationID {
         let now = nowNanos()
-        let entry = NotificationEntry(message: String(message), style: style, duration: duration, postedAtNanos: now)
+        let entry = NotificationEntry(
+            message: String(message), style: style, duration: duration ?? .infinity, postedAtNanos: now)
+        add(entry, now: now)
+        return entry.id
+    }
+
+    /// Fades out the notification `id` names, at once, whatever its duration
+    /// — one posted to stay until dismissed included. Nothing happens where it
+    /// has gone, or is already fading out.
+    ///
+    /// ```swift
+    /// let saving = NotificationService.current.post("Saving…", duration: nil)
+    /// try await document.save()
+    /// NotificationService.current.dismiss(saving)
+    /// ```
+    public func dismiss(_ id: NotificationID) {
+        dismiss { $0.id == id }
+    }
+
+    /// Fades out every notification, at once.
+    public func dismissAll() {
+        dismiss { _ in true }
+    }
+
+    /// Fades out the notifications `matches` picks, and asks the apps that
+    /// draw them for a frame.
+    func dismiss(where matches: (NotificationEntry) -> Bool) {
+        let now = nowNanos()
+        let displays = state.withLock { state in
+            for index in state.entries.indices where matches(state.entries[index]) {
+                state.entries[index] = state.entries[index].dismissed(atNanos: now)
+            }
+            return state.displays
+        }
+        for link in displays { link.requestFrame() }
+    }
+
+    /// Adds `entry`, posted at `now`, and asks the apps that draw this
+    /// service for a frame.
+    private func add(_ entry: NotificationEntry, now: UInt64) {
         let displays = state.withLock { state in
             // The expired go here too, not only in `activeEntries()`: that is the
             // drawing's to call, and a service nothing draws (a program that posts
