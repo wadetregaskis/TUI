@@ -86,7 +86,7 @@ Dialog(title: "dialog.settings") { … }
 AlertPanel(title: "alert.unsaved.title", message: "alert.unsaved.body")
 Card(title: "card.summary") { … }
 StatusBarItem(shortcut: "q", label: "status.quit") { quit() }
-notifications.post("notice.saved")
+NotificationService.current.post("notice.saved")
 ```
 
 An ``AlertPanel``'s **message** is a key too, unlike a value: it is prose the reader
@@ -195,13 +195,13 @@ LocalizationService.shared.setLanguage(.german)
 
 ## Type-Safe Keys
 
-All localized strings are available as `LocalizationKey` enums organized by category. This provides compile-time safety, IDE autocomplete, and refactoring support.
+All localized strings are available as `LocalizationKey` enums organized by category. The lists below are examples, not the whole set; the enums grow as the framework draws more text. This provides compile-time safety, IDE autocomplete, and refactoring support.
 
 ### Key Categories
 
 #### Button Keys
 
-21 button strings including: ok, cancel, yes, no, save, delete, close, apply, reset, submit, search, clear, add, remove, edit, done, next, previous, back, forward, refresh
+Button strings, including: ok, cancel, yes, no, save, delete, close, apply, reset, submit, search, clear, add, remove, edit, done, next, previous, back, forward, refresh, rename, copy, paste
 
 ```swift
 LocalizationKey.Button.ok
@@ -211,7 +211,7 @@ LocalizationKey.Button.save
 
 #### Label Keys
 
-17 label strings including: search, name, description, value, status, error, warning, info, loading, empty, none, page, item, items, total, from, to
+Label strings, including: search, name, description, value, status, error, warning, info, loading, empty, none, page, item, items, total, from, to, and the labels of the framework's own controls (find and replace, sidebar and inspector toggles, toolbar customization)
 
 ```swift
 LocalizationKey.Label.name
@@ -221,7 +221,7 @@ LocalizationKey.Label.status
 
 #### Error Keys
 
-11 error strings including: invalidInput, requiredField, notFound, accessDenied, networkError, unknown, invalidFormat, operationFailed, timeout, fileNotFound, permissionDenied
+Error strings: invalidInput, requiredField, notFound, accessDenied, networkError, unknown, invalidFormat, operationFailed, timeout, fileNotFound, permissionDenied
 
 ```swift
 LocalizationKey.Error.invalidInput
@@ -231,7 +231,7 @@ LocalizationKey.Error.timeout
 
 #### Placeholder Keys
 
-6 placeholder strings: search, enterText, enterValue, selectOption, enterName, chooseFile
+Placeholder strings, including: search, enterText, enterValue, selectOption, enterName, chooseFile
 
 ```swift
 LocalizationKey.Placeholder.search
@@ -241,7 +241,7 @@ LocalizationKey.Placeholder.selectOption
 
 #### Menu Keys
 
-8 menu strings: file, edit, view, help, new, open, save, exit
+Menu strings, including: file, edit, view, help, new, open, save, exit, about, settings, quitApp, undo, redo, and the View menu's accessibility and display items (reduceMotion, increaseContrast, differentiateWithoutColor, palette, borderStyle, …)
 
 ```swift
 LocalizationKey.Menu.file
@@ -251,7 +251,7 @@ LocalizationKey.Menu.help
 
 #### Dialog Keys
 
-7 dialog strings: confirm, deleteConfirmation, unsavedChanges, overwriteConfirmation, exitConfirmation, success, error
+Dialog strings, including: confirm, deleteConfirmation, unsavedChanges, overwriteConfirmation, exitConfirmation, success, error, and the quit confirmation's title, message and buttons
 
 ```swift
 LocalizationKey.Dialog.confirm
@@ -261,7 +261,7 @@ LocalizationKey.Dialog.unsavedChanges
 
 #### Validation Keys
 
-4 validation strings: emailInvalid, passwordTooShort, usernameTaken, fieldRequired
+Validation strings: emailInvalid, passwordTooShort, usernameTaken, fieldRequired
 
 ```swift
 LocalizationKey.Validation.emailInvalid
@@ -271,7 +271,7 @@ LocalizationKey.Validation.usernameTaken
 
 #### Status Bar Keys
 
-3 status bar strings for the built-in system items: quit, appearance, theme
+Status bar strings, including the built-in system items (quit, appearance, theme, undo, redo) and the labels the framework's controls put in the bar (dismiss, cancel, select, toggle, copied, …)
 
 ```swift
 LocalizationKey.StatusBar.quit
@@ -342,6 +342,8 @@ Language preferences are automatically saved per-app, in the
 platform-idiomatic configuration directory:
 - **macOS**: `~/Library/Application Support/<App>/language`
 - **Linux**: `$XDG_CONFIG_HOME/<App>/language` (else `~/.config/<App>/language`)
+
+`TUI_CONFIG_DIR`, when set, moves it to `$TUI_CONFIG_DIR/<App>/language` on every platform.
 
 `<App>` is the executable's (sanitized) process name, so each app keeps its own
 preference. The saved preference is restored when the app restarts; with no
@@ -453,3 +455,4 @@ the app runs ask nothing to be drawn, since the first frame is still to come.
 - <doc:GettingStarted>
 - <doc:TextStyling>
 - <doc:AppLifecycle>
+- <doc:EnvironmentVariables>
