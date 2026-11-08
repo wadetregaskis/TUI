@@ -93,7 +93,16 @@ view's `onPasteCommand(of: [.png])` as a PNG, beside any text.
 There is no keyboard route to the screen selection: what it selects is what a
 pointer points at. Text the app means to be copied from the keyboard belongs in
 a ``TextField`` or ``TextEditor``, whose Shift-arrow selection and Ctrl-C are
-the keyboard's.
+the keyboard's. A view of your own that is copied whole, such as a list row or
+a result, takes the Copy command (⌃C) while it has the focus with
+``View/copyable(_:)``, or with `onCopyCommand(perform:)` where it builds what
+it copies itself (on Apple platforms):
+
+```swift
+Text(result.summary)
+    .focusable()
+    .copyable([result.summary])
+```
 
 ## Choosing Where It Applies
 
@@ -177,6 +186,7 @@ menu.
 - ``TextSelectability``
 - ``EnabledTextSelectability``
 - ``DisabledTextSelectability``
+- ``TextSelectionScope``
 
 ## See Also
 

@@ -63,6 +63,18 @@ content
 Horizontal scrolling (`.left` / `.right`) is produced by a trackpad swipe or a
 shifted mouse wheel.
 
+More of SwiftUI's pointer modifiers work as they do there:
+
+- ``View/onLongPressGesture(minimumDuration:maximumDistance:perform:onPressingChanged:)``
+  runs once the button has been held for the duration.
+- `onContinuousHover(coordinateSpace:perform:)` reports where the pointer is as
+  it moves over the view, as a ``HoverPhase``.
+- ``View/pointerStyle(_:)`` changes the pointer's shape over the view, on the
+  terminals that let an app choose it. `TUI_POINTER_SHAPES=0` turns that off.
+- ``View/onModifierKeysChanged(mask:initial:_:)`` hears Shift, Control and Option
+  pressed and released on their own, where the terminal reports them (under the
+  kitty keyboard protocol), so offer another route to what it reveals.
+
 ## SwiftUI Gestures
 
 SwiftUI's gesture values work here, on the left mouse button. Build one, give it
@@ -112,7 +124,9 @@ When several gestures are under the pointer, the view's own come first — its
 subviews', and a control's own press — and one attached with `gesture` gets the
 pointer only if they fail. ``View/highPriorityGesture(_:including:)`` goes
 before them and ``View/simultaneousGesture(_:including:)`` beside them, and a
-``GestureMask`` turns either side off. A gesture that is still undecided holds
+``GestureMask`` turns either side off. Gestures combine as in SwiftUI, with
+``Gesture/simultaneously(with:)``, ``Gesture/sequenced(before:)`` and
+``Gesture/exclusively(before:)``. A gesture that is still undecided holds
 up the ones after it, so a double tap written inside a single tap delays the
 single tap until a second click can no longer come.
 
@@ -252,6 +266,8 @@ The view modifier of the same name changes it while the app runs, for instance t
 | `.full` | Everything, including every movement of the cursor |
 
 A view that uses `onHover` asks for cursor movement by itself, so hover doesn't need `.full`.
+
+Two settings of the person running the app change what the mouse does. `TUI_SHIFT_CLICKS=0` leaves Shift-clicks to the terminal, which usually selects text with them. `TUI_FOCUS_FOLLOWS_POINTER=1`, or the View menu's Focus Follows Pointer, gives the keyboard to the control under the pointer as it moves, and an app can ask for that with ``Scene/focusFollowsPointer(_:)``. See <doc:FocusSystem> and <doc:EnvironmentVariables>.
 
 ## Topics
 

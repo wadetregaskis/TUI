@@ -4,7 +4,7 @@ Show the keyboard shortcuts in force, in the window's bottom bar.
 
 ## Overview
 
-The status bar is a line of key hints: the shortcuts in force and what each does. It is a view the app places — ``StatusBar``'s `init()` in the window's bottom bar:
+The status bar is a line of key hints: the shortcuts in force and what each does. It is a view the app places: put a ``StatusBar`` in the window's bottom bar.
 
 ```swift
 ContentView()
@@ -121,6 +121,10 @@ StatusBar()
 
 A key of anything but one letter — `1-9`, `c|C`, `↑↓`, `?` — is drawn as written either way.
 
+### Keys written by name
+
+The symbols are drawn in the terminal's font, and a font with no glyph for them draws a box. The bar follows ``EnvironmentValues/keyNotation``: when the user sets `TUI_KEY_SYMBOLS=0` or chooses View ▸ Spell Out Keys, or the app asks with ``Scene/keyNotation(_:)``, every key in the bar is written by name, `⌃Q` as `Ctrl-Q` and `⎋` as `Esc`. See ``KeyNotation``.
+
 ## Context Stack
 
 Status bar items use a **context stack**. Context-specific items can temporarily replace global items, for example while a dialog is visible:
@@ -142,19 +146,36 @@ Dialog(title: "Confirm") {
 
 The topmost context replaces global user items in the display. System items remain visible unless a user item uses the same shortcut string.
 
+### Items in a focus section
+
+Items declared inside a ``View/focusSection(_:)`` are added to those of the sections around it while the focus is in it, and a child's item wins over a parent's on the same shortcut. Pass ``StatusBarItemComposition/replace`` to show the section's items alone while it has the focus:
+
+```swift
+SettingsView()
+    .focusSection("settings")
+    .statusBarItems(.replace) {
+        StatusBarItem(shortcut: Shortcut.escape, label: "close")
+    }
+```
+
+An item's `order:` places it in the bar (``StatusBarItemOrder``, lower first), and `displayInStatusBar: false` binds its key without drawing it, for a Shift variant that a sibling such as `"c|C"` already names.
+
 ## System Items
 
-TUI registers built-in system items automatically:
+TUI adds these items of its own:
 
-| Key | Label | Action |
-|-----|-------|--------|
-| `⌃Q` | Quit | Exit the application |
-| `a` | Appearance | Cycle to next border appearance |
-| `t` | Theme | Cycle to next color theme |
-| `⎋` | *(what claimed it)* | None — informational |
-| `↩` | *(what claimed it)* | None — informational |
+| Key | Label | Action | Shown by default |
+|-----|-------|--------|------------------|
+| `⌃Q` | Quit | Exit the application | Yes |
+| `a` | Appearance | Cycle to next border appearance | No |
+| `t` | Theme | Cycle to next color theme | No |
+| `⎋` | *(what claimed it)* | None — informational | Yes, while something claims the key |
+| `↩` | *(what claimed it)* | None — informational | Yes, while something claims the key |
+| Undo's key | undo | Undo the last step | Yes, while there is a step to undo |
+| Redo's key | redo | Redo the step undone | Yes, while there is a step to redo |
+| `F6` | notification | Move the focus to a toast's buttons | Yes, while a toast with buttons is up and the focus is elsewhere |
 
-These appear on the right side of the status bar, drawn `⌃Q quit`, `A appearance` and `T theme` (see One-letter keys). `⌃Q quit` is shown by default, `a appearance` and `t theme` are not, and the two common keys are — all four are controlled by ``View/statusBarSystemItems(theme:appearance:returnKey:escapeKey:)``.
+These appear on the right side of the status bar, drawn `⌃Q quit`, `A appearance` and `T theme` (see One-letter keys). Appearance, theme, Escape and Return are controlled by ``View/statusBarSystemItems(theme:appearance:returnKey:escapeKey:)``. Undo and redo are controlled by ``StatusBarState/showUndoItems``, and ``StatusBarState/showSystemItems`` removes every item in the table, quit included.
 
 Turn them on and off with that modifier, or on the state directly, which you read from the environment as `@Environment(\.statusBar)`. It's `nil` outside a running app:
 
@@ -214,16 +235,13 @@ Available presets include ``QuitShortcut/ctrlQ``, the default, ``QuitShortcut/q`
 
 ### Hiding the status bar completely
 
-Hide all system items and do not register any user items:
-
-```swift
-ContentView()
-    .statusBarSystemItems(theme: false, appearance: false, returnKey: false, escapeKey: false)
-```
+Register no user items, and set ``StatusBarState/showSystemItems`` to `false`:
 
 ```swift
 statusBar?.showSystemItems = false
 ```
+
+The modifier alone isn't enough: `.statusBarSystemItems(returnKey: false, escapeKey: false)` turns off the items it names, but `⌃Q quit` and the undo and redo items stay.
 
 When there are no active items left, `StatusBar()` takes no row, and a bottom bar holding nothing else is not drawn — except while a tooltip is showing, which is the default presentation of `.help(_:)`: the bottom bar then takes the rows the tooltip needs, above any items, and is drawn for the tooltip alone when there is nothing else in it.
 

@@ -29,13 +29,15 @@
 ///   start a native text selection.
 ///
 /// - **Standard** (``standard``): clicks, scrolling, and drag
-///   tracking. Hover effects do **not** work — the terminal does
-///   not report cursor motion without a button held.
+///   tracking, with no cursor motion of its own: the terminal reports
+///   none without a button held. A view with `onHover`,
+///   `onContinuousHover` or `pointerStyle(_:)` asks for motion itself
+///   while it is on screen, so hover works under this level too.
 ///
-/// - **Full** (``full``): everything including cursor motion. Use
-///   this when you want hover highlights or live coordinate
-///   read-outs. Motion floods the terminal with reports, so this
-///   level is opt-in.
+/// - **Full** (``full``): everything including cursor motion, all the
+///   time. Use this for an ``View/onMouseEvent(_:)`` handler that wants
+///   live coordinate read-outs. Motion floods the terminal with reports,
+///   so this level is opt-in.
 ///
 /// ## Adaptive elevation
 ///
@@ -90,9 +92,9 @@ public struct MouseSupport: Sendable, Equatable {
 
     /// Whether to report cursor motion regardless of button state.
     ///
-    /// Required for hover effects. Floods the terminal with events
-    /// — most apps should leave this off unless they specifically
-    /// need it.
+    /// Floods the terminal with events — most apps should leave this
+    /// off. Hover modifiers don't need it: they ask for motion
+    /// themselves while they are on screen.
     public var motion: Bool
 
     /// Whether to report the pointer's place within a cell, on a terminal that
@@ -139,7 +141,7 @@ public struct MouseSupport: Sendable, Equatable {
     /// Clicks, scrolling, and drag tracking — but no motion.
     ///
     /// This is the recommended default for most TUI apps. Hover
-    /// effects require ``full``.
+    /// works under it: `onHover` asks for motion itself.
     public static let standard = Self(
         clicks: true, scrolling: true, drag: true)
 
