@@ -204,6 +204,22 @@ plain value, so a subtree that sets it back to `true` gets its breath back.
 with its focus effects off can be genuinely impossible to navigate by keyboard.
 That is the same trade SwiftUI's modifier makes, and it is the caller's to make.
 
+### Holding it still
+
+The indication can stay and stop moving instead. `.selectionIndicatorStyle(.none)`
+on a view holds the focus indications inside it still, at their bright end, and
+a view below can set `.pulse` or `.blink` back. For the whole app there is a
+switch nothing below takes back: the person running it sets `TUI_BREATHING=0`
+(<doc:EnvironmentVariables>), or the app says ``Scene/focusBreathing(_:)``
+with `false`, perhaps from a setting of its own. Either one makes
+``EnvironmentValues/focusBreathes`` `false`, and while it is,
+``EnvironmentValues/selectionIndicatorStyle`` reads `.none` whatever a view set.
+The app's `true` doesn't undo the person's `0`.
+
+It is its own switch. Reduce Motion leaves the breath alone, since a breath
+moves nothing across the screen, and the breath leaves the text cursor's blink
+alone, which `.textCursor(_:)` sets.
+
 ### When the view does not appear active
 
 A view whose ``EnvironmentValues/appearsActive`` is `false` keeps its focus

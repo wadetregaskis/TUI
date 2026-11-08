@@ -399,6 +399,12 @@ internal final class RenderLoop<A: App> {
     /// environment its process was started in.
     private let keyNotation: KeyNotation
 
+    /// Whether the user lets focus indications breathe, as the app runner read
+    /// `TUI_BREATHING` from the process: written at the root of every frame as
+    /// ``EnvironmentValues/focusBreathes``. `true` unless the runner says
+    /// otherwise, for the reason ``requestedAccessibility`` gives.
+    private let focusBreathes: Bool
+
     /// The spring-loading delay the user asked for with
     /// `TUI_SPRING_LOADING_DELAY`, as the app runner read it from the
     /// process, or `nil`: written at the root of every frame as
@@ -432,6 +438,7 @@ internal final class RenderLoop<A: App> {
         requestedAccessibility: AccessibilityPreferences = [],
         declinedAccessibility: AccessibilityPreferences = [],
         keyNotation: KeyNotation = .symbols,
+        focusBreathes: Bool = true,
         springLoadingDelayRequested: Duration? = nil
     ) {
         self.isTmux = isTmux
@@ -443,6 +450,7 @@ internal final class RenderLoop<A: App> {
         self.requestedAccessibility = requestedAccessibility
         self.declinedAccessibility = declinedAccessibility
         self.keyNotation = keyNotation
+        self.focusBreathes = focusBreathes
         self.springLoadingDelayRequested = springLoadingDelayRequested
         self.app = app
         self.terminal = terminal
@@ -1040,6 +1048,9 @@ extension RenderLoop {
         // The user's `TUI_KEY_SYMBOLS` likewise; a scene's `.keyNotation(_:)`
         // can only add to it.
         environment.keyNotation = keyNotation
+        // The user's `TUI_BREATHING` likewise; a scene's `.focusBreathing(_:)`
+        // can only hold the breath too.
+        environment.focusBreathes = focusBreathes
         // The user's spring-loading delay: their `TUI_SPRING_LOADING_DELAY`,
         // else the host's where they are provably at it, else macOS's default
         // (the key's own). A view's `.springLoadingDelay(_:)` overrides it.

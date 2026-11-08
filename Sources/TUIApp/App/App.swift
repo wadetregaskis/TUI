@@ -426,6 +426,7 @@ extension AppRunner {
             requestedAccessibility: TerminalClient.accessibilityRequested,
             declinedAccessibility: TerminalClient.accessibilityDeclined,
             keyNotation: TerminalClient.keyNotationRequested,
+            focusBreathes: TerminalClient.focusBreathingRequested,
             springLoadingDelayRequested: TerminalClient.springLoadingDelayRequested
         )
         // And the one that sends the terminal a progress bar, where the

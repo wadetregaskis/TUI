@@ -4,6 +4,10 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**`TUI_BREATHING=0` holds every focus indication still.** The control that has the keyboard is picked out by colour
+and bold alone, rather than breathing or blinking; the text cursor still blinks. An app can do the same with
+`Scene.focusBreathing(false)`, which can't undo the person's `0`. Reduce Motion still leaves the breath alone.
+
 **A sheet can be resized and moved from the keyboard, and shows where to grab it.** A sheet's bottom and right edges
 and its corner carry the grips a `.userResizable()` view draws, lit under the pointer. Tab now ends a sheet's focus
 order with two more stops. On **Resize** the grips breathe, the arrows change the size as dragging the edge does (Shift

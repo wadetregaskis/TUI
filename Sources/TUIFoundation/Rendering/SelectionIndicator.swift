@@ -18,9 +18,11 @@ extension EnvironmentValues {
     /// How focused selection indicators animate within this view: `.none`,
     /// `.blink` or `.pulse` (the default).
     ///
-    /// Set it with ``View/selectionIndicatorStyle(_:)``.
+    /// Set it with ``View/selectionIndicatorStyle(_:)``. It reads `.none`,
+    /// whatever was set, while ``focusBreathes`` is `false`: the user's
+    /// `TUI_BREATHING=0`, or the app's `Scene.focusBreathing(false)`.
     public var selectionIndicatorStyle: TextCursorStyle.Animation {
-        get { self[SelectionIndicatorStyleKey.self] }
+        get { focusBreathes ? self[SelectionIndicatorStyleKey.self] : .none }
         set { self[SelectionIndicatorStyleKey.self] = newValue }
     }
 }
@@ -36,6 +38,10 @@ extension View {
     /// ``TextCursorStyle/Animation/pulse``: a focused selection breathes. Under
     /// ``TextCursorStyle/Animation/none`` nothing animates, and focus is shown by
     /// colour and bold alone.
+    ///
+    /// The user's `TUI_BREATHING=0` and the app's `Scene.focusBreathing(false)`
+    /// hold every indication still whatever this says
+    /// (``EnvironmentValues/focusBreathes``).
     ///
     /// How fast it animates is set separately, with
     /// ``View/indicatorAnimationSpeed(_:for:)`` for

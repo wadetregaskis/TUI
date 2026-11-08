@@ -101,6 +101,7 @@ Don't write a variable to state a setting. Many are read once, and `setenv` isn'
 | Variable | Values | Effect |
 |---|---|---|
 | `TUI_REDUCE_MOTION` | `1`, `0` | `1`: less motion: things jump to where they're going rather than glide. `0`: full motion, even with Reduce Motion on in your system's settings. With neither, Reduce Motion in your system's settings decides, if you're at the machine the program runs on. |
+| `TUI_BREATHING` | `0` | Holds still what shows where the keyboard is: the control that has it is picked out by colour and bold alone, rather than breathing or blinking. The text cursor still blinks. Reduce Motion doesn't do this. |
 | `TUI_REDUCE_TRANSPARENCY` | `1`, `0` | `1`: less transparency: materials and glass are drawn opaque. `0`: full transparency, even with Reduce Transparency on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on. |
 | `TUI_DIFFERENTIATE_WITHOUT_COLOR` | `1`, `0` | `1`: asks the program for cues that don't rest on colour alone, where it has them. `0`: doesn't, even with the setting of that name on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on. |
 | `TUI_INCREASE_CONTRAST` | `1`, `0` | `1`: asks the program for more contrast, where it has it. `0`: standard contrast, even with Increase Contrast on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on. |
@@ -221,6 +222,7 @@ Two of the variables above are worth knowing for tests too. `TUI_CONFIG_DIR` kee
 | `COLORTERM` | Wins | Assign `ColorDepth.current`. | Once |
 | `TERM` | Wins | Assign `ColorDepth.current` for its colours. Whether there's a terminal to draw on stays as `TERM` says. | Once |
 | `TUI_REDUCE_MOTION` | Can't undo it | `Scene.reduceMotion(_:)` can ask for less motion too, even under `0`, but `false` doesn't undo `1`. | Once |
+| `TUI_BREATHING` | Can't undo it | `Scene.focusBreathing(false)` holds it still too, but `true` doesn't undo `0`. `.selectionIndicatorStyle(.none)` holds part of a screen still. `focusBreathes` is read-only. | Once |
 | `TUI_REDUCE_TRANSPARENCY` | Can't undo it | `accessibilityReduceTransparency` is read-only, as in SwiftUI. `_accessibilityReduceTransparency` writes it for a preview or a test. | Once |
 | `TUI_DIFFERENTIATE_WITHOUT_COLOR` | Can't undo it | `accessibilityDifferentiateWithoutColor` is read-only, as in SwiftUI. `_accessibilityDifferentiateWithoutColor` writes it for a preview or a test. | Once |
 | `TUI_INCREASE_CONTRAST` | Can't undo it | `colorSchemeContrast` is read-only, as in SwiftUI. `_colorSchemeContrast` writes it for a preview or a test. | Once |
