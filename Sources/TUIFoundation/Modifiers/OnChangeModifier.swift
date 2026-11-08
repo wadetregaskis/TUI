@@ -213,7 +213,9 @@ extension StateStorage {
 /// SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
 @MainActor extension OnChangeModifier: FormRowRewrapping {
     package func rewrappingFormRow<R: View>(_ row: R) -> any View {
-        OnChangeModifier<R, V>(content: row, value: value, initial: initial, action: action)
+        var copy = OnChangeModifier<R, V>(content: row, value: value, initial: initial, action: action)
+        copy.anchor = anchor
+        return copy
     }
 }
 

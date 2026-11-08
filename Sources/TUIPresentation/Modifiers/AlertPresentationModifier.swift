@@ -416,6 +416,6 @@ struct _ImplicitDialogActions<A: View>: View, ButtonProvider {
         AlertPresentationModifier<V, Actions, Message>(
             content: row, isPresented: isPresented, title: title, message: message, actions: actions,
             borderStyle: borderStyle, borderColor: borderColor, titleColor: titleColor,
-            verticalButtons: verticalButtons, presentsError: presentsError)
+            verticalButtons: verticalButtons, presentsError: presentsError, titleSource: titleSource)
     }
 }

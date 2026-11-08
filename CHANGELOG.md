@@ -60,6 +60,10 @@ included, though a click or Return on such a row selected nothing. They skip it 
 reorderable `List` or `Table` (or a `.draggable` view) inside one could never pick a row up from the keyboard: the
 refresh ran instead. The focused control now has the key first, and the refresh runs when it lets the key go.
 
+**Modifiers on a `Form` row keep all their settings.** On a row in a form, `.onContinuousHover` reported
+whole-cell locations, `.task(name:)` lost its name, a key-titled `.alert` stopped following a subtree's `\.locale`,
+and a sheet ignored its size classes.
+
 **A JSON-file `@AppStorage` store no longer reverts another instance's newer value.** A flush wrote back
 every key the instance had ever written, so after a second instance (another terminal tab) changed a setting, the
 first one's next unrelated write put the old value back. A flush now writes only what changed since the last one.

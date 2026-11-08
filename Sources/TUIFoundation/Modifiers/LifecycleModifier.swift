@@ -384,19 +384,19 @@ private enum TaskStateIndex {
 /// (measured, `Tools/SwiftUIProbes/Form rows`).
 @MainActor extension OnAppearModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
-        OnAppearModifier<V>(content: row, action: action)
+        OnAppearModifier<V>(content: row, action: action, anchor: anchor)
     }
 }
 
 @MainActor extension OnDisappearModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
-        OnDisappearModifier<V>(content: row, action: action)
+        OnDisappearModifier<V>(content: row, action: action, anchor: anchor)
     }
 }
 
 @MainActor extension TaskModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
-        TaskModifier<V>(content: row, task: task, priority: priority, id: id)
+        TaskModifier<V>(content: row, task: task, priority: priority, id: id, name: name, anchor: anchor)
     }
 }
 

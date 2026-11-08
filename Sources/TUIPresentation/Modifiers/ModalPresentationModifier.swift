@@ -544,6 +544,7 @@ private typealias StateIndex = ModalPresentationStateIndex
             case .fullScreen: .fullScreen
             }
         return ModalPresentationModifier<V, Modal>(
-            content: row, isPresented: isPresented, modal: modal, style: style, itemKey: itemKey)
+            content: row, isPresented: isPresented, modal: modal, style: style, sizeClasses: sizeClasses,
+            postsDockWhileDismissed: postsDockWhileDismissed, itemKey: itemKey)
     }
 }

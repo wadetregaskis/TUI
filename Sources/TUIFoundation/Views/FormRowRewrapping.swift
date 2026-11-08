@@ -34,6 +34,13 @@ package protocol FormRowRewrapping {
 
     /// A copy of this modifier around `row`, the row the form lays out, in
     /// place of the view it was written on.
+    ///
+    /// EVERY field is copied, defaulted ones included. The copy is spelled out
+    /// because its content is another type, and a field with a default the
+    /// spelling leaves out compiles, then behaves as its default: rows lost a
+    /// continuous hover's sub-cell locations, a task's name, an alert's
+    /// relocalised title and a sheet's size classes that way
+    /// (`FormRowRewrapFieldsTests`).
     func rewrappingFormRow<V: View>(_ row: V) -> any View
 
     /// The cells this modifier puts before the row's leading edge, which a

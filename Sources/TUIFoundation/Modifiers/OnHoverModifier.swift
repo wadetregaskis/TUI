@@ -281,7 +281,8 @@ extension View {
 /// keeps its place, as SwiftUI's form keeps a modified row.
 @MainActor extension OnHoverModifier: FormRowRewrapping {
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {
-        OnHoverModifier<V>(content: row, coordinateSpace: coordinateSpace, observe: observe)
+        OnHoverModifier<V>(
+            content: row, coordinateSpace: coordinateSpace, readsLocation: readsLocation, observe: observe)
     }
 }
 
