@@ -176,7 +176,7 @@ extension String {
     var containsLineFeed: Bool {
         utf8.withContiguousStorageIfAvailable { bytes in
             guard let base = bytes.baseAddress else { return false }
-            return memchr(base, Int32(UInt8(ascii: "\n")), bytes.count) != nil
+            return unsafe memchr(base, Int32(UInt8(ascii: "\n")), bytes.count) != nil
         } ?? utf8.contains(UInt8(ascii: "\n"))
     }
 }

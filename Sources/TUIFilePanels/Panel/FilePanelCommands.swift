@@ -117,7 +117,7 @@ enum FilePanelCommand: CaseIterable {
             default: nil
             }
         var isDirectory: ObjCBool = false
-        guard let place, FileManager.default.fileExists(atPath: place.path, isDirectory: &isDirectory),
+        guard let place, unsafe FileManager.default.fileExists(atPath: place.path, isDirectory: &isDirectory),
             isDirectory.boolValue
         else { return nil }
         return place

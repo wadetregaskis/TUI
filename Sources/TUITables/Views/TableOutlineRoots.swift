@@ -59,7 +59,7 @@ struct _TableOutlineRoots<Value: Identifiable> {
             children == other.children
         else { return false }
         return values.withUnsafeBufferPointer { mine in
-            other.values.withUnsafeBufferPointer { theirs in mine.baseAddress == theirs.baseAddress }
+            other.values.withUnsafeBufferPointer { theirs in unsafe mine.baseAddress == theirs.baseAddress }
         }
     }
 }

@@ -170,7 +170,7 @@ private struct OffApp: App {
         WindowGroup {
             Button("Page") {}
                 .onKeyEvent { event in
-                    guard Self.hears, event.key == .f1 else { return false }
+                    guard unsafe Self.hears, event.key == .f1 else { return false }
                     Heard.shared.f1 += 1
                     return true
                 }
@@ -455,7 +455,7 @@ struct KeyboardShortcutOverlayTests {
 
     @Test("Turned off, F1 reaches what the app binds on it")
     func offReachesTheApp() {
-        OffApp.hears = true
+        unsafe OffApp.hears = true
         let app = launched(OffApp())
         #expect(press(f1, in: app))
         #expect(Heard.shared.f1 == 1)
@@ -464,7 +464,7 @@ struct KeyboardShortcutOverlayTests {
 
     @Test("Turned off with nothing on it, F1 goes unanswered, and there's no menu item")
     func offIsUnanswered() {
-        OffApp.hears = false
+        unsafe OffApp.hears = false
         let app = launched(OffApp())
         #expect(press(f1, in: app) == false)
         #expect(!app.screen.contains(heading))

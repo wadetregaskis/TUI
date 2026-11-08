@@ -37,7 +37,7 @@ private struct SheetReadingApp: App {
         WindowGroup {
             Text("Page")
                 .sheet(isPresented: .constant(true)) {
-                    Text(verbatim: "S:" + SheetReadModels.sheet.label)
+                    unsafe Text(verbatim: "S:" + SheetReadModels.sheet.label)
                 }
         }
     }
@@ -55,13 +55,13 @@ struct SheetObservationTests {
 
     @Test("A .sheet's closure reading an @Observable asks for a frame")
     func sheetClosure() {
-        SheetReadModels.sheet = SheetReadModel()
+        unsafe SheetReadModels.sheet = SheetReadModel()
         let app = TestApp(SheetReadingApp(), width: 30, height: 10)
         var now: Int64 = 0
         _ = draw(app, at: &now)
         #expect(draw(app, at: &now).contains { $0.contains("S:one") })
         _ = app.takeFrameRequest()
-        SheetReadModels.sheet.label = "two"
+        unsafe SheetReadModels.sheet.label = "two"
         #expect(app.takeFrameRequest(), "the write asked for no frame")
         #expect(draw(app, at: &now).contains { $0.contains("S:two") })
     }

@@ -114,9 +114,9 @@ struct NavigationSplitViewSidebarChordTests {
         let pending = Pending()
         pending.bytes = bytes
         let terminal = Terminal()
-        terminal.readSource = { buffer in
+        unsafe terminal.readSource = { buffer in
             let count = min(pending.bytes.count, buffer.count)
-            for index in 0..<count { buffer[index] = pending.bytes[index] }
+            for index in 0..<count { unsafe buffer[index] = pending.bytes[index] }
             pending.bytes.removeFirst(count)
             return count
         }

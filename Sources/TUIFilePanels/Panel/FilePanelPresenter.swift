@@ -188,7 +188,7 @@ struct FilePanelPresenter<Content: View> {
         let keys = Self.storageKeys(id)
         guard let path: String = store.entry(forKey: keys.directory, as: String.self).value else { return nil }
         var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue else {
+        guard unsafe FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue else {
             return nil
         }
         let hidden = store.entry(forKey: keys.showsHiddenFiles, as: Bool.self).value ?? false

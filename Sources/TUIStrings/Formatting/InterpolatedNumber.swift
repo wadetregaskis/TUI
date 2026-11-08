@@ -101,7 +101,7 @@ package enum InterpolatedNumber: Hashable, Sendable {
         case .verbatim(let description): description
         case .specified(let specifier, let argument):
             #if canImport(Darwin)
-                String(format: specifier, locale: locale, argument.cVarArg)
+                unsafe String(format: specifier, locale: locale, argument.cVarArg)
             #else
                 // Outside Apple's platforms Foundation writes an integer in a
                 // locale as signed: UInt.max came out "-1" (Swift 6.2 and 6.3

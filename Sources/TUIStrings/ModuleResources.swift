@@ -100,7 +100,7 @@ package struct ModuleResources: Sendable {
             for name in bundleNames {
                 let candidate = directory.appendingPathComponent(name, isDirectory: true)
                 var isDirectory: ObjCBool = false
-                if fileManager.fileExists(atPath: candidate.path, isDirectory: &isDirectory), isDirectory.boolValue {
+                if unsafe fileManager.fileExists(atPath: candidate.path, isDirectory: &isDirectory), isDirectory.boolValue {
                     return candidate
                 }
             }

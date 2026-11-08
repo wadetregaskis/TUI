@@ -40,7 +40,7 @@ enum TableRowInset {
     /// a frame of a table of wrapped rows.
     static func inset(_ line: String) -> String {
         var line = line
-        return line.withUTF8(inset(bytes:))
+        return line.withUTF8(unsafe inset(bytes:))
     }
 
     /// ``inset(_:)-(String)`` on the line's bytes, written in one allocation.
@@ -50,13 +50,13 @@ enum TableRowInset {
     /// which the type-check guard's limits time out on.
     private static func inset(bytes: UnsafeBufferPointer<UInt8>) -> String {
         guard let base = bytes.baseAddress else { return " " }
-        let split: Int = leadingFillEnd(of: bytes) ?? 0
+        let split: Int = unsafe leadingFillEnd(of: bytes) ?? 0
         let count: Int = bytes.count
         return String(unsafeUninitializedCapacity: count + 1) { (out: UnsafeMutableBufferPointer<UInt8>) -> Int in
             guard let target = out.baseAddress else { return 0 }
-            target.initialize(from: base, count: split)
-            target[split] = UInt8(ascii: " ")
-            (target + split + 1).initialize(from: base + split, count: count - split)
+            unsafe target.initialize(from: base, count: split)
+            unsafe target[split] = UInt8(ascii: " ")
+            unsafe (target + split + 1).initialize(from: base + split, count: count - split)
             return count + 1
         }
     }
@@ -66,9 +66,9 @@ enum TableRowInset {
     static func leadingFillEnd(of bytes: UnsafeBufferPointer<UInt8>) -> Int? {
         var index = 0
         var afterFill: Int?
-        while index < bytes.count, bytes[index] == 0x1B {
-            let (end, isSGR) = String.escapeSequenceEnd(startingAt: index, in: bytes)
-            if isSGR, let sets = backgroundEffect(of: bytes[index..<end]) { afterFill = sets ? end : nil }
+        while index < bytes.count, unsafe bytes[index] == 0x1B {
+            let (end, isSGR) = unsafe String.escapeSequenceEnd(startingAt: index, in: bytes)
+            if isSGR, let sets = unsafe backgroundEffect(of: bytes[index..<end]) { afterFill = sets ? end : nil }
             index = end
         }
         return afterFill

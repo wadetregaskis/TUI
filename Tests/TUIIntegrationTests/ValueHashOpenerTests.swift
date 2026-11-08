@@ -29,10 +29,10 @@ struct ValueHashOpenerTests {
     /// Tables live as long as the test: a plan read from a table that has gone
     /// is read from freed memory.
     private let opened = ValueHashPlans.tui()
-    private let cast = ValueHashPlans()
+    private let cast = unsafe ValueHashPlans()
 
     private func hash<V>(_ value: V, _ plans: ValueHashPlans) -> Int? {
-        withUnsafePointer(to: value) { plans.valueHash(at: $0) }
+        withUnsafePointer(to: value) { unsafe plans.valueHash(at: $0) }
     }
 
     /// Checks `value` both ways, and returns the static type it checked.
@@ -44,10 +44,10 @@ struct ValueHashOpenerTests {
         let viaOpener = hash(holder, opened)
         #expect(viaOpener != nil, sourceLocation: sourceLocation)
         #expect(viaOpener == hash(holder, cast), sourceLocation: sourceLocation)
-        #expect(
+        unsafe #expect(
             opened.plan(for: Holds<Existential>.self).pointee.stepDescriptions
                 == ["0: existential opened by \(Existential.self)"], sourceLocation: sourceLocation)
-        #expect(
+        unsafe #expect(
             cast.plan(for: Holds<Existential>.self).pointee.stepDescriptions
                 == ["0: existential cast from \(Existential.self)"], sourceLocation: sourceLocation)
         return ObjectIdentifier(Existential.self)
@@ -72,14 +72,14 @@ struct ValueHashOpenerTests {
         let layout = AnyLayout(HStackLayout())
         #expect(hash(layout, opened) != nil)
         #expect(hash(layout, opened) == hash(layout, cast))
-        let boxType = ValueHashOpener.tuikit.first { "\($0.type)" == "AnyLayoutBox" }?.type
+        let boxType = unsafe ValueHashOpener.tuikit.first { unsafe "\($0.type)" == "AnyLayoutBox" }?.type
         // Out of `#expect`: see CONTRIBUTING, "Testing".
         let foundBox = boxType != nil
         #expect(foundBox)
         if let boxType { checked.insert(ObjectIdentifier(boxType)) }
-        #expect(opened.plan(for: AnyLayout.self).pointee.stepDescriptions == ["0: existential opened by AnyLayoutBox"])
+        unsafe #expect(opened.plan(for: AnyLayout.self).pointee.stepDescriptions == ["0: existential opened by AnyLayoutBox"])
         // A new opener fails here until it is checked above.
-        #expect(Set(ValueHashOpener.tuikit.map { ObjectIdentifier($0.type) }) == checked)
+        unsafe #expect(Set(ValueHashOpener.tuikit.map { ObjectIdentifier($0.type) }) == checked)
     }
 
     @Test("Different payloads behind one opener hash apart")
@@ -98,12 +98,12 @@ struct ValueHashOpenerTests {
     @Test("A palette is opened directly by every table, as the cast would open it")
     func palette() {
         let holder = Holds(value: SystemPalette(.green) as any Palette, tail: 3)
-        #expect(cast.plan(for: Holds<any Palette>.self).pointee.stepDescriptions == ["0: existential palette"])
+        unsafe #expect(cast.plan(for: Holds<any Palette>.self).pointee.stepDescriptions == ["0: existential palette"])
         var direct = hashFoldSeed
         var viaCast = hashFoldSeed
         withUnsafePointer(to: holder.value) { pointer in
-            #expect(ExistentialField.palette.mix(at: pointer, into: &direct, plans: cast))
-            #expect(ExistentialField.other((any Palette).self).mix(at: pointer, into: &viaCast, plans: cast))
+            unsafe #expect(ExistentialField.palette.mix(at: pointer, into: &direct, plans: cast))
+            unsafe #expect(ExistentialField.other((any Palette).self).mix(at: pointer, into: &viaCast, plans: cast))
         }
         #expect(direct == viaCast)
         #expect(hash(holder, cast) != hash(Holds(value: SystemPalette(.amber) as any Palette, tail: 3), cast))
@@ -120,11 +120,11 @@ struct ValueHashOpenerTests {
         do {
             let sentinel = Sentinel()
             released = sentinel
-            let opener = ValueHashOpener((any ButtonStyle).self) { _, _, _ in
+            let opener = unsafe ValueHashOpener((any ButtonStyle).self) { _, _, _ in
                 withExtendedLifetime(sentinel) { true }
             }
-            let plans = ValueHashPlans(openers: [opener])
-            #expect(
+            let plans = unsafe ValueHashPlans(openers: [opener])
+            unsafe #expect(
                 plans.plan(for: Holds<any ButtonStyle>.self).pointee.stepDescriptions
                     == ["0: existential opened by \((any ButtonStyle).self)"])
         }

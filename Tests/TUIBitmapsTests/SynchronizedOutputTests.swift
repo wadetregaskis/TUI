@@ -176,7 +176,7 @@ struct SynchronizedOutputTests {
                 return -1
             default: length = count
             }
-            taken.append(contentsOf: UnsafeBufferPointer(start: base, count: length))
+            unsafe taken.append(contentsOf: UnsafeBufferPointer(start: base, count: length))
             return length
         }
     }
@@ -190,7 +190,7 @@ struct SynchronizedOutputTests {
         let output = FlakyOutput(firstWrite: 12, failingWith: EAGAIN, times: 2)
         var waits = 0
         frame.withUnsafeBufferPointer { buffer in
-            Terminal.writeFrame(
+            unsafe Terminal.writeFrame(
                 buffer, omitting: nil, holdsDisplay: true, through: output.write,
                 waitingForRoom: {
                     waits += 1
@@ -202,7 +202,7 @@ struct SynchronizedOutputTests {
 
         let stuck = FlakyOutput(firstWrite: 12, failingWith: EAGAIN, times: 1)
         frame.withUnsafeBufferPointer { buffer in
-            Terminal.writeFrame(
+            unsafe Terminal.writeFrame(
                 buffer, omitting: nil, holdsDisplay: true, through: stuck.write, waitingForRoom: { false })
         }
         #expect(
@@ -215,7 +215,7 @@ struct SynchronizedOutputTests {
         let frame = Array((Self.begin + "\u{1B}[1;1Hx\u{1B}[2;1Hx" + Self.end).utf8)
         let output = FlakyOutput(firstWrite: 12)
         frame.withUnsafeBufferPointer { buffer in
-            Terminal.writeFrame(buffer, omitting: nil, holdsDisplay: true, through: output.write)
+            unsafe Terminal.writeFrame(buffer, omitting: nil, holdsDisplay: true, through: output.write)
         }
         let expected: [UInt8] = Array(frame.prefix(12)) + Array(Self.end.utf8)
         #expect(output.taken == expected)
@@ -223,7 +223,7 @@ struct SynchronizedOutputTests {
         let unheld = Array("\u{1B}[1;1Hx".utf8)
         let quiet = FlakyOutput(firstWrite: 3)
         unheld.withUnsafeBufferPointer { buffer in
-            Terminal.writeFrame(buffer, omitting: nil, holdsDisplay: false, through: quiet.write)
+            unsafe Terminal.writeFrame(buffer, omitting: nil, holdsDisplay: false, through: quiet.write)
         }
         let firstWrite: [UInt8] = Array(unheld.prefix(3))
         #expect(quiet.taken == firstWrite, "a frame that held nothing owes nothing")

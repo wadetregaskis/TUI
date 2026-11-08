@@ -64,7 +64,7 @@ public struct ToolbarPlacement: Equatable {
 /// read as bytes. See `_ValueHashing`.
 extension ToolbarPlacement.Edge: _ValueHashing {
     static func _mixValueHash(at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans) -> Bool {
-        switch pointer.assumingMemoryBound(to: Self.self).pointee {
+        switch unsafe pointer.assumingMemoryBound(to: Self.self).pointee {
         case .automatic: plans.mixCase(0, (), into: &hash)
         case .top: plans.mixCase(1, (), into: &hash)
         case .bottom: plans.mixCase(2, (), into: &hash)

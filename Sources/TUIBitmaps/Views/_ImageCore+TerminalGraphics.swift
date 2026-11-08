@@ -349,13 +349,13 @@ extension _ImageCore {
             pixels.contains { $0.a != .max } ? .rgba : .rgb
         let stride = format.stride
         let capacity = pixels.count * stride
-        let bytes = [UInt8](unsafeUninitializedCapacity: capacity) { buffer, initialized in
+        let bytes = unsafe [UInt8](unsafeUninitializedCapacity: capacity) { buffer, initialized in
             var index = 0
             for pixel in pixels {
-                buffer[index] = pixel.r
-                buffer[index + 1] = pixel.g
-                buffer[index + 2] = pixel.b
-                if stride == 4 { buffer[index + 3] = pixel.a }
+                unsafe buffer[index] = pixel.r
+                unsafe buffer[index + 1] = pixel.g
+                unsafe buffer[index + 2] = pixel.b
+                if stride == 4 { unsafe buffer[index + 3] = pixel.a }
                 index += stride
             }
             initialized = index

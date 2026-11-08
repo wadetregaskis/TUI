@@ -28,11 +28,11 @@ struct ListHugMeasureTests {
         let width: Int
         var body: Never { fatalError("CountingCell renders via Renderable") }
         func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-            Counters.measures += 1
+            unsafe Counters.measures += 1
             return ViewSize.fixed(width, 1)
         }
         func renderToBuffer(context: RenderContext) -> FrameBuffer {
-            Counters.renders += 1
+            unsafe Counters.renders += 1
             return FrameBuffer(text: String(repeating: "x", count: width))
         }
     }
@@ -41,8 +41,8 @@ struct ListHugMeasureTests {
         nonisolated(unsafe) static var measures = 0
         nonisolated(unsafe) static var renders = 0
         static func reset() {
-            measures = 0
-            renders = 0
+            unsafe measures = 0
+            unsafe renders = 0
         }
     }
 
@@ -69,14 +69,14 @@ struct ListHugMeasureTests {
         // The widest row is 5 + 16 = 21 cells, plus the gutters and the border.
         #expect(buffer.width < 60, "hugged, not filled")
         #expect(buffer.width >= 21)
-        #expect(Counters.renders <= 8 + 2, "only the rows on screen render: \(Counters.renders)")
+        unsafe #expect(Counters.renders <= 8 + 2, "only the rows on screen render: \(Counters.renders)")
         // The rows on screen render before the hug walks, and answer it from
         // that render; every other row answers with a measure. So the two
         // together cover every row, and neither covers one twice over.
-        #expect(
+        unsafe #expect(
             Counters.measures + Counters.renders >= 200,
             "every row was measured or drawn for the hug: \(Counters.measures) + \(Counters.renders)")
-        #expect(Counters.measures >= 200 - 10, "the off-screen rows measured: \(Counters.measures)")
+        unsafe #expect(Counters.measures >= 200 - 10, "the off-screen rows measured: \(Counters.measures)")
     }
 
     @Test("The second frame's hug is answered by the size memo, not by measuring again")
@@ -98,7 +98,7 @@ struct ListHugMeasureTests {
         tui.renderCache.beginRenderPass()
         _ = renderToBuffer(list, context: context)
         tui.stateStorage.endRenderPass()
-        #expect(Counters.measures < 120, "the hug measured rows that the memo should have answered: \(Counters.measures)")
+        unsafe #expect(Counters.measures < 120, "the hug measured rows that the memo should have answered: \(Counters.measures)")
     }
 
     @Test("Unchanged data: the third frame's hug walks no rows at all; changed data walks them again")
@@ -121,7 +121,7 @@ struct ListHugMeasureTests {
         let steady = frame(items)
         // The rows on screen still draw (and measure by drawing); every row
         // beyond them is answered by the list's own memo, not by a walk.
-        #expect(Counters.measures <= 10, "the hug was served from the list memo: \(Counters.measures)")
+        unsafe #expect(Counters.measures <= 10, "the hug was served from the list memo: \(Counters.measures)")
         #expect(steady.width >= 12 && steady.width < 60)
 
         var wider = items
@@ -129,6 +129,6 @@ struct ListHugMeasureTests {
         Counters.reset()
         let changed = frame(wider)
         #expect(changed.width > steady.width, "a wider row widened the hug: \(changed.width) vs \(steady.width)")
-        #expect(Counters.measures >= 100, "changed data walked the rows again: \(Counters.measures)")
+        unsafe #expect(Counters.measures >= 100, "changed data walked the rows again: \(Counters.measures)")
     }
 }

@@ -63,7 +63,7 @@ private struct RootStackApp: App {
 
     var body: some Scene {
         WindowGroup {
-            NavigationStack(path: .constant(Self.path)) {
+            unsafe NavigationStack(path: .constant(Self.path)) {
                 Text("ROOT")
                     .navigationTitle("ROOT-TITLE")
                     .navigationDestination(for: Int.self) { Text("DETAIL \($0)").navigationTitle("DETAIL-TITLE") }
@@ -340,12 +340,12 @@ struct WindowTitleTests {
 
     @Test("A stack at the window's root titles it: its root's title, and a pushed screen's while it is shown")
     func rootStackTitlesTheWindow() {
-        RootStackApp.path = []
+        unsafe RootStackApp.path = []
         #expect(topBar(RootStackApp()).first?.contains("ROOT-TITLE") == true)
-        RootStackApp.path = [1]
+        unsafe RootStackApp.path = [1]
         let pushed = topBar(RootStackApp())
         #expect(pushed.first?.contains("DETAIL-TITLE") == true, "\(pushed)")
         #expect(!pushed.contains { $0.contains("ROOT-TITLE") }, "the covered root is not drawn: \(pushed)")
-        RootStackApp.path = []
+        unsafe RootStackApp.path = []
     }
 }

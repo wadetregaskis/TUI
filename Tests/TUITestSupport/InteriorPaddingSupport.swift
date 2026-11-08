@@ -33,7 +33,7 @@ func interiorPadding(of type: Any.Type) -> [Range<Int>] {
     }
     func gaps(of type: Any.Type, at base: Int) -> [Range<Int>] {
         var fields: [(offset: Int, type: Any.Type, kind: RuntimeFields.Kind)] = []
-        RuntimeFields.forEach(of: type) { _, offset, field, kind in
+        unsafe RuntimeFields.forEach(of: type) { _, offset, field, kind in
             fields.append((offset, field, kind))
             return true
         }

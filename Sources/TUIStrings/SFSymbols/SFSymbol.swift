@@ -134,7 +134,7 @@ public enum SFSymbol {
             base, glyph as CFString, CFRange(location: 0, length: utf16.count))
         var glyphs = [CGGlyph](repeating: 0, count: utf16.count)
         _ = utf16.withUnsafeBufferPointer { buffer in
-            CTFontGetGlyphsForCharacters(substitute, buffer.baseAddress!, &glyphs, utf16.count)
+            unsafe CTFontGetGlyphsForCharacters(substitute, buffer.baseAddress!, &glyphs, utf16.count)
         }
         // For a surrogate pair CTFontGetGlyphsForCharacters puts the composed
         // glyph in [0] and 0 in [1], and reports `false` for that trailing unit —
@@ -182,7 +182,7 @@ public enum SFSymbol {
         result.reserveCapacity(bakedCount)
         names.forEachName { index, name in
             let scalar = Unicode.Scalar(puaBase + UInt32(codepointOffset(at: index)))!
-            let text = String(unsafeUninitializedCapacity: name.count) { $0.initialize(fromContentsOf: name) }
+            let text = String(unsafeUninitializedCapacity: name.count) { unsafe $0.initialize(fromContentsOf: name) }
             result.append(Entry(name: text, glyph: String(scalar)))
         }
         return result

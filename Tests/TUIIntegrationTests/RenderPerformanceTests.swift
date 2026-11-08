@@ -89,7 +89,7 @@ struct RenderPerformanceTests {
         let baseline = cost(Text("Baseline"), iterations: iterations, context: context)
         let subject = cost(view, iterations: iterations, context: context)
         let ratio = subject / baseline
-        print("  \(name): \(String(format: "%.1f", ratio))x a Text render")
+        print(unsafe "  \(name): \(String(format: "%.1f", ratio))x a Text render")
         return ratio
     }
 
@@ -382,11 +382,11 @@ struct RenderPerformanceStatistics {
         // Print results
         print("\n=== Render Performance Statistics ===")
         print("Iterations: \(iterations)")
-        print("Text baseline: \(String(format: "%.4f", baseline * 1000))ms per render")
+        print(unsafe "Text baseline: \(String(format: "%.4f", baseline * 1000))ms per render")
         print("")
         for (name, perRender) in results {
             print(
-                "\(name): \(String(format: "%.4f", perRender * 1000))ms per render, "
+                unsafe "\(name): \(String(format: "%.4f", perRender * 1000))ms per render, "
                     + "\(String(format: "%.1f", perRender / baseline))x a Text render")
         }
         print("=====================================\n")

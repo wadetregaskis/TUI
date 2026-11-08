@@ -178,7 +178,7 @@ struct FilePanelColumnViewTests {
         let fixture = try FilePanelFixture()
         defer { fixture.remove() }
         let pipe = fixture.url("pipe.log")
-        try #require(mkfifo(pipe.path, 0o600) == 0)
+        try unsafe #require(mkfifo(pipe.path, 0o600) == 0)
         let entry = FileEntry(
             url: pipe, name: "pipe.log", isFolder: false, isHidden: false, isSymbolicLink: false,
             contentType: .plainText, size: nil, modified: nil, sizeText: "", modifiedText: "", kind: "",
@@ -190,9 +190,9 @@ struct FilePanelColumnViewTests {
         // 100 ms.
         let writerDone = Lock(initialState: false)
         Thread.detachNewThread {
-            let descriptor = open(pipe.path, O_WRONLY)
+            let descriptor = unsafe open(pipe.path, O_WRONLY)
             if descriptor >= 0 {
-                _ = "piped\n".withCString { write(descriptor, $0, 6) }
+                _ = "piped\n".withCString { unsafe write(descriptor, $0, 6) }
                 close(descriptor)
             }
             writerDone.withLock { $0 = true }
@@ -200,7 +200,7 @@ struct FilePanelColumnViewTests {
         #expect(await FilePanelPreview.excerpt(of: entry) == nil)
         // No reader came, so the writer still waits: be its reader, and hold
         // the read end until it has written, so its write has somewhere to go.
-        let reader = open(pipe.path, O_RDONLY | O_NONBLOCK)
+        let reader = unsafe open(pipe.path, O_RDONLY | O_NONBLOCK)
         await settle { writerDone.withLock { $0 } }
         if reader >= 0 { close(reader) }
     }

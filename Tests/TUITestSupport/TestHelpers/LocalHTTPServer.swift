@@ -78,8 +78,8 @@ final class LocalHTTPServer: @unchecked Sendable {
             address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
         #endif
         let bound = withUnsafePointer(to: &address) { pointer in
-            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                bind(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            unsafe pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                unsafe bind(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
             }
         }
         guard bound == 0, listen(fd, 16) == 0 else {
@@ -90,8 +90,8 @@ final class LocalHTTPServer: @unchecked Sendable {
         var assigned = sockaddr_in()
         var length = socklen_t(MemoryLayout<sockaddr_in>.size)
         let named = withUnsafeMutablePointer(to: &assigned) { pointer in
-            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                getsockname(fd, $0, &length)
+            unsafe pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                unsafe getsockname(fd, $0, &length)
             }
         }
         guard named == 0 else {
@@ -134,7 +134,7 @@ final class LocalHTTPServer: @unchecked Sendable {
         var received = Data()
         var buffer = [UInt8](repeating: 0, count: 4096)
         while !received.contains(Data("\r\n\r\n".utf8)) {
-            let count = read(connection, &buffer, buffer.count)
+            let count = unsafe read(connection, &buffer, buffer.count)
             guard count > 0 else { return }
             received.append(contentsOf: buffer[0..<count])
         }
@@ -146,10 +146,10 @@ final class LocalHTTPServer: @unchecked Sendable {
         var response = Data(
             "HTTP/1.1 \(status)\r\nContent-Length: \(body.count)\r\nConnection: close\r\n\r\n".utf8)
         response.append(body)
-        response.withUnsafeBytes { bytes in
+        unsafe response.withUnsafeBytes { bytes in
             var sent = 0
             while sent < bytes.count {
-                let count = write(connection, bytes.baseAddress! + sent, bytes.count - sent)
+                let count = unsafe write(connection, bytes.baseAddress! + sent, bytes.count - sent)
                 guard count > 0 else { return }
                 sent += count
             }

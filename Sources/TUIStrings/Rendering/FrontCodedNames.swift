@@ -50,7 +50,7 @@ struct FrontCodedNames {
     /// touches no `String` and, on the common path, allocates nothing.
     func index(of name: String) -> Int? {
         // Fast path: a native Swift string exposes contiguous UTF-8 storage.
-        let found: Int?? = name.utf8.withContiguousStorageIfAvailable { index(of: $0) }
+        let found: Int?? = name.utf8.withContiguousStorageIfAvailable { unsafe index(of: $0) }
         // Rare fallback (a bridged NSString): copy the query bytes once.
         return found ?? index(copying: name.utf8)
     }
@@ -60,7 +60,7 @@ struct FrontCodedNames {
     /// reaches it directly: whether a given string bridges without contiguous
     /// UTF-8 is up to the OS's Swift runtime, not the test.
     func index(copying bytes: String.UTF8View) -> Int? {
-        Array(bytes).withUnsafeBufferPointer { index(of: $0) }
+        Array(bytes).withUnsafeBufferPointer { unsafe index(of: $0) }
     }
 
     /// The position of `query` among the names, or `nil`: a binary search of
@@ -72,7 +72,7 @@ struct FrontCodedNames {
             var high = blockStarts.count - 1  // the number of blocks
             while low < high {
                 let mid = low + (high - low) / 2
-                if Self.compareHead(blob, at: Int(blockStarts[mid]), to: query) <= 0 {
+                if unsafe Self.compareHead(blob, at: Int(blockStarts[mid]), to: query) <= 0 {
                     low = mid + 1
                 } else {
                     high = mid
@@ -80,7 +80,7 @@ struct FrontCodedNames {
             }
             // `low` is the first block whose head sorts above the query.
             guard low > 0 else { return nil }
-            return walk(blob, block: low - 1, for: query)
+            return unsafe walk(blob, block: low - 1, for: query)
         }
     }
 
@@ -95,11 +95,11 @@ struct FrontCodedNames {
                 if index.isMultiple(of: blockSize) {
                     name.removeAll(keepingCapacity: true)
                 } else {
-                    name.removeLast(name.count - Int(blob[position]))
+                    unsafe name.removeLast(name.count - Int(blob[position]))
                     position += 1
                 }
-                while blob[position] != Self.newline {
-                    name.append(blob[position])
+                while unsafe blob[position] != Self.newline {
+                    unsafe name.append(blob[position])
                     position += 1
                 }
                 position += 1
@@ -118,10 +118,10 @@ struct FrontCodedNames {
         var position = start
         var offset = 0
         while true {
-            let byte = blob[position]
+            let byte = unsafe blob[position]
             if byte == newline { return offset == query.count ? 0 : -1 }
             if offset == query.count { return 1 }
-            let other = query[offset]
+            let other = unsafe query[offset]
             if byte != other { return byte < other ? -1 : 1 }
             position += 1
             offset += 1
@@ -150,23 +150,23 @@ struct FrontCodedNames {
         while true {
             if shared < matched { return nil }
             if shared == matched {
-                while blob[position] != Self.newline, matched < query.count, blob[position] == query[matched] {
+                while unsafe blob[position] != Self.newline, matched < query.count, unsafe blob[position] == query[matched] {
                     position += 1
                     matched += 1
                 }
-                let byte = blob[position]
+                let byte = unsafe blob[position]
                 if byte == Self.newline {
                     if matched == query.count { return index }
                     // A proper prefix of the query: below it, so walk on.
-                } else if matched == query.count || byte > query[matched] {
+                } else if unsafe matched == query.count || byte > query[matched] {
                     return nil  // above the query
                 }
             }
-            while blob[position] != Self.newline { position += 1 }
+            while unsafe blob[position] != Self.newline { position += 1 }
             position += 1
             index += 1
             guard position < end else { return nil }
-            shared = Int(blob[position])
+            shared = unsafe Int(blob[position])
             position += 1
         }
     }

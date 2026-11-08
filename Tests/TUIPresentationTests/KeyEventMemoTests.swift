@@ -186,7 +186,7 @@ struct KeyEventMemoTests {
             let view = VStack {
                 ForEach(["row"], id: \.self) { name in
                     Text(name).onKeyEvent { _ in
-                        handled += 1
+                        unsafe handled += 1
                         return true
                     }
                 }
@@ -199,7 +199,7 @@ struct KeyEventMemoTests {
         for expected in 1...3 {
             frame()
             _ = tuiContext.keyEventDispatcher.dispatch(KeyEvent(character: "x"))
-            #expect(handled == expected, "frame \(expected): the handler is live, got \(handled)")
+            unsafe #expect(handled == expected, "frame \(expected): the handler is live, got \(handled)")
         }
     }
 
@@ -216,7 +216,7 @@ struct KeyEventMemoTests {
 
         tuiContext.keyEventDispatcher.clearHandlers()
         let view = Text("x").onKeyEvent { _ in
-            count += 1
+            unsafe count += 1
             return false
         }
         context.isMeasuring = true
@@ -225,7 +225,7 @@ struct KeyEventMemoTests {
         _ = renderToBuffer(view, context: context)  // the real render
         _ = tuiContext.keyEventDispatcher.dispatch(KeyEvent(character: "y"))
 
-        #expect(count == 1, "one keypress runs the handler exactly once, got \(count)")
+        unsafe #expect(count == 1, "one keypress runs the handler exactly once, got \(count)")
     }
 
     // MARK: - Served and replayed

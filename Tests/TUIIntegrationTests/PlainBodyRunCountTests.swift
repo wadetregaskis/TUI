@@ -73,23 +73,23 @@ private enum AllocationCount {
     nonisolated(unsafe) static var count = 0
     typealias Logger = @convention(c) (UInt32, UInt, UInt, UInt, UInt, UInt32) -> Void
     nonisolated(unsafe) private static let slot: UnsafeMutablePointer<Logger?>? = {
-        guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "malloc_logger") else { return nil }
-        return symbol.assumingMemoryBound(to: Logger?.self)
+        guard let symbol = unsafe dlsym(UnsafeMutableRawPointer(bitPattern: -2), "malloc_logger") else { return nil }
+        return unsafe symbol.assumingMemoryBound(to: Logger?.self)
     }()
 
     static func during(_ work: () -> Void) -> Int {
-        guard let slot else {
+        guard let slot = unsafe slot else {
             work()
             return -1
         }
-        count = 0
+        unsafe count = 0
         // MALLOC_LOG_TYPE_ALLOCATE is 2. A realloc logs as both.
-        slot.pointee = { type, _, _, _, _, _ in
-            if type & 2 != 0 { Self.count &+= 1 }
+        unsafe slot.pointee = { type, _, _, _, _, _ in
+            if type & 2 != 0 { unsafe Self.count &+= 1 }
         }
         work()
-        slot.pointee = nil
-        return count
+        unsafe slot.pointee = nil
+        return unsafe count
     }
 }
 #else

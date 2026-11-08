@@ -96,7 +96,7 @@ struct FilePanelPreview: View {
             if let omittedBytes, omittedBytes > 0 {
                 let size = ByteCountFormatStyle(style: .file, locale: locale).format(omittedBytes)
                 let format = LocalizationService.shared.string(for: LocalizationKey.FilePanel.previewMore)
-                shown += "\n" + String(format: format, size)
+                unsafe shown += "\n" + String(format: format, size)
             }
             return shown
         }

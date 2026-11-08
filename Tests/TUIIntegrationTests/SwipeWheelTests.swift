@@ -152,10 +152,10 @@ struct SwipeWheelTests {
         let report = Array("\u{1B}[<67;\(point.x + 1);\(point.y + 1)M".utf8)
         let terminal = Terminal()
         let queue = ByteQueue()
-        terminal.readSource = { buffer in
+        unsafe terminal.readSource = { buffer in
             guard !queue.bytes.isEmpty else { return 0 }
             let count = min(queue.bytes.count, buffer.count)
-            for index in 0..<count { buffer[index] = queue.bytes[index] }
+            for index in 0..<count { unsafe buffer[index] = queue.bytes[index] }
             queue.bytes.removeFirst(count)
             return count
         }

@@ -56,7 +56,7 @@ struct DecodedPixels: Equatable {
         case (.buffer(let mine), .buffer(let theirs)):
             mine.withUnsafeBufferPointer { mine in
                 theirs.withUnsafeBufferPointer { theirs in
-                    mine.baseAddress == theirs.baseAddress && mine.count == theirs.count
+                    unsafe mine.baseAddress == theirs.baseAddress && mine.count == theirs.count
                 }
             }
         case (.decode(let mine), .decode(let theirs)):

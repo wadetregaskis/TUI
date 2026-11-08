@@ -566,7 +566,7 @@ extension _ColorPickerBody: View {}
 
     static func hexString(_ components: (red: UInt8, green: UInt8, blue: UInt8)?) -> String {
         guard let c = components else { return "#------" }
-        return String(format: "#%02X%02X%02X", c.red, c.green, c.blue)
+        return unsafe String(format: "#%02X%02X%02X", c.red, c.green, c.blue)
     }
 
     static func rgbString(_ components: (red: UInt8, green: UInt8, blue: UInt8)?) -> String {

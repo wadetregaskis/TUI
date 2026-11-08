@@ -45,7 +45,7 @@ private struct LabellingTransition: Transition {
 /// Commands of the app's own, whose body reads the model.
 private struct ReadingCommands: Commands {
     var body: some Commands {
-        CommandMenu("CM" + DeferredReadModels.commands.label) {}
+        unsafe CommandMenu("CM" + DeferredReadModels.commands.label) {}
     }
 }
 
@@ -116,9 +116,9 @@ struct DeferredClosureObservationIntegrationTests {
 
     @Test("A Commands type's body reading an @Observable asks for a frame")
     mutating func commandsBody() {
-        DeferredReadModels.commands = DeferredReadModel()
+        unsafe DeferredReadModels.commands = DeferredReadModel()
         let app = TestApp(CommandsReadingApp(), width: 40, height: 6)
-        expectRedraw(app, from: "CMone", to: "CMtwo") { DeferredReadModels.commands.label = "two" }
+        expectRedraw(app, from: "CMone", to: "CMtwo") { unsafe DeferredReadModels.commands.label = "two" }
     }
 
     @Test("An open list selection menu reading an @Observable asks for a frame")

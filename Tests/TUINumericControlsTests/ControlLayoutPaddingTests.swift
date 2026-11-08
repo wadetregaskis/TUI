@@ -60,13 +60,13 @@ struct ControlLayoutPaddingTests {
             #expect(MemoryLayout<T>.size == 121, "\(T.self)")
             // The plan's runs and steps are the table's memory: it has to
             // outlive the reads, which a `let` alone does not promise.
-            let plans = ValueHashPlans()
+            let plans = unsafe ValueHashPlans()
             withExtendedLifetime(plans) {
-                let plan = plans.plan(for: T.self).pointee
+                let plan = unsafe plans.plan(for: T.self).pointee
                 // A plan that bypasses has no steps at all, so the next check
                 // alone would pass for a button its memo no longer hashes.
-                #expect(plan.shape != .bypass, "\(T.self) bypasses: \(plan.bypassReason ?? "")")
-                let steps = plan.stepDescriptions
+                unsafe #expect(plan.shape != .bypass, "\(T.self) bypasses: \(plan.bypassReason ?? "")")
+                let steps = unsafe plan.stepDescriptions
                 #expect(!steps.contains { $0.contains("OpenedPopup") }, "\(T.self): \(steps)")
             }
         }

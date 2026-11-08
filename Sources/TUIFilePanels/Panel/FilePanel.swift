@@ -284,7 +284,7 @@ struct FilePanel: View {
                 if let replacing { finish(.chose([replacing], ending)) }
             }
         } message: {
-            Text(
+            unsafe Text(
                 String(
                     format: LocalizationService.shared.string(for: LocalizationKey.FilePanel.replaceMessage),
                     DirectoryListing.displayName(of: browser.directory)))
@@ -293,7 +293,7 @@ struct FilePanel: View {
 
     /// The replace alert's title, naming the file.
     private var replaceTitle: String {
-        String(
+        unsafe String(
             format: LocalizationService.shared.string(for: LocalizationKey.FilePanel.replaceTitle),
             replacing?.lastPathComponent ?? "")
     }
@@ -467,7 +467,7 @@ struct FilePanel: View {
         else { return nil }
         let destination = browser.directory.appendingPathComponent(resolved)
         var isDirectory: ObjCBool = false
-        if FileManager.default.fileExists(atPath: destination.path, isDirectory: &isDirectory), isDirectory.boolValue {
+        if unsafe FileManager.default.fileExists(atPath: destination.path, isDirectory: &isDirectory), isDirectory.boolValue {
             return nil
         }
         return destination
@@ -593,7 +593,7 @@ struct FilePanel: View {
         guard let typed = typedPath else { return }
         let url = PathCompletion.resolve(typed, relativeTo: browser.directory, home: request.homeDirectory)
         var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return }
+        guard unsafe FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else { return }
         if isDirectory.boolValue {
             browser.open(url)
         } else {

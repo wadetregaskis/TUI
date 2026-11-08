@@ -42,7 +42,7 @@ enum PathCompletion {
         guard let first = matches.first else { return typed }
         if matches.count == 1 {
             var isDirectory: ObjCBool = false
-            let exists = FileManager.default.fileExists(
+            let exists = unsafe FileManager.default.fileExists(
                 atPath: folder.appendingPathComponent(first).path, isDirectory: &isDirectory)
             return folderPart + first + (exists && isDirectory.boolValue ? "/" : "")
         }

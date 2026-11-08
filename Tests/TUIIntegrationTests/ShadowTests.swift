@@ -214,10 +214,10 @@ struct ShadowTests {
 
     @Test("A shadowed view's value hash reads the shadow, so the render memo can keep the view")
     func memoReadsTheShadow() {
-        let plans = ValueHashPlans()
+        let plans = unsafe ValueHashPlans()
         let type = type(of: Text("ab").shadow(radius: 1, x: 1, y: 1))
-        let plan = plans.plan(for: type).pointee
-        #expect(plan.shape != .bypass, "\(plan.bypassReason ?? "")")
+        let plan = unsafe plans.plan(for: type).pointee
+        unsafe #expect(plan.shape != .bypass, "\(plan.bypassReason ?? "")")
     }
 
     // MARK: - Animation

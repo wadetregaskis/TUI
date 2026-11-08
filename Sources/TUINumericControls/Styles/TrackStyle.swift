@@ -161,7 +161,7 @@ extension TrackStyle: _ValueHashing {
     package static func _mixValueHash(
         at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans
     ) -> Bool {
-        switch pointer.assumingMemoryBound(to: Self.self).pointee {
+        switch unsafe pointer.assumingMemoryBound(to: Self.self).pointee {
         case .bar: plans.mixCase(0, (), into: &hash)
         case .block: plans.mixCase(1, (), into: &hash)
         case .blockFine: plans.mixCase(2, (), into: &hash)
@@ -183,7 +183,7 @@ extension SegmentColoring: _ValueHashing {
     package static func _mixValueHash(
         at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans
     ) -> Bool {
-        switch pointer.assumingMemoryBound(to: Self.self).pointee {
+        switch unsafe pointer.assumingMemoryBound(to: Self.self).pointee {
         case .automatic: plans.mixCase(0, (), into: &hash)
         case .solid(let color): plans.mixCase(1, color, into: &hash)
         case .perSegment(let leading, let middle, let trailing):

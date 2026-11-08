@@ -142,7 +142,7 @@ enum _ToolbarBarStatement {
 /// been read whole. See `_ValueHashing`.
 extension _ToolbarBarStatement: _ValueHashing {
     static func _mixValueHash(at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans) -> Bool {
-        switch pointer.assumingMemoryBound(to: Self.self).pointee {
+        switch unsafe pointer.assumingMemoryBound(to: Self.self).pointee {
         case .visibility(let visibility): plans.mixCase(0, visibility, into: &hash)
         case .background(let style): plans.mixCase(1, style, into: &hash)
         case .backgroundVisibility(let visibility): plans.mixCase(2, visibility, into: &hash)

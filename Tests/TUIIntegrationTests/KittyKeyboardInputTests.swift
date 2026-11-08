@@ -24,9 +24,9 @@ struct KittyKeyboardInputTests {
     private func terminal(_ bytes: String, enhanced: Bool = true) -> Terminal {
         let terminal = Terminal()
         var staged = Array(bytes.utf8)
-        terminal.readSource = { buffer in
+        unsafe terminal.readSource = { buffer in
             let count = min(staged.count, buffer.count)
-            for index in 0..<count { buffer[index] = staged[index] }
+            for index in 0..<count { unsafe buffer[index] = staged[index] }
             staged.removeFirst(count)
             return count
         }

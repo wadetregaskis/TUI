@@ -373,7 +373,7 @@ extension TableColumn {
     /// `Sendable` is a marker protocol, so the composition has the class
     /// reference's own layout and the cast changes no bits.
     static func sendable<V>(_ keyPath: KeyPath<RowValue, V>) -> any KeyPath<RowValue, V> & Sendable {
-        unsafeBitCast(keyPath, to: (any KeyPath<RowValue, V> & Sendable).self)
+        unsafe unsafeBitCast(keyPath, to: (any KeyPath<RowValue, V> & Sendable).self)
     }
 }
 

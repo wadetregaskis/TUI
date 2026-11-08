@@ -119,13 +119,13 @@ struct FilePanelNewFolderPrompt<Content: View>: View {
         let service = LocalizationService.shared
         switch (error as? CocoaError)?.code {
         case .fileWriteFileExists:
-            return String(format: service.string(for: LocalizationKey.FilePanel.newFolderNameTaken), name)
+            return unsafe String(format: service.string(for: LocalizationKey.FilePanel.newFolderNameTaken), name)
         case .fileWriteNoPermission, .fileWriteVolumeReadOnly:
             return service.string(for: LocalizationKey.FilePanel.newFolderNoPermission)
         case .fileWriteInvalidFileName:
-            return String(format: service.string(for: LocalizationKey.FilePanel.newFolderBadName), name)
+            return unsafe String(format: service.string(for: LocalizationKey.FilePanel.newFolderBadName), name)
         default:
-            return String(format: service.string(for: LocalizationKey.FilePanel.newFolderFailed), name)
+            return unsafe String(format: service.string(for: LocalizationKey.FilePanel.newFolderFailed), name)
                 + " " + error.localizedDescription
         }
     }

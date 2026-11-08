@@ -153,7 +153,7 @@ enum AssetCatalog {
         for item in ((try? manager.contentsOfDirectory(atPath: folder)) ?? []).sorted() {
             let path = (folder as NSString).appendingPathComponent(item)
             var isDirectory: ObjCBool = false
-            guard manager.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue else { continue }
+            guard unsafe manager.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue else { continue }
             let kind = (item as NSString).pathExtension
             if kind == Kind.color.rawValue || kind == Kind.image.rawValue {
                 let key = NameKey(kind: kind, name: namespace + (item as NSString).deletingPathExtension)

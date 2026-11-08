@@ -67,11 +67,11 @@ final class BitmapFixture {
 
         func append32(_ value: Int) {
             var little = UInt32(truncatingIfNeeded: value).littleEndian
-            withUnsafeBytes(of: &little) { data.append(contentsOf: $0) }
+            withUnsafeBytes(of: &little) { unsafe data.append(contentsOf: $0) }
         }
         func append16(_ value: Int) {
             var little = UInt16(truncatingIfNeeded: value).littleEndian
-            withUnsafeBytes(of: &little) { data.append(contentsOf: $0) }
+            withUnsafeBytes(of: &little) { unsafe data.append(contentsOf: $0) }
         }
 
         data.append(contentsOf: Array("BM".utf8))

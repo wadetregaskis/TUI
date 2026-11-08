@@ -816,12 +816,12 @@ extension GradientEditorPanel: View {}
             gradient.stops.map { stop in
                 let hex: String
                 if let components = stop.color.estimatedRGB {
-                    hex = String(
+                    hex = unsafe String(
                         format: "%02X%02X%02X", components.red, components.green, components.blue)
                 } else {
                     hex = "000000"
                 }
-                return hex + String(format: "@%.3f", stop.location)
+                return unsafe hex + String(format: "@%.3f", stop.location)
             }.joined(separator: ",")
         }.joined(separator: ";")
     }

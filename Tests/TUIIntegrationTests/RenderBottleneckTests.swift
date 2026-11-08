@@ -40,7 +40,7 @@ struct RenderBottleneckTests {
         }
         let time = best * Double(iterations) / Double(perBatch)
         let perIteration = (time / Double(iterations)) * 1000
-        print("  \(name): \(String(format: "%.3f", perIteration))ms per iteration (best of \(batches) batches)")
+        print(unsafe "  \(name): \(String(format: "%.3f", perIteration))ms per iteration (best of \(batches) batches)")
         return time
     }
 
@@ -99,7 +99,7 @@ struct RenderBottleneckTests {
         // number: the machine divides out, so it means the same on this laptop
         // and on a shared runner five times slower.
         let overheadPerLevel = (time10 - time1) / 9.0 / time1
-        print("Overhead per nesting level: \(String(format: "%.2f", overheadPerLevel))x a depth-1 render")
+        print(unsafe "Overhead per nesting level: \(String(format: "%.2f", overheadPerLevel))x a depth-1 render")
 
         // Two-pass layout costs a measure and a render at every level, so a
         // level is a fraction of a whole depth-1 render, not a multiple of one:
@@ -156,7 +156,7 @@ struct RenderBottleneckTests {
         // Ten rows against one: linear is ~10x, quadratic ~100x, and the bound
         // sits between them and far from both — measured 7.5-7.9x.
         let ratio = time10 / time1
-        print("Scale factor (10 vs 1 child): \(String(format: "%.2f", ratio))x")
+        print(unsafe "Scale factor (10 vs 1 child): \(String(format: "%.2f", ratio))x")
         #expect(ratio < 25, "a 10-row VStack costs \(ratio)x a 1-row VStack")
     }
 
@@ -217,7 +217,7 @@ struct RenderBottleneckTests {
 
         // Should scale linearly, not exponentially
         let scaleFactor = time100 / time50
-        print("Scale factor (100 vs 50 items): \(String(format: "%.2f", scaleFactor))x")
+        print(unsafe "Scale factor (100 vs 50 items): \(String(format: "%.2f", scaleFactor))x")
         #expect(scaleFactor < 3.0, "ForEach scaling is worse than linear: \(scaleFactor)x for 2x items")
     }
 
@@ -264,7 +264,7 @@ struct RenderBottleneckTests {
         // Five modifiers over the very Text the 0-modifier arm renders bare, so
         // this reads the modifier pipeline almost neat: measured 8.7-9.2x.
         let ratio = time5 / time0
-        print("Scale factor (5 modifiers vs 0): \(String(format: "%.2f", ratio))x")
+        print(unsafe "Scale factor (5 modifiers vs 0): \(String(format: "%.2f", ratio))x")
         #expect(ratio < 25, "five modifiers cost \(ratio)x an unmodified Text")
     }
 
@@ -325,7 +325,7 @@ struct RenderBottleneckTests {
         // The dearest control here against the bare primitive — the baseline
         // this test already measured and then threw away: measured 13.3-14.3x.
         let ratio = timeRadio / timeText
-        print("RadioButtonGroup vs Text: \(String(format: "%.2f", ratio))x")
+        print(unsafe "RadioButtonGroup vs Text: \(String(format: "%.2f", ratio))x")
         #expect(ratio < 50, "a 3-item RadioButtonGroup costs \(ratio)x a Text")
     }
 
@@ -369,7 +369,7 @@ struct RenderBottleneckTests {
         // `TextFieldScalingTests` guards next door — would read in the hundreds,
         // not as a small multiple: measured 1.9-2.1x.
         let ratio = timeLong / timeShort
-        print("Scale factor (1000 chars vs 2): \(String(format: "%.2f", ratio))x")
+        print(unsafe "Scale factor (1000 chars vs 2): \(String(format: "%.2f", ratio))x")
         #expect(ratio < 8, "1000 characters cost \(ratio)x two characters")
     }
 
@@ -406,7 +406,7 @@ struct RenderBottleneckTests {
         print("=====================================\n")
 
         let speedup = regularTime / lazyTime
-        print("LazyVStack speedup: \(String(format: "%.2f", speedup))x")
+        print(unsafe "LazyVStack speedup: \(String(format: "%.2f", speedup))x")
 
         // LazyVStack may have overhead for small datasets, but should not be
         // dramatically slower. Allow up to 3x for measurement variance.

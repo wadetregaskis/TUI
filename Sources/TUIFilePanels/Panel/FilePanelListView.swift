@@ -98,7 +98,7 @@ extension FileBrowser {
         case .loaded:
             LocalizationService.shared.string(for: LocalizationKey.FilePanel.emptyFolder)
         case .failed(let failure):
-            String(
+            unsafe String(
                 format: LocalizationService.shared.string(for: LocalizationKey.FilePanel.unreadableFolder),
                 failure.folderName) + " " + failure.reason
         }

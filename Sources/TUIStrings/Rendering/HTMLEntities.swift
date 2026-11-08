@@ -37,13 +37,13 @@ enum HTMLEntities {
         valueBlocks.withUTF8Buffer { blob in
             var position = Int(valueBlockStarts[index / blockSize])
             for _ in 0..<(index % blockSize) {
-                while blob[position] != 0 { position += 1 }
+                while unsafe blob[position] != 0 { position += 1 }
                 position += 1
             }
             var end = position
-            while blob[end] != 0 { end += 1 }
+            while unsafe blob[end] != 0 { end += 1 }
             // swiftlint:disable:next optional_data_string_conversion - no `Data`: whole scalars of valid UTF-8
-            return Array(String(decoding: UnsafeBufferPointer(rebasing: blob[position..<end]), as: UTF8.self).unicodeScalars)
+            return unsafe Array(String(decoding: UnsafeBufferPointer(rebasing: blob[position..<end]), as: UTF8.self).unicodeScalars)
         }
     }
 }

@@ -205,7 +205,7 @@ extension TrackConfiguration.Background: _ValueHashing {
     package static func _mixValueHash(
         at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans
     ) -> Bool {
-        switch pointer.assumingMemoryBound(to: Self.self).pointee {
+        switch unsafe pointer.assumingMemoryBound(to: Self.self).pointee {
         case .pattern(let pattern): plans.mixCase(0, pattern, into: &hash)
         case .solid: plans.mixCase(1, (), into: &hash)
         }

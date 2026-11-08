@@ -104,7 +104,7 @@ struct AnimatedImageDecodingTests {
             for level in frames {
                 let pixels = [UInt8](repeating: level, count: 4 * 4)
                 let provider = try #require(CGDataProvider(data: Data(pixels) as CFData))
-                let image = try #require(
+                let image = try unsafe #require(
                     CGImage(
                         width: 4, height: 4, bitsPerComponent: 8, bitsPerPixel: 8, bytesPerRow: 4,
                         space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGBitmapInfo(rawValue: 0),

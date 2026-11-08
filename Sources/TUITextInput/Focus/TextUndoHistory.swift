@@ -342,7 +342,7 @@ struct TextEdit: Equatable {
         var new = after
         let edit =
             old.withUTF8 { oldBytes in
-                new.withUTF8 { newBytes in Self.difference(oldBytes, newBytes) }
+                new.withUTF8 { newBytes in unsafe Self.difference(oldBytes, newBytes) }
             }
         (offset, removed, inserted) = edit
     }
@@ -354,10 +354,10 @@ struct TextEdit: Equatable {
     ) -> (Int, [UInt8], [UInt8]) {
         let shorter = min(old.count, new.count)
         var start = 0
-        while start < shorter, old[start] == new[start] { start += 1 }
+        while start < shorter, unsafe old[start] == new[start] { start += 1 }
         var end = 0
-        while end < shorter - start, old[old.count - 1 - end] == new[new.count - 1 - end] { end += 1 }
-        return (start, Array(old[start..<(old.count - end)]), Array(new[start..<(new.count - end)]))
+        while end < shorter - start, unsafe old[old.count - 1 - end] == new[new.count - 1 - end] { end += 1 }
+        return unsafe (start, Array(old[start..<(old.count - end)]), Array(new[start..<(new.count - end)]))
     }
 
     /// Whether `a` and `b` are the same bytes — not `==`, which takes two
@@ -370,7 +370,7 @@ struct TextEdit: Equatable {
         var b = b
         return a.withUTF8 { x in
             b.withUTF8 { y in
-                x.count == y.count
+                unsafe x.count == y.count
                     && (x.baseAddress == y.baseAddress || x.elementsEqual(y))
             }
         }
