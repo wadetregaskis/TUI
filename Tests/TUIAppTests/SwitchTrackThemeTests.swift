@@ -72,8 +72,8 @@ struct SwitchTrackThemeTests {
             let separation = ChromeTrack.renderedRatio(track, accent)
             if groove < ViewConstants.chromeGrooveFloor || separation < ViewConstants.chromeSeparationFloor {
                 offenders.append(
-                    unsafe "\(palette.name): page \(String(format: "%.2f", groove)), "
-                        + "accent \(String(format: "%.2f", separation))")
+                    unsafe "\(palette.name): page \(String(unsafeFormat: "%.2f", groove)), "
+                        + "accent \(String(unsafeFormat: "%.2f", separation))")
             }
         }
         #expect(offenders.isEmpty, "\(offenders)")

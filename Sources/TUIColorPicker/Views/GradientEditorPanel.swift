@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUICore
 import TUIFoundation
 import TUINumericControls
 import TUIStyling
@@ -817,11 +818,11 @@ extension GradientEditorPanel: View {}
                 let hex: String
                 if let components = stop.color.estimatedRGB {
                     hex = unsafe String(
-                        format: "%02X%02X%02X", components.red, components.green, components.blue)
+                        unsafeFormat: "%02X%02X%02X", components.red, components.green, components.blue)
                 } else {
                     hex = "000000"
                 }
-                return unsafe hex + String(format: "@%.3f", stop.location)
+                return unsafe hex + String(unsafeFormat: "@%.3f", stop.location)
             }.joined(separator: ",")
         }.joined(separator: ";")
     }

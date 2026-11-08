@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUICore
 import TUIImage
 import TUIStyling
 
@@ -119,7 +120,7 @@ struct ImageHarness {
             path=\(path) mode=\(mode) dither=\(dither) edge=\(edgeContrast) \
             out=\(width)x\(height) src=\(source.width)x\(source.height) \
             iterations=\(iterations)
-            \(String(format: "%.3f ms/iteration   %.2f ns/%@   checksum=%d",
+            \(String(unsafeFormat: "%.3f ms/iteration   %.2f ns/%@   checksum=%d",
                      perIteration * 1000, perUnit, path == "pixel" ? "pixel" : "cell", checksum))
             """)
     }
@@ -182,7 +183,7 @@ struct ImageHarness {
             + Double(elapsed.components.attoseconds) / 1e18
         print(unsafe """
             path=colour colours=\(count) iterations=\(iterations)
-            \(String(format: "%.3f ms/iteration   %.1f ns/colour   checksum=%d",
+            \(String(unsafeFormat: "%.3f ms/iteration   %.1f ns/colour   checksum=%d",
                      seconds / Double(iterations) * 1000,
                      seconds / Double(iterations) / Double(count) * 1e9, checksum))
             """)
@@ -232,7 +233,7 @@ struct ImageHarness {
         let perIteration = seconds / Double(iterations)
         print(unsafe """
             path=palette depth=\(depth) src=\(source.width)x\(source.height) iterations=\(iterations)
-            \(String(format: "%.3f ms/derivation   %.2f ns/pixel   checksum=%d",
+            \(String(unsafeFormat: "%.3f ms/derivation   %.2f ns/pixel   checksum=%d",
                      perIteration * 1000, perIteration / Double(cols * rows) * 1e9, checksum))
             """)
     }

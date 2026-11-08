@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import TUICore
 import TUIFoundation
 
 // MARK: - Date Field Model
@@ -115,7 +116,7 @@ struct DateFieldModel {
 
     /// The zero-padded text of a component within `date`.
     func text(_ kind: Kind, of date: Date) -> String {
-        unsafe String(format: kind == .year ? "%04d" : "%02d", value(kind, of: date))
+        unsafe String(unsafeFormat: kind == .year ? "%04d" : "%02d", value(kind, of: date))
     }
 
     /// The laid-out cells of the field, with absolute column ranges.

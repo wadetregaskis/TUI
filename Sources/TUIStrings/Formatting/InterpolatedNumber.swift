@@ -10,6 +10,7 @@
 //  License: MIT
 
 import Foundation
+import TUICore
 
 /// A number interpolated into a `LocalizedStringKey`, kept with the key so it
 /// can be written in whichever locale the key is read in.
@@ -101,16 +102,16 @@ package enum InterpolatedNumber: Hashable, Sendable {
         case .verbatim(let description): description
         case .specified(let specifier, let argument):
             #if canImport(Darwin)
-                unsafe String(format: specifier, locale: locale, argument.cVarArg)
+                unsafe String(unsafeFormat: specifier, locale: locale, argument.cVarArg)
             #else
                 // Outside Apple's platforms Foundation writes an integer in a
                 // locale as signed: UInt.max came out "-1" (Swift 6.2 and 6.3
                 // on Linux, CI, 2026-10-29). Without a locale it is right, and
                 // that Foundation groups no conversion's digits either way.
                 if argument.exceedsSignedRange {
-                    String(format: specifier, argument.cVarArg)
+                    String(unsafeFormat: specifier, argument.cVarArg)
                 } else {
-                    String(format: specifier, locale: locale, argument.cVarArg)
+                    String(unsafeFormat: specifier, locale: locale, argument.cVarArg)
                 }
             #endif
         }

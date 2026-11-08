@@ -132,7 +132,7 @@ extension ScreenSelection {
             rgb = (UInt8(clamping: red), UInt8(clamping: green), UInt8(clamping: blue))
         }
         // swiftlint:enable framework_colour_literal
-        return rgb.map { unsafe String(format: "#%02x%02x%02x", $0.red, $0.green, $0.blue) }
+        return rgb.map { unsafe String(unsafeFormat: "#%02x%02x%02x", $0.red, $0.green, $0.blue) }
     }
 
     /// `character` safe inside HTML text.

@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUIImage
@@ -102,7 +103,7 @@ struct PaletteTableFidelityTests {
         let (rate, worstRank) = disagreement(.ansi16)
         #expect(rate < 0.0005, "\(rate * 100)% of colours took a different entry")
         #expect(worstRank <= 1, "the table chose an entry ranked \(worstRank), not the runner-up")
-        unsafe print(String(format: "  ansi16   disagreement %.3f%%  worst rank %d", rate * 100, worstRank))
+        print("  ansi16   disagreement \((rate * 100).formatted(.number.precision(.fractionLength(3))))%  worst rank \(worstRank)")
     }
 
     @Test("A tone-ramp palette is exact, because it does not search")
@@ -115,7 +116,7 @@ struct PaletteTableFidelityTests {
             .asToneRamp()
         let (rate, _) = disagreement(ramp)
         #expect(rate < 0.0005, "\(rate * 100)%")
-        unsafe print(String(format: "  toneRamp disagreement %.3f%%", rate * 100))
+        print("  toneRamp disagreement \((rate * 100).formatted(.number.precision(.fractionLength(3))))%")
     }
 
     @Test("A wide palette stays close too")
@@ -124,8 +125,7 @@ struct PaletteTableFidelityTests {
             let (rate, worstRank) = disagreement(.shades(count))
             #expect(rate < 0.002, "shades(\(count)): \(rate * 100)%")
             #expect(worstRank <= 1, "shades(\(count)) ranked \(worstRank)")
-            unsafe print(String(format: "  shades(%d) disagreement %.3f%%  worst rank %d",
-                         count, rate * 100, worstRank))
+            print("  shades(\(count)) disagreement \((rate * 100).formatted(.number.precision(.fractionLength(3))))%  worst rank \(worstRank)")
         }
     }
 
@@ -183,8 +183,10 @@ struct PaletteTableFidelityTests {
         }
         let rate = Double(differed) / Double(samples.count)
         let meanExcess = differed > 0 ? totalExcess / Double(differed) : 0
-        unsafe print(String(format: "  ansi256  disagreement %.1f%%  excess mean %.4f worst %.4f OKLab",
-                     rate * 100, meanExcess, worstExcess))
+        let disagreement = (rate * 100).formatted(.number.precision(.fractionLength(1)))
+        let mean = meanExcess.formatted(.number.precision(.fractionLength(4)))
+        let worst = worstExcess.formatted(.number.precision(.fractionLength(4)))
+        print("  ansi256  disagreement \(disagreement)%  excess mean \(mean) worst \(worst) OKLab")
         #expect(rate < 0.16, "\(rate * 100)% of colours took a different entry")
         #expect(meanExcess < 0.02, "the average miss lands \(meanExcess) further away")
         #expect(worstExcess < 0.2, "the worst miss lands \(worstExcess) further away")

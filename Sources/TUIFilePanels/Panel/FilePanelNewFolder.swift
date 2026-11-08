@@ -11,6 +11,7 @@
 //  License: MIT
 
 import Foundation
+import TUICore
 import TUIFoundation
 import TUIPresentation
 import TUITextInput
@@ -119,13 +120,13 @@ struct FilePanelNewFolderPrompt<Content: View>: View {
         let service = LocalizationService.shared
         switch (error as? CocoaError)?.code {
         case .fileWriteFileExists:
-            return unsafe String(format: service.string(for: LocalizationKey.FilePanel.newFolderNameTaken), name)
+            return unsafe String(unsafeFormat: service.string(for: LocalizationKey.FilePanel.newFolderNameTaken), name)
         case .fileWriteNoPermission, .fileWriteVolumeReadOnly:
             return service.string(for: LocalizationKey.FilePanel.newFolderNoPermission)
         case .fileWriteInvalidFileName:
-            return unsafe String(format: service.string(for: LocalizationKey.FilePanel.newFolderBadName), name)
+            return unsafe String(unsafeFormat: service.string(for: LocalizationKey.FilePanel.newFolderBadName), name)
         default:
-            return unsafe String(format: service.string(for: LocalizationKey.FilePanel.newFolderFailed), name)
+            return unsafe String(unsafeFormat: service.string(for: LocalizationKey.FilePanel.newFolderFailed), name)
                 + " " + error.localizedDescription
         }
     }

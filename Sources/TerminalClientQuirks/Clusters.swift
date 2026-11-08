@@ -49,7 +49,7 @@ struct Cluster: Identifiable {
     /// The cluster as codepoints, for a bug report.
     var codepoints: String {
         text.unicodeScalars
-            .map { unsafe String(format: "U+%04X", $0.value) }
+            .map { unsafe String(unsafeFormat: "U+%04X", $0.value) }
             .joined(separator: " ")
     }
 

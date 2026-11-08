@@ -235,7 +235,7 @@ struct PaletteContrastAuditTests {
                 let ratio = Self.contrast(pair.foreground, pair.background)
                 let flag = ratio < pair.minimum ? "  ← FAIL (min \(pair.minimum))" : ""
                 let paddedName = pair.name.padding(toLength: 28, withPad: " ", startingAt: 0)
-                print(unsafe "  \(paddedName) \(String(format: "%5.2f", ratio))\(flag)")
+                print("  \(paddedName) \(ratio.formatted(.number.precision(.fractionLength(2))))\(flag)")
             }
         }
     }
@@ -251,7 +251,7 @@ struct PaletteContrastAuditTests {
                 withKnownIssue("\(entry) is a known failure") {
                     #expect(
                         ratio >= pair.minimum,
-                        "\(entry) contrast \(String(format: "%.2f", ratio)) < \(pair.minimum)")
+                        "\(entry) contrast \(ratio.formatted(.number.precision(.fractionLength(2)))) < \(pair.minimum)")
                 } when: {
                     Self.knownFloorFailures.contains(entry)
                 }
@@ -437,7 +437,7 @@ struct PaletteContrastAuditTests {
                 guard let worst = ratios.min(), let at = ratios.firstIndex(of: worst),
                     worst < ViewConstants.rowBreathPeakContrastFloor
                 else { return nil }
-                let ratio = unsafe String(format: "%.2f", worst)
+                let ratio = worst.formatted(.number.precision(.fractionLength(2)))
                 return "\(name): the text \(PaletteContrastAuditTests.hex(text)) is \(ratio):1 on \(names[at]), of \(names)"
             case .shades:
                 return shades.count >= 2 ? nil : "\(name): the breath holds one colour, \(names)"
@@ -564,7 +564,10 @@ struct PaletteContrastAuditTests {
 extension PaletteContrastAuditTests {
     private static func hex(_ color: Color) -> String {
         guard let (r, g, b) = color.rgbComponents else { return "?" }
-        return unsafe String(format: "#%02X%02X%02X", Int(r), Int(g), Int(b))
+        return "#" + [r, g, b].map { channel in
+            let digits = String(Int(channel), radix: 16, uppercase: true)
+            return digits.count < 2 ? "0" + digits : digits
+        }.joined()
     }
 
     @Test("Report: key derived colours (hex) for the Terminal profiles")

@@ -29,6 +29,7 @@
 //  License: MIT
 
 import Testing
+import TUICore
 
 @testable import TUIApp
 @testable import TUIFoundation
@@ -149,7 +150,7 @@ struct LabelContrastTests {
                     painted.renderedRatio >= ViewConstants.labelContrastFloor - 0.01,
                     """
                     \(control.name) under \(palette.name) is at \
-                    \(String(format: "%.2f", painted.renderedRatio)):1 as rendered, below the \
+                    \(String(unsafeFormat: "%.2f", painted.renderedRatio)):1 as rendered, below the \
                     \(ViewConstants.labelContrastFloor):1 floor
                     """)
             }
@@ -188,7 +189,7 @@ struct LabelContrastTests {
                     ratio >= ViewConstants.disabledLabelContrastFloor - 0.01,
                     """
                     \(control.name) under \(palette.name) is at \
-                    \(String(format: "%.2f", ratio)):1, below the \
+                    \(String(unsafeFormat: "%.2f", ratio)):1, below the \
                     \(ViewConstants.disabledLabelContrastFloor):1 disabled floor
                     """)
             }
@@ -242,8 +243,8 @@ struct LabelContrastTests {
                 offRatio <= onRatio + tolerance,
                 """
                 \(palette.name) inverts the states: disabled \
-                \(String(format: "%.2f", offRatio)):1 vs enabled \
-                \(String(format: "%.2f", onRatio)):1
+                \(String(unsafeFormat: "%.2f", offRatio)):1 vs enabled \
+                \(String(unsafeFormat: "%.2f", onRatio)):1
                 """)
         }
     }

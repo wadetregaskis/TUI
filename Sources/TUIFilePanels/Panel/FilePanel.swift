@@ -10,6 +10,7 @@
 //  License: MIT
 
 import Foundation
+import TUICore
 import TUIFoundation
 import TUIPresentation
 import TUITables
@@ -286,7 +287,7 @@ struct FilePanel: View {
         } message: {
             unsafe Text(
                 String(
-                    format: LocalizationService.shared.string(for: LocalizationKey.FilePanel.replaceMessage),
+                    unsafeFormat: LocalizationService.shared.string(for: LocalizationKey.FilePanel.replaceMessage),
                     DirectoryListing.displayName(of: browser.directory)))
         }
     }
@@ -294,7 +295,7 @@ struct FilePanel: View {
     /// The replace alert's title, naming the file.
     private var replaceTitle: String {
         unsafe String(
-            format: LocalizationService.shared.string(for: LocalizationKey.FilePanel.replaceTitle),
+            unsafeFormat: LocalizationService.shared.string(for: LocalizationKey.FilePanel.replaceTitle),
             replacing?.lastPathComponent ?? "")
     }
 

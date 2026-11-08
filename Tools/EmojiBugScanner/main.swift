@@ -272,7 +272,7 @@ func enumerateFlags() -> [String] {
 // MARK: - Output
 
 func formatCodepoints(_ scalars: [Unicode.Scalar]) -> String {
-    return scalars.map { unsafe String(format: "U+%04X", $0.value) }.joined(separator: " ")
+    return scalars.map { unsafe String(unsafeFormat: "U+%04X", $0.value) }.joined(separator: " ")
 }
 
 func writeReport(_ results: [Result], to handle: FileHandle, format: OutputFormat) {
@@ -411,7 +411,7 @@ func main() {
             let rate = Double(i + 1) / elapsed
             // Status on row 1 so it doesn't interfere with the test row.
             writeString("\u{1B}[1;1H\u{1B}[2K")
-            writeString(unsafe "[\(i + 1)/\(corpus.count)  \(String(format: "%.0f", rate))/s] ")
+            writeString(unsafe "[\(i + 1)/\(corpus.count)  \(String(unsafeFormat: "%.0f", rate))/s] ")
             writeString(cluster)
         }
     }
@@ -452,7 +452,7 @@ func main() {
       under-advance: \(underAdvance)
       over-advance:  \(overAdvance)
       parse-failure: \(parseFail)
-    elapsed: \(String(format: "%.2f", Date().timeIntervalSince(startTime)))s
+    elapsed: \(String(unsafeFormat: "%.2f", Date().timeIntervalSince(startTime)))s
 
     """
     FileHandle.standardError.write(summary.data(using: .utf8)!)

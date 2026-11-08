@@ -101,7 +101,7 @@ extension LayeringPage {
                 // slider's own readout is a percentage of the RANGE, which
                 // calls the middle 50% when the middle is where the layers
                 // line up.
-                unsafe Text(verbatim: String(format: "%+.0f%%", travel * 100))
+                unsafe Text(verbatim: String(unsafeFormat: "%+.0f%%", travel * 100))
                     .frame(width: 5, alignment: .trailing)
                     .bold()
                     .foregroundStyle(.palette.accent)

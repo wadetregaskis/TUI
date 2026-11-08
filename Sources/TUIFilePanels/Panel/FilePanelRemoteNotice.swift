@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import TUICore
 import TUIFoundation
 import TUIPresentation
 import TUITerminalHost
@@ -94,7 +95,7 @@ struct FilePanelRemoteNotice: View {
             }
             unsafe Text(
                 verbatim: String(
-                    format: LocalizationService.shared.string(for: LocalizationKey.FilePanel.remoteNotice), hostName)
+                    unsafeFormat: LocalizationService.shared.string(for: LocalizationKey.FilePanel.remoteNotice), hostName)
             )
             .lineLimit(3)
         }

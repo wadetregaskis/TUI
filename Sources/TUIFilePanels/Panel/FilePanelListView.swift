@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import TUICore
 import TUIFoundation
 import TUITables
 
@@ -99,7 +100,7 @@ extension FileBrowser {
             LocalizationService.shared.string(for: LocalizationKey.FilePanel.emptyFolder)
         case .failed(let failure):
             unsafe String(
-                format: LocalizationService.shared.string(for: LocalizationKey.FilePanel.unreadableFolder),
+                unsafeFormat: LocalizationService.shared.string(for: LocalizationKey.FilePanel.unreadableFolder),
                 failure.folderName) + " " + failure.reason
         }
     }

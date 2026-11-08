@@ -55,7 +55,7 @@ enum GradientStopsCodec {
 
     /// Encodes a gradient for storage — the inverse of ``decode(_:fallback:)``.
     static func encode(_ gradient: Gradient) -> String {
-        gradient.stops.map { unsafe hex($0.color) + String(format: "@%.3f", $0.location) }
+        gradient.stops.map { unsafe hex($0.color) + String(unsafeFormat: "@%.3f", $0.location) }
             .joined(separator: ",")
     }
 
@@ -69,6 +69,6 @@ enum GradientStopsCodec {
     /// reported none.
     static func hex(_ color: Color) -> String {
         guard let components = color.estimatedRGB else { return "000000" }
-        return unsafe String(format: "%02X%02X%02X", components.red, components.green, components.blue)
+        return unsafe String(unsafeFormat: "%02X%02X%02X", components.red, components.green, components.blue)
     }
 }

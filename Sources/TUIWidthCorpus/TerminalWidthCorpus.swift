@@ -19,7 +19,6 @@
 /// already thought to doubt; the corpus is deliberately wider than the known
 /// defects, which is how it keeps finding pre-existing ones (Apple Terminal's
 /// tag-flag drift, Warp's 🪉).
-import Foundation  // `String(format:)` / `trimmingCharacters` — stated, not borrowed from a sibling file (SE-0444)
 
 package enum TerminalWidthCorpus {
 
@@ -40,7 +39,14 @@ package enum TerminalWidthCorpus {
         /// The cluster as codepoints, for a bug report.
         package var codepoints: String {
             text.unicodeScalars
-                .map { unsafe String(format: "U+%04X", $0.value) }
+                .map { scalar in
+                    // Written out, not `String(format: "U+%04X")`: printf
+                    // formatting is unsafe on Apple's platforms only, and this
+                    // module sees no shared helper for that (it depends on
+                    // nothing).
+                    let hex = String(scalar.value, radix: 16, uppercase: true)
+                    return "U+" + String(repeating: "0", count: max(0, 4 - hex.count)) + hex
+                }
                 .joined(separator: " ")
         }
     }

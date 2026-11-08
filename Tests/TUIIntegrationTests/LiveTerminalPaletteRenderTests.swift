@@ -312,7 +312,7 @@ struct LiveTerminalPaletteRenderTests {
                     let step = surface.resolve(with: palette).lightnessDifference(from: page)
                     #expect(
                         step >= SystemPalette.planeSeparation,
-                        "\(host): \(role) is ΔL* \(String(format: "%.1f", step)) off the page")
+                        "\(host): \(role) is ΔL* \(String(unsafeFormat: "%.1f", step)) off the page")
                 }
             }
         }

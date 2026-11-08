@@ -146,7 +146,7 @@ struct CursorAdvanceConservationTests {
             let emitted = TerminalClient.compensating(row, for: program)
             #expect(
                 landing(emitted, on: program) == claim,
-                "\(cluster.unicodeScalars.map { String(format: "U+%04X", $0.value) }) on \(program.rawValue)")
+                "\(cluster.unicodeScalars.map { String(unsafeFormat: "U+%04X", $0.value) }) on \(program.rawValue)")
         }
     }
 

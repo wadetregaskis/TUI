@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Testing
+import TUICore
 
 @testable import TUIFoundation
 @testable import TUIStyling
@@ -50,7 +51,7 @@ struct ScrollbarPulseSeparationTests {
                     .contrastRatio(against: track.downsampledToPalette256())
                 if ratio < ViewConstants.chromeSeparationFloor {
                     offenders.append(
-                        unsafe "\(palette.name) frame \(index): \(String(format: "%.2f", ratio))")
+                        unsafe "\(palette.name) frame \(index): \(String(unsafeFormat: "%.2f", ratio))")
                 }
             }
         }

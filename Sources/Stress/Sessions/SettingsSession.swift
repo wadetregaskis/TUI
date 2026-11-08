@@ -73,7 +73,7 @@ struct SettingsPage: View {
                     LabeledContent(
                         name,
                         value: settings.metric
-                            ? "\(millimetres) mm" : unsafe String(format: "%.2f in", Double(millimetres) / 25.4))
+                            ? "\(millimetres) mm" : unsafe String(unsafeFormat: "%.2f in", Double(millimetres) / 25.4))
                 }
             }
             DisclosureGroup("Advanced", isExpanded: bind(\.advanced)) {

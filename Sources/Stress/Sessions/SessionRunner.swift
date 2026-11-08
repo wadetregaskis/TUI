@@ -274,7 +274,7 @@ enum SessionRunner {
     private static func trace(_ step: SessionStep, _ index: Int, cpu: UInt64, bytes: Int) {
         let input = step.keys.map { "\($0.key)" } + step.mouse.map { "\($0.button) \($0.phase)@\($0.x),\($0.y)" }
         let keys = input.joined(separator: " ")
-        let micros = unsafe String(format: "%.1f", Double(cpu) / 1_000)
+        let micros = unsafe String(unsafeFormat: "%.1f", Double(cpu) / 1_000)
         let size = step.resize.map { " to \($0.width)x\($0.height)" } ?? ""
         Swift.print("  step \(index): \(step.action)\(size)\(keys.isEmpty ? "" : " [\(keys)]") — \(micros) µs, \(bytes) bytes")
     }
@@ -305,7 +305,7 @@ enum SessionRunner {
     /// and footprint now, and the registrations alive by kind when a census
     /// is counting.
     private static func checkpoint(after steps: Int, census: ObservationCensus.Counts?) -> String {
-        let mb = { (bytes: UInt64?) in bytes.map { unsafe String(format: "%.1fMB", Double($0) / 1_048_576) } ?? "-" }
+        let mb = { (bytes: UInt64?) in bytes.map { unsafe String(unsafeFormat: "%.1fMB", Double($0) / 1_048_576) } ?? "-" }
         let live = census.map { "; live registrations: " + liveByKind($0) } ?? ""
         return "checkpoint after \(steps) steps: rss=\(mb(ProcessMemory.currentResidentBytes())) "
             + "footprint=\(mb(ProcessMemory.currentFootprintBytes()))" + live
@@ -330,7 +330,7 @@ enum SessionRunner {
             let armed = end.armed(kind) - open.armed(kind)
             unsafe lines.append(
                 String(
-                    format: "  %@ armed %d (%.2f/step), fired %d, cancelled %d, dropped %d, alive at the end %d"
+                    unsafeFormat: "  %@ armed %d (%.2f/step), fired %d, cancelled %d, dropped %d, alive at the end %d"
                         + " (unleased %d)",
                     kind.description, armed, Double(armed) / steps, end.fired(kind) - open.fired(kind),
                     end.cancelled(kind) - open.cancelled(kind), end.dropped(kind) - open.dropped(kind),
@@ -368,7 +368,7 @@ enum SessionRunner {
         }
         unsafe lines += [
             String(
-                format: "environment stamps: %d built, %d from the pass's memo, %d interned to one already made,"
+                unsafeFormat: "environment stamps: %d built, %d from the pass's memo, %d interned to one already made,"
                     + " %.2f merge walks a build, %d pushed out, %d uncomparable",
                 counts.built, counts.memoHits, counts.internHits,
                 Double(counts.mergeWalks) / Double(counts.built), counts.overflows, counts.uncomparable)
@@ -485,18 +485,18 @@ enum SessionRunner {
                 + "steps=\(report.steps) resize-every=\(options.resizeEvery) verify=\(options.verify)")
         unsafe Swift.print(
             String(
-                format: "  per-frame=%.1fµs  cpu-per-frame=%.1fµs  bytes/frame=%.0f",
+                unsafeFormat: "  per-frame=%.1fµs  cpu-per-frame=%.1fµs  bytes/frame=%.0f",
                 Double(report.wallNanos) / 1_000 / steps, Double(report.cpuNanos) / 1_000 / steps,
                 Double(report.bytes) / steps))
         if let peak = ProcessMemory.peakResidentBytes() {
-            unsafe Swift.print(String(format: "  rss-peak=%.1fMB", Double(peak) / 1_048_576))
+            unsafe Swift.print(String(unsafeFormat: "  rss-peak=%.1fMB", Double(peak) / 1_048_576))
         }
         Swift.print("  action          steps     mean µs      p50      p95      max   bytes/step")
         for (action, cost) in report.costs.sorted(by: { $0.value.totalNanos > $1.value.totalNanos }) {
             let mean = Double(cost.totalNanos) / 1_000 / Double(max(1, cost.count))
             unsafe Swift.print(
                 String(
-                    format: "  %@ %6d  %10.1f %8.1f %8.1f %8.1f %12.0f",
+                    unsafeFormat: "  %@ %6d  %10.1f %8.1f %8.1f %8.1f %12.0f",
                     action.padding(toLength: max(14, action.count), withPad: " ", startingAt: 0),
                     cost.count, mean, cost.quantileMicros(0.5), cost.quantileMicros(0.95),
                     cost.quantileMicros(1), Double(cost.bytes) / Double(max(1, cost.count))))
@@ -505,7 +505,7 @@ enum SessionRunner {
         let stats = report.cacheStats
         unsafe Swift.print(
             String(
-                format: "  memoized rows: %d composed, %d served (%.1f/step, %.1f/step); "
+                unsafeFormat: "  memoized rows: %d composed, %d served (%.1f/step, %.1f/step); "
                     + "value memos: %d hits, %d misses, %d stores; subtree clears: %d (%d entries visited)",
                 rows.rendered, rows.served, Double(rows.rendered) / steps, Double(rows.served) / steps,
                 stats.hits, stats.misses, stats.stores, stats.subtreeClears, stats.clearVisits))

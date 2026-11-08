@@ -47,7 +47,7 @@ struct TextFieldScalingTests {
         #expect(
             ratio < 20,
             """
-            the width scan grew \(String(format: "%.1f", ratio))× for 8× the text \
+            the width scan grew \(String(unsafeFormat: "%.1f", ratio))× for 8× the text \
             (linear ≈ 8×, quadratic ≈ 64×) — the display mapping is being resolved \
             by index again, which walks the string from the start for every character.
             """)

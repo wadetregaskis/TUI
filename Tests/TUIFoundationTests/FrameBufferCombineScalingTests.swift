@@ -53,7 +53,7 @@ struct FrameBufferCombineScalingTests {
         #expect(
             ratio < 20,
             """
-            appendVertically grew \(String(format: "%.1f", ratio))× for 8× the children \
+            appendVertically grew \(String(unsafeFormat: "%.1f", ratio))× for 8× the children \
             (linear ≈ 8×, quadratic ≈ 64×) — the accumulator is being copied per child again.
             """)
     }
@@ -80,7 +80,7 @@ struct FrameBufferCombineScalingTests {
         #expect(
             ratio < 20,
             """
-            carried hit regions grew \(String(format: "%.1f", ratio))× for 8× the children \
+            carried hit regions grew \(String(unsafeFormat: "%.1f", ratio))× for 8× the children \
             — the side-channels are being concatenated rather than appended.
             """)
     }
@@ -164,7 +164,7 @@ struct FrameBufferCombineScalingTests {
         #expect(
             ratio < 20,
             """
-            appendVertically grew \(String(format: "%.1f", ratio))× for 8× the children \
+            appendVertically grew \(String(unsafeFormat: "%.1f", ratio))× for 8× the children \
             (linear ≈ 8×, quadratic ≈ 64×) — the debug line-width invariant is re-measuring \
             the whole accumulator per child again.
             """)

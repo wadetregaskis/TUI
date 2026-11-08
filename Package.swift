@@ -1107,7 +1107,7 @@ let package = Package(
         // have to be measured separately, and neither is a view render.
         .executableTarget(
             name: "ImageHarness",
-            dependencies: ["TUIImage", "TUIStyling"],
+            dependencies: ["TUICore", "TUIImage", "TUIStyling"],
             path: "Tools/Profiling/ImageHarness"
         ),
 

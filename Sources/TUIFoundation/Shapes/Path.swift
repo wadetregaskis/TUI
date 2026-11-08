@@ -10,6 +10,7 @@
 import CoreGraphics
 #endif
 import Foundation
+import TUICore
 
 // MARK: - Path
 
@@ -305,6 +306,6 @@ extension Path: LosslessStringConvertible {
     /// A coordinate the way SwiftUI writes one: six significant digits, no
     /// trailing zeros (`12.7614`, `1.01453e-16`, `10`).
     private static func format(_ value: CGFloat) -> String {
-        unsafe String(format: "%g", Double(value))
+        unsafe String(unsafeFormat: "%g", Double(value))
     }
 }

@@ -124,7 +124,7 @@ final class AccumulateSession: StressSession {
         let start = DispatchTime.now().uptimeNanoseconds
         model.never += 1
         let nanos = DispatchTime.now().uptimeNanoseconds &- start
-        return unsafe String(format: "the first write of the never-written property took %.3f ms", Double(nanos) / 1e6)
+        return unsafe String(unsafeFormat: "the first write of the never-written property took %.3f ms", Double(nanos) / 1e6)
     }
 
     /// The clock the page shows is the step count, and the four readers say

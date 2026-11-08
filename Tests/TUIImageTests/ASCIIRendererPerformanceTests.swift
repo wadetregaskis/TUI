@@ -121,7 +121,7 @@ struct ASCIIRendererPerformanceTests {
         let multiple = costMultiple(of: image) {
             frame = converter.convert(image, width: 80, height: 40).lines
         }
-        #expect(multiple < shapeCeiling, "\(String(format: "%.1f", multiple))× a plain walk, ceiling \(Int(shapeCeiling))×")
+        #expect(multiple < shapeCeiling, "\(multiple.formatted(.number.precision(.fractionLength(1))))× a plain walk, ceiling \(Int(shapeCeiling))×")
         #expect(frame.count == 40, "every requested row")
         let widths = Set(frame.map { cells($0).count })
         #expect(widths == [80], "80 cells on every row: \(widths.sorted())")
@@ -162,6 +162,6 @@ struct ASCIIRendererPerformanceTests {
         // timing bound above would accept.
         #expect(glyphs.count > 1, "the dot patterns vary across the ramp")
         #expect(
-            multiple < brailleCeiling, "\(String(format: "%.1f", multiple))× a plain walk, ceiling \(Int(brailleCeiling))×")
+            multiple < brailleCeiling, "\(multiple.formatted(.number.precision(.fractionLength(1))))× a plain walk, ceiling \(Int(brailleCeiling))×")
     }
 }

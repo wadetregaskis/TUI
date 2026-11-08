@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import TUICore
 import TUIFoundation
 
 #if canImport(UniformTypeIdentifiers)
@@ -96,7 +97,7 @@ struct FilePanelPreview: View {
             if let omittedBytes, omittedBytes > 0 {
                 let size = ByteCountFormatStyle(style: .file, locale: locale).format(omittedBytes)
                 let format = LocalizationService.shared.string(for: LocalizationKey.FilePanel.previewMore)
-                unsafe shown += "\n" + String(format: format, size)
+                unsafe shown += "\n" + String(unsafeFormat: format, size)
             }
             return shown
         }

@@ -350,7 +350,7 @@ enum Headless {
         let total = after.total - before.total
         guard always || total > 0 || after.residual > before.residual else { return }
         let divisor = Double(max(1, frames))
-        let perFrame = { (count: Int) in unsafe String(format: "%.2f", Double(count) / divisor) }
+        let perFrame = { (count: Int) in unsafe String(unsafeFormat: "%.2f", Double(count) / divisor) }
         print("  geometry corrections/frame: \(perFrame(total)) — named \(perFrame(after.named - before.named)), "
             + "scroll view \(perFrame(after.scrollView - before.scrollView)), "
             + "root \(perFrame(after.root - before.root)), layer \(perFrame(after.layer - before.layer)); "
@@ -370,17 +370,17 @@ enum Headless {
         guard let peak = ProcessMemory.peakResidentBytes() else { return }
         let mb = { (bytes: UInt64) in Double(bytes) / 1_048_576 }
         guard let mean = memory.meanBytes else {
-            unsafe print(String(format: "  rss-peak=%.1fMB", mb(peak)))
+            unsafe print(String(unsafeFormat: "  rss-peak=%.1fMB", mb(peak)))
             return
         }
-        unsafe print(String(format: "  rss-peak=%.1fMB  rss-mean=%.1fMB  rss-sampled-peak=%.1fMB",
+        unsafe print(String(unsafeFormat: "  rss-peak=%.1fMB  rss-mean=%.1fMB  rss-sampled-peak=%.1fMB",
             mb(peak), mb(mean), mb(memory.peakSampled)))
         // The footprint is the number a freed buffer actually moves — see
         // `ProcessMemory.currentFootprintBytes()`. Printed beside the resident
         // figures rather than instead of them, because they answer different
         // questions and only one of them exists on Linux.
         if let meanFootprint = memory.meanFootprintBytes {
-            unsafe print(String(format: "  footprint-mean=%.1fMB  footprint-peak=%.1fMB",
+            unsafe print(String(unsafeFormat: "  footprint-mean=%.1fMB  footprint-peak=%.1fMB",
                 mb(meanFootprint), mb(memory.peakFootprint)))
         }
     }
@@ -401,7 +401,7 @@ enum Headless {
     ) {
         let memo = cache?.measureMemoTotals ?? (hits: 0, misses: 0)
         let lookups = memo.hits + memo.misses
-        unsafe print(String(format: "  measure memo: %d hits / %d lookups (%.1f%%)",
+        unsafe print(String(unsafeFormat: "  measure memo: %d hits / %d lookups (%.1f%%)",
             memo.hits, lookups, lookups > 0 ? Double(memo.hits) / Double(lookups) * 100 : 0))
         let render = cache?.stats ?? RenderCache.Stats()
         print("  value memos (buffer + size): \(render.hits) hits / \(render.lookups) lookups, "
@@ -416,7 +416,7 @@ enum Headless {
         let divisor = Double(max(1, frames))
         unsafe print(
             String(
-                format: "  rows/frame: %.1f composed, %.1f served (%.0f%%), %.1f of them repainted; "
+                unsafeFormat: "  rows/frame: %.1f composed, %.1f served (%.0f%%), %.1f of them repainted; "
                     + "cell values/frame: %.1f; clears: %d whole, %d subtree (%d entries visited)",
                 Double(work.rendered) / divisor, Double(work.served) / divisor,
                 work.rendered + work.served > 0
@@ -547,11 +547,11 @@ enum Headless {
         let perFrameUs = Double(ns) / 1_000 / Double(max(1, iterations))
         print("bench scenario=\(id) scale=\(config.scale) size=\(cols)x\(rows) "
             + "iters=\(iterations) cold=\(cold)")
-        unsafe print(String(format: "  total=%.1fms  per-frame=%.1fµs  (%.0f fps-equiv)  checksum=%d",
+        unsafe print(String(unsafeFormat: "  total=%.1fms  per-frame=%.1fµs  (%.0f fps-equiv)  checksum=%d",
             totalMs, perFrameUs, 1_000_000 / max(0.001, perFrameUs), checksum))
         if cpuMeasured {
             let cpuPerFrameUs = Double(cpuNs) / 1_000 / Double(max(1, iterations))
-            unsafe print(String(format: "  cpu-per-frame=%.1fµs  (%.1f%% of wall)",
+            unsafe print(String(unsafeFormat: "  cpu-per-frame=%.1fµs  (%.1f%% of wall)",
                 cpuPerFrameUs, perFrameUs > 0 ? cpuPerFrameUs / perFrameUs * 100 : 0))
         }
         memory.sample()
@@ -618,7 +618,7 @@ func observationCountsLine(
     let fired = kinds.reduce(0) { $0 + counts.fired($1) }
     let cancelled = kinds.reduce(0) { $0 + counts.cancelled($1) }
     return unsafe String(
-        format: "observation per %@: armed %.2f, fired %.2f, cancelled %.2f (alive at the end %d); "
+        unsafeFormat: "observation per %@: armed %.2f, fired %.2f, cancelled %.2f (alive at the end %d); "
             + "leases per %@: computations %.2f, made %.2f, uses %.2f, sentinel scopes %.2f; "
             + "reading types %d",
         unit, Double(armed) / each, Double(fired) / each, Double(cancelled) / each, counts.live, unit,

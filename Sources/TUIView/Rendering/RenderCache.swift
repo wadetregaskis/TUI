@@ -1519,7 +1519,7 @@ extension RenderCache {
         let frame = stats.delta(since: statsAtFrameStart)
         let rate =
             unsafe frame.lookups > 0
-            ? String(format: "%.0f%%", frame.hitRate * 100)
+            ? String(unsafeFormat: "%.0f%%", frame.hitRate * 100)
             : "n/a"
         // One literal rather than a `+` chain of interpolations, which cost
         // this body most of its type-checking time.

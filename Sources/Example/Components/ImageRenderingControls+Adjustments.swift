@@ -44,7 +44,7 @@ extension ImageRenderingControls {
             Slider(value: value, in: range, step: step)
                 .sliderShowsValue(false)
                 .frame(maxWidth: .infinity)
-            unsafe Text(String(format: format, value.wrappedValue)).dim()
+            unsafe Text(String(unsafeFormat: format, value.wrappedValue)).dim()
         }
     }
 }

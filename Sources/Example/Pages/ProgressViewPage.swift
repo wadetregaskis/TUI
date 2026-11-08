@@ -234,7 +234,7 @@ struct ProgressViewPage: View {
                         .foregroundStyle(.palette.foregroundSecondary)
                     unsafe gaugeRow(
                         label: "0…1                     ", fraction: fraction,
-                        text: String(format: "%.2f", fraction), style: .accessoryLinear)
+                        text: String(unsafeFormat: "%.2f", fraction), style: .accessoryLinear)
                     gaugeRow(
                         label: "0…140                   ", fraction: fraction,
                         text: "\(Int((fraction * 140).rounded()))", style: .accessoryLinear)
@@ -244,7 +244,7 @@ struct ProgressViewPage: View {
                     HStack(spacing: 3) {
                         unsafe circularGauge(
                             label: "0…1", fraction: fraction,
-                            text: String(format: "%.2f", fraction), style: .accessoryCircular)
+                            text: String(unsafeFormat: "%.2f", fraction), style: .accessoryCircular)
                         circularGauge(
                             label: "0…140", fraction: fraction,
                             text: "\(Int((fraction * 140).rounded()))", style: .accessoryCircular)
