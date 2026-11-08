@@ -244,7 +244,9 @@ struct MenuBarOwnCommandsTests {
     func emptiedMenuLeavesTheBar() {
         let app = launched(EmptiedEditApp())
         let bar = rows(app)[0]
-        #expect(bar.hasPrefix(" \(EnvironmentValues().resolvedAboutPanel.name)  Note"), "\(bar)")
+        // View stays: every View menu holds the accessibility checks
+        // (`CommandGroupPlacement.accessibility`), which this app keeps.
+        #expect(bar.hasPrefix(" \(EnvironmentValues().resolvedAboutPanel.name)  View  Note"), "\(bar)")
         #expect(!bar.contains("Edit"), "\(bar)")
     }
 
