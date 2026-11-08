@@ -63,6 +63,10 @@ package struct ControlEnds: Equatable, Sendable {
     /// The rule between two segments of one face.
     package static let rule = "\u{2502}"
 
+    /// The rule between two segments a `Divider` sets apart: the groups of a
+    /// segmented control, the settings panel's tabs and TUI's after them.
+    package static let groupRule = "\u{2503}"
+
     /// The ends a one-row control takes in `environment`.
     ///
     /// - Parameter size: The size to read the table at, where the control

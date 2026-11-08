@@ -64,7 +64,8 @@ private enum PickerSegmentsStateIndex {
 /// - Important: Framework infrastructure. ``Picker`` returns this from its
 ///   `body` for the segmented and palette styles; it is never used directly.
 struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
-    /// The resolved options; dividers are a menu's and draw nothing here.
+    /// The resolved options; a divider between two draws a heavier rule
+    /// between their segments, setting the groups apart.
     let entries: [_PickerEntry<SelectionValue>]
 
     /// A binding to the selected value.
@@ -149,12 +150,27 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
             .withAvailableWidth(max(context.availableWidth, context.environment.terminalWidth))
     }
 
-    /// The options, in order, without the dividers.
-    private var options: [(tag: SelectionValue, label: AnyView)] {
-        entries.compactMap { entry in
-            guard case .option(let tag, let label) = entry else { return nil }
-            return (tag, label)
+    /// An option: its tag, its label, and whether a divider comes between it
+    /// and the option before.
+    private typealias Option = (tag: SelectionValue, label: AnyView, startsGroup: Bool)
+
+    /// The options, in order, without the dividers: each says whether a
+    /// divider comes between it and the option before.
+    private var options: [Option] {
+        var options: [Option] = []
+        var dividerPending = false
+        for entry in entries {
+            switch entry {
+            case .option(let tag, let label):
+                options.append((tag, label, dividerPending && !options.isEmpty))
+                dividerPending = false
+            case .divider:
+                dividerPending = true
+            case .title:
+                continue
+            }
         }
+        return options
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
@@ -213,7 +229,7 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
         ends.appendCap(ends.open, to: &row, face: capInk, lines: lineInk)
         for (index, option) in options.enumerated() {
             if index > 0 {
-                row.append(ControlEnds.rule, cells: 1, ink: ruleInk, field: field)
+                row.append(option.startsGroup ? ControlEnds.groupRule : ControlEnds.rule, cells: 1, ink: ruleInk, field: field)
             }
             let isSelected = !isMixed && option.tag == selection.wrappedValue
             let segment = Segment(
@@ -251,7 +267,7 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
     /// the cursor wrapping at the ends, as a segmented control's does on macOS
     /// (measured on 15.8), whatever a radio group around it is told to do.
     private func resolveHandler(
-        options: [(tag: SelectionValue, label: AnyView)], focusID: String, isDisabled: Bool,
+        options: [Option], focusID: String, isDisabled: Bool,
         storage: StateStorage, context: RenderContext
     ) -> RadioButtonGroupHandler {
         // A choice a person makes is a step in the app's undo manager.

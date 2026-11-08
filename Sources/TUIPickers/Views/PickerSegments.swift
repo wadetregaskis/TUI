@@ -18,6 +18,10 @@ import TUIFoundation
 /// among the segments without choosing, wrapping at the ends; Space chooses the
 /// segment under it, as does a click (measured on macOS 15.8). Return chooses
 /// too, as it does in a radio group — on macOS it does nothing.
+///
+/// A `Divider` among the options sets the groups either side apart with a
+/// heavier rule, `▐ S │ M ┃ L ▌`, where a menu would draw a separator: the
+/// settings panel's strip parts the app's tabs from TUI's so.
 public struct SegmentedPickerStyle: PickerStyle, Equatable {
     /// Creates a segmented picker style.
     public init() {}

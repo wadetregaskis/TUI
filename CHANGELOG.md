@@ -4,6 +4,9 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**A `Divider` among a segmented picker's options sets the groups apart.** It draws a heavier rule, `┃`, between the
+segments either side, where it drew nothing; a menu-style picker still draws it as a separator.
+
 **An active `.symbolEffect(.disappear)` hides the symbol** (macOS). The glyph's cells are left blank while it is active,
 at once, where SF Symbols draws the symbol off; it was drawn as if no effect were set.
 
