@@ -363,7 +363,7 @@ extension KittyGraphics {
     /// during startup and read by whoever draws after.
     private static let processSupported = Atomic(false)
 
-    /// A task-scoped pin, bound by ``withSupport(_:compression:operation:)``.
+    /// A task-scoped pin, bound by `withSupport(_:compression:operation:)`.
     @TaskLocal private static var taskSupported: Bool?
 
     /// Whether the terminal also takes a transmission deflated (`o=z`) — asked

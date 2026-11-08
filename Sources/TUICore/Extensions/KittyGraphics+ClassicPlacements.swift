@@ -181,7 +181,7 @@ extension KittyGraphics {
     @TaskLocal private static var taskHairlineSupported: Bool?
 
     /// Runs `operation` with ``isHairlineSupported`` pinned on this task
-    /// only, for the reason ``withSupport(_:compression:operation:)`` is
+    /// only, for the reason `withSupport(_:compression:operation:)` is
     /// task-local: tests run in parallel.
     @discardableResult
     public static func withHairlineSupport<T>(_ supported: Bool, operation: () throws -> T) rethrows -> T {
