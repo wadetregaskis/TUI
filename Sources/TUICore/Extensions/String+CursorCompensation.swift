@@ -32,12 +32,12 @@ private extension String {
             let count = buffer.count
             var i = 0
             while i + 8 <= count {
-                let chunk = UnsafeRawPointer(base + i).loadUnaligned(as: UInt64.self)
+                let chunk = unsafe UnsafeRawPointer(base + i).loadUnaligned(as: UInt64.self)
                 if chunk & 0x8080_8080_8080_8080 != 0 { return true }
                 i += 8
             }
             while i < count {
-                if base[i] >= 0x80 { return true }
+                if unsafe base[i] >= 0x80 { return true }
                 i += 1
             }
             return false
@@ -100,10 +100,10 @@ extension String {
             let count = buffer.count
             var i = 0
             while i < count {
-                let byte = base[i]
+                let byte = unsafe base[i]
                 if byte >= 0xEF { return true }
                 if byte == 0xE2, i + 1 < count {
-                    let next = base[i + 1]
+                    let next = unsafe base[i + 1]
                     if next == 0x80 || next == 0x83 { return true }
                     if overhangMask & (1 &<< UInt64(next & 0x3F)) != 0 { return true }
                 }
@@ -158,10 +158,10 @@ extension String {
         // `©`, `°`), which merely sends such a line down the scalar walk.
         let hasStray =
             utf8.withContiguousStorageIfAvailable { buffer -> Bool in
-                for byte in buffer where (byte < 0x20 && byte != 0x1B) || byte == 0x7F || byte == 0xC2 {
-                    return true
-                }
-                return false
+                // `contains(where:)`, not a `for unsafe … where` loop: that loop in this closure crashes the
+                // type checker of Swift 6.2 and 6.3 (report "for unsafe in a withContiguousStorageIfAvailable
+                // closure crashes the type checker", 2026-11-02).
+                unsafe buffer.contains { byte in (byte < 0x20 && byte != 0x1B) || byte == 0x7F || byte == 0xC2 }
             } ?? unicodeScalars.contains { isStray($0.value) }
         guard hasStray else { return self }
 
@@ -855,14 +855,14 @@ extension String {
             guard let base = buffer.baseAddress else { return true }
             var index = 0
             while index + 2 < buffer.count {
-                guard base[index] == 0x1B, base[index + 1] == UInt8(ascii: "[") else {
+                guard unsafe base[index] == 0x1B, unsafe base[index + 1] == UInt8(ascii: "[") else {
                     index += 1
                     continue
                 }
                 var scan = index + 2
-                while scan < buffer.count, base[scan] >= 0x30, base[scan] <= 0x39 { scan += 1 }
+                while scan < buffer.count, unsafe base[scan] >= 0x30, unsafe base[scan] <= 0x39 { scan += 1 }
                 if scan < buffer.count,
-                    base[scan] == UInt8(ascii: "X") || base[scan] == UInt8(ascii: "C")
+                    unsafe base[scan] == UInt8(ascii: "X") || base[scan] == UInt8(ascii: "C")
                         || base[scan] == UInt8(ascii: "D") || base[scan] == UInt8(ascii: "P")
                 {
                     return true

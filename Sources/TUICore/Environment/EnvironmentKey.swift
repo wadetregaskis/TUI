@@ -166,7 +166,7 @@ public struct EnvironmentValues {
     /// can come back for another. `EnvironmentStampTests` pins the size.
     /// A data buffer's address, never a function's, so deduplication cannot
     /// make two share it.
-    package var storageWord: UInt { unsafeBitCast(storage, to: UInt.self) }  // swiftlint:disable:this function_address_identity
+    package var storageWord: UInt { unsafe unsafeBitCast(storage, to: UInt.self) }  // swiftlint:disable:this function_address_identity
 
     /// Creates a copy of this environment with a modified value.
     ///

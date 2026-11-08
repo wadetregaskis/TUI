@@ -33,9 +33,9 @@ package enum SGRMarks {
                 // Only after the `[` or `;` that starts a parameter: the digits in
                 // a cell's text are text, and a sanitised row's text holds no ESC
                 // to make them anything else.
-                if bytes[index] == needle[0], index > 0, bytes[index - 1] == 0x5B || bytes[index - 1] == 0x3B {
+                if unsafe bytes[index] == needle[0], index > 0, unsafe bytes[index - 1] == 0x5B || bytes[index - 1] == 0x3B {
                     var matched = 1
-                    while matched < needle.count, bytes[index + matched] == needle[matched] { matched += 1 }
+                    while matched < needle.count, unsafe bytes[index + matched] == needle[matched] { matched += 1 }
                     if matched == needle.count { return true }
                 }
                 index += 1

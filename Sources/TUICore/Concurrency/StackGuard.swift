@@ -355,9 +355,9 @@ package enum StackGuard {
             // asking — no main-thread assumption needed on this platform.
             // `pthread_get_stackaddr_np` returns the stack BASE (highest
             // address); the stack grows down from there for `stacksize` bytes.
-            let thread = pthread_self()
-            let base = UInt(bitPattern: pthread_get_stackaddr_np(thread))
-            let size = UInt(pthread_get_stacksize_np(thread))
+            let thread = unsafe pthread_self()
+            let base = unsafe UInt(bitPattern: pthread_get_stackaddr_np(thread))
+            let size = unsafe UInt(pthread_get_stacksize_np(thread))
             guard base > size else { return nil }
             return extent(low: base - size, high: base)
         #elseif canImport(Glibc) || canImport(Musl)

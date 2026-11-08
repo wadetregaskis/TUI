@@ -73,10 +73,10 @@ extension String {
         // or 0xC2 clears a clean string without walking scalars at all.
         let mayHaveEscape =
             utf8.withContiguousStorageIfAvailable { buffer -> Bool in
-                for byte in buffer where byte == 0x1B || byte == 0xC2 {
-                    return true
-                }
-                return false
+                // `contains(where:)`, not a `for unsafe … where` loop: that loop in this closure crashes the
+                // type checker of Swift 6.2 and 6.3 (report "for unsafe in a withContiguousStorageIfAvailable
+                // closure crashes the type checker", 2026-11-02).
+                unsafe buffer.contains { byte in byte == 0x1B || byte == 0xC2 }
             } ?? unicodeScalars.contains { $0.value == 0x1B || (0x80...0x9F).contains($0.value) }
         guard mayHaveEscape else { return self }
 

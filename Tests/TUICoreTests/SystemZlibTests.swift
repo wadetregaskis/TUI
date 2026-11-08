@@ -35,14 +35,14 @@ struct SystemZlibTests {
     private static func inflate(_ bytes: [UInt8], expecting count: Int) -> [UInt8]? {
         #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
             for name in ["libz.so.1", "libz.1.dylib", "libz.dylib", "libz.so"] {
-                guard let handle = dlopen(name, RTLD_NOW | RTLD_LOCAL), let symbol = dlsym(handle, "uncompress")
+                guard let handle = unsafe dlopen(name, RTLD_NOW | RTLD_LOCAL), let symbol = unsafe dlsym(handle, "uncompress")
                 else { continue }
-                let uncompress = unsafeBitCast(symbol, to: Uncompress.self)
+                let uncompress = unsafe unsafeBitCast(symbol, to: Uncompress.self)
                 var written = CUnsignedLong(count)
                 var out = [UInt8](repeating: 0, count: count)
                 let status = out.withUnsafeMutableBufferPointer { dest in
                     bytes.withUnsafeBufferPointer { source in
-                        uncompress(dest.baseAddress, &written, source.baseAddress, CUnsignedLong(bytes.count))
+                        unsafe uncompress(dest.baseAddress, &written, source.baseAddress, CUnsignedLong(bytes.count))
                     }
                 }
                 return status == 0 && Int(written) == count ? out : nil

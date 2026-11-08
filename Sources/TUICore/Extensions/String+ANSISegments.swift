@@ -161,29 +161,29 @@ extension String {
     ) -> (end: Int, isSGR: Bool) {
         var cursor = index + 1
         guard cursor < bytes.count else { return (cursor, false) }
-        let introducer = UInt32(bytes[cursor])
+        let introducer = unsafe UInt32(bytes[cursor])
 
         if introducer == 0x5B {  // '[' — CSI
             cursor += 1
-            while cursor < bytes.count, isCSIBodyByte(UInt32(bytes[cursor])) { cursor += 1 }
-            guard cursor < bytes.count, isCSIFinalByte(UInt32(bytes[cursor])) else { return (cursor, false) }
-            return (cursor + 1, bytes[cursor] == 0x6D)  // 'm'
+            while cursor < bytes.count, unsafe isCSIBodyByte(UInt32(bytes[cursor])) { cursor += 1 }
+            guard cursor < bytes.count, unsafe isCSIFinalByte(UInt32(bytes[cursor])) else { return (cursor, false) }
+            return unsafe (cursor + 1, bytes[cursor] == 0x6D)  // 'm'
         }
 
         if (0x20...0x2F).contains(introducer) {  // `ESC ( B` and its family
             cursor += 1
-            while cursor < bytes.count, (0x20...0x2F).contains(bytes[cursor]) { cursor += 1 }
+            while cursor < bytes.count, unsafe (0x20...0x2F).contains(bytes[cursor]) { cursor += 1 }
             return (Swift.min(cursor + 1, bytes.count), false)
         }
 
         guard isStringFamilyIntroducer(introducer) else { return (cursor, false) }
         cursor += 1
         while cursor < bytes.count {
-            let byte = bytes[cursor]
+            let byte = unsafe bytes[cursor]
             cursor += 1
             if byte == 0x07 { return (cursor, false) }  // BEL
-            if byte == 0xC2, cursor < bytes.count, bytes[cursor] == 0x9C { return (cursor + 1, false) }  // 8-bit ST
-            if byte == 0x1B, cursor < bytes.count, bytes[cursor] == 0x5C { return (cursor + 1, false) }  // ESC \ — ST
+            if byte == 0xC2, cursor < bytes.count, unsafe bytes[cursor] == 0x9C { return (cursor + 1, false) }  // 8-bit ST
+            if byte == 0x1B, cursor < bytes.count, unsafe bytes[cursor] == 0x5C { return (cursor + 1, false) }  // ESC \ — ST
         }
         return (cursor, false)  // unterminated: the payload runs to the end
     }

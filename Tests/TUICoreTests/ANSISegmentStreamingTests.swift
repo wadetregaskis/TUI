@@ -165,7 +165,7 @@ struct ANSISegmentStreamingTests {
                     }
                     let (end, isSGR) = String.escapeSequenceEnd(startingAt: index, in: scalars)
                     let offset = line.utf8.distance(from: line.utf8.startIndex, to: index)
-                    let byteResult = String.escapeSequenceEnd(startingAt: offset, in: buffer)
+                    let byteResult = unsafe String.escapeSequenceEnd(startingAt: offset, in: buffer)
                     let expected = line.utf8.distance(from: line.utf8.startIndex, to: end)
                     #expect(byteResult.end == expected, "\(Array(line.unicodeScalars.map(\.value))) at \(offset)")
                     #expect(byteResult.isSGR == isSGR, "\(Array(line.unicodeScalars.map(\.value))) at \(offset)")

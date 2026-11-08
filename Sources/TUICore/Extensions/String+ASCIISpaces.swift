@@ -95,7 +95,7 @@ extension String {
         case 1: " "
         default:
             String(unsafeUninitializedCapacity: count) { bytes in
-                bytes.initialize(repeating: UInt8(ascii: " "))
+                unsafe bytes.initialize(repeating: UInt8(ascii: " "))
                 return count
             }
         }

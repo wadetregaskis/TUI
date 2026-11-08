@@ -281,7 +281,7 @@ public enum KittyGraphics {
     /// place it is copied.
     package static func ascii(_ bytes: [UInt8]) -> String {
         String(unsafeUninitializedCapacity: bytes.count) { buffer in
-            _ = buffer.initialize(fromContentsOf: bytes)
+            _ = unsafe buffer.initialize(fromContentsOf: bytes)
             return bytes.count
         }
     }

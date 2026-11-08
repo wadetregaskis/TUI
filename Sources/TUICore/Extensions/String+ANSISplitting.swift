@@ -112,7 +112,7 @@ extension String {
     package var containsStringFamilyEscape: Bool {
         func scan(_ bytes: UnsafeBufferPointer<UInt8>) -> Bool {
             var sawESC = false
-            for byte in bytes {
+            for unsafe byte in unsafe bytes {
                 if sawESC, Self.isStringFamilyIntroducer(UInt32(byte)) { return true }
                 sawESC = byte == 0x1B
             }
@@ -192,10 +192,10 @@ extension String {
     private func asciiPrefixWithWidth(visibleCount: Int) -> (prefix: String, visibleWidth: Int)? {
         // Raw bytes rather than the `UTF8View`'s element machinery — see
         // ``asciiStrippedLength(bounded:limit:)``, whose loop this mirrors.
-        if let contiguous = utf8.withContiguousStorageIfAvailable({ scan($0, visibleCount) }) {
+        if let contiguous = utf8.withContiguousStorageIfAvailable({ unsafe scan($0, visibleCount) }) {
             return contiguous
         }
-        return Array(utf8).withUnsafeBufferPointer { scan($0, visibleCount) }
+        return Array(utf8).withUnsafeBufferPointer { unsafe scan($0, visibleCount) }
     }
 
     /// ``asciiPrefixWithWidth(visibleCount:)``'s loop, over bytes that are
@@ -211,13 +211,13 @@ extension String {
         func prefixBytes(_ count: Int) -> String {
             // The lint rule is about `Data`, and there is none.
             // swiftlint:disable:next optional_data_string_conversion
-            String(decoding: UnsafeBufferPointer(rebasing: bytes[..<count]), as: UTF8.self)
+            unsafe String(decoding: UnsafeBufferPointer(rebasing: bytes[..<count]), as: UTF8.self)
         }
 
         var state = EscapeScanState.normal
         var width = 0
         var offset = 0
-        for byte in bytes {
+        for unsafe byte in unsafe bytes {
             if byte >= 0x80 { return nil }
             let value = UInt32(byte)
             switch state {

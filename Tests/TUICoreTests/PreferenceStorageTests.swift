@@ -159,20 +159,20 @@ struct PreferenceStorageTests {
         let storage = PreferenceStorage()
         nonisolated(unsafe) var received: String?
         storage.onPreferenceChange(StorageStringKey.self) { value in
-            received = value
+            unsafe received = value
         }
         storage.setValue("updated", forKey: StorageStringKey.self)
-        #expect(received == "updated")
+        unsafe #expect(received == "updated")
     }
 
     @Test("Multiple callbacks for same key all fire")
     func multipleCallbacks() {
         let storage = PreferenceStorage()
         nonisolated(unsafe) var count = 0
-        storage.onPreferenceChange(StorageStringKey.self) { _ in count += 1 }
-        storage.onPreferenceChange(StorageStringKey.self) { _ in count += 1 }
+        storage.onPreferenceChange(StorageStringKey.self) { _ in unsafe count += 1 }
+        storage.onPreferenceChange(StorageStringKey.self) { _ in unsafe count += 1 }
         storage.setValue("trigger", forKey: StorageStringKey.self)
-        #expect(count == 2)
+        unsafe #expect(count == 2)
     }
 
     @Test("beginRenderPass resets callbacks and stack")
@@ -180,13 +180,13 @@ struct PreferenceStorageTests {
         let storage = PreferenceStorage()
         storage.setValue("old", forKey: StorageStringKey.self)
         nonisolated(unsafe) var callbackFired = false
-        storage.onPreferenceChange(StorageStringKey.self) { _ in callbackFired = true }
+        storage.onPreferenceChange(StorageStringKey.self) { _ in unsafe callbackFired = true }
 
         storage.beginRenderPass()
 
         #expect(storage.current[StorageStringKey.self] == "default")
         storage.setValue("new", forKey: StorageStringKey.self)
-        #expect(callbackFired == false)
+        unsafe #expect(callbackFired == false)
     }
 
     @Test("reset clears everything")

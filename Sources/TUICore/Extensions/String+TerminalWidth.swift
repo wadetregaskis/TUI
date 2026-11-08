@@ -971,7 +971,7 @@ extension String {
         // reason ``asciiStrippedLength(bounded:limit:)`` gives.
         func allZero(_ bytes: UnsafeBufferPointer<UInt8>) -> Bool {
             guard bytes.count > 3 else { return true }  // `ESC [ m` or shorter
-            for index in 2..<(bytes.count - 1) where bytes[index] != 0x30 && bytes[index] != 0x3B {
+            for index in 2..<(bytes.count - 1) where unsafe bytes[index] != 0x30 && bytes[index] != 0x3B {
                 return false
             }
             return true
@@ -1152,12 +1152,12 @@ extension String {
         // fallback is for the rare string with no contiguous storage (a lazily
         // bridged `NSString`), which is not a string this framework produces.
         if let contiguous = utf8.withContiguousStorageIfAvailable({ buffer in
-            Self.asciiWidth(buffer, bounded: bounded, limit: limit)
+            unsafe Self.asciiWidth(buffer, bounded: bounded, limit: limit)
         }) {
             return contiguous
         }
         return Array(utf8).withUnsafeBufferPointer {
-            Self.asciiWidth($0, bounded: bounded, limit: limit)
+            unsafe Self.asciiWidth($0, bounded: bounded, limit: limit)
         }
     }
 
@@ -1168,7 +1168,7 @@ extension String {
     ) -> Int? {
         var state = EscapeScanState.normal
         var width = 0
-        for byte in bytes {
+        for unsafe byte in unsafe bytes {
             if byte >= 0x80 { return nil }
             switch state {
             case .normal:

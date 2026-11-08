@@ -78,7 +78,7 @@ package enum SixelEncoder {
             rgba.withUnsafeBufferPointer { bytes in
                 var offset = 0
                 while offset + 3 < bytes.count {
-                    if let pixel = flattened(bytes, at: offset, over: background) { body(pixel.0, pixel.1, pixel.2) }
+                    if let pixel = unsafe flattened(bytes, at: offset, over: background) { body(pixel.0, pixel.1, pixel.2) }
                     offset += 4
                 }
             }
@@ -187,15 +187,15 @@ package enum SixelEncoder {
     fileprivate static func flattened(
         _ bytes: UnsafeBufferPointer<UInt8>, at offset: Int, over background: Background?
     ) -> (UInt8, UInt8, UInt8)? {
-        let alpha = Int(bytes[offset + 3])
-        if alpha == 255 { return (bytes[offset], bytes[offset + 1], bytes[offset + 2]) }
+        let alpha = unsafe Int(bytes[offset + 3])
+        if alpha == 255 { return unsafe (bytes[offset], bytes[offset + 1], bytes[offset + 2]) }
         guard let background else {
-            return alpha < 128 ? nil : (bytes[offset], bytes[offset + 1], bytes[offset + 2])
+            return unsafe alpha < 128 ? nil : (bytes[offset], bytes[offset + 1], bytes[offset + 2])
         }
         func mix(_ over: UInt8, _ under: UInt8) -> UInt8 {
             UInt8((Int(over) * alpha + Int(under) * (255 - alpha) + 127) / 255)
         }
-        return (
+        return unsafe (
             mix(bytes[offset], background.red), mix(bytes[offset + 1], background.green),
             mix(bytes[offset + 2], background.blue)
         )
@@ -216,7 +216,7 @@ package enum SixelEncoder {
         var used = [Bool](repeating: false, count: palette.count)
         rgba.withUnsafeBufferPointer { bytes in
             for index in 0..<(width * height) {
-                guard let pixel = flattened(bytes, at: index * 4, over: background) else { continue }
+                guard let pixel = unsafe flattened(bytes, at: index * 4, over: background) else { continue }
                 let register = palette.register(pixel.0, pixel.1, pixel.2)
                 registers[index] = register
                 used[Int(register)] = true
@@ -303,7 +303,7 @@ package enum SixelEncoder {
     ) -> [UInt8] {
         guard toWidth > 0, toHeight > 0, width > 0, height > 0, rgba.count >= width * height * 4 else { return [] }
         if width == toWidth, height == toHeight { return rgba }
-        return [UInt8](unsafeUninitializedCapacity: toWidth * toHeight * 4) { out, count in
+        return unsafe [UInt8](unsafeUninitializedCapacity: toWidth * toHeight * 4) { out, count in
             rgba.withUnsafeBufferPointer { bytes in
                 var written = 0
                 for y in 0..<toHeight {
@@ -312,11 +312,11 @@ package enum SixelEncoder {
                     for x in 0..<toWidth {
                         let left = x * width / toWidth
                         let right = max(left + 1, (x + 1) * width / toWidth)
-                        let total = averaged(bytes, width: width, left: left, right: right, top: top, bottom: bottom)
-                        out[written] = total.0
-                        out[written + 1] = total.1
-                        out[written + 2] = total.2
-                        out[written + 3] = total.3
+                        let total = unsafe averaged(bytes, width: width, left: left, right: right, top: top, bottom: bottom)
+                        unsafe out[written] = total.0
+                        unsafe out[written + 1] = total.1
+                        unsafe out[written + 2] = total.2
+                        unsafe out[written + 3] = total.3
                         written += 4
                     }
                 }
@@ -334,16 +334,16 @@ package enum SixelEncoder {
     ) -> (UInt8, UInt8, UInt8, UInt8) {
         if right - left == 1, bottom - top == 1 {
             let offset = (top * width + left) * 4
-            return (bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3])
+            return unsafe (bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3])
         }
         var sums = (0, 0, 0, 0)
         for row in top..<bottom {
             var offset = (row * width + left) * 4
             for _ in left..<right {
-                sums.0 += Int(bytes[offset])
-                sums.1 += Int(bytes[offset + 1])
-                sums.2 += Int(bytes[offset + 2])
-                sums.3 += Int(bytes[offset + 3])
+                unsafe sums.0 += Int(bytes[offset])
+                unsafe sums.1 += Int(bytes[offset + 1])
+                unsafe sums.2 += Int(bytes[offset + 2])
+                unsafe sums.3 += Int(bytes[offset + 3])
                 offset += 4
             }
         }
@@ -364,7 +364,7 @@ package enum SixelEncoder {
         let under: Background = background ?? (0, 0, 0)
         return cells.withUnsafeBufferPointer { bytes in
             func colour(_ offset: Int) -> (UInt8, UInt8, UInt8) {
-                flattened(bytes, at: offset, over: under) ?? (under.red, under.green, under.blue)
+                unsafe flattened(bytes, at: offset, over: under) ?? (under.red, under.green, under.blue)
             }
             return (0..<rows).map { row in
                 (0..<columns).map { column in
@@ -424,7 +424,7 @@ extension KittyGraphics {
             let erase: [UInt8] = [0x1B, 0x5B, 0x32, 0x4B]
             func matches(_ pattern: [UInt8], at index: Int) -> Bool {
                 guard index + pattern.count <= bytes.count else { return false }
-                for offset in 0..<pattern.count where bytes[index + offset] != pattern[offset] { return false }
+                for offset in 0..<pattern.count where unsafe bytes[index + offset] != pattern[offset] { return false }
                 return true
             }
             var out: [UInt8] = []
@@ -446,7 +446,7 @@ extension KittyGraphics {
                     out.append(contentsOf: erase)
                     index += erase.count
                 } else {
-                    out.append(bytes[index])
+                    unsafe out.append(bytes[index])
                     index += 1
                 }
             }

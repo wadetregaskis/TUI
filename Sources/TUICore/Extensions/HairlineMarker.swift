@@ -181,7 +181,7 @@ package enum HairlineMarker {
                 var right = rhs.line
                 return left.withUTF8 { leftBytes in
                     right.withUTF8 { rightBytes in
-                        leftBytes.baseAddress == rightBytes.baseAddress || Self.bytesEqual(leftBytes, rightBytes)
+                        unsafe leftBytes.baseAddress == rightBytes.baseAddress || Self.bytesEqual(leftBytes, rightBytes)
                     }
                 }
             }
@@ -198,13 +198,13 @@ package enum HairlineMarker {
                 let count = left.count
                 var index = 0
                 while index + 8 <= count {
-                    let leftWord = UnsafeRawPointer(leftBase + index).loadUnaligned(as: UInt64.self)
-                    let rightWord = UnsafeRawPointer(rightBase + index).loadUnaligned(as: UInt64.self)
+                    let leftWord = unsafe UnsafeRawPointer(leftBase + index).loadUnaligned(as: UInt64.self)
+                    let rightWord = unsafe UnsafeRawPointer(rightBase + index).loadUnaligned(as: UInt64.self)
                     if leftWord != rightWord { return false }
                     index += 8
                 }
                 while index < count {
-                    if leftBase[index] != rightBase[index] { return false }
+                    if unsafe leftBase[index] != rightBase[index] { return false }
                     index += 1
                 }
                 return true
@@ -214,7 +214,7 @@ package enum HairlineMarker {
                 hasher.combine(columns)
                 hasher.combine(ink)
                 var line = line  // `withUTF8` is mutating: it may make a bridged string contiguous
-                line.withUTF8 { hasher.combine(bytes: UnsafeRawBufferPointer($0)) }
+                line.withUTF8 { unsafe hasher.combine(bytes: UnsafeRawBufferPointer($0)) }
             }
         }
 
