@@ -437,8 +437,13 @@ struct TextFieldContentRenderer: FieldTextLayout {
     /// Cell metrics: per-character display widths, and the end-anchored
     /// scroll window [scrollStart, windowEnd) around the caret. The click-
     /// to-caret inverse of this math lives in TextFieldHandler.
+    ///
+    /// `displayCharacter` is the mapping the text is DRAWN through, which is
+    /// not always the field's: a secure field draws its prompt unmasked, and
+    /// measured through the bullets every prompt character was one cell — a
+    /// wide one then overran the field by a cell.
     private func scrollWindow(
-        text: String, clampedPosition: Int, width: Int
+        text: String, clampedPosition: Int, width: Int, displayCharacter: (Character) -> Character
     ) -> (widths: [Int], scrollStart: Int, windowEnd: Int) {
         let widths = Self.displayCellWidths(of: text, displayCharacter: displayCharacter)
         let cursorCellX = widths[0..<clampedPosition].reduce(0, +)
@@ -477,7 +482,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
         let characterCount = text.count
         let clampedPosition = cursorPosition.map { max(0, min($0, characterCount)) }
         let (widths, scrollStart, windowEnd) = scrollWindow(
-            text: text, clampedPosition: clampedPosition ?? 0, width: width)
+            text: text, clampedPosition: clampedPosition ?? 0, width: width, displayCharacter: displayCharacter)
 
         // Build output, coalescing consecutive characters that share a colour
         // into ONE ANSI run rather than wrapping each character in its own

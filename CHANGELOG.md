@@ -4,6 +4,10 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**A focused, empty `SecureField` with a wide prompt keeps its width.** The prompt is drawn unmasked but was measured
+as bullets, one cell a character, so each wide character in it pushed the field a cell wider and cut off its closing
+cap.
+
 **The graphical `DatePicker` lines up in Japanese and Chinese.** Its weekday initials and month title were cut and
 padded in characters, so a two-cell initial made each weekday column four cells over a grid of three, the title
 pushed its ▶ past the edge, and every Chinese initial read 周. They are measured in cells now, and where the cut
