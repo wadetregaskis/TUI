@@ -465,8 +465,7 @@ extension TextFieldHandler {
         let startIndex = current.index(current.startIndex, offsetBy: range.lowerBound)
         let endIndex = current.index(current.startIndex, offsetBy: range.upperBound)
         current.removeSubrange(startIndex..<endIndex)
-        write(current)
-        cursorPosition = range.lowerBound
+        if write(current) { cursorPosition = range.lowerBound }
     }
 
     /// Extends selection one character to the left.
@@ -881,8 +880,7 @@ extension TextFieldHandler {
         // modifier merges into the character before it, as a paste's does.
         let prefixLength = (updated[..<index] + String(char)).count
         updated.insert(char, at: index)
-        write(updated)
-        cursorPosition = prefixLength
+        if write(updated) { cursorPosition = prefixLength }
 
         // Diagnostic (TUI_DEBUG_FOCUS=1): identify which @State
         // we actually wrote through. Bindings don't carry identity,
@@ -918,8 +916,7 @@ extension TextFieldHandler {
         var current = text.wrappedValue
         let index = current.index(current.startIndex, offsetBy: cursorPosition - 1)
         current.remove(at: index)
-        write(current)
-        cursorPosition -= 1
+        if write(current) { cursorPosition -= 1 }
     }
 
     /// Deletes the character at the cursor position (delete key).
@@ -1068,9 +1065,20 @@ extension TextFieldHandler {
     /// through here, so the undo history knows which text the field produced
     /// and can tell it from a replacement by the app (see
     /// ``TextUndoHistory``).
-    func write(_ newText: String) {
+    ///
+    /// Answers whether the binding took the change. A binding may refuse an
+    /// edit — a digits-only setter that keeps the old text when handed a
+    /// letter — and then the caret must stay where it was, as in an AppKit
+    /// field whose delegate rejects it: every edit moves the caret only when
+    /// this answers `true`. A binding that keeps something else than it was
+    /// handed (one that upper-cases) took the change.
+    @discardableResult
+    func write(_ newText: String) -> Bool {
+        let previous = text.wrappedValue
         text.wrappedValue = newText
-        undoHistory.noteWritten(text.wrappedValue)
+        let kept = text.wrappedValue
+        undoHistory.noteWritten(kept)
+        return kept != previous || newText == previous
     }
 
     /// Pushes the current state onto the undo stack, after forgetting the

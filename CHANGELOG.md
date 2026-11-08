@@ -4,6 +4,10 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**An edit a text binding refuses leaves the caret where it was.** A binding whose setter keeps the old text (a
+digits-only field handed a letter) kept the text, but the caret moved as if the edit had been made, so the next
+Delete or Backspace acted in the wrong place. In `TextField`, `SecureField` and `TextEditor`.
+
 **`.disabled(false)` no longer re-enables a control already disabled.** `Button`, `Toggle`, `Slider`, `Stepper`,
 `Picker`, `DatePicker`, radio buttons, `List`, `Table` and `ScrollView` each have a `disabled(_:)` of their own, and
 the last call won: `.disabled(true).disabled(false)` was enabled. Each adds now, as SwiftUI's modifier does and the

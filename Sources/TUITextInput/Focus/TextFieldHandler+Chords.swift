@@ -215,8 +215,7 @@ extension TextFieldHandler {
         else { return }
         resetSuggestionNavigation()
         pushUndoState()
-        write(String(characters))
-        cursorPosition = caret
+        if write(String(characters)) { cursorPosition = caret }
     }
 
     /// Ctrl-U: kills from `start` to the caret into ``killRing``, as one

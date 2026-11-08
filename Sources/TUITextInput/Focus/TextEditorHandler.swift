@@ -37,6 +37,10 @@ final class TextEditorHandler: PersistedFocusable {
     /// is beside the text).
     var isPointerOver = false
 
+    /// Whether the binding refused a write since ``watchForRefusedWrite()``
+    /// (``write(_:)``).
+    var refusedWrite = false
+
     /// The cursor line (0-based).
     var cursorLine = 0
     /// The cursor column, a character offset into the cursor line.
@@ -247,9 +251,40 @@ final class TextEditorHandler: PersistedFocusable {
     /// through here, so the undo history knows which text the editor produced
     /// and can tell it from a replacement by the app (see
     /// ``TextUndoHistory``).
+    ///
+    /// A binding that refuses the edit (it keeps the old text though handed
+    /// another) marks ``refusedWrite``, and the key or insert that made it
+    /// puts the caret and selection back (``restoreCaretIfRefused(_:)``).
     func write(_ newText: String) {
+        let previous = text.wrappedValue
         text.wrappedValue = newText
-        undoHistory.noteWritten(text.wrappedValue)
+        let kept = text.wrappedValue
+        if kept == previous, newText != previous { refusedWrite = true }
+        undoHistory.noteWritten(kept)
+    }
+
+    /// The caret, the selection and the column the caret keeps, as an edit
+    /// found them: what ``restoreCaretIfRefused(_:)`` puts back.
+    typealias CaretState = (cursor: TextEditorPosition, anchor: TextEditorPosition?, block: TextEditorBlock?, column: Int)
+
+    /// Starts watching for a write the binding refuses, and answers the
+    /// state to put back if it does.
+    func watchForRefusedWrite() -> CaretState {
+        refusedWrite = false
+        return (cursor, selectionAnchor, block, desiredColumn)
+    }
+
+    /// Puts `saved` back if the binding refused a write since
+    /// ``watchForRefusedWrite()``.
+    ///
+    /// A digits-only binding handed a letter keeps its text, and the caret
+    /// must stay put with it, as in an AppKit view whose delegate rejects the
+    /// change; the editor's edits move the caret before they write, a dozen
+    /// of them, so it is put back here, after the key and the insert.
+    func restoreCaretIfRefused(_ saved: CaretState) {
+        guard refusedWrite else { return }
+        cursor = saved.cursor
+        (selectionAnchor, block, desiredColumn) = (saved.anchor, saved.block, saved.column)
     }
 
     /// The number of logical lines.
@@ -295,6 +330,13 @@ final class TextEditorHandler: PersistedFocusable {
     // MARK: - Key handling
 
     func handleKeyEvent(_ event: KeyEvent) -> Bool {
+        let saved = watchForRefusedWrite()
+        defer { restoreCaretIfRefused(saved) }
+        return handleKeyEventWithoutRestore(event)
+    }
+
+    @MainActor
+    private func handleKeyEventWithoutRestore(_ event: KeyEvent) -> Bool {
         defer { publishSelection() }
         defer { forgetMovedRowStartHead() }
         let before = (text: text.wrappedValue, caret: cursor)
@@ -599,6 +641,12 @@ final class TextEditorHandler: PersistedFocusable {
     /// carriage returns baked into the bound string. Normalise every
     /// convention (CRLF, lone CR, lone LF) to `\n` before splitting.
     func insert(_ string: String) {
+        let saved = watchForRefusedWrite()
+        defer { restoreCaretIfRefused(saved) }
+        insertWithoutRestore(string)
+    }
+
+    private func insertWithoutRestore(_ string: String) {
         var lines = readLines()
         // Character-level: CRLF is ONE Character, so both it and a lone CR
         // compare directly. (No Foundation here, deliberately.)
