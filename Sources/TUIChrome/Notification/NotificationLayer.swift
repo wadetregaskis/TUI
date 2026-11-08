@@ -52,12 +52,37 @@ public enum NotificationLayer: Hashable, Sendable {
 /// presentation in it, if it was posted from inside one — what a view's
 /// `@Environment(\.notificationService)` stamps on its posts. `nil` for one
 /// posted through ``NotificationService/current``, which belongs to no window.
-struct NotificationOwner: Hashable, Sendable {
+package struct NotificationOwner: Hashable, Sendable {
     /// The window's serial, as the scene presenter numbers its windows, or
     /// `nil` where it is not known (a scene drawn outside an app).
-    var window: Int?
+    package var window: Int?
 
     /// The focus section of the sheet, alert or dialog the post came from,
     /// or `nil` for the window's own content.
-    var presentation: String?
+    package var presentation: String?
+
+    package init(window: Int?, presentation: String?) {
+        self.window = window
+        self.presentation = presentation
+    }
+}
+
+private struct NotificationOwnerKey: EnvironmentKey {
+    static let defaultValue: NotificationOwner? = nil
+}
+
+extension EnvironmentValues {
+    /// Whose a post through this environment's ``notificationService`` is: set
+    /// by the scene presenter for a window's views and by a sheet, alert or
+    /// dialog for its content.
+    ///
+    /// A value beside the service, not a service object made per window: the
+    /// environment then holds the same service every frame, and this compares
+    /// equal frame to frame, so a body the plain memo keeps stays kept. An
+    /// object made in each frame's render was a new value each frame, and
+    /// nothing was ever served (`PlainMemoRegistryTests`).
+    package var notificationOwner: NotificationOwner? {
+        get { self[NotificationOwnerKey.self] }
+        set { self[NotificationOwnerKey.self] = newValue }
+    }
 }

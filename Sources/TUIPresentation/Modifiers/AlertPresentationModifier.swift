@@ -291,8 +291,8 @@ nonisolated package struct AlertPresentationModifier<Content: View, Actions: Vie
             .withAvailableHeight(context.environment.overlayContentHeight)
         alertContext.environment.activeFocusSectionID = sectionID
         // Its buttons' posts are the alert's (`NotificationLayer`).
-        alertContext.environment.notificationService =
-            alertContext.environment.notificationService?.owned(byPresentation: sectionID)
+        alertContext.environment.notificationOwner = NotificationOwner(
+            window: alertContext.environment.notificationService?.owner?.window, presentation: sectionID)
         alertContext.leavePresenter()
         alertContext.environment.dialogPresentsError = presentsError
         // Choosing an action dismisses the alert, as it does in SwiftUI: an

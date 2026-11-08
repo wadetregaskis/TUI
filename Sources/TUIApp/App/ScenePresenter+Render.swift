@@ -59,7 +59,7 @@ extension ScenePresenter {
         context.environment.sceneStorageNamespace = window.storageNamespace
         // Its views' posts are the window's (`NotificationLayer`): under what is
         // presented over it, and drawn while it is in front.
-        context.environment.notificationService = context.environment.notificationService?.owned(byWindow: window.serial)
+        context.environment.notificationOwner = NotificationOwner(window: window.serial, presentation: nil)
         if !window.isLaunchWindow {
             context.environment.activeFocusSectionID = window.focusSection
             context.environment.windowBuildsItsContent = true

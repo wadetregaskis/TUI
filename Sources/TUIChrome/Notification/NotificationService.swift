@@ -118,7 +118,7 @@ public final class NotificationService: Sendable {
     /// Whose a post through this service is: the window, and the presentation
     /// in it, that the environment handing it out belongs to — or `nil` for
     /// ``current`` itself, whose posts belong to no window.
-    let owner: NotificationOwner?
+    package let owner: NotificationOwner?
 
     /// The clock a notification's age is measured on.
     ///
@@ -177,14 +177,22 @@ public final class NotificationService: Sendable {
     /// (``NotificationLayer/belowPresentations``), and is drawn only while the
     /// window is in front.
     package func owned(byWindow window: Int) -> NotificationService {
-        NotificationService(sharing: self, owner: NotificationOwner(window: window, presentation: nil))
+        owned(by: NotificationOwner(window: window, presentation: nil))
     }
 
     /// This service as the sheet, alert or dialog whose focus section is
     /// `section` hands it to its content: a post through it belongs to that
     /// presentation — on top while it is, under anything presented over it.
     package func owned(byPresentation section: String) -> NotificationService {
-        NotificationService(sharing: self, owner: NotificationOwner(window: owner?.window, presentation: section))
+        owned(by: NotificationOwner(window: owner?.window, presentation: section))
+    }
+
+    /// This service as `owner` hands it out, or itself for no owner: what the
+    /// environment's ``EnvironmentValues/notificationService`` returns, from
+    /// the service and the environment's ``EnvironmentValues/notificationOwner``.
+    package func owned(by owner: NotificationOwner?) -> NotificationService {
+        guard let owner, owner != self.owner else { return self }
+        return NotificationService(sharing: self, owner: owner)
     }
 }
 
@@ -478,7 +486,11 @@ extension EnvironmentValues {
         // (`FeatureObjectSlot`), which detaching an environment clears: the
         // service belongs to the window chrome, above the substrate, so the
         // substrate clears the slot without naming this type.
-        get { self[featureObject: .notificationService] as? NotificationService }
+        // The slot holds the app's one service, the same object every frame;
+        // whose a post is travels beside it as a value (`notificationOwner`),
+        // joined here, so the environment a memoised body compares is
+        // unchanged from frame to frame.
+        get { (self[featureObject: .notificationService] as? NotificationService)?.owned(by: notificationOwner) }
         set { self[featureObject: .notificationService] = newValue }
     }
 }
