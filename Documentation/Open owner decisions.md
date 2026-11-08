@@ -21,9 +21,6 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
   terminal playing an animated picture by itself (`TUI_GRAPHICS_PLAYBACK`, off today) goes on by default.
 - **Push `main`.** Local `main` is ahead of GitHub (189 commits on 2026-11-08; last pushed 2026-11-06,
   `16dfc440f`).
-- **Rename the GitHub repository to `TUI`,** then say so. The commit that points every URL at the new
-  name (branch `hold-repourls`) lands only after the rename, since GitHub redirects old names to new and
-  never new to old.
 - **Compiler bug reports** on the Desktop, one file per bug, are yours to file.
 - **Xcode 27**, if it can be installed again: the SwiftUI comparison was last re-baselined on the 6.3.3
   SDK and now runs against Xcode 26.3's, and MACOS27-PARITY waits on it.
