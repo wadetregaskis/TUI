@@ -101,6 +101,14 @@ extension RenderCache {
             /// How many invalidations have been queued since the link was
             /// made — see ``writeCount``.
             var writes: UInt64 = 0
+            /// The identities whose body has called `_printChanges()` or
+            /// `_logChanges()` (``BodyChangeReport``): the only ones an
+            /// observed change is remembered for, so that nothing grows for an
+            /// app that never calls either.
+            var reporting: Set<ViewIdentity> = []
+            /// Those of `reporting` an observed change was reported at since
+            /// their body last reported (``takeObservedChange(forReportAt:)``).
+            var observedSinceReport: Set<ViewIdentity> = []
         }
 
         /// What a drain takes: the invalidations queued since the last one.
@@ -128,6 +136,8 @@ extension RenderCache {
                 queue.clearAll = false
                 queue.identities.removeAll()
                 queue.softOnly.removeAll()
+                queue.reporting.removeAll()
+                queue.observedSinceReport.removeAll()
                 queue.appState = nil
                 queue.diagnostic = nil
             }
@@ -183,7 +193,19 @@ extension RenderCache {
         /// observation it spent.
         package func invalidateRenderForObservedChange(at identity: ViewIdentity, softly: Bool = false) {
             attachedAppState?.changeWillBeMade(observed: true)
-            enqueue(identity, softly: softly)?.setNeedsRenderForObservedChange()
+            enqueue(identity, softly: softly, observed: true)?.setNeedsRenderForObservedChange()
+        }
+
+        /// Whether an `@Observable` change was reported at `identity` since
+        /// this was last asked for it — what `_printChanges()` names
+        /// `@dependencies` — and from now on, remembers such changes at it.
+        /// Thread-safe. The first ask can only say `false`: nothing was
+        /// remembered for an identity before its body first reported.
+        package func takeObservedChange(forReportAt identity: ViewIdentity) -> Bool {
+            queue.withLock { queue in
+                queue.reporting.insert(identity)
+                return queue.observedSinceReport.remove(identity) != nil
+            }
         }
 
         /// ``invalidateRender(for:)`` for a parent's write: a composite
@@ -196,11 +218,14 @@ extension RenderCache {
         /// Queues the invalidation of `identity` (`nil`: of everything), and
         /// returns the app state to ask for the frame — `nil` once the cache
         /// has gone, or for a cache no app draws.
-        private func enqueue(_ identity: ViewIdentity?, softly: Bool = false) -> AppState? {
+        private func enqueue(_ identity: ViewIdentity?, softly: Bool = false, observed: Bool = false) -> AppState? {
             typealias Report = (queued: Bool, appState: AppState?, diagnostic: BodyMutationDiagnostic?)
             let (queued, appState, diagnostic) = queue.withLock { queue -> Report in
                 guard queue.attached else { return (false, nil, nil) }
                 queue.writes &+= 1
+                if observed, let identity, !queue.reporting.isEmpty, queue.reporting.contains(identity) {
+                    queue.observedSinceReport.insert(identity)
+                }
                 if let identity {
                     if !queue.clearAll {
                         let (isNew, _) = queue.identities.insert(identity)

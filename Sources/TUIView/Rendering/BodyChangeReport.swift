@@ -35,11 +35,36 @@ import TUICore
 ///
 /// **What it compares.** At the view's identity, under
 /// ``StateStorage/StateKey/bodyChangeRecordIndex``, the storage keeps the value
-/// the last report saw and each `@State` box's write count then
-/// (``BodyChangeRecord``). No record: `@self, @identity` and every `@State`.
-/// Otherwise `@self` when the value compares unequal by the render memo's
-/// field-by-field comparison (``ValueComparison``), ignoring what it cannot
-/// compare, and each `@State` written since. Nothing: `unchanged.`
+/// the last report saw, each `@State` box's write count then and what each
+/// `@Environment` property read (``BodyChangeRecord``). No record: `@self,
+/// @identity` and every `@State`. Otherwise:
+///
+/// - `@self` when the value compares unequal by the render memo's
+///   field-by-field comparison (``ValueComparison``);
+/// - each `@State` written since, by its name (`_count`);
+/// - each `@Environment` property whose value moved, by its name
+///   (`_colorScheme`), as a `@State` is named;
+/// - `@dependencies` when an `@Observable` property the body read was
+///   written: the observation that redraws the body says so to the cache's
+///   link (``RenderCache/Link/takeObservedChange(forReportAt:)``). Which
+///   property, and of which object, it can't say: Observation's change
+///   handler is told neither.
+///
+/// **Never a false `unchanged.`** What can't be compared — a closure or a
+/// `Binding` in the value, which may read changed state; an environment value
+/// that is neither `Equatable` nor an object; a `@State` that can't be found;
+/// a render with no cache to ask — is named as what "may have changed", and
+/// only when nothing certainly did. `unchanged.` is said only when everything
+/// was compared and nothing moved.
+///
+/// **SwiftUI's words.** `@self`, `@identity`, a property's own name and
+/// `unchanged.` are SwiftUI's. `@dependencies` is the token SwiftUI is
+/// widely reported to print for a body redrawn by an `@Observable` write, and
+/// the string is in macOS 15's dyld shared cache (searched 2026-11-08), but in
+/// a region not tied to a library there: NOT verified against a SwiftUI run,
+/// so if SwiftUI turns out to word it otherwise, follow SwiftUI. "may have
+/// changed" is TUI's own: SwiftUI has no words for a cause it could not
+/// compare.
 @MainActor
 package enum BodyChangeReport {
     /// A call waiting for the walk.
@@ -95,26 +120,59 @@ package enum BodyChangeReport {
         // A body measured and then drawn in one pass is reported once.
         if let last, last.pass == storage.currentPass { return }
         let counts = (states ?? []).map { (storage.values[$0.key] as? any WriteCountingBox)?.writeCount }
-        var causes: [String] = []
+        let environment = environmentReadings(of: subject, in: context.environment)
+        // Asked whatever the record says, so the link starts remembering at the
+        // first report and forgets what came before each.
+        let observed = context.renderCache?.link.takeObservedChange(forReportAt: context.identity)
+        var causes = Causes()
         if let last {
-            if let kept = last.value as? KeptValue<Subject>, differs(kept.value, subject, context: context) {
-                causes.append("@self")
-            }
+            causes.note(selfChange(from: (last.value as? KeptValue<Subject>)?.value, to: subject, context: context), "@self")
             if let states {
                 for (index, state) in states.enumerated() where last.counts[state.key] != counts[index] {
-                    causes.append(state.name)
+                    causes.note(.changed, state.name)
                 }
+            } else {
+                causes.note(.unknown, "a @State property")
             }
+            for reading in environment {
+                causes.note(change(from: last.readings[reading.name], to: reading.value), reading.name)
+            }
+            causes.note(observed.map { $0 ? .changed : .same } ?? .unknown, "@dependencies")
         } else {
-            causes = ["@self", "@identity"] + (states ?? []).map(\.name)
+            causes.certain = ["@self", "@identity"] + (states ?? []).map(\.name)
         }
         var keptCounts: [StateStorage.StateKey: UInt32?] = [:]
         for (index, state) in (states ?? []).enumerated() { keptCounts.updateValue(counts[index], forKey: state.key) }
         storage.values[recordKey] = BodyChangeRecord(
-            pass: storage.currentPass, value: KeptValue(subject), counts: keptCounts)
-        let name = String(describing: Subject.self)
-        let line = causes.isEmpty ? "\(name): unchanged." : "\(name): \(causes.joined(separator: ", ")) changed."
-        emit(line, logs: request.logs, storage: storage)
+            pass: storage.currentPass, value: KeptValue(subject), counts: keptCounts,
+            readings: Dictionary(environment.map { ($0.name, Reading($0.value)) }, uniquingKeysWith: { $1 }))
+        emit(line(for: Subject.self, causes: causes.certain, unknown: causes.unknown), logs: request.logs, storage: storage)
+    }
+
+    /// What a report found: what certainly changed, and what may have.
+    struct Causes {
+        /// What compared unequal.
+        var certain: [String] = []
+        /// What couldn't be compared.
+        var unknown: [String] = []
+
+        /// Notes `name` by how it compared.
+        mutating func note(_ change: Change, _ name: String) {
+            switch change {
+            case .changed: certain.append(name)
+            case .unknown: unknown.append(name)
+            case .same: break
+            }
+        }
+    }
+
+    /// The line reported for `type`: what certainly changed, or, where nothing
+    /// did, what may have and couldn't be compared, or else `unchanged.`
+    static func line(for type: Any.Type, causes: [String], unknown: [String]) -> String {
+        let name = String(describing: type)
+        if !causes.isEmpty { return "\(name): \(causes.joined(separator: ", ")) changed." }
+        if !unknown.isEmpty { return "\(name): \(unknown.joined(separator: ", ")) may have changed." }
+        return "\(name): unchanged."
     }
 
     /// The `@State` among `type`'s own fields, planned by `plan`, each with
@@ -164,14 +222,20 @@ package enum BodyChangeReport {
         }
     }
 
-    /// Whether `new` compares unequal with `old`, field by field as the render
-    /// memo compares views: `false` where a type can't be compared, and for a
-    /// closure or a `Binding`, which can't either.
-    private static func differs<Subject>(_ old: Subject, _ new: Subject, context: RenderContext) -> Bool {
-        guard let plans = context.renderCache?.valueHashPlans, let comparison = plans.comparison(for: Subject.self)
-        else { return false }
+    /// How `new` compares with `old`, field by field as the render memo
+    /// compares views: changed where a field compares unequal; unknown where
+    /// the type can't be compared, or where the only difference may be a
+    /// closure or a `Binding` (equal leniently, unequal strictly), which can
+    /// read state that changed; the same otherwise.
+    private static func selfChange<Subject>(from old: Subject?, to new: Subject, context: RenderContext) -> Change {
+        guard let old, let plans = context.renderCache?.valueHashPlans,
+            let comparison = plans.comparison(for: Subject.self)
+        else { return .unknown }
         return withUnsafePointer(to: old) { old in
-            withUnsafePointer(to: new) { new in unsafe !comparison.equal(old, new, strict: false, plans: plans) }
+            withUnsafePointer(to: new) { new in
+                if unsafe !comparison.equal(old, new, strict: false, plans: plans) { return .changed }
+                return unsafe comparison.equal(old, new, strict: true, plans: plans) ? .same : .unknown
+            }
         }
     }
 
@@ -202,11 +266,17 @@ final class BodyChangeRecord {
     let value: AnyObject
     /// Each `@State` box's write count, by its key; `nil` for a box not yet made.
     let counts: [StateStorage.StateKey: UInt32?]
+    /// What each `@Environment` property read, by its name.
+    let readings: [String: BodyChangeReport.Reading]
 
-    init(pass: UInt32, value: AnyObject, counts: [StateStorage.StateKey: UInt32?]) {
+    init(
+        pass: UInt32, value: AnyObject, counts: [StateStorage.StateKey: UInt32?],
+        readings: [String: BodyChangeReport.Reading]
+    ) {
         self.pass = pass
         self.value = value
         self.counts = counts
+        self.readings = readings
     }
 }
 

@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Observation
 import Testing
 
 @testable import TUIFoundation
@@ -58,6 +59,72 @@ private struct Highlight: ViewModifier {
     }
 }
 
+private struct ReportTintKey: EnvironmentKey {
+    static let defaultValue = 0
+}
+
+private struct ReportActionKey: EnvironmentKey {
+    static let defaultValue: @Sendable () -> Void = {}
+}
+
+extension EnvironmentValues {
+    fileprivate var reportTint: Int {
+        get { self[ReportTintKey.self] }
+        set { self[ReportTintKey.self] = newValue }
+    }
+
+    fileprivate var reportAction: @Sendable () -> Void {
+        get { self[ReportActionKey.self] }
+        set { self[ReportActionKey.self] = newValue }
+    }
+}
+
+/// Reads one environment value, which it shows.
+private struct TintReader: View {
+    @Environment(\.reportTint) private var tint
+
+    var body: some View {
+        Self._printChanges()
+        return Text("tint \(tint)")
+    }
+}
+
+/// Reads an environment value that can't be compared, a closure.
+private struct ActionReader: View {
+    @Environment(\.reportAction) private var action
+
+    var body: some View {
+        Self._printChanges()
+        return Text("action")
+    }
+}
+
+@Observable
+@MainActor
+private final class Model {
+    var value = 0
+}
+
+/// Reads an `@Observable` property in its body.
+private struct Watcher: View {
+    let model: Model
+
+    var body: some View {
+        Self._printChanges()
+        return Text("value \(model.value)")
+    }
+}
+
+/// Holds a closure, which can't be compared.
+private struct Holder: View {
+    let action: () -> Void
+
+    var body: some View {
+        Self._printChanges()
+        return Text("holder")
+    }
+}
+
 /// `_printChanges()`: in a body, a line saying what changed since that body's
 /// last evaluation, in SwiftUI's words.
 @MainActor
@@ -74,11 +141,14 @@ struct PrintChangesTests {
         context.stateStorage!.bodyChangeSink = { probe.lines.append($0) }
     }
 
-    /// Draws `view` as a frame of its own, and returns the lines it reported.
-    private func frame(_ view: some View) -> [String] {
+    /// Draws `view` as a frame of its own, in the test's environment changed
+    /// by `change`, and returns the lines it reported.
+    private func frame(_ view: some View, change: (inout EnvironmentValues) -> Void = { _ in }) -> [String] {
         context.stateStorage!.beginRenderPass()
         context.renderCache!.beginRenderPass()
         probe.lines = []
+        var context = context
+        change(&context.environment)
         _ = renderToBuffer(view, context: context)
         return probe.lines
     }
@@ -131,6 +201,41 @@ struct PrintChangesTests {
         Counter._printChanges()
         #expect(frame(Quiet()).isEmpty)
         #expect(frame(Counter(probe: probe)) == ["Counter: @self, @identity, _count changed."])
+    }
+
+    @Test("An @Environment property whose value moved is named, as a @State is")
+    func environmentChange() {
+        _ = frame(TintReader()) { $0.reportTint = 1 }
+        #expect(frame(TintReader()) { $0.reportTint = 2 } == ["TintReader: _tint changed."])
+        let again = frame(TintReader()) { $0.reportTint = 2 }
+        #expect(again.isEmpty || again == ["TintReader: unchanged."], "\(again)")
+    }
+
+    @Test("An environment value that can't be compared may have changed, never unchanged")
+    func uncomparableEnvironment() {
+        _ = frame(ActionReader()) { $0.reportAction = {} }
+        #expect(frame(ActionReader()) { $0.reportAction = {} } == ["ActionReader: _action may have changed."])
+    }
+
+    @Test("A write to an @Observable property the body read is @dependencies")
+    func observedChange() {
+        let model = Model()
+        _ = frame(Watcher(model: model))
+        model.value = 3
+        #expect(frame(Watcher(model: model)) == ["Watcher: @dependencies changed."])
+    }
+
+    @Test("A view holding a closure may have changed, never unchanged")
+    func closureInTheValue() {
+        _ = frame(Holder {})
+        #expect(frame(Holder {}) == ["Holder: @self may have changed."])
+    }
+
+    @Test("The line names what certainly changed first, then what may have, then nothing")
+    func lineWording() {
+        #expect(BodyChangeReport.line(for: Holder.self, causes: ["_a"], unknown: ["@self"]) == "Holder: _a changed.")
+        #expect(BodyChangeReport.line(for: Holder.self, causes: [], unknown: ["@self"]) == "Holder: @self may have changed.")
+        #expect(BodyChangeReport.line(for: Holder.self, causes: [], unknown: []) == "Holder: unchanged.")
     }
 
     @Test("A view that doesn't call it reports nothing")

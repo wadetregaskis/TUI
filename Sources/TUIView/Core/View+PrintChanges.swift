@@ -30,15 +30,23 @@ extension View {
     ///   named by `TUI_DIAGNOSTICS_FILE`, appended at once, or otherwise to
     ///   stderr, held while the app has the terminal and written when it gives
     ///   it back (the last 4,096 lines). `tail -f` the file to watch them live.
-    /// - **What is named.** `@self`, `@identity` and the view's own `@State`
-    ///   properties. A write to an `@Observable` object, an environment value,
-    ///   a `Binding`'s source or state inside a property wrapper of your own is
-    ///   not named: a body that ran for one of those prints `unchanged.`, as
-    ///   SwiftUI does for a body it can't attribute.
+    /// - **What is named.** `@self`, `@identity`, the view's own `@State`
+    ///   properties, its `@Environment` properties whose values moved (by
+    ///   name, `_colorScheme`, as a `@State` is), and `@dependencies` for a
+    ///   write to an `@Observable` property the body read. Which property of
+    ///   which object isn't said: Observation doesn't tell TUI, as it doesn't
+    ///   tell SwiftUI.
     /// - **`@self`** is said when a field of the view compares unequal with
     ///   the last value's, by `==` where the field is `Equatable` and by its
-    ///   parts where not. A closure, or a `Binding`, can't be compared, so a
-    ///   change to one alone is not reported.
+    ///   parts where not.
+    /// - **Never a false `unchanged.`** What can't be compared — a closure or
+    ///   a `Binding` in the view, whose source may have changed; an
+    ///   environment value that is neither `Equatable` nor an object — is
+    ///   said as `Counter: @self may have changed.` when nothing certainly
+    ///   changed. SwiftUI has no words for that; these are TUI's.
+    ///   `unchanged.` means everything was compared and nothing moved, as
+    ///   when a parent's body ran and drew this view again with the same
+    ///   value.
     /// - **Once a frame.** TUI may evaluate a body to measure it and again to
     ///   draw it; only the first evaluation in a frame prints.
     ///
@@ -65,7 +73,8 @@ extension View {
 extension ViewModifier {
     /// Called in `body(content:)`, prints why this evaluation of it happened,
     /// as ``View/_printChanges()`` prints it for a view: `@self` for the
-    /// modifier's own value, and its own `@State` properties by name.
+    /// modifier's own value, its own `@State` and `@Environment` properties by
+    /// name, and `@dependencies`.
     @MainActor @preconcurrency
     public static func _printChanges() {  // swiftlint:disable:this identifier_name
         BodyChangeReport.request(Self.self, logs: false)

@@ -166,6 +166,18 @@ public struct Environment<Value> {
     }
 }
 
+extension Environment: BodyChangeReport.EnvironmentReading {
+    /// What this property reads in `environment`, without trapping where an
+    /// object it looks up is absent: `nil` then. For `_printChanges()`, which
+    /// compares it with what the last report saw.
+    func reportedValue(in environment: EnvironmentValues) -> Any? {
+        if let keyPath { return environment[keyPath: keyPath] }
+        let optional = observableType as? any OptionalObjectType.Type
+        guard let type = optional?.wrappedObjectType ?? observableType else { return nil }
+        return environment.storedObject(ofType: type)
+    }
+}
+
 /// An `Optional`, seen through its metatype: what an optional observable
 /// lookup (the optional form of `Environment.init(_:)`) looks up.
 private protocol OptionalObjectType {
