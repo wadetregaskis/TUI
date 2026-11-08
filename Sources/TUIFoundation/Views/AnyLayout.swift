@@ -120,9 +120,9 @@ nonisolated public struct AnyLayout: Layout {
     /// `nonisolated` because the value hash runs off the main actor, which a
     /// layout's members are otherwise isolated to.
     nonisolated static var valueHashOpener: ValueHashOpener {
-        .init((any AnyLayoutBox).self) { pointer, hash, plans in
+        unsafe .init((any AnyLayoutBox).self) { pointer, hash, plans in
             func open<Box: AnyLayoutBox>(_ box: Box) -> Bool { mixOpened(box, into: &hash, plans: plans) }
-            return open(pointer.assumingMemoryBound(to: (any AnyLayoutBox).self).pointee)
+            return unsafe open(pointer.assumingMemoryBound(to: (any AnyLayoutBox).self).pointee)
         }
     }
 }

@@ -31,12 +31,12 @@ private func unwrittenBytes<T>(of _: T.Type, builtBy build: (UnsafeMutablePointe
     let built = [UInt8(0xAA), 0x55].map { fill in
         let memory = UnsafeMutablePointer<T>.allocate(capacity: 1)
         for offset in 0..<size {
-            UnsafeMutableRawPointer(memory).storeBytes(of: fill, toByteOffset: offset, as: UInt8.self)
+            unsafe UnsafeMutableRawPointer(memory).storeBytes(of: fill, toByteOffset: offset, as: UInt8.self)
         }
-        build(memory)
-        let bytes = Array(UnsafeRawBufferPointer(start: memory, count: size))
-        memory.deinitialize(count: 1)
-        memory.deallocate()
+        unsafe build(memory)
+        let bytes = unsafe Array(UnsafeRawBufferPointer(start: memory, count: size))
+        unsafe memory.deinitialize(count: 1)
+        unsafe memory.deallocate()
         return bytes
     }
     return Set((0..<size).filter { built[0][$0] != built[1][$0] })
@@ -59,7 +59,7 @@ private struct Conformer {
     init<T>(_ type: T.Type, _ builds: [(UnsafeMutablePointer<T>) -> Void]) {
         self.type = type
         unwrittenByCase = {
-            builds.indices.map { ($0, unwrittenBytes(of: T.self, builtBy: builds[$0])) }
+            unsafe builds.indices.map { unsafe ($0, unwrittenBytes(of: T.self, builtBy: builds[$0])) }
         }
     }
 }
@@ -95,42 +95,42 @@ private struct PaddedControl {
 @Suite("Every type the value hash reads whole has every byte of every value written")
 struct AllBytesDefinedTests {
     /// Each conformer, and each of its cases, stored in place.
-    private static let conformers: [Conformer] = [
+    private static let conformers: [Conformer] = unsafe [
         Conformer(Color.ColorValue.self, [
-            { $0.pointee = .ansi(.brightRed) }, { $0.pointee = .terminalDefault },
-            { $0.pointee = .palette256(200) }, { $0.pointee = .rgb(red: 1, green: 2, blue: 3) },
-            { $0.pointee = .semantic(.accent) }, { $0.pointee = .terminalForeground },
-            { $0.pointee = .terminalBackground }, { $0.pointee = .system(.indigo) },
-            { $0.pointee = .lightDark(Color.LightDarkIndex(0x1234)) },
+            { unsafe $0.pointee = .ansi(.brightRed) }, { unsafe $0.pointee = .terminalDefault },
+            { unsafe $0.pointee = .palette256(200) }, { unsafe $0.pointee = .rgb(red: 1, green: 2, blue: 3) },
+            { unsafe $0.pointee = .semantic(.accent) }, { unsafe $0.pointee = .terminalForeground },
+            { unsafe $0.pointee = .terminalBackground }, { unsafe $0.pointee = .system(.indigo) },
+            { unsafe $0.pointee = .lightDark(Color.LightDarkIndex(0x1234)) },
         ]),
-        Conformer(LineLimit.self, [
-            { $0.pointee = .unlimited }, { $0.pointee = .lines(3) }, { $0.pointee = .lines(2, reservesSpace: true) },
-            { $0.pointee = .range(LineRange(minimum: 2, maximum: 5)) },
-            { $0.pointee = .range(LineRange(minimum: 3, maximum: nil)) },
+        unsafe Conformer(LineLimit.self, [
+            { unsafe $0.pointee = .unlimited }, { unsafe $0.pointee = .lines(3) }, { unsafe $0.pointee = .lines(2, reservesSpace: true) },
+            { unsafe $0.pointee = .range(LineRange(minimum: 2, maximum: 5)) },
+            { unsafe $0.pointee = .range(LineRange(minimum: 3, maximum: nil)) },
         ]),
-        Conformer(AnimationCurve.self, [
-            { $0.pointee = .bezier(p1x: 0.1, p1y: 0.2, p2x: 0.3, p2y: 0.4) },
-            { $0.pointee = .spring(omega: 12, zeta: 0.5) },
-            { $0.pointee = .spring(omega: 12, zeta: 0.5, initialVelocity: 2, merges: false) },
-            { $0.pointee = .circular(.easeInOut) },
-            { $0.pointee = .custom(CustomCurveID(index: 7)) },
+        unsafe Conformer(AnimationCurve.self, [
+            { unsafe $0.pointee = .bezier(p1x: 0.1, p1y: 0.2, p2x: 0.3, p2y: 0.4) },
+            { unsafe $0.pointee = .spring(omega: 12, zeta: 0.5) },
+            { unsafe $0.pointee = .spring(omega: 12, zeta: 0.5, initialVelocity: 2, merges: false) },
+            { unsafe $0.pointee = .circular(.easeInOut) },
+            { unsafe $0.pointee = .custom(CustomCurveID(index: 7)) },
         ]),
-        Conformer(StatedColor.self, [{ $0.pointee = .unstated }, { $0.pointee = .stated(.rgb(1, 2, 3)) }]),
-        Conformer(StatedLineLimit.self, [
-            { $0.pointee = .unstated }, { $0.pointee = .stated(.lines(4)) },
-            { $0.pointee = .stated(.range(LineRange(minimum: 2, maximum: 5))) },
+        unsafe Conformer(StatedColor.self, [{ unsafe $0.pointee = .unstated }, { unsafe $0.pointee = .stated(.rgb(1, 2, 3)) }]),
+        unsafe Conformer(StatedLineLimit.self, [
+            { unsafe $0.pointee = .unstated }, { unsafe $0.pointee = .stated(.lines(4)) },
+            { unsafe $0.pointee = .stated(.range(LineRange(minimum: 2, maximum: 5))) },
         ]),
-        Conformer(StatedFont.self, [
-            { $0.pointee = .unstated }, { $0.pointee = .statedNone }, { $0.pointee = .stated(.headline) },
+        unsafe Conformer(StatedFont.self, [
+            { unsafe $0.pointee = .unstated }, { unsafe $0.pointee = .statedNone }, { unsafe $0.pointee = .stated(.headline) },
         ]),
-        Conformer(StatedColorValue.self, [{ $0.pointee = .unstated }, { $0.pointee = .stated(.palette256(7)) }]),
-        Conformer(StatedLine.self, [
-            { $0.pointee = .unstated }, { $0.pointee = .off }, { $0.pointee = .on(.single) },
-            { $0.pointee = .on(Text.LineStyle(pattern: .curly, color: .rgb(1, 2, 3))) },
+        unsafe Conformer(StatedColorValue.self, [{ unsafe $0.pointee = .unstated }, { unsafe $0.pointee = .stated(.palette256(7)) }]),
+        unsafe Conformer(StatedLine.self, [
+            { unsafe $0.pointee = .unstated }, { unsafe $0.pointee = .off }, { unsafe $0.pointee = .on(.single) },
+            { unsafe $0.pointee = .on(Text.LineStyle(pattern: .curly, color: .rgb(1, 2, 3))) },
         ]),
-        Conformer(Animation.Repeat.self, [
-            { $0.pointee = .count(2, passDelay: 0.5, autoreverses: true) },
-            { $0.pointee = .forever(passDelay: 0.25, autoreverses: false) },
+        unsafe Conformer(Animation.Repeat.self, [
+            { unsafe $0.pointee = .count(2, passDelay: 0.5, autoreverses: true) },
+            { unsafe $0.pointee = .forever(passDelay: 0.25, autoreverses: false) },
         ]),
     ]
 
@@ -161,18 +161,18 @@ struct AllBytesDefinedTests {
     /// every conformer — as the one this replaced did.
     @Test("The measure sees a byte a build leaves unwritten")
     func measureSeesUnwrittenBytes() {
-        let unwritten = unwrittenBytes(of: PaddedControl.self) { $0.pointee = PaddedControl(flag: true, count: 3) }
+        let unwritten = unsafe unwrittenBytes(of: PaddedControl.self) { unsafe $0.pointee = PaddedControl(flag: true, count: 3) }
         #expect(unwritten == Set(1..<MemoryLayout<Int>.alignment))
     }
 
     @Test("The value hash reads each whole, and a colour with it")
     func planDense() {
-        let plans = ValueHashPlans()
+        let plans = unsafe ValueHashPlans()
         for conformer in Self.conformers {
-            #expect(plans.plan(for: conformer.type).pointee.shape == .dense, "\(conformer.type)")
+            unsafe #expect(plans.plan(for: conformer.type).pointee.shape == .dense, "\(conformer.type)")
         }
-        #expect(plans.plan(for: Color.self).pointee.shape == .dense)
+        unsafe #expect(plans.plan(for: Color.self).pointee.shape == .dense)
         // An animation reads its curve whole, and only its padding is skipped.
-        #expect(plans.plan(for: Animation.self).pointee.shape == .runs)
+        unsafe #expect(plans.plan(for: Animation.self).pointee.shape == .runs)
     }
 }

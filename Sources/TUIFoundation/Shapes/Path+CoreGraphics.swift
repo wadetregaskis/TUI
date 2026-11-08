@@ -19,14 +19,14 @@ extension Path {
     public init(_ path: CGPath) {
         self.init()
         var elements: [Element] = []
-        path.applyWithBlock { pointer in
-            let element = pointer.pointee
-            let points = element.points
-            switch element.type {
-            case .moveToPoint: elements.append(.move(to: points[0]))
-            case .addLineToPoint: elements.append(.line(to: points[0]))
-            case .addQuadCurveToPoint: elements.append(.quadCurve(to: points[1], control: points[0]))
-            case .addCurveToPoint: elements.append(.curve(to: points[2], control1: points[0], control2: points[1]))
+        unsafe path.applyWithBlock { pointer in
+            let element = unsafe pointer.pointee
+            let points = unsafe element.points
+            switch unsafe element.type {
+            case .moveToPoint: unsafe elements.append(.move(to: points[0]))
+            case .addLineToPoint: unsafe elements.append(.line(to: points[0]))
+            case .addQuadCurveToPoint: unsafe elements.append(.quadCurve(to: points[1], control: points[0]))
+            case .addCurveToPoint: unsafe elements.append(.curve(to: points[2], control1: points[0], control2: points[1]))
             case .closeSubpath: elements.append(.closeSubpath)
             @unknown default: break
             }

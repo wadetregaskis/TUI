@@ -129,7 +129,7 @@ struct PaletteSurfaceTests {
         for palette in palettes {
             let tab = palette.liftedBackground.resolve(with: palette)
             let field = palette.fieldBackground(on: tab).resolve(with: palette)
-            let gap = String(format: "%.1f", field.lightnessDifference(from: tab))
+            let gap = unsafe String(format: "%.1f", field.lightnessDifference(from: tab))
             #expect(
                 SystemPalette.isVisiblySeparate(
                     field, from: tab, separation: SystemPalette.wellSeparation),
@@ -151,7 +151,7 @@ struct PaletteSurfaceTests {
             let field = palette.fieldBackground(on: tab).resolve(with: palette)
             let tabGap = tab.lightnessDifference(from: page)
             let fieldGap = field.lightnessDifference(from: page)
-            let gaps = "field ΔL* \(String(format: "%.1f", fieldGap)), "
+            let gaps = unsafe "field ΔL* \(String(format: "%.1f", fieldGap)), "
                 + "tab ΔL* \(String(format: "%.1f", tabGap))"
             #expect(fieldGap > tabGap, "\(palette.id): the ladder folded back — \(gaps)")
             #expect(

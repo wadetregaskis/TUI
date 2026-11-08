@@ -152,9 +152,9 @@ extension FocusedValue: PlaceResolvedReader {
     package static func resolveEnvironment(
         at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity, pass: UInt32
     ) -> Bool {
-        let value = address.assumingMemoryBound(to: Self.self)
-        return FocusedValueReader.resolve(value.pointee.reader, environment, place: place, pass: pass) {
-            value.pointee.reader = $0
+        let value = unsafe address.assumingMemoryBound(to: Self.self)
+        return unsafe FocusedValueReader.resolve(value.pointee.reader, environment, place: place, pass: pass) {
+            unsafe value.pointee.reader = $0
         }
     }
 }
@@ -227,9 +227,9 @@ extension FocusedBinding: PlaceResolvedReader {
     package static func resolveEnvironment(
         at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity, pass: UInt32
     ) -> Bool {
-        let binding = address.assumingMemoryBound(to: Self.self)
-        return FocusedValueReader.resolve(binding.pointee.reader, environment, place: place, pass: pass) {
-            binding.pointee.reader = $0
+        let binding = unsafe address.assumingMemoryBound(to: Self.self)
+        return unsafe FocusedValueReader.resolve(binding.pointee.reader, environment, place: place, pass: pass) {
+            unsafe binding.pointee.reader = $0
         }
     }
 }

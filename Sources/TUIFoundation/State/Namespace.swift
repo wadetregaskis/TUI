@@ -113,9 +113,9 @@ extension Namespace: PlaceBoundIdentity {
     package static func bindRenderIdentity(
         at address: UnsafeMutableRawPointer, path: String, propertyIndex: Int, pass: UInt32
     ) -> Bool {
-        let namespace = address.assumingMemoryBound(to: Self.self)
+        let namespace = unsafe address.assumingMemoryBound(to: Self.self)
         let id = ID(bound: "namespace::\(path)::\(propertyIndex)")
-        let isSecondPlace = namespace.pointee.box.state.withLock { state in
+        let isSecondPlace = unsafe namespace.pointee.box.state.withLock { state in
             if state.stamp.isSecondPlace(path, in: pass) { return true }
             if state.id != id { state.id = id }
             state.stamp.stamp(path, in: pass)
@@ -127,7 +127,7 @@ extension Namespace: PlaceBoundIdentity {
             state.id = id
             state.stamp.stamp(path, in: pass)
         }
-        namespace.pointee = Namespace(box: own)
+        unsafe namespace.pointee = Namespace(box: own)
         return true
     }
 }

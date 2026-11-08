@@ -23,7 +23,7 @@
 /// not a second field, which would cost every button 16 bytes
 /// (`ControlLayoutPaddingTests` pins 121).
 func mainActorAction(_ action: @escaping @MainActor () -> Void) -> () -> Void {
-    unsafeBitCast(action, to: (() -> Void).self)
+    unsafe unsafeBitCast(action, to: (() -> Void).self)
 }
 
 // Each `Button` initializer taking a `@MainActor` action has one here taking a

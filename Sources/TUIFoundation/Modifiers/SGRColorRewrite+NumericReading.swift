@@ -26,13 +26,13 @@ extension SGRColorRewrite {
     static func readingNumericColors(_ sequence: String, _ report: (ColorSlot, Color?) -> Void) -> Bool {
         var sequence = sequence
         return sequence.withUTF8 { bytes in
-            guard bytes.count >= 3, bytes[0] == 0x1B, bytes[1] == 0x5B, bytes[bytes.count - 1] == 0x6D else {
+            guard bytes.count >= 3, unsafe bytes[0] == 0x1B, unsafe bytes[1] == 0x5B, unsafe bytes[bytes.count - 1] == 0x6D else {
                 return false
             }
-            let body = UnsafeBufferPointer(rebasing: bytes[2..<(bytes.count - 1)])
+            let body = unsafe UnsafeBufferPointer(rebasing: bytes[2..<(bytes.count - 1)])
             var count = 1
             var digits = 0
-            for byte in body {
+            for unsafe byte in unsafe body {
                 if byte == 0x3B {  // ';'
                     count += 1
                     digits = 0
@@ -45,9 +45,9 @@ extension SGRColorRewrite {
             return withUnsafeTemporaryAllocation(of: Parameter.self, capacity: count) { parameters in
                 var index = 0
                 var current = Parameter(value: 0, digits: 0)
-                for byte in body {
+                for unsafe byte in unsafe body {
                     if byte == 0x3B {
-                        parameters.initializeElement(at: index, to: current)
+                        unsafe parameters.initializeElement(at: index, to: current)
                         index += 1
                         current = Parameter(value: 0, digits: 0)
                     } else {
@@ -55,9 +55,9 @@ extension SGRColorRewrite {
                         current.digits += 1
                     }
                 }
-                parameters.initializeElement(at: index, to: current)
-                defer { _ = parameters.deinitialize() }
-                reporting(UnsafeBufferPointer(parameters), report)
+                unsafe parameters.initializeElement(at: index, to: current)
+                defer { _ = unsafe parameters.deinitialize() }
+                unsafe reporting(UnsafeBufferPointer(parameters), report)
                 return true
             }
         }
@@ -80,23 +80,23 @@ extension SGRColorRewrite {
     private static func reporting(_ parameters: UnsafeBufferPointer<Parameter>, _ report: (ColorSlot, Color?) -> Void) {
         var index = 0
         while index < parameters.count {
-            let parameter = parameters[index].value
+            let parameter = unsafe parameters[index].value
             switch parameter {
             case 0:
                 report(.reset, nil)
             case 38, 48, 58:
                 let slot: ColorSlot = parameter == 38 ? .foreground : (parameter == 48 ? .background : .underline)
-                if index + 2 < parameters.count, parameters[index + 1].isDigit(5),
-                    let value = parameters[index + 2].component
+                if index + 2 < parameters.count, unsafe parameters[index + 1].isDigit(5),
+                    let value = unsafe parameters[index + 2].component
                 {
                     report(slot, Color.palette256(value))
                     index += 3
                     continue
                 }
-                if index + 4 < parameters.count, parameters[index + 1].isDigit(2),
-                    let red = parameters[index + 2].component,
-                    let green = parameters[index + 3].component,
-                    let blue = parameters[index + 4].component
+                if index + 4 < parameters.count, unsafe parameters[index + 1].isDigit(2),
+                    let red = unsafe parameters[index + 2].component,
+                    let green = unsafe parameters[index + 3].component,
+                    let blue = unsafe parameters[index + 4].component
                 {
                     // swiftlint:disable:next framework_colour_literal - a colour read back out of an escape, not ink
                     report(slot, Color.rgb(red, green, blue))

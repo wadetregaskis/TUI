@@ -210,7 +210,7 @@ struct FrameBufferCombineScalingTests {
             // the very copy being counted here.
             let identity =
                 result.lineWidths?.withUnsafeBufferPointer { widths in
-                    widths.baseAddress.map { UInt(bitPattern: UnsafeRawPointer($0)) } ?? 0
+                    unsafe widths.baseAddress.map { unsafe UInt(bitPattern: UnsafeRawPointer($0)) } ?? 0
                 } ?? 0
             let capacity = result.lineWidths?.capacity ?? -1
             if identity != lastIdentity { freshBuffers += 1 }

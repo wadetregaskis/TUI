@@ -114,7 +114,7 @@ struct CollectionOffsetsTests {
     func moveInPlace() {
         var buffer = [10, 20, 30, 40]
         buffer.withUnsafeMutableBufferPointer { pointer in
-            pointer.move(fromOffsets: IndexSet(integer: 0), toOffset: 4)
+            unsafe pointer.move(fromOffsets: IndexSet(integer: 0), toOffset: 4)
         }
         #expect(buffer == [20, 30, 40, 10])
 

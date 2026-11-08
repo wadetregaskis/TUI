@@ -50,7 +50,7 @@ struct ScrollbarPulseSeparationTests {
                     .contrastRatio(against: track.downsampledToPalette256())
                 if ratio < ViewConstants.chromeSeparationFloor {
                     offenders.append(
-                        "\(palette.name) frame \(index): \(String(format: "%.2f", ratio))")
+                        unsafe "\(palette.name) frame \(index): \(String(format: "%.2f", ratio))")
                 }
             }
         }

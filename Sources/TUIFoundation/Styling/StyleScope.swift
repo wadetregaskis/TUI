@@ -106,7 +106,7 @@ extension StyleScope: _ValueHashing {
     package static func _mixValueHash(
         at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans
     ) -> Bool {
-        switch pointer.assumingMemoryBound(to: Self.self).pointee {
+        switch unsafe pointer.assumingMemoryBound(to: Self.self).pointee {
         case .all: plans.mixCase(0, (), into: &hash)
         case .text: plans.mixCase(1, (), into: &hash)
         case .semanticColor(let color): plans.mixCase(2, color, into: &hash)

@@ -18,7 +18,7 @@ import Testing
 @MainActor
 @Suite("Comparing two values from their type alone")
 struct ValueComparisonTests {
-    private let plans = ValueHashPlans()
+    private let plans = unsafe ValueHashPlans()
 
     private func same<T>(_ left: T, _ right: T, strict: Bool = false) -> Bool? {
         plans.comparison(for: T.self)?.equal(left, right, strict: strict, plans: plans)
@@ -126,8 +126,8 @@ struct ValueComparisonTests {
         var left = Padded()
         var right = Padded()
         // A value laid over memory whose padding byte differs.
-        withUnsafeMutableBytes(of: &left) { $0[1] = 0xAA }
-        withUnsafeMutableBytes(of: &right) { $0[1] = 0x55 }
+        withUnsafeMutableBytes(of: &left) { unsafe $0[1] = 0xAA }
+        withUnsafeMutableBytes(of: &right) { unsafe $0[1] = 0x55 }
         #expect(plans.comparison(for: Padded.self)?.equal(left, right, strict: true, plans: plans) == true)
         right.word = 3
         #expect(plans.comparison(for: Padded.self)?.equal(left, right, strict: false, plans: plans) == false)
@@ -182,8 +182,8 @@ struct ValueComparisonTests {
     func strippedMetadata() {
         // What that walk refuses (a gap in a C struct, which may be a bitfield,
         // above all) is pinned by the plan's own tests.
-        let stripped = ValueHashPlanBuilder(listFields: { _ in [] }, comparing: true)
-        guard case .failure = stripped.items(for: Padded.self) else {
+        let stripped = unsafe ValueHashPlanBuilder(listFields: { _ in [] }, comparing: true)
+        guard case .failure = unsafe stripped.items(for: Padded.self) else {
             Issue.record("a struct with no field metadata was given a comparison")
             return
         }

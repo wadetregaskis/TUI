@@ -105,7 +105,7 @@
             var wrong: [String] = []
             var checked = 0
             func check(_ bytes: [UInt8]) {
-                let query = String(unsafeUninitializedCapacity: bytes.count) { $0.initialize(fromContentsOf: bytes) }
+                let query = String(unsafeUninitializedCapacity: bytes.count) { unsafe $0.initialize(fromContentsOf: bytes) }
                 checked += 1
                 if SFSymbol.glyph(named: query) != glyphs[query] { wrong.append(query) }
             }
@@ -146,8 +146,8 @@
                 for block in 0..<blocks {
                     let start = Int(SFSymbol.blockStarts[block])
                     var end = start
-                    while blob[end] != UInt8(ascii: "\n") { end += 1 }
-                    heads.append(String(bytes: blob[start..<end], encoding: .utf8) ?? "")
+                    while unsafe blob[end] != UInt8(ascii: "\n") { end += 1 }
+                    unsafe heads.append(String(bytes: blob[start..<end], encoding: .utf8) ?? "")
                 }
             }
             let expectedHeads = stride(from: 0, to: all.count, by: size).map { all[$0].name }

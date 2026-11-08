@@ -114,7 +114,7 @@ private final class CountingDecoration: Decoration, ViewModifier, DynamicPropert
     nonisolated(unsafe) var updates = 0
 
     nonisolated func update() {
-        updates += 1
+        unsafe updates += 1
     }
 
     func body(content: Content) -> some View {
@@ -128,7 +128,7 @@ private final class CountingProperty: Decoration, DynamicProperty {
     nonisolated(unsafe) var updates = 0
 
     nonisolated func update() {
-        updates += 1
+        unsafe updates += 1
     }
 }
 
@@ -233,20 +233,20 @@ struct DynamicPropertyModifierTests {
             _ = lines(StrongDecoration(decoration: modifier), context: context)
             _ = lines(StrongDecoration(decoration: property), context: context)
         }
-        #expect(modifier.updates > 0 && modifier.updates == property.updates, "in a field of its own class")
+        unsafe #expect(modifier.updates > 0 && modifier.updates == property.updates, "in a field of its own class")
 
         (modifier, property) = (CountingDecoration(), CountingProperty())
         for _ in 0..<2 {
             _ = lines(PlainFieldDecoration(decoration: modifier), context: context)
             _ = lines(PlainFieldDecoration(decoration: property), context: context)
         }
-        #expect(modifier.updates > 0 && modifier.updates == property.updates, "behind a plain class field")
+        unsafe #expect(modifier.updates > 0 && modifier.updates == property.updates, "behind a plain class field")
 
         (modifier, property) = (CountingDecoration(), CountingProperty())
         for _ in 0..<2 {
             _ = lines(UnownedDecoration(decoration: modifier), context: context)
             _ = lines(UnownedDecoration(decoration: property), context: context)
         }
-        #expect(modifier.updates > 0 && modifier.updates == property.updates, "held unowned")
+        unsafe #expect(modifier.updates > 0 && modifier.updates == property.updates, "held unowned")
     }
 }

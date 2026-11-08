@@ -91,7 +91,7 @@ private struct WeakBagView: View {
 /// existential, as an argument, can be given a box of its own.
 @MainActor
 private func boxAddress(_ bag: StampBag) -> UInt {
-    withUnsafeMutablePointer(to: &bag.p) { UnsafeRawPointer($0).load(as: UInt.self) }
+    withUnsafeMutablePointer(to: &bag.p) { unsafe UnsafeRawPointer($0).load(as: UInt.self) }
 }
 
 @MainActor

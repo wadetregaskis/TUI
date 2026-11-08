@@ -34,7 +34,7 @@ import TUIView
 @MainActor
 package func mayReportEdgeOrCentreGuide<V: View>(_ type: V.Type) -> Bool {
     guard V._providesAlignmentGuide else { return false }
-    return BodyWitnessMemo.answer(in: BodyWitnessMemo.edgeOrCentreGuide, for: type) { edgeGuideReach(of: type) }
+    return unsafe BodyWitnessMemo.answer(in: BodyWitnessMemo.edgeOrCentreGuide, for: type) { edgeGuideReach(of: type) }
 }
 
 /// ``mayReportEdgeOrCentreGuide(_:)`` worked out, past the witness — as

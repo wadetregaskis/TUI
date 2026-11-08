@@ -162,29 +162,29 @@ struct ValueHashUndefinedBytesTests {
     ) -> (hashes: [Int?], valueUnchanged: Bool) {
         let cache = RenderCache()
         let pointer = UnsafeMutablePointer<V>.allocate(capacity: 1)
-        pointer.initialize(to: value)
+        unsafe pointer.initialize(to: value)
         defer {
-            pointer.deinitialize(count: 1)
-            pointer.deallocate()
+            unsafe pointer.deinitialize(count: 1)
+            unsafe pointer.deallocate()
         }
         var unchanged = true
         let found = [UInt8(0xAA), 0x55, 0x00].map { fill -> Int? in
-            poke(UnsafeMutableRawPointer(pointer), bytes, fill)
-            unchanged = unchanged && check(pointer.pointee)
-            return viewValueHash(at: pointer, in: cache)
+            unsafe poke(UnsafeMutableRawPointer(pointer), bytes, fill)
+            unchanged = unsafe unchanged && check(pointer.pointee)
+            return unsafe viewValueHash(at: pointer, in: cache)
         }
         return (found, unchanged)
     }
 
     private func poke(_ base: UnsafeMutableRawPointer, _ ranges: [Range<Int>], _ fill: UInt8) {
         for range in ranges {
-            for offset in range { base.storeBytes(of: fill, toByteOffset: offset, as: UInt8.self) }
+            for offset in range { unsafe base.storeBytes(of: fill, toByteOffset: offset, as: UInt8.self) }
         }
     }
 
     private func hash<V: View>(_ value: V, cache: RenderCache) -> Int? {
         var copy = value
-        return withUnsafePointer(to: &copy) { viewValueHash(at: $0, in: cache) }
+        return withUnsafePointer(to: &copy) { unsafe viewValueHash(at: $0, in: cache) }
     }
 
     // MARK: Equal values, undefined bytes
@@ -278,8 +278,8 @@ struct ValueHashUndefinedBytesTests {
         // The box: a heap object whose header is two words, then the payload
         // at the payload's alignment. Checked against the value itself before
         // anything is written there.
-        let box = withUnsafeBytes(of: erased) { $0.load(as: UnsafeMutableRawPointer.self) }
-        let content = box + 16
+        let box = withUnsafeBytes(of: erased) { unsafe $0.load(as: UnsafeMutableRawPointer.self) }
+        let content = unsafe box + 16
         try #require(
             withUnsafeBytes(of: row) { source in
                 (0..<source.count).allSatisfy { index in
@@ -288,10 +288,10 @@ struct ValueHashUndefinedBytesTests {
                 }
             })
         let unspecified = ProposedSize(width: nil, height: nil)
-        poke(content, gaps, 0xAA)
+        unsafe poke(content, gaps, 0xAA)
         let first = measureChild(erased, proposal: unspecified, context: context)
         let before = cache.measureMemoTotals
-        poke(content, gaps, 0x55)
+        unsafe poke(content, gaps, 0x55)
         let second = measureChild(erased, proposal: unspecified, context: context)
 
         #expect(second == first)

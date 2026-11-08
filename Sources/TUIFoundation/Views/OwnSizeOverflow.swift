@@ -38,7 +38,7 @@ package protocol DrawsAtItsOwnSize {}
 /// read.
 @MainActor
 func drawsAtItsOwnSize<V: View>(_ type: V.Type) -> Bool {
-    BodyWitnessMemo.answer(in: BodyWitnessMemo.ownSize, for: type) {
+    unsafe BodyWitnessMemo.answer(in: BodyWitnessMemo.ownSize, for: type) {
         if type is any DrawsAtItsOwnSize.Type { return true }
         if let wrapper = type as? any SingleContentWrapper.Type { return wrappedDrawsAtItsOwnSize(wrapper) }
         guard V.Body.self != Never.self, !(type is any Renderable.Type) else { return false }

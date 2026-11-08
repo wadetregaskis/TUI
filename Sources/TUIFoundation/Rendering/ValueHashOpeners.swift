@@ -15,7 +15,7 @@ extension ValueHashPlans {
     /// caches are made with. Whoever makes one keeps it for every cache it
     /// makes: a plan is a fact about a type (see `RenderCache.valueHashPlans`).
     package static func tui() -> ValueHashPlans {
-        ValueHashPlans(openers: ValueHashOpener.tuikit)
+        unsafe ValueHashPlans(openers: ValueHashOpener.tuikit)
     }
 }
 
@@ -31,48 +31,48 @@ extension ValueHashOpener {
     /// cast would have (`ValueHashOpenerTests` holds them to it), so a table
     /// without them hashes every value the same, only slower.
     package static var tuikit: [ValueHashOpener] {
-        [
+        unsafe [
             .init((any ButtonStyle).self) { pointer, hash, plans in
                 func open<Style: ButtonStyle>(_ style: Style) -> Bool { mixOpened(style, into: &hash, plans: plans) }
-                return open(pointer.assumingMemoryBound(to: (any ButtonStyle).self).pointee)
+                return unsafe open(pointer.assumingMemoryBound(to: (any ButtonStyle).self).pointee)
             },
-            .init((any FormStyle).self) { pointer, hash, plans in
+            unsafe .init((any FormStyle).self) { pointer, hash, plans in
                 func open<Style: FormStyle>(_ style: Style) -> Bool { mixOpened(style, into: &hash, plans: plans) }
-                return open(pointer.assumingMemoryBound(to: (any FormStyle).self).pointee)
+                return unsafe open(pointer.assumingMemoryBound(to: (any FormStyle).self).pointee)
             },
-            .init((any GaugeStyle).self) { pointer, hash, plans in
+            unsafe .init((any GaugeStyle).self) { pointer, hash, plans in
                 func open<Style: GaugeStyle>(_ style: Style) -> Bool { mixOpened(style, into: &hash, plans: plans) }
-                return open(pointer.assumingMemoryBound(to: (any GaugeStyle).self).pointee)
+                return unsafe open(pointer.assumingMemoryBound(to: (any GaugeStyle).self).pointee)
             },
-            .init((any LabelStyle).self) { pointer, hash, plans in
+            unsafe .init((any LabelStyle).self) { pointer, hash, plans in
                 func open<Style: LabelStyle>(_ style: Style) -> Bool { mixOpened(style, into: &hash, plans: plans) }
-                return open(pointer.assumingMemoryBound(to: (any LabelStyle).self).pointee)
+                return unsafe open(pointer.assumingMemoryBound(to: (any LabelStyle).self).pointee)
             },
-            .init((any ListStyle).self) { pointer, hash, plans in
+            unsafe .init((any ListStyle).self) { pointer, hash, plans in
                 func open<Style: ListStyle>(_ style: Style) -> Bool { mixOpened(style, into: &hash, plans: plans) }
-                return open(pointer.assumingMemoryBound(to: (any ListStyle).self).pointee)
+                return unsafe open(pointer.assumingMemoryBound(to: (any ListStyle).self).pointee)
             },
-            .init((any MenuStyle).self) { pointer, hash, plans in
+            unsafe .init((any MenuStyle).self) { pointer, hash, plans in
                 func open<Style: MenuStyle>(_ style: Style) -> Bool { mixOpened(style, into: &hash, plans: plans) }
-                return open(pointer.assumingMemoryBound(to: (any MenuStyle).self).pointee)
+                return unsafe open(pointer.assumingMemoryBound(to: (any MenuStyle).self).pointee)
             },
-            .init((any NavigationSplitViewStyle).self) { pointer, hash, plans in
+            unsafe .init((any NavigationSplitViewStyle).self) { pointer, hash, plans in
                 func open<Style: NavigationSplitViewStyle>(_ style: Style) -> Bool {
                     mixOpened(style, into: &hash, plans: plans)
                 }
-                return open(pointer.assumingMemoryBound(to: (any NavigationSplitViewStyle).self).pointee)
+                return unsafe open(pointer.assumingMemoryBound(to: (any NavigationSplitViewStyle).self).pointee)
             },
-            .init((any PickerStyle).self) { pointer, hash, plans in
+            unsafe .init((any PickerStyle).self) { pointer, hash, plans in
                 func open<Style: PickerStyle>(_ style: Style) -> Bool { mixOpened(style, into: &hash, plans: plans) }
-                return open(pointer.assumingMemoryBound(to: (any PickerStyle).self).pointee)
+                return unsafe open(pointer.assumingMemoryBound(to: (any PickerStyle).self).pointee)
             },
-            .init((any TextFieldStyle).self) { pointer, hash, plans in
+            unsafe .init((any TextFieldStyle).self) { pointer, hash, plans in
                 func open<Style: TextFieldStyle>(_ style: Style) -> Bool { mixOpened(style, into: &hash, plans: plans) }
-                return open(pointer.assumingMemoryBound(to: (any TextFieldStyle).self).pointee)
+                return unsafe open(pointer.assumingMemoryBound(to: (any TextFieldStyle).self).pointee)
             },
-            .init((any ToggleStyle).self) { pointer, hash, plans in
+            unsafe .init((any ToggleStyle).self) { pointer, hash, plans in
                 func open<Style: ToggleStyle>(_ style: Style) -> Bool { mixOpened(style, into: &hash, plans: plans) }
-                return open(pointer.assumingMemoryBound(to: (any ToggleStyle).self).pointee)
+                return unsafe open(pointer.assumingMemoryBound(to: (any ToggleStyle).self).pointee)
             },
             AnyLayout.valueHashOpener,
         ]

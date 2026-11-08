@@ -24,7 +24,7 @@ struct ChildViewsPerPassTests {
     private struct CountingRows: View, ChildViewProvider {
         var body: Never { fatalError("CountingRows provides children") }
         func childViews(context: RenderContext) -> [ChildView] {
-            Counters.resolutions += 1
+            unsafe Counters.resolutions += 1
             return (0..<20).map { ChildView(Text("row \($0)"), identityType: Text.self, childIndex: $0) }
         }
         var childViewsAreWorthMemoising: Bool { true }
@@ -51,13 +51,13 @@ struct ChildViewsPerPassTests {
             Text("heading")
             ScrollView { VStack(alignment: .leading, spacing: 0) { CountingRows() } }
         }
-        Counters.resolutions = 0
+        unsafe Counters.resolutions = 0
         let buffer = Self.frame(view, tui: tui)
         #expect(buffer.lines.count == 8)
         #expect(buffer.lines[1].stripped.hasPrefix("row 0"), "\(buffer.lines[1])")
-        #expect(Counters.resolutions == 1, "resolved once for the whole pass: \(Counters.resolutions)")
+        unsafe #expect(Counters.resolutions == 1, "resolved once for the whole pass: \(Counters.resolutions)")
         _ = Self.frame(view, tui: tui)
-        #expect(Counters.resolutions == 2, "the memo is scratch for one pass: \(Counters.resolutions)")
+        unsafe #expect(Counters.resolutions == 2, "the memo is scratch for one pass: \(Counters.resolutions)")
     }
 
     @Test("A ForEach opts in from sixteen rows")

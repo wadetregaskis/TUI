@@ -147,7 +147,7 @@ extension InterpolatedNumber {
         case let double as Double: self = .specified(specifier, .double(bitPattern: double.bitPattern))
         case let float as Float: self = .specified(specifier, .double(bitPattern: Double(float).bitPattern))
         case let float as CGFloat: self = .specified(specifier, .double(bitPattern: Double(float).bitPattern))
-        default: self = .verbatim(String(format: specifier, locale: .current, value._arg))
+        default: self = unsafe .verbatim(String(format: specifier, locale: .current, value._arg))
         }
     }
 }

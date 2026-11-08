@@ -482,28 +482,28 @@ extension ANSIRenderer {
         let padding = max(0, padding)
         return string.withUTF8 { input in
             restore.withUTF8 { restoreBytes -> String? in
-                let body = restoreBytes.isEmpty ? input.count : restated(input, restoring: restoreBytes, into: nil)
+                let body = unsafe restoreBytes.isEmpty ? input.count : restated(input, restoring: restoreBytes, into: nil)
                 guard body != input.count || !opening.isEmpty || padding > 0 || !closing.isEmpty else { return nil }
                 return opening.withUTF8 { openingBytes in
                     closing.withUTF8 { closingBytes in
                         let length = openingBytes.count + body + padding + closingBytes.count
                         return String(unsafeUninitializedCapacity: length) { buffer in
                             guard let base = buffer.baseAddress else { return 0 }
-                            var cursor = base
+                            var cursor = unsafe base
                             func put(_ bytes: UnsafeBufferPointer<UInt8>) {
                                 guard let from = bytes.baseAddress, !bytes.isEmpty else { return }
-                                cursor.initialize(from: from, count: bytes.count)
-                                cursor += bytes.count
+                                unsafe cursor.initialize(from: from, count: bytes.count)
+                                unsafe cursor += bytes.count
                             }
-                            put(openingBytes)
+                            unsafe put(openingBytes)
                             if restoreBytes.isEmpty {
-                                put(input)
+                                unsafe put(input)
                             } else {
-                                cursor += restated(input, restoring: restoreBytes, into: cursor)
+                                unsafe cursor += restated(input, restoring: restoreBytes, into: cursor)
                             }
-                            cursor.initialize(repeating: 0x20, count: padding)
-                            cursor += padding
-                            put(closingBytes)
+                            unsafe cursor.initialize(repeating: 0x20, count: padding)
+                            unsafe cursor += padding
+                            unsafe put(closingBytes)
                             return length
                         }
                     }
@@ -531,15 +531,15 @@ extension ANSIRenderer {
     ) -> Int {
         var written = 0
         func put(_ bytes: UnsafeBufferPointer<UInt8>) {
-            if let output, let from = bytes.baseAddress, !bytes.isEmpty {
-                (output + written).initialize(from: from, count: bytes.count)
+            if let output = unsafe output, let from = bytes.baseAddress, !bytes.isEmpty {
+                unsafe (output + written).initialize(from: from, count: bytes.count)
             }
             written += bytes.count
         }
         func put(_ first: UInt8, _ second: UInt8) {
-            if let output {
-                output[written] = first
-                output[written + 1] = second
+            if let output = unsafe output {
+                unsafe output[written] = first
+                unsafe output[written + 1] = second
             }
             written += 2
         }
@@ -549,31 +549,31 @@ extension ANSIRenderer {
         // A reset is four bytes, `ESC [ 0 m`, or the collapsed `ESC [ 0 ;` that
         // opens one; anything shorter at the end is copied as it is.
         while index + 3 < count {
-            guard input[index] == 0x1B, input[index + 1] == 0x5B, input[index + 2] == 0x30,
-                input[index + 3] == 0x6D || input[index + 3] == 0x3B
+            guard unsafe input[index] == 0x1B, unsafe input[index + 1] == 0x5B, unsafe input[index + 2] == 0x30,
+                unsafe input[index + 3] == 0x6D || input[index + 3] == 0x3B
             else {
                 index += 1
                 continue
             }
-            let collapsed = input[index + 3] == 0x3B
-            put(UnsafeBufferPointer(rebasing: input[runStart..<index]))
+            let collapsed = unsafe input[index + 3] == 0x3B
+            unsafe put(UnsafeBufferPointer(rebasing: input[runStart..<index]))
             put(0x1B, 0x5B)  // ESC [
             put(0x30, 0x6D)  // 0 m
-            put(restore)
+            unsafe put(restore)
             index += 4
             if collapsed {
                 // The rest of the collapsed sequence, in a sequence of its own.
                 put(0x1B, 0x5B)
                 // `ESC[0;0m`: the `0m` just opened is a reset too.
-                if index + 1 < count, input[index] == 0x30, input[index + 1] == 0x6D {
+                if index + 1 < count, unsafe input[index] == 0x30, unsafe input[index + 1] == 0x6D {
                     put(0x30, 0x6D)
-                    put(restore)
+                    unsafe put(restore)
                     index += 2
                 }
             }
             runStart = index
         }
-        put(UnsafeBufferPointer(rebasing: input[runStart..<count]))
+        unsafe put(UnsafeBufferPointer(rebasing: input[runStart..<count]))
         return written
     }
 

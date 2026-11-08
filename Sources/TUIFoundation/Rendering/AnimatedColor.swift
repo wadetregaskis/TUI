@@ -246,7 +246,7 @@ extension AnimatedColor.Storage: _ValueHashing {
     static func _mixValueHash(
         at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans
     ) -> Bool {
-        switch pointer.assumingMemoryBound(to: Self.self).pointee {
+        switch unsafe pointer.assumingMemoryBound(to: Self.self).pointee {
         case .constant(let colour): plans.mixCase(0, colour, into: &hash)
         case .cycle(let colours): plans.mixCase(1, colours, into: &hash)
         }

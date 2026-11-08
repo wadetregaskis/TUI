@@ -32,12 +32,12 @@ struct ProcessAncestryTests {
     @Test("A process's controlling terminal is read where it has one, and is a terminal")
     func ownTerminal() throws {
         let link = try #require(ProcessAncestry.link(of: getpid()))
-        let descriptor = open("/dev/tty", O_RDONLY | O_NOCTTY)
+        let descriptor = unsafe open("/dev/tty", O_RDONLY | O_NOCTTY)
         if descriptor >= 0 { close(descriptor) }
         #expect((link.terminal != nil) == (descriptor >= 0))
         guard let terminal = link.terminal else { return }
         #if canImport(Darwin)
-            let name = devname(terminal, S_IFCHR).map { String(cString: $0) } ?? ""
+            let name = unsafe devname(terminal, S_IFCHR).map { unsafe String(cString: $0) } ?? ""
             #expect(name.hasPrefix("tty") || name == "console")
         #else
             // `tty_nr`'s major: the virtual consoles and serial lines (4),

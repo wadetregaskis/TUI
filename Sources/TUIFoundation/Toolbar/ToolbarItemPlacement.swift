@@ -202,7 +202,7 @@ extension ToolbarItemPlacement.Role: _ValueHashing {
     package static func _mixValueHash(
         at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans
     ) -> Bool {
-        switch pointer.assumingMemoryBound(to: Self.self).pointee {
+        switch unsafe pointer.assumingMemoryBound(to: Self.self).pointee {
         case .automatic: plans.mixCase(0, (), into: &hash)
         case .principal: plans.mixCase(1, (), into: &hash)
         case .navigation: plans.mixCase(2, (), into: &hash)
@@ -230,6 +230,6 @@ extension AccessoryBarID: _ValueHashing {
     package static func _mixValueHash(
         at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans
     ) -> Bool {
-        plans.mixValue(pointer.assumingMemoryBound(to: Self.self).pointee.id.hashValue, into: &hash)
+        unsafe plans.mixValue(pointer.assumingMemoryBound(to: Self.self).pointee.id.hashValue, into: &hash)
     }
 }

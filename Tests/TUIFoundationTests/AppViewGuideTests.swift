@@ -163,11 +163,11 @@ struct AppViewGuideTests {
 
     @Test("A view with its own type in both arms of an if/else is asked once")
     func ifElseOfItsOwnTypeIsAskedOnce() {
-        let memo = BodyWitnessMemo.alignmentGuide
-        let before = memo.pointee.bodiesAsked
+        let memo = unsafe BodyWitnessMemo.alignmentGuide
+        let before = unsafe memo.pointee.bodiesAsked
         #expect(!Fork._providesAlignmentGuide)
         #expect(!Fork._providesAlignmentGuide)
-        #expect(memo.pointee.bodiesAsked - before <= 1)
+        unsafe #expect(memo.pointee.bodiesAsked - before <= 1)
     }
 
     @Test("A type answered while another of its cycle was open is asked again on its own")

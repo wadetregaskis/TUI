@@ -23,11 +23,11 @@ struct PaintChangeKeepsSizesTests {
         let width: Int
         var body: Never { fatalError("CountingCell renders via Renderable") }
         func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-            Counters.measures += 1
+            unsafe Counters.measures += 1
             return ViewSize.fixed(width, 1)
         }
         func renderToBuffer(context: RenderContext) -> FrameBuffer {
-            Counters.renders += 1
+            unsafe Counters.renders += 1
             let colour = context.environment.foregroundStyle?.representative ?? .white
             return FrameBuffer(text: ANSIRenderer.colorize(String(repeating: "x", count: width), foreground: colour))
         }
@@ -37,8 +37,8 @@ struct PaintChangeKeepsSizesTests {
         nonisolated(unsafe) static var measures = 0
         nonisolated(unsafe) static var renders = 0
         static func reset() {
-            measures = 0
-            renders = 0
+            unsafe measures = 0
+            unsafe renders = 0
         }
     }
 
@@ -67,14 +67,14 @@ struct PaintChangeKeepsSizesTests {
         let steady = Self.frame(colour: .red, tui: tui)
         // All 40 rows draw (the ScrollView clips, it does not window here), so a
         // warm frame serves 40 buffers and the verifier re-renders each once.
-        #expect(
+        unsafe #expect(
             Counters.measures == 0 && Counters.renders == verifierRenders(hits: 40),
             "warm: \(Counters.measures)/\(Counters.renders)")
 
         Counters.reset()
         let recoloured = Self.frame(colour: .green, tui: tui)
         #expect(recoloured.lines.first != steady.lines.first, "the ink changed")
-        #expect(Counters.renders >= 40, "every row re-rendered: \(Counters.renders)")
-        #expect(Counters.measures == 0, "no row was re-measured for a colour: \(Counters.measures)")
+        unsafe #expect(Counters.renders >= 40, "every row re-rendered: \(Counters.renders)")
+        unsafe #expect(Counters.measures == 0, "no row was re-measured for a colour: \(Counters.measures)")
     }
 }

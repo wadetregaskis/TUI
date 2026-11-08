@@ -104,16 +104,16 @@ struct PlaceBoundPropertyTests {
         let environment = context.environment
         withUnsafeMutablePointer(to: &value) { pointer in
             let address = UnsafeMutableRawPointer(pointer)
-            #expect(!FocusedValue<Int>.resolveEnvironment(at: address, environment, place: first, pass: 7))
-            #expect(FocusedValue<Int>.resolveEnvironment(at: address, environment, place: second, pass: 7))
-            #expect(!FocusedValue<Int>.resolveEnvironment(at: address, environment, place: second, pass: 7))
+            unsafe #expect(!FocusedValue<Int>.resolveEnvironment(at: address, environment, place: first, pass: 7))
+            unsafe #expect(FocusedValue<Int>.resolveEnvironment(at: address, environment, place: second, pass: 7))
+            unsafe #expect(!FocusedValue<Int>.resolveEnvironment(at: address, environment, place: second, pass: 7))
         }
         var binding = FocusedBinding(\FocusedValues.placeProbeBinding)
         withUnsafeMutablePointer(to: &binding) { pointer in
             let address = UnsafeMutableRawPointer(pointer)
-            #expect(!FocusedBinding<Int>.resolveEnvironment(at: address, environment, place: first, pass: 7))
-            #expect(FocusedBinding<Int>.resolveEnvironment(at: address, environment, place: second, pass: 7))
-            #expect(!FocusedBinding<Int>.resolveEnvironment(at: address, environment, place: first, pass: 8))
+            unsafe #expect(!FocusedBinding<Int>.resolveEnvironment(at: address, environment, place: first, pass: 7))
+            unsafe #expect(FocusedBinding<Int>.resolveEnvironment(at: address, environment, place: second, pass: 7))
+            unsafe #expect(!FocusedBinding<Int>.resolveEnvironment(at: address, environment, place: first, pass: 8))
         }
     }
 }

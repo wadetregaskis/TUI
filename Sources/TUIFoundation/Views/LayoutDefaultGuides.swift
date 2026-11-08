@@ -42,30 +42,30 @@ import TUIView
 @MainActor
 enum LayoutDefaultGuides {
     /// The types seen answering a horizontal guide by the default.
-    private static let horizontal = permanentSet()
+    private static let horizontal = unsafe permanentSet()
 
     /// The types seen answering a vertical guide by the default.
-    private static let vertical = permanentSet()
+    private static let vertical = unsafe permanentSet()
 
     private static func permanentSet() -> UnsafeMutablePointer<Set<ObjectIdentifier>> {
         let pointer = UnsafeMutablePointer<Set<ObjectIdentifier>>.allocate(capacity: 1)
-        pointer.initialize(to: [])
-        return pointer
+        unsafe pointer.initialize(to: [])
+        return unsafe pointer
     }
 
     /// Records that `type` answered a guide along `axis` by the default —
     /// called by the default itself, and by nothing else.
     static func noteDefault(_ type: Any.Type, along axis: Axis) {
-        let set = axis == .horizontal ? horizontal : vertical
+        let set = unsafe axis == .horizontal ? horizontal : vertical
         let key = ObjectIdentifier(type)
-        if !set.pointee.contains(key) { set.pointee.insert(key) }
+        if unsafe !set.pointee.contains(key) { unsafe set.pointee.insert(key) }
     }
 
     /// Whether `type` has been seen answering a guide along `axis` by the
     /// default, which gives an edge or the centre no value and a custom guide
     /// or a baseline only its subviews' (``Layout/explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``).
     static func answersByDefault(_ type: Any.Type, along axis: Axis) -> Bool {
-        (axis == .horizontal ? horizontal : vertical).pointee.contains(ObjectIdentifier(type))
+        unsafe (axis == .horizontal ? horizontal : vertical).pointee.contains(ObjectIdentifier(type))
     }
 }
 

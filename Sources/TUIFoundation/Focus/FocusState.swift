@@ -573,14 +573,14 @@ extension FocusState: PlaceBoundIdentity {
     package static func bindRenderIdentity(
         at address: UnsafeMutableRawPointer, path: String, propertyIndex: Int, pass: UInt32
     ) -> Bool {
-        let state = address.assumingMemoryBound(to: Self.self)
+        let state = unsafe address.assumingMemoryBound(to: Self.self)
         let storeID = "focusstate::\(path)::\(propertyIndex)"
-        let store = state.pointee.store
+        let store = unsafe state.pointee.store
         if store.stamp.isSecondPlace(path, in: pass) {
             let own = FocusStateStore<Value>(emptyValue: store.emptyValue)
             own.storeID = storeID
             own.stamp.stamp(path, in: pass)
-            state.pointee = FocusState(store: own)
+            unsafe state.pointee = FocusState(store: own)
             return true
         }
         store.storeID = storeID

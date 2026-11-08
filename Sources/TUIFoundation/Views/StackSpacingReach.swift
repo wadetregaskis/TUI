@@ -33,8 +33,8 @@ import TUIView
 @MainActor
 func mayStateSpacing<V: View>(_ type: V.Type, along axis: Axis) -> Bool {
     guard V._statesSpacingPreference else { return false }
-    let memo = axis == .horizontal ? BodyWitnessMemo.spacingAlongHorizontal : BodyWitnessMemo.spacingAlongVertical
-    return BodyWitnessMemo.answer(in: memo, for: type) { spacingReach(of: type, along: axis) }
+    let memo = unsafe axis == .horizontal ? BodyWitnessMemo.spacingAlongHorizontal : BodyWitnessMemo.spacingAlongVertical
+    return unsafe BodyWitnessMemo.answer(in: memo, for: type) { spacingReach(of: type, along: axis) }
 }
 
 /// ``mayStateSpacing(_:along:)`` of a child, its view opened.

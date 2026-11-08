@@ -195,7 +195,7 @@ private struct UnsafeDelegateRow: View {
     unowned(unsafe) let delegate: RowDelegate
 
     var body: some View {
-        Text(verbatim: delegate.title())
+        unsafe Text(verbatim: delegate.title())
     }
 }
 

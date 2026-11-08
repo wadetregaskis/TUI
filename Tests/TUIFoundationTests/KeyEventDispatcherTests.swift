@@ -25,12 +25,12 @@ struct KeyEventDispatcherTests {
         let dispatcher = KeyEventDispatcher()
         nonisolated(unsafe) var handledKey: Key?
         dispatcher.addHandler { event in
-            handledKey = event.key
+            unsafe handledKey = event.key
             return true
         }
         let consumed = dispatcher.dispatch(KeyEvent(key: .tab))
         #expect(consumed == true)
-        #expect(handledKey == .tab)
+        unsafe #expect(handledKey == .tab)
     }
 
     @Test("Dispatcher processes handlers in reverse order")
@@ -39,17 +39,17 @@ struct KeyEventDispatcherTests {
         nonisolated(unsafe) var callOrder: [String] = []
 
         dispatcher.addHandler { _ in
-            callOrder.append("first")
+            unsafe callOrder.append("first")
             return false
         }
         dispatcher.addHandler { _ in
-            callOrder.append("second")
+            unsafe callOrder.append("second")
             return true  // consume
         }
 
         dispatcher.dispatch(KeyEvent(key: .enter))
         // Second (last added) should be called first, and it consumes
-        #expect(callOrder == ["second"])
+        unsafe #expect(callOrder == ["second"])
     }
 
     @Test("Dispatcher falls through when handler returns false")
@@ -58,17 +58,17 @@ struct KeyEventDispatcherTests {
         nonisolated(unsafe) var callOrder: [String] = []
 
         dispatcher.addHandler { _ in
-            callOrder.append("first")
+            unsafe callOrder.append("first")
             return true  // consume
         }
         dispatcher.addHandler { _ in
-            callOrder.append("second")
+            unsafe callOrder.append("second")
             return false  // pass through
         }
 
         dispatcher.dispatch(KeyEvent(key: .enter))
         // Second doesn't consume, so first also gets called
-        #expect(callOrder == ["second", "first"])
+        unsafe #expect(callOrder == ["second", "first"])
     }
 
     @Test("Dispatcher clearHandlers removes all handlers")

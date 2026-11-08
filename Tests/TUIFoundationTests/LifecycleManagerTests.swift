@@ -23,10 +23,10 @@ struct LifecycleManagerAppearTests {
         let manager = LifecycleManager()
         nonisolated(unsafe) var actionCalled = false
         let result = manager.recordAppear(token: "view-1") {
-            actionCalled = true
+            unsafe actionCalled = true
         }
         #expect(result == true)
-        #expect(actionCalled == true)
+        unsafe #expect(actionCalled == true)
     }
 
     @Test("recordAppear returns false on repeated appearance")
@@ -35,10 +35,10 @@ struct LifecycleManagerAppearTests {
         _ = manager.recordAppear(token: "view-1") {}
         nonisolated(unsafe) var secondCalled = false
         let result = manager.recordAppear(token: "view-1") {
-            secondCalled = true
+            unsafe secondCalled = true
         }
         #expect(result == false)
-        #expect(secondCalled == false)
+        unsafe #expect(secondCalled == false)
     }
 
     @Test("hasAppeared returns false for unseen token")
@@ -105,16 +105,16 @@ struct LifecycleManagerRenderPassTests {
         manager.beginRenderPass()
         _ = manager.recordAppear(token: "view-1") {}
         manager.registerDisappear(token: "view-1") {
-            disappeared = true
+            unsafe disappeared = true
         }
         manager.endRenderPass()
-        #expect(disappeared == false)  // Still visible
+        unsafe #expect(disappeared == false)  // Still visible
 
         // Render pass 2: view is NOT rendered
         manager.beginRenderPass()
         // view-1 not recorded
         manager.endRenderPass()
-        #expect(disappeared == true)  // Now disappeared
+        unsafe #expect(disappeared == true)  // Now disappeared
     }
 
     @Test("endRenderPass does not trigger for views still visible")
@@ -126,7 +126,7 @@ struct LifecycleManagerRenderPassTests {
         manager.beginRenderPass()
         _ = manager.recordAppear(token: "view-1") {}
         manager.registerDisappear(token: "view-1") {
-            disappeared = true
+            unsafe disappeared = true
         }
         manager.endRenderPass()
 
@@ -134,7 +134,7 @@ struct LifecycleManagerRenderPassTests {
         manager.beginRenderPass()
         _ = manager.recordAppear(token: "view-1") {}
         manager.endRenderPass()
-        #expect(disappeared == false)  // Still visible, no disappear
+        unsafe #expect(disappeared == false)  // Still visible, no disappear
     }
 
     @Test("View can reappear after disappearing")
@@ -144,9 +144,9 @@ struct LifecycleManagerRenderPassTests {
 
         // Pass 1: appear
         manager.beginRenderPass()
-        _ = manager.recordAppear(token: "view-1") { appearCount += 1 }
+        _ = manager.recordAppear(token: "view-1") { unsafe appearCount += 1 }
         manager.endRenderPass()
-        #expect(appearCount == 1)
+        unsafe #expect(appearCount == 1)
 
         // Pass 2: disappear (not rendered)
         manager.beginRenderPass()
@@ -154,9 +154,9 @@ struct LifecycleManagerRenderPassTests {
 
         // Pass 3: reappear — action should fire again
         manager.beginRenderPass()
-        _ = manager.recordAppear(token: "view-1") { appearCount += 1 }
+        _ = manager.recordAppear(token: "view-1") { unsafe appearCount += 1 }
         manager.endRenderPass()
-        #expect(appearCount == 2)
+        unsafe #expect(appearCount == 2)
     }
 }
 
@@ -171,10 +171,10 @@ struct LifecycleManagerDisappearTests {
         let manager = LifecycleManager()
         nonisolated(unsafe) var called = false
         manager.registerDisappear(token: "view-1") {
-            called = true
+            unsafe called = true
         }
         // Callback is stored but not called yet
-        #expect(called == false)
+        unsafe #expect(called == false)
     }
 
     @Test("unregisterDisappear removes callback")
@@ -182,7 +182,7 @@ struct LifecycleManagerDisappearTests {
         let manager = LifecycleManager()
         nonisolated(unsafe) var called = false
         manager.registerDisappear(token: "view-1") {
-            called = true
+            unsafe called = true
         }
         manager.unregisterDisappear(token: "view-1")
 
@@ -194,7 +194,7 @@ struct LifecycleManagerDisappearTests {
         manager.beginRenderPass()
         // view-1 not rendered
         manager.endRenderPass()
-        #expect(called == false)  // Callback was unregistered
+        unsafe #expect(called == false)  // Callback was unregistered
     }
 }
 
@@ -209,10 +209,10 @@ struct LifecycleManagerTaskTests {
         let manager = LifecycleManager()
         nonisolated(unsafe) var executed = false
         manager.startTask(token: "task-1", priority: .medium) {
-            executed = true
+            unsafe executed = true
         }
-        await settle { executed }
-        #expect(executed == true)
+        await settle { unsafe executed }
+        unsafe #expect(executed == true)
     }
 
     /// SwiftUI parity, and the reason it matters: a `.task` closure is written
@@ -311,10 +311,10 @@ struct LifecycleManagerTaskTests {
         }
         // Replace immediately with short task
         manager.startTask(token: "task-1", priority: .medium) {
-            secondExecuted = true
+            unsafe secondExecuted = true
         }
-        await settle { secondExecuted }
-        #expect(secondExecuted == true)
+        await settle { unsafe secondExecuted }
+        unsafe #expect(secondExecuted == true)
     }
 
     /// `Image`'s load task publishes its decoded phase only when the task is
@@ -413,7 +413,7 @@ struct LifecycleManagerRetentionTests {
         func frameWith(_ present: Bool) {
             manager.beginRenderPass()
             if present {
-                manager.registerDisappear(token: "view") { fired += 1 }
+                manager.registerDisappear(token: "view") { unsafe fired += 1 }
                 _ = manager.recordAppear(token: "view") {}
             }
             manager.endRenderPass()
@@ -421,10 +421,10 @@ struct LifecycleManagerRetentionTests {
 
         frameWith(true)
         frameWith(false)
-        #expect(fired == 1)
+        unsafe #expect(fired == 1)
         frameWith(true)   // returns (re-registers)
         frameWith(false)  // leaves again
-        #expect(fired == 2, "the release of a fired callback must not eat later cycles")
+        unsafe #expect(fired == 2, "the release of a fired callback must not eat later cycles")
     }
 }
 

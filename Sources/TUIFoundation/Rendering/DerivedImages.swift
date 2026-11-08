@@ -609,23 +609,23 @@ struct DerivedImages {
                     var sums = (0, 0, 0, 0)
                     for index in -reach...reach {
                         let pixel = at(index)
-                        sums.0 += Int(source[pixel])
-                        sums.1 += Int(source[pixel + 1])
-                        sums.2 += Int(source[pixel + 2])
-                        sums.3 += Int(source[pixel + 3])
+                        unsafe sums.0 += Int(source[pixel])
+                        unsafe sums.1 += Int(source[pixel + 1])
+                        unsafe sums.2 += Int(source[pixel + 2])
+                        unsafe sums.3 += Int(source[pixel + 3])
                     }
                     for index in 0..<length {
                         let pixel = base + index * step
-                        target[pixel] = UInt8(sums.0 / count)
-                        target[pixel + 1] = UInt8(sums.1 / count)
-                        target[pixel + 2] = UInt8(sums.2 / count)
-                        target[pixel + 3] = UInt8(sums.3 / count)
+                        unsafe target[pixel] = UInt8(sums.0 / count)
+                        unsafe target[pixel + 1] = UInt8(sums.1 / count)
+                        unsafe target[pixel + 2] = UInt8(sums.2 / count)
+                        unsafe target[pixel + 3] = UInt8(sums.3 / count)
                         let leaving = at(index - reach)
                         let entering = at(index + reach + 1)
-                        sums.0 += Int(source[entering]) - Int(source[leaving])
-                        sums.1 += Int(source[entering + 1]) - Int(source[leaving + 1])
-                        sums.2 += Int(source[entering + 2]) - Int(source[leaving + 2])
-                        sums.3 += Int(source[entering + 3]) - Int(source[leaving + 3])
+                        unsafe sums.0 += Int(source[entering]) - Int(source[leaving])
+                        unsafe sums.1 += Int(source[entering + 1]) - Int(source[leaving + 1])
+                        unsafe sums.2 += Int(source[entering + 2]) - Int(source[leaving + 2])
+                        unsafe sums.3 += Int(source[entering + 3]) - Int(source[leaving + 3])
                     }
                 }
             }

@@ -34,14 +34,14 @@ struct ObservableInvalidationScopeTests {
         let slot: Int
         var body: Never { fatalError("CountingText renders via Renderable") }
         func renderToBuffer(context: RenderContext) -> FrameBuffer {
-            Renders.count[slot] += 1
+            unsafe Renders.count[slot] += 1
             return FrameBuffer(text: text)
         }
     }
 
     private enum Renders {
         nonisolated(unsafe) static var count = [0, 0]
-        static func reset() { count = [0, 0] }
+        static func reset() { unsafe count = [0, 0] }
     }
 
     private struct Reader: View {
@@ -113,7 +113,7 @@ struct ObservableInvalidationScopeTests {
         Renders.reset()
         let warm = Self.frame(view, tui: tui)
         #expect(warm.lines.first?.stripped.contains("count 0") == true)
-        #expect(
+        unsafe #expect(
             Renders.count == [verifierRenders(hits: 1), verifierRenders(hits: 1)],
             "both rows are memoised by the third frame: \(Renders.count)")
         let before = tui.renderCache.stats
@@ -125,11 +125,11 @@ struct ObservableInvalidationScopeTests {
         // At least once, not exactly once: a memoised row that missed measures
         // its content by rendering it (the leaf is not `Layoutable`) and then
         // renders it, so a miss is two draws. The pin is the sibling's zero.
-        #expect(Renders.count[0] >= 1, "the reader re-rendered: \(Renders.count)")
+        unsafe #expect(Renders.count[0] >= 1, "the reader re-rendered: \(Renders.count)")
         // `hits: 2` — the counters are NOT reset between the warm frame and this
         // one, so the sibling's tally holds a verifier render from each: it was
         // served twice, which is the claim.
-        #expect(
+        unsafe #expect(
             Renders.count[1] == verifierRenders(hits: 2),
             "the sibling was served from the cache: \(Renders.count)")
         #expect(delta.clears == 0, "nothing cleared the whole cache: \(delta)")
@@ -153,7 +153,7 @@ struct ObservableInvalidationScopeTests {
         let changed = Self.frame(view, tui: tui)
         let delta = tui.renderCache.stats.delta(since: before)
         #expect(changed.lines.first?.stripped.contains("count 3") == true)
-        #expect(
+        unsafe #expect(
             Renders.count[0] >= 1 && Renders.count[1] == verifierRenders(hits: 1),
             "\(Renders.count)")
         #expect(delta.clears == 0, "\(delta)")
