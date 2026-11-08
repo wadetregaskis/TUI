@@ -26,6 +26,7 @@ thing about it:
 
 ```swift
 struct Bar: View, Animatable {
+    let width: Int
     var fraction: Double
 
     var animatableData: Double {
@@ -124,7 +125,7 @@ animating subtree really is walked once per frame. So the honest accounting is:
 
 | Animation | Cost |
 |-----------|------|
-| A finite one (``Animation/easeInOut``, a spring, `repeatCount`) | One render pass per frame at 30 Hz, **for its duration**: every second tick of 1/60 s, the instants the framework's other 2-tick animations draw at too. A quarter-second ease is about eight passes, then nothing. |
+| A finite one (``Animation/easeInOut``, a spring, `repeatCount`) | One render pass per frame, 30 frames a second, **for its duration**. A quarter-second ease is about eight passes, then nothing. |
 | ``Animation/repeatForever(autoreverses:)`` on ``View/opacity(_:)`` | The cycle is pre-rendered once and replayed by the run loop — **no render passes at all** while it runs. |
 | `repeatForever` on anything else | One render pass per frame, for as long as the view is on screen. |
 
@@ -302,6 +303,42 @@ let offset = wobble.value(time: elapsed)
 Every curve is SwiftUI's, sampled the same way. A timeline is a calculation,
 not an animation: something has to ask it for a value at the times it draws,
 such as a ``TimelineView`` on the animation schedule.
+
+## Reduce Motion
+
+Some people find movement on screen hard to bear. When they turn on Reduce
+Motion — `TUI_REDUCE_MOTION=1`, the View menu's Reduce Motion, or the system
+setting when they are at the machine the app runs on — or the app asks for it
+with `Scene.reduceMotion(_:)`, ``EnvironmentValues/accessibilityReduceMotion`` is
+`true` and the framework takes the motion out of animations:
+
+- A change that moves something — an offset, a position, a fixed frame, a
+  padding — jumps to where it is going. Colours and opacity still animate.
+- A ``Transition`` with motion (a move, a slide, an offset, a scale) plays as a
+  fade instead, with its own animation.
+- Scrolls and matched geometry jump rather than glide.
+
+An ``Animatable`` view of your own that moves things reads
+`@Environment(\.accessibilityReduceMotion)` and decides for itself, as in
+SwiftUI.
+
+## More
+
+- ``View/phaseAnimator(_:content:animation:)`` and
+  ``View/phaseAnimator(_:trigger:content:animation:)`` step a view through a
+  sequence of phases, round and round or once per trigger.
+- ``View/keyframeAnimator(initialValue:repeating:content:keyframes:)`` and
+  ``View/keyframeAnimator(initialValue:trigger:content:keyframes:)`` play a
+  keyframe timeline on a view.
+- ``View/contentTransition(_:)`` says how a view's content changes in place,
+  such as a text that dissolves into its new value.
+- ``View/matchedGeometryEffect(id:in:properties:anchor:isSource:)`` makes a
+  view arriving in one place appear to move from where another left.
+- ``View/scrollTransition(_:axis:transition:)`` changes a view as it scrolls
+  into and out of sight.
+- The `@Animatable` macro, in the `TUIMacros` product (`import TUIMacros`),
+  writes `animatableData` for you from a view's stored properties;
+  `@AnimatableIgnored` leaves one out.
 
 ## Topics
 
