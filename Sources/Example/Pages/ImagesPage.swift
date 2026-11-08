@@ -220,7 +220,7 @@ private enum PictureLocation: Equatable {
         switch self {
         case .file(let path):
             var isDirectory: ObjCBool = false
-            return FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && !isDirectory.boolValue
+            return unsafe FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && !isDirectory.boolValue
         case .url(let url):
             return ["http", "https"].contains(url.scheme?.lowercased() ?? "") && url.host != nil
         }

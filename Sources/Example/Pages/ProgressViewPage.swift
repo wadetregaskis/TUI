@@ -232,7 +232,7 @@ struct ProgressViewPage: View {
                     // digits, and signed degrees ("-12°").
                     Text("page.progressView.gaugeNonPercent")
                         .foregroundStyle(.palette.foregroundSecondary)
-                    gaugeRow(
+                    unsafe gaugeRow(
                         label: "0…1                     ", fraction: fraction,
                         text: String(format: "%.2f", fraction), style: .accessoryLinear)
                     gaugeRow(
@@ -242,7 +242,7 @@ struct ProgressViewPage: View {
                         label: "0…140 (capacity)        ", fraction: fraction,
                         text: "\(Int((fraction * 140).rounded()))", style: .accessoryLinearCapacity)
                     HStack(spacing: 3) {
-                        circularGauge(
+                        unsafe circularGauge(
                             label: "0…1", fraction: fraction,
                             text: String(format: "%.2f", fraction), style: .accessoryCircular)
                         circularGauge(

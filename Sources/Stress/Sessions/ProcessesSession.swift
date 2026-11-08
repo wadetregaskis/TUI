@@ -71,7 +71,7 @@ struct ProcessesPage: View {
         let shown = table.shown
         let load = table.processes.reduce(0.0) { $0 + $1.cpu } / Double(max(1, table.processes.count))
         VStack(alignment: .leading, spacing: 0) {
-            Text(verbatim: "\(shown.count) processes · load \(String(format: "%.1f", load))%")
+            Text(verbatim: unsafe "\(shown.count) processes · load \(String(format: "%.1f", load))%")
             TextField("Filter", text: Binding(get: { table.filter }, set: { table.filter = $0 }))
             Table(
                 shown, selection: Binding(get: { table.selection }, set: { table.selection = $0 }),
@@ -82,7 +82,7 @@ struct ProcessesPage: View {
                 TableColumn("Command", value: \ProcessTable.Process.command)
                 TableColumn("User", value: \ProcessTable.Process.user).width(.fit)
                 TableColumn("CPU%", value: \ProcessTable.Process.cpu) {
-                    Text(verbatim: String(format: "%.1f", $0.cpu))
+                    unsafe Text(verbatim: String(format: "%.1f", $0.cpu))
                 }
                 .width(6).alignment(.trailing)
                 TableColumn("Memory", value: \ProcessTable.Process.memory) {

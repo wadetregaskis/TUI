@@ -32,7 +32,7 @@ struct RawMode {
 
     static func enable() -> RawMode {
         var original = termios()
-        tcgetattr(STDIN_FILENO, &original)
+        unsafe tcgetattr(STDIN_FILENO, &original)
         var raw = original
         let lflagOff: UInt = UInt(ECHO | ICANON | ISIG | IEXTEN)
         let iflagOff: UInt = UInt(IXON | ICRNL | INLCR | IGNCR | BRKINT | INPCK | ISTRIP)
@@ -42,25 +42,25 @@ struct RawMode {
         raw.c_oflag &= ~tcflag_t(oflagOff)
         raw.c_cflag |= tcflag_t(CS8)
         withUnsafeMutablePointer(to: &raw.c_cc) { p in
-            p.withMemoryRebound(to: cc_t.self, capacity: Int(NCCS)) { cc in
-                cc[Int(VMIN)]  = 1   // block until at least 1 byte available
-                cc[Int(VTIME)] = 1   // 100ms timeout between bytes once started
+            unsafe p.withMemoryRebound(to: cc_t.self, capacity: Int(NCCS)) { cc in
+                unsafe cc[Int(VMIN)]  = 1   // block until at least 1 byte available
+                unsafe cc[Int(VTIME)] = 1   // 100ms timeout between bytes once started
             }
         }
-        tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw)
+        unsafe tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw)
         return RawMode(original: original)
     }
 
     func restore() {
         var orig = original
-        tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig)
+        unsafe tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig)
     }
 }
 
 // MARK: - Low-level I/O
 
 func writeBytes(_ bytes: [UInt8]) {
-    _ = bytes.withUnsafeBytes { write(STDOUT_FILENO, $0.baseAddress, $0.count) }
+    _ = bytes.withUnsafeBytes { unsafe write(STDOUT_FILENO, $0.baseAddress, $0.count) }
 }
 
 func writeString(_ s: String) {
@@ -74,7 +74,7 @@ func readUntil(terminator: UInt8, maxBytes: Int = 32) -> [UInt8]? {
     var buf: [UInt8] = []
     while buf.count < maxBytes {
         var b: UInt8 = 0
-        let n = read(STDIN_FILENO, &b, 1)
+        let n = unsafe read(STDIN_FILENO, &b, 1)
         if n <= 0 { return nil }
         buf.append(b)
         if b == terminator { return buf }
@@ -272,7 +272,7 @@ func enumerateFlags() -> [String] {
 // MARK: - Output
 
 func formatCodepoints(_ scalars: [Unicode.Scalar]) -> String {
-    return scalars.map { String(format: "U+%04X", $0.value) }.joined(separator: " ")
+    return scalars.map { unsafe String(format: "U+%04X", $0.value) }.joined(separator: " ")
 }
 
 func writeReport(_ results: [Result], to handle: FileHandle, format: OutputFormat) {
@@ -411,7 +411,7 @@ func main() {
             let rate = Double(i + 1) / elapsed
             // Status on row 1 so it doesn't interfere with the test row.
             writeString("\u{1B}[1;1H\u{1B}[2K")
-            writeString("[\(i + 1)/\(corpus.count)  \(String(format: "%.0f", rate))/s] ")
+            writeString(unsafe "[\(i + 1)/\(corpus.count)  \(String(format: "%.0f", rate))/s] ")
             writeString(cluster)
         }
     }
@@ -445,7 +445,7 @@ func main() {
     let overAdvance  = results.filter { $0.verdict == .overAdvance  }.count
     let parseFail    = results.filter { $0.verdict == .parseFailure }.count
     let normal       = results.filter { $0.verdict == .normal       }.count
-    let summary = """
+    let summary = unsafe """
 
     scanned: \(results.count)
       normal:        \(normal)

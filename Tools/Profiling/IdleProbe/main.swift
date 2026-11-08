@@ -205,7 +205,7 @@ private struct Presses: View {
     }
 
     private static func note(_ line: String) {
-        let time = String(format: "%.3f", Date().timeIntervalSince1970)
+        let time = unsafe String(format: "%.3f", Date().timeIntervalSince1970)
         log?.write(Data("\(time) \(line)\n".utf8))
     }
 
@@ -331,12 +331,12 @@ private struct KeyEcho: View {
 // writes its own process ID and the child's to that file.
 if let path = ProcessInfo.processInfo.environment["IDLE_PROBE_CHILD_PIDFILE"] {
     var child: pid_t = 0
-    let arguments: [UnsafeMutablePointer<CChar>?] = [strdup("/bin/sleep"), strdup("120"), nil]
-    let environment: [UnsafeMutablePointer<CChar>?] = [nil]
-    if posix_spawn(&child, "/bin/sleep", nil, nil, arguments, environment) == 0 {
+    let arguments: [UnsafeMutablePointer<CChar>?] = unsafe [strdup("/bin/sleep"), strdup("120"), nil]
+    let environment: [UnsafeMutablePointer<CChar>?] = unsafe [nil]
+    if unsafe posix_spawn(&child, "/bin/sleep", nil, nil, arguments, environment) == 0 {
         try? "\(getpid()) \(child)".write(toFile: path, atomically: true, encoding: .utf8)
     }
-    arguments.forEach { free($0) }
+    unsafe arguments.forEach { unsafe free($0) }
 }
 
 await IdleProbeApp.main()

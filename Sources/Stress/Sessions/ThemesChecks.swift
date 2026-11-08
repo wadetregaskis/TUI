@@ -144,7 +144,7 @@ struct ContrastPromise {
             let (a, b) = throughTheCube ? (ink.downsampledToPalette256(), field.downsampledToPalette256()) : (ink, field)
             let ratio = a.contrastRatio(against: b)
             guard ratio > 0, ratio < floor - 0.005 else { continue }
-            return "\(name): \"\(cell.character.map(String.init) ?? " ")\" in \(ScreenCell.name(a)) on "
+            return unsafe "\(name): \"\(cell.character.map(String.init) ?? " ")\" in \(ScreenCell.name(a)) on "
                 + "\(ScreenCell.name(b)) is \(String(format: "%.2f", ratio)):1, under \(floor) "
                 + "(\(frame.rootPalette.name), the form in \(frame.formPalette.name), at \(frame.depth))"
         }

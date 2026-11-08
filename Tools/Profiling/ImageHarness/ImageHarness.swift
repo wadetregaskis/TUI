@@ -115,7 +115,7 @@ struct ImageHarness {
             + Double(elapsed.components.attoseconds) / 1e18
         let perIteration = seconds / Double(iterations)
         let perUnit = perIteration / Double(units) * 1e9
-        print("""
+        print(unsafe """
             path=\(path) mode=\(mode) dither=\(dither) edge=\(edgeContrast) \
             out=\(width)x\(height) src=\(source.width)x\(source.height) \
             iterations=\(iterations)
@@ -180,7 +180,7 @@ struct ImageHarness {
         let elapsed = clock.now - start
         let seconds = Double(elapsed.components.seconds)
             + Double(elapsed.components.attoseconds) / 1e18
-        print("""
+        print(unsafe """
             path=colour colours=\(count) iterations=\(iterations)
             \(String(format: "%.3f ms/iteration   %.1f ns/colour   checksum=%d",
                      seconds / Double(iterations) * 1000,
@@ -230,7 +230,7 @@ struct ImageHarness {
         let seconds = Double(elapsed.components.seconds)
             + Double(elapsed.components.attoseconds) / 1e18
         let perIteration = seconds / Double(iterations)
-        print("""
+        print(unsafe """
             path=palette depth=\(depth) src=\(source.width)x\(source.height) iterations=\(iterations)
             \(String(format: "%.3f ms/derivation   %.2f ns/pixel   checksum=%d",
                      perIteration * 1000, perIteration / Double(cols * rows) * 1e9, checksum))

@@ -114,7 +114,7 @@ struct ProcSample: Identifiable, Sendable, Equatable {
     let threads: Int
     let state: String
 
-    var cpuText: String { String(format: "%.1f", cpu) }
+    var cpuText: String { unsafe String(format: "%.1f", cpu) }
     var memory: String { resident.formatted(.byteCount(style: .memory)) }
     var bar: String { Synth.bar(cpu / 100, width: 12) }
 

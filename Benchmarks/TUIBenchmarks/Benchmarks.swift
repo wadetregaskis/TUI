@@ -29,7 +29,7 @@ let skipViewBenchmarks =
 /// benchmark registration on the main thread before any
 /// async benchmark closures run.
 func viewBenchmarkConfiguration() -> Benchmark.Configuration {
-    var config = Benchmark.defaultConfiguration
+    var config = unsafe Benchmark.defaultConfiguration
     config.skip = skipViewBenchmarks
     return config
 }
@@ -55,7 +55,7 @@ let benchmarks: @Sendable () -> Void = {
     // `maxDuration: 1.0` keeps the full suite runtime
     // reasonable — most benchmarks here are cheap enough that
     // one second gives plenty of samples.
-    Benchmark.defaultConfiguration = Benchmark.Configuration(
+    unsafe Benchmark.defaultConfiguration = Benchmark.Configuration(
         metrics: [
             .cpuTotal,
             .wallClock,

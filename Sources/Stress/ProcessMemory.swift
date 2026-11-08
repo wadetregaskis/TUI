@@ -56,7 +56,7 @@ enum ProcessMemory {
         let who = RUSAGE_SELF
         #endif
         var usage = rusage()
-        guard getrusage(who, &usage) == 0, usage.ru_maxrss > 0 else { return nil }
+        guard unsafe getrusage(who, &usage) == 0, usage.ru_maxrss > 0 else { return nil }
         let raw = UInt64(usage.ru_maxrss)
         #if canImport(Darwin)
         return raw
@@ -81,8 +81,8 @@ enum ProcessMemory {
         var count = mach_msg_type_number_t(
             MemoryLayout<mach_task_basic_info>.size / MemoryLayout<natural_t>.size)
         let result = withUnsafeMutablePointer(to: &info) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+            unsafe $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                unsafe task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
             }
         }
         guard result == KERN_SUCCESS else { return nil }
@@ -143,8 +143,8 @@ enum ProcessMemory {
         var count = mach_msg_type_number_t(
             MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<natural_t>.size)
         let result = withUnsafeMutablePointer(to: &info) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
+            unsafe $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                unsafe task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
             }
         }
         guard result == KERN_SUCCESS else { return nil }
