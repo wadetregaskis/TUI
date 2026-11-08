@@ -399,6 +399,32 @@ struct NoColorAuditTests {
         }
     }
 
+    @Test("A text field's prompt is italic too where faint doesn't show, and only there")
+    func textFieldPromptWhereFaintIsLost() {
+        /// The attributes of the prompt's cells, `Ada`, with faint shown or not.
+        func promptAttributes(drawsFaint: Bool) -> [Set<String>] {
+            TerminalClient.$drawsFaintPin.withValue(drawsFaint) {
+                ColorDepth.withCurrent(.noColor) {
+                    let app = TestApp(width: 30, height: 3) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Button("FIRST") {}
+                            TextField("Ada", text: .constant("")).frame(width: 20)
+                        }
+                    }
+                    let cells = app.screen.styledLines.flatMap { paintedCells($0).cells }
+                    guard let start = cells.indices.first(where: { index in
+                        cells[index...].prefix(3).map(\.glyph) == ["A", "d", "a"]
+                    }) else { return [] }
+                    return cells[start..<start + 3].map(\.attributes)
+                }
+            }
+        }
+        let lost = promptAttributes(drawsFaint: false)
+        #expect(lost.count == 3 && lost.allSatisfy { $0.isSuperset(of: ["dim", "italic"]) }, "\(lost)")
+        let shown = promptAttributes(drawsFaint: true)
+        #expect(shown.count == 3 && shown.allSatisfy { $0.contains("dim") && !$0.contains("italic") }, "\(shown)")
+    }
+
     /// What animates without colour. A breath in a colour has nothing to show, and no
     /// reason to wake the loop. Only these change what's drawn: a caret blinks, and the
     /// cursor row of a list or a table breathes by its weight.

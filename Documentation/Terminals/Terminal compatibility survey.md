@@ -3488,8 +3488,9 @@ attributes and glyphs that every terminal must then draw.
   measured).
 
   **Workaround: italic (owner, 2026-11-08, option a).** Where faint is known not to show,
-  disabled is faint AND italic: a disabled control at no colour (`fadedWithoutColor`), and a
-  `List` or `Table` row under `.selectionDisabled(_:)` at every depth
+  disabled is faint AND italic: a disabled control at no colour (`fadedWithoutColor`), a
+  `List` or `Table` row under `.selectionDisabled(_:)` at every depth, and a text field's
+  prompt at no colour, which faint alone tells from typed text
   (`ANSIRenderer.applyPersistentDisabled`). "Known not to show" is
   `TerminalClient.drawsFaint`: false for Warp (`TerminalClient.effective`, so a simulated
   Warp too) whose background is light (`TerminalColors.current.prefersDark == false`, from

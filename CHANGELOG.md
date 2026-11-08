@@ -19,7 +19,8 @@ colour-vision deficiency loses and that a terminal without colour doesn't draw a
 **A disabled control stays visibly disabled in Warp's light theme.** Warp draws faint (SGR 2) darker there rather than
 fainter, and its black default foreground not at all, so at no colour a disabled control looked enabled. On Warp with
 a light background, disabled is now faint and italic, for a control at no colour and for a row under
-`.selectionDisabled(_:)` at any depth. Every other host, and Warp in a dark theme, draws exactly what it did.
+`.selectionDisabled(_:)` at any depth. So is a text field's prompt at no colour, which faint alone told from text
+somebody typed. Every other host, and Warp in a dark theme, draws exactly what it did.
 
 **`TUI_CURSOR_FOLLOWS_FOCUS=1` tries out the terminal's own cursor on the focused control.** An experiment, off by
 default, for judging what screen readers, braille displays and magnifiers make of it: after each frame the real cursor

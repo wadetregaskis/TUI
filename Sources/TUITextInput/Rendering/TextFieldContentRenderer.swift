@@ -360,8 +360,10 @@ struct TextFieldContentRenderer: FieldTextLayout {
             paddedPrompt, foreground: foreground.opaqueSpelling, background: background?.opaqueSpelling)
         return FieldContent(
             // Without colour a prompt reads as text somebody typed, which only its
-            // quieter colour told it from.
-            line: ColorDepth.current == .noColor ? ANSIRenderer.applyPersistentDim(line) : line,
+            // quieter colour told it from. Faint says it, and italic too where faint
+            // doesn't show (`TerminalClient.drawsFaint`: Warp in a light theme), by
+            // the rule a disabled control is drawn by.
+            line: ColorDepth.current == .noColor ? ANSIRenderer.applyPersistentDisabled(line) : line,
             claims: OpacityRegion.claim(
                 width: width, height: 1, ink: foreground, field: background).map { [$0] } ?? [])
     }

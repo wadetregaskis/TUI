@@ -1,8 +1,9 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  DisabledFaint.swift
 //
-//  The faint a disabled control and a row that can't be selected are drawn in,
-//  and the italic it brings with it where the host doesn't show faint.
+//  The faint a disabled control, a row that can't be selected and a text
+//  field's prompt at no colour are drawn in, and the italic it brings with it
+//  where the host doesn't show faint.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
