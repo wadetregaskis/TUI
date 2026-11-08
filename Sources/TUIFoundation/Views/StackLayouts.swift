@@ -503,9 +503,13 @@ nonisolated public struct ZStackLayout: Layout, Sendable, Equatable {
         // `ZStack`'s are, and the stack is as large as the lined-up run.
         let (across, down) = guideRuns(
             subviews, sizes: sizes.map { (width: $0.width, height: $0.height) }, bounds: nil)
+        // As flexible as its most flexible layer, as `ZStack` is: a layer
+        // that fills makes the layout one a row or a column can grow.
         return ViewSize(
             width: across?.extent ?? sizes.map(\.width).max() ?? 0,
-            height: down?.extent ?? sizes.map(\.height).max() ?? 0)
+            height: down?.extent ?? sizes.map(\.height).max() ?? 0,
+            isWidthFlexible: sizes.contains { $0.isWidthFlexible },
+            isHeightFlexible: sizes.contains { $0.isHeightFlexible })
     }
 
     @MainActor public func placeSubviews(

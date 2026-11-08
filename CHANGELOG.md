@@ -4,6 +4,9 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**A `ZStackLayout` is as flexible as its layers.** It reported a rigid size whatever its layers were, so a filling
+layer (a `Color`) could not share a row's slack with its siblings as it does in a `ZStack`.
+
 **An `HStackLayout` row keeps a wrapped text's lines.** A subview given less than its ideal width was placed at the
 narrower width but its one-line height, so a text that wrapped there lost every line after the first. It is
 measured again at the width it gets, as in an `HStack`.
