@@ -4,6 +4,9 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**A graphical `DatePicker` draws today in bold.** It was told apart by the accent colour alone, a difference of hue that
+colour-vision deficiency loses and that a terminal without colour doesn't draw at all.
+
 **A disabled control stays visibly disabled in Warp's light theme.** Warp draws faint (SGR 2) darker there rather than
 fainter, and its black default foreground not at all, so at no colour a disabled control looked enabled. On Warp with
 a light background, disabled is now faint and italic, for a control at no colour and for a row under

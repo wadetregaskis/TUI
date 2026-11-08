@@ -84,4 +84,27 @@ struct DatePickerDayTonesTests {
         let unasked = rows(2001, 3)
         #expect(!state(unasked, week: 1, column: 0).isFaint, "off unless asked")
     }
+
+    @Test("Today is bold, not told apart by its colour alone")
+    func todayIsBold() {
+        let calendar = calendar()
+        let today = calendar.dateComponents([.year, .month, .day], from: Date())
+        let (day, month) = (today.day!, today.month!)
+        // Another day of this month is selected, so today is drawn as today.
+        let other = day == 1 ? 2 : 1
+        let selection = calendar.date(from: DateComponents(year: today.year, month: month, day: other, hour: 9))!
+        let picker = DatePicker("", selection: .constant(selection), displayedComponents: .date)
+            .datePickerStyle(.graphical)
+            .environment(\.calendar, calendar)
+            .environment(\.timeZone, calendar.timeZone)
+        let lines = InputChainHarness(width: 30, height: 10).frame(picker).lines
+        let first = calendar.date(from: DateComponents(year: today.year, month: month, day: 1))!
+        // Weeks start on Monday (2): the 1st's column, then today's place.
+        let lead = (calendar.component(.weekday, from: first) - 2 + 7) % 7
+        let place = lead + day - 1
+        #expect(state(lines, week: place / 7, column: place % 7).isBold, "\(lines)")
+        // A day neither today nor selected is not.
+        let plain = lead + [1, 2, 3].first { $0 != day && $0 != other }! - 1
+        #expect(!state(lines, week: plain / 7, column: plain % 7).isBold)
+    }
 }

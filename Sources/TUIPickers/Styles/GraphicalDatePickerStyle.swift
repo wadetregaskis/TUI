@@ -371,8 +371,13 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
     }
 
     /// One day: its number in three cells, the selected day in the accent,
-    /// today in the accent's ink, a day out of range dimmed, the weekend's in
-    /// the secondary text colour, and a day gone by faint where asked.
+    /// today in the accent's ink and bold, a day out of range dimmed, the
+    /// weekend's in the secondary text colour, and a day gone by faint where
+    /// asked.
+    ///
+    /// Today is bold as well as in the accent because the accent alone was a
+    /// difference of hue, which colour-vision deficiency loses, and at no
+    /// colour it was no difference at all (`Colour-only cues audit (2026-11)`).
     private func dayCell(
         _ day: Date?, isWeekend: Bool, isDisabled: Bool, marks: DayMarks, calendar: Calendar, palette: any Palette
     ) -> String {
@@ -390,10 +395,10 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         guard inRange, !isDisabled else {
             return ANSIRenderer.colorize(text, foreground: palette.foregroundTertiary.opaqueSpelling)
         }
-        let ink: Color =
-            dayStart == marks.today ? palette.accent : isWeekend ? palette.foregroundSecondary : palette.foreground
+        let isToday = dayStart == marks.today
+        let ink: Color = isToday ? palette.accent : isWeekend ? palette.foregroundSecondary : palette.foreground
         return ANSIRenderer.colorize(
-            text, foreground: ink.opaqueSpelling, faint: marks.pastDays && dayStart < marks.today)
+            text, foreground: ink.opaqueSpelling, bold: isToday, faint: marks.pastDays && dayStart < marks.today)
     }
 
     // MARK: Mouse
