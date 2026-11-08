@@ -143,15 +143,18 @@ extension GridItem {
         let defaultSpacing = defaultSpacing(wrapping: axis)
         guard !items.isEmpty, available > 0 else { return [] }
 
-        // Pass 1a: what the non-adaptive tracks demand, so the adaptive ones
-        // know what is left to divide.
+        // Pass 1a: what the non-adaptive tracks demand, and every gap between
+        // two items, so the adaptive ones know what is left to divide. The gap
+        // after each item but the last, adaptive items' included: charging
+        // only the others theirs left the gap between two adaptive groups
+        // unpaid, and the tracks one cell wider than the room per extra group.
         var claimed = 0
         var adaptiveItems = 0
-        for item in items {
-            let gap = item.spacing ?? defaultSpacing
+        for (index, item) in items.enumerated() {
+            if index < items.count - 1 { claimed += item.spacing ?? defaultSpacing }
             switch item.size {
-            case .fixed(let width): claimed += max(0, width) + gap
-            case .flexible(let minimum, _): claimed += max(1, minimum) + gap
+            case .fixed(let width): claimed += max(0, width)
+            case .flexible(let minimum, _): claimed += max(1, minimum)
             case .adaptive: adaptiveItems += 1
             }
         }

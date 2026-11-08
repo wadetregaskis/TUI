@@ -4,6 +4,9 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**Two adaptive `GridItem`s fit the room they are given.** The gap between their two groups of columns was never set
+aside, so the columns came to a cell more than the grid's width and the last one was cut.
+
 **A `ZStackLayout` is as flexible as its layers.** It reported a rigid size whatever its layers were, so a filling
 layer (a `Color`) could not share a row's slack with its siblings as it does in a `ZStack`.
 
