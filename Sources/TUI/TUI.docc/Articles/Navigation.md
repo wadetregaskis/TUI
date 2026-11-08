@@ -107,6 +107,10 @@ instead — `NavigationStack(path: $recipes)` — and the path is just your data
   what keeps the root's `@State` — a scroll position, a selection, a half-filled
   form — alive to come back to, and what keeps its `navigationDestination`
   closures current rather than frozen at the frame that pushed.
+- **A screen covered by another keeps its state.** Not drawn while it is
+  covered, but held, so popping back to it finds its `@State` as it was left, as
+  SwiftUI's does. Each depth is a place of its own: a screen pushed over another
+  of the same type starts afresh, and a popped screen is forgotten.
 - **A destination modifier has to have rendered** for its type to be known. In
   practice this is automatic, because the root renders every frame; declaring
   destinations on the root (as above, and as SwiftUI's own documentation

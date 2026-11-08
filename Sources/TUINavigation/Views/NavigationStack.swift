@@ -208,7 +208,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             width: childContext.availableWidth,
             height: max(0, childContext.availableHeight - bar))
 
-        let screenChildContext = childContext.withChildIdentity(type: NavigationScreen.self)
+        let screenChildContext = childContext.withChildIdentity(type: NavigationScreen.self, index: elements.count)
         let destination = observingBodyClosure(of: Self.self, context: screenChildContext, observesWhenMeasuring: true) {
             coordinator.destination(for: top)
         }
@@ -317,7 +317,21 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             coordinator.recordTitle(preferences?.pop()[NavigationTitleKey.self] ?? "", atDepth: 0)
         }
 
-        let screen = renderScreen(top: top, context: base)
+        // The screens under the one on top keep their state while covered, as
+        // SwiftUI's do: not drawn, but retained, so the prune at the end of the
+        // pass leaves it. Each depth is its own identity (`NavigationScreen`),
+        // so what is pushed over a screen starts afresh rather than with its
+        // state, and a popped screen, retained no longer, is forgotten.
+        if !context.isMeasuring, elements.count > 1, let stateStorage = base.stateStorage {
+            for depth in 1..<elements.count {
+                // The screen's own identity as well as what is below it: a
+                // retained subtree is its root's strict descendants.
+                let screen = base.identity.child(type: NavigationScreen.self, index: depth)
+                stateStorage.markActive(screen)
+                stateStorage.retainSubtree(screen)
+            }
+        }
+        let screen = renderScreen(top: top, depth: elements.count, context: base)
         return zoomed(screen.buffer, depth: elements.count, declared: screen.zoom, ask: ask, context: context)
     }
 
@@ -349,7 +363,9 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
 
     /// Renders the pushed screen with its navigation bar above it, and says
     /// which zoom it declared (``View/navigationTransition(_:)``).
-    private func renderScreen(top: AnyHashable, context: RenderContext) -> (buffer: FrameBuffer, zoom: MatchedGeometryKey?) {
+    private func renderScreen(
+        top: AnyHashable, depth: Int, context: RenderContext
+    ) -> (buffer: FrameBuffer, zoom: MatchedGeometryKey?) {
         let width = max(0, context.availableWidth)
         let contentHeight = max(0, context.availableHeight - NavigationBar.height)
 
@@ -382,7 +398,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             }
         }
         preferences?.push()
-        let screenChildContext = screenContext.withChildIdentity(type: NavigationScreen.self)
+        let screenChildContext = screenContext.withChildIdentity(type: NavigationScreen.self, index: depth)
         var content =
             observingBodyClosure(of: Self.self, context: screenChildContext) {
                 coordinator.destination(for: top)
@@ -415,8 +431,10 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
 
 // MARK: - Identity tags
 
-/// Identity tag for the pushed screen, so every screen in a stack shares one
-/// identity slot: pushing a second screen of the same shape must not inherit
-/// the first one's `@State`, and coming back must not find the screen's state
-/// filed under the destination view's type.
+/// Identity tag for a pushed screen, with its depth as the index: each depth
+/// is a place of its own, so a screen pushed over another of the same shape
+/// does not inherit its `@State`, and the one under it, retained while covered,
+/// comes back with its own. Coming back must not find the screen's state filed
+/// under the destination view's type either, which a tag of the stack's own
+/// keeps it from.
 private enum NavigationScreen {}

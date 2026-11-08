@@ -200,8 +200,9 @@ struct CompactColumnPosition {
 
 // MARK: - Rendering
 
-/// Identity tag for a screen a link pushed onto a collapsed split, so every
-/// such screen shares one slot, as a navigation stack's screens do.
+/// Identity tag for a screen a link pushed onto a collapsed split, with its
+/// place among the links as the index, as a navigation stack's screens have
+/// their depths: each keeps its own `@State`, retained while covered.
 private enum LinkedScreen {}
 
 extension _NavigationSplitViewCore {
@@ -298,7 +299,18 @@ extension _NavigationSplitViewCore {
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             preferences?.push()
         }
-        let screenContext = columnContext.withChildIdentity(type: LinkedScreen.self)
+        let screenContext = columnContext.withChildIdentity(type: LinkedScreen.self, index: state.links.count)
+        // The linked screens under the one on top keep their state while
+        // covered, as a navigation stack's do.
+        if !context.isMeasuring, state.links.count > 1, let stateStorage = columnContext.stateStorage {
+            for index in 1..<state.links.count {
+                // Its own identity too: a retained subtree is its root's strict
+                // descendants.
+                let screen = columnContext.identity.child(type: LinkedScreen.self, index: index)
+                stateStorage.markActive(screen)
+                stateStorage.retainSubtree(screen)
+            }
+        }
         let column =
             if let link {
                 observingBodyClosure(of: Self.self, context: screenContext) {

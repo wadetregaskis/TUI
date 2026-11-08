@@ -338,6 +338,51 @@ struct NavigationSplitViewCollapseTests {
         #expect(driver.shows("Mars") && driver.shows("Venus") && !driver.shows("orbiting"), "\(driver.app.screen.styledLines)")
     }
 
+    /// A sidebar of links to a screen with `@State` of its own, a tap count,
+    /// and a link on from it.
+    private struct CountingLinkedSidebar: View {
+        let model: SplitModel
+        var body: some View {
+            NavigationSplitView(preferredCompactColumn: Binding(get: { model.column }, set: { model.column = $0 })) {
+                NavigationLink("Mars", value: "Mars")
+                    .navigationTitle("Planets")
+                    .navigationDestination(for: String.self) { planet in Tapped(planet: planet) }
+            } detail: {
+                Text("detail placeholder")
+            }
+            .environment(\.horizontalSizeClass, model.horizontal)
+        }
+    }
+
+    private struct Tapped: View {
+        let planet: String
+        @State private var taps = 0
+        var body: some View {
+            VStack {
+                Button("\(planet) tapped \(taps)") { taps += 1 }
+                NavigationLink("Moons of \(planet)", value: planet.count)
+            }
+            .navigationTitle(planet)
+            .navigationDestination(for: Int.self) { count in Text("moon count \(count)") }
+        }
+    }
+
+    @Test("A linked screen keeps its state while another is pushed over it")
+    func linkedScreenKeepsItsState() {
+        // Every linked screen rendered at one identity, and a covered one did
+        // not render, so its `@State` was pruned while it was covered.
+        let model = SplitModel()
+        let driver = Driver(CountingLinkedSidebar(model: model))
+        driver.press(.enter)
+        driver.press(.enter)
+        #expect(driver.shows("Mars tapped 1"), "\(driver.app.screen.styledLines)")
+        driver.press(.down)
+        driver.press(.enter)
+        #expect(driver.shows("moon count 4"), "\(driver.app.screen.styledLines)")
+        driver.press(.escape)
+        #expect(driver.shows("Mars tapped 1"), "the covered screen lost its state: \(driver.app.screen.styledLines)")
+    }
+
     @Test("A link in a linked screen pushes again, and each Escape goes back one")
     func linksStack() {
         let model = SplitModel()
