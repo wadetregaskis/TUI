@@ -17,6 +17,11 @@ the KeyboardShortcuts article.
 **A `Divider` among a segmented picker's options sets the groups apart.** It draws a heavier rule, `┃`, between the
 segments either side, where it drew nothing; a menu-style picker still draws it as a separator.
 
+**An animated picture plays even when the frame it is first shown in draws it twice.** A geometry owner above it (a
+`coordinateSpace`, a scroll view, a matched geometry effect) that drew its subtree again in that frame, as it does when
+a reader inside drew from a wrong answer, left the picture on its first frame for good. The file panels' preview met it
+now and then, under load.
+
 **An active `.symbolEffect(.disappear)` hides the symbol** (macOS). The glyph's cells are left blank while it is active,
 at once, where SF Symbols draws the symbol off; it was drawn as if no effect were set.
 

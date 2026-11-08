@@ -243,6 +243,16 @@ extension _ImageCore {
             AnimatedImageDecoder.mayAnimate(atPath: path)
         }
         if playback.startsDecoding {
+            // The task's start waits for this drawing to be kept, and a drawing
+            // the walk throws away — a geometry owner whose reader drew from a
+            // wrong answer draws its subtree again — starts none, for the
+            // drawing made in its place to start its own (`EffectStage`). So
+            // the answer goes back with the drawing: left at "decoding", the
+            // drawing in its place started nothing, nothing ever decoded, and
+            // the picture never played — when a frame that redrew coincided
+            // with the one the picture was first shown in, which under load it
+            // sometimes did (`FilePanelAnimatedPreviewTests`, 2026-11-08).
+            context.stateStorage?.effectStage.noteUndo { playback.undoStartingToDecode() }
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             let maxPixelCount = context.environment.imageMaxPixelCount
             lifecycle.startTask(token: ImageAnimationPlayback.decodeToken(token), priority: .userInitiated) {
@@ -366,6 +376,12 @@ extension ImageAnimationPlayback {
         guard case .candidate = progress, isShown == true else { return false }
         progress = .decoding
         return true
+    }
+
+    /// Puts back ``startsDecoding``'s answer, for a drawing thrown away before
+    /// the decode it asked for started.
+    func undoStartingToDecode() {
+        if case .decoding = progress { progress = .candidate }
     }
 
     /// Whether there is anything a scroll view's report would change.

@@ -17,6 +17,7 @@ import Testing
 @testable import TUIFoundation
 @testable import TUIImage
 @testable import TUITestSupport
+import TUIView
 
 private struct PageApp<Page: View>: App {
     let page: @MainActor () -> Page
@@ -24,6 +25,22 @@ private struct PageApp<Page: View>: App {
     init() { self.page = { fatalError("built with init(_:)") } }
     init(@ViewBuilder _ page: @escaping @MainActor () -> Page) { self.page = page }
     var body: some Scene { WindowGroup { page() } }
+}
+
+/// Draws its content, throws that drawing away, and draws it again, on every
+/// walk: what a geometry owner does whose reader drew from a wrong answer
+/// (`CoordinateSpaceModifier`), here on every frame rather than on the odd one.
+private struct DrawnTwice<Content: View>: View, Renderable {
+    let content: Content
+    var body: Never { fatalError("DrawnTwice renders via Renderable") }
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        guard !context.isMeasuring else { return TUIView.renderToBuffer(content, context: context) }
+        let checkpoint = RenderWalkCheckpoint(context: context)
+        defer { checkpoint.keep() }
+        _ = TUIView.renderToBuffer(content, context: context)
+        checkpoint.rollBack(context: context)
+        return TUIView.renderToBuffer(content, context: context)
+    }
 }
 
 /// Whether the page shows its picture, for a test to change between frames.
@@ -114,6 +131,23 @@ struct AnimatedImagePlaybackTests {
         app.frame(atNanos: due)
         let second = app.screen
         #expect(second != first)
+    }
+
+    /// The frame a picture is first shown in starts its frames decoding, and
+    /// that start waits for the drawing to be kept. One drawn again in that
+    /// frame, its first drawing thrown away, must start them all the same: it
+    /// did not, and the picture never played, which the file panels' preview
+    /// met now and then under load (`FilePanelAnimatedPreviewTests`).
+    @Test("A picture drawn again in the frame it is first shown, its first drawing thrown away, still plays")
+    func playsWhenItsFirstDrawingIsDiscarded() async throws {
+        let path = try threeFrames().write()
+        let app = HeadlessApp(PageApp { DrawnTwice(content: picture(path)) }, width: 20, height: 10)
+        try await untilPlaying(app, at: 0)
+
+        let first = app.screen
+        let due = try #require(app.nextWake(after: 0))
+        app.frame(atNanos: due)
+        #expect(app.screen != first, "the next frame")
     }
 
     @Test("Its loop count ends on the last frame, and then nothing is asked for", arguments: [nil, 1] as [Int?])
