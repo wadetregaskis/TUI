@@ -106,18 +106,24 @@ import TUICore
         return Layout(lines: lines, isTruncated: cutShort)
     }
 
-    /// The words as this text lays them out — cased and redacted as drawn —
-    /// a grapheme at a time, each with its run's custom attributes.
+    /// The words as this text lays them out — transliterated, cased and
+    /// redacted as drawn — a grapheme at a time, each with its run's custom
+    /// attributes.
     private func laidOutWords(context: RenderContext) -> [(character: Character, attributes: TextAttributes?)] {
         let font = resolvedFont(stating: style.font, context: context)
         let textCase = cascadedAttributes(context: context, font: font).effectiveTextCase
         let redaction = context.environment.effectiveRedactionReasons
+        let transliterates = context.environment.transliteratesText
         let shown = shownWords(in: context.environment)
         guard let runs = shown.runs else {
-            return Self.displayString(shown.content, textCase: textCase, redaction: redaction).map { ($0, nil) }
+            return Self.displayString(
+                shown.content, textCase: textCase, redaction: redaction, transliterates: transliterates
+            ).map { ($0, nil) }
         }
         return runs.flatMap { run in
-            Self.displayString(run.text, textCase: textCase, redaction: redaction).map { ($0, run.attributes) }
+            Self.displayString(
+                run.text, textCase: textCase, redaction: redaction, transliterates: transliterates
+            ).map { ($0, run.attributes) }
         }
     }
 }

@@ -445,7 +445,8 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
             contentForeground: cascaded.foreground,
             cursorSpeed: context.environment.indicatorAnimationSpeeds.speed(for: .textCursor),
             appearsActive: context.environment.appearsActive,
-            legibilityWeight: context.environment.legibilityWeight
+            legibilityWeight: context.environment.legibilityWeight,
+            transliteratesPrompt: context.environment.transliteratesText
         )
 
         let fieldContent = renderer.buildContent(

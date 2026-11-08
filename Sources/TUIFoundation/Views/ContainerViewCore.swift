@@ -18,8 +18,9 @@
 /// ContainerView to have a proper `body: some View` that enables modifiers
 /// to work correctly.
 struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layoutable {
-    /// The container title (rendered in border or header section).
-    let title: String?
+    /// The container title (rendered in border or header section). A `var`
+    /// only for ``spelled(in:)``.
+    var title: String?
 
     /// The title color.
     let titleColor: Color?
@@ -107,6 +108,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        if let spelled = spelled(in: context) { return spelled.sizeThatFits(proposal: proposal, context: context) }
         // Resolve the space we were offered (proposal wins over the context,
         // exactly as renderChild sets availableWidth/Height before rendering).
         var base = context
@@ -276,6 +278,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if let spelled = spelled(in: context) { return spelled.renderToBuffer(context: context) }
         let appearance = context.environment.appearance
         // A presentation's corner radius (`presentationCornerRadius(_:)`) is
         // this box's when it is the sheet's outermost, and consumed below with
@@ -1053,6 +1056,27 @@ extension _ContainerViewCore: @preconcurrency Equatable where Content: Equatable
     static func == (lhs: _ContainerViewCore<Content, Footer>, rhs: _ContainerViewCore<Content, Footer>) -> Bool {
         lhs.title == rhs.title && lhs.titleColor == rhs.titleColor && lhs.content == rhs.content && lhs.footer == rhs.footer
             && lhs.style == rhs.style && lhs.padding == rhs.padding
+    }
+}
+
+// MARK: - The title in ASCII
+
+extension _ContainerViewCore {
+    /// This container with its title spelled in ASCII, where
+    /// ``EnvironmentValues/transliteratesText`` asks and that changes it, so
+    /// the measure and the render both see the title as a ``Text`` would
+    /// draw it; `nil` otherwise. The title is drawn into the border, not by
+    /// a `Text`.
+    ///
+    /// The copy answers `nil` in turn: the transform's output is ASCII, or
+    /// what it had nothing to say about, which it leaves as it is again.
+    fileprivate func spelled(in context: RenderContext) -> Self? {
+        guard context.environment.transliteratesText, let title else { return nil }
+        let spelledTitle = TextTransliteration.transliterated(title)
+        guard spelledTitle != title else { return nil }
+        var spelled = self
+        spelled.title = spelledTitle
+        return spelled
     }
 }
 

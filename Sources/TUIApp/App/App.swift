@@ -439,6 +439,7 @@ extension AppRunner {
         loop.sceneStorageSession = TerminalSession.identity(environment: ProcessInfo.processInfo.environment)
         loop.cursorFollowsFocus = CursorFollowsFocus.requested(environment: ProcessInfo.processInfo.environment)
         focusManager.arrowFocus = ArrowFocus.requested(environment: ProcessInfo.processInfo.environment)
+        loop.transliteratesText = PlainTerminalText.transliterates(in: ProcessInfo.processInfo.environment)
         loop.progressAbsence = TerminalCapabilities.progressAbsence(
             program: TerminalHost.program, environment: ProcessInfo.processInfo.environment)
         loop.scenes.quitPrompt = quitPrompt

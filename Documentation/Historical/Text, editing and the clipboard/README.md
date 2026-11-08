@@ -11,3 +11,4 @@ One story per subject, each with the record of its decisions below it (see the
 | [Undo](Undo.md) | `UndoManager`, a text control's steps, the keys, undoable reorders (D1K, TEXT2). **Owed:** undo as edits, undo for every control. |
 | [Links, Markdown and attributed text](<Links, Markdown and attributed text.md>) | Links as controls, TUI's Markdown parse beside Foundation's, titles, typography declined (B84–B88). **Open:** `^[…](attrs)`. |
 | [Formatting and live text](<Formatting and live text.md>) | Typed interpolations, locale numbers, live text, the formatter forms refused (B49, B51, TEXTFMT). |
+| [ASCII transliteration before layout](<ASCII transliteration before layout.md>) | `TUI_PLAIN_TEXT=transliterate`: other scripts spelled in Latin letters before layout, an experiment behind the flag (2026-11-08). |

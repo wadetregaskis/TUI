@@ -551,7 +551,14 @@ enum TextFieldSuggestions {
                 menuEntries.append(.divider)
             case .option(let explicit, let label):
                 let rendered = label.renderToBuffer(context: labelContext).lines.first ?? ""
-                let completion = explicit ?? rendered.stripped
+                var completion = explicit ?? rendered.stripped
+                if explicit == nil, labelContext.environment.transliteratesText {
+                    // What a choice types into the field is the label's own
+                    // words, not their ASCII spelling (`TUI_PLAIN_TEXT=transliterate`).
+                    var asWritten = labelContext
+                    asWritten.environment.transliteratesText = false
+                    completion = (label.renderToBuffer(context: asWritten).lines.first ?? "").stripped
+                }
                 // The option whose completion is the field's current text is
                 // the "selected" one: the field's value IS the selection.
                 menuEntries.append(

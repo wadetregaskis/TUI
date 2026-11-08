@@ -26,9 +26,23 @@ struct PlainTerminalTextTests {
             (["LC_ALL": "", "LC_CTYPE": "en_US.ISO8859-1", "LANG": "en_US.UTF-8"], true),
             (["TUI_PLAIN_TEXT": "1", "LANG": "en_US.UTF-8"], true),
             (["TUI_PLAIN_TEXT": "0", "LANG": "en_US.ISO8859-1"], false),
+            (["TUI_PLAIN_TEXT": "transliterate", "LANG": "en_US.UTF-8"], true),
         ] as [([String: String], Bool)])
     func isNeeded(environment: [String: String], expected: Bool) {
         #expect(PlainTerminalText.isNeeded(in: environment) == expected)
+    }
+
+    @Test(
+        "Text is spelled before layout only when asked for by name: an experiment, off by default",
+        arguments: [
+            (["TUI_PLAIN_TEXT": "transliterate"], true),
+            (["TUI_PLAIN_TEXT": "1"], false),
+            (["TUI_PLAIN_TEXT": "0"], false),
+            (["LANG": "en_US.ISO8859-1"], false),
+            ([:], false),
+        ] as [([String: String], Bool)])
+    func transliterates(environment: [String: String], expected: Bool) {
+        #expect(PlainTerminalText.transliterates(in: environment) == expected)
     }
 
     @Test("A row that is ASCII comes back as it was")

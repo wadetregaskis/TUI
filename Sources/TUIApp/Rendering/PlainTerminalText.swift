@@ -18,15 +18,15 @@ import TUICore
 /// and the diff, the mouse and the hit tests all go by those cells. So a character
 /// keeps the cells it had, which makes `好`, two cells wide, `ha` rather than `hao`.
 enum PlainTerminalText {
-    /// Whether this terminal needs it: `TUI_PLAIN_TEXT` if set to `1` or `0`, or else
-    /// whether the locale names a character set that isn't UTF-8.
+    /// Whether this terminal needs it: `TUI_PLAIN_TEXT` if set to `1`, `transliterate`
+    /// or `0`, or else whether the locale names a character set that isn't UTF-8.
     ///
     /// Only one it names. `C` and `POSIX` name none, and are what an `ssh` session to a
     /// box with no locale installed often has, in front of a terminal showing UTF-8
     /// perfectly well.
     static func isNeeded(in environment: [String: String]) -> Bool {
         switch environment["TUI_PLAIN_TEXT"] {
-        case "1": return true
+        case "1", "transliterate": return true
         case "0": return false
         default: break
         }
@@ -34,6 +34,18 @@ enum PlainTerminalText {
         guard let locale, let dot = locale.firstIndex(of: ".") else { return false }
         let charset = locale[locale.index(after: dot)...].prefix { $0 != "@" }.lowercased()
         return !charset.isEmpty && charset != "utf-8" && charset != "utf8"
+    }
+
+    /// Whether text is spelled in ASCII before it's laid out, as well as folded here:
+    /// `TUI_PLAIN_TEXT=transliterate`, an experiment (owner, 2026-11-08), so only when
+    /// asked for by name. `你好` is then `ni hao`, six cells, which layout makes room for,
+    /// where folding here can only make it `niha`, in the four it was given.
+    ///
+    /// A value of the same variable rather than one of its own: it's the same question,
+    /// what to send a terminal that shows only ASCII, and a second variable would leave
+    /// `TUI_PLAIN_TEXT=0` with the transliteration on, which means nothing.
+    static func transliterates(in environment: [String: String]) -> Bool {
+        environment["TUI_PLAIN_TEXT"] == "transliterate"
     }
 
     /// `row` with every character that isn't ASCII replaced by ASCII of the same width.

@@ -9,6 +9,12 @@ focused control doesn't use moves to the nearest control in its direction, one o
 columns (or rows) first, then the nearer, then the earlier in Tab order; with none it goes on in Tab order as before.
 Tab is unchanged, and arrows still stay inside the active section and a sheet. The Example's Focus page has a grid to
 try it on. See `Documentation/Input and focus/Geometric arrow focus.md`.
+**`TUI_PLAIN_TEXT=transliterate` tries spelling text in ASCII before layout, an experiment.** For a terminal that shows
+only ASCII, every `Text`, button title, table cell and header, panel title and field prompt is spelled in Latin letters
+before it's measured, so `你好` is `ni hao` in six cells, where `TUI_PLAIN_TEXT=1` (and a non-UTF-8 locale) cut it to
+`niha` in the four it was laid out in. What's typed into a field keeps its own characters. Off unless named; the folding
+at output stays for everything else. See `Documentation/Historical/Text, editing and the clipboard/ASCII
+transliteration before layout.md`.
 
 **Every menu bar's View menu turns the accessibility and display preferences on and off.** Differentiate Without Color,
 Reduce Motion, Reduce Transparency, Increase Contrast, Breathing Focus, Spell Out Keys and Focus Follows Pointer, each a

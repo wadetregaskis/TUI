@@ -791,6 +791,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         table.applyKeptWidths(context)
         if table.needsResolution { table.resolveRows(context) }
         table.cascadesCellText = Self.cellTextAttributes(context.environment) != StyleAttributes()
+        // Headers spelled in ASCII once here, where `TUI_PLAIN_TEXT=transliterate`
+        // asks, so the width they're measured at is the width they're drawn at.
+        if context.environment.transliteratesText {
+            for index in table.columns.indices {
+                table.columns[index].title = TextTransliteration.transliterated(table.columns[index].title)
+            }
+        }
         return table
     }
 
@@ -2168,7 +2175,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         if case .text(let make) = column.cell {
             context.renderCache?.rowWork.cellValues += 1
             let text = make(item, context)
-            if let lines = Self.plainLines(of: text, in: column, width: width) { return lines }
+            if let lines = Self.plainLines(
+                of: text, in: column, width: width, transliterates: context.environment.transliteratesText)
+            {
+                return lines
+            }
             return renderedCell(text, column, for: item, width: width, context: context)
                 .split(separator: "\n", omittingEmptySubsequences: false)
                 .prefix(column.lineLimit).map(String.init)
@@ -5045,14 +5056,19 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             return renderedCell(text, column, for: item, width: width, context: context)
         }
         switch column.cell {
+        // A plain string is spelled in ASCII here where the environment says
+        // so (`TUI_PLAIN_TEXT=transliterate`), as a `Text` cell spells itself.
         case .string(let extract):
-            return extract(item)
+            return TextTransliteration.transliterated(extract(item), if: context.environment.transliteratesText)
         case .text(let make):
             let text = make(item, context)
+            let transliterates = context.environment.transliteratesText
             // The one-line case without the array: this is the single-line
             // table's every cell.
-            if column.lineLimit == 1, text.drawsAsPlainString { return text.content }
-            if let lines = Self.plainLines(of: text, in: column, width: width) {
+            if column.lineLimit == 1, text.drawsAsPlainString {
+                return TextTransliteration.transliterated(text.content, if: transliterates)
+            }
+            if let lines = Self.plainLines(of: text, in: column, width: width, transliterates: transliterates) {
                 return lines.joined(separator: "\n")
             }
             return renderedCell(text, column, for: item, width: width, context: context)
@@ -5083,15 +5099,19 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// column's limit and truncation. Rendering it as a view instead drew the
     /// same lines at about a third of the frame (table-multiline,
     /// table-churn-wrapped: −29% and −31% without it).
+    ///
+    /// Its string spelled in ASCII first where `transliterates`, as the `Text`
+    /// would spell it (``EnvironmentValues/transliteratesText``).
     private static func plainLines(
-        of text: Text, in column: _TableColumnSpec<Value>, width: Int
+        of text: Text, in column: _TableColumnSpec<Value>, width: Int, transliterates: Bool
     ) -> [String]? {
+        let content = TextTransliteration.transliterated(text.content, if: transliterates)
         if column.lineLimit == 1 {
-            return text.drawsAsPlainString ? [text.content] : nil
+            return text.drawsAsPlainString ? [content] : nil
         }
         guard text.isUnstyled else { return nil }
         return TextWrapping.fit(
-            text.content, width: max(1, width), maxLines: column.lineLimit, mode: column.truncationMode)
+            content, width: max(1, width), maxLines: column.lineLimit, mode: column.truncationMode)
     }
 
     /// A `String` or plain `Text` cell as the `Text` it would be, when the

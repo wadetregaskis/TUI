@@ -106,6 +106,13 @@ internal final class RenderLoop<A: App> {
     /// every other loop unless a test says otherwise.
     var cursorFollowsFocus: CursorFollowsFocus?
 
+    /// Whether text is spelled in ASCII before layout: the experiment
+    /// `TUI_PLAIN_TEXT=transliterate` turns on, which the app runner reads
+    /// (``PlainTerminalText/transliterates(in:)``), written at the root of
+    /// every frame as ``EnvironmentValues/transliteratesText``. `false` in
+    /// every other loop unless a test says otherwise.
+    var transliteratesText = false
+
     /// Whether the last frame left the cursor shown (``cursorFollowsFocus``).
     var showsCursor = false
 
@@ -1089,6 +1096,9 @@ extension RenderLoop {
         // scene's `.focusFollowsPointer(_:)` to replace, and the View menu to
         // show and replace in turn.
         environment.focusFollowsPointer = focusFollowsPointerRequested
+        // The user's `TUI_PLAIN_TEXT=transliterate`, which nothing below
+        // takes back.
+        if transliteratesText { environment.transliteratesText = true }
         // The user's spring-loading delay: their `TUI_SPRING_LOADING_DELAY`,
         // else the host's where they are provably at it, else macOS's default
         // (the key's own). A view's `.springLoadingDelay(_:)` overrides it.
