@@ -290,6 +290,15 @@ BATTERY.update({
     "chrome_switch_knob_off": "\u25CB",  # ○ — EAW Ambiguous
     "chrome_switch_cap_open": "\u2997",  # ⦗ — EAW Neutral
     "chrome_switch_cap_close": "\u2998",  # ⦘ — EAW Neutral
+    # Added 2026-11-08: a toast's style glyphs (NotificationStyle.glyph),
+    # emoji the framework claims TWO cells for — class `chrome_emoji`, not
+    # `chrome_glyph`, whose rows are claimed one. ℹ️ and ⚠️ are the
+    # vs16_pictograph class, ✅ and ❌ the wide_symbol class; measured as rows
+    # of their own because the framework draws them.
+    "chrome_emoji_info": "\u2139\uFE0F",  # ℹ️
+    "chrome_emoji_success": "\u2705",  # ✅
+    "chrome_emoji_warning": "\u26A0\uFE0F",  # ⚠️
+    "chrome_emoji_error": "\u274C",  # ❌
 })
 
 def cursor_col(fd):
@@ -331,6 +340,13 @@ def main():
         # battery would be read as part of a cursor report.
         provenance = probe_stamp.stamp(fd, "advance_probe.py", use_alt)
         battery = BATTERY
+        # --only PREFIX: just the rows whose name starts with PREFIX, plus the
+        # two calibration rows, for a record of a few new rows without
+        # re-taking a host's whole battery (2026-11-08, chrome_emoji_).
+        if "--only" in sys.argv:
+            prefix = sys.argv[sys.argv.index("--only") + 1]
+            battery = {name: cluster for name, cluster in BATTERY.items()
+                       if name in ("ascii_a", "cjk") or name.startswith(prefix)}
         if "--modifier-bases" in sys.argv:
             battery = modifier_base_battery(
                 sys.argv[sys.argv.index("--modifier-bases") + 1])

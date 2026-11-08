@@ -34,9 +34,12 @@ screen-scoped host; placement, the reason to keep it, is now per post (4).
 **Chosen:** `NotificationStyle`: `.plain` (the old look), `.info`, `.success`,
 `.warning`, `.error`. Each styled toast takes its border and glyph colour from
 the palette's semantic colour (`info`, `success`, `warning`, `error`) and
-leads with a glyph, so the meaning never rests on colour alone: `i`, `✓`, `!`,
-`✗`. One-cell, non-emoji glyphs: `ℹ` and `⚠` have emoji presentations that
-some terminals draw two cells wide (see the emoji-chrome survey notes).
+leads with a glyph, so the meaning never rests on colour alone: ℹ️, ✅, ⚠️,
+❌ — emoji, two cells wide (the owner's ruling, decision 2 below). The first
+build used one-cell `i ✓ ! ✗`, for fear of terminals that draw `ℹ` and `⚠`
+two cells; the writer already makes up a cell a host advances short, and the
+four were measured on four hosts (*Terminal compatibility survey*,
+"Notification glyphs").
 
 **Considered:** a `NotificationStyle` protocol, as `ButtonStyle`. Kept to a
 closed set for now; arbitrary content (3) covers the rest.
@@ -160,7 +163,18 @@ NotificationAction("Delete", role: .destructive) { … }
 
 1. **F6** as the key that reaches a toast's buttons, and Escape dismissing the
    focused toast. Alternatives: a configurable key on the service.
-2. **Glyphs** `i ✓ ! ✗`, and **`.plain`** as the default style (the old look).
+2. **Decided 2026-11-08: emoji glyphs**, ℹ️ ✅ ⚠️ ❌. The owner: "it's fine
+   that they're two cells wide, isn't it? We can compensate for terminal
+   clients which mess up the cursor." Built in the forms that are emoji
+   everywhere (U+FE0F after ℹ and ⚠; ✅ and ❌ are emoji by default), claimed
+   two cells, and measured: iTerm2 and Apple Terminal advance ℹ️ and ⚠️ one
+   cell, as their models predict, and the writer makes up the other. An emoji
+   ignores SGR, so the style's colour is the border's and the shape carries the
+   meaning. Drawn on every host, as the alert presets' marks are, rather than
+   gated on `supportsEmojiChrome`, which is about the monochrome VS-15 squares.
+   ❌ for an error rather than the alert's 🛑: a failure reported, not a stop.
+   A terminal that shows only ASCII gets `! i ok X` (`PlainTerminalText`).
+   **`.plain`** as the default style (the old look) was not asked about.
 3. **Close** as the button a persistent, action-less toast gets (TUI's
    existing "Close" string, translated already).
 4. **The direct-OS route**: build it (spawning `osascript` / `notify-send`

@@ -82,6 +82,10 @@ enum PlainTerminalText {
             ("-", "─━═╌╍┄┅┈┉╴╶╸╺╼╾‐‑‒–—―"), ("|", "│┃║╎╏┆┇┊┋╵╷╹╻╽╿"), ("/", "╱"), ("\\", "╲"), ("X", "╳"),
             ("<", "←◀◂◄‹«"), (">", "→▶▸►›»"), ("^", "↑▲△▴"), ("v", "↓▼▽▾"),
             ("o", "●○◉◎◦"), ("*", "•∙★☆✱"), (".", "·"), ("x", "✓✔✗✘"),
+            // The marks of a toast's style and an alert's title, emoji two
+            // cells wide, so each has room for its spelling; ⚠ and ℹ by their
+            // base, the selector after it being part of the same character.
+            ("!", "⚠"), ("i", "ℹ"), ("ok", "✅"), ("X", "❌🛑"),
         ] as [(String, String)] {
             for scalar in scalars.unicodeScalars { table[scalar] = spelled }
         }

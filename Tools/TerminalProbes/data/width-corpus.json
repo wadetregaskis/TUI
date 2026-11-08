@@ -1582,6 +1582,40 @@
    "scalars": [
     "U+2998"
    ]
+  },
+  {
+   "id": "chrome_emoji_info",
+   "class": "chrome_emoji",
+   "text": "ℹ️",
+   "scalars": [
+    "U+2139",
+    "U+FE0F"
+   ]
+  },
+  {
+   "id": "chrome_emoji_success",
+   "class": "chrome_emoji",
+   "text": "✅",
+   "scalars": [
+    "U+2705"
+   ]
+  },
+  {
+   "id": "chrome_emoji_warning",
+   "class": "chrome_emoji",
+   "text": "⚠️",
+   "scalars": [
+    "U+26A0",
+    "U+FE0F"
+   ]
+  },
+  {
+   "id": "chrome_emoji_error",
+   "class": "chrome_emoji",
+   "text": "❌",
+   "scalars": [
+    "U+274C"
+   ]
   }
  ]
 }

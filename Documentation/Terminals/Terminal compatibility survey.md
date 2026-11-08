@@ -990,6 +990,43 @@ committed record has the three yet, so they wait beside `chrome_cross` in
 `ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement` on every host (GNOME
 Terminal's included) and in the ledger's `awaitingLandingMeasurement`.
 
+### Notification glyphs: ℹ️ ✅ ⚠️ ❌ — advance measured 2026-11-08
+
+The owner's ruling of 2026-11-08: a toast's style leads with an emoji
+(`NotificationStyle.glyph`) — "it's fine that they're two cells wide … we can
+compensate for terminal clients which mess up the cursor". So these are
+claimed **two** cells, unlike every other chrome glyph, and are the corpus's
+`chrome_emoji` class: ℹ️ U+2139 U+FE0F and ⚠️ U+26A0 U+FE0F, whose bases are
+text by default and take the selector, are the VS-16 pictograph class (`⚠️`
+is the critical alert's sign, above); ✅ U+2705 and ❌ U+274C are emoji by
+default, East Asian Wide, and need none.
+
+**Advance measured with `advance_probe.py --only chrome_emoji_`** (a filter
+added for this: the four rows and the two calibration rows, not the whole
+battery), run in each host from a `.command` file on the alternate screen, on
+macOS 15.8; records `data/<host>-<version>-alternate-chrome-emoji.json`:
+
+| Host | Version | ℹ️ | ✅ | ⚠️ | ❌ |
+|---|---|---|---|---|---|
+| Apple Terminal | 455.1 | **1** | 2 | **1** | 2 |
+| iTerm2 | 3.7.6 | **1** | 2 | **1** | 2 |
+| Ghostty (mode 2027 set) | 1.4.0 | 2 | 2 | 2 | 2 |
+| Warp | v0.2026.10.21.08.25 | 2 | 2 | 2 | 2 |
+| GNOME Terminal, tmux, kitty | — | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+
+Each is what that host's model already predicts for the class, so the
+writer squares the two one-cell advances with `ECH(2)` + glyph + `CUF(1)`, as
+for any VS-16 pictograph, and the toast's border closes at the claimed width
+on every host measured; `ChromeGlyphAdvanceTests.emojiChromeAdvancesAsModelled`
+checks the model against the four records. The unmeasured hosts are covered
+by their class models only. Not gated on `supportsEmojiChrome`, which is about
+the VS-15 *monochrome* squares: these are drawn on every host, as the alert
+presets' marks are. **Colour:** an emoji is drawn in its own colours and
+ignores SGR, so the style's colour is the border's, and the meaning rests on
+the glyph's shape (and the border's colour beside it), never on the glyph's
+colour. **Ink** is the font's and unread. A terminal that shows only ASCII
+(`PlainTerminalText`) gets `!`, `i`, `ok` and `X`, in the style's colour.
+
 ### Underline shapes and colours (W11b) — read by the owner 2026-10-18
 
 `line_style_card.py` (session notes, `plan/e19/`) prints "Sample text" under

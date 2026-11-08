@@ -8,7 +8,9 @@ when unset), the visual/aspect probes print to the terminal.
 - `advance_probe.py` — DSR (`ESC[6n`) cursor-advance measurement of a
   grapheme-cluster battery + terminal-relevant environment dump (JSON).
   `PROBE_ALT=1` measures on the ALTERNATE screen (the app's buffer) —
-  iTerm2 advances some clusters differently there.
+  iTerm2 advances some clusters differently there. `--only PREFIX` measures
+  just the rows named `PREFIX…` (and the two calibration rows), for a partial
+  record of rows added since a host's last full one.
 - `page_clusters_probe.py` — measures every distinct cluster an APP ACTUALLY
   DRAWS, rather than a hand-picked battery: the battery only contains what
   somebody already thought to doubt. **This is the check that separates

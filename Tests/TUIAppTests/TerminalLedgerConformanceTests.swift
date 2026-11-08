@@ -244,6 +244,10 @@ struct TerminalLedgerConformanceTests {
         "chrome_enclosing_folder",
         // A switch's track under Lines, added 2026-10-24.
         "chrome_switch_knob_off", "chrome_switch_cap_open", "chrome_switch_cap_close",
+        // A toast's style glyphs, emoji, added 2026-11-08: advance read on four
+        // hosts (`ChromeGlyphAdvanceTests.emojiChromeAdvancesAsModelled`), landing
+        // and ink not. ⚠️'s class twin, `vs16_warning`, has all four facts.
+        "chrome_emoji_info", "chrome_emoji_success", "chrome_emoji_warning", "chrome_emoji_error",
     ]
 
     /// The completeness half the suite lacked: it flagged a measurement with

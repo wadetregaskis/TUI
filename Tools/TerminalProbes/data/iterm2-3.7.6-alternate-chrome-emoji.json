@@ -1,0 +1,51 @@
+{
+ "advances": {
+  "ascii_a": {
+   "advance": 1,
+   "cluster": "U+0061"
+  },
+  "chrome_emoji_error": {
+   "advance": 2,
+   "cluster": "U+274C"
+  },
+  "chrome_emoji_info": {
+   "advance": 1,
+   "cluster": "U+2139 U+FE0F"
+  },
+  "chrome_emoji_success": {
+   "advance": 2,
+   "cluster": "U+2705"
+  },
+  "chrome_emoji_warning": {
+   "advance": 1,
+   "cluster": "U+26A0 U+FE0F"
+  },
+  "cjk": {
+   "advance": 2,
+   "cluster": "U+4E2D"
+  }
+ },
+ "stamp": {
+  "env": {
+   "COLORFGBG": "0;15",
+   "COLORTERM": "truecolor",
+   "ITERM_PROFILE": "Default",
+   "ITERM_SESSION_ID": "w0t1p0:FA6ABFB9-8876-47CD-89D8-7F1DAA91B828",
+   "LC_TERMINAL": "iTerm2",
+   "LC_TERMINAL_VERSION": "3.7.6",
+   "TERM": "xterm-256color",
+   "TERMINFO_DIRS": "/Applications/iTerm.app/Contents/Resources/terminfo:/usr/share/terminfo",
+   "TERM_PROGRAM": "iTerm.app",
+   "TERM_PROGRAM_VERSION": "3.7.6",
+   "TERM_SESSION_ID": "w0t1p0:FA6ABFB9-8876-47CD-89D8-7F1DAA91B828",
+   "__CFBundleIdentifier": "com.googlecode.iterm2"
+  },
+  "machine": "arm64",
+  "measured": "2026-11-07T22:06:32-08:00",
+  "method": "DSR cursor report \u2014 confirm any disagreement with visual_card.py",
+  "mode_2027_grapheme_clustering": "permanently reset",
+  "os": "macOS 15.8.2",
+  "probe": "advance_probe.py",
+  "screen": "alternate"
+ }
+}

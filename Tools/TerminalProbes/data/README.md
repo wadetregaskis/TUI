@@ -3,7 +3,7 @@
 Written by a probe and never by hand. These are the evidence behind the
 tables in `Documentation/Terminals/Terminal compatibility survey.md`. The doc explains what
 the numbers *mean*; these say who measured what, when, and under which
-conditions. Twenty kinds of file live here:
+conditions. Twenty-one kinds of file live here:
 
 - **`width-corpus.json`** — the shared cluster corpus: every cluster the
   probes measure and the Swift tests ask about, one id per row, duplicated
@@ -11,6 +11,11 @@ conditions. Twenty kinds of file live here:
   two). A measurement always answers a question something asks.
 - **`<terminal>-<version>-<screen>.json`** — ADVANCE records
   (`advance_probe.py`): DSR cursor reports for the curated battery.
+- **`<terminal>-<version>-<screen>-<rows>.json`** — PARTIAL advance records
+  (`advance_probe.py --only PREFIX`): the same reports for the battery rows
+  named `PREFIX…` and the two calibration rows, for rows added since a host's
+  last full record, without re-taking the rest. `-chrome-emoji` holds a
+  toast's style glyphs (2026-11-08), read by `ChromeGlyphAdvanceTests`.
 - **`<terminal>-<version>-<screen>-landing.json`** — LANDING records
   (`landing_probe.py` + `landing_analyze.py`): per corpus row, all four
   facts — advance (DSR), landing and ink (pixels), reserve (the wrap test).

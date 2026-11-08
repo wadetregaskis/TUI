@@ -51,6 +51,15 @@ struct PlainTerminalTextTests {
         #expect(PlainTerminalText.folding("← → ▲ ▼") == "< > ^ v")
     }
 
+    @Test("A toast's and an alert's emoji marks come out as ASCII that says the same, in their two cells")
+    func emojiMarks() {
+        #expect(PlainTerminalText.folding("\u{26A0}\u{FE0F}") == "! ")
+        #expect(PlainTerminalText.folding("\u{2139}\u{FE0F}") == "i ")
+        #expect(PlainTerminalText.folding("\u{2705}") == "ok")
+        #expect(PlainTerminalText.folding("\u{274C}") == "X ")
+        #expect(PlainTerminalText.folding("\u{1F6D1}") == "X ")
+    }
+
     @Test("Escape sequences pass through, an OSC 8 link's address among them")
     func escapesAreKept() {
         let open = "\u{1B}]8;;https://example.com/é\u{1B}\\"

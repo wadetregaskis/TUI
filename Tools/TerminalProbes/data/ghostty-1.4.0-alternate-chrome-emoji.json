@@ -1,0 +1,46 @@
+{
+ "advances": {
+  "ascii_a": {
+   "advance": 1,
+   "cluster": "U+0061"
+  },
+  "chrome_emoji_error": {
+   "advance": 2,
+   "cluster": "U+274C"
+  },
+  "chrome_emoji_info": {
+   "advance": 2,
+   "cluster": "U+2139 U+FE0F"
+  },
+  "chrome_emoji_success": {
+   "advance": 2,
+   "cluster": "U+2705"
+  },
+  "chrome_emoji_warning": {
+   "advance": 2,
+   "cluster": "U+26A0 U+FE0F"
+  },
+  "cjk": {
+   "advance": 2,
+   "cluster": "U+4E2D"
+  }
+ },
+ "stamp": {
+  "env": {
+   "COLORTERM": "truecolor",
+   "GHOSTTY_RESOURCES_DIR": "/Applications/Ghostty.app/Contents/Resources/ghostty",
+   "TERM": "xterm-ghostty",
+   "TERMINFO": "/Applications/Ghostty.app/Contents/Resources/terminfo",
+   "TERM_PROGRAM": "ghostty",
+   "TERM_PROGRAM_VERSION": "1.4.0",
+   "__CFBundleIdentifier": "com.mitchellh.ghostty"
+  },
+  "machine": "arm64",
+  "measured": "2026-11-07T22:06:32-08:00",
+  "method": "DSR cursor report \u2014 confirm any disagreement with visual_card.py",
+  "mode_2027_grapheme_clustering": "set",
+  "os": "macOS 15.8.2",
+  "probe": "advance_probe.py",
+  "screen": "alternate"
+ }
+}

@@ -44,6 +44,9 @@ struct NotificationToast: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 1) {
                 if let glyph = entry.style.glyph {
+                    // Bold and in the style's colour, which an emoji ignores —
+                    // it is drawn in its own — but the ASCII a plain-text
+                    // terminal gets in its place (`PlainTerminalText`) keeps.
                     Text(verbatim: glyph).bold().foregroundStyle(entry.style.colour)
                 }
                 if let content = entry.content {

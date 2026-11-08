@@ -48,7 +48,7 @@ struct NotificationContentTests {
         clock.nanos.withLock { $0 += 1_000_000_000 }
         defer { clock.nanos.withLock { $0 += 3_600_000_000_000 } }
         let row = try #require(screen(service).first { $0.contains("Exported") })
-        #expect(row.contains("✓ Exported report.pdf"), "\(row)")
+        #expect(row.contains("\u{2705} Exported report.pdf"), "\(row)")
     }
 
     @Test("A toast's content is built each frame, so it shows what it reads now")

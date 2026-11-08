@@ -48,7 +48,8 @@ struct NotificationStyleTests {
     @Test(
         "Each style leads with its glyph, and plain with none",
         arguments: [
-            (NotificationStyle.plain, nil), (.info, "i"), (.success, "✓"), (.warning, "!"), (.error, "✗"),
+            (NotificationStyle.plain, nil), (.info, "\u{2139}\u{FE0F}"), (.success, "\u{2705}"),
+            (.warning, "\u{26A0}\u{FE0F}"), (.error, "\u{274C}"),
         ] as [(NotificationStyle, String?)])
     func glyph(style: NotificationStyle, glyph: String?) throws {
         let lines = screen("Message", style: style)
@@ -73,6 +74,17 @@ struct NotificationStyleTests {
         let expected = try #require(sgrState(of: "Z", in: reference.lines))
         #expect(drawn.foregroundColour == expected.foregroundColour)
         #expect(drawn.isBold)
+    }
+
+    @Test("Each glyph is an emoji two cells wide, in a form that is emoji everywhere", arguments: NotificationStyle.allCases)
+    func glyphIsTwoCellEmoji(style: NotificationStyle) throws {
+        guard let glyph = style.glyph else { return }
+        let character = try #require(glyph.count == 1 ? glyph.first : nil)
+        #expect(character.terminalWidth == 2, "\(glyph)")
+        // Emoji by presentation: by default (✅ ❌), or asked for with U+FE0F
+        // where the base is text by default (ℹ ⚠).
+        let base = try #require(character.unicodeScalars.first)
+        #expect(base.properties.isEmojiPresentation || character.unicodeScalars.contains("\u{FE0F}"), "\(glyph)")
     }
 
     @Test("A long message wraps inside the toast, every word kept")

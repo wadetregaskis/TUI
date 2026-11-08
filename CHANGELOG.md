@@ -46,9 +46,9 @@ stack taller than the window shows its newest toasts that fit, and no toast is c
 until something dismisses it. While toasts are up but none is fading, TUI no longer redraws the screen four times a second.
 
 **A notification can say what it is about.** `post("Upload failed", style: .error)` draws the toast's border and a
-leading glyph in the palette's colour for it: `.info` (`i`), `.success` (`✓`), `.warning` (`!`) or `.error` (`✗`). The
-glyph means the style never rests on colour alone. `.plain`, the default, looks as toasts did. A long message now wraps as
-any `Text` does.
+leading emoji: `.info` (ℹ️), `.success` (✅), `.warning` (⚠️) or `.error` (❌), the border in the palette's colour for
+it. The glyph's shape means the style never rests on colour alone; a terminal that shows only ASCII gets `i`, `ok`, `!`
+and `X`. `.plain`, the default, looks as toasts did. A long message now wraps as any `Text` does.
 
 **Notifications show with no host to add.** Every scene draws the toasts `NotificationService` holds over its content,
 between the window's bars and above any sheet or alert, so a post shows whatever the app's views are. A page smaller

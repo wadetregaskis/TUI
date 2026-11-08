@@ -164,6 +164,43 @@ struct ChromeGlyphAdvanceTests {
         }
     }
 
+    /// The emoji the framework draws as chrome — a toast's style glyphs,
+    /// `NotificationStyle` — claimed two cells, unlike every row above, and
+    /// so a class of their own (`chrome_emoji`). Read from records of their
+    /// own (`advance_probe.py --only chrome_emoji_`, 2026-11-08, alternate
+    /// screen), which took these rows and nothing else.
+    private static let emojiHosts: [(name: String, file: String, program: TerminalClient.Program)] = [
+        ("Ghostty", "ghostty-1.4.0-alternate-chrome-emoji.json", .ghostty),
+        ("iTerm2", "iterm2-3.7.6-alternate-chrome-emoji.json", .iTerm2),
+        ("Apple Terminal", "apple-terminal-455.1-alternate-chrome-emoji.json", .appleTerminal),
+        ("Warp", "warpterminal-v0.2026.10.21.08.25.stable_02-alternate-chrome-emoji.json", .warp),
+    ]
+
+    /// Where a host advances one a cell short of the claim — ℹ️ and ⚠️ on
+    /// iTerm2 and Apple Terminal, measured — the writer makes up the cell, and
+    /// it can only do that for an advance its model of the host predicts. So
+    /// the model is what is checked here, row by row, against what each host
+    /// did; the claim itself is two everywhere, which is what the layout uses.
+    @Test("Every host advances each emoji chrome glyph as its model says, so the writer makes up any shortfall")
+    func emojiChromeAdvancesAsModelled() throws {
+        let rows = WidthCorpus.clusters(in: "chrome_emoji")
+        #expect(rows.count == 4)
+        let directory = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Tools/TerminalProbes/data")
+        for host in Self.emojiHosts {
+            let data = try Data(contentsOf: directory.appendingPathComponent(host.file))
+            let advances = try JSONDecoder().decode(Record.self, from: data).advances
+            for row in rows {
+                let measured = try #require(advances[row.id], "\(host.name)/\(row.id): not in the record")
+                #expect(Character(row.text).terminalWidth == 2, "\(row.id) \(row.text)")
+                #expect(
+                    TerminalClient.cursorAdvance(of: Character(row.text), on: host.program) == measured.advance,
+                    "\(host.name)/\(row.id) \(row.text): the model is not what the host advanced (\(measured.advance))")
+            }
+        }
+    }
+
     @Test("The framework claims what the terminals do, unless that host's ink says otherwise")
     func theClaimCoversTheMeasurement() {
         for host in Self.records {

@@ -261,6 +261,11 @@ package enum TerminalWidthCorpus {
         Entry(id: "chrome_switch_knob_off", category: "chrome_glyph", text: "\u{25CB}"),  // ○ a capsule's off knob — EAW Ambiguous
         Entry(id: "chrome_switch_cap_open", category: "chrome_glyph", text: "\u{2997}"),  // ⦗ a rounded rectangle's cap — EAW Neutral
         Entry(id: "chrome_switch_cap_close", category: "chrome_glyph", text: "\u{2998}"),  // ⦘ — EAW Neutral
+        // A toast's style glyphs (NotificationStyle.glyph), added 2026-11-08: emoji, claimed two cells.
+        Entry(id: "chrome_emoji_info", category: "chrome_emoji", text: "\u{2139}\u{FE0F}"),  // ℹ️ VS-16 on a text-default base
+        Entry(id: "chrome_emoji_success", category: "chrome_emoji", text: "\u{2705}"),  // ✅ emoji by default — EAW Wide
+        Entry(id: "chrome_emoji_warning", category: "chrome_emoji", text: "\u{26A0}\u{FE0F}"),  // ⚠️ VS-16, as vs16_warning
+        Entry(id: "chrome_emoji_error", category: "chrome_emoji", text: "\u{274C}"),  // ❌ emoji by default — EAW Wide
     ]
 
     /// Entries of one category.
@@ -371,6 +376,12 @@ package enum TerminalWidthCorpus {
                 + "and for these a wide claim would never have been the remedy anyway. "
                 + "↗ ⊘, the drop-operation badges added 2026-10-13: advance 1 on four hosts "
                 + "and tmux by `advance_probe.py`, no record rewritten; ink UNMEASURED.",
+        "chrome_emoji":
+            "The emoji the framework draws as chrome — a toast's style glyphs ℹ️ ✅ ⚠️ ❌ — "
+                + "claimed TWO cells, unlike `chrome_glyph`. ℹ️ ⚠️ are the vs16_pictograph class, "
+                + "✅ ❌ the wide_symbol class. ADVANCE measured 2026-11-08 on the alternate screen: "
+                + "2 for all four on Ghostty and Warp; ✅ ❌ 2 and ℹ️ ⚠️ 1 on iTerm2 and Apple "
+                + "Terminal, as each host's model says, so the writer makes up the cell. Ink UNMEASURED.",
         "combining":
             "Base + combining mark(s) (NFD é, and one with three stacked): one cell, "
                 + "agreed everywhere — the marks are Mn and advance nothing.",
