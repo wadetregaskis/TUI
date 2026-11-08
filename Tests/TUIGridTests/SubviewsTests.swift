@@ -288,12 +288,12 @@ struct SubviewsTests {
         // than served from the per-pass memos — slower, never wrong. The
         // wrappers and layouts this wave added hold nothing of the kind, so
         // they must not bypass too.
-        let plans = unsafe ValueHashPlans()
-        unsafe #expect(plans.plan(for: Subview.self).pointee.shape == .bypass)
-        unsafe #expect(plans.plan(for: _ContainerValueView<Text>.self).pointee.shape != .bypass)
-        unsafe #expect(plans.plan(for: GroupElementsOfContent<Text, Text>.self).pointee.shape != .bypass)
-        unsafe #expect(plans.plan(for: GridLayout.self).pointee.shape != .bypass)
-        unsafe #expect(plans.plan(for: ViewSpacing.self).pointee.shape != .bypass)
+        let plans = ValueHashPlans()
+        #expect(plans.plan(for: Subview.self).shape == .bypass)
+        #expect(plans.plan(for: _ContainerValueView<Text>.self).shape != .bypass)
+        #expect(plans.plan(for: GroupElementsOfContent<Text, Text>.self).shape != .bypass)
+        #expect(plans.plan(for: GridLayout.self).shape != .bypass)
+        #expect(plans.plan(for: ViewSpacing.self).shape != .bypass)
     }
 
     @Test("The sizing options are plain values")

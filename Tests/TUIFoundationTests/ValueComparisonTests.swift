@@ -18,7 +18,7 @@ import Testing
 @MainActor
 @Suite("Comparing two values from their type alone")
 struct ValueComparisonTests {
-    private let plans = unsafe ValueHashPlans()
+    private let plans = ValueHashPlans()
 
     private func same<T>(_ left: T, _ right: T, strict: Bool = false) -> Bool? {
         plans.comparison(for: T.self)?.equal(left, right, strict: strict, plans: plans)

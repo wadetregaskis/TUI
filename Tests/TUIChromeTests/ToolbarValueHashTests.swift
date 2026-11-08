@@ -18,15 +18,15 @@ import TUIChrome
 @MainActor
 @Suite("Toolbar values in the value hash")
 struct ToolbarValueHashTests {
-    private let plans = unsafe ValueHashPlans()
+    private let plans = ValueHashPlans()
 
     private func hash<V>(_ value: V) -> Int? {
         withUnsafePointer(to: value) { unsafe plans.valueHash(at: $0) }
     }
 
     private func expectHashed(_ type: Any.Type, sourceLocation: SourceLocation = #_sourceLocation) {
-        let plan = unsafe plans.plan(for: type).pointee
-        unsafe #expect(plan.shape != .bypass, "\(type): \(plan.bypassReason ?? "")", sourceLocation: sourceLocation)
+        let plan = plans.plan(for: type)
+        #expect(plan.shape != .bypass, "\(type): \(plan.bypassReason ?? "")", sourceLocation: sourceLocation)
     }
 
     @Test("Every item placement is read by the value hash, an accessory bar's too")

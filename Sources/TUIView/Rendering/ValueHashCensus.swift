@@ -54,15 +54,15 @@ package struct ValueHashCensus {
     }
 
     /// Counts one lookup of `type` by `plan`, which answered `hashed`.
-    mutating func note(_ type: Any.Type, plan: UnsafePointer<ValueHashPlan>, hashed: Bool) {
+    mutating func note(_ type: Any.Type, plan: ValueHashPlan, hashed: Bool) {
         defer { stepBypass = nil }
         guard hashed else {
             bypass += 1
-            let why = plan.pointee.bypassReason ?? "a step found a part it cannot hash: \(stepBypass ?? "?")"
+            let why = plan.bypassReason ?? "a step found a part it cannot hash: \(stepBypass ?? "?")"
             bypassTypes["\(type) — \(why)", default: 0] += 1
             return
         }
-        switch plan.pointee.shape {
+        switch plan.shape {
         case .dense: dense += 1
         case .runs: runs += 1
         case .steps:

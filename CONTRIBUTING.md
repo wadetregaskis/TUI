@@ -474,8 +474,10 @@ radix: 16, uppercase: true)`), not a printf format, which is unsafe.
 
 A type holding unsafe storage must say so. `@safe`, which claims the storage
 encapsulated and silences the checker at every use, is refused by the SwiftLint
-rule `safe_escape`; the one exception (`ValueHashPlans`) says why on its line,
-and `Tools/check-ratchets.py` caps the count. In order of preference:
+rule `safe_escape`, and `Tools/check-ratchets.py` holds the exceptions at none
+(`ValueHashPlans`, the last, moved to arrays on 2026-11-08: [Strict memory
+safety](<Documentation/Historical/Swift language and platforms/Strict memory safety.md>)).
+In order of preference:
 
 - **No unsafe storage.** State a class reached through a pointer, to skip
   the run-time exclusivity check, is a stored variable marked

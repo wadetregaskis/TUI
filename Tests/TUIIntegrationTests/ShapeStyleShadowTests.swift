@@ -246,9 +246,9 @@ struct ShapeStyleShadowTests {
 
     @Test("A view holding a shadowed style keeps a value hash, so the render memo can keep it")
     func memoReadsTheShadowedStyle() {
-        let plans = unsafe ValueHashPlans()
+        let plans = ValueHashPlans()
         let type = type(of: Rectangle().fill(Color.red.shadow(.drop(radius: 1, x: 1, y: 1))))
-        let plan = unsafe plans.plan(for: type).pointee
-        unsafe #expect(plan.shape != .bypass, "\(plan.bypassReason ?? "")")
+        let plan = plans.plan(for: type)
+        #expect(plan.shape != .bypass, "\(plan.bypassReason ?? "")")
     }
 }

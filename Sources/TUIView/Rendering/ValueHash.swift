@@ -53,11 +53,11 @@ func viewValueHash<V: View>(_ view: V, plans: ValueHashPlans) -> Int? {
     // lookup replaces cost `deep` +2.7% and `modifiers` +4.6%, and hoisting
     // the loop into a second function so the gate could `return` it cost
     // another point. Only a plan that is not dense leaves the function.
-    let plan = unsafe plans.plan(for: V.self)
-    if unsafe plan.pointee.shape != .dense { plans.armStackCheck() }
-    let hash = unsafe valueHash(of: view, plan: plan, plans: plans)
+    let entry = plans.entry(for: V.self)
+    if entry.shape != .dense { plans.armStackCheck() }
+    let hash = valueHash(of: view, entry: entry, plans: plans)
     #if TUI_VALUE_HASH_CENSUS
-    plans.census.note(V.self, plan: plan, hashed: hash != nil)
+    plans.census.note(V.self, plan: plans.plan(for: V.self), hashed: hash != nil)
     #endif
     return hash
 }
@@ -69,11 +69,11 @@ func viewValueHash<V: View>(_ view: V, plans: ValueHashPlans) -> Int? {
 /// ``ValueHashPlans``). Always inlined, so it is still the one function the
 /// hot path's shape was measured as.
 @inline(__always)
-private func valueHash<V: View>(of view: V, plan: UnsafePointer<ValueHashPlan>, plans: ValueHashPlans) -> Int? {
+private func valueHash<V: View>(of view: V, entry: ValueHashPlans.Entry, plans: ValueHashPlans) -> Int? {
     withUnsafeBytes(of: view) { bytes in
-        guard unsafe plan.pointee.shape == .dense else {
+        guard entry.shape == .dense else {
             // Not dense, so not empty: the value has bytes, and an address.
-            return unsafe plans.hashByPlan(bytes.baseAddress.unsafelyUnwrapped, plan)
+            return unsafe plans.hashByPlan(bytes.baseAddress.unsafelyUnwrapped, entry)
         }
         return unsafe hashOfRawBytes(bytes)
     }

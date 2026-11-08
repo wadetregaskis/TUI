@@ -110,9 +110,9 @@ struct MeshGradientValueTests {
     @MainActor
     @Test("The value hash reads a mesh whole, as a view and as a background")
     func memoReadsAMesh() {
-        let plans = unsafe ValueHashPlans()
-        unsafe #expect(plans.plan(for: MeshGradient.self).pointee.shape == .dense)
-        unsafe #expect(plans.plan(for: BackgroundModifier<MeshGradient>.self).pointee.shape == .dense)
+        let plans = ValueHashPlans()
+        #expect(plans.plan(for: MeshGradient.self).shape == .dense)
+        #expect(plans.plan(for: BackgroundModifier<MeshGradient>.self).shape == .dense)
     }
 
     @Test("Resolved colours paint as the colours they resolve to")

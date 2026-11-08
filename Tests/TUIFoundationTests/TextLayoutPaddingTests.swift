@@ -36,10 +36,10 @@ struct TextLayoutPaddingTests {
     @MainActor
     @Test("The value hash reads a Text whole, at the size it had")
     func readWhole() {
-        let plans = unsafe ValueHashPlans()
-        unsafe #expect(plans.plan(for: Text.self).pointee.shape == .dense)
-        unsafe #expect(plans.plan(for: TextStyle.self).pointee.shape == .dense)
-        unsafe #expect(plans.plan(for: FlexibleFrameView<Text>.self).pointee.shape == .dense)
+        let plans = ValueHashPlans()
+        #expect(plans.plan(for: Text.self).shape == .dense)
+        #expect(plans.plan(for: TextStyle.self).shape == .dense)
+        #expect(plans.plan(for: FlexibleFrameView<Text>.self).shape == .dense)
         // 40 and 64 since the lines' patterns and colours (W11b, 2026-10-18):
         // the underline and strikethrough flags became lines of five bytes
         // each, pattern and colour value, at the style's byte-aligned tail —

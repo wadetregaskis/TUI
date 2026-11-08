@@ -682,7 +682,7 @@ import TUIStyling
 
     /// Creates an empty render cache.
     public convenience init() {
-        unsafe self.init(valueHashPlans: ValueHashPlans())
+        self.init(valueHashPlans: ValueHashPlans())
     }
 
     /// Creates an empty render cache whose memos key views by `valueHashPlans`

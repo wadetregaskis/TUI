@@ -189,17 +189,15 @@ private struct HoldsExistentialMetatypes: View {
 @MainActor
 @Suite("A type's value-hash plan reads only the bytes its values define")
 struct ValueHashPlanTests {
-    /// The table the plans below are read from. It owns their storage, so it
-    /// lives as long as the test does: a plan read from a table that has gone
-    /// is read from freed memory.
-    private let plans = unsafe ValueHashPlans()
+    /// The table the plans below are read from.
+    private let plans = ValueHashPlans()
 
     private func plan(_ type: Any.Type) -> ValueHashPlan {
-        unsafe plan(type, in: plans)
+        plan(type, in: plans)
     }
 
     private func plan(_ type: Any.Type, in plans: ValueHashPlans) -> ValueHashPlan {
-        unsafe plans.plan(for: type).pointee
+        plans.plan(for: type)
     }
 
     /// `0..<size` less `gaps`, as ranges.
@@ -219,24 +217,24 @@ struct ValueHashPlanTests {
     @Test("A padded view in a wrapper reads exactly the bytes that are not padding")
     func paddedWrapper() {
         let type = type(of: PaddedRow(flag: true, count: 1).padding(1))
-        let found = unsafe plan(type)
+        let found = plan(type)
         let gaps = interiorPadding(of: type)
         #expect(!gaps.isEmpty)
-        unsafe #expect(found.shape == .runs)
-        unsafe #expect(found.definedRanges == complement(of: gaps, in: found.size))
+        #expect(found.shape == .runs)
+        #expect(found.definedRanges == complement(of: gaps, in: found.size))
     }
 
     @Test("A padding-free struct is dense: hashed as it lies, word by word")
     func denseStruct() {
-        unsafe #expect(plan(FlexibleFrameView<EmptyView>.self).shape == .dense)
-        unsafe #expect(plan((Int, Int).self).shape == .dense)
-        unsafe #expect(plan(EmptyView.self).shape == .dense)
+        #expect(plan(FlexibleFrameView<EmptyView>.self).shape == .dense)
+        #expect(plan((Int, Int).self).shape == .dense)
+        #expect(plan(EmptyView.self).shape == .dense)
     }
 
     @Test("A tuple's padding is skipped as a struct's is")
     func paddedTuple() {
-        let found = unsafe plan((Bool, Int, UInt8, Int32).self)
-        unsafe #expect(found.definedRanges == [0..<1, 8..<17, 20..<24])
+        let found = plan((Bool, Int, UInt8, Int32).self)
+        #expect(found.definedRanges == [0..<1, 8..<17, 20..<24])
     }
 
     @Test("A field of no size has nothing to read, wherever the runtime puts it")
@@ -244,10 +242,10 @@ struct ValueHashPlanTests {
         // Offset 0 for both empty fields, under `count`: taken as an overlap,
         // this bypassed a view with nothing wrong with it.
         #expect(RuntimeFields.fields(of: HoldsMarker.self).map(\.offset) == [0, 0, 0])
-        unsafe #expect(plan(HoldsMarker.self).shape == .dense)
+        #expect(plan(HoldsMarker.self).shape == .dense)
         // A tuple's layout is worked out at run time, which puts an empty
         // element at the end so far instead.
-        unsafe #expect(plan((Int, Marker, UInt8).self).definedRanges == [0..<9])
+        #expect(plan((Int, Marker, UInt8).self).definedRanges == [0..<9])
     }
 
     /// The runtime's field list for a struct imported from C is the one the
@@ -257,13 +255,13 @@ struct ValueHashPlanTests {
     @Test("A gap in a struct imported from C is never taken for padding")
     func importedStructGaps() {
         #expect(RuntimeFields.fields(of: CTestBitfields.self).map(\.offset) == [0, 4])
-        let found = unsafe plan(HoldsBitfields.self)
-        unsafe #expect(found.shape == .bypass)
-        unsafe #expect(found.bypassReason?.contains("imported from C") == true, "\(found.bypassReason ?? "")")
+        let found = plan(HoldsBitfields.self)
+        #expect(found.shape == .bypass)
+        #expect(found.bypassReason?.contains("imported from C") == true, "\(found.bypassReason ?? "")")
         // Real padding in an imported struct looks the same, and costs a hit.
-        unsafe #expect(plan(CTestPadded.self).shape == .bypass)
+        #expect(plan(CTestPadded.self).shape == .bypass)
         // An imported struct with no gap is read as any other.
-        unsafe #expect(plan(timespec.self).shape == .dense)
+        #expect(plan(timespec.self).shape == .dense)
         // Values that differ only in a bitfield must not share a key.
         var first = CTestBitfields()
         first.c = 1
@@ -296,11 +294,11 @@ struct ValueHashPlanTests {
         #expect(MemoryLayout<Int?>.size == MemoryLayout<Int>.size + 1)
         #expect(MemoryLayout<Int??>.size == MemoryLayout<Int?>.size + 1)
         for type in [Int?.self, Int??.self, Date?.self, (UInt8, UInt8)?.self, EmptyView?.self] as [Any.Type] {
-            unsafe #expect(plan(type).shape == .dense, "\(type)")
+            #expect(plan(type).shape == .dense, "\(type)")
         }
         // One scalar whose spare values spell nil, written whole.
         for type in [Bool?.self, [Int]?.self, Referent?.self, Bool??.self] as [Any.Type] {
-            unsafe #expect(plan(type).shape == .dense, "\(type)")
+            #expect(plan(type).shape == .dense, "\(type)")
         }
     }
 
@@ -310,9 +308,9 @@ struct ValueHashPlanTests {
         // left as it was: the string's first word, a closure's context, the
         // word after a padded row's flag, an existential's buffer.
         for type in [String?.self, (() -> Void)?.self, PaddedRow?.self, AnyView?.self] as [Any.Type] {
-            let found = unsafe plan(type)
-            unsafe #expect(found.shape == .steps, "\(type)")
-            unsafe #expect(found.stepDescriptions == ["0: \(type)"], "\(type)")
+            let found = plan(type)
+            #expect(found.shape == .steps, "\(type)")
+            #expect(found.stepDescriptions == ["0: \(type)"], "\(type)")
         }
         // One builtin, but wider than a word: only scalars of a word or less
         // are measured to write their `nil` whole.
@@ -325,26 +323,26 @@ struct ValueHashPlanTests {
 
     @Test("A conditional reads its branch by a switch; an erased view opens its content")
     func conditionalAndErased() {
-        unsafe #expect(plan(ConditionalView<EmptyView, EmptyView>.self).stepDescriptions
+        #expect(plan(ConditionalView<EmptyView, EmptyView>.self).stepDescriptions
             == ["0: ConditionalView<EmptyView, EmptyView>"])
-        unsafe #expect(plan(AnyView.self).stepDescriptions == ["0: existential view"])
+        #expect(plan(AnyView.self).stepDescriptions == ["0: existential view"])
     }
 
     @Test("An existential field is opened through its static type, never read from its container")
     func existentialFields() {
-        unsafe #expect(plan(AnyEquatableBox.self).stepDescriptions == ["0: existential equatable"])
-        let found = unsafe plan(HoldsExistentials.self)
-        unsafe #expect(found.definedRanges == [0..<1])
-        unsafe #expect(found.stepDescriptions.count == 2)
-        unsafe #expect(found.stepDescriptions.last == "48: existential any")
+        #expect(plan(AnyEquatableBox.self).stepDescriptions == ["0: existential equatable"])
+        let found = plan(HoldsExistentials.self)
+        #expect(found.definedRanges == [0..<1])
+        #expect(found.stepDescriptions.count == 2)
+        #expect(found.stepDescriptions.last == "48: existential any")
     }
 
     @Test("A weak or unowned reference is read as its bytes, never loaded as the type it is declared as")
     func weakField() {
         #expect(RuntimeFields.fields(of: HoldsWeak.self).map(\.isStrong) == [false, false, false, false, true])
-        let found = unsafe plan(HoldsWeak.self)
-        unsafe #expect(found.shape == .dense)
-        unsafe #expect(found.stepDescriptions.isEmpty)
+        let found = plan(HoldsWeak.self)
+        #expect(found.shape == .dense)
+        #expect(found.stepDescriptions.isEmpty)
     }
 
     // MARK: Metatypes
@@ -371,13 +369,13 @@ struct ValueHashPlanTests {
             HoldsGenericMetatype<Referent>.self, HoldsMetatypeOptionalAlone.self, Int.Type?.self,
         ]
         for type in types {
-            let found = unsafe plan(type)
-            unsafe #expect(found.shape == .bypass, "\(type)")
-            unsafe #expect(found.bypassReason?.contains("a metatype") == true, "\(type): \(found.bypassReason ?? "")")
+            let found = plan(type)
+            #expect(found.shape == .bypass, "\(type)")
+            #expect(found.bypassReason?.contains("a metatype") == true, "\(type): \(found.bypassReason ?? "")")
         }
         // An existential metatype is a pointer (and its witness tables)
         // wherever it is stored.
-        unsafe #expect(plan(HoldsExistentialMetatypes.self).shape == .dense)
+        #expect(plan(HoldsExistentialMetatypes.self).shape == .dense)
     }
 
     @Test("Views that differ only in a metatype's optional never share a key, and none hashes padding")
@@ -404,8 +402,8 @@ struct ValueHashPlanTests {
         #expect(stored < wide)
         #expect(MemoryLayout<(TupleChoice, Int.Type)?>.size > stored)
         #expect(RuntimeFields.fields(of: (TupleChoice, Int.Type).self).last?.offset ?? 0 >= stored)
-        let found = unsafe plan(HoldsMetatypeBehindABypass.self)
-        unsafe #expect(found.shape == .bypass, "\(found.stepDescriptions)")
+        let found = plan(HoldsMetatypeBehindABypass.self)
+        #expect(found.shape == .bypass, "\(found.stepDescriptions)")
         // The padding between the optional and `wide`, filled alike in both.
         let some = hashes(
             of: HoldsMetatypeBehindABypass(pair: (.number(5), Int.self), wide: .zero), filling: [stored..<wide],
@@ -425,7 +423,7 @@ struct ValueHashPlanTests {
     /// under the next.
     @Test("A table handed to several caches plans each type once")
     func tableOutlivesItsCaches() {
-        let shared = unsafe ValueHashPlans()
+        let shared = ValueHashPlans()
         func measureOnce(in cache: RenderCache) {
             var context = makeRenderContext(width: 40, height: 10)
             context.environment.renderCache = cache
@@ -492,36 +490,36 @@ struct ValueHashPlanTests {
 
     @Test("A payload enum that has not opted in bypasses, and says where")
     func payloadEnumsBypass() {
-        let result = unsafe plan(Result<Int, any Error>.self)
-        unsafe #expect(result.shape == .bypass)
-        unsafe #expect(result.bypassReason?.contains("payload enum") == true)
-        unsafe #expect(plan(Choice.self).shape == .bypass)
-        unsafe #expect(plan(Generic<Int>.self).shape == .bypass)
+        let result = plan(Result<Int, any Error>.self)
+        #expect(result.shape == .bypass)
+        #expect(result.bypassReason?.contains("payload enum") == true)
+        #expect(plan(Choice.self).shape == .bypass)
+        #expect(plan(Generic<Int>.self).shape == .bypass)
     }
 
     @Test("A constrained existential bypasses")
     func constrainedExistentialBypasses() {
-        unsafe #expect(plan(HoldsConstrainedExistential.self).shape == .bypass)
+        #expect(plan(HoldsConstrainedExistential.self).shape == .bypass)
     }
 
     @Test("A struct whose field metadata was stripped bypasses")
     func strippedMetadataBypasses() {
-        let stripped = unsafe ValueHashPlans(builder: ValueHashPlanBuilder(listFields: { _ in [] }))
-        let found = unsafe plan(PaddedRow.self, in: stripped)
-        unsafe #expect(found.shape == .bypass)
-        unsafe #expect(found.bypassReason?.contains("no field metadata") == true)
+        let stripped = ValueHashPlans(listFields: { _ in [] })
+        let found = plan(PaddedRow.self, in: stripped)
+        #expect(found.shape == .bypass)
+        #expect(found.bypassReason?.contains("no field metadata") == true)
         // A type of no size has nothing to read, stripped or not.
-        unsafe #expect(plan(EmptyView.self, in: stripped).shape == .dense)
+        #expect(plan(EmptyView.self, in: stripped).shape == .dense)
     }
 
     @Test("A non-generic trivial enum that opts in is read whole; a struct or a generic enum carrying the marker bypasses")
     func allBytesDefinedMarker() {
-        unsafe #expect(plan(MarkedChoice.self).shape == .dense)
-        let marked = unsafe plan(MarkedStruct.self)
-        unsafe #expect(marked.shape == .bypass)
-        let generic = unsafe plan(MarkedGeneric<Int>.self)
-        unsafe #expect(generic.shape == .bypass)
-        unsafe #expect(generic.bypassReason?.contains("not a trivial non-generic enum") == true, "\(generic.bypassReason ?? "")")
+        #expect(plan(MarkedChoice.self).shape == .dense)
+        let marked = plan(MarkedStruct.self)
+        #expect(marked.shape == .bypass)
+        let generic = plan(MarkedGeneric<Int>.self)
+        #expect(generic.shape == .bypass)
+        #expect(generic.bypassReason?.contains("not a trivial non-generic enum") == true, "\(generic.bypassReason ?? "")")
     }
 
     // MARK: Coverage
@@ -533,8 +531,8 @@ struct ValueHashPlanTests {
             Date?.self, UUID.self, URL.self, Bool.self, Double.self, Int.self,
         ]
         for type in types {
-            let found = unsafe plan(type)
-            unsafe #expect(found.shape != .bypass, "\(type): \(found.bypassReason ?? "")")
+            let found = plan(type)
+            #expect(found.shape != .bypass, "\(type): \(found.bypassReason ?? "")")
         }
     }
 
@@ -556,8 +554,8 @@ struct ValueHashPlanTests {
         struct Padded {
             var pairs: InlineArray<2, (UInt8, Int)> = [(1, 2), (3, 4)]
         }
-        unsafe #expect(plan(Bytes.self).shape == .dense, "\(plan(Bytes.self).bypassReason ?? "")")
-        unsafe #expect(plan(Padded.self).shape == .runs, "\(plan(Padded.self).bypassReason ?? "")")
+        #expect(plan(Bytes.self).shape == .dense, "\(plan(Bytes.self).bypassReason ?? "")")
+        #expect(plan(Padded.self).shape == .runs, "\(plan(Padded.self).bypassReason ?? "")")
         func hash<T>(_ value: T) -> Int? { withUnsafePointer(to: value) { unsafe plans.valueHash(at: $0) } }
         var other = Bytes()
         other.bytes[2] = 9
@@ -582,8 +580,8 @@ struct ValueHashPlanTests {
     @Test("A navigation destination names its type by identifier, not by a metatype, and is read whole")
     func navigationDestination() {
         let modified = EmptyView().navigationDestination(for: Int.self) { _ in EmptyView() }
-        let found = unsafe plan(type(of: modified))
-        unsafe #expect(found.shape == .dense, "\(found.bypassReason ?? "")")
+        let found = plan(type(of: modified))
+        #expect(found.shape == .dense, "\(found.bypassReason ?? "")")
     }
 
     /// The property the plans exist for, over a corpus of the framework's own
@@ -601,9 +599,9 @@ struct ValueHashPlanTests {
             (Bool, Int, UInt8, Int32).self, HoldsExistentials.self, HoldsWeak.self,
         ]
         for type in corpus {
-            let found = unsafe plan(type, in: plans)
+            let found = plan(type, in: plans)
             let gaps = interiorPadding(of: type)
-            for run in unsafe found.definedRanges {
+            for run in found.definedRanges {
                 #expect(!gaps.contains { $0.overlaps(run) }, "\(type): run \(run) overlaps padding \(gaps)")
             }
         }
@@ -683,7 +681,7 @@ struct ValueHashPlanTests {
             TrackStyle.self, SegmentColoring.self, StyleScope.self, TrackConfiguration.Background.self,
         ]
         for type in types {
-            unsafe #expect(plan(type).stepDescriptions == ["0: \(type)"], "\(type)")
+            #expect(plan(type).stepDescriptions == ["0: \(type)"], "\(type)")
         }
         let styles: [TrackStyle] = [
             .bar, .block, .shadeRamp(gradient: nil), .shadeRamp(gradient: Gradient(colors: [.red, .blue])),
@@ -726,17 +724,18 @@ struct ValueHashPlanTests {
 
     // MARK: The table
 
-    @Test("The table grows past a quarter full and every plan stays where it was")
+    @Test("The table grows past a quarter full and finds every plan it filed before")
     func tableGrows() {
-        let first = unsafe plans.plan(for: PaddedRow.self)
+        let first = plans.plan(for: PaddedRow.self).definedRanges
         var types: [Any.Type] = []
         // Seventy distinct types: past a quarter of the 256 slots it starts with.
         for depth in 0..<70 {
             types.append(nestedTuple(depth))
         }
-        for type in types { _ = unsafe plans.plan(for: type) }
+        for type in types { _ = plans.plan(for: type) }
         #expect(plans.count == 71)
-        unsafe #expect(plans.plan(for: PaddedRow.self) == first)
+        #expect(plans.plan(for: PaddedRow.self).definedRanges == first)
+        #expect(plans.count == 71)
     }
 
     /// A distinct tuple type per `depth`.

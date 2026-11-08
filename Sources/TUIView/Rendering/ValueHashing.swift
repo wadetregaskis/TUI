@@ -120,43 +120,43 @@ func isNone<Wrapped>(_ value: borrowing Wrapped?) -> Bool {
 /// Every way mixes the same words — the payload's type, then the payload by
 /// its plan — so which one a table uses changes what a hash costs, never what
 /// it is.
-@unsafe enum ExistentialField: CustomStringConvertible {
+enum ExistentialField: CustomStringConvertible {
     case any
     case view
     case equatable
     case hashable
     case palette
-    case opener(ValueHashOpener)
+    case opener(any ValueHashOpener.Type)
     case other(Any.Type)
 
     /// The opener for a field whose static type is `type`, an existential,
     /// given the openers a plan table was made with.
-    init(_ type: Any.Type, openers: [ObjectIdentifier: ValueHashOpener] = unsafe [:]) {
+    init(_ type: Any.Type, openers: [ObjectIdentifier: any ValueHashOpener.Type] = [:]) {
         if type == Any.self {
-            unsafe self = unsafe .any
+            self = .any
         } else if type == (any View).self {
-            unsafe self = unsafe .view
+            self = .view
         } else if type == (any Equatable).self {
-            unsafe self = unsafe .equatable
+            self = .equatable
         } else if type == (any Hashable).self {
-            unsafe self = unsafe .hashable
+            self = .hashable
         } else if type == (any Palette).self {
-            unsafe self = unsafe .palette
-        } else if let opener = unsafe openers[ObjectIdentifier(type)] {
-            unsafe self = unsafe .opener(opener)
+            self = .palette
+        } else if let opener = openers[ObjectIdentifier(type)] {
+            self = .opener(opener)
         } else {
-            unsafe self = unsafe .other(type)
+            self = .other(type)
         }
     }
 
     var description: String {
-        switch unsafe self {
+        switch self {
         case .any: "any"
         case .view: "view"
         case .equatable: "equatable"
         case .hashable: "hashable"
         case .palette: "palette"
-        case .opener(let opener): unsafe "opened by \(opener)"
+        case .opener(let opener): "opened by \(opener.existential)"
         case .other(let type): "cast from \(type)"
         }
     }
@@ -164,7 +164,7 @@ func isNone<Wrapped>(_ value: borrowing Wrapped?) -> Bool {
     /// Mixes the existential at `pointer` into `hash`: its payload's dynamic
     /// type, then the payload by that type's plan.
     func mix(at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans) -> Bool {
-        switch unsafe self {
+        switch self {
         case .any:
             return unsafe mixOpenedAny(pointer.assumingMemoryBound(to: Any.self).pointee, into: &hash, plans: plans)
         case .view:
@@ -179,7 +179,7 @@ func isNone<Wrapped>(_ value: borrowing Wrapped?) -> Bool {
             return unsafe mixOpenedPalette(
                 pointer.assumingMemoryBound(to: (any Palette).self).pointee, into: &hash, plans: plans)
         case .opener(let opener):
-            return unsafe opener.mix(pointer, &hash, plans)
+            return unsafe opener.mix(at: pointer, into: &hash, plans: plans)
         case .other(let staticType):
             return unsafe mixExistential(at: pointer, staticType: staticType, into: &hash, plans: plans)
         }
@@ -299,29 +299,27 @@ private func mixDynamic<Existential>(_ value: Existential, into hash: inout UInt
 /// TUI's `ButtonStyle`, say, held by every `.buttonStyle(_:)`'s modifier.
 /// Without one, such a field is opened by a cast (``ExistentialField``).
 ///
-/// `mix` is handed the field's address, loads it as `Existential` and passes
-/// it to a generic function CONSTRAINED to the protocol, which is what makes
-/// Swift open it, and that calls ``mixOpened(_:into:plans:)`` with the payload
-/// — the same words the cast would have mixed. (Passed to an unconstrained
-/// one, an existential binds the parameter to itself, and its payload's type
-/// is never seen.) A test holds every opener TUI registers to the cast's
-/// answer. Nonisolated, as every step is: a closure written where it is
-/// isolated to the main actor would check the executor on every call (see
-/// ``ValueHashPlans``).
-@unsafe package struct ValueHashOpener: CustomStringConvertible {
+/// ``mix(at:into:plans:)`` is handed the field's address, loads it as
+/// ``existential`` and passes it to a generic function CONSTRAINED to the
+/// protocol, which is what makes Swift open it, and that calls
+/// ``mixOpened(_:into:plans:)`` with the payload — the same words the cast
+/// would have mixed. (Passed to an unconstrained one, an existential binds the
+/// parameter to itself, and its payload's type is never seen.) A test holds
+/// every opener TUI registers to the cast's answer. Nonisolated, as every step
+/// is: a witness isolated to the main actor would check the executor on every
+/// call (see ``ValueHashPlans``).
+///
+/// A plan table holds openers as metatypes: a caseless enum conforms, and the
+/// table keeps no closure — nothing it must release, and a step that copies
+/// one out of its list retains nothing. A closure taking the field's address
+/// would make every type holding one unsafe (strict memory safety).
+package protocol ValueHashOpener {
     /// The existential's static type.
-    let type: Any.Type
-    let mix: (UnsafeRawPointer, inout UInt64, ValueHashPlans) -> Bool
+    static var existential: Any.Type { get }
 
-    /// An opener for fields of static type `type`, an existential.
-    package init<Existential>(
-        _ type: Existential.Type, mix: @escaping (UnsafeRawPointer, inout UInt64, ValueHashPlans) -> Bool
-    ) {
-        unsafe self.type = type
-        unsafe self.mix = unsafe mix
-    }
-
-    package var description: String { unsafe "\(type)" }
+    /// Mixes the existential of type ``existential`` at `pointer` into `hash`,
+    /// opened; `false` when its payload cannot be hashed.
+    static func mix(at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans) -> Bool
 }
 
 // MARK: - Colours

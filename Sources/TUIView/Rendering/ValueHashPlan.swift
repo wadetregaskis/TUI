@@ -12,8 +12,10 @@ import TUICore
 
 /// How the value hash reads one type's values: the runs of bytes every value
 /// defines, and the parts only typed Swift can read. Built once per type, from
-/// the type alone (``ValueHashPlanBuilder``), and kept by ``ValueHashPlans``.
-@unsafe package struct ValueHashPlan {
+/// the type alone (``ValueHashPlanBuilder``), and kept by ``ValueHashPlans``,
+/// which files its parts in lists of its own and runs it from those: this is
+/// the plan as a test or the census reads it (``ValueHashPlans/plan(for:)``).
+package struct ValueHashPlan {
     /// What the hot path branches on.
     package enum Shape: UInt8, Sendable {
         /// Every byte of every value is defined and says something: the value
@@ -42,9 +44,10 @@ import TUICore
         package var range: Range<Int> { offset..<(offset + count) }
     }
 
-    /// A part read through typed Swift, at `offset`.
-    @unsafe struct Step {
-        @unsafe enum Action {
+    /// A part read through typed Swift, at `offset`. An offset and metatypes
+    /// only, so copying one out of the table's list retains nothing.
+    struct Step {
+        enum Action {
             /// The type reads itself: ``_ValueHashing``.
             case typed(any _ValueHashing.Type)
             /// An existential field, opened through its static type.
@@ -59,22 +62,22 @@ import TUICore
     /// `MemoryLayout.size` of the type.
     package let size: Int
     /// The defined runs, in offset order; all of `0..<size` when dense.
-    let runs: UnsafeBufferPointer<Run>
+    let runs: [Run]
     /// The typed steps, in offset order.
-    let steps: UnsafeBufferPointer<Step>
+    let steps: [Step]
     /// Why the type bypasses, naming the field that made it — for a test and
     /// the census; `nil` unless ``shape`` is ``Shape/bypass``.
     package let bypassReason: String?
 
     /// The defined runs, as ranges — what a test compares.
-    package var definedRanges: [Range<Int>] { unsafe runs.map(\.range) }
+    package var definedRanges: [Range<Int>] { runs.map(\.range) }
 
     /// Each step's offset and what it reads, as text — what a test compares.
     package var stepDescriptions: [String] {
-        unsafe steps.map { step in
-            switch unsafe step.action {
-            case .typed(let type): unsafe "\(step.offset): \(type)"
-            case .existential(let field): unsafe "\(step.offset): existential \(field)"
+        steps.map { step in
+            switch step.action {
+            case .typed(let type): "\(step.offset): \(type)"
+            case .existential(let field): "\(step.offset): existential \(field)"
             }
         }
     }
@@ -212,7 +215,7 @@ import TUICore
 
     let listFields: FieldLister
     /// The openers the table was made with, by the static type they open.
-    let openers: [ObjectIdentifier: ValueHashOpener]
+    let openers: [ObjectIdentifier: any ValueHashOpener.Type]
     /// Whether this walk is for a ``ValueComparison``, not a hash: a field
     /// goes by what it means to compare (``describeForComparison(_:at:path:into:)``)
     /// before it goes by these rules, and everything else about the walk, what
@@ -220,12 +223,13 @@ import TUICore
     let comparing: Bool
 
     init(
-        listFields: @escaping FieldLister = { RuntimeFields.fields(of: $0) }, openers: [ValueHashOpener] = unsafe [],
-        comparing: Bool = false
+        listFields: @escaping FieldLister = { RuntimeFields.fields(of: $0) },
+        openers: [any ValueHashOpener.Type] = [], comparing: Bool = false
     ) {
         unsafe self.listFields = listFields
         unsafe self.comparing = comparing
-        unsafe self.openers = unsafe Dictionary(openers.map { unsafe (ObjectIdentifier($0.type), $0) }, uniquingKeysWith: { first, _ in unsafe first })
+        unsafe self.openers = Dictionary(
+            openers.map { (ObjectIdentifier($0.existential), $0) }, uniquingKeysWith: { first, _ in first })
     }
 
     /// The parts of `type`'s plan, or why it bypasses.

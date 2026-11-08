@@ -27,7 +27,7 @@ struct GestureLayoutPaddingTests {
     func textTap() {
         #expect(interiorPadding(of: TextTap.self).isEmpty, "\(interiorPadding(of: TextTap.self))")
         #expect(MemoryLayout<TextTap>.size == 101)
-        let plans = unsafe ValueHashPlans()
-        unsafe #expect(plans.plan(for: TextTap.self).pointee.shape == .dense)
+        let plans = ValueHashPlans()
+        #expect(plans.plan(for: TextTap.self).shape == .dense)
     }
 }

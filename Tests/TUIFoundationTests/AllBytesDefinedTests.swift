@@ -167,12 +167,12 @@ struct AllBytesDefinedTests {
 
     @Test("The value hash reads each whole, and a colour with it")
     func planDense() {
-        let plans = unsafe ValueHashPlans()
+        let plans = ValueHashPlans()
         for conformer in Self.conformers {
-            unsafe #expect(plans.plan(for: conformer.type).pointee.shape == .dense, "\(conformer.type)")
+            #expect(plans.plan(for: conformer.type).shape == .dense, "\(conformer.type)")
         }
-        unsafe #expect(plans.plan(for: Color.self).pointee.shape == .dense)
+        #expect(plans.plan(for: Color.self).shape == .dense)
         // An animation reads its curve whole, and only its padding is skipped.
-        unsafe #expect(plans.plan(for: Animation.self).pointee.shape == .runs)
+        #expect(plans.plan(for: Animation.self).shape == .runs)
     }
 }

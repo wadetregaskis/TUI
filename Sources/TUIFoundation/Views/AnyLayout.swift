@@ -119,8 +119,10 @@ nonisolated public struct AnyLayout: Layout {
     /// declared here because the box's protocol is private to this file, and
     /// `nonisolated` because the value hash runs off the main actor, which a
     /// layout's members are otherwise isolated to.
-    nonisolated static var valueHashOpener: ValueHashOpener {
-        unsafe .init((any AnyLayoutBox).self) { pointer, hash, plans in
+    nonisolated enum ValueHashOpening: ValueHashOpener {
+        static var existential: Any.Type { (any AnyLayoutBox).self }
+
+        static func mix(at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans) -> Bool {
             func open<Box: AnyLayoutBox>(_ box: Box) -> Bool { mixOpened(box, into: &hash, plans: plans) }
             return unsafe open(pointer.assumingMemoryBound(to: (any AnyLayoutBox).self).pointee)
         }

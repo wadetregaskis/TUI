@@ -86,10 +86,10 @@ private protocol Witnessed {}
 @MainActor
 @Suite("Every optional the value hash reads whole has every byte written")
 struct OptionalWholeBytesTests {
-    private let plans = unsafe ValueHashPlans()
+    private let plans = ValueHashPlans()
 
     private func expectWhole<T>(_: T.Type) {
-        unsafe #expect(plans.plan(for: T?.self).pointee.shape == .dense, "\(T?.self)")
+        #expect(plans.plan(for: T?.self).shape == .dense, "\(T?.self)")
         #if _pointerBitWidth(_64) && (arch(arm64) || arch(x86_64))
         #expect(unwrittenBytesOfNil(T.self).isEmpty, "\(T?.self)")
         #endif
@@ -131,8 +131,8 @@ struct OptionalWholeBytesTests {
         // A spare value of the metadata word; the witness table is left.
         #expect(unwrittenBytesOfNil((any Witnessed.Type).self) == Set(8..<16))
         #endif
-        unsafe #expect(plans.plan(for: String?.self).pointee.shape == .steps)
-        unsafe #expect(plans.plan(for: (() -> Void)?.self).pointee.shape == .steps)
-        unsafe #expect(plans.plan(for: (any Witnessed.Type)?.self).pointee.shape == .steps)
+        #expect(plans.plan(for: String?.self).shape == .steps)
+        #expect(plans.plan(for: (() -> Void)?.self).shape == .steps)
+        #expect(plans.plan(for: (any Witnessed.Type)?.self).shape == .steps)
     }
 }
