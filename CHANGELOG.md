@@ -60,6 +60,10 @@ included, though a click or Return on such a row selected nothing. They skip it 
 reorderable `List` or `Table` (or a `.draggable` view) inside one could never pick a row up from the keyboard: the
 refresh ran instead. The focused control now has the key first, and the refresh runs when it lets the key go.
 
+**`openDocument(at:)` no longer waits forever when Save As interrupts it.** Behind a save panel opened for
+its unsaved changes, it never returned if Save As, or another save, took the panel over; it now throws
+`CancellationError`.
+
 **`Spring(duration: 0)` arrives at once.** Its `value(target:time:)` was NaN, and a negative duration
 never moved.
 

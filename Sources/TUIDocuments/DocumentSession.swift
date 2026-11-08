@@ -219,6 +219,9 @@ final class DocumentSession {
     /// File ▸ Save As…: by way of the panel.
     func saveAs() {
         guard store.hasDocument else { return }
+        // What waited on the panel no longer will: tell it, as every other
+        // replacement does, or an `openDocument(at:)` behind it never returns.
+        waitingOnSavePanel?.abandoned()
         waitingOnSavePanel = nil
         isSavePanelShown = true
     }
@@ -231,6 +234,8 @@ final class DocumentSession {
         if let fileURL, isFileWritable {
             write(to: fileURL, then: next)
         } else {
+            // As in `saveAs()`: what waited on the panel before is given up.
+            waitingOnSavePanel?.abandoned()
             waitingOnSavePanel = next
             isSavePanelShown = true
         }
