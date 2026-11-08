@@ -335,6 +335,16 @@ import TUICore
     /// for another place (``noteDisplacedEnvironment(_:from:)``), by box.
     private var displacedEnvironments: [ObjectIdentifier: DisplacedEnvironment] = [:]
 
+    /// How many entries the private tables hold: ``entryCounts``'s share of them.
+    var privateEntryCounts: [(name: String, count: Int)] {
+        [
+            ("state.tracked", trackedValues.count), ("state.onChangeCounters", onChangeCounters.count),
+            ("state.retainedRoots", retainedSubtreeRoots.count), ("state.windowedRows", windowedRows.count),
+            ("state.lastConditionalCase", lastConditionalCase.count), ("state.actionRuns", actionRuns.count),
+            ("state.displacedEnvironments", displacedEnvironments.count),
+        ]
+    }
+
     /// The render pass under way, or the last one: a serial from one count
     /// for the process (``renderPassSerials``), taken by
     /// ``beginRenderPass()``, so a pass of this storage is never another's,

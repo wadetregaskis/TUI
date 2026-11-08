@@ -81,6 +81,8 @@ package final class BodyKeep {
 
     /// Whether nothing is kept: what a test asks, between walks.
     package var isEmpty: Bool { table.isEmpty }
+    /// How many bodies are kept, for a census of the caches (`Stress --cache-sizes`).
+    package var count: Int { table.count }
     private var verdicts: [ObjectIdentifier: Verdict] = [:]
 
     /// What it has done: what the tests read.

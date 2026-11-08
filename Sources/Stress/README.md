@@ -390,6 +390,13 @@ before leases, for a baseline in the same build; or the naive `perReader` and
 `accumulate --steps 36000 --census` is the long run that prices a change to
 what TUI observes.
 
+`--cache-sizes N` prints, every N steps, how many entries each of the warm
+instance's caches and tables holds — the render cache's, the state storage's,
+the lifecycle manager's (`HeadlessApp.cacheEntryCounts`) — as one line,
+`cache-sizes step=… render.entries=… state.values=…`, as the run goes.
+`Tools/Profiling/cache_growth.py` plays a long session with it and names the
+tables that keep growing (see `Tools/Profiling/README.md`).
+
 ## Profiling
 
 The `--bench` mode is a counted `renderToBuffer` loop with **no PTY and no

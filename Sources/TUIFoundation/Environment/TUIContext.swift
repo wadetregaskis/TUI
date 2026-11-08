@@ -274,6 +274,15 @@ extension LifecycleManager {
     /// animation's) waits for ever.
     package var startedTasksForTesting: [Task<Void, Never>] { Array(tasks.values) }
 
+    /// How many entries each of the manager's tables holds, for a census of the
+    /// caches (`Stress --cache-sizes`).
+    package var entryCounts: [(name: String, count: Int)] {
+        [
+            ("lifecycle.appeared", appearedTokens.count), ("lifecycle.visible", visibleTokens.count),
+            ("lifecycle.disappearCallbacks", disappearCallbacks.count), ("lifecycle.tasks", tasks.count),
+        ]
+    }
+
     /// Cancels and removes the task associated with the given token.
     package func cancelTask(token: String) {
         tasks[token]?.cancel()

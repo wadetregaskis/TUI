@@ -202,6 +202,8 @@ final class DrivenSession {
     /// How the app's frames settled so far: how many its effects made walk
     /// again (`FrameSettling`).
     let effectSettling: () -> EffectStage.Settling
+    /// How many entries each of the app's caches holds (`--cache-sizes`).
+    let cacheEntryCounts: () -> [(name: String, count: Int)]
 
     /// The wall-clock date a frame at `nanos` is stamped with: a fixed epoch
     /// plus the frame's own instant, so it moves in the frame's steps.
@@ -269,6 +271,7 @@ final class DrivenSession {
         staleSizes = { app.renderCache.measureMemoMismatches }
         cacheCounts = { (app.renderCache.stats, app.renderCache.rowWork) }
         effectSettling = { app.effectSettling }
+        cacheEntryCounts = { app.cacheEntryCounts }
     }
 }
 

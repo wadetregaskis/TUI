@@ -285,6 +285,27 @@ against what the change meant to do. Allocation counts repeat to within about
 itself); everything else here repeats exactly. It has no count of body runs:
 nothing in the harness counts them yet.
 
+## Caches that keep growing — `cache_growth.py`
+
+```sh
+Tools/Profiling/cache_growth.py .build/release/Stress                    # every session, 3000 steps
+Tools/Profiling/cache_growth.py .build/release/Stress --sessions log --steps 20000 --every 100
+```
+
+Plays each session with `Stress --session ID --cache-sizes N`, which prints
+every N steps how many entries each table holds — the render cache's, the
+state storage's, the lifecycle manager's (`HeadlessApp.cacheEntryCounts`) —
+and names each table that is still growing over the last half of the run,
+after a warm-up: a least-squares line through those samples that rises by more
+than `--min-growth` percent (5) and `--min-entries` (2), with the table's floor
+and peaks both higher in the last quarter than in the first half. A table that
+rose and levelled off fits a flat line there and is not reported, however high
+it stopped; nor is a sawtooth, a cache trimmed now and then, whose floor stays
+put (the measure memo swings between about 70 and 385 entries on `log`). The largest tables at the end are listed as well, since a bounded
+cache can still be bigger than it should be. A tool, not a gate: `accumulate`
+grows on purpose, and a table a session legitimately fills reads as growth
+until its run is long enough to see it stop.
+
 ## Input to frame — `input_latency.py`
 
 ```sh

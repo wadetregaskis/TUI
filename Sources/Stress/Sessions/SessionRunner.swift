@@ -47,6 +47,9 @@ enum SessionRunner {
         /// arm and fire, by kind of reader (``ObservationCensus``), and print
         /// them at each checkpoint and at the end.
         var census = false
+        /// Print every cache's entry count every this many steps (0: never),
+        /// for `Tools/Profiling/cache_growth.py`.
+        var cacheSizesEvery = 0
     }
 
     /// What one kind of step cost, over every step of that kind.
@@ -223,6 +226,7 @@ enum SessionRunner {
                 staleSizesSoFar = warm.staleSizes().count
             }
             recordCheckpoint(of: warm, after: index + 1, into: &report)
+            printCacheSizes(of: warm, after: index + 1, every: options.cacheSizesEvery)
 
             guard let cold else { continue }
             var twin = cold.step(index)

@@ -328,6 +328,11 @@ import TUIStyling
     /// This pass's resolved children, per stack — scratch, like
     /// ``measureEntries``; emptied by ``beginRenderPass()``.
     private var childViewEntries: [ChildViewsKey: [ChildView]] = [:]
+
+    /// How many entries the private tables hold: ``entryCounts``'s share of them.
+    var privateEntryCounts: [(name: String, count: Int)] { [
+        ("render.measure", measureEntries.count), ("render.childViews", childViewEntries.count), ("render.passLeases", passLeases.count),
+        ("render.activeIdentities", activeIdentities.count), ("render.retainedRoots", retainedSubtreeRoots.count)] }
     /// Measure-memo hit/miss counts for this frame, reported by
     /// ``logFrameStats()``.
     ///

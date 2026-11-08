@@ -180,6 +180,16 @@ package final class HeadlessApp {
     /// What tracks the app's views and owns the tasks their `.task`s started.
     package var lifecycle: LifecycleManager { lifecycleManager }
 
+    /// How many entries each of the app's caches and tables holds — the render
+    /// cache's, the state storage's, the lifecycle manager's — for a census of
+    /// their growth over a long run (`Stress --session … --cache-sizes N`).
+    package var cacheEntryCounts: [(name: String, count: Int)] {
+        var counts = renderCache.entryCounts
+        counts += tuiContext.stateStorage.entryCounts
+        counts += lifecycleManager.entryCounts
+        return counts
+    }
+
     /// How many frames the focus system has asked for, where the app's run
     /// loop is asked (`AppRunner.wireFocusRepaints`): a move of the focus to
     /// show, a `@FocusedValue` reader to catch up. A harness renders whenever
