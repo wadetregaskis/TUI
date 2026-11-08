@@ -6,25 +6,29 @@ Control border styles, visual appearances, and the color system.
 
 TUI separates visual styling into two systems:
 
-- **Appearance**: Controls border characters and container styling (rounded, doubleLine, heavy, etc.)
+- **Appearance**: Controls border characters and container styling (rounded, doubleLine, heavy, braille, etc.)
 - **Colors**: A palette-aware color system with semantic tokens that resolve at render time
 
 Both work with the palettes described in <doc:ThemingGuide>. For bold, italic and other text styles, see <doc:TextStyling>.
 
 ## Appearances
 
-An ``Appearance`` defines the border characters used by containers and the `.border()` modifier. TUI ships with four built-in appearances:
+An ``Appearance`` defines the border characters used by containers and the `.border()` modifier. TUI ships with these built-in appearances, in the order they cycle (``AppearanceRegistry/all``):
 
 | Appearance | Border Characters | Example |
 |------------|-------------------|---------|
-| `.line` | `─ │ ┌ ┐ └ ┘` | Thin single lines |
 | `.rounded` | `─ │ ╭ ╮ ╰ ╯` | Rounded corners (default) |
+| `.line` | `─ │ ┌ ┐ └ ┘` | Thin single lines |
 | `.doubleLine` | `═ ║ ╔ ╗ ╚ ╝` | Double-line borders |
 | `.heavy` | `━ ┃ ┏ ┓ ┗ ┛` | Bold / heavy lines |
+| `.braille` | Braille dots | A dotted line one dot thick |
+| `.braille(thickness: 2)` | Braille dots | A bolder dotted line (up to 4 dots) |
+| `.block` | `█` | A solid band in the border colour |
+| `.blank` | spaces | A one-cell inset with nothing drawn |
 
 ### Setting the Appearance
 
-The active appearance flows through the environment:
+The active appearance flows through the environment, and ``View/appearance(_:)`` sets it for a subtree:
 
 ```swift
 // Set appearance for all children
@@ -33,12 +37,14 @@ VStack {
         Text("Uses doubleLine borders")
     }
 }
-.environment(\.appearance, .doubleLine)
+.appearance(.doubleLine)
 ```
+
+Controls such as sliders and toggles take their look from ``View/controlStyle(_:)`` instead.
 
 ### Cycling Appearances at Runtime
 
-Once an app has turned on the status bar's appearance item with `statusBarSystemItems(appearance: true)`, people can press `a` to cycle through appearances.
+People can pick a border style from the menu bar's View menu, which also offers the palette and the control style. Once an app has turned on the status bar's appearance item with `statusBarSystemItems(appearance: true)`, they can also press `a` to cycle through appearances.
 
 ### Custom Appearances
 
@@ -61,15 +67,9 @@ let custom = Appearance(
 
 ``BorderStyle`` defines the actual Unicode characters for border rendering:
 
-```swift
-public struct BorderStyle {
-    let topLeft, topRight, bottomLeft, bottomRight: Character
-    let horizontal, vertical: Character
-    let leftT, rightT: Character
-}
-```
+Its initializer takes the four corners, `horizontal` and `vertical`; the T-junctions `leftT` and `rightT` (where a divider meets the side) are optional and default to `vertical`.
 
-Built-in styles: `.line`, `.rounded`, `.doubleLine`, `.heavy`, `.none`.
+Built-in styles: `.line`, `.rounded`, `.doubleLine`, `.heavy`, `.braille(thickness:)`, `.block`, `.none`.
 
 ## The Color System
 
@@ -145,7 +145,7 @@ Color.palette256(202)  // orange
 ```swift
 Color.rgb(255, 128, 0)       // orange via RGB components
 Color.hex(0xFF8000)          // orange via hex integer
-Color.hex("#FF8000")         // orange via hex string
+Color.hex("#FF8000")!        // orange via hex string (nil if not a colour)
 Color.hsl(30, 100, 50)       // orange via HSL
 Color.hsb(30, 100, 100)      // orange via HSB
 Color.cmyk(0, 50, 100, 0)    // orange via CMYK
@@ -411,10 +411,9 @@ Available semantic tokens include:
 | `.palette.statusBarBackground` | Status bar background |
 | `.palette.appHeaderBackground` | The window's top bar background |
 | `.palette.overlayBackground` | Overlay / dimmed background |
-| `.palette.focusBackground` | Focused list/table row background |
-| `.palette.cursorColor` | Text cursor in text fields |
-| `.palette.fieldBackground` | Editable-field surface (TextField, TextEditor) |
 | `.palette.success` / `.warning` / `.error` / `.info` | Status indicators |
+
+A ``Palette`` also defines `focusBackground`, `cursorColor` and `fieldBackground`, which the built-in controls draw with. They have no token: set them in a custom palette (<doc:ThemingGuide>).
 
 
 ## Colors in Custom Rendering
