@@ -66,18 +66,19 @@ enum SaveName {
     /// `typed` given `type`'s extension, as a save panel's Format pop-up
     /// gives it: an extension of another of `types` is replaced, one of
     /// `type` itself kept, and a name with neither has it added; an empty
-    /// name stays empty. `notes.txt` saved as Markdown is `notes.md`.
+    /// name stays empty. `notes.txt` saved as Markdown is `notes.md`. The
+    /// ends' blanks go first, as ``resolve(_:contentTypes:)`` trims them:
+    /// kept, `report ` became `report .md`, and was saved so.
     static func renamed(_ typed: String, as type: UTType, among types: [UTType]) -> String {
-        guard let preferred = type.preferredFilenameExtension,
-            !typed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else { return typed }
-        let ext = (typed as NSString).pathExtension
+        let name = typed.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let preferred = type.preferredFilenameExtension, !name.isEmpty else { return typed }
+        let ext = (name as NSString).pathExtension
         if !ext.isEmpty, let named = UTType(filenameExtension: ext) {
-            if named == type { return typed }
+            if named == type { return name }
             if types.contains(where: { named.conforms(to: $0) }) {
-                return (typed as NSString).deletingPathExtension + "." + preferred
+                return (name as NSString).deletingPathExtension + "." + preferred
             }
         }
-        return typed + "." + preferred
+        return name + "." + preferred
     }
 }

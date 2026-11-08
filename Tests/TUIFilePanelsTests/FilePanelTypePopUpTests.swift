@@ -83,6 +83,10 @@ struct FilePanelTypePopUpTests {
         // An extension of none of the types is part of the name, as a save keeps it.
         #expect(SaveName.renamed("v1.2", as: .plainText, among: types) == "v1.2.txt")
         #expect(SaveName.renamed("", as: .plainText, among: types).isEmpty)
+        // The ends' blanks go as a save would trim them, before the extension
+        // goes on: "report " saved as Markdown was "report .md".
+        #expect(SaveName.renamed("report ", as: Self.markdown, among: types) == "report.md")
+        #expect(SaveName.renamed(" notes.txt ", as: Self.markdown, among: types) == "notes.md")
         // Markdown conforms to plain text, but `.md` names Markdown itself.
         #expect(SaveName.type(for: "notes.md", among: types) == Self.markdown)
         #expect(SaveName.type(for: "notes.txt", among: types) == .plainText)
