@@ -32,7 +32,7 @@ place:
 | [Menus, toolbars and chrome](<Menus, toolbars and chrome/>) | Pop-up menus; the menu bar; toolbars and opt-in window chrome. |
 | [Module split, compile time and binary size](<Module split, compile time and binary size/>) | The module split; winning back its cost; per-module products; binary size; compile time and the test targets; the linker's RWX warning on Linux aarch64. |
 | [Presentation and windows](<Presentation and windows/>) | Sheets and the page behind; windows; file panels; help and tooltips; compact adaptation; dialogs and pickers. |
-| [Reviews and audits](<Reviews and audits/>) | The first reviews of the codebase and its tests (May 2026); a review of 71 commits by another author (2026-11-07). |
+| [Reviews and audits](<Reviews and audits/>) | The first reviews of the codebase and its tests (May 2026); the review batches of 2026-08-20, 2026-09-09 and 2026-09-12; a review of 71 commits by another author (2026-11-07). |
 | [Scrolling](Scrolling/) | Holding the reader's place; paging and view-aligned scrolling; content past a scroll view's edge; scroll phases, animated scrolling, flash and bounce; scroll position and visibility; measuring a scroll view's content. |
 | [Shapes, effects and animation](<Shapes, effects and animation/>) | Transitions; animation timing; shapes; shadows; matched geometry; materials and glass; pixel effects; accessibility settings. |
 | [State and dynamic properties](<State and dynamic properties/>) | Finding dynamic properties; class properties held by several views; per-app render state; the update model; when a body runs (the plain-body memo); scene storage per terminal session; how long a row's state lives. |

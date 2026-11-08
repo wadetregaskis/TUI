@@ -1,5 +1,8 @@
 # Review batch, 2026-08-20
 
+*The readable story of this batch, what it found, what changed and what it taught, is
+[in Historical](<../Historical/Reviews and audits/The review batch of 2026-08-20 - the Split View drag, gradients and page width.md>). This log is the full record it draws on.*
+
 A running log of one review pass: what was asked, what was done, what was
 decided along the way, and what is still open. Newest work at the bottom of each
 section. Commit subjects are quoted so `git log --grep` finds them.

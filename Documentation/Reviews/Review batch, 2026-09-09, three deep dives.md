@@ -1,5 +1,8 @@
 # Review batch, 2026-09-09
 
+*The readable story of this batch, what it found, what changed and what it taught, is
+[in Historical](<../Historical/Reviews and audits/The three deep dives of 2026-09-09 - bugs, documentation and performance.md>). This log is the full record it draws on.*
+
 Three deep dives — a bug hunt, a documentation audit and a performance pass —
 each run as a twelve-lens fan-out whose every finding was then checked by a
 second, adversarial pass. What follows is the whole verified backlog, so the part

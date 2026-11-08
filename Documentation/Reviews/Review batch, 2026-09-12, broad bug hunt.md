@@ -1,5 +1,8 @@
 # Review batch, 2026-09-12
 
+*The readable story of this batch, what it found, what changed and what it taught, is
+[in Historical](<../Historical/Reviews and audits/The broad bug hunt of 2026-09-12.md>). This log is the full record it draws on.*
+
 A broad bug hunt: fourteen read-only finders over disjoint territory, each finding
 then handed to two independent adversarial verifiers with different lenses — one
 told to refute the mechanism from the code, one to refute that the defect is
