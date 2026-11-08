@@ -93,7 +93,8 @@ neither stop and no grips.
 **`Self._printChanges()` and `_logChanges()` say why a body ran, as in SwiftUI.** Called in a view's `body` or a
 modifier's `body(content:)`, each evaluation writes a line such as `Counter: _count changed.`, naming the `@State` written,
 `@self` for a new value from the parent, `@identity` for a new view, an `@Environment` property whose value moved
-(`_colorScheme`), `@dependencies` for an `@Observable` property the body read being written, or `unchanged.`. It never says
+(`_colorScheme`), `an @Observable property` for one the body read being written (SwiftUI names it, `\Model.count`,
+through API private to SwiftUI), or `unchanged.`. It never says
 `unchanged.` when it can't tell: where only something it can't compare could have changed, such as a closure or a
 `Binding` in the view, it says `@self may have changed.`. The lines go to `TUI_DIAGNOSTICS_FILE`, or to stderr once the
 app quits; `_logChanges()` uses the unified log on a Mac. Code that calls them now compiles.

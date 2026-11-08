@@ -32,10 +32,10 @@ extension View {
     ///   it back (the last 4,096 lines). `tail -f` the file to watch them live.
     /// - **What is named.** `@self`, `@identity`, the view's own `@State`
     ///   properties, its `@Environment` properties whose values moved (by
-    ///   name, `_colorScheme`, as a `@State` is), and `@dependencies` for a
-    ///   write to an `@Observable` property the body read. Which property of
-    ///   which object isn't said: Observation doesn't tell TUI, as it doesn't
-    ///   tell SwiftUI.
+    ///   name, `_colorScheme`, as a `@State` is), and `an @Observable
+    ///   property` for a write to one the body read. SwiftUI names that
+    ///   property by its key path, `\Model.count`; TUI can't, because the only
+    ///   API that says which property changed is private to SwiftUI.
     /// - **`@self`** is said when a field of the view compares unequal with
     ///   the last value's, by `==` where the field is `Equatable` and by its
     ///   parts where not.
@@ -74,7 +74,7 @@ extension ViewModifier {
     /// Called in `body(content:)`, prints why this evaluation of it happened,
     /// as ``View/_printChanges()`` prints it for a view: `@self` for the
     /// modifier's own value, its own `@State` and `@Environment` properties by
-    /// name, and `@dependencies`.
+    /// name, and `an @Observable property`.
     @MainActor @preconcurrency
     public static func _printChanges() {  // swiftlint:disable:this identifier_name
         BodyChangeReport.request(Self.self, logs: false)

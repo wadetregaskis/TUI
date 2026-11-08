@@ -217,12 +217,12 @@ struct PrintChangesTests {
         #expect(frame(ActionReader()) { $0.reportAction = {} } == ["ActionReader: _action may have changed."])
     }
 
-    @Test("A write to an @Observable property the body read is @dependencies")
+    @Test("A write to an @Observable property the body read is named as one, SwiftUI's key path being private")
     func observedChange() {
         let model = Model()
         _ = frame(Watcher(model: model))
         model.value = 3
-        #expect(frame(Watcher(model: model)) == ["Watcher: @dependencies changed."])
+        #expect(frame(Watcher(model: model)) == ["Watcher: an @Observable property changed."])
     }
 
     @Test("A view holding a closure may have changed, never unchanged")

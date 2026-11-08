@@ -44,11 +44,10 @@ import TUICore
 /// - each `@State` written since, by its name (`_count`);
 /// - each `@Environment` property whose value moved, by its name
 ///   (`_colorScheme`), as a `@State` is named;
-/// - `@dependencies` when an `@Observable` property the body read was
-///   written: the observation that redraws the body says so to the cache's
-///   link (``RenderCache/Link/takeObservedChange(forReportAt:)``). Which
-///   property, and of which object, it can't say: Observation's change
-///   handler is told neither.
+/// - `an @Observable property` when an `@Observable` property the body read
+///   was written: the observation that redraws the body says so to the
+///   cache's link (``RenderCache/Link/takeObservedChange(forReportAt:)``).
+///   Which property, and of which object, it can't say (see below).
 ///
 /// **Never a false `unchanged.`** What can't be compared — a closure or a
 /// `Binding` in the value, which may read changed state; an environment value
@@ -58,13 +57,19 @@ import TUICore
 /// was compared and nothing moved.
 ///
 /// **SwiftUI's words.** `@self`, `@identity`, a property's own name and
-/// `unchanged.` are SwiftUI's. `@dependencies` is the token SwiftUI is
-/// widely reported to print for a body redrawn by an `@Observable` write, and
-/// the string is in macOS 15's dyld shared cache (searched 2026-11-08), but in
-/// a region not tied to a library there: NOT verified against a SwiftUI run,
-/// so if SwiftUI turns out to word it otherwise, follow SwiftUI. "may have
-/// changed" is TUI's own: SwiftUI has no words for a cause it could not
-/// compare.
+/// `unchanged.` are SwiftUI's. For an `@Observable` write SwiftUI prints the
+/// key path of the property written, `Leaf: \Model.count changed.`
+/// (`Tools/SwiftUIProbes/Print changes/pc.out`, macOS 15). It learns it from
+/// `ObservationTracking.changed`, which Observation declares
+/// `@_spi(SwiftUI)`: no SDK's public interface has it. The public API says
+/// only that something changed. `withObservationTracking(_:onChange:)` hands
+/// its handler nothing, and the macOS 27 overload's `Event` can only answer
+/// `matches(_:)` for a key path its caller already names, while which paths
+/// and objects a body read is likewise known only to that private API. So
+/// TUI says the truthful most it knows, `an @Observable property`, worded
+/// as the `a @State property` it says for state it can't name, rather than
+/// SwiftUI's form with parts made up. "may have changed" is TUI's own too:
+/// SwiftUI has no words for a cause it could not compare.
 @MainActor
 package enum BodyChangeReport {
     /// A call waiting for the walk.
@@ -137,7 +142,7 @@ package enum BodyChangeReport {
             for reading in environment {
                 causes.note(change(from: last.readings[reading.name], to: reading.value), reading.name)
             }
-            causes.note(observed.map { $0 ? .changed : .same } ?? .unknown, "@dependencies")
+            causes.note(observed.map { $0 ? .changed : .same } ?? .unknown, "an @Observable property")
         } else {
             causes.certain = ["@self", "@identity"] + (states ?? []).map(\.name)
         }

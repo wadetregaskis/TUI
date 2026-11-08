@@ -198,7 +198,7 @@ extension RenderCache {
 
         /// Whether an `@Observable` change was reported at `identity` since
         /// this was last asked for it — what `_printChanges()` names
-        /// `@dependencies` — and from now on, remembers such changes at it.
+        /// `an @Observable property` — and from now on, remembers such changes at it.
         /// Thread-safe. The first ask can only say `false`: nothing was
         /// remembered for an identity before its body first reported.
         package func takeObservedChange(forReportAt identity: ViewIdentity) -> Bool {
