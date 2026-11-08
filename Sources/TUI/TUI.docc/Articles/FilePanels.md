@@ -17,6 +17,8 @@ Button("Open…") { importing = true }
 
 `fileExporter` and `fileMover` work the same way. All three browse the machine the app runs on: over `ssh`, that's the remote one.
 
+The panels are in the `TUIFilePanels` product, ``DocumentGroup`` in `TUIDocuments`, and the two modifiers below that draw pictures in `TUIFilePanelImages` and `TUIFilePanelsAppKit`. `import TUI` brings all but the last; <doc:ChoosingProducts> says which to list otherwise.
+
 ## What a Panel Shows
 
 A panel lists a folder's items in a table, under the folder's path, with the
@@ -41,7 +43,7 @@ for a single type too, and `.hidden` never:
 
 ```swift
 Button("Open…") { importing = true }
-    .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in … }
+    .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in /* … */ }
     .fileDialogContentTypePicker(.visible)
 ```
 
@@ -58,9 +60,11 @@ kitty, iTerm2, WezTerm), and the kinds' icons elsewhere:
 import TUIFilePanelsAppKit
 
 Button("Open…") { importing = true }
-    .fileImporter(isPresented: $importing, allowedContentTypes: [.pdf]) { result in … }
+    .fileImporter(isPresented: $importing, allowedContentTypes: [.pdf]) { result in /* … */ }
     .fileDialogSystemIcons()
 ```
+
+`fileDialogPicturePreviews()`, from `TUIFilePanelImages`, shows a selected picture in the preview column, where any other file shows its opening lines.
 
 ## Keys
 
@@ -162,7 +166,19 @@ A `FileDocument` exports the same way, written through its
 
 ```swift
 .fileExporter(isPresented: $exporting, document: TextFile(text: draft), contentType: .plainText,
-              defaultFilename: "Draft") { result in … }
+              defaultFilename: "Draft") { result in /* … */ }
+```
+
+Two exporters of TUI's own save on every platform without either: one takes
+`contents:`, a value's bytes (`Data`, or a `String` as UTF-8, or a type of
+yours that conforms to ``FileExportContents``), and the other `encoding:`, any
+`Encodable` value, written as JSON unless the type is a property list:
+
+```swift
+.fileExporter(isPresented: $exporting, contents: draft, contentType: .plainText,
+              defaultFilename: "Draft") { result in /* … */ }
+.fileExporter(isPresented: $exportingSettings, encoding: settings,
+              defaultFilename: "Settings") { result in /* … */ }
 ```
 
 ## An App That Is a Document
@@ -193,7 +209,7 @@ that presents it, as with SwiftUI:
 
 ```swift
 .fileImporter(isPresented: $importing, allowedContentTypes: [.pdf], allowsMultipleSelection: true) { result in
-    …
+    // …
 }
 .fileDialogMessage("Choose the PDFs to combine")
 .fileDialogConfirmationLabel("Combine")

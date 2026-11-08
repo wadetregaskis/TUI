@@ -32,6 +32,8 @@ Image(.url("https://example.com/photo.png"))
 Image("logo", bundle: .module)
 ```
 
+`Image("logo", bundle: .module)` looks first for `logo.imageset` in an asset catalogue among the bundle's resources, as SwiftUI does, and failing that for a plain image file called `logo`, with or without its extension. Loading from files and URLs lives in the `TUIBitmaps` product, which `TUI` includes; an app that depends on smaller products adds it (<doc:ChoosingProducts>).
+
 PNG, JPEG, GIF and BMP files work everywhere. On a Mac, so does anything else the system can read, such as HEIC and TIFF.
 
 ## Real pixels and text characters
@@ -85,7 +87,7 @@ Image(.file("waving.gif"))
 
 It shows each frame for as long as the file says, and repeats as many times as the file says. GIF plays everywhere. APNG and animated WebP play on a Mac, and elsewhere show their first frame, or an error if that platform can't read the format at all. So does a picture from a URL: only files play.
 
-It plays only while someone can see it. Scrolled out of view it stops, and carries on from where it stopped when it comes back. A view that has gone starts again from the first frame if it returns. With Reduce Motion on, whether set by `TUI_REDUCE_MOTION` or ``Scene/reduceMotion(_:)``, it shows its first frame and doesn't move.
+It plays only while someone can see it. Scrolled out of view it stops, and carries on from where it stopped when it comes back. A view that has gone starts again from the first frame if it returns. With Reduce Motion on, whether set in your system's settings, by `TUI_REDUCE_MOTION`, from the View menu or with ``Scene/reduceMotion(_:)``, it shows its first frame and doesn't move.
 
 That suits a picture that is chrome: a mascot or a decoration that nobody came for. A picture that is the app's content, such as the GIF in a message or the file a viewer was opened on, probably should play regardless, and ``View/imageAnimationRespectsReduceMotion(_:)`` says so for a view or a whole subtree:
 
@@ -121,6 +123,8 @@ Image(.url("https://example.com/photo.png"))
     .frame(width: 40, height: 20)
     .imagePlaceholder("Loading the photo…")
 ```
+
+``View/imagePlaceholderSpinner(_:)`` with `false` leaves out the spinner, and ``View/imagePlaceholderSpinner(style:color:)`` chooses another.
 
 To show views of your own while it loads, or if it fails, use ``AsyncImage``, as in SwiftUI:
 
@@ -182,6 +186,7 @@ These settings apply to a view and everything inside it. You don't need any of t
 | `.blocks(.solid)` | One colour per cell. Coarser, but never shows gaps between rows, which some fonts do |
 | `.blocks(.braille)` | Braille dots, the most detail for line art and text |
 | `.blocks(.coarse)` | Shade characters that show tone even with no colour |
+| `.blocks(.ramp)` | The fifteen eighth blocks, for a stylised look rather than a faithful one |
 | `.ascii` | Letters and punctuation, for the classic look |
 | `.unicode` | A wider range of symbols |
 | `.customRamp(" .:-=+*#%@")` | Your own characters, from least ink to most |
@@ -223,6 +228,14 @@ Image(.file("photo.png"))
     .imageDithering(.floydSteinberg)
 ```
 
+### Size and detail
+
+- ``View/imageFitTarget(_:)`` chooses the box a picture scales to: its natural size, the size it's offered, or the visible part of a scroll view.
+- ``View/imageZoom(_:)`` scales a picture beyond its fitted size.
+- ``View/imageSupersampling(_:)``, ``View/imageEdgeThreshold(_:)`` and ``View/imageInkThreshold(_:)`` tune how the text version samples pixels and finds edges and ink.
+- ``View/imageCellPixels(_:)`` and ``View/imageCellPoints(_:)`` say how big a cell is, for a terminal that doesn't report it or reports it wrongly.
+- ``View/imageSynchronousDecodeLimit(_:)`` sets how large a file still loads on the frame that first draws it.
+
 ### Changing the picture itself
 
 These change the picture before anything is drawn, in both real pixels and text:
@@ -235,6 +248,7 @@ These change the picture before anything is drawn, in both real pixels and text:
 ## See Also
 
 - <doc:TerminalSupport>
+- <doc:ChoosingProducts>
 - ``Image``
 - ``AsyncImage``
 - ``URLImageCache``

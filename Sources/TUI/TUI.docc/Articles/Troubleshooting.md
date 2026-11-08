@@ -18,7 +18,9 @@ To choose another key, see <doc:KeyboardShortcuts#Quitting>.
 
 **The app prints one line like `MyApp: standard output is not a terminal` and exits. It might be running in an IDE's output pane, in CI, or with its output going to a pipe.**
 
-A TUI app needs a real terminal for its keyboard and screen. Run it from a terminal window with `swift run`. The same goes for `TERM=dumb`, which some editors' shells set: set `TERM` to your terminal's type.
+A TUI app needs a real terminal for its keyboard and screen. Run it from a terminal window with `swift run`.
+
+The app says `standard input is not a terminal, so this app cannot read keys.` instead when its output is a terminal but its input isn't, as when you pipe something into it (`cat file | swift run`) or a script runs it with its input redirected. Give it the terminal's input, and read the file in the app instead. The same goes for `TERM=dumb`, which some editors' shells set: set `TERM` to your terminal's type.
 
 If running that way should do something useful, such as printing a report, see "Running Without a Terminal" in <doc:ScenesAndQuitting>.
 
@@ -81,7 +83,7 @@ The second message means that two types are marked `@main`. `swift package init`
 
 **`swift run` sits at "Fetching" or "Compiling" for minutes.**
 
-That's normal the first time. It downloads TUI and a dependency of its macros, then compiles them. Later builds only compile what you've changed.
+That's normal the first time. It downloads TUI and swift-syntax, which TUI's optional macros use, then compiles the parts of TUI your app uses. swift-syntax is compiled only if you use the macros. Later builds only compile what you've changed.
 
 ## Everything is huge, or missing
 
@@ -109,9 +111,9 @@ VStack(spacing: 1) {
 
 **Part of the page shows this line where a view should be, or the last row of the screen does.**
 
-Your views are nested too deeply for the call stack. Measuring and drawing a view uses stack for every level it's nested, and the stack is a fixed size, so TUI stops descending where it would run out. It draws everything above that point and this line in place of what's below, rather than crash. A `VStack` inside a `VStack` runs out at about 800 levels in a release build, 700 if each level is in an `AnyView`, and 500 for a `ScrollView` inside a `ScrollView`. A debug build has about half that.
+Your views are nested too deeply for the call stack. Measuring and drawing a view uses stack for every level it's nested, and the stack is a fixed size, so TUI stops descending where it would run out. It draws everything above that point and this line in place of what's below, rather than crash. A `VStack` inside a `VStack` runs out after roughly a thousand levels in a release build, sooner if each level is in an `AnyView` or a `ScrollView`, and a debug build has roughly half that. The limit follows the stack the app really has, so it isn't a fixed number.
 
-Your app reports it once, with the view it stopped at, the first time it happens. The report goes to the file named by `TUI_DIAGNOSTICS_FILE`, or otherwise to stderr when the app quits. SwiftUI's own limit is about the same, but there the app crashes.
+Your app reports it once, with the view it stopped at, the first time it happens. The report goes to the file named by `TUI_DIAGNOSTICS_FILE`, or otherwise to stderr when the app quits. SwiftUI runs out at a similar depth, between 1,000 and 2,000 levels of `VStack`, but there the app crashes.
 
 - **Does a view contain itself?** A view with no case that stops, such as a `body` that holds another of the same view, goes on until the stack runs out. Add a case that stops:
 
@@ -171,8 +173,10 @@ var body: some View {
 ```
 
 Each time the body runs it writes one line: `Counter: _count changed.` names the `@State` written, `@self` means the
-parent passed a different value, `@identity` means the view is new at its place, and `unchanged.` means none of those, so
-an `@Observable` object or an environment value it read is the likely cause. stdout is the screen, so set
+parent passed a different value, `@identity` means the view is new at its place, and `an @Observable property changed.`
+means the body read an `@Observable` property that was written. `@self may have changed.` means the view holds something
+TUI can't compare, such as a closure or a `Binding`. `unchanged.` means everything was compared and nothing moved: the
+parent's body ran again and drew this view with the same value. stdout is the screen, so set
 `TUI_DIAGNOSTICS_FILE=/tmp/changes.log` and `tail -f` that file from another terminal. Without it, the lines go to stderr, held
 until the app quits. `_logChanges()` writes the same lines to the unified log on a Mac.
 
@@ -189,7 +193,7 @@ until the app quits. `_logChanges()` writes the same lines to the unified log on
 
 **A picture is made of blocks or characters rather than pixels.**
 
-That's how pictures are drawn in a terminal without the Kitty graphics protocol, including Apple's Terminal, Warp and tmux. To see real pixels, run your app directly in Ghostty or iTerm2. To make the text version look better or different, see <doc:WorkingWithImages>.
+That's how pictures are drawn in a terminal that can't show pixels, including Apple's Terminal and tmux. To see real pixels, run your app directly in Ghostty, iTerm2 or Warp (which shows whole pictures only), or another terminal <doc:TerminalSupport> lists. To make the text version look better or different, see <doc:WorkingWithImages>.
 
 If you see a line of text starting with `Error:` in place of the picture, the image didn't load. Check the path, which is relative to the folder you ran the app from, unless you make it absolute.
 
@@ -204,6 +208,36 @@ Clicks reach a TUI app through tmux whether its `mouse` option is on or off, so 
 - **Your app.** Look for a `.mouseSupport(.disabled)` that you've written somewhere.
 
 See <doc:TerminalSupport> for what else differs under tmux and ssh.
+
+## Key symbols show as boxes
+
+**The status bar, menus or the shortcut list show `?` or empty boxes where keys such as ⌃ and ⎋ should be.**
+
+Your terminal's font has no glyphs for those symbols. Set `TUI_KEY_SYMBOLS=0` to have keys written by name, such as `Ctrl-Q` and `Esc`, or choose View ▸ Spell Out Keys in an app with a menu bar. An app can ask for the names itself with ``Scene/keyNotation(_:)``.
+
+## A notification doesn't reach the desktop
+
+**A toast shows in the app, but nothing appears among your system's notifications, or the terminal only beeps.**
+
+A notification goes to the desktop only when the app asks for it, by posting with `desktop:` set to `.whenInactive` or `.always` (see <doc:Presentation>). Then the terminal posts it, if it can. If it can't, this machine posts it itself, with `osascript` on macOS or `notify-send` on Linux, but only where TUI can tell you're sitting at the machine the app runs on, so never over ssh. `TUI_SYSTEM_NOTIFICATIONS=1` turns that on where TUI can't tell, such as inside zellij or GNU screen. If each one is only a beep, `TUI_NOTIFICATIONS=0` is set.
+
+## Arrow keys go to the wrong control
+
+**Down moves the keyboard to a control that isn't the one below.**
+
+Arrow keys that a control doesn't use itself move the keyboard in Tab order, to the next or previous control, not to the nearest one on screen. To try arrows that go by the screen, set `TUI_ARROW_FOCUS=geometric`. It's an experiment. <doc:FocusSystem> says how sections group controls.
+
+## Too much moves on screen
+
+**You want things to stop gliding, fading or breathing.**
+
+Set `TUI_REDUCE_MOTION=1`, or turn on Reduce Motion in your system's settings, and things jump to where they're going. The control with the keyboard still breathes; `TUI_BREATHING=0` holds it still. In an app with a menu bar, the View menu has both, as Reduce Motion and Breathing Focus.
+
+## Colour is the only cue
+
+**You can't tell which control has the keyboard, or which is disabled, because the only difference is a colour.**
+
+Set `TUI_DIFFERENTIATE_WITHOUT_COLOR=1`, turn on Differentiate Without Color in your system's settings or, in an app with a menu bar, in its View menu. TUI's own controls then show the keyboard in reverse video and a disabled control faint, and mark a table's selected rows with a dot. `TUI_INCREASE_CONTRAST=1` asks for more contrast as well. <doc:EnvironmentVariables> lists the other settings.
 
 ## My terminal is messed up after a crash
 
