@@ -88,37 +88,35 @@ extension BadgeValue: Equatable {
 @MainActor
 private protocol BadgeCarrying {
     var carriedBadgeValue: BadgeValue { get }
-    /// The `\.badgeProminence` written around the badge, the write nearest it
-    /// winning — `nil` where none is.
-    var carriedBadgeProminence: BadgeProminence? { get }
 }
 
 @MainActor extension BadgeModifier: BadgeCarrying {
     fileprivate var carriedBadgeValue: BadgeValue { value }
-    fileprivate var carriedBadgeProminence: BadgeProminence? { nil }
 }
 
-/// A row whose badge has an environment write around it is still a badged
-/// row, and a `.badgeProminence(_:)` written there is that badge's: the badge
-/// sees the environment where `.badge(_:)` is written, as any view does —
-/// measured on macOS 15.8 (`Tools/SwiftUIProbes/Badge prominence/badgeprom.swift`):
-/// `.badge(5).badgeProminence(.decreased)` draws the decreased badge, and
+/// An environment write that may be a `.badgeProminence(_:)`: a row's badge
+/// takes the one written nearest it, outside it.
+@MainActor
+private protocol BadgeProminenceWriting {
+    /// The prominence this write sets, or `nil` where it writes something else.
+    var writtenBadgeProminence: BadgeProminence? { get }
+}
+
+/// A `.badgeProminence(_:)` written around a row's `.badge(_:)` is that
+/// badge's: the badge sees the environment where `.badge(_:)` is written, as
+/// any view does — measured on macOS 15.8
+/// (`Tools/SwiftUIProbes/Badge prominence/badgeprom.swift`):
+/// `.badge(5).badgeProminence(.decreased)` draws the decreased badge,
+/// `.badge(5).padding(.leading, 0).badgeProminence(.decreased)` too, and
 /// `.badgeProminence(.decreased).badge(5)`, written inside the badge, the
-/// standard one (decisions B72).
-///
-/// A conformance rather than a walk through the row's wrappers, so that the
-/// type gate (``viewTypeCarriesBadge(_:)``) still answers from the row's type
-/// alone and an unbadged row pays nothing for it.
+/// standard one (decisions B72, B-LISTS-1).
 ///
 /// The write is recognised by its value's TYPE, not by comparing its key path
 /// with `\.badgeProminence`: the environment has one value of that type, and
 /// key-path equality compares getter addresses, which the linker's
 /// deduplication can fold (the `key_path_identity` lint rule).
-@MainActor extension EnvironmentModifier: BadgeCarrying where Content: BadgeCarrying {
-    fileprivate var carriedBadgeValue: BadgeValue { content.carriedBadgeValue }
-    fileprivate var carriedBadgeProminence: BadgeProminence? {
-        content.carriedBadgeProminence ?? value as? BadgeProminence
-    }
+@MainActor extension EnvironmentModifier: BadgeProminenceWriting {
+    fileprivate var writtenBadgeProminence: BadgeProminence? { value as? BadgeProminence }
 }
 
 /// A list row's badge as the list draws it: its value, and the prominence
@@ -140,18 +138,42 @@ package struct ListRowBadge: Sendable {
 
 /// The badge a row carries and the prominence written around it —
 /// ``extractBadgeValue(from:)`` for a list, which draws both.
+///
+/// Read through every single-content wrapper written after the `.badge(_:)`,
+/// as a `.tag(_:)` is (`extractTagValue(from:as:)`): measured on macOS 15.8,
+/// `.badge(5).padding(.leading, 0)` still draws its badge
+/// (`Tools/SwiftUIProbes/Badge prominence/badgeprom.swift`), and so a padding,
+/// a frame, a foreground style or a gesture after it leaves the row badged
+/// (decisions B-LISTS-1; until 2026-11-08 only environment writes did). The
+/// outermost `.badge(_:)` wins where there are several, as on a single view;
+/// the `.badgeProminence(_:)` written nearest it outside it is its prominence.
+///
+/// Gated by ``viewTypeCarriesBadge(_:)``, which answers from the row's type
+/// alone, so a row with no badge inside its wrappers walks none of them.
 @MainActor
 package func extractListRowBadge<V: View>(from view: V) -> ListRowBadge? {
-    guard let carrier = view as? any BadgeCarrying else { return nil }
-    return ListRowBadge(value: carrier.carriedBadgeValue, prominence: carrier.carriedBadgeProminence)
+    guard viewTypeCarriesBadge(V.self) else { return nil }
+    var current: any View = view
+    var prominence: BadgeProminence?
+    while true {
+        if let carrier = current as? any BadgeCarrying {
+            return ListRowBadge(value: carrier.carriedBadgeValue, prominence: prominence)
+        }
+        if let written = (current as? any BadgeProminenceWriting)?.writtenBadgeProminence {
+            prominence = written
+        }
+        guard let wrapper = current as? any SingleContentWrapper else { return nil }
+        current = wrapper.wrappedContent
+    }
 }
 
-/// Extracts the badge value from a view if it's wrapped in a BadgeModifier.
+/// Extracts the badge value from a view carrying a `.badge(_:)`, under any
+/// number of single-content wrappers (``extractListRowBadge(from:)``).
 ///
 /// This is used by List to extract badge values during row extraction.
 @MainActor
 package func extractBadgeValue<V: View>(from view: V) -> BadgeValue? {
-    (view as? any BadgeCarrying)?.carriedBadgeValue
+    extractListRowBadge(from: view)?.value
 }
 
 /// Whether ``extractBadgeValue(from:)`` could ever answer for a view of
@@ -163,9 +185,26 @@ package func extractBadgeValue<V: View>(from view: V) -> BadgeValue? {
 /// common badge-less row: `extractBadgeValue` needs the BUILT view, and
 /// building one every frame just to hear "no badge" was the last per-row
 /// construction left on the hit path.
+///
+/// A `.badge(_:)` under single-content wrappers counts (B-LISTS-1), so the
+/// answer walks the type's wrappers, through their content types — once per
+/// type: kept, and read after from ``BodyWitnessMemo``'s direct-mapped table,
+/// a shift, a mask and a comparison, which is what lets every row of every
+/// list ask it every frame.
 @MainActor
 package func viewTypeCarriesBadge<V: View>(_ type: V.Type) -> Bool {
-    type is any BadgeCarrying.Type
+    unsafe BodyWitnessMemo.answer(in: BodyWitnessMemo.listRowBadge, for: type) {
+        if type is any BadgeCarrying.Type { return true }
+        guard let wrapper = type as? any SingleContentWrapper.Type else { return false }
+        return wrappedTypeCarriesBadge(wrapper)
+    }
+}
+
+/// ``viewTypeCarriesBadge(_:)`` of what wrappers of type `W` wrap, the
+/// existential opened to reach it.
+@MainActor
+private func wrappedTypeCarriesBadge<W: SingleContentWrapper>(_: W.Type) -> Bool {
+    viewTypeCarriesBadge(W.WrappedContent.self)
 }
 
 /// The badge a `List` ROW carries — ``extractListRowBadge(from:)``, but seeing
@@ -213,9 +252,16 @@ package func extractRowBadge(from view: any View) -> ListRowBadge? {
 /// badge-less row for its badge, which would draw it.
 @MainActor
 package func rowCarriesBadge(_ view: any View) -> Bool {
-    if view is any BadgeCarrying { return true }
+    if viewCarriesBadge(view) { return true }
     guard let memo = view as? any _ValueMemoWrapping else { return false }
     return viewTypeCarriesBadge(memo.memoizedContentType)
+}
+
+/// ``viewTypeCarriesBadge(_:)`` of `view`'s dynamic type, the existential
+/// opened to reach it.
+@MainActor
+private func viewCarriesBadge<V: View>(_ view: V) -> Bool {
+    viewTypeCarriesBadge(V.self)
 }
 
 // MARK: - Renderable

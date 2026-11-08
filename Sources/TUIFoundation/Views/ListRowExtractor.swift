@@ -459,8 +459,8 @@ extension ListRowsPassThrough {
                     // anyway priced every List frame in row views the next cache
                     // hit discarded. The badge is the one thing read off the BUILT
                     // view every frame, so rows whose static type cannot carry one
-                    // — all but a `.badge(_:)`-outermost row, or one with only
-                    // environment writes around it — skip that build too.
+                    // — all but a row with a `.badge(_:)` somewhere inside its
+                    // single-content wrappers — skip that build too.
                     let badge: ListRowBadge? =
                         viewTypeCarriesBadge(Content.self)
                         ? extractListRowBadge(from: content(element)) : nil

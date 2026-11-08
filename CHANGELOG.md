@@ -4,6 +4,10 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**A `List` row's `.badge(_:)` with a modifier after it is still drawn.** `Text("Inbox").badge(5).padding()`, or with a
+`.foregroundStyle` or an `.onTapGesture` after the badge, drew the row with no badge; only environment writes were read
+through. A `.badgeProminence(_:)` written around such a modifier reaches the badge, as SwiftUI's does.
+
 **`.onAppear`, `.onDisappear`, `.task`, `.onChange`, the gestures and `.keyboardShortcut` on several views leave them
 side by side.** `HStack { Group { a; b }.onAppear { … } }` drew `a` over `b`, and a `GridRow` carrying one of them left
 the grid's columns; now the members reach the stack or grid one by one, as SwiftUI's do, and the lifecycle actions still

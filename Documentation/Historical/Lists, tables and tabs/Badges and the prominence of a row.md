@@ -154,6 +154,16 @@ conformance check today; walking the row's type through its wrappers is a
 cast per wrapper per row per frame, on the windowed path of every list. About
 two hours, plus an A/B on `megalist`, `session` and `inbox`.
 
+**Shipped, 2026-11-08 (lane PARITYB):** the fuller version. A row's badge is
+read through every single-content wrapper after it, `.badge(5).padding()`,
+`.foregroundStyle` and `.onTapGesture` among them, and the
+`.badgeProminence(_:)` written nearest it outside it is its prominence
+(`BadgeThroughModifiersTests`). The walk the record priced per row per frame
+is not made: the type gate walks a row TYPE's wrappers once and keeps the
+answer in `BodyWitnessMemo`'s direct-mapped table (a shift, a mask and a
+comparison per row, the cost of the conformance check it replaces), and only
+a row whose type carries a badge walks its instance.
+
 ### B-LISTS2-1. A selection background raises the prominence of what is in front of it, in its two spellings
 
 *`ShapeStyle.selection` (`SelectionShapeStyle`), `EnvironmentValues.backgroundProminence`,

@@ -108,6 +108,12 @@
     /// is offered (TUIFoundation's `drawsAtItsOwnSize(_:)`).
     package static let ownSize = unsafe permanentMemo()
 
+    /// The memo for whether a view type carries a `.badge(_:)` under any
+    /// number of single-content wrappers (TUIFoundation's
+    /// `viewTypeCarriesBadge(_:)`). Not a body's answer: a wrapper's, through
+    /// its content's type, kept here for the direct-mapped read.
+    package static let listRowBadge = unsafe permanentMemo()
+
     private static func permanentMemo() -> UnsafeMutablePointer<Self> {
         let pointer = UnsafeMutablePointer<Self>.allocate(capacity: 1)
         unsafe pointer.initialize(to: Self())
