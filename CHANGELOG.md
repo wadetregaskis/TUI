@@ -4,6 +4,12 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**`TUI_ARROW_FOCUS=geometric` tries out arrow keys that go by the screen.** An experiment, off by default: an arrow the
+focused control doesn't use moves to the nearest control in its direction, one overlapping the focused control's
+columns (or rows) first, then the nearer, then the earlier in Tab order; with none it goes on in Tab order as before.
+Tab is unchanged, and arrows still stay inside the active section and a sheet. The Example's Focus page has a grid to
+try it on. See `Documentation/Input and focus/Geometric arrow focus.md`.
+
 **Every menu bar's View menu turns the accessibility and display preferences on and off.** Differentiate Without Color,
 Reduce Motion, Reduce Transparency, Increase Contrast, Breathing Focus, Spell Out Keys and Focus Follows Pointer, each a
 check showing whether it is on. A choice there wins over the system's setting, the `TUI_*` variable and the app's own

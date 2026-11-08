@@ -68,6 +68,8 @@ extension ExampleStrings {
             // Focus & input page
             "page.focus.sectionsSection": "Focus sections",
             "page.focus.sectionsDescription": "Tab between the two sections; the focused element's id shows below.",
+            "page.focus.arrowsSection": "Arrows: Tab order or the screen",
+            "page.focus.arrowsDescription": "Down normally goes to the next button in Tab order, along the row. Start the app with TUI_ARROW_FOCUS=geometric and it goes to the button below instead; where there is none, on in Tab order.",
             "page.focus.sectionA": "Section A",
             "page.focus.sectionB": "Section B",
             "page.focus.focusedID": "Focused id",
@@ -192,6 +194,8 @@ extension ExampleStrings {
 
             "page.focus.sectionsSection": "Fokusbereiche",
             "page.focus.sectionsDescription": "Wechsle mit Tab zwischen den beiden Bereichen; die id des fokussierten Elements wird unten angezeigt.",
+            "page.focus.arrowsSection": "Pfeiltasten: Tab-Reihenfolge oder Bildschirm",
+            "page.focus.arrowsDescription": "Pfeil nach unten geht normalerweise zur nächsten Taste in Tab-Reihenfolge, also entlang der Reihe. Mit TUI_ARROW_FOCUS=geometric gestartet, geht er stattdessen zur Taste darunter; wo keine ist, weiter in Tab-Reihenfolge.",
             "page.focus.sectionA": "Bereich A",
             "page.focus.sectionB": "Bereich B",
             "page.focus.focusedID": "Fokussierte id",
@@ -313,6 +317,8 @@ extension ExampleStrings {
 
             "page.focus.sectionsSection": "Sections de focus",
             "page.focus.sectionsDescription": "Passez d'une section à l'autre avec Tab ; l'id de l'élément focalisé s'affiche ci-dessous.",
+            "page.focus.arrowsSection": "Flèches : ordre de tabulation ou écran",
+            "page.focus.arrowsDescription": "La flèche bas va d'ordinaire au bouton suivant dans l'ordre de tabulation, le long de la rangée. Lancez l'app avec TUI_ARROW_FOCUS=geometric et elle va plutôt au bouton du dessous ; s'il n'y en a pas, à la suite dans l'ordre de tabulation.",
             "page.focus.sectionA": "Section A",
             "page.focus.sectionB": "Section B",
             "page.focus.focusedID": "id focalisé",
@@ -434,6 +440,8 @@ extension ExampleStrings {
 
             "page.focus.sectionsSection": "Sezioni di focus",
             "page.focus.sectionsDescription": "Passa tra le due sezioni con Tab; l'id dell'elemento con focus appare sotto.",
+            "page.focus.arrowsSection": "Frecce: ordine di tabulazione o schermo",
+            "page.focus.arrowsDescription": "La freccia giù di solito va al pulsante successivo nell'ordine di tabulazione, lungo la fila. Avvia l'app con TUI_ARROW_FOCUS=geometric e va invece al pulsante sottostante; dove non c'è, avanti nell'ordine di tabulazione.",
             "page.focus.sectionA": "Sezione A",
             "page.focus.sectionB": "Sezione B",
             "page.focus.focusedID": "id con focus",
@@ -555,6 +563,8 @@ extension ExampleStrings {
 
             "page.focus.sectionsSection": "Secciones de foco",
             "page.focus.sectionsDescription": "Cambia entre las dos secciones con Tab; el id del elemento enfocado aparece abajo.",
+            "page.focus.arrowsSection": "Flechas: orden de tabulación o pantalla",
+            "page.focus.arrowsDescription": "La flecha abajo suele ir al siguiente botón en el orden de tabulación, a lo largo de la fila. Inicia la app con TUI_ARROW_FOCUS=geometric y va en cambio al botón de abajo; donde no hay ninguno, sigue en el orden de tabulación.",
             "page.focus.sectionA": "Sección A",
             "page.focus.sectionB": "Sección B",
             "page.focus.focusedID": "id enfocado",
@@ -676,6 +686,8 @@ extension ExampleStrings {
 
             "page.focus.sectionsSection": "焦点区域",
             "page.focus.sectionsDescription": "用 Tab 在两个区域之间切换；获得焦点的元素 id 显示在下方。",
+            "page.focus.arrowsSection": "方向键：Tab 顺序或屏幕位置",
+            "page.focus.arrowsDescription": "向下键通常按 Tab 顺序移到下一个按钮，即沿着这一行。以 TUI_ARROW_FOCUS=geometric 启动应用时，它改为移到下方的按钮；下方没有按钮时，按 Tab 顺序继续。",
             "page.focus.sectionA": "区域 A",
             "page.focus.sectionB": "区域 B",
             "page.focus.focusedID": "聚焦的 id",
@@ -797,6 +809,8 @@ extension ExampleStrings {
 
             "page.focus.sectionsSection": "フォーカスセクション",
             "page.focus.sectionsDescription": "Tab で2つのセクションを切り替えます。フォーカス中の要素の id が下に表示されます。",
+            "page.focus.arrowsSection": "矢印キー：Tab 順か画面上の位置か",
+            "page.focus.arrowsDescription": "下矢印は通常、Tab 順で次のボタン、つまり同じ行の右へ移ります。TUI_ARROW_FOCUS=geometric でアプリを起動すると、代わりに真下のボタンへ移ります。下にボタンがなければ Tab 順で次へ進みます。",
             "page.focus.sectionA": "セクション A",
             "page.focus.sectionB": "セクション B",
             "page.focus.focusedID": "フォーカス中の id",

@@ -10,6 +10,7 @@
 
 import Foundation
 import TUIChrome
+import TUICore
 import TUIFoundation
 
 // MARK: - Headless App
@@ -329,6 +330,17 @@ package final class HeadlessApp {
 
     /// The focused control's id, `nil` when nothing holds the focus.
     package var focusedID: String? { focusManager.currentFocusedID }
+
+    /// How the arrow keys move the focus, which `TUI_ARROW_FOCUS` sets in an
+    /// app and a test sets here.
+    package var arrowFocus: ArrowFocus {
+        get { focusManager.arrowFocus }
+        set { focusManager.arrowFocus = newValue }
+    }
+
+    /// The regions the focus manager keeps for the geometric arrows: empty
+    /// unless they are on.
+    package var laidOutRegions: [HitTestRegion] { focusManager.laidOutRegions }
 
     /// The frame on screen — the bars and the content, row by row — as the
     /// diff writer last built it for the terminal.

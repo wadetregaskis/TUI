@@ -12,6 +12,7 @@ import TUI
 /// alongside the raw key handler (`.onKeyEvent`):
 /// - Two labelled focus sections you can Tab through, with a live readout of the
 ///   currently focused element's `focusID`.
+/// - A grid of buttons where the arrow keys' two modes part (`TUI_ARROW_FOCUS`).
 /// - A live "last key pressed" logger fed by `.onKeyEvent`.
 struct FocusPage: View {
     @State private var lastKey: String = "—"
@@ -59,6 +60,8 @@ struct FocusPage: View {
                         .truncationMode(.middle)
                 }
             }
+
+            ArrowFocusDemo()
 
             DemoSection("page.focus.focusableSection") {
                 VStack(alignment: .leading, spacing: 1) {

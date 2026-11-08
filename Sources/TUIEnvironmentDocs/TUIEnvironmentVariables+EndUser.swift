@@ -223,6 +223,10 @@ extension TUIEnvironmentVariables {
 
     private static let behaviour: [TUIEnvironmentVariable] = [
         TUIEnvironmentVariable(
+            "TUI_ARROW_FOCUS", .endUser, .behaviour,
+            values: "`geometric`",
+            effect: "An experiment, for trying out: an arrow key that the control with the keyboard doesn't use itself moves the keyboard to the nearest control on screen in that direction, so Down goes to the button below rather than the next one in Tab order. Where there is none it goes to the next (Down, Right) or previous (Up, Left) control in Tab order, as it does without the variable. Tab and Shift-Tab are unchanged. Any other value, or none, keeps arrows in Tab order."),
+        TUIEnvironmentVariable(
             "TUI_FOCUS_FOLLOWS_POINTER", .endUser, .behaviour,
             values: "`1` or `0`",
             effect: "`1`: the control under the mouse pointer takes the keyboard when the pointer moves onto it, as a click would, without pressing it. A text field you've typed in keeps it until you click or press Tab. The terminal then reports every move of the mouse. `0`: only a click or the keyboard moves it. Off unless the program says otherwise. In a program with a menu bar, the View menu's Focus Follows Pointer overrides this, and the program's own setting, until it quits.",

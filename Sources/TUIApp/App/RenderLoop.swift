@@ -648,6 +648,9 @@ extension RenderLoop {
         publishHitTestRegions(
             buffer.hitTestRegions, tooltipMovedThePage: tooltipMovedThePage, nowNanos: frameNowNanos,
             scheduler: animationScheduler)
+        // And where each control is, for arrows that go by the screen
+        // (`TUI_ARROW_FOCUS=geometric`); the Tab-order arrows never ask.
+        if focusManager.arrowFocus == .geometric { focusManager.laidOutRegions = buffer.hitTestRegions }
         // A gesture this walk disabled is given up at the next frame's tick,
         // which runs what it held back: that frame is asked for now, so it
         // comes at the disable (decisions B-F2-2).

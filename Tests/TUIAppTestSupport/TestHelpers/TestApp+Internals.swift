@@ -49,6 +49,11 @@ extension TestApp {
     var renderCache: RenderCache { headless.renderCache }
     var effectSettling: EffectStage.Settling { headless.effectSettling }
     var services: TUIContext { headless.services }
+    var arrowFocus: ArrowFocus {
+        get { headless.arrowFocus }
+        set { headless.arrowFocus = newValue }
+    }
+    var laidOutRegions: [HitTestRegion] { headless.laidOutRegions }
     var scenes: ScenePresenter { headless.scenes }
     var terminalWindowTitle: String? { headless.terminalWindowTitle }
     var hostWrites: [String] { headless.hostWrites }

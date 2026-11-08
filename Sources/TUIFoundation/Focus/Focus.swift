@@ -59,6 +59,10 @@ public final class FocusManager {
     /// `registerSectionGroup(_:)`, and cleared with the sections themselves.
     var sectionGroups: [String: SectionGroup] = [:]
 
+    /// How the arrow keys a focused control leaves unused move the focus, and
+    /// what the geometric ones go by. See `FocusManagerGeometricArrows.swift`.
+    var arrows = ArrowFocusState()
+
     /// Last frame's sections — see ``beginRenderPass()``. Read when the focused
     /// element is not registered in the CURRENT frame's ring: by
     /// ``notifyFocusLost()``, to reach it anyway, and by `recoveryTarget(after:)`,
@@ -1110,20 +1114,9 @@ extension FocusManager {
         // `moveBetweenColumns(for:)`. Content that uses them had the key first.
         if let handled = moveBetweenColumns(for: event) { return handled }
 
-        // Arrow keys: navigate within the active section (fallback if element didn't handle)
-        // Up/Left go to previous, Down/Right go to next
-        switch event.key {
-        case .up, .left:
-            focusPreviousInSection()
-            return true
-        case .down, .right:
-            focusNextInSection()
-            return true
-        default:
-            break
-        }
-
-        return false
+        // Arrow keys: navigate within the active section (fallback if element
+        // didn't handle) — see `moveFocus(byArrow:)`.
+        return moveFocus(byArrow: event.key)
     }
 }
 
