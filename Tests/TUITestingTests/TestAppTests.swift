@@ -453,6 +453,21 @@ struct TestAppIsolationTests {
         #expect(second.screen.contains("Count 0"))
     }
 
+    @Test("@SceneStorage with no store of its own stays inside the instance, as @AppStorage does")
+    func sceneStorage() {
+        struct Page: View {
+            @SceneStorage("TUITestingTests.sceneCount") private var count = 0
+            var body: some View {
+                Button("Count \(count)") { count += 1 }
+            }
+        }
+        let first = TestApp(width: 40, height: 3) { Page() }
+        first.press(.space)
+        #expect(first.screen.contains("Count 1"))
+        let second = TestApp(width: 40, height: 3) { Page() }
+        #expect(second.screen.contains("Count 0"))
+    }
+
     @Test("A sheet presents and takes the keyboard, as in a running app")
     func sheet() throws {
         struct Page: View {

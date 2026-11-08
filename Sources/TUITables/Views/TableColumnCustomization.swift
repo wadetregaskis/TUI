@@ -323,7 +323,7 @@ extension SceneStorage {
     public init<RowValue>(
         wrappedValue: Value = TableColumnCustomization<RowValue>(), _ key: String
     ) where Value == TableColumnCustomization<RowValue> {
-        self.init(wrappedValue: wrappedValue, key, store: StorageDefaults.backend)
+        self.init(key: key, defaultValue: wrappedValue, store: nil)
     }
 }
 

@@ -14,6 +14,17 @@ placement of their own, `CommandGroupPlacement.accessibility`, which `CommandGro
 **The async `KittyGraphics.withSupport(_:compression:operation:)` runs its operation on the caller's actor.** It is
 `nonisolated(nonsending)`, and its `isolation:` parameter is gone; a call with a trailing closure compiles as before. It
 was the cause of two of Swift 6.4's deprecation warnings, which now has none.
+**`@SceneStorage` is kept per terminal session, falling back to the last saved.** Each value has a copy for the
+terminal window, tab or pane the app runs in (a tmux pane, `TERM_SESSION_ID`, `ITERM_SESSION_ID`, `KITTY_WINDOW_ID`,
+`WEZTERM_PANE`, `WT_SESSION` and the like) and a copy last saved from any session. A read takes the session's copy, else
+the last saved, else the default. Running the app again in the same window puts back where it was there, two windows
+running it at once no longer overwrite each other, and a new window starts from the last saved. Without a session, as
+over a plain ssh connection, it works as before. A store keeps the 32 most recent sessions, each for 30 days. See
+`Documentation/Historical/State and dynamic properties/Scene storage per terminal session.md`.
+
+**`@SceneStorage` uses the store `defaultAppStorage(_:)` sets, as `@AppStorage` does.** It used the process's default
+store whatever the environment said, so in `TestApp` it wrote your real preferences where `@AppStorage` stayed in
+memory.
 
 **Differentiate without colour now changes how TUI's controls draw.** With macOS's setting on (when you're at the
 machine the app runs on) or `TUI_DIFFERENTIATE_WITHOUT_COLOR=1`, the controls say their state as they do on a terminal

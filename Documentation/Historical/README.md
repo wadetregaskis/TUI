@@ -35,7 +35,7 @@ place:
 | [Reviews and audits](<Reviews and audits/>) | The first reviews of the codebase and its tests (May 2026); a review of 71 commits by another author (2026-11-07). |
 | [Scrolling](Scrolling/) | Holding the reader's place; paging and view-aligned scrolling; content past a scroll view's edge; scroll phases, animated scrolling, flash and bounce; scroll position and visibility; measuring a scroll view's content. |
 | [Shapes, effects and animation](<Shapes, effects and animation/>) | Transitions; animation timing; shapes; shadows; matched geometry; materials and glass; pixel effects; accessibility settings. |
-| [State and dynamic properties](<State and dynamic properties/>) | Finding dynamic properties; class properties held by several views; per-app render state; the update model; when a body runs (the plain-body memo); how long a row's state lives. |
+| [State and dynamic properties](<State and dynamic properties/>) | Finding dynamic properties; class properties held by several views; per-app render state; the update model; when a body runs (the plain-body memo); scene storage per terminal session; how long a row's state lives. |
 | [SwiftUI parity process](<SwiftUI parity process/>) | The refusals re-examined; the semantic audit; completing the SwiftUI API; Apple-only API; the owner's decisions, 2026-10-18 to 10-25 and 2026-10-27 to 11-07. |
 | [Swift language and platforms](<Swift language and platforms/>) | Building views off the main actor; raising the floor to macOS 15. |
 | [SwiftTUI comparison, 2026-11](<SwiftTUI comparison, 2026-11/>) | TUI against SwiftTUI: engines, size, features, tests and safety, measured; the owner's decisions; the numbers to beat. |

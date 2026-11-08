@@ -69,8 +69,9 @@ The first frame is drawn the first time you read the screen or act, and every ac
 it returns. There is nothing to flush and nothing to wait for, unless the work is your own: see
 <doc:TestingYourApp#Work-that-takes-real-time>.
 
-An `@AppStorage` with no store of its own uses one in memory, which belongs to that `TestApp`. A test leaves nothing in
-your preferences, and one test's settings are not the next one's.
+An `@AppStorage` or `@SceneStorage` with no store of its own uses one in memory, which belongs to that `TestApp`. A
+test leaves nothing in your preferences, and one test's settings are not the next one's. A `TestApp` runs in no terminal
+session, so `@SceneStorage` keeps only the last saved value.
 
 ### Reading the screen
 

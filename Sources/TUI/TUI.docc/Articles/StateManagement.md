@@ -259,6 +259,35 @@ Reads are deliberately quieter: a value that fails to *decode* falls back to the
 declared default, which is defined behaviour and sits on the per-frame render
 path. Directory creation, loads, encodes and writes are all reported.
 
+## @SceneStorage
+
+``SceneStorage`` keeps where the user was, such as a tab, a selection or a scroll position, rather than what they
+chose. It is kept per window: each window the app opens has values of its own, and `@SceneStorage("tab")` is never the
+same value as `@AppStorage("tab")`.
+
+```swift
+struct BrowserView: View {
+    @SceneStorage("selectedTab") private var selectedTab = "inbox"
+    // …
+}
+```
+
+A terminal app's nearest thing to a window is the terminal window, tab or pane it runs in, so each value is also kept
+per terminal session. A write goes to the session's copy and to a copy shared by every session, the last saved. A read
+takes the session's copy, else the last saved, else the default. So:
+
+- Run the app again in the same terminal window and it's back where it was in that window.
+- Run it in two windows at once and each keeps its own place.
+- Open a new window, as someone who opens one for each task does, and it starts from wherever they last left it.
+
+The session is what the terminal names in the environment it started the shell with: a tmux pane, a screen window,
+`TERM_SESSION_ID` (Apple Terminal), `ITERM_SESSION_ID` (iTerm2), `KITTY_WINDOW_ID`, `WEZTERM_PANE`, `WT_SESSION`
+(Windows Terminal) and the like. Where there's none, as over a plain ssh connection or in Ghostty, which names no window,
+there is only the last saved. A store keeps the 32 sessions written most recently, each for 30 days after its last write.
+
+It is stored where an `@AppStorage` with the same `store:`, or none, would be: <doc:StateManagement#Which-store>
+applies as it stands.
+
 ## How Long State Lasts
 
 A view's `body` runs many times, but its `@State` isn't reset each time. The value lasts for as long as the view stays in the tree, wherever the tree puts it:

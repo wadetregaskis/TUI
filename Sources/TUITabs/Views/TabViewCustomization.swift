@@ -370,10 +370,10 @@ public struct TabCustomizationBehavior: Equatable, Sendable {
         ///     available for the given key.
         ///   - key: A key used to save and restore the value.
         ///   - store: The user defaults store to save it in, or `nil` for the
-        ///     default store.
+        ///     store the view's environment names (`defaultAppStorage(_:)`).
         public init(wrappedValue: Value = TabViewCustomization(), _ key: String, store: UserDefaults? = nil)
         where Value == TabViewCustomization {
-            self.init(wrappedValue: wrappedValue, key, store: store.map { UserDefaultsStorage($0) } ?? StorageDefaults.backend)
+            self.init(key: key, defaultValue: wrappedValue, store: store.map { UserDefaultsStorage($0) })
         }
     }
 
@@ -400,7 +400,7 @@ public struct TabCustomizationBehavior: Equatable, Sendable {
         ///     available for the given key.
         ///   - key: A key used to save and restore the value.
         public init(wrappedValue: Value = TabViewCustomization(), _ key: String) where Value == TabViewCustomization {
-            self.init(wrappedValue: wrappedValue, key, store: StorageDefaults.backend)
+            self.init(key: key, defaultValue: wrappedValue, store: nil)
         }
     }
 

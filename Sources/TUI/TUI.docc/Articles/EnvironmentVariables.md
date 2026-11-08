@@ -295,16 +295,27 @@ A terminal, a multiplexer or ssh sets these, and TUI reads them to work out wher
 | `TERM_PROGRAM_VERSION` | The terminal's version, which says whether it can set the pointer's shape. |
 | `LC_TERMINAL` | The terminal's name, as iTerm2 sets it. It's what ssh does pass on, by default, being named like a locale variable. |
 | `LC_TERMINAL_VERSION` | The version that goes with `LC_TERMINAL`. |
-| `GNOME_TERMINAL_SCREEN` | This is GNOME Terminal. |
+| `GNOME_TERMINAL_SCREEN` | This is GNOME Terminal, and which tab: the terminal session `@SceneStorage` keeps values for. |
 | `GNOME_TERMINAL_SERVICE` | This is GNOME Terminal. |
 | `VTE_VERSION` | This terminal is built on VTE, as GNOME Terminal is. |
-| `WT_SESSION` | This is Windows Terminal, which draws Sixel on a fixed cell of 10 x 20 pixels. |
-| `KITTY_WINDOW_ID` | This is kitty, which takes clipboard writes and pointer shapes. |
+| `WT_SESSION` | This is Windows Terminal, which draws Sixel on a fixed cell of 10 x 20 pixels. Also the terminal session `@SceneStorage` keeps values for. |
+| `KITTY_WINDOW_ID` | This is kitty, which takes clipboard writes and pointer shapes. With `KITTY_PID`, the terminal session `@SceneStorage` keeps values for. |
+| `KITTY_PID` | Which kitty, which scopes `KITTY_WINDOW_ID`: its window numbers start again with each kitty. |
+| `TERM_SESSION_ID` | Apple Terminal's window, or iTerm2's session, where `TERM_PROGRAM` names it: the terminal session `@SceneStorage` keeps values for. |
+| `ITERM_SESSION_ID` | iTerm2's session, where `TERM_PROGRAM` names iTerm2: the terminal session `@SceneStorage` keeps values for. |
+| `WEZTERM_PANE` | WezTerm's pane, where `TERM_PROGRAM` names WezTerm. With its pair, the terminal session `@SceneStorage` keeps values for. |
+| `WEZTERM_UNIX_SOCKET` | Which WezTerm, which scopes `WEZTERM_PANE`. |
+| `WARP_TERMINAL_SESSION_UUID` | Warp's session, where `TERM_PROGRAM` names Warp: the terminal session `@SceneStorage` keeps values for. |
+| `KONSOLE_DBUS_SESSION` | Konsole's session. With its pair, the terminal session `@SceneStorage` keeps values for. |
+| `KONSOLE_DBUS_SERVICE` | Which Konsole, which scopes `KONSOLE_DBUS_SESSION`. |
+| `ALACRITTY_WINDOW_ID` | Alacritty's window. With its pair, the terminal session `@SceneStorage` keeps values for. |
+| `ALACRITTY_SOCKET` | Which Alacritty, which scopes `ALACRITTY_WINDOW_ID`. |
 | `XTERM_VERSION` | This is xterm, and which version, which says whether it can set the pointer's shape. |
 | `COLORFGBG` | The terminal's foreground and background, which say whether it's dark, when the terminal doesn't answer and there's no multiplexer. |
 | `TMUX` | The program is in a tmux pane. |
-| `TMUX_PANE` | Which tmux pane, to ask tmux about it. |
+| `TMUX_PANE` | Which tmux pane, to ask tmux about it. With `TMUX`, the terminal session `@SceneStorage` keeps values for. |
 | `STY` | The program is in a GNU screen session. |
+| `WINDOW` | Which GNU screen window, where `STY` is set. With it, the terminal session `@SceneStorage` keeps values for. |
 | `ZELLIJ` | The program is in a zellij session. |
 | `ZELLIJ_SESSION_NAME` | The program is in a zellij session. |
 | `ABDUCO_SESSION` | The program is in an abduco session. |

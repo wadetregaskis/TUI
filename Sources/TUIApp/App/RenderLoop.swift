@@ -444,6 +444,13 @@ internal final class RenderLoop<A: App> {
     /// ``requestedAccessibility`` gives.
     var focusFollowsPointerRequested: Bool?
 
+    /// The terminal session the app runs in, as the app runner read it from
+    /// the process (`TerminalSession`), or `nil`: written at the root of
+    /// every frame as ``EnvironmentValues/sceneStorageSession``, which
+    /// `@SceneStorage` keeps its values per. `nil` in every loop but the app
+    /// runner's, for the reason ``requestedAccessibility`` gives.
+    var sceneStorageSession: String?
+
     init(
         app: A,
         terminal: any HostStateKeeping,
@@ -1085,6 +1092,7 @@ extension RenderLoop {
         if let delay = springLoadingDelayRequested ?? hostSpringLoadingDelay {
             environment.springLoadingDelay = delay
         }
+        environment.sceneStorageSession = sceneStorageSession
 
         // Terminal-adaptive defaults belong to the app run loop, where a real
         // terminal exists — the bare EnvironmentValues defaults stay
