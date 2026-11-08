@@ -3478,7 +3478,7 @@ attributes and glyphs that every terminal must then draw.
   |---|---|---|
   | Apple Terminal (light theme) | **Dims** every row, toward the background | distinct |
   | iTerm2 3.x (light theme) | **Dims** every row, toward the background | distinct |
-  | Warp (light theme) | **Darkens** instead of dimming: named red and the 24-bit green go darker, and the default foreground (black), bright blue and 256-colour orange **don't change at all** | **identical to enabled** |
+  | Warp (light theme) | **Darkens** instead of dimming: named red and the 24-bit green go darker, and the default foreground (black), bright blue and 256-colour orange **don't change at all** | **identical to enabled**. Workaround: italic (2026-11-08), below |
   | Ghostty 1.3.1 | not measured: the capture tool reached a second, windowless Ghostty instance rather than the probe's window. Its documentation has a `faint-opacity` setting (0.5 by default) | — |
   | kitty | not measurable here: it can't open a window on this VM (no OpenGL 3.3) | — |
 
@@ -3486,6 +3486,19 @@ attributes and glyphs that every terminal must then draw.
   in the same theme, so each is open to it as a second cue for disabled. Warp's darkening
   presumably dims as wanted in a dark theme, where the foreground is light (inferred, not
   measured).
+
+  **Workaround: italic (owner, 2026-11-08, option a).** Where faint is known not to show,
+  disabled is faint AND italic: a disabled control at no colour (`fadedWithoutColor`), and a
+  `List` or `Table` row under `.selectionDisabled(_:)` at every depth
+  (`ANSIRenderer.applyPersistentDisabled`). "Known not to show" is
+  `TerminalClient.drawsFaint`: false for Warp (`TerminalClient.effective`, so a simulated
+  Warp too) whose background is light (`TerminalColors.current.prefersDark == false`, from
+  OSC 11), decided per session rather than per cell, and read again after a theme report.
+  Italic rather than strikethrough or a dotted underline because it changes no cell and
+  reads as "not the usual text" without saying "deleted" or "link". Nothing changes on any
+  other host, nor on Warp with a dark or unknown background; tmux drawn in a light Warp is
+  not covered, since the host there is tmux. Not re-measured on Warp with the workaround in
+  place: the italic itself is what the probe above measured.
 - **Bold** for a selected tab or segment, and a cursor row's breath where
   `TerminalClient.drawsBold` says so. See "Bold is a COLOUR on some hosts" above: with no
   colour stated, a host that brightens bold has nothing here to clash with.

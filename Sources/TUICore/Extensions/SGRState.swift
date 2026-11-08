@@ -756,6 +756,9 @@ package struct SGRState: Sendable, Equatable {
     /// Whether faint (SGR 2) is in force.
     package var isFaint: Bool { attributes & Self.bit(2) != 0 }
 
+    /// Whether italic (SGR 3) is in force.
+    package var isItalic: Bool { attributes & Self.bit(3) != 0 }
+
     /// Whether strikethrough (SGR 9) is in force.
     package var isStruckThrough: Bool { attributes & Self.bit(9) != 0 }
 

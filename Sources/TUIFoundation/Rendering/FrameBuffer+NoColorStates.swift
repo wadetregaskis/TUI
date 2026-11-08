@@ -15,23 +15,34 @@ import TUIStyling
 /// say instead, in the attributes such a terminal still draws, and in one place, so
 /// that every control says it alike: the focus in reverse video, as a list's cursor
 /// row, a menu's bar and a segmented picker already do, and disabled in the faint
-/// `SelectionDisabledModifier` already uses for a row that can't be selected.
+/// `SelectionDisabledModifier` already uses for a row that can't be selected —
+/// italic too where the host doesn't show faint (``TerminalClient/drawsFaint``).
 ///
 /// Both are no-ops at any other depth, so the colours keep the job there.
 extension FrameBuffer {
-    /// This buffer drawn faint, if `isDisabled`, at ``ColorDepth/noColor``.
+    /// This buffer drawn faint, if `isDisabled`, at ``ColorDepth/noColor``: italic
+    /// too where faint doesn't show (``ANSIRenderer/applyPersistentDisabled(_:)``).
+    @MainActor
     package func fadedWithoutColor(if isDisabled: Bool) -> FrameBuffer {
         guard isDisabled, ColorDepth.current == .noColor else { return self }
+        return drawnDisabled()
+    }
+
+    /// This buffer in the attributes that say "disabled", at any depth: faint, and
+    /// italic where the host doesn't show faint. What a disabled control draws at
+    /// no colour, and a row that can't be selected at every depth.
+    @MainActor
+    package func drawnDisabled() -> FrameBuffer {
         var faded = self
-        faded.lines = lines.map(ANSIRenderer.applyPersistentDim)
-        // Under the runs too, as `SelectionDisabledModifier` does, so that a replayed
-        // tick draws what the render did.
-        faded.paintRunGrounds { _, ground in ANSIRenderer.applyPersistentDim(ground) }
+        faded.lines = lines.map(ANSIRenderer.applyPersistentDisabled)
+        // Under the runs too, so that a replayed tick draws what the render did.
+        faded.paintRunGrounds { _, ground in ANSIRenderer.applyPersistentDisabled(ground) }
         return faded
     }
 
     /// This whole buffer saying `state`, at ``ColorDepth/noColor``, for a control with no
     /// part of it that means anything by being lit.
+    @MainActor
     package func statingWithoutColor(focused: Bool, disabled: Bool) -> FrameBuffer {
         reversedWithoutColor(if: focused && !disabled).fadedWithoutColor(if: disabled)
     }

@@ -2788,8 +2788,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     row: row, line: lineIndex, columns: gutter..<cellColumn)
             }
             // A row that refuses selection draws faint, under whatever
-            // background it wears — as a `List` row does.
-            if isDimmed { content = ANSIRenderer.applyPersistentDim(content) }
+            // background it wears — as a `List` row does, italic too where
+            // faint doesn't show.
+            if isDimmed { content = ANSIRenderer.applyPersistentDisabled(content) }
             guard case .none = visual.background else {
                 // `cellColumn` IS this line's visible width, as on the single-line
                 // path (`renderRowUncached`): the cells loop walked it from the
@@ -6106,9 +6107,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             return stated
         }
         // A row that refuses selection draws faint, under whatever background
-        // it wears — as a `List` row does.
+        // it wears — as a `List` row does, italic too where faint doesn't show.
         if selectionDisabledRows.contains(row) {
-            content = ANSIRenderer.applyPersistentDim(content)
+            content = ANSIRenderer.applyPersistentDisabled(content)
         }
         guard case .none = visualState.background else {
             // `cellColumn` IS this line's visible width, so nothing rescans it:

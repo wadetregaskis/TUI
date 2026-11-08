@@ -70,21 +70,19 @@ extension SelectionDisabledModifier: Equatable where Content: Equatable {
         report(context)
         let buffer = TUIView.renderToBuffer(content, context: context)
         guard isDisabled else { return buffer }
-        // The doc's "dimmed foreground" promise — the same persistent-faint
-        // primitive the List's own held-row preview uses, which restates
-        // itself after every reset a multi-run row's content already
-        // contains (see `ANSIRenderer.applyPersistentDim`). Everything else
+        // The doc's "dimmed foreground" promise — the persistent faint a
+        // disabled control draws at no colour, which restates itself after
+        // every reset a multi-run row's content already contains (see
+        // `ANSIRenderer.applyPersistentDim`), and is italic too where the host
+        // doesn't show faint (`TerminalClient.drawsFaint`). Everything else
         // about the buffer (hit regions, badges, opacity claims) is carried
-        // through unchanged; only the drawn colour changes.
-        var dimmed = buffer
-        dimmed.lines = buffer.lines.map(ANSIRenderer.applyPersistentDim)
-        // And under the row's own runs, which the dim reaches in the lines after
-        // every reset in their frames: recorded in their grounds, the tick restates
-        // it with the field (`AnimatedCellRun.groundStyle`). Left out, a spinner in
-        // such a row was drawn faint by every render and at full intensity by every
-        // tick between them.
-        dimmed.paintRunGrounds { _, ground in ANSIRenderer.applyPersistentDim(ground) }
-        return dimmed
+        // through unchanged; only the drawn attributes change. It goes under
+        // the row's own runs too, which the dim reaches in the lines after
+        // every reset in their frames: recorded in their grounds, the tick
+        // restates it with the field (`AnimatedCellRun.groundStyle`). Left out,
+        // a spinner in such a row was drawn faint by every render and at full
+        // intensity by every tick between them.
+        return buffer.drawnDisabled()
     }
 
     /// Tells the enclosing `List` this row refuses to be selected.
