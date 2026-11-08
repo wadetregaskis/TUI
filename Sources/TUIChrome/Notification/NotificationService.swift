@@ -104,7 +104,21 @@ public final class NotificationService: Sendable {
         var displays: [RenderCache.Link] = []
     }
 
-    private let state = Mutex(State())
+    /// The state, in an object every service made from this one shares: the
+    /// window- and presentation-owned services a view's environment hands out
+    /// (``owned(byWindow:)``) are this service's, posting to its toasts.
+    private final class Storage: Sendable {
+        let state = Mutex(State())
+    }
+
+    /// Where this service's notifications are kept: its own, or the service's
+    /// it was made from.
+    private let storage: Storage
+
+    /// Whose a post through this service is: the window, and the presentation
+    /// in it, that the environment handing it out belongs to — or `nil` for
+    /// ``current`` itself, whose posts belong to no window.
+    let owner: NotificationOwner?
 
     /// The clock a notification's age is measured on.
     ///
@@ -124,16 +138,16 @@ public final class NotificationService: Sendable {
     /// Read at the post, so a change moves the toasts posted after it, and
     /// leaves those already up where they are.
     public var defaultPlacement: NotificationPlacement {
-        get { state.withLock { $0.defaultPlacement } }
-        set { state.withLock { $0.defaultPlacement = newValue } }
+        get { storage.state.withLock { $0.defaultPlacement } }
+        set { storage.state.withLock { $0.defaultPlacement = newValue } }
     }
 
     /// How wide a toast is, in cells, border included: 40 unless the app sets
     /// another, and never less than 8. A terminal too narrow for it narrows
     /// the toasts to fit, a cell in from either side.
     public var width: Int {
-        get { state.withLock { $0.width } }
-        set { state.withLock { $0.width = max(8, newValue) } }
+        get { storage.state.withLock { $0.width } }
+        set { storage.state.withLock { $0.width = max(8, newValue) } }
     }
 
     /// Creates an empty notification service.
@@ -145,6 +159,32 @@ public final class NotificationService: Sendable {
     /// test's own clock.
     init(nowNanos: @escaping @Sendable () -> UInt64) {
         self.nowNanos = nowNanos
+        self.storage = Storage()
+        self.owner = nil
+    }
+
+    /// This service, posting for `owner`: the same notifications, its posts
+    /// stamped with whose they are.
+    private init(sharing service: NotificationService, owner: NotificationOwner) {
+        self.nowNanos = service.nowNanos
+        self.storage = service.storage
+        self.owner = owner
+    }
+
+    /// This service as the window numbered `window` hands it to its views
+    /// (`ScenePresenter`): a post through it belongs to that window, so it goes
+    /// under what is presented over the window by default
+    /// (``NotificationLayer/belowPresentations``), and is drawn only while the
+    /// window is in front.
+    package func owned(byWindow window: Int) -> NotificationService {
+        NotificationService(sharing: self, owner: NotificationOwner(window: window, presentation: nil))
+    }
+
+    /// This service as the sheet, alert or dialog whose focus section is
+    /// `section` hands it to its content: a post through it belongs to that
+    /// presentation — on top while it is, under anything presented over it.
+    package func owned(byPresentation section: String) -> NotificationService {
+        NotificationService(sharing: self, owner: NotificationOwner(window: owner?.window, presentation: section))
     }
 }
 
@@ -165,19 +205,20 @@ extension NotificationService {
     ///     until it is dismissed.
     ///   - placement: Where it is drawn, the channel it stacks in (default: `nil`, the service's
     ///     ``defaultPlacement``).
+    ///   - layer: Whether it is drawn above or below sheets, alerts and dialogs (default: `nil`, by whose it
+    ///     is — see ``NotificationLayer``).
     ///   - actions: The buttons on it (default: none); choosing one runs its action and dismisses the toast.
-    ///   - desktop: Whether it is also posted on the desktop, through the terminal (default:
-    ///     ``NotificationDesktopDelivery/never``).
+    ///   - desktop: Whether it is also posted on the desktop (default: ``NotificationDesktopDelivery/never``).
     /// - Returns: The notification's identifier, for ``dismiss(_:)``.
     @discardableResult
     public func post(
         _ messageKey: LocalizedStringKey, style: NotificationStyle = .plain, duration: TimeInterval? = 3.0,
-        placement: NotificationPlacement? = nil, actions: [NotificationAction] = [],
+        placement: NotificationPlacement? = nil, layer: NotificationLayer? = nil, actions: [NotificationAction] = [],
         desktop: NotificationDesktopDelivery = .never
     ) -> NotificationID {
         post(
-            messageKey.localized, style: style, duration: duration, placement: placement, actions: actions,
-            desktop: desktop)
+            messageKey.localized, style: style, duration: duration, placement: placement, layer: layer,
+            actions: actions, desktop: desktop)
     }
 
     /// Posts a new notification, displayed as written.
@@ -198,29 +239,52 @@ extension NotificationService {
     ///     until it is dismissed.
     ///   - placement: Where it is drawn, the channel it stacks in (default: `nil`, the service's
     ///     ``defaultPlacement``).
+    ///   - layer: Whether it is drawn above or below sheets, alerts and dialogs (default: `nil`, by whose it
+    ///     is — see ``NotificationLayer``).
     ///   - actions: The buttons on it (default: none); choosing one runs its action and dismisses the toast.
-    ///   - desktop: Whether it is also posted on the desktop, through the terminal (default:
-    ///     ``NotificationDesktopDelivery/never``).
+    ///   - desktop: Whether it is also posted on the desktop (default: ``NotificationDesktopDelivery/never``).
     /// - Returns: The notification's identifier, for ``dismiss(_:)``.
     @_disfavoredOverload
     @discardableResult
     public func post<S: StringProtocol>(
         _ message: S, style: NotificationStyle = .plain, duration: TimeInterval? = 3.0,
-        placement: NotificationPlacement? = nil, actions: [NotificationAction] = [],
+        placement: NotificationPlacement? = nil, layer: NotificationLayer? = nil, actions: [NotificationAction] = [],
         desktop: NotificationDesktopDelivery = .never
     ) -> NotificationID {
         let now = nowNanos()
         let entry = NotificationEntry(
-            message: String(message), style: style, placement: placement ?? defaultPlacement, actions: actions,
-            duration: duration ?? .infinity, postedAtNanos: now)
+            message: String(message), style: style, placement: placement ?? defaultPlacement,
+            owner: owner, layer: layer ?? defaultLayer, actions: actions, duration: duration ?? .infinity,
+            postedAtNanos: now)
         if desktop != .never {
-            state.withLock { state in
+            storage.state.withLock { state in
                 state.desktopRequests.append((entry.message, desktop))
                 state.desktopRequests.removeFirst(max(0, state.desktopRequests.count - Self.desktopQueueLimit))
             }
         }
         add(entry, now: now)
         return entry.id
+    }
+
+    /// Where a post that names no layer goes: above presentations for one
+    /// that belongs to no window (``current``'s), below them for one a window
+    /// or a presentation posted (``NotificationLayer``).
+    private var defaultLayer: NotificationLayer {
+        owner == nil ? .abovePresentations : .belowPresentations
+    }
+
+    /// Notes which notifications are covered at `now` — drawn under something
+    /// presented over what posted them, or posted for a window not in front —
+    /// so their clocks stop there, and which are not, so theirs run again: the
+    /// window in front's toasts, each frame they are drawn. A dismissed one is
+    /// never covered.
+    func setCovered(_ covered: Set<NotificationID>, atNanos now: UInt64) {
+        storage.state.withLock { state in
+            for index in state.entries.indices {
+                let entry = state.entries[index]
+                state.entries[index] = covered.contains(entry.id) ? entry.covered(atNanos: now) : entry.uncovered(atNanos: now)
+            }
+        }
     }
 
     /// The most desktop requests kept for a frame to send: a service nothing
@@ -231,7 +295,7 @@ extension NotificationService {
     /// them, and how, and forgets them: for the scene to send, through its
     /// terminal, those whose delivery applies now.
     func takeDesktopRequests() -> [(message: String, delivery: NotificationDesktopDelivery)] {
-        state.withLock { state in
+        storage.state.withLock { state in
             defer { state.desktopRequests.removeAll() }
             return state.desktopRequests
         }
@@ -263,18 +327,22 @@ extension NotificationService {
     ///     until it is dismissed.
     ///   - placement: Where it is drawn, the channel it stacks in (default: `nil`, the service's
     ///     ``defaultPlacement``).
+    ///   - layer: Whether it is drawn above or below sheets, alerts and dialogs (default: `nil`, by whose it
+    ///     is — see ``NotificationLayer``).
     ///   - actions: The buttons on it (default: none); choosing one runs its action and dismisses the toast.
     ///   - content: The views the toast draws.
     /// - Returns: The notification's identifier, for ``dismiss(_:)``.
     @discardableResult
     public func post<Content: View>(
         style: NotificationStyle = .plain, duration: TimeInterval? = 3.0, placement: NotificationPlacement? = nil,
-        actions: [NotificationAction] = [], @ViewBuilder content: @escaping @MainActor @Sendable () -> Content
+        layer: NotificationLayer? = nil, actions: [NotificationAction] = [],
+        @ViewBuilder content: @escaping @MainActor @Sendable () -> Content
     ) -> NotificationID {
         let now = nowNanos()
         let entry = NotificationEntry(
             message: "", content: { AnyView(content()) }, style: style, placement: placement ?? defaultPlacement,
-            actions: actions, duration: duration ?? .infinity, postedAtNanos: now)
+            owner: owner, layer: layer ?? defaultLayer, actions: actions, duration: duration ?? .infinity,
+            postedAtNanos: now)
         add(entry, now: now)
         return entry.id
     }
@@ -306,7 +374,7 @@ extension NotificationService {
     /// Holds the notification `id` names visible at `now`, as long as a
     /// button on it has the focus (``NotificationEntry/held(atNanos:)``).
     func keepVisible(_ id: NotificationID, atNanos now: UInt64) {
-        state.withLock { state in
+        storage.state.withLock { state in
             guard let index = state.entries.firstIndex(where: { $0.id == id }) else { return }
             state.entries[index] = state.entries[index].held(atNanos: now)
         }
@@ -316,7 +384,7 @@ extension NotificationService {
     /// draw them for a frame.
     func dismiss(where matches: (NotificationEntry) -> Bool) {
         let now = nowNanos()
-        let displays = state.withLock { state in
+        let displays = storage.state.withLock { state in
             for index in state.entries.indices where matches(state.entries[index]) {
                 state.entries[index] = state.entries[index].dismissed(atNanos: now)
             }
@@ -328,7 +396,7 @@ extension NotificationService {
     /// Adds `entry`, posted at `now`, and asks the apps that draw this
     /// service for a frame.
     private func add(_ entry: NotificationEntry, now: UInt64) {
-        let displays = state.withLock { state in
+        let displays = storage.state.withLock { state in
             // The expired go here too, not only in `activeEntries()`: that is the
             // drawing's to call, and a service nothing draws (a program that posts
             // with no scene up) kept every post it was ever given. The same rule as
@@ -346,7 +414,7 @@ extension NotificationService {
     /// that draws them; `nil` — a render with no cache — notes nothing.
     package func noteDisplayed(by link: RenderCache.Link?) {
         guard let link else { return }
-        state.withLock { state in
+        storage.state.withLock { state in
             // The usual case: noted already, one comparison.
             guard !state.displays.contains(where: { $0 === link }) else { return }
             state.displays.removeAll { !$0.isAttached }
@@ -361,7 +429,7 @@ extension NotificationService {
     func activeEntries() -> [NotificationEntry] {
         let now = nowNanos()
 
-        return state.withLock { state in
+        return storage.state.withLock { state in
             state.entries.removeAll { now > $0.expiresAtNanos }
             return state.entries
         }
@@ -370,12 +438,12 @@ extension NotificationService {
     /// How many notifications are kept, expired or not, without pruning. For
     /// tests: a number that only grows is a leak.
     var entryCount: Int {
-        state.withLock { $0.entries.count }
+        storage.state.withLock { $0.entries.count }
     }
 
     /// Removes all active notifications.
     func clear() {
-        state.withLock { $0.entries.removeAll() }
+        storage.state.withLock { $0.entries.removeAll() }
     }
 }
 
@@ -385,6 +453,11 @@ extension EnvironmentValues {
     /// The notification service for posting and managing notifications.
     ///
     /// Read by the scene, which draws the active entries over its content.
+    /// A window's views get the app's service stamped as the window's, and a
+    /// sheet's or an alert's content as that presentation's, so a post through
+    /// it goes under what is presented over its owner unless it names a
+    /// ``NotificationLayer`` (``NotificationService/current``'s posts belong to
+    /// no window, and go above).
     /// Post notifications via the static accessor:
     ///
     /// ```swift

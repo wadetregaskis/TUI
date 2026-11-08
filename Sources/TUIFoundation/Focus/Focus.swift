@@ -152,7 +152,7 @@ public final class FocusManager {
     /// `beginRenderPass`). When the active section is one of these, the app's
     /// global default key bindings (appearance / theme cycling) must not fire
     /// behind the modal; see `InputHandler` and ``activeSectionIsModal``.
-    private var modalSectionIDs: Set<String> = []
+    private(set) var modalSectionIDs: Set<String> = []
 
     /// ``modalSectionIDs`` as the previous frame left them, snapshotted by
     /// ``beginRenderPass()`` before it clears them.

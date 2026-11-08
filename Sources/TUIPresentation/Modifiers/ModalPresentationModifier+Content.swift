@@ -40,6 +40,10 @@ import TUIFoundation
             .withAvailableWidth(context.environment.terminalWidth)
             .withAvailableHeight(overlayHeight)
         modalContext.environment.activeFocusSectionID = sectionID
+        // Its content's posts are the sheet's: on top of it while it is on top
+        // (`NotificationLayer`).
+        modalContext.environment.notificationService =
+            modalContext.environment.notificationService?.owned(byPresentation: sectionID)
         // Its `.toolbar`s' items are the presentation's, drawn at its edges:
         // the window's bars are inert while it is up.
         modalContext.environment.presentationHostsToolbar = true

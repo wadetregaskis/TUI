@@ -4,6 +4,7 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUIChrome
 import TUIFoundation
 
 /// A modifier that presents an alert dialog when a binding is true.
@@ -289,6 +290,9 @@ nonisolated package struct AlertPresentationModifier<Content: View, Actions: Vie
             .withAvailableWidth(context.environment.terminalWidth)
             .withAvailableHeight(context.environment.overlayContentHeight)
         alertContext.environment.activeFocusSectionID = sectionID
+        // Its buttons' posts are the alert's (`NotificationLayer`).
+        alertContext.environment.notificationService =
+            alertContext.environment.notificationService?.owned(byPresentation: sectionID)
         alertContext.leavePresenter()
         alertContext.environment.dialogPresentsError = presentsError
         // Choosing an action dismisses the alert, as it does in SwiftUI: an

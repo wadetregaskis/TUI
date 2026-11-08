@@ -491,9 +491,29 @@ with a button, F6 again to the next older one, and past the oldest back where
 it was; Tab reaches them too, after the page. Return chooses the focused
 button and Escape dismisses its toast. The status bar names F6 while a toast
 has a button. A toast doesn't fade while its button has the focus, and one
-posted with `duration: nil` and no actions gets a Close button. While a sheet
-or an alert holds the keyboard, toasts still draw, but their buttons do nothing
-until it closes.
+posted with `duration: nil` and no actions gets a Close button.
+
+A ``NotificationLayer`` says whether a toast is drawn above the sheets, alerts
+and dialogs presented over the window, or below them. One above stays
+reachable while a sheet is up: F6 moves the focus to its buttons, and Escape
+closes the sheet unless the toast has the focus. One below is drawn under the
+sheet, out of reach, and its timer waits until the sheet closes. Without a
+layer, a post through ``NotificationService/current`` goes above, and one
+through a view's `@Environment(\.notificationService)` belongs to the view's
+window — or to the sheet or alert it is in — and goes below what is presented
+over that:
+
+```swift
+@Environment(\.notificationService) private var notifications
+
+var body: some View {
+    let notifications = notifications
+    Button("Save") {
+        save()
+        notifications?.post("Saved")    // the window's: under any sheet over it
+    }
+}
+```
 
 A text notification can also be posted on the desktop, where the person sees
 it from another window: ``NotificationDesktopDelivery``. It goes through the
@@ -528,6 +548,7 @@ They have a page of their own: <doc:FilePanels>.
 - ``NotificationPlacement``
 - ``NotificationAction``
 - ``NotificationDesktopDelivery``
+- ``NotificationLayer``
 
 ## See Also
 

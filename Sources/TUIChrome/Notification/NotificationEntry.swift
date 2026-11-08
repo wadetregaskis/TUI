@@ -38,6 +38,24 @@ struct NotificationEntry: Identifiable, Sendable {
     /// Where it is drawn: the channel it stacks in.
     let placement: NotificationPlacement
 
+    /// Whose it is — the window, and the presentation in it, it was posted
+    /// from — or `nil` for one posted through `NotificationService.current`.
+    let owner: NotificationOwner?
+
+    /// Whether it is drawn above or below what is presented over the window.
+    let layer: NotificationLayer
+
+    /// When it was covered, while it is: its clock stopped there, so its fades
+    /// and its visible stretch wait (``covered(atNanos:)``).
+    private(set) var coveredSinceNanos: UInt64?
+
+    /// How long it was covered before, all told: its clock is that far behind
+    /// the service's.
+    private(set) var coveredNanos: UInt64 = 0
+
+    /// Whether it is covered now, its clock stopped.
+    var isCovered: Bool { coveredSinceNanos != nil }
+
     /// The buttons on it, in order.
     let actions: [NotificationAction]
 
@@ -64,16 +82,21 @@ struct NotificationEntry: Identifiable, Sendable {
     ///   - message: The notification message text.
     ///   - style: What it is about.
     ///   - placement: Where it is drawn.
+    ///   - owner: Whose it is, or `nil` for no window's.
+    ///   - layer: Whether it is drawn above or below presentations.
     ///   - duration: Display duration in seconds.
     ///   - postedAtNanos: The service clock's reading at the post.
     ///   - content: The views it draws in place of `message`, or `nil`.
     ///   - actions: The buttons on it.
     init(
         message: String, content: (@MainActor @Sendable () -> AnyView)? = nil, style: NotificationStyle = .plain,
-        placement: NotificationPlacement = .topTrailing, actions: [NotificationAction] = [], duration: TimeInterval,
+        placement: NotificationPlacement = .topTrailing, owner: NotificationOwner? = nil,
+        layer: NotificationLayer = .abovePresentations, actions: [NotificationAction] = [], duration: TimeInterval,
         postedAtNanos: UInt64
     ) {
         self.id = NotificationID()
+        self.owner = owner
+        self.layer = layer
         self.message = message
         self.content = content
         self.actions = actions
@@ -87,12 +110,35 @@ struct NotificationEntry: Identifiable, Sendable {
         self.postedAtNanos = postedAtNanos
     }
 
-    /// Seconds from the post to `now`, on the same clock; zero for a `now` before it.
+    /// Seconds from the post to `now`, on the same clock, less the time it has
+    /// been covered — stopped where it is covered now; zero for a `now` before it.
     ///
     /// Saturating because the two readings can come from different moments of one
     /// frame: a toast posted while a frame renders is younger than that frame's stamp.
     func age(atNanos now: UInt64) -> TimeInterval {
-        now > postedAtNanos ? Double(now - postedAtNanos) / 1_000_000_000 : 0
+        let stopped = min(now, coveredSinceNanos ?? now)
+        let start = postedAtNanos &+ coveredNanos
+        return stopped > start ? Double(stopped - start) / 1_000_000_000 : 0
+    }
+
+    /// This notification, covered at `now`: its clock stops, until
+    /// ``uncovered(atNanos:)``. One covered already, or dismissed — going,
+    /// whatever covers it — is unchanged.
+    func covered(atNanos now: UInt64) -> Self {
+        guard coveredSinceNanos == nil, !isDismissed else { return self }
+        var covered = self
+        covered.coveredSinceNanos = now
+        return covered
+    }
+
+    /// This notification, no longer covered at `now`: its clock runs again
+    /// from where it stopped. One not covered is unchanged.
+    func uncovered(atNanos now: UInt64) -> Self {
+        guard let since = coveredSinceNanos else { return self }
+        var uncovered = self
+        uncovered.coveredNanos &+= now > since ? now - since : 0
+        uncovered.coveredSinceNanos = nil
+        return uncovered
     }
 
     /// This notification, dismissed at `now`: its visible stretch ends there,
@@ -100,7 +146,8 @@ struct NotificationEntry: Identifiable, Sendable {
     /// dismissed while it fades in. One already fading out, or gone, is
     /// unchanged.
     func dismissed(atNanos now: UInt64) -> Self {
-        var dismissed = self
+        // Its clock runs again: it is going, whatever covers it.
+        var dismissed = uncovered(atNanos: now)
         dismissed.duration = min(duration, max(0, age(atNanos: now) - NotificationTiming.fadeInDuration))
         dismissed.isDismissed = true
         return dismissed
@@ -123,9 +170,11 @@ struct NotificationEntry: Identifiable, Sendable {
         return held
     }
 
-    /// The service clock's reading at which this notification has finished fading out.
+    /// The service clock's reading at which this notification has finished
+    /// fading out: never while it is covered, and later by as long as it was.
     var expiresAtNanos: UInt64 {
+        guard coveredSinceNanos == nil else { return .max }
         let lifetime = NotificationTiming.fadeInDuration + duration + NotificationTiming.fadeOutDuration
-        return postedAtNanos &+ UInt64(clamping: AnimationClock.nanoseconds(lifetime))
+        return postedAtNanos &+ coveredNanos &+ UInt64(clamping: AnimationClock.nanoseconds(lifetime))
     }
 }

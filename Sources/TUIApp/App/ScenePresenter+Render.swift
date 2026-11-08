@@ -7,6 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIChrome
 import TUIFoundation
 
 extension ScenePresenter {
@@ -56,6 +57,9 @@ extension ScenePresenter {
         context.environment.dismissWindow = DismissWindowAction(handler: actions, window: window.serial)
         context.environment.presentedWindow = window.presented
         context.environment.sceneStorageNamespace = window.storageNamespace
+        // Its views' posts are the window's (`NotificationLayer`): under what is
+        // presented over it, and drawn while it is in front.
+        context.environment.notificationService = context.environment.notificationService?.owned(byWindow: window.serial)
         if !window.isLaunchWindow {
             context.environment.activeFocusSectionID = window.focusSection
             context.environment.windowBuildsItsContent = true

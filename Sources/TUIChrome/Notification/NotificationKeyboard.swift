@@ -26,10 +26,15 @@ import TUIFoundation
 ///   again, to the next older one; past the oldest, back to the section it
 ///   came from (``FocusManager/deactivateSection(id:)``). Registered first, so
 ///   asked last: an app's own F6 handler wins. The status bar names it while a
-///   toast with a button is drawn and the focus is elsewhere.
+///   toast with a button is drawn and the focus is elsewhere. It reaches a
+///   toast nothing covers while a sheet, an alert or a dialog holds the
+///   keyboard too (``NotificationLayer``) — it hears through the surface's
+///   grab — but not while a menu is open, which takes every key.
 /// - **Escape**, while a toast's button has the focus, dismisses that toast and
 ///   moves the focus on to the next older one, or back where it came from: a
-///   status bar item of the section, so the bar says so.
+///   status bar item of the section, so the bar says so. Over a presented
+///   surface, Escape is the surface's — it closes it — unless a toast's button
+///   has the focus.
 @MainActor
 enum NotificationKeyboard {
     /// The focus section every toast's buttons register in.
@@ -84,8 +89,9 @@ enum NotificationKeyboard {
         } else {
             environment.statusBar?.notificationFocusLabel = focusLabel
         }
-        keys.insertHandler(at: 0, sectionID: nil) { [weak focusManager] event in
-            guard let focusManager, event.key == .f6, !event.ctrl, !event.alt, !event.shift, event.phase != .release
+        keys.insertHandler(at: 0, sectionID: nil, hearsThroughGrab: true) { [weak focusManager] event in
+            guard let focusManager, event.key == .f6, !event.ctrl, !event.alt, !event.shift, event.phase != .release,
+                !focusManager.activeSectionIsMenu
             else { return false }
             cycle(toasts, focusManager: focusManager)
             return true

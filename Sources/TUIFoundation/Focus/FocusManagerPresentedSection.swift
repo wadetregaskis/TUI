@@ -81,6 +81,24 @@ extension FocusManager {
         activateSection(id: id)
     }
 
+    /// The focus section of the presented surface holding the keyboard — a
+    /// sheet's, an alert's, a dialog's, a popover's, an open menu's — looking
+    /// through `section` where that is the active one, activated over it (the
+    /// toasts' buttons, focused over a sheet); `nil` while none is up.
+    ///
+    /// Marked modal this frame or the last (``previousModalSectionIDs``): a
+    /// surface presented from a toolbar marks itself later in the walk than
+    /// the toasts ask, and one dismissed has already handed the active section
+    /// back, so the last frame's mark never keeps a closed one.
+    package func presentedSection(beneath section: String) -> String? {
+        guard var active = activeSectionIdentifier else { return nil }
+        if active == section {
+            guard let below = sectionRevertTarget[section] else { return nil }
+            active = below
+        }
+        return modalSectionIDs.contains(active) || previousModalSectionIDs.contains(active) ? active : nil
+    }
+
     /// Posts how to close the surface presented in section `id` — asked by a
     /// presenter every frame it draws the surface, as it marks the section
     /// modal.

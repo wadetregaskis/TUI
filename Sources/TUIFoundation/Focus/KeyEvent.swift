@@ -20,6 +20,9 @@ package final class KeyEventDispatcher {
         /// The focus section that was active where this handler registered, or
         /// `nil` for a handler outside any section.
         let sectionID: String?
+        /// Whether it is asked while a section holds the keyboard as well
+        /// (``insertHandler(at:sectionID:hearsThroughGrab:_:)``).
+        var hearsThroughGrab = false
         let handler: (KeyEvent) -> Bool
     }
 
@@ -107,12 +110,18 @@ extension KeyEventDispatcher {
     ///     handlers present, so a count read before ``clearHandlers()`` cannot
     ///     trap.
     ///   - sectionID: As for ``addHandler(sectionID:_:)``.
+    ///   - hearsThroughGrab: Whether it is asked while a section holds the
+    ///     keyboard (``grabInput(sectionID:)``) as well, whichever section that
+    ///     is: for a key that reaches something drawn over every presented
+    ///     surface — F6, to the toasts over a sheet. It decides for itself
+    ///     when to decline, as it is asked whatever holds the keyboard.
     ///   - handler: A closure that returns true if the key was handled.
     package func insertHandler(
-        at position: Int, sectionID: String? = nil, _ handler: @escaping (KeyEvent) -> Bool
+        at position: Int, sectionID: String? = nil, hearsThroughGrab: Bool = false,
+        _ handler: @escaping (KeyEvent) -> Bool
     ) {
         let index = min(max(0, position), handlers.count)
-        handlers.insert(Entry(sectionID: sectionID, handler: handler), at: index)
+        handlers.insert(Entry(sectionID: sectionID, hearsThroughGrab: hearsThroughGrab, handler: handler), at: index)
     }
 
     /// The number of currently-registered handlers. Used by tests to assert
@@ -299,7 +308,7 @@ extension KeyEventDispatcher {
         // Process in reverse order (most recent handlers first) — and, while a
         // surface holds the keyboard, only the handlers registered inside it.
         for entry in handlers.reversed()
-        where grabbingSectionID == nil || entry.sectionID == grabbingSectionID {
+        where grabbingSectionID == nil || entry.sectionID == grabbingSectionID || entry.hearsThroughGrab {
             if entry.handler(event) { return true }
         }
         return false

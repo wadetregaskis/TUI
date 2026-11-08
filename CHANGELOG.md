@@ -32,7 +32,14 @@ a title, an optional `ButtonRole` and an action; choosing one runs it and dismis
 newest toast with a button, F6 again to the next older one, and past the oldest back where it was. Escape dismisses the
 toast holding the focus, and Tab reaches toasts after the page. The status bar shows "F6 notification" while a toast has
 a button. A toast does not fade while its button has the focus. A toast posted with `duration: nil` and no actions gets a
-Close button. While a sheet or alert holds the keyboard, toasts still draw but their buttons do nothing until it closes.
+Close button.
+
+**A notification can go above or below sheets, alerts and dialogs.** `post(_:layer:)` takes `.abovePresentations`, drawn
+over anything presented with its buttons reachable by F6 while it's up (Escape still closes the sheet unless the toast
+has the focus), or `.belowPresentations`, drawn under it with its buttons out of reach and its timer stopped until it
+closes. Without one, a post through `NotificationService.current` goes above; one through a view's
+`@Environment(\.notificationService)` belongs to that view's window, or to the sheet or alert it's in, and goes under
+whatever is presented over that. A toast posted for a window that isn't in front waits for it the same way.
 
 **A notification can draw any views.** `post(style:duration:placement:content:)` takes a `@ViewBuilder` closure in place
 of a message. It is called each frame the toast is drawn, so the toast shows what its content reads now, such as a

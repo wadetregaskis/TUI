@@ -89,9 +89,9 @@ Escape dismisses the toast holding the focus. Tab reaches the toasts too,
 after the page, as it reaches the toolbars: their buttons are one passive focus
 section, which never takes the keyboard by itself. The status bar shows
 "F6 notification" while a toast has a button, and "⎋ dismiss" while one has
-the focus. A click works too, but there is always the key. While a modal holds
-the keyboard, toasts still draw but their buttons are inert, as the toolbars'
-are.
+the focus. A click works too, but there is always the key. Over a sheet, an
+alert or a dialog, see 9: a toast above presentations keeps its buttons live
+and F6 reaches them; one below is inert, as the toolbars are.
 
 **Considered:** a Ctrl chord (⌃N and the like collide with text editing and
 with app commands) and putting the buttons in the page's own Tab ring (a toast
@@ -149,17 +149,78 @@ characters escaped. `UNUserNotificationCenter` stays out: it needs a bundle.
 Neither helper reports a click back, so the route is one-way, as the terminal's
 is.
 
+## 9. Toasts and what is presented over the window
+
+The owner (2026-11-08): "different cases might deserve different behaviour.
+Would it make sense for it to be configurable, on a per-notification basis, as
+to whether it is always available (even when modal dialogs are visible) or
+not? Maybe if it's associated with a specific window (or similar) it should go
+under any sheets on that window, while without an association it goes over?
+And can we make any notifications that are shown 'under' a dialog
+(inaccessible while the dialog is open) extend their duration?"
+
+**Chosen:** `layer: NotificationLayer?` on every post — `.abovePresentations`
+or `.belowPresentations` — and a default from whose the post is:
+
+- **Unassociated** — a post through `NotificationService.current` — goes
+  **above**: news about the app, whatever is up.
+- **A window's** — a post through `@Environment(\.notificationService)` in a
+  window's views — goes **below** the sheets, alerts and dialogs presented over
+  that window. The window hands its views the service stamped with its serial
+  (`ScenePresenter`, `owned(byWindow:)`); a window held behind another does
+  not draw it, and its timer waits until that window comes to the front.
+- **A presentation's** — a post from inside a sheet or an alert, whose content
+  gets the service stamped with the presentation's focus section
+  (`owned(byPresentation:)`) — is on top of that presentation while it is the
+  one holding the keyboard, and under anything presented over it.
+
+The association rides the environment rather than a parameter because that is
+how SwiftUI scopes things to a window or a presentation (`dismiss`,
+`openWindow`), and it keeps the API at one enum and one parameter. A post with
+no view to read an environment from — a task, a callback — keeps `current`'s
+meaning, over everything, which is what such news usually wants.
+
+**Covered** means a `.belowPresentations` toast while a sheet, an alert, a
+dialog, a popover or an open menu other than its own presentation holds the
+keyboard (`FocusManager.presentedSection(beneath:)`), or one posted for a
+window not in front. A covered toast is drawn at the page's level
+(`OverlayLevel.popover`, z −0.5: under every presented surface, whose veil dims
+it), its buttons inert, and its clock stopped
+(`NotificationEntry.covered(atNanos:)`): a toast with three seconds left still
+has three when the sheet closes. A dismissed toast is never covered — it is
+going. A focused toast still does not fade (5).
+
+**Over a presentation**, an uncovered toast's buttons are live in the toasts'
+focus section, which is marked modal while a presentation is up: Tab stays
+among the buttons, the window's bars stay inert, and the sheet's presenter
+leaves the focus with them (`activatePresentedSection(id:)` does not take back
+a modal section activated over its own). F6 hears through the presentation's
+input grab (`KeyEventDispatcher.insertHandler(at:sectionID:hearsThroughGrab:_:)`),
+but not while a menu is open. Escape is the presentation's unless a toast's
+button has the focus; then it dismisses the toast and the focus goes back to
+the sheet.
+
+**Considered:** association by an explicit parameter (`post(…, for: window)`),
+which needs a window handle TUI does not expose; drawing a presentation's
+toast between that presentation and the next one up, which the compositor's
+level-then-z order cannot express without a level per presentation — covered
+and drawn under them all is what the person can act on anyway; and popovers
+handing out a presentation-owned service, which TUIFoundation (below the
+service's module) cannot do: a post from inside a popover is the window's.
+
 ## API sketch
 
 ```swift
 @discardableResult
 func post(_ messageKey: LocalizedStringKey, style: NotificationStyle = .plain,
           duration: TimeInterval? = 3.0, placement: NotificationPlacement? = nil,
-          actions: [NotificationAction] = [], desktop: NotificationDesktopDelivery = .never) -> NotificationID
+          layer: NotificationLayer? = nil, actions: [NotificationAction] = [],
+          desktop: NotificationDesktopDelivery = .never) -> NotificationID
 // …and the same taking a StringProtocol (displayed as written), and:
 @discardableResult
 func post<Content: View>(style: NotificationStyle = .plain, duration: TimeInterval? = 3.0,
-                         placement: NotificationPlacement? = nil, actions: [NotificationAction] = [],
+                         placement: NotificationPlacement? = nil, layer: NotificationLayer? = nil,
+                         actions: [NotificationAction] = [],
                          @ViewBuilder content: @escaping @MainActor @Sendable () -> Content) -> NotificationID
 func dismiss(_ id: NotificationID)
 func dismissAll()
@@ -195,7 +256,12 @@ NotificationAction("Delete", role: .destructive) { … }
    `TUI_SYSTEM_NOTIFICATIONS` (named after `TUI_NOTIFICATIONS`) disables it.
    Decided here: the terminal route first, the OS route only where the
    terminal posts none, so a notification never arrives twice (§8).
-5. **Toasts over a modal** draw but their buttons are inert until it closes.
+5. **Decided 2026-11-08: per notification, above or below presentations**
+   (9), the owner's question quoted there. Default by association: none
+   (`current`) above; a window's or a presentation's below what is presented
+   over it. A covered toast's timer waits while it is covered; F6 reaches an
+   uncovered toast over a sheet, and Escape stays the sheet's unless the toast
+   has the focus.
 
 ## Known gaps
 

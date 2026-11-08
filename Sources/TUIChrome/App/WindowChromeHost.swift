@@ -133,13 +133,16 @@ nonisolated package struct _WindowChromeHost<Content: View>: View, Renderable {
         if dock > 0 { page = page.placedVertically(inHeight: contentHeight, topPadding: 0) }
 
         let palette = context.environment.palette
-        let isModal = context.environment.focusManager?.activeSectionIsModal == true
         // The scene's toasts, layers over the whole content area — dock
         // included — so no app has a host of its own to add. After the page,
         // whose posts in this walk they show, and before the bars.
         page.overlays += NotificationOverlay.layers(
             context: contentContext.withChildIdentity(type: NotificationOverlay.self), areaWidth: width,
             areaHeight: contentHeight)
+        // After the toasts, which mark their buttons' section modal while a
+        // presentation is up: with the focus on a toast over a sheet, the bars
+        // stay as inert as the sheet keeps them.
+        let isModal = context.environment.focusManager?.activeSectionIsModal == true
         // The toolbars, after the content, so their sections follow the page's
         // in the Tab ring. Their anchored layers (a `Menu`'s drop-down) go onto
         // the page, to be composited with its own. Their items are laid out in
