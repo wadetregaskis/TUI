@@ -22,12 +22,13 @@ RATCHETS = [
         "limit": 12,
         "instead": "try dropping Sendable, a Mutex, an Atomic, @MainActor or sending",
     },
-    # A test that sleeps is slow, or racy, or both.
+    # A test that sleeps is slow, or racy, or both. A thread's sleep is as much
+    # one as a task's, so `Thread.sleep`, `usleep` and `nanosleep` count too.
     {
-        "name": "Task.sleep calls in tests",
-        "pattern": r"^(?!\s*//).*\bTask\.sleep\b",
+        "name": "sleeps in tests",
+        "pattern": r"^(?!\s*//).*\b(Task\.sleep|Thread\.sleep|usleep|nanosleep)\b",
         "paths": ["Tests"],
-        "limit": 46,
+        "limit": 54,
         "instead": "wait for what the test wants, or step a clock of the test's own",
     },
 ]
@@ -57,6 +58,9 @@ def self_test():
     assert count(sleeps["pattern"], ["try await Task.sleep(for: .seconds(1))"]) == 1
     assert count(sleeps["pattern"], ["    // Task.sleep here would race"]) == 0
     assert count(sleeps["pattern"], ["clock.sleep(for: .seconds(1))"]) == 0
+    assert count(sleeps["pattern"], ["        Thread.sleep(forTimeInterval: 0.8)"]) == 1
+    assert count(sleeps["pattern"], ["            usleep(100_000)"]) == 1
+    assert count(sleeps["pattern"], ["    /// `usleep` and another sampling"]) == 0
     print("check-ratchets: self-test passed")
     return 0
 

@@ -434,7 +434,7 @@ SwiftLint rule `concurrency_escape` refuses them in `Sources`; the few that have
 to stay say why in a comment and disable the rule on their line, and
 `grep -rn "disable:this concurrency_escape" Sources` lists them.
 `Tools/check-ratchets.py` fails CI if there are more of them than there were, and
-the same for `Task.sleep` calls in the tests. In order of preference:
+the same for sleeps in the tests (`Task.sleep`, `Thread.sleep`, `usleep`). In order of preference:
 
 - **Not `Sendable` at all.** A class the render path holds (a store, a per-frame
   service, a box in the environment) needs nothing: `EnvironmentValues` is not
