@@ -6,6 +6,8 @@ Grow a shopping list, one step at a time, into a small app that remembers what y
 
 In this tutorial you build Groceries, a shopping list that runs in the terminal. You'll start with a plain list, then add items, tick them off, save them between runs, confirm a clean-up in a sheet, and give the app keyboard shortcuts and a choice of colours.
 
+The code uses SwiftUI's ideas: views, `@State`, bindings and modifiers. If those are new to you, read <doc:NewToSwiftUI> first.
+
 Every step ends with something you can run. If you get stuck, <doc:Troubleshooting> covers the usual problems.
 
 You need Swift 6.2 or later, and a real terminal: Apple's Terminal, iTerm2, Ghostty, or whatever you use on Linux. An IDE's output pane won't do, because it can't take key presses or draw a screen.

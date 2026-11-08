@@ -106,7 +106,15 @@ struct CounterView: View {
 
 Run it with `swift run` again. The button has the keyboard focus already, because it's the only control on the screen. Press Return or Space to press it, or click it with the mouse, and the count goes up.
 
-If you know SwiftUI, this is the same code you would write there.
+If you know SwiftUI, this is the same code you would write there. If you don't, here is how to read it:
+
+- An ``App`` has a `body` of scenes. ``WindowGroup`` is the scene that fills the terminal.
+- A ``View`` has a `body` of views. TUI calls it to find out what to draw, and calls it again when something it read has changed.
+- `@State` marks a variable that the view keeps between those calls. Changing it redraws the view.
+- `.bold()` is a *modifier*: it returns a changed copy of the view it's called on.
+- `Button("Increment") { count += 1 }` passes the button a closure, a block of code it runs when pressed.
+
+<doc:NewToSwiftUI> explains each of these, and the rest of SwiftUI's ideas, with examples you can run.
 
 ## Quitting
 
@@ -122,6 +130,7 @@ Your app gets those keys first, so anything it binds them to wins. <doc:ScenesAn
 
 ## Next
 
+- <doc:NewToSwiftUI>, if you've never used SwiftUI
 - <doc:ComingFromSwiftUI>, if you already know SwiftUI
 - <doc:StateManagement>, to keep and share your app's data
 - <doc:ListAndTable>, to show rows of data

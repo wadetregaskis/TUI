@@ -4,6 +4,11 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**Documentation for readers who have never used SwiftUI.** The "New to SwiftUI" article explains views as values,
+`body`, `some View`, view builders, modifiers and their order, `@State`, bindings, `@Observable`, the environment,
+identity, focus and keys, each with an example to run. Getting Started, Building Your First App and the landing page
+link to it.
+
 **`listRowInsets` written twice on a row: the inner one wins, as in SwiftUI.** The two added up, so a row given a
 default and an override closer in got both. The inner statement now replaces the outer on the edges both name; an
 edge only one names keeps its inset, and an inner `nil` sets the default on every edge.
