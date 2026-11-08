@@ -30,7 +30,7 @@ struct Hello: App {
 
 Everything works from the keyboard (<doc:FocusSystem>), and a person running your app can ask for less motion, more contrast or cues that don't rest on colour, which TUI's own controls follow (<doc:EnvironmentVariables>). Apps can post notifications (<doc:Presentation#Notifications>), keep settings in a ``Settings`` scene, and bring each terminal window back where it was with ``SceneStorage``.
 
-New to SwiftUI? Start with <doc:NewToSwiftUI>, which explains the ideas behind this code with no SwiftUI needed.
+New to SwiftUI? Start with <doc:NewToSwiftUI>, which explains the ideas behind this code with no SwiftUI needed. Coming from Bubble Tea, Ratatui, Textual or Ink? Each has a page under Coming From Other Frameworks, below.
 
 [See TUI in action](https://swift-tui.com/), or [try the demo in your browser](https://swift-tui.com/demo/).
 
@@ -50,6 +50,7 @@ New to SwiftUI? Start with <doc:NewToSwiftUI>, which explains the ideas behind t
 - <doc:ComingFromBubbleTea>
 - <doc:ComingFromRatatui>
 - <doc:ComingFromTextual>
+- <doc:ComingFromInk>
 
 ### Test Your App
 

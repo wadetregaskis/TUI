@@ -9,7 +9,8 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 identity, focus and keys, each with an example to run. Getting Started, Building Your First App and the landing page
 link to it. Coming from Bubble Tea maps Bubble Tea's model, messages, commands, Lip Gloss and Bubbles onto TUI, with
 the same small app in both, Coming from Ratatui does the same for Ratatui's loop, layout constraints and widgets, and
-Coming from Textual for Textual's widget tree, reactive attributes, messages and CSS.
+Coming from Textual for Textual's widget tree, reactive attributes, messages and CSS, and Coming from Ink for Ink's
+components, hooks and flexbox.
 
 **`listRowInsets` written twice on a row: the inner one wins, as in SwiftUI.** The two added up, so a row given a
 default and an override closer in got both. The inner statement now replaces the outer on the edges both name; an
