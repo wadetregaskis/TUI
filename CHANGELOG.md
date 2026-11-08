@@ -4,6 +4,10 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**A click on another `DatePicker` component starts typing afresh there.** The digits half-typed into the component
+left behind were kept, so the next digit was appended to them: "2" into the year, a click on the month and "5"
+set the month to 25, clamped to 12.
+
 **Two adaptive `GridItem`s fit the room they are given.** The gap between their two groups of columns was never set
 aside, so the columns came to a cell more than the grid's width and the last one was cut.
 

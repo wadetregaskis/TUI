@@ -34,7 +34,16 @@ final class DatePickerHandler: PersistedFocusable {
     var model: DateFieldModel
 
     /// The index (into `model.orderedKinds()`) of the component being edited.
-    var activeIndex = 0
+    ///
+    /// Moving it abandons any digits half-typed into the component it leaves,
+    /// whoever moves it — the keys, the wheel, a click — so the next digit
+    /// starts a fresh number in the new one. A click wrote it directly and
+    /// left the buffer, so "2" into the year, a click on the month and "5"
+    /// made the month 25. Writing the same index (the render's clamp) keeps
+    /// the digits.
+    var activeIndex = 0 {
+        didSet { if activeIndex != oldValue { digitBuffer = "" } }
+    }
 
     /// What Return does on this field, if anything: a `.compact` picker opens
     /// its calendar. Re-set by every render.
