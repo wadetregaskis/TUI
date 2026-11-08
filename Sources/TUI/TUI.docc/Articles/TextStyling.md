@@ -12,7 +12,15 @@ through the environment, exactly like ``View/foregroundStyle(_:)-(S)``.
 ```swift
 Text("Bold").bold()
 Text("Quiet").dim().italic()
+Text("Draft").underline(pattern: .dash, color: .red)
+Text("Gone").strikethrough()
+Text("Note").textScale(.secondary)
+Text("Alert").blink()
+Text("Selected").inverted()
 ```
+
+``Text/dim(_:)``, ``Text/blink()`` and ``Text/inverted()`` belong to `Text`
+alone and do not cascade; `blink` shows only where the terminal draws it.
 
 ## A Whole View at Once
 
@@ -66,8 +74,11 @@ tell apart:
 Nothing here changes a glyph or a cell count, so applying a font cannot reflow
 the layout around it. The axes that survive the medium are carried for real —
 ``Font/weight(_:)``, ``Font/bold(_:)`` and ``Font/italic(_:)`` — while the ones
-that need a typeface (size, design, width, small caps) are absent rather than
-accepted and ignored.
+that need a typeface (size, width, small caps, and a design other than the
+terminal's own, `.serif` or `.rounded`) are absent rather than accepted and
+ignored. `.default` and `.monospaced` designs, and `monospaced()` and
+`monospacedDigit()`, are accepted: every cell is already in the terminal's one
+monospaced face.
 
 The mapping is the **baseline**, so an explicit attribute anywhere in the
 cascade still wins, and each style is addressable as a ``StyleScope/font(_:)``

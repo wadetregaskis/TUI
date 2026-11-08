@@ -6,13 +6,14 @@ Pass data from child views up to their ancestors.
 
 TUI's preference system enables **bottom-up data flow**: the reverse of environment values. While the environment passes data down from parent to child, preferences let child views publish values that ancestors can observe and react to.
 
-The system mirrors SwiftUI's preference API and consists of three parts:
+The system mirrors SwiftUI's preference API. The public parts are:
 
 - **``PreferenceKey``**: Protocol that defines a named value type with a default and a reduce strategy
 - **``PreferenceValues``**: Type-safe storage that holds all preference values for a scope
-- **`PreferenceStorage`**: Stack-based collector that manages preference contexts per render pass
 
-A built-in example is ``NavigationTitleKey``: a child view sets `.navigationTitle("Settings")`, and the enclosing navigation container reads that preference to render the title bar.
+Behind them, the framework's own `PreferenceStorage` collects values per render pass; you never touch it.
+
+A built-in example is ``NavigationTitleKey``: a child view sets `.navigationTitle("Settings")`, and a pushed ``NavigationStack`` screen reads that preference to draw its title.
 
 ## Defining a Preference Key
 
@@ -67,6 +68,8 @@ struct ItemList: View {
 }
 ```
 
+The key's `Value` must be `Equatable`, as in SwiftUI; a key whose value isn't can still be read with `overlayPreferenceValue` (below).
+
 The modifier pushes a new preference context, renders all children (which set their preferences), pops the context, and fires the callback with the accumulated result.
 
 ## The Navigation Title Shortcut
@@ -84,11 +87,32 @@ struct SettingsPage: View {
 }
 ```
 
-`NavigationTitleKey` uses the default `reduce` (last value wins), so the deepest child's title takes precedence.
+`NavigationTitleKey` uses the default `reduce` (last value wins), so in the published preference the deepest child's title takes precedence. The window's own top bar, and the title the terminal window shows, take the **outermost** title instead, the one nearest the root of the window.
+
+## Reading Preferences in an Overlay or Background
+
+To draw something from a preference rather than store it, read it with
+``View/overlayPreferenceValue(_:_:)`` or ``View/backgroundPreferenceValue(_:_:)``:
+the closure gets the value collected from the view's subtree and returns a view
+laid over (or under) it.
+
+```swift
+VStack {
+    ItemView()
+    ItemView()
+}
+.overlayPreferenceValue(CounterKey.self) { count in
+    Text("\(count) items")
+}
+```
+
+``View/transformPreference(_:_:)`` rewrites a value on its way up, and
+``View/anchorPreference(key:value:transform:)`` publishes a view's geometry, as an
+``Anchor`` a reader resolves with a ``GeometryProxy``.
 
 ## How Preferences Flow per Frame
 
-Preferences are collected fresh every frame. Here's the lifecycle within a single render pass:
+This section describes the framework's internals; you don't need it to use preferences. Preferences are collected fresh every frame. Here's the lifecycle within a single render pass:
 
 1. **Reset**: `RenderLoop.render()` calls `preferences.beginRenderPass()`, clearing all callbacks and resetting the stack to a single empty context
 2. **Set**: As the view tree renders top-down, `PreferenceModifier` views call `setValue(_:forKey:)`, which reduces values into the current stack frame
@@ -124,6 +148,7 @@ struct BreadcrumbKey: PreferenceKey {
 ### Protocols
 
 - ``PreferenceKey``
+- ``NavigationTitleKey``
 
 ### Storage
 

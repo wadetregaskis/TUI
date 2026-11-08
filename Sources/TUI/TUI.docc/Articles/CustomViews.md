@@ -76,7 +76,7 @@ struct UserCard: View {
 To create container-style views that accept child content, use a `@ViewBuilder` closure parameter:
 
 ```swift
-struct Section<Content: View>: View {
+struct TitledGroup<Content: View>: View {
     let title: String
     let content: Content
 
@@ -96,7 +96,7 @@ struct Section<Content: View>: View {
 }
 
 // Usage
-Section(title: "Settings") {
+TitledGroup(title: "Settings") {
     Text("Option A")
     Text("Option B")
 }

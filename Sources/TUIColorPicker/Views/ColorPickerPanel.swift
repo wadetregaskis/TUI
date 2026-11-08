@@ -25,20 +25,17 @@ import TUITextInput
 /// as you drag. **Done** keeps the result; **Cancel** — or any other
 /// dismissal, `Esc` included — restores the colour the dialog opened with.
 ///
-/// TUI modals are page-hosted (a `.modal` centres on the space available
-/// where it is attached), so present the panel from a full-screen subtree
-/// rather than from deep inside a layout:
+/// Present it with a `.modal`, which centres it on the screen and dims
+/// everything behind it wherever it is attached:
 ///
 /// ```swift
 /// @State private var colour: Color = .rgb(80, 160, 255)
 /// @State private var editing = false
 ///
-/// PageRoot {
-///     Button("Edit colour…") { editing = true }
-/// }
-/// .modal(isPresented: $editing) {
-///     ColorPickerPanel("Accent", selection: $colour, isPresented: $editing)
-/// }
+/// Button("Edit colour…") { editing = true }
+///     .modal(isPresented: $editing) {
+///         ColorPickerPanel("Accent", selection: $colour, isPresented: $editing)
+///     }
 /// ```
 ///
 /// Each channel edit rewrites `selection` as the corresponding concrete colour

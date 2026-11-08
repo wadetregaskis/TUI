@@ -117,8 +117,25 @@ struct MyCustomPalette: Palette {
 - **Accent**: `accent`
 - **Semantic**: `success`, `warning`, `error`, `info`
 - **UI Elements**: `border`, `focusBackground` (focused list/table rows), `cursorColor` (text cursor), `fieldBackground` (editable-field surface)
+- **Scheme**: `colorScheme`, whether the palette paints a light page or a dark one
 
 Only 8 properties are required (`background`, `foreground`, `accent`, `border`, `success`, `warning`, `error`, `info`). All others have default implementations that derive from these.
+
+## Light and dark
+
+A palette is light or dark by its page: its `colorScheme` defaults to whatever its
+`background` reads as, and is what ``EnvironmentValues/colorScheme`` answers, so a
+view that reads `\.colorScheme` follows the palette in force. Pin it for a subtree
+with `.environment(\.colorScheme, .dark)`.
+
+The person running the app can ask for more from the colours too, with the View
+menu's Increase Contrast and Differentiate Without Color items (or
+`TUI_INCREASE_CONTRAST` and `TUI_DIFFERENTIATE_WITHOUT_COLOR`, see
+<doc:EnvironmentVariables>). Increase Contrast sets
+``EnvironmentValues/colorSchemeContrast`` to `.increased` for your views to read;
+Differentiate Without Color makes TUI's own controls mark focus, selection and
+disabled state as they do on a terminal with no colour, over their colours. See
+<doc:AppearanceAndColors> for the colour system itself.
 
 ## What built-in controls draw with
 
@@ -177,7 +194,7 @@ These stay literal on purpose:
 Two controls edit a `Binding<Color>`, mirroring SwiftUI's `ColorPicker`:
 
 - ``ColorPicker`` — a **compact, inline** editor: a live swatch plus one slider
-  per RGB channel. Good for a settings row where a full panel would be overkill.
+  per RGB channel, and one for opacity unless you pass `supportsOpacity: false`. Good for a settings row where a full panel would be overkill.
 
   ```swift
   @State private var tint: Color = .rgb(80, 160, 255)
@@ -207,5 +224,6 @@ Two controls edit a `Binding<Color>`, mirroring SwiftUI's `ColorPicker`:
   ```
 
   It edits the binding **live** (the preview and anything bound to `colour`
-  update as you drag); "Done" or `Esc` dismisses it. See the example app's Theme
+  update as you drag). "Done" keeps the result; "Cancel", `Esc` or any other
+  dismissal puts back the colour the panel opened with. See the example app's Theme
   page, which edits the live app-wide palette with both controls.
