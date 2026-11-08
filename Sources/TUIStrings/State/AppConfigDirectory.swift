@@ -20,10 +20,7 @@ import Foundation
 /// - Parameter name: The raw process name.
 /// - Returns: A sanitized string safe for use as a directory name.
 ///
-/// `package` for `UserDefaultsStorage`'s Linux arm (TUIFoundation), the
-/// one caller outside this module: a macOS build never compiles that arm, so
-/// neither its index nor its access errors show the call (module split plan,
-/// revision 4, correction 2).
+/// `package` for TUIFoundation's tests, which check it directly.
 package func sanitizedProcessName(_ name: String) -> String {
     var sanitized =
         name
@@ -44,9 +41,10 @@ package func sanitizedProcessName(_ name: String) -> String {
 /// - **Linux / other**: `$XDG_CONFIG_HOME/<appName>`, falling back to
 ///   `~/.config/<appName>` (XDG Base Directory convention).
 ///
-/// Shared by `@AppStorage`'s file backend (`JSONFileStorage`) and
-/// `LocalizationService`, so all of an app's persisted configuration lives in
-/// one place rather than scattered across directories.
+/// Shared by `@AppStorage`'s file backend (`JSONFileStorage`), Linux's
+/// `UserDefaultsStorage` and `LocalizationService`, so all of an app's
+/// persisted configuration lives in one place rather than scattered across
+/// directories.
 package func appConfigDirectory() -> URL {
     let appName = sanitizedProcessName(ProcessInfo.processInfo.processName)
 

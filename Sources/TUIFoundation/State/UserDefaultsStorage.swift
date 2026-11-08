@@ -285,8 +285,15 @@ import TUICore
 #elseif os(Linux)
     /// A storage backend that emulates UserDefaults on Linux.
     ///
-    /// Uses a JSON file at `~/.local/share/[appName]/UserDefaults.json` to store data,
-    /// following the XDG Base Directory Specification.
+    /// Uses a JSON file at `UserDefaults.json` (or `UserDefaults-<suite>.json`)
+    /// in `appConfigDirectory()` — `$XDG_CONFIG_HOME/<appName>`, else
+    /// `~/.config/<appName>` — beside the default store's `settings.json`.
+    ///
+    /// The XDG configuration directory rather than the data directory
+    /// (`~/.local/share`) where it once was: the XDG Base Directory
+    /// Specification puts a user's settings there, and defaults are settings.
+    /// One directory holds all of an app's settings, and `TUI_CONFIG_DIR`
+    /// moves this file with the rest.
     public final class UserDefaultsStorage: StorageBackend {
         /// The underlying file storage.
         private let storage: JSONFileStorage
@@ -408,29 +415,7 @@ import TUICore
 
     extension UserDefaultsStorage {
         fileprivate static func createStorage(suiteName: String?) -> JSONFileStorage {
-            let appName = sanitizedProcessName(ProcessInfo.processInfo.processName)
-
-            // Use XDG Base Directory: ~/.local/share/[appName]/
-            //
-            // "If $XDG_DATA_HOME is either not set or empty, a default equal to
-            // $HOME/.local/share should be used" — the spec's wording, and the
-            // empty half of it matters: `URL(fileURLWithPath: "")` is a
-            // RELATIVE path, so an empty variable (which shells produce readily
-            // — `XDG_DATA_HOME= app`, or an unset variable exported anyway) put
-            // the app's saved state in whatever directory it happened to be
-            // launched from.
-            let dataHome: URL
-            if let xdgDataHome = ProcessInfo.processInfo.environment["XDG_DATA_HOME"],
-                !xdgDataHome.isEmpty
-            {
-                dataHome = URL(fileURLWithPath: xdgDataHome)
-            } else {
-                dataHome = FileManager.default.homeDirectoryForCurrentUser
-                    .appendingPathComponent(".local")
-                    .appendingPathComponent("share")
-            }
-
-            let appDir = dataHome.appendingPathComponent(appName)
+            let appDir = appConfigDirectory()
 
             // Create directory if needed
             do {

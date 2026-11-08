@@ -157,7 +157,6 @@ Don't write a variable to state a setting. Many are read once, and `setenv` isn'
 |---|---|---|
 | `TUI_CONFIG_DIR` | A directory | Keeps the program's settings in files under this directory, in a folder named after the program, on every platform. A way to keep a test run away from your real settings. |
 | `XDG_CONFIG_HOME` | A directory | Not on macOS: where the program's settings go, in a folder named after it. `~/.config` by default. `TUI_CONFIG_DIR` beats it. |
-| `XDG_DATA_HOME` | A directory | Not on Apple platforms: where a program that uses it keeps saved data, in a folder named after the program. `~/.local/share` by default. |
 
 ### One-off output
 
@@ -267,7 +266,6 @@ Two of the variables above are worth knowing for tests too. `TUI_CONFIG_DIR` kee
 | `TUI_RUN_BODY_ON_EVERY_FRAME` | No setting | The variable is the only way. | Once |
 | `TUI_CONFIG_DIR` | Wins | `StorageDefaults.backend`, or `.defaultAppStorage(_:)` for part of an app. `LocalizationService` still keeps the language it saved here. | Each use |
 | `XDG_CONFIG_HOME` | Wins | `StorageDefaults.backend`, or `.defaultAppStorage(_:)` for part of an app. | Each use |
-| `XDG_DATA_HOME` | Wins | `StorageDefaults.backend`, or `.defaultAppStorage(_:)` for part of an app. | Each use |
 | `TUI_FORCE_ESCAPES` | Wins | `renderOnce(output:content:)`, with `.plainText` or `.escapeSequences`. Only `.automatic`, the default, reads this. | Each use |
 | `COLUMNS` | No setting | The variable is the only way. | Each use |
 | `LINES` | No setting | The variable is the only way. | Each use |

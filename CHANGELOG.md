@@ -14,6 +14,13 @@ placement of their own, `CommandGroupPlacement.accessibility`, which `CommandGro
 **The async `KittyGraphics.withSupport(_:compression:operation:)` runs its operation on the caller's actor.** It is
 `nonisolated(nonsending)`, and its `isolation:` parameter is gone; a call with a trailing closure compiles as before. It
 was the cause of two of Swift 6.4's deprecation warnings, which now has none.
+**On Linux, `UserDefaultsStorage` keeps its file with the app's other settings.** It was
+`$XDG_DATA_HOME/<app>/UserDefaults.json` (else `~/.local/share/<app>/…`), while `@AppStorage`'s default store was in
+the configuration directory. It is now `UserDefaults.json` (or `UserDefaults-<suite>.json`) in
+`$XDG_CONFIG_HOME/<app>` (else `~/.config/<app>`), where the XDG specification puts settings, beside `settings.json`,
+and `TUI_CONFIG_DIR` moves it with them. Nothing is migrated: to keep values saved before, move the file from
+`~/.local/share/<app>/` to `~/.config/<app>/`. TUI no longer reads `XDG_DATA_HOME`.
+
 **`@SceneStorage` is kept per terminal session, falling back to the last saved.** Each value has a copy for the
 terminal window, tab or pane the app runs in (a tmux pane, `TERM_SESSION_ID`, `ITERM_SESSION_ID`, `KITTY_WINDOW_ID`,
 `WEZTERM_PANE`, `WT_SESSION` and the like) and a copy last saved from any session. A read takes the session's copy, else

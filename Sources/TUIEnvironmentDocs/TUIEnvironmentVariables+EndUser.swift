@@ -262,12 +262,6 @@ extension TUIEnvironmentVariables {
             effect: "Not on macOS: where the program's settings go, in a folder named after it. `~/.config` by default. `TUI_CONFIG_DIR` beats it.",
             code: .overrides("`StorageDefaults.backend`, or `.defaultAppStorage(_:)` for part of an app."),
             reading: .eachUse),
-        TUIEnvironmentVariable(
-            "XDG_DATA_HOME", .endUser, .files,
-            values: "A directory",
-            effect: "Not on Apple platforms: where a program that uses it keeps saved data, in a folder named after the program. `~/.local/share` by default.",
-            code: .overrides("`StorageDefaults.backend`, or `.defaultAppStorage(_:)` for part of an app."),
-            reading: .eachUse),
     ]
 
     private static let output: [TUIEnvironmentVariable] = [
