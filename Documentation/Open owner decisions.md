@@ -1,10 +1,12 @@
 # Open owner decisions
 
-What is waiting on you, re-checked on 2026-11-02 against `main`. Most questions were put to you between
-2026-10-18 and 2026-10-26. The full write-ups of those asked by 2026-10-25, with the options and the
-evidence, are in the historical record, [Owner decisions, 2026-10-18 to 2026-10-25](<Historical/SwiftUI parity process/The owner's decisions, 2026-10-18 to 2026-10-25.md>). That record also holds every
-question you have already answered and what each answer set in motion. The rulings since, with the reasons you gave, are in [Owner decisions, 2026-10-27 to 2026-11-07](<Historical/SwiftUI parity process/The owner's decisions, 2026-10-27 to 2026-11-07.md>). None of these blocks other work:
-each has a default, which holds until you answer.
+What is waiting on you, the open questions re-checked on 2026-11-02 against `main`. Only open questions are kept
+here (since 2026-11-08); every answer, with the owner's words and what it changed, is in the decision records in
+`Historical/SwiftUI parity process`:
+[2026-10-18 to 2026-10-25](<Historical/SwiftUI parity process/The owner's decisions, 2026-10-18 to 2026-10-25.md>)
+(with the answers of 2026-10-26), [2026-10-27 to 2026-11-07](<Historical/SwiftUI parity process/The owner's decisions, 2026-10-27 to 2026-11-07.md>)
+and [2026-11-08](<Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md>). None of these blocks
+other work: each has a default, which holds until you answer.
 
 Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 
@@ -17,9 +19,8 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
   makes a hung app quit.
 - **Animated pictures:** run `python3 Tools/TerminalProbes/animation_probe.py` in Ghostty. Its result decides whether a
   terminal playing an animated picture by itself (`TUI_GRAPHICS_PLAYBACK`, off today) goes on by default.
-- **Push `main`.** Local `main` is several hundred commits ahead of GitHub (last pushed 2026-10-24, `9f8439764`).
-  It includes the rename to TUI (`c5cdfca27`): pushing it renames every module and product for anyone
-  depending on `main`.
+- **Push `main`.** Local `main` is ahead of GitHub (189 commits on 2026-11-08; last pushed 2026-11-06,
+  `16dfc440f`).
 - **Rename the GitHub repository to `TUI`,** then say so. The commit that points every URL at the new
   name (branch `hold-repourls`) lands only after the rename, since GitHub redirects old names to new and
   never new to old.
@@ -42,107 +43,6 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
 | SCROLLBAR-PLACEMENT | Try `.overContent` before the final say: the Example's Theme page now switches it (Scroll indicators). Hover a list, then click it: the bar moves from over the rows to beside them. | — | Both stay, beside the content by default. |
-
-## Answered on 2026-11-02
-
-| Id | Answer | Status |
-|---|---|---|
-| ENV-PRECEDENCE | `TUI_REDUCE_MOTION`, if set, overrides the system's setting. `COLUMNS` and `LINES`, if set, are taken as gospel, even where the terminal's size can be detected and differs. | Done. An in-band resize report still outranks them, for the browser page. A stale export now pins the size, as the Environment Variables article says. |
-| A-APPSTATE-1 (root) | The root `\.locale` of the app's scene (`WindowGroup { … }.environment(\.locale, …)`), which TUI's chrome reads too. | Done (`5dfa4b45f`, built ahead of the answer): the status bar, the menu bar and undo titles follow it, and a subtree's locale doesn't change them. |
-| NEW-FOLDER | The save dialog has a New Folder button; the open dialog doesn't. | Done: on `fileExporter`'s panel and, by judgement, `fileMover`'s, which picks where something goes. Off an importer of folders, which had one. A failure shows in the sheet. |
-| SMALL-IMAGE-ON-FRAME | Keep: an image file up to 256 KB is decoded on the frame that first shows it. | As built. |
-| PLAIN-TEXT | As built: it turns on by itself only when `LC_ALL`, `LC_CTYPE` or `LANG` names a non-UTF-8 charset, and `TUI_PLAIN_TEXT` forces it. | As built. It hasn't been run on Linux. |
-| PIXEL-HOSTS | Allowed on the hosts that couldn't be measured (kitty, foot, WezTerm, xterm), until there's a concrete case against. | As built. |
-| HANDSHAKE-CPR | Keep the classic-placement handshake's `CSI 6 n`. | As built. |
-| DOC-EDITED | The more sensitive check: a reference document counts as edited on `objectWillChange` or when what `snapshot` reads changes, not only on undo registration. | As built. |
-| CANVAS-GRAIN | Keep: quadrants by default, sextants and octants by `.canvasGrain`. | As built. |
-| ARG-PARSER | Drop the `TUIArgumentParser` module; keep `App.run()` and the three lines that show how. | Dropped. |
-| PLAIN-MEMO | On: a plain view's body needn't run when nothing tracked says it must, as in SwiftUI. | On by default ([the story](<Historical/State and dynamic properties/When a body runs - the plain-body memo.md>)). |
-| TMUX-HOLD | Stop sending the hold under tmux. | Done. It still wants a soak over ssh. |
-
-## Answered on 2026-10-29
-
-| Id | Answer | Status |
-|---|---|---|
-| A-CHURN-2 (focus) | Under `.overContent`, over the content for the pointer; while the view has the focus, beside the content as `.besideContent` draws them, the content laid out again; losing the focus restores its room. | Done for `ScrollView`, `List`, `Table` and `TextEditor`: the placement is resolved per view per frame, before layout. |
-
-## Answered on 2026-10-28
-
-| Id | Answer | Status |
-|---|---|---|
-| PICTURE-ASPECT | Each picture sent at the aspect its mode asks for. | Done ([Terminal graphics protocols, section 8](<Images and terminal graphics/Terminal graphics protocols.md>)); it stayed listed as open here by mistake. |
-| VEIL | 25% of each colour kept, 60% of its colour taken out ("25d60"). | Done (g263): pictures behind a sheet are muted the same way. |
-| PREVIEW-IMAGES | Glue: a module on the file panels and the image decoders. | Done (TUIFilePanelImages, `.fileDialogPicturePreviews()`). |
-| TEXT-EFFECTS | SwiftUI's `TextRenderer`, `Text.Layout` and `customAttribute`, on the part of `GraphicsContext` text needs, plus a TUI glyph swap. | Design first. |
-
-## Answered on 2026-10-27
-
-| Id | Answer | Status |
-|---|---|---|
-| A-EFFECTS-1 | 3: never invisible; dim and the other attributes widen the palette. | Done: faint in the ink's colour at 16 colours, a step toward it at 256. |
-| A-O12-1 | Configurable, app-wide (a Mac's links-only or a web page's every clickable control). | Done: `pointingHandCursor(over:)`, `.links` (the default) or `.everythingClickable`. |
-| A-MODALS-1 | 3, if macOS agrees: it does (measured). | Done: behind a modal only its own shortcuts and status bar items show and fire. |
-| A-O10-1 | 2, generic beyond `Data` (strings, `Codable`). | Done: `fileExporter(isPresented:contents:…)` and `fileExporter(isPresented:encoding:…)`, on every platform. |
-| A-FORMS-1 | 2: follow SwiftUI. | Done: a bare button in the control column (columns), at the row's leading edge (grouped). |
-| ENV-VARS | Rename `TUIKIT_` to `TUI_`. | Done (`af22656f9`). |
-| DRAG-SELECTION | The Mac's way: the whole selection; Shift-drag extends it first. | Done for the mouse and the keyboard's Copy and carry, List and Table. |
-| A-LAYOUT-1 | Optimise it, then decide. | Done: a column's minimum height is answered without measuring, and columns share (`stateful` +1.5%, `tables-vstack` +7.5% for drawing all eight tables). |
-| A-WIDTHS-1 | Assume a perfect terminal by default; optional features never assumed. | Done. |
-| A-FB16-1 | Option 3: every frame glides with relayout. | Queued, after the transitions below. |
-| A-APPSTATE-1 | (b): the locale is the language. | Built in four slices (keys, buttons, alerts, dialogs); the root's language: see 2026-11-02. |
-| A-CHURN-1 | Keep the exact first round. | Nothing to change. |
-| A-O9-1 | `true`. | As shipped. |
-| A-PARITYMISC-1 | 2: build Core Data's `FetchRequest` when an app asks. | Not built. |
-| A-TRANSITIONS2-1 | All: transitions everywhere a stack's do. | Grid and `Layout` done; lazy stacks and `List`/`Table` rows queued. |
-| IMAGE-PAGE-PHOTO | None of the three: a cartoony picture. | Done: the platform's mascot, cycled with `p`. |
-| A-APPSTATE-2 | Multi-client in one process: tabled. The three statics: no practical benefit in moving them. | Done: all three stay shared, recorded as exemptions on the CLAUDE.md rule. |
-| A-W1-1 | 2: re-export Foundation from TUI, as SwiftUI does. | Done: `import TUI` brings Foundation. |
-| GLASS-BORDER-GAP | (a): a background on the bordered view fills the border's inset; an explicit option keeps it clear. | Done: `.backgroundStopsAtContent()` is the option. |
-| A-CHURN-2 / SCROLLBAR-NAMES | Both: `.scrollIndicatorPlacement(.besideContent / .overContent)`; over the content for the pointer; the "N more" lines follow it. (The focus: see 2026-10-29, which corrected "never the focus".) | Built for `ScrollView`, `List`, `Table` and `TextEditor` (and the menus). The owner wants to try it before the final say. |
-
-## Answered later on 2026-10-26
-
-| Id | Answer | Status |
-|---|---|---|
-| INACTIVE-GLASS | Glass stays frosted in an inactive window; it may dim or turn a little more opaque. | Done (`85791b8ae`). |
-| UNDER-TEXT-PICTURES | Lay a picture under the text where the terminal can (Ghostty), adapted per terminal, conservative by default. | Done (`4ba32c983`, `72d9df103`). |
-| GAUGE-TINT | (b): a linear gauge or progress bar fills with the tint only where one is stated; gradients along every gauge, around a ring's arc. | Done (`6813bad99`). |
-| FROST-RESOLUTION | An integer downsampling factor of the terminal's own pixels. | Done (`4bb6762a3`). |
-| CLIP-ASPECT | Size symmetry: one shape for the clips. | Done: every clip at 16:10 (`cfe0a713a`…`2b437e6f7`); the re-film waits on a quiet machine. |
-
-## Answered on 2026-10-26
-
-| Id | Answer | Status |
-|---|---|---|
-| B-D6M-2 | (a): swift-syntax is cloned by everyone, compiled only by macro users. | Nothing to change. |
-| B-DYNVFIX-3 | (c), the dispatching identity; then (b), then (a), if each is too costly after optimisation. | (c) built (2026-10-27): a click, a key, a gesture or a `.task` inside a holder reads that holder's environment. Its A/B (2026-10-27, 35 scenarios warm and cold, the flagged ones re-run at 40 reps) found no measurable cost, so (c) stays. |
-| PACKAGE-RESOLVED | Untrack it and ignore it. | Done in lane SMALL1026. |
-| SDK15-CI | (c): the macOS 15 SDKs are not supported. | Done in lane SMALL1026: the guards and CONTRIBUTING. |
-| B-D5C-1 | (1): the existential overload stays. | Nothing to change. |
-| B63-CTRLJ | LF is Ctrl-J. | Done in lane SMALL1026: a vertical field's newline; Return where nothing takes it. |
-| B63-KITTY | Ctrl-Return: an app's handler, then a context menu, then U+2028 in a vertical field or `TextEditor`; a plain CR stays Return. | Done (`f5ae4baff`). |
-| B89 | Full gesture recognisers for every control, now. | Done (2026-10-27) for every control that acts on its click: it fails when released off it, draws pressed at once behind an undecided gesture, and a gesture attached after it hears the press once it fails. A control that acts on the press itself waits, as a recognizer would. |
-| A48 | The recommendation: buttons revealed in the row, ⇧→ / ⇧← (again for the full swipe), Ctrl-L / Ctrl-T fallbacks. | Done (2026-10-26): keys, clicks and the horizontal wheel. **Needs you:** a real trackpad swipe recorded in Apple Terminal and iTerm2 (the burst gap is an estimate, 250 ms, and the replay test uses representative bytes). |
-| A53-KEYBOARD-DRAG | The carry mode, after its prerequisite (`.draggable` as a focus stop with Copy and Paste). | Prerequisite done (2026-10-26). The carry is done (2026-10-27): Ctrl-R picks up; Tab and the arrows move among the stops that can take it, which are marked with a `‹`; Up and Down move between a list's rows; Return drops and Escape puts it back, both named in the status bar; Space flips copy and move. No idle expiry, because a slow hand would lose what it carried. Still owed: Pick Up in a context menu, which needs a way for a modifier to add a menu item. |
-| B-BITEMS1-1 | The three-party model. | Done (2026-10-26): `dragConfiguration(_:)`, the destination's proposal, the modifier flip, the narrowing and the badge. The image well's badge (Generic, not Copy?) is still to be probed in a real window. |
-| O13-KEYS | The recommendation: F10 enters bar mode; measure F10 and fn-F10. | Bar mode done (2026-10-26). **Needs you:** F10 and fn-F10 pressed in Apple Terminal, iTerm2 and Ghostty: `PROBE_KEYS=f10,fn_f10,shift_f1 python3 Tools/TerminalProbes/key_probe.py` in each (a key press cannot be sent from here), and whether the standard-function-keys setting is on. |
-| F1-LIST | F1 for the list of keyboard shortcuts (2026-11-01). | Done on what could be read (the survey's "The list of keyboard shortcuts' key"). **Needs you:** F1, fn-F1, ⇧F1 and ⌃F1 pressed in Apple Terminal, iTerm2, Ghostty and Warp: `PROBE_KEYS=f1,fn_f1,shift_f1,ctrl_f1 python3 Tools/TerminalProbes/key_probe.py`. A session can't press a key. |
-| B-HELP-2 | Shift-F1 at the lowest priority (any app or built-in handler takes it first); ⌥? toggles all help; a menu-bar item where Option does not arrive. | Done (`897751413`); what each terminal sends for Shift-F1 is still to be measured, in the same `key_probe.py` run as O13-KEYS. |
-| B-PASTE-1-EDITOR | Undo as edits, not snapshots, with exhaustive tests that the stack cannot drift from the text; and undo for every built-in control that changes a value. | Undo as edits done (2026-10-26), checked against the snapshot history by a differential test. The controls' undo done the same night: toggles, pickers, sliders, steppers, date fields and calendar, colour grids, curve editors. |
-| B75 | Draw a tab's custom label view in its chip (variable heights allowed); text labels keep their path and cost. | Done (2026-10-26): drawn whole in its chip, the row as tall as its tallest label. |
-| B86 | Both now: the full entity table, stored compressed, and link reference definitions. | Done (`b3ab3f8b5`, `813a00cb3`). |
-| A27 | (2). | Done: the transforms declined (`73aa70327`), `mask(alignment:_:)` (`bfedecf3d`), `drawingGroup` in linear light (`8fdc5b447`). |
-| O9 | ⌃W stays delete-word in text fields; File ▸ Close and Close All (⌘W, ⌥⌘W) only where the focus is outside a text field and nothing else takes the key. | Done (`301c60b47`, `e57e3cb0c`). |
-| INERT-APIS (wave 17) | No stubs: an API that does nothing on macOS either is implemented for real, doing what its user would expect, or not at all. | Recorded. |
-| B82 | Not open: answered 2026-10-23, built 2026-10-24. | Done. |
-| B-D2S-6 | Variable page sizes where they can be had; blank rows where they cannot, or cost too much; never a row cut off. | Done (2026-10-27): variable pages under `.paging` (the pair comes and goes; every line read once), blanks where a page cannot vary (container-sized pages, `.viewAligned`). Never a row cut (2026-10-27): over a `scrollTargetLayout`'s rows, `.paging` draws the row a page would cut blank and starts the next page with it. |
-| S3-NO-EXTENT-SPACING | Yes: a child with no rows takes no gap. | Done: deliberate deviation L17. |
-| FORMATTER | Skip both: an inferior API with a better replacement (`format:`), and on Linux a custom `Formatter` does not parse. | Done: refusals wave 17, O11. |
-| D2S-SCROLLCLIP | As SwiftUI: overflow shows through the blank cells inside a later line too. | Built (2026-10-27): a later view hides the overflow only under its runs of painted cells. Its A/B (2026-10-27) found no measurable cost. |
-| B-D2S-7 | As SwiftUI: `.paging` and `.viewAligned` honour `.contentMargins`, after a resize probe. | Not open: built on 2026-10-19 after the probe (lane SCROLL), and listed here by mistake. One measured SwiftUI quirk is not copied: its `.paging` page is half the top margin longer (deviation R15). |
-| TEXT2-INTERIOR | The default stays (opt-out allowed, not opt-in); try to cut its cost. | Queued. |
-| OPACITY-28.2 | Not open: you answered it on 2026-09-10 (carry: a surface stepped off a faded page is as faded as the page), and it shipped then (`cff2e7190`, Opacity §39). Listed here by mistake. | Done. |
-| OPACITY-92 | Try it. | Done (`1ad2199fe`): a hidden view asks for no frames unless it presents a sheet. |
 
 ## New on 2026-10-25
 

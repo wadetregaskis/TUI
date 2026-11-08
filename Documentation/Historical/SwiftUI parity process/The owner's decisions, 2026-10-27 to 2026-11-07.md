@@ -1,11 +1,11 @@
 # The owner's decisions, 2026-10-27 to 2026-11-07
 
 *The owner's rulings from 2026-10-27 to 2026-11-07, each with the reason he
-gave where one was recorded, and where it went. It completes, rather than
-repeats, two other records: [Open owner decisions](<../../Open owner decisions.md>)
-lists every question asked on a page and its status, and the
-[SwiftTUI comparison](<../SwiftTUI comparison, 2026-11/README.md>) tabulates
-the rulings of 2026-11-01. Rulings with a story of their own are linked, not
+gave where one was recorded, and where it went. Since 2026-11-08 it also holds
+the answers the ledger of [open owner decisions](<../../Open owner decisions.md>) used to keep, with
+their statuses, and the ledger keeps only what is open. It completes, rather than repeats, the
+[SwiftTUI comparison](<../SwiftTUI comparison, 2026-11/README.md>), which
+tabulates the rulings of 2026-11-01. Rulings with a story of their own are linked, not
 retold.*
 
 ## In short
@@ -28,7 +28,7 @@ and land it, then the next, after six had run at once.
 
 ## Where it stands
 
-Open, and listed in the ledger's "Decisions waiting on you": SCROLL-REGIONS
+Open, and listed in [Open owner decisions](<../../Open owner decisions.md>): SCROLL-REGIONS
 (the owner will try it first), SCROLLBAR-PLACEMENT (try `.overContent`
 first), HR-ALL (the owner will review the hot reload design), PARTIAL-TUI
 (planned for after 1.0; the owner will review the design). Queued, not built:
@@ -46,10 +46,37 @@ A-FB16-1 (every frame glides), kitty OSC 72 drag and drop, SHEET-KEYBOARD.
 
 ## The record
 
+### 2026-10-27, the first page
+
+"The answer" is the ledger's summary of the owner's, moved here on 2026-11-08 when the ledger became open
+questions only; "What it changed" was last re-checked on 2026-11-02.
+
+| Id | The answer | What it changed |
+|---|---|---|
+| A-EFFECTS-1 | 3: never invisible; dim and the other attributes widen the palette. | Done: faint in the ink's colour at 16 colours, a step toward it at 256. |
+| A-O12-1 | Configurable, app-wide (a Mac's links-only or a web page's every clickable control). | Done: `pointingHandCursor(over:)`, `.links` (the default) or `.everythingClickable`. |
+| A-MODALS-1 | 3, if macOS agrees: it does (measured). | Done: behind a modal only its own shortcuts and status bar items show and fire. |
+| A-O10-1 | 2, generic beyond `Data` (strings, `Codable`). | Done: `fileExporter(isPresented:contents:…)` and `fileExporter(isPresented:encoding:…)`, on every platform. |
+| A-FORMS-1 | 2: follow SwiftUI. | Done: a bare button in the control column (columns), at the row's leading edge (grouped). |
+| ENV-VARS | Rename `TUIKIT_` to `TUI_`. | Done (`af22656f9`). |
+| DRAG-SELECTION | The Mac's way: the whole selection; Shift-drag extends it first. | Done for the mouse and the keyboard's Copy and carry, List and Table. |
+| A-LAYOUT-1 | Optimise it, then decide. | Done: a column's minimum height is answered without measuring, and columns share (`stateful` +1.5%, `tables-vstack` +7.5% for drawing all eight tables). |
+| A-WIDTHS-1 | Assume a perfect terminal by default; optional features never assumed. | Done. |
+| A-FB16-1 | Option 3: every frame glides with relayout. | Queued, after the transitions below. |
+| A-APPSTATE-1 | (b): the locale is the language. | Built in four slices (keys, buttons, alerts, dialogs); the root's language: see 2026-11-02. |
+| A-CHURN-1 | Keep the exact first round. | Nothing to change. |
+| A-O9-1 | `true`. | As shipped. |
+| A-PARITYMISC-1 | 2: build Core Data's `FetchRequest` when an app asks. | Not built. |
+| A-TRANSITIONS2-1 | All: transitions everywhere a stack's do. | Grid and `Layout` done; lazy stacks and `List`/`Table` rows queued. |
+| IMAGE-PAGE-PHOTO | None of the three: a cartoony picture. | Done: the platform's mascot, cycled with `p`. |
+| A-APPSTATE-2 | Multi-client in one process: tabled. The three statics: no practical benefit in moving them. | Done: all three stay shared, recorded as exemptions on the CLAUDE.md rule. |
+| A-W1-1 | 2: re-export Foundation from TUI, as SwiftUI does. | Done: `import TUI` brings Foundation. |
+| GLASS-BORDER-GAP | (a): a background on the bordered view fills the border's inset; an explicit option keeps it clear. | Done: `.backgroundStopsAtContent()` is the option. |
+| A-CHURN-2 / SCROLLBAR-NAMES | Both: `.scrollIndicatorPlacement(.besideContent / .overContent)`; over the content for the pointer; the "N more" lines follow it. (The focus: see 2026-10-29, which corrected "never the focus".) | Built for `ScrollView`, `List`, `Table` and `TextEditor` (and the menus). The owner wants to try it before the final say. |
+
 ### 2026-10-27, round 2 (evening)
 
-The first page of the day is in the ledger with its statuses. Round 2's
-answers the ledger does not hold:
+Round 2's answers:
 
 | Id | Decision | Why, as recorded | Where it went |
 |---|---|---|---|
@@ -64,8 +91,16 @@ answers the ledger does not hold:
 
 ### 2026-10-28
 
-The morning's VEIL, PREVIEW-IMAGES, TEXT-EFFECTS and PICTURE-ASPECT are in
-the ledger. Also:
+The morning's page, as the ledger recorded it:
+
+| Id | The answer | What it changed |
+|---|---|---|
+| PICTURE-ASPECT | Each picture sent at the aspect its mode asks for. | Done ([Terminal graphics protocols, section 8](<../../Images and terminal graphics/Terminal graphics protocols.md>)); it stayed listed as open here by mistake. |
+| VEIL | 25% of each colour kept, 60% of its colour taken out ("25d60"). | Done (g263): pictures behind a sheet are muted the same way. |
+| PREVIEW-IMAGES | Glue: a module on the file panels and the image decoders. | Done (TUIFilePanelImages, `.fileDialogPicturePreviews()`). |
+| TEXT-EFFECTS | SwiftUI's `TextRenderer`, `Text.Layout` and `customAttribute`, on the part of `GraphicsContext` text needs, plus a TUI glyph swap. | Design first. |
+
+The rest of the day's rulings, with their reasons:
 
 | Id | Decision | Why, as recorded | Where it went |
 |---|---|---|---|
@@ -85,6 +120,14 @@ the ledger. Also:
 | HERO-CLIP | The owner reviews and decides later. | — | Open |
 
 ### 2026-10-29
+
+As the ledger recorded it:
+
+| Id | The answer | What it changed |
+|---|---|---|
+| A-CHURN-2 (focus) | Under `.overContent`, over the content for the pointer; while the view has the focus, beside the content as `.besideContent` draws them, the content laid out again; losing the focus restores its room. | Done for `ScrollView`, `List`, `Table` and `TextEditor`: the placement is resolved per view per frame, before layout. |
+
+And the day's other rulings:
 
 | Id | Decision | Why, as recorded | Where it went |
 |---|---|---|---|
@@ -137,7 +180,24 @@ The reasons the owner gave, which that table leaves out:
 
 ### 2026-11-02
 
-The ledger holds every answer of the day. The reasons recorded:
+The day's answers, as the ledger recorded them:
+
+| Id | The answer | What it changed |
+|---|---|---|
+| ENV-PRECEDENCE | `TUI_REDUCE_MOTION`, if set, overrides the system's setting. `COLUMNS` and `LINES`, if set, are taken as gospel, even where the terminal's size can be detected and differs. | Done. An in-band resize report still outranks them, for the browser page. A stale export now pins the size, as the Environment Variables article says. |
+| A-APPSTATE-1 (root) | The root `\.locale` of the app's scene (`WindowGroup { … }.environment(\.locale, …)`), which TUI's chrome reads too. | Done (`5dfa4b45f`, built ahead of the answer): the status bar, the menu bar and undo titles follow it, and a subtree's locale doesn't change them. |
+| NEW-FOLDER | The save dialog has a New Folder button; the open dialog doesn't. | Done: on `fileExporter`'s panel and, by judgement, `fileMover`'s, which picks where something goes. Off an importer of folders, which had one. A failure shows in the sheet. |
+| SMALL-IMAGE-ON-FRAME | Keep: an image file up to 256 KB is decoded on the frame that first shows it. | As built. |
+| PLAIN-TEXT | As built: it turns on by itself only when `LC_ALL`, `LC_CTYPE` or `LANG` names a non-UTF-8 charset, and `TUI_PLAIN_TEXT` forces it. | As built. It hasn't been run on Linux. |
+| PIXEL-HOSTS | Allowed on the hosts that couldn't be measured (kitty, foot, WezTerm, xterm), until there's a concrete case against. | As built. |
+| HANDSHAKE-CPR | Keep the classic-placement handshake's `CSI 6 n`. | As built. |
+| DOC-EDITED | The more sensitive check: a reference document counts as edited on `objectWillChange` or when what `snapshot` reads changes, not only on undo registration. | As built. |
+| CANVAS-GRAIN | Keep: quadrants by default, sextants and octants by `.canvasGrain`. | As built. |
+| ARG-PARSER | Drop the `TUIArgumentParser` module; keep `App.run()` and the three lines that show how. | Dropped. |
+| PLAIN-MEMO | On: a plain view's body needn't run when nothing tracked says it must, as in SwiftUI. | On by default ([the story](<../State and dynamic properties/When a body runs - the plain-body memo.md>)). |
+| TMUX-HOLD | Stop sending the hold under tmux. | Done. It still wants a soak over ssh. |
+
+The reasons recorded:
 
 | Id | Why, as recorded |
 |---|---|
@@ -155,3 +215,5 @@ The ledger holds every answer of the day. The reasons recorded:
   [the sheets story](<../Presentation and windows/Sheets - sizes, detents, live sheets and the page behind.md>).
 - **The review of 71 commits by another author,** in
   [Reviews and audits](<../Reviews and audits/A review of 71 commits by another author (2026-11-07).md>).
+
+The next day's answers are in [The owner's decisions of 2026-11-08](<The owner's decisions of 2026-11-08.md>).

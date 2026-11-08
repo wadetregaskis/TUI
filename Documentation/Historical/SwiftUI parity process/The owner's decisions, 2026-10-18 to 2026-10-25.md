@@ -1941,3 +1941,52 @@ Owner questions the implementation lanes wrote while building. Each links to its
 - **[A-TRANSITIONS2-1. B52: a custom transition that changes its view's size — lay the body out at each frame's size?](<../Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md#a-transitions2-1-b52-a-custom-transition-that-changes-its-views-size--lay-the-body-out-at-each-frames-size>)** (lane TRANSITIONS2). **What SwiftUI does** (`tr1.out` T7, T7b, a `Transition` whose body sets `.frame(height: phase.isIdentity ? nil : 0)` on a 60-point view between two 10-point ones, under an 8 s change): the view's frame grows and shrinks, and the view below moves with it in step — 70 → 63 → 55 → … → 10 as it folds away, 10 → 17 → 25 → … → 70 as it opens. **Recommendation:** option 1, leave it as is. The case B52 was opened for — a collapsing transition whose gap does not close — closes now, through FB16, in every container that glides; what option 2 would add is visible only where a transition names an animation different from its change's.
 
 - **[A-FP2-1. The system's own icons, drawn with Kitty graphics, need a dependency the module does not have](<../Presentation and windows/File panels.md#a-fp2-1-the-systems-own-icons-drawn-with-kitty-graphics-need-a-dependency-the-module-does-not-have>)** (lane FP2). Your item #32 asks for each item's real icon where the terminal takes Kitty graphics. The panels draw glyph icons now (emoji, else SF Symbols, else none). Getting the system's icon needs QuickLookThumbnailing (NSWorkspace would bring AppKit and SwiftUICore), and drawing it needs TUIBitmaps, which the file panels do not depend on: an app that imports the umbrella links it already, one that takes the panels à la carte would link TUIBitmaps, TUIImage and CSTBImage too. **Recommendation:** 1, the dependency on Apple platforms, about a day; 2, a modifier through which TUIAppKit hands the panel `NSWorkspace` icons, if that cost is not wanted. **Answered 2026-10-24: (2), done** (the table at the top), in a module of its own, `TUIFilePanelsAppKit` (see there).
+
+### The answers of 2026-10-26
+
+The answers to the questions above that came on 2026-10-26, as the ledger of open decisions recorded them
+(moved here on 2026-11-08, when that page became open questions only). "The answer" is the ledger's summary
+of the owner's; his reasons, where he gave any, are in the follow-up entries above. "What it changed" was
+last re-checked on 2026-11-02.
+
+| Id | The answer | What it changed |
+|---|---|---|
+| B-D6M-2 | (a): swift-syntax is cloned by everyone, compiled only by macro users. | Nothing to change. |
+| B-DYNVFIX-3 | (c), the dispatching identity; then (b), then (a), if each is too costly after optimisation. | (c) built (2026-10-27): a click, a key, a gesture or a `.task` inside a holder reads that holder's environment. Its A/B (2026-10-27, 35 scenarios warm and cold, the flagged ones re-run at 40 reps) found no measurable cost, so (c) stays. |
+| PACKAGE-RESOLVED | Untrack it and ignore it. | Done in lane SMALL1026. |
+| SDK15-CI | (c): the macOS 15 SDKs are not supported. | Done in lane SMALL1026: the guards and CONTRIBUTING. |
+| B-D5C-1 | (1): the existential overload stays. | Nothing to change. |
+| B63-CTRLJ | LF is Ctrl-J. | Done in lane SMALL1026: a vertical field's newline; Return where nothing takes it. |
+| B63-KITTY | Ctrl-Return: an app's handler, then a context menu, then U+2028 in a vertical field or `TextEditor`; a plain CR stays Return. | Done (`f5ae4baff`). |
+| B89 | Full gesture recognisers for every control, now. | Done (2026-10-27) for every control that acts on its click: it fails when released off it, draws pressed at once behind an undecided gesture, and a gesture attached after it hears the press once it fails. A control that acts on the press itself waits, as a recognizer would. |
+| A48 | The recommendation: buttons revealed in the row, ⇧→ / ⇧← (again for the full swipe), Ctrl-L / Ctrl-T fallbacks. | Done (2026-10-26): keys, clicks and the horizontal wheel. **Needs you:** a real trackpad swipe recorded in Apple Terminal and iTerm2 (the burst gap is an estimate, 250 ms, and the replay test uses representative bytes). |
+| A53-KEYBOARD-DRAG | The carry mode, after its prerequisite (`.draggable` as a focus stop with Copy and Paste). | Prerequisite done (2026-10-26). The carry is done (2026-10-27): Ctrl-R picks up; Tab and the arrows move among the stops that can take it, which are marked with a `‹`; Up and Down move between a list's rows; Return drops and Escape puts it back, both named in the status bar; Space flips copy and move. No idle expiry, because a slow hand would lose what it carried. Still owed: Pick Up in a context menu, which needs a way for a modifier to add a menu item. |
+| B-BITEMS1-1 | The three-party model. | Done (2026-10-26): `dragConfiguration(_:)`, the destination's proposal, the modifier flip, the narrowing and the badge. The image well's badge (Generic, not Copy?) is still to be probed in a real window. |
+| O13-KEYS | The recommendation: F10 enters bar mode; measure F10 and fn-F10. | Bar mode done (2026-10-26). **Needs you:** F10 and fn-F10 pressed in Apple Terminal, iTerm2 and Ghostty: `PROBE_KEYS=f10,fn_f10,shift_f1 python3 Tools/TerminalProbes/key_probe.py` in each (a key press cannot be sent from here), and whether the standard-function-keys setting is on. |
+| F1-LIST | F1 for the list of keyboard shortcuts (2026-11-01). | Done on what could be read (the survey's "The list of keyboard shortcuts' key"). **Needs you:** F1, fn-F1, ⇧F1 and ⌃F1 pressed in Apple Terminal, iTerm2, Ghostty and Warp: `PROBE_KEYS=f1,fn_f1,shift_f1,ctrl_f1 python3 Tools/TerminalProbes/key_probe.py`. A session can't press a key. |
+| B-HELP-2 | Shift-F1 at the lowest priority (any app or built-in handler takes it first); ⌥? toggles all help; a menu-bar item where Option does not arrive. | Done (`897751413`); what each terminal sends for Shift-F1 is still to be measured, in the same `key_probe.py` run as O13-KEYS. |
+| B-PASTE-1-EDITOR | Undo as edits, not snapshots, with exhaustive tests that the stack cannot drift from the text; and undo for every built-in control that changes a value. | Undo as edits done (2026-10-26), checked against the snapshot history by a differential test. The controls' undo done the same night: toggles, pickers, sliders, steppers, date fields and calendar, colour grids, curve editors. |
+| B75 | Draw a tab's custom label view in its chip (variable heights allowed); text labels keep their path and cost. | Done (2026-10-26): drawn whole in its chip, the row as tall as its tallest label. |
+| B86 | Both now: the full entity table, stored compressed, and link reference definitions. | Done (`b3ab3f8b5`, `813a00cb3`). |
+| A27 | (2). | Done: the transforms declined (`73aa70327`), `mask(alignment:_:)` (`bfedecf3d`), `drawingGroup` in linear light (`8fdc5b447`). |
+| O9 | ⌃W stays delete-word in text fields; File ▸ Close and Close All (⌘W, ⌥⌘W) only where the focus is outside a text field and nothing else takes the key. | Done (`301c60b47`, `e57e3cb0c`). |
+| INERT-APIS (wave 17) | No stubs: an API that does nothing on macOS either is implemented for real, doing what its user would expect, or not at all. | Recorded. |
+| B82 | Not open: answered 2026-10-23, built 2026-10-24. | Done. |
+| B-D2S-6 | Variable page sizes where they can be had; blank rows where they cannot, or cost too much; never a row cut off. | Done (2026-10-27): variable pages under `.paging` (the pair comes and goes; every line read once), blanks where a page cannot vary (container-sized pages, `.viewAligned`). Never a row cut (2026-10-27): over a `scrollTargetLayout`'s rows, `.paging` draws the row a page would cut blank and starts the next page with it. |
+| S3-NO-EXTENT-SPACING | Yes: a child with no rows takes no gap. | Done: deliberate deviation L17. |
+| FORMATTER | Skip both: an inferior API with a better replacement (`format:`), and on Linux a custom `Formatter` does not parse. | Done: refusals wave 17, O11. |
+| D2S-SCROLLCLIP | As SwiftUI: overflow shows through the blank cells inside a later line too. | Built (2026-10-27): a later view hides the overflow only under its runs of painted cells. Its A/B (2026-10-27) found no measurable cost. |
+| B-D2S-7 | As SwiftUI: `.paging` and `.viewAligned` honour `.contentMargins`, after a resize probe. | Not open: built on 2026-10-19 after the probe (lane SCROLL), and listed here by mistake. One measured SwiftUI quirk is not copied: its `.paging` page is half the top margin longer (deviation R15). |
+| TEXT2-INTERIOR | The default stays (opt-out allowed, not opt-in); try to cut its cost. | Queued. |
+| OPACITY-28.2 | Not open: you answered it on 2026-09-10 (carry: a surface stepped off a faded page is as faded as the page), and it shipped then (`cff2e7190`, Opacity §39). Listed here by mistake. | Done. |
+| OPACITY-92 | Try it. | Done (`1ad2199fe`): a hidden view asks for no frames unless it presents a sheet. |
+
+#### Later on 2026-10-26
+
+| Id | The answer | What it changed |
+|---|---|---|
+| INACTIVE-GLASS | Glass stays frosted in an inactive window; it may dim or turn a little more opaque. | Done (`85791b8ae`). |
+| UNDER-TEXT-PICTURES | Lay a picture under the text where the terminal can (Ghostty), adapted per terminal, conservative by default. | Done (`4ba32c983`, `72d9df103`). |
+| GAUGE-TINT | (b): a linear gauge or progress bar fills with the tint only where one is stated; gradients along every gauge, around a ring's arc. | Done (`6813bad99`). |
+| FROST-RESOLUTION | An integer downsampling factor of the terminal's own pixels. | Done (`4bb6762a3`). |
+| CLIP-ASPECT | Size symmetry: one shape for the clips. | Done: every clip at 16:10 (`cfe0a713a`…`2b437e6f7`); the re-film waits on a quiet machine. |
