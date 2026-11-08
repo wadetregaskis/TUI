@@ -59,3 +59,23 @@ asked to list its tests, the release test bundle starts a TUI app, which stops a
 terminal", and lists nothing. The debug bundle, with the same `Example_main` and `main` symbols, does not. The cause is
 not established; the lane stays advisory until it is, and its first run on a Linux runner will say whether it is
 macOS's alone.
+
+## Seeing it in a real terminal
+
+Tests check behaviour, not looks; a change to what is drawn wants a look in a real terminal. `Example --page NAME`
+(a case name of `DemoPage` in `Sources/Example/ContentView.swift`) opens on that page, and `Tools/Dev/pty_script.py`
+feeds the app scripted clicks and keys while the terminal draws its output unchanged. It is for when the window can be
+seen but not typed into: an automation tier that allows screenshots only, or background clicks, which macOS hands to the
+terminal as a text selection, never as a mouse report the app could read.
+
+```bash
+cat > /tmp/look.command <<'X'
+#!/bin/zsh
+printf '\e[8;72;150t'; sleep 0.5        # resize the window to 150×72 first, so cell positions are known
+Tools/Dev/pty_script.py '6,38;13,39;f6' -- .build/debug/Example --page overlays
+X
+chmod +x /tmp/look.command; open -a Terminal /tmp/look.command
+```
+
+Clicks are `COL,ROW` cells, 1-based: read them off a first screenshot (the window's content width over its columns,
+and its height over its rows). Use a fresh `TUI_CONFIG_DIR` so the run leaves your settings alone.
