@@ -4,6 +4,8 @@ Understand how TUI turns your view tree into terminal output: one frame at a tim
 
 ## Overview
 
+Read this when a view won't update, or to make a slow view cheaper. It uses SwiftUI's terms for what happens inside: <doc:NewToSwiftUI> explains them, <doc:KeepingYourAppFast> is the practical guide to speed, and <doc:Troubleshooting> covers common problems.
+
 Every frame in TUI follows the same synchronous pipeline: **clear per-frame state → build environment → render the view tree → run the effects, walking the tree again while they wrote state → diff against previous frame → flush to terminal → track lifecycle**. Each frame evaluates `app.body` again and walks the view tree from the root, but not every body runs: a memoized subtree whose cached buffer is still valid (an `.equatable()` view, a `ForEach` row over an `Equatable` element, or a composite view of the app's own, compared by what it holds) is served from `RenderCache`, and nothing below it is visited (see <doc:RenderCycle#Subtree-Memoization>). Only **changed terminal lines** are written, and all writes are collected in a frame buffer and flushed as a **single `write()` syscall**.
 
 ## What Triggers a Frame

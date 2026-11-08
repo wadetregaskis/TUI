@@ -72,7 +72,7 @@ notifications and `.help`. It links `TUIPresentation` too, for the alert the qui
 
 Every product in the table but `TUIMacros` and `TUIEnvironmentDocs` brings `TUIFoundation` too, and every module in it but `TUIAppKit`,
 `TUIFilePanelsAppKit` and `TUIMacros`, which are imported beside the others, and `TUIEnvironmentDocs`, which stands alone, re-exports the modules it is built on, so one import covers
-them: `import TUITables` gives you `List` as well. `TUIFoundation`, `TUICore`, `TUIStyling`,
+them: `import TUITables` gives you `List` as well. (Re-exporting a module makes its types visible to every file that imports the re-exporting one, with no import of its own.) `TUIFoundation`, `TUICore`, `TUIStyling`,
 `TUIView` and `TUIImage` are products too, for a library that needs nothing more. `TUIFoundation`
 re-exports `TUICore`, `TUIStyling` and `TUIView`; `TUIView` re-exports `TUICore` and
 `TUIStyling`, whose `FrameBuffer` and `Color` its API names, and `TUIImage` re-exports `TUIStyling`, so

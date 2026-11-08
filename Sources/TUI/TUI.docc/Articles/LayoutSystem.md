@@ -146,7 +146,11 @@ VStack(alignment: .leading) {
 }
 ```
 
-Three things worth knowing before you reach for it:
+That is all most uses need.
+
+### Alignment Guide Details
+
+The rest of this section is for when a guide doesn't do what you expected. Three things worth knowing:
 
 - **The container can grow past its largest child.** The bullet's guide is now
   its *trailing* edge, so every sibling shifts right to meet it and the column

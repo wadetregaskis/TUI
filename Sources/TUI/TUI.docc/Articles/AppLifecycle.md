@@ -7,6 +7,10 @@ How TUI starts an app, runs its loop, handles signals and keys, and shuts it dow
 This page describes what the framework does for you. You don't need it to write an app: <doc:ScenesAndQuitting> has
 what you do need.
 
+What you'll see: the app takes over the whole terminal while it runs, and puts it back as it was when it quits, or
+when you suspend it with Control-Z. Control-Q quits, and Control-\\ asks first, or quits an app that has stopped
+responding. Everything below is how that works, for contributors and the curious.
+
 ## Starting Up
 
 `App.main()` makes an instance of your app with its parameterless `init()`, creates an internal `AppRunner` that owns all the subsystems, and calls `run()` to enter the main loop:

@@ -66,6 +66,8 @@ struct ShoppingList: View {
 }
 ```
 
+`@State` marks `items` as the view's own data, which TUI keeps while the view is on screen. `List(items, id: \.self)` makes a row for each string, and `id: \.self` says to tell the rows apart by the strings themselves.
+
 Now run it:
 
 ```
@@ -120,6 +122,8 @@ struct ShoppingList: View {
 }
 ```
 
+`$newName` is a *binding*: a link through which the text field reads and changes `newName`, which belongs to this view. `.onSubmit(add)` runs `add` when you press Return in the field.
+
 Run it again with `swift run`. The first control on the screen takes the keyboard, so you can start typing right away. Type `Milk` and press Return:
 
 ```
@@ -137,7 +141,7 @@ Press Tab to move to the next control and Shift-Tab to move back. With a mouse, 
 
 ## Step 3: Tick items off
 
-A plain string can't say whether it's been bought, so give each item a type of its own. Add `Item`, and replace `ShoppingList`:
+A plain string can't say whether it's been bought, so give each item a type of its own. `Identifiable` says each item has an `id` that tells it from the others, which `List` uses to keep each row's state with the right item. Add `Item`, and replace `ShoppingList`:
 
 ```swift
 struct Item: Identifiable {
@@ -196,7 +200,7 @@ Tab stops at the list first, then at each checkbox you can see. To reach one fur
 
 ## Step 4: Remember the list
 
-Quit and run the app again, and your list is back to three items, because `@State` only lasts while the app runs. To keep it, store it with ``AppStorage``, which saves any `Codable` value.
+Quit and run the app again, and your list is back to three items, because `@State` only lasts while the app runs. To keep it, store it with ``AppStorage``, which saves any `Codable` value. `@AppStorage("items")` works like `@State`, but saves the value under the name `items` and reads it back the next time the app runs.
 
 Make `Item` `Codable`, and change one line of `ShoppingList`, the `items` property:
 
@@ -329,6 +333,8 @@ struct ShoppingList: View {
     }
 }
 ```
+
+`.sheet(isPresented: $isConfirmingClear)` shows `ClearSheet` while `isConfirmingClear` is `true`, and sets it back to `false` when the sheet closes. In `ClearSheet`, `@Environment(\.dismiss)` reads `dismiss`, an action that closes the sheet, from the views around it.
 
 Tick something and click **Clear bought…**, or press Tab until you reach it and press Return:
 

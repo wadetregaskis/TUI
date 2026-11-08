@@ -6,6 +6,8 @@ Manage reactive state in your TUI application.
 
 State works as it does in SwiftUI. When a value changes, TUI draws the views that depend on it again. `@State` holds a view's own values, `@Observable` holds data that views share, and a binding lets a control edit a value that lives somewhere else.
 
+If you haven't used SwiftUI: `@State` is a *property wrapper*, which means Swift keeps the value in storage that outlives each redraw of the view, rather than in the view itself. Writing `$count` hands a control a *binding*, a two-way link to that storage. <doc:NewToSwiftUI> explains both, with examples.
+
 ## @State
 
 Use ``State`` for simple values owned by a single view:

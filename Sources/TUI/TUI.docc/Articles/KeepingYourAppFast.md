@@ -4,7 +4,7 @@ What you can do when a screen feels slow, and how to find out which of those thi
 
 ## Overview
 
-Most apps need nothing from this page. A frame of a page of ordinary controls takes a small fraction of the time between two frames, and a screen with nothing changing does no work at all. Start here when a key press feels late, an animation stutters, or a terminal over a slow link falls behind.
+Most apps need nothing from this page. It assumes you know how `@State` and `@Observable` cause a view to be drawn again: <doc:StateManagement> explains that. A frame of a page of ordinary controls takes a small fraction of the time between two frames, and a screen with nothing changing does no work at all. Start here when a key press feels late, an animation stutters, or a terminal over a slow link falls behind.
 
 Then, in this order:
 
@@ -22,7 +22,7 @@ A frame is drawn when something asks for one: a key, the mouse, a state change, 
 
 **The cache can tell for a view of yours, by comparing what it holds, and for `.equatable()` views and `ForEach` rows, by their `==`.** Anything else draws again.
 
-**A view of yours whose inputs didn't change doesn't run `body` again, as in SwiftUI.** A closure or a `Binding` it holds counts as changed only when something above it wrote. What the cache can't compare, an existential say, or a subtree with an `.onAppear` or a focused control in it, draws on every frame, usually running `body` twice: once to measure the view and once to draw it. A read nothing tracks, of a global, a plain class or the clock, stays as it was drawn: if a part of your screen goes stale, `TUI_VERIFY_RENDER_MEMO=1` names the view, and `TUI_RUN_BODY_ON_EVERY_FRAME=1`, which runs every body on every frame, shows it fresh. The fix is to keep the value where TUI can see it change: in `@State`, the environment, an `@Observable` model, or a property the parent hands the view.
+**A view of yours whose inputs didn't change doesn't run `body` again, as in SwiftUI.** A closure or a `Binding` it holds counts as changed only when something above it wrote. What the cache can't compare, an existential say (a value stored as `any SomeProtocol`, whose type is known only at run time), or a subtree with an `.onAppear` or a focused control in it, draws on every frame, usually running `body` twice: once to measure the view and once to draw it. A read nothing tracks, of a global, a plain class or the clock, stays as it was drawn: if a part of your screen goes stale, `TUI_VERIFY_RENDER_MEMO=1` names the view, and `TUI_RUN_BODY_ON_EVERY_FRAME=1`, which runs every body on every frame, shows it fresh. The fix is to keep the value where TUI can see it change: in `@State`, the environment, an `@Observable` model, or a property the parent hands the view.
 
 ## The Controls
 
@@ -86,7 +86,7 @@ TUI_DEBUG_RENDER=1 .build/release/MyApp 2>render.log
 
 A hit rate near zero on a page that shouldn't be changing says that something is making the cache draw everything again. <doc:RenderCycle> has more on reading it.
 
-**A profiler.** Bodies run on the main actor, so a slow one shows up plainly on the main thread of any sampling profiler. Instruments' Time Profiler works on a terminal app, as does `perf` on Linux. Look for your own `body` getters high in the inclusive column. `Tools/Profiling/README.md` in TUI's repository describes how TUI profiles its own Example through a terminal, should you want to do the same.
+**A profiler.** Bodies run on the main actor, so a slow one shows up plainly on the main thread of any sampling profiler. Instruments' Time Profiler works on a terminal app, as does `perf` on Linux. Look for your own `body` getters high in the inclusive column (the time spent in a function and everything it calls). `Tools/Profiling/README.md` in TUI's repository describes how TUI profiles its own Example through a terminal, should you want to do the same.
 
 ## Debugging a Slow Screen
 

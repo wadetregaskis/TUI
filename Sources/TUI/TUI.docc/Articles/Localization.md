@@ -39,6 +39,11 @@ Text(localized: LocalizationKey.Button.save)
 
 ### A String Literal Is Already a Key
 
+A *key* is a name for a piece of text, such as `button.save`, that is looked up
+in the translations for the language the app is running in: ones you register
+in code, or a `Localizable.strings` file in that language's `.lproj` folder,
+such as `de.lproj` (see <doc:Localization#Language-Switching>).
+
 Every control that takes a title also takes a ``LocalizedStringKey``, and a
 string **literal** binds there — so the plainest spelling is already localized:
 
@@ -50,8 +55,8 @@ Text(verbatim: "literal") // opted out explicitly
 
 This is SwiftUI's rule, and nothing about it is magic: ``Text`` has one
 initializer taking a `LocalizedStringKey` and another generic over
-`StringProtocol`, and the generic one is marked `@_disfavoredOverload` so a
-literal picks the key. A `String` you computed cannot become a key, so a file
+`StringProtocol`, and the generic one is marked `@_disfavoredOverload` (an attribute that tells
+Swift to choose the other one when both fit) so a literal picks the key. A `String` you computed cannot become a key, so a file
 path or a person's name is never looked up by accident.
 
 Nothing breaks if a key is missing. Lookup falls back to English and then to

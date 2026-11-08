@@ -4,6 +4,8 @@ Understand the layer model and rendering pipeline of TUI.
 
 ## Overview
 
+You don't need this page to write an app: it's for contributors, and for the curious. In short, your app describes its screen as a tree of views, each made from its state (see <doc:NewToSwiftUI>). TUI reads the keyboard and mouse, runs the code your views gave it for each event, and when that changes some state, asks the affected views for their contents again, works out where everything goes, and writes only the changed cells to the terminal.
+
 TUI is structured in six layers, each building on the one below. This clean separation makes the framework easy to extend and maintain.
 
 ## Layer Model

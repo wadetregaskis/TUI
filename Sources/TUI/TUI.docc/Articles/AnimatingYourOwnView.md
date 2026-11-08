@@ -73,7 +73,9 @@ nothing about your view's appearance depends on *when* it rendered — which is
 exactly what makes the frames replayable.
 
 Draw ``SelectionEmphasisCycle/colorNow(dim:bright:)`` for the frame on screen,
-and leave a run behind for the rest:
+and leave a run behind for the rest. The view below draws its cells itself: it is ``Renderable``, writes into a
+``FrameBuffer``, and reads its environment from a ``RenderContext``, as
+<doc:CustomViews> explains.
 
 ```swift
 struct FocusDot: View, Renderable {

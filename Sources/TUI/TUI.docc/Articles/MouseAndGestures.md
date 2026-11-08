@@ -131,7 +131,7 @@ up the ones after it, so a double tap written inside a single tap delays the
 single tap until a second click can no longer come.
 
 A control that acts on its click — a `Button`, a `Toggle`, a picker's option,
-a tab — is a recognizer too, as a plain-style button is on macOS. Released off
+a tab — is a recognizer too (a gesture that watches the clicks and decides whether they are its own), as a plain-style button is on macOS. Released off
 the control, its press fails and acts on nothing. Behind a gesture that has
 not decided, it draws pressed at once and acts once that gesture gives up. A
 gesture attached to it with `gesture` hears the press once it fails, so a
@@ -226,7 +226,7 @@ content
 ```
 
 Events come from the terminal's mouse reports, in the modern SGR encoding or the
-legacy X10 one, and reach you as `MouseEvent` values. Each view that wants the mouse registers a hit-test region for its on-screen
+legacy X10 one, and reach you as `MouseEvent` values. Each view that wants the mouse registers a hit-test region (the rectangle of cells where a click counts as its own) for its on-screen
 rectangle; the dispatcher routes an incoming report to the front-most region
 that contains the point. See <doc:RenderCycle> for where mouse dispatch sits in
 the frame.

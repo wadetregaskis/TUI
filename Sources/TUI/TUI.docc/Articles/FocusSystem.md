@@ -35,7 +35,8 @@ Right itself, such as an outline's disclosure or a slider, still gets them first
 
 ## Choosing Where the Focus Goes
 
-``FocusState`` binds a value to *where focus is*, and `focused(_:)` /
+``FocusState`` is a property wrapper that holds which control has the focus: it
+binds a value to *where focus is*, and `focused(_:)` /
 `focused(_:equals:)` attach a control to it. `defaultFocus(_:_:)` says what
 should start focused when the scope appears:
 

@@ -12,6 +12,8 @@ TUI_REDUCE_MOTION=1 myapp
 TUI_GRAPHICS=0 swift run MyApp
 ```
 
+Those three are the ones people reach for most: `NO_COLOR=1` turns colour off, `TUI_REDUCE_MOTION=1` asks for less motion, and `TUI_GRAPHICS=0` draws pictures as text characters instead of pixels.
+
 Most people never need one, because TUI works out what each terminal can do. They're there for when it gets that wrong, for what only the person knows they need, and for trying out how an app looks somewhere else.
 
 This page says which setting wins, then lists every variable: <doc:EnvironmentVariables#For-People-Running-an-App>, <doc:EnvironmentVariables#For-Developers-Building-an-App> and <doc:EnvironmentVariables#What-TUI-Works-Out-for-Itself>. To put the list in your own app's man page, see <doc:ShippingAnApp#Documenting-Environment-Variables>.

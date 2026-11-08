@@ -22,6 +22,8 @@ Both components share the same keyboard navigation and selection infrastructure,
 
 ### Basic Usage
 
+The selection is the id of the selected row: here each row's id is its string (`id: \.self`), so `selectedID` is a `String?`, `nil` when nothing is selected. A `Set<String>` instead lets people select several rows (see Multi-Selection below). The arrow keys move the list's cursor, and Space or Return selects the row under it.
+
 ```swift
 struct ContentView: View {
     @State var selectedID: String?

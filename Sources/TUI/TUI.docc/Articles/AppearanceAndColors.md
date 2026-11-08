@@ -418,6 +418,8 @@ A ``Palette`` also defines `focusBackground`, `cursorColor` and `fieldBackground
 
 ## Colors in Custom Rendering
 
+This section is advanced: it's for a view that draws its own cells, as <doc:CustomViews> describes. A view built from other views never needs it.
+
 A view that draws itself through `renderToBuffer` has a `RenderContext` to hand, and reads concrete colors from it with `context.environment.palette.*`:
 
 ```swift

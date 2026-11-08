@@ -8,7 +8,7 @@ A terminal app has to work from the keyboard, so TUI does most of this for you: 
 
 ## Giving a Control a Shortcut
 
-``View/keyboardShortcut(_:modifiers:)`` works as it does in SwiftUI. Most terminals don't report ⌘, so a shortcut that SwiftUI would give to ⌘ answers to Control here:
+A shortcut is a key that presses a button from anywhere on the screen, wherever the focus is. ``View/keyboardShortcut(_:modifiers:)`` works as it does in SwiftUI, where ⌘ is the Mac's Command key, the usual modifier for shortcuts there. Most terminals don't report ⌘, so a shortcut that SwiftUI would give to ⌘ answers to Control here:
 
 ```swift
 Button("Save") { save() }

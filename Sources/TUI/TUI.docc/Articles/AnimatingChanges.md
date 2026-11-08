@@ -69,9 +69,9 @@ Text("Saved")
     .animation(.easeInOut(duration: 0.4), value: hasSaved)
 ```
 
-A `BufferModifier` of your own joins that list by conforming to ``Animatable``
-and naming one property — `ModifiedView` is animatable whenever its modifier
-is, so there is nothing else to learn.
+A modifier of your own that restyles the cells beneath it (a ``BufferModifier``,
+see <doc:CustomViews>) joins that list by conforming to ``Animatable`` and
+naming one property, so there is nothing else to learn.
 
 A gradient animates as a handful of independent numbers rather than as one
 value, which is what makes the awkward case fall out for free: growing a
@@ -131,14 +131,14 @@ animating subtree really is walked once per frame. So the honest accounting is:
 
 The middle row is the one to understand, because it generalises. A never-ending
 animation is a *decoration*, and a decoration that costs a render pass twenty
-times a second, forever, is the pathology ``AnimatedCellRun`` exists to remove.
+times a second, forever, is the waste this exists to remove.
 Where the animated value only ever **re-styles a buffer the content already
 produced** — which is exactly what `.opacity` does — the framework computes
 every point of the cycle up front and hands the run loop the finished frames.
 Nothing re-renders; the loop splices frames over the picture already on screen.
 
-For `.opacity` that computation happens at the COMPOSITE rather than at the
-view, because a phase cannot be coloured until what is behind the layer is
+For `.opacity` that computation happens when the layers are combined into one
+picture rather than at the view, because a phase cannot be coloured until what is behind the layer is
 known. The saving is the same: the content is rendered once, and the cycle
 costs one re-colouring of its finished lines per phase.
 
