@@ -841,7 +841,7 @@ extension ASCIIConverter {
                 let base = y * image.width
 
                 for x in 0..<width {
-                    let pixel = pixels[base + x]
+                    let pixel = unsafe pixels[base + x]
 
                     // Map luminance to character: equal bands, one per ramp
                     // level. Scaling by `count - 1` and truncating (as this
@@ -919,7 +919,7 @@ extension ASCIIConverter {
                 var row = ANSIRowBuilder(capacity: width * 12)  // a background per colour run + a space per cell
                 let base = y * image.width
                 for x in 0..<width {
-                    let pixel = pixels[base + x]
+                    let pixel = unsafe pixels[base + x]
                     // A cell nothing of the picture reaches, in either arm: the colour
                     // arm's bytes say so as well, mono's cannot (`ASCIIArt.uncovered`).
                     if pixel.a == 0 { uncovered.note(line: y, column: x, ink: 0, field: 0) }

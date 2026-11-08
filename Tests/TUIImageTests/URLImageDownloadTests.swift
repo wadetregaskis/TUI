@@ -66,7 +66,7 @@ private final class Tarpit {
         guard fd >= 0 else { throw TarpitError.failed("socket") }
 
         var yes: Int32 = 1
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, socklen_t(MemoryLayout<Int32>.size))
+        unsafe setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, socklen_t(MemoryLayout<Int32>.size))
 
         var address = sockaddr_in()
         address.sin_family = sa_family_t(AF_INET)
@@ -77,8 +77,8 @@ private final class Tarpit {
         #endif
 
         let bound = withUnsafePointer(to: &address) { pointer in
-            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                bind(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            unsafe pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                unsafe bind(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
             }
         }
         guard bound == 0, listen(fd, 8) == 0 else {
@@ -89,8 +89,8 @@ private final class Tarpit {
         var assigned = sockaddr_in()
         var length = socklen_t(MemoryLayout<sockaddr_in>.size)
         let named = withUnsafeMutablePointer(to: &assigned) { pointer in
-            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                getsockname(fd, $0, &length)
+            unsafe pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                unsafe getsockname(fd, $0, &length)
             }
         }
         guard named == 0 else {
@@ -112,7 +112,7 @@ private final class Tarpit {
     /// queued and stalled, which is the point of a tarpit.
     func waitForConnection(within seconds: Int32 = 60) -> Bool {
         var target = pollfd(fd: listener, events: Int16(POLLIN), revents: 0)
-        return poll(&target, 1, seconds * 1000) > 0
+        return unsafe poll(&target, 1, seconds * 1000) > 0
     }
 
     deinit { close(listener) }

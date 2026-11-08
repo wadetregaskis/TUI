@@ -154,7 +154,7 @@ extension ASCIIConverter {
                         var totalInk: Double = 0
                         let centreBase = centreIndex * sampleCount
                         for sampleIndex in 0..<sampleCount {
-                            let pixel = pixelBuffer[
+                            let pixel = unsafe pixelBuffer[
                                 baseLinearIndex + offsets[centreBase + sampleIndex]
                             ]
                             // Weighted by coverage, like every other average in the

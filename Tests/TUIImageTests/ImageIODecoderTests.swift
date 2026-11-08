@@ -32,7 +32,7 @@ import Testing
                 bytes[index * 4 + 2] = red ? 0 : 255
                 bytes[index * 4 + 3] = 255
             }
-            let context = try #require(
+            let context = try unsafe #require(
                 CGContext(
                     data: &bytes, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
                     space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
@@ -78,7 +78,7 @@ import Testing
                 bytes[index * 4 + 1] = 0
                 bytes[index * 4 + 2] = blue
             }
-            let context = try #require(
+            let context = try unsafe #require(
                 CGContext(
                     data: &bytes, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
                     space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))

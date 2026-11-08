@@ -54,14 +54,14 @@ extension ASCIIPalette.Histogram {
             labs.withUnsafeBufferPointer { labs in
                 chosen.withUnsafeBufferPointer { chosen in
                     var bucketIndex = 0
-                    for bucket in buckets {
+                    for unsafe bucket in unsafe buckets {
                         var best = 0
                         var bestDistance = Double.infinity
                         var slot = 0
-                        for entry in chosen {
-                            let deltaL = bucket.lab.l - labs[entry].l
-                            let deltaA = bucket.lab.a - labs[entry].a
-                            let deltaB = bucket.lab.b - labs[entry].b
+                        for unsafe entry in unsafe chosen {
+                            let deltaL = unsafe bucket.lab.l - labs[entry].l
+                            let deltaA = unsafe bucket.lab.a - labs[entry].a
+                            let deltaB = unsafe bucket.lab.b - labs[entry].b
                             let distance = deltaL * deltaL + deltaA * deltaA + deltaB * deltaB
                             if distance < bestDistance {
                                 bestDistance = distance
@@ -120,7 +120,7 @@ extension ASCIIPalette.Histogram {
             let lab = labs[entry]
             buckets.withUnsafeBufferPointer { buckets in
                 var bucketIndex = 0
-                for bucket in buckets {
+                for unsafe bucket in unsafe buckets {
                     let deltaL = bucket.lab.l - lab.l
                     let deltaA = bucket.lab.a - lab.a
                     let deltaB = bucket.lab.b - lab.b
@@ -140,13 +140,13 @@ extension ASCIIPalette.Histogram {
         buckets.withUnsafeBufferPointer { buckets in
             nearest.withUnsafeBufferPointer { nearest in
                 var bucketIndex = 0
-                for bucket in buckets {
+                for unsafe bucket in unsafe buckets {
                     let deltaL = bucket.lab.l - lab.l
                     let deltaA = bucket.lab.a - lab.a
                     let deltaB = bucket.lab.b - lab.b
                     let distance = deltaL * deltaL + deltaA * deltaA + deltaB * deltaB
-                    if distance < nearest[bucketIndex] {
-                        gain += Double(bucket.weight) * (nearest[bucketIndex] - distance)
+                    if unsafe distance < nearest[bucketIndex] {
+                        unsafe gain += Double(bucket.weight) * (nearest[bucketIndex] - distance)
                     }
                     bucketIndex += 1
                 }

@@ -110,7 +110,7 @@ extension RGBAImage {
     /// check for every subscript at both ends.
     public mutating func mapPixels(_ transform: (RGBA) -> RGBA) {
         pixels.withUnsafeMutableBufferPointer { buffer in
-            for index in 0..<buffer.count { buffer[index] = transform(buffer[index]) }
+            for index in 0..<buffer.count { unsafe buffer[index] = unsafe transform(buffer[index]) }
         }
     }
 
@@ -155,7 +155,7 @@ extension RGBAImage {
         var pixels = [RGBA](repeating: RGBA(r: 0, g: 0, b: 0), count: count)
         for index in 0..<count {
             let offset = index * 4
-            pixels[index] = RGBA(r: bytes[offset], g: bytes[offset + 1], b: bytes[offset + 2], a: bytes[offset + 3])
+            pixels[index] = unsafe RGBA(r: bytes[offset], g: bytes[offset + 1], b: bytes[offset + 2], a: bytes[offset + 3])
         }
         self.init(width: width, height: height, pixels: pixels)
     }
@@ -262,7 +262,7 @@ extension RGBAImage {
         // every `UnsafeBufferPointer` subscript is a call, and four of them
         // would eat what the hoist buys. Same reason the four pixel reads below
         // go through one buffer rather than four `pixel(at:)` calls.
-        let columns = [ColumnGeometry](unsafeUninitializedCapacity: targetWidth) { entries, initialized in
+        let columns = unsafe [ColumnGeometry](unsafeUninitializedCapacity: targetWidth) { entries, initialized in
             for x in 0..<targetWidth {
                 let sourceX = Double(x) * xRatio
                 var x0 = Int(sourceX)
@@ -270,13 +270,13 @@ extension RGBAImage {
                 var x1 = x0 + 1
                 if x1 > sourceWidth - 1 { x1 = sourceWidth - 1 }
                 let xFrac = sourceX - Double(x0)
-                entries[x] = ColumnGeometry(x0: x0, x1: x1, xFrac: xFrac, oneMinusX: 1.0 - xFrac)
+                unsafe entries[x] = ColumnGeometry(x0: x0, x1: x1, xFrac: xFrac, oneMinusX: 1.0 - xFrac)
             }
             initialized = targetWidth
         }
         let scaled = columns.withUnsafeBufferPointer { column -> [RGBA] in
             pixels.withUnsafeBufferPointer { source -> [RGBA] in
-                [RGBA](unsafeUninitializedCapacity: count) { destination, initialized in
+                unsafe [RGBA](unsafeUninitializedCapacity: count) { destination, initialized in
                     for y in 0..<targetHeight {
                         let sourceY = Double(y) * yRatio
                         var y0 = Int(sourceY)
@@ -290,16 +290,16 @@ extension RGBAImage {
                         let out = y * targetWidth
 
                         for x in 0..<targetWidth {
-                            let geometry = column[x]
+                            let geometry = unsafe column[x]
                             let x0 = geometry.x0
                             let x1 = geometry.x1
                             let xFrac = geometry.xFrac
                             let oneMinusX = geometry.oneMinusX
 
-                            let p00 = source[row0 + x0]
-                            let p10 = source[row0 + x1]
-                            let p01 = source[row1 + x0]
-                            let p11 = source[row1 + x1]
+                            let p00 = unsafe source[row0 + x0]
+                            let p10 = unsafe source[row0 + x1]
+                            let p01 = unsafe source[row1 + x0]
+                            let p11 = unsafe source[row1 + x1]
                             // PREMULTIPLIED: each colour is weighted by its own
                             // coverage as well as its distance, and divided back
                             // out at the end. Straight RGBA cannot be filtered
@@ -346,7 +346,7 @@ extension RGBAImage {
                             // transparent picture it touched.
                             let alpha = coverage
 
-                            destination[out + x] = RGBA(
+                            unsafe destination[out + x] = RGBA(
                                 r: UInt8(clamping: Int(red.rounded())),
                                 g: UInt8(clamping: Int(green.rounded())),
                                 b: UInt8(clamping: Int(blue.rounded())),
@@ -496,9 +496,9 @@ extension RGBAImage {
                             for x in 0..<width {
                                 let slot = (row + x) * 3
                                 let into = x * 3
-                                sums[into] += blur[slot]
-                                sums[into + 1] += blur[slot + 1]
-                                sums[into + 2] += blur[slot + 2]
+                                unsafe sums[into] += blur[slot]
+                                unsafe sums[into + 1] += blur[slot + 1]
+                                unsafe sums[into + 2] += blur[slot + 2]
                             }
                         }
                         for y in 0..<height {
@@ -514,23 +514,23 @@ extension RGBAImage {
                             for x in 0..<width {
                                 let into = x * 3
                                 let index = row + x
-                                let here = source[index]
-                                out[index] = RGBA(
+                                let here = unsafe source[index]
+                                unsafe out[index] = unsafe RGBA(
                                     r: Self.lifted(here.r, blurred: sums[into] / count, amount: amount),
                                     g: Self.lifted(here.g, blurred: sums[into + 1] / count, amount: amount),
                                     b: Self.lifted(here.b, blurred: sums[into + 2] / count, amount: amount),
                                     a: here.a)
                                 if dropped >= 0 {
                                     let gone = (dropped + x) * 3
-                                    sums[into] -= blur[gone]
-                                    sums[into + 1] -= blur[gone + 1]
-                                    sums[into + 2] -= blur[gone + 2]
+                                    unsafe sums[into] -= blur[gone]
+                                    unsafe sums[into + 1] -= blur[gone + 1]
+                                    unsafe sums[into + 2] -= blur[gone + 2]
                                 }
                                 if added >= 0 {
                                     let fresh = (added + x) * 3
-                                    sums[into] += blur[fresh]
-                                    sums[into + 1] += blur[fresh + 1]
-                                    sums[into + 2] += blur[fresh + 2]
+                                    unsafe sums[into] += blur[fresh]
+                                    unsafe sums[into + 1] += blur[fresh + 1]
+                                    unsafe sums[into + 2] += blur[fresh + 2]
                                 }
                             }
                         }

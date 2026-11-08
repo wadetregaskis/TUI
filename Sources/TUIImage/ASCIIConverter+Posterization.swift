@@ -74,8 +74,8 @@ struct ChannelLevels {
         table.withUnsafeBufferPointer { table in
             pixels.withUnsafeMutableBufferPointer { buffer in
                 for index in buffer.indices {
-                    let pixel = buffer[index]
-                    buffer[index] = RGBA(
+                    let pixel = unsafe buffer[index]
+                    unsafe buffer[index] = unsafe RGBA(
                         r: table[Int(pixel.r)], g: table[Int(pixel.g)], b: table[Int(pixel.b)],
                         a: pixel.a)
                 }
@@ -93,8 +93,8 @@ struct ChannelLevels {
             pixels.withUnsafeMutableBufferPointer { buffer in
                 @inline(__always)
                 func spread(_ index: Int, _ r: Int16, _ g: Int16, _ b: Int16) {
-                    let pixel = buffer[index]
-                    buffer[index] = RGBA(
+                    let pixel = unsafe buffer[index]
+                    unsafe buffer[index] = RGBA(
                         r: UInt8(clamping: Int16(pixel.r) + r),
                         g: UInt8(clamping: Int16(pixel.g) + g),
                         b: UInt8(clamping: Int16(pixel.b) + b),
@@ -104,11 +104,11 @@ struct ChannelLevels {
                     let row = y * width
                     for x in 0..<width {
                         let index = row + x
-                        let old = buffer[index]
-                        let new = RGBA(
+                        let old = unsafe buffer[index]
+                        let new = unsafe RGBA(
                             r: table[Int(old.r)], g: table[Int(old.g)], b: table[Int(old.b)],
                             a: old.a)
-                        buffer[index] = new
+                        unsafe buffer[index] = new
                         let (rErr, gErr, bErr) = PixelQuantiser.weighted(
                             (Int16(old.r) - Int16(new.r), Int16(old.g) - Int16(new.g),
                              Int16(old.b) - Int16(new.b)),

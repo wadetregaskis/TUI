@@ -29,7 +29,7 @@ struct GIFStructure: Equatable {
     /// The structure of the GIF `data` holds, up to where it is cut off if it
     /// is, or `nil` if it is not one.
     init?(_ data: Data) {
-        let parsed = data.withUnsafeBytes { Self.walk($0) }
+        let parsed = unsafe data.withUnsafeBytes { unsafe Self.walk($0) }
         guard let parsed else { return nil }
         width = parsed.width
         height = parsed.height
@@ -38,28 +38,28 @@ struct GIFStructure: Equatable {
     }
 
     private static func walk(_ bytes: UnsafeRawBufferPointer) -> (width: Int, height: Int, frames: Int, repeats: Int?)? {
-        guard bytes.count >= 13, bytes.starts(with: "GIF8".utf8) else { return nil }
+        guard bytes.count >= 13, unsafe bytes.starts(with: "GIF8".utf8) else { return nil }
         func colourTableLength(flags: UInt8) -> Int { flags & 0x80 == 0 ? 0 : 3 << (Int(flags & 0x07) + 1) }
-        func littleEndian(_ at: Int) -> Int { Int(bytes[at]) | Int(bytes[at + 1]) << 8 }
+        func littleEndian(_ at: Int) -> Int { unsafe Int(bytes[at]) | Int(bytes[at + 1]) << 8 }
         /// The index past the sub-blocks starting at `start`.
         func pastSubBlocks(_ start: Int) -> Int {
             var at = start
-            while at < bytes.count, bytes[at] != 0 { at += Int(bytes[at]) + 1 }
+            while at < bytes.count, unsafe bytes[at] != 0 { unsafe at += Int(bytes[at]) + 1 }
             return at + 1
         }
-        var at = 13 + colourTableLength(flags: bytes[10])
+        var at = unsafe 13 + colourTableLength(flags: bytes[10])
         var frames = 0
         var repeats: Int?
         walking: while at < bytes.count {
-            switch bytes[at] {
+            switch unsafe bytes[at] {
             case 0x2C:  // An image: a descriptor, a colour table, its code size, its data.
                 guard at + 10 < bytes.count else { break walking }
                 frames += 1
-                at = pastSubBlocks(at + 10 + colourTableLength(flags: bytes[at + 9]) + 1)
+                at = unsafe pastSubBlocks(at + 10 + colourTableLength(flags: bytes[at + 9]) + 1)
             case 0x21:  // An extension: its label, then sub-blocks.
                 guard at + 2 < bytes.count else { break walking }
-                if bytes[at + 1] == 0xFF, at + 18 < bytes.count, bytes[at + 2] == 11,
-                    isLoopingApplication(bytes[(at + 3)..<(at + 14)]), bytes[at + 14] == 3, bytes[at + 15] == 1
+                if unsafe bytes[at + 1] == 0xFF, at + 18 < bytes.count, unsafe bytes[at + 2] == 11,
+                    unsafe isLoopingApplication(bytes[(at + 3)..<(at + 14)]), unsafe bytes[at + 14] == 3, unsafe bytes[at + 15] == 1
                 {
                     repeats = littleEndian(at + 16)
                 }
@@ -72,7 +72,7 @@ struct GIFStructure: Equatable {
     }
 
     private static func isLoopingApplication(_ name: Slice<UnsafeRawBufferPointer>) -> Bool {
-        name.elementsEqual("NETSCAPE2.0".utf8) || name.elementsEqual("ANIMEXTS1.0".utf8)
+        unsafe name.elementsEqual("NETSCAPE2.0".utf8) || name.elementsEqual("ANIMEXTS1.0".utf8)
     }
 }
 
@@ -90,19 +90,19 @@ extension AnimatedImageDecoder {
         let plan = FramePlan(
             canvasWidth: structure.width, canvasHeight: structure.height, frameCount: structure.frameCount,
             byteBudget: byteBudget, frameLimit: frameLimit)
-        let frames: [AnimatedImage.Frame]? = data.withUnsafeBytes { bytes in
-            guard let base = bytes.bindMemory(to: UInt8.self).baseAddress,
-                let reader = stb_gif_reader_open(base, length)
+        let frames: [AnimatedImage.Frame]? = unsafe data.withUnsafeBytes { bytes in
+            guard let base = unsafe bytes.bindMemory(to: UInt8.self).baseAddress,
+                let reader = unsafe stb_gif_reader_open(base, length)
             else { return nil }
-            defer { stb_gif_reader_close(reader) }
+            defer { unsafe stb_gif_reader_close(reader) }
             var builder = AnimatedImageBuilder(plan: plan)
             var delay: Int32 = 0
             var width: Int32 = 0
             var height: Int32 = 0
-            while let pixels = stb_gif_reader_next(reader, &delay, &width, &height) {
+            while let pixels = unsafe stb_gif_reader_next(reader, &delay, &width, &height) {
                 guard !Task.isCancelled else { return nil }
                 builder.add(delayNanos: AnimatedImage.delayNanos(milliseconds: Int(delay))) {
-                    RGBAImage(rgbaBytes: pixels, width: Int(width), height: Int(height))
+                    unsafe RGBAImage(rgbaBytes: pixels, width: Int(width), height: Int(height))
                 }
             }
             return builder.frames

@@ -266,7 +266,7 @@ struct ANSIRowBuilder {
     mutating func finish() -> String {
         if foreground != nil || background != nil { reset() }
         return String(unsafeUninitializedCapacity: bytes.count) { buffer in
-            _ = buffer.initialize(fromContentsOf: bytes)
+            _ = unsafe buffer.initialize(fromContentsOf: bytes)
             return bytes.count
         }
     }

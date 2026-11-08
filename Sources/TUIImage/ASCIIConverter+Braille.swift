@@ -121,7 +121,7 @@ extension ASCIIConverter {
                         let dy = index / 2
                         let dx = index % 2
                         if dy >= cellHeight || dx >= cellWidth { continue }
-                        let pixel = buffer[baseIndex + cellOffsets[index]]
+                        let pixel = unsafe buffer[baseIndex + cellOffsets[index]]
                         let coverage = Int(pixel.a)
                         let r = Int(pixel.r)
                         let g = Int(pixel.g)

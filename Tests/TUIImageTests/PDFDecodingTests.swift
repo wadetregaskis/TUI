@@ -23,7 +23,7 @@
             let data = NSMutableData()
             var box = CGRect(x: 0, y: 0, width: width, height: height)
             let consumer = try #require(CGDataConsumer(data: data as CFMutableData))
-            let context = try #require(CGContext(consumer: consumer, mediaBox: &box, nil))
+            let context = try unsafe #require(CGContext(consumer: consumer, mediaBox: &box, nil))
             context.beginPDFPage(nil)
             context.setFillColor(CGColor(srgbRed: 1, green: 0, blue: 0, alpha: 1))
             context.fill(CGRect(x: 0, y: 0, width: width / 2, height: height))

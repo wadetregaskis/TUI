@@ -188,23 +188,23 @@ struct PixelQuantiser {
             return
         case .grayscale:
             pixels.withUnsafeMutableBufferPointer { buffer in
-                for index in buffer.indices { buffer[index] = Self.grey(buffer[index]) }
+                for index in buffer.indices { unsafe buffer[index] = unsafe Self.grey(buffer[index]) }
             }
         case .mono:
             let threshold = self.threshold
             pixels.withUnsafeMutableBufferPointer { buffer in
-                for index in buffer.indices { buffer[index] = Self.mono(buffer[index], threshold: threshold) }
+                for index in buffer.indices { unsafe buffer[index] = unsafe Self.mono(buffer[index], threshold: threshold) }
             }
         case .palette:
             guard let palette else { return }
-            withTables { colours, bucket, answers, trusted in
+            unsafe withTables { colours, bucket, answers, trusted in
                 pixels.withUnsafeMutableBufferPointer { buffer in
                     for index in buffer.indices {
-                        let pixel = buffer[index]
-                        let entry = Self.index(
+                        let pixel = unsafe buffer[index]
+                        let entry = unsafe Self.index(
                             of: pixel, palette: palette, colours: colours, bucket: bucket,
                             answers: answers, trusted: trusted)
-                        buffer[index] = Self.entry(colours, entry, alpha: pixel.a)
+                        unsafe buffer[index] = unsafe Self.entry(colours, entry, alpha: pixel.a)
                     }
                 }
             }
@@ -291,7 +291,7 @@ struct PixelQuantiser {
             apply(to: &pixels)
             return
         }
-        withTables { colours, bucket, answers, trusted in
+        unsafe withTables { colours, bucket, answers, trusted in
             // Bound ONCE: `guard let` per pixel copies the palette out of the
             // optional, four references retained and released a pixel — the
             // very cost this type exists to remove. The stand-in is never
@@ -308,8 +308,8 @@ struct PixelQuantiser {
             pixels.withUnsafeMutableBufferPointer { buffer in
                 @inline(__always)
                 func spread(_ index: Int, _ r: Int16, _ g: Int16, _ b: Int16) {
-                    let pixel = buffer[index]
-                    buffer[index] = RGBA(
+                    let pixel = unsafe buffer[index]
+                    unsafe buffer[index] = RGBA(
                         r: UInt8(clamping: Int16(pixel.r) + r),
                         g: UInt8(clamping: Int16(pixel.g) + g),
                         b: UInt8(clamping: Int16(pixel.b) + b),
@@ -319,21 +319,21 @@ struct PixelQuantiser {
                     let row = y * width
                     for x in 0..<width {
                         let index = row + x
-                        let oldPixel = buffer[index]
+                        let oldPixel = unsafe buffer[index]
                         let newPixel: RGBA
                         switch kind {
                         case .identity: newPixel = oldPixel
                         case .grayscale: newPixel = Self.grey(oldPixel)
                         case .mono: newPixel = Self.mono(oldPixel, threshold: threshold)
                         case .palette:
-                            newPixel = Self.entry(
+                            newPixel = unsafe Self.entry(
                                 colours,
                                 Self.index(
                                     of: oldPixel, palette: palette, colours: colours, bucket: bucket,
                                     answers: answers, trusted: trusted),
                                 alpha: oldPixel.a)
                         }
-                        buffer[index] = newPixel
+                        unsafe buffer[index] = newPixel
                         let (rErr, gErr, bErr) = Self.carriedError(
                             from: oldPixel, to: newPixel, neutral: neutral)
                         if x + 1 < width {
@@ -362,7 +362,7 @@ struct PixelQuantiser {
         let carryWidth = width + 2
         var carry = [Double](repeating: 0, count: carryWidth * 3)
         var next = [Double](repeating: 0, count: carryWidth * 3)
-        withTables { colours, bucket, answers, trusted in
+        unsafe withTables { colours, bucket, answers, trusted in
             lightness.withUnsafeBufferPointer { lightness in
                 greenRed.withUnsafeBufferPointer { greenRed in
                     blueYellow.withUnsafeBufferPointer { blueYellow in
@@ -371,18 +371,18 @@ struct PixelQuantiser {
                                 let row = y * width
                                 for index in next.indices { next[index] = 0 }
                                 for x in 0..<width {
-                                    let pixel = buffer[row + x]
+                                    let pixel = unsafe buffer[row + x]
                                     let lab = Color.oklab(red: pixel.r, green: pixel.g, blue: pixel.b)
                                     let slot = (x + 1) * 3
                                     let wantedL = min(max(lab.l + carry[slot], floor.l), ceiling.l)
                                     let wantedA = min(max(lab.a + carry[slot + 1], floor.a), ceiling.a)
                                     let wantedB = min(max(lab.b + carry[slot + 2], floor.b), ceiling.b)
                                     let wanted = Color.fromOKLab(l: wantedL, a: wantedA, b: wantedB)
-                                    let entry = Self.index(
+                                    let entry = unsafe Self.index(
                                         of: RGBA(r: wanted.red, g: wanted.green, b: wanted.blue),
                                         palette: palette, colours: colours, bucket: bucket,
                                         answers: answers, trusted: trusted)
-                                    buffer[row + x] = Self.entry(colours, entry, alpha: pixel.a)
+                                    unsafe buffer[row + x] = unsafe Self.entry(colours, entry, alpha: pixel.a)
                                     guard entry >= 0, entry < lightness.count else { continue }
                                     // Weighted by the pixel's own coverage, for the
                                     // reason `carriedError(from:to:neutral:)` gives: a
@@ -392,9 +392,9 @@ struct PixelQuantiser {
                                     // every hard alpha edge. Exactly 1 at full
                                     // coverage, so nothing opaque moves. §41.2.
                                     let coverage = Double(Int(pixel.a)) / 255
-                                    let errL = (wantedL - lightness[entry]) * coverage
-                                    let errA = (wantedA - greenRed[entry]) * coverage
-                                    let errB = (wantedB - blueYellow[entry]) * coverage
+                                    let errL = unsafe (wantedL - lightness[entry]) * coverage
+                                    let errA = unsafe (wantedA - greenRed[entry]) * coverage
+                                    let errB = unsafe (wantedB - blueYellow[entry]) * coverage
                                     carry[slot + 3] += errL * 7 / 16
                                     carry[slot + 4] += errA * 7 / 16
                                     carry[slot + 5] += errB * 7 / 16
@@ -432,7 +432,7 @@ struct PixelQuantiser {
             ASCIIPalette.quantisationBucket.withUnsafeBufferPointer { bucket in
                 (answers ?? []).withUnsafeBufferPointer { answers in
                     (trusted ?? []).withUnsafeBufferPointer { trusted in
-                        body(colours, bucket, answers, trusted)
+                        unsafe body(colours, bucket, answers, trusted)
                     }
                 }
             }
@@ -448,15 +448,15 @@ struct PixelQuantiser {
         trusted: UnsafeBufferPointer<Bool>
     ) -> Int {
         guard !answers.isEmpty else { return palette.nearestIndex(to: pixel) }
-        let red = Int(bucket[Int(pixel.r)]), green = Int(bucket[Int(pixel.g)]), blue = Int(bucket[Int(pixel.b)])
+        let red = unsafe Int(bucket[Int(pixel.r)]), green = unsafe Int(bucket[Int(pixel.g)]), blue = unsafe Int(bucket[Int(pixel.b)])
         let cell = (red << (2 * ASCIIPalette.quantisationBits)) | (green << ASCIIPalette.quantisationBits) | blue
-        return trusted[cell] ? Int(answers[cell]) : palette.nearestIndex(to: pixel)
+        return unsafe trusted[cell] ? Int(answers[cell]) : palette.nearestIndex(to: pixel)
     }
 
     @inline(__always)
     private static func entry(_ colours: UnsafeBufferPointer<RGBA>, _ index: Int, alpha: UInt8) -> RGBA {
         guard index >= 0, index < colours.count else { return RGBA(r: 0, g: 0, b: 0, a: alpha) }
-        var quantized = colours[index]
+        var quantized = unsafe colours[index]
         quantized.a = alpha
         return quantized
     }

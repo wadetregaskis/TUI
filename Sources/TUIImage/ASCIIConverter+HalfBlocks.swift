@@ -112,8 +112,8 @@ extension ASCIIConverter {
                 let bottom = top + stride
 
                 for cellX in 0..<width {
-                    let upper = pixels[top + cellX]
-                    let lower = pixels[bottom + cellX]
+                    let upper = unsafe pixels[top + cellX]
+                    let lower = unsafe pixels[bottom + cellX]
                     // WHICH HALVES ARE THERE AT ALL decides the glyph, before any
                     // question about colour — and it is asked of the pixels' COVERAGE
                     // rather than of whether `colours` gave a colour, because that

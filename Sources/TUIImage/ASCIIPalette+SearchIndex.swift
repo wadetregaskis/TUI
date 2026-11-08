@@ -134,11 +134,11 @@ extension ASCIIPalette {
             offsets.withUnsafeBufferPointer { offsets in
                 candidates.withUnsafeBufferPointer { candidates in
                     entries.withUnsafeBufferPointer { entries in
-                        var position = Int(offsets[cell])
-                        let end = Int(offsets[cell + 1])
+                        var position = unsafe Int(offsets[cell])
+                        let end = unsafe Int(offsets[cell + 1])
                         while position < end {
-                            let index = Int(candidates[position])
-                            let entry = entries[index]
+                            let index = unsafe Int(candidates[position])
+                            let entry = unsafe entries[index]
                             let dl = target.l - entry.lightness
                             let da = target.a - entry.a
                             let db = target.b - entry.b

@@ -189,15 +189,15 @@ extension ASCIIPalette {
                         // opaque picture's palette could move. Skipping is what leaves an
                         // opaque picture's buckets exactly as they were. See "Opacity as
                         // composition" §72.1.
-                        for pixel in pixels where pixel.a != 0 {
-                            let red = Int(channelBucket[Int(pixel.r)])
-                            let green = Int(channelBucket[Int(pixel.g)])
-                            let blue = Int(channelBucket[Int(pixel.b)])
+                        for unsafe pixel in unsafe pixels where pixel.a != 0 {
+                            let red = unsafe Int(channelBucket[Int(pixel.r)])
+                            let green = unsafe Int(channelBucket[Int(pixel.g)])
+                            let blue = unsafe Int(channelBucket[Int(pixel.b)])
                             let cell = (red << (2 * bits)) | (green << bits) | blue
-                            totals[cell].weight += 1
-                            totals[cell].red += Int(pixel.r)
-                            totals[cell].green += Int(pixel.g)
-                            totals[cell].blue += Int(pixel.b)
+                            unsafe totals[cell].weight += 1
+                            unsafe totals[cell].red += Int(pixel.r)
+                            unsafe totals[cell].green += Int(pixel.g)
+                            unsafe totals[cell].blue += Int(pixel.b)
                         }
                     }
                 }
@@ -357,11 +357,11 @@ extension ASCIIPalette {
             // step, where a buffer has a concrete iterator of its own.
             buckets.withUnsafeBufferPointer { buckets in
                 centres.withUnsafeBufferPointer { centres in
-                    for bucket in buckets {
+                    for unsafe bucket in unsafe buckets {
                         var best = 0
                         var bestDistance = Double.infinity
                         var index = 0
-                        for centre in centres {
+                        for unsafe centre in unsafe centres {
                             let deltaL = bucket.lab.l - centre.l
                             let deltaA = bucket.lab.a - centre.a
                             let deltaB = bucket.lab.b - centre.b

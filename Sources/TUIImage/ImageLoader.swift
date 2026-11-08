@@ -301,7 +301,7 @@ extension PlatformImageLoader {
             if let limit = maxPixelCount, width * height > limit {
                 throw ImageLoadError.imageTooLarge(pixelCount: width * height, limit: limit)
             }
-            guard let context = CGContext(
+            guard let context = unsafe CGContext(
                 data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
                 space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
@@ -430,7 +430,7 @@ extension PlatformImageLoader {
             let bytesPerRow = width * 4
             var premultiplied = [UInt8](repeating: 0, count: height * bytesPerRow)
             let drew: Bool = premultiplied.withUnsafeMutableBytes { raw in
-                guard let context = CGContext(
+                guard let context = unsafe CGContext(
                     data: raw.baseAddress,
                     width: width,
                     height: height,
@@ -514,15 +514,15 @@ extension PlatformImageLoader {
         /// the product is a single Core Graphics draw into a bitmap.
         static func suppressingStandardError(_ body: () -> Void) {
             stderrRedirectLock.withLock { _ in
-                fflush(stderr)
+                unsafe fflush(stderr)
                 let saved = dup(STDERR_FILENO)
-                let devNull = open("/dev/null", O_WRONLY)
+                let devNull = unsafe open("/dev/null", O_WRONLY)
                 if devNull >= 0 {
                     dup2(devNull, STDERR_FILENO)
                     close(devNull)
                 }
                 defer {
-                    fflush(stderr)
+                    unsafe fflush(stderr)
                     if saved >= 0 {
                         dup2(saved, STDERR_FILENO)
                         close(saved)

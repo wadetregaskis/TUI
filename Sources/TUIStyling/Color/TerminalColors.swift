@@ -102,13 +102,13 @@ package struct TerminalColors: Sendable, Hashable {
             get {
                 precondition((0..<Self.count).contains(index), "slot \(index) is not 0 to 15")
                 return withUnsafeBytes(of: storage) { bytes in
-                    bytes.load(fromByteOffset: index * MemoryLayout<RGB>.stride, as: RGB.self)
+                    unsafe bytes.load(fromByteOffset: index * MemoryLayout<RGB>.stride, as: RGB.self)
                 }
             }
             set {
                 precondition((0..<Self.count).contains(index), "slot \(index) is not 0 to 15")
                 withUnsafeMutableBytes(of: &storage) { bytes in
-                    bytes.storeBytes(
+                    unsafe bytes.storeBytes(
                         of: newValue, toByteOffset: index * MemoryLayout<RGB>.stride, as: RGB.self)
                 }
             }

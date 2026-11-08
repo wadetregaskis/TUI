@@ -59,7 +59,7 @@ struct ImageFileBytesTests {
         func namedPipeRefused() throws {
             let path = FileManager.default.temporaryDirectory
                 .appendingPathComponent("tuikit-fifo-\(UUID().uuidString).png").path
-            #expect(mkfifo(path, 0o600) == 0)
+            unsafe #expect(mkfifo(path, 0o600) == 0)
             defer { try? FileManager.default.removeItem(atPath: path) }
             #expect(throws: ImageLoadError.self) { try PlatformImageLoader().loadImage(from: path) }
         }

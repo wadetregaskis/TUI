@@ -411,7 +411,7 @@ public struct ASCIIPalette: Sendable, Equatable {
         // every answer.
         entries.withUnsafeBufferPointer { buffer in
             var index = 0
-            for entry in buffer {
+            for unsafe entry in unsafe buffer {
                 let deltaL = target.l - entry.lightness
                 let deltaA = target.a - entry.a
                 let deltaB = target.b - entry.b

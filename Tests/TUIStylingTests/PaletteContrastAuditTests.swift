@@ -235,7 +235,7 @@ struct PaletteContrastAuditTests {
                 let ratio = Self.contrast(pair.foreground, pair.background)
                 let flag = ratio < pair.minimum ? "  ← FAIL (min \(pair.minimum))" : ""
                 let paddedName = pair.name.padding(toLength: 28, withPad: " ", startingAt: 0)
-                print("  \(paddedName) \(String(format: "%5.2f", ratio))\(flag)")
+                print(unsafe "  \(paddedName) \(String(format: "%5.2f", ratio))\(flag)")
             }
         }
     }
@@ -437,7 +437,7 @@ struct PaletteContrastAuditTests {
                 guard let worst = ratios.min(), let at = ratios.firstIndex(of: worst),
                     worst < ViewConstants.rowBreathPeakContrastFloor
                 else { return nil }
-                let ratio = String(format: "%.2f", worst)
+                let ratio = unsafe String(format: "%.2f", worst)
                 return "\(name): the text \(PaletteContrastAuditTests.hex(text)) is \(ratio):1 on \(names[at]), of \(names)"
             case .shades:
                 return shades.count >= 2 ? nil : "\(name): the breath holds one colour, \(names)"
@@ -564,7 +564,7 @@ struct PaletteContrastAuditTests {
 extension PaletteContrastAuditTests {
     private static func hex(_ color: Color) -> String {
         guard let (r, g, b) = color.rgbComponents else { return "?" }
-        return String(format: "#%02X%02X%02X", Int(r), Int(g), Int(b))
+        return unsafe String(format: "#%02X%02X%02X", Int(r), Int(g), Int(b))
     }
 
     @Test("Report: key derived colours (hex) for the Terminal profiles")

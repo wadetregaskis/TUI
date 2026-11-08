@@ -46,7 +46,7 @@
         private func stderrIdentity() -> (dev: dev_t, ino: ino_t) {
             PlatformImageLoader.stderrRedirectLock.withLock { _ in
                 var status = stat()
-                fstat(STDERR_FILENO, &status)
+                unsafe fstat(STDERR_FILENO, &status)
                 return (status.st_dev, status.st_ino)
             }
         }

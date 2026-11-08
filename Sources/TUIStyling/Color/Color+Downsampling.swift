@@ -408,8 +408,8 @@ extension Color {
         Self.keepsItsHue.withUnsafeBufferPointer { keepsItsHue in
             palette256Lab.withUnsafeBufferPointer { candidates in
                 for offset in 0..<candidates.count {
-                    if mustKeepHue && !keepsItsHue[offset] { continue }
-                    let distance = hueWeightedDistanceSquared(
+                    if unsafe mustKeepHue && !keepsItsHue[offset] { continue }
+                    let distance = unsafe hueWeightedDistanceSquared(
                         target, chroma: targetChroma, candidates[offset])
                     if distance < bestDistance {
                         bestDistance = distance
