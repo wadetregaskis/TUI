@@ -47,6 +47,7 @@ New to SwiftUI? Start with <doc:NewToSwiftUI>, which explains the ideas behind t
 ### Coming From Other Frameworks
 
 - <doc:ComingFromSwiftUI>
+- <doc:ComingFromBubbleTea>
 
 ### Test Your App
 
