@@ -52,7 +52,7 @@ struct LargePasteTests {
             guard count > 0, let destination = buffer.baseAddress else { return 0 }
             bytes.withUnsafeBufferPointer { source in
                 // swiftlint:disable:next force_unwrapping
-                destination.update(from: source.baseAddress! + offset, count: count)
+                unsafe destination.update(from: source.baseAddress! + offset, count: count)
             }
             offset += count
             return count
@@ -65,7 +65,7 @@ struct LargePasteTests {
     ) -> (Terminal, Source) {
         let terminal = Terminal()
         let source = Source(bytes: bytes, readLimit: readLimit, boundaries: boundaries)
-        terminal.readSource = { source.read(into: $0) }
+        unsafe terminal.readSource = { unsafe source.read(into: $0) }
         return (terminal, source)
     }
 
@@ -152,7 +152,7 @@ struct LargePasteTests {
         #expect(text.utf8.count == content.count, "the paste arrived cut")
         // `memcmp` rather than `elementsEqual`, which walks 16 MiB a byte at a
         // time through generic code in a debug build.
-        let same = text.utf8.withContiguousStorageIfAvailable { memcmp($0.baseAddress!, content, content.count) == 0 }
+        let same = text.utf8.withContiguousStorageIfAvailable { unsafe memcmp($0.baseAddress!, content, content.count) == 0 }
         #expect(same == true, "the paste arrived changed")
         #expect(events.last == Self.typedX)
         #expect(terminal.input.capacity == Terminal.baselineCapacity, "the paste's room was not given back")
@@ -188,7 +188,7 @@ struct LargePasteTests {
         let expected = String(String.UnicodeScalarView(content.map { Unicode.Scalar($0) }))
         #expect(drain(terminal, source) == [.key(KeyEvent(key: .paste(expected))), Self.typedX])
         #expect(expected.unicodeScalars.count == content.count)
-        let decoded = content.withUnsafeBufferPointer { Terminal.latin1Text($0) }
+        let decoded = content.withUnsafeBufferPointer { unsafe Terminal.latin1Text($0) }
         #expect(decoded.utf8.count == content.count + content.filter { $0 >= 0x80 }.count)
     }
 
@@ -251,8 +251,8 @@ struct LargePasteTests {
         var info = task_vm_info_data_t()
         var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<natural_t>.size)
         let result = withUnsafeMutablePointer(to: &info) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
+            unsafe $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                unsafe task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
             }
         }
         #expect(result == KERN_SUCCESS)
@@ -292,7 +292,7 @@ struct LargePasteTests {
         let who = RUSAGE_SELF
         #endif
         var usage = rusage()
-        _ = getrusage(who, &usage)
+        _ = unsafe getrusage(who, &usage)
         #if canImport(Darwin)
         return usage.ru_maxrss
         #else

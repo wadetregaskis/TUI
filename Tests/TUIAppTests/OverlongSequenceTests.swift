@@ -40,7 +40,7 @@ struct OverlongSequenceTests {
         func read(into buffer: UnsafeMutableBufferPointer<UInt8>) -> Int {
             var count = min(bytes.count - offset, buffer.count, readLimit)
             if let next = boundaries.first(where: { $0 > offset }) { count = min(count, next - offset) }
-            for index in 0..<count { buffer[index] = bytes[offset + index] }
+            for index in 0..<count { unsafe buffer[index] = bytes[offset + index] }
             offset += count
             return count
         }
@@ -49,7 +49,7 @@ struct OverlongSequenceTests {
     private func makeTerminal(readLimit: Int = .max, boundaries: [Int] = []) -> (Terminal, Source) {
         let terminal = Terminal()
         let source = Source(readLimit: readLimit, boundaries: boundaries)
-        terminal.readSource = { source.read(into: $0) }
+        unsafe terminal.readSource = { unsafe source.read(into: $0) }
         return (terminal, source)
     }
 

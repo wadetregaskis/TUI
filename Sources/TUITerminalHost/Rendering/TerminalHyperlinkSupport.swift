@@ -48,7 +48,7 @@ extension TerminalClient {
     static func readLocalHostName() -> String? {
         #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
             var buffer = [CChar](repeating: 0, count: 256)
-            guard gethostname(&buffer, buffer.count) == 0 else { return nil }
+            guard unsafe gethostname(&buffer, buffer.count) == 0 else { return nil }
             // Up to the terminator, or the whole buffer: POSIX does not
             // promise a terminator when the name was truncated.
             let length = buffer.firstIndex(of: 0) ?? buffer.count

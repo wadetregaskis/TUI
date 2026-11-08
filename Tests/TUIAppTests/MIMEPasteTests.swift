@@ -125,10 +125,10 @@ struct MIMEPasteTests {
         }
         let box = Box()
         let terminal = Terminal()
-        terminal.readSource = { buffer in
+        unsafe terminal.readSource = { buffer in
             guard !box.bytes.isEmpty else { return 0 }
             let count = min(box.bytes.count, buffer.count)
-            for index in 0..<count { buffer[index] = box.bytes[index] }
+            for index in 0..<count { unsafe buffer[index] = box.bytes[index] }
             box.bytes.removeFirst(count)
             return count
         }
@@ -167,10 +167,10 @@ struct MIMEPasteTests {
     func cutShortPacket() {
         let terminal = Terminal()
         var inputBytes = Array("\u{1B}]5522;X\u{1B}[A".utf8)
-        terminal.readSource = { buffer in
+        unsafe terminal.readSource = { buffer in
             guard !inputBytes.isEmpty else { return 0 }
             let count = min(inputBytes.count, buffer.count)
-            for index in 0..<count { buffer[index] = inputBytes[index] }
+            for index in 0..<count { unsafe buffer[index] = inputBytes[index] }
             inputBytes.removeFirst(count)
             return count
         }
@@ -189,10 +189,10 @@ struct MIMEPasteTests {
 
         // 1. Packet ending in ST (ESC \)
         var bytesST = Array(Self.packet("type=read:status=OK:pw=\(Self.password)").utf8)
-        terminal.readSource = { buffer in
+        unsafe terminal.readSource = { buffer in
             guard !bytesST.isEmpty else { return 0 }
             let count = min(bytesST.count, buffer.count)
-            for index in 0..<count { buffer[index] = bytesST[index] }
+            for index in 0..<count { unsafe buffer[index] = bytesST[index] }
             bytesST.removeFirst(count)
             return count
         }
@@ -205,10 +205,10 @@ struct MIMEPasteTests {
 
         // 2. Packet ending in BEL (\u{07})
         var bytesBEL = Array("\u{1B}]5522;type=read:status=OK:pw=\(Self.password)\u{07}".utf8)
-        terminal.readSource = { buffer in
+        unsafe terminal.readSource = { buffer in
             guard !bytesBEL.isEmpty else { return 0 }
             let count = min(bytesBEL.count, buffer.count)
-            for index in 0..<count { buffer[index] = bytesBEL[index] }
+            for index in 0..<count { unsafe buffer[index] = bytesBEL[index] }
             bytesBEL.removeFirst(count)
             return count
         }

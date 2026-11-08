@@ -28,7 +28,7 @@ import Testing
 @MainActor
 private func captureStdout(_ body: () -> Void) -> String {
     var pipeFDs: [Int32] = [0, 0]
-    pipe(&pipeFDs)
+    unsafe pipe(&pipeFDs)
 
     let savedStdout = dup(STDOUT_FILENO)
     dup2(pipeFDs[1], STDOUT_FILENO)
@@ -44,7 +44,7 @@ private func captureStdout(_ body: () -> Void) -> String {
     var data = Data()
     var readBuffer = [UInt8](repeating: 0, count: 4096)
     while true {
-        let bytesRead = read(pipeFDs[0], &readBuffer, readBuffer.count)
+        let bytesRead = unsafe read(pipeFDs[0], &readBuffer, readBuffer.count)
         if bytesRead <= 0 { break }
         data.append(contentsOf: readBuffer.prefix(bytesRead))
     }

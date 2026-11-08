@@ -136,11 +136,11 @@ struct InputByteBufferTests {
         var buffer = InputByteBuffer(minimumCapacity: 8)
         buffer.append(contentsOf: [1, 2])
         var offered = -1
-        let added = buffer.append(upTo: 5) { room in
+        let added = unsafe buffer.append(upTo: 5) { room in
             offered = room.count
-            room[0] = 3
-            room[1] = 4
-            room[2] = 5
+            unsafe room[0] = 3
+            unsafe room[1] = 4
+            unsafe room[2] = 5
             return 3
         }
         #expect(offered == 5)
@@ -152,8 +152,8 @@ struct InputByteBufferTests {
     func emptyOrFailedReadAddsNothing(result: Int) {
         var buffer = InputByteBuffer(minimumCapacity: 8)
         buffer.append(contentsOf: [1])
-        let added = buffer.append(upTo: 4) { room in
-            room[0] = 9
+        let added = unsafe buffer.append(upTo: 4) { room in
+            unsafe room[0] = 9
             return result
         }
         #expect(added == 0)
@@ -164,8 +164,8 @@ struct InputByteBufferTests {
     func largeReadGrows() {
         var buffer = InputByteBuffer(minimumCapacity: 4)
         buffer.append(contentsOf: [1])
-        let added = buffer.append(upTo: 10) { room in
-            for index in room.indices { room[index] = UInt8(index + 2) }
+        let added = unsafe buffer.append(upTo: 10) { room in
+            for index in room.indices { unsafe room[index] = UInt8(index + 2) }
             return room.count
         }
         #expect(added == 10)
@@ -216,8 +216,8 @@ struct InputByteBufferTests {
         var buffer = InputByteBuffer(minimumCapacity: 4096)
         var appended = 0
         while appended < 1 << 20 {
-            appended += buffer.append(upTo: 4096) { room in
-                for index in room.indices { room[index] = UInt8(truncatingIfNeeded: index) }
+            unsafe appended += buffer.append(upTo: 4096) { room in
+                for index in room.indices { unsafe room[index] = UInt8(truncatingIfNeeded: index) }
                 return room.count
             }
         }
@@ -255,8 +255,8 @@ struct InputByteBufferTests {
         }
         buffer.append(contentsOf: [1, 2, 3, 4, 5, 6])
         #expect(!moved(), "appending, and growing for it, leave the front alone")
-        _ = buffer.append(upTo: 8) { room in
-            room[0] = 7
+        _ = unsafe buffer.append(upTo: 8) { room in
+            unsafe room[0] = 7
             return 1
         }
         #expect(!moved(), "a read leaves the front alone")
@@ -284,9 +284,9 @@ struct InputByteBufferTests {
         var buffer = InputByteBuffer(minimumCapacity: 8)
         buffer.append(contentsOf: [1, 2, 3, 4, 5, 6])
         buffer.removeFirst(2)
-        #expect(buffer.withUnsafeBufferPointer(prefix: 3) { Array($0) } == [3, 4, 5])
-        #expect(buffer.withUnsafeBufferPointer(prefix: 0) { $0.count } == 0)
-        #expect(buffer.withUnsafeBufferPointer(prefix: 4) { Array($0) } == [3, 4, 5, 6])
+        unsafe #expect(buffer.withUnsafeBufferPointer(prefix: 3) { Array($0) } == [3, 4, 5])
+        unsafe #expect(buffer.withUnsafeBufferPointer(prefix: 0) { $0.count } == 0)
+        unsafe #expect(buffer.withUnsafeBufferPointer(prefix: 4) { Array($0) } == [3, 4, 5, 6])
         #expect(buffer.bytesMoved == 0, "lending copies nothing")
     }
 

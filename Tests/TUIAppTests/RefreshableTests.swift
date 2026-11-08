@@ -212,7 +212,7 @@ struct RefreshableTests {
         let runs = Lock(initialState: 0)
         let gate = RefreshGate()
         nonisolated(unsafe) var seen: RefreshAction?
-        let view = Reader(report: { seen = $0 }).refreshable {
+        let view = Reader(report: { unsafe seen = $0 }).refreshable {
             runs.bump()
             await gate.hold()
         }
@@ -222,7 +222,7 @@ struct RefreshableTests {
         await settle(until: { runs.total == 1 })
         #expect(runs.total == 1)
 
-        guard let action = seen else {
+        guard let action = unsafe seen else {
             Issue.record("the subtree saw no refresh action")
             return
         }
@@ -254,8 +254,8 @@ struct RefreshableTests {
         }
 
         _ = harness.frame(
-            Reader(report: { seen = $0 }).refreshable { refreshes.bump() })
-        guard let action = seen else {
+            Reader(report: { unsafe seen = $0 }).refreshable { refreshes.bump() })
+        guard let action = unsafe seen else {
             Issue.record("the subtree saw no refresh action")
             return
         }
@@ -279,8 +279,8 @@ struct RefreshableTests {
             }
         }
 
-        _ = harness.frame(Reader(report: { seen = .some($0) }))
-        #expect(seen == .some(nil))
+        _ = harness.frame(Reader(report: { unsafe seen = .some($0) }))
+        unsafe #expect(seen == .some(nil))
     }
 
     @Test("Two handles to the same refreshable are equal, two refreshables are not")
@@ -530,11 +530,11 @@ struct RefreshableTests {
         // `_, _ in` rather than a bare `{ }`: both `onChange` overloads accept
         // a closure literal, and only the arity disambiguates them.
         let view = Text("abcdefghij")
-            .onChange(of: 0, initial: true) { _, _ in fires += 1 }
+            .onChange(of: 0, initial: true) { _, _ in unsafe fires += 1 }
             .refreshable { await gate.hold() }
 
         _ = harness.frame(view)
-        #expect(fires == 1, "the `initial` call, once")
+        unsafe #expect(fires == 1, "the `initial` call, once")
 
         harness.press(.character("r"), ctrl: true)
         await settle(until: { gate.entered == 1 })
@@ -542,7 +542,7 @@ struct RefreshableTests {
         gate.release()
         await yieldToSpawnedWork()
 
-        #expect(fires == 1, "nothing changed, so the running frame must add no calls")
+        unsafe #expect(fires == 1, "nothing changed, so the running frame must add no calls")
     }
 
     @Test("A render-to-measure pass registers no handler of its own")

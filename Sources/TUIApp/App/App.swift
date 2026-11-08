@@ -23,7 +23,7 @@ import TUIFoundation
 /// File-scope (the runner is generic, which forbids static stored properties)
 /// and read once: it's consulted per keystroke.
 private let frameDumpEnabled: Bool =
-    getenv("TUI_DEBUG_FRAME_DUMP").map { String(cString: $0) == "1" } ?? false
+    unsafe getenv("TUI_DEBUG_FRAME_DUMP").map { unsafe String(cString: $0) == "1" } ?? false
 
 // MARK: - App Protocol
 
@@ -1307,7 +1307,7 @@ extension TerminalHost {
     /// - Parameter name: a `TERM_PROGRAM`-style name, as
     ///   ``nameFromDeviceAttributes(_:)`` returns.
     static func seedDiscoveredHost(_ name: String) {
-        setenv("TUI_TERM_PROGRAM", name, 1)
+        unsafe setenv("TUI_TERM_PROGRAM", name, 1)
     }
 }
 

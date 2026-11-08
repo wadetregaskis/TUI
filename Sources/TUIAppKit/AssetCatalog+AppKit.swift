@@ -178,7 +178,7 @@
             {
                 appearance.performAsCurrentDrawingAppearance {
                     var rect = CGRect(origin: .zero, size: image.size)
-                    if let cgImage = largest.cgImage(forProposedRect: &rect, context: nil, hints: nil) {
+                    if let cgImage = unsafe largest.cgImage(forProposedRect: &rect, context: nil, hints: nil) {
                         picture = Picture(image: cgImage, scale: CGFloat(cgImage.width) / image.size.width)
                     }
                 }

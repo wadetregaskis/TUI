@@ -34,10 +34,10 @@ private func makeScriptedTerminal() -> (Terminal, (String) -> Void) {
     final class ByteBox { var bytes: [UInt8] = [] }
     let terminal = Terminal()
     let box = ByteBox()
-    terminal.readSource = { buffer in
+    unsafe terminal.readSource = { buffer in
         guard !box.bytes.isEmpty else { return 0 }
         let count = min(box.bytes.count, buffer.count)
-        for index in 0..<count { buffer[index] = box.bytes[index] }
+        for index in 0..<count { unsafe buffer[index] = box.bytes[index] }
         box.bytes.removeFirst(count)
         return count
     }

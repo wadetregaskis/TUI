@@ -68,7 +68,7 @@ final class ScriptedTerminalOutput {
     static func terminal(environment: [String: String] = [:]) -> (Terminal, ScriptedTerminalOutput) {
         let terminal = Terminal(environment: environment)
         let output = ScriptedTerminalOutput()
-        terminal.readSource = { _ in 0 }
+        unsafe terminal.readSource = { _ in 0 }
         terminal.exchangeTransport = .init(
             send: { [output] in output.record($0) }, waitForInput: { _ in false },
             armSignalRestore: { [output] in output.recordArming(signalDebt: $0, quitDebt: $1) })

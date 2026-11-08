@@ -72,14 +72,14 @@ struct ClientCapabilityRefresherTests {
         let refresher = ClientCapabilityRefresher(
             isRefreshable: false,
             probe: {
-                probes += 1
+                unsafe probes += 1
                 return Self.settled(true)
             },
             onChange: {})
         #expect(refresher.resolve().emojiChrome)
         #expect(refresher.resolve().emojiChrome)
         #expect(refresher.resolve().emojiChrome)
-        #expect(probes == 1, "only the first resolve may probe")
+        unsafe #expect(probes == 1, "only the first resolve may probe")
     }
 
     @Test("refresh() is a no-op when the answer cannot change (off tmux)")
@@ -88,7 +88,7 @@ struct ClientCapabilityRefresherTests {
         let refresher = ClientCapabilityRefresher(
             isRefreshable: false,
             probe: {
-                probes += 1
+                unsafe probes += 1
                 return Self.settled(true)
             },
             onChange: {})
@@ -99,7 +99,7 @@ struct ClientCapabilityRefresherTests {
         // budget, sound for an assertion that something did NOT happen.
         await settle(until: { refresher.isIdleForTesting })
         await yieldToSpawnedWork()
-        #expect(probes == 1, "off tmux, refresh must never probe")
+        unsafe #expect(probes == 1, "off tmux, refresh must never probe")
     }
 
     @Test("A landed refresh that changes the answer fires onChange; a same answer doesn't")
@@ -109,20 +109,20 @@ struct ClientCapabilityRefresherTests {
         let refresher = ClientCapabilityRefresher(
             isRefreshable: true,
             probe: { Self.settled(answer.value) },
-            onChange: { changes += 1 })
+            onChange: { unsafe changes += 1 })
         #expect(refresher.resolve().emojiChrome == false)  // seeded with false
 
         // Same answer: no onChange.
         refresher.refresh()
         try await waitUntilSettled(refresher)
-        #expect(changes == 0, "an unchanged answer must not invalidate the screen")
+        unsafe #expect(changes == 0, "an unchanged answer must not invalidate the screen")
         #expect(refresher.resolve().emojiChrome == false)
 
         // Changed answer: exactly one onChange, and resolve() serves the new value.
         answer.value = true
         refresher.refresh()
         try await waitUntilSettled(refresher)
-        #expect(changes == 1, "a changed answer must invalidate exactly once")
+        unsafe #expect(changes == 1, "a changed answer must invalidate exactly once")
         #expect(refresher.resolve().emojiChrome, "frames after the change draw the new answer")
     }
 
@@ -138,19 +138,19 @@ struct ClientCapabilityRefresherTests {
         let refresher = ClientCapabilityRefresher(
             isRefreshable: true,
             probe: { answer.value.map(Self.settled) },
-            onChange: { changes += 1 })
+            onChange: { unsafe changes += 1 })
         #expect(refresher.resolve().emojiChrome)
 
         answer.value = nil  // tmux went quiet
         refresher.refresh()
         try await waitUntilSettled(refresher)
-        #expect(changes == 0, "a failed probe must not restyle the screen")
+        unsafe #expect(changes == 0, "a failed probe must not restyle the screen")
         #expect(refresher.resolve().emojiChrome, "the previous answer stands")
 
         answer.value = false  // a real answer again: now it may flip
         refresher.refresh()
         try await waitUntilSettled(refresher)
-        #expect(changes == 1)
+        unsafe #expect(changes == 1)
         #expect(refresher.resolve().emojiChrome == false)
     }
 
@@ -178,13 +178,13 @@ struct ClientCapabilityRefresherTests {
         let refresher = ClientCapabilityRefresher(
             isRefreshable: true,
             probe: { reading.value },
-            onChange: { changes += 1 },
+            onChange: { unsafe changes += 1 },
             retryDelaysNanos: [5_000_000, 5_000_000, 5_000_000])
         #expect(refresher.resolve().emojiChrome == false)
 
         reading.value = Self.settled(true)  // the XTVERSION reply "arrives"
         try await waitUntilSettled(refresher)
-        #expect(changes == 1, "the retry must land the improved answer unprompted")
+        unsafe #expect(changes == 1, "the retry must land the improved answer unprompted")
         #expect(refresher.resolve().emojiChrome)
     }
 
@@ -194,7 +194,7 @@ struct ClientCapabilityRefresherTests {
         let refresher = ClientCapabilityRefresher(
             isRefreshable: true,
             probe: {
-                probes += 1
+                unsafe probes += 1
                 return ClientCapabilities(
                     emojiChrome: false, skinTonesSafe: false, blockElementsFillTheLine: false, cornerTrianglesFillTheCell: false,
             drawsProgressBars: false, mayImproveShortly: true)
@@ -204,12 +204,12 @@ struct ClientCapabilityRefresherTests {
         _ = refresher.resolve()
         try await waitUntilSettled(refresher)
         // The seed plus at most the full retry budget — never a poll loop.
-        #expect(probes <= 4, "retries must burn out, got \(probes) probes")
-        let probesAfterSettling = probes
+        unsafe #expect(probes <= 4, "retries must burn out, got \(probes) probes")
+        let probesAfterSettling = unsafe probes
         // Idle means no retry is sleeping, so nothing is left to probe: a
         // budget is enough to catch a probe that came anyway.
         await yieldToSpawnedWork()
-        #expect(probes == probesAfterSettling, "no probes after the budget is spent")
+        unsafe #expect(probes == probesAfterSettling, "no probes after the budget is spent")
     }
 
     @Test("A settled false does not retry")
@@ -220,7 +220,7 @@ struct ClientCapabilityRefresherTests {
         let refresher = ClientCapabilityRefresher(
             isRefreshable: true,
             probe: {
-                probes += 1
+                unsafe probes += 1
                 return Self.settled(false)
             },
             onChange: {},
@@ -229,7 +229,7 @@ struct ClientCapabilityRefresherTests {
         refresher.refresh()
         try await waitUntilSettled(refresher)
         await yieldToSpawnedWork()
-        #expect(probes == 2, "seed + one refresh, no retries, got \(probes)")
+        unsafe #expect(probes == 2, "seed + one refresh, no retries, got \(probes)")
     }
 
     /// Polls until the refresher's in-flight probe (and any coalesced re-run)

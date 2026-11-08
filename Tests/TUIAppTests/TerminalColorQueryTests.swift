@@ -260,12 +260,12 @@ struct TerminalColorQueryTests {
         let terminal = Terminal()
         let script = ScriptedTerminal()
         script.reads = reads.map(Self.bytes)
-        terminal.readSource = { buffer in
+        unsafe terminal.readSource = { buffer in
             script.readCount += 1
             guard !script.reads.isEmpty else { return 0 }
             let chunk = script.reads.removeFirst()
             precondition(chunk.count <= buffer.count, "a staged read larger than the buffer")
-            for (index, byte) in chunk.enumerated() { buffer[index] = byte }
+            for (index, byte) in chunk.enumerated() { unsafe buffer[index] = byte }
             return chunk.count
         }
         terminal.exchangeTransport = .init(

@@ -53,7 +53,7 @@ private struct DrawnWalkCounter: View, Renderable {
     var body: Never { fatalError("DrawnWalkCounter renders via Renderable") }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        if !context.isMeasuring { Self.drawn += 1 }
+        if !context.isMeasuring { unsafe Self.drawn += 1 }
         return FrameBuffer(lines: [""])
     }
 }
@@ -135,13 +135,13 @@ struct WindowChromeAdoptionTests {
         let loop = harness.loop(SwitchedHeaderApp())
         _ = loop.render()
         HeaderSwitch.shared.on = true
-        DrawnWalkCounter.drawn = 0
+        unsafe DrawnWalkCounter.drawn = 0
         _ = loop.render()
         _ = loop.render()
         HeaderSwitch.shared.on = false
         _ = loop.render()
         _ = loop.render()
-        #expect(DrawnWalkCounter.drawn == 4, "four frames, four walks — none discarded")
+        unsafe #expect(DrawnWalkCounter.drawn == 4, "four frames, four walks — none discarded")
     }
 
     @Test("A still screen is woken to adopt the change, and left idle once it has")

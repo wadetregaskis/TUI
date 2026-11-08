@@ -81,20 +81,20 @@ struct PreferenceMemoTests {
                 ForEach(["alpha"], id: \.self) { name in
                     Text(name)
                         .preference(key: TitleKey.self, value: title)
-                        .onPreferenceChange(TitleKey.self) { _ in fired += 1 }
+                        .onPreferenceChange(TitleKey.self) { _ in unsafe fired += 1 }
                 }
             }
         }
 
         _ = renderFrame(makeView("one"), tuiContext: tuiContext)
-        #expect(fired == 1, "the initial value fires once")
+        unsafe #expect(fired == 1, "the initial value fires once")
         _ = renderFrame(makeView("one"), tuiContext: tuiContext)
-        #expect(fired == 1, "an unchanged value must not re-fire")
+        unsafe #expect(fired == 1, "an unchanged value must not re-fire")
         // The row memo must not silence a change either — the observer's
         // side-effect declaration declines the cache, so the changed value
         // reaches it even though the ForEach element is unchanged.
         _ = renderFrame(makeView("two"), tuiContext: tuiContext)
-        #expect(fired == 2, "the changed value fires exactly once more")
+        unsafe #expect(fired == 2, "the changed value fires exactly once more")
     }
 
     /// SwiftUI's contract: the action sees the subtree's REDUCED value, once,
@@ -111,12 +111,12 @@ struct PreferenceMemoTests {
             Text("b").preference(key: CountKey.self, value: 1)
             Text("c").preference(key: CountKey.self, value: 1)
         }
-        .onPreferenceChange(CountKey.self) { seen.append($0) }
+        .onPreferenceChange(CountKey.self) { unsafe seen.append($0) }
 
         _ = renderFrame(view, tuiContext: tuiContext)
-        #expect(seen == [3], "raw per-publisher values leaked: \(seen)")
+        unsafe #expect(seen == [3], "raw per-publisher values leaked: \(seen)")
         _ = renderFrame(view, tuiContext: tuiContext)
-        #expect(seen == [3], "an unchanged value re-fired: \(seen)")
+        unsafe #expect(seen == [3], "an unchanged value re-fired: \(seen)")
     }
 
     @Test("An accumulating key collects each writer exactly once per frame")

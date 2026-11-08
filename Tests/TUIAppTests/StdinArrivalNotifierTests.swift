@@ -67,7 +67,7 @@ struct StdinArrivalNotifierTests {
         var probe = pollfd(fd: readEnd, events: Int16(POLLIN), revents: 0)
         while ContinuousClock.now < deadline {
             probe.revents = 0
-            let ready = poll(&probe, 1, 100)
+            let ready = unsafe poll(&probe, 1, 100)
             if ready == 1 { return probe.revents & Int16(POLLHUP) != 0 }
             if ready < 0, errno != EINTR { return false }
         }
@@ -126,7 +126,7 @@ struct StdinArrivalNotifierTests {
     @Test("A descriptor at EOF does not spin the run loop")
     func eofDoesNotSpin() async throws {
         var fds: [Int32] = [-1, -1]
-        try #require(pipe(&fds) == 0)
+        try unsafe #require(pipe(&fds) == 0)
         defer { close(fds[0]) }
         // Write end gone: the read end is at EOF from here on.
         try #require(Self.closeWriteEnd(fds[1], awaitingHangUpOn: fds[0]))
@@ -162,7 +162,7 @@ struct StdinArrivalNotifierTests {
     @Test("A source told 0 bytes are ready, on a descriptor not at EOF, keeps watching it")
     func zeroReadyBytesBeforeEOFKeepsTheSource() throws {
         var fds: [Int32] = [-1, -1]
-        try #require(pipe(&fds) == 0)
+        try unsafe #require(pipe(&fds) == 0)
         defer { close(fds[0]) }  // the write end is closed below
 
         let notifier = StdinArrivalNotifier()
@@ -180,18 +180,18 @@ struct StdinArrivalNotifierTests {
     @Test("End of input is a descriptor that is readable with nothing to read")
     func endOfInputIsAskedOfTheDescriptor() throws {
         var fds: [Int32] = [-1, -1]
-        try #require(pipe(&fds) == 0)
+        try unsafe #require(pipe(&fds) == 0)
         defer { close(fds[0]) }
 
         #expect(!StdinArrivalNotifier.isAtEndOfInput(fds[0]), "open and empty: the bytes were taken, more may come")
         var byte: UInt8 = 0x61
-        #expect(write(fds[1], &byte, 1) == 1)
+        unsafe #expect(write(fds[1], &byte, 1) == 1)
         #expect(!StdinArrivalNotifier.isAtEndOfInput(fds[0]), "a byte waiting")
-        #expect(read(fds[0], &byte, 1) == 1)
+        unsafe #expect(read(fds[0], &byte, 1) == 1)
         try #require(Self.closeWriteEnd(fds[1], awaitingHangUpOn: fds[0]))
         #expect(StdinArrivalNotifier.isAtEndOfInput(fds[0]), "the writer is gone and nothing is left")
 
-        let null = open("/dev/null", O_RDONLY)
+        let null = unsafe open("/dev/null", O_RDONLY)
         try #require(null >= 0)
         defer { close(null) }
         #expect(StdinArrivalNotifier.isAtEndOfInput(null), "stdin redirected from /dev/null")

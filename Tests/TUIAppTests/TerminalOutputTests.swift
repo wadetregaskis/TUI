@@ -107,7 +107,7 @@ extension TerminalOutputTests {
     @Test("A non-blocking descriptor too small for a write takes all of it as it drains")
     func nonBlockingDescriptorTakesEverything() {
         var ends: [Int32] = [0, 0]
-        guard pipe(&ends) == 0 else {
+        guard unsafe pipe(&ends) == 0 else {
             Issue.record("no pipe")
             return
         }
@@ -120,7 +120,7 @@ extension TerminalOutputTests {
             var total = 0
             var chunk = [UInt8](repeating: 0, count: 1 << 16)
             while true {
-                let count = chunk.withUnsafeMutableBytes { read(readEnd, $0.baseAddress, $0.count) }
+                let count = chunk.withUnsafeMutableBytes { unsafe read(readEnd, $0.baseAddress, $0.count) }
                 guard count > 0 else { break }
                 total += count
             }
@@ -130,8 +130,8 @@ extension TerminalOutputTests {
         // A deadline only so a regression fails rather than hangs.
         let deadline = Date().addingTimeInterval(30)
         let complete = payload.withUnsafeBufferPointer { buffer in
-            Terminal.writeAll(
-                buffer.baseAddress!, buffer.count, through: { Foundation.write(writeEnd, $0, $1) },
+            unsafe Terminal.writeAll(
+                buffer.baseAddress!, buffer.count, through: { unsafe Foundation.write(writeEnd, $0, $1) },
                 waitingForRoom: { Terminal.waitForRoom(on: writeEnd, until: deadline) })
         }
         close(writeEnd)
@@ -142,7 +142,7 @@ extension TerminalOutputTests {
     @Test("Waiting for room on a full descriptor nobody drains gives up at its deadline")
     func waitForRoomGivesUp() {
         var ends: [Int32] = [0, 0]
-        guard pipe(&ends) == 0 else {
+        guard unsafe pipe(&ends) == 0 else {
             Issue.record("no pipe")
             return
         }
@@ -150,7 +150,7 @@ extension TerminalOutputTests {
         _ = fcntl(ends[1], F_SETFL, fcntl(ends[1], F_GETFL) | O_NONBLOCK)
         #expect(Terminal.waitForRoom(on: ends[1], until: Date().addingTimeInterval(1)), "an empty pipe has room")
         var byte: UInt8 = 0x78
-        while Foundation.write(ends[1], &byte, 1) == 1 {}
+        while unsafe Foundation.write(ends[1], &byte, 1) == 1 {}
         #expect(!Terminal.waitForRoom(on: ends[1], until: Date().addingTimeInterval(0.05)))
     }
 }

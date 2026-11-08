@@ -632,8 +632,8 @@ extension Terminal {
     /// at 3.6 times its size where it now peaks at 2.6 (measured, macOS 15;
     /// see ``inPasteMode``).
     private func pasteEvent(bufferedContent length: Int) -> TerminalInput {
-        let text = input.withUnsafeBufferPointer(prefix: length) { bytes in
-            Self.utf8Text(bytes) ?? Self.latin1Text(bytes)
+        let text = unsafe input.withUnsafeBufferPointer(prefix: length) { bytes in
+            unsafe Self.utf8Text(bytes) ?? Self.latin1Text(bytes)
         }
         return .key(KeyEvent(key: .paste(text)))
     }
@@ -644,7 +644,7 @@ extension Terminal {
     /// then copies them into the string, once: it allocates nothing else (its
     /// body is inlinable, and reads contiguous storage where it lies).
     nonisolated static func utf8Text(_ bytes: UnsafeBufferPointer<UInt8>) -> String? {
-        String(validating: bytes, as: UTF8.self)
+        unsafe String(validating: bytes, as: UTF8.self)
     }
 
     /// `bytes` read a byte to a character, as Latin-1: what a paste that is
@@ -668,17 +668,17 @@ extension Terminal {
     /// `nonisolated`: it reads nothing of the terminal's, and that test calls
     /// it from an exit test's body, which is not on the main actor.
     nonisolated static func latin1Text(_ bytes: UnsafeBufferPointer<UInt8>) -> String {
-        let length = bytes.count + bytes.reduce(0) { $0 + Int($1 >> 7) }
+        let length = unsafe bytes.count + bytes.reduce(0) { $0 + Int($1 >> 7) }
         return String(unsafeUninitializedCapacity: length) { buffer in
             var index = 0
-            for byte in bytes {
+            for unsafe byte in unsafe bytes {
                 if byte < 0x80 {
-                    buffer[index] = byte
+                    unsafe buffer[index] = byte
                     index += 1
                 } else {
                     // U+0080 to U+00FF: 110000xx 10xxxxxx.
-                    buffer[index] = 0xC0 | byte >> 6
-                    buffer[index + 1] = 0x80 | byte & 0x3F
+                    unsafe buffer[index] = 0xC0 | byte >> 6
+                    unsafe buffer[index + 1] = 0x80 | byte & 0x3F
                     index += 2
                 }
             }

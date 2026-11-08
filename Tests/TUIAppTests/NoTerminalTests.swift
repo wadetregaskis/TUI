@@ -44,7 +44,7 @@ struct NoTerminalTests {
     private func withTerminal(_ body: (Int32) throws -> Void) throws {
         var controller: Int32 = -1
         var device: Int32 = -1
-        try #require(openpty(&controller, &device, nil, nil, nil) == 0)
+        try unsafe #require(openpty(&controller, &device, nil, nil, nil) == 0)
         defer {
             close(controller)
             close(device)
@@ -55,7 +55,7 @@ struct NoTerminalTests {
     /// A pipe's two ends, closed at the end of `body`.
     private func withPipe(_ body: (_ read: Int32, _ write: Int32) throws -> Void) throws {
         var ends: [Int32] = [-1, -1]
-        try #require(pipe(&ends) == 0)
+        try unsafe #require(pipe(&ends) == 0)
         defer {
             close(ends[0])
             close(ends[1])
@@ -96,7 +96,7 @@ struct NoTerminalTests {
 
     @Test("Stdin /dev/null: a device, with nothing to keep")
     func stdinDevNull() throws {
-        let null = open("/dev/null", O_RDONLY)
+        let null = unsafe open("/dev/null", O_RDONLY)
         defer { close(null) }
         try withTerminal { terminal in
             let situation = try #require(NoTerminal.current(input: null, output: terminal, environment: colour))
@@ -113,7 +113,7 @@ struct NoTerminalTests {
         let path = NSTemporaryDirectory() + "tui-no-terminal-\(UUID().uuidString)"
         FileManager.default.createFile(atPath: path, contents: Data())
         defer { try? FileManager.default.removeItem(atPath: path) }
-        let file = open(path, O_RDONLY)
+        let file = unsafe open(path, O_RDONLY)
         defer { close(file) }
         // -1, not a descriptor opened and closed here: tests run in parallel, and another
         // test's pipe can be handed the number just freed, which then reads as a pipe.
@@ -169,6 +169,6 @@ struct NoTerminalTests {
 
     /// `read(2)`, named apart from the closure parameters above.
     private func readBytes(_ descriptor: Int32, _ bytes: inout [UInt8]) -> Int {
-        bytes.withUnsafeMutableBytes { read(descriptor, $0.baseAddress, $0.count) }
+        bytes.withUnsafeMutableBytes { unsafe read(descriptor, $0.baseAddress, $0.count) }
     }
 }

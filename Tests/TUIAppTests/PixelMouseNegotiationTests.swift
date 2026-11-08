@@ -289,10 +289,10 @@ struct PixelMouseWireTests {
     private func makeTerminal() -> (Terminal, Wire) {
         let terminal = Terminal()
         let wire = Wire()
-        terminal.readSource = { buffer in
+        unsafe terminal.readSource = { buffer in
             guard !wire.reads.isEmpty else { return 0 }
             let chunk = wire.reads.removeFirst()
-            for (index, byte) in chunk.enumerated() { buffer[index] = byte }
+            for (index, byte) in chunk.enumerated() { unsafe buffer[index] = byte }
             return chunk.count
         }
         terminal.exchangeTransport = .init(send: { wire.writes.append($0) }, waitForInput: { _ in true })

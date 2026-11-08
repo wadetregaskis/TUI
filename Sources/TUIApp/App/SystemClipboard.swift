@@ -266,14 +266,14 @@ enum SystemClipboard {
         guard makeNonBlocking(fd) else { return false }
         var offset = 0
         while offset < data.count {
-            let written = data.withUnsafeBytes { (buffer: UnsafeRawBufferPointer) -> Int in
+            let written = unsafe data.withUnsafeBytes { (buffer: UnsafeRawBufferPointer) -> Int in
                 // Module-qualified, because Foundation's overlay exposes an
                 // instance method also called `write` and the bare name is
                 // ambiguous on Darwin; one arm per libc the import ladder
                 // above admits — the musl arm was missing, so that toolchain
                 // could not compile this file.
                 #if canImport(Darwin)
-                    Darwin.write(fd, buffer.baseAddress! + offset, data.count - offset)
+                    unsafe Darwin.write(fd, buffer.baseAddress! + offset, data.count - offset)
                 #elseif canImport(Glibc)
                     Glibc.write(fd, buffer.baseAddress! + offset, data.count - offset)
                 #else
@@ -305,7 +305,7 @@ enum SystemClipboard {
         while true {
             let count = buffer.withUnsafeMutableBytes { raw in
                 #if canImport(Darwin)
-                    Darwin.read(fd, raw.baseAddress, raw.count)
+                    unsafe Darwin.read(fd, raw.baseAddress, raw.count)
                 #elseif canImport(Glibc)
                     Glibc.read(fd, raw.baseAddress, raw.count)
                 #else

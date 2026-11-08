@@ -46,18 +46,18 @@ struct LifecycleMemoTests {
             VStack {
                 ForEach(items, id: \.self) { name in
                     Text(name)
-                        .onAppear { appears += 1 }
-                        .onDisappear { disappears += 1 }
+                        .onAppear { unsafe appears += 1 }
+                        .onDisappear { unsafe disappears += 1 }
                 }
             }
         }
 
         for _ in 1...4 { frame(row(["row"])) }
-        #expect(appears == 1, "one real appearance")
-        #expect(disappears == 0, "the row never left the screen, got \(disappears) disappears")
+        unsafe #expect(appears == 1, "one real appearance")
+        unsafe #expect(disappears == 0, "the row never left the screen, got \(disappears) disappears")
 
         frame(row([]))  // now it really leaves
-        #expect(disappears == 1, "the real removal fires exactly once")
+        unsafe #expect(disappears == 1, "the real removal fires exactly once")
     }
 
     @Test("A memoized row's .task stays alive across cache-hit frames")

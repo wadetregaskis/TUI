@@ -116,9 +116,9 @@ struct InputByteBuffer {
         let start = head
         return storage.withUnsafeBufferPointer { buffer in
             // swiftlint:disable:next force_unwrapping
-            let front = UnsafeRawPointer(buffer.baseAddress!) + start
-            guard let found = memchr(front + range.lowerBound, Int32(byte), range.count) else { return nil }
-            return front.distance(to: UnsafeRawPointer(found))
+            let front = unsafe UnsafeRawPointer(buffer.baseAddress!) + start
+            guard let found = unsafe memchr(front + range.lowerBound, Int32(byte), range.count) else { return nil }
+            return unsafe front.distance(to: UnsafeRawPointer(found))
         }
     }
 
@@ -133,7 +133,7 @@ struct InputByteBuffer {
     ) rethrows -> Result {
         precondition(count >= 0 && count <= self.count, "InputByteBuffer: a prefix longer than the buffer")
         let start = head
-        return try storage.withUnsafeBufferPointer { try body(UnsafeBufferPointer(rebasing: $0[start..<(start + count)])) }
+        return try storage.withUnsafeBufferPointer { try unsafe body(UnsafeBufferPointer(rebasing: $0[start..<(start + count)])) }
     }
 
     /// Removes and returns the first byte, or `nil` when the buffer is empty.
@@ -173,7 +173,7 @@ struct InputByteBuffer {
         storage.withUnsafeMutableBufferPointer { destination in
             bytes.withUnsafeBufferPointer { source in
                 // swiftlint:disable:next force_unwrapping
-                (destination.baseAddress! + start).update(from: source.baseAddress!, count: source.count)
+                unsafe (destination.baseAddress! + start).update(from: source.baseAddress!, count: source.count)
             }
         }
     }
@@ -186,7 +186,7 @@ struct InputByteBuffer {
         storage.withUnsafeMutableBufferPointer { destination in
             bytes.withUnsafeBufferPointer { source in
                 // swiftlint:disable:next force_unwrapping
-                (destination.baseAddress! + start).update(from: source.baseAddress!, count: source.count)
+                unsafe (destination.baseAddress! + start).update(from: source.baseAddress!, count: source.count)
             }
         }
         tail += bytes.count
@@ -210,7 +210,7 @@ struct InputByteBuffer {
         makeRoomAtBack(maximum)
         let start = tail
         let written = storage.withUnsafeMutableBufferPointer { buffer in
-            read(UnsafeMutableBufferPointer(rebasing: buffer[start..<(start + maximum)]))
+            unsafe read(UnsafeMutableBufferPointer(rebasing: buffer[start..<(start + maximum)]))
         }
         precondition(written <= maximum, "InputByteBuffer: a read wrote past the room it was given")
         let added = max(written, 0)
@@ -277,7 +277,7 @@ struct InputByteBuffer {
             let base = buffer.baseAddress!
             // A `memmove`: the two ranges may overlap, which `update(from:count:)`
             // allows (it copies front to back or back to front as they need).
-            (base + offset).update(from: base + from, count: live)
+            unsafe (base + offset).update(from: base + from, count: live)
         }
         head = offset
         tail = offset + live
@@ -293,7 +293,7 @@ struct InputByteBuffer {
             fresh.withUnsafeMutableBufferPointer { destination in
                 storage.withUnsafeBufferPointer { source in
                     // swiftlint:disable:next force_unwrapping
-                    (destination.baseAddress! + offset).update(from: source.baseAddress! + from, count: live)
+                    unsafe (destination.baseAddress! + offset).update(from: source.baseAddress! + from, count: live)
                 }
             }
         }

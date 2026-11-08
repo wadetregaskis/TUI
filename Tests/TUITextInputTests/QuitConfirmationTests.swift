@@ -46,9 +46,9 @@ struct QuitConfirmationTests {
 
         var body: some Scene {
             WindowGroup {
-                PageContent(model: Self.model, bindsControlC: Self.bindsControlC)
+                unsafe PageContent(model: Self.model, bindsControlC: Self.bindsControlC)
             }
-            .quitConfirmation(Self.confirmation)
+            .quitConfirmation(unsafe Self.confirmation)
         }
     }
 
@@ -79,9 +79,9 @@ struct QuitConfirmationTests {
     private func app(
         _ confirmation: QuitConfirmation = .automatic, model: Model = Model(), bindsControlC: Bool = false
     ) -> HeadlessApp {
-        Page.model = model
-        Page.confirmation = confirmation
-        Page.bindsControlC = bindsControlC
+        unsafe Page.model = model
+        unsafe Page.confirmation = confirmation
+        unsafe Page.bindsControlC = bindsControlC
         let app = HeadlessApp(Page(), width: 80, height: 24)
         app.frame(atNanos: 0)
         return app
@@ -481,7 +481,7 @@ struct UnreadQuitKeyWatchTests {
 
     private func makeRig(grace: TimeInterval = 0.1) throws -> Rig {
         var ends: [Int32] = [-1, -1]
-        try #require(pipe(&ends) == 0)
+        try unsafe #require(pipe(&ends) == 0)
         let flags = fcntl(ends[0], F_GETFL)
         _ = fcntl(ends[0], F_SETFL, flags | O_NONBLOCK)
         let quits = Flag()
@@ -492,7 +492,7 @@ struct UnreadQuitKeyWatchTests {
 
     private func read(_ rig: Rig) -> [UInt8] {
         var bytes = [UInt8](repeating: 0, count: 64)
-        let count = bytes.withUnsafeMutableBufferPointer { rig.watch.input.read(into: $0) }
+        let count = bytes.withUnsafeMutableBufferPointer { unsafe rig.watch.input.read(into: $0) }
         return count > 0 ? Array(bytes[..<count]) : []
     }
 
@@ -514,7 +514,7 @@ struct UnreadQuitKeyWatchTests {
         rig.watch.setArmed(byte: 0x1C)
         let pressed = Date()
         var byte: UInt8 = 0x1C
-        _ = write(rig.writeEnd, &byte, 1)
+        _ = unsafe write(rig.writeEnd, &byte, 1)
         #expect(await rig.quits.waitUntilRaised())
         #expect(Date().timeIntervalSince(pressed) >= grace)
     }
@@ -530,7 +530,7 @@ struct UnreadQuitKeyWatchTests {
         rig.watch.start()
         rig.watch.setArmed(byte: 0x1C)
         var byte: UInt8 = 0x1C
-        _ = write(rig.writeEnd, &byte, 1)
+        _ = unsafe write(rig.writeEnd, &byte, 1)
         #expect(await rig.quits.waitUntilRaised())
     }
 
@@ -545,10 +545,10 @@ struct UnreadQuitKeyWatchTests {
         let held = Flag()
         rig.watch.start(inputHeld: { held.raise() })
         rig.watch.setArmed(byte: 0x1C)
-        _ = write(rig.writeEnd, "ab", 2)
+        _ = unsafe write(rig.writeEnd, "ab", 2)
         #expect(await held.waitUntilRaised())
         #expect(rig.watch.input.holdsInput)
-        _ = write(rig.writeEnd, "c", 1)
+        _ = unsafe write(rig.writeEnd, "c", 1)
         // The watch may hold `c` too before this reads, so the reads can split
         // either way: what is fixed is the order.
         var bytes = read(rig)
@@ -571,7 +571,7 @@ struct UnreadQuitKeyWatchTests {
         rig.watch.start()
         rig.watch.setArmed(byte: 0x1C)
         var byte: UInt8 = 0x1C
-        _ = write(rig.writeEnd, &byte, 1)
+        _ = unsafe write(rig.writeEnd, &byte, 1)
         #expect(read(rig) == [0x1C])
         // Real time, on purpose: the watch is a thread on a wall-clock grace
         // (0.3 s here), and what is asserted is that it let that grace pass.
@@ -590,7 +590,7 @@ struct UnreadQuitKeyWatchTests {
         }
         rig.watch.start()
         var byte: UInt8 = 0x1C
-        _ = write(rig.writeEnd, &byte, 1)
+        _ = unsafe write(rig.writeEnd, &byte, 1)
         // Real time, on purpose, as in `aReadingLoop`: past the 0.1 s grace.
         try await Task.sleep(nanoseconds: 400_000_000)
         #expect(rig.quits.raised == 0)

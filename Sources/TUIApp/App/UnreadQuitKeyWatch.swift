@@ -70,12 +70,12 @@ final class SharedStandardInput: Sendable {
             state.reads &+= 1
             if !state.held.isEmpty {
                 let count = min(state.held.count, capacity)
-                state.held.withUnsafeBufferPointer { base.update(from: $0.baseAddress!, count: count) }
+                state.held.withUnsafeBufferPointer { unsafe base.update(from: $0.baseAddress!, count: count) }
                 state.held.removeFirst(count)
                 return count
             }
             while true {
-                let count = readDescriptor(descriptor, base, capacity)
+                let count = unsafe readDescriptor(descriptor, base, capacity)
                 // Retry only on EINTR (a signal interrupted the read before any byte
                 // arrived); surface everything else — n >= 0, or a real error / the
                 // benign EAGAIN of a non-blocking fd with no data — unchanged, which
@@ -104,7 +104,7 @@ final class SharedStandardInput: Sendable {
         state.withLock { state in
             var chunk = [UInt8](repeating: 0, count: 4096)
             while state.held.count < Self.holdLimit {
-                let count = chunk.withUnsafeMutableBytes { readDescriptor(descriptor, $0.baseAddress, $0.count) }
+                let count = chunk.withUnsafeMutableBytes { unsafe readDescriptor(descriptor, $0.baseAddress, $0.count) }
                 if count < 0, errno == EINTR { continue }
                 guard count > 0 else { break }
                 state.held.append(contentsOf: chunk[..<count])
@@ -117,7 +117,7 @@ final class SharedStandardInput: Sendable {
 /// `read(2)`, where a method of that name is in the way.
 private func readDescriptor(_ descriptor: Int32, _ buffer: UnsafeMutableRawPointer?, _ count: Int) -> Int {
     #if canImport(Darwin)
-        Darwin.read(descriptor, buffer, count)
+        unsafe Darwin.read(descriptor, buffer, count)
     #elseif canImport(Glibc)
         Glibc.read(descriptor, buffer, count)
     #else
@@ -288,7 +288,7 @@ final class UnreadQuitKeyWatch {
     func start(inputHeld: @escaping @Sendable () -> Void = {}) {
         guard !started else { return }
         var ends: [Int32] = [-1, -1]
-        guard pipe(&ends) == 0 else { return }
+        guard unsafe pipe(&ends) == 0 else { return }
         wakeRead = ends[0]
         wakeWrite = ends[1]
         started = true
@@ -313,7 +313,7 @@ final class UnreadQuitKeyWatch {
         gate.condition.broadcast()
         gate.condition.unlock()
         var byte: UInt8 = 0
-        _ = write(wakeWrite, &byte, 1)
+        _ = unsafe write(wakeWrite, &byte, 1)
         if ended.wait(timeout: .now() + 1) == .success {
             close(wakeRead)
             close(wakeWrite)

@@ -49,11 +49,11 @@ struct TUIContextTests {
         let context = TUIContext()
         nonisolated(unsafe) var handled = false
         context.keyEventDispatcher.addHandler { _ in
-            handled = true
+            unsafe handled = true
             return true
         }
         context.keyEventDispatcher.dispatch(KeyEvent(key: .enter))
-        #expect(handled == true)
+        unsafe #expect(handled == true)
     }
 }
 

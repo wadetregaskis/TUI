@@ -90,9 +90,9 @@ enum QuitKeyReport {
     static func awaitTheQuit() {
         guard FatalSignalTerminalRestore.quitEndsTheProcess() else { return }
         var waiting = sigset_t()
-        pthread_sigmask(SIG_SETMASK, nil, &waiting)
-        sigdelset(&waiting, SIGQUIT)
-        while true { sigsuspend(&waiting) }
+        unsafe pthread_sigmask(SIG_SETMASK, nil, &waiting)
+        unsafe sigdelset(&waiting, SIGQUIT)
+        while true { unsafe sigsuspend(&waiting) }
     }
 }
 

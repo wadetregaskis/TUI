@@ -79,8 +79,8 @@ enum ProcessAncestry {
     /// The parent of a process, or `nil` if it has exited or is unreadable.
     static func parent(of pid: pid_t) -> pid_t? {
         #if canImport(Darwin)
-            guard let info = kernelInfo(of: pid) else { return nil }
-            let parent = info.kp_eproc.e_ppid
+            guard let info = unsafe kernelInfo(of: pid) else { return nil }
+            let parent = unsafe info.kp_eproc.e_ppid
             return parent > 0 ? parent : nil
         #elseif canImport(Glibc) || canImport(Musl)
             return procStat(of: pid)?.parent
@@ -100,7 +100,7 @@ enum ProcessAncestry {
     /// matched against it fits.
     static func commandName(of pid: pid_t) -> String? {
         #if canImport(Darwin)
-            return kernelInfo(of: pid).flatMap(commandName(in:))
+            return unsafe kernelInfo(of: pid).flatMap(unsafe commandName(in:))
         #elseif canImport(Glibc) || canImport(Musl)
             return procStat(of: pid)?.name
         #else
@@ -112,9 +112,9 @@ enum ProcessAncestry {
     /// `nil` if it has exited or is unreadable.
     static func link(of pid: pid_t) -> Link? {
         #if canImport(Darwin)
-            guard let info = kernelInfo(of: pid), let name = commandName(in: info) else { return nil }
+            guard let info = unsafe kernelInfo(of: pid), let name = unsafe commandName(in: info) else { return nil }
             // `NODEV`, `(dev_t)-1`: a macro Swift does not import.
-            let terminal = info.kp_eproc.e_tdev
+            let terminal = unsafe info.kp_eproc.e_tdev
             return Link(name: name, terminal: terminal == -1 ? nil : terminal)
         #elseif canImport(Glibc) || canImport(Musl)
             guard let stat = procStat(of: pid), let terminal = stat.terminalField else { return nil }
@@ -166,7 +166,7 @@ enum ProcessAncestry {
     /// rather than an unreadable link.
     private static func parentIsRoot(_ pid: pid_t) -> Bool {
         #if canImport(Darwin)
-            return kernelInfo(of: pid)?.kp_eproc.e_ppid == 0
+            return unsafe kernelInfo(of: pid)?.kp_eproc.e_ppid == 0
         #elseif canImport(Glibc) || canImport(Musl)
             return procStat(of: pid)?.parentField == 0
         #else
@@ -177,23 +177,23 @@ enum ProcessAncestry {
     #if canImport(Darwin)
         /// The kernel's record of a process, or `nil` if it has exited.
         private static func kernelInfo(of pid: pid_t) -> kinfo_proc? {
-            var info = kinfo_proc()
-            var size = MemoryLayout<kinfo_proc>.stride
+            var info = unsafe kinfo_proc()
+            var size = unsafe MemoryLayout<kinfo_proc>.stride
             var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, pid]
             let ok = mib.withUnsafeMutableBufferPointer {
-                sysctl($0.baseAddress, u_int($0.count), &info, &size, nil, 0) == 0
+                unsafe sysctl($0.baseAddress, u_int($0.count), &info, &size, nil, 0) == 0
             }
             // A dead pid succeeds with size 0 rather than failing — hence both checks.
             guard ok, size > 0 else { return nil }
-            return info
+            return unsafe info
         }
 
         /// The short name in a process's kernel record, or `nil` where it is
         /// empty or not UTF-8.
         private static func commandName(in info: kinfo_proc) -> String? {
-            var info = info
-            let name = withUnsafeBytes(of: &info.kp_proc.p_comm) { raw -> String? in
-                String(bytes: raw.prefix { $0 != 0 }, encoding: .utf8)
+            var info = unsafe info
+            let name = unsafe withUnsafeBytes(of: &info.kp_proc.p_comm) { raw -> String? in
+                unsafe String(bytes: raw.prefix { $0 != 0 }, encoding: .utf8)
             }
             return name?.isEmpty == false ? name : nil
         }

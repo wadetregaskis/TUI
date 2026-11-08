@@ -44,7 +44,7 @@
                 owner: nsImage, pointSizing: .points(width: Double(size.width), height: Double(size.height))
             ) {
                 var rect = CGRect(origin: .zero, size: size)  // the size named, not a later one
-                guard let cgImage = nsImage.cgImage(forProposedRect: &rect, context: nil, hints: nil) else {
+                guard let cgImage = unsafe nsImage.cgImage(forProposedRect: &rect, context: nil, hints: nil) else {
                     return RGBAImage(width: 0, height: 0, pixels: [])
                 }
                 return Self.pixels(of: cgImage)

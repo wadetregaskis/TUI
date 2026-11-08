@@ -112,7 +112,7 @@ struct ForEachBindingTests {
     func dictionaryKeyedTogglesRender() {
         nonisolated(unsafe) var selected: [String: Bool] = ["colour": true]
         let features = ["verbose", "colour"]
-        let binding = Binding(get: { selected }, set: { selected = $0 })
+        let binding = Binding(get: { unsafe selected }, set: { unsafe selected = $0 })
         let tui = TUIContext()
         var env = EnvironmentValues()
         env.focusManager = FocusManager()

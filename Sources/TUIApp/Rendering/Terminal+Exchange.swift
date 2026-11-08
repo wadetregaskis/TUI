@@ -57,7 +57,7 @@ extension Terminal {
                 exchangeTransport?.waitForInput(deadline)
                 ?? Self.waitForInput(until: deadline)
             guard ready else { break }
-            let read = chunk.withUnsafeMutableBufferPointer { readSource($0) }
+            let read = chunk.withUnsafeMutableBufferPointer { unsafe readSource($0) }
             guard read > 0 else { break }
             collected.append(contentsOf: chunk[0..<read])
         }

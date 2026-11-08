@@ -92,15 +92,15 @@ extension Terminal {
 
         // Safe: termios.c_cc is a fixed-size array; rebinding to cc_t is valid.
         withUnsafeMutablePointer(to: &raw.c_cc) { pointer in
-            pointer.withMemoryRebound(to: cc_t.self, capacity: Int(NCCS)) { buffer in
-                buffer[Int(VMIN)] = 0
-                buffer[Int(VTIME)] = 0
-                buffer[Int(VINTR)] = disabledControlCharacter
-                buffer[Int(VSUSP)] = disabledControlCharacter
-                if maskingQuitKey { buffer[Int(VQUIT)] = disabledControlCharacter }
+            unsafe pointer.withMemoryRebound(to: cc_t.self, capacity: Int(NCCS)) { buffer in
+                unsafe buffer[Int(VMIN)] = 0
+                unsafe buffer[Int(VTIME)] = 0
+                unsafe buffer[Int(VINTR)] = disabledControlCharacter
+                unsafe buffer[Int(VSUSP)] = disabledControlCharacter
+                if maskingQuitKey { unsafe buffer[Int(VQUIT)] = disabledControlCharacter }
                 #if canImport(Darwin)
-                    buffer[Int(VDSUSP)] = disabledControlCharacter
-                    buffer[Int(VSTATUS)] = disabledControlCharacter
+                    unsafe buffer[Int(VDSUSP)] = disabledControlCharacter
+                    unsafe buffer[Int(VSTATUS)] = disabledControlCharacter
                 #endif
             }
         }
@@ -114,7 +114,7 @@ extension Terminal {
     nonisolated static func quitKeyByte(of attributes: termios) -> UInt8? {
         guard attributes.c_lflag & tcflag_t(ISIG) != 0 else { return nil }
         var copy = attributes
-        let quit = withUnsafeBytes(of: &copy.c_cc) { $0[Int(VQUIT)] }
+        let quit = withUnsafeBytes(of: &copy.c_cc) { unsafe $0[Int(VQUIT)] }
         return quit == disabledControlCharacter ? nil : quit
     }
 }
@@ -140,11 +140,11 @@ struct LineDiscipline {
         Self(
             get: {
                 var attributes = termios()
-                return tcgetattr(STDIN_FILENO, &attributes) == 0 ? attributes : nil
+                return unsafe tcgetattr(STDIN_FILENO, &attributes) == 0 ? attributes : nil
             },
             set: { attributes, when in
                 var attributes = attributes
-                _ = tcsetattr(STDIN_FILENO, when, &attributes)
+                _ = unsafe tcsetattr(STDIN_FILENO, when, &attributes)
             })
     }
 }

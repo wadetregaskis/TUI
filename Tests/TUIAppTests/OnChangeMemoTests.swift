@@ -36,7 +36,7 @@ struct OnChangeMemoTests {
             tuiContext.renderCache.beginRenderPass()
             let view = VStack {
                 ForEach(["row"], id: \.self) { name in
-                    Text(name).onChange(of: observed) { old, new in fires.append((old, new)) }
+                    Text(name).onChange(of: observed) { old, new in unsafe fires.append((old, new)) }
                 }
             }
             _ = renderToBuffer(view, context: context)
@@ -49,9 +49,9 @@ struct OnChangeMemoTests {
         frame(observed: 2)
         frame(observed: 3)
 
-        #expect(fires.count == 2, "every change fires exactly once: \(fires)")
-        #expect(fires.first ?? (0, 0) == (1, 2))
-        #expect(fires.last ?? (0, 0) == (2, 3))
+        unsafe #expect(fires.count == 2, "every change fires exactly once: \(fires)")
+        unsafe #expect(fires.first ?? (0, 0) == (1, 2))
+        unsafe #expect(fires.last ?? (0, 0) == (2, 3))
     }
 
     @Test("A measure-pass render neither fires nor claims an index")
@@ -66,13 +66,13 @@ struct OnChangeMemoTests {
             environment: environment, tuiContext: tuiContext)
 
         tuiContext.stateStorage.beginRenderPass()
-        let view = Text("x").onChange(of: 42, initial: true) { _, _ in fires += 1 }
+        let view = Text("x").onChange(of: 42, initial: true) { _, _ in unsafe fires += 1 }
         context.isMeasuring = true
         _ = renderToBuffer(view, context: context)  // a render-to-measure ancestor's render
         context.isMeasuring = false
         _ = renderToBuffer(view, context: context)  // the real render
         tuiContext.stateStorage.endRenderPass()
 
-        #expect(fires == 1, "initial fires exactly once, on the render pass")
+        unsafe #expect(fires == 1, "initial fires exactly once, on the render pass")
     }
 }

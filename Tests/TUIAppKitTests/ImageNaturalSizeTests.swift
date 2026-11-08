@@ -158,7 +158,7 @@ struct ImageNaturalSizeTests {
         /// A `width` × `height` CGImage of one colour.
         private func solid(width: Int, height: Int) -> CGImage {
             var bytes = [UInt8](repeating: 255, count: width * height * 4)
-            let context = CGContext(
+            let context = unsafe CGContext(
                 data: &bytes, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
                 space: CGColorSpace(name: CGColorSpace.sRGB)!,
                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!

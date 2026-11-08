@@ -20,9 +20,9 @@ struct WindowSizeReportTests {
     private func terminal(reading bytes: [UInt8]) -> Terminal {
         let terminal = Terminal()
         var remaining = bytes
-        terminal.readSource = { buffer in
+        unsafe terminal.readSource = { buffer in
             let count = min(remaining.count, buffer.count)
-            for index in 0..<count { buffer[index] = remaining[index] }
+            for index in 0..<count { unsafe buffer[index] = remaining[index] }
             remaining.removeFirst(count)
             return count
         }

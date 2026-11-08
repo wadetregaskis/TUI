@@ -707,7 +707,7 @@ package enum TerminalHost {
     private static func executablePath(ofProcess pid: pid_t) -> String? {
         var buffer = [UInt8](repeating: 0, count: Int(4 * MAXPATHLEN))
         // Returns the path's length, excluding the terminating NUL.
-        let length = proc_pidpath(pid, &buffer, UInt32(buffer.count))
+        let length = unsafe proc_pidpath(pid, &buffer, UInt32(buffer.count))
         guard length > 0 else { return nil }
         // Failable rather than lossy: a path that isn't valid UTF-8 is one we
         // cannot match against the allowlist anyway, and saying so leaves the

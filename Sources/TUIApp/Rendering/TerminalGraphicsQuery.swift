@@ -330,7 +330,7 @@ extension Terminal {
         #if canImport(Glibc) || canImport(Musl)
             let result = ioctl(STDOUT_FILENO, UInt(TIOCGWINSZ), &windowSize)
         #else
-            let result = ioctl(STDOUT_FILENO, TIOCGWINSZ, &windowSize)
+            let result = unsafe ioctl(STDOUT_FILENO, TIOCGWINSZ, &windowSize)
         #endif
         guard result == 0,
             windowSize.ws_col > 0, windowSize.ws_row > 0,

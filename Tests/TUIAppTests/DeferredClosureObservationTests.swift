@@ -73,7 +73,7 @@ private enum ClosureReadModels {
 private struct PresentedReadingApp: App {
     init() {}
     var body: some Scene {
-        WindowGroup(for: Int.self) { _ in Text(verbatim: "PW:" + ClosureReadModels.presented.label) }
+        WindowGroup(for: Int.self) { _ in unsafe Text(verbatim: "PW:" + ClosureReadModels.presented.label) }
     }
 }
 
@@ -83,7 +83,7 @@ private struct OpenedReadingApp: App {
     init() {}
     var body: some Scene {
         WindowGroup { Text("main window") }
-        WindowGroup(id: "second") { Text(verbatim: "OW:" + ClosureReadModels.opened.label) }
+        WindowGroup(id: "second") { unsafe Text(verbatim: "OW:" + ClosureReadModels.opened.label) }
     }
 }
 
@@ -176,17 +176,17 @@ struct DeferredClosureObservationTests {
 
     @Test("A WindowGroup(for:) content closure reading an @Observable asks for a frame")
     mutating func presentedWindowContent() {
-        ClosureReadModels.presented = ClosureReadModel()
+        unsafe ClosureReadModels.presented = ClosureReadModel()
         let app = TestApp(PresentedReadingApp(), width: 30, height: 6)
-        expectRedraw(app, model: ClosureReadModels.presented, from: "PW:one", to: "PW:two")
+        unsafe expectRedraw(app, model: ClosureReadModels.presented, from: "PW:one", to: "PW:two")
     }
 
     @Test("A window opened after launch, its content reading an @Observable, asks for a frame")
     mutating func windowOpenedAfterLaunch() {
-        ClosureReadModels.opened = ClosureReadModel()
+        unsafe ClosureReadModels.opened = ClosureReadModel()
         let app = TestApp(OpenedReadingApp(), width: 30, height: 6)
         _ = draw(app)
         OpenWindowAction(handler: app.scenes.actions)(id: "second")
-        expectRedraw(app, model: ClosureReadModels.opened, from: "OW:one", to: "OW:two")
+        unsafe expectRedraw(app, model: ClosureReadModels.opened, from: "OW:one", to: "OW:two")
     }
 }

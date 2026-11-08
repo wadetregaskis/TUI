@@ -171,7 +171,7 @@ enum StandardInputWait {
                 pollfd(fd: input, events: Int16(POLLIN), revents: 0),
                 pollfd(fd: wake, events: Int16(POLLIN), revents: 0),
             ]
-            let ready = poll(&targets, 2, -1)
+            let ready = unsafe poll(&targets, 2, -1)
             if ready < 0 {
                 if errno == EINTR { continue }
                 return .hangUp
@@ -209,7 +209,7 @@ enum StandardInputWait {
     /// (`/dev/null`) never has input waiting, so no grace runs out for it.
     static func inputIsWaiting(on input: Int32) -> Bool {
         var target = pollfd(fd: input, events: Int16(POLLIN), revents: 0)
-        return poll(&target, 1, 0) > 0 && target.revents & gone == 0 && target.revents & Int16(POLLIN) != 0
+        return unsafe poll(&target, 1, 0) > 0 && target.revents & gone == 0 && target.revents & Int16(POLLIN) != 0
             && !StdinArrivalNotifier.isAtEndOfInput(input)
     }
 }
@@ -286,7 +286,7 @@ final class StallWatchdog {
     func start() {
         guard !started else { return }
         var ends: [Int32] = [-1, -1]
-        guard pipe(&ends) == 0 else { return }
+        guard unsafe pipe(&ends) == 0 else { return }
         wakeRead = ends[0]
         wakeWrite = ends[1]
         started = true
@@ -311,7 +311,7 @@ final class StallWatchdog {
         gate.condition.broadcast()
         gate.condition.unlock()
         var byte: UInt8 = 0
-        _ = write(wakeWrite, &byte, 1)
+        _ = unsafe write(wakeWrite, &byte, 1)
         if ended.wait(timeout: .now() + 1) == .success {
             close(wakeRead)
             close(wakeWrite)
@@ -416,12 +416,12 @@ private struct Watch: Sendable {
     ///   are the flags popped.
     private func writePop() -> Bool {
         var room = pollfd(fd: output, events: Int16(POLLOUT), revents: 0)
-        guard poll(&room, 1, 0) > 0, room.revents & Int16(POLLOUT) != 0 else { return false }
+        guard unsafe poll(&room, 1, 0) > 0, room.revents & Int16(POLLOUT) != 0 else { return false }
         return Self.pop.withUnsafeBufferPointer { bytes in
             guard let base = bytes.baseAddress else { return false }
             var written = 0
             while written < bytes.count {
-                let result = write(output, base + written, bytes.count - written)
+                let result = unsafe write(output, base + written, bytes.count - written)
                 if result > 0 {
                     written += result
                     continue

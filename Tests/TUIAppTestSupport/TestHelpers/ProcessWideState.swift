@@ -184,7 +184,7 @@ enum ProcessWideState {
     /// `process_terminal_environment_mutation`.
     static func setEnvironment(_ name: String, to value: String?) {
         guard mayWrite("The environment variable \(name)") else { return }
-        if let value { setenv(name, value, 1) } else { unsetenv(name) }
+        if let value { unsafe setenv(name, value, 1) } else { unsafe unsetenv(name) }
     }
 }
 

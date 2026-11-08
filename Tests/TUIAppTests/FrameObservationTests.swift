@@ -48,14 +48,14 @@ private struct ReadingButtonStyle: ButtonStyle, Equatable {
 private struct ToggleApp: App {
     init() {}
     var body: some Scene {
-        WindowGroup { Toggle("lamp", isOn: Bindable(FrameReadModels.toggle).isOn) }
+        WindowGroup { unsafe Toggle("lamp", isOn: Bindable(FrameReadModels.toggle).isOn) }
     }
 }
 
 private struct StyledButtonApp: App {
     init() {}
     var body: some Scene {
-        WindowGroup { Button("b") {}.buttonStyle(ReadingButtonStyle(model: FrameReadModels.style)) }
+        WindowGroup { unsafe Button("b") {}.buttonStyle(ReadingButtonStyle(model: FrameReadModels.style)) }
     }
 }
 
@@ -63,7 +63,7 @@ private struct StyledButtonApp: App {
 private struct AppBodyReadingApp: App {
     init() {}
     var body: some Scene {
-        let title = FrameReadModels.app.title
+        let title = unsafe FrameReadModels.app.title
         WindowGroup { Text(verbatim: "T:" + title) }
     }
 }
@@ -75,7 +75,7 @@ private struct GeometryReadingApp: App {
     var body: some Scene {
         WindowGroup {
             GeometryReader { _ in
-                Text(verbatim: "G:" + FrameReadModels.geometry.label)
+                unsafe Text(verbatim: "G:" + FrameReadModels.geometry.label)
             }
         }
     }
@@ -88,7 +88,7 @@ private struct TimelineReadingApp: App {
     var body: some Scene {
         WindowGroup {
             TimelineView(.periodic(from: .distantPast, by: 60)) { _ in
-                Text(verbatim: "TL:" + FrameReadModels.timeline.label)
+                unsafe Text(verbatim: "TL:" + FrameReadModels.timeline.label)
             }
         }
     }
@@ -110,12 +110,12 @@ private struct ForEachNestedVStackApp: App {
         WindowGroup {
             VStack {
                 VStack {
-                    ForEach(Array((0..<ForEachTestConfig.count).map { NonEquatableModel(id: $0) }), id: \.id) { item in
-                        if ForEachTestConfig.multiMember {
-                            Text(verbatim: "FE:\(item.id):" + FrameReadModels.forEach.label)
+                    unsafe ForEach(Array((0..<ForEachTestConfig.count).map { NonEquatableModel(id: $0) }), id: \.id) { item in
+                        if unsafe ForEachTestConfig.multiMember {
+                            Text(verbatim: unsafe "FE:\(item.id):" + FrameReadModels.forEach.label)
                             Divider()
                         } else {
-                            Text(verbatim: "FE:\(item.id):" + FrameReadModels.forEach.label)
+                            Text(verbatim: unsafe "FE:\(item.id):" + FrameReadModels.forEach.label)
                         }
                     }
                 }
@@ -129,7 +129,7 @@ private struct CanvasReadingApp: App {
     var body: some Scene {
         WindowGroup {
             Canvas { _, _ in
-                _ = FrameReadModels.canvas.label
+                _ = unsafe FrameReadModels.canvas.label
             }
         }
     }
@@ -144,7 +144,7 @@ private struct ForEachMultiMemberReadingApp: App {
             HStack {
                 ForEach(Array(["a"].enumerated()), id: \.element) { index, _ in
                     if index > 0 { Divider() }
-                    Text(verbatim: "FE:" + FrameReadModels.forEach.label)
+                    unsafe Text(verbatim: "FE:" + FrameReadModels.forEach.label)
                 }
             }
         }
@@ -163,46 +163,46 @@ struct FrameObservationTests {
 
     @Test("A top-level Toggle bound to an @Observable asks for a frame when the property is written")
     func toggleBinding() {
-        FrameReadModels.toggle = FrameReadModel()
+        unsafe FrameReadModels.toggle = FrameReadModel()
         let app = TestApp(ToggleApp(), width: 30, height: 6)
         var now: Int64 = 0
         _ = draw(app, at: &now)
         let before = draw(app, at: &now)
         _ = app.takeFrameRequest()
-        FrameReadModels.toggle.isOn = true
+        unsafe FrameReadModels.toggle.isOn = true
         #expect(app.takeFrameRequest(), "the write asked for no frame")
         #expect(draw(app, at: &now) != before, "the toggle drew as it was")
     }
 
     @Test("A custom ButtonStyle's makeBody reading an @Observable asks for a frame")
     func styleBody() {
-        FrameReadModels.style = FrameReadModel()
+        unsafe FrameReadModels.style = FrameReadModel()
         let app = TestApp(StyledButtonApp(), width: 30, height: 6)
         var now: Int64 = 0
         _ = draw(app, at: &now)
         #expect(draw(app, at: &now).contains { $0.contains("[one]") })
         _ = app.takeFrameRequest()
-        FrameReadModels.style.label = "two"
+        unsafe FrameReadModels.style.label = "two"
         #expect(app.takeFrameRequest(), "the write asked for no frame")
         #expect(draw(app, at: &now).contains { $0.contains("[two]") })
     }
 
     @Test("The app's body reading an @Observable asks for a frame")
     func appBody() {
-        FrameReadModels.app = FrameReadModel()
+        unsafe FrameReadModels.app = FrameReadModel()
         let app = TestApp(AppBodyReadingApp(), width: 30, height: 6)
         var now: Int64 = 0
         _ = draw(app, at: &now)
         _ = draw(app, at: &now)
         _ = app.takeFrameRequest()
-        FrameReadModels.app.title = "second"
+        unsafe FrameReadModels.app.title = "second"
         #expect(app.takeFrameRequest(), "the write asked for no frame")
         #expect(draw(app, at: &now).contains { $0.contains("T:second") })
     }
 
     @Test("A property read every frame and never written leaves the frames' scopes behind it retired")
     func framesAreLeased() {
-        FrameReadModels.app = FrameReadModel()
+        unsafe FrameReadModels.app = FrameReadModel()
         let app = TestApp(AppBodyReadingApp(), width: 30, height: 6)
         let census = ObservationCensus()
         app.observationCensus = census
@@ -218,39 +218,39 @@ struct FrameObservationTests {
 
     @Test("A GeometryReader's closure reading an @Observable asks for a frame")
     func geometryReaderClosure() {
-        FrameReadModels.geometry = FrameReadModel()
+        unsafe FrameReadModels.geometry = FrameReadModel()
         let app = TestApp(GeometryReadingApp(), width: 30, height: 6)
         var now: Int64 = 0
         _ = draw(app, at: &now)
         #expect(draw(app, at: &now).contains { $0.contains("G:one") })
         _ = app.takeFrameRequest()
-        FrameReadModels.geometry.label = "two"
+        unsafe FrameReadModels.geometry.label = "two"
         #expect(app.takeFrameRequest(), "the write asked for no frame")
         #expect(draw(app, at: &now).contains { $0.contains("G:two") })
     }
 
     @Test("A TimelineView's closure reading an @Observable asks for a frame")
     func timelineViewClosure() {
-        FrameReadModels.timeline = FrameReadModel()
+        unsafe FrameReadModels.timeline = FrameReadModel()
         let app = TestApp(TimelineReadingApp(), width: 30, height: 6)
         var now: Int64 = 0
         _ = draw(app, at: &now)
         #expect(draw(app, at: &now).contains { $0.contains("TL:one") })
         _ = app.takeFrameRequest()
-        FrameReadModels.timeline.label = "two"
+        unsafe FrameReadModels.timeline.label = "two"
         #expect(app.takeFrameRequest(), "the write asked for no frame")
         #expect(draw(app, at: &now).contains { $0.contains("TL:two") })
     }
 
     @Test("A ForEach multi-member closure reading an @Observable asks for a frame")
     func forEachMultiMemberClosure() {
-        FrameReadModels.forEach = FrameReadModel()
+        unsafe FrameReadModels.forEach = FrameReadModel()
         let app = TestApp(ForEachMultiMemberReadingApp(), width: 30, height: 6)
         var now: Int64 = 0
         _ = draw(app, at: &now)
         #expect(draw(app, at: &now).contains { $0.contains("FE:one") })
         _ = app.takeFrameRequest()
-        FrameReadModels.forEach.label = "two"
+        unsafe FrameReadModels.forEach.label = "two"
         #expect(app.takeFrameRequest(), "the write asked for no frame")
         #expect(draw(app, at: &now).contains { $0.contains("FE:two") })
     }
@@ -260,27 +260,27 @@ struct FrameObservationTests {
         arguments: [false, true], [1, 20]
     )
     func forEachNestedVStack(multiMember: Bool, count: Int) {
-        ForEachTestConfig.count = count
-        ForEachTestConfig.multiMember = multiMember
-        FrameReadModels.forEach = FrameReadModel()
+        unsafe ForEachTestConfig.count = count
+        unsafe ForEachTestConfig.multiMember = multiMember
+        unsafe FrameReadModels.forEach = FrameReadModel()
         let app = TestApp(ForEachNestedVStackApp(), width: 40, height: 45)
         var now: Int64 = 0
         _ = draw(app, at: &now)
         #expect(draw(app, at: &now).contains { $0.contains("FE:0:one") })
         _ = app.takeFrameRequest()
-        FrameReadModels.forEach.label = "two"
+        unsafe FrameReadModels.forEach.label = "two"
         #expect(app.takeFrameRequest(), "the write asked for no frame with count \(count) multiMember \(multiMember)")
         #expect(draw(app, at: &now).contains { $0.contains("FE:0:two") })
     }
 
     @Test("A Canvas closure reading an @Observable asks for a frame")
     func canvasClosure() {
-        FrameReadModels.canvas = FrameReadModel()
+        unsafe FrameReadModels.canvas = FrameReadModel()
         let app = TestApp(CanvasReadingApp(), width: 30, height: 6)
         var now: Int64 = 0
         _ = draw(app, at: &now)
         _ = app.takeFrameRequest()
-        FrameReadModels.canvas.label = "two"
+        unsafe FrameReadModels.canvas.label = "two"
         #expect(app.takeFrameRequest(), "the write asked for no frame")
     }
 }

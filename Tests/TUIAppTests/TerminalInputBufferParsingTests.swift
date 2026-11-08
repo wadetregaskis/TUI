@@ -33,10 +33,10 @@ struct TerminalInputBufferParsingTests {
     private func makeTerminal(readLimit: Int = .max) -> (Terminal, Source) {
         let terminal = Terminal()
         let source = Source(readLimit: readLimit)
-        terminal.readSource = { buffer in
+        unsafe terminal.readSource = { buffer in
             let count = min(source.bytes.count, buffer.count, source.readLimit)
             guard count > 0 else { return 0 }
-            for index in 0..<count { buffer[index] = source.bytes[index] }
+            for index in 0..<count { unsafe buffer[index] = source.bytes[index] }
             source.bytes.removeFirst(count)
             return count
         }

@@ -79,10 +79,10 @@ struct TerminalColorLateReplyTests {
     private func makeTerminal() -> (Terminal, (String) -> Void) {
         let terminal = Terminal()
         let box = ByteBox()
-        terminal.readSource = { buffer in
+        unsafe terminal.readSource = { buffer in
             guard !box.bytes.isEmpty else { return 0 }
             let count = min(box.bytes.count, buffer.count)
-            for index in 0..<count { buffer[index] = box.bytes[index] }
+            for index in 0..<count { unsafe buffer[index] = box.bytes[index] }
             box.bytes.removeFirst(count)
             return count
         }
@@ -319,13 +319,13 @@ struct TerminalColorLatePublicationTests {
 
         nonisolated(unsafe) var repaints = 0
         let refresher = TerminalColorRefresher(
-            known: .unknown, environment: [:], onChange: { repaints += 1 })
+            known: .unknown, environment: [:], onChange: { unsafe repaints += 1 })
         let replies = Self.appleBasic.enumerated()
             .map { TerminalColorLateReplyTests.reply("4;\($0.offset)", $0.element) }.joined()
         refresher.noteReplies(Array(replies.utf8))
 
         #expect(TerminalColors.current.slots == TerminalColors.Slots(Self.appleBasic))
-        #expect(repaints == 1)
+        unsafe #expect(repaints == 1)
         cache.beginRenderPass()
         #expect(cache.isEmpty, "a buffer rendered under the colours before the report was kept")
         #expect(

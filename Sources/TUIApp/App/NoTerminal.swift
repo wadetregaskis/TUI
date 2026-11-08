@@ -103,7 +103,7 @@ public struct NoTerminal {
         #if canImport(WASILibc)
             return false
         #else
-            let terminal = open("/dev/tty", O_RDWR | O_NOCTTY)
+            let terminal = unsafe open("/dev/tty", O_RDWR | O_NOCTTY)
             guard terminal >= 0 else { return false }
             close(terminal)
             return true
@@ -193,7 +193,7 @@ extension NoTerminal {
     private static func connection(of descriptor: Int32, environment: [String: String]) -> Connection {
         if isatty(descriptor) == 1 { return environment["TERM"] == "dumb" ? .dumbTerminal : .terminal }
         var status = stat()
-        guard fstat(descriptor, &status) == 0 else { return .closed }
+        guard unsafe fstat(descriptor, &status) == 0 else { return .closed }
         switch status.st_mode & S_IFMT {
         case S_IFIFO: return .pipe
         case S_IFREG: return .file
@@ -218,7 +218,7 @@ extension NoTerminal {
     ///   `TERM` is `dumb`.
     func pointStandardStreamsAtControllingTerminal() -> Bool {
         guard environment["TERM"] != "dumb" else { return false }
-        let terminal = open("/dev/tty", O_RDWR | O_NOCTTY)
+        let terminal = unsafe open("/dev/tty", O_RDWR | O_NOCTTY)
         guard terminal >= 0 else { return false }
         defer { close(terminal) }
         if lacksInput, dup2(terminal, STDIN_FILENO) < 0 { return false }

@@ -33,10 +33,10 @@ struct KeyboardProtocolNegotiationTests {
         let terminal = Terminal()
         let script = Script()
         script.reads = reads.map { Array($0.utf8) }
-        terminal.readSource = { buffer in
+        unsafe terminal.readSource = { buffer in
             guard !script.reads.isEmpty else { return 0 }
             let chunk = script.reads.removeFirst()
-            for (index, byte) in chunk.enumerated() { buffer[index] = byte }
+            for (index, byte) in chunk.enumerated() { unsafe buffer[index] = byte }
             return chunk.count
         }
         terminal.exchangeTransport = .init(

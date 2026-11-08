@@ -73,7 +73,7 @@ struct ImageCoreGraphicsTests {
                 bytes[index * 4 + 2] = colour.b
                 bytes[index * 4 + 3] = 255
             }
-            let context = CGContext(
+            let context = unsafe CGContext(
                 data: &bytes, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
                 space: CGColorSpace(name: CGColorSpace.sRGB)!,
                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
@@ -85,7 +85,7 @@ struct ImageCoreGraphicsTests {
         private func numberedCGImage() -> CGImage {
             var bytes: [UInt8] = []
             for pixel in numbered().pixels { bytes += [pixel.r * 40, 0, 0, 255] }
-            let context = CGContext(
+            let context = unsafe CGContext(
                 data: &bytes, width: 2, height: 3, bitsPerComponent: 8, bytesPerRow: 8,
                 space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
             return context.makeImage()!

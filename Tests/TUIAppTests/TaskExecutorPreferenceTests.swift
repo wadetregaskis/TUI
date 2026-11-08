@@ -21,7 +21,7 @@ private final class CountingExecutor: TaskExecutor {
 
     func enqueue(_ job: consuming ExecutorJob) {
         jobs.add(1, ordering: .relaxed)
-        job.runSynchronously(on: asUnownedTaskExecutor())
+        unsafe job.runSynchronously(on: asUnownedTaskExecutor())
     }
 }
 

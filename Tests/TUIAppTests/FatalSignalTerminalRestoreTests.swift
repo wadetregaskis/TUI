@@ -32,7 +32,7 @@ struct FatalSignalTerminalRestoreTests {
     @Test("The debt goes out whole through a full non-blocking descriptor that drains in time")
     func debtWaitsForRoom() throws {
         var ends: [Int32] = [-1, -1]
-        try #require(pipe(&ends) == 0)
+        try unsafe #require(pipe(&ends) == 0)
         defer {
             close(ends[0])
             close(ends[1])
@@ -42,7 +42,7 @@ struct FatalSignalTerminalRestoreTests {
         var filler = [UInt8](repeating: 0x2E, count: 4096)
         var filled = 0
         while true {
-            let result = write(ends[1], &filler, filler.count)
+            let result = unsafe write(ends[1], &filler, filler.count)
             if result <= 0 { break }
             filled += result
         }
@@ -57,7 +57,7 @@ struct FatalSignalTerminalRestoreTests {
             usleep(100_000)
             var chunk = [UInt8](repeating: 0, count: 65536)
             while drained.count < expected {
-                let result = read(reader, &chunk, chunk.count)
+                let result = unsafe read(reader, &chunk, chunk.count)
                 if result <= 0 { break }
                 drained.append(chunk[0..<result])
             }
@@ -65,7 +65,7 @@ struct FatalSignalTerminalRestoreTests {
         }
         thread.start()
         debt.withUnsafeBufferPointer { buffer in
-            FatalSignalTerminalRestore.writeOwed(buffer.baseAddress!, count: buffer.count, to: ends[1])
+            unsafe FatalSignalTerminalRestore.writeOwed(buffer.baseAddress!, count: buffer.count, to: ends[1])
         }
         drained.waitUntilFinished()
         #expect(drained.count == expected)
@@ -109,15 +109,15 @@ struct FatalSignalTerminalRestoreTests {
     func alternateStack() {
         let seen = AlternateStacks()
         let thread = Thread {
-            var before = stack_t()
-            _ = sigaltstack(nil, &before)
+            var before = unsafe stack_t()
+            _ = unsafe sigaltstack(nil, &before)
             FatalSignalTerminalRestore.provideAlternateStack()
-            var first = stack_t()
-            _ = sigaltstack(nil, &first)
+            var first = unsafe stack_t()
+            _ = unsafe sigaltstack(nil, &first)
             FatalSignalTerminalRestore.provideAlternateStack()
-            var second = stack_t()
-            _ = sigaltstack(nil, &second)
-            seen.record(before: before, first: first, second: second)
+            var second = unsafe stack_t()
+            _ = unsafe sigaltstack(nil, &second)
+            unsafe seen.record(before: before, first: first, second: second)
         }
         thread.start()
         seen.waitUntilRecorded()
@@ -166,17 +166,17 @@ struct FatalSignalTerminalRestoreTests {
     @Test("A descriptor that never drains is given up on, not waited on for ever")
     func debtGivesUp() throws {
         var ends: [Int32] = [-1, -1]
-        try #require(pipe(&ends) == 0)
+        try unsafe #require(pipe(&ends) == 0)
         defer {
             close(ends[0])
             close(ends[1])
         }
         _ = fcntl(ends[1], F_SETFL, fcntl(ends[1], F_GETFL) | O_NONBLOCK)
         var filler = [UInt8](repeating: 0x2E, count: 4096)
-        while write(ends[1], &filler, filler.count) > 0 {}
+        while unsafe write(ends[1], &filler, filler.count) > 0 {}
         let started = Date()
         filler.withUnsafeBufferPointer { buffer in
-            FatalSignalTerminalRestore.writeOwed(buffer.baseAddress!, count: buffer.count, to: ends[1])
+            unsafe FatalSignalTerminalRestore.writeOwed(buffer.baseAddress!, count: buffer.count, to: ends[1])
         }
         #expect(Date().timeIntervalSince(started) < 5)
     }
@@ -196,9 +196,9 @@ private final class AlternateStacks: @unchecked Sendable {
     func record(before: stack_t, first: stack_t, second: stack_t) {
         condition.withLock {
             let disabled = Int32(SS_DISABLE)
-            enabled = first.ss_flags & disabled == 0
-            kept = second.ss_sp == first.ss_sp
-            ownSize = before.ss_flags & disabled != 0 ? first.ss_size : nil
+            enabled = unsafe first.ss_flags & disabled == 0
+            kept = unsafe second.ss_sp == first.ss_sp
+            ownSize = unsafe before.ss_flags & disabled != 0 ? first.ss_size : nil
             recorded = true
             condition.broadcast()
         }

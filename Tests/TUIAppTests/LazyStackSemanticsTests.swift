@@ -108,11 +108,11 @@ struct LazyStackSemanticsTests {
         render(
             LazyVStack {
                 ForEach(0..<50) { index in
-                    Text("Row \(index)").onAppear { standaloneAppeared.append(index) }
+                    Text("Row \(index)").onAppear { unsafe standaloneAppeared.append(index) }
                 }
             },
             height: 8)
-        #expect(standaloneAppeared.count == 8, "exactly the windowed rows appear: \(standaloneAppeared)")
+        unsafe #expect(standaloneAppeared.count == 8, "exactly the windowed rows appear: \(standaloneAppeared)")
 
         // In a ScrollView, viewport windowing renders (and fires lifecycle
         // for) the rows intersecting the visible slice PLUS the one-row
@@ -126,14 +126,14 @@ struct LazyStackSemanticsTests {
             ScrollView {
                 LazyVStack {
                     ForEach(0..<50) { index in
-                        Text("Row \(index)").onAppear { scrollAppeared.append(index) }
+                        Text("Row \(index)").onAppear { unsafe scrollAppeared.append(index) }
                     }
                 }
             },
             height: 8)
-        #expect(
+        unsafe #expect(
             scrollAppeared.count == 9,
             "the visible window + one margin row materialise in scroll content: \(scrollAppeared)")
-        #expect(scrollAppeared.allSatisfy { $0 <= 8 }, "rows 0..8, nothing past the margin")
+        unsafe #expect(scrollAppeared.allSatisfy { $0 <= 8 }, "rows 0..8, nothing past the margin")
     }
 }

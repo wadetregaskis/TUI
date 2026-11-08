@@ -38,8 +38,8 @@ private final class Rig {
     init(grace: TimeInterval = 0.3) {
         var input: [Int32] = [-1, -1]
         var output: [Int32] = [-1, -1]
-        _ = pipe(&input)
-        _ = pipe(&output)
+        _ = unsafe pipe(&input)
+        _ = unsafe pipe(&output)
         self.input = input
         self.output = output
         watchdog = StallWatchdog(gate: gate, input: input[0], output: output[1], grace: grace)
@@ -49,7 +49,7 @@ private final class Rig {
     /// A key arrives.
     func type() {
         var byte = UInt8(ascii: "k")
-        _ = write(input[1], &byte, 1)
+        _ = unsafe write(input[1], &byte, 1)
     }
 
     /// The terminal goes: the input's writing end closes.
@@ -62,7 +62,7 @@ private final class Rig {
     /// The loop reads it, as `drainTerminalEvents` does.
     func drain() -> Bool {
         var byte: UInt8 = 0
-        _ = read(input[0], &byte, 1)
+        _ = unsafe read(input[0], &byte, 1)
         return gate.noteDrain()
     }
 
@@ -74,12 +74,12 @@ private final class Rig {
         var filled = 0
         let chunk = [UInt8](repeating: Self.filler, count: 512)
         while true {
-            let count = chunk.withUnsafeBufferPointer { write(output[1], $0.baseAddress, $0.count) }
+            let count = chunk.withUnsafeBufferPointer { unsafe write(output[1], $0.baseAddress, $0.count) }
             guard count > 0 else { break }
             filled += count
         }
         var byte = Self.filler
-        while write(output[1], &byte, 1) == 1 { filled += 1 }
+        while unsafe write(output[1], &byte, 1) == 1 { filled += 1 }
         return filled
     }
 
@@ -92,8 +92,8 @@ private final class Rig {
         var chunk = [UInt8](repeating: 0, count: 4096)
         while !bytes.reversed().starts(with: suffix.reversed()) {
             var target = pollfd(fd: output[0], events: Int16(POLLIN), revents: 0)
-            guard poll(&target, 1, Int32(seconds * 1000)) > 0 else { break }
-            let count = read(output[0], &chunk, chunk.count)
+            guard unsafe poll(&target, 1, Int32(seconds * 1000)) > 0 else { break }
+            let count = unsafe read(output[0], &chunk, chunk.count)
             guard count > 0 else { break }
             bytes += chunk.prefix(count)
         }
@@ -103,9 +103,9 @@ private final class Rig {
     /// What the watchdog wrote within `seconds`.
     func written(within seconds: Double) -> String {
         var target = pollfd(fd: output[0], events: Int16(POLLIN), revents: 0)
-        guard poll(&target, 1, Int32(seconds * 1000)) > 0 else { return "" }
+        guard unsafe poll(&target, 1, Int32(seconds * 1000)) > 0 else { return "" }
         var bytes = [UInt8](repeating: 0, count: 64)
-        let count = read(output[0], &bytes, bytes.count)
+        let count = unsafe read(output[0], &bytes, bytes.count)
         return String(bytes: bytes.prefix(max(0, count)), encoding: .utf8) ?? ""
     }
 
@@ -136,8 +136,8 @@ private struct LoopbackListener {
         var address = Self.loopback(port: 0)
         var length = socklen_t(MemoryLayout<sockaddr_in>.size)
         let listening = withUnsafeMutablePointer(to: &address) { pointer in
-            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                bind(listener, $0, length) == 0 && listen(listener, 4) == 0
+            unsafe pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                unsafe bind(listener, $0, length) == 0 && listen(listener, 4) == 0
                     && getsockname(listener, $0, &length) == 0
             }
         }
@@ -155,8 +155,8 @@ private struct LoopbackListener {
         let client = socket(AF_INET, Self.stream, 0)
         var address = Self.loopback(port: port)
         let connected = withUnsafePointer(to: &address) { pointer in
-            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                Foundation.connect(client, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) == 0
+            unsafe pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                unsafe Foundation.connect(client, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) == 0
             }
         }
         guard client >= 0, connected else {
@@ -225,7 +225,7 @@ struct StallWatchdogTests {
         let listener = try LoopbackListener()
         defer { listener.close() }
         var output: [Int32] = [-1, -1]
-        _ = pipe(&output)
+        _ = unsafe pipe(&output)
         defer { for descriptor in output { close(descriptor) } }
         let gate = TerminalWriteGate()
         let watchdog = StallWatchdog(gate: gate, input: listener.descriptor, output: output[1], grace: 0.1)
@@ -241,7 +241,7 @@ struct StallWatchdogTests {
         #expect(!gate.isStopped, "no hang-up")
         #expect(gate.isArmed, "nothing popped: there was nothing to read")
         var target = pollfd(fd: output[0], events: Int16(POLLIN), revents: 0)
-        #expect(poll(&target, 1, 0) == 0)
+        unsafe #expect(poll(&target, 1, 0) == 0)
     }
 
     /// Disarmed while the flags are not pushed, during a suspend, and while
@@ -318,15 +318,15 @@ struct StallWatchdogTests {
         // waits unread. Stopped once it has, so it pops nothing more.
         var input: [Int32] = [-1, -1]
         var popped: [Int32] = [-1, -1]
-        _ = pipe(&input)
-        _ = pipe(&popped)
+        _ = unsafe pipe(&input)
+        _ = unsafe pipe(&popped)
         defer { for descriptor in input + popped { close(descriptor) } }
         let watchdog = StallWatchdog(gate: terminal.writeGate, input: input[0], output: popped[1], grace: 0.1)
         watchdog.start()
         var byte = UInt8(ascii: "k")
-        _ = write(input[1], &byte, 1)
+        _ = unsafe write(input[1], &byte, 1)
         var target = pollfd(fd: popped[0], events: Int16(POLLIN), revents: 0)
-        #expect(poll(&target, 1, 10_000) == 1, "the watchdog popped")
+        unsafe #expect(poll(&target, 1, 10_000) == 1, "the watchdog popped")
         watchdog.stop()
 
         output.clear()

@@ -45,15 +45,15 @@ struct TerminalLineDisciplineTests {
 
     static func set(_ attributes: inout termios, _ values: [(Int32, cc_t)]) {
         withUnsafeMutablePointer(to: &attributes.c_cc) { pointer in
-            pointer.withMemoryRebound(to: cc_t.self, capacity: Int(NCCS)) { buffer in
-                for (index, value) in values { buffer[Int(index)] = value }
+            unsafe pointer.withMemoryRebound(to: cc_t.self, capacity: Int(NCCS)) { buffer in
+                for (index, value) in values { unsafe buffer[Int(index)] = value }
             }
         }
     }
 
     static func character(_ attributes: termios, _ index: Int32) -> cc_t {
         var copy = attributes
-        return withUnsafeBytes(of: &copy.c_cc) { $0[Int(index)] }
+        return withUnsafeBytes(of: &copy.c_cc) { unsafe $0[Int(index)] }
     }
 
     private static func has(_ attributes: termios, _ flag: Int32) -> Bool {
@@ -119,7 +119,7 @@ struct TerminalLineDisciplineTests {
     /// field by field, never the struct's bytes, whose padding is not
     /// initialised.
     static func same(_ lhs: termios, _ rhs: termios) -> Bool {
-        lhs.c_iflag == rhs.c_iflag && lhs.c_oflag == rhs.c_oflag && lhs.c_cflag == rhs.c_cflag
+        unsafe lhs.c_iflag == rhs.c_iflag && lhs.c_oflag == rhs.c_oflag && lhs.c_cflag == rhs.c_cflag
             && lhs.c_lflag == rhs.c_lflag && cfgetispeed([lhs]) == cfgetispeed([rhs])
             && cfgetospeed([lhs]) == cfgetospeed([rhs])
             && (0..<Int32(NCCS)).allSatisfy { character(lhs, $0) == character(rhs, $0) }

@@ -212,14 +212,14 @@ final class StdinArrivalNotifier {
     /// counts its bytes is not one a person types into.
     nonisolated static func isAtEndOfInput(_ descriptor: Int32) -> Bool {
         var probe = pollfd(fd: descriptor, events: Int16(POLLIN), revents: 0)
-        guard poll(&probe, 1, 0) == 1 else { return false }
+        guard unsafe poll(&probe, 1, 0) == 1 else { return false }
         var available: Int32 = 0
         #if canImport(Glibc) || canImport(Musl)
             let result = ioctl(descriptor, UInt(FIONREAD), &available)
         #else
             // Darwin's `FIONREAD` is `_IOR('f', 127, int)`, a function-like
             // macro Swift does not import; this is its value.
-            let result = ioctl(descriptor, 0x4004_667F, &available)
+            let result = unsafe ioctl(descriptor, 0x4004_667F, &available)
         #endif
         return result != 0 || available == 0
     }
