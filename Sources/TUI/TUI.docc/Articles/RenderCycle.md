@@ -4,7 +4,7 @@ Understand how TUI turns your view tree into terminal output: one frame at a tim
 
 ## Overview
 
-Every frame in TUI follows the same synchronous pipeline: **clear per-frame state → build environment → render the view tree → run the effects, walking the tree again while they wrote state → diff against previous frame → flush to terminal → track lifecycle**. Each frame evaluates `app.body` again and walks the view tree from the root, but not every body runs: a memoized subtree whose cached buffer is still valid (an `.equatable()` view, or a `ForEach` row over an `Equatable` element) is served from `RenderCache`, and nothing below it is visited (see <doc:RenderCycle#Subtree-Memoization>). Only **changed terminal lines** are written, and all writes are collected in a frame buffer and flushed as a **single `write()` syscall**.
+Every frame in TUI follows the same synchronous pipeline: **clear per-frame state → build environment → render the view tree → run the effects, walking the tree again while they wrote state → diff against previous frame → flush to terminal → track lifecycle**. Each frame evaluates `app.body` again and walks the view tree from the root, but not every body runs: a memoized subtree whose cached buffer is still valid (an `.equatable()` view, a `ForEach` row over an `Equatable` element, or a composite view of the app's own, compared by what it holds) is served from `RenderCache`, and nothing below it is visited (see <doc:RenderCycle#Subtree-Memoization>). Only **changed terminal lines** are written, and all writes are collected in a frame buffer and flushed as a **single `write()` syscall**.
 
 ## What Triggers a Frame
 
@@ -78,6 +78,8 @@ env.mouseEventDispatcher = tuiContext.mouseEventDispatcher
 env.renderCache          = tuiContext.renderCache
 env.preferenceStorage    = tuiContext.preferences
 env.localizationService = LocalizationService.shared
+// …and more: the accessibility settings, key notation, focus breathing and
+// following the pointer, scene storage's session, openWindow/openSettings, …
 ```
 
 This environment is immutable for the duration of the frame. Runtime services (state storage, lifecycle, key dispatch, render cache, preferences) are injected here so that views and modifiers can access them through the environment rather than through `TUIContext` directly.
@@ -100,7 +102,7 @@ The context is passed down the view tree. Each view can create a modified copy f
 
 ### Step 5: Evaluate Scene
 
-`app.body` is evaluated fresh each frame, producing a ``WindowGroup`` that wraps the root view. The `WindowGroup` implements `SceneRenderable` and bridges from the scene layer to the view layer.
+`app.body` is evaluated fresh each frame, producing its scenes: a ``WindowGroup`` that wraps the root view, and any others the app declares (``Settings``, …). The `WindowGroup` implements `SceneRenderable` and bridges from the scene layer to the view layer.
 
 > Note: `app.body` builds new view values on every frame. `@State` values survive because `State.init` only records the default: as each view renders, the property walk binds its `@State` properties to the boxes `StateStorage` keeps under the view's structural identity and each property's declaration index.
 
@@ -502,12 +504,12 @@ struct FeatureBox: View, Equatable {
             Text(subtitle).foregroundStyle(.palette.foregroundSecondary)
         }
         .padding(EdgeInsets(horizontal: 2, vertical: 1))
-        .border(color: .palette.border)
+        .border(.palette.border)
     }
 }
 
 // In a parent view: cached between frames when title/subtitle are unchanged:
-FeatureBox("Pure Swift", "No ncurses").equatable()
+FeatureBox(title: "Pure Swift", subtitle: "No ncurses").equatable()
 ```
 
 ### Cache Invalidation
@@ -739,7 +741,7 @@ same order, and the mouse dispatcher the same closure under the same id as the
 region the buffer carries, whether a row rendered or was served; and a frame the
 render loop walks twice gets them once per walk.
 
-Three rules keep that equivalent to rendering:
+Four rules keep that equivalent to rendering:
 
 - **The channels in force.** A registration recorded into a different key
   dispatcher or status bar from the memo's own — a `.dimmed()` subtree, or the
@@ -882,7 +884,7 @@ value finally changes. The hit therefore declares `retainSubtree`, to both
 
 | Bad candidates | Why |
 |---------------|-----|
-| Views that read `@State` directly | State lives in a reference-type box: the view struct compares as equal even when state changed |
+| Views that read what nothing tracks: a global, a plain class's property, the clock | A change there neither changes the view's value nor invalidates its buffer, so the stale one is served. (`@State`, `@Observable` and the environment are tracked: a write to them drops the buffer by itself) |
 | Views that change every frame | Cache overhead with no benefit |
 | Tiny views (single `Text`) | Rendering cost is already minimal |
 
@@ -892,11 +894,9 @@ The following types have `Equatable` conformance, enabling `.equatable()` on vie
 
 **Leaf views:** ``Text``
 
-**Container views** (conditional: `where Content: Equatable`): `VStack`, `HStack`, `ZStack`, ``Panel``, ``Card``, ``Dialog``, `ContainerView`
+**Container views** (conditional: `where Content: Equatable`, and for the last three `Footer: Equatable` too): ``VStack``, ``HStack``, ``ZStack``, ``LazyVStack``, ``LazyHStack``, ``Panel``, ``Card``, ``Dialog``
 
-**Modifier views** (conditional): `FlexibleFrameView`, `OverlayModifier`, `DimmedModifier`
-
-**Supporting types:** `TextStyle`, `Alignment`, `ContainerConfig`, `ContainerStyle`
+Some modifiers the framework applies (a frame, an overlay, dimming) are `Equatable` in the same conditional way, so a view built from the types above with them stays comparable.
 
 > Note: `Button` cannot be `Equatable` because it stores a closure (`action: () -> Void`). Views containing buttons are not candidates for `.equatable()`.
 
@@ -908,7 +908,7 @@ Set `TUI_DEBUG_RENDER=1` to enable per-frame cache statistics on stderr:
 [RenderCache] STORE Root/MainMenuPage/FeatureBox
 [RenderCache] HIT Root/MainMenuPage/FeatureBox
 [RenderCache] MISS (no entry) Root/SpinnersPage/Spinner
-[RenderCache] FRAME: hits: 3, misses: 2, stores: 2, clears: 0, entries: 3, hit rate: 60%
+[RenderCache] FRAME — hits: 3, misses: 2, stores: 2, clears: 0, subtreeClears: 0, entries: 3, hit rate: 60% | MEASURE hits: 12 misses: 1 entries: 9 | PRUNE render: 3 sizes: 9 retainedChecks: 0 dropped: 0+0
 ```
 
 Redirect with `2>render.log` to capture without interfering with the TUI.
@@ -966,6 +966,8 @@ This path is built automatically during rendering based on:
 - The view's type name
 - Its position among siblings (child index)
 - Conditional branches (`true`/`false` for `if`/`else`)
+
+A `ForEach` row is the exception to position: its identity is keyed by its element's `id`, so a row's `@State` goes with it when the rows are reordered, inserted or removed.
 
 ### Persistent State Storage
 
@@ -1040,4 +1042,4 @@ it, not on the frame the condition changed.
 
 There is no virtual DOM to diff: each rendered frame walks the view tree again and draws it
 into a buffer, with state kept in `StateStorage` and memoized subtrees served from the
-render cache. Terminal output is then diffed at the line level: only changed lines are written. See <doc:RenderCycle> for details on the output optimization pipeline.
+render cache. Terminal output is then diffed at the line level: only changed lines are written. See <doc:RenderCycle#Output-Optimization> for details on the output optimization pipeline.

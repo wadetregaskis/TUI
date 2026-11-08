@@ -12,7 +12,7 @@ what you do need.
 `App.main()` makes an instance of your app with its parameterless `init()`, creates an internal `AppRunner` that owns all the subsystems, and calls `run()` to enter the main loop:
 
 ```
-@main → App.main() → Self() → AppRunner(app:) → run()
+@main → App.main() → Self() → AppRunner → run()
 ```
 
 ### Subsystem Initialization
@@ -27,7 +27,7 @@ The `AppRunner` is the sole owner of all subsystems. Dependencies flow through c
 
 ## Terminal Setup
 
-Before any of this, the app checks it has a terminal to draw on: `App.main()` asks ``App/runWithoutTerminal(_:)`` what to do instead when stdout or stdin isn't a terminal, or `TERM` is `dumb`. By default that prints one line to stderr and exits with status 1, before the app is created and with nothing sent to the terminal. See "Running Without a Terminal" in <doc:GettingStarted>. WebAssembly skips the check: its stdio is no terminal to `isatty`, whatever its host draws with.
+Before any of this, the app checks it has a terminal to draw on: `App.main()` asks ``App/runWithoutTerminal(_:)`` what to do instead when stdout or stdin isn't a terminal, or `TERM` is `dumb`. By default that prints one line to stderr and exits with status 1, before the app is created and with nothing sent to the terminal. See "Running Without a Terminal" in <doc:ScenesAndQuitting>. WebAssembly skips the check: its stdio is no terminal to `isatty`, whatever its host draws with.
 
 Before the main loop starts, `run()` prepares the terminal:
 
@@ -36,8 +36,11 @@ Before the main loop starts, `run()` prepares the terminal:
 | 1 | Arm the signal sources | Observe SIGINT and SIGTERM (`kill`), resize (SIGWINCH) and job control (SIGTSTP / SIGCONT), and ignore SIGPIPE |
 | 2 | Enter alternate screen | Preserve the user's existing terminal content |
 | 3 | Hide cursor | Avoid cursor flicker during rendering |
-| 4 | Enable raw mode | Disable line buffering and echo, and every signal character but the quit key, ⌃\\ |
-| 4a | Ask about the kitty keyboard protocol | Where the terminal speaks it, push its flags, so key releases, repeats, modifier keys alone, Caps Lock and the keypad are reported (``EnvironmentValues/terminalCapabilities``' keyboard features); one round trip where it does not |
+| 4 | Enable raw mode | Disable line buffering and echo, and every signal character but the quit key, ⌃\\; turn on bracketed paste (so a paste arrives as one piece) and focus reports (mode 1004, which the scene phase follows) |
+| 4a | Ask the terminal what it is and what it can do | Name the host where the environment did not, then ask whether it draws pictures, how many pixels make a point, and what colours it paints (its foreground, background and, outside tmux, its sixteen ANSI colours), so the first frame is drawn with them |
+| 4b | Ask about the kitty keyboard protocol | Where the terminal speaks it, push its flags, so key releases, repeats, modifier keys alone, Caps Lock and the keypad are reported (``EnvironmentValues/terminalCapabilities``' keyboard features); one round trip where it does not |
+| 4c | Start reading the machine's settings | Reduce Motion and the other accessibility settings, read again each time the terminal regains the focus; under tmux, install hooks so a client attaching or changing its theme is noticed |
+| 4d | Turn on mouse tracking | Standard tracking to start with, so clicks are reported from the first frame; from then on each frame applies what the scene's ``MouseSupport`` and its views ask for |
 | 5 | Register state observer | `AppState` changes set `appState.needsRender` and `wake()` the loop |
 | 6 | Register focus observer | Focus changes restart the breath (so the newly focused control is at its brightest) and trigger re-renders |
 | 7 | Prepare the animation clock | CursorTimer (50 ms), started on demand only while a rendered frame consumes it |
@@ -113,7 +116,7 @@ The signals that end the process with nothing run on the way out are the excepti
 
 ## Key Event Dispatch
 
-When the terminal delivers a key event, the `InputHandler` dispatches it through five layers (plus three refinements: an ESC pre-route before Layer 1 when an open drop-down has claimed Escape, the mid-drag Layer 0.5, and a semantic-shortcut stage — Layer 3.5 — between Layers 3 and 4). Layer 0 and Layer 3 are mutually exclusive based on `focusManager.hasTextInputFocus`:
+When the terminal delivers a key event, the `InputHandler` dispatches it through five layers, after the focus path below, plus four refinements: an ESC pre-route before Layer 1 when an open drop-down has claimed Escape, the mid-drag Layer 0.5, an open menu's type select (Layer 2.5), and a semantic-shortcut stage — Layer 3.5 — between Layers 3 and 4. Layer 0 and Layer 3 are mutually exclusive based on `focusManager.hasTextInputFocus`:
 
 ### The Focus Path: SwiftUI's onKeyPress
 
@@ -181,7 +184,7 @@ Each frame follows 12 steps inside `RenderLoop.render()`:
 | 2 | Begin lifecycle, state, and cache tracking |
 | 3 | Build ``EnvironmentValues`` from subsystem state |
 | 4 | Create ``RenderContext`` with layout constraints |
-| 5 | Evaluate `app.body` → ``WindowGroup`` |
+| 5 | Evaluate `app.body` → its scenes (``WindowGroup``, ``Settings``, …) |
 | 6 | Render the scene — the view tree, framed by the window's bars — → ``FrameBuffer`` |
 | 7 | Build terminal-ready output lines |
 | 8 | Begin buffered frame (`Terminal.beginFrame()`) |
@@ -200,16 +203,27 @@ When the main loop exits: via SIGINT or SIGTERM, the quit key, or programmatic s
 
 | Step | What | Why |
 |------|------|-----|
-| 1 | Disable raw mode | Pop the kitty keyboard protocol's flags, if they were pushed, while the alternate screen they were pushed on is still up; restore original terminal settings |
-| 2 | Show cursor | Make the cursor visible again |
-| 3 | Exit alternate screen | Restore the user's previous terminal content |
-| 4 | Clear state observers | Remove `AppState` observer callbacks |
-| 5 | Clear focus | Tell the focused element it lost focus (a field's last commit point), then remove all focus registrations |
-| 6 | Reset TUIContext | Clear lifecycle, key handlers, and preferences |
+| 1 | Remove the tmux hooks | Under tmux only: the hooks installed at startup |
+| 2 | Delete the app's pictures | A picture sent to the terminal stays in its memory while the terminal runs, which outlives the app |
+| 3 | Hand the terminal back | Print the exit farewell, then disable raw mode (popping the kitty keyboard protocol's flags, if they were pushed, while the alternate screen they were pushed on is still up, and restoring the original settings), show the cursor and leave the alternate screen |
+| 4 | Stop the signal sources | Nothing more to observe |
+| 5 | Clear state observers | Remove `AppState` observer callbacks |
+| 6 | Clear focus | Tell the focused element it lost focus (a field's last commit point), then remove all focus registrations |
+| 7 | Reset TUIContext | Clear lifecycle, key handlers, and preferences |
+| 8 | Flush stored settings | `@AppStorage` and `@SceneStorage` save in the background; this waits for the last save, so a setting changed just before quitting is kept |
 
 The `Terminal` class also has a `deinit` safety net that disables raw mode if it was not explicitly restored.
 
 A process that dies of a signal with no orderly way out — a trap, a bad access, an abort, and the quiet terminations nothing in TUI handles (`SIGHUP`, `SIGUSR1` and the like, where the app has installed no handler of its own) — runs none of this. A handler for those signals pays what it can before passing the signal on: it pops the kitty keyboard protocol's flags if they are pushed, because they make every key an escape code, Return included, and would leave a shell that cannot be typed at; turns off the other input modes the app turned on; shows the cursor; and puts the shell's terminal settings back. It leaves the alternate screen up, with a crash's report on it. A suspend (⌃Z, where it suspends) pops the flags too, and the resume pushes them again.
+
+## While It Runs
+
+A few things happen between frames that no view asks for, each covered on its own page:
+
+- **Notifications.** The scene draws the toasts ``NotificationService`` posts, and sends one to the desktop where it asks to be: through the terminal where the terminal posts notifications, else through this machine's own (`TUI_SYSTEM_NOTIFICATIONS`). See <doc:Presentation>.
+- **Scene storage.** `@SceneStorage` values are kept per terminal session and saved as they change. See <doc:StateManagement>.
+- **Settings read again.** Each time the terminal regains the focus, the app reads the machine's accessibility settings again; and when the terminal says its colours changed, it asks for them again and repaints.
+- **The View menu's accessibility items.** In an app with a menu bar, Reduce Motion, Breathing Focus, Focus Follows Pointer and the rest override both the app's own setting and the environment variable until the app quits. See <doc:EnvironmentVariables>.
 
 ## Subsystem Dependency Graph
 
