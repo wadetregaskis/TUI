@@ -12,6 +12,10 @@ saved. On **Move** the border breathes, the arrows move the sheet within the scr
 names the keys while either stop has the focus. A one-row sheet has only Move. Alerts and confirmation dialogs have
 neither stop and no grips.
 
+**`renderOnceToString(width:height:output:colorDepth:content:)` returns what `renderOnce` would print.** For a test,
+a log or a table inside your own output: plain text by default, at the width and height you give, or with its escape
+sequences at a colour depth you choose.
+
 **`Path.interpolated(towards:amount:)` morphs one outline into another.** Give a custom `Shape` a progress as its
 `animatableData` and return the interpolated path from `path(in:)`. Paths built the same way move point by point, control
 points included; paths built differently swap at the halfway mark rather than being resampled. TUI's own; SwiftUI's `Path`

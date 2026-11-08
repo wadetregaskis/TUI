@@ -174,6 +174,14 @@ struct Inventory: App {
 When stdout isn't a terminal it writes plain text, unless you pass `output: .escapeSequences` or whoever runs the program
 sets `TUI_FORCE_ESCAPES=1`, `FORCE_COLOR=1` or `CLICOLOR_FORCE=1`.
 
+``renderOnceToString(width:height:output:colorDepth:content:)`` returns the same rows as a string instead, for a test,
+a log, or a table inside a larger output of your own. It writes plain text unless you ask for `output: .escapeSequences`,
+and takes the width, the height and the colour depth as parameters rather than from the terminal:
+
+```swift
+let report = renderOnceToString(width: 60) { StockTable(items: items) }
+```
+
 A tool like `fzf`, which reads its data from a pipe and draws on the terminal anyway, returns
 ``NoTerminal/Outcome/drawOnControllingTerminal``. The app then runs as usual on the process's controlling terminal, and
 the pipes stay reachable as ``NoTerminal/pipedInput`` and ``NoTerminal/pipedOutput``. Read and write those rather than

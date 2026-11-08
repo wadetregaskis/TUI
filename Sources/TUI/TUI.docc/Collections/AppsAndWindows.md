@@ -53,6 +53,7 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 - ``App/run()``
 - ``NoTerminal``
 - ``renderOnce(output:content:)``
+- ``renderOnceToString(width:height:output:colorDepth:content:)``
 - ``RenderOnceOutput``
 
 ### Documenting Environment Variables

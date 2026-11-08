@@ -131,18 +131,50 @@ extension ViewRenderer {
     ///   - plainText: Whether to write only the text: no escape sequences, no
     ///     images, and no spaces at the end of a row.
     func render<V: View>(_ view: V, plainText: Bool = false) {
-        let size = terminal.getSize()
+        for chunk in chunks(of: view, width: terminalWidth, height: nil, plainText: plainText) {
+            terminal.write(chunk)
+        }
+    }
+
+    /// The width ``render(_:plainText:)`` draws at: the terminal's.
+    var terminalWidth: Int { terminal.getSize().width }
+
+    /// What ``render(_:plainText:)`` writes, as a string: the rows joined by
+    /// newlines, with none after the last, so that `print` of it writes what
+    /// `render` would. Then empties the renderer's services, as `render` does.
+    ///
+    /// - Parameters:
+    ///   - view: The view to render.
+    ///   - width: The columns to draw in.
+    ///   - height: The rows to offer the view, or `nil` for the height it asks
+    ///     for at `width`, as `render` offers it.
+    ///   - plainText: Whether to write only the text, as for `render`.
+    func text<V: View>(of view: V, width: Int, height: Int?, plainText: Bool) -> String {
+        var text = chunks(of: view, width: width, height: height, plainText: plainText).joined()
+        if text.last == "\n" { text.removeLast() }
+        return text
+    }
+
+    /// The writes a render makes, in order: any image the view drew, then each
+    /// row with the newline it ends in. Then empties what the walk left in the
+    /// renderer's services.
+    private func chunks<V: View>(of view: V, width: Int, height: Int?, plainText: Bool) -> [String] {
         beginRenderPass()
-        let height = naturalHeight(of: view, width: size.width)
-        let composited = composite(view, width: size.width, height: height, sendingImages: !plainText)
-        for line in composited.lines {
+        let offered = height ?? naturalHeight(of: view, width: width)
+        var chunks: [String] = []
+        let composited = composite(view, width: width, height: offered, sendingImages: !plainText) {
+            chunks.append($0)
+        }
+        // A height that was asked for is a limit: at most that many rows, as a
+        // view in a fixed frame shows. The height the view asks for is not.
+        for line in composited.lines.prefix(height ?? .max) {
             let row = terminalRow(line)
             if plainText {
-                terminal.write(String(row.stripped.reversed().drop { $0 == " " }.reversed()) + "\n")
+                chunks.append(String(row.stripped.reversed().drop { $0 == " " }.reversed()) + "\n")
             } else {
                 // The styling ended before the newline, so a line feed at the
                 // bottom of the screen does not scroll in a row of its colour.
-                terminal.write(row + "\u{1B}[0m\n")
+                chunks.append(row + "\u{1B}[0m\n")
             }
             // Styled bytes this writer did not plan, so its belief about what
             // the terminal is wearing no longer holds — see
@@ -150,6 +182,7 @@ extension ViewRenderer {
             writer.forgetTerminalStyling()
         }
         release()
+        return chunks
     }
 
     /// The height `view` asks for at `width`, its least where it is flexible,
@@ -193,8 +226,10 @@ extension ViewRenderer {
     }
 
     /// Renders `view` at the size given and resolves what it left to the root,
-    /// sending the terminal any images it drew if `sendingImages`.
-    private func composite<V: View>(_ view: V, width: Int, height: Int, sendingImages: Bool) -> FrameBuffer {
+    /// handing `writeImages` the bytes of any images it drew if `sendingImages`.
+    private func composite<V: View>(
+        _ view: V, width: Int, height: Int, sendingImages: Bool, writeImages: (String) -> Void
+    ) -> FrameBuffer {
         let environment = makeEnvironment()
 
         let renderContext = RenderContext(
@@ -214,7 +249,7 @@ extension ViewRenderer {
         // a one-off render is a one-off, and there is no lifecycle here to hang
         // a release on.
         let graphics = context.terminalImageStore.takePending()
-        if sendingImages, !graphics.isEmpty { terminal.write(graphics) }
+        if sendingImages, !graphics.isEmpty { writeImages(graphics) }
         // The root composite, before the write. `.offset`/`.position`/
         // `.popover`/`.alert` put their drawing in `buffer.overlays` and
         // `.opacity` leaves a blend still to perform in `buffer.opacityRegions`,

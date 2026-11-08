@@ -137,6 +137,58 @@ public func renderOnce<Content: View>(
     }
 }
 
+/// Draws a view once, as ``renderOnce(output:content:)`` does, and returns what
+/// it would write rather than writing it: for a test, for a log, or to put a
+/// table or a banner inside a larger output of your own.
+///
+/// The rows are joined by newlines, with none after the last, so `print(_:)` of
+/// the result writes what `renderOnce` would. TUI-specific; SwiftUI has no
+/// one-off render.
+///
+/// ```swift
+/// let table = renderOnceToString(width: 60) {
+///     Grid { … }
+/// }
+/// log.append(table)
+/// ```
+///
+/// - Parameters:
+///   - width: The columns to draw in, at least 1, or `nil` for the width
+///     `renderOnce` uses: the terminal's, or `COLUMNS` where there is no
+///     terminal, or 80.
+///   - height: The rows to offer the view, at least 1: it draws in as many of
+///     them as it needs, as a view in a fixed frame does, and the result has at
+///     most that many. `nil`, the default, offers the height the view asks for,
+///     as `renderOnce` does.
+///   - output: Plain text, by default, whatever stdout is: no escape sequences
+///     and no spaces at the end of a row. `.escapeSequences` keeps the styling,
+///     and `.automatic` decides as `renderOnce` does, by where stdout goes and
+///     what the environment says (see ``RenderOnceOutput``).
+///   - colorDepth: The colours the escape sequences may use, or `nil` for the
+///     depth a running app would use (`ColorDepth.current`). Plain text has none.
+///   - content: A ViewBuilder closure that defines the view to render.
+/// - Returns: The rows, as `renderOnce` would write them.
+@MainActor
+public func renderOnceToString<Content: View>(
+    width: Int? = nil, height: Int? = nil, output: RenderOnceOutput = .plainText, colorDepth: ColorDepth? = nil,
+    @ViewBuilder content: () -> Content
+) -> String {
+    let view = content()
+    let renderer = ViewRenderer(terminal: Terminal())
+    let columns = max(1, width ?? renderer.terminalWidth)
+    let rows = height.map { max(1, $0) }
+    let resolved = output.resolved(
+        stdoutIsTerminal: stdoutIsTerminal, environment: ProcessInfo.processInfo.environment)
+    switch (resolved, colorDepth) {
+    case (.plainText, _):
+        return renderer.text(of: view, width: columns, height: rows, plainText: true)
+    case (_, let depth?), (.styledAt(let depth), nil):
+        return ColorDepth.withCurrent(depth) { renderer.text(of: view, width: columns, height: rows, plainText: false) }
+    case (.styled, nil):
+        return renderer.text(of: view, width: columns, height: rows, plainText: false)
+    }
+}
+
 /// Whether standard output is a terminal. A wasm program's stdio is no
 /// terminal to `isatty`, whatever its host is drawing with, so there the answer
 /// is yes: a host that wants plain text can ask for it.
