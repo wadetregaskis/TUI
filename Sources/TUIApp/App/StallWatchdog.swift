@@ -265,20 +265,30 @@ final class StallWatchdog {
     private let ended = DispatchSemaphore(value: 0)
     private var started = false
 
+    /// The thread's loop, over the read end of the wake pipe: a ``Watch`` on
+    /// the clock this was made with, which is a generic parameter of the init
+    /// alone, so the type names none.
+    private let runWatch: @Sendable (_ wake: Int32) -> Void
+
     /// - Parameters:
     ///   - gate: The lock the terminal's writes take, and the state shared
     ///     with the main loop.
     ///   - input: Standard input, unless a test drives a pipe.
     ///   - output: Standard output, unless a test reads a pipe.
     ///   - grace: How long input may wait unread before the flags are popped.
-    init(
+    ///   - clock: The time the thread reads and waits on: the machine's,
+    ///     unless a test steps its own.
+    init<C: WatchThreadClock>(
         gate: TerminalWriteGate, input: Int32 = STDIN_FILENO, output: Int32 = STDOUT_FILENO,
-        grace: TimeInterval = 1.5
+        grace: TimeInterval = 1.5, clock: C = SystemWatchThreadClock()
     ) {
         self.gate = gate
         self.input = input
         self.output = output
         self.grace = grace
+        runWatch = { wake in
+            Watch(gate: gate, input: input, output: output, wake: wake, grace: grace, clock: clock).run()
+        }
     }
 
     /// Starts the thread. Does nothing a second time, or where the pipe that
@@ -290,10 +300,11 @@ final class StallWatchdog {
         wakeRead = ends[0]
         wakeWrite = ends[1]
         started = true
-        let watch = Watch(gate: gate, input: input, output: output, wake: ends[0], grace: grace)
+        let runWatch = runWatch
+        let wake = ends[0]
         let ended = ended
         let thread = Thread {
-            watch.run()
+            runWatch(wake)
             ended.signal()
         }
         thread.name = "TUI stall watchdog"
@@ -321,9 +332,15 @@ final class StallWatchdog {
 
 // MARK: - The thread's loop
 
+/// What the watchdog writes to pop the flags: `KeyboardProtocolQuery.pop`.
+/// Out of ``Watch``, which is generic, and so has no static stored properties.
+private enum WatchdogPop {
+    static let bytes = Array(KeyboardProtocolQuery.pop.utf8)
+}
+
 /// What the watchdog's thread runs: everything here is a `let`, made before the
 /// thread starts and told to it by value.
-private struct Watch: Sendable {
+private struct Watch<C: WatchThreadClock>: Sendable {
     let gate: TerminalWriteGate
     let input: Int32
     let output: Int32
@@ -334,8 +351,8 @@ private struct Watch: Sendable {
     /// How long input may wait unread before the flags are popped.
     let grace: TimeInterval
 
-    /// What the watchdog writes to pop the flags: `KeyboardProtocolQuery.pop`.
-    private static let pop = Array(KeyboardProtocolQuery.pop.utf8)
+    /// The time it reads, and waits on.
+    let clock: C
 
     /// The thread's loop. Holds the gate's lock except while it sleeps.
     func run() {
@@ -343,7 +360,7 @@ private struct Watch: Sendable {
         condition.lock()
         defer { condition.unlock() }
         while true {
-            while !gate.stopped, !gate.armed { condition.wait() }
+            while !gate.stopped, !gate.armed { _ = clock.wait(on: condition, until: nil) }
             if gate.stopped { return }
 
             // Asleep until input arrives — or the pipe says stop — not holding
@@ -376,16 +393,16 @@ private struct Watch: Sendable {
     private func watchWaitingInput() -> Bool {
         let condition = gate.condition
         var drainsSeen = gate.drains
-        var waitingSince = Date()
+        var waitingSince = clock.now
         while true {
-            let check = min(waitingSince.addingTimeInterval(grace), Date(timeIntervalSinceNow: Self.checkInterval))
-            while !gate.stopped, gate.armed, condition.wait(until: check) {}
+            let check = min(waitingSince.addingTimeInterval(grace), clock.now.addingTimeInterval(checkInterval))
+            while !gate.stopped, gate.armed, clock.wait(on: condition, until: check) {}
             if gate.stopped { return true }
             guard gate.armed, StandardInputWait.inputIsWaiting(on: input) else { return false }
             if gate.drains != drainsSeen {
                 drainsSeen = gate.drains
-                waitingSince = Date()
-            } else if Date() >= waitingSince.addingTimeInterval(grace) {
+                waitingSince = clock.now
+            } else if clock.now >= waitingSince.addingTimeInterval(grace) {
                 // Stalled: pop, holding the lock, so no frame is mid-write —
                 // and only a pop the terminal was sent whole counts as one.
                 // One it could not take stays armed, and is tried again a
@@ -398,8 +415,9 @@ private struct Watch: Sendable {
         }
     }
 
-    /// How often waiting input is looked at.
-    private static let checkInterval: TimeInterval = 0.25
+    /// How often waiting input is looked at. Not a static: a generic type
+    /// has no stored ones.
+    private var checkInterval: TimeInterval { 0.25 }
 
     /// Writes the pop whole, or not at all.
     ///
@@ -417,7 +435,7 @@ private struct Watch: Sendable {
     private func writePop() -> Bool {
         var room = pollfd(fd: output, events: Int16(POLLOUT), revents: 0)
         guard unsafe poll(&room, 1, 0) > 0, room.revents & Int16(POLLOUT) != 0 else { return false }
-        return Self.pop.withUnsafeBufferPointer { bytes in
+        return WatchdogPop.bytes.withUnsafeBufferPointer { bytes in
             guard let base = bytes.baseAddress else { return false }
             var written = 0
             while written < bytes.count {

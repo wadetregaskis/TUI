@@ -35,14 +35,21 @@ private final class Rig {
     private var input: [Int32]
     private let output: [Int32]
 
-    init(grace: TimeInterval = 0.3) {
+    /// - Parameter clock: The clock the watchdog reads, where a test steps
+    ///   one; otherwise the machine's.
+    init(grace: TimeInterval = 0.3, clock: SteppedWatchClock? = nil) {
         var input: [Int32] = [-1, -1]
         var output: [Int32] = [-1, -1]
         _ = unsafe pipe(&input)
         _ = unsafe pipe(&output)
         self.input = input
         self.output = output
-        watchdog = StallWatchdog(gate: gate, input: input[0], output: output[1], grace: grace)
+        watchdog =
+            if let clock {
+                StallWatchdog(gate: gate, input: input[0], output: output[1], grace: grace, clock: clock)
+            } else {
+                StallWatchdog(gate: gate, input: input[0], output: output[1], grace: grace)
+            }
         watchdog.start()
     }
 
@@ -96,6 +103,21 @@ private final class Rig {
             let count = unsafe read(output[0], &chunk, chunk.count)
             guard count > 0 else { break }
             bytes += chunk.prefix(count)
+        }
+        return bytes
+    }
+
+    /// The first `count` bytes on the output, or fewer if `seconds` pass with
+    /// nothing more.
+    func readOutput(count: Int, within seconds: Double) -> [UInt8] {
+        var bytes: [UInt8] = []
+        var chunk = [UInt8](repeating: 0, count: 4096)
+        while bytes.count < count {
+            var target = pollfd(fd: output[0], events: Int16(POLLIN), revents: 0)
+            guard unsafe poll(&target, 1, Int32(seconds * 1000)) > 0 else { break }
+            let read = unsafe read(output[0], &chunk, min(chunk.count, count - bytes.count))
+            guard read > 0 else { break }
+            bytes += chunk.prefix(read)
         }
         return bytes
     }
@@ -228,16 +250,22 @@ struct StallWatchdogTests {
         _ = unsafe pipe(&output)
         defer { for descriptor in output { close(descriptor) } }
         let gate = TerminalWriteGate()
-        let watchdog = StallWatchdog(gate: gate, input: listener.descriptor, output: output[1], grace: 0.1)
+        let clock = SteppedWatchClock()
+        let watchdog = StallWatchdog(
+            gate: gate, input: listener.descriptor, output: output[1], grace: 0.1, clock: clock)
         watchdog.start()
         defer { watchdog.stop() }
         gate.setArmed(true)
         let client = try listener.connect()
         defer { Foundation.close(client) }
-        // Long enough for many looks: it checks four times a second. Real
-        // time, on purpose: the watchdog is a thread on a wall-clock grace, and
-        // what is asserted is that none of its looks in that time popped.
-        Thread.sleep(forTimeInterval: 0.8)
+        // Many looks, a grace of the watchdog's clock apart, each followed by
+        // its watching again: a watchdog that took one for a hang-up would
+        // have ended, and wait no more.
+        for look in 1...8 {
+            #expect(clock.awaitWaiter(), "watching before look \(look)")
+            clock.advance(by: 0.2)
+        }
+        #expect(clock.awaitWaiter(), "and watching after them")
         #expect(!gate.isStopped, "no hang-up")
         #expect(gate.isArmed, "nothing popped: there was nothing to read")
         var target = pollfd(fd: output[0], events: Int16(POLLIN), revents: 0)
@@ -278,21 +306,39 @@ struct StallWatchdogTests {
     /// the terminal has room (round 6: it counted a pop it gave up on).
     @Test("A pop the terminal has no room for is not written or counted, and goes whole once there is room")
     func fullOutputPopsNothingUntilThereIsRoom() {
-        let rig = Rig(grace: 0.1)
+        let clock = SteppedWatchClock()
+        let rig = Rig(grace: 0.1, clock: clock)
         defer { rig.finish() }
         let filled = rig.fillOutput()
         rig.gate.setArmed(true)
         rig.type()
-        // Several graces, each a pop tried and given up. Real time, on purpose,
-        // as above: the graces are the watchdog's own wall-clock ones.
-        Thread.sleep(forTimeInterval: 0.6)
+        // Several graces, each a pop tried and given up, and the input watched
+        // again.
+        for grace in 1...3 {
+            #expect(clock.awaitWaiter(), "watching before grace \(grace)")
+            clock.advance(by: 0.2)
+        }
+        // Watching again before the drain below, not merely done with the
+        // last grace: `advance` returns once the thread lets go of its lock,
+        // which after a pop it gave up on is on its way back to `poll`, before
+        // it watches the input again and reads the drain count it starts from.
+        // A drain in that gap was counted in from the start, so the grace did
+        // not start again, and the pop went a grace early (once in a loaded
+        // gate, 2026-11-08: the second wait below never came).
+        #expect(clock.awaitWaiter(), "watching after the graces")
         #expect(rig.gate.isArmed, "nothing popped: still armed")
         #expect(!rig.gate.noteDrain(), "and nothing for the loop to push back")
 
+        // Room: the terminal reads what it was sent. The drain above starts
+        // the grace again, so the pop goes the grace after next.
+        let filler = rig.readOutput(count: filled, within: 10)
+        #expect(filler.count == filled && filler.allSatisfy { $0 == Rig.filler }, "the filler, all of it")
+        for grace in 1...2 {
+            #expect(clock.awaitWaiter(), "watching before grace \(grace) with room")
+            clock.advance(by: 0.2)
+        }
         let pop = Array("\u{1B}[<u".utf8)
-        let bytes = rig.readOutput(endingWith: pop, within: 10)
-        #expect(bytes.count == filled + pop.count, "the filler, then one whole pop")
-        #expect(bytes.prefix(filled).allSatisfy { $0 == Rig.filler } && bytes.suffix(pop.count).elementsEqual(pop))
+        #expect(rig.readOutput(endingWith: pop, within: 10) == pop, "then one whole pop")
         #expect(rig.drain(), "a pop the loop hears of")
     }
 
