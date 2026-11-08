@@ -126,7 +126,11 @@ struct EnvironmentStampTests {
         func objectiveCHeldStrongly() throws {
             let stamps = EnvironmentStamps()
             weak var watched: NSObject?
-            let stamp = try { () throws -> EnvironmentStamp in
+            // `@MainActor`, said: a release build left the closure nonisolated,
+            // so the non-Sendable `object` it made was task-isolated and could
+            // not go into `environment`'s main-actor closure (`sending 'object'
+            // risks causing data races`). A debug build infers the actor.
+            let stamp = try { @MainActor () throws -> EnvironmentStamp in
                 let object = NSObject()
                 watched = object
                 return try #require(stamps.build(environment { $0[ObjectKey.self] = object }))

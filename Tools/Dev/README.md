@@ -52,3 +52,10 @@ checks forced on: `assert` and `assertionFailure` kept (`-assert-config Debug`),
 It is the dearest build there is, so CI runs it only on the weekly schedule and on manual dispatch, as two advisory
 jobs (`release_tests_linux`, `release_tests_macos`). Locally it builds into `.build/release`, a second copy of the
 build beside the debug one: check the disk first.
+
+Where it stands (2026-11-07, macOS 15.8, Xcode 26.3's Swift 6.2.4): the release build of every test target succeeds,
+after one fix (a closure in `EnvironmentStampTests` whose actor a release build did not infer). Running it does not yet:
+asked to list its tests, the release test bundle starts a TUI app, which stops at "standard input and output are not a
+terminal", and lists nothing. The debug bundle, with the same `Example_main` and `main` symbols, does not. The cause is
+not established; the lane stays advisory until it is, and its first run on a Linux runner will say whether it is
+macOS's alone.
