@@ -1,0 +1,12 @@
+== first appearance
+Leaf: @self, @identity, _local, _flavour changed.
+== @State write
+Leaf: _local changed.
+== new input from the parent
+Leaf: @self changed.
+== @Environment value read by the body
+Leaf: _flavour changed.
+== @Observable property read by the body
+Leaf: \Model.count changed.
+== @Observable property NOT read by the body
+== end

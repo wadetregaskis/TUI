@@ -138,6 +138,17 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, Xcode's Swift 6.2.4, 2026-11-01.
 - **Cited by:** the plain-body memo study (working notes, `plain-body-memo-study.md`).
 
+### Print changes
+
+- **Asks:** what `View._printChanges()` prints for each cause of a body re-run: first appearance, an `@State` write, a
+  new input from the parent, a changed `@Environment` value the body reads, and a write to an `@Observable` property
+  the body reads and to one it doesn't. For the observed write SwiftUI names the property by its key path,
+  `Leaf: \Model.count changed.`, and for the unread one prints nothing.
+- **Files:** `pc.swift` (a program of top-level code), `pc.out`.
+- **Ran:** macOS 15.8.2 (SwiftUI 6.5.4), Xcode's Swift 6.2.4, 2026-11-08; re-run the same day, it printed `pc.out`
+  byte for byte. Kept in the working notes as `plan/probe-printchanges/` before.
+- **Cited by:** `Sources/TUIView/Rendering/BodyChangeReport.swift`.
+
 ### Row state lifetime
 
 - **Asks:** when SwiftUI drops a row's `@State`: a row of a `List` and of a `LazyVStack` whose id leaves the
