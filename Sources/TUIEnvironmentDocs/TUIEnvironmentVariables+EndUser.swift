@@ -213,6 +213,11 @@ extension TUIEnvironmentVariables {
 
     private static let behaviour: [TUIEnvironmentVariable] = [
         TUIEnvironmentVariable(
+            "TUI_FOCUS_FOLLOWS_POINTER", .endUser, .behaviour,
+            values: "`1` or `0`",
+            effect: "`1`: the control under the mouse pointer takes the keyboard when the pointer moves onto it, as a click would, without pressing it. A text field you've typed in keeps it until you click or press Tab. The terminal then reports every move of the mouse. `0`: only a click or the keyboard moves it. Off unless the program says otherwise.",
+            code: .overrides("`Scene.focusFollowsPointer(_:)`.")),
+        TUIEnvironmentVariable(
             "TUI_OPEN_URLS", .endUser, .behaviour,
             values: "`0` or `1`",
             effect: "Whether the program may start your browser for a link. It's off by default, because the program can't tell that it's on the machine in front of you. `1` turns it on, unless the program says no. `0` keeps it off, whatever the program says.",

@@ -56,6 +56,14 @@ package final class MouseEventDispatcher {
     /// the status bar's own rows moved the page under a resting pointer.
     weak var tooltipState: TooltipState?
 
+    /// The focus manager a bare pointer move offers the focus to, while the
+    /// focus follows the pointer (`Scene.focusFollowsPointer(_:)`,
+    /// `TUI_FOCUS_FOLLOWS_POINTER=1`), and `nil` otherwise: set by the render
+    /// loop each frame. While it is set, motion is reported wherever clicks
+    /// are (``effectiveSupport(baseConfig:)``). See
+    /// `MouseEventDispatcher+FocusFollowsPointer.swift`.
+    package weak var pointerFocusManager: FocusManager?
+
     /// Per-frame handlers keyed by ``HitTestRegion/HandlerID``.
     ///
     /// `RenderLoop.beginRenderPass()` clears the table at the start of
@@ -539,7 +547,11 @@ extension MouseEventDispatcher {
     ///    regardless of which level set the base.
     package func effectiveSupport(baseConfig: MouseSupport) -> MouseSupport {
         let base = configOverride ?? baseConfig
-        return base.union(with: requestedFeatures)
+        var support = base.union(with: requestedFeatures)
+        // The focus following the pointer hears every move, but never turns
+        // reporting on where the app left the clicks to the terminal.
+        if pointerFocusManager != nil, support.clicks { support.motion = true }
+        return support
     }
 
     /// Replaces the per-frame ``MouseSupport`` configuration with

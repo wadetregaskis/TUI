@@ -139,6 +139,28 @@ section that held the focus is a modal; the rule above then applies inside the
 modal. Like `focused(_:equals:)`, a handoff written on a container belongs to the
 first focusable control inside it.
 
+## Focus Following the Pointer
+
+By default the mouse pointer only highlights what it is over, and a click moves
+the focus. With ``Scene/focusFollowsPointer(_:)``, or the person's
+`TUI_FOCUS_FOLLOWS_POINTER=1` (<doc:EnvironmentVariables>), the control the
+pointer moves onto takes the focus too, as a click there would, without
+pressing it. What the scene says wins over the variable. The terminal then
+reports every move of the mouse, wherever it reports clicks.
+
+- **A pointer at rest takes nothing back.** Only a move onto another cell
+  counts, so Tab and the arrow keys move the focus as ever, and the pointer's
+  next move moves it again.
+- **An edit keeps the focus.** A text field or editor that a key, a click or the
+  wheel has reached since it took the focus keeps it while the pointer wanders,
+  so what you type next goes where you were typing. A click or the keyboard
+  moves it on. A field the pointer merely crossed gives the focus up again.
+- **The frontmost surface keeps the keyboard.** While a sheet, an alert or a
+  popover is up, the pointer moves the focus only within it, as Tab does. While
+  a menu is open it moves nothing: the menu follows the pointer itself.
+- **A disabled control, or one under a sheet, takes nothing**, and a drag,
+  by the mouse or carried by the keyboard, moves no focus on its way.
+
 ## Focus Indicator
 
 The visual indicator depends on the view type. Buttons and similar controls use a **highlight background bar** for the focused item. Text fields render as a bracketed field (`[ text ]`) and show a **visible text cursor** inside it when focused — a block, bar or underscore that pulses unless the `.textCursor(_:)` modifier says to blink or hold still. Lists and tables **breathe the background of the cursor row**: the accent when that row is selected, the neutral focus wash (``Palette/focusWashPulse()``) when it is not — under `.rowSelectionIndicator(.hidden)` too, where there is no ●: the focus indicator always visibly breathes.

@@ -4,6 +4,12 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**The focus can follow the mouse pointer.** With `TUI_FOCUS_FOLLOWS_POINTER=1`, or the app's
+`Scene.focusFollowsPointer()`, the control the pointer moves onto takes the focus, as a click there would, without
+pressing it. A resting pointer takes nothing back from the keyboard; its next move does. A text field you've typed in
+keeps the focus until a click or the keyboard moves it; while a sheet, an alert or a popover is up the pointer moves the
+focus only within it, and while a menu is open, not at all. Off by default: it has the terminal report every move.
+
 **`TUI_BREATHING=0` holds every focus indication still.** The control that has the keyboard is picked out by colour
 and bold alone, rather than breathing or blinking; the text cursor still blinks. An app can do the same with
 `Scene.focusBreathing(false)`, which can't undo the person's `0`. Reduce Motion still leaves the breath alone.

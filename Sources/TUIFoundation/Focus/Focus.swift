@@ -97,13 +97,14 @@ public final class FocusManager {
     /// nobody's (``FocusScopeRegistry/autoFocusedID``) whenever the focus moves
     /// off it — by any path, those that assign this property directly
     /// included — so a later preference can never take a focus the user, the
-    /// app or a `.defaultFocus` placed.
+    /// app or a `.defaultFocus` placed — and the hold an edit has against a
+    /// wandering pointer (``FocusScopeRegistry/inputHeldID``).
     private var focusedID: String? {
         didSet {
             guard oldValue != focusedID else { return }
             invalidateCachedRender(of: oldValue)
             invalidateCachedRender(of: focusedID)
-            if focusedID != focusScopes.autoFocusedID { focusScopes.autoFocusedID = nil }
+            focusScopes.focusMoved(to: focusedID)
         }
     }
 

@@ -428,6 +428,9 @@ extension MouseEventDispatcher {
         // (`TooltipState.held`); one the move left behind goes, and its
         // going is the frame this motion asks for.
         if movedCell, tooltipState?.notePointerMoved(toRow: event.y) == true { fired = true }
+        // And the focus, where it follows the pointer: after the lanes, so the
+        // control it lands on has heard the pointer enter first.
+        if focusFollowingPointer(event, movedCell: movedCell) { fired = true }
         return fired
     }
 

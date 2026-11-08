@@ -181,6 +181,20 @@ final class FocusScopeRegistry {
     /// so the focus never moves from under someone typing or scrolling.
     var autoFocusedID: String?
 
+    /// The focused control, once input has reached it since it took the focus
+    /// (`FocusManager.noteInputToFocusedControl()`), until the focus moves on:
+    /// a text control named here is mid-edit, and the pointer does not take the
+    /// focus from it (`FocusManager.focusFollowingPointer(id:)`).
+    var inputHeldID: String?
+
+    /// The focus moved to `focusID`, by any path: whatever standing the
+    /// control it left had, as chosen by the manager (``autoFocusedID``) or as
+    /// reached by input (``inputHeldID``), ends.
+    func focusMoved(to focusID: String?) {
+        if focusID != autoFocusedID { autoFocusedID = nil }
+        if focusID != inputHeldID { inputHeldID = nil }
+    }
+
     /// Starts a walk: this walk's declarations replace the last walk's.
     func beginWalk() {
         scopes.removeAll(keepingCapacity: true)
@@ -251,6 +265,8 @@ extension FocusManager {
     /// preference that comes due later leaves it alone (B35).
     package func noteInputToFocusedControl() {
         focusScopes.autoFocusedID = nil
+        // And an edit it holds against a wandering pointer, if it takes text.
+        focusScopes.inputHeldID = currentFocusedID
     }
 
     /// A mouse press or wheel that a handler took, over the control the

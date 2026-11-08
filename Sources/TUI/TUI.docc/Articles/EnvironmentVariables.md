@@ -144,6 +144,7 @@ Don't write a variable to state a setting. Many are read once, and `setenv` isn'
 
 | Variable | Values | Effect |
 |---|---|---|
+| `TUI_FOCUS_FOLLOWS_POINTER` | `1` or `0` | `1`: the control under the mouse pointer takes the keyboard when the pointer moves onto it, as a click would, without pressing it. A text field you've typed in keeps it until you click or press Tab. The terminal then reports every move of the mouse. `0`: only a click or the keyboard moves it. Off unless the program says otherwise. |
 | `TUI_OPEN_URLS` | `0` or `1` | Whether the program may start your browser for a link. It's off by default, because the program can't tell that it's on the machine in front of you. `1` turns it on, unless the program says no. `0` keeps it off, whatever the program says. |
 | `TUI_SPRING_LOADING_DELAY` | Seconds, such as `0.3` or `1` | How long a drag has to rest on a control before the control opens. It overrides the setting on your machine. |
 | `TUI_IMAGE_CACHE_SIZE` | A size, such as `256M` or `1 GiB`, in bytes or with a `K`, `M` or `G`. `0` keeps nothing | How much memory the program may use to keep pictures it has decoded. 64 MiB by default. |
@@ -250,6 +251,7 @@ Two of the variables above are worth knowing for tests too. `TUI_CONFIG_DIR` kee
 | `TUI_NOTIFICATIONS` | No setting | The variable is the only way. | Each use |
 | `TUI_PROGRESS` | No setting | The variable is the only way. | Each use |
 | `TUI_POINTER_SHAPES` | Wins | `TerminalClient.pointerShapeSupport`, before the first frame. `.pointerStyle(_:)` in a view doesn't count as choosing: under `0` the pointer stays as it is. Nothing in code undoes `apps`. | Each use |
+| `TUI_FOCUS_FOLLOWS_POINTER` | Wins | `Scene.focusFollowsPointer(_:)`. | Once |
 | `TUI_OPEN_URLS` | Can't undo it | `TerminalClient.urlOpeningSupport` wins over `1` and over no setting, but not over `0`: the person is saying "not on this machine", which the program can't know better than they do. An `OpenURLAction` that opens URLs its own way isn't affected. | Each use |
 | `TUI_SPRING_LOADING_DELAY` | Wins | `.springLoadingDelay(_:)`, or `.environment(\.springLoadingDelay, _)`, for part of an app. | Once |
 | `TUI_IMAGE_CACHE_SIZE` | Wins | `.urlImageCache(_:)` with a `URLImageCache(byteLimit:)` of the app's own. | Once |

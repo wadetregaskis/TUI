@@ -423,6 +423,13 @@ internal final class RenderLoop<A: App> {
     /// `TUI_STILL`, which the app runner reads. See ``publishAnimationValues``.
     var stillDate: Date?
 
+    /// Whether the user asked for the focus to follow the pointer, with
+    /// `TUI_FOCUS_FOLLOWS_POINTER`, as the app runner read it, or `nil`: the
+    /// answer where the scene's own `.focusFollowsPointer(_:)` says nothing.
+    /// `nil` in every loop but the app runner's, for the reason
+    /// ``requestedAccessibility`` gives.
+    var focusFollowsPointerRequested: Bool?
+
     init(
         app: A,
         terminal: any HostStateKeeping,

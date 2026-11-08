@@ -432,6 +432,7 @@ extension AppRunner {
         // And the one that sends the terminal a progress bar, where the
         // terminal it identified takes one.
         loop.sendsProgressReports = TerminalClient.progressReportsSupported
+        loop.focusFollowsPointerRequested = TerminalClient.focusFollowsPointerRequested
         loop.progressAbsence = TerminalCapabilities.progressAbsence(
             program: TerminalHost.program, environment: ProcessInfo.processInfo.environment)
         loop.scenes.quitPrompt = quitPrompt

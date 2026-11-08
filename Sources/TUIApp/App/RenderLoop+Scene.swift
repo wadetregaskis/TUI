@@ -86,6 +86,10 @@ extension RenderLoop {
         // any events queued from the previous frame are filtered
         // against the right config.
         tuiContext.mouseEventDispatcher.setActiveSupport(baseMouseSupport)
+        // Whether a pointer move offers the focus to the control it lands on:
+        // what the scene says, else the user's `TUI_FOCUS_FOLLOWS_POINTER`.
+        let followsPointer = environment.focusFollowsPointer ?? focusFollowsPointerRequested ?? false
+        tuiContext.mouseEventDispatcher.pointerFocusManager = followsPointer ? focusManager : nil
         applyChromeStyle(from: configuration, commands: commands)
         // The screen selection's copy key and the scene's copy-on-release.
         tuiContext.screenSelection.adopt(
