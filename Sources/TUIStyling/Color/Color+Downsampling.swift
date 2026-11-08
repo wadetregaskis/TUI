@@ -477,9 +477,12 @@ extension Color {
     ///
     /// `package` rather than `private` because `TUIImage`'s palette mapper
     /// needs the same conversion and a second copy of these coefficients is a
-    /// second place for them to drift. Deliberately NOT public and deliberately
-    /// not paired with ``hueWeightedDistanceSquared``, which is load-bearing for
-    /// palette derivation and must not acquire callers outside this file.
+    /// second place for them to drift. Apps reach it as
+    /// ``rgbToOKLab(red:green:blue:)``, whose tuple is spelt out; this one's
+    /// short labels are what the internal callers were written against. Not
+    /// paired with ``hueWeightedDistanceSquared``, which is load-bearing for
+    /// palette derivation and must not acquire callers outside this file: the
+    /// public difference is plain OKLab distance (``deltaE(_:method:)``).
     package static func oklab(red: UInt8, green: UInt8, blue: UInt8) -> (l: Double, a: Double, b: Double) {
         let (long, medium, short) = cubeRootLMS(red: red, green: green, blue: blue)
         return (

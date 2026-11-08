@@ -149,7 +149,27 @@ Color.hex("#FF8000")         // orange via hex string
 Color.hsl(30, 100, 50)       // orange via HSL
 Color.hsb(30, 100, 100)      // orange via HSB
 Color.cmyk(0, 50, 100, 0)    // orange via CMYK
+Color.oklch(0.73, 0.18, 52)  // orange via OKLCh
 ```
+
+### Perceptual Color
+
+OKLab and its polar form, OKLCh, are spaces in which equal steps look equal, which
+HSL's are not: at one HSL lightness, yellow looks far lighter than blue. Build a ramp
+of shades in OKLCh by stepping the lightness, or a set of distinct hues by turning the
+hue at one lightness and chroma. The numbers are CSS's: lightness 0 to 1, chroma from
+0 (about 0.32 at most in sRGB), hue in degrees. These are TUI's; SwiftUI has none.
+
+```swift
+let shades = stride(from: 0.3, through: 0.9, by: 0.15).map { Color.oklch($0, 0.12, 250) }
+let lab = Color.rgbToOKLab(red: 255, green: 128, blue: 0)   // (lightness, a, b)
+let lch = Color.rgbToOKLCh(red: 255, green: 128, blue: 0)   // (lightness, chroma, hue)
+```
+
+``Color/deltaE(_:method:)`` says how different two colours look: 0 for the same, 1
+for black against white, and about 0.02 for the least difference most people can
+see. Use it to check that two series in a chart can be told apart. It is `nil` for a
+colour with no RGB to measure, such as a terminal slot the terminal hasn't reported.
 
 ### Color Manipulation
 

@@ -12,6 +12,11 @@ saved. On **Move** the border breathes, the arrows move the sheet within the scr
 names the keys while either stop has the focus. A one-row sheet has only Move. Alerts and confirmation dialogs have
 neither stop and no grips.
 
+**OKLab and OKLCh are public on `Color`.** `Color.oklab(_:_:_:)` and `Color.oklch(_:_:_:)` make a colour from CSS's
+numbers, `Color.rgbToOKLab(red:green:blue:)` and `Color.rgbToOKLCh(red:green:blue:)` go the other way, and
+`color.deltaE(other)` says how different two colours look (ΔEOK: 1 is black against white, about 0.02 the least
+anyone sees). They're the conversions TUI's gradients and colour mapping already used.
+
 **`TUI_REDUCE_MOTION`, `COLUMNS` and `LINES` beat what TUI reads from the system.** `TUI_REDUCE_MOTION=0`, and `=0` on `TUI_REDUCE_TRANSPARENCY`, `TUI_DIFFERENTIATE_WITHOUT_COLOR` and `TUI_INCREASE_CONTRAST`, turns off a
 machine-wide Reduce Motion, as `=1` already turned it on. `COLUMNS` and `LINES`, each on its own axis, now win over the size
 the terminal reports, where they used to be only a fallback, so an export left over from a window since resized pins the size:
