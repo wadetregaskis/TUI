@@ -353,5 +353,6 @@ If you've used another UI framework, these pages map what you know onto TUI:
 
 - <doc:ComingFromSwiftUI>, for SwiftUI itself
 - <doc:ComingFromBubbleTea>, for Go's Bubble Tea and Lip Gloss
+- <doc:ComingFromRatatui>, for Rust's Ratatui
 
 Then carry on with <doc:BuildingYourFirstApp>, which builds a small app step by step.
