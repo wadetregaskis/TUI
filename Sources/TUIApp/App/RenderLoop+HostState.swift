@@ -111,7 +111,8 @@ extension RenderLoop {
 
     /// What this frame writes to get the person's attention: a notification
     /// for each message the app asked with (`requestAttention(_:)`), where the
-    /// terminal posts one (``TerminalFeatures/postsNotifications``); and the
+    /// terminal posts one (``TerminalFeatures/postsNotifications``), and for
+    /// each toast posted to the desktop too, there alone; and the
     /// bell — once, however often it was asked for — for input a control
     /// turned away, and for attention where no notification is posted or its
     /// message leaves nothing to say. Each half empty where nothing is owed.
@@ -126,6 +127,11 @@ extension RenderLoop {
             } else {
                 rings = true
             }
+        }
+        // A toast's: posted where the terminal posts it, and dropped where it
+        // does not — the toast is on the screen, so there is nothing to ring for.
+        for message in owed.takePendingNotifications() where posts {
+            notifications += TerminalHostState.notification(message) ?? ""
         }
         return (notifications, rings ? TerminalHostState.bell : "")
     }

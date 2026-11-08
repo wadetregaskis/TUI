@@ -85,6 +85,12 @@ public final class NotificationService: Sendable {
         /// How wide a toast is (``width``).
         var width = 40
 
+        /// The messages posted to the desktop too, and how, that no frame has
+        /// sent yet (``takeDesktopRequests()``): at most
+        /// ``desktopQueueLimit``, the oldest dropped, for a service nothing
+        /// draws.
+        var desktopRequests: [(message: String, delivery: NotificationDesktopDelivery)] = []
+
         /// The links of the render caches of the apps that draw this service's
         /// notifications, which a post asks for a frame: one per app, noted as
         /// its scene draws them (``noteDisplayed(by:)``).
@@ -160,13 +166,18 @@ extension NotificationService {
     ///   - placement: Where it is drawn, the channel it stacks in (default: `nil`, the service's
     ///     ``defaultPlacement``).
     ///   - actions: The buttons on it (default: none); choosing one runs its action and dismisses the toast.
+    ///   - desktop: Whether it is also posted on the desktop, through the terminal (default:
+    ///     ``NotificationDesktopDelivery/never``).
     /// - Returns: The notification's identifier, for ``dismiss(_:)``.
     @discardableResult
     public func post(
         _ messageKey: LocalizedStringKey, style: NotificationStyle = .plain, duration: TimeInterval? = 3.0,
-        placement: NotificationPlacement? = nil, actions: [NotificationAction] = []
+        placement: NotificationPlacement? = nil, actions: [NotificationAction] = [],
+        desktop: NotificationDesktopDelivery = .never
     ) -> NotificationID {
-        post(messageKey.localized, style: style, duration: duration, placement: placement, actions: actions)
+        post(
+            messageKey.localized, style: style, duration: duration, placement: placement, actions: actions,
+            desktop: desktop)
     }
 
     /// Posts a new notification, displayed as written.
@@ -188,19 +199,42 @@ extension NotificationService {
     ///   - placement: Where it is drawn, the channel it stacks in (default: `nil`, the service's
     ///     ``defaultPlacement``).
     ///   - actions: The buttons on it (default: none); choosing one runs its action and dismisses the toast.
+    ///   - desktop: Whether it is also posted on the desktop, through the terminal (default:
+    ///     ``NotificationDesktopDelivery/never``).
     /// - Returns: The notification's identifier, for ``dismiss(_:)``.
     @_disfavoredOverload
     @discardableResult
     public func post<S: StringProtocol>(
         _ message: S, style: NotificationStyle = .plain, duration: TimeInterval? = 3.0,
-        placement: NotificationPlacement? = nil, actions: [NotificationAction] = []
+        placement: NotificationPlacement? = nil, actions: [NotificationAction] = [],
+        desktop: NotificationDesktopDelivery = .never
     ) -> NotificationID {
         let now = nowNanos()
         let entry = NotificationEntry(
             message: String(message), style: style, placement: placement ?? defaultPlacement, actions: actions,
             duration: duration ?? .infinity, postedAtNanos: now)
+        if desktop != .never {
+            state.withLock { state in
+                state.desktopRequests.append((entry.message, desktop))
+                state.desktopRequests.removeFirst(max(0, state.desktopRequests.count - Self.desktopQueueLimit))
+            }
+        }
         add(entry, now: now)
         return entry.id
+    }
+
+    /// The most desktop requests kept for a frame to send: a service nothing
+    /// draws keeps no more than this.
+    static let desktopQueueLimit = 16
+
+    /// The messages posted to the desktop too since the last frame that sent
+    /// them, and how, and forgets them: for the scene to send, through its
+    /// terminal, those whose delivery applies now.
+    func takeDesktopRequests() -> [(message: String, delivery: NotificationDesktopDelivery)] {
+        state.withLock { state in
+            defer { state.desktopRequests.removeAll() }
+            return state.desktopRequests
+        }
     }
 
     /// Posts a new notification that draws `content`: any views, in place of

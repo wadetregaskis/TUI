@@ -46,6 +46,13 @@ enum NotificationOverlay {
         // because "none" is the answer a post invalidates. The chrome draws
         // them at the root, where there is no memo above to decline.
         context.environment.volatileReadTracker?.recordUnkeyedRead()
+        // The toasts posted to the desktop too: through the terminal, where
+        // their delivery applies in the scene's phase now. Sent by the frame
+        // that first draws them, once.
+        let phase = context.environment.scenePhase
+        for request in service.takeDesktopRequests() where request.delivery.delivers(in: phase) {
+            context.environment.terminalBell?.postNotification(request.message)
+        }
         let activeEntries = service.activeEntries()
         guard !activeEntries.isEmpty, areaWidth > 0, areaHeight > 0 else { return [] }
 

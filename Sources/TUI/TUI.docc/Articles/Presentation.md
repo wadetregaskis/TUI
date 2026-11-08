@@ -495,6 +495,15 @@ posted with `duration: nil` and no actions gets a Close button. While a sheet
 or an alert holds the keyboard, toasts still draw, but their buttons do nothing
 until it closes.
 
+A text notification can also be posted on the desktop, where the person sees
+it from another window, through the terminal: ``NotificationDesktopDelivery``.
+It goes to the terminals that post one (Ghostty and iTerm2), and nowhere else.
+It is one-way: no buttons, and nothing reports whether it was seen.
+
+```swift
+NotificationService.current.post("Build finished", style: .success, desktop: .whenInactive)
+```
+
 ## Open and Save Panels
 
 `fileImporter`, `fileExporter` and `fileMover` draw their panels in the terminal.
@@ -515,6 +524,7 @@ They have a page of their own: <doc:FilePanels>.
 - ``NotificationID``
 - ``NotificationPlacement``
 - ``NotificationAction``
+- ``NotificationDesktopDelivery``
 
 ## See Also
 

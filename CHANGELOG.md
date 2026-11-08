@@ -18,6 +18,12 @@ focus only within it, and while a menu is open, not at all. Off by default: it h
 **`TUI_BREATHING=0` holds every focus indication still.** The control that has the keyboard is picked out by colour
 and bold alone, rather than breathing or blinking; the text cursor still blinks. An app can do the same with
 `Scene.focusBreathing(false)`, which can't undo the person's `0`. Reduce Motion still leaves the breath alone.
+**A notification can also be posted on the desktop, through the terminal.** `post(_:desktop:)` takes
+`NotificationDesktopDelivery.always`, or `.whenInactive` for only while the terminal's window doesn't have the focus.
+It sends the message as `OSC 9` with the frame that draws the toast, to the terminals that post one (Ghostty and iTerm2,
+or any terminal under `TUI_NOTIFICATIONS=1`). Unlike `requestAttention(_:)`, it never rings the bell instead. It is
+one-way: the desktop notification has no buttons, and nothing reports whether the person saw it.
+
 **Notifications can carry buttons, and the keyboard reaches them.** `post(_:actions:)` takes `NotificationAction`s, each
 a title, an optional `ButtonRole` and an action; choosing one runs it and dismisses the toast. F6 moves the focus to the
 newest toast with a button, F6 again to the next older one, and past the oldest back where it was. Escape dismisses the

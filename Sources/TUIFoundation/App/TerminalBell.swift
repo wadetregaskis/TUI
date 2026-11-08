@@ -39,6 +39,11 @@ package final class TerminalBell {
     /// in the order first asked.
     private var owedAttention: [String] = []
 
+    /// The messages to post as desktop notifications since the last frame,
+    /// each once, in the order first posted: where the terminal posts none,
+    /// dropped, never rung for (``postNotification(_:)``).
+    private var owedNotifications: [String] = []
+
     /// How many times the bell was rung, ever — for tests, which have no
     /// terminal to hear it.
     private(set) var ringCount = 0
@@ -64,6 +69,22 @@ package final class TerminalBell {
     package func requestAttention(_ message: String) {
         if !owedAttention.contains(message) { owedAttention.append(message) }
         requestFrame()
+    }
+
+    /// Posts `message` as a desktop notification at the next frame, where the
+    /// terminal posts one, and does nothing where it does not: unlike
+    /// ``requestAttention(_:)``, no bell. For a toast posted to the desktop
+    /// too (`NotificationDesktopDelivery`), which is on the screen already.
+    package func postNotification(_ message: String) {
+        if !owedNotifications.contains(message) { owedNotifications.append(message) }
+        requestFrame()
+    }
+
+    /// The messages to post as desktop notifications since the last frame, and
+    /// forgets them: for the run loop to post where the terminal posts them.
+    package func takePendingNotifications() -> [String] {
+        defer { owedNotifications.removeAll() }
+        return owedNotifications
     }
 
     /// The bytes owed to the terminal — one `BEL`, or nothing — and forgets
