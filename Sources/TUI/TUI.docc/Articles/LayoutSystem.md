@@ -54,6 +54,34 @@ Text("Name").frame(maxWidth: .infinity)             // all the width there is, t
 
 A frame with a fixed size puts its content at the top left, where SwiftUI centres it. A flexible frame, like the last one, still centres.
 
+## Choosing a Size
+
+A few more modifiers settle how much room a view takes, as they do in SwiftUI:
+
+- ``View/fixedSize(horizontal:vertical:)`` keeps a view at its natural size
+  whatever it is offered, so a `Text` doesn't wrap or truncate.
+- ``View/layoutPriority(_:)`` lets a stack give a view its room before its
+  siblings when there isn't enough for all of them.
+- `Spacer(minLength:)` keeps at least that many cells between its neighbours.
+- `containerRelativeFrame(_:alignment:)` sizes a view by its container, such as
+  the scroll view it's in, and `aspectRatio(_:contentMode:)` by a ratio.
+- ``ViewThatFits`` shows the first of several views that fits the space it's
+  offered:
+
+```swift
+ViewThatFits {
+    Text("Saved to Documents/Reports")
+    Text("Saved")
+}
+```
+
+To place a view rather than size it, `offset(x:y:)` draws it moved without
+moving anything else, `position(x:y:)` puts its centre at a point in its
+parent, and ``View/zIndex(_:)`` decides which of overlapping views is drawn on
+top. `safeAreaInset(edge:alignment:spacing:content:)` puts a bar along one edge
+of a view, with the content making room for it. ``LazyVGrid`` and ``LazyHGrid``
+lay out a long run of cells in columns or rows.
+
 ## Rows That Line Up: Grid
 
 ``Grid`` sizes each column to its widest cell *across every row*, so cells line
@@ -324,21 +352,25 @@ struct ChildView {
 
 Flexible children share remaining space equally. If multiple spacers exist, they each get an equal portion of the leftover space.
 
-### Which Views Are Layoutable?
+### Which Views Measure Themselves?
 
-| View | Layoutable? | Flexibility |
-|------|------------|-------------|
-| ``Text`` | Yes | Fixed (wraps at proposed width) |
-| ``Spacer`` | Yes | Flexible in stack direction |
-| ``Button`` | Yes | Width-flexible |
-| ``TextField`` | Yes | Width-flexible |
-| ``SecureField`` | Yes | Width-flexible |
-| ``Slider`` | Yes | Width-flexible |
-| ``Divider`` | Yes | Width-flexible |
-| ``ProgressView`` | Yes | Width-flexible |
-| ``Image`` | Yes | Fixed (aspect-fits the proposed/viewport box) |
+``Text``, ``Spacer`` and ``Divider`` conform to `Layoutable` themselves. The
+public controls are plain views with a `body`, which draw through a private core
+that is `Layoutable`, so they measure themselves too:
 
-Views that are not `Layoutable` use the default implementation which renders first, then reports the buffer size as fixed.
+| View | Flexibility |
+|------|-------------|
+| ``Text`` | Fixed (wraps at proposed width) |
+| ``Spacer`` | Flexible in stack direction |
+| ``Divider`` | Width-flexible |
+| ``Button`` | As its style says; the default fits its label |
+| ``TextField``, ``SecureField`` | Width-flexible |
+| ``Slider``, ``ProgressView`` | Width-flexible |
+| ``Image`` | Fixed (aspect-fits the proposed/viewport box) |
+
+A view of your own that draws through `Renderable` without `Layoutable` uses
+the default implementation, which renders first, then reports the buffer size as
+fixed.
 
 ## See Also
 

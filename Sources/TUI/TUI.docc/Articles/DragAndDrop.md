@@ -29,6 +29,32 @@ because a drag stays inside the app. The floating preview's grab point is set
 with `dragPreviewAnchor(_:)`. Dragging needs the mouse reporting drags, which it
 does unless you've turned that off (see <doc:MouseAndGestures>).
 
+``View/dropDestination(for:isEnabled:action:)`` is the same with an action that
+returns nothing, as SwiftUI's newer form is, and `isEnabled: false` turns the
+destination off. A ``Table``'s rows and a ``TabView``'s tabs take `draggable(_:)`
+and `dropDestination` too, and on Apple platforms `onDrag` and `onDrop` work with
+`NSItemProvider` as in SwiftUI. To let people reorder a list's rows, give its
+`ForEach` `onMove(perform:)` (<doc:ListAndTable>).
+
+## Copy or Move
+
+A drop copies, unless it lands in the container the drag came from, where it
+moves; Option flips the two (Space, for a carried drag), and the preview's badge
+names which. ``View/dragConfiguration(_:)`` says which of them the drags that
+begin inside a view allow:
+
+```swift
+Text("📄 Report")
+    .draggable(report)
+    .dragConfiguration(DragConfiguration(allowMove: true))
+```
+
+Without one, a drag allows only a copy, and a row reorder only a move. Where the
+destination proposes an operation the source does not allow, the drop takes the
+other one, or is refused if neither is allowed. ``DragSession``, ``DropSession``
+and ``DropConfiguration`` exist so that SwiftUI code naming them compiles; nothing
+hands one out yet.
+
 ## Dragging Selected Rows
 
 Dragging one of several selected rows of a ``List`` or ``Table`` carries them
@@ -70,7 +96,7 @@ The paging keys scroll what it is over, as they do for a pointer's drag.
 ## Spring Loading
 
 A drag can open its own way to a destination. Hold the pointer still over a
-spring-loaded control for half a second, mid-drag, and the control activates
+spring-loaded control for a moment, mid-drag, and the control activates
 as a click would — a ``TabView``'s tab is selected, a ``DisclosureGroup``
 opens, a ``Button`` runs its action — with the payload still in hand:
 
@@ -82,6 +108,11 @@ Button {
 }
 .springLoadingBehavior(.enabled)
 ```
+
+The moment is the spring-loading delay set in the system's settings, where TUI
+can read it, and half a second otherwise. `TUI_SPRING_LOADING_DELAY` (in seconds)
+lets the person running the app choose it, and ``View/springLoadingDelay(_:)``
+sets it for part of an app (<doc:EnvironmentVariables>).
 
 Tabs spring-load unless told `.disabled`; buttons, links, navigation links,
 `.button` toggles, segmented pickers and disclosure groups only under
@@ -97,7 +128,7 @@ walks back to where it started rather than vanishing under the pointer — about
 a fifth of a second, cell by cell. "Nothing happened" reads far better as a row
 going home than as one disappearing in mid-air.
 
-**No key cancels a drag**, deliberately. A drag has to be carriable across the
+**A pointer drag has no cancel key**, deliberately. A drag has to be carriable across the
 app — pick a row up on one page, navigate to another, drop it there — and that
 requires the navigation keys to keep navigating while something is in hand.
 <kbd>Escape</kbd> was the obvious candidate and is exactly the key that

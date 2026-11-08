@@ -91,6 +91,8 @@ Button("Save") { save() }
 
 A terminal app has to be usable without a mouse, so the first control on a screen or in a new sheet takes the focus by itself. If you state a preference with `.defaultFocus`, or move the focus with `@FocusState`, that takes over.
 
+Tab and Shift-Tab move through the controls in order, and so do the arrow keys a control doesn't use itself. A user can set `TUI_ARROW_FOCUS=geometric`, an experiment, to have an arrow go to the nearest control on screen in that direction instead (<doc:EnvironmentVariables>).
+
 A link inside a `Text` is a control like any other. The Tab key stops on it, Return opens it, and it's underlined so that you can see it's a link. To remove the underline, write `.linkUnderline(false)`.
 
 ## Lists keep a cursor apart from the selection
@@ -130,7 +132,7 @@ A scroll bar takes up a column of the view and is drawn whenever the content ove
 
 ## Pictures depend on the terminal
 
-An `Image` is drawn in real pixels where the terminal supports the Kitty graphics protocol, and as text characters everywhere else.
+An `Image` is drawn in real pixels where the terminal supports the Kitty graphics protocol or Sixel, and as text characters everywhere else (<doc:WorkingWithImages>).
 
 - `Image(systemName:)` draws nothing unless the terminal's font has that symbol, so don't rely on SF Symbols for anything essential.
 - An image made from a `CGImage` or `NSImage` is read once. Drawing into it later won't change what's on screen.
@@ -153,6 +155,9 @@ A terminal has one surface, so app structure changes a little.
 - **Control-Q quits.** ⌘Q never reaches a terminal app, and Control-Q is what the status bar and the Quit menu item name. Control-\\ asks first, and Control-C copies, as ⌘C does. There's no `applicationShouldTerminate`: say what's at stake with `.quitWarning(_:isActive:)` (see <doc:ScenesAndQuitting>).
 - **Toolbars are bars.** `.toolbar` items go into one bar above the page or one below it, each drawn only when it has something in it. `.principal` replaces the title, and `.status` goes in the bottom bar.
 - **Sheets fit their content.** There's no minimum size.
+- **`Settings` is a sheet.** A `Settings` scene opens as a sheet over the window in front, from `openSettings`, a `SettingsLink`, or the menu bar's Settings… item (Control-comma), rather than in a window of its own.
+- **Notifications are drawn by the app.** Post one with `NotificationService.current.post(_:)` and it appears as a toast at the edge of the terminal; the terminal, or this machine, can also show it on the desktop (<doc:Presentation>).
+- **`@SceneStorage` survives a relaunch.** It's saved as `@AppStorage` is, and kept for each terminal window, tab or pane, so running the app again in the same window puts back where it was there (<doc:StateManagement>).
 - **Help appears in the status bar.** `.help("…")` shows there when the mouse rests on a view, or when the user presses `?` on a focused control. For a panel beside the view, write `.tooltipStyle(.popover)`.
 - **File panels are TUI's own.** `fileImporter` and its relatives draw a panel in the terminal, browsing the machine the app is running on. Over `ssh`, that's the remote machine, not the one in front of the user.
 
@@ -171,7 +176,7 @@ ContentView()
 
 ## Things that don't exist
 
-These have no meaning in a grid of cells, or aren't built yet, so using them is a compile error. The compiler tells you what to use instead, here and for an older SwiftUI spelling such as `.foregroundColor`, `.cornerRadius`, `.tabItem` or `NavigationView`, on the line where you wrote it:
+These have no meaning in a grid of cells, or aren't built yet, so using them is a compile error. For most of them, and for an older SwiftUI spelling such as `.foregroundColor`, `.cornerRadius`, `.tabItem` or `NavigationView`, the compiler tells you what to use instead, on the line where you wrote it; a few, such as `ShareLink`, are simply not found:
 
 | In SwiftUI | In TUI |
 |---|---|
@@ -182,7 +187,7 @@ These have no meaning in a grid of cells, or aren't built yet, so using them is 
 | `.onReceive` | A `.task`, or an `@Observable` model. |
 | `Font.system(size:)`, the font designs `.serif` and `.rounded` | `.font(.title)` and the other text styles. |
 | Right-to-left layout | Not yet. `\.layoutDirection` is always left to right and can't be set. |
-| VoiceOver and accessibility traits | None. |
+| VoiceOver and accessibility traits | None. The display preferences do exist: see "Accessibility" below. |
 | `.foregroundColor` | `.foregroundStyle`. |
 | `.cornerRadius` | `.background(.blue, in: RoundedRectangle(cornerRadius: 1))`, or `.clipShape(RoundedRectangle(cornerRadius: 1))`. |
 | `NavigationView` | `NavigationStack`, or `NavigationSplitView` for columns. |
@@ -194,6 +199,10 @@ These have no meaning in a grid of cells, or aren't built yet, so using them is 
 | `.defaultSize`, `.windowResizability` | None. Leave them out: a window is the size of the terminal. |
 | `@Entry` | Add `import TUIMacros`, and the `TUIMacros` product to your target (<doc:ChoosingProducts>). It's a product of its own because it builds swift-syntax. |
 | `.background(view)`, `.overlay(view)` | `.background { view }`, `.overlay { view }`. `.overlay(.red)` and `.background(.red)` take a style as they do in SwiftUI. |
+
+## Accessibility
+
+A terminal has no accessibility tree, so `accessibilityLabel`, traits and VoiceOver have no counterpart. The display preferences work as in SwiftUI: read `\.accessibilityReduceMotion`, `\.accessibilityReduceTransparency`, `\.accessibilityDifferentiateWithoutColor` and `\.colorSchemeContrast`, and TUI's own controls follow them. The user sets them with `TUI_REDUCE_MOTION` and its relatives, with the system setting when they're at the machine the app runs on, or, in an app with a menu bar, from the View menu, which also has Breathing Focus, Spell Out Keys and Focus Follows Pointer (<doc:EnvironmentVariables>).
 
 ## Views can be built anywhere, and handlers run on the main actor
 

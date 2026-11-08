@@ -40,6 +40,18 @@ as on any other.
 Your own targets' resources are separate bundles, and SwiftPM's `Bundle.module` still requires them wherever your
 code reads it.
 
+### On Linux
+
+A program built as above links the Swift runtime and Foundation as shared libraries, so the machine it runs on needs
+those of the same Swift version installed. To ship one that doesn't, link them into the executable:
+
+```bash
+swift build -c release --static-swift-stdlib
+```
+
+The resource bundle still goes beside the executable. For a program with no shared-library dependencies at all, build
+with the Static Linux SDK (`--swift-sdk x86_64-swift-linux-musl`, or `aarch64-swift-linux-musl`).
+
 ### A Library for macOS 15
 
 TUI itself needs no library beside the executable on any macOS it supports. Your program might, if it:
@@ -138,7 +150,7 @@ To list your program's own variables first, write the heading yourself and pass 
 Where myapp keeps its projects.
 ```
 
-`--audience developer` lists what's for someone building the app rather than running it. A script can also check that a committed copy is up to date, by writing it again and running `git diff --exit-code man/`.
+`--audience` chooses whose variables: `end-user`, the default, for the people running the app; `developer`, for someone building the app rather than running it; or `detected`, the ones a terminal, a multiplexer or ssh sets, which TUI reads to work out where it's running. A script can also check that a committed copy is up to date, by writing it again and running `git diff --exit-code man/`.
 
 ### From Your Own Code
 
@@ -161,7 +173,8 @@ Nothing, unless you use it. `swift run` builds `tui-environment-docs` when you r
 ## Shipping Size
 
 Everything here is optional. Each step costs something only you can weigh, and the savings are rough figures for a
-hello-world app, so yours will differ.
+hello-world app on macOS, so yours will differ. The two traits and `-deduplicate` act only in macOS release builds;
+fewer modules and `strip` work everywhere.
 
 | Step | Saves about | Costs |
 |---|---|---|
@@ -287,7 +300,8 @@ Both halves are needed. `DEVELOPER_DIR` alone does not change which compiler swi
 
 **How little more cores help.** A release build compiles each module as one whole-module job, and the modules build in
 a chain. Inside a job, type checking and the optimiser take most of the time and run on one thread; only the final code
-generation spreads across cores.
+generation spreads across cores. So a faster core helps more than more of them, and what helps most is compiling less:
+depend on only the products you use (<doc:ChoosingProducts>).
 
 ## See Also
 
