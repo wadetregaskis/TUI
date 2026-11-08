@@ -60,6 +60,9 @@ included, though a click or Return on such a row selected nothing. They skip it 
 reorderable `List` or `Table` (or a `.draggable` view) inside one could never pick a row up from the keyboard: the
 refresh ran instead. The focused control now has the key first, and the refresh runs when it lets the key go.
 
+**A root title that changes while screens are pushed keeps the breadcrumb trail.** The crumbs between
+the root and the screen on top turned into "…".
+
 **A pushed screen keeps its `@State` while another is pushed over it.** It came back reset, or with the
 state of the screen that had covered it, and a screen pushed over another of its type started with that one's state.
 The same in a collapsed split view's linked screens.

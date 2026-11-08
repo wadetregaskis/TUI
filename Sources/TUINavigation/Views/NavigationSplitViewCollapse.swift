@@ -366,7 +366,7 @@ extension _NavigationSplitViewCore {
             let preferences = backdrop.environment.preferenceStorage
             preferences?.push()
             _ = backdrop.withThrowawayFrameDemand { hidden in renderColumnContent(column, context: hidden) }
-            coordinator.recordTitle(preferences?.pop()[NavigationTitleKey.self] ?? "", atDepth: depth)
+            coordinator.recordTitle(preferences?.pop()[NavigationTitleKey.self] ?? "", atDepth: depth, buried: true)
         }
     }
 

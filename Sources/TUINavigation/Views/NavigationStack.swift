@@ -314,7 +314,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             _ = backdrop.withThrowawayFrameDemand { hidden in
                 TUIView.renderToBuffer(root, context: hidden.withChildIdentity(type: type(of: root)))
             }
-            coordinator.recordTitle(preferences?.pop()[NavigationTitleKey.self] ?? "", atDepth: 0)
+            coordinator.recordTitle(preferences?.pop()[NavigationTitleKey.self] ?? "", atDepth: 0, buried: true)
         }
 
         // The screens under the one on top keep their state while covered, as

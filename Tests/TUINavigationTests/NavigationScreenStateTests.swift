@@ -144,4 +144,34 @@ struct NavigationScreenStateTests {
         let again = frames.draw(stack(binding, sink: sink))
         #expect(again.contains("screen 1 taps 0"), "a screen pushed anew kept the popped one's state:\n\(again)")
     }
+
+    @Test("A root title that changes while screens are pushed keeps the middle of the trail")
+    func rootTitleChangeKeepsTheMiddleCrumbs() {
+        // The root renders every frame, buried, and records its title each
+        // time; a changed title was read as a different screen at depth 0 and
+        // dropped every depth above it, so the middle crumb came back as "…".
+        let frames = Frames()
+        var count = 4
+        var path = NavigationPath()
+        let binding = Binding(get: { path }, set: { path = $0 })
+        func view() -> some View {
+            NavigationStack(path: binding) {
+                Text("inbox")
+                    .navigationTitle("Inbox (\(count))")
+                    .navigationDestination(for: String.self) { name in
+                        Text(name).navigationTitle(name)
+                    }
+            }
+        }
+
+        _ = frames.draw(view())
+        path.append("Mars")
+        _ = frames.draw(view())
+        path.append("Deimos")
+        #expect(frames.draw(view()).contains("Inbox (4) › Mars › Deimos"))
+
+        count = 5
+        let changed = frames.draw(view())
+        #expect(changed.contains("Inbox (5) › Mars › Deimos"), "the middle crumb was lost:\n\(changed)")
+    }
 }

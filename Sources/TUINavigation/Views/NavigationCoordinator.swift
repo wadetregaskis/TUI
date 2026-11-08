@@ -143,15 +143,26 @@ extension NavigationCoordinator {
     /// remembered from the frames when it *was* on top. That is the whole point
     /// of this table.
     ///
-    /// Which is why a *changed* title drops the depths above it and an unchanged
-    /// one does not. A change means a different screen is at that depth, so the
-    /// names below it in the trail describe screens the user never opened. An
-    /// unchanged one is just the root re-reporting itself, as it does every
-    /// frame; truncating on that would erase the middle of the trail before
-    /// anything could read it.
-    func recordTitle(_ title: String, atDepth depth: Int) {
+    /// Which is why a *changed* title from the screen on top drops the depths
+    /// above it and an unchanged one does not. A change there means a different
+    /// screen is at that depth, so the names below it in the trail describe
+    /// screens the user never opened. An unchanged one is just a screen
+    /// re-reporting itself, as the root does every frame; truncating on that
+    /// would erase the middle of the trail before anything could read it.
+    ///
+    /// A `buried` report — the root's, drawn off-screen, or a collapsed split's
+    /// column behind the one on top — cannot mean a different screen: what is
+    /// at a buried depth is fixed by the path above it. So its title, changed,
+    /// is replaced where it stands. Read as a different screen, a root titled
+    /// "Inbox (4)" turning "Inbox (5)" dropped every depth above it, and the
+    /// middle of the trail came back as "…".
+    func recordTitle(_ title: String, atDepth depth: Int, buried: Bool = false) {
         if depth < titlesByDepth.count {
             guard titlesByDepth[depth] != title else { return }
+            if buried {
+                titlesByDepth[depth] = title
+                return
+            }
             titlesByDepth.removeSubrange(depth...)
         }
         while titlesByDepth.count < depth { titlesByDepth.append("") }

@@ -147,6 +147,20 @@ struct NavigationTitleMemoryTests {
         #expect(coordinator.titles(upTo: 2) == ["Library", "Albums", "Track"])
     }
 
+    @Test("A buried screen's changed title is replaced where it stands, keeping the depths above it")
+    func buriedTitleChangeKeepsTheMiddle() {
+        // The root, and a collapsed split's columns behind the one on top,
+        // render buried every frame: whatever they are called, they are the
+        // same screens, and the trail above them stays.
+        let coordinator = NavigationCoordinator()
+        coordinator.recordTitle("Inbox (4)", atDepth: 0, buried: true)
+        coordinator.recordTitle("Mars", atDepth: 1)
+        coordinator.recordTitle("Deimos", atDepth: 2)
+        coordinator.recordTitle("Inbox (5)", atDepth: 0, buried: true)
+        coordinator.recordTitle("Deimos", atDepth: 2)
+        #expect(coordinator.titles(upTo: 2) == ["Inbox (5)", "Mars", "Deimos"])
+    }
+
     @Test("Recording out of order does not trap")
     func sparseDepths() {
         // Defensive: a depth recorded before its parent must not crash or
