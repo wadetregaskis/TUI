@@ -175,6 +175,18 @@ extension EnvironmentValues {
 }
 ```
 
+SwiftUI's shorthand, the `@Entry` macro, writes the key for you. It's in the
+`TUIMacros` product, which you add to your target and import beside TUI
+(<doc:ChoosingProducts>):
+
+```swift
+import TUIMacros
+
+extension EnvironmentValues {
+    @Entry var myCustomValue = "default"
+}
+```
+
 Inject values with the `.environment()` modifier:
 
 ```swift

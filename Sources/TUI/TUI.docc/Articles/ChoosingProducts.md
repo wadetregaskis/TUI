@@ -41,6 +41,7 @@ notifications and `.help`. It links `TUIPresentation` too, for the alert the qui
 
 | Product | What it has | Brings with it |
 |---|---|---|
+| `TUIChrome` | the status bar, the toolbars, notifications and their toasts, `.help`. `TUIApp` brings it, so list it only in a library that uses these without `TUIApp` | |
 | `TUILists` | `List`, `OutlineGroup`, `EditMode`, the list styles | |
 | `TUITables` | `Table`, its columns and rows, the table styles | `TUILists` |
 | `TUITabs` | `TabView`, `Tab`, `TabSection`, the tab styles | `TUILists`, `TUIPresentation` |
@@ -50,7 +51,7 @@ notifications and `.help`. It links `TUIPresentation` too, for the alert the qui
 | `TUIMenus` | `Menu`, `ControlGroup`, `.contextMenu`, the menu styles | |
 | `TUIFilePanels` | `fileImporter`, `fileExporter`, `fileMover`, the `fileDialog` modifiers: the open and save panels | `TUINavigation`, `TUIPickers`, `TUIPresentation`, `TUITables`, `TUITextInput` |
 | `TUIDocuments` | `DocumentGroup` and its configurations, `newDocument`, `openDocument`: an app that opens and saves a document | `TUIApp`, `TUICommands`, `TUIFilePanels`, `TUIPresentation` |
-| `TUICommands` | `Commands`, `CommandMenu`, `CommandGroup`, `CommandGroupPlacement`: the menu bar | `TUIApp`, `TUIPresentation` |
+| `TUICommands` | `Commands`, `CommandMenu`, `CommandGroup`, `CommandGroupPlacement`: the menu bar | `TUIApp`, `TUIPresentation`; links `TUIPickers` without showing it |
 | `TUIScenes` | `Settings` (presented as a sheet) and `AlertScene`, and the scene modifiers for alerts | `TUIApp`, `TUIPresentation` |
 | `TUITextInput` | `TextField`, `SecureField`, `TextEditor` | |
 | `TUIPickers` | `Picker`, `RadioButtonGroup`, `DatePicker` | |

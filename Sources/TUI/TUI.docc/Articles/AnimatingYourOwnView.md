@@ -94,6 +94,24 @@ struct FocusDot: View, Renderable {
 }
 ```
 
+The view that owns it reads the focus and the clock, as `Target` did above, and
+passes the cycle and its two colours in:
+
+```swift
+struct Target: View {
+    @Environment(\.isFocused) private var isFocused
+    @Environment(\.selectionEmphasis) private var emphasis
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        FocusDot(cycle: emphasis.cycle(isFocused),
+                 dim: palette.foregroundTertiary, bright: palette.accent)
+    }
+}
+```
+
+<doc:CustomViews> explains ``Renderable``, ``FrameBuffer`` and ``RenderContext``.
+
 ``SelectionEmphasisCycle/run(_:dim:bright:offsetX:offsetY:)`` returns `nil` when
 the cycle does not actually animate — an unfocused element, a
 `.selectionIndicatorStyle(.none)`, or a `dim` and `bright` that are one colour.
@@ -119,8 +137,8 @@ frames are laid out on. ``AnimatedColor`` carries them the same way.
 
 Both of those need the view to know where its own cells are. Often it does not:
 what animates is a colour something *else* paints, and that something knows the
-geometry only after layout. The `.border` of the focus example above is exactly
-that case — there is no offset for you to pass.
+geometry only after layout. A border is exactly that case — there is no offset
+for you to pass.
 
 So hand the modifier the colour instead. ``AnimatedColor`` is every frame of
 one, and ``View/border(_:style:width:)-(AnimatedColor,_,_)`` takes it and leaves the runs for the
@@ -156,7 +174,8 @@ faded accent at both of them.
 
 A ``Renderable`` owns a buffer and can write runs onto it. A view whose `body`
 is other views has no buffer of its own, so it declares them instead with
-``View/animatedCells(_:)``:
+``View/animatedCells(_:)``. Here `cycle`, `dim` and `bright` come in as they do
+for `FocusDot`:
 
 ```swift
 var body: some View {

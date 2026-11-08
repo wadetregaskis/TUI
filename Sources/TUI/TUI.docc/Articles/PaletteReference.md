@@ -158,7 +158,7 @@ Inspired by military and night-vision-friendly displays. Preserves scotopic (nig
 
 | Token | Description |
 |-------|-------------|
-| `success` | Light red (brighter = positive) |
+| `success` | Light orange, lighter than `warning` |
 | `warning` | Orange tint |
 | `error` | Pure white (maximum contrast) |
 | `info` | Soft pink |
@@ -191,7 +191,7 @@ The violet preset takes a base hue (270°) and derives all color tokens using HS
 | `warning` | hsl(45, 80%, 70%) | Amber |
 | `error` | hsl(355, 85%, 65%) | Red |
 | `info` | hsl(210, 70%, 70%) | Sky blue (270−60=210°) |
-| `border` | hsl(270, 40%, 25%) | Dark purple border |
+| `border` | hsl(270, 55%, 25%) | Dark purple border |
 | `statusBarBackground` | hsl(270, 35%, 7%) | Very dark violet (the header's tone too) |
 
 ## Blue
@@ -223,23 +223,25 @@ Inspired by vintage vacuum fluorescent displays (VFDs). The characteristic brigh
 
 ``AppleTerminalPalette`` recreates the ten profiles that ship with macOS Terminal.app. The defining colours — background, text, bold text, cursor and selection — are the exact sRGB values from Terminal.app's bundled profile files; TUI derives the remaining semantic roles from them (the foreground ladder steps toward the background, `accent` comes from the bold/cursor/selection colours, `focusBackground` is the profile's selection colour, and `success`/`warning`/`error`/`info` are readable green/amber/red/blue tuned to the background's lightness).
 
-| Profile | Case | ID |
-|---------|------|----|
-| Basic | ``AppleTerminalPalette/Profile/basic`` | `"appleTerminal.basic"` |
-| Grass | ``AppleTerminalPalette/Profile/grass`` | `"appleTerminal.grass"` |
-| Homebrew | ``AppleTerminalPalette/Profile/homebrew`` | `"appleTerminal.homebrew"` |
-| Man Page | ``AppleTerminalPalette/Profile/manPage`` | `"appleTerminal.manPage"` |
-| Novel | ``AppleTerminalPalette/Profile/novel`` | `"appleTerminal.novel"` |
-| Ocean | ``AppleTerminalPalette/Profile/ocean`` | `"appleTerminal.ocean"` |
-| Pro | ``AppleTerminalPalette/Profile/pro`` | `"appleTerminal.pro"` |
-| Red Sands | ``AppleTerminalPalette/Profile/redSands`` | `"appleTerminal.redSands"` |
-| Silver Aerogel | ``AppleTerminalPalette/Profile/silverAerogel`` | `"appleTerminal.silverAerogel"` |
-| Solid Colors | ``AppleTerminalPalette/Profile/solidColors`` | `"appleTerminal.solidColors"` |
+| Profile | Case | ID | Scheme |
+|---------|------|----|--------|
+| Basic | ``AppleTerminalPalette/Profile/basic`` | `"appleTerminal.basic"` | Light |
+| Grass | ``AppleTerminalPalette/Profile/grass`` | `"appleTerminal.grass"` | Dark |
+| Homebrew | ``AppleTerminalPalette/Profile/homebrew`` | `"appleTerminal.homebrew"` | Dark |
+| Man Page | ``AppleTerminalPalette/Profile/manPage`` | `"appleTerminal.manPage"` | Light |
+| Novel | ``AppleTerminalPalette/Profile/novel`` | `"appleTerminal.novel"` | Light |
+| Ocean | ``AppleTerminalPalette/Profile/ocean`` | `"appleTerminal.ocean"` | Dark |
+| Pro | ``AppleTerminalPalette/Profile/pro`` | `"appleTerminal.pro"` | Dark |
+| Red Sands | ``AppleTerminalPalette/Profile/redSands`` | `"appleTerminal.redSands"` | Dark |
+| Silver Aerogel | ``AppleTerminalPalette/Profile/silverAerogel`` | `"appleTerminal.silverAerogel"` | Light |
+| Solid Colors | ``AppleTerminalPalette/Profile/solidColors`` | `"appleTerminal.solidColors"` | Light |
 
 ```swift
 ContentView()
     .palette(AppleTerminalPalette(.homebrew))
 ```
+
+A light profile is a light palette: ``EnvironmentValues/colorScheme`` answers `.light` under it, for every view that reads it. None of these palettes changes with Increase Contrast (`TUI_INCREASE_CONTRAST`); that sets ``EnvironmentValues/colorSchemeContrast`` for your own views to read, as <doc:ThemingGuide> says.
 
 ## Terminal
 
