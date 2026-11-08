@@ -335,6 +335,8 @@ struct OverlaysPage: View {
                 }
             }
 
+            NotificationsDemo()
+
             DemoSection("page.overlays.section.howItWorks") {
                 Text("page.overlays.howItWorks.intro")
                     .foregroundStyle(.palette.foregroundSecondary)

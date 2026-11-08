@@ -1033,7 +1033,7 @@ let package = Package(
         // Linux, its `main.swift` left unrun.
         .testTarget(
             name: "ExampleTests",
-            dependencies: ["Example", "TUI", "TUIApp", "TUIFoundation", "TUITesting"]
+            dependencies: ["Example", "TUI", "TUIApp", "TUIChrome", "TUIFoundation", "TUITesting"]
         ),
         // `TUITesting`'s own tests, written as a client's are: `import TUITesting` and the modules the
         // views come from, with no `@testable`, so a thing a client cannot do fails to compile here.
