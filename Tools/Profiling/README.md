@@ -285,6 +285,29 @@ against what the change meant to do. Allocation counts repeat to within about
 itself); everything else here repeats exactly. It has no count of body runs:
 nothing in the harness counts them yet.
 
+## Input to frame — `input_latency.py`
+
+```sh
+Tools/Profiling/input_latency.py .build/release/Example                  # list, table, scroll, mouse
+Tools/Profiling/input_latency.py /tmp/old /tmp/new --scenario list --reps 6
+Tools/Profiling/input_latency.py .build/release/Example --gap 0.1         # one frame per input
+```
+
+The whole loop's latency, which a frame cost can't show: the app in a PTY, the
+`drive.py` scenarios played into it, and for each input the time from writing
+it to the end of the first frame read after it. A frame's end is in the byte
+stream — the synchronized update's `ESC [ ? 2026 l` (`TUI_SYNCHRONIZED_OUTPUT=1`
+is set) — so nothing is guessed from silences. Prints p50, p95 and max per
+scenario and binary, the inputs that got no frame, and the spread of the
+per-rep medians, with binaries run in an order shuffled per rep.
+
+Two limits. Inputs sent faster than frames finish share the next frame, each
+charged from its own write, which is what a user feels under that stream;
+`--gap` spaces them so each gets its own. And an animating page draws frames on
+its own, one of which can be taken for an input's: use the still scenarios.
+Wall time, so as noisy as the machine: compare medians over several reps, and
+read a difference inside the per-rep spread as none. Not a CI gate.
+
 ## The pieces
 
 ### `record.sh` — orchestrator
