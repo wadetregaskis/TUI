@@ -208,21 +208,61 @@ extension View {
     nonisolated public func onScrollGesture(
         _ action: @escaping (_ direction: ScrollDirection) -> Void
     ) -> some View {
+        onScrollWheel { direction in
+            action(direction)
+            return true
+        }
+    }
+
+    /// Adds an action that fires on a scroll wheel tick inside this view's
+    /// bounds, and says whether it took the tick: ``onScrollGesture(_:)``, able
+    /// to decline.
+    ///
+    /// Return `true` to consume the tick, or `false` to decline it: a declined
+    /// tick goes on at once to whatever is under the pointer behind this view,
+    /// usually the nearest enclosing ``ScrollView`` or `List`, which scrolls as
+    /// though this view weren't there. That scroller keeps its own pause at its
+    /// edges before it passes ticks further out (``View/scrollChainingDelay(_:)``).
+    ///
+    /// The use is a pane of your own that scrolls something itself and gives
+    /// way at its ends, so the page around it carries on:
+    ///
+    /// ```swift
+    /// LogPane(lines: lines, top: top)
+    ///     .onScrollWheel { direction in
+    ///         switch direction {
+    ///         case .up where top > 0: top -= 1
+    ///         case .down where top < lines.count - height: top += 1
+    ///         default: return false  // at an end: the page scrolls
+    ///         }
+    ///         return true
+    ///     }
+    /// ```
+    ///
+    /// TUI-specific, as `onScrollGesture(_:)` is. A name of its own rather than
+    /// an overload of that: two overloads differing only in what the closure
+    /// returns made every existing closure of several statements ambiguous.
+    ///
+    /// - Parameter action: The action to run on each tick, given its
+    ///   direction. Returns `true` if it handled the tick.
+    /// - Returns: A view that offers scroll events landing on it to `action`.
+    nonisolated public func onScrollWheel(
+        _ action: @escaping (_ direction: ScrollDirection) -> Bool
+    ) -> some View {
         onMouseEvent { event in
             guard event.phase == .scrolled else { return false }
             switch event.button {
-            case .scrollUp: action(.up)
-            case .scrollDown: action(.down)
-            case .scrollLeft: action(.left)
-            case .scrollRight: action(.right)
+            case .scrollUp: return action(.up)
+            case .scrollDown: return action(.down)
+            case .scrollLeft: return action(.left)
+            case .scrollRight: return action(.right)
             default: return false
             }
-            return true
         }
     }
 }
 
-/// Direction of a scroll-wheel tick reported to ``View/onScrollGesture(_:)``.
+/// Direction of a scroll-wheel tick reported to `onScrollGesture(_:)`.
 public enum ScrollDirection: Sendable, Equatable {
     case up
     case down

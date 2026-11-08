@@ -12,6 +12,10 @@ saved. On **Move** the border breathes, the arrows move the sheet within the scr
 names the keys while either stop has the focus. A one-row sheet has only Move. Alerts and confirmation dialogs have
 neither stop and no grips.
 
+**`.onScrollWheel { direction in … }` can decline a wheel tick.** Return `false` and the `ScrollView` or `List` behind
+the view scrolls instead, so a pane that scrolls something itself can give way at its ends. `.onScrollGesture` still takes
+every tick.
+
 **`renderOnceToString(width:height:output:colorDepth:content:)` returns what `renderOnce` would print.** For a test,
 a log or a table inside your own output: plain text by default, at the width and height you give, or with its escape
 sequences at a colour depth you choose.

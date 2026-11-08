@@ -37,6 +37,13 @@ content
     }
 
 content
+    .onScrollWheel { direction in
+        // return false to decline the tick: the ScrollView or List around
+        // the view scrolls instead, as though the view weren't there
+        return canScroll(direction)
+    }
+
+content
     .gesture(
         DragGesture(minimumDistance: 0)
             .onChanged { drag in
