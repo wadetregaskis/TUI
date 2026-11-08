@@ -87,6 +87,13 @@ becoming a ramp, a ``LinearGradient`` becoming a ``RadialGradient`` — snaps,
 because the numbers on either side mean different things and interpolating a
 radius toward an ordinate is not a transition.
 
+A ``Shape`` whose path changes snaps too, as in SwiftUI: a `Path` has no
+numbers of its own to animate. To morph one outline into another, give the
+shape a progress as its `animatableData` and return
+``Path/interpolated(towards:amount:)`` from `path(in:)`, a TUI addition. Paths
+built the same way (the same moves, lines, curves and closes, in order) move
+point by point; paths built differently swap at the halfway mark.
+
 ## Saying it at the change, or at the view
 
 ``withAnimation(_:_:)`` states it where the change is made. Use it when the code

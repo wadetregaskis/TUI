@@ -12,6 +12,11 @@ saved. On **Move** the border breathes, the arrows move the sheet within the scr
 names the keys while either stop has the focus. A one-row sheet has only Move. Alerts and confirmation dialogs have
 neither stop and no grips.
 
+**`Path.interpolated(towards:amount:)` morphs one outline into another.** Give a custom `Shape` a progress as its
+`animatableData` and return the interpolated path from `path(in:)`. Paths built the same way move point by point, control
+points included; paths built differently swap at the halfway mark rather than being resampled. TUI's own; SwiftUI's `Path`
+doesn't animate, and TUI's still doesn't by itself.
+
 **OKLab and OKLCh are public on `Color`.** `Color.oklab(_:_:_:)` and `Color.oklch(_:_:_:)` make a colour from CSS's
 numbers, `Color.rgbToOKLab(red:green:blue:)` and `Color.rgbToOKLCh(red:green:blue:)` go the other way, and
 `color.deltaE(other)` says how different two colours look (ΔEOK: 1 is black against white, about 0.02 the least
