@@ -110,8 +110,10 @@ final class SignalManager {
 
     private struct Registration {
         let number: Int32
-        /// The disposition to restore on teardown (Darwin only; `nil` on Linux,
-        /// where the disposition must not be touched — see ``register(_:kind:barrier:)``).
+        /// The disposition to restore on teardown, on Darwin, where `nil` is
+        /// `SIG_DFL` — the usual case, and one to restore like any other. Unused
+        /// on Linux, where the disposition must not be touched — see
+        /// ``register(_:kind:barrier:)``.
         let previous: Disposition?
         let source: any DispatchSourceSignal
     }
@@ -289,9 +291,10 @@ final class SignalManager {
         for registration in registrations {
             registration.source.cancel()
             #if !os(Linux)
-                if let previous = registration.previous {
-                    signal(registration.number, previous)
-                }
+                // Unconditionally: `nil` is SIG_DFL, not "nothing to restore".
+                // Skipping it left ⌃C, `kill` and ⌃Z ignored for the rest of
+                // the process, and for anything it launched afterwards.
+                signal(registration.number, registration.previous)
             #endif
         }
         registrations.removeAll()

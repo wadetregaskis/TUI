@@ -93,4 +93,30 @@ struct SignalManagerTests {
         signals.stop()
         signals.stop()  // must not crash / double-cancel
     }
+
+    #if !os(Linux)
+        @Test("stop() puts a default disposition back, rather than leaving the signal ignored")
+        func stopRestoresTheDefaultDisposition() async {
+            // Darwin ignores each signal while its source watches it, and stop()
+            // puts the old disposition back. `signal` hands the old one back as
+            // an optional, in which the default, SIG_DFL, is `nil` — so a
+            // restore spelled `if let previous` skipped exactly the usual case,
+            // and a process that went on after its app had run could no longer
+            // be stopped by ⌃C, `kill` or ⌃Z, nor could anything it launched.
+            let watched = [SIGINT, SIGTERM, SIGTSTP]
+            let before = watched.map { signal($0, SIG_DFL) }
+            defer { for (number, previous) in zip(watched, before) { signal(number, previous) } }
+
+            let signals = SignalManager()
+            await signals.install(wake: {})
+            signals.stop()
+
+            for number in watched {
+                // Reading a disposition means setting one; the default is set
+                // back either way.
+                let after = signal(number, SIG_DFL)
+                #expect(after == nil, "signal \(number) is not back at its default disposition")
+            }
+        }
+    #endif
 }

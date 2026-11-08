@@ -60,6 +60,9 @@ included, though a click or Return on such a row selected nothing. They skip it 
 reorderable `List` or `Table` (or a `.draggable` view) inside one could never pick a row up from the keyboard: the
 refresh ran instead. The focused control now has the key first, and the refresh runs when it lets the key go.
 
+**An app that has run leaves ⌃C, `kill` and ⌃Z working** (macOS). The signals it watched stayed ignored
+after it stopped, for the rest of the process and anything it launched.
+
 **Modifiers on a `Form` row keep all their settings.** On a row in a form, `.onContinuousHover` reported
 whole-cell locations, `.task(name:)` lost its name, a key-titled `.alert` stopped following a subtree's `\.locale`,
 and a sheet ignored its size classes.
