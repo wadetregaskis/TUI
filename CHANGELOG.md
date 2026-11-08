@@ -4,6 +4,11 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**The graphical `DatePicker` lines up in Japanese and Chinese.** Its weekday initials and month title were cut and
+padded in characters, so a two-cell initial made each weekday column four cells over a grid of three, the title
+pushed its ▶ past the edge, and every Chinese initial read 周. They are measured in cells now, and where the cut
+weekday names do not tell the days apart the very short ones are drawn.
+
 **Typing a `DatePicker` component changes only that component.** Each digit was applied to the date the previous one
 had written, so the partial values re-clamped the rest: typing the year 2027 in a range starting 15 March 2020 gave
 15 March 2027, and typing 2024 over 29 February gave the 28th. Each digit is now applied to the date as it was before

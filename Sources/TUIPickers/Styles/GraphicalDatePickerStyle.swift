@@ -294,11 +294,13 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
     ) -> String {
         let title = TextTransliteration.spelled(
             CalendarMonthTitle.title(of: month, calendar: calendar, locale: calendar.locale ?? .current), as: spelling)
+        // Cut and centred in cells, not characters: "2026年10月" is eight
+        // characters and ten cells.
         let inner = Self.width - 4
-        let fitted = title.count > inner ? String(title.prefix(inner)) : title
-        let left = (inner - fitted.count) / 2
+        let (fitted, fittedWidth) = title.ansiAwarePrefixWithWidth(visibleCount: inner)
+        let left = (inner - fittedWidth) / 2
         let titleText = String.spaces(left) + fitted
-            + String.spaces(inner - left - fitted.count)
+            + String.spaces(inner - left - fittedWidth)
         let arrow = (isFocused ? palette.accent : palette.foregroundSecondary).opaqueSpelling
         return ANSIRenderer.colorize(" \(TerminalSymbols.leftArrow)", foreground: arrow)
             + ANSIRenderer.colorize(
@@ -308,18 +310,31 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
     }
 
     /// The weekday initials, starting on the calendar's first weekday, spelled
-    /// as `spelling` says before they are cut to two.
+    /// as `spelling` says before they are cut to two cells.
+    ///
+    /// Cut and padded in cells, not characters, so each column is the day
+    /// grid's three: "日" is one character and two cells. Where the cut short
+    /// symbols do not tell the days apart, the very short ones are used:
+    /// Chinese "周日" and "周一" both cut to "周", where the very short ones are
+    /// "日" and "一". English "Mon" and "Tue" cut to "Mo" and "Tu" and stay.
     private func weekdayRow(calendar: Calendar, palette: any Palette, spelling: TextSpelling) -> String {
-        let symbols: [String] = calendar.veryShortStandaloneWeekdaySymbols.isEmpty
+        let veryShort: [String] = calendar.veryShortStandaloneWeekdaySymbols
+        let symbols: [String] = veryShort.isEmpty
             ? calendar.shortWeekdaySymbols : calendar.shortStandaloneWeekdaySymbols
         let first: Int = calendar.firstWeekday - 1
         let count: Int = symbols.count
-        let ordered: [String] = (0..<7).map { (offset: Int) -> String in
-            TextTransliteration.spelled(symbols[(first + offset) % count], as: spelling)
+        func initials(_ names: [String]) -> [(initial: String, width: Int)] {
+            (0..<7).map { (offset: Int) -> (initial: String, width: Int) in
+                let name: String = TextTransliteration.spelled(names[(first + offset) % names.count], as: spelling)
+                let (initial, width) = name.ansiAwarePrefixWithWidth(visibleCount: 2)
+                return (initial, width)
+            }
         }
-        let cells: [String] = ordered.map { (symbol: String) -> String in
-            " " + String(symbol.prefix(2)).padding(toLength: 2, withPad: " ", startingAt: 0)
+        var cut = initials(symbols)
+        if Set(cut.map(\.initial)).count < cut.count, veryShort.count == count {
+            cut = initials(veryShort)
         }
+        let cells: [String] = cut.map { " " + $0.initial + String.spaces(2 - $0.width) }
         let text: String = cells.joined()
         return ANSIRenderer.colorize(text, foreground: palette.foregroundTertiary.opaqueSpelling)
     }
