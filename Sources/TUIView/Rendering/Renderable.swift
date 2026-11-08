@@ -374,6 +374,7 @@ package func evaluateCompositeBody<V: View>(of view: V, context: RenderContext) 
             of: context, kind: context.isMeasuring ? .bodyMeasure : .bodyRender, reader: V.self,
             sentinel: sentinel))
     context.stateStorage!.markActive(context.identity)
+    BodyChangeReport.noteBodyEvaluated(view, context: context)
     return body
 }
 

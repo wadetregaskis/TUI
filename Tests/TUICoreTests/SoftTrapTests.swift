@@ -108,4 +108,32 @@ struct SoftTrapTests {
 
         #expect(probe.written == [SoftTrapLog.text(for: "to a file")])
     }
+
+    @Test("writeEachTime writes every time, records nothing, and is held while the terminal is owned")
+    func writeEachTimeRepeats() {
+        let probe = LogProbe(holdsWhileTerminalIsOwned: true)
+
+        probe.log.writeEachTime("a\n")
+        probe.log.writeEachTime("a\n")
+        #expect(probe.written == ["a\n", "a\n"])
+        #expect(probe.log.recorded.isEmpty)
+
+        probe.log.holdUntilTerminalRestored()
+        probe.log.writeEachTime("b\n")
+        #expect(probe.written.count == 2)
+        probe.log.terminalRestored()
+        #expect(probe.written == ["a\n", "a\n", "b\n"])
+    }
+
+    @Test("writeEachTime holds a bounded number while the terminal is owned, and says how many it dropped")
+    func writeEachTimeHoldIsBounded() {
+        let probe = LogProbe(holdsWhileTerminalIsOwned: true)
+
+        probe.log.holdUntilTerminalRestored()
+        for _ in 0..<(SoftTrapLog.writesHeld + 3) { probe.log.writeEachTime("x\n") }
+        probe.log.terminalRestored()
+
+        #expect(probe.written.count == SoftTrapLog.writesHeld + 1)
+        #expect(probe.written.last?.hasPrefix("[TUI] 3 more lines were not kept") == true)
+    }
 }

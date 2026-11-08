@@ -195,10 +195,38 @@ public struct ModifiedContent<Content, Modifier> {
 extension ModifiedContent: Equatable where Content: Equatable, Modifier: Equatable {}
 
 /// A view whose body applies the ``ViewModifier`` in its `modifier` field: the
-/// one place the property walk updates a modifier's properties (`PropertyPlans`).
-protocol AppliedModifierHolder {}
+/// one place the property walk updates a modifier's properties (`PropertyPlans`),
+/// and where a modifier's `_printChanges()` is answered (`BodyChangeReport`).
+protocol AppliedModifierHolder {
+    /// The type of the modifier it applies.
+    static var appliedModifierType: Any.Type { get }
 
-extension ModifiedContent: AppliedModifierHolder where Content: View, Modifier: ViewModifier {}
+    /// Answers `request`, a `_printChanges()` call in the modifier's body,
+    /// evaluated as this view's body at `context`.
+    @MainActor func reportOnAppliedModifier(_ request: BodyChangeReport.Request, context: RenderContext)
+}
+
+extension ModifiedContent: AppliedModifierHolder where Content: View, Modifier: ViewModifier {
+    static var appliedModifierType: Any.Type { Modifier.self }
+
+    @MainActor func reportOnAppliedModifier(_ request: BodyChangeReport.Request, context: RenderContext) {
+        // The modifier's `@State` is keyed in its field's scope, which the
+        // plan's step for that field gives: the one it applies.
+        // No step for it: the modifier holds no property. A step that is not
+        // a struct's fields (an enum's case, an object): none can be named.
+        var states: [(name: String, key: StateStorage.StateKey)]? = []
+        if let plan = propertyPlan(for: Self.self), case .fields(let fields) = plan.action,
+            let step = fields.steps.first(where: \.appliesModifier)
+        {
+            if case .fields(let modifier) = step.slot.action {
+                states = BodyChangeReport.modifierStates(modifier, atPosition: step.position, of: context.identity)
+            } else {
+                states = nil
+            }
+        }
+        BodyChangeReport.report(on: modifier, states: states, request: request, context: context)
+    }
+}
 
 extension ModifiedContent: View where Content: View, Modifier: ViewModifier {
     /// The modifier's body, built around this content.

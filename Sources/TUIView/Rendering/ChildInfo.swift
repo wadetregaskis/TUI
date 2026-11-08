@@ -972,6 +972,7 @@ private func measureCompositeBody<V: View>(
             },
             onChange: observedChange(of: context, kind: .bodyMeasure, reader: V.self, sentinel: sentinel))
         let lease = cache.leases.endComputation(mark)
+        BodyChangeReport.noteBodyEvaluated(view, context: context)
         cache.bodyKeep.keep(body, of: view, lease: lease, context: context, cache: cache)
         return measureChild(body, proposal: proposal, context: childContext)
     }
@@ -981,6 +982,7 @@ private func measureCompositeBody<V: View>(
         let started = context.renderCache?.bodyKeep.startTiming()
         let body = plan.map { preparedBody(of: view, plan: $0, context: context, isMeasuring: true) } ?? view.body
         context.renderCache?.bodyKeep.noteEvaluation(of: V.self, since: started)
+        BodyChangeReport.noteBodyEvaluated(view, context: context)
         return measureChild(body, proposal: proposal, context: childContext)
     }
     let sentinel = cache.leases.isActive ? cache.leases.sentinel(at: context.identity) : nil
@@ -993,6 +995,7 @@ private func measureCompositeBody<V: View>(
         },
         onChange: observedChange(of: context, kind: .bodyMeasure, reader: V.self, sentinel: sentinel))
     cache.bodyKeep.noteEvaluation(of: V.self, since: started)
+    BodyChangeReport.noteBodyEvaluated(view, context: context)
     return measureChild(body, proposal: proposal, context: childContext)
 }
 

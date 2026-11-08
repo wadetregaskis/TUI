@@ -74,6 +74,7 @@ import TUICore
     /// | -170… | `_SwipeActionsView` (`swipeActions(edge:allowsFullSwipe:content:)`'s revealed strip) |
     /// | -180… | `DraggableModifier` (its own focus stop's id, for Copy) |
     /// | -190… | `DropDestinationModifier` (its own focus stop's id, for Paste) |
+    /// | -200… | `_printChanges()`'s record of the body it last reported on (`bodyChangeRecordIndex`) |
     ///
     /// Taking a new range: claim the next free ten here, in this table.
     /// (Leaf `Renderable` views whose slots can never share an identity with
@@ -129,6 +130,12 @@ import TUICore
         /// above: kept at the view's own identity, so it lives exactly as long
         /// as the view's own state.
         package static let objectHolderIndex = -140
+
+        /// Where `_printChanges()` keeps what a view's body was evaluated with
+        /// when it last reported, to say what changed by the next
+        /// (``BodyChangeReport``). From the table above: kept at the view's own
+        /// identity, so it is pruned with the view's own state.
+        static let bodyChangeRecordIndex = -200
 
         /// The fields folded into one word before `Hasher` sees any — see
         /// ``mixHashWord(_:_:)``, and ``RenderCache/MeasureKey`` for why a
@@ -189,6 +196,11 @@ import TUICore
     /// and cleared when the next walk begins. A walk nobody will ask about —
     /// every walk but one a live sheet docks — notes nothing.
     package var notesWindowedRows = false
+
+    /// Where `_printChanges()` and `_logChanges()` send their lines for views
+    /// drawn with this storage, in place of the channel they go to by default
+    /// (``BodyChangeReport``): what a test sets to read them.
+    package var bodyChangeSink: ((String) -> Void)?
 
     /// What this WALK's windowing containers drew of their rows
     /// (``noteWindowedRows(_:)``). Per walk, not per pass: a pass that walks
@@ -1008,6 +1020,7 @@ package final class StateBox<Value> {
 
     /// Tells the sink that the value changed: softly, for a parent's write.
     private func reportChange() {
+        writeCount &+= 1
         if invalidatesSoftly, let identity {
             invalidationSink?.invalidateRenderSoftly(for: identity)
         } else {
@@ -1025,6 +1038,12 @@ package final class StateBox<Value> {
     /// view's place pruned, the storage reset, its enum case left. A `@State`
     /// still bound to it is then bound afresh (``State``'s `bindState`).
     private(set) var wasDropped = false
+
+    /// How many times the value has been written, wrapping: what tells
+    /// `_printChanges()` which of a view's `@State` changed since its last body
+    /// (``BodyChangeReport``), with no value compared. Beside the `Bool`s, where
+    /// the instance has room for it.
+    private(set) var writeCount: UInt32 = 0
 
     /// Creates a state box with an initial value.
     ///
@@ -1066,6 +1085,14 @@ extension StateBox: DroppableBox {
         wasDropped = true
     }
 }
+
+/// A box that counts its writes, whatever its value's type: a `StateBox`.
+protocol WriteCountingBox: AnyObject {
+    /// How many times its value has been written, wrapping.
+    var writeCount: UInt32 { get }
+}
+
+extension StateBox: WriteCountingBox {}
 
 /// An `@Environment`'s box found resolved for another place
 /// (``StateStorage/noteDisplacedEnvironment(_:from:)``).

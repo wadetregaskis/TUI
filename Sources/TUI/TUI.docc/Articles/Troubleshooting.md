@@ -159,6 +159,23 @@ Check these in order:
 - **Is the object made in the view without `@State`?** A view struct is made again whenever its parent redraws, so a plain `let model = Model()` starts afresh each time. Hold it in `@State`, or pass it in.
 - **Did you copy a value into `@State`?** `@State var value: Int` in a child takes its first value from the parent and then ignores later ones, as in SwiftUI. Write `let value: Int` to follow the parent, or `@Binding var value: Int` to change it too.
 
+## A view redraws more than it should
+
+**You want to know why a `body` runs.** Call `Self._printChanges()` at the top of it, as in SwiftUI:
+
+```swift
+var body: some View {
+    let _ = Self._printChanges()
+    Text("\(count)")
+}
+```
+
+Each time the body runs it writes one line: `Counter: _count changed.` names the `@State` written, `@self` means the
+parent passed a different value, `@identity` means the view is new at its place, and `unchanged.` means none of those, so
+an `@Observable` object or an environment value it read is the likely cause. stdout is the screen, so set
+`TUI_DIAGNOSTICS_FILE=/tmp/changes.log` and `tail -f` that file from another terminal. Without it, the lines go to stderr, held
+until the app quits. ``View/_logChanges()`` writes the same lines to the unified log on a Mac.
+
 ## Colours look wrong
 
 **The app is green, or its colours don't match your terminal, look coarse, or are missing.**

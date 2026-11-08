@@ -77,7 +77,13 @@ package final class SoftTrapLog: Sendable {
         var seen: Set<String> = []
         var held: [String] = []
         var isHolding = false
+        /// How many of ``writeEachTime(_:)``'s texts went unheld for want of room.
+        var dropped = 0
     }
+
+    /// The most texts ``writeEachTime(_:)`` holds while the terminal is owned: a body
+    /// that reports on every frame would otherwise grow the hold without end.
+    static let writesHeld = 4096
 
     private let state = Lock(initialState: State())
     private let holdsWhileTerminalIsOwned: Bool
@@ -133,6 +139,24 @@ package final class SoftTrapLog: Sendable {
         if writeNow { write(text) }
     }
 
+    /// Writes `text` now, or holds it while the terminal is owned, as a report
+    /// is: but every time it is asked, with nothing recorded. For a diagnostic
+    /// that repeats by design, such as `_printChanges()`'s lines. Held texts
+    /// beyond ``writesHeld`` are dropped and counted, and the count is written
+    /// after what was held.
+    package func writeEachTime(_ text: String) {
+        let writeNow = state.withLock { state in
+            guard state.isHolding else { return true }
+            if state.held.count < Self.writesHeld {
+                state.held.append(text)
+            } else {
+                state.dropped += 1
+            }
+            return false
+        }
+        if writeNow { write(text) }
+    }
+
     /// Holds reports from now on, if this log holds at all.
     package func holdUntilTerminalRestored() {
         guard holdsWhileTerminalIsOwned else { return }
@@ -141,13 +165,17 @@ package final class SoftTrapLog: Sendable {
 
     /// Stops holding, and writes what was held in the order it was reported.
     package func terminalRestored() {
-        let held = state.withLock { state in
-            let held = state.held
+        let (held, dropped) = state.withLock { state in
+            let held = (state.held, state.dropped)
             state.held.removeAll()
+            state.dropped = 0
             state.isHolding = false
             return held
         }
         for text in held { write(text) }
+        if dropped > 0 {
+            write("[TUI] \(dropped) more lines were not kept while the app had the terminal. Set TUI_DIAGNOSTICS_FILE to keep them all.\n")
+        }
     }
 
     /// The words a warning is written in (``SoftTrap/warn(_:)``).
