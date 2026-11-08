@@ -41,7 +41,7 @@
 /// A type's field records, as its field descriptor lists them.
 enum FieldDescriptors {
     /// One record: a stored field, or an enum's case.
-    struct Record {
+    @unsafe struct Record {
         /// Its flags. Bit 0: an enum case is `indirect`.
         let flags: UInt32
         /// The field's mangled type name, or `nil` for an enum case without
@@ -62,8 +62,8 @@ enum FieldDescriptors {
     /// The records of `type`, a struct or an enum, or `nil` if it has no
     /// field descriptor to read.
     static func records(ofValueType type: Any.Type) -> [Record]? {
-        guard let description = valueTypeDescriptor(of: type) else { return nil }
-        return records(described: description)
+        guard let description = unsafe valueTypeDescriptor(of: type) else { return nil }
+        return unsafe records(described: description)
     }
 
     /// The ownership of the stored field at `index` among those `owner`
@@ -77,41 +77,41 @@ enum FieldDescriptors {
             let description: UnsafeRawPointer?
             switch RuntimeFields.Kind(of: owner) {
             case .struct:
-                description = valueTypeDescriptor(of: owner).flatMap { described($0, as: 17) }
+                unsafe description = unsafe valueTypeDescriptor(of: owner).flatMap { unsafe described($0, as: 17) }
             case .class:
-                description = classDescriptor(of: owner).flatMap { described($0, as: 16) }
+                unsafe description = unsafe classDescriptor(of: owner).flatMap { unsafe described($0, as: 16) }
             default:
-                description = nil
+                unsafe description = nil
             }
-            guard let description, let records = records(described: description), index < records.count,
-                let recordName = records[index].name,
-                String(cString: recordName.assumingMemoryBound(to: CChar.self)) == name,
-                let mangledTypeName = records[index].mangledTypeName
+            guard let description = unsafe description, let records = unsafe records(described: description), unsafe index < records.count,
+                let recordName = unsafe records[index].name,
+                unsafe String(cString: recordName.assumingMemoryBound(to: CChar.self)) == name,
+                let mangledTypeName = unsafe records[index].mangledTypeName
             else { return nil }
-            return ownership(ofMangledName: mangledTypeName)
+            return unsafe ownership(ofMangledName: mangledTypeName)
         #endif
     }
 
     /// The ownership a field's mangled type name ends with.
     static func ownership(ofMangledName name: UnsafeRawPointer) -> Ownership {
-        let bytes = name.assumingMemoryBound(to: UInt8.self)
+        let bytes = unsafe name.assumingMemoryBound(to: UInt8.self)
         var index = 0
         // The last two characters read: none across a symbolic reference.
         var previous: UInt8 = 0
         var last: UInt8 = 0
-        while bytes[index] != 0 {
-            switch bytes[index] {
+        while unsafe bytes[index] != 0 {
+            switch unsafe bytes[index] {
             case 0x01...0x17:
                 index += 1 + MemoryLayout<Int32>.size
                 previous = 0
                 last = 0
             case 0x18...0x1F:
-                index += 1 + MemoryLayout<UnsafeRawPointer>.size
+                unsafe index += 1 + MemoryLayout<UnsafeRawPointer>.size
                 previous = 0
                 last = 0
             default:
                 previous = last
-                last = bytes[index]
+                last = unsafe bytes[index]
                 index += 1
             }
         }
@@ -128,52 +128,52 @@ enum FieldDescriptors {
     private static func valueTypeDescriptor(of type: Any.Type) -> UnsafeRawPointer? {
         // A metatype's address is data, which `-deduplicate` never moves; read, not compared.
         // swiftlint:disable:next function_address_identity
-        let metadata = unsafeBitCast(type, to: UnsafeRawPointer.self)
-        return metadata.load(fromByteOffset: MemoryLayout<Int>.size, as: UnsafeRawPointer?.self)
+        let metadata = unsafe unsafeBitCast(type, to: UnsafeRawPointer.self)
+        return unsafe metadata.load(fromByteOffset: MemoryLayout<Int>.size, as: UnsafeRawPointer?.self)
     }
 
     /// A Swift class's type descriptor, after the header described above.
     private static func classDescriptor(of type: Any.Type) -> UnsafeRawPointer? {
         // A metatype's address is data, which `-deduplicate` never moves; read, not compared.
         // swiftlint:disable:next function_address_identity
-        let metadata = unsafeBitCast(type, to: UnsafeRawPointer.self)
+        let metadata = unsafe unsafeBitCast(type, to: UnsafeRawPointer.self)
         #if _runtime(_ObjC)
             let words = 5
         #else
             let words = 2
         #endif
-        return metadata.load(fromByteOffset: words * MemoryLayout<Int>.size + 24, as: UnsafeRawPointer?.self)
+        return unsafe metadata.load(fromByteOffset: words * MemoryLayout<Int>.size + 24, as: UnsafeRawPointer?.self)
     }
 
     /// `description`, if it describes a type of descriptor kind `kind`.
     private static func described(_ description: UnsafeRawPointer, as kind: UInt32) -> UnsafeRawPointer? {
-        description.load(as: UInt32.self) & 0x1F == kind ? description : nil
+        unsafe description.load(as: UInt32.self) & 0x1F == kind ? description : nil
     }
 
     /// The records of the type that `description`, a type descriptor,
     /// describes, or `nil` if it has no field descriptor.
     private static func records(described description: UnsafeRawPointer) -> [Record]? {
         // Flags, parent, name and access function come first: 32 bits each.
-        guard let fields = relativeTarget(at: description + 16) else { return nil }
-        let recordSize = Int(fields.load(fromByteOffset: 10, as: UInt16.self))
-        let count = Int(fields.load(fromByteOffset: 12, as: UInt32.self))
+        guard let fields = unsafe relativeTarget(at: description + 16) else { return nil }
+        let recordSize = unsafe Int(fields.load(fromByteOffset: 10, as: UInt16.self))
+        let count = unsafe Int(fields.load(fromByteOffset: 12, as: UInt32.self))
         guard recordSize >= 12 else { return nil }
-        var records: [Record] = []
-        records.reserveCapacity(count)
+        var records: [Record] = unsafe []
+        unsafe records.reserveCapacity(count)
         for index in 0..<count {
-            let record = fields + 16 + index * recordSize
-            records.append(
+            let record = unsafe fields + 16 + index * recordSize
+            unsafe records.append(
                 Record(
                     flags: record.load(as: UInt32.self), mangledTypeName: relativeTarget(at: record + 4),
                     name: relativeTarget(at: record + 8)))
         }
-        return records
+        return unsafe records
     }
 
     /// The address a 32-bit relative pointer at `address` points to, or
     /// `nil` for a null one.
     private static func relativeTarget(at address: UnsafeRawPointer) -> UnsafeRawPointer? {
-        let offset = address.load(as: Int32.self)
-        return offset == 0 ? nil : address + Int(offset)
+        let offset = unsafe address.load(as: Int32.self)
+        return unsafe offset == 0 ? nil : address + Int(offset)
     }
 }

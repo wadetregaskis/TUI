@@ -29,12 +29,12 @@ import Testing
 /// A `pthread_t` handed between threads. Neither platform's is `Sendable` (an
 /// opaque handle on Darwin, an integer on Linux), and a thread id is exactly
 /// the kind of value that is safe to pass and unsafe to touch.
-private struct ThreadHandle: @unchecked Sendable {
+@unsafe private struct ThreadHandle: @unchecked Sendable {
     let value: pthread_t
 }
 
 /// What the waiting thread reports back.
-private struct WaitOutcome: Sendable {
+@unsafe private struct WaitOutcome: Sendable {
     var thread: ThreadHandle?
     var readable: Bool?
     var elapsed: TimeInterval = 0
@@ -69,7 +69,7 @@ struct TerminalPollInterruptTests {
         interruptFor interruptWindow: TimeInterval,
         thenWrite writeEnd: Int32? = nil
     ) -> (readable: Bool, elapsed: TimeInterval) {
-        let outcome = Lock(initialState: WaitOutcome())
+        let outcome = unsafe Lock(initialState: WaitOutcome())
         // Signalled once the thread has announced itself, and once its wait has
         // returned: what this function waits for, rather than polling a sleep.
         let announced = DispatchSemaphore(value: 0)
@@ -82,29 +82,29 @@ struct TerminalPollInterruptTests {
             // at a thread that has it blocked leaves it pending and interrupts
             // nothing.
             var wanted = sigset_t()
-            sigemptyset(&wanted)
-            sigaddset(&wanted, SIGUSR1)
-            pthread_sigmask(SIG_UNBLOCK, &wanted, nil)
+            unsafe sigemptyset(&wanted)
+            unsafe sigaddset(&wanted, SIGUSR1)
+            unsafe pthread_sigmask(SIG_UNBLOCK, &wanted, nil)
 
-            outcome.withLock { $0.thread = ThreadHandle(value: pthread_self()) }
+            unsafe outcome.withLock { unsafe $0.thread = unsafe ThreadHandle(value: pthread_self()) }
             announced.signal()
             let start = Date()
             let readable = Terminal.waitForInput(on: descriptor, until: deadline)
-            outcome.withLock {
-                $0.elapsed = Date().timeIntervalSince(start)
-                $0.readable = readable
+            unsafe outcome.withLock {
+                unsafe $0.elapsed = Date().timeIntervalSince(start)
+                unsafe $0.readable = readable
             }
             returned.signal()
         }
 
         // Wait for the thread to announce itself, then signal it for the window.
         announced.wait()
-        guard let thread = outcome.withLock({ $0.thread }) else { return (false, 0) }
+        guard let thread = unsafe outcome.withLock({ unsafe $0.thread }) else { return (false, 0) }
         // The first send is asserted, because a signal that cannot be
         // delivered makes every assertion below vacuous. The rest are not: once
         // the wait has returned the thread exits and `pthread_kill` starts
         // answering ESRCH, which is the expected end of the window, not a fault.
-        #expect(
+        unsafe #expect(
             pthread_kill(thread.value, SIGUSR1) == 0,
             "the signal never reached the waiting thread — the test proves nothing")
         let stopSignalling = Date().addingTimeInterval(interruptWindow)
@@ -113,23 +113,23 @@ struct TerminalPollInterruptTests {
             // wall-clock deadline that interruptions spread across a real
             // window must not end early or make late.
             Thread.sleep(forTimeInterval: 0.01)
-            if pthread_kill(thread.value, SIGUSR1) != 0 { break }
+            if unsafe pthread_kill(thread.value, SIGUSR1) != 0 { break }
         }
         if let writeEnd {
             var byte: UInt8 = 0x41
-            #expect(write(writeEnd, &byte, 1) == 1)
+            unsafe #expect(write(writeEnd, &byte, 1) == 1)
         }
 
         returned.wait()
-        let final = outcome.withLock { $0 }
-        return (final.readable ?? false, final.elapsed)
+        let final = unsafe outcome.withLock { unsafe $0 }
+        return unsafe (final.readable ?? false, final.elapsed)
     }
 
     /// A pipe whose write end stays open for the test's duration, so the read
     /// end blocks rather than reporting `POLLHUP`.
     private func withPipe(_ body: (_ readEnd: Int32, _ writeEnd: Int32) -> Void) {
         var ends: [Int32] = [0, 0]
-        #expect(pipe(&ends) == 0)
+        unsafe #expect(pipe(&ends) == 0)
         defer {
             close(ends[0])
             close(ends[1])
@@ -171,7 +171,7 @@ struct TerminalPollInterruptTests {
     func readyDescriptorReturnsImmediately() {
         withPipe { readEnd, writeEnd in
             var byte: UInt8 = 0x41
-            #expect(write(writeEnd, &byte, 1) == 1)
+            unsafe #expect(write(writeEnd, &byte, 1) == 1)
 
             let start = Date()
             #expect(Terminal.waitForInput(on: readEnd, until: Date().addingTimeInterval(5)))
@@ -186,7 +186,7 @@ struct TerminalPollInterruptTests {
             // deadline check comes first, which is what keeps a probe that has
             // run out of time from taking one more turn.
             var byte: UInt8 = 0x41
-            #expect(write(writeEnd, &byte, 1) == 1)
+            unsafe #expect(write(writeEnd, &byte, 1) == 1)
 
             #expect(!Terminal.waitForInput(on: readEnd, until: Date().addingTimeInterval(-1)))
         }

@@ -13,7 +13,7 @@ import TUICore
 /// How the value hash reads one type's values: the runs of bytes every value
 /// defines, and the parts only typed Swift can read. Built once per type, from
 /// the type alone (``ValueHashPlanBuilder``), and kept by ``ValueHashPlans``.
-package struct ValueHashPlan {
+@unsafe package struct ValueHashPlan {
     /// What the hot path branches on.
     package enum Shape: UInt8, Sendable {
         /// Every byte of every value is defined and says something: the value
@@ -43,8 +43,8 @@ package struct ValueHashPlan {
     }
 
     /// A part read through typed Swift, at `offset`.
-    struct Step {
-        enum Action {
+    @unsafe struct Step {
+        @unsafe enum Action {
             /// The type reads itself: ``_ValueHashing``.
             case typed(any _ValueHashing.Type)
             /// An existential field, opened through its static type.
@@ -67,14 +67,14 @@ package struct ValueHashPlan {
     package let bypassReason: String?
 
     /// The defined runs, as ranges — what a test compares.
-    package var definedRanges: [Range<Int>] { runs.map(\.range) }
+    package var definedRanges: [Range<Int>] { unsafe runs.map(\.range) }
 
     /// Each step's offset and what it reads, as text — what a test compares.
     package var stepDescriptions: [String] {
-        steps.map { step in
-            switch step.action {
-            case .typed(let type): "\(step.offset): \(type)"
-            case .existential(let field): "\(step.offset): existential \(field)"
+        unsafe steps.map { step in
+            switch unsafe step.action {
+            case .typed(let type): unsafe "\(step.offset): \(type)"
+            case .existential(let field): unsafe "\(step.offset): existential \(field)"
             }
         }
     }
@@ -153,13 +153,13 @@ package struct ValueHashPlan {
 ///   app's, a generic one such as `Result`), a constrained existential (a
 ///   kind of its own, `.extendedExistential`, the walk does not describe),
 ///   any unknown kind.
-struct ValueHashPlanBuilder {
+@unsafe struct ValueHashPlanBuilder {
     /// Lists a type's stored fields: ``RuntimeFields/fields(of:)``, which a
     /// test replaces to see a type whose metadata was stripped bypass.
     typealias FieldLister = (Any.Type) -> [RuntimeFields.Field]
 
     /// One part of a plan, at an offset from the start of the planned type.
-    enum Item {
+    @unsafe enum Item {
         case bytes(offset: Int, count: Int, leaf: Leaf)
         case step(ValueHashPlan.Step)
         /// What a comparison reads through something other than bytes: only
@@ -220,24 +220,24 @@ struct ValueHashPlanBuilder {
     let comparing: Bool
 
     init(
-        listFields: @escaping FieldLister = { RuntimeFields.fields(of: $0) }, openers: [ValueHashOpener] = [],
+        listFields: @escaping FieldLister = { RuntimeFields.fields(of: $0) }, openers: [ValueHashOpener] = unsafe [],
         comparing: Bool = false
     ) {
-        self.listFields = listFields
-        self.comparing = comparing
-        self.openers = Dictionary(openers.map { (ObjectIdentifier($0.type), $0) }, uniquingKeysWith: { first, _ in first })
+        unsafe self.listFields = listFields
+        unsafe self.comparing = comparing
+        unsafe self.openers = unsafe Dictionary(openers.map { unsafe (ObjectIdentifier($0.type), $0) }, uniquingKeysWith: { first, _ in unsafe first })
     }
 
     /// The parts of `type`'s plan, or why it bypasses.
     func items(for type: Any.Type) -> Result<[Item], Bypass> {
-        var items: [Item] = []
+        var items: [Item] = unsafe []
         do {
-            try describe(type, at: 0, path: .root(type), into: &items)
-            return .success(items)
+            try unsafe describe(type, at: 0, path: .root(type), into: &items)
+            return unsafe .success(items)
         } catch let bypass as Bypass {
-            return .failure(bypass)
+            return unsafe .failure(bypass)
         } catch {
-            return .failure(Bypass(reason: "\(type): \(error)"))
+            return unsafe .failure(Bypass(reason: "\(type): \(error)"))
         }
     }
 
@@ -248,21 +248,21 @@ struct ValueHashPlanBuilder {
     private func describe(
         _ type: Any.Type, at base: Int, path: PlanPath, into items: inout [Item]
     ) throws {
-        if comparing, try describeForComparison(type, at: base, path: path, into: &items) { return }
-        let layout = Self.layout(of: type)
+        if unsafe comparing, try unsafe describeForComparison(type, at: base, path: path, into: &items) { return }
+        let layout = unsafe Self.layout(of: type)
         guard layout.size > 0 else {
             // Nothing to read, but a dynamic property of no size can still read
             // anything, however many structs of no size it lies in.
-            if comparing {
-                for field in listFields(type) {
-                    try describe(field.type, at: base, path: .field(path, field), into: &items)
+            if unsafe comparing {
+                for field in unsafe listFields(type) {
+                    try unsafe describe(field.type, at: base, path: .field(path, field), into: &items)
                 }
             }
             return
         }
         let kind = RuntimeFields.Kind(of: type)
         if kind == .optional {
-            try describeOptional(type, at: base, size: layout.size, path: path, into: &items)
+            try unsafe describeOptional(type, at: base, size: layout.size, path: path, into: &items)
             return
         }
         #if !(os(Windows) || os(Android)) && (arch(i386) || arch(x86_64))
@@ -274,18 +274,18 @@ struct ValueHashPlanBuilder {
         }
         #endif
         if let typed = type as? any _ValueHashing.Type {
-            if comparing { throw Bypass(reason: "\(path): \(type) has no comparison") }
-            items.append(.step(.init(offset: base, action: .typed(typed))))
+            if unsafe comparing { throw Bypass(reason: "\(path): \(type) has no comparison") }
+            unsafe items.append(.step(.init(offset: base, action: .typed(typed))))
             return
         }
         if type is any _AllBytesDefined.Type {
-            guard kind == .enum, Self.isTrivial(type), !Self.isGeneric(type) else {
+            guard kind == .enum, unsafe Self.isTrivial(type), unsafe !Self.isGeneric(type) else {
                 throw Bypass(reason: "\(path): marked _AllBytesDefined, but not a trivial non-generic enum")
             }
-            items.append(.bytes(offset: base, count: layout.size, leaf: .other))
+            unsafe items.append(.bytes(offset: base, count: layout.size, leaf: .other))
             return
         }
-        try describe(kind, type, at: base, size: layout.size, path: path, into: &items)
+        try unsafe describe(kind, type, at: base, size: layout.size, path: path, into: &items)
     }
 
     /// ``describe(_:at:path:into:)`` for a type that has not opted in to
@@ -296,42 +296,42 @@ struct ValueHashPlanBuilder {
     ) throws {
         switch kind {
         case .struct:
-            try describeFields(of: type, at: base, size: size, path: path, into: &items)
+            try unsafe describeFields(of: type, at: base, size: size, path: path, into: &items)
         case .tuple:
             // The walk stops at the first element that bypasses, so one that
             // lies before a metatype hides it — and a tuple's layout, unlike a
             // struct's, is the runtime's, worked out from its elements'. An
             // optional around it must not fall back to its typed step.
             do {
-                try describeFields(of: type, at: base, size: size, path: path, into: &items)
+                try unsafe describeFields(of: type, at: base, size: size, path: path, into: &items)
             } catch var bypass as Bypass {
                 bypass.layoutUnknown = true
                 throw bypass
             }
         case .class, .foreignClass, .objcClassWrapper:
-            items.append(.bytes(offset: base, count: size, leaf: .reference))
+            unsafe items.append(.bytes(offset: base, count: size, leaf: .reference))
         case .metatype:
             throw Bypass(
                 reason: "\(path): a metatype, \(type), which a struct may store in no bytes", layoutUnknown: true)
-        case .existentialMetatype where size == MemoryLayout<UnsafeRawPointer>.size:
+        case .existentialMetatype where unsafe size == MemoryLayout<UnsafeRawPointer>.size:
             // `Any.Type`, `AnyObject.Type`: a metatype with no witness tables,
             // one pointer — and so a metatype for the optional rule.
-            items.append(.bytes(offset: base, count: size, leaf: .metatype))
-        case .function where comparing:
-            items.append(.compared(offset: base, .opaque))
+            unsafe items.append(.bytes(offset: base, count: size, leaf: .metatype))
+        case .function where unsafe comparing:
+            unsafe items.append(.compared(offset: base, .opaque))
         case .existentialMetatype, .function:
-            items.append(.bytes(offset: base, count: size, leaf: .other))
+            unsafe items.append(.bytes(offset: base, count: size, leaf: .other))
         case .opaque:
-            items.append(.bytes(offset: base, count: size, leaf: .builtin))
+            unsafe items.append(.bytes(offset: base, count: size, leaf: .builtin))
         case .enum where size <= 1:
-            items.append(.bytes(offset: base, count: size, leaf: .smallEnum))
+            unsafe items.append(.bytes(offset: base, count: size, leaf: .smallEnum))
         case .enum:
             throw Bypass(reason: "\(path): a payload enum, \(type)")
         case .existential:
-            if comparing { throw Bypass(reason: "\(path): an existential, \(type), has no comparison") }
-            items.append(.step(.init(offset: base, action: .existential(ExistentialField(type, openers: openers)))))
+            if unsafe comparing { throw Bypass(reason: "\(path): an existential, \(type), has no comparison") }
+            unsafe items.append(.step(.init(offset: base, action: .existential(ExistentialField(type, openers: openers)))))
         case .fixedArray:
-            try describeFixedArray(type, at: base, size: size, path: path, into: &items)
+            try unsafe describeFixedArray(type, at: base, size: size, path: path, into: &items)
         default:
             throw Bypass(reason: "\(path): a kind the walk does not know (\(kind))")
         }
@@ -348,18 +348,18 @@ struct ValueHashPlanBuilder {
     ) throws -> Bool {
         if type is any _BoundFromTheWalk.Type { return true }
         if type is any _ComparedOpaquely.Type {
-            items.append(.compared(offset: base, .opaque))
+            unsafe items.append(.compared(offset: base, .opaque))
             return true
         }
         if type is any DynamicProperty.Type { throw Bypass(reason: "\(path): a dynamic property, \(type)") }
         if let typed = type as? any _ValueComparing.Type {
-            var held: [Item] = []
-            for payload in typed.comparedPayloads { try describe(payload, at: 0, path: .unwrapped(path), into: &held) }
-            items.append(.compared(offset: base, .typed(typed)))
+            var held: [Item] = unsafe []
+            for payload in typed.comparedPayloads { try unsafe describe(payload, at: 0, path: .unwrapped(path), into: &held) }
+            unsafe items.append(.compared(offset: base, .typed(typed)))
             return true
         }
         if let equatable = type as? any Equatable.Type {
-            items.append(.compared(offset: base, .equatable(ValueComparison.equality(of: equatable))))
+            unsafe items.append(.compared(offset: base, .equatable(equatable)))
             return true
         }
         return false
@@ -380,20 +380,20 @@ struct ValueHashPlanBuilder {
         guard let (count, element) = RuntimeFields.fixedArray(type) else {
             throw Bypass(reason: "\(path): a fixed-size array whose metadata does not match its layout")
         }
-        let layout = Self.layout(of: element)
+        let layout = unsafe Self.layout(of: element)
         // Swift's stride: the size rounded up to the alignment, and never zero.
         let stride = max(1, (layout.size + layout.alignment - 1) / layout.alignment * layout.alignment)
-        var first: [Item] = []
-        try describe(element, at: 0, path: .element(path, 0), into: &first)
-        if case .bytes(0, layout.size, let leaf)? = first.first, first.count == 1, layout.size == stride {
-            items.append(.bytes(offset: base, count: size, leaf: leaf))
+        var first: [Item] = unsafe []
+        try unsafe describe(element, at: 0, path: .element(path, 0), into: &first)
+        if case .bytes(0, layout.size, let leaf)? = unsafe first.first, unsafe first.count == 1, layout.size == stride {
+            unsafe items.append(.bytes(offset: base, count: size, leaf: leaf))
             return
         }
-        guard count <= Self.fixedArrayElementLimit else {
+        guard unsafe count <= Self.fixedArrayElementLimit else {
             throw Bypass(reason: "\(path): a fixed-size array of \(count) elements that are not all bytes")
         }
         for index in 0..<count {
-            try describe(element, at: base + index * stride, path: .element(path, index), into: &items)
+            try unsafe describe(element, at: base + index * stride, path: .element(path, index), into: &items)
         }
     }
 
@@ -407,7 +407,7 @@ struct ValueHashPlanBuilder {
     private func describeFields(
         of type: Any.Type, at base: Int, size: Int, path: PlanPath, into items: inout [Item]
     ) throws {
-        let fields = listFields(type).sorted { $0.offset < $1.offset }
+        let fields = unsafe listFields(type).sorted { $0.offset < $1.offset }
         guard !fields.isEmpty else { throw Bypass(reason: "\(path): no field metadata") }
         var end = 0
         // Asked only at a gap, and once: it prints the type's qualified name.
@@ -416,31 +416,31 @@ struct ValueHashPlanBuilder {
             guard field.type != Void.self else {
                 throw Bypass(reason: "\(PlanPath.field(path, field)): storage reported as ()")
             }
-            let fieldLayout = Self.layout(of: field.type)
+            let fieldLayout = unsafe Self.layout(of: field.type)
             // Nothing to read, and no byte of its own: where a layout is fixed
             // at compile time, the runtime reports a field of no size at
             // offset 0, whatever was declared before it.
             if fieldLayout.size == 0 {
                 // A dynamic property of no size can still read anything.
-                if comparing { try describe(field.type, at: base, path: .field(path, field), into: &items) }
+                if unsafe comparing { try unsafe describe(field.type, at: base, path: .field(path, field), into: &items) }
                 continue
             }
             guard field.offset >= end else {
                 throw Bypass(reason: "\(PlanPath.field(path, field)): overlaps the field before")
             }
             if field.offset > end {
-                guard field.offset == Self.roundUp(end, to: fieldLayout.alignment) else {
+                guard unsafe field.offset == Self.roundUp(end, to: fieldLayout.alignment) else {
                     throw Bypass(reason: "\(PlanPath.field(path, field)): a gap before it that is not alignment padding")
                 }
-                if importedFromC == nil { importedFromC = Self.isImportedFromC(type) }
+                if importedFromC == nil { importedFromC = unsafe Self.isImportedFromC(type) }
                 guard importedFromC == false else {
                     throw Bypass(reason: "\(PlanPath.field(path, field)): a gap before it, in a struct imported from C")
                 }
             }
             if field.isStrong {
-                try describe(field.type, at: base + field.offset, path: .field(path, field), into: &items)
+                try unsafe describe(field.type, at: base + field.offset, path: .field(path, field), into: &items)
             } else {
-                items.append(.bytes(offset: base + field.offset, count: fieldLayout.size, leaf: .other))
+                unsafe items.append(.bytes(offset: base + field.offset, count: fieldLayout.size, leaf: .other))
             }
             end = field.offset + fieldLayout.size
         }
@@ -464,23 +464,23 @@ struct ValueHashPlanBuilder {
         guard let wrapped = (type as? any _ElementTypesProviding.Type)?.elementTypes.first,
             let typed = type as? any _ValueHashing.Type
         else { throw Bypass(reason: "\(path): an optional the walk cannot open") }
-        let wrappedSize = Self.layout(of: wrapped).size
-        var payload: [Item] = []
+        let wrappedSize = unsafe Self.layout(of: wrapped).size
+        var payload: [Item] = unsafe []
         do {
-            try describe(wrapped, at: 0, path: .unwrapped(path), into: &payload)
+            try unsafe describe(wrapped, at: 0, path: .unwrapped(path), into: &payload)
             // A tag byte of its own, over a payload every byte of which is
             // defined: `nil` zero-fills the payload.
-            if size == wrappedSize + 1, Self.coversWhole(payload, size: wrappedSize) {
-                items.append(.bytes(offset: base, count: size, leaf: .other))
+            if size == wrappedSize + 1, unsafe Self.coversWhole(payload, size: wrappedSize) {
+                unsafe items.append(.bytes(offset: base, count: size, leaf: .other))
                 return
             }
             // One scalar of a word or less, whose spare values spell `nil`,
             // written whole. Not a wider builtin (an executor's two words):
             // only scalars of a word or less are measured to be.
-            if size == wrappedSize, wrappedSize <= MemoryLayout<UInt>.size, payload.count == 1,
-                case .bytes(0, wrappedSize, let leaf) = payload[0], leaf.nilWritesItWhole
+            if size == wrappedSize, wrappedSize <= MemoryLayout<UInt>.size, unsafe payload.count == 1,
+                case .bytes(0, wrappedSize, let leaf) = unsafe payload[0], leaf.nilWritesItWhole
             {
-                items.append(.bytes(offset: base, count: size, leaf: leaf))
+                unsafe items.append(.bytes(offset: base, count: size, leaf: leaf))
                 return
             }
         } catch let bypass as Bypass where bypass.layoutUnknown {
@@ -491,15 +491,15 @@ struct ValueHashPlanBuilder {
             // A payload the plan cannot read: the typed step reads the case,
             // and hashes a `nil` whatever its payload's type.
         }
-        items.append(.step(.init(offset: base, action: .typed(typed))))
+        unsafe items.append(.step(.init(offset: base, action: .typed(typed))))
     }
 
     /// Whether `items` are runs of bytes, and nothing else, covering
     /// `0..<size` without a gap.
     static func coversWhole(_ items: [Item], size: Int) -> Bool {
         var end = 0
-        for item in items {
-            guard case .bytes(let offset, let count, _) = item, offset == end else { return false }
+        for unsafe item in unsafe items {
+            guard case .bytes(let offset, let count, _) = unsafe item, offset == end else { return false }
             end += count
         }
         return end == size

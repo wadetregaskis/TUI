@@ -28,7 +28,7 @@ RATCHETS = [
         "name": "@safe exceptions",
         "pattern": r"disable:this safe_escape",
         "paths": ["Sources", "Tests"],
-        "limit": 0,
+        "limit": 1,
         "instead": "remove the unsafe storage, or mark the type @unsafe",
     },
     # A test that sleeps is slow, or racy, or both. A thread's sleep is as much

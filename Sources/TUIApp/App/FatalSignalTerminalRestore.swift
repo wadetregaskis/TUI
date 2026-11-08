@@ -165,7 +165,7 @@ enum FatalSignalTerminalRestore {
     /// A static of this type is initialized lazily on its first read, so
     /// ``installIfNeeded()`` reads each one before any handler is installed:
     /// from then on a read is a load.
-    private struct Debt: ~Copyable, Sendable {
+    @unsafe private struct Debt: ~Copyable, Sendable {
         /// The owed bytes. The pointer never changes, and no lock can guard
         /// what it points at: the release of ``count`` orders them.
         ///
@@ -188,53 +188,53 @@ enum FatalSignalTerminalRestore {
         private let popEnd = Atomic<Int>(0)
 
         init(capacity: Int) {
-            bytes = .allocate(capacity: capacity)
+            unsafe bytes = .allocate(capacity: capacity)
         }
 
         /// Owes nothing.
         func clear() {
-            count.store(0, ordering: .releasing)
+            unsafe count.store(0, ordering: .releasing)
         }
 
         /// Reads the debt, to no effect but this: a static's first read runs its
         /// initializer, which a handler must not be the one to do.
         func touch() {
-            _ = count.load(ordering: .relaxed)
+            _ = unsafe count.load(ordering: .relaxed)
         }
 
         /// Owes `debt`, its pop at `pop`. Clears it first, so a signal arriving
         /// in between finds nothing rather than half of it.
         func arm(_ debt: [UInt8], pop: Range<Int>?) {
-            clear()
-            for (index, byte) in debt.enumerated() { bytes[index] = byte }
-            popStart.store(pop?.lowerBound ?? 0, ordering: .relaxed)
-            popEnd.store(pop?.upperBound ?? 0, ordering: .relaxed)
-            count.store(debt.count, ordering: .releasing)
+            unsafe clear()
+            for (index, byte) in debt.enumerated() { unsafe bytes[index] = byte }
+            unsafe popStart.store(pop?.lowerBound ?? 0, ordering: .relaxed)
+            unsafe popEnd.store(pop?.upperBound ?? 0, ordering: .relaxed)
+            unsafe count.store(debt.count, ordering: .releasing)
         }
 
         /// Takes what is owed and writes it, without the pop where `leavingOutPop`.
         /// Async-signal-safe.
         func pay(leavingOutPop: Bool) {
-            let owed = count.exchange(0, ordering: .acquiringAndReleasing)
+            let owed = unsafe count.exchange(0, ordering: .acquiringAndReleasing)
             guard owed > 0 else { return }
-            let base = UnsafePointer(bytes)
-            let start = popStart.load(ordering: .relaxed)
-            let end = popEnd.load(ordering: .relaxed)
+            let base = unsafe UnsafePointer(bytes)
+            let start = unsafe popStart.load(ordering: .relaxed)
+            let end = unsafe popEnd.load(ordering: .relaxed)
             if leavingOutPop, end > 0, end <= owed {
-                writeOwed(base, count: start)
-                writeOwed(base + end, count: owed - end)
+                unsafe writeOwed(base, count: start)
+                unsafe writeOwed(base + end, count: owed - end)
             } else {
-                writeOwed(base, count: owed)
+                unsafe writeOwed(base, count: owed)
             }
         }
     }
 
     /// What a crash pays.
-    private static let crashDebt = Debt(capacity: capacity)
+    private static let crashDebt = unsafe Debt(capacity: capacity)
 
     /// What a `SIGQUIT` pays instead: what a quit writes, the alternate screen
     /// left with the rest.
-    private static let quitDebt = Debt(capacity: quitCapacity)
+    private static let quitDebt = unsafe Debt(capacity: quitCapacity)
 
     /// Whether the stall watchdog (`StallWatchdog`) has popped the kitty
     /// flags and the run loop has not pushed them back: then the pop in the
@@ -273,9 +273,9 @@ enum FatalSignalTerminalRestore {
         let bytes = Array(sequence.utf8.prefix(capacity))
         let quitBytes = Array(quitSequence.utf8.prefix(quitCapacity))
         owesTermios.store(false, ordering: .releasing)
-        crashDebt.arm(bytes, pop: popRange(in: bytes))
-        quitDebt.arm(quitBytes, pop: popRange(in: quitBytes))
-        if let termios { savedTermios.pointee = termios }
+        unsafe crashDebt.arm(bytes, pop: popRange(in: bytes))
+        unsafe quitDebt.arm(quitBytes, pop: popRange(in: quitBytes))
+        if let termios { unsafe savedTermios.pointee = termios }
         owesTermios.store(termios != nil, ordering: .releasing)
         installIfNeeded()
     }
@@ -295,8 +295,8 @@ enum FatalSignalTerminalRestore {
     /// handler pays nothing.
     @MainActor
     static func disarm() {
-        crashDebt.clear()
-        quitDebt.clear()
+        unsafe crashDebt.clear()
+        unsafe quitDebt.clear()
         owesTermios.store(false, ordering: .releasing)
     }
 
@@ -306,21 +306,21 @@ enum FatalSignalTerminalRestore {
         installed = true
         // Read once here, so the handler never runs a lazy initializer.
         _ = poppedByWatchdog.load(ordering: .relaxed)
-        _ = savedTermios
+        _ = unsafe savedTermios
         _ = owesTermios.load(ordering: .relaxed)
         _ = taken.load(ordering: .relaxed)
-        crashDebt.touch()
-        quitDebt.touch()
+        unsafe crashDebt.touch()
+        unsafe quitDebt.touch()
         for (index, signal) in signals.enumerated() {
             if index >= alwaysTaken {
                 var current = sigaction()
-                guard sigaction(signal, nil, &current) == 0, isDefault(current) else { continue }
+                guard unsafe sigaction(signal, nil, &current) == 0, isDefault(current) else { continue }
             }
             var action = sigaction()
             setHandler(&action)
-            sigemptyset(&action.sa_mask)
+            unsafe sigemptyset(&action.sa_mask)
             action.sa_flags = SA_ONSTACK
-            if sigaction(signal, &action, previous + index) == 0 {
+            if unsafe sigaction(signal, &action, previous + index) == 0 {
                 taken.bitwiseOr(1 << UInt64(index), ordering: .relaxed)
             }
         }
@@ -346,29 +346,29 @@ enum FatalSignalTerminalRestore {
     /// key's destructor, so a pool thread that comes and goes leaks nothing.
     static func provideAlternateStack() {
         let key = alternateStackKey
-        guard pthread_getspecific(key) == nil else { return }
-        var current = stack_t()
-        guard sigaltstack(nil, &current) == 0 else { return }
-        guard current.ss_flags & Int32(SS_DISABLE) != 0 else {
+        guard unsafe pthread_getspecific(key) == nil else { return }
+        var current = unsafe stack_t()
+        guard unsafe sigaltstack(nil, &current) == 0 else { return }
+        guard unsafe current.ss_flags & Int32(SS_DISABLE) != 0 else {
             // Another's: kept, and noted, so the next look is the lookup.
-            _ = pthread_setspecific(key, UnsafeRawPointer(foreignStack))
+            _ = unsafe pthread_setspecific(key, UnsafeRawPointer(foreignStack))
             return
         }
         let memory = UnsafeMutableRawPointer.allocate(byteCount: alternateStackSize, alignment: 16)
-        var stack = stack_t()
-        stack.ss_sp = memory
-        stack.ss_size = alternateStackSize
-        stack.ss_flags = 0
-        guard sigaltstack(&stack, nil) == 0 else {
-            memory.deallocate()
+        var stack = unsafe stack_t()
+        unsafe stack.ss_sp = unsafe memory
+        unsafe stack.ss_size = alternateStackSize
+        unsafe stack.ss_flags = 0
+        guard unsafe sigaltstack(&stack, nil) == 0 else {
+            unsafe memory.deallocate()
             return
         }
-        _ = pthread_setspecific(key, UnsafeRawPointer(memory))
+        _ = unsafe pthread_setspecific(key, UnsafeRawPointer(memory))
     }
 
     /// What ``alternateStackKey`` holds for a thread whose alternate stack is
     /// another's: never an allocation's address.
-    private static var foreignStack: UnsafeMutableRawPointer { UnsafeMutableRawPointer(bitPattern: 1)! }
+    private static var foreignStack: UnsafeMutableRawPointer { unsafe UnsafeMutableRawPointer(bitPattern: 1)! }
 
     /// The thread-local key that holds the alternate stack
     /// ``provideAlternateStack()`` made for each thread, or ``foreignStack``,
@@ -377,8 +377,8 @@ enum FatalSignalTerminalRestore {
         var key = pthread_key_t()
         // The destructor's parameter is optional in Glibc's and Musl's
         // spelling, not in Darwin's; the release takes either.
-        _ = pthread_key_create(&key) { value in
-            Self.releaseAlternateStack(value)
+        _ = unsafe pthread_key_create(&key) { value in
+            unsafe Self.releaseAlternateStack(value)
         }
         return key
     }()
@@ -388,13 +388,13 @@ enum FatalSignalTerminalRestore {
     /// is gone. Left alone (a few KiB leaked) where it is not the thread's
     /// stack any more, or cannot be turned off.
     private static func releaseAlternateStack(_ value: UnsafeMutableRawPointer?) {
-        guard let value, value != foreignStack else { return }
-        var current = stack_t()
-        guard sigaltstack(nil, &current) == 0, current.ss_sp == value else { return }
-        var off = stack_t()
-        off.ss_flags = Int32(SS_DISABLE)
-        guard sigaltstack(&off, nil) == 0 else { return }
-        value.deallocate()
+        guard let value = unsafe value, unsafe value != foreignStack else { return }
+        var current = unsafe stack_t()
+        guard unsafe sigaltstack(nil, &current) == 0, unsafe current.ss_sp == value else { return }
+        var off = unsafe stack_t()
+        unsafe off.ss_flags = Int32(SS_DISABLE)
+        guard unsafe sigaltstack(&off, nil) == 0 else { return }
+        unsafe value.deallocate()
     }
 
     /// What ``installIfNeeded()`` registers with `atexit(3)`: a C function
@@ -425,7 +425,7 @@ enum FatalSignalTerminalRestore {
         // fails if `-deduplicate` gives that address to another function.
         // swiftlint:disable function_address_identity
         #if canImport(Darwin)
-            unsafeBitCast(action.__sigaction_u, to: Int.self)
+            unsafe unsafeBitCast(action.__sigaction_u, to: Int.self)
         #elseif canImport(Glibc)
             unsafeBitCast(action.__sigaction_handler, to: Int.self)
         #elseif canImport(Musl)
@@ -444,7 +444,7 @@ enum FatalSignalTerminalRestore {
     static var handlerAddress: Int {
         // Compared: Tools/DedupCheck/manifest.json, address_identity.
         // swiftlint:disable:next function_address_identity
-        unsafeBitCast(handler, to: Int.self)
+        unsafe unsafeBitCast(handler, to: Int.self)
     }
 
     /// Sets `action`'s handler to ``handle(_:)``, through each C library's
@@ -468,7 +468,7 @@ enum FatalSignalTerminalRestore {
     /// for for ever.
     static func quitEndsTheProcess() -> Bool {
         var current = sigaction()
-        guard sigaction(SIGQUIT, nil, &current) == 0 else { return false }
+        guard unsafe sigaction(SIGQUIT, nil, &current) == 0 else { return false }
         return endsTheProcess(handlerAddress: handlerAddress(of: current))
     }
 
@@ -488,7 +488,7 @@ enum FatalSignalTerminalRestore {
         } else if let index = signals.firstIndex(of: signal),
             taken.load(ordering: .relaxed) & (1 << UInt64(index)) != 0
         {
-            sigaction(signal, previous + index, nil)
+            unsafe sigaction(signal, previous + index, nil)
         }
         raise(signal)
     }
@@ -504,14 +504,14 @@ enum FatalSignalTerminalRestore {
     private static func pay(asQuit quitting: Bool) {
         let leavingOutPop = poppedByWatchdog.load(ordering: .relaxed)
         if quitting {
-            quitDebt.pay(leavingOutPop: leavingOutPop)
-            crashDebt.clear()
+            unsafe quitDebt.pay(leavingOutPop: leavingOutPop)
+            unsafe crashDebt.clear()
         } else {
-            crashDebt.pay(leavingOutPop: leavingOutPop)
-            quitDebt.clear()
+            unsafe crashDebt.pay(leavingOutPop: leavingOutPop)
+            unsafe quitDebt.clear()
         }
         if owesTermios.exchange(false, ordering: .acquiringAndReleasing) {
-            _ = tcsetattr(STDIN_FILENO, TCSANOW, savedTermios)
+            _ = unsafe tcsetattr(STDIN_FILENO, TCSANOW, savedTermios)
         }
     }
 
@@ -542,7 +542,7 @@ enum FatalSignalTerminalRestore {
         var written = 0
         var waits = 0
         while written < count {
-            let result = write(descriptor, bytes + written, count - written)
+            let result = unsafe write(descriptor, bytes + written, count - written)
             if result > 0 {
                 written += result
                 continue
@@ -555,7 +555,7 @@ enum FatalSignalTerminalRestore {
             waits += 1
             guard full else { continue }
             var room = pollfd(fd: descriptor, events: Int16(POLLOUT), revents: 0)
-            _ = poll(&room, 1, waitMilliseconds)
+            _ = unsafe poll(&room, 1, waitMilliseconds)
         }
     }
 

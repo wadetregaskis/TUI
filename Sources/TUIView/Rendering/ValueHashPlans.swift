@@ -38,14 +38,25 @@ import TUICore
 /// check's leaves were more than half of `viewValueHash`'s inclusive time on
 /// `fanout`. The one thing that needs the main actor, the stack guard's
 /// floor, is read at the entry (``armStackCheck()``).
-package final class ValueHashPlans {
-    private struct Slot {
+///
+/// `@safe` (strict memory safety), the package's one: the table, its slots
+/// and the plans are raw memory this class allocates, owns and frees, and
+/// hands out only for the length of a call; its interface takes a value's
+/// address only where the caller holds one already, and marks it `unsafe`.
+/// Every type beneath it is `@unsafe`. Without it, the unsafety of its
+/// storage would pass to every type holding a table — ``RenderCache``,
+/// `TUIContext`, `PlainViewMemo`'s keys — and to every use of those. The
+/// other way out is rebuilding the table and the plans on arrays, with
+/// bounds checks and reference counting in the hash's inner loop.
+/// `Tools/check-ratchets.py` counts this exception.
+@safe package final class ValueHashPlans {  // swiftlint:disable:this safe_escape
+    @unsafe private struct Slot {
         /// The metadata address of the planned type; 0 for an empty slot.
         var key: UInt
         var plan: UnsafeMutablePointer<ValueHashPlan>?
     }
 
-    private struct Table {
+    @unsafe private struct Table {
         var slots: UnsafeMutablePointer<Slot>
         /// Capacity − 1.
         var mask: Int
@@ -85,88 +96,88 @@ package final class ValueHashPlans {
 
     /// An empty table, which opens an existential of a static type it has an
     /// `opener` for directly — see ``ValueHashOpener``.
-    package convenience init(openers: [ValueHashOpener] = []) {
-        self.init(builder: ValueHashPlanBuilder(openers: openers))
+    package convenience init(openers: [ValueHashOpener] = unsafe []) {
+        unsafe self.init(builder: ValueHashPlanBuilder(openers: openers))
     }
 
     init(builder: ValueHashPlanBuilder) {
-        self.builder = builder
-        table = .allocate(capacity: 1)
-        table.initialize(to: Self.emptyTable(capacity: Self.initialCapacity))
-        running = .allocate(capacity: 1)
-        running.initialize(to: Running())
+        unsafe self.builder = unsafe builder
+        unsafe table = .allocate(capacity: 1)
+        unsafe table.initialize(to: Self.emptyTable(capacity: Self.initialCapacity))
+        unsafe running = .allocate(capacity: 1)
+        unsafe running.initialize(to: Running())
     }
 
     deinit {
-        let current = table.pointee
-        for index in 0...current.mask {
-            guard let plan = current.slots[index].plan else { continue }
-            UnsafeMutableBufferPointer(mutating: plan.pointee.runs).deallocate()
+        let current = unsafe table.pointee
+        for index in unsafe 0...current.mask {
+            guard let plan = unsafe current.slots[index].plan else { continue }
+            unsafe UnsafeMutableBufferPointer(mutating: plan.pointee.runs).deallocate()
             // A step can hold an opener's closure, so the steps are torn down,
             // not just freed: `copied(_:)` initialised them, retaining it.
-            let steps = UnsafeMutableBufferPointer(mutating: plan.pointee.steps)
-            _ = steps.deinitialize()
-            steps.deallocate()
-            plan.deinitialize(count: 1)
-            plan.deallocate()
+            let steps = unsafe UnsafeMutableBufferPointer(mutating: plan.pointee.steps)
+            _ = unsafe steps.deinitialize()
+            unsafe steps.deallocate()
+            unsafe plan.deinitialize(count: 1)
+            unsafe plan.deallocate()
         }
-        current.slots.deallocate()
-        table.deinitialize(count: 1)
-        table.deallocate()
-        running.deinitialize(count: 1)
-        running.deallocate()
+        unsafe current.slots.deallocate()
+        unsafe table.deinitialize(count: 1)
+        unsafe table.deallocate()
+        unsafe running.deinitialize(count: 1)
+        unsafe running.deallocate()
     }
 
     /// How many types have a plan — what a test counts.
-    package var count: Int { table.pointee.count }
+    package var count: Int { unsafe table.pointee.count }
 
     /// `type`'s plan, built the first time it is asked for.
     @inline(__always)
     package func plan(for type: Any.Type) -> UnsafePointer<ValueHashPlan> {
         let key = UInt(bitPattern: ObjectIdentifier(type))
-        let current = table.pointee
-        var index = Int(truncatingIfNeeded: (UInt64(key) &* 0x9E37_79B9_7F4A_7C15) &>> current.shift)
+        let current = unsafe table.pointee
+        var index = unsafe Int(truncatingIfNeeded: (UInt64(key) &* 0x9E37_79B9_7F4A_7C15) &>> current.shift)
         while true {
-            let slot = current.slots[index]
-            if slot.key == key { return UnsafePointer(slot.plan.unsafelyUnwrapped) }
-            if slot.key == 0 { return insertPlan(for: type, key: key) }
-            index = (index &+ 1) & current.mask
+            let slot = unsafe current.slots[index]
+            if unsafe slot.key == key { return unsafe UnsafePointer(slot.plan.unsafelyUnwrapped) }
+            if unsafe slot.key == 0 { return unsafe insertPlan(for: type, key: key) }
+            index = unsafe (index &+ 1) & current.mask
         }
     }
 
     /// Builds `type`'s plan and files it. Out of line: once per type per table.
     @inline(never)
     private func insertPlan(for type: Any.Type, key: UInt) -> UnsafePointer<ValueHashPlan> {
-        if (table.pointee.count + 1) * 4 > table.pointee.mask + 1 { grow() }
+        if unsafe (table.pointee.count + 1) * 4 > table.pointee.mask + 1 { grow() }
         let plan = UnsafeMutablePointer<ValueHashPlan>.allocate(capacity: 1)
-        plan.initialize(to: Self.plan(for: type, from: builder.items(for: type)))
-        let current = table.pointee
-        var index = Int(truncatingIfNeeded: (UInt64(key) &* 0x9E37_79B9_7F4A_7C15) &>> current.shift)
-        while current.slots[index].key != 0 { index = (index &+ 1) & current.mask }
-        current.slots[index] = Slot(key: key, plan: plan)
-        table.pointee.count += 1
-        return UnsafePointer(plan)
+        unsafe plan.initialize(to: Self.plan(for: type, from: builder.items(for: type)))
+        let current = unsafe table.pointee
+        var index = unsafe Int(truncatingIfNeeded: (UInt64(key) &* 0x9E37_79B9_7F4A_7C15) &>> current.shift)
+        while unsafe current.slots[index].key != 0 { index = unsafe (index &+ 1) & current.mask }
+        unsafe current.slots[index] = unsafe Slot(key: key, plan: plan)
+        unsafe table.pointee.count += 1
+        return unsafe UnsafePointer(plan)
     }
 
     /// Doubles the table and refiles every plan in it.
     private func grow() {
-        let old = table.pointee
-        var grown = Self.emptyTable(capacity: (old.mask + 1) * 2)
-        for index in 0...old.mask where old.slots[index].key != 0 {
-            let slot = old.slots[index]
-            var target = Int(truncatingIfNeeded: (UInt64(slot.key) &* 0x9E37_79B9_7F4A_7C15) &>> grown.shift)
-            while grown.slots[target].key != 0 { target = (target &+ 1) & grown.mask }
-            grown.slots[target] = slot
+        let old = unsafe table.pointee
+        var grown = unsafe Self.emptyTable(capacity: (old.mask + 1) * 2)
+        for index in unsafe 0...old.mask where unsafe old.slots[index].key != 0 {
+            let slot = unsafe old.slots[index]
+            var target = unsafe Int(truncatingIfNeeded: (UInt64(slot.key) &* 0x9E37_79B9_7F4A_7C15) &>> grown.shift)
+            while unsafe grown.slots[target].key != 0 { target = unsafe (target &+ 1) & grown.mask }
+            unsafe grown.slots[target] = slot
         }
-        grown.count = old.count
-        old.slots.deallocate()
-        table.pointee = grown
+        unsafe grown.count = unsafe old.count
+        unsafe old.slots.deallocate()
+        unsafe table.pointee = grown
     }
 
     private static func emptyTable(capacity: Int) -> Table {
         let slots = UnsafeMutablePointer<Slot>.allocate(capacity: capacity)
-        slots.initialize(repeating: Slot(key: 0, plan: nil), count: capacity)
-        return Table(
+        unsafe slots.initialize(repeating: Slot(key: 0, plan: nil), count: capacity)
+        return unsafe Table(
             slots: slots, mask: capacity - 1, shift: UInt64(64 - capacity.trailingZeroBitCount), count: 0)
     }
 
@@ -175,17 +186,17 @@ package final class ValueHashPlans {
     private static func plan(
         for type: Any.Type, from built: Result<[ValueHashPlanBuilder.Item], ValueHashPlanBuilder.Bypass>
     ) -> ValueHashPlan {
-        let size = ValueHashPlanBuilder.layout(of: type).size
+        let size = unsafe ValueHashPlanBuilder.layout(of: type).size
         var runs: [ValueHashPlan.Run] = []
-        var steps: [ValueHashPlan.Step] = []
+        var steps: [ValueHashPlan.Step] = unsafe []
         var shape = ValueHashPlan.Shape.bypass
         var bypassReason: String?
-        switch built {
+        switch unsafe built {
         case .failure(let bypass):
             bypassReason = bypass.reason
         case .success(let items):
-            for item in items {
-                switch item {
+            for unsafe item in unsafe items {
+                switch unsafe item {
                 case .bytes(let offset, let count, _) where count > 0:
                     if let last = runs.last, last.offset + last.count == offset {
                         runs[runs.count - 1] = .init(offset: last.offset, count: last.count + count)
@@ -195,13 +206,13 @@ package final class ValueHashPlans {
                 case .bytes:
                     break
                 case .step(let step):
-                    steps.append(step)
+                    unsafe steps.append(step)
                 case .compared:
                     // Only a comparison's walk makes these (`comparing`).
                     break
                 }
             }
-            if !steps.isEmpty {
+            if unsafe !steps.isEmpty {
                 shape = .steps
             } else if size == 0 || runs == [.init(offset: 0, count: size)] {
                 shape = .dense
@@ -209,13 +220,13 @@ package final class ValueHashPlans {
                 shape = .runs
             }
         }
-        return ValueHashPlan(
+        return unsafe ValueHashPlan(
             shape: shape, size: size, runs: copied(runs), steps: copied(steps), bypassReason: bypassReason)
     }
 
     private static func copied<Element>(_ elements: [Element]) -> UnsafeBufferPointer<Element> {
         let storage = UnsafeMutableBufferPointer<Element>.allocate(capacity: elements.count)
-        _ = storage.initialize(from: elements)
+        _ = unsafe storage.initialize(from: elements)
         return UnsafeBufferPointer(storage)
     }
 }
@@ -228,10 +239,10 @@ extension ValueHashPlans {
     package func comparison(for type: Any.Type) -> ValueComparison? {
         let id = ObjectIdentifier(type)
         if let known = comparisons[id] { return known }
-        let walk = ValueHashPlanBuilder(listFields: builder.listFields, openers: [], comparing: true)
+        let walk = unsafe ValueHashPlanBuilder(listFields: builder.listFields, openers: [], comparing: true)
         let made: ValueComparison? =
-            switch walk.items(for: type) {
-            case .success(let items): ValueComparison(items)
+            switch unsafe walk.items(for: type) {
+            case .success(let items): unsafe ValueComparison(items)
             case .failure: nil
             }
         comparisons[id] = .some(made)
@@ -249,12 +260,12 @@ extension ValueHashPlans {
     /// its own, so nothing here checks the executor (see the type).
     @MainActor
     package func valueHash<V>(at value: UnsafePointer<V>) -> Int? {
-        let plan = plan(for: V.self)
-        if plan.pointee.shape == .dense {
-            return hashOfRawBytes(UnsafeRawBufferPointer(start: value, count: MemoryLayout<V>.size))
+        let plan = unsafe plan(for: V.self)
+        if unsafe plan.pointee.shape == .dense {
+            return unsafe hashOfRawBytes(UnsafeRawBufferPointer(start: value, count: MemoryLayout<V>.size))
         }
         armStackCheck()
-        return hashByPlan(UnsafeRawPointer(value), plan)
+        return unsafe hashByPlan(UnsafeRawPointer(value), plan)
     }
 
     /// Readies the check ``mixOpened(_:into:plans:)`` makes before it opens
@@ -269,20 +280,20 @@ extension ValueHashPlans {
     /// gives up; 0 when the guard is off, so none does — its answers exactly.
     @MainActor @inline(__always)
     func armStackCheck() {
-        running.pointee.stackFloor = StackGuard.uncountedFloor()
+        unsafe running.pointee.stackFloor = StackGuard.uncountedFloor()
     }
 
     /// Whether a step may open another existential: the stack pointer is
     /// above the floor the entry armed. See ``armStackCheck()``.
     @inline(__always)
     var hasStackHeadroom: Bool {
-        StackGuard.currentStackPointer() > running.pointee.stackFloor
+        unsafe StackGuard.currentStackPointer() > running.pointee.stackFloor
     }
 
     /// Notes that a step gave up, the stack having run short. Off the path of
     /// every step that does not.
     func noteStackRanShort() {
-        running.pointee.stackRanShort = true
+        unsafe running.pointee.stackRanShort = true
     }
 
     /// Whether a step has given up since this was last asked: whether a `nil`
@@ -290,8 +301,8 @@ extension ValueHashPlans {
     /// a value whose type cannot be hashed.
     @MainActor
     func takeStackRanShort() -> Bool {
-        defer { running.pointee.stackRanShort = false }
-        return running.pointee.stackRanShort
+        defer { unsafe running.pointee.stackRanShort = false }
+        return unsafe running.pointee.stackRanShort
     }
 
     /// The hash of a value whose plan is not dense: its runs, then its steps,
@@ -300,14 +311,14 @@ extension ValueHashPlans {
     @inline(never)
     func hashByPlan(_ base: UnsafeRawPointer, _ plan: UnsafePointer<ValueHashPlan>) -> Int? {
         var hash = hashFoldSeed
-        guard mix(at: base, plan: plan, into: &hash) else { return nil }
+        guard unsafe mix(at: base, plan: plan, into: &hash) else { return nil }
         return finalizeHashWord(hash)
     }
 
     /// Mixes the value of `type` at `base` into `hash`, by `type`'s plan;
     /// `false` when it bypasses.
     func mix(at base: UnsafeRawPointer, type: Any.Type, into hash: inout UInt64) -> Bool {
-        mix(at: base, plan: plan(for: type), into: &hash)
+        unsafe mix(at: base, plan: plan(for: type), into: &hash)
     }
 
     /// For an enum's ``_ValueHashing`` conformance: mixes the case it
@@ -324,17 +335,17 @@ extension ValueHashPlans {
     /// Mixes `value` into `hash` by its type's plan — for a step that has
     /// opened or switched its way to a payload of its own, in a local.
     package func mixValue<Value>(_ value: Value, into hash: inout UInt64) -> Bool {
-        let plan = plan(for: Value.self)
-        guard plan.pointee.size > 0 else { return true }
+        let plan = unsafe plan(for: Value.self)
+        guard unsafe plan.pointee.size > 0 else { return true }
         return withUnsafeBytes(of: value) { bytes in
-            mix(at: bytes.baseAddress.unsafelyUnwrapped, plan: plan, into: &hash)
+            unsafe mix(at: bytes.baseAddress.unsafelyUnwrapped, plan: plan, into: &hash)
         }
     }
 
     private func mix(at base: UnsafeRawPointer, plan: UnsafePointer<ValueHashPlan>, into hash: inout UInt64) -> Bool {
-        switch plan.pointee.shape {
+        switch unsafe plan.pointee.shape {
         case .dense:
-            mixDefinedRun(base, from: 0, count: plan.pointee.size, into: &hash)
+            unsafe mixDefinedRun(base, from: 0, count: plan.pointee.size, into: &hash)
             return true
         case .bypass:
             #if TUI_VALUE_HASH_CENSUS
@@ -342,16 +353,16 @@ extension ValueHashPlans {
             #endif
             return false
         case .runs, .steps:
-            for run in plan.pointee.runs {
-                mixDefinedRun(base, from: run.offset, count: run.count, into: &hash)
+            for unsafe run in unsafe plan.pointee.runs {
+                unsafe mixDefinedRun(base, from: run.offset, count: run.count, into: &hash)
             }
-            for step in plan.pointee.steps {
-                let at = base + step.offset
-                switch step.action {
+            for unsafe step in unsafe plan.pointee.steps {
+                let at = unsafe base + step.offset
+                switch unsafe step.action {
                 case .typed(let type):
-                    guard type._mixValueHash(at: at, into: &hash, plans: self) else { return false }
+                    guard unsafe type._mixValueHash(at: at, into: &hash, plans: self) else { return false }
                 case .existential(let field):
-                    guard field.mix(at: at, into: &hash, plans: self) else { return false }
+                    guard unsafe field.mix(at: at, into: &hash, plans: self) else { return false }
                 }
             }
             return true
@@ -372,21 +383,21 @@ func mixDefinedRun(_ base: UnsafeRawPointer, from start: Int, count: Int, into h
     if count >= 8 {
         var offset = start
         while offset + 8 <= end {
-            hash = mixHashWord(hash, base.loadUnaligned(fromByteOffset: offset, as: UInt64.self))
+            hash = unsafe mixHashWord(hash, base.loadUnaligned(fromByteOffset: offset, as: UInt64.self))
             offset += 8
         }
         if offset < end {
-            hash = mixHashWord(hash, base.loadUnaligned(fromByteOffset: end - 8, as: UInt64.self))
+            hash = unsafe mixHashWord(hash, base.loadUnaligned(fromByteOffset: end - 8, as: UInt64.self))
         }
     } else if count >= 4 {
-        let low = base.loadUnaligned(fromByteOffset: start, as: UInt32.self)
-        let high = base.loadUnaligned(fromByteOffset: end - 4, as: UInt32.self)
+        let low = unsafe base.loadUnaligned(fromByteOffset: start, as: UInt32.self)
+        let high = unsafe base.loadUnaligned(fromByteOffset: end - 4, as: UInt32.self)
         hash = mixHashWord(hash, UInt64(low) | UInt64(high) &<< 32)
     } else if count >= 2 {
-        let low = base.loadUnaligned(fromByteOffset: start, as: UInt16.self)
-        let high = base.loadUnaligned(fromByteOffset: end - 2, as: UInt16.self)
+        let low = unsafe base.loadUnaligned(fromByteOffset: start, as: UInt16.self)
+        let high = unsafe base.loadUnaligned(fromByteOffset: end - 2, as: UInt16.self)
         hash = mixHashWord(hash, UInt64(low) | UInt64(high) &<< 16)
     } else if count == 1 {
-        hash = mixHashWord(hash, UInt64(base.load(fromByteOffset: start, as: UInt8.self)))
+        hash = unsafe mixHashWord(hash, UInt64(base.load(fromByteOffset: start, as: UInt8.self)))
     }
 }

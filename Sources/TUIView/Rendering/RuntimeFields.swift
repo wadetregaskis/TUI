@@ -52,7 +52,7 @@ private func runtimeRecursiveFieldOffset(_: Any.Type, index: Int) -> Int
 /// `_FieldReflectionMetadata`, field for field, since the runtime writes it
 /// through a pointer. `name` belongs to the caller once written, and
 /// `freeFunc` is how to give it back.
-private struct RuntimeFieldMetadata {
+@unsafe private struct RuntimeFieldMetadata {
     var name: UnsafePointer<CChar>?
     var freeFunc: (@convention(c) (UnsafePointer<CChar>?) -> Void)?
     var isStrong = false
@@ -135,11 +135,11 @@ package enum RuntimeFields {
         guard Kind(of: type) == .fixedArray else { return nil }
         // A metatype's address is data, which `-deduplicate` never moves; read, not compared.
         // swiftlint:disable:next function_address_identity
-        let metadata = unsafeBitCast(type, to: UnsafeRawPointer.self)
+        let metadata = unsafe unsafeBitCast(type, to: UnsafeRawPointer.self)
         let word = MemoryLayout<Int>.size
-        let count = metadata.load(fromByteOffset: word, as: Int.self)
-        let elementMetadata = metadata.load(fromByteOffset: 2 * word, as: UnsafeRawPointer.self)
-        let element = unsafeBitCast(elementMetadata, to: Any.Type.self)
+        let count = unsafe metadata.load(fromByteOffset: word, as: Int.self)
+        let elementMetadata = unsafe metadata.load(fromByteOffset: 2 * word, as: UnsafeRawPointer.self)
+        let element = unsafe unsafeBitCast(elementMetadata, to: Any.Type.self)
         guard count >= 0 else { return nil }
         let size = _openExistential(type, do: fixedArraySize)
         let (elementSize, elementStride) = _openExistential(element, do: sizeAndStride)
@@ -162,8 +162,8 @@ package enum RuntimeFields {
         of type: Any.Type, options: Options = [],
         body: (UnsafePointer<CChar>, Int, Any.Type, Kind) -> Bool
     ) -> Bool {
-        forEachListed(of: type, options: options) { name, offset, fieldType, kind, _ in
-            body(name, offset, fieldType, kind)
+        unsafe forEachListed(of: type, options: options) { name, offset, fieldType, kind, _ in
+            unsafe body(name, offset, fieldType, kind)
         }
     }
 
@@ -202,10 +202,10 @@ package enum RuntimeFields {
         /// value-hash plan builder lists the fields of every type it plans and
         /// wants a name only to say why a type bypasses.
         package var name: String {
-            var field = RuntimeFieldMetadata()
-            _ = runtimeRecursiveFieldType(owner, index: index, fieldMetadata: &field)
-            defer { field.freeFunc?(field.name) }
-            return field.name.map { String(cString: $0) } ?? ""
+            var field = unsafe RuntimeFieldMetadata()
+            _ = unsafe runtimeRecursiveFieldType(owner, index: index, fieldMetadata: &field)
+            defer { unsafe field.freeFunc?(field.name) }
+            return unsafe field.name.map { unsafe String(cString: $0) } ?? ""
         }
     }
 
@@ -218,7 +218,7 @@ package enum RuntimeFields {
     /// type's size.
     package static func fields(of type: Any.Type) -> [Field] {
         var found: [Field] = []
-        _ = forEachListed(of: type, options: []) { _, offset, fieldType, kind, isStrong in
+        _ = unsafe forEachListed(of: type, options: []) { _, offset, fieldType, kind, isStrong in
             found.append(
                 Field(
                     owner: type, index: found.count, offset: offset, type: fieldType, kind: kind,
@@ -233,7 +233,7 @@ package enum RuntimeFields {
     /// instance. Empty for anything that is not a class.
     package static func ownClassFields(of type: Any.Type) -> [Field] {
         var found: [Field] = []
-        _ = forEachListed(of: type, options: .classType) { _, offset, fieldType, kind, isStrong in
+        _ = unsafe forEachListed(of: type, options: .classType) { _, offset, fieldType, kind, isStrong in
             found.append(
                 Field(
                     owner: type, index: found.count, offset: offset, type: fieldType, kind: kind,
@@ -252,11 +252,11 @@ package enum RuntimeFields {
         guard Kind(of: type).isClass == options.contains(.classType) else { return false }
         for index in 0..<runtimeRecursiveFieldCount(type) {
             let offset = runtimeRecursiveFieldOffset(type, index: index)
-            var field = RuntimeFieldMetadata()
-            let fieldType = runtimeRecursiveFieldType(type, index: index, fieldMetadata: &field)
-            defer { field.freeFunc?(field.name) }
-            let listed = withUnnamedFallback(field.name) { name in
-                body(name, offset, fieldType, Kind(of: fieldType), field.isStrong)
+            var field = unsafe RuntimeFieldMetadata()
+            let fieldType = unsafe runtimeRecursiveFieldType(type, index: index, fieldMetadata: &field)
+            defer { unsafe field.freeFunc?(field.name) }
+            let listed = unsafe withUnnamedFallback(field.name) { name in
+                unsafe body(name, offset, fieldType, Kind(of: fieldType), field.isStrong)
             }
             guard listed else { return false }
         }
@@ -267,7 +267,7 @@ package enum RuntimeFields {
     private static func withUnnamedFallback(
         _ name: UnsafePointer<CChar>?, _ body: (UnsafePointer<CChar>) -> Bool
     ) -> Bool {
-        if let name { return body(name) }
+        if let name = unsafe name { return unsafe body(name) }
         return "".withCString(body)
     }
 }

@@ -54,7 +54,7 @@ private struct Labelled {
 }
 
 private struct LabelledKey: EnvironmentKey, _RenderProjectingEnvironmentKey {
-    nonisolated(unsafe) static let defaultValue = Labelled(name: "")
+    static var defaultValue: Labelled { Labelled(name: "") }
     static func renderProjection(of value: Any) -> (any Equatable)? { (value as? Labelled)?.name }
 }
 
@@ -309,6 +309,6 @@ struct EnvironmentStampTests {
 
 #if canImport(ObjectiveC)
     private struct ObjectKey: EnvironmentKey {
-        nonisolated(unsafe) static let defaultValue = NSObject()
+        static var defaultValue: NSObject { NSObject() }
     }
 #endif

@@ -21,21 +21,21 @@
 @MainActor
 enum PropertyPlans {
     /// Each type's plan as a stored value.
-    private static let slots = permanentTable([ObjectIdentifier: SlotPlan]())
+    private static let slots = unsafe permanentTable([ObjectIdentifier: SlotPlan]())
     /// Each type's plan as the value a body is evaluated on.
-    private static let roots = permanentTable([ObjectIdentifier: SlotPlan]())
+    private static let roots = unsafe permanentTable([ObjectIdentifier: SlotPlan]())
     /// The types whose values hold nothing the walk acts on, as roots.
-    private static let emptyRoots = permanentTable(Set<ObjectIdentifier>())
+    private static let emptyRoots = unsafe permanentTable(Set<ObjectIdentifier>())
     /// Each class's contents.
-    private static let classContents = permanentTable([ObjectIdentifier: FieldsPlan]())
+    private static let classContents = unsafe permanentTable([ObjectIdentifier: FieldsPlan]())
     /// Each tuple's elements, as an enum case's payload.
-    private static let payloads = permanentTable([ObjectIdentifier: FieldsPlan]())
+    private static let payloads = unsafe permanentTable([ObjectIdentifier: FieldsPlan]())
     /// The plan of each class an object was found to be, as its exact type:
     /// an object plan for a property or modifier class, none for any other.
-    private static let exactClasses = permanentTable([ObjectIdentifier: SlotPlan]())
+    private static let exactClasses = unsafe permanentTable([ObjectIdentifier: SlotPlan]())
     /// Every type an existential or a plain class field was found holding
     /// whose exact plan is none (``EmptyTypes``).
-    static let emptyTypes = permanentTable(Set<ObjectIdentifier>())
+    static let emptyTypes = EmptyTypes.Everywhere()
 
     /// The plan for a value of `type` evaluated as a body's root, or `nil` if
     /// no value of it holds anything the walk acts on: nearly every view,
@@ -43,8 +43,8 @@ enum PropertyPlans {
     @inline(__always)
     static func root(_ type: Any.Type) -> SlotPlan? {
         let key = ObjectIdentifier(type)
-        if emptyRoots.pointee.contains(key) { return nil }
-        if let plan = roots.pointee[key] { return plan }
+        if unsafe emptyRoots.pointee.contains(key) { return nil }
+        if let plan = unsafe roots.pointee[key] { return plan }
         return buildRoot(type, key: key)
     }
 
@@ -72,10 +72,10 @@ enum PropertyPlans {
             plan = SlotPlan(.none)
         }
         if plan.isNone {
-            emptyRoots.pointee.insert(key)
+            unsafe emptyRoots.pointee.insert(key)
             return nil
         }
-        roots.pointee[key] = plan
+        unsafe roots.pointee[key] = plan
         return plan
     }
 
@@ -123,22 +123,22 @@ enum PropertyPlans {
     static func exact(_ type: Any.Type) -> SlotPlan {
         guard RuntimeFields.Kind(of: type).isClass else { return slot(type) }
         let key = ObjectIdentifier(type)
-        if let plan = exactClasses.pointee[key] { return plan }
+        if let plan = unsafe exactClasses.pointee[key] { return plan }
         let plan =
             isContainerType(type)
             ? SlotPlan(.object(ObjectPlan(type: type, updater: appPropertyType(type))), isModifier: type is any ViewModifier.Type)
             : SlotPlan(.none)
-        exactClasses.pointee[key] = plan
+        unsafe exactClasses.pointee[key] = plan
         return plan
     }
 
     /// The plan for a stored value of declared type `type`.
     static func slot(_ type: Any.Type) -> SlotPlan {
         let key = ObjectIdentifier(type)
-        if let plan = slots.pointee[key] { return plan }
+        if let plan = unsafe slots.pointee[key] { return plan }
         let action = action(forStored: type)
         let plan = SlotPlan(action, isModifier: isModifier(type, action))
-        slots.pointee[key] = plan
+        unsafe slots.pointee[key] = plan
         return plan
     }
 
@@ -322,7 +322,7 @@ enum PropertyPlans {
     /// included, each loaded by the class that declares it.
     static func contents(ofClass type: Any.Type) -> FieldsPlan {
         let key = ObjectIdentifier(type)
-        if let plan = classContents.pointee[key] { return plan }
+        if let plan = unsafe classContents.pointee[key] { return plan }
         // A field naming the class again plans an object, whose contents are
         // asked for only when one is reached: building this never recurses.
         var steps: [FieldsPlan.Step] = []
@@ -337,7 +337,7 @@ enum PropertyPlans {
             }
         }
         let plan = FieldsPlan(type: type, steps: steps, updater: nil)
-        classContents.pointee[key] = plan
+        unsafe classContents.pointee[key] = plan
         return plan
     }
 
@@ -347,9 +347,9 @@ enum PropertyPlans {
     /// more than one value holds them.
     static func payloadPlan(of type: Any.Type) -> FieldsPlan {
         let key = ObjectIdentifier(type)
-        if let plan = payloads.pointee[key] { return plan }
+        if let plan = unsafe payloads.pointee[key] { return plan }
         let plan = fieldsPlan(of: type, updater: nil)
-        payloads.pointee[key] = plan
+        unsafe payloads.pointee[key] = plan
         return plan
     }
 
@@ -388,6 +388,6 @@ enum PropertyPlans {
 /// `table`, moved into memory that is never freed — one of ``PropertyPlans``'.
 private func permanentTable<Table>(_ table: Table) -> UnsafeMutablePointer<Table> {
     let pointer = UnsafeMutablePointer<Table>.allocate(capacity: 1)
-    pointer.initialize(to: table)
-    return pointer
+    unsafe pointer.initialize(to: table)
+    return unsafe pointer
 }

@@ -79,7 +79,7 @@ package final class ObservationLeases {
 
     /// Whether scopes read sentinels and computations open slots: a reader
     /// type is known to read, and the rule cancels anything.
-    package var isActive: Bool { state.pointee.isActive }
+    package var isActive: Bool { unsafe state.isActive }
 
     /// Whether any reader type is known to read (the cache's
     /// `readingTypes`). Set once, by ``noteReaderLearned()``.
@@ -97,15 +97,15 @@ package final class ObservationLeases {
     }
 
     /// What every computation reads or writes — ``isActive``, the stack, the
-    /// detached depth and ``counts`` — in one struct reached through a pointer
-    /// the class holds as a constant: `VolatileReadTracker`'s and
-    /// `ValueHashPlans`' reason. Reading and writing a class's stored
-    /// variables is checked for exclusivity at run time, per variable, and a
-    /// memo or measure miss opens and closes a computation (``isActive`` on
-    /// every one, then `counts`, the stack twice and the detached depth while
-    /// anything is observed); through a constant pointer they are plain loads
-    /// and stores. The rest — the rule, the displayed frame, the naive rules'
-    /// sentinels — is touched once a pass or less, and stays as it was.
+    /// detached depth and ``counts`` — in one stored variable marked
+    /// `@exclusivity(unchecked)`: `VolatileReadTracker`'s reason. Reading and
+    /// writing a class's stored variables is otherwise checked for exclusivity
+    /// at run time, per variable, and a memo or measure miss opens and closes a
+    /// computation (``isActive`` on every one, then `counts`, the stack twice
+    /// and the detached depth while anything is observed). The leases stay on
+    /// the walk's thread, so two accesses never overlap. The rest — the rule,
+    /// the displayed frame, the naive rules' sentinels — is touched once a pass
+    /// or less, and is checked as usual.
     private struct State {
         /// See ``isActive``.
         var isActive = false
@@ -120,8 +120,8 @@ package final class ObservationLeases {
         var counts = Counts()
     }
 
-    /// Allocated with the leases and freed in `deinit`; never reassigned.
-    private let state: UnsafeMutablePointer<State>
+    /// `@exclusivity(unchecked)`: see ``State``.
+    @exclusivity(unchecked) private var state = State()
 
     /// The frame before the one being drawn: the screen shows it until this
     /// one replaces it, so what it guarded stays observed until then.
@@ -154,21 +154,14 @@ package final class ObservationLeases {
     }
 
     /// What the bookkeeping has done so far.
-    package var counts: Counts { state.pointee.counts }
+    package var counts: Counts { unsafe state.counts }
 
     package init(retirement: Retirement = ObservationLeases.defaultRetirement) {
         self.retirement = retirement
-        state = .allocate(capacity: 1)
-        state.initialize(to: State())
-    }
-
-    deinit {
-        state.deinitialize(count: 1)
-        state.deallocate()
     }
 
     private func updateActivity() {
-        state.pointee.isActive = hasReaders && retirement != .never
+        unsafe state.isActive = hasReaders && retirement != .never
     }
 
     /// Called when the cache learns its first reading type: from here on,
@@ -202,10 +195,10 @@ package final class ObservationLeases {
     }
 
     private func open(isDetached: Bool) -> Int {
-        state.pointee.counts.computations += 1
-        if isDetached { state.pointee.detachedDepth += 1 }
-        state.pointee.stack.append(Slot(lease: nil, isDetached: isDetached))
-        return state.pointee.stack.count - 1
+        unsafe state.counts.computations += 1
+        if isDetached { unsafe state.detachedDepth += 1 }
+        unsafe state.stack.append(Slot(lease: nil, isDetached: isDetached))
+        return unsafe state.stack.count - 1
     }
 
     /// Closes the computation `mark` opened and returns its lease: `nil` when
@@ -215,9 +208,9 @@ package final class ObservationLeases {
     @inline(__always)
     package func endComputation(_ mark: Int?) -> ObservationLease? {
         guard let mark else { return nil }
-        assert(state.pointee.stack.count - 1 == mark, "an observation lease computation was closed out of order")
-        let slot = state.pointee.stack.removeLast()
-        if slot.isDetached { state.pointee.detachedDepth -= 1 }
+        unsafe assert(state.stack.count - 1 == mark, "an observation lease computation was closed out of order")
+        let slot = unsafe state.stack.removeLast()
+        if slot.isDetached { unsafe state.detachedDepth -= 1 }
         return slot.lease
     }
 
@@ -226,30 +219,30 @@ package final class ObservationLeases {
     @inline(__always)
     package func use(_ lease: ObservationLease?) {
         guard let lease else { return }
-        state.pointee.counts.uses += 1
-        materialize(state.pointee.stack.count - 1).hold(lease)
+        unsafe state.counts.uses += 1
+        unsafe materialize(state.stack.count - 1).hold(lease)
     }
 
     /// The lease of the computation at `index`, made — and held by every
     /// enclosing computation down to one that has a lease already, or a
     /// detached one — when it has none yet.
     private func materialize(_ index: Int) -> ObservationLease {
-        if let lease = state.pointee.stack[index].lease { return lease }
+        if let lease = unsafe state.stack[index].lease { return lease }
         let made = ObservationLease()
-        state.pointee.counts.leasesMade += 1
-        state.pointee.stack[index].lease = made
+        unsafe state.counts.leasesMade += 1
+        unsafe state.stack[index].lease = made
         var child = made
         var cursor = index
-        while cursor > 0, !state.pointee.stack[cursor].isDetached {
+        while cursor > 0, unsafe !state.stack[cursor].isDetached {
             cursor -= 1
-            if let enclosing = state.pointee.stack[cursor].lease {
+            if let enclosing = unsafe state.stack[cursor].lease {
                 enclosing.hold(child)
                 break
             }
             let enclosing = ObservationLease()
-            state.pointee.counts.leasesMade += 1
+            unsafe state.counts.leasesMade += 1
             enclosing.hold(child)
-            state.pointee.stack[cursor].lease = enclosing
+            unsafe state.stack[cursor].lease = enclosing
             child = enclosing
         }
         return made
@@ -261,15 +254,15 @@ package final class ObservationLeases {
     /// type known to read must read, or `nil` when it reads none. Asked only
     /// while ``isActive``.
     package func sentinel(at identity: ViewIdentity) -> ScopeSentinel? {
-        if retirement == .leases || state.pointee.detachedDepth > 0 {
-            state.pointee.counts.sentinelScopes += 1
-            return materialize(state.pointee.stack.count - 1).scopeSentinel()
+        if unsafe retirement == .leases || state.detachedDepth > 0 {
+            unsafe state.counts.sentinelScopes += 1
+            return unsafe materialize(state.stack.count - 1).scopeSentinel()
         }
         switch retirement {
         case .never, .leases:
             return nil
         case .perReader, .perReaderAndPrune:
-            state.pointee.counts.sentinelScopes += 1
+            unsafe state.counts.sentinelScopes += 1
             let key = identity.structuralHash
             if let known = readerSentinels[key], known.pass == pass { return known.sentinel }
             readerSentinels[key]?.sentinel.retire()
@@ -298,17 +291,17 @@ package final class ObservationLeases {
             for key in gone { readerSentinels.removeValue(forKey: key) }
         }
         pass &+= 1
-        state.pointee.counts.passes += 1
-        assert(state.pointee.stack.count == 1, "an observation lease computation was left open at the end of a pass")
-        displayed = state.pointee.stack[0].lease
-        state.pointee.stack[0].lease = nil
+        unsafe state.counts.passes += 1
+        unsafe assert(state.stack.count == 1, "an observation lease computation was left open at the end of a pass")
+        displayed = unsafe state.stack[0].lease
+        unsafe state.stack[0].lease = nil
     }
 
     /// Lets go of every lease the cache holds, retiring what nothing else
     /// holds, and every naive sentinel.
     package func reset() {
-        state.pointee.stack = [Slot(lease: nil, isDetached: false)]
-        state.pointee.detachedDepth = 0
+        unsafe state.stack = [Slot(lease: nil, isDetached: false)]
+        unsafe state.detachedDepth = 0
         displayed = nil
         for reader in readerSentinels.values { reader.sentinel.retire() }
         readerSentinels.removeAll()
@@ -317,14 +310,14 @@ package final class ObservationLeases {
     // MARK: For tests
 
     /// The lease of the computation innermost now, if it has one.
-    package var innermostLease: ObservationLease? { state.pointee.stack.last?.lease }
+    package var innermostLease: ObservationLease? { unsafe state.stack.last?.lease }
 
     /// The frame being drawn's lease, if anything armed or was used in it.
-    package var frameLease: ObservationLease? { state.pointee.stack[0].lease }
+    package var frameLease: ObservationLease? { unsafe state.stack[0].lease }
 
     /// The frame on screen's lease.
     package var displayedLease: ObservationLease? { displayed }
 
     /// How many computations are open, the frame's included.
-    package var depth: Int { state.pointee.stack.count }
+    package var depth: Int { unsafe state.stack.count }
 }

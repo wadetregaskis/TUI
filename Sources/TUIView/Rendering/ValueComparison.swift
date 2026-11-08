@@ -68,7 +68,8 @@ package final class ValueComparison {
     /// One field a comparison does not read as bytes.
     enum Field {
         case opaque
-        case equatable((UnsafeRawPointer, UnsafeRawPointer) -> Bool)
+        /// An `Equatable` type, compared by its own `==` (``equal(_:_:_:)``).
+        case equatable(any Equatable.Type)
         case typed(any _ValueComparing.Type)
     }
 
@@ -94,8 +95,8 @@ package final class ValueComparison {
         var runs: [Run] = []
         var steps: [Step] = []
         var holdsOpaque = false
-        for item in items {
-            switch item {
+        for unsafe item in unsafe items {
+            switch unsafe item {
             case .bytes(let offset, let count, _) where count > 0:
                 if let last = runs.last, last.offset + last.count == offset {
                     runs[runs.count - 1] = Run(offset: last.offset, count: last.count + count)
@@ -115,28 +116,27 @@ package final class ValueComparison {
         self.holdsOpaque = holdsOpaque
     }
 
-    /// The `==` of `type`, over addresses. Made once per field per type: no cast
-    /// per comparison.
-    static func equality(of type: any Equatable.Type) -> (UnsafeRawPointer, UnsafeRawPointer) -> Bool {
-        func make<E: Equatable>(_: E.Type) -> (UnsafeRawPointer, UnsafeRawPointer) -> Bool {
-            { $0.assumingMemoryBound(to: E.self).pointee == $1.assumingMemoryBound(to: E.self).pointee }
-        }
-        return make(type)
+    /// The `==` of `E`, over addresses: an `any Equatable.Type` opens into `E`
+    /// at the call, so a field keeps its type rather than a closure over two
+    /// addresses, which would be of an unsafe type (strict memory safety). The
+    /// closure ran this same generic code, unspecialized, so nothing is lost.
+    private static func equal<E: Equatable>(_: E.Type, _ lhs: UnsafeRawPointer, _ rhs: UnsafeRawPointer) -> Bool {
+        unsafe lhs.assumingMemoryBound(to: E.self).pointee == rhs.assumingMemoryBound(to: E.self).pointee
     }
 
     /// Whether the values at `lhs` and `rhs` compare equal: a closure or a
     /// `Binding` is ignored, or under `strict` is changed.
     func equal(_ lhs: UnsafeRawPointer, _ rhs: UnsafeRawPointer, strict: Bool, plans: ValueHashPlans) -> Bool {
         if strict, holdsOpaque { return false }
-        for run in runs where memcmp(lhs + run.offset, rhs + run.offset, run.count) != 0 { return false }
+        for run in runs where unsafe memcmp(lhs + run.offset, rhs + run.offset, run.count) != 0 { return false }
         for step in steps {
             switch step.field {
             case .opaque:
                 break
-            case .equatable(let equal):
-                if !equal(lhs + step.offset, rhs + step.offset) { return false }
+            case .equatable(let type):
+                if unsafe !Self.equal(type, lhs + step.offset, rhs + step.offset) { return false }
             case .typed(let type):
-                if !type.valuesEqual(lhs + step.offset, rhs + step.offset, strict: strict, plans: plans) { return false }
+                if unsafe !type.valuesEqual(lhs + step.offset, rhs + step.offset, strict: strict, plans: plans) { return false }
             }
         }
         return true
@@ -146,7 +146,7 @@ package final class ValueComparison {
     func equal<T>(_ lhs: T, _ rhs: T, strict: Bool, plans: ValueHashPlans) -> Bool {
         withUnsafePointer(to: lhs) { left in
             withUnsafePointer(to: rhs) { right in
-                equal(UnsafeRawPointer(left), UnsafeRawPointer(right), strict: strict, plans: plans)
+                unsafe equal(UnsafeRawPointer(left), UnsafeRawPointer(right), strict: strict, plans: plans)
             }
         }
     }
@@ -160,10 +160,10 @@ extension Optional: _ValueComparing {
     package static func valuesEqual(
         _ lhs: UnsafeRawPointer, _ rhs: UnsafeRawPointer, strict: Bool, plans: ValueHashPlans
     ) -> Bool {
-        let leftIsNone = isNone(lhs.assumingMemoryBound(to: Self.self).pointee)
-        let rightIsNone = isNone(rhs.assumingMemoryBound(to: Self.self).pointee)
+        let leftIsNone = unsafe isNone(lhs.assumingMemoryBound(to: Self.self).pointee)
+        let rightIsNone = unsafe isNone(rhs.assumingMemoryBound(to: Self.self).pointee)
         if leftIsNone || rightIsNone { return leftIsNone == rightIsNone }
-        return plans.comparison(for: Wrapped.self)?.equal(lhs, rhs, strict: strict, plans: plans) ?? false
+        return unsafe plans.comparison(for: Wrapped.self)?.equal(lhs, rhs, strict: strict, plans: plans) ?? false
     }
 }
 
@@ -177,7 +177,7 @@ extension ConditionalView: _ValueComparing {
         func same<T>(_ left: T, _ right: T) -> Bool {
             plans.comparison(for: T.self)?.equal(left, right, strict: strict, plans: plans) ?? false
         }
-        switch (lhs.assumingMemoryBound(to: Self.self).pointee, rhs.assumingMemoryBound(to: Self.self).pointee) {
+        switch unsafe (lhs.assumingMemoryBound(to: Self.self).pointee, rhs.assumingMemoryBound(to: Self.self).pointee) {
         case (.trueContent(let left), .trueContent(let right)): return same(left, right)
         case (.falseContent(let left), .falseContent(let right)): return same(left, right)
         default: return false

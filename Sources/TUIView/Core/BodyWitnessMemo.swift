@@ -45,7 +45,7 @@
 /// load. No access to the memo is held across the body's question, which
 /// asks this memo again.
 @MainActor
-package struct BodyWitnessMemo {
+@unsafe package struct BodyWitnessMemo {
     /// One entry of the direct-mapped table: a type and its kept answer.
     private struct FrontEntry {
         var type: ObjectIdentifier?
@@ -74,44 +74,44 @@ package struct BodyWitnessMemo {
     package private(set) var bodiesAsked = 0
 
     private init() {
-        front = .allocate(capacity: Self.frontCount)
-        front.initialize(repeating: FrontEntry(), count: Self.frontCount)
+        unsafe front = .allocate(capacity: Self.frontCount)
+        unsafe front.initialize(repeating: FrontEntry(), count: Self.frontCount)
     }
 
     /// The memo for ``View/_providesAlignmentGuide``.
-    package static let alignmentGuide = permanentMemo()
+    package static let alignmentGuide = unsafe permanentMemo()
 
     /// The memo for whether a view type may report an edge or centre guide
     /// out of itself (TUIFoundation's `mayReportEdgeOrCentreGuide(_:)`).
-    package static let edgeOrCentreGuide = permanentMemo()
+    package static let edgeOrCentreGuide = unsafe permanentMemo()
 
     /// The memo for ``View/_statesSpacingPreference``.
-    package static let spacingPreference = permanentMemo()
+    package static let spacingPreference = unsafe permanentMemo()
 
     /// The memo for whether a view type may state a spacing preference on
     /// its leading and trailing edges (TUIFoundation's
     /// `mayStateSpacing(_:along:)`).
-    package static let spacingAlongHorizontal = permanentMemo()
+    package static let spacingAlongHorizontal = unsafe permanentMemo()
 
     /// The memo for whether a view type may state a spacing preference on
     /// its top and bottom edges.
-    package static let spacingAlongVertical = permanentMemo()
+    package static let spacingAlongVertical = unsafe permanentMemo()
 
     /// The memo for ``View/_handsOverChildren``.
-    package static let handsOverChildren = permanentMemo()
+    package static let handsOverChildren = unsafe permanentMemo()
 
     /// The memo for whether a view type is statically one view
     /// (``isStaticallyOneView(_:)``).
-    package static let staticallyOneView = permanentMemo()
+    package static let staticallyOneView = unsafe permanentMemo()
 
     /// The memo for whether a view type is drawn at its own size whatever it
     /// is offered (TUIFoundation's `drawsAtItsOwnSize(_:)`).
-    package static let ownSize = permanentMemo()
+    package static let ownSize = unsafe permanentMemo()
 
     private static func permanentMemo() -> UnsafeMutablePointer<Self> {
         let pointer = UnsafeMutablePointer<Self>.allocate(capacity: 1)
-        pointer.initialize(to: Self())
-        return pointer
+        unsafe pointer.initialize(to: Self())
+        return unsafe pointer
     }
 
     /// Where `key` sits in the direct-mapped table: its metadata address,
@@ -120,7 +120,7 @@ package struct BodyWitnessMemo {
     @inline(__always)
     private static func frontIndex(_ key: ObjectIdentifier) -> Int {
         let bits = UInt(bitPattern: key)
-        return Int(truncatingIfNeeded: (bits >> 4) ^ (bits >> 13)) & (frontCount - 1)
+        return unsafe Int(truncatingIfNeeded: (bits >> 4) ^ (bits >> 13)) & (frontCount - 1)
     }
 
     /// `V`'s answer, which is `ask()` — its body's, or its content's — kept
@@ -138,9 +138,9 @@ package struct BodyWitnessMemo {
         in memo: UnsafeMutablePointer<Self>, for type: V.Type, _ ask: () -> Bool
     ) -> Bool {
         let key = ObjectIdentifier(type)
-        let entry = memo.pointee.front + frontIndex(key)
-        if entry.pointee.type == key { return entry.pointee.answer }
-        return workedOut(in: memo, for: type, key: key, ask)
+        let entry = unsafe memo.pointee.front + frontIndex(key)
+        if unsafe entry.pointee.type == key { return unsafe entry.pointee.answer }
+        return unsafe workedOut(in: memo, for: type, key: key, ask)
     }
 
     /// ``answer(in:for:_:)`` past a miss in the direct-mapped table.
@@ -149,35 +149,35 @@ package struct BodyWitnessMemo {
         in memo: UnsafeMutablePointer<Self>, for type: V.Type, key: ObjectIdentifier,
         _ ask: () -> Bool
     ) -> Bool {
-        if let known = memo.pointee.answers[key] {
-            memo.pointee.keep(known, for: key)
+        if let known = unsafe memo.pointee.answers[key] {
+            unsafe memo.pointee.keep(known, for: key)
             return known
         }
-        if let depth = memo.pointee.open[key] {
-            memo.pointee.outermostMet = min(memo.pointee.outermostMet, depth)
+        if let depth = unsafe memo.pointee.open[key] {
+            unsafe memo.pointee.outermostMet = unsafe min(memo.pointee.outermostMet, depth)
             return false
         }
-        let depth = memo.pointee.open.count
-        memo.pointee.open[key] = depth
-        let metFurtherOut = memo.pointee.outermostMet
-        memo.pointee.outermostMet = Int.max
-        memo.pointee.bodiesAsked += 1
+        let depth = unsafe memo.pointee.open.count
+        unsafe memo.pointee.open[key] = depth
+        let metFurtherOut = unsafe memo.pointee.outermostMet
+        unsafe memo.pointee.outermostMet = Int.max
+        unsafe memo.pointee.bodiesAsked += 1
 
         let answer = ask()
 
-        memo.pointee.open[key] = nil
-        let met = memo.pointee.outermostMet
-        if answer || met >= depth { memo.pointee.keep(answer, for: key) }
+        unsafe memo.pointee.open[key] = nil
+        let met = unsafe memo.pointee.outermostMet
+        if answer || met >= depth { unsafe memo.pointee.keep(answer, for: key) }
         // What this question met further out than `V` is still open, so the
         // question that opened it must not keep a `false` worked out under it.
-        memo.pointee.outermostMet = min(metFurtherOut, met < depth ? met : Int.max)
+        unsafe memo.pointee.outermostMet = min(metFurtherOut, met < depth ? met : Int.max)
         return answer
     }
 
     /// Keeps `answer` as `key`'s, in the dictionary and the direct-mapped
     /// table, where it takes the entry of whichever type held it.
     private mutating func keep(_ answer: Bool, for key: ObjectIdentifier) {
-        answers[key] = answer
-        front[Self.frontIndex(key)] = FrontEntry(type: key, answer: answer)
+        unsafe answers[key] = answer
+        unsafe front[Self.frontIndex(key)] = FrontEntry(type: key, answer: answer)
     }
 }

@@ -47,7 +47,7 @@
 package enum SystemZlib {
 
     /// Whether the host's zlib was found and both entry points resolved.
-    public static var isAvailable: Bool { library != nil }
+    public static var isAvailable: Bool { unsafe library != nil }
 
     /// `bytes`, deflated in the RFC 1950 (zlib) container the graphics
     /// protocol's `o=z` expects — or `nil` where there is no zlib, or the
@@ -59,13 +59,13 @@ package enum SystemZlib {
     ///     a smooth ramp compresses three times better than level 1 for a cost
     ///     that is invisible next to transmitting the result.
     public static func compress(_ bytes: [UInt8], level: Int32 = 6) -> [UInt8]? {
-        guard let library, !bytes.isEmpty else { return nil }
-        let bound = Int(library.bound(CUnsignedLong(bytes.count)))
+        guard let library = unsafe library, !bytes.isEmpty else { return nil }
+        let bound = unsafe Int(library.bound(CUnsignedLong(bytes.count)))
         guard bound > 0 else { return nil }
         var written = CUnsignedLong(bound)
-        let out = [UInt8](unsafeUninitializedCapacity: bound) { buffer, initialized in
+        let out = unsafe [UInt8](unsafeUninitializedCapacity: bound) { buffer, initialized in
             let status = bytes.withUnsafeBufferPointer { source in
-                library.compress(buffer.baseAddress, &written, source.baseAddress, CUnsignedLong(bytes.count), level)
+                unsafe library.compress(buffer.baseAddress, &written, source.baseAddress, CUnsignedLong(bytes.count), level)
             }
             initialized = status == 0 ? Int(written) : 0
         }
@@ -83,7 +83,7 @@ package enum SystemZlib {
     /// `uLong compressBound(uLong sourceLen)`.
     private typealias CompressBound = @convention(c) (CUnsignedLong) -> CUnsignedLong
 
-    private struct Library {
+    @unsafe private struct Library {
         let compress: Compress2
         let bound: CompressBound
     }
@@ -98,13 +98,13 @@ package enum SystemZlib {
             // macOS has both spellings of its dylib.
             let names = ["libz.so.1", "libz.1.dylib", "libz.dylib", "libz.so"]
             for name in names {
-                guard let handle = dlopen(name, RTLD_NOW | RTLD_LOCAL) else { continue }
-                guard let compress = dlsym(handle, "compress2"), let bound = dlsym(handle, "compressBound")
+                guard let handle = unsafe dlopen(name, RTLD_NOW | RTLD_LOCAL) else { continue }
+                guard let compress = unsafe dlsym(handle, "compress2"), let bound = unsafe dlsym(handle, "compressBound")
                 else {
-                    dlclose(handle)
+                    unsafe dlclose(handle)
                     continue
                 }
-                return Library(
+                return unsafe Library(
                     compress: unsafeBitCast(compress, to: Compress2.self),
                     bound: unsafeBitCast(bound, to: CompressBound.self))
             }

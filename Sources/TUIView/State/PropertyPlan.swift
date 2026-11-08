@@ -231,7 +231,7 @@ final class FieldsPlan {
     /// `@State` at a fixed offset to say.
     func objectKind(at base: UnsafeRawPointer, in pass: UInt32) -> ObjectKind {
         guard let firstState else { return .unknown }
-        return firstState.state.objectKind(at: base + firstState.offset, in: pass)
+        return unsafe firstState.state.objectKind(at: base + firstState.offset, in: pass)
     }
 }
 
@@ -262,7 +262,7 @@ struct ReferenceField {
     /// whose object has gone, or an optional one that holds none. One held
     /// `unowned` whose object has gone traps, as reading it in Swift does.
     func load(at address: UnsafeRawPointer) -> AnyObject? {
-        HeldReferences.load(at: address, ownership, isOptional: isOptional)
+        unsafe HeldReferences.load(at: address, ownership, isOptional: isOptional)
     }
 }
 
@@ -364,6 +364,6 @@ extension Optional: OptionalPropertyHolder {
     static var wrappedType: Any.Type { Wrapped.self }
 
     static func hasValue(at address: UnsafeRawPointer) -> Bool {
-        address.assumingMemoryBound(to: Self.self).pointee != nil
+        unsafe address.assumingMemoryBound(to: Self.self).pointee != nil
     }
 }

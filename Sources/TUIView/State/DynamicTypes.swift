@@ -47,8 +47,8 @@ enum ExistentialLayout {
         }
         // A metatype's address is data, which `-deduplicate` never moves; read, not compared.
         // swiftlint:disable:next function_address_identity
-        let metadata = unsafeBitCast(type, to: UnsafeRawPointer.self)
-        let flags = metadata.load(fromByteOffset: MemoryLayout<Int>.size, as: UInt32.self)
+        let metadata = unsafe unsafeBitCast(type, to: UnsafeRawPointer.self)
+        let flags = unsafe metadata.load(fromByteOffset: MemoryLayout<Int>.size, as: UInt32.self)
         if flags & 0x3F00_0000 != 0 {
             self = .other
         } else if flags & 0x8000_0000 != 0 {
@@ -77,18 +77,18 @@ enum DynamicTypes {
     static func existential(at address: UnsafeRawPointer, _ layout: ExistentialLayout) -> DynamicTypeRead {
         switch layout {
         case .object:
-            return object(at: address)
+            return unsafe object(at: address)
         case .other:
             return .unknown
         case .opaque:
-            guard let metadata = address.load(
+            guard let metadata = unsafe address.load(
                 fromByteOffset: 3 * MemoryLayout<UnsafeRawPointer>.size, as: UnsafeRawPointer?.self)
             else { return .empty }
-            let type = unsafeBitCast(metadata, to: Any.Type.self)
+            let type = unsafe unsafeBitCast(metadata, to: Any.Type.self)
             let kind = RuntimeFields.Kind(of: type)
             // The metadata names the type the value was erased from; an
             // object's class may be a subclass of it.
-            if kind.isClass { return object(at: address) }
+            if kind.isClass { return unsafe object(at: address) }
             if kind == .existential || kind == .extendedExistential { return .unknown }
             return .type(type)
         }
@@ -108,16 +108,16 @@ enum DynamicTypes {
     /// every object is a native one.
     static func unownedObject(at address: UnsafeRawPointer) -> DynamicTypeRead {
         #if _runtime(_ObjC)
-            if address.load(as: UInt.self) & 1 != 0 { return .empty }
+            if unsafe address.load(as: UInt.self) & 1 != 0 { return .empty }
         #endif
-        return object(at: address)
+        return unsafe object(at: address)
     }
 
     /// The class of the object whose reference lies at `address`, held
     /// strongly — or `.empty` for a `nil` optional of one.
     static func object(at address: UnsafeRawPointer) -> DynamicTypeRead {
-        guard let reference = address.load(as: UnsafeRawPointer?.self) else { return .empty }
-        let objectType: Any.Type = Unmanaged<AnyObject>.fromOpaque(reference)._withUnsafeGuaranteedRef {
+        guard let reference = unsafe address.load(as: UnsafeRawPointer?.self) else { return .empty }
+        let objectType: Any.Type = unsafe Unmanaged<AnyObject>.fromOpaque(reference)._withUnsafeGuaranteedRef {
             type(of: $0)
         }
         return .type(objectType)
@@ -166,17 +166,17 @@ enum HeldReferences {
     {
         switch (ownership, isOptional) {
         case (.strong, _):
-            address.assumingMemoryBound(to: AnyObject?.self).pointee
+            unsafe address.assumingMemoryBound(to: AnyObject?.self).pointee
         case (.weak, _):
-            address.assumingMemoryBound(to: Weak.self).pointee.object
+            unsafe address.assumingMemoryBound(to: Weak.self).pointee.object
         case (.unowned, false):
-            address.assumingMemoryBound(to: Unowned.self).pointee.object
+            unsafe address.assumingMemoryBound(to: Unowned.self).pointee.object
         case (.unowned, true):
-            address.assumingMemoryBound(to: OptionalUnowned.self).pointee.object
+            unsafe address.assumingMemoryBound(to: OptionalUnowned.self).pointee.object
         case (.unownedUnsafe, false):
-            address.assumingMemoryBound(to: UnownedUnsafe.self).pointee.object
+            unsafe address.assumingMemoryBound(to: UnownedUnsafe.self).pointee.object
         case (.unownedUnsafe, true):
-            address.assumingMemoryBound(to: OptionalUnownedUnsafe.self).pointee.object
+            unsafe address.assumingMemoryBound(to: OptionalUnownedUnsafe.self).pointee.object
         }
     }
 }
@@ -194,18 +194,27 @@ enum HeldReferences {
 /// field.
 ///
 /// Read by the probe that runs before a view is copied
-/// (``RootProbe/findsSomething(at:)``), so kept behind pointers that are
-/// never freed, as the plans holding it never are: a stored property of a
-/// class is checked for exclusive access at run time on every read.
-struct EmptyTypes {
-    private let entries: UnsafeMutablePointer<UInt>
+/// (``RootProbe/findsSomething(at:)``), so its storage is
+/// `@exclusivity(unchecked)`: a stored property of a class is otherwise
+/// checked for exclusive access at run time on every read. It is used on the
+/// main actor alone, as the plans holding it are, so two accesses never
+/// overlap. (A struct of pointers until strict memory safety, which pointers
+/// in storage defeat.)
+final class EmptyTypes {
+    /// The two types last noted here, by identifier bits; 0 for none.
+    @exclusivity(unchecked) private var entries: (UInt, UInt) = (0, 0)
     /// Every type found holding nothing, in any field
     /// (``PropertyPlans/emptyTypes``).
-    private let everywhere: UnsafeMutablePointer<Set<ObjectIdentifier>>
+    private let everywhere: Everywhere
 
-    init(everywhere: UnsafeMutablePointer<Set<ObjectIdentifier>>) {
-        entries = .allocate(capacity: 2)
-        entries.initialize(repeating: 0, count: 2)
+    /// The types found holding nothing, which every field's ``EmptyTypes``
+    /// shares.
+    final class Everywhere {
+        /// `@exclusivity(unchecked)`, as ``EmptyTypes``' own storage.
+        @exclusivity(unchecked) var types = Set<ObjectIdentifier>()
+    }
+
+    init(everywhere: Everywhere) {
         self.everywhere = everywhere
     }
 
@@ -213,8 +222,8 @@ struct EmptyTypes {
     /// here, or one noted in any field, which this field then notes.
     func contains(_ type: Any.Type) -> Bool {
         let bits = UInt(bitPattern: ObjectIdentifier(type))
-        if entries[0] == bits || entries[1] == bits { return true }
-        guard everywhere.pointee.contains(ObjectIdentifier(type)) else { return false }
+        if unsafe entries.0 == bits || entries.1 == bits { return true }
+        guard unsafe everywhere.types.contains(ObjectIdentifier(type)) else { return false }
         note(bits)
         return true
     }
@@ -222,14 +231,13 @@ struct EmptyTypes {
     /// Notes `type`, here and for every field.
     func insert(_ type: Any.Type) {
         note(UInt(bitPattern: ObjectIdentifier(type)))
-        everywhere.pointee.insert(ObjectIdentifier(type))
+        unsafe everywhere.types.insert(ObjectIdentifier(type))
     }
 
     /// Notes the type with identifier `bits` here, dropping the older of the
     /// two.
     private func note(_ bits: UInt) {
-        entries[1] = entries[0]
-        entries[0] = bits
+        unsafe entries = (bits, entries.0)
     }
 }
 
@@ -269,15 +277,15 @@ struct RootProbe {
         let read: DynamicTypeRead
         switch kind {
         case .existential(let layout):
-            read = DynamicTypes.existential(at: address, layout)
+            read = unsafe DynamicTypes.existential(at: address, layout)
         case .object(let declared):
-            read = DynamicTypes.object(at: address)
+            read = unsafe DynamicTypes.object(at: address)
             if case .type(let type) = read, UInt(bitPattern: ObjectIdentifier(type)) == declared { return false }
         case .unowned(let declared):
-            read = DynamicTypes.unownedObject(at: address)
+            read = unsafe DynamicTypes.unownedObject(at: address)
             if case .type(let type) = read, UInt(bitPattern: ObjectIdentifier(type)) == declared { return false }
         case .weak(let declared):
-            guard let object = HeldReferences.load(at: address, .weak, isOptional: true) else { return false }
+            guard let object = unsafe HeldReferences.load(at: address, .weak, isOptional: true) else { return false }
             let type: Any.Type = type(of: object)
             if UInt(bitPattern: ObjectIdentifier(type)) == declared { return false }
             read = .type(type)
@@ -296,8 +304,8 @@ struct RootProbe {
 /// in a release build that it runs on the main actor.
 func probesFindSomething<V>(in value: V, _ probes: [RootProbe]) -> Bool {
     withUnsafePointer(to: value) { pointer in
-        let base = UnsafeRawPointer(pointer)
-        for probe in probes where probe.findsSomething(at: base + probe.offset) {
+        let base = unsafe UnsafeRawPointer(pointer)
+        for probe in probes where unsafe probe.findsSomething(at: base + probe.offset) {
             return true
         }
         return false

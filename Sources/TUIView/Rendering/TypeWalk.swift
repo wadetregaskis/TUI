@@ -155,13 +155,15 @@ package struct TypeWalk {
         package var holdsFunctions: Bool
     }
 
-    /// Lists a type's stored fields to `body` — name, declared type, kind —
-    /// and says whether the runtime could describe it:
+    /// Lists a type's stored fields to `body` — name, declared type — and
+    /// says whether the runtime could describe it:
     /// ``RuntimeFields/forEach(of:options:body:)``, which a test replaces to
-    /// see the walk refuse a type the runtime cannot describe.
+    /// see the walk refuse a type the runtime cannot describe. The name is a
+    /// `String`, not the runtime's C string, so that the lister a walk keeps
+    /// is not of an unsafe type (strict memory safety); a type is walked once,
+    /// and its names were made `String`s at once anyway.
     package typealias FieldLister = (
-        _ type: Any.Type, _ options: RuntimeFields.Options,
-        _ body: (UnsafePointer<CChar>, Int, Any.Type, RuntimeFields.Kind) -> Bool
+        _ type: Any.Type, _ options: RuntimeFields.Options, _ body: (String, Any.Type) -> Bool
     ) -> Bool
 
     /// Every type walked so far, and what it holds.
@@ -172,7 +174,13 @@ package struct TypeWalk {
 
     private let listFields: FieldLister
 
-    package init(listFields: @escaping FieldLister = { RuntimeFields.forEach(of: $0, options: $1, body: $2) }) {
+    package init(
+        listFields: @escaping FieldLister = { type, options, body in
+            unsafe RuntimeFields.forEach(of: type, options: options) { name, _, field, _ in
+                body(unsafe String(cString: name), field)
+            }
+        }
+    ) {
         self.listFields = listFields
     }
 
@@ -251,9 +259,8 @@ package struct TypeWalk {
         walking: inout Set<ObjectIdentifier>
     ) -> Verdict {
         var found: [Verdict] = []
-        let described = listFields(type, options) { name, _, field, _ in
+        let described = listFields(type, options) { name, field in
             // A tuple's unlabelled elements are named ".0", ".1".
-            let name = String(cString: name)
             let fieldPath = name.hasPrefix(".") ? path + name : "\(path).\(name)"
             if field == Void.self {
                 found.append(Verdict(refusal: .opaqueStorage(path: fieldPath), holdsFunctions: false))

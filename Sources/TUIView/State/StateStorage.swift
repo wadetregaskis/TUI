@@ -291,11 +291,12 @@ import TUICore
     /// last first, after the holder's content (``restoreEnvironments(to:)``).
     var environmentRestores: [EnvironmentRestore] = []
 
-    /// ``environmentRestores``' count, behind a pointer the storage owns: read
-    /// before and after every composite body's content, where a load through
-    /// a constant pointer is a plain load and a stored property's read is
-    /// checked for exclusivity at run time.
-    let restoreDepth = UnsafeMutablePointer<Int>.allocate(capacity: 1)
+    /// ``environmentRestores``' count, read before and after every composite
+    /// body's content. `@exclusivity(unchecked)`: a class's stored variable is
+    /// otherwise checked for exclusive access at run time on each read, and
+    /// the storage is used on the main actor alone, so two accesses never
+    /// overlap.
+    @exclusivity(unchecked) var restoreDepth = 0
 
     /// What each animating value in the tree is doing.
     ///
@@ -359,13 +360,8 @@ import TUICore
 
     /// Creates an empty state storage.
     public init() {
-        restoreDepth.initialize(to: 0)
         animations.completionTracker = animationCompletions
         departures.completionTracker = animationCompletions
-    }
-
-    deinit {
-        restoreDepth.deallocate()
     }
 
     /// The number of stored state entries (for testing/debugging).
@@ -945,7 +941,7 @@ extension StateStorage {
         objectHubs.removeAll()
         objectHubsAfterSweep = 0
         environmentRestores.removeAll()
-        restoreDepth.pointee = 0
+        unsafe restoreDepth = 0
         displacedEnvironments.removeAll()
         trackedValues.removeAll()
         onChangeCounters.removeAll()

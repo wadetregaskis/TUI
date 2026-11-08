@@ -73,7 +73,7 @@ final class EnumCasesPlan {
     func payload<Enum>(tag: UInt32, at address: UnsafeMutableRawPointer, as _: Enum.Type) -> PayloadPlan {
         let index = Int(tag)
         if index < payloads.count, let known = payloads[index] { return known }
-        let plan = PayloadPlan(declaredType: EnumCases.payloadType(at: address, as: Enum.self))
+        let plan = unsafe PayloadPlan(declaredType: EnumCases.payloadType(at: address, as: Enum.self))
         while payloads.count <= index { payloads.append(nil) }
         payloads[index] = plan
         return plan
@@ -115,66 +115,74 @@ struct PayloadPlan {
 }
 
 /// An enum type's value witnesses for its case: read, project, inject.
+///
+/// It keeps the type and reads each witness from the type's value-witness
+/// table at the call, two loads, rather than keeping the function pointers:
+/// a C function over raw addresses is of an unsafe type, and storage of one
+/// would make every type holding these witnesses unsafe in turn (strict
+/// memory safety).
 struct EnumWitnesses {
     private typealias GetTag = @convention(c) (UnsafeRawPointer, UnsafeRawPointer) -> UInt32
     private typealias Project = @convention(c) (UnsafeMutableRawPointer, UnsafeRawPointer) -> Void
     private typealias Inject = @convention(c) (UnsafeMutableRawPointer, UInt32, UnsafeRawPointer) -> Void
 
-    private let metadata: UnsafeRawPointer
-    private let getTag: GetTag
-    private let project: Project
-    private let inject: Inject
+    private let type: Any.Type
 
     /// `type`'s witnesses, or `nil` on a platform where they are not called.
     init?(_ type: Any.Type) {
         #if arch(wasm32) || os(Windows)
             return nil
         #else
-            // A metatype's address is data, which `-deduplicate` never moves; read, not compared.
-            // swiftlint:disable:next function_address_identity
-            metadata = unsafeBitCast(type, to: UnsafeRawPointer.self)
-            let word = MemoryLayout<Int>.size
-            let table = metadata.load(fromByteOffset: -word, as: UnsafeRawPointer.self)
-            // Eight functions, `size` and `stride`, then `flags` and
-            // `extraInhabitantCount`, two 32-bit fields: the enum's three
-            // follow.
-            let first = 10 * word + 8
-            getTag = unsafeBitCast(table.load(fromByteOffset: first, as: UnsafeRawPointer.self), to: GetTag.self)
-            project = unsafeBitCast(
-                table.load(fromByteOffset: first + word, as: UnsafeRawPointer.self), to: Project.self)
-            inject = unsafeBitCast(
-                table.load(fromByteOffset: first + 2 * word, as: UnsafeRawPointer.self), to: Inject.self)
+            self.type = type
         #endif
+    }
+
+    /// The type's metadata.
+    private var metadata: UnsafeRawPointer {
+        // A metatype's address is data, which `-deduplicate` never moves; read, not compared.
+        // swiftlint:disable:next function_address_identity
+        unsafe unsafeBitCast(type, to: UnsafeRawPointer.self)
+    }
+
+    /// The enum witness `index` (0 get tag, 1 project, 2 inject) of the
+    /// type's value-witness table, the word before its metadata.
+    private func witness(_ index: Int) -> UnsafeRawPointer {
+        let word: Int = MemoryLayout<Int>.size
+        let table = unsafe metadata.load(fromByteOffset: -word, as: UnsafeRawPointer.self)
+        // Eight functions, `size` and `stride`, then `flags` and
+        // `extraInhabitantCount`, two 32-bit fields: the enum's three follow.
+        let offset: Int = 10 * word + 8 + index * word
+        return unsafe table.load(fromByteOffset: offset, as: UnsafeRawPointer.self)
     }
 
     /// The tag of the case the enum at `address` holds.
     func tag(at address: UnsafeRawPointer) -> UInt32 {
-        getTag(address, metadata)
+        unsafe unsafeBitCast(witness(0), to: GetTag.self)(address, metadata)
     }
 
     /// Leaves the enum at `address` holding only its payload, at its start:
     /// the case's bits the payload shares are cleared until
     /// ``injectTag(_:at:)`` puts them back.
     func projectPayload(at address: UnsafeMutableRawPointer) {
-        project(address, metadata)
+        unsafe unsafeBitCast(witness(1), to: Project.self)(address, metadata)
     }
 
     /// Puts the case `tag` back into the enum at `address`, whose payload
     /// ``projectPayload(at:)`` projected.
     func injectTag(_ tag: UInt32, at address: UnsafeMutableRawPointer) {
-        inject(address, tag, metadata)
+        unsafe unsafeBitCast(witness(2), to: Inject.self)(address, tag, metadata)
     }
 }
 
 /// `type`'s cases, by tag, from its field descriptor — or `nil` if it has
 /// none to read.
 private func enumCases(of type: Any.Type) -> [EnumCasesPlan.Case]? {
-    guard let records = FieldDescriptors.records(ofValueType: type) else { return nil }
+    guard let records = unsafe FieldDescriptors.records(ofValueType: type) else { return nil }
     var cases: [EnumCasesPlan.Case] = []
-    cases.reserveCapacity(records.count)
-    for record in records {
-        let name = record.name.map { String(cString: $0.assumingMemoryBound(to: CChar.self)) }
-        cases.append(
+    unsafe cases.reserveCapacity(records.count)
+    for unsafe record in unsafe records {
+        let name = unsafe record.name.map { unsafe String(cString: $0.assumingMemoryBound(to: CChar.self)) }
+        unsafe cases.append(
             EnumCasesPlan.Case(
                 label: name ?? "", isIndirect: record.flags & 1 != 0, hasPayload: record.mangledTypeName != nil))
     }
@@ -187,7 +195,7 @@ enum EnumCases {
     /// The name of the case of the enum at `address` — `""` for a case with
     /// no payload — and a copy of its payload.
     static func current<Enum>(at address: UnsafeMutableRawPointer, as _: Enum.Type) -> (label: String, payload: Any?) {
-        let value = address.assumingMemoryBound(to: Enum.self).pointee
+        let value = unsafe address.assumingMemoryBound(to: Enum.self).pointee
         guard RuntimeChildren.count(of: value, as: Enum.self) > 0 else { return ("", nil) }
         let child = RuntimeChildren.child(of: value, as: Enum.self, at: 0)
         return (child.name ?? "", child.value)
@@ -198,7 +206,7 @@ enum EnumCases {
     /// back as an `Any` whose type is the case's declared one — an
     /// existential stays one — which opening it names.
     static func payloadType<Enum>(at address: UnsafeMutableRawPointer, as _: Enum.Type) -> Any.Type? {
-        let value = address.assumingMemoryBound(to: Enum.self).pointee
+        let value = unsafe address.assumingMemoryBound(to: Enum.self).pointee
         guard RuntimeChildren.count(of: value, as: Enum.self) > 0 else { return nil }
         return _openExistential(RuntimeChildren.child(of: value, as: Enum.self, at: 0).value, do: storedType)
     }

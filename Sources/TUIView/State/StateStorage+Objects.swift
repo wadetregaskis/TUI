@@ -132,7 +132,7 @@ extension StateStorage {
     /// what a composite view notes before its body is evaluated, and puts
     /// back to after the body's content (``restoreEnvironments(to:)``).
     var environmentRestoreDepth: Int {
-        @inline(__always) get { restoreDepth.pointee }
+        @inline(__always) get { unsafe restoreDepth }
     }
 
     /// Notes that a walk other than a render walk by its object's primary
@@ -140,7 +140,7 @@ extension StateStorage {
     /// its view's environment, `box` holding `previous` until then.
     func pushEnvironmentRestore(_ box: EnvironmentBox, previous: EnvironmentValues?) {
         environmentRestores.append(EnvironmentRestore(box: box, previous: previous))
-        restoreDepth.pointee = environmentRestores.count
+        unsafe restoreDepth = environmentRestores.count
     }
 
     /// Notes that a render walk by its object's primary holder is about to
@@ -153,7 +153,7 @@ extension StateStorage {
     /// and a compare when nothing is waiting.
     @inline(__always)
     func notePrimaryEnvironment(_ box: EnvironmentBox, _ environment: EnvironmentValues) {
-        if restoreDepth.pointee > 0 { notePrimaryInsideHolders(box, environment) }
+        if unsafe restoreDepth > 0 { notePrimaryInsideHolders(box, environment) }
     }
 
     @inline(never)
@@ -180,7 +180,7 @@ extension StateStorage {
     /// is waiting.
     @inline(__always)
     func restoreEnvironments(to depth: Int) {
-        if restoreDepth.pointee > depth { popEnvironmentRestores(to: depth) }
+        if unsafe restoreDepth > depth { popEnvironmentRestores(to: depth) }
     }
 
     @inline(never)
@@ -193,7 +193,7 @@ extension StateStorage {
                 restore.box.environment = previous
             }
         }
-        restoreDepth.pointee = environmentRestores.count
+        unsafe restoreDepth = environmentRestores.count
     }
 }
 

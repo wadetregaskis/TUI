@@ -69,12 +69,12 @@ extension Optional: _ValueHashing {
     package static func _mixValueHash(
         at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans
     ) -> Bool {
-        if isNone(pointer.assumingMemoryBound(to: Self.self).pointee) {
+        if unsafe isNone(pointer.assumingMemoryBound(to: Self.self).pointee) {
             hash = mixHashWord(hash, ValueHashMark.none)
             return true
         }
         hash = mixHashWord(hash, ValueHashMark.some)
-        return plans.mix(at: pointer, type: Wrapped.self, into: &hash)
+        return unsafe plans.mix(at: pointer, type: Wrapped.self, into: &hash)
     }
 }
 
@@ -90,9 +90,9 @@ extension UUID: _ValueHashing {
     package static func _mixValueHash(
         at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans
     ) -> Bool {
-        withUnsafeBytes(of: pointer.assumingMemoryBound(to: Self.self).pointee.uuid) { bytes in
-            hash = mixHashWord(hash, bytes.loadUnaligned(as: UInt64.self))
-            hash = mixHashWord(hash, bytes.loadUnaligned(fromByteOffset: 8, as: UInt64.self))
+        unsafe withUnsafeBytes(of: pointer.assumingMemoryBound(to: Self.self).pointee.uuid) { bytes in
+            hash = unsafe mixHashWord(hash, bytes.loadUnaligned(as: UInt64.self))
+            hash = unsafe mixHashWord(hash, bytes.loadUnaligned(fromByteOffset: 8, as: UInt64.self))
         }
         return true
     }
@@ -120,7 +120,7 @@ func isNone<Wrapped>(_ value: borrowing Wrapped?) -> Bool {
 /// Every way mixes the same words — the payload's type, then the payload by
 /// its plan — so which one a table uses changes what a hash costs, never what
 /// it is.
-enum ExistentialField: CustomStringConvertible {
+@unsafe enum ExistentialField: CustomStringConvertible {
     case any
     case view
     case equatable
@@ -131,32 +131,32 @@ enum ExistentialField: CustomStringConvertible {
 
     /// The opener for a field whose static type is `type`, an existential,
     /// given the openers a plan table was made with.
-    init(_ type: Any.Type, openers: [ObjectIdentifier: ValueHashOpener] = [:]) {
+    init(_ type: Any.Type, openers: [ObjectIdentifier: ValueHashOpener] = unsafe [:]) {
         if type == Any.self {
-            self = .any
+            unsafe self = unsafe .any
         } else if type == (any View).self {
-            self = .view
+            unsafe self = unsafe .view
         } else if type == (any Equatable).self {
-            self = .equatable
+            unsafe self = unsafe .equatable
         } else if type == (any Hashable).self {
-            self = .hashable
+            unsafe self = unsafe .hashable
         } else if type == (any Palette).self {
-            self = .palette
-        } else if let opener = openers[ObjectIdentifier(type)] {
-            self = .opener(opener)
+            unsafe self = unsafe .palette
+        } else if let opener = unsafe openers[ObjectIdentifier(type)] {
+            unsafe self = unsafe .opener(opener)
         } else {
-            self = .other(type)
+            unsafe self = unsafe .other(type)
         }
     }
 
     var description: String {
-        switch self {
+        switch unsafe self {
         case .any: "any"
         case .view: "view"
         case .equatable: "equatable"
         case .hashable: "hashable"
         case .palette: "palette"
-        case .opener(let opener): "opened by \(opener)"
+        case .opener(let opener): unsafe "opened by \(opener)"
         case .other(let type): "cast from \(type)"
         }
     }
@@ -164,24 +164,24 @@ enum ExistentialField: CustomStringConvertible {
     /// Mixes the existential at `pointer` into `hash`: its payload's dynamic
     /// type, then the payload by that type's plan.
     func mix(at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans) -> Bool {
-        switch self {
+        switch unsafe self {
         case .any:
-            return mixOpenedAny(pointer.assumingMemoryBound(to: Any.self).pointee, into: &hash, plans: plans)
+            return unsafe mixOpenedAny(pointer.assumingMemoryBound(to: Any.self).pointee, into: &hash, plans: plans)
         case .view:
-            return mixOpenedView(pointer.assumingMemoryBound(to: (any View).self).pointee, into: &hash, plans: plans)
+            return unsafe mixOpenedView(pointer.assumingMemoryBound(to: (any View).self).pointee, into: &hash, plans: plans)
         case .equatable:
-            return mixOpenedEquatable(
+            return unsafe mixOpenedEquatable(
                 pointer.assumingMemoryBound(to: (any Equatable).self).pointee, into: &hash, plans: plans)
         case .hashable:
-            return mixOpenedHashable(
+            return unsafe mixOpenedHashable(
                 pointer.assumingMemoryBound(to: (any Hashable).self).pointee, into: &hash, plans: plans)
         case .palette:
-            return mixOpenedPalette(
+            return unsafe mixOpenedPalette(
                 pointer.assumingMemoryBound(to: (any Palette).self).pointee, into: &hash, plans: plans)
         case .opener(let opener):
-            return opener.mix(pointer, &hash, plans)
+            return unsafe opener.mix(pointer, &hash, plans)
         case .other(let staticType):
-            return mixExistential(at: pointer, staticType: staticType, into: &hash, plans: plans)
+            return unsafe mixExistential(at: pointer, staticType: staticType, into: &hash, plans: plans)
         }
     }
 }
@@ -270,7 +270,7 @@ private func mixExistential(
     plans.census.noteCastOpen(staticType)
     #endif
     func loaded<Existential>(_: Existential.Type) -> Bool {
-        mixDynamic(pointer.assumingMemoryBound(to: Existential.self).pointee, into: &hash, plans: plans)
+        unsafe mixDynamic(pointer.assumingMemoryBound(to: Existential.self).pointee, into: &hash, plans: plans)
     }
     return _openExistential(staticType, do: loaded)
 }
@@ -308,7 +308,7 @@ private func mixDynamic<Existential>(_ value: Existential, into hash: inout UInt
 /// answer. Nonisolated, as every step is: a closure written where it is
 /// isolated to the main actor would check the executor on every call (see
 /// ``ValueHashPlans``).
-package struct ValueHashOpener: CustomStringConvertible {
+@unsafe package struct ValueHashOpener: CustomStringConvertible {
     /// The existential's static type.
     let type: Any.Type
     let mix: (UnsafeRawPointer, inout UInt64, ValueHashPlans) -> Bool
@@ -317,11 +317,11 @@ package struct ValueHashOpener: CustomStringConvertible {
     package init<Existential>(
         _ type: Existential.Type, mix: @escaping (UnsafeRawPointer, inout UInt64, ValueHashPlans) -> Bool
     ) {
-        self.type = type
-        self.mix = mix
+        unsafe self.type = type
+        unsafe self.mix = unsafe mix
     }
 
-    package var description: String { "\(type)" }
+    package var description: String { unsafe "\(type)" }
 }
 
 // MARK: - Colours

@@ -365,11 +365,18 @@ final class Terminal: HostStateKeeping {
     /// the reason ``takeStatusFence()`` gives: the reply walk stops at a fence.
     var sawVolunteeredStatusFence = false
 
-    /// The raw byte source feeding the parser. Production reads from stdin;
-    /// tests inject a closure to script split reads deterministically, since
-    /// the parser is otherwise impossible to drive without a live TTY.
+    /// The raw byte source feeding the parser, as a closure. Production reads
+    /// from stdin; tests set a closure to script split reads deterministically,
+    /// since the parser is otherwise impossible to drive without a live TTY.
+    /// Kept as ``byteSource``.
+    var readSource: (UnsafeMutableBufferPointer<UInt8>) -> Int {
+        get { { [byteSource] buffer in unsafe byteSource.read(into: buffer) } }
+        set { byteSource = unsafe ClosureByteSource(body: newValue) }
+    }
+
+    /// Where ``readSource`` reads: see ``TerminalByteSource``.
     #if canImport(WASILibc)
-        var readSource: (UnsafeMutableBufferPointer<UInt8>) -> Int = { buffer in
+        private var byteSource: any TerminalByteSource = unsafe ClosureByteSource { buffer in
             guard let base = buffer.baseAddress else { return 0 }
             while true {
                 let n = read(STDIN_FILENO, base, buffer.count)
@@ -384,8 +391,8 @@ final class Terminal: HostStateKeeping {
     #else
         /// Reads stdin as it shares it with ``quitKeyWatch``, which may have
         /// read what is next.
-        lazy var readSource: (UnsafeMutableBufferPointer<UInt8>) -> Int = { [input = quitKeyWatch.input] buffer in
-            input.read(into: buffer)
+        private lazy var byteSource: any TerminalByteSource = unsafe ClosureByteSource { [input = quitKeyWatch.input] buffer in
+            unsafe input.read(into: buffer)
         }
 
         /// What quits a hung app on the quit key, while the driver has given it
@@ -638,7 +645,7 @@ extension Terminal {
             #if canImport(Glibc) || canImport(Musl)
                 let result = ioctl(STDOUT_FILENO, UInt(TIOCGWINSZ), &windowSize)
             #else
-                let result = ioctl(STDOUT_FILENO, TIOCGWINSZ, &windowSize)
+                let result = unsafe ioctl(STDOUT_FILENO, TIOCGWINSZ, &windowSize)
             #endif
 
             guard result == 0 && windowSize.ws_col > 0 && windowSize.ws_row > 0 else { return nil }
@@ -650,7 +657,7 @@ extension Terminal {
     /// which walks the environment, where `ProcessInfo` would build a dictionary of
     /// all of it: this runs on every frame.
     func terminalDimension(fromEnvironment name: String) -> Int? {
-        getenv(name).flatMap { Self.terminalDimension(String(cString: $0)) }
+        unsafe getenv(name).flatMap { unsafe Self.terminalDimension(String(cString: $0)) }
     }
 
     /// An environment variable in `environment` as a terminal dimension, a question
@@ -693,7 +700,7 @@ extension Terminal {
         #if canImport(Glibc) || canImport(Musl)
             let result = ioctl(STDOUT_FILENO, UInt(TIOCGWINSZ), &windowSize)
         #else
-            let result = ioctl(STDOUT_FILENO, TIOCGWINSZ, &windowSize)
+            let result = unsafe ioctl(STDOUT_FILENO, TIOCGWINSZ, &windowSize)
         #endif
         guard result == 0,
             windowSize.ws_col > 0, windowSize.ws_row > 0,
@@ -1487,7 +1494,7 @@ extension Terminal {
         // Up to one chunk at a time. The buffer makes that much room
         // first, sliding or growing as it must; subsequent drains can
         // reuse the expanded capacity.
-        input.append(upTo: Self.readChunk, from: readSource)
+        unsafe input.append(upTo: Self.readChunk) { unsafe byteSource.read(into: $0) }
     }
 
     /// Waits until `descriptor` has bytes to read, or `deadline` passes.
@@ -1532,7 +1539,7 @@ extension Terminal {
             let remaining = deadline.timeIntervalSinceNow
             guard remaining > 0 else { return false }
             var target = pollfd(fd: descriptor, events: Int16(POLLIN), revents: 0)
-            let ready = poll(&target, 1, Int32(remaining * 1000))
+            let ready = unsafe poll(&target, 1, Int32(remaining * 1000))
             if ready > 0 { return true }
             // `errno` is thread-local and transient, so it is read here, before
             // anything else can overwrite it.
@@ -1624,12 +1631,12 @@ extension Terminal {
     @discardableResult
     static func writeAll(
         _ base: UnsafePointer<UInt8>, _ count: Int,
-        through write: (UnsafePointer<UInt8>, Int) -> Int = writeToStandardOutput,
+        through write: (UnsafePointer<UInt8>, Int) -> Int = unsafe writeToStandardOutput,
         waitingForRoom waitForRoom: () -> Bool = { Terminal.waitForRoom() }
     ) -> Bool {
         var written = 0
         while written < count {
-            let result = write(base + written, count - written)
+            let result = unsafe write(base + written, count - written)
             if result < 0 {
                 let error = errno
                 if error == EINTR { continue }  // interrupted by a signal — retry the rest
@@ -1646,7 +1653,7 @@ extension Terminal {
     /// `write(2)` to standard output: what ``writeAll(_:_:through:waitingForRoom:)``
     /// writes through unless a test hands it another.
     nonisolated static func writeToStandardOutput(_ base: UnsafePointer<UInt8>, _ count: Int) -> Int {
-        Foundation.write(STDOUT_FILENO, base, count)
+        unsafe Foundation.write(STDOUT_FILENO, base, count)
     }
 
     /// Waits until `descriptor` can take more bytes, or `deadline` passes:
@@ -1672,7 +1679,7 @@ extension Terminal {
                 timeout = Int32(remaining * 1000)
             }
             var target = pollfd(fd: descriptor, events: Int16(POLLOUT), revents: 0)
-            let ready = poll(&target, 1, timeout)
+            let ready = unsafe poll(&target, 1, timeout)
             if ready > 0 { return target.revents & Int16(POLLOUT) != 0 }
             // `errno` is thread-local and transient, so it is read here, before
             // anything else can overwrite it.
@@ -1703,23 +1710,23 @@ extension Terminal {
     ///     in another.
     static func writeFrame(
         _ frame: UnsafeBufferPointer<UInt8>, omitting omitted: Range<Int>?, holdsDisplay: Bool,
-        through write: (UnsafePointer<UInt8>, Int) -> Int = writeToStandardOutput,
+        through write: (UnsafePointer<UInt8>, Int) -> Int = unsafe writeToStandardOutput,
         waitingForRoom waitForRoom: () -> Bool = { Terminal.waitForRoom() }
     ) {
         guard let base = frame.baseAddress else { return }
         let complete =
             if let omitted {
-                writeAll(base, omitted.lowerBound, through: write, waitingForRoom: waitForRoom)
+                unsafe writeAll(base, omitted.lowerBound, through: write, waitingForRoom: waitForRoom)
                     && writeAll(
                         base + omitted.upperBound, frame.count - omitted.upperBound,
                         through: write, waitingForRoom: waitForRoom)
             } else {
-                writeAll(base, frame.count, through: write, waitingForRoom: waitForRoom)
+                unsafe writeAll(base, frame.count, through: write, waitingForRoom: waitForRoom)
             }
         guard !complete, holdsDisplay else { return }
         Self.synchronizedUpdateEndBytes.withUnsafeBufferPointer { end in
             guard let endBase = end.baseAddress else { return }
-            writeAll(endBase, end.count, through: write, waitingForRoom: waitForRoom)
+            unsafe writeAll(endBase, end.count, through: write, waitingForRoom: waitForRoom)
         }
     }
 
@@ -1743,7 +1750,7 @@ extension Terminal {
         } else {
             withWriteGate {
                 frameBuffer.withUnsafeBufferPointer { buffer in
-                    Self.writeFrame(buffer, omitting: omitted, holdsDisplay: holdingDisplay)
+                    unsafe Self.writeFrame(buffer, omitting: omitted, holdsDisplay: holdingDisplay)
                 }
             }
         }
@@ -1765,8 +1772,8 @@ extension Terminal {
         string.utf8CString.withUnsafeBufferPointer { buffer in
             let count = buffer.count - 1
             guard count >= 1, let baseAddress = buffer.baseAddress else { return }
-            baseAddress.withMemoryRebound(to: UInt8.self, capacity: count) { pointer in
-                withWriteGate { _ = Self.writeAll(pointer, count) }
+            unsafe baseAddress.withMemoryRebound(to: UInt8.self, capacity: count) { pointer in
+                withWriteGate { _ = unsafe Self.writeAll(pointer, count) }
             }
         }
     }
