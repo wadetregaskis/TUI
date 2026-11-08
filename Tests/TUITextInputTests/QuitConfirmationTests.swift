@@ -479,14 +479,21 @@ struct UnreadQuitKeyWatchTests {
         let readEnd: Int32
     }
 
-    private func makeRig(grace: TimeInterval = 0.1) throws -> Rig {
+    /// - Parameter clock: The clock the watch reads, where a test steps one;
+    ///   otherwise the machine's.
+    private func makeRig(grace: TimeInterval = 0.1, clock: SteppedWatchClock? = nil) throws -> Rig {
         var ends: [Int32] = [-1, -1]
         try unsafe #require(pipe(&ends) == 0)
         let flags = fcntl(ends[0], F_GETFL)
         _ = fcntl(ends[0], F_SETFL, flags | O_NONBLOCK)
         let quits = Flag()
-        let watch = UnreadQuitKeyWatch(
-            input: SharedStandardInput(descriptor: ends[0]), grace: grace, quit: { quits.raise() })
+        let input = SharedStandardInput(descriptor: ends[0])
+        let watch =
+            if let clock {
+                UnreadQuitKeyWatch(input: input, grace: grace, quit: { quits.raise() }, clock: clock)
+            } else {
+                UnreadQuitKeyWatch(input: input, grace: grace, quit: { quits.raise() })
+            }
         return Rig(watch: watch, quits: quits, writeEnd: ends[1], readEnd: ends[0])
     }
 
@@ -562,7 +569,8 @@ struct UnreadQuitKeyWatchTests {
 
     @Test("Input the loop goes on reading is left to the loop")
     func aReadingLoop() async throws {
-        let rig = try makeRig(grace: 0.3)
+        let clock = SteppedWatchClock()
+        let rig = try makeRig(grace: 0.3, clock: clock)
         defer {
             rig.watch.stop()
             close(rig.writeEnd)
@@ -572,17 +580,19 @@ struct UnreadQuitKeyWatchTests {
         rig.watch.setArmed(byte: 0x1C)
         var byte: UInt8 = 0x1C
         _ = unsafe write(rig.writeEnd, &byte, 1)
+        // The watch has seen the key waiting; then the loop reads it.
+        #expect(clock.awaitWaiter(), "watching the key")
         #expect(read(rig) == [0x1C])
-        // Real time, on purpose: the watch is a thread on a wall-clock grace
-        // (0.3 s here), and what is asserted is that it let that grace pass.
-        try await Task.sleep(nanoseconds: 600_000_000)
+        // Twice the grace (0.3 s), and the watch looks.
+        clock.advance(by: 0.6)
         #expect(rig.quits.raised == 0)
         #expect(!rig.watch.input.holdsInput)
     }
 
     @Test("Disarmed, it does nothing")
     func disarmed() async throws {
-        let rig = try makeRig()
+        let clock = SteppedWatchClock()
+        let rig = try makeRig(clock: clock)
         defer {
             rig.watch.stop()
             close(rig.writeEnd)
@@ -591,8 +601,11 @@ struct UnreadQuitKeyWatchTests {
         rig.watch.start()
         var byte: UInt8 = 0x1C
         _ = unsafe write(rig.writeEnd, &byte, 1)
-        // Real time, on purpose, as in `aReadingLoop`: past the 0.1 s grace.
-        try await Task.sleep(nanoseconds: 400_000_000)
+        // Waiting to be armed, not watching the key; and so still, well past
+        // the 0.1 s grace.
+        #expect(clock.awaitWaiter(timed: false), "waiting to be armed")
+        clock.advance(by: 0.4)
+        #expect(clock.awaitWaiter(timed: false), "and waiting still")
         #expect(rig.quits.raised == 0)
         #expect(read(rig) == [0x1C])
     }

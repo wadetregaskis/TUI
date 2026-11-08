@@ -236,7 +236,7 @@ final class UnreadQuitKeyWatch {
     let input: SharedStandardInput
 
     /// What this thread and the watch's tell each other.
-    private let gate = QuitKeyWatchGate()
+    private let gate: QuitKeyWatchGate
 
     /// Quits: `SIGQUIT` to the process group, unless a test hands in another.
     private let quit: @Sendable () -> Void
@@ -250,17 +250,32 @@ final class UnreadQuitKeyWatch {
     private let ended = DispatchSemaphore(value: 0)
     private var started = false
 
+    /// Makes the thread's loop, a ``QuitKeyWatchLoop`` on the clock this was
+    /// made with, which is a generic parameter of the init alone, so the type
+    /// names none: from the read end of the wake pipe and what to tell when
+    /// input has been held.
+    private let makeLoop: (_ wake: Int32, _ inputHeld: @escaping @Sendable () -> Void) -> @Sendable () -> Void
+
     /// - Parameters:
     ///   - input: Standard input, unless a test drives a pipe.
     ///   - grace: How long input may wait unread before it is looked at.
     ///   - quit: What quits.
-    init(
+    ///   - clock: The time the thread reads and waits on: the machine's,
+    ///     unless a test steps its own.
+    init<C: WatchThreadClock>(
         input: SharedStandardInput = SharedStandardInput(), grace: TimeInterval = 2.0,
-        quit: @escaping @Sendable () -> Void = { _ = kill(0, SIGQUIT) }
+        quit: @escaping @Sendable () -> Void = { _ = kill(0, SIGQUIT) }, clock: C = SystemWatchThreadClock()
     ) {
         self.input = input
         self.grace = grace
         self.quit = quit
+        let gate = QuitKeyWatchGate()
+        self.gate = gate
+        makeLoop = { wake, inputHeld in
+            let loop = QuitKeyWatchLoop(
+                gate: gate, input: input, wake: wake, grace: grace, clock: clock, quit: quit, inputHeld: inputHeld)
+            return { loop.run() }
+        }
     }
 
     /// Watches for the quit key `byte`, or, for `nil`, stops watching until armed
@@ -292,11 +307,10 @@ final class UnreadQuitKeyWatch {
         wakeRead = ends[0]
         wakeWrite = ends[1]
         started = true
-        let loop = QuitKeyWatchLoop(
-            gate: gate, input: input, wake: ends[0], grace: grace, quit: quit, inputHeld: inputHeld)
+        let run = makeLoop(ends[0], inputHeld)
         let ended = ended
         let thread = Thread {
-            loop.run()
+            run()
             ended.signal()
         }
         thread.name = "TUI quit key watch"
@@ -351,7 +365,7 @@ private final class QuitKeyWatchGate: Sendable {
 
 /// What the watch's thread runs: everything here is a `let`, made before the
 /// thread starts and told to it by value.
-private struct QuitKeyWatchLoop: Sendable {
+private struct QuitKeyWatchLoop<C: WatchThreadClock>: Sendable {
     let gate: QuitKeyWatchGate
     let input: SharedStandardInput
 
@@ -361,6 +375,9 @@ private struct QuitKeyWatchLoop: Sendable {
     /// How long input may wait unread before it is looked at.
     let grace: TimeInterval
 
+    /// The time it reads, and waits on.
+    let clock: C
+
     /// Quits.
     let quit: @Sendable () -> Void
 
@@ -368,8 +385,9 @@ private struct QuitKeyWatchLoop: Sendable {
     /// on a descriptor that has nothing more to say.
     let inputHeld: @Sendable () -> Void
 
-    /// How often waiting input is looked at.
-    private static let checkInterval: TimeInterval = 0.1
+    /// How often waiting input is looked at. Not a static: a generic type
+    /// has no stored ones.
+    private var checkInterval: TimeInterval { 0.1 }
 
     /// The thread's loop.
     func run() {
@@ -380,7 +398,7 @@ private struct QuitKeyWatchLoop: Sendable {
         // since: the loop has stopped reading, and needs no grace to prove it.
         var heldAtReads: Int?
         while true {
-            while !gate.stopped, gate.armedByte == nil { condition.wait() }
+            while !gate.stopped, gate.armedByte == nil { _ = clock.wait(on: condition, until: nil) }
             if gate.stopped { return }
 
             condition.unlock()
@@ -404,12 +422,12 @@ private struct QuitKeyWatchLoop: Sendable {
     private func watchWaitingInput(heldAtReads: inout Int?) -> Bool {
         let condition = gate.condition
         var readsSeen = input.readCount
-        var waitingSince = Date()
+        var waitingSince = clock.now
         if heldAtReads == readsSeen { waitingSince = .distantPast }
         while true {
             if waitingSince != .distantPast {
-                let check = min(waitingSince.addingTimeInterval(grace), Date(timeIntervalSinceNow: Self.checkInterval))
-                while !gate.stopped, gate.armedByte != nil, condition.wait(until: check) {}
+                let check = min(waitingSince.addingTimeInterval(grace), clock.now.addingTimeInterval(checkInterval))
+                while !gate.stopped, gate.armedByte != nil, clock.wait(on: condition, until: check) {}
             }
             if gate.stopped { return true }
             guard let byte = gate.armedByte, StandardInputWait.inputIsWaiting(on: input.descriptor) else {
@@ -417,8 +435,8 @@ private struct QuitKeyWatchLoop: Sendable {
             }
             if input.readCount != readsSeen {
                 readsSeen = input.readCount
-                waitingSince = Date()
-            } else if Date() >= waitingSince.addingTimeInterval(grace) {
+                waitingSince = clock.now
+            } else if clock.now >= waitingSince.addingTimeInterval(grace) {
                 let unread = input.holdWaitingInput()
                 heldAtReads = input.readCount
                 if UnreadQuitKey.isIn(unread, byte: byte) {
