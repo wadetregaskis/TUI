@@ -3,9 +3,10 @@
 //
 //  `TUI_ARROW_FOCUS=geometric`: an arrow the focused control leaves unused goes
 //  to the nearest control on screen in its direction — inside the beam first,
-//  then the nearer, then the earlier in Tab order — and in Tab order where
-//  there is none, without leaving the active section or a sheet. And the
-//  default, Tab order, as it was.
+//  then the nearer, then the earlier in Tab order — stopping at the layout's
+//  edge rather than wrapping, and in Tab order only to a control it cannot
+//  place, without leaving the active section or a sheet. And the default, Tab
+//  order, as it was.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -101,28 +102,34 @@ struct GeometricArrowFocusTests {
         #expect(plain.laidOutRegions.isEmpty)
     }
 
-    @Test("Where nothing lies that way, the arrow falls back to Tab order, and stops at the end as it does today")
-    func fallback() {
-        let geometric = app(.geometric) { Grid() }
-        geometric.press(.down, times: 2)
-        #expect(visits(geometric, .down, times: 3) == ["r2c0", "r2c1", "r2c2", "r2c2"])
-        // Up from the top row has nothing above: back in Tab order.
-        let again = app(.geometric) { Grid() }
-        again.press(.right)
-        #expect(visits(again, .up, times: 1) == ["r0c1", "r0c0"])
+    @Test("At the layout's edge the focus stays: no wrap to the next row or column, whatever the Tab order")
+    func noWrap() {
+        // Reading order: Tab order would take Down along the bottom row, and
+        // Right from a row's end to the next row's start.
+        let rows = app(.geometric) { Grid() }
+        rows.press(.down, times: 2)
+        #expect(visits(rows, .down, times: 2) == ["r2c0", "r2c0", "r2c0"])
+        let rowEnd = app(.geometric) { Grid() }
+        rowEnd.press(.right, times: 2)
+        #expect(visits(rowEnd, .right, times: 1) == ["r0c2", "r0c2"])
+        #expect(visits(rowEnd, .up, times: 1) == ["r0c2", "r0c2"])
+        // Column order: the owner's case, Down at a column's foot, which Tab
+        // order would take to the next column's top.
+        let columns = app(.geometric) { ColumnGrid() }
+        columns.press(.down, times: 2)
+        #expect(visits(columns, .down, times: 1) == ["r2c0", "r2c0"])
     }
 
-    @Test("Every control is reachable: repeated Right in reading order, repeated Down in column order")
+    @Test("Every control is reachable with the arrows, though one arrow alone walks one row or column")
     func reachable() {
+        for grid in [app(.geometric) { Grid() }, app(.geometric) { ColumnGrid() }] {
+            var seen = Set(visits(grid, .right, times: 2))
+            seen.formUnion(visits(grid, .down, times: 1) + visits(grid, .left, times: 2))
+            seen.formUnion(visits(grid, .down, times: 1) + visits(grid, .right, times: 2))
+            #expect(seen == Self.gridIDs)
+        }
         let rows = app(.geometric) { Grid() }
-        #expect(Set(visits(rows, .right, times: 8)) == Self.gridIDs)
-        let columns = app(.geometric) { ColumnGrid() }
-        #expect(Set(visits(columns, .down, times: 8)) == Self.gridIDs)
-        // Repeated Down in reading order walks the first column and then the
-        // last row (the Tab-order fallback): not every control. Mixing the
-        // arrows reaches them all.
-        let mixed = app(.geometric) { Grid() }
-        #expect(Set(visits(mixed, .down, times: 8)) == ["r0c0", "r1c0", "r2c0", "r2c1", "r2c2"])
+        #expect(Set(visits(rows, .right, times: 8)) == ["r0c0", "r0c1", "r0c2"])
     }
 
     /// `top` sits to the right; `near` is the next row down but outside its
@@ -202,11 +209,12 @@ struct GeometricArrowFocusTests {
         }
     }
 
-    @Test("Arrows stay in the active section: Right from a section's control falls back inside it")
+    @Test("Arrows stay in the active section: Right from a section's control goes nowhere")
     func sections() {
         let geometric = app(.geometric) { Sections() }
-        #expect(visits(geometric, .right, times: 1) == ["a-one", "a-two"])
-        #expect(visits(geometric, .up, times: 1) == ["a-two", "a-one"])
+        #expect(visits(geometric, .right, times: 1) == ["a-one", "a-one"])
+        #expect(visits(geometric, .down, times: 1) == ["a-one", "a-two"])
+        #expect(visits(geometric, .right, times: 1) == ["a-two", "a-two"])
     }
 
     /// A page of buttons under a sheet of two.

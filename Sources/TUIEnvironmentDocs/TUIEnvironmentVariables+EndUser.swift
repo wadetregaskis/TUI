@@ -225,7 +225,7 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_ARROW_FOCUS", .endUser, .behaviour,
             values: "`geometric`",
-            effect: "An experiment, for trying out: an arrow key that the control with the keyboard doesn't use itself moves the keyboard to the nearest control in that direction, on screen or scrolled out of sight, so Down goes to the button below rather than the next one in Tab order, scrolling to show it. Where there is none it goes to the next (Down, Right) or previous (Up, Left) control in Tab order, as it does without the variable. Tab and Shift-Tab are unchanged. Any other value, or none, keeps arrows in Tab order."),
+            effect: "An experiment, for trying out: an arrow key that the control with the keyboard doesn't use itself moves the keyboard to the nearest control in that direction, on screen or scrolled out of sight, so Down goes to the button below rather than the next one in Tab order, scrolling to show it. Where there is none the keyboard stays, at the end of a row or the foot of a column, rather than wrapping on in Tab order. Tab and Shift-Tab are unchanged. Any other value, or none, keeps arrows in Tab order."),
         TUIEnvironmentVariable(
             "TUI_FOCUS_FOLLOWS_POINTER", .endUser, .behaviour,
             values: "`1` or `0`",

@@ -26,8 +26,11 @@ to the nearest focusable control in its direction, on screen or scrolled out of 
 3. **Then distance**: the squared distance between the nearest edges, a row counting as two columns, since a terminal
    cell is about twice as tall as it is wide.
 4. **Then Tab order**, so the choice depends on the layout alone.
-5. **Fallback**: with no candidate, the arrow does what it does today, the next (→ ↓) or previous (← ↑) control in Tab
-   order, stopping at the section's ends.
+5. **No wrap**: with no candidate, the focus stays, at the end of a row or the foot of a column, wherever Tab order
+   would go next ([The edges](#the-edges-no-wrap)).
+6. **Fallback**, only where geometry cannot decide: nothing focused, the focused control not laid out, or no candidate
+   while the next (→ ↓) or previous (← ↑) control in Tab order has no frame, so could lie that way. Then the arrow does
+   what it does today, and goes to that control.
 
 Tab and Shift-Tab are unchanged. Left and Right between a split view's columns (`FocusManagerColumns.swift`) still come
 first. Like today's arrows it never leaves the active section, so a sheet, an alert or a popover keeps the arrows. ↓
@@ -38,7 +41,7 @@ id (`HitTestRegion.focusID`, which `ScrollView`'s reveal and the cursor-follows-
 loop hands the frame's region array to the focus manager, only in geometric mode. A control drawn in pieces is the
 smallest rectangle holding them. A control a scroll view has clipped is where its corners say (below). A control with
 no region this frame (a custom `Focusable` that draws none, one cut by a clip that isn't a scroll view's, a lazy row not
-built) is not a candidate, and the fallback reaches it in Tab order.
+built) is not a candidate, and the fallback reaches it in Tab order where it is the next control that way.
 
 ## Controls out of sight
 
@@ -75,8 +78,8 @@ second path.
 arithmetic, no measuring on demand. It isn't needed for the moves an arrow makes: the next row each way is always
 built (the margin past the viewport, and the focused row's neighbours), and an arrow goes to the nearest control, which
 in a grid or a column is in the next row. Where the next row holds no control (a header, a blank row), the one after
-it may be unbuilt: geometry then has no candidate that way, and the arrow goes on in Tab order (see below), which
-reaches only built rows too. A lazy stack whose rows hold controls only every second row or more can stop an arrow
+it may be unbuilt: geometry then has no candidate that way, and the arrow stops, as Tab order would short of the
+unbuilt rows too. A lazy stack whose rows hold controls only every second row or more can stop an arrow
 short; a uniform grid or list of controls cannot.
 
 **Tests** (`GeometricArrowScrollingTests`): twenty rows of twenty buttons in a 30 × 10 `ScrollView` that scrolls both
@@ -86,15 +89,20 @@ hundred, each one drawn whole on screen once focused. Through a horizontal scrol
 button at the top goes to the button below it at the end of the inner row, past both views' edges, and both scroll to
 show it.
 
-### Reachability: a correction to the design note
+### The edges: no wrap
 
-The design said repeated ↓ still visits every control, because the fallback walks the Tab order. That holds where Tab
-order runs down the screen (a column, a form, a grid laid out as columns), but not for a grid laid out as rows: in
-three rows of three, repeated ↓ from the first button walks the first column, then the fallback walks the bottom row,
-and stops. Repeated → visits all nine, and every control is reachable with the four arrows together. Tests pin both
-(`GeometricArrowFocusTests.reachable`). A fallback that wraps ↓ to the top of the next column would make repeated ↓ visit
-everything in a grid too, at the price of a second rule and a departure from "arrows fall back to what they do today";
-not done, pending the owner.
+The first version fell back to Tab order whenever no candidate lay that way, and noted that repeated ↓ in three rows of
+three walked the first column and then the bottom row, and asked whether ↓ should wrap from the foot of a column to the
+top of the next. The owner, 2026-11-08: "no, it should not wrap".
+
+That fallback was itself a wrap wherever the Tab order turns a corner: → at the end of a row went to the next row's
+start, and in a grid laid out as columns ↓ at the foot of one went to the top of the next, exactly the move ruled out.
+It existed to reach controls the frame had not drawn; once controls scrolled out of sight are candidates, at an edge of
+the layout the Tab-order neighbour is almost always a control geometry can place, lying some other way. So at an edge
+the focus now stays, and Tab order is the fallback only to a control with no frame, which might lie that way (rule 6).
+One arrow alone now walks one row or one column; the four together reach every control, in a grid on screen or one
+far larger than its scroll view (`GeometricArrowFocusTests.noWrap`, `.reachable`; `GeometricArrowFallbackTests`;
+`GeometricArrowScrollingTests`).
 
 ## What having both modes costs
 
@@ -106,8 +114,8 @@ Measured on the commit that added it, counting code lines (no comments, no blank
 | **Only to keep both modes**: the `ArrowFocus` enum and its reading of `TUI_ARROW_FOCUS` (7), the manager's mode and its accessor (5), the app runner setting it (1), the headless app's and `TestApp`'s accessors (8), the variable's documentation entry (4); and two conditions on existing lines, the render loop's and the geometric arrow's | ~25 | ~15 |
 
 - **Deleting the old mode**, were geometry to be the only one, would remove the ~25 and ~15 lines above and nothing of
-  today's arrow code: Tab-order arrows *are* the fallback, so `focusNextInSection()` and `focusPreviousInSection()`
-  stay exactly as they are.
+  today's arrow code: Tab-order arrows *are* the fallback (now only to a control geometry cannot place), so
+  `focusNextInSection()` and `focusPreviousInSection()` stay exactly as they are.
 - **Deleting geometry** removes the one file (190 lines with comments) but for today's arrow switch, which moved into it
   from `Focus.swift` (`moveFocus(byArrow:)`, a dozen lines) and would move back; about 20 lines elsewhere; the test suite
   (238) and this note. Nothing else depends on it.

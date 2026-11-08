@@ -135,7 +135,12 @@ struct GeometricArrowScrollingTests {
         #expect(walk(grid, .right, times: 19, visited: &visited))
         #expect(grid.focusedID == Self.cell(0, 19))
         #expect(isOutOfSight(Self.cell(0, 0), in: grid))
+        // No wrap to the next row, which comes next in Tab order.
+        grid.press(.right)
+        #expect(grid.focusedID == Self.cell(0, 19))
         #expect(walk(grid, .down, times: 19, visited: &visited))
+        #expect(grid.focusedID == Self.cell(19, 19))
+        grid.press(.down)
         #expect(grid.focusedID == Self.cell(19, 19))
         #expect(walk(grid, .left, times: 19, visited: &visited))
         #expect(walk(grid, .up, times: 19, visited: &visited))

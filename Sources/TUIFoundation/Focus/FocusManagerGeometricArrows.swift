@@ -19,7 +19,7 @@ package enum ArrowFocus: Sendable, Equatable {
     case tabOrder
 
     /// To the nearest control in the arrow's direction, on screen or scrolled
-    /// out of sight, and in Tab order only where there is none.
+    /// out of sight; in Tab order only to a control geometry cannot place.
     case geometric
 
     /// What the user asked for: `.geometric` with `TUI_ARROW_FOCUS=geometric`
@@ -60,7 +60,8 @@ extension FocusManager {
     /// An arrow the focused control left unused: Up and Left to the previous
     /// control in the active section, Down and Right to the next, without
     /// wrapping — or, under `TUI_ARROW_FOCUS=geometric`, to the nearest control
-    /// in the arrow's direction first, and in Tab order only where there is none.
+    /// in the arrow's direction, and in Tab order only where geometry cannot
+    /// decide (``GeometricMove/undecided``).
     ///
     /// - Returns: Whether `key` is an arrow, which is then handled whether or
     ///   not the focus could move.
@@ -71,9 +72,27 @@ extension FocusManager {
         case .down, .right: forward = true
         default: return false
         }
-        if moveFocusGeometrically(for: key) { return true }
+        guard moveFocusGeometrically(for: key) == .undecided else { return true }
         if forward { focusNextInSection() } else { focusPreviousInSection() }
         return true
+    }
+
+    /// What the geometric arrows made of an arrow.
+    private enum GeometricMove {
+        /// The focus moved to the nearest control that way.
+        case moved
+        /// Nothing lies that way, and the Tab-order neighbour lies some other
+        /// way: the focus stays, as it does at the end of a row or a column.
+        /// Going on in Tab order there would wrap — → at a row's end to the
+        /// next row's start, ↓ at a column's foot to the next column's top —
+        /// which the owner ruled out.
+        case stopped
+        /// Geometry cannot say: Tab-order mode, nothing focused, the focused
+        /// control not laid out, or nothing that way while the Tab-order
+        /// neighbour has no frame (a custom `Focusable` that draws none, one
+        /// cut by a clip that is not a scroll view's), so it could lie that
+        /// way. The arrow goes on in Tab order.
+        case undecided
     }
 
     /// Moves the focus to the nearest focusable control in `key`'s direction in
@@ -95,14 +114,14 @@ extension FocusManager {
     /// it reveal it on the frame that follows, as they do a control Tab
     /// reached, the innermost first.
     ///
-    /// - Returns: Whether the focus moved. `false` — in Tab-order mode, with
-    ///   nothing focused, with the focused control not drawn, or with no
-    ///   candidate — leaves the caller to fall back to Tab order.
-    private func moveFocusGeometrically(for key: Key) -> Bool {
+    /// With no candidate, the Tab-order neighbour that way decides: one with a
+    /// frame lies some other way, so the focus stays (``GeometricMove/stopped``);
+    /// one without could lie anywhere, so the caller goes on in Tab order.
+    private func moveFocusGeometrically(for key: Key) -> GeometricMove {
         guard arrows.mode == .geometric, let section = activeSection, let currentID = currentFocusedID
-        else { return false }
+        else { return .undecided }
         let frames = Self.focusFrames(in: arrows.laidOutRegions)
-        guard let origin = frames[currentID] else { return false }
+        guard let origin = frames[currentID] else { return .undecided }
         var best: (control: Focusable, rank: ArrowRank)?
         for (order, control) in section.focusables.enumerated()
         where control.focusID != currentID && control.canBeFocused {
@@ -111,9 +130,17 @@ extension FocusManager {
             else { continue }
             if best.map({ rank < $0.rank }) ?? true { best = (control, rank) }
         }
-        guard let best else { return false }
-        focus(best.control)
-        return true
+        if let best {
+            focus(best.control)
+            return .moved
+        }
+        let ring = section.focusables
+        let forward = key == .down || key == .right
+        guard let anchor = ring.firstIndex(where: { $0.focusID == currentID }),
+            let neighbour = Self.nearestFocusable(in: ring, from: anchor, forward ? .forward : .backward, wrap: false),
+            frames[neighbour.focusID] == nil
+        else { return .stopped }
+        return .undecided
     }
 
     /// Each focus id's frame in screen coordinates: the smallest rectangle

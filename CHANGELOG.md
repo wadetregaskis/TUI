@@ -6,7 +6,8 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 **`TUI_ARROW_FOCUS=geometric` tries out arrow keys that go by the screen.** An experiment, off by default: an arrow the
 focused control doesn't use moves to the nearest control in its direction, one overlapping the focused control's
-columns (or rows) first, then the nearer, then the earlier in Tab order; with none it goes on in Tab order as before.
+columns (or rows) first, then the nearer, then the earlier in Tab order; with none it stays put, at the end of a row or
+the foot of a column, rather than wrapping on in Tab order.
 Tab is unchanged, and arrows still stay inside the active section and a sheet. The Example's Focus page has a grid to
 try it on. See `Documentation/Input and focus/Geometric arrow focus.md`. The arrows reach controls a `ScrollView` has
 scrolled out of sight too, and the scroll views around one bring it into view, so a grid much larger than its scroll
