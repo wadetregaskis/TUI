@@ -53,6 +53,75 @@ byte for byte.
 To add one: give it a topic folder here (or join one), keep its source, its output and any notes, never its
 binary, and cite it by its path, `Tools/SwiftUIProbes/<folder>/<file>`.
 
+## When to rerun
+
+Rarely, and by hand. Asked on 2026-11-08 whether the probes should run in CI, the owner said: "these only need
+to be run very occasionally, when a new OS or maybe Xcode version becomes available. I don't think that merits
+inclusion in CI." So no CI job runs them. Rerun them when:
+
+- **a new macOS ships** (a major version, or a point release that changes SwiftUI's version): SwiftUI's
+  behaviour is what most of them record;
+- **a new Xcode ships**, for its SDK and Swift toolchain: the Swift runtime layouts below belong to the toolchain
+  and the OS, and a new SDK can change what compiles as well as what runs;
+- **a citing claim is in doubt**, for that folder alone.
+
+**Which ones first.** In this order:
+
+1. **The set SwiftUI porters rely on:** the order and lifetime rules a ported app's correctness rests on without
+   its author ever reading them, so a change there changes what a ported program does, not just how it looks.
+   `Effect and update ordering`, `Row state lifetime`, `Plain body re-evaluation`, `Sections and subview
+   counting`, `Dynamic properties`, `State keys in dynamic properties`, `Transactions of observed changes` and
+   `Disabled between queued events`. This is the set the 2026-11-08 question proposed for a CI job.
+2. **The runtime layouts TUI reads:** `Swift runtime layouts`, `Dynamic property discovery` and `Class properties
+   held by several views`. The property walk (`Sources/TUIView/Rendering/FieldDescriptors.swift`,
+   `Sources/TUIView/State/`) reads the runtime's field records, value witnesses and reference layouts directly, so
+   a change here can break TUI rather than make it differ. Rerun these on every new Swift toolchain too, and on
+   x86_64 if TUI is ever run there (they ran on arm64 only).
+3. **The answers TUI's tests pin,** where a changed answer leaves a test asserting SwiftUI's old behaviour. As of
+   2026-11-08 these are the folders, besides those above, cited by both `Sources/` and `Tests/` (`git grep -c
+   'SwiftUIProbes/<folder>' -- Sources Tests` counts again): `Form rows`, `Transitions`, `Alignment guides`, `Stack
+   spacing per pair`, `Layout priority`, `Flexible frames`, `Matched geometry`, `Scroll anchoring`, `Scroll target
+   behaviours`, `Insertion and removal (FB16)`, `Animation curves, springs and keyframes`, `Shape paths (W1)`, `Menu
+   items and alert buttons`, `The menu bar (O13)`, `Picker sections`, `List pinned headers and row stripes`,
+   `Hierarchical table insertions`, `Badge prominence`, `NavigationLink as a list row`, `Named colours by scheme`,
+   `Image paint`, `Blend modes`, `Trailing values and labels`, `Ragged text in a larger frame`, `Markdown attribute
+   syntax`, `Localization keys` and `Undo and the pointer leaving (INPUT)`.
+
+The rest only when their subject comes up.
+
+**Rerunning a folder and diffing it.** Most folders keep a program's output as `<name>.out` beside `<name>.swift`;
+this loop rebuilds each such program with Xcode's toolchain, as [Building and running one](#building-and-running-one)
+does, runs it, and diffs its standard output against the kept one:
+
+```zsh
+export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+cd "Tools/SwiftUIProbes/Transitions"
+shared=(common.swift(N) scan.swift(N))      # a folder's shared files, built with each @main program
+for src in *.swift; do
+  name=${src:r}
+  [[ -f $name.out ]] || continue            # shared files and helpers keep no output
+  if grep -q '@main' $src; then
+    xcrun swiftc -parse-as-library -target arm64-apple-macos15.0 $shared $src -o "$TMPDIR/$name"
+  else
+    xcrun swiftc -target arm64-apple-macos15.0 $src -o "$TMPDIR/$name"
+  fi
+  if "$TMPDIR/$name" | diff -u $name.out - > "$TMPDIR/$name.diff"; then echo "same     $name"
+  else echo "CHANGED  $name: $TMPDIR/$name.diff"; fi
+done
+```
+
+The loop does not cover outputs named per case or per build flag: the `…-optconf.out` builds (add `-D OPTCONF`),
+the folders with their own `run.sh` (`Effect and update ordering`, `The menu bar (O13)`), the cases of `Gestures
+(lane 17g)`, `Menu items and alert buttons` and `Dropped members (RC5)`, and `Alignment guides/tuikit.out`, which
+is TUI's own output. Each folder's entry below says how its probes were built and run; `stamp.swift` is built `-O`.
+Timed outputs (`stamp.out`) and pixel reads vary from run to run, so read their diffs rather than count them.
+
+**When an answer changed.** A changed output is a question, not yet a bug: confirm it twice, then decide whether TUI
+follows the new behaviour (the rule is in `.claude/CLAUDE.md`, SwiftUI API parity). Commit the new output under
+the same name (git keeps the old one), update the folder's **Answers** and **Ran** lines and, if every probe was
+rerun, [Where they ran](#where-they-ran); then take the difference to each file under the folder's **Cited by**.
+When nothing changed, note the rerun's date, OS and Xcode in Where they ran, as the 2026-10-12 rerun above is.
+
 ## The probes
 
 Each folder says what its probes ask, what is in it, where it lived in the maintainers' working notes (commit
