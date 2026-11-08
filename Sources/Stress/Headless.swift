@@ -136,7 +136,7 @@ enum Headless {
         environment.preferenceStorage = PreferenceStorage()
         // `TUI_PLAIN_TEXT=transliterate`, as the app runner writes it at the
         // root, so a bench can price spelling text in ASCII before layout.
-        if ProcessInfo.processInfo.environment["TUI_PLAIN_TEXT"] == "transliterate" {
+        if PlainTerminalText.transliterates(in: ProcessInfo.processInfo.environment) {
             environment.transliteratesText = true
         }
         // Through the installer, so the measure memo's gate — which reads the

@@ -39,5 +39,5 @@ enum InternalVariables {
 
     /// String literals in capitals, in a file that reads the environment, that aren't
     /// the name of a variable.
-    static let notVariables: Set<String> = ["A", "B", "ESC", "P", "SCREEN", "SS", "VERSION", "X"]
+    static let notVariables: Set<String> = ["A", "B", "ESC", "FAIL", "P", "SCREEN", "SS", "VERSION", "X"]
 }

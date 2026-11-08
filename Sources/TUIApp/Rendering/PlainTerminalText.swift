@@ -17,7 +17,7 @@ import TUICore
 /// Cell for cell because the frame is already laid out: every view has been measured,
 /// and the diff, the mouse and the hit tests all go by those cells. So a character
 /// keeps the cells it had, which makes `好`, two cells wide, `ha` rather than `hao`.
-enum PlainTerminalText {
+package enum PlainTerminalText {
     /// Whether this terminal needs it: `TUI_PLAIN_TEXT` if set to `1`, `transliterate`
     /// or `0`, or else whether the locale names a character set that isn't UTF-8.
     ///
@@ -44,7 +44,7 @@ enum PlainTerminalText {
     /// A value of the same variable rather than one of its own: it's the same question,
     /// what to send a terminal that shows only ASCII, and a second variable would leave
     /// `TUI_PLAIN_TEXT=0` with the transliteration on, which means nothing.
-    static func transliterates(in environment: [String: String]) -> Bool {
+    package static func transliterates(in environment: [String: String]) -> Bool {
         environment["TUI_PLAIN_TEXT"] == "transliterate"
     }
 
