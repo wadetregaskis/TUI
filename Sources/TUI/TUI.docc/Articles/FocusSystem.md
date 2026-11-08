@@ -17,6 +17,17 @@ These keys move the focus, once the focused control has let them go:
 | Arrow Down / Right | Move focus to the next element |
 | Arrow Up / Left | Move focus to the previous element |
 
+With `TUI_ARROW_FOCUS=geometric` (<doc:EnvironmentVariables>), an experiment
+for trying out, an arrow moves the focus to the nearest control on screen in its
+direction instead, so Down goes to the button below rather than the next one in
+Tab order; where there is none it falls back to Tab order. Tab is unchanged, and
+the arrows still stay inside the active focus section.
+
+F6 moves the focus to the newest toast that has a button, again to the next
+older one, and past the oldest back where it came from; Tab also reaches the
+toasts' buttons after the page. A toast never takes the focus by itself. See
+<doc:Presentation#Notifications>.
+
 Inside a `NavigationSplitView`, Arrow Left and Right move focus to the
 neighbouring column instead — landing on what was last focused there — while Up
 and Down keep stepping within the column. A focused control that uses Left and
@@ -48,6 +59,11 @@ struct SignIn: View {
     }
 }
 ```
+
+With the default priority, `.automatic`, the default focus is applied once, when
+the scope appears, and from then on the user moves the focus. Pass
+`priority: .userInitiated` to have it applied again on every render, even after
+the user moved the focus elsewhere.
 
 Writing to `field` moves focus; reading it tells you where focus is. A `Bool`
 `@FocusState` binds a single control the same way, via `focused($isEditing)`.
@@ -145,8 +161,10 @@ By default the mouse pointer only highlights what it is over, and a click moves
 the focus. With ``Scene/focusFollowsPointer(_:)``, or the person's
 `TUI_FOCUS_FOLLOWS_POINTER=1` (<doc:EnvironmentVariables>), the control the
 pointer moves onto takes the focus too, as a click there would, without
-pressing it. What the scene says wins over the variable. The terminal then
-reports every move of the mouse, wherever it reports clicks.
+pressing it. What the scene says wins over the variable, and in an app with a
+menu bar the View menu's Focus Follows Pointer wins over both until the app
+quits. The terminal then reports every move of the mouse, wherever it reports
+clicks.
 
 - **A pointer at rest takes nothing back.** Only a move onto another cell
   counts, so Tab and the arrow keys move the focus as ever, and the pointer's
@@ -166,6 +184,8 @@ reports every move of the mouse, wherever it reports clicks.
 The visual indicator depends on the view type. Buttons and similar controls use a **highlight background bar** for the focused item. Text fields render as a bracketed field (`[ text ]`) and show a **visible text cursor** inside it when focused — a block, bar or underscore that pulses unless the `.textCursor(_:)` modifier says to blink or hold still. Lists and tables **breathe the background of the cursor row**: the accent when that row is selected, the neutral focus wash (``Palette/focusWashPulse()``) when it is not — under `.rowSelectionIndicator(.hidden)` too, where there is no ●: the focus indicator always visibly breathes.
 
 Without colour (<doc:TerminalSupport>) there is nothing to pulse, so a control shows the focus in reverse video instead, and nothing animates but a text cursor's blink and a cursor row's weight.
+
+The same reverse video is drawn over the colours where the person asks for cues that don't rest on colour alone: Differentiate Without Color in the View menu or in their system's settings, or `TUI_DIFFERENTIATE_WITHOUT_COLOR=1` (<doc:EnvironmentVariables>). Then a disabled control is drawn faint as well, and a table marks its selected rows with a dot.
 
 The pulse runs on a shared clock so everything on screen breathes together, and
 it walks a discrete ramp of shades rather than lerping — the 256-colour cube has
@@ -233,7 +253,8 @@ on a view holds the focus indications inside it still, at their bright end, and
 a view below can set `.pulse` or `.blink` back. For the whole app there is a
 switch nothing below takes back: the person running it sets `TUI_BREATHING=0`
 (<doc:EnvironmentVariables>), or the app says ``Scene/focusBreathing(_:)``
-with `false`, perhaps from a setting of its own. Either one makes
+with `false`, perhaps from a setting of its own; in an app with a menu bar, the
+View menu's Breathing Focus overrides both until the app quits. Any of these makes
 ``EnvironmentValues/focusBreathes`` `false`, and while it is,
 ``EnvironmentValues/selectionIndicatorStyle`` reads `.none` whatever a view set.
 The app's `true` doesn't undo the person's `0`.
@@ -345,7 +366,7 @@ public protocol Focusable: AnyObject {
     var canBeFocused: Bool { get }
     func onFocusReceived()
     func onFocusLost()
-    func handleKeyEvent(_ event: KeyEvent) -> Bool
+    @MainActor func handleKeyEvent(_ event: KeyEvent) -> Bool
 }
 ```
 

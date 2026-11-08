@@ -138,20 +138,19 @@ Text("Press Enter to continue")
 
 ### Handler Priority
 
-Handlers are dispatched in **reverse registration order**: the deepest view in the tree (most recently registered) gets the event first. This means inner views can intercept events before outer views see them.
+Handlers are dispatched in **reverse registration order**, and they register in render order, outside in: a handler on a view inside another's gets the event first, and of two siblings the later one does. This means inner views can intercept events before outer views see them.
 
 ```swift
 VStack {
-    Text("Outer")
-        .onKeyEvent(.enter) {
-            // Only reached if inner handler did NOT consume it
-            print("outer enter")
-        }
     Text("Inner")
         .onKeyEvent(.enter) {
             // Gets the event FIRST
             print("inner enter")
         }
+}
+.onKeyEvent(.enter) {
+    // Only reached if the inner handler did NOT consume it
+    print("outer enter")
 }
 ```
 
@@ -167,15 +166,17 @@ A `Button`'s own shortcut is registered again the same way, on one condition: th
 
 ## Default Bindings
 
-Seven keys do something by themselves, once nothing else has taken them. Only quit, undo and redo, help and the list of shortcuts are on without configuration:
+These keys do something by themselves, once nothing else has taken them. All but `t` and `a` are on without configuration:
 
 | Key | Action | Condition |
 |-----|--------|-----------|
 | ⌃Q | Quit application | Enabled by default; gated by ``QuitBehavior`` |
-| Undo and redo | ``UndoCommand/defaultShortcuts``: ⌃Z, ⌃- and ⌃/ undo; ⌃⇧Z, ⌃_ and ⌥_ redo | Always, after your shortcuts; set app-wide with ``Scene/undoShortcuts(_:)``. A bound key is taken whether or not there is a step, so ⌃Z with nothing to undo does nothing |
+| Undo and redo | ``UndoCommand/defaultShortcuts``: ⌃Z, ⌃- and ⌃/ undo; ⌃Y, ⌃⇧Z, ⌃_ and ⌥_ redo | Always, after your shortcuts; set app-wide with ``Scene/undoShortcuts(_:)``. A bound key is taken whether or not there is a step, so ⌃Z with nothing to undo does nothing. A focused text field or editor takes ⌃Y first, as its yank |
 | ⌃Z | Suspend the app, as the shell's `^Z` would | Only where the undo keys leave it out, and only once no view has claimed the key, so a focused text field's or editor's undo wins |
 | `?` | Show the focused view's `View.help(_:)` tooltip | Enabled by default; falls through when the focused view has no help text. Reachable behind a modal, unlike `t` and `a` |
 | F1 (fn-F1 on a Mac keyboard) | Show the list of the shortcuts in force, or take it down | Enabled by default; see "The List of Shortcuts" below |
+| ⌥ with the help key (⌥?), or ⇧F1 | Show every tooltip on the screen at once, or hide them (Help ▸ Show All Tooltips) | Enabled by default. ⇧F1 is for a terminal that doesn't send Option; Apple Terminal sends neither by default, so there the menu item is the way |
+| ⇧F10, or the PC keyboard's Menu key | Open the context menu of what has the focus, or close an open one | Where the focused view has a `.contextMenu`, or is a list, table or tab row with one. The Menu key arrives only under the kitty keyboard protocol |
 | `t` / `T` | Cycle to next color theme | Opt-in: requires `statusBarSystemItems(theme: true)` (or `showThemeItem = true`) |
 | `a` / `A` | Cycle to next appearance | Opt-in: requires `statusBarSystemItems(appearance: true)` (or `showAppearanceItem = true`); then active unless a modal surface has grabbed input |
 
@@ -377,6 +378,11 @@ The focused control is offered every key first. Whatever it doesn't use, these m
 | ⇧⇥ | Move focus to the previous focusable element (wraps around) |
 | Up / Left | Move to previous element in section (fallback) |
 | Down / Right | Move to next element in section (fallback) |
+| F6 | Move to the newest toast with a button, then to older ones, then back (see <doc:Presentation#Notifications>) |
+
+With `TUI_ARROW_FOCUS=geometric`, an experiment, an arrow moves instead to the nearest control on screen in its direction, and in Tab order only where there is none; Tab is unchanged, and the arrows stay inside the active focus section either way (see <doc:EnvironmentVariables>).
+
+A focused `.draggable` view can be carried from the keyboard: ⌃R picks it up, Tab and the arrows move to a destination, Return drops it, and Escape or ⌃R again puts it back. See <doc:DragAndDrop>.
 
 For more details, see <doc:FocusSystem>.
 
@@ -604,6 +610,8 @@ Uppercase detection: when a capital letter is typed, the resulting ``KeyEvent`` 
 | Key | Description |
 |-----|-------------|
 | `.f1` … `.f12` | Function keys F1 through F12 |
+| `.f13` … `.f20` | VT220's extra function keys; Apple Terminal also sends them for ⇧F5 … ⇧F12 |
+| `.menu` | The PC keyboard's Menu key, reported only under the kitty keyboard protocol |
 
 A ``KeyboardShortcut`` names one by AppKit's function-key scalars, as SwiftUI
 source does: `KeyEquivalent("\u{F704}")` is F1, and so on up to F20 at U+F717.
@@ -684,13 +692,13 @@ var body: some View {
 
 You rarely need the details of this section. They matter when two things want the same key.
 
-TUI uses a layered event dispatch system. When a key is pressed, it passes through up to five layers. The first layer that consumes the event wins: remaining layers are skipped. Layer 0 (text input) and Layer 3 (focus system) are mutually exclusive: when a text input element is focused, Layer 0 runs and Layer 3 is skipped. The one key Layer 0 does not offer the focused text control is an Emacs editing chord your own `.keyboardShortcut` is on; see <doc:KeyboardShortcuts#Your-Shortcuts-and-the-Editing-Chords>.
+TUI uses a layered event dispatch system. When a key is pressed, it passes through up to five main layers. The first layer that consumes the event wins: remaining layers are skipped. Layer 0 (text input) and Layer 3 (focus system) are mutually exclusive: when a text input element is focused, Layer 0 runs and Layer 3 is skipped. The one key Layer 0 does not offer the focused text control is an Emacs editing chord your own `.keyboardShortcut` is on; see <doc:KeyboardShortcuts#Your-Shortcuts-and-the-Editing-Chords>.
 
 Before any of them comes the **focus path**: SwiftUI's `onKeyPress` handlers on the views that contain the focused control, asked outermost first. They come even before a focused text input, as they do in SwiftUI, which is safe only because they are focus-gated; see <doc:KeyboardShortcuts#Responding-to-Key-Presses>.
 
-Three additional stages refine the layer sequence. When an open drop-down (e.g. a ``Picker`` menu) has claimed Escape for the frame, ESC is pre-routed through the focus system *before* Layer 1, so the surface closes instead of a page-level handler firing. Layer 0.5 then offers the key to a drag in flight, which is how you scroll to an off-screen destination without letting go — it has to beat every layer below, all of which would otherwise spend the key on the focused control. And between Layer 3 and Layer 4, a shortcut stage (Layer 3.5) fires your `.keyboardShortcut`s — the default button on Return and the cancel button on Escape, à la SwiftUI's `.keyboardShortcut(.defaultAction)` / `.keyboardShortcut(.cancelAction)`, and any other key equivalent on its key — when the focused control let the key fall through.
+Four additional stages refine the layer sequence. When an open drop-down (e.g. a ``Picker`` menu) has claimed Escape for the frame, ESC is pre-routed through the focus system *before* Layer 1, so the surface closes instead of a page-level handler firing. Layer 0.5 then offers the key to a drag in flight, which is how you scroll to an off-screen destination without letting go — it has to beat every layer below, all of which would otherwise spend the key on the focused control. Layer 2.5 offers a typed character to an open pop-up menu's type select, which moves the highlight to the row whose title it starts. And between Layer 3 and Layer 4, a shortcut stage (Layer 3.5) fires your `.keyboardShortcut`s — the default button on Return and the cancel button on Escape, à la SwiftUI's `.keyboardShortcut(.defaultAction)` / `.keyboardShortcut(.cancelAction)`, and any other key equivalent on its key — when the focused control let the key fall through.
 
-@Image(source: "keyboard-event-dispatch.svg", alt: "Flowchart of the keyboard dispatch: a hasTextInputFocus check gates Layer 0 (Text Input via focusManager.dispatchKeyEvent for TextField/SecureField/TextEditor), except that an editing chord the focused control gives up to an app shortcut registered on it skips Layer 0 and continues down the chain. Without text focus, an ESC-claimed-by-an-open-surface check pre-routes Escape through the focus system so an open drop-down closes before any page-level handler. Layer 0.5 Drag Navigators (while a drag is in flight, arrows and paging scroll whatever the pointer is over). Layer 1 Status Bar Items (statusBar.handleKeyEvent). Layer 2 View Handlers (keyEventDispatcher.dispatch, deepest view first). A second hasTextInputFocus check skips Layer 3 if text input was focused. Layer 3 Focus System (focusManager.dispatchKeyEvent: focused element delegation, Tab/Shift+Tab, arrow key fallback). Layer 3.5 Semantic Shortcuts (Return fires the default button, Escape the cancel button, and a key-equivalent .keyboardShortcut fires on its key). Layer 4 Default Bindings (⌃Q quit and ? help always; t theme and a appearance gated while a modal grabs input). Unmatched events are dropped.")
+@Image(source: "keyboard-event-dispatch.svg", alt: "Flowchart of the keyboard dispatch: a hasTextInputFocus check gates Layer 0 (Text Input via focusManager.dispatchKeyEvent for TextField/SecureField/TextEditor), except that an editing chord the focused control gives up to an app shortcut registered on it skips Layer 0 and continues down the chain. Without text focus, an ESC-claimed-by-an-open-surface check pre-routes Escape through the focus system so an open drop-down closes before any page-level handler. Layer 0.5 Drag Navigators (while a drag is in flight, arrows and paging scroll whatever the pointer is over). Layer 1 Status Bar Items (statusBar.handleKeyEvent). Layer 2 View Handlers (keyEventDispatcher.dispatch, deepest view first). Layer 2.5, not drawn: an open menu's type select. A second hasTextInputFocus check skips Layer 3 if text input was focused. Layer 3 Focus System (focusManager.dispatchKeyEvent: focused element delegation, Tab/Shift+Tab, arrow key fallback). Layer 3.5 Semantic Shortcuts (Return fires the default button, Escape the cancel button, and a key-equivalent .keyboardShortcut fires on its key). Layer 4 Default Bindings (⌃Q quit and ? help always; t theme and a appearance gated while a modal grabs input; also, not drawn, undo and redo, the ⌃Z suspend, F1's list of shortcuts and ⌥? / ⇧F1 for every tooltip). Unmatched events ring the terminal's bell.")
 
 `⌃C` is an ordinary key here. A terminal normally turns it into SIGINT, but TUI's raw mode switches that off, so it reaches these layers as `c` held with Control like any other chord, and anything of yours can bind it: a ⌘C shortcut under the default ``EnvironmentValues/commandKey``, or ``QuitShortcut/ctrlC``. Where nothing does, it goes nowhere. `⌃Z` arrives the same way, and Layer 4 suspends the app on it only when nothing earlier claimed it (see <doc:KeyboardShortcuts#Default-Bindings>).
 
