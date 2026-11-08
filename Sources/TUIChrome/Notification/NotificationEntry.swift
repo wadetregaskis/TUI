@@ -20,8 +20,17 @@ struct NotificationEntry: Identifiable, Sendable {
     /// Unique identifier for this notification: what its post returned.
     let id: NotificationID
 
-    /// The notification message text.
+    /// The notification message text: empty for one that draws `content`.
     let message: String
+
+    /// The views it draws in place of `message`, built each frame it is drawn:
+    /// `nil` for a text notification.
+    ///
+    /// A closure, not a view, so the entry stays `Sendable` — no view is kept
+    /// where another thread could reach it — and the content is live: built
+    /// again every frame, it shows what it reads now. Main-actor isolated, as
+    /// every view's body is.
+    let content: (@MainActor @Sendable () -> AnyView)?
 
     /// What it is about, which its colour and glyph say.
     let style: NotificationStyle
@@ -46,12 +55,14 @@ struct NotificationEntry: Identifiable, Sendable {
     ///   - placement: Where it is drawn.
     ///   - duration: Display duration in seconds.
     ///   - postedAtNanos: The service clock's reading at the post.
+    ///   - content: The views it draws in place of `message`, or `nil`.
     init(
-        message: String, style: NotificationStyle = .plain, placement: NotificationPlacement = .topTrailing,
-        duration: TimeInterval, postedAtNanos: UInt64
+        message: String, content: (@MainActor @Sendable () -> AnyView)? = nil, style: NotificationStyle = .plain,
+        placement: NotificationPlacement = .topTrailing, duration: TimeInterval, postedAtNanos: UInt64
     ) {
         self.id = NotificationID()
         self.message = message
+        self.content = content
         self.style = style
         self.placement = placement
         // A NaN duration has no end to count to: taken as none, so the toast

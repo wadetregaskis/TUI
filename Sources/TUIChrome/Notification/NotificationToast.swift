@@ -10,8 +10,9 @@ import TUIFoundation
 
 // MARK: - Notification Toast
 
-/// One toast as the scene draws it: the message, led by its style's glyph,
-/// inside a border in its style's colour, faded to `opacity`.
+/// One toast as the scene draws it: the message — or the views the post gave
+/// in its place — led by its style's glyph, inside a border in its style's
+/// colour, faded to `opacity`.
 ///
 /// Composed from views rather than assembled line by line, so the message is
 /// a `Text` like any other — wrapped to the toast's width, bold under a bold
@@ -40,7 +41,11 @@ struct NotificationToast: View {
             if let glyph = entry.style.glyph {
                 Text(verbatim: glyph).bold().foregroundStyle(entry.style.colour)
             }
-            Text(verbatim: entry.message)
+            if let content = entry.content {
+                content()
+            } else {
+                Text(verbatim: entry.message)
+            }
         }
         .frame(width: max(1, width - Self.chromeWidth), alignment: .leading)
         .border(entry.style.colour)

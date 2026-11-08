@@ -18,6 +18,10 @@ focus only within it, and while a menu is open, not at all. Off by default: it h
 **`TUI_BREATHING=0` holds every focus indication still.** The control that has the keyboard is picked out by colour
 and bold alone, rather than breathing or blinking; the text cursor still blinks. An app can do the same with
 `Scene.focusBreathing(false)`, which can't undo the person's `0`. Reduce Motion still leaves the breath alone.
+**A notification can draw any views.** `post(style:duration:placement:content:)` takes a `@ViewBuilder` closure in place
+of a message. It is called each frame the toast is drawn, so the toast shows what its content reads now, such as a
+download's progress.
+
 **Notifications can go to any of six places, several at once.** `post(_:placement:)` takes a `NotificationPlacement`:
 a corner, or the middle of the top or bottom edge. Each placement stacks its own toasts with the newest nearest its edge,
 so an app can show progress at the bottom and errors at the top right. `defaultPlacement` sets where posts that name

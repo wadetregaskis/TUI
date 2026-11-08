@@ -201,6 +201,47 @@ extension NotificationService {
         return entry.id
     }
 
+    /// Posts a new notification that draws `content`: any views, in place of
+    /// a message, inside the toast's border and after its style's glyph.
+    ///
+    /// ```swift
+    /// NotificationService.current.post(style: .success) {
+    ///     HStack {
+    ///         Text("Exported")
+    ///         Text(fileName).bold()
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// `content` is called each frame the toast is drawn, on the main actor
+    /// as a view's body is, so what it shows is live: a toast reading a
+    /// download's progress shows it as it moves. It is `@Sendable` because a
+    /// post may come from any thread: it captures values, or objects that are
+    /// `Sendable`, rather than a view's state. The toast is ``width`` cells
+    /// wide; content wider than its inside is laid out in that width, as any
+    /// view in a narrower frame.
+    ///
+    /// - Parameters:
+    ///   - style: What it is about, which its colour and glyph say (default: ``NotificationStyle/plain``).
+    ///   - duration: How long the notification stays visible in seconds (default: 3.0), or `nil` to keep it
+    ///     until it is dismissed.
+    ///   - placement: Where it is drawn, the channel it stacks in (default: `nil`, the service's
+    ///     ``defaultPlacement``).
+    ///   - content: The views the toast draws.
+    /// - Returns: The notification's identifier, for ``dismiss(_:)``.
+    @discardableResult
+    public func post<Content: View>(
+        style: NotificationStyle = .plain, duration: TimeInterval? = 3.0, placement: NotificationPlacement? = nil,
+        @ViewBuilder content: @escaping @MainActor @Sendable () -> Content
+    ) -> NotificationID {
+        let now = nowNanos()
+        let entry = NotificationEntry(
+            message: "", content: { AnyView(content()) }, style: style, placement: placement ?? defaultPlacement,
+            duration: duration ?? .infinity, postedAtNanos: now)
+        add(entry, now: now)
+        return entry.id
+    }
+
     /// Fades out the notification `id` names, at once, whatever its duration
     /// — one posted to stay until dismissed included. Nothing happens where it
     /// has gone, or is already fading out.

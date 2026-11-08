@@ -465,6 +465,18 @@ NotificationService.current.post("Copying 12 files…", placement: .bottom)
 NotificationService.current.post("Disk full", style: .error, placement: .topTrailing)
 ```
 
+A toast can draw any views in place of a message. The closure is called each
+frame the toast is drawn, so what it shows is live:
+
+```swift
+NotificationService.current.post(style: .success) {
+    HStack {
+        Text("Exported")
+        Text(fileName).bold()
+    }
+}
+```
+
 ## Open and Save Panels
 
 `fileImporter`, `fileExporter` and `fileMover` draw their panels in the terminal.
