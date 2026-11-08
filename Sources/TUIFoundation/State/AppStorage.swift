@@ -29,10 +29,12 @@ public final class JSONFileStorage: StorageBackend {
         /// waiting on its `StoredKey` hear of the first write.
         var entries: [String: StoredEntry] = [:]
 
-        /// The keys THIS instance has written or removed.
+        /// The keys THIS instance has written or removed since its last flush.
         ///
         /// A flush merges these — and only these — over what is currently on
-        /// disk. Snapshotting the whole cache instead rewrote the entire file
+        /// disk, and forgets them once they are written: kept, every later
+        /// flush put back every key the instance had ever written, with the
+        /// bytes it held for it, over a sibling's newer write. Snapshotting the whole cache instead rewrote the entire file
         /// from a copy loaded once at startup, so two instances of one app (two
         /// terminal tabs) silently clobbered each other's saved settings: the
         /// second to write anything erased everything the first had saved since
@@ -252,7 +254,9 @@ extension JSONFileStorage {
     fileprivate func flushToDisk() {
         let changed = state.withLock { state in
             state.savePending = false
-            return state.dirtyKeys.map { ($0, state.entries[$0]?.data) }
+            let changed = state.dirtyKeys.map { ($0, state.entries[$0]?.data) }
+            state.dirtyKeys.removeAll()
+            return changed
         }
 
         // Start from what is on disk NOW — another instance may have written
@@ -284,6 +288,10 @@ extension JSONFileStorage {
                 try data.write(to: fileURL, options: .atomic)
             #endif
         } catch {
+            // Still this instance's to write: the next flush tries them again.
+            state.withLock { state in
+                for (key, _) in changed { state.dirtyKeys.insert(key) }
+            }
             // The write that just failed is the whole point of the API: without
             // this report the app shows a saved setting that will not survive
             // the next launch.

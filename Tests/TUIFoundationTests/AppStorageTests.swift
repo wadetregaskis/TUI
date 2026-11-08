@@ -217,6 +217,30 @@ struct JSONFileStorageTests {
         #expect(reader.value(forKey: "beta") == "from-second")
     }
 
+    @Test("A flush writes only what changed since the last one, so a sibling's newer value stays")
+    func flushForgetsWhatItWrote() {
+        // `dirtyKeys` was never emptied, so every flush overlaid every key the
+        // instance had EVER written, with the bytes it held for it — and the
+        // instance never reads the disk back. A wrote x, B wrote a newer x, A
+        // wrote y: A's flush put its stale x back over B's.
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tuikit-appstorage-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let first = JSONFileStorage(fileURL: url)
+        let second = JSONFileStorage(fileURL: url)
+        first.setValue(1, forKey: "x")
+        first.synchronize()
+        second.setValue(2, forKey: "x")
+        second.synchronize()
+        first.setValue(1, forKey: "y")
+        first.synchronize()
+
+        let reader = JSONFileStorage(fileURL: url)
+        #expect(reader.value(forKey: "x") == 2, "the first instance's stale x overwrote the second's newer one")
+        #expect(reader.value(forKey: "y") == 1)
+    }
+
     @Test("Concurrent writes race no reader: the flush snapshots under the lock")
     func concurrentWritesAreSafe() {
         // The old implementation's detached save iterated `cache` with NO

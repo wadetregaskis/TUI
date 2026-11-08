@@ -60,6 +60,10 @@ included, though a click or Return on such a row selected nothing. They skip it 
 reorderable `List` or `Table` (or a `.draggable` view) inside one could never pick a row up from the keyboard: the
 refresh ran instead. The focused control now has the key first, and the refresh runs when it lets the key go.
 
+**A JSON-file `@AppStorage` store no longer reverts another instance's newer value.** A flush wrote back
+every key the instance had ever written, so after a second instance (another terminal tab) changed a setting, the
+first one's next unrelated write put the old value back. A flush now writes only what changed since the last one.
+
 **F2 opens a settings panel in every app, with or without a menu bar.** Its tabs are the app's `Settings` scene first
 (a `TabView`'s `Tab`s one each, any other content one tab named after the app), then TUI's View (palette, border style,
 control style) and Accessibility (the View menu's seven checks), after a divider. TUI's choices override the system,
