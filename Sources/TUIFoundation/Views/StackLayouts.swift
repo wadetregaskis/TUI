@@ -266,13 +266,20 @@ nonisolated public struct HStackLayout: Layout, Sendable, Equatable {
         } else {
             width = content
         }
+        // A row narrower than its content squeezes some subview below its
+        // ideal width, and that one is asked its height again at the width it
+        // gets (`arrangement`). Otherwise every subview has at least its ideal
+        // width, and its ideal height stands.
+        let heights = width < content
+            ? arrangement(subviews, sizes: sizes, width: width, height: proposal.height).heights
+            : sizes.map(\.height)
         // See `VStackLayout.sizeThatFits` — a subview's explicit guide lines
         // the subviews up, other axis.
         let run = guideRun(
-            subviews, sizes: sizes.map { (width: $0.width, height: $0.height) }, fixedExtent: nil)
+            subviews, sizes: zip(sizes, heights).map { (width: $0.width, height: $1) }, fixedExtent: nil)
         return ViewSize(
             width: width,
-            height: run?.extent ?? sizes.map(\.height).max() ?? 0,
+            height: run?.extent ?? heights.max() ?? 0,
             isWidthFlexible: flexible,
             // See `VStackLayout.sizeThatFits` — same exclusion, other axis.
             // `_HStackCore` makes it by handling spacers in a branch that
@@ -286,22 +293,8 @@ nonisolated public struct HStackLayout: Layout, Sendable, Equatable {
         // See `VStackLayout.placeSubviews` — same distribution, other axis.
         let natural = ProposedSize(width: nil, height: bounds.height)
         let sizes = subviews.map { $0.sizeThatFits(natural) }
-        let priorities = subviewPriorities(subviews)
         let gaps = gaps(between: subviews)
-        let widths = distributeLinearSpace(
-            naturalSizes: sizes.map(\.width),
-            isFlexible: sizes.map(\.isWidthFlexible),
-            available: bounds.width,
-            gaps: gaps,
-            isSpacer: { subviews[$0].child.isSpacer },
-            priorities: priorities,
-            minimumSize: {
-                max(
-                    subviews[$0].sizeThatFits(ProposedSize(width: 0, height: bounds.height)).width,
-                    statedMinimumLength(of: subviews[$0].child, horizontally: true))
-            },
-            statedMinimum: { statedMinimumLength(of: subviews[$0].child, horizontally: true) },
-            sizeAt: { subviews[$0].sizeThatFits(ProposedSize(width: $1, height: bounds.height)).width })
+        let (widths, heights) = arrangement(subviews, sizes: sizes, width: bounds.width, height: bounds.height)
         // Each gap is the one between the last subview that took any width and
         // the next that takes some — the distribution's own rule, by pair
         // (`StackGapWalk`), as `_HStackCore` walks it. Charged after every
@@ -309,7 +302,7 @@ nonisolated public struct HStackLayout: Layout, Sendable, Equatable {
         // immediate successor, which an `EmptyView` member between two others
         // is: the row reserved one gap and placed another.
         let run = guideRun(
-            subviews, sizes: zip(widths, sizes).map { (width: $0, height: $1.height) }, fixedExtent: bounds.height)
+            subviews, sizes: zip(widths, heights).map { (width: $0, height: $1) }, fixedExtent: bounds.height)
         var walk = StackGapWalk(gaps)
         var x = bounds.x
         for (index, subview) in subviews.enumerated() {
@@ -317,10 +310,44 @@ nonisolated public struct HStackLayout: Layout, Sendable, Equatable {
             x += walk.gap(before: index, extent: width)
             walk.place(index, extent: width)
             subview.place(
-                at: (x: x, y: bounds.y + (run?.offsets[index] ?? alignedOffset(for: sizes[index].height, in: bounds.height))),
-                proposal: ProposedSize(width: width, height: sizes[index].height))
+                at: (x: x, y: bounds.y + (run?.offsets[index] ?? alignedOffset(for: heights[index], in: bounds.height))),
+                proposal: ProposedSize(width: width, height: heights[index]))
             x += width
         }
+    }
+
+    /// Each subview's share of `width`, and its height at that share.
+    ///
+    /// A subview given less than its ideal width is asked its height again at
+    /// the width it gets, and can come back taller — a text that wraps in the
+    /// room left to it — as `_HStackCore` re-measures a squeezed child. One
+    /// given at least its ideal keeps the ideal's height: it wraps no further
+    /// than it did there. Shared by the measure and the placement, so the two
+    /// cannot disagree about the row's height.
+    @MainActor private func arrangement(
+        _ subviews: Subviews, sizes: [ViewSize], width: Int, height: Int?
+    ) -> (widths: [Int], heights: [Int]) {
+        let widths = distributeLinearSpace(
+            naturalSizes: sizes.map(\.width),
+            isFlexible: sizes.map(\.isWidthFlexible),
+            available: width,
+            gaps: gaps(between: subviews),
+            isSpacer: { subviews[$0].child.isSpacer },
+            priorities: subviewPriorities(subviews),
+            minimumSize: {
+                max(
+                    subviews[$0].sizeThatFits(ProposedSize(width: 0, height: height)).width,
+                    statedMinimumLength(of: subviews[$0].child, horizontally: true))
+            },
+            statedMinimum: { statedMinimumLength(of: subviews[$0].child, horizontally: true) },
+            sizeAt: { subviews[$0].sizeThatFits(ProposedSize(width: $1, height: height)).width })
+        let heights: [Int] = (0..<sizes.count).map { index in
+            guard widths[index] < sizes[index].width, !subviews[index].child.isSpacer else {
+                return sizes[index].height
+            }
+            return subviews[index].sizeThatFits(ProposedSize(width: widths[index], height: height)).height
+        }
+        return (widths, heights)
     }
 
     /// The gaps between `subviews`: every one ``spacing``, or — when it is

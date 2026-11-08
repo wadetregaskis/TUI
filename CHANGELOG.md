@@ -4,6 +4,10 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**An `HStackLayout` row keeps a wrapped text's lines.** A subview given less than its ideal width was placed at the
+narrower width but its one-line height, so a text that wrapped there lost every line after the first. It is
+measured again at the width it gets, as in an `HStack`.
+
 **`Divider(character:)` with a wide glyph draws a rule of the width it is given.** An ideograph or an emoji drew a
 horizontal rule twice as wide as offered, and in a row a vertical rule two cells wide where the divider had said it
 was one, over its neighbour. A glyph that takes no cell now draws the axis's own rule.
