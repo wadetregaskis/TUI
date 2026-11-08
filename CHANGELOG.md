@@ -14,6 +14,9 @@ placement of their own, `CommandGroupPlacement.accessibility`, which `CommandGro
 **The async `KittyGraphics.withSupport(_:compression:operation:)` runs its operation on the caller's actor.** It is
 `nonisolated(nonsending)`, and its `isolation:` parameter is gone; a call with a trailing closure compiles as before. It
 was the cause of two of Swift 6.4's deprecation warnings, which now has none.
+**`TUI_DEBUG_FOCUS` no longer writes to a fixed `/tmp/tui-debug.log`.** It writes to the file `TUI_DIAGNOSTICS_FILE`
+names, else to `tui-debug-<user>.log` in the temporary directory, so people sharing a machine don't share one log.
+
 **On Linux, `UserDefaultsStorage` keeps its file with the app's other settings.** It was
 `$XDG_DATA_HOME/<app>/UserDefaults.json` (else `~/.local/share/<app>/…`), while `@AppStorage`'s default store was in
 the configuration directory. It is now `UserDefaults.json` (or `UserDefaults-<suite>.json`) in

@@ -51,7 +51,7 @@ Read by the library modules, for debugging them.
 
 | Variable | Values | What it does |
 |---|---|---|
-| `TUI_DEBUG_FOCUS` | `1` | Logs the focus system, mouse dispatch and text fields to `/tmp/tui-debug.log`. Read once. |
+| `TUI_DEBUG_FOCUS` | `1` | Logs the focus system, mouse dispatch and text fields to the file `TUI_DIAGNOSTICS_FILE` names, else to `tui-debug-<user>.log` in the temporary directory (`$TMPDIR`, else `/tmp`). Read once. |
 | `TUI_HEADLESS_STREAM` | A path | Writes every byte a `HeadlessApp` sends its terminal to that file, for the output tools. |
 | `TUI_OBSERVATION_RETIREMENT` | A name of `ObservationLeases.Retirement` | Which rule a new render cache cancels its observation scopes by, to compare them. `leases` by default. |
 | `TUI_KEEP_BODIES` | `0` | Turns off keeping what a measure of an app's slow `body` evaluated for the draw after it in the same walk, so that it runs twice, to compare. `all` keeps every body of an app's, however quick, for a run of the tests. It's about a `body` that runs at all: `TUI_RUN_BODY_ON_EVERY_FRAME=1`, in the public table, is what makes each one run, so with `TUI_KEEP_BODIES=0` as well every `body` runs as it did before either, twice a frame. |

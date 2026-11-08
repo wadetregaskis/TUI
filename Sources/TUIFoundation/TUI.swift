@@ -19,8 +19,9 @@ import Foundation
 internal let isFocusDebugEnabled: Bool =
     ProcessInfo.processInfo.environment["TUI_DEBUG_FOCUS"] == "1"
 
-/// Appends a one-line, timestamped diagnostic to
-/// `/tmp/tui-debug.log` when `TUI_DEBUG_FOCUS=1`.
+/// Appends a one-line, timestamped diagnostic to the focus log when
+/// `TUI_DEBUG_FOCUS=1`: the file `TUI_DIAGNOSTICS_FILE` names, else
+/// ``focusDebugLogPath``.
 ///
 /// When the flag is unset (the common case) the `message`
 /// autoclosure is not evaluated and the function returns
@@ -36,20 +37,20 @@ internal let isFocusDebugEnabled: Bool =
 package func debugFocusLog(_ message: @autoclosure () -> String) {
     guard isFocusDebugEnabled else { return }
     let stamp = ISO8601DateFormatter().string(from: Date())
-    let line = "[\(stamp)] \(message())\n"
-    if let handle = FileHandle(forWritingAtPath: "/tmp/tui-debug.log") {
-        defer { try? handle.close() }
-        // The `_ = try?` dance silences Swift 6's "result of
-        // 'try?' is unused" warning. We don't care whether
-        // seekToEnd succeeded — if it fails we just write at the
-        // current position; the diagnostic file isn't load-
-        // bearing.
-        _ = try? handle.seekToEnd()
-        if let data = line.data(using: .utf8) { try? handle.write(contentsOf: data) }
-    } else {
-        try? line.write(toFile: "/tmp/tui-debug.log", atomically: false, encoding: .utf8)
-    }
+    DiagnosticChannel.emit("[\(stamp)] \(message())\n", to: DiagnosticChannel.destination ?? focusDebugLogPath)
 }
+
+/// Where the focus log goes when `TUI_DIAGNOSTICS_FILE` names no file:
+/// `tui-debug-<user>.log` in the temporary directory.
+///
+/// Never stderr, where every other diagnostic goes by default: the focus log
+/// writes a line per key and click, which would land on the screen the app
+/// draws. And not a fixed `/tmp/tui-debug.log`, as it once was, which on a
+/// machine several people use is one file they all write and can read: the
+/// temporary directory is the user's own on macOS (`$TMPDIR`), and the
+/// user's name keeps two apart where it is shared, as `/tmp` is on Linux.
+package let focusDebugLogPath: String =
+    URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("tui-debug-\(NSUserName()).log").path
 
 /// The current version of TUI.
 ///
