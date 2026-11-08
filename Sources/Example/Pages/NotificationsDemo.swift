@@ -12,11 +12,19 @@ import TUI
 
 /// A button per kind of toast: the four styles, a button on a toast, one that
 /// stays until dismissed, another placement, live content, the desktop too,
-/// and dismissing them all. There is no host to add: the app's scene draws
-/// them.
+/// dismissing them all, and a toast under a sheet and one over it. There is no
+/// host to add: the app's scene draws them.
 struct NotificationsDemo: View {
-    /// Where the demo's toasts are posted.
+    /// Where the demo's toasts are posted: belonging to no window, so above
+    /// any sheet (`NotificationLayer`).
     private var service: NotificationService { NotificationService.current }
+
+    /// The window's own service, whose posts go under what is presented over
+    /// the window.
+    @Environment(\.notificationService) private var windowService
+
+    /// Whether the demo's sheet is up.
+    @State private var showsSheet = false
 
     var body: some View {
         DemoSection("page.overlays.notifications.section") {
@@ -52,6 +60,29 @@ struct NotificationsDemo: View {
                 }
                 Button("page.overlays.notifications.dismissAll") { service.dismissAll() }
             }
+            presentations
+        }
+        .sheet(isPresented: $showsSheet) { DemoSheet(isPresented: $showsSheet) }
+    }
+
+    /// A toast and a sheet at once: the window's toast waits under the sheet,
+    /// its timer stopped; one above presentations is on top, reachable by F6.
+    private var presentations: some View {
+        // Read here, in the body: a closure runs at event time, when an
+        // `@Environment` property has nothing to read.
+        let (window, service) = (windowService, service)
+        return HStack(spacing: 1) {
+            Button("page.overlays.notifications.underSheet") {
+                window?.post("page.overlays.notifications.underMessage", style: .info, duration: 4)
+                showsSheet = true
+            }
+            Button("page.overlays.notifications.overSheet") {
+                service.post(
+                    "page.overlays.notifications.overMessage", style: .warning, duration: 8,
+                    layer: .abovePresentations,
+                    actions: [NotificationAction("page.overlays.notifications.overAction") {}])
+                showsSheet = true
+            }
         }
     }
 
@@ -65,6 +96,28 @@ struct NotificationsDemo: View {
                     service.post("page.overlays.notifications.restored", style: .info)
                 }
             ])
+    }
+
+    /// The sheet the two buttons present: what to look for, a toast posted
+    /// from inside it — on top of it, as it is the sheet's — and Close.
+    private struct DemoSheet: View {
+        @Binding var isPresented: Bool
+        @Environment(\.notificationService) private var sheetService
+
+        var body: some View {
+            let sheetService = sheetService
+            VStack(alignment: .leading, spacing: 1) {
+                Text("page.overlays.notifications.sheetExplain")
+                HStack(spacing: 1) {
+                    Button("page.overlays.notifications.sheetPost") {
+                        sheetService?.post("page.overlays.notifications.sheetMessage", style: .success)
+                    }
+                    Button("page.overlays.notifications.sheetClose") { isPresented = false }
+                }
+            }
+            .padding()
+            .frame(width: 60)
+        }
     }
 
     /// A toast whose content is live: a download that fills over five seconds,

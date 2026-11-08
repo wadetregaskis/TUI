@@ -27,6 +27,21 @@ struct NotificationsDemoTests {
     /// on its own clock, from zero, and a toast's age on the machine's, so in
     /// a test app a toast never gets past the first instant of its fade-in.
     /// Its buttons are drawn and reached all the same.
+    @Test("Under a sheet posts the window's toast, below the sheet; Over a sheet posts one above it")
+    func presentations() throws {
+        let service = NotificationService()
+        NotificationService.current = service
+        defer { Self.release(service) }
+        let app = TestApp(width: 100, height: 30) { NotificationsDemo() }
+        try app.click("page.overlays.notifications.underSheet")
+        #expect(service.activeEntries().map(\.layer) == [.belowPresentations])
+        #expect(app.screen.contains("page.overlays.notifications.sheetExplain"))
+        _ = app.press(.escape)
+        #expect(!app.screen.contains("page.overlays.notifications.sheetExplain"))
+        try app.click("page.overlays.notifications.overSheet")
+        #expect(service.activeEntries().last?.layer == .abovePresentations)
+    }
+
     @Test("The Undo toast's button is reached with F6 and chosen with Return, with no host in the app")
     func undoFromTheKeyboard() throws {
         let service = NotificationService()
