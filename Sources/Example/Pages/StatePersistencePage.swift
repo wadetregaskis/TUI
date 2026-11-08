@@ -132,28 +132,21 @@ struct StatePersistencePage: View {
         .navigationTitle("menu.item.statePersistence")
     }
 
-    /// Where `@AppStorage` persists, resolved the same way the framework's default
-    /// backend does: on macOS it's `UserDefaults.standard`, so the preferences
-    /// domain — `~/Library/Preferences/<app>.plist` for this CLI binary (a bundled
-    /// app would use its `Info.plist` bundle identifier). Elsewhere it's a JSON
-    /// file under `$XDG_CONFIG_HOME/<app>` (else `~/.config/<app>`).
+    /// Where `@AppStorage` persists, asked of the framework's default store
+    /// rather than worked out again here, so `TUI_CONFIG_DIR` and the app's
+    /// name are taken as the framework takes them: a JSON file's own path, or
+    /// for `UserDefaults.standard`, on macOS, its preferences domain —
+    /// `~/Library/Preferences/<app>.plist` for this CLI binary (a bundled app
+    /// would use its `Info.plist` bundle identifier).
     private static var settingsPath: String {
-        let appName = ProcessInfo.processInfo.processName
         let full: String
-        #if os(macOS)
+        if let file = StorageDefaults.backend as? JSONFileStorage {
+            full = file.fileURL.path
+        } else {
+            let domain = Bundle.main.bundleIdentifier ?? ProcessInfo.processInfo.processName
             full = FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent("Library/Preferences/\(appName).plist").path
-        #else
-            let configDir: URL
-            if let xdg = ProcessInfo.processInfo.environment["XDG_CONFIG_HOME"], !xdg.isEmpty {
-                configDir = URL(fileURLWithPath: xdg).appendingPathComponent(appName)
-            } else {
-                configDir = FileManager.default.homeDirectoryForCurrentUser
-                    .appendingPathComponent(".config")
-                    .appendingPathComponent(appName)
-            }
-            full = configDir.appendingPathComponent("settings.json").path
-        #endif
+                .appendingPathComponent("Library/Preferences/\(domain).plist").path
+        }
         // Abbreviate the home prefix to keep the line short.
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         return full.hasPrefix(home) ? "~" + full.dropFirst(home.count) : full

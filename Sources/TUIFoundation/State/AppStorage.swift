@@ -16,8 +16,9 @@ import Synchronization
 /// `~/Library/Application Support/[appName]/settings.json` on macOS, or
 /// `$XDG_CONFIG_HOME/[appName]/settings.json` (else `~/.config/...`) elsewhere.
 public final class JSONFileStorage: StorageBackend {
-    /// The file URL for the storage file.
-    private let fileURL: URL
+    /// The file the store reads and writes: `settings.json` in
+    /// `appConfigDirectory()` for a store made with ``init()``.
+    public let fileURL: URL
 
     /// What changes, behind one lock that guards nothing slow: disk writes
     /// snapshot under the lock and write outside it.
