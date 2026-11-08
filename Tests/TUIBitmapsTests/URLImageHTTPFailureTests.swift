@@ -20,12 +20,27 @@ import Testing
 
 @Suite("URL image: HTTP failures")
 struct URLImageHTTPFailureTests {
+    /// The request timeout these loads run with: a hang-breaker, far longer
+    /// than the loader's default 30 s.
+    ///
+    /// A full test run starts thousands of tests at once, and on a loaded
+    /// machine a process of it can then make no progress for minutes: a gate's
+    /// (2026-11-08, beside three other builds) finished no test at all for its
+    /// first 140 s. A request timeout is wall-clock time and runs on through
+    /// that, so at the default 30 s all three tests here failed with "The
+    /// request timed out." about a server that answers in milliseconds, and
+    /// passed alone. What they discriminate is a status, which a stalled load
+    /// would never report, so the bound only has to stay clear of a suite's
+    /// length (see `URLImageDownloadTests.promptly`); a passing run doesn't
+    /// wait for it.
+    private static let timeout: TimeInterval = 300
+
     /// How a load of `status` with `body` fails, or `nil` if it succeeds.
     private func failure(status: String, body: Data) async throws -> ImageLoadError? {
         let server = try LocalHTTPServer(status: status, body: body)
         defer { server.stop() }
         do {
-            _ = try await PlatformImageLoader().loadImage(fromURL: server.url())
+            _ = try await PlatformImageLoader().loadImage(fromURL: server.url(), timeout: Self.timeout)
             return nil
         } catch let error as ImageLoadError {
             return error

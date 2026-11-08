@@ -107,12 +107,29 @@ private final class Tarpit {
     /// Waits until a connection is queued on the listener — a request has
     /// reached the tarpit — or `seconds` pass: `true` if one came.
     ///
-    /// Blocks in `poll`, which a listening socket reports readable once a
+    /// Waits in `poll`, which a listening socket reports readable once a
     /// connection is waiting to be accepted. Nothing accepts it, so it stays
     /// queued and stalled, which is the point of a tarpit.
-    func waitForConnection(within seconds: Int32 = 60) -> Bool {
-        var target = pollfd(fd: listener, events: Int16(POLLIN), revents: 0)
-        return unsafe poll(&target, 1, seconds * 1000) > 0
+    ///
+    /// The `poll` is on a thread of its own, NOT on the caller's. What it waits
+    /// for is a download task, which needs a thread of the cooperative pool to
+    /// start, and a full test run's first minute keeps that pool full: sampled
+    /// in one (2026-11-08), all 14 threads were taken, 12 by the palette
+    /// search-index walks and the other 2 by these two tests, each blocked in
+    /// this `poll`, so neither download could begin. On a loaded machine that
+    /// lasts longer: a gate's process finished no test at all for 140 s, and
+    /// the old 60 s bound ran out first — "the request never reached the
+    /// tarpit", from a loader that was fine. So it no longer holds a pool
+    /// thread, and its bound is ``URLImageDownloadTests/promptly``'s, clear of
+    /// any suite's length: a passing run doesn't wait for it.
+    func waitForConnection(within seconds: Int32 = 300) async -> Bool {
+        let listener = listener
+        return await withCheckedContinuation { continuation in
+            Thread {
+                var target = pollfd(fd: listener, events: Int16(POLLIN), revents: 0)
+                continuation.resume(returning: unsafe poll(&target, 1, seconds * 1000) > 0)
+            }.start()
+        }
     }
 
     deinit { close(listener) }
@@ -228,7 +245,7 @@ struct URLImageDownloadTests {
 
             // Let the task start and its request reach the tarpit, so what is
             // cancelled is a transfer in flight rather than a task not yet begun.
-            #expect(tarpit.waitForConnection(), "the request never reached the tarpit")
+            #expect(await tarpit.waitForConnection(), "the request never reached the tarpit")
             let clock = ContinuousClock()
             let begin = clock.now
             // Whether the load was still running when it was cancelled: the premise.
@@ -275,7 +292,7 @@ struct URLImageDownloadTests {
             // unrelated work. Without this the downloads might still be queued
             // rather than stalled, and a pool nothing is occupying yet proves
             // nothing about a pool full of stalled transfers.
-            #expect(tarpit.waitForConnection(), "no request reached the tarpit")
+            #expect(await tarpit.waitForConnection(), "no request reached the tarpit")
 
             // Unrelated async work, started after the downloads and expected to
             // finish while they are all still in flight.
