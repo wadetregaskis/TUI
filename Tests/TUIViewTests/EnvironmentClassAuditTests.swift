@@ -57,6 +57,8 @@ struct EnvironmentClassAuditTests {
         "DragAndDropSession": "provider-kept; lifting and landing invalidate the view (RenderCycle.md, cache invalidation)",
         "TooltipState": "provider-kept; the hover that makes a view the candidate invalidates it",
         "ThemeManager": "provider-kept; a theme change clears the whole cache",
+        "ViewPreferenceOverrides":
+            "provider-kept (the render loop); the View menu writes it at event time; views read the values it writes at the root",
         "NavigationBarItems": "provider-kept; its items are drawn by the stack's bar, not by the rows below",
         "WindowChromeState": "provider-kept; its bars are drawn by the chrome host, not by the rows below",
         // Declared neutral at the key (EnvironmentStampTests lists them).

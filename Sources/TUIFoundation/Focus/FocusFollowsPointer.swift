@@ -17,10 +17,12 @@ private struct FocusFollowsPointerKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-    /// What the app said about the focus following the pointer, with the
-    /// TUI-specific `Scene.focusFollowsPointer(_:)`, or `nil` where it said
-    /// nothing. The render loop reads it at the root of each frame, and falls
-    /// back to the user's ``TerminalClient/focusFollowsPointerRequested``.
+    /// Whether the focus follows the pointer: the user's
+    /// ``TerminalClient/focusFollowsPointerRequested``, written at the root of
+    /// each frame, replaced by what the app says with the TUI-specific
+    /// `Scene.focusFollowsPointer(_:)`, and that by the View menu's choice;
+    /// `nil` where none of them said, which is off. The render loop reads it
+    /// once the scene's statements are in.
     package var focusFollowsPointer: Bool? {
         get { self[FocusFollowsPointerKey.self] }
         set { self[FocusFollowsPointerKey.self] = newValue }

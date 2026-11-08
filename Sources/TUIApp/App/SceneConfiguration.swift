@@ -73,7 +73,9 @@ struct SceneConfiguration {
 
     /// Installs the scene's root overrides into the frame's root environment,
     /// for the WHOLE frame — the content tree and the chrome alike. `RenderLoop`
-    /// calls it once per frame.
+    /// calls it once per frame. On the main actor, for the View menu's choices
+    /// it applies last, which the main actor holds.
+    @MainActor
     func applyRootOverrides(to environment: inout EnvironmentValues) {
         // Scene-level `.environment(…)` values first, so a scene palette still
         // wins over an `.environment(\.palette, …)` written beside it: the
@@ -92,6 +94,10 @@ struct SceneConfiguration {
         if palette != nil { displayOptions.insert(.palette) }
         if appearance != nil { displayOptions.insert(.appearance) }
         if !displayOptions.isEmpty { environment.displayOptionsSetByScene = displayOptions }
+        // What the person chose in the View menu for this run, last: it wins
+        // over the scene's own statements, as over the host's setting and the
+        // user's variable the loop wrote beneath them (`ViewPreferenceOverrides`).
+        environment.viewPreferenceOverrides?.apply(to: &environment)
     }
 }
 

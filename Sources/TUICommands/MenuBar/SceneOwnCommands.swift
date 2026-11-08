@@ -15,7 +15,9 @@ import TUIFoundation
 /// an app's ``CommandGroup`` adds to or replaces them, as a `WindowGroup`'s own
 /// are on macOS (measured on macOS 15.8, `Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`:
 /// the app's menu holds About and Quit, the Edit menu Undo, Redo, Cut, Copy and
-/// Paste). `commandsRemoved()` takes them away, as there.
+/// Paste). `commandsRemoved()` takes them away, as there. The View menu's
+/// accessibility and display preferences are TUI's own: a SwiftUI app takes
+/// them from the system's settings.
 ///
 /// Each does what a key does — the menu bar is a way to them, never the only
 /// one — and shows that key, without binding it again
@@ -29,6 +31,7 @@ import TUIFoundation
 /// | `undoRedo` | Undo, Redo | the app's `UndoManager`; disabled with nothing to undo or redo | the scene's undo and redo keys |
 /// | `pasteboard` | Cut, Copy, Paste | ⌘X, ⌘C, ⌘V to the focused view, after the menu closes | the same, through `commandKey` |
 /// | `help` | Keyboard Shortcuts; Show Tooltips; Show All Tooltips | the list of the keys in force, unless the scene turned it off (`Scene.keyboardShortcutOverlayDisabled`); whether tooltips show at all; every tooltip on the screen at once (`TooltipState`); each of the last two disabled where no view on the screen has help | F1, unless an app shortcut has it; —; ⌥ and the help key (⌥?), and Shift-F1, the chain's last resort, where Option does not arrive |
+/// | `accessibility` | Differentiate Without Color; Reduce Motion; Reduce Transparency; Increase Contrast; Breathing Focus; Spell Out Keys; Focus Follows Pointer | each turns its preference on or off for the rest of the run, over the system's setting, the `TUI_*` variable and the scene's modifiers (`ViewPreferenceOverrides`), checked while it is on; never saved | — |
 /// | `toolbar` | Customize Toolbar… | opens the customization panel of the page's customizable toolbar (`toolbar(id:content:)`), as its right-click does; only while the page shows one, and not where the commands offer it themselves (`ToolbarCommands`) | — |
 /// | `saveItem` | Close; Close All | closes the window in front; every window that may close but the one at the back; each disabled where it would close nothing (the Window menu's rule) | ⌘W; ⌥⌘W — a focused text field keeps Ctrl-W, its word rubout |
 /// | `windowArrangement` | Close Window | closes the window in front; disabled where the person may not: the last, one whose content disabled its dismissal, one showing a sheet | Escape |
@@ -99,6 +102,8 @@ struct SceneOwnCommands {
             return helpItems(environment)
         case .toolbar:
             return customizeToolbarItems(environment)
+        case .accessibility:
+            return preferenceItems(environment)
         case .pasteboard:
             return Self.items("pasteboard") {
                 pressing("x", title: service.string(for: LocalizationKey.Menu.cut), environment)
@@ -132,6 +137,37 @@ struct SceneOwnCommands {
             !chrome.customizableToolbars.isEmpty
         else { return nil }
         return Self.items("customize-toolbar") { CustomizeToolbarCommand.item(chrome) }
+    }
+
+    /// View ▸ the accessibility and display preferences, each a check showing
+    /// whether it is on, which turns it on or off for the rest of the run
+    /// (``ViewPreferenceOverrides``): the owner's "a way to enable or disable
+    /// them … in the View menu … by default" (2026-11-08). None outside a
+    /// running app, which has no choices to hold.
+    private func preferenceItems(_ environment: EnvironmentValues) -> CommandItems? {
+        guard let overrides = environment.viewPreferenceOverrides else { return nil }
+        let service = LocalizationService.shared
+        let on = Set(ViewPreference.allCases.filter { $0.isOn(in: environment) })
+        return Self.items("view-preferences") {
+            ForEach(ViewPreference.allCases, id: \.self) { preference in
+                Toggle(
+                    service.string(for: Self.title(of: preference)),
+                    isOn: Binding(get: { on.contains(preference) }, set: { overrides[preference] = $0 }))
+            }
+        }
+    }
+
+    /// The View menu's title for `preference`.
+    private static func title(of preference: ViewPreference) -> LocalizationKey.Menu {
+        switch preference {
+        case .differentiateWithoutColor: .differentiateWithoutColor
+        case .reduceMotion: .reduceMotion
+        case .reduceTransparency: .reduceTransparency
+        case .increaseContrast: .increaseContrast
+        case .focusBreathing: .focusBreathing
+        case .spelledOutKeys: .spelledOutKeys
+        case .focusFollowsPointer: .focusFollowsPointer
+        }
     }
 
     /// File ▸ Close and Close All, for an app that can open more than one

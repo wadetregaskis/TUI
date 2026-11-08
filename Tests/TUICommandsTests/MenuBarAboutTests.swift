@@ -99,7 +99,7 @@ struct MenuBarAboutTests {
         }
         frame()
         let rows = { app.screen.lines }
-        #expect(rows()[0].hasPrefix(" Notes  Edit  Note"), "\(rows()[0])")
+        #expect(rows()[0].hasPrefix(" Notes  Edit  View  Note"), "\(rows()[0])")
         app.send(KeyEvent(key: .f10))
         frame()
         app.send(KeyEvent(key: .down))

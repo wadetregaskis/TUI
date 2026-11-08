@@ -24,6 +24,8 @@ extension Scene {
     /// symbols back on: ``KeyNotation/symbols`` means the app does not ask for
     /// the names, and a user who asked for them with `TUI_KEY_SYMBOLS=0`
     /// still gets them — it is the user who knows what their font can draw.
+    /// The menu bar's View ▸ Spell Out Keys, where the person chooses it, wins
+    /// over both for the rest of the run, either way.
     ///
     /// - Parameter notation: How to write keys.
     /// - Returns: A scene whose environment writes keys that way, or as the

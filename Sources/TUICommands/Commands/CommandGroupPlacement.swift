@@ -24,7 +24,8 @@ import TUIFoundation
 ///
 /// What each group holds before an app changes it is TUI's: the commands a
 /// terminal app has — About and Quit in the app's menu, Undo, Redo, Cut, Copy
-/// and Paste in the Edit menu, each doing what its key does. A terminal app has
+/// and Paste in the Edit menu, each doing what its key does — and, in the View
+/// menu, the accessibility and display preferences (``accessibility``). A terminal app has
 /// no documents, no windows to arrange and no services menu, so the other
 /// groups are empty, and an app fills them with ``CommandGroup``.
 /// `commandsRemoved()` takes TUI's away.
@@ -38,7 +39,7 @@ public struct CommandGroupPlacement: Hashable, Sendable {
         case newItem, saveItem, importExport, printItem
         case undoRedo, pasteboard, textEditing
         case textFormatting
-        case toolbar, sidebar
+        case toolbar, sidebar, accessibility
         case windowSize, windowArrangement, windowList, singleWindowList
         case help
 
@@ -51,7 +52,7 @@ public struct CommandGroupPlacement: Hashable, Sendable {
             case .newItem, .saveItem, .importExport, .printItem: .file
             case .undoRedo, .pasteboard, .textEditing: .edit
             case .textFormatting: .format
-            case .toolbar, .sidebar: .view
+            case .toolbar, .sidebar, .accessibility: .view
             case .windowSize, .windowArrangement, .windowList, .singleWindowList: .window
             case .help: .help
             }
@@ -164,6 +165,20 @@ public struct CommandGroupPlacement: Hashable, Sendable {
     /// Empty by default; ``SidebarCommands`` adds Show Sidebar and
     /// ``InspectorCommands`` Show Inspector.
     public static let sidebar = Self(.sidebar)
+
+    /// Placement for commands that adapt how the app is drawn and worked to
+    /// the person using it — TUI-specific, with no SwiftUI counterpart: a
+    /// SwiftUI app takes these from the system's settings.
+    ///
+    /// By default, this group includes a check for each of Differentiate
+    /// Without Color, Reduce Motion, Reduce Transparency, Increase Contrast,
+    /// Breathing Focus, Spell Out Keys and Focus Follows Pointer, showing
+    /// whether it is on. Choosing one turns it on or off for the rest of the
+    /// run, over the system's setting, the user's `TUI_*` variable and the
+    /// scene's own modifiers (`Scene.reduceMotion(_:)` and the like); nothing
+    /// is saved. The last group of the View menu. `CommandGroup(replacing:
+    /// .accessibility) {}` takes them away, as it does any group's.
+    public static let accessibility = Self(.accessibility)
 
     /// Placement for commands that control the size of the window.
     ///

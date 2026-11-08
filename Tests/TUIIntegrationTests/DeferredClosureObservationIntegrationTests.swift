@@ -117,7 +117,8 @@ struct DeferredClosureObservationIntegrationTests {
     @Test("A Commands type's body reading an @Observable asks for a frame")
     mutating func commandsBody() {
         unsafe DeferredReadModels.commands = DeferredReadModel()
-        let app = TestApp(CommandsReadingApp(), width: 40, height: 6)
+        // Wide enough for the bar's View menu too, before the menu named by the model.
+        let app = TestApp(CommandsReadingApp(), width: 60, height: 6)
         expectRedraw(app, from: "CMone", to: "CMtwo") { unsafe DeferredReadModels.commands.label = "two" }
     }
 

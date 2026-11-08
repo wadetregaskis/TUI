@@ -17,7 +17,8 @@ extension Scene {
     ///
     /// A scene that declares commands has a menu bar, on the window's top row:
     /// the app's menu (About and Quit), the standard menus that have something
-    /// in them (File, Edit — Undo, Redo, Cut, Copy and Paste — Format, View,
+    /// in them (File, Edit — Undo, Redo, Cut, Copy and Paste — Format, View —
+    /// TUI's accessibility and display preferences, each a check —
     /// Window and Help), and the app's own ``CommandMenu``s between View and
     /// Window, in order of declaration.
     /// Each ``CommandGroup`` goes into its standard group of its standard
@@ -50,7 +51,8 @@ extension Scene {
     ///
     /// The commands written on the scene inside this modifier no longer
     /// count, and nor do the scene's own: the app's menu's About and Quit and
-    /// the Edit menu's Undo, Redo, Cut, Copy and Paste. Commands written
+    /// the Edit menu's Undo, Redo, Cut, Copy and Paste, and the View menu's
+    /// preferences. Commands written
     /// outside it still do, as
     /// SwiftUI composes them on macOS (measured on macOS 15.8:
     /// `Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`, where `.commands { A }.commandsRemoved()`

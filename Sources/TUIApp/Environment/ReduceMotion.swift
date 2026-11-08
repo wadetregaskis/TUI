@@ -41,6 +41,8 @@ extension Scene {
     /// at — still gets it: less motion is the direction to err in, and the
     /// user is the one who knows they need it. `true` still reduces motion under
     /// `TUI_REDUCE_MOTION=0`, which only overrides the system's setting.
+    /// The menu bar's View ▸ Reduce Motion, where the person chooses it, wins
+    /// over all of these for the rest of the run, either way.
     ///
     /// - Parameter reduces: Whether to reduce motion. `true` by default.
     /// - Returns: A scene whose environment reduces motion if `reduces` is

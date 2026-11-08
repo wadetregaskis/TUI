@@ -34,7 +34,8 @@ extension Scene {
     /// whatever a view's own `.selectionIndicatorStyle(_:)` says. It never
     /// turns the breath back on: `true` means the app does not ask for
     /// stillness, and a user who asked for it with `TUI_BREATHING=0` still
-    /// gets it.
+    /// gets it. The menu bar's View ▸ Breathing Focus, where the person
+    /// chooses it, wins over both for the rest of the run, either way.
     ///
     /// Apart from ``Scene/reduceMotion(_:)``, which leaves the breath alone,
     /// and from the text cursor's blink. For one part of a screen, use

@@ -30,7 +30,9 @@ extension Scene {
     /// ```
     ///
     /// Off unless this or the user's `TUI_FOCUS_FOLLOWS_POINTER=1` turns it on;
-    /// what the scene says wins over the variable. While it is on, the terminal
+    /// what the scene says wins over the variable, and the menu bar's View ▸
+    /// Focus Follows Pointer, where the person chooses it, over both for the
+    /// rest of the run. While it is on, the terminal
     /// reports every move of the mouse, as it does for `.onHover`, wherever it
     /// reports clicks at all: under `.mouseSupport(.disabled)` or `.scrollOnly`
     /// nothing changes.

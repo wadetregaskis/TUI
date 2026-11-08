@@ -341,6 +341,22 @@ public enum LocalizationKey {
         case showAllTooltips = "menu.showAllTooltips"
         /// The same item while every tooltip shows.
         case hideAllTooltips = "menu.hideAllTooltips"
+        /// The menu bar's View menu: the no-colour cues drawn over the colours
+        /// (`accessibilityDifferentiateWithoutColor`), a check.
+        case differentiateWithoutColor = "menu.differentiateWithoutColor"
+        /// The menu bar's View menu: less motion (`accessibilityReduceMotion`), a check.
+        case reduceMotion = "menu.reduceMotion"
+        /// The menu bar's View menu: less transparency
+        /// (`accessibilityReduceTransparency`), a check.
+        case reduceTransparency = "menu.reduceTransparency"
+        /// The menu bar's View menu: more contrast (`colorSchemeContrast`), a check.
+        case increaseContrast = "menu.increaseContrast"
+        /// The menu bar's View menu: whether the focus breathes (`focusBreathes`), a check.
+        case focusBreathing = "menu.focusBreathing"
+        /// The menu bar's View menu: keys written by name (`keyNotation`), a check.
+        case spelledOutKeys = "menu.spelledOutKeys"
+        /// The menu bar's View menu: whether the focus follows the pointer, a check.
+        case focusFollowsPointer = "menu.focusFollowsPointer"
         /// The list of keyboard shortcuts: the section of what the page binds.
         case shortcutsOnThisScreen = "menu.shortcutsOnThisScreen"
         /// The list of keyboard shortcuts: the status bar's section.

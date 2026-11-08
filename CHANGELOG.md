@@ -4,6 +4,13 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**Every menu bar's View menu turns the accessibility and display preferences on and off.** Differentiate Without Color,
+Reduce Motion, Reduce Transparency, Increase Contrast, Breathing Focus, Spell Out Keys and Focus Follows Pointer, each a
+check showing whether it is on. A choice there wins over the system's setting, the `TUI_*` variable and the app's own
+modifiers (`.reduceMotion(_:)` and the like) until the app quits, and isn't saved. They are TUI's default commands in a
+placement of their own, `CommandGroupPlacement.accessibility`, which `CommandGroup(replacing: .accessibility) {}` or
+`commandsRemoved()` takes away. An app with no commands has no menu bar, and so no View menu.
+
 **The async `KittyGraphics.withSupport(_:compression:operation:)` runs its operation on the caller's actor.** It is
 `nonisolated(nonsending)`, and its `isolation:` parameter is gone; a call with a trailing closure compiles as before. It
 was the cause of two of Swift 6.4's deprecation warnings, which now has none.

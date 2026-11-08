@@ -134,11 +134,11 @@ struct MenuBarOwnCommandsTests {
         frame(app)
     }
 
-    @Test("A scene that declares commands has the app's menu first and the Edit menu, before its own")
+    @Test("A scene that declares commands has the app's menu first, the Edit menu and the View menu, before its own")
     func standardMenus() {
         let app = launched(OwnApp())
         let bar = rows(app)[0]
-        #expect(bar.hasPrefix(" \(EnvironmentValues().resolvedAboutPanel.name)  Edit  Note"), "\(bar)")
+        #expect(bar.hasPrefix(" \(EnvironmentValues().resolvedAboutPanel.name)  Edit  View  Note"), "\(bar)")
     }
 
     @Test("Quit quits as the quit key does, and sends the focused view no key")

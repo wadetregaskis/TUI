@@ -52,12 +52,12 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_REDUCE_MOTION", .endUser, .accessibility,
             values: "`1`, `0`",
-            effect: "`1`: less motion: things jump to where they're going rather than glide. `0`: full motion, even with Reduce Motion on in your system's settings. With neither, Reduce Motion in your system's settings decides, if you're at the machine the program runs on.",
+            effect: "`1`: less motion: things jump to where they're going rather than glide. `0`: full motion, even with Reduce Motion on in your system's settings. With neither, Reduce Motion in your system's settings decides, if you're at the machine the program runs on. In a program with a menu bar, the View menu's Reduce Motion overrides this, and the program's own setting, until it quits.",
             code: .cannotOverride("`Scene.reduceMotion(_:)` can ask for less motion too, even under `0`, but `false` doesn't undo `1`.")),
         TUIEnvironmentVariable(
             "TUI_BREATHING", .endUser, .accessibility,
             values: "`0`",
-            effect: "Holds still what shows where the keyboard is: the control that has it is picked out by colour and bold alone, rather than breathing or blinking. The text cursor still blinks. Reduce Motion doesn't do this.",
+            effect: "Holds still what shows where the keyboard is: the control that has it is picked out by colour and bold alone, rather than breathing or blinking. The text cursor still blinks. Reduce Motion doesn't do this. In a program with a menu bar, the View menu's Breathing Focus overrides this, and the program's own setting, until it quits.",
             code: .cannotOverride("`Scene.focusBreathing(false)` holds it still too, but `true` doesn't undo `0`. `.selectionIndicatorStyle(.none)` holds part of a screen still. `focusBreathes` is read-only.")),
         TUIEnvironmentVariable(
             "TUI_CURSOR_FOLLOWS_FOCUS", .endUser, .accessibility,
@@ -66,22 +66,22 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_REDUCE_TRANSPARENCY", .endUser, .accessibility,
             values: "`1`, `0`",
-            effect: "`1`: less transparency: materials and glass are drawn opaque. `0`: full transparency, even with Reduce Transparency on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on.",
+            effect: "`1`: less transparency: materials and glass are drawn opaque. `0`: full transparency, even with Reduce Transparency on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on. In a program with a menu bar, the View menu's Reduce Transparency overrides this, and the program's own setting, until it quits.",
             code: .cannotOverride("`accessibilityReduceTransparency` is read-only, as in SwiftUI. `_accessibilityReduceTransparency` writes it for a preview or a test.")),
         TUIEnvironmentVariable(
             "TUI_DIFFERENTIATE_WITHOUT_COLOR", .endUser, .accessibility,
             values: "`1`, `0`",
-            effect: "`1`: asks the program for cues that don't rest on colour alone, where it has them. TUI's own controls show the keyboard focus in reverse video and a disabled control faint, over their colours, and mark a table's selected rows with a dot. `0`: doesn't, even with the setting of that name on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on.",
+            effect: "`1`: asks the program for cues that don't rest on colour alone, where it has them. TUI's own controls show the keyboard focus in reverse video and a disabled control faint, over their colours, and mark a table's selected rows with a dot. `0`: doesn't, even with the setting of that name on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on. In a program with a menu bar, the View menu's Differentiate Without Color overrides this, and the program's own setting, until it quits.",
             code: .cannotOverride("`accessibilityDifferentiateWithoutColor` is read-only, as in SwiftUI. `_accessibilityDifferentiateWithoutColor` writes it for a preview or a test.")),
         TUIEnvironmentVariable(
             "TUI_INCREASE_CONTRAST", .endUser, .accessibility,
             values: "`1`, `0`",
-            effect: "`1`: asks the program for more contrast, where it has it. `0`: standard contrast, even with Increase Contrast on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on.",
+            effect: "`1`: asks the program for more contrast, where it has it. `0`: standard contrast, even with Increase Contrast on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on. In a program with a menu bar, the View menu's Increase Contrast overrides this, and the program's own setting, until it quits.",
             code: .cannotOverride("`colorSchemeContrast` is read-only, as in SwiftUI. `_colorSchemeContrast` writes it for a preview or a test.")),
         TUIEnvironmentVariable(
             "TUI_KEY_SYMBOLS", .endUser, .accessibility,
             values: "`0`",
-            effect: "Writes keys by name, such as `Ctrl-Shift-Z`, rather than in symbols, for a font that has no glyphs for the symbols.",
+            effect: "Writes keys by name, such as `Ctrl-Shift-Z`, rather than in symbols, for a font that has no glyphs for the symbols. In a program with a menu bar, the View menu's Spell Out Keys overrides this, and the program's own setting, until it quits.",
             code: .cannotOverride("`Scene.keyNotation(.spelledOut)` asks for the names too, but `.symbols` doesn't undo this. `keyNotation` is read-only.")),
     ]
 
@@ -225,7 +225,7 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_FOCUS_FOLLOWS_POINTER", .endUser, .behaviour,
             values: "`1` or `0`",
-            effect: "`1`: the control under the mouse pointer takes the keyboard when the pointer moves onto it, as a click would, without pressing it. A text field you've typed in keeps it until you click or press Tab. The terminal then reports every move of the mouse. `0`: only a click or the keyboard moves it. Off unless the program says otherwise.",
+            effect: "`1`: the control under the mouse pointer takes the keyboard when the pointer moves onto it, as a click would, without pressing it. A text field you've typed in keeps it until you click or press Tab. The terminal then reports every move of the mouse. `0`: only a click or the keyboard moves it. Off unless the program says otherwise. In a program with a menu bar, the View menu's Focus Follows Pointer overrides this, and the program's own setting, until it quits.",
             code: .overrides("`Scene.focusFollowsPointer(_:)`.")),
         TUIEnvironmentVariable(
             "TUI_OPEN_URLS", .endUser, .behaviour,

@@ -854,7 +854,14 @@ app's menu, titled with the app's name, holds About (an alert with the name,
 the version, the credits and the copyright, each where there is one) and Quit (the quit key's quit,
 so it quits when `q` would, whatever has the focus); the Edit menu holds Undo
 and Redo (the app's `UndoManager`, showing the scene's undo keys) and Cut, Copy
-and Paste (⌘X, ⌘C and ⌘V, through `commandKey`, to the focused view); the Help
+and Paste (⌘X, ⌘C and ⌘V, through `commandKey`, to the focused view); the View
+menu ends with TUI's accessibility and display preferences, in a placement of
+TUI's own, `CommandGroupPlacement.accessibility` — Differentiate Without
+Color, Reduce Motion, Reduce Transparency, Increase Contrast, Breathing Focus,
+Spell Out Keys and Focus Follows Pointer, each a check showing whether it is on,
+which the person turns on or off for the rest of the run over the system's
+setting, the `TUI_*` variable and the scene's own modifiers, never saved
+(owner, 2026-11-08; a SwiftUI app takes these from the system); the Help
 menu holds Show Tooltips and Show All Tooltips (see the Help row, §1).
 With a `Settings` scene the app's menu holds Settings…, presenting it, and
 shows its key: ⌘, through `commandKey`, or the one the scene's

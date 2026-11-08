@@ -461,6 +461,50 @@ it with a second regional language to justify the mechanism.
 ⌃B for Back. An hour with a survey row, but ⌃[ stays Escape, so the pair would
 not match.
 
+### B-MENUBAR-5. The View menu's accessibility and display preferences, in every menu bar
+
+*`ViewPreferenceOverrides.swift`, `SceneOwnCommands.preferenceItems`, `CommandGroupPlacement.accessibility`*
+
+The owner (2026-11-08): "No-colour cues should be opt-in, not always enabled. Also, make sure there's a way to enable
+or disable them (and other such view / accessibility options) in the View menu (or similar) by default. Modifications
+made in the menu should override defaults (including environment variables), of course, but for now let's not persist
+them."
+
+The no-colour cues were already opt-in: Differentiate Without Colour is off unless the system's setting (where the
+person is at the machine) or `TUI_DIFFERENTIATE_WITHOUT_COLOR=1` turns it on. What was missing was a way to turn them,
+and the like, on and off from inside the app.
+
+**Built:**
+
+- **Where.** A group of TUI's own at the foot of the View menu, a new placement, `CommandGroupPlacement.accessibility`,
+  after `toolbar` and `sidebar`. A placement, rather than items folded into `toolbar` or `sidebar`, so that an app can
+  take them away or replace them exactly as it does any default group (`CommandGroup(replacing: .accessibility) {}`),
+  without losing Customize Toolbar… with them; `commandsRemoved()` takes them with the rest of the scene's own. Flat in
+  the View menu, not a submenu: seven checks, one key press nearer, and the View menu is otherwise short.
+- **What.** Differentiate Without Color, Reduce Motion, Reduce Transparency, Increase Contrast (the four
+  `AccessibilityPreferences` read from the host and the `TUI_*` variables), Breathing Focus (`TUI_BREATHING`), Spell Out
+  Keys (`TUI_KEY_SYMBOLS=0`) and Focus Follows Pointer (`TUI_FOCUS_FOLLOWS_POINTER`). Each is a `Toggle`, checked while
+  it is on in the frame's environment, so the check shows the effective state whoever decided it.
+- **Left out.** `TUI_CURSOR_FOLLOWS_FOCUS`: an experiment, three-valued (shown, hidden, off), for a screen reader or a
+  magnifier that has to be set up before the app starts anyway. The palette, border and control style: already
+  `DisplayCommands`, opt-in, and choices among many rather than switches. The terminal-capability switches
+  (`TUI_GRAPHICS`, `TUI_HYPERLINKS`, `TUI_HAIRLINES` and the like): they say what the terminal can do, not how the
+  person wants the app, and a wrong answer breaks drawing rather than changing a preference.
+- **Precedence.** A choice wins over the host's setting, the user's variable and the scene's own modifiers
+  (`.reduceMotion(_:)`, `.focusBreathing(_:)`, `.keyNotation(_:)`, `.focusFollowsPointer(_:)`), either way: it is
+  applied last of the scene's root statements (`SceneConfiguration.applyRootOverrides(to:)`), so it reaches the page,
+  the bars, every window and the scene overlays. A view that writes one of the values for its own subtree still decides
+  there, as anywhere.
+- **Not saved.** The choices live in the app's render loop (`RenderLoop.viewPreferenceOverrides`, in the environment as
+  `viewPreferenceOverrides`), no static and no store, so the next run starts from the settings again.
+- **Words.** In TUI's seven languages, the accessibility four in the words of each language's macOS System Settings
+  where known; the English in US spelling ("Color"), as TUI's one English table is (B-MENUBAR-4).
+
+**Open (for the owner):** an app that declares no commands has no menu bar, and so no View menu: the owner's "by
+default in every app" holds only for apps with a menu bar. Giving every app a menu bar costs every app a row and
+changes every screen and test; another route (a key that opens the same checks as a popover, say) costs a design. Left
+as it is until the owner chooses.
+
 ### O13-KEYS. F10 enters the bar mode
 
 *`_MenuBarCore+BarMode.swift`, `MenuBarState.highlightedTitle`*

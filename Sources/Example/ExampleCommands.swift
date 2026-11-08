@@ -13,7 +13,8 @@ import TUI
 // MARK: - The Commands
 
 /// What the Example adds to the menu bar. The bar itself — the app's menu,
-/// Edit with Undo, Redo, Cut, Copy and Paste, and Help with its tooltips — is
+/// Edit with Undo, Redo, Cut, Copy and Paste, View with the accessibility and
+/// display preferences at its foot, and Help with its tooltips — is
 /// TUI's, from declaring any commands at all; this adds:
 ///
 /// - **Edit:** Find… and Find Next (``TextEditingCommands``), enabled while a

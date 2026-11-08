@@ -350,13 +350,22 @@ struct StandardCommandSetsTests {
         #expect(rows(app).contains { $0.contains("□") && $0.contains("EXTRA") }, "the panel: \(rows(app))")
     }
 
-    @Test("With no customizable toolbar the scene offers no Customize Toolbar…, and no View menu for it")
+    @Test("With no customizable toolbar the scene offers no Customize Toolbar…")
     mutating func noOwnCustomizeToolbarWithoutOne() {
         let app = launched(OwnPlainToolbarApp())
         #expect(rows(app).contains { $0.contains("HEADER") }, "sanity: the top bar shows")
         let bar = rows(app)[0]
         #expect(bar.contains("Edit") && bar.contains("Note"), "sanity: \(bar)")
-        #expect(!bar.contains("View"), "\(bar)")
+        // View holds the scene's preferences (`CommandGroupPlacement.accessibility`)
+        // and nothing for the toolbar.
+        let titles = bar.split(separator: " ").map(String.init)
+        let rights = titles.firstIndex(of: "View") ?? 0
+        for key: Key in [.f10] + Array(repeating: .right, count: rights) + [.down] {
+            app.send(KeyEvent(key: key))
+            frame(app)
+        }
+        #expect(rows(app).contains { $0.contains("Reduce Motion") }, "sanity: View is open: \(rows(app))")
+        #expect(!rows(app).contains { $0.contains("Customize Toolbar") }, "\(rows(app))")
     }
 
     @Test("With ToolbarCommands too, the View menu has one Customize Toolbar…, after Hide Toolbar")

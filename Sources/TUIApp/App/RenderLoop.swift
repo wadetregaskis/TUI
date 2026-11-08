@@ -194,6 +194,11 @@ internal final class RenderLoop<A: App> {
     /// never needs it.
     let controlStyleManager: ThemeManager
 
+    /// What the person chose in the View menu for this run
+    /// (``ViewPreferenceOverrides``): written at the root of every frame, and
+    /// applied over the scene's statements. Gone with the loop: never saved.
+    let viewPreferenceOverrides: ViewPreferenceOverrides
+
     /// The central dependency container (lifecycle, key dispatch, preferences).
     let tuiContext: TUIContext
 
@@ -477,6 +482,8 @@ internal final class RenderLoop<A: App> {
         self.appearanceManager = appearanceManager
         self.controlStyleManager = ThemeManager(
             items: ControlStyle.standardStyles,
+            renderTrigger: { [appState = tuiContext.appState] in appState.setNeedsRender() })
+        self.viewPreferenceOverrides = ViewPreferenceOverrides(
             renderTrigger: { [appState = tuiContext.appState] in appState.setNeedsRender() })
         self.tuiContext = tuiContext
         // The windows ask this loop's app for a frame and for the quit, as
@@ -1049,6 +1056,7 @@ extension RenderLoop {
             environment.controlStyle = style
         }
         environment.notificationService = NotificationService.current
+        environment.viewPreferenceOverrides = viewPreferenceOverrides
         // The user's `TUI_REDUCE_MOTION`, and the host's own Reduce Motion
         // where the user is provably at this machine, at the root, where the
         // app runner passed them (see `requestedAccessibility`,
@@ -1067,6 +1075,10 @@ extension RenderLoop {
         // The user's `TUI_BREATHING` likewise; a scene's `.focusBreathing(_:)`
         // can only hold the breath too.
         environment.focusBreathes = focusBreathes
+        // The user's `TUI_FOCUS_FOLLOWS_POINTER`, where they set it, for a
+        // scene's `.focusFollowsPointer(_:)` to replace, and the View menu to
+        // show and replace in turn.
+        environment.focusFollowsPointer = focusFollowsPointerRequested
         // The user's spring-loading delay: their `TUI_SPRING_LOADING_DELAY`,
         // else the host's where they are provably at it, else macOS's default
         // (the key's own). A view's `.springLoadingDelay(_:)` overrides it.
