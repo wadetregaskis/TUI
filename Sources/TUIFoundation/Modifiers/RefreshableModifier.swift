@@ -355,12 +355,21 @@ enum RefreshRegistrar {
     ///
     /// It looks the dispatcher up in `context` rather than taking one, so a
     /// replay binds into the channels of the frame that serves it.
+    ///
+    /// The focused control has the chord first: a reorderable list or table
+    /// picks its row up on ⌃R and a `.draggable` view starts a carry, keys of
+    /// the control the person is on, where the refresh belongs to the page
+    /// around it. This handler is asked before the focus system, so it offers
+    /// the key to the focused control itself and refreshes only when that lets
+    /// it go.
     @MainActor
     static func register(action: RefreshAction, sectionID: String?, context: RenderContext) {
+        let focusManager = context.environment.focusManager
         context.environment.keyEventDispatcher?.addHandler(sectionID: sectionID) { event in
             guard event.ctrl, case .character(let character) = event.key,
                 character.lowercased() == "r"
             else { return false }
+            if focusManager?.offerToFocusedControl(event) == true { return true }
             // The key is consumed either way. Whether it STARTS anything is
             // the action's business — it coalesces a request made while one is
             // in flight, so this route and a button reaching the same refresh

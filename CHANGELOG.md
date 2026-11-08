@@ -4,6 +4,10 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**⌃R picks a row up in a refreshable list.** `.refreshable` took every ⌃R, ahead of the focused control, so a
+reorderable `List` or `Table` (or a `.draggable` view) inside one could never pick a row up from the keyboard: the
+refresh ran instead. The focused control now has the key first, and the refresh runs when it lets the key go.
+
 **F2 opens a settings panel in every app, with or without a menu bar.** Its tabs are the app's `Settings` scene first
 (a `TabView`'s `Tab`s one each, any other content one tab named after the app), then TUI's View (palette, border style,
 control style) and Accessibility (the View menu's seven checks), after a divider. TUI's choices override the system,

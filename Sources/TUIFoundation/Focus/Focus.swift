@@ -1023,6 +1023,35 @@ extension FocusManager {
         dispatchKeyEvent(event, commands: nil)
     }
 
+    /// Offers `event` to the focused control alone, ahead of its turn, and
+    /// answers whether it took it.
+    ///
+    /// For a view key handler that binds a chord a control may also bind —
+    /// `.refreshable`'s ⌃R against a list's row pick-up — and must let the
+    /// control have it first, as the view nearest the focus answers first.
+    /// Never while a text input holds the focus: that was offered every key
+    /// before any view handler was asked.
+    @MainActor
+    package func offerToFocusedControl(_ event: KeyEvent) -> Bool {
+        guard !hasTextInputFocus, let focused = currentFocused else { return false }
+        return offer(event, to: focused)
+    }
+
+    /// Offers `event` to `focused`, with the bookkeeping a key reaching the
+    /// focused control carries whether or not it takes it.
+    @MainActor
+    private func offer(_ event: KeyEvent, to focused: any Focusable) -> Bool {
+        // Offered, whether or not it takes it: input reached the focused
+        // control, so its focus counts as held from here (B35).
+        noteInputToFocusedControl()
+        guard focused.handleKeyEvent(event) else { return false }
+        // Bump the interaction generation so any surrounding ScrollView
+        // re-renders this frame and snaps the viewport back to the focused
+        // control (Phase 2 of "follow the focused control").
+        focusedInteractionGeneration &+= 1
+        return true
+    }
+
     /// Dispatches a key event through the focus system, offering it to
     /// `commands` between the focused element and the focus system's own use
     /// of the key.
@@ -1050,18 +1079,7 @@ extension FocusManager {
                   sections: \(debugSectionsSummary())
                   currentFocused.focusID: \(focused.focusID)
                 """)
-            // Offered, whether or not it takes it: input reached the focused
-            // control, so its focus counts as held from here (B35).
-            noteInputToFocusedControl()
-            if focused.handleKeyEvent(event) {
-                // Bump the interaction generation so any
-                // surrounding ScrollView re-renders this frame
-                // and snaps the viewport back to the focused
-                // control (Phase 2 of "follow the focused
-                // control").
-                focusedInteractionGeneration &+= 1
-                return true
-            }
+            if offer(event, to: focused) { return true }
         } else {
             debugFocusLog("""
                 dispatchKeyEvent \(event.key)

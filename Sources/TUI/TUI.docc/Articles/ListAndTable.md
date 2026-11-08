@@ -511,7 +511,9 @@ A row can carry actions besides its selection:
   list or table shows a menu for the selected rows, opened by a secondary click
   or ⇧F10; its `primaryAction` runs on a double-click or Return.
 - **Refresh.** `refreshable(action:)` on a list makes ⌃R run the action, with a
-  spinner over the top row while it runs.
+  spinner over the top row while it runs. A list that can be reordered keeps ⌃R
+  for picking a row up while it has the focus (below); the refresh runs when the
+  focused control does not take the key.
 
 ## Reordering from the Keyboard
 

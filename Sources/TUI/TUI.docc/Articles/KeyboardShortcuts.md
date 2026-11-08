@@ -385,6 +385,8 @@ With `TUI_ARROW_FOCUS=geometric`, an experiment, an arrow moves instead to the n
 
 A focused `.draggable` view can be carried from the keyboard: ⌃R picks it up, Tab and the arrows move to a destination, Return drops it, and Escape or ⌃R again puts it back. See <doc:DragAndDrop>.
 
+⌃R is also `.refreshable`'s key (SwiftUI's is ⌘R on a Mac, which a terminal cannot send). The focused control has it first: a reorderable list's or table's row pick-up, a `.draggable` view's carry. The refresh runs only when the focused control lets the key go, as the view nearest the focus answers first everywhere else.
+
 For more details, see <doc:FocusSystem>.
 
 ### A sheet's Resize and Move stops
