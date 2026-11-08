@@ -335,3 +335,40 @@ extra rather than a function anything depends on; shelved.
 **What would reopen it.** A user who cannot use a pointer and needs to copy
 text an app only shows, or an app relying on `textSelection(.enabled)` from
 the keyboard.
+
+### Scene attach
+
+**What it is.** A second terminal attaching to one of a running app's scenes: the app keeps a pseudo-terminal per
+scene, and a small client process started in another terminal window connects to it through a Unix socket and
+shows that scene there, with its own keyboard and size. A second-monitor log or an inspector pane beside the main
+window, sharing the app's state, is the case it serves. It is the multi-client hosting the owner tabled on
+2026-10-27 (A-APPSTATE-2, [per-app render state](<Historical/State and dynamic properties/Per-app render state - no singletons.md>)),
+minus the network.
+
+**What it would take** (a design brief, nothing built; from the morning page of 2026-11-08):
+
+- **One render loop per terminal.** Today one app draws one surface. Each attached scene would need its own
+  `Terminal`, input reader, frame pacer and focus manager, and its own size and capabilities, since the second
+  terminal may be a different program with a different size, colour depth, graphics protocol and keyboard
+  protocol.
+- **Per-app state is mostly ready; the process-wide parts are not.** Most of what a render reads is already
+  instanced in `TUIContext`. But the three process-wide statics granted on 2026-10-27 (the notification queue,
+  `@AppStorage`'s default store, the URL opener; see the no-singletons rule in `.claude/CLAUDE.md`) assume one
+  surface, and so does every capability probe, resize path and suspend path, each of which assumes one terminal.
+- **The transport.** A Unix socket to find the scene and a pseudo-terminal per scene; the client could then just
+  relay bytes, needing no TUI of its own. Scene identity and lifetime (what an attach names, what happens when the
+  scene closes or the client goes away) would be designed first.
+- **Cost:** about three to four weeks (estimate), plus a permanent one: every terminal-facing feature from then on
+  has to be right per scene, not per app.
+
+**Cheaper ways to most of it.** A tmux split running two processes covers the second-pane case already, minus shared
+state. Where shared state matters, an app-level companion channel (a small IPC API two TUI processes can share,
+about a week, estimate) gives it without touching the render core.
+
+**Why not now.** The owner, 2026-11-08 ([SCENE-ATTACH](<Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md>)):
+don't build it; keep the notes as a design brief. The page's
+recommendation was the same reasoning that tabled multi-client: a large cost, paid forever, for a case a tmux
+split mostly covers.
+
+**What would reopen it.** An app whose second pane needs the first one's live state and can't get it through a
+companion channel, or multi-client hosting being reopened, which would build most of the same machinery.

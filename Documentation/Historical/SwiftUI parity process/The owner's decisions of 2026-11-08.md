@@ -66,7 +66,7 @@ The decisions in the record's words; the owner's own where quoted.
 | SLEEPS | Injectable clocks for the last twelve real-time tests, if that breaks no SwiftUI API, makes no API uglier and costs no performance. | None recorded. | Lane CLOCKS, queued |
 | PROBES | No CI job; a "when to rerun" note in `Tools/SwiftUIProbes/README.md` instead. | "These only need to be run very occasionally, when a new OS or maybe Xcode version becomes available. I don't think that merits inclusion in CI." | The probes' README, [When to rerun](<../../../Tools/SwiftUIProbes/README.md#when-to-rerun>) |
 | DOCS | Both consolidations: the review batches as stories, and the answered tables out of the open-decisions page. | None recorded beyond "both". | [Reviews and audits](<../Reviews and audits/README.md>); the 2026-10-26 to 2026-11-02 answers now in this folder's records |
-| SCENE-ATTACH | Don't build it; keep the notes as a design brief. | None recorded. The page's recommendation: the reasoning that declined multi-client, three to four weeks and a permanent per-scene cost. | [Future options](<../../Future options.md>) |
+| SCENE-ATTACH | Don't build it; keep the notes as a design brief. | None recorded. The page's recommendation: the reasoning that declined multi-client, three to four weeks and a permanent per-scene cost. | [Future options: Scene attach](<../../Future options.md#scene-attach>) |
 
 ### Later the same day
 
