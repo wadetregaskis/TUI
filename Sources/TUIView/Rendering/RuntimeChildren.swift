@@ -46,8 +46,8 @@ package enum RuntimeChildren {
     package static func child<T>(of value: T, as type: Any.Type, at index: Int) -> (name: String?, value: Any) {
         var name: UnsafePointer<CChar>?
         var free: RuntimeNameFree?
-        let child = runtimeChild(of: value, type: type, index: index, outName: &name, outFreeFunc: &free)
-        defer { free?(name) }
-        return (name.map { String(cString: $0) }, child)
+        let child = unsafe runtimeChild(of: value, type: type, index: index, outName: &name, outFreeFunc: &free)
+        defer { unsafe free?(name) }
+        return unsafe (name.map { unsafe String(cString: $0) }, child)
     }
 }

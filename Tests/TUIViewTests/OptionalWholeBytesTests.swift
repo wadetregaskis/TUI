@@ -29,10 +29,10 @@ import Testing
 /// architectures this runs on — and on nothing else, hence the condition.
 private func injectNoneInPlace<T>(_: T.Type, into memory: UnsafeMutableRawPointer) {
     typealias Inject = @convention(c) (UnsafeMutableRawPointer, UInt32, UnsafeRawPointer) -> Void
-    let metadata = unsafeBitCast(Optional<T>.self as Any.Type, to: UnsafeRawPointer.self)
-    let witnesses = metadata.load(fromByteOffset: -8, as: UnsafeRawPointer.self)
-    let inject = unsafeBitCast(witnesses.load(fromByteOffset: 13 * 8, as: UnsafeRawPointer.self), to: Inject.self)
-    inject(memory, 1, metadata)
+    let metadata = unsafe unsafeBitCast(Optional<T>.self as Any.Type, to: UnsafeRawPointer.self)
+    let witnesses = unsafe metadata.load(fromByteOffset: -8, as: UnsafeRawPointer.self)
+    let inject = unsafe unsafeBitCast(witnesses.load(fromByteOffset: 13 * 8, as: UnsafeRawPointer.self), to: Inject.self)
+    unsafe inject(memory, 1, metadata)
 }
 
 /// The bytes of `T?` that `nil`, stored in place, leaves as they were: stored
@@ -43,10 +43,10 @@ private func unwrittenBytesOfNil<T>(_: T.Type) -> Set<Int> {
     var runs: [[UInt8]] = []
     for pattern: UInt8 in [0xAA, 0x55] {
         let memory = UnsafeMutableRawPointer.allocate(byteCount: size, alignment: MemoryLayout<T?>.alignment)
-        memory.initializeMemory(as: UInt8.self, repeating: pattern, count: size)
-        injectNoneInPlace(T.self, into: memory)
-        runs.append(Array(UnsafeRawBufferPointer(start: memory, count: size)))
-        memory.deallocate()
+        unsafe memory.initializeMemory(as: UInt8.self, repeating: pattern, count: size)
+        unsafe injectNoneInPlace(T.self, into: memory)
+        unsafe runs.append(Array(UnsafeRawBufferPointer(start: memory, count: size)))
+        unsafe memory.deallocate()
     }
     return Set((0..<size).filter { runs[0][$0] != runs[1][$0] })
 }
@@ -86,10 +86,10 @@ private protocol Witnessed {}
 @MainActor
 @Suite("Every optional the value hash reads whole has every byte written")
 struct OptionalWholeBytesTests {
-    private let plans = ValueHashPlans()
+    private let plans = unsafe ValueHashPlans()
 
     private func expectWhole<T>(_: T.Type) {
-        #expect(plans.plan(for: T?.self).pointee.shape == .dense, "\(T?.self)")
+        unsafe #expect(plans.plan(for: T?.self).pointee.shape == .dense, "\(T?.self)")
         #if _pointerBitWidth(_64) && (arch(arm64) || arch(x86_64))
         #expect(unwrittenBytesOfNil(T.self).isEmpty, "\(T?.self)")
         #endif
@@ -131,8 +131,8 @@ struct OptionalWholeBytesTests {
         // A spare value of the metadata word; the witness table is left.
         #expect(unwrittenBytesOfNil((any Witnessed.Type).self) == Set(8..<16))
         #endif
-        #expect(plans.plan(for: String?.self).pointee.shape == .steps)
-        #expect(plans.plan(for: (() -> Void)?.self).pointee.shape == .steps)
-        #expect(plans.plan(for: (any Witnessed.Type)?.self).pointee.shape == .steps)
+        unsafe #expect(plans.plan(for: String?.self).pointee.shape == .steps)
+        unsafe #expect(plans.plan(for: (() -> Void)?.self).pointee.shape == .steps)
+        unsafe #expect(plans.plan(for: (any Witnessed.Type)?.self).pointee.shape == .steps)
     }
 }

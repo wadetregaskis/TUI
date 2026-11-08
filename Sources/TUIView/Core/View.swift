@@ -277,7 +277,7 @@ public extension View {
     /// body's type.
     static var _providesAlignmentGuide: Bool {
         guard Body.self != Never.self else { return false }
-        return BodyWitnessMemo.answer(in: BodyWitnessMemo.alignmentGuide, for: Self.self) {
+        return unsafe BodyWitnessMemo.answer(in: BodyWitnessMemo.alignmentGuide, for: Self.self) {
             !(Self.self is any Renderable.Type) && Body._providesAlignmentGuide
         }
     }
@@ -315,7 +315,7 @@ public extension View {
     /// comes back round, and keeps the answer.
     static var _statesSpacingPreference: Bool {
         guard Body.self != Never.self else { return false }
-        return BodyWitnessMemo.answer(in: BodyWitnessMemo.spacingPreference, for: Self.self) {
+        return unsafe BodyWitnessMemo.answer(in: BodyWitnessMemo.spacingPreference, for: Self.self) {
             !(Self.self is any Renderable.Type) && Body._statesSpacingPreference
         }
     }
@@ -333,7 +333,7 @@ public extension View {
     /// otherwise ask itself for ever.
     static var _handsOverChildren: Bool {
         guard Body.self != Never.self else { return false }
-        return BodyWitnessMemo.answer(in: BodyWitnessMemo.handsOverChildren, for: Self.self) {
+        return unsafe BodyWitnessMemo.answer(in: BodyWitnessMemo.handsOverChildren, for: Self.self) {
             Body._handsOverChildren
         }
     }

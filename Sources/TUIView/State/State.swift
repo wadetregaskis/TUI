@@ -1113,8 +1113,8 @@ extension State: StateBindable {
     /// being drawn at a second place, and this copy is given a backing of its
     /// own, so the two places never share their state.
     static func bindState(at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey) -> Bool {
-        let state = address.assumingMemoryBound(to: Self.self)
-        let backing = state.pointee.backing
+        let state = unsafe address.assumingMemoryBound(to: Self.self)
+        let backing = unsafe state.pointee.backing
         let box = storage.compositeStorage(for: key, default: backing.defaultValue)
         if backing.box === box { return false }
         // Rebound where its box is gone, not given a backing in this copy:
@@ -1125,7 +1125,7 @@ extension State: StateBindable {
             backing.bind(to: box)
             return false
         }
-        state.pointee.backing = StateBacking(
+        unsafe state.pointee.backing = StateBacking(
             defaultValue: backing.defaultValue, boundTo: box, createdIn: storage.currentPass)
         return true
     }
@@ -1134,7 +1134,7 @@ extension State: StateBindable {
     /// with a view value holds, as ``bindObjectState(at:to:key:in:isMeasuring:)``
     /// finds it.
     static func objectKind(at address: UnsafeRawPointer, in pass: UInt32) -> ObjectKind {
-        let backing = address.assumingMemoryBound(to: Self.self).pointee.backing
+        let backing = unsafe address.assumingMemoryBound(to: Self.self).pointee.backing
         return backing.createdIn != 0 && backing.createdIn == pass && backing.bound != .own ? .perValue : .longLived
     }
 
@@ -1172,8 +1172,8 @@ extension State: StateBindable {
         at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey,
         in object: ObjectStateContext, isMeasuring: Bool
     ) -> ObjectStateBinding {
-        let state = address.assumingMemoryBound(to: Self.self)
-        let backing = state.pointee.backing
+        let state = unsafe address.assumingMemoryBound(to: Self.self)
+        let backing = unsafe state.pointee.backing
         let pass = storage.currentPass
         let madeThisPass = backing.createdIn != 0 && backing.createdIn == pass
         switch backing.bound {
@@ -1182,7 +1182,7 @@ extension State: StateBindable {
             // The usual case: a load and a compare.
             if let hub = object.hub, sink === hub { return ObjectStateBinding(kind: .longLived) }
             if let other = sink as? ObjectHub, let holder = other.object, holder !== object.object {
-                state.pointee.backing = StateBacking(ownDefault: backing.defaultValue, sink: object.hub, createdIn: pass)
+                unsafe state.pointee.backing = StateBacking(ownDefault: backing.defaultValue, sink: object.hub, createdIn: pass)
                 return ObjectStateBinding(changed: true, kind: .longLived)
             }
             // Never drawn, drawn in another context, or held by a dead

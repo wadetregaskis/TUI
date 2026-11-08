@@ -171,7 +171,7 @@ package enum BodyChangeReport {
         guard let plans = context.renderCache?.valueHashPlans, let comparison = plans.comparison(for: Subject.self)
         else { return false }
         return withUnsafePointer(to: old) { old in
-            withUnsafePointer(to: new) { new in !comparison.equal(old, new, strict: false, plans: plans) }
+            withUnsafePointer(to: new) { new in unsafe !comparison.equal(old, new, strict: false, plans: plans) }
         }
     }
 

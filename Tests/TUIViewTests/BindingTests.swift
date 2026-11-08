@@ -16,25 +16,25 @@ struct BindingTests {
     @Test("Binding reads value via getter")
     func bindingGetter() {
         nonisolated(unsafe) var value = 42
-        let binding = Binding(get: { value }, set: { value = $0 })
+        let binding = Binding(get: { unsafe value }, set: { unsafe value = $0 })
         #expect(binding.wrappedValue == 42)
     }
 
     @Test("Binding writes value via setter")
     func bindingSetter() {
         nonisolated(unsafe) var value = 0
-        let binding = Binding(get: { value }, set: { value = $0 })
+        let binding = Binding(get: { unsafe value }, set: { unsafe value = $0 })
         binding.wrappedValue = 99
-        #expect(value == 99)
+        unsafe #expect(value == 99)
     }
 
     @Test("Binding projectedValue returns self")
     func bindingProjectedValue() {
         nonisolated(unsafe) var value = "hello"
-        let binding = Binding(get: { value }, set: { value = $0 })
+        let binding = Binding(get: { unsafe value }, set: { unsafe value = $0 })
         let projected = binding.projectedValue
         projected.wrappedValue = "world"
-        #expect(value == "world")
+        unsafe #expect(value == "world")
     }
 
     @Test("Binding.constant always returns same value")
@@ -48,8 +48,8 @@ struct BindingTests {
     @Test("Binding reflects external changes")
     func bindingReflectsChanges() {
         nonisolated(unsafe) var value = 1
-        let binding = Binding(get: { value }, set: { value = $0 })
-        value = 5
+        let binding = Binding(get: { unsafe value }, set: { unsafe value = $0 })
+        unsafe value = 5
         #expect(binding.wrappedValue == 5)
     }
 }
@@ -69,7 +69,7 @@ struct BindingDefaultedTests {
     @Test("A missing dictionary entry reads as the fallback")
     func missingEntryReadsTheFallback() {
         nonisolated(unsafe) var flags: [String: Bool] = ["b": true]
-        let root = Binding(get: { flags }, set: { flags = $0 })
+        let root = Binding(get: { unsafe flags }, set: { unsafe flags = $0 })
 
         #expect(root["a"].defaulted(to: false).wrappedValue == false)
         #expect(root["a"].defaulted(to: true).wrappedValue == true, "the fallback, not a hardcoded false")
@@ -79,10 +79,10 @@ struct BindingDefaultedTests {
     @Test("Writing reaches the dictionary")
     func writingReachesTheDictionary() {
         nonisolated(unsafe) var flags: [String: Bool] = [:]
-        let root = Binding(get: { flags }, set: { flags = $0 })
+        let root = Binding(get: { unsafe flags }, set: { unsafe flags = $0 })
 
         root["a"].defaulted(to: false).wrappedValue = true
-        #expect(flags == ["a": true])
+        unsafe #expect(flags == ["a": true])
     }
 
     /// The documented behaviour, pinned so it cannot be "tidied" into removing
@@ -93,12 +93,12 @@ struct BindingDefaultedTests {
     @Test("Writing the fallback still creates the entry")
     func writingTheFallbackStillCreatesTheEntry() {
         nonisolated(unsafe) var flags: [String: Bool] = [:]
-        let root = Binding(get: { flags }, set: { flags = $0 })
+        let root = Binding(get: { unsafe flags }, set: { unsafe flags = $0 })
         let entry = root["a"].defaulted(to: false)
 
         entry.wrappedValue = true
         entry.wrappedValue = false
-        #expect(flags == ["a": false], "off is a value, not an absence: \(flags)")
+        unsafe #expect(flags == ["a": false], "off is a value, not an absence: \(flags)")
     }
 
     /// A plain value, not an `@autoclosure` like `Dictionary`'s own
@@ -110,24 +110,24 @@ struct BindingDefaultedTests {
         nonisolated(unsafe) var flags: [String: Bool] = [:]
         nonisolated(unsafe) var evaluations = 0
         func fallback() -> Bool {
-            evaluations += 1
+            unsafe evaluations += 1
             return false
         }
 
-        let root = Binding(get: { flags }, set: { flags = $0 })
+        let root = Binding(get: { unsafe flags }, set: { unsafe flags = $0 })
         let entry = root["a"].defaulted(to: fallback())
         for _ in 0..<5 { _ = entry.wrappedValue }
 
-        #expect(evaluations == 1, "re-evaluated per read — has it become an autoclosure?")
+        unsafe #expect(evaluations == 1, "re-evaluated per read — has it become an autoclosure?")
     }
 
     @Test("It tracks the storage rather than snapshotting it")
     func itTracksTheStorage() {
         nonisolated(unsafe) var flags: [String: Bool] = [:]
-        let entry = Binding(get: { flags }, set: { flags = $0 })["a"].defaulted(to: false)
+        let entry = Binding(get: { unsafe flags }, set: { unsafe flags = $0 })["a"].defaulted(to: false)
 
         #expect(entry.wrappedValue == false)
-        flags["a"] = true
+        unsafe flags["a"] = true
         #expect(entry.wrappedValue == true, "a binding made before the entry existed still sees it")
     }
 
@@ -139,12 +139,12 @@ struct BindingDefaultedTests {
         struct Profile { var nickname: String? }
 
         nonisolated(unsafe) var profile = Profile(nickname: nil)
-        let root = Binding(get: { profile }, set: { profile = $0 })
+        let root = Binding(get: { unsafe profile }, set: { unsafe profile = $0 })
         let nickname = root.nickname.defaulted(to: "anonymous")
 
         #expect(nickname.wrappedValue == "anonymous")
         nickname.wrappedValue = "ada"
-        #expect(profile.nickname == "ada")
+        unsafe #expect(profile.nickname == "ada")
     }
 }
 
@@ -162,10 +162,10 @@ struct BindingUnwrapTests {
     @Test("nil produces no binding; a value produces one")
     func failsOnlyWhenEmpty() {
         nonisolated(unsafe) var profile = Profile(nickname: nil)
-        let root = Binding(get: { profile }, set: { profile = $0 })
+        let root = Binding(get: { unsafe profile }, set: { unsafe profile = $0 })
 
         #expect(Binding(root.nickname) == nil)
-        profile.nickname = "ada"
+        unsafe profile.nickname = "ada"
         #expect(Binding(root.nickname)?.wrappedValue == "ada")
     }
 
@@ -174,7 +174,7 @@ struct BindingUnwrapTests {
     @Test("An empty string is a value, not an absence")
     func emptyStringIsAValue() {
         nonisolated(unsafe) var profile = Profile(nickname: "")
-        let root = Binding(get: { profile }, set: { profile = $0 })
+        let root = Binding(get: { unsafe profile }, set: { unsafe profile = $0 })
 
         #expect(Binding(root.nickname)?.wrappedValue.isEmpty == true)
     }
@@ -182,20 +182,20 @@ struct BindingUnwrapTests {
     @Test("Writing reaches the source")
     func writingReachesTheSource() throws {
         nonisolated(unsafe) var profile = Profile(nickname: "ada")
-        let root = Binding(get: { profile }, set: { profile = $0 })
+        let root = Binding(get: { unsafe profile }, set: { unsafe profile = $0 })
         let nickname = try #require(Binding(root.nickname))
 
         nickname.wrappedValue = "grace"
-        #expect(profile.nickname == "grace")
+        unsafe #expect(profile.nickname == "grace")
     }
 
     @Test("It reads through to the source, not a copy taken at construction")
     func readsThroughToTheSource() throws {
         nonisolated(unsafe) var profile = Profile(nickname: "ada")
-        let root = Binding(get: { profile }, set: { profile = $0 })
+        let root = Binding(get: { unsafe profile }, set: { unsafe profile = $0 })
         let nickname = try #require(Binding(root.nickname))
 
-        profile.nickname = "grace"
+        unsafe profile.nickname = "grace"
         #expect(nickname.wrappedValue == "grace")
     }
 
@@ -206,14 +206,14 @@ struct BindingUnwrapTests {
     @Test("A source emptied afterwards reads the value it had, not a crash")
     func emptiedSourceFallsBack() throws {
         nonisolated(unsafe) var profile = Profile(nickname: "ada")
-        let root = Binding(get: { profile }, set: { profile = $0 })
+        let root = Binding(get: { unsafe profile }, set: { unsafe profile = $0 })
         let nickname = try #require(Binding(root.nickname))
 
-        profile.nickname = nil
+        unsafe profile.nickname = nil
         #expect(nickname.wrappedValue == "ada")
         // And it is still writable, which is what puts the source back.
         nickname.wrappedValue = "grace"
-        #expect(profile.nickname == "grace")
+        unsafe #expect(profile.nickname == "grace")
     }
 
     // MARK: - SwiftUI's other forms (the semantic audit's item 86)
@@ -222,43 +222,43 @@ struct BindingUnwrapTests {
     func transactionSetter() {
         nonisolated(unsafe) var value = 0
         nonisolated(unsafe) var seen: [Bool] = []
-        let binding = Binding(get: { value }, set: { (new: Int, transaction: Transaction) in
-            value = new
-            seen.append(transaction.animation != nil)
+        let binding = Binding(get: { unsafe value }, set: { (new: Int, transaction: Transaction) in
+            unsafe value = new
+            unsafe seen.append(transaction.animation != nil)
         })
         binding.wrappedValue = 1
         withAnimation(.linear(duration: 1)) { binding.wrappedValue = 2 }
         binding.animation(.easeIn(duration: 1)).wrappedValue = 3
-        #expect(value == 3)
-        #expect(seen == [false, true, true], "\(seen)")
+        unsafe #expect(value == 3)
+        unsafe #expect(seen == [false, true, true], "\(seen)")
     }
 
     @Test("A binding projected to an optional reads the value, writes a value through, and ignores nil")
     func optionalProjection() {
         nonisolated(unsafe) var value = 5
-        let base = Binding(get: { value }, set: { value = $0 })
+        let base = Binding(get: { unsafe value }, set: { unsafe value = $0 })
         let optional: Binding<Int?> = Binding(base)
         #expect(optional.wrappedValue == 5)
         optional.wrappedValue = 7
-        #expect(value == 7)
+        unsafe #expect(value == 7)
         optional.wrappedValue = nil
-        #expect(value == 7, "nil has nothing to store")
+        unsafe #expect(value == 7, "nil has nothing to store")
     }
 
     @Test("A binding projected to AnyHashable reads the value erased and writes it through under the base's transaction")
     func anyHashableProjection() {
         nonisolated(unsafe) var value = 5
         nonisolated(unsafe) var animated: [Bool] = []
-        let base = Binding(get: { value }, set: { (new: Int, transaction: Transaction) in
-            value = new
-            animated.append(transaction.animation != nil)
+        let base = Binding(get: { unsafe value }, set: { (new: Int, transaction: Transaction) in
+            unsafe value = new
+            unsafe animated.append(transaction.animation != nil)
         })
         let erased: Binding<AnyHashable> = Binding(base.animation(.easeIn(duration: 1)))
         #expect(erased.wrappedValue == AnyHashable(5))
         erased.wrappedValue = AnyHashable(7)
-        #expect(value == 7)
+        unsafe #expect(value == 7)
         #expect(erased.wrappedValue == AnyHashable(7))
-        #expect(animated == [true], "the base's own transaction is in force: \(animated)")
+        unsafe #expect(animated == [true], "the base's own transaction is in force: \(animated)")
     }
 
     @Test("A write of the wrong type through an AnyHashable projection is reported in words naming both types")

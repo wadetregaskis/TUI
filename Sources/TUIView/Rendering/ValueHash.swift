@@ -53,9 +53,9 @@ func viewValueHash<V: View>(_ view: V, plans: ValueHashPlans) -> Int? {
     // lookup replaces cost `deep` +2.7% and `modifiers` +4.6%, and hoisting
     // the loop into a second function so the gate could `return` it cost
     // another point. Only a plan that is not dense leaves the function.
-    let plan = plans.plan(for: V.self)
-    if plan.pointee.shape != .dense { plans.armStackCheck() }
-    let hash = valueHash(of: view, plan: plan, plans: plans)
+    let plan = unsafe plans.plan(for: V.self)
+    if unsafe plan.pointee.shape != .dense { plans.armStackCheck() }
+    let hash = unsafe valueHash(of: view, plan: plan, plans: plans)
     #if TUI_VALUE_HASH_CENSUS
     plans.census.note(V.self, plan: plan, hashed: hash != nil)
     #endif
@@ -71,11 +71,11 @@ func viewValueHash<V: View>(_ view: V, plans: ValueHashPlans) -> Int? {
 @inline(__always)
 private func valueHash<V: View>(of view: V, plan: UnsafePointer<ValueHashPlan>, plans: ValueHashPlans) -> Int? {
     withUnsafeBytes(of: view) { bytes in
-        guard plan.pointee.shape == .dense else {
+        guard unsafe plan.pointee.shape == .dense else {
             // Not dense, so not empty: the value has bytes, and an address.
-            return plans.hashByPlan(bytes.baseAddress.unsafelyUnwrapped, plan)
+            return unsafe plans.hashByPlan(bytes.baseAddress.unsafelyUnwrapped, plan)
         }
-        return hashOfRawBytes(bytes)
+        return unsafe hashOfRawBytes(bytes)
     }
 }
 
@@ -89,7 +89,7 @@ private func valueHash<V: View>(of view: V, plan: UnsafePointer<ValueHashPlan>, 
 /// in those bytes instead of what the test poked.
 @MainActor
 package func viewValueHash<V: View>(at value: UnsafePointer<V>, in cache: RenderCache) -> Int? {
-    cache.valueHashPlans.valueHash(at: value)
+    unsafe cache.valueHashPlans.valueHash(at: value)
 }
 
 /// The hash of `bytes`, word by word, with the tail packed into one last word
@@ -104,7 +104,7 @@ func hashOfRawBytes(_ bytes: UnsafeRawBufferPointer) -> Int {
     let count = bytes.count
     var index = 0
     while index + 8 <= count {
-        hash = mixHashWord(hash, bytes.loadUnaligned(fromByteOffset: index, as: UInt64.self))
+        hash = unsafe mixHashWord(hash, bytes.loadUnaligned(fromByteOffset: index, as: UInt64.self))
         index += 8
     }
     // The tail, packed into one word so a short struct still mixes every
@@ -113,7 +113,7 @@ func hashOfRawBytes(_ bytes: UnsafeRawBufferPointer) -> Int {
         var tail: UInt64 = 0
         var shift: UInt64 = 0
         while index < count {
-            tail |= UInt64(bytes[index]) &<< shift
+            unsafe tail |= UInt64(bytes[index]) &<< shift
             shift &+= 8
             index += 1
         }

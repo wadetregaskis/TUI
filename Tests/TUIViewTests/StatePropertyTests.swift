@@ -35,7 +35,7 @@ struct StatePropertyWrapperTests {
 
         var state = State(wrappedValue: "initial")
         _ = withUnsafeMutablePointer(to: &state) {
-            State<String>.bindState(
+            unsafe State<String>.bindState(
                 at: UnsafeMutableRawPointer($0), to: storage,
                 key: StateStorage.StateKey(identity: identity, propertyIndex: 0))
         }

@@ -259,7 +259,7 @@ package final class BodyKeep {
         counts.taken += 1
         if !keepsEveryBody { tally[ObjectIdentifier(V.self), default: (0, 0)].taken += 1 }
         cache.leases.use(kept.lease)
-        return unsafeDowncast(kept.box, to: Box<V>.self).body
+        return unsafe unsafeDowncast(kept.box, to: Box<V>.self).body
     }
 
     /// Keeps what a measure of `view` evaluated.

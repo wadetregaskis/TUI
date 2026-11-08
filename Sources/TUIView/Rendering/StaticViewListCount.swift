@@ -53,7 +53,7 @@ package func staticViewListCount<V: View>(_ type: V.Type) -> Int? {
 /// width on to it, as SwiftUI's does.
 @MainActor
 package func isStaticallyOneView<V: View>(_ type: V.Type) -> Bool {
-    BodyWitnessMemo.answer(in: BodyWitnessMemo.staticallyOneView, for: type) { staticViewListCount(type) == 1 }
+    unsafe BodyWitnessMemo.answer(in: BodyWitnessMemo.staticallyOneView, for: type) { staticViewListCount(type) == 1 }
 }
 
 /// ``staticViewListCount(_:)`` of a wrapper's content, the existential opened.

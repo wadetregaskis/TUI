@@ -266,7 +266,7 @@ extension RenderContext {
 func renderPlainMemoized<V: View>(
     _ view: V, comparison: ValueComparison, context: RenderContext, render: (V, RenderContext) -> FrameBuffer
 ) -> FrameBuffer {
-    let cache = context.renderCache.unsafelyUnwrapped
+    let cache = unsafe context.renderCache.unsafelyUnwrapped
     let memo = cache.plainMemo
     if memo.valueMemoDepth > 0, !memo.asksInsideValueMemo(V.self) { return render(view, context) }
     let hash = context.identity.structuralHash ^ plainMemoSlot
@@ -294,7 +294,7 @@ func measurePlainMemoized<V: View>(
     _ view: V, comparison: ValueComparison, proposal: ProposedSize, context: RenderContext,
     measure: (V, RenderContext) -> ViewSize
 ) -> ViewSize {
-    let cache = context.renderCache.unsafelyUnwrapped
+    let cache = unsafe context.renderCache.unsafelyUnwrapped
     let memo = cache.plainMemo
     if memo.valueMemoDepth > 0, !memo.asksInsideValueMemo(V.self) {
         let started = memo.startTiming()

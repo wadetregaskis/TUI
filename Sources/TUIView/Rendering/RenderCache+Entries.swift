@@ -152,7 +152,7 @@ extension RenderCache {
             drawnAt: AnimationInstant? = nil, lease: ObservationLease? = nil,
             revalidation: Revalidation? = nil
         ) {
-            self.revalidation = revalidation
+            unsafe self.revalidation = revalidation
             self.identity = identity
             self.viewSnapshot = viewSnapshot
             self.buffer = buffer

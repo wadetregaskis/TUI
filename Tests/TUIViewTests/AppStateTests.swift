@@ -39,30 +39,30 @@ struct AppStateTests {
         let appState = AppState()
         nonisolated(unsafe) var notified = false
         appState.observe {
-            notified = true
+            unsafe notified = true
         }
         appState.setNeedsRender()
-        #expect(notified == true)
+        unsafe #expect(notified == true)
     }
 
     @Test("Multiple observers all get notified")
     func multipleObservers() {
         let appState = AppState()
         nonisolated(unsafe) var count = 0
-        appState.observe { count += 1 }
-        appState.observe { count += 1 }
-        appState.observe { count += 1 }
+        appState.observe { unsafe count += 1 }
+        appState.observe { unsafe count += 1 }
+        appState.observe { unsafe count += 1 }
         appState.setNeedsRender()
-        #expect(count == 3)
+        unsafe #expect(count == 3)
     }
 
     @Test("clearObservers removes all observers")
     func clearObservers() {
         let appState = AppState()
         nonisolated(unsafe) var notified = false
-        appState.observe { notified = true }
+        appState.observe { unsafe notified = true }
         appState.clearObservers()
         appState.setNeedsRender()
-        #expect(notified == false)
+        unsafe #expect(notified == false)
     }
 }

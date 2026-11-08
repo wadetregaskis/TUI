@@ -149,24 +149,24 @@ extension RenderCache {
         stats.clearVisits += entries.count + sizeEntries.count
         var staleKeys: [Int] = []
         for (key, entry) in entries {
-            switch verdict(entry.identity, stamped: entry.revalidation != nil) {
+            switch unsafe verdict(entry.identity, stamped: entry.revalidation != nil) {
             case .keep: continue
             case .drop: staleKeys.append(key)
             case .dropUnrecorded:
                 staleKeys.append(key)
                 revalidation.counts.unstampedDropped += 1
             case .suspect:
-                if !entry.isSuspect { revalidation.counts.suspectsMarked += 1 }
-                entry.isSuspect = true
+                if unsafe !entry.isSuspect { revalidation.counts.suspectsMarked += 1 }
+                unsafe entry.isSuspect = true
             }
         }
         for key in staleKeys { entries.removeValue(forKey: key) }
         var staleSizeKeys: [SizeKey] = []
         for (key, entry) in sizeEntries {
-            switch verdict(entry.identity, stamped: entry.revalidation != nil) {
+            switch unsafe verdict(entry.identity, stamped: entry.revalidation != nil) {
             case .keep: continue
             case .drop, .dropUnrecorded: staleSizeKeys.append(key)
-            case .suspect: entry.isSuspect = true
+            case .suspect: unsafe entry.isSuspect = true
             }
         }
         for key in staleSizeKeys { sizeEntries.removeValue(forKey: key) }
@@ -230,7 +230,7 @@ extension RenderCache {
         stats.clearVisits += entries.count + sizeEntries.count
         var staleKeys: [Int] = []
         for (key, entry) in entries {
-            switch verdict(entry.identity, stamped: entry.revalidation != nil) {
+            switch unsafe verdict(entry.identity, stamped: entry.revalidation != nil) {
             case .keep: continue
             case .drop:
                 staleKeys.append(key)
@@ -238,17 +238,17 @@ extension RenderCache {
                 staleKeys.append(key)
                 revalidation.counts.unstampedDropped += 1
             case .suspect:
-                if !entry.isSuspect { revalidation.counts.suspectsMarked += 1 }
-                entry.isSuspect = true
+                if unsafe !entry.isSuspect { revalidation.counts.suspectsMarked += 1 }
+                unsafe entry.isSuspect = true
             }
         }
         for key in staleKeys { entries.removeValue(forKey: key) }
         var staleSizeKeys: [SizeKey] = []
         for (key, entry) in sizeEntries {
-            switch verdict(entry.identity, stamped: entry.revalidation != nil) {
+            switch unsafe verdict(entry.identity, stamped: entry.revalidation != nil) {
             case .keep: continue
             case .drop, .dropUnrecorded: staleSizeKeys.append(key)
-            case .suspect: entry.isSuspect = true
+            case .suspect: unsafe entry.isSuspect = true
             }
         }
         for key in staleSizeKeys { sizeEntries.removeValue(forKey: key) }

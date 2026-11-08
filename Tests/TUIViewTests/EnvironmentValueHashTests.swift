@@ -44,11 +44,11 @@ private struct ReadsEnvironment: View {
 struct EnvironmentValueHashTests {
     @Test("The wrapper plans dense, and still fits an existential's three words")
     func wrapperIsDense() {
-        let plans = ValueHashPlans()
-        #expect(plans.plan(for: Environment<Bool>.self).pointee.shape == .dense)
-        #expect(plans.plan(for: Environment<Model>.self).pointee.shape == .dense)
+        let plans = unsafe ValueHashPlans()
+        unsafe #expect(plans.plan(for: Environment<Bool>.self).pointee.shape == .dense)
+        unsafe #expect(plans.plan(for: Environment<Model>.self).pointee.shape == .dense)
         #expect(MemoryLayout<Environment<Bool>>.size == 3 * MemoryLayout<Int>.size)
-        #expect(plans.plan(for: ReadsEnvironment.self).pointee.shape == .dense)
+        unsafe #expect(plans.plan(for: ReadsEnvironment.self).pointee.shape == .dense)
     }
 
     @Test("Both lookups still read what they read")

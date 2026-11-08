@@ -78,7 +78,7 @@ package func prepareProperties<V>(
     // carries a run-time check that it runs on the main actor, where a call
     // with a pointer argument carries none. Typed, because `&value` to a raw
     // pointer draws a warning for a type that may hold a reference.
-    walk.applyRoot(plan, at: &value)
+    unsafe walk.applyRoot(plan, at: &value)
 }
 
 /// Whether the app properties' `update()` runs where the walk is.
@@ -182,16 +182,16 @@ struct PropertyWalk {
     mutating func applyRoot<Root>(_ plan: SlotPlan, at root: UnsafeMutablePointer<Root>) {
         let base = UnsafeMutableRawPointer(root)
         if let own = plan.ownEnvironment {
-            own.resolveOwnEnvironment(at: base, environment)
+            unsafe own.resolveOwnEnvironment(at: base, environment)
         }
         switch plan.action {
         case .fields(let fields):
-            applySteps(of: fields, at: base, scope: NestedScope.view, isOwn: true, updates: .inPlace)
+            unsafe applySteps(of: fields, at: base, scope: NestedScope.view, isOwn: true, updates: .inPlace)
         case .enumeration(let enumeration):
-            applyCase(of: enumeration, at: base, scope: NestedScope.view, updates: .inPlace)
+            unsafe applyCase(of: enumeration, at: base, scope: NestedScope.view, updates: .inPlace)
         case .object:
             // A view that is a class: its fields are its own.
-            let object = base.assumingMemoryBound(to: AnyObject.self).pointee
+            let object = unsafe base.assumingMemoryBound(to: AnyObject.self).pointee
             objectsReached.append(ObjectIdentifier(object))
             applyContents(
                 of: object, PropertyPlans.contents(ofClass: type(of: object)), scope: NestedScope.view, isOwn: true,
@@ -217,16 +217,16 @@ struct PropertyWalk {
                 let referenceUpdates = reference.isOptional ? .none : stepUpdates
                 guard let objectPlan = reference.object else {
                     if case .dynamicClass(let plan) = step.slot.action {
-                        applyHeldPlainObject(
+                        unsafe applyHeldPlainObject(
                             plan, reference, at: base + step.offset, position: step.position, scope: scope,
                             updates: referenceUpdates)
                     }
                     continue
                 }
-                guard let loaded = reference.load(at: base + step.offset) else { continue }
+                guard let loaded = unsafe reference.load(at: base + step.offset) else { continue }
                 applyObject(objectPlan, loaded, position: step.position, scope: scope, updates: referenceUpdates)
             } else {
-                apply(
+                unsafe apply(
                     step.slot, at: base + step.offset, position: step.position, scope: scope, isOwn: isOwn,
                     updates: stepUpdates)
             }
@@ -243,28 +243,28 @@ struct PropertyWalk {
         case .none:
             return
         case .leaf(let leaf):
-            applyLeaf(leaf, at: address, position: position, scope: scope, isOwn: isOwn)
+            unsafe applyLeaf(leaf, at: address, position: position, scope: scope, isOwn: isOwn)
         case .fields(let fields):
             let inner = NestedScope.container(at: position, ofType: fields.type, in: scope)
-            applySteps(of: fields, at: address, scope: inner, isOwn: false, updates: updates)
-            runUpdate(fields.updater, at: address, updates: updates)
+            unsafe applySteps(of: fields, at: address, scope: inner, isOwn: false, updates: updates)
+            unsafe runUpdate(fields.updater, at: address, updates: updates)
         case .enumeration(let enumeration):
             let inner = NestedScope.container(at: position, ofType: enumeration.type, in: scope)
-            applyCase(of: enumeration, at: address, scope: inner, updates: updates)
-            runUpdate(enumeration.updater, at: address, updates: updates)
+            unsafe applyCase(of: enumeration, at: address, scope: inner, updates: updates)
+            unsafe runUpdate(enumeration.updater, at: address, updates: updates)
         case .optional(let optional):
-            guard optional.type.hasValue(at: address) else { return }
+            guard unsafe optional.type.hasValue(at: address) else { return }
             // The payload lies at the optional's own address.
-            apply(optional.wrapped, at: address, position: position, scope: scope, isOwn: isOwn, updates: updates)
+            unsafe apply(optional.wrapped, at: address, position: position, scope: scope, isOwn: isOwn, updates: updates)
         case .existential(let existential):
-            applyExistential(
+            unsafe applyExistential(
                 existential, at: address, as: existential.type, position: position, scope: scope, isOwn: isOwn,
                 updates: updates)
         case .object(let plan):
-            let object = address.assumingMemoryBound(to: AnyObject.self).pointee
+            let object = unsafe address.assumingMemoryBound(to: AnyObject.self).pointee
             applyObject(plan, object, position: position, scope: scope, updates: updates)
         case .dynamicClass(let plan):
-            applyDynamicClass(plan, at: address, position: position, scope: scope, updates: updates)
+            unsafe applyDynamicClass(plan, at: address, position: position, scope: scope, updates: updates)
         }
     }
 
@@ -273,7 +273,7 @@ struct PropertyWalk {
         _ leaf: Leaf, at address: UnsafeMutableRawPointer, position: Int, scope: UInt64, isOwn: Bool
     ) {
         if let object = objectWalk {
-            applyObjectLeaf(leaf, at: address, position: position, scope: scope, in: object)
+            unsafe applyObjectLeaf(leaf, at: address, position: position, scope: scope, in: object)
             return
         }
         var index = position
@@ -292,9 +292,9 @@ struct PropertyWalk {
                 // Binding finds the box under `key` or creates it, and the
                 // count of what is stored grows only when it creates one.
                 let stored = storage.count
-                if state.bindState(at: address, to: storage, key: key) { changes += 1 }
+                if unsafe state.bindState(at: address, to: storage, key: key) { changes += 1 }
                 if storage.count != stored { created.append(key) }
-            } else if state.bindState(at: address, to: storage, key: key) {
+            } else if unsafe state.bindState(at: address, to: storage, key: key) {
                 changes += 1
             }
         }
@@ -302,22 +302,22 @@ struct PropertyWalk {
             let path = isOwn ? identity.path : NestedScope.identityPath(of: identity, in: scope)
             if let placed = leaf.placedIdentity {
                 let pass = storage?.currentPass ?? 0
-                if placed.bindRenderIdentity(at: address, path: path, propertyIndex: index, pass: pass) {
+                if unsafe placed.bindRenderIdentity(at: address, path: path, propertyIndex: index, pass: pass) {
                     changes += 1
                 }
             } else {
-                bound.bindRenderIdentity(at: address, path: path, propertyIndex: index)
+                unsafe bound.bindRenderIdentity(at: address, path: path, propertyIndex: index)
             }
         }
         if let placed = leaf.placeEnvironment {
-            if placed.resolveEnvironment(at: address, environment, place: identity, storage: storage) {
+            if unsafe placed.resolveEnvironment(at: address, environment, place: identity, storage: storage) {
                 changes += 1
             }
         } else if let reader = leaf.placedReader {
             let pass = storage?.currentPass ?? 0
-            if reader.resolveEnvironment(at: address, environment, place: identity, pass: pass) { changes += 1 }
+            if unsafe reader.resolveEnvironment(at: address, environment, place: identity, pass: pass) { changes += 1 }
         } else if let resolvable = leaf.environment {
-            resolvable.resolveEnvironment(at: address, environment)
+            unsafe resolvable.resolveEnvironment(at: address, environment)
         }
     }
 
@@ -327,7 +327,7 @@ struct PropertyWalk {
     ) {
         guard let updater else { return }
         guard updates == .inPlace else { return }
-        updater.updateInPlace(at: address)
+        unsafe updater.updateInPlace(at: address)
         changes += 1
     }
 
@@ -344,9 +344,9 @@ struct PropertyWalk {
         _ plan: ExistentialPlan, at address: UnsafeMutableRawPointer, as _: Existential.Type, position: Int,
         scope: UInt64, isOwn: Bool, updates: UpdateMode
     ) {
-        let field = address.assumingMemoryBound(to: Existential.self)
+        let field = unsafe address.assumingMemoryBound(to: Existential.self)
         let dynamicType: Any.Type
-        switch DynamicTypes.existential(at: UnsafeRawPointer(address), plan.layout) {
+        switch unsafe DynamicTypes.existential(at: UnsafeRawPointer(address), plan.layout) {
         case .empty:
             return
         case .type(let type):
@@ -356,7 +356,7 @@ struct PropertyWalk {
             // deeply existentials are nested — `Existential` is generic here,
             // so `as Any` wraps the existential itself rather than what it
             // holds.
-            dynamicType = type(of: field.pointee as Any)
+            dynamicType = unsafe type(of: field.pointee as Any)
         }
         if plan.empty.contains(dynamicType) { return }
         let slot = PropertyPlans.exact(dynamicType)
@@ -366,7 +366,7 @@ struct PropertyWalk {
         }
         // A modifier in an existential is stored, never the one applied: but
         // for a modifier class, a property class wherever it is held.
-        applyOpened(
+        unsafe applyOpened(
             field, as: dynamicType, slot: slot, position: position, scope: scope, isOwn: isOwn,
             updates: slot.storedCopySkipsUpdates ? .none : updates)
     }
@@ -379,16 +379,16 @@ struct PropertyWalk {
         _ field: UnsafeMutablePointer<Existential>, as _: Value.Type, slot: SlotPlan, position: Int,
         scope: UInt64, isOwn: Bool, updates: UpdateMode
     ) {
-        guard var copy = field.pointee as? Value else { return }
+        guard var copy = unsafe field.pointee as? Value else { return }
         let changesBefore = changes
-        applyTyped(slot, at: &copy, position: position, scope: scope, isOwn: isOwn, updates: updates)
+        unsafe applyTyped(slot, at: &copy, position: position, scope: scope, isOwn: isOwn, updates: updates)
         // Assigned back only if the walk changed the copy: an `update()` run
         // in it, or a `@State` or `@Environment` at a second place given a
         // backing or box of its own, which must reach the field. Nothing
         // else: making the existential anew allocates a box for a value too
         // big for its buffer.
         guard changes != changesBefore, let updated = copy as? Existential else { return }
-        field.pointee = updated
+        unsafe field.pointee = updated
     }
 
     /// ``apply(_:at:position:scope:isOwn:updates:)`` on the value `pointer`
@@ -397,7 +397,7 @@ struct PropertyWalk {
         _ slot: SlotPlan, at pointer: UnsafeMutablePointer<Value>, position: Int, scope: UInt64, isOwn: Bool,
         updates: UpdateMode
     ) {
-        apply(
+        unsafe apply(
             slot, at: UnsafeMutableRawPointer(pointer), position: position, scope: scope, isOwn: isOwn,
             updates: updates)
     }

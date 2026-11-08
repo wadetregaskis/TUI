@@ -373,7 +373,7 @@ extension View where Self: SingleContentWrapper {
     /// modifier. Otherwise the body's, as for any view. Kept per type
     /// (``BodyWitnessMemo``), since the question is a conformance check.
     public static var _providesAlignmentGuide: Bool {
-        BodyWitnessMemo.answer(in: BodyWitnessMemo.alignmentGuide, for: Self.self) {
+        unsafe BodyWitnessMemo.answer(in: BodyWitnessMemo.alignmentGuide, for: Self.self) {
             if keepsContentGeometry(Self.self) { return WrappedContent._providesAlignmentGuide }
             guard Body.self != Never.self, !(Self.self is any Renderable.Type) else { return false }
             return Body._providesAlignmentGuide

@@ -32,9 +32,9 @@ extension PropertyWalk {
         of plan: EnumPlan, at address: UnsafeMutableRawPointer, scope: UInt64, updates: UpdateMode
     ) {
         if objectDepth > 0, plan.cases.witnesses != nil {
-            applyCaseOnCopy(of: plan, at: address, as: plan.type, scope: scope, updates: updates)
+            unsafe applyCaseOnCopy(of: plan, at: address, as: plan.type, scope: scope, updates: updates)
         } else {
-            applyCaseWhereItLies(of: plan, at: address, scope: scope, updates: updates)
+            unsafe applyCaseWhereItLies(of: plan, at: address, scope: scope, updates: updates)
         }
     }
 
@@ -44,10 +44,10 @@ extension PropertyWalk {
         of plan: EnumPlan, at address: UnsafeMutableRawPointer, as _: Enum.Type, scope: UInt64,
         updates: UpdateMode
     ) {
-        let field = address.assumingMemoryBound(to: Enum.self)
-        var copy = field.pointee
-        applyTypedCase(of: plan, at: &copy, scope: scope, updates: updates)
-        field.pointee = copy
+        let field = unsafe address.assumingMemoryBound(to: Enum.self)
+        var copy = unsafe field.pointee
+        unsafe applyTypedCase(of: plan, at: &copy, scope: scope, updates: updates)
+        unsafe field.pointee = copy
     }
 
     /// ``applyCaseWhereItLies(of:at:scope:updates:)`` on the enum `pointer`
@@ -55,7 +55,7 @@ extension PropertyWalk {
     private mutating func applyTypedCase<Enum>(
         of plan: EnumPlan, at pointer: UnsafeMutablePointer<Enum>, scope: UInt64, updates: UpdateMode
     ) {
-        applyCaseWhereItLies(of: plan, at: UnsafeMutableRawPointer(pointer), scope: scope, updates: updates)
+        unsafe applyCaseWhereItLies(of: plan, at: UnsafeMutableRawPointer(pointer), scope: scope, updates: updates)
     }
 
     /// ``applyCase(of:at:scope:updates:)`` on the enum where it lies.
@@ -63,14 +63,14 @@ extension PropertyWalk {
         of plan: EnumPlan, at address: UnsafeMutableRawPointer, scope: UInt64, updates: UpdateMode
     ) {
         guard let witnesses = plan.cases.witnesses, let cases = plan.cases.cases else {
-            let (label, payload) = EnumCases.current(at: address, as: plan.type)
+            let (label, payload) = unsafe EnumCases.current(at: address, as: plan.type)
             applyCase(label: label, scope: scope) { walk, caseScope in
                 guard let payload else { return }
                 walk.applyPayload(payload, scope: caseScope, updates: updates)
             }
             return
         }
-        let tag = witnesses.tag(at: address)
+        let tag = unsafe witnesses.tag(at: address)
         let index = Int(tag)
         guard index < cases.count else { return }
         let current = cases[index]
@@ -78,17 +78,17 @@ extension PropertyWalk {
         // has nothing of it to drop.
         applyCase(label: current.hasPayload ? current.label : "", scope: scope) { walk, caseScope in
             guard current.hasPayload else { return }
-            let payload = plan.cases.payload(tag: tag, at: address, as: plan.type)
+            let payload = unsafe plan.cases.payload(tag: tag, at: address, as: plan.type)
             if payload.isNone { return }
             if current.isIndirect {
-                let (_, copy) = EnumCases.current(at: address, as: plan.type)
+                let (_, copy) = unsafe EnumCases.current(at: address, as: plan.type)
                 guard let copy else { return }
                 walk.applyPayload(copy, scope: caseScope, updates: updates)
                 return
             }
-            witnesses.projectPayload(at: address)
-            walk.applyPayload(payload, at: address, scope: caseScope, updates: updates)
-            witnesses.injectTag(tag, at: address)
+            unsafe witnesses.projectPayload(at: address)
+            unsafe walk.applyPayload(payload, at: address, scope: caseScope, updates: updates)
+            unsafe witnesses.injectTag(tag, at: address)
         }
     }
 
@@ -136,9 +136,9 @@ extension PropertyWalk {
         _ plan: PayloadPlan, at address: UnsafeMutableRawPointer, scope: UInt64, updates: UpdateMode
     ) {
         if let elements = plan.elements {
-            applySteps(of: elements, at: address, scope: scope, isOwn: false, updates: updates)
+            unsafe applySteps(of: elements, at: address, scope: scope, isOwn: false, updates: updates)
         } else if let single = plan.single {
-            apply(single, at: address, position: 0, scope: scope, isOwn: false, updates: updates)
+            unsafe apply(single, at: address, position: 0, scope: scope, isOwn: false, updates: updates)
         }
     }
 
@@ -158,15 +158,15 @@ extension PropertyWalk {
             // position, as SwiftUI takes each case's payload as a tuple and
             // keeps the elements that are properties.
             let fields = PropertyPlans.payloadPlan(of: Payload.self)
-            applyTypedSteps(of: fields, at: &copy, scope: scope, updates: updates)
+            unsafe applyTypedSteps(of: fields, at: &copy, scope: scope, updates: updates)
         } else {
-            applyTyped(PropertyPlans.slot(Payload.self), at: &copy, position: 0, scope: scope, isOwn: false, updates: updates)
+            unsafe applyTyped(PropertyPlans.slot(Payload.self), at: &copy, position: 0, scope: scope, isOwn: false, updates: updates)
         }
     }
 
     mutating func applyTypedSteps<Value>(
         of fields: FieldsPlan, at pointer: UnsafeMutablePointer<Value>, scope: UInt64, updates: UpdateMode
     ) {
-        applySteps(of: fields, at: UnsafeMutableRawPointer(pointer), scope: scope, isOwn: false, updates: updates)
+        unsafe applySteps(of: fields, at: UnsafeMutableRawPointer(pointer), scope: scope, isOwn: false, updates: updates)
     }
 }

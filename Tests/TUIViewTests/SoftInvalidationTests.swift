@@ -54,7 +54,7 @@ struct SoftInvalidationTests {
         let identity = ViewIdentity(path: "Root/State")
         var state = State(wrappedValue: 0)
         _ = withUnsafeMutablePointer(to: &state) {
-            State<Int>.bindState(
+            unsafe State<Int>.bindState(
                 at: UnsafeMutableRawPointer($0), to: storage,
                 key: StateStorage.StateKey(identity: identity, propertyIndex: 0))
         }

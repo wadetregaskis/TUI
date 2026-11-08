@@ -264,8 +264,8 @@ extension Environment: PlaceResolvedEnvironment {
         at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity,
         storage: StateStorage?
     ) -> Bool {
-        let wrapper = address.assumingMemoryBound(to: Self.self)
-        let box = wrapper.pointee.box
+        let wrapper = unsafe address.assumingMemoryBound(to: Self.self)
+        let box = unsafe wrapper.pointee.box
         // An identity compare: it stops at the first node the two identities
         // share, so it walks the whole chain only for a kept value's, whose
         // nodes are another frame's.
@@ -276,7 +276,7 @@ extension Environment: PlaceResolvedEnvironment {
             let own = EnvironmentBox()
             own.environment = environment
             own.place = place
-            wrapper.pointee.box = own
+            unsafe wrapper.pointee.box = own
             storage?.noteDisplacedEnvironment(box, from: resolved)
             return true
         }
@@ -286,7 +286,7 @@ extension Environment: PlaceResolvedEnvironment {
     }
 
     static func environmentBox(at address: UnsafeMutableRawPointer) -> EnvironmentBox {
-        address.assumingMemoryBound(to: Self.self).pointee.box
+        unsafe address.assumingMemoryBound(to: Self.self).pointee.box
     }
 }
 

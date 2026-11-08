@@ -65,7 +65,7 @@ package final class EnvironmentStamp {
     /// out when first asked: nothing asks when stamps are compared by identity.
     package var entries: [Entry] {
         if let flat { return flat }
-        let made = Self.merged(base.unsafelyUnwrapped, changes)
+        let made = unsafe Self.merged(base.unsafelyUnwrapped, changes)
         flat = made
         return made
     }
@@ -424,14 +424,14 @@ package final class EnvironmentStamps {
     /// pointer, which is what a metatype is. Done at report time only; nothing
     /// is recorded on the write path.
     package static func debugName(of key: ObjectIdentifier) -> String {
-        String(reflecting: unsafeBitCast(key, to: Any.Type.self))
+        unsafe String(reflecting: unsafeBitCast(key, to: Any.Type.self))
     }
 
     // MARK: Classification
 
     func keyRule(_ key: ObjectIdentifier) -> KeyRule {
         if let known = keyRules[key] { return known }
-        let type = unsafeBitCast(key, to: Any.Type.self)
+        let type = unsafe unsafeBitCast(key, to: Any.Type.self)
         let rule: KeyRule
         if type is _RenderNeutralEnvironmentKey.Type {
             rule = .neutral

@@ -14,7 +14,7 @@ extension RenderIdentityBindable {
     /// ``RenderIdentityBindable/bindRenderIdentity(path:propertyIndex:)`` on
     /// the property at `address`.
     static func bindRenderIdentity(at address: UnsafeMutableRawPointer, path: String, propertyIndex: Int) {
-        address.assumingMemoryBound(to: Self.self).pointee.bindRenderIdentity(path: path, propertyIndex: propertyIndex)
+        unsafe address.assumingMemoryBound(to: Self.self).pointee.bindRenderIdentity(path: path, propertyIndex: propertyIndex)
     }
 }
 
@@ -22,7 +22,7 @@ extension EnvironmentResolvable {
     /// ``EnvironmentResolvable/resolveEnvironment(_:)`` on the property at
     /// `address`.
     static func resolveEnvironment(at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues) {
-        address.assumingMemoryBound(to: Self.self).pointee.resolveEnvironment(environment)
+        unsafe address.assumingMemoryBound(to: Self.self).pointee.resolveEnvironment(environment)
     }
 }
 
@@ -31,9 +31,9 @@ extension ResolvesOwnEnvironment {
     /// `address` — and, the first time its type is drawn in a debug build, a
     /// check that it resolved every `@Environment` of its own.
     static func resolveOwnEnvironment(at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues) {
-        address.assumingMemoryBound(to: Self.self).pointee.resolveOwnEnvironment(environment)
+        unsafe address.assumingMemoryBound(to: Self.self).pointee.resolveOwnEnvironment(environment)
         #if DEBUG
-            OwnResolutionCheck.verify(Self.self, at: address)
+            unsafe OwnResolutionCheck.verify(Self.self, at: address)
         #endif
     }
 }
@@ -51,7 +51,7 @@ extension ResolvesOwnEnvironment {
             guard verified.insert(ObjectIdentifier(type)).inserted else { return }
             for field in RuntimeFields.fields(of: type) {
                 guard let inspectable = field.type as? any ResolutionInspectable.Type else { continue }
-                assert(
+                unsafe assert(
                     inspectable.isResolved(at: address + field.offset),
                     "\(type).resolveOwnEnvironment(_:) does not resolve \(field.name)")
             }
@@ -60,7 +60,7 @@ extension ResolvesOwnEnvironment {
 
     extension ResolutionInspectable {
         static func isResolved(at address: UnsafeMutableRawPointer) -> Bool {
-            address.assumingMemoryBound(to: Self.self).pointee.isResolved
+            unsafe address.assumingMemoryBound(to: Self.self).pointee.isResolved
         }
     }
 #endif
@@ -69,7 +69,7 @@ extension DynamicProperty {
     /// ``DynamicProperty/update()`` on the property at `address`, where it
     /// lies.
     static func updateInPlace(at address: UnsafeMutableRawPointer) {
-        address.assumingMemoryBound(to: Self.self).pointee.update()
+        unsafe address.assumingMemoryBound(to: Self.self).pointee.update()
     }
 
     /// ``DynamicProperty/update()`` on `object`, an instance of this type, a

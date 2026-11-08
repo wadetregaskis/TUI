@@ -162,7 +162,7 @@ nonisolated public struct AnyView: View {
     package nonisolated static func _mixValueHash(
         at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans
     ) -> Bool {
-        switch pointer.assumingMemoryBound(to: Self.self).pointee {
+        switch unsafe pointer.assumingMemoryBound(to: Self.self).pointee {
         case .trueContent(let content):
             hash = mixHashWord(hash, ValueHashMark.firstBranch)
             return plans.mixValue(content, into: &hash)

@@ -134,7 +134,7 @@ package enum BindingReads {
     /// Starts noting.
     @MainActor
     package static func begin() {
-        noted = []
+        unsafe noted = []
         #if canImport(Glibc) || canImport(Musl)
             pthread_setspecific(walkingThreadKey, UnsafeRawPointer(bitPattern: 1))
         #endif
@@ -144,12 +144,12 @@ package enum BindingReads {
     @MainActor
     package static func end() -> [() -> Void] {
         defer {
-            noted = nil
+            unsafe noted = nil
             #if canImport(Glibc) || canImport(Musl)
                 pthread_setspecific(walkingThreadKey, nil)
             #endif
         }
-        return noted ?? []
+        return unsafe noted ?? []
     }
 
     /// Notes `get`, a binding's getter, when a walk is noting. Generic, and
@@ -183,7 +183,7 @@ package enum BindingReads {
 
     @inline(__always)
     static func note<Value>(_ get: @escaping () -> Value) {
-        guard isWalkingThread, noted != nil else { return }
-        noted?.append { _ = get() }
+        guard isWalkingThread, unsafe noted != nil else { return }
+        unsafe noted?.append { _ = get() }
     }
 }

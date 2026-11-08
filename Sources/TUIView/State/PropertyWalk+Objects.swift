@@ -125,10 +125,10 @@ extension PropertyWalk {
         _ plan: DynamicClassPlan, at address: UnsafeMutableRawPointer, position: Int, scope: UInt64,
         updates: UpdateMode
     ) {
-        guard case .type(let objectType) = DynamicTypes.object(at: UnsafeRawPointer(address)),
+        guard case .type(let objectType) = unsafe DynamicTypes.object(at: UnsafeRawPointer(address)),
             let found = propertyClassPlan(objectType, in: plan)
         else { return }
-        let object = address.assumingMemoryBound(to: AnyObject.self).pointee
+        let object = unsafe address.assumingMemoryBound(to: AnyObject.self).pointee
         // A modifier class too: a property class wherever it is held (B-DYNVFIX-4).
         applyObject(found, object, position: position, scope: scope, updates: updates)
     }
@@ -147,13 +147,13 @@ extension PropertyWalk {
         let loaded: AnyObject
         let found: ObjectPlan
         if reference.readsClassInPlace {
-            guard case .type(let objectType) = DynamicTypes.unownedObject(at: UnsafeRawPointer(address)),
+            guard case .type(let objectType) = unsafe DynamicTypes.unownedObject(at: UnsafeRawPointer(address)),
                 let classPlan = propertyClassPlan(objectType, in: plan),
-                let held = reference.load(at: address)
+                let held = unsafe reference.load(at: address)
             else { return }
             (loaded, found) = (held, classPlan)
         } else {
-            guard let held = reference.load(at: address),
+            guard let held = unsafe reference.load(at: address),
                 let classPlan = propertyClassPlan(type(of: held), in: plan)
             else { return }
             (loaded, found) = (held, classPlan)
@@ -229,9 +229,9 @@ extension PropertyWalk {
         // Whether the object was made in this pass, with a value of the view
         // holding it, as its first `@State` says before any of its ids is
         // bound: asked only where the object's ids may come from a chain.
-        let base = UnsafeRawPointer(Unmanaged.passUnretained(object).toOpaque())
+        let base = unsafe UnsafeRawPointer(Unmanaged.passUnretained(object).toOpaque())
         let pass = storage.currentPass
-        func kind() -> ObjectKind { contents.objectKind(at: base, in: pass) }
+        func kind() -> ObjectKind { unsafe contents.objectKind(at: base, in: pass) }
         if !isMeasuring {
             let (hub, token, previous, predecessor) = storage.registerHolder(
                 identity, of: object, at: placeScope, kind: kind)
@@ -272,8 +272,8 @@ extension PropertyWalk {
         objectDepth += 1
         defer { objectDepth -= 1 }
         withExtendedLifetime(object) {
-            let base = Unmanaged.passUnretained(object).toOpaque()
-            applySteps(of: contents, at: base, scope: scope, isOwn: isOwn, updates: updates)
+            let base = unsafe Unmanaged.passUnretained(object).toOpaque()
+            unsafe applySteps(of: contents, at: base, scope: scope, isOwn: isOwn, updates: updates)
         }
     }
 
@@ -301,7 +301,7 @@ extension PropertyWalk {
         if let state = leaf.state, let storage {
             let key = StateStorage.StateKey(identity: identity, propertyIndex: position, scope: keyScope(scope))
             let stored = caseDepth > 0 ? storage.count : 0
-            let binding = state.bindObjectState(
+            let binding = unsafe state.bindObjectState(
                 at: address, to: storage, key: key,
                 in: ObjectStateContext(
                     object: object.object, hub: object.hub, adoptsPlace: object.adoptsPlace,
@@ -316,11 +316,11 @@ extension PropertyWalk {
             if caseDepth > 0, storage.count != stored { created.append(key) }
         }
         if let bound = leaf.identity, let idPath = object.idPath {
-            bound.bindRenderIdentity(
+            unsafe bound.bindRenderIdentity(
                 at: address, path: NestedScope.identityPath(ofPath: idPath, in: scope), propertyIndex: position)
         }
         if let placed = leaf.placeEnvironment {
-            let box = placed.environmentBox(at: address)
+            let box = unsafe placed.environmentBox(at: address)
             if let storage {
                 switch object.environmentNotes {
                 case .putBack: storage.pushEnvironmentRestore(box, previous: box.environment)
@@ -336,7 +336,7 @@ extension PropertyWalk {
             box.environment = environment
         } else if let resolvable = leaf.environment {
             if resolvesSharedStores(of: object) {
-                resolvable.resolveEnvironment(at: address, environment)
+                unsafe resolvable.resolveEnvironment(at: address, environment)
             } else if let reader = resolvable as? any UnkeyedEnvironmentReader.Type {
                 // Handed nothing, it is read all the same: the memos above
                 // this holder must not keep what its body draws from it.

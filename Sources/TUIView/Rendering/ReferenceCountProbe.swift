@@ -34,7 +34,7 @@ package enum ReferenceCountProbe {
     /// The inline word's two top bits, set together when it names a side
     /// table.
     private static func movedToSideTable(_ object: AnyObject) -> Bool {
-        let word = Unmanaged.passUnretained(object).toOpaque()
+        let word = unsafe Unmanaged.passUnretained(object).toOpaque()
             .load(fromByteOffset: MemoryLayout<UnsafeRawPointer>.size, as: UInt.self)
         return word >> (UInt.bitWidth - 2) == 0b11
     }

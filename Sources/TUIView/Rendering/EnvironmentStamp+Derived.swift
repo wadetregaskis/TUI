@@ -145,8 +145,8 @@ extension EnvironmentStamps {
             let isInline =
                 MemoryLayout<T>.size <= 3 * word && MemoryLayout<T>.alignment <= word && _isBitwiseTakable(T.self)
             guard isInline else { return .box }
-            guard case .success(let items) = ValueHashPlanBuilder().items(for: T.self),
-                ValueHashPlanBuilder.coversWhole(items, size: MemoryLayout<T>.size)
+            guard case .success(let items) = unsafe ValueHashPlanBuilder().items(for: T.self),
+                unsafe ValueHashPlanBuilder.coversWhole(items, size: MemoryLayout<T>.size)
             else { return .token }
             return .bytes(count: MemoryLayout<T>.size, settles: _isPOD(T.self) || T.self is AnyClass)
         }
@@ -165,13 +165,13 @@ extension EnvironmentStamps {
         case .bytes(let count, let settles):
             let same = withUnsafeBytes(of: raw) { left in
                 withUnsafeBytes(of: slot.raw) { right in
-                    memcmp(left.baseAddress.unsafelyUnwrapped, right.baseAddress.unsafelyUnwrapped, count) == 0
+                    unsafe memcmp(left.baseAddress.unsafelyUnwrapped, right.baseAddress.unsafelyUnwrapped, count) == 0
                 }
             }
             return same ? true : settles ? false : nil
         case .box:
             let same = withUnsafeBytes(of: raw) { left in
-                withUnsafeBytes(of: slot.raw) { right in left.load(as: UInt.self) == right.load(as: UInt.self) }
+                withUnsafeBytes(of: slot.raw) { right in unsafe left.load(as: UInt.self) == right.load(as: UInt.self) }
             }
             return same ? true : nil
         case .token:

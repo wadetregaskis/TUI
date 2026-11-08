@@ -303,13 +303,13 @@ extension RenderCache {
     /// still stores what it draws (`renderValueMemoized`'s
     /// `invalidatedDuringRender`).
     func resolveSuspect(_ entry: CacheEntry, recheck: (Revalidation) -> RecheckVerdict, drop: () -> Void) -> Bool {
-        let verdict = entry.revalidation.map(recheck) ?? .off
+        let verdict = unsafe entry.revalidation.map(recheck) ?? .off
         revalidation.noteVerdict(verdict, at: entry.identity.structuralHash)
         guard verdict == .unchanged else {
             drop()
             return false
         }
-        entry.isSuspect = false
+        unsafe entry.isSuspect = false
         revalidation.counts.rechecked += 1
         return true
     }

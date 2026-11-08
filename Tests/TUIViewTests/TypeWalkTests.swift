@@ -214,8 +214,8 @@ struct TypeWalkTests {
             var carrier: Carrier
         }
         var fields: [String] = []
-        let described = RuntimeFields.forEach(of: Sample.self) { name, _, type, kind in
-            fields.append("\(String(cString: name)):\(type == Int.self ? "Int" : "…"):\(kind)")
+        let described = unsafe RuntimeFields.forEach(of: Sample.self) { name, _, type, kind in
+            fields.append(unsafe "\(String(cString: name)):\(type == Int.self ? "Int" : "…"):\(kind)")
             return true
         }
         #expect(described)
@@ -229,18 +229,18 @@ struct TypeWalkTests {
     @Test("The runtime lists a class's fields only with the class option, whose raw value is the stdlib's, 1")
     func spiListsClassFieldsWithTheOption() {
         var without = 0
-        let refused = RuntimeFields.forEach(of: Shared.self) { _, _, _, _ in
+        let refused = unsafe RuntimeFields.forEach(of: Shared.self) { _, _, _, _ in
             without += 1
             return true
         }
         var with = 0
-        let described = RuntimeFields.forEach(of: Shared.self, options: .classType) { _, _, _, _ in
+        let described = unsafe RuntimeFields.forEach(of: Shared.self, options: .classType) { _, _, _, _ in
             with += 1
             return true
         }
         #expect(!refused && without == 0)
         #expect(described && with == 2)
-        #expect(!RuntimeFields.forEach(of: Plain.self, options: .classType) { _, _, _, _ in true })
+        unsafe #expect(!RuntimeFields.forEach(of: Plain.self, options: .classType) { _, _, _, _ in true })
         #expect(RuntimeFields.Options.classType.rawValue == 1)
     }
 
@@ -288,7 +288,7 @@ struct TypeWalkTests {
         #if canImport(Synchronization)
             final class Guarded { let lock = Mutex(0) }
             var types: [Any.Type] = []
-            RuntimeFields.forEach(of: Guarded.self, options: .classType) { _, _, type, _ in
+            unsafe RuntimeFields.forEach(of: Guarded.self, options: .classType) { _, _, type, _ in
                 types.append(type)
                 return true
             }

@@ -163,7 +163,7 @@ import TUIStyling
             viewSnapshot: Any, size: ViewSize, identity: ViewIdentity, lapsesAt: Date?, lease: ObservationLease?,
             revalidation: Revalidation?
         ) {
-            self.revalidation = revalidation
+            unsafe self.revalidation = revalidation
             self.viewSnapshot = viewSnapshot
             self.size = size
             self.identity = identity
@@ -682,7 +682,7 @@ import TUIStyling
 
     /// Creates an empty render cache.
     public convenience init() {
-        self.init(valueHashPlans: ValueHashPlans())
+        unsafe self.init(valueHashPlans: ValueHashPlans())
     }
 
     /// Creates an empty render cache whose memos key views by `valueHashPlans`
@@ -825,7 +825,7 @@ extension RenderCache {
         // the usual checks if unchanged; otherwise, or with nothing to
         // re-check it by, it is what the hard drain would have dropped, and
         // goes now (Option C).
-        guard !entry.isSuspect
+        guard unsafe !entry.isSuspect
             || resolveSuspect(
                 entry,
                 recheck: { record in
@@ -1071,14 +1071,14 @@ extension RenderCache {
         // One lookup of the table, the suspect check behind it: a second one
         // on this path, which `fanout` takes 4,000 times a frame, cost it 5%.
         let found = sizeEntries[key]
-        if let found, found.isSuspect {
+        if let found, unsafe found.isSuspect {
             // As a buffer's (``lookupEntry``).
             let verdict = environment.flatMap { environment in
-                found.revalidation.map { recheckRow($0, rebuild: rebuild, environment: environment, depth: depth) }
+                unsafe found.revalidation.map { recheckRow($0, rebuild: rebuild, environment: environment, depth: depth) }
             } ?? .off
             revalidation.noteVerdict(verdict, at: found.identity.structuralHash)
             if verdict == .unchanged {
-                found.isSuspect = false
+                unsafe found.isSuspect = false
                 revalidation.counts.rechecked += 1
             } else {
                 sizeEntries[key] = nil
@@ -1402,14 +1402,14 @@ extension RenderCache {
         // for a re-check that may never come — and that the hard drain never
         // offered, so dropping it loses nothing that was there before.
         var staleKeys: [Int] = []
-        for (key, entry) in entries where entry.isSuspect || !isLive(entry.identity) { staleKeys.append(key) }
+        for (key, entry) in entries where unsafe entry.isSuspect || !isLive(entry.identity) { staleKeys.append(key) }
         for key in staleKeys { entries.removeValue(forKey: key) }
         // Collect-then-remove, the spelling `AnimationStore.endRenderPass()`
         // uses and for its reason: removing inside `for … in sizeEntries`
         // COW-copies the whole table on the first removal, and this table is
         // hundreds of entries on a live page and thousands on `fanout`.
         var staleSizeKeys: [SizeKey] = []
-        for (key, entry) in sizeEntries where entry.isSuspect || !isLive(entry.identity) { staleSizeKeys.append(key) }
+        for (key, entry) in sizeEntries where unsafe entry.isSuspect || !isLive(entry.identity) { staleSizeKeys.append(key) }
         for key in staleSizeKeys { sizeEntries.removeValue(forKey: key) }
         // Ids interned per identity go the same way, and by the same rule: a
         // handler id baked into a stored buffer's regions must still name its
@@ -1518,7 +1518,7 @@ extension RenderCache {
         guard Self.debugEnabled else { return }
         let frame = stats.delta(since: statsAtFrameStart)
         let rate =
-            frame.lookups > 0
+            unsafe frame.lookups > 0
             ? String(format: "%.0f%%", frame.hitRate * 100)
             : "n/a"
         // One literal rather than a `+` chain of interpolations, which cost
