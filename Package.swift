@@ -773,8 +773,8 @@ let package = Package(
         // 6.4's build system still builds it in release; `swift build -c release --product <a library
         // product>` builds every target on 6.2 and 6.3; and `package` access instead of `@testable` would
         // put every internal a helper uses into the library's package interface. A release TEST build
-        // passes the define itself:
-        // `swift build -c release --build-tests -Xswiftc -enable-testing -Xswiftc -DTUIKIT_TEST_SUPPORT`.
+        // passes the define itself, with `-enable-testing`: `Tools/ParallelTest/parallel_test.py --release`
+        // (its `RELEASE_TEST_FLAGS`, which also turn the invariant checks on).
         // `canImport(Testing)`: a static Linux SDK ships no Testing module, and a debug build of the whole
         // package for it would fail here. Golden snapshots are read and written by path (#filePath-relative,
         // see TestHelpers/SnapshotTesting.swift), not via the resource bundle, so they are excluded from

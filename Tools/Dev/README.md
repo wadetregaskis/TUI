@@ -34,3 +34,21 @@ command of yours, such as a machine-wide build slot.
   run the test, see it fail, put the fix back.
 - **Keep the ratchets in your local check.** `python3 Tools/check-ratchets.py` (sleeps in tests, unsafe-concurrency
   exceptions) runs in CI's API-parity job, so a local loop that skips it learns about a rise from CI.
+
+## The suite in release
+
+```bash
+python3 Tools/ParallelTest/parallel_test.py --release -j 4    # build -c release with the checks on, then run
+python3 Tools/ParallelTest/parallel_test.py --release --no-build --filter SuiteName
+```
+
+Every other run tests a debug build. This one builds the tests with `-O`, as an app ships, but with the invariant
+checks forced on: `assert` and `assertionFailure` kept (`-assert-config Debug`), the `#if DEBUG` checks compiled in
+(`-DDEBUG`), plus what any release test build needs (`-enable-testing` for `@testable import`, and
+`-DTUI_TEST_SUPPORT`, which the support targets define only for debug). `RELEASE_TEST_FLAGS` in
+`Tools/ParallelTest/parallel_test.py` is the one list, and says why each flag is there. It is for what differs under
+`-O`: inlining, specialisation, exclusivity, a check only a debug build made.
+
+It is the dearest build there is, so CI runs it only on the weekly schedule and on manual dispatch, as two advisory
+jobs (`release_tests_linux`, `release_tests_macos`). Locally it builds into `.build/release`, a second copy of the
+build beside the debug one: check the disk first.

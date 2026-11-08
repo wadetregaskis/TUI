@@ -386,6 +386,35 @@ def prove(patterns, ids):
 # at the `release/6.2`, `release/6.3` and `swift-6.4.0-RELEASE` tags. Where
 # they differ, the note says which one is followed.
 
+# What a RELEASE build of the tests needs beyond `-c release` (`--release`):
+#
+# - `-enable-testing`: `@testable import` needs a module built for testing,
+#   and SwiftPM gives only debug builds that.
+# - `-DTUI_TEST_SUPPORT`: the test-support targets define it for debug only, so
+#   that a plain release build compiles them empty (Package.swift says why).
+# - `-DDEBUG` and `-assert-config Debug`: the invariant checks ON, which is the
+#   point of the run. `assert` and `assertionFailure` are kept in `-O` code,
+#   and the `#if DEBUG` checks (`FrameBuffer`'s line widths, a view's own
+#   environment resolution, a soft trap stopping the run) are compiled in. So
+#   is `#if DEBUG`'s one other effect, the heavier-subtree line in
+#   `PlainViewMemo`, which tests that mean to cross it set themselves.
+#
+# Everything else is release: `-O`, whole-module, release inlining and
+# specialisation, and the exclusivity checks `-O` leaves on. What differs under
+# `-O` is what this run is for.
+RELEASE_TEST_FLAGS = [
+    "-Xswiftc", "-enable-testing",
+    "-Xswiftc", "-DTUI_TEST_SUPPORT",
+    "-Xswiftc", "-DDEBUG",
+    "-Xswiftc", "-assert-config", "-Xswiftc", "Debug",
+]
+
+
+def build_configuration_args(release):
+    """What `swift build` takes to build, or to name, the configuration run."""
+    return ["-c", "release"] + RELEASE_TEST_FLAGS if release else []
+
+
 def swift_command(environ=None):
     """The `swift` to drive, as an argv prefix.
 
@@ -991,6 +1020,10 @@ def main():
                     help="print the partition and its proof, run nothing")
     ap.add_argument("--no-build", action="store_true",
                     help="skip `swift build --build-tests`")
+    ap.add_argument("--release", action="store_true",
+                    help="build and run the tests in release, with the invariant checks "
+                         "on (RELEASE_TEST_FLAGS); with --no-build, run a release build "
+                         "made with those flags")
     ap.add_argument("--expect-known-issues", type=int, default=None,
                     help="fail unless the known-issue total equals this")
     ap.add_argument("--full-failing-logs", action="store_true",
@@ -1017,14 +1050,15 @@ def main():
     swift = swift_command()
     # Before the build (it only names the directory), because the test
     # environment needs it and the toolchain is checked before a long build.
-    bin_dir = subprocess.run(swift + ["build", "--show-bin-path"], cwd=REPO,
+    configuration = build_configuration_args(args.release)
+    bin_dir = subprocess.run(swift + ["build", "--show-bin-path"] + configuration, cwd=REPO,
                              capture_output=True, text=True, check=True).stdout.strip()
     tc = toolchain(swift, bin_dir)
 
     if not args.no_build:
         # The ONLY place the SwiftPM build database is touched. Everything
         # after this is the helper, which never opens it.
-        rc = subprocess.run(swift + ["build", "--build-tests"], cwd=REPO).returncode
+        rc = subprocess.run(swift + ["build", "--build-tests"] + configuration, cwd=REPO).returncode
         if rc != 0:
             return 2
     binaries = test_binaries(bin_dir, tc.darwin)

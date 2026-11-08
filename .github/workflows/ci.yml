@@ -875,6 +875,84 @@ jobs:
         timeout-minutes: 30
         run: swift build -c release
 
+  # ── The suite in release ───────────────────────────────────────────────────
+  # The tests, built `-c release` with the invariant checks forced on (`assert`
+  # kept, `#if DEBUG` checks compiled in: `RELEASE_TEST_FLAGS` in
+  # Tools/ParallelTest/parallel_test.py says which flags and why). Every other
+  # lane tests a debug build, and what differs under `-O` — inlining,
+  # specialisation, exclusivity, a check only a debug build makes — is what
+  # this lane is for: release-only behaviour would otherwise ship unobserved.
+  #
+  # On the weekly schedule and on manual dispatch only, never on a push or a
+  # pull request: a release build of every test target is the dearest build
+  # here. ADVISORY (`continue-on-error`) until it has a record of running green;
+  # a failure is read, not waved through. One cell per OS, each on the Swift
+  # the package is optimised for first where it can be had: 6.4 on Linux, and
+  # Xcode 26's 6.3 on macOS (no GA image carries Xcode 27).
+  #
+  # Locally: `python3 Tools/ParallelTest/parallel_test.py --release -j 4`
+  # (Tools/Dev/README.md).
+  release_tests_linux:
+    name: "Release tests · Linux · Swift 6.4"
+    needs: lint
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    container:
+      image: "swift:6.4-noble"
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Trust the workspace and isolate preferences
+        run: |
+          git config --global --add safe.directory '*'
+          echo "TUI_CONFIG_DIR=$RUNNER_TEMP/tuikit-config" >> "$GITHUB_ENV"
+
+      - name: Install Python
+        run: apt-get update && apt-get install -y python3 python3-venv
+
+      - name: Toolchain version
+        run: swift --version
+
+      # The build and the run in one step, as `--release` builds with the flags
+      # it then runs. 45 minutes: a release build of every product took 2–4
+      # minutes from clean locally (see "Release build"), and the test targets
+      # are many more; runners unmeasured.
+      - name: Build and test in release, invariant checks on
+        timeout-minutes: 45
+        run: python3 Tools/ParallelTest/parallel_test.py --release -j 4 --full-failing-logs
+
+  # Manual dispatch only, for now: listing the release test bundle's tests on
+  # macOS starts a TUI app, which stops at "standard input and output are not
+  # a terminal" (Tools/Dev/README.md). Back on the weekly schedule once that's
+  # fixed, so the schedule isn't a known failure every week.
+  release_tests_macos:
+    name: "Release tests · macOS 26 · Xcode 26"
+    needs: lint
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-26
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Select Xcode 26
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26"
+
+      - name: Isolate preferences
+        run: echo "TUI_CONFIG_DIR=$RUNNER_TEMP/tuikit-config" >> "$GITHUB_ENV"
+
+      - name: Toolchain version
+        run: swift --version
+
+      # As on Linux, above.
+      - name: Build and test in release, invariant checks on
+        timeout-minutes: 45
+        run: python3 Tools/ParallelTest/parallel_test.py --release -j 4 --full-failing-logs
+
   # ── Windows (the port is in progress) ─────────────────────────────
   #
   # Uses the official `swift:<version>-windowsservercore-ltsc2022` images, which
