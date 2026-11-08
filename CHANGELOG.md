@@ -4,6 +4,10 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**Select-all and a range leave `.selectionDisabled()` rows out.** ⌃A, Shift with an arrow, Home or End, a Shift-click
+and the extend mode selected every row they covered in a multi-selection `List` or `Table`, the locked ones
+included, though a click or Return on such a row selected nothing. They skip it now, as SwiftUI's do.
+
 **⌃R picks a row up in a refreshable list.** `.refreshable` took every ⌃R, ahead of the focused control, so a
 reorderable `List` or `Table` (or a `.draggable` view) inside one could never pick a row up from the keyboard: the
 refresh ran instead. The focused control now has the key first, and the refresh runs when it lets the key go.

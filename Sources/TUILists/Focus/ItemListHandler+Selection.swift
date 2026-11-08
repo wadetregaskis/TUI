@@ -115,7 +115,9 @@ extension ItemListHandler {
     }
 
     /// Replaces the selection with the span between ``selectionAnchor`` and
-    /// the focus cursor, skipping non-selectable rows. Shared by shift-click
+    /// the focus cursor, skipping the rows ``isSelectableRow(_:)`` refuses —
+    /// a `.selectionDisabled()` row inside the span stays out of it, as
+    /// SwiftUI's does. Shared by shift-click
     /// and every keyboard extension gesture, so the two pivot around the same
     /// anchor. Both ends are clamped into the current data range first — the
     /// anchor persists across frames and the data can shrink underneath it
@@ -126,13 +128,21 @@ extension ItemListHandler {
         let anchorRow = max(0, min(bound, anchor))
         let cursorRow = max(0, min(bound, focusedIndex))
         var span = Set<SelectionValue>()
-        for row in min(anchorRow, cursorRow)...max(anchorRow, cursorRow) {
+        for row in min(anchorRow, cursorRow)...max(anchorRow, cursorRow) where isSelectableRow(row) {
             if let id = id(at: row) { span.insert(id) }
         }
         multiSelection?.wrappedValue = span
     }
 
-    /// Selects every selectable row (Ctrl+A). The one deliberate O(total)
+    /// Whether a bulk gesture — a span, select-all — may take `row`: every
+    /// row but a `.selectionDisabled()` one, which refuses a click and Return
+    /// already. The one test both bulk paths ask, so neither can forget it.
+    private func isSelectableRow(_ row: Int) -> Bool {
+        !selectionDisabledRows.contains(row)
+    }
+
+    /// Selects every selectable row (Ctrl+A): every content row but the
+    /// `.selectionDisabled()` ones. The one deliberate O(total)
     /// id materialisation on the windowed `List` path — user-initiated,
     /// never per-frame.
     func selectAll() {
@@ -140,11 +150,11 @@ extension ItemListHandler {
         var all = Set<SelectionValue>()
         if selectableIndices.isEmpty {
             all.reserveCapacity(itemCount)
-            for row in 0..<itemCount {
+            for row in 0..<itemCount where isSelectableRow(row) {
                 if let id = id(at: row) { all.insert(id) }
             }
         } else {
-            for row in selectableIndices {
+            for row in selectableIndices where isSelectableRow(row) {
                 if let id = id(at: row) { all.insert(id) }
             }
         }
