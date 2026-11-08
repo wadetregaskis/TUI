@@ -93,7 +93,10 @@ extension EnvironmentValues {
     /// leading and trailing edges. Matches SwiftUI's value of the same name.
     ///
     /// Recorded: TUI's overscroll allowance is vertical only (see
-    /// ``ScrollBounceBehavior``).
+    /// ``ScrollBounceBehavior``). A horizontal one would need the excursion
+    /// drawn by shifting styled lines by cells rather than sliding whole lines,
+    /// and a push past an edge on the horizontal step; the deviations record
+    /// (V6) has the reasons.
     public var horizontalScrollBounceBehavior: ScrollBounceBehavior {
         get { self[HorizontalScrollBounceBehaviorKey.self] }
         set { self[HorizontalScrollBounceBehaviorKey.self] = newValue }
