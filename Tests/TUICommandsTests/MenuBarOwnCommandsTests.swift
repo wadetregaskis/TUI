@@ -91,6 +91,20 @@ private struct ReplacedQuitApp: App {
     }
 }
 
+/// Every group of the Edit menu replaced with nothing.
+private struct EmptiedEditApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { ListeningPage() }
+            .commands {
+                CommandGroup(replacing: .undoRedo) {}
+                CommandGroup(replacing: .pasteboard) {}
+                CommandGroup(replacing: .textEditing) {}
+                CommandMenu("Note") {}
+            }
+    }
+}
+
 // MARK: - Tests
 
 @MainActor
@@ -223,6 +237,14 @@ struct MenuBarOwnCommandsTests {
         let app = launched(RemovedOwnApp())
         let bar = rows(app)[0]
         #expect(bar.hasPrefix(" Note"), "\(bar)")
+        #expect(!bar.contains("Edit"), "\(bar)")
+    }
+
+    @Test("A menu whose every group is replaced with nothing is not in the bar")
+    func emptiedMenuLeavesTheBar() {
+        let app = launched(EmptiedEditApp())
+        let bar = rows(app)[0]
+        #expect(bar.hasPrefix(" \(EnvironmentValues().resolvedAboutPanel.name)  Note"), "\(bar)")
         #expect(!bar.contains("Edit"), "\(bar)")
     }
 

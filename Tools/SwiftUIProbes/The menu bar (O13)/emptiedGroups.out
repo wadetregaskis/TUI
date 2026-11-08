@@ -1,0 +1,37 @@
+# ./run.sh emptiedGroups — macOS 15.8.2, Xcode 26 (2026-11-08). File's four groups and Help's replaced with {}:
+# File is gone; Help and View stay, AppKit's own menus (its search field, its full-screen items), here with no item.
+== case emptiedGroups
+menus
+    About menus
+    ----
+    Services
+    ----
+    Hide menus  [⌘h]
+    Hide Others  [⌥⌘h]
+    Show All (disabled)
+    ----
+    Quit menus  [⌘q]
+Edit
+    Undo  [⌘z] (disabled)
+    Redo  [⇧⌘z] (disabled)
+    ----
+    Cut  [⌘x] (disabled)
+    Copy  [⌘c] (disabled)
+    Paste  [⌘v] (disabled)
+    Delete (disabled)
+    Select All  [⌘a] (disabled)
+    ----
+    AutoFill
+    Start Dictation  [d] (disabled)
+    Start Dictation  [d] (disabled) (hidden)
+    Emoji & Symbols  [⌘ ]
+    Emoji & Symbols  [⌃⌘ ] (hidden)
+    Emoji & Symbols  [e] (hidden)
+View
+Window
+    Minimize  [⌘m] (disabled)
+    Zoom (disabled)
+    ----
+    Bring All to Front (disabled)
+Help
+windows: []

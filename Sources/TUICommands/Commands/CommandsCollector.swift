@@ -27,6 +27,19 @@ struct CommandItems {
     /// so what its views keep follows the declaration rather than its index
     /// among the bar's.
     let key: String
+
+    /// Whether the views make no row of a menu at all — the empty content of
+    /// `CommandGroup(replacing: .help) {}`, or an `if` whose condition is
+    /// false — resolved at their place under `menu`, the context a menu's
+    /// items (``_CommandMenuItems``) render in.
+    ///
+    /// Resolved as a measure, so taking an `if`/`else` apart records no arm
+    /// (`noteConditionalArm`): this is a look, not a render.
+    @MainActor func makesNoRows(under menu: RenderContext) -> Bool {
+        var scope = menu.withChildIdentity(erasedType: Self.self, key: key)
+        scope.isMeasuring = true
+        return children(scope).isEmpty
+    }
 }
 
 /// A menu of the app's own (``CommandMenu``).
@@ -201,12 +214,20 @@ extension CommandsCollector {
     /// `Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`).
     ///
     /// A menu of the app's own is a menu even with nothing in it, as there; a
-    /// standard menu with nothing in any of its groups is left out.
+    /// standard menu with nothing in any of its groups is left out, and a
+    /// declaration whose views make no row counts as nothing — so
+    /// `CommandGroup(replacing:)` with empty content over every group a menu
+    /// has takes the menu away, as SwiftUI's does on macOS, rather than
+    /// leaving its title over an empty menu.
     ///
-    /// - Parameter defaults: What each group holds before an edit: TUI's
-    ///   own commands, or `nil` for an empty group.
+    /// - Parameters:
+    ///   - defaults: What each group holds before an edit: TUI's own
+    ///     commands, or `nil` for an empty group.
+    ///   - makesNoRows: Whether a declaration's views make no row, given the
+    ///     key of the menu it would stand in (``ResolvedCommandMenu/key``).
     func resolvedMenus(
-        defaults: (CommandGroupPlacement.Group) -> CommandItems? = { _ in nil }
+        defaults: (CommandGroupPlacement.Group) -> CommandItems? = { _ in nil },
+        makesNoRows: (CommandItems, _ menuKey: String) -> Bool = { _, _ in false }
     ) -> [ResolvedCommandMenu] {
         var resolved: [ResolvedCommandMenu] = []
         for menu in StandardMenu.allCases {
@@ -215,13 +236,15 @@ extension CommandsCollector {
                     ResolvedCommandMenu(title: .declared($0.name), groups: [[$0.items]], key: "menu-" + $0.items.key)
                 }
             }
+            let key = "standard-\(menu)"
             let groups = menu.groups.compactMap { group -> [CommandItems]? in
                 let edits = self.groups[group] ?? CommandGroupEdits()
-                let items = edits.before + [edits.replacement ?? defaults(group)].compactMap { $0 } + edits.after
+                let items = (edits.before + [edits.replacement ?? defaults(group)].compactMap { $0 } + edits.after)
+                    .filter { !makesNoRows($0, key) }
                 return items.isEmpty ? nil : items
             }
             guard !groups.isEmpty else { continue }
-            resolved.append(ResolvedCommandMenu(title: .standard(menu), groups: groups, key: "standard-\(menu)"))
+            resolved.append(ResolvedCommandMenu(title: .standard(menu), groups: groups, key: key))
         }
         return resolved
     }

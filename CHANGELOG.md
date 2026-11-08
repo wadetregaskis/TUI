@@ -44,6 +44,11 @@ marked `●`, and a radio button's `●` only on the selected option. Off by def
 **A graphical `DatePicker` draws today in bold.** It was told apart by the accent colour alone, a difference of hue that
 colour-vision deficiency loses and that a terminal without colour doesn't draw at all.
 
+**A standard menu whose every group is replaced with nothing leaves the menu bar.** `CommandGroup(replacing: .help) {}`
+left Help's title in the bar over an empty menu, and an empty group between two others drew a second separator. As
+on macOS, where replacing each of File's groups with nothing takes File away, a declaration whose views make no row
+(empty content, or an `if` that is false) now counts as nothing. A `CommandMenu` is still a menu even empty, as there.
+
 **A disabled control stays visibly disabled in Warp's light theme.** Warp draws faint (SGR 2) darker there rather than
 fainter, and its black default foreground not at all, so at no colour a disabled control looked enabled. On Warp with
 a light background, disabled is now faint and italic, for a control at no colour and for a row under

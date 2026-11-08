@@ -1,6 +1,7 @@
 // Probe: what SwiftUI puts in the main menu for a few .commands shapes.
 // Usage: ./menus <case>   (cases: base, two, removed, removedInner, replaced, order, keys,
-//        toolbarId, toolbarIdStd)
+//        toolbarId, toolbarIdStd,
+//        emptiedGroups)
 import SwiftUI
 import AppKit
 
@@ -110,6 +111,16 @@ struct ProbeApp: App {
             CommandMenu("Empty") { }
             CommandMenu("Alpha") { Button("A1") {} }
             CommandMenu("Alpha") { Button("A1bis") {} }
+        }
+        #elseif CASE_emptiedGroups
+        // Every group of File and of Help replaced with nothing: are the
+        // menus still in the bar, empty, or gone?
+        WindowGroup { ContentView() }.commands {
+            CommandGroup(replacing: .newItem) {}
+            CommandGroup(replacing: .saveItem) {}
+            CommandGroup(replacing: .importExport) {}
+            CommandGroup(replacing: .printItem) {}
+            CommandGroup(replacing: .help) {}
         }
         #elseif CASE_sections
         WindowGroup { ContentView() }.commands {

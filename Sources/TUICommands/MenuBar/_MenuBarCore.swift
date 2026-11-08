@@ -127,10 +127,15 @@ struct _MenuBarCore: View, Renderable {
             guard let commands = (declaration as? CommandsDeclaration)?.commands else { continue }
             collector.step(index, commands)
         }
-        guard commands.includesSceneCommands else { return collector.resolvedMenus() }
+        // At the place a closed menu's items render to register their keys
+        // (`registerShortcuts`), so what a look at them evaluates is theirs.
+        let makesNoRows = { (items: CommandItems, menuKey: String) in
+            items.makesNoRows(under: context.withChildIdentity(erasedType: _CommandMenuItems.self, key: menuKey))
+        }
+        guard commands.includesSceneCommands else { return collector.resolvedMenus(makesNoRows: makesNoRows) }
         let own = SceneOwnCommands(
             showAbout: showAbout, commandsOfferCustomizeToolbar: collector.offersCustomizeToolbar)
-        return collector.resolvedMenus { own.items(for: $0, context: context) }
+        return collector.resolvedMenus(defaults: { own.items(for: $0, context: context) }, makesNoRows: makesNoRows)
     }
 
     /// The open menu, presented as a pop-up `Menu`'s is, hanging from its

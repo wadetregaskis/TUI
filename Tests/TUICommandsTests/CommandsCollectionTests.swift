@@ -95,6 +95,33 @@ struct CommandsCollectionTests {
         #expect(titles(menus) == ["Empty"])
     }
 
+    @Test("A declaration whose views make no row counts as nothing: its menu or its group goes")
+    func declarationsOfNothing() {
+        var collector = CommandsCollector(
+            environment: EnvironmentValues(), storage: nil, identity: ViewIdentity(rootType: Self.self),
+            observingAt: nil)
+        let hidden = false
+        collector.collect(
+            Group {
+                CommandGroup(replacing: .help) {}
+                CommandGroup(replacing: .newItem) {}
+                CommandGroup(after: .printItem) {
+                    if hidden { Button("Print Hidden") {} }
+                }
+                CommandGroup(after: .saveItem) { Button("Save Copy") {} }
+                CommandGroup(after: .importExport) { Button("Export") {} }
+            })
+        let help = collector.items(Button("Guide") {})
+        let context = makeBareRenderContext(width: 30, height: 10)
+        let menus = collector.resolvedMenus(
+            defaults: { $0 == .help ? help : nil },
+            makesNoRows: { items, _ in items.makesNoRows(under: context) })
+        // Help's own item is replaced with nothing, so Help goes; File keeps
+        // the groups with something in them, and no separator for the rest.
+        #expect(titles(menus) == ["file"])
+        #expect(groups(menus[0]) == [["Save Copy"], ["Export"]])
+    }
+
     @Test("Within a group: the newest before first, the afters in order, the last replacement")
     func groupComposition() {
         let menus = menus(
