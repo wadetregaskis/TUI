@@ -28,11 +28,17 @@ extension KittyGraphics {
 
     /// Runs `operation` with ``playsFramesItself`` pinned on this task only: tests
     /// run in parallel.
+    ///
+    /// `nonisolated(nonsending)`, function and `operation` both, for the reason
+    /// `ColorDepth.withCap(_:operation:)` gives: `operation` runs on the caller's
+    /// actor. It is also the `TaskLocal.withValue` overload Swift 6.4 prefers; the
+    /// `isolation:` one it deprecates is the only one 6.2 and 6.3 have, and they pick
+    /// it for this same call.
     @discardableResult
-    package static func withPlaysFramesItself<T>(
-        _ plays: Bool, isolation: isolated (any Actor)? = #isolation, operation: () async throws -> T
+    nonisolated(nonsending) package static func withPlaysFramesItself<T>(
+        _ plays: Bool, operation: nonisolated(nonsending) () async throws -> T
     ) async rethrows -> T {
-        try await $taskPlaysFramesItself.withValue(plays, operation: operation, isolation: isolation)
+        try await $taskPlaysFramesItself.withValue(plays, operation: operation)
     }
 
     /// The escapes adding a frame to picture `id`, after those it has, shown for

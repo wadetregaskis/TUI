@@ -405,14 +405,19 @@ extension KittyGraphics {
 
     /// Runs `operation` with ``isSupported`` — and, when given,
     /// ``isCompressionSupported`` — pinned on this task only.
+    ///
+    /// `nonisolated(nonsending)`, function and `operation` both, so `operation`
+    /// runs on the caller's actor (see `ColorDepth.withCap(_:operation:)`). That is
+    /// also the `TaskLocal.withValue` overload Swift 6.4 prefers; 6.2 and 6.3 have
+    /// only the `isolation:` one 6.4 deprecates, and pick it for these same calls.
     @discardableResult
-    public static func withSupport<T>(
-        _ supported: Bool, compression: Bool? = nil, isolation: isolated (any Actor)? = #isolation,
-        operation: () async throws -> T
+    nonisolated(nonsending) public static func withSupport<T>(
+        _ supported: Bool, compression: Bool? = nil,
+        operation: nonisolated(nonsending) () async throws -> T
     ) async rethrows -> T {
-        try await $taskSupported.withValue(supported, operation: {
+        try await $taskSupported.withValue(supported) {
             try await $taskCompressionSupported.withValue(
-                compression ?? taskCompressionSupported, operation: operation, isolation: isolation)
-        }, isolation: isolation)
+                compression ?? taskCompressionSupported, operation: operation)
+        }
     }
 }

@@ -4,6 +4,10 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**The async `KittyGraphics.withSupport(_:compression:operation:)` runs its operation on the caller's actor.** It is
+`nonisolated(nonsending)`, and its `isolation:` parameter is gone; a call with a trailing closure compiles as before. It
+was the cause of two of Swift 6.4's deprecation warnings, which now has none.
+
 **Differentiate without colour now changes how TUI's controls draw.** With macOS's setting on (when you're at the
 machine the app runs on) or `TUI_DIFFERENTIATE_WITHOUT_COLOR=1`, the controls say their state as they do on a terminal
 without colour, over their colours: the focus in reverse video, a disabled control faint, a `Table`'s selected rows
