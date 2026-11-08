@@ -26,6 +26,8 @@ Move between screens with stacks, split views and tabs, and present sheets, dial
 ### Split Views
 
 - ``NavigationSplitView``
+- ``NavigationSplitViewVisibility``
+- ``NavigationSplitViewColumn``
 - ``HSplitView``
 - ``VSplitView``
 
@@ -56,10 +58,22 @@ Move between screens with stacks, split views and tabs, and present sheets, dial
 - ``View/alert(_:isPresented:actions:message:borderStyle:borderColor:titleColor:)-(LocalizedStringKey,_,_,_,_,_,_)``
 - ``View/confirmationDialog(_:isPresented:titleVisibility:actions:)-(LocalizedStringKey,_,_,_)``
 - ``PresentationDetent``
+- ``PopoverAttachmentAnchor``
+- ``PresentationAdaptation``
 - ``Dialog``
 - ``AlertPanel``
 - ``AlertScene``
 - ``DialogSeverity``
+
+### Notifications
+
+- ``NotificationService``
+- ``NotificationStyle``
+- ``NotificationID``
+- ``NotificationPlacement``
+- ``NotificationAction``
+- ``NotificationDesktopDelivery``
+- ``NotificationLayer``
 
 ### Sheet Sizes
 

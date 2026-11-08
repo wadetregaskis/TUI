@@ -14,6 +14,13 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 - <doc:ShippingAnApp>
 - <doc:TestingYourApp>
 
+### Testing
+
+- ``TestApp``
+- ``TestScreen``
+- ``TestClock``
+- ``TestAppError``
+
 ### Apps and Scenes
 
 - ``App``

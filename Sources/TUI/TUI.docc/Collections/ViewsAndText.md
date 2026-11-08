@@ -47,6 +47,9 @@ Show text, pictures, shapes and other content, and compose views of your own.
 - ``TextCase``
 - ``TextSelectionAffinity``
 - ``TextSelectionScope``
+- ``TextSelectability``
+- ``EnabledTextSelectability``
+- ``DisabledTextSelectability``
 - ``TruncationMode``
 
 ### Localization

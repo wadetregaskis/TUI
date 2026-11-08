@@ -26,6 +26,7 @@ Respond to keys, clicks, drags and gestures, and decide where the focus goes.
 - ``ModifierKeyState``
 - ``ShortcutSet``
 - ``MoveCommandDirection``
+- ``KeyNotation``
 
 ### Focus
 
@@ -33,6 +34,7 @@ Respond to keys, clicks, drags and gestures, and decide where the focus goes.
 - ``FocusInteractions``
 - ``DefaultFocusEvaluationPriority``
 - ``SelectionEmphasis``
+- ``SelectionEmphasisClock``
 - ``FocusReference``
 - ``Focusable``
 - ``FocusManager``
@@ -80,3 +82,8 @@ Respond to keys, clicks, drags and gestures, and decide where the focus goes.
 - ``DropDelegate``
 - ``DropProposal``
 - ``DropOperation``
+- ``DragConfiguration``
+- ``DropConfiguration``
+- ``DragSession``
+- ``DropSession``
+- ``SpringLoadingBehavior``

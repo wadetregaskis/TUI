@@ -36,6 +36,17 @@ Animate changes, move views in and out with transitions, and draw on a schedule.
 ### Transitions
 
 - ``AnyTransition``
+- ``Transition``
+- ``TransitionPhase``
+- ``TransitionProperties``
+- ``OpacityTransition``
+- ``MoveTransition``
+- ``PushTransition``
+- ``SlideTransition``
+- ``ScaleTransition``
+- ``OffsetTransition``
+- ``AsymmetricTransition``
+- ``IdentityTransition``
 - ``BlurReplaceTransition``
 - ``ContentTransition``
 - ``GlassEffectTransition``
@@ -45,6 +56,16 @@ Animate changes, move views in and out with transitions, and draw on a schedule.
 
 - ``KeyframeAnimator``
 - ``PhaseAnimator``
+- ``Keyframes``
+- ``KeyframeTimeline``
+- ``KeyframeTrack``
+- ``KeyframeTrackContent``
+- ``KeyframesBuilder``
+- ``KeyframeTrackContentBuilder``
+- ``LinearKeyframe``
+- ``SpringKeyframe``
+- ``CubicKeyframe``
+- ``MoveKeyframe``
 
 ### Matched Geometry and Effects
 
