@@ -14,6 +14,16 @@ own (`warning: 'TUI': found 1 file(s) which are unhandled`, a linker's `ld:
 warning:`). A diagnostic in a dependency's checkout (`…/checkouts/…`) is not
 TUI's to fix and is counted apart, printed, and not failed on.
 
+A warning inside a macro's expansion — an unsafe expression inside `#expect`,
+say — names the expansion rather than a file (`macro expansion #expect:1:157:
+warning: …`), and the line after it says where the expansion came from (`…/X.swift:58:17:
+note: expanded code originates here`). It is counted, and reported, at that
+place: told apart by its file and line, which two in different files saying
+the same thing would otherwise not be. The source excerpt the compiler draws
+under a diagnostic (`   |  `- warning: …`) repeats it, and is not a second one.
+
+The tests: `python3 -m unittest discover -s Tools -p test_check_compiler_warnings.py`.
+
 Usage:
     Tools/check-compiler-warnings.py [--github] LOG [LOG …]
 
@@ -33,10 +43,54 @@ LOCATED = re.compile(r"^(?P<path>/[^:]+):(?P<line>\d+):(?P<col>\d+): warning: (?
 UNLOCATED = re.compile(r"(^|\s)warning: ")
 # Swift Build and SwiftPM print a dependency's diagnostics with its checkout's path.
 DEPENDENCY = "/checkouts/"
+# `macro expansion #expect:1:157: warning: message`: a warning in a macro's
+# expansion, whose own place is in the expanded code, not in a file.
+IN_EXPANSION = re.compile(r"^macro expansion (?P<macro>#?[\w.]+):\d+:\d+: warning: (?P<message>.*)$")
+# The line after it: where in a file the expansion came from.
+EXPANDED_FROM = re.compile(r"(?P<path>/[^:]+):(?P<line>\d+):(?P<col>\d+): note: expanded code originates here")
+# How many lines after the warning the note may come.
+EXPANDED_FROM_WITHIN = 3
+# A line of the source excerpt the compiler draws under a diagnostic, which
+# repeats the diagnostic: `   |  `- warning: …`, ` 51 |  …`.
+EXCERPT = re.compile(r"^\s*(\d+\s*)?\|")
 # Colour. Swift Build (6.4's default build system) colours its diagnostics even
 # into a pipe or a file, and `warning:` behind `ESC[1;33m` matches neither
-# pattern above, so a coloured log read raw would pass whatever it held.
-COLOUR = re.compile(r"\x1b\[[0-9;]*m")
+# pattern above, so a coloured log read raw would pass whatever it held. And the
+# hyperlink 6.4 wraps a diagnostic's group name in (`ESC]8;;URL ESC\`).
+COLOUR = re.compile(r"\x1b\[[0-9;]*m|\x1b\]8;;[^\x1b]*\x1b\\")
+
+
+def parse(lines):
+    """The warnings in a build log's `lines`: `(own, dependencies)`.
+
+    `own` maps each distinct warning from TUI's code, as reported, to its place
+    (a dict with `path`, `line`, `col` and `message`) or `None` when it has
+    none; `dependencies` is the set of a dependency's.
+    """
+    own, dependencies = {}, set()
+    lines = [COLOUR.sub("", line).rstrip() for line in lines]
+    for index, line in enumerate(lines):
+        if "warning: " not in line or EXCERPT.match(line):
+            continue
+        located = LOCATED.match(line)
+        expansion = None if located else IN_EXPANSION.match(line)
+        if expansion:
+            following = lines[index + 1:index + 1 + EXPANDED_FROM_WITHIN]
+            origin = next(filter(None, (EXPANDED_FROM.search(after) for after in following)), None)
+            if origin:
+                located = {
+                    "path": origin["path"], "line": origin["line"], "col": origin["col"],
+                    "message": f"{expansion['message']} (in the expansion of {expansion['macro']})",
+                }
+                line = f"{origin['path']}:{origin['line']}:{origin['col']}: warning: {located['message']}"
+        if located:
+            if DEPENDENCY in located["path"]:
+                dependencies.add(line)
+            else:
+                own.setdefault(line, located)
+        elif UNLOCATED.search(line):
+            own.setdefault(line, None)
+    return own, dependencies
 
 
 def main(argv):
@@ -54,16 +108,10 @@ def main(argv):
         except OSError as error:
             print(f"error: cannot read {path}: {error}", file=sys.stderr)
             return 2
-        for line in lines:
-            line = COLOUR.sub("", line).rstrip()
-            located = LOCATED.match(line)
-            if located:
-                if DEPENDENCY in located["path"]:
-                    dependencies.add(line)
-                else:
-                    own.setdefault(line, located)
-            elif UNLOCATED.search(line):
-                own.setdefault(line, None)
+        found, theirs = parse(lines)
+        for line, located in found.items():
+            own.setdefault(line, located)
+        dependencies |= theirs
     for line in sorted(dependencies):
         print(f"(a dependency's, not counted) {line}")
     if not own:

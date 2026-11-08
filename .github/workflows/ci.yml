@@ -223,6 +223,13 @@ jobs:
       - name: Product smoke script tests
         run: python3 -m unittest discover -s Tools/ProductSmoke -p 'test_*.py'
 
+      # The warnings check's reading of a build log: a warning inside a macro's
+      # expansion (an unsafe expression in `#expect`) counted at the line it
+      # expands from, the excerpt under a diagnostic not counted again. On
+      # log lines the tests write: no build, under a second.
+      - name: Compiler warnings check tests
+        run: python3 -m unittest discover -s Tools -p 'test_check_compiler_warnings.py'
+
       # Fails on a new unexplained gap, on a gap CLOSED but not recorded, on a
       # new argument-label deviation, and on a map entry that has gone stale.
       # The last two are the ones no human notices: a map nobody audits stops
