@@ -134,6 +134,11 @@ enum Headless {
         // scenario trapped without this. Nothing here had published a
         // preference before, which is how it stayed missing.
         environment.preferenceStorage = PreferenceStorage()
+        // `TUI_PLAIN_TEXT=transliterate`, as the app runner writes it at the
+        // root, so a bench can price spelling text in ASCII before layout.
+        if ProcessInfo.processInfo.environment["TUI_PLAIN_TEXT"] == "transliterate" {
+            environment.transliteratesText = true
+        }
         // Through the installer, so the measure memo's gate — which reads the
         // tracker off the render cache, not out of the environment — is open
         // here as it is in the app. Getting this wrong is §27's disaster
