@@ -94,6 +94,22 @@ struct SpringTests {
         #expect(near(pair.first, 0.441374) && near(pair.second, 0.810461))
     }
 
+    @Test("A spring of no duration, or a negative one, arrives at once rather than giving NaN or never moving")
+    func instantSprings() {
+        // A pace of 0 made ω₀ infinite, which passed the guard and gave
+        // 0 × ∞ = NaN in the critical form; a negative pace made ω₀ negative,
+        // which the guard read as "not started", so the spring never moved.
+        for duration in [0.0, -1.0, -.infinity, .nan] {
+            let spring = Spring(duration: duration)
+            for time in [0.1, 5.0] {
+                let value = spring.value(target: 1.0, initialVelocity: 2.0, time: time)
+                #expect(value == 1, "Spring(duration: \(duration)) at \(time) s: \(value)")
+                #expect(spring.velocity(target: 1.0, initialVelocity: 2.0, time: time) == 0)
+            }
+            #expect(spring.settlingDuration(target: 1.0, epsilon: 0.001) == 0)
+        }
+    }
+
     @Test("Force, update and the from-to forms")
     func forceAndUpdate() {
         let spring = Spring()

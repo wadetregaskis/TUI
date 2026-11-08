@@ -236,8 +236,12 @@ public struct Spring: Hashable, Sendable {
 
     // MARK: - Its motion
 
-    /// The undamped angular frequency, ω₀.
-    private var omega: Double { 2 * Double.pi / pace }
+    /// The undamped angular frequency, ω₀: infinite — a spring that arrives
+    /// at once — for a pace of zero, a negative one or NaN. Spelled out because
+    /// `2π / 0` is infinite but a negative pace gave a negative ω₀, which the
+    /// motion reads as "not started", so that spring never moved; and an
+    /// infinite one has to be met in ``SpringMotion`` before `0 × ∞` makes NaN.
+    private var omega: Double { pace > 0 ? 2 * Double.pi / pace : .infinity }
 
     /// Calculates the value of the spring at a given time given a target
     /// amount of change.
@@ -306,6 +310,8 @@ public struct Spring: Hashable, Sendable {
     ) -> TimeInterval {
         let displacement = target.magnitudeSquared.squareRoot()
         guard displacement > 0 || initialVelocity.magnitudeSquared > 0 else { return 0 }
+        // An instant spring is settled the moment it starts.
+        guard omega.isFinite else { return 0 }
         guard ratio > 0 else { return .infinity }
         if ratio < 1 {
             // An exponential envelope over both parts of the motion, as
@@ -426,6 +432,11 @@ struct SpringMotion {
     init(omega: Double, ratio: Double, time: Double) {
         guard time > 0, omega > 0 else {
             self.init(displacement: 1, displacementVelocity: 0, impulse: 0, impulseVelocity: 1)
+            return
+        }
+        // An instant spring (``Spring/omega``): arrived, and still.
+        guard omega.isFinite else {
+            self.init(displacement: 0, displacementVelocity: 0, impulse: 0, impulseVelocity: 0)
             return
         }
         if ratio < Self.criticalBand {
