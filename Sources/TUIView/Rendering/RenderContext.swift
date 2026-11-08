@@ -123,14 +123,47 @@ public struct RenderContext {
     /// Set by `FlexibleFrameView` when a fixed width is specified.
     /// Container views use this to decide whether to expand to fill
     /// the available width or shrink to fit their content.
-    public var hasExplicitWidth: Bool = false
+    @inlinable public var hasExplicitWidth: Bool {
+        get { explicitSize & Self.explicitWidthBit != 0 }
+        set { explicitSize = newValue ? explicitSize | Self.explicitWidthBit : explicitSize & ~Self.explicitWidthBit }
+    }
 
     /// Whether an explicit frame height constraint has been set.
     ///
     /// Set by layout containers (e.g., NavigationSplitView) when a fixed height is specified.
     /// Container views use this to decide whether to expand to fill
     /// the available height or shrink to fit their content.
-    public var hasExplicitHeight: Bool = false
+    @inlinable public var hasExplicitHeight: Bool {
+        get { explicitSize & Self.explicitHeightBit != 0 }
+        set { explicitSize = newValue ? explicitSize | Self.explicitHeightBit : explicitSize & ~Self.explicitHeightBit }
+    }
+
+    /// ``hasExplicitWidth`` and ``hasExplicitHeight``, a bit each, in one byte:
+    /// they were two `Bool`s, and the byte the second took is
+    /// ``textSpelling``'s. This struct's stride is load-bearing and had no
+    /// byte to spare (see ``measureGeneration``).
+    @usableFromInline package var explicitSize: UInt8 = 0
+
+    @usableFromInline static let explicitWidthBit: UInt8 = 1
+    @usableFromInline static let explicitHeightBit: UInt8 = 2
+
+    /// How the words below are spelled: as written, or in ASCII before they
+    /// are laid out (`TUI_PLAIN_TEXT=transliterate`) — see ``TextSpelling``.
+    ///
+    /// Seeded from the environment's ``EnvironmentValues/textSpelling`` when a
+    /// context is made from one (`init`), and carried by every copy from then
+    /// on; ``withEnvironment(_:)`` leaves it alone, as nothing below the root
+    /// changes it but a view that spells its own words as written for a
+    /// subtree (a field's suggestion completing with its label's own words),
+    /// which sets it here.
+    ///
+    /// A field rather than an environment read because every `Text` asks it on
+    /// every measure and render: as an environment value it was a dictionary
+    /// probe each time, which priced the flag at +1.5% to +2.6% on ten
+    /// `Stress --bench` scenarios with it OFF. One byte, the one
+    /// ``explicitSize`` gave up: the stride stays 104 (see
+    /// ``measureGeneration``).
+    package var textSpelling: TextSpelling = .asWritten
 
     /// Whether this is a measurement pass (no side-effects should occur).
     ///
@@ -625,6 +658,7 @@ public struct RenderContext {
         // mirrors by hand here.
         self.renderCache = environment.renderCache
         self.stateStorage = environment.stateStorage
+        self.textSpelling = environment.textSpelling
     }
 
     /// Creates a new context with the same size but different environment.

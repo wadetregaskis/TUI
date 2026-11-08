@@ -113,16 +113,16 @@ import TUICore
         let font = resolvedFont(stating: style.font, context: context)
         let textCase = cascadedAttributes(context: context, font: font).effectiveTextCase
         let redaction = context.environment.effectiveRedactionReasons
-        let transliterates = context.environment.transliteratesText
+        let spelling = context.textSpelling
         let shown = shownWords(in: context.environment)
         guard let runs = shown.runs else {
             return Self.displayString(
-                shown.content, textCase: textCase, redaction: redaction, transliterates: transliterates
+                shown.content, textCase: textCase, redaction: redaction, spelling: spelling
             ).map { ($0, nil) }
         }
         return runs.flatMap { run in
             Self.displayString(
-                run.text, textCase: textCase, redaction: redaction, transliterates: transliterates
+                run.text, textCase: textCase, redaction: redaction, spelling: spelling
             ).map { ($0, run.attributes) }
         }
     }

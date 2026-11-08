@@ -793,9 +793,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         table.cascadesCellText = Self.cellTextAttributes(context.environment) != StyleAttributes()
         // Headers spelled in ASCII once here, where `TUI_PLAIN_TEXT=transliterate`
         // asks, so the width they're measured at is the width they're drawn at.
-        if context.environment.transliteratesText {
+        if context.textSpelling.isASCII {
             for index in table.columns.indices {
-                table.columns[index].title = TextTransliteration.transliterated(table.columns[index].title)
+                table.columns[index].title = context.spelled(table.columns[index].title)
             }
         }
         return table
@@ -2176,7 +2176,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             context.renderCache?.rowWork.cellValues += 1
             let text = make(item, context)
             if let lines = Self.plainLines(
-                of: text, in: column, width: width, transliterates: context.environment.transliteratesText)
+                of: text, in: column, width: width, spelling: context.textSpelling)
             {
                 return lines
             }
@@ -5056,19 +5056,19 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             return renderedCell(text, column, for: item, width: width, context: context)
         }
         switch column.cell {
-        // A plain string is spelled in ASCII here where the environment says
-        // so (`TUI_PLAIN_TEXT=transliterate`), as a `Text` cell spells itself.
+        // A plain string is spelled in ASCII here where the context says so
+        // (`TUI_PLAIN_TEXT=transliterate`), as a `Text` cell spells itself.
         case .string(let extract):
-            return TextTransliteration.transliterated(extract(item), if: context.environment.transliteratesText)
+            return context.spelled(extract(item))
         case .text(let make):
             let text = make(item, context)
-            let transliterates = context.environment.transliteratesText
+            let spelling = context.textSpelling
             // The one-line case without the array: this is the single-line
             // table's every cell.
             if column.lineLimit == 1, text.drawsAsPlainString {
-                return TextTransliteration.transliterated(text.content, if: transliterates)
+                return TextTransliteration.spelled(text.content, as: spelling)
             }
-            if let lines = Self.plainLines(of: text, in: column, width: width, transliterates: transliterates) {
+            if let lines = Self.plainLines(of: text, in: column, width: width, spelling: spelling) {
                 return lines.joined(separator: "\n")
             }
             return renderedCell(text, column, for: item, width: width, context: context)
@@ -5100,12 +5100,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// same lines at about a third of the frame (table-multiline,
     /// table-churn-wrapped: −29% and −31% without it).
     ///
-    /// Its string spelled in ASCII first where `transliterates`, as the `Text`
-    /// would spell it (``EnvironmentValues/transliteratesText``).
+    /// Its string spelled as `spelling` says first, as the `Text` would spell
+    /// it (``RenderContext/textSpelling``).
     private static func plainLines(
-        of text: Text, in column: _TableColumnSpec<Value>, width: Int, transliterates: Bool
+        of text: Text, in column: _TableColumnSpec<Value>, width: Int, spelling: TextSpelling
     ) -> [String]? {
-        let content = TextTransliteration.transliterated(text.content, if: transliterates)
+        let content = TextTransliteration.spelled(text.content, as: spelling)
         if column.lineLimit == 1 {
             return text.drawsAsPlainString ? [content] : nil
         }

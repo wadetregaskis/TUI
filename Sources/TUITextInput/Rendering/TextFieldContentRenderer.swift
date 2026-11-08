@@ -76,12 +76,12 @@ struct TextFieldContentRenderer: FieldTextLayout {
     /// Held here for the reason ``cursorSpeed`` is.
     var legibilityWeight: LegibilityWeight?
 
-    /// Whether the prompt is spelled in ASCII, as every `Text` is where the
-    /// field's environment says so (`\.transliteratesText`): the prompt is a
-    /// `Text`, drawn here in a context of its own. What was typed never is.
+    /// How the prompt is spelled: as the field's context spells every `Text`
+    /// (``RenderContext/textSpelling``), since the prompt is a `Text` drawn
+    /// here in a context of its own. What was typed is never spelled.
     ///
     /// Held here for the reason ``cursorSpeed`` is.
-    var transliteratesPrompt = false
+    var promptSpelling = TextSpelling.asWritten
 
     /// The entered-text foreground, resolved to a concrete colour. A
     /// `.textFieldTextStyle` override may be a *semantic* colour (e.g.
@@ -340,7 +340,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
     func promptString() -> String {
         guard let prompt else { return "" }
         var context = RenderContext(availableWidth: 100, availableHeight: 1)
-        context.environment.transliteratesText = transliteratesPrompt
+        context.textSpelling = promptSpelling
         let buffer = TUIView.renderToBuffer(prompt, context: context)
         return buffer.lines.first?.stripped ?? ""
     }

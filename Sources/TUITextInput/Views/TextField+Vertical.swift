@@ -34,11 +34,13 @@ extension _TextFieldCore {
     }
 
     /// The characters a vertical field lays out: its text, or — while the text
-    /// is empty — its prompt, which the field grows to fit as SwiftUI's does.
-    private var verticalSource: (characters: [Character], isPrompt: Bool) {
+    /// is empty — its prompt, which the field grows to fit as SwiftUI's does,
+    /// spelled as the context spells a `Text` (``RenderContext/textSpelling``).
+    /// What was typed keeps its own characters.
+    private func verticalSource(in context: RenderContext) -> (characters: [Character], isPrompt: Bool) {
         let string = text.wrappedValue
         guard string.isEmpty, prompt != nil else { return (Array(string), false) }
-        return (Array(TextFieldContentRenderer.promptParagraphs(prompt)), true)
+        return (Array(TextFieldContentRenderer.promptParagraphs(prompt, spelling: context.textSpelling)), true)
     }
 
     /// The layout of `source` in a field `contentWidth` cells wide inside its
@@ -65,7 +67,7 @@ extension _TextFieldCore {
         let drawnWidth = proposal.width ?? context.availableWidth
         let isDisabled = self.isDisabled || !context.environment.isEnabled
         let layout = verticalLayout(
-            verticalSource.characters, contentWidth: max(minContentWidth, drawnWidth - capWidth),
+            verticalSource(in: context).characters, contentWidth: max(minContentWidth, drawnWidth - capWidth),
             hasDisclosure: drawsDisclosure(isDisabled: isDisabled, context: context))
         let height = Self.verticalRowCount(
             textRows: layout.rows.count, limit: context.environment.lineLimit,
@@ -119,7 +121,7 @@ extension _TextFieldCore {
             isDisabled: isDisabled, handler: handler, currentText: text.wrappedValue,
             isFocused: isFocused, context: context)
 
-        let source = verticalSource
+        let source = verticalSource(in: context)
         let layout = verticalLayout(
             source.characters, contentWidth: contentWidth, hasDisclosure: suggestionMenu != nil)
         // The width Up and Down move by: the one drawn, never a measure's
@@ -141,7 +143,7 @@ extension _TextFieldCore {
             contentForeground: cascaded.foreground,
             cursorSpeed: context.environment.indicatorAnimationSpeeds.speed(for: .textCursor),
             appearsActive: context.environment.appearsActive,
-            legibilityWeight: context.environment.legibilityWeight)
+            legibilityWeight: context.environment.legibilityWeight, promptSpelling: context.textSpelling)
         let rows = renderer.buildRows(
             TextFieldContentRenderer.Rows(
                 layout: layout, characters: source.characters, isPrompt: source.isPrompt,

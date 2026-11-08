@@ -21,7 +21,7 @@ struct TextTransliterationTests {
 
     private func lines(_ view: some View, transliterating: Bool = true, width: Int = 30) -> [String] {
         var context = makeRenderContext(width: width, height: 6)
-        context.environment.transliteratesText = transliterating
+        context.textSpelling = transliterating ? .ascii(.standard) : .asWritten
         return renderToBuffer(view, context: context).lines.map(\.stripped)
     }
 
@@ -32,25 +32,62 @@ struct TextTransliterationTests {
 
     private func size(_ view: some View, transliterating: Bool = true) -> ViewSize {
         var context = makeRenderContext(width: 30, height: 6)
-        context.environment.transliteratesText = transliterating
+        context.textSpelling = transliterating ? .ascii(.standard) : .asWritten
         return measureChild(view, proposal: ProposedSize(width: 30, height: 6), context: context)
     }
 
     @Test("Off by default: the words are drawn as written")
     func offByDefault() {
-        #expect(EnvironmentValues().transliteratesText == false)
+        #expect(EnvironmentValues().textSpelling == .asWritten)
+        #expect(makeRenderContext().textSpelling == .asWritten)
         #expect(first(Text(verbatim: "Café 你好"), transliterating: false) == "Café 你好")
     }
 
     @Test("ASCII comes back as it was, the same string")
     func asciiIsUntouched() {
         #expect(TextTransliteration.transliterated("plain words") == "plain words")
-        #expect(TextTransliteration.transliterated("Café", if: false) == "Café")
+        #expect(TextTransliteration.spelled("Café", as: .asWritten) == "Café")
     }
 
     @Test("What the transform has nothing to say about is left for the folding at output")
-    func emojiIsLeft() {
-        #expect(TextTransliteration.transliterated("ok 🙂").hasSuffix("🙂"))
+    func boxDrawingIsLeft() {
+        #expect(TextTransliteration.transliterated("ok ✓ ┼") == "ok ✓ ┼")
+    }
+
+    @Test("A context made from an environment carries its spelling; a copy keeps it")
+    func contextCarriesSpelling() {
+        var environment = EnvironmentValues()
+        environment.textSpelling = .ascii(.japanese)
+        let context = RenderContext(availableWidth: 10, availableHeight: 1, environment: environment)
+        #expect(context.textSpelling == .ascii(.japanese))
+        #expect(context.withChildIdentity(type: Text.self, index: 0).textSpelling == .ascii(.japanese))
+        #expect(context.spelled("plain") == "plain")
+    }
+
+    @Test("A reading for each language that reads a script its own way, and the standard one for the rest")
+    func readings() {
+        #expect(TextReading(languageCode: "ja") == .japanese)
+        #expect(TextReading(languageCode: "uk") == .ukrainian)
+        #expect(TextReading(languageCode: "sr") == .serbian)
+        #expect(TextReading(languageCode: "zh") == .standard)
+        #expect(TextReading(languageCode: "en") == .standard)
+        #expect(TextReading(languageCode: nil) == .standard)
+    }
+
+    @Test("Emoji are spelled as emoticons, short names or their Unicode names, without ICU")
+    func emoji() {
+        #expect(EmojiSpelling.spelled("ok 🙂") == "ok :)")
+        #expect(EmojiSpelling.spelled("👍🏽 ❤️ 🎉") == ":+1: <3 :tada:")
+        #expect(EmojiSpelling.spelled("🦋") == ":butterfly:")
+        #expect(EmojiSpelling.spelled("🇯🇵 1️⃣") == "[JP] [1]")
+        #expect(EmojiSpelling.spelled("👨‍👩‍👧") == ":man_woman_girl:")
+        // Text by default: left for `Latin-ASCII`, which knows them.
+        #expect(EmojiSpelling.spelled("© ™ ↩︎ 1") == "© ™ ↩︎ 1")
+    }
+
+    @Test("The marks Latin-ASCII keeps become an apostrophe, or go")
+    func marks() {
+        #expect(TextTransliteration.withoutMarks("alʿrbyt obʺyëm") == "al'rbyt obyëm")
     }
 
     #if canImport(Darwin)
@@ -61,6 +98,7 @@ struct TextTransliterationTests {
         func spelled() {
             #expect(first(Text(verbatim: "你好")) == "ni hao")
             #expect(first(Text(verbatim: "Привет, Ελλάδα")) == "Privet, Ellada")
+            #expect(first(Text(verbatim: "ok 🙂")) == "ok :)")
             #expect(first(Text(verbatim: "Café")) == "Cafe")
             #expect(size(Text(verbatim: "你好")).width == 6)
             #expect(size(Text(verbatim: "你好"), transliterating: false).width == 4)
@@ -98,9 +136,35 @@ struct TextTransliterationTests {
         @Test("A string spelled twice comes back the same: the second from the memo")
         func memoAgrees() {
             let first = TextTransliteration.transliterated("Здравствуйте")
-            #expect(first == "Zdravstvujte")
+            #expect(first == "Zdravstvuyte")
             #expect(TextTransliteration.transliterated("Здравствуйте") == first)
-            #expect(TextTransliteration.spelled("Здравствуйте") == first)
+            #expect(TextTransliteration.spelling("Здравствуйте", reading: .standard) == first)
+        }
+
+        @Test("Cyrillic by BGN/PCGN, as the words sound, and by the app's language's own")
+        func cyrillic() {
+            #expect(TextTransliteration.transliterated("Имя, Щука, Юрий") == "Imya, Shchuka, Yuriy")
+            #expect(TextTransliteration.transliterated("Київ", reading: .ukrainian) == "Kyyiv")
+            #expect(TextTransliteration.transliterated("България", reading: .bulgarian) == "Bulgariya")
+        }
+
+        @Test("Greek by UNGEGN's modern romanization")
+        func greek() {
+            #expect(TextTransliteration.transliterated("Αθήνα, ευχαριστώ") == "Athina, efcharisto")
+        }
+
+        @Test("Japanese read as Japanese where it has kana or the app is Japanese; Han alone as Chinese")
+        func japanese() {
+            #expect(TextTransliteration.transliterated("日本語", reading: .japanese) == "nippon go")
+            #expect(TextTransliteration.transliterated("東京へ行きます") == "toukyou he iki masu")
+            #expect(TextTransliteration.transliterated("日本語") == "ri ben yu")
+            #expect(TextTransliteration.transliterated("你好", reading: .japanese).isEmpty == false)
+        }
+
+        @Test("Korean by ICU's Revised Romanization transliteration; Arabic's ʿayin as an apostrophe")
+        func koreanAndArabic() {
+            #expect(TextTransliteration.transliterated("안녕하세요, 서울") == "annyeonghaseyo, seoul")
+            #expect(TextTransliteration.transliterated("العربية") == "al'rbyt")
         }
     #endif
 }

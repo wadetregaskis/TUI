@@ -22,7 +22,7 @@ import Testing
 struct TransliteratedFieldTests {
     private func drawn(_ view: some View) -> String {
         let context = makeRenderContext(width: 30, height: 3) { environment, _ in
-            environment.transliteratesText = true
+            environment.textSpelling = .ascii(.standard)
         }
         return renderToBuffer(view, context: context).lines.map(\.stripped).joined(separator: "\n")
     }
@@ -43,7 +43,14 @@ struct TransliteratedFieldTests {
         @Test("A field's prompt, a Text, is spelled")
         func prompt() {
             let lines = drawn(TextField("Имя", text: .constant(""), prompt: Text(verbatim: "Имя")))
-            #expect(lines.contains("Ima"), "\(lines)")
+            #expect(lines.contains("Imya"), "\(lines)")
+        }
+
+        @Test("A vertical field's prompt, drawn in a context of its own, is spelled and laid out spelled")
+        func verticalPrompt() {
+            let lines = drawn(
+                TextField("Имя", text: .constant(""), prompt: Text(verbatim: "Привет, мир"), axis: .vertical))
+            #expect(lines.contains("Privet, mir"), "\(lines)")
         }
     #endif
 }

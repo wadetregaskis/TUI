@@ -1063,7 +1063,7 @@ extension _ContainerViewCore: @preconcurrency Equatable where Content: Equatable
 
 extension _ContainerViewCore {
     /// This container with its title spelled in ASCII, where
-    /// ``EnvironmentValues/transliteratesText`` asks and that changes it, so
+    /// ``RenderContext/textSpelling`` asks and that changes it, so
     /// the measure and the render both see the title as a ``Text`` would
     /// draw it; `nil` otherwise. The title is drawn into the border, not by
     /// a `Text`.
@@ -1071,8 +1071,8 @@ extension _ContainerViewCore {
     /// The copy answers `nil` in turn: the transform's output is ASCII, or
     /// what it had nothing to say about, which it leaves as it is again.
     fileprivate func spelled(in context: RenderContext) -> Self? {
-        guard context.environment.transliteratesText, let title else { return nil }
-        let spelledTitle = TextTransliteration.transliterated(title)
+        guard context.textSpelling.isASCII, let title else { return nil }
+        let spelledTitle = context.spelled(title)
         guard spelledTitle != title else { return nil }
         var spelled = self
         spelled.title = spelledTitle

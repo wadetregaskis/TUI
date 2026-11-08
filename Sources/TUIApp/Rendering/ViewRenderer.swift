@@ -4,6 +4,7 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
 import TUIChrome
 import TUIFoundation
 
@@ -201,11 +202,16 @@ extension ViewRenderer {
     /// a measure with the whole of what it was offered does not write without end.
     private static let tallestInlineRender = 100_000
 
-    /// The environment a snapshot renders in: this renderer's services.
+    /// The environment a snapshot renders in: this renderer's services, and
+    /// text spelled in ASCII where the person running the program set
+    /// `TUI_PLAIN_TEXT=transliterate`, as an app's is.
     private func makeEnvironment() -> EnvironmentValues {
         var environment = EnvironmentValues()
         environment.applyRuntimeServices(from: context)
         environment.focusManager = focusManager
+        if PlainTerminalText.transliterates(in: ProcessInfo.processInfo.environment) {
+            environment.spellTextInASCII()
+        }
         return environment
     }
 

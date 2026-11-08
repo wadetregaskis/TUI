@@ -109,9 +109,16 @@ internal final class RenderLoop<A: App> {
     /// Whether text is spelled in ASCII before layout: the experiment
     /// `TUI_PLAIN_TEXT=transliterate` turns on, which the app runner reads
     /// (``PlainTerminalText/transliterates(in:)``), written at the root of
-    /// every frame as ``EnvironmentValues/transliteratesText``. `false` in
-    /// every other loop unless a test says otherwise.
+    /// every frame as ``EnvironmentValues/textSpelling``. A headless app's
+    /// asks the same variable (`HeadlessApp`); `false` in every other loop
+    /// unless a test says otherwise.
     var transliteratesText = false
+
+    /// How this frame's words are spelled: ``transliteratesText`` read as the
+    /// root's locale's language reads its script, as the root environment
+    /// carries it (``buildEnvironment()``). For what the loop draws without a
+    /// context: the status bar's tooltip and copy note.
+    var textSpelling = TextSpelling.asWritten
 
     /// Whether the last frame left the cursor shown (``cursorFollowsFocus``).
     var showsCursor = false
@@ -1096,9 +1103,6 @@ extension RenderLoop {
         // scene's `.focusFollowsPointer(_:)` to replace, and the View menu to
         // show and replace in turn.
         environment.focusFollowsPointer = focusFollowsPointerRequested
-        // The user's `TUI_PLAIN_TEXT=transliterate`, which nothing below
-        // takes back.
-        if transliteratesText { environment.transliteratesText = true }
         // The user's spring-loading delay: their `TUI_SPRING_LOADING_DELAY`,
         // else the host's where they are provably at it, else macOS's default
         // (the key's own). A view's `.springLoadingDelay(_:)` overrides it.
@@ -1150,7 +1154,12 @@ extension RenderLoop {
         // Runtime services (shared with ViewRenderer's one-off path so
         // the wired set can't drift — see EnvironmentValues.applyRuntimeServices).
         environment.applyRuntimeServices(from: tuiContext)
+        // The user's `TUI_PLAIN_TEXT=transliterate`, read as the app's language
+        // reads its script (`TextReading`): after the services, which publish
+        // the locale. Every context made from this environment carries it.
+        if transliteratesText { environment.spellTextInASCII() }
         configureEnvironment?(&environment)
+        textSpelling = environment.textSpelling
 
         return environment
     }

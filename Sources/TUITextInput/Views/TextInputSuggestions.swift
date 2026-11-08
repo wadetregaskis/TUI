@@ -552,11 +552,11 @@ enum TextFieldSuggestions {
             case .option(let explicit, let label):
                 let rendered = label.renderToBuffer(context: labelContext).lines.first ?? ""
                 var completion = explicit ?? rendered.stripped
-                if explicit == nil, labelContext.environment.transliteratesText {
+                if explicit == nil, labelContext.textSpelling.isASCII {
                     // What a choice types into the field is the label's own
                     // words, not their ASCII spelling (`TUI_PLAIN_TEXT=transliterate`).
                     var asWritten = labelContext
-                    asWritten.environment.transliteratesText = false
+                    asWritten.textSpelling = .asWritten
                     completion = (label.renderToBuffer(context: asWritten).lines.first ?? "").stripped
                 }
                 // The option whose completion is the field's current text is

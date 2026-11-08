@@ -43,11 +43,14 @@ extension TextFieldContentRenderer {
     }
 
     /// The prompt's text, paragraph by paragraph, for a field that draws it over
-    /// several rows — or `""` for none.
-    static func promptParagraphs(_ prompt: Text?) -> String {
+    /// several rows — or `""` for none — spelled as `spelling` says, as the
+    /// field's own context would spell it: the prompt is drawn in a context of
+    /// its own.
+    static func promptParagraphs(_ prompt: Text?, spelling: TextSpelling) -> String {
         guard let prompt else { return "" }
-        let buffer = TUIView.renderToBuffer(
-            prompt, context: RenderContext(availableWidth: 4096, availableHeight: 4096))
+        var context = RenderContext(availableWidth: 4096, availableHeight: 4096)
+        context.textSpelling = spelling
+        let buffer = TUIView.renderToBuffer(prompt, context: context)
         return buffer.lines.map(\.stripped).joined(separator: "\n")
     }
 

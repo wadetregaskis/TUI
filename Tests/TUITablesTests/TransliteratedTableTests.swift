@@ -27,7 +27,7 @@ struct TransliteratedTableTests {
     private func drawn(_ view: some View) -> String {
         var environment = EnvironmentValues()
         environment.focusManager = FocusManager()
-        environment.transliteratesText = true
+        environment.textSpelling = .ascii(.standard)
         let context = RenderContext(
             availableWidth: 30, availableHeight: 8, environment: environment, tuiContext: TUIContext()
         ).isolatingRenderCache()

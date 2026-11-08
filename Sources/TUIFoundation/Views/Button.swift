@@ -693,14 +693,13 @@ private struct _ButtonCore: View, Renderable, Layoutable {
     /// The title as it reads here: its key read again in the language a
     /// subtree's `\.locale` names, if it came from one, and as it was made
     /// otherwise — one environment read for a button under no such subtree.
-    /// Spelled in ASCII where ``EnvironmentValues/transliteratesText`` asks,
-    /// as a ``Text`` would be: a title is drawn by the style, not by a `Text`.
+    /// Spelled as ``RenderContext/textSpelling`` says, as a ``Text`` would be:
+    /// a title is drawn by the style, not by a `Text`.
     private func title(in context: RenderContext) -> String {
-        let transliterates = context.environment.transliteratesText
         guard let localizedTitle, let language = context.environment.stringLanguage,
             language != localizedTitle.language
-        else { return TextTransliteration.transliterated(label, if: transliterates) }
-        return TextTransliteration.transliterated(localizedTitle.words(in: language), if: transliterates)
+        else { return context.spelled(label) }
+        return context.spelled(localizedTitle.words(in: language))
     }
 
     /// A custom ``PrimitiveButtonStyle`` is the whole button: its body is

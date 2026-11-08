@@ -137,7 +137,7 @@ enum Headless {
         // `TUI_PLAIN_TEXT=transliterate`, as the app runner writes it at the
         // root, so a bench can price spelling text in ASCII before layout.
         if PlainTerminalText.transliterates(in: ProcessInfo.processInfo.environment) {
-            environment.transliteratesText = true
+            environment.spellTextInASCII()
         }
         // Through the installer, so the measure memo's gate — which reads the
         // tracker off the render cache, not out of the environment — is open
