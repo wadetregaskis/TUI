@@ -108,3 +108,18 @@ The "noticed" items above, taken up the same day by a second lane.
   now runs only while `onScrollVisibilityChange` says the table is shown.
   Idle, `idle_cpu.py --page tables` over 10 s: 4.1% → 0.1% CPU; scrolled to
   the table, it ticks as before.
+- **Pictures held whole** (not changed). Measured on the Tab Views page
+  (`drive.py --scenario tabviews`, new): peak RSS 74.8–77.0 MB against
+  38.4–38.6 MB on the menu; `footprint` 26 MB, of which `heap` puts 11.0 MB
+  in five `[RGBA]` buffers, the mascots at source size (480×569 to
+  1024×1024). They are the app's image cache's (64 MiB LRU,
+  `TUI_IMAGE_CACHE_SIZE`), which the views' pins share rather than copy, so
+  they are bounded by design; no knob reduces them (`imageMaxPixelCount`
+  fails a decode, it does not shrink one). Shrinking them is a design with
+  costs, left for the owner: a box-sized copy of a file's picture drawn as
+  glyphs, filed under the box and the full decode let go, re-decoded on a
+  resize (a few ms a picture under the 256 KB synchronous limit, a task
+  above it); the terminal-graphics path would need the cell's pixel size,
+  and a URL's picture would be fetched again. Seen on the way:
+  `TUI_IMAGE_CACHE_SIZE=0` decodes each small file again on every frame
+  (peak 207–290 MB, CPU ×3–4 on this page).

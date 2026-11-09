@@ -230,6 +230,12 @@ def build_scenario(name, rows, cols):
         # Sit on the ProgressView page (key `) and let its many determinate +
         # indeterminate bars self-drive re-renders. Steady-state per-frame cost.
         return [(0.30, b"`")] + [(0.10, b"")] * 120
+    if name == "tabviews":
+        # Open the Tab Views page and sit on it: its mascot tabs draw each
+        # bundled picture a few cells wide, which is what its peak RSS is
+        # for (each picture decoded is held while it is drawn). Not in
+        # PAGE_KEYS, so the `tour` is unchanged.
+        return [(0.30, b"v")] + [(0.10, b"")] * 30
     if name == "spinners":
         # Sit on the Spinners page (key 0) and let its spinners self-drive
         # re-renders. The cheap-render / fast-timer case the animation scheduler
@@ -346,7 +352,7 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("binary")
     ap.add_argument("--scenario", default="tour",
-                    choices=["tour", "list", "table", "emoji", "scroll", "mouse", "splitdrag",
+                    choices=["tour", "list", "table", "emoji", "scroll", "mouse", "splitdrag", "tabviews",
                              "idle", "menu", "progress", "spinners"])
     ap.add_argument("--loops", type=int, default=1)
     ap.add_argument("--rows", type=int, default=50)

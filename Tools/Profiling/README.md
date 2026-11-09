@@ -340,7 +340,9 @@ under the Time Profiler, then analyzes the trace.
 Launches a binary inside a pseudo-terminal (so raw mode + `TIOCGWINSZ`
 work), feeds it scripted keyboard/mouse input, and drains output so the
 child never stalls. Scenarios: `tour`, `list`, `table`, `emoji`,
-`scroll`, `mouse`, `idle`, `progress`.
+`scroll`, `mouse`, `idle`, `progress`, and `tabviews` (sits on the Tab
+Views page, whose mascot tabs draw each bundled picture a few cells wide:
+for its `peak-rss=`).
 
 ```bash
 # Drive without profiling — a fast sanity check that the app responds:
