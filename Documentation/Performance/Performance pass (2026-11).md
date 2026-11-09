@@ -123,3 +123,12 @@ The "noticed" items above, taken up the same day by a second lane.
   and a URL's picture would be fetched again. Seen on the way:
   `TUI_IMAGE_CACHE_SIZE=0` decodes each small file again on every frame
   (peak 207–290 MB, CPU ×3–4 on this page).
+- **A deep navigation stack's covered screens** (`b1077deb2`). They are not
+  drawn: each frame marks each covered screen's identity active and retains
+  its subtree, so its state survives the prune. Measured with new sessions
+  `inbox-pushed5` and `inbox-pushed10` (the inbox pushed one a step over
+  itself), `ab_bench.py`, 10 reps, against the same tip with that retention
+  switched off: `inbox-pushed` −0.3% (indistinguishable), `inbox-pushed5`
+  +1.0% (CI +0.0 to +3.4%), `inbox-pushed10` +1.5% (+0.1 to +1.9%), RSS
+  +0.3 to +0.6 MB. Well under the 10% that would call for a cheaper
+  keep-alive, so none is proposed.
