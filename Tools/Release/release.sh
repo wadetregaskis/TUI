@@ -4,10 +4,14 @@
 # release.sh — cuts a release from this Mac: the version, the changelog, the
 # tag, the GitHub release with its notes and clips, and the site.
 #
-#   Tools/Release/release.sh [--version X.Y.Z] [--clips <dir>|--skip-clips] [--dry-run]
+#   Tools/Release/release.sh [--version X.Y.Z] [--highlights <file>] [--clips <dir>|--skip-clips] [--dry-run]
 #
 #   --version     the version to release; asked for when not given, with the
 #                 next major, minor and patch offered
+#   --highlights  the release's body is this hand-written file, then a link to
+#                 CHANGELOG.md at the tag, instead of the whole `## Unreleased`
+#                 section (for when that is over GitHub's 125,000 characters).
+#                 The tag's message and the changelog keep the whole section.
 #   --clips       attach the clips already in <dir> (*.webp, *.mp4) instead of
 #                 filming them again
 #   --skip-clips  attach none: the site's media/latest/ then stays the last
@@ -42,6 +46,7 @@ cd "$(dirname "$0")/../.."
 VERSION_FILE="Sources/TUIStrings/VERSION"
 CHANGELOG="CHANGELOG.md"
 VERSION=""
+HIGHLIGHTS=""
 CLIPS=""
 SKIP_CLIPS=0
 DRY_RUN=0
@@ -49,10 +54,11 @@ DRY_RUN=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --version) VERSION="$2"; shift 2 ;;
+        --highlights) HIGHLIGHTS="$2"; shift 2 ;;
         --clips) CLIPS="$2"; shift 2 ;;
         --skip-clips) SKIP_CLIPS=1; shift ;;
         --dry-run) DRY_RUN=1; shift ;;
-        -h|--help) sed -n '2,37p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,41p' "$0"; exit 0 ;;
         *) echo "unknown option: $1" >&2; exit 2 ;;
     esac
 done
@@ -108,17 +114,28 @@ NOTES="$(awk '/^## Unreleased[[:space:]]*$/ {inside = 1; next} inside && /^## / 
 
 SCRATCH="$(mktemp -d "${TMPDIR:-/tmp}/release-$VERSION.XXXXXX")"
 printf '%s\n' "$NOTES" > "$SCRATCH/notes.md"
+# The release's body: the whole section, or with --highlights that file and a
+# link to the changelog as it stands at the tag.
+BODY="$SCRATCH/notes.md"
+if [ -n "$HIGHLIGHTS" ]; then
+    [ -f "$HIGHLIGHTS" ] || fail "no highlights file: $HIGHLIGHTS"
+    BODY="$SCRATCH/body.md"
+    { cat "$HIGHLIGHTS"
+      printf '\n---\n\nEvery change, with what to do about it in an app: [CHANGELOG.md](https://github.com/%s/blob/v%s/CHANGELOG.md).\n' \
+          "$REPOSITORY" "$VERSION"
+    } > "$BODY"
+fi
 # GitHub refuses a release body over 125,000 characters, and step 4 creates the
-# release only after pushing the tag, so a longer section would leave a pushed
+# release only after pushing the tag, so a longer body would leave a pushed
 # tag with no release. Characters, not bytes: `wc -m` under a UTF-8 locale.
-NOTES_CHARACTERS="$(LC_ALL=en_US.UTF-8 wc -m < "$SCRATCH/notes.md" | tr -d ' ')"
+NOTES_CHARACTERS="$(LC_ALL=en_US.UTF-8 wc -m < "$BODY" | tr -d ' ')"
 [ "$NOTES_CHARACTERS" -le 125000 ] \
-    || check "the notes are $NOTES_CHARACTERS characters, over GitHub's 125,000 for a release: shorten '## Unreleased'"
+    || check "the release body is $NOTES_CHARACTERS characters, over GitHub's 125,000 for a release: shorten '## Unreleased', or pass --highlights <file>"
 DATE="$(date +%Y-%m-%d)"
 
-echo "==> $REPOSITORY $VERSION ($DATE), after ${LAST_TAG:-no release}; notes: $(wc -l < "$SCRATCH/notes.md" | tr -d ' ') lines"
+echo "==> $REPOSITORY $VERSION ($DATE), after ${LAST_TAG:-no release}; notes: $(wc -l < "$BODY" | tr -d ' ') lines, $NOTES_CHARACTERS characters"
 if [ "$DRY_RUN" = 1 ]; then
-    echo "==> Dry run: the notes are in $SCRATCH/notes.md. Nothing changed."
+    echo "==> Dry run: the release body is in $BODY. Nothing changed."
     [ "$SKIP_CLIPS" = 1 ] || echo "    Would film the clips${CLIPS:+ (no: would attach $CLIPS)}."
     echo "    Would write $VERSION_FILE, date the changelog, commit, tag v$VERSION, push, release, publish."
     exit 0
@@ -161,7 +178,7 @@ esac
 git push origin main "v$VERSION"
 # A draft first, so the release is published — and the site rebuilt — only
 # once its clips are attached.
-gh release create "v$VERSION" --repo "$REPOSITORY" --draft --title "$VERSION" --notes-file "$SCRATCH/notes.md" --verify-tag
+gh release create "v$VERSION" --repo "$REPOSITORY" --draft --title "$VERSION" --notes-file "$BODY" --verify-tag
 if [ "${#ASSETS[@]}" -gt 0 ]; then
     gh release upload "v$VERSION" --repo "$REPOSITORY" "${ASSETS[@]}"
 fi

@@ -31,6 +31,12 @@ the release's notes word for word, so write it for someone upgrading. GitHub
 takes at most 125,000 characters of notes for a release, and the script stops
 before tagging when the section is longer.
 
+When it is longer, hand-write the release's highlights instead and pass the
+file: `Tools/Release/release.sh --highlights <file>`. The release body is then
+that file and a link to `CHANGELOG.md` at the tag; the changelog and the tag's
+message keep the whole section, and the length check applies to the body. The
+1.0 draft is `Documentation/Release highlights 1.0 (draft).md`.
+
 For the first release, also rewrite the changelog preface's last paragraph,
 which says TUI has not been released and makes no compatibility promise.
 
