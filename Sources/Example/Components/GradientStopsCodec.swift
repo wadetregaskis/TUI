@@ -21,33 +21,16 @@ enum GradientStopsCodec {
     /// stop, the store hands back the fallback, and the dialog redraws as the
     /// gradient it just stopped being.
     ///
-    /// **A stop written without a position is read as evenly spaced**, which
-    /// is what the previous format — bare `RRGGBB` stops, from when a gradient
-    /// was an even `[Color]` — meant. Stored values migrate by being read.
+    /// The format is the gradient editor's own (`GradientStopsText`), and a
+    /// stop written without a position is read as evenly spaced, so values
+    /// stored by the bare-`RRGGBB` format before it migrate by being read.
     ///
     /// The format is colours and positions only. A gradient's colour space is
     /// therefore taken from `fallback`, which is the caller's own default —
     /// storing one would be a third format revision for something no editor
     /// can currently set.
     static func decode(_ raw: String, fallback: Gradient) -> Gradient {
-        let fields = raw.split(separator: ",")
-        guard !fields.isEmpty else { return fallback }
-        var stops: [Gradient.Stop] = []
-        for (index, field) in fields.enumerated() {
-            let parts = field.split(separator: "@", maxSplits: 1)
-            // `first`, not `[0]`: `split` drops empty pieces, so a field that
-            // is only separators ("@") yields NO parts, and indexing trapped
-            // on a persisted value every other malformed input tolerates.
-            guard let first = parts.first, let colour = Color.hex(String(first)) else { continue }
-            // A lone stop has nowhere to sit, and `index / (count − 1)` would
-            // be 0/0 for it.
-            let even = fields.count > 1 ? Double(index) / Double(fields.count - 1) : 0
-            // `Double("nan")` parses, and a NaN location is a stop the ramp
-            // can never reach (every comparison is false) and a gradient that
-            // never equals itself: read as even, as an unparseable one is.
-            let parsed = parts.count > 1 ? Double(parts[1]) : nil
-            stops.append(Gradient.Stop(color: colour, location: parsed.map { $0.isFinite ? $0 : even } ?? even))
-        }
+        let stops = GradientStopsText.stops(from: raw)
         // `withStops` on the FALLBACK, not `Gradient(stops:)`: the format
         // stores colours and positions and nothing else, so anything else the
         // gradient carries — its colour space — comes from what the caller
@@ -57,20 +40,13 @@ enum GradientStopsCodec {
 
     /// Encodes a gradient for storage — the inverse of ``decode(_:fallback:)``.
     static func encode(_ gradient: Gradient) -> String {
-        gradient.stops.map { hex($0.color) + "@" + Double($0.location).formatted(.fixed(3)) }
-            .joined(separator: ",")
+        GradientStopsText.text(of: gradient)
     }
 
-    /// A colour as the bare `RRGGBB` ``Color/hex(_:)-(String)`` reads back.
-    ///
-    /// The one place this app turns a `Color` into text, so a store written
-    /// here can always be read by whatever reads it. A colour with no channels
-    /// to state (a palette role) has no hex, and black is what the gradient
-    /// format has always written for one. A terminal slot is written as the
-    /// colour the terminal reported for it, or xterm's value while it has
-    /// reported none.
+    /// A colour as the bare `RRGGBB` ``Color/hex(_:)-(String)`` reads back:
+    /// the one place this app turns a `Color` into text, so a store written
+    /// here can always be read by whatever reads it.
     static func hex(_ color: Color) -> String {
-        guard let components = color.estimatedRGB else { return "000000" }
-        return [components.red, components.green, components.blue].map { $0.digits(width: 2, radix: 16, uppercase: true) }.joined()
+        GradientStopsText.hex(color)
     }
 }

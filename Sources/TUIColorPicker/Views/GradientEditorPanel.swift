@@ -774,32 +774,12 @@ extension GradientEditorPanel: View {}
         return Array(updated.prefix(recentLimit))
     }
 
-    /// Decodes the persisted recents. Entries that don't decode to at least
+    /// Decodes the persisted recents, `;`-separated gradients in
+    /// ``GradientStopsText``'s format. Entries that don't decode to at least
     /// two stops drop.
-    ///
-    /// **A stop written without a position is read as evenly spaced**, which is
-    /// exactly what the previous format — bare `RRGGBB` stops, from when a
-    /// gradient WAS an even `[Color]` — meant. So an app's stored recents
-    /// migrate by being read, with no version flag and nothing to convert.
     static func decodeRecents(_ raw: String) -> [Gradient] {
         raw.split(separator: ";").compactMap { entry in
-            let fields = entry.split(separator: ",")
-            guard fields.count >= 2 else { return nil }
-            var stops: [Gradient.Stop] = []
-            for (index, field) in fields.enumerated() {
-                let parts = field.split(separator: "@", maxSplits: 1)
-                // `first`, not `[0]`: `split` drops empty pieces, so a stop
-                // that is only the separator ("@") has NO parts, and indexing
-                // trapped on a value read back from the app's store.
-                guard let first = parts.first, let colour = Color.hex(String(first)) else { continue }
-                let even = Double(index) / Double(fields.count - 1)
-                // `Double("nan")` parses, and a NaN location is a stop the
-                // ramp can never reach (every comparison is false) and a
-                // cache key that never equals itself.
-                let parsed = parts.count > 1 ? Double(parts[1]) : nil
-                let location = parsed.map { $0.isFinite ? $0 : even } ?? even
-                stops.append(Gradient.Stop(color: colour, location: location))
-            }
+            let stops = GradientStopsText.stops(from: entry)
             // `Gradient(stops:)` is right HERE and nowhere else in this file:
             // a recent is built from stored text, so there is no incoming
             // gradient whose colour space could be carried — the chip that
@@ -810,22 +790,7 @@ extension GradientEditorPanel: View {}
     }
 
     /// Encodes recents for persistence — the inverse of ``decodeRecents(_:)``.
-    ///
-    /// `;`-separated gradients of `,`-separated `RRGGBB@position` stops, the
-    /// position to three decimals. Positions are always written, even when
-    /// even: a reader cannot tell an evenly-spaced gradient from one whose
-    /// spacing happens to look even, and the round trip has to be exact.
     static func encodeRecents(_ recents: [Gradient]) -> String {
-        recents.map { gradient in
-            gradient.stops.map { stop in
-                let hex: String
-                if let components = stop.color.estimatedRGB {
-                    hex = [components.red, components.green, components.blue].map { $0.digits(width: 2, radix: 16, uppercase: true) }.joined()
-                } else {
-                    hex = "000000"
-                }
-                return hex + "@" + Double(stop.location).formatted(.fixed(3))
-            }.joined(separator: ",")
-        }.joined(separator: ";")
+        recents.map(GradientStopsText.text(of:)).joined(separator: ";")
     }
 }
