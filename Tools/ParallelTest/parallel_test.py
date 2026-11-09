@@ -305,14 +305,20 @@ def peak_concurrency(path):
 
 
 def lpt(items, n):
-    """Longest-processing-time-first bin packing. items: [(key, weight)]."""
+    """Longest-processing-time-first bin packing. items: [(key, weight)].
+
+    Returns at most `n` bins and never an empty one: with fewer items than
+    processes (a filter selecting two tests under -j 4) the spare bins are
+    dropped, because an empty bin's pattern `^(?:)` selects EVERY test.
+    """
     bins = [[] for _ in range(n)]
     loads = [0.0] * n
     for key, weight in sorted(items, key=lambda kv: -kv[1]):
-        i = loads.index(min(loads))
+        i = min(range(n), key=lambda b: (loads[b], len(bins[b])))
         bins[i].append(key)
         loads[i] += weight
-    return bins, loads
+    kept = [i for i in range(n) if bins[i]]
+    return [bins[i] for i in kept], [loads[i] for i in kept]
 
 
 def build_items(ids, weights, n):
@@ -1072,6 +1078,8 @@ def main():
     if not ids:
         sys.exit("parallel-test: --filter %r matched no tests" % args.filter)
     owner = {t: owner[t] for t in ids}
+    # A process per test at most: more would only be empty groups.
+    jobs = max(1, min(jobs, len(ids)))
     print("parallel-test: %s in %s, %d process%s"
           % (plural(len(ids), "test"),
              plural(len({suite_of(i) for i in ids}), "suite"),
@@ -1088,6 +1096,7 @@ def main():
 
     items, split, total = build_items(ids, weights, jobs)
     bins, loads = lpt(items, jobs)
+    jobs = len(bins)  # fewer when there are fewer items (a suite kept whole) than processes
     patterns = [group_pattern(b) for b in bins]
     proof = prove(patterns, ids)
 

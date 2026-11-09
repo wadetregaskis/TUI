@@ -150,6 +150,19 @@ class TestPacking(unittest.TestCase):
         self.assertTrue(proof["exact"], proof["missing"][:3] + proof["dupes"][:3])
         self.assertEqual(sum(proof["counts"]), len(ids))
 
+    def test_fewer_items_than_processes_is_still_a_partition(self):
+        # `quick.py test` asks for -j 4; a filter selecting two tests used to
+        # leave two bins empty, and an empty bin's pattern `^(?:)` selects
+        # every test, so the proof refused the run. Empty bins are dropped.
+        for ids in (["M.A/a()", "M.B/b()"], ["M.A/a%d()" % i for i in range(3)]):
+            weights = {t: 0.0 for t in ids}
+            items, _, _ = pt.build_items(ids, weights, 4)
+            bins, loads = pt.lpt(items, 4)
+            self.assertTrue(all(bins))
+            self.assertEqual(len(bins), len(loads))
+            proof = pt.prove([pt.group_pattern(b) for b in bins], ids)
+            self.assertTrue(proof["exact"], proof["dupes"][:3])
+
 
 class TestSummaryParsing(unittest.TestCase):
     def test_passing_run_with_known_issues(self):
