@@ -130,6 +130,14 @@ changing the `media` release. [`Tools/Site/README.md`](Tools/Site/README.md)
 has the layout, the local preview (`Tools/Site/assemble.sh`), and the one
 repository setting it needs (Settings → Pages → Source: "GitHub Actions").
 
+### SwiftUI parity on a newer SDK
+
+A third workflow, `.github/workflows/swiftui-parity-27.yml`, runs only by hand
+(*Actions → SwiftUI parity (Xcode 27) → Run workflow*). It compares TUI's API
+with Xcode 27's SwiftUI on GitHub's `xcode-27` image, for when no Mac at hand
+can run that Xcode, and uploads the report as an artifact; it fails nothing.
+[`Tools/APIParity/README.md`](Tools/APIParity/README.md) says what it keeps.
+
 ### WebAssembly
 
 TUI builds for `wasm32-unknown-wasip1`, and the Example app runs in a browser

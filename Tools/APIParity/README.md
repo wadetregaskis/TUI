@@ -19,6 +19,22 @@ Needs macOS with Xcode — SwiftUI's symbol graph comes out of the SDK. Takes a
 couple of minutes and about 600 MB of scratch space; pass `--work-dir` to keep
 the graphs for poking at, otherwise they are deleted.
 
+### Against an SDK no development Mac can run
+
+SwiftUI's side is whatever SDK the selected Xcode carries, so the comparison is
+only as new as the newest Xcode a Mac at hand can run. For Xcode 27, which needs
+macOS 27, a manual GitHub Actions workflow runs the tool on GitHub's `xcode-27`
+image instead: [`swiftui-parity-27.yml`](../../.github/workflows/swiftui-parity-27.yml).
+Start it from the repository's Actions tab ("SwiftUI parity (Xcode 27)" ▸ Run
+workflow; inputs: the Xcode to select, default `27`, and the `--target`, default
+`arm64-apple-macosx27.0`). It runs `--json` with `--work-dir`, then
+`--deprecated`, fails on nothing, and uploads one artifact holding the printed
+report (`parity.txt`), the full result (`parity.json`), the deprecations report
+(`deprecated.txt`), the toolchain it ran under, and SwiftUI's symbol graphs
+(`swiftui/`), which carry the exact declaration of every gap the report names.
+It does not `--accept`: `baseline.json` stays the one recorded against a local
+SDK, and the report is read to decide which new SwiftUI API TUI takes on.
+
 ## Why not `nm`
 
 Mangled symbols lose argument labels and default values, and mix in inlinable
