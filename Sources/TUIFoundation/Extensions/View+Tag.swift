@@ -18,7 +18,7 @@
 ///
 /// - Important: Framework infrastructure. Created by
 ///   ``View/tag(_:includeOptional:)``; do not instantiate directly.
-nonisolated public struct _TaggedView<Content: View>: View {
+nonisolated struct _TaggedView<Content: View>: View {
     /// The tag value, type-erased.
     package let tagValue: AnyHashable
 
@@ -31,13 +31,13 @@ nonisolated public struct _TaggedView<Content: View>: View {
     /// The wrapped content view.
     package let content: Content
 
-    @MainActor public var body: some View {
+    @MainActor var body: some View {
         content
     }
 
     /// Static witness: a tag is a container value — see
     /// ``View/_providesContainerValues``.
-    @MainActor public static var _providesContainerValues: Bool { true }
+    @MainActor static var _providesContainerValues: Bool { true }
 }
 
 /// A tag is one of the view's container values, as in SwiftUI: what
@@ -266,7 +266,7 @@ package func resolveTag<Value: Hashable>(
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
 @MainActor extension _TaggedView: SingleContentWrapper {
-    public var wrappedContent: Content { content }
+    var wrappedContent: Content { content }
 }
 
 /// A tag on several views tags each of them, as SwiftUI's modifier on a
@@ -274,7 +274,7 @@ package func resolveTag<Value: Hashable>(
 /// `List` is two rows tagged `1`, and in an `HStack` two children side by
 /// side, not one column of two.
 @MainActor extension _TaggedView: ContentRewrapping {
-    public func rewrapping<V: View>(_ view: V) -> any View {
+    func rewrapping<V: View>(_ view: V) -> any View {
         _TaggedView<V>(tagValue: tagValue, includeOptional: includeOptional, content: view)
     }
 }

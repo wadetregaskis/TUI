@@ -286,7 +286,7 @@ extension Layout {
 /// for placements, then composites each placed subview into the result.
 ///
 /// - Important: Framework infrastructure. Created by ``Layout/callAsFunction(_:)``.
-nonisolated public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutable {
+nonisolated package struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutable {
     let layout: L
     let content: Content
 
@@ -297,14 +297,14 @@ nonisolated public struct _LayoutCore<L: Layout, Content: View>: View, Renderabl
         self.content = content
     }
 
-    @MainActor public var body: Never {
+    @MainActor package var body: Never {
         fatalError("_LayoutCore renders via Renderable")
     }
 
     /// A layout can give a guide an explicit value of its own, which no
     /// static fact rules out unless the layout says so; past that, a subview
     /// may hold one for the default merge to report.
-    @MainActor public static var _providesAlignmentGuide: Bool {
+    @MainActor package static var _providesAlignmentGuide: Bool {
         L._definesExplicitAlignment || Content._providesAlignmentGuide
     }
 
@@ -406,7 +406,7 @@ nonisolated public struct _LayoutCore<L: Layout, Content: View>: View, Renderabl
             axis, passesNoWidthOn: axis == .horizontal || isStaticallyOneView(Content.self))
     }
 
-    @MainActor public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         let context = publishingChildAxis(context)
         let (subviews, _, _) = resolve(context: context)
         var cache = freshCache(subviews)
@@ -433,7 +433,7 @@ nonisolated public struct _LayoutCore<L: Layout, Content: View>: View, Renderabl
             height: proposal.height ?? max(0, context.availableHeight))
     }
 
-    @MainActor public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let context = publishingChildAxis(context)
         let (subviews, placements, departing) = resolve(context: context)
         guard !subviews.isEmpty else {

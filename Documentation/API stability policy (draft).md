@@ -49,9 +49,10 @@ promised: TUI is a source package built with the app, without library evolution,
 
 - **Underscored names.** A declaration whose name, or any enclosing type's name, starts with `_` is not API, even
   when it is `public`: SwiftUI and the Swift standard library follow the same rule, and so does swift-collections.
-  There are 306 such declarations under 88 names today, most of them public only because a public protocol or
-  SwiftUI's own spelling needs them. The working note `plan/broad/underscored-public.md` (in the maintainers'
-  working notes, not the repository) sorts them, and finds 14 types that could simply be `package` or `internal`.
+  There are 292 such declarations under 74 names today, public only because a public protocol or SwiftUI's own
+  spelling needs them. The working note `plan/broad/underscored-public.md` (in the maintainers' working notes, not
+  the repository) sorts them; the 14 types it found public by accident were made `internal` or `package` on
+  2026-11-09 (the owner's LEAKS ruling).
 - **`package` declarations,** which clients cannot see, and `@_spi` (there is none).
 - **Experimental environment variables:** those the end-user table describes as "an experiment, for trying out"
   (`TUI_CURSOR_FOLLOWS_FOCUS`, `TUI_ARROW_FOCUS`), those off pending a measurement (`TUI_GRAPHICS_PLAYBACK`), and

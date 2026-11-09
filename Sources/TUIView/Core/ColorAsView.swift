@@ -28,31 +28,31 @@ import TUIStyling
 /// > This type is `public` only because it is the underlying type of
 ///   ``Color``'s `body`, which has to be at least as visible as the
 ///   conformance. Nothing outside the framework should name it.
-nonisolated public struct _StyleFillBlock: View {
+nonisolated package struct _StyleFillBlock: View {
     /// A flat colour to paint, or `nil` for a bare rectangle the umbrella
     /// module's `.background(_:)` will fill.
     ///
     /// The flat case exists because ``Color``'s conformance has to be declared
     /// HERE — see the note on `extension Color: View` below — and
     /// `.background(_:)` is TUIFoundation's.
-    public let colour: Color?
+    package let colour: Color?
 
     /// Creates a fill block.
     ///
     /// - Parameter colour: What to paint it, or `nil` to leave it blank.
-    public init(colour: Color? = nil) {
+    package init(colour: Color? = nil) {
         self.colour = colour
     }
 
-    @MainActor public var body: Never { fatalError("_StyleFillBlock renders via Renderable") }
+    @MainActor package var body: Never { fatalError("_StyleFillBlock renders via Renderable") }
 }
 
 @MainActor extension _StyleFillBlock: Renderable, Layoutable {
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         ViewSize(width: 0, height: 0, isWidthFlexible: true, isHeightFlexible: true)
     }
 
-    public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let width = max(0, context.availableWidth)
         let height = max(0, context.availableHeight)
         guard width > 0, height > 0 else { return FrameBuffer(lines: []) }

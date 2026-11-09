@@ -55,10 +55,10 @@ extension BackgroundLayerModifier: BackgroundBeneathBorderInset {
 
 /// A view whose background stops at its content: not a
 /// ``BackgroundBeneathBorderInset``, so a border's inset around it stays clear.
-nonisolated public struct _BackgroundStopsAtContent<Content: View>: View {
+nonisolated struct _BackgroundStopsAtContent<Content: View>: View {
     let content: Content
 
-    @MainActor public var body: some View { content }
+    @MainActor var body: some View { content }
 }
 
 extension View {

@@ -244,11 +244,3 @@ View.rowShortcuts(_:) | nonisolated func rowShortcuts(_ overrides: [RowAction : 
 View.sectionActions(content:) | nonisolated func sectionActions<Content>(@ViewBuilder content: () -> Content) -> some View where Content : View
 View.selectionDisabled(_:) | nonisolated func selectionDisabled(_ isDisabled: Bool = true) -> some View
 View.unfocusedSelectionVisibility(_:) | nonisolated func unfocusedSelectionVisibility(_ visibility: Visibility) -> some View
-_OutlineRow | struct _OutlineRow<Element, ID, Leaf> where ID : Hashable, Leaf : View
-_OutlineRow.body | @MainActor @ViewBuilder var body: some View { get }
-_RowEditRestrictionView | nonisolated struct _RowEditRestrictionView<Content> where Content : View
-_RowEditRestrictionView.body | @MainActor var body: Never { get }
-_RowEditRestrictionView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
-_RowEditRestrictionView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
-_RowEditRestrictionView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
-_RowEditRestrictionView.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]

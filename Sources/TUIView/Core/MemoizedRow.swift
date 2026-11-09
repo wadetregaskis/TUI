@@ -113,8 +113,8 @@ import TUICore
 /// It is `Renderable` (and so adds no child identity), so the inner content
 /// keeps whatever identity it would have had unwrapped: the memo is
 /// identity-transparent to `@State` / focus.
-nonisolated public struct _MemoizedRow<Element: Equatable, Source, Content: View>: View, Renderable, Layoutable {
-    public let element: Element
+nonisolated package struct _MemoizedRow<Element: Equatable, Source, Content: View>: View, Renderable, Layoutable {
+    package let element: Element
     /// The value the row is built FROM, and the builder that builds it.
     ///
     /// Deliberately not a built `Content`. The memo's whole premise is that
@@ -137,7 +137,7 @@ nonisolated public struct _MemoizedRow<Element: Equatable, Source, Content: View
     @MainActor private var content: Content { build(source) }
 
     /// Memoizes `build(source)` under the key `element`.
-    public init(element: Element, source: Source, build: @escaping (Source) -> Content) {
+    package init(element: Element, source: Source, build: @escaping (Source) -> Content) {
         self.element = element
         self.source = source
         self.build = build
@@ -150,11 +150,11 @@ nonisolated public struct _MemoizedRow<Element: Equatable, Source, Content: View
     /// ``init(element:source:build:)``, so a served row never builds its view.
     /// Tests construct rows this way. The identity builder captures nothing, so
     /// it is a static thunk, not an allocation.
-    public init(element: Element, content: Content) where Source == Content {
+    package init(element: Element, content: Content) where Source == Content {
         self.init(element: element, source: content, build: { $0 })
     }
 
-    @MainActor public var body: Never {
+    @MainActor package var body: Never {
         fatalError("_MemoizedRow renders via Renderable")
     }
 
@@ -177,7 +177,7 @@ nonisolated public struct _MemoizedRow<Element: Equatable, Source, Content: View
     /// buffer that harness serves is one of these (no scenario uses
     /// `.equatable()`). It now checks 4,565 of them across 14 of the 21
     /// scenarios.
-    @MainActor public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         renderValueMemoized(
             key: element, viewType: Content.self, context: context, build: { content },
             render: { TUIView.renderToBuffer($0, context: $1) })
@@ -191,7 +191,7 @@ nonisolated public struct _MemoizedRow<Element: Equatable, Source, Content: View
     /// rows hit in the `fanout` stress scenario, and building the view eagerly
     /// once per row per pass was `ForEach.makeChild`'s 21% of that frame, nearly
     /// all of it thrown away.
-    @MainActor public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureValueMemoized(
             key: element, proposal: proposal, context: context, build: { content },
             measure: { measureChild($0, proposal: proposal, context: $1) })
@@ -216,7 +216,7 @@ nonisolated public struct _MemoizedRow<Element: Equatable, Source, Content: View
 /// eagerly was 21% of that frame). ``memoizedContent`` builds — for the caller
 /// that has already learned from the type that it must.
 @MainActor
-public protocol _ValueMemoWrapping {
+package protocol _ValueMemoWrapping {
     /// The wrapped row's type, without building the row.
     var memoizedContentType: any View.Type { get }
 
@@ -225,8 +225,8 @@ public protocol _ValueMemoWrapping {
 }
 
 @MainActor extension _MemoizedRow: _ValueMemoWrapping {
-    public var memoizedContentType: any View.Type { Content.self }
-    public var memoizedContent: any View { content }
+    package var memoizedContentType: any View.Type { Content.self }
+    package var memoizedContent: any View { content }
 }
 
 // MARK: - Prefix extension

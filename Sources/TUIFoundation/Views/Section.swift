@@ -573,11 +573,11 @@ package struct SectionHeaderActions {
 /// the list draws: the section's parts, a step inside this view's identity —
 /// where drawing it through its `body` puts the section.
 @MainActor extension _ContainerValueView: SectionRowExtractor where Content: SectionRowExtractor {
-    package func extractSectionInfo(context: RenderContext) -> SectionInfo {
+    func extractSectionInfo(context: RenderContext) -> SectionInfo {
         content.extractSectionInfo(context: context.withChildIdentity(type: Content.self))
     }
 
-    package func extractSectionContentRows<RowID: Hashable>(context: RenderContext) -> SectionContentRows<RowID> {
+    func extractSectionContentRows<RowID: Hashable>(context: RenderContext) -> SectionContentRows<RowID> {
         content.extractSectionContentRows(context: context.withChildIdentity(type: Content.self))
     }
 }

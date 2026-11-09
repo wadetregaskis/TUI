@@ -44,7 +44,7 @@ public protocol AlignmentGuideProviding {
 ///
 /// - Important: Framework infrastructure. Created by
 ///   ``View/alignmentGuide(_:computeValue:)-(HorizontalAlignment,_)``; do not instantiate directly.
-nonisolated public struct _AlignmentGuideView<Content: View>: View {
+nonisolated struct _AlignmentGuideView<Content: View>: View {
     /// Which guide this view overrides.
     let key: AlignmentKey
 
@@ -54,14 +54,14 @@ nonisolated public struct _AlignmentGuideView<Content: View>: View {
     /// The wrapped content view.
     let content: Content
 
-    @MainActor public var body: some View {
+    @MainActor var body: some View {
         content
     }
 
     /// Static witness used by the child-layout path to detect a guide wrapper
     /// without a runtime `as? AlignmentGuideProviding` cast. See
     /// `_providesAlignmentGuide`.
-    @MainActor public static var _providesAlignmentGuide: Bool { true }
+    @MainActor static var _providesAlignmentGuide: Bool { true }
 }
 
 /// The view that answers for `view`'s explicit guides: `view` itself, or —
@@ -81,7 +81,7 @@ func alignmentGuideProvider(of view: any View) -> AlignmentGuideProviding? {
 }
 
 @MainActor extension _AlignmentGuideView: AlignmentGuideProviding {
-    public var explicitAlignmentGuideKeys: [AlignmentKey] {
+    var explicitAlignmentGuideKeys: [AlignmentKey] {
         guard Content._providesAlignmentGuide,
             let inner = alignmentGuideProvider(of: content)?.explicitAlignmentGuideKeys
         else { return [key] }
@@ -91,7 +91,7 @@ func alignmentGuideProvider(of view: any View) -> AlignmentGuideProviding? {
         return [key] + inner.filter { $0 != key }
     }
 
-    public func explicitAlignmentGuide(
+    func explicitAlignmentGuide(
         for key: AlignmentKey, in dimensions: ViewDimensions
     ) -> Double? {
         if key == self.key { return computeValue(dimensions) }
@@ -936,5 +936,5 @@ func verticalGuideRun(
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
 @MainActor extension _AlignmentGuideView: SingleContentWrapper {
-    public var wrappedContent: Content { content }
+    var wrappedContent: Content { content }
 }

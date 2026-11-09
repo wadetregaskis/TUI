@@ -81,18 +81,18 @@ extension View {
 ///
 /// - Important: Framework infrastructure. Created by
 ///   ``View/transaction(value:_:)``.
-nonisolated public struct _ValueScopedTransactionView<Content: View, V: Equatable>: View {
+nonisolated struct _ValueScopedTransactionView<Content: View, V: Equatable>: View {
     let content: Content
     let value: V
     let transform: (inout Transaction) -> Void
 
-    @MainActor public var body: Never {
+    @MainActor var body: Never {
         fatalError("_ValueScopedTransactionView renders via Renderable")
     }
 }
 
 @MainActor extension _ValueScopedTransactionView: Renderable {
-    public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
         TUIView.renderToBuffer(content, context: transformedContext(context) ?? context)
     }
 
@@ -136,7 +136,7 @@ nonisolated public struct _ValueScopedTransactionView<Content: View, V: Equatabl
 @MainActor extension _ValueScopedTransactionView: Layoutable {
     /// Measures as its content — under the same transaction the render will
     /// use, so animatable geometry is measured where it is drawn.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: transformedContext(context) ?? context)
     }
 }
@@ -148,12 +148,12 @@ nonisolated public struct _ValueScopedTransactionView<Content: View, V: Equatabl
 ///   publishing it once around the pair. What changes is only that the members
 ///   stay the enclosing container's own children.
 @MainActor extension _ValueScopedTransactionView: ContentRewrapping {
-    public var wrappedContent: Content { content }
+    var wrappedContent: Content { content }
 
     /// Its content's context: the transaction it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
-    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { transformedContext(context) ?? context }
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { transformedContext(context) ?? context }
 
-    public func rewrapping<Inner: View>(_ view: Inner) -> any View {
+    func rewrapping<Inner: View>(_ view: Inner) -> any View {
         _ValueScopedTransactionView<Inner, V>(content: view, value: value, transform: transform)
     }
 }

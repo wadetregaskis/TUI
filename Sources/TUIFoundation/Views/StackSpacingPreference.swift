@@ -15,7 +15,7 @@ import TUIView
 
 @MainActor extension _LayoutCore {
     /// A layout states what its ``Layout/spacing(subviews:cache:)`` says.
-    public static var _statesSpacingPreference: Bool { true }
+    package static var _statesSpacingPreference: Bool { true }
 }
 
 @MainActor extension Subview {

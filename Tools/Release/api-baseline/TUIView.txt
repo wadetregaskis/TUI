@@ -706,15 +706,6 @@ ViewModifier.body(content:) | @ViewBuilder @MainActor func body(content: Self.Co
 ViewModifier.concat(_:) | nonisolated func concat<T>(_ modifier: T) -> ModifiedContent<Self, T>
 ZIndexProviding | @MainActor protocol ZIndexProviding
 ZIndexProviding.zIndexValue | @MainActor var zIndexValue: Double { get }
-_MemoizedRow | nonisolated struct _MemoizedRow<Element, Source, Content> where Element : Equatable, Content : View
-_MemoizedRow.body | @MainActor var body: Never { get }
-_MemoizedRow.element | let element: Element
-_MemoizedRow.init(element:content:) | init(element: Element, content: Content) where Source : View, Source == Content
-_MemoizedRow.init(element:source:build:) | init(element: Element, source: Source, build: @escaping (Source) -> Content)
-_MemoizedRow.memoizedContent | @MainActor var memoizedContent: any View { get } [extension where Element : Equatable, Content : View]
-_MemoizedRow.memoizedContentType | @MainActor var memoizedContentType: any View.Type { get } [extension where Element : Equatable, Content : View]
-_MemoizedRow.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer
-_MemoizedRow.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
 _MemoizedView | nonisolated struct _MemoizedView<Content, ID> where Content : View, ID : Hashable
 _MemoizedView.body | @MainActor var body: Never { get }
 _MemoizedView.init(id:content:) | init(id: ID, content: Content)
@@ -724,15 +715,6 @@ _MemoizedView.wrappedContent | @MainActor var wrappedContent: Content { get } [e
 _MemoizedView.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View, ID : Hashable]
 _ResolvedKeyframeTrackContent | struct _ResolvedKeyframeTrackContent<Value> where Value : Animatable
 _ResolvedKeyframes | struct _ResolvedKeyframes<Value>
-_StyleFillBlock | nonisolated struct _StyleFillBlock
-_StyleFillBlock.body | @MainActor var body: Never { get }
-_StyleFillBlock.colour | let colour: Color?
-_StyleFillBlock.init(colour:) | init(colour: Color? = nil)
-_StyleFillBlock.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer
-_StyleFillBlock.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
-_ValueMemoWrapping | @MainActor protocol _ValueMemoWrapping
-_ValueMemoWrapping.memoizedContent | @MainActor var memoizedContent: any View { get }
-_ValueMemoWrapping.memoizedContentType | @MainActor var memoizedContentType: any View.Type { get }
 _ViewModifier_Content | nonisolated struct _ViewModifier_Content<Modifier> where Modifier : ViewModifier
 _ViewModifier_Content.body | @MainActor var body: some View { get }
 renderToBuffer(_:context:) | @MainActor func renderToBuffer<V>(_ view: V, context: RenderContext) -> FrameBuffer where V : View

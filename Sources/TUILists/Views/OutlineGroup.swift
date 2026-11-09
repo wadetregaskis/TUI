@@ -493,7 +493,7 @@ final class OutlineSubtreeIndex<Element, ID: Hashable> {
 ///
 /// Its own type rather than a `@ViewBuilder` result so the row has a name —
 /// which is what a `ChildView` needs to key each node's identity by.
-public struct _OutlineRow<Element, ID: Hashable, Leaf: View> {
+struct _OutlineRow<Element, ID: Hashable, Leaf: View> {
     let element: Element
     let id: ID
     let depth: Int
@@ -518,7 +518,7 @@ public struct _OutlineRow<Element, ID: Hashable, Leaf: View> {
     @FocusState private var triangleFocused: Bool
 
     /// The content and behavior of this view.
-    @MainActor @ViewBuilder public var body: some View {
+    @MainActor @ViewBuilder var body: some View {
         if isBranch {
             branchRow
                 .padding(.leading, depth * DisclosureMetrics.contentIndent)

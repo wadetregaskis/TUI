@@ -47,7 +47,7 @@ public protocol LayoutValueKey {
 ///
 /// - Important: Framework infrastructure. Created by
 ///   ``View/layoutValue(key:value:)``; do not instantiate directly.
-nonisolated public struct _LayoutValueView<Content: View>: View {
+nonisolated struct _LayoutValueView<Content: View>: View {
     /// The key this view sets, identified by its type.
     let key: ObjectIdentifier
 
@@ -58,12 +58,12 @@ nonisolated public struct _LayoutValueView<Content: View>: View {
     /// The wrapped content view.
     let content: Content
 
-    @MainActor public var body: some View {
+    @MainActor var body: some View {
         content
     }
 
     /// See ``View/_providesLayoutValues``.
-    @MainActor public static var _providesLayoutValues: Bool { true }
+    @MainActor static var _providesLayoutValues: Bool { true }
 }
 
 /// A view that can answer for the layout values set on it.
@@ -283,14 +283,14 @@ func layoutPriorities(of children: [ChildView]) -> [Double]? {
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
 @MainActor extension _LayoutValueView: SingleContentWrapper {
-    public var wrappedContent: Content { content }
+    var wrappedContent: Content { content }
 }
 
 /// A layout value — a `.layoutPriority(_:)` among them — on several views is
 /// each one's, as SwiftUI's modifier on a `Group` reaches each member: the
 /// members of `Group { a; b }.layoutPriority(1)` are each served first.
 @MainActor extension _LayoutValueView: ContentRewrapping {
-    public func rewrapping<V: View>(_ view: V) -> any View {
+    func rewrapping<V: View>(_ view: V) -> any View {
         _LayoutValueView<V>(key: key, value: value, content: view)
     }
 }

@@ -141,20 +141,20 @@ public struct ContainerValues {
 ///
 /// - Important: Framework infrastructure. Created by
 ///   ``View/containerValue(_:_:)``; do not instantiate directly.
-nonisolated public struct _ContainerValueView<Content: View>: View {
+nonisolated struct _ContainerValueView<Content: View>: View {
     /// The wrapped content view.
     let content: Content
 
     /// Writes this view's value into a ``ContainerValues``.
     let write: (inout ContainerValues) -> Void
 
-    @MainActor public var body: some View {
+    @MainActor var body: some View {
         content
     }
 
     /// Static witness: this view writes a container value — see
     /// ``View/_providesContainerValues``.
-    @MainActor public static var _providesContainerValues: Bool { true }
+    @MainActor static var _providesContainerValues: Bool { true }
 }
 
 extension View {
@@ -186,11 +186,11 @@ extension View {
 }
 
 @MainActor extension _ContainerValueView: SingleContentWrapper {
-    public var wrappedContent: Content { content }
+    var wrappedContent: Content { content }
 }
 
 @MainActor extension _ContainerValueView: ContentRewrapping {
-    public func rewrapping<V: View>(_ view: V) -> any View {
+    func rewrapping<V: View>(_ view: V) -> any View {
         _ContainerValueView<V>(content: view, write: write)
     }
 }

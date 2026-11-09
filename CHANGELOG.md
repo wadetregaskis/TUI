@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Fourteen underscored types are no longer public.** `_AlignmentGuideView`, `_BackgroundStopsAtContent`,
+`_ContainerValueView`, `_LayoutCore`, `_LayoutValueView`, `_MemoizedRow`, `_OutlineRow`, `_RowEditRestrictionView`,
+`_StyleFillBlock`, `_SwipeActionsView`, `_TaggedView`, `_ValueMemoWrapping`, `_ValueScopedTransactionView` and
+`_ZIndexView` were TUI's own plumbing, public by accident; the modifiers that return them still do, as `some View`.
+SwiftUI has none of these names, so only code that spelled one out notices.
+
 **`ForEach` tells ids apart by their value, not their description.** Two distinct ids that print alike (two `Date`s
 within one second) used to share one row identity, so the second row read the first's `@State`, focus and memo. A
 row is now keyed by its id's description followed by its hash value, unless the id is a `String`, an integer, a

@@ -63,19 +63,19 @@ extension View {
 ///
 /// - Important: Framework infrastructure. Created by
 ///   ``View/swipeActions(edge:allowsFullSwipe:content:)``.
-nonisolated public struct _SwipeActionsView<Content: View, Actions: View>: View {
+nonisolated struct _SwipeActionsView<Content: View, Actions: View>: View {
     let content: Content
     let actions: Actions
     let edge: HorizontalEdge
     let allowsFullSwipe: Bool
 
-    @MainActor public var body: Never {
+    @MainActor var body: Never {
         fatalError("_SwipeActionsView renders via Renderable")
     }
 }
 
 @MainActor extension _SwipeActionsView: Renderable {
-    public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var buffer = TUIView.renderToBuffer(content, context: context)
         guard !context.isMeasuring, let restrictions = context.environment.listRowEditRestrictions,
             let row = restrictions.currentRowIndex
@@ -185,7 +185,7 @@ nonisolated public struct _SwipeActionsView<Content: View, Actions: View>: View 
 
 @MainActor extension _SwipeActionsView: Layoutable {
     /// Measures as its content: the actions are drawn over it.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
@@ -193,9 +193,9 @@ nonisolated public struct _SwipeActionsView<Content: View, Actions: View>: View 
 /// Names its content so a container asking for a z-index or an alignment guide
 /// can look through this wrapper — read-only, as `.deleteDisabled`'s is.
 @MainActor extension _SwipeActionsView: SingleContentWrapper {
-    public var wrappedContent: Content { content }
+    var wrappedContent: Content { content }
 
-    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 /// Draws its content unchanged, at its own identity, so a removal transition

@@ -15,22 +15,22 @@
 ///
 /// - Important: Framework infrastructure. Created by ``View/zIndex(_:)``; do
 ///   not instantiate directly.
-nonisolated public struct _ZIndexView<Content: View>: View {
+nonisolated struct _ZIndexView<Content: View>: View {
     /// The z-index value. Higher values draw later (on top).
     ///
     /// Public because it witnesses the `public` ``ZIndexProviding`` requirement.
-    public let zIndexValue: Double
+    let zIndexValue: Double
 
     /// The wrapped content view.
     let content: Content
 
-    @MainActor public var body: some View {
+    @MainActor var body: some View {
         content
     }
 
     /// Static witness used by the child-layout path to detect a z-index wrapper
     /// without a runtime `as? ZIndexProviding` cast. See ``View/_providesZIndex``.
-    @MainActor public static var _providesZIndex: Bool { true }
+    @MainActor static var _providesZIndex: Bool { true }
 }
 
 @MainActor extension _ZIndexView: ZIndexProviding {}
@@ -38,7 +38,7 @@ nonisolated public struct _ZIndexView<Content: View>: View {
 // MARK: - Equatable Conformance
 
 extension _ZIndexView: Equatable where Content: Equatable {
-    public static func == (lhs: _ZIndexView<Content>, rhs: _ZIndexView<Content>) -> Bool {
+    static func == (lhs: _ZIndexView<Content>, rhs: _ZIndexView<Content>) -> Bool {
         lhs.zIndexValue == rhs.zIndexValue && lhs.content == rhs.content
     }
 }
@@ -90,14 +90,14 @@ extension View {
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
 @MainActor extension _ZIndexView: SingleContentWrapper {
-    public var wrappedContent: Content { content }
+    var wrappedContent: Content { content }
 }
 
 /// A z-index on several views is each one's: `ZStack { Group { a; b
 /// }.zIndex(1); c }` draws both `a` and `b` over `c`, and an `HStack` lays the
 /// members side by side, as SwiftUI's modifier on a `Group` reaches each.
 @MainActor extension _ZIndexView: ContentRewrapping {
-    public func rewrapping<V: View>(_ view: V) -> any View {
+    func rewrapping<V: View>(_ view: V) -> any View {
         _ZIndexView<V>(zIndexValue: zIndexValue, content: view)
     }
 }

@@ -4179,16 +4179,8 @@ ZStackLayout.alignment | var alignment: Alignment
 ZStackLayout.init(alignment:) | init(alignment: Alignment = .topLeading)
 ZStackLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: ZStackLayout.Subviews, cache: inout ())
 ZStackLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedSize, subviews: ZStackLayout.Subviews, cache: inout ()) -> ViewSize
-_AlignmentGuideView | nonisolated struct _AlignmentGuideView<Content> where Content : View
-_AlignmentGuideView._providesAlignmentGuide | @MainActor static var _providesAlignmentGuide: Bool { get }
-_AlignmentGuideView.body | @MainActor var body: some View { get }
-_AlignmentGuideView.explicitAlignmentGuide(for:in:) | @MainActor func explicitAlignmentGuide(for key: AlignmentKey, in dimensions: ViewDimensions) -> Double? [extension where Content : View]
-_AlignmentGuideView.explicitAlignmentGuideKeys | @MainActor var explicitAlignmentGuideKeys: [AlignmentKey] { get } [extension where Content : View]
-_AlignmentGuideView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 _AppearanceButtonStyle | struct _AppearanceButtonStyle
 _AppearanceButtonStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: _AppearanceButtonStyle.Configuration) -> some View
-_BackgroundStopsAtContent | nonisolated struct _BackgroundStopsAtContent<Content> where Content : View
-_BackgroundStopsAtContent.body | @MainActor var body: some View { get }
 _ChangedGesture | nonisolated struct _ChangedGesture<Content> where Content : Gesture, Content.Value : Equatable
 _ChangedGesture.Body | typealias Body = Never
 _ChangedGesture.Value | typealias Value = Content.Value
@@ -4196,11 +4188,6 @@ _ChangedGesture._makeGesture(gesture:inputs:) | @MainActor static func _makeGest
 _ConditionalContent | enum _ConditionalContent<TrueContent, FalseContent>
 _ConditionalContent.falseContent(_:) | case falseContent(FalseContent)
 _ConditionalContent.trueContent(_:) | case trueContent(TrueContent)
-_ContainerValueView | nonisolated struct _ContainerValueView<Content> where Content : View
-_ContainerValueView._providesContainerValues | @MainActor static var _providesContainerValues: Bool { get }
-_ContainerValueView.body | @MainActor var body: some View { get }
-_ContainerValueView.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View]
-_ContainerValueView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 _EndedGesture | nonisolated struct _EndedGesture<Content> where Content : Gesture
 _EndedGesture.Body | typealias Body = Never
 _EndedGesture.Value | typealias Value = Content.Value
@@ -4211,17 +4198,6 @@ _FormatSpecifiable._arg | var _arg: Self._Arg { get }
 _FormatSpecifiable._specifier | var _specifier: String { get }
 _GestureInputs | struct _GestureInputs
 _GestureOutputs | struct _GestureOutputs<Value>
-_LayoutCore | nonisolated struct _LayoutCore<L, Content> where L : Layout, Content : View
-_LayoutCore._providesAlignmentGuide | @MainActor static var _providesAlignmentGuide: Bool { get }
-_LayoutCore._statesSpacingPreference | @MainActor static var _statesSpacingPreference: Bool { get } [extension where L : Layout, Content : View]
-_LayoutCore.body | @MainActor var body: Never { get }
-_LayoutCore.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer
-_LayoutCore.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
-_LayoutValueView | nonisolated struct _LayoutValueView<Content> where Content : View
-_LayoutValueView._providesLayoutValues | @MainActor static var _providesLayoutValues: Bool { get }
-_LayoutValueView.body | @MainActor var body: some View { get }
-_LayoutValueView.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View]
-_LayoutValueView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 _MapGesture | nonisolated struct _MapGesture<Content, Value> where Content : Gesture
 _MapGesture.Body | typealias Body = Never
 _MapGesture._makeGesture(gesture:inputs:) | @MainActor static func _makeGesture(gesture: _MapGesture<Content, Value>, inputs: _GestureInputs) -> _GestureOutputs<Value>
@@ -4239,31 +4215,6 @@ _ShapeView.style | var style: Style
 _StyledContent | nonisolated struct _StyledContent
 _StyledContent.body | @MainActor var body: some View { get }
 _StyledContent.childViews(context:) | @MainActor func childViews(context: RenderContext) -> [ChildView]
-_SwipeActionsView | nonisolated struct _SwipeActionsView<Content, Actions> where Content : View, Actions : View
-_SwipeActionsView.body | @MainActor var body: Never { get }
-_SwipeActionsView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View, Actions : View]
-_SwipeActionsView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View, Actions : View]
-_SwipeActionsView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View, Actions : View]
-_SwipeActionsView.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View, Actions : View]
 _SymbolIcon | struct _SymbolIcon
 _SymbolIcon.body | @MainActor var body: some View { get }
-_TaggedView | nonisolated struct _TaggedView<Content> where Content : View
-_TaggedView._providesContainerValues | @MainActor static var _providesContainerValues: Bool { get }
-_TaggedView.body | @MainActor var body: some View { get }
-_TaggedView.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View]
-_TaggedView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
-_ValueScopedTransactionView | nonisolated struct _ValueScopedTransactionView<Content, V> where Content : View, V : Equatable
-_ValueScopedTransactionView.body | @MainActor var body: Never { get }
-_ValueScopedTransactionView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View, V : Equatable]
-_ValueScopedTransactionView.rewrapping(_:) | @MainActor func rewrapping<Inner>(_ view: Inner) -> any View where Inner : View [extension where Content : View, V : Equatable]
-_ValueScopedTransactionView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View, V : Equatable]
-_ValueScopedTransactionView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View, V : Equatable]
-_ValueScopedTransactionView.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View, V : Equatable]
-_ZIndexView | nonisolated struct _ZIndexView<Content> where Content : View
-_ZIndexView.==(_:_:) | static func == (lhs: _ZIndexView<Content>, rhs: _ZIndexView<Content>) -> Bool [extension where Content : Equatable, Content : View]
-_ZIndexView._providesZIndex | @MainActor static var _providesZIndex: Bool { get }
-_ZIndexView.body | @MainActor var body: some View { get }
-_ZIndexView.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View]
-_ZIndexView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
-_ZIndexView.zIndexValue | let zIndexValue: Double
 tuiVersion | let tuiVersion: String

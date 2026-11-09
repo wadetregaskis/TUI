@@ -55,7 +55,7 @@ extension View {
 ///
 /// - Important: Framework infrastructure. Created by ``View/deleteDisabled(_:)``
 ///   and ``View/moveDisabled(_:)``.
-nonisolated public struct _RowEditRestrictionView<Content: View>: View {
+nonisolated struct _RowEditRestrictionView<Content: View>: View {
     /// Which edit is being refused.
     enum Restriction {
         case delete
@@ -66,13 +66,13 @@ nonisolated public struct _RowEditRestrictionView<Content: View>: View {
     let restriction: Restriction
     let isDisabled: Bool
 
-    @MainActor public var body: Never {
+    @MainActor var body: Never {
         fatalError("_RowEditRestrictionView renders via Renderable")
     }
 }
 
 @MainActor extension _RowEditRestrictionView: Renderable {
-    public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
         report(context)
         return TUIView.renderToBuffer(content, context: context)
     }
@@ -109,7 +109,7 @@ nonisolated public struct _RowEditRestrictionView<Content: View>: View {
 @MainActor extension _RowEditRestrictionView: Layoutable {
     /// Measures as its content: the report is the whole of this view's effect,
     /// and it contributes no geometry.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
@@ -121,10 +121,10 @@ nonisolated public struct _RowEditRestrictionView<Content: View>: View {
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
 @MainActor extension _RowEditRestrictionView: SingleContentWrapper {
-    public var wrappedContent: Content { content }
+    var wrappedContent: Content { content }
 
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
-    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 // MARK: - Removal Transitions
