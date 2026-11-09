@@ -76,6 +76,10 @@ struct ListPage: View {
     @State private var multiLineSelectable = true
     @State private var multiLineFollowMargin = FollowMarginChoice.none.rawValue
     @State private var browserURL: URL = FileBrowser.seedDirectory()
+    /// `browserURL`'s rows, read when the browser goes there — not in the
+    /// body, which runs every frame the page draws: reading the directory
+    /// there was 6% of a frame (2026-11-08).
+    @State private var browserEntries: [BrowserEntry] = []
     @State private var searchQuery = ""
     @State private var editableItems = [
         "🍎 Apple", "🍌 Banana", "🍒 Cherry", "🍇 Grape", "🍑 Peach", "🍋 Lemon",
@@ -238,7 +242,7 @@ struct ListPage: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(browserURL.path).dim()
                     List("page.list.singleSelection", selection: $singleSelection) {
-                        ForEach(FileBrowser.entries(at: browserURL)) { entry in
+                        ForEach(browserEntries) { entry in
                             HStack(spacing: 1) {
                                 Text(entry.icon)
                                 Text(entry.name)
@@ -251,8 +255,7 @@ struct ListPage: View {
                     .contextMenu(forSelectionType: String.self) { _ in
                     } primaryAction: { ids in
                         if let id = ids.first,
-                            let entry = FileBrowser.entries(at: browserURL)
-                                .first(where: { $0.id == id }), entry.isDirectory
+                            let entry = browserEntries.first(where: { $0.id == id }), entry.isDirectory
                         {
                             browserURL = entry.url
                         }
@@ -260,6 +263,9 @@ struct ListPage: View {
                     .frame(height: 10)
                 }
                 .frame(maxWidth: .infinity)
+                .onChange(of: browserURL, initial: true) {
+                    browserEntries = FileBrowser.entries(at: browserURL)
+                }
 
                 List(
                     "page.list.multiSelection",

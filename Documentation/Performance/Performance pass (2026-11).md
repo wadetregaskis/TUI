@@ -95,3 +95,9 @@ The "noticed" items above, taken up the same day by a second lane.
   now Tabs to the fruit list under the field first. Input to frame, p50, 3
   reps: 54.7 ms (the breathing) → 10.2 ms, every one of the 279 inputs
   answered.
+- **The file browsers' directory reads.** The List and Tables pages keep the
+  rows in `@State`, read by `.onChange(of: browserURL, initial: true)`: once
+  when the page opens and once a folder opened. The framework runs that
+  spelling once, not per frame, so it was the Example's to fix.
+  `FileBrowser.entries(at:)` in the `table` scenario: 6.2% → 0.9% inclusive
+  (the one read), `drive.py` CPU 1.30 → 1.05 s.

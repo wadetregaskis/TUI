@@ -180,6 +180,10 @@ struct TablePage: View {
     /// WHETHER one is shown at all (both are automatic here).
     @State private var fixedHeightScrollbar = true
     @State private var browserURL: URL = FileBrowser.seedDirectory()
+    /// `browserURL`'s rows, read when the browser goes there — not in the
+    /// body, which runs every frame the page draws: reading the directory
+    /// there was 6% of a frame (2026-11-08).
+    @State private var browserEntries: [BrowserEntry] = []
     @State private var liveSelection: Int?
     /// Whether the big notes table has a row cursor. See the toggle's note.
     @State private var notesSelectable = true
@@ -238,7 +242,7 @@ struct TablePage: View {
                 .foregroundStyle(.palette.foregroundSecondary)
             Text(browserURL.path).dim()
             Table(
-                FileBrowser.entries(at: browserURL),
+                browserEntries,
                 selection: $singleSelection
             ) {
                 TableColumn("", value: \BrowserEntry.icon)
@@ -258,7 +262,7 @@ struct TablePage: View {
             .contextMenu(forSelectionType: String.self) { _ in
             } primaryAction: { ids in
                 if let id = ids.first,
-                    let entry = FileBrowser.entries(at: browserURL).first(where: { $0.id == id }),
+                    let entry = browserEntries.first(where: { $0.id == id }),
                     entry.isDirectory
                 {
                     browserURL = entry.url
@@ -268,6 +272,9 @@ struct TablePage: View {
             // tracks the visible region (sub-cell-precise thumb, ▲/▼ end arrows).
             .frame(height: 8)
             .scrollIndicators(.visible)
+            .onChange(of: browserURL, initial: true) {
+                browserEntries = FileBrowser.entries(at: browserURL)
+            }
             // Against the table it reports on. It used to be one entry in a
             // "Current Selections" section below both tables, which read as a
             // heading for the ratio demo that followed it rather than as a
