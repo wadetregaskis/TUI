@@ -574,34 +574,15 @@ extension ASCIIConverter {
         // braille dot — is a true N×N area average rather than the bilinear
         // scaler's 2×2 point read (which aliases fine textures on heavy
         // downscales). The shape matcher needs no factor: it already reads
-        // 96 staggered samples per cell.
-        let pixelWidth: Int
-        let pixelHeight: Int
-        let factor: Int
-        /// The sub-cell pixel grid, kept because ``ASCIIConverter/edgeContrast``
-        /// measures its neighbourhood in cells rather than in pixels.
-        let cellGrid: (x: Int, y: Int)
-        if isShapeMatched {
-            factor = 1
-            cellGrid = (5, 10)
-            pixelWidth = width * 5
-            pixelHeight = height * 10
-        } else {
-            let grid: (x: Int, y: Int)
-            switch characterSet {
-            case .blocks(.fine):
-                grid = (1, 2)
-            case .blocks(.braille):
-                grid = (2, 4)
-            case .blocks(.solid), .ascii, .unicode, .blocks(.coarse), .blocks(.ramp),
-                .customRamp:
-                grid = (1, 1)
-            }
-            factor = effectiveSupersampling
-            cellGrid = grid
-            pixelWidth = width * grid.x * factor
-            pixelHeight = height * grid.y * factor
-        }
+        // 96 staggered samples per cell. (``cellGrid`` and ``samplesPerCell``.)
+        //
+        // The sub-cell pixel grid, kept because `edgeContrast` measures its
+        // neighbourhood in cells rather than in pixels.
+        let cellGrid = self.cellGrid
+        let factor = isShapeMatched ? 1 : effectiveSupersampling
+        let sampled = samplesPerCell
+        let pixelWidth = width * sampled.x
+        let pixelHeight = height * sampled.y
 
         // Scale to the (supersampled) pixel grid, then area-average down to
         // the render grid BEFORE dithering — error diffusion belongs at the
@@ -701,6 +682,33 @@ extension ASCIIConverter {
         case .ascii, .unicode, .blocks(.coarse), .blocks(.ramp), .customRamp:
             return convertCharacterBased(scaled, width: width, height: height, mode: effectiveMode)
         }
+    }
+
+    /// The sub-cell pixel grid each cell is drawn from, before supersampling:
+    /// one tone per cell for a luminance ramp or `.blocks(.solid)`, two
+    /// stacked pixels for `.blocks(.fine)`, eight dots for `.blocks(.braille)`,
+    /// and the shape matcher's 5 × 10.
+    var cellGrid: (x: Int, y: Int) {
+        if isShapeMatched { return (5, 10) }
+        switch characterSet {
+        case .blocks(.fine):
+            return (1, 2)
+        case .blocks(.braille):
+            return (2, 4)
+        case .blocks(.solid), .ascii, .unicode, .blocks(.coarse), .blocks(.ramp), .customRamp:
+            return (1, 1)
+        }
+    }
+
+    /// The pixels of the picture a conversion reads for each cell, across and
+    /// down: ``cellGrid`` scaled by the supersampling factor, which the shape
+    /// matcher does without. ``convert(_:width:height:)`` scales the picture
+    /// to this many pixels a cell before it reads it, so a picture with at
+    /// least as many has all the detail a conversion can show.
+    package var samplesPerCell: (x: Int, y: Int) {
+        let grid = cellGrid
+        let factor = isShapeMatched ? 1 : effectiveSupersampling
+        return (grid.x * factor, grid.y * factor)
     }
 
     /// Whether this conversion shape-matches: ``shapeAware`` requested AND
