@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`TestApp` counts the same on every machine.** A running app times its views and keeps more of those it finds slow;
+`TestApp` did too, so a test counting how often a body ran or a view was drawn could pass on a fast machine and fail
+on a slow or busy one. It now times nothing. Apps are unchanged.
+
 **A picture from a file is kept at the size it's drawn, not the size it is.** A 1,024-pixel picture drawn four cells
 wide kept all four megabytes of it in memory; it is now decoded at a power-of-two fraction of its size for its box (on
 macOS straight to that size, so the decode's peak falls too), and decoded again when it's drawn larger or much

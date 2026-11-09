@@ -105,6 +105,10 @@ package final class HeadlessApp {
         // cold app a session compares, two tests at once — never take each
         // other's.
         let tuiContext = TUIContext()
+        // Nothing learned from the clock, so a test counts the same on every
+        // machine: see `RenderCache.learnsFromTiming`. Stress, which measures
+        // what an app does, turns it back on.
+        tuiContext.renderCache.learnsFromTiming = false
         let statusBar = StatusBarState(appState: tuiContext.appState)
         let focusManager = FocusManager()
         let paletteManager = ThemeManager(items: PaletteRegistry.all, renderTrigger: {})

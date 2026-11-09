@@ -90,12 +90,6 @@ struct KeptResultObservationTests {
     func toggleUnderAMemoRedraws() {
         let (model, counter) = (Model(), Counter())
         let app = TestApp(Page(model: model, counter: counter), width: 30, height: 8)
-        // Nothing is over the plain memo's line, whatever this machine's speed. Left
-        // to its timing, a runner slow enough to see a type here take 5 ms three
-        // times moves that type into the memo during the frames below, and the
-        // kept sibling misses once while it does: drawn twice more, never again
-        // (macOS 27 on CI, run 99). The count pins the steady state, not that.
-        app.renderCache.plainMemo.heavySubtree = .seconds(100)
         app.frame(atNanos: 1_000_000_000)
         app.frame(atNanos: 1_100_000_000)
         let off = app.screen.styledLines.joined(separator: "\n").stripped

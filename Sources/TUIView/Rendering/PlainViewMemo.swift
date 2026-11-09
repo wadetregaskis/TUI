@@ -28,6 +28,12 @@ package final class PlainMemo {
     /// Which measures are timed.
     private var sampler = TimingSampler()
 
+    /// Whether a measure's time is read at all: see ``RenderCache/learnsFromTiming``.
+    package var learnsFromTiming: Bool {
+        get { sampler.isOn }
+        set { sampler.isOn = newValue }
+    }
+
     /// The instant to time this measure from, if it is sampled.
     @inline(__always)
     func startTiming() -> ContinuousClock.Instant? {

@@ -488,7 +488,9 @@ struct PlainMemoCorrectnessTests {
     @Test("A composite inside a row has a memo only if it takes real time", arguments: [false, true])
     func compositeInsideARow(takesRealTime: Bool) {
         let app = app(MovingRowPage())
-        // Anything measured is over the line, or nothing is, whatever this machine's speed.
+        // Anything measured is over the line, or nothing is, whatever this machine's
+        // speed. Timed, as in an app: `HeadlessApp` reads no clock.
+        app.renderCache.learnsFromTiming = true
         app.renderCache.plainMemo.heavySubtree = takesRealTime ? .zero : .seconds(100)
         app.renderCache.bodyKeep.keepsEveryBody = false
         var nanos: Int64 = 0
@@ -513,6 +515,7 @@ struct PlainMemoCorrectnessTests {
     @Test("PlainMemo learns heavy composites even when BodyKeep is off")
     func plainMemoLearnsWhenBodyKeepIsOff() {
         let app = app(MovingRowPage())
+        app.renderCache.learnsFromTiming = true
         app.renderCache.plainMemo.heavySubtree = .zero
         app.renderCache.bodyKeep.isOn = false
         var nanos: Int64 = 0

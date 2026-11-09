@@ -77,6 +77,12 @@ package final class BodyKeep {
     /// Which measures are timed.
     private var sampler = TimingSampler()
 
+    /// Whether a body's time is read at all: see ``RenderCache/learnsFromTiming``.
+    package var learnsFromTiming: Bool {
+        get { sampler.isOn }
+        set { sampler.isOn = newValue }
+    }
+
     private var table: [Key: Kept] = [:]
 
     /// Whether nothing is kept: what a test asks, between walks.

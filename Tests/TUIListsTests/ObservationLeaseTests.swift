@@ -44,6 +44,10 @@ private final class LeaseModel {
 @MainActor
 private func leaseContext(_ rule: ObservationLeases.Retirement, readers: [Any.Type]) -> (TUIContext, ObservationCensus) {
     let tui = TUIContext()
+    // Nothing learned from the clock, whatever this machine's speed: a composite
+    // seen to be heavy goes to the plain memo, whose scopes the counts below
+    // would take in (80 live, steady, where the window's bound is 45).
+    tui.renderCache.learnsFromTiming = false
     tui.renderCache.leases.retirement = rule
     // The rules are told apart by the scopes of one memo. A memo on each composite
     // holds the holes these controls open: `leasesAreBoundedUnderThePlainMemo`.

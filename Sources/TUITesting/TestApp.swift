@@ -37,6 +37,12 @@ import TUIFoundation
 /// Each action draws the frames it causes before it returns, so what you read
 /// afterwards is up to date. The first frame is drawn the first time you look
 /// or act, and the clock stands still until you call ``advance(by:)``.
+///
+/// What it draws does not depend on how fast the machine is. A running app
+/// times its views and keeps more of those it finds slow, so how often a body
+/// runs there varies with the machine and its load. A `TestApp` times nothing,
+/// so a test that counts body evaluations or draws gets the same count on a
+/// laptop as on a busy CI runner.
 @MainActor
 public final class TestApp {
     /// The engine: the render loop and input chain over an in-memory terminal.

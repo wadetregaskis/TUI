@@ -149,6 +149,9 @@ struct BodyKeepTests {
         app.renderCache.bodyKeep.isOn = keeping
         app.renderCache.bodyKeep.keepsEveryBody = keeping
         app.renderCache.plainMemo.isOn = false
+        // What the keep learns from the clock is what some of these test, so the
+        // clock is read, as in an app; `HeadlessApp` turns it off for the rest.
+        app.renderCache.learnsFromTiming = true
         return app
     }
 
