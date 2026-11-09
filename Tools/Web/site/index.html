@@ -61,6 +61,9 @@
         display: flex;
         justify-content: center;
         padding: 8px 16px;
+        /* The settings can be taller than a phone held sideways; the page
+           itself never scrolls (the terminal is sized to it), so this does. */
+        overflow: auto;
       }
       #frame {
         background: var(--panel);
@@ -70,9 +73,12 @@
         box-shadow: 0 10px 40px #0006;
         display: flex;
         min-width: 0;
+        /* As tall as the launch panel, so a tall one scrolls `main`. */
+        align-self: flex-start;
       }
       #frame.running {
         flex: 1;
+        align-self: stretch;
       }
       /* Sized by the page, not by its content: the fit addon reads this box's
          size and works out how many cells fit in it. */
@@ -126,6 +132,74 @@
         opacity: 0.6;
         cursor: progress;
       }
+      /* The settings: a label column and a control column, which stack into
+         one column at phone width. */
+      #settings {
+        margin: 0 0 20px;
+        padding: 0;
+        border: 0;
+        text-align: left;
+        display: grid;
+        grid-template-columns: max-content minmax(0, 1fr);
+        gap: 10px 14px;
+      }
+      #settings legend {
+        padding: 0;
+        margin-bottom: 10px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      #settings label {
+        padding-top: 4px;
+        font-size: 13px;
+      }
+      #settings select {
+        width: 100%;
+        font: 13px ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--page);
+        border: 1px solid #3a3f4b;
+        border-radius: 5px;
+        padding: 4px 6px;
+      }
+      #settings select:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      #settings .hint {
+        display: block;
+        margin-top: 3px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      #settings [hidden] {
+        display: none;
+      }
+      #change {
+        color: var(--accent);
+        background: none;
+        border: 0;
+        padding: 0;
+        font: inherit;
+        text-decoration: underline;
+        cursor: pointer;
+      }
+      @media (max-width: 520px) {
+        #settings {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 2px;
+        }
+        #settings label {
+          padding-top: 10px;
+        }
+        #launch {
+          padding: 16px 8px;
+        }
+        footer {
+          flex-wrap: wrap;
+          gap: 4px 14px;
+        }
+      }
       #unsupported {
         max-width: 60ch;
         margin: 40px auto;
@@ -149,19 +223,85 @@
     </header>
     <main>
       <div id="frame">
-        <div id="launch">
+        <!-- The settings are the guest's environment, set before it starts:
+             wasip1 has no way to change a running program's. Each is a variable
+             the framework or the app reads (named in the comment above each),
+             and the choices are kept in the URL's `#`, so a link opens the
+             same configuration. -->
+        <form id="launch">
           <p>
             Run downloads the module (<span id="size">a few tens of megabytes</span>) and
             starts it in a terminal on this page. Nothing that large is fetched before then.
           </p>
-          <button id="run" type="button">Run</button>
-        </div>
+          <fieldset id="settings">
+            <legend>Start it with</legend>
+            <!-- The app's own variable, which the manifest names (`gallery.variable`;
+                 TUI_EXAMPLE_PAGE for the Example). Pages listed by build.sh. -->
+            <label for="page" data-gallery hidden>Start page</label>
+            <div data-gallery hidden>
+              <select id="page" aria-describedby="page-hint">
+                <option value="">The menu</option>
+              </select>
+              <span class="hint" id="page-hint">Opens straight on a page; Esc goes back to the menu.</span>
+            </div>
+            <!-- LANG. Languages listed by build.sh from the app's tables. -->
+            <label for="lang" data-languages hidden>Language</label>
+            <div data-languages hidden>
+              <select id="lang" aria-describedby="lang-hint">
+                <option value="">This browser's, if the app has it</option>
+              </select>
+              <span class="hint" id="lang-hint">The app's words, and how it writes dates and numbers.</span>
+            </div>
+            <!-- COLORTERM and TERM say what the terminal has; NO_COLOR asks for none. -->
+            <label for="colors">Colours</label>
+            <div>
+              <select id="colors" aria-describedby="colors-hint">
+                <option value="">Millions</option>
+                <option value="256">256</option>
+                <option value="16">16</option>
+                <option value="none">None (NO_COLOR)</option>
+              </select>
+              <span class="hint" id="colors-hint">As many as a terminal with that many would get.</span>
+            </div>
+            <!-- TUI_REDUCE_MOTION. -->
+            <label for="motion">Motion</label>
+            <div>
+              <select id="motion" aria-describedby="motion-hint">
+                <option value="">This browser's setting</option>
+                <option value="full">Full</option>
+                <option value="reduce">Reduced</option>
+              </select>
+              <span class="hint" id="motion-hint">Reduced: things jump to where they are going rather than glide.</span>
+            </div>
+            <!-- TUI_PLAIN_TEXT. -->
+            <label for="text">Characters</label>
+            <div>
+              <select id="text" aria-describedby="text-hint">
+                <option value="">Unicode</option>
+                <option value="ascii">ASCII only</option>
+                <option value="transliterate">ASCII, spelled out</option>
+              </select>
+              <span class="hint" id="text-hint">ASCII only, as for a terminal that shows nothing else; spelled out also writes 你好 as ni hao.</span>
+            </div>
+            <!-- TUI_ARROW_FOCUS. -->
+            <label for="arrows">Arrow keys</label>
+            <div>
+              <select id="arrows" aria-describedby="arrows-hint">
+                <option value="">Tab order</option>
+                <option value="geometric">Nearest control</option>
+              </select>
+              <span class="hint" id="arrows-hint">Nearest control (an experiment): Down goes to the control below, not the next in Tab order.</span>
+            </div>
+          </fieldset>
+          <button id="run" type="submit">Run</button>
+        </form>
         <div id="terminal" hidden></div>
       </div>
     </main>
     <footer>
       <span id="status">ready</span>
       <span><kbd>↑</kbd><kbd>↓</kbd> move · <kbd>enter</kbd> open · <kbd>esc</kbd> back · <kbd>⌃Q</kbd> quit</span>
+      <button id="change" type="button" hidden>change settings</button>
     </footer>
 
     <!-- `crossorigin` is required, not decoration: the page is cross-origin isolated
@@ -188,9 +328,117 @@
     <script type="module">
       const status = document.getElementById("status");
       const runButton = document.getElementById("run");
+      const form = document.getElementById("launch");
       // What the page carries across the one reload that installing the
-      // isolation worker takes: "the visitor already pressed Run".
-      const RUN_AFTER_RELOAD = "#run";
+      // isolation worker takes: "the visitor already pressed Run". It rides in
+      // the `#` beside the settings, and is taken out again on arrival.
+      const RUN_AFTER_RELOAD = "run";
+      // The settings, by the id of their `<select>`, which is also their name
+      // in the URL's `#`: `#page=buttons&lang=de&colors=256`.
+      const SETTINGS = ["page", "lang", "colors", "motion", "text", "arrows"];
+      const setting = (id) => document.getElementById(id).value;
+
+      const hashParameters = () => new URLSearchParams(location.hash.slice(1));
+
+      // The settings the `#` names, each only if its list offers that value:
+      // a hand-edited or out-of-date link falls back to the default rather
+      // than to an empty select.
+      function readSettings() {
+        const parameters = hashParameters();
+        for (const id of SETTINGS) {
+          const select = document.getElementById(id);
+          const wanted = parameters.get(id) ?? "";
+          select.value = [...select.options].some((option) => option.value === wanted) ? wanted : "";
+        }
+      }
+
+      // The settings into the `#`, defaults left out, so the address is always
+      // a link to what is on the screen. `replaceState`, not an assignment:
+      // trying a setting is not a page to go Back to.
+      function writeSettings({ run = false } = {}) {
+        const parameters = new URLSearchParams();
+        for (const id of SETTINGS) {
+          if (setting(id)) parameters.set(id, setting(id));
+        }
+        if (run) parameters.set(RUN_AFTER_RELOAD, "1");
+        const hash = parameters.toString();
+        history.replaceState(null, "", location.pathname + location.search + (hash ? `#${hash}` : ""));
+      }
+
+      // The lists only the build knows: the app's pages and languages, which
+      // `build.sh` writes into the manifest for the Example (`gallery`). Another
+      // app's manifest has neither, and those two settings stay hidden.
+      function offerGallery(manifest) {
+        const gallery = manifest?.gallery;
+        const add = (select, value, label) => select.append(new Option(label, value));
+        if (gallery?.variable && gallery.pages?.length) {
+          const select = document.getElementById("page");
+          for (const page of gallery.pages) add(select, page.name, page.title);
+          document.querySelectorAll("[data-gallery]").forEach((element) => (element.hidden = false));
+        }
+        if (gallery?.languages?.length) {
+          const select = document.getElementById("lang");
+          for (const code of gallery.languages) add(select, code, languageName(code));
+          document.querySelectorAll("[data-languages]").forEach((element) => (element.hidden = false));
+        }
+      }
+
+      // A language by its own name, "Deutsch" rather than "German": the
+      // reader looking for theirs reads that one.
+      function languageName(code) {
+        try {
+          const name = new Intl.DisplayNames([code], { type: "language" }).of(code);
+          return name.charAt(0).toLocaleUpperCase(code) + name.slice(1);
+        } catch {
+          return code;
+        }
+      }
+
+      // The guest's environment, from the settings. The worker sets the
+      // defaults (truecolor, xterm-256color, English); these go over them, and
+      // a `null` takes one away.
+      function guestEnvironment(manifest) {
+        const environment = {};
+        const gallery = manifest.gallery;
+        if (gallery?.variable && setting("page")) environment[gallery.variable] = setting("page");
+        switch (setting("colors")) {
+          case "256":
+            environment.COLORTERM = null;
+            break;
+          case "16":
+            environment.COLORTERM = null;
+            environment.TERM = "xterm-16color";
+            break;
+          case "none":
+            environment.NO_COLOR = "1";
+            break;
+        }
+        // "This browser's setting": the browser stands in for the system
+        // setting TUI would read on a machine of its own, which wasm has not.
+        const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const motion = setting("motion") || (reduced ? "reduce" : "");
+        if (motion) environment.TUI_REDUCE_MOTION = motion === "reduce" ? "1" : "0";
+        if (setting("text")) environment.TUI_PLAIN_TEXT = setting("text") === "ascii" ? "1" : "transliterate";
+        if (setting("arrows")) environment.TUI_ARROW_FOCUS = setting("arrows");
+        return environment;
+      }
+
+      // `LANG` for the chosen language, or for the first of the browser's that
+      // the app has; undefined leaves the worker's English. A POSIX locale wants
+      // a region, which `Intl` supplies: `de` → `de_DE.UTF-8`, `zh` → `zh_CN`.
+      function guestLanguage(manifest) {
+        const offered = manifest.gallery?.languages ?? [];
+        const preferred = (navigator.languages ?? [navigator.language]).map((tag) => tag.split("-")[0].toLowerCase());
+        const code = setting("lang") || preferred.find((candidate) => offered.includes(candidate));
+        if (!code) return undefined;
+        try {
+          const region = new Intl.Locale(code).maximize().region;
+          if (region) return `${code}_${region}.UTF-8`;
+        } catch {
+          // No `Intl.Locale`: the language alone, which TUI reads as well.
+        }
+        return `${code}.UTF-8`;
+      }
 
       const isolated = () => crossOriginIsolated && typeof SharedArrayBuffer !== "undefined";
 
@@ -206,17 +454,30 @@
         status.textContent = "not isolated";
       }
 
-      // The download's size, when the site build recorded it. Only the
-      // manifest is fetched for this — a few kilobytes — never the module.
-      fetch("./manifest.json")
+      // The manifest: a few kilobytes, fetched at once for the settings' lists,
+      // the download's size when the site build recorded it, and the app's
+      // name. Never the module. Run waits for it, so that the start page a
+      // link names is in its list before the settings are read.
+      runButton.disabled = true;
+      const ready = fetch("./manifest.json")
         .then((response) => (response.ok ? response.json() : null))
+        .catch(() => null)
         .then((manifest) => {
-          if (manifest && manifest.downloadBytes) {
+          if (manifest?.downloadBytes) {
             document.getElementById("size").textContent =
               `${Math.round(manifest.downloadBytes / 1e6)} MB`;
           }
-        })
-        .catch(() => {});
+          // Another app built with `build.sh --product`: its own name.
+          if (manifest?.argv0 && manifest.argv0 !== "Example") {
+            document.querySelector("h1").textContent = `${manifest.argv0}, in WebAssembly`;
+            document.title = `${manifest.argv0} in WebAssembly`;
+          }
+          offerGallery(manifest);
+          readSettings();
+          runButton.disabled = false;
+          return manifest;
+        });
+      form.addEventListener("change", () => writeSettings());
 
       // Not isolated: install isolation-sw.js, which adds the headers to every
       // response from this directory, then reload so the page itself comes
@@ -231,12 +492,11 @@
         } catch {
           return unsupported();
         }
-        location.hash = RUN_AFTER_RELOAD;
+        writeSettings({ run: true });
         location.reload();
       }
 
-      const resumed = location.hash === RUN_AFTER_RELOAD;
-      if (resumed) history.replaceState(null, "", location.pathname + location.search);
+      const resumed = hashParameters().has(RUN_AFTER_RELOAD);
       if (resumed && isolated()) {
         start();
       } else if (resumed && navigator.serviceWorker && navigator.serviceWorker.controller) {
@@ -244,14 +504,29 @@
         // second reload would not be any different.
         unsupported();
       }
-      runButton.addEventListener("click", () => {
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
         runButton.disabled = true;
         if (isolated()) start();
         else isolateAndReload();
       });
+      // Back to the settings, which the `#` still holds: the guest cannot be
+      // restarted in place, so this is a reload without the run flag.
+      document.getElementById("change").addEventListener("click", () => location.reload());
 
       async function start() {
-        document.getElementById("launch").remove();
+        const manifest = await ready;
+        if (!manifest) {
+          status.textContent = "no manifest.json — run Tools/Web/build.sh";
+          return;
+        }
+        // Read before the form goes, and written to the `#` once more, which
+        // after the isolation reload also takes the spent run flag out.
+        const environment = guestEnvironment(manifest);
+        const language = guestLanguage(manifest);
+        writeSettings();
+        form.remove();
+        document.getElementById("change").hidden = false;
         document.getElementById("frame").classList.add("running");
         const terminalElement = document.getElementById("terminal");
         terminalElement.hidden = false;
@@ -372,7 +647,6 @@
           }
         };
 
-        const manifest = await (await fetch("./manifest.json")).json();
         worker.postMessage({
           kind: "start",
           wasmURL: manifest.wasm,
@@ -381,6 +655,8 @@
           rows: terminal.rows,
           control,
           input,
+          env: environment,
+          language,
         });
       }
     </script>

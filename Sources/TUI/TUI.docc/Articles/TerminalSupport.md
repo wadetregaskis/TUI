@@ -24,6 +24,7 @@ This page is for when you want to know what your users will see.
 - **Pictures** are drawn in real pixels where the terminal has the Kitty graphics protocol or, failing that, Sixel, and as coloured text characters everywhere else. Either way, an ``Image`` takes up the same cells.
 - **Keyboard protocol** is the Kitty keyboard protocol, a newer way for a terminal to report keys. With it, an app can tell Control-I from Tab and Control-Shift-Z from Control-Z, and hear a key being released. Without it, those keys arrive looking the same, so a shortcut on one of them may never fire.
 - **Colours** that a terminal can't show are replaced by the nearest it can. Fine gradients show steps at 256 colours.
+- **A web browser** is the terminal of a WebAssembly build of your app, on a page that TUI provides: see <doc:RunningInABrowser>.
 
 Two terminals keep some of the mouse for themselves:
 
@@ -126,6 +127,7 @@ The same cues are drawn over the colours when the person asks for cues that don'
 ## See Also
 
 - <doc:EnvironmentVariables>
+- <doc:RunningInABrowser>
 - <doc:MouseAndGestures>
 - <doc:KeyboardShortcuts>
 - ``TerminalCapabilities``

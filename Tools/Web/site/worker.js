@@ -62,24 +62,32 @@ self.onmessage = async (event) => {
   );
   for (const directory of manifest.directories ?? []) directories.add(directory);
 
+  const env = {
+    // The size is fixed at start: wasip1 has no `ioctl`, so this is the only
+    // way the guest can learn the terminal's shape (`Terminal.getSize()`
+    // falls back to exactly these two).
+    COLUMNS: String(columns),
+    LINES: String(rows),
+    TERM: "xterm-256color",
+    COLORTERM: "truecolor",
+    // Who the page is. The page loads the graphemes addon, which is part of
+    // what the name stands for here (`TerminalClient.Program.xtermJS`).
+    TERM_PROGRAM: "xterm.js",
+    TERM_PROGRAM_VERSION: "6.0.0",
+    LANG: message.language ?? "en_US.UTF-8",
+    TUI_CONFIG_DIR: "/config",
+    // What the page's settings chose. A `null` takes a default above away
+    // rather than setting it empty: the 256-colour setting removes
+    // `COLORTERM`, which is not the same to every reader as `COLORTERM=`.
+    ...(message.env ?? {}),
+  };
+  for (const [key, value] of Object.entries(env)) {
+    if (value === null) delete env[key];
+  }
+
   const wasi = new BrowserWASI({
     args: [manifest.argv0 ?? "Example"],
-    env: {
-      // The size is fixed at start: wasip1 has no `ioctl`, so this is the only
-      // way the guest can learn the terminal's shape (`Terminal.getSize()`
-      // falls back to exactly these two).
-      COLUMNS: String(columns),
-      LINES: String(rows),
-      TERM: "xterm-256color",
-      COLORTERM: "truecolor",
-      // Who the page is. The page loads the graphemes addon, which is part of
-      // what the name stands for here (`TerminalClient.Program.xtermJS`).
-      TERM_PROGRAM: "xterm.js",
-      TERM_PROGRAM_VERSION: "6.0.0",
-      LANG: message.language ?? "en_US.UTF-8",
-      TUI_CONFIG_DIR: "/config",
-      ...(message.env ?? {}),
-    },
+    env,
     files,
     directories: [...directories, "/config"],
     control,

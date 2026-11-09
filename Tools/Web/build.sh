@@ -1,13 +1,28 @@
 #!/bin/bash
 #
 # 🖥️ TUI — A Terminal UI framework for Swift
-# build.sh — builds the Example app for the browser.
+# build.sh — builds the Example app, or your own, for the browser.
 #
-#   Tools/Web/build.sh [--debug] [--no-opt]
+#   Tools/Web/build.sh [--debug] [--no-opt] [--product NAME] [--package-path DIR]
+#                      [--scratch-path DIR]
 #
 # Produces `Tools/Web/site/`: the wasm module, the resource bundles SwiftPM
 # built, and a manifest saying which guest path each of those files has to
 # appear at. Serve it with `Tools/Web/serve.py`.
+#
+#   --product NAME       the executable to build: `Example` unless named. The
+#                        module is `NAME.wasm`, and the page starts it as NAME.
+#   --package-path DIR   the package it is in: this repository unless named.
+#                        Your own app's package, which depends on TUI, builds
+#                        here as well: `--package-path ~/MyApp --product MyApp`.
+#   --scratch-path DIR   SwiftPM's build directory: the package's `.build`
+#                        unless named. Name one to keep this toolchain's build
+#                        apart from your usual compiler's, which shares `.build`
+#                        otherwise: two compilers in one build directory
+#                        confuse each other's incremental state.
+#
+# For the Example alone, the manifest also lists its pages and its languages,
+# read from its source, for the page's start-page and language pickers.
 #
 # Prerequisites, and why they are not the toolchain you build the rest with:
 #
@@ -31,17 +46,29 @@ TOOLCHAIN_VERSION="${TUI_WASM_TOOLCHAIN:-6.3.3}"
 SDK_NAME="${TUI_WASM_SDK:-swift-${TOOLCHAIN_VERSION}-RELEASE_wasm}"
 CONFIGURATION="release"
 RUN_WASM_OPT=1
-
-for argument in "$@"; do
-    case "$argument" in
-        --debug) CONFIGURATION="debug" ;;
-        --no-opt) RUN_WASM_OPT=0 ;;
-        *) echo "unknown option: $argument" >&2; exit 2 ;;
-    esac
-done
-
+PRODUCT="Example"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SITE="$ROOT/Tools/Web/site"
+PACKAGE="$ROOT"
+SCRATCH=""
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --debug) CONFIGURATION="debug" ;;
+        --no-opt) RUN_WASM_OPT=0 ;;
+        --product)
+            [ $# -ge 2 ] || { echo "--product needs a name" >&2; exit 2; }
+            PRODUCT="$2"; shift ;;
+        --package-path)
+            [ $# -ge 2 ] || { echo "--package-path needs a directory" >&2; exit 2; }
+            PACKAGE="$(cd "$2" && pwd)"; shift ;;
+        --scratch-path)
+            [ $# -ge 2 ] || { echo "--scratch-path needs a directory" >&2; exit 2; }
+            SCRATCH="$2"; shift ;;
+        *) echo "unknown option: $1" >&2; exit 2 ;;
+    esac
+    shift
+done
 
 # Which `swift`. On macOS the plain `swift` is usually Xcode's, which cannot
 # target wasm (see above), so it is the swift.org toolchain swiftly installs,
@@ -72,29 +99,35 @@ fi
 # rendered by recursion, and wasm's default 64 KB of linear-memory stack runs
 # out inside the Example's deeper pages; 16 MB matches what the native builds
 # get from the main thread.
-echo "── building Example.wasm ($CONFIGURATION, SDK $SDK_NAME)"
+# What every `swift build` below shares. Never empty, which matters: bash 3.2,
+# macOS's, calls an empty array unbound under `set -u`.
+PACKAGE_OPTIONS=(--package-path "$PACKAGE" -c "$CONFIGURATION" --swift-sdk "$SDK_NAME")
+[ -z "$SCRATCH" ] || PACKAGE_OPTIONS+=(--scratch-path "$SCRATCH")
+
+echo "── building $PRODUCT.wasm ($CONFIGURATION, SDK $SDK_NAME, package $PACKAGE)"
 "$SWIFT" build \
-    --package-path "$ROOT" \
-    -c "$CONFIGURATION" \
-    --swift-sdk "$SDK_NAME" \
+    "${PACKAGE_OPTIONS[@]}" \
     --static-swift-stdlib \
-    --product Example \
+    --product "$PRODUCT" \
     -Xlinker -z -Xlinker stack-size=16777216 \
     -Xlinker --strip-debug
 
-BIN="$("$SWIFT" build --package-path "$ROOT" -c "$CONFIGURATION" --swift-sdk "$SDK_NAME" --show-bin-path)"
-MODULE="$BIN/Example.wasm"
+BIN="$("$SWIFT" build "${PACKAGE_OPTIONS[@]}" --show-bin-path)"
+MODULE="$BIN/$PRODUCT.wasm"
 [ -f "$MODULE" ] || { echo "no module at $MODULE" >&2; exit 1; }
 
 mkdir -p "$SITE/resources"
 rm -rf "$SITE/resources"/*
+# The previous build's module, whichever product it was: the manifest names
+# only the new one, and a stale module beside it is tens of megabytes.
+rm -f "$SITE"/*.wasm
 
 if [ "$RUN_WASM_OPT" = "1" ] && command -v wasm-opt >/dev/null 2>&1; then
     echo "── wasm-opt -Os"
-    wasm-opt -Os --strip-debug --strip-dwarf "$MODULE" -o "$SITE/Example.wasm"
+    wasm-opt -Os --strip-debug --strip-dwarf "$MODULE" -o "$SITE/$PRODUCT.wasm"
 else
     [ "$RUN_WASM_OPT" = "1" ] && echo "── wasm-opt not found; shipping the linker's output"
-    cp "$MODULE" "$SITE/Example.wasm"
+    cp "$MODULE" "$SITE/$PRODUCT.wasm"
 fi
 
 # The resource bundles, and the manifest that says where the guest expects to
@@ -102,10 +135,10 @@ fi
 # absolute host path, so the page serves the files under exactly that path —
 # there is no way to ask the module to look somewhere else.
 echo "── collecting resource bundles"
-python3 - "$BIN" "$SITE" <<'PYTHON'
+python3 - "$BIN" "$SITE" "$PRODUCT" <<'PYTHON'
 import json, os, shutil, sys
 
-build_dir, site = sys.argv[1], sys.argv[2]
+build_dir, site, product = sys.argv[1], sys.argv[2], sys.argv[3]
 resources = os.path.join(site, "resources")
 files, directories = [], set()
 
@@ -125,8 +158,8 @@ for bundle in sorted(os.listdir(build_dir)):
             directories.add(os.path.dirname(guest))
 
 manifest = {
-    "wasm": "./Example.wasm",
-    "argv0": "Example",
+    "wasm": f"./{product}.wasm",
+    "argv0": product,
     "files": files,
     "directories": sorted(directories | {"/config"}),
 }
@@ -134,6 +167,14 @@ with open(os.path.join(site, "manifest.json"), "w") as handle:
     json.dump(manifest, handle, indent=2)
 print(f"   {len(files)} resource file(s)")
 PYTHON
+
+# The Example's pages and languages, for the page's pickers: read from the
+# source each build, so a page added to `DemoPage` is offered without anyone
+# remembering this file. Another product gets neither picker.
+if [ "$PRODUCT" = Example ] && [ "$PACKAGE" = "$ROOT" ]; then
+    echo "── listing the Example's pages and languages"
+    python3 "$ROOT/Tools/Web/example_gallery.py" "$ROOT/Sources/Example" "$SITE/manifest.json"
+fi
 
 # The width probe's inputs: the shared corpus, TUI's own widths, and the
 # records the Python probes wrote for real terminals. Copied rather than
@@ -143,6 +184,6 @@ mkdir -p "$SITE/probe-data"
 cp "$ROOT/Tools/TerminalProbes/data/"*.json "$SITE/probe-data/"
 cp "$ROOT/Tools/Web/glyph-probe.html" "$SITE/glyph-probe.html"
 
-SIZE=$(du -h "$SITE/Example.wasm" | cut -f1)
-echo "── done: $SITE/Example.wasm ($SIZE)"
+SIZE=$(du -h "$SITE/$PRODUCT.wasm" | cut -f1)
+echo "── done: $SITE/$PRODUCT.wasm ($SIZE)"
 echo "   serve it with: Tools/Web/serve.py"

@@ -12,6 +12,7 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 - <doc:TerminalSupport>
 - <doc:EnvironmentVariables>
 - <doc:ShippingAnApp>
+- <doc:RunningInABrowser>
 - <doc:TestingYourApp>
 
 ### Testing

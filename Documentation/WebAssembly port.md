@@ -9,6 +9,10 @@ terminals.
     Tools/Web/serve.py      # serves them with the headers the page needs
     open http://127.0.0.1:8000/
 
+`build.sh --package-path ~/MyApp --product MyApp` builds another app for the same
+page; the DocC article *Running Your App in a Browser* is the guide for an app's
+author, and `Tools/Web/README.md` lists the page's settings.
+
 ## The toolchain, and why it is not the one you already have
 
 Three things have to line up, and two of them are not obvious.

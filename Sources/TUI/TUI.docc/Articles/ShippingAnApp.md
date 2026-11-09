@@ -17,6 +17,7 @@ beside it, and you are done. Most apps need nothing else, and the rest of this p
 - <doc:ShippingAnApp#Documenting-Environment-Variables> puts the variables TUI reads in your man page.
 - <doc:ShippingAnApp#Shipping-Size> lists ways to make the program smaller, and what each one costs.
 - <doc:ShippingAnApp#Build-Time> says why a release build takes minutes, and what helps.
+- <doc:RunningInABrowser> builds your app for WebAssembly, to run on a web page.
 
 To choose what your app depends on, see <doc:ChoosingProducts>.
 
@@ -308,3 +309,4 @@ depend on only the products you use (<doc:ChoosingProducts>).
 - <doc:ChoosingProducts>
 - <doc:EnvironmentVariables>
 - <doc:ModuleIndex>
+- <doc:RunningInABrowser>

@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Your app can run in a browser, and the browser demo takes settings.** `Tools/Web/build.sh --product NAME
+--package-path DIR` builds any executable for the WebAssembly page, not only the Example, and the new article "Running
+Your App in a Browser" covers what works there, the commands, publishing on GitHub Pages and the download's size. The
+page now offers settings before *Run*: colours, reduced motion, ASCII-only text, arrow-key focus and, for the Example,
+the page to open on and the language. The address keeps them, so a link opens the same configuration. The Example
+opens on the page `TUI_EXAMPLE_PAGE` names, as `--page` already did.
+
 **Focusable controls take far less memory.** A control's default focus id is its identity path, which
 wrote each view's type in full, and a view's type names every view nested inside it: tens of kilobytes for a control
 a few dozen views deep, kept for as long as the control is and hashed every frame. `ViewIdentity.path` now writes a
