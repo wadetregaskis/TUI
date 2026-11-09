@@ -143,6 +143,10 @@ package final class ValueComparison {
     }
 
     /// ``equal(_:_:strict:plans:)`` of two values held by value.
+    ///
+    /// Hand it values or raw pointers, never typed ones: from Swift 6.3 an
+    /// `UnsafePointer<V>` picks this overload over the raw one, with `T` the
+    /// pointer, and compares the two addresses (6.2 converted it to raw).
     func equal<T>(_ lhs: T, _ rhs: T, strict: Bool, plans: ValueHashPlans) -> Bool {
         withUnsafePointer(to: lhs) { left in
             withUnsafePointer(to: rhs) { right in

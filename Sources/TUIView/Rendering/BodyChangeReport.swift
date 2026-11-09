@@ -236,12 +236,12 @@ package enum BodyChangeReport {
         guard let old, let plans = context.renderCache?.valueHashPlans,
             let comparison = plans.comparison(for: Subject.self)
         else { return .unknown }
-        return withUnsafePointer(to: old) { old in
-            withUnsafePointer(to: new) { new in
-                if unsafe !comparison.equal(old, new, strict: false, plans: plans) { return .changed }
-                return unsafe comparison.equal(old, new, strict: true, plans: plans) ? .same : .unknown
-            }
-        }
+        // The values themselves, not pointers to them: `equal` has an overload
+        // over raw pointers and one generic over values, and from Swift 6.3 a
+        // typed `UnsafePointer` picks the generic one, comparing the two
+        // pointers' addresses — so every view read as `@self` changed.
+        if !comparison.equal(old, new, strict: false, plans: plans) { return .changed }
+        return comparison.equal(old, new, strict: true, plans: plans) ? .same : .unknown
     }
 
     /// Sends `line` where it goes: the storage's sink, if a test set one;
