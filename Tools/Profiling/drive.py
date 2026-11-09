@@ -487,11 +487,13 @@ def main():
     counting = False
     play(BACK_TO_MENU + [(0.15, QUIT_KEY)])
     quit_on_q = True
+    usage = None
     deadline = time.time() + 1.5
     while time.time() < deadline:
         if drain(0.1) < 0:
             break
-        if os.waitpid(pid, os.WNOHANG)[0]:
+        reaped, _, usage = os.wait4(pid, os.WNOHANG)
+        if reaped:
             break
     else:
         quit_on_q = False
@@ -500,9 +502,16 @@ def main():
         except ProcessLookupError:
             pass
     try:
-        os.waitpid(pid, 0)
+        _, _, usage = os.wait4(pid, 0)
     except ChildProcessError:
         pass
+    # The child's peak resident set and CPU time over the whole run, startup
+    # and the way out included: `ru_maxrss`, `ru_utime` and `ru_stime` from
+    # the `wait4` that reaped it. macOS counts `ru_maxrss` in bytes, Linux in
+    # kilobytes.
+    peak_rss_mb = (usage.ru_maxrss / (1 << 20) if sys.platform == "darwin"
+                   else usage.ru_maxrss / 1024) if usage else None
+    cpu_seconds = usage.ru_utime + usage.ru_stime if usage else None
 
     if dump:
         dump.close()
@@ -523,7 +532,8 @@ def main():
 
     if not args.quiet:
         print(f"[drive] scenario={args.scenario} loops={args.loops} "
-              f"size={args.cols}x{args.rows} output={total:,} bytes")
+              f"size={args.cols}x{args.rows} output={total:,} bytes"
+              + (f" peak-rss={peak_rss_mb:.1f}MB cpu={cpu_seconds:.3f}s" if usage else ""))
         if args.scenario == "splitdrag" and total < 50_000:
             # A press one column wide of the divider starts nothing, and the
             # run still completes and still prints a total. Anything near an

@@ -364,6 +364,15 @@ settings and every run starts from the defaults. Set `TUI_CONFIG_DIR`
 yourself to profile against a particular saved state; that directory is used
 as given and kept. `python3 Tools/Profiling/test_drive.py` checks both.
 
+Its last line ends with `peak-rss=` and `cpu=`: the app's peak resident set
+and its CPU time (user and system) over the whole run, startup and the way out
+included, read from the `wait4` that reaps it. That is the Example's RAM and
+CPU over a scripted session, which `Stress`'s `rss-peak` (a headless loop)
+cannot stand in for. The peak barely varies between runs of one binary (46.2
+to 47.7 MB over six runs of `list`); read a difference under a megabyte as
+none. The CPU time moves by several percent: compare medians of runs
+alternated between two binaries.
+
 `--dump OUT.ansi` writes the app's output exactly as it arrived, and beside it
 `OUT.ansi.steps.json`: the scenario, the size, and one marker per scripted
 step — its index, the input sent (`ESC[B`, `-`, or empty for a pause), and
