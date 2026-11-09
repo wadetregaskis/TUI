@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A pop to the root clears `navigationDestination(isPresented:)`'s flag.** A destination written on a pushed screen
+used to keep its flag (or its `item:`) set when a breadcrumb or the app's path took the user back past that screen,
+and the next visit to it pushed the destination straight back on. The stack now sets the binding back to `false`
+(or `nil`) whatever route the screen left by, as SwiftUI does.
+
 **A column header and a tab title draw their Markdown styles.** `TableColumn("**Name** *x*", value: \.name)` draws its
 italic, as `Text` does, where it used to draw only the words; so does `Tab("*Inbox*", value: 1) { … }`. A tab with a
 symbol or a picture still draws its words plain, and a header too narrow for its whole title cuts the plain words.

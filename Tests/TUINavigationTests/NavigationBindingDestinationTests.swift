@@ -221,6 +221,78 @@ struct NavigationBindingDestinationTests {
             "popping to the token alone would strand the user on a screen reached through it")
     }
 
+    /// A destination written on a PUSHED screen. A pop straight to the root
+    /// takes that screen off too, so its modifier stops rendering and cannot
+    /// notice that its own screen went: SwiftUI still sets the flag back to
+    /// false, and so must the stack. Left true, the next visit to the screen
+    /// pushed the destination straight back on.
+    @Test("A pop to the root clears a flag set on a pushed screen")
+    func popToRootClearsAPushedScreensFlag() {
+        let fixture = Fixture()
+        func stack() -> some View {
+            NavigationStack(path: Binding(get: { fixture.path }, set: { fixture.path = $0 })) {
+                Text("root")
+                    .navigationDestination(for: Item.self) { item in
+                        Text("screen \(item.name)")
+                            .navigationDestination(
+                                isPresented: Binding(
+                                    get: { fixture.showing }, set: { fixture.showing = $0 })
+                            ) { Text("detail") }
+                    }
+            }
+        }
+
+        fixture.frame(stack)
+        fixture.path.append(Item(name: "S"))
+        fixture.frame(stack)
+        fixture.showing = true
+        fixture.frame(stack)
+        #expect(fixture.path.count == 2)
+        var lines = fixture.frame(stack)
+        #expect(lines.contains { $0.contains("detail") }, "\(lines)")
+
+        // A breadcrumb to the root, or the app emptying its path.
+        fixture.path = NavigationPath()
+        for _ in 0..<2 { fixture.frame(stack) }
+        #expect(!fixture.showing, "the pop to the root was not reported to the app")
+
+        // Back to the screen: the destination stays down.
+        fixture.path.append(Item(name: "S"))
+        for _ in 0..<3 { fixture.frame(stack) }
+        lines = fixture.frame(stack)
+        #expect(fixture.path.count == 1, "the destination pushed itself again")
+        #expect(lines.contains { $0.contains("screen S") }, "\(lines)")
+    }
+
+    @Test("A pop of one level clears a flag set on the screen below")
+    func popOneLevelClearsAPushedScreensFlag() {
+        let fixture = Fixture()
+        func stack() -> some View {
+            NavigationStack(path: Binding(get: { fixture.path }, set: { fixture.path = $0 })) {
+                Text("root")
+                    .navigationDestination(for: Item.self) { item in
+                        Text("screen \(item.name)")
+                            .navigationDestination(
+                                isPresented: Binding(
+                                    get: { fixture.showing }, set: { fixture.showing = $0 })
+                            ) { Text("detail") }
+                    }
+            }
+        }
+
+        fixture.path.append(Item(name: "S"))
+        fixture.frame(stack)
+        fixture.showing = true
+        fixture.frame(stack)
+        #expect(fixture.path.count == 2)
+
+        // What Back does.
+        fixture.path.removeLast()
+        for _ in 0..<3 { fixture.frame(stack) }
+        #expect(!fixture.showing, "the pop was not reported to the app")
+        #expect(fixture.path.count == 1, "the destination pushed itself again")
+    }
+
     @Test("item: pushes a screen built from the value, and nil pops it")
     func itemDrivesThePath() {
         let fixture = Fixture()

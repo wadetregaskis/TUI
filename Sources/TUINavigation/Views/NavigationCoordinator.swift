@@ -59,6 +59,18 @@ final class NavigationCoordinator {
     /// Whether a registration has added a destination since the last sweep.
     private var addedSinceSweep = false
 
+    /// What clears the app's binding for each screen a
+    /// `navigationDestination(isPresented:)` or `(item:)` pushed, keyed by
+    /// that screen's token id, for as long as the token is on the path.
+    ///
+    /// The modifier notices a pop itself while it renders, but a pop to the
+    /// root takes off the screen it is written on too, and then nothing
+    /// renders it: the flag stayed true, and the next visit to that screen
+    /// pushed the destination straight back on. SwiftUI sets the binding back
+    /// to false whatever route the pop took, so the stack does it here, at the
+    /// start of its next pass (``beginRegistrationPass()``).
+    private var presentedBindings: [String: () -> Void] = [:]
+
     /// A view a link registered, and the pass it was last registered in.
     private struct ViewDestination {
         let view: AnyView
@@ -259,6 +271,32 @@ extension NavigationCoordinator {
     /// under this pass.
     func beginRegistrationPass() {
         registrationPass &+= 1
+        if !presentedBindings.isEmpty { dismissPoppedPresentations() }
+    }
+
+    /// Remembers how to clear the binding that put token `id` on the path.
+    /// See ``presentedBindings``.
+    func trackPresentation(token id: String, dismiss: @escaping () -> Void) {
+        presentedBindings[id] = dismiss
+    }
+
+    /// Forgets token `id`'s binding: its modifier saw the screen go itself.
+    func untrackPresentation(token id: String) {
+        presentedBindings[id] = nil
+    }
+
+    /// Clears the binding of every tracked screen that is no longer on the
+    /// path, by whatever route it left.
+    private func dismissPoppedPresentations() {
+        var onPath: Set<String> = []
+        for value in read() {
+            if let token = value.base as? NavigationViewToken { onPath.insert(token.id) }
+        }
+        let popped = presentedBindings.filter { !onPath.contains($0.key) }
+        for (id, dismiss) in popped {
+            presentedBindings[id] = nil
+            dismiss()
+        }
     }
 
     /// Ends the pass ``beginRegistrationPass()`` started, dropping the view

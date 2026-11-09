@@ -35,11 +35,10 @@ extension View {
     /// }
     /// ```
     ///
-    /// Apply it inside the stack, on a view that stays on screen — the root, or
-    /// something in it. The stack's root keeps rendering while a screen is
-    /// pushed (off-screen, isolated from focus), which is what keeps this
-    /// modifier live to notice a pop; a modifier written on a screen that is
-    /// itself covered has stopped rendering and cannot.
+    /// Apply it inside the stack: on the root, or on a pushed screen. The
+    /// binding is cleared by whatever route the screen leaves — Back, a
+    /// breadcrumb, a pop to the root that takes the screen the modifier is
+    /// written on away with it, or the app writing the path — as SwiftUI does.
     ///
     /// - Parameters:
     ///   - isPresented: Whether the destination is on the stack.
@@ -174,6 +173,7 @@ nonisolated struct NavigationPresentationModifier<Content: View, Destination: Vi
             if onPath, let index = path.firstIndex(of: token) {
                 coordinator.pop(path.count - index)
             }
+            if didPush.value { coordinator.untrackPresentation(token: identity.path) }
             didPush.value = false
             return
         }
@@ -183,11 +183,19 @@ nonisolated struct NavigationPresentationModifier<Content: View, Destination: Vi
                 // We pushed it and it is gone, so the user popped it. Report
                 // that rather than pushing it again.
                 didPush.value = false
+                coordinator.untrackPresentation(token: identity.path)
                 isPresented.wrappedValue = false
             } else {
                 register(coordinator: coordinator, token: token, context: context)
                 coordinator.push(token)
                 didPush.value = true
+                // The stack clears the flag if the screen leaves while this
+                // modifier is not rendering to see it go (a pop to the root
+                // from a destination written on a pushed screen).
+                let isPresented = isPresented
+                coordinator.trackPresentation(token: identity.path) {
+                    if isPresented.wrappedValue { isPresented.wrappedValue = false }
+                }
             }
             return
         }
