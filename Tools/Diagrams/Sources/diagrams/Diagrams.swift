@@ -142,8 +142,13 @@ let lifecycleRunCreates = Diagram(
 /// 4) — plus the two `hasTextInputFocus` gates that switch Layer 0 on and Layer
 /// 3 off, and the one key Layer 0 is not offered: an editing chord the focused
 /// text control gives up to an app shortcut (`textInputGivesWay(_:)`).
-/// Ahead of all of them, SwiftUI's focus-gated `onKeyPress` handlers.
-/// Mirrors `InputHandler.handle(_:)`.
+/// Ahead of all of them, SwiftUI's focus-gated `onKeyPress` handlers. After
+/// the pre-route, Escape goes to the exit command (`.onExitCommand`) of a view
+/// holding the focus. Layer 2's `.refreshable` offers ⌃R to the focused
+/// control before it refreshes (a reorderable list's row pick-up wins). A key
+/// nothing takes rings the bell. Not drawn: Layer -1 (a screen selection's
+/// copy and clear), ⌘ chords, Layer 2.5 (an open menu's type select).
+/// Mirrors `InputHandler.dispatchPress(_:)`.
 let keyboardEventDispatch = Diagram(
     name: "keyboard-event-dispatch",
     title: "Keyboard event dispatch — five layers + three refinement stages",
@@ -158,18 +163,22 @@ let keyboardEventDispatch = Diagram(
         Node(id: "gesc", title: "ESC claimed by an open surface?", kind: .decision),
         Node(id: "pre", title: "ESC pre-route · Focus system",
              detail: ["open drop-down closes FIRST", "before any page-level handler"]),
+        Node(id: "exit", title: "ESC · exit command",
+             detail: [".onExitCommand of a view holding the focus"]),
         Node(id: "l05", title: "Layer 0.5 · Drag navigators",
              detail: ["scrolls what the pointer is over", "only while a drag is in flight"]),
         Node(id: "l1", title: "Layer 1 · Status bar items", detail: ["shortcut-triggered actions"]),
-        Node(id: "l2", title: "Layer 2 · View handlers", detail: [".onKeyEvent · deepest view first"]),
+        Node(id: "l2", title: "Layer 2 · View handlers",
+             detail: [".onKeyEvent · deepest view first", ".refreshable ⌃R · focused control first"]),
         Node(id: "g3", title: "still has text focus?", kind: .decision),
         Node(id: "l3", title: "Layer 3 · Focus system",
              detail: ["focused element · Tab / Shift+Tab", "arrow-key fallback"]),
         Node(id: "l35", title: "Layer 3.5 · Semantic shortcuts",
              detail: ["Return → default button", "Escape → cancel button", "key-equivalent .keyboardShortcut"]),
         Node(id: "l4", title: "Layer 4 · Default bindings",
-             detail: ["quit (always) · theme · appearance", "chrome gated while a modal grabs input"]),
-        Node(id: "drop", title: "Unmatched → dropped", kind: .terminal),
+             detail: ["quit (always) · undo / redo · ⌃Z suspend", "F1 shortcuts · help key",
+                      "theme · appearance gated while a modal grabs input"]),
+        Node(id: "drop", title: "Unmatched → bell", kind: .terminal),
     ],
     edges: [
         Edge("ev", "fp"),
@@ -184,8 +193,9 @@ let keyboardEventDispatch = Diagram(
         // routed through the focus system).
         Edge("l0", "l05"),
         Edge("gesc", "pre", label: "yes"),
-        Edge("gesc", "l05", label: "no"),
-        Edge("pre", "l05"),
+        Edge("gesc", "exit", label: "no"),
+        Edge("pre", "l05", label: "declined"),
+        Edge("exit", "l05"),
         Edge("l05", "l1"),
         Edge("l1", "l2"),
         Edge("l2", "g3"),
