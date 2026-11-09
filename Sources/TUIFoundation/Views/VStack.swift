@@ -1093,49 +1093,6 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         }
         return result
     }
-
-    /// Reports the row the viewport shows at the report anchor — exact here,
-    /// the slots carry every row's true y. This path never sampled at all, so
-    /// `.scrollPosition` read-back went silent for exactly the content its
-    /// own doc example shows: a variable-height lazy stack under the
-    /// anchored threshold. The collection is resolved only when someone is
-    /// actually listening; for a lone `ForEach` it is the lazy form whose
-    /// ids come straight from the data.
-    @MainActor private func reportExactWalkSample(
-        slots: [RowSlot], window: ScrollContentWindow, top: Int, walkedTotal: Int,
-        context childContext: RenderContext
-    ) {
-        guard let unit = window.reportsIDAt, let reply = window.reply, !slots.isEmpty
-        else { return }
-        var sampling = window
-        sampling.offset = top
-        let line = sampling.sampleY(
-            at: unit, contentBelow: sampling.hasContentBelow(stackBottom: walkedTotal))
-        // The first row whose bottom lies past the sampled line (a line in an
-        // inter-row gap belongs to the row below it), clamped to the last row.
-        let ordinal = slots.firstIndex { line < $0.y + $0.height } ?? (slots.count - 1)
-        let ids = resolveChildViewCollection(from: content, context: childContext)
-        reply.anchorID = ids.reportedID(at: ordinal, content: content, sectionsWhole: childContext.keepsSectionsWhole)
-    }
-
-    /// The slot index of the row whose subtree a focus ID addresses, when the
-    /// ID is a default (identity-path-derived) one and the addressed control
-    /// lives under one of this stack's rows.
-    ///
-    /// Cheap rejection first: unless the ID embeds this stack's own path,
-    /// no row can match and no per-row path is materialised. When it does,
-    /// the scan renders each row's identity path — O(rows) string work, only
-    /// on frames where focus (or a pending target) is inside this stack.
-    @MainActor private func rowIndex(
-        addressedBy focusID: String?, slots: [RowSlot], context: RenderContext
-    ) -> Int? {
-        guard let focusID else { return nil }
-        let stackPath = context.identity.path
-        guard focusID.contains(stackPath) else { return nil }
-        return slots.firstIndex { slot in
-            FocusManager.focusID(focusID, addressesSubtreeAt: slot.child.identity(under: context).path)
-        }
-    }
 }
 
 // MARK: - Equatable

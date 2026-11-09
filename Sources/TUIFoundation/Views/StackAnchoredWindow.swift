@@ -940,15 +940,7 @@ private final class AnchoredWindowFrame {
                         extent: width, alignment: alignment),
                     y: slotY))
             rendered = rendered.horizontallyAligned(toWidth: width, alignment: alignment)
-            var slot = FrameBuffer()
-            slot.appendVertically(rendered, spacing: 0)
-            if slot.height < rowHeight {
-                slot.appendVertically(
-                    FrameBuffer(emptyWithHeight: rowHeight - slot.height), spacing: 0)
-            } else if slot.height > rowHeight {
-                slot = slot.clamped(toWidth: max(width, slot.width), height: rowHeight)
-            }
-            result.appendVertically(slot, spacing: 0)
+            result.appendVertically(Self.slot(of: rendered, extent: rowHeight, width: width), spacing: 0)
             // Rows are variable-height here, so unlike the uniform path this
             // cannot be a division — but the spans are being walked anyway. A
             // line in the gap between two rows belongs to the row below it;

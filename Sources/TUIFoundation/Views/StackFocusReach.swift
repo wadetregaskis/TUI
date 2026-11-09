@@ -157,3 +157,26 @@ import TUIView
         return ordinal
     }
 }
+
+// MARK: - The row a focus ID addresses
+
+@MainActor extension _VStackCore {
+    /// The slot index of the row whose subtree a focus ID addresses, when the
+    /// ID is a default (identity-path-derived) one and the addressed control
+    /// lives under one of this stack's rows.
+    ///
+    /// Cheap rejection first: unless the ID embeds this stack's own path,
+    /// no row can match and no per-row path is materialised. When it does,
+    /// the scan renders each row's identity path — O(rows) string work, only
+    /// on frames where focus (or a pending target) is inside this stack.
+    func rowIndex(
+        addressedBy focusID: String?, slots: [RowSlot], context: RenderContext
+    ) -> Int? {
+        guard let focusID else { return nil }
+        let stackPath = context.identity.path
+        guard focusID.contains(stackPath) else { return nil }
+        return slots.firstIndex { slot in
+            FocusManager.focusID(focusID, addressesSubtreeAt: slot.child.identity(under: context).path)
+        }
+    }
+}

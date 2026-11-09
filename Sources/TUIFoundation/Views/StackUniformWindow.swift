@@ -597,6 +597,13 @@ final class StackWindowState {
         // `_VStackCore.renderViewportWindow`).
         let rendered = child.render(width: width, height: extent, context: context)
             .horizontallyAligned(toWidth: width, alignment: alignment)
+        return Self.slot(of: rendered, extent: extent, width: width)
+    }
+
+    /// `rendered`, a row aligned to the stack's `width`, in a slot of exactly
+    /// `extent` lines: padded with blank lines below, or cut, so the rows
+    /// after it stay at their true `y` whatever it rendered.
+    static func slot(of rendered: FrameBuffer, extent: Int, width: Int) -> FrameBuffer {
         var slot = FrameBuffer()
         slot.appendVertically(rendered, spacing: 0)
         if slot.height < extent {
