@@ -39,6 +39,10 @@ private enum StateIndex {
     /// A playing picture's frames and what has been made of them
     /// (``ImageAnimationPlayback``).
     static let animation = 6
+
+    /// What a measure decoded of a picture no render pass has loaded yet
+    /// (``MeasuredPicture``).
+    static let measured = 7
 }
 
 extension _ImageCore {
@@ -48,6 +52,7 @@ extension _ImageCore {
     /// pixels' drawing in its own file.
     static let renderCacheStateIndex = StateIndex.renderCache
     static let pinStateIndex = StateIndex.pin
+    static let measuredStateIndex = StateIndex.measured
     /// ``StateIndex/animation``, for the playing picture in its own file.
     static let animationStateIndex = StateIndex.animation
 }
@@ -115,24 +120,14 @@ struct _ImageCore: View, Renderable, Layoutable {
             if let last = lastSource.value, last != source {
                 phase = decoded?.phase ?? .loading
             }
-            let cache = environment.resolvedURLImageCache
-            if case .loading = phase, decoded == nil,
-                let cached = Self.cachedPhase(of: source, cache: cache, maxPixelCount: environment.imageMaxPixelCount)
-            {
-                phase = cached
-            } else if case .loading = phase, decoded == nil, cache != nil, case .file(let path) = source,
-                let small = Self.smallFilePhase(
-                    path: path,
-                    settings: LoadSettings(
-                        maxPixelCount: environment.imageMaxPixelCount, urlTimeout: 0, urlCache: cache,
-                        synchronousDecodeLimit: environment.imageSynchronousDecodeLimit))
-            {
-                // A small file the render pass will decode on this frame
-                // (``smallFilePhase(path:settings:)``), decoded here instead:
-                // measured at its own size, not the placeholder's, so its first
-                // frame is laid out as every later one. The decode lands in the
-                // cache, where the render pass finds it, so it is made once.
-                phase = small
+            // A picture the cache holds, or a small file the render pass will
+            // decode on this frame (``smallFilePhase(path:settings:)``),
+            // decoded here instead: measured at its own size, not the
+            // placeholder's, so its first frame is laid out as every later
+            // one. Made once: kept by the cache, or by the view where the
+            // cache does not keep it (``measuredPhase(context:decodes:)``).
+            if case .loading = phase, let measured = measuredPhase(context: context, decodes: true) {
+                phase = measured
             }
             let size: (width: Int, height: Int)
             switch phase {
@@ -257,6 +252,9 @@ struct _ImageCore: View, Renderable, Layoutable {
             for: phaseKey, default: decoded?.phase ?? .loading)
         stateStorage.markActive(identity)
         let pin = pixelPin(context: context)
+        // What a measure decoded: drawn by a view only ever measured (a tab's
+        // label), and handed to the render pass's load otherwise.
+        let measured = context.isMeasuring ? nil : takeMeasuredPhase(context: context)
 
         // Track the last loaded source to detect changes
         let sourceKey = StateStorage.StateKey(identity: identity, propertyIndex: StateIndex.lastSource)
@@ -290,7 +288,7 @@ struct _ImageCore: View, Renderable, Layoutable {
                     urlCache: context.environment.resolvedURLImageCache,
                     synchronousDecodeLimit: context.environment.imageSynchronousDecodeLimit),
                 imageStore: context.environment.terminalImageStore, pin: pin.value,
-                playback: animationPlayback(context: context).value, loads: decoded == nil)
+                playback: animationPlayback(context: context).value, loads: decoded == nil, measured: measured)
             // Written only when the owner changes, as the source is: a write
             // asks for a frame.
             let ownerBox: StateBox<_DecodedImage?> = stateStorage.storage(
@@ -323,7 +321,11 @@ struct _ImageCore: View, Renderable, Layoutable {
         // the decode the cache filed them as rather than by their buffer.
         // Reloading what the cache let go of (``manageLoadLifecycle``): until
         // it lands, what the view last drew of it, where that still fits.
-        guard case let (phase, decodedPixels)? = drawablePhase(phaseBox.value, pin: pin.value, context: context) else {
+        var held = phaseBox.value
+        if context.isMeasuring, case .loading = held, let kept = measuredPhase(context: context, decodes: false) {
+            held = kept
+        }
+        guard case let (phase, decodedPixels)? = drawablePhase(held, pin: pin.value, context: context) else {
             return lastDrawing(of: phaseBox.value, width: renderWidth, height: renderHeight, context: context)
                 ?? renderPlaceholder(
                     width: renderWidth, height: renderHeight, text: placeholderText, spinner: spinner, context: context)
@@ -452,7 +454,8 @@ extension _ImageCore {
         imageStore: TerminalImageStore?,
         pin: ImagePixelPin? = nil,
         playback: ImageAnimationPlayback? = nil,
-        loads: Bool
+        loads: Bool,
+        measured: ImageLoadingPhase? = nil
     ) {
         // Detect source change and force reload
         if let lastSource = lastSourceBox.value, lastSource != source {
@@ -501,6 +504,9 @@ extension _ImageCore {
                 let cached = Self.cachedPhase(of: source, cache: settings.urlCache, maxPixelCount: settings.maxPixelCount)
             {
                 phaseBox.value = cached
+            } else if needsPixels, let measured {
+                // A measure on this frame decoded it already.
+                phaseBox.value = measured
             } else if needsPixels, case .file(let path) = source,
                 let decoded = Self.smallFilePhase(path: path, settings: settings)
             {

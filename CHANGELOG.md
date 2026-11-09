@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A picture in a tab's label draws, and the image cache's `0` no longer decodes every frame.** A label of your own
+(`Tab(value:content:label:)`) holding an `Image` drew its placeholder for good: the strip draws labels as measures,
+which never started the picture's load. And with `TUI_IMAGE_CACHE_SIZE=0` a small picture laid out by a measure was
+decoded again on every frame; the Example's Tab Views page peaked at around 200 MB instead of 75. A view now keeps
+what its measure decoded when the cache doesn't, so `0` costs only the sharing between views.
+
 **Keys read right in ASCII-only text.** With `TUI_PLAIN_TEXT=transliterate` the status bar's keys and any text naming
 a key are spelled before layout: `⌃Q` as `^Q`, and the other modifiers and the keys that type nothing by name, `⌥F` as
 `Alt-F`, `⇧⇥` as `Shift-Tab`. They used to come out blank, so the quit hint read ` Q quit`. With `TUI_PLAIN_TEXT=1`

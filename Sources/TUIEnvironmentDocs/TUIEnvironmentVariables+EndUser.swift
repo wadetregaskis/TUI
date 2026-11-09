@@ -244,7 +244,7 @@ extension TUIEnvironmentVariables {
             code: .overrides("`.springLoadingDelay(_:)`, or `.environment(\\.springLoadingDelay, _)`, for part of an app.")),
         TUIEnvironmentVariable(
             "TUI_IMAGE_CACHE_SIZE", .endUser, .behaviour,
-            values: "A size, such as `256M` or `1 GiB`, in bytes or with a `K`, `M` or `G`. `0` keeps nothing",
+            values: "A size, such as `256M` or `1 GiB`, in bytes or with a `K`, `M` or `G`. `0` shares nothing: each view keeps the picture it shows",
             effect: "How much memory the program may use to keep pictures it has decoded. 64 MiB by default.",
             code: .overrides("`.urlImageCache(_:)` with a `URLImageCache(byteLimit:)` of the app's own.")),
         TUIEnvironmentVariable(

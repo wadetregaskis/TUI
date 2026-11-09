@@ -174,3 +174,87 @@ extension _ImageCore {
         }
     }
 }
+
+// MARK: - A Picture Measured Before It Is Loaded
+
+/// What a measure decoded of a picture no render pass has loaded yet, kept
+/// by the view where the image cache does not keep it.
+///
+/// A small file is decoded by the measure that first lays it out
+/// (``_ImageCore/measuredPhase(context:decodes:)``), and the render pass
+/// after it used to find that decode in the cache. With the cache off
+/// (`TUI_IMAGE_CACHE_SIZE=0`), or a picture too big for it, there was nothing
+/// to find, so every measure decoded the file again: every frame, for a view
+/// only ever drawn as a measure, a tab's label among them, which never drew
+/// its picture either. Kept here, a class changed in place, as
+/// ``ImagePixelPin`` is, so keeping or letting go asks for no frame. The
+/// render pass takes it for its own load and lets it go.
+///
+/// Filed under the key the cache would file it under, the file's path, size
+/// and modification time (``CachedPicture/key(of:)``), so an edited file is
+/// read again, as it is through the cache.
+final class MeasuredPicture {
+    private(set) var key: String?
+    private(set) var phase: ImageLoadingPhase?
+
+    /// What was kept under `key`, or `nil`.
+    func phase(for key: String) -> ImageLoadingPhase? {
+        self.key == key ? phase : nil
+    }
+
+    func keep(_ phase: ImageLoadingPhase, for key: String) {
+        self.key = key
+        self.phase = phase
+    }
+
+    func release() {
+        key = nil
+        phase = nil
+    }
+}
+
+extension _ImageCore {
+    /// The phase a measure draws for a view no render pass has loaded:
+    /// what the view kept from an earlier measure, the picture the cache
+    /// holds, or — with `decodes` — a small file decoded here
+    /// (``smallFilePhase(path:settings:)``), kept by the view unless the
+    /// cache keeps it. `nil` for a decoded image, a large file, or a URL the
+    /// cache does not hold.
+    func measuredPhase(context: RenderContext, decodes: Bool) -> ImageLoadingPhase? {
+        guard decoded == nil, let stateStorage = context.stateStorage else { return nil }
+        let environment = context.environment
+        let kept: StateBox<MeasuredPicture> = stateStorage.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: Self.measuredStateIndex),
+            default: MeasuredPicture())
+        // A file's key, read again each time, so an edit is seen; `nil` for a
+        // URL, which no measure decodes.
+        let key: String? = if case .file = source { CachedPicture.key(of: source) } else { nil }
+        if let key, let phase = kept.value.phase(for: key) { return phase }
+        let cache = environment.resolvedURLImageCache
+        if let cached = Self.cachedPhase(of: source, cache: cache, maxPixelCount: environment.imageMaxPixelCount) {
+            return cached
+        }
+        guard decodes, let key, case .file(let path) = source,
+            let small = Self.smallFilePhase(
+                path: path,
+                settings: LoadSettings(
+                    maxPixelCount: environment.imageMaxPixelCount, urlTimeout: 0, urlCache: cache,
+                    synchronousDecodeLimit: environment.imageSynchronousDecodeLimit))
+        else { return nil }
+        // A picture the cache keeps is found there again, and read back if
+        // it is let go; one it does not keep is the view's to keep.
+        if case .cached = small {} else { kept.value.keep(small, for: key) }
+        return small
+    }
+
+    /// What a measure kept for this view's source, let go of: handed to the
+    /// render pass, which loads with it rather than decoding the file again,
+    /// and holds the pixels from then on.
+    func takeMeasuredPhase(context: RenderContext) -> ImageLoadingPhase? {
+        let kept: StateBox<MeasuredPicture>? = context.stateStorage?.existingStorage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: Self.measuredStateIndex))
+        guard let kept, case .file = source, let key = kept.value.key else { return nil }
+        defer { kept.value.release() }
+        return CachedPicture.key(of: source) == key ? kept.value.phase : nil
+    }
+}

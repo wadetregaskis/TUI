@@ -172,6 +172,8 @@ struct Viewer: App {
 
 Make the cache somewhere that lasts, as here, and not inside a `body`, which would make a new, empty one each time.
 
+`TUI_IMAGE_CACHE_SIZE=0`, or a cache of no bytes, turns the sharing off: each view keeps the picture it shows, and a picture shown in two views, or shown again after it left the screen, is read from its file again.
+
 ## Advanced: changing how a picture is drawn
 
 These settings apply to a view and everything inside it. You don't need any of them to get a good picture, and the defaults are the most faithful.
