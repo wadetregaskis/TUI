@@ -234,8 +234,8 @@ terminal window, tab or pane the app runs in (a tmux pane, `TERM_SESSION_ID`, `I
 `WEZTERM_PANE`, `WT_SESSION` and the like) and a copy last saved from any session. A read takes the session's copy, else
 the last saved, else the default. Running the app again in the same window puts back where it was there, two windows
 running it at once no longer overwrite each other, and a new window starts from the last saved. Without a session, as
-over a plain ssh connection, it works as before. A store keeps the 32 most recent sessions, each for 30 days. See
-`Documentation/Historical/State and dynamic properties/Scene storage per terminal session.md`.
+over a plain ssh connection, it works as before. A store keeps each session for 30 days after its last write, however
+many there are. See `Documentation/Historical/State and dynamic properties/Scene storage per terminal session.md`.
 
 **`@SceneStorage` uses the store `defaultAppStorage(_:)` sets, as `@AppStorage` does.** It used the process's default
 store whatever the environment said, so in `TestApp` it wrote your real preferences where `@AppStorage` stayed in
