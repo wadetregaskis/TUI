@@ -79,6 +79,7 @@ extension _ImageCore {
         let image: RGBAImage
         switch phaseBox.value {
         case .success(let held): image = held
+        case .reduced(let picture): image = picture.image
         case .cached(let picture):
             guard let kept = picture.pixels(in: context.environment.resolvedURLImageCache) else { return nil }
             image = kept

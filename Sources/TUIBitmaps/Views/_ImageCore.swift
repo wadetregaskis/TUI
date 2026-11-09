@@ -43,6 +43,10 @@ private enum StateIndex {
     /// What a measure decoded of a picture no render pass has loaded yet
     /// (``MeasuredPicture``).
     static let measured = 7
+
+    /// A file's picture's size from its header, and the reduction a task is
+    /// decoding it at (``FileDecodeState``).
+    static let fileDecodeState = 8
 }
 
 extension _ImageCore {
@@ -55,6 +59,8 @@ extension _ImageCore {
     static let measuredStateIndex = StateIndex.measured
     /// ``StateIndex/animation``, for the playing picture in its own file.
     static let animationStateIndex = StateIndex.animation
+    /// ``StateIndex/fileDecodeState``, for the reduced decode in its own file.
+    static let fileDecodeStateIndex = StateIndex.fileDecodeState
 }
 
 // MARK: - Image Core
@@ -121,20 +127,15 @@ struct _ImageCore: View, Renderable, Layoutable {
                 phase = decoded?.phase ?? .loading
             }
             // A picture the cache holds, or a small file the render pass will
-            // decode on this frame (``smallFilePhase(path:settings:)``),
-            // decoded here instead: measured at its own size, not the
-            // placeholder's, so its first frame is laid out as every later
-            // one. Made once: kept by the cache, or by the view where the
-            // cache does not keep it (``measuredPhase(context:decodes:)``).
-            if case .loading = phase, let measured = measuredPhase(context: context, decodes: true) {
-                phase = measured
+            // decode on this frame (``smallFilePhase(path:settings:)``):
+            // measured at its own size, not the placeholder's, so its first
+            // frame is laid out as every later one. A file's size is read from
+            // its header, nothing decoded (``measuredSize(context:)``): the
+            // render decodes it for the box this measure answers.
+            if case .loading = phase {
+                return measuredSize(context: context).flatMap { $0.width > 0 && $0.height > 0 ? $0 : nil }
             }
-            let size: (width: Int, height: Int)
-            switch phase {
-            case .success(let rawImage): size = (rawImage.width, rawImage.height)
-            case .cached(let picture): size = (picture.width, picture.height)
-            case .loading, .failure: return nil
-            }
+            guard let size = phase.pictureSize else { return nil }
             guard size.width > 0, size.height > 0 else { return nil }
             return size
         }
@@ -263,6 +264,31 @@ struct _ImageCore: View, Renderable, Layoutable {
         // Build a unique token for this image source
         let token = "image-\(identity.path)"
 
+        // The image renders into the fit box scaled by zoom — mirroring
+        // `sizeThatFits`, so what's measured is what's drawn. For a `.viewport`
+        // fit the base is the (unzoomed) published viewport, so zooming OUT
+        // shrinks the image below the viewport (and zooming IN grows it past it);
+        // otherwise the laid-out available size already reflects the zoom.
+        // `zoomed` floors at one cell, so even a 1/512 zoom stays renderable.
+        // Sanitised by the environment's setter; see `sizeThatFits`.
+        let zoom = context.environment.imageZoom
+        let renderWidth: Int
+        let renderHeight: Int
+        if context.environment.imageFitTarget == .viewport,
+            let viewport = context.environment.scrollViewportSize {
+            renderWidth = Self.zoomed(viewport.width, zoom)
+            renderHeight = Self.zoomed(viewport.height, zoom)
+        } else {
+            renderWidth = width
+            renderHeight = height
+        }
+        // A file's picture is decoded for this box, at a power-of-two fraction
+        // of its size where it is drawn smaller than it is
+        // (``reduction(ofPicture:in:zoom:environment:)``).
+        let reduced = reducedLoad(
+            phase: phaseBox.value, lastSource: lastSourceBox.value, space: (renderWidth, renderHeight), zoom: zoom,
+            context: context)
+
         // Lifecycle and phase mutations are RENDER-pass side effects. An
         // ancestor that measures by rendering (a Card's container measure, a
         // multi-line Table cell probe) runs this body with `isMeasuring` set —
@@ -286,9 +312,11 @@ struct _ImageCore: View, Renderable, Layoutable {
                 load: LoadSettings(
                     maxPixelCount: maxPixelCount, urlTimeout: urlTimeout,
                     urlCache: context.environment.resolvedURLImageCache,
-                    synchronousDecodeLimit: context.environment.imageSynchronousDecodeLimit),
+                    synchronousDecodeLimit: context.environment.imageSynchronousDecodeLimit,
+                    reduction: reduced.reduction, pictureSize: reduced.size),
                 imageStore: context.environment.terminalImageStore, pin: pin.value,
-                playback: animationPlayback(context: context).value, loads: decoded == nil, measured: measured)
+                playback: animationPlayback(context: context).value, loads: decoded == nil, measured: measured,
+                fileState: reduced.size == nil ? nil : fileDecodeState(context: context)?.value)
             // Written only when the owner changes, as the source is: a write
             // asks for a frame.
             let ownerBox: StateBox<_DecodedImage?> = stateStorage.storage(
@@ -297,35 +325,18 @@ struct _ImageCore: View, Renderable, Layoutable {
             if ownerBox.value?.owner !== decoded?.owner { ownerBox.value = decoded }
         }
 
-        // The image renders into the fit box scaled by zoom — mirroring
-        // `sizeThatFits`, so what's measured is what's drawn. For a `.viewport`
-        // fit the base is the (unzoomed) published viewport, so zooming OUT
-        // shrinks the image below the viewport (and zooming IN grows it past it);
-        // otherwise the laid-out available size already reflects the zoom.
-        // `zoomed` floors at one cell, so even a 1/512 zoom stays renderable.
-        // Sanitised by the environment's setter; see `sizeThatFits`.
-        let zoom = context.environment.imageZoom
-        let renderWidth: Int
-        let renderHeight: Int
-        if context.environment.imageFitTarget == .viewport,
-            let viewport = context.environment.scrollViewportSize {
-            renderWidth = Self.zoomed(viewport.width, zoom)
-            renderHeight = Self.zoomed(viewport.height, zoom)
-        } else {
-            renderWidth = width
-            renderHeight = height
-        }
-
         // A picture the cache keeps draws as one held here, its pixels read
         // back from the cache — and held while the view is drawn — and keyed by
         // the decode the cache filed them as rather than by their buffer.
         // Reloading what the cache let go of (``manageLoadLifecycle``): until
         // it lands, what the view last drew of it, where that still fits.
         var held = phaseBox.value
-        if context.isMeasuring, case .loading = held, let kept = measuredPhase(context: context, decodes: false) {
+        if context.isMeasuring, case .loading = held,
+            let kept = measuredPhase(context: context, reduction: reduced.reduction, size: reduced.size)
+        {
             held = kept
         }
-        guard case let (phase, decodedPixels)? = drawablePhase(held, pin: pin.value, context: context) else {
+        guard case let (phase, decodedPixels, canvas)? = drawablePhase(held, pin: pin.value, context: context) else {
             return lastDrawing(of: phaseBox.value, width: renderWidth, height: renderHeight, context: context)
                 ?? renderPlaceholder(
                     width: renderWidth, height: renderHeight, text: placeholderText, spinner: spinner, context: context)
@@ -333,24 +344,28 @@ struct _ImageCore: View, Renderable, Layoutable {
 
         // Render based on current phase
         switch phase {
-        case .loading, .cached:
+        case .loading, .cached, .reduced:
             let placeholder = renderPlaceholder(
                 width: renderWidth, height: renderHeight, text: placeholderText, spinner: spinner, context: context)
             return watchingVisibility(of: placeholder, context: context)
 
         case .success(let loadedImage):
             return renderSuccess(
-                loadedImage, decodedPixels: decodedPixels, renderWidth: renderWidth, renderHeight: renderHeight,
-                zoom: zoom, token: token, context: context)
+                loadedImage, decodedPixels: decodedPixels, canvas: canvas, renderWidth: renderWidth,
+                renderHeight: renderHeight, zoom: zoom, token: token, context: context)
 
         case .failure(let message):
             return renderError(message, width: renderWidth, height: renderHeight, context: context)
         }
     }
 
+    /// `canvas` is the size `loadedImage` is laid out as where its pixels
+    /// were decoded smaller (``ImageLoadingPhase/reduced(_:)``), as a playing
+    /// picture's frames are laid out as the file (``PlayingFrame/canvas``).
     private func renderSuccess(
         _ loadedImage: RGBAImage,
         decodedPixels: DecodedPixels?,
+        canvas: (width: Int, height: Int)?,
         renderWidth: Int,
         renderHeight: Int,
         zoom: Double,
@@ -370,8 +385,9 @@ struct _ImageCore: View, Renderable, Layoutable {
         let playing = playingFrame(token: token, context: context)
         // What is drawn into which box: at its natural size, the image's
         // own box; otherwise the box it was handed, to fit or fill.
+        let laidOut = playing?.canvas ?? canvas
         let (rawImage, drawWidth, drawHeight, resizing, keepsAspect) = drawing(
-            playing?.image ?? loadedImage, laidOutAs: playing?.canvas, in: (renderWidth, renderHeight), zoom: zoom,
+            playing?.image ?? loadedImage, laidOutAs: laidOut, in: (renderWidth, renderHeight), zoom: zoom,
             environment: context.environment)
         // Real pixels first, where the terminal will take them. Falls
         // through to the glyph renderer for every terminal that did not
@@ -389,7 +405,7 @@ struct _ImageCore: View, Renderable, Layoutable {
         let decodedPixels = playing.map { DecodedPixels(decode: $0.decode) } ?? decodedPixels ?? DecodedPixels(loadedImage)
         if !isTemplate, resizing?.slices != true, let drawn = renderWithTerminalGraphics(
             rawImage, decodedPixels: decodedPixels, width: drawWidth, height: drawHeight,
-            stretches: resizing != nil && !keepsAspect, playing: playing, context: context)
+            stretches: resizing != nil && !keepsAspect, canvas: laidOut, playing: playing, context: context)
         {
             picture = drawn
         } else {
@@ -408,6 +424,7 @@ struct _ImageCore: View, Renderable, Layoutable {
                 monoColours: monoColours,
                 templateInk: isTemplate ? Self.templateInk(in: context.environment) : nil,
                 resizing: resizing,
+                canvas: laidOut,
                 playing: playing,
                 stateStorage: context.stateStorage!,
                 identity: context.identity
@@ -438,6 +455,12 @@ extension _ImageCore {
         /// The largest file decoded on the frame that first draws it
         /// (`imageSynchronousDecodeLimit`); 0 for none.
         var synchronousDecodeLimit = 0
+        /// The power of two a file's picture is decoded at a fraction of its
+        /// size by, for the box it is drawn in; 1 for the picture whole.
+        var reduction = 1
+        /// The file's picture's size, read from its header, where it is
+        /// decoded for its box: `nil` for a URL or a picture decoded whole.
+        var pictureSize: (width: Int, height: Int)?
     }
 
     /// Render-pass-only load management: resets the phase on a source change,
@@ -455,12 +478,14 @@ extension _ImageCore {
         pin: ImagePixelPin? = nil,
         playback: ImageAnimationPlayback? = nil,
         loads: Bool,
-        measured: ImageLoadingPhase? = nil
+        measured: ImageLoadingPhase? = nil,
+        fileState: FileDecodeState? = nil
     ) {
         // Detect source change and force reload
         if let lastSource = lastSourceBox.value, lastSource != source {
             lifecycle.cancelTask(token: token)
             lifecycle.resetAppearance(token: token)
+            fileState?.loadingReduction = nil
             // Pixels that came with the image are the new phase: nothing is
             // going to load them.
             phaseBox.value = decoded?.phase ?? .loading
@@ -499,9 +524,13 @@ extension _ImageCore {
             // So does a row coming back whose picture the cache has let go of
             // since it was drawn (``ImageLoadingPhase/cached(_:)``): it has
             // nothing to draw, as a view loading for the first time has not.
+            // At any size the cache holds it: one drawn elsewhere at another
+            // size draws now, and is loaded at this one's below.
             let needsPixels = Self.needsPixels(phaseBox.value, cache: settings.urlCache)
             if needsPixels,
-                let cached = Self.cachedPhase(of: source, cache: settings.urlCache, maxPixelCount: settings.maxPixelCount)
+                let cached = Self.cachedPhase(
+                    of: source, cache: settings.urlCache, maxPixelCount: settings.maxPixelCount,
+                    reduction: settings.reduction, size: settings.pictureSize, nearest: true)
             {
                 phaseBox.value = cached
             } else if needsPixels, let measured {
@@ -547,6 +576,13 @@ extension _ImageCore {
             _ = lifecycle.recordAppear(token: token) {}
         }
 
+        // Pixels decoded for another box than this one: a box grown past what
+        // they hold, or shrunk well inside it, loads the picture at its size.
+        if loads, let fileState, let held = phaseBox.value.reduction, held != settings.reduction {
+            reloadAtNewSize(
+                settings: settings, phaseBox: phaseBox, state: fileState, lifecycle: lifecycle, token: token, pin: pin)
+        }
+
         // Cancel loading task on disappear — and give the terminal its
         // memory back. A transmitted image is retained by the terminal until
         // something deletes it, and this is the only moment anything knows
@@ -555,6 +591,7 @@ extension _ImageCore {
         // until it is drawn again (``ImagePixelPin``).
         lifecycle.registerDisappear(token: token) { [lifecycle] in
             lifecycle.cancelTask(token: token)
+            fileState?.loadingReduction = nil
             imageStore?.release(token: token)
             pin?.release()
             playback?.stop(token: token, lifecycle: lifecycle, store: imageStore)
@@ -579,8 +616,8 @@ extension _ImageCore {
             let rawImage: RGBAImage
             switch source {
             case .file(let path):
-                rawImage = try loader.loadImage(
-                    from: path, cache: settings.urlCache, maxPixelCount: settings.maxPixelCount)
+                // At the size its box wants (``decodeFile(path:settings:)``).
+                return try decodeFile(path: path, settings: settings)
             case .url(let urlString):
                 rawImage = try await loader.loadImage(
                     fromURL: urlString,
@@ -638,13 +675,14 @@ extension _ImageCore {
         monoColours: ImageMonoColours?,
         templateInk: RGBA?,
         resizing: _ImageResizing?,
+        canvas: (width: Int, height: Int)?,
         playing: PlayingFrame?,
         stateStorage: StateStorage,
         identity: ViewIdentity
     ) -> FrameBuffer {
         let targetSize = Self.cellBox(
-            imageWidth: playing?.canvas.width ?? rawImage.width,
-            imageHeight: playing?.canvas.height ?? rawImage.height,
+            imageWidth: canvas?.width ?? rawImage.width,
+            imageHeight: canvas?.height ?? rawImage.height,
             maxWidth: width,
             maxHeight: height,
             stretches: resizing != nil,

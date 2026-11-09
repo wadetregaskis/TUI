@@ -137,9 +137,12 @@ extension _ImageCore {
         }
     }
 
+    ///
+    /// `canvas` is the size `rawImage` is laid out as, where that is not its
+    /// own: a playing picture's file, or a picture decoded smaller than it is.
     func renderWithTerminalGraphics(
         _ rawImage: RGBAImage, decodedPixels: DecodedPixels, width: Int, height: Int, stretches: Bool,
-        playing: PlayingFrame? = nil, context: RenderContext
+        canvas: (width: Int, height: Int)? = nil, playing: PlayingFrame? = nil, context: RenderContext
     ) -> FrameBuffer? {
         guard KittyGraphics.isSupported,
             context.environment.terminalGraphics,
@@ -151,7 +154,7 @@ extension _ImageCore {
         // function — so switching renderers cannot move the image or change
         // what the layout around it was told.
         let target = Self.cellBox(
-            imageWidth: playing?.canvas.width ?? rawImage.width, imageHeight: playing?.canvas.height ?? rawImage.height,
+            imageWidth: canvas?.width ?? rawImage.width, imageHeight: canvas?.height ?? rawImage.height,
             maxWidth: width, maxHeight: height,
             stretches: stretches,
             contentMode: context.environment.imageContentMode,

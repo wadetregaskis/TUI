@@ -69,8 +69,13 @@ struct ImageMeasuredOnlyTests {
         let cache = URLImageCache(byteLimit: 0)
         func kept() -> DecodedPixels? {
             for box in tui.stateStorage.values.values {
-                if let measured = box as? StateBox<MeasuredPicture>, case .success(let image)? = measured.value.phase {
-                    return DecodedPixels(image)
+                guard let measured = box as? StateBox<MeasuredPicture> else { continue }
+                // Decoded at the size its four cells draw it (`.reduced`), or
+                // whole where it is no larger.
+                switch measured.value.phase {
+                case .success(let image): return DecodedPixels(image)
+                case .reduced(let picture): return DecodedPixels(picture.image)
+                default: continue
                 }
             }
             return nil

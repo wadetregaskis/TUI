@@ -70,16 +70,20 @@ extension _ImageCore {
             default: ImagePixelPin())
     }
 
-    /// `phase` as the render draws it, and what keys its conversion where
-    /// that is not the loaded buffer: a picture the cache keeps is drawn as
-    /// one loaded — its pixels held by the view, or read back from the cache
-    /// and held from now on, while the view is drawn — and keyed by the decode
-    /// the cache filed it as. `nil` once the cache has let it go while the
-    /// view was not drawn.
+    /// `phase` as the render draws it, what keys its conversion where that
+    /// is not the loaded buffer, and the size the picture is laid out as where
+    /// its pixels were decoded smaller (``ImageLoadingPhase/reduced(_:)``): a
+    /// picture the cache keeps is drawn as one loaded — its pixels held by the
+    /// view, or read back from the cache and held from now on, while the view
+    /// is drawn — and keyed by the decode the cache filed it as. `nil` once the
+    /// cache has let it go while the view was not drawn.
     func drawablePhase(
         _ phase: ImageLoadingPhase, pin: ImagePixelPin, context: RenderContext
-    ) -> (ImageLoadingPhase, DecodedPixels?)? {
-        guard case .cached(let picture) = phase else { return (phase, nil) }
+    ) -> (phase: ImageLoadingPhase, decodedPixels: DecodedPixels?, canvas: (width: Int, height: Int)?)? {
+        if case .reduced(let picture) = phase {
+            return (.success(picture.image), nil, (picture.width, picture.height))
+        }
+        guard case .cached(let picture) = phase else { return (phase, nil, nil) }
         guard
             let image = pin.pixels(of: picture) ?? decoded?.landedPixels(of: picture)
                 ?? picture.pixels(in: context.environment.resolvedURLImageCache)
@@ -88,7 +92,8 @@ extension _ImageCore {
             pin.hold(image, of: picture)
             decoded?.letGoOfLandedPixels()
         }
-        return (.success(image), DecodedPixels(decode: picture.decode))
+        let canvas = picture.reduction > 1 ? (width: picture.width, height: picture.height) : nil
+        return (.success(image), DecodedPixels(decode: picture.decode), canvas)
     }
 
     /// Whether `phase` has no pixels to draw: still loading, or a picture the
@@ -97,7 +102,7 @@ extension _ImageCore {
         switch phase {
         case .loading: true
         case .cached(let picture): picture.pixels(in: cache) == nil
-        case .success, .failure: false
+        case .success, .reduced, .failure: false
         }
     }
 
@@ -126,10 +131,27 @@ extension _ImageCore {
     /// The phase `cache` already holds the answer for: the picture, or the
     /// failure of one past `maxPixelCount` — `nil` where it holds nothing, or
     /// there is no cache. A lookup, cheap enough to make while drawing.
+    ///
+    /// A file's picture of `size` (read from its header) at `reduction` of
+    /// it; or, with `nearest`, at whichever size the cache holds it, the
+    /// nearest first and a larger before a smaller — a picture another view
+    /// drew at another size draws on this view's first frame, while it loads
+    /// at its own (``reloadAtNewSize(settings:phaseBox:state:lifecycle:token:pin:)``).
     static func cachedPhase(
-        of source: ImageSource, cache: URLImageCache?, maxPixelCount: Int?
+        of source: ImageSource, cache: URLImageCache?, maxPixelCount: Int?,
+        reduction: Int = 1, size: (width: Int, height: Int)? = nil, nearest: Bool = false
     ) -> ImageLoadingPhase? {
         guard let cache else { return nil }
+        if let size, case .file = source {
+            for candidate in reductions(of: size, from: reduction, nearest: nearest) {
+                guard let key = CachedPicture.key(of: source, reducedBy: candidate), let image = cache.get(key) else {
+                    continue
+                }
+                // Within the limit: the size was read under it.
+                return .loaded(image, from: source, cache: cache, size: size, reduction: candidate)
+            }
+            return nil
+        }
         let loader = PlatformImageLoader()
         do {
             let image =
@@ -158,20 +180,42 @@ extension _ImageCore {
     /// loads in a task, so the frame does not wait on it. The owner
     /// (2026-10-28): keep it, configurable down to none.
     static func smallFilePhase(path: String, settings: LoadSettings) -> ImageLoadingPhase? {
-        guard settings.synchronousDecodeLimit > 0,
-            let size = (try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? Int,
-            size <= settings.synchronousDecodeLimit
-        else { return nil }
+        guard isSmallFile(path: path, limit: settings.synchronousDecodeLimit) else { return nil }
         do {
-            return .loaded(
-                try PlatformImageLoader().loadImage(
-                    from: path, cache: settings.urlCache, maxPixelCount: settings.maxPixelCount),
-                from: .file(path), cache: settings.urlCache)
+            return try decodeFile(path: path, settings: settings).phase
         } catch let loadError as ImageLoadError {
             return .failure(loadError.description)
         } catch {
             return .failure(error.localizedDescription)
         }
+    }
+
+    /// Whether the file at `path` is at most `limit` bytes, which a frame
+    /// decodes rather than a task (``smallFilePhase(path:settings:)``); never
+    /// for a limit of 0.
+    static func isSmallFile(path: String, limit: Int) -> Bool {
+        guard limit > 0, let size = (try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? Int else {
+            return false
+        }
+        return size <= limit
+    }
+
+    /// The reductions to look for a picture of `size` under: `reduction`, and
+    /// with `nearest` every other it could have been decoded at, the nearest
+    /// first, a larger before a smaller.
+    private static func reductions(of size: (width: Int, height: Int), from reduction: Int, nearest: Bool) -> [Int] {
+        guard nearest else { return [reduction] }
+        var candidates = [reduction]
+        var finer = reduction / 2
+        var coarser = reduction * 2
+        let coarsest = PlatformImageLoader.reduction(of: size, covering: (1, 1))
+        while finer >= 1 || coarser <= coarsest {
+            if finer >= 1 { candidates.append(finer) }
+            if coarser <= coarsest { candidates.append(coarser) }
+            finer /= 2
+            coarser *= 2
+        }
+        return candidates
     }
 }
 
@@ -181,7 +225,7 @@ extension _ImageCore {
 /// by the view where the image cache does not keep it.
 ///
 /// A small file is decoded by the measure that first lays it out
-/// (``_ImageCore/measuredPhase(context:decodes:)``), and the render pass
+/// (``_ImageCore/measuredPhase(context:reduction:size:)``), and the render pass
 /// after it used to find that decode in the cache. With the cache off
 /// (`TUI_IMAGE_CACHE_SIZE=0`), or a picture too big for it, there was nothing
 /// to find, so every measure decoded the file again: every frame, for a view
@@ -214,13 +258,41 @@ final class MeasuredPicture {
 }
 
 extension _ImageCore {
-    /// The phase a measure draws for a view no render pass has loaded:
-    /// what the view kept from an earlier measure, the picture the cache
-    /// holds, or — with `decodes` — a small file decoded here
-    /// (``smallFilePhase(path:settings:)``), kept by the view unless the
-    /// cache keeps it. `nil` for a decoded image, a large file, or a URL the
-    /// cache does not hold.
-    func measuredPhase(context: RenderContext, decodes: Bool) -> ImageLoadingPhase? {
+    /// The size a measure lays out a view no render pass has loaded at: the
+    /// picture's own where the render pass about to follow draws it on its
+    /// first frame — a small file, decoded there; a file the cache holds at
+    /// any size; a URL the cache holds — and `nil` otherwise, for the
+    /// placeholder's box.
+    ///
+    /// A file's size is read from its header (``headerSize(context:)``), with
+    /// nothing decoded: how small its pixels are decoded follows from the box
+    /// the measure is about to answer, which needs this first.
+    func measuredSize(context: RenderContext) -> (width: Int, height: Int)? {
+        guard decoded == nil else { return nil }
+        let environment = context.environment
+        let cache = environment.resolvedURLImageCache
+        guard case .file(let path) = source else {
+            return Self.cachedPhase(of: source, cache: cache, maxPixelCount: environment.imageMaxPixelCount)?
+                .pictureSize
+        }
+        guard let size = headerSize(context: context) else { return nil }
+        if Self.isSmallFile(path: path, limit: environment.imageSynchronousDecodeLimit) { return size }
+        let held = Self.cachedPhase(
+            of: source, cache: cache, maxPixelCount: environment.imageMaxPixelCount, size: size, nearest: true)
+        return held == nil ? nil : size
+    }
+
+    /// The phase a measuring render draws for a view no render pass has
+    /// loaded, at `reduction` of the picture's size (`size`, from its header):
+    /// what the view kept from an earlier one at that reduction, the picture
+    /// the cache holds at it, or a small file decoded here
+    /// (``smallFilePhase(path:settings:)``), kept by the view unless the cache
+    /// keeps it — and, for a large file, the picture the cache holds at any
+    /// size. `nil` for a decoded image, a large file the cache does not hold,
+    /// or a URL it does not hold.
+    func measuredPhase(
+        context: RenderContext, reduction: Int, size: (width: Int, height: Int)?
+    ) -> ImageLoadingPhase? {
         guard decoded == nil, let stateStorage = context.stateStorage else { return nil }
         let environment = context.environment
         let kept: StateBox<MeasuredPicture> = stateStorage.storage(
@@ -229,18 +301,26 @@ extension _ImageCore {
         // A file's key, read again each time, so an edit is seen; `nil` for a
         // URL, which no measure decodes.
         let key: String? = if case .file = source { CachedPicture.key(of: source) } else { nil }
-        if let key, let phase = kept.value.phase(for: key) { return phase }
+        if let key, let phase = kept.value.phase(for: key), phase.reduction == reduction { return phase }
         let cache = environment.resolvedURLImageCache
-        if let cached = Self.cachedPhase(of: source, cache: cache, maxPixelCount: environment.imageMaxPixelCount) {
+        let maxPixelCount = environment.imageMaxPixelCount
+        if let cached = Self.cachedPhase(
+            of: source, cache: cache, maxPixelCount: maxPixelCount, reduction: reduction, size: size)
+        {
             return cached
         }
-        guard decodes, let key, case .file(let path) = source,
+        guard let key, case .file(let path) = source,
             let small = Self.smallFilePhase(
                 path: path,
                 settings: LoadSettings(
-                    maxPixelCount: environment.imageMaxPixelCount, urlTimeout: 0, urlCache: cache,
-                    synchronousDecodeLimit: environment.imageSynchronousDecodeLimit))
-        else { return nil }
+                    maxPixelCount: maxPixelCount, urlTimeout: 0, urlCache: cache,
+                    synchronousDecodeLimit: environment.imageSynchronousDecodeLimit, reduction: reduction,
+                    pictureSize: size))
+        else {
+            return Self.cachedPhase(
+                of: source, cache: cache, maxPixelCount: maxPixelCount, reduction: reduction, size: size,
+                nearest: true)
+        }
         // A picture the cache keeps is found there again, and read back if
         // it is let go; one it does not keep is the view's to keep.
         if case .cached = small {} else { kept.value.keep(small, for: key) }

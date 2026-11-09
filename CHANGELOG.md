@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A picture from a file is kept at the size it's drawn, not the size it is.** A 1,024-pixel picture drawn four cells
+wide kept all four megabytes of it in memory; it is now decoded at a power-of-two fraction of its size for its box (on
+macOS straight to that size, so the decode's peak falls too), and decoded again when it's drawn larger or much
+smaller. The image cache keeps each size under its own key. Layout is unchanged, since a picture is still laid out at
+its own size, read from the file's header; glyph output can shift slightly where a picture is now drawn from fewer
+pixels. A measure no longer decodes a file at all.
+
 **Fourteen underscored types are no longer public.** `_AlignmentGuideView`, `_BackgroundStopsAtContent`,
 `_ContainerValueView`, `_LayoutCore`, `_LayoutValueView`, `_MemoizedRow`, `_OutlineRow`, `_RowEditRestrictionView`,
 `_StyleFillBlock`, `_SwipeActionsView`, `_TaggedView`, `_ValueMemoWrapping`, `_ValueScopedTransactionView` and

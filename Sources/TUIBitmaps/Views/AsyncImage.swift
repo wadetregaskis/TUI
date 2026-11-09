@@ -433,6 +433,7 @@ private struct _AsyncImageCore<Content: View>: View, Renderable, Layoutable {
                 let next: Stored
                 switch loaded.phase {
                 case .success(let pixels): next = .loaded(_DecodedImage(pixels, scale: scale), address)
+                case .reduced(let picture): next = .loaded(_DecodedImage(picture.image, scale: scale), address)
                 case .cached(let picture):
                     next = .loaded(
                         _DecodedImage(cached: picture, in: settings.urlCache, scale: scale, landedPixels: loaded.pixels),

@@ -125,26 +125,33 @@ public struct PlatformImageLoader: ImageLoader {
     /// - Returns: The decoded image as `RGBAImage`.
     /// - Throws: `ImageLoadError` if the file cannot be read, decoded, or exceeds the limit.
     public func loadImage(from path: String, maxPixelCount: Int?) throws -> RGBAImage {
+        try Self.requireRegularFile(atPath: path)
+        #if canImport(ImageIO)
+            if let pdf = Self.pdfDocument(atPath: path) { return try decodePDF(pdf, maxPixelCount: maxPixelCount).image }
+            return try decodeWithImageIO(
+                CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil),
+                describing: "image at \(path)", maxPixelCount: maxPixelCount
+            ).image
+        #else
+            return try decodeWithSTB(data: Self.fileBytes(atPath: path), maxPixelCount: maxPixelCount).image
+        #endif
+    }
+
+    /// Throws unless `path` names a regular file, its links followed.
+    ///
+    /// Only a regular file: opening a named pipe or a device to read waits for
+    /// a writer that may never come, and a decode on the frame that draws it
+    /// (a pipe reports 0 bytes, so it passes as a small file) froze the app,
+    /// signals and all.
+    static func requireRegularFile(atPath path: String) throws {
         guard FileManager.default.fileExists(atPath: path) else {
             throw ImageLoadError.fileNotFound(path)
         }
-        // Only a regular file, its links followed: opening a named pipe or a
-        // device to read waits for a writer that may never come, and a decode
-        // on the frame that draws it (a pipe reports 0 bytes, so it passes as
-        // a small file) froze the app, signals and all.
         let target = URL(fileURLWithPath: path).resolvingSymlinksInPath().path
         guard (try? FileManager.default.attributesOfItem(atPath: target))?[.type] as? FileAttributeType == .typeRegular
         else {
             throw ImageLoadError.decodingFailed("\(path) is not a regular file")
         }
-        #if canImport(ImageIO)
-            if let pdf = Self.pdfDocument(atPath: path) { return try decodePDF(pdf, maxPixelCount: maxPixelCount) }
-            return try decodeWithImageIO(
-                CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil),
-                describing: "image at \(path)", maxPixelCount: maxPixelCount)
-        #else
-            return try decodeWithSTB(data: Self.fileBytes(atPath: path), maxPixelCount: maxPixelCount)
-        #endif
     }
 
     /// Loads an image from raw data with an optional pixel count limit.
@@ -156,12 +163,13 @@ public struct PlatformImageLoader: ImageLoader {
     /// - Throws: `ImageLoadError` if the data cannot be decoded or exceeds the limit.
     public func loadImage(from data: Data, maxPixelCount: Int?) throws -> RGBAImage {
         #if canImport(ImageIO)
-            if let pdf = Self.pdfDocument(data: data) { return try decodePDF(pdf, maxPixelCount: maxPixelCount) }
+            if let pdf = Self.pdfDocument(data: data) { return try decodePDF(pdf, maxPixelCount: maxPixelCount).image }
             return try decodeWithImageIO(
                 CGImageSourceCreateWithData(data as CFData, nil), describing: "image data",
-                maxPixelCount: maxPixelCount)
+                maxPixelCount: maxPixelCount
+            ).image
         #else
-            return try decodeWithSTB(data: data, maxPixelCount: maxPixelCount)
+            return try decodeWithSTB(data: data, maxPixelCount: maxPixelCount).image
         #endif
     }
 }
@@ -218,8 +226,13 @@ extension PlatformImageLoader {
 #if !canImport(ImageIO)
     extension PlatformImageLoader {
 
-        /// Decodes in-memory data with stb_image into straight-alpha, row-major RGBA.
-        private func decodeWithSTB(data: Data, maxPixelCount: Int?) throws -> RGBAImage {
+        /// Decodes in-memory data with stb_image into straight-alpha, row-major
+        /// RGBA, and the picture's size: at `reduction` (a power of two) of it
+        /// each way, averaged down (``RGBAImage/boxReduced(by:)``) once it is
+        /// decoded, stb_image having no way to decode a picture smaller.
+        func decodeWithSTB(
+            data: Data, maxPixelCount: Int?, reducedBy reduction: Int = 1
+        ) throws -> (image: RGBAImage, width: Int, height: Int) {
             var width: Int32 = 0
             var height: Int32 = 0
             var channels: Int32 = 0
@@ -251,7 +264,8 @@ extension PlatformImageLoader {
                 throw ImageLoadError.imageTooLarge(pixelCount: pixelCount, limit: limit)
             }
 
-            return RGBAImage(rgbaBytes: pixels, width: Int(width), height: Int(height))
+            let image = RGBAImage(rgbaBytes: pixels, width: Int(width), height: Int(height))
+            return (image.boxReduced(by: reduction), Int(width), Int(height))
         }
     }
 #endif
@@ -288,7 +302,32 @@ extension PlatformImageLoader {
         /// stopped importing AppKit (decisions B50, B-D3M-4), now through Core
         /// Graphics alone. At a pixel a point the image's natural size is its
         /// page's, in points, as SwiftUI's is.
-        func decodePDF(_ document: CGPDFDocument, maxPixelCount: Int?) throws -> RGBAImage {
+        ///
+        /// Rasterised at `reduction` (a power of two) of that each way, where
+        /// it is wanted smaller; the size it comes back with is the page's.
+        func decodePDF(
+            _ document: CGPDFDocument, maxPixelCount: Int?, reducedBy reduction: Int = 1
+        ) throws -> (image: RGBAImage, width: Int, height: Int) {
+            let (page, width, height) = try Self.firstPage(of: document, maxPixelCount: maxPixelCount)
+            let drawnWidth = max(1, (width + reduction - 1) / reduction)
+            let drawnHeight = max(1, (height + reduction - 1) / reduction)
+            guard let context = unsafe CGContext(
+                data: nil, width: drawnWidth, height: drawnHeight, bitsPerComponent: 8, bytesPerRow: 0,
+                space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+            else { throw ImageLoadError.decodingFailed("PDF: no bitmap context") }
+            let target = CGRect(x: 0, y: 0, width: drawnWidth, height: drawnHeight)
+            context.concatenate(page.getDrawingTransform(.cropBox, rect: target, rotate: 0, preserveAspectRatio: true))
+            context.drawPDFPage(page)
+            guard let image = context.makeImage() else { throw ImageLoadError.decodingFailed("PDF: nothing drawn") }
+            return (try decode(image, maxPixelCount: maxPixelCount), width, height)
+        }
+
+        /// A PDF's first page and its size at a pixel a point, turned as the
+        /// page says — refused past `maxPixelCount`.
+        static func firstPage(
+            of document: CGPDFDocument, maxPixelCount: Int?
+        ) throws -> (page: CGPDFPage, width: Int, height: Int) {
             guard let page = document.page(at: 1) else {
                 throw ImageLoadError.decodingFailed("PDF has no pages")
             }
@@ -301,16 +340,7 @@ extension PlatformImageLoader {
             if let limit = maxPixelCount, width * height > limit {
                 throw ImageLoadError.imageTooLarge(pixelCount: width * height, limit: limit)
             }
-            guard let context = unsafe CGContext(
-                data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
-                space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
-            else { throw ImageLoadError.decodingFailed("PDF: no bitmap context") }
-            let target = CGRect(x: 0, y: 0, width: width, height: height)
-            context.concatenate(page.getDrawingTransform(.cropBox, rect: target, rotate: 0, preserveAspectRatio: true))
-            context.drawPDFPage(page)
-            guard let image = context.makeImage() else { throw ImageLoadError.decodingFailed("PDF: nothing drawn") }
-            return try decode(image, maxPixelCount: maxPixelCount)
+            return (page, width, height)
         }
 
         /// Decodes the largest image of an ImageIO source (see
@@ -324,30 +354,28 @@ extension PlatformImageLoader {
         /// so a portrait photograph from a phone came out on its side. Only an
         /// image that needs turning takes the thumbnail path, at its full size,
         /// which is the one ImageIO call that applies the transform.
-        private func decodeWithImageIO(
-            _ source: CGImageSource?, describing what: String, maxPixelCount: Int?
-        ) throws -> RGBAImage {
-            guard let source, let chosen = Self.largestImage(in: source, fitting: maxPixelCount) else {
+        ///
+        /// …or one wanted smaller: at `reduction` (a power of two) of its size
+        /// each way, which ImageIO's thumbnail decodes straight to — a JPEG at
+        /// a half, a quarter or an eighth from its own coefficients, never
+        /// whole — so neither the picture kept nor the decode's peak is the
+        /// full size. The size it comes back with is the picture's own, turned.
+        func decodeWithImageIO(
+            _ source: CGImageSource?, describing what: String, maxPixelCount: Int?, reducedBy reduction: Int = 1
+        ) throws -> (image: RGBAImage, width: Int, height: Int) {
+            guard let source, case let (index, properties)? = Self.largestImage(in: source, fitting: maxPixelCount) else {
                 throw ImageLoadError.decodingFailed("ImageIO could not decode \(what)")
             }
-            let (index, properties) = chosen
-            let width = properties?[kCGImagePropertyPixelWidth] as? Int ?? 0
-            let height = properties?[kCGImagePropertyPixelHeight] as? Int ?? 0
-            // Before anything is drawn: a size declared too large is refused
-            // without decoding it.
-            let (declared, overflowed) = width.multipliedReportingOverflow(by: height)
-            if let limit = maxPixelCount, overflowed || declared > limit {
-                throw ImageLoadError.imageTooLarge(pixelCount: overflowed ? Int.max : declared, limit: limit)
-            }
-            let orientation = properties?[kCGImagePropertyOrientation] as? UInt32 ?? 1
+            let (width, height, orientation) = try Self.declaredSize(properties, maxPixelCount: maxPixelCount)
             let image: CGImage?
-            if orientation != 1, max(width, height) > 0 {
+            if orientation != 1 || reduction > 1, max(width, height) > 0 {
+                let longest = (max(width, height) + reduction - 1) / reduction
                 image = CGImageSourceCreateThumbnailAtIndex(
                     source, index,
                     [
                         kCGImageSourceCreateThumbnailFromImageAlways: true,
                         kCGImageSourceCreateThumbnailWithTransform: true,
-                        kCGImageSourceThumbnailMaxPixelSize: max(width, height),
+                        kCGImageSourceThumbnailMaxPixelSize: max(1, longest),
                     ] as CFDictionary)
             } else {
                 image = CGImageSourceCreateImageAtIndex(source, index, nil)
@@ -355,7 +383,26 @@ extension PlatformImageLoader {
             guard let image else {
                 throw ImageLoadError.decodingFailed("ImageIO could not decode \(what)")
             }
-            return try decode(image, maxPixelCount: maxPixelCount)
+            // Orientations 5 to 8 turn the picture a quarter: its stored
+            // width is its height as drawn.
+            let turned = (5...8).contains(orientation)
+            return (try decode(image, maxPixelCount: maxPixelCount), turned ? height : width, turned ? width : height)
+        }
+
+        /// The size an image's `properties` declare, as stored, and its EXIF
+        /// orientation (1 where it states none) — refused past
+        /// `maxPixelCount` before anything is drawn: a size declared too large
+        /// is refused without decoding it.
+        static func declaredSize(
+            _ properties: [CFString: Any]?, maxPixelCount: Int?
+        ) throws -> (width: Int, height: Int, orientation: UInt32) {
+            let width = properties?[kCGImagePropertyPixelWidth] as? Int ?? 0
+            let height = properties?[kCGImagePropertyPixelHeight] as? Int ?? 0
+            let (declared, overflowed) = width.multipliedReportingOverflow(by: height)
+            if let limit = maxPixelCount, overflowed || declared > limit {
+                throw ImageLoadError.imageTooLarge(pixelCount: overflowed ? Int.max : declared, limit: limit)
+            }
+            return (width, height, properties?[kCGImagePropertyOrientation] as? UInt32 ?? 1)
         }
 
         /// The image of `source` with the most pixels, by its declared size,
@@ -376,7 +423,7 @@ extension PlatformImageLoader {
         /// icon whose largest size is over the limit still draws its largest
         /// that fits, as decoding the first image did. Only when none fits is
         /// the largest chosen, for the caller to refuse.
-        private static func largestImage(
+        static func largestImage(
             in source: CGImageSource, fitting limit: Int?
         ) -> (Int, [CFString: Any]?)? {
             let count = CGImageSourceGetCount(source)
