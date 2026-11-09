@@ -106,6 +106,11 @@ protocol StressSession: AnyObject {
     /// `nil` for the usual end-of-run report alone.
     var checkpointEvery: Int? { get }
 
+    /// Whether the session's app declares commands on its scene, so its
+    /// window draws a menu bar (``CommandsSessionHost``); `false` for the
+    /// plain ``SessionHost``.
+    var declaresCommands: Bool { get }
+
     /// What the session does once its last step is played, before one more
     /// frame is drawn, described for the report; `nil` when it does nothing.
     /// Called on the warm instance and on the twin, so both draw the same
@@ -121,6 +126,7 @@ extension StressSession {
     var looksBeforeEachStep: Bool { false }
     func look(at screen: [String]) {}
     var checkpointEvery: Int? { nil }
+    var declaresCommands: Bool { false }
     func finish() -> String? { nil }
 }
 
@@ -221,7 +227,10 @@ final class DrivenSession {
     /// Plays `session` against its own ``HeadlessApp`` of `width` × `height`
     /// cells, clearing its render cache before every frame when `cold`.
     init<S: StressSession>(_ session: S, width: Int, height: Int, cold: Bool) {
-        let app = HeadlessApp(SessionHost(page: session.page), width: width, height: height)
+        let app =
+            session.declaresCommands
+            ? HeadlessApp(CommandsSessionHost(page: session.page), width: width, height: height)
+            : HeadlessApp(SessionHost(page: session.page), width: width, height: height)
         app.clearsRenderCacheEachFrame = cold
         step = { index in
             if session.looksBeforeEachStep { session.look(at: app.screen.map(\.stripped)) }

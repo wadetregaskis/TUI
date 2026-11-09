@@ -8,7 +8,9 @@
 //  counts and costs read against `inbox`'s: what C keeps of inbox's saving
 //  in each place is the difference. The pushed screen does not type into the
 //  search field: its search steps are quiet, as many as `inbox`'s and making
-//  the same draws, so its other steps are `inbox`'s step for step.
+//  the same draws, so its other steps are `inbox`'s step for step. One more,
+//  `inbox-commands`, is not about C: the inbox under a menu bar, for what the
+//  bar costs a walk.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -40,6 +42,9 @@ enum InboxVariant: String, CaseIterable {
     /// into the sheet, grows it past its `upThrough` into a modal and back,
     /// dismisses it and opens it again.
     case docked = "inbox-docked"
+    /// Under a scene whose commands draw a menu bar (``CommandsSessionHost``),
+    /// whose closed menus every walk renders for their shortcuts.
+    case commands = "inbox-commands"
 
     /// What the variant does to the inbox, for `--sessions`.
     var summary: String {
@@ -49,6 +54,7 @@ enum InboxVariant: String, CaseIterable {
         case .sheet: "presented in a sheet"
         case .observable: "its selection bound through @Bindable"
         case .docked: "beside a live sheet docked under it, grown past its threshold and back"
+        case .commands: "under a scene whose commands draw a menu bar"
         }
     }
 }
@@ -92,6 +98,8 @@ struct InboxVariantPage: View {
                 }
         case .observable:
             InboxPage(inbox: inbox, bindsThroughBindable: true)
+        case .commands:
+            InboxPage(inbox: inbox)
         case .docked:
             // F5 is the page's own key: heard wherever the focus is while the
             // page is live, and never while a modal holds it.
@@ -200,6 +208,8 @@ final class InboxVariantSession: StressSession {
     /// reading the colours the palette states; the others at whatever the
     /// process detected.
     var colorDepth: ColorDepth? { variant == .docked ? .truecolor : nil }
+
+    var declaresCommands: Bool { variant == .commands }
 
     static func descriptor(_ variant: InboxVariant) -> SessionDescriptor {
         SessionDescriptor(
