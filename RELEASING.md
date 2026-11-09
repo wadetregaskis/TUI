@@ -29,8 +29,8 @@ Every change a user would notice goes under `## Unreleased` in
 [CHANGELOG.md](CHANGELOG.md) in the commit that makes it. That section becomes
 the release's notes word for word, so write it for someone upgrading.
 
-For the first release, also rewrite the changelog's opening paragraph, which
-says there are no tagged releases.
+For the first release, also rewrite the changelog preface's last paragraph,
+which says TUI has not been released and makes no compatibility promise.
 
 ## Cutting one
 

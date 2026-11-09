@@ -1,6 +1,17 @@
 # Changelog
 
-TUI has no tagged releases yet and is pre-1.0. Public API can change in any commit, and the project deletes deprecated or superseded spellings outright instead of keeping compatibility shims.
+Every change a user would notice, newest first. Work not yet in a release sits under `## Unreleased`; cutting a
+release (`Tools/Release/release.sh`, see [RELEASING.md](RELEASING.md)) renames that section `## X.Y.Z — YYYY-MM-DD`
+and opens a new, empty `## Unreleased` above it, and the section's text becomes the release's notes word for word.
+
+Entries are short paragraphs written for someone upgrading, each led by a bold sentence saying what changed, rather
+than [Keep a Changelog](https://keepachangelog.com/)'s Added/Changed/Removed lists; a change that needs action from
+an app says so, and the larger ones are gathered under `###` headings.
+
+TUI itself has not been released yet and is pre-1.0: public API can change in any commit, and the project deletes
+deprecated or superseded spellings outright instead of keeping compatibility shims. Versions follow
+[Semantic Versioning](https://semver.org/) from 1.0. The `v0.2.0` to `v0.6.0` tags in the repository are releases of
+[TUIkit](https://github.com/phranck/TUIkit), the project TUI grew from, and their notes are TUIkit's.
 
 ## Unreleased
 
