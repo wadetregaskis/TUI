@@ -27,6 +27,12 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 
 ## Decisions waiting on you
 
+### Open on 2026-11-08
+
+| Id | Question | Recommended | If you don't answer |
+|---|---|---|---|
+| API-STABILITY | What 1.0 promises about the public API, and how deprecation and minimum versions work after it: [the draft](<API stability policy (draft).md>), with eleven decisions in its last table. | Its recommendations | Nothing is promised; the pre-1.0 rules stand |
+
 ### Open on 2026-11-01
 
 | Id | Question | Recommended | If you don't answer |
