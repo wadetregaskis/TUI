@@ -15,7 +15,8 @@
 
     /// The breath a symbol's glyph draws: its ink fading toward what is behind it
     /// and back, the one change a single glyph in a cell can show of SF Symbols'
-    /// pulse and breathe.
+    /// pulse and breathe — and, played once, of the effects that move or scale
+    /// the symbol: its ink fading out, in, or out and back.
     package enum SymbolBreath: Equatable, Sendable {
         /// Pulse: down to a third of the ink, as SF Symbols' pulse fades the
         /// symbol's layers.
@@ -23,12 +24,20 @@
         /// Breathe: a gentler swell, down to two thirds; SF Symbols' breathe also
         /// scales the symbol, which a glyph cannot.
         case breathe
+        /// A blink: all the way out and back, the change a glyph shows of a
+        /// scale, which it cannot draw larger or smaller.
+        case blink
+        /// Out, the way a disappear takes the symbol off.
+        case fadeOut
+        /// In, the way an appear draws the symbol on.
+        case fadeIn
 
-        /// The ink's opacity at the faintest point of the breath.
+        /// The ink's opacity at the faintest point of a breath that comes back.
         var faintest: Double {
             switch self {
             case .pulse: 1.0 / 3.0
             case .breathe: 2.0 / 3.0
+            case .blink, .fadeOut, .fadeIn: 0
             }
         }
 
@@ -43,10 +52,15 @@
         }
 
         /// The ink's opacity at frame `index` of a breath: full at its start, the
-        /// faintest at its middle, on a cosine.
+        /// faintest at its middle, on a cosine; a fade out or in runs half that
+        /// cosine, one way, over the whole breath.
         func opacity(atFrame index: Int) -> Double {
             let phase = Double(index % Self.frameCount) / Double(Self.frameCount)
-            return 1 - (1 - faintest) * (1 - cos(2 * .pi * phase)) / 2
+            switch self {
+            case .fadeOut: return (1 + cos(.pi * phase)) / 2
+            case .fadeIn: return (1 - cos(.pi * phase)) / 2
+            case .pulse, .breathe, .blink: return 1 - (1 - faintest) * (1 - cos(2 * .pi * phase)) / 2
+            }
         }
     }
 

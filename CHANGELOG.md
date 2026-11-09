@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Disappear, appear and scale symbol effects show.** `.symbolEffect(.disappear, isActive:)` now fades the symbol out
+as it becomes active, and in as it stops, rather than blanking it at once; `.appear` fades it in as it becomes active;
+`.scale` blinks it as it starts and stops, a glyph not being something a terminal can draw larger. macOS only, as the
+symbol effects are.
+
 **Rows fade in in lazy stacks, lists and tables.** Under `withAnimation`, a row a `ForEach`, an `if`/`else` or a
 `switch` puts into a `LazyVStack`, a `LazyHStack`, a `List` or a `Table` now fades in where it lands, as it already did
 in an eager stack, and a lazy stack's row with a `.transition` of its own plays it on the way out. A row that only

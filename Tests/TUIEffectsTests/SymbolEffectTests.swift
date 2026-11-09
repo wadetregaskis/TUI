@@ -103,6 +103,42 @@
         }
     }
 
+    /// The effects a glyph shows only as they change.
+    enum ChangingEffect: Sendable {
+        case disappear, appear, scale
+    }
+
+    /// The `isActive` an effect watches, changed between frames.
+    @MainActor
+    private final class Flag {
+        var isOn = false
+    }
+
+    /// The reader under `effect`, active as `flag` says.
+    private struct ActiveApp: App {
+        let log: EffectLog
+        let flag: Flag
+        let effect: ChangingEffect
+
+        init() { self.init(log: EffectLog(), flag: Flag(), effect: .scale) }
+
+        init(log: EffectLog, flag: Flag, effect: ChangingEffect) {
+            self.log = log
+            self.flag = flag
+            self.effect = effect
+        }
+
+        var body: some Scene {
+            WindowGroup {
+                switch effect {
+                case .disappear: EffectReader(log: log).symbolEffect(.disappear, isActive: flag.isOn)
+                case .appear: EffectReader(log: log).symbolEffect(.appear, isActive: flag.isOn)
+                case .scale: EffectReader(log: log).symbolEffect(.scale.up, isActive: flag.isOn)
+                }
+            }
+        }
+    }
+
     @MainActor
     @Suite("Symbol effects")
     struct SymbolEffectTests {
@@ -245,6 +281,49 @@
             let end = start + SymbolGlyphEffect.playLength(frameTicks: 3, cycles: 1)
             app.frame(atNanos: end)
             #expect(log.seen.last == .some(nil), "the memo served the play after it ended")
+        }
+
+        /// A glyph cannot be drawn off, on, larger or smaller, so these show
+        /// as their ink fading: out and hidden, in, or out and back, each over
+        /// a breath's time from the frame `isActive` changes.
+        @Test("Disappear, appear and scale play a fade as isActive changes", arguments: [
+            (ChangingEffect.disappear, SymbolBreath.fadeOut, SymbolGlyphEffect?.some(.hidden), SymbolBreath?.some(.fadeIn)),
+            (.appear, .fadeIn, nil, nil),
+            (.scale, .blink, nil, .blink),
+        ])
+        func theChangingEffects(
+            effect: ChangingEffect, on: SymbolBreath, resting: SymbolGlyphEffect?, off: SymbolBreath?
+        ) {
+            let log = EffectLog()
+            let flag = Flag()
+            let app = TestApp(ActiveApp(log: log, flag: flag, effect: effect), width: 20, height: 3)
+            app.frame(atNanos: 0)
+            #expect(log.seen.last == .some(nil), "inactive as it appeared")
+
+            let start: Int64 = 100_000_000
+            flag.isOn = true
+            app.frame(atNanos: start)
+            #expect(log.seen.last == .playing(on, frameTicks: 3, startNanos: start, cycles: 1))
+            let end = start + SymbolGlyphEffect.playLength(frameTicks: 3, cycles: 1)
+            #expect(app.nextWake(after: start) == end)
+            app.frame(atNanos: end)
+            #expect(log.seen.last == .some(resting), "after the play")
+
+            let stop = end + 500_000_000
+            flag.isOn = false
+            app.frame(atNanos: stop)
+            #expect(log.seen.last == .some(off.map { .playing($0, frameTicks: 3, startNanos: stop, cycles: 1) }))
+        }
+
+        @Test("A fade runs half a breath's cosine one way; a blink goes all the way out and back")
+        func theFadeCurves() {
+            let middle = SymbolBreath.frameCount / 2
+            #expect(SymbolBreath.fadeOut.opacity(atFrame: 0) == 1)
+            #expect(abs(SymbolBreath.fadeOut.opacity(atFrame: middle) - 0.5) < 1e-9)
+            #expect(SymbolBreath.fadeIn.opacity(atFrame: 0) == 0)
+            #expect(abs(SymbolBreath.fadeIn.opacity(atFrame: middle) - 0.5) < 1e-9)
+            #expect(SymbolBreath.blink.opacity(atFrame: 0) == 1)
+            #expect(abs(SymbolBreath.blink.opacity(atFrame: middle)) < 1e-9)
         }
 
         @Test("The symbol transitions are fades")

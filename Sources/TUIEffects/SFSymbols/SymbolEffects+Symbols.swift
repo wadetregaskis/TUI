@@ -32,6 +32,24 @@ import TUIFoundation
         }
     }
 
+    extension SymbolBreath {
+        /// What `effect` plays when its `isActive` changes to the value given,
+        /// and what the glyph draws once the play is over, where the effect is
+        /// one a glyph shows only as it changes: an appear fades the glyph in
+        /// as it becomes active; a disappear fades it out as it becomes active,
+        /// and leaves it hidden, and in as it stops; a scale, which a glyph
+        /// cannot draw larger or smaller, blinks either way. `nil` for every
+        /// other effect.
+        static func change(
+            of effect: some SymbolEffect, toActive isActive: Bool
+        ) -> (play: SymbolBreath?, resting: SymbolGlyphEffect?)? {
+            if effect is DisappearSymbolEffect { return (isActive ? .fadeOut : .fadeIn, isActive ? .hidden : nil) }
+            if effect is AppearSymbolEffect { return (isActive ? .fadeIn : nil, nil) }
+            if effect is ScaleSymbolEffect { return (.blink, nil) }
+            return nil
+        }
+    }
+
     extension SymbolEffectOptions {
         /// The speed the options ask for, 1 where it cannot be read.
         ///
@@ -86,21 +104,24 @@ import TUIFoundation
         /// .symbolEffect(.pulse)
         /// ```
         ///
-        /// > Important: **Three of SF Symbols' effects are drawn: pulse,
-        /// > breathe and disappear.** A symbol in a terminal is one glyph in one
-        /// > cell, so what it can show is its ink fading toward what is behind
-        /// > it and back — pulse fades it to a third, breathe to two thirds
-        /// > (breathe's swell in size is not drawn) — or its absence: an active
-        /// > disappear leaves the glyph's cells blank, at once, where SF Symbols
-        /// > draws it off. Bounce, scale, wiggle and rotate need the symbol's
-        /// > geometry: they compile, being Apple's own types, and change
-        /// > nothing. Variable colour changes the opacity of a symbol's variable
-        /// > layers and "has no effect for non-variable color symbol images"
-        /// > (Symbols' own documentation), which a font's glyph is, so it
-        /// > changes nothing here either; appear, active, leaves the symbol
-        /// > shown. Told apart by type, so `.pulse.byLayer` pulses as `.pulse`
-        /// > does. The options' speed is honoured; a repeat count is not, here —
-        /// > the effect breathes while it is active.
+        /// > Important: **Five of SF Symbols' effects are drawn: pulse,
+        /// > breathe, disappear, appear and scale.** A symbol in a terminal is
+        /// > one glyph in one cell, so what it can show is its ink fading toward
+        /// > what is behind it and back — pulse fades it to a third, breathe to
+        /// > two thirds (breathe's swell in size is not drawn) — or its absence.
+        /// > A disappear fades the glyph out as it becomes active and leaves its
+        /// > cells blank while it is, where SF Symbols draws it off, and fades it
+        /// > in as it stops; an appear fades it in as it becomes active; a scale
+        /// > blinks it, out and back, as it starts and as it stops, since a glyph
+        /// > cannot be drawn larger or smaller. Each fade takes a breath's time.
+        /// > Bounce, wiggle and rotate need the symbol's geometry: they compile,
+        /// > being Apple's own types, and change nothing. Variable colour changes
+        /// > the opacity of a symbol's variable layers and "has no effect for
+        /// > non-variable color symbol images" (Symbols' own documentation),
+        /// > which a font's glyph is, so it changes nothing here either. Told
+        /// > apart by type, so `.pulse.byLayer` pulses as `.pulse` does. The
+        /// > options' speed is honoured; a repeat count is not, here — the
+        /// > effect breathes while it is active.
         ///
         /// macOS only, as the Symbols framework is. An `Image(systemName:)`
         /// draws only where the terminal has the SF Symbols font (see
@@ -118,16 +139,18 @@ import TUIFoundation
             _ effect: T, options: SymbolEffectOptions = .default, isActive: Bool = true
         ) -> some View {
             let breath = isActive ? SymbolBreath(effect) : nil
-            let hides = isActive && effect is DisappearSymbolEffect
             let frameTicks = SymbolBreath.frameTicks(speed: options.tuikitSpeed)
-            return transformEnvironment(\.symbolGlyphEffect) { inherited in
-                if hides {
-                    inherited = .hidden
-                    return
-                }
-                guard let breath else { return }
-                inherited = .breathing(breath, frameTicks: frameTicks)
-            }
+            // An effect a glyph shows only as it changes plays from a change
+            // of `isActive`, as a discrete effect plays from a change of its
+            // value, and rests as it says once the play is over.
+            let change = SymbolBreath.change(of: effect, toActive: isActive)
+            return _DiscreteSymbolEffectModifier(
+                content: transformEnvironment(\.symbolGlyphEffect) { inherited in
+                    guard let breath else { return }
+                    inherited = .breathing(breath, frameTicks: frameTicks)
+                },
+                breath: change?.play, frameTicks: frameTicks, cycles: 1, value: isActive, resting: change?.resting,
+                watches: change != nil)
         }
 
         /// Returns a new view with a symbol effect added to it — mirrors
@@ -172,13 +195,21 @@ import TUIFoundation
 
     /// The view behind `symbolEffect(_:options:value:)`: compares `value`
     /// with the one the last render saw, as `.onChange` does, and from a
-    /// change plays the breath for the glyphs below until it is over.
+    /// change plays the breath for the glyphs below until it is over. Behind
+    /// `symbolEffect(_:options:isActive:)` too, its value `isActive`, for the
+    /// effects a glyph shows only as they change (``SymbolBreath/change(of:toActive:)``).
     nonisolated struct _DiscreteSymbolEffectModifier<Content: View, Value: Equatable>: View {
         let content: Content
         let breath: SymbolBreath?
         let frameTicks: Int
         let cycles: Int
         let value: Value
+        /// What the glyphs below draw while nothing plays — an active
+        /// disappear's `.hidden` — or `nil` to leave them as they were.
+        var resting: SymbolGlyphEffect?
+        /// Whether `value` is watched though this change plays nothing: an
+        /// inactive appear, which plays as it becomes active.
+        var watches = false
 
         @MainActor var body: Never {
             fatalError("_DiscreteSymbolEffectModifier renders via Renderable")
@@ -207,8 +238,10 @@ import TUIFoundation
         }
 
         func renderToBuffer(context: RenderContext) -> FrameBuffer {
-            guard let breath, !context.isMeasuring, let storage = context.stateStorage else {
-                return TUIView.renderToBuffer(content, context: contentContext(context))
+            guard breath != nil || watches, !context.isMeasuring, let storage = context.stateStorage else {
+                var resting = contentContext(context)
+                if let effect = self.resting { resting.environment.symbolGlyphEffect = effect }
+                return TUIView.renderToBuffer(content, context: resting)
             }
             // A per-frame comparison, which a served buffer would skip: declared,
             // as `.onChange` declares its own.
@@ -223,13 +256,14 @@ import TUIFoundation
             storage.markActive(context.identity)
 
             var playing = contentContext(context)
-            if let start {
-                let end = start &+ SymbolGlyphEffect.playLength(frameTicks: frameTicks, cycles: cycles)
-                if now < end {
-                    playing.environment.symbolGlyphEffect = .playing(
-                        breath, frameTicks: frameTicks, startNanos: start, cycles: cycles)
-                    context.requestWake(token: "symbol-play-\(context.identity.path)", atNanos: end)
-                }
+            if let breath, let start, now < start &+ SymbolGlyphEffect.playLength(frameTicks: frameTicks, cycles: cycles) {
+                playing.environment.symbolGlyphEffect = .playing(
+                    breath, frameTicks: frameTicks, startNanos: start, cycles: cycles)
+                context.requestWake(
+                    token: "symbol-play-\(context.identity.path)",
+                    atNanos: start &+ SymbolGlyphEffect.playLength(frameTicks: frameTicks, cycles: cycles))
+            } else if let resting {
+                playing.environment.symbolGlyphEffect = resting
             }
             // Noted as an environment modifier notes its value, because a memo
             // below keys on its own view value and cannot see the play begin or
