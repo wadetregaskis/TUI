@@ -39,6 +39,18 @@ struct _CommandMenuItems: View, Renderable, Layoutable, ChildViewProvider {
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let width = context.availableWidth
+        // A closed menu, rendered for the shortcuts its rows register alone
+        // (`_MenuBarCore.registerShortcuts`), every walk: its buffer is thrown
+        // away, so no row is measured first. Each renders on the whole
+        // registration canvas, where no row a measure would have fitted can be
+        // cut short, so each still registers what it would on its own height.
+        if context.environment.rendersForRegistrationsOnly {
+            let height = context.availableHeight
+            for child in childViews(context: context) {
+                _ = child.render(width: width, height: height, context: context)
+            }
+            return FrameBuffer()
+        }
         return FrameBuffer(
             verticallyStacking: childViews(context: context).map { child in
                 let size = child.measure(proposal: ProposedSize(width: width, height: nil), context: context)
