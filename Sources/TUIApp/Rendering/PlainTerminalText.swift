@@ -11,6 +11,7 @@
 
 import Foundation
 import TUICore
+import TUIFoundation
 
 /// Turns a row on its way to the terminal into ASCII, cell for cell.
 ///
@@ -46,6 +47,26 @@ package enum PlainTerminalText {
     /// `TUI_PLAIN_TEXT=0` with the transliteration on, which means nothing.
     package static func transliterates(in environment: [String: String]) -> Bool {
         environment["TUI_PLAIN_TEXT"] == "transliterate"
+    }
+
+    /// How words are spelled before layout for this terminal: all in ASCII where the
+    /// person asked for the transliteration by name; only the key symbols where the
+    /// terminal needs plain text otherwise (``isNeeded(in:)``), so `⌥F` is `Alt-F`,
+    /// which the folding here, in the one cell `⌥` was laid out in, can't write; as
+    /// written everywhere else.
+    package static func respelling(in environment: [String: String]) -> Respelling {
+        if transliterates(in: environment) { return .all }
+        return isNeeded(in: environment) ? .keys : .none
+    }
+
+    /// What ``respelling(in:)`` answers.
+    package enum Respelling: Sendable {
+        /// Words as written.
+        case none
+        /// Only the key symbols spelled in ASCII (``TextSpelling/asciiKeys``).
+        case keys
+        /// All words spelled in ASCII (``TextSpelling/ascii(_:)``).
+        case all
     }
 
     /// `row` with every character that isn't ASCII replaced by ASCII of the same width.
@@ -93,8 +114,9 @@ package enum PlainTerminalText {
         for (spelled, scalars) in [
             ("-", "─━═╌╍┄┅┈┉╴╶╸╺╼╾‐‑‒–—―"), ("|", "│┃║╎╏┆┇┊┋╵╷╹╻╽╿"), ("/", "╱"), ("\\", "╲"), ("X", "╳"),
             ("<", "←◀◂◄‹«"), (">", "→▶▸►›»"), ("^", "↑▲△▴"), ("v", "↓▼▽▾"),
-            // Control as terminals write it, `^Q`. The other modifiers have no
-            // one-character spelling; spelled before layout they are names.
+            // Control as terminals write it, `^Q`, for what is drawn without
+            // being spelled before layout (`Respelling`), where the other
+            // modifiers are their names: one cell has no room for those.
             ("^", "⌃"),
             ("o", "●○◉◎◦"), ("*", "•∙★☆✱"), (".", "·"), ("x", "✓✔✗✘"),
             // The marks of a toast's style and an alert's title, emoji two
@@ -145,6 +167,20 @@ package enum PlainTerminalText {
                 self = .none
             }
             return true
+        }
+    }
+}
+
+extension EnvironmentValues {
+    /// Has the words below spelled as `respelling` says: what a root does with
+    /// ``PlainTerminalText/respelling(in:)`` — the app's render loop, a one-off
+    /// render's, a headless app's — after the services that publish the locale,
+    /// which the transliteration reads.
+    package mutating func respell(_ respelling: PlainTerminalText.Respelling) {
+        switch respelling {
+        case .none: break
+        case .keys: spellKeysInASCII()
+        case .all: spellTextInASCII()
         }
     }
 }

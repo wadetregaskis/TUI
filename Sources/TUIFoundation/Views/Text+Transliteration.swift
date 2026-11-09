@@ -42,6 +42,14 @@ extension EnvironmentValues {
     package mutating func spellTextInASCII() {
         textSpelling = .ascii(TextReading(languageCode: locale.language.languageCode?.identifier))
     }
+
+    /// Has the key symbols below spelled in ASCII and nothing else
+    /// (``TextSpelling/asciiKeys``): what a root does for a terminal that
+    /// shows only ASCII where the person did not ask for the transliteration,
+    /// so `⌥F` is `Alt-F` rather than a blank and an `F`.
+    package mutating func spellKeysInASCII() {
+        textSpelling = .asciiKeys
+    }
 }
 
 extension BadgeValue {
@@ -78,11 +86,15 @@ extension BadgeValue {
 /// What none of these knows (box drawing, `✓`) comes back as it was, for the
 /// folding at output to deal with in the cells it takes.
 package enum TextTransliteration {
-    /// `string` spelled as `spelling` says: as written, or in ASCII.
+    /// `string` spelled as `spelling` says: as written, its key symbols in
+    /// ASCII, or all of it in ASCII.
     @inline(__always)
     package static func spelled(_ string: String, as spelling: TextSpelling) -> String {
-        guard case .ascii(let reading) = spelling else { return string }
-        return transliterated(string, reading: reading)
+        switch spelling {
+        case .asWritten: return string
+        case .asciiKeys: return KeyNotation.asciiSpelling(string)
+        case .ascii(let reading): return transliterated(string, reading: reading)
+        }
     }
 
     /// `string` spelled in ASCII where it can be, read as `reading` says.

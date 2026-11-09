@@ -23,8 +23,9 @@ what its measure decoded when the cache doesn't, so `0` costs only the sharing b
 
 **Keys read right in ASCII-only text.** With `TUI_PLAIN_TEXT=transliterate` the status bar's keys and any text naming
 a key are spelled before layout: `⌃Q` as `^Q`, and the other modifiers and the keys that type nothing by name, `⌥F` as
-`Alt-F`, `⇧⇥` as `Shift-Tab`. They used to come out blank, so the quit hint read ` Q quit`. With `TUI_PLAIN_TEXT=1`
-a `⌃` comes out as `^` in its one cell.
+`Alt-F`, `⇧⇥` as `Shift-Tab`. They used to come out blank, so the quit hint read ` Q quit`. With `TUI_PLAIN_TEXT=1`,
+or a locale naming a character set other than UTF-8, the keys are spelled so too, and nothing else is: the rest of the
+text is still folded to ASCII in the cells it was laid out in, which had no room for `Alt-` in the one cell `⌥` takes.
 
 **Your app can run in a browser, and the browser demo takes settings.** `Tools/Web/build.sh --product NAME
 --package-path DIR` builds any executable for the WebAssembly page, not only the Example, and the new article "Running

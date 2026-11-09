@@ -8,6 +8,8 @@ import Testing
 
 @testable import TUIApp
 @testable import TUICore
+import TUIFoundation
+import TUIView
 
 @Suite("Plain text for a terminal that can show nothing else")
 struct PlainTerminalTextTests {
@@ -43,6 +45,25 @@ struct PlainTerminalTextTests {
         ] as [([String: String], Bool)])
     func transliterates(environment: [String: String], expected: Bool) {
         #expect(PlainTerminalText.transliterates(in: environment) == expected)
+    }
+
+    @Test(
+        "A plain terminal spells its key symbols before layout; the transliteration spells all the words",
+        arguments: [
+            (["TUI_PLAIN_TEXT": "transliterate"], .all),
+            (["TUI_PLAIN_TEXT": "1"], .keys),
+            (["LANG": "en_US.ISO8859-1"], .keys),
+            (["TUI_PLAIN_TEXT": "0", "LANG": "en_US.ISO8859-1"], .none),
+            ([:], .none),
+        ] as [([String: String], PlainTerminalText.Respelling)])
+    func respelling(environment: [String: String], expected: PlainTerminalText.Respelling) {
+        #expect(PlainTerminalText.respelling(in: environment) == expected)
+        var values = EnvironmentValues()
+        values.respell(expected)
+        let spelled: [PlainTerminalText.Respelling: TextSpelling] = [
+            .none: .asWritten, .keys: .asciiKeys, .all: .ascii(.standard),
+        ]
+        #expect(values.textSpelling == spelled[expected])
     }
 
     @Test("A row that is ASCII comes back as it was")

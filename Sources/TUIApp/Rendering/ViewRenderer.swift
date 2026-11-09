@@ -204,14 +204,13 @@ extension ViewRenderer {
 
     /// The environment a snapshot renders in: this renderer's services, and
     /// text spelled in ASCII where the person running the program set
-    /// `TUI_PLAIN_TEXT=transliterate`, as an app's is.
+    /// `TUI_PLAIN_TEXT=transliterate` (or key symbols, where the terminal
+    /// shows only ASCII), as an app's is.
     private func makeEnvironment() -> EnvironmentValues {
         var environment = EnvironmentValues()
         environment.applyRuntimeServices(from: context)
         environment.focusManager = focusManager
-        if PlainTerminalText.transliterates(in: ProcessInfo.processInfo.environment) {
-            environment.spellTextInASCII()
-        }
+        environment.respell(PlainTerminalText.respelling(in: ProcessInfo.processInfo.environment))
         return environment
     }
 

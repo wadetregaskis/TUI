@@ -1,8 +1,9 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  TextSpelling.swift
 //
-//  How the words a view draws are spelled: as written, or in ASCII before they
-//  are laid out (`TUI_PLAIN_TEXT=transliterate`, an experiment; see
+//  How the words a view draws are spelled: as written, with only the key symbols
+//  in ASCII (a terminal that shows only ASCII), or all in ASCII before they are
+//  laid out (`TUI_PLAIN_TEXT=transliterate`, an experiment; see
 //  `Documentation/Historical/Text, editing and the clipboard/ASCII transliteration before layout.md`).
 //  The value lives here, beside `RenderContext`, so a context can carry it as a
 //  field; the spelling itself is TUIFoundation's (`TextTransliteration`).
@@ -21,11 +22,17 @@ import TUICore
 package enum TextSpelling: Hashable, Sendable {
     /// As written: the default.
     case asWritten
+    /// As written but for the key symbols, spelled in ASCII before layout
+    /// (`⌥F` is `Alt-F`): for a terminal that shows only ASCII, where the
+    /// rest is folded at output in the cells it was laid out in, which has
+    /// no room for a modifier's name in the one cell its symbol takes.
+    case asciiKeys
     /// In ASCII, read as the app's language reads its own script where that
     /// matters (``TextReading``).
     case ascii(TextReading)
 
-    /// Whether words are spelled in ASCII.
+    /// Whether any words are spelled other than as written: in ASCII, or
+    /// only their key symbols.
     @inlinable package var isASCII: Bool {
         if case .asWritten = self { return false }
         return true

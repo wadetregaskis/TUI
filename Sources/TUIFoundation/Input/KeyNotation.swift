@@ -60,7 +60,10 @@ public enum KeyNotation: Hashable, Sendable, CaseIterable {
     }
 
     /// `text`, a key or keys written in ``symbols``, spelled in ASCII, for
-    /// text spelled in ASCII before layout (`TUI_PLAIN_TEXT=transliterate`).
+    /// text spelled in ASCII before layout: under `TUI_PLAIN_TEXT=transliterate`
+    /// with the rest of the words, and alone for any other terminal that shows
+    /// only ASCII (``TextSpelling/asciiKeys``), whose folding at output has no
+    /// room for a name in the one cell a symbol takes.
     ///
     /// Control straight before the key it modifies is a caret, as terminals
     /// write it: `⌃Q` is `^Q`. Everything else is as ``spelledOut`` names it,
@@ -69,7 +72,11 @@ public enum KeyNotation: Hashable, Sendable, CaseIterable {
     /// another modifier `Ctrl-Shift-Z`, a caret among names reading worse than
     /// the names alone. Text naming no key comes back as it is.
     package static func asciiSpelling(_ text: String) -> String {
-        guard text.contains(where: { names[$0] != nil }) else { return text }
+        // ASCII names no key: one pass over the bytes, before a lookup per
+        // character, since every `Text` asks this on a plain terminal.
+        guard text.utf8.contains(where: { $0 >= 0x80 }), text.contains(where: { names[$0] != nil }) else {
+            return text
+        }
         var careted = ""
         var rest = text[...]
         while let character = rest.popFirst() {

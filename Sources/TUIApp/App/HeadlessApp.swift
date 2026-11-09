@@ -120,9 +120,9 @@ package final class HeadlessApp {
             appearanceManager: appearanceManager, tuiContext: tuiContext, isTmux: false)
         let quitPrompt = QuitPrompt(requestFrame: { [appState = tuiContext.appState] in appState.setNeedsRender() })
         renderer.scenes.quitPrompt = quitPrompt
-        // The person's `TUI_PLAIN_TEXT=transliterate`, as `AppRunner` reads it:
-        // a test run under it draws what an app run under it would.
-        renderer.transliteratesText = PlainTerminalText.transliterates(in: ProcessInfo.processInfo.environment)
+        // The person's `TUI_PLAIN_TEXT`, as `AppRunner` reads it: a test run
+        // under it draws what an app run under it would.
+        renderer.textRespelling = PlainTerminalText.respelling(in: ProcessInfo.processInfo.environment)
         let shortcutOverlay = KeyboardShortcutOverlay(
             requestFrame: { [appState = tuiContext.appState] in appState.setNeedsRender() })
         renderer.scenes.shortcutOverlay = shortcutOverlay

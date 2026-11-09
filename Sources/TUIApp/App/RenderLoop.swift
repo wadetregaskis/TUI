@@ -106,15 +106,16 @@ internal final class RenderLoop<A: App> {
     /// every other loop unless a test says otherwise.
     var cursorFollowsFocus: CursorFollowsFocus?
 
-    /// Whether text is spelled in ASCII before layout: the experiment
-    /// `TUI_PLAIN_TEXT=transliterate` turns on, which the app runner reads
-    /// (``PlainTerminalText/transliterates(in:)``), written at the root of
-    /// every frame as ``EnvironmentValues/textSpelling``. A headless app's
-    /// asks the same variable (`HeadlessApp`); `false` in every other loop
-    /// unless a test says otherwise.
-    var transliteratesText = false
+    /// Whether text is spelled in ASCII before layout: all of it under the
+    /// experiment `TUI_PLAIN_TEXT=transliterate`, only the key symbols for any
+    /// other terminal that shows only ASCII, as the app runner reads it
+    /// (``PlainTerminalText/respelling(in:)``), written at the root of every
+    /// frame as ``EnvironmentValues/textSpelling``. A headless app's asks the
+    /// same variables (`HeadlessApp`); `.none` in every other loop unless a
+    /// test says otherwise.
+    var textRespelling = PlainTerminalText.Respelling.none
 
-    /// How this frame's words are spelled: ``transliteratesText`` read as the
+    /// How this frame's words are spelled: ``textRespelling`` read as the
     /// root's locale's language reads its script, as the root environment
     /// carries it (``buildEnvironment()``). For what the loop draws without a
     /// context: the status bar's tooltip and copy note.
@@ -1155,9 +1156,10 @@ extension RenderLoop {
         // the wired set can't drift — see EnvironmentValues.applyRuntimeServices).
         environment.applyRuntimeServices(from: tuiContext)
         // The user's `TUI_PLAIN_TEXT=transliterate`, read as the app's language
-        // reads its script (`TextReading`): after the services, which publish
-        // the locale. Every context made from this environment carries it.
-        if transliteratesText { environment.spellTextInASCII() }
+        // reads its script (`TextReading`), or a plain terminal's key symbols:
+        // after the services, which publish the locale. Every context made
+        // from this environment carries it.
+        environment.respell(textRespelling)
         configureEnvironment?(&environment)
         textSpelling = environment.textSpelling
 

@@ -59,6 +59,24 @@ struct TextTransliterationTests {
         #expect(TextTransliteration.transliterated("⎋ back") == "Esc back")
     }
 
+    /// A terminal that shows only ASCII without the transliteration asked for
+    /// (`TUI_PLAIN_TEXT=1`, or a locale naming another character set) only
+    /// folds at output, cell for cell, where `⌥` has one cell: no room for
+    /// `Alt-`, so `⌥F` came out as a blank and an `F`. The key symbols are
+    /// spelled before layout there too, and nothing else is.
+    @Test("Only the key symbols are spelled where only they are asked for, and laid out in their cells")
+    func keySymbolsAlone() {
+        var context = makeRenderContext(width: 30, height: 6)
+        context.textSpelling = .asciiKeys
+        let line = renderToBuffer(Text(verbatim: "⌥F Café ⌘S"), context: context).lines.first?.stripped ?? ""
+        #expect(line.hasPrefix("Alt-F Café Cmd-S"))
+        let measured = measureChild(
+            Text(verbatim: "⇧⇥ 你好"), proposal: ProposedSize(width: 30, height: 6), context: context)
+        #expect(measured.width == "Shift-Tab ".count + 4)
+        #expect(TextTransliteration.spelled("⌃Q quit", as: .asciiKeys) == "^Q quit")
+        #expect(TextTransliteration.spelled("plain", as: .asciiKeys) == "plain")
+    }
+
     @Test("ASCII comes back as it was, the same string")
     func asciiIsUntouched() {
         #expect(TextTransliteration.transliterated("plain words") == "plain words")

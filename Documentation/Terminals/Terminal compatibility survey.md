@@ -7759,7 +7759,9 @@ K3).
   Not measured on any terminal. It goes by what the locale says, and only where the
   locale names a character set other than UTF-8: `C` and `POSIX` name none, and are
   common in front of a terminal showing UTF-8 perfectly well. Cell for cell, so that
-  nothing above it has to know. `TUI_PLAIN_TEXT` forces it, for testing.
+  nothing above it has to know. `TUI_PLAIN_TEXT` forces it, for testing. The key
+  symbols alone are spelled before layout wherever it applies (`TextSpelling.asciiKeys`,
+  `⌥F` as `Alt-F`): a modifier's name has no room in the one cell its symbol takes.
   `TUI_PLAIN_TEXT=transliterate` (an experiment, 2026-11-08) also spells text in ASCII
   before layout (`TextTransliteration`, TUIFoundation), so it takes the cells its
   spelling needs; the folding here stays for chrome and what that doesn't reach.
