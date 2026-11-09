@@ -69,30 +69,6 @@ DEFAULT_TARGET = "arm64-apple-macosx26.0"
 CONSTRAINT_OPERATORS = {"conformance": ":", "superclass": ":", "sameType": "=="}
 
 
-def library_modules():
-    """Every Swift library target in `Sources/`, with whether it is a product."""
-    result = api_parity.run(["swift", "package", "dump-package"], cwd=REPO)
-    if result.returncode:
-        sys.exit(f"swift package dump-package failed:\n{result.stderr}")
-    package = json.loads(result.stdout)
-    products = {target for product in package["products"]
-                if "library" in product["type"] for target in product["targets"]}
-    modules = {}
-    for target in package["targets"]:
-        if target["type"] != "regular":
-            continue
-        path = target.get("path") or os.path.join("Sources", target["name"])
-        if not path.startswith("Sources"):
-            continue
-        # A C target's sources are all C; it has no Swift API to record.
-        directory = os.path.join(REPO, path)
-        has_swift = any(name.endswith(".swift")
-                        for _, _, names in os.walk(directory) for name in names)
-        if has_swift:
-            modules[target["name"]] = target["name"] in products
-    return modules
-
-
 def constraints_text(constraints):
     return ", ".join(
         f"{c['lhs']} {CONSTRAINT_OPERATORS.get(c['kind'], c['kind'])} {c['rhs']}"
@@ -195,7 +171,7 @@ def main():
 
     sdk = api_parity.sdk_path()
     toolchain = api_parity.toolchain_version()
-    modules = library_modules()
+    modules = api_parity.library_modules()
     search_paths = api_parity.tui_search_paths(build=not args.skip_build)
     work = args.work_dir or tempfile.mkdtemp(prefix="api-baseline-")
     try:

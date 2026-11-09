@@ -66,16 +66,11 @@ LIST_LIMIT = 30
 SWIFTUI_MODULES = ["SwiftUI", "SwiftUICore"]
 # Each module's graph holds only what that module declares (an `@_exported`
 # re-export is not copied into it), so the umbrella's own graph is empty and
-# the public API is the union of the modules it re-exports. A module carved out
-# of TUIFoundation, or peeled out of a coarse group, joins this list then.
-TUIKIT_MODULES = [
-    "TUI", "TUIApp", "TUIBitmaps", "TUIChrome", "TUIColorPicker", "TUICommands", "TUICurveEditors",
-    "TUIDocuments", "TUIEffects", "TUIFilePanels", "TUIForms", "TUIGrid", "TUILists", "TUIMenus", "TUINavigation",
-    "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes", "TUISearch", "TUITabImages",
-    "TUITables", "TUITabs", "TUITextInput",
-    "TUIFoundation", "TUIStrings", "TUITerminalHost", "TUICore", "TUIStyling", "TUIView",
-    "TUIAppKit", "TUIFilePanelsAppKit",
-]
+# the public API is the union of the modules it re-exports. TUI's modules are
+# therefore every Swift library target under `Sources/`, read from the package
+# by `library_modules` rather than kept here by hand: a hand-kept list went
+# stale (it missed TUIImage, TUITesting, TUIMacros and TUIFilePanelImages).
+# `Tools/Release/api_baseline.py` records the same set.
 
 # The symbol kinds a caller can name. Deliberately excludes the ones that are
 # artefacts of how a type is spelled rather than API anyone writes.
@@ -105,6 +100,33 @@ KINDS = {
 
 def run(command, **kwargs):
     return subprocess.run(command, capture_output=True, text=True, **kwargs)
+
+
+def library_modules():
+    """Every Swift library target in `Sources/`, with whether it is a product.
+
+    Read from `swift package dump-package`: the library products' targets, and
+    the targets that are not products but whose public API reaches clients by
+    re-export. A C target has no Swift API, so it is left out."""
+    result = run(["swift", "package", "dump-package"], cwd=REPO)
+    if result.returncode:
+        sys.exit(f"swift package dump-package failed:\n{result.stderr}")
+    package = json.loads(result.stdout)
+    products = {target for product in package["products"]
+                if "library" in product["type"] for target in product["targets"]}
+    modules = {}
+    for target in package["targets"]:
+        if target["type"] != "regular":
+            continue
+        path = target.get("path") or os.path.join("Sources", target["name"])
+        if not path.startswith("Sources"):
+            continue
+        directory = os.path.join(REPO, path)
+        has_swift = any(name.endswith(".swift")
+                        for _, _, names in os.walk(directory) for name in names)
+        if has_swift:
+            modules[target["name"]] = target["name"] in products
+    return modules
 
 
 def sdk_path():
@@ -663,7 +685,8 @@ def audit_map(swiftui, tuikit, parity_map):
     return stale
 
 
-def report(swiftui, tuikit, gaps, explained, stale, deviations, baseline, compatible=None):
+def report(swiftui, tuikit, gaps, explained, stale, deviations, baseline, compatible=None,
+           tuikit_modules=()):
     print(f"toolchain:  {toolchain_version()}")
     recorded = baseline.get("toolchain")
     if recorded and recorded != toolchain_version():
@@ -671,7 +694,7 @@ def report(swiftui, tuikit, gaps, explained, stale, deviations, baseline, compat
     print(f"SwiftUI:    {len(swiftui):>5} live public symbols "
           f"({'+'.join(SWIFTUI_MODULES)})")
     print(f"TUI:     {len(tuikit):>5} live public symbols "
-          f"({', '.join(TUIKIT_MODULES)})")
+          f"({', '.join(tuikit_modules)})")
     shared = len(set(swiftui) & set(tuikit))
     print(f"shared:     {shared:>5} symbols by name")
     if compatible:
@@ -788,15 +811,16 @@ def main():
         tuikit_dir = os.path.join(work, "tuikit")
 
         extract(SWIFTUI_MODULES, swiftui_dir, [], sdk, args.target)
-        extract(TUIKIT_MODULES, tuikit_dir, tui_search_paths(), sdk, args.target)
+        tuikit_modules = sorted(library_modules())
+        extract(tuikit_modules, tuikit_dir, tui_search_paths(), sdk, args.target)
 
         swiftui = load_symbols(swiftui_dir, SWIFTUI_MODULES)
         tuikit, tuikit_defaults = load_symbols(
-            tuikit_dir, TUIKIT_MODULES, collect_defaults=True, follow_aliases=True)
+            tuikit_dir, tuikit_modules, collect_defaults=True, follow_aliases=True)
         if args.deprecated:
             hits = deprecated_hits(load_deprecated(swiftui_dir, SWIFTUI_MODULES), swiftui, tuikit,
                                    tuikit_defaults)
-            deprecated_report(hits, declarations(tuikit_dir, TUIKIT_MODULES, {hit["tuikit"] for hit in hits}))
+            deprecated_report(hits, declarations(tuikit_dir, tuikit_modules, {hit["tuikit"] for hit in hits}))
             if args.json:
                 with open(args.json, "w") as handle:
                     json.dump({"toolchain": toolchain_version(), "deprecated": hits}, handle, indent=1)
@@ -819,7 +843,7 @@ def main():
         deviations = label_deviations(swiftui, tuikit, compatible)
         new, fixed = report(
             swiftui, tuikit, gaps, explained, stale, deviations, baseline,
-            compatible)
+            compatible, tuikit_modules)
         new_deviations = sorted(
             set(deviations) - set(baseline.get("labelDeviations", [])))
 
