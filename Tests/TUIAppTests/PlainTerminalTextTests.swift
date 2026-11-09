@@ -63,6 +63,8 @@ struct PlainTerminalTextTests {
         #expect(PlainTerminalText.folding("Café") == "Cafe")
         #expect(PlainTerminalText.folding("┌─┐│└┘") == "+-+|++")
         #expect(PlainTerminalText.folding("← → ▲ ▼") == "< > ^ v")
+        // Control as a caret, as terminals write it, rather than a blank.
+        #expect(PlainTerminalText.folding("⌃Q quit") == "^Q quit")
     }
 
     @Test("A toast's and an alert's emoji marks come out as ASCII that says the same, in their two cells")

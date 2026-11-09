@@ -59,6 +59,31 @@ public enum KeyNotation: Hashable, Sendable, CaseIterable {
         }
     }
 
+    /// `text`, a key or keys written in ``symbols``, spelled in ASCII, for
+    /// text spelled in ASCII before layout (`TUI_PLAIN_TEXT=transliterate`).
+    ///
+    /// Control straight before the key it modifies is a caret, as terminals
+    /// write it: `⌃Q` is `^Q`. Everything else is as ``spelledOut`` names it,
+    /// the other modifiers having no one-character ASCII spelling: `⌥F` is
+    /// `Alt-F`, `⇧⇥` `Shift-Tab`, `⌘S` `Cmd-S`, and a chord with Control and
+    /// another modifier `Ctrl-Shift-Z`, a caret among names reading worse than
+    /// the names alone. Text naming no key comes back as it is.
+    package static func asciiSpelling(_ text: String) -> String {
+        guard text.contains(where: { names[$0] != nil }) else { return text }
+        var careted = ""
+        var rest = text[...]
+        while let character = rest.popFirst() {
+            if character == "⌃", let next = rest.first, !next.isWhitespace, !modifierSymbols.contains(next),
+                !isJoiner(next, before: rest.dropFirst().first)
+            {
+                careted.append("^")
+            } else {
+                careted.append(character)
+            }
+        }
+        return spellingOut(careted)
+    }
+
     /// `text` with every key symbol replaced by its name.
     private static func spellingOut(_ text: String) -> String {
         // Most of what reaches here names no key at all ("q", "1-9"): left

@@ -93,6 +93,9 @@ package enum PlainTerminalText {
         for (spelled, scalars) in [
             ("-", "─━═╌╍┄┅┈┉╴╶╸╺╼╾‐‑‒–—―"), ("|", "│┃║╎╏┆┇┊┋╵╷╹╻╽╿"), ("/", "╱"), ("\\", "╲"), ("X", "╳"),
             ("<", "←◀◂◄‹«"), (">", "→▶▸►›»"), ("^", "↑▲△▴"), ("v", "↓▼▽▾"),
+            // Control as terminals write it, `^Q`. The other modifiers have no
+            // one-character spelling; spelled before layout they are names.
+            ("^", "⌃"),
             ("o", "●○◉◎◦"), ("*", "•∙★☆✱"), (".", "·"), ("x", "✓✔✗✘"),
             // The marks of a toast's style and an alert's title, emoji two
             // cells wide, so each has room for its spelling; ⚠ and ℹ by their

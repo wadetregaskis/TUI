@@ -43,6 +43,22 @@ struct TextTransliterationTests {
         #expect(first(Text(verbatim: "Café 你好"), transliterating: false) == "Café 你好")
     }
 
+    /// The key symbols have no letters for ICU to read, and folded at output
+    /// in their one cell they came out blank: `⌃Q 退出` was ` Q tui chu`.
+    /// Control is a caret, as terminals write it; the other modifiers, which
+    /// have no one-character spelling, and the keys that type nothing, are
+    /// their names, as `TUI_KEY_SYMBOLS=0` writes them.
+    @Test("Key symbols are spelled: ⌃ as a caret, the other modifiers and keys by name")
+    func keySymbols() {
+        #expect(TextTransliteration.transliterated("⌃Q quit") == "^Q quit")
+        #expect(TextTransliteration.transliterated("⌥F") == "Alt-F")
+        #expect(TextTransliteration.transliterated("⇧⇥") == "Shift-Tab")
+        #expect(TextTransliteration.transliterated("⌘S") == "Cmd-S")
+        #expect(TextTransliteration.transliterated("⌃⇧Z") == "Ctrl-Shift-Z")
+        #expect(TextTransliteration.transliterated("⌃+C") == "Ctrl+C")
+        #expect(TextTransliteration.transliterated("⎋ back") == "Esc back")
+    }
+
     @Test("ASCII comes back as it was, the same string")
     func asciiIsUntouched() {
         #expect(TextTransliteration.transliterated("plain words") == "plain words")

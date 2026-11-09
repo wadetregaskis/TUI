@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Keys read right in ASCII-only text.** With `TUI_PLAIN_TEXT=transliterate` the status bar's keys and any text naming
+a key are spelled before layout: `⌃Q` as `^Q`, and the other modifiers and the keys that type nothing by name, `⌥F` as
+`Alt-F`, `⇧⇥` as `Shift-Tab`. They used to come out blank, so the quit hint read ` Q quit`. With `TUI_PLAIN_TEXT=1`
+a `⌃` comes out as `^` in its one cell.
+
 **Your app can run in a browser, and the browser demo takes settings.** `Tools/Web/build.sh --product NAME
 --package-path DIR` builds any executable for the WebAssembly page, not only the Example, and the new article "Running
 Your App in a Browser" covers what works there, the commands, publishing on GitHub Pages and the download's size. The

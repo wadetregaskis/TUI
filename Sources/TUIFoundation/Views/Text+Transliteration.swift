@@ -58,6 +58,9 @@ extension BadgeValue {
 /// Other scripts spelled in Latin letters, and Latin letters spelled in ASCII.
 ///
 /// In order:
+/// 0. The key symbols, which no transform has letters for: `⌃Q` is `^Q`, and
+///    the others are their names, `⌥F` `Alt-F` — see
+///    ``KeyNotation/asciiSpelling(_:)``.
 /// 1. Emoji become a short ASCII form: an emoticon where one is known (`🙂`
 ///    `:)`), else a name between colons (`🎉` `:party_popper:`) — see
 ///    ``EmojiSpelling``.
@@ -97,14 +100,14 @@ package enum TextTransliteration {
         return result
     }
 
-    /// The transform itself, unmemoized: the four steps in the type's
+    /// The transform itself, unmemoized: the steps in the type's
     /// discussion.
     ///
     /// `nil` from Foundation, which a platform without ICU's transliterators
     /// may answer, leaves the words as the steps before it left them, for the
     /// folding at output, which needs nothing but the standard library.
     static func spelling(_ string: String, reading: TextReading) -> String {
-        var words = EmojiSpelling.spelled(string)
+        var words = EmojiSpelling.spelled(KeyNotation.asciiSpelling(string))
         if JapaneseReading.applies(to: words, reading: reading) {
             words = JapaneseReading.romanized(words)
         }

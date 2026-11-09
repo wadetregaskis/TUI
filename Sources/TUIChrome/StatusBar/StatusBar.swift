@@ -520,8 +520,10 @@ private struct _StatusBarCore: View, Renderable {
         isHovered: Bool,
         legibility: LegibilityWeight?, spelling: TextSpelling
     ) -> String {
+        // The key spelled as the label is, `⌃Q` as `^Q` where words are
+        // spelled in ASCII: folded at output, each symbol was a blank.
         let shortcutStyled = ANSIRenderer.render(
-            keys.writing(item.shortcut),
+            TextTransliteration.spelled(keys.writing(item.shortcut), as: spelling),
             with: {
                 var textStyle = TextStyle()
                 textStyle.foregroundColor = colours.highlight.opaqueSpelling

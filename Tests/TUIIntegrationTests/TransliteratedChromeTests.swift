@@ -27,6 +27,26 @@ struct TransliteratedChromeTests {
         return renderToBuffer(view, context: context).lines.map(\.stripped).joined(separator: "\n")
     }
 
+    /// The bar draws its keys itself, so they were never spelled, and folded at
+    /// output each symbol came out a blank: `⌃Q 退出` read ` Q tui chu`.
+    @Test("A status bar item's key is spelled: ⌃ as a caret, the other modifiers by name")
+    func statusBarKeys() {
+        let line = drawn(
+            StatusBar(
+                items: [
+                    StatusBarItem(shortcut: "⌃Q", label: "quit"),
+                    StatusBarItem(shortcut: "⌥F", label: "find"),
+                    StatusBarItem(shortcut: "⇧⇥", label: "back"),
+                    StatusBarItem(shortcut: "⌘S", label: "save"),
+                ],
+                style: .compact),
+            width: 100, height: 1)
+        #expect(line.contains("^Q quit"), "\(line)")
+        #expect(line.contains("Alt-F find"), "\(line)")
+        #expect(line.contains("Shift-Tab back"), "\(line)")
+        #expect(line.contains("Cmd-S save"), "\(line)")
+    }
+
     #if canImport(Darwin)
         @Test("A tab's title and badge, drawn by the strip, are spelled and the chip fits them")
         func tabTitle() {
