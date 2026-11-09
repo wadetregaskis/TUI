@@ -251,6 +251,16 @@ tinted by whichever states a tint. It needs the next row's preference before
 this row's height is known, so laying out a row would render the row after
 it: about half a day, and a row's render more per window.
 
+**Looked at again 2026-11-08** (brief PARITYC), and left as shipped. A row's
+separator is the last line of its own buffer, so every height the list reads —
+the window's choice of rows, the scroll extent, the indicators, the hit bands —
+counts it, and those are settled before the rows are composed. Letting the row
+below veto the line means asking it before the row above has a height: a
+second row rendered for each row measured, on the window walk and the extent
+walk alike, and the composers and the overflow rows taught the same rule. That
+is the half-day and the per-row render this entry priced, with an A/B on the
+list scenarios to follow; the lane spent its time on the brief's other items.
+
 ### B-D6L-3. Where a separator's preference is read
 
 *`listRowSeparator` and family, the separator guides (decisions A47)*
