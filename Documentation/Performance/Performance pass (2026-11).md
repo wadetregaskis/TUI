@@ -101,3 +101,10 @@ The "noticed" items above, taken up the same day by a second lane.
   spelling once, not per frame, so it was the Example's to fix.
   `FileBrowser.entries(at:)` in the `table` scenario: 6.2% → 0.9% inclusive
   (the one read), `drive.py` CPU 1.30 → 1.05 s.
+- **The idle Tables page.** Not the focus breathing: `TUI_FRAME_TRACE` put
+  every frame that drew anything at the animated-cells table's 250 ms ticker
+  (`state`, about 11 ms each, 0 bytes written: the table opens scrolled out
+  of sight), the breathing's own frames being replays at 0.0 ms. The ticker
+  now runs only while `onScrollVisibilityChange` says the table is shown.
+  Idle, `idle_cpu.py --page tables` over 10 s: 4.1% → 0.1% CPU; scrolled to
+  the table, it ticks as before.

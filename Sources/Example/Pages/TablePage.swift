@@ -189,6 +189,9 @@ struct TablePage: View {
     @State private var notesSelectable = true
     /// Drives the animated-cells table: bumped by a `.task` loop (250 ms).
     @State private var liveTick: Int = 0
+    /// Whether the page's scroll view shows the animated-cells table: the
+    /// ticker runs only while it does.
+    @State private var liveTableShown = false
     /// The reorder demo's selection is a SET, so several rows can travel
     /// together — grab any one of them and they all move.
     @State private var playlistSelection: Set<String> = []
@@ -398,7 +401,11 @@ struct TablePage: View {
 
             // Animated cells: every string below derives from `liveTick`, which
             // a `.task` loop advances four times a second — spinner frames,
-            // climbing percentages and a running clock, all in plain cells.
+            // climbing percentages and a running clock, all in plain cells —
+            // while the table is on screen. Each tick draws the whole page
+            // again, about 11 ms, and the page opens with the table scrolled
+            // out of sight: ticking regardless cost the idle page 4% of a core
+            // (2026-11-08), to draw nothing new.
             Text("page.table.liveCaption")
                 .foregroundStyle(.palette.foregroundSecondary)
             Table(TransferEntry.liveTransfers(tick: liveTick), selection: $liveSelection) {
@@ -410,6 +417,7 @@ struct TablePage: View {
                     .alignment(.trailing)
             }
             .frame(height: 6)
+            .onScrollVisibilityChange { liveTableShown = $0 }
 
             // Drag-to-reorder, the Table half of the Lists page's `.onMove`
             // section: same state machine, same feedback modes, and here the
@@ -481,8 +489,8 @@ struct TablePage: View {
             Spacer()
         }
         .scrollableDemoPage()
-        .task {
-            await runLiveTicker()
+        .task(id: liveTableShown) {
+            if liveTableShown { await runLiveTicker() }
         }
         .navigationTitle("menu.item.tables")
     }
@@ -504,7 +512,8 @@ struct TablePage: View {
     }
 
     /// The animated-cells ticker. Cancelled automatically when the page goes
-    /// away; every tick re-derives the live table's cell strings.
+    /// away or the table leaves the screen; every tick re-derives the live
+    /// table's cell strings.
     private func runLiveTicker() async {
         while !Task.isCancelled {
             try? await Task.sleep(for: .milliseconds(250))
