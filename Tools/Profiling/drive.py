@@ -123,8 +123,16 @@ def scenario_pages(page_keys, scroll=12):
     return steps
 
 
-def scenario_scroll(page_key, n=40):
+def scenario_scroll(page_key, n=40, focus=b""):
+    """Open a page, then the arrows and page keys down and back up.
+
+    `focus` is sent after the page key, before the first arrow: what puts the
+    focus where the arrows are meant to go, when the page's first focusable
+    view is not it.
+    """
     steps = [(0.20, page_key.encode())]
+    if focus:
+        steps.append((0.10, focus))
     for _ in range(n):
         steps.append((0.015, DOWN))
     for _ in range(n):
@@ -188,7 +196,16 @@ def build_scenario(name, rows, cols):
     if name == "tour":
         return scenario_pages(list(PAGE_KEYS.values()))
     if name == "list":
-        return scenario_scroll(PAGE_KEYS["lists"])
+        # One Tab first: the Lists page opens with the focus in its search
+        # field (`.searchable`, the page's first section since 2026-07-20),
+        # and a single-line field takes Down and Up as End and Home, as a
+        # macOS one does, so every arrow went to the field and none to a list:
+        # the "latency" measured was the next frame of the focus ring's
+        # breathing, 50 ms apart (54.7 ms p50, 2026-11-08). The Tab moves the
+        # focus to the fruit list under the field: ten rows in four, so the
+        # arrows scroll it, and its cursor wraps at either end, so every one
+        # of the 40 moves it.
+        return scenario_scroll(PAGE_KEYS["lists"], focus=TAB)
     if name == "table":
         return scenario_scroll(PAGE_KEYS["tables"])
     if name == "emoji":

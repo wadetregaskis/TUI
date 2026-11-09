@@ -626,7 +626,9 @@ with their own indicator column; `table`'s file browser shows five rows; and
 in a search field and its Down keys move nothing (the bytes after its first
 frame are a blinking caret). So a 0% from `--shift` on these says the
 scenarios cannot answer O2, not that O2 saves nothing; only a page with a
-tall, full-width list can.
+tall, full-width list can. (Since 2026-11-08 `list` Tabs from the field to
+the fruit list under it before its arrows, which scroll that list; it is
+still not full-width band scrolling.)
 
 ### `idle-image.sh` + `IdleProbe` — idle cost with nothing else awake
 `idle_cpu.py` answers "what does a static screen cost?" only for a screen that

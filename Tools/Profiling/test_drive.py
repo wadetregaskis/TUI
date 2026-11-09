@@ -172,7 +172,8 @@ class TestStepMarkers(unittest.TestCase):
         self.assertEqual([step["index"] for step in steps], list(range(len(steps))))
         self.assertEqual((steps[0]["offset"], steps[0]["input"]), (0, "startup"))
         self.assertEqual(steps[1]["input"], "-", "the Lists page shortcut")
-        self.assertEqual(steps[2]["input"], "ESC[B", "a Down arrow")
+        self.assertEqual(steps[2]["input"], "\\t", "the Tab that focuses the list")
+        self.assertEqual(steps[3]["input"], "ESC[B", "a Down arrow")
         offsets = [step["offset"] for step in steps]
         self.assertEqual(offsets, sorted(offsets))
         # No marker is late: the reply to a step cannot begin before the

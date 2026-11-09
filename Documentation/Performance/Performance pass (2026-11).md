@@ -37,7 +37,8 @@ quit the app with `q`, which has been an ordinary key since ⌃Q became the quit
 shortcut (2026-10-31), so every scripted run ended in "the app did not quit" and
 `record.sh` could not finish (fixed, `39fd31d5f`). And the `list` scenario's arrows no longer
 reach a list: its "latency" of 56 ms is the next frame of the focus ring's
-breathing, 50 ms apart, not an answer to the key. Not fixed here.
+breathing, 50 ms apart, not an answer to the key. Not fixed here; since fixed
+in the scenario (the next section's follow-ups).
 
 ## What the profiles said
 
@@ -80,3 +81,17 @@ their shortcuts (5%).
   Example fix (load on appear and on navigation), not a framework one.
 - **Pictures held whole:** the Tab Views page decodes each mascot it shows in a
   few cells at full size, 2.1 MB apiece (10.5 MB), for as long as it is open.
+
+## Follow-ups
+
+The "noticed" items above, taken up the same day by a second lane.
+
+- **The `list` scenario** (`drive.py`, so `input_latency.py` and `record.sh`
+  too). The scenario had not regressed in the framework: the Lists page has
+  opened with the focus in its `.searchable` field since that section went to
+  the top of the page (2026-07-20; the Edit button in front of it left on
+  07-30), and a single-line field takes Down and Up as End and Home, as a
+  macOS one does (`TextFieldHandler`, unchanged since February). The scenario
+  now Tabs to the fruit list under the field first. Input to frame, p50, 3
+  reps: 54.7 ms (the breathing) → 10.2 ms, every one of the 279 inputs
+  answered.
