@@ -1,0 +1,55 @@
+# TUITesting public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+TestApp | @MainActor final class TestApp
+TestApp.ScrollDirection | enum ScrollDirection
+TestApp.ScrollDirection.down | case down
+TestApp.ScrollDirection.left | case left
+TestApp.ScrollDirection.right | case right
+TestApp.ScrollDirection.up | case up
+TestApp.advance(by:) | @MainActor func advance(by duration: Duration)
+TestApp.click(_:button:modifiers:) | @MainActor func click(_ text: String, button: MouseButton = .left, modifiers: EventModifiers = []) throws
+TestApp.click(at:button:modifiers:) | @MainActor func click(at point: CellPoint, button: MouseButton = .left, modifiers: EventModifiers = [])
+TestApp.date | @MainActor var date: Date { get set }
+TestApp.drag(from:to:modifiers:) | @MainActor func drag(from start: CellPoint, to end: CellPoint, modifiers: EventModifiers = [])
+TestApp.drag(from:to:modifiers:) | @MainActor func drag(from start: String, to end: String, modifiers: EventModifiers = []) throws
+TestApp.elapsed | @MainActor var elapsed: Duration { get }
+TestApp.focusedID | @MainActor var focusedID: String? { get }
+TestApp.hasRequestedQuit | @MainActor var hasRequestedQuit: Bool { get }
+TestApp.hover(at:) | @MainActor func hover(at point: CellPoint)
+TestApp.hover(over:) | @MainActor func hover(over text: String) throws
+TestApp.init(_:width:height:) | @MainActor init<A>(_ app: A, width: Int = 80, height: Int = 24) where A : App
+TestApp.init(width:height:content:) | @MainActor init<Content>(width: Int = 80, height: Int = 24, @ViewBuilder content: @escaping () -> Content) where Content : View
+TestApp.mouse(_:) | @discardableResult @MainActor func mouse(_ event: MouseEvent) -> Bool
+TestApp.press(_:modifiers:times:) | @discardableResult @MainActor func press(_ key: Key, modifiers: EventModifiers = [], times: Int = 1) -> Bool
+TestApp.press(_:times:) | @discardableResult @MainActor func press(_ event: KeyEvent, times: Int = 1) -> Bool
+TestApp.resize(width:height:) | @MainActor func resize(width: Int, height: Int)
+TestApp.screen | @MainActor var screen: TestScreen { get }
+TestApp.scroll(_:by:at:) | @MainActor func scroll(_ direction: TestApp.ScrollDirection, by ticks: Int = 1, at point: CellPoint? = nil)
+TestApp.scroll(_:by:over:) | @MainActor func scroll(_ direction: TestApp.ScrollDirection, by ticks: Int = 1, over text: String) throws
+TestApp.type(_:) | @MainActor func type(_ text: String)
+TestApp.wait(for:timeout:) | @MainActor func wait(for text: String, timeout: Duration = .seconds(60)) async throws
+TestApp.wait(until:timeout:) | @MainActor func wait(until condition: @MainActor () -> Bool, timeout: Duration = .seconds(60)) async throws
+TestAppError | struct TestAppError
+TestAppError.description | let description: String
+TestClock | final class TestClock
+TestClock.Instant | struct Instant
+TestClock.Instant.<(_:_:) | static func < (lhs: TestClock.Instant, rhs: TestClock.Instant) -> Bool
+TestClock.Instant.advanced(by:) | func advanced(by duration: Duration) -> TestClock.Instant
+TestClock.Instant.duration(to:) | func duration(to other: TestClock.Instant) -> Duration
+TestClock.advance(by:) | func advance(by duration: Duration)
+TestClock.init() | init()
+TestClock.minimumResolution | var minimumResolution: Duration { get }
+TestClock.now | var now: TestClock.Instant { get }
+TestClock.sleep(until:tolerance:) | func sleep(until deadline: TestClock.Instant, tolerance: Duration? = nil) async throws
+TestClock.sleepers | var sleepers: Int { get }
+TestScreen | struct TestScreen
+TestScreen.==(_:_:) | static func == (lhs: TestScreen, rhs: TestScreen) -> Bool
+TestScreen.compareToSnapshot(_:filePath:) | func compareToSnapshot(_ name: String, filePath: String = #filePath) throws
+TestScreen.contains(_:) | func contains(_ text: String) -> Bool
+TestScreen.description | var description: String { get }
+TestScreen.line(containing:) | func line(containing text: String) -> String?
+TestScreen.lines | let lines: [String]
+TestScreen.location(of:) | func location(of text: String) -> CellPoint?
+TestScreen.locations(of:) | func locations(of text: String) -> [CellPoint]
+TestScreen.styledLines | let styledLines: [String]
+TestScreen.text | var text: String { get }

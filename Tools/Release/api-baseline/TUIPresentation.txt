@@ -1,0 +1,160 @@
+# TUIPresentation public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+AlertPanel | nonisolated struct AlertPanel<Actions> where Actions : View
+AlertPanel.body | @MainActor var body: some View { get }
+AlertPanel.error(message:) | static func error<S>(message: S) -> AlertPanel<EmptyView> where S : StringProtocol [extension where Actions == EmptyView]
+AlertPanel.error(message:actions:) | static func error<S>(message: S, @ViewBuilder actions: () -> Actions) -> AlertPanel<Actions> where S : StringProtocol [extension where Actions : View]
+AlertPanel.error(title:message:) | static func error(title titleKey: LocalizedStringKey = LocalizedStringKey( LocalizationKey.Label.error.rawValue), message messageKey: LocalizedStringKey) -> AlertPanel<EmptyView> [extension where Actions == EmptyView]
+AlertPanel.error(title:message:) | static func error<S1, S2>(title: S1, message: S2) -> AlertPanel<EmptyView> where S1 : StringProtocol, S2 : StringProtocol [extension where Actions == EmptyView]
+AlertPanel.error(title:message:actions:) | static func error(title titleKey: LocalizedStringKey = LocalizedStringKey( LocalizationKey.Label.error.rawValue), message messageKey: LocalizedStringKey, @ViewBuilder actions: () -> Actions) -> AlertPanel<Actions> [extension where Actions : View]
+AlertPanel.error(title:message:actions:) | static func error<S1, S2>(title: S1, message: S2, @ViewBuilder actions: () -> Actions) -> AlertPanel<Actions> where S1 : StringProtocol, S2 : StringProtocol [extension where Actions : View]
+AlertPanel.info(message:) | static func info<S>(message: S) -> AlertPanel<EmptyView> where S : StringProtocol [extension where Actions == EmptyView]
+AlertPanel.info(message:actions:) | static func info<S>(message: S, @ViewBuilder actions: () -> Actions) -> AlertPanel<Actions> where S : StringProtocol [extension where Actions : View]
+AlertPanel.info(title:message:) | static func info(title titleKey: LocalizedStringKey = LocalizedStringKey( LocalizationKey.Label.info.rawValue), message messageKey: LocalizedStringKey) -> AlertPanel<EmptyView> [extension where Actions == EmptyView]
+AlertPanel.info(title:message:) | static func info<S1, S2>(title: S1, message: S2) -> AlertPanel<EmptyView> where S1 : StringProtocol, S2 : StringProtocol [extension where Actions == EmptyView]
+AlertPanel.info(title:message:actions:) | static func info(title titleKey: LocalizedStringKey = LocalizedStringKey( LocalizationKey.Label.info.rawValue), message messageKey: LocalizedStringKey, @ViewBuilder actions: () -> Actions) -> AlertPanel<Actions> [extension where Actions : View]
+AlertPanel.info(title:message:actions:) | static func info<S1, S2>(title: S1, message: S2, @ViewBuilder actions: () -> Actions) -> AlertPanel<Actions> where S1 : StringProtocol, S2 : StringProtocol [extension where Actions : View]
+AlertPanel.init(title:message:borderStyle:borderColor:titleColor:) | init(title titleKey: LocalizedStringKey, message messageKey: LocalizedStringKey, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil) [extension where Actions == EmptyView]
+AlertPanel.init(title:message:borderStyle:borderColor:titleColor:) | init<S1, S2>(title: S1, message: S2, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil) where S1 : StringProtocol, S2 : StringProtocol [extension where Actions == EmptyView]
+AlertPanel.init(title:message:borderStyle:borderColor:titleColor:showFooterSeparator:verticalButtons:actions:) | init(title titleKey: LocalizedStringKey, message messageKey: LocalizedStringKey, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, showFooterSeparator: Bool = true, verticalButtons: Bool = false, @ViewBuilder actions: () -> Actions)
+AlertPanel.init(title:message:borderStyle:borderColor:titleColor:showFooterSeparator:verticalButtons:actions:) | init<S1, S2>(title: S1, message: S2, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, showFooterSeparator: Bool = true, verticalButtons: Bool = false, @ViewBuilder actions: () -> Actions) where S1 : StringProtocol, S2 : StringProtocol
+AlertPanel.success(message:) | static func success<S>(message: S) -> AlertPanel<EmptyView> where S : StringProtocol [extension where Actions == EmptyView]
+AlertPanel.success(message:actions:) | static func success<S>(message: S, @ViewBuilder actions: () -> Actions) -> AlertPanel<Actions> where S : StringProtocol [extension where Actions : View]
+AlertPanel.success(title:message:) | static func success(title titleKey: LocalizedStringKey = LocalizedStringKey( LocalizationKey.Label.success.rawValue), message messageKey: LocalizedStringKey) -> AlertPanel<EmptyView> [extension where Actions == EmptyView]
+AlertPanel.success(title:message:) | static func success<S1, S2>(title: S1, message: S2) -> AlertPanel<EmptyView> where S1 : StringProtocol, S2 : StringProtocol [extension where Actions == EmptyView]
+AlertPanel.success(title:message:actions:) | static func success(title titleKey: LocalizedStringKey = LocalizedStringKey( LocalizationKey.Label.success.rawValue), message messageKey: LocalizedStringKey, @ViewBuilder actions: () -> Actions) -> AlertPanel<Actions> [extension where Actions : View]
+AlertPanel.success(title:message:actions:) | static func success<S1, S2>(title: S1, message: S2, @ViewBuilder actions: () -> Actions) -> AlertPanel<Actions> where S1 : StringProtocol, S2 : StringProtocol [extension where Actions : View]
+AlertPanel.warning(message:) | static func warning<S>(message: S) -> AlertPanel<EmptyView> where S : StringProtocol [extension where Actions == EmptyView]
+AlertPanel.warning(message:actions:) | static func warning<S>(message: S, @ViewBuilder actions: () -> Actions) -> AlertPanel<Actions> where S : StringProtocol [extension where Actions : View]
+AlertPanel.warning(title:message:) | static func warning(title titleKey: LocalizedStringKey = LocalizedStringKey( LocalizationKey.Label.warning.rawValue), message messageKey: LocalizedStringKey) -> AlertPanel<EmptyView> [extension where Actions == EmptyView]
+AlertPanel.warning(title:message:) | static func warning<S1, S2>(title: S1, message: S2) -> AlertPanel<EmptyView> where S1 : StringProtocol, S2 : StringProtocol [extension where Actions == EmptyView]
+AlertPanel.warning(title:message:actions:) | static func warning(title titleKey: LocalizedStringKey = LocalizedStringKey( LocalizationKey.Label.warning.rawValue), message messageKey: LocalizedStringKey, @ViewBuilder actions: () -> Actions) -> AlertPanel<Actions> [extension where Actions : View]
+AlertPanel.warning(title:message:actions:) | static func warning<S1, S2>(title: S1, message: S2, @ViewBuilder actions: () -> Actions) -> AlertPanel<Actions> where S1 : StringProtocol, S2 : StringProtocol [extension where Actions : View]
+AlertPresentationModifier.body | @MainActor var body: Never { get }
+AlertPresentationModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View, Actions : View, Message : View]
+AlertPresentationModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View, Actions : View, Message : View]
+AutomaticPresentationSizing | struct AutomaticPresentationSizing
+AutomaticPresentationSizing.proposedSize(for:context:) | func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize
+CustomPresentationDetent | protocol CustomPresentationDetent : SendableMetatype
+CustomPresentationDetent.Context | typealias Context = PresentationDetent.Context
+CustomPresentationDetent.height(in:) | static func height(in context: Self.Context) -> Int?
+Dialog | nonisolated struct Dialog<Content, Footer> where Content : View, Footer : View
+Dialog.==(_:_:) | static func == (lhs: Dialog<Content, Footer>, rhs: Dialog<Content, Footer>) -> Bool [extension where Content : Equatable, Content : View, Footer : Equatable, Footer : View]
+Dialog.body | @MainActor var body: some View { get }
+Dialog.doubleLine(title:borderColor:titleColor:content:) | static func doubleLine(title titleKey: LocalizedStringKey, borderColor: Color? = nil, titleColor: Color? = nil, @ViewBuilder content: () -> Content) -> Dialog<Content, Footer> [extension where Content : View, Footer == EmptyView]
+Dialog.doubleLine(title:borderColor:titleColor:content:) | static func doubleLine<S>(title: S, borderColor: Color? = nil, titleColor: Color? = nil, @ViewBuilder content: () -> Content) -> Dialog<Content, Footer> where S : StringProtocol [extension where Content : View, Footer == EmptyView]
+Dialog.heavy(title:borderColor:titleColor:content:) | static func heavy(title titleKey: LocalizedStringKey, borderColor: Color? = nil, titleColor: Color? = nil, @ViewBuilder content: () -> Content) -> Dialog<Content, Footer> [extension where Content : View, Footer == EmptyView]
+Dialog.heavy(title:borderColor:titleColor:content:) | static func heavy<S>(title: S, borderColor: Color? = nil, titleColor: Color? = nil, @ViewBuilder content: () -> Content) -> Dialog<Content, Footer> where S : StringProtocol [extension where Content : View, Footer == EmptyView]
+Dialog.init(title:borderStyle:borderColor:titleColor:padding:content:) | init(title titleKey: LocalizedStringKey, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, padding: EdgeInsets = EdgeInsets(horizontal: 2, vertical: 1), @ViewBuilder content: () -> Content) [extension where Content : View, Footer == EmptyView]
+Dialog.init(title:borderStyle:borderColor:titleColor:padding:content:) | init<S>(title: S, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, padding: EdgeInsets = EdgeInsets(horizontal: 2, vertical: 1), @ViewBuilder content: () -> Content) where S : StringProtocol [extension where Content : View, Footer == EmptyView]
+Dialog.init(title:borderStyle:borderColor:titleColor:padding:showFooterSeparator:footerAlignment:content:footer:) | init(title titleKey: LocalizedStringKey, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, padding: EdgeInsets = EdgeInsets(horizontal: 2, vertical: 1), showFooterSeparator: Bool = true, footerAlignment: HorizontalAlignment = .leading, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer)
+Dialog.init(title:borderStyle:borderColor:titleColor:padding:showFooterSeparator:footerAlignment:content:footer:) | init<S>(title: S, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, padding: EdgeInsets = EdgeInsets(horizontal: 2, vertical: 1), showFooterSeparator: Bool = true, footerAlignment: HorizontalAlignment = .leading, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) where S : StringProtocol
+DialogSeverity | struct DialogSeverity
+DialogSeverity.automatic | static let automatic: DialogSeverity
+DialogSeverity.critical | static let critical: DialogSeverity
+DialogSeverity.standard | static let standard: DialogSeverity
+FittedPresentationSizing | struct FittedPresentationSizing
+FittedPresentationSizing.proposedSize(for:context:) | func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize
+FormPresentationSizing | struct FormPresentationSizing
+FormPresentationSizing.proposedSize(for:context:) | func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize
+ModalPresentationModifier.body | @MainActor var body: Never { get }
+ModalPresentationModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View, Modal : View]
+ModalPresentationModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View, Modal : View]
+PagePresentationSizing | struct PagePresentationSizing
+PagePresentationSizing.proposedSize(for:context:) | func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize
+PresentationAdaptation | struct PresentationAdaptation
+PresentationAdaptation.automatic | static var automatic: PresentationAdaptation { get }
+PresentationAdaptation.fullScreenCover | static var fullScreenCover: PresentationAdaptation { get }
+PresentationAdaptation.none | static var none: PresentationAdaptation { get }
+PresentationAdaptation.popover | static var popover: PresentationAdaptation { get }
+PresentationAdaptation.sheet | static var sheet: PresentationAdaptation { get }
+PresentationBackgroundInteraction | struct PresentationBackgroundInteraction
+PresentationBackgroundInteraction.automatic | static var automatic: PresentationBackgroundInteraction { get }
+PresentationBackgroundInteraction.disabled | static var disabled: PresentationBackgroundInteraction { get }
+PresentationBackgroundInteraction.enabled | static var enabled: PresentationBackgroundInteraction { get }
+PresentationBackgroundInteraction.enabled(upThrough:) | static func enabled(upThrough detent: PresentationDetent) -> PresentationBackgroundInteraction
+PresentationContentInteraction | struct PresentationContentInteraction
+PresentationContentInteraction.automatic | static var automatic: PresentationContentInteraction { get }
+PresentationContentInteraction.resizes | static var resizes: PresentationContentInteraction { get }
+PresentationContentInteraction.scrolls | static var scrolls: PresentationContentInteraction { get }
+PresentationDetent | struct PresentationDetent
+PresentationDetent.Context | @dynamicMemberLookup struct Context
+PresentationDetent.Context.maxDetentValue | let maxDetentValue: Int
+PresentationDetent.Context.subscript(dynamicMember:) | subscript<T>(dynamicMember keyPath: KeyPath<EnvironmentValues, T>) -> T { get }
+PresentationDetent.custom(_:) | static func custom<D>(_ type: D.Type) -> PresentationDetent where D : CustomPresentationDetent
+PresentationDetent.fraction(_:) | static func fraction(_ fraction: Double) -> PresentationDetent
+PresentationDetent.height(_:) | static func height(_ height: Int) -> PresentationDetent
+PresentationDetent.large | static let large: PresentationDetent
+PresentationDetent.medium | static let medium: PresentationDetent
+PresentationSizing | protocol PresentationSizing
+PresentationSizing.automatic | static var automatic: AutomaticPresentationSizing { get } [extension where Self == AutomaticPresentationSizing]
+PresentationSizing.fitted | static var fitted: FittedPresentationSizing { get } [extension where Self == FittedPresentationSizing]
+PresentationSizing.fitted(horizontal:vertical:) | func fitted(horizontal: Bool, vertical: Bool) -> some PresentationSizing
+PresentationSizing.form | static var form: FormPresentationSizing { get } [extension where Self == FormPresentationSizing]
+PresentationSizing.page | static var page: PagePresentationSizing { get } [extension where Self == PagePresentationSizing]
+PresentationSizing.proposedSize(for:context:) | func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize
+PresentationSizing.sticky(horizontal:vertical:) | func sticky(horizontal: Bool = false, vertical: Bool = false) -> some PresentationSizing
+PresentationSizingContext | struct PresentationSizingContext
+PresentationSizingRoot | struct PresentationSizingRoot
+PresentationSizingRoot.sizeThatFits(_:) | func sizeThatFits(_ proposal: ProposedSize) -> ViewSize
+View.alert(_:isPresented:actions:) | nonisolated func alert<Actions>(_ title: Text, isPresented: Binding<Bool>, @ViewBuilder actions: @escaping () -> Actions) -> some View where Actions : View
+View.alert(_:isPresented:actions:borderStyle:borderColor:titleColor:) | nonisolated func alert<Actions>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, @ViewBuilder actions: @escaping () -> Actions, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil) -> some View where Actions : View
+View.alert(_:isPresented:actions:borderStyle:borderColor:titleColor:) | nonisolated func alert<S, Actions>(_ title: S, isPresented: Binding<Bool>, @ViewBuilder actions: @escaping () -> Actions, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil) -> some View where S : StringProtocol, Actions : View
+View.alert(_:isPresented:actions:message:) | nonisolated func alert<Actions, Message>(_ title: Text, isPresented: Binding<Bool>, @ViewBuilder actions: @escaping () -> Actions, @ViewBuilder message: @escaping () -> Message) -> some View where Actions : View, Message : View
+View.alert(_:isPresented:actions:message:borderStyle:borderColor:titleColor:) | nonisolated func alert<Actions, Message>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, @ViewBuilder actions: @escaping () -> Actions, @ViewBuilder message: @escaping () -> Message, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil) -> some View where Actions : View, Message : View
+View.alert(_:isPresented:actions:message:borderStyle:borderColor:titleColor:) | nonisolated func alert<S, Actions, Message>(_ title: S, isPresented: Binding<Bool>, @ViewBuilder actions: @escaping () -> Actions, @ViewBuilder message: @escaping () -> Message, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil) -> some View where S : StringProtocol, Actions : View, Message : View
+View.alert(_:isPresented:presenting:actions:) | nonisolated func alert<Actions, T>(_ title: Text, isPresented: Binding<Bool>, presenting data: T?, @ViewBuilder actions: @escaping (T) -> Actions) -> some View where Actions : View
+View.alert(_:isPresented:presenting:actions:) | nonisolated func alert<Actions, T>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, presenting data: T?, @ViewBuilder actions: @escaping (T) -> Actions) -> some View where Actions : View
+View.alert(_:isPresented:presenting:actions:) | nonisolated func alert<S, Actions, T>(_ title: S, isPresented: Binding<Bool>, presenting data: T?, @ViewBuilder actions: @escaping (T) -> Actions) -> some View where S : StringProtocol, Actions : View
+View.alert(_:isPresented:presenting:actions:message:) | nonisolated func alert<Actions, Message, T>(_ title: Text, isPresented: Binding<Bool>, presenting data: T?, @ViewBuilder actions: @escaping (T) -> Actions, @ViewBuilder message: @escaping (T) -> Message) -> some View where Actions : View, Message : View
+View.alert(_:isPresented:presenting:actions:message:) | nonisolated func alert<Actions, Message, T>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, presenting data: T?, @ViewBuilder actions: @escaping (T) -> Actions, @ViewBuilder message: @escaping (T) -> Message) -> some View where Actions : View, Message : View
+View.alert(_:isPresented:presenting:actions:message:) | nonisolated func alert<S, Actions, Message, T>(_ title: S, isPresented: Binding<Bool>, presenting data: T?, @ViewBuilder actions: @escaping (T) -> Actions, @ViewBuilder message: @escaping (T) -> Message) -> some View where S : StringProtocol, Actions : View, Message : View
+View.alert(isPresented:error:actions:) | nonisolated func alert<E, Actions>(isPresented: Binding<Bool>, error: E?, @ViewBuilder actions: @escaping () -> Actions) -> some View where E : LocalizedError, Actions : View
+View.alert(isPresented:error:actions:message:) | nonisolated func alert<E, Actions, Message>(isPresented: Binding<Bool>, error: E?, @ViewBuilder actions: @escaping (E) -> Actions, @ViewBuilder message: @escaping (E) -> Message) -> some View where E : LocalizedError, Actions : View, Message : View
+View.confirmationDialog(_:isPresented:titleVisibility:actions:) | nonisolated func confirmationDialog<Actions>(_ title: Text, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic, @ViewBuilder actions: @escaping () -> Actions) -> some View where Actions : View
+View.confirmationDialog(_:isPresented:titleVisibility:actions:) | nonisolated func confirmationDialog<Actions>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic, @ViewBuilder actions: @escaping () -> Actions) -> some View where Actions : View
+View.confirmationDialog(_:isPresented:titleVisibility:actions:) | nonisolated func confirmationDialog<S, Actions>(_ title: S, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic, @ViewBuilder actions: @escaping () -> Actions) -> some View where S : StringProtocol, Actions : View
+View.confirmationDialog(_:isPresented:titleVisibility:actions:message:) | nonisolated func confirmationDialog<Actions, Message>(_ title: Text, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic, @ViewBuilder actions: @escaping () -> Actions, @ViewBuilder message: @escaping () -> Message) -> some View where Actions : View, Message : View
+View.confirmationDialog(_:isPresented:titleVisibility:actions:message:) | nonisolated func confirmationDialog<Actions, Message>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic, @ViewBuilder actions: @escaping () -> Actions, @ViewBuilder message: @escaping () -> Message) -> some View where Actions : View, Message : View
+View.confirmationDialog(_:isPresented:titleVisibility:actions:message:) | nonisolated func confirmationDialog<S, Actions, Message>(_ title: S, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic, @ViewBuilder actions: @escaping () -> Actions, @ViewBuilder message: @escaping () -> Message) -> some View where S : StringProtocol, Actions : View, Message : View
+View.confirmationDialog(_:isPresented:titleVisibility:presenting:actions:) | nonisolated func confirmationDialog<Actions, T>(_ title: Text, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic, presenting data: T?, @ViewBuilder actions: @escaping (T) -> Actions) -> some View where Actions : View
+View.confirmationDialog(_:isPresented:titleVisibility:presenting:actions:) | nonisolated func confirmationDialog<Actions, T>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic, presenting data: T?, @ViewBuilder actions: @escaping (T) -> Actions) -> some View where Actions : View
+View.confirmationDialog(_:isPresented:titleVisibility:presenting:actions:) | nonisolated func confirmationDialog<S, Actions, T>(_ title: S, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic, presenting data: T?, @ViewBuilder actions: @escaping (T) -> Actions) -> some View where S : StringProtocol, Actions : View
+View.confirmationDialog(_:isPresented:titleVisibility:presenting:actions:message:) | nonisolated func confirmationDialog<Actions, Message, T>(_ title: Text, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic, presenting data: T?, @ViewBuilder actions: @escaping (T) -> Actions, @ViewBuilder message: @escaping (T) -> Message) -> some View where Actions : View, Message : View
+View.confirmationDialog(_:isPresented:titleVisibility:presenting:actions:message:) | nonisolated func confirmationDialog<Actions, Message, T>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic, presenting data: T?, @ViewBuilder actions: @escaping (T) -> Actions, @ViewBuilder message: @escaping (T) -> Message) -> some View where Actions : View, Message : View
+View.confirmationDialog(_:isPresented:titleVisibility:presenting:actions:message:) | nonisolated func confirmationDialog<S, Actions, Message, T>(_ title: S, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic, presenting data: T?, @ViewBuilder actions: @escaping (T) -> Actions, @ViewBuilder message: @escaping (T) -> Message) -> some View where S : StringProtocol, Actions : View, Message : View
+View.dialogIcon(_:) | nonisolated func dialogIcon(_ icon: Image?) -> some View
+View.dialogPreferredWidth(_:) | nonisolated func dialogPreferredWidth(_ width: Int) -> some View
+View.dialogPreventsAppTermination(_:) | nonisolated func dialogPreventsAppTermination(_ prevents: Bool?) -> some View
+View.dialogSeverity(_:) | nonisolated func dialogSeverity(_ severity: DialogSeverity) -> some View
+View.dialogSuppressionToggle(_:isSuppressed:) | nonisolated func dialogSuppressionToggle(_ label: Text, isSuppressed: Binding<Bool>) -> some View
+View.dialogSuppressionToggle(_:isSuppressed:) | nonisolated func dialogSuppressionToggle(_ titleKey: LocalizedStringKey, isSuppressed: Binding<Bool>) -> some View
+View.dialogSuppressionToggle(_:isSuppressed:) | nonisolated func dialogSuppressionToggle<S>(_ title: S, isSuppressed: Binding<Bool>) -> some View where S : StringProtocol
+View.dialogSuppressionToggle(isSuppressed:) | nonisolated func dialogSuppressionToggle(isSuppressed: Binding<Bool>) -> some View
+View.dismissalConfirmationDialog(_:shouldPresent:actions:) | nonisolated func dismissalConfirmationDialog<A>(_ title: Text, shouldPresent: Bool, @ViewBuilder actions: () -> A) -> some View where A : View
+View.dismissalConfirmationDialog(_:shouldPresent:actions:) | nonisolated func dismissalConfirmationDialog<A>(_ titleKey: LocalizedStringKey, shouldPresent: Bool, @ViewBuilder actions: () -> A) -> some View where A : View
+View.dismissalConfirmationDialog(_:shouldPresent:actions:) | nonisolated func dismissalConfirmationDialog<S, A>(_ title: S, shouldPresent: Bool, @ViewBuilder actions: () -> A) -> some View where S : StringProtocol, A : View
+View.dismissalConfirmationDialog(_:shouldPresent:actions:message:) | nonisolated func dismissalConfirmationDialog<A, M>(_ title: Text, shouldPresent: Bool, @ViewBuilder actions: () -> A, @ViewBuilder message: () -> M) -> some View where A : View, M : View
+View.dismissalConfirmationDialog(_:shouldPresent:actions:message:) | nonisolated func dismissalConfirmationDialog<A, M>(_ titleKey: LocalizedStringKey, shouldPresent: Bool, @ViewBuilder actions: () -> A, @ViewBuilder message: () -> M) -> some View where A : View, M : View
+View.dismissalConfirmationDialog(_:shouldPresent:actions:message:) | nonisolated func dismissalConfirmationDialog<S, A, M>(_ title: S, shouldPresent: Bool, @ViewBuilder actions: () -> A, @ViewBuilder message: () -> M) -> some View where S : StringProtocol, A : View, M : View
+View.fullScreenCover(isPresented:onDismiss:content:) | nonisolated func fullScreenCover<Content>(isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Content) -> some View where Content : View
+View.fullScreenCover(item:onDismiss:content:) | nonisolated func fullScreenCover<Item, Content>(item: Binding<Item?>, onDismiss: (() -> Void)? = nil, @ViewBuilder content: @escaping (Item) -> Content) -> some View where Item : Identifiable, Content : View
+View.interactiveDismissDisabled(_:) | nonisolated func interactiveDismissDisabled(_ isDisabled: Bool = true) -> some View
+View.modal(content:) | nonisolated func modal<Modal>(@ViewBuilder content: () -> Modal) -> some View where Modal : View
+View.modal(isPresented:onDismiss:content:) | nonisolated func modal<Modal>(isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Modal) -> some View where Modal : View
+View.popover(isPresented:attachmentAnchor:arrowEdge:content:) | nonisolated func popover<Content>(isPresented: Binding<Bool>, attachmentAnchor: PopoverAttachmentAnchor = .rect(.bounds), arrowEdge: Edge? = nil, @ViewBuilder content: @escaping () -> Content) -> some View where Content : View
+View.popover(item:attachmentAnchor:arrowEdge:content:) | nonisolated func popover<Item, Content>(item: Binding<Item?>, attachmentAnchor: PopoverAttachmentAnchor = .rect(.bounds), arrowEdge: Edge? = nil, @ViewBuilder content: @escaping (Item) -> Content) -> some View where Item : Identifiable, Content : View
+View.presentationBackground(_:) | nonisolated func presentationBackground<S>(_ style: S) -> some View where S : ShapeStyle
+View.presentationBackground(alignment:content:) | nonisolated func presentationBackground<V>(alignment: Alignment = .center, @ViewBuilder content: () -> V) -> some View where V : View
+View.presentationBackgroundInteraction(_:) | nonisolated func presentationBackgroundInteraction(_ interaction: PresentationBackgroundInteraction) -> some View
+View.presentationCompactAdaptation(_:) | nonisolated func presentationCompactAdaptation(_ adaptation: PresentationAdaptation) -> some View
+View.presentationCompactAdaptation(horizontal:vertical:) | nonisolated func presentationCompactAdaptation(horizontal horizontalAdaptation: PresentationAdaptation, vertical verticalAdaptation: PresentationAdaptation) -> some View
+View.presentationContentInteraction(_:) | nonisolated func presentationContentInteraction(_ behavior: PresentationContentInteraction) -> some View
+View.presentationCornerRadius(_:) | nonisolated func presentationCornerRadius(_ cornerRadius: CGFloat?) -> some View
+View.presentationDetents(_:) | nonisolated func presentationDetents(_ detents: Set<PresentationDetent>) -> some View
+View.presentationDetents(_:selection:) | nonisolated func presentationDetents(_ detents: Set<PresentationDetent>, selection: Binding<PresentationDetent>) -> some View
+View.presentationDragIndicator(_:) | nonisolated func presentationDragIndicator(_ visibility: Visibility) -> some View
+View.presentationPreventsAppTermination(_:) | nonisolated func presentationPreventsAppTermination(_ prevents: Bool?) -> some View
+View.presentationSizing(_:) | nonisolated func presentationSizing(_ sizing: some PresentationSizing) -> some View
+View.sheet(isPresented:onDismiss:content:) | nonisolated func sheet<Content>(isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Content) -> some View where Content : View
+View.sheet(item:onDismiss:content:) | nonisolated func sheet<Item, Content>(item: Binding<Item?>, onDismiss: (() -> Void)? = nil, @ViewBuilder content: @escaping (Item) -> Content) -> some View where Item : Identifiable, Content : View

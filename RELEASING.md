@@ -34,6 +34,16 @@ before tagging when the section is longer.
 For the first release, also rewrite the changelog preface's last paragraph,
 which says TUI has not been released and makes no compatibility promise.
 
+## The public API record
+
+[`Tools/Release/api-baseline/`](Tools/Release/api-baseline) lists every public
+declaration, one per line and one file per module, as
+[`Tools/Release/api_baseline.py`](Tools/Release/api_baseline.py) extracts it
+from the symbol graphs. `api_baseline.py --check` lists what was added and
+removed since the record was written; rerunning it without `--check` rewrites
+the record. A removed or changed line is a candidate breaking change by the
+table above. It is not run by CI.
+
 ## Cutting one
 
 You need: `gh` signed in (`gh auth login`) with push access; `main` checked

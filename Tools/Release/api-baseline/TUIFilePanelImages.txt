@@ -1,0 +1,3 @@
+# TUIFilePanelImages public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+View.fileDialogPicturePreviews() | nonisolated func fileDialogPicturePreviews() -> some View

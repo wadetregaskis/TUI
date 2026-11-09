@@ -1,0 +1,62 @@
+# TUIBitmaps public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+AsyncImage | nonisolated struct AsyncImage<Content> where Content : View
+AsyncImage.body | @MainActor var body: some View { get }
+AsyncImage.init(url:scale:) | init(url: URL?, scale: CGFloat = 1) where Content == _AsyncImageDefaultContent
+AsyncImage.init(url:scale:content:placeholder:) | init<I, P>(url: URL?, scale: CGFloat = 1, @ViewBuilder content: @escaping (Image) -> I, @ViewBuilder placeholder: @escaping () -> P) where Content == ConditionalView<I, P>, I : View, P : View
+AsyncImage.init(url:scale:transaction:content:) | init(url: URL?, scale: CGFloat = 1, transaction: Transaction = Transaction(), @ViewBuilder content: @escaping (AsyncImagePhase) -> Content)
+AsyncImagePhase | enum AsyncImagePhase
+AsyncImagePhase.empty | case empty
+AsyncImagePhase.error | var error: (any Error)? { get }
+AsyncImagePhase.failure(_:) | case failure(any Error)
+AsyncImagePhase.image | var image: Image? { get }
+AsyncImagePhase.success(_:) | case success(Image)
+Color.init(_:bundle:) | init(_ name: String, bundle: Bundle? = nil)
+ContentUnavailableView.init(_:image:description:) | init(_ title: LocalizedStringKey, image name: String, description: Text? = nil) [extension where Label == Label<Text, _ImageIcon>, Description == Text?, Actions == EmptyView]
+ContentUnavailableView.init(_:image:description:) | init<S>(_ title: S, image name: String, description: Text? = nil) where S : StringProtocol [extension where Label == Label<Text, _ImageIcon>, Description == Text?, Actions == EmptyView]
+EnvironmentValues.imageAnimationRespectsReduceMotion | var imageAnimationRespectsReduceMotion: Bool { get set }
+Image.init(_:) | init(_ source: ImageSource)
+Image.init(_:bundle:) | nonisolated init(_ name: String, bundle: Bundle? = nil)
+Image.init(_:bundle:label:) | nonisolated init(_ name: String, bundle: Bundle? = nil, label: Text)
+Image.init(_:scale:orientation:label:) | nonisolated init(_ cgImage: CGImage, scale: CGFloat, orientation: Image.Orientation = .up, label: Text)
+Image.init(decorative:bundle:) | nonisolated init(decorative name: String, bundle: Bundle? = nil)
+Image.init(decorative:scale:orientation:) | nonisolated init(decorative cgImage: CGImage, scale: CGFloat, orientation: Image.Orientation = .up)
+ImageFitTarget | enum ImageFitTarget
+ImageFitTarget.naturalSize | case naturalSize
+ImageFitTarget.proposedSize | case proposedSize
+ImageFitTarget.viewport | case viewport
+ImageSource | enum ImageSource
+ImageSource.file(_:) | case file(String)
+ImageSource.url(_:) | case url(String)
+Label.init(_:image:) | init(_ titleKey: LocalizedStringKey, image name: String) [extension where Title == Text, Icon == _ImageIcon]
+Label.init(_:image:) | init<S>(_ title: S, image name: String) where S : StringProtocol [extension where Title == Text, Icon == _ImageIcon]
+View.imageAdjustments(_:) | nonisolated func imageAdjustments(_ adjustments: ImageAdjustments) -> some View
+View.imageAnimationRespectsReduceMotion(_:) | nonisolated func imageAnimationRespectsReduceMotion(_ respects: Bool = true) -> some View
+View.imageCellPixels(_:) | nonisolated func imageCellPixels(_ pixels: TerminalCellPixels) -> some View
+View.imageCellPoints(_:) | nonisolated func imageCellPoints(_ points: TerminalCellPoints?) -> some View
+View.imageCharacterSet(_:) | nonisolated func imageCharacterSet(_ characterSet: ASCIICharacterSet) -> some View
+View.imageColorMode(_:) | nonisolated func imageColorMode(_ colorMode: ASCIIColorMode) -> some View
+View.imageDithering(_:) | nonisolated func imageDithering(_ dithering: DitheringMode) -> some View
+View.imageEdgeContrast(_:) | nonisolated func imageEdgeContrast(_ amount: Double) -> some View
+View.imageEdgeThreshold(_:) | nonisolated func imageEdgeThreshold(_ threshold: Double?) -> some View
+View.imageFitTarget(_:) | nonisolated func imageFitTarget(_ target: ImageFitTarget) -> some View
+View.imageInkThreshold(_:) | nonisolated func imageInkThreshold(_ threshold: Double?) -> some View
+View.imageMaxPixelCount(_:) | nonisolated func imageMaxPixelCount(_ maxPixels: Int?) -> some View
+View.imagePlaceholder(_:) | nonisolated func imagePlaceholder(_ text: String?) -> some View
+View.imagePlaceholder(_:) | nonisolated func imagePlaceholder(_ textKey: LocalizedStringKey) -> some View
+View.imagePlaceholder(_:) | nonisolated func imagePlaceholder<S>(_ text: S) -> some View where S : StringProtocol
+View.imagePlaceholderSpinner(_:) | nonisolated func imagePlaceholderSpinner(_ showSpinner: Bool) -> some View
+View.imagePlaceholderSpinner(style:color:) | nonisolated func imagePlaceholderSpinner(style: SpinnerStyle = .dots, color: Color? = nil) -> some View
+View.imagePosterization(levels:) | nonisolated func imagePosterization(levels: Int?) -> some View
+View.imageShapeAware(_:) | nonisolated func imageShapeAware(_ shapeAware: Bool = true) -> some View
+View.imageSupersampling(_:) | nonisolated func imageSupersampling(_ factor: Int?) -> some View
+View.imageSynchronousDecodeLimit(_:) | nonisolated func imageSynchronousDecodeLimit(_ bytes: Int) -> some View
+View.imageToneCurve(_:) | nonisolated func imageToneCurve(_ toneCurve: ASCIIToneCurve?) -> some View
+View.imageURLTimeout(_:) | nonisolated func imageURLTimeout(_ seconds: TimeInterval) -> some View
+View.imageZoom(_:) | nonisolated func imageZoom(_ factor: Double) -> some View
+View.terminalGraphics(_:) | nonisolated func terminalGraphics(_ enabled: Bool = true) -> some View
+View.urlImageCache(_:) | nonisolated func urlImageCache(_ cache: URLImageCache?) -> some View
+_AsyncImageDefaultContent | nonisolated struct _AsyncImageDefaultContent
+_AsyncImageDefaultContent.body | @MainActor var body: some View { get }
+_ImageIcon | nonisolated struct _ImageIcon
+_ImageIcon.body | @MainActor var body: some View { get }

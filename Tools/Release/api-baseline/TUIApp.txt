@@ -1,0 +1,157 @@
+# TUIApp public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+App | @MainActor protocol App
+App.Body | associatedtype Body : Scene
+App.body | @SceneBuilder @MainActor var body: Self.Body { get }
+App.init() | @MainActor init()
+App.main() | @MainActor static func main() async
+App.maxFrameRate | @MainActor var maxFrameRate: Int { get }
+App.maxFrameRate | @MainActor var maxFrameRate: Int { get }
+App.run() | @MainActor func run() async
+App.runWithoutTerminal(_:) | @MainActor static func runWithoutTerminal(_ situation: NoTerminal) async -> NoTerminal.Outcome
+App.runWithoutTerminal(_:) | @MainActor static func runWithoutTerminal(_ situation: NoTerminal) async -> NoTerminal.Outcome
+BuiltInSettingsTab | enum BuiltInSettingsTab
+BuiltInSettingsTab.accessibility | case accessibility
+BuiltInSettingsTab.view | case view
+DefaultWindowToolbarStyle | struct DefaultWindowToolbarStyle
+DefaultWindowToolbarStyle.init() | init()
+DefaultWindowVisibilityToggleLabel | struct DefaultWindowVisibilityToggleLabel
+DefaultWindowVisibilityToggleLabel.body | @MainActor @ViewBuilder var body: some View { get }
+ExpandedWindowToolbarStyle | struct ExpandedWindowToolbarStyle
+ExpandedWindowToolbarStyle.init() | init()
+Group.body | @MainActor var body: Never { get } [extension where Content : Scene]
+Group.init(content:) | init(@SceneBuilder content: () -> Content) [extension where Content : Scene]
+NoTerminal | struct NoTerminal
+NoTerminal.Connection | enum Connection
+NoTerminal.Connection.closed | case closed
+NoTerminal.Connection.device | case device
+NoTerminal.Connection.dumbTerminal | case dumbTerminal
+NoTerminal.Connection.file | case file
+NoTerminal.Connection.pipe | case pipe
+NoTerminal.Connection.socket | case socket
+NoTerminal.Connection.terminal | case terminal
+NoTerminal.Outcome | enum Outcome
+NoTerminal.Outcome.drawOnControllingTerminal | case drawOnControllingTerminal
+NoTerminal.Outcome.exit(_:) | case exit(Int32)
+NoTerminal.Outcome.init(integerLiteral:) | init(integerLiteral value: Int32)
+NoTerminal.canDrawOnControllingTerminal | var canDrawOnControllingTerminal: Bool { get }
+NoTerminal.input | let input: NoTerminal.Connection
+NoTerminal.lacksInput | var lacksInput: Bool { get }
+NoTerminal.lacksOutput | var lacksOutput: Bool { get }
+NoTerminal.message | var message: String { get }
+NoTerminal.output | let output: NoTerminal.Connection
+NoTerminal.pipedInput | let pipedInput: FileHandle?
+NoTerminal.pipedOutput | let pipedOutput: FileHandle?
+NoTerminal.reportFailure() | func reportFailure() -> NoTerminal.Outcome
+PresentedWindowContent | nonisolated struct PresentedWindowContent<Data, Content> where Data : Decodable, Data : Encodable, Data : Hashable, Content : View
+PresentedWindowContent.body | @MainActor var body: some View { get }
+QuitConfirmation | enum QuitConfirmation
+QuitConfirmation.always | case always
+QuitConfirmation.automatic | case automatic
+QuitConfirmation.whenWarned | case whenWarned
+RenderOnceOutput | enum RenderOnceOutput
+RenderOnceOutput.automatic | case automatic
+RenderOnceOutput.escapeSequences | case escapeSequences
+RenderOnceOutput.plainText | case plainText
+Scene | @MainActor protocol Scene
+Scene.Body | associatedtype Body : Scene
+Scene.appearance(_:) | @MainActor func appearance(_ appearance: Appearance?) -> some Scene
+Scene.body | @SceneBuilder @MainActor var body: Self.Body { get }
+Scene.builtInSettingsTab(_:content:) | @MainActor func builtInSettingsTab<Content>(_ tab: BuiltInSettingsTab, @ViewBuilder content: () -> Content) -> some Scene where Content : View
+Scene.builtInSettingsTab(_:visibility:) | @MainActor func builtInSettingsTab(_ tab: BuiltInSettingsTab, visibility: Visibility) -> some Scene
+Scene.defaultAppStorage(_:) | @MainActor func defaultAppStorage(_ store: UserDefaults) -> some Scene
+Scene.defaultAppStorage(_:) | @MainActor func defaultAppStorage(_ store: any StorageBackend) -> some Scene
+Scene.environment(_:) | @MainActor func environment<T>(_ object: T?) -> some Scene where T : AnyObject, T : Observable
+Scene.environment(_:_:) | @MainActor func environment<V>(_ keyPath: WritableKeyPath<EnvironmentValues, V>, _ value: V) -> some Scene
+Scene.focusBreathing(_:) | @MainActor func focusBreathing(_ breathes: Bool) -> some Scene
+Scene.focusFollowsPointer(_:) | @MainActor func focusFollowsPointer(_ follows: Bool = true) -> some Scene
+Scene.keyNotation(_:) | @MainActor func keyNotation(_ notation: KeyNotation) -> some Scene
+Scene.keyboardShortcut(_:) | @MainActor func keyboardShortcut(_ shortcut: KeyboardShortcut?) -> some Scene
+Scene.keyboardShortcut(_:modifiers:localization:) | @MainActor func keyboardShortcut(_ key: KeyEquivalent, modifiers: EventModifiers = .command, localization: KeyboardShortcut.Localization = .automatic) -> some Scene
+Scene.keyboardShortcutOverlayDisabled(_:) | @MainActor func keyboardShortcutOverlayDisabled(_ isDisabled: Bool = true) -> some Scene
+Scene.mouseSupport(_:) | @MainActor func mouseSupport(_ support: MouseSupport) -> some Scene
+Scene.onChange(of:initial:_:) | @MainActor func onChange<V>(of value: V, initial: Bool = false, _ action: @escaping () -> Void) -> some Scene where V : Equatable
+Scene.onChange(of:initial:_:) | @MainActor func onChange<V>(of value: V, initial: Bool = false, _ action: @escaping (V, V) -> Void) -> some Scene where V : Equatable
+Scene.palette(_:) | @MainActor func palette(_ palette: any Palette) -> some Scene
+Scene.quitConfirmation(_:) | @MainActor func quitConfirmation(_ confirmation: QuitConfirmation) -> some Scene
+Scene.reduceMotion(_:) | @MainActor func reduceMotion(_ reduces: Bool = true) -> some Scene
+Scene.settingsPanelKey(_:) | @MainActor func settingsPanelKey(_ key: Key?) -> some Scene
+Scene.textSelectionCopiesOnRelease(_:) | @MainActor func textSelectionCopiesOnRelease(_ copies: Bool = true) -> some Scene
+Scene.theme(_:) | @MainActor func theme(_ theme: Theme) -> some Scene
+Scene.transformEnvironment(_:transform:) | @MainActor func transformEnvironment<V>(_ keyPath: WritableKeyPath<EnvironmentValues, V>, transform: @escaping (inout V) -> Void) -> some Scene
+Scene.undoShortcuts(_:) | @MainActor func undoShortcuts(_ overrides: [UndoCommand : ShortcutSet]) -> some Scene
+Scene.windowToolbarLabelStyle(_:) | @MainActor func windowToolbarLabelStyle(_ toolbarLabelStyle: Binding<ToolbarLabelStyle>) -> some Scene
+Scene.windowToolbarLabelStyle(fixed:) | @MainActor func windowToolbarLabelStyle(fixed: ToolbarLabelStyle) -> some Scene
+Scene.windowToolbarStyle(_:) | @MainActor func windowToolbarStyle(_ style: any WindowToolbarStyle) -> some Scene
+Scene.windowToolbarStyle(_:) | @MainActor func windowToolbarStyle<S>(_ style: S) -> some Scene where S : WindowToolbarStyle
+SceneBuilder | @MainActor @resultBuilder struct SceneBuilder
+SceneBuilder.buildBlock(_:) | @MainActor static func buildBlock<Content>(_ content: Content) -> Content where Content : Scene
+SceneBuilder.buildBlock(_:) | @MainActor static func buildBlock<each Content>(_ content: repeat each Content) -> some Scene where repeat each Content : Scene
+SceneBuilder.buildExpression(_:) | @MainActor static func buildExpression<Content>(_ content: Content) -> Content where Content : Scene
+SceneBuilder.buildLimitedAvailability(_:) | @MainActor static func buildLimitedAvailability(_ scene: some Scene) -> any Scene & _LimitedAvailabilitySceneMarker
+SceneBuilder.buildOptional(_:) | @MainActor static func buildOptional(_ scene: (any Scene & _LimitedAvailabilitySceneMarker)?) -> some Scene
+TerminalClient.applyGraphicsSupport() | @MainActor static func applyGraphicsSupport()
+TerminalClient.detectedCellPixels | @MainActor static var detectedCellPixels: Bool? { get }
+TerminalClient.detectedGraphics | @MainActor static var detectedGraphics: Bool? { get }
+TerminalClient.detectedGraphicsCompression | @MainActor static var detectedGraphicsCompression: Bool? { get }
+TerminalClient.graphicsCompressionSupport | @MainActor static var graphicsCompressionSupport: Bool? { get set }
+TerminalClient.graphicsCompressionSupported | @MainActor static var graphicsCompressionSupported: Bool { get }
+TerminalClient.graphicsPlaybackSupport | @MainActor static var graphicsPlaybackSupport: Bool? { get set }
+TerminalClient.graphicsPlaybackSupported | @MainActor static var graphicsPlaybackSupported: Bool { get }
+TerminalClient.graphicsSupport | @MainActor static var graphicsSupport: Bool? { get set }
+TerminalClient.graphicsSupported | @MainActor static var graphicsSupported: Bool { get }
+TerminalClient.hairlineSupport | @MainActor static var hairlineSupport: Bool? { get set }
+TerminalClient.hairlinesSupported | @MainActor static var hairlinesSupported: Bool { get }
+TerminalClient.pictureUnderTextSupport | @MainActor static var pictureUnderTextSupport: Bool? { get set }
+TerminalClient.picturesUnderTextSupported | @MainActor static var picturesUnderTextSupported: Bool { get }
+UnifiedCompactWindowToolbarStyle | struct UnifiedCompactWindowToolbarStyle
+UnifiedCompactWindowToolbarStyle.init() | init()
+UnifiedCompactWindowToolbarStyle.init(showsTitle:) | init(showsTitle: Bool)
+UnifiedWindowToolbarStyle | struct UnifiedWindowToolbarStyle
+UnifiedWindowToolbarStyle.init() | init()
+UnifiedWindowToolbarStyle.init(showsTitle:) | init(showsTitle: Bool)
+Window | @MainActor struct Window<Content> where Content : View
+Window.body | @MainActor var body: Never { get }
+Window.init(_:id:content:) | @MainActor init(_ title: Text, id: String, @ViewBuilder content: () -> Content)
+Window.init(_:id:content:) | @MainActor init(_ titleKey: LocalizedStringKey, id: String, @ViewBuilder content: () -> Content)
+Window.init(_:id:content:) | @MainActor init<S>(_ title: S, id: String, @ViewBuilder content: () -> Content) where S : StringProtocol
+WindowGroup | @MainActor struct WindowGroup<Content> where Content : View
+WindowGroup.body | @MainActor var body: Never { get }
+WindowGroup.content | @MainActor let content: Content
+WindowGroup.init(_:for:content:) | @MainActor init<D, C>(_ title: Text, for type: D.Type, @ViewBuilder content: @escaping (Binding<D?>) -> C) where Content == PresentedWindowContent<D, C>, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(_:for:content:) | @MainActor init<D, C>(_ titleKey: LocalizedStringKey, for type: D.Type, @ViewBuilder content: @escaping (Binding<D?>) -> C) where Content == PresentedWindowContent<D, C>, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(_:for:content:) | @MainActor init<S, D, C>(_ title: S, for type: D.Type, @ViewBuilder content: @escaping (Binding<D?>) -> C) where Content == PresentedWindowContent<D, C>, S : StringProtocol, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(_:for:content:defaultValue:) | @MainActor init<D, C>(_ title: Text, for type: D.Type = D.self, @ViewBuilder content: @escaping (Binding<D>) -> C, defaultValue: @escaping () -> D) where Content == PresentedWindowContent<D, C>, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(_:for:content:defaultValue:) | @MainActor init<D, C>(_ titleKey: LocalizedStringKey, for type: D.Type = D.self, @ViewBuilder content: @escaping (Binding<D>) -> C, defaultValue: @escaping () -> D) where Content == PresentedWindowContent<D, C>, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(_:for:content:defaultValue:) | @MainActor init<S, D, C>(_ title: S, for type: D.Type = D.self, @ViewBuilder content: @escaping (Binding<D>) -> C, defaultValue: @escaping () -> D) where Content == PresentedWindowContent<D, C>, S : StringProtocol, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(_:id:for:content:) | @MainActor init<D, C>(_ title: Text, id: String, for type: D.Type, @ViewBuilder content: @escaping (Binding<D?>) -> C) where Content == PresentedWindowContent<D, C>, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(_:id:for:content:) | @MainActor init<D, C>(_ titleKey: LocalizedStringKey, id: String, for type: D.Type, @ViewBuilder content: @escaping (Binding<D?>) -> C) where Content == PresentedWindowContent<D, C>, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(_:id:for:content:) | @MainActor init<S, D, C>(_ title: S, id: String, for type: D.Type, @ViewBuilder content: @escaping (Binding<D?>) -> C) where Content == PresentedWindowContent<D, C>, S : StringProtocol, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(_:id:for:content:defaultValue:) | @MainActor init<D, C>(_ title: Text, id: String, for type: D.Type = D.self, @ViewBuilder content: @escaping (Binding<D>) -> C, defaultValue: @escaping () -> D) where Content == PresentedWindowContent<D, C>, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(_:id:for:content:defaultValue:) | @MainActor init<D, C>(_ titleKey: LocalizedStringKey, id: String, for type: D.Type = D.self, @ViewBuilder content: @escaping (Binding<D>) -> C, defaultValue: @escaping () -> D) where Content == PresentedWindowContent<D, C>, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(_:id:for:content:defaultValue:) | @MainActor init<S, D, C>(_ title: S, id: String, for type: D.Type = D.self, @ViewBuilder content: @escaping (Binding<D>) -> C, defaultValue: @escaping () -> D) where Content == PresentedWindowContent<D, C>, S : StringProtocol, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(_:id:makeContent:) | @MainActor init(_ title: Text, id: String, @ViewBuilder makeContent: @escaping () -> Content) [extension where Content : View]
+WindowGroup.init(_:id:makeContent:) | @MainActor init(_ titleKey: LocalizedStringKey, id: String, @ViewBuilder makeContent: @escaping () -> Content) [extension where Content : View]
+WindowGroup.init(_:id:makeContent:) | @MainActor init<S>(_ title: S, id: String, @ViewBuilder makeContent: @escaping () -> Content) where S : StringProtocol [extension where Content : View]
+WindowGroup.init(_:makeContent:) | @MainActor init(_ title: Text, @ViewBuilder makeContent: @escaping () -> Content) [extension where Content : View]
+WindowGroup.init(_:makeContent:) | @MainActor init(_ titleKey: LocalizedStringKey, @ViewBuilder makeContent: @escaping () -> Content) [extension where Content : View]
+WindowGroup.init(_:makeContent:) | @MainActor init<S>(_ title: S, @ViewBuilder makeContent: @escaping () -> Content) where S : StringProtocol [extension where Content : View]
+WindowGroup.init(for:content:) | @MainActor init<D, C>(for type: D.Type, @ViewBuilder content: @escaping (Binding<D?>) -> C) where Content == PresentedWindowContent<D, C>, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(for:content:defaultValue:) | @MainActor init<D, C>(for type: D.Type = D.self, @ViewBuilder content: @escaping (Binding<D>) -> C, defaultValue: @escaping () -> D) where Content == PresentedWindowContent<D, C>, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(id:for:content:) | @MainActor init<D, C>(id: String, for type: D.Type, @ViewBuilder content: @escaping (Binding<D?>) -> C) where Content == PresentedWindowContent<D, C>, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(id:for:content:defaultValue:) | @MainActor init<D, C>(id: String, for type: D.Type = D.self, @ViewBuilder content: @escaping (Binding<D>) -> C, defaultValue: @escaping () -> D) where Content == PresentedWindowContent<D, C>, D : Decodable, D : Encodable, D : Hashable, C : View [extension where Content : View]
+WindowGroup.init(id:makeContent:) | @MainActor init(id: String, @ViewBuilder makeContent: @escaping () -> Content) [extension where Content : View]
+WindowGroup.init(makeContent:) | @MainActor init(@ViewBuilder makeContent: @escaping () -> Content)
+WindowToolbarStyle | protocol WindowToolbarStyle
+WindowToolbarStyle.automatic | static var automatic: DefaultWindowToolbarStyle { get } [extension where Self == DefaultWindowToolbarStyle]
+WindowToolbarStyle.expanded | static var expanded: ExpandedWindowToolbarStyle { get } [extension where Self == ExpandedWindowToolbarStyle]
+WindowToolbarStyle.unified | static var unified: UnifiedWindowToolbarStyle { get } [extension where Self == UnifiedWindowToolbarStyle]
+WindowToolbarStyle.unified(showsTitle:) | static func unified(showsTitle: Bool) -> UnifiedWindowToolbarStyle [extension where Self == UnifiedWindowToolbarStyle]
+WindowToolbarStyle.unifiedCompact | static var unifiedCompact: UnifiedCompactWindowToolbarStyle { get } [extension where Self == UnifiedCompactWindowToolbarStyle]
+WindowToolbarStyle.unifiedCompact(showsTitle:) | static func unifiedCompact(showsTitle: Bool) -> UnifiedCompactWindowToolbarStyle [extension where Self == UnifiedCompactWindowToolbarStyle]
+WindowVisibilityToggle | struct WindowVisibilityToggle<Label> where Label : View
+WindowVisibilityToggle.body | @MainActor @ViewBuilder var body: some View { get }
+WindowVisibilityToggle.init(windowID:) | init(windowID: String) [extension where Label == DefaultWindowVisibilityToggleLabel]
+_LimitedAvailabilitySceneMarker | @MainActor protocol _LimitedAvailabilitySceneMarker
+renderOnce(output:content:) | @MainActor func renderOnce<Content>(output: RenderOnceOutput = .automatic, @ViewBuilder content: () -> Content) where Content : View
+renderOnceToString(width:height:output:colorDepth:content:) | @MainActor func renderOnceToString<Content>(width: Int? = nil, height: Int? = nil, output: RenderOnceOutput = .plainText, colorDepth: ColorDepth? = nil, @ViewBuilder content: () -> Content) -> String where Content : View

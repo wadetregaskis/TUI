@@ -1,0 +1,49 @@
+# TUIEnvironmentDocs public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+ManPageFormat | enum ManPageFormat
+ManPageFormat.init(rawValue:) | init?(rawValue: String)
+ManPageFormat.man | case man
+ManPageFormat.mdoc | case mdoc
+TUIEnvironmentVariable | struct TUIEnvironmentVariable
+TUIEnvironmentVariable.Audience | enum Audience
+TUIEnvironmentVariable.Audience.detected | case detected
+TUIEnvironmentVariable.Audience.developer | case developer
+TUIEnvironmentVariable.Audience.endUser | case endUser
+TUIEnvironmentVariable.Audience.init(rawValue:) | init?(rawValue: String)
+TUIEnvironmentVariable.CodeSetting | enum CodeSetting
+TUIEnvironmentVariable.CodeSetting.cannotOverride(_:) | case cannotOverride(String)
+TUIEnvironmentVariable.CodeSetting.explanation | var explanation: String? { get }
+TUIEnvironmentVariable.CodeSetting.none | case none
+TUIEnvironmentVariable.CodeSetting.overrides(_:) | case overrides(String)
+TUIEnvironmentVariable.Reading | enum Reading
+TUIEnvironmentVariable.Reading.eachUse | case eachUse
+TUIEnvironmentVariable.Reading.init(rawValue:) | init?(rawValue: String)
+TUIEnvironmentVariable.Reading.once | case once
+TUIEnvironmentVariable.Topic | enum Topic
+TUIEnvironmentVariable.Topic.accessibility | case accessibility
+TUIEnvironmentVariable.Topic.behaviour | case behaviour
+TUIEnvironmentVariable.Topic.colour | case colour
+TUIEnvironmentVariable.Topic.diagnostics | case diagnostics
+TUIEnvironmentVariable.Topic.files | case files
+TUIEnvironmentVariable.Topic.identity | case identity
+TUIEnvironmentVariable.Topic.init(rawValue:) | init?(rawValue: String)
+TUIEnvironmentVariable.Topic.language | case language
+TUIEnvironmentVariable.Topic.limits | case limits
+TUIEnvironmentVariable.Topic.output | case output
+TUIEnvironmentVariable.Topic.session | case session
+TUIEnvironmentVariable.Topic.terminal | case terminal
+TUIEnvironmentVariable.Topic.testing | case testing
+TUIEnvironmentVariable.Topic.title | var title: String { get }
+TUIEnvironmentVariable.audience | let audience: TUIEnvironmentVariable.Audience
+TUIEnvironmentVariable.codeSetting | let codeSetting: TUIEnvironmentVariable.CodeSetting
+TUIEnvironmentVariable.effect | let effect: String
+TUIEnvironmentVariable.id | var id: String { get }
+TUIEnvironmentVariable.name | let name: String
+TUIEnvironmentVariable.reading | let reading: TUIEnvironmentVariable.Reading
+TUIEnvironmentVariable.topic | let topic: TUIEnvironmentVariable.Topic
+TUIEnvironmentVariable.values | let values: String
+TUIEnvironmentVariables | enum TUIEnvironmentVariables
+TUIEnvironmentVariables.all | static let all: [TUIEnvironmentVariable]
+TUIEnvironmentVariables.manPageSection(format:audience:includesHeading:) | static func manPageSection(format: ManPageFormat = .man, audience: TUIEnvironmentVariable.Audience = .endUser, includesHeading: Bool = true) -> String
+TUIEnvironmentVariables.markdownSection(audience:headingLevel:) | static func markdownSection(audience: TUIEnvironmentVariable.Audience = .endUser, headingLevel: Int = 3) -> String
+TUIEnvironmentVariables.variables(for:) | static func variables(for audience: TUIEnvironmentVariable.Audience) -> [TUIEnvironmentVariable]

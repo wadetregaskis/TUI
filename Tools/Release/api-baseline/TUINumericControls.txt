@@ -1,0 +1,257 @@
+# TUINumericControls public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+AccessoryCircularCapacityGaugeStyle | struct AccessoryCircularCapacityGaugeStyle
+AccessoryCircularCapacityGaugeStyle.init() | init()
+AccessoryCircularCapacityGaugeStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: AccessoryCircularCapacityGaugeStyle.Configuration) -> some View
+AccessoryCircularGaugeStyle | struct AccessoryCircularGaugeStyle
+AccessoryCircularGaugeStyle.init() | init()
+AccessoryCircularGaugeStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: AccessoryCircularGaugeStyle.Configuration) -> some View
+AccessoryCircularTinyGaugeStyle | struct AccessoryCircularTinyGaugeStyle
+AccessoryCircularTinyGaugeStyle.init() | init()
+AccessoryCircularTinyGaugeStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: AccessoryCircularTinyGaugeStyle.Configuration) -> some View
+AccessoryLinearCapacityGaugeStyle | struct AccessoryLinearCapacityGaugeStyle
+AccessoryLinearCapacityGaugeStyle.init() | init()
+AccessoryLinearCapacityGaugeStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: AccessoryLinearCapacityGaugeStyle.Configuration) -> some View
+AccessoryLinearGaugeStyle | struct AccessoryLinearGaugeStyle
+AccessoryLinearGaugeStyle.init() | init()
+AccessoryLinearGaugeStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: AccessoryLinearGaugeStyle.Configuration) -> some View
+CircularProgressViewStyle | struct CircularProgressViewStyle
+CircularProgressViewStyle.init() | init()
+CircularProgressViewStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: CircularProgressViewStyle.Configuration) -> some View
+DefaultDateProgressLabel | nonisolated struct DefaultDateProgressLabel
+DefaultDateProgressLabel.body | @MainActor var body: some View { get }
+DefaultGaugeStyle | struct DefaultGaugeStyle
+DefaultGaugeStyle.init() | init()
+DefaultGaugeStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: DefaultGaugeStyle.Configuration) -> some View
+DefaultProgressViewStyle | struct DefaultProgressViewStyle
+DefaultProgressViewStyle.init() | init()
+DefaultProgressViewStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: DefaultProgressViewStyle.Configuration) -> some View
+EnvironmentValues.gaugeStyle | var gaugeStyle: any GaugeStyle { get set }
+EnvironmentValues.indeterminateStyle | var indeterminateStyle: IndeterminateStyle { get set }
+EnvironmentValues.sliderShowsValue | var sliderShowsValue: Bool { get set }
+EnvironmentValues.stepperValueWidth | var stepperValueWidth: Int? { get set }
+EnvironmentValues.trackBackgroundGradientScaling | var trackBackgroundGradientScaling: TrackGradientScaling { get set }
+EnvironmentValues.trackFillGradientScaling | var trackFillGradientScaling: TrackGradientScaling { get set }
+Gauge | nonisolated struct Gauge<Label, CurrentValueLabel, BoundsLabel, MarkedValueLabels> where Label : View, CurrentValueLabel : View, BoundsLabel : View, MarkedValueLabels : View
+Gauge.body | @MainActor var body: some View { get }
+Gauge.init(_:value:in:) | init<S, V>(_ title: S, value: V, in bounds: ClosedRange<V> = 0...1) where S : StringProtocol, V : BinaryFloatingPoint [extension where Label == Text, CurrentValueLabel == EmptyView, BoundsLabel == EmptyView, MarkedValueLabels == EmptyView]
+Gauge.init(_:value:in:) | init<V>(_ titleKey: LocalizedStringKey, value: V, in bounds: ClosedRange<V> = 0...1) where V : BinaryFloatingPoint [extension where Label == Text, CurrentValueLabel == EmptyView, BoundsLabel == EmptyView, MarkedValueLabels == EmptyView]
+Gauge.init(value:in:label:) | init<V>(value: V, in bounds: ClosedRange<V> = 0...1, @ViewBuilder label: () -> Label) where V : BinaryFloatingPoint [extension where Label : View, CurrentValueLabel == EmptyView, BoundsLabel == EmptyView, MarkedValueLabels == EmptyView]
+Gauge.init(value:in:label:currentValueLabel:) | init<V>(value: V, in bounds: ClosedRange<V> = 0...1, @ViewBuilder label: () -> Label, @ViewBuilder currentValueLabel: () -> CurrentValueLabel) where V : BinaryFloatingPoint [extension where Label : View, CurrentValueLabel : View, BoundsLabel == EmptyView, MarkedValueLabels == EmptyView]
+Gauge.init(value:in:label:currentValueLabel:markedValueLabels:) | init<V>(value: V, in bounds: ClosedRange<V> = 0...1, @ViewBuilder label: () -> Label, @ViewBuilder currentValueLabel: () -> CurrentValueLabel, @ViewBuilder markedValueLabels: () -> MarkedValueLabels) where V : BinaryFloatingPoint [extension where Label : View, CurrentValueLabel : View, BoundsLabel == EmptyView, MarkedValueLabels : View]
+Gauge.init(value:in:label:currentValueLabel:minimumValueLabel:maximumValueLabel:) | init<V>(value: V, in bounds: ClosedRange<V> = 0...1, @ViewBuilder label: () -> Label, @ViewBuilder currentValueLabel: () -> CurrentValueLabel, @ViewBuilder minimumValueLabel: () -> BoundsLabel, @ViewBuilder maximumValueLabel: () -> BoundsLabel) where V : BinaryFloatingPoint [extension where Label : View, CurrentValueLabel : View, BoundsLabel : View, MarkedValueLabels == EmptyView]
+Gauge.init(value:in:label:currentValueLabel:minimumValueLabel:maximumValueLabel:markedValueLabels:) | init<V>(value: V, in bounds: ClosedRange<V> = 0...1, @ViewBuilder label: () -> Label, @ViewBuilder currentValueLabel: () -> CurrentValueLabel, @ViewBuilder minimumValueLabel: () -> BoundsLabel, @ViewBuilder maximumValueLabel: () -> BoundsLabel, @ViewBuilder markedValueLabels: () -> MarkedValueLabels) where V : BinaryFloatingPoint [extension where Label : View, CurrentValueLabel : View, BoundsLabel : View, MarkedValueLabels : View]
+GaugeStyle.accessoryCircular | static var accessoryCircular: AccessoryCircularGaugeStyle { get } [extension where Self == AccessoryCircularGaugeStyle]
+GaugeStyle.accessoryCircularCapacity | static var accessoryCircularCapacity: AccessoryCircularCapacityGaugeStyle { get } [extension where Self == AccessoryCircularCapacityGaugeStyle]
+GaugeStyle.accessoryCircularTiny | static var accessoryCircularTiny: AccessoryCircularTinyGaugeStyle { get } [extension where Self == AccessoryCircularTinyGaugeStyle]
+GaugeStyle.accessoryLinear | static var accessoryLinear: AccessoryLinearGaugeStyle { get } [extension where Self == AccessoryLinearGaugeStyle]
+GaugeStyle.accessoryLinearCapacity | static var accessoryLinearCapacity: AccessoryLinearCapacityGaugeStyle { get } [extension where Self == AccessoryLinearCapacityGaugeStyle]
+GaugeStyle.automatic | static var automatic: DefaultGaugeStyle { get } [extension where Self == DefaultGaugeStyle]
+GaugeStyle.linearCapacity | static var linearCapacity: LinearCapacityGaugeStyle { get } [extension where Self == LinearCapacityGaugeStyle]
+IndeterminateConfiguration | struct IndeterminateConfiguration
+IndeterminateConfiguration.Motion | enum Motion
+IndeterminateConfiguration.Motion.barberPole | case barberPole
+IndeterminateConfiguration.Motion.gradient | case gradient
+IndeterminateConfiguration.Motion.init(rawValue:) | init?(rawValue: String)
+IndeterminateConfiguration.Motion.knightRider | case knightRider
+IndeterminateConfiguration.Motion.pulse | case pulse
+IndeterminateConfiguration.Motion.sweep | case sweep
+IndeterminateConfiguration.background | var background: String
+IndeterminateConfiguration.barberPole | static let barberPole: IndeterminateConfiguration
+IndeterminateConfiguration.extent | var extent: Double
+IndeterminateConfiguration.fill | var fill: String
+IndeterminateConfiguration.gradient | var gradient: Gradient?
+IndeterminateConfiguration.gradient(_:) | static func gradient(_ gradient: Gradient? = nil) -> IndeterminateConfiguration
+IndeterminateConfiguration.init(motion:fill:background:gradient:period:extent:) | init(motion: IndeterminateConfiguration.Motion, fill: String = "█", background: String = "░", gradient: Gradient? = nil, period: Double = 1.6, extent: Double = 1.0 / 3.0)
+IndeterminateConfiguration.knightRider | static let knightRider: IndeterminateConfiguration
+IndeterminateConfiguration.motion | var motion: IndeterminateConfiguration.Motion
+IndeterminateConfiguration.period | var period: Double
+IndeterminateConfiguration.pulse | static let pulse: IndeterminateConfiguration
+IndeterminateConfiguration.sweep | static let sweep: IndeterminateConfiguration
+IndeterminateStyle | enum IndeterminateStyle
+IndeterminateStyle.barberPole | case barberPole
+IndeterminateStyle.configuration | var configuration: IndeterminateConfiguration { get }
+IndeterminateStyle.custom(_:) | case custom(IndeterminateConfiguration)
+IndeterminateStyle.gradient(_:) | case gradient(_: Gradient? = nil)
+IndeterminateStyle.knightRider | case knightRider
+IndeterminateStyle.pulse | case pulse
+IndeterminateStyle.sweep | case sweep
+LinearCapacityGaugeStyle | struct LinearCapacityGaugeStyle
+LinearCapacityGaugeStyle.init() | init()
+LinearCapacityGaugeStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: LinearCapacityGaugeStyle.Configuration) -> some View
+LinearProgressViewStyle | struct LinearProgressViewStyle
+LinearProgressViewStyle.init() | init()
+LinearProgressViewStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: LinearProgressViewStyle.Configuration) -> some View
+Optional.Body | typealias Body = [SliderTick<Wrapped.Value>] [extension where Wrapped : SliderTickContent]
+Optional.TicksCollection | typealias TicksCollection = [SliderTick<Wrapped.Value>] [extension where Wrapped : SliderTickContent]
+Optional.Value | typealias Value = Wrapped.Value [extension where Wrapped : SliderTickContent]
+Optional.body | var body: [SliderTick<Wrapped.Value>] { get } [extension where Wrapped : SliderTickContent]
+ProgressView | nonisolated struct ProgressView<Label, CurrentValueLabel> where Label : View, CurrentValueLabel : View
+ProgressView.==(_:_:) | static func == (lhs: ProgressView<Label, CurrentValueLabel>, rhs: ProgressView<Label, CurrentValueLabel>) -> Bool [extension where Label : Equatable, Label : View, CurrentValueLabel : Equatable, CurrentValueLabel : View]
+ProgressView.body | @ViewBuilder @MainActor var body: some View { get }
+ProgressView.init() | init() [extension where Label == EmptyView, CurrentValueLabel == EmptyView]
+ProgressView.init(_:) | init(_ configuration: ProgressViewStyleConfiguration) [extension where Label == ProgressViewStyleConfiguration.Label, CurrentValueLabel == ProgressViewStyleConfiguration.CurrentValueLabel]
+ProgressView.init(_:) | init(_ titleKey: LocalizedStringKey) [extension where Label == Text, CurrentValueLabel == EmptyView]
+ProgressView.init(_:) | init<S>(_ title: S) where S : StringProtocol [extension where Label == Text, CurrentValueLabel == EmptyView]
+ProgressView.init(_:value:total:) | init<S, V>(_ title: S, value: V?, total: V = 1.0) where S : StringProtocol, V : BinaryFloatingPoint [extension where Label == Text, CurrentValueLabel == EmptyView]
+ProgressView.init(_:value:total:) | init<V>(_ titleKey: LocalizedStringKey, value: V?, total: V = 1.0) where V : BinaryFloatingPoint [extension where Label == Text, CurrentValueLabel == EmptyView]
+ProgressView.init(label:) | init(@ViewBuilder label: () -> Label) [extension where Label : View, CurrentValueLabel == EmptyView]
+ProgressView.init(timerInterval:countsDown:) | init(timerInterval: ClosedRange<Date>, countsDown: Bool = true) [extension where Label == EmptyView, CurrentValueLabel == DefaultDateProgressLabel]
+ProgressView.init(timerInterval:countsDown:label:) | init(timerInterval: ClosedRange<Date>, countsDown: Bool = true, @ViewBuilder label: () -> Label) [extension where Label : View, CurrentValueLabel == DefaultDateProgressLabel]
+ProgressView.init(timerInterval:countsDown:label:currentValueLabel:) | init(timerInterval: ClosedRange<Date>, countsDown: Bool = true, @ViewBuilder label: () -> Label, @ViewBuilder currentValueLabel: () -> CurrentValueLabel) [extension where Label : View, CurrentValueLabel : View]
+ProgressView.init(value:total:) | init<V>(value: V?, total: V = 1.0) where V : BinaryFloatingPoint [extension where Label == EmptyView, CurrentValueLabel == EmptyView]
+ProgressView.init(value:total:label:) | init<V>(value: V?, total: V = 1.0, @ViewBuilder label: () -> Label) where V : BinaryFloatingPoint [extension where Label : View, CurrentValueLabel == EmptyView]
+ProgressView.init(value:total:label:currentValueLabel:) | init<V>(value: V?, total: V = 1.0, @ViewBuilder label: () -> Label, @ViewBuilder currentValueLabel: () -> CurrentValueLabel) where V : BinaryFloatingPoint [extension where Label : View, CurrentValueLabel : View]
+ProgressView.trackStyle(_:) | func trackStyle(_ style: TrackStyle) -> ProgressView<Label, CurrentValueLabel> [extension where Label : View, CurrentValueLabel : View]
+ProgressViewStyle | protocol ProgressViewStyle : Sendable
+ProgressViewStyle.Body | associatedtype Body : View
+ProgressViewStyle.Configuration | typealias Configuration = ProgressViewStyleConfiguration
+ProgressViewStyle.automatic | static var automatic: DefaultProgressViewStyle { get } [extension where Self == DefaultProgressViewStyle]
+ProgressViewStyle.circular | static var circular: CircularProgressViewStyle { get } [extension where Self == CircularProgressViewStyle]
+ProgressViewStyle.linear | static var linear: LinearProgressViewStyle { get } [extension where Self == LinearProgressViewStyle]
+ProgressViewStyle.makeBody(configuration:) | @MainActor @ViewBuilder func makeBody(configuration: Self.Configuration) -> Self.Body
+ProgressViewStyleConfiguration | struct ProgressViewStyleConfiguration
+ProgressViewStyleConfiguration.CurrentValueLabel | nonisolated struct CurrentValueLabel
+ProgressViewStyleConfiguration.CurrentValueLabel.body | @MainActor var body: some View { get }
+ProgressViewStyleConfiguration.Label | nonisolated struct Label
+ProgressViewStyleConfiguration.Label.body | @MainActor var body: some View { get }
+ProgressViewStyleConfiguration.currentValueLabel | var currentValueLabel: ProgressViewStyleConfiguration.CurrentValueLabel?
+ProgressViewStyleConfiguration.fractionCompleted | let fractionCompleted: Double?
+ProgressViewStyleConfiguration.label | var label: ProgressViewStyleConfiguration.Label?
+SegmentColoring | enum SegmentColoring
+SegmentColoring.automatic | case automatic
+SegmentColoring.gradient(_:) | case gradient(Gradient)
+SegmentColoring.perSegment(leading:middle:trailing:) | case perSegment(leading: Color, middle: Color, trailing: Color)
+SegmentColoring.solid(_:) | case solid(Color)
+Slider | nonisolated struct Slider<Label, ValueLabel> where Label : View, ValueLabel : View
+Slider.body | @MainActor var body: some View { get }
+Slider.disabled(_:) | func disabled(_ disabled: Bool = true) -> Slider<Label, ValueLabel> [extension where Label : View, ValueLabel : View]
+Slider.focusID(_:) | func focusID(_ id: String) -> Slider<Label, ValueLabel> [extension where Label : View, ValueLabel : View]
+Slider.init(_:value:in:step:onEditingChanged:) | init<S, V>(_ title: S, value: Binding<V>, in bounds: ClosedRange<V> = 0...1, step: V.Stride = 0.01, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where S : StringProtocol, V : BinaryFloatingPoint, V.Stride : BinaryFloatingPoint [extension where Label == Text, ValueLabel == EmptyView]
+Slider.init(_:value:in:step:onEditingChanged:) | init<V>(_ titleKey: LocalizedStringKey, value: Binding<V>, in bounds: ClosedRange<V> = 0...1, step: V.Stride = 0.01, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V : BinaryFloatingPoint, V.Stride : BinaryFloatingPoint [extension where Label == Text, ValueLabel == EmptyView]
+Slider.init(value:in:label:minimumValueLabel:maximumValueLabel:onEditingChanged:) | init<V>(value: Binding<V>, in bounds: ClosedRange<V> = 0...1, @ViewBuilder label: () -> Label, @ViewBuilder minimumValueLabel: () -> ValueLabel, @ViewBuilder maximumValueLabel: () -> ValueLabel, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V : BinaryFloatingPoint, V.Stride : BinaryFloatingPoint [extension where Label : View, ValueLabel : View]
+Slider.init(value:in:neutralValue:enabledBounds:label:currentValueLabel:minimumValueLabel:maximumValueLabel:onEditingChanged:) | nonisolated init<V>(value: Binding<V>, in bounds: ClosedRange<V> = 0...1, neutralValue: V? = nil, enabledBounds: ClosedRange<V>? = nil, @ViewBuilder label: () -> Label, @ViewBuilder currentValueLabel: () -> some View = { EmptyView() }, @ViewBuilder minimumValueLabel: () -> ValueLabel, @ViewBuilder maximumValueLabel: () -> ValueLabel, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V : BinaryFloatingPoint, V.Stride : BinaryFloatingPoint [extension where Label : View, ValueLabel : View]
+Slider.init(value:in:neutralValue:enabledBounds:label:currentValueLabel:minimumValueLabel:maximumValueLabel:ticks:onEditingChanged:) | nonisolated init<V>(value: Binding<V>, in bounds: ClosedRange<V> = 0...1, neutralValue: V? = nil, enabledBounds: ClosedRange<V>? = nil, @ViewBuilder label: () -> Label, @ViewBuilder currentValueLabel: () -> some View = { EmptyView() }, @ViewBuilder minimumValueLabel: () -> ValueLabel, @ViewBuilder maximumValueLabel: () -> ValueLabel, @SliderTickBuilder<V> ticks: () -> some SliderTickContent, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V.Stride : BinaryFloatingPoint [extension where Label : View, ValueLabel : View]
+Slider.init(value:in:neutralValue:enabledBounds:label:currentValueLabel:onEditingChanged:) | init<V>(value: Binding<V>, in bounds: ClosedRange<V> = 0...1, neutralValue: V? = nil, enabledBounds: ClosedRange<V>? = nil, @ViewBuilder label: () -> Label, @ViewBuilder currentValueLabel: () -> some View = { EmptyView() }, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V : BinaryFloatingPoint, V.Stride : BinaryFloatingPoint [extension where Label : View, ValueLabel == EmptyView]
+Slider.init(value:in:neutralValue:enabledBounds:label:currentValueLabel:ticks:onEditingChanged:) | init<V>(value: Binding<V>, in bounds: ClosedRange<V> = 0...1, neutralValue: V? = nil, enabledBounds: ClosedRange<V>? = nil, @ViewBuilder label: () -> Label, @ViewBuilder currentValueLabel: () -> some View = { EmptyView() }, @SliderTickBuilder<V> ticks: () -> some SliderTickContent, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V.Stride : BinaryFloatingPoint [extension where Label : View, ValueLabel == EmptyView]
+Slider.init(value:in:step:label:minimumValueLabel:maximumValueLabel:onEditingChanged:) | init<V>(value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, @ViewBuilder label: () -> Label, @ViewBuilder minimumValueLabel: () -> ValueLabel, @ViewBuilder maximumValueLabel: () -> ValueLabel, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V : BinaryFloatingPoint, V.Stride : BinaryFloatingPoint [extension where Label : View, ValueLabel : View]
+Slider.init(value:in:step:label:onEditingChanged:) | init<V>(value: Binding<V>, in bounds: ClosedRange<V> = 0...1, step: V.Stride = 0.01, @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V : BinaryFloatingPoint, V.Stride : BinaryFloatingPoint [extension where Label : View, ValueLabel == EmptyView]
+Slider.init(value:in:step:neutralValue:enabledBounds:label:currentValueLabel:minimumValueLabel:maximumValueLabel:tick:onEditingChanged:) | nonisolated init<V>(value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, neutralValue: V? = nil, enabledBounds: ClosedRange<V>? = nil, @ViewBuilder label: () -> Label, @ViewBuilder currentValueLabel: () -> some View = { EmptyView() }, @ViewBuilder minimumValueLabel: () -> ValueLabel, @ViewBuilder maximumValueLabel: () -> ValueLabel, tick: (V) -> SliderTick<V>? = { _ in nil }, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V : BinaryFloatingPoint, V.Stride : BinaryFloatingPoint [extension where Label : View, ValueLabel : View]
+Slider.init(value:in:step:neutralValue:enabledBounds:label:currentValueLabel:tick:onEditingChanged:) | init<V>(value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, neutralValue: V? = nil, enabledBounds: ClosedRange<V>? = nil, @ViewBuilder label: () -> Label, @ViewBuilder currentValueLabel: () -> some View = { EmptyView() }, tick: (V) -> SliderTick<V>? = { _ in nil }, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V : BinaryFloatingPoint, V.Stride : BinaryFloatingPoint [extension where Label : View, ValueLabel == EmptyView]
+Slider.init(value:in:step:onEditingChanged:) | init<V>(value: Binding<V>, in bounds: ClosedRange<V> = 0...1, step: V.Stride = 0.01, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V : BinaryFloatingPoint, V.Stride : BinaryFloatingPoint [extension where Label == EmptyView, ValueLabel == EmptyView]
+Slider.trackStyle(_:) | func trackStyle(_ style: TrackStyle) -> Slider<Label, ValueLabel> [extension where Label : View, ValueLabel : View]
+SliderTick | struct SliderTick<V> where V : BinaryFloatingPoint
+SliderTick.<(_:_:) | static func < (lhs: SliderTick<V>, rhs: SliderTick<V>) -> Bool [extension where V : BinaryFloatingPoint]
+SliderTick.==(_:_:) | static func == (lhs: SliderTick<V>, rhs: SliderTick<V>) -> Bool [extension where V : BinaryFloatingPoint]
+SliderTick.Body | typealias Body = [SliderTick<V>] [extension where V : BinaryFloatingPoint]
+SliderTick.ID | typealias ID = V
+SliderTick.Value | typealias Value = V
+SliderTick.body | var body: [SliderTick<V>] { get } [extension where V : BinaryFloatingPoint]
+SliderTick.id | var id: V { get }
+SliderTick.init(_:) | init(_ value: V)
+SliderTick.init(_:_:) | @MainActor init(_ titleKey: LocalizedStringKey, _ value: V)
+SliderTick.init(_:_:) | @MainActor init<S>(_ title: S, _ value: V) where S : StringProtocol
+SliderTick.init(_:label:) | @MainActor init(_ value: V, @ViewBuilder label: () -> some View)
+SliderTickBuilder | @resultBuilder struct SliderTickBuilder<V> where V : BinaryFloatingPoint
+SliderTickBuilder.buildBlock() | static func buildBlock() -> TupleSliderTickContent<V, ()>
+SliderTickBuilder.buildBlock(_:) | static func buildBlock<C0>(_ c0: C0) -> TupleSliderTickContent<V, C0> where V == C0.Value, C0 : SliderTickContent
+SliderTickBuilder.buildBlock(_:_:) | static func buildBlock<C0, C1>(_ c0: C0, _ c1: C1) -> TupleSliderTickContent<V, (C0, C1)> where V == C0.Value, C0 : SliderTickContent, C1 : SliderTickContent, C0.Value == C1.Value
+SliderTickBuilder.buildBlock(_:_:_:) | static func buildBlock<C0, C1, C2>(_ c0: C0, _ c1: C1, _ c2: C2) -> TupleSliderTickContent<V, (C0, C1, C2)> where V == C0.Value, C0 : SliderTickContent, C1 : SliderTickContent, C2 : SliderTickContent, C0.Value == C1.Value, C1.Value == C2.Value
+SliderTickBuilder.buildBlock(_:_:_:_:) | static func buildBlock<C0, C1, C2, C3>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3) -> TupleSliderTickContent<V, (C0, C1, C2, C3)> where V == C0.Value, C0 : SliderTickContent, C1 : SliderTickContent, C2 : SliderTickContent, C3 : SliderTickContent, C0.Value == C1.Value, C1.Value == C2.Value, C2.Value == C3.Value
+SliderTickBuilder.buildBlock(_:_:_:_:_:) | static func buildBlock<C0, C1, C2, C3, C4>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4) -> TupleSliderTickContent<V, (C0, C1, C2, C3, C4)> where V == C0.Value, C0 : SliderTickContent, C1 : SliderTickContent, C2 : SliderTickContent, C3 : SliderTickContent, C4 : SliderTickContent, C0.Value == C1.Value, C1.Value == C2.Value, C2.Value == C3.Value, C3.Value == C4.Value
+SliderTickBuilder.buildBlock(_:_:_:_:_:_:) | static func buildBlock<C0, C1, C2, C3, C4, C5>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5) -> TupleSliderTickContent<V, (C0, C1, C2, C3, C4, C5)> where V == C0.Value, C0 : SliderTickContent, C1 : SliderTickContent, C2 : SliderTickContent, C3 : SliderTickContent, C4 : SliderTickContent, C5 : SliderTickContent, C0.Value == C1.Value, C1.Value == C2.Value, C2.Value == C3.Value, C3.Value == C4.Value, C4.Value == C5.Value
+SliderTickBuilder.buildBlock(_:_:_:_:_:_:_:) | static func buildBlock<C0, C1, C2, C3, C4, C5, C6>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6) -> TupleSliderTickContent<V, (C0, C1, C2, C3, C4, C5, C6)> where V == C0.Value, C0 : SliderTickContent, C1 : SliderTickContent, C2 : SliderTickContent, C3 : SliderTickContent, C4 : SliderTickContent, C5 : SliderTickContent, C6 : SliderTickContent, C0.Value == C1.Value, C1.Value == C2.Value, C2.Value == C3.Value, C3.Value == C4.Value, C4.Value == C5.Value, C5.Value == C6.Value
+SliderTickBuilder.buildBlock(_:_:_:_:_:_:_:_:) | static func buildBlock<C0, C1, C2, C3, C4, C5, C6, C7>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6, _ c7: C7) -> TupleSliderTickContent<V, (C0, C1, C2, C3, C4, C5, C6, C7)> where V == C0.Value, C0 : SliderTickContent, C1 : SliderTickContent, C2 : SliderTickContent, C3 : SliderTickContent, C4 : SliderTickContent, C5 : SliderTickContent, C6 : SliderTickContent, C7 : SliderTickContent, C0.Value == C1.Value, C1.Value == C2.Value, C2.Value == C3.Value, C3.Value == C4.Value, C4.Value == C5.Value, C5.Value == C6.Value, C6.Value == C7.Value
+SliderTickBuilder.buildBlock(_:_:_:_:_:_:_:_:_:) | static func buildBlock<C0, C1, C2, C3, C4, C5, C6, C7, C8>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6, _ c7: C7, _ c8: C8) -> TupleSliderTickContent<V, (C0, C1, C2, C3, C4, C5, C6, C7, C8)> where V == C0.Value, C0 : SliderTickContent, C1 : SliderTickContent, C2 : SliderTickContent, C3 : SliderTickContent, C4 : SliderTickContent, C5 : SliderTickContent, C6 : SliderTickContent, C7 : SliderTickContent, C8 : SliderTickContent, C0.Value == C1.Value, C1.Value == C2.Value, C2.Value == C3.Value, C3.Value == C4.Value, C4.Value == C5.Value, C5.Value == C6.Value, C6.Value == C7.Value, C7.Value == C8.Value
+SliderTickBuilder.buildBlock(_:_:_:_:_:_:_:_:_:_:) | static func buildBlock<C0, C1, C2, C3, C4, C5, C6, C7, C8, C9>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6, _ c7: C7, _ c8: C8, _ c9: C9) -> TupleSliderTickContent<V, (C0, C1, C2, C3, C4, C5, C6, C7, C8, C9)> where V == C0.Value, C0 : SliderTickContent, C1 : SliderTickContent, C2 : SliderTickContent, C3 : SliderTickContent, C4 : SliderTickContent, C5 : SliderTickContent, C6 : SliderTickContent, C7 : SliderTickContent, C8 : SliderTickContent, C9 : SliderTickContent, C0.Value == C1.Value, C1.Value == C2.Value, C2.Value == C3.Value, C3.Value == C4.Value, C4.Value == C5.Value, C5.Value == C6.Value, C6.Value == C7.Value, C7.Value == C8.Value, C8.Value == C9.Value
+SliderTickBuilder.buildEither(first:) | static func buildEither<T, F>(first: T) -> _ConditionalSliderTickContent<T, F> where V == T.Value, T : SliderTickContent, F : SliderTickContent, T.Value == F.Value
+SliderTickBuilder.buildEither(second:) | static func buildEither<T, F>(second: F) -> _ConditionalSliderTickContent<T, F> where V == T.Value, T : SliderTickContent, F : SliderTickContent, T.Value == F.Value
+SliderTickBuilder.buildExpression(_:) | static func buildExpression<C>(_ content: C) -> C where V == C.Value, C : SliderTickContent
+SliderTickBuilder.buildIf(_:) | static func buildIf<C>(_ content: C?) -> C? where V == C.Value, C : SliderTickContent
+SliderTickContent | protocol SliderTickContent<Value>
+SliderTickContent.Body | associatedtype Body : RandomAccessCollection where Self.Body.Element == SliderTick<Self.Value>
+SliderTickContent.Value | associatedtype Value : BinaryFloatingPoint
+SliderTickContent.body | var body: Self.Body { get }
+SliderTickContentForEach | struct SliderTickContentForEach<Data, ID, Content> where Data : RandomAccessCollection, ID : Hashable, Content : SliderTickContent
+SliderTickContentForEach.Body | typealias Body = [SliderTick<Content.Value>]
+SliderTickContentForEach.Value | typealias Value = Content.Value
+SliderTickContentForEach.body | let body: [SliderTick<Content.Value>]
+SliderTickContentForEach.init(_:content:) | init<V>(_ data: Data, @SliderTickBuilder<V> content: @escaping (Data.Element) -> Content) where ID == V.ID, V : Identifiable, V == Data.Element, Data.Element == Content.Value
+SliderTickContentForEach.init(_:content:) | init<V>(_ data: Range<Int>, @SliderTickBuilder<V> content: @escaping (Range<Int>.Element) -> Content) where Data == Range<Int>, ID == Int, V == Content.Value
+SliderTickContentForEach.init(_:id:content:) | init<V>(_ data: Data, id: KeyPath<Data.Element, ID>, @SliderTickBuilder<V> content: @escaping (Data.Element) -> Content) where V == Data.Element, Data.Element == Content.Value
+Stepper | nonisolated struct Stepper<Label> where Label : View
+Stepper.body | @MainActor var body: some View { get }
+Stepper.disabled(_:) | func disabled(_ disabled: Bool = true) -> Stepper<Label> [extension where Label : View]
+Stepper.focusID(_:) | func focusID(_ id: String) -> Stepper<Label> [extension where Label : View]
+Stepper.init(_:onIncrement:onDecrement:onEditingChanged:) | init(_ titleKey: LocalizedStringKey, onIncrement: (() -> Void)?, onDecrement: (() -> Void)?, onEditingChanged: @escaping (Bool) -> Void = { _ in }) [extension where Label == Text]
+Stepper.init(_:onIncrement:onDecrement:onEditingChanged:) | init<S>(_ title: S, onIncrement: (() -> Void)?, onDecrement: (() -> Void)?, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where S : StringProtocol [extension where Label == Text]
+Stepper.init(_:value:in:step:format:onEditingChanged:) | init<F>(_ titleKey: LocalizedStringKey, value: Binding<F.FormatInput>, in bounds: ClosedRange<F.FormatInput>, step: F.FormatInput.Stride = 1, format: F, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where F : ParseableFormatStyle, F.FormatInput : BinaryFloatingPoint, F.FormatOutput == String [extension where Label == Text]
+Stepper.init(_:value:in:step:format:onEditingChanged:) | init<S, F>(_ title: S, value: Binding<F.FormatInput>, in bounds: ClosedRange<F.FormatInput>, step: F.FormatInput.Stride = 1, format: F, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where S : StringProtocol, F : ParseableFormatStyle, F.FormatInput : BinaryFloatingPoint, F.FormatOutput == String [extension where Label == Text]
+Stepper.init(_:value:in:step:onEditingChanged:) | init<S, V>(_ title: S, value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where S : StringProtocol, V : Strideable [extension where Label == Text]
+Stepper.init(_:value:in:step:onEditingChanged:) | init<V>(_ titleKey: LocalizedStringKey, value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V : Strideable [extension where Label == Text]
+Stepper.init(_:value:step:format:onEditingChanged:) | init<F>(_ titleKey: LocalizedStringKey, value: Binding<F.FormatInput>, step: F.FormatInput.Stride = 1, format: F, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where F : ParseableFormatStyle, F.FormatInput : BinaryFloatingPoint, F.FormatOutput == String [extension where Label == Text]
+Stepper.init(_:value:step:format:onEditingChanged:) | init<S, F>(_ title: S, value: Binding<F.FormatInput>, step: F.FormatInput.Stride = 1, format: F, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where S : StringProtocol, F : ParseableFormatStyle, F.FormatInput : BinaryFloatingPoint, F.FormatOutput == String [extension where Label == Text]
+Stepper.init(_:value:step:onEditingChanged:) | init<S, V>(_ title: S, value: Binding<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where S : StringProtocol, V : Strideable [extension where Label == Text]
+Stepper.init(_:value:step:onEditingChanged:) | init<V>(_ titleKey: LocalizedStringKey, value: Binding<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V : Strideable [extension where Label == Text]
+Stepper.init(label:onIncrement:onDecrement:onEditingChanged:) | init(@ViewBuilder label: () -> Label, onIncrement: (() -> Void)?, onDecrement: (() -> Void)?, onEditingChanged: @escaping (Bool) -> Void = { _ in }) [extension where Label : View]
+Stepper.init(value:in:step:format:label:onEditingChanged:) | init<F>(value: Binding<F.FormatInput>, in bounds: ClosedRange<F.FormatInput>, step: F.FormatInput.Stride = 1, format: F, @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where F : ParseableFormatStyle, F.FormatInput : BinaryFloatingPoint, F.FormatOutput == String [extension where Label : View]
+Stepper.init(value:in:step:label:onEditingChanged:) | init<V>(value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V : Strideable [extension where Label : View]
+Stepper.init(value:step:format:label:onEditingChanged:) | init<F>(value: Binding<F.FormatInput>, step: F.FormatInput.Stride = 1, format: F, @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where F : ParseableFormatStyle, F.FormatInput : BinaryFloatingPoint, F.FormatOutput == String [extension where Label : View]
+Stepper.init(value:step:label:onEditingChanged:) | init<V>(value: Binding<V>, step: V.Stride = 1, @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V : Strideable [extension where Label : View]
+Stepper.stepperValueText(_:) | func stepperValueText(_ text: String) -> Stepper<Label> [extension where Label : View]
+TrackConfiguration | struct TrackConfiguration
+TrackConfiguration.Background | enum Background
+TrackConfiguration.Background.glyph(_:) | static func glyph(_ glyph: Character) -> TrackConfiguration.Background
+TrackConfiguration.Background.pattern(_:) | case pattern(String)
+TrackConfiguration.Background.solid | case solid
+TrackConfiguration.background | var background: TrackConfiguration.Background
+TrackConfiguration.backgroundColor | var backgroundColor: Color?
+TrackConfiguration.backgroundGradient | var backgroundGradient: Gradient?
+TrackConfiguration.bar | static let bar: TrackConfiguration
+TrackConfiguration.block | static let block: TrackConfiguration
+TrackConfiguration.blockFine | static let blockFine: TrackConfiguration
+TrackConfiguration.braille | static let braille: TrackConfiguration
+TrackConfiguration.fill | var fill: String
+TrackConfiguration.fillGradient | var fillGradient: Gradient?
+TrackConfiguration.init(fill:leadingEdge:background:fillGradient:backgroundColor:backgroundGradient:) | init(fill: String, leadingEdge: [Character]? = nil, background: TrackConfiguration.Background, fillGradient: Gradient? = nil, backgroundColor: Color? = nil, backgroundGradient: Gradient? = nil)
+TrackConfiguration.init(fullGlyph:leadingEdge:background:fillGradient:backgroundColor:backgroundGradient:) | init(fullGlyph: Character, leadingEdge: [Character]? = nil, background: TrackConfiguration.Background, fillGradient: Gradient? = nil, backgroundColor: Color? = nil, backgroundGradient: Gradient? = nil)
+TrackConfiguration.leadingEdge | var leadingEdge: [Character]?
+TrackConfiguration.shade | static let shade: TrackConfiguration
+TrackConfiguration.shadeRamp(gradient:) | static func shadeRamp(gradient: Gradient? = nil) -> TrackConfiguration
+TrackGradientScaling | enum TrackGradientScaling
+TrackGradientScaling.region | case region
+TrackGradientScaling.track | case track
+TrackStyle | enum TrackStyle
+TrackStyle.bar | case bar
+TrackStyle.block | case block
+TrackStyle.blockFine | case blockFine
+TrackStyle.braille | case braille
+TrackStyle.custom(_:) | case custom(TrackConfiguration)
+TrackStyle.dot | case dot
+TrackStyle.knob | case knob
+TrackStyle.marker | case marker
+TrackStyle.shade | case shade
+TrackStyle.shadeRamp(gradient:) | case shadeRamp(gradient: Gradient? = nil)
+TrackStyle.threeSegment(leading:middle:trailing:backgroundPattern:coloring:) | case threeSegment(leading: String, middle: String, trailing: String, backgroundPattern: String = " ", coloring: SegmentColoring = .automatic)
+TupleSliderTickContent | @frozen struct TupleSliderTickContent<V, T> where V : BinaryFloatingPoint
+TupleSliderTickContent.Body | typealias Body = [SliderTick<V>]
+TupleSliderTickContent.TicksCollection | typealias TicksCollection = [SliderTick<V>]
+TupleSliderTickContent.Value | typealias Value = V
+TupleSliderTickContent.body | let body: [SliderTick<V>]
+TupleSliderTickContent.value | var value: T
+View.gaugeStyle(_:) | nonisolated func gaugeStyle<S>(_ style: S) -> some View where S : GaugeStyle
+View.indeterminateStyle(_:) | nonisolated func indeterminateStyle(_ style: IndeterminateStyle) -> some View
+View.progressViewStyle(_:) | nonisolated func progressViewStyle<S>(_ style: S) -> some View where S : ProgressViewStyle
+View.sliderShowsValue(_:) | nonisolated func sliderShowsValue(_ shows: Bool) -> some View
+View.sliderTextStyle(_:) | nonisolated func sliderTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View
+View.sliderThumbVisibility(_:) | nonisolated func sliderThumbVisibility(_ visibility: Visibility) -> some View
+View.stepperTextStyle(_:) | nonisolated func stepperTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View
+View.stepperValueWidth(_:) | nonisolated func stepperValueWidth(_ width: Int?) -> some View
+View.trackGradientScaling(_:) | nonisolated func trackGradientScaling(_ scaling: TrackGradientScaling) -> some View
+View.trackGradientScaling(fill:background:) | nonisolated func trackGradientScaling(fill: TrackGradientScaling, background: TrackGradientScaling) -> some View
+_ConditionalSliderTickContent | enum _ConditionalSliderTickContent<TrueContent, FalseContent> where TrueContent : SliderTickContent, FalseContent : SliderTickContent, TrueContent.Value == FalseContent.Value
+_ConditionalSliderTickContent.Body | typealias Body = [SliderTick<TrueContent.Value>]
+_ConditionalSliderTickContent.Value | typealias Value = TrueContent.Value
+_ConditionalSliderTickContent.body | var body: [SliderTick<TrueContent.Value>] { get }
+_ConditionalSliderTickContent.falseContent(_:) | case falseContent(FalseContent)
+_ConditionalSliderTickContent.trueContent(_:) | case trueContent(TrueContent)

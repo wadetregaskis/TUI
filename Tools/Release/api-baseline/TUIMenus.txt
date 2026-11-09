@@ -1,0 +1,77 @@
+# TUIMenus public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+AutomaticControlGroupStyle | struct AutomaticControlGroupStyle
+AutomaticControlGroupStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: AutomaticControlGroupStyle.Configuration) -> some View
+ButtonMenuStyle | struct ButtonMenuStyle
+ButtonMenuStyle.init() | init()
+ButtonMenuStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: ButtonMenuStyle.Configuration) -> some View
+CompactMenuControlGroupStyle | struct CompactMenuControlGroupStyle
+CompactMenuControlGroupStyle.init() | init()
+CompactMenuControlGroupStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: CompactMenuControlGroupStyle.Configuration) -> some View
+ControlGroup | nonisolated struct ControlGroup<Content> where Content : View
+ControlGroup.body | @MainActor var body: some View { get }
+ControlGroup.init(_:) | nonisolated init(_ configuration: ControlGroupStyleConfiguration) [extension where Content == _StyledContent]
+ControlGroup.init(_:content:) | init<C, S>(_ title: S, @ViewBuilder content: () -> C) where Content == LabeledControlGroupContent<C, Text>, C : View, S : StringProtocol [extension where Content : View]
+ControlGroup.init(_:content:) | init<C>(_ titleKey: LocalizedStringKey, @ViewBuilder content: () -> C) where Content == LabeledControlGroupContent<C, Text>, C : View [extension where Content : View]
+ControlGroup.init(_:systemImage:content:) | init<C, S>(_ title: S, systemImage: String, @ViewBuilder content: () -> C) where Content == LabeledControlGroupContent<C, Label<Text, _SymbolIcon>>, C : View, S : StringProtocol [extension where Content : View]
+ControlGroup.init(_:systemImage:content:) | init<C>(_ titleKey: LocalizedStringKey, systemImage: String, @ViewBuilder content: () -> C) where Content == LabeledControlGroupContent<C, Label<Text, _SymbolIcon>>, C : View [extension where Content : View]
+ControlGroup.init(content:) | init(@ViewBuilder content: () -> Content)
+ControlGroup.init(content:label:) | init<C, L>(@ViewBuilder content: () -> C, @ViewBuilder label: () -> L) where Content == LabeledControlGroupContent<C, L>, C : View, L : View [extension where Content : View]
+ControlGroupStyle | protocol ControlGroupStyle : Sendable
+ControlGroupStyle.Body | associatedtype Body : View
+ControlGroupStyle.Configuration | typealias Configuration = ControlGroupStyleConfiguration
+ControlGroupStyle.automatic | static var automatic: AutomaticControlGroupStyle { get } [extension where Self == AutomaticControlGroupStyle]
+ControlGroupStyle.compactMenu | static var compactMenu: CompactMenuControlGroupStyle { get } [extension where Self == CompactMenuControlGroupStyle]
+ControlGroupStyle.makeBody(configuration:) | @MainActor @ViewBuilder func makeBody(configuration: Self.Configuration) -> Self.Body
+ControlGroupStyle.menu | static var menu: MenuControlGroupStyle { get } [extension where Self == MenuControlGroupStyle]
+ControlGroupStyle.navigation | static var navigation: NavigationControlGroupStyle { get } [extension where Self == NavigationControlGroupStyle]
+ControlGroupStyle.palette | static var palette: PaletteControlGroupStyle { get } [extension where Self == PaletteControlGroupStyle]
+ControlGroupStyleConfiguration | struct ControlGroupStyleConfiguration
+ControlGroupStyleConfiguration.Content | typealias Content = _StyledContent
+ControlGroupStyleConfiguration.Label | typealias Label = AnyView
+ControlGroupStyleConfiguration.content | let content: ControlGroupStyleConfiguration.Content
+ControlGroupStyleConfiguration.label | let label: ControlGroupStyleConfiguration.Label
+DefaultMenuStyle | struct DefaultMenuStyle
+DefaultMenuStyle.init() | init()
+DefaultMenuStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: DefaultMenuStyle.Configuration) -> some View
+EnvironmentValues.menuIndicatorVisibility | var menuIndicatorVisibility: Visibility { get set }
+EnvironmentValues.menuOrder | var menuOrder: MenuOrder { get set }
+EnvironmentValues.menuStyle | var menuStyle: any MenuStyle { get set }
+InlineMenuStyle | struct InlineMenuStyle
+InlineMenuStyle.init() | init()
+InlineMenuStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: InlineMenuStyle.Configuration) -> some View
+LabeledControlGroupContent | nonisolated struct LabeledControlGroupContent<Content, Label> where Content : View, Label : View
+LabeledControlGroupContent.body | @MainActor var body: some View { get }
+Menu | nonisolated struct Menu<Label, Content> where Label : View, Content : View
+Menu.body | @MainActor var body: some View { get }
+Menu.init(_:) | init(_ configuration: MenuStyleConfiguration) [extension where Label == MenuStyleConfiguration.Label, Content == MenuStyleConfiguration.Content]
+Menu.init(_:content:) | init(_ titleKey: LocalizedStringKey, @ViewBuilder content: () -> Content) [extension where Label == Text, Content : View]
+Menu.init(_:content:) | init<S>(_ title: S, @ViewBuilder content: () -> Content) where S : StringProtocol [extension where Label == Text, Content : View]
+Menu.init(_:content:primaryAction:) | init(_ titleKey: LocalizedStringKey, @ViewBuilder content: () -> Content, primaryAction: @escaping () -> Void) [extension where Label == Text, Content : View]
+Menu.init(_:content:primaryAction:) | init<S>(_ title: S, @ViewBuilder content: () -> Content, primaryAction: @escaping () -> Void) where S : StringProtocol [extension where Label == Text, Content : View]
+Menu.init(_:systemImage:content:) | init(_ titleKey: LocalizedStringKey, systemImage: String, @ViewBuilder content: () -> Content) [extension where Label == Label<Text, _SymbolIcon>, Content : View]
+Menu.init(_:systemImage:content:) | init<S>(_ title: S, systemImage: String, @ViewBuilder content: () -> Content) where S : StringProtocol [extension where Label == Label<Text, _SymbolIcon>, Content : View]
+Menu.init(_:systemImage:content:primaryAction:) | init(_ titleKey: LocalizedStringKey, systemImage: String, @ViewBuilder content: () -> Content, primaryAction: @escaping () -> Void) [extension where Label == Label<Text, _SymbolIcon>, Content : View]
+Menu.init(content:label:) | init(@ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label)
+Menu.init(content:label:primaryAction:) | init(@ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label, primaryAction: @escaping () -> Void) [extension where Label : View, Content : View]
+MenuControlGroupStyle | struct MenuControlGroupStyle
+MenuControlGroupStyle.init() | init()
+MenuControlGroupStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: MenuControlGroupStyle.Configuration) -> some View
+MenuOrder | struct MenuOrder
+MenuOrder.automatic | static let automatic: MenuOrder
+MenuOrder.fixed | static let fixed: MenuOrder
+MenuStyle.automatic | static var automatic: DefaultMenuStyle { get } [extension where Self == DefaultMenuStyle]
+MenuStyle.button | static var button: ButtonMenuStyle { get } [extension where Self == ButtonMenuStyle]
+MenuStyle.inline | static var inline: InlineMenuStyle { get } [extension where Self == InlineMenuStyle]
+NavigationControlGroupStyle | struct NavigationControlGroupStyle
+NavigationControlGroupStyle.init() | init()
+NavigationControlGroupStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: NavigationControlGroupStyle.Configuration) -> some View
+PaletteControlGroupStyle | struct PaletteControlGroupStyle
+PaletteControlGroupStyle.init() | init()
+PaletteControlGroupStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: PaletteControlGroupStyle.Configuration) -> some View
+View.contextMenu(menuItems:) | nonisolated func contextMenu<MenuItems>(@ViewBuilder menuItems: () -> MenuItems) -> some View where MenuItems : View
+View.contextMenu(menuItems:preview:) | nonisolated func contextMenu<MenuItems, Preview>(@ViewBuilder menuItems: () -> MenuItems, @ViewBuilder preview: () -> Preview) -> some View where MenuItems : View, Preview : View
+View.controlGroupStyle(_:) | nonisolated func controlGroupStyle<S>(_ style: S) -> some View where S : ControlGroupStyle
+View.menuIndicator(_:) | nonisolated func menuIndicator(_ visibility: Visibility) -> some View
+View.menuOrder(_:) | nonisolated func menuOrder(_ order: MenuOrder) -> some View
+View.menuStyle(_:) | nonisolated func menuStyle<S>(_ style: S) -> some View where S : MenuStyle

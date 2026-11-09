@@ -1,0 +1,25 @@
+# TUIScenes public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+AlertScene | @MainActor struct AlertScene<Actions, Message> where Actions : View, Message : View
+AlertScene.body | @MainActor var body: Never { get }
+AlertScene.init(_:isPresented:actions:) | @MainActor init(_ title: Text, isPresented: Binding<Bool>, @ViewBuilder actions: () -> Actions) [extension where Actions : View, Message == EmptyView]
+AlertScene.init(_:isPresented:actions:) | @MainActor init(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, @ViewBuilder actions: () -> Actions) [extension where Actions : View, Message == EmptyView]
+AlertScene.init(_:isPresented:actions:) | @MainActor init<S>(_ title: S, isPresented: Binding<Bool>, @ViewBuilder actions: () -> Actions) where S : StringProtocol [extension where Actions : View, Message == EmptyView]
+AlertScene.init(_:isPresented:actions:message:) | @MainActor init(_ title: Text, isPresented: Binding<Bool>, @ViewBuilder actions: () -> Actions, @ViewBuilder message: () -> Message) [extension where Actions : View, Message : View]
+AlertScene.init(_:isPresented:actions:message:) | @MainActor init(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, @ViewBuilder actions: () -> Actions, @ViewBuilder message: () -> Message) [extension where Actions : View, Message : View]
+AlertScene.init(_:isPresented:actions:message:) | @MainActor init<S>(_ title: S, isPresented: Binding<Bool>, @ViewBuilder actions: () -> Actions, @ViewBuilder message: () -> Message) where S : StringProtocol [extension where Actions : View, Message : View]
+AlertScene.init(_:isPresented:presenting:actions:) | @MainActor init<S, T>(_ title: S, isPresented: Binding<Bool>, presenting data: T?, @ViewBuilder actions: (T) -> Actions) where S : StringProtocol [extension where Actions : View, Message == EmptyView]
+AlertScene.init(_:isPresented:presenting:actions:) | @MainActor init<T>(_ title: Text, isPresented: Binding<Bool>, presenting data: T?, @ViewBuilder actions: (T) -> Actions) [extension where Actions : View, Message == EmptyView]
+AlertScene.init(_:isPresented:presenting:actions:) | @MainActor init<T>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, presenting data: T?, @ViewBuilder actions: (T) -> Actions) [extension where Actions : View, Message == EmptyView]
+AlertScene.init(_:isPresented:presenting:actions:message:) | @MainActor init<S, T>(_ title: S, isPresented: Binding<Bool>, presenting data: T?, @ViewBuilder actions: (T) -> Actions, @ViewBuilder message: (T) -> Message) where S : StringProtocol [extension where Actions : View, Message : View]
+AlertScene.init(_:isPresented:presenting:actions:message:) | @MainActor init<T>(_ title: Text, isPresented: Binding<Bool>, presenting data: T?, @ViewBuilder actions: (T) -> Actions, @ViewBuilder message: (T) -> Message) [extension where Actions : View, Message : View]
+AlertScene.init(_:isPresented:presenting:actions:message:) | @MainActor init<T>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, presenting data: T?, @ViewBuilder actions: (T) -> Actions, @ViewBuilder message: (T) -> Message) [extension where Actions : View, Message : View]
+Scene.dialogIcon(_:) | @MainActor func dialogIcon(_ icon: Image?) -> some Scene
+Scene.dialogSeverity(_:) | @MainActor func dialogSeverity(_ severity: DialogSeverity) -> some Scene
+Scene.dialogSuppressionToggle(_:isSuppressed:) | @MainActor func dialogSuppressionToggle(_ label: Text, isSuppressed: Binding<Bool>) -> some Scene
+Scene.dialogSuppressionToggle(_:isSuppressed:) | @MainActor func dialogSuppressionToggle(_ titleKey: LocalizedStringKey, isSuppressed: Binding<Bool>) -> some Scene
+Scene.dialogSuppressionToggle(_:isSuppressed:) | @MainActor func dialogSuppressionToggle<S>(_ title: S, isSuppressed: Binding<Bool>) -> some Scene where S : StringProtocol
+Scene.dialogSuppressionToggle(isSuppressed:) | @MainActor func dialogSuppressionToggle(isSuppressed: Binding<Bool>) -> some Scene
+Settings | @MainActor struct Settings<Content> where Content : View
+Settings.body | @MainActor var body: Never { get }
+Settings.init(content:) | @MainActor init(@ViewBuilder content: () -> Content)

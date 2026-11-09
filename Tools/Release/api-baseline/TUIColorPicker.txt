@@ -1,0 +1,33 @@
+# TUIColorPicker public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+ColorPicker | struct ColorPicker
+ColorPicker.body | @MainActor @ViewBuilder var body: some View { get }
+ColorPicker.init(_:selection:supportsOpacity:step:) | init(_ titleKey: LocalizedStringKey, selection: Binding<Color>, supportsOpacity: Bool = true, step: Double = 5)
+ColorPicker.init(_:selection:supportsOpacity:step:) | init<S>(_ title: S, selection: Binding<Color>, supportsOpacity: Bool = true, step: Double = 5) where S : StringProtocol
+ColorPicker.init(selection:supportsOpacity:label:) | init<Label>(selection: Binding<Color>, supportsOpacity: Bool = true, @ViewBuilder label: () -> Label) where Label : View
+ColorPickerPanel | struct ColorPickerPanel
+ColorPickerPanel.Mode | enum Mode
+ColorPickerPanel.Mode.cmyk | case cmyk
+ColorPickerPanel.Mode.crayons | case crayons
+ColorPickerPanel.Mode.greyscale | case greyscale
+ColorPickerPanel.Mode.hsb | case hsb
+ColorPickerPanel.Mode.hsl | case hsl
+ColorPickerPanel.Mode.init(rawValue:) | init?(rawValue: String)
+ColorPickerPanel.Mode.named | case named
+ColorPickerPanel.Mode.palette256 | case palette256
+ColorPickerPanel.Mode.rgb | case rgb
+ColorPickerPanel.Mode.semantic | case semantic
+ColorPickerPanel.Mode.webSafe | case webSafe
+ColorPickerPanel.body | @MainActor @ViewBuilder var body: some View { get }
+ColorPickerPanel.init(_:selection:supportsOpacity:isPresented:) | init(_ titleKey: LocalizedStringKey, selection: Binding<Color>, supportsOpacity: Bool = true, isPresented: Binding<Bool>)
+ColorPickerPanel.init(_:selection:supportsOpacity:isPresented:) | init<S>(_ title: S, selection: Binding<Color>, supportsOpacity: Bool = true, isPresented: Binding<Bool>) where S : StringProtocol
+ColorPickerPanel.init(selection:supportsOpacity:isPresented:) | init(selection: Binding<Color>, supportsOpacity: Bool = true, isPresented: Binding<Bool>)
+EnvironmentValues.colorPickerChannels | var colorPickerChannels: Visibility { get set }
+EnvironmentValues.colorPickerLabelWidth | var colorPickerLabelWidth: Int { get set }
+GradientEditorPanel | struct GradientEditorPanel
+GradientEditorPanel.body | @MainActor @ViewBuilder var body: some View { get }
+GradientEditorPanel.init(_:gradient:isPresented:) | init(_ titleKey: LocalizedStringKey, gradient: Binding<Gradient>, isPresented: Binding<Bool>)
+GradientEditorPanel.init(_:gradient:isPresented:) | init<S>(_ title: S, gradient: Binding<Gradient>, isPresented: Binding<Bool>) where S : StringProtocol
+GradientEditorPanel.init(gradient:isPresented:) | init(gradient: Binding<Gradient>, isPresented: Binding<Bool>)
+View.colorPickerChannels(_:) | nonisolated func colorPickerChannels(_ visibility: Visibility) -> some View
+View.colorPickerLabelWidth(_:) | nonisolated func colorPickerLabelWidth(_ width: Int) -> some View

@@ -1,0 +1,108 @@
+# TUINavigation public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+AutomaticNavigationTransition | struct AutomaticNavigationTransition
+AutomaticNavigationTransition.automatic | static var automatic: AutomaticNavigationTransition { get }
+BalancedNavigationSplitViewStyle | struct BalancedNavigationSplitViewStyle
+BalancedNavigationSplitViewStyle.init() | init()
+BalancedNavigationSplitViewStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: BalancedNavigationSplitViewStyle.Configuration) -> some View
+BalancedNavigationSplitViewStyle.sidebarProportion | var sidebarProportion: Double { get }
+BalancedNavigationSplitViewStyle.threeColumnProportions | var threeColumnProportions: (sidebar: Double, content: Double, detail: Double) { get }
+EmptyMatchedTransitionSourceConfiguration | struct EmptyMatchedTransitionSourceConfiguration
+EmptyMatchedTransitionSourceConfiguration._update(configuration:) | func _update(configuration: inout _ResolvedMatchedTransitionSourceConfiguration)
+EnvironmentValues.navigationLinkIndicatorVisibility | var navigationLinkIndicatorVisibility: Visibility { get set }
+EnvironmentValues.navigationSplitViewResizable | var navigationSplitViewResizable: Bool { get set }
+HSplitView | nonisolated struct HSplitView<Content> where Content : View
+HSplitView.body | @MainActor var body: some View { get }
+HSplitView.init(content:) | init(@ViewBuilder content: () -> Content)
+MatchedTransitionSourceConfiguration | protocol MatchedTransitionSourceConfiguration : Sendable
+MatchedTransitionSourceConfiguration._update(configuration:) | func _update(configuration: inout _ResolvedMatchedTransitionSourceConfiguration)
+MatchedTransitionSourceConfiguration.background(_:) | func background(_ style: Color) -> some MatchedTransitionSourceConfiguration
+MatchedTransitionSourceConfiguration.clipShape(_:) | func clipShape(_ shape: RoundedRectangle) -> some MatchedTransitionSourceConfiguration
+MatchedTransitionSourceConfiguration.shadow(color:radius:x:y:) | func shadow(color: Color = Color(.sRGBLinear, white: 0, opacity: 0.33), radius: Int, x: Int = 0, y: Int = 0) -> some MatchedTransitionSourceConfiguration
+NavigationLink | nonisolated struct NavigationLink<Label, Destination> where Label : View, Destination : View
+NavigationLink._providesContainerValues | @MainActor static var _providesContainerValues: Bool { get }
+NavigationLink.body | @MainActor var body: some View { get }
+NavigationLink.init(_:destination:) | init(_ titleKey: LocalizedStringKey, @ViewBuilder destination: () -> Destination) where Label == Text [extension where Label : View, Destination : View]
+NavigationLink.init(_:destination:) | init<S>(_ title: S, @ViewBuilder destination: () -> Destination) where Label == Text, S : StringProtocol [extension where Label : View, Destination : View]
+NavigationLink.init(_:value:) | init<P>(_ titleKey: LocalizedStringKey, value: P?) where Label == Text, P : Hashable [extension where Label : View, Destination == Never]
+NavigationLink.init(_:value:) | init<S, P>(_ title: S, value: P?) where Label == Text, S : StringProtocol, P : Hashable [extension where Label : View, Destination == Never]
+NavigationLink.init(destination:label:) | init(@ViewBuilder destination: () -> Destination, @ViewBuilder label: () -> Label) [extension where Label : View, Destination : View]
+NavigationLink.init(value:label:) | init<P>(value: P?, @ViewBuilder label: () -> Label) where P : Hashable [extension where Label : View, Destination == Never]
+NavigationPath | struct NavigationPath
+NavigationPath.CodableRepresentation | struct CodableRepresentation
+NavigationPath.CodableRepresentation.encode(to:) | func encode(to encoder: any Encoder) throws
+NavigationPath.CodableRepresentation.init(from:) | init(from decoder: any Decoder) throws
+NavigationPath.append(_:) | mutating func append<V>(_ value: V) where V : Hashable
+NavigationPath.codable | var codable: NavigationPath.CodableRepresentation? { get }
+NavigationPath.count | var count: Int { get }
+NavigationPath.init() | init()
+NavigationPath.init(_:) | init(_ codable: NavigationPath.CodableRepresentation)
+NavigationPath.init(_:) | init<S>(_ elements: S) where S : Sequence, S.Element : Hashable
+NavigationPath.isEmpty | var isEmpty: Bool { get }
+NavigationPath.removeLast(_:) | mutating func removeLast(_ k: Int = 1)
+NavigationSplitView | nonisolated struct NavigationSplitView<Sidebar, Content, Detail> where Sidebar : View, Content : View, Detail : View
+NavigationSplitView.==(_:_:) | static func == (lhs: NavigationSplitView<Sidebar, Content, Detail>, rhs: NavigationSplitView<Sidebar, Content, Detail>) -> Bool [extension where Sidebar : Equatable, Sidebar : View, Content : Equatable, Content : View, Detail : Equatable, Detail : View]
+NavigationSplitView.body | @MainActor var body: some View { get }
+NavigationSplitView.init(columnVisibility:preferredCompactColumn:sidebar:content:detail:) | init(columnVisibility: Binding<NavigationSplitViewVisibility>, preferredCompactColumn: Binding<NavigationSplitViewColumn>, @ViewBuilder sidebar: () -> Sidebar, @ViewBuilder content: () -> Content, @ViewBuilder detail: () -> Detail) [extension where Sidebar : View, Content : View, Detail : View]
+NavigationSplitView.init(columnVisibility:preferredCompactColumn:sidebar:detail:) | init(columnVisibility: Binding<NavigationSplitViewVisibility>, preferredCompactColumn: Binding<NavigationSplitViewColumn>, @ViewBuilder sidebar: () -> Sidebar, @ViewBuilder detail: () -> Detail) [extension where Sidebar : View, Content == EmptyView, Detail : View]
+NavigationSplitView.init(columnVisibility:sidebar:content:detail:) | init(columnVisibility: Binding<NavigationSplitViewVisibility>, @ViewBuilder sidebar: () -> Sidebar, @ViewBuilder content: () -> Content, @ViewBuilder detail: () -> Detail) [extension where Sidebar : View, Content : View, Detail : View]
+NavigationSplitView.init(columnVisibility:sidebar:detail:) | init(columnVisibility: Binding<NavigationSplitViewVisibility>, @ViewBuilder sidebar: () -> Sidebar, @ViewBuilder detail: () -> Detail) [extension where Sidebar : View, Content == EmptyView, Detail : View]
+NavigationSplitView.init(preferredCompactColumn:sidebar:content:detail:) | init(preferredCompactColumn: Binding<NavigationSplitViewColumn>, @ViewBuilder sidebar: () -> Sidebar, @ViewBuilder content: () -> Content, @ViewBuilder detail: () -> Detail) [extension where Sidebar : View, Content : View, Detail : View]
+NavigationSplitView.init(preferredCompactColumn:sidebar:detail:) | init(preferredCompactColumn: Binding<NavigationSplitViewColumn>, @ViewBuilder sidebar: () -> Sidebar, @ViewBuilder detail: () -> Detail) [extension where Sidebar : View, Content == EmptyView, Detail : View]
+NavigationSplitView.init(sidebar:content:detail:) | init(@ViewBuilder sidebar: () -> Sidebar, @ViewBuilder content: () -> Content, @ViewBuilder detail: () -> Detail) [extension where Sidebar : View, Content : View, Detail : View]
+NavigationSplitView.init(sidebar:detail:) | init(@ViewBuilder sidebar: () -> Sidebar, @ViewBuilder detail: () -> Detail) [extension where Sidebar : View, Content == EmptyView, Detail : View]
+NavigationSplitViewColumn | struct NavigationSplitViewColumn
+NavigationSplitViewColumn.content | static var content: NavigationSplitViewColumn { get }
+NavigationSplitViewColumn.detail | static var detail: NavigationSplitViewColumn { get }
+NavigationSplitViewColumn.sidebar | static var sidebar: NavigationSplitViewColumn { get }
+NavigationSplitViewStyle.automatic | static var automatic: AutomaticNavigationSplitViewStyle { get } [extension where Self == AutomaticNavigationSplitViewStyle]
+NavigationSplitViewStyle.balanced | static var balanced: BalancedNavigationSplitViewStyle { get } [extension where Self == BalancedNavigationSplitViewStyle]
+NavigationSplitViewStyle.prominentDetail | static var prominentDetail: ProminentDetailNavigationSplitViewStyle { get } [extension where Self == ProminentDetailNavigationSplitViewStyle]
+NavigationSplitViewStyle.sizeToFitFromLeft | static var sizeToFitFromLeft: SizeToFitFromLeftNavigationSplitViewStyle { get } [extension where Self == SizeToFitFromLeftNavigationSplitViewStyle]
+NavigationSplitViewVisibility | struct NavigationSplitViewVisibility
+NavigationSplitViewVisibility.all | static var all: NavigationSplitViewVisibility { get }
+NavigationSplitViewVisibility.automatic | static var automatic: NavigationSplitViewVisibility { get }
+NavigationSplitViewVisibility.detailOnly | static var detailOnly: NavigationSplitViewVisibility { get }
+NavigationSplitViewVisibility.doubleColumn | static var doubleColumn: NavigationSplitViewVisibility { get }
+NavigationSplitViewVisibility.init(from:) | init(from decoder: any Decoder) throws
+NavigationStack | struct NavigationStack<Root> where Root : View
+NavigationStack.body | @MainActor var body: some View { get }
+NavigationStack.init(path:root:) | init(path: Binding<NavigationPath>, @ViewBuilder root: () -> Root)
+NavigationStack.init(path:root:) | init<Data>(path: Binding<Data>, @ViewBuilder root: () -> Root) where Data : MutableCollection, Data : RandomAccessCollection, Data : RangeReplaceableCollection, Data.Element : Hashable
+NavigationStack.init(root:) | init(@ViewBuilder root: () -> Root)
+NavigationTransition | protocol NavigationTransition
+NavigationTransition.automatic | static var automatic: AutomaticNavigationTransition { get } [extension where Self == AutomaticNavigationTransition]
+NavigationTransition.zoom(sourceID:in:) | static func zoom(sourceID: some Hashable, in namespace: Namespace.ID) -> ZoomNavigationTransition [extension where Self == ZoomNavigationTransition]
+ProminentDetailNavigationSplitViewStyle | struct ProminentDetailNavigationSplitViewStyle
+ProminentDetailNavigationSplitViewStyle.init() | init()
+ProminentDetailNavigationSplitViewStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: ProminentDetailNavigationSplitViewStyle.Configuration) -> some View
+ProminentDetailNavigationSplitViewStyle.sidebarProportion | var sidebarProportion: Double { get }
+ProminentDetailNavigationSplitViewStyle.threeColumnProportions | var threeColumnProportions: (sidebar: Double, content: Double, detail: Double) { get }
+SizeToFitFromLeftNavigationSplitViewStyle | struct SizeToFitFromLeftNavigationSplitViewStyle
+SizeToFitFromLeftNavigationSplitViewStyle.init() | init()
+SizeToFitFromLeftNavigationSplitViewStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: SizeToFitFromLeftNavigationSplitViewStyle.Configuration) -> some View
+SizeToFitFromLeftNavigationSplitViewStyle.sidebarProportion | var sidebarProportion: Double { get }
+SizeToFitFromLeftNavigationSplitViewStyle.sizesToFit | var sizesToFit: Bool { get }
+SizeToFitFromLeftNavigationSplitViewStyle.threeColumnProportions | var threeColumnProportions: (sidebar: Double, content: Double, detail: Double) { get }
+VSplitView | nonisolated struct VSplitView<Content> where Content : View
+VSplitView.body | @MainActor var body: some View { get }
+VSplitView.init(content:) | init(@ViewBuilder content: () -> Content)
+View.inspector(isPresented:content:) | nonisolated func inspector<V>(isPresented: Binding<Bool>, @ViewBuilder content: () -> V) -> some View where V : View
+View.inspectorColumnWidth(_:) | nonisolated func inspectorColumnWidth(_ width: Int) -> some View
+View.inspectorColumnWidth(min:ideal:max:) | nonisolated func inspectorColumnWidth(min: Int? = nil, ideal: Int, max: Int? = nil) -> some View
+View.matchedTransitionSource(id:in:) | nonisolated func matchedTransitionSource(id: some Hashable, in namespace: Namespace.ID) -> some View
+View.matchedTransitionSource(id:in:configuration:) | nonisolated func matchedTransitionSource(id: some Hashable, in namespace: Namespace.ID, configuration: (EmptyMatchedTransitionSourceConfiguration) -> some MatchedTransitionSourceConfiguration) -> some View
+View.navigationDestination(for:destination:) | nonisolated func navigationDestination<D, C>(for data: D.Type, @ViewBuilder destination: @escaping (D) -> C) -> some View where D : Hashable, C : View
+View.navigationDestination(isPresented:destination:) | nonisolated func navigationDestination<Destination>(isPresented: Binding<Bool>, @ViewBuilder destination: @escaping () -> Destination) -> some View where Destination : View
+View.navigationDestination(item:destination:) | nonisolated func navigationDestination<D, C>(item: Binding<D?>, @ViewBuilder destination: @escaping (D) -> C) -> some View where D : Hashable, C : View
+View.navigationLinkIndicatorVisibility(_:) | nonisolated func navigationLinkIndicatorVisibility(_ visibility: Visibility) -> some View
+View.navigationSplitViewColumnWidth(_:) | nonisolated func navigationSplitViewColumnWidth(_ width: Int) -> some View
+View.navigationSplitViewColumnWidth(min:ideal:max:) | nonisolated func navigationSplitViewColumnWidth(min: Int? = nil, ideal: Int? = nil, max: Int? = nil) -> some View
+View.navigationSplitViewColumnWidthReset(_:) | nonisolated func navigationSplitViewColumnWidthReset(_ token: some Hashable) -> some View
+View.navigationSplitViewResizable(_:) | nonisolated func navigationSplitViewResizable(_ resizable: Bool = true) -> some View
+View.navigationSplitViewStyle(_:) | nonisolated func navigationSplitViewStyle<S>(_ style: S) -> some View where S : NavigationSplitViewStyle
+View.navigationTransition(_:) | nonisolated func navigationTransition(_ style: some NavigationTransition) -> some View
+View.splitViewDividerGrip(_:) | nonisolated func splitViewDividerGrip(_ visibility: Visibility) -> some View
+View.toolbar(removing:) | nonisolated func toolbar(removing defaultItemKind: ToolbarDefaultItemKind?) -> some View
+ZoomNavigationTransition | struct ZoomNavigationTransition
+_ResolvedMatchedTransitionSourceConfiguration | struct _ResolvedMatchedTransitionSourceConfiguration

@@ -1,0 +1,80 @@
+# TUICommands public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+CommandGroup | @MainActor struct CommandGroup<Content> where Content : View
+CommandGroup.body | @MainActor var body: Never { get }
+CommandGroup.init(after:addition:) | @MainActor init(after group: CommandGroupPlacement, @ViewBuilder addition: () -> Content)
+CommandGroup.init(before:addition:) | @MainActor init(before group: CommandGroupPlacement, @ViewBuilder addition: () -> Content)
+CommandGroup.init(replacing:addition:) | @MainActor init(replacing group: CommandGroupPlacement, @ViewBuilder addition: () -> Content)
+CommandGroupPlacement | struct CommandGroupPlacement
+CommandGroupPlacement.accessibility | static let accessibility: CommandGroupPlacement
+CommandGroupPlacement.appInfo | static let appInfo: CommandGroupPlacement
+CommandGroupPlacement.appSettings | static let appSettings: CommandGroupPlacement
+CommandGroupPlacement.appTermination | static let appTermination: CommandGroupPlacement
+CommandGroupPlacement.appVisibility | static let appVisibility: CommandGroupPlacement
+CommandGroupPlacement.help | static let help: CommandGroupPlacement
+CommandGroupPlacement.importExport | static let importExport: CommandGroupPlacement
+CommandGroupPlacement.newItem | static let newItem: CommandGroupPlacement
+CommandGroupPlacement.pasteboard | static let pasteboard: CommandGroupPlacement
+CommandGroupPlacement.printItem | static let printItem: CommandGroupPlacement
+CommandGroupPlacement.saveItem | static let saveItem: CommandGroupPlacement
+CommandGroupPlacement.sidebar | static let sidebar: CommandGroupPlacement
+CommandGroupPlacement.singleWindowList | static let singleWindowList: CommandGroupPlacement
+CommandGroupPlacement.systemServices | static let systemServices: CommandGroupPlacement
+CommandGroupPlacement.textEditing | static let textEditing: CommandGroupPlacement
+CommandGroupPlacement.textFormatting | static let textFormatting: CommandGroupPlacement
+CommandGroupPlacement.toolbar | static let toolbar: CommandGroupPlacement
+CommandGroupPlacement.undoRedo | static let undoRedo: CommandGroupPlacement
+CommandGroupPlacement.windowArrangement | static let windowArrangement: CommandGroupPlacement
+CommandGroupPlacement.windowList | static let windowList: CommandGroupPlacement
+CommandGroupPlacement.windowSize | static let windowSize: CommandGroupPlacement
+CommandMenu | @MainActor struct CommandMenu<Content> where Content : View
+CommandMenu.body | @MainActor var body: Never { get }
+CommandMenu.init(_:content:) | @MainActor init(_ name: Text, @ViewBuilder content: () -> Content)
+CommandMenu.init(_:content:) | @MainActor init(_ nameKey: LocalizedStringKey, @ViewBuilder content: () -> Content)
+CommandMenu.init(_:content:) | @MainActor init<S>(_ name: S, @ViewBuilder content: () -> Content) where S : StringProtocol
+Commands | @MainActor @preconcurrency protocol Commands
+Commands.Body | associatedtype Body : Commands
+Commands.body | @CommandsBuilder @MainActor var body: Self.Body { get }
+CommandsBuilder | @MainActor @resultBuilder struct CommandsBuilder
+CommandsBuilder.buildBlock() | @MainActor static func buildBlock() -> EmptyCommands
+CommandsBuilder.buildBlock(_:) | @MainActor static func buildBlock<Content>(_ content: Content) -> Content where Content : Commands
+CommandsBuilder.buildBlock(_:_:) | @MainActor static func buildBlock<C0, C1>(_ c0: C0, _ c1: C1) -> some Commands where C0 : Commands, C1 : Commands
+CommandsBuilder.buildBlock(_:_:_:) | @MainActor static func buildBlock<C0, C1, C2>(_ c0: C0, _ c1: C1, _ c2: C2) -> some Commands where C0 : Commands, C1 : Commands, C2 : Commands
+CommandsBuilder.buildBlock(_:_:_:_:) | @MainActor static func buildBlock<C0, C1, C2, C3>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3) -> some Commands where C0 : Commands, C1 : Commands, C2 : Commands, C3 : Commands
+CommandsBuilder.buildBlock(_:_:_:_:_:) | @MainActor static func buildBlock<C0, C1, C2, C3, C4>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4) -> some Commands where C0 : Commands, C1 : Commands, C2 : Commands, C3 : Commands, C4 : Commands
+CommandsBuilder.buildBlock(_:_:_:_:_:_:) | @MainActor static func buildBlock<C0, C1, C2, C3, C4, C5>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5) -> some Commands where C0 : Commands, C1 : Commands, C2 : Commands, C3 : Commands, C4 : Commands, C5 : Commands
+CommandsBuilder.buildBlock(_:_:_:_:_:_:_:) | @MainActor static func buildBlock<C0, C1, C2, C3, C4, C5, C6>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6) -> some Commands where C0 : Commands, C1 : Commands, C2 : Commands, C3 : Commands, C4 : Commands, C5 : Commands, C6 : Commands
+CommandsBuilder.buildBlock(_:_:_:_:_:_:_:_:) | @MainActor static func buildBlock<C0, C1, C2, C3, C4, C5, C6, C7>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6, _ c7: C7) -> some Commands where C0 : Commands, C1 : Commands, C2 : Commands, C3 : Commands, C4 : Commands, C5 : Commands, C6 : Commands, C7 : Commands
+CommandsBuilder.buildBlock(_:_:_:_:_:_:_:_:_:) | @MainActor static func buildBlock<C0, C1, C2, C3, C4, C5, C6, C7, C8>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6, _ c7: C7, _ c8: C8) -> some Commands where C0 : Commands, C1 : Commands, C2 : Commands, C3 : Commands, C4 : Commands, C5 : Commands, C6 : Commands, C7 : Commands, C8 : Commands
+CommandsBuilder.buildBlock(_:_:_:_:_:_:_:_:_:_:) | @MainActor static func buildBlock<C0, C1, C2, C3, C4, C5, C6, C7, C8, C9>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6, _ c7: C7, _ c8: C8, _ c9: C9) -> some Commands where C0 : Commands, C1 : Commands, C2 : Commands, C3 : Commands, C4 : Commands, C5 : Commands, C6 : Commands, C7 : Commands, C8 : Commands, C9 : Commands
+CommandsBuilder.buildEither(first:) | @MainActor static func buildEither<TrueContent, FalseContent>(first: TrueContent) -> _ConditionalContent<TrueContent, FalseContent> where TrueContent : Commands, FalseContent : Commands
+CommandsBuilder.buildEither(second:) | @MainActor static func buildEither<TrueContent, FalseContent>(second: FalseContent) -> _ConditionalContent<TrueContent, FalseContent> where TrueContent : Commands, FalseContent : Commands
+CommandsBuilder.buildExpression(_:) | @MainActor static func buildExpression<Content>(_ content: Content) -> Content where Content : Commands
+CommandsBuilder.buildIf(_:) | @MainActor static func buildIf<Content>(_ content: Content?) -> Content? where Content : Commands
+CommandsBuilder.buildLimitedAvailability(_:) | @MainActor static func buildLimitedAvailability(_ content: any Commands) -> some Commands
+DisplayCommands | @MainActor struct DisplayCommands
+DisplayCommands.body | @MainActor var body: some Commands { get }
+DisplayCommands.init(palette:appearance:controlStyle:) | @MainActor init(palette: Binding<any Palette>? = nil, appearance: Binding<Appearance>? = nil, controlStyle: Binding<ControlStyle>? = nil)
+EmptyCommands | @MainActor struct EmptyCommands
+EmptyCommands.body | @MainActor var body: Never { get }
+EmptyCommands.init() | @MainActor init()
+Group.body | @MainActor var body: Never { get } [extension where Content : Commands]
+Group.init(content:) | init(@CommandsBuilder content: () -> Content) [extension where Content : Commands]
+InspectorCommands | @MainActor struct InspectorCommands
+InspectorCommands.body | @MainActor var body: some Commands { get }
+InspectorCommands.init() | @MainActor init()
+Optional.body | @MainActor var body: Never { get } [extension where Wrapped : Commands]
+Scene.aboutPanel(applicationName:applicationVersion:version:copyright:credits:) | @MainActor func aboutPanel(applicationName: String? = nil, applicationVersion: String? = nil, version: String? = nil, copyright: String? = nil, credits: String? = nil) -> some Scene
+Scene.commands(content:) | @MainActor func commands<Content>(@CommandsBuilder content: () -> Content) -> some Scene where Content : Commands
+Scene.commandsRemoved() | @MainActor func commandsRemoved() -> some Scene
+Scene.commandsReplaced(content:) | @MainActor func commandsReplaced<Content>(@CommandsBuilder content: () -> Content) -> some Scene where Content : Commands
+SidebarCommands | @MainActor struct SidebarCommands
+SidebarCommands.body | @MainActor var body: some Commands { get }
+SidebarCommands.init() | @MainActor init()
+TextEditingCommands | @MainActor struct TextEditingCommands
+TextEditingCommands.body | @MainActor var body: some Commands { get }
+TextEditingCommands.init() | @MainActor init()
+ToolbarCommands | @MainActor struct ToolbarCommands
+ToolbarCommands.body | @MainActor var body: some Commands { get }
+ToolbarCommands.init() | @MainActor init()
+_ConditionalContent.body | @MainActor var body: Never { get } [extension where TrueContent : Commands, FalseContent : Commands]

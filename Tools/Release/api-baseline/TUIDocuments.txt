@@ -1,0 +1,34 @@
+# TUIDocuments public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+DocumentConfiguration | struct DocumentConfiguration
+DocumentConfiguration.fileURL | let fileURL: URL?
+DocumentConfiguration.isEditable | let isEditable: Bool
+DocumentGroup | struct DocumentGroup<Document, Content> where Content : View
+DocumentGroup.body | @MainActor var body: some Scene { get } [extension where Content : View]
+DocumentGroup.init(newDocument:editor:) | @preconcurrency nonisolated init(newDocument: @autoclosure @escaping () -> Document, @ViewBuilder editor: @escaping (FileDocumentConfiguration<Document>) -> Content) [extension where Document : FileDocument, Content : View]
+DocumentGroup.init(newDocument:editor:) | @preconcurrency nonisolated init(newDocument: @escaping () -> Document, @ViewBuilder editor: @escaping (ReferenceFileDocumentConfiguration<Document>) -> Content) [extension where Document : ReferenceFileDocument, Content : View]
+DocumentGroup.init(viewing:viewer:) | nonisolated init(viewing documentType: Document.Type, @ViewBuilder viewer: @escaping (FileDocumentConfiguration<Document>) -> Content) [extension where Document : FileDocument, Content : View]
+DocumentGroup.init(viewing:viewer:) | nonisolated init(viewing documentType: Document.Type, @ViewBuilder viewer: @escaping (ReferenceFileDocumentConfiguration<Document>) -> Content) [extension where Document : ReferenceFileDocument, Content : View]
+EnvironmentValues.documentConfiguration | var documentConfiguration: DocumentConfiguration? { get set }
+EnvironmentValues.newDocument | var newDocument: NewDocumentAction { get set }
+EnvironmentValues.openDocument | var openDocument: OpenDocumentAction { get set }
+FileDocumentConfiguration | struct FileDocumentConfiguration<Document> where Document : FileDocument
+FileDocumentConfiguration.document | @Binding var document: Document { get nonmutating set }
+FileDocumentConfiguration.fileURL | var fileURL: URL?
+FileDocumentConfiguration.isEditable | var isEditable: Bool
+NewDocumentAction | struct NewDocumentAction
+NewDocumentAction.==(_:_:) | static func == (lhs: NewDocumentAction, rhs: NewDocumentAction) -> Bool
+NewDocumentAction.callAsFunction(_:) | @MainActor @preconcurrency func callAsFunction<D>(_ newDocument: @autoclosure @escaping () -> D) where D : FileDocument
+NewDocumentAction.callAsFunction(_:) | @MainActor @preconcurrency func callAsFunction<D>(_ newDocument: @escaping () -> D) where D : ReferenceFileDocument
+NewDocumentAction.callAsFunction(contentType:) | @MainActor @preconcurrency func callAsFunction(contentType: UTType)
+OpenDocumentAction | struct OpenDocumentAction
+OpenDocumentAction.==(_:_:) | static func == (lhs: OpenDocumentAction, rhs: OpenDocumentAction) -> Bool
+OpenDocumentAction.callAsFunction(at:) | @MainActor func callAsFunction(at url: URL) async throws
+ReferenceFileDocumentConfiguration | @MainActor @preconcurrency struct ReferenceFileDocumentConfiguration<Document> where Document : ReferenceFileDocument
+ReferenceFileDocumentConfiguration.document | @ReferenceFileDocumentObject @MainActor var document: Document { get set }
+ReferenceFileDocumentConfiguration.fileURL | @MainActor var fileURL: URL?
+ReferenceFileDocumentConfiguration.isEditable | @MainActor var isEditable: Bool
+ReferenceFileDocumentObject | @MainActor @propertyWrapper @dynamicMemberLookup struct ReferenceFileDocumentObject<ObjectType> where ObjectType : AnyObject
+ReferenceFileDocumentObject.projectedValue | @MainActor var projectedValue: ReferenceFileDocumentObject<ObjectType> { get }
+ReferenceFileDocumentObject.subscript(dynamicMember:) | @MainActor subscript<Subject>(dynamicMember keyPath: ReferenceWritableKeyPath<ObjectType, Subject>) -> Binding<Subject> { get }
+ReferenceFileDocumentObject.wrappedValue | @MainActor var wrappedValue: ObjectType

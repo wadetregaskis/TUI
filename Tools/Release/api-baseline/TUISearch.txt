@@ -1,0 +1,60 @@
+# TUISearch public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+DismissSearchAction | struct DismissSearchAction
+DismissSearchAction.callAsFunction() | @MainActor func callAsFunction()
+EnvironmentValues.dismissSearch | var dismissSearch: DismissSearchAction { get set }
+EnvironmentValues.isSearching | var isSearching: Bool { get set }
+EnvironmentValues.searchFieldIconPlacement | var searchFieldIconPlacement: SearchFieldIconPlacement { get set }
+SearchFieldIconPlacement | enum SearchFieldIconPlacement
+SearchFieldIconPlacement.leading | case leading
+SearchFieldIconPlacement.trailing | case trailing
+SearchFieldPlacement | struct SearchFieldPlacement
+SearchFieldPlacement.automatic | static let automatic: SearchFieldPlacement
+SearchFieldPlacement.navigationBarDrawer | static let navigationBarDrawer: SearchFieldPlacement
+SearchFieldPlacement.sidebar | static let sidebar: SearchFieldPlacement
+SearchFieldPlacement.toolbar | static let toolbar: SearchFieldPlacement
+SearchFieldPlacement.toolbarPrincipal | static var toolbarPrincipal: SearchFieldPlacement { get }
+SearchPresentationToolbarBehavior | struct SearchPresentationToolbarBehavior
+SearchPresentationToolbarBehavior.automatic | static var automatic: SearchPresentationToolbarBehavior { get }
+SearchPresentationToolbarBehavior.avoidHidingContent | static var avoidHidingContent: SearchPresentationToolbarBehavior { get }
+SearchScopeActivation | struct SearchScopeActivation
+SearchScopeActivation.automatic | static var automatic: SearchScopeActivation { get }
+SearchScopeActivation.onSearchPresentation | static var onSearchPresentation: SearchScopeActivation { get }
+SearchScopeActivation.onTextEntry | static var onTextEntry: SearchScopeActivation { get }
+SearchToolbarBehavior | struct SearchToolbarBehavior
+SearchToolbarBehavior.automatic | static var automatic: SearchToolbarBehavior { get }
+View.searchCompletion(_:) | nonisolated func searchCompletion(_ completion: String) -> some View
+View.searchCompletion(_:) | nonisolated func searchCompletion<T>(_ token: T) -> some View where T : Identifiable
+View.searchFieldIconPlacement(_:) | nonisolated func searchFieldIconPlacement(_ placement: SearchFieldIconPlacement) -> some View
+View.searchFocused(_:) | @MainActor func searchFocused(_ binding: FocusState<Bool>.Binding) -> some View
+View.searchFocused(_:equals:) | @MainActor func searchFocused<V>(_ binding: FocusState<V>.Binding, equals value: V) -> some View where V : Hashable
+View.searchPresentationToolbarBehavior(_:) | nonisolated func searchPresentationToolbarBehavior(_ behavior: SearchPresentationToolbarBehavior) -> some View
+View.searchScopes(_:activation:_:) | nonisolated func searchScopes<V, S>(_ scope: Binding<V>, activation: SearchScopeActivation, @ViewBuilder _ scopes: () -> S) -> some View where V : Hashable, S : View
+View.searchScopes(_:scopes:) | nonisolated func searchScopes<V, S>(_ scope: Binding<V>, @ViewBuilder scopes: () -> S) -> some View where V : Hashable, S : View
+View.searchSelection(_:) | nonisolated func searchSelection(_ selection: Binding<TextSelection?>) -> some View
+View.searchSuggestions(_:) | nonisolated func searchSuggestions<S>(@ViewBuilder _ suggestions: () -> S) -> some View where S : View
+View.searchToolbarBehavior(_:) | nonisolated func searchToolbarBehavior(_ behavior: SearchToolbarBehavior) -> some View
+View.searchable(text:editableTokens:isPresented:placement:prompt:token:) | nonisolated func searchable<C>(text: Binding<String>, editableTokens: Binding<C>, isPresented: Binding<Bool>, placement: SearchFieldPlacement = .automatic, prompt: LocalizedStringKey, @ViewBuilder token: @escaping (Binding<C.Element>) -> some View) -> some View where C : RandomAccessCollection, C : RangeReplaceableCollection, C.Element : Identifiable
+View.searchable(text:editableTokens:isPresented:placement:prompt:token:) | nonisolated func searchable<C>(text: Binding<String>, editableTokens: Binding<C>, isPresented: Binding<Bool>, placement: SearchFieldPlacement = .automatic, prompt: Text? = nil, @ViewBuilder token: @escaping (Binding<C.Element>) -> some View) -> some View where C : RandomAccessCollection, C : RangeReplaceableCollection, C.Element : Identifiable
+View.searchable(text:editableTokens:isPresented:placement:prompt:token:) | nonisolated func searchable<C>(text: Binding<String>, editableTokens: Binding<C>, isPresented: Binding<Bool>, placement: SearchFieldPlacement = .automatic, prompt: some StringProtocol, @ViewBuilder token: @escaping (Binding<C.Element>) -> some View) -> some View where C : RandomAccessCollection, C : RangeReplaceableCollection, C.Element : Identifiable
+View.searchable(text:editableTokens:placement:prompt:token:) | nonisolated func searchable<C>(text: Binding<String>, editableTokens: Binding<C>, placement: SearchFieldPlacement = .automatic, prompt: LocalizedStringKey, @ViewBuilder token: @escaping (Binding<C.Element>) -> some View) -> some View where C : RandomAccessCollection, C : RangeReplaceableCollection, C.Element : Identifiable
+View.searchable(text:editableTokens:placement:prompt:token:) | nonisolated func searchable<C>(text: Binding<String>, editableTokens: Binding<C>, placement: SearchFieldPlacement = .automatic, prompt: Text? = nil, @ViewBuilder token: @escaping (Binding<C.Element>) -> some View) -> some View where C : RandomAccessCollection, C : RangeReplaceableCollection, C.Element : Identifiable
+View.searchable(text:editableTokens:placement:prompt:token:) | nonisolated func searchable<C>(text: Binding<String>, editableTokens: Binding<C>, placement: SearchFieldPlacement = .automatic, prompt: some StringProtocol, @ViewBuilder token: @escaping (Binding<C.Element>) -> some View) -> some View where C : RandomAccessCollection, C : RangeReplaceableCollection, C.Element : Identifiable
+View.searchable(text:isPresented:placement:prompt:) | nonisolated func searchable(text: Binding<String>, isPresented: Binding<Bool>, placement: SearchFieldPlacement = .automatic, prompt: LocalizedStringKey) -> some View
+View.searchable(text:isPresented:placement:prompt:) | nonisolated func searchable(text: Binding<String>, isPresented: Binding<Bool>, placement: SearchFieldPlacement = .automatic, prompt: Text? = nil) -> some View
+View.searchable(text:isPresented:placement:prompt:) | nonisolated func searchable(text: Binding<String>, isPresented: Binding<Bool>, placement: SearchFieldPlacement = .automatic, prompt: some StringProtocol) -> some View
+View.searchable(text:placement:prompt:) | nonisolated func searchable(text: Binding<String>, placement: SearchFieldPlacement = .automatic, prompt: LocalizedStringKey) -> some View
+View.searchable(text:placement:prompt:) | nonisolated func searchable(text: Binding<String>, placement: SearchFieldPlacement = .automatic, prompt: Text? = nil) -> some View
+View.searchable(text:placement:prompt:) | nonisolated func searchable(text: Binding<String>, placement: SearchFieldPlacement = .automatic, prompt: some StringProtocol) -> some View
+View.searchable(text:tokens:isPresented:placement:prompt:token:) | nonisolated func searchable<C, T, S>(text: Binding<String>, tokens: Binding<C>, isPresented: Binding<Bool>, placement: SearchFieldPlacement = .automatic, prompt: S, @ViewBuilder token: @escaping (C.Element) -> T) -> some View where C : RandomAccessCollection, C : RangeReplaceableCollection, T : View, S : StringProtocol, C.Element : Identifiable
+View.searchable(text:tokens:isPresented:placement:prompt:token:) | nonisolated func searchable<C, T>(text: Binding<String>, tokens: Binding<C>, isPresented: Binding<Bool>, placement: SearchFieldPlacement = .automatic, prompt: LocalizedStringKey, @ViewBuilder token: @escaping (C.Element) -> T) -> some View where C : RandomAccessCollection, C : RangeReplaceableCollection, T : View, C.Element : Identifiable
+View.searchable(text:tokens:isPresented:placement:prompt:token:) | nonisolated func searchable<C, T>(text: Binding<String>, tokens: Binding<C>, isPresented: Binding<Bool>, placement: SearchFieldPlacement = .automatic, prompt: Text? = nil, @ViewBuilder token: @escaping (C.Element) -> T) -> some View where C : RandomAccessCollection, C : RangeReplaceableCollection, T : View, C.Element : Identifiable
+View.searchable(text:tokens:placement:prompt:token:) | nonisolated func searchable<C, T, S>(text: Binding<String>, tokens: Binding<C>, placement: SearchFieldPlacement = .automatic, prompt: S, @ViewBuilder token: @escaping (C.Element) -> T) -> some View where C : RandomAccessCollection, C : RangeReplaceableCollection, T : View, S : StringProtocol, C.Element : Identifiable
+View.searchable(text:tokens:placement:prompt:token:) | nonisolated func searchable<C, T>(text: Binding<String>, tokens: Binding<C>, placement: SearchFieldPlacement = .automatic, prompt: LocalizedStringKey, @ViewBuilder token: @escaping (C.Element) -> T) -> some View where C : RandomAccessCollection, C : RangeReplaceableCollection, T : View, C.Element : Identifiable
+View.searchable(text:tokens:placement:prompt:token:) | nonisolated func searchable<C, T>(text: Binding<String>, tokens: Binding<C>, placement: SearchFieldPlacement = .automatic, prompt: Text? = nil, @ViewBuilder token: @escaping (C.Element) -> T) -> some View where C : RandomAccessCollection, C : RangeReplaceableCollection, T : View, C.Element : Identifiable
+View.searchable(text:tokens:suggestedTokens:isPresented:placement:prompt:token:) | nonisolated func searchable<C, T, S>(text: Binding<String>, tokens: Binding<C>, suggestedTokens: Binding<C>, isPresented: Binding<Bool>, placement: SearchFieldPlacement = .automatic, prompt: S, @ViewBuilder token: @escaping (C.Element) -> T) -> some View where C : RandomAccessCollection, C : RangeReplaceableCollection, T : View, S : StringProtocol, C.Element : Identifiable
+View.searchable(text:tokens:suggestedTokens:isPresented:placement:prompt:token:) | nonisolated func searchable<C, T>(text: Binding<String>, tokens: Binding<C>, suggestedTokens: Binding<C>, isPresented: Binding<Bool>, placement: SearchFieldPlacement = .automatic, prompt: LocalizedStringKey, @ViewBuilder token: @escaping (C.Element) -> T) -> some View where C : RandomAccessCollection, C : RangeReplaceableCollection, T : View, C.Element : Identifiable
+View.searchable(text:tokens:suggestedTokens:isPresented:placement:prompt:token:) | nonisolated func searchable<C, T>(text: Binding<String>, tokens: Binding<C>, suggestedTokens: Binding<C>, isPresented: Binding<Bool>, placement: SearchFieldPlacement = .automatic, prompt: Text? = nil, @ViewBuilder token: @escaping (C.Element) -> T) -> some View where C : RandomAccessCollection, C : RangeReplaceableCollection, T : View, C.Element : Identifiable
+View.searchable(text:tokens:suggestedTokens:placement:prompt:token:) | nonisolated func searchable<C, T, S>(text: Binding<String>, tokens: Binding<C>, suggestedTokens: Binding<C>, placement: SearchFieldPlacement = .automatic, prompt: S, @ViewBuilder token: @escaping (C.Element) -> T) -> some View where C : MutableCollection, C : RandomAccessCollection, C : RangeReplaceableCollection, T : View, S : StringProtocol, C.Element : Identifiable
+View.searchable(text:tokens:suggestedTokens:placement:prompt:token:) | nonisolated func searchable<C, T>(text: Binding<String>, tokens: Binding<C>, suggestedTokens: Binding<C>, placement: SearchFieldPlacement = .automatic, prompt: LocalizedStringKey, @ViewBuilder token: @escaping (C.Element) -> T) -> some View where C : MutableCollection, C : RandomAccessCollection, C : RangeReplaceableCollection, T : View, C.Element : Identifiable
+View.searchable(text:tokens:suggestedTokens:placement:prompt:token:) | nonisolated func searchable<C, T>(text: Binding<String>, tokens: Binding<C>, suggestedTokens: Binding<C>, placement: SearchFieldPlacement = .automatic, prompt: Text? = nil, @ViewBuilder token: @escaping (C.Element) -> T) -> some View where C : MutableCollection, C : RandomAccessCollection, C : RangeReplaceableCollection, T : View, C.Element : Identifiable

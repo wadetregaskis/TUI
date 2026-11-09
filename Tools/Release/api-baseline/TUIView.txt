@@ -1,0 +1,738 @@
+# TUIView public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+AnimatedBufferCycle.runs(phases:offsetY:clock:) | static func runs(phases: [[String]], offsetY: Int = 0, clock: AnimationClock = .cursor) -> [AnimatedCellRun]?
+AnimationCompletionTracker | final class AnimationCompletionTracker
+AnimationCompletionTracker.init() | init()
+AnimationCycle.clock | let clock: AnimationClock
+AnimationCycle.current | var current: Value { get }
+AnimationCycle.currentIndex | let currentIndex: Int
+AnimationCycle.init(animation:from:to:startNanos:nowNanos:step:clock:) | init?(animation: Animation, from: Value, to: Value, startNanos: Int64, nowNanos: Int64, step: Int, clock: AnimationClock = .cursor)
+AnimationCycle.maximumSteps | static var maximumSteps: Int { get }
+AnimationCycle.values | let values: [Value]
+AnimationFrame.canAnimate | var canAnimate: Bool
+AnimationFrame.init(nowNanos:step:canAnimate:) | init(nowNanos: Int64 = 0, step: Int = 0, canAnimate: Bool = false)
+AnimationFrame.nowNanos | var nowNanos: Int64
+AnimationFrame.step | var step: Int
+AnimationStore.DeclaredRecords | final class DeclaredRecords
+AnimationStore.Key | struct Key
+AnimationStore.Key.identity | let identity: ViewIdentity
+AnimationStore.Key.init(identity:owner:slot:) | init(identity: ViewIdentity, owner: ObjectIdentifier, slot: Int = 0)
+AnimationStore.Key.owner | let owner: ObjectIdentifier
+AnimationStore.Key.slot | let slot: Int
+AnimationStore.arrivalPhase(for:animation:nowNanos:isMeasuring:) | func arrivalPhase(for key: AnimationStore.Key, animation: Animation?, nowNanos: Int64, isMeasuring: Bool) -> Double
+AnimationStore.beginLogging() | func beginLogging() -> Int
+AnimationStore.beginRenderPass() | func beginRenderPass()
+AnimationStore.beginWalk() | func beginWalk()
+AnimationStore.count | var count: Int { get }
+AnimationStore.cycle(for:nowNanos:step:) | func cycle<D>(for key: AnimationStore.Key, nowNanos: Int64, step: Int) -> AnimationCycle<D>? where D : Sendable, D : VectorArithmetic
+AnimationStore.declareAgain(_:) | func declareAgain(_ declared: AnimationStore.DeclaredRecords)
+AnimationStore.endLogging(from:) | func endLogging(from start: Int) -> AnimationStore.DeclaredRecords?
+AnimationStore.endRenderPass() | func endRenderPass()
+AnimationStore.hasLiveAnimations(at:) | func hasLiveAnimations(at nowNanos: Int64) -> Bool
+AnimationStore.init() | init()
+AnimationStore.isSettled(_:at:isMeasuring:) | func isSettled<D>(_ key: AnimationStore.Key, at target: D, isMeasuring: Bool) -> Bool where D : VectorArithmetic
+AnimationStore.noteServedByRuns(_:) | func noteServedByRuns(_ key: AnimationStore.Key)
+AnimationStore.removeAll() | func removeAll()
+AnimationStore.removeDescendants(of:includingItself:) | func removeDescendants(of ancestor: ViewIdentity, includingItself: Bool = false)
+AnimationStore.triggerChanged(_:for:isMeasuring:) | func triggerChanged<V>(_ value: V, for key: AnimationStore.Key, isMeasuring: Bool) -> Bool where V : Equatable
+AnimationStore.value(for:target:animation:nowNanos:isMeasuring:) | func value<D>(for key: AnimationStore.Key, target: D, animation: Animation?, nowNanos: Int64, isMeasuring: Bool) -> D where D : VectorArithmetic
+AnyEquatableBox.==(_:_:) | static func == (lhs: AnyEquatableBox, rhs: AnyEquatableBox) -> Bool
+AnyEquatableBox.extends(_:) | func extends(_ previous: AnyEquatableBox) -> Bool
+AnyEquatableBox.init(_:) | init<E>(_ value: E) where E : Equatable
+AnyView | nonisolated struct AnyView
+AnyView.body | @MainActor var body: Never { get }
+AnyView.childViews(context:) | @MainActor func childViews(context: RenderContext) -> [ChildView]
+AnyView.init(_:) | init<V>(_ view: V) where V : View
+AnyView.init(erasing:) | init<V>(erasing view: V) where V : View
+AnyView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer
+AnyView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+AnyView.staysWhole(in:) | @MainActor func staysWhole(in context: RenderContext) -> Bool
+AppState.clearObservers() | func clearObservers()
+AppState.consumeNeedsCacheClear() | func consumeNeedsCacheClear() -> Bool
+AppState.consumePendingAnimationClocks() | func consumePendingAnimationClocks() -> Set<AnimationClock>
+AppState.consumePendingCompletions() | func consumePendingCompletions() -> [AnimationCompletion]
+AppState.consumePendingTransaction() | func consumePendingTransaction() -> Transaction?
+AppState.consumeShouldExit() | func consumeShouldExit() -> Bool
+AppState.didRender() | func didRender()
+AppState.init() | init()
+AppState.needsRender | var needsRender: Bool { get }
+AppState.observe(_:) | func observe(_ callback: @escaping () -> Void)
+AppState.requestExit() | func requestExit()
+AppState.setNeedsAnimationTick(_:) | func setNeedsAnimationTick(_ clock: AnimationClock)
+AppState.setNeedsRender() | func setNeedsRender()
+AppState.setNeedsRenderWithCacheClear() | func setNeedsRenderWithCacheClear()
+Array.extends(_:) | func extends(_ previous: Any) -> Bool [extension where Element : Equatable]
+Bindable | @propertyWrapper @dynamicMemberLookup struct Bindable<Value>
+Bindable.ID | typealias ID = Value.ID [extension where Value : Identifiable]
+Bindable.id | var id: Value.ID { get } [extension where Value : Identifiable]
+Bindable.init(_:) | init(_ wrappedValue: Value) where Value : AnyObject, Value : Observable
+Bindable.init(projectedValue:) | init(projectedValue: Bindable<Value>)
+Bindable.init(wrappedValue:) | init(wrappedValue: Value) where Value : AnyObject, Value : Observable
+Bindable.projectedValue | var projectedValue: Bindable<Value> { get }
+Bindable.subscript(dynamicMember:) | subscript<Subject>(dynamicMember keyPath: ReferenceWritableKeyPath<Value, Subject>) -> Binding<Subject> { get }
+Bindable.wrappedValue | var wrappedValue: Value
+Binding | @propertyWrapper @dynamicMemberLookup struct Binding<Value>
+Binding.Element | typealias Element = Binding<Value.Element> [extension where Value : MutableCollection]
+Binding.ID | typealias ID = Value.ID [extension where Value : Identifiable]
+Binding.Index | typealias Index = Value.Index [extension where Value : MutableCollection]
+Binding.Indices | typealias Indices = Value.Indices [extension where Value : MutableCollection]
+Binding.animation(_:) | func animation(_ animation: Animation? = .default) -> Binding<Value>
+Binding.constant(_:) | static func constant(_ value: Value) -> Binding<Value>
+Binding.defaulted(to:) | func defaulted<T>(to fallback: T) -> Binding<T> where Value == T?
+Binding.endIndex | var endIndex: Value.Index { get } [extension where Value : MutableCollection]
+Binding.formIndex(after:) | func formIndex(after index: inout Value.Index) [extension where Value : MutableCollection]
+Binding.formIndex(before:) | func formIndex(before index: inout Value.Index) [extension where Value : BidirectionalCollection, Value : MutableCollection]
+Binding.id | var id: Value.ID { get } [extension where Value : Identifiable]
+Binding.index(after:) | func index(after index: Value.Index) -> Value.Index [extension where Value : MutableCollection]
+Binding.index(before:) | func index(before index: Value.Index) -> Value.Index [extension where Value : BidirectionalCollection, Value : MutableCollection]
+Binding.indices | var indices: Value.Indices { get } [extension where Value : MutableCollection]
+Binding.init(_:) | init<V>(_ base: Binding<V>) where Value == AnyHashable, V : Hashable
+Binding.init(_:) | init<Wrapped>(_ base: Binding<Wrapped>) where Value == Wrapped?
+Binding.init(_:) | init?(_ base: Binding<Value?>)
+Binding.init(get:set:) | init(get: @escaping () -> Value, set: @escaping (Value) -> Void)
+Binding.init(get:set:) | init(get: @escaping () -> Value, set: @escaping (Value, Transaction) -> Void)
+Binding.init(projectedValue:) | init(projectedValue: Binding<Value>)
+Binding.projectedValue | var projectedValue: Binding<Value> { get }
+Binding.startIndex | var startIndex: Value.Index { get } [extension where Value : MutableCollection]
+Binding.subscript(_:) | subscript(position: Value.Index) -> Binding<Value.Element> { get } [extension where Value : MutableCollection]
+Binding.subscript(dynamicMember:) | subscript<Subject>(dynamicMember keyPath: WritableKeyPath<Value, Subject>) -> Binding<Subject> { get }
+Binding.transaction | var transaction: Transaction { get set }
+Binding.transaction(_:) | func transaction(_ transaction: Transaction) -> Binding<Value>
+Binding.wrappedValue | var wrappedValue: Value { get nonmutating set }
+BodyMutationDiagnostic.Report | struct Report
+BodyMutationDiagnostic.Report.frame | let frame: Int
+BodyMutationDiagnostic.Report.identity | let identity: String
+BodyMutationDiagnostic.beginFrame() | func beginFrame()
+BodyMutationDiagnostic.beginTraversal() | func beginTraversal()
+BodyMutationDiagnostic.endTraversal() | func endTraversal()
+BodyMutationDiagnostic.init() | init()
+BodyMutationDiagnostic.isEnabled | static let isEnabled: Bool
+BodyMutationDiagnostic.noteSettled(rewalks:stillWriting:) | func noteSettled(rewalks: Int, stillWriting: Bool)
+BodyMutationDiagnostic.reports | var reports: [BodyMutationDiagnostic.Report] { get }
+BufferModifier | @MainActor protocol BufferModifier
+BufferModifier._animated(_:owner:context:isMeasuring:) | @MainActor static func _animated(_ modifier: Self, owner: any Any.Type, context: RenderContext, isMeasuring: Bool) -> Self?
+BufferModifier._animated(_:owner:context:isMeasuring:) | @MainActor static func _animated(_ modifier: Self, owner: any Any.Type, context: RenderContext, isMeasuring: Bool) -> Self?
+BufferModifier._animated(_:owner:context:isMeasuring:) | @MainActor static func _animated(_ modifier: Self, owner: any Any.Type, context: RenderContext, isMeasuring: Bool) -> Self? [extension where Self : Animatable]
+BufferModifier._changesLayout | @MainActor static var _changesLayout: Bool { get }
+BufferModifier._changesLayout | @MainActor static var _changesLayout: Bool { get }
+BufferModifier._contentOverhang | @MainActor var _contentOverhang: (width: Int, height: Int) { get }
+BufferModifier._contentOverhang | @MainActor var _contentOverhang: (width: Int, height: Int) { get }
+BufferModifier._explicitID | @MainActor var _explicitID: AnyHashable? { get }
+BufferModifier._explicitID | @MainActor var _explicitID: AnyHashable? { get }
+BufferModifier._explicitIDKey | @MainActor var _explicitIDKey: String? { get }
+BufferModifier._explicitIDKey | @MainActor var _explicitIDKey: String? { get }
+BufferModifier._isAnimatable | @MainActor static var _isAnimatable: Bool { get }
+BufferModifier._isAnimatable | @MainActor static var _isAnimatable: Bool { get }
+BufferModifier._isAnimatable | @MainActor static var _isAnimatable: Bool { get } [extension where Self : Animatable]
+BufferModifier._keepsContentGeometry | @MainActor static var _keepsContentGeometry: Bool { get }
+BufferModifier._keepsContentGeometry | @MainActor static var _keepsContentGeometry: Bool { get }
+BufferModifier._modify(buffer:context:owner:) | @MainActor func _modify(buffer: FrameBuffer, context: RenderContext, owner: any Any.Type) -> FrameBuffer
+BufferModifier._modify(buffer:context:owner:) | @MainActor func _modify(buffer: FrameBuffer, context: RenderContext, owner: any Any.Type) -> FrameBuffer
+BufferModifier._translatesAlignmentGuides | @MainActor static var _translatesAlignmentGuides: Bool { get }
+BufferModifier._translatesAlignmentGuides | @MainActor static var _translatesAlignmentGuides: Bool { get }
+BufferModifier.adjustContext(_:) | @MainActor func adjustContext(_ context: RenderContext) -> RenderContext
+BufferModifier.adjustContext(_:) | @MainActor func adjustContext(_ context: RenderContext) -> RenderContext
+BufferModifier.modify(buffer:context:) | @MainActor func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer
+ChildInfo | struct ChildInfo
+ChildInfo.buffer | let buffer: FrameBuffer?
+ChildInfo.init(buffer:isSpacer:spacerMinLength:size:zIndex:) | init(buffer: FrameBuffer?, isSpacer: Bool, spacerMinLength: Int?, size: ViewSize?, zIndex: Double = 0)
+ChildInfo.isSpacer | let isSpacer: Bool
+ChildInfo.size | let size: ViewSize?
+ChildInfo.spacerMinLength | let spacerMinLength: Int?
+ChildInfo.zIndex | let zIndex: Double
+ChildInfoProvider | @MainActor protocol ChildInfoProvider
+ChildInfoProvider.childInfos(context:) | @MainActor func childInfos(context: RenderContext) -> [ChildInfo]
+ChildView | @MainActor struct ChildView
+ChildView.explicitID | @MainActor var explicitID: AnyHashable? { get }
+ChildView.explicitIDKey | @MainActor var explicitIDKey: String? { get }
+ChildView.identity(under:) | @MainActor func identity(under context: RenderContext) -> ViewIdentity
+ChildView.identityChildIndex | @MainActor var identityChildIndex: Int? { get }
+ChildView.identityChildKey | @MainActor var identityChildKey: String? { get }
+ChildView.init(_:) | @MainActor init<V>(_ view: V) where V : View
+ChildView.init(_:childIndex:) | @MainActor init<V>(_ view: V, childIndex: Int) where V : View
+ChildView.init(_:identityType:childIndex:) | @MainActor init<V, IdentityType>(_ view: V, identityType: IdentityType.Type, childIndex: Int) where V : View
+ChildView.init(_:identityType:key:) | @MainActor init<V, IdentityType>(_ view: V, identityType: IdentityType.Type, key: String) where V : View
+ChildView.isSpacer | @MainActor let isSpacer: Bool
+ChildView.matchesSeekKey(_:) | @MainActor func matchesSeekKey(_ key: String) -> Bool
+ChildView.measure(proposal:context:) | @MainActor func measure(proposal: ProposedSize, context: RenderContext) -> ViewSize
+ChildView.providesAlignmentGuide | @MainActor let providesAlignmentGuide: Bool
+ChildView.render(width:height:context:) | @MainActor func render(width: Int, height: Int, context: RenderContext) -> FrameBuffer
+ChildView.renderContext(under:) | @MainActor func renderContext(under context: RenderContext) -> RenderContext
+ChildView.spacerMinLength | @MainActor let spacerMinLength: Int?
+ChildView.wrappedView | @MainActor var wrappedView: any View { get }
+ChildView.zIndex | @MainActor let zIndex: Double
+ChildViewCollection | @MainActor struct ChildViewCollection
+ChildViewCollection.anyID(at:) | @MainActor func anyID(at ordinal: Int) -> AnyHashable?
+ChildViewCollection.buildingAll() | @MainActor func buildingAll() -> [ChildView]
+ChildViewCollection.count | @MainActor let count: Int
+ChildViewCollection.eagerChildViews | @MainActor var eagerChildViews: [ChildView]? { get }
+ChildViewCollection.firstOrdinal(forKey:) | @MainActor func firstOrdinal(forKey key: String) -> Int?
+ChildViewCollection.init(eager:) | @MainActor init(eager children: [ChildView])
+ChildViewCollection.isEmpty | @MainActor var isEmpty: Bool { get }
+ChildViewCollection.isUniformlyKeyed | @MainActor let isUniformlyKeyed: Bool
+ChildViewCollection.key(at:) | @MainActor func key(at ordinal: Int) -> String?
+ChildViewCollection.subscript(_:) | @MainActor subscript(ordinal: Int) -> ChildView { get }
+ChildViewProvider | @MainActor protocol ChildViewProvider
+ChildViewProvider.childViews(context:) | @MainActor func childViews(context: RenderContext) -> [ChildView]
+ChildViewProvider.childViews(context:) | @MainActor func childViews(context: RenderContext) -> [ChildView] [extension where Self : ContentRewrapping, Self.WrappedContent : ChildViewProvider]
+ChildViewProvider.childViewsAreWorthMemoising | @MainActor var childViewsAreWorthMemoising: Bool { get }
+ChildViewProvider.childViewsAreWorthMemoising | @MainActor var childViewsAreWorthMemoising: Bool { get }
+ChildViewProvider.childViewsAreWorthMemoising | @MainActor var childViewsAreWorthMemoising: Bool { get } [extension where Self : ContentRewrapping, Self.WrappedContent : ChildViewProvider]
+ChildViewProvider.identityBranchLabel | @MainActor var identityBranchLabel: String? { get }
+ChildViewProvider.identityBranchLabel | @MainActor var identityBranchLabel: String? { get }
+ChildViewProvider.identityBranchLabel | @MainActor var identityBranchLabel: String? { get } [extension where Self : ContentRewrapping, Self.WrappedContent : ChildViewProvider]
+ChildViewProvider.staysWhole(in:) | @MainActor func staysWhole(in context: RenderContext) -> Bool
+ChildViewProvider.staysWhole(in:) | @MainActor func staysWhole(in context: RenderContext) -> Bool
+ChildViewProvider.staysWhole(in:) | @MainActor func staysWhole(in context: RenderContext) -> Bool [extension where Self : ContentRewrapping, Self.WrappedContent : ChildViewProvider]
+Color.body | @MainActor var body: some View { get }
+ConditionalView | nonisolated enum ConditionalView<TrueContent, FalseContent> where TrueContent : View, FalseContent : View
+ConditionalView._handsOverChildren | @MainActor static var _handsOverChildren: Bool { get } [extension where TrueContent : View, FalseContent : View]
+ConditionalView._providesAlignmentGuide | @MainActor static var _providesAlignmentGuide: Bool { get }
+ConditionalView._statesSpacingPreference | @MainActor static var _statesSpacingPreference: Bool { get }
+ConditionalView.body | @MainActor var body: Never { get }
+ConditionalView.childViews(context:) | @MainActor func childViews(context: RenderContext) -> [ChildView] [extension where TrueContent : View, FalseContent : View]
+ConditionalView.falseContent(_:) | case falseContent(FalseContent)
+ConditionalView.identityBranchLabel | @MainActor var identityBranchLabel: String? { get } [extension where TrueContent : View, FalseContent : View]
+ConditionalView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where TrueContent : View, FalseContent : View]
+ConditionalView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where TrueContent : View, FalseContent : View]
+ConditionalView.trueContent(_:) | case trueContent(TrueContent)
+ContentRewrapping | @MainActor protocol ContentRewrapping : SingleContentWrapper
+ContentRewrapping.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View
+ContiguousArray.extends(_:) | func extends(_ previous: Any) -> Bool [extension where Element : Equatable]
+CubicKeyframe | nonisolated struct CubicKeyframe<Value> where Value : Animatable
+CubicKeyframe._resolve(into:) | @MainActor func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>)
+CubicKeyframe.body | @MainActor var body: CubicKeyframe<Value> { get }
+CubicKeyframe.init(_:duration:startVelocity:endVelocity:) | init(_ to: Value, duration: TimeInterval, startVelocity: Value? = nil, endVelocity: Value? = nil)
+DepartureStore.Departure | struct Departure
+DepartureStore.Departure.explicitAnimation | let explicitAnimation: Animation??
+DepartureStore.Departure.height | let height: Int
+DepartureStore.Departure.init(viewType:width:height:explicitAnimation:render:) | init(viewType: any Any.Type, width: Int, height: Int, explicitAnimation: Animation??, render: @escaping (Double) -> FrameBuffer)
+DepartureStore.Departure.render | let render: (Double) -> FrameBuffer
+DepartureStore.Departure.viewType | let viewType: ObjectIdentifier
+DepartureStore.Departure.width | let width: Int
+DepartureStore.beginRenderPass() | func beginRenderPass()
+DepartureStore.count | var count: Int { get }
+DepartureStore.departing(at:ofType:nowNanos:frameAnimation:) | func departing(at identity: ViewIdentity, ofType type: any Any.Type, nowNanos: Int64, frameAnimation: Animation?) -> FrameBuffer?
+DepartureStore.departingSize(at:ofType:nowNanos:frameAnimation:) | func departingSize(at identity: ViewIdentity, ofType type: any Any.Type, nowNanos: Int64, frameAnimation: Animation?) -> (width: Int, height: Int)?
+DepartureStore.endRenderPass() | func endRenderPass()
+DepartureStore.hasDeparture(at:ofType:nowNanos:frameAnimation:) | func hasDeparture(at identity: ViewIdentity, ofType type: any Any.Type, nowNanos: Int64, frameAnimation: Animation?) -> Bool
+DepartureStore.hasDeparture(directlyUnder:addressedAs:ofType:nowNanos:frameAnimation:) | func hasDeparture(directlyUnder parent: ViewIdentity, addressedAs address: any Any.Type, ofType type: any Any.Type, nowNanos: Int64, frameAnimation: Animation?) -> Bool
+DepartureStore.hasDepartures(at:) | func hasDepartures(at nowNanos: Int64) -> Bool
+DepartureStore.init() | init()
+DepartureStore.isEmpty | var isEmpty: Bool { get }
+DepartureStore.noteDrawnUnchanged(at:leftBy:byErasing:) | func noteDrawnUnchanged(at identity: ViewIdentity, leftBy type: @autoclosure () -> any Any.Type, byErasing eraser: any Any.Type)
+DepartureStore.present(_:at:) | func present(_ departure: DepartureStore.Departure, at identity: ViewIdentity)
+DepartureStore.removeAll() | func removeAll()
+DrawsContentUnchanged | @MainActor protocol DrawsContentUnchanged : SingleContentWrapper
+DynamicProperty | protocol DynamicProperty
+DynamicProperty.update() | mutating func update()
+DynamicProperty.update() | mutating func update()
+EmptyModifier | nonisolated struct EmptyModifier
+EmptyModifier.body(content:) | @MainActor func body(content: EmptyModifier.Content) -> some View
+EmptyModifier.identity | static let identity: EmptyModifier
+EmptyModifier.init() | init()
+EmptyView | nonisolated struct EmptyView
+EmptyView._handsOverChildren | @MainActor static var _handsOverChildren: Bool { get }
+EmptyView._statesSpacingPreference | @MainActor static var _statesSpacingPreference: Bool { get }
+EmptyView.body | @MainActor var body: Never { get }
+EmptyView.childViews(context:) | @MainActor func childViews(context: RenderContext) -> [ChildView]
+EmptyView.init() | nonisolated init()
+EmptyView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer
+EmptyView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+Environment | @propertyWrapper struct Environment<Value>
+Environment.init(_:) | init(_ keyPath: KeyPath<EnvironmentValues, Value>)
+Environment.init(_:) | init(_ type: Value.Type) where Value : Observable
+Environment.init(_:) | init<T>(_ objectType: T.Type) where Value == T?, T : Observable
+Environment.resolveEnvironment(_:) | func resolveEnvironment(_ environment: EnvironmentValues)
+Environment.wrappedValue | var wrappedValue: Value { get }
+EnvironmentModifier.body | @MainActor var body: some View { get }
+EnvironmentModifier.content | let content: Content
+EnvironmentModifier.init(content:keyPath:value:) | init(content: Content, keyPath: WritableKeyPath<EnvironmentValues, V>, value: V)
+EnvironmentModifier.keyPath | let keyPath: WritableKeyPath<EnvironmentValues, V>
+EnvironmentModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
+EnvironmentModifier.rewrapping(_:) | @MainActor func rewrapping<Inner>(_ view: Inner) -> any View where Inner : View [extension where Content : View]
+EnvironmentModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+EnvironmentModifier.value | let value: V
+EnvironmentModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
+EnvironmentModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
+EnvironmentResolvable | protocol EnvironmentResolvable
+EnvironmentResolvable.resolveEnvironment(_:) | func resolveEnvironment(_ environment: EnvironmentValues)
+EnvironmentValues.accessibilityReduceMotion | var accessibilityReduceMotion: Bool { get set }
+EnvironmentValues.animationStep | var animationStep: Int { get set }
+EnvironmentValues.canAnimate | var canAnimate: Bool { get set }
+EnvironmentValues.colorScheme | var colorScheme: ColorScheme { get set }
+EnvironmentValues.frameNowNanos | var frameNowNanos: Int64 { get set }
+EnvironmentValues.hasUncomparableEnvironmentValue | var hasUncomparableEnvironmentValue: Bool { get set }
+EnvironmentValues.palette | var palette: any Palette { get set }
+EnvironmentValues.paletteManager | var paletteManager: ThemeManager? { get set }
+EnvironmentValues.transaction | var transaction: Transaction { get set }
+EnvironmentalModifier | @MainActor protocol EnvironmentalModifier : ViewModifier where Self.Body == Never
+EnvironmentalModifier.ResolvedModifier | associatedtype ResolvedModifier : ViewModifier
+EnvironmentalModifier._isEnvironmentalModifier | @MainActor static var _isEnvironmentalModifier: Bool { get }
+EnvironmentalModifier._resolvedBody(_:content:environment:) | @MainActor static func _resolvedBody(_ modifier: Self, content: AnyView, environment: EnvironmentValues) -> AnyView?
+EnvironmentalModifier.body(content:) | nonisolated func body(content: Self.Content) -> Never
+EnvironmentalModifier.resolve(in:) | @MainActor func resolve(in environment: EnvironmentValues) -> Self.ResolvedModifier
+EquatableView | nonisolated struct EquatableView<Content> where Content : Equatable, Content : View
+EquatableView.body | @MainActor var body: Never { get }
+EquatableView.content | var content: Content
+EquatableView.init(content:) | init(content: Content)
+EquatableView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : Equatable, Content : View]
+EquatableView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : Equatable, Content : View]
+EquatableView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : Equatable, Content : View]
+EquatableView.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : Equatable, Content : View]
+ExplicitIDProviding | @MainActor protocol ExplicitIDProviding
+ExplicitIDProviding.explicitID | @MainActor var explicitID: AnyHashable? { get }
+ExplicitIDProviding.explicitIDKey | @MainActor var explicitIDKey: String? { get }
+KeyframeTimeline | struct KeyframeTimeline<Value>
+KeyframeTimeline.duration | var duration: TimeInterval { get }
+KeyframeTimeline.init(initialValue:content:) | @MainActor init(initialValue: Value, @KeyframesBuilder<Value> content: () -> some Keyframes<Value>)
+KeyframeTimeline.value(progress:) | @MainActor func value(progress: Double) -> Value
+KeyframeTimeline.value(time:) | @MainActor func value(time: Double) -> Value
+KeyframeTrack | nonisolated struct KeyframeTrack<Root, Value, Content> where Value == Content.Value, Content : KeyframeTrackContent
+KeyframeTrack.Body | typealias Body = Never
+KeyframeTrack._resolve(into:initialValue:initialVelocity:) | @MainActor func _resolve(into resolved: inout _ResolvedKeyframes<Root>, initialValue: Root, initialVelocity: Root?)
+KeyframeTrack.body | @MainActor var body: Never { get }
+KeyframeTrack.init(_:content:) | init(_ keyPath: WritableKeyPath<Root, Value>, @KeyframeTrackContentBuilder<Value> content: () -> Content)
+KeyframeTrack.init(content:) | init(@KeyframeTrackContentBuilder<Root> content: () -> Content) where Root == Value
+KeyframeTrackContent | @MainActor protocol KeyframeTrackContent<Value>
+KeyframeTrackContent.Body | associatedtype Body : KeyframeTrackContent
+KeyframeTrackContent.Value | associatedtype Value : Animatable = Self.Body.Value
+KeyframeTrackContent._resolve(into:) | @MainActor func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Self.Value>)
+KeyframeTrackContent._resolve(into:) | @MainActor func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Self.Value>) [extension where Self.Value == Self.Body.Value]
+KeyframeTrackContent.body | @KeyframeTrackContentBuilder<Self.Value> @MainActor var body: Self.Body { get }
+KeyframeTrackContentBuilder | @resultBuilder struct KeyframeTrackContentBuilder<Value> where Value : Animatable
+KeyframeTrackContentBuilder.Conditional | nonisolated struct Conditional<ConditionalValue, First, Second> where ConditionalValue == First.Value, First : KeyframeTrackContent, Second : KeyframeTrackContent, First.Value == Second.Value [extension where Value : Animatable]
+KeyframeTrackContentBuilder.Conditional.Value | typealias Value = ConditionalValue
+KeyframeTrackContentBuilder.Conditional._resolve(into:) | @MainActor func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<ConditionalValue>)
+KeyframeTrackContentBuilder.Conditional.body | @MainActor var body: KeyframeTrackContentBuilder<Value>.Conditional<ConditionalValue, First, Second> { get }
+KeyframeTrackContentBuilder.buildArray(_:) | static func buildArray(_ components: [some KeyframeTrackContent<Value>]) -> some KeyframeTrackContent<Value>
+KeyframeTrackContentBuilder.buildBlock() | static func buildBlock() -> some KeyframeTrackContent<Value>
+KeyframeTrackContentBuilder.buildEither(first:) | static func buildEither<First, Second>(first component: First) -> KeyframeTrackContentBuilder<Value>.Conditional<Value, First, Second> where Value == First.Value, First : KeyframeTrackContent, Second : KeyframeTrackContent, First.Value == Second.Value
+KeyframeTrackContentBuilder.buildEither(second:) | static func buildEither<First, Second>(second component: Second) -> KeyframeTrackContentBuilder<Value>.Conditional<Value, First, Second> where Value == First.Value, First : KeyframeTrackContent, Second : KeyframeTrackContent, First.Value == Second.Value
+KeyframeTrackContentBuilder.buildExpression(_:) | static func buildExpression<K>(_ expression: K) -> K where Value == K.Value, K : KeyframeTrackContent
+KeyframeTrackContentBuilder.buildPartialBlock(accumulated:next:) | static func buildPartialBlock(accumulated: some KeyframeTrackContent<Value>, next: some KeyframeTrackContent<Value>) -> some KeyframeTrackContent<Value>
+KeyframeTrackContentBuilder.buildPartialBlock(first:) | static func buildPartialBlock<K>(first: K) -> K where Value == K.Value, K : KeyframeTrackContent
+Keyframes | @MainActor protocol Keyframes<Value>
+Keyframes.Body | associatedtype Body : Keyframes
+Keyframes.Value | associatedtype Value = Self.Body.Value
+Keyframes._resolve(into:initialValue:initialVelocity:) | @MainActor func _resolve(into resolved: inout _ResolvedKeyframes<Self.Value>, initialValue: Self.Value, initialVelocity: Self.Value?)
+Keyframes._resolve(into:initialValue:initialVelocity:) | @MainActor func _resolve(into resolved: inout _ResolvedKeyframes<Self.Value>, initialValue: Self.Value, initialVelocity: Self.Value?) [extension where Self.Value == Self.Body.Value]
+Keyframes.body | @KeyframesBuilder<Self.Value> @MainActor var body: Self.Body { get }
+KeyframesBuilder | @resultBuilder struct KeyframesBuilder<Value>
+KeyframesBuilder.buildArray(_:) | static func buildArray(_ components: [some KeyframeTrackContent<Value>]) -> some KeyframeTrackContent<Value>
+KeyframesBuilder.buildBlock() | static func buildBlock() -> some KeyframeTrackContent<Value> where Value : Animatable
+KeyframesBuilder.buildBlock() | static func buildBlock() -> some Keyframes<Value>
+KeyframesBuilder.buildEither(first:) | static func buildEither<First, Second>(first component: First) -> KeyframeTrackContentBuilder<Value>.Conditional<Value, First, Second> where Value == First.Value, First : KeyframeTrackContent, Second : KeyframeTrackContent, First.Value == Second.Value
+KeyframesBuilder.buildEither(second:) | static func buildEither<First, Second>(second component: Second) -> KeyframeTrackContentBuilder<Value>.Conditional<Value, First, Second> where Value == First.Value, First : KeyframeTrackContent, Second : KeyframeTrackContent, First.Value == Second.Value
+KeyframesBuilder.buildExpression(_:) | static func buildExpression<Content>(_ expression: Content) -> Content where Value == Content.Value, Content : Keyframes
+KeyframesBuilder.buildExpression(_:) | static func buildExpression<K>(_ expression: K) -> K where Value == K.Value, K : KeyframeTrackContent
+KeyframesBuilder.buildFinalResult(_:) | static func buildFinalResult<Content>(_ component: Content) -> Content where Value == Content.Value, Content : Keyframes
+KeyframesBuilder.buildFinalResult(_:) | static func buildFinalResult<Content>(_ component: Content) -> KeyframeTrack<Value, Value, Content> where Value == Content.Value, Content : KeyframeTrackContent
+KeyframesBuilder.buildPartialBlock(accumulated:next:) | static func buildPartialBlock(accumulated: some KeyframeTrackContent<Value>, next: some KeyframeTrackContent<Value>) -> some KeyframeTrackContent<Value>
+KeyframesBuilder.buildPartialBlock(accumulated:next:) | static func buildPartialBlock(accumulated: some Keyframes<Value>, next: some Keyframes<Value>) -> some Keyframes<Value>
+KeyframesBuilder.buildPartialBlock(first:) | static func buildPartialBlock<Content>(first: Content) -> Content where Value == Content.Value, Content : Keyframes
+KeyframesBuilder.buildPartialBlock(first:) | static func buildPartialBlock<K>(first: K) -> K where Value == K.Value, K : KeyframeTrackContent
+LayoutPlacing.uniformExtent(proposal:context:) | @MainActor func uniformExtent(proposal: ProposedSize, context: RenderContext) -> Int?
+Layoutable | @MainActor protocol Layoutable : Renderable
+Layoutable.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+Layoutable.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+LazyChildViewProvider | @MainActor protocol LazyChildViewProvider
+LazyChildViewProvider.childViewCollection(context:) | @MainActor func childViewCollection(context: RenderContext) -> ChildViewCollection
+LinearKeyframe | nonisolated struct LinearKeyframe<Value> where Value : Animatable
+LinearKeyframe._resolve(into:) | @MainActor func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>)
+LinearKeyframe.body | @MainActor var body: LinearKeyframe<Value> { get }
+LinearKeyframe.init(_:duration:timingCurve:) | init(_ to: Value, duration: TimeInterval, timingCurve: UnitCurve = .linear)
+ModifiedContent | struct ModifiedContent<Content, Modifier>
+ModifiedContent.AnimatableData | typealias AnimatableData = AnimatablePair<Content.AnimatableData, Modifier.AnimatableData> [extension where Content : Animatable, Modifier : Animatable]
+ModifiedContent._animated(_:context:isMeasuring:) | @MainActor static func _animated(_ view: ModifiedContent<Content, Modifier>, context: RenderContext, isMeasuring: Bool) -> ModifiedContent<Content, Modifier>? [extension where Content : View, Modifier : ViewModifier]
+ModifiedContent._isAnimatable | @MainActor static var _isAnimatable: Bool { get } [extension where Content : View, Modifier : ViewModifier]
+ModifiedContent._measureSelf(_:proposal:context:) | @MainActor static func _measureSelf(_ view: ModifiedContent<Content, Modifier>, proposal: ProposedSize, context: RenderContext) -> ViewSize? [extension where Content : View, Modifier : ViewModifier]
+ModifiedContent._renderSelf(_:context:) | @MainActor static func _renderSelf(_ view: ModifiedContent<Content, Modifier>, context: RenderContext) -> FrameBuffer? [extension where Content : View, Modifier : ViewModifier]
+ModifiedContent.animatableData | @MainActor var animatableData: ModifiedContent<Content, Modifier>.AnimatableData { get set } [extension where Content : Animatable, Modifier : Animatable]
+ModifiedContent.body | @MainActor var body: some View { get } [extension where Content : View, Modifier : ViewModifier]
+ModifiedContent.body(content:) | @MainActor func body(content: _ViewModifier_Content<ModifiedContent<Content, Modifier>>) -> some View [extension where Content : ViewModifier, Modifier : ViewModifier]
+ModifiedContent.content | var content: Content
+ModifiedContent.init(content:modifier:) | init(content: Content, modifier: Modifier)
+ModifiedContent.modifier | var modifier: Modifier
+ModifiedView | nonisolated struct ModifiedView<Content, Modifier> where Content : View, Modifier : BufferModifier
+ModifiedView._animated(_:context:isMeasuring:) | @MainActor static func _animated(_ view: ModifiedView<Content, Modifier>, context: RenderContext, isMeasuring: Bool) -> ModifiedView<Content, Modifier>? [extension where Content : View, Modifier : BufferModifier]
+ModifiedView._handsOverChildren | @MainActor static var _handsOverChildren: Bool { get } [extension where Content : View, Modifier : BufferModifier]
+ModifiedView._isAnimatable | @MainActor static var _isAnimatable: Bool { get } [extension where Content : View, Modifier : BufferModifier]
+ModifiedView._keepsContentGeometry | @MainActor static var _keepsContentGeometry: Bool { get } [extension where Content : View, Modifier : BufferModifier]
+ModifiedView._providesAlignmentGuide | @MainActor static var _providesAlignmentGuide: Bool { get } [extension where Content : View, Modifier : BufferModifier]
+ModifiedView._providesLayoutValues | @MainActor static var _providesLayoutValues: Bool { get } [extension where Content : View, Modifier : BufferModifier]
+ModifiedView.animatableData | @MainActor var animatableData: Modifier.AnimatableData { get set } [extension where Content : View, Modifier : Animatable, Modifier : BufferModifier]
+ModifiedView.body | @MainActor var body: Never { get }
+ModifiedView.childViews(context:) | @MainActor func childViews(context: RenderContext) -> [ChildView] [extension where Content : ChildViewProvider, Content : View, Modifier : BufferModifier]
+ModifiedView.childViewsAreWorthMemoising | @MainActor var childViewsAreWorthMemoising: Bool { get } [extension where Content : ChildViewProvider, Content : View, Modifier : BufferModifier]
+ModifiedView.content | let content: Content
+ModifiedView.explicitID | @MainActor var explicitID: AnyHashable? { get } [extension where Content : View, Modifier : BufferModifier]
+ModifiedView.explicitIDKey | @MainActor var explicitIDKey: String? { get } [extension where Content : View, Modifier : BufferModifier]
+ModifiedView.identityBranchLabel | @MainActor var identityBranchLabel: String? { get } [extension where Content : ChildViewProvider, Content : View, Modifier : BufferModifier]
+ModifiedView.init(content:modifier:) | init(content: Content, modifier: Modifier)
+ModifiedView.modifier | var modifier: Modifier
+ModifiedView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View, Modifier : BufferModifier]
+ModifiedView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View, Modifier : BufferModifier]
+ModifiedView.staysWhole(in:) | @MainActor func staysWhole(in context: RenderContext) -> Bool [extension where Content : ChildViewProvider, Content : View, Modifier : BufferModifier]
+ModifiedView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View, Modifier : BufferModifier]
+MoveKeyframe | nonisolated struct MoveKeyframe<Value> where Value : Animatable
+MoveKeyframe._resolve(into:) | @MainActor func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>)
+MoveKeyframe.body | @MainActor var body: MoveKeyframe<Value> { get }
+MoveKeyframe.init(_:) | init(_ to: Value)
+Never.Value | typealias Value = Never
+Never._handsOverChildren | @MainActor static var _handsOverChildren: Bool { get }
+Never._providesAlignmentGuide | @MainActor static var _providesAlignmentGuide: Bool { get }
+Never._resolve(into:initialValue:initialVelocity:) | @MainActor func _resolve(into resolved: inout _ResolvedKeyframes<Never>, initialValue: Never, initialVelocity: Never?)
+Never._statesSpacingPreference | @MainActor static var _statesSpacingPreference: Bool { get }
+Never.body | @MainActor var body: Never { get }
+ObjectEnvironmentModifier.body | @MainActor var body: some View { get }
+ObjectEnvironmentModifier.content | let content: Content
+ObjectEnvironmentModifier.init(content:object:) | init(content: Content, object: T?)
+ObjectEnvironmentModifier.object | let object: T?
+ObjectEnvironmentModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View, T : Observable]
+ObjectEnvironmentModifier.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View, T : Observable]
+ObjectEnvironmentModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View, T : Observable]
+ObjectEnvironmentModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View, T : Observable]
+ObjectEnvironmentModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View, T : Observable]
+OpacityRegion.opacity(of:) | static func opacity(of alpha: UInt8) -> Double
+Optional._handsOverChildren | static var _handsOverChildren: Bool { get } [extension where Wrapped : View]
+Optional._providesAlignmentGuide | @MainActor static var _providesAlignmentGuide: Bool { get } [extension where Wrapped : View]
+Optional._statesSpacingPreference | @MainActor static var _statesSpacingPreference: Bool { get } [extension where Wrapped : View]
+Optional.body | @MainActor var body: some View { get } [extension where Wrapped : View]
+Optional.childViews(context:) | @MainActor func childViews(context: RenderContext) -> [ChildView] [extension where Wrapped : View]
+Optional.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Wrapped : View]
+Optional.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Wrapped : View]
+PlaceholderContentView | nonisolated struct PlaceholderContentView<Value>
+PlaceholderContentView.body | @MainActor var body: Never { get }
+PlaceholderContentView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer
+PlaceholderContentView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+Placement.child | @MainActor let child: ChildView
+Placement.height | @MainActor let height: Int
+Placement.identity | @MainActor let identity: ViewIdentity
+Placement.init(child:identity:x:y:width:height:) | @MainActor init(child: ChildView, identity: ViewIdentity, x: Int, y: Int, width: Int, height: Int)
+Placement.width | @MainActor let width: Int
+Placement.x | @MainActor let x: Int
+Placement.y | @MainActor let y: Int
+PlacementStore.beginRenderPass() | func beginRenderPass()
+PlacementStore.count | var count: Int { get }
+PlacementStore.init() | init()
+PlacementStore.removeAll() | func removeAll()
+Range.extends(_:) | func extends(_ previous: Any) -> Bool [extension where Bound : Strideable, Bound.Stride : SignedInteger]
+RenderCache.CacheEntry | final class CacheEntry
+RenderCache.CacheEntry.buffer | let buffer: FrameBuffer
+RenderCache.CacheEntry.contextHeight | let contextHeight: Int
+RenderCache.CacheEntry.contextWidth | let contextWidth: Int
+RenderCache.CacheEntry.gradientFrame | let gradientFrame: GradientFrame?
+RenderCache.CacheEntry.identity | let identity: ViewIdentity
+RenderCache.CacheEntry.init(identity:viewSnapshot:buffer:contextWidth:contextHeight:gradientFrame:surfaceBackground:) | convenience init(identity: ViewIdentity, viewSnapshot: Any, buffer: FrameBuffer, contextWidth: Int, contextHeight: Int, gradientFrame: GradientFrame? = nil, surfaceBackground: Color? = nil)
+RenderCache.CacheEntry.surfaceBackground | let surfaceBackground: Color?
+RenderCache.CacheEntry.viewSnapshot | let viewSnapshot: Any
+RenderCache.ChildViewsKey | struct ChildViewsKey
+RenderCache.ChildViewsKey.hash(into:) | func hash(into hasher: inout Hasher)
+RenderCache.ChildViewsKey.identityHash | let identityHash: Int
+RenderCache.ChildViewsKey.init(identityHash:viewType:valueHash:) | init(identityHash: Int, viewType: ObjectIdentifier, valueHash: Int)
+RenderCache.ChildViewsKey.valueHash | let valueHash: Int
+RenderCache.ChildViewsKey.viewType | let viewType: ObjectIdentifier
+RenderCache.EnvironmentChange | enum EnvironmentChange
+RenderCache.EnvironmentChange.changed | case changed
+RenderCache.EnvironmentChange.first | case first
+RenderCache.EnvironmentChange.incomparable | case incomparable
+RenderCache.EnvironmentChange.unchanged | case unchanged
+RenderCache.EnvironmentSlot | struct EnvironmentSlot
+RenderCache.EnvironmentSlot.depth | let depth: Int
+RenderCache.EnvironmentSlot.hash(into:) | func hash(into hasher: inout Hasher)
+RenderCache.EnvironmentSlot.identity | let identity: ViewIdentity
+RenderCache.EnvironmentSlot.init(identity:keyPath:depth:) | init(identity: ViewIdentity, keyPath: AnyKeyPath, depth: Int)
+RenderCache.EnvironmentSlot.keyPath | let keyPath: AnyKeyPath
+RenderCache.MeasureKey | struct MeasureKey
+RenderCache.MeasureKey.hash(into:) | func hash(into hasher: inout Hasher)
+RenderCache.MeasureKey.init(identityHash:effectiveWidth:availableWidth:hasExplicitWidth:hasExplicitHeight:viewType:valueHash:) | init(identityHash: Int, effectiveWidth: Int, availableWidth: Int, hasExplicitWidth: Bool, hasExplicitHeight: Bool, viewType: ObjectIdentifier, valueHash: Int)
+RenderCache.RowWork | struct RowWork
+RenderCache.RowWork.cellValues | var cellValues: Int
+RenderCache.RowWork.delta(since:) | func delta(since earlier: RenderCache.RowWork) -> RenderCache.RowWork
+RenderCache.RowWork.init(rendered:served:servedDrawing:cellValues:repainted:) | init(rendered: Int = 0, served: Int = 0, servedDrawing: Int = 0, cellValues: Int = 0, repainted: Int = 0)
+RenderCache.RowWork.rendered | var rendered: Int
+RenderCache.RowWork.repainted | var repainted: Int
+RenderCache.RowWork.served | var served: Int
+RenderCache.RowWork.servedDrawing | var servedDrawing: Int
+RenderCache.SizeKey | struct SizeKey
+RenderCache.SizeKey.availableHeight | let availableHeight: Int
+RenderCache.SizeKey.availableWidth | let availableWidth: Int
+RenderCache.SizeKey.hasExplicitHeight | let hasExplicitHeight: Bool
+RenderCache.SizeKey.hasExplicitWidth | let hasExplicitWidth: Bool
+RenderCache.SizeKey.hash(into:) | func hash(into hasher: inout Hasher)
+RenderCache.SizeKey.identityHash | let identityHash: Int
+RenderCache.SizeKey.init(identityHash:proposalWidth:proposalHeight:availableWidth:availableHeight:hasExplicitWidth:hasExplicitHeight:measureGeneration:) | init(identityHash: Int, proposalWidth: Int?, proposalHeight: Int?, availableWidth: Int, availableHeight: Int, hasExplicitWidth: Bool, hasExplicitHeight: Bool, measureGeneration: UInt8)
+RenderCache.SizeKey.measureGeneration | let measureGeneration: UInt8
+RenderCache.SizeKey.proposalHeight | let proposalHeight: Int?
+RenderCache.SizeKey.proposalWidth | let proposalWidth: Int?
+RenderCache.Stats | struct Stats
+RenderCache.Stats.clearVisits | var clearVisits: Int
+RenderCache.Stats.clears | var clears: Int
+RenderCache.Stats.delta(since:) | func delta(since earlier: RenderCache.Stats) -> RenderCache.Stats
+RenderCache.Stats.hitRate | var hitRate: Double { get }
+RenderCache.Stats.hits | var hits: Int
+RenderCache.Stats.init(hits:misses:stores:clears:subtreeClears:clearVisits:) | init(hits: Int = 0, misses: Int = 0, stores: Int = 0, clears: Int = 0, subtreeClears: Int = 0, clearVisits: Int = 0)
+RenderCache.Stats.lookups | var lookups: Int { get }
+RenderCache.Stats.misses | var misses: Int
+RenderCache.Stats.stores | var stores: Int
+RenderCache.Stats.subtreeClears | var subtreeClears: Int
+RenderCache.beginRenderPass() | func beginRenderPass()
+RenderCache.bodyMutationDiagnostic | var bodyMutationDiagnostic: BodyMutationDiagnostic? { get set }
+RenderCache.childViewsMemoBypasses | var childViewsMemoBypasses: Int { get }
+RenderCache.childViewsMemoTotals | var childViewsMemoTotals: (hits: Int, misses: Int) { get }
+RenderCache.clearAffected(by:keepingSizes:includingDescendants:) | func clearAffected(by identity: ViewIdentity, keepingSizes: Bool = false, includingDescendants: Bool = true)
+RenderCache.clearAll() | func clearAll()
+RenderCache.clearGeneration | var clearGeneration: Int { get }
+RenderCache.count | var count: Int { get }
+RenderCache.debugEnabled | static let debugEnabled: Bool
+RenderCache.init() | convenience init()
+RenderCache.invalidateRender(for:) | func invalidateRender(for identity: ViewIdentity?)
+RenderCache.isEmpty | var isEmpty: Bool { get }
+RenderCache.isStorable(buffer:context:readVolatile:invalidatedDuringRender:) | static func isStorable(buffer: FrameBuffer, context: RenderContext, readVolatile: Bool, invalidatedDuringRender: Bool) -> Bool
+RenderCache.lastPruneSummary | var lastPruneSummary: String { get }
+RenderCache.logFrameStats() | func logFrameStats()
+RenderCache.lookup(identity:view:contextWidth:contextHeight:gradientFrame:surfaceBackground:) | func lookup<V>(identity: ViewIdentity, view: V, contextWidth: Int, contextHeight: Int, gradientFrame: GradientFrame? = nil, surfaceBackground: Color? = nil) -> FrameBuffer? where V : Equatable
+RenderCache.lookupChildViews(key:) | func lookupChildViews(key: RenderCache.ChildViewsKey) -> [ChildView]?
+RenderCache.lookupMeasure(key:proposalWidthWasSpecified:proposalHeight:availableHeight:verticalBudget:) | func lookupMeasure(key: RenderCache.MeasureKey, proposalWidthWasSpecified: Bool, proposalHeight: Int?, availableHeight: Int, verticalBudget: Int) -> ViewSize?
+RenderCache.lookupSize(key:view:) | func lookupSize<V>(key: RenderCache.SizeKey, view: V) -> ViewSize? where V : Equatable
+RenderCache.markActive(_:) | func markActive(_ identity: ViewIdentity)
+RenderCache.measureMemoBypasses | var measureMemoBypasses: Int { get }
+RenderCache.measureMemoMismatches | var measureMemoMismatches: [String] { get }
+RenderCache.measureMemoStores | var measureMemoStores: Int { get }
+RenderCache.measureMemoTotals | var measureMemoTotals: (hits: Int, misses: Int) { get }
+RenderCache.noteAppliedEnvironment(_:identity:keyPath:depth:) | func noteAppliedEnvironment(_ value: @autoclosure () -> Any, identity: ViewIdentity, keyPath: AnyKeyPath, depth: Int) -> RenderCache.EnvironmentChange
+RenderCache.noteMeasureMemoMismatch(viewType:served:fresh:proposal:availableWidth:availableHeight:identity:) | @MainActor func noteMeasureMemoMismatch(viewType: String, served: ViewSize, fresh: ViewSize, proposal: ProposedSize, availableWidth: Int, availableHeight: Int, identity: String = "")
+RenderCache.noteRenderMemoMismatch(viewType:served:fresh:identity:) | @MainActor func noteRenderMemoMismatch(viewType: String, served: FrameBuffer, fresh: FrameBuffer, identity: String = "")
+RenderCache.removeInactive() | func removeInactive()
+RenderCache.renderMemoMismatches | var renderMemoMismatches: [String] { get }
+RenderCache.reset() | func reset()
+RenderCache.resetStats() | func resetStats()
+RenderCache.retainSubtree(_:) | func retainSubtree(_ root: ViewIdentity)
+RenderCache.rowWork | var rowWork: RenderCache.RowWork
+RenderCache.sizeClearGeneration | var sizeClearGeneration: Int { get }
+RenderCache.stats | var stats: RenderCache.Stats { get }
+RenderCache.store(identity:view:buffer:contextWidth:contextHeight:gradientFrame:surfaceBackground:) | func store<V>(identity: ViewIdentity, view: V, buffer: FrameBuffer, contextWidth: Int, contextHeight: Int, gradientFrame: GradientFrame? = nil, surfaceBackground: Color? = nil) where V : Equatable
+RenderCache.storeChildViews(key:children:) | func storeChildViews(key: RenderCache.ChildViewsKey, children: [ChildView])
+RenderCache.storeMeasure(key:proposalWidthWasSpecified:proposalHeight:availableHeight:size:) | func storeMeasure(key: RenderCache.MeasureKey, proposalWidthWasSpecified: Bool, proposalHeight: Int?, availableHeight: Int, size: ViewSize)
+RenderCache.storeSize(key:identity:view:size:lapsingAt:) | func storeSize<V>(key: RenderCache.SizeKey, identity: ViewIdentity, view: V, size: ViewSize, lapsingAt: Date? = nil) where V : Equatable
+RenderCache.verifiesMeasureMemo | @MainActor static var verifiesMeasureMemo: Bool
+RenderCache.verifiesRenderMemo | @MainActor static var verifiesRenderMemo: Bool
+RenderCache.volatileReadTracker | var volatileReadTracker: VolatileReadTracker? { get }
+RenderContext | struct RenderContext
+RenderContext.availableHeight | var availableHeight: Int
+RenderContext.availableWidth | var availableWidth: Int
+RenderContext.environment | var environment: EnvironmentValues
+RenderContext.environmentApplicationDepth | var environmentApplicationDepth: Int
+RenderContext.extent(_:insideChrome:) | static func extent(_ available: Int, insideChrome chrome: Int) -> Int
+RenderContext.forBorderedContent(hasBorder:) | func forBorderedContent(hasBorder: Bool = true) -> RenderContext
+RenderContext.gradientContentFrame(width:height:) | func gradientContentFrame(width: Int, height: Int) -> GradientFrame?
+RenderContext.gradientFrame | var gradientFrame: GradientFrame?
+RenderContext.hasExplicitHeight | var hasExplicitHeight: Bool { get set }
+RenderContext.hasExplicitWidth | var hasExplicitWidth: Bool { get set }
+RenderContext.identity | var identity: ViewIdentity
+RenderContext.init(availableWidth:availableHeight:environment:identity:) | init(availableWidth: Int, availableHeight: Int, environment: EnvironmentValues = EnvironmentValues(), identity: ViewIdentity = ViewIdentity(path: ""))
+RenderContext.invalidatingMeasureMemo() | func invalidatingMeasureMemo() -> RenderContext
+RenderContext.isMeasuring | var isMeasuring: Bool
+RenderContext.measureGeneration | var measureGeneration: UInt8
+RenderContext.placesChildren | var placesChildren: Bool { get }
+RenderContext.placingChild(gradient:x:y:) | func placingChild(gradient frame: GradientFrame?, x: Int, y: Int) -> RenderContext
+RenderContext.resolveContainerHeight(contentHeight:borderOverhead:) | func resolveContainerHeight(contentHeight: Int, borderOverhead: Int = 0) -> Int
+RenderContext.resolveContainerWidth(contentWidth:innerAvailableWidth:) | func resolveContainerWidth(contentWidth: Int, innerAvailableWidth: Int) -> Int
+RenderContext.withAvailableHeight(_:) | func withAvailableHeight(_ height: Int) -> RenderContext
+RenderContext.withAvailableSize(width:height:) | func withAvailableSize(width: Int, height: Int) -> RenderContext
+RenderContext.withAvailableWidth(_:) | func withAvailableWidth(_ width: Int) -> RenderContext
+RenderContext.withBranchIdentity(_:) | func withBranchIdentity(_ label: String) -> RenderContext
+RenderContext.withChildIdentity(erasedType:index:) | func withChildIdentity(erasedType type: any Any.Type, index: Int) -> RenderContext
+RenderContext.withChildIdentity(erasedType:key:) | func withChildIdentity(erasedType type: any Any.Type, key: String) -> RenderContext
+RenderContext.withChildIdentity(type:) | func withChildIdentity<V>(type: V.Type) -> RenderContext
+RenderContext.withChildIdentity(type:index:) | func withChildIdentity<V>(type: V.Type, index: Int) -> RenderContext
+RenderContext.withEnvironment(_:) | func withEnvironment(_ environment: EnvironmentValues) -> RenderContext
+RenderInvalidationSink.invalidateRenderSoftly(for:) | func invalidateRenderSoftly(for identity: ViewIdentity)
+Renderable | @MainActor protocol Renderable
+Renderable.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer
+SingleContentWrapper | @MainActor protocol SingleContentWrapper
+SingleContentWrapper.WrappedContent | associatedtype WrappedContent : View
+SingleContentWrapper._keepsContentGeometry | @MainActor static var _keepsContentGeometry: Bool { get }
+SingleContentWrapper._keepsContentGeometry | @MainActor static var _keepsContentGeometry: Bool { get }
+SingleContentWrapper.wrappedContent | @MainActor var wrappedContent: Self.WrappedContent { get }
+SingleContentWrapper.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext?
+SingleContentWrapper.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext?
+SpacerProtocol | @MainActor protocol SpacerProtocol
+SpacerProtocol.minLength | @MainActor var minLength: Int? { get }
+SpringKeyframe | nonisolated struct SpringKeyframe<Value> where Value : Animatable
+SpringKeyframe._resolve(into:) | @MainActor func _resolve(into resolved: inout _ResolvedKeyframeTrackContent<Value>)
+SpringKeyframe.body | @MainActor var body: SpringKeyframe<Value> { get }
+SpringKeyframe.init(_:duration:spring:startVelocity:) | init(_ to: Value, duration: TimeInterval? = nil, spring: Spring = Spring(), startVelocity: Value? = nil)
+State | @propertyWrapper struct State<Value>
+State.init() | init<Wrapped>() where Value == Wrapped?
+State.init(initialValue:) | init(initialValue value: Value)
+State.init(wrappedValue:) | init(wrappedValue: Value)
+State.projectedValue | var projectedValue: Binding<Value> { get }
+State.wrappedValue | var wrappedValue: Value { get nonmutating set }
+StateBox.init(_:) | init(_ value: Value)
+StateBox.value | var value: Value { get set }
+StateRegistration.activeEnvironment | static var activeEnvironment: EnvironmentValues? { get }
+StateRegistration.withHydration(context:_:) | static func withHydration<R>(context: RenderContext, _ block: () -> R) -> R
+StateRegistration.withHydration(environment:_:) | static func withHydration<R>(environment: EnvironmentValues?, _ block: () -> R) -> R
+StateStorage.StateKey | struct StateKey
+StateStorage.StateKey.hash(into:) | func hash(into hasher: inout Hasher)
+StateStorage.StateKey.identity | let identity: ViewIdentity
+StateStorage.StateKey.init(identity:propertyIndex:) | init(identity: ViewIdentity, propertyIndex: Int)
+StateStorage.StateKey.propertyIndex | let propertyIndex: Int
+StateStorage.animationCompletions | let animationCompletions: AnimationCompletionTracker
+StateStorage.animations | let animations: AnimationStore
+StateStorage.beginRenderPass() | func beginRenderPass()
+StateStorage.beginRewalk() | func beginRewalk()
+StateStorage.beginSceneRender() | func beginSceneRender()
+StateStorage.count | var count: Int { get }
+StateStorage.departures | let departures: DepartureStore
+StateStorage.endRenderPass() | func endRenderPass()
+StateStorage.existingStorage(for:) | func existingStorage<Value>(for key: StateStorage.StateKey) -> StateBox<Value>?
+StateStorage.inRenderPass(_:) | func inRenderPass<R>(_ body: () throws -> R) rethrows -> R
+StateStorage.init() | init()
+StateStorage.invalidateDescendants(of:includingItself:) | func invalidateDescendants(of ancestor: ViewIdentity, includingItself: Bool = false)
+StateStorage.markActive(_:) | func markActive(_ identity: ViewIdentity)
+StateStorage.nextOnChangeIndex(for:) | func nextOnChangeIndex(for identity: ViewIdentity) -> Int
+StateStorage.placements | let placements: PlacementStore
+StateStorage.recordConditionalBranch(_:isTrueBranch:) | func recordConditionalBranch(_ identity: ViewIdentity, isTrueBranch: Bool) -> Bool
+StateStorage.renderCache | var renderCache: RenderCache? { get set }
+StateStorage.reset() | func reset()
+StateStorage.retainSubtree(_:) | func retainSubtree(_ root: ViewIdentity)
+StateStorage.retainedSubtrees() | func retainedSubtrees() -> RetainedSubtreeIndex
+StateStorage.setTrackedValue(_:for:) | func setTrackedValue<V>(_ value: V, for key: StateStorage.StateKey)
+StateStorage.storage(for:default:) | func storage<Value>(for key: StateStorage.StateKey, default defaultValue: @autoclosure () -> Value) -> StateBox<Value>
+StateStorage.trackedValue(for:) | func trackedValue<V>(for key: StateStorage.StateKey) -> V?
+TransformEnvironmentModifier.body | @MainActor var body: some View { get }
+TransformEnvironmentModifier.content | let content: Content
+TransformEnvironmentModifier.init(content:keyPath:transform:) | init(content: Content, keyPath: WritableKeyPath<EnvironmentValues, V>, transform: @escaping (inout V) -> Void)
+TransformEnvironmentModifier.keyPath | let keyPath: WritableKeyPath<EnvironmentValues, V>
+TransformEnvironmentModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
+TransformEnvironmentModifier.rewrapping(_:) | @MainActor func rewrapping<Inner>(_ view: Inner) -> any View where Inner : View [extension where Content : View]
+TransformEnvironmentModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+TransformEnvironmentModifier.transform | let transform: (inout V) -> Void
+TransformEnvironmentModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
+TransformEnvironmentModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
+TupleView | nonisolated struct TupleView<each V> where repeat each V : View
+TupleView.==(_:_:) | static func == (lhs: TupleView<repeat each V>, rhs: TupleView<repeat each V>) -> Bool [extension where each V : Equatable, each V : View]
+TupleView._handsOverChildren | @MainActor static var _handsOverChildren: Bool { get } [extension where each V : View]
+TupleView._providesAlignmentGuide | @MainActor static var _providesAlignmentGuide: Bool { get } [extension where each V : View]
+TupleView._statesSpacingPreference | @MainActor static var _statesSpacingPreference: Bool { get } [extension where each V : View]
+TupleView.body | @MainActor var body: Never { get }
+TupleView.childInfos(context:) | @MainActor func childInfos(context: RenderContext) -> [ChildInfo] [extension where each V : View]
+TupleView.childViews(context:) | @MainActor func childViews(context: RenderContext) -> [ChildView] [extension where each V : View]
+TupleView.children | let children: (repeat each V)
+TupleView.init(_:) | init(_ value: (repeat each V))
+TupleView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where each V : View]
+TupleView.value | @MainActor var value: (repeat each V) { get }
+View | @MainActor protocol View
+View.Body | associatedtype Body : View
+View._animated(_:context:isMeasuring:) | @MainActor static func _animated(_ view: Self, context: RenderContext, isMeasuring: Bool) -> Self?
+View._animated(_:context:isMeasuring:) | @MainActor static func _animated(_ view: Self, context: RenderContext, isMeasuring: Bool) -> Self?
+View._animated(_:context:isMeasuring:) | @MainActor static func _animated(_ view: Self, context: RenderContext, isMeasuring: Bool) -> Self? [extension where Self : Animatable]
+View._fillsItsOffer | @MainActor static var _fillsItsOffer: Bool { get }
+View._fillsItsOffer | @MainActor static var _fillsItsOffer: Bool { get }
+View._handsOverChildren | @MainActor static var _handsOverChildren: Bool { get }
+View._handsOverChildren | @MainActor static var _handsOverChildren: Bool { get }
+View._handsOverChildren | @MainActor static var _handsOverChildren: Bool { get } [extension where Self : ContentRewrapping]
+View._isAnimatable | @MainActor static var _isAnimatable: Bool { get }
+View._isAnimatable | @MainActor static var _isAnimatable: Bool { get }
+View._isAnimatable | @MainActor static var _isAnimatable: Bool { get } [extension where Self : Animatable]
+View._isSpacer | @MainActor static var _isSpacer: Bool { get }
+View._isSpacer | @MainActor static var _isSpacer: Bool { get }
+View._logChanges() | @MainActor @preconcurrency static func _logChanges()
+View._measureSelf(_:proposal:context:) | @MainActor static func _measureSelf(_ view: Self, proposal: ProposedSize, context: RenderContext) -> ViewSize?
+View._measureSelf(_:proposal:context:) | @MainActor static func _measureSelf(_ view: Self, proposal: ProposedSize, context: RenderContext) -> ViewSize?
+View._measureSelf(_:proposal:context:) | @MainActor static func _measureSelf(_ view: Self, proposal: ProposedSize, context: RenderContext) -> ViewSize? [extension where Self : Layoutable]
+View._paintsToItsEdges | nonisolated static var _paintsToItsEdges: Bool { get }
+View._paintsToItsEdges | nonisolated static var _paintsToItsEdges: Bool { get }
+View._paintsToItsEdges | nonisolated static var _paintsToItsEdges: Bool { get } [extension where Self : SingleContentWrapper]
+View._printChanges() | @MainActor @preconcurrency static func _printChanges()
+View._providesAlignmentGuide | @MainActor static var _providesAlignmentGuide: Bool { get }
+View._providesAlignmentGuide | @MainActor static var _providesAlignmentGuide: Bool { get }
+View._providesAlignmentGuide | @MainActor static var _providesAlignmentGuide: Bool { get } [extension where Self : SingleContentWrapper]
+View._providesContainerValues | @MainActor static var _providesContainerValues: Bool { get }
+View._providesContainerValues | @MainActor static var _providesContainerValues: Bool { get }
+View._providesContainerValues | @MainActor static var _providesContainerValues: Bool { get } [extension where Self : SingleContentWrapper]
+View._providesLayoutValues | @MainActor static var _providesLayoutValues: Bool { get }
+View._providesLayoutValues | @MainActor static var _providesLayoutValues: Bool { get }
+View._providesLayoutValues | @MainActor static var _providesLayoutValues: Bool { get } [extension where Self : SingleContentWrapper]
+View._providesZIndex | @MainActor static var _providesZIndex: Bool { get }
+View._providesZIndex | @MainActor static var _providesZIndex: Bool { get }
+View._providesZIndex | @MainActor static var _providesZIndex: Bool { get } [extension where Self : SingleContentWrapper]
+View._renderSelf(_:context:) | @MainActor static func _renderSelf(_ view: Self, context: RenderContext) -> FrameBuffer?
+View._renderSelf(_:context:) | @MainActor static func _renderSelf(_ view: Self, context: RenderContext) -> FrameBuffer?
+View._renderSelf(_:context:) | @MainActor static func _renderSelf(_ view: Self, context: RenderContext) -> FrameBuffer? [extension where Self : Renderable]
+View._statesSpacingPreference | @MainActor static var _statesSpacingPreference: Bool { get }
+View._statesSpacingPreference | @MainActor static var _statesSpacingPreference: Bool { get }
+View._statesSpacingPreference | @MainActor static var _statesSpacingPreference: Bool { get } [extension where Self : SingleContentWrapper]
+View.body | @ViewBuilder @MainActor var body: Self.Body { get }
+View.equatable() | nonisolated func equatable() -> EquatableView<Self> [extension where Self : Equatable]
+View.memoized(id:) | nonisolated func memoized<ID>(id: ID) -> _MemoizedView<Self, ID> where ID : Hashable
+View.modifier(_:) | nonisolated func modifier<T>(_ modifier: T) -> ModifiedContent<Self, T> where T : ViewModifier
+ViewArray | nonisolated struct ViewArray<Element> where Element : View
+ViewArray.body | @MainActor var body: Never { get }
+ViewArray.childInfos(context:) | @MainActor func childInfos(context: RenderContext) -> [ChildInfo] [extension where Element : View]
+ViewArray.init(_:) | init(_ elements: [Element])
+ViewArray.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Element : View]
+ViewBuilder | @resultBuilder struct ViewBuilder
+ViewBuilder.buildArray(_:) | static func buildArray<Content>(_ components: [Content]) -> ViewArray<Content> where Content : View
+ViewBuilder.buildBlock() | static func buildBlock() -> EmptyView
+ViewBuilder.buildBlock(_:) | static func buildBlock<Content>(_ content: Content) -> Content where Content : View
+ViewBuilder.buildBlock(_:) | static func buildBlock<each C>(_ content: repeat each C) -> TupleView<repeat each C> where repeat each C : View
+ViewBuilder.buildEither(first:) | static func buildEither<TrueContent, FalseContent>(first content: TrueContent) -> ConditionalView<TrueContent, FalseContent> where TrueContent : View, FalseContent : View
+ViewBuilder.buildEither(second:) | static func buildEither<TrueContent, FalseContent>(second content: FalseContent) -> ConditionalView<TrueContent, FalseContent> where TrueContent : View, FalseContent : View
+ViewBuilder.buildExpression(_:) | static func buildExpression<Content>(_ expression: Content) -> Content where Content : View
+ViewBuilder.buildExpression(_:) | static func buildExpression<Content>(_ expression: Content?) -> Content? where Content : View
+ViewBuilder.buildIf(_:) | static func buildIf<Content>(_ content: Content?) -> Content? where Content : View
+ViewBuilder.buildLimitedAvailability(_:) | static func buildLimitedAvailability<Content>(_ content: Content) -> Content where Content : View
+ViewBuilder.buildOptional(_:) | static func buildOptional<Content>(_ content: Content?) -> Content? where Content : View
+ViewModifier | @MainActor protocol ViewModifier
+ViewModifier.Body | associatedtype Body : View
+ViewModifier.Content | typealias Content = _ViewModifier_Content<Self>
+ViewModifier._animatedModifier(_:owner:context:isMeasuring:) | @MainActor static func _animatedModifier(_ modifier: Self, owner: any Any.Type, context: RenderContext, isMeasuring: Bool) -> Self?
+ViewModifier._animatedModifier(_:owner:context:isMeasuring:) | @MainActor static func _animatedModifier(_ modifier: Self, owner: any Any.Type, context: RenderContext, isMeasuring: Bool) -> Self?
+ViewModifier._animatedModifier(_:owner:context:isMeasuring:) | @MainActor static func _animatedModifier(_ modifier: Self, owner: any Any.Type, context: RenderContext, isMeasuring: Bool) -> Self? [extension where Self : Animatable]
+ViewModifier._isAnimatableModifier | @MainActor static var _isAnimatableModifier: Bool { get }
+ViewModifier._isAnimatableModifier | @MainActor static var _isAnimatableModifier: Bool { get }
+ViewModifier._isAnimatableModifier | @MainActor static var _isAnimatableModifier: Bool { get } [extension where Self : Animatable]
+ViewModifier._isEnvironmentalModifier | @MainActor static var _isEnvironmentalModifier: Bool { get }
+ViewModifier._isEnvironmentalModifier | @MainActor static var _isEnvironmentalModifier: Bool { get }
+ViewModifier._logChanges() | @MainActor @preconcurrency static func _logChanges()
+ViewModifier._printChanges() | @MainActor @preconcurrency static func _printChanges()
+ViewModifier._resolvedBody(_:content:environment:) | @MainActor static func _resolvedBody(_ modifier: Self, content: AnyView, environment: EnvironmentValues) -> AnyView?
+ViewModifier._resolvedBody(_:content:environment:) | @MainActor static func _resolvedBody(_ modifier: Self, content: AnyView, environment: EnvironmentValues) -> AnyView?
+ViewModifier.body(content:) | @ViewBuilder @MainActor func body(content: Self.Content) -> Self.Body
+ViewModifier.concat(_:) | nonisolated func concat<T>(_ modifier: T) -> ModifiedContent<Self, T>
+ZIndexProviding | @MainActor protocol ZIndexProviding
+ZIndexProviding.zIndexValue | @MainActor var zIndexValue: Double { get }
+_MemoizedRow | nonisolated struct _MemoizedRow<Element, Source, Content> where Element : Equatable, Content : View
+_MemoizedRow.body | @MainActor var body: Never { get }
+_MemoizedRow.element | let element: Element
+_MemoizedRow.init(element:content:) | init(element: Element, content: Content) where Source : View, Source == Content
+_MemoizedRow.init(element:source:build:) | init(element: Element, source: Source, build: @escaping (Source) -> Content)
+_MemoizedRow.memoizedContent | @MainActor var memoizedContent: any View { get } [extension where Element : Equatable, Content : View]
+_MemoizedRow.memoizedContentType | @MainActor var memoizedContentType: any View.Type { get } [extension where Element : Equatable, Content : View]
+_MemoizedRow.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer
+_MemoizedRow.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+_MemoizedView | nonisolated struct _MemoizedView<Content, ID> where Content : View, ID : Hashable
+_MemoizedView.body | @MainActor var body: Never { get }
+_MemoizedView.init(id:content:) | init(id: ID, content: Content)
+_MemoizedView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View, ID : Hashable]
+_MemoizedView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View, ID : Hashable]
+_MemoizedView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View, ID : Hashable]
+_MemoizedView.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View, ID : Hashable]
+_ResolvedKeyframeTrackContent | struct _ResolvedKeyframeTrackContent<Value> where Value : Animatable
+_ResolvedKeyframes | struct _ResolvedKeyframes<Value>
+_StyleFillBlock | nonisolated struct _StyleFillBlock
+_StyleFillBlock.body | @MainActor var body: Never { get }
+_StyleFillBlock.colour | let colour: Color?
+_StyleFillBlock.init(colour:) | init(colour: Color? = nil)
+_StyleFillBlock.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer
+_StyleFillBlock.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+_ValueMemoWrapping | @MainActor protocol _ValueMemoWrapping
+_ValueMemoWrapping.memoizedContent | @MainActor var memoizedContent: any View { get }
+_ValueMemoWrapping.memoizedContentType | @MainActor var memoizedContentType: any View.Type { get }
+_ViewModifier_Content | nonisolated struct _ViewModifier_Content<Modifier> where Modifier : ViewModifier
+_ViewModifier_Content.body | @MainActor var body: some View { get }
+renderToBuffer(_:context:) | @MainActor func renderToBuffer<V>(_ view: V, context: RenderContext) -> FrameBuffer where V : View

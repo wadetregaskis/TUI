@@ -1,0 +1,188 @@
+# TUIEffects public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+AnyTransition | struct AnyTransition
+AnyTransition.animation(_:) | func animation(_ animation: Animation?) -> AnyTransition
+AnyTransition.asymmetric(insertion:removal:) | static func asymmetric(insertion: AnyTransition, removal: AnyTransition) -> AnyTransition
+AnyTransition.combined(with:) | func combined(with other: AnyTransition) -> AnyTransition
+AnyTransition.identity | static let identity: AnyTransition
+AnyTransition.init(_:) | @MainActor init<T>(_ transition: T) where T : Transition
+AnyTransition.modifier(active:identity:) | @MainActor static func modifier<E>(active: E, identity: E) -> AnyTransition where E : ViewModifier
+AnyTransition.move(edge:) | static func move(edge: Edge) -> AnyTransition
+AnyTransition.offset(_:) | static func offset(_ offset: CellSize) -> AnyTransition
+AnyTransition.offset(x:y:) | static func offset(x: Int = 0, y: Int = 0) -> AnyTransition
+AnyTransition.opacity | static let opacity: AnyTransition
+AnyTransition.push(from:) | static func push(from edge: Edge) -> AnyTransition
+AnyTransition.scale | static let scale: AnyTransition
+AnyTransition.scale(scale:anchor:) | static func scale(scale: Double, anchor: UnitPoint = .center) -> AnyTransition
+AnyTransition.slide | static let slide: AnyTransition
+AsymmetricTransition | nonisolated struct AsymmetricTransition<Insertion, Removal> where Insertion : Transition, Removal : Transition
+AsymmetricTransition._erased | @MainActor var _erased: AnyTransition { get }
+AsymmetricTransition.body(content:phase:) | @MainActor func body(content: AsymmetricTransition<Insertion, Removal>.Content, phase: TransitionPhase) -> some View
+AsymmetricTransition.init(insertion:removal:) | init(insertion: Insertion, removal: Removal)
+AsymmetricTransition.insertion | var insertion: Insertion
+AsymmetricTransition.properties | @MainActor static var properties: TransitionProperties { get }
+AsymmetricTransition.removal | var removal: Removal
+BlurReplaceTransition | nonisolated struct BlurReplaceTransition
+BlurReplaceTransition.Configuration | struct Configuration
+BlurReplaceTransition.Configuration.downUp | static let downUp: BlurReplaceTransition.Configuration
+BlurReplaceTransition.Configuration.upUp | static let upUp: BlurReplaceTransition.Configuration
+BlurReplaceTransition._erased | @MainActor var _erased: AnyTransition { get }
+BlurReplaceTransition.body(content:phase:) | @MainActor func body(content: BlurReplaceTransition.Content, phase: TransitionPhase) -> some View
+BlurReplaceTransition.configuration | var configuration: BlurReplaceTransition.Configuration
+BlurReplaceTransition.init(configuration:) | init(configuration: BlurReplaceTransition.Configuration)
+ContentTransition | struct ContentTransition
+ContentTransition.identity | static let identity: ContentTransition
+ContentTransition.interpolate | static let interpolate: ContentTransition
+ContentTransition.numericText(countsDown:) | static func numericText(countsDown: Bool = false) -> ContentTransition
+ContentTransition.numericText(value:) | static func numericText(value: Double) -> ContentTransition
+ContentTransition.opacity | static let opacity: ContentTransition
+ContentTransition.symbolEffect | static var symbolEffect: ContentTransition { get }
+ContentTransition.symbolEffect(_:options:) | static func symbolEffect<T>(_ effect: T, options: SymbolEffectOptions = .default) -> ContentTransition where T : ContentTransitionSymbolEffect, T : SymbolEffect
+EmptyVisualEffect | @MainActor struct EmptyVisualEffect
+EmptyVisualEffect.AnimatableData | typealias AnimatableData = EmptyAnimatableData
+EmptyVisualEffect._applied(to:context:) | @MainActor func _applied(to buffer: FrameBuffer, context: RenderContext) -> FrameBuffer
+EmptyVisualEffect.init() | @MainActor init()
+EnvironmentValues.contentTransition | var contentTransition: ContentTransition { get set }
+EnvironmentValues.contentTransitionAddsDrawingGroup | var contentTransitionAddsDrawingGroup: Bool { get set }
+IdentityTransition | nonisolated struct IdentityTransition
+IdentityTransition._erased | @MainActor var _erased: AnyTransition { get }
+IdentityTransition.body(content:phase:) | @MainActor func body(content: IdentityTransition.Content, phase: TransitionPhase) -> IdentityTransition.Content
+IdentityTransition.init() | init()
+IdentityTransition.properties | static let properties: TransitionProperties
+KeyframeAnimator | struct KeyframeAnimator<Value, KeyframePath, Content> where Value == KeyframePath.Value, KeyframePath : Keyframes, Content : View
+KeyframeAnimator.body | @MainActor @ViewBuilder var body: some View { get }
+KeyframeAnimator.init(initialValue:repeating:content:keyframes:) | init(initialValue: Value, repeating: Bool = true, @ViewBuilder content: @escaping (Value) -> Content, @KeyframesBuilder<Value> keyframes: @escaping (Value) -> KeyframePath)
+KeyframeAnimator.init(initialValue:trigger:content:keyframes:) | init(initialValue: Value, trigger: some Equatable, @ViewBuilder content: @escaping (Value) -> Content, @KeyframesBuilder<Value> keyframes: @escaping (Value) -> KeyframePath)
+MatchedGeometryProperties | @frozen struct MatchedGeometryProperties
+MatchedGeometryProperties.frame | static let frame: MatchedGeometryProperties
+MatchedGeometryProperties.init(rawValue:) | init(rawValue: UInt32)
+MatchedGeometryProperties.position | static let position: MatchedGeometryProperties
+MatchedGeometryProperties.rawValue | let rawValue: UInt32
+MatchedGeometryProperties.size | static let size: MatchedGeometryProperties
+MoveTransition | nonisolated struct MoveTransition
+MoveTransition._erased | @MainActor var _erased: AnyTransition { get }
+MoveTransition.body(content:phase:) | @MainActor func body(content: MoveTransition.Content, phase: TransitionPhase) -> some View
+MoveTransition.edge | var edge: Edge
+MoveTransition.init(edge:) | init(edge: Edge)
+OffsetTransition | nonisolated struct OffsetTransition
+OffsetTransition._erased | @MainActor var _erased: AnyTransition { get }
+OffsetTransition.body(content:phase:) | @MainActor func body(content: OffsetTransition.Content, phase: TransitionPhase) -> some View
+OffsetTransition.init(_:) | init(_ offset: CellSize)
+OffsetTransition.offset | var offset: CellSize
+OpacityTransition | nonisolated struct OpacityTransition
+OpacityTransition._erased | @MainActor var _erased: AnyTransition { get }
+OpacityTransition.body(content:phase:) | @MainActor func body(content: OpacityTransition.Content, phase: TransitionPhase) -> some View
+OpacityTransition.init() | init()
+OpacityTransition.properties | static let properties: TransitionProperties
+PhaseAnimator | struct PhaseAnimator<Phase, Content> where Phase : Equatable, Content : View
+PhaseAnimator.body | @MainActor @ViewBuilder var body: some View { get }
+PhaseAnimator.init(_:content:animation:) | init(_ phases: some Sequence<Phase>, @ViewBuilder content: @escaping (Phase) -> Content, animation: @escaping (Phase) -> Animation? = { _ in .default })
+PhaseAnimator.init(_:trigger:content:animation:) | init(_ phases: some Sequence<Phase>, trigger: some Equatable, @ViewBuilder content: @escaping (Phase) -> Content, animation: @escaping (Phase) -> Animation? = { _ in .default })
+PushTransition | nonisolated struct PushTransition
+PushTransition._erased | @MainActor var _erased: AnyTransition { get }
+PushTransition.body(content:phase:) | @MainActor func body(content: PushTransition.Content, phase: TransitionPhase) -> some View
+PushTransition.edge | var edge: Edge
+PushTransition.init(edge:) | init(edge: Edge)
+ScaleTransition | nonisolated struct ScaleTransition
+ScaleTransition._erased | @MainActor var _erased: AnyTransition { get }
+ScaleTransition.anchor | var anchor: UnitPoint
+ScaleTransition.body(content:phase:) | @MainActor func body(content: ScaleTransition.Content, phase: TransitionPhase) -> some View
+ScaleTransition.init(_:anchor:) | init(_ scale: Double, anchor: UnitPoint = .center)
+ScaleTransition.scale | var scale: Double
+ScrollTransitionConfiguration | struct ScrollTransitionConfiguration
+ScrollTransitionConfiguration.Threshold | struct Threshold
+ScrollTransitionConfiguration.Threshold.centered | static var centered: ScrollTransitionConfiguration.Threshold { get }
+ScrollTransitionConfiguration.Threshold.hidden | static let hidden: ScrollTransitionConfiguration.Threshold
+ScrollTransitionConfiguration.Threshold.inset(by:) | func inset(by distance: Double) -> ScrollTransitionConfiguration.Threshold
+ScrollTransitionConfiguration.Threshold.interpolated(towards:amount:) | func interpolated(towards other: ScrollTransitionConfiguration.Threshold, amount: Double) -> ScrollTransitionConfiguration.Threshold
+ScrollTransitionConfiguration.Threshold.visible | static let visible: ScrollTransitionConfiguration.Threshold
+ScrollTransitionConfiguration.Threshold.visible(_:) | static func visible(_ amount: Double) -> ScrollTransitionConfiguration.Threshold
+ScrollTransitionConfiguration.animated | static let animated: ScrollTransitionConfiguration
+ScrollTransitionConfiguration.animated(_:) | static func animated(_ animation: Animation = .default) -> ScrollTransitionConfiguration
+ScrollTransitionConfiguration.animation(_:) | func animation(_ animation: Animation) -> ScrollTransitionConfiguration
+ScrollTransitionConfiguration.identity | static let identity: ScrollTransitionConfiguration
+ScrollTransitionConfiguration.interactive | static let interactive: ScrollTransitionConfiguration
+ScrollTransitionConfiguration.interactive(timingCurve:) | static func interactive(timingCurve: UnitCurve = .easeInOut) -> ScrollTransitionConfiguration
+ScrollTransitionConfiguration.threshold(_:) | func threshold(_ threshold: ScrollTransitionConfiguration.Threshold) -> ScrollTransitionConfiguration
+ScrollTransitionPhase | @frozen enum ScrollTransitionPhase
+ScrollTransitionPhase.bottomTrailing | case bottomTrailing
+ScrollTransitionPhase.identity | case identity
+ScrollTransitionPhase.isIdentity | var isIdentity: Bool { get }
+ScrollTransitionPhase.topLeading | case topLeading
+ScrollTransitionPhase.value | var value: Double { get }
+SlideTransition | nonisolated struct SlideTransition
+SlideTransition._erased | @MainActor var _erased: AnyTransition { get }
+SlideTransition.body(content:phase:) | @MainActor func body(content: SlideTransition.Content, phase: TransitionPhase) -> some View
+SlideTransition.init() | init()
+SymbolEffectTransition | nonisolated struct SymbolEffectTransition
+SymbolEffectTransition._erased | @MainActor var _erased: AnyTransition { get }
+SymbolEffectTransition.body(content:phase:) | @MainActor func body(content: SymbolEffectTransition.Content, phase: TransitionPhase) -> some View
+SymbolEffectTransition.init(effect:options:) | init<T>(effect: T, options: SymbolEffectOptions) where T : SymbolEffect, T : TransitionSymbolEffect
+SymbolEffectTransition.properties | static let properties: TransitionProperties
+Transition | @MainActor @preconcurrency protocol Transition
+Transition.Body | associatedtype Body : View
+Transition.Content | typealias Content = PlaceholderContentView<Self>
+Transition._erased | @MainActor var _erased: AnyTransition { get }
+Transition._erased | @MainActor var _erased: AnyTransition { get }
+Transition.animation(_:) | nonisolated func animation(_ animation: Animation?) -> some Transition
+Transition.apply(content:phase:) | @MainActor func apply<V>(content: V, phase: TransitionPhase) -> some View where V : View
+Transition.blurReplace | nonisolated static var blurReplace: BlurReplaceTransition { get } [extension where Self == BlurReplaceTransition]
+Transition.blurReplace(_:) | nonisolated static func blurReplace(_ config: BlurReplaceTransition.Configuration = .downUp) -> Self [extension where Self == BlurReplaceTransition]
+Transition.body(content:phase:) | @ViewBuilder @MainActor func body(content: Self.Content, phase: TransitionPhase) -> Self.Body
+Transition.combined(with:) | nonisolated func combined<T>(with other: T) -> some Transition where T : Transition
+Transition.identity | nonisolated static var identity: IdentityTransition { get } [extension where Self == IdentityTransition]
+Transition.move(edge:) | nonisolated static func move(edge: Edge) -> Self [extension where Self == MoveTransition]
+Transition.offset(_:) | nonisolated static func offset(_ offset: CellSize) -> Self [extension where Self == OffsetTransition]
+Transition.offset(x:y:) | nonisolated static func offset(x: Int = 0, y: Int = 0) -> Self [extension where Self == OffsetTransition]
+Transition.opacity | nonisolated static var opacity: OpacityTransition { get } [extension where Self == OpacityTransition]
+Transition.properties | @MainActor static var properties: TransitionProperties { get }
+Transition.properties | nonisolated static var properties: TransitionProperties { get }
+Transition.push(from:) | nonisolated static func push(from edge: Edge) -> Self [extension where Self == PushTransition]
+Transition.scale | nonisolated static var scale: ScaleTransition { get } [extension where Self == ScaleTransition]
+Transition.scale(_:anchor:) | nonisolated static func scale(_ scale: Double, anchor: UnitPoint = .center) -> Self [extension where Self == ScaleTransition]
+Transition.slide | nonisolated static var slide: SlideTransition { get } [extension where Self == SlideTransition]
+Transition.symbolEffect | nonisolated static var symbolEffect: SymbolEffectTransition { get } [extension where Self == SymbolEffectTransition]
+Transition.symbolEffect(_:options:) | nonisolated static func symbolEffect<T>(_ effect: T, options: SymbolEffectOptions = .default) -> SymbolEffectTransition where T : SymbolEffect, T : TransitionSymbolEffect [extension where Self == SymbolEffectTransition]
+TransitionPhase | @frozen enum TransitionPhase
+TransitionPhase.didDisappear | case didDisappear
+TransitionPhase.identity | case identity
+TransitionPhase.isIdentity | var isIdentity: Bool { get }
+TransitionPhase.value | var value: Double { get }
+TransitionPhase.willAppear | case willAppear
+TransitionProperties | struct TransitionProperties
+TransitionProperties.hasMotion | var hasMotion: Bool
+TransitionProperties.init(hasMotion:) | init(hasMotion: Bool = true)
+View.brightness(_:) | nonisolated func brightness(_ amount: Double) -> some View
+View.colorInvert() | nonisolated func colorInvert() -> some View
+View.colorMultiply(_:) | nonisolated func colorMultiply(_ color: Color) -> some View
+View.contentTransition(_:) | nonisolated func contentTransition(_ transition: ContentTransition) -> some View
+View.contrast(_:) | nonisolated func contrast(_ amount: Double) -> some View
+View.grayscale(_:) | nonisolated func grayscale(_ amount: Double) -> some View
+View.hueRotation(_:) | nonisolated func hueRotation(_ angle: Angle) -> some View
+View.keyframeAnimator(initialValue:repeating:content:keyframes:) | @MainActor func keyframeAnimator<Value, Result, Path>(initialValue: Value, repeating: Bool = true, @ViewBuilder content: @escaping @MainActor (PlaceholderContentView<Self>, Value) -> Result, @KeyframesBuilder<Value> keyframes: @escaping (Value) -> Path) -> some View where Value == Path.Value, Result : View, Path : Keyframes
+View.keyframeAnimator(initialValue:trigger:content:keyframes:) | @MainActor func keyframeAnimator<Value, Result, Path>(initialValue: Value, trigger: some Equatable, @ViewBuilder content: @escaping @MainActor (PlaceholderContentView<Self>, Value) -> Result, @KeyframesBuilder<Value> keyframes: @escaping (Value) -> Path) -> some View where Value == Path.Value, Result : View, Path : Keyframes
+View.matchedGeometryEffect(id:in:properties:anchor:isSource:) | nonisolated func matchedGeometryEffect<ID>(id: ID, in namespace: Namespace.ID, properties: MatchedGeometryProperties = .frame, anchor: UnitPoint = .center, isSource: Bool = true) -> some View where ID : Hashable
+View.phaseAnimator(_:content:animation:) | nonisolated func phaseAnimator<Phase, Result>(_ phases: some Sequence, @ViewBuilder content: @escaping (PlaceholderContentView<Self>, Phase) -> Result, animation: @escaping (Phase) -> Animation? = { _ in .default }) -> some View where Phase : Equatable, Result : View
+View.phaseAnimator(_:trigger:content:animation:) | nonisolated func phaseAnimator<Phase, Result>(_ phases: some Sequence, trigger: some Equatable, @ViewBuilder content: @escaping (PlaceholderContentView<Self>, Phase) -> Result, animation: @escaping (Phase) -> Animation? = { _ in .default }) -> some View where Phase : Equatable, Result : View
+View.saturation(_:) | nonisolated func saturation(_ amount: Double) -> some View
+View.scrollTransition(_:axis:transition:) | nonisolated func scrollTransition<Effect>(_ configuration: ScrollTransitionConfiguration = .interactive, axis: Axis? = nil, transition: @escaping @MainActor (EmptyVisualEffect, ScrollTransitionPhase) -> Effect) -> some View where Effect : VisualEffect
+View.scrollTransition(topLeading:bottomTrailing:axis:transition:) | nonisolated func scrollTransition<Effect>(topLeading: ScrollTransitionConfiguration, bottomTrailing: ScrollTransitionConfiguration, axis: Axis? = nil, transition: @escaping @MainActor (EmptyVisualEffect, ScrollTransitionPhase) -> Effect) -> some View where Effect : VisualEffect
+View.symbolEffect(_:options:isActive:) | nonisolated func symbolEffect<T>(_ effect: T, options: SymbolEffectOptions = .default, isActive: Bool = true) -> some View where T : IndefiniteSymbolEffect, T : SymbolEffect
+View.symbolEffect(_:options:value:) | nonisolated func symbolEffect<T, U>(_ effect: T, options: SymbolEffectOptions = .default, value: U) -> some View where T : DiscreteSymbolEffect, T : SymbolEffect, U : Equatable
+View.symbolEffectsRemoved(_:) | nonisolated func symbolEffectsRemoved(_ isEnabled: Bool = true) -> some View
+View.transition(_:) | @MainActor func transition<T>(_ transition: T) -> some View where T : Transition
+View.transition(_:) | nonisolated func transition(_ transition: AnyTransition) -> some View
+View.visualEffect(_:) | nonisolated func visualEffect<Effect>(_ effect: @escaping @MainActor (EmptyVisualEffect, GeometryProxy) -> Effect) -> some View where Effect : VisualEffect
+VisualEffect | @MainActor protocol VisualEffect : Sendable, Animatable
+VisualEffect._applied(to:context:) | @MainActor func _applied(to buffer: FrameBuffer, context: RenderContext) -> FrameBuffer
+VisualEffect._holdingMotion(at:) | @MainActor func _holdingMotion(at target: Self) -> Self
+VisualEffect._holdingMotion(at:) | @MainActor func _holdingMotion(at target: Self) -> Self
+VisualEffect.blendMode(_:) | @MainActor func blendMode(_ mode: BlendMode) -> some VisualEffect
+VisualEffect.brightness(_:) | @MainActor func brightness(_ amount: Double) -> some VisualEffect
+VisualEffect.contrast(_:) | @MainActor func contrast(_ amount: Double) -> some VisualEffect
+VisualEffect.grayscale(_:) | @MainActor func grayscale(_ amount: Double) -> some VisualEffect
+VisualEffect.hueRotation(_:) | @MainActor func hueRotation(_ angle: Angle) -> some VisualEffect
+VisualEffect.offset(_:) | @MainActor func offset(_ offset: CellSize) -> some VisualEffect
+VisualEffect.offset(x:y:) | @MainActor func offset(x: Int = 0, y: Int = 0) -> some VisualEffect
+VisualEffect.opacity(_:) | @MainActor func opacity(_ opacity: Double) -> some VisualEffect
+VisualEffect.saturation(_:) | @MainActor func saturation(_ amount: Double) -> some VisualEffect

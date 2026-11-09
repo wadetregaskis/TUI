@@ -1,0 +1,171 @@
+# TUIImage public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+ASCIIArt | struct ASCIIArt
+ASCIIArt.CoverageRun | struct CoverageRun
+ASCIIArt.CoverageRun.columns | var columns: Range<Int>
+ASCIIArt.CoverageRun.field | var field: UInt8
+ASCIIArt.CoverageRun.init(line:columns:ink:field:) | init(line: Int, columns: Range<Int>, ink: UInt8, field: UInt8)
+ASCIIArt.CoverageRun.ink | var ink: UInt8
+ASCIIArt.CoverageRun.line | var line: Int
+ASCIIArt.coverage | var coverage: [ASCIIArt.CoverageRun]
+ASCIIArt.init(lines:coverage:uncovered:) | init(lines: [String], coverage: [ASCIIArt.CoverageRun] = [], uncovered: [ASCIIArt.CoverageRun] = [])
+ASCIIArt.lines | var lines: [String]
+ASCIIArt.uncovered | var uncovered: [ASCIIArt.CoverageRun]
+ASCIICharacterSet | enum ASCIICharacterSet
+ASCIICharacterSet.BlockStyle | enum BlockStyle
+ASCIICharacterSet.BlockStyle.braille | case braille
+ASCIICharacterSet.BlockStyle.coarse | case coarse
+ASCIICharacterSet.BlockStyle.fine | case fine
+ASCIICharacterSet.BlockStyle.ramp | case ramp
+ASCIICharacterSet.BlockStyle.solid | case solid
+ASCIICharacterSet.ascii | static var ascii: ASCIICharacterSet { get }
+ASCIICharacterSet.ascii(glyphs:) | case ascii(glyphs: Int?)
+ASCIICharacterSet.blocks(_:) | case blocks(ASCIICharacterSet.BlockStyle)
+ASCIICharacterSet.customRamp(_:) | case customRamp(String)
+ASCIICharacterSet.maximumGlyphs(shapeAware:) | func maximumGlyphs(shapeAware: Bool) -> Int?
+ASCIICharacterSet.unicode | static var unicode: ASCIICharacterSet { get }
+ASCIICharacterSet.unicode(glyphs:) | case unicode(glyphs: Int?)
+ASCIIColorMode | enum ASCIIColorMode
+ASCIIColorMode.ansi16 | case ansi16
+ASCIIColorMode.ansi256 | case ansi256
+ASCIIColorMode.derived(from:depth:) | func derived(from image: RGBAImage, depth: ColorDepth) -> ASCIIColorMode
+ASCIIColorMode.effective(for:) | func effective(for depth: ColorDepth) -> ASCIIColorMode
+ASCIIColorMode.grayscale | case grayscale
+ASCIIColorMode.mono | case mono
+ASCIIColorMode.palette(_:) | case palette(ASCIIPalette)
+ASCIIColorMode.resolved(with:) | func resolved(with palette: any Palette) -> ASCIIColorMode
+ASCIIColorMode.trueColor | case trueColor
+ASCIIConverter | struct ASCIIConverter
+ASCIIConverter.cellAspectRange | static let cellAspectRange: ClosedRange<Double>
+ASCIIConverter.convert(_:width:height:) | func convert(_ image: RGBAImage, width: Int, height: Int) -> ASCIIArt
+ASCIIConverter.init(characterSet:shapeAware:colorMode:dithering:supersampling:edgeThreshold:toneCurve:edgeContrast:inkThreshold:adjustments:posterizationLevels:) | init(characterSet: ASCIICharacterSet = .blocks(.fine), shapeAware: Bool = false, colorMode: ASCIIColorMode = .trueColor, dithering: DitheringMode = .none, supersampling: Int? = nil, edgeThreshold: Double? = 0.9, toneCurve: ASCIIToneCurve? = nil, edgeContrast: Double = 0, inkThreshold: Double? = nil, adjustments: ImageAdjustments = .none, posterizationLevels: Int? = nil)
+ASCIIConverter.recoloured(_:width:height:monoInk:monoPaper:) | func recoloured(_ image: RGBAImage, width: Int, height: Int, monoInk: RGBA = RGBA(r: 255, g: 255, b: 255), monoPaper: RGBA = RGBA(r: 0, g: 0, b: 0)) -> RGBAImage
+ASCIIConverter.sanitizedCellAspect(_:) | static func sanitizedCellAspect(_ ratio: Double) -> Double
+ASCIIConverter.targetSize(imageWidth:imageHeight:maxWidth:maxHeight:contentMode:overrideAspectRatio:cellAspect:) | static func targetSize(imageWidth: Int, imageHeight: Int, maxWidth: Int, maxHeight: Int? = nil, contentMode: ContentMode = .fit, overrideAspectRatio: Double? = nil, cellAspect: Double = 2.0) -> (width: Int, height: Int)
+ASCIIPalette | struct ASCIIPalette
+ASCIIPalette.==(_:_:) | static func == (lhs: ASCIIPalette, rhs: ASCIIPalette) -> Bool
+ASCIIPalette.Adaptation | enum Adaptation
+ASCIIPalette.Adaptation.leastError | case leastError
+ASCIIPalette.Adaptation.popularity | case popularity
+ASCIIPalette.AdaptationTarget | enum AdaptationTarget
+ASCIIPalette.AdaptationTarget.allCases | static let allCases: [ASCIIPalette.AdaptationTarget]
+ASCIIPalette.AdaptationTarget.automatic | case automatic
+ASCIIPalette.AdaptationTarget.depth(_:) | case depth(ColorDepth)
+ASCIIPalette.Adaptive | struct Adaptive
+ASCIIPalette.Adaptive.count | let count: Int
+ASCIIPalette.Adaptive.method | let method: ASCIIPalette.Adaptation
+ASCIIPalette.Adaptive.target | let target: ASCIIPalette.AdaptationTarget
+ASCIIPalette.adaptive(_:by:target:) | static func adaptive(_ count: Int, by method: ASCIIPalette.Adaptation, target: ASCIIPalette.AdaptationTarget = .automatic) -> ASCIIPalette
+ASCIIPalette.ansi16 | static var ansi16: ASCIIPalette { get }
+ASCIIPalette.asToneRamp() | func asToneRamp() -> ASCIIPalette
+ASCIIPalette.colors | let colors: [Color]
+ASCIIPalette.derived(from:depth:) | func derived(from image: RGBAImage, depth: ColorDepth) -> ASCIIPalette
+ASCIIPalette.downsampled(to:) | func downsampled(to depth: ColorDepth) -> ASCIIPalette
+ASCIIPalette.init(_:mapping:) | init(_ colors: [Color], mapping: ASCIIPaletteMapping = .nearestColor)
+ASCIIPalette.mapping | let mapping: ASCIIPaletteMapping
+ASCIIPalette.resolved(with:) | func resolved(with palette: any Palette) -> ASCIIPalette
+ASCIIPalette.shades(_:) | static func shades(_ count: Int) -> ASCIIPalette
+ASCIIPalette.spread(_:) | static func spread(_ count: Int) -> ASCIIPalette
+ASCIIPaletteMapping | enum ASCIIPaletteMapping
+ASCIIPaletteMapping.nearestColor | case nearestColor
+ASCIIPaletteMapping.toneRamp | case toneRamp
+ASCIIToneCurve | struct ASCIIToneCurve
+ASCIIToneCurve.==(_:_:) | static func == (lhs: ASCIIToneCurve, rhs: ASCIIToneCurve) -> Bool
+ASCIIToneCurve.Channels | struct Channels
+ASCIIToneCurve.Channels.blue | let blue: ASCIIToneCurve.Ramp
+ASCIIToneCurve.Channels.green | let green: ASCIIToneCurve.Ramp
+ASCIIToneCurve.Channels.identity | static let identity: ASCIIToneCurve.Channels
+ASCIIToneCurve.Channels.init(_:) | init(_ all: ASCIIToneCurve.Ramp)
+ASCIIToneCurve.Channels.init(red:green:blue:) | init(red: ASCIIToneCurve.Ramp, green: ASCIIToneCurve.Ramp, blue: ASCIIToneCurve.Ramp)
+ASCIIToneCurve.Channels.inverted | static let inverted: ASCIIToneCurve.Channels
+ASCIIToneCurve.Channels.isIdentity | var isIdentity: Bool { get }
+ASCIIToneCurve.Channels.red | let red: ASCIIToneCurve.Ramp
+ASCIIToneCurve.Ramp | struct Ramp
+ASCIIToneCurve.Ramp.Point | struct Point
+ASCIIToneCurve.Ramp.Point.init(input:output:) | init(input: Double, output: Double)
+ASCIIToneCurve.Ramp.Point.input | let input: Double
+ASCIIToneCurve.Ramp.Point.output | let output: Double
+ASCIIToneCurve.Ramp.identity | static let identity: ASCIIToneCurve.Ramp
+ASCIIToneCurve.Ramp.init(_:) | init(_ pairs: [(Double, Double)])
+ASCIIToneCurve.Ramp.init(_:) | init(_ points: [ASCIIToneCurve.Ramp.Point])
+ASCIIToneCurve.Ramp.init(arrayLiteral:) | init(arrayLiteral elements: (Double, Double)...)
+ASCIIToneCurve.Ramp.inverted | static let inverted: ASCIIToneCurve.Ramp
+ASCIIToneCurve.Ramp.isIdentity | var isIdentity: Bool { get }
+ASCIIToneCurve.Ramp.points | let points: [ASCIIToneCurve.Ramp.Point]
+ASCIIToneCurve.Ramp.value(at:) | func value(at input: Double) -> Double
+ASCIIToneCurve.Stop | struct Stop
+ASCIIToneCurve.Stop.from | let from: Color
+ASCIIToneCurve.Stop.init(at:to:) | init(at position: Double, to: Color)
+ASCIIToneCurve.Stop.init(from:to:) | init(from: Color, to: Color)
+ASCIIToneCurve.Stop.position | var position: Double? { get }
+ASCIIToneCurve.Stop.to | let to: Color
+ASCIIToneCurve.channels | let channels: ASCIIToneCurve.Channels?
+ASCIIToneCurve.channels(red:green:blue:) | static func channels(red: ASCIIToneCurve.Ramp, green: ASCIIToneCurve.Ramp, blue: ASCIIToneCurve.Ramp) -> ASCIIToneCurve
+ASCIIToneCurve.color(atTone:) | func color(atTone tone: Double) -> Color
+ASCIIToneCurve.identity | static let identity: ASCIIToneCurve
+ASCIIToneCurve.init(_:) | init(_ channels: ASCIIToneCurve.Channels)
+ASCIIToneCurve.init(_:) | init(_ pairs: [(Color, Color)])
+ASCIIToneCurve.init(_:) | init(_ stops: [ASCIIToneCurve.Stop])
+ASCIIToneCurve.init(arrayLiteral:) | init(arrayLiteral elements: (Color, Color)...)
+ASCIIToneCurve.inverted | static let inverted: ASCIIToneCurve
+ASCIIToneCurve.resolved(with:) | func resolved(with palette: any Palette) -> ASCIIToneCurve
+ASCIIToneCurve.stops | let stops: [ASCIIToneCurve.Stop]
+DitheringMode | enum DitheringMode
+DitheringMode.floydSteinberg | case floydSteinberg
+DitheringMode.none | case none
+ImageAdjustments | struct ImageAdjustments
+ImageAdjustments.blackPoint | var blackPoint: Double
+ImageAdjustments.contrast | var contrast: Double
+ImageAdjustments.exposure | var exposure: Double
+ImageAdjustments.highlights | var highlights: Double
+ImageAdjustments.init(exposure:blackPoint:highlights:contrast:) | init(exposure: Double = 0, blackPoint: Double = 0, highlights: Double = 0, contrast: Double = 0)
+ImageAdjustments.isIdentity | var isIdentity: Bool { get }
+ImageAdjustments.none | static let none: ImageAdjustments
+ImageLoadError | enum ImageLoadError
+ImageLoadError.decodingFailed(_:) | case decodingFailed(String)
+ImageLoadError.description | var description: String { get }
+ImageLoadError.downloadFailed(_:) | case downloadFailed(String)
+ImageLoadError.errorDescription | var errorDescription: String? { get }
+ImageLoadError.fileNotFound(_:) | case fileNotFound(String)
+ImageLoadError.imageTooLarge(pixelCount:limit:) | case imageTooLarge(pixelCount: Int, limit: Int)
+ImageLoadError.unsupportedFormat(_:) | case unsupportedFormat(String)
+ImageLoader | protocol ImageLoader : Sendable
+ImageLoader.loadImage(from:) | func loadImage(from data: Data) throws -> RGBAImage
+ImageLoader.loadImage(from:) | func loadImage(from path: String) throws -> RGBAImage
+PlatformImageLoader | struct PlatformImageLoader
+PlatformImageLoader.cachedImage(fromFile:cache:maxPixelCount:) | func cachedImage(fromFile path: String, cache: URLImageCache?, maxPixelCount: Int?) throws -> RGBAImage?
+PlatformImageLoader.cachedImage(fromURL:cache:maxPixelCount:) | func cachedImage(fromURL urlString: String, cache: URLImageCache?, maxPixelCount: Int?) throws -> RGBAImage?
+PlatformImageLoader.init() | init()
+PlatformImageLoader.loadImage(from:) | func loadImage(from data: Data) throws -> RGBAImage
+PlatformImageLoader.loadImage(from:) | func loadImage(from path: String) throws -> RGBAImage
+PlatformImageLoader.loadImage(from:cache:maxPixelCount:) | func loadImage(from path: String, cache: URLImageCache?, maxPixelCount: Int?) throws -> RGBAImage
+PlatformImageLoader.loadImage(from:maxPixelCount:) | func loadImage(from data: Data, maxPixelCount: Int?) throws -> RGBAImage
+PlatformImageLoader.loadImage(from:maxPixelCount:) | func loadImage(from path: String, maxPixelCount: Int?) throws -> RGBAImage
+PlatformImageLoader.loadImage(fromURL:cache:timeout:maxPixelCount:) | func loadImage(fromURL urlString: String, cache: URLImageCache? = nil, timeout: TimeInterval = 30, maxPixelCount: Int? = nil) async throws -> RGBAImage
+RGBA | struct RGBA
+RGBA.a | var a: UInt8
+RGBA.b | var b: UInt8
+RGBA.g | var g: UInt8
+RGBA.init(r:g:b:a:) | init(r: UInt8, g: UInt8, b: UInt8, a: UInt8 = .max)
+RGBA.luminance | var luminance: Double { get }
+RGBA.r | var r: UInt8
+RGBAImage | struct RGBAImage
+RGBAImage.addError(at:_:rError:gError:bError:) | mutating func addError(at x: Int, _ y: Int, rError: Int16, gError: Int16, bError: Int16)
+RGBAImage.boxReduced(by:) | func boxReduced(by factor: Int) -> RGBAImage
+RGBAImage.height | let height: Int
+RGBAImage.init(width:height:pixels:) | init(width: Int, height: Int, pixels: [RGBA])
+RGBAImage.mapPixels(_:) | mutating func mapPixels(_ transform: (RGBA) -> RGBA)
+RGBAImage.pixel(at:_:) | func pixel(at x: Int, _ y: Int) -> RGBA
+RGBAImage.pixels | var pixels: [RGBA] { get }
+RGBAImage.scaled(to:_:) | func scaled(to targetWidth: Int, _ targetHeight: Int) -> RGBAImage
+RGBAImage.scaledBilinear(to:_:) | func scaledBilinear(to targetWidth: Int, _ targetHeight: Int) -> RGBAImage
+RGBAImage.setPixel(at:_:value:) | mutating func setPixel(at x: Int, _ y: Int, value: RGBA)
+RGBAImage.sharpened(amount:radiusX:radiusY:) | func sharpened(amount: Double, radiusX: Int = 1, radiusY: Int = 1) -> RGBAImage
+RGBAImage.width | let width: Int
+URLImageCache | final class URLImageCache
+URLImageCache.byteCount | var byteCount: Int { get }
+URLImageCache.byteLimit | let byteLimit: Int
+URLImageCache.defaultByteLimit | static let defaultByteLimit: Int
+URLImageCache.get(_:) | func get(_ urlString: String) -> RGBAImage?
+URLImageCache.init(byteLimit:) | init(byteLimit: Int = URLImageCache.defaultByteLimit)
+URLImageCache.set(_:image:) | func set(_ urlString: String, image: RGBAImage)

@@ -1,0 +1,98 @@
+# TUITextInput public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+AutomaticTextEditorStyle | struct AutomaticTextEditorStyle
+AutomaticTextEditorStyle.init() | init()
+AutomaticTextEditorStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: AutomaticTextEditorStyle.Configuration) -> some View
+DefaultTextFieldStyle | struct DefaultTextFieldStyle
+DefaultTextFieldStyle.drawsFieldSurface | var drawsFieldSurface: Bool { get }
+DefaultTextFieldStyle.init() | init()
+EnvironmentValues.findContext | var findContext: FindContext? { get }
+EnvironmentValues.tabWidth | var tabWidth: TabWidth { get set }
+EnvironmentValues.textContentType | var textContentType: TextContentType? { get set }
+EnvironmentValues.textCursorStyle | var textCursorStyle: TextCursorStyle { get set }
+FindContext | struct FindContext
+FindContext.isPresented | var isPresented: Binding<Bool>?
+FindContext.supportsReplace | var supportsReplace: Bool
+PlainTextEditorStyle | struct PlainTextEditorStyle
+PlainTextEditorStyle.init() | init()
+PlainTextEditorStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: PlainTextEditorStyle.Configuration) -> some View
+PlainTextFieldStyle | struct PlainTextFieldStyle
+PlainTextFieldStyle.drawsFieldSurface | var drawsFieldSurface: Bool { get }
+PlainTextFieldStyle.init() | init()
+RoundedBorderTextFieldStyle | struct RoundedBorderTextFieldStyle
+RoundedBorderTextFieldStyle.drawsFieldSurface | var drawsFieldSurface: Bool { get }
+RoundedBorderTextFieldStyle.fieldBorder | var fieldBorder: BorderStyle? { get }
+RoundedBorderTextFieldStyle.init() | init()
+SecureField | struct SecureField<Label> where Label : View
+SecureField.body | @MainActor @ViewBuilder var body: some View { get }
+SecureField.disabled(_:) | func disabled(_ disabled: Bool = true) -> SecureField<Label> [extension where Label : View]
+SecureField.focusID(_:) | func focusID(_ id: String) -> SecureField<Label> [extension where Label : View]
+SecureField.init(_:text:) | init(_ titleKey: LocalizedStringKey, text: Binding<String>) [extension where Label == Text]
+SecureField.init(_:text:) | init<S>(_ title: S, text: Binding<String>) where S : StringProtocol [extension where Label == Text]
+SecureField.init(_:text:prompt:) | init(_ titleKey: LocalizedStringKey, text: Binding<String>, prompt: Text?) [extension where Label == Text]
+SecureField.init(_:text:prompt:) | init<S>(_ title: S, text: Binding<String>, prompt: Text?) where S : StringProtocol [extension where Label == Text]
+SecureField.init(text:prompt:label:) | init(text: Binding<String>, prompt: Text? = nil, @ViewBuilder label: () -> Label) [extension where Label : View]
+SecureField.onSubmit(_:) | func onSubmit(_ action: @escaping () -> Void) -> SecureField<Label> [extension where Label : View]
+SquareBorderTextFieldStyle | struct SquareBorderTextFieldStyle
+SquareBorderTextFieldStyle.drawsFieldSurface | var drawsFieldSurface: Bool { get }
+SquareBorderTextFieldStyle.fieldBorder | var fieldBorder: BorderStyle? { get }
+SquareBorderTextFieldStyle.init() | init()
+TabWidth | enum TabWidth
+TabWidth.fixed(_:) | case fixed(_: Int)
+TabWidth.periodic(_:) | case periodic(_: Int)
+TextEditor | struct TextEditor
+TextEditor._paintsToItsEdges | nonisolated static var _paintsToItsEdges: Bool { get }
+TextEditor.body | @ViewBuilder @MainActor var body: some View { get }
+TextEditor.disabled(_:) | func disabled(_ disabled: Bool = true) -> TextEditor
+TextEditor.focusID(_:) | func focusID(_ id: String) -> TextEditor
+TextEditor.init(text:) | init(text: Binding<String>)
+TextEditor.init(text:selection:) | init(text: Binding<String>, selection: Binding<TextSelection?>)
+TextEditorStyle | protocol TextEditorStyle : Sendable
+TextEditorStyle.Body | associatedtype Body : View
+TextEditorStyle.Configuration | typealias Configuration = TextEditorStyleConfiguration
+TextEditorStyle.automatic | static var automatic: AutomaticTextEditorStyle { get } [extension where Self == AutomaticTextEditorStyle]
+TextEditorStyle.makeBody(configuration:) | @MainActor @ViewBuilder func makeBody(configuration: Self.Configuration) -> Self.Body
+TextEditorStyle.plain | static var plain: PlainTextEditorStyle { get } [extension where Self == PlainTextEditorStyle]
+TextEditorStyleConfiguration | struct TextEditorStyleConfiguration
+TextField | struct TextField<Label> where Label : View
+TextField.body | @ViewBuilder @MainActor var body: some View { get }
+TextField.disabled(_:) | func disabled(_ disabled: Bool = true) -> TextField<Label> [extension where Label : View]
+TextField.focusID(_:) | func focusID(_ id: String) -> TextField<Label> [extension where Label : View]
+TextField.init(_:text:) | init(_ titleKey: LocalizedStringKey, text: Binding<String>) [extension where Label == Text]
+TextField.init(_:text:) | init<S>(_ title: S, text: Binding<String>) where S : StringProtocol [extension where Label == Text]
+TextField.init(_:text:axis:) | init(_ titleKey: LocalizedStringKey, text: Binding<String>, axis: Axis) [extension where Label == Text]
+TextField.init(_:text:axis:) | init<S>(_ title: S, text: Binding<String>, axis: Axis) where S : StringProtocol [extension where Label == Text]
+TextField.init(_:text:prompt:) | init(_ titleKey: LocalizedStringKey, text: Binding<String>, prompt: Text?) [extension where Label == Text]
+TextField.init(_:text:prompt:) | init<S>(_ title: S, text: Binding<String>, prompt: Text?) where S : StringProtocol [extension where Label == Text]
+TextField.init(_:text:prompt:axis:) | init(_ titleKey: LocalizedStringKey, text: Binding<String>, prompt: Text?, axis: Axis) [extension where Label == Text]
+TextField.init(_:text:prompt:axis:) | init<S>(_ title: S, text: Binding<String>, prompt: Text?, axis: Axis) where S : StringProtocol [extension where Label == Text]
+TextField.init(_:text:selection:prompt:axis:) | init(_ titleKey: LocalizedStringKey, text: Binding<String>, selection: Binding<TextSelection?>, prompt: Text? = nil, axis: Axis? = nil) [extension where Label == Text]
+TextField.init(_:text:selection:prompt:axis:) | init<S>(_ title: S, text: Binding<String>, selection: Binding<TextSelection?>, prompt: Text? = nil, axis: Axis? = nil) where S : StringProtocol [extension where Label == Text]
+TextField.init(_:value:format:prompt:) | init<F>(_ titleKey: LocalizedStringKey, value: Binding<F.FormatInput>, format: F, prompt: Text? = nil) where F : ParseableFormatStyle, F.FormatOutput == String [extension where Label == Text]
+TextField.init(_:value:format:prompt:) | init<S, F>(_ title: S, value: Binding<F.FormatInput>, format: F, prompt: Text? = nil) where S : StringProtocol, F : ParseableFormatStyle, F.FormatOutput == String [extension where Label == Text]
+TextField.init(text:prompt:axis:label:) | init(text: Binding<String>, prompt: Text? = nil, axis: Axis, @ViewBuilder label: () -> Label) [extension where Label : View]
+TextField.init(text:prompt:label:) | init(text: Binding<String>, prompt: Text? = nil, @ViewBuilder label: () -> Label) [extension where Label : View]
+TextField.init(text:selection:prompt:axis:label:) | init(text: Binding<String>, selection: Binding<TextSelection?>, prompt: Text? = nil, axis: Axis? = nil, @ViewBuilder label: () -> Label) [extension where Label : View]
+TextField.init(value:format:prompt:label:) | init<F>(value: Binding<F.FormatInput>, format: F, prompt: Text? = nil, @ViewBuilder label: () -> Label) where F : ParseableFormatStyle, F.FormatOutput == String [extension where Label : View]
+TextField.onEditingChanged(_:) | func onEditingChanged(_ action: @escaping (Bool) -> Void) -> TextField<Label> [extension where Label : View]
+TextField.onSubmit(_:) | func onSubmit(_ action: @escaping () -> Void) -> TextField<Label> [extension where Label : View]
+TextFieldStyle.automatic | static var automatic: DefaultTextFieldStyle { get } [extension where Self == DefaultTextFieldStyle]
+TextFieldStyle.plain | static var plain: PlainTextFieldStyle { get } [extension where Self == PlainTextFieldStyle]
+TextFieldStyle.roundedBorder | static var roundedBorder: RoundedBorderTextFieldStyle { get } [extension where Self == RoundedBorderTextFieldStyle]
+TextFieldStyle.squareBorder | static var squareBorder: SquareBorderTextFieldStyle { get } [extension where Self == SquareBorderTextFieldStyle]
+View.findDisabled(_:) | nonisolated func findDisabled(_ isDisabled: Bool = true) -> some View
+View.findNavigator(isPresented:) | nonisolated func findNavigator(isPresented: Binding<Bool>) -> some View
+View.replaceDisabled(_:) | nonisolated func replaceDisabled(_ isDisabled: Bool = true) -> some View
+View.secureFieldTextStyle(_:) | nonisolated func secureFieldTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View
+View.tabWidth(_:) | nonisolated func tabWidth(_ width: TabWidth) -> some View
+View.textContentType(_:) | nonisolated func textContentType(_ type: TextContentType?) -> some View
+View.textCursor(_:) | nonisolated func textCursor(_ style: TextCursorStyle) -> some View
+View.textCursor(_:animation:) | nonisolated func textCursor(_ shape: TextCursorStyle.Shape, animation: TextCursorStyle.Animation = .pulse) -> some View
+View.textEditorStyle(_:) | nonisolated func textEditorStyle<S>(_ style: S) -> some View where S : TextEditorStyle
+View.textEditorWrapsLines(_:) | nonisolated func textEditorWrapsLines(_ wraps: Bool = true) -> some View
+View.textFieldStyle(_:) | nonisolated func textFieldStyle<S>(_ style: S) -> some View where S : TextFieldStyle
+View.textFieldTextStyle(_:) | nonisolated func textFieldTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View
+View.textInputCompletion(_:) | nonisolated func textInputCompletion(_ completion: String) -> some View
+View.textInputSuggestions(_:) | nonisolated func textInputSuggestions<S>(@ViewBuilder _ suggestions: () -> S) -> some View where S : View
+View.textInputSuggestions(_:content:) | nonisolated func textInputSuggestions<Data, Content>(_ suggestions: Data, @ViewBuilder content: @escaping (Data.Element) -> Content) -> some View where Data : RandomAccessCollection, Content : View, Data.Element : Identifiable
+View.textInputSuggestions(_:id:content:) | nonisolated func textInputSuggestions<Data, ID, Content>(_ suggestions: Data, id: KeyPath<Data.Element, ID>, @ViewBuilder content: @escaping (Data.Element) -> Content) -> some View where Data : RandomAccessCollection, ID : Hashable, Content : View

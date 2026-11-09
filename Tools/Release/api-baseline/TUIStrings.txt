@@ -1,0 +1,350 @@
+# TUIStrings public API (not a product: public API reaches clients by re-export).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+DiscreteFormatStyle.offset(to:allowedFields:maxFieldCount:sign:) | static func offset(to anchor: Date, allowedFields: Set<Date.ComponentsFormatStyle.Field> = [.year, .month, .day, .hour, .minute, .second], maxFieldCount: Int = 2, sign: NumberFormatStyleConfiguration.SignDisplayStrategy = .automatic) -> SystemFormatStyle.DateOffset [extension where Self == SystemFormatStyle.DateOffset]
+DiscreteFormatStyle.reference(to:allowedFields:maxFieldCount:thresholdField:) | static func reference(to date: Date, allowedFields: Set<Date.RelativeFormatStyle.Field> = [.year, .month, .day, .hour, .minute], maxFieldCount: Int = 2, thresholdField: Date.RelativeFormatStyle.Field = .day) -> SystemFormatStyle.DateReference [extension where Self == SystemFormatStyle.DateReference]
+DiscreteFormatStyle.stopwatch(startingAt:showsHours:maxFieldCount:maxPrecision:) | static func stopwatch(startingAt startDate: Date, showsHours: Bool = true, maxFieldCount: Int = 4, maxPrecision: Duration = .milliseconds(10)) -> SystemFormatStyle.Stopwatch [extension where Self == SystemFormatStyle.Stopwatch]
+DiscreteFormatStyle.timer(countingDownIn:showsHours:maxFieldCount:maxPrecision:) | static func timer(countingDownIn interval: Range<Date>, showsHours: Bool = true, maxFieldCount: Int = 3, maxPrecision: Duration = .seconds(1)) -> SystemFormatStyle.Timer [extension where Self == SystemFormatStyle.Timer]
+DiscreteFormatStyle.timer(countingUpIn:showsHours:maxFieldCount:maxPrecision:) | static func timer(countingUpIn interval: Range<Date>, showsHours: Bool = true, maxFieldCount: Int = 3, maxPrecision: Duration = .seconds(1)) -> SystemFormatStyle.Timer [extension where Self == SystemFormatStyle.Timer]
+FormatStyle.offset(to:allowedFields:maxFieldCount:sign:) | static func offset(to anchor: Date, allowedFields: Set<Date.ComponentsFormatStyle.Field> = [.year, .month, .day, .hour, .minute, .second], maxFieldCount: Int = 2, sign: NumberFormatStyleConfiguration.SignDisplayStrategy = .automatic) -> SystemFormatStyle.DateOffset [extension where Self == SystemFormatStyle.DateOffset]
+FormatStyle.reference(to:allowedFields:maxFieldCount:thresholdField:) | static func reference(to date: Date, allowedFields: Set<Date.RelativeFormatStyle.Field> = [.year, .month, .day, .hour, .minute], maxFieldCount: Int = 2, thresholdField: Date.RelativeFormatStyle.Field = .day) -> SystemFormatStyle.DateReference [extension where Self == SystemFormatStyle.DateReference]
+FormatStyle.stopwatch(startingAt:showsHours:maxFieldCount:maxPrecision:) | static func stopwatch(startingAt startDate: Date, showsHours: Bool = true, maxFieldCount: Int = 4, maxPrecision: Duration = .milliseconds(10)) -> SystemFormatStyle.Stopwatch [extension where Self == SystemFormatStyle.Stopwatch]
+FormatStyle.timer(countingDownIn:showsHours:maxFieldCount:maxPrecision:) | static func timer(countingDownIn interval: Range<Date>, showsHours: Bool = true, maxFieldCount: Int = 3, maxPrecision: Duration = .seconds(1)) -> SystemFormatStyle.Timer [extension where Self == SystemFormatStyle.Timer]
+FormatStyle.timer(countingUpIn:showsHours:maxFieldCount:maxPrecision:) | static func timer(countingUpIn interval: Range<Date>, showsHours: Bool = true, maxFieldCount: Int = 3, maxPrecision: Duration = .seconds(1)) -> SystemFormatStyle.Timer [extension where Self == SystemFormatStyle.Timer]
+LocalizationKey | enum LocalizationKey
+LocalizationKey.Appearance | enum Appearance
+LocalizationKey.Appearance.blank | case blank
+LocalizationKey.Appearance.block | case block
+LocalizationKey.Appearance.braille | case braille
+LocalizationKey.Appearance.braille2 | case braille2
+LocalizationKey.Appearance.doubleLine | case doubleLine
+LocalizationKey.Appearance.heavy | case heavy
+LocalizationKey.Appearance.init(rawValue:) | init?(rawValue: String)
+LocalizationKey.Appearance.line | case line
+LocalizationKey.Appearance.rounded | case rounded
+LocalizationKey.Button | enum Button
+LocalizationKey.Button.add | case add
+LocalizationKey.Button.apply | case apply
+LocalizationKey.Button.back | case back
+LocalizationKey.Button.cancel | case cancel
+LocalizationKey.Button.clear | case clear
+LocalizationKey.Button.close | case close
+LocalizationKey.Button.copy | case copy
+LocalizationKey.Button.create | case create
+LocalizationKey.Button.delete | case delete
+LocalizationKey.Button.done | case done
+LocalizationKey.Button.edit | case edit
+LocalizationKey.Button.forward | case forward
+LocalizationKey.Button.init(rawValue:) | init?(rawValue: String)
+LocalizationKey.Button.next | case next
+LocalizationKey.Button.no | case no
+LocalizationKey.Button.ok | case ok
+LocalizationKey.Button.paste | case paste
+LocalizationKey.Button.previous | case previous
+LocalizationKey.Button.refresh | case refresh
+LocalizationKey.Button.remove | case remove
+LocalizationKey.Button.rename | case rename
+LocalizationKey.Button.replace | case replace
+LocalizationKey.Button.replaceAll | case replaceAll
+LocalizationKey.Button.reset | case reset
+LocalizationKey.Button.save | case save
+LocalizationKey.Button.search | case search
+LocalizationKey.Button.submit | case submit
+LocalizationKey.Button.yes | case yes
+LocalizationKey.Dialog | enum Dialog
+LocalizationKey.Dialog.confirm | case confirm
+LocalizationKey.Dialog.deleteConfirmation | case deleteConfirmation
+LocalizationKey.Dialog.error | case error
+LocalizationKey.Dialog.exitConfirmation | case exitConfirmation
+LocalizationKey.Dialog.init(rawValue:) | init?(rawValue: String)
+LocalizationKey.Dialog.overwriteConfirmation | case overwriteConfirmation
+LocalizationKey.Dialog.quitAction | case quitAction
+LocalizationKey.Dialog.quitInProgress | case quitInProgress
+LocalizationKey.Dialog.quitMessage | case quitMessage
+LocalizationKey.Dialog.quitPressAgain | case quitPressAgain
+LocalizationKey.Dialog.quitTitle | case quitTitle
+LocalizationKey.Dialog.quitWorkInProgress | case quitWorkInProgress
+LocalizationKey.Dialog.success | case success
+LocalizationKey.Dialog.unsavedChanges | case unsavedChanges
+LocalizationKey.Error | enum Error
+LocalizationKey.Error.accessDenied | case accessDenied
+LocalizationKey.Error.fileNotFound | case fileNotFound
+LocalizationKey.Error.init(rawValue:) | init?(rawValue: String)
+LocalizationKey.Error.invalidFormat | case invalidFormat
+LocalizationKey.Error.invalidInput | case invalidInput
+LocalizationKey.Error.networkError | case networkError
+LocalizationKey.Error.notFound | case notFound
+LocalizationKey.Error.operationFailed | case operationFailed
+LocalizationKey.Error.permissionDenied | case permissionDenied
+LocalizationKey.Error.requiredField | case requiredField
+LocalizationKey.Error.timeout | case timeout
+LocalizationKey.Error.unknown | case unknown
+LocalizationKey.Label | enum Label
+LocalizationKey.Label.accent | case accent
+LocalizationKey.Label.background | case background
+LocalizationKey.Label.border | case border
+LocalizationKey.Label.customizeToolbar | case customizeToolbar
+LocalizationKey.Label.description | case description
+LocalizationKey.Label.dragMore | case dragMore
+LocalizationKey.Label.empty | case empty
+LocalizationKey.Label.error | case error
+LocalizationKey.Label.find | case find
+LocalizationKey.Label.findContains | case findContains
+LocalizationKey.Label.findFullWord | case findFullWord
+LocalizationKey.Label.findStartsWith | case findStartsWith
+LocalizationKey.Label.foreground | case foreground
+LocalizationKey.Label.from | case from
+LocalizationKey.Label.gradient | case gradient
+LocalizationKey.Label.hideColumn | case hideColumn
+LocalizationKey.Label.hideContentColumn | case hideContentColumn
+LocalizationKey.Label.hideInspector | case hideInspector
+LocalizationKey.Label.hideNamedPanel | case hideNamedPanel
+LocalizationKey.Label.hideSidebar | case hideSidebar
+LocalizationKey.Label.hideToolbar | case hideToolbar
+LocalizationKey.Label.iconAndText | case iconAndText
+LocalizationKey.Label.iconOnly | case iconOnly
+LocalizationKey.Label.ignoreCase | case ignoreCase
+LocalizationKey.Label.info | case info
+LocalizationKey.Label.init(rawValue:) | init?(rawValue: String)
+LocalizationKey.Label.item | case item
+LocalizationKey.Label.items | case items
+LocalizationKey.Label.loading | case loading
+LocalizationKey.Label.name | case name
+LocalizationKey.Label.noItems | case noItems
+LocalizationKey.Label.noResults | case noResults
+LocalizationKey.Label.noResultsFor | case noResultsFor
+LocalizationKey.Label.noResultsHint | case noResultsHint
+LocalizationKey.Label.none | case none
+LocalizationKey.Label.page | case page
+LocalizationKey.Label.position | case position
+LocalizationKey.Label.replaceWith | case replaceWith
+LocalizationKey.Label.search | case search
+LocalizationKey.Label.secondary | case secondary
+LocalizationKey.Label.showContentColumn | case showContentColumn
+LocalizationKey.Label.showInspector | case showInspector
+LocalizationKey.Label.showNamedPanel | case showNamedPanel
+LocalizationKey.Label.showSidebar | case showSidebar
+LocalizationKey.Label.showToolbar | case showToolbar
+LocalizationKey.Label.status | case status
+LocalizationKey.Label.success | case success
+LocalizationKey.Label.suppressDialog | case suppressDialog
+LocalizationKey.Label.textOnly | case textOnly
+LocalizationKey.Label.to | case to
+LocalizationKey.Label.toolbarShow | case toolbarShow
+LocalizationKey.Label.total | case total
+LocalizationKey.Label.value | case value
+LocalizationKey.Label.warning | case warning
+LocalizationKey.Menu | enum Menu
+LocalizationKey.Menu.about | case about
+LocalizationKey.Menu.aboutVersion | case aboutVersion
+LocalizationKey.Menu.accessibility | case accessibility
+LocalizationKey.Menu.borderStyle | case borderStyle
+LocalizationKey.Menu.close | case close
+LocalizationKey.Menu.closeAll | case closeAll
+LocalizationKey.Menu.closeWindow | case closeWindow
+LocalizationKey.Menu.controlStyle | case controlStyle
+LocalizationKey.Menu.copyLink | case copyLink
+LocalizationKey.Menu.copyLinkAsMarkdown | case copyLinkAsMarkdown
+LocalizationKey.Menu.copyLinkLabel | case copyLinkLabel
+LocalizationKey.Menu.cut | case cut
+LocalizationKey.Menu.differentiateWithoutColor | case differentiateWithoutColor
+LocalizationKey.Menu.displaySetByApp | case displaySetByApp
+LocalizationKey.Menu.edit | case edit
+LocalizationKey.Menu.exit | case exit
+LocalizationKey.Menu.file | case file
+LocalizationKey.Menu.find | case find
+LocalizationKey.Menu.findNext | case findNext
+LocalizationKey.Menu.focusBreathing | case focusBreathing
+LocalizationKey.Menu.focusFollowsPointer | case focusFollowsPointer
+LocalizationKey.Menu.format | case format
+LocalizationKey.Menu.help | case help
+LocalizationKey.Menu.hideAllTooltips | case hideAllTooltips
+LocalizationKey.Menu.hideWindow | case hideWindow
+LocalizationKey.Menu.increaseContrast | case increaseContrast
+LocalizationKey.Menu.init(rawValue:) | init?(rawValue: String)
+LocalizationKey.Menu.keyboardShortcuts | case keyboardShortcuts
+LocalizationKey.Menu.new | case new
+LocalizationKey.Menu.open | case open
+LocalizationKey.Menu.palette | case palette
+LocalizationKey.Menu.quitApp | case quitApp
+LocalizationKey.Menu.redo | case redo
+LocalizationKey.Menu.reduceMotion | case reduceMotion
+LocalizationKey.Menu.reduceTransparency | case reduceTransparency
+LocalizationKey.Menu.save | case save
+LocalizationKey.Menu.selectAll | case selectAll
+LocalizationKey.Menu.settings | case settings
+LocalizationKey.Menu.settingsPanel | case settingsPanel
+LocalizationKey.Menu.shortcutsGeneral | case shortcutsGeneral
+LocalizationKey.Menu.shortcutsMenuBar | case shortcutsMenuBar
+LocalizationKey.Menu.shortcutsNextControl | case shortcutsNextControl
+LocalizationKey.Menu.shortcutsOnThisScreen | case shortcutsOnThisScreen
+LocalizationKey.Menu.shortcutsPreviousControl | case shortcutsPreviousControl
+LocalizationKey.Menu.shortcutsShowTooltip | case shortcutsShowTooltip
+LocalizationKey.Menu.shortcutsStatusBar | case shortcutsStatusBar
+LocalizationKey.Menu.showAllTooltips | case showAllTooltips
+LocalizationKey.Menu.showLink | case showLink
+LocalizationKey.Menu.showTooltips | case showTooltips
+LocalizationKey.Menu.showWindow | case showWindow
+LocalizationKey.Menu.spelledOutKeys | case spelledOutKeys
+LocalizationKey.Menu.undo | case undo
+LocalizationKey.Menu.view | case view
+LocalizationKey.Menu.window | case window
+LocalizationKey.Menu.yank | case yank
+LocalizationKey.Placeholder | enum Placeholder
+LocalizationKey.Placeholder.chooseFile | case chooseFile
+LocalizationKey.Placeholder.enterName | case enterName
+LocalizationKey.Placeholder.enterText | case enterText
+LocalizationKey.Placeholder.enterValue | case enterValue
+LocalizationKey.Placeholder.init(rawValue:) | init?(rawValue: String)
+LocalizationKey.Placeholder.search | case search
+LocalizationKey.Placeholder.selectOption | case selectOption
+LocalizationKey.StatusBar | enum StatusBar
+LocalizationKey.StatusBar.activate | case activate
+LocalizationKey.StatusBar.appearance | case appearance
+LocalizationKey.StatusBar.cancel | case cancel
+LocalizationKey.StatusBar.cancelMove | case cancelMove
+LocalizationKey.StatusBar.centre | case centre
+LocalizationKey.StatusBar.choose | case choose
+LocalizationKey.StatusBar.clearSelection | case clearSelection
+LocalizationKey.StatusBar.closeMenu | case closeMenu
+LocalizationKey.StatusBar.closePopover | case closePopover
+LocalizationKey.StatusBar.closeSuggestions | case closeSuggestions
+LocalizationKey.StatusBar.closeWindow | case closeWindow
+LocalizationKey.StatusBar.copied | case copied
+LocalizationKey.StatusBar.dismiss | case dismiss
+LocalizationKey.StatusBar.dropCarried | case dropCarried
+LocalizationKey.StatusBar.focusNotification | case focusNotification
+LocalizationKey.StatusBar.goBack | case goBack
+LocalizationKey.StatusBar.hideColumn | case hideColumn
+LocalizationKey.StatusBar.hideContentColumn | case hideContentColumn
+LocalizationKey.StatusBar.hideInspector | case hideInspector
+LocalizationKey.StatusBar.hideNamedPanel | case hideNamedPanel
+LocalizationKey.StatusBar.hideSidebar | case hideSidebar
+LocalizationKey.StatusBar.init(rawValue:) | init?(rawValue: String)
+LocalizationKey.StatusBar.menuDropDown | case menuDropDown
+LocalizationKey.StatusBar.menuPopUp | case menuPopUp
+LocalizationKey.StatusBar.move | case move
+LocalizationKey.StatusBar.notCopiedHelperFailed | case notCopiedHelperFailed
+LocalizationKey.StatusBar.notCopiedNoClipboard | case notCopiedNoClipboard
+LocalizationKey.StatusBar.open | case open
+LocalizationKey.StatusBar.openMenu | case openMenu
+LocalizationKey.StatusBar.pasteWithTerminal | case pasteWithTerminal
+LocalizationKey.StatusBar.pastedAppCopy | case pastedAppCopy
+LocalizationKey.StatusBar.quit | case quit
+LocalizationKey.StatusBar.redo | case redo
+LocalizationKey.StatusBar.resetSize | case resetSize
+LocalizationKey.StatusBar.resize | case resize
+LocalizationKey.StatusBar.select | case select
+LocalizationKey.StatusBar.sentToTerminalClipboard | case sentToTerminalClipboard
+LocalizationKey.StatusBar.showColumn | case showColumn
+LocalizationKey.StatusBar.showContentColumn | case showContentColumn
+LocalizationKey.StatusBar.showInspector | case showInspector
+LocalizationKey.StatusBar.showNamedPanel | case showNamedPanel
+LocalizationKey.StatusBar.showSidebar | case showSidebar
+LocalizationKey.StatusBar.stopEditingColumns | case stopEditingColumns
+LocalizationKey.StatusBar.stopExtendingSelection | case stopExtendingSelection
+LocalizationKey.StatusBar.submit | case submit
+LocalizationKey.StatusBar.theme | case theme
+LocalizationKey.StatusBar.toggle | case toggle
+LocalizationKey.StatusBar.undo | case undo
+LocalizationKey.Validation | enum Validation
+LocalizationKey.Validation.emailInvalid | case emailInvalid
+LocalizationKey.Validation.fieldRequired | case fieldRequired
+LocalizationKey.Validation.init(rawValue:) | init?(rawValue: String)
+LocalizationKey.Validation.passwordTooShort | case passwordTooShort
+LocalizationKey.Validation.usernameTaken | case usernameTaken
+LocalizationService | final class LocalizationService
+LocalizationService.Language | enum Language
+LocalizationService.Language.displayName | var displayName: String { get }
+LocalizationService.Language.english | case english
+LocalizationService.Language.french | case french
+LocalizationService.Language.german | case german
+LocalizationService.Language.init(rawValue:) | init?(rawValue: String)
+LocalizationService.Language.italian | case italian
+LocalizationService.Language.japanese | case japanese
+LocalizationService.Language.locale(in:) | func locale(in region: Locale.Region?) -> Locale
+LocalizationService.Language.simplifiedChinese | case simplifiedChinese
+LocalizationService.Language.spanish | case spanish
+LocalizationService.currentLanguage | var currentLanguage: LocalizationService.Language { get }
+LocalizationService.currentLocale | var currentLocale: Locale { get }
+LocalizationService.init() | init()
+LocalizationService.shared | static let shared: LocalizationService
+LocalizationService.string(for:) | func string(for key: LocalizationKey.Button) -> String
+LocalizationService.string(for:) | func string(for key: LocalizationKey.Dialog) -> String
+LocalizationService.string(for:) | func string(for key: LocalizationKey.Error) -> String
+LocalizationService.string(for:) | func string(for key: LocalizationKey.Label) -> String
+LocalizationService.string(for:) | func string(for key: LocalizationKey.Menu) -> String
+LocalizationService.string(for:) | func string(for key: LocalizationKey.Placeholder) -> String
+LocalizationService.string(for:) | func string(for key: LocalizationKey.StatusBar) -> String
+LocalizationService.string(for:) | func string(for key: LocalizationKey.Validation) -> String
+LocalizationService.string(for:) | func string(for key: String) -> String
+SFSymbol | enum SFSymbol
+SFSymbol.Entry | struct Entry
+SFSymbol.Entry.glyph | let glyph: String
+SFSymbol.Entry.name | let name: String
+SFSymbol.all | static var all: [SFSymbol.Entry] { get }
+SFSymbol.canRender(named:) | static func canRender(named name: String) -> Bool
+SFSymbol.glyph(named:) | static func glyph(named name: String) -> String?
+SFSymbol.isFontAvailable | static let isFontAvailable: Bool
+StorageDiagnostics | enum StorageDiagnostics
+StorageDiagnostics.failureCount | static var failureCount: Int { get }
+StorageDiagnostics.lastFailure | static var lastFailure: StorageFailure? { get }
+StorageDiagnostics.onFailure | static var onFailure: ((StorageFailure) -> Void)? { get set }
+StorageDiagnostics.report(_:) | static func report(_ failure: StorageFailure)
+StorageDiagnostics.reset() | static func reset()
+StorageFailure | struct StorageFailure
+StorageFailure.Operation | enum Operation
+StorageFailure.Operation.createDirectory | case createDirectory
+StorageFailure.Operation.encode | case encode
+StorageFailure.Operation.init(rawValue:) | init?(rawValue: String)
+StorageFailure.Operation.load | case load
+StorageFailure.Operation.save | case save
+StorageFailure.description | var description: String { get }
+StorageFailure.init(operation:key:path:underlying:) | init(operation: StorageFailure.Operation, key: String? = nil, path: String? = nil, underlying: (any Error)? = nil)
+StorageFailure.key | let key: String?
+StorageFailure.operation | let operation: StorageFailure.Operation
+StorageFailure.path | let path: String?
+StorageFailure.underlying | let underlying: (any Error)?
+SystemFormatStyle | enum SystemFormatStyle
+SystemFormatStyle.DateOffset | struct DateOffset
+SystemFormatStyle.DateOffset.FormatInput | typealias FormatInput = Date
+SystemFormatStyle.DateOffset.FormatOutput | typealias FormatOutput = AttributedString
+SystemFormatStyle.DateOffset.calendar(_:) | func calendar(_ calendar: Calendar) -> SystemFormatStyle.DateOffset
+SystemFormatStyle.DateOffset.discreteInput(after:) | func discreteInput(after referenceDate: Date) -> Date?
+SystemFormatStyle.DateOffset.discreteInput(before:) | func discreteInput(before referenceDate: Date) -> Date?
+SystemFormatStyle.DateOffset.format(_:) | func format(_ referenceDate: Date) -> AttributedString
+SystemFormatStyle.DateOffset.init(from:) | init(from decoder: any Decoder) throws
+SystemFormatStyle.DateOffset.init(to:allowedFields:maxFieldCount:sign:) | init(to anchor: Date, allowedFields: Set<Date.ComponentsFormatStyle.Field> = [.year, .month, .week, .day, .hour, .minute, .second], maxFieldCount: Int = 2, sign: NumberFormatStyleConfiguration.SignDisplayStrategy = .automatic)
+SystemFormatStyle.DateOffset.input(after:) | func input(after referenceDate: Date) -> Date?
+SystemFormatStyle.DateOffset.input(before:) | func input(before referenceDate: Date) -> Date?
+SystemFormatStyle.DateOffset.locale(_:) | func locale(_ locale: Locale) -> SystemFormatStyle.DateOffset
+SystemFormatStyle.DateReference | struct DateReference
+SystemFormatStyle.DateReference.FormatInput | typealias FormatInput = Date
+SystemFormatStyle.DateReference.FormatOutput | typealias FormatOutput = AttributedString
+SystemFormatStyle.DateReference.calendar(_:) | func calendar(_ calendar: Calendar) -> SystemFormatStyle.DateReference
+SystemFormatStyle.DateReference.discreteInput(after:) | func discreteInput(after referenceDate: Date) -> Date?
+SystemFormatStyle.DateReference.discreteInput(before:) | func discreteInput(before referenceDate: Date) -> Date?
+SystemFormatStyle.DateReference.format(_:) | func format(_ referenceDate: Date) -> AttributedString
+SystemFormatStyle.DateReference.init(from:) | init(from decoder: any Decoder) throws
+SystemFormatStyle.DateReference.init(to:allowedFields:maxFieldCount:thresholdField:) | init(to date: Date, allowedFields: Set<Date.RelativeFormatStyle.Field> = [.year, .month, .day, .hour, .minute], maxFieldCount: Int = 2, thresholdField: Date.RelativeFormatStyle.Field = .day)
+SystemFormatStyle.DateReference.input(after:) | func input(after referenceDate: Date) -> Date?
+SystemFormatStyle.DateReference.input(before:) | func input(before referenceDate: Date) -> Date?
+SystemFormatStyle.DateReference.locale(_:) | func locale(_ locale: Locale) -> SystemFormatStyle.DateReference
+SystemFormatStyle.Stopwatch | struct Stopwatch
+SystemFormatStyle.Stopwatch.FormatInput | typealias FormatInput = Date
+SystemFormatStyle.Stopwatch.FormatOutput | typealias FormatOutput = AttributedString
+SystemFormatStyle.Stopwatch.discreteInput(after:) | func discreteInput(after input: Date) -> Date?
+SystemFormatStyle.Stopwatch.discreteInput(before:) | func discreteInput(before input: Date) -> Date?
+SystemFormatStyle.Stopwatch.format(_:) | func format(_ input: Date) -> AttributedString
+SystemFormatStyle.Stopwatch.init(from:) | init(from decoder: any Decoder) throws
+SystemFormatStyle.Stopwatch.init(startingAt:showsHours:maxFieldCount:maxPrecision:) | init(startingAt startDate: Date, showsHours: Bool = true, maxFieldCount: Int = 4, maxPrecision: Duration = .milliseconds(10))
+SystemFormatStyle.Stopwatch.locale(_:) | func locale(_ locale: Locale) -> SystemFormatStyle.Stopwatch
+SystemFormatStyle.Timer | struct Timer
+SystemFormatStyle.Timer.FormatInput | typealias FormatInput = Date
+SystemFormatStyle.Timer.FormatOutput | typealias FormatOutput = AttributedString
+SystemFormatStyle.Timer.discreteInput(after:) | func discreteInput(after input: Date) -> Date?
+SystemFormatStyle.Timer.discreteInput(before:) | func discreteInput(before input: Date) -> Date?
+SystemFormatStyle.Timer.format(_:) | func format(_ input: Date) -> AttributedString
+SystemFormatStyle.Timer.init(countingDownIn:showsHours:maxFieldCount:maxPrecision:) | init(countingDownIn interval: Range<Date>, showsHours: Bool = true, maxFieldCount: Int = 3, maxPrecision: Duration = .seconds(1))
+SystemFormatStyle.Timer.init(countingUpIn:showsHours:maxFieldCount:maxPrecision:) | init(countingUpIn interval: Range<Date>, showsHours: Bool = true, maxFieldCount: Int = 3, maxPrecision: Duration = .seconds(1))
+SystemFormatStyle.Timer.init(from:) | init(from decoder: any Decoder) throws
+SystemFormatStyle.Timer.locale(_:) | func locale(_ locale: Locale) -> SystemFormatStyle.Timer

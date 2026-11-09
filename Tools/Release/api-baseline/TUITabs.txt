@@ -1,0 +1,181 @@
+# TUITabs public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+AdaptableTabBarPlacement | struct AdaptableTabBarPlacement
+AdaptableTabBarPlacement.automatic | static let automatic: AdaptableTabBarPlacement
+AdaptableTabBarPlacement.tabBar | static let tabBar: AdaptableTabBarPlacement
+AnyTabContent | @MainActor struct AnyTabContent<SelectionValue> where SelectionValue : Hashable
+AnyTabContent.TabValue | typealias TabValue = SelectionValue
+AnyTabContent.body | @MainActor var body: AnyTabContent<SelectionValue> { get }
+AnyTabContent.init(_:) | @MainActor init<T>(_ tabContent: T) where SelectionValue == T.TabValue, T : TabContent
+AppStorage.init(wrappedValue:_:store:) | init(wrappedValue: Value = TabViewCustomization(), _ key: String, store: UserDefaults? = nil) where Value == TabViewCustomization
+BorderedTabViewStyle | struct BorderedTabViewStyle
+BorderedTabViewStyle.init() | init()
+CompactTabViewStyle | struct CompactTabViewStyle
+CompactTabViewStyle.init() | init()
+DefaultTabLabel | nonisolated struct DefaultTabLabel
+DefaultTabLabel.body | @MainActor var body: some View { get }
+DefaultTabViewStyle | struct DefaultTabViewStyle
+DefaultTabViewStyle.init() | init()
+EnvironmentValues.isTabBarShowingSections | var isTabBarShowingSections: Bool { get }
+EnvironmentValues.tabBarPlacement | var tabBarPlacement: TabBarPlacement? { get }
+EnvironmentValues.tabViewBottomAccessoryPlacement | var tabViewBottomAccessoryPlacement: TabViewBottomAccessoryPlacement? { get }
+EnvironmentValues.tabViewContentPadding | var tabViewContentPadding: EdgeInsets? { get set }
+EnvironmentValues.tabViewContentSizing | var tabViewContentSizing: TabViewContentSizing { get set }
+EnvironmentValues.tabViewHeaderAlignment | var tabViewHeaderAlignment: HorizontalAlignment { get set }
+EnvironmentValues.tabViewHeaderWrap | var tabViewHeaderWrap: TabViewHeaderWrap { get set }
+EnvironmentValues.tabViewStyle | var tabViewStyle: any TabViewStyle { get set }
+ForEach.TabValue | typealias TabValue = Content.TabValue [extension where Data : RandomAccessCollection, ID : Hashable, Content : TabContent]
+ForEach.body | @MainActor var body: ForEach<Data, ID, Content> { get } [extension where Data : RandomAccessCollection, ID : Hashable, Content : TabContent]
+ForEach.init(_:content:) | @MainActor init<V>(_ data: Data, @TabContentBuilder<V> content: @escaping (Data.Element) -> Content) where ID == Data.Element.ID, V == Content.TabValue, Data.Element : Identifiable [extension where Data : RandomAccessCollection, ID : Hashable, Content : TabContent]
+ForEach.init(_:content:) | @MainActor init<V>(_ data: Range<Int>, @TabContentBuilder<V> content: @escaping (Int) -> Content) where Data == Range<Int>, ID == Int, V == Content.TabValue [extension where Data : RandomAccessCollection, ID : Hashable, Content : TabContent]
+ForEach.init(_:id:content:) | @MainActor init<V>(_ data: Data, id: KeyPath<Data.Element, ID>, @TabContentBuilder<V> content: @escaping (Data.Element) -> Content) where V == Content.TabValue [extension where Data : RandomAccessCollection, ID : Hashable, Content : TabContent]
+Group.TabValue | typealias TabValue = Content.TabValue [extension where Content : TabContent]
+Group.body | @MainActor var body: Group<Content> { get } [extension where Content : TabContent]
+Group.init(content:) | init<V>(@TabContentBuilder<V> content: () -> Content) where V == Content.TabValue [extension where Content : TabContent]
+GroupedTabViewStyle | struct GroupedTabViewStyle
+GroupedTabViewStyle.init() | init()
+Optional.TabValue | typealias TabValue = Wrapped.TabValue [extension where Wrapped : TabContent]
+Optional.body | @MainActor var body: Wrapped? { get } [extension where Wrapped : TabContent]
+SceneStorage.init(wrappedValue:_:store:) | init(wrappedValue: Value = TabViewCustomization(), _ key: String, store: UserDefaults? = nil) where Value == TabViewCustomization
+SidebarAdaptableTabViewStyle | struct SidebarAdaptableTabViewStyle
+SidebarAdaptableTabViewStyle.init() | init()
+Tab | @MainActor struct Tab<Value, Content, Label> where Value : Hashable, Content : View, Label : View
+Tab.TabValue | typealias TabValue = Value
+Tab.body | @MainActor var body: Tab<Value, Content, Label> { get }
+Tab.init(_:systemImage:role:content:) | @MainActor init(_ titleKey: LocalizedStringKey, systemImage: String, role: TabRole? = nil, @ViewBuilder content: () -> Content) [extension where Value == Never, Content : View, Label == DefaultTabLabel]
+Tab.init(_:systemImage:role:content:) | @MainActor init<S>(_ title: S, systemImage: String, role: TabRole? = nil, @ViewBuilder content: () -> Content) where S : StringProtocol [extension where Value == Never, Content : View, Label == DefaultTabLabel]
+Tab.init(_:systemImage:value:role:content:) | @MainActor init(_ titleKey: LocalizedStringKey, systemImage: String, value: Value, role: TabRole? = nil, @ViewBuilder content: () -> Content) [extension where Value : Hashable, Content : View, Label == DefaultTabLabel]
+Tab.init(_:systemImage:value:role:content:) | @MainActor init<S, T>(_ title: S, systemImage: String, value: T, role: TabRole? = nil, @ViewBuilder content: () -> Content) where Value == T?, S : StringProtocol, T : Hashable [extension where Value : Hashable, Content : View, Label == DefaultTabLabel]
+Tab.init(_:systemImage:value:role:content:) | @MainActor init<S>(_ title: S, systemImage: String, value: Value, role: TabRole? = nil, @ViewBuilder content: () -> Content) where S : StringProtocol [extension where Value : Hashable, Content : View, Label == DefaultTabLabel]
+Tab.init(_:systemImage:value:role:content:) | @MainActor init<T>(_ titleKey: LocalizedStringKey, systemImage: String, value: T, role: TabRole? = nil, @ViewBuilder content: () -> Content) where Value == T?, T : Hashable [extension where Value : Hashable, Content : View, Label == DefaultTabLabel]
+Tab.init(_:value:role:content:) | @MainActor init(_ titleKey: LocalizedStringKey, value: Value, role: TabRole? = nil, @ViewBuilder content: () -> Content) [extension where Value : Hashable, Content : View, Label == DefaultTabLabel]
+Tab.init(_:value:role:content:) | @MainActor init<S, T>(_ title: S, value: T, role: TabRole? = nil, @ViewBuilder content: () -> Content) where Value == T?, S : StringProtocol, T : Hashable [extension where Value : Hashable, Content : View, Label == DefaultTabLabel]
+Tab.init(_:value:role:content:) | @MainActor init<S>(_ title: S, value: Value, role: TabRole? = nil, @ViewBuilder content: () -> Content) where S : StringProtocol [extension where Value : Hashable, Content : View, Label == DefaultTabLabel]
+Tab.init(_:value:role:content:) | @MainActor init<T>(_ titleKey: LocalizedStringKey, value: T, role: TabRole? = nil, @ViewBuilder content: () -> Content) where Value == T?, T : Hashable [extension where Value : Hashable, Content : View, Label == DefaultTabLabel]
+Tab.init(content:) | @MainActor init(@ViewBuilder content: () -> Content) [extension where Value == Never, Content : View, Label == EmptyView]
+Tab.init(role:content:) | @MainActor init(role: TabRole?, @ViewBuilder content: () -> Content) [extension where Value == Never, Content : View, Label == DefaultTabLabel]
+Tab.init(role:content:label:) | @MainActor init(role: TabRole? = nil, @ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label) [extension where Value == Never, Content : View, Label : View]
+Tab.init(value:content:) | @MainActor init(value: Value, @ViewBuilder content: () -> Content) [extension where Value : Hashable, Content : View, Label == EmptyView]
+Tab.init(value:content:) | @MainActor init<V>(value: V, @ViewBuilder content: () -> Content) where Value == V?, V : Hashable [extension where Value : Hashable, Content : View, Label == EmptyView]
+Tab.init(value:role:content:) | @MainActor init(value: Value, role: TabRole?, @ViewBuilder content: () -> Content) [extension where Value : Hashable, Content : View, Label == DefaultTabLabel]
+Tab.init(value:role:content:) | @MainActor init<V>(value: V, role: TabRole?, @ViewBuilder content: () -> Content) where Value == V?, V : Hashable [extension where Value : Hashable, Content : View, Label == DefaultTabLabel]
+Tab.init(value:role:content:label:) | @MainActor init(value: Value, role: TabRole? = nil, @ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label) [extension where Value : Hashable, Content : View, Label : View]
+Tab.init(value:role:content:label:) | @MainActor init<V>(value: V, role: TabRole? = nil, @ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label) where Value == V?, V : Hashable [extension where Value : Hashable, Content : View, Label : View]
+TabBarMinimizeBehavior | struct TabBarMinimizeBehavior
+TabBarMinimizeBehavior.automatic | static let automatic: TabBarMinimizeBehavior
+TabBarOnlyTabViewStyle | struct TabBarOnlyTabViewStyle
+TabBarOnlyTabViewStyle.init() | init()
+TabBarPlacement | struct TabBarPlacement
+TabBarPlacement.bottomBar | static let bottomBar: TabBarPlacement
+TabBarPlacement.ornament | static let ornament: TabBarPlacement
+TabBarPlacement.pageIndicator | static let pageIndicator: TabBarPlacement
+TabBarPlacement.sidebar | static let sidebar: TabBarPlacement
+TabBarPlacement.topBar | static let topBar: TabBarPlacement
+TabContent | @MainActor protocol TabContent<TabValue>
+TabContent.Body | associatedtype Body : TabContent
+TabContent.TabValue | associatedtype TabValue : Hashable where Self.TabValue == Self.Body.TabValue
+TabContent.badge(_:) | @MainActor func badge(_ count: Int) -> some TabContent<Self.TabValue>
+TabContent.badge(_:) | @MainActor func badge(_ key: LocalizedStringKey) -> some TabContent<Self.TabValue>
+TabContent.badge(_:) | @MainActor func badge(_ label: Text?) -> some TabContent<Self.TabValue>
+TabContent.badge(_:) | @MainActor func badge<S>(_ label: S) -> some TabContent<Self.TabValue> where S : StringProtocol
+TabContent.body | @TabContentBuilder<Self.TabValue> @MainActor var body: Self.Body { get }
+TabContent.contextMenu(menuItems:) | @MainActor func contextMenu<M>(@ViewBuilder menuItems: () -> M) -> some TabContent<Self.TabValue> where M : View
+TabContent.customizationBehavior(_:for:) | @MainActor func customizationBehavior(_ behavior: TabCustomizationBehavior, for placements: AdaptableTabBarPlacement...) -> some TabContent<Self.TabValue>
+TabContent.customizationID(_:) | @MainActor func customizationID(_ id: String) -> some TabContent<Self.TabValue>
+TabContent.defaultVisibility(_:for:) | @MainActor func defaultVisibility(_ visibility: Visibility, for placements: AdaptableTabBarPlacement...) -> some TabContent<Self.TabValue>
+TabContent.disabled(_:) | @MainActor func disabled(_ disabled: Bool) -> some TabContent<Self.TabValue>
+TabContent.draggable(_:) | @MainActor func draggable<T>(_ payload: @autoclosure @escaping () -> T) -> some TabContent<Self.TabValue>
+TabContent.dropDestination(for:action:) | @MainActor func dropDestination<T>(for payloadType: T.Type = T.self, action: @escaping ([T]) -> Void) -> some TabContent<Self.TabValue>
+TabContent.hidden(_:) | @MainActor func hidden(_ hidden: Bool = true) -> some TabContent<Self.TabValue>
+TabContent.popover(isPresented:attachmentAnchor:arrowEdge:content:) | @MainActor func popover<Content>(isPresented: Binding<Bool>, attachmentAnchor: PopoverAttachmentAnchor = .rect(.bounds), arrowEdge: Edge? = nil, @ViewBuilder content: @escaping () -> Content) -> some TabContent<Self.TabValue> where Content : View
+TabContent.popover(item:attachmentAnchor:arrowEdge:content:) | @MainActor func popover<Item, Content>(item: Binding<Item?>, attachmentAnchor: PopoverAttachmentAnchor = .rect(.bounds), arrowEdge: Edge? = nil, @ViewBuilder content: @escaping (Item) -> Content) -> some TabContent<Self.TabValue> where Item : Identifiable, Content : View
+TabContent.sectionActions(content:) | @MainActor func sectionActions<Content>(@ViewBuilder content: () -> Content) -> some TabContent<Self.TabValue> where Content : View
+TabContent.springLoadingBehavior(_:) | @MainActor func springLoadingBehavior(_ behavior: SpringLoadingBehavior) -> some TabContent<Self.TabValue>
+TabContent.tabPlacement(_:) | @MainActor func tabPlacement(_ placement: TabPlacement) -> some TabContent<Self.TabValue>
+TabContentBuilder | @MainActor @resultBuilder struct TabContentBuilder<TabValue> where TabValue : Hashable
+TabContentBuilder.Content | nonisolated struct Content<C> where C : TabContent
+TabContentBuilder.Content.body | @MainActor var body: some View { get }
+TabContentBuilder.buildBlock(_:) | @MainActor static func buildBlock(_ content: some TabContent<TabValue>) -> some TabContent<TabValue>
+TabContentBuilder.buildBlock(_:_:) | @MainActor static func buildBlock<C0, C1>(_ c0: C0, _ c1: C1) -> some TabContent<TabValue> where TabValue == C0.TabValue, C0 : TabContent, C1 : TabContent, C0.TabValue == C1.TabValue [extension where TabValue : Hashable]
+TabContentBuilder.buildBlock(_:_:_:) | @MainActor static func buildBlock<C0, C1, C2>(_ c0: C0, _ c1: C1, _ c2: C2) -> some TabContent<TabValue> where TabValue == C0.TabValue, C0 : TabContent, C1 : TabContent, C2 : TabContent, C0.TabValue == C1.TabValue, C1.TabValue == C2.TabValue [extension where TabValue : Hashable]
+TabContentBuilder.buildBlock(_:_:_:_:) | @MainActor static func buildBlock<C0, C1, C2, C3>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3) -> some TabContent<TabValue> where TabValue == C0.TabValue, C0 : TabContent, C1 : TabContent, C2 : TabContent, C3 : TabContent, C0.TabValue == C1.TabValue, C1.TabValue == C2.TabValue, C2.TabValue == C3.TabValue [extension where TabValue : Hashable]
+TabContentBuilder.buildBlock(_:_:_:_:_:) | @MainActor static func buildBlock<C0, C1, C2, C3, C4>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4) -> some TabContent<TabValue> where TabValue == C0.TabValue, C0 : TabContent, C1 : TabContent, C2 : TabContent, C3 : TabContent, C4 : TabContent, C0.TabValue == C1.TabValue, C1.TabValue == C2.TabValue, C2.TabValue == C3.TabValue, C3.TabValue == C4.TabValue [extension where TabValue : Hashable]
+TabContentBuilder.buildBlock(_:_:_:_:_:_:) | @MainActor static func buildBlock<C0, C1, C2, C3, C4, C5>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5) -> some TabContent<TabValue> where TabValue == C0.TabValue, C0 : TabContent, C1 : TabContent, C2 : TabContent, C3 : TabContent, C4 : TabContent, C5 : TabContent, C0.TabValue == C1.TabValue, C1.TabValue == C2.TabValue, C2.TabValue == C3.TabValue, C3.TabValue == C4.TabValue, C4.TabValue == C5.TabValue [extension where TabValue : Hashable]
+TabContentBuilder.buildBlock(_:_:_:_:_:_:_:) | @MainActor static func buildBlock<C0, C1, C2, C3, C4, C5, C6>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6) -> some TabContent<TabValue> where TabValue == C0.TabValue, C0 : TabContent, C1 : TabContent, C2 : TabContent, C3 : TabContent, C4 : TabContent, C5 : TabContent, C6 : TabContent, C0.TabValue == C1.TabValue, C1.TabValue == C2.TabValue, C2.TabValue == C3.TabValue, C3.TabValue == C4.TabValue, C4.TabValue == C5.TabValue, C5.TabValue == C6.TabValue [extension where TabValue : Hashable]
+TabContentBuilder.buildBlock(_:_:_:_:_:_:_:_:) | @MainActor static func buildBlock<C0, C1, C2, C3, C4, C5, C6, C7>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6, _ c7: C7) -> some TabContent<TabValue> where TabValue == C0.TabValue, C0 : TabContent, C1 : TabContent, C2 : TabContent, C3 : TabContent, C4 : TabContent, C5 : TabContent, C6 : TabContent, C7 : TabContent, C0.TabValue == C1.TabValue, C1.TabValue == C2.TabValue, C2.TabValue == C3.TabValue, C3.TabValue == C4.TabValue, C4.TabValue == C5.TabValue, C5.TabValue == C6.TabValue, C6.TabValue == C7.TabValue [extension where TabValue : Hashable]
+TabContentBuilder.buildBlock(_:_:_:_:_:_:_:_:_:) | @MainActor static func buildBlock<C0, C1, C2, C3, C4, C5, C6, C7, C8>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6, _ c7: C7, _ c8: C8) -> some TabContent<TabValue> where TabValue == C0.TabValue, C0 : TabContent, C1 : TabContent, C2 : TabContent, C3 : TabContent, C4 : TabContent, C5 : TabContent, C6 : TabContent, C7 : TabContent, C8 : TabContent, C0.TabValue == C1.TabValue, C1.TabValue == C2.TabValue, C2.TabValue == C3.TabValue, C3.TabValue == C4.TabValue, C4.TabValue == C5.TabValue, C5.TabValue == C6.TabValue, C6.TabValue == C7.TabValue, C7.TabValue == C8.TabValue [extension where TabValue : Hashable]
+TabContentBuilder.buildBlock(_:_:_:_:_:_:_:_:_:_:) | @MainActor static func buildBlock<C0, C1, C2, C3, C4, C5, C6, C7, C8, C9>(_ c0: C0, _ c1: C1, _ c2: C2, _ c3: C3, _ c4: C4, _ c5: C5, _ c6: C6, _ c7: C7, _ c8: C8, _ c9: C9) -> some TabContent<TabValue> where TabValue == C0.TabValue, C0 : TabContent, C1 : TabContent, C2 : TabContent, C3 : TabContent, C4 : TabContent, C5 : TabContent, C6 : TabContent, C7 : TabContent, C8 : TabContent, C9 : TabContent, C0.TabValue == C1.TabValue, C1.TabValue == C2.TabValue, C2.TabValue == C3.TabValue, C3.TabValue == C4.TabValue, C4.TabValue == C5.TabValue, C5.TabValue == C6.TabValue, C6.TabValue == C7.TabValue, C7.TabValue == C8.TabValue, C8.TabValue == C9.TabValue [extension where TabValue : Hashable]
+TabContentBuilder.buildEither(first:) | @MainActor static func buildEither<T, F>(first: T) -> _ConditionalContent<T, F> where TabValue == T.TabValue, T : TabContent, F : TabContent, T.TabValue == F.TabValue
+TabContentBuilder.buildEither(second:) | @MainActor static func buildEither<T, F>(second: F) -> _ConditionalContent<T, F> where TabValue == T.TabValue, T : TabContent, F : TabContent, T.TabValue == F.TabValue
+TabContentBuilder.buildExpression(_:) | @MainActor static func buildExpression(_ content: some TabContent<TabValue>) -> some TabContent<TabValue>
+TabContentBuilder.buildIf(_:) | @MainActor static func buildIf(_ content: (some TabContent<TabValue>)?) -> (some TabContent<TabValue>)?
+TabContentBuilder.buildLimitedAvailability(_:) | @MainActor static func buildLimitedAvailability<T>(_ content: T) -> AnyTabContent<T.TabValue> where T : TabContent
+TabCustomizationBehavior | struct TabCustomizationBehavior
+TabCustomizationBehavior.automatic | static var automatic: TabCustomizationBehavior { get }
+TabPlacement | struct TabPlacement
+TabPlacement.automatic | static let automatic: TabPlacement
+TabPlacement.pinned | static let pinned: TabPlacement
+TabPlacement.sidebarOnly | static let sidebarOnly: TabPlacement
+TabRole | struct TabRole
+TabRole.search | static var search: TabRole { get }
+TabSearchActivation | struct TabSearchActivation
+TabSearchActivation.automatic | static var automatic: TabSearchActivation { get }
+TabSearchActivation.searchTabSelection | static var searchTabSelection: TabSearchActivation { get }
+TabSection | @MainActor struct TabSection<Header, Content, Footer, SelectionValue> where Header : View, Content : TabContent, Footer : View, SelectionValue == Content.TabValue
+TabSection.TabValue | typealias TabValue = Content.TabValue
+TabSection.body | @MainActor var body: TabSection<Header, Content, Footer, SelectionValue> { get }
+TabSection.init(_:content:) | @MainActor init(_ titleKey: LocalizedStringKey, @TabContentBuilder<SelectionValue> content: () -> Content) [extension where Header == Text, Content : TabContent, Footer == EmptyView, SelectionValue == Content.TabValue]
+TabSection.init(_:content:) | @MainActor init<S>(_ title: S, @TabContentBuilder<SelectionValue> content: () -> Content) where S : StringProtocol [extension where Header == Text, Content : TabContent, Footer == EmptyView, SelectionValue == Content.TabValue]
+TabSection.init(_:content:) | @MainActor init<V, S>(_ title: S, @TabContentBuilder<V?> content: () -> Content) where SelectionValue == V?, V : Hashable, S : StringProtocol, Content.TabValue == V? [extension where Header == Text, Content : TabContent, Footer == EmptyView, SelectionValue == Content.TabValue]
+TabSection.init(_:content:) | @MainActor init<V>(_ titleKey: LocalizedStringKey, @TabContentBuilder<V?> content: () -> Content) where SelectionValue == V?, V : Hashable, Content.TabValue == V? [extension where Header == Text, Content : TabContent, Footer == EmptyView, SelectionValue == Content.TabValue]
+TabSection.init(content:) | @MainActor init(@TabContentBuilder<SelectionValue> content: () -> Content) [extension where Header == EmptyView, Content : TabContent, Footer == EmptyView, SelectionValue == Content.TabValue]
+TabSection.init(content:) | @MainActor init<V>(@TabContentBuilder<V?> content: () -> Content) where SelectionValue == V?, V : Hashable, Content.TabValue == V? [extension where Header == EmptyView, Content : TabContent, Footer == EmptyView, SelectionValue == Content.TabValue]
+TabSection.init(content:header:) | @MainActor init(@TabContentBuilder<SelectionValue> content: () -> Content, @ViewBuilder header: () -> Header) [extension where Header : View, Content : TabContent, Footer == EmptyView, SelectionValue == Content.TabValue]
+TabSection.init(content:header:) | @MainActor init<V>(@TabContentBuilder<V?> content: () -> Content, @ViewBuilder header: () -> Header) where SelectionValue == V?, V : Hashable, Content.TabValue == V? [extension where Header : View, Content : TabContent, Footer == EmptyView, SelectionValue == Content.TabValue]
+TabView | @MainActor struct TabView<SelectionValue, Content> where SelectionValue : Hashable, Content : View
+TabView.body | @MainActor var body: some View { get }
+TabView.init(content:) | @MainActor init<C>(@TabContentBuilder<Never> content: () -> C) where Content == TabContentBuilder<Never>.Content<C>, C : TabContent [extension where SelectionValue == Never, Content : View]
+TabView.init(selection:content:) | @MainActor init<C>(selection: Binding<SelectionValue>, @TabContentBuilder<SelectionValue> content: () -> C) where Content == TabContentBuilder<SelectionValue>.Content<C>, C : TabContent
+TabViewBottomAccessoryPlacement | enum TabViewBottomAccessoryPlacement
+TabViewBottomAccessoryPlacement.expanded | case expanded
+TabViewBottomAccessoryPlacement.inline | case inline
+TabViewContentSizing | enum TabViewContentSizing
+TabViewContentSizing.activeTab | case activeTab
+TabViewContentSizing.largestTab | case largestTab
+TabViewCustomization | struct TabViewCustomization
+TabViewCustomization.SectionCustomization | struct SectionCustomization
+TabViewCustomization.SectionCustomization.resetTabOrder() | mutating func resetTabOrder()
+TabViewCustomization.SectionCustomization.tabOrder | var tabOrder: [String]? { get }
+TabViewCustomization.TabCustomization | struct TabCustomization
+TabViewCustomization.TabCustomization.sidebarVisibility | var sidebarVisibility: Visibility
+TabViewCustomization.encode(to:) | func encode(to encoder: any Encoder) throws
+TabViewCustomization.init() | init()
+TabViewCustomization.init(from:) | init(from decoder: any Decoder) throws
+TabViewCustomization.resetSectionOrder() | mutating func resetSectionOrder()
+TabViewCustomization.resetVisibility() | mutating func resetVisibility()
+TabViewCustomization.subscript(section:) | subscript(section id: String) -> TabViewCustomization.SectionCustomization { get set }
+TabViewCustomization.subscript(tab:) | subscript(tab id: String) -> TabViewCustomization.TabCustomization { get set }
+TabViewHeaderWrap | enum TabViewHeaderWrap
+TabViewHeaderWrap.minimal | case minimal
+TabViewHeaderWrap.toContentWidth | case toContentWidth
+TabViewStyle | protocol TabViewStyle : Sendable
+TabViewStyle.automatic | static var automatic: DefaultTabViewStyle { get } [extension where Self == DefaultTabViewStyle]
+TabViewStyle.bordered | static var bordered: BorderedTabViewStyle { get } [extension where Self == BorderedTabViewStyle]
+TabViewStyle.compact | static var compact: CompactTabViewStyle { get } [extension where Self == CompactTabViewStyle]
+TabViewStyle.grouped | static var grouped: GroupedTabViewStyle { get } [extension where Self == GroupedTabViewStyle]
+TabViewStyle.sidebarAdaptable | static var sidebarAdaptable: SidebarAdaptableTabViewStyle { get } [extension where Self == SidebarAdaptableTabViewStyle]
+TabViewStyle.tabBarOnly | static var tabBarOnly: TabBarOnlyTabViewStyle { get } [extension where Self == TabBarOnlyTabViewStyle]
+View.tabBarMinimizeBehavior(_:) | nonisolated func tabBarMinimizeBehavior(_ behavior: TabBarMinimizeBehavior) -> some View
+View.tabViewContentPadding(_:) | nonisolated func tabViewContentPadding(_ insets: EdgeInsets) -> some View
+View.tabViewContentPadding(_:) | nonisolated func tabViewContentPadding(_ length: Int) -> some View
+View.tabViewContentSizing(_:) | nonisolated func tabViewContentSizing(_ sizing: TabViewContentSizing) -> some View
+View.tabViewCustomization(_:) | nonisolated func tabViewCustomization(_ customization: Binding<TabViewCustomization>?) -> some View
+View.tabViewHeaderAlignment(_:) | nonisolated func tabViewHeaderAlignment(_ alignment: HorizontalAlignment) -> some View
+View.tabViewHeaderWrap(_:) | nonisolated func tabViewHeaderWrap(_ wrap: TabViewHeaderWrap) -> some View
+View.tabViewSearchActivation(_:) | nonisolated func tabViewSearchActivation(_ activation: TabSearchActivation) -> some View
+View.tabViewSidebarBottomBar(content:) | nonisolated func tabViewSidebarBottomBar<Content>(@ViewBuilder content: () -> Content) -> some View where Content : View
+View.tabViewSidebarFooter(content:) | nonisolated func tabViewSidebarFooter<Content>(@ViewBuilder content: () -> Content) -> some View where Content : View
+View.tabViewSidebarHeader(content:) | nonisolated func tabViewSidebarHeader<Content>(@ViewBuilder content: () -> Content) -> some View where Content : View
+View.tabViewStyle(_:) | nonisolated func tabViewStyle<S>(_ style: S) -> some View where S : TabViewStyle
+_ConditionalContent.TabValue | typealias TabValue = TrueContent.TabValue [extension where TrueContent : TabContent, FalseContent : TabContent, TrueContent.TabValue == FalseContent.TabValue]
+_ConditionalContent.body | @MainActor var body: _ConditionalContent<TrueContent, FalseContent> { get } [extension where TrueContent : TabContent, FalseContent : TabContent, TrueContent.TabValue == FalseContent.TabValue]

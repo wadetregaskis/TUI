@@ -1,0 +1,74 @@
+# TUIFilePanels public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+Data.fileData(as:) | func fileData(as contentType: UTType) throws -> Data
+FileDialogBrowserOptions | struct FileDialogBrowserOptions
+FileDialogBrowserOptions.displayFileExtensions | static let displayFileExtensions: FileDialogBrowserOptions
+FileDialogBrowserOptions.enumeratePackages | static let enumeratePackages: FileDialogBrowserOptions
+FileDialogBrowserOptions.includeHiddenFiles | static let includeHiddenFiles: FileDialogBrowserOptions
+FileDialogBrowserOptions.init(rawValue:) | init(rawValue: Int)
+FileDialogBrowserOptions.rawValue | let rawValue: Int
+FileDocument | @preconcurrency protocol FileDocument : Sendable
+FileDocument.ReadConfiguration | typealias ReadConfiguration = FileDocumentReadConfiguration
+FileDocument.WriteConfiguration | typealias WriteConfiguration = FileDocumentWriteConfiguration
+FileDocument.fileWrapper(configuration:) | func fileWrapper(configuration: Self.WriteConfiguration) throws -> FileWrapper
+FileDocument.init(configuration:) | init(configuration: Self.ReadConfiguration) throws
+FileDocument.readableContentTypes | static var readableContentTypes: [UTType] { get }
+FileDocument.writableContentTypes | static var writableContentTypes: [UTType] { get }
+FileDocument.writableContentTypes | static var writableContentTypes: [UTType] { get }
+FileDocumentReadConfiguration | struct FileDocumentReadConfiguration
+FileDocumentReadConfiguration.contentType | let contentType: UTType
+FileDocumentReadConfiguration.file | let file: FileWrapper
+FileDocumentWriteConfiguration | struct FileDocumentWriteConfiguration
+FileDocumentWriteConfiguration.contentType | let contentType: UTType
+FileDocumentWriteConfiguration.existingFile | let existingFile: FileWrapper?
+FileExportContents | protocol FileExportContents
+FileExportContents.fileData(as:) | func fileData(as contentType: UTType) throws -> Data
+ReferenceFileDocument | @preconcurrency protocol ReferenceFileDocument : ObservableObject, Sendable
+ReferenceFileDocument.ReadConfiguration | typealias ReadConfiguration = FileDocumentReadConfiguration
+ReferenceFileDocument.Snapshot | associatedtype Snapshot
+ReferenceFileDocument.WriteConfiguration | typealias WriteConfiguration = FileDocumentWriteConfiguration
+ReferenceFileDocument.fileWrapper(snapshot:configuration:) | func fileWrapper(snapshot: Self.Snapshot, configuration: Self.WriteConfiguration) throws -> FileWrapper
+ReferenceFileDocument.init(configuration:) | init(configuration: Self.ReadConfiguration) throws
+ReferenceFileDocument.readableContentTypes | static var readableContentTypes: [UTType] { get }
+ReferenceFileDocument.snapshot(contentType:) | func snapshot(contentType: UTType) throws -> Self.Snapshot
+ReferenceFileDocument.writableContentTypes | static var writableContentTypes: [UTType] { get }
+ReferenceFileDocument.writableContentTypes | static var writableContentTypes: [UTType] { get }
+String.fileData(as:) | func fileData(as contentType: UTType) throws -> Data
+View.fileDialogBrowserOptions(_:) | nonisolated func fileDialogBrowserOptions(_ options: FileDialogBrowserOptions) -> some View
+View.fileDialogConfirmationLabel(_:) | nonisolated func fileDialogConfirmationLabel(_ label: Text?) -> some View
+View.fileDialogConfirmationLabel(_:) | nonisolated func fileDialogConfirmationLabel(_ labelKey: LocalizedStringKey) -> some View
+View.fileDialogConfirmationLabel(_:) | nonisolated func fileDialogConfirmationLabel<S>(_ label: S) -> some View where S : StringProtocol
+View.fileDialogContentTypePicker(_:) | nonisolated func fileDialogContentTypePicker(_ visibility: Visibility) -> some View
+View.fileDialogCustomizationID(_:) | nonisolated func fileDialogCustomizationID(_ id: String) -> some View
+View.fileDialogDefaultDirectory(_:) | nonisolated func fileDialogDefaultDirectory(_ defaultDirectory: URL?) -> some View
+View.fileDialogIcon(_:) | nonisolated func fileDialogIcon<Icon>(_ icon: @escaping @MainActor (URL, UTType) -> Icon?) -> some View where Icon : View
+View.fileDialogImportsUnresolvedAliases(_:) | nonisolated func fileDialogImportsUnresolvedAliases(_ imports: Bool) -> some View
+View.fileDialogMessage(_:) | nonisolated func fileDialogMessage(_ message: Text?) -> some View
+View.fileDialogMessage(_:) | nonisolated func fileDialogMessage(_ messageKey: LocalizedStringKey) -> some View
+View.fileDialogMessage(_:) | nonisolated func fileDialogMessage<S>(_ message: S) -> some View where S : StringProtocol
+View.fileDialogPreview(_:) | nonisolated func fileDialogPreview<Preview>(_ preview: @escaping @MainActor (URL, UTType) -> Preview?) -> some View where Preview : View
+View.fileDialogRemoteNotice(_:) | nonisolated func fileDialogRemoteNotice(_ visibility: Visibility) -> some View
+View.fileDialogURLEnabled(_:) | nonisolated func fileDialogURLEnabled(_ predicate: Predicate<URL>) -> some View
+View.fileExporter(isPresented:contents:contentType:defaultFilename:onCompletion:onCancellation:) | @MainActor func fileExporter<C>(isPresented: Binding<Bool>, contents: C?, contentType: UTType, defaultFilename: String? = nil, onCompletion: @escaping (Result<URL, any Error>) -> Void, onCancellation: @escaping () -> Void = {}) -> some View where C : FileExportContents
+View.fileExporter(isPresented:document:contentType:defaultFilename:onCompletion:) | @MainActor func fileExporter<D>(isPresented: Binding<Bool>, document: D?, contentType: UTType, defaultFilename: String? = nil, onCompletion: @escaping (Result<URL, any Error>) -> Void) -> some View where D : FileDocument
+View.fileExporter(isPresented:document:contentType:defaultFilename:onCompletion:) | @MainActor func fileExporter<D>(isPresented: Binding<Bool>, document: D?, contentType: UTType, defaultFilename: String? = nil, onCompletion: @escaping (Result<URL, any Error>) -> Void) -> some View where D : ReferenceFileDocument
+View.fileExporter(isPresented:document:contentTypes:defaultFilename:onCompletion:onCancellation:) | @MainActor func fileExporter<D>(isPresented: Binding<Bool>, document: D?, contentTypes: [UTType] = [], defaultFilename: String? = nil, onCompletion: @escaping (Result<URL, any Error>) -> Void, onCancellation: @escaping () -> Void = {}) -> some View where D : FileDocument
+View.fileExporter(isPresented:document:contentTypes:defaultFilename:onCompletion:onCancellation:) | @MainActor func fileExporter<D>(isPresented: Binding<Bool>, document: D?, contentTypes: [UTType] = [], defaultFilename: String? = nil, onCompletion: @escaping (Result<URL, any Error>) -> Void, onCancellation: @escaping () -> Void = {}) -> some View where D : ReferenceFileDocument
+View.fileExporter(isPresented:documents:contentType:onCompletion:) | @MainActor func fileExporter<C>(isPresented: Binding<Bool>, documents: C, contentType: UTType, onCompletion: @escaping (Result<[URL], any Error>) -> Void) -> some View where C : Collection, C.Element : FileDocument
+View.fileExporter(isPresented:documents:contentType:onCompletion:) | @MainActor func fileExporter<C>(isPresented: Binding<Bool>, documents: C, contentType: UTType, onCompletion: @escaping (Result<[URL], any Error>) -> Void) -> some View where C : Collection, C.Element : ReferenceFileDocument
+View.fileExporter(isPresented:documents:contentTypes:onCompletion:onCancellation:) | @MainActor func fileExporter<C>(isPresented: Binding<Bool>, documents: C, contentTypes: [UTType] = [], onCompletion: @escaping (Result<[URL], any Error>) -> Void, onCancellation: @escaping () -> Void = {}) -> some View where C : Collection, C.Element : FileDocument
+View.fileExporter(isPresented:documents:contentTypes:onCompletion:onCancellation:) | @MainActor func fileExporter<C>(isPresented: Binding<Bool>, documents: C, contentTypes: [UTType] = [], onCompletion: @escaping (Result<[URL], any Error>) -> Void, onCancellation: @escaping () -> Void = {}) -> some View where C : Collection, C.Element : ReferenceFileDocument
+View.fileExporter(isPresented:encoding:contentType:defaultFilename:onCompletion:onCancellation:) | @MainActor func fileExporter<Value>(isPresented: Binding<Bool>, encoding value: Value?, contentType: UTType = .json, defaultFilename: String? = nil, onCompletion: @escaping (Result<URL, any Error>) -> Void, onCancellation: @escaping () -> Void = {}) -> some View where Value : Encodable
+View.fileExporter(isPresented:item:contentTypes:defaultFilename:onCompletion:onCancellation:) | @MainActor func fileExporter<T>(isPresented: Binding<Bool>, item: T?, contentTypes: [UTType] = [], defaultFilename: String? = nil, onCompletion: @escaping (Result<URL, any Error>) -> Void, onCancellation: @escaping () -> Void = {}) -> some View where T : Transferable
+View.fileExporter(isPresented:items:contentTypes:onCompletion:onCancellation:) | @MainActor func fileExporter<C, T>(isPresented: Binding<Bool>, items: C, contentTypes: [UTType] = [], onCompletion: @escaping (Result<[URL], any Error>) -> Void, onCancellation: @escaping () -> Void = {}) -> some View where C : Collection, T : Transferable, T == C.Element
+View.fileExporterFilenameLabel(_:) | nonisolated func fileExporterFilenameLabel(_ label: Text?) -> some View
+View.fileExporterFilenameLabel(_:) | nonisolated func fileExporterFilenameLabel(_ labelKey: LocalizedStringKey) -> some View
+View.fileExporterFilenameLabel(_:) | nonisolated func fileExporterFilenameLabel<S>(_ label: S) -> some View where S : StringProtocol
+View.fileImporter(isPresented:allowedContentTypes:allowsMultipleSelection:onCompletion:) | nonisolated func fileImporter(isPresented: Binding<Bool>, allowedContentTypes: [UTType], allowsMultipleSelection: Bool, onCompletion: @escaping (Result<[URL], any Error>) -> Void) -> some View
+View.fileImporter(isPresented:allowedContentTypes:allowsMultipleSelection:onCompletion:onCancellation:) | nonisolated func fileImporter(isPresented: Binding<Bool>, allowedContentTypes: [UTType], allowsMultipleSelection: Bool, onCompletion: @escaping (Result<[URL], any Error>) -> Void, onCancellation: @escaping () -> Void) -> some View
+View.fileImporter(isPresented:allowedContentTypes:onCompletion:) | nonisolated func fileImporter(isPresented: Binding<Bool>, allowedContentTypes: [UTType], onCompletion: @escaping (Result<URL, any Error>) -> Void) -> some View
+View.fileMover(isPresented:file:onCompletion:) | @MainActor func fileMover(isPresented: Binding<Bool>, file: URL?, onCompletion: @escaping (Result<URL, any Error>) -> Void) -> some View
+View.fileMover(isPresented:file:onCompletion:onCancellation:) | @MainActor func fileMover(isPresented: Binding<Bool>, file: URL?, onCompletion: @escaping (Result<URL, any Error>) -> Void, onCancellation: @escaping () -> Void) -> some View
+View.fileMover(isPresented:files:onCompletion:) | @MainActor func fileMover<C>(isPresented: Binding<Bool>, files: C, onCompletion: @escaping (Result<[URL], any Error>) -> Void) -> some View where C : Collection, C.Element == URL
+View.fileMover(isPresented:files:onCompletion:onCancellation:) | @MainActor func fileMover<C>(isPresented: Binding<Bool>, files: C, onCompletion: @escaping (Result<[URL], any Error>) -> Void, onCancellation: @escaping () -> Void) -> some View where C : Collection, C.Element == URL
+_ReferenceFileDocumentObject | typealias _ReferenceFileDocumentObject = ObservableObject

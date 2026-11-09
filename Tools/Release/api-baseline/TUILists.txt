@@ -1,0 +1,254 @@
+# TUILists public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+AlternatingRowBackgroundBehavior | struct AlternatingRowBackgroundBehavior
+AlternatingRowBackgroundBehavior.automatic | static let automatic: AlternatingRowBackgroundBehavior
+AlternatingRowBackgroundBehavior.disabled | static let disabled: AlternatingRowBackgroundBehavior
+AlternatingRowBackgroundBehavior.enabled | static let enabled: AlternatingRowBackgroundBehavior
+BorderedListStyle | struct BorderedListStyle
+BorderedListStyle.alternatingRowColors | var alternatingRowColors: Bool { get }
+BorderedListStyle.init() | init()
+BorderedListStyle.rowPadding | var rowPadding: EdgeInsets { get }
+BorderedListStyle.showsBorder | var showsBorder: Bool { get }
+EditActions | struct EditActions<Data>
+EditActions.all | static var all: EditActions<Data> { get } [extension where Data : MutableCollection, Data : RangeReplaceableCollection]
+EditActions.delete | static var delete: EditActions<Data> { get } [extension where Data : RangeReplaceableCollection]
+EditActions.init(rawValue:) | init(rawValue: Int)
+EditActions.move | static var move: EditActions<Data> { get } [extension where Data : MutableCollection]
+EditActions.rawValue | let rawValue: Int
+EditButton | struct EditButton
+EditButton.body | @MainActor var body: some View { get }
+EditButton.init() | init()
+EditMode | enum EditMode
+EditMode.active | case active
+EditMode.inactive | case inactive
+EditMode.isEditing | var isEditing: Bool { get }
+EditMode.transient | case transient
+EnvironmentValues.defaultMinListHeaderHeight | var defaultMinListHeaderHeight: Int? { get set }
+EnvironmentValues.defaultMinListRowHeight | var defaultMinListRowHeight: Int { get set }
+EnvironmentValues.editMode | var editMode: Binding<EditMode>? { get set }
+EnvironmentValues.listSeparatorStyle | var listSeparatorStyle: ListSeparatorStyle { get set }
+EnvironmentValues.rowReorderFeedback | var rowReorderFeedback: RowReorderFeedback { get set }
+EnvironmentValues.rowShortcuts | var rowShortcuts: RowShortcuts { get set }
+EnvironmentValues.sidebarRowSize | var sidebarRowSize: SidebarRowSize { get }
+ForEach.init(_:editActions:content:) | nonisolated init<C>(_ data: Binding<C>, editActions: EditActions<C>, @ViewBuilder content: @escaping (Binding<C.Element>) -> Content) where Data == IndexedIdentifierCollection<C, ID>, ID == C.Element.ID, C : MutableCollection, C : RandomAccessCollection, C : RangeReplaceableCollection, C.Element : Identifiable, C.Index == Int [extension where Data : RandomAccessCollection, ID : Hashable, Content : View]
+ForEach.init(_:id:editActions:content:) | nonisolated init<C>(_ data: Binding<C>, id: KeyPath<C.Element, ID>, editActions: EditActions<C>, @ViewBuilder content: @escaping (Binding<C.Element>) -> Content) where Data == IndexedIdentifierCollection<C, ID>, C : MutableCollection, C : RandomAccessCollection, C : RangeReplaceableCollection, C.Index == Int [extension where Data : RandomAccessCollection, ID : Hashable, Content : View]
+ForEach.init(sections:content:) | init<V>(sections view: V, @ViewBuilder content: @escaping (SectionConfiguration) -> Content) where Data == ForEachSectionCollection<Content>, ID == SectionConfiguration.ID, V : View [extension where Data : RandomAccessCollection, ID : Hashable, Content : View]
+ForEachSectionCollection | nonisolated struct ForEachSectionCollection<Content> where Content : View
+ForEachSectionCollection.Element | typealias Element = SectionConfiguration [extension where Content : View]
+ForEachSectionCollection.Index | typealias Index = Int [extension where Content : View]
+ForEachSectionCollection.Indices | typealias Indices = Range<Int> [extension where Content : View]
+ForEachSectionCollection.endIndex | @MainActor var endIndex: Int { get } [extension where Content : View]
+ForEachSectionCollection.startIndex | @MainActor var startIndex: Int { get } [extension where Content : View]
+ForEachSectionCollection.subscript(_:) | @MainActor subscript(position: Int) -> SectionConfiguration { get } [extension where Content : View]
+IndexedIdentifierCollection | struct IndexedIdentifierCollection<Base, ID> where Base : Collection, ID : Hashable
+IndexedIdentifierCollection.Element | struct Element
+IndexedIdentifierCollection.Index | typealias Index = Base.Index
+IndexedIdentifierCollection.Indices | typealias Indices = DefaultIndices<IndexedIdentifierCollection<Base, ID>>
+IndexedIdentifierCollection.Iterator | typealias Iterator = IndexingIterator<IndexedIdentifierCollection<Base, ID>>
+IndexedIdentifierCollection.endIndex | var endIndex: IndexedIdentifierCollection<Base, ID>.Index { get }
+IndexedIdentifierCollection.index(after:) | func index(after i: IndexedIdentifierCollection<Base, ID>.Index) -> IndexedIdentifierCollection<Base, ID>.Index
+IndexedIdentifierCollection.index(before:) | func index(before i: IndexedIdentifierCollection<Base, ID>.Index) -> IndexedIdentifierCollection<Base, ID>.Index [extension where Base : BidirectionalCollection, ID : Hashable]
+IndexedIdentifierCollection.startIndex | var startIndex: IndexedIdentifierCollection<Base, ID>.Index { get }
+IndexedIdentifierCollection.subscript(_:) | subscript(position: IndexedIdentifierCollection<Base, ID>.Index) -> IndexedIdentifierCollection<Base, ID>.Element { get }
+InsetGroupedListStyle | struct InsetGroupedListStyle
+InsetGroupedListStyle.alternatingRowColors | var alternatingRowColors: Bool { get }
+InsetGroupedListStyle.init() | init()
+InsetGroupedListStyle.rowPadding | var rowPadding: EdgeInsets { get }
+InsetGroupedListStyle.showsBorder | var showsBorder: Bool { get }
+InsetListStyle | struct InsetListStyle
+InsetListStyle.alternatingRowColors | var alternatingRowColors: Bool { get }
+InsetListStyle.init() | init()
+InsetListStyle.rowPadding | var rowPadding: EdgeInsets { get }
+InsetListStyle.showsBorder | var showsBorder: Bool { get }
+List | nonisolated struct List<SelectionValue, Content, Footer> where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View
+List.body | @MainActor var body: some View { get }
+List.disabled(_:) | func disabled(_ disabled: Bool = true) -> List<SelectionValue, Content, Footer> [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
+List.focusID(_:) | func focusID(_ id: String) -> List<SelectionValue, Content, Footer> [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
+List.init(_:children:rowContent:) | init<Data, RowContent>(_ data: Binding<Data>, children: WritableKeyPath<Data.Element, Data?>, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == OutlineGroup<Binding<Data>, Data.Element.ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, RowContent : View, Data.Element : Identifiable [extension where SelectionValue == Int, Content : View, Footer == EmptyView]
+List.init(_:children:rowContent:) | init<Data, RowContent>(_ data: Data, children: KeyPath<Data.Element, Data?>, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>, Data : RandomAccessCollection, RowContent : View, Data.Element : Identifiable [extension where SelectionValue == Int, Content : View, Footer == EmptyView]
+List.init(_:children:selection:rowContent:) | init<Data, RowContent>(_ data: Binding<Data>, children: WritableKeyPath<Data.Element, Data?>, selection: Binding<SelectionValue>, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == OutlineGroup<Binding<Data>, Data.Element.ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, RowContent : View, Data.Element : Identifiable [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:children:selection:rowContent:) | init<Data, RowContent>(_ data: Binding<Data>, children: WritableKeyPath<Data.Element, Data?>, selection: Binding<SelectionValue?>?, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == OutlineGroup<Binding<Data>, Data.Element.ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, RowContent : View, Data.Element : Identifiable [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:children:selection:rowContent:) | init<Data, RowContent>(_ data: Binding<Data>, children: WritableKeyPath<Data.Element, Data?>, selection: Binding<Set<SelectionValue>>?, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == OutlineGroup<Binding<Data>, Data.Element.ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, RowContent : View, Data.Element : Identifiable [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:children:selection:rowContent:) | init<Data, RowContent>(_ data: Data, children: KeyPath<Data.Element, Data?>, selection: Binding<SelectionValue>, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>, Data : RandomAccessCollection, RowContent : View, Data.Element : Identifiable [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:children:selection:rowContent:) | init<Data, RowContent>(_ data: Data, children: KeyPath<Data.Element, Data?>, selection: Binding<SelectionValue?>?, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>, Data : RandomAccessCollection, RowContent : View, Data.Element : Identifiable [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:children:selection:rowContent:) | init<Data, RowContent>(_ data: Data, children: KeyPath<Data.Element, Data?>, selection: Binding<Set<SelectionValue>>?, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>, Data : RandomAccessCollection, RowContent : View, Data.Element : Identifiable [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:content:) | init(_ titleKey: LocalizedStringKey, @ViewBuilder content: () -> Content) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:content:) | init(_ titleKey: LocalizedStringKey, @ViewBuilder content: () -> Content) [extension where SelectionValue == Int, Content : View, Footer == EmptyView]
+List.init(_:content:) | init<S>(_ title: S, @ViewBuilder content: () -> Content) where S : StringProtocol [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:content:) | init<S>(_ title: S, @ViewBuilder content: () -> Content) where S : StringProtocol [extension where SelectionValue == Int, Content : View, Footer == EmptyView]
+List.init(_:content:footer:) | init(_ titleKey: LocalizedStringKey, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
+List.init(_:content:footer:) | init<S>(_ title: S, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) where S : StringProtocol [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
+List.init(_:editActions:rowContent:) | init<Data, RowContent>(_ data: Binding<Data>, editActions: EditActions<Data>, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == ForEach<IndexedIdentifierCollection<Data, Data.Element.ID>, Data.Element.ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, Data : RangeReplaceableCollection, RowContent : View, Data.Element : Identifiable, Data.Index == Int [extension where SelectionValue == Int, Content : View, Footer == EmptyView]
+List.init(_:editActions:selection:rowContent:) | init<Data, RowContent>(_ data: Binding<Data>, editActions: EditActions<Data>, selection: Binding<SelectionValue>, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == ForEach<IndexedIdentifierCollection<Data, Data.Element.ID>, Data.Element.ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, Data : RangeReplaceableCollection, RowContent : View, Data.Element : Identifiable, Data.Index == Int [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:editActions:selection:rowContent:) | init<Data, RowContent>(_ data: Binding<Data>, editActions: EditActions<Data>, selection: Binding<SelectionValue?>?, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == ForEach<IndexedIdentifierCollection<Data, Data.Element.ID>, Data.Element.ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, Data : RangeReplaceableCollection, RowContent : View, Data.Element : Identifiable, Data.Index == Int [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:editActions:selection:rowContent:) | init<Data, RowContent>(_ data: Binding<Data>, editActions: EditActions<Data>, selection: Binding<Set<SelectionValue>>?, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == ForEach<IndexedIdentifierCollection<Data, Data.Element.ID>, Data.Element.ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, Data : RangeReplaceableCollection, RowContent : View, Data.Element : Identifiable, Data.Index == Int [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:id:children:rowContent:) | init<Data, ID, RowContent>(_ data: Binding<Data>, id: KeyPath<Data.Element, ID>, children: WritableKeyPath<Data.Element, Data?>, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == OutlineGroup<Binding<Data>, ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, ID : Hashable, RowContent : View [extension where SelectionValue == Int, Content : View, Footer == EmptyView]
+List.init(_:id:children:rowContent:) | init<Data, ID, RowContent>(_ data: Data, id: KeyPath<Data.Element, ID>, children: KeyPath<Data.Element, Data?>, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == OutlineGroup<Data, ID, RowContent>, Data : RandomAccessCollection, ID : Hashable, RowContent : View [extension where SelectionValue == Int, Content : View, Footer == EmptyView]
+List.init(_:id:children:selection:rowContent:) | init<Data, ID, RowContent>(_ data: Binding<Data>, id: KeyPath<Data.Element, ID>, children: WritableKeyPath<Data.Element, Data?>, selection: Binding<SelectionValue>, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == OutlineGroup<Binding<Data>, ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, ID : Hashable, RowContent : View [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:id:children:selection:rowContent:) | init<Data, ID, RowContent>(_ data: Binding<Data>, id: KeyPath<Data.Element, ID>, children: WritableKeyPath<Data.Element, Data?>, selection: Binding<SelectionValue?>?, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == OutlineGroup<Binding<Data>, ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, ID : Hashable, RowContent : View [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:id:children:selection:rowContent:) | init<Data, ID, RowContent>(_ data: Binding<Data>, id: KeyPath<Data.Element, ID>, children: WritableKeyPath<Data.Element, Data?>, selection: Binding<Set<SelectionValue>>?, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == OutlineGroup<Binding<Data>, ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, ID : Hashable, RowContent : View [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:id:children:selection:rowContent:) | init<Data, ID, RowContent>(_ data: Data, id: KeyPath<Data.Element, ID>, children: KeyPath<Data.Element, Data?>, selection: Binding<SelectionValue>, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == OutlineGroup<Data, ID, RowContent>, Data : RandomAccessCollection, ID : Hashable, RowContent : View [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:id:children:selection:rowContent:) | init<Data, ID, RowContent>(_ data: Data, id: KeyPath<Data.Element, ID>, children: KeyPath<Data.Element, Data?>, selection: Binding<SelectionValue?>?, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == OutlineGroup<Data, ID, RowContent>, Data : RandomAccessCollection, ID : Hashable, RowContent : View [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:id:children:selection:rowContent:) | init<Data, ID, RowContent>(_ data: Data, id: KeyPath<Data.Element, ID>, children: KeyPath<Data.Element, Data?>, selection: Binding<Set<SelectionValue>>?, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == OutlineGroup<Data, ID, RowContent>, Data : RandomAccessCollection, ID : Hashable, RowContent : View [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:id:editActions:rowContent:) | init<Data, ID, RowContent>(_ data: Binding<Data>, id: KeyPath<Data.Element, ID>, editActions: EditActions<Data>, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == ForEach<IndexedIdentifierCollection<Data, ID>, ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, Data : RangeReplaceableCollection, ID : Hashable, RowContent : View, Data.Index == Int [extension where SelectionValue == Int, Content : View, Footer == EmptyView]
+List.init(_:id:editActions:selection:rowContent:) | init<Data, ID, RowContent>(_ data: Binding<Data>, id: KeyPath<Data.Element, ID>, editActions: EditActions<Data>, selection: Binding<SelectionValue>, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == ForEach<IndexedIdentifierCollection<Data, ID>, ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, Data : RangeReplaceableCollection, ID : Hashable, RowContent : View, Data.Index == Int [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:id:editActions:selection:rowContent:) | init<Data, ID, RowContent>(_ data: Binding<Data>, id: KeyPath<Data.Element, ID>, editActions: EditActions<Data>, selection: Binding<SelectionValue?>?, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == ForEach<IndexedIdentifierCollection<Data, ID>, ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, Data : RangeReplaceableCollection, ID : Hashable, RowContent : View, Data.Index == Int [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:id:editActions:selection:rowContent:) | init<Data, ID, RowContent>(_ data: Binding<Data>, id: KeyPath<Data.Element, ID>, editActions: EditActions<Data>, selection: Binding<Set<SelectionValue>>?, @ViewBuilder rowContent: @escaping (Binding<Data.Element>) -> RowContent) where Content == ForEach<IndexedIdentifierCollection<Data, ID>, ID, RowContent>, Data : MutableCollection, Data : RandomAccessCollection, Data : RangeReplaceableCollection, ID : Hashable, RowContent : View, Data.Index == Int [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:id:rowContent:) | init<Data, ID, RowContent>(_ data: Data, id: KeyPath<Data.Element, ID>, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == ForEach<Data, ID, RowContent>, Data : RandomAccessCollection, ID : Hashable, RowContent : View [extension where SelectionValue == Int, Content : View, Footer == EmptyView]
+List.init(_:id:selection:rowContent:) | init<Data, ID, RowContent>(_ data: Data, id: KeyPath<Data.Element, ID>, selection: Binding<SelectionValue>, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == ForEach<Data, ID, RowContent>, Data : RandomAccessCollection, ID : Hashable, RowContent : View [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:id:selection:rowContent:) | init<Data, ID, RowContent>(_ data: Data, id: KeyPath<Data.Element, ID>, selection: Binding<SelectionValue?>?, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == ForEach<Data, ID, RowContent>, Data : RandomAccessCollection, ID : Hashable, RowContent : View [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:id:selection:rowContent:) | init<Data, ID, RowContent>(_ data: Data, id: KeyPath<Data.Element, ID>, selection: Binding<Set<SelectionValue>>?, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == ForEach<Data, ID, RowContent>, Data : RandomAccessCollection, ID : Hashable, RowContent : View [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:rowContent:) | init<Data, RowContent>(_ data: Data, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == ForEach<Data, Data.Element.ID, RowContent>, Data : RandomAccessCollection, RowContent : View, Data.Element : Identifiable [extension where SelectionValue == Int, Content : View, Footer == EmptyView]
+List.init(_:rowContent:) | init<RowContent>(_ data: Range<Int>, @ViewBuilder rowContent: @escaping (Int) -> RowContent) where Content == ForEach<Range<Int>, Int, RowContent>, RowContent : View [extension where SelectionValue == Int, Content : View, Footer == EmptyView]
+List.init(_:selection:content:) | init(_ titleKey: LocalizedStringKey, selection: Binding<SelectionValue?>?, @ViewBuilder content: () -> Content) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:selection:content:) | init(_ titleKey: LocalizedStringKey, selection: Binding<Set<SelectionValue>>?, @ViewBuilder content: () -> Content) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:selection:content:) | init<S>(_ title: S, selection: Binding<SelectionValue?>?, @ViewBuilder content: () -> Content) where S : StringProtocol [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:selection:content:) | init<S>(_ title: S, selection: Binding<Set<SelectionValue>>?, @ViewBuilder content: () -> Content) where S : StringProtocol [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:selection:content:footer:) | init(_ titleKey: LocalizedStringKey, selection: Binding<SelectionValue?>?, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
+List.init(_:selection:content:footer:) | init(_ titleKey: LocalizedStringKey, selection: Binding<Set<SelectionValue>>?, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
+List.init(_:selection:content:footer:) | init<S>(_ title: S, selection: Binding<SelectionValue?>?, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) where S : StringProtocol [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
+List.init(_:selection:content:footer:) | init<S>(_ title: S, selection: Binding<Set<SelectionValue>>?, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) where S : StringProtocol [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
+List.init(_:selection:rowContent:) | init<Data, RowContent>(_ data: Data, selection: Binding<SelectionValue>, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == ForEach<Data, Data.Element.ID, RowContent>, Data : RandomAccessCollection, RowContent : View, Data.Element : Identifiable [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:selection:rowContent:) | init<Data, RowContent>(_ data: Data, selection: Binding<SelectionValue?>?, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == ForEach<Data, Data.Element.ID, RowContent>, Data : RandomAccessCollection, RowContent : View, Data.Element : Identifiable [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:selection:rowContent:) | init<Data, RowContent>(_ data: Data, selection: Binding<Set<SelectionValue>>?, @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent) where Content == ForEach<Data, Data.Element.ID, RowContent>, Data : RandomAccessCollection, RowContent : View, Data.Element : Identifiable [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:selection:rowContent:) | init<RowContent>(_ data: Range<Int>, selection: Binding<SelectionValue>, @ViewBuilder rowContent: @escaping (Int) -> RowContent) where Content == ForEach<Range<Int>, Int, RowContent>, RowContent : View [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:selection:rowContent:) | init<RowContent>(_ data: Range<Int>, selection: Binding<SelectionValue?>?, @ViewBuilder rowContent: @escaping (Int) -> RowContent) where Content == ForEach<Range<Int>, Int, RowContent>, RowContent : View [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(_:selection:rowContent:) | init<RowContent>(_ data: Range<Int>, selection: Binding<Set<SelectionValue>>?, @ViewBuilder rowContent: @escaping (Int) -> RowContent) where Content == ForEach<Range<Int>, Int, RowContent>, RowContent : View [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(content:) | init(@ViewBuilder content: () -> Content) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(content:) | init(@ViewBuilder content: () -> Content) [extension where SelectionValue == Int, Content : View, Footer == EmptyView]
+List.init(content:footer:) | init(@ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
+List.init(selection:content:) | init(selection: Binding<SelectionValue>, @ViewBuilder content: () -> Content) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(selection:content:) | init(selection: Binding<SelectionValue?>?, @ViewBuilder content: () -> Content) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(selection:content:) | init(selection: Binding<Set<SelectionValue>>?, @ViewBuilder content: () -> Content) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
+List.init(selection:content:footer:) | init(selection: Binding<SelectionValue?>?, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
+List.init(selection:content:footer:) | init(selection: Binding<Set<SelectionValue>>?, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
+List.listEmptyPlaceholder(_:) | func listEmptyPlaceholder(_ placeholderKey: LocalizedStringKey) -> List<SelectionValue, Content, Footer> [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
+List.listEmptyPlaceholder(_:) | func listEmptyPlaceholder<S>(_ placeholder: S) -> List<SelectionValue, Content, Footer> where S : StringProtocol [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
+List.listFooterSeparator(_:) | func listFooterSeparator(_ show: Bool = true) -> List<SelectionValue, Content, Footer> [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
+ListRowSeparatorModifier._providesAlignmentGuide | @MainActor static var _providesAlignmentGuide: Bool { get } [extension where Content : View]
+ListRowSeparatorModifier.body | @MainActor var body: Never { get }
+ListRowSeparatorModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
+ListRowSeparatorModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+ListRowSeparatorModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
+ListRowSeparatorModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
+ListRowType | enum ListRowType<SelectionValue> where SelectionValue : Hashable, SelectionValue : Sendable
+ListRowType.content(id:) | case content(id: SelectionValue)
+ListRowType.footer | case footer
+ListRowType.header | case header
+ListRowType.unselectable | case unselectable
+ListSeparatorStyle | enum ListSeparatorStyle
+ListSeparatorStyle.automatic | case automatic
+ListSeparatorStyle.hairline | case hairline
+ListSeparatorStyle.line | case line
+ListStyle.automatic | static var automatic: DefaultListStyle { get } [extension where Self == DefaultListStyle]
+ListStyle.bordered | static var bordered: BorderedListStyle { get } [extension where Self == BorderedListStyle]
+ListStyle.inset | static var inset: InsetListStyle { get } [extension where Self == InsetListStyle]
+ListStyle.insetGrouped | static var insetGrouped: InsetGroupedListStyle { get } [extension where Self == InsetGroupedListStyle]
+ListStyle.plain | static var plain: PlainListStyle { get } [extension where Self == PlainListStyle]
+ListStyle.sidebar | static var sidebar: SidebarListStyle { get } [extension where Self == SidebarListStyle]
+ListStyle.surface | static var surface: SurfaceListStyle { get } [extension where Self == SurfaceListStyle]
+OutlineGroup | nonisolated struct OutlineGroup<Data, ID, Leaf> where Data : RandomAccessCollection, ID : Hashable
+OutlineGroup.body | @MainActor var body: Never { get } [extension where Data : RandomAccessCollection, ID : Hashable, Leaf : View]
+OutlineGroup.childViews(context:) | @MainActor func childViews(context: RenderContext) -> [ChildView] [extension where Data : RandomAccessCollection, ID : Hashable, Leaf : View]
+OutlineGroup.init(_:children:content:) | init<C, E>(_ data: Binding<C>, children: WritableKeyPath<E, C?>, @ViewBuilder content: @escaping (Binding<E>) -> Leaf) where Data == Binding<C>, ID == E.ID, C : MutableCollection, C : RandomAccessCollection, E : Identifiable, E == C.Element [extension where Data : RandomAccessCollection, ID : Hashable, Leaf : View]
+OutlineGroup.init(_:children:content:) | init<C, E>(_ root: Binding<E>, children: WritableKeyPath<E, C?>, @ViewBuilder content: @escaping (Binding<E>) -> Leaf) where Data == Binding<C>, ID == E.ID, C : MutableCollection, C : RandomAccessCollection, E : Identifiable, E == C.Element [extension where Data : RandomAccessCollection, ID : Hashable, Leaf : View]
+OutlineGroup.init(_:children:content:) | init<DataElement>(_ data: Data, children: KeyPath<DataElement, Data?>, @ViewBuilder content: @escaping (DataElement) -> Leaf) where ID == DataElement.ID, DataElement : Identifiable, DataElement == Data.Element [extension where Data : RandomAccessCollection, ID == Data.Element.ID, Leaf : View, Data.Element : Identifiable]
+OutlineGroup.init(_:children:content:) | init<DataElement>(_ root: DataElement, children: KeyPath<DataElement, Data?>, @ViewBuilder content: @escaping (DataElement) -> Leaf) where ID == DataElement.ID, DataElement : Identifiable, DataElement == Data.Element [extension where Data : RandomAccessCollection, ID == Data.Element.ID, Leaf : View, Data.Element : Identifiable]
+OutlineGroup.init(_:id:children:content:) | init<C, E>(_ data: Binding<C>, id: KeyPath<E, ID>, children: WritableKeyPath<E, C?>, @ViewBuilder content: @escaping (Binding<E>) -> Leaf) where Data == Binding<C>, C : MutableCollection, C : RandomAccessCollection, E == C.Element [extension where Data : RandomAccessCollection, ID : Hashable, Leaf : View]
+OutlineGroup.init(_:id:children:content:) | init<C, E>(_ root: Binding<E>, id: KeyPath<E, ID>, children: WritableKeyPath<E, C?>, @ViewBuilder content: @escaping (Binding<E>) -> Leaf) where Data == Binding<C>, C : MutableCollection, C : RandomAccessCollection, E == C.Element [extension where Data : RandomAccessCollection, ID : Hashable, Leaf : View]
+OutlineGroup.init(_:id:children:content:) | init<DataElement>(_ data: Data, id: KeyPath<DataElement, ID>, children: KeyPath<DataElement, Data?>, @ViewBuilder content: @escaping (DataElement) -> Leaf) where DataElement == Data.Element [extension where Data : RandomAccessCollection, ID : Hashable, Leaf : View]
+OutlineGroup.init(_:id:children:content:) | init<DataElement>(_ root: DataElement, id: KeyPath<DataElement, ID>, children: KeyPath<DataElement, Data?>, @ViewBuilder content: @escaping (DataElement) -> Leaf) where DataElement == Data.Element [extension where Data : RandomAccessCollection, ID : Hashable, Leaf : View]
+PlainListStyle | struct PlainListStyle
+PlainListStyle.alternatingRowColors | var alternatingRowColors: Bool { get }
+PlainListStyle.init() | init()
+PlainListStyle.rowPadding | var rowPadding: EdgeInsets { get }
+PlainListStyle.showsBorder | var showsBorder: Bool { get }
+RowAction | enum RowAction
+RowAction.cancelMove | case cancelMove
+RowAction.customizeColumns | case customizeColumns
+RowAction.defaultShortcuts | var defaultShortcuts: Set<KeyboardShortcut> { get }
+RowAction.extendSelection | case extendSelection
+RowAction.moveRowDown | case moveRowDown
+RowAction.moveRowPageDown | case moveRowPageDown
+RowAction.moveRowPageUp | case moveRowPageUp
+RowAction.moveRowToBottom | case moveRowToBottom
+RowAction.moveRowToTop | case moveRowToTop
+RowAction.moveRowUp | case moveRowUp
+RowAction.pickUpRow | case pickUpRow
+RowAction.placeRow | case placeRow
+RowAction.revealLeadingSwipeActions | case revealLeadingSwipeActions
+RowAction.revealTrailingSwipeActions | case revealTrailingSwipeActions
+RowAction.reverseSortOrder | case reverseSortOrder
+RowAction.selectAll | case selectAll
+RowAction.sortNextColumn | case sortNextColumn
+RowReorderFeedback | enum RowReorderFeedback
+RowReorderFeedback.cursor | case cursor
+RowReorderFeedback.dimmed | case dimmed
+RowReorderFeedback.init(rawValue:) | init?(rawValue: String)
+RowReorderFeedback.live | case live
+RowShortcuts | struct RowShortcuts
+RowShortcuts.default | static let `default`: RowShortcuts
+RowShortcuts.hint(for:commandKey:) | func hint(for action: RowAction, commandKey: CommandKeyBinding = .control) -> String?
+RowShortcuts.init(_:) | init(_ overrides: [RowAction : ShortcutSet] = [:])
+RowShortcuts.overrides | let overrides: [RowAction : ShortcutSet]
+RowShortcuts.shortcuts(for:commandKey:) | func shortcuts(for action: RowAction, commandKey: CommandKeyBinding = .control) -> [KeyboardShortcut]
+SelectableListRow | struct SelectableListRow<SelectionValue> where SelectionValue : Hashable, SelectionValue : Sendable
+SelectableListRow.badge | @MainActor var badge: BadgeValue? { get }
+SelectableListRow.buffer | @MainActor var buffer: FrameBuffer { get }
+SelectableListRow.id | var id: SelectionValue? { get }
+SelectableListRow.init(type:buffer:badge:) | init(type: ListRowType<SelectionValue>, buffer: FrameBuffer, badge: BadgeValue? = nil)
+SelectableListRow.isSelectable | var isSelectable: Bool { get }
+SelectableListRow.type | let type: ListRowType<SelectionValue>
+SelectionDisabledModifier._keepsContentGeometry | @MainActor static var _keepsContentGeometry: Bool { get } [extension where Content : View]
+SelectionDisabledModifier.body | @MainActor var body: Never { get }
+SelectionDisabledModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
+SelectionDisabledModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+SelectionDisabledModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
+SelectionDisabledModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
+SelectionMode | enum SelectionMode
+SelectionMode.multi | case multi
+SelectionMode.single | case single
+SidebarListStyle | struct SidebarListStyle
+SidebarListStyle.alternatingRowColors | var alternatingRowColors: Bool { get }
+SidebarListStyle.init() | init()
+SidebarListStyle.rowPadding | var rowPadding: EdgeInsets { get }
+SidebarListStyle.showsBorder | var showsBorder: Bool { get }
+SidebarRowSize | enum SidebarRowSize
+SidebarRowSize.large | case large
+SidebarRowSize.medium | case medium
+SidebarRowSize.small | case small
+SurfaceListStyle | struct SurfaceListStyle
+SurfaceListStyle.alternatingRowColors | var alternatingRowColors: Bool { get }
+SurfaceListStyle.init() | init()
+SurfaceListStyle.rowPadding | var rowPadding: EdgeInsets { get }
+SurfaceListStyle.showsBorder | var showsBorder: Bool { get }
+View.alternatingRowBackgrounds(_:) | nonisolated func alternatingRowBackgrounds(_ behavior: AlternatingRowBackgroundBehavior = .enabled) -> some View
+View.contextMenu(forSelectionType:menu:primaryAction:) | nonisolated func contextMenu<I, M>(forSelectionType itemType: I.Type = I.self, @ViewBuilder menu: @escaping (Set<I>) -> M, primaryAction: ((Set<I>) -> Void)? = nil) -> some View where I : Hashable, M : View
+View.deleteDisabled(_:) | nonisolated func deleteDisabled(_ isDisabled: Bool = true) -> some View
+View.listItemTint(_:) | nonisolated func listItemTint(_ tint: Color?) -> some View
+View.listItemTint(_:) | nonisolated func listItemTint(_ tint: ListItemTint?) -> some View
+View.listRowBackground(_:) | nonisolated func listRowBackground(_ color: Color?) -> some View
+View.listRowBackground(_:) | nonisolated func listRowBackground<V>(_ view: V?) -> some View where V : View
+View.listRowInsets(_:) | nonisolated func listRowInsets(_ insets: EdgeInsets?) -> some View
+View.listRowInsets(_:_:) | nonisolated func listRowInsets(_ edges: Edge.Set = .all, _ length: Int?) -> some View
+View.listRowSeparator(_:edges:) | nonisolated func listRowSeparator(_ visibility: Visibility, edges: VerticalEdge.Set = .all) -> some View
+View.listRowSeparatorTint(_:edges:) | nonisolated func listRowSeparatorTint(_ color: Color?, edges: VerticalEdge.Set = .all) -> some View
+View.listSectionSeparator(_:edges:) | nonisolated func listSectionSeparator(_ visibility: Visibility, edges: VerticalEdge.Set = .all) -> some View
+View.listSectionSeparatorTint(_:edges:) | nonisolated func listSectionSeparatorTint(_ color: Color?, edges: VerticalEdge.Set = .all) -> some View
+View.listSeparatorStyle(_:) | nonisolated func listSeparatorStyle(_ style: ListSeparatorStyle) -> some View
+View.listStyle(_:) | nonisolated func listStyle<S>(_ style: S) -> some View where S : ListStyle
+View.moveDisabled(_:) | nonisolated func moveDisabled(_ isDisabled: Bool = true) -> some View
+View.rowReorderFeedback(_:) | nonisolated func rowReorderFeedback(_ feedback: RowReorderFeedback) -> some View
+View.rowSelectionIndicator(_:) | nonisolated func rowSelectionIndicator(_ visibility: Visibility) -> some View
+View.rowShortcuts(_:) | nonisolated func rowShortcuts(_ overrides: [RowAction : ShortcutSet]) -> some View
+View.sectionActions(content:) | nonisolated func sectionActions<Content>(@ViewBuilder content: () -> Content) -> some View where Content : View
+View.selectionDisabled(_:) | nonisolated func selectionDisabled(_ isDisabled: Bool = true) -> some View
+View.unfocusedSelectionVisibility(_:) | nonisolated func unfocusedSelectionVisibility(_ visibility: Visibility) -> some View
+_OutlineRow | struct _OutlineRow<Element, ID, Leaf> where ID : Hashable, Leaf : View
+_OutlineRow.body | @MainActor @ViewBuilder var body: some View { get }
+_RowEditRestrictionView | nonisolated struct _RowEditRestrictionView<Content> where Content : View
+_RowEditRestrictionView.body | @MainActor var body: Never { get }
+_RowEditRestrictionView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
+_RowEditRestrictionView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+_RowEditRestrictionView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
+_RowEditRestrictionView.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]

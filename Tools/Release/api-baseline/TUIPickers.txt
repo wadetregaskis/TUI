@@ -1,0 +1,141 @@
+# TUIPickers public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+CompactDatePickerStyle | struct CompactDatePickerStyle
+CompactDatePickerStyle.init() | init()
+CompactDatePickerStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: CompactDatePickerStyle.Configuration) -> some View
+DatePicker | struct DatePicker<Label> where Label : View
+DatePicker.Components | typealias Components = DatePickerComponents
+DatePicker.body | @ViewBuilder @MainActor var body: some View { get }
+DatePicker.disabled(_:) | func disabled(_ disabled: Bool = true) -> DatePicker<Label> [extension where Label : View]
+DatePicker.focusID(_:) | func focusID(_ id: String) -> DatePicker<Label> [extension where Label : View]
+DatePicker.init(_:selection:displayedComponents:) | init(_ titleKey: LocalizedStringKey, selection: Binding<Date>, displayedComponents: DatePicker<Label>.Components = [.hourAndMinute, .date]) [extension where Label == Text]
+DatePicker.init(_:selection:displayedComponents:) | init<S>(_ title: S, selection: Binding<Date>, displayedComponents: DatePicker<Label>.Components = [.hourAndMinute, .date]) where S : StringProtocol [extension where Label == Text]
+DatePicker.init(_:selection:in:displayedComponents:) | init(_ titleKey: LocalizedStringKey, selection: Binding<Date>, in range: ClosedRange<Date>, displayedComponents: DatePicker<Label>.Components = [.hourAndMinute, .date]) [extension where Label == Text]
+DatePicker.init(_:selection:in:displayedComponents:) | init(_ titleKey: LocalizedStringKey, selection: Binding<Date>, in range: PartialRangeFrom<Date>, displayedComponents: DatePicker<Label>.Components = [.hourAndMinute, .date]) [extension where Label == Text]
+DatePicker.init(_:selection:in:displayedComponents:) | init(_ titleKey: LocalizedStringKey, selection: Binding<Date>, in range: PartialRangeThrough<Date>, displayedComponents: DatePicker<Label>.Components = [.hourAndMinute, .date]) [extension where Label == Text]
+DatePicker.init(_:selection:in:displayedComponents:) | init<S>(_ title: S, selection: Binding<Date>, in range: ClosedRange<Date>, displayedComponents: DatePicker<Label>.Components = [.hourAndMinute, .date]) where S : StringProtocol [extension where Label == Text]
+DatePicker.init(_:selection:in:displayedComponents:) | init<S>(_ title: S, selection: Binding<Date>, in range: PartialRangeFrom<Date>, displayedComponents: DatePicker<Label>.Components = [.hourAndMinute, .date]) where S : StringProtocol [extension where Label == Text]
+DatePicker.init(_:selection:in:displayedComponents:) | init<S>(_ title: S, selection: Binding<Date>, in range: PartialRangeThrough<Date>, displayedComponents: DatePicker<Label>.Components = [.hourAndMinute, .date]) where S : StringProtocol [extension where Label == Text]
+DatePicker.init(selection:displayedComponents:label:) | init(selection: Binding<Date>, displayedComponents: DatePicker<Label>.Components = [.hourAndMinute, .date], @ViewBuilder label: () -> Label) [extension where Label : View]
+DatePicker.init(selection:in:displayedComponents:label:) | init(selection: Binding<Date>, in range: ClosedRange<Date>, displayedComponents: DatePicker<Label>.Components = [.hourAndMinute, .date], @ViewBuilder label: () -> Label) [extension where Label : View]
+DatePicker.init(selection:in:displayedComponents:label:) | init(selection: Binding<Date>, in range: PartialRangeFrom<Date>, displayedComponents: DatePicker<Label>.Components = [.hourAndMinute, .date], @ViewBuilder label: () -> Label) [extension where Label : View]
+DatePicker.init(selection:in:displayedComponents:label:) | init(selection: Binding<Date>, in range: PartialRangeThrough<Date>, displayedComponents: DatePicker<Label>.Components = [.hourAndMinute, .date], @ViewBuilder label: () -> Label) [extension where Label : View]
+DatePickerComponents | struct DatePickerComponents
+DatePickerComponents.date | static let date: DatePickerComponents
+DatePickerComponents.hourAndMinute | static let hourAndMinute: DatePickerComponents
+DatePickerComponents.init(rawValue:) | init(rawValue: UInt)
+DatePickerComponents.rawValue | let rawValue: UInt
+DatePickerStyle | protocol DatePickerStyle : Sendable
+DatePickerStyle.Body | associatedtype Body : View
+DatePickerStyle.Configuration | typealias Configuration = DatePickerStyleConfiguration
+DatePickerStyle.automatic | static var automatic: DefaultDatePickerStyle { get } [extension where Self == DefaultDatePickerStyle]
+DatePickerStyle.compact | static var compact: CompactDatePickerStyle { get } [extension where Self == CompactDatePickerStyle]
+DatePickerStyle.field | static var field: FieldDatePickerStyle { get } [extension where Self == FieldDatePickerStyle]
+DatePickerStyle.graphical | static var graphical: GraphicalDatePickerStyle { get } [extension where Self == GraphicalDatePickerStyle]
+DatePickerStyle.makeBody(configuration:) | @MainActor @ViewBuilder func makeBody(configuration: Self.Configuration) -> Self.Body
+DatePickerStyle.stepperField | static var stepperField: StepperFieldDatePickerStyle { get } [extension where Self == StepperFieldDatePickerStyle]
+DatePickerStyleConfiguration | struct DatePickerStyleConfiguration
+DatePickerStyleConfiguration.Label | nonisolated struct Label
+DatePickerStyleConfiguration.Label.body | @MainActor var body: some View { get }
+DatePickerStyleConfiguration.displayedComponents | var displayedComponents: DatePickerComponents
+DatePickerStyleConfiguration.label | let label: DatePickerStyleConfiguration.Label
+DatePickerStyleConfiguration.maximumDate | var maximumDate: Date?
+DatePickerStyleConfiguration.minimumDate | var minimumDate: Date?
+DatePickerStyleConfiguration.selection | @Binding var selection: Date { get nonmutating set }
+DefaultDatePickerStyle | struct DefaultDatePickerStyle
+DefaultDatePickerStyle.init() | init()
+DefaultDatePickerStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: DefaultDatePickerStyle.Configuration) -> some View
+EnvironmentValues.datePickerDistinguishesPastDays | var datePickerDistinguishesPastDays: Bool { get set }
+EnvironmentValues.datePickerDistinguishesWeekends | var datePickerDistinguishesWeekends: Bool { get set }
+EnvironmentValues.datePickerShowsStepper | var datePickerShowsStepper: Bool { get set }
+EnvironmentValues.radioButtonGroupEdgeBehavior | var radioButtonGroupEdgeBehavior: RadioButtonGroupEdgeBehavior { get set }
+FieldDatePickerStyle | struct FieldDatePickerStyle
+FieldDatePickerStyle.init() | init()
+FieldDatePickerStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: FieldDatePickerStyle.Configuration) -> some View
+GraphicalDatePickerStyle | struct GraphicalDatePickerStyle
+GraphicalDatePickerStyle.init() | init()
+GraphicalDatePickerStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: GraphicalDatePickerStyle.Configuration) -> some View
+InlinePickerStyle | struct InlinePickerStyle
+InlinePickerStyle.init() | init()
+MenuPickerStyle | struct MenuPickerStyle
+MenuPickerStyle.init() | init()
+PalettePickerStyle | struct PalettePickerStyle
+PalettePickerStyle.init() | init()
+PaletteSelectionEffect | struct PaletteSelectionEffect
+PaletteSelectionEffect.automatic | static let automatic: PaletteSelectionEffect
+PaletteSelectionEffect.custom | static let custom: PaletteSelectionEffect
+PaletteSelectionEffect.symbolVariant(_:) | static func symbolVariant(_ variant: SymbolVariants) -> PaletteSelectionEffect
+Picker | struct Picker<Label, SelectionValue, Content> where Label : View, SelectionValue : Hashable, Content : View
+Picker.body | @MainActor @ViewBuilder var body: some View { get }
+Picker.disabled(_:) | func disabled(_ disabled: Bool = true) -> Picker<Label, SelectionValue, Content> [extension where Label : View, SelectionValue : Hashable, Content : View]
+Picker.focusID(_:) | func focusID(_ id: String) -> Picker<Label, SelectionValue, Content> [extension where Label : View, SelectionValue : Hashable, Content : View]
+Picker.init(_:selection:content:) | init(_ titleKey: LocalizedStringKey, selection: Binding<SelectionValue>, @ViewBuilder content: () -> Content) [extension where Label == Text, SelectionValue : Hashable, Content : View]
+Picker.init(_:selection:content:) | init<S>(_ title: S, selection: Binding<SelectionValue>, @ViewBuilder content: () -> Content) where S : StringProtocol [extension where Label == Text, SelectionValue : Hashable, Content : View]
+Picker.init(_:selection:content:currentValueLabel:) | init(_ titleKey: LocalizedStringKey, selection: Binding<SelectionValue>, @ViewBuilder content: () -> Content, @ViewBuilder currentValueLabel: () -> some View) [extension where Label == Text, SelectionValue : Hashable, Content : View]
+Picker.init(_:selection:content:currentValueLabel:) | init<S>(_ title: S, selection: Binding<SelectionValue>, @ViewBuilder content: () -> Content, @ViewBuilder currentValueLabel: () -> some View) where S : StringProtocol [extension where Label == Text, SelectionValue : Hashable, Content : View]
+Picker.init(_:sources:selection:content:) | init<C, S>(_ title: S, sources: C, selection: KeyPath<C.Element, Binding<SelectionValue>>, @ViewBuilder content: () -> Content) where C : RandomAccessCollection, S : StringProtocol [extension where Label == Text, SelectionValue : Hashable, Content : View]
+Picker.init(_:sources:selection:content:) | init<C>(_ titleKey: LocalizedStringKey, sources: C, selection: KeyPath<C.Element, Binding<SelectionValue>>, @ViewBuilder content: () -> Content) where C : RandomAccessCollection [extension where Label == Text, SelectionValue : Hashable, Content : View]
+Picker.init(_:sources:selection:content:currentValueLabel:) | init<C, S>(_ title: S, sources: C, selection: KeyPath<C.Element, Binding<SelectionValue>>, @ViewBuilder content: () -> Content, @ViewBuilder currentValueLabel: () -> some View) where C : RandomAccessCollection, S : StringProtocol [extension where Label == Text, SelectionValue : Hashable, Content : View]
+Picker.init(_:sources:selection:content:currentValueLabel:) | init<C>(_ titleKey: LocalizedStringKey, sources: C, selection: KeyPath<C.Element, Binding<SelectionValue>>, @ViewBuilder content: () -> Content, @ViewBuilder currentValueLabel: () -> some View) where C : RandomAccessCollection [extension where Label == Text, SelectionValue : Hashable, Content : View]
+Picker.init(_:systemImage:selection:content:) | init(_ titleKey: LocalizedStringKey, systemImage: String, selection: Binding<SelectionValue>, @ViewBuilder content: () -> Content) [extension where Label == Label<Text, _SymbolIcon>, SelectionValue : Hashable, Content : View]
+Picker.init(_:systemImage:selection:content:) | init<S>(_ title: S, systemImage: String, selection: Binding<SelectionValue>, @ViewBuilder content: () -> Content) where S : StringProtocol [extension where Label == Label<Text, _SymbolIcon>, SelectionValue : Hashable, Content : View]
+Picker.init(_:systemImage:selection:content:currentValueLabel:) | init(_ titleKey: LocalizedStringKey, systemImage: String, selection: Binding<SelectionValue>, @ViewBuilder content: () -> Content, @ViewBuilder currentValueLabel: () -> some View) [extension where Label == Label<Text, _SymbolIcon>, SelectionValue : Hashable, Content : View]
+Picker.init(_:systemImage:selection:content:currentValueLabel:) | init<S>(_ title: S, systemImage: String, selection: Binding<SelectionValue>, @ViewBuilder content: () -> Content, @ViewBuilder currentValueLabel: () -> some View) where S : StringProtocol [extension where Label == Label<Text, _SymbolIcon>, SelectionValue : Hashable, Content : View]
+Picker.init(_:systemImage:sources:selection:content:) | init<C, S>(_ title: S, systemImage: String, sources: C, selection: KeyPath<C.Element, Binding<SelectionValue>>, @ViewBuilder content: () -> Content) where C : RandomAccessCollection, S : StringProtocol [extension where Label == Label<Text, _SymbolIcon>, SelectionValue : Hashable, Content : View]
+Picker.init(_:systemImage:sources:selection:content:) | init<C>(_ titleKey: LocalizedStringKey, systemImage: String, sources: C, selection: KeyPath<C.Element, Binding<SelectionValue>>, @ViewBuilder content: () -> Content) where C : RandomAccessCollection [extension where Label == Label<Text, _SymbolIcon>, SelectionValue : Hashable, Content : View]
+Picker.init(_:systemImage:sources:selection:content:currentValueLabel:) | init<C, S>(_ title: S, systemImage: String, sources: C, selection: KeyPath<C.Element, Binding<SelectionValue>>, @ViewBuilder content: () -> Content, @ViewBuilder currentValueLabel: () -> some View) where C : RandomAccessCollection, S : StringProtocol [extension where Label == Label<Text, _SymbolIcon>, SelectionValue : Hashable, Content : View]
+Picker.init(_:systemImage:sources:selection:content:currentValueLabel:) | init<C>(_ titleKey: LocalizedStringKey, systemImage: String, sources: C, selection: KeyPath<C.Element, Binding<SelectionValue>>, @ViewBuilder content: () -> Content, @ViewBuilder currentValueLabel: () -> some View) where C : RandomAccessCollection [extension where Label == Label<Text, _SymbolIcon>, SelectionValue : Hashable, Content : View]
+Picker.init(selection:content:label:) | init(selection: Binding<SelectionValue>, @ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label)
+Picker.init(selection:content:label:currentValueLabel:) | init(selection: Binding<SelectionValue>, @ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label, @ViewBuilder currentValueLabel: () -> some View) [extension where Label : View, SelectionValue : Hashable, Content : View]
+Picker.init(sources:selection:content:label:) | init<C>(sources: C, selection: KeyPath<C.Element, Binding<SelectionValue>>, @ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label) where C : RandomAccessCollection [extension where Label : View, SelectionValue : Hashable, Content : View]
+Picker.init(sources:selection:content:label:currentValueLabel:) | nonisolated init<C>(sources: C, selection: KeyPath<C.Element, Binding<SelectionValue>>, @ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label, @ViewBuilder currentValueLabel: () -> some View) where C : RandomAccessCollection [extension where Label : View, SelectionValue : Hashable, Content : View]
+PickerStyle.automatic | static var automatic: DefaultPickerStyle { get } [extension where Self == DefaultPickerStyle]
+PickerStyle.inline | static var inline: InlinePickerStyle { get } [extension where Self == InlinePickerStyle]
+PickerStyle.menu | static var menu: MenuPickerStyle { get } [extension where Self == MenuPickerStyle]
+PickerStyle.palette | static var palette: PalettePickerStyle { get } [extension where Self == PalettePickerStyle]
+PickerStyle.radioGroup | static var radioGroup: RadioGroupPickerStyle { get } [extension where Self == RadioGroupPickerStyle]
+PickerStyle.segmented | static var segmented: SegmentedPickerStyle { get } [extension where Self == SegmentedPickerStyle]
+RadioButtonGroup | nonisolated struct RadioButtonGroup<Value> where Value : Hashable
+RadioButtonGroup.body | @MainActor var body: some View { get }
+RadioButtonGroup.disabled(_:) | func disabled(_ disabled: Bool = true) -> RadioButtonGroup<Value> [extension where Value : Hashable]
+RadioButtonGroup.focusID(_:) | func focusID(_ id: String) -> RadioButtonGroup<Value> [extension where Value : Hashable]
+RadioButtonGroup.init(selection:orientation:isDisabled:builder:) | init(selection: Binding<Value>, orientation: RadioButtonOrientation = .vertical, isDisabled: Bool = false, @RadioButtonGroupBuilder<Value> builder: () -> [RadioButtonItem<Value>])
+RadioButtonGroup.init(selection:orientation:isDisabled:items:) | init(selection: Binding<Value>, orientation: RadioButtonOrientation = .vertical, isDisabled: Bool = false, items: [RadioButtonItem<Value>])
+RadioButtonGroupBuilder | @resultBuilder enum RadioButtonGroupBuilder<Value> where Value : Hashable
+RadioButtonGroupBuilder.buildArray(_:) | static func buildArray(_ itemGroups: [[RadioButtonItem<Value>]]) -> [RadioButtonItem<Value>]
+RadioButtonGroupBuilder.buildBlock(_:) | static func buildBlock(_ items: RadioButtonItem<Value>...) -> [RadioButtonItem<Value>]
+RadioButtonGroupBuilder.buildEither(first:) | static func buildEither(first items: [RadioButtonItem<Value>]) -> [RadioButtonItem<Value>]
+RadioButtonGroupBuilder.buildEither(second:) | static func buildEither(second items: [RadioButtonItem<Value>]) -> [RadioButtonItem<Value>]
+RadioButtonGroupBuilder.buildOptional(_:) | static func buildOptional(_ items: [RadioButtonItem<Value>]?) -> [RadioButtonItem<Value>]
+RadioButtonGroupEdgeBehavior | enum RadioButtonGroupEdgeBehavior
+RadioButtonGroupEdgeBehavior.contain | case contain
+RadioButtonGroupEdgeBehavior.escape | case escape
+RadioButtonGroupEdgeBehavior.wrap | case wrap
+RadioButtonItem | struct RadioButtonItem<Value> where Value : Hashable
+RadioButtonItem.disabled(_:) | func disabled(_ disabled: Bool = true) -> RadioButtonItem<Value>
+RadioButtonItem.init(_:_:) | @MainActor init(_ value: Value, _ labelKey: LocalizedStringKey)
+RadioButtonItem.init(_:_:) | @MainActor init<S>(_ value: Value, _ label: S) where S : StringProtocol
+RadioButtonItem.init(_:_:content:) | @MainActor init<Content, S>(_ value: Value, _ label: S, @ViewBuilder content: @escaping () -> Content) where Content : View, S : StringProtocol
+RadioButtonItem.init(_:_:content:) | @MainActor init<Content>(_ value: Value, _ labelKey: LocalizedStringKey, @ViewBuilder content: @escaping () -> Content) where Content : View
+RadioButtonItem.init(_:content:label:) | @MainActor init<Content, Label>(_ value: Value, @ViewBuilder content: @escaping () -> Content, @ViewBuilder label: @escaping () -> Label) where Content : View, Label : View
+RadioButtonItem.init(_:label:) | @MainActor init<Label>(_ value: Value, @ViewBuilder label: @escaping () -> Label) where Label : View
+RadioButtonOrientation | enum RadioButtonOrientation
+RadioButtonOrientation.horizontal | case horizontal
+RadioButtonOrientation.vertical | case vertical
+RadioGroupPickerStyle | struct RadioGroupPickerStyle
+RadioGroupPickerStyle.init() | init()
+SegmentedPickerStyle | struct SegmentedPickerStyle
+SegmentedPickerStyle.init() | init()
+StepperFieldDatePickerStyle | struct StepperFieldDatePickerStyle
+StepperFieldDatePickerStyle.init() | init()
+StepperFieldDatePickerStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: StepperFieldDatePickerStyle.Configuration) -> some View
+View.datePickerDistinguishesPastDays(_:) | nonisolated func datePickerDistinguishesPastDays(_ distinguishes: Bool = true) -> some View
+View.datePickerDistinguishesWeekends(_:) | nonisolated func datePickerDistinguishesWeekends(_ distinguishes: Bool = true) -> some View
+View.datePickerShowsStepper(_:) | nonisolated func datePickerShowsStepper(_ shows: Bool = true) -> some View
+View.datePickerStyle(_:) | nonisolated func datePickerStyle<S>(_ style: S) -> some View where S : DatePickerStyle
+View.horizontalRadioGroupLayout() | nonisolated func horizontalRadioGroupLayout() -> some View
+View.paletteSelectionEffect(_:) | nonisolated func paletteSelectionEffect(_ effect: PaletteSelectionEffect) -> some View
+View.pickerStyle(_:) | nonisolated func pickerStyle<S>(_ style: S) -> some View where S : PickerStyle
+View.pickerTextStyle(_:) | nonisolated func pickerTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View
+View.radioButtonGroupEdgeBehavior(_:) | nonisolated func radioButtonGroupEdgeBehavior(_ behavior: RadioButtonGroupEdgeBehavior) -> some View
+View.radioButtonTextStyle(_:) | nonisolated func radioButtonTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View

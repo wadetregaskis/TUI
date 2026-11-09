@@ -121,13 +121,37 @@ def toolchain_version():
     return result.stdout.strip().splitlines()[0] if result.stdout else "unknown"
 
 
-def extract(modules, out_dir, search_paths, sdk, target):
+def tui_search_paths(build=True):
+    """Builds TUI (unless told not to) and returns the `-I` paths its symbol
+    graphs are extracted with: the built modules, then every C target's
+    headers. `Tools/Release/api_baseline.py` reads TUI's API the same way."""
+    # TUI's modules have to exist before they can be read.
+    if build:
+        built = run(["swift", "build"], cwd=REPO)
+        if built.returncode:
+            sys.exit(f"swift build failed:\n{built.stderr}")
+    bin_dir = run(["swift", "build", "--show-bin-path"], cwd=REPO).stdout.strip()
+    modules = os.path.join(bin_dir, "Modules")
+    if not os.path.isdir(modules):
+        modules = os.path.join(REPO, ".build", "arm64-apple-macosx", "debug", "Modules")
+    if not os.path.isdir(modules):
+        sys.exit(f"built modules not found at {modules}")
+
+    include_paths = [
+        os.path.join(REPO, "Sources", entry, "include")
+        for entry in sorted(os.listdir(os.path.join(REPO, "Sources")))
+        if os.path.isdir(os.path.join(REPO, "Sources", entry, "include"))
+    ]
+    return [modules] + include_paths
+
+
+def extract(modules, out_dir, search_paths, sdk, target, access_level="public"):
     os.makedirs(out_dir, exist_ok=True)
     for module in modules:
         command = [
             "swift", "symbolgraph-extract", "-module-name", module,
             "-target", target, "-sdk", sdk,
-            "-output-dir", out_dir, "-minimum-access-level", "public",
+            "-output-dir", out_dir, "-minimum-access-level", access_level,
         ]
         for path in search_paths:
             command += ["-I", path]
@@ -763,25 +787,8 @@ def main():
         swiftui_dir = os.path.join(work, "swiftui")
         tuikit_dir = os.path.join(work, "tuikit")
 
-        # TUI's modules have to exist before they can be read.
-        built = run(["swift", "build"], cwd=REPO)
-        if built.returncode:
-            sys.exit(f"swift build failed:\n{built.stderr}")
-        bin_dir = run(["swift", "build", "--show-bin-path"], cwd=REPO).stdout.strip()
-        modules = os.path.join(bin_dir, "Modules")
-        if not os.path.isdir(modules):
-            modules = os.path.join(REPO, ".build", "arm64-apple-macosx", "debug", "Modules")
-        if not os.path.isdir(modules):
-            sys.exit(f"built modules not found at {modules}")
-
-        include_paths = [
-            os.path.join(REPO, "Sources", entry, "include")
-            for entry in sorted(os.listdir(os.path.join(REPO, "Sources")))
-            if os.path.isdir(os.path.join(REPO, "Sources", entry, "include"))
-        ]
-
         extract(SWIFTUI_MODULES, swiftui_dir, [], sdk, args.target)
-        extract(TUIKIT_MODULES, tuikit_dir, [modules] + include_paths, sdk, args.target)
+        extract(TUIKIT_MODULES, tuikit_dir, tui_search_paths(), sdk, args.target)
 
         swiftui = load_symbols(swiftui_dir, SWIFTUI_MODULES)
         tuikit, tuikit_defaults = load_symbols(

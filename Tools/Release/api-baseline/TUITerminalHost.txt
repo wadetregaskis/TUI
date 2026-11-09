@@ -1,0 +1,101 @@
+# TUITerminalHost public API (not a product: public API reaches clients by re-export).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+TerminalCapabilities | struct TerminalCapabilities
+TerminalCapabilities.Feature | struct Feature
+TerminalCapabilities.Feature.capsLock | static let capsLock: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.clipboardWrites | static let clipboardWrites: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.curlyUnderline | static let curlyUnderline: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.dashedUnderline | static let dashedUnderline: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.disambiguatedKeys | static let disambiguatedKeys: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.dottedUnderline | static let dottedUnderline: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.doubleUnderline | static let doubleUnderline: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.hostIntegration | static let hostIntegration: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.hyperlinks | static let hyperlinks: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.init(rawValue:) | init(rawValue: UInt64)
+TerminalCapabilities.Feature.keyReleases | static let keyReleases: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.keyRepeats | static let keyRepeats: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.keyboard | static let keyboard: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.modifierKeys | static let modifierKeys: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.notifications | static let notifications: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.numericPad | static let numericPad: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.optionAsMeta | static let optionAsMeta: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.patternedUnderline | static let patternedUnderline: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.pictures | static let pictures: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.pointerShapes | static let pointerShapes: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.progressReports | static let progressReports: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.rawValue | let rawValue: UInt64
+TerminalCapabilities.Feature.shiftedKeys | static let shiftedKeys: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.strikethrough | static let strikethrough: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.strikethroughColor | static let strikethroughColor: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.textDecorations | static let textDecorations: TerminalCapabilities.Feature
+TerminalCapabilities.Feature.underlineColor | static let underlineColor: TerminalCapabilities.Feature
+TerminalCapabilities.Status | enum Status
+TerminalCapabilities.Status.supported | case supported
+TerminalCapabilities.Status.undetermined | case undetermined
+TerminalCapabilities.Status.unsupported | case unsupported
+TerminalCapabilities.status(of:) | func status(of feature: TerminalCapabilities.Feature) -> TerminalCapabilities.Status
+TerminalCapabilities.supported | let supported: TerminalCapabilities.Feature
+TerminalCapabilities.supports(_:) | func supports(_ features: TerminalCapabilities.Feature) -> Bool
+TerminalCapabilities.supportsAny(of:) | func supportsAny(of features: TerminalCapabilities.Feature) -> Bool
+TerminalCapabilities.undetermined | var undetermined: TerminalCapabilities.Feature { get }
+TerminalCapabilities.unsupported | let unsupported: TerminalCapabilities.Feature
+TerminalClient | struct TerminalClient
+TerminalClient.ClipboardWriteSupport | enum ClipboardWriteSupport
+TerminalClient.ClipboardWriteSupport.honoured | case honoured
+TerminalClient.ClipboardWriteSupport.unconfirmed | case unconfirmed
+TerminalClient.ClipboardWriteSupport.unsupported | case unsupported
+TerminalClient.Program | enum Program
+TerminalClient.Program.appleTerminal | case appleTerminal
+TerminalClient.Program.ghostty | case ghostty
+TerminalClient.Program.gnomeTerminal | case gnomeTerminal
+TerminalClient.Program.iTerm2 | case iTerm2
+TerminalClient.Program.init(rawValue:) | init?(rawValue: String)
+TerminalClient.Program.init(termProgramName:) | init(termProgramName: String?)
+TerminalClient.Program.termProgramName | var termProgramName: String? { get }
+TerminalClient.Program.tmux | case tmux
+TerminalClient.Program.unidentified | case unidentified
+TerminalClient.Program.warp | case warp
+TerminalClient.Program.xtermJS | case xtermJS
+TerminalClient.Signal | enum Signal
+TerminalClient.Signal.deviceAttributes | case deviceAttributes
+TerminalClient.Signal.explicitOverride | case explicitOverride
+TerminalClient.Signal.forwardedLocale | case forwardedLocale
+TerminalClient.Signal.init(rawValue:) | init?(rawValue: String)
+TerminalClient.Signal.none | case none
+TerminalClient.Signal.termProgram | case termProgram
+TerminalClient.Signal.termType | case termType
+TerminalClient.Signal.tmuxSession | case tmuxSession
+TerminalClient.answered | let answered: Bool
+TerminalClient.answeredVersionQuery | let answeredVersionQuery: Bool
+TerminalClient.applyHyperlinkSupport() | @MainActor static func applyHyperlinkSupport()
+TerminalClient.applyURLOpeningSupport() | @MainActor static func applyURLOpeningSupport()
+TerminalClient.applyWidthTraits() | @MainActor static func applyWidthTraits()
+TerminalClient.clipboardWriteSupport | @MainActor static var clipboardWriteSupport: Bool?
+TerminalClient.clipboardWrites | @MainActor static var clipboardWrites: TerminalClient.ClipboardWriteSupport { get }
+TerminalClient.compensating(_:for:tmuxSkinTones:) | static func compensating(_ text: String, for program: TerminalClient.Program, tmuxSkinTones: String.SkinToneFallbackScope = .all) -> String
+TerminalClient.current | @MainActor static var current: TerminalClient { get }
+TerminalClient.cursorAdvance(of:on:) | static func cursorAdvance(of cluster: Character, on program: TerminalClient.Program) -> Int
+TerminalClient.effective | @MainActor static var effective: TerminalClient { get }
+TerminalClient.honoursClipboardWrites(_:) | static func honoursClipboardWrites(_ program: TerminalClient.Program) -> Bool
+TerminalClient.honoursHyperlinks(_:) | static func honoursHyperlinks(_ program: TerminalClient.Program) -> Bool
+TerminalClient.honoursNotifications(_:) | static func honoursNotifications(_ program: TerminalClient.Program) -> Bool
+TerminalClient.honoursProgressReports(_:) | static func honoursProgressReports(_ program: TerminalClient.Program) -> Bool
+TerminalClient.hyperlinkSupport | @MainActor static var hyperlinkSupport: Bool? { get set }
+TerminalClient.hyperlinksSupported | @MainActor static var hyperlinksSupported: Bool { get }
+TerminalClient.mimeClipboard | @MainActor static var mimeClipboard: Bool { get }
+TerminalClient.mimeClipboardSupport | @MainActor static var mimeClipboardSupport: Bool?
+TerminalClient.name | let name: String?
+TerminalClient.namedBy | let namedBy: TerminalClient.Signal
+TerminalClient.notificationsSupported | @MainActor static var notificationsSupported: Bool { get }
+TerminalClient.pointerShapeSupport | @MainActor static var pointerShapeSupport: Bool?
+TerminalClient.pointerShapesSupported | @MainActor static var pointerShapesSupported: Bool { get }
+TerminalClient.primaryDeviceAttributes | let primaryDeviceAttributes: String?
+TerminalClient.program | var program: TerminalClient.Program { get }
+TerminalClient.progressReportsSupported | @MainActor static var progressReportsSupported: Bool { get }
+TerminalClient.reduceMotionRequested | static let reduceMotionRequested: Bool
+TerminalClient.secondaryDeviceAttributes | let secondaryDeviceAttributes: String?
+TerminalClient.simulated | @MainActor static var simulated: TerminalClient.Program? { get set }
+TerminalClient.simulatedQuirks | @MainActor static var simulatedQuirks: TerminalQuirks? { get set }
+TerminalClient.urlOpeningEnabled | @MainActor static var urlOpeningEnabled: Bool { get }
+TerminalClient.urlOpeningSupport | @MainActor static var urlOpeningSupport: Bool? { get set }
+TerminalClient.wasAsked | let wasAsked: Bool

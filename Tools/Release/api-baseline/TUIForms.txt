@@ -1,0 +1,83 @@
+# TUIForms public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+AutomaticFormStyle | struct AutomaticFormStyle
+AutomaticFormStyle.init() | init()
+AutomaticFormStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: AutomaticFormStyle.Configuration) -> some View
+AutomaticLabeledContentStyle | struct AutomaticLabeledContentStyle
+AutomaticLabeledContentStyle.init() | init()
+AutomaticLabeledContentStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: AutomaticLabeledContentStyle.Configuration) -> some View
+Card | nonisolated struct Card<Content, Footer> where Content : View, Footer : View
+Card.==(_:_:) | static func == (lhs: Card<Content, Footer>, rhs: Card<Content, Footer>) -> Bool [extension where Content : Equatable, Content : View, Footer : Equatable, Footer : View]
+Card.body | @MainActor var body: some View { get }
+Card.init(borderStyle:borderColor:backgroundColor:padding:content:) | init(borderStyle: BorderStyle? = nil, borderColor: Color? = nil, backgroundColor: Color? = nil, padding: EdgeInsets = EdgeInsets(all: 1), @ViewBuilder content: () -> Content) [extension where Content : View, Footer == EmptyView]
+Card.init(title:borderStyle:borderColor:titleColor:backgroundColor:padding:content:) | init(title titleKey: LocalizedStringKey, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, backgroundColor: Color? = nil, padding: EdgeInsets = EdgeInsets(all: 1), @ViewBuilder content: () -> Content) [extension where Content : View, Footer == EmptyView]
+Card.init(title:borderStyle:borderColor:titleColor:backgroundColor:padding:content:) | init(title: String? = nil, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, backgroundColor: Color? = nil, padding: EdgeInsets = EdgeInsets(all: 1), @ViewBuilder content: () -> Content) [extension where Content : View, Footer == EmptyView]
+Card.init(title:borderStyle:borderColor:titleColor:backgroundColor:padding:content:) | init<S>(title: S, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, backgroundColor: Color? = nil, padding: EdgeInsets = EdgeInsets(all: 1), @ViewBuilder content: () -> Content) where S : StringProtocol [extension where Content : View, Footer == EmptyView]
+Card.init(title:borderStyle:borderColor:titleColor:backgroundColor:padding:showFooterSeparator:content:footer:) | init(title titleKey: LocalizedStringKey, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, backgroundColor: Color? = nil, padding: EdgeInsets = EdgeInsets(all: 1), showFooterSeparator: Bool = true, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer)
+Card.init(title:borderStyle:borderColor:titleColor:backgroundColor:padding:showFooterSeparator:content:footer:) | init(title: String? = nil, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, backgroundColor: Color? = nil, padding: EdgeInsets = EdgeInsets(all: 1), showFooterSeparator: Bool = true, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer)
+Card.init(title:borderStyle:borderColor:titleColor:backgroundColor:padding:showFooterSeparator:content:footer:) | init<S>(title: S, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, backgroundColor: Color? = nil, padding: EdgeInsets = EdgeInsets(all: 1), showFooterSeparator: Bool = true, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) where S : StringProtocol
+ColumnsFormStyle | struct ColumnsFormStyle
+ColumnsFormStyle.init() | init()
+ColumnsFormStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: ColumnsFormStyle.Configuration) -> some View
+DefaultGroupBoxStyle | struct DefaultGroupBoxStyle
+DefaultGroupBoxStyle.init() | init()
+DefaultGroupBoxStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: DefaultGroupBoxStyle.Configuration) -> some View
+EnvironmentValues.formStyle | var formStyle: any FormStyle { get set }
+Form | nonisolated struct Form<Content> where Content : View
+Form.body | @MainActor var body: some View { get }
+Form.init(_:) | init(_ configuration: FormStyleConfiguration) [extension where Content == AnyView]
+Form.init(content:) | init(@ViewBuilder content: () -> Content)
+FormStyle.automatic | static var automatic: AutomaticFormStyle { get } [extension where Self == AutomaticFormStyle]
+FormStyle.columns | static var columns: ColumnsFormStyle { get } [extension where Self == ColumnsFormStyle]
+FormStyle.grouped | static var grouped: GroupedFormStyle { get } [extension where Self == GroupedFormStyle]
+GroupBox | nonisolated struct GroupBox<Label, Content> where Label : View, Content : View
+GroupBox.body | @MainActor var body: some View { get }
+GroupBox.init(_:) | init(_ configuration: GroupBoxStyleConfiguration) [extension where Label == AnyView, Content == _StyledContent]
+GroupBox.init(_:content:) | init(_ titleKey: LocalizedStringKey, @ViewBuilder content: () -> Content) [extension where Label == Text, Content : View]
+GroupBox.init(_:content:) | init<S>(_ title: S, @ViewBuilder content: () -> Content) where S : StringProtocol [extension where Label == Text, Content : View]
+GroupBox.init(content:) | init(@ViewBuilder content: () -> Content) [extension where Label == EmptyView, Content : View]
+GroupBox.init(content:label:) | init(@ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label)
+GroupBoxStyle | protocol GroupBoxStyle : Sendable
+GroupBoxStyle.Body | associatedtype Body : View
+GroupBoxStyle.Configuration | typealias Configuration = GroupBoxStyleConfiguration
+GroupBoxStyle.automatic | static var automatic: DefaultGroupBoxStyle { get } [extension where Self == DefaultGroupBoxStyle]
+GroupBoxStyle.makeBody(configuration:) | @MainActor @ViewBuilder func makeBody(configuration: Self.Configuration) -> Self.Body
+GroupBoxStyleConfiguration | struct GroupBoxStyleConfiguration
+GroupBoxStyleConfiguration.Content | typealias Content = _StyledContent
+GroupBoxStyleConfiguration.Label | typealias Label = AnyView
+GroupBoxStyleConfiguration.content | let content: GroupBoxStyleConfiguration.Content
+GroupBoxStyleConfiguration.label | let label: GroupBoxStyleConfiguration.Label
+GroupedFormStyle | struct GroupedFormStyle
+GroupedFormStyle.init() | init()
+GroupedFormStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: GroupedFormStyle.Configuration) -> some View
+LabeledContent | nonisolated struct LabeledContent<Label, Content> where Label : View, Content : View
+LabeledContent.body | @MainActor var body: some View { get }
+LabeledContent.init(_:) | init(_ configuration: LabeledContentStyleConfiguration) [extension where Label == AnyView, Content == AnyView]
+LabeledContent.init(_:content:) | init(_ titleKey: LocalizedStringKey, @ViewBuilder content: () -> Content) [extension where Label == Text, Content : View]
+LabeledContent.init(_:content:) | init<S>(_ title: S, @ViewBuilder content: () -> Content) where S : StringProtocol [extension where Label == Text, Content : View]
+LabeledContent.init(_:value:) | init<S1, S2>(_ title: S1, value: S2) where S1 : StringProtocol, S2 : StringProtocol [extension where Label == Text, Content == Text]
+LabeledContent.init(_:value:) | init<S>(_ titleKey: LocalizedStringKey, value: S) where S : StringProtocol [extension where Label == Text, Content == Text]
+LabeledContent.init(_:value:format:) | init<F>(_ titleKey: LocalizedStringKey, value: F.FormatInput, format: F) where F : FormatStyle, F.FormatInput : Equatable, F.FormatOutput == String [extension where Label == Text, Content == Text]
+LabeledContent.init(_:value:format:) | init<S, F>(_ title: S, value: F.FormatInput, format: F) where S : StringProtocol, F : FormatStyle, F.FormatInput : Equatable, F.FormatOutput == String [extension where Label == Text, Content == Text]
+LabeledContent.init(content:label:) | init(@ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label)
+LabeledContentStyle | protocol LabeledContentStyle : Sendable
+LabeledContentStyle.Body | associatedtype Body : View
+LabeledContentStyle.Configuration | typealias Configuration = LabeledContentStyleConfiguration
+LabeledContentStyle.automatic | static var automatic: AutomaticLabeledContentStyle { get } [extension where Self == AutomaticLabeledContentStyle]
+LabeledContentStyle.makeBody(configuration:) | @MainActor @ViewBuilder func makeBody(configuration: Self.Configuration) -> Self.Body
+LabeledContentStyleConfiguration | struct LabeledContentStyleConfiguration
+LabeledContentStyleConfiguration.Content | typealias Content = AnyView
+LabeledContentStyleConfiguration.Label | typealias Label = AnyView
+LabeledContentStyleConfiguration.content | let content: LabeledContentStyleConfiguration.Content
+LabeledContentStyleConfiguration.label | let label: LabeledContentStyleConfiguration.Label
+Panel | nonisolated struct Panel<Content, Footer> where Content : View, Footer : View
+Panel.==(_:_:) | static func == (lhs: Panel<Content, Footer>, rhs: Panel<Content, Footer>) -> Bool [extension where Content : Equatable, Content : View, Footer : Equatable, Footer : View]
+Panel.body | @MainActor var body: some View { get }
+Panel.init(_:borderStyle:borderColor:titleColor:padding:content:) | init(_ titleKey: LocalizedStringKey, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, padding: EdgeInsets = EdgeInsets(horizontal: 1, vertical: 0), @ViewBuilder content: () -> Content) [extension where Content : View, Footer == EmptyView]
+Panel.init(_:borderStyle:borderColor:titleColor:padding:content:) | init<S>(_ title: S, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, padding: EdgeInsets = EdgeInsets(horizontal: 1, vertical: 0), @ViewBuilder content: () -> Content) where S : StringProtocol [extension where Content : View, Footer == EmptyView]
+Panel.init(_:borderStyle:borderColor:titleColor:padding:showFooterSeparator:content:footer:) | init(_ titleKey: LocalizedStringKey, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, padding: EdgeInsets = EdgeInsets(horizontal: 1, vertical: 0), showFooterSeparator: Bool = true, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer)
+Panel.init(_:borderStyle:borderColor:titleColor:padding:showFooterSeparator:content:footer:) | init<S>(_ title: S, borderStyle: BorderStyle? = nil, borderColor: Color? = nil, titleColor: Color? = nil, padding: EdgeInsets = EdgeInsets(horizontal: 1, vertical: 0), showFooterSeparator: Bool = true, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) where S : StringProtocol
+View.formRowAlignment(_:) | nonisolated func formRowAlignment(_ alignment: HorizontalAlignment) -> some View
+View.formStyle(_:) | nonisolated func formStyle<S>(_ style: S) -> some View where S : FormStyle
+View.groupBoxStyle(_:) | nonisolated func groupBoxStyle<S>(_ style: S) -> some View where S : GroupBoxStyle
+View.labeledContentStyle(_:) | nonisolated func labeledContentStyle<S>(_ style: S) -> some View where S : LabeledContentStyle

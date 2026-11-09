@@ -1,0 +1,503 @@
+# TUIStyling public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+ANSIColor | enum ANSIColor
+ANSIColor.backgroundCode | var backgroundCode: UInt8 { get }
+ANSIColor.black | case black
+ANSIColor.blue | case blue
+ANSIColor.brightBlack | case brightBlack
+ANSIColor.brightBlue | case brightBlue
+ANSIColor.brightCyan | case brightCyan
+ANSIColor.brightGreen | case brightGreen
+ANSIColor.brightMagenta | case brightMagenta
+ANSIColor.brightRed | case brightRed
+ANSIColor.brightTwin | var brightTwin: ANSIColor { get }
+ANSIColor.brightWhite | case brightWhite
+ANSIColor.brightYellow | case brightYellow
+ANSIColor.cyan | case cyan
+ANSIColor.foregroundCode | var foregroundCode: UInt8 { get }
+ANSIColor.green | case green
+ANSIColor.init(rawValue:) | init?(rawValue: UInt8)
+ANSIColor.isBright | var isBright: Bool { get }
+ANSIColor.magenta | case magenta
+ANSIColor.red | case red
+ANSIColor.white | case white
+ANSIColor.xtermRGB | var xtermRGB: (red: UInt8, green: UInt8, blue: UInt8) { get }
+ANSIColor.yellow | case yellow
+Appearance | struct Appearance
+Appearance.==(_:_:) | static func == (lhs: Appearance, rhs: Appearance) -> Bool
+Appearance.ID | struct ID
+Appearance.ID.blank | static let blank: Appearance.ID
+Appearance.ID.block | static let block: Appearance.ID
+Appearance.ID.braille | static let braille: Appearance.ID
+Appearance.ID.doubleLine | static let doubleLine: Appearance.ID
+Appearance.ID.heavy | static let heavy: Appearance.ID
+Appearance.ID.init(rawValue:) | init(rawValue: String)
+Appearance.ID.line | static let line: Appearance.ID
+Appearance.ID.rawValue | let rawValue: String
+Appearance.ID.rounded | static let rounded: Appearance.ID
+Appearance.blank | static let blank: Appearance
+Appearance.block | static let block: Appearance
+Appearance.borderStyle | let borderStyle: BorderStyle
+Appearance.braille | static let braille: Appearance
+Appearance.braille(thickness:) | static func braille(thickness: Int) -> Appearance
+Appearance.default | static let `default`: Appearance
+Appearance.doubleLine | static let doubleLine: Appearance
+Appearance.hash(into:) | func hash(into hasher: inout Hasher)
+Appearance.heavy | static let heavy: Appearance
+Appearance.id | var id: String { get }
+Appearance.init(id:borderStyle:) | init(id: Appearance.ID, borderStyle: BorderStyle)
+Appearance.line | static let line: Appearance
+Appearance.name | var name: String { get }
+Appearance.rawId | let rawId: Appearance.ID
+Appearance.rounded | static let rounded: Appearance
+AppearanceRegistry | struct AppearanceRegistry
+AppearanceRegistry.all | static let all: [Appearance]
+AppearanceRegistry.appearance(withId:) | static func appearance(withId id: Appearance.ID) -> Appearance?
+AppleTerminalPalette | struct AppleTerminalPalette
+AppleTerminalPalette.Profile | enum Profile
+AppleTerminalPalette.Profile.basic | case basic
+AppleTerminalPalette.Profile.displayName | var displayName: String { get }
+AppleTerminalPalette.Profile.grass | case grass
+AppleTerminalPalette.Profile.homebrew | case homebrew
+AppleTerminalPalette.Profile.init(rawValue:) | init?(rawValue: String)
+AppleTerminalPalette.Profile.manPage | case manPage
+AppleTerminalPalette.Profile.novel | case novel
+AppleTerminalPalette.Profile.ocean | case ocean
+AppleTerminalPalette.Profile.pro | case pro
+AppleTerminalPalette.Profile.redSands | case redSands
+AppleTerminalPalette.Profile.silverAerogel | case silverAerogel
+AppleTerminalPalette.Profile.solidColors | case solidColors
+AppleTerminalPalette.accent | let accent: Color
+AppleTerminalPalette.all | static let all: [AppleTerminalPalette]
+AppleTerminalPalette.appHeaderBackground | let appHeaderBackground: Color
+AppleTerminalPalette.background | let background: Color
+AppleTerminalPalette.border | let border: Color
+AppleTerminalPalette.cursorColor | let cursorColor: Color
+AppleTerminalPalette.error | let error: Color
+AppleTerminalPalette.focusBackground | let focusBackground: Color
+AppleTerminalPalette.foreground | let foreground: Color
+AppleTerminalPalette.foregroundQuaternary | let foregroundQuaternary: Color
+AppleTerminalPalette.foregroundSecondary | let foregroundSecondary: Color
+AppleTerminalPalette.foregroundTertiary | let foregroundTertiary: Color
+AppleTerminalPalette.id | let id: String
+AppleTerminalPalette.info | let info: Color
+AppleTerminalPalette.init(_:) | init(_ profile: AppleTerminalPalette.Profile)
+AppleTerminalPalette.name | let name: String
+AppleTerminalPalette.overlayBackground | let overlayBackground: Color
+AppleTerminalPalette.statusBarBackground | let statusBarBackground: Color
+AppleTerminalPalette.success | let success: Color
+AppleTerminalPalette.warning | let warning: Color
+BorderStyle | struct BorderStyle
+BorderStyle.block | static let block: BorderStyle
+BorderStyle.bottomHorizontal | let bottomHorizontal: Character
+BorderStyle.bottomLeft | let bottomLeft: Character
+BorderStyle.bottomRight | let bottomRight: Character
+BorderStyle.braille(thickness:) | static func braille(thickness: Int = 1) -> BorderStyle
+BorderStyle.brailleThickness | let brailleThickness: Int?
+BorderStyle.doubleLine | static let doubleLine: BorderStyle
+BorderStyle.heavy | static let heavy: BorderStyle
+BorderStyle.horizontal | let horizontal: Character
+BorderStyle.init(topLeft:topRight:bottomLeft:bottomRight:horizontal:vertical:leftT:rightT:bottomHorizontal:rightVertical:paintsBackground:) | init(topLeft: Character, topRight: Character, bottomLeft: Character, bottomRight: Character, horizontal: Character, vertical: Character, leftT: Character? = nil, rightT: Character? = nil, bottomHorizontal: Character? = nil, rightVertical: Character? = nil, paintsBackground: Bool = false)
+BorderStyle.leftT | let leftT: Character
+BorderStyle.line | static let line: BorderStyle
+BorderStyle.none | static let none: BorderStyle
+BorderStyle.paintsBackground | let paintsBackground: Bool
+BorderStyle.rightT | let rightT: Character
+BorderStyle.rightVertical | let rightVertical: Character
+BorderStyle.rounded | static let rounded: BorderStyle
+BorderStyle.topLeft | let topLeft: Character
+BorderStyle.topRight | let topRight: Character
+BorderStyle.vertical | let vertical: Character
+Color | @frozen struct Color
+Color.ColorValue | @frozen enum ColorValue
+Color.ColorValue.ansi(_:) | case ansi(ANSIColor)
+Color.ColorValue.lightDark(_:) | case lightDark(Color.LightDarkIndex)
+Color.ColorValue.palette256(_:) | case palette256(UInt8)
+Color.ColorValue.rgb(red:green:blue:) | case rgb(red: UInt8, green: UInt8, blue: UInt8)
+Color.ColorValue.semantic(_:) | case semantic(SemanticColor)
+Color.ColorValue.system(_:) | case system(Color.SystemColor)
+Color.ColorValue.terminalBackground | case terminalBackground
+Color.ColorValue.terminalDefault | case terminalDefault
+Color.ColorValue.terminalForeground | case terminalForeground
+Color.DeltaEMethod | enum DeltaEMethod
+Color.DeltaEMethod.ok | case ok
+Color.LightDarkIndex | struct LightDarkIndex
+Color.RGBColorSpace | enum RGBColorSpace
+Color.RGBColorSpace.displayP3 | case displayP3
+Color.RGBColorSpace.sRGB | case sRGB
+Color.RGBColorSpace.sRGBLinear | case sRGBLinear
+Color.Resolved | struct Resolved
+Color.Resolved.blue | var blue: Float { get set }
+Color.Resolved.cgColor | var cgColor: CGColor { get }
+Color.Resolved.description | var description: String { get }
+Color.Resolved.encode(to:) | func encode(to encoder: any Encoder) throws
+Color.Resolved.green | var green: Float { get set }
+Color.Resolved.init(colorSpace:red:green:blue:opacity:) | init(colorSpace: Color.RGBColorSpace = .sRGB, red: Float, green: Float, blue: Float, opacity: Float = 1)
+Color.Resolved.init(from:) | init(from decoder: any Decoder) throws
+Color.Resolved.linearBlue | var linearBlue: Float
+Color.Resolved.linearGreen | var linearGreen: Float
+Color.Resolved.linearRed | var linearRed: Float
+Color.Resolved.opacity | var opacity: Float
+Color.Resolved.red | var red: Float { get set }
+Color.Semantic | enum Semantic
+Color.Semantic.accent | static let accent: Color
+Color.Semantic.appHeaderBackground | static let appHeaderBackground: Color
+Color.Semantic.background | static let background: Color
+Color.Semantic.border | static let border: Color
+Color.Semantic.error | static let error: Color
+Color.Semantic.foreground | static let foreground: Color
+Color.Semantic.foregroundQuaternary | static let foregroundQuaternary: Color
+Color.Semantic.foregroundSecondary | static let foregroundSecondary: Color
+Color.Semantic.foregroundTertiary | static let foregroundTertiary: Color
+Color.Semantic.info | static let info: Color
+Color.Semantic.overlayBackground | static let overlayBackground: Color
+Color.Semantic.statusBarBackground | static let statusBarBackground: Color
+Color.Semantic.success | static let success: Color
+Color.Semantic.warning | static let warning: Color
+Color.SystemColor | enum SystemColor
+Color.SystemColor.blue | case blue
+Color.SystemColor.brown | case brown
+Color.SystemColor.color(in:) | func color(in scheme: ColorScheme) -> Color
+Color.SystemColor.cyan | case cyan
+Color.SystemColor.gray | case gray
+Color.SystemColor.green | case green
+Color.SystemColor.indigo | case indigo
+Color.SystemColor.init(rawValue:) | init?(rawValue: UInt8)
+Color.SystemColor.mint | case mint
+Color.SystemColor.orange | case orange
+Color.SystemColor.pink | case pink
+Color.SystemColor.purple | case purple
+Color.SystemColor.red | case red
+Color.SystemColor.teal | case teal
+Color.SystemColor.yellow | case yellow
+Color.accentColor | static let accentColor: Color
+Color.alpha | var alpha: UInt8
+Color.ansi(_:) | static func ansi(_ slot: ANSIColor) -> Color
+Color.black | static let black: Color
+Color.blue | static let blue: Color
+Color.breathEnds(dimmedTo:over:) | func breathEnds(dimmedTo factor: Double, over ground: Color) -> (dim: Color, bright: Color)
+Color.brown | static let brown: Color
+Color.clear | static let clear: Color
+Color.cmyk(_:_:_:_:) | static func cmyk(_ cyan: Double, _ magenta: Double, _ yellow: Double, _ black: Double) -> Color
+Color.compositing(_:over:) | func compositing(_ opacity: Double, over surface: Color) -> Color
+Color.contrastRatio(against:) | func contrastRatio(against other: Color) -> Double
+Color.cyan | static let cyan: Color
+Color.darker(by:) | func darker(by percentage: Double = 0.2) -> Color
+Color.default | static let `default`: Color
+Color.deltaE(_:method:) | func deltaE(_ other: Color, method: Color.DeltaEMethod = .ok) -> Double?
+Color.description | var description: String { get }
+Color.downsampledToANSI16() | func downsampledToANSI16() -> Color
+Color.downsampledToPalette256() | func downsampledToPalette256() -> Color
+Color.ensuringContrast(atLeast:against:) | func ensuringContrast(atLeast minimum: Double, against background: Color) -> Color
+Color.ensuringRenderedContrast(atLeast:against:) | func ensuringRenderedContrast(atLeast minimum: Double, against background: Color) -> Color
+Color.error | static let error: Color
+Color.gray | static let gray: Color
+Color.green | static let green: Color
+Color.headroom(_:) | func headroom(_ headroom: Double?) -> Color
+Color.hex(_:) | static func hex(_ hex: String) -> Color?
+Color.hex(_:) | static func hex(_ hex: UInt32) -> Color
+Color.hsb(_:_:_:) | static func hsb(_ hue: Double, _ saturation: Double, _ brightness: Double) -> Color
+Color.hsl(_:_:_:) | static func hsl(_ hue: Double, _ saturation: Double, _ lightness: Double) -> Color
+Color.indigo | static let indigo: Color
+Color.init(_:) | init(_ resolved: Color.Resolved)
+Color.init(_:red:green:blue:opacity:) | init(_ colorSpace: Color.RGBColorSpace = .sRGB, red: Double, green: Double, blue: Double, opacity: Double = 1)
+Color.init(_:white:opacity:) | init(_ colorSpace: Color.RGBColorSpace = .sRGB, white: Double, opacity: Double = 1)
+Color.init(cgColor:) | init(cgColor: CGColor)
+Color.init(hue:saturation:brightness:opacity:) | init(hue: Double, saturation: Double, brightness: Double, opacity: Double = 1)
+Color.isOpaque | var isOpaque: Bool { get }
+Color.lerp(_:_:phase:) | static func lerp(_ from: Color, _ to: Color, phase: Double) -> Color
+Color.lighter(by:) | func lighter(by percentage: Double = 0.2) -> Color
+Color.lightnessDifference(from:) | func lightnessDifference(from other: Color) -> Double
+Color.magenta | static let magenta: Color
+Color.mint | static let mint: Color
+Color.mix(with:by:in:) | func mix(with rhs: Color, by fraction: Double, in colorSpace: Gradient.ColorSpace = .perceptual) -> Color
+Color.oklab(_:_:_:) | static func oklab(_ lightness: Double, _ a: Double, _ b: Double) -> Color
+Color.oklch(_:_:_:) | static func oklch(_ lightness: Double, _ chroma: Double, _ hue: Double) -> Color
+Color.opacity(_:) | func opacity(_ opacity: Double) -> Color
+Color.opacity(_:over:) | func opacity(_ opacity: Double, over surface: Color) -> Color
+Color.opaqueSpelling | var opaqueSpelling: Color { get }
+Color.orange | static let orange: Color
+Color.palette | static var palette: Color.Semantic.Type { get }
+Color.palette256(_:) | static func palette256(_ index: UInt8) -> Color
+Color.perceivedLightness | var perceivedLightness: Double? { get }
+Color.pink | static let pink: Color
+Color.primary | static let primary: Color
+Color.pulseRamp(from:to:depth:samples:) | static func pulseRamp(from dim: Color, to bright: Color, depth: ColorDepth, samples: Int = 256) -> [Color]
+Color.purple | static let purple: Color
+Color.quantisedRamp(_:count:depth:) | static func quantisedRamp(_ gradient: Gradient, count: Int, depth: ColorDepth) -> [Color]
+Color.red | static let red: Color
+Color.relativeLuminance | var relativeLuminance: Double? { get }
+Color.resolve(with:) | func resolve(with palette: any Palette) -> Color
+Color.rgb(_:_:_:) | static func rgb(_ red: UInt8, _ green: UInt8, _ blue: UInt8) -> Color
+Color.rgbComponents | var rgbComponents: (red: UInt8, green: UInt8, blue: UInt8)? { get }
+Color.rgbToCMYK(red:green:blue:) | static func rgbToCMYK(red: UInt8, green: UInt8, blue: UInt8) -> (cyan: Double, magenta: Double, yellow: Double, black: Double)
+Color.rgbToHSB(red:green:blue:) | static func rgbToHSB(red: UInt8, green: UInt8, blue: UInt8) -> (hue: Double, saturation: Double, brightness: Double)
+Color.rgbToHSL(red:green:blue:) | static func rgbToHSL(red: UInt8, green: UInt8, blue: UInt8) -> (hue: Double, saturation: Double, lightness: Double)
+Color.rgbToOKLCh(red:green:blue:) | static func rgbToOKLCh(red: UInt8, green: UInt8, blue: UInt8) -> (lightness: Double, chroma: Double, hue: Double)
+Color.rgbToOKLab(red:green:blue:) | static func rgbToOKLab(red: UInt8, green: UInt8, blue: UInt8) -> (lightness: Double, a: Double, b: Double)
+Color.secondary | static let secondary: Color
+Color.spendingAlpha(over:) | func spendingAlpha(over ground: Color) -> Color
+Color.success | static let success: Color
+Color.teal | static let teal: Color
+Color.value | let value: Color.ColorValue
+Color.warning | static let warning: Color
+Color.white | static let white: Color
+Color.yellow | static let yellow: Color
+ColorDepth | enum ColorDepth
+ColorDepth.<(_:_:) | static func < (lhs: ColorDepth, rhs: ColorDepth) -> Bool
+ColorDepth.basic16 | case basic16
+ColorDepth.cap | static var cap: ColorDepth { get set }
+ColorDepth.current | static var current: ColorDepth { get set }
+ColorDepth.detect(environment:) | static func detect(environment: [String : String] = ProcessInfo.processInfo.environment) -> ColorDepth
+ColorDepth.init(rawValue:) | init?(rawValue: Int)
+ColorDepth.noColor | case noColor
+ColorDepth.palette256 | case palette256
+ColorDepth.truecolor | case truecolor
+ColorDepth.withCap(_:operation:) | @discardableResult nonisolated(nonsending) static func withCap<T>(_ depth: ColorDepth, operation: nonisolated(nonsending) () async throws -> T) async rethrows -> T
+ColorDepth.withCap(_:operation:) | @discardableResult static func withCap<T>(_ depth: ColorDepth, operation: () throws -> T) rethrows -> T
+ColorDepth.withCurrent(_:operation:) | @discardableResult nonisolated(nonsending) static func withCurrent<T>(_ depth: ColorDepth, operation: nonisolated(nonsending) () async throws -> T) async rethrows -> T
+ColorDepth.withCurrent(_:operation:) | @discardableResult static func withCurrent<T>(_ depth: ColorDepth, operation: () throws -> T) rethrows -> T
+ColorScheme | enum ColorScheme
+ColorScheme.dark | case dark
+ColorScheme.light | case light
+ContentMode | enum ContentMode
+ContentMode.fill | case fill
+ContentMode.fit | case fit
+Cyclable | protocol Cyclable : Sendable
+Cyclable.id | var id: String { get }
+Cyclable.name | var name: String { get }
+Gradient | struct Gradient
+Gradient.ColorSpace | struct ColorSpace
+Gradient.ColorSpace.device | static let device: Gradient.ColorSpace
+Gradient.ColorSpace.perceptual | static let perceptual: Gradient.ColorSpace
+Gradient.Stop | struct Stop
+Gradient.Stop.color | var color: Color
+Gradient.Stop.init(color:location:) | init(color: Color, location: Double)
+Gradient.Stop.location | var location: Double
+Gradient.color(at:) | func color(at phase: Double) -> Color
+Gradient.colorSpace | var colorSpace: Gradient.ColorSpace
+Gradient.init(colors:) | init(colors: [Color])
+Gradient.init(colors:colorSpace:) | init(colors: [Color], colorSpace: Gradient.ColorSpace)
+Gradient.init(stops:) | init(stops: [Gradient.Stop])
+Gradient.init(stops:colorSpace:) | init(stops: [Gradient.Stop], colorSpace: Gradient.ColorSpace)
+Gradient.isOpaqueThroughout | var isOpaqueThroughout: Bool { get }
+Gradient.leastContrasting(against:) | func leastContrasting(against background: Color) -> Color
+Gradient.representative | var representative: Color { get }
+Gradient.resolvingStops(with:) | func resolvingStops(with palette: any Palette) -> Gradient
+Gradient.sampled(count:) | func sampled(count: Int) -> [Color]
+Gradient.stops | var stops: [Gradient.Stop]
+Gradient.withStops(_:) | func withStops(_ stops: [Gradient.Stop]) -> Gradient
+Int.init(clamping:) | init(clamping value: Double)
+LiveTerminalPalette | struct LiveTerminalPalette
+LiveTerminalPalette.accent | let accent: Color
+LiveTerminalPalette.appHeaderBackground | let appHeaderBackground: Color
+LiveTerminalPalette.background | let background: Color
+LiveTerminalPalette.border | let border: Color
+LiveTerminalPalette.error | let error: Color
+LiveTerminalPalette.foreground | let foreground: Color
+LiveTerminalPalette.foregroundQuaternary | let foregroundQuaternary: Color
+LiveTerminalPalette.foregroundSecondary | let foregroundSecondary: Color
+LiveTerminalPalette.foregroundTertiary | let foregroundTertiary: Color
+LiveTerminalPalette.id | let id: String
+LiveTerminalPalette.info | let info: Color
+LiveTerminalPalette.init() | init()
+LiveTerminalPalette.name | let name: String
+LiveTerminalPalette.overlayBackground | let overlayBackground: Color
+LiveTerminalPalette.statusBarBackground | let statusBarBackground: Color
+LiveTerminalPalette.success | let success: Color
+LiveTerminalPalette.warning | let warning: Color
+Palette | protocol Palette : Cyclable
+Palette.accent | var accent: Color { get }
+Palette.accentFillPulse(over:) | func accentFillPulse(over surface: Color? = nil) -> (dim: Color, bright: Color)
+Palette.accentPulse(over:) | func accentPulse(over surface: Color? = nil) -> (dim: Color, bright: Color)
+Palette.amber | static var amber: SystemPalette { get } [extension where Self == SystemPalette]
+Palette.appHeaderBackground | var appHeaderBackground: Color { get }
+Palette.appHeaderBackground | var appHeaderBackground: Color { get }
+Palette.background | var background: Color { get }
+Palette.blue | static var blue: SystemPalette { get } [extension where Self == SystemPalette]
+Palette.border | var border: Color { get }
+Palette.colorScheme | var colorScheme: ColorScheme { get }
+Palette.colorScheme | var colorScheme: ColorScheme { get }
+Palette.cursorColor | var cursorColor: Color { get }
+Palette.cursorColor | var cursorColor: Color { get }
+Palette.default | static var `default`: SystemPalette { get } [extension where Self == SystemPalette]
+Palette.error | var error: Color { get }
+Palette.fieldBackground | var fieldBackground: Color { get }
+Palette.fieldBackground | var fieldBackground: Color { get }
+Palette.fieldBackground(on:) | func fieldBackground(on surface: Color) -> Color
+Palette.focusBackground | var focusBackground: Color { get }
+Palette.focusBackground | var focusBackground: Color { get }
+Palette.focusWashPulse() | func focusWashPulse() -> (dim: Color, bright: Color)
+Palette.foreground | var foreground: Color { get }
+Palette.foregroundQuaternary | var foregroundQuaternary: Color { get }
+Palette.foregroundQuaternary | var foregroundQuaternary: Color { get }
+Palette.foregroundSecondary | var foregroundSecondary: Color { get }
+Palette.foregroundSecondary | var foregroundSecondary: Color { get }
+Palette.foregroundTertiary | var foregroundTertiary: Color { get }
+Palette.foregroundTertiary | var foregroundTertiary: Color { get }
+Palette.green | static var green: SystemPalette { get } [extension where Self == SystemPalette]
+Palette.hoveredControlFace | var hoveredControlFace: Color { get }
+Palette.hoveredForeground(_:) | func hoveredForeground(_ base: Color) -> Color
+Palette.info | var info: Color { get }
+Palette.lifted(from:) | func lifted(from base: Color) -> Color
+Palette.liftedBackground | var liftedBackground: Color { get }
+Palette.overlayBackground | var overlayBackground: Color { get }
+Palette.overlayBackground | var overlayBackground: Color { get }
+Palette.readableText(on:) | func readableText(on surface: Color) -> Color
+Palette.red | static var red: SystemPalette { get } [extension where Self == SystemPalette]
+Palette.restingControlFace | var restingControlFace: Color { get }
+Palette.statusBarBackground | var statusBarBackground: Color { get }
+Palette.statusBarBackground | var statusBarBackground: Color { get }
+Palette.success | var success: Color { get }
+Palette.violet | static var violet: SystemPalette { get } [extension where Self == SystemPalette]
+Palette.warning | var warning: Color { get }
+Palette.white | static var white: SystemPalette { get } [extension where Self == SystemPalette]
+PaletteRegistry | struct PaletteRegistry
+PaletteRegistry.all | static let all: [any Palette]
+PaletteRegistry.appleTerminalProfiles | static let appleTerminalProfiles: [any Palette]
+PaletteRegistry.palette(withId:) | static func palette(withId id: String) -> (any Palette)?
+PaletteRegistry.palette(withName:) | static func palette(withName name: String) -> (any Palette)?
+PaletteRegistry.phosphorPresets | static let phosphorPresets: [any Palette]
+PaletteRegistry.terminalPalettes | static let terminalPalettes: [any Palette]
+SemanticColor | enum SemanticColor
+SemanticColor.accent | case accent
+SemanticColor.appHeaderBackground | case appHeaderBackground
+SemanticColor.background | case background
+SemanticColor.border | case border
+SemanticColor.error | case error
+SemanticColor.foreground | case foreground
+SemanticColor.foregroundQuaternary | case foregroundQuaternary
+SemanticColor.foregroundSecondary | case foregroundSecondary
+SemanticColor.foregroundTertiary | case foregroundTertiary
+SemanticColor.info | case info
+SemanticColor.init(rawValue:) | init?(rawValue: String)
+SemanticColor.overlayBackground | case overlayBackground
+SemanticColor.statusBarBackground | case statusBarBackground
+SemanticColor.success | case success
+SemanticColor.warning | case warning
+SystemPalette | struct SystemPalette
+SystemPalette.Preset | enum Preset
+SystemPalette.Preset.amber | case amber
+SystemPalette.Preset.blue | case blue
+SystemPalette.Preset.green | case green
+SystemPalette.Preset.init(rawValue:) | init?(rawValue: String)
+SystemPalette.Preset.red | case red
+SystemPalette.Preset.violet | case violet
+SystemPalette.Preset.white | case white
+SystemPalette.accent | let accent: Color
+SystemPalette.appHeaderBackground | let appHeaderBackground: Color
+SystemPalette.background | let background: Color
+SystemPalette.border | let border: Color
+SystemPalette.cursorColor | let cursorColor: Color
+SystemPalette.error | let error: Color
+SystemPalette.focusBackground | let focusBackground: Color
+SystemPalette.foreground | let foreground: Color
+SystemPalette.foregroundQuaternary | let foregroundQuaternary: Color
+SystemPalette.foregroundSecondary | let foregroundSecondary: Color
+SystemPalette.foregroundTertiary | let foregroundTertiary: Color
+SystemPalette.id | let id: String
+SystemPalette.info | let info: Color
+SystemPalette.init(_:) | init(_ preset: SystemPalette.Preset)
+SystemPalette.name | let name: String
+SystemPalette.overlayBackground | let overlayBackground: Color
+SystemPalette.statusBarBackground | let statusBarBackground: Color
+SystemPalette.success | let success: Color
+SystemPalette.warning | let warning: Color
+TextContentType | enum TextContentType
+TextContentType.URL | case URL
+TextContentType.addressCity | case addressCity
+TextContentType.addressCityAndState | case addressCityAndState
+TextContentType.addressState | case addressState
+TextContentType.allowedCharacters | var allowedCharacters: CharacterSet? { get }
+TextContentType.birthdate | case birthdate
+TextContentType.birthdateDay | case birthdateDay
+TextContentType.birthdateMonth | case birthdateMonth
+TextContentType.birthdateYear | case birthdateYear
+TextContentType.countryName | case countryName
+TextContentType.creditCardExpiration | case creditCardExpiration
+TextContentType.creditCardExpirationMonth | case creditCardExpirationMonth
+TextContentType.creditCardExpirationYear | case creditCardExpirationYear
+TextContentType.creditCardFamilyName | case creditCardFamilyName
+TextContentType.creditCardGivenName | case creditCardGivenName
+TextContentType.creditCardMiddleName | case creditCardMiddleName
+TextContentType.creditCardName | case creditCardName
+TextContentType.creditCardNumber | case creditCardNumber
+TextContentType.creditCardSecurityCode | case creditCardSecurityCode
+TextContentType.creditCardType | case creditCardType
+TextContentType.dateTime | case dateTime
+TextContentType.decimal | case decimal
+TextContentType.emailAddress | case emailAddress
+TextContentType.familyName | case familyName
+TextContentType.filterString(_:) | func filterString(_ string: String) -> String
+TextContentType.flightNumber | case flightNumber
+TextContentType.fullStreetAddress | case fullStreetAddress
+TextContentType.givenName | case givenName
+TextContentType.integer | case integer
+TextContentType.isAllowed(_:) | func isAllowed(_ character: Character) -> Bool
+TextContentType.jobTitle | case jobTitle
+TextContentType.location | case location
+TextContentType.middleName | case middleName
+TextContentType.name | case name
+TextContentType.namePrefix | case namePrefix
+TextContentType.nameSuffix | case nameSuffix
+TextContentType.newPassword | case newPassword
+TextContentType.nickname | case nickname
+TextContentType.oneTimeCode | case oneTimeCode
+TextContentType.organizationName | case organizationName
+TextContentType.password | case password
+TextContentType.postalCode | case postalCode
+TextContentType.shipmentTrackingNumber | case shipmentTrackingNumber
+TextContentType.streetAddressLine1 | case streetAddressLine1
+TextContentType.streetAddressLine2 | case streetAddressLine2
+TextContentType.sublocality | case sublocality
+TextContentType.telephoneNumber | case telephoneNumber
+TextContentType.username | case username
+TextCursorStyle | struct TextCursorStyle
+TextCursorStyle.Animation | enum Animation
+TextCursorStyle.Animation.blink | case blink
+TextCursorStyle.Animation.init(rawValue:) | init?(rawValue: String)
+TextCursorStyle.Animation.none | case none
+TextCursorStyle.Animation.pulse | case pulse
+TextCursorStyle.Shape | enum Shape
+TextCursorStyle.Shape.bar | case bar
+TextCursorStyle.Shape.block | case block
+TextCursorStyle.Shape.character | var character: Character { get }
+TextCursorStyle.Shape.init(rawValue:) | init?(rawValue: String)
+TextCursorStyle.Shape.underscore | case underscore
+TextCursorStyle.animation | let animation: TextCursorStyle.Animation
+TextCursorStyle.bar | static let bar: TextCursorStyle
+TextCursorStyle.block | static let block: TextCursorStyle
+TextCursorStyle.init(shape:animation:) | init(shape: TextCursorStyle.Shape = .block, animation: TextCursorStyle.Animation = .pulse)
+TextCursorStyle.shape | let shape: TextCursorStyle.Shape
+TextCursorStyle.underscore | static let underscore: TextCursorStyle
+ThemeManager | final class ThemeManager
+ThemeManager.current | var current: any Cyclable { get }
+ThemeManager.currentAppearance | var currentAppearance: Appearance? { get }
+ThemeManager.currentName | var currentName: String { get }
+ThemeManager.currentPalette | var currentPalette: (any Palette)? { get }
+ThemeManager.cycleNext() | func cycleNext()
+ThemeManager.cyclePrevious() | func cyclePrevious()
+ThemeManager.init(items:) | convenience init(items: [any Cyclable])
+ThemeManager.init(items:renderTrigger:) | init(items: [any Cyclable], renderTrigger: @escaping () -> Void)
+ThemeManager.items | let items: [any Cyclable]
+ThemeManager.setCurrent(_:) | func setCurrent(_ item: any Cyclable)
+ViewConstants | enum ViewConstants
+ViewConstants.alternatingRowBackground | static let alternatingRowBackground: Double
+ViewConstants.alternatingRowContrast | static let alternatingRowContrast: Double
+ViewConstants.buttonOutlineContrastFloor | static let buttonOutlineContrastFloor: Double
+ViewConstants.chromeGrooveFloor | static let chromeGrooveFloor: Double
+ViewConstants.chromePulseDepth | static let chromePulseDepth: Double
+ViewConstants.chromePulseFloor | static let chromePulseFloor: Double
+ViewConstants.chromeSeparationFloor | static let chromeSeparationFloor: Double
+ViewConstants.disabledForeground | static let disabledForeground: Double
+ViewConstants.disabledLabelContrastFloor | static let disabledLabelContrastFloor: Double
+ViewConstants.emptyListPlaceholder | static let emptyListPlaceholder: String
+ViewConstants.focusBorderDim | static let focusBorderDim: Double
+ViewConstants.focusPulseMax | static let focusPulseMax: Double
+ViewConstants.focusPulseMin | static let focusPulseMin: Double
+ViewConstants.hoverBackground | static let hoverBackground: Double
+ViewConstants.labelContrastFloor | static let labelContrastFloor: Double
+ViewConstants.mouseWheelScrollLines | static let mouseWheelScrollLines: Int
+ViewConstants.rowBreathPeakContrastFloor | static let rowBreathPeakContrastFloor: Double
+ViewConstants.selectedBackground | static let selectedBackground: Double
+ViewConstants.selectionIndicator | static let selectionIndicator: Double

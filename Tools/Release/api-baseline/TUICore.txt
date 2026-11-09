@@ -1,0 +1,752 @@
+# TUICore public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+ANSICellDiff.closingStyling(from:) | func closingStyling(from emitted: SGRState?) -> ANSICellDiff
+ANSICellSpan.column | let column: Int
+ANSICellSpan.content | let content: String
+ANSIRowCells.diff(replacing:mergingGapsUpTo:continuing:) | func diff(replacing previous: ANSIRowCells, mergingGapsUpTo gap: Int, continuing emitted: inout SGRState?) -> ANSICellDiff
+ANSIRowCells.init(decomposing:width:) | init?(decomposing line: String, width: Int)
+Animatable | @MainActor protocol Animatable
+Animatable.AnimatableData | associatedtype AnimatableData : VectorArithmetic
+Animatable.animatableData | @MainActor var animatableData: EmptyAnimatableData { get set } [extension where Self.AnimatableData == EmptyAnimatableData]
+Animatable.animatableData | @MainActor var animatableData: Self { get set } [extension where Self == Self.AnimatableData]
+Animatable.animatableData | @MainActor var animatableData: Self.AnimatableData { get set }
+AnimatablePair | struct AnimatablePair<First, Second> where First : VectorArithmetic, Second : VectorArithmetic
+AnimatablePair.+(_:_:) | static func + (lhs: AnimatablePair<First, Second>, rhs: AnimatablePair<First, Second>) -> AnimatablePair<First, Second>
+AnimatablePair.+=(_:_:) | static func += (lhs: inout AnimatablePair<First, Second>, rhs: AnimatablePair<First, Second>)
+AnimatablePair.-(_:_:) | static func - (lhs: AnimatablePair<First, Second>, rhs: AnimatablePair<First, Second>) -> AnimatablePair<First, Second>
+AnimatablePair.-=(_:_:) | static func -= (lhs: inout AnimatablePair<First, Second>, rhs: AnimatablePair<First, Second>)
+AnimatablePair.first | var first: First
+AnimatablePair.init(_:_:) | init(_ first: First, _ second: Second)
+AnimatablePair.magnitudeSquared | var magnitudeSquared: Double { get }
+AnimatablePair.scale(by:) | mutating func scale(by rhs: Double)
+AnimatablePair.second | var second: Second
+AnimatablePair.zero | static var zero: AnimatablePair<First, Second> { get }
+AnimatableValues | @frozen struct AnimatableValues<each Value> where repeat each Value : VectorArithmetic
+AnimatableValues.+(_:_:) | static func + (lhs: AnimatableValues<repeat each Value>, rhs: AnimatableValues<repeat each Value>) -> AnimatableValues<repeat each Value>
+AnimatableValues.+=(_:_:) | static func += (lhs: inout AnimatableValues<repeat each Value>, rhs: AnimatableValues<repeat each Value>)
+AnimatableValues.-(_:_:) | static func - (lhs: AnimatableValues<repeat each Value>, rhs: AnimatableValues<repeat each Value>) -> AnimatableValues<repeat each Value>
+AnimatableValues.-=(_:_:) | static func -= (lhs: inout AnimatableValues<repeat each Value>, rhs: AnimatableValues<repeat each Value>)
+AnimatableValues.==(_:_:) | static func == (lhs: AnimatableValues<repeat each Value>, rhs: AnimatableValues<repeat each Value>) -> Bool
+AnimatableValues.init(_:) | init(_ value: repeat each Value)
+AnimatableValues.magnitudeSquared | var magnitudeSquared: Double { get }
+AnimatableValues.scale(by:) | mutating func scale(by rhs: Double)
+AnimatableValues.value | var value: (repeat each Value)
+AnimatableValues.zero | static var zero: AnimatableValues<repeat each Value> { get }
+AnimatedCellRun | struct AnimatedCellRun
+AnimatedCellRun.alpha | var alpha: AnimatedRunAlpha?
+AnimatedCellRun.clipped(toColumns:) | func clipped(toColumns columns: Range<Int>) -> AnimatedCellRun?
+AnimatedCellRun.clock | let clock: AnimationClock
+AnimatedCellRun.cycleTicks | var cycleTicks: Int64 { get }
+AnimatedCellRun.frame(atElapsed:) | func frame(atElapsed elapsed: Double) -> String
+AnimatedCellRun.frame(atIndex:) | func frame(atIndex index: Int) -> String
+AnimatedCellRun.frameTicks | let frameTicks: Int
+AnimatedCellRun.frames | let frames: [String]
+AnimatedCellRun.index(atElapsed:) | func index(atElapsed elapsed: Double) -> Int
+AnimatedCellRun.init(offsetX:offsetY:width:frames:frameTicks:clock:alpha:) | init(offsetX: Int, offsetY: Int, width: Int, frames: [String], frameTicks: Int? = nil, clock: AnimationClock, alpha: AnimatedRunAlpha? = nil)
+AnimatedCellRun.isAnimating | var isAnimating: Bool { get }
+AnimatedCellRun.movedTo(row:) | func movedTo(row: Int) -> AnimatedCellRun
+AnimatedCellRun.offsetX | var offsetX: Int
+AnimatedCellRun.offsetY | var offsetY: Int
+AnimatedCellRun.shifted(byX:y:) | func shifted(byX x: Int, y: Int) -> AnimatedCellRun
+AnimatedCellRun.timeUntilChange(afterElapsed:) | func timeUntilChange(afterElapsed elapsed: Double) -> Double
+AnimatedCellRun.width | let width: Int
+AnimatedRunAlpha | struct AnimatedRunAlpha
+AnimatedRunAlpha.Span | struct Span
+AnimatedRunAlpha.Span.cells | var cells: Int
+AnimatedRunAlpha.Span.field | var field: Double
+AnimatedRunAlpha.Span.init(start:cells:ink:field:) | init(start: Int, cells: Int, ink: Double = 1, field: Double = 1)
+AnimatedRunAlpha.Span.ink | var ink: Double
+AnimatedRunAlpha.Span.start | var start: Int
+AnimatedRunAlpha.drawnIndex | var drawnIndex: Int
+AnimatedRunAlpha.drawnRegions(forRunAt:offsetY:) | func drawnRegions(forRunAt offsetX: Int, offsetY: Int) -> [OpacityRegion]
+AnimatedRunAlpha.drawnSpans | var drawnSpans: [AnimatedRunAlpha.Span] { get }
+AnimatedRunAlpha.init(perFrame:drawnIndex:) | init(perFrame: [[AnimatedRunAlpha.Span]], drawnIndex: Int)
+AnimatedRunAlpha.init(slicing:row:offsetX:width:drawnIndex:) | init?(slicing perFrameRegions: [[OpacityRegion]], row: Int, offsetX: Int, width: Int, drawnIndex: Int)
+AnimatedRunAlpha.isTranslucent | var isTranslucent: Bool { get }
+AnimatedRunAlpha.perFrame | var perFrame: [[AnimatedRunAlpha.Span]]
+AnimatedRunAlpha.spans(atFrame:) | func spans(atFrame index: Int) -> [AnimatedRunAlpha.Span]
+AnimatedRunAlpha.varies | var varies: Bool { get }
+Animation | struct Animation
+Animation.animate(value:time:context:) | func animate<V>(value: V, time: TimeInterval, context: inout AnimationContext<V>) -> V? where V : VectorArithmetic
+Animation.base | var base: any CustomAnimation { get }
+Animation.bouncy | static var bouncy: Animation { get }
+Animation.bouncy(duration:extraBounce:) | static func bouncy(duration: TimeInterval = 0.5, extraBounce: Double = 0) -> Animation
+Animation.customMirror | var customMirror: Mirror { get }
+Animation.cyclePeriod | var cyclePeriod: TimeInterval? { get }
+Animation.debugDescription | var debugDescription: String { get }
+Animation.default | static let `default`: Animation
+Animation.defaultDuration | static let defaultDuration: TimeInterval
+Animation.delay(_:) | func delay(_ delay: TimeInterval) -> Animation
+Animation.description | var description: String { get }
+Animation.easeIn | static var easeIn: Animation { get }
+Animation.easeIn(duration:) | static func easeIn(duration: TimeInterval) -> Animation
+Animation.easeInOut | static var easeInOut: Animation { get }
+Animation.easeInOut(duration:) | static func easeInOut(duration: TimeInterval) -> Animation
+Animation.easeOut | static var easeOut: Animation { get }
+Animation.easeOut(duration:) | static func easeOut(duration: TimeInterval) -> Animation
+Animation.effectiveDelay | var effectiveDelay: TimeInterval { get }
+Animation.effectivePassDuration | var effectivePassDuration: TimeInterval { get }
+Animation.fraction(at:) | func fraction(at elapsed: TimeInterval) -> Double
+Animation.init(_:) | init<A>(_ base: A) where A : CustomAnimation
+Animation.interactiveSpring | static var interactiveSpring: Animation { get }
+Animation.interactiveSpring(duration:extraBounce:blendDuration:) | static func interactiveSpring(duration: TimeInterval = 0.15, extraBounce: Double = 0.0, blendDuration: TimeInterval = 0.25) -> Animation
+Animation.interactiveSpring(response:dampingFraction:blendDuration:) | static func interactiveSpring(response: Double = 0.15, dampingFraction: Double = 0.86, blendDuration: TimeInterval = 0.25) -> Animation
+Animation.interpolatingSpring | static var interpolatingSpring: Animation { get }
+Animation.interpolatingSpring(_:initialVelocity:) | static func interpolatingSpring(_ spring: Spring, initialVelocity: Double = 0.0) -> Animation
+Animation.interpolatingSpring(duration:bounce:initialVelocity:) | static func interpolatingSpring(duration: TimeInterval = 0.5, bounce: Double = 0.0, initialVelocity: Double = 0.0) -> Animation
+Animation.interpolatingSpring(mass:stiffness:damping:initialVelocity:) | static func interpolatingSpring(mass: Double = 1.0, stiffness: Double, damping: Double, initialVelocity: Double = 0.0) -> Animation
+Animation.isFinished(at:) | func isFinished(at elapsed: TimeInterval) -> Bool
+Animation.linear | static var linear: Animation { get }
+Animation.linear(duration:) | static func linear(duration: TimeInterval) -> Animation
+Animation.logicalCompletionDuration | var logicalCompletionDuration: TimeInterval? { get }
+Animation.logicallyComplete(after:) | func logicallyComplete(after duration: TimeInterval) -> Animation
+Animation.repeatCount(_:autoreverses:) | func repeatCount(_ repeatCount: Int, autoreverses: Bool = true) -> Animation
+Animation.repeatForever(autoreverses:) | func repeatForever(autoreverses: Bool = true) -> Animation
+Animation.repeatsForever | var repeatsForever: Bool { get }
+Animation.shouldMerge(previous:value:time:context:) | func shouldMerge<V>(previous: Animation, value: V, time: TimeInterval, context: inout AnimationContext<V>) -> Bool where V : VectorArithmetic
+Animation.smooth | static var smooth: Animation { get }
+Animation.smooth(duration:extraBounce:) | static func smooth(duration: TimeInterval = 0.5, extraBounce: Double = 0) -> Animation
+Animation.snappy | static var snappy: Animation { get }
+Animation.snappy(duration:extraBounce:) | static func snappy(duration: TimeInterval = 0.5, extraBounce: Double = 0) -> Animation
+Animation.speed(_:) | func speed(_ speed: Double) -> Animation
+Animation.spring | static var spring: Animation { get }
+Animation.spring(_:blendDuration:) | static func spring(_ spring: Spring, blendDuration: TimeInterval = 0.0) -> Animation
+Animation.spring(duration:bounce:blendDuration:) | static func spring(duration: TimeInterval = 0.5, bounce: Double = 0, blendDuration: Double = 0) -> Animation
+Animation.spring(response:dampingFraction:blendDuration:) | static func spring(response: Double = 0.5, dampingFraction: Double = 0.825, blendDuration: TimeInterval = 0) -> Animation
+Animation.timingCurve(_:_:_:_:duration:) | static func timingCurve(_ p1x: Double, _ p1y: Double, _ p2x: Double, _ p2y: Double, duration: TimeInterval = defaultDuration) -> Animation
+Animation.timingCurve(_:duration:) | static func timingCurve(_ curve: UnitCurve, duration: TimeInterval) -> Animation
+Animation.totalDuration | var totalDuration: TimeInterval? { get }
+Animation.velocity(value:time:context:) | func velocity<V>(value: V, time: TimeInterval, context: AnimationContext<V>) -> V? where V : VectorArithmetic
+AnimationClock | enum AnimationClock
+AnimationClock.content | case content
+AnimationClock.cursor | case cursor
+AnimationClock.frameTicks(forSeconds:) | static func frameTicks(forSeconds seconds: Double) -> Int
+AnimationClock.init(rawValue:) | init?(rawValue: String)
+AnimationClock.nanoseconds(_:) | static func nanoseconds(_ seconds: Double) -> Int64
+AnimationClock.nanoseconds(atTick:) | static func nanoseconds(atTick tick: Int64) -> Int64
+AnimationClock.nanoseconds(ofNextTickMultiple:after:) | static func nanoseconds(ofNextTickMultiple multiple: Int, after nanoseconds: Int64) -> Int64
+AnimationClock.seconds(forTicks:) | static func seconds(forTicks ticks: Int) -> Double
+AnimationClock.standardFrameTicks | static let standardFrameTicks: Int
+AnimationClock.step(atElapsed:frameTicks:) | static func step(atElapsed elapsed: Double, frameTicks: Int) -> Int64
+AnimationClock.tick(atNanoseconds:) | static func tick(atNanoseconds nanoseconds: Int64) -> Int64
+AnimationClock.ticksPerSecond | static let ticksPerSecond: Int
+AnimationCompletion | final class AnimationCompletion
+AnimationCompletion.criteria | let criteria: AnimationCompletionCriteria
+AnimationCompletionCriteria | struct AnimationCompletionCriteria
+AnimationCompletionCriteria.logicallyComplete | static let logicallyComplete: AnimationCompletionCriteria
+AnimationCompletionCriteria.removed | static let removed: AnimationCompletionCriteria
+AnimationContext | struct AnimationContext<Value> where Value : VectorArithmetic
+AnimationContext.environment | var environment: EnvironmentValues { get }
+AnimationContext.isLogicallyComplete | var isLogicallyComplete: Bool
+AnimationContext.state | var state: AnimationState<Value>
+AnimationContext.withState(_:) | func withState<T>(_ state: AnimationState<T>) -> AnimationContext<T> where T : VectorArithmetic
+AnimationState | struct AnimationState<Value> where Value : VectorArithmetic
+AnimationState.init() | init()
+AnimationState.subscript(_:) | subscript<K>(key: K.Type) -> K.Value where K : AnimationStateKey { get set }
+AnimationStateKey | protocol AnimationStateKey
+AnimationStateKey.Value | associatedtype Value
+AnimationStateKey.defaultValue | static var defaultValue: Self.Value { get }
+BlendMode | enum BlendMode
+BlendMode.color | case color
+BlendMode.colorBurn | case colorBurn
+BlendMode.colorDodge | case colorDodge
+BlendMode.darken | case darken
+BlendMode.destinationOut | case destinationOut
+BlendMode.destinationOver | case destinationOver
+BlendMode.difference | case difference
+BlendMode.exclusion | case exclusion
+BlendMode.hardLight | case hardLight
+BlendMode.hue | case hue
+BlendMode.lighten | case lighten
+BlendMode.luminosity | case luminosity
+BlendMode.multiply | case multiply
+BlendMode.normal | case normal
+BlendMode.overlay | case overlay
+BlendMode.plusDarker | case plusDarker
+BlendMode.plusLighter | case plusLighter
+BlendMode.saturation | case saturation
+BlendMode.screen | case screen
+BlendMode.softLight | case softLight
+BlendMode.sourceAtop | case sourceAtop
+CGFloat.AnimatableData | typealias AnimatableData = CGFloat
+CGFloat.magnitudeSquared | var magnitudeSquared: Double { get }
+CGFloat.scale(by:) | mutating func scale(by rhs: Double)
+Character.ghosttyCursorAdvance | var ghosttyCursorAdvance: Int { get }
+Character.gnomeTerminalCursorAdvance | var gnomeTerminalCursorAdvance: Int { get }
+Character.iTerm2CursorAdvance | var iTerm2CursorAdvance: Int { get }
+Character.isUnicode16EmojiOlderTablesMiss | var isUnicode16EmojiOlderTablesMiss: Bool { get }
+Character.leadsWithVS16Segment | var leadsWithVS16Segment: Bool { get }
+Character.terminalAppCursorAdvance | var terminalAppCursorAdvance: Int { get }
+Character.terminalWidth | var terminalWidth: Int { get }
+Character.tmuxCursorAdvance | var tmuxCursorAdvance: Int { get }
+Character.unidentifiedHostCursorAdvance | var unidentifiedHostCursorAdvance: Int { get }
+Character.warpCursorAdvance | var warpCursorAdvance: Int { get }
+Character.xtermJSCursorAdvance | var xtermJSCursorAdvance: Int { get }
+CustomAnimation | protocol CustomAnimation : Hashable, Sendable
+CustomAnimation.animate(value:time:context:) | nonisolated func animate<V>(value: V, time: TimeInterval, context: inout AnimationContext<V>) -> V? where V : VectorArithmetic
+CustomAnimation.shouldMerge(previous:value:time:context:) | func shouldMerge<V>(previous: Animation, value: V, time: TimeInterval, context: inout AnimationContext<V>) -> Bool where V : VectorArithmetic
+CustomAnimation.shouldMerge(previous:value:time:context:) | nonisolated func shouldMerge<V>(previous: Animation, value: V, time: TimeInterval, context: inout AnimationContext<V>) -> Bool where V : VectorArithmetic
+CustomAnimation.velocity(value:time:context:) | func velocity<V>(value: V, time: TimeInterval, context: AnimationContext<V>) -> V? where V : VectorArithmetic
+CustomAnimation.velocity(value:time:context:) | nonisolated func velocity<V>(value: V, time: TimeInterval, context: AnimationContext<V>) -> V? where V : VectorArithmetic
+Double.AnimatableData | typealias AnimatableData = Double
+Double.magnitudeSquared | var magnitudeSquared: Double { get }
+Double.scale(by:) | mutating func scale(by rhs: Double)
+EmptyAnimatableData | struct EmptyAnimatableData
+EmptyAnimatableData.+(_:_:) | static func + (lhs: EmptyAnimatableData, rhs: EmptyAnimatableData) -> EmptyAnimatableData
+EmptyAnimatableData.+=(_:_:) | static func += (lhs: inout EmptyAnimatableData, rhs: EmptyAnimatableData)
+EmptyAnimatableData.-(_:_:) | static func - (lhs: EmptyAnimatableData, rhs: EmptyAnimatableData) -> EmptyAnimatableData
+EmptyAnimatableData.-=(_:_:) | static func -= (lhs: inout EmptyAnimatableData, rhs: EmptyAnimatableData)
+EmptyAnimatableData.init() | init()
+EmptyAnimatableData.magnitudeSquared | var magnitudeSquared: Double { get }
+EmptyAnimatableData.scale(by:) | mutating func scale(by rhs: Double)
+EmptyAnimatableData.zero | static var zero: EmptyAnimatableData { get }
+EnvironmentKey | protocol EnvironmentKey
+EnvironmentKey.Value | associatedtype Value
+EnvironmentKey.defaultValue | static var defaultValue: Self.Value { get }
+EnvironmentValues | struct EnvironmentValues
+EnvironmentValues.description | var description: String { get }
+EnvironmentValues.init() | init()
+EnvironmentValues.setting(_:to:) | func setting<V>(_ keyPath: WritableKeyPath<EnvironmentValues, V>, to value: V) -> EnvironmentValues
+EnvironmentValues.storedObject(ofType:) | func storedObject(ofType type: any Any.Type) -> Any?
+EnvironmentValues.subscript(_:) | subscript<K>(key: K.Type) -> K.Value where K : EnvironmentKey { get set }
+EnvironmentValues.subscript(observable:) | subscript<T>(observable type: T.Type) -> T? where T : Observable { get set }
+Float.magnitudeSquared | var magnitudeSquared: Double { get }
+Float.scale(by:) | mutating func scale(by rhs: Double)
+FrameBuffer | struct FrameBuffer
+FrameBuffer.==(_:_:) | static func == (lhs: FrameBuffer, rhs: FrameBuffer) -> Bool
+FrameBuffer.animatedCells | var animatedCells: [AnimatedCellRun]
+FrameBuffer.appendHorizontally(_:spacing:) | mutating func appendHorizontally(_ other: FrameBuffer, spacing: Int = 0)
+FrameBuffer.appendVertically(_:spacing:) | mutating func appendVertically(_ other: FrameBuffer, spacing: Int = 0)
+FrameBuffer.carriesGeometryMarkers | var carriesGeometryMarkers: Bool { get }
+FrameBuffer.carriesGeometryMarkers(includingSurfaces:) | func carriesGeometryMarkers(includingSurfaces: Bool = false) -> Bool
+FrameBuffer.clamped(toWidth:height:) | func clamped(toWidth width: Int, height: Int) -> FrameBuffer
+FrameBuffer.composite(with:at:) | mutating func composite(with overlay: FrameBuffer, at position: (x: Int, y: Int))
+FrameBuffer.composited(with:at:) | func composited(with overlay: FrameBuffer, at position: (x: Int, y: Int)) -> FrameBuffer
+FrameBuffer.forEachGeometryMarker(offsetX:offsetY:includingSurfaces:_:) | func forEachGeometryMarker(offsetX: Int = 0, offsetY: Int = 0, includingSurfaces: Bool = false, _ body: (HitTestRegion.HandlerID, Int, Int) -> Void)
+FrameBuffer.height | var height: Int { get }
+FrameBuffer.hitTestRegions | var hitTestRegions: [HitTestRegion]
+FrameBuffer.init() | init()
+FrameBuffer.init(emptyWithHeight:) | init(emptyWithHeight height: Int)
+FrameBuffer.init(emptyWithWidth:height:) | init(emptyWithWidth width: Int, height: Int)
+FrameBuffer.init(footprintWidth:height:) | init(footprintWidth width: Int, height: Int)
+FrameBuffer.init(lines:) | init(lines: [String])
+FrameBuffer.init(lines:width:uniformWidth:lineWidths:) | init(lines: [String], width: Int, uniformWidth: Bool = false, lineWidths: [Int]? = nil)
+FrameBuffer.init(text:) | init(text: String)
+FrameBuffer.init(verticallyStacking:) | init(verticallyStacking buffers: [FrameBuffer])
+FrameBuffer.isBlank | var isBlank: Bool { get }
+FrameBuffer.isEmpty | var isEmpty: Bool { get }
+FrameBuffer.lineWidths | var lineWidths: [Int]? { get }
+FrameBuffer.lines | var lines: [String] { get set }
+FrameBuffer.linesAreUniformWidth | var linesAreUniformWidth: Bool { get }
+FrameBuffer.patchingAnimatedCells(in:replaying:atIndex:) | static func patchingAnimatedCells(in line: String, replaying run: AnimatedCellRun, atIndex index: Int) -> String
+FrameBuffer.removeHitTargets() | mutating func removeHitTargets()
+FrameBuffer.replacingLines(_:width:uniformWidth:lineWidths:overlayShiftX:overlayShiftY:) | func replacingLines(_ newLines: [String], width: Int? = nil, uniformWidth: Bool = false, lineWidths: [Int]? = nil, overlayShiftX: Int = 0, overlayShiftY: Int = 0) -> FrameBuffer
+FrameBuffer.revealColumns(focusID:wholeControl:) | func revealColumns(focusID: String, wholeControl: Bool) -> (left: Int, width: Int)?
+FrameBuffer.revealTarget(focusID:wholeControl:) | func revealTarget(focusID: String, wholeControl: Bool) -> (top: Int, height: Int)?
+FrameBuffer.shiftedAnimatedCells(byX:y:) | func shiftedAnimatedCells(byX dx: Int, y dy: Int) -> [AnimatedCellRun]
+FrameBuffer.shiftedHitTestRegions(byX:y:) | func shiftedHitTestRegions(byX dx: Int, y dy: Int) -> [HitTestRegion]
+FrameBuffer.splicing(_:into:atColumn:) | static func splicing(_ span: String, into line: String, atColumn column: Int) -> String
+FrameBuffer.trimmingTrailingBlankCells() | func trimmingTrailingBlankCells() -> FrameBuffer
+FrameBuffer.width | var width: Int { get }
+GradientFrame | struct GradientFrame
+GradientFrame.height | var height: Int
+GradientFrame.init(originX:originY:width:height:isProvisional:) | init(originX: Int = 0, originY: Int = 0, width: Int, height: Int, isProvisional: Bool = false)
+GradientFrame.isProvisional | var isProvisional: Bool
+GradientFrame.offset(byX:y:) | func offset(byX x: Int, y: Int) -> GradientFrame
+GradientFrame.originX | var originX: Int
+GradientFrame.originY | var originY: Int
+GradientFrame.resolvingExtent(width:height:) | func resolvingExtent(width: Int, height: Int) -> GradientFrame
+GradientFrame.width | var width: Int
+HitTestRegion | struct HitTestRegion
+HitTestRegion.HandlerID | struct HandlerID
+HitTestRegion.HandlerID.geometryMarkerBit | static let geometryMarkerBit: UInt64
+HitTestRegion.HandlerID.init(_:) | init(_ raw: UInt64)
+HitTestRegion.HandlerID.isGeometryMarker | var isGeometryMarker: Bool { get }
+HitTestRegion.HandlerID.raw | let raw: UInt64
+HitTestRegion.HandlerID.selectionInterior | static let selectionInterior: HitTestRegion.HandlerID
+HitTestRegion.clipped(toColumns:rows:) | func clipped(toColumns columns: Range<Int>, rows: Range<Int>) -> HitTestRegion?
+HitTestRegion.contains(x:y:) | func contains(x: Int, y: Int) -> Bool
+HitTestRegion.focusID | let focusID: String?
+HitTestRegion.geometryMarker(_:) | static func geometryMarker(_ id: HitTestRegion.HandlerID) -> HitTestRegion
+HitTestRegion.handlerID | let handlerID: HitTestRegion.HandlerID
+HitTestRegion.height | let height: Int
+HitTestRegion.init(offsetX:offsetY:width:height:handlerID:focusID:) | init(offsetX: Int, offsetY: Int, width: Int, height: Int, handlerID: HitTestRegion.HandlerID, focusID: String? = nil)
+HitTestRegion.isGeometryMarker | var isGeometryMarker: Bool { get }
+HitTestRegion.leftClip | var leftClip: Int
+HitTestRegion.localOriginX | var localOriginX: Int { get }
+HitTestRegion.localOriginY | var localOriginY: Int { get }
+HitTestRegion.offsetX | var offsetX: Int
+HitTestRegion.offsetY | var offsetY: Int
+HitTestRegion.revealOutsetBottom | var revealOutsetBottom: Int
+HitTestRegion.revealOutsetTop | var revealOutsetTop: Int
+HitTestRegion.shifted(byX:y:) | func shifted(byX dx: Int, y dy: Int) -> HitTestRegion
+HitTestRegion.topClip | var topClip: Int
+HitTestRegion.width | let width: Int
+Key | enum Key
+Key.backspace | case backspace
+Key.character(_:) | case character(Character)
+Key.delete | case delete
+Key.down | case down
+Key.end | case end
+Key.enter | case enter
+Key.escape | case escape
+Key.f1 | case f1
+Key.f10 | case f10
+Key.f11 | case f11
+Key.f12 | case f12
+Key.f13 | case f13
+Key.f14 | case f14
+Key.f15 | case f15
+Key.f16 | case f16
+Key.f17 | case f17
+Key.f18 | case f18
+Key.f19 | case f19
+Key.f2 | case f2
+Key.f20 | case f20
+Key.f3 | case f3
+Key.f4 | case f4
+Key.f5 | case f5
+Key.f6 | case f6
+Key.f7 | case f7
+Key.f8 | case f8
+Key.f9 | case f9
+Key.from(_:) | static func from(_ char: Character) -> Key
+Key.home | case home
+Key.left | case left
+Key.menu | case menu
+Key.pageDown | case pageDown
+Key.pageUp | case pageUp
+Key.paste(_:) | case paste(String)
+Key.right | case right
+Key.space | case space
+Key.tab | case tab
+Key.up | case up
+KeyEvent | struct KeyEvent
+KeyEvent.Phase | enum Phase
+KeyEvent.Phase.press | case press
+KeyEvent.Phase.release | case release
+KeyEvent.Phase.repeat | case `repeat`
+KeyEvent.alt | let alt: Bool
+KeyEvent.capsLock | let capsLock: Bool
+KeyEvent.command | let command: Bool
+KeyEvent.ctrl | let ctrl: Bool
+KeyEvent.init(character:) | init(character: Character)
+KeyEvent.init(key:ctrl:alt:shift:command:phase:capsLock:numericPad:) | init(key: Key, ctrl: Bool = false, alt: Bool = false, shift: Bool = false, command: Bool = false, phase: KeyEvent.Phase = .press, capsLock: Bool = false, numericPad: Bool = false)
+KeyEvent.key | let key: Key
+KeyEvent.legacyControlEquivalent | var legacyControlEquivalent: KeyEvent? { get }
+KeyEvent.normalizingLegacyShiftedFunctionKeys() | func normalizingLegacyShiftedFunctionKeys() -> KeyEvent
+KeyEvent.numericPad | let numericPad: Bool
+KeyEvent.parse(_:) | static func parse(_ bytes: [UInt8]) -> KeyEvent?
+KeyEvent.phase | let phase: KeyEvent.Phase
+KeyEvent.shift | let shift: Bool
+KittyGraphics | enum KittyGraphics
+KittyGraphics.ImageID | typealias ImageID = UInt32
+KittyGraphics.PixelFormat | enum PixelFormat
+KittyGraphics.PixelFormat.init(rawValue:) | init?(rawValue: Int)
+KittyGraphics.PixelFormat.rgb | case rgb
+KittyGraphics.PixelFormat.rgba | case rgba
+KittyGraphics.PixelFormat.stride | var stride: Int { get }
+KittyGraphics.PlaceholderCell | struct PlaceholderCell
+KittyGraphics.PlaceholderCell.character | var character: Character { get }
+KittyGraphics.PlaceholderCell.column | var column: Int
+KittyGraphics.PlaceholderCell.id | var id: KittyGraphics.ImageID
+KittyGraphics.PlaceholderCell.init(id:row:column:) | init(id: KittyGraphics.ImageID, row: Int, column: Int)
+KittyGraphics.PlaceholderCell.row | var row: Int
+KittyGraphics.PlaceholderCell.spelled | var spelled: String { get }
+KittyGraphics.delete(id:) | static func delete(id: KittyGraphics.ImageID) -> String
+KittyGraphics.isCompressionSupported | static var isCompressionSupported: Bool { get set }
+KittyGraphics.isHairlineSupported | static var isHairlineSupported: Bool { get set }
+KittyGraphics.isPictureUnderTextSupported | static var isPictureUnderTextSupported: Bool { get set }
+KittyGraphics.isSupported | static var isSupported: Bool { get set }
+KittyGraphics.maximumCellExtent | static var maximumCellExtent: Int { get }
+KittyGraphics.maximumImageID | static let maximumImageID: KittyGraphics.ImageID
+KittyGraphics.placeholderCell(_:foreground:) | static func placeholderCell(_ character: Character, foreground: (red: UInt8, green: UInt8, blue: UInt8)) -> KittyGraphics.PlaceholderCell?
+KittyGraphics.placeholderRows(id:columns:rows:placement:) | static func placeholderRows(id: KittyGraphics.ImageID, columns: Int, rows: Int, placement: UInt32? = nil) -> [String]
+KittyGraphics.placement(id:columns:rows:placement:) | static func placement(id: KittyGraphics.ImageID, columns: Int, rows: Int, placement: UInt32 = 1) -> String
+KittyGraphics.query(id:) | static func query(id: KittyGraphics.ImageID) -> String
+KittyGraphics.transmit(pixels:format:width:height:id:compressed:) | static func transmit(pixels: [UInt8], format: KittyGraphics.PixelFormat = .rgba, width: Int, height: Int, id: KittyGraphics.ImageID, compressed: Bool = false) -> String
+KittyGraphics.withHairlineSupport(_:operation:) | @discardableResult static func withHairlineSupport<T>(_ supported: Bool, operation: () throws -> T) rethrows -> T
+KittyGraphics.withPictureUnderTextSupport(_:operation:) | @discardableResult static func withPictureUnderTextSupport<T>(_ supported: Bool, operation: () throws -> T) rethrows -> T
+KittyGraphics.withSupport(_:compression:operation:) | @discardableResult nonisolated(nonsending) static func withSupport<T>(_ supported: Bool, compression: Bool? = nil, operation: nonisolated(nonsending) () async throws -> T) async rethrows -> T
+KittyGraphics.withSupport(_:compression:operation:) | @discardableResult static func withSupport<T>(_ supported: Bool, compression: Bool? = nil, operation: () throws -> T) rethrows -> T
+ModifierKeyState | struct ModifierKeyState
+ModifierKeyState.capsLock | var capsLock: Bool
+ModifierKeyState.command | var command: Bool
+ModifierKeyState.control | var control: Bool
+ModifierKeyState.init(shift:control:option:command:capsLock:) | init(shift: Bool = false, control: Bool = false, option: Bool = false, command: Bool = false, capsLock: Bool = false)
+ModifierKeyState.option | var option: Bool
+ModifierKeyState.shift | var shift: Bool
+MouseButton | enum MouseButton
+MouseButton.isWheel | var isWheel: Bool { get }
+MouseButton.left | case left
+MouseButton.middle | case middle
+MouseButton.none | case none
+MouseButton.right | case right
+MouseButton.scrollDown | case scrollDown
+MouseButton.scrollLeft | case scrollLeft
+MouseButton.scrollRight | case scrollRight
+MouseButton.scrollUp | case scrollUp
+MouseEvent | struct MouseEvent
+MouseEvent.button | let button: MouseButton
+MouseEvent.clickCount | let clickCount: Int
+MouseEvent.ctrl | let ctrl: Bool
+MouseEvent.init(button:phase:x:y:shift:ctrl:meta:clickCount:subcellX:subcellY:) | init(button: MouseButton, phase: MousePhase, x: Int, y: Int, shift: Bool = false, ctrl: Bool = false, meta: Bool = false, clickCount: Int = 1, subcellX: Double = 0, subcellY: Double = 0)
+MouseEvent.meta | let meta: Bool
+MouseEvent.movedTo(x:y:subcellX:subcellY:) | func movedTo(x: Int, y: Int, subcellX: Double, subcellY: Double) -> MouseEvent
+MouseEvent.parseLegacy(_:) | static func parseLegacy(_ bytes: [UInt8]) -> MouseEvent?
+MouseEvent.parseSGR(_:) | static func parseSGR(_ bytes: [UInt8]) -> MouseEvent?
+MouseEvent.phase | let phase: MousePhase
+MouseEvent.preciseX | var preciseX: Double { get }
+MouseEvent.preciseY | var preciseY: Double { get }
+MouseEvent.shift | let shift: Bool
+MouseEvent.subcellX | let subcellX: Double
+MouseEvent.subcellY | let subcellY: Double
+MouseEvent.withClick(count:shift:ctrl:meta:) | func withClick(count: Int, shift: Bool, ctrl: Bool, meta: Bool) -> MouseEvent
+MouseEvent.withClickCount(_:) | func withClickCount(_ count: Int) -> MouseEvent
+MouseEvent.x | let x: Int
+MouseEvent.y | let y: Int
+MousePhase | enum MousePhase
+MousePhase.dragged | case dragged
+MousePhase.entered | case entered
+MousePhase.exited | case exited
+MousePhase.moved | case moved
+MousePhase.pressed | case pressed
+MousePhase.released | case released
+MousePhase.scrolled | case scrolled
+OpacityCycle.clock | var clock: AnimationClock
+OpacityCycle.init(phases:clock:) | init(phases: [Double], clock: AnimationClock)
+OpacityCycle.phases | var phases: [Double]
+OpacityCycle.scaled(by:) | func scaled(by factor: Double) -> OpacityCycle
+OpacityRegion | struct OpacityRegion
+OpacityRegion.Frost | enum Frost
+OpacityRegion.Frost.averaging(columns:rows:pixelsAcross:pixelsDown:) | case averaging(columns: UInt8, rows: UInt8, pixelsAcross: UInt8 = 2, pixelsDown: UInt8 = 4)
+OpacityRegion.Frost.droppingGlyphs | case droppingGlyphs
+OpacityRegion.blendMode | var blendMode: BlendMode
+OpacityRegion.blendsInLinearLight | var blendsInLinearLight: Bool
+OpacityRegion.clipped(toColumns:rows:) | func clipped(toColumns columns: Range<Int>, rows: Range<Int>) -> OpacityRegion?
+OpacityRegion.contains(column:row:) | func contains(column: Int, row: Int) -> Bool
+OpacityRegion.fieldOpacity | var fieldOpacity: Double
+OpacityRegion.frost | var frost: OpacityRegion.Frost?
+OpacityRegion.frosts | var frosts: Bool { get }
+OpacityRegion.height | var height: Int
+OpacityRegion.inkOpacity | var inkOpacity: Double
+OpacityRegion.isTranslucent | var isTranslucent: Bool { get }
+OpacityRegion.offsetX | var offsetX: Int
+OpacityRegion.offsetY | var offsetY: Int
+OpacityRegion.opacity | var opacity: Double
+OpacityRegion.shifted(byX:y:) | func shifted(byX x: Int, y: Int) -> OpacityRegion
+OpacityRegion.spans(row:) | func spans(row: Int) -> Bool
+OpacityRegion.subtracting(columns:rows:) | func subtracting(columns: Range<Int>, rows: Range<Int>) -> [OpacityRegion]
+OpacityRegion.width | var width: Int
+OverlayLayer.anchorHeight | var anchorHeight: Int
+OverlayLayer.centered | var centered: Bool
+OverlayLayer.clampsToScreen | var clampsToScreen: Bool
+OverlayLayer.clipped(toWidth:height:) | func clipped(toWidth width: Int, height: Int) -> OverlayLayer?
+OverlayLayer.content | var content: FrameBuffer
+OverlayLayer.dimsBackground | var dimsBackground: Bool
+OverlayLayer.displacedDrawingZIndex | static let displacedDrawingZIndex: Double
+OverlayLayer.holdsInput | var holdsInput: Bool
+OverlayLayer.init(offsetX:offsetY:content:level:zIndex:anchorHeight:centered:dimsBackground:clampsToScreen:isOpaque:holdsInput:) | init(offsetX: Int, offsetY: Int, content: FrameBuffer, level: OverlayLevel = .popover, zIndex: Double = 0, anchorHeight: Int = 0, centered: Bool = false, dimsBackground: Bool = false, clampsToScreen: Bool = true, isOpaque: Bool = true, holdsInput: Bool = false)
+OverlayLayer.isOpaque | var isOpaque: Bool
+OverlayLayer.isScreenLevel | var isScreenLevel: Bool { get }
+OverlayLayer.level | var level: OverlayLevel
+OverlayLayer.offsetX | var offsetX: Int
+OverlayLayer.offsetY | var offsetY: Int
+OverlayLayer.placed(maxWidth:maxHeight:) | func placed(maxWidth: Int, maxHeight: Int) -> (content: FrameBuffer, x: Int, y: Int)
+OverlayLayer.shifted(byX:y:) | func shifted(byX dx: Int, y dy: Int) -> OverlayLayer
+OverlayLayer.zIndex | var zIndex: Double
+OverlayLevel.<(_:_:) | static func < (lhs: OverlayLevel, rhs: OverlayLevel) -> Bool
+PreferenceKey | protocol PreferenceKey
+PreferenceKey.Value | associatedtype Value
+PreferenceKey.defaultValue | static var defaultValue: Self.Value { get }
+PreferenceKey.reduce(value:nextValue:) | static func reduce(value: inout Self.Value, nextValue: () -> Self.Value)
+PreferenceKey.reduce(value:nextValue:) | static func reduce(value: inout Self.Value, nextValue: () -> Self.Value)
+PreferenceStorage.beginRenderPass() | func beginRenderPass()
+PreferenceStorage.current | var current: PreferenceValues { get set }
+PreferenceStorage.init() | init()
+PreferenceStorage.onPreferenceChange(_:callback:) | func onPreferenceChange<K>(_ key: K.Type, callback: @escaping (K.Value) -> Void) where K : PreferenceKey
+PreferenceStorage.pop() | func pop() -> PreferenceValues
+PreferenceStorage.pop(transforming:) | @discardableResult func pop(transforming transform: (inout PreferenceValues) -> Void) -> PreferenceValues
+PreferenceStorage.push() | func push()
+PreferenceStorage.reset() | func reset()
+PreferenceStorage.setValue(_:forKey:) | func setValue<K>(_ value: K.Value, forKey key: K.Type) where K : PreferenceKey
+PreferenceValues | struct PreferenceValues
+PreferenceValues.init() | init()
+PreferenceValues.merge(_:) | mutating func merge(_ other: PreferenceValues)
+PreferenceValues.subscript(_:) | subscript<K>(key: K.Type) -> K.Value where K : PreferenceKey { get set }
+ProposedSize | struct ProposedSize
+ProposedSize.fixed(_:_:) | static func fixed(_ width: Int, _ height: Int) -> ProposedSize
+ProposedSize.height | var height: Int?
+ProposedSize.init(_:) | init(_ size: ViewSize)
+ProposedSize.init(width:height:) | init(width: Int?, height: Int?)
+ProposedSize.unspecified | static let unspecified: ProposedSize
+ProposedSize.width | var width: Int?
+ProposedSize.zero | static let zero: ProposedSize
+ProposedViewSize | typealias ProposedViewSize = ProposedSize
+RetainedSubtreeIndex.init(roots:expectedChecks:) | init(roots: [ViewIdentity], expectedChecks: Int = 0)
+RetainedSubtreeIndex.isEmpty | var isEmpty: Bool { get }
+RetainedSubtreeIndex.retains(_:) | mutating func retains(_ identity: ViewIdentity) -> Bool
+SGRState.apply(_:) | mutating func apply(_ sequence: String)
+SGRState.init() | init()
+SGRState.isDefault | var isDefault: Bool { get }
+SGRState.namesBackground | var namesBackground: Bool { get }
+SGRState.paintsBlankCellsIdentically(to:) | func paintsBlankCellsIdentically(to other: SGRState) -> Bool
+SGRState.parameters | var parameters: String { get }
+SGRState.rendered | var rendered: String { get }
+SGRState.rendered(changingFrom:) | func rendered(changingFrom previous: SGRState) -> String
+SGRState.renderedBackground | var renderedBackground: String { get }
+SGRState.setBackground(parameters:) | mutating func setBackground(parameters: [String]?)
+SGRState.setForeground(parameters:) | mutating func setForeground(parameters: [String]?)
+Spring | struct Spring
+Spring.bounce | var bounce: Double { get }
+Spring.bouncy | static var bouncy: Spring { get }
+Spring.bouncy(duration:extraBounce:) | static func bouncy(duration: TimeInterval = 0.5, extraBounce: Double = 0.0) -> Spring
+Spring.damping | var damping: Double { get }
+Spring.dampingRatio | var dampingRatio: Double { get }
+Spring.duration | var duration: TimeInterval { get }
+Spring.force(fromValue:toValue:position:velocity:) | @MainActor func force<V>(fromValue: V, toValue: V, position: V, velocity: V) -> V where V : Animatable
+Spring.force(target:position:velocity:) | func force<V>(target: V, position: V, velocity: V) -> V where V : VectorArithmetic
+Spring.init(duration:bounce:) | init(duration: TimeInterval = 0.5, bounce: Double = 0.0)
+Spring.init(mass:stiffness:damping:allowOverDamping:) | init(mass: Double = 1.0, stiffness: Double, damping: Double, allowOverDamping: Bool = false)
+Spring.init(response:dampingRatio:) | init(response: Double, dampingRatio: Double)
+Spring.init(settlingDuration:dampingRatio:epsilon:) | init(settlingDuration: TimeInterval, dampingRatio: Double, epsilon: Double = 0.001)
+Spring.mass | var mass: Double { get }
+Spring.response | var response: Double { get }
+Spring.settlingDuration | var settlingDuration: TimeInterval { get }
+Spring.settlingDuration(fromValue:toValue:initialVelocity:epsilon:) | @MainActor func settlingDuration<V>(fromValue: V, toValue: V, initialVelocity: V, epsilon: Double) -> TimeInterval where V : Animatable
+Spring.settlingDuration(target:initialVelocity:epsilon:) | func settlingDuration<V>(target: V, initialVelocity: V = .zero, epsilon: Double) -> TimeInterval where V : VectorArithmetic
+Spring.smooth | static var smooth: Spring { get }
+Spring.smooth(duration:extraBounce:) | static func smooth(duration: TimeInterval = 0.5, extraBounce: Double = 0.0) -> Spring
+Spring.snappy | static var snappy: Spring { get }
+Spring.snappy(duration:extraBounce:) | static func snappy(duration: TimeInterval = 0.5, extraBounce: Double = 0.0) -> Spring
+Spring.stiffness | var stiffness: Double { get }
+Spring.update(value:velocity:target:deltaTime:) | func update<V>(value: inout V, velocity: inout V, target: V, deltaTime: TimeInterval) where V : VectorArithmetic
+Spring.value(fromValue:toValue:initialVelocity:time:) | @MainActor func value<V>(fromValue: V, toValue: V, initialVelocity: V, time: TimeInterval) -> V where V : Animatable
+Spring.value(target:initialVelocity:time:) | func value<V>(target: V, initialVelocity: V = .zero, time: TimeInterval) -> V where V : VectorArithmetic
+Spring.velocity(fromValue:toValue:initialVelocity:time:) | @MainActor func velocity<V>(fromValue: V, toValue: V, initialVelocity: V, time: TimeInterval) -> V where V : Animatable
+Spring.velocity(target:initialVelocity:time:) | func velocity<V>(target: V, initialVelocity: V = .zero, time: TimeInterval) -> V where V : VectorArithmetic
+StackGuard.hasHeadroom() | @MainActor static func hasHeadroom() -> Bool
+StackGuard.reserveBytes | static let reserveBytes: UInt
+StackGuard.truncationCount | @MainActor static var truncationCount: Int
+String.SkinToneFallbackScope | enum SkinToneFallbackScope
+String.SkinToneFallbackScope.all | case all
+String.SkinToneFallbackScope.keepingTmuxMerged | case keepingTmuxMerged
+String.ansiAwarePrefix(visibleCount:) | func ansiAwarePrefix(visibleCount: Int) -> String
+String.ansiAwarePrefix(visibleCount:knownVisibleWidth:) | func ansiAwarePrefix(visibleCount: Int, knownVisibleWidth: Int) -> String
+String.ansiAwarePrefixForTerminalApp(visibleCount:) | func ansiAwarePrefixForTerminalApp(visibleCount: Int) -> String
+String.ansiAwarePrefixForTerminalAppWithWidth(visibleCount:) | func ansiAwarePrefixForTerminalAppWithWidth(visibleCount: Int) -> (prefix: String, visibleWidth: Int)
+String.ansiAwarePrefixWithWidth(visibleCount:) | func ansiAwarePrefixWithWidth(visibleCount: Int) -> (prefix: String, visibleWidth: Int)
+String.ansiAwarePrefixWithWidth(visibleCount:knownVisibleWidth:) | func ansiAwarePrefixWithWidth(visibleCount: Int, knownVisibleWidth: Int) -> (prefix: String, visibleWidth: Int)
+String.ansiAwareSlice(visibleStart:visibleCount:) | func ansiAwareSlice(visibleStart: Int, visibleCount: Int) -> String
+String.ansiAwareSlicedRuns(runCount:width:receive:) | func ansiAwareSlicedRuns(runCount: Int, width: (Int) -> Int, receive: (Int, String) -> Void)
+String.ansiAwareSlices(runWidths:) | func ansiAwareSlices(runWidths: [Int]) -> [String]
+String.ansiAwareSuffix(droppingVisible:) | func ansiAwareSuffix(droppingVisible dropCount: Int) -> String
+String.ansiSGRContextAndCleanSuffix(from:) | func ansiSGRContextAndCleanSuffix(from visibleOffset: Int) -> String?
+String.ansiStateBefore(visibleColumn:) | func ansiStateBefore(visibleColumn column: Int) -> String
+String.collapsingAdjacentSGR(resetRestoresAField:) | func collapsingAdjacentSGR(resetRestoresAField: Bool = false) -> String
+String.containsTerminalAppCursorAdvanceQuirk | var containsTerminalAppCursorAdvanceQuirk: Bool { get }
+String.cursorAdvance(perCharacter:) | func cursorAdvance(perCharacter advance: (Character) -> Int) -> Int
+String.isCSIBodyByte(_:) | static func isCSIBodyByte(_ value: UInt32) -> Bool
+String.isCSIFinalByte(_:) | static func isCSIFinalByte(_ value: UInt32) -> Bool
+String.isStringFamilyIntroducer(_:) | static func isStringFamilyIntroducer(_ value: UInt32) -> Bool
+String.leadingANSISequences() | func leadingANSISequences() -> String
+String.leadingANSISplit() | func leadingANSISplit() -> (prefix: String, remainder: String)
+String.leavesSGROpen | var leavesSGROpen: Bool { get }
+String.padToVisibleWidth(_:) | func padToVisibleWidth(_ targetWidth: Int) -> String
+String.padToVisibleWidth(_:knownVisibleWidth:) | func padToVisibleWidth(_ targetWidth: Int, knownVisibleWidth currentWidth: Int) -> String
+String.sanitizedForTerminal | var sanitizedForTerminal: String { get }
+String.sanitizedForTerminalRow() | func sanitizedForTerminalRow() -> String
+String.stripped | var stripped: String { get }
+String.strippedLength | var strippedLength: Int { get }
+String.strippedLength(atMost:) | func strippedLength(atMost limit: Int) -> Int?
+String.withChromeOverhangCompensation() | func withChromeOverhangCompensation() -> String
+String.withCursorCompensation(for:) | func withCursorCompensation(for quirks: TerminalQuirks) -> String
+String.withGhosttyCursorCompensation() | func withGhosttyCursorCompensation() -> String
+String.withGnomeTerminalCursorCompensation() | func withGnomeTerminalCursorCompensation() -> String
+String.withITerm2CursorCompensation() | func withITerm2CursorCompensation() -> String
+String.withSkinToneFallback(scope:) | func withSkinToneFallback(scope: String.SkinToneFallbackScope = .all) -> String
+String.withTerminalAppCursorCompensation() | func withTerminalAppCursorCompensation() -> String
+String.withTmuxCursorCompensation() | func withTmuxCursorCompensation() -> String
+String.withWarpCursorCompensation() | func withWarpCursorCompensation() -> String
+String.withXtermJSCursorCompensation() | func withXtermJSCursorCompensation() -> String
+SystemZlib.compress(_:level:) | static func compress(_ bytes: [UInt8], level: Int32 = 6) -> [UInt8]?
+SystemZlib.isAvailable | static var isAvailable: Bool { get }
+TerminalHyperlink.closing | static let closing: String
+TerminalHyperlink.destination | let destination: String
+TerminalHyperlink.id | let id: String?
+TerminalHyperlink.init(destination:id:localHostName:) | init(destination: String, id: String? = nil, localHostName: String? = nil)
+TerminalHyperlink.isSupported | static var isSupported: Bool { get set }
+TerminalHyperlink.localHostName | let localHostName: String?
+TerminalHyperlink.maximumURILength | static let maximumURILength: Int
+TerminalHyperlink.opening | var opening: String? { get }
+TerminalHyperlink.withSupport(_:operation:) | @discardableResult static func withSupport<T>(_ supported: Bool, operation: () throws -> T) rethrows -> T
+TerminalInput | enum TerminalInput
+TerminalInput.focusChanged(isFocused:) | case focusChanged(isFocused: Bool)
+TerminalInput.key(_:) | case key(KeyEvent)
+TerminalInput.modifierKeys(_:) | case modifierKeys(ModifierKeyState)
+TerminalInput.mouse(_:) | case mouse(MouseEvent)
+TerminalQuirks | struct TerminalQuirks
+TerminalQuirks.Keycaps | enum Keycaps
+TerminalQuirks.Keycaps.alwaysTwoColumns | case alwaysTwoColumns
+TerminalQuirks.Keycaps.correct | case correct
+TerminalQuirks.Keycaps.init(rawValue:) | init?(rawValue: String)
+TerminalQuirks.Keycaps.underAdvances | case underAdvances
+TerminalQuirks.SkinTones | enum SkinTones
+TerminalQuirks.SkinTones.init(rawValue:) | init?(rawValue: String)
+TerminalQuirks.SkinTones.keep | case keep
+TerminalQuirks.SkinTones.keepDetached | case keepDetached
+TerminalQuirks.SkinTones.keepDetachedOnBMPBases | case keepDetachedOnBMPBases
+TerminalQuirks.SkinTones.pullBack | case pullBack
+TerminalQuirks.SkinTones.separate | case separate
+TerminalQuirks.SkinTones.stripAll | case stripAll
+TerminalQuirks.SkinTones.stripTmuxDetached | case stripTmuxDetached
+TerminalQuirks.SkinTones.stripsRedundantToneVS16 | var stripsRedundantToneVS16: Bool { get }
+TerminalQuirks.advancesTextPerCodePoint | var advancesTextPerCodePoint: Bool
+TerminalQuirks.barePictographs | var barePictographs: Bool
+TerminalQuirks.cursorAdvance(of:) | func cursorAdvance(of cluster: Character) -> Int
+TerminalQuirks.erasesUnderGlyphs | var erasesUnderGlyphs: Bool
+TerminalQuirks.flagPairs | var flagPairs: Bool
+TerminalQuirks.flagsAsCountryCodes | var flagsAsCountryCodes: Bool
+TerminalQuirks.init(from:) | init(from decoder: any Decoder) throws
+TerminalQuirks.init(vs16Pictographs:barePictographs:vs15ChromeGlyphs:loneRegionalIndicators:flagPairs:keycaps:planeSixteenPUA:preUnicode16WidthTable:zwjSequences:tagFlags:storesWideComposites:flagsAsCountryCodes:skinTones:mergesTonesOnTextBases:erasesUnderGlyphs:advancesTextPerCodePoint:) | init(vs16Pictographs: Bool = false, barePictographs: Bool = false, vs15ChromeGlyphs: Bool = false, loneRegionalIndicators: Bool = false, flagPairs: Bool = false, keycaps: TerminalQuirks.Keycaps = .correct, planeSixteenPUA: Bool = false, preUnicode16WidthTable: Bool = false, zwjSequences: Bool = false, tagFlags: Bool = false, storesWideComposites: Bool = false, flagsAsCountryCodes: Bool = false, skinTones: TerminalQuirks.SkinTones = .keep, mergesTonesOnTextBases: Bool = false, erasesUnderGlyphs: Bool = false, advancesTextPerCodePoint: Bool = false)
+TerminalQuirks.isEmpty | var isEmpty: Bool { get }
+TerminalQuirks.keycaps | var keycaps: TerminalQuirks.Keycaps
+TerminalQuirks.loneRegionalIndicators | var loneRegionalIndicators: Bool
+TerminalQuirks.mergesTonesOnTextBases | var mergesTonesOnTextBases: Bool
+TerminalQuirks.planeSixteenPUA | var planeSixteenPUA: Bool
+TerminalQuirks.preUnicode16WidthTable | var preUnicode16WidthTable: Bool
+TerminalQuirks.skinTones | var skinTones: TerminalQuirks.SkinTones
+TerminalQuirks.storesWideComposites | var storesWideComposites: Bool
+TerminalQuirks.swiftLiteral | var swiftLiteral: String { get }
+TerminalQuirks.tagFlags | var tagFlags: Bool
+TerminalQuirks.vs15ChromeGlyphs | var vs15ChromeGlyphs: Bool
+TerminalQuirks.vs16Pictographs | var vs16Pictographs: Bool
+TerminalQuirks.zwjSequences | var zwjSequences: Bool
+TerminalSymbols.closeCap | static let closeCap: Character
+TerminalSymbols.disclosureCollapsed | static let disclosureCollapsed: String
+TerminalSymbols.disclosureExpanded | static let disclosureExpanded: String
+TerminalSymbols.leftArrow | static let leftArrow: String
+TerminalSymbols.maskBullet | static let maskBullet: Character
+TerminalSymbols.openCap | static let openCap: Character
+TerminalSymbols.radioDisabledUnselected | static let radioDisabledUnselected: String
+TerminalSymbols.radioSelected | static let radioSelected: String
+TerminalSymbols.radioUnselected | static let radioUnselected: String
+TerminalSymbols.rightArrow | static let rightArrow: String
+TerminalSymbols.toneCurveStop | static let toneCurveStop: String
+TerminalWidthTraits.ChromeOverhang | enum ChromeOverhang
+TerminalWidthTraits.ChromeOverhang.contained | case contained
+TerminalWidthTraits.ChromeOverhang.init(rawValue:) | init?(rawValue: String)
+TerminalWidthTraits.ChromeOverhang.keyboardSymbols | case keyboardSymbols
+TerminalWidthTraits.ChromeOverhang.returnArrow | case returnArrow
+TerminalWidthTraits.SkinTone | enum SkinTone
+TerminalWidthTraits.SkinTone.detached | case detached
+TerminalWidthTraits.SkinTone.detachedOnBMPBases | case detachedOnBMPBases
+TerminalWidthTraits.SkinTone.init(rawValue:) | init?(rawValue: String)
+TerminalWidthTraits.SkinTone.merged | case merged
+TerminalWidthTraits.SkinTone.separated | case separated
+TerminalWidthTraits.TextClusters | enum TextClusters
+TerminalWidthTraits.TextClusters.clustered | case clustered
+TerminalWidthTraits.TextClusters.init(rawValue:) | init?(rawValue: String)
+TerminalWidthTraits.TextClusters.perCodePoint | case perCodePoint
+TerminalWidthTraits.ZWJSequences | enum ZWJSequences
+TerminalWidthTraits.ZWJSequences.composed | case composed
+TerminalWidthTraits.ZWJSequences.decomposedDroppingJoiners | case decomposedDroppingJoiners
+TerminalWidthTraits.ZWJSequences.decomposedKeepingJoiners | case decomposedKeepingJoiners
+TerminalWidthTraits.ZWJSequences.init(rawValue:) | init?(rawValue: String)
+TerminalWidthTraits.chromeOverhang | var chromeOverhang: TerminalWidthTraits.ChromeOverhang
+TerminalWidthTraits.composing | static let composing: TerminalWidthTraits
+TerminalWidthTraits.current | static var current: TerminalWidthTraits { get set }
+TerminalWidthTraits.generation | static var generation: Int { get }
+TerminalWidthTraits.init(zwjSequences:skinTone:chromeOverhang:textClusters:) | init(zwjSequences: TerminalWidthTraits.ZWJSequences = .composed, skinTone: TerminalWidthTraits.SkinTone = .merged, chromeOverhang: TerminalWidthTraits.ChromeOverhang = .contained, textClusters: TerminalWidthTraits.TextClusters = .clustered)
+TerminalWidthTraits.skinTone | var skinTone: TerminalWidthTraits.SkinTone
+TerminalWidthTraits.textClusters | var textClusters: TerminalWidthTraits.TextClusters
+TerminalWidthTraits.withTraits(_:operation:) | static func withTraits<R>(_ traits: TerminalWidthTraits, operation: () throws -> R) rethrows -> R
+TerminalWidthTraits.zwjSequences | var zwjSequences: TerminalWidthTraits.ZWJSequences
+Transaction | struct Transaction
+Transaction.$ambient | static let $ambient: TaskLocal<Transaction?>
+Transaction.==(_:_:) | static func == (lhs: Transaction, rhs: Transaction) -> Bool
+Transaction.addAnimationCompletion(criteria:_:) | @preconcurrency mutating func addAnimationCompletion(criteria: AnimationCompletionCriteria = .logicallyComplete, _ completion: @escaping @MainActor () -> Void)
+Transaction.ambient | static var ambient: Transaction? { get }
+Transaction.animation | var animation: Animation?
+Transaction.disablesAnimations | var disablesAnimations: Bool { get set }
+Transaction.effectiveAnimation | var effectiveAnimation: Animation? { get }
+Transaction.init() | init()
+Transaction.init(animation:) | init(animation: Animation?)
+Transaction.isContinuous | var isContinuous: Bool { get set }
+Transaction.scrollPositionUpdatePreservesVelocity | var scrollPositionUpdatePreservesVelocity: Bool { get set }
+Transaction.subscript(_:) | subscript<K>(key: K.Type) -> K.Value where K : TransactionKey { get set }
+Transaction.tracksVelocity | var tracksVelocity: Bool { get set }
+TransactionKey | protocol TransactionKey
+TransactionKey.Value | associatedtype Value
+TransactionKey._valuesEqual(_:_:) | static func _valuesEqual(_ lhs: Self.Value, _ rhs: Self.Value) -> Bool
+TransactionKey._valuesEqual(_:_:) | static func _valuesEqual(_ lhs: Self.Value, _ rhs: Self.Value) -> Bool
+TransactionKey._valuesEqual(_:_:) | static func _valuesEqual(_ lhs: Self.Value, _ rhs: Self.Value) -> Bool [extension where Self.Value : Equatable]
+TransactionKey.defaultValue | static var defaultValue: Self.Value { get }
+Unicode.Scalar.terminalImagePlaceholder | static let terminalImagePlaceholder: Unicode.Scalar
+UnitCurve | struct UnitCurve
+UnitCurve.circularEaseIn | static let circularEaseIn: UnitCurve
+UnitCurve.circularEaseInOut | static let circularEaseInOut: UnitCurve
+UnitCurve.circularEaseOut | static let circularEaseOut: UnitCurve
+UnitCurve.easeIn | static let easeIn: UnitCurve
+UnitCurve.easeInOut | static let easeInOut: UnitCurve
+UnitCurve.easeOut | static let easeOut: UnitCurve
+UnitCurve.inverse | var inverse: UnitCurve { get }
+UnitCurve.linear | static let linear: UnitCurve
+UnitCurve.value(at:) | func value(at progress: Double) -> Double
+UnitCurve.velocity(at:) | func velocity(at progress: Double) -> Double
+VectorArithmetic | protocol VectorArithmetic : AdditiveArithmetic
+VectorArithmetic.interpolate(towards:amount:) | mutating func interpolate(towards other: Self, amount: Double)
+VectorArithmetic.interpolated(towards:amount:) | func interpolated(towards other: Self, amount: Double) -> Self
+VectorArithmetic.magnitudeSquared | var magnitudeSquared: Double { get }
+VectorArithmetic.scale(by:) | mutating func scale(by rhs: Double)
+VectorArithmetic.scaled(by:) | func scaled(by rhs: Double) -> Self
+ViewIdentity | struct ViewIdentity
+ViewIdentity.==(_:_:) | static func == (lhs: ViewIdentity, rhs: ViewIdentity) -> Bool
+ViewIdentity.ChildStep | struct ChildStep
+ViewIdentity.ChildStep.index | let index: Int?
+ViewIdentity.ChildStep.key | let key: String?
+ViewIdentity.branch(_:) | func branch(_ label: String) -> ViewIdentity
+ViewIdentity.child(erasedType:index:) | func child(erasedType type: any Any.Type, index: Int) -> ViewIdentity
+ViewIdentity.child(erasedType:key:) | func child(erasedType type: any Any.Type, key: String) -> ViewIdentity
+ViewIdentity.child(type:) | func child<V>(type: V.Type) -> ViewIdentity
+ViewIdentity.child(type:index:) | func child<V>(type: V.Type, index: Int) -> ViewIdentity
+ViewIdentity.childStep(below:) | func childStep(below ancestor: ViewIdentity) -> ViewIdentity.ChildStep?
+ViewIdentity.depth | var depth: Int { get }
+ViewIdentity.description | var description: String { get }
+ViewIdentity.hash(into:) | func hash(into hasher: inout Hasher)
+ViewIdentity.init(path:) | init(path: String)
+ViewIdentity.init(rootType:) | init<V>(rootType type: V.Type)
+ViewIdentity.isAncestor(of:) | func isAncestor(of descendant: ViewIdentity) -> Bool
+ViewIdentity.isDirectDescent(from:) | func isDirectDescent(from ancestor: ViewIdentity) -> Bool
+ViewIdentity.isDirectDescent(fromDepth:) | func isDirectDescent(fromDepth ancestorDepth: Int) -> Bool
+ViewIdentity.isRawRooted | var isRawRooted: Bool { get }
+ViewIdentity.leafType | var leafType: (any Any.Type)? { get }
+ViewIdentity.parent | var parent: ViewIdentity? { get }
+ViewIdentity.path | var path: String { get }
+ViewIdentity.structuralHash | var structuralHash: Int { get }
+ViewSize | struct ViewSize
+ViewSize.==(_:_:) | static func == (lhs: ViewSize, rhs: ViewSize) -> Bool
+ViewSize.fixed(_:_:) | static func fixed(_ width: Int, _ height: Int) -> ViewSize
+ViewSize.flexible(minWidth:minHeight:) | static func flexible(minWidth: Int = 0, minHeight: Int = 0) -> ViewSize
+ViewSize.flexibleHeight(width:minHeight:) | static func flexibleHeight(width: Int, minHeight: Int = 0) -> ViewSize
+ViewSize.flexibleWidth(minWidth:height:) | static func flexibleWidth(minWidth: Int = 0, height: Int) -> ViewSize
+ViewSize.height | var height: Int
+ViewSize.init(width:height:isWidthFlexible:isHeightFlexible:) | init(width: Int, height: Int, isWidthFlexible: Bool = false, isHeightFlexible: Bool = false)
+ViewSize.isHeightFlexible | var isHeightFlexible: Bool
+ViewSize.isNaturalSize | var isNaturalSize: Bool { get }
+ViewSize.isWidthFlexible | var isWidthFlexible: Bool
+ViewSize.width | var width: Int
+ViewSize.zero | static let zero: ViewSize
+VolatileReadTracker.cacheUnsafeCount | var cacheUnsafeCount: Int { get }
+VolatileReadTracker.init() | init()
+VolatileReadTracker.reads | var reads: Int { get }
+VolatileReadTracker.recordRenderSideEffect() | func recordRenderSideEffect()
+VolatileReadTracker.recordReplayableEffect() | func recordReplayableEffect()
+VolatileReadTracker.recordVolatileRead() | func recordVolatileRead()
+VolatileReadTracker.replayableEffects | var replayableEffects: Int { get }
+VolatileReadTracker.sideEffects | var sideEffects: Int { get }
+VolatileReadTracker.unreplayableCount | var unreplayableCount: Int { get }
+withAnimation(_:_:) | func withAnimation<Result>(_ animation: Animation? = .default, _ body: () throws -> Result) rethrows -> Result
+withAnimation(_:completionCriteria:_:completion:isolation:) | func withAnimation<Result>(_ animation: Animation? = .default, completionCriteria: AnimationCompletionCriteria = .logicallyComplete, _ body: () throws -> Result, completion: @escaping @MainActor () -> Void, isolation: isolated (any Actor)? = #isolation) rethrows -> Result
+withTransaction(_:_:_:) | func withTransaction<R, V>(_ keyPath: WritableKeyPath<Transaction, V>, _ value: V, _ body: () throws -> R) rethrows -> R
+withTransaction(_:_:isolation:) | func withTransaction<Result>(_ transaction: Transaction, _ body: () throws -> Result, isolation: isolated (any Actor)? = #isolation) rethrows -> Result

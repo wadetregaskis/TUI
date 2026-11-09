@@ -1,0 +1,12 @@
+# TUICurveEditors public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+ChannelCurveEditorPanel | struct ChannelCurveEditorPanel
+ChannelCurveEditorPanel.body | @MainActor @ViewBuilder var body: some View { get }
+ChannelCurveEditorPanel.init(_:channels:isPresented:) | init(_ titleKey: LocalizedStringKey, channels: Binding<ASCIIToneCurve.Channels>, isPresented: Binding<Bool>)
+ChannelCurveEditorPanel.init(_:channels:isPresented:) | init<S>(_ title: S, channels: Binding<ASCIIToneCurve.Channels>, isPresented: Binding<Bool>) where S : StringProtocol
+ChannelCurveEditorPanel.init(channels:isPresented:) | init(channels: Binding<ASCIIToneCurve.Channels>, isPresented: Binding<Bool>)
+ToneCurveEditorPanel | struct ToneCurveEditorPanel
+ToneCurveEditorPanel.body | @MainActor @ViewBuilder var body: some View { get }
+ToneCurveEditorPanel.init(_:stops:isPresented:) | init(_ titleKey: LocalizedStringKey, stops: Binding<[ASCIIToneCurve.Stop]>, isPresented: Binding<Bool>)
+ToneCurveEditorPanel.init(_:stops:isPresented:) | init<S>(_ title: S, stops: Binding<[ASCIIToneCurve.Stop]>, isPresented: Binding<Bool>) where S : StringProtocol
+ToneCurveEditorPanel.init(stops:isPresented:) | init(stops: Binding<[ASCIIToneCurve.Stop]>, isPresented: Binding<Bool>)

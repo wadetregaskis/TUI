@@ -1,0 +1,9 @@
+# TUIAppKit public API (library product).
+# Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+Color.init(_:bundle:) | init(_ name: String, bundle: Bundle? = nil)
+Color.init(nsColor:) | init(nsColor: NSColor)
+Image.init(_:bundle:) | init(_ name: String, bundle: Bundle? = nil)
+Image.init(_:bundle:label:) | init(_ name: String, bundle: Bundle? = nil, label: Text)
+Image.init(decorative:bundle:) | init(decorative name: String, bundle: Bundle? = nil)
+Image.init(nsImage:) | init(nsImage: NSImage)
+NSColor.init(_:) | convenience init(_ color: Color)
