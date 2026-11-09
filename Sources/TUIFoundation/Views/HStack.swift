@@ -836,16 +836,23 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
         let guideRun = placedGuideRun(collected, minimumExtent: maxHeight, context: context)
         let finalHeight = guideRun.map { min($0.extent, max(0, context.availableHeight)) } ?? maxHeight
 
+        // A column the change put in fades in; one with a removal of its own
+        // plays it where it was (`WindowedRowFade`).
+        var fade = WindowedRowFade(context: context)
         var result = FrameBuffer()
         var placedIndex = 0
         for (buffer, spacingToApply, child) in collected {
-            guard child != nil else {
+            guard let child else {
                 result.appendHorizontally(
                     FrameBuffer(emptyWithWidth: buffer.width, height: finalHeight),
                     spacing: spacingToApply)
                 continue
             }
             defer { placedIndex += 1 }
+            let x = buffer.width > 0 && result.width > 0 ? result.width + spacingToApply : result.width
+            let buffer = fade.drawn(
+                buffer, WindowedRow(child, under: context.identity), x: x,
+                y: guideRun?.offsets[placedIndex] ?? alignment.childOffset(childHeight: buffer.height, in: maxHeight))
             let aligned =
                 guideRun.map {
                     buffer.placedVerticallyDrawingOverhang(
@@ -853,8 +860,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
                 } ?? buffer.verticallyAligned(toHeight: maxHeight, alignment: alignment)
             result.appendHorizontally(aligned, spacing: spacingToApply)
         }
-
-        return result
+        return fade.finish(drawingOver: result, isRow: WindowedRow.isAmong(children, under: context.identity))
     }
 }
 

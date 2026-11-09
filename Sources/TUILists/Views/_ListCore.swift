@@ -1330,6 +1330,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // walk already touched cost a dictionary hit here.
         var visibleRows = window.range.map { (index: $0, row: source.row(at: $0)) }
         noteDrawnRows(window.range, of: source, stateStorage: stateStorage, context: context)
+        fadeArrivingRows(visibleRows, of: source, context: context)
         // Sync the viewport to the DATA rows this window covers — BEFORE the
         // reorder decoration rewrites them. The dragged row and the drop slot
         // are drawing, not data: a row in the user's hand is still counted by
@@ -1620,6 +1621,32 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 root: context.identity, count: source.count,
                 identity: { source.content(at: $0).rowIdentity },
                 isDrawn: { drawn.contains($0) }))
+    }
+
+    /// Fades in the rows of `drawn` an animated change put in, as an eager
+    /// stack fades its children in (`WindowedRowFade`): a row the window
+    /// reaches by scrolling, or because rows above it went, was a row already
+    /// and is drawn as it is. A row is found among the rows by its key
+    /// (``RowSource/index(ofScrollKey:)``), asked only of one an animated
+    /// change may have put in. A removal is not played here: the rows are
+    /// composed as lines, past where a picture could be drawn over them.
+    private func fadeArrivingRows(
+        _ drawn: [(index: Int, row: SelectableListRow<SelectionValue>)], of source: RowSource<SelectionValue>,
+        context: RenderContext
+    ) {
+        guard var fade = WindowedRowFade(context: context) else { return }
+        for (index, row) in drawn {
+            let content = row.content
+            guard let identity = content.rowIdentity else { continue }
+            // Its key only where it is asked: a tagged row builds itself to say.
+            guard
+                let presence = fade.presence(
+                    of: WindowedRow(identity: identity, key: nil, type: nil), x: 0, y: 0,
+                    drawsSomething: content.buffer.height > 0, key: source.scrollKey(at: index))
+            else { continue }
+            content.transformRender { DefaultTransition.faded($0, by: presence) }
+        }
+        _ = fade.finish { row in row.key.map { source.index(ofScrollKey: $0) != nil } ?? false }
     }
 
     /// How many of the rows the in-flight drag came from are inside the window

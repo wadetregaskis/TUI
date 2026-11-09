@@ -112,6 +112,10 @@ package final class PlacementStore {
         /// once (`ChildFade`), so a record keeps no picture from one frame to
         /// the next.
         package var leaving: [LeavingChild] = []
+        /// What a container that windows its rows drew of them
+        /// (``WindowedRowFade``), which keeps no ``entries``: `nil` for every
+        /// other container.
+        package var window: WindowedRowRecord?
 
         /// The pass this record was last asked about.
         package var lastPass: UInt64

@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Rows fade in in lazy stacks, lists and tables.** Under `withAnimation`, a row a `ForEach`, an `if`/`else` or a
+`switch` puts into a `LazyVStack`, a `LazyHStack`, a `List` or a `Table` now fades in where it lands, as it already did
+in an eager stack, and a lazy stack's row with a `.transition` of its own plays it on the way out. A row that only
+scrolls into view, or that a removal above it brings into view, is drawn as it is.
+
 **A picture in a tab's label draws, and the image cache's `0` no longer decodes every frame.** A label of your own
 (`Tab(value:content:label:)`) holding an `Image` drew its placeholder for good: the strip draws labels as measures,
 which never started the picture's load. And with `TUI_IMAGE_CACHE_SIZE=0` a small picture laid out by a measure was

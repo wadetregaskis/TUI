@@ -1429,6 +1429,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
 
         if let drawn = renderState?.visibleRange { noteDrawnRows(drawn, stateStorage: stateStorage, context: context) }
+        if let bands = renderState?.drawnBands {
+            contentClaims += arrivingRowClaims(bands, width: innerWidth, context: context)
+        }
 
         // The header, once the rows have said which column the keyboard has
         // picked (``ItemListHandler/columnFocus``), which it draws picked out.
@@ -5202,6 +5205,34 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 root: context.identity, count: data.count,
                 identity: { rowIdentity(of: data[$0], context: context) },
                 isDrawn: { drawn.contains($0) }))
+    }
+
+    /// The claims that fade in the rows of `bands` an animated change put in,
+    /// over `width` cells of their lines, as an eager stack fades its children
+    /// in (`WindowedRowFade`): a row the window reaches by scrolling, or
+    /// because rows above it went, was a row already and is drawn as it is. A
+    /// row is found among the data by its key, asked only of one an animated
+    /// change may have put in. A removal is not played here: the rows are
+    /// composed as lines, past where a picture could be drawn over them.
+    private func arrivingRowClaims(
+        _ bands: [ItemListHandler<Value.ID>.DrawnBand], width: Int, context: RenderContext
+    ) -> [OpacityRegion] {
+        guard var fade = WindowedRowFade(context: context) else { return [] }
+        let data = data
+        var claims: [OpacityRegion] = []
+        for band in bands {
+            guard case .row(let index) = band.entry, index >= 0, index < data.count else { continue }
+            let item = data[index]
+            let row = WindowedRow(identity: rowIdentity(of: item, context: context), key: nil, type: nil)
+            guard
+                let presence = fade.presence(
+                    of: row, x: 0, y: band.yStart, drawsSomething: band.height > 0, key: identityKey(item.id))
+            else { continue }
+            claims.append(
+                OpacityRegion(offsetX: 0, offsetY: band.yStart, width: width, height: band.height, opacity: presence))
+        }
+        _ = fade.finish { row in row.key.map { key in data.contains { identityKey($0.id) == key } } ?? false }
+        return claims
     }
 
     /// The identity `item`'s row renders at, below this table's (`context`'s):

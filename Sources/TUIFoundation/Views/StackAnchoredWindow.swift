@@ -917,6 +917,10 @@ private final class AnchoredWindowFrame {
         let spanRequest = targetSpanRequest(window: window, context: context)
         var placedSpans: [TargetLayoutSpans.Span]? = spanRequest != nil ? [] : nil
         placedSpans?.reserveCapacity(sorted.count)
+        // A row the change put in fades in; one with a removal of its own
+        // plays it where it was (`WindowedRowFade`), kept in the content's
+        // coordinates, which the band's origin does not move.
+        var fade = WindowedRowFade(context: context)
         for (ordinal, y) in sorted {
             let rowHeight =
                 frame.pitch(of: ordinal)
@@ -931,7 +935,8 @@ private final class AnchoredWindowFrame {
             // viewport drawn at the viewport's was cut to its first screenful
             // and padded out with blank lines — the rest of it never drawn,
             // however far the scroll view moved over it.
-            var rendered = frame.child(at: ordinal).render(
+            let child = frame.child(at: ordinal)
+            var rendered = child.render(
                 width: width, height: rowHeight,
                 context: context.placingChild(
                     gradient: gradientFrame,
@@ -939,7 +944,10 @@ private final class AnchoredWindowFrame {
                         childWidth: frame.measuredWidth(of: ordinal) ?? width,
                         extent: width, alignment: alignment),
                     y: slotY))
-            rendered = rendered.horizontallyAligned(toWidth: width, alignment: alignment)
+            rendered = fade.drawn(
+                rendered, WindowedRow(child, under: context.identity),
+                x: Self.gradientX(childWidth: rendered.width, extent: width, alignment: alignment), y: slotY
+            ).horizontallyAligned(toWidth: width, alignment: alignment)
             result.appendVertically(Self.slot(of: rendered, extent: rowHeight, width: width), spacing: 0)
             // Rows are variable-height here, so unlike the uniform path this
             // cannot be a division — but the spans are being walked anyway. A
@@ -995,6 +1003,8 @@ private final class AnchoredWindowFrame {
             if let key = frame.children.key(at: ordinal) { memo[key] = ordinal }
         }
         state.rowOrdinalMemo = memo
+        result = fade.finish(
+            drawingOver: result, shiftedUpBy: sliceOrigin, isRow: WindowedRow.isAmong(frame.children, under: context.identity))
 
         let remaining = frame.children.count - 1 - lastPlaced
         let estimate = state.estimatedPitch(spacing: spacing)

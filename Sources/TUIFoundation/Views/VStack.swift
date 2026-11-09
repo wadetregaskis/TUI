@@ -761,7 +761,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
             }
         }
 
-        return assembleWindow(collected, context: context)
+        return assembleWindow(collected, of: children, context: context)
     }
 
     /// The saturated tail of the classic append-while-fits walk: the first
@@ -818,7 +818,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
     }
 
     @MainActor private func assembleWindow(
-        _ collected: [(buffer: FrameBuffer, spacingBefore: Int, child: ChildView?)],
+        _ collected: [(buffer: FrameBuffer, spacingBefore: Int, child: ChildView?)], of children: [ChildView],
         context: RenderContext
     ) -> FrameBuffer {
         let maxWidth = collected.map(\.buffer.width).max() ?? 0
@@ -836,14 +836,21 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         let guideRun = placedGuideRun(
             collected, fixedExtent: nil, minimumExtent: maxWidth, context: context)
 
+        // A row the change put in fades in; one with a removal of its own
+        // plays it where it was (`WindowedRowFade`).
+        var fade = WindowedRowFade(context: context)
         var result = FrameBuffer()
         var placedIndex = 0
         for (buffer, spacingToApply, child) in collected {
-            guard child != nil else {
+            guard let child else {
                 result.appendVertically(buffer, spacing: spacingToApply)
                 continue
             }
             defer { placedIndex += 1 }
+            let y = buffer.height > 0 && result.height > 0 ? result.height + spacingToApply : result.height
+            let buffer = fade.drawn(
+                buffer, WindowedRow(child, under: context.identity),
+                x: guideRun?.offsets[placedIndex] ?? Self.gradientX(childWidth: buffer.width, extent: maxWidth, alignment: alignment), y: y)
             let alignedBuffer =
                 guideRun.map {
                     buffer.placedHorizontallyDrawingOverhang(
@@ -852,8 +859,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
                 } ?? buffer.horizontallyAligned(toWidth: maxWidth, alignment: alignment)
             result.appendVertically(alignedBuffer, spacing: spacingToApply)
         }
-
-        return result
+        return fade.finish(drawingOver: result, isRow: WindowedRow.isAmong(children, under: context.identity))
     }
 
     /// A pending scrollTo against EAGER (`.clip`) content: the stack renders
@@ -1046,6 +1052,9 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         // the same coordinates.
         let gradientFrame = context.gradientContentFrame(width: width, height: walkedTotal)
 
+        // A row the change put in fades in; one with a removal of its own
+        // plays it where it was (`WindowedRowFade`).
+        var fade = WindowedRowFade(context: context)
         var result = FrameBuffer()
         for (index, slot) in slots.enumerated() {
             let slotHeight = slot.spacingBefore + slot.height
@@ -1064,7 +1073,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
             // viewport, so any row TALLER than the viewport had its tail
             // permanently blanked (scrolling to the row's later lines showed
             // empty rows the content height and scrollbar accounted for).
-            let rendered = child.render(
+            var rendered = child.render(
                 width: width, height: slot.height,
                 context: childContext.placingChild(
                     gradient: gradientFrame,
@@ -1072,6 +1081,10 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
                         ?? Self.gradientX(
                             childWidth: slot.width, extent: width, alignment: alignment),
                     y: slot.y))
+            rendered = fade.drawn(
+                rendered, WindowedRow(child, under: context.identity),
+                x: guideRun?.offsets[index] ?? Self.gradientX(childWidth: rendered.width, extent: width, alignment: alignment),
+                y: slot.y + spacingBefore)
             var slot = FrameBuffer()
             if spacingBefore > 0 {
                 slot.appendVertically(FrameBuffer(emptyWithHeight: spacingBefore), spacing: 0)
@@ -1091,7 +1104,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
             }
             result.appendVertically(slot, spacing: 0)
         }
-        return result
+        return fade.finish(drawingOver: result, isRow: WindowedRow.isAmong(children, under: context.identity))
     }
 }
 

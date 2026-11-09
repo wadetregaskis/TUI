@@ -378,6 +378,15 @@ package final class LazyListRowContent {
         }
     }
 
+    /// Has the row drawn as `transform` makes its render: a row an animated
+    /// change put in, fading in (`WindowedRowFade`). Until the render is
+    /// dropped, which a change of ``backgroundProminence`` does, so the list
+    /// asks it after the prominences are settled.
+    package func transformRender(_ transform: (FrameBuffer) -> FrameBuffer) {
+        resolveIfNeeded()
+        cached!.buffer = transform(cached!.buffer)
+    }
+
     /// The row's badge, rendering the row first if need be. `@inlinable`
     /// for TUILists, as ``buffer`` is.
     @inlinable

@@ -401,6 +401,16 @@ windows), and a row scrolled into view placed directly. About two days, and an
 A/B on `megalist`, `table` and the scroll scenarios, which are where a cost
 per row would show.
 
+**Built in part 2026-11-08** (brief PARITYC): the default fade and a row's own
+removal, not the glides. Each window path tells `WindowedRowFade` the rows it
+draws and where; its record keeps last frame's drawn rows and the data's
+membership test as it was then, so a row new to the window fades in only if it
+was not a row at all — one scrolled in, or brought in by a removal above it,
+is placed directly — and a row gone from the window plays its own removal only
+if it has left the data. The removal is drawn over the rows: they do not glide
+here, and beneath the row that has taken its room it would not show. The rows
+around still move at once. `WindowedRowFadeTests`.
+
 ### B-FB16-3. A `Grid`'s cells move at once
 
 *`Grid`, `GridRow`*
@@ -450,6 +460,13 @@ Slated to change).
 **Follow-up:** a placement record per list keyed by row id, and the row
 removal the default transition does not play yet. Priced with the list's
 row work, not here.
+
+**Built in part 2026-11-08** (brief PARITYC): the rows a `List` and a `Table`
+draw fade in under an animated change, through `WindowedRowFade` as a lazy
+stack's do — a `List`'s row's render faded before the rows are composed, a
+`Table`'s lines given the fade's claim. A row with a transition of its own
+still goes at once: the rows are composed as lines, past where its picture
+could be drawn over them.
 
 ### B-FB16-6. A view leaving is drawn beneath its siblings, as measured, not in declaration order
 

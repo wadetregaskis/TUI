@@ -538,7 +538,7 @@ final class StackWindowState {
         let sliceOrigin = window.reply != nil ? (rows.first.map { $0.ordinal * pitch } ?? 0) : 0
         var (cursor, memo) = appendUniformRows(
             rows, into: &result, from: sliceOrigin, children: children,
-            geometry: (extent, pitch, width, window.viewportHeight), rowContext: rowContext)
+            geometry: (extent, pitch, width, window.viewportHeight), rowContext: rowContext, context: context)
         if let reply = window.reply {
             reply.sliceOriginY = sliceOrigin
             reply.sliceTotalHeight = totalHeight
@@ -666,19 +666,30 @@ final class StackWindowState {
         _ rows: [UniformBandRow], into result: inout FrameBuffer,
         from sliceOrigin: Int, children: ChildViewCollection,
         geometry: (extent: Int, pitch: Int, width: Int, viewportHeight: Int),
-        rowContext: (Int, Int) -> RenderContext
+        rowContext: (Int, Int) -> RenderContext, context: RenderContext
     ) -> (cursor: Int, memo: [String: Int]) {
         var cursor = sliceOrigin
         var memo: [String: Int] = [:]
+        // A row the change put in fades in; one with a removal of its own
+        // plays it where it was (`WindowedRowFade`), kept in the content's
+        // coordinates, which the band's origin does not move.
+        var fade = WindowedRowFade(context: context)
+        defer {
+            result = fade.finish(
+                drawingOver: result, shiftedUpBy: sliceOrigin, isRow: WindowedRow.isAmong(children, under: context.identity))
+        }
         for (ordinal, child, rowWidth, _) in rows {
             let rowY = ordinal * geometry.pitch
             if rowY > cursor {
                 result.appendVertically(FrameBuffer(emptyWithHeight: rowY - cursor), spacing: 0)
             }
-            let slot = uniformRowSlot(
+            var slot = uniformRowSlot(
                 child, extent: geometry.extent, width: geometry.width,
                 viewportHeight: geometry.viewportHeight,
                 context: rowContext(ordinal, rowWidth))
+            slot = fade.drawn(
+                slot, WindowedRow(child, under: context.identity),
+                x: Self.gradientX(childWidth: rowWidth, extent: geometry.width, alignment: alignment), y: rowY)
             result.appendVertically(slot, spacing: 0)
             cursor = rowY + geometry.extent
             if let key = children.key(at: ordinal) { memo[key] = ordinal }
