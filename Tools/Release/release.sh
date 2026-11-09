@@ -18,7 +18,8 @@
 #
 #   1. Checks: `gh` signed in; on `main`, clean, and level with `origin/main`;
 #      the version a semantic version above every tag; `## Unreleased` in
-#      CHANGELOG.md not empty.
+#      CHANGELOG.md not empty, and short enough to be a GitHub release's notes.
+#      A dry run warns about the first three and the last instead of stopping.
 #   2. Films the clips (Tools/ScreenClips/regenerate.sh) into a scratch folder,
 #      unless told otherwise. That opens terminal windows: the screen must be
 #      unlocked, and the machine left alone until it is done.
@@ -51,7 +52,7 @@ while [ $# -gt 0 ]; do
         --clips) CLIPS="$2"; shift 2 ;;
         --skip-clips) SKIP_CLIPS=1; shift ;;
         --dry-run) DRY_RUN=1; shift ;;
-        -h|--help) sed -n '2,36p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,37p' "$0"; exit 0 ;;
         *) echo "unknown option: $1" >&2; exit 2 ;;
     esac
 done
@@ -59,12 +60,18 @@ done
 fail() { echo "error: $*" >&2; exit 1; }
 
 # ── 1. Checks ─────────────────────────────────────────────────────────────────
-command -v gh >/dev/null || fail "gh is not installed (brew install gh)"
-gh auth status >/dev/null 2>&1 || fail "gh is not signed in (gh auth login)"
-REPOSITORY="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
-
 # A dry run reports these and goes on, so the notes can be read from anywhere.
 check() { if [ "$DRY_RUN" = 1 ]; then echo "warning: $*" >&2; else fail "$*"; fi; }
+
+# A dry run needs no `gh`: it names the repository from `origin` instead.
+GH_READY=1
+command -v gh >/dev/null || { GH_READY=0; check "gh is not installed (brew install gh)"; }
+[ "$GH_READY" = 0 ] || gh auth status >/dev/null 2>&1 || { GH_READY=0; check "gh is not signed in (gh auth login)"; }
+if [ "$GH_READY" = 1 ]; then
+    REPOSITORY="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
+else
+    REPOSITORY="$(git remote get-url origin | sed -E 's#^(https://github\.com/|git@github\.com:)##; s#\.git$##')"
+fi
 [ "$(git rev-parse --abbrev-ref HEAD)" = main ] || check "not on main"
 [ -z "$(git status --porcelain)" ] || check "the working tree is not clean"
 git fetch --quiet origin main --tags
@@ -101,6 +108,12 @@ NOTES="$(awk '/^## Unreleased[[:space:]]*$/ {inside = 1; next} inside && /^## / 
 
 SCRATCH="$(mktemp -d "${TMPDIR:-/tmp}/release-$VERSION.XXXXXX")"
 printf '%s\n' "$NOTES" > "$SCRATCH/notes.md"
+# GitHub refuses a release body over 125,000 characters, and step 4 creates the
+# release only after pushing the tag, so a longer section would leave a pushed
+# tag with no release. Characters, not bytes: `wc -m` under a UTF-8 locale.
+NOTES_CHARACTERS="$(LC_ALL=en_US.UTF-8 wc -m < "$SCRATCH/notes.md" | tr -d ' ')"
+[ "$NOTES_CHARACTERS" -le 125000 ] \
+    || check "the notes are $NOTES_CHARACTERS characters, over GitHub's 125,000 for a release: shorten '## Unreleased'"
 DATE="$(date +%Y-%m-%d)"
 
 echo "==> $REPOSITORY $VERSION ($DATE), after ${LAST_TAG:-no release}; notes: $(wc -l < "$SCRATCH/notes.md" | tr -d ' ') lines"

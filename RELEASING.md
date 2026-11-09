@@ -27,7 +27,9 @@ framework bundles (`tuiVersion`). Nothing else in the repository carries it.
 
 Every change a user would notice goes under `## Unreleased` in
 [CHANGELOG.md](CHANGELOG.md) in the commit that makes it. That section becomes
-the release's notes word for word, so write it for someone upgrading.
+the release's notes word for word, so write it for someone upgrading. GitHub
+takes at most 125,000 characters of notes for a release, and the script stops
+before tagging when the section is longer.
 
 For the first release, also rewrite the changelog preface's last paragraph,
 which says TUI has not been released and makes no compatibility promise.
@@ -43,7 +45,8 @@ unlocked and the machine left alone for the few minutes the filming takes
 Tools/Release/release.sh --dry-run
 ```
 
-checks everything and writes out the notes without changing anything. Then:
+checks everything and writes out the notes without changing anything; it
+warns where a real run would stop, and needs no `gh` sign-in. Then:
 
 ```bash
 Tools/Release/release.sh
