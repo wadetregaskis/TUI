@@ -29,6 +29,13 @@ enum InboxVariant: String, CaseIterable {
     /// Pushed onto a `NavigationStack`, so every row is drawn under the pushed
     /// screen's dismiss action, which C cannot compare until its box lands.
     case pushed = "inbox-pushed"
+    /// Pushed five deep, the inbox on top of four more of itself: what the
+    /// covered screens, whose state the stack keeps, cost a frame. Pushed one
+    /// a step from one deep, so each covered screen was drawn, and has state
+    /// to keep, before it was covered.
+    case pushed5 = "inbox-pushed5"
+    /// Pushed ten deep, as `pushed5`.
+    case pushed10 = "inbox-pushed10"
     /// Presented in a sheet, so every row is drawn under the sheet's dismiss
     /// action, which C cannot compare until its box lands.
     case sheet = "inbox-sheet"
@@ -46,11 +53,23 @@ enum InboxVariant: String, CaseIterable {
     /// whose closed menus every walk renders for their shortcuts.
     case commands = "inbox-commands"
 
+    /// How many screens deep the inbox is pushed, or 0 where it is not.
+    var pushDepth: Int {
+        switch self {
+        case .pushed: 1
+        case .pushed5: 5
+        case .pushed10: 10
+        default: 0
+        }
+    }
+
     /// What the variant does to the inbox, for `--sessions`.
     var summary: String {
         switch self {
         case .tinted: "under a .tint the session flips"
         case .pushed: "pushed onto a NavigationStack"
+        case .pushed5: "pushed onto a NavigationStack over four more of itself"
+        case .pushed10: "pushed onto a NavigationStack over nine more of itself"
         case .sheet: "presented in a sheet"
         case .observable: "its selection bound through @Bindable"
         case .docked: "beside a live sheet docked under it, grown past its threshold and back"
@@ -64,7 +83,7 @@ enum InboxVariant: String, CaseIterable {
 @Observable
 @MainActor
 final class InboxPlacement {
-    /// What is pushed over the root: the inbox, once. A `String`, so the
+    /// What is pushed over the root: the inbox, once or more deep. A `String`, so the
     /// destination is not the list's own selection type.
     var path: [String] = []
     /// Whether the sheet holding the inbox is presented.
@@ -87,7 +106,7 @@ struct InboxVariantPage: View {
         switch variant {
         case .tinted:
             InboxPage(inbox: inbox).tint(placement.tinted ? Color.orange : Color.cyan)
-        case .pushed:
+        case .pushed, .pushed5, .pushed10:
             NavigationStack(path: Binding(get: { placement.path }, set: { placement.path = $0 })) {
                 Text(verbatim: "Inbox").navigationDestination(for: String.self) { _ in InboxPage(inbox: inbox) }
             }
@@ -147,12 +166,12 @@ final class InboxVariantSession: StressSession {
     init(config: StressConfig, variant: InboxVariant) {
         self.variant = variant
         inbox = InboxSession(config: config)
-        inbox.countsAnywhere = variant == .pushed || variant == .sheet
+        inbox.countsAnywhere = variant.pushDepth > 0 || variant == .sheet
         // The docked sheet's grabber is in the Tab cycle after the list, so
         // the search's Tab out of the field lands elsewhere: left out, as the
         // pushed screen's crumb bar leaves it out.
-        inbox.searches = variant != .pushed && variant != .docked
-        placement.path = variant == .pushed ? ["inbox"] : []
+        inbox.searches = variant.pushDepth == 0 && variant != .docked
+        placement.path = variant.pushDepth > 0 ? ["inbox 0"] : []
         placement.presented = variant == .sheet || variant == .docked
     }
 
@@ -180,7 +199,8 @@ final class InboxVariantSession: StressSession {
     var page: InboxVariantPage { InboxVariantPage(inbox: inbox.inbox, placement: placement, variant: variant) }
 
     /// `inbox`'s step; under a tint, every 23rd flips the tint as well, a
-    /// write outside any event, as a theme following the time of day is.
+    /// write outside any event, as a theme following the time of day is; a
+    /// deep push pushes one more screen on each of its first steps.
     func step(_ index: Int) -> SessionStep {
         selectionBeforeStep = inbox.inbox.selection
         if variant == .docked, let step = dockedStep(index) {
@@ -192,6 +212,12 @@ final class InboxVariantSession: StressSession {
         if variant == .tinted, index > 0, index.isMultiple(of: 23) {
             placement.tinted.toggle()
             step.action += "+tint"
+        }
+        // The deep variants push one screen a step until they are as deep as
+        // they go: the inbox again, over the one drawn on the step before.
+        if placement.path.count < variant.pushDepth, index > 0 {
+            placement.path.append("inbox \(placement.path.count)")
+            step.action += "+push"
         }
         return step
     }
