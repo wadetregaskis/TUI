@@ -4,6 +4,7 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
 import TUI
 
 // MARK: - Demo Page Enum
@@ -50,23 +51,47 @@ enum DemoPage: Int, CaseIterable {
     case files
 
     /// The page to open on, so a demo page can be inspected without navigating
-    /// to it — `Example --page emoji`.
+    /// to it: `Example --page emoji`, or `TUI_EXAMPLE_PAGE=emoji Example`.
     ///
     /// Verifying a rendering defect means looking at the page that shows it, on
     /// each terminal, and the terminals cannot always be typed into (a remote
     /// session, a screen-reading harness, an automation tier that permits
     /// clicks but not keystrokes). Landing directly on the page removes the
-    /// navigation from the test.
+    /// navigation from the test. The variable is for where there is no command
+    /// line to add a flag to: the browser demo (`Tools/Web/site/index.html`)
+    /// sets it from its start-page picker.
     static var launchPage: Self {
-        var arguments = CommandLine.arguments.dropFirst().makeIterator()
-        while let argument = arguments.next() {
-            guard argument == "--page", let name = arguments.next() else { continue }
-            // Matched by case NAME rather than raw value: the raw value is the
-            // Int the menu is ordered by, which would make the flag depend on
-            // where a page sits in the list.
-            return allCases.first { String(describing: $0) == name } ?? .menu
+        launchPage(arguments: CommandLine.arguments, environment: ProcessInfo.processInfo.environment)
+    }
+
+    /// The page `--page NAME` among `arguments` names, or else the one
+    /// `TUI_EXAMPLE_PAGE` in `environment` names; the menu when neither names
+    /// a page.
+    ///
+    /// The flag beats the variable, as Stress's flags beat its variables
+    /// (`Environment variables for developing TUI.md`). A flag naming no page
+    /// opens the menu rather than falling through to the variable: the flag is
+    /// what was typed last, so it is what was meant, and it was a mistake.
+    static func launchPage(arguments: [String], environment: [String: String]) -> Self {
+        var remaining = arguments.dropFirst().makeIterator()
+        while let argument = remaining.next() {
+            guard argument == "--page", let name = remaining.next() else { continue }
+            return named(name) ?? .menu
         }
-        return .menu
+        guard let name = environment["TUI_EXAMPLE_PAGE"] else { return .menu }
+        return named(name) ?? .menu
+    }
+
+    /// The page whose case name is `name`, in any case: `tabViews` or
+    /// `tabviews`. Nil when none is.
+    ///
+    /// Matched by case NAME rather than raw value: the raw value is the Int the
+    /// menu is ordered by, which would make a name depend on where a page sits
+    /// in the list. `Tools/Web/build.sh` reads the same names from this enum's
+    /// source for the browser demo's start-page picker.
+    static func named(_ name: String) -> Self? {
+        let wanted = name.lowercased()
+        return allCases.first { String(describing: $0).lowercased() == wanted }
     }
 }
 

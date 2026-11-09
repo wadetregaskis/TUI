@@ -17,7 +17,7 @@ enum InternalVariables {
 
     /// Read by the Example and Stress targets alone, which aren't what an app links.
     static let exampleAndStress: Set<String> = [
-        "TUI_EXAMPLE_GROUND_ALPHA", "TUI_EXAMPLE_PALETTE_ALPHA", "TUI_EXAMPLE_PICTURE",
+        "TUI_EXAMPLE_GROUND_ALPHA", "TUI_EXAMPLE_PAGE", "TUI_EXAMPLE_PALETTE_ALPHA", "TUI_EXAMPLE_PICTURE",
         "TUI_STRESS_AUTOPILOT", "TUI_STRESS_SCALE", "TUI_STRESS_SCENARIO", "TUI_STRESS_SEED",
         "TUI_STRESS_STRIPES", "TUI_STRESS_VARIANT",
     ]

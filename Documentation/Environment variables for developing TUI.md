@@ -67,6 +67,7 @@ Read only by those two executables, for clips, sweeps and measuring. `Sources/St
 
 | Variable | Values | What it does |
 |---|---|---|
+| `TUI_EXAMPLE_PAGE` | A page's case name in `DemoPage`, in any case, such as `buttons` | The page the Example opens on, as `--page` does, which beats it. A name that is no page's opens the menu. The browser demo sets it from its start-page picker. |
 | `TUI_EXAMPLE_PICTURE` | A picture's name, in any case | The picture the image page opens on, for a clip of one in particular. |
 | `TUI_EXAMPLE_PALETTE_ALPHA` | `0` to `1` | Fades the whole palette, to run the faded-palette sweep (`Tools/Smoke/faded_palette_sweep.py`). |
 | `TUI_EXAMPLE_GROUND_ALPHA` | `0` to `1` | Fades the ground alone, to show that the framework survives a ground with nothing behind it. |
