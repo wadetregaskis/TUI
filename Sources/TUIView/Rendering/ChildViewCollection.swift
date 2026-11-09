@@ -101,7 +101,8 @@ public struct ChildViewCollection {
     /// The id VALUE of the child at `ordinal` — what ``key(at:)`` is the
     /// string of — or `nil` when the provider doesn't supply one.
     ///
-    /// A key is `String(describing:)` of an id, which is a one-way trip: fine
+    /// A key is a string made from an id (`identityKey(_:)`: its description,
+    /// with its hash value where needed), which is a one-way trip: fine
     /// for MATCHING a target (that is all a seek needs), useless for REPORTING
     /// one back to a `Binding<ID?>`, which needs the value itself. Hence this
     /// parallel accessor, and hence it is optional: only a provider that

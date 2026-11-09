@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`ForEach` tells ids apart by their value, not their description.** Two distinct ids that print alike (two `Date`s
+within one second) used to share one row identity, so the second row read the first's `@State`, focus and memo. A
+row is now keyed by its id's description followed by its hash value, unless the id is a `String`, an integer, a
+`UUID`, a `Bool` or a `Character`, whose keys are unchanged; `.id(_:)` and scroll targets are keyed the same way.
+
 **A pop to the root clears `navigationDestination(isPresented:)`'s flag.** A destination written on a pushed screen
 used to keep its flag (or its `item:`) set when a breadcrumb or the app's path took the user back past that screen,
 and the next visit to it pushed the destination straight back on. The stack now sets the binding back to `false`

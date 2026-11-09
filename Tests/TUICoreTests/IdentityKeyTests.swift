@@ -31,41 +31,50 @@ struct IdentityKeyTests {
 
     /// A dynamic cast looks *through* `Optional` and `AnyHashable`, so a bare
     /// `id as? Int` would re-key every row with an optional id — `"5"` where it
-    /// used to be `"Optional(5)"`. The metatype comparison in front of each
-    /// cast is what prevents that, and this is the test that would catch its
-    /// removal.
-    @Test("optionals and AnyHashable are not unwrapped by the fast path")
-    func wrappedIdsKeepTheirDescription() {
+    /// is `"Optional(5)#…"`. The metatype comparison in front of each cast is
+    /// what prevents that, and this is the test that would catch its removal.
+    @Test("optionals are not unwrapped by the fast path")
+    func optionalIdsKeepTheirDescription() {
         let optional: Int? = 5
-        #expect(identityKey(optional) == String(describing: optional))
-        #expect(identityKey(optional) == "Optional(5)")
+        #expect(identityKey(optional).hasPrefix("Optional(5)#"))
+        #expect(identityKey(optional) != identityKey(5))
 
         let none: Int? = nil
-        #expect(identityKey(none) == String(describing: none))
+        #expect(identityKey(none).hasPrefix("nil#"))
 
         let optionalString: String? = "row"
-        #expect(identityKey(optionalString) == String(describing: optionalString))
-        #expect(identityKey(optionalString) == "Optional(\"row\")")
-
-        let erased = AnyHashable(5)
-        #expect(identityKey(erased) == String(describing: erased))
+        #expect(identityKey(optionalString).hasPrefix("Optional(\"row\")#"))
     }
 
-    @Test("types with no fast path fall through unchanged")
-    func otherTypesFallThrough() {
+    /// An `AnyHashable` id is keyed as the value it wraps, so a scroll target
+    /// (an `AnyHashable`) finds the row its value keyed.
+    @Test("AnyHashable is keyed as the value it wraps")
+    func erasedIdsKeyAsTheirValue() {
+        #expect(identityKey(AnyHashable(5)) == "5")
+        #expect(identityKey(AnyHashable("row")) == "row")
+    }
+
+    /// A type whose description names each value once is keyed by it alone;
+    /// any other by its description and its hash value.
+    @Test("one-to-one descriptions are the key; others gain the hash")
+    func otherTypes() {
         enum Kind: String { case alpha, beta }
         struct Composite: Hashable {
             let section: Int
             let row: Int
         }
 
-        #expect(identityKey(Kind.alpha) == String(describing: Kind.alpha))
-        #expect(identityKey(Composite(section: 1, row: 2))
-            == String(describing: Composite(section: 1, row: 2)))
-        #expect(identityKey(UInt8(200)) == String(describing: UInt8(200)))
-        #expect(identityKey(3.5) == String(describing: 3.5))
-        #expect(identityKey(true) == String(describing: true))
-        #expect(identityKey(Character("x")) == String(describing: Character("x")))
+        #expect(identityKey(UInt8(200)) == "200")
+        #expect(identityKey(Int64(-3)) == "-3")
+        #expect(identityKey(true) == "true")
+        #expect(identityKey(Character("x")) == "x")
+
+        #expect(identityKey(Kind.alpha).hasPrefix("alpha#"))
+        #expect(identityKey(Kind.alpha) != identityKey(Kind.beta))
+        #expect(identityKey(Composite(section: 1, row: 2)).hasPrefix("Composite(section: 1, row: 2)#"))
+        #expect(identityKey(3.5).hasPrefix("3.5#"))
+        let half = 3.5
+        #expect(identityKey(3.5) == identityKey(half), "a key is stable")
     }
 
     /// Distinct elements must land on distinct keys — the property `ForEach`

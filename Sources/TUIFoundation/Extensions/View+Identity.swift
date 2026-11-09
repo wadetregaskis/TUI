@@ -70,9 +70,9 @@ extension View {
     /// - Note: `.id()` re-keys only what sits *below* it in the modifier chain,
     ///   matching SwiftUI: put it outermost (`content.onAppear{…}.id(k)`) so the
     ///   whole subtree, including its lifecycle, resets on a key change. The
-    ///   `Hashable` id is collapsed to `String(describing:)` for the key (as
-    ///   `ForEach` does), so two distinct values with identical descriptions
-    ///   would alias one identity.
+    ///   `Hashable` id is keyed as `ForEach` keys a row: by its description,
+    ///   and its hash value where the description alone could name two
+    ///   values (two `Date`s within one second print alike).
     ///
     /// - Note: The key is also the tag
     ///   ``ScrollViewProxy/scrollTo(_:anchor:)`` seeks by, so tagging a row of
