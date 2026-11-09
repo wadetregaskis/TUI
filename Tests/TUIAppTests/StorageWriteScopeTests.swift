@@ -92,6 +92,17 @@ struct StorageWriteScopeTests {
         }
     }
 
+    /// `app` with nothing over the plain memo's line, whatever this machine's
+    /// speed. Left to its timing, a runner slow enough to see a type here take
+    /// 5 ms three times moves that type into the memo during a test, and the
+    /// counts below see that once: a kept view drawn again, the cache cleared as
+    /// the type is first seen to read (measured with the line at zero: renders
+    /// 10 for 6, clears 3 for 1, misses 55 for 23). They pin the steady state.
+    private static func pinned(_ app: TestApp) -> TestApp {
+        app.renderCache.plainMemo.heavySubtree = .seconds(100)
+        return app
+    }
+
     private static func draw(_ app: TestApp, _ frame: inout Int64) -> String {
         for _ in 0..<2 {
             frame += 100_000_000
@@ -104,7 +115,7 @@ struct StorageWriteScopeTests {
     func writeReachesItsReaders() {
         let (store, counter) = (MockStorageBackend(), Counter())
         let key = "scope.reader"
-        let app = TestApp(Page(store: store, key: key, counter: counter), width: 30, height: 10)
+        let app = Self.pinned(TestApp(Page(store: store, key: key, counter: counter), width: 30, height: 10))
         var frame: Int64 = 1_000_000_000
         let before = Self.draw(app, &frame)
         #expect(before.contains("flag false") && before.contains("□ stored"), "sanity:\n\(before)")
@@ -124,7 +135,7 @@ struct StorageWriteScopeTests {
     func storeWritesReachReaders() {
         let (store, counter) = (MockStorageBackend(), Counter())
         let key = "scope.direct"
-        let app = TestApp(Page(store: store, key: key, counter: counter), width: 30, height: 10)
+        let app = Self.pinned(TestApp(Page(store: store, key: key, counter: counter), width: 30, height: 10))
         var frame: Int64 = 1_000_000_000
         _ = Self.draw(app, &frame)
 
@@ -143,7 +154,7 @@ struct StorageWriteScopeTests {
     func storesKeepTheirOwnKeys() {
         let (store, elsewhere, counter) = (MockStorageBackend(), MockStorageBackend(), Counter())
         let key = "scope.shared-name"
-        let app = TestApp(Page(store: store, key: key, counter: counter), width: 30, height: 10)
+        let app = Self.pinned(TestApp(Page(store: store, key: key, counter: counter), width: 30, height: 10))
         var frame: Int64 = 1_000_000_000
         _ = Self.draw(app, &frame)
         let stats = app.renderCache.stats
@@ -157,8 +168,8 @@ struct StorageWriteScopeTests {
     @Test("A write in one app neither clears nor redraws another app that never read the key")
     func writeStaysInItsApp() {
         let (store, counter) = (MockStorageBackend(), Counter())
-        let bystander = TestApp(
-            Page(store: store, key: "scope.bystander", counter: counter), width: 30, height: 10)
+        let bystander = Self.pinned(TestApp(
+            Page(store: store, key: "scope.bystander", counter: counter), width: 30, height: 10))
         var frame: Int64 = 1_000_000_000
         _ = Self.draw(bystander, &frame)
         let (renders, clears) = (counter.renders, bystander.renderCache.stats.clears)
@@ -220,7 +231,7 @@ struct StorageWriteScopeTests {
     @Test("Rows that capture a stored value their parent read show the new value after a write")
     func capturedByRows() {
         let store = MockStorageBackend()
-        let app = TestApp(CompactPage(store: store), width: 30, height: 8)
+        let app = Self.pinned(TestApp(CompactPage(store: store), width: 30, height: 8))
         var frame: Int64 = 1_000_000_000
         let before = Self.draw(app, &frame)
         #expect(before.contains("alpha") && before.contains("bravo"), "sanity:\n\(before)")
