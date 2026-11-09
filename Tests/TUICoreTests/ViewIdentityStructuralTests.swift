@@ -93,6 +93,26 @@ struct ViewIdentityStructuralTests {
         #expect(ViewIdentity(path: "").child(type: TypeB.self, index: 0).path == "/\(nameB).0")
     }
 
+    private struct Wrapper<Content> {}
+
+    @Test("A generic type's arguments are a digest in the path, distinct per argument and the same every run")
+    func genericNamesAreDigested() {
+        // Not generic: the name as it is.
+        #expect(cachedTypeName(TypeB.self) == String(describing: TypeB.self))
+        let ofA = cachedTypeName(Wrapper<TypeA>.self)
+        let ofB = cachedTypeName(Wrapper<TypeB>.self)
+        #expect(ofA.hasPrefix("Wrapper<") && ofA.hasSuffix(">"))
+        #expect(ofA.utf8.count == "Wrapper<>".utf8.count + 16)
+        #expect(ofA != ofB)
+        // A name nested a hundred deep stays one digest long, where its whole
+        // name grows with every level.
+        let deep = String(repeating: "Wrapper<", count: 100) + "TypeA" + String(repeating: ">", count: 100)
+        #expect(pathName(of: deep).utf8.count == "Wrapper<>".utf8.count + 16)
+        // FNV-1a, not the per-process seeded `Hasher`: pinned, so an id made
+        // from a path names the same view in the next run.
+        #expect(pathName(of: "Wrapper<Int>") == "Wrapper<28fcbd22c3297215>")
+    }
+
     @Test("description equals path")
     func descriptionIsPath() {
         let id = ViewIdentity(rootType: TypeA.self).child(type: TypeB.self, index: 3)

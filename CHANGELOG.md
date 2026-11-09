@@ -4,6 +4,12 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**Focusable controls take far less memory.** A control's default focus id is its identity path, which
+wrote each view's type in full, and a view's type names every view nested inside it: tens of kilobytes for a control
+a few dozen views deep, kept for as long as the control is and hashed every frame. `ViewIdentity.path` now writes a
+generic type's arguments as a 16-digit digest of its whole name (`ModifiedView<9f3a…>`), the same in every run. The
+Example's peak memory over a tour of its pages fell from 82 to 69 MB, and its CPU time by nearly 4%.
+
 **A menu bar costs a frame a quarter of what it did.** Every frame of an app with commands draws each
 closed menu's items for the keyboard shortcuts they register, and throws the drawing away. Each row was measured
 first, and each `Picker` among them (the display commands' palette, border and control style pickers) resolved its

@@ -470,7 +470,9 @@ final class IdentityNode: Sendable {
 
     /// Renders the readable `"TypeA/TypeB.1/TypeC"` path. Iterative (root→leaf)
     /// so even a maximally deep chain cannot overflow the stack. A typed root
-    /// (no parent) renders its bare name; deeper typed steps prepend `/`.
+    /// (no parent) renders its bare name; deeper typed steps prepend `/`. A
+    /// generic type's arguments are written as a digest (``cachedTypeName(_:)``):
+    /// `"VStack<1c0e…>/Button<77ab…>.0"`.
     func renderPath() -> String {
         var chain: [IdentityNode] = []
         var cursor: IdentityNode? = self
@@ -540,8 +542,8 @@ final class IdentityNode: Sendable {
 
 // MARK: - Type-name memo
 
-/// Process-wide memo of `String(describing:)` for view types, keyed by the
-/// type's `ObjectIdentifier`.
+/// Process-wide memo of each view type's name in a rendered path
+/// (``cachedTypeName(_:)``), keyed by the type's `ObjectIdentifier`.
 ///
 /// Rendering a `ViewIdentity` path stringifies each segment's type name, and
 /// `String(describing:)` on a metatype demangles the runtime type name — a
@@ -572,15 +574,46 @@ final class IdentityNode: Sendable {
 /// that depend on mutable `@State` / environment, not a pure function.
 private let typeNameCache = Lock<[ObjectIdentifier: String]>(initialState: [:])
 
-/// Returns `String(describing: type)`, memoized per type (see ``typeNameCache``).
+/// `type`'s name in a rendered path, memoized per type (see ``typeNameCache``):
+/// `String(describing: type)`, with its generic arguments, if it has any,
+/// replaced by a digest of the whole name — `ModifiedView<9f3a…>`.
+///
+/// Not the whole name, because a view's type names every view nested inside
+/// it: `ModifiedView<ModifiedView<VStack<TupleView<(…)>>, …>, …>`. A path
+/// repeats that at every step, each step's type holding the types of the
+/// steps below it, so the path of a control a few dozen steps deep ran to
+/// tens of kilobytes — and a focusable control's default id is its path
+/// (`FocusRegistration.persistFocusID`), kept in its state box for as long as
+/// the control is, and hashed and compared each frame it registers. The
+/// Example's Buttons page left 5 MB of such ids behind it.
+///
+/// The digest keeps the name as distinct as the whole name was: it is FNV-1a
+/// of the whole name's UTF-8, 64 bits, the same in every run (Swift's own
+/// `Hasher` is seeded per process, and an id may outlive one). Two types
+/// whose whole names are equal were already one name in a path; two whose
+/// names differ share a digest with a chance of 2⁻⁶⁴. Identity itself never
+/// reads this: equality and hashing go by the types (``IdentityNode``).
 func cachedTypeName(_ type: Any.Type) -> String {
     let key = ObjectIdentifier(type)
     return typeNameCache.withLock { cache in
         if let cached = cache[key] { return cached }
-        let name = String(describing: type)
+        let name = pathName(of: String(describing: type))
         cache[key] = name
         return name
     }
+}
+
+/// `fullName` as ``cachedTypeName(_:)`` writes it in a path: up to its first
+/// `<`, then the whole name's digest in angle brackets; untouched if it has
+/// no `<`.
+func pathName(of fullName: String) -> String {
+    guard let open = fullName.utf8.firstIndex(of: UInt8(ascii: "<")) else { return fullName }
+    var digest: UInt64 = 0xcbf2_9ce4_8422_2325
+    for byte in fullName.utf8 {
+        digest = (digest ^ UInt64(byte)) &* 0x0000_0100_0000_01b3
+    }
+    let hex = String(digest, radix: 16)
+    return String(fullName[..<open]) + "<" + String(repeating: "0", count: 16 - hex.count) + hex + ">"
 }
 
 // MARK: - Asking "is this under any of these roots?" of many identities

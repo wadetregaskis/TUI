@@ -69,8 +69,13 @@ struct ModalPresentationAudit {
         // A focus id is built from the identity PATH, never from a label — so
         // "is this the dialog's own control" is a question about the path, and
         // anything whose path does not run through the Dialog is behind it.
+        // Except the modal's own resize and move stops (`DialogDrag+Keyboard`),
+        // which hang from the presentation, not the dialog, and follow its
+        // contents in its ring by design. Their paths named the Dialog only as
+        // a generic argument of the presentation's type, which a path now
+        // writes as a digest (`cachedTypeName`).
         return focusManager.registeredFocusIDsInActiveSection()
-            .filter { !$0.contains("Dialog<") }
+            .filter { !$0.contains("Dialog<") && !$0.hasPrefix("sheet-resize-") && !$0.hasPrefix("sheet-move-") }
     }
 
     @Test("Nothing behind the modal is reachable, wherever the modal hangs")

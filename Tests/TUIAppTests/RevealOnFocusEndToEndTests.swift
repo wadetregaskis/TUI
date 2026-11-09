@@ -207,8 +207,10 @@ struct RevealOnFocusEndToEndTests {
             Issue.record("no keyed inner row registered; ring: \(ring)")
             return
         }
+        // The key in its brackets only: a path's generic types are hex
+        // digests, which hold the key's digits as often as not.
         let target = innerID.replacingOccurrences(
-            of: innerID.slice(betweenFirst: "[", and: "]") ?? "?", with: "42")
+            of: "[" + (innerID.slice(betweenFirst: "[", and: "]") ?? "?") + "]", with: "[42]")
 
         focusManager.focus(id: target)
         var lines = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
