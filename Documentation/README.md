@@ -29,7 +29,7 @@ how something came to be, and the decisions behind it, is in [Historical](<Histo
 |---|---|
 | [Colour and styling](<Colour and styling/>) | Styling and theming, opacity as composition, gradients, out-of-band styling, the colour-only cues audit. |
 | [Controls and presentation](<Controls and presentation/>) | Notifications, tooltips and help, unifying the menu implementations. |
-| [Images and terminal graphics](<Images and terminal graphics/>) | The terminal graphics protocols, image palette mapping, compressed image transfer. |
+| [Images and terminal graphics](<Images and terminal graphics/>) | The terminal graphics protocols, image palette mapping, compressed image transfer, pictures kept at their drawn size. |
 | [Input and focus](<Input and focus/>) | Focus indication, geometric arrow focus, the cursor following focus, keyboard drag and drop, keyboard screen selection, the input-reader loop, the find pasteboard. |
 | [Layout and scrolling](<Layout and scrolling/>) | The layout constraint system, scroll anchoring, resizable views, locating things without drawing them, `List` and `Table` on `ScrollView`. |
 | [Performance](<Performance/>) | Profiles and passes, what makes a page slow, output diffing and scroll regions, optimisations that did not pay, benchmark coverage. |
