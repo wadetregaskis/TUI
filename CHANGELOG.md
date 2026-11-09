@@ -4,6 +4,12 @@ TUI has no tagged releases yet and is pre-1.0. Public API can change in any comm
 
 ## Unreleased
 
+**A menu bar costs a frame a quarter of what it did.** Every frame of an app with commands draws each
+closed menu's items for the keyboard shortcuts they register, and throws the drawing away. Each row was measured
+first, and each `Picker` among them (the display commands' palette, border and control style pickers) resolved its
+options and drew every label, though a picker registers no shortcut. Neither happens now: a frame of an inbox under a
+menu bar costs 30% less, and the menu bar's share of it fell from 35% to 12%.
+
 **Documentation for readers who have never used SwiftUI.** The "New to SwiftUI" article explains views as values,
 `body`, `some View`, view builders, modifiers and their order, `@State`, bindings, `@Observable`, the environment,
 identity, focus and keys, each with an example to run. Getting Started, Building Your First App and the landing page

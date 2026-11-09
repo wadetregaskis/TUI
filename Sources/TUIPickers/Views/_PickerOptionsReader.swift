@@ -39,13 +39,25 @@ struct _PickerOptionsReader<SelectionValue: Hashable, Content: View, Built: View
     var body: Never { fatalError("_PickerOptionsReader renders via Renderable") }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(
+        if context.environment.rendersForRegistrationsOnly { return .fixed(0, 0) }
+        return measureChild(
             build(entries(in: context), context.environment.isInPopUpMenu), proposal: proposal,
             context: builtScope(context))
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIView.renderToBuffer(
+        // In a render for the keyboard shortcuts it registers alone — a menu
+        // bar's closed menu, every walk, or a closed submenu's items — a picker
+        // has none to register: it is neither a `Button` nor a `Toggle`, the
+        // only controls that claim one (`KeyboardShortcutRegistrar`), and
+        // outside a pop-up column (which such a render never is) it draws its
+        // options as labels, not as rows. Everything else it registers goes
+        // to that render's throwaway channels. So it draws nothing there,
+        // rather than resolving its options and drawing every label: the
+        // display commands' pickers were 13% of a frame of an app with a
+        // menu bar.
+        if context.environment.rendersForRegistrationsOnly { return FrameBuffer() }
+        return TUIView.renderToBuffer(
             build(entries(in: context), context.environment.isInPopUpMenu), context: builtScope(context))
     }
 
