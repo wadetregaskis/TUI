@@ -81,6 +81,12 @@ public struct TableColumn<RowValue: Identifiable, Sort: SortComparator, Content:
     /// on macOS 15.8, lane TEXTFMT). ``title`` is their reading when built.
     var liveTitle: LiveWords?
 
+    /// The header's key drawn as a `Text` of it draws, where its Markdown
+    /// styles some of it (`**Name** *x*`), and `nil` otherwise: the header then
+    /// draws those styles over its own, as SwiftUI's does (decisions
+    /// B-PARITYMISC-3). ``title`` is its words.
+    var styledTitle: Text?
+
     /// How this column is sized.
     var width: _TableColumnWidth = .flexible
 
@@ -182,7 +188,7 @@ extension TableColumn {
             title: title, alignment: .leading, width: width,
             truncationMode: truncationMode, lineLimit: lineLimit, lineLimitIsStated: lineLimitIsStated,
             cell: cell, namesAProperty: namesAProperty,
-            sortComparator: sortComparator, liveTitle: liveTitle)
+            sortComparator: sortComparator, liveTitle: liveTitle, styledTitle: styledTitle)
     }
 }
 
@@ -239,10 +245,12 @@ extension TableColumn where Sort == Never, Label == Text {
     ///   - titleKey: The column's localized title key.
     ///   - content: The view content to display for each row in a table.
     public init(_ titleKey: LocalizedStringKey, @ViewBuilder content: @escaping (RowValue) -> Content) {
+        let resolved = titleKey.resolvedTitle
         self.init(
-            title: titleKey.titleWords, cell: .content(content), namesAProperty: false,
+            title: resolved.plain, cell: .content(content), namesAProperty: false,
             sortComparator: nil)
         liveTitle = titleKey.liveWords
+        styledTitle = resolved.styled
     }
 
     /// Creates an unsortable column with a title, displayed as written.
@@ -280,8 +288,10 @@ extension TableColumn where Sort == Never, Label == Text {
     ///   - titleKey: The column's localized title key.
     ///   - value: The path to the property associated with the column.
     public init(_ titleKey: LocalizedStringKey, value: KeyPath<RowValue, String>) where Content == Text {
-        self.init(titleKey.titleWords, value: value)
+        let resolved = titleKey.resolvedTitle
+        self.init(resolved.plain, value: value)
         liveTitle = titleKey.liveWords
+        styledTitle = resolved.styled
     }
 
     /// Creates an unsortable column that displays a string property, with a
@@ -323,8 +333,10 @@ extension TableColumn where RowValue == Sort.Compared, Label == Text {
         _ titleKey: LocalizedStringKey, sortUsing comparator: Sort,
         @ViewBuilder content: @escaping (RowValue) -> Content
     ) {
-        self.init(titleKey.titleWords, sortUsing: comparator, content: content)
+        let resolved = titleKey.resolvedTitle
+        self.init(resolved.plain, sortUsing: comparator, content: content)
         liveTitle = titleKey.liveWords
+        styledTitle = resolved.styled
     }
 
     /// Creates a sortable column that sorts with `comparator`, with a title
@@ -407,8 +419,10 @@ extension TableColumn where Sort == KeyPathComparator<RowValue>, Label == Text {
         _ titleKey: LocalizedStringKey, value: KeyPath<RowValue, String>,
         comparator: String.StandardComparator = .tableColumnDefault
     ) where Content == Text {
-        self.init(titleKey.titleWords, value: value, comparator: comparator)
+        let resolved = titleKey.resolvedTitle
+        self.init(resolved.plain, value: value, comparator: comparator)
         liveTitle = titleKey.liveWords
+        styledTitle = resolved.styled
     }
 
     /// Creates a sortable column that displays a string property, with a
@@ -455,8 +469,10 @@ extension TableColumn where Sort == KeyPathComparator<RowValue>, Label == Text {
         _ titleKey: LocalizedStringKey, value: KeyPath<RowValue, V>, comparator: C,
         @ViewBuilder content: @escaping (RowValue) -> Content
     ) where V == C.Compared {
-        self.init(titleKey.titleWords, value: value, comparator: comparator, content: content)
+        let resolved = titleKey.resolvedTitle
+        self.init(resolved.plain, value: value, comparator: comparator, content: content)
         liveTitle = titleKey.liveWords
+        styledTitle = resolved.styled
     }
 
     /// Creates a sortable column that sorts by one property with a given
@@ -512,8 +528,10 @@ extension TableColumn where Sort == KeyPathComparator<RowValue>, Label == Text {
         _ titleKey: LocalizedStringKey, value: KeyPath<RowValue, V>,
         @ViewBuilder content: @escaping (RowValue) -> Content
     ) {
-        self.init(titleKey.titleWords, value: value, content: content)
+        let resolved = titleKey.resolvedTitle
+        self.init(resolved.plain, value: value, content: content)
         liveTitle = titleKey.liveWords
+        styledTitle = resolved.styled
     }
 
     /// Creates a sortable column that sorts by a `Comparable` property, with a

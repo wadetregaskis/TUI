@@ -41,7 +41,7 @@ extension Tab where Label == DefaultTabLabel {
     ) {
         self.init(
             value: value, role: role,
-            label: DefaultTabLabel(title: titleKey.titleWords, systemImage: nil, image: Image(image)),
+            label: DefaultTabLabel(titleKey: titleKey, systemImage: nil, image: Image(image)),
             content: content())
     }
 
@@ -73,7 +73,7 @@ extension Tab where Label == DefaultTabLabel {
     ) where Value == T? {
         self.init(
             value: value, role: role,
-            label: DefaultTabLabel(title: titleKey.titleWords, systemImage: nil, image: Image(image)),
+            label: DefaultTabLabel(titleKey: titleKey, systemImage: nil, image: Image(image)),
             content: content())
     }
 
@@ -110,7 +110,7 @@ extension Tab where Value == Never, Label == DefaultTabLabel {
     ) {
         self.init(
             value: nil, role: role,
-            label: DefaultTabLabel(title: titleKey.titleWords, systemImage: nil, image: Image(image)),
+            label: DefaultTabLabel(titleKey: titleKey, systemImage: nil, image: Image(image)),
             content: content())
     }
 

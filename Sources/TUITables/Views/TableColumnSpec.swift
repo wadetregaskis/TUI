@@ -137,6 +137,10 @@ struct _TableColumnSpec<Value> {
     /// them keeps no `.fit` width from one frame to the next.
     var liveTitle: LiveWords?
 
+    /// The header's key drawn with its Markdown's styles
+    /// (``TableColumn/styledTitle``), or `nil`.
+    var styledTitle: Text?
+
     /// Whether this column's cells arrive already laid out — a view's lines
     /// rather than a string for the table to wrap.
     ///

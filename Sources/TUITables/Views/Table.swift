@@ -1081,7 +1081,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             availableWidth: columnsWidth, spacing: columnSpacing, gutter: gutter,
             context: context)
         var headerLine = renderHeader(
-            columnWidths: columnWidths, gutter: gutter, palette: palette
+            columnWidths: columnWidths, gutter: gutter, palette: palette, context: context
         ).text
         if wantsScrollbar {
             headerLine += String(
@@ -1229,7 +1229,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // analytic does, so border/padding semantics stay the render path's
         // rather than being duplicated as arithmetic here.
         var headerLine = renderHeader(
-            columnWidths: columnWidths, gutter: gutter, palette: palette
+            columnWidths: columnWidths, gutter: gutter, palette: palette, context: context
         ).text
         if wantsScrollbar {
             headerLine += String(
@@ -1436,7 +1436,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // The header, once the rows have said which column the keyboard has
         // picked (``ItemListHandler/columnFocus``), which it draws picked out.
         let header = renderHeader(
-            columnWidths: columnWidths, gutter: gutter, palette: palette, picking: renderState?.handler, emphasised: surface != nil)
+            columnWidths: columnWidths, gutter: gutter, palette: palette, context: context, picking: renderState?.handler,
+            emphasised: surface != nil)
         var headerLine = header.text
         if wantsScrollbar {
             // Pad the header to the full inner width so it aligns with the rows
@@ -5544,7 +5545,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     ///   than the secondary — under `.tableStyle(.surface)`, whose header is a
     ///   step stronger.
     private func renderHeader(
-        columnWidths: [Int], gutter: Int, palette: any Palette,
+        columnWidths: [Int], gutter: Int, palette: any Palette, context: RenderContext,
         picking handler: ItemListHandler<Value.ID>? = nil, emphasised: Bool = false
     ) -> ClaimingRow {
         let ink = emphasised ? palette.foreground : palette.foregroundSecondary
@@ -5561,6 +5562,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             if offset > 0 { row.skip(cells: columnSpacing) }
             let column = columns[index]
             let width = columnWidths[offset]
+            if offset != pickedColumn, let styled = styledHeaderCell(column, width: width, ink: ink, context: context) {
+                row.append(contentsOf: styled)
+                continue
+            }
             let aligned = alignText(
                 headerTitle(for: column, fittingWidth: width),
                 width: width,
@@ -5585,6 +5590,35 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             }
         }
         return row
+    }
+
+    /// The header cell of a column whose title key's Markdown styles some of
+    /// it (``_TableColumnSpec/styledTitle``): the key drawn as a `Text` of it
+    /// draws, in the header's `ink` and bold as every title is, with the sort
+    /// indicator after it and placed by the column's alignment in `width`
+    /// cells — or `nil` where it has no styles, where it does not fit whole,
+    /// which the words then draw cut, and where words are spelled in ASCII,
+    /// which the words already are.
+    private func styledHeaderCell(
+        _ column: _TableColumnSpec<Value>, width: Int, ink: Color, context: RenderContext
+    ) -> ClaimingRow? {
+        guard let styled = column.styledTitle, !context.textSpelling.isASCII else { return nil }
+        let drawn = TUIView.renderToBuffer(styled.bold().foregroundStyle(ink), context: context)
+        let suffix = sortModel != nil && column.sortComparator != nil ? " " + sortIndicator(for: column) : ""
+        let used = drawn.width + suffix.strippedLength
+        guard drawn.height == 1, let line = drawn.lines.first, used <= width else { return nil }
+        let lead = column.alignment.childOffset(childWidth: used, in: width)
+        var cell = ClaimingRow()
+        cell.skip(cells: lead)
+        cell.appendFinished(line, cells: drawn.width)
+        cell.claims += drawn.opacityRegions.map {
+            var region = $0
+            region.offsetX += lead
+            return region
+        }
+        if !suffix.isEmpty { cell.append(suffix, cells: suffix.strippedLength, ink: ink, bold: true) }
+        cell.skip(cells: width - used - lead)
+        return cell
     }
 
     /// A column's header text, with the sort indicator when the table sorts.

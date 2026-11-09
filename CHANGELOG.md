@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A column header and a tab title draw their Markdown styles.** `TableColumn("**Name** *x*", value: \.name)` draws its
+italic, as `Text` does, where it used to draw only the words; so does `Tab("*Inbox*", value: 1) { … }`. A tab with a
+symbol or a picture still draws its words plain, and a header too narrow for its whole title cuts the plain words.
+
 **Disappear, appear and scale symbol effects show.** `.symbolEffect(.disappear, isActive:)` now fades the symbol out
 as it becomes active, and in as it stops, rather than blanking it at once; `.appear` fades it in as it becomes active;
 `.scale` blinks it as it starts and stops, a glyph not being something a terminal can draw larger. macOS only, as the

@@ -410,3 +410,15 @@ today), and the strip and the sidebar drawing a tab's title as a `Text`. A
 header is already bold, so only italic, strikethrough and a code span would
 show. About half a day each, and an A/B, since both are drawn every frame
 (B87's own change cost `app-shapes` +2.3%).
+
+**Built 2026-11-08** (brief PARITYC). A column keeps its key drawn as a `Text`
+(`TableColumn.styledTitle`, from the one lookup `resolvedTitle` makes), and the
+header row draws it as that `Text` draws, in the header's ink and bold, the
+sort indicator after it, where it fits whole; one that does not draws its words
+cut, as before, and so does the picked column and a header spelled in ASCII. A
+tab with no icon hands its styled title to the strip as a label of the app's
+own, which the strip and the sidebar draw as a view in the chip; a tab with a
+symbol or a picture keeps its words plain. A key with no styles costs nothing
+more: no `Text` is kept, and the header asks one optional per cell.
+`MarkdownTitleTests.titleStylesDrawn`. `LocalizedStringKey.titleWords` went
+with its last caller.

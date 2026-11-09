@@ -83,6 +83,9 @@ extension Tab: _TabContentPrimitive {
         case let label as DefaultTabLabel:
             title = label.stripTitle(role: role)
             icon = label.image
+            // A title its key's Markdown styles is drawn as a label of the
+            // app's own is, a view in the chip, so its styles show.
+            customLabel = label.stripLabel.map { AnyView($0) }
         case is EmptyView: title = ""
         default:
             title = ""
@@ -117,7 +120,7 @@ extension Tab where Label == DefaultTabLabel {
     ) {
         self.init(
             value: value, role: role,
-            label: DefaultTabLabel(title: titleKey.titleWords, systemImage: systemImage),
+            label: DefaultTabLabel(titleKey: titleKey, systemImage: systemImage),
             content: content())
     }
 
@@ -157,7 +160,7 @@ extension Tab where Label == DefaultTabLabel {
         @ViewBuilder content: () -> Content
     ) {
         self.init(
-            value: value, role: role, label: DefaultTabLabel(title: titleKey.titleWords, systemImage: nil),
+            value: value, role: role, label: DefaultTabLabel(titleKey: titleKey, systemImage: nil),
             content: content())
     }
 
@@ -211,7 +214,7 @@ extension Tab where Value == Never, Label == DefaultTabLabel {
     ) {
         self.init(
             value: nil, role: role,
-            label: DefaultTabLabel(title: titleKey.titleWords, systemImage: systemImage),
+            label: DefaultTabLabel(titleKey: titleKey, systemImage: systemImage),
             content: content())
     }
 
@@ -319,7 +322,7 @@ extension Tab where Label == DefaultTabLabel {
     ) where Value == T? {
         self.init(
             value: value, role: role,
-            label: DefaultTabLabel(title: titleKey.titleWords, systemImage: systemImage),
+            label: DefaultTabLabel(titleKey: titleKey, systemImage: systemImage),
             content: content())
     }
 
@@ -344,7 +347,7 @@ extension Tab where Label == DefaultTabLabel {
     ) where Value == T? {
         self.init(
             value: value, role: role,
-            label: DefaultTabLabel(title: titleKey.titleWords, systemImage: nil), content: content())
+            label: DefaultTabLabel(titleKey: titleKey, systemImage: nil), content: content())
     }
 
     /// Creates a tab with a title shown as written, selected by `value` in a
@@ -398,12 +401,33 @@ nonisolated public struct DefaultTabLabel: View {
     let systemImage: String?
     /// The picture an `image:` initialiser named, or `nil`.
     let image: Image?
+    /// The title key drawn as a `Text` of it draws, where its Markdown styles
+    /// some of it (`**Bold** tab`), and `nil` otherwise. Drawn with its styles
+    /// where the tab has no icon (``stripLabel``), as SwiftUI's is; ``title``
+    /// is its words.
+    let styledTitle: Text?
 
     /// `package` for the `image:` initialisers, which TUITabImages declares.
-    package init(title: String?, systemImage: String?, image: Image? = nil) {
+    package init(title: String?, systemImage: String?, image: Image? = nil, styledTitle: Text? = nil) {
         self.title = title
         self.systemImage = systemImage
         self.image = image
+        self.styledTitle = styledTitle
+    }
+
+    /// The label of a title key: its words, and the key drawn with its
+    /// Markdown's styles where they style any of it.
+    package init(titleKey: LocalizedStringKey, systemImage: String?, image: Image? = nil) {
+        let resolved = titleKey.resolvedTitle
+        self.init(title: resolved.plain, systemImage: systemImage, image: image, styledTitle: resolved.styled)
+    }
+
+    /// What the strip draws as this label where it draws a view rather than
+    /// its words: the styled title, for a tab with no icon — `nil` for every
+    /// other, whose words the strip draws itself (``stripTitle(role:)``).
+    var stripLabel: Text? {
+        guard systemImage == nil, image == nil else { return nil }
+        return styledTitle
     }
 
     @MainActor public var body: some View {
@@ -411,6 +435,8 @@ nonisolated public struct DefaultTabLabel: View {
             TUIFoundation.Label { Text(verbatim: title) } icon: { Self.icon(image) }
         } else if let systemImage, let title {
             TUIFoundation.Label(title, systemImage: systemImage)
+        } else if let stripLabel {
+            stripLabel
         } else {
             Text(verbatim: title ?? "")
         }

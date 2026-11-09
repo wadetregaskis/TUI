@@ -160,12 +160,11 @@ struct MarkdownTitleTests {
         let name = "cell"
     }
 
-    @Test("A field's title, a column's header and a tab's title draw their words, unstyled")
+    @Test("A field's title, a column's header and a tab's title draw their words")
     func titlesDrawnAsStrings() {
         // Measured on macOS 15 (2026-10-18): SwiftUI parses all three. A
         // field's title is its placeholder, drawn as plain words; a header
-        // and a tab draw the words here in their own style (decisions
-        // B-PARITYMISC-3).
+        // and a tab draw their key's styles too (`titleStylesDrawn`).
         let text = Box("")
         expectParsed(
             TextField("Go **bold** now", text: text.binding), TextField(Self.computed, text: text.binding),
@@ -182,6 +181,29 @@ struct MarkdownTitleTests {
         expectParsed(
             TabView { Tab("Go **bold** now", systemImage: "star") { Text("x") } },
             TabView { Tab(Self.computed, systemImage: "star") { Text("x") } }, "Tab")
+    }
+
+    /// A header is bold already, so its key's italic is what tells its
+    /// styles drawn: SGR 3, alone or among other parameters.
+    @Test("A column's header and a tab's title draw their key's styles, as a Text of it does")
+    func titleStylesDrawn() {
+        let italic = /\u{1B}\[(?:[0-9;]*;)?3(?:;[0-9;]*)?m/
+        let computed = "Go " + "*slanted* now"
+        let header = rendered(Table([Row()]) { TableColumn("Go *slanted* now", value: \.name) }, stripped: false)
+        let plainHeader = rendered(Table([Row()]) { TableColumn(computed, value: \.name) }, stripped: false)
+        #expect(header.contains(italic), "\(header)")
+        #expect(!plainHeader.contains(italic), "\(plainHeader)")
+        #expect(rendered(Table([Row()]) { TableColumn("Go *slanted* now", value: \.name) }).contains("Go slanted now"))
+        let selection = Box(1)
+        let tab = rendered(
+            TabView(selection: selection.binding) { Tab("Go *slanted* now", value: 1) { Text("x") } }, stripped: false)
+        let plainTab = rendered(
+            TabView(selection: selection.binding) { Tab(computed, value: 1) { Text("x") } }, stripped: false)
+        #expect(tab.contains(italic), "\(tab)")
+        #expect(!plainTab.contains(italic), "\(plainTab)")
+        #expect(
+            rendered(TabView(selection: selection.binding) { Tab("Go *slanted* now", value: 1) { Text("x") } })
+                .contains("Go slanted now"))
     }
 
     /// Somewhere for a `Binding` to point, as in `LocalizedTitleTests`.
