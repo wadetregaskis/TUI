@@ -22,8 +22,12 @@ name: Pages
 # custom domain, needs no edit.
 
 on:
+  # `main` moves by `promote.yml`, which calls this once it has: a push a
+  # workflow makes starts no workflow of its own. This trigger is for a push to
+  # `main` made by hand, which only an admin bypassing its ruleset can make.
   push:
     branches: [main]
+  workflow_call:
   # A version's release brings its clips (media/<version>/, and media/latest/);
   # Tools/Release/release.sh publishes the release once its assets are up.
   release:

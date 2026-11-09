@@ -65,9 +65,13 @@ name: CI
 # the CI check pending until it runs. When a GA label appears (`macos-27`
 # would match macos-15/macos-26), point the lane at it.
 
+# Pushes go to `staging`, never to `main`: `promote.yml` moves `main` to each
+# commit whose run here passes, so `main` only ever holds tested commits, and a
+# push is tested before anyone else sees it (owner, 2026-11-09). A push the
+# workflow makes starts no workflow, so `main` is never tested twice.
 on:
   push:
-    branches: [main]
+    branches: [staging]
     tags: ["v*"]
   pull_request:
     branches: [main]
@@ -79,8 +83,14 @@ on:
 permissions:
   contents: read
 
+# Every push is tested, none cancelled: a push's run decides whether `main`
+# moves to that commit, so a later push that fails must not take an earlier,
+# passing one with it (owner, 2026-11-09). A group per ref would not do even
+# without cancel-in-progress: GitHub keeps one run going and one waiting per
+# group, and cancels the waiting one when a third arrives. So a push's group is
+# its commit. A pull request's is still its ref, its older runs cancelled.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name == 'push' && github.sha || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:

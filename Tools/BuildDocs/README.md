@@ -14,7 +14,7 @@ Tools/BuildDocs/build-docs.sh --static-hosting \
 ```
 
 The published copy is the `docs/` section of the GitHub Pages site, built by
-`.github/workflows/pages.yml` on every push to `main`; `Tools/Site/README.md`
+`.github/workflows/pages.yml` whenever `main` moves; `Tools/Site/README.md`
 says how. `--hosting-base-path` is the URL path the tree is served under:
 DocC compiles it into every page, so a tree built for one path is broken at
 any other.

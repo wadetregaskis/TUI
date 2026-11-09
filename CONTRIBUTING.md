@@ -101,10 +101,11 @@ workflow).
 
 `CI` is a job that runs after everything else and fails if any non-advisory
 job did not succeed. **It is the only check that should be marked as a
-required status check in the repository's branch-protection settings**
-(Settings → Branches → branch protection rule for `main` → "Require status
-checks to pass before merging"). A required check is one GitHub refuses to
-merge a PR without.
+required status check in the ruleset on `main`** (Settings → Rules →
+Rulesets → "Require status checks to pass"). A required check is one GitHub
+refuses to merge a PR without, and, for a direct push, one the commit must
+already have passed on another branch, which is what keeps `main` to tested
+commits (see [Staging and `main`](#staging-and-main)).
 
 Requiring it rather than the individual jobs matters for two reasons:
 
@@ -116,10 +117,42 @@ Requiring it rather than the individual jobs matters for two reasons:
   would look mergeable having built nothing. The gate treats `skipped` as a
   failure, so that cannot happen.
 
+### Staging and `main`
+
+Pushes go to `staging`, not to `main`:
+
+```bash
+git push origin main:staging
+```
+
+CI runs on every push to `staging`, each push in a run of its own and none
+cancelled. When a run passes, `.github/workflows/promote.yml` fast-forwards
+`main` to that run's commit and redeploys the site. So `main` only ever holds
+commits that passed CI, each the very commit that was tested, and a failing
+push costs a CI run rather than a red `main` (owner, 2026-11-09).
+
+- **A later push that fails doesn't hold back an earlier one that passes.**
+  Runs can finish in any order; `main` moves forward to whichever passing
+  commit is newest, and a run whose commit `main` already contains changes
+  nothing.
+- **Re-running a flaky job** and getting a pass promotes the commit then.
+- **Staging must descend from `main`.** If `staging` is rewritten, or `main`
+  moved some other way, the promotion fails and says so: rebase onto `main`
+  and push again.
+- **CI does not run on `main`**: a push that a workflow makes starts no
+  workflow, and the commit has already passed. The weekly schedule still runs
+  on `main`, as the default branch.
+- **The ruleset on `main`** requires the `CI` check, so a push straight to
+  `main` is refused unless it is a commit that already passed, which is what
+  the promotion pushes. An admin can bypass it in an emergency.
+
+`git config remote.origin.push refs/heads/main:refs/heads/staging` makes a
+plain `git push` do this. Releases go the same way (RELEASING.md).
+
 ### The project site
 
 A second workflow, `.github/workflows/pages.yml`, publishes the GitHub Pages
-site on every push to `main`: a landing page, the DocC reference (built as the
+site whenever `main` moves (`promote.yml` calls it): a landing page, the DocC reference (built as the
 `docs` job builds it), the Example app in WebAssembly (built on the `wasm`
 job's toolchain and SDK), and the assets of the `media` release, which hold
 the README's pictures. It deploys an Actions artifact rather than committing

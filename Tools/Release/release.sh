@@ -30,7 +30,9 @@
 #   3. Writes Sources/TUIStrings/VERSION, turns `## Unreleased` into
 #      `## X.Y.Z — <date>` under a fresh empty `## Unreleased`, commits
 #      "Release X.Y.Z", and tags it `vX.Y.Z` (annotated).
-#   4. Asks, then pushes `main` and the tag, creates the release as a draft
+#   4. Asks, then pushes the release commit to `staging` (`main` follows
+#      once CI passes it, by .github/workflows/promote.yml) and the tag,
+#      creates the release as a draft
 #      with that section of the changelog as its notes, uploads the clips, and
 #      publishes it. Publishing runs the Pages workflow, which serves the clips
 #      at media/X.Y.Z/ and media/latest/ (Tools/Site/README.md).
@@ -169,13 +171,17 @@ git tag --annotate "v$VERSION" --file "$SCRATCH/notes.md" --cleanup=verbatim
 echo "==> Committed and tagged v$VERSION locally"
 
 # ── 4. Push, release, publish ─────────────────────────────────────────────────
-printf 'Push main and v%s to origin and publish the release on %s? [y/N] ' "$VERSION" "$REPOSITORY"
+printf 'Push the release to staging, and v%s, and publish the release on %s? [y/N] ' "$VERSION" "$REPOSITORY"
 read -r ANSWER
 case "$ANSWER" in
     y|Y|yes) ;;
     *) echo "Stopped. Undo with: git reset --hard origin/main && git tag -d v$VERSION"; exit 1 ;;
 esac
-git push origin main "v$VERSION"
+# To `staging`, as every push is: `main` only takes a commit that CI has
+# passed, and promote.yml moves it there when this one has. The commit is cut
+# from a `main` that passed (the check above), and adds the version and the
+# changelog's heading, so the release does not wait the hour CI takes.
+git push origin "main:staging" "v$VERSION"
 # A draft first, so the release is published — and the site rebuilt — only
 # once its clips are attached.
 gh release create "v$VERSION" --repo "$REPOSITORY" --draft --title "$VERSION" --notes-file "$BODY" --verify-tag

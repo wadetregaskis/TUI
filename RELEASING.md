@@ -74,8 +74,12 @@ It shows the last release and offers the next major, minor and patch, then:
    already made, `--skip-clips` none);
 2. writes `VERSION`, turns `## Unreleased` into `## X.Y.Z — <date>` under a
    new empty `## Unreleased`, commits "Release X.Y.Z" and tags `vX.Y.Z`;
-3. **asks**, then pushes `main` and the tag, creates the release as a draft,
-   uploads the clips and publishes it.
+3. **asks**, then pushes the release commit to `staging` and the tag, creates
+   the release as a draft, uploads the clips and publishes it. `main` moves to
+   the release commit when CI passes it, as it does for every push
+   ([CONTRIBUTING.md](CONTRIBUTING.md#staging-and-main)). The release does not
+   wait for that: it is cut from a `main` that already passed, and adds only
+   the version and the changelog's heading.
 
 Nothing leaves the machine before the question. Up to it,
 `git reset --hard origin/main && git tag -d vX.Y.Z` undoes everything.

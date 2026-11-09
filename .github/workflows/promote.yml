@@ -1,0 +1,91 @@
+name: Promote
+
+# ── Moving `main` to what CI passed ───────────────────────────────────────────
+#
+# Pushes go to `staging`. When CI's run for a push to `staging` passes, this
+# moves `main` to that run's commit, fast-forward only, and redeploys the site.
+# So `main` only ever holds commits that passed CI, and each is the very commit
+# that was tested: no merge, no rebase (owner, 2026-11-09).
+#
+# Each push is tested on its own and none is cancelled (see ci.yml's
+# `concurrency`), so runs can finish in any order. The fast-forward sorts them
+# out: a passing run whose commit `main` already contains changes nothing; one
+# whose commit is behind a later one already promoted changes nothing; a
+# failing run's commit never moves `main`, though a later passing push that
+# contains it does.
+#
+# GitHub runs this file as it is on `main` (the default branch), whatever the
+# branch of the run that triggered it.
+#
+# ONE-TIME SETUP (the owner's): a ruleset on `main` requiring the `CI` check,
+# so that only a commit that passed it on another branch can be pushed there.
+# This workflow's push meets it, since the commit passed on `staging`.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [staging]
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    name: Fast-forward main
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      moved: ${{ steps.push.outputs.moved }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Two passing runs can finish together. A push that loses the race is
+      # refused as not a fast-forward; the loop then looks again, and stops
+      # if `main` now contains this commit.
+      - name: Push the tested commit to main
+        id: push
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          moved=false
+          settled=false
+          for _ in 1 2 3; do
+            git fetch --quiet origin main "$SHA"
+            if git merge-base --is-ancestor "$SHA" origin/main; then
+              echo "main already contains $SHA"
+              settled=true
+              break
+            fi
+            if ! git merge-base --is-ancestor origin/main "$SHA"; then
+              echo "::error::$SHA does not descend from main ($(git rev-parse origin/main)): staging was rewritten, or main moved by hand. Rebase staging onto main and push it again."
+              exit 1
+            fi
+            if git push origin "$SHA:refs/heads/main"; then
+              moved=true
+              settled=true
+              break
+            fi
+            sleep 5
+          done
+          echo "moved=$moved" >> "$GITHUB_OUTPUT"
+          # Refused three times and still not on main: not a race, so say so.
+          if [ "$settled" != true ]; then
+            echo "::error::main was not moved to $SHA: the push was refused (see above)"
+            exit 1
+          fi
+
+  pages:
+    name: Deploy the site
+    needs: promote
+    if: needs.promote.outputs.moved == 'true'
+    uses: ./.github/workflows/pages.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
