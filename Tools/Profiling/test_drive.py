@@ -51,7 +51,7 @@ if config:
 tty.setraw(0)
 while True:
     data = os.read(0, 4096)
-    if not data or b"q" in data:
+    if not data or b"\\x11" in data:
         break
 """
 
@@ -117,7 +117,7 @@ while True:
     if not data:
         break
     os.write(1, data.hex().encode())
-    if b"q" in data:
+    if b"\\x11" in data:
         break
 """
 
@@ -213,7 +213,7 @@ while time.time() < deadline and b"\\x1b[0n" not in got:
         got += os.read(0, 64)
 with open(os.environ["DRIVE_TEST_REPORT"], "w") as report:
     json.dump({"answered": b"\\x1b[0n" in got}, report)
-while b"q" not in got:
+while b"\\x11" not in got:
     data = os.read(0, 4096)
     if not data:
         break
@@ -270,7 +270,7 @@ while time.time() < deadline and b"\\x1b[0n" not in got:
         got += os.read(0, 64)
 with open(os.environ["DRIVE_TEST_REPORT"], "w") as report:
     json.dump({"answered": b"\\x1b[0n" in got}, report)
-while b"q" not in got:
+while b"\\x11" not in got:
     data = os.read(0, 4096)
     if not data:
         break

@@ -48,7 +48,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from drive import (BACK_TO_MENU, STATUS_REPLY, STATUS_REQUEST, build_scenario,  # noqa: E402
+from drive import (BACK_TO_MENU, QUIT_KEY, STATUS_REPLY, STATUS_REQUEST, build_scenario,  # noqa: E402
                    config_directory, login_tty_compat, set_winsize)
 
 FRAME_END = b"\x1b[?2026l"
@@ -106,7 +106,7 @@ class Session:
 
     def quit(self):
         try:
-            for delay, payload in BACK_TO_MENU + [(0.15, b"q")]:
+            for delay, payload in BACK_TO_MENU + [(0.15, QUIT_KEY)]:
                 self.read(time.perf_counter() + delay)
                 self.write(payload)
             deadline = time.perf_counter() + 1.5

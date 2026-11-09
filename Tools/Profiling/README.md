@@ -355,7 +355,7 @@ Keyboard input is raw terminal bytes (arrows = `ESC[A/B/C/D`, page jumps
 = the `ContentView` shortcut chars). Mouse input is SGR 1006 reports
 (`ESC[<button;col;row;M/m`). It returns to the main menu with two
 Escapes — one may only close a combo field's suggestions — and quits the app
-with `q` from there; an app that does not quit is reported as an error (exit
+with ⌃Q from there; an app that does not quit is reported as an error (exit
 2), since the scenario's keys went somewhere it did not mean them to.
 
 The app runs with `TUI_CONFIG_DIR` set to a fresh temporary directory,

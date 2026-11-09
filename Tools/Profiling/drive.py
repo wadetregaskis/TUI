@@ -26,8 +26,8 @@ Usage:
 `write_steps`). The stream itself carries no markers, so every byte count taken
 from it is still the app's own.
 
-Quits the app cleanly with 'q' (TUI's default quit shortcut) from the main
-menu, falling back to SIGTERM/SIGKILL — and then exiting 2, because an app that
+Quits the app cleanly with ⌃Q (TUI's default quit shortcut; a bare `q`
+quit until 2026-10-31, and since then types a `q`) from the main menu, falling back to SIGTERM/SIGKILL — and then exiting 2, because an app that
 did not quit was not where the scenario thought it was.
 
 The app never sees the user's own settings: it runs with `TUI_CONFIG_DIR`
@@ -103,6 +103,11 @@ def mouse_sgr(button, col, row, press):
 # the quit's `q` 150 ms later, the tour's next page key 100 ms later, as it
 # always has been after its Escape.
 BACK_TO_MENU = [(0.05, ESC), (0.15, ESC)]
+
+# ⌃Q, TUI's default quit shortcut. A bare `q` was until 2026-10-31; sent to an
+# app built since, it is an ordinary key, the app stays up, and every run ends
+# in the "did not quit" error below.
+QUIT_KEY = b"\x11"
 
 
 def scenario_pages(page_keys, scroll=12):
@@ -474,13 +479,13 @@ def main():
         if not args.quiet:
             print("\n".join("[xctrace] " + l for l in out.strip().splitlines()[-6:]))
 
-    # `q` quits from any page — unless something takes the key first, and a
+    # ⌃Q quits from any page — unless something takes the key first, and a
     # focused text field does (InputHandler: the quit shortcut is the layer
     # after the focused view's). So go back to the menu first, wherever the
     # scenario ended, where nothing can. The bytes of the way out are not
     # counted or dumped: the menu's redraw is not the scenario.
     counting = False
-    play(BACK_TO_MENU + [(0.15, b"q")])
+    play(BACK_TO_MENU + [(0.15, QUIT_KEY)])
     quit_on_q = True
     deadline = time.time() + 1.5
     while time.time() < deadline:
@@ -511,7 +516,7 @@ def main():
         # rest of the run. Whatever that measured was not the scenario, and a
         # byte total alone never said so.
         print(
-            f"[drive] ERROR: {args.scenario}: the app did not quit on `q` from the menu "
+            f"[drive] ERROR: {args.scenario}: the app did not quit on ⌃Q from the menu "
             "and had to be killed; the scenario's keys went somewhere it did not intend",
             file=sys.stderr)
         raise SystemExit(2)
