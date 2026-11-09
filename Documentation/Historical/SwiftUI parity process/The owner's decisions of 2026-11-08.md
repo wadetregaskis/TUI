@@ -1,10 +1,11 @@
 # The owner's decisions of 2026-11-08
 
-*The owner's answers to the questions page of 2026-11-08 (sixteen questions) and the rulings he added through the
-day, each with the reason or words he gave where they were recorded, and where it went. It continues
+*The owner's answers to the questions page of 2026-11-08 (sixteen questions), the rulings he added through the
+day, and his answers on 2026-11-09 to the evening page (twelve questions), each with the reason or words he gave
+where they were recorded, and where it went. It continues
 [the decisions of 2026-10-27 to 2026-11-07](<The owner's decisions, 2026-10-27 to 2026-11-07.md>). What is still open
-is in [Open owner decisions](<../../Open owner decisions.md>). Ids: the page's own (NOTIF-KEYS … SCENE-ATTACH); none
-heads an entry.*
+is in [Open owner decisions](<../../Open owner decisions.md>). Ids: the pages' own (NOTIF-KEYS … SCENE-ATTACH, and
+SDK-27 … KEY-SPELL); none heads an entry.*
 
 ## In short
 
@@ -81,3 +82,24 @@ The decisions in the record's words; the owner's own where quoted.
 | Sessions | Expire after 30 days; no cap on their number, to be addressed if it becomes a problem. | None recorded. | `6c3b7baa5` |
 | File panel size | Stays in cells, clamped only to the terminal. | It sets how much is visible. | As built |
 | Persistence survey | Survey every persisted state for whether it belongs to the app's host or the person's client. | The app's host isn't always the person's. | Owed: an opinion per place |
+
+### The evening page, answered 2026-11-09
+
+The questions gathered on the afternoon and evening of 2026-11-08, while the owner was away, answered by id and
+option the next morning. Where no reason was given, the reason recorded is the page's own case for the option he
+chose.
+
+| Id | Decision | Why, as recorded | Where it went |
+|---|---|---|---|
+| SDK-27 | (a): a manual (`workflow_dispatch`) CI job on the `xcode-27` image runs the parity tool and uploads its report; the owner pushes and runs it once. | None recorded. The page: no Mac at hand runs Xcode 27, the 2026 SwiftUI additions are known only from blogs, and the parity rule needs exact signatures; the other options were installing Xcode 27 elsewhere or downloading a third-party interface dump. | `d329edf03` (`swiftui-parity-27.yml`); the run is an [owner action](<../../Open owner decisions.md#owner-actions>) |
+| LIVE-SWIFT | (a): the static gallery only, no compile service. | None recorded. The page: no hosted site can run TUI; a compile service costs $20–40 a month and a security review for running untrusted code. | `3e14f32e0`, landed before the answer |
+| API-STABILITY | Not yet decided: the owner will answer the draft's eleven points, in the draft or in chat. | — | Still [open](<../../Open owner decisions.md>) |
+| LEAKS | (a): hide the 14 underscored types that were public by accident (10 `internal`, 4 `package`) and re-baseline the API. | None recorded. The page: nothing outside TUI names them; they only widen the surface 1.0 would promise. | `c6d7737b7` |
+| SECURITY | (a): the owner switches on GitHub's private vulnerability reporting; `SECURITY.md` stays as written. | None recorded. Only the owner can change the repository's settings. | An [owner action](<../../Open owner decisions.md#owner-actions>) |
+| NOTES | (a): hand-written release highlights for 1.0 that link to the full CHANGELOG, drafted before 1.0. | None recorded. The page: `## Unreleased` is over GitHub's 125,000-character limit for a release's notes. | Queued (NOTES) |
+| PICTURES | (b): keep a copy of a file picture sized to the box it is drawn in, and decode straight to that size, though the output may shift slightly. | None recorded. The page: five mascots held at full size were 11 MB of a 26 MB footprint, and (b) also cuts the 75 MB peak. | Queued (PICTURES) |
+| SETTINGS-SIZE | (a): keep the F2 settings panel as landed, linking TUIPickers and TUIForms into TUIApp (+0.51 MB, +5.2%, on a minimal app). | None recorded. | As landed |
+| BUGS | (a): fix `navigationDestination(isPresented:)`'s flag after a pop and `ForEach`'s keying, both as SwiftUI does; keep `Spring(duration: 0)` arriving at once, as landed. | None recorded. SwiftUI sets the flag false on any pop and tells ids apart by their `Hashable` value. | `8d2f5479a`, `1b999fbea` |
+| STUBS-DOCS | (a): the `@available(*, unavailable)` SwiftUI stubs stay out of DocC's collections. | None recorded. The page: they do not compile, and *Coming from SwiftUI* says what to use instead. | As built |
+| VERSION | (c): leave `Sources/TUIStrings/VERSION` at 0.6.0. It stays 0.6.0, TUIkit's last tag, until the next tag, which `Tools/Release/release.sh` bumps it for; the Example's header reads "TUI v0.6.0" until then. | None recorded. | Unchanged |
+| KEY-SPELL | (a): keep spelling ⌥ ⇧ ⌘ as `Alt-`, `Shift-`, `Cmd-` before layout on terminals that only take ASCII. | None recorded. The page: blank glyphs or single letters were worse than a changed layout. | As landed (PARITY-C) |

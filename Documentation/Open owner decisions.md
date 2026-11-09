@@ -5,7 +5,8 @@ here (since 2026-11-08); every answer, with the owner's words and what it change
 `Historical/SwiftUI parity process`:
 [2026-10-18 to 2026-10-25](<Historical/SwiftUI parity process/The owner's decisions, 2026-10-18 to 2026-10-25.md>)
 (with the answers of 2026-10-26), [2026-10-27 to 2026-11-07](<Historical/SwiftUI parity process/The owner's decisions, 2026-10-27 to 2026-11-07.md>)
-and [2026-11-08](<Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md>). None of these blocks
+and [2026-11-08](<Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md>) (with the evening page
+answered on 2026-11-09). None of these blocks
 other work: each has a default, which holds until you answer.
 
 Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
@@ -22,8 +23,13 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 - **Push `main`.** Local `main` is ahead of GitHub (189 commits on 2026-11-08; last pushed 2026-11-06,
   `16dfc440f`).
 - **Compiler bug reports** on the Desktop, one file per bug, are yours to file.
-- **Xcode 27**, if it can be installed again: the SwiftUI comparison was last re-baselined on the 6.3.3
-  SDK and now runs against Xcode 26.3's, and MACOS27-PARITY waits on it.
+- **Push, then run the SwiftUI-27 parity job once** (SDK-27, 2026-11-09): after pushing `main`, *Actions →
+  SwiftUI parity (Xcode 27) → Run workflow* with the defaults. It compares TUI with Xcode 27's SwiftUI on GitHub's
+  `xcode-27` image and keeps the report as the run's artifact, which I read with the read-only token. Until then the
+  comparison runs against Xcode 26.3's SDK, and MACOS27-PARITY waits on it.
+- **Switch on private vulnerability reporting** (SECURITY, 2026-11-09): the repository's *Settings → Security →
+  Private vulnerability reporting*. `SECURITY.md` already sends reporters there; until it is on, the link it gives
+  leads nowhere.
 
 ## Decisions waiting on you
 
@@ -31,7 +37,7 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
-| API-STABILITY | What 1.0 promises about the public API, and how deprecation and minimum versions work after it: [the draft](<API stability policy (draft).md>), with eleven decisions in its last table. | Its recommendations | Nothing is promised; the pre-1.0 rules stand |
+| API-STABILITY | What 1.0 promises about the public API, and how deprecation and minimum versions work after it: [the draft](<API stability policy (draft).md>), with eleven decisions in its last table. Still open on 2026-11-09: you will answer the eleven points, in the draft or in chat. | Its recommendations | Nothing is promised; the pre-1.0 rules stand |
 
 ### Open on 2026-11-01
 
@@ -61,7 +67,8 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 ## Deferred, by your choice
 
 - **DORMANT-DESIGNS**: after the SwiftUI API compatibility work.
-- **MACOS27-PARITY**: when a macOS 27 machine is available.
+- **MACOS27-PARITY**: when a macOS 27 machine is available; for the API comparison, when the SwiftUI-27 parity job
+  (an owner action above) has run.
 - **OOB-STYLING**: explore along (a) later; a reminder when the queue runs out.
 - **A-D6L-1**: a reminder at the end of the queue.
 - **BINARY-DISTRIBUTION**: two compiler bug reports are on the Desktop; the rest waits on them.
