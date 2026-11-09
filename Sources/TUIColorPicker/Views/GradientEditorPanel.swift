@@ -788,7 +788,10 @@ extension GradientEditorPanel: View {}
             var stops: [Gradient.Stop] = []
             for (index, field) in fields.enumerated() {
                 let parts = field.split(separator: "@", maxSplits: 1)
-                guard let colour = Color.hex(String(parts[0])) else { continue }
+                // `first`, not `[0]`: `split` drops empty pieces, so a stop
+                // that is only the separator ("@") has NO parts, and indexing
+                // trapped on a value read back from the app's store.
+                guard let first = parts.first, let colour = Color.hex(String(first)) else { continue }
                 let even = Double(index) / Double(fields.count - 1)
                 // `Double("nan")` parses, and a NaN location is a stop the
                 // ramp can never reach (every comparison is false) and a

@@ -42,9 +42,11 @@ enum GradientStopsCodec {
             // A lone stop has nowhere to sit, and `index / (count − 1)` would
             // be 0/0 for it.
             let even = fields.count > 1 ? Double(index) / Double(fields.count - 1) : 0
-            stops.append(
-                Gradient.Stop(
-                    color: colour, location: parts.count > 1 ? Double(parts[1]) ?? even : even))
+            // `Double("nan")` parses, and a NaN location is a stop the ramp
+            // can never reach (every comparison is false) and a gradient that
+            // never equals itself: read as even, as an unparseable one is.
+            let parsed = parts.count > 1 ? Double(parts[1]) : nil
+            stops.append(Gradient.Stop(color: colour, location: parsed.map { $0.isFinite ? $0 : even } ?? even))
         }
         // `withStops` on the FALLBACK, not `Gradient(stops:)`: the format
         // stores colours and positions and nothing else, so anything else the

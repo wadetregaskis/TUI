@@ -217,6 +217,16 @@ struct GradientEditorPanelMutationTests {
         #expect(colours(decoded[0]) == [.rgb(255, 0, 0), .rgb(0, 0, 255)])
         #expect(decoded[1].stops.first?.location == 0, "an unreadable position falls back to even")
     }
+
+    /// `split` drops empty pieces, so a stop that is only the separator ("@")
+    /// splits into NO parts, and indexing the first one trapped on a value
+    /// read back from the app's store.
+    @Test("A stop that is only a separator is skipped, not trapped on")
+    func recentsSkipSeparatorOnlyStops() {
+        let decoded = Panel.decodeRecents("FF0000@0.000,@,0000FF@1.000")
+        #expect(decoded.count == 1)
+        #expect(colours(decoded[0]) == [.rgb(255, 0, 0), .rgb(0, 0, 255)])
+    }
 }
 
 @MainActor
