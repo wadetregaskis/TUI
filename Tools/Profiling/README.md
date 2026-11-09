@@ -342,7 +342,8 @@ work), feeds it scripted keyboard/mouse input, and drains output so the
 child never stalls. Scenarios: `tour`, `list`, `table`, `emoji`,
 `scroll`, `mouse`, `idle`, `progress`, and `tabviews` (sits on the Tab
 Views page, whose mascot tabs draw each bundled picture a few cells wide:
-for its `peak-rss=`).
+for its `peak-rss=`), and `images` (opens the Images page and steps
+through its pictures with `p`, each drawn as large as the page allows).
 
 ```bash
 # Drive without profiling — a fast sanity check that the app responds:

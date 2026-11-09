@@ -17,7 +17,7 @@ Two modes:
                    Profiler (via xctrace) to the running app for the run
 
 Usage:
-    drive.py BIN [--scenario tour|list|table|emoji|scroll|mouse|splitdrag|idle|menu]
+    drive.py BIN [--scenario tour|list|table|emoji|scroll|mouse|splitdrag|tabviews|images|idle|menu]
                  [--loops N] [--rows R] [--cols C] [--settle S]
                  [--trace OUT.trace] [--time-limit MS] [--dump OUT.ansi] [--answer-fence] [--quiet]
 
@@ -40,6 +40,7 @@ import atexit
 import json
 import os
 import pty
+import re
 import select
 import shutil
 import signal
@@ -236,6 +237,12 @@ def build_scenario(name, rows, cols):
         # for (each picture decoded is held while it is drawn). Not in
         # PAGE_KEYS, so the `tour` is unchanged.
         return [(0.30, b"v")] + [(0.10, b"")] * 30
+    if name == "images":
+        # Open the Images page (key ') and step through its bundled pictures
+        # with `p`, each drawn as large as the page has room for: what a
+        # picture costs to load, convert and hold at full size. Not in
+        # PAGE_KEYS, so the `tour` is unchanged.
+        return [(0.30, b"'")] + [(0.40, b"p")] * 6 + [(0.10, b"")] * 20
     if name == "spinners":
         # Sit on the Spinners page (key 0) and let its spinners self-drive
         # re-renders. The cheap-render / fast-timer case the animation scheduler
@@ -352,7 +359,7 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("binary")
     ap.add_argument("--scenario", default="tour",
-                    choices=["tour", "list", "table", "emoji", "scroll", "mouse", "splitdrag", "tabviews",
+                    choices=["tour", "list", "table", "emoji", "scroll", "mouse", "splitdrag", "tabviews", "images",
                              "idle", "menu", "progress", "spinners"])
     ap.add_argument("--loops", type=int, default=1)
     ap.add_argument("--rows", type=int, default=50)
@@ -502,6 +509,20 @@ def main():
         if not args.quiet:
             print("\n".join("[xctrace] " + l for l in out.strip().splitlines()[-6:]))
 
+    # The child's memory footprint where the scenario left it, before the way
+    # out: macOS's `footprint` (dirty memory, what the system charges the
+    # process), which `ru_maxrss` below is not — that is the peak of resident
+    # pages, clean ones included. `None` where there is no `footprint`.
+    footprint_text = None
+    if sys.platform == "darwin" and os.path.exists("/usr/bin/footprint"):
+        try:
+            report = subprocess.run(["/usr/bin/footprint", "-p", str(pid)], capture_output=True, text=True,
+                                    timeout=20).stdout
+            match = re.search(r"Footprint: ([0-9.]+ [KMG]?B)", report)
+            footprint_text = match.group(1) if match else None
+        except (OSError, subprocess.SubprocessError):
+            pass
+
     # ⌃Q quits from any page — unless something takes the key first, and a
     # focused text field does (InputHandler: the quit shortcut is the layer
     # after the focused view's). So go back to the menu first, wherever the
@@ -556,7 +577,8 @@ def main():
     if not args.quiet:
         print(f"[drive] scenario={args.scenario} loops={args.loops} "
               f"size={args.cols}x{args.rows} output={total:,} bytes"
-              + (f" peak-rss={peak_rss_mb:.1f}MB cpu={cpu_seconds:.3f}s" if usage else ""))
+              + (f" peak-rss={peak_rss_mb:.1f}MB cpu={cpu_seconds:.3f}s" if usage else "")
+              + (f" footprint={footprint_text.replace(' ', '')}" if footprint_text else ""))
         if args.scenario == "splitdrag" and total < 50_000:
             # A press one column wide of the divider starts nothing, and the
             # run still completes and still prints a total. Anything near an
