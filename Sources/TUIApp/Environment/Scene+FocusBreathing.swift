@@ -31,7 +31,10 @@ extension Scene {
     /// `false` turns ``EnvironmentValues/focusBreathes`` off for everything the
     /// scene draws: a focused control's breath, and its blink under
     /// `.selectionIndicatorStyle(.blink)`, sit still at their bright end,
-    /// whatever a view's own `.selectionIndicatorStyle(_:)` says. It never
+    /// whatever a view's own `.selectionIndicatorStyle(_:)` says. A control
+    /// that rests in that colour, such as a checked checkbox, a switch that is
+    /// on, a link or a radio group's chosen option, shows its focus with its
+    /// label in reverse video instead. It never
     /// turns the breath back on: `true` means the app does not ask for
     /// stillness, and a user who asked for it with `TUI_BREATHING=0` still
     /// gets it. The menu bar's View ▸ Breathing Focus, where the person

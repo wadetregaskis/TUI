@@ -46,6 +46,12 @@ as a file's name is.
 read (no permission, or gone since it was listed) had a column saying "This folder is empty.", and once a column or
 the list's outline had looked into it, opening it said the same, rather than that it can't be opened, and why.
 
+**A focus held still shows on a checked checkbox, a switch that is on, a link and a radio group.** With
+`TUI_BREATHING=0`, the View menu's Breathing Focus turned off or `.focusBreathing(false)`, the focus sits at the
+bright end of its breath, which is the colour those controls rest in, so nothing showed which one had it. Their label
+is now drawn in reverse video while they have the focus, as it is under Differentiate Without Color. A link inside a
+`Text` does the same, and now also shows its focus on a terminal with no colour, where it showed none.
+
 **A list or table whose last rows go from under its focused row moves the focus to the new last row.** It was left
 past the end, where no row showed it and Space, Return and Delete did nothing until an arrow key brought it back.
 

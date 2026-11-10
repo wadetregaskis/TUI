@@ -82,7 +82,7 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_BREATHING", .endUser, .motion,
             values: "`0`",
-            effect: "Stops the highlight on the control your keys act on from slowly pulsing or blinking: it's shown by colour and bold alone. The text cursor still blinks. `TUI_REDUCE_MOTION` doesn't do this by itself. \(viewMenu)",
+            effect: "Stops the highlight on the control your keys act on from slowly pulsing or blinking: it's shown by colour and bold, and a control already in that colour, like a ticked checkbox or a link, shows it with its label in reverse video. The text cursor still blinks. `TUI_REDUCE_MOTION` doesn't do this by itself. \(viewMenu)",
             code: .cannotOverride("`Scene.focusBreathing(false)` holds it still too, but `true` doesn't undo `0`. `.selectionIndicatorStyle(.none)` holds part of a screen still. `focusBreathes` is read-only.")),
     ]
 

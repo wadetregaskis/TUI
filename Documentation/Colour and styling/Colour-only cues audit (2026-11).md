@@ -11,8 +11,10 @@ Colour-vision deficiency loses **hue**, not lightness. So a cue is graded by wha
 - **glyph / attribute**: a different character, or bold, underline, italic, faint or reverse video. Safe for everyone.
 - **lightness**: a fill against no fill, or a grey ink against the normal one. Seen without hue, though a weak one
   with low contrast.
-- **motion**: the focus breath. Seen, until `TUI_BREATHING=0` or Reduce Motion holds it still, when only the colour
-  is left.
+- **motion**: the focus breath. Seen, until `TUI_BREATHING=0` or the View menu's Breathing Focus holds it still
+  (Reduce Motion leaves it alone), when only the colour is left: the breath's bright end. A control that rests in that
+  colour (a checked checkbox, a switch that is on, a link, a radio group's chosen option) reverses its label then, as
+  under DWC (`reversedWithoutBreath`, 2026-11-10: before that, the focus on those was not drawn at all).
 - **hue only**: two states drawn in two colours of about the same lightness. The case to fix.
 
 ## Differentiate Without Colour
@@ -35,14 +37,14 @@ test, so every control turns on together. Off by default, since it changes the l
 | Toggle, checkbox | on / off / mixed | `■ □ ⊟` | glyph |
 | Toggle, switch | on / off | knob position | glyph |
 | Toggle, `.button` | on | bold | attribute |
-| Toggle, any | focus | the mark or track breathes in the accent | motion; under DWC, the label reversed |
+| Toggle, any | focus | the mark or track breathes in the accent | motion; under DWC or held still, the label reversed |
 | Toggle, any | disabled | grey ink | lightness; under DWC, faint |
 | Button, string title | focus | bold (plain style: `●`) | attribute |
-| Button, view label, `Link`, `.borderedProminent` | focus | breath of label or caps | motion; under DWC, reversed |
+| Button, view label, `Link`, `.borderedProminent` | focus | breath of label or caps | motion; under DWC, reversed; a `Link` (and a link in a `Text`) held still, reversed |
 | Button | destructive / success role | error / success colour | hue only, but the label's words carry the meaning, as in SwiftUI; left as is |
 | Button | disabled | grey ink | lightness; under DWC, faint |
 | Link | against plain text | underline | attribute |
-| RadioButton | selected against focused | both `●`, the focused one breathes | motion; under DWC, `●` only when selected and the focused label reversed |
+| RadioButton | selected against focused | both `●`, the focused one breathes | motion; under DWC or held still, `●` only when selected and the focused label reversed |
 | RadioButton | disabled | `◌` unselected; selected grey | glyph / lightness; under DWC, faint |
 | Slider, Stepper | focus | the arrows breathe | motion; under DWC, the arrows reversed |
 | Slider, Stepper | disabled | grey | lightness; under DWC, faint |

@@ -319,8 +319,7 @@ private struct _TextLinksCore: View, Renderable {
         var buffer = drawn
         if let focused, let focusedSpans = spans.byRun[focused] {
             buffer = breathing(
-                focused, rows: Set(focusedSpans.map(\.row)), ownRuns: drawn.animatedCells.count, runs: runs,
-                context: context)
+                focused, spans: focusedSpans, ownRuns: drawn.animatedCells.count, runs: runs, context: context)
         }
         buffer.hitTestRegions += regions
         return buffer.filingTextFrame(context: context)
@@ -331,10 +330,15 @@ private struct _TextLinksCore: View, Renderable {
     /// reaches replayed from those drawings (``BreathingLabel``). The other
     /// rows stand still.
     ///
+    /// Where a breath can't say it — without colour, and where the focus holds
+    /// still at the bright end the link rests at — the link's spans are
+    /// reversed instead, as a focused `Link`'s label is, and nothing breathes.
+    ///
+    /// - Parameter spans: Where the link is, one span per row it reaches.
     /// - Parameter ownRuns: How many animated runs the text draws of its own
     ///   (a live date in it, say), which the breath's follow.
     private func breathing(
-        _ run: Int, rows: Set<Int>, ownRuns: Int, runs: [Text.Run], context: RenderContext
+        _ run: Int, spans: [TextLinkSpans.Span], ownRuns: Int, runs: [Text.Run], context: RenderContext
     ) -> FrameBuffer {
         let palette = context.environment.palette
         let resting = (runs[run].styleStatingLink(in: context.environment).foregroundColor ?? .palette.accent)
@@ -347,6 +351,17 @@ private struct _TextLinksCore: View, Renderable {
         // The breath's runs come after the text's own; only the link's rows
         // need one.
         let own = buffer.animatedCells.prefix(ownRuns)
+        if context.statesWithoutColor || context.focusHoldsStill {
+            // A run replaying the breath over the reversal would undo it.
+            buffer.animatedCells = Array(own)
+            for span in spans {
+                buffer = buffer.reversedWithoutBreath(
+                    if: true, rows: span.row..<(span.row + 1), columns: span.column..<(span.column + span.width),
+                    context: context)
+            }
+            return buffer
+        }
+        let rows = Set(spans.map(\.row))
         let breath = buffer.animatedCells.dropFirst(ownRuns).filter { rows.contains($0.offsetY) }
         buffer.animatedCells = Array(own) + breath
         return buffer

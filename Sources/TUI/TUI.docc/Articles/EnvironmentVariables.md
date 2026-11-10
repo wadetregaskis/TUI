@@ -117,7 +117,7 @@ These tables are generated from the same text an app's man page gets, so the pag
 | Variable | Values | Effect |
 |---|---|---|
 | `TUI_REDUCE_MOTION` | `1` or `0` | `1` turns animations off: things jump to where they're going instead of gliding there, and the program can't undo it. `0` keeps animations, even with Reduce Motion on in your computer's settings. Unset, your computer's own setting decides, when you're at the machine the program runs on. A program with a menu bar has this in its View menu too, which wins until the program quits. For example: `TUI_REDUCE_MOTION=1 myapp`. |
-| `TUI_BREATHING` | `0` | Stops the highlight on the control your keys act on from slowly pulsing or blinking: it's shown by colour and bold alone. The text cursor still blinks. `TUI_REDUCE_MOTION` doesn't do this by itself. A program with a menu bar has this in its View menu too, which wins until the program quits. |
+| `TUI_BREATHING` | `0` | Stops the highlight on the control your keys act on from slowly pulsing or blinking: it's shown by colour and bold, and a control already in that colour, like a ticked checkbox or a link, shows it with its label in reverse video. The text cursor still blinks. `TUI_REDUCE_MOTION` doesn't do this by itself. A program with a menu bar has this in its View menu too, which wins until the program quits. |
 
 ### Keyboard and mouse
 

@@ -751,9 +751,13 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
         // Without colour a ● that only means focus would be one more selected option,
         // since only the breath told them apart. The ● stays with the selection there,
         // and the focus reverses the label below — and so under Differentiate Without
-        // Colour, where the breath is not to be relied on (`statesWithoutColor`).
+        // Colour, where the breath is not to be relied on (`statesWithoutColor`),
+        // and where the focus holds still (`focusHoldsStill`): a still breath sits
+        // at its bright end, the accent a selected option's ● rests in, so the two
+        // ●s were the same.
+        let focusWithoutBreath = isFocused && (context.statesWithoutColor || context.focusHoldsStill)
         let indicator: String
-        if isSelected || (isFocused && !context.statesWithoutColor) {
+        if isSelected || (isFocused && !focusWithoutBreath) {
             indicator = TerminalSymbols.radioSelected
         } else if isDisabled {
             indicator = TerminalSymbols.radioDisabledUnselected
@@ -878,7 +882,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
         }
         let optionWidth = lines[0].strippedLength
         buffer = buffer
-            .reversedWithoutColor(
+            .reversedWithoutBreath(
                 if: isFocused && !isDisabled, rows: 0..<1,
                 columns: optionWidth > indentWidth ? indentWidth..<optionWidth : nil, context: context)
             .fadedWithoutColor(if: isDisabled, context: context)

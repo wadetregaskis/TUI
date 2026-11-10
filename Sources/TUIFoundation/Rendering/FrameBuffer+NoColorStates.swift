@@ -71,6 +71,31 @@ extension FrameBuffer {
         if isFocused: Bool, rows: Range<Int>? = nil, columns: Range<Int>? = nil, context: RenderContext
     ) -> FrameBuffer {
         guard isFocused, context.statesWithoutColor else { return self }
+        return reversed(rows: rows, columns: columns, context: context)
+    }
+
+    /// This buffer with `columns` of `rows` in reverse video, if `isFocused`, where the
+    /// focus can be told neither by colour nor by its breath: wherever
+    /// ``reversedWithoutColor(if:rows:columns:context:)`` reverses, and wherever the
+    /// focus holds still (``RenderContext/focusHoldsStill``).
+    ///
+    /// For a control whose focus is its breath alone, and whose resting look is the
+    /// breath's bright end: a checked checkbox's mark, a switch that is on, a link's
+    /// label, a radio group's chosen option. A still focus sits at that end, so the
+    /// focused control and the resting one were the same cells, and nothing said where
+    /// the keys would go. A control whose still focus is a colour of its own, as a
+    /// button's caps and a slider's arrows are, says it with that colour and keeps
+    /// ``reversedWithoutColor(if:rows:columns:context:)``.
+    package func reversedWithoutBreath(
+        if isFocused: Bool, rows: Range<Int>? = nil, columns: Range<Int>? = nil, context: RenderContext
+    ) -> FrameBuffer {
+        guard isFocused, context.statesWithoutColor || context.focusHoldsStill else { return self }
+        return reversed(rows: rows, columns: columns, context: context)
+    }
+
+    /// `columns` of `rows` in reverse video over the palette's pair: the reversal both
+    /// of those draw.
+    private func reversed(rows: Range<Int>?, columns: Range<Int>?, context: RenderContext) -> FrameBuffer {
         // At no colour the two colours spell nothing, and only the 7 is left.
         let palette = context.environment.palette
         let colored = ColorDepth.current != .noColor
@@ -113,16 +138,24 @@ extension _ButtonStyleBody {
     /// label only breathes, and a face only breathes its caps, so those reverse: all
     /// of the face but half-block caps, whose reversal would light the half facing
     /// away from the label and leave a gap beside it.
+    ///
+    /// A link's label rests at its breath's bright end, so it reverses too where the
+    /// focus holds still (``RenderContext/focusHoldsStill``), at any depth.
     func statingStateWithoutColor(_ buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
-        guard context.statesWithoutColor else { return buffer }
+        guard context.statesWithoutColor || (configuration.isFocused && context.focusHoldsStill) else { return buffer }
         let edges = appearance.edges
         let hasCaps = !appearance.isPlain && edges.caps != nil && !edges.capsAreFace && !edges.isOutline
         return
             buffer
             .fadedWithoutColor(if: !configuration.isEnabled, context: context)
             .reversedWithoutColor(
-                if: configuration.isFocused && (!appearance.isPlain || appearance.indicatesFocusInLabel),
+                if: configuration.isFocused && !appearance.isPlain,
                 columns: hasCaps ? 1..<max(1, buffer.width - 1) : nil, context: context)
+            // A label that only breathes, as a link's does, rests at its breath's
+            // bright end, so a still focus there is reversed too.
+            .reversedWithoutBreath(
+                if: configuration.isFocused && appearance.isPlain && appearance.indicatesFocusInLabel,
+                context: context)
     }
 }
 
@@ -136,5 +169,17 @@ extension RenderContext {
     /// control's no-colour cues ask, so that they all turn on together.
     package var statesWithoutColor: Bool {
         ColorDepth.current == .noColor || environment.accessibilityDifferentiateWithoutColor
+    }
+
+    /// Whether a focused control's breath holds still here, at its bright end: the
+    /// person turned it off (`TUI_BREATHING=0`, the View menu's Breathing Focus), the
+    /// app did (`Scene.focusBreathing(false)`), or a view did for its subtree
+    /// (`.selectionIndicatorStyle(.none)`).
+    ///
+    /// Not in a window that does not appear active: a focus there is held half-way
+    /// between its breath's ends, which a resting control does not draw
+    /// (``SelectionEmphasisClock/cycle(_:)``).
+    package var focusHoldsStill: Bool {
+        environment.selectionIndicatorStyle == .none && environment.appearsActive
     }
 }

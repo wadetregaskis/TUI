@@ -848,8 +848,10 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
                 isHovered: isHovered, labelContext: labelContext, palette: palette,
                 context: context)
             // The label only: which part of a mark or a switch is lit says whether
-            // the toggle is on, and reversing it would say the opposite.
-            buffer = built.buffer.reversedWithoutColor(
+            // the toggle is on, and reversing it would say the opposite. Where the
+            // focus holds still too: a mark or track that is on rests in the
+            // accent, the bright end a still breath sits at.
+            buffer = built.buffer.reversedWithoutBreath(
                 if: isFocused && !isDisabled, rows: 0..<built.clickHeight,
                 columns: built.clickWidth > built.indent ? built.indent..<built.clickWidth : nil, context: context)
             clickWidth = built.clickWidth
