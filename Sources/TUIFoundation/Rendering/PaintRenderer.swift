@@ -412,9 +412,13 @@ package enum PaintRenderer {
 
         func flush(_ end: String.Index) {
             guard runEntry >= 0, runStart < end else { return }
-            painted += sequences[runEntry] ?? ""
+            let opening = sequences[runEntry] ?? ""
+            painted += opening
             painted += text[runStart..<end]
-            painted += reset
+            // Closed only if opened, as the one-colour arm above does: under
+            // `NO_COLOR` a plain run spells nothing, and a reset after each
+            // cell was four bytes a character for nothing.
+            if !opening.isEmpty { painted += reset }
         }
 
         while cursor < text.endIndex {
