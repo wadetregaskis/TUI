@@ -121,8 +121,7 @@ extension ScenePresenter {
             // send it: ⌃, has no legacy encoding, and arrives only under the
             // kitty keyboard protocol's disambiguate mode.
             let arrives =
-                disambiguatesKeys
-                || shortcut.keyEvent(commandKey: commandKey).map(Self.arrivesInLegacyEncoding) ?? false
+                disambiguatesKeys || shortcut.resolved(commandKey: commandKey)?.isDeliverableInTerminal ?? false
             keys.append((
                 shortcut, arrives ? { service.string(for: LocalizationKey.Menu.settings) } : nil,
                 { [weak self] in self?.presentSettings() }
@@ -157,14 +156,6 @@ extension ScenePresenter {
                     action: key.action)
             }
         }
-    }
-
-    /// Whether a terminal speaking only its legacy encodings can send
-    /// `event`: Control has a byte only with a letter or one of `@ [ \\ ] ^
-    /// _` and Space, so Control with a comma, ⌃, the settings key, has none.
-    static func arrivesInLegacyEncoding(_ event: KeyEvent) -> Bool {
-        guard event.ctrl, case .character(let character) = event.key else { return true }
-        return character.isLetter || "@[\\]^_ ".contains(character)
     }
 
     /// Opens a window of the scene at `identity` as its key does: brings a
