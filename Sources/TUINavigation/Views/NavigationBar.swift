@@ -67,13 +67,16 @@ struct NavigationBar {
         // while ESC closed the dialog. With dismissal disabled the dialog
         // publishes no item, and go-back was the only escape entry on the bar,
         // for a key that did nothing: the dialog's grab keeps the handler below
-        // from running. So a modal section holding the keyboard is a claim too;
+        // from running. So a modal section holding the keyboard is a claim too
+        // — one the stack is not drawn in: a stack inside a sheet goes back
+        // before the sheet closes (`FocusManager.holdsKeyboard(outside:)`);
         // with none written, the dialog's own item is what the bar shows and
         // what ESC fires. A presenter rendered AFTER the stack marks its section
         // too late for this to see; it withdraws this claim instead, as it
         // takes the keyboard (`StatusBarState.withdrawEscapeClaim`).
         if !context.isMeasuring, barContext.environment.statusBar?.hasEscapeClaimHere != true,
-            barContext.environment.focusManager?.activeSectionIsModal != true
+            barContext.environment.focusManager?.holdsKeyboard(outside: barContext.environment.activeFocusSectionID)
+                != true
         {
             // The claim and the handler are both per-frame: the render loop
             // resets the label and empties the dispatcher before every pass, so a

@@ -43,7 +43,9 @@ extension FocusManager {
         guard let section = sections.first(where: { section in
             section.focusables.contains { $0.focusID == focusID && $0.canBeFocused }
         }) else { return false }
-        if activeSectionIsModal, section.id != activeSectionIdentifier { return false }
+        // While a modal holds the keyboard, only its own sections: its section
+        // and those drawn inside it (`presentationRoot(of:)`).
+        if let modal = activeModalSectionID, presentationRoot(of: section.id) != modal { return false }
         focus(id: focusID)
         return true
     }

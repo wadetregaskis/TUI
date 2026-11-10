@@ -16,10 +16,15 @@ extension FocusManager {
     /// Tab switch to the next section.
     /// When only one section exists — or the active one is modal, which is the
     /// same thing from inside — this cycles within it (wrapping).
+    ///
+    /// A modal's ring is its own section and the sections drawn inside it — a
+    /// `.focusSection`, a split view's columns, a pushed navigation screen — and
+    /// Tab goes round those as it goes round a page's.
     public func focusNext() {
-        if sections.count > 1, !activeSectionIsModal {
+        let ring = activeModalSectionID.map { sections(presentedIn: $0) } ?? sections
+        if ring.count > 1 {
             let moved = moveFocusInSection(direction: .forward, wrap: false)
-            if !moved { activateNextSection() }
+            if !moved { cycleSection(direction: .forward, in: ring) }
         } else {
             moveFocusInSection(direction: .forward, wrap: true)
         }
@@ -33,9 +38,10 @@ extension FocusManager {
     /// When only one section exists — or the active one is modal — this cycles
     /// within it (wrapping).
     public func focusPrevious() {
-        if sections.count > 1, !activeSectionIsModal {
+        let ring = activeModalSectionID.map { sections(presentedIn: $0) } ?? sections
+        if ring.count > 1 {
             let moved = moveFocusInSection(direction: .backward, wrap: false)
-            if !moved { activatePreviousSection() }
+            if !moved { cycleSection(direction: .backward, in: ring) }
         } else {
             moveFocusInSection(direction: .backward, wrap: true)
         }

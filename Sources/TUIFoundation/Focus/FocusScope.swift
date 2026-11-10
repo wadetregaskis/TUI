@@ -315,7 +315,7 @@ extension FocusManager {
     /// reachable from where the focus is: while a modal holds the keyboard,
     /// only its own controls are.
     private func canReceiveDefault(_ focusID: String) -> Bool {
-        let candidates = activeSectionIsModal ? (activeSection.map { [$0] } ?? []) : sections
+        let candidates = activeModalSectionID.map { sections(presentedIn: $0) } ?? sections
         return candidates.contains { section in
             section.focusables.contains { $0.focusID == focusID && $0.canBeFocused }
         }
@@ -325,7 +325,9 @@ extension FocusManager {
     /// the active section's.
     package func firstFocusableID(inside scope: ViewIdentity) -> String? {
         let ordered = (activeSection.map { [$0] } ?? []) + sections.filter { $0.id != activeSection?.id }
-        let reachable = activeSectionIsModal ? Array(ordered.prefix(1)) : ordered
+        let reachable = activeModalSectionID.map { modal in
+            ordered.filter { presentationRoot(of: $0.id) == modal }
+        } ?? ordered
         for section in reachable {
             for element in section.focusables where element.canBeFocused {
                 guard let identity = renderedIdentity(ofFocusID: element.focusID) else { continue }

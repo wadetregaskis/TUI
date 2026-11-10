@@ -322,9 +322,11 @@ nonisolated package struct AlertPresentationModifier<Content: View, Actions: Vie
         alertContext.environment.dismiss = DismissAction {
             dismissAlert.wrappedValue = false
         }
-        var alertBuffer = renderPresentedDialog(
-            alert, context: alertContext,
-            capHeight: context.environment.overlayContentHeight)
+        var alertBuffer = context.drawingPresentedContent(sectionID: sectionID) {
+            renderPresentedDialog(
+                alert, context: alertContext,
+                capHeight: context.environment.overlayContentHeight)
+        }
 
         guard !alertBuffer.isEmpty else { return baseBuffer }
 

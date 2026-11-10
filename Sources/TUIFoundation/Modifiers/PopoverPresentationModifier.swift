@@ -216,9 +216,11 @@ nonisolated package struct PopoverPresentationModifier<Content: View, Popover: V
         popoverContext.environment.dismissalGate = gate
 
         var panel = gate.drawingContent(context: context) {
-            renderPresentedDialog(
-                panelView(context: context), context: popoverContext,
-                capHeight: context.environment.overlayContentHeight)
+            context.drawingPresentedContent(sectionID: sectionID) {
+                renderPresentedDialog(
+                    panelView(context: context), context: popoverContext,
+                    capHeight: context.environment.overlayContentHeight)
+            }
         }
         // Named for what Escape does, now the content has drawn: "cancel"
         // where it presses the content's cancel button, which may keep the

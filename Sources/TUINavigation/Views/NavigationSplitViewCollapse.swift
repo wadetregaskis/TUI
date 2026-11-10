@@ -392,10 +392,11 @@ extension _NavigationSplitViewCore {
             return
         }
         let focusManager = columnContext.environment.focusManager
+        let columnSection = columnContext.environment.activeFocusSectionID
         state.advance.action = {
             // Not from a sheet or a popover over the split, whose lists are in
-            // the column's environment too.
-            guard focusManager?.activeSectionIsModal != true else { return }
+            // the column's environment too — but from a split in a sheet, yes.
+            guard focusManager?.holdsKeyboard(outside: columnSection) != true else { return }
             position.show(depth: position.depth + 1)
         }
         columnContext.environment.compactColumnAdvance = CompactColumnAdvance(box: state.advance)

@@ -59,7 +59,7 @@ struct _SearchFindChord: View, Renderable, Layoutable {
     @MainActor
     private static func register(_ shortcut: KeyboardShortcut, action: @escaping () -> Void, context: RenderContext) {
         context.environment.keyboardShortcutRegistry?.registerDefault(
-            shortcut, section: context.environment.activeFocusSectionID,
+            shortcut, section: context.environment.shortcutSectionID,
             title: { LocalizationService.shared.string(for: LocalizationKey.Menu.find) }, action: action)
     }
 }

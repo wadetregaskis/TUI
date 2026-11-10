@@ -207,7 +207,7 @@ extension FocusManager {
     private func handoffLanding(_ focusID: String) -> RecoveryTarget? {
         for section in sections {
             guard let element = section.focusables.first(where: { $0.focusID == focusID }) else { continue }
-            let crossesModal = section.id != activeSectionIdentifier && activeSectionIsModal
+            let crossesModal = activeModalSectionID.map { presentationRoot(of: section.id) != $0 } ?? false
             return element.canBeFocused && !crossesModal
                 ? RecoveryTarget(element: element, sectionID: section.id) : nil
         }

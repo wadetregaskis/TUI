@@ -324,8 +324,13 @@ nonisolated package struct ModalPresentationModifier<Content: View, Modal: View>
             baseBuffer.animatedCells = []
         }
 
-        var modalBuffer = drawSheet(
-            presented, modal: modal, style: style, escapeItemRegistration: escapeItemRegistration, context: context)
+        // The sections drawn in it — a split view's columns, a pushed screen —
+        // are the modal's (`drawingPresentedContent`).
+        var modalBuffer = context.drawingPresentedContent(sectionID: sectionID) {
+            drawSheet(
+                presented, modal: modal, style: style, escapeItemRegistration: escapeItemRegistration,
+                context: context)
+        }
         guard !modalBuffer.isEmpty else { return baseBuffer }
 
         // A detented sheet rests on the bottom edge, as a sheet with detents

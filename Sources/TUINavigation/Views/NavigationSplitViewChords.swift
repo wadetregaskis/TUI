@@ -31,7 +31,7 @@ enum SidebarChordRegistrar {
         guard let registry = context.environment.keyboardShortcutRegistry else { return }
         for shortcut in shortcuts {
             registry.registerDefault(
-                shortcut, holdsFocus: holdsFocus, section: context.environment.activeFocusSectionID,
+                shortcut, holdsFocus: holdsFocus, section: context.environment.shortcutSectionID,
                 title: { LocalizationService.shared.string(for: LocalizationKey.Label.showSidebar) }, action: action)
         }
     }

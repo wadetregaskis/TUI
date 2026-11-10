@@ -167,6 +167,20 @@ public final class FocusManager {
     /// marks do not exist yet when the question is asked.
     private(set) var previousModalSectionIDs: Set<String> = []
 
+    /// The modal sections whose content is being drawn, innermost last
+    /// (``beginPresentedContent(sectionID:)``).
+    var presentedContentStack: [String] = []
+
+    /// The modal section each section registered inside a presented surface's
+    /// content was drawn in: a `.focusSection`, a navigation stack's pushed
+    /// screen or a split view's column in a sheet, an alert presented from a
+    /// sheet. Rebuilt every walk. See ``presentationRoot(of:)``.
+    var sectionPresenters: [String: String] = [:]
+
+    /// ``sectionPresenters`` as the previous frame left them, for a presenter
+    /// asking before this frame's content has registered.
+    var previousSectionPresenters: [String: String] = [:]
+
     /// Sections a menu is open in (``markSectionMenu(id:)``): each holds the
     /// keyboard and leaves the focus, for the focused values, where it was.
     /// Re-marked each render by the menu's presenter and cleared with
@@ -422,16 +436,21 @@ public final class FocusManager {
     /// back at the end of the pass — visible as a flicker on the page's first
     /// control every time Tab was pressed inside a popover whose content had
     /// nothing to focus.
+    ///
+    /// A section drawn inside a modal's content (``presentationRoot(of:)``) is
+    /// part of it: a `.focusSection` or a navigation stack's screen in a sheet
+    /// holds the keyboard as the sheet's own section does.
     package var activeSectionIsModal: Bool {
-        guard let activeID = activeSectionID else { return false }
-        return modalSectionIDs.contains(activeID)
+        activeModalSectionID != nil
     }
 
     /// The active section where it is modal (``activeSectionIsModal``), else
     /// `nil`: the section whose own keyboard shortcuts are the only ones that
     /// fire (`KeyboardShortcutRegistry.Scope`).
+    ///
+    /// The modal's own section where the focus is in a section drawn inside it.
     package var activeModalSectionID: String? {
-        activeSectionIsModal ? activeSectionID : nil
+        presentationRoot(of: activeSectionID)
     }
 
     /// Whether the active section is one a menu is open in
@@ -715,6 +734,9 @@ extension FocusManager {
         sectionFocusMemory.removeAll()
         sectionRevertTarget.removeAll()
         modalSectionIDs.removeAll()
+        sectionPresenters.removeAll()
+        previousSectionPresenters.removeAll()
+        presentedContentStack.removeAll()
         menuSectionIDs.removeAll()
         previousMenuSectionIDs.removeAll()
         optionalFocusSectionIDs.removeAll()
@@ -1117,6 +1139,7 @@ extension FocusManager {
     /// - Parameter id: The unique section identifier.
     package func registerSection(id: String) {
         guard !sections.contains(where: { $0.id == id }) else { return }
+        if let presenter = presentedContentStack.last, presenter != id { sectionPresenters[id] = presenter }
         let section = FocusSection(id: id)
         sections.append(section)
         panes.noteSection(id)
@@ -1237,7 +1260,11 @@ extension FocusManager {
         // Remember the section we're leaving so returning to it restores focus,
         // and record it as the revert target for `deactivateSection(id:)`.
         rememberFocusForActiveSection()
-        if let leaving = activeSectionID {
+        // Not when coming back to a presentation from a section drawn inside
+        // it (Tab round a sheet's split view): the presentation reverts to
+        // where the focus was before it was presented, and a section of its
+        // own content, gone once it is dismissed, would strand the focus.
+        if let leaving = activeSectionID, !isDrawn(leaving, inside: id) {
             sectionRevertTarget[id] = leaving
             sweepSectionTablesIfGrown()
         }
@@ -1270,7 +1297,9 @@ extension FocusManager {
     /// re-registered element from grabbing focus (see `register(_:inSection:)`).
     /// `endRenderPass` validates the result once registration completes.
     public func deactivateSection(id: String) {
-        guard activeSectionID == id else { return }
+        // Or a section drawn inside it: a presentation dismissed with the focus
+        // in a `.focusSection` of its content gives the focus back all the same.
+        guard let active = activeSectionID, active == id || isDrawn(active, inside: id) else { return }
         rememberFocusForActiveSection()
         // The modal's control loses focus here as surely as the page's control
         // did when the modal opened (`activateSection` notifies) — and it must
@@ -1370,6 +1399,7 @@ extension FocusManager {
         // Last frame's modal marks, likewise, before `beginSceneRender` clears
         // them: see ``previousModalSectionIDs``.
         previousModalSectionIDs = modalSectionIDs
+        previousSectionPresenters = sectionPresenters
         previousMenuSectionIDs = menuSectionIDs
         previousPresentationDismissals = presentationDismissals
         panes.beginFrame()
@@ -1405,6 +1435,8 @@ extension FocusManager {
         // clearing here means a dismissed modal (which no longer renders, so no
         // longer re-marks) stops grabbing input on the very next frame.
         modalSectionIDs.removeAll()
+        sectionPresenters.removeAll()
+        presentedContentStack.removeAll()
         menuSectionIDs.removeAll()
         presentationDismissals.removeAll()
         panes.beginWalk()
@@ -1586,7 +1618,8 @@ package enum FocusDirection {
 
 extension FocusManager {
     /// Cycles the active section in the given direction.
-    fileprivate func cycleSection(direction: FocusDirection) {
+    func cycleSection(direction: FocusDirection, in ring: [FocusSection]? = nil) {
+        let sections = ring ?? self.sections
         guard sections.count > 1 else { return }
 
         let startIndex: Int

@@ -65,6 +65,10 @@ package final class KeyEventDispatcher {
     /// captured) worked. Cleared with the handlers each render pass.
     private(set) var grabbingSectionID: String?
 
+    /// The sections drawn inside the surface holding the keyboard, whose
+    /// handlers hear the keys with its own (``extendGrab(of:to:)``).
+    private var grabExtension: Set<String> = []
+
     /// The modifier keys held, and the views listening for them. A modifier
     /// key reported on its own is a keyboard event too, and its listeners are
     /// registered per walk as the handlers here are, so they are cleared with
@@ -154,6 +158,25 @@ extension KeyEventDispatcher {
     /// ``grabbingSectionID``. Called by a presented surface as it renders.
     package func grabInput(sectionID id: String) {
         grabbingSectionID = id
+        grabExtension = []
+    }
+
+    /// Lets the handlers registered in `sections` — the sections drawn inside
+    /// the surface whose section is `id`: a `.focusSection`, a pushed
+    /// navigation screen, a split view's column in a sheet — hear the keys
+    /// while that surface holds the keyboard, as its own section's do. Nothing,
+    /// where a surface presented inside it has taken the keyboard since.
+    package func extendGrab(of id: String, to sections: Set<String>) {
+        guard grabbingSectionID == id else { return }
+        grabExtension.formUnion(sections)
+    }
+
+    /// Whether a handler registered in `sectionID` hears a key now: always,
+    /// unless a surface holds the keyboard and it was registered outside it.
+    private func hears(sectionID: String?) -> Bool {
+        guard let grabbingSectionID else { return true }
+        guard let sectionID else { return false }
+        return sectionID == grabbingSectionID || grabExtension.contains(sectionID)
     }
 
     /// Publishes, for this frame, the type select of a surface that holds the
@@ -175,6 +198,7 @@ extension KeyEventDispatcher {
         handlers.removeAll()
         focusPathHandlers.removeAll()
         grabbingSectionID = nil
+        grabExtension = []
         typeSelect = nil
         modifierKeys.beginSceneRender()
     }
@@ -224,7 +248,7 @@ extension KeyEventDispatcher {
     ) -> Bool {
         focusPathHandlers.contains { entry in
             guard entry.stage == stage, let declares = entry.declares,
-                grabbingSectionID == nil || entry.sectionID == grabbingSectionID,
+                hears(sectionID: entry.sectionID),
                 entry.scope == focusedIdentity || entry.scope.isAncestor(of: focusedIdentity)
             else { return false }
             return events.contains(where: declares)
@@ -290,7 +314,7 @@ extension KeyEventDispatcher {
         in entries: some Sequence<FocusPathEntry>
     ) -> Bool {
         for entry in entries
-        where entry.stage == stage && (grabbingSectionID == nil || entry.sectionID == grabbingSectionID) {
+        where entry.stage == stage && hears(sectionID: entry.sectionID) {
             guard entry.scope == focusedIdentity || entry.scope.isAncestor(of: focusedIdentity) else {
                 continue
             }
@@ -308,7 +332,7 @@ extension KeyEventDispatcher {
         // Process in reverse order (most recent handlers first) — and, while a
         // surface holds the keyboard, only the handlers registered inside it.
         for entry in handlers.reversed()
-        where grabbingSectionID == nil || entry.sectionID == grabbingSectionID || entry.hearsThroughGrab {
+        where hears(sectionID: entry.sectionID) || entry.hearsThroughGrab {
             if entry.handler(event) { return true }
         }
         return false

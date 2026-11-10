@@ -94,6 +94,14 @@ sends what a keyboard, an input method or the emoji picker types a Unicode scala
 as 👨👩👧, ❤️ lost its emoji form, a Thai tone mark or a Persian zero-width non-joiner went missing, and an accent
 typed decomposed vanished. They now type anything but a control character, as a paste always has.
 
+**The keyboard reaches a split view, a navigation stack or a `.focusSection` inside a sheet, an alert or a
+popover.** Each makes focus sections of its own, and inside a presentation those were treated as the page's: Tab
+never reached a `NavigationSplitView`'s columns or a `.focusSection`'s controls in a sheet, a screen pushed in a sheet
+left the focus on the sheet's resize stop, Escape there closed the sheet instead of going back, and the key handlers
+and keyboard shortcuts in those sections did nothing. They are now the presentation's: Tab goes round them with the
+presentation's own controls, their keys work while it is up, Escape goes back before it closes the sheet, and
+dismissing the sheet from one returns the focus to the control that opened it.
+
 **A `NavigationStack` bound to a typed path shows the screens that are not values of its type.** A
 `navigationDestination(isPresented:)` or `(item:)` screen, or a `NavigationLink` with a view for its destination, was
 written into the binding and dropped there: the screen never came up, and the flag that asked for it went straight

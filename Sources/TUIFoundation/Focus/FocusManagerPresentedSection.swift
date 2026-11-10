@@ -61,10 +61,16 @@ extension FocusManager {
     /// presenter reclaims the section on the next frame if that fallback chose
     /// another.
     ///
-    /// NOT fixed by this: a non-modal section activated INSIDE a presented
-    /// surface — a push, a split view's column click — is still taken back by
-    /// the surface's presenter on the next frame.
+    /// ## Sections drawn inside it
+    ///
+    /// Nor is a section drawn inside this surface's content taken back — a
+    /// navigation stack's pushed screen, a split view's column, a
+    /// `.focusSection` (``isDrawn(_:inside:)``). Those are this surface's own,
+    /// and were taken back on every frame: a push in a sheet left the focus on
+    /// the sheet's resize stop, and Tab never reached a column of a split view
+    /// in one.
     package func activatePresentedSection(id: String) {
+        if let active = activeSectionIdentifier, active != id, isDrawn(active, inside: id) { return }
         if var section = activeSectionIdentifier, section != id {
             // Bounded by the table's size rather than by reaching a root: the
             // table is pruned only on dismissal, and nothing stops it holding a
@@ -135,3 +141,86 @@ extension FocusManager {
 /// not when it was posted: a key that moves the sheet between two frames is
 /// answered by last frame's resolver already, and never draws late.
 package typealias PresentationDockResolver = @MainActor (_ contentHeight: Int) -> Int?
+
+// MARK: - Sections drawn inside a presentation
+
+extension FocusManager {
+    /// Starts drawing the content of the modal surface whose section is
+    /// `sectionID`: a section registered until ``endPresentedContent()`` is drawn
+    /// inside it (``presentationRoot(of:)``). Called by the presenters, around
+    /// the content alone — not the page drawn beneath, which has a manager of
+    /// its own.
+    package func beginPresentedContent(sectionID: String) {
+        presentedContentStack.append(sectionID)
+    }
+
+    /// Ends what ``beginPresentedContent(sectionID:)`` started.
+    package func endPresentedContent() {
+        _ = presentedContentStack.popLast()
+    }
+
+    /// The surface whose content `section` was drawn in, this frame or the last.
+    private func presenter(of section: String) -> String? {
+        sectionPresenters[section] ?? previousSectionPresenters[section]
+    }
+
+    /// The modal section `section` belongs to: itself where it is one, or the
+    /// modal it was drawn inside, through any sections between. `nil` for a
+    /// section of the page.
+    ///
+    /// A `.focusSection`, a navigation stack's pushed screen or a split view's
+    /// column inside a sheet is a section of its own, so that Tab, the arrows
+    /// and the focus memory work there as they do on a page; but it holds the
+    /// keyboard as the sheet does, its shortcuts are the sheet's, and Tab goes
+    /// round it and the sheet's other sections and nowhere else.
+    package func presentationRoot(of section: String?) -> String? {
+        guard var current = section else { return nil }
+        // Bounded by the tables' size: nothing stops a stale entry of the last
+        // frame making a cycle with one of this frame's.
+        var remaining = sectionPresenters.count + previousSectionPresenters.count + 1
+        while remaining > 0 {
+            if modalSectionIDs.contains(current) { return current }
+            guard let next = presenter(of: current) else { return nil }
+            current = next
+            remaining -= 1
+        }
+        return nil
+    }
+
+    /// Whether `section` was drawn inside the content of `presentation`, at any
+    /// depth.
+    func isDrawn(_ section: String, inside presentation: String) -> Bool {
+        var current = section
+        var remaining = sectionPresenters.count + previousSectionPresenters.count + 1
+        while remaining > 0, let next = presenter(of: current) {
+            if next == presentation { return true }
+            current = next
+            remaining -= 1
+        }
+        return false
+    }
+
+    /// Whether a modal holds the keyboard that `section` is not part of: a
+    /// sheet presented over a navigation stack does, the sheet a navigation
+    /// stack is drawn in does not.
+    package func holdsKeyboard(outside section: String?) -> Bool {
+        guard let modal = activeModalSectionID else { return false }
+        return presentationRoot(of: section) != modal
+    }
+
+    /// The sections of the modal `root`, in the ring's order: its own and those
+    /// drawn inside it.
+    func sections(presentedIn root: String) -> [FocusSection] {
+        sections.filter { $0.id == root || presentationRoot(of: $0.id) == root }
+    }
+
+    /// The sections drawn inside the modal `root`'s content, not counting its
+    /// own: what holds the keyboard with it (`KeyEventDispatcher.extendGrab`).
+    package func sectionIDs(drawnInside root: String) -> Set<String> {
+        var ids: Set<String> = []
+        for section in sections where section.id != root && presentationRoot(of: section.id) == root {
+            ids.insert(section.id)
+        }
+        return ids
+    }
+}

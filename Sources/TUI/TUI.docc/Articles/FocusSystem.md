@@ -81,6 +81,11 @@ Three more modifiers shape the order that Tab follows:
   keys stay within the section. While a section holds the keyboard, the border
   that encloses all of it draws a breathing ●; a section with no such border
   draws none.
+  Inside a sheet, an alert or a popover, a section is the presentation's: Tab
+  goes round the presentation's sections and no others, and the keys and
+  shortcuts of the controls in them work while the presentation holds the
+  keyboard. The same goes for the sections a `NavigationSplitView`'s columns
+  and a `NavigationStack`'s pushed screens make.
 - `focusID(_:)` pins an explicit identity on a control, instead of the one
   derived from its position in the tree.
 

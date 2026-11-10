@@ -54,7 +54,8 @@ Four ways, all of which end up in the same place:
 - the **‹ Back** button in the bar — focusable, clickable;
 - <kbd>Esc</kbd>, which the bar claims for the status line while a screen is
   pushed, *after* the focused control has had its chance at the key (a list
-  clearing its selection still wins);
+  clearing its selection still wins) — in a stack inside a sheet too, where Esc
+  goes back before it closes the sheet;
 - `@Environment(\.dismiss)` from anywhere inside the screen, which pops rather
   than quitting while it is inside a stack;
 - removing from the path yourself, if you bound one.
