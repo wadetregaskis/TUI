@@ -20,7 +20,8 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 content overflows draws its bar (or its "N more" lines) over the content's edge while the pointer is over it, and
 nothing when it isn't, so the content keeps the whole width. While the view holds the focus the bar moves beside the
 content, into a column of its own, as before, so a keyboard user still sees where they are without it covering
-anything. To keep the old layout, a column always reserved for the bar, write
+anything. A scroller that can never hold the focus, such as a tall menu's, keeps its bar beside its rows, so a keyboard
+user still sees there is more. To keep the old layout, a column always reserved for the bar, write
 `.scrollIndicatorPlacement(.besideContent)` at the top of the app. `scrollIndicatorsFlash` lights only indicators that
 are drawn, so under the new default a flash shows nothing until the pointer or the focus brings them.
 

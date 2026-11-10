@@ -279,9 +279,12 @@ private func planMenuColumn(
     // `overflowing: true` because taking this arm IS the overflow — `drawnHeight`
     // cleared the cap. A subtree under `.scrollIndicators(.hidden)` or
     // `.scrollIndicatorStyle(.text)` reserves no column and comes back false,
-    // which is the same answer the `ScrollView` will reach.
-    let scrollbarColumn = scrolls.sized.environment
-        .verticalScrollIndicators(overflowing: true).bar
+    // which is the same answer the `ScrollView` will reach. Asked of the context
+    // as that scroller places its indicators, which is no focus stop: under
+    // `.overContent` its bar is beside the rows all the same.
+    let scrollbarColumn = scrolls.sized
+        .placingScrollIndicatorsForNoFocusStop()
+        .environment.verticalScrollIndicators(overflowing: true).bar
     guard scrollbarColumn else { return scrolls }
     scrolls.sized.environment.menuRowWidth = menuRowWidth(
         menuWidth: menuWidth, scrollbarColumn: true)

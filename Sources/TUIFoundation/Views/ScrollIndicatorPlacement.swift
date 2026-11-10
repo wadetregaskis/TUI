@@ -7,7 +7,10 @@
 //  The owner asked for both (A-CHURN-2, 2026-10-27), named for what each does,
 //  and ruled on the focus (2026-10-29): a keyboard user, whose only way to
 //  make indicators appear is to focus the view, sees where they are and what
-//  is hidden, and nothing they need to read is covered.
+//  is hidden, and nothing they need to read is covered. The second is the
+//  default (SCROLLBAR-PLACEMENT, 2026-11-09), except for a scroller that can
+//  never hold the focus — a tall menu's — which keeps its indicators beside
+//  its content: a keyboard user has no other way to see them.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -42,8 +45,15 @@ public enum ScrollIndicatorPlacement: Sendable, Equatable, CaseIterable {
     /// over the content then would cover what they could read only by leaving.
     /// Losing the focus gives the content its whole room back.
     ///
+    /// A scroller that can never hold the focus — the one a menu too tall for
+    /// its space scrolls its rows in, whose rows are the focus stops — places
+    /// them as ``besideContent`` does, always: the keyboard has no way to make
+    /// them appear over the content, and a keyboard user walking the rows
+    /// still sees what is hidden.
+    ///
     /// The default (the owner's ruling, 2026-11-09: "default to
-    /// overlay-on-hover").
+    /// overlay-on-hover", and "keep scrollbars visible (beside the content) for
+    /// scrollers that can't hold the focus").
     case overContent
 }
 
@@ -52,6 +62,10 @@ private struct ScrollIndicatorPlacementKey: EnvironmentKey {
 }
 
 private struct ScrollIndicatorsBesideForFocusKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+private struct ScrollIndicatorsBesideForNoFocusStopKey: EnvironmentKey {
     static let defaultValue = false
 }
 
@@ -66,19 +80,25 @@ extension EnvironmentValues {
 
     /// Whether this view's indicators are drawn over the content, for the
     /// pointer, rather than given room of their own: placed
-    /// ``ScrollIndicatorPlacement/overContent`` and not holding the focus
+    /// ``ScrollIndicatorPlacement/overContent``, not holding the focus, and
+    /// able to hold it
     /// (``RenderContext/placingScrollIndicators(explicitFocusID:focusIDIndex:canHoldFocus:)``).
     /// The question every part of a scrolling view's layout and drawing asks.
     @inlinable
     package var scrollIndicatorsOverlayContent: Bool {
         scrollIndicatorPlacement == .overContent && !scrollIndicatorsBesideForFocus
+            && !scrollIndicatorsBesideForNoFocusStop
     }
 
     /// Whether this view watches the pointer for its indicators: placed
     /// ``ScrollIndicatorPlacement/overContent``, whether or not it holds the
-    /// focus — so where the pointer is is known the moment the focus leaves.
+    /// focus — so where the pointer is is known the moment the focus leaves —
+    /// unless it can never hold the focus, when its indicators are beside its
+    /// content whatever the pointer does.
     @inlinable
-    package var scrollIndicatorsFollowPointer: Bool { scrollIndicatorPlacement == .overContent }
+    package var scrollIndicatorsFollowPointer: Bool {
+        scrollIndicatorPlacement == .overContent && !scrollIndicatorsBesideForNoFocusStop
+    }
 
     /// Whether a scrolling view placed ``ScrollIndicatorPlacement/overContent``
     /// holds the focus, and so draws its indicators beside its content. Set
@@ -92,11 +112,22 @@ extension EnvironmentValues {
         set { self[ScrollIndicatorsBesideForFocusKey.self] = newValue }
     }
 
+    /// Whether a scrolling view placed ``ScrollIndicatorPlacement/overContent``
+    /// can never hold the focus, and so draws its indicators beside its
+    /// content always: a framework scroller that is no focus stop, a tall
+    /// menu's. Set and put back as ``scrollIndicatorsBesideForFocus`` is.
+    @usableFromInline package var scrollIndicatorsBesideForNoFocusStop: Bool {
+        get { self[ScrollIndicatorsBesideForNoFocusStopKey.self] }
+        set { self[ScrollIndicatorsBesideForNoFocusStopKey.self] = newValue }
+    }
+
     /// Gives a scrolling view's content the placement stated above the view,
-    /// without the view's own focus in it — see ``scrollIndicatorsBesideForFocus``.
-    /// Written only when set, which is only under a focused view.
+    /// without the view's own focus in it — see ``scrollIndicatorsBesideForFocus``
+    /// and ``scrollIndicatorsBesideForNoFocusStop``. Written only when set,
+    /// which is only under a focused view or one that can hold no focus.
     package mutating func restoreStatedScrollIndicatorPlacement() {
         if scrollIndicatorsBesideForFocus { scrollIndicatorsBesideForFocus = false }
+        if scrollIndicatorsBesideForNoFocusStop { scrollIndicatorsBesideForNoFocusStop = false }
     }
 }
 
@@ -117,23 +148,28 @@ extension RenderContext {
     /// the view's last render persisted, read without claiming or storing
     /// anything — a view never rendered has never been focused.
     ///
+    /// A view that can never hold the focus has its indicators beside its
+    /// content always (``EnvironmentValues/scrollIndicatorsBesideForNoFocusStop``):
+    /// the owner's ruling of 2026-11-09, so that a keyboard user sees them.
+    ///
     /// Every other placement gets the context back as it is, after one read,
     /// so `.besideContent` pays nothing more; an `.overContent` view (the
-    /// default) pays a state lookup, and writes the environment only when its focus changed from
-    /// what it inherited.
+    /// default) pays a state lookup, and writes the environment only when its
+    /// focus changed from what it inherited.
     ///
     /// - Parameters:
     ///   - explicitFocusID: The view's `.focusID(_:)`, if it has one.
     ///   - focusIDIndex: The `StateStorage` index the view persists its focus
     ///     id at.
     ///   - canHoldFocus: Whether the view can hold the focus at all: `false`
-    ///     for a framework scroller, which is no focus stop.
+    ///     for a framework scroller that is no focus stop.
     package func placingScrollIndicators(
         explicitFocusID: String?, focusIDIndex: Int, canHoldFocus: Bool = true
     ) -> RenderContext {
         guard environment.scrollIndicatorPlacement == .overContent else { return self }
+        guard canHoldFocus else { return placingScrollIndicatorsForNoFocusStop() }
         var holdsFocus = false
-        if canHoldFocus, let focusManager = environment.focusManager {
+        if let focusManager = environment.focusManager {
             let key = StateStorage.StateKey(identity: identity, propertyIndex: focusIDIndex)
             let persisted: StateBox<String>? = explicitFocusID == nil ? stateStorage?.existingStorage(for: key) : nil
             if let focusID = explicitFocusID ?? persisted?.value { holdsFocus = focusManager.isFocused(id: focusID) }
@@ -146,6 +182,22 @@ extension RenderContext {
 }
 
 extension RenderContext {
+    /// This context as a scrolling view that can never hold the focus reads
+    /// it: under ``ScrollIndicatorPlacement/overContent``, its indicators
+    /// beside its content
+    /// (``EnvironmentValues/scrollIndicatorsBesideForNoFocusStop``). What
+    /// ``placingScrollIndicators(explicitFocusID:focusIDIndex:canHoldFocus:)``
+    /// gives such a view, for a caller that sizes one before it draws: a tall
+    /// menu's rows, laid out for the scroller's bar.
+    package func placingScrollIndicatorsForNoFocusStop() -> RenderContext {
+        guard environment.scrollIndicatorPlacement == .overContent,
+            !environment.scrollIndicatorsBesideForNoFocusStop
+        else { return self }
+        var placed = self
+        placed.environment.scrollIndicatorsBesideForNoFocusStop = true
+        return placed
+    }
+
     /// Asks for this frame to be walked again when the focus the view holds
     /// is not the one its indicators were placed for: it changed during the
     /// view's own render, after ``placingScrollIndicators(explicitFocusID:focusIDIndex:canHoldFocus:)``
@@ -188,7 +240,8 @@ extension View {
     ///
     /// ``ScrollIndicatorPlacement/overContent`` (the default) draws the
     /// indicators over the content's edge while the pointer is over the view,
-    /// and beside it while the view holds the focus;
+    /// and beside it while the view holds the focus — and always beside it for
+    /// a scroller that can never hold the focus, as a tall menu's;
     /// ``ScrollIndicatorPlacement/besideContent`` gives each indicator room of
     /// its own whenever it shows. Whether an indicator may show
     /// at all is still ``View/scrollIndicators(_:axes:)``'s to say, and which
