@@ -634,6 +634,76 @@ anything at run time:
   call pays) or in a `…Wl` accessor (once), and a `bl` to the generic entry
   where a `specialized` copy would be.
 
+### Persisted settings
+
+What TUI saves for an app is public API: an app built with any 1.n reads what
+any 1.m wrote, older or newer, and across major releases TUI tries to keep that
+too ([API stability policy](<Documentation/API stability policy.md>), point 5
+and decision 8). On macOS the values live in `UserDefaults`, a property-list
+value (`Bool`, `Int`, `Double`, `String`, `Date`, `Data`, `URL`, a raw value)
+as itself and anything else as its JSON. Elsewhere, and wherever
+`TUI_CONFIG_DIR` is set, they live in `settings.json` in the app's
+configuration directory: one JSON object whose values are each key's JSON in
+base64. `UserDefaultsStorage` on Linux uses the same format in
+`UserDefaults.json`. The language a person chose is a file of its own,
+`language`, in the same directory.
+
+TUI keeps these keys of its own (`<id>` is a customization identifier, and the
+part in brackets is there only when one is given):
+
+| Key | Type | Kept by |
+|-----|------|---------|
+| `TUIFilePanels[.<id>].viewMode` | raw value: `list`, `columns` | file panels |
+| `TUIFilePanels[.<id>].preview` | raw value: `automatic`, `shown`, `hidden` | file panels |
+| `TUIFilePanels[.<id>].showsHiddenFiles` | `Bool` | file panels |
+| `TUIFilePanels[.<id>].open.width`, `.open.height`, `.save.width`, `.save.height` | `Int`, in cells | file panels |
+| `TUIFilePanels.<id>.directory` | `String`, a path | file panels |
+| `TUI Toolbar Configuration <id>` | `{"order": [String]?, "shown": [String: Bool]}` | `toolbar(id:content:)` |
+| `tuikit.colorPicker.palette256.showNumbers` | `Bool` | the colour picker |
+| `tuikit.gradientEditor.recents` | `String`: gradients in `GradientStopsText`'s form, separated by `;` | the gradient editor |
+| `scene.<namespace><key>` | the app's value, the last any session saved | `@SceneStorage` |
+| `scene@<session digest><namespace><key>` | the app's value, for one terminal session | `@SceneStorage` |
+| `scene@sessions` | `{session: {"lastWritten": Double, "keys": [String]}}` | `@SceneStorage` |
+| `language` (a file) | a language code | `LocalizationService` |
+
+The settings panel (F2) and the view and accessibility preferences it sets are
+not saved: they last for the run.
+
+The tests read committed copies of these files: `settings.json` as TUI writes it
+today, and `settings-newer.json` as a later TUI might
+(`Tests/TUITestSupport/__Fixtures__/PersistedSettings`,
+`PersistedSettingsCompatibilityTests` and the file panels' and toolbar's own).
+Never regenerate today's file to make a test pass, because apps already have
+that file on disk. Add a key to both files when you add one to the table.
+
+When you change what is saved:
+
+- **Give a new key's reader a default.** A newer reader that finds no value
+  uses the default, and an older reader never asks for the key.
+- **Make a new field of a saved record optional**, or decode it with
+  `decodeIfPresent`, so a record written before the field existed, or by a
+  later writer that leaves it out, still reads. Synthesized `Codable` ignores
+  a field it doesn't know, which is what an older reader needs. Never make a
+  field required that wasn't, and never remove one an older reader requires:
+  write it on as before.
+- **Decode an unknown enum case to a default.** A later release may add a case,
+  and an older reader must not lose the setting or the record around it. Store
+  an enum by raw value, which `@AppStorage` and `@SceneStorage` already
+  decode to the default when the case is unknown. Inside a record, decode the
+  case with a fallback in `init(from:)` rather than letting the whole record
+  fail.
+- **Clamp what you read.** A size, count or index may be out of range for this
+  build, or for the terminal. Clamp it where it is used, and don't save the
+  clamped value back.
+- **To rename or retype a key,** read the new name first and fall back to the
+  old one. Write both until the next major release, and the old one only in
+  the form older readers understand. The release after that may drop the old
+  name. Never change a key's type in place, because an older reader would read
+  the new value as absent.
+- **Keep what you don't know.** A store that rewrites a file keeps every key
+  it didn't change, whether or not it can read it (`JSONFileStorage` lays its
+  own writes over what is on disk).
+
 ## Code Style
 
 - Line length: 160 characters (warning), 200 (error)

@@ -35,7 +35,9 @@ promised: TUI is a source package built with the app, without library evolution,
 5. Persisted state, both ways within a major release: an app built with any 1.n reads the settings an app built
    with any 1.m wrote, older or newer (`UserDefaults` on macOS; `settings.json` and `UserDefaults.json` in the app's
    configuration directory elsewhere), at the same paths. Across major releases TUI tries to keep it too, by
-   reading an old name as a fallback and writing under both old and new names (decision 8).
+   reading an old name as a fallback and writing under both old and new names (decision 8). The keys TUI keeps,
+   and how to change one without breaking either direction, are in
+   [CONTRIBUTING](<../CONTRIBUTING.md#persisted-settings>).
 
 **What a minor or patch release may still do,** as is usual for Swift packages and not counted as breaking:
 
