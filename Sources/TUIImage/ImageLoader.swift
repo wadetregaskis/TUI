@@ -563,6 +563,14 @@ extension PlatformImageLoader {
         /// long as it runs, so it must not suppress again itself, nor write to
         /// stderr through ``StandardError``: the one in the product is a single
         /// Core Graphics draw into a bitmap.
+        /// Runs `body` while no suppression can be under way: under the same lock,
+        /// so what it reads of fd 2 is stderr's own. For tests, which must not
+        /// reach into `TUICore` for the lock (a test target imports only the
+        /// modules its own depends on directly).
+        static func withStandardErrorSettled<T>(_ body: () -> T) -> T {
+            StandardError.lock.withLock { _ in body() }
+        }
+
         static func suppressingStandardError(_ body: () -> Void) {
             StandardError.lock.withLock { _ in
                 unsafe fflush(stderr)
