@@ -7,6 +7,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+// Only where the package can depend on the app (see Package.swift).
+#if canImport(Example)
+
 import Testing
 
 @testable import Example
@@ -118,3 +121,5 @@ struct ExampleMenuBarTests {
         #expect(app.screen.contains(text("commands.nextPalette")), "the panel offers the hidden items: \(app.screen)")
     }
 }
+
+#endif

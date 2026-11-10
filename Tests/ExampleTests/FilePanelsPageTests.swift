@@ -4,6 +4,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+// Only where the package can depend on the app (see Package.swift).
+#if canImport(Example)
+
 import Foundation
 import Testing
 
@@ -85,3 +88,5 @@ struct FilePanelsPageTests {
         #expect(!app.screen.contains(notice), "closed with its panel")
     }
 }
+
+#endif

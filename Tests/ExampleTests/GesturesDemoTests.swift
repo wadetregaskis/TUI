@@ -4,6 +4,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+// Only where the package can depend on the app (see Package.swift).
+#if canImport(Example)
+
 import Testing
 
 @testable import Example
@@ -64,3 +67,5 @@ struct GesturesDemoTests {
         #expect(counts(app) == ["child 0 · parent 1", "child 0 · parent 1"], "\(app.screen)")
     }
 }
+
+#endif

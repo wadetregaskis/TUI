@@ -4,6 +4,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+// Only where the package can depend on the app (see Package.swift).
+#if canImport(Example)
+
 import Foundation
 import Testing
 
@@ -40,3 +43,5 @@ struct CanvasDemoTests {
         #expect(app.screen.lines != before)
     }
 }
+
+#endif

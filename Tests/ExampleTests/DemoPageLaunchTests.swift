@@ -4,6 +4,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+// Only where the package can depend on the app (see Package.swift).
+#if canImport(Example)
+
 import Testing
 
 @testable import Example
@@ -59,3 +62,5 @@ struct DemoPageLaunchTests {
         #expect(DemoPage.launchPage(arguments: ["--page", "emoji"], environment: [:]) == .menu)
     }
 }
+
+#endif

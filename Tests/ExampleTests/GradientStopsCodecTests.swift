@@ -7,6 +7,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+// Only where the package can depend on the app (see Package.swift).
+#if canImport(Example)
+
 import Testing
 
 @testable import Example
@@ -33,3 +36,5 @@ struct GradientStopsCodecTests {
         #expect(decoded.stops.map(\.color) == [.rgb(255, 0, 0), .rgb(0, 0, 255)])
     }
 }
+
+#endif

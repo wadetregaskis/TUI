@@ -4,6 +4,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+// Only where the package can depend on the app (see Package.swift).
+#if canImport(Example)
+
 import Foundation
 import Testing
 
@@ -33,3 +36,5 @@ struct ShortcutsDemoTests {
         #expect(chose()?.hasSuffix("—") == true, "opening the pop-up again clears it: \(chose() ?? "none")")
     }
 }
+
+#endif

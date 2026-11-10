@@ -4,6 +4,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+// Only where the package can depend on the app (see Package.swift).
+#if canImport(Example)
+
 import Foundation
 import Testing
 
@@ -57,3 +60,5 @@ struct NotificationsDemoTests {
         #expect(service.activeEntries().map(\.message).last == "page.overlays.notifications.restored")
     }
 }
+
+#endif
