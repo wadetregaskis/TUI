@@ -166,10 +166,18 @@ struct FilePanelColumnViewTests {
         await driver.waitFor("Name of new folder")
         #expect(driver.click("Create"))
         await settle { FileManager.default.fileExists(atPath: fixture.url("Alpha/untitled folder").path) }
-        // Waits for the column read again, Alpha's: "notes.md" is in ~'s, which
-        // never stopped showing it, so a wait on it ended at once, and Linux on
-        // Swift 6.4 (CI run 100) found Alpha's column still empty.
-        let shown = await driver.waitFor("inner.txt", timeout: .seconds(5))
+        // Both columns are read again, each in its own time, so the wait is for
+        // both: a wait on "notes.md" (~'s) ended before Alpha's column had been
+        // read (Linux, Swift 6.4, CI run 100), and one on "inner.txt" (Alpha's)
+        // before ~'s had (a loaded gate, 2026-11-09: ~'s column "Loading…").
+        // The bug this guards leaves a column "Loading…" for good, which still
+        // times out here.
+        await settle(
+            until: {
+                let screen = driver.screen()
+                return screen.contains("notes.md") && screen.contains("inner.txt")
+            }, timeout: .seconds(30))
+        let shown = driver.screen()
         #expect(shown.contains("notes.md") && shown.contains("inner.txt"), "\(shown)")
     }
 
