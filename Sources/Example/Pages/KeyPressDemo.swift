@@ -48,6 +48,10 @@ struct KeyPressDemo: View {
 
     /// The track, the marker where the arrows have put it.
     private var track: String {
-        String((0..<Self.trackLength).map { $0 == position ? "●" : "·" })
+        // `Character` stated: with literals alone, Swift 6.4.0 on static
+        // Linux finds `String.init` ambiguous between the `Character`
+        // sequence, `Unicode.Scalar` collection (`_RegexParser`'s) and
+        // `RangeReplaceableCollection` overloads.
+        String((0..<Self.trackLength).map { (index: Int) -> Character in index == position ? "●" : "·" })
     }
 }
