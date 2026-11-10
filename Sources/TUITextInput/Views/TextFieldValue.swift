@@ -87,12 +87,14 @@ struct _FormattedFieldBody<Label: View>: View {
     @State private var draft: String?
 
     var body: some View {
-        let field = TextField(text: draftBinding, prompt: prompt) { label }
+        var field = TextField(text: draftBinding, prompt: prompt) { label }
             .disabled(isDisabled)
-            .onSubmit {
-                commit()
-                onSubmitAction?()
-            }
+        // Return commits whether or not the app gave an `onSubmit`, and before
+        // it runs. The commit is not a submit action: a field with none still
+        // lets Return go on to a dialog's default button.
+        field.returnCommitAction = commit
+        if let onSubmitAction { field = field.onSubmit(onSubmitAction) }
+        field = field
             .onEditingChanged { isEditing in
                 // Leaving the field is a commit point exactly as Return is —
                 // a value the user typed and then tabbed away from was still

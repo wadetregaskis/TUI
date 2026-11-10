@@ -204,6 +204,13 @@ public struct TextField<Label: View> {
     /// Action fired when editing begins (`true`) and ends (`false`).
     var onEditingChangedAction: ((Bool) -> Void)?
 
+    /// What Return does before any submit action, which runs whether or not
+    /// the field has one: a value field's commit of its draft
+    /// (``_FormattedFieldBody``). Not a submit action itself, so a field the
+    /// app gave no `onSubmit` still lets Return go on to a default button,
+    /// with the value already written for it to read.
+    var returnCommitAction: (() -> Void)?
+
     /// Set when the field edits a typed value rather than a `String` — see
     /// ``init(value:format:prompt:label:)``. `text` is then unused: the string
     /// being edited is a draft the bridging view holds, not the caller's.
@@ -243,6 +250,7 @@ public struct TextField<Label: View> {
                     focusID: focusID,
                     isDisabled: isDisabled,
                     onSubmitAction: onSubmitAction,
+                    returnCommitAction: returnCommitAction,
                     onEditingChangedAction: onEditingChangedAction,
                     axis: axis,
                     selection: selection,
@@ -652,6 +660,8 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
     let focusID: String?
     let isDisabled: Bool
     let onSubmitAction: (() -> Void)?
+    /// See ``TextField/returnCommitAction``.
+    let returnCommitAction: (() -> Void)?
     let onEditingChangedAction: ((Bool) -> Void)?
 
     /// `.vertical` for a field whose text wraps over rows — drawn by
@@ -976,6 +986,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
             perField: onSubmitAction,
             cascading: context.environment.submitActions,
             role: context.environment.submitTriggerRole)
+        handler.onReturnCommit = returnCommitAction
         handler.onEditingChanged = onEditingChangedAction
         handler.textContentType = context.environment.textContentType
         // The app's undo manager, which the field's edits are registered with,

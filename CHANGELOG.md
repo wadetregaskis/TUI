@@ -79,6 +79,11 @@ named `UserDefaultsStorage`. Since then a `Bool`, a number, a string or a raw va
 keeps it, and such a value saved earlier read as absent, so it showed its default. It is now read from its JSON. It
 stays as it is until the next write, which keeps the value as itself.
 
+**Return in a `TextField(value:format:)` with no `onSubmit` reaches the default button.** Its own commit of what
+was typed counted as a submit action, so the field always kept Return, and in a dialog the button marked
+`.keyboardShortcut(.defaultAction)` never heard it. Return now writes the value back and goes on to the button, as it
+does from any field with no `onSubmit`, and the button reads the value just typed.
+
 **Text fields and editors keep the accents, joiners and variation selectors typed after a character.** A terminal
 sends what a keyboard, an input method or the emoji picker types a Unicode scalar at a time, and `TextField`,
 `SecureField` and `TextEditor` dropped every scalar that was a mark or a format character on its own: 👨‍👩‍👧 went in

@@ -221,6 +221,10 @@ final class TextFieldHandler: PersistedFocusable {
     /// Callback triggered when the user presses Enter.
     var onSubmit: (() -> Void)?
 
+    /// What Enter does first, whether or not there is an ``onSubmit``: a
+    /// value field's commit of its draft (``TextField/returnCommitAction``).
+    var onReturnCommit: (() -> Void)?
+
     /// The last text Ctrl-K killed, for Ctrl-Y to yank back: a single-slot
     /// kill ring, as ``TextEditorHandler`` keeps. It belongs to this field
     /// alone and is never the clipboard. A ``SecureField`` keeps nothing here
@@ -625,7 +629,9 @@ extension TextFieldHandler {
             // A field with a submit action consumes Return; without one it
             // lets Return fall through — so in a dialog, Return pressed while
             // typing triggers the `.keyboardShortcut(.defaultAction)` button
-            // (the macOS text-system behaviour).
+            // (the macOS text-system behaviour). A value field commits what was
+            // typed either way, so the button reads the value.
+            onReturnCommit?()
             guard let onSubmit else { return false }
             onSubmit()
             return true
