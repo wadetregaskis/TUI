@@ -427,9 +427,9 @@ enum FatalSignalTerminalRestore {
         #if canImport(Darwin)
             unsafe unsafeBitCast(action.__sigaction_u, to: Int.self)
         #elseif canImport(Glibc)
-            unsafeBitCast(action.__sigaction_handler, to: Int.self)
+            unsafe unsafeBitCast(action.__sigaction_handler, to: Int.self)
         #elseif canImport(Musl)
-            unsafeBitCast(action.__sa_handler, to: Int.self)
+            unsafe unsafeBitCast(action.__sa_handler, to: Int.self)
         #endif
         // swiftlint:enable function_address_identity
     }
