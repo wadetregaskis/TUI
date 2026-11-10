@@ -26,6 +26,10 @@ sort, left the focus where it was, on whichever row took that place, so Space, R
 never moved to: always at the top of a list, and anywhere for a change between the top row on screen and the focused
 row. The focus now follows its row. When the focused row itself goes, the row after it takes the focus, as before.
 
+**F2 under the list of shortcuts leaves the settings panel up.** With F1's list over the panel, F2 closed the panel
+out of sight, and taking the list down then showed the page. F2 does nothing while the list is up, as it does over the
+page.
+
 **A menu's item that removes the view its menu hangs from leaves the focus beside it.** Choosing Delete from a row's
 `.contextMenu`, or an item of a pop-up `Menu` that hides the `Menu` itself, sent the focus to the first control on the
 screen. It now goes to the next control, or the one before where there's none after, as when a focused control removes

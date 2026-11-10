@@ -92,12 +92,14 @@ extension InputHandler {
     ///
     /// Not over another modal surface, an open drop-down or the quit
     /// question: the panel is a sheet of its own, and opens over the page. A
-    /// held key opens it once.
+    /// held key opens it once. Nor while F1's list is up, over the panel or
+    /// not: the list holds the keyboard, and the key would close a panel
+    /// out of sight beneath it.
     ///
     /// - Returns: Whether `event` was taken.
     func runSettingsPanelKey(_ event: KeyEvent, inputGrabbed: Bool) -> Bool {
         guard let settingsPanel, let key = settingsPanel.key, event.key == key, !event.shift,
-            tooltipState?.helpKey != key
+            tooltipState?.helpKey != key, shortcutOverlay?.isPresented != true
         else { return false }
         if settingsPanel.isPresented {
             if event.phase != .repeat { settingsPanel.dismiss() }
