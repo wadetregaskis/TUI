@@ -93,7 +93,7 @@ chose.
 |---|---|---|---|
 | SDK-27 | (a): a manual (`workflow_dispatch`) CI job on the `xcode-27` image runs the parity tool and uploads its report; the owner pushes and runs it once. | None recorded. The page: no Mac at hand runs Xcode 27, the 2026 SwiftUI additions are known only from blogs, and the parity rule needs exact signatures; the other options were installing Xcode 27 elsewhere or downloading a third-party interface dump. | `d329edf03` (`swiftui-parity-27.yml`); the run is an [owner action](<../../Open owner decisions.md#owner-actions>) |
 | LIVE-SWIFT | (a): the static gallery only, no compile service. | None recorded. The page: no hosted site can run TUI; a compile service costs $20–40 a month and a security review for running untrusted code. | `3e14f32e0`, landed before the answer |
-| API-STABILITY | Not yet decided: the owner will answer the draft's eleven points, in the draft or in chat. | — | Still [open](<../../Open owner decisions.md>) |
+| API-STABILITY | Answered later the same evening, point by point: see below. | — | [API stability policy](<../../API stability policy.md>) |
 | LEAKS | (a): hide the 14 underscored types that were public by accident (10 `internal`, 4 `package`) and re-baseline the API. | None recorded. The page: nothing outside TUI names them; they only widen the surface 1.0 would promise. | `c6d7737b7` |
 | SECURITY | (a): the owner switches on GitHub's private vulnerability reporting; `SECURITY.md` stays as written. | None recorded. Only the owner can change the repository's settings. | An [owner action](<../../Open owner decisions.md#owner-actions>) |
 | NOTES | (a): hand-written release highlights for 1.0 that link to the full CHANGELOG, drafted before 1.0. | None recorded. The page: `## Unreleased` is over GitHub's 125,000-character limit for a release's notes. | Queued (NOTES) |
@@ -103,3 +103,22 @@ chose.
 | STUBS-DOCS | (a): the `@available(*, unavailable)` SwiftUI stubs stay out of DocC's collections. | None recorded. The page: they do not compile, and *Coming from SwiftUI* says what to use instead. | As built |
 | VERSION | (c): leave `Sources/TUIStrings/VERSION` at 0.6.0. It stays 0.6.0, TUIkit's last tag, until the next tag, which `Tools/Release/release.sh` bumps it for; the Example's header reads "TUI v0.6.0" until then. | None recorded. | Unchanged |
 | KEY-SPELL | (a): keep spelling ⌥ ⇧ ⌘ as `Alt-`, `Shift-`, `Cmd-` before layout on terminals that only take ASCII. | None recorded. The page: blank glyphs or single letters were worse than a changed layout. | As landed (PARITY-C) |
+
+### The API-stability draft, answered the night of 2026-11-09
+
+The owner answered the draft's eleven points in chat, adding its two option sections (minimum versions and
+deprecation) as points 6 and 7. The owner's words are quoted where they add to the option chosen.
+
+| # | Decision | Why, as recorded | Where it went |
+|---|---|---|---|
+| 1 | What is public API: as written. | None recorded. | [API stability policy](<../../API stability policy.md>) |
+| 2 | Underscored names "are not public API, and are subject to change at any time"; and "check the remaining ones to ensure they all _have_ to be `public`; any that don't, make `package` or `private` or whatever." | None recorded. | The policy; an audit of the remaining underscored publics (2026-11-09) |
+| 3 | "Any public enum may gain cases, at any time", apps using `default` or `@unknown default` to allow for it. | The owner's reasoning: an app that wants to ignore future cases can say so. Measured that night on Swift 6.2.4, 6.3.3 and 6.4.0 against a source package's enum: `@unknown default` gives no warning, and after a case is added still compiles with a warning; a switch with no default stops compiling. | The policy |
+| 4 | Keep all 35 library products. | None recorded. | The policy |
+| 5 | The experiments: "I want to test these and make a real decision on them before 1.0", with a reminder if the owner doesn't follow up. | — | Still [open](<../../Open owner decisions.md>) |
+| 6 | Minimum Swift and macOS: (B), "only a major release can raise these. Any release may lower them." | None recorded. The draft recommended (A), a minor release raising one with a release's notice. | The policy |
+| 7 | Deprecation: (A), deprecate until the next major, which removes. SwiftUI's deprecations: "decide on a case-by-case basis whether we want to deprecate them as well". | The owner: SwiftUI's replacements "may or may not work for TUI". | The policy |
+| 8 | Persisted settings: "full compatibility (forward & backward) within a major release version", and kept across majors where possible. | The owner: "it should be easy in most cases, since we can have read fallbacks to old names and write under both new & old names". | The policy |
+| 9 | "WebAssembly and Windows need to be fully working and supported for 1.0." | The owner: Windows is "the last major work item, of which I'm aware", to be done on a Windows VM. The draft recommended WebAssembly as best effort and Windows later. | The policy; 1.0 work |
+| 10 | `api_baseline.py --check` runs in CI. | None recorded. | CI (2026-11-09) |
+| 11 | The open defaults: the owner asked what they are; explained that night. | — | Still [open](<../../Open owner decisions.md>) |

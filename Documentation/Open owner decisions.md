@@ -20,24 +20,25 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
   makes a hung app quit.
 - **Animated pictures:** run `python3 Tools/TerminalProbes/animation_probe.py` in Ghostty. Its result decides whether a
   terminal playing an animated picture by itself (`TUI_GRAPHICS_PLAYBACK`, off today) goes on by default.
-- **Push `main`.** Local `main` is ahead of GitHub (189 commits on 2026-11-08; last pushed 2026-11-06,
-  `16dfc440f`).
 - **Compiler bug reports** on the Desktop, one file per bug, are yours to file.
-- **Push, then run the SwiftUI-27 parity job once** (SDK-27, 2026-11-09): after pushing `main`, *Actions →
-  SwiftUI parity (Xcode 27) → Run workflow* with the defaults. It compares TUI with Xcode 27's SwiftUI on GitHub's
-  `xcode-27` image and keeps the report as the run's artifact, which I read with the read-only token. Until then the
-  comparison runs against Xcode 26.3's SDK, and MACOS27-PARITY waits on it.
+- **Run the SwiftUI-27 parity job once** (SDK-27, 2026-11-09): *Actions → SwiftUI parity (Xcode 27) → Run
+  workflow* with the defaults. It compares TUI with Xcode 27's SwiftUI on GitHub's `xcode-27` image and keeps the
+  report as the run's artifact, which I read with the read-only token. Until then the comparison runs against Xcode
+  26.3's SDK, and MACOS27-PARITY waits on it. Before 1.0: a mismatch it finds is free to fix now, and a major
+  release after.
+- **A Windows VM** (API-STABILITY point 9, 2026-11-09): Windows is to be fully supported at 1.0, and the port is
+  done on a Windows VM. Say how it is reached when it is ready.
 - **Switch on private vulnerability reporting** (SECURITY, 2026-11-09): the repository's *Settings → Security →
   Private vulnerability reporting*. `SECURITY.md` already sends reporters there; until it is on, the link it gives
   leads nowhere.
 
 ## Decisions waiting on you
 
-### Open on 2026-11-08
+### Open on 2026-11-09
 
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
-| API-STABILITY | What 1.0 promises about the public API, and how deprecation and minimum versions work after it: [the draft](<API stability policy (draft).md>), with eleven decisions in its last table. Still open on 2026-11-09: you will answer the eleven points, in the draft or in chat. | Its recommendations | Nothing is promised; the pre-1.0 rules stand |
+| EXPERIMENTS | Each experiment, promoted, kept as a documented experiment, or deleted before 1.0 (API-STABILITY point 5, 2026-11-09: you'll test them first): `TUI_ARROW_FOCUS`, `TUI_CURSOR_FOLLOWS_FOCUS`, `TUI_PLAIN_TEXT=transliterate`, `TUI_GRAPHICS_PLAYBACK` (see the animation probe above), and the held-press widening (A-TEXT2-1). The [API stability policy](<API stability policy.md>) leaves an experiment out of the promise until it is promoted. | Decide each after trying it | They stay experiments, unpromised; 1.0 waits for your call |
 
 ### Open on 2026-11-01
 

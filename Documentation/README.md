@@ -16,7 +16,7 @@ how something came to be, and the decisions behind it, is in [Historical](<Histo
 | Document | What it is |
 |---|---|
 | [Open owner decisions](<Open owner decisions.md>) | The questions waiting on the owner, each with a recommendation and a default. Open ones only: answers move to the decision records in Historical. |
-| [API stability policy (draft)](<API stability policy (draft).md>) | What 1.0 would promise about the public API and what it would not, the deprecation and minimum-version options after 1.0, and the decisions it waits on. Not yet approved. |
+| [API stability policy](<API stability policy.md>) | What 1.0 promises about the public API and what it does not, supported platforms, minimum versions and deprecation after 1.0, and the owner's decisions (2026-11-09). In force from 1.0.0. |
 | [Future options](<Future options.md>) | Ideas measured or designed and deliberately not taken, each with why not now and what would reopen it. |
 | [Environment variables for developing TUI](<Environment variables for developing TUI.md>) | The variables read only by TUI's own tests, tools and demos; those for an app's users are in the DocC article. |
 | [Compiled hot reload](<Compiled hot reload.md>) | The design for updating a running app from a saved source file, its state intact; wanted after the first release. |
