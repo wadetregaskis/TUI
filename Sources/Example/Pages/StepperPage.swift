@@ -35,8 +35,8 @@ struct StepperPage: View {
         DemoSection("page.stepper.basicSection") {
             // The label renders inline (SwiftUI parity); no separate Text needed.
             Stepper("page.stepper.quantity", value: $quantity)
-                // .stepperTextStyle re-themes the stepper's text (arrows unaffected).
-                .stepperTextStyle { $0.bold = true; $0.foreground = .palette.accent }
+                // .style(.control(.stepper)) re-themes the stepper's text (arrows unaffected).
+                .style(.control(.stepper)) { $0.bold = true; $0.foreground = .palette.accent }
         }
     }
 
@@ -67,7 +67,7 @@ struct StepperPage: View {
                 }
             )
             .stepperValueText(colors[colorIndex])
-            .stepperTextStyle { $0.foreground = .palette.accent }
+            .style(.control(.stepper)) { $0.foreground = .palette.accent }
         }
     }
 

@@ -334,17 +334,6 @@ extension View {
     nonisolated public func toggleStyle<S: ToggleStyle>(_ style: S) -> some View {
         environment(\.toggleStyle, style)
     }
-
-    /// Styles the *label* text of every toggle in this view's subtree (a
-    /// `.control(.toggle)`-scoped style entry). The checkbox indicator is
-    /// unaffected.
-    ///
-    /// ```swift
-    /// SettingsForm().toggleTextStyle { $0.italic = true }
-    /// ```
-    nonisolated public func toggleTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
-        style(.control(.toggle), build)
-    }
 }
 
 // MARK: - Toggle

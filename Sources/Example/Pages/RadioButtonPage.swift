@@ -58,8 +58,8 @@ struct RadioButtonPage: View {
                 RadioButtonItem("vertical", "page.radioButton.vertical")
                 RadioButtonItem("horizontal", "page.radioButton.horizontal")
             }
-            // .radioButtonTextStyle re-themes the labels (●/○ indicator unaffected).
-            .radioButtonTextStyle { $0.bold = true; $0.foreground = .palette.accent }
+            // .style(.control(.radioButton)) re-themes the labels (●/○ indicator unaffected).
+            .style(.control(.radioButton)) { $0.bold = true; $0.foreground = .palette.accent }
         }
     }
 

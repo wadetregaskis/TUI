@@ -15,6 +15,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**The per-control text-style modifiers are gone; write `.style(.control(.button)) { … }` and its kind instead.**
+`buttonTextStyle`, `toggleTextStyle`, `sliderTextStyle`, `stepperTextStyle`, `pickerTextStyle`,
+`radioButtonTextStyle`, `secureFieldTextStyle` and `textFieldTextStyle` each forwarded to `.style(.control(.x))`, and
+lists, tables and colour pickers had none. Replace `.toggleTextStyle { $0.italic = true }` with
+`.style(.control(.toggle)) { $0.italic = true }`, and so on for each kind. One look of button takes the typed scope
+`.style(.buttonVariant(.automatic)) { … }` where `.buttonTextStyle(.automatic) { … }` was. `StyleScope.controlVariant`,
+which carried a button's look as a string, and `EnvironmentValues.controlVariant`, which nothing set, are removed too.
+
 **A focused or disabled control shows it on a 16-colour terminal in every palette.** Rounded to a terminal's sixteen
 colours, some palettes' states land on the colour the control rests in: in Silver Aerogel, whose accent becomes its
 page, a focused slider, stepper, tab view, menu, `.button` toggle and bordered or prominent button drew as at rest;

@@ -14,7 +14,7 @@ import TUIFoundation
 /// column all the same.
 @MainActor extension Slider: FormFieldControl {
     package func formFieldParts(in environment: EnvironmentValues) -> (label: AnyView, control: AnyView)? {
-        // The label resolves `.sliderTextStyle` in the column as beside the
+        // The label resolves `.style(.control(.slider))` in the column as beside the
         // track, and dims with a disabled slider.
         let detached = _DetachedControlLabel(label: label, controlDisabled: isDisabled)
         return (AnyView(detached.environment(\.controlKind, .slider)), AnyView(labelsHidden()))

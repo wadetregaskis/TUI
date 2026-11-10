@@ -694,8 +694,8 @@ struct ValueHashPlanTests {
         #expect(Set(hashes).count == styles.count, "\(hashes)")
         #expect(hashes == styles.map { hash($0, plans: plans) })
         let scopes: [StyleScope] = [
-            .all, .text, .semanticColor(.accent), .control(.button), .controlVariant(.button, "a"),
-            .controlVariant(.button, "b"), .font(.headline),
+            .all, .text, .semanticColor(.accent), .control(.button), .buttonVariant(.automatic),
+            .buttonVariant(.plain), .font(.headline),
         ]
         let scopeHashes = scopes.map { hash($0, plans: plans) }
         #expect(!scopeHashes.contains(nil))

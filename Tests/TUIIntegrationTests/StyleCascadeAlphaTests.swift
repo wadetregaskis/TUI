@@ -39,7 +39,7 @@ struct StyleCascadeAlphaTests {
     @Test("A standard button's label claims the cells between its caps")
     func standardButtonLabelClaims() throws {
         let drawn = buffer(
-            Button("Save") {}.buttonTextStyle { $0.foreground = faded })
+            Button("Save") {}.style(.control(.button)) { $0.foreground = faded })
         let claim = try #require(drawn.opacityRegions.first, "\(drawn.opacityRegions)")
         // One cell in: the `▐` cap is its own colour and, when focused, its own run.
         #expect(claim.offsetX == 1)
@@ -50,7 +50,7 @@ struct StyleCascadeAlphaTests {
     @Test("A plain button's label claims past the cells the focus prefix reserves")
     func plainButtonLabelClaims() throws {
         let drawn = buffer(
-            Button("Save") {}.buttonStyle(.plain).buttonTextStyle { $0.foreground = faded })
+            Button("Save") {}.buttonStyle(.plain).style(.control(.button)) { $0.foreground = faded })
         let claim = try #require(drawn.opacityRegions.first, "\(drawn.opacityRegions)")
         #expect(claim.offsetX == BorderRenderer.focusIndicatorWidth)
         #expect(claim.inkOpacity == half)
@@ -62,12 +62,12 @@ struct StyleCascadeAlphaTests {
     @Test("The bytes state the opaque colour, never the faded one")
     func bytesAreOpaque() {
         for view in [
-            AnyView(Button("Save") {}.buttonTextStyle { $0.foreground = faded }),
-            AnyView(Button("Save") {}.buttonStyle(.plain).buttonTextStyle { $0.foreground = faded }),
-            AnyView(TextField("", text: .constant("hi")).textFieldTextStyle { $0.foreground = faded }),
-            AnyView(Slider(value: .constant(0.5), in: 0...1).sliderTextStyle { $0.foreground = faded }),
+            AnyView(Button("Save") {}.style(.control(.button)) { $0.foreground = faded }),
+            AnyView(Button("Save") {}.buttonStyle(.plain).style(.control(.button)) { $0.foreground = faded }),
+            AnyView(TextField("", text: .constant("hi")).style(.control(.textField)) { $0.foreground = faded }),
+            AnyView(Slider(value: .constant(0.5), in: 0...1).style(.control(.slider)) { $0.foreground = faded }),
             AnyView(Stepper(value: .constant(3), in: 0...9) { Text("n") }
-                .stepperTextStyle { $0.foreground = faded }),
+                .style(.control(.stepper)) { $0.foreground = faded }),
         ] {
             let drawn = buffer(view)
             let text = drawn.lines.joined()
@@ -80,7 +80,7 @@ struct StyleCascadeAlphaTests {
     @Test("An opaque cascade colour claims nothing")
     func opaqueCascadeClaimsNothing() {
         let drawn = buffer(
-            Button("Save") {}.buttonTextStyle { $0.foreground = .rgb(200, 40, 40) })
+            Button("Save") {}.style(.control(.button)) { $0.foreground = .rgb(200, 40, 40) })
         #expect(drawn.opacityRegions.isEmpty, "\(drawn.opacityRegions)")
     }
 
@@ -89,7 +89,7 @@ struct StyleCascadeAlphaTests {
     @Test("An unfocused TextField claims its whole content field")
     func unfocusedFieldClaims() throws {
         let drawn = buffer(
-            TextField("", text: .constant("hello")).textFieldTextStyle { $0.foreground = faded })
+            TextField("", text: .constant("hello")).style(.control(.textField)) { $0.foreground = faded })
         let claim = try #require(drawn.opacityRegions.first, "\(drawn.opacityRegions)")
         #expect(claim.inkOpacity == half)
         #expect(claim.offsetX >= 1, "past the field's opening cap")
@@ -99,7 +99,7 @@ struct StyleCascadeAlphaTests {
     func secureFieldClaims() throws {
         let drawn = buffer(
             SecureField("", text: .constant("hunter2"))
-                .secureFieldTextStyle { $0.foreground = faded })
+                .style(.control(.secureField)) { $0.foreground = faded })
         let claim = try #require(drawn.opacityRegions.first, "\(drawn.opacityRegions)")
         #expect(claim.inkOpacity == half)
     }
@@ -138,7 +138,7 @@ struct StyleCascadeAlphaTests {
     @Test("A Slider claims its value read-out and not its track")
     func sliderValueClaims() throws {
         let drawn = buffer(
-            Slider(value: .constant(0.5), in: 0...1).sliderTextStyle { $0.foreground = faded },
+            Slider(value: .constant(0.5), in: 0...1).style(.control(.slider)) { $0.foreground = faded },
             width: 30)
         let claim = try #require(drawn.opacityRegions.first, "\(drawn.opacityRegions)")
         #expect(claim.inkOpacity == half)
@@ -152,7 +152,7 @@ struct StyleCascadeAlphaTests {
     func stepperValueClaims() throws {
         let drawn = buffer(
             Stepper(value: .constant(3), in: 0...9) { Text("n") }
-                .stepperTextStyle { $0.foreground = faded })
+                .style(.control(.stepper)) { $0.foreground = faded })
         // TWO claims, and both are right: `Stepper` publishes its `controlKind`, so
         // the `Text("n")` label resolves the same `.control(.stepper)` entry and is
         // claimed by §14's uniform arm. The read-out's is the one this test is
@@ -182,7 +182,7 @@ struct StyleCascadeAlphaTests {
     func breathingLabelSpends() {
         let drawn = buffer(
             Link("Open", destination: URL(string: "https://example.com")!)
-                .buttonTextStyle { $0.foreground = faded })
+                .style(.control(.button)) { $0.foreground = faded })
         #expect(
             drawn.opacityRegions.isEmpty,
             "a breathing label cannot claim — see §29: \(drawn.opacityRegions)")

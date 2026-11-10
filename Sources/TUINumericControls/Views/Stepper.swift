@@ -131,7 +131,7 @@ nonisolated public struct Stepper<Label: View>: View {
         // "Qty ◀ 5 ▶". An empty/absent label collapses so there's no stray
         // leading space ("◀ 5 ▶"). The control's mouse regions are offset by the
         // composing HStack. `controlKind` lets the label resolve
-        // `.stepperTextStyle` like the value.
+        // `.style(.control(.stepper))` like the value.
         HStack(spacing: 0) {
             _CollapsingLabel(label: label, controlDisabled: isDisabled)
             _StepperCore(
@@ -883,7 +883,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
         let rightArrow = ANSIRenderer.colorize(TerminalSymbols.rightArrow, foreground: arrowColor)
 
         // Build value display — its colour/weight inherit the stepper's scoped
-        // style cascade (`.stepperTextStyle { … }`) as soft overrides.
+        // style cascade (`.style(.control(.stepper)) { … }`) as soft overrides.
         //
         // No value, no cells: an empty read-out collapses the slot to `◀▶`
         // rather than drawing two blanks between the arrows. A callbacks-only
@@ -913,7 +913,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
         // than assumed to be one cell: `◀` is U+25C0, East Asian Ambiguous (see
         // `TerminalWidthCorpus`), which is exactly why `_ToggleCore.claims`
         // measures its own runs. Its pad spaces are INSIDE the styled run —
-        // unlike a Slider's, which are appended bare — so `.stepperTextStyle
+        // unlike a Slider's, which are appended bare — so `.style(.control(.stepper))
         // { $0.underline = true }` puts ink on them and they are part of the claim.
         // The arrows themselves are opaque on every arm and animate besides.
         return (
@@ -921,15 +921,6 @@ private struct _StepperCore: View, Renderable, Layoutable {
             OpacityRegion.claim(
                 offsetX: TerminalSymbols.leftArrow.strippedLength,
                 width: shown.strippedLength + 2 * padding, height: 1, ink: effectiveValueColor))
-    }
-}
-
-extension View {
-    /// Styles the *value read-out* text of every stepper in this view's subtree
-    /// (a `.control(.stepper)`-scoped style entry). The +/- arrows are
-    /// unaffected.
-    nonisolated public func stepperTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
-        style(.control(.stepper), build)
     }
 }
 

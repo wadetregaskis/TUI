@@ -47,7 +47,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
     var surface: Color?
 
     /// A scoped style-cascade override for the entered text's colour
-    /// (`.textFieldTextStyle { … }`), or `nil` to use the palette foreground.
+    /// (`.style(.control(.textField)) { … }`), or `nil` to use the palette foreground.
     /// The cursor, selection, and (dim) prompt keep their own colours.
     var contentForeground: Color?
 
@@ -84,7 +84,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
     var promptSpelling = TextSpelling.asWritten
 
     /// The entered-text foreground, resolved to a concrete colour. A
-    /// `.textFieldTextStyle` override may be a *semantic* colour (e.g.
+    /// `.style(.control(.textField))` override may be a *semantic* colour (e.g.
     /// `.palette.accent`); resolving it against the palette here keeps a
     /// semantic value from reaching ``ANSIRenderer``, which traps on
     /// `.semantic`. A concrete colour resolves to itself.
@@ -110,7 +110,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
         /// `chrome.leadingCells` they already shift the caret by.
         ///
         /// A field's ink is the style cascade's, which an app may have faded
-        /// (`.textFieldTextStyle { $0.foreground = .red.opacity(0.5) }`), and its
+        /// (`.style(.control(.textField)) { $0.foreground = .red.opacity(0.5) }`), and its
         /// field surface comes from a palette slot a theme may have faded. Neither
         /// could travel out of here before: `FieldContent` carried a finished line
         /// and a caret, so the alpha had nowhere to ride and was spent on the
@@ -493,7 +493,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
         // profile). The cursor and the selection are the only colour
         // boundaries, so a typical field collapses to a handful of runs. The
         // visible result is identical — just fewer escape sequences.
-        // Entered text honours the `.textFieldTextStyle` cascade override; the
+        // Entered text honours the `.style(.control(.textField))` cascade override; the
         // cursor and selection keep their own colours.
         let textForeground = foregroundOverride ?? resolvedContentForeground(palette)
         let selection = Self.selectionColors(

@@ -1147,13 +1147,4 @@ extension RadioButtonGroup {
     }
 }
 
-extension View {
-    /// Styles the *label* text of every radio button in this view's subtree
-    /// (a `.control(.radioButton)`-scoped style entry). The ●/○ indicator is
-    /// unaffected.
-    nonisolated public func radioButtonTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
-        style(.control(.radioButton), build)
-    }
-}
-
 @MainActor extension RadioButtonGroup: FormControlRow {}

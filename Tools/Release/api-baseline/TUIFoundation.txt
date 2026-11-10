@@ -889,7 +889,6 @@ EnvironmentValues.controlKind | var controlKind: ControlKind? { get set }
 EnvironmentValues.controlSize | var controlSize: ControlSize { get set }
 EnvironmentValues.controlStyle | var controlStyle: ControlStyle { get set }
 EnvironmentValues.controlStyleManager | var controlStyleManager: ThemeManager? { get set }
-EnvironmentValues.controlVariant | var controlVariant: String? { get set }
 EnvironmentValues.defaultScrollAnchor | var defaultScrollAnchor: UnitPoint? { get set }
 EnvironmentValues.dialogPreferredWidth | var dialogPreferredWidth: Int { get set }
 EnvironmentValues.dismiss | var dismiss: DismissAction { get set }
@@ -3221,9 +3220,9 @@ StyleCascadeModifier.wrappedContent | @MainActor var wrappedContent: Content { g
 StyleCascadeModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
 StyleScope | enum StyleScope
 StyleScope.all | case all
+StyleScope.buttonVariant(_:) | case buttonVariant(Button.Variant)
 StyleScope.chrome(_:) | case chrome(ChromeRole)
 StyleScope.control(_:) | case control(ControlKind)
-StyleScope.controlVariant(_:_:) | case controlVariant(ControlKind, String)
 StyleScope.font(_:) | case font(Font.TextStyle)
 StyleScope.semanticColor(_:) | case semanticColor(SemanticColor)
 StyleScope.specificity | var specificity: Int { get }
@@ -3821,8 +3820,6 @@ View.buttonRepeatBehavior(_:) | nonisolated func buttonRepeatBehavior(_ behavior
 View.buttonSizing(_:) | nonisolated func buttonSizing(_ sizing: ButtonSizing) -> some View
 View.buttonStyle(_:) | nonisolated func buttonStyle<S>(_ style: S) -> some View where S : ButtonStyle
 View.buttonStyle(_:) | nonisolated func buttonStyle<S>(_ style: S) -> some View where S : PrimitiveButtonStyle
-View.buttonTextStyle(_:) | nonisolated func buttonTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View
-View.buttonTextStyle(_:_:) | nonisolated func buttonTextStyle(_ variant: Button.Variant, _ build: (inout StyleAttributes) -> Void) -> some View
 View.canvasGrain(_:) | nonisolated func canvasGrain(_ grain: CanvasGrain) -> some View
 View.clipShape(_:style:) | nonisolated func clipShape<S>(_ shape: S, style: FillStyle = FillStyle()) -> some View where S : Shape
 View.clipped(antialiased:) | nonisolated func clipped(antialiased: Bool = false) -> some View
@@ -4106,7 +4103,6 @@ View.tint(_:) | nonisolated func tint(_ tint: Color?) -> some View
 View.tint(_:) | nonisolated func tint<S>(_ tint: S?) -> some View where S : ShapeStyle
 View.toggleCharacterSet(_:) | nonisolated func toggleCharacterSet(_ style: ToggleCharacterSet) -> some View
 View.toggleStyle(_:) | nonisolated func toggleStyle<S>(_ style: S) -> some View where S : ToggleStyle
-View.toggleTextStyle(_:) | nonisolated func toggleTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View
 View.transaction(_:) | nonisolated func transaction(_ transform: @escaping (inout Transaction) -> Void) -> some View
 View.transaction(_:body:) | nonisolated func transaction<V>(_ transform: @escaping (inout Transaction) -> Void, @ViewBuilder body: (PlaceholderContentView<Self>) -> V) -> some View where V : View
 View.transaction(value:_:) | nonisolated func transaction<V>(value: V, _ transform: @escaping (inout Transaction) -> Void) -> some View where V : Equatable

@@ -375,7 +375,7 @@ struct ButtonsPage: View {
     private var themeableText: some View {
             DemoSection("page.buttons.section.themeableText") {
                 VStack(alignment: .leading, spacing: 1) {
-                    // .buttonTextStyle re-themes the label text of every button in
+                    // .style(.control(.button)) re-themes the label text of every button in
                     // the subtree; the brackets/background stay as the style draws
                     // them.
                     HStack(spacing: 2) {
@@ -383,7 +383,7 @@ struct ButtonsPage: View {
                         Button("page.buttons.two") { clickCount += 1 }
                         Button("page.buttons.delete", role: .destructive) { clickCount += 1 }
                     }
-                    .buttonTextStyle { $0.bold = true; $0.foreground = .green }
+                    .style(.control(.button)) { $0.bold = true; $0.foreground = .green }
 
                     Text("page.buttons.themeableNote")
                     .foregroundStyle(.palette.foregroundSecondary)

@@ -805,7 +805,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
             suggestionMenu != nil ? max(minContentWidth, contentWidth - 2) : contentWidth
 
         // Build the text field content using shared renderer. The entered text
-        // honours a `.control(.textField)` cascade foreground (`.textFieldTextStyle`).
+        // honours a `.control(.textField)` cascade foreground (`.style(.control(.textField))`).
         let cascaded = context.environment.styleCascade.resolve(
             for: [.all, .text, .control(.textField)])
         // A text field draws what was typed, mapping tabs to spaces and control
@@ -926,7 +926,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
     /// function: the CONTENT's claims are in the content's own frame and shift by the
     /// opening cap (the only chrome before it — the same shift the caret takes); the
     /// CAPS' need the finished line's width, because the trailing one sits at its end;
-    /// and the ▾'s sit past the content. A faded `.textFieldTextStyle` foreground, a
+    /// and the ▾'s sit past the content. A faded `.style(.control(.textField))` foreground, a
     /// theme that faded the field surface, and a faded page whose surface now carries
     /// its alpha (§39) all arrive here rather than being spent on the escape.
     static func attachFieldClaims(
@@ -1010,14 +1010,5 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         // The app's selection is taken by the render that draws it.
         if !context.isMeasuring { handler.adoptSelectionFromApp() }
         return handler
-    }
-}
-
-extension View {
-    /// Styles the entered *text* of every text field in this view's subtree
-    /// (a `.control(.textField)`-scoped style entry). The cursor, selection
-    /// highlight, and the (dim) prompt keep their own colours.
-    nonisolated public func textFieldTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
-        style(.control(.textField), build)
     }
 }

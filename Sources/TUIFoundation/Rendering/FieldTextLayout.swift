@@ -36,7 +36,7 @@ extension FieldTextLayout {
     /// itself, which shows nothing (`Documentation/Colour and styling/Opacity as composition.md` §75,
     /// §87). The cell's own pair is exchanged instead — reverse video is the one
     /// highlight a terminal paints legibly whatever colours it keeps — and, since it is
-    /// the CELL that is reversed, the ink is the field's own, a `.textFieldTextStyle`
+    /// the CELL that is reversed, the ink is the field's own, a `.style(.control(.textField))`
     /// override included, rather than the palette's. Both sides are stated opaque, as
     /// every reversal is, so a reversed cell claims nothing.
     ///

@@ -66,7 +66,7 @@ struct TogglePage: View {
                     Toggle("page.toggle.italicLabel", isOn: $styledLabelA)
                     Toggle("page.toggle.andThisOne", isOn: $styledLabelB)
                 }
-                .toggleTextStyle { $0.italic = true; $0.foreground = .palette.info }
+                .style(.control(.toggle)) { $0.italic = true; $0.foreground = .palette.info }
             }
 
             DemoSection("page.toggle.section.toggleCharacterSet") {

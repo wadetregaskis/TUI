@@ -81,13 +81,13 @@ struct _ButtonStyleBody: View, Renderable {
         // a destructive role's error colour stays load-bearing (not broadly
         // overridable), so it's excluded from the cascade foreground.
         let cascaded = context.environment.styleCascade.resolve(
-            for: [.all, .text, .control(.button), .controlVariant(.button, appearance.variant)])
+            for: [.all, .text, .control(.button), .buttonVariant(appearance.variant)])
         let cascadeForeground: Color? =
             configuration.role == .destructive ? nil : cascaded.foreground
 
         // Focused buttons render bold — this replaces the old explicit "focused
         // style" that was a bold variant of the normal style. A cascade `.bold`
-        // (e.g. `.buttonTextStyle { $0.bold = true }`) adds to that.
+        // (e.g. `.style(.control(.button)) { $0.bold = true }`) adds to that.
         let isBold = appearance.isBold || isFocused || (cascaded.bold ?? false)
 
         let padding = String.spaces(appearance.horizontalPadding)
@@ -454,7 +454,7 @@ struct _ButtonStyleBody: View, Renderable {
         }
         // Opaque bytes plus a region, the pairing §26.1 states: an SGR
         // emitter has no backdrop, so a translucent cascade colour —
-        // `.buttonTextStyle { $0.foreground = .red.opacity(0.5) }`, or a
+        // `.style(.control(.button)) { $0.foreground = .red.opacity(0.5) }`, or a
         // faded `.tint` reaching `palette.accent` through `restingColor` —
         // goes into the claim below and never into the escape.
         let styledLabel = ANSIRenderer.render(paddedLabel, with: textStyle.opaqueColours)
@@ -518,7 +518,7 @@ struct _ButtonStyleBody: View, Renderable {
         let isHovered = configuration.isHovered
 
         let cascaded = context.environment.styleCascade.resolve(
-            for: [.all, .text, .control(.button), .controlVariant(.button, appearance.variant)])
+            for: [.all, .text, .control(.button), .buttonVariant(appearance.variant)])
         let baseForeground: Color? =
             configuration.role == .destructive ? Color.palette.error : appearance.foregroundColor
         let cascadeForeground: Color? =

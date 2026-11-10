@@ -824,7 +824,7 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             // inherits the normal foreground colour.
             var labelContext = context
             // Tag the label subtree so its Text resolves `.control(.toggle)` style
-            // entries (e.g. `.toggleTextStyle { … }`).
+            // entries (e.g. `.style(.control(.toggle)) { … }`).
             labelContext.environment.controlKind = .toggle
             if isDisabled {
                 labelContext = labelContext.settingNotedEnvironment(

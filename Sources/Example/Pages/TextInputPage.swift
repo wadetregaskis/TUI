@@ -115,9 +115,9 @@ struct TextInputPage: View {
                     }
                     Text("page.textField.cursorInherited").dim()
                 }
-                // .textFieldTextStyle re-themes the entered text of all fields
+                // .style(.control(.textField)) re-themes the entered text of all fields
                 // in this section (cursor, selection and prompt keep their colours).
-                .textFieldTextStyle { $0.foreground = .palette.accent }
+                .style(.control(.textField)) { $0.foreground = .palette.accent }
             }
 
             // MARK: .textFieldStyle

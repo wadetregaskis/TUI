@@ -233,20 +233,20 @@ struct StyleCascadeCoverageTests {
 @Suite("SecureField style cascade")
 struct SecureFieldStyleCascadeTests {
 
-    @Test(".secureFieldTextStyle colours the masked text")
+    @Test(".style(.control(.secureField)) colours the masked text")
     func secureFieldForeground() {
         let view = SecureField("Password", text: .constant("hunter2"))
-            .secureFieldTextStyle { $0.foreground = .rgb(7, 8, 9) }
+            .style(.control(.secureField)) { $0.foreground = .rgb(7, 8, 9) }
         let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
         #expect(line.contains("38;2;7;8;9"))
     }
 
-    @Test("A semantic .secureFieldTextStyle foreground resolves instead of trapping")
+    @Test("A semantic .style(.control(.secureField)) foreground resolves instead of trapping")
     func secureFieldSemanticForegroundResolves() {
         // SecureField shares TextFieldContentRenderer, so the same semantic-
         // colour trap applied (see the TextField regression test).
         let view = SecureField("Password", text: .constant("hunter2"))
-            .secureFieldTextStyle { $0.foreground = .palette.accent }
+            .style(.control(.secureField)) { $0.foreground = .palette.accent }
         let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
         #expect(line.contains("38;2;"))
     }

@@ -99,14 +99,14 @@ struct SliderPage: View {
                 VStack(alignment: .leading, spacing: 1) {
                     // Three sliders at the same value so the differences show:
                     //  • default;
-                    //  • .sliderTextStyle re-themes only the "%" read-out (bold,
+                    //  • .style(.control(.slider)) re-themes only the "%" read-out (bold,
                     //    underlined, success-coloured — the underline sits under
                     //    the digits only, not the padded field);
                     //  • .tint recolours the slider ITSELF — the filled rail and
                     //    the knob draw in the tint (the empty rail stays quiet).
                     Slider(value: $volume, label: { caption("page.slider.default") })
                     Slider(value: $volume, label: { caption("page.slider.themed") })
-                        .sliderTextStyle {
+                        .style(.control(.slider)) {
                             $0.bold = true
                             $0.underline = true
                             $0.foreground = .palette.success

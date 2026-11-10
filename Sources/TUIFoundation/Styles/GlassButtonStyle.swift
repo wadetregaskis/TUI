@@ -134,11 +134,11 @@ extension _ButtonAppearance {
     /// The prominent glass button's appearance: a bold label in the palette's
     /// foreground — legible on the accent-tinted glass, where the accent itself
     /// would not be — its lines `glass`'s rim. Scoped as the bordered prominent
-    /// button is (`.controlVariant(.button, "primary")`).
+    /// button is (`.buttonVariant(.borderedProminent)`).
     static func glassProminent(_ glass: Glass) -> Self {
         var appearance = Self(
             foregroundColor: Color.palette.foreground, isBold: true, horizontalPadding: 1, isPlain: false,
-            variant: "primary")
+            variant: .borderedProminent)
         appearance.glassRim = glass
         return appearance
     }

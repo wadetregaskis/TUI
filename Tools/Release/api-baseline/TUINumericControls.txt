@@ -243,9 +243,7 @@ View.gaugeStyle(_:) | nonisolated func gaugeStyle<S>(_ style: S) -> some View wh
 View.indeterminateStyle(_:) | nonisolated func indeterminateStyle(_ style: IndeterminateStyle) -> some View
 View.progressViewStyle(_:) | nonisolated func progressViewStyle<S>(_ style: S) -> some View where S : ProgressViewStyle
 View.sliderShowsValue(_:) | nonisolated func sliderShowsValue(_ shows: Bool) -> some View
-View.sliderTextStyle(_:) | nonisolated func sliderTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View
 View.sliderThumbVisibility(_:) | nonisolated func sliderThumbVisibility(_ visibility: Visibility) -> some View
-View.stepperTextStyle(_:) | nonisolated func stepperTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View
 View.stepperValueWidth(_:) | nonisolated func stepperValueWidth(_ width: Int?) -> some View
 View.trackGradientScaling(_:) | nonisolated func trackGradientScaling(_ scaling: TrackGradientScaling) -> some View
 View.trackGradientScaling(fill:background:) | nonisolated func trackGradientScaling(fill: TrackGradientScaling, background: TrackGradientScaling) -> some View

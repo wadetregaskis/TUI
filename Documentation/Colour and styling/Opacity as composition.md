@@ -2051,7 +2051,8 @@ different problem with a different answer — §15.
 
 Row 10 of §16.1: `.style(.text) { $0.foreground = … }` and its six per-control
 spellings — `.buttonTextStyle`, `.textFieldTextStyle`, `.secureFieldTextStyle`,
-`.sliderTextStyle`, `.stepperTextStyle`. `Text` honoured a faded cascade colour from
+`.sliderTextStyle`, `.stepperTextStyle` (removed 2026-11-10: `.style(.control(.button))`
+and so on now). `Text` honoured a faded cascade colour from
 §14. The controls that read the *same* cascade entry spent it on the escape.
 
 Every one of them knew its rectangle already, which is why this is a migration and
@@ -5663,7 +5664,7 @@ as runs of plain characters with no reset inside them to survive, so the run and
 spell the same bytes and the run goes through `colorize`.
 
 - The **selection** reverses the cell's pair: the ink is the FIELD's own, a
-  `.textFieldTextStyle` override included, and the field is the well — or the page, for a
+  `.style(.control(.textField))` override included, and the field is the well — or the page, for a
   `.plain` field that paints none. `Palette.highlightFill(_:over:tint:)` decides, asked about
   the accent as well as the fill, since below half a share of the accent IS the ground.
 - The **block caret** flips whatever the cell under it does: a plain cell is reversed, and a
@@ -5703,7 +5704,7 @@ Limits:
 `ReversedTextSelectionTests` (TUITextInputTests) pins it, for a field and for an editor, at all three
 depths, with an `.ansi(.blue)` accent over an RGB well and with the terminal's own pair: the
 selected cells carry the 7 with the field's own ink and well and nothing else, and the cells
-around them do not; a `.textFieldTextStyle` ink is what is exchanged; a block caret reverses the
+around them do not; a `.style(.control(.textField))` ink is what is exchanged; a block caret reverses the
 cell under it, alternates that under a blink, holds it under a pulse with no run at all, and
 comes off over a reversed selection; a bar and an underscore are unchanged; and with Apple
 Terminal "Basic"'s sixteen reported, and under an RGB palette on a silent terminal, the tint is

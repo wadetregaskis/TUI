@@ -221,7 +221,7 @@ struct ContentView: View {
             .style(.chrome(.sectionHeader)) {
                 $0.textCase = styling.uppercaseSectionHeaders ? .uppercase : nil
             }
-            .buttonTextStyle { $0.bold = styling.boldButtons ? true : nil }
+            .style(.control(.button)) { $0.bold = styling.boldButtons ? true : nil }
             // App-wide checkbox glyphs: a local `.toggleCharacterSet` (e.g. the Toggle
             // page's side-by-side demo) still overrides this for its own subtree.
             .toggleCharacterSet(styling.toggleCharacterSet)

@@ -329,9 +329,9 @@ struct StyleCascadeTests {
 @Suite("Button style cascade")
 struct ButtonStyleCascadeTests {
 
-    @Test(".buttonTextStyle colours the button label")
+    @Test(".style(.control(.button)) colours the button label")
     func buttonTextForeground() {
-        let view = Button("Save") {}.buttonTextStyle { $0.foreground = .rgb(7, 8, 9) }
+        let view = Button("Save") {}.style(.control(.button)) { $0.foreground = .rgb(7, 8, 9) }
         let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
         #expect(line.contains("38;2;7;8;9"))
     }
@@ -339,7 +339,7 @@ struct ButtonStyleCascadeTests {
     @Test("A destructive role keeps its colour despite a broad button override")
     func destructiveStaysLoadBearing() {
         let view = Button("Delete", role: .destructive) {}
-            .buttonTextStyle { $0.foreground = .rgb(7, 8, 9) }
+            .style(.control(.button)) { $0.foreground = .rgb(7, 8, 9) }
         let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
         #expect(!line.contains("38;2;7;8;9"), "destructive label must not take the broad override")
     }
@@ -347,11 +347,29 @@ struct ButtonStyleCascadeTests {
     @Test("Variant scoping targets only the matching button variant")
     func variantScoping() {
         // .automatic targets the default style → applies.
-        let matched = Button("A") {}.buttonTextStyle(.automatic) { $0.foreground = .rgb(7, 8, 9) }
+        let matched = Button("A") {}.style(.buttonVariant(.automatic)) { $0.foreground = .rgb(7, 8, 9) }
         #expect(renderToBuffer(matched, context: makeRenderContext()).lines.joined().contains("38;2;7;8;9"))
         // .borderedProminent targets the bordered-prominent style → does not apply to a default button.
-        let unmatched = Button("A") {}.buttonTextStyle(.borderedProminent) { $0.foreground = .rgb(7, 8, 9) }
+        let unmatched = Button("A") {}.style(.buttonVariant(.borderedProminent)) { $0.foreground = .rgb(7, 8, 9) }
         #expect(!renderToBuffer(unmatched, context: makeRenderContext()).lines.joined().contains("38;2;7;8;9"))
+    }
+
+    @Test("Each built-in look is reached by its own variant, and only by it")
+    func variantPerLook() {
+        let looks: [(Button.Variant, AnyView)] = [
+            (.borderedProminent, AnyView(Button("A") {}.buttonStyle(.borderedProminent))),
+            (.success, AnyView(Button("A") {}.buttonStyle(.success))),
+            (.plain, AnyView(Button("A") {}.buttonStyle(.plain))),
+            (.plain, AnyView(Button("A") {}.buttonStyle(.borderless))),
+        ]
+        for (variant, button) in looks {
+            let reached = button.style(.buttonVariant(variant)) { $0.foreground = .rgb(7, 8, 9) }
+            #expect(renderToBuffer(reached, context: makeRenderContext()).lines.joined().contains("38;2;7;8;9"),
+                    "\(variant)")
+            let other = button.style(.buttonVariant(.automatic)) { $0.foreground = .rgb(7, 8, 9) }
+            #expect(!renderToBuffer(other, context: makeRenderContext()).lines.joined().contains("38;2;7;8;9"),
+                    "\(variant)")
+        }
     }
 }
 
@@ -359,10 +377,10 @@ struct ButtonStyleCascadeTests {
 @Suite("Toggle style cascade")
 struct ToggleStyleCascadeTests {
 
-    @Test(".toggleTextStyle colours the toggle label")
+    @Test(".style(.control(.toggle)) colours the toggle label")
     func toggleTextForeground() {
         let view = Toggle("Wi-Fi", isOn: .constant(true))
-            .toggleTextStyle { $0.foreground = .rgb(7, 8, 9) }
+            .style(.control(.toggle)) { $0.foreground = .rgb(7, 8, 9) }
         let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
         #expect(line.contains("38;2;7;8;9"))
     }
@@ -370,7 +388,7 @@ struct ToggleStyleCascadeTests {
     @Test("A broad .control(.button) entry does not touch a toggle label")
     func toggleIgnoresButtonScope() {
         let view = Toggle("Wi-Fi", isOn: .constant(true))
-            .buttonTextStyle { $0.foreground = .rgb(7, 8, 9) }
+            .style(.control(.button)) { $0.foreground = .rgb(7, 8, 9) }
         let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
         #expect(!line.contains("38;2;7;8;9"))
     }
@@ -510,9 +528,9 @@ struct CascadingDisabledTests {
 @Suite("Slider style cascade")
 struct SliderStyleCascadeTests {
 
-    @Test(".sliderTextStyle colours the value read-out")
+    @Test(".style(.control(.slider)) colours the value read-out")
     func sliderValueForeground() {
-        let view = Slider(value: .constant(0.5)).sliderTextStyle { $0.foreground = .rgb(7, 8, 9) }
+        let view = Slider(value: .constant(0.5)).style(.control(.slider)) { $0.foreground = .rgb(7, 8, 9) }
         let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
         #expect(line.contains("38;2;7;8;9"))
     }
@@ -522,14 +540,14 @@ struct SliderStyleCascadeTests {
 @Suite("Picker style cascade")
 struct PickerStyleCascadeTests {
 
-    @Test(".pickerTextStyle colours the picker's option text")
+    @Test(".style(.control(.picker)) colours the picker's option text")
     func pickerOptionForeground() {
         let view = Picker("Theme", selection: .constant(1)) {
             Text("One").tag(1)
             Text("Two").tag(2)
         }
         .pickerStyle(.radioGroup)
-        .pickerTextStyle { $0.foreground = .rgb(7, 8, 9) }
+        .style(.control(.picker)) { $0.foreground = .rgb(7, 8, 9) }
         let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
         #expect(line.contains("38;2;7;8;9"))
     }
@@ -539,10 +557,10 @@ struct PickerStyleCascadeTests {
 @Suite("Stepper style cascade")
 struct StepperStyleCascadeTests {
 
-    @Test(".stepperTextStyle colours the value read-out")
+    @Test(".style(.control(.stepper)) colours the value read-out")
     func stepperValueForeground() {
         let view = Stepper("Quantity", value: .constant(5))
-            .stepperTextStyle { $0.foreground = .rgb(7, 8, 9) }
+            .style(.control(.stepper)) { $0.foreground = .rgb(7, 8, 9) }
         let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
         #expect(line.contains("38;2;7;8;9"))
     }
@@ -552,24 +570,24 @@ struct StepperStyleCascadeTests {
 @Suite("TextField style cascade")
 struct TextFieldStyleCascadeTests {
 
-    @Test(".textFieldTextStyle colours the entered text")
+    @Test(".style(.control(.textField)) colours the entered text")
     func textFieldForeground() {
         let view = TextField("Name", text: .constant("hello"))
-            .textFieldTextStyle { $0.foreground = .rgb(7, 8, 9) }
+            .style(.control(.textField)) { $0.foreground = .rgb(7, 8, 9) }
         let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
         #expect(line.contains("38;2;7;8;9"))
     }
 
-    @Test("A semantic .textFieldTextStyle foreground resolves instead of trapping")
+    @Test("A semantic .style(.control(.textField)) foreground resolves instead of trapping")
     func textFieldSemanticForegroundResolves() {
-        // Regression: `.textFieldTextStyle { $0.foreground = .palette.accent }`
+        // Regression: `.style(.control(.textField)) { $0.foreground = .palette.accent }`
         // put a *semantic* colour in the cascade, which the field handed to
         // ANSIRenderer unresolved — and ANSIRenderer traps on `.semantic`. (This
         // is what crashed Example's Text Fields page.) The semantic accent
         // must resolve to a concrete RGB. Non-empty text guarantees the entered-
         // text path runs rather than the dim-prompt branch.
         let view = TextField("Name", text: .constant("Ada"))
-            .textFieldTextStyle { $0.foreground = .palette.accent }
+            .style(.control(.textField)) { $0.foreground = .palette.accent }
         let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
         // Reaching this line at all proves it didn't trap; a concrete foreground
         // SGR (38;2;r;g;b) proves the semantic accent was resolved, not raw.
@@ -613,27 +631,27 @@ struct ListRowStyleCascadeTests {
 @Suite("RadioButton style cascade")
 struct RadioButtonStyleCascadeTests {
 
-    @Test(".radioButtonTextStyle colours the radio labels")
+    @Test(".style(.control(.radioButton)) colours the radio labels")
     func radioForeground() {
         let view = RadioButtonGroup(selection: .constant("a")) {
             RadioButtonItem("a", "Alpha")
             RadioButtonItem("b", "Beta")
         }
-        .radioButtonTextStyle { $0.foreground = .rgb(7, 8, 9) }
+        .style(.control(.radioButton)) { $0.foreground = .rgb(7, 8, 9) }
         let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
         #expect(line.contains("38;2;7;8;9"))
     }
 
     @Test("A picker's radio options keep the .picker identity, not .radioButton")
     func pickerRadioKeepsPickerIdentity() {
-        // .radioButtonTextStyle must NOT reach a picker's radio-group options —
+        // .style(.control(.radioButton)) must NOT reach a picker's radio-group options —
         // RadioButton claims `.radioButton` only when not already inside a control.
         let view = Picker("X", selection: .constant(1)) {
             Text("One").tag(1)
             Text("Two").tag(2)
         }
         .pickerStyle(.radioGroup)
-        .radioButtonTextStyle { $0.foreground = .rgb(7, 8, 9) }
+        .style(.control(.radioButton)) { $0.foreground = .rgb(7, 8, 9) }
         let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
         #expect(!line.contains("38;2;7;8;9"))
     }

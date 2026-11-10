@@ -160,13 +160,19 @@ List {
 .style(.chrome(.sectionHeader)) { $0.textCase = .uppercase }   // UPPERCASE headers
 ```
 
-**Controls** expose typed conveniences over the scope mechanism. For example, a
-button's label text:
+**Controls** are scoped by ``ControlKind``: `.control(.button)` reaches the label
+of every button in the subtree, `.control(.toggle)` every toggle's, and so on for
+each kind. ``StyleScope/buttonVariant(_:)`` narrows a button entry to one
+``Button/Variant``:
 
 ```swift
-Sidebar().buttonTextStyle { $0.bold = true; $0.foreground = .green }  // all buttons
-RootView().buttonTextStyle(.automatic) { $0.foreground = .blue }      // default-style only
+Sidebar().style(.control(.button)) { $0.bold = true; $0.foreground = .green }  // all buttons
+RootView().style(.buttonVariant(.automatic)) { $0.foreground = .blue }         // default-style only
+SettingsForm().style(.control(.textField)) { $0.foreground = .palette.accent } // entered text
 ```
+
+Each kind styles the control's *text* only: a toggle's checkbox, a slider's
+track, a text field's cursor and selection keep their own colours.
 
 A load-bearing colour (e.g. a `.destructive` button's error red) stays asserted by
 the control's style and is not overridden by a broad cascade entry.

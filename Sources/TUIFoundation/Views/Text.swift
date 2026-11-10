@@ -810,12 +810,10 @@ package struct TextStyle: Sendable, Equatable {
             scopes.insert(.chrome(chromeRole))
         }
         // A control's label (set by the control around its label subtree)
-        // matches `.control(kind)` and, with a variant, `.controlVariant`.
+        // matches `.control(kind)`. (A button's variant is matched by the
+        // button, which draws its label itself.)
         if let controlKind = context.environment.controlKind {
             scopes.insert(.control(controlKind))
-            if let variant = context.environment.controlVariant {
-                scopes.insert(.controlVariant(controlKind, variant))
-            }
         }
         var base = chromeRole?.defaultTextAttributes ?? StyleAttributes()
         // `.headerProminence(_:)` adjusts the BASELINE, so an explicit style

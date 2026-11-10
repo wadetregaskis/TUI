@@ -136,6 +136,4 @@ View.datePickerStyle(_:) | nonisolated func datePickerStyle<S>(_ style: S) -> so
 View.horizontalRadioGroupLayout() | nonisolated func horizontalRadioGroupLayout() -> some View
 View.paletteSelectionEffect(_:) | nonisolated func paletteSelectionEffect(_ effect: PaletteSelectionEffect) -> some View
 View.pickerStyle(_:) | nonisolated func pickerStyle<S>(_ style: S) -> some View where S : PickerStyle
-View.pickerTextStyle(_:) | nonisolated func pickerTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View
 View.radioButtonGroupEdgeBehavior(_:) | nonisolated func radioButtonGroupEdgeBehavior(_ behavior: RadioButtonGroupEdgeBehavior) -> some View
-View.radioButtonTextStyle(_:) | nonisolated func radioButtonTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View

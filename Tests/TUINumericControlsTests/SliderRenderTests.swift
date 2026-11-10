@@ -201,9 +201,9 @@ struct SliderRenderTests {
         #expect(focused.count == 1)
     }
 
-    // MARK: - Themed value read-out (.sliderTextStyle)
+    // MARK: - Themed value read-out (.style(.control(.slider)))
 
-    @Test(".sliderTextStyle bolds + recolours the value read-out (and only that)")
+    @Test(".style(.control(.slider)) bolds + recolours the value read-out (and only that)")
     func sliderTextStyleChangesReadout() {
         // ANSI-laden output: the themed read-out must differ from the default.
         func ansi(_ v: some View) -> String {
@@ -212,8 +212,8 @@ struct SliderRenderTests {
         let plain = ansi(Slider(value: .constant(0.5)))
         let themed = ansi(
             Slider(value: .constant(0.5))
-                .sliderTextStyle { $0.bold = true; $0.foreground = .palette.accent })
-        #expect(plain != themed, "the .sliderTextStyle read-out should render differently")
+                .style(.control(.slider)) { $0.bold = true; $0.foreground = .palette.accent })
+        #expect(plain != themed, "the .style(.control(.slider)) read-out should render differently")
         // The stripped text is identical — only colour/weight changed, on the value.
         #expect(plain.stripped == themed.stripped, "layout/text unchanged; only styling differs")
         // The themed read-out carries a bold SGR that the plain one does not.

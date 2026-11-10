@@ -606,9 +606,9 @@ struct _ButtonAppearance: Equatable {
     /// Whether the button renders without brackets or background.
     var isPlain: Bool
 
-    /// The variant token used to scope `.controlVariant(.button, …)` style
-    /// entries (see ``Button/Variant``).
-    var variant: String
+    /// The variant `.buttonVariant(_:)` style entries scope on (see
+    /// ``Button/Variant``).
+    var variant: Button.Variant
 
     /// Whether focus is shown by breathing the LABEL rather than by a bullet
     /// in front of it — and therefore whether the two chrome cells the bullet
@@ -642,7 +642,7 @@ struct _ButtonAppearance: Equatable {
         isBold: false,
         horizontalPadding: 1,
         isPlain: false,
-        variant: "default"
+        variant: .automatic
     )
 
     /// The primary appearance — bold, accent-coloured.
@@ -651,7 +651,7 @@ struct _ButtonAppearance: Equatable {
         isBold: true,
         horizontalPadding: 1,
         isPlain: false,
-        variant: "primary"
+        variant: .borderedProminent
     )
 
     /// The destructive appearance — error-coloured.
@@ -660,7 +660,7 @@ struct _ButtonAppearance: Equatable {
         isBold: false,
         horizontalPadding: 1,
         isPlain: false,
-        variant: "destructive"
+        variant: .destructive
     )
 
     /// The success appearance — success-coloured.
@@ -669,21 +669,21 @@ struct _ButtonAppearance: Equatable {
         isBold: false,
         horizontalPadding: 1,
         isPlain: false,
-        variant: "success"
+        variant: .success
     )
 
     /// The borderless appearance — no brackets, no background, no padding, the
     /// label in the accent colour. What TUI called plain until SwiftUI's
     /// `.plain` (an undecorated label) took the name.
     ///
-    /// Its variant stays `"plain"`: `.controlVariant(.button, …)` scoping
-    /// treats every unbordered button alike, as it always has.
+    /// Its variant stays `.plain`: `.buttonVariant(_:)` scoping treats every
+    /// unbordered button alike, as it always has.
     static let borderless = Self(
         foregroundColor: nil,
         isBold: false,
         horizontalPadding: 0,
         isPlain: true,
-        variant: "plain"
+        variant: .plain
     )
 
     /// The plain appearance — no brackets, no background, no padding, and the
@@ -695,21 +695,21 @@ struct _ButtonAppearance: Equatable {
         isBold: false,
         horizontalPadding: 0,
         isPlain: true,
-        variant: "plain"
+        variant: .plain
     )
 
     /// The link appearance — plain, and with the focus in the text rather than
     /// in front of it, so a link occupies exactly its own words.
     ///
-    /// The variant stays `"plain"`: it is the token `.controlVariant(.button, …)`
-    /// scopes on, a link IS a plain button, and an app that styled plain
+    /// The variant stays `.plain`: it is what `.buttonVariant(_:)` scopes on,
+    /// a link IS a plain button, and an app that styled plain
     /// buttons did not ask for links to fall out of that.
     static let link = Self(
         foregroundColor: nil,
         isBold: false,
         horizontalPadding: 0,
         isPlain: true,
-        variant: "plain",
+        variant: .plain,
         indicatesFocusInLabel: true
     )
 }
@@ -765,11 +765,15 @@ extension View {
     }
 }
 
-// MARK: - Button Variants & Targeted Text Styling
+// MARK: - Button Variants
 
-@MainActor extension Button {
-    /// A built-in button visual variant, used to scope styling to a specific
-    /// kind of button via ``View/buttonTextStyle(_:_:)``.
+extension Button {
+    /// A built-in button look, used to scope styling to one kind of button
+    /// through ``StyleScope/buttonVariant(_:)``:
+    ///
+    /// ```swift
+    /// RootView().style(.buttonVariant(.automatic)) { $0.foreground = .blue }
+    /// ```
     public enum Variant: Sendable, Hashable {
         /// The default bracketed style (``DefaultButtonStyle``,
         /// ``BorderedButtonStyle``).
@@ -782,44 +786,5 @@ extension View {
         case success
         /// The unbordered styles (``PlainButtonStyle``, ``BorderlessButtonStyle``).
         case plain
-
-        /// The type-erased token stored in `.controlVariant(.button, _)`.
-        var token: String {
-            switch self {
-            case .automatic: return "default"
-            case .borderedProminent: return "primary"
-            case .destructive: return "destructive"
-            case .success: return "success"
-            case .plain: return "plain"
-            }
-        }
-    }
-}
-
-extension View {
-    /// Styles the *text* of every button in this view's subtree (a
-    /// `.control(.button)`-scoped style entry).
-    ///
-    /// ```swift
-    /// Sidebar().buttonTextStyle { $0.bold = true; $0.foreground = .green }
-    /// ```
-    ///
-    /// The button's structure (brackets, background, focus glow) is unchanged;
-    /// only its label colour/attributes are overridden. A `.destructive` role's
-    /// error colour stays load-bearing and is not overridden by a broad entry.
-    nonisolated public func buttonTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
-        style(.control(.button), build)
-    }
-
-    /// Styles the text of buttons of a specific ``Button/Variant`` in this
-    /// view's subtree (a `.controlVariant(.button, …)`-scoped entry).
-    ///
-    /// ```swift
-    /// RootView().buttonTextStyle(.automatic) { $0.foreground = .blue }
-    /// ```
-    nonisolated public func buttonTextStyle(
-        _ variant: Button.Variant, _ build: (inout StyleAttributes) -> Void
-    ) -> some View {
-        style(.controlVariant(.button, variant.token), build)
     }
 }

@@ -505,7 +505,7 @@ private struct _Link<Label: View>: View {
     private func linkControl(activate: @escaping () -> Void) -> some View {
         Button(action: activate, label: { resolvedLabel })
         .buttonStyle(_LinkButtonStyle(indicator: focusIndicator))
-        .buttonTextStyle { $0.foreground = .palette.accent }
+        .style(.control(.button)) { $0.foreground = .palette.accent }
         // Outermost, so the link covers everything the button style drew —
         // its hover prefix included. The control IS the link; a hyperlink over
         // only the letters would leave the cells beside them inert while

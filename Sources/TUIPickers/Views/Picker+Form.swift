@@ -14,7 +14,7 @@ import TUIFoundation
 /// (measured, `Tools/SwiftUIProbes/Form rows`).
 @MainActor extension Picker: FormFieldControl {
     package func formFieldParts(in environment: EnvironmentValues) -> (label: AnyView, control: AnyView)? {
-        // The label resolves `.pickerTextStyle` in the column as beside the
+        // The label resolves `.style(.control(.picker))` in the column as beside the
         // control, and dims with a picker that is disabled or has no sources.
         let detached = _DetachedControlLabel(label: label, controlDisabled: isDisabled || hasNoSources)
         return (AnyView(detached.environment(\.controlKind, .picker)), AnyView(labelsHidden()))

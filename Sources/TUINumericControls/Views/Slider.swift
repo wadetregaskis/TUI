@@ -135,7 +135,7 @@ nonisolated public struct Slider<Label: View, ValueLabel: View>: View {
         // stack shifts its hit regions for us. Prepending the label inside the
         // core would leave `trackLeft` pointing into the label, so clicking the
         // label would auto-repeat a decrement. `controlKind` lets the label
-        // resolve `.sliderTextStyle` like the value read-out does.
+        // resolve `.style(.control(.slider))` like the value read-out does.
         //
         // The value labels go either side of the core for the same reason, a
         // cell apart from it. The maximum one follows the read-out rather than
@@ -327,18 +327,5 @@ extension Slider {
         var copy = self
         copy.focusID = id
         return copy
-    }
-}
-
-extension View {
-    /// Styles the *value read-out* text of every slider in this view's subtree
-    /// (a `.control(.slider)`-scoped style entry). The track and arrows are
-    /// unaffected — their accent is the tint axis.
-    ///
-    /// ```swift
-    /// Mixer().sliderTextStyle { $0.bold = true; $0.foreground = .palette.accent }
-    /// ```
-    nonisolated public func sliderTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
-        style(.control(.slider), build)
     }
 }

@@ -101,8 +101,8 @@ struct PickerPage: View {
                     }
                 }
                 .pickerStyle(.inline)
-                // .pickerTextStyle re-themes the picker's label + option text.
-                .pickerTextStyle { $0.foreground = .palette.accent }
+                // .style(.control(.picker)) re-themes the picker's label + option text.
+                .style(.control(.picker)) { $0.foreground = .palette.accent }
             }
 
             // A DatePicker is a picker for a date/time, so it belongs here. It

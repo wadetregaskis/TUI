@@ -482,7 +482,7 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
 
         // The content's translucent colours, shifted by exactly what the caret is
         // shifted by — both are in the content's own frame, and the opening cap is
-        // the only chrome before it. A faded `.textFieldTextStyle` foreground, or a
+        // the only chrome before it. A faded `.style(.control(.textField))` foreground, or a
         // theme that faded the field surface, arrives here rather than being spent
         // on the escape. §30.
         buffer.opacityRegions += fieldContent.claims.map {
@@ -511,13 +511,5 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
         }
 
         return buffer.fadedTextInput(if: isDisabled, text: cascaded.foreground, context: context)
-    }
-}
-
-extension View {
-    /// Styles the masked *text* of every secure field in this view's subtree
-    /// (a `.control(.secureField)`-scoped style entry).
-    nonisolated public func secureFieldTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View {
-        style(.control(.secureField), build)
     }
 }

@@ -757,7 +757,7 @@ struct _SliderCore: View, Renderable, Layoutable {
         // Build value label (percentage) — the same source of truth that
         // `chromeWidth` measures, so the label always fits the space reserved.
         // Its colour/weight inherit the slider's scoped style cascade
-        // (`.sliderTextStyle { … }`) as soft overrides.
+        // (`.style(.control(.slider)) { … }`) as soft overrides.
         let valueDisplay = valueDisplayText
         let valueLabelColor =
             isDisabled

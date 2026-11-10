@@ -192,7 +192,7 @@ struct ReversedTextSelectionTests {
     }
 
     /// A reversal exchanges the CELL's own pair, so a field whose ink the style cascade
-    /// overrode (`.textFieldTextStyle`) reverses that ink and not the palette's.
+    /// overrode (`.style(.control(.textField))`) reverses that ink and not the palette's.
     @Test("A cascade's own ink is what a reversed selection exchanges")
     func cascadeInkIsReversed() {
         TerminalColors.withCurrent(.unknown) {

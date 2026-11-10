@@ -83,7 +83,6 @@ TextFieldStyle.squareBorder | static var squareBorder: SquareBorderTextFieldStyl
 View.findDisabled(_:) | nonisolated func findDisabled(_ isDisabled: Bool = true) -> some View
 View.findNavigator(isPresented:) | nonisolated func findNavigator(isPresented: Binding<Bool>) -> some View
 View.replaceDisabled(_:) | nonisolated func replaceDisabled(_ isDisabled: Bool = true) -> some View
-View.secureFieldTextStyle(_:) | nonisolated func secureFieldTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View
 View.tabWidth(_:) | nonisolated func tabWidth(_ width: TabWidth) -> some View
 View.textContentType(_:) | nonisolated func textContentType(_ type: TextContentType?) -> some View
 View.textCursor(_:) | nonisolated func textCursor(_ style: TextCursorStyle) -> some View
@@ -91,7 +90,6 @@ View.textCursor(_:animation:) | nonisolated func textCursor(_ shape: TextCursorS
 View.textEditorStyle(_:) | nonisolated func textEditorStyle<S>(_ style: S) -> some View where S : TextEditorStyle
 View.textEditorWrapsLines(_:) | nonisolated func textEditorWrapsLines(_ wraps: Bool = true) -> some View
 View.textFieldStyle(_:) | nonisolated func textFieldStyle<S>(_ style: S) -> some View where S : TextFieldStyle
-View.textFieldTextStyle(_:) | nonisolated func textFieldTextStyle(_ build: (inout StyleAttributes) -> Void) -> some View
 View.textInputCompletion(_:) | nonisolated func textInputCompletion(_ completion: String) -> some View
 View.textInputSuggestions(_:) | nonisolated func textInputSuggestions<S>(@ViewBuilder _ suggestions: () -> S) -> some View where S : View
 View.textInputSuggestions(_:content:) | nonisolated func textInputSuggestions<Data, Content>(_ suggestions: Data, @ViewBuilder content: @escaping (Data.Element) -> Content) -> some View where Data : RandomAccessCollection, Content : View, Data.Element : Identifiable

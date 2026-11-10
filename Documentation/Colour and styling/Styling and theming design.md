@@ -85,7 +85,7 @@ public enum StyleScope: Sendable, Hashable {
     case semanticColor(SemanticColor)          // text drawn with a palette role,
                                                //   e.g. .foregroundSecondary
     case control(ControlKind)                  // any control of a kind
-    case controlVariant(ControlKind, Variant)  // a specific mode, e.g. button .default
+    case buttonVariant(Button.Variant)         // one look of button, e.g. .automatic
     case chrome(ChromeRole)                    // sectionHeader, sectionFooter, …
 }
 
@@ -94,8 +94,8 @@ public enum ChromeRole:  Sendable, Hashable { case sectionHeader, sectionFooter,
 ```
 
 A scope decides **which views an entry applies to** — its *reach*, not its
-priority. (`.control(.button)` reaches every button; `.controlVariant(.button,
-.default)` reaches only default buttons.) Scopes have a **specificity**, but — see
+priority. (`.control(.button)` reaches every button; `.buttonVariant(.automatic)`
+reaches only default buttons.) Scopes have a **specificity**, but — see
 §3.4 — that specificity is used *only* to order entries that live at the same place
 (within one `Theme`/`.style` call), **not** as a global precedence between
 ancestors. Across the tree, position decides. `Variant` is typed per control
@@ -202,7 +202,7 @@ extension View {
 }
 ```
 
-Targeted (TUI extension) — the generic engine plus typed conveniences:
+Targeted (TUI extension) — one generic engine, with the scope as its argument:
 
 ```swift
 extension View {
@@ -210,11 +210,15 @@ extension View {
     func style(_ scope: StyleScope, _ build: (inout StyleAttributes) -> Void) -> some View
 }
 
-// Typed conveniences over the generic form:
-.buttonTextStyle { $0.bold = true }                 // .control(.button)
-.buttonTextStyle(.default) { $0.foreground = .blue }// .controlVariant(.button, .default)
-.sectionHeaderStyle { $0.textCase = .uppercase }    // .chrome(.sectionHeader)
+.style(.control(.button)) { $0.bold = true }                 // every button
+.style(.buttonVariant(.automatic)) { $0.foreground = .blue }  // default buttons only
+.style(.chrome(.sectionHeader)) { $0.textCase = .uppercase }  // section headers
 ```
+
+Per-control shorthands (`.buttonTextStyle { … }`, `.toggleTextStyle { … }` and six
+more) once forwarded to `.style(.control(.x))`; they were removed on 2026-11-10
+(TEXT-STYLE): one spelling, rather than a family that grows with every
+`ControlKind`, and `.style(.control(` already offers every kind to autocomplete.
 
 `Text("x").bold()` keeps working unchanged (the method on the concrete `Text` type
 is preferred over the `View` extension and sets its own `TextStyle`).
@@ -473,7 +477,7 @@ struct DefaultBlue: ButtonStyle {
 ```swift
 // TUI — the scoped cascade tweaks one property of one variant, keeping the
 // default style intact.
-RootView().buttonTextStyle(.default) { $0.foreground = .blue }
+RootView().style(.buttonVariant(.automatic)) { $0.foreground = .blue }
 ```
 
 This is the one deliberate superset: **a scoped, property-level cascade layered
@@ -488,8 +492,8 @@ clearly-marked TUI extensions.
 | App-wide accent | `.tint(_:)` | `.tint(_:)` (identical) |
 | All text blue | `.foregroundStyle(.blue)` | `.foregroundStyle(.blue)` (identical) |
 | All buttons restyled | `.buttonStyle(_:)` | `.buttonStyle(_:)` (identical) |
-| Variant/role look | branch on `configuration` in a style | same, **or** `.buttonTextStyle(.destructive){…}` |
-| *One property of one variant*, app-wide | author a full custom style | `.style(.controlVariant(…)){…}` ← **new** |
+| Variant/role look | branch on `configuration` in a style | same, **or** `.style(.buttonVariant(.destructive)){…}` |
+| *One property of one variant*, app-wide | author a full custom style | `.style(.buttonVariant(…)){…}` ← **new** |
 | Bundle it all as a "theme" | compose modifiers / custom key | `.theme(_:)` ← **new convenience** |
 | Resolution | nearest modifier wins | nearest modifier wins (per property) |
 
@@ -500,10 +504,10 @@ clearly-marked TUI extensions.
 RootView().foregroundStyle(.blue)
 
 // (b) Targeted by control: only button labels bold.
-Pane().buttonTextStyle { $0.bold = true }
+Pane().style(.control(.button)) { $0.bold = true }
 
 // (c) Targeted by variant: only DEFAULT buttons get blue text.
-Pane().buttonTextStyle(.default) { $0.foreground = .blue }
+Pane().style(.buttonVariant(.automatic)) { $0.foreground = .blue }
 
 // (d) Per-subtree bundle: green + bold controls in one pane, defaults elsewhere.
 Editor().tint(.green).bold()
@@ -516,7 +520,7 @@ VStack {
     Toolbar()                              // buttons green (from the outer rule)
     Editor().foregroundStyle(.red)         // here buttons (and all text) are red — closer wins
 }
-.buttonTextStyle { $0.foreground = .green }
+.style(.control(.button)) { $0.foreground = .green }
 
 // (g) Opt-out for usability: a destructive button keeps error red even under (a),
 //     because its style asserts it (precedence 4 > 3). A one-off opts out explicitly:
@@ -557,7 +561,7 @@ reflects: colour-role attributes early; `disabled` late but before tint; tint la
    styles + cascade resolution + typed conveniences, one control per commit.
    First landed `StyleAttributes.foreground/background` (the deferred half of the
    cascade) so controls can resolve scoped colour. ✅ **Button** — its label
-   resolves `.control(.button)` / `.controlVariant(.button, …)` as soft overrides
+   resolves `.control(.button)` / `.buttonVariant(…)` as soft overrides
    (destructive red stays load-bearing); `Button.Variant` + `.buttonTextStyle`.
    ✅ **Toggle** — a reusable `controlKind` env tag lets a label-via-Text control
    resolve `.control(.toggle)`; `.toggleTextStyle`. ✅ **Slider** — its value
@@ -574,7 +578,9 @@ reflects: colour-role attributes early; `disabled` late but before tint; tint la
    and so does a container-level *attribute* entry — `.bold()` on the List or the
    Table, `.style(.control(.list))` / `.style(.control(.table))` — on every frame,
    including the frame it changes (`ListAttributeCascadeTests`; see Follow-ups).
-   All interactive controls covered. Delivers (b), (c), (g).
+   All interactive controls covered. Delivers (b), (c), (g). (The per-control
+   `.xTextStyle` shorthands named above were removed on 2026-11-10 for
+   `.style(.control(.x))`, and the button variant became `.buttonVariant(_:)`.)
 4. ✅ **(shipped) Cascading `.disabled`** — env `isEnabled` + an additive
    `DisabledModifier` (`.disabled(_:)` on any View); every interactive control
    combines `self.isDisabled || !environment.isEnabled`. A descendant can't
@@ -595,28 +601,28 @@ reflects: colour-role attributes early; `disabled` late but before tint; tint la
 7. ✅ **(shipped) Example UI** — the Theme page's "Live styling" section drives
    app-wide `ExampleStyling` (tint + uppercase-headers + bold-buttons): the scene
    `.theme` folds the tint into the palette (app header/status bar included), and
-   ContentView applies a `.chrome(.sectionHeader)` and a `.buttonTextStyle` across
+   ContentView applies a `.chrome(.sectionHeader)` and a `.control(.button)` entry across
    every page. Plus the per-control demos (Buttons/Toggle/Slider/Picker/Stepper/
    TextField/RadioButton pages).
 
 ## Variant — typed-per-control vs. one shared enum
 
-**Decision: typed per control** (e.g. `Button.Variant { .automatic, .bordered,
-.borderless, .plain, .destructive }`), exposed through the typed convenience
-modifiers, over a **type-erased token** stored inside `StyleScope`.
+**Decision: typed per control** (e.g. `Button.Variant { .automatic,
+.borderedProminent, .destructive, .success, .plain }`), carried by a `StyleScope`
+case of the control's own (`.buttonVariant(_:)`). Until 2026-11-10 the scope held a
+**type-erased token** (`.controlVariant(ControlKind, String)`) that a typed
+convenience modifier (`.buttonTextStyle(_:_:)`) bridged to; with the shorthands
+gone, the typed variant moved into the scope itself and the string form went.
 
 Pros (per-control typed):
 - Type-safe & self-documenting; autocomplete offers only valid variants
-  (`.buttonTextStyle(.bordered)`, never `.buttonTextStyle(.large)`).
+  (`.buttonVariant(.destructive)`, never `.buttonVariant(.large)`).
 - Each control owns and can extend its own variant taxonomy.
 - Impossible to target a variant a control doesn't have.
 
 Cons / cost:
-- One small enum per control to define and maintain.
-- The generic `.style(_:_:)` core must store the variant **type-erased** (a string
-  or `AnyHashable` token), so there's a thin typed-convenience layer bridging to the
-  erased core. (The typed conveniences are what users normally touch; the generic
-  form is the escape hatch.)
+- One small enum per control to define and maintain, and one `StyleScope` case
+  per control that has variants (today only the button).
 
 Shared `StyleVariant` was rejected: variants don't map across controls (a button's
 `.bordered` is meaningless for a slider), so a shared enum is either too generic to

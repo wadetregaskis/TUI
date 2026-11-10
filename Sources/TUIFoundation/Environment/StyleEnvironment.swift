@@ -53,17 +53,13 @@ extension EnvironmentValues {
 
 // MARK: - Control identity
 
-/// Environment keys marking that a subtree renders a control's label, so its
-/// `Text` resolves `.control(kind)` / `.controlVariant(kind, variant)` style
-/// entries. Controls whose labels are rendered via `Text` (Toggle, Picker, …)
-/// set these around the label; controls that render their label procedurally
-/// (Button) resolve the same scopes directly.
+/// The environment key marking that a subtree renders a control's label, so
+/// its `Text` resolves `.control(kind)` style entries. Controls whose labels
+/// are rendered via `Text` (Toggle, Picker, …) set it around the label;
+/// controls that render their label procedurally (Button) resolve the same
+/// scopes directly.
 private struct ControlKindKey: EnvironmentKey {
     static let defaultValue: ControlKind? = nil
-}
-
-private struct ControlVariantKey: EnvironmentKey {
-    static let defaultValue: String? = nil
 }
 
 extension EnvironmentValues {
@@ -71,12 +67,5 @@ extension EnvironmentValues {
     public var controlKind: ControlKind? {
         get { self[ControlKindKey.self] }
         set { self[ControlKindKey.self] = newValue }
-    }
-
-    /// The control variant token for the current subtree's label, paired with
-    /// ``controlKind`` to match `.controlVariant(kind, variant)` entries.
-    public var controlVariant: String? {
-        get { self[ControlVariantKey.self] }
-        set { self[ControlVariantKey.self] = newValue }
     }
 }

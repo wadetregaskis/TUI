@@ -5207,10 +5207,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let cascade = environment.styleCascade
         guard !cascade.isEmpty else { return StyleAttributes() }
         var scopes: Set<StyleScope> = [.all, .text]
-        if let kind = environment.controlKind {
-            scopes.insert(.control(kind))
-            if let variant = environment.controlVariant { scopes.insert(.controlVariant(kind, variant)) }
-        }
+        if let kind = environment.controlKind { scopes.insert(.control(kind)) }
         return cascade.resolve(for: scopes)
     }
 
