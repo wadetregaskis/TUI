@@ -184,7 +184,7 @@ private func layoutPriority(ofView view: any View) -> Double {
 /// `child` may be offered less than its natural length
 /// (``distributeLinearSpace(naturalSizes:isFlexible:available:gaps:shares:isSpacer:priorities:minimumSize:statedMinimum:sizeAt:)``).
 @MainActor
-func minimumLength(of child: ChildView, horizontally: Bool, across: Int?, context: RenderContext) -> Int {
+package func minimumLength(of child: ChildView, horizontally: Bool, across: Int?, context: RenderContext) -> Int {
     if child.isSpacer { return child.spacerLength(along: horizontally ? .horizontal : .vertical) }
     // A column offered no height answers none, whatever it holds: it clamps its
     // children's total to the offer (`_VStackCore.clipSizeThatFits`). Answered
@@ -233,7 +233,7 @@ func fitsAtNaturalHeights(_ heights: [Int], isFlexible: [Bool], spacing: Int, av
 /// overflows, so a stack deals it out first, as a child that cannot shrink;
 /// without this, a label column `frame(width:)` fixes was squeezed like text.
 @MainActor
-func statedMinimumLength(of child: ChildView, horizontally: Bool) -> Int {
+package func statedMinimumLength(of child: ChildView, horizontally: Bool) -> Int {
     throughWrappers(child.wrappedView, as: (any StatesMinimumLength).self)?.statedMinimumLength(horizontally: horizontally)
         ?? 0
 }

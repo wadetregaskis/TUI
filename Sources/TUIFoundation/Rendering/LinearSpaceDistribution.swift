@@ -92,7 +92,7 @@ package enum StackOverflow {
 ///     answer).
 /// - Returns: One allocated size per child; placed sizes + their gaps sum to
 ///   `<= max(0, available)`.
-func distributeLinearSpace(
+package func distributeLinearSpace(
     naturalSizes: [Int], isFlexible: [Bool], available: Int, spacing: Int = 0, shares: Bool = true,
     isSpacer: (Int) -> Bool = { _ in false }, priorities: [Double]? = nil, minimumSize: (Int) -> Int? = { _ in nil },
     statedMinimum: (Int) -> Int = { _ in 0 }, sizeAt: (Int, Int) -> Int? = { _, _ in nil }

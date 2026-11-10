@@ -197,6 +197,12 @@ nonisolated public struct GridRow<Content: View>: View {
 /// A child that is not in a row already spans the full width without sizing a
 /// column. A cell that should fill its column or row rather than size it says
 /// so with ``View/gridCellUnsizedAxes(_:)``.
+///
+/// Offered less width than its columns ask for, the grid shares it among them
+/// as an ``HStack`` shares a row, as SwiftUI's does: no column is dropped, a
+/// column of text wraps and the grid grows taller. Where even its rigid columns
+/// do not fit, it places the columns in order until the width runs out, as
+/// TUI's stacks do, where SwiftUI's grid would be wider than its offer.
 nonisolated public struct Grid<Content: View>: View {
     /// How cells sit inside the boxes the grid gives them.
     public let alignment: Alignment
@@ -281,21 +287,27 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
     }
 
     /// The lattice both passes agree on: column widths, row heights, and the
-    /// per-column alignment overrides — see ``GridLattice``.
-    private func lattice(_ rows: [Row], context: RenderContext) -> GridLattice {
-        GridLattice(
-            rows: rows.map { row in
-                GridLattice.Row(
-                    cells: zip(row.cells, row.spans).map { cell, span in
-                        GridLattice.Cell(
-                            span: span,
-                            size: cell.measure(proposal: .unspecified, context: context),
-                            columnAlignment: cell.gridColumnAlignment,
-                            unsizedAxes: cell.gridUnsizedAxes)
-                    },
-                    spansFullWidth: row.spansFullWidth)
-            },
-            horizontalSpacing: horizontalSpacing)
+    /// per-column alignment overrides — see ``GridLattice`` — with the columns
+    /// sharing `width` (``GridLattice/fit(toWidth:grows:rows:minimum:measure:)``),
+    /// a filling column growing into it only where `grows`.
+    private func lattice(_ rows: [Row], width: Int, grows: Bool = true, context: RenderContext) -> GridLattice {
+        let cells = rows.map { row in
+            GridLattice.Row(
+                cells: zip(row.cells, row.spans).map { cell, span in
+                    GridLattice.Cell(
+                        span: span,
+                        size: cell.measure(proposal: .unspecified, context: context),
+                        columnAlignment: cell.gridColumnAlignment,
+                        unsizedAxes: cell.gridUnsizedAxes)
+                },
+                spansFullWidth: row.spansFullWidth)
+        }
+        var lattice = GridLattice(rows: cells, horizontalSpacing: horizontalSpacing)
+        lattice.fit(
+            toWidth: width, grows: grows, rows: cells,
+            minimum: { minimumLength(of: rows[$0.row].cells[$0.cell], horizontally: true, across: nil, context: context) },
+            measure: { rows[$0.row].cells[$0.cell].measure(proposal: $1, context: context) })
+        return lattice
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
@@ -320,7 +332,10 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         context.consumeSheetSize()
         let rows = rows(context: context)
         guard !rows.isEmpty else { return ViewSize.fixed(0, 0) }
-        let lattice = lattice(rows, context: context)
+        // Offered no width, the grid answers its columns' own, squeezed only
+        // to the width there is, as an `HStack` asked its ideal width does.
+        let lattice = lattice(
+            rows, width: proposal.width ?? context.availableWidth, grows: proposal.width != nil, context: context)
         // Every row at least a line, because that is what `renderToBuffer`
         // draws: it gives every row a canvas of `max(1, rowHeight)`, so a row
         // is at least a line whatever it holds. Summing the raw heights made
@@ -352,7 +367,7 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         context.consumeSheetSize()
         let rows = rows(context: context)
         guard !rows.isEmpty else { return FrameBuffer() }
-        let lattice = lattice(rows, context: context)
+        let lattice = lattice(rows, width: context.availableWidth, context: context)
         let heights = lattice.heights
         let width = lattice.totalWidth
         guard width > 0 else { return FrameBuffer() }

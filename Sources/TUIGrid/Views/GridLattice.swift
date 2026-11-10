@@ -23,6 +23,9 @@ import TUIView
 /// the whole grid (a child that is not in any row, such as a `Divider` between
 /// rows) belongs to no column; it grows the last column only if the grid would
 /// otherwise be narrower than it.
+///
+/// Those are the columns' own widths. Offered another width, the columns share
+/// it as a row's children do (``fit(toWidth:grows:rows:minimum:measure:)``).
 struct GridLattice {
     /// One cell, as the lattice needs it.
     struct Cell {
@@ -229,5 +232,91 @@ struct GridLattice {
             x: box.x + horizontal.childOffset(childWidth: renderedWidth, in: box.width),
             y: box.y + vertical.childOffset(childHeight: renderedHeight, in: box.height)
         )
+    }
+}
+
+// MARK: - Fitting a Width
+
+extension GridLattice {
+    /// Where a cell is in the rows the lattice was built from: its row, and
+    /// its place among that row's cells.
+    struct CellIndex {
+        let row: Int
+        let cell: Int
+    }
+
+    /// Shares `width` among the columns, as an `HStack` shares a row among its
+    /// children, and finds each row's height at the widths its cells get.
+    ///
+    /// Measured (`Tools/SwiftUIProbes/Grid narrower than its columns/grid.out`):
+    /// SwiftUI's `Grid` asks each cell its width offered nothing and offered
+    /// everything, and deals the columns the width left, the least flexible
+    /// first, each offered an equal share of what is left; a column takes its
+    /// widest cell's answer. So no column is dropped: a column of text wraps (or
+    /// truncates, under `lineLimit(1)`) and the grid grows taller, a rigid
+    /// column keeps its width, and a column that fills takes what the others
+    /// leave. That is ``distributeLinearSpace(naturalSizes:isFlexible:available:spacing:shares:isSpacer:priorities:minimumSize:statedMinimum:sizeAt:)``,
+    /// a row's own deal, with the columns for its children.
+    ///
+    /// Where even the columns' minimums do not fit — a rigid column wider than
+    /// the grid — SwiftUI's grid is wider than its offer; this one places the
+    /// columns in order until the width runs out, as TUI's stacks do.
+    ///
+    /// Nothing is measured, and nothing changes, when every column fits whole
+    /// and none fills: the case of nearly every grid.
+    ///
+    /// - Parameters:
+    ///   - width: The width to fill.
+    ///   - grows: Whether a filling column grows into a width wider than the
+    ///     columns; not where the grid is asked its own width.
+    ///   - rows: The rows the lattice was built from.
+    ///   - minimum: A cell's width when offered none, a minimum it states
+    ///     included.
+    ///   - measure: A cell's size when offered a proposal.
+    mutating func fit(
+        toWidth width: Int, grows: Bool = true, rows: [Row], minimum: (CellIndex) -> Int,
+        measure: (CellIndex, ProposedSize) -> ViewSize
+    ) {
+        // The cells that decide each column's width: the ones Pass A counts.
+        var members = [[CellIndex]](repeating: [], count: columns.count)
+        var fills = [Bool](repeating: false, count: columns.count)
+        for (rowIndex, row) in rows.enumerated() where !row.spansFullWidth {
+            var column = 0
+            for (cellIndex, cell) in row.cells.enumerated() {
+                defer { column += cell.span }
+                guard cell.span == 1, !cell.unsizedAxes.contains(.horizontal), column < columns.count else { continue }
+                members[column].append(CellIndex(row: rowIndex, cell: cellIndex))
+                if cell.size.isWidthFlexible { fills[column] = true }
+            }
+        }
+        let total = totalWidth
+        guard width < total || (grows && width > total && fills.contains(true)) else { return }
+
+        func widest(_ column: Int, _ answer: (CellIndex) -> Int) -> Int? {
+            members[column].map(answer).max()
+        }
+        columns = distributeLinearSpace(
+            naturalSizes: columns, isFlexible: fills, available: max(0, width), spacing: horizontalSpacing,
+            minimumSize: { widest($0, minimum) ?? 0 },
+            statedMinimum: { column in widest(column) { fills[column] ? minimum($0) : 0 } ?? 0 },
+            sizeAt: { column, offer in widest(column) { measure($0, ProposedSize(width: offer, height: nil)).width } })
+
+        // A cell given less than it asked for wraps into more lines; one given
+        // as much keeps the height it had.
+        for (rowIndex, row) in rows.enumerated() {
+            var height = 0
+            var column = 0
+            for (cellIndex, cell) in row.cells.enumerated() {
+                defer { column += cell.span }
+                let box = row.spansFullWidth ? totalWidth : boxWidth(fromColumn: column, span: cell.span)
+                guard !cell.unsizedAxes.contains(.vertical) else { continue }
+                let size =
+                    box < cell.size.width
+                    ? measure(CellIndex(row: rowIndex, cell: cellIndex), ProposedSize(width: max(0, box), height: nil))
+                    : cell.size
+                height = max(height, size.height)
+            }
+            heights[rowIndex] = height
+        }
     }
 }

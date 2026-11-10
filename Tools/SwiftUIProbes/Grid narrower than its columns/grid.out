@@ -1,0 +1,50 @@
+three text	[ideal]	grid=36x2	c0=6@0×1	c1=21@7×1	c2=7@29×1
+three text	[60]	grid=36x2	c0=6@0×1	c1=21@7×1	c2=7@29×1
+three text	[40]	grid=36x2	c0=6@0×1	c1=21@7×1	c2=7@29×1
+three text	[34]	grid=29x3	c0=6@0×1	c1=14@7×2	c2=7@22×1
+three text	[30]	grid=29x3	c0=6@0×1	c1=14@7×2	c2=7@22×1
+three text	[26]	grid=25x5	c0=6@0×1	c1=10@7×3	c2=7@18×1
+three text	[20]	grid=20x7	c0=6@0×1	c1=7@7×5	c2=5@15×2
+three text	[15]	grid=15x9	c0=4@0×2	c1=4.49@5×6	c2=4.53@10.49×2
+three text	[10]	grid=10x15	c0=2@0×3	c1=3@3×9	c2=3@7×3
+three text	[5]	grid=5x28	c0=1@0×6	c1=1@2×17	c2=1@4×6
+four, rigid and flexible	[ideal]	grid=41x2	c0=6@0×1	c1=21@7×1	c2=7@29×1	c3=4@37×1
+  asked	four, rigid and flexible	r0c0=nil,6	r1c0=nil	r0c1=nil,21	r1c1=nil	r0c2=nil,7	r1c2=nil	r0c3=nil,4	r1c3=nil
+four, rigid and flexible	[60]	grid=60x2	c0=6@0×1	c1=21@7×1	c2=7@29×1	c3=23@37×1
+  asked	four, rigid and flexible	r0c0=0,inf,16.65,6,0,inf,16.65,6,0,inf,16.65,6	r1c0=0,inf,16.65,0,inf,16.65	r0c1=0,inf,22,21,0,inf,22,21,0,inf,22,21	r1c1=0,inf,22,0,inf,22	r0c2=0,inf,14.25,7,0,inf,14.25,7,0,inf,14.25,7	r1c2=0,inf,14.25,0,inf,14.25	r0c3=0,inf,23,0,inf,23	r1c3=0,inf,23,0,inf,23
+four, rigid and flexible	[40]	grid=40x4	c0=6@0×1	c1=11@7×3	c2=7@19×1	c3=13@27×1
+  asked	four, rigid and flexible	r0c0=0,inf,10,6,0,inf,10,6,0,inf,10,6	r1c0=0,inf,10,6,0,inf,10,6	r0c1=0,inf,12,0,inf,12	r1c1=0,inf,12,11,0,inf,12,11	r0c2=0,inf,9.25,7,0,inf,9.25,7,0,inf,9.25,7	r1c2=0,inf,9.25,7,0,inf,9.25,7	r0c3=0,inf,13,0,inf,13	r1c3=0,inf,13,0,inf,13
+four, rigid and flexible	[34]	grid=34x5	c0=6@0×1	c1=9@7×3	c2=7@17×1	c3=9@25×1
+  asked	four, rigid and flexible	r0c0=0,inf,8,6,0,inf,8,6,0,inf,8,6	r1c0=0,inf,8,6,0,inf,8,6	r0c1=0,inf,9,0,inf,9	r1c1=0,inf,9,0,inf,9	r0c2=0,inf,7.75,7,0,inf,7.75,7,0,inf,7.75,7	r1c2=0,inf,7.75,7,0,inf,7.75,7	r0c3=0,inf,9,0,inf,10,9	r1c3=0,inf,9,0,inf,10,9
+four, rigid and flexible	[30]	grid=30x7	c0=6@0×1	c1=7@7×5	c2=7@15×1	c3=7@23×1
+  asked	four, rigid and flexible	r0c0=0,inf,6.65,6,0,inf,6.65,6,0,inf,6.65,6	r1c0=0,inf,6.65,6,0,inf,6.65,6	r0c1=0,inf,7,0,inf,7	r1c1=0,inf,7,0,inf,7	r0c2=0,inf,6.75,7,0,inf,6.75,7,0,inf,6.75,7	r1c2=0,inf,6.75,7,0,inf,6.75,7	r0c3=0,inf,7,0,inf,8,7	r1c3=0,inf,7,0,inf,8,7
+four, rigid and flexible	[26]	grid=26x9	c0=5@0×2	c1=5@6×6	c2=7@12×1	c3=6@20×1
+  asked	four, rigid and flexible	r0c0=0,inf,5.32,5,0,inf,5.32,5,0,inf,5.32,5	r1c0=0,inf,5.32,5,0,inf,5.32,5	r0c1=0,inf,5.47,0,inf,5.47	r1c1=0,inf,5.47,0,inf,5.47	r0c2=0,inf,5.75,7,0,inf,5.75,7,0,inf,5.75,7	r1c2=0,inf,5.75,7,0,inf,5.75,7	r0c3=0,inf,6,0,inf,6	r1c3=0,inf,6,0,inf,6
+four, rigid and flexible	[20]	grid=20x12	c0=3@0×2	c1=3.48@4×8	c2=7@8.51×1	c3=3.45@16.55×2
+  asked	four, rigid and flexible	r0c0=0,inf,3.32,3,0,inf,3.32,3	r1c0=0,inf,3.32,3,0,inf,3.32,3	r0c1=0,inf,3.46,3.48,0,inf,3.46,3.48	r1c1=0,inf,3.46,3,0,inf,3.46	r0c2=0,inf,4.25,7,0,inf,4.25,7,0,inf,4.25,7	r1c2=0,inf,4.25,7,0,inf,4.25,7	r0c3=0,inf,3.45,0,inf,4,3.45	r1c3=0,inf,3.45,0,inf,4,3.45
+four, rigid and flexible	[15]	grid=15x28	c0=1@0×6	c1=2@2×17	c2=7@5×1	c3=2@13×4
+  asked	four, rigid and flexible	r0c0=0,inf,1.65,1,0,inf,1.65,1	r1c0=0,inf,1.65,1,0,inf,1.65,1	r0c1=0,inf,2,0,inf,2	r1c1=0,inf,2,0,inf,2	r0c2=0,inf,3,7,0,inf,3,7,0,inf,3,7	r1c2=0,inf,4,7,0,inf,4,7	r0c3=0,inf,2,0,inf,3,2	r1c3=0,inf,2,0,inf,3,2
+four, rigid and flexible	[10]	grid=10x28	c0=0@0×6	c1=0@1×17	c2=7@2×1	c3=0@10×4
+  asked	four, rigid and flexible	r0c0=0,inf,0,inf,0	r1c0=0,inf,0,inf,0	r0c1=0,inf,0,inf,0	r1c1=0,inf,0,inf,0	r0c2=0,inf,1.75,7,0,inf,1.75,7,0,inf,1.75,7	r1c2=0,inf,4,7,0,inf,4,7	r0c3=0,inf,0,inf,0	r1c3=0,inf,0,inf,0
+four, rigid and flexible	[5]	grid=10x28	c0=0@0×6	c1=0@1×17	c2=7@2×1	c3=0@10×4
+  asked	four, rigid and flexible	r0c0=0,inf,0,inf,0	r1c0=0,inf,0,inf,0	r0c1=0,inf,0,inf,0	r1c1=0,inf,0,inf,0	r0c2=0,inf,0.50,7,0,inf,0.50,7,0,inf,0.50,7	r1c2=0,inf,4,7,0,inf,4,7	r0c3=0,inf,0,inf,0	r1c3=0,inf,0,inf,0
+three, one line each	[ideal]	grid=36x2	c0=6@0×1	c1=21@7×1	c2=7@29×1
+three, one line each	[60]	grid=36x2	c0=6@0×1	c1=21@7×1	c2=7@29×1
+three, one line each	[40]	grid=36x2	c0=6@0×1	c1=21@7×1	c2=7@29×1
+three, one line each	[34]	grid=32x2	c0=6@0×1	c1=17@7×1	c2=7@25×1
+three, one line each	[30]	grid=29x2	c0=6@0×1	c1=14@7×1	c2=7@22×1
+three, one line each	[26]	grid=25x2	c0=6@0×1	c1=10@7×1	c2=7@18×1
+three, one line each	[20]	grid=19x2	c0=6@0×1	c1=6@7×1	c2=5@14×1
+three, one line each	[15]	grid=14x2	c0=4@0×1	c1=4@5×1	c2=4@10×1
+three, one line each	[10]	grid=9x2	c0=2@0×1	c1=3@3×1	c2=2@7×1
+three, one line each	[5]	grid=5x2	c0=1@0×1	c1=1@2×1	c2=1@4×1
+three, unbreakable words	[ideal]	grid=25x2	c0=6@0×1	c1=11@7×1	c2=6@19×1
+three, unbreakable words	[60]	grid=25x2	c0=6@0×1	c1=11@7×1	c2=6@19×1
+three, unbreakable words	[40]	grid=25x2	c0=6@0×1	c1=11@7×1	c2=6@19×1
+three, unbreakable words	[34]	grid=25x2	c0=6@0×1	c1=11@7×1	c2=6@19×1
+three, unbreakable words	[30]	grid=25x2	c0=6@0×1	c1=11@7×1	c2=6@19×1
+three, unbreakable words	[26]	grid=25x2	c0=6@0×1	c1=11@7×1	c2=6@19×1
+three, unbreakable words	[20]	grid=19x6	c0=6@0×1	c1=5@7×3	c2=6@13×1
+three, unbreakable words	[15]	grid=14x6	c0=4@0×2	c1=4@5×3	c2=4@10×2
+three, unbreakable words	[10]	grid=9x8	c0=2@0×3	c1=3@3×4	c2=2@7×3
+three, unbreakable words	[5]	grid=5x22	c0=1@0×6	c1=1@2×11	c2=1@4×6

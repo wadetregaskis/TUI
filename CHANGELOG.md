@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `Grid` narrower than its columns squeezes them instead of dropping them.** Columns were never squeezed, so a
+grid offered less than its full width was drawn at that width and cut: at 5 cells only its first column showed. It
+now shares the width among its columns as an `HStack` shares a row, as SwiftUI's grid does (measured): text in a
+squeezed column wraps, or truncates under `lineLimit(1)`, a column made rigid with `fixedSize()` keeps its width, and
+a column whose cells fill takes what the others leave, wider than the columns too. `GridLayout` does the same.
+
 **A value an app appends to a bound path replaces the screen a view destination put on top, as in SwiftUI.** With
 a `navigationDestination(isPresented:)` screen up, or a view-destination `NavigationLink`'s, a value the app appended
 to the path went on top and Back returned to the screen. It now takes the screen's place, and the screen's flag is

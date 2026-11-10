@@ -85,7 +85,8 @@ inclusion in CI." So no CI job runs them. Rerun them when:
    items and alert buttons`, `The menu bar (O13)`, `Picker sections`, `List pinned headers and row stripes`,
    `Hierarchical table insertions`, `Badge prominence`, `NavigationLink as a list row`, `Named colours by scheme`,
    `Image paint`, `Blend modes`, `Trailing values and labels`, `Ragged text in a larger frame`, `Markdown attribute
-   syntax`, `Localization keys` and `Undo and the pointer leaving (INPUT)`.
+   syntax`, `Localization keys` and `Undo and the pointer leaving (INPUT)`; since 2026-11-10, `Navigation path and
+   view destinations` and `Grid narrower than its columns` too.
 
 The rest only when their subject comes up.
 
@@ -1301,3 +1302,31 @@ messages cite that path), and what cites it.
 - **Was:** written here.
 - **Cited by:** `Sources/TUINavigation/Views/NavigationStack.swift`,
   `Tests/TUINavigationTests/NavigationPathScreensTests.swift`, `Tests/TUINavigationTests/TypedPathScreensTests.swift`.
+
+### Grid narrower than its columns
+
+- **Asks:** what SwiftUI's `Grid` does offered less width than its columns ask for: two rows of monospaced text in
+  three columns (short words; a sentence that can wrap; short words), the same with `.lineLimit(1)`, the same with
+  one unbreakable word in the middle column, and four columns where the third holds texts made rigid by
+  `.fixedSize()` and the fourth a `.frame(maxWidth: .infinity)` text; each offered its ideal width, 60, 40, 34, 30,
+  26, 20, 15, 10 and 5 characters (`grid.swift`, `grid.out`). Top-level code, after `Flexible frames`; one character
+  between columns, leading alignment, and every cell in a pass-through `Layout` that records the widths it is asked
+  about.
+- **Answers:** a grid shares a short width among its columns exactly as an `HStack` shares it among its children.
+  Each cell is asked its width offered nothing and offered everything; a column's range is its cells'. The columns
+  are then dealt the width left, the least flexible first, each offered an equal share of what is left, and a column
+  takes its widest cell's answer: the three-column grid at 20 characters gives 6, 7 and 5 (not 6, 21 and 7), at 15
+  gives 4, 4½, 4½, and at 5 gives 1, 1, 1. No column is dropped. A squeezed text wraps, the grid growing taller (2
+  lines become 7 at 20 characters, 28 at 5), and with `.lineLimit(1)` it truncates instead, staying one line. A
+  rigid column keeps its width and the others take what is left, down to none (four columns at 10: 0, 0, 7, 0); when
+  even that does not fit, the grid is wider than its offer (10 at 5). A flexible column takes what the others leave,
+  more than its text: 13 at 40, 23 at 60. Wider than its columns, a grid with no flexible column stays its ideal
+  width. The grid reports the columns' sum and its gaps. (SwiftUI's wrapped text counts a trailing space in its
+  width, so its third column at 20 is 5, "2048 " over "KB"; TUI's text does not, and gives 6, 8 and 4 there.)
+- **What TUI does with it:** deals the columns with the stacks' own distribution
+  (`Sources/TUIGrid/Views/GridLattice.swift`, `fit(toWidth:grows:rows:minimum:measure:)`), so the shares match in
+  whole cells. One deviation, the stacks' own: where even the columns' minimums do not fit (four columns at 5), the
+  columns are placed in order until the width runs out, rather than the grid drawing wider than its frame.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-10.
+- **Was:** written here.
+- **Cited by:** `Sources/TUIGrid/Views/GridLattice.swift`, `Tests/TUIGridTests/GridNarrowTests.swift`.

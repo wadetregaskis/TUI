@@ -63,7 +63,9 @@ nonisolated public struct GridLayout: Layout, Sendable, Equatable {
     /// Like every layout's here, it lives for one pass (see ``Layout``).
     public struct Cache {
         fileprivate var rows: [GridRowGroup<Int>]
-        fileprivate var lattice: GridLattice?
+        /// The lattice at the columns' own widths, and the cells it was built
+        /// from, for fitting to each width asked about.
+        fileprivate var lattice: (lattice: GridLattice, cells: [GridLattice.Row])?
     }
 
     /// The column gap in force.
@@ -88,8 +90,7 @@ nonisolated public struct GridLayout: Layout, Sendable, Equatable {
     }
 
     @MainActor public func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout Cache) -> ViewSize {
-        let lattice = lattice(cache.rows, subviews: subviews)
-        cache.lattice = lattice
+        let lattice = fitted(cache: &cache, subviews: subviews, width: proposal.width)
         return ViewSize(
             width: min(lattice.totalWidth, max(0, proposal.width ?? lattice.totalWidth)),
             height: min(
@@ -100,7 +101,7 @@ nonisolated public struct GridLayout: Layout, Sendable, Equatable {
     @MainActor public func placeSubviews(
         in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout Cache
     ) {
-        let lattice = cache.lattice ?? lattice(cache.rows, subviews: subviews)
+        let lattice = fitted(cache: &cache, subviews: subviews, width: bounds.width)
         let origins = lattice.columnOrigins
         let rowTops = lattice.rowTops(spacing: rowGap)
         for (rowIndex, row) in cache.rows.enumerated() {
@@ -154,23 +155,46 @@ nonisolated public struct GridLayout: Layout, Sendable, Equatable {
         return subviews.mergedExplicitGuide(.vertical(guide))
     }
 
-    /// The grid's lattice over `rows`, from each cell's size at an
-    /// unspecified proposal — what ``Grid`` builds from its children.
-    @MainActor private func lattice(_ rows: [GridRowGroup<Int>], subviews: Subviews) -> GridLattice {
-        GridLattice(
-            rows: rows.map { row in
-                GridLattice.Row(
-                    cells: row.cells.map { index in
-                        let subview = subviews[index]
-                        return GridLattice.Cell(
-                            span: row.spansFullWidth ? 1 : subview.child.gridSpan,
-                            size: subview.sizeThatFits(.unspecified),
-                            columnAlignment: subview.child.gridColumnAlignment,
-                            unsizedAxes: subview.child.gridUnsizedAxes)
-                    },
-                    spansFullWidth: row.spansFullWidth)
+    /// The grid's lattice, its columns sharing `width` as ``Grid``'s do
+    /// (``GridLattice/fit(toWidth:grows:rows:minimum:measure:)``), or at their
+    /// own widths for none.
+    @MainActor private func fitted(cache: inout Cache, subviews: Subviews, width: Int?) -> GridLattice {
+        let base = cache.lattice ?? lattice(cache.rows, subviews: subviews)
+        cache.lattice = base
+        guard let width else { return base.lattice }
+        let rows = cache.rows
+        var lattice = base.lattice
+        lattice.fit(
+            toWidth: width, rows: base.cells,
+            minimum: { index in
+                let subview = subviews[rows[index.row].cells[index.cell]]
+                return max(
+                    subview.sizeThatFits(ProposedSize(width: 0, height: nil)).width,
+                    statedMinimumLength(of: subview.child, horizontally: true))
             },
-            horizontalSpacing: columnGap)
+            measure: { subviews[rows[$0.row].cells[$0.cell]].sizeThatFits($1) })
+        return lattice
+    }
+
+    /// The grid's lattice over `rows`, from each cell's size at an
+    /// unspecified proposal — what ``Grid`` builds from its children — and
+    /// the cells it was built from.
+    @MainActor private func lattice(
+        _ rows: [GridRowGroup<Int>], subviews: Subviews
+    ) -> (lattice: GridLattice, cells: [GridLattice.Row]) {
+        let cells = rows.map { row in
+            GridLattice.Row(
+                cells: row.cells.map { index in
+                    let subview = subviews[index]
+                    return GridLattice.Cell(
+                        span: row.spansFullWidth ? 1 : subview.child.gridSpan,
+                        size: subview.sizeThatFits(.unspecified),
+                        columnAlignment: subview.child.gridColumnAlignment,
+                        unsizedAxes: subview.child.gridUnsizedAxes)
+                },
+                spansFullWidth: row.spansFullWidth)
+        }
+        return (GridLattice(rows: cells, horizontalSpacing: columnGap), cells)
     }
 }
 

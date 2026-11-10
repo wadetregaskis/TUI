@@ -103,6 +103,13 @@ with ``View/gridCellColumns(_:)``, and placement precedence runs
 alignment → the grid's. A cell that should fill its column or row rather than
 size it — a rule, a fill — takes ``View/gridCellUnsizedAxes(_:)``.
 
+Offered less width than its columns ask for, a grid shares it among them the
+way an `HStack` shares a row among its children, as SwiftUI's does: the least
+flexible column is served first, a column of text wraps (or truncates, under
+`lineLimit(1)`) and the grid grows taller, a column made rigid with
+`fixedSize()` keeps its width, and a column whose cells fill takes what the
+others leave — wider than the columns, too.
+
 A ``GridRow`` is not a container of its own: it hands its cells to whatever lays
 them out, so outside a grid they are simply views. ``GridLayout`` is the same
 lattice as a ``Layout``, for switching with another through ``AnyLayout`` while
