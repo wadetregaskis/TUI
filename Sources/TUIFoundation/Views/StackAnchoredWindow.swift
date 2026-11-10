@@ -896,6 +896,16 @@ private final class AnchoredWindowFrame {
                 1,
                 frame.children.count * state.estimatedPitch(spacing: spacing)
                     - (frame.children.count > 1 ? spacing : 0)))
+        let drawGraft = { (ordinal: Int, y: Int) in
+            self.drawAnchoredGraft(
+                frame.child(at: ordinal), measuredWidth: frame.measuredWidth(of: ordinal), y: y,
+                gradient: gradientFrame, width: width, viewportHeight: window.viewportHeight, context: context)
+        }
+        // Drawn ahead of the band, as each stands above it (`drawOffBandRow`).
+        let firstPlaced = sorted.first?.ordinal ?? .min
+        let drawnAbove = Dictionary(
+            grafts.filter { $0.ordinal < firstPlaced }.map { ($0.ordinal, drawGraft($0.ordinal, $0.y)) },
+            uniquingKeysWith: { first, _ in first })
 
         var result = FrameBuffer()
         let sliceOrigin = window.reply != nil ? (sorted.first?.y ?? 0) : 0
@@ -980,7 +990,7 @@ private final class AnchoredWindowFrame {
             // the accurate-estimate case always behaved.
             var bandLocalY = y - sliceOrigin
             let bandHeight = cursor - sliceOrigin
-            if let firstPlaced = sorted.first?.0, ordinal < firstPlaced {
+            if ordinal < firstPlaced {
                 // A full viewport height clear of the band top: the grafted
                 // regions are at most viewportHeight tall (the row renders at
                 // that height), so nothing can poke past 0 — a row-pitch
@@ -991,15 +1001,7 @@ private final class AnchoredWindowFrame {
                 // ambiguous: out of the band is the contract either way.
                 bandLocalY = max(bandLocalY, bandHeight)
             }
-            graftOffBandRow(
-                frame.child(at: ordinal), into: &result, bandLocalY: bandLocalY,
-                width: width, viewportHeight: window.viewportHeight,
-                context: context.placingChild(
-                    gradient: gradientFrame,
-                    x: Self.gradientX(
-                        childWidth: frame.measuredWidth(of: ordinal) ?? width,
-                        extent: width, alignment: alignment),
-                    y: y))
+            graftOffBandRow(drawnAbove[ordinal] ?? drawGraft(ordinal, y), into: &result, bandLocalY: bandLocalY)
             if let key = frame.children.key(at: ordinal) { memo[key] = ordinal }
         }
         state.rowOrdinalMemo = memo

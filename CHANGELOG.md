@@ -25,6 +25,10 @@ now ends with what the person's terminal, tmux or ssh sets, such as `TERM_PROGRA
 `TUIEnvironmentVariable.Topic`'s cases are the new groups, so code that switched over the old ones (`colour`,
 `accessibility`, `behaviour`) needs the new names; regenerate a committed man page to pick up the text.
 
+**Shift+Tab walks up through a `LazyVStack` in a `ScrollView`, scrolling each row in.** From the row it had just
+scrolled in at the top, it went on to the control before the scroll view (or, with none, to the scroll view and then
+the bottom of the window), so the rows above could be reached only by scrolling first. Tab downwards was unaffected.
+
 **The scroll bar's arrow under the pointer lights as the bar arrives.** A bar drawn over the content appears on the
 frame after the pointer comes over the view, and an arrow it put under a pointer that had not moved stayed unlit until
 the pointer moved again. A frame that slides a control under a resting pointer, or off it, is now followed by the frame

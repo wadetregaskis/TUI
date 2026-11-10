@@ -533,6 +533,8 @@ final class StackWindowState {
         // ScrollView clips the band directly. Without one (tests, direct
         // injection), the classic full-height buffer is emitted.
         let rowContext = uniformRowPlacement(childContext, width: width, pitch: pitch, totalHeight: totalHeight)
+        // Drawn ahead of the band, as each stands above it (`drawOffBandRow`).
+        let drawnAbove = drawOffBandRows(graftRows, above: true, band: rows, width: width, viewportHeight: window.viewportHeight, rowContext: rowContext)
 
         var result = FrameBuffer()
         let sliceOrigin = window.reply != nil ? (rows.first.map { $0.ordinal * pitch } ?? 0) : 0
@@ -549,11 +551,11 @@ final class StackWindowState {
         } else if cursor < totalHeight {
             result.appendVertically(FrameBuffer(emptyWithHeight: totalHeight - cursor), spacing: 0)
         }
-        for (ordinal, child, rowWidth, _) in graftRows {
-            graftOffBandRow(
-                child, into: &result, bandLocalY: ordinal * pitch - sliceOrigin,
-                width: width, viewportHeight: window.viewportHeight,
-                context: rowContext(ordinal, rowWidth))
+        // And those below it after, where they stand.
+        let drawn = drawnAbove + drawOffBandRows(
+            graftRows, above: false, band: rows, width: width, viewportHeight: window.viewportHeight, rowContext: rowContext)
+        for (ordinal, drawn) in drawn {
+            graftOffBandRow(drawn, into: &result, bandLocalY: ordinal * pitch - sliceOrigin)
             if let key = children.key(at: ordinal) { memo[key] = ordinal }
         }
         state.rowOrdinalMemo = memo
@@ -852,35 +854,6 @@ final class StackWindowState {
             }
         }
         return (band, targets.subtracting(band).sorted())
-    }
-
-    /// Renders an off-band focus/pending target row for its side effects —
-    /// focus registration above all — and grafts its hit-test regions and
-    /// overlays into the band buffer at the row's band-local y, WITHOUT
-    /// adding any lines. Materialising the band→row gap as blank lines
-    /// would cost O(distance) time and memory every frame the control stays
-    /// focused off-window (and the universal render clamp then truncates
-    /// the lines while keeping the regions, corrupting the band). Regions
-    /// are pure rects, so they sit happily outside the band's line range —
-    /// negative or far beyond — where the ScrollView's reveal math reads
-    /// them and its viewport clip then drops the invisible ones.
-    ///
-    /// `result` holds the whole band by then. A row above it comes before
-    /// every row in it, so what the row draws past its region
-    /// (`OverlayLayer.isOverflow`, a badge hung down by an alignment guide)
-    /// is cut where the band paints, as the stack's own combining operation
-    /// would cut it: grafted uncut, it drew over the rows the window shows. A
-    /// row below the band comes after it, and its overflow is drawn over the
-    /// band, as it is.
-    func graftOffBandRow(
-        _ child: ChildView, into result: inout FrameBuffer, bandLocalY: Int,
-        width: Int, viewportHeight: Int, context: RenderContext
-    ) {
-        let rendered = child.render(width: width, height: viewportHeight, context: context)
-        var aligned = rendered.horizontallyAligned(toWidth: width, alignment: alignment)
-        result.appendHitTestRegions(of: aligned, shiftedByX: 0, y: bandLocalY)
-        if bandLocalY < 0 { aligned.coverOverflow(under: result, at: (x: 0, y: -bandLocalY)) }
-        result.appendOverlays(of: aligned, shiftedByX: 0, y: bandLocalY)
     }
 }
 
