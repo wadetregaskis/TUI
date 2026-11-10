@@ -4924,7 +4924,7 @@ everywhere else the glyph stands on the copy's average colour, a block behind
 each letter. `TUI_PICTURES_UNDER_TEXT=1` tries it anywhere. Graphics notes
 §14.5.
 
-### Kitty graphics animation — measured 2026-11-02, and Ghostty's pixels NOT seen
+### Kitty graphics animation — measured 2026-11-02; Ghostty's pixels seen 2026-11-09
 
 `Tools/TerminalProbes/animation_probe.py`, records `data/*-animation.json`;
 `animation_kitty_headless.py` for kitty, which cannot open a window on this machine
@@ -4936,21 +4936,23 @@ and so ran its parser and compositor only.
 | `a=a`, `q=0` | Nothing (source: success never replies) | Nothing | `UnsupportedAction` | Not asked aloud |
 | `a=c`, `q=0` | `OK` | Nothing | `UnsupportedAction` | Not asked |
 | Feature query `e=f` (kitty 0.50) | `EINVAL: dimensions required` | `invalid payload` | Plain `OK`, no `e` | Too old to have it |
-| Plays, as drawn | **Not seen** | No: every panel held its first frame, 4 captures over 5 s | No: the same, 2 captures over 1.7 s | Not run: its loop is in the renderer |
-| `a=a,c=N` selects, as drawn | **Not seen** | No | No | Yes, by state |
-| `X=1` over a clear canvas | Source only | No | No | Yes, on TUI's bytes: a cleared half stays alpha 0 |
+| Plays, as drawn | **Yes**, seen by the owner (2026-11-09) | No: every panel held its first frame, 4 captures over 5 s | No: the same, 2 captures over 1.7 s | Not run: its loop is in the renderer |
+| `a=a,c=N` selects, as drawn | **Yes** (A white) | No | No | Yes, by state |
+| `X=1` over a clear canvas | **Yes**: F never showed both blocks | No | No | Yes, on TUI's bytes: a cleared half stays alpha 0 |
 
 The reply is the only thing that separates them, so the handshake asks for it, and
 takes `r=2` rather than `OK`. A bare `OK` would have been fooled: Warp says it to a
 feature query, and Ghostty says it to `a=c`.
 
-**Why Ghostty's pixels were not seen.** A probe in Ghostty has to be a second instance
-(`--initial-command`, no consent prompt). The window tools only find the first, which
-had no windows, and it would not open one. Full-screen capture needed an approval that
-went unanswered three times. So playback is off by default (`playbackTrustsHandshake`).
-To settle it, run `animation_probe.py` in Ghostty and look twice, a second apart: B, C
-and H should move, A should be white, D should end on yellow, E should hold, and F
-should never show both blocks.
+**Ghostty's pixels, seen 2026-11-09.** On 2026-11-02 they could not be: a probe in Ghostty
+has to be a second instance (`--initial-command`, no consent prompt), the window tools only
+found the first, and full-screen capture went unapproved. So playback was left off by default
+(`playbackTrustsHandshake`). On 2026-11-09 the owner watched the card in Ghostty 1.4.0 from
+the start: every panel as it should be. A white; B and C cycling red, green, white, yellow;
+D one pass, ending and staying on yellow; E held; F never both blocks; G the red block
+steady and the white one blinking, both on frame 2, as `c=1` composing asks; H a bar moving.
+The replies matched 2026-11-02's (`data/ghostty-1.4.0-animation.json`). Whether
+`TUI_GRAPHICS_PLAYBACK` goes on is the owner's, among the experiments (EXPERIMENTS, 2026-11-09).
 
 **What it rounds to, read and not measured.** Both keep whole milliseconds (`z`), so a
 file's delay survives as it is. Neither rounds to a grid. Each advances at most one
@@ -6033,8 +6035,19 @@ harmless. The smoke (case 10): a hung
 IdleProbe pops nothing with no key pressed, pops within 2.5 s of an unread
 report, and the byte then quits it; a slow frame pops and pushes back, a
 report sent before the pop and a byte after both read; with a ⌃\\ binding
-nothing is popped. Against the smoke's terminal, not a real one: Ghostty,
-kitty, WezTerm and foot are unmeasured.
+nothing is popped. Against the smoke's terminal; kitty, WezTerm and foot are unmeasured.
+
+**Ghostty 1.4.0, measured 2026-11-09** (a relay logging both directions, the owner
+pressing the keys; IdleProbe `hang`, the default `.quitConfirmation`). TUI pushes flags 31,
+so a lone Control press is itself a report (`CSI 57442;5u`) and starts the clock; ⌃\\
+came as `CSI 92;5u` and its release `CSI 92;5:3u`. 2.0 s after the Control press the
+watchdog popped (`CSI < u`), and 4 ms later the app ended by `SIGQUIT` with nothing more
+from Ghostty: `UnreadQuitKeyWatch` read the waiting report and quit, at the first ⌃\\.
+Where unread input had already waited that long before ⌃\\ (clicking into the window
+sends a focus report, which a hung app leaves unread), the pop came first and the watch
+was already reading: ⌃\\ arrived as 0x1C and quit at once (`VQUIT` is masked under
+`.quitConfirmation`, so the watch, not the driver). The two-press quit above is `.whenWarned`'s. The
+owner accepted this behaviour ("fine for now", B-F2-4).
 
 #### ⌘ shortcuts meet the text controls' Emacs chords (recorded 2026-09-24)
 

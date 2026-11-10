@@ -122,3 +122,10 @@ deprecation) as points 6 and 7. The owner's words are quoted where they add to t
 | 9 | "WebAssembly and Windows need to be fully working and supported for 1.0." | The owner: Windows is "the last major work item, of which I'm aware", to be done on a Windows VM. The draft recommended WebAssembly as best effort and Windows later. | The policy; 1.0 work |
 | 10 | `api_baseline.py --check` runs in CI. | None recorded. | CI (2026-11-09) |
 | 11 | The open defaults: the owner asked what they are; explained that night. | — | Still [open](<../../Open owner decisions.md>) |
+
+### The probes, the same night
+
+| Id | Decision | Why, as recorded | Where it went |
+|---|---|---|---|
+| B-F2-4 | "It's fine for now": a hung app under the kitty keyboard protocol quits at the first ⌃\, about two seconds later, or at once when unread input already tripped the watchdog. | Measured on Ghostty 1.4.0 with a relay logging both directions; the record had described `.whenWarned`'s second press. | [Terminal compatibility survey](<../../Terminals/Terminal compatibility survey.md>) |
+| Animation probe | Ghostty 1.4.0 plays every panel as it should, watched by the owner. | Ghostty's pixels had not been seen on 2026-11-02. Whether `TUI_GRAPHICS_PLAYBACK` goes on stays with EXPERIMENTS. | The survey |

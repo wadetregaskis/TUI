@@ -27,12 +27,14 @@ is the driver's byte. `TUIKIT_KEYBOARD_PROTOCOL=0` keeps TUI from asking.
    shortcuts stay on non-command modifiers; command shortcuts when a developer
    opts in. Built by lane KEYS, 2026-10-24.
 5. **B-F2-4**, settled 2026-10-18: keep the hung-app quit at the second ⌃\
-   under the protocol, and check it once on a real kitty-protocol host.
+   under the protocol, and check it once on a real kitty-protocol host. Checked on
+   Ghostty 1.4.0 on 2026-11-09: since ⌃\ asks first (2026-10-31), a hung app quits at
+   the FIRST ⌃\, about two seconds later (`UnreadQuitKeyWatch`), and at once when
+   unread input had already tripped the watchdog; the second press is `.whenWarned`'s.
+   The owner: "It's fine for now." Details in the compatibility survey.
 
 ## For a future reader
 
-- **Owed: B-F2-4's check on Ghostty**, at the next probe session (settled
-  2026-10-18, never run).
 - **A killed app leaves a shell that cannot read Return** while the protocol's
   flags are pushed (B-D1K-8); `reset` or the terminal's own recovery fixes it.
 

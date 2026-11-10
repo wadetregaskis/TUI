@@ -13,13 +13,6 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 
 ## Owner actions
 
-- **B-F2-4, once in Ghostty:** run `IDLE_PROBE_MODE=hang ~/Library/Caches/tuikit-probe/owner-keys/IdleProbe`
-  (a release `IdleProbe`, staged there because Ghostty may not open files under `~/Documents`), press ⌃\\
-  once, wait about two seconds, and press it again: the app should quit at the second press, the terminal
-  restored. Under the kitty keyboard protocol ⌃\\ arrives as a key report, and only the stall watchdog
-  makes a hung app quit.
-- **Animated pictures:** run `python3 Tools/TerminalProbes/animation_probe.py` in Ghostty. Its result decides whether a
-  terminal playing an animated picture by itself (`TUI_GRAPHICS_PLAYBACK`, off today) goes on by default.
 - **Compiler bug reports** on the Desktop, one file per bug, are yours to file.
 - **Run the SwiftUI-27 parity job once** (SDK-27, 2026-11-09): *Actions → SwiftUI parity (Xcode 27) → Run
   workflow* with the defaults. It compares TUI with Xcode 27's SwiftUI on GitHub's `xcode-27` image and keeps the
@@ -38,7 +31,7 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
-| EXPERIMENTS | Each experiment, promoted, kept as a documented experiment, or deleted before 1.0 (API-STABILITY point 5, 2026-11-09: you'll test them first): `TUI_ARROW_FOCUS`, `TUI_CURSOR_FOLLOWS_FOCUS`, `TUI_PLAIN_TEXT=transliterate`, `TUI_GRAPHICS_PLAYBACK` (see the animation probe above), and the held-press widening (A-TEXT2-1). The [API stability policy](<API stability policy.md>) leaves an experiment out of the promise until it is promoted. | Decide each after trying it | They stay experiments, unpromised; 1.0 waits for your call |
+| EXPERIMENTS | Each experiment, promoted, kept as a documented experiment, or deleted before 1.0 (API-STABILITY point 5, 2026-11-09: you'll test them first): `TUI_ARROW_FOCUS`, `TUI_CURSOR_FOLLOWS_FOCUS`, `TUI_PLAIN_TEXT=transliterate`, `TUI_GRAPHICS_PLAYBACK` (Ghostty 1.4.0 plays every panel of the animation probe right, seen 2026-11-09), and the held-press widening (A-TEXT2-1). The [API stability policy](<API stability policy.md>) leaves an experiment out of the promise until it is promoted. | Decide each after trying it | They stay experiments, unpromised; 1.0 waits for your call |
 
 ### Open on 2026-11-01
 
