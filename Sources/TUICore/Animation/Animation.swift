@@ -595,8 +595,11 @@ extension Animation {
         // trapping, and every pass past the count is the same finished one.
         // Past 2^53 a pass's parity and place in it are noise; finite noise.
         // An infinite pass run for an infinite time is NaN passes: the first.
+        // The cap is 2^62 where `Int` is 64 bits and 2^30 where it is 32
+        // (wasm32), not a literal `1 << 62`: a shift past the width is 0, not
+        // an error, so that capped every count at no passes there.
         let ratio = scaled / (wait + passDuration)
-        let passes = ratio.isNaN ? 0 : min(ratio.rounded(.down), Double(1 << 62))
+        let passes = ratio.isNaN ? 0 : min(ratio.rounded(.down), Double(1 << (Int.bitWidth - 2)))
         let pass = Int(passes)
         let into = scaled.isFinite ? scaled - passes * (wait + passDuration) : 0
         let within = min(1, max(0, into - wait) / passDuration)

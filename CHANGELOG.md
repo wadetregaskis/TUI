@@ -25,6 +25,10 @@ user still sees there is more. To keep the old layout, a column always reserved 
 `.scrollIndicatorPlacement(.besideContent)` at the top of the app. `scrollIndicatorsFlash` lights only indicators that
 are drawn, so under the new default a flash shows nothing until the pointer or the focus brings them.
 
+**Repeating animations repeat on WebAssembly.** `repeatCount(_:autoreverses:)` and `repeatForever(autoreverses:)`
+stopped at the end of their first pass there, and a spring ended a hair short of its target, because a cap meant
+for a 64-bit `Int` came out as zero in a 32-bit one. Other platforms are unchanged.
+
 **`UserDefaultsStorage` exists on WebAssembly.** It was declared for Apple platforms and Linux only, so an app that
 named it did not compile for `wasm32-unknown-wasip1`. There it is Linux's: a JSON file per suite in the app's
 configuration directory.
