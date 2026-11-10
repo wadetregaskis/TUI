@@ -159,11 +159,15 @@ struct ScrollContentMarginsTests {
         #expect(lines(ScrollView { rows(3) }.contentMargins(2, for: .scrollIndicators)) == plain)
     }
 
-    /// The default style's bar, with its arrows, over content that overflows.
+    /// The default style's bar, with its arrows, over content that overflows —
+    /// placed beside the content, as it is read at rest: the default placement
+    /// (`.overContent`) draws it only for the pointer or the focus.
     private func barred<V: View>(_ view: V, width: Int = 12, height: Int = 6) -> FrameBuffer {
+        var environment = EnvironmentValues()
+        environment.scrollIndicatorPlacement = .besideContent
         let context = RenderContext(
             availableWidth: width, availableHeight: height,
-            environment: EnvironmentValues(), tuiContext: TUIContext()
+            environment: environment, tuiContext: TUIContext()
         ).isolatingRenderCache()
         return renderToBuffer(view, context: context)
     }

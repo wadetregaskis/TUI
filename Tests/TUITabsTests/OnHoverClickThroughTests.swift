@@ -62,6 +62,9 @@ struct IndicatorLineShieldTests {
             }
         }
         .scrollIndicatorStyle(.text)
+        // Beside the content: this clicks the lines drawn at rest, which the default (.overContent)
+        // draws only for the pointer or the focus — and the focus here goes to a row's button.
+        .scrollIndicatorPlacement(.besideContent)
         .frame(height: 6)
 
         func frame() -> FrameBuffer {

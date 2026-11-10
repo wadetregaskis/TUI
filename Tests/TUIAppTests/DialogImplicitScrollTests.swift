@@ -27,6 +27,9 @@ struct DialogImplicitScrollTests {
         // against the "N more above / below" lines, which are now a style. The
         // shipped default is a scrollbar; cases about THAT ask for it by name.
         environment.scrollIndicatorStyle = .text
+        // Beside the content: the dialog's scroller is no focus stop, so under the default
+        // (.overContent) its "N more" lines are drawn only for the pointer.
+        environment.scrollIndicatorPlacement = .besideContent
         environment.applyRuntimeServices(from: tui)
         return RenderContext(
             availableWidth: width, availableHeight: height,

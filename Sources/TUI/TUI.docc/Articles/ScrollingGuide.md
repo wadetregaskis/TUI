@@ -164,7 +164,16 @@ ScrollView {
 
 ## Scroll bars
 
-A scroll bar shows up whenever the content overflows, and it takes up one column of the view, so your content has that much less to work with. Unlike on a Mac, it doesn't float over the content or fade away.
+When the content overflows, a scroll bar shows up over its last column while the pointer is over the view, and goes again when the pointer leaves. While the view holds the focus, the bar sits beside the content instead, in a column of its own, so a keyboard user can see where they are without the bar covering anything; your content has one column less while it's there.
+
+To keep the bar beside the content whenever it shows, pointer or not:
+
+```swift
+ScrollView { content }
+    .scrollIndicatorPlacement(.besideContent)
+```
+
+This is TUI's own setting, and like the two below it applies to every scrolling view inside the one you write it on.
 
 To change whether it's there:
 
@@ -173,7 +182,7 @@ ScrollView { content }
     .scrollIndicators(.hidden)     // never shown, but it still scrolls
 ```
 
-`.visible` keeps it showing even when nothing overflows, and `.automatic` is the default.
+`.visible` keeps it showing even when nothing overflows (over the content, still only while the pointer is over the view or it holds the focus), and `.automatic` is the default.
 
 To say how much is hidden rather than show where you are, use text instead of a bar. It works on the vertical axis of a scroll view, and on lists and tables:
 

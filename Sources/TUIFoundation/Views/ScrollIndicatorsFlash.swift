@@ -168,13 +168,15 @@ extension View {
     ///     .scrollIndicatorsFlash(onAppear: true)
     /// ```
     ///
-    /// A terminal's indicators are not overlays: a scrollable whose content
-    /// overflows draws its bar, or its "N more" lines, on every frame. A flash
-    /// here is a highlight instead: for half a second the bar's thumb and
-    /// arrows, or the "N more" lines, brighten to a step past a focused bar's
-    /// breath and fade back. As in SwiftUI, only the indicators that are drawn
-    /// flash — none under `.scrollIndicators(.hidden)`, and none while the
-    /// content fits. Reaches `ScrollView`, `List`, `Table` and `TextEditor`,
+    /// A flash here is a highlight of the indicators as they are drawn: for
+    /// half a second the bar's thumb and arrows, or the "N more" lines, brighten
+    /// to a step past a focused bar's breath and fade back. It does not make
+    /// them appear: only the indicators that are drawn flash — none under
+    /// `.scrollIndicators(.hidden)`, none while the content fits, and, placed
+    /// ``ScrollIndicatorPlacement/overContent`` (the default), none while
+    /// neither the pointer is over the view nor the view holds the focus. Placed
+    /// ``ScrollIndicatorPlacement/besideContent``, a scrollable whose content
+    /// overflows draws its indicators on every frame, and they always flash. Reaches `ScrollView`, `List`, `Table` and `TextEditor`,
     /// but not the scrollers the framework puts around a tall menu, a sheet's
     /// or a framed container's content (the scrollables in that content do).
     ///

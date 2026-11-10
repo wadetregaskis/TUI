@@ -40,12 +40,6 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 | PARTIAL-TUI | A grid at the foot of the terminal, scrollback above ([the design](<Partial TUI.md>)): about 13 commits. It suits tools rather than page apps, and helps accessibility only a little. Build it after 1.0, or sooner? | After 1.0; the real cursor and "still" first if accessibility is the reason | After 1.0 |
 | HR-1 to HR-6 | Compiled hot reload, for when it's picked up: [section 10 of the design](<Compiled hot reload.md#10-what-the-owner-decides-when-this-is-picked-up>). | The design's defaults for HR-1 to HR-5 | Waits; nothing is built |
 
-### Open on 2026-10-28
-
-| Id | Question | Recommended | If you don't answer |
-|---|---|---|---|
-| SCROLLBAR-PLACEMENT | Try `.overContent` before the final say: the Example's Theme page now switches it (Scroll indicators). Hover a list, then click it: the bar moves from over the rows to beside them. | — | Both stay, beside the content by default. |
-
 ## New on 2026-10-25
 
 - **The README's hero clip.** You haven't chosen. Candidates filmed or sketched: the system monitor,

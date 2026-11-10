@@ -90,6 +90,10 @@ struct FocusMoveScopeTests {
                 }
             }
             .frame(height: 5)
+            // Beside the content, whatever the focus. Under the default (.overContent) the focus
+            // arriving moves the bar beside the rows, and lays them out again a column narrower:
+            // the owner's ruling (2026-10-29), a rebuild this test would count against the scope.
+            .scrollIndicatorPlacement(.besideContent)
         }
         render(view, tui, manager)
         let stops = manager.registeredFocusIDsInActiveSection()

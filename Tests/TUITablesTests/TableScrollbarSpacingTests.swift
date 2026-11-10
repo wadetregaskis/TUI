@@ -35,6 +35,9 @@ struct TableScrollbarSpacingTests {
             TableColumn("Note", value: \Row.note).lineLimit(multiLine ? 2 : 1)
         }
         .scrollIndicators(.visible)
+        // Beside the content: this reads the bar drawn at rest, which the default
+        // (.overContent) draws only for the pointer or the focus.
+        .scrollIndicatorPlacement(.besideContent)
         let view = spacing.map { AnyView(table.scrollbarSpacing($0)) } ?? AnyView(table)
         return renderToBuffer(view, context: makeRenderContext(width: 40, height: 8)).lines.map(\.stripped)
     }

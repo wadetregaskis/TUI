@@ -101,6 +101,10 @@ struct TableRowAnchorHoldTests {
                     TableColumn("Name", value: \TallRow.name).lineLimit(2)
                 }
                 .scrollIndicators(hiddenIndicators ? .hidden : .automatic)
+                // Beside the content: the table takes the focus during its first
+                // render, and under the default (.overContent) its bar moves beside
+                // the rows from the second frame on, narrowing them.
+                .scrollIndicatorPlacement(.besideContent)
                 .frame(height: height),
                 context: context)
         } else {
@@ -109,6 +113,10 @@ struct TableRowAnchorHoldTests {
                     TableColumn("Name", value: \Row.name)
                 }
                 .scrollIndicators(hiddenIndicators ? .hidden : .automatic)
+                // Beside the content: the table takes the focus during its first
+                // render, and under the default (.overContent) its bar moves beside
+                // the rows from the second frame on, narrowing them.
+                .scrollIndicatorPlacement(.besideContent)
                 .frame(height: height),
                 context: context)
         }

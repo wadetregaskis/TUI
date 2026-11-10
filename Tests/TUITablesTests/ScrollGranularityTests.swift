@@ -309,6 +309,9 @@ struct ScrollGranularityTests {
         // The "N more" lines are what this case is about (#555): the default is
         // a scrollbar, which spends a column rather than the line at issue here.
         .scrollIndicatorStyle(.text)
+        // And beside the content: the default (.overContent) draws no line at
+        // rest, and the list's first frame comes before it takes the focus.
+        .scrollIndicatorPlacement(.besideContent)
         .frame(height: 11)
 
         func renderOnce() -> FrameBuffer {
@@ -359,6 +362,9 @@ struct ScrollGranularityTests {
         // `showsScrollbar` picks the STYLE, not the visibility (#555): before the
         // split, `.hidden` was the only way to ask for the "N more" lines.
         .scrollIndicatorStyle(showsScrollbar ? .scrollbar : .text)
+        // Beside the content: the default (.overContent) draws no indicator at
+        // rest, and the list's first frame comes before it takes the focus.
+        .scrollIndicatorPlacement(.besideContent)
         .frame(height: frameHeight)
 
         func renderOnce() -> FrameBuffer {
@@ -436,6 +442,9 @@ struct ScrollGranularityTests {
         // The "N more" lines are what this case is about (#555): the default is
         // a scrollbar, which spends a column rather than the line at issue here.
         .scrollIndicatorStyle(.text)
+        // And beside the content: the default (.overContent) draws no line at
+        // rest, and the list's first frame comes before it takes the focus.
+        .scrollIndicatorPlacement(.besideContent)
         .frame(height: 11)
 
         func renderOnce() -> String {

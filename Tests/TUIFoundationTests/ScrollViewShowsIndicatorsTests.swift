@@ -20,10 +20,13 @@ import Testing
 struct ScrollViewShowsIndicatorsTests {
 
     /// A viewport asking for the "N more lines" style, whose indicator is a
-    /// line of words a test can look for.
+    /// line of words a test can look for — placed beside the content, so it is
+    /// drawn at rest, which the default (.overContent) does only for the pointer
+    /// or the focus.
     private func textCtx(width: Int = 24, height: Int) -> RenderContext {
         var environment = EnvironmentValues()
         environment.scrollIndicatorStyle = .text
+        environment.scrollIndicatorPlacement = .besideContent
         return RenderContext(
             availableWidth: width, availableHeight: height,
             environment: environment, tuiContext: TUIContext()

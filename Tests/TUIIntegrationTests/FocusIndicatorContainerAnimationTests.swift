@@ -123,6 +123,9 @@ struct FocusIndicatorContainerAnimationTests {
         let list = List(selection: .constant("Alpha" as String?)) {
             ForEach((0..<40).map { $0 == 0 ? "Alpha" : "Row \($0)" }, id: \.self) { Text($0) }
         }
+        // Beside the content: the list takes the focus during its first render, and under
+        // the default (.overContent) its bar is drawn beside the rows only from the second.
+        .scrollIndicatorPlacement(.besideContent)
         let buffer = renderToBuffer(list, context: makeRenderContext(width: 30, height: 8))
         expectAnimates(buffer, runs: 1, "list cursor row, scrolling")
         // The run stops short of the bar's column — it must not repaint it.
@@ -183,6 +186,9 @@ struct FocusIndicatorContainerAnimationTests {
             TableColumn("Name", value: \Row.name)
             TableColumn("Note", value: \Row.note).lineLimit(multiLine ? 2 : 1)
         }
+        // Beside the content: the table takes the focus during its first render, and under
+        // the default (.overContent) its bar is drawn beside the rows only from the second.
+        .scrollIndicatorPlacement(.besideContent)
         return renderToBuffer(table, context: makeRenderContext(width: 40, height: height))
     }
 

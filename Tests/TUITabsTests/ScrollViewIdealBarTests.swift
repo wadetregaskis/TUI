@@ -1,9 +1,9 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  ScrollViewIdealBarTests.swift
 //
-//  A scroll view's ideal size counts the bars it will draw. A scrollbar is
-//  chrome the CONTENT knows nothing about: it takes a column (vertical) or a
-//  row (horizontal) out of the viewport. The ideal size used to be the
+//  A scroll view's ideal size counts the bars it will draw. A scrollbar placed
+//  beside the content is chrome the CONTENT knows nothing about: it takes a
+//  column (vertical) or a row (horizontal) out of the viewport. The ideal size used to be the
 //  content's alone, so a parent that sizes to it — a `TabView` panel, a row in
 //  a lazy stack — handed the scroll view exactly its content's size, and the
 //  bar either squeezed the content by a cell or was clipped off, on every
@@ -56,6 +56,7 @@ struct ScrollViewIdealBarTests {
         environment.focusManager = FocusManager()
         environment.stateStorage = StateStorage()
         environment.applyRuntimeServices(from: tui)
+        environment.scrollIndicatorPlacement = .besideContent
         var context = RenderContext(
             availableWidth: width, availableHeight: height, environment: environment,
             tuiContext: tui)
@@ -65,10 +66,16 @@ struct ScrollViewIdealBarTests {
         return renderToBuffer(view, context: context).lines.map(\.stripped)
     }
 
+    /// Beside the content, as `render` places them: this suite is about the room
+    /// a bar takes, which the default (.overContent) takes only while the view
+    /// holds the focus — and a lone scroll view takes the focus during its first
+    /// render, so under the default its bar would move beside the rows from the
+    /// second frame, after a measure here that never saw the focus.
     private func measureContext(width: Int, height: Int) -> RenderContext {
         var environment = EnvironmentValues()
         environment.focusManager = FocusManager()
         environment.stateStorage = StateStorage()
+        environment.scrollIndicatorPlacement = .besideContent
         return RenderContext(
             availableWidth: width, availableHeight: height,
             environment: environment, tuiContext: TUIContext()

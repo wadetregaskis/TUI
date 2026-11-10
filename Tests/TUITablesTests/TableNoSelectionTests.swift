@@ -33,6 +33,10 @@ struct TableNoSelectionTests {
         init() {
             env.focusManager = FocusManager()
             env.scrollIndicatorStyle = .text
+            // Beside the content: under the default (.overContent) whether a
+            // table holds the focus moves its "N more" line, and the first table
+            // rendered here does not yet; these compare tables line for line.
+            env.scrollIndicatorPlacement = .besideContent
             env.applyRuntimeServices(from: tui)
             tui.mouseEventDispatcher.setActiveSupport(.full)
         }

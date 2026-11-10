@@ -179,7 +179,10 @@ struct TextEditorCaretRunTests {
 
     @Test("An overflowing focused editor animates its scrollbar as well as its caret")
     func scrollbarAnimatesWithTheCaret() {
-        let buffer = render(editor("1\n2\n3\n4\n5\n6\n7\n8"), width: 24, height: 4)
+        // Beside the content: the editor takes the focus during this, its first render, after placing
+        // its bar, and under the default (.overContent) it is laid out unfocused, with no bar.
+        let buffer = render(
+            editor("1\n2\n3\n4\n5\n6\n7\n8").scrollIndicatorPlacement(.besideContent), width: 24, height: 4)
         let barColumn = buffer.width - 1
         let bar = buffer.animatedCells.filter { $0.offsetX == barColumn }
         let caret = buffer.animatedCells.filter { $0.offsetX != barColumn }
@@ -197,7 +200,10 @@ struct TextEditorCaretRunTests {
         let context = makeRenderContext(width: 24, height: 4)
         context.environment.focusManager!.register(FocusSentinel())
         let sink = TextSink("1\n2\n3\n4\n5\n6\n7\n8")
-        let buffer = renderToBuffer(TextEditor(text: sink.binding), context: context)
+        // Beside the content, so the bar is drawn here and its stillness is asserted: the default
+        // (.overContent) draws no bar for an unfocused editor with no pointer over it.
+        let buffer = renderToBuffer(
+            TextEditor(text: sink.binding).scrollIndicatorPlacement(.besideContent), context: context)
         #expect(buffer.animatedCells.isEmpty)
         withExtendedLifetime(sink) {}
     }

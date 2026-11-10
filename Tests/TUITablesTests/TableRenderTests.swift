@@ -370,7 +370,10 @@ struct TableRenderTests {
                 TableColumn("Name", value: \Row.name)
                 TableColumn("Size", value: \Row.size).width(6)
             }
-            .scrollIndicators(.visible),
+            .scrollIndicators(.visible)
+            // Beside the content: this reads the bar drawn at rest, which the default
+            // (.overContent) draws only for the pointer or the focus.
+            .scrollIndicatorPlacement(.besideContent),
             context: tableContext(width: 30, height: 8)
         )
         expectClosedBorder(lines)
@@ -390,6 +393,9 @@ struct TableRenderTests {
         let view = Table(rows, selection: .constant(String?.none)) {
             TableColumn("Name", value: \Row.name)
         }
+        // Beside the content: this reads the indicator drawn at rest, which the default
+        // (.overContent) draws only for the pointer or the focus.
+        .scrollIndicatorPlacement(.besideContent)
         // The "N more rows below" text indicator legitimately uses ▼, so the
         // telltale of a scrollbar is its block-glyph thumb.
         let blocks: Set<Character> = ["█", "▁", "▂", "▃", "▄", "▅", "▆", "▇"]
@@ -445,7 +451,10 @@ struct TableRenderTests {
             Table(many, selection: .constant(String?.none)) {
                 TableColumn("Name", value: \Row.name)
                 TableColumn("Size", value: \Row.size)
-            },
+            }
+            // Beside the content: this reads the line drawn at rest, which the default
+            // (.overContent) draws only for the pointer or the focus.
+            .scrollIndicatorPlacement(.besideContent),
             context: textIndicatorContext(width: 30, height: 8)
         )
 

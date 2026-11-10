@@ -15,8 +15,8 @@ import TUIImage
 @testable import TUIView
 
 /// Under `.scrollIndicators(.visible, axes: .vertical)` +
-/// `.scrollIndicatorStyle(.text)` a `ScrollView` reserves the "N more" pair
-/// OUTSIDE its content window, two lines shorter than the viewport. Content that
+/// `.scrollIndicatorStyle(.text)`, placed `.besideContent`, a `ScrollView`
+/// reserves the "N more" pair OUTSIDE its content window, two lines shorter than the viewport. Content that
 /// fills whatever it is given — a `Spacer`, a `.frame(maxHeight: .infinity)` —
 /// must fill that window, and not the viewport; and content sized FROM the
 /// window — an image fitted to it — must be measured at it.
@@ -68,6 +68,9 @@ struct ScrollViewReservedIndicatorCanvasTests {
             .scrollIndicators(.visible, axes: .vertical)
             .scrollIndicators(.automatic, axes: .horizontal)
             .scrollIndicatorStyle(.text)
+            // Beside the content: this suite is about the room reserved for the indicators, which the
+            // default (.overContent) reserves only for the focus and draws over the content for the pointer.
+            .scrollIndicatorPlacement(.besideContent)
     }
 
     /// The count an indicator line reports: "▼ 2 more lines below" → 2.

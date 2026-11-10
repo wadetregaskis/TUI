@@ -34,11 +34,14 @@ private func listContext(width: Int = 30, height: Int = 8, explicitWidth: Bool =
 
 /// The same list viewport asking for the "▲/▼ N more rows" style, for the
 /// cases written against those lines. Since #555 they are a style rather than
-/// the default (a scrollbar, which spends a column instead).
+/// the default (a scrollbar, which spends a column instead). Placed beside the
+/// content, as the lines are read at rest: the default (`.overContent`) draws
+/// them only for the pointer or the focus.
 @MainActor
 private func textIndicatorContext(width: Int = 30, height: Int = 8) -> RenderContext {
     var context = listContext(width: width, height: height)
     context.environment.scrollIndicatorStyle = .text
+    context.environment.scrollIndicatorPlacement = .besideContent
     return context
 }
 
@@ -310,7 +313,10 @@ struct ListRenderTests {
             List(selection: .constant(String?.none)) {
                 ForEach((0..<20).map { "Item \($0)" }, id: \.self) { Text($0) }
             }
-            .scrollIndicators(.visible),
+            .scrollIndicators(.visible)
+            // Beside the content: this reads the bar drawn at rest, which the default
+            // (.overContent) draws only for the pointer or the focus.
+            .scrollIndicatorPlacement(.besideContent),
             context: listContext(width: 30, height: 8)
         )
         expectClosedBorder(lines)
@@ -331,6 +337,9 @@ struct ListRenderTests {
         let view = List(selection: .constant(String?.none)) {
             ForEach((0..<20).map { "Item \($0)" }, id: \.self) { Text($0) }
         }
+        // Beside the content: the default style is read off the bar drawn at rest, which
+        // the default placement (.overContent) draws only for the pointer or the focus.
+        .scrollIndicatorPlacement(.besideContent)
         // The telltale of a bar is its block-glyph thumb; the text indicator's
         // own ▼ would not distinguish them.
         let blocks: Set<Character> = ["█", "▁", "▂", "▃", "▄", "▅", "▆", "▇"]
@@ -360,6 +369,9 @@ struct ListRenderTests {
         }
         .scrollIndicators(.visible)
         .scrollIndicatorStyle(.scrollbar)
+        // Beside the content: this reads the bar drawn at rest, which the default
+        // (.overContent) draws only for the pointer or the focus.
+        .scrollIndicatorPlacement(.besideContent)
         let buffer = renderToBuffer(view, context: context)
         let lines = buffer.lines.map { $0.stripped }
         expectClosedBorder(lines)

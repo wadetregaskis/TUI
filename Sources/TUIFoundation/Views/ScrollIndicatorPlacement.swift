@@ -23,7 +23,7 @@ import TUIView
 public enum ScrollIndicatorPlacement: Sendable, Equatable, CaseIterable {
     /// In room of their own: a column for the vertical bar, a row for the
     /// horizontal one, a line for each "N more" line under `.visible`, taken
-    /// out of the content's room whenever the indicator is shown. The default.
+    /// out of the content's room whenever the indicator is shown.
     case besideContent
 
     /// Over the content's edge — the vertical bar on its last column, the
@@ -41,11 +41,14 @@ public enum ScrollIndicatorPlacement: Sendable, Equatable, CaseIterable {
     /// needs to see where they are and what is hidden, and an indicator drawn
     /// over the content then would cover what they could read only by leaving.
     /// Losing the focus gives the content its whole room back.
+    ///
+    /// The default (the owner's ruling, 2026-11-09: "default to
+    /// overlay-on-hover").
     case overContent
 }
 
 private struct ScrollIndicatorPlacementKey: EnvironmentKey {
-    static let defaultValue = ScrollIndicatorPlacement.besideContent
+    static let defaultValue = ScrollIndicatorPlacement.overContent
 }
 
 private struct ScrollIndicatorsBesideForFocusKey: EnvironmentKey {
@@ -53,7 +56,8 @@ private struct ScrollIndicatorsBesideForFocusKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-    /// Where this subtree's scrolling views draw their indicators — see
+    /// Where this subtree's scrolling views draw their indicators —
+    /// ``ScrollIndicatorPlacement/overContent`` unless set; see
     /// ``View/scrollIndicatorPlacement(_:)``.
     public var scrollIndicatorPlacement: ScrollIndicatorPlacement {
         get { self[ScrollIndicatorPlacementKey.self] }
@@ -114,8 +118,8 @@ extension RenderContext {
     /// anything — a view never rendered has never been focused.
     ///
     /// Every other placement gets the context back as it is, after one read,
-    /// so the default pays nothing more; an `.overContent` view pays a state
-    /// lookup, and writes the environment only when its focus changed from
+    /// so `.besideContent` pays nothing more; an `.overContent` view (the
+    /// default) pays a state lookup, and writes the environment only when its focus changed from
     /// what it inherited.
     ///
     /// - Parameters:
@@ -146,13 +150,14 @@ extension View {
     ///
     /// ```swift
     /// List(messages) { MessageRow($0) }
-    ///     .scrollIndicatorPlacement(.overContent)
+    ///     .scrollIndicatorPlacement(.besideContent)
     /// ```
     ///
-    /// ``ScrollIndicatorPlacement/besideContent`` (the default) gives each
-    /// indicator room of its own; ``ScrollIndicatorPlacement/overContent`` draws
-    /// them over the content's edge while the pointer is over the view, and
-    /// beside it while the view holds the focus. Whether an indicator may show
+    /// ``ScrollIndicatorPlacement/overContent`` (the default) draws the
+    /// indicators over the content's edge while the pointer is over the view,
+    /// and beside it while the view holds the focus;
+    /// ``ScrollIndicatorPlacement/besideContent`` gives each indicator room of
+    /// its own whenever it shows. Whether an indicator may show
     /// at all is still ``View/scrollIndicators(_:axes:)``'s to say, and which
     /// kind is ``View/scrollIndicatorStyle(_:)``'s.
     ///

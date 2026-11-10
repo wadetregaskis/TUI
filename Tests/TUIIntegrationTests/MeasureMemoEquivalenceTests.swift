@@ -307,6 +307,9 @@ struct MeasureMemoEquivalenceTests {
             Text("Edit")
         }
         .menuStyle(.inline)
+        // Beside the content: the ▲/▼ are the overflow probe below, and the default
+        // (.overContent) draws them only for the pointer or the focus.
+        .scrollIndicatorPlacement(.besideContent)
 
         let (memoised, plain, hits) = bothWays(menu, width: 26, height: 12)
         #expect(

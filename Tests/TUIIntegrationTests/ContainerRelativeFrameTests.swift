@@ -97,6 +97,9 @@ struct ContainerRelativeFrameTests {
             }
             .scrollIndicators(.visible)
             .scrollIndicatorStyle(.text)
+            // Beside the content: the lines are reserved only there; the default
+            // (.overContent) draws them over the content, for the pointer or the focus.
+            .scrollIndicatorPlacement(.besideContent)
             .frame(height: 6),
             height: 6)
         // The window is lines 1 to 4; sized against the viewport, the x was the

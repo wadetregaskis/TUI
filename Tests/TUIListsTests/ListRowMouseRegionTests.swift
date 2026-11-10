@@ -158,6 +158,9 @@ struct ListRowMouseRegionTests {
         }
         .frame(height: 8)
         .scrollIndicators(.visible)
+        // Beside the content: this reads the bar drawn at rest, which the default
+        // (.overContent) draws only for the pointer or the focus.
+        .scrollIndicatorPlacement(.besideContent)
 
         let tui = TUIContext()
         let dispatcher = tui.mouseEventDispatcher
@@ -292,6 +295,9 @@ struct ListRowMouseRegionTests {
         }
         .listStyle(.plain)
         .scrollIndicators(.visible)
+        // Beside the content: this reads the bar drawn at rest, which the default
+        // (.overContent) draws only for the pointer or the focus.
+        .scrollIndicatorPlacement(.besideContent)
         .frame(height: 6)
 
         let tui = TUIContext()

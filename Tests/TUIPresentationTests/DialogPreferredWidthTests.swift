@@ -96,7 +96,10 @@ struct DialogPreferredWidthTests {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(0..<40, id: \.self) { Text("item \($0)") }
                 }
-            },
+            }
+            // Beside the content: the bar is the probe below, and the dialog's scroller is no
+            // focus stop, so under the default (.overContent) it draws one only for the pointer.
+            .scrollIndicatorPlacement(.besideContent),
             width: 200, height: 14)
         let dialogWidth = width(of: lines)
         #expect(

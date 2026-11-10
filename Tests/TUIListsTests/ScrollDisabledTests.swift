@@ -169,9 +169,13 @@ struct ScrollDisabledTests {
 
     @Test("The scroll chrome still renders when scrolling is disabled")
     func chromeStillRenders() {
-        let enabled = renderToBuffer(longScrollView(), context: makeContext(disabled: false))
+        // Beside the content: this counts the bar drawn at rest, which the
+        // default (.overContent) draws only for the pointer or the focus.
+        let enabled = renderToBuffer(
+            longScrollView().scrollIndicatorPlacement(.besideContent), context: makeContext(disabled: false))
         let disabled = renderToBuffer(
-            longScrollView().scrollDisabled(true), context: makeContext(disabled: true))
+            longScrollView().scrollDisabled(true).scrollIndicatorPlacement(.besideContent),
+            context: makeContext(disabled: true))
 
         func barCells(_ buffer: FrameBuffer) -> Int {
             buffer.lines.map(\.stripped).reduce(0) { total, line in

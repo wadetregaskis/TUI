@@ -127,7 +127,10 @@ struct TableFitColumnMemoTests {
         let data = rows(50)
         let calls = Calls()
         let warm = context()
-        let view = comparableTable(data, calls: calls)
+        // Beside the content: the table takes the focus during its first render,
+        // and under the default (.overContent) that moves its bar beside the rows
+        // from the second frame on, so the cold frame below would draw none.
+        let view = comparableTable(data, calls: calls).scrollIndicatorPlacement(.besideContent)
         for frame in 0..<2 {
             if frame > 0 { warm.renderCache?.beginRenderPass() }
             _ = renderToBuffer(view, context: warm)
@@ -136,7 +139,8 @@ struct TableFitColumnMemoTests {
         let served = renderToBuffer(view, context: warm)
 
         let cold = context()
-        let fresh = renderToBuffer(comparableTable(data, calls: Calls()), context: cold)
+        let fresh = renderToBuffer(
+            comparableTable(data, calls: Calls()).scrollIndicatorPlacement(.besideContent), context: cold)
 
         #expect(served.lines == fresh.lines, "a served width drew a different table")
     }

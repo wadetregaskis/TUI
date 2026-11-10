@@ -346,7 +346,12 @@ struct TableColumnGestureTests {
         // The two cells before Beta and before Gamma: Gamma may not be
         // resized, and Delta is the last column, so those are all the gaps.
         for x in [beta - 2, beta - 1, gamma - 2, gamma - 1] {
-            let innermost = try #require(dispatcher.matchingRegions(at: x, y: y).first, "x \(x)")
+            // Past the observer that watches the pointer for the table's indicators
+            // (`.overContent`, the default): it stands in front of everything the table files,
+            // claims nothing, and is the whole table's, not a gap's.
+            let innermost = try #require(
+                dispatcher.matchingRegions(at: x, y: y).first { !dispatcher.hoverObserverIDs.contains($0.handlerID) },
+                "x \(x)")
             #expect(innermost.focusID != nil, "the table's own region, which carries its focus: x \(x), \(innermost)")
         }
     }

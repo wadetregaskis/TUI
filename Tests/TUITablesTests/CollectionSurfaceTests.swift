@@ -93,10 +93,13 @@ struct CollectionSurfaceTests {
     @Test("A surface table's scrollbar is its last column; a bordered table's keeps a cell before the border")
     func barAtTheEdge() throws {
         let many = (0..<12).map { Row(id: $0, name: "row\($0)") }
+        // Beside the content: this reads the bar drawn at rest, which the default
+        // (.overContent) draws only for the pointer or the focus.
         func lastInk(_ style: some TableStyle) throws -> (column: Int, width: Int) {
             let buffer = renderToBuffer(
                 Table(many) { TableColumn("Name", value: \Row.name) }
-                    .tableStyle(style).frame(height: 6).scrollIndicators(.visible),
+                    .tableStyle(style).frame(height: 6).scrollIndicators(.visible)
+                    .scrollIndicatorPlacement(.besideContent),
                 context: makeRenderContext(width: 30, height: 10))
             let row = try #require(buffer.lines.map(\.stripped).first { $0.contains("row0") })
             let characters = Array(row)
@@ -111,7 +114,8 @@ struct CollectionSurfaceTests {
         let borderedRow = try #require(
             renderToBuffer(
                 Table(many) { TableColumn("Name", value: \Row.name) }
-                    .tableStyle(.bordered).frame(height: 6).scrollIndicators(.visible),
+                    .tableStyle(.bordered).frame(height: 6).scrollIndicators(.visible)
+                    .scrollIndicatorPlacement(.besideContent),
                 context: makeRenderContext(width: 30, height: 10)
             ).lines.map(\.stripped).first { $0.contains("row0") })
         #expect(Array(borderedRow)[bordered.width - 2] == " ", "the bordered table's blank cell before its border")

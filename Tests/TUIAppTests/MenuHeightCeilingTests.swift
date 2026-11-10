@@ -140,7 +140,10 @@ struct MenuHeightCeilingTests {
         // during the HUG too, so the hug height clears the cap on its own and
         // the old gate asked the question anyway; wider and nothing wraps at
         // all. Here the hug is eight rows and the draw is fourteen.
-        let narrow = context(width: 26, height: 12)
+        var narrow = context(width: 26, height: 12)
+        // Beside the content: the bar is the probe, and the menu's scroller is no focus stop, so
+        // under the default (.overContent) it draws its bar only for the pointer.
+        narrow.environment.scrollIndicatorPlacement = .besideContent
         let size = measureMenuColumn(items, context: narrow, capHeight: 12)
         let drawn = renderMenuColumn(items, context: narrow, capHeight: 12)
         let text = drawn.lines.map(\.stripped).joined(separator: "\n")

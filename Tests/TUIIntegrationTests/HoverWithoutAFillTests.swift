@@ -241,7 +241,11 @@ struct HoverWithoutAFillTests {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(0..<40, id: \.self) { Text("line \($0)") }
                 }
-            }.frame(width: 20, height: 6),
+            }
+            // Beside the content: the pointer is aimed at the arrow of the resting frame,
+            // which the default (.overContent) draws only once the pointer is over the view.
+            .scrollIndicatorPlacement(.besideContent)
+            .frame(width: 20, height: 6),
             palette: palette, width: 20, height: 6
         ) { _ in (19, 0) }
     }

@@ -82,6 +82,9 @@ struct ScrollbarFollowsReportedSlotsTests {
             environment.focusManager = focusManager
             environment.applyRuntimeServices(from: tui)
             environment.palette = RedBarPalette()
+            // Beside the content: the scroll view takes the focus during its first render, and
+            // under the default (.overContent) its first frame draws no bar to keep.
+            environment.scrollIndicatorPlacement = .besideContent
             let context = RenderContext(
                 availableWidth: 30, availableHeight: 8, environment: environment, tuiContext: tui)
             tui.stateStorage.beginRenderPass()

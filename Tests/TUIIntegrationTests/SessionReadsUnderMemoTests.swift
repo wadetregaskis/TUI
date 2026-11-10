@@ -327,6 +327,10 @@ private struct ScrollerColumn: View {
                     ForEach(rows) { Text(verbatim: $0.id) }
                 }
             }
+            // Beside the content, as are the two below: the tests find the right view's
+            // arrow or "N more" line at rest, which the default (.overContent) draws only
+            // for the pointer or the focus, and the right view never holds the focus.
+            .scrollIndicatorPlacement(.besideContent)
             .frame(width: 20, height: 8)
         case .textIndicators:
             ScrollView {
@@ -335,11 +339,13 @@ private struct ScrollerColumn: View {
                 }
             }
             .scrollIndicatorStyle(.text)
+            .scrollIndicatorPlacement(.besideContent)
             .frame(width: 20, height: 8)
         case .sideways:
             ScrollView(.horizontal) {
                 Text(verbatim: "\(title) " + String(repeating: "-", count: 60))
             }
+            .scrollIndicatorPlacement(.besideContent)
             .frame(width: 20, height: 3)
         }
     }

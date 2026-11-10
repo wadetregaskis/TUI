@@ -35,6 +35,9 @@ struct ScrollViewIndicatorFloorTests {
     ) -> [String] {
         var environment = EnvironmentValues()
         environment.focusManager = focusManager
+        // Beside the content: every test here is about the reserved pair, which the default
+        // (.overContent) draws only for the pointer or while the scroll view holds the focus.
+        environment.scrollIndicatorPlacement = .besideContent
         environment.applyRuntimeServices(from: tuiContext)
         let context = RenderContext(
             availableWidth: 30, availableHeight: height,

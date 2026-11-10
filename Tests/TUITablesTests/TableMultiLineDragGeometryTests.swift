@@ -59,6 +59,10 @@ struct TableMultiLineDragGeometryTests {
             self.rows = rows
             env.focusManager = FocusManager()
             env.scrollIndicatorStyle = .text
+            // Beside the content: these cases click the "N more" lines drawn at
+            // rest, which the default (.overContent) draws only for the pointer
+            // or the focus.
+            env.scrollIndicatorPlacement = .besideContent
             // `.live` is what the multi-line path forces anyway (no slot is
             // drawn there); spelled out so the case does not depend on that.
             env.rowReorderFeedback = .live

@@ -193,8 +193,11 @@ struct TextEditorTests {
     @Test("An overflowing editor shows a vertical scroll indicator")
     func overflowScrollIndicator() {
         let sink = StringSink((1...20).map { "line \($0)" }.joined(separator: "\n"))
+        // Beside the content: the editor takes the focus during this, its first render, after placing
+        // its bar, and under the default (.overContent) it is laid out unfocused, with no bar.
         let buffer = renderToBuffer(
-            TextEditor(text: sink.binding), context: makeRenderContext(width: 12, height: 5))
+            TextEditor(text: sink.binding).scrollIndicatorPlacement(.besideContent),
+            context: makeRenderContext(width: 12, height: 5))
         // The scrollbar is reserved WITHIN the frame, so the size is unchanged.
         #expect(buffer.width == 12)
         #expect(buffer.height == 5)

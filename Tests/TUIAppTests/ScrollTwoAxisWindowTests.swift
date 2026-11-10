@@ -110,6 +110,9 @@ struct ScrollTwoAxisWindowTests {
                 }
             }
         }
+        // Beside the content: these tests read the horizontal bar drawn at rest, which the default
+        // (.overContent) draws only for the pointer or the focus.
+        .scrollIndicatorPlacement(.besideContent)
         let view = anchor.map { AnyView(content.defaultScrollAnchor($0)) } ?? AnyView(content)
         // A caller that supplies the context is driving several frames through
         // ONE cache, which is the only way to exercise a cross-frame memo; the
@@ -218,7 +221,8 @@ struct ScrollTwoAxisWindowTests {
                             index: index, tally: tally, width: Self.wideRowWidth, wideRow: 200)
                     }
                 }
-            },
+            }
+            .scrollIndicatorPlacement(.besideContent),
             context: RenderContext(
                 availableWidth: 40, availableHeight: Self.viewport, tuiContext: TUIContext()
             ).isolatingRenderCache())

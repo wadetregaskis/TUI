@@ -28,6 +28,10 @@ private func renderFrames(_ view: some View, width: Int, height: Int) -> FrameBu
     environment.focusManager = FocusManager()
     environment.stateStorage = StateStorage()
     environment.applyRuntimeServices(from: tui)
+    // Beside the content: these tests read the bar and the column it takes at rest, which the
+    // default (.overContent) draws only for the pointer or the focus. Set for the whole tree,
+    // as the default it stands in for was.
+    environment.scrollIndicatorPlacement = .besideContent
     var context = RenderContext(
         availableWidth: width, availableHeight: height, environment: environment,
         tuiContext: tui)

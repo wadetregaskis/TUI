@@ -15,6 +15,15 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Scroll bars appear over the content while the pointer is over it, instead of in a column of their own.**
+`.overContent` is now the default `scrollIndicatorPlacement`: a `ScrollView`, `List`, `Table` or `TextEditor` whose
+content overflows draws its bar (or its "N more" lines) over the content's edge while the pointer is over it, and
+nothing when it isn't, so the content keeps the whole width. While the view holds the focus the bar moves beside the
+content, into a column of its own, as before, so a keyboard user still sees where they are without it covering
+anything. To keep the old layout, a column always reserved for the bar, write
+`.scrollIndicatorPlacement(.besideContent)` at the top of the app. `scrollIndicatorsFlash` lights only indicators that
+are drawn, so under the new default a flash shows nothing until the pointer or the focus brings them.
+
 **Scrolling sends far fewer bytes.** Where most of the rows on screen moved, as when a list or scroll view scrolls,
 TUI now has the terminal move them with a scroll region and writes only what the move exposed and what it got wrong,
 rather than rewriting every row. Over the `Stress` sessions that is about 30% fewer bytes, and a wheel notch over

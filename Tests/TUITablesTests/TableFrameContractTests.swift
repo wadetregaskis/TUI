@@ -402,6 +402,9 @@ struct TableFrameContractTests {
                 precision: precision)
         }
         let below = TableMatrixHarness(shape(rows: 250))
+        // Beside the content: the walk places the bar's thumb, and under the default
+        // (.overContent) a table nobody points at or focuses draws no bar, so walks only its window.
+        below.configureEnvironment = { $0.scrollIndicatorPlacement = .besideContent }
         below.frame()
         let firstFrame = below.calls.perRow.count
         below.settle()
@@ -412,6 +415,7 @@ struct TableFrameContractTests {
         #expect(settled < 40, "a settled frame walked \(settled) rows of 250")
 
         let above = TableMatrixHarness(shape(rows: 300))
+        above.configureEnvironment = below.configureEnvironment
         above.settle()
         above.frame()
         #expect(above.calls.perRow.count < 40, "above the limit the estimator samples")

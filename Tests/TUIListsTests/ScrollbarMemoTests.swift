@@ -57,6 +57,10 @@ struct ScrollbarMemoTests {
             environment.focusManager = focusManager
             environment.applyRuntimeServices(from: tui)
             environment.palette = palette
+            // Beside the content: these frames compare the bar the first frame
+            // draws, which the default (.overContent) draws only for the
+            // pointer or the focus, and so not before the view takes the focus.
+            environment.scrollIndicatorPlacement = .besideContent
             let context = RenderContext(
                 availableWidth: 30, availableHeight: 8, environment: environment, tuiContext: tui)
             tui.stateStorage.beginRenderPass()
@@ -179,6 +183,10 @@ struct ListScrollbarMemoTests {
             environment.focusManager = focusManager
             environment.applyRuntimeServices(from: tui)
             environment.palette = palette
+            // Beside the content: these frames compare the bar the first frame
+            // draws, which the default (.overContent) draws only for the
+            // pointer or the focus, and so not before the list takes the focus.
+            environment.scrollIndicatorPlacement = .besideContent
             var context = RenderContext(
                 availableWidth: 30, availableHeight: 8, environment: environment, tuiContext: tui)
             context.hasExplicitHeight = true

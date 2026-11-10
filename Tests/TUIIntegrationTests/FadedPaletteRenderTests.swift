@@ -201,7 +201,10 @@ struct FadedPaletteRenderTests {
                     }
                 }
             }
-            .scrollIndicators(.visible),
+            .scrollIndicators(.visible)
+            // Beside the content: this reads the bars drawn at rest, which the default
+            // (.overContent) draws only for the pointer or the focus.
+            .scrollIndicatorPlacement(.besideContent),
             palette: palette, width: 30, height: 10)
         expectArrowsClaimed(["▲", "▼", "◀", "▶"], in: drawn, palette: palette)
         let corner = owed(atColumn: drawn.width - 1, row: drawn.height - 1, in: drawn)
@@ -220,15 +223,21 @@ struct FadedPaletteRenderTests {
         }
         let rows = (0..<30).map { Row(id: $0, name: "row\($0)") }
         let palette = FadedAll()
+        // Beside the content: this reads the bars drawn at rest, which the default
+        // (.overContent) draws only for the pointer or the focus.
         let list = render(
-            List(selection: .constant(Set<Int>())) { ForEach(rows) { Text($0.name) } },
+            List(selection: .constant(Set<Int>())) { ForEach(rows) { Text($0.name) } }
+                .scrollIndicatorPlacement(.besideContent),
             palette: palette, height: 10)
         expectArrowsClaimed(["▲", "▼"], in: list, palette: palette)
         let table = render(
-            Table(rows) { TableColumn("Name") { Text(verbatim: $0.name) } }, palette: palette, height: 10)
+            Table(rows) { TableColumn("Name") { Text(verbatim: $0.name) } }
+                .scrollIndicatorPlacement(.besideContent),
+            palette: palette, height: 10)
         expectArrowsClaimed(["▲", "▼"], in: table, palette: palette)
         let wrapped = render(
-            Table(rows) { TableColumn("Name") { Text(verbatim: "\($0.name)\nsecond") }.lineLimit(2) },
+            Table(rows) { TableColumn("Name") { Text(verbatim: "\($0.name)\nsecond") }.lineLimit(2) }
+                .scrollIndicatorPlacement(.besideContent),
             palette: palette, height: 10)
         expectArrowsClaimed(["▲", "▼"], in: wrapped, palette: palette)
     }
@@ -609,6 +618,9 @@ struct FadedPaletteRenderTests {
         let palette = FadedTrack()
         let drawn = render(
             TextEditor(text: .constant((0..<30).map { "line \($0)" }.joined(separator: "\n")))
+                // Beside the content: this reads the bar drawn at rest, which the default
+                // (.overContent) draws only for the pointer or the focus.
+                .scrollIndicatorPlacement(.besideContent)
                 .frame(width: 20, height: 6),
             palette: palette)
         let column = drawn.width - 1

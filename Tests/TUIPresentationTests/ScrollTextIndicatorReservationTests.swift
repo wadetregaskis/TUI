@@ -7,6 +7,11 @@
 //  wherever it is reserved, so a parent that sizes to content gives the lines
 //  room.
 //
+//  Every scroll view here is placed `.besideContent`, as the reservation is
+//  that placement's: under the default (`.overContent`) the pair is drawn over
+//  the content and only for the pointer, or beside it while the view holds the
+//  focus, which a lone scroll view takes only during its first render.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -53,6 +58,7 @@ struct ScrollTextIndicatorReservationTests {
                 ScrollView { rows(5) }
                     .scrollIndicators(.automatic)
                     .scrollIndicatorStyle(.text)
+                    .scrollIndicatorPlacement(.besideContent)
                     .scrollTargetBehavior(.paging)
             })
         let result = drawn(frames)
@@ -67,6 +73,7 @@ struct ScrollTextIndicatorReservationTests {
             ScrollView { rows(10) }.frame(height: 10)
                 .scrollIndicators(.automatic)
                 .scrollIndicatorStyle(.text)
+                .scrollIndicatorPlacement(.besideContent)
                 .scrollTargetBehavior(.paging))
         let result = drawn(frames)
         #expect(result.rows == Array(0..<10))
@@ -79,6 +86,7 @@ struct ScrollTextIndicatorReservationTests {
         let view = ScrollView { rows(11) }.frame(height: 10)
             .scrollIndicators(.automatic)
             .scrollIndicatorStyle(.text)
+            .scrollIndicatorPlacement(.besideContent)
             .scrollTargetBehavior(.paging)
         frames.render(view)
         // Its pages can vary (nothing in it is sized against the container),
@@ -99,6 +107,7 @@ struct ScrollTextIndicatorReservationTests {
             ScrollView { rows(11) }.frame(height: 10)
                 .scrollIndicators(.visible)
                 .scrollIndicatorStyle(.text)
+                .scrollIndicatorPlacement(.besideContent)
                 .scrollTargetBehavior(.paging))
         #expect(frames.last.lines.first?.stripped.contains("0 more") == true, "\(frames.last.lines.map(\.stripped))")
     }
@@ -114,6 +123,7 @@ struct ScrollTextIndicatorReservationTests {
                 ScrollView { rows(5) }
                     .scrollIndicators(.visible)
                     .scrollIndicatorStyle(.text)
+                    .scrollIndicatorPlacement(.besideContent)
             })
         let result = drawn(frames)
         #expect(result.rows == [0, 1, 2, 3, 4], "\(frames.last.lines.map(\.stripped))")
@@ -149,6 +159,7 @@ struct ScrollTextIndicatorReservationTests {
         .frame(height: 10)
         .scrollIndicators(.automatic)
         .scrollIndicatorStyle(.text)
+        .scrollIndicatorPlacement(.besideContent)
         .scrollTargetBehavior(.paging)
         frames.render(view)
         frames.render(view)
@@ -182,6 +193,7 @@ struct ScrollTextIndicatorReservationTests {
             }
             .scrollIndicators(.automatic)
             .scrollIndicatorStyle(.text)
+            .scrollIndicatorPlacement(.besideContent)
             .scrollTargetBehavior(.paging)
         }
         frames.render(view)
@@ -208,6 +220,7 @@ struct ScrollTextIndicatorReservationTests {
         .scrollIndicators(.visible, axes: .horizontal)
         .scrollIndicators(.automatic, axes: .vertical)
         .scrollIndicatorStyle(.text)
+        .scrollIndicatorPlacement(.besideContent)
         .scrollTargetBehavior(.paging)
         frames.render(view)
         frames.render(view)

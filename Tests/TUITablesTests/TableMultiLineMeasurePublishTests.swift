@@ -58,6 +58,9 @@ struct TableMultiLineMeasurePublishTests {
             // No bar: the shape `analyticMultiLineSize` declines to answer, and
             // so the only one that renders itself to measure.
             env.scrollIndicatorStyle = .text
+            // Beside the content: the default (.overContent) spends no line on
+            // them at rest, nor in the first render, before the table's focus.
+            env.scrollIndicatorPlacement = .besideContent
             env.applyRuntimeServices(from: tui)
             tui.mouseEventDispatcher.setActiveSupport(.full)
             tui.dragAndDropSession.dispatcher = tui.mouseEventDispatcher

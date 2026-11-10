@@ -128,7 +128,10 @@ struct ScrollWindowOpacityClipTests {
                     }
                 }
             }
-            .scrollIndicatorStyle(.text),
+            .scrollIndicatorStyle(.text)
+            // Beside the content: this reads the indicator drawn at rest, which the default
+            // (.overContent) draws only for the pointer or the focus.
+            .scrollIndicatorPlacement(.besideContent),
             context: makeRenderContext(width: width, height: 8))
         // At offset 0 only the bottom indicator shows, on the last row.
         let arrow = try #require(cells(of: "▼", in: drawn).first, "\(drawn.lines.map(\.stripped))")

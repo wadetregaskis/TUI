@@ -38,6 +38,9 @@ struct ExternalDropAutoScrollTests {
             self.rows = rows
             env.focusManager = FocusManager()
             env.scrollIndicatorStyle = .text
+            // Beside the content: the pointer parks on the "more rows below"
+            // line, which the default (.overContent) leaves off the first frame.
+            env.scrollIndicatorPlacement = .besideContent
             env.applyRuntimeServices(from: tui)
             tui.mouseEventDispatcher.setActiveSupport(.full)
             tui.dragAndDropSession.dispatcher = tui.mouseEventDispatcher

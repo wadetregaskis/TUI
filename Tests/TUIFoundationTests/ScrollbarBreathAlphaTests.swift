@@ -82,7 +82,10 @@ struct ScrollbarBreathAlphaTests {
                     ForEach(0..<30, id: \.self) { Text("row \($0)") }
                 }
             }
-            .scrollIndicators(.visible),
+            .scrollIndicators(.visible)
+            // Beside the content: the scroll view takes the focus during this, its first render, after
+            // placing its bar, and under the default (.overContent) it is laid out unfocused, with no bar.
+            .scrollIndicatorPlacement(.besideContent),
             context: makeRenderContext(width: 30, height: 10) { environment, _ in
                 environment.palette = FadedAll()
             })

@@ -47,6 +47,9 @@ struct PointerHoverAuditTests {
                 ForEach(0..<40, id: \.self) { Text("line \($0)") }
             }
         }
+        // Beside the content: the pointer is aimed at the arrow of the resting frame, and
+        // under the default (.overContent) the whole bar appears for the pointer instead.
+        .scrollIndicatorPlacement(.besideContent)
         .frame(width: 20, height: 6)
         // The bar is the last column; its first cell is the ▲.
         let frames = hovering(view, at: (x: 19, y: 0), width: 20, height: 6)

@@ -38,13 +38,17 @@ struct TextEditorAlphaTests {
         ).isolatingRenderCache()
     }
 
-    /// An unfocused editor over `text`.
+    /// An unfocused editor over `text`, its indicators beside the content: one that
+    /// overflows draws its bar at rest, which the default (.overContent) draws only
+    /// for the pointer or the focus.
     private func unfocused(
         _ text: String, palette: any Palette = FadedAll(), width: Int = 20, height: Int = 6,
         disabled: Bool = false
     ) -> FrameBuffer {
         renderToBuffer(
-            TextEditor(text: .constant(text)).disabled(disabled).frame(width: width, height: height),
+            TextEditor(text: .constant(text)).disabled(disabled)
+                .scrollIndicatorPlacement(.besideContent)
+                .frame(width: width, height: height),
             context: context(palette: palette, width: width, height: height, focused: false))
     }
 

@@ -29,6 +29,9 @@ struct ScrollbarWidthTests {
         case scrollView, list, table
     }
 
+    /// Each site's overflowing view, its bar placed beside the content: these read
+    /// the bar drawn at rest, which the default (`.overContent`) draws only for the
+    /// pointer or the focus.
     @ViewBuilder
     private func view(_ site: Site) -> some View {
         switch site {
@@ -39,13 +42,17 @@ struct ScrollbarWidthTests {
                 }
             }
             .scrollIndicators(.visible)
+            .scrollIndicatorPlacement(.besideContent)
         case .list:
-            List(Self.items, id: \.self) { Text($0) }.scrollIndicators(.visible)
+            List(Self.items, id: \.self) { Text($0) }
+                .scrollIndicators(.visible)
+                .scrollIndicatorPlacement(.besideContent)
         case .table:
             Table((0..<30).map { Row(id: $0, name: "row \($0)") }) {
                 TableColumn("Name", value: \Row.name)
             }
             .scrollIndicators(.visible)
+            .scrollIndicatorPlacement(.besideContent)
         }
     }
 

@@ -50,6 +50,9 @@ struct ScrollbarClickFocusTests {
         var env = EnvironmentValues()
         env.focusManager = focusManager
         env.mouseEventDispatcher = tui.mouseEventDispatcher
+        // Beside the content: these press the bars drawn at rest, which the default (.overContent)
+        // draws only for the pointer or the focus — an unfocused view with no pointer over it has none.
+        env.scrollIndicatorPlacement = .besideContent
         return RenderContext(
             availableWidth: width, availableHeight: height, environment: env, tuiContext: tui
         ).isolatingRenderCache()

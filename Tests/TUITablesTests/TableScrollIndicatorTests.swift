@@ -85,6 +85,9 @@ struct TableScrollIndicatorTests {
         // has always meant "bar or 'N more' lines", which is now a STYLE. Both
         // are visible on demand; the knob picks which one is drawn.
         env.scrollIndicatorStyle = scrollbar == .visible ? .scrollbar : .text
+        // Beside the content: these read the indicators drawn at rest, which the
+        // default (.overContent) draws only for the pointer or the focus.
+        env.scrollIndicatorPlacement = .besideContent
         env.verticalScrollIndicatorVisibility = .automatic
         env.horizontalScrollIndicatorVisibility = .automatic
         env.applyRuntimeServices(from: tui)

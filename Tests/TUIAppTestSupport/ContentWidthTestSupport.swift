@@ -60,6 +60,9 @@ func twoAxisFrames<Row: View>(
         // on the per-pass measure memo; without it that half of the cache is
         // never exercised at all.
         environment.installVolatileReadTracker(VolatileReadTracker())
+        // Beside the content: the returned line is the horizontal bar drawn at rest, which the
+        // default (.overContent) draws only for the pointer or the focus.
+        environment.scrollIndicatorPlacement = .besideContent
         tuiContext.preferences.beginRenderPass()
         tuiContext.stateStorage.beginRenderPass()
         tuiContext.renderCache.beginRenderPass()

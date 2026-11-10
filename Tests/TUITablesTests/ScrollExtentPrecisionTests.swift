@@ -274,6 +274,9 @@ struct ScrollExtentPrecisionTests {
                 TableColumn("Detail", value: \TallRow.detail)
             }
             .scrollIndicators(.visible)
+            // Beside the content: this reads the bar drawn at rest, which the default
+            // (.overContent) draws only for the pointer or the focus.
+            .scrollIndicatorPlacement(.besideContent)
         }
         let short = comparableRows(60, tallFrom: 60)
         let grown = comparableRows(60, tallFrom: 20)
@@ -298,6 +301,9 @@ struct ScrollExtentPrecisionTests {
                 ForEach(rows) { Text(verbatim: $0.name) }
             }
             .scrollIndicators(.visible)
+            // Beside the content: this reads the bar drawn at rest, which the default
+            // (.overContent) draws only for the pointer or the focus.
+            .scrollIndicatorPlacement(.besideContent)
         }
         let short = comparableRows(60, tallFrom: 60)
         let grown = comparableRows(60, tallFrom: 20)

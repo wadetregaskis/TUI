@@ -235,6 +235,9 @@ struct DialogRenderTests {
             Dialog(title: "LongTitleName") { Text("body text wide") },
             context: makeRenderContext(width: 12, height: 6) { env, _ in
                 env.scrollIndicatorStyle = .text
+                // Beside the content: the "▼ N" line is the probe below, and the dialog's scroller
+                // is no focus stop, so under the default (.overContent) it is drawn only for the pointer.
+                env.scrollIndicatorPlacement = .besideContent
             })
         let lines = buffer.lines.map { $0.stripped }
         #expect(lines.allSatisfy { $0.count <= 12 }, "never wider than offered: \(lines)")

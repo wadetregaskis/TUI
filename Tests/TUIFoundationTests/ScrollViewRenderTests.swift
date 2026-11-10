@@ -18,11 +18,15 @@ import Testing
 @Suite("ScrollView rendering")
 struct ScrollViewRenderTests {
 
-    /// The shipped defaults: automatic visibility, scrollbar style.
+    /// The shipped defaults — automatic visibility, scrollbar style — placed
+    /// beside the content: these tests read the indicators drawn at rest, which
+    /// the default placement (.overContent) draws only for the pointer or the focus.
     private func ctx(width: Int, height: Int) -> RenderContext {
-        RenderContext(
+        var environment = EnvironmentValues()
+        environment.scrollIndicatorPlacement = .besideContent
+        return RenderContext(
             availableWidth: width, availableHeight: height,
-            environment: EnvironmentValues(), tuiContext: TUIContext()
+            environment: environment, tuiContext: TUIContext()
         ).isolatingRenderCache()
     }
 
@@ -32,6 +36,8 @@ struct ScrollViewRenderTests {
     private func textCtx(width: Int, height: Int) -> RenderContext {
         var environment = EnvironmentValues()
         environment.scrollIndicatorStyle = .text
+        // Beside the content, as `ctx` places them: the lines drawn at rest.
+        environment.scrollIndicatorPlacement = .besideContent
         return RenderContext(
             availableWidth: width, availableHeight: height,
             environment: environment, tuiContext: TUIContext()

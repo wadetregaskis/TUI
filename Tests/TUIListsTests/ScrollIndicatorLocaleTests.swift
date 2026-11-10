@@ -83,6 +83,9 @@ struct ScrollIndicatorLocaleTests {
         // against the "N more above / below" lines, which are now a style. The
         // shipped default is a scrollbar; cases about THAT ask for it by name.
         environment.scrollIndicatorStyle = .text
+        // Beside the content: this reads the "N more" line drawn at rest, which
+        // the default (.overContent) draws only for the pointer or the focus.
+        environment.scrollIndicatorPlacement = .besideContent
         let context = RenderContext(
             availableWidth: 40, availableHeight: 6,
             environment: environment, tuiContext: tuiContext)

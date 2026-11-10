@@ -12,10 +12,13 @@ import TUICore
 import TUIMenus
 @testable import TUITestSupport
 
-/// A menu that scrolls draws its rows into one cell less than a menu that hugs:
-/// the `ScrollView` the scrolled arm inserts reserves a trailing column for its
-/// bar. The row width handed down has to say so, and it did not — every row was
-/// told a cell it did not have, so the border clipped the last of them.
+/// A menu that scrolls draws its rows into one cell less than a menu that hugs
+/// when its indicators are placed beside the content, as every menu here is: the
+/// `ScrollView` the scrolled arm inserts then reserves a trailing column for its
+/// bar. (Under the default, `.overContent`, the menu's scroller is no focus stop,
+/// so it draws its bar over the rows, and only for the pointer.) The row width
+/// handed down has to say so, and it did not — every row was told a cell it did
+/// not have, so the border clipped the last of them.
 ///
 /// The visible casualty is the key equivalent, which is the only thing that lives
 /// at a menu row's trailing edge. It vanished the moment a menu grew past its cap
@@ -53,6 +56,9 @@ struct MenuScrollingRowWidthTests {
         var environment = EnvironmentValues()
         environment.focusManager = FocusManager()
         environment.applyRuntimeServices(from: tui)
+        // Beside the content: every test here is about the column the bar reserves, which the
+        // default (.overContent) never takes, and its bar is drawn there only for the pointer.
+        environment.scrollIndicatorPlacement = .besideContent
         configure(&environment)
         let context = RenderContext(
             availableWidth: 30, availableHeight: height, environment: environment,

@@ -118,6 +118,10 @@ struct ScrollIndicatorClaimTests {
         let context = makeRenderContext(width: Self.width, height: 10) { environment, _ in
             environment.palette = FadedAll()
             environment.scrollIndicatorStyle = .text
+            // Beside the content: the list takes the focus during its first
+            // render, which the default (.overContent) lays out unfocused, with
+            // no line at all.
+            environment.scrollIndicatorPlacement = .besideContent
             environment.selectionIndicatorStyle = .none
         }
         let drawn = renderToBuffer(
@@ -147,6 +151,8 @@ struct ScrollIndicatorClaimTests {
                     environment.palette = palette
                     environment.surfaceBackground = surface
                     environment.scrollIndicatorStyle = .text
+                    // Beside the content, as `render` places it.
+                    environment.scrollIndicatorPlacement = .besideContent
                     environment.verticalScrollIndicatorVisibility = visibility
                 }
                 let drawn = renderToBuffer(host.view, context: context)
@@ -176,6 +182,10 @@ struct ScrollIndicatorClaimTests {
         let context = makeRenderContext(width: Self.width, height: 10) { environment, _ in
             environment.palette = palette
             environment.scrollIndicatorStyle = .text
+            // Beside the content: the default (.overContent) draws no line at
+            // rest, and lays out unfocused the first render, in which a host
+            // takes the focus.
+            environment.scrollIndicatorPlacement = .besideContent
             environment.verticalScrollIndicatorVisibility = visibility
         }
         if !focused { context.environment.focusManager?.register(FocusSentinel()) }

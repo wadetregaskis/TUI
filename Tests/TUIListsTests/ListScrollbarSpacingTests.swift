@@ -31,6 +31,9 @@ struct ListScrollbarSpacingTests {
             }
         }
         .scrollIndicators(visibility)
+        // Beside the content: this reads the bar drawn at rest, which the default
+        // (.overContent) draws only for the pointer or the focus.
+        .scrollIndicatorPlacement(.besideContent)
         return Group {
             if let spacing { list.scrollbarSpacing(spacing) } else { list }
         }

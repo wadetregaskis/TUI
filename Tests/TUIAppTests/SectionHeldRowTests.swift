@@ -59,6 +59,9 @@ private func heldFrame(
         }
     }
     .scrollIndicatorStyle(textIndicators ? .text : .scrollbar)
+    // Beside the content: the scroll view takes the focus during its first render, and under the
+    // default (.overContent) that moves its bar beside the rows from the second frame on.
+    .scrollIndicatorPlacement(.besideContent)
     .frame(height: 8)
     return heldBuffer(view, holding: row, tui: tui, focusManager: focusManager).lines.map(\.stripped)
 }

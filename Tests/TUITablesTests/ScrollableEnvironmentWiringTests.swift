@@ -269,8 +269,10 @@ struct ScrollableEnvironmentWiringTests {
         // `.visible` is for, a viewport that does not resize under the reader.
         // (It used to consult the content here, which is `.automatic`'s job; the
         // sibling test below pins that one.)
+        // Beside the content: under the default (.overContent) the row view
+        // spends no line at rest, nor in the first render, before its focus.
         func loud(_ view: some View) -> some View {
-            view.scrollIndicators(.visible).scrollIndicatorStyle(.text)
+            view.scrollIndicators(.visible).scrollIndicatorStyle(.text).scrollIndicatorPlacement(.besideContent)
         }
         let handler: ItemListHandler<Int>? =
             switch arm.which {
@@ -324,8 +326,9 @@ struct ScrollableEnvironmentWiringTests {
     ) {
         let session = DragAndDropSession()
         let data = overflows ? Self.rows : Self.fewRows
+        // Beside the content, as the sibling above.
         func quiet(_ view: some View) -> some View {
-            view.scrollIndicators(.automatic).scrollIndicatorStyle(.text)
+            view.scrollIndicators(.automatic).scrollIndicatorStyle(.text).scrollIndicatorPlacement(.besideContent)
         }
         let handler: ItemListHandler<Int>? =
             switch arm.which {

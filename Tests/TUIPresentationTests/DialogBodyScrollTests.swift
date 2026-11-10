@@ -56,7 +56,10 @@ struct DialogBodyScrollTests {
     /// The core requirement.
     @Test("A too-tall dialog keeps its title and footer, and scrolls the body")
     func titleAndFooterSurviveOverflow() {
-        let lines = render(tallDialog(rows: 40), width: 40, height: 14)
+        // Beside the content: the indicator is the probe below, and the dialog's scroller is no
+        // focus stop, so under the default (.overContent) it draws one only for the pointer.
+        let lines = render(
+            tallDialog(rows: 40).scrollIndicatorPlacement(.besideContent), width: 40, height: 14)
         let text = lines.joined(separator: "\n")
 
         #expect(lines.count <= 14, "the dialog fits the space it was given: \(lines.count)")

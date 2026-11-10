@@ -190,6 +190,9 @@ private func control(_ name: String, on: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 0) { ForEach(0..<30) { Text("Row \($0)") } }
     }
     .frame(width: 20, height: 4)
+    // Beside the content, where its bar is drawn at rest: the disabled look this audits is the
+    // bar's. Under the default (.overContent) neither draws one without the pointer or the focus.
+    .scrollIndicatorPlacement(.besideContent)
 }
 
 @MainActor private func radio(on: Bool) -> some View {

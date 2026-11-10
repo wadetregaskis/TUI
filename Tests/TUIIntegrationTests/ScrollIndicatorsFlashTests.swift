@@ -42,6 +42,10 @@ struct ScrollIndicatorsFlashTests {
             environment.focusManager = focusManager
             environment.scrollIndicatorStyle = style
             environment.verticalScrollIndicatorVisibility = .visible
+            // Beside the content, where the indicators are drawn at rest: a flash lights only
+            // indicators that are drawn, and under the default (.overContent) none is without the
+            // pointer or the focus.
+            environment.scrollIndicatorPlacement = .besideContent
             environment.applyRuntimeServices(from: tuiContext)
             environment.animationFrame = AnimationFrame(nowNanos: nanos, canAnimate: !oneOff)
             let context = RenderContext(

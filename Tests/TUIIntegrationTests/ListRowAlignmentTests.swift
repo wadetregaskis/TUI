@@ -324,6 +324,10 @@ struct ListRowAlignmentTests {
                     }
             }
         }
+        // Beside the content: the list takes the focus during its first render, and under
+        // the default (.overContent) its "N more" lines take rows from the second frame on,
+        // so a row drawn last in the first frame would be gone without any slide.
+        .scrollIndicatorPlacement(.besideContent)
     }
 
     /// The frame on which `row` presents its dialog, with no input since the last.

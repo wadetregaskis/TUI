@@ -523,6 +523,13 @@ private struct FillerParentPage: View {
     let parent: FillerListParent
 
     var body: some View {
+        // Beside the content: the scroll view takes the focus during its first render,
+        // and under the default (.overContent) that moves its bar beside the rows from
+        // the second frame on, which is not the steadiness asserted here.
+        Group { page }.scrollIndicatorPlacement(.besideContent)
+    }
+
+    @ViewBuilder private var page: some View {
         switch parent {
         case .twoAxisScrollView:
             ScrollView([.horizontal, .vertical]) { FillerParentList(row: .fills) }

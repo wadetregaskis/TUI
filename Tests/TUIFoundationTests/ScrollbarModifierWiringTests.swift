@@ -25,6 +25,9 @@ struct ScrollbarModifierWiringTests {
         var env = EnvironmentValues()
         env.focusManager = FocusManager()
         env.mouseEventDispatcher = tui.mouseEventDispatcher
+        // Beside the content: these read the bars drawn at rest (most off a single, first render),
+        // which the default (.overContent) draws only for the pointer or the focus.
+        env.scrollIndicatorPlacement = .besideContent
         return RenderContext(
             availableWidth: width, availableHeight: height, environment: env, tuiContext: tui
         ).isolatingRenderCache()

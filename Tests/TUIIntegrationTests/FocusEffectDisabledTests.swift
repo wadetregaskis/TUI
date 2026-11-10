@@ -377,6 +377,9 @@ struct FocusEffectDisabledTests {
         }
         .scrollIndicators(.visible)
         .scrollIndicatorStyle(.scrollbar)
+        // Beside the content: under the default (.overContent) the focus alone moves
+        // the bar beside the content, which is layout, not the focus effect asserted here.
+        .scrollIndicatorPlacement(.besideContent)
         .frame(width: 12, height: 5)
         expectDistinguishable(vertical, "vertical ScrollView", frames: 2)
         expectIndistinguishable(vertical, "vertical ScrollView", frames: 2)
@@ -386,6 +389,9 @@ struct FocusEffectDisabledTests {
         }
         .scrollIndicators(.visible)
         .scrollIndicatorStyle(.scrollbar)
+        // Beside the content: under the default (.overContent) the focus alone moves
+        // the bar beside the content, which is layout, not the focus effect asserted here.
+        .scrollIndicatorPlacement(.besideContent)
         .frame(width: 12, height: 3)
         expectDistinguishable(horizontal, "horizontal ScrollView", frames: 2)
         expectIndistinguishable(horizontal, "horizontal ScrollView", frames: 2)
@@ -402,6 +408,9 @@ struct FocusEffectDisabledTests {
         }
         .scrollIndicators(.visible)
         .scrollIndicatorStyle(.text)
+        // Beside the content: under the default (.overContent) the focus alone moves
+        // the bar beside the content, which is layout, not the focus effect asserted here.
+        .scrollIndicatorPlacement(.besideContent)
         .frame(width: 20, height: 6)
         expectDistinguishable(scroll, "ScrollView text indicators", frames: 2)
         expectIndistinguishable(scroll, "ScrollView text indicators", frames: 2)
@@ -416,6 +425,9 @@ struct FocusEffectDisabledTests {
     @Test("TextEditor's scrollbar")
     func textEditorScrollbar() {
         let editor = TextEditor(text: .constant((1...8).map { "line \($0)" }.joined(separator: "\n")))
+            // Beside the content: under the default (.overContent) the focus alone moves
+            // the bar beside the content, which is layout, not the focus effect asserted here.
+            .scrollIndicatorPlacement(.besideContent)
             .frame(width: 12, height: 4)
         let unfocused = rendered(editor, focusOnSubject: false, suppression: nil, skippingRows: 1)
         let focused = rendered(editor, focusOnSubject: true, suppression: nil, skippingRows: 1)

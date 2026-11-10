@@ -18,9 +18,14 @@ import TUICore
 private func createTestContext(width: Int = 80, height: Int = 24) -> RenderContext {
     // Predates the visibility/style split (#555): this suite's assertions are
     // written against the "N more above / below" lines, which are now a style
-    // rather than the shipped default (a scrollbar).
+    // rather than the shipped default (a scrollbar). Placed beside the content,
+    // where they are drawn at rest and take lines of their own: the default
+    // (.overContent) draws them only for the pointer or the focus, and a list
+    // that takes the focus in its first render moves them beside its rows only
+    // from the second frame on.
     makeRenderContext(width: width, height: height) { environment, _ in
         environment.scrollIndicatorStyle = .text
+        environment.scrollIndicatorPlacement = .besideContent
     }
 }
 

@@ -98,6 +98,9 @@ struct ScrollTargetBehaviorTests {
             .frame(height: 10)
             .scrollIndicators(.automatic)
             .scrollIndicatorStyle(.text)
+            // Beside the content: the pages are read around the "N more" lines, which the
+            // default (.overContent) draws only for the pointer or the focus.
+            .scrollIndicatorPlacement(.besideContent)
             .scrollTargetBehavior(.paging)
         frames.render(view)
         var read = Set(readableRows(frames))
@@ -123,6 +126,9 @@ struct ScrollTargetBehaviorTests {
             .frame(height: 10)
             .scrollIndicators(.automatic)
             .scrollIndicatorStyle(.text)
+            // Beside the content: the pages are read around the "N more" lines, which the
+            // default (.overContent) draws only for the pointer or the focus.
+            .scrollIndicatorPlacement(.besideContent)
             .scrollTargetBehavior(.paging)
         frames.render(view)
         var seen = readableRows(frames)
@@ -172,6 +178,9 @@ struct ScrollTargetBehaviorTests {
             .frame(height: 10)
             .scrollIndicators(visibility)
             .scrollIndicatorStyle(.text)
+            // Beside the content: the pages are read around the "N more" lines, which the
+            // default (.overContent) draws only for the pointer or the focus.
+            .scrollIndicatorPlacement(.besideContent)
             .scrollTargetBehavior(.paging)
         frames.render(view)
         for page in 0..<5 {

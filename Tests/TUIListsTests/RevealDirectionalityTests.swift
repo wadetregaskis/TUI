@@ -35,6 +35,10 @@ struct RevealDirectionalityTests {
         // written against the "N more" lines, which are now a style rather than
         // the default. The one test wanting a bar asks for it on its own view.
         environment.scrollIndicatorStyle = .text
+        // Beside the content, where those lines take lines of their own: the walk reveals the row
+        // behind the "▲" line. Under the default (.overContent) a scroll view whose content holds the
+        // focus draws no lines without the pointer.
+        environment.scrollIndicatorPlacement = .besideContent
         let context = RenderContext(
             availableWidth: 30, availableHeight: height,
             environment: environment, tuiContext: tuiContext)

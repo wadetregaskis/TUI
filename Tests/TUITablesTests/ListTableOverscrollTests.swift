@@ -56,6 +56,10 @@ struct ListTableOverscrollTests {
             environment.verticalScrollIndicatorVisibility = bar
             environment.horizontalScrollIndicatorVisibility = bar
             environment.scrollIndicatorStyle = style
+            // Beside the content, for the same arithmetic: the default
+            // (.overContent) draws no indicator at rest and none on the first
+            // frame, before the view takes the focus.
+            environment.scrollIndicatorPlacement = .besideContent
         }
     }
 

@@ -41,7 +41,9 @@ struct GreedyCase: Sendable, CustomTestStringConvertible {
 @MainActor
 private func hasHorizontalBar(_ content: some View) -> Bool {
     let buffer = renderToBuffer(
-        ScrollView([.horizontal, .vertical]) { content },
+        // Beside the content: the bar is the probe, and the default (.overContent)
+        // draws it only for the pointer or the focus.
+        ScrollView([.horizontal, .vertical]) { content }.scrollIndicatorPlacement(.besideContent),
         context: RenderContext(
             availableWidth: 40, availableHeight: 12, tuiContext: TUIContext()
         ).isolatingRenderCache())

@@ -8,6 +8,13 @@
 //  scrollbar visibilities, and column-width mixes, including `.fit` columns
 //  whose values saturate the interior (the early-out path).
 //
+//  The sweeps place the indicators `.besideContent`, the shapes they were
+//  written for. Under the default, `.overContent`, a table renders once,
+//  takes the focus while it does, and is then measured holding it: beside
+//  its rows from the measure on, so the render before it drew a different
+//  shape. That is the frame the focus arrives on, not a measure disagreeing
+//  with its render.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -82,6 +89,7 @@ struct TableAnalyticMeasureTests {
                     let context = makeRenderContext(width: width, height: height) { env, _ in
                         env.verticalScrollIndicatorVisibility = barVisibility
                         env.horizontalScrollIndicatorVisibility = barVisibility
+                        env.scrollIndicatorPlacement = .besideContent
                     }
 
                     // The render ground truth, at the exact context shape the
@@ -180,6 +188,7 @@ struct TableAnalyticMeasureTests {
                     let context = makeRenderContext(width: width, height: height) { env, _ in
                         env.verticalScrollIndicatorVisibility = barVisibility
                         env.horizontalScrollIndicatorVisibility = barVisibility
+                        env.scrollIndicatorPlacement = .besideContent
                     }
                     var renderContext = context
                     renderContext.hasExplicitWidth = false
@@ -209,7 +218,9 @@ struct TableAnalyticMeasureTests {
         let data = rows(40, wide: true)
         for budget in [64, 256, 4096, 16_384] {
             for (label, table) in multiLineTables(data: data) {
-                let context = makeRenderContext(width: 60, height: budget)
+                let context = makeRenderContext(width: 60, height: budget) { env, _ in
+                    env.scrollIndicatorPlacement = .besideContent
+                }
                 var renderContext = context
                 renderContext.hasExplicitWidth = false
                 let buffer = renderToBuffer(table, context: renderContext)

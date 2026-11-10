@@ -92,6 +92,9 @@ struct ListRowTrailingContentTests {
             }
         }
         .scrollIndicators(.visible)
+        // Beside the content: this reads the bar drawn at rest, which the default
+        // (.overContent) draws only for the pointer or the focus.
+        .scrollIndicatorPlacement(.besideContent)
 
         let context = makeRenderContext(width: 40, height: 10)
         let lines = renderToBuffer(view, context: context).lines.map { $0.stripped }

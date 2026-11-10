@@ -533,6 +533,9 @@ struct ScrollViewRenderingTests {
                 ForEach(0..<50, id: \.self) { Text("Row \($0)") }
             }
         }
+        // Beside the content: this reads the "N more" line drawn at rest, which the default
+        // (.overContent) draws only for the pointer or the focus.
+        .scrollIndicatorPlacement(.besideContent)
         let buffer = renderToBuffer(view, context: makeContext(width: 30, height: 6))
         let text = buffer.lines.map(\.stripped).joined(separator: "\n")
         #expect(text.contains("more lines below"), "Expected a 'more lines below' indicator; got:\n\(text)")

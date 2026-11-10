@@ -70,6 +70,9 @@ struct AlwaysVisibleIndicatorTests {
             view
                 .scrollIndicators(always ? .visible : .automatic)
                 .scrollIndicatorStyle(.text)
+                // Beside the content: these read the lines drawn at rest, which
+                // the default (.overContent) draws only for the pointer or the focus.
+                .scrollIndicatorPlacement(.besideContent)
         }
         switch which {
         case 0:
@@ -305,6 +308,9 @@ struct TableIndicatorLatchTests {
         var environment = EnvironmentValues()
         environment.focusManager = FocusManager()
         environment.scrollIndicatorStyle = .text
+        // Beside the content: this reads the line drawn at rest, which the
+        // default (.overContent) draws only for the pointer or the focus.
+        environment.scrollIndicatorPlacement = .besideContent
         environment.applyRuntimeServices(from: tui)
         let context = RenderContext(
             availableWidth: 40, availableHeight: 8, environment: environment, tuiContext: tui)

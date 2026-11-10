@@ -39,8 +39,12 @@ struct ScrollContentExtentTests {
     private func lines<V: View>(_ view: V, width: Int = 40, height: Int = viewport) -> [String] {
         // Predates the visibility/style split (#555): these assertions are about
         // the "N more" lines, which are now a style. The default is a scrollbar.
-        renderToBuffer(view.scrollIndicatorStyle(.text), context: context(width: width, height: height))
-            .lines.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+        // Beside the content, as the lines are read at rest: the default placement
+        // (.overContent) draws them only for the pointer or the focus.
+        renderToBuffer(
+            view.scrollIndicatorStyle(.text).scrollIndicatorPlacement(.besideContent),
+            context: context(width: width, height: height)
+        ).lines.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
     }
 
     /// The count out of an "N more lines above/below" indicator, taken as digits

@@ -180,7 +180,11 @@ struct TableRowModifiersTests {
 
     @Test("Motion reports are asked for only while a row has a hover action")
     func motionOnlyWithHover() {
-        let (tui, context) = harness()
+        let (tui, harnessContext) = harness()
+        var context = harnessContext
+        // Beside the content: under the default (.overContent) every table watches the pointer
+        // for its indicators, and asks for motion reports whatever its rows do.
+        context.environment.scrollIndicatorPlacement = .besideContent
         frame(table(selection: Box(nil)) { _ in false }, tui: tui, context: context)
         #expect(!tui.mouseEventDispatcher.effectiveSupport(baseConfig: .disabled).motion)
         let hovering = Table(of: Item.self) {

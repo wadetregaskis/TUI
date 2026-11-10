@@ -439,4 +439,9 @@ struct ScrollIndicatorPlacementTests {
         #expect(over.text.contains("below"), "\(over.text)")
         #expect(over.text == beside.text, "as beside the content:\n\(over.text)\n---\n\(beside.text)")
     }
+
+    @Test("Over the content is the default (the owner's SCROLLBAR-PLACEMENT ruling, 2026-11-09)")
+    func overContentIsTheDefault() {
+        #expect(EnvironmentValues().scrollIndicatorPlacement == .overContent)
+    }
 }

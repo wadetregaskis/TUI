@@ -97,7 +97,10 @@ struct ContentWidthNaturalAskTests {
                     }
                 }
                 .padding(edges, 1)
-            },
+            }
+            // Beside the content: this reads the horizontal bar drawn at rest, which the default
+            // (.overContent) draws only for the pointer or the focus.
+            .scrollIndicatorPlacement(.besideContent),
             context: RenderContext(
                 availableWidth: 40, availableHeight: 12, tuiContext: TUIContext()
             ).isolatingRenderCache())
