@@ -76,6 +76,10 @@ view raised with `.zIndex(1)` was drawn under a later sibling an `.offset` or a 
 click there went to the sibling. It now stays on top and takes the clicks where it is drawn, as in SwiftUI. The lazy
 stacks still draw their rows in order.
 
+**A `Label` whose title wraps keeps its icon beside the title's first line.** The default style centred the icon on
+the whole title, so a title of three lines had its icon beside the second. It now lines the icon's middle up with
+the middle of the title's first line, as SwiftUI does, which also keeps a one-line title at a tall icon's middle.
+
 **A word longer than its line breaks across lines, as SwiftUI's `Text` does.** A long URL, path or identifier in a
 narrow `Text`, multi-line `Table` cell or tooltip was put on a line of its own and cut there with an ellipsis, losing
 the rest of the word even with rows to spare; it now breaks between characters (never inside a character with

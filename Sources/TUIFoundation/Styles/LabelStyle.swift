@@ -126,6 +126,16 @@ public struct DefaultLabelStyle: LabelStyle, Equatable {
     }
 }
 
+/// Where ``_IconAndTitle`` lines its icon up with its title: a view's middle,
+/// unless it says otherwise, as the title does (the middle of its first line).
+private enum IconOnFirstTitleLineID: AlignmentID {
+    static func defaultValue(in context: ViewDimensions) -> Double { Double(context.height) / 2 }
+}
+
+extension VerticalAlignment {
+    fileprivate static let iconOnFirstTitleLine = Self(IconOnFirstTitleLineID.self)
+}
+
 /// The icon, a gap, then the title — the default style's arrangement, with the
 /// gap and the icon's reserved width read from the environment
 /// (``View/labelIconToTitleSpacing(_:)``, ``View/labelReservedIconWidth(_:)``).
@@ -138,13 +148,21 @@ private struct _IconAndTitle: View {
 
     @ViewBuilder var body: some View {
         if configuration.iconIsVisible {
-            HStack(spacing: max(0, spacing)) {
+            // The icon's middle level with the middle of the title's FIRST
+            // line, as SwiftUI's label draws it: a wrapped title keeps its
+            // icon beside the first line, and a one-line title sits at a tall
+            // icon's middle (measured, `Tools/SwiftUIProbes/Labels beside
+            // wrapping text`). `.center` put the icon beside the middle of a
+            // wrapped title. The first line is the title's first row, so its
+            // middle is half a row below that row's top.
+            HStack(alignment: .iconOnFirstTitleLine, spacing: max(0, spacing)) {
                 if let reservedIconWidth {
                     icon.frame(width: max(0, reservedIconWidth), alignment: .leading)
                 } else {
                     icon
                 }
                 configuration.title
+                    .alignmentGuide(.iconOnFirstTitleLine) { $0[.firstTextBaseline] + 0.5 }
             }
         } else {
             configuration.title

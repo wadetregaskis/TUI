@@ -1,0 +1,18 @@
+LabeledContent, wrapping value
+    label: y 16..32 x 0..35
+    value: y 0..48 x 43..160
+LabeledContent, wrapping label
+    label: y 24..56 x 0..142
+    value: y 0..80 x 150..158
+Label, wrapping title
+    icon: y 0..15 x 0..16
+    title: y 0..48 x 24..143
+Label, one-line title
+    icon: y 0..15 x 0..16
+    title: y 0..16 x 24..51
+Label, tall shape icon, one-line title
+    icon: y 0..40 x 0..16
+    title: y 11..27 x 24..50
+Label, tall shape icon, wrapping title
+    icon: y 0..40 x 0..16
+    title: y 11..59 x 24..143

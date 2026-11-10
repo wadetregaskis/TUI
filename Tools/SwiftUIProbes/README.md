@@ -535,6 +535,19 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIForms/Styles/LabeledContentStyle.swift`; `Tests/TUIIntegrationTests/LabeledContentTests.swift`,
   `Tests/TUIIntegrationTests/FormTests.swift`; `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
+### Labels beside wrapping text
+
+- **Asks:** where SwiftUI puts the one-line part of a label beside text that wraps: a `LabeledContent` whose value
+  wraps or whose label wraps, a `Label` whose title wraps, and a `Label` whose icon is a 40-point-tall shape beside
+  a one-line and a wrapping title (`rows.swift`, `rows.out`; frames in points, top-left origin, in a 160-point
+  column). A program of top-level code. `LabeledContent` alone centres the shorter part on the taller; `Label` puts
+  the middle of its icon level with the middle of its title's first line, so a wrapping title keeps its icon beside
+  its first line and a one-line title sits at a tall icon's middle. A word too long for its line ("Value" in a
+  column eight points wide) breaks between its characters.
+- **Ran:** macOS 15.8.3, Xcode's toolchain and the SDK it ships, 2026-11-10.
+- **Was:** written for the text-and-styling bug hunt of 2026-11-10.
+- **Cited by:** `Sources/TUIFoundation/Styles/LabelStyle.swift`; `Tests/TUIFoundationTests/LabelWrappingTitleTests.swift`.
+
 ### Stack spacing per pair
 
 - **Asks:** what `ViewSpacing`'s own values answer `distance(to:along:)` with — `ViewSpacing()` and `.zero` against
