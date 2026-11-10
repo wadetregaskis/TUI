@@ -31,7 +31,7 @@ private struct Overlap: Layout {
 
     func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
         for index in subviews.indices {
-            subviews[index].place(at: (x: bounds.x, y: bounds.y), proposal: .unspecified)
+            subviews[index].place(at: CellPoint(x: bounds.x, y: bounds.y), proposal: .unspecified)
         }
     }
 }
@@ -44,7 +44,7 @@ private struct Indented: Layout {
 
     func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
         for index in subviews.indices {
-            subviews[index].place(at: (x: bounds.x + 2, y: bounds.y), proposal: .unspecified)
+            subviews[index].place(at: CellPoint(x: bounds.x + 2, y: bounds.y), proposal: .unspecified)
         }
     }
 }
@@ -57,7 +57,7 @@ private struct WideOverlap: Layout {
 
     func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
         for index in subviews.indices {
-            subviews[index].place(at: (x: bounds.x, y: bounds.y), proposal: .unspecified)
+            subviews[index].place(at: CellPoint(x: bounds.x, y: bounds.y), proposal: .unspecified)
         }
     }
 }
@@ -73,7 +73,7 @@ private struct Scattered: Layout {
         for index in subviews.indices {
             let cell = max(0, index - 1)
             let at = index == 0 ? (x: 0, y: 0) : (x: (cell % 5) * 16, y: cell / 5)
-            subviews[index].place(at: (x: bounds.x + at.x, y: bounds.y + at.y), proposal: .unspecified)
+            subviews[index].place(at: CellPoint(x: bounds.x + at.x, y: bounds.y + at.y), proposal: .unspecified)
         }
     }
 }

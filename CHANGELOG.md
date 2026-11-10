@@ -39,6 +39,10 @@ in a `TabView`.** Under a header in a column, a row short of fitting, its bar to
 wrapped onto two lines), where the same placement set higher up did not: a modifier that only sets an environment
 value hid from the column that the scroll view takes all the room it is offered.
 
+**A custom `Layout` places a subview at a `CellPoint`, as SwiftUI's places one at a `CGPoint`.**
+`LayoutSubview.place(at:anchor:proposal:)` no longer takes an `(x:y:)` tuple beside the `CellPoint`; write
+`subview.place(at: CellPoint(x: x, y: y), proposal: …)`, or pass a `CellRect`'s `origin` as it is.
+
 **A `Tab` takes swipe actions.** `swipeActions(edge:allowsFullSwipe:content:)` on a tab, as SwiftUI spells it, gives
 its row in a `.sidebarAdaptable` sidebar the buttons a list row's swipe actions give it, revealed from the keyboard
 (⇧→ and ⇧←) or a trackpad's sideways swipe in the same way. A tab bar has no rows to swipe and shows none.

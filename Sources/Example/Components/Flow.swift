@@ -32,7 +32,7 @@ struct Flow: Layout {
         for line in lines(of: subviews, in: bounds.width) {
             var x = bounds.x
             for index in line.indices {
-                subviews[index].place(at: (x: x, y: y), proposal: .unspecified)
+                subviews[index].place(at: CellPoint(x: x, y: y), proposal: .unspecified)
                 x += subviews[index].sizeThatFits(.unspecified).width + spacing
             }
             y += line.height

@@ -1784,7 +1784,6 @@ LayoutSubview | @MainActor struct LayoutSubview
 LayoutSubview.==(_:_:) | @MainActor static func == (lhs: LayoutSubview, rhs: LayoutSubview) -> Bool
 LayoutSubview.containerValues | @MainActor var containerValues: ContainerValues { get }
 LayoutSubview.dimensions(in:) | @MainActor func dimensions(in proposal: ProposedSize) -> ViewDimensions
-LayoutSubview.place(at:anchor:proposal:) | @MainActor func place(at position: (x: Int, y: Int), anchor: UnitPoint = .topLeading, proposal: ProposedSize)
 LayoutSubview.place(at:anchor:proposal:) | @MainActor func place(at position: CellPoint, anchor: UnitPoint = .topLeading, proposal: ProposedSize)
 LayoutSubview.place(in:anchor:proposal:) | @MainActor func place(in bounds: CellRect, anchor: UnitPoint, proposal: ProposedSize)
 LayoutSubview.priority | @MainActor var priority: Double { get }

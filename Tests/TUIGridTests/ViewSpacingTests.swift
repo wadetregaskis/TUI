@@ -28,7 +28,7 @@ private struct SpacedRow: Layout {
         var x = bounds.x
         for (index, subview) in subviews.enumerated() {
             if index > 0 { x += gaps[index - 1] }
-            subview.place(at: (x: x, y: bounds.y), proposal: .unspecified)
+            subview.place(at: CellPoint(x: x, y: bounds.y), proposal: .unspecified)
             x += subview.sizeThatFits(.unspecified).width
         }
     }
@@ -51,7 +51,7 @@ private struct Tight: Layout {
     ) {
         var x = bounds.x
         for subview in subviews {
-            subview.place(at: (x: x, y: bounds.y), proposal: .unspecified)
+            subview.place(at: CellPoint(x: x, y: bounds.y), proposal: .unspecified)
             x += subview.sizeThatFits(.unspecified).width
         }
     }

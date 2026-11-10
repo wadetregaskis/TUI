@@ -123,7 +123,7 @@ nonisolated public struct GridLayout: Layout, Sendable, Equatable {
                     in: box, anchor: subview.child.gridCellAnchor, rowAlignment: row.alignment,
                     columnAlignment: row.spansFullWidth ? nil : lattice.columnAlignment[column],
                     gridAlignment: alignment)
-                subview.place(at: seat, proposal: cellProposal)
+                subview.place(at: CellPoint(x: seat.x, y: seat.y), proposal: cellProposal)
                 column += span
             }
         }

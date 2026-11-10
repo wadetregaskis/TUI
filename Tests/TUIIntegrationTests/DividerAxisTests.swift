@@ -187,7 +187,7 @@ private struct Row: Layout {
     func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
         var x = bounds.x
         for subview in subviews {
-            subview.place(at: (x: x, y: bounds.y), proposal: .unspecified)
+            subview.place(at: CellPoint(x: x, y: bounds.y), proposal: .unspecified)
             x += subview.sizeThatFits(.unspecified).width
         }
     }

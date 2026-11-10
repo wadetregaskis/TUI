@@ -167,7 +167,7 @@ nonisolated public struct VStackLayout: Layout, Sendable, Equatable {
         for (index, subview) in subviews.enumerated() {
             let height = heights[index]
             subview.place(
-                at: (x: bounds.x + (run?.offsets[index] ?? alignedOffset(for: sizes[index].width, in: bounds.width)), y: y),
+                at: CellPoint(x: bounds.x + (run?.offsets[index] ?? alignedOffset(for: sizes[index].width, in: bounds.width)), y: y),
                 proposal: ProposedSize(width: sizes[index].width, height: height))
             // A gap is charged behind a child that was actually placed — the
             // distributor's own rule, which is what keeps a clipped tail from
@@ -310,7 +310,7 @@ nonisolated public struct HStackLayout: Layout, Sendable, Equatable {
             x += walk.gap(before: index, extent: width)
             walk.place(index, extent: width)
             subview.place(
-                at: (x: x, y: bounds.y + (run?.offsets[index] ?? alignedOffset(for: heights[index], in: bounds.height))),
+                at: CellPoint(x: x, y: bounds.y + (run?.offsets[index] ?? alignedOffset(for: heights[index], in: bounds.height))),
                 proposal: ProposedSize(width: width, height: heights[index]))
             x += width
         }
@@ -521,7 +521,7 @@ nonisolated public struct ZStackLayout: Layout, Sendable, Equatable {
         for (index, subview) in subviews.enumerated() {
             let size = sizes[index]
             subview.place(
-                at: (
+                at: CellPoint(
                     x: bounds.x
                         + (across?.offsets[index]
                             ?? alignment.horizontal.childOffset(childWidth: size.width, in: bounds.width)),

@@ -101,7 +101,7 @@ private struct DiagonalLayout: Layout {
 
     func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
         for (index, subview) in subviews.enumerated() {
-            subview.place(at: (x: bounds.x + 3 * index, y: bounds.y + index), proposal: .unspecified)
+            subview.place(at: CellPoint(x: bounds.x + 3 * index, y: bounds.y + index), proposal: .unspecified)
         }
     }
 }

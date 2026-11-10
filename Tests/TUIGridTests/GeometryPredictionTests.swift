@@ -47,7 +47,7 @@ private struct Diagonal: Layout {
 
     func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
         for index in subviews.indices {
-            subviews[index].place(at: (x: bounds.x + 3 * index, y: bounds.y + index), proposal: .unspecified)
+            subviews[index].place(at: CellPoint(x: bounds.x + 3 * index, y: bounds.y + index), proposal: .unspecified)
         }
     }
 }

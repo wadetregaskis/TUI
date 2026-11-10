@@ -36,7 +36,7 @@ private struct CountedRow: Layout {
         placements.count += 1
         var x = bounds.x
         for subview in subviews {
-            subview.place(at: (x: x, y: bounds.y), proposal: .unspecified)
+            subview.place(at: CellPoint(x: x, y: bounds.y), proposal: .unspecified)
             x += subview.sizeThatFits(.unspecified).width + 1
         }
     }

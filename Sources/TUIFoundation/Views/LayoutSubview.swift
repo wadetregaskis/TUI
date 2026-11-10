@@ -9,7 +9,7 @@ import TUIView
 
 // MARK: - Placement Sink
 
-/// Where ``LayoutSubview/place(at:anchor:proposal:)-(CellPoint,_,_)`` records its decisions.
+/// Where ``LayoutSubview/place(at:anchor:proposal:)`` records its decisions.
 ///
 /// `LayoutSubview` is a value type whose `place` is non-mutating (SwiftUI's
 /// shape, and the one that lets a layout write `subviews[i].place(…)` while
@@ -124,34 +124,19 @@ public struct LayoutSubview: @MainActor Equatable {
 
     /// Places this subview so that `anchor` lands on `position`.
     ///
-    /// The SwiftUI-shaped placement. `position` is a whole cell; `anchor` is
-    /// fractional, because it is multiplied by the subview's size and then
-    /// **floored once** to a cell — the arithmetic ``AlignmentID`` explains at
-    /// length. Doing that subtraction yourself against a pre-floored midpoint
-    /// floors twice and lands a cell off in a quarter of cases, which is why
-    /// ``CellRect`` has no `midX`. When the target is a region rather than a
-    /// point, prefer ``place(in:anchor:proposal:)``.
+    /// The SwiftUI-shaped placement, with a ``CellPoint`` for SwiftUI's
+    /// `CGPoint`. `position` is a whole cell; `anchor` is fractional, because
+    /// it is multiplied by the subview's size and then **floored once** to a
+    /// cell — the arithmetic ``AlignmentID`` explains at length. Doing that
+    /// subtraction yourself against a pre-floored midpoint floors twice and
+    /// lands a cell off in a quarter of cases, which is why ``CellRect`` has
+    /// no `midX`. When the target is a region rather than a point, prefer
+    /// ``place(in:anchor:proposal:)``.
     ///
-    /// - Parameters:
-    ///   - position: The cell `anchor` should land on, in the bounds passed to
-    ///     `placeSubviews`.
-    ///   - anchor: The point *within the subview* that meets `position`.
-    ///     Defaults to `.topLeading`, which needs no arithmetic at all.
-    ///   - proposal: The size to offer the subview.
-    public func place(
-        at position: (x: Int, y: Int),
-        anchor: UnitPoint = .topLeading,
-        proposal: ProposedSize
-    ) {
-        let size = child.measure(proposal: proposal, context: context)
-        let x = Int((Double(position.x) - anchor.x * Double(size.width)).rounded(.down))
-        let y = Int((Double(position.y) - anchor.y * Double(size.height)).rounded(.down))
-        placements.record(index: index, x: x, y: y, proposal: proposal)
-    }
-
-    /// Places this subview so that `anchor` lands on `position` — the same
-    /// placement as the form above, for a position that is already a
-    /// ``CellPoint``, such as a ``CellRect``'s `origin`.
+    /// ```swift
+    /// subview.place(at: bounds.origin, proposal: .unspecified)
+    /// subview.place(at: CellPoint(x: x, y: bounds.y), anchor: .top, proposal: .unspecified)
+    /// ```
     ///
     /// - Parameters:
     ///   - position: The cell `anchor` should land on, in the bounds passed to
@@ -160,7 +145,10 @@ public struct LayoutSubview: @MainActor Equatable {
     ///     Defaults to `.topLeading`, which needs no arithmetic at all.
     ///   - proposal: The size to offer the subview.
     public func place(at position: CellPoint, anchor: UnitPoint = .topLeading, proposal: ProposedSize) {
-        place(at: (x: position.x, y: position.y), anchor: anchor, proposal: proposal)
+        let size = child.measure(proposal: proposal, context: context)
+        let x = Int((Double(position.x) - anchor.x * Double(size.width)).rounded(.down))
+        let y = Int((Double(position.y) - anchor.y * Double(size.height)).rounded(.down))
+        placements.record(index: index, x: x, y: y, proposal: proposal)
     }
 
     /// Places this subview within `bounds` at `anchor`.

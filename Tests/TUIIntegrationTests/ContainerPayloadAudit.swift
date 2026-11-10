@@ -409,7 +409,7 @@ private struct AuditColumn: Layout {
     ) {
         var y = bounds.y
         for index in subviews.indices {
-            subviews[index].place(at: (x: bounds.x, y: y), proposal: .unspecified)
+            subviews[index].place(at: CellPoint(x: bounds.x, y: y), proposal: .unspecified)
             y += subviews[index].sizeThatFits(.unspecified).height
         }
     }

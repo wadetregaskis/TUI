@@ -31,7 +31,7 @@ private struct PlainColumn: Layout {
     ) {
         var y = bounds.y
         for subview in subviews {
-            subview.place(at: (x: bounds.x, y: y), proposal: .unspecified)
+            subview.place(at: CellPoint(x: bounds.x, y: y), proposal: .unspecified)
             y += subview.sizeThatFits(.unspecified).height
         }
     }

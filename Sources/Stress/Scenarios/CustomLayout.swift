@@ -52,7 +52,7 @@ private struct Flow: Layout {
         for (row, line) in lines(of: subviews, in: bounds.width).enumerated() {
             var x = bounds.x
             for index in line.indices {
-                subviews[index].place(at: (x: x, y: bounds.y + row), proposal: .unspecified)
+                subviews[index].place(at: CellPoint(x: x, y: bounds.y + row), proposal: .unspecified)
                 x += subviews[index].sizeThatFits(.unspecified).width + spacing
             }
         }

@@ -69,7 +69,7 @@ struct ReversedTerminalInkOverlayTests {
         func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
             for index in subviews.indices {
                 subviews[index].place(
-                    at: (x: bounds.x + cells[index].x, y: bounds.y + cells[index].y), proposal: .unspecified)
+                    at: CellPoint(x: bounds.x + cells[index].x, y: bounds.y + cells[index].y), proposal: .unspecified)
             }
         }
     }

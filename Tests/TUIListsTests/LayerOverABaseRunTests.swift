@@ -59,7 +59,7 @@ private struct Stacked: Layout {
 
     func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
         for index in subviews.indices {
-            subviews[index].place(at: (x: bounds.x, y: bounds.y), proposal: .unspecified)
+            subviews[index].place(at: CellPoint(x: bounds.x, y: bounds.y), proposal: .unspecified)
         }
     }
 }

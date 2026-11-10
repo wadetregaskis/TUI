@@ -30,7 +30,7 @@ private struct Diagonal: Layout {
         in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
     ) {
         for (index, subview) in subviews.enumerated() {
-            subview.place(at: (x: bounds.x + index, y: bounds.y + index), proposal: .unspecified)
+            subview.place(at: CellPoint(x: bounds.x + index, y: bounds.y + index), proposal: .unspecified)
         }
     }
 }
@@ -83,7 +83,7 @@ private struct Cached: Layout {
         in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout Int
     ) {
         for subview in subviews {
-            subview.place(at: (x: bounds.x, y: bounds.y), proposal: .unspecified)
+            subview.place(at: CellPoint(x: bounds.x, y: bounds.y), proposal: .unspecified)
         }
     }
 }
@@ -103,7 +103,7 @@ private struct SumOfSpans: Layout {
         in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
     ) {
         for subview in subviews {
-            subview.place(at: (x: bounds.x, y: bounds.y), proposal: .unspecified)
+            subview.place(at: CellPoint(x: bounds.x, y: bounds.y), proposal: .unspecified)
         }
     }
 }
@@ -128,7 +128,7 @@ private struct SideBySide: Layout {
     ) {
         var x = bounds.x
         for subview in subviews {
-            subview.place(at: (x: x, y: bounds.y), proposal: .unspecified)
+            subview.place(at: CellPoint(x: x, y: bounds.y), proposal: .unspecified)
             x += subview.sizeThatFits(.unspecified).width + 1
         }
     }
@@ -205,7 +205,7 @@ struct LayoutProtocolTests {
             func placeSubviews(
                 in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
             ) {
-                subviews.first?.place(at: (x: 0, y: 0), proposal: .unspecified)
+                subviews.first?.place(at: CellPoint(x: 0, y: 0), proposal: .unspecified)
             }
         }
 
@@ -276,7 +276,7 @@ struct LayoutProtocolTests {
                 in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
             ) {
                 for subview in subviews {
-                    subview.place(at: (x: 0, y: 0), anchor: anchor, proposal: .unspecified)
+                    subview.place(at: CellPoint(x: 0, y: 0), anchor: anchor, proposal: .unspecified)
                 }
             }
         }
@@ -306,7 +306,7 @@ struct LayoutProtocolTests {
                 in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
             ) {
                 for subview in subviews {
-                    subview.place(at: (x: 6, y: 0), anchor: anchor, proposal: .unspecified)
+                    subview.place(at: CellPoint(x: 6, y: 0), anchor: anchor, proposal: .unspecified)
                 }
             }
         }
@@ -371,7 +371,7 @@ struct LayoutProtocolTests {
                 in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
             ) {
                 for subview in subviews {
-                    subview.place(at: (x: 0, y: 0), proposal: .unspecified)
+                    subview.place(at: CellPoint(x: 0, y: 0), proposal: .unspecified)
                 }
             }
         }
@@ -400,7 +400,7 @@ struct LayoutProtocolTests {
                 in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
             ) {
                 for subview in subviews {
-                    subview.place(at: (x: 0, y: 0), proposal: .unspecified)
+                    subview.place(at: CellPoint(x: 0, y: 0), proposal: .unspecified)
                 }
             }
         }
