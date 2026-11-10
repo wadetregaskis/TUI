@@ -9,8 +9,7 @@ starting point for the session that does it, on a Windows VM, and the record it 
 
 - **Every module but `TUIApp` builds**, on all five Windows jobs (Windows Server 2022 with Swift 6.2, 6.3 and 6.4;
   Server 2025 and Windows 11 arm64 with 6.3): the 26 library modules from `TUICore` to `TUITabImages`, and the test
-  targets of the four lowest. CONTRIBUTING's table still calls most of them advisory "until CI has seen it green";
-  CI has.
+  targets of the four lowest. All of those steps are binding since 2026-11-10.
 - **`TUIApp` does not**: 43 errors, all "cannot find … in scope" for POSIX names, in seven files:
   `FatalSignalTerminalRestore.swift` (26), `Terminal+LineDiscipline.swift` (9), `StallWatchdog.swift` (3),
   `UnreadQuitKeyWatch.swift` (2), `Terminal.swift`, `SystemClipboard.swift` and `QuitKeyReport.swift` (1 each). They
@@ -28,8 +27,8 @@ gracefully); CI's Windows jobs build and test everything with no `continue-on-er
 
 ## The work, in order
 
-1. **Make what is green binding.** Remove `continue-on-error` from every Windows step that has passed (the ratchet
-   CONTRIBUTING describes), and correct its table. Cheap, and it stops a regression while the rest is done.
+1. **What is green is binding** (done 2026-11-10, from the Mac): every per-module step and the four test targets'
+   builds, so nothing that builds today can stop building while the rest is done.
 2. **The console layer** (`TUIApp`), behind `#if os(Windows)` arms or a small protocol, so the POSIX code stays as
    it is and a reviewer sees few, obvious places (`.claude/CLAUDE.md`, "Cross-platform"). CONTRIBUTING's
    "known blockers" list, in its order:

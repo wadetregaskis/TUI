@@ -1093,16 +1093,18 @@ jobs:
       - name: "Build TUIStyling"
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIStyling"
 
-      # Passes on 6.3 and later; fails on 6.2 for reasons not yet diagnosed
-      # (the lane was advisory, so nobody had to look). Binding everywhere the
-      # evidence supports, advisory exactly where it does not.
+      # Failed on 6.2 for reasons never diagnosed, and was advisory there,
+      # until every job built it (CI runs 99 and 100): binding everywhere since
+      # 2026-11-10.
       - name: "Build TUIView"
-        continue-on-error: ${{ matrix.swift == '6.2' }}
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIView"
 
-      # ── Expected to fail until the port lands ──
-      # `continue-on-error` per step, so one red stage does not hide the ones
-      # after it: the whole point is to watch them go green over time.
+      # ── One module a step ──
+      # Each its own step, so a red one names itself. They were advisory, each
+      # with a timeout, until they went green; every one below is binding since
+      # 2026-11-10, when every Windows job had built them in CI runs 99 and
+      # 100. What still fails, and is advisory, is what needs the console
+      # layer (TUIApp): from the umbrella on.
 
       # `ShapeSampling` imported Glibc-or-Darwin and called `cos`/`sin`
       # unconditionally, so Windows got no `cos` at all. Fixed, and green on
@@ -1114,16 +1116,12 @@ jobs:
       # Module split step B2's two side modules, which need TUICore alone.
       # Their POSIX code sits in POSIX-only `#if` arms (CLAUDE.md), and
       # TerminalHost.swift names `pid_t` only inside its Darwin arms (decisions
-      # B-SPB2-1), but no Windows toolchain has built them yet: advisory until
-      # CI has seen them green, then binding like the four above.
+      # B-SPB2-1). Advisory until CI had seen them green; binding since 2026-11-10, when every Windows job had built them in CI runs 99
+      # and 100.
       - name: "Build TUIStrings"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIStrings"
 
       - name: "Build TUITerminalHost"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITerminalHost"
 
       # ── The module the console layer left ──
@@ -1132,13 +1130,12 @@ jobs:
       # it. Since B3 its directories import no Darwin, Glibc or Musl and call
       # no termios, ioctl or signal API (checked by grep, 2026-10-08); whether
       # anything else stops it on Windows is unmeasured, since no Windows build
-      # of it without the console layer has been seen. Advisory until CI has
-      # seen it green, then binding like the four above. It builds the two
+      # of it without the console layer has been seen. Advisory until CI had
+      # seen it green; binding since 2026-11-10, when every Windows job had built them in CI runs 99
+      # and 100. It builds the two
       # side modules above first, so a red step here after green ones there is
       # TUIFoundation's own.
       - name: "Build TUIFoundation"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIFoundation"
 
       # ── The leaves carved out above TUIFoundation ──
@@ -1190,92 +1187,59 @@ jobs:
       # conditions, `canImport(Darwin)` once (a string column's default
       # comparator) and `canImport(UniformTypeIdentifiers)` twice (a table
       # row's item provider). So they are meant to build on Windows, but none
-      # can until TUIFoundation does: advisory until CI has seen them
-      # green, then binding like the four above. TUIApp, the other leaf, is
+      # can until TUIFoundation does: advisory until CI had seen them
+      # green; binding since 2026-11-10, when every Windows job had built them in CI runs 99
+      # and 100. TUIApp, the other leaf, is
       # POSIX by design and has no step (the umbrella's covers it).
       - name: "Build TUIChrome"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIChrome"
 
       - name: "Build TUIEffects"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIEffects"
 
       - name: "Build TUIMenus"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIMenus"
 
       - name: "Build TUIBitmaps"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIBitmaps"
 
       - name: "Build TUINavigation"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUINavigation"
 
       - name: "Build TUIPresentation"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIPresentation"
 
       - name: "Build TUILists"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUILists"
 
       - name: "Build TUITables"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITables"
 
       - name: "Build TUITabs"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITabs"
 
       - name: "Build TUIGrid"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIGrid"
 
       - name: "Build TUITextInput"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITextInput"
 
       - name: "Build TUINumericControls"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUINumericControls"
 
       - name: "Build TUIPickers"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIPickers"
 
       - name: "Build TUISearch"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUISearch"
 
       - name: "Build TUIForms"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIForms"
 
       - name: "Build TUIColorPicker"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIColorPicker"
 
       - name: "Build TUICurveEditors"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUICurveEditors"
 
       # Lane O10's leaf, built on TUIPresentation, TUITables and
@@ -1285,40 +1249,29 @@ jobs:
       # where that module is absent, as on Windows) and `canImport(Darwin)`
       # (a name column's comparator, as TUITables').
       - name: "Build TUIFilePanels"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIFilePanels"
 
       # The owner's TAB-IMAGE-NAME option 2 (decisions C11): `Tab`'s `image:`
       # initialisers, built on TUIBitmaps and TUITabs, so after them.
       # No POSIX API and no `#if`.
       - name: "Build TUITabImages"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITabImages"
 
       # ── The four modules' own test targets ──
       # Each links only its module, so these are the first tests Windows can
-      # run without a console layer. Advisory until they go green, then binding
-      # like everything above.
+      # run without a console layer. Advisory until they went green;
+      # binding since 2026-11-10, when every Windows job had built them in CI runs 99
+      # and 100.
       - name: "Build TUICoreTests"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUICoreTests"
 
       - name: "Build TUIStylingTests"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIStylingTests"
 
       - name: "Build TUIViewTests"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIViewTests"
 
       - name: "Build TUIImageTests"
-        continue-on-error: true
-        timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIImageTests"
 
       # Every advisory step carries a timeout. `swift build --build-tests` on
@@ -1401,116 +1354,64 @@ jobs:
       - name: "Build TUIImage"
         run: swift build --target TUIImage
 
-      # Advisory, as in the container lane — see that lane.
+      # Binding, as in the container lane — see that lane.
       - name: "Build TUIStrings"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUIStrings
       - name: "Build TUITerminalHost"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUITerminalHost
       - name: "Build TUIFoundation"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUIFoundation
       - name: "Build TUIChrome"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUIChrome
       - name: "Build TUIEffects"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUIEffects
       - name: "Build TUIMenus"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUIMenus
       - name: "Build TUIBitmaps"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUIBitmaps
       - name: "Build TUINavigation"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUINavigation
       - name: "Build TUIPresentation"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUIPresentation
       - name: "Build TUILists"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUILists
       - name: "Build TUITables"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUITables
       - name: "Build TUITabs"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUITabs
       - name: "Build TUIGrid"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUIGrid
       - name: "Build TUITextInput"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUITextInput
       - name: "Build TUINumericControls"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUINumericControls
       - name: "Build TUIPickers"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUIPickers
       - name: "Build TUISearch"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUISearch
       - name: "Build TUIForms"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUIForms
       - name: "Build TUIColorPicker"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUIColorPicker
       - name: "Build TUICurveEditors"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUICurveEditors
       - name: "Build TUIFilePanels"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUIFilePanels
       - name: "Build TUITabImages"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUITabImages
 
       # The same scoreboard rows as the container lane, with the same timeouts
       # and for the same reason — see that lane.
       - name: "Build TUICoreTests"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUICoreTests
 
       - name: "Build TUIStylingTests"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUIStylingTests
 
       - name: "Build TUIViewTests"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUIViewTests
 
       - name: "Build TUIImageTests"
-        continue-on-error: true
-        timeout-minutes: 30
         run: swift build --target TUIImageTests
 
       - name: "Build everything"
