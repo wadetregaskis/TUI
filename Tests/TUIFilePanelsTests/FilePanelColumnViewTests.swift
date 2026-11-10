@@ -166,7 +166,10 @@ struct FilePanelColumnViewTests {
         await driver.waitFor("Name of new folder")
         #expect(driver.click("Create"))
         await settle { FileManager.default.fileExists(atPath: fixture.url("Alpha/untitled folder").path) }
-        let shown = await driver.waitFor("notes.md", timeout: .seconds(5))
+        // Waits for the column read again, Alpha's: "notes.md" is in ~'s, which
+        // never stopped showing it, so a wait on it ended at once, and Linux on
+        // Swift 6.4 (CI run 100) found Alpha's column still empty.
+        let shown = await driver.waitFor("inner.txt", timeout: .seconds(5))
         #expect(shown.contains("notes.md") && shown.contains("inner.txt"), "\(shown)")
     }
 
