@@ -443,3 +443,20 @@ extension EnvironmentValues {
 /// written inside it plays — see `DrawsContentUnchanged`.
 @MainActor extension EnvironmentModifier: DrawsContentUnchanged {}
 @MainActor extension TransformEnvironmentModifier: DrawsContentUnchanged {}
+
+// MARK: - Filling the Offer
+
+/// Each answers its content's ``View/_fillsItsOffer``: a value written into the
+/// environment lays nothing out anew, so a scroll view keeps its answer under
+/// `.scrollIndicatorPlacement(_:)`, `.scrollIndicators(_:)` and every other
+/// modifier that only sets a value. Answered `false`, a column did not measure
+/// such a scroll view again in the share of its height the render deals it, and
+/// a `TabView` drew one a row short of fitting under a header with its bar's
+/// column taken out of its rows ("row 10" wrapped onto two lines).
+@MainActor extension EnvironmentModifier {
+    @usableFromInline package static var _fillsItsOffer: Bool { Content._fillsItsOffer }
+}
+
+@MainActor extension TransformEnvironmentModifier {
+    package static var _fillsItsOffer: Bool { Content._fillsItsOffer }
+}

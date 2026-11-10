@@ -205,12 +205,25 @@ struct TabViewFillingTabTests {
     /// no column for a bar it then drew in eleven rows less the header's one, and
     /// the bar came out of the rows. It measures a squeezed flexible child in its
     /// share now.
-    @Test("A scroll view under a header a row short of fitting keeps its rows")
-    func headerBandKeepsTheRows() {
+    ///
+    /// The same with the placement written on the scroll view itself
+    /// (`placedAtTheView`), which the brief of 2026-11-10 found: the modifier
+    /// round it answered that it might lay the scroll view out anew
+    /// (`View._fillsItsOffer`), so the column did not measure it in its share,
+    /// and "row 10" wrapped. Set higher up, the placement wraps nothing here.
+    @Test("A scroll view under a header a row short of fitting keeps its rows", arguments: [false, true])
+    func headerBandKeepsTheRows(placedAtTheView: Bool) {
         let lines = renderFrames(
             TabView(selection: .constant(0)) {
                 Tab("Log", value: 0) {
-                    VStack(alignment: .leading) { Text("Header"); rows(from: 10, count: 11) }
+                    VStack(alignment: .leading) {
+                        Text("Header")
+                        if placedAtTheView {
+                            rows(from: 10, count: 11).scrollIndicatorPlacement(.besideContent)
+                        } else {
+                            rows(from: 10, count: 11)
+                        }
+                    }
                 }
             },
             width: 30, height: 12

@@ -145,7 +145,10 @@ public protocol View {
     /// answer it would not use: its only filling child is dealt what the
     /// others leave, whatever that child's own height, and a scroll view's
     /// measure walks all of its content. `true` must hold for the bare type:
-    /// a modifier round it answers `false`, as it may lay the view out anew.
+    /// a modifier round it answers `false`, as it may lay the view out anew —
+    /// all but one that only writes the environment
+    /// (`.scrollIndicatorPlacement(_:)`, `.scrollIndicators(_:)`), which lays
+    /// nothing out and answers its content's.
     static var _fillsItsOffer: Bool { get }
 
     /// Static witness: whether this view paints its own surface to its edges
