@@ -114,7 +114,11 @@ struct FilePanelPresenter<Content: View> {
         var made = request()
         made.rule.locale = locale
         Self.apply(customization, to: &made)
-        if let lastDirectory = session.lastDirectory, customization.defaultDirectory == nil {
+        // Passed over once it has gone, as a folder kept under an identifier
+        // is (``keptState()``): the panel opened on "can't be opened".
+        if let lastDirectory = session.lastDirectory, customization.defaultDirectory == nil,
+            Self.isFolder(lastDirectory.path)
+        {
             made.startDirectory = lastDirectory
         }
         if let kept = keptState() {
@@ -186,13 +190,16 @@ struct FilePanelPresenter<Content: View> {
     @MainActor private func keptState() -> FilePanelEnding? {
         guard let id = customization.customizationID else { return nil }
         let keys = Self.storageKeys(id)
-        guard let path: String = store.entry(forKey: keys.directory, as: String.self).value else { return nil }
-        var isDirectory: ObjCBool = false
-        guard unsafe FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue else {
-            return nil
-        }
+        guard let path: String = store.entry(forKey: keys.directory, as: String.self).value, Self.isFolder(path)
+        else { return nil }
         let hidden = store.entry(forKey: keys.showsHiddenFiles, as: Bool.self).value ?? false
         return FilePanelEnding(directory: URL(fileURLWithPath: path, isDirectory: true), showsHiddenFiles: hidden)
+    }
+
+    /// Whether `path` is a folder, or a link to one, that is there now.
+    private static func isFolder(_ path: String) -> Bool {
+        var isDirectory: ObjCBool = false
+        return unsafe FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue
     }
 
     /// Keeps where the panel ended under its identifier, when it has one.

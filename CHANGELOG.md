@@ -34,6 +34,10 @@ line however little room there was, so a sibling with a higher `layoutPriority` 
 rows, a text now takes them, down to one (or the lines `lineLimit(2...)` or `reservesSpace:` keep), its last line
 truncated, and `.fixedSize(horizontal: false, vertical: true)` still keeps them all.
 
+**A file panel no longer opens on a folder that has gone.** Presented again, a panel opens on the folder of the last
+choice made in it; once that folder had been deleted or moved, it opened there all the same, saying the folder
+can't be opened. It now opens where it first did, as a panel with a `fileDialogCustomizationID` already did.
+
 **A save panel asks before saving under the name of a link that leads nowhere.** Such a name looked free, so the
 panel chose it without asking to replace it, and New Folder and saving several files offered it too; it is now taken,
 as a file's name is.

@@ -124,6 +124,26 @@ struct FileImporterPanelTests {
         #expect(caller.chosenPaths == [fixture.url("Alpha/inner.txt").path])
     }
 
+    /// Opened again where the last choice was made, once that folder was gone,
+    /// the panel opened on "The folder … can't be opened.", where a folder
+    /// kept under a customization ID that is gone is passed over already.
+    @Test("Presented again after the last choice's folder has gone, the panel opens where it first did")
+    func lastFolderGone() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver { panel(fixture, caller: caller) }
+        await driver.waitFor("notes.md")
+        driver.press(.enter)
+        await driver.waitFor("inner.txt")
+        driver.press(.enter)
+        #expect(caller.chosenPaths == [fixture.url("Alpha/inner.txt").path])
+        try FileManager.default.removeItem(at: fixture.url("Alpha"))
+        caller.isPresented = true
+        let shown = await driver.waitFor("notes.md")
+        #expect(!shown.contains("can’t be opened"), "\(shown)")
+    }
+
     @Test("A click on the enclosing-folder button goes up, and leaves the focus where it was")
     func enclosingFolderButton() async throws {
         let fixture = try FilePanelFixture()

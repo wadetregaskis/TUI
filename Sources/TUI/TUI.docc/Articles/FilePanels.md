@@ -130,7 +130,7 @@ terminal.
 The callbacks come in SwiftUI's order: `isPresented` becomes `false`, then
 `onCompletion` hears the choice; a cancellation clears the binding and calls
 `onCancellation`, never `onCompletion`. The panel opens on the folder the app
-was started from, and later on the folder of the last choice. It browses the
+was started from, and later on the folder of the last choice, while it is there. It browses the
 machine the app runs on — over `ssh`, the remote one, and then a line above
 the path says so: "You are browsing the file system on *host*, not your local
 machine." It shows where TUI has evidence that the user is elsewhere (an
