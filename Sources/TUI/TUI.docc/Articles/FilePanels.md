@@ -30,7 +30,9 @@ Kind gives way, then Date Modified, then Size, so that a name keeps its room.
 The path is a path control, as on a Mac: a segment per folder from `/`, or
 from the home folder, written `~`, each a target of its own — a click goes
 there, and with the focus on it <kbd>←</kbd> and <kbd>→</kbd> move among the
-segments and <kbd>Space</kbd> goes to the one under the cursor. At the
+segments and <kbd>Space</kbd> goes to the one under the cursor. Where the
+path's row is too narrow to keep some of the path beside the view switcher and
+the Preview button, those two move to a row of their own below it. At the
 `.regular` and larger control sizes a blank row sets the parts apart; under
 `.controlSize(.small)` the panel is as dense as it can be.
 

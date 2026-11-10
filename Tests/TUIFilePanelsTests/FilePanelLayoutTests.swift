@@ -116,4 +116,41 @@ struct FilePanelLayoutTests {
         #expect(message.count > 60, "too long for one row: \(message)")
         #expect(letters(shown).contains(letters(message)), "\(message)\n\(shown)")
     }
+
+    @Test("At 40 columns the view switcher and the Preview button are whole, each label on one row")
+    func narrowTopRow() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver(width: 40, height: 30) {
+            openPanel(fixture, caller: caller, start: fixture.root)
+        }
+        let shown = await driver.waitFor("notes.md")
+        for label in ["List", "Columns", "Show Preview"] {
+            #expect(shown.contains(label), "\(label):\n\(shown)")
+        }
+        // The path has a row of its own, above the two.
+        let lines = shown.split(separator: "\n")
+        let pathRow = lines.firstIndex { $0.contains(FilePanelPathBar.enclosingFolderSymbol) }
+        let buttonRow = lines.firstIndex { $0.contains("Show Preview") }
+        #expect(pathRow != nil && buttonRow != nil && pathRow! < buttonRow!, "\(shown)")
+        // Each segment its own target still.
+        #expect(driver.click("Columns"))
+        driver.screen()
+        let mode = driver.storage.entry(forKey: FilePanelViewMode.storageKey(for: nil), as: String.self).value
+        #expect(mode == "columns")
+    }
+
+    @Test("Where there is room, the path, the view switcher and the Preview button share one row")
+    func wideTopRow() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver(width: 80, height: 30) {
+            openPanel(fixture, caller: caller, start: fixture.root)
+        }
+        let shown = await driver.waitFor("notes.md")
+        let row = shown.split(separator: "\n").first { $0.contains(FilePanelPathBar.enclosingFolderSymbol) }
+        #expect(row?.contains("Columns") == true && row?.contains("Show Preview") == true, "\(shown)")
+    }
 }

@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A file panel in a narrow terminal puts its view switcher and Preview button on a row of their own.** At about 40
+columns the List/Columns switcher was cut off and "Show Preview" wrapped onto two rows, squeezed by the path beside
+them. Where the path's row cannot keep some of the path beside them, they now go below it, and below each other
+narrower still.
+
 **An empty `List`'s or `Table`'s placeholder wraps where it is too long for one row.** It was cut off at the edge, so
 a file panel's "The folder … can't be opened." lost the reason after it. It now wraps onto the rows below, as many as
 the list has, the last ending in an ellipsis if even those are too few.

@@ -58,7 +58,44 @@ struct FilePanelPathBar: View {
     /// chrome glyph, so a width-corpus row (`chrome_enclosing_folder`).
     static let enclosingFolderSymbol = "\u{21B0}"
 
+    /// The fewest cells the path keeps beside the view switcher and the
+    /// Preview button before they go to a row of their own: room for a `…`
+    /// segment and a short folder name.
+    static let minimumPathWidth = 16
+
+    /// One row where the path keeps ``minimumPathWidth`` cells beside the
+    /// switcher and the button; else the path on a row of its own, above the
+    /// two at the row's end; else each on a row of its own. A narrow
+    /// terminal (40 columns) had the switcher clipped and the button's label
+    /// wrapped onto two rows, squeezed by the path.
     var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 1) {
+                pathRow(minimumWidth: Self.minimumPathWidth)
+                FilePanelViewModePicker(mode: viewMode)
+                FilePanelPreviewToggle(isOn: showsPreview)
+            }
+            VStack(spacing: 0) {
+                pathRow(minimumWidth: 0)
+                HStack(spacing: 1) {
+                    FilePanelViewModePicker(mode: viewMode)
+                    FilePanelPreviewToggle(isOn: showsPreview)
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            VStack(spacing: 0) {
+                pathRow(minimumWidth: 0)
+                FilePanelViewModePicker(mode: viewMode)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                FilePanelPreviewToggle(isOn: showsPreview)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+    }
+
+    /// The button to the folder above and the path, which takes the rest of
+    /// the row and asks for `minimumWidth` cells of it.
+    private func pathRow(minimumWidth: Int) -> some View {
         HStack(spacing: 1) {
             enclosingFolderButton
             // A reader for the width the path has, one row tall: the
@@ -67,8 +104,7 @@ struct FilePanelPathBar: View {
                 pathControl(width: proxy.size.width)
             }
             .frame(height: 1)
-            FilePanelViewModePicker(mode: viewMode)
-            FilePanelPreviewToggle(isOn: showsPreview)
+            .frame(minWidth: minimumWidth, idealWidth: minimumWidth)
         }
     }
 
