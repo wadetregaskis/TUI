@@ -75,7 +75,9 @@ struct OwnSizeOverflowTests {
             Text("+")
         }
         #expect(screen(column, height: 6).prefix(3) == ["1", "2", "+"])
-        // Not drawn at its own size: truncated to the frame's four cells.
-        #expect(screen(Text("0123456789").frame(width: 4, alignment: .center)).first == "012…")
+        // Not drawn at its own size: laid out in the frame's four cells, the
+        // word broken across rows as SwiftUI's Text breaks it, or cut on one.
+        #expect(screen(Text("0123456789").frame(width: 4, alignment: .center)).prefix(3) == ["0123", "4567", "89"])
+        #expect(screen(Text("0123456789").lineLimit(1).frame(width: 4, alignment: .center)).first == "012…")
     }
 }

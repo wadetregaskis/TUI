@@ -76,6 +76,12 @@ view raised with `.zIndex(1)` was drawn under a later sibling an `.offset` or a 
 click there went to the sibling. It now stays on top and takes the clicks where it is drawn, as in SwiftUI. The lazy
 stacks still draw their rows in order.
 
+**A word longer than its line breaks across lines, as SwiftUI's `Text` does.** A long URL, path or identifier in a
+narrow `Text`, multi-line `Table` cell or tooltip was put on a line of its own and cut there with an ellipsis, losing
+the rest of the word even with rows to spare; it now breaks between characters (never inside a character with
+combining marks) and is truncated only when it runs out of lines, as with `.lineLimit(1)`. A `.sizeDependent` text
+still prefers a narrower spelling to breaking a word.
+
 **The environment variables an app's man page lists are written for the person running it.** Each says, in plain
 words, what it does to the screen, the keys or the mouse, its values, its default, and an example where one helps, and
 they're grouped as that person looks for them: colour and appearance, motion, keyboard and mouse, text and language,

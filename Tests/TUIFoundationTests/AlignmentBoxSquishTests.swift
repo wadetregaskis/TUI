@@ -384,14 +384,15 @@ struct AlignmentBoxSquishTests {
     @Test("At extreme squeeze all three boxes still render")
     func allThreeBoxesPresentAtExtremeSqueeze() {
         // The flexible-width sharing should keep all three boxes visible even
-        // when no single one can host the labels in full. The boxes truncate
+        // when no single one can host the labels in full. The boxes wrap
         // their content rather than the row dropping a child entirely.
         let (lines, _) = renderRow(width: 22)
         let joined = lines.map(stripANSI).joined(separator: "\n")
-        let topBorder = lines.first.map(stripANSI) ?? ""
-        let openCount = topBorder.components(separatedBy: "╭").count - 1
+        // Counted over every row: the labels break across rows, so the boxes
+        // differ in height and the row centres each, as an HStack does.
+        let openCount = joined.components(separatedBy: "╭").count - 1
         #expect(openCount == 3, """
-            Expected three bordered boxes on the top edge at width 22:
+            Expected three bordered boxes at width 22:
             \(joined)
             """)
     }

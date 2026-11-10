@@ -96,7 +96,8 @@ struct ButtonMeasureParityTests {
             #expect(drawn.width == width, "\(style) at \(width): |\(row)|")
 
             let long = style.apply(
-                to: Button(action: {}, label: { Text(verbatim: String(repeating: "x", count: 60)) }))
+                // One line: given rows, the word would break across them.
+                to: Button(action: {}, label: { Text(verbatim: String(repeating: "x", count: 60)).lineLimit(1) }))
             let truncated = renderToBuffer(long, context: context(width: width)).lines.first?.stripped ?? ""
             #expect(truncated.contains("…"), "\(style) at \(width): |\(truncated)|")
         }

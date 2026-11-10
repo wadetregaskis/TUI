@@ -37,7 +37,9 @@ private struct FillerRow: View {
         } else if index == 2 {
             Text("x")
         } else {
-            Text(String(repeating: "\(index % 10)", count: index == 50 ? wide.cells : 8))
+            // One line, so the 6,000-cell row is CAPPED at the top rung
+            // rather than broken across two rows of it.
+            Text(String(repeating: "\(index % 10)", count: index == 50 ? wide.cells : 8)).lineLimit(1)
         }
     }
 }

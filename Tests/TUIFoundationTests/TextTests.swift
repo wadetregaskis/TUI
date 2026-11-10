@@ -290,9 +290,11 @@ struct TextTruncationTests {
         makeBareRenderContext(width: width, height: height)
     }
 
+    // One row each: with rows to spare, a word longer than the width breaks
+    // across them instead (`TextLongWordBreakTests`).
     @Test("A word longer than the width truncates with a tail ellipsis")
     func longWordTailTruncates() {
-        let buffer = renderToBuffer(Text("Supercalifragilistic"), context: context(width: 10))
+        let buffer = renderToBuffer(Text("Supercalifragilistic"), context: context(width: 10, height: 1))
         let line = buffer.lines[0].stripped
         #expect(line.strippedLength == 10, "Truncated line must fill exactly the width, got \(line.strippedLength)")
         #expect(line.hasSuffix("…"), "Tail truncation must end with an ellipsis, got \(line)")
@@ -302,7 +304,7 @@ struct TextTruncationTests {
     @Test("Head truncation keeps the end of the text")
     func headTruncation() {
         let text = Text("Supercalifragilistic").truncationMode(.head)
-        let line = renderToBuffer(text, context: context(width: 10)).lines[0].stripped
+        let line = renderToBuffer(text, context: context(width: 10, height: 1)).lines[0].stripped
         #expect(line.hasPrefix("…"), "Head truncation must start with an ellipsis, got \(line)")
         #expect(line.hasSuffix("c"), "Head truncation keeps the end of the text, got \(line)")
         #expect(line.strippedLength == 10)
@@ -311,7 +313,7 @@ struct TextTruncationTests {
     @Test("Middle truncation keeps both ends")
     func middleTruncation() {
         let text = Text("Supercalifragilistic").truncationMode(.middle)
-        let line = renderToBuffer(text, context: context(width: 11)).lines[0].stripped
+        let line = renderToBuffer(text, context: context(width: 11, height: 1)).lines[0].stripped
         #expect(line.contains("…"))
         #expect(line.hasPrefix("Supe"), "Middle truncation keeps the start, got \(line)")
         #expect(line.hasSuffix("istic"), "Middle truncation keeps the end, got \(line)")

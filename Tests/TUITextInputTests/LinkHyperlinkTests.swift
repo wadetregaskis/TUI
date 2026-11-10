@@ -214,7 +214,11 @@ struct LinkHyperlinkTests {
         let caret = try #require(
             linked.animatedCells.first { $0.offsetX == expected.offsetX && $0.offsetY == expected.offsetY },
             "the caret still animates: \(linked.animatedCells.map { ($0.offsetX, $0.offsetY) })")
-        #expect(caret.frames.allSatisfy { $0.contains("\u{1B}]8;;https://") }, "the premise: it was rebuilt")
+        // The parameters field holds an `id=` when the link spans rows (the
+        // parenthesised URL breaks across them), so match the URL field alone.
+        #expect(
+            caret.frames.allSatisfy { $0.contains("\u{1B}]8;") && $0.contains(";https://example.com/docs") },
+            "the premise: it was rebuilt")
         #expect(caret.alpha == expected.alpha, "the payload came through: \(String(describing: caret.alpha))")
     }
 

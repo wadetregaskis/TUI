@@ -520,9 +520,10 @@ extension Text {
 
     /// Sets how the text is shortened when it cannot fit its available space.
     ///
-    /// When the text is wider than the space it is given (or a word is
-    /// longer than the wrap boundary), it is truncated and the truncation
-    /// point is marked with an ellipsis (`…`). The default is `.tail`, or
+    /// When the text needs more lines than its line limit or the rows it is
+    /// given allow (a word longer than a line breaks across lines first, as in
+    /// SwiftUI), the last line shown is truncated and the truncation point is
+    /// marked with an ellipsis (`…`). The default is `.tail`, or
     /// whatever ``View/truncationMode(_:)`` cascaded from above — this one,
     /// being about this `Text` specifically, wins over that.
     ///
@@ -1009,8 +1010,8 @@ package struct TextStyle: Sendable, Equatable {
     }
 
     /// Whether this text, laid out `width` cells wide and at most `height`
-    /// rows tall (`nil` for no bound), shows every character: no word cut at
-    /// the width, no line past its line limit or the height. What a
+    /// rows tall (`nil` for no bound), shows every character: no word cut or
+    /// broken at the width, no line past its line limit or the height. What a
     /// `.sizeDependent` text asks of each spelling (`_SizeDependentText`),
     /// by the rules the measure above and the render below lay a text out by.
     func fitsWhole(width: Int, height: Int?, context: RenderContext) -> Bool {
@@ -1026,7 +1027,9 @@ package struct TextStyle: Sendable, Equatable {
                 redaction: context.environment.effectiveRedactionReasons,
                 spelling: context.textSpelling),
             width: width)
-        guard (wrapped.widths.max() ?? 0) <= width else { return false }
+        // A word broken between its characters shows every one of them, but
+        // not whole: a spelling that needs that is one that did not fit.
+        guard (wrapped.widths.max() ?? 0) <= width, !wrapped.brokeAWord else { return false }
         if let limit = resolvedLineLimitPolicy(context: context).rowCount, wrapped.lines.count > limit {
             return false
         }

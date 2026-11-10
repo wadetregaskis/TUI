@@ -13,7 +13,7 @@ import TUICore
 /// This is the one place that decides how textual content "expands to fit" while
 /// staying inside finite bounds, so every view that shows text behaves the same
 /// way: an explicit line break starts a new line; a long line soft-wraps on word
-/// boundaries; and a line budget keeps the lines that fit, folding the remainder
+/// boundaries, and a word no line can hold between its characters; and a line budget keeps the lines that fit, folding the remainder
 /// into the last visible line truncated with an ellipsis so the loss is shown
 /// rather than silently dropped.
 @MainActor
@@ -34,13 +34,17 @@ package enum TextWrapping {
         let lines: [String]
         /// Each line's visible width in terminal cells.
         let widths: [Int]
+        /// Whether the wrap broke a word between its characters, because no
+        /// line could hold it: all of it is shown, but not whole. Set by the
+        /// wrap only; a fit's result leaves it `false`.
+        var brokeAWord = false
     }
 
     /// Splits `text` on explicit line breaks (`\n`, `\r\n`, `\r`) and soft-wraps
     /// each paragraph on word boundaries so every returned line fits `width`
-    /// terminal cells. Never empty. A single word longer than `width` is placed on
-    /// its own line (the caller truncates it). `width <= 0` returns the paragraphs
-    /// unwrapped.
+    /// terminal cells. Never empty. A word longer than `width` breaks between its
+    /// characters; only a lone character wider than `width` (or an indent) is left
+    /// for the caller to truncate. `width <= 0` returns the paragraphs unwrapped.
     package static func wrap(_ text: String, width: Int) -> [String] {
         wrapMeasured(text, width: width).lines
     }
@@ -193,15 +197,17 @@ package enum TextWrapping {
         }
         var lines: [String] = []
         var widths: [Int] = []
+        var brokeAWord = false
         for paragraph in paragraphs {
             let wrapped = wrapParagraph(String(paragraph), width: width)
             lines.append(contentsOf: wrapped.lines)
             widths.append(contentsOf: wrapped.widths)
+            brokeAWord = brokeAWord || wrapped.brokeAWord
         }
         if lines.isEmpty {
             return Wrapped(lines: [""], widths: [0])
         }
-        return Wrapped(lines: lines, widths: widths)
+        return Wrapped(lines: lines, widths: widths, brokeAWord: brokeAWord)
     }
 
     /// Lays `text` into at most `maxLines` lines of at most `width` cells.
@@ -209,7 +215,7 @@ package enum TextWrapping {
     /// Wraps (see ``wrap(_:width:)``); then, if the result overflows the budget,
     /// keeps the lines that fit and folds the remainder into the last visible line
     /// truncated with an ellipsis; finally truncates any line still wider than
-    /// `width` (a single over-long word). `maxLines == nil` keeps every wrapped
+    /// `width` (a lone too-wide character). `maxLines == nil` keeps every wrapped
     /// line. Returns plain (unstyled) lines.
     package static func fit(
         _ text: String,
@@ -303,8 +309,8 @@ package enum TextWrapping {
             changed = true
         }
 
-        // Truncate any line still wider than `width` (a single over-long word, or
-        // the just-folded last line). `truncatedToWidth` returns its input
+        // Truncate any line still wider than `width` (a lone too-wide character,
+        // an indent, or the just-folded last line). `truncatedToWidth` returns its input
         // unchanged when it already fits.
         for index in lines.indices {
             let truncated =
@@ -383,9 +389,8 @@ package enum TextWrapping {
         //
         // Peel the run off, wrap the rest in the room that leaves, and put it
         // back on the FIRST line only: a soft-wrapped continuation starts at
-        // the margin, as it does everywhere else. As with a single over-long
-        // word, an indent wider than `width` is emitted anyway and left for the
-        // caller to truncate.
+        // the margin, as it does everywhere else. An indent wider than `width`
+        // is emitted anyway and left for the caller to truncate.
         let indent = text.prefix { $0 == " " }
         if !indent.isEmpty {
             // Reduce the budget for the FIRST line only. Recursing at the
@@ -405,7 +410,7 @@ package enum TextWrapping {
             var widths = wrapped.widths
             lines[0] = indent + lines[0]
             widths[0] += indent.count
-            return Wrapped(lines: lines, widths: widths)
+            return Wrapped(lines: lines, widths: widths, brokeAWord: wrapped.brokeAWord)
         }
 
         // Spaces are the only break opportunity the word walk below knows, so
@@ -427,24 +432,38 @@ package enum TextWrapping {
         var widths: [Int] = []
         var currentLine = ""
         var currentLineWidth = 0
+        var brokeAWord = false
 
         // Widens to `width` at the first break: only line 1 pays for an indent.
         var budget = firstBudget
         for word in words {
             let wordStr = String(word)
             let wordWidth = wordStr.strippedLength
-            if currentLine.isEmpty {
-                currentLine = wordStr
-                currentLineWidth = wordWidth
-            } else if currentLineWidth + 1 + wordWidth <= budget {
-                currentLine += " " + wordStr
-                currentLineWidth += 1 + wordWidth
-            } else {
+            if !currentLine.isEmpty {
+                if currentLineWidth + 1 + wordWidth <= budget {
+                    currentLine += " " + wordStr
+                    currentLineWidth += 1 + wordWidth
+                    continue
+                }
                 lines.append(currentLine)
                 widths.append(currentLineWidth)
+                budget = width
+            }
+            // The word starts a line. One no line can hold breaks between its
+            // characters (see `brokenAtCharacters`); its last piece becomes
+            // the line the next word may join.
+            if wordWidth > budget, let pieces = brokenAtCharacters(wordStr, firstBudget: budget, width: width) {
+                lines.append(contentsOf: pieces.lines.dropLast())
+                widths.append(contentsOf: pieces.widths.dropLast())
+                currentLine = pieces.lines[pieces.lines.count - 1]
+                currentLineWidth = pieces.widths[pieces.widths.count - 1]
+                if pieces.lines.count > 1 {
+                    budget = width
+                    brokeAWord = true
+                }
+            } else {
                 currentLine = wordStr
                 currentLineWidth = wordWidth
-                budget = width
             }
         }
 
@@ -456,7 +475,7 @@ package enum TextWrapping {
         if lines.isEmpty {
             return Wrapped(lines: [""], widths: [0])
         }
-        return Wrapped(lines: lines, widths: widths)
+        return Wrapped(lines: lines, widths: widths, brokeAWord: brokeAWord)
     }
 
     /// The wide-aware twin of the space walk: wraps a paragraph that contains
@@ -480,6 +499,7 @@ package enum TextWrapping {
         var line = ""
         var lineWidth = 0
         var pendingSpaces = 0
+        var brokeAWord = false
 
         func commitLine() {
             lines.append(line)
@@ -490,22 +510,34 @@ package enum TextWrapping {
             budget = width
         }
 
-        /// Places one unbreakable unit, gluing any pending interior spaces.
+        /// Places one unit, gluing any pending interior spaces.
         func place(_ unit: String, unitWidth: Int) {
-            if line.isEmpty {
-                // Even an over-wide unit goes on its own line — the caller
-                // truncates, as with the space walk's over-long word.
-                line = unit
-                lineWidth = unitWidth
-            } else if lineWidth + pendingSpaces + unitWidth <= budget {
-                line += String.spaces(pendingSpaces) + unit
-                lineWidth += pendingSpaces + unitWidth
-            } else {
+            defer { pendingSpaces = 0 }
+            if !line.isEmpty {
+                if lineWidth + pendingSpaces + unitWidth <= budget {
+                    line += String.spaces(pendingSpaces) + unit
+                    lineWidth += pendingSpaces + unitWidth
+                    return
+                }
                 commitLine()
+            }
+            // A narrow run no line can hold breaks between its characters, as
+            // the space walk's over-long word does. A single wide character
+            // wider than the line has nothing to break, and goes on its own
+            // line for the caller to truncate.
+            if unitWidth > budget, let pieces = brokenAtCharacters(unit, firstBudget: budget, width: width) {
+                for (piece, pieceWidth) in zip(pieces.lines.dropLast(), pieces.widths) {
+                    line = piece
+                    lineWidth = pieceWidth
+                    commitLine()
+                }
+                line = pieces.lines[pieces.lines.count - 1]
+                lineWidth = pieces.widths[pieces.widths.count - 1]
+                brokeAWord = brokeAWord || pieces.lines.count > 1
+            } else {
                 line = unit
                 lineWidth = unitWidth
             }
-            pendingSpaces = 0
         }
 
         var narrowRun = ""
@@ -543,6 +575,6 @@ package enum TextWrapping {
         if lines.isEmpty {
             return Wrapped(lines: [""], widths: [0])
         }
-        return Wrapped(lines: lines, widths: widths)
+        return Wrapped(lines: lines, widths: widths, brokeAWord: brokeAWord)
     }
 }

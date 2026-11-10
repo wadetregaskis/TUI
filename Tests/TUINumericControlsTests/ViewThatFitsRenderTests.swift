@@ -61,11 +61,12 @@ struct ViewThatFitsRenderTests {
             },
             context: ctx(width: 4, height: 8)
         )
-        // Neither fits in width 4; the LAST candidate is rendered (and the
-        // leaf Text truncates it to the available width with an ellipsis).
-        #expect(buffer.lines.count == 1)
+        // Neither fits in width 4; the LAST candidate is rendered, and the
+        // leaf Text breaks the word across the rows it has, as SwiftUI's does.
         #expect(buffer.width <= 4)
-        #expect(buffer.lines[0].stripped == "Wid…", "Last candidate is the fallback, truncated to width")
+        #expect(
+            buffer.lines.map(\.stripped) == ["Wide", "Cand", "idat", "eTwo"],
+            "Last candidate is the fallback, broken across rows")
     }
 
     // MARK: - Row → column switch (the canonical use)
@@ -225,9 +226,9 @@ struct ViewThatFitsRenderTests {
 
     @Test("A squeezed candidate is chosen from the proposed width, not the context's")
     func squeezedByAParentRow() {
-        // Space-less strings on purpose: an over-long word stays on one line
-        // (TextWrapping.wrapParagraph), so every height below is exact and a
-        // re-wrap cannot be mistaken for the candidate switch under test.
+        // Space-less strings on purpose: a candidate is judged by its ideal
+        // (one-line) width, so the 18-cell row is rejected at 9 cells whatever
+        // breaking it across rows would give, and every height below is exact.
         let fits = ViewThatFits {
             Text("EighteenCellsWide!")  // 18 x 1
             VStack(spacing: 0) { Text("a"); Text("b"); Text("c") }  // 1 x 3

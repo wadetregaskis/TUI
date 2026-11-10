@@ -154,11 +154,12 @@ struct VStackRenderTests {
 
     // MARK: - Narrow width (truncation)
 
-    @Test("A child wider than the stack truncates with an ellipsis")
+    // One line: given rows, the word would break across them instead.
+    @Test("A one-line child wider than the stack truncates with an ellipsis")
     func narrowTruncation() {
         let buffer = renderToBuffer(
             VStack(alignment: .leading) {
-                Text("HelloWorld")
+                Text("HelloWorld").lineLimit(1)
                 Text("Hi")
             },
             context: ctx(width: 5, height: 4)
