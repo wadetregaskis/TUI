@@ -94,11 +94,16 @@ private struct SettingsBarlessApp: App {
     }
 }
 
+/// The apps with a Window menu name themselves (`aboutPanel`), or the
+/// app menu takes the process's name: the test runner's, which Swift 6.4's
+/// SwiftPM on Linux makes `TUIScenesTests-test-runner`, long enough to push
+/// the Window menu under the 60-column bar's `»` (CI 103).
 private struct WindowsMenuApp: App {
     init() {}
     var body: some Scene {
         WindowGroup("Notes") { Text("main window") }
             .commands { CommandMenu("Note") {} }
+            .aboutPanel(applicationName: "Notes")
         Window("Inspector", id: "inspector") { Text("inspector window") }
     }
 }
@@ -109,6 +114,7 @@ private struct ToggleMenuApp: App {
     var body: some Scene {
         WindowGroup("Notes") { Text("main window") }
             .commands { CommandMenu("Panels") { WindowVisibilityToggle(windowID: "inspector") } }
+            .aboutPanel(applicationName: "Notes")
         Window("Inspector", id: "inspector") { Text("inspector window") }
     }
 }
@@ -119,6 +125,7 @@ private struct DocumentsMenuApp: App {
     var body: some Scene {
         WindowGroup(id: "doc") { DocumentPage() }
             .commands { CommandMenu("Note") {} }
+            .aboutPanel(applicationName: "Notes")
     }
 }
 
