@@ -122,10 +122,13 @@ extension String {
         case .middle:
             // A word-boundary cut in the middle is ill-defined; `.middle`
             // always cuts by character.
-            let leftKeep = keep / 2
-            let rightKeep = keep - leftKeep
             let visible = measured ?? strippedLength
-            let left = ansiAwarePrefix(visibleCount: leftKeep, knownVisibleWidth: visible)
+            let left = ansiAwarePrefix(visibleCount: keep / 2, knownVisibleWidth: visible)
+            // What the start could not use goes to the end: a wide character
+            // is never split, so the start can come up a cell short of its
+            // half, and that cell was left blank (`"日…ト"` in seven cells,
+            // where `"日…スト"` fits).
+            let rightKeep = keep - left.strippedLength
             let rightDrop = max(0, visible - rightKeep)
             let rightStyle = ansiStateBefore(visibleColumn: rightDrop)
             let rightSuffix = ansiAwareSuffix(droppingVisible: rightDrop)

@@ -76,6 +76,10 @@ view raised with `.zIndex(1)` was drawn under a later sibling an `.offset` or a 
 click there went to the sibling. It now stays on top and takes the clicks where it is drawn, as in SwiftUI. The lazy
 stacks still draw their rows in order.
 
+**`.truncationMode(.middle)` fills its width with wide text.** A cut that could not split a CJK character or an
+emoji at the start's half left that cell blank, so `日本語テキスト` in seven cells drew `日…ト`; the spare cell now goes
+to the end, `日…スト`.
+
 **A `Label` whose title wraps keeps its icon beside the title's first line.** The default style centred the icon on
 the whole title, so a title of three lines had its icon beside the second. It now lines the icon's middle up with
 the middle of the title's first line, as SwiftUI does, which also keeps a one-line title at a tall icon's middle.
