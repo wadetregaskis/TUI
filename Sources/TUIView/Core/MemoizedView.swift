@@ -25,8 +25,10 @@ nonisolated public struct _MemoizedView<Content: View, ID: Hashable>: View {
     /// The subtree whose rendering is reused while ``id`` holds.
     let content: Content
 
-    /// Creates a token-memoized view.
-    public init(id: ID, content: Content) {
+    /// Creates a token-memoized view. Internal, though the type is public:
+    /// the type has to be, as `View/memoized(id:)` returns it by name, but
+    /// that modifier is the only way to make one.
+    init(id: ID, content: Content) {
         self.id = id
         self.content = content
     }

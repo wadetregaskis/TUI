@@ -55,12 +55,13 @@ promised: TUI is a source package built with the app, without library evolution,
 
 - **Underscored names.** A declaration whose name, or any enclosing type's name, starts with `_` is not API, even
   when it is `public`: SwiftUI and the Swift standard library follow the same rule, and so does swift-collections.
-  There are 292 such declarations under 74 names today, public only because a public protocol or SwiftUI's own
-  spelling needs them. The working note `plan/broad/underscored-public.md` (in the maintainers' working notes, not
-  the repository) sorts them; the 14 types it found public by accident were made `internal` or `package` on
-  2026-11-09 (the owner's LEAKS ruling). The owner ruled the same day that underscored names may change in any
-  release, and that every remaining one be checked and made `package`, `internal` or `private` unless it has to be
-  public.
+  There are 285 such declarations under 74 names today, each public because a public protocol requires it, a
+  public signature names it, a macro expands into a client's code with it, or SwiftUI's own spelling has it. The
+  working note `plan/broad/underscored-public.md` (in the maintainers' working notes, not the repository) sorts
+  them; the 14 types it found public by accident were made `internal` or `package` on 2026-11-09 (the owner's
+  LEAKS ruling), and an audit of the rest the same day hid the one other thing that did not have to be public
+  (`_MemoizedView`'s initializer). The owner ruled the same day that underscored names are not API and may change
+  in any release.
 - **`package` declarations,** which clients cannot see, and `@_spi` (there is none).
 - **Experimental environment variables:** those the end-user table describes as "an experiment, for trying out"
   (`TUI_CURSOR_FOLLOWS_FOCUS`, `TUI_ARROW_FOCUS`), those off pending a measurement (`TUI_GRAPHICS_PLAYBACK`), and
@@ -138,7 +139,7 @@ Answered by the owner on 2026-11-09, in chat; the record is in
 | # | Decision | Answer |
 |---|---|---|
 | 1 | What is public API (declarations, product and module names, traits, documented behaviour, end-user environment variables, persisted state) | As written |
-| 2 | Underscored names | Not API, and may change at any time. Every remaining underscored public is checked, and made `package`, `internal` or `private` unless it has to be public (the 14 accidental ones already were) |
+| 2 | Underscored names | Not API, and may change at any time. Every remaining underscored public was checked the same day, and the one that did not have to be public (`_MemoizedView`'s initializer) made `internal`; the 14 accidental ones already were |
 | 3 | Which public enums may gain cases | Any, in any release; apps write `@unknown default:` |
 | 4 | Which of the 35 library products are promised | All of them |
 | 5 | Each experiment: `TUI_ARROW_FOCUS`, `TUI_CURSOR_FOLLOWS_FOCUS`, `TUI_PLAIN_TEXT=transliterate`, `TUI_GRAPHICS_PLAYBACK`, the held-press widening (A-TEXT2-1) | **Open:** the owner tests each and decides before 1.0 |

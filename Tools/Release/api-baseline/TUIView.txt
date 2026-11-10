@@ -708,7 +708,6 @@ ZIndexProviding | @MainActor protocol ZIndexProviding
 ZIndexProviding.zIndexValue | @MainActor var zIndexValue: Double { get }
 _MemoizedView | nonisolated struct _MemoizedView<Content, ID> where Content : View, ID : Hashable
 _MemoizedView.body | @MainActor var body: Never { get }
-_MemoizedView.init(id:content:) | init(id: ID, content: Content)
 _MemoizedView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View, ID : Hashable]
 _MemoizedView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View, ID : Hashable]
 _MemoizedView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View, ID : Hashable]
