@@ -24,13 +24,15 @@ import TUIFoundation
 /// tabs, which the panel draws.
 package protocol OverlayScene: Scene {
     /// Whether it is a `Settings` scene, whose tabs the settings panel shows
-    /// (``settingsTabs``) and which draws nothing of its own.
+    /// (``settingsTabs(in:)``) and which draws nothing of its own.
     var isSettings: Bool { get }
 
-    /// A `Settings` scene's tabs: one for each of a `TabView`'s tabs, or one,
-    /// named after the app, for any other content. Empty for any other scene.
+    /// A `Settings` scene's tabs: one for each of a `TabView`'s tabs — written
+    /// in the scene, or in the body of a view of the app's own, which is
+    /// evaluated at `walk` — or one, named after the app, for any other
+    /// content. Empty for any other scene.
     @MainActor
-    var settingsTabs: [SettingsTab] { get }
+    func settingsTabs(in walk: RenderContext) -> [SettingsTab]
 
     /// The view that presents the scene, in `presenter`'s app: an empty view
     /// whose presentation modifier is bound to the scene's own state (an alert
@@ -41,7 +43,7 @@ package protocol OverlayScene: Scene {
 
 extension OverlayScene {
     /// None: the scene is no `Settings` scene.
-    package var settingsTabs: [SettingsTab] { [] }
+    package func settingsTabs(in walk: RenderContext) -> [SettingsTab] { [] }
 }
 
 /// One overlay scene, as the presenter shows it this frame: its view and what

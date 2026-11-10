@@ -21,11 +21,14 @@ import TUIPresentation
 /// the list of shortcuts is (``_KeyboardShortcutOverlaySheet``).
 struct _SettingsPanelSheet: View {
     let panel: SettingsPanel
-    let appTabs: [SettingsPanelTab]
+    /// The app's tabs, found where the panel is drawn
+    /// (``ScenePresenter/settingsPanelOverlay``).
+    let appTabs: @MainActor (RenderContext) -> [SettingsPanelTab]
     let builtIn: [(tab: BuiltInSettingsTab, choice: BuiltInSettingsTabChoice)]
 
     var body: some View {
         let panel = panel
+        let appTabs = appTabs
         EmptyView()
             .sheet(
                 isPresented: Binding(
@@ -33,10 +36,11 @@ struct _SettingsPanelSheet: View {
                     set: { if !$0, panel.isPresented { panel.dismiss() } })
             ) {
                 _FittedToContent(
-                    content: _EnvironmentReader { environment in
+                    content: _ContextReader { context in
                         _SettingsPanelContent(
                             panel: panel,
-                            tabs: appTabs + builtIn.compactMap { Self.tab($0.tab, $0.choice, environment) })
+                            tabs: appTabs(context)
+                                + builtIn.compactMap { Self.tab($0.tab, $0.choice, context.environment) })
                     })
             }
     }
@@ -153,22 +157,24 @@ private struct _SettingsAccessibilityTab: View {
     }
 }
 
-// MARK: - Reading the Environment
+// MARK: - Reading the Context
 
-/// `content`, made from the environment it is drawn in: what TUI's tabs read
-/// what is in force from, as the menu bar's items are made from the
-/// environment the bar is drawn in. No state of its own.
-private struct _EnvironmentReader<Content: View>: View, Renderable, Layoutable {
-    let content: (EnvironmentValues) -> Content
+/// `content`, made from the context it is drawn in: the environment TUI's
+/// tabs read what is in force from, as the menu bar's items are made from the
+/// environment the bar is drawn in, and the identity the app's tabs are found
+/// at, where the body of a view of the app's own holding its tab view binds
+/// its `@State`. No state of its own.
+private struct _ContextReader<Content: View>: View, Renderable, Layoutable {
+    let content: @MainActor (RenderContext) -> Content
 
-    var body: Never { fatalError("_EnvironmentReader renders via Renderable") }
+    var body: Never { fatalError("_ContextReader renders via Renderable") }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIView.renderToBuffer(content(context.environment), context: context)
+        TUIView.renderToBuffer(content(context), context: context)
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(content(context.environment), proposal: proposal, context: context)
+        measureChild(content(context), proposal: proposal, context: context)
     }
 }
 

@@ -29,8 +29,9 @@ import TUIFoundation
 /// ```
 ///
 /// The content is the first tabs of the settings panel every TUI app has: a
-/// `TabView`'s tabs become one tab each, in order, and any other content one
-/// tab named after the app. TUI's own tabs, View and Accessibility, follow
+/// `TabView`'s tabs become one tab each, in order — written here, or as the
+/// body of a view of your own, as `SettingsView` above may be — and any other
+/// content one tab named after the app. TUI's own tabs, View and Accessibility, follow
 /// after a divider (`builtInSettingsTab(_:visibility:)` hides or replaces
 /// them). F2, ``EnvironmentValues/openSettings``, a ``SettingsLink``, the menu
 /// bar's Settings… and its key — ⌘, through `commandKey`, or the one the
@@ -62,10 +63,13 @@ public struct Settings<Content: View>: Scene {
 extension Settings: OverlayScene {
     package var isSettings: Bool { true }
 
-    /// The settings panel's first tabs: a `TabView`'s tabs, one each, or the
-    /// content as one tab, named after the app.
-    package var settingsTabs: [SettingsTab] {
-        (content as? any SettingsTabsProviding)?.settingsTabs ?? [SettingsTab(title: nil, content: AnyView(content))]
+    /// The settings panel's first tabs: a `TabView`'s tabs, one each — the
+    /// content's, or the one in the body of a view of the app's own, as
+    /// SwiftUI's documented `Settings { SettingsView() }` writes it
+    /// (`settingsTabs(of:in:)`) — or the content as one tab, named after the
+    /// app.
+    package func settingsTabs(in walk: RenderContext) -> [SettingsTab] {
+        TUIFoundation.settingsTabs(of: content, in: walk) ?? [SettingsTab(title: nil, content: AnyView(content))]
     }
 
     /// Never asked: the settings panel draws the scene's tabs.

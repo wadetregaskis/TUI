@@ -79,6 +79,31 @@ private struct TabbedSettingsApp: App {
     }
 }
 
+/// SwiftUI's documented settings: a view of the app's own whose body is a
+/// tab view under modifiers (TUI spells `.tabItem`, which SwiftUI replaced,
+/// as `Tab`); the first tab bound to the view's own `@State`.
+private struct SettingsView: View {
+    @State private var bumps = 0
+
+    var body: some View {
+        TabView {
+            Tab("General", systemImage: "gear") { Button("bumped \(bumps)") { bumps += 1 } }
+            Tab("Advanced", systemImage: "star") { Text("ADVANCED SETTINGS") }
+        }
+        .padding(1)
+        .frame(width: 30)
+    }
+}
+
+/// `Settings { SettingsView() }`.
+private struct CustomViewSettingsApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { Text("PAGE") }
+        Settings { SettingsView() }
+    }
+}
+
 /// An app that leaves out TUI's View tab, replaces its Accessibility tab and
 /// moves the panel to F3.
 private struct CustomizedApp: App {
@@ -205,6 +230,23 @@ struct SettingsPanelTests {
         press(.right, in: app)
         press(.space, in: app)
         #expect(screen(app).contains("ADVANCED SETTINGS"), "\(screen(app))")
+    }
+
+    @Test("A tab view in the body of a view of the app's own gives its tabs to the panel, its state kept")
+    mutating func customViewTabViewTabs() {
+        let app = launched(CustomViewSettingsApp())
+        press(.f2, in: app)
+        let text = screen(app)
+        let strips = app.screen.lines.filter { $0.contains("General") }
+        #expect(strips.count == 1, "one tab strip, not one inside another: \(text)")
+        let strip = strips.first ?? ""
+        #expect(strip.contains("General │") && strip.contains("Advanced ┃ View │ Accessibility"), "\(text)")
+        #expect(text.contains("bumped 0"), "\(text)")
+        // The tab's button, bound to the custom view's `@State`, counts.
+        press(.tab, in: app)
+        press(.space, in: app)
+        press(.space, in: app)
+        #expect(screen(app).contains("bumped 2"), "\(screen(app))")
     }
 
     @Test("TUI's tabs can be hidden or replaced, and the key moved")

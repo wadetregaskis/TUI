@@ -159,15 +159,22 @@ extension ScenePresenter {
     /// until it has first been put up.
     var settingsPanelOverlay: SceneOverlay? {
         guard settingsPanel.isHosted else { return nil }
-        var appTabs: [SettingsPanelTab] = []
+        var appTabs: @MainActor (RenderContext) -> [SettingsPanelTab] = { _ in [] }
         if let entry = settingsEntry {
             // The `Settings` scene's statements reach its own content alone,
-            // as they did its sheet.
+            // as they did its sheet: its tabs, and the walk that finds them,
+            // which may evaluate the body of a view of the app's own. Found
+            // where the panel draws, so that body's `@State` is bound there.
             let configuration = entry.configuration
-            appTabs = entry.scene.settingsTabs.map { tab in
-                SettingsPanelTab(
-                    title: tab.title, isBuiltIn: false,
-                    content: AnyView(_SceneConfiguredContent(configuration: configuration, content: tab.content)))
+            let scene = entry.scene
+            appTabs = { context in
+                var walk = context.withChildIdentity(type: _SettingsContentWalk.self)
+                configuration.applyRootOverrides(to: &walk.environment)
+                return scene.settingsTabs(in: walk).map { tab in
+                    SettingsPanelTab(
+                        title: tab.title, isBuiltIn: false,
+                        content: AnyView(_SceneConfiguredContent(configuration: configuration, content: tab.content)))
+                }
             }
         }
         let builtIn = BuiltInSettingsTab.allCases.map { ($0, builtInSettingsTab($0)) }

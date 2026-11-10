@@ -549,7 +549,7 @@ then TUI's, after a divider:
 
 | Tab | What it holds |
 |-----|---------------|
-| Your app's | A `TabView` of `Tab`s in your `Settings` scene becomes one tab each; any other content becomes one tab, named after the app |
+| Your app's | A `TabView` of `Tab`s in your `Settings` scene becomes one tab each, whether written there or as the body of a view of your own (`Settings { SettingsView() }`), and modifiers on it apply to each tab; any other content becomes one tab, named after the app |
 | View | The palette, the border style and the control style, as the menu bar's `DisplayCommands` offers them |
 | Accessibility | Differentiate Without Color, Reduce Motion, Reduce Transparency, Increase Contrast, Breathing Focus, Spell Out Keys and Focus Follows Pointer, the View menu's checks |
 

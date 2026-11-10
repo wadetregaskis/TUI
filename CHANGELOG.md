@@ -50,6 +50,12 @@ Control or Shift on Return, Tab, Escape, Backspace and space, and for Shift on a
 those now answers `false`, as Ctrl-H and Ctrl-4 already did. Shift-Tab, Option chords and the arrow, paging and
 function keys still answer `true`.
 
+**`Settings { SettingsView() }` shows its tab view's tabs as the settings panel's own.** Where the tab view was in the
+body of a view of the app's own, SwiftUI's documented way to write settings, the panel showed one tab named after the
+app with a second tab strip inside it; only a `TabView` written directly in the scene gave its tabs to the panel. The
+panel now looks through such views, and through modifiers on the tab view, which apply to each tab's content, and the
+view's `@State` is kept while the panel is up.
+
 **Settings… shows F2 where the terminal can't send the Settings key.** Without the kitty keyboard protocol, the menu
 bar's Settings… and F1's list of shortcuts named the `Settings` scene's key even where it couldn't arrive, such as ⌘H
 under the default command key, which a terminal sends as Backspace. Both now name the key only where it can arrive, by
