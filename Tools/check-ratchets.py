@@ -37,7 +37,7 @@ RATCHETS = [
         "name": "sleeps in tests",
         "pattern": r"^(?!\s*//).*\b(Task\.sleep|Thread\.sleep|usleep|nanosleep)\b",
         "paths": ["Tests"],
-        "limit": 6,
+        "limit": 5,
         "instead": "wait for what the test wants, or step a clock of the test's own",
     },
 ]
