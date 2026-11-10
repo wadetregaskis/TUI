@@ -587,8 +587,10 @@ choices.
 layer, as F1 is, so anything of yours on it comes first; ⌃, is the `Settings`
 scene's key, which a shortcut of your window's on the same chord comes before,
 and which the scene's `.keyboardShortcut(_:)` moves. ⌃, arrives only where the
-terminal speaks the kitty keyboard protocol, so the list of shortcuts names it
-only there. Move F2, or take it away, at the scene:
+terminal speaks the kitty keyboard protocol, so the menu bar's Settings… and the
+list of shortcuts name it only there, by the rule
+``KeyboardShortcut/isDeliverableInTerminal`` states; elsewhere both show F2, the
+key the person can press instead. Move F2, or take it away, at the scene:
 
 ```swift
 WindowGroup { EditorView() }

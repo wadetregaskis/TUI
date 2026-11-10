@@ -123,8 +123,10 @@ struct SceneOwnCommands {
         guard openSettings.isAvailable else { return nil }
         let title = LocalizationService.shared.string(for: LocalizationKey.Menu.settings)
         // The `Settings` scene's key — ⌘, unless its `.keyboardShortcut` says
-        // otherwise — which the presenter binds, menu bar or none.
-        let shortcut = environment.scenePresenter?.settingsShortcut
+        // otherwise — which the presenter binds, menu bar or none; or, where
+        // the terminal cannot send it (⌃, without the kitty keyboard
+        // protocol), the panel's key, F2, which it can.
+        let shortcut = environment.scenePresenter?.settingsMenuShortcut(in: environment)
         return Self.items("settings") {
             Button(title) { openSettings() }
                 .keyboardShortcutHint(shortcut)

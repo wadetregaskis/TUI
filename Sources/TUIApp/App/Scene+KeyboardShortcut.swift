@@ -118,10 +118,9 @@ extension ScenePresenter {
         }
         if let shortcut = settingsShortcut {
             // Named in the list of keys in force only where the terminal can
-            // send it: ⌃, has no legacy encoding, and arrives only under the
-            // kitty keyboard protocol's disambiguate mode.
-            let arrives =
-                disambiguatesKeys || shortcut.resolved(commandKey: commandKey)?.isDeliverableInTerminal ?? false
+            // send it (``arrives(_:commandKey:disambiguatesKeys:)``); bound
+            // everywhere, for a terminal that sends it after all.
+            let arrives = Self.arrives(shortcut, commandKey: commandKey, disambiguatesKeys: disambiguatesKeys)
             keys.append((
                 shortcut, arrives ? { service.string(for: LocalizationKey.Menu.settings) } : nil,
                 { [weak self] in self?.presentSettings() }
@@ -156,6 +155,39 @@ extension ScenePresenter {
                     action: key.action)
             }
         }
+    }
+
+    /// Whether the terminal can send `shortcut`, as `commandKey` resolves it:
+    /// any chord under the kitty keyboard protocol's disambiguate mode
+    /// (`disambiguatesKeys`), and otherwise one every terminal's legacy
+    /// encoding sends as itself, by the shared rule
+    /// (``KeyboardShortcut/isDeliverableInTerminal``). Never one the command
+    /// key leaves no chord for.
+    static func arrives(_ shortcut: KeyboardShortcut, commandKey: CommandKeyBinding, disambiguatesKeys: Bool) -> Bool {
+        guard let resolved = shortcut.resolved(commandKey: commandKey) else { return false }
+        return disambiguatesKeys || resolved.isDeliverableInTerminal
+    }
+
+    /// The key the menu bar's Settings… shows, and F1's list names it by:
+    /// ``settingsShortcut`` where the terminal can send it, and otherwise
+    /// what the person can press instead, the panel's own key (F2 unless a
+    /// scene moved it), unless something of the app's has that key. `nil`
+    /// where neither — or where the scene took its key away, which leaves
+    /// the item showing none, as it did.
+    ///
+    /// Read from the environment the menu bar draws in, after the page has
+    /// registered its keys.
+    package func settingsMenuShortcut(in environment: EnvironmentValues) -> KeyboardShortcut? {
+        guard let shortcut = settingsShortcut else { return nil }
+        let reporting = environment.keyboardReporting
+        if Self.arrives(shortcut, commandKey: environment.commandKey, disambiguatesKeys: reporting.disambiguatesKeys) {
+            return shortcut
+        }
+        guard let key = settingsPanelKey,
+            environment.keyboardShortcutRegistry?.hasAppShortcut(for: KeyEvent(key: key)) != true,
+            case .key(let equivalent, let modifiers)? = KeyboardShortcut.trigger(for: KeyEvent(key: key))
+        else { return nil }
+        return KeyboardShortcut(equivalent, modifiers: modifiers)
     }
 
     /// Opens a window of the scene at `identity` as its key does: brings a

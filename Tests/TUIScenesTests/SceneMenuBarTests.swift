@@ -63,6 +63,18 @@ private struct SettingsKeyApp: App {
     }
 }
 
+/// A Settings scene on ⌘H, which a terminal's legacy encoding sends as
+/// Backspace: a key that arrives only under the kitty keyboard protocol.
+private struct SettingsBackspaceKeyApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { Text("main window") }
+            .commands { CommandMenu("Note") {} }
+        Settings { Text("settings content") }
+            .keyboardShortcut("h")
+    }
+}
+
 /// A Settings scene with its key taken away.
 private struct SettingsNoKeyApp: App {
     init() {}
@@ -130,8 +142,8 @@ struct SceneMenuBarTests {
         app.frame(atNanos: now)
     }
 
-    private mutating func launched<A: App>(_ app: A) -> TestApp {
-        let headless = TestApp(app, width: 60, height: 14)
+    private mutating func launched<A: App>(_ app: A, height: Int = 14) -> TestApp {
+        let headless = TestApp(app, width: 60, height: height)
         frame(headless)
         frame(headless)
         return headless
@@ -170,6 +182,9 @@ struct SceneMenuBarTests {
     @Test("An app with a Settings scene has Settings… in its app menu, showing ⌘, as the command key, and it presents them")
     mutating func settingsItem() {
         let app = launched(SettingsMenuApp())
+        // Where ⌃, can arrive: under the kitty keyboard protocol.
+        app.keyboardReporting = KeyboardReporting(flags: .requested)
+        frame(app)
         open(EnvironmentValues().resolvedAboutPanel.name, in: app)
         #expect(screen(app).contains("Settings…") && screen(app).contains("⌃,"), "\(screen(app))")
         choose(item: 1, in: app)  // About, Settings…
@@ -200,6 +215,57 @@ struct SceneMenuBarTests {
         frame(app)
         frame(app)
         #expect(app.scenes.isPresentingSettings, "\(screen(app))")
+    }
+
+    /// The rows of F1's list, taken down again.
+    private mutating func shortcutList(_ app: TestApp) -> [String] {
+        app.send(KeyEvent(key: .f1))
+        frame(app)
+        let listed = rows(app)
+        app.send(KeyEvent(key: .escape))
+        frame(app)
+        return listed
+    }
+
+    /// The open app menu's Settings… row, the menu closed again.
+    private mutating func settingsRow(_ app: TestApp) -> String {
+        open(EnvironmentValues().resolvedAboutPanel.name, in: app)
+        let row = rows(app).first { $0.contains("Settings…") } ?? ""
+        app.send(KeyEvent(key: .escape))
+        frame(app)
+        return row
+    }
+
+    @Test("Where the terminal cannot send the Settings key, Settings… and F1's list show F2 instead")
+    mutating func undeliverableSettingsKey() {
+        let app = launched(SettingsBackspaceKeyApp(), height: 40)
+        let row = settingsRow(app)
+        #expect(row.contains("F2") && !row.contains("⌃H"), "⌃H arrives as Backspace: \(row)")
+        let listed = shortcutList(app)
+        #expect(!listed.contains { $0.contains("⌃H") }, "\(listed.joined(separator: "\n"))")
+        #expect(listed.contains { $0.contains("F2") && $0.contains("Settings…") }, "\(listed.joined(separator: "\n"))")
+
+        // Under the kitty keyboard protocol it arrives, and both name it.
+        let kitty = launched(SettingsBackspaceKeyApp(), height: 40)
+        kitty.keyboardReporting = KeyboardReporting(flags: .requested)
+        frame(kitty)
+        #expect(settingsRow(kitty).contains("⌃H"))
+        #expect(shortcutList(kitty).contains { $0.contains("⌃H") && $0.contains("Settings…") })
+    }
+
+    // ⌃, has no byte of its own in a legacy encoding. Whether it can arrive
+    // is `KeyboardShortcut.isDeliverableInTerminal`'s to say (the menus
+    // lane's ebcbd35c1 makes it answer `false`), and the list follows that
+    // rule, whatever it answers.
+    @Test("⌘,'s Settings… is named ⌃, exactly where the shared rule says the chord can arrive")
+    mutating func commaFollowsTheSharedRule() {
+        let arrives = KeyboardShortcut(",", modifiers: .control).isDeliverableInTerminal
+        let app = launched(SettingsMenuApp(), height: 40)
+        let row = settingsRow(app)
+        #expect(row.contains("⌃,") == arrives && row.contains("F2") == !arrives, "\(row)")
+        let listed = shortcutList(app)
+        #expect(listed.contains { $0.contains("⌃,") && $0.contains("Settings…") } == arrives)
+        #expect(listed.contains { $0.contains("F2") && $0.contains("Settings…") })
     }
 
     @Test("A Settings scene's key taken away with nil: ⌘, does nothing")

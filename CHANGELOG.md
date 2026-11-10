@@ -50,6 +50,11 @@ Control or Shift on Return, Tab, Escape, Backspace and space, and for Shift on a
 those now answers `false`, as Ctrl-H and Ctrl-4 already did. Shift-Tab, Option chords and the arrow, paging and
 function keys still answer `true`.
 
+**Settings… shows F2 where the terminal can't send the Settings key.** Without the kitty keyboard protocol, the menu
+bar's Settings… and F1's list of shortcuts named the `Settings` scene's key even where it couldn't arrive, such as ⌘H
+under the default command key, which a terminal sends as Backspace. Both now name the key only where it can arrive, by
+`KeyboardShortcut.isDeliverableInTerminal`, and show F2, the settings panel's own key, instead.
+
 **A menu bar wider than the terminal scrolls to the title you're on.** F10 and ← → walked to titles past the right
 edge, and Alt and a letter opened their menus, but the titles couldn't be seen and the menu hung from nowhere. The row
 now scrolls to keep the highlighted or open title in view, with « and » where titles are hidden; a click on either
