@@ -207,3 +207,178 @@ resources on another. Anyone shipping this properly should embed the resources
 instead. (Elsewhere TUI looks for its own bundle itself, beside the program,
 and runs in English without it; on WebAssembly it still asks `Bundle.module`,
 because both places that looks are compiled in — decisions BNDL, B-BNDL-4.)
+
+## Toward full support (1.0)
+
+The owner made WebAssembly a 1.0 platform on 2026-11-09 (API-STABILITY point 9: "WebAssembly and Windows need to be
+fully working and supported for 1.0"), which is the bar macOS and Linux meet: the whole package builds with zero
+warnings, the test suite passes, the Example works, and CI binds all three. [Windows port.md](<Windows port.md>) is
+the same record for Windows. Measured 2026-11-09 on macOS with swift.org 6.3.3 and its `wasm` SDK, the only pair
+installed; the tests ran under WasmKit, the runtime that ships in the toolchain.
+
+### Where it stands
+
+**The whole package builds, tests included** (`swift build --build-tests --swift-sdk swift-6.3.3-RELEASE_wasm
+--static-swift-stdlib`), and CI's `wasm` job now builds it so, binding. Before, it stopped in two tools
+(`EmojiBugScanner`'s `termios`, `IdleProbe`'s `posix_spawn`), the `Stress` harness (`Dispatch`, for a clock), 9 of
+the 35 test targets, and then the link: `ExampleTests` depends on an executable, which SwiftPM can test only on
+macOS and Linux, and on wasm its `main` collided with the test runner's. What the test targets needed:
+
+| Cause | Sites | Now |
+|---|---|---|
+| Exit tests (`#expect(processExitsWith:)`), unavailable on WASI: no child processes | 61 tests in 30 files | left out, `#if !os(WASI)` |
+| A second thread (`Thread`, `Dispatch`) | 9 tests or helpers | left out, or run in place where the point survives |
+| Pipes, ptys, signals, process ids, `mkfifo`, helper programs, the call stack | 6 whole files, 14 other sites | left out, `#if !canImport(WASILibc)` |
+| A 64-bit `Int` (literals past 2^31; `CGFloat` is a `Float`) | 6 | a 32-bit equivalent, or 64-bit only |
+| `UserDefaultsStorage` had no WebAssembly arm | 1 | Linux's arm, a JSON file per suite |
+| `ExampleTests` depends on the app | 16 files | the dependency on macOS and Linux only; the tests `#if canImport(Example)` |
+
+Counting the gates that were there before, 225 `@Test` functions are compiled out on WebAssembly: 59 exit tests, 5
+that need a thread, 99 that need POSIX, 17 whose values need a 64-bit `Int`, and the 45 of `ExampleTests`.
+
+**The tests run, though not yet as a suite.** `swift test --disable-xctest` runs a filter that touches no resource
+bundle (without `--disable-xctest` it asks Xcode's XCTest helper to open the wasm file, and fails). A whole run does
+not get far: SwiftPM starts WasmKit with `--dir .`, so the guest cannot see the absolute paths the resource bundles
+were compiled to be at, and the first `Bundle.module` stops the run (B-BNDL-4, gap 6). Run directly, with the host's
+`/` given to the guest and the module named by its absolute path (a relative one leaves `Bundle.main` unable to
+find itself, and it traps), it runs:
+
+    wasmkit run --dir / --stack-size 268435456 \
+      --env TUI_CONFIG_DIR=… --env LANG=en_US.UTF-8 --env TERM=xterm-256color --env COLORTERM=truecolor \
+      "$PWD/.build/wasm32-unknown-wasip1/debug/TUIPackageTests.xctest" \
+      --testing-library swift-testing --no-parallel --filter '^TUICoreTests\.'
+
+One test target at a time, serially, each held to 15 minutes, it measured:
+
+| Target | Passed | Failed | Run | Seconds |
+|---|---:|---:|---|---:|
+| TUIAppKitTests | 20 | 6 | ran to the end | 55 |
+| TUIAppTests | 1016 | 2 | out of time | 902 |
+| TUIBitmapsTests | 330 | 1 | ran to the end | 658 |
+| TUIChromeTests | 101 | 2 | ran to the end | 40 |
+| TUIColorPickerTests | 204 | 1 | ran to the end | 348 |
+| TUICommandsTests | 137 | 2 | ran to the end | 222 |
+| TUICoreTests | 517 | 16 | ran to the end | 237 |
+| TUICurveEditorsTests | 32 | 0 | ran to the end | 61 |
+| TUIDocumentsTests | 11 | 1 | trap: unreachable | 213 |
+| TUIEffectsTests | 258 | 0 | ran to the end | 40 |
+| TUIEnvironmentDocsTests | 14 | 3 | ran to the end | 167 |
+| TUIFilePanelsTests | 46 | 17 | out of time | 901 |
+| TUIFormsTests | 33 | 0 | trap: unreachable | 60 |
+| TUIFoundationTests | 2301 | 44 | trap: indirect call to null element | 366 |
+| TUIGridTests | 128 | 2 | ran to the end | 25 |
+| TUIImageTests | 187 | 0 | trap: unreachable | 461 |
+| TUIIntegrationTests | 241 | 2 | trap: out of bounds memory access | 116 |
+| TUIListsTests | 1023 | 0 | ran to the end | 541 |
+| TUIMacrosTests | 8 | 0 | ran to the end | 25 |
+| TUIMenusTests | 167 | 0 | ran to the end | 266 |
+| TUINavigationTests | 205 | 0 | ran to the end | 55 |
+| TUINumericControlsTests | 334 | 3 | ran to the end | 75 |
+| TUIPickersTests | 200 | 6 | ran to the end | 35 |
+| TUIPresentationTests | 415 | 20 | ran to the end | 221 |
+| TUIScenesTests | 33 | 0 | ran to the end | 60 |
+| TUISearchTests | 121 | 1 | ran to the end | 70 |
+| TUIStylingTests | 294 | 0 | ran to the end | 85 |
+| TUITabImagesTests | 4 | 0 | ran to the end | 25 |
+| TUITablesTests | 695 | 1 | ran to the end | 226 |
+| TUITabsTests | 128 | 0 | ran to the end | 50 |
+| TUITestingTests | 32 | 1 | ran to the end | 30 |
+| TUITextInputTests | 633 | 0 | ran to the end | 86 |
+| TUIViewTests | 147 | 4 | ran to the end | 381 |
+| **All** | **10015** | **135** | | |
+
+A test is one `@Test` function, its arguments together; a test still running when a target stopped is in neither
+column. That run was before the fixes below: run again after them, the animation tests (40) and the mesh animation
+tests (5) all pass, and of the fixture tests only `AssetCatalogTests`' copies and the language tests still fail.
+
+Two runner limits shape that. **WasmKit is an interpreter**: TUIAppTests' nine-thousand-row menu test alone took
+224 s, and the two largest targets ran out of time rather than failing. And it answers `poll_oneoff`, the WASI call a
+timed wait makes, with `"poll_oneoff" not implemented yet` (seen in TUIAppTests).
+
+**Not measured here**: wasmtime (not installed; a compiling runtime with a complete `poll_oneoff`, so the runner to
+try first), Swift 6.4 (no 6.4 `wasm` SDK installed) and 6.2 (none either; see "The toolchain" above), a clean
+build's warnings (the incremental builds here showed none but the two now fixed), and the browser demo, which
+nothing here drives.
+
+### What the run found in the framework
+
+Fixed here, each with the test that failed on WebAssembly:
+
+- **Repeating animations stopped after one pass.** `Animation.fraction(at:)` capped its pass count at
+  `Double(1 << 62)`, and a shift past a 32-bit `Int`'s width is 0, not an error. Nine animation tests.
+- **A `bezierPoints:` mesh gradient trapped on its first frame.** `PaintAnimation`'s mesh slots were
+  `-(1 << 40) - shape * (1 << 20)`: the shift is 0, and a shape past 2,047 (every control-point mesh) times 2^20
+  overflows. The slots are laid out for 32 bits there now; `MeshGradientAnimationTests` has the case.
+
+Found and not fixed, in the gaps below: the stack guard (gap 3), atomic writes (gap 4), dynamic properties inside
+enum payloads and the value-hash plans (gap 5).
+
+### The gaps, in order
+
+1. **A runner that can run the suite (S).** wasmtime, or a WasmKit that implements `poll_oneoff`, with `/` (or the
+   build directory, at its own path) given to the guest; then the `wasm` job runs the suite, every target, with the
+   environment `parallel_test.py` gives the native runs. Under the interpreter the run above took two hours (7,129 s),
+   with two targets cut short, so a compiling runtime is what makes it a CI step.
+2. **The tests' own assumptions (S each).** Tests that pin a 64-bit memory layout (`MemoryLayout<RenderContext>.size`
+   and the padding tests), expect libz (`SystemZlib`, Kitty compression), arm a signal's debt
+   (`KeyboardProtocolNegotiationTests`), read the source tree (`TUIEnvironmentDocsTests`), compute a length past
+   `Int32` (`STBLengthGuardTests`), or time real work (`BodyKeepTests`): each wants a 32-bit expectation, a
+   platform condition, or a reason. And the runner's own: Foundation's
+   `createDirectory(withIntermediateDirectories:)` recursed into a stack check under `--dir /`, and `copyItem` and
+   symbolic links failed under the host's `/tmp` (itself a link on macOS); with the build directory given to the
+   guest instead those may go.
+3. **The stack guard does nothing on WebAssembly (M).** `StackGuard.currentThreadExtent` has arms for Darwin and
+   Linux and returns `nil` elsewhere, which turns the guard off. Natively a stack overflow is a crash; on wasm the
+   stack is a region of linear memory with no guard page, so a view tree deeper than it writes over the data below
+   it: the deep-tree tests in TUIFormsTests, TUIFoundationTests and TUIIntegrationTests ended in "indirect call to
+   null element", "out of bounds memory access" and a trap in the metadata cache. The bounds are the linker's
+   (`__stack_low` and `__stack_high`), read through a small C shim. The most serious finding: memory corruption,
+   not a refusal.
+4. **Atomic writes fail on WASI (S–M).** WASI's Foundation refuses `atomically: true` and `.atomic` (NSCocoaError
+   3328). `@AppStorage` already writes plainly there; `fileExporter`, `LocalizationService`'s language file and
+   `DiagnosticChannel` still ask Foundation for one, and `FileDocument` saves make their own (a temporary file, then
+   a replace, in the portable `FileWrapper`). On WebAssembly the exporter's saves wrote nothing
+   (`FileDocumentExporterTests`); which of the two steps failed is the first thing to find. One helper, atomic where
+   the platform can and plain where it cannot, used at each site.
+5. **Enum payloads (M).** `EnumWitnesses` is `nil` on wasm32 (and Windows), so a dynamic property inside an enum's
+   payload is not found (`DynamicPropertyDiscoveryTests`: a `@State` in `.on(…)` still reads its first value after
+   a write), and a view whose value hash needs an enum's payload is not hashed (`.bypass`), which costs memo hits,
+   not correctness (`ToolbarValueHashTests`, `SubviewsTests`, the gesture plan tests). The first is a correctness
+   gap an app can meet; it needs the value witnesses called in a way wasm's calling convention allows.
+6. **The resource bundle (M).** A WebAssembly program finds its bundle at the absolute path of the build directory
+   it was built in, and stops without it (B-BNDL-4): right for the browser page, which serves it there, wrong for
+   any other host and for a binary moved off its build machine. The tests that read German from the bundle found
+   English under the runner (`BuiltInEnglishTests`, `PanelLocalizationTests`, `SceneRootLanguageChromeTests`),
+   which wants explaining before it is called the runner's. Embedding the resources, or falling back to the
+   compiled-in English as every other platform does (B-BNDL-1, B-BNDL-3), is the owner's call.
+7. **Symbolic links in the file panels (S–M).** A link to a folder lists as a file (`DirectoryListingTests`):
+   Foundation on WASI did not follow it for `isDirectory`. Whether that is the runner's `/tmp` or WASI's is the
+   first question.
+8. **The coverage left out (M).** Of the 225 tests compiled out, the exit tests mostly test process-wide state; with
+   one thread and no processes a test of the same promise is possible for some (a pin seen from a second task rather
+   than a second thread), not for signals, pipes or ptys. Worth it where the code has a WebAssembly arm of its own:
+   `StdinArrivalNotifier`'s `poll` arm, `NoTerminal`, `SystemClipboard`'s and `SystemURLOpener`'s stubs.
+9. **`ExampleTests` on WebAssembly (M).** Split the Example into a library of its pages and a two-line executable,
+   so the tests depend on the library everywhere; `Tools/Web/build.sh`, the Pages workflow and the docs that name
+   the product follow.
+10. **Swift 6.4, and 6.2 (S to try).** The lane is 6.3.3 because that is the one pair the port was measured with,
+    and a Swift SDK loads only under its own toolchain. Moving to 6.4 is the 6.4.0 `wasm` SDK's URL and checksum in
+    `ci.yml` and `pages.yml`, `swift:6.4.0-noble` for the container, and `TUI_WASM_TOOLCHAIN`'s default in
+    `Tools/Web/build.sh`; then these measurements again, and `CooperativeExecutor.runUntil`'s stall (above) checked
+    on 6.4's runtime. 6.2 needs its own SDK, and a try now that `TupleView` no longer asserts.
+11. **The browser demo in CI (M).** Nothing drives the page: a headless browser that loads `Tools/Web/site/`,
+    starts the Example, types a few keys and reads the screen (`__tuikit.screen()`) would make "the Example works"
+    binding.
+12. **Host limits, not gaps.** Remote images (no sockets), the clipboard and opening links from the guest (no
+    subprocess; OSC 52 and OSC 8 reach the page instead), signals, job control, the stall watchdog and the
+    off-thread quit-key watch (no threads: a hung app is a reloaded tab), and terminal graphics in xterm.js. They are
+    the platform's, recorded under "What works, and what does not", and an app meets them as documented absences.
+13. **Size (L).** 88 MB of wasm (above); `wasm-opt`, and less of Foundation and ICU, are the levers. Not a
+    correctness gap.
+
+### What CI runs when it is done
+
+The `wasm` job, on each supported toolchain with an SDK: the four lower modules one at a time (as now), the Example
+with its stack size (as now), the whole package with `--build-tests` (as now), and then the suite under a runner
+that can run it, every step binding; and the Pages workflow's build of the demo, with a headless-browser smoke of
+it. A test left out on WebAssembly says why where it is left out, as the ones above do.
