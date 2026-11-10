@@ -1612,8 +1612,6 @@ extension RenderCache {
     /// rendered on stdout. Redirect with `2>render.log` to capture.
     func logDebug(_ message: @autoclosure () -> String) {
         guard Self.debugEnabled else { return }
-        FileHandle.standardError.write(
-            Data("[RenderCache] \(message())\n".utf8)
-        )
+        StandardError.write("[RenderCache] \(message())\n")
     }
 }

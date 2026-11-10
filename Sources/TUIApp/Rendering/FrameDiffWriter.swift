@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import TUICore
 import TUIFoundation
 
 // MARK: - Frame Diff Writer
@@ -409,8 +410,7 @@ extension FrameDiffWriter {
         markRows = marks
         rowsBuiltInLastBuild = builtCount
         if Self.debugEnabled {
-            FileHandle.standardError.write(
-                Data("[FrameDiffWriter] built \(builtCount) of \(terminalHeight) rows\n".utf8))
+            StandardError.write("[FrameDiffWriter] built \(builtCount) of \(terminalHeight) rows\n")
         }
         return lines
     }

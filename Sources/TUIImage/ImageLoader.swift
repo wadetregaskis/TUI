@@ -6,6 +6,7 @@
 
 import Foundation
 import Synchronization
+import TUICore
 
 // ImageIO, not AppKit, on Apple platforms — and the difference is load-bearing.
 // From the macOS 15 SDK AppKit imports SwiftUICore, and a module that imports
@@ -537,14 +538,6 @@ extension PlatformImageLoader {
             return pixels
         }
 
-        /// Serializes ``suppressingStandardError(_:)``. The file-descriptor
-        /// table is process-global, and image decodes run concurrently (each
-        /// load is `@concurrent`): unserialized, a second load's `dup` could
-        /// capture fd 2 while a first had it pointed at `/dev/null` — and its
-        /// "restore" then pins stderr to the null device for the rest of the
-        /// process.
-        static let stderrRedirectLock = Mutex<Void>(())
-
         /// Runs `body` with stderr (fd 2) temporarily redirected to `/dev/null`.
         ///
         /// Used to swallow the benign one-time IOKit probe line CoreGraphics
@@ -556,11 +549,22 @@ extension PlatformImageLoader {
         /// Internal (not private) as the test seam: the save/redirect/restore
         /// dance is what the race lives in, and the tests hammer it directly.
         ///
+        /// Under ``StandardError/lock``, which serializes it in two ways. With
+        /// another suppression: the file-descriptor table is process-global,
+        /// and image decodes run concurrently (each load is `@concurrent`), so
+        /// a second load's `dup` could capture fd 2 while a first had it pointed
+        /// at `/dev/null`, and its "restore" then pinned stderr to the null
+        /// device for the rest of the process. And with the framework's own
+        /// writes to stderr: Darwin's `dup2` reserves fd 2 while it swaps it,
+        /// and a write in that window fails with `EBADF`, which
+        /// `FileHandle.write(_:)` raises (``StandardError``).
+        ///
         /// `body` runs under the lock, because the redirect has to hold for as
-        /// long as it runs, so it must not suppress again itself: the one in
-        /// the product is a single Core Graphics draw into a bitmap.
+        /// long as it runs, so it must not suppress again itself, nor write to
+        /// stderr through ``StandardError``: the one in the product is a single
+        /// Core Graphics draw into a bitmap.
         static func suppressingStandardError(_ body: () -> Void) {
-            stderrRedirectLock.withLock { _ in
+            StandardError.lock.withLock { _ in
                 unsafe fflush(stderr)
                 let saved = dup(STDERR_FILENO)
                 let devNull = unsafe open("/dev/null", O_WRONLY)

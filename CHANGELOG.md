@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A diagnostic written to stderr while an image is being drawn no longer ends the app on macOS.** Drawing a picture
+points stderr at `/dev/null` for a moment, to hide a line Core Graphics prints, and a report written by another
+thread in that moment failed with "Bad file descriptor", which ended the process. The two now take turns.
+
 **A file panel in a narrow terminal puts its view switcher and Preview button on a row of their own.** At about 40
 columns the List/Columns switcher was cut off and "Show Preview" wrapped onto two rows, squeezed by the path beside
 them. Where the path's row cannot keep some of the path beside them, they now go below it, and below each other

@@ -40,7 +40,7 @@ package enum DiagnosticChannel {
     /// without setting the process's environment.
     package static func emit(_ text: String, to destination: String?) {
         guard let destination else {
-            FileHandle.standardError.write(Data(text.utf8))
+            StandardError.write(text)
             return
         }
         if let handle = FileHandle(forWritingAtPath: destination) {

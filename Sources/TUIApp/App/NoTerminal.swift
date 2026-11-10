@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import TUICore
 import TUIFoundation
 
 #if canImport(Glibc)
@@ -159,7 +160,7 @@ public struct NoTerminal {
     /// situations an app that does has no answer to.
     public func reportFailure() -> Outcome {
         let line = "\(ProcessInfo.processInfo.processName): \(message)\n"
-        FileHandle.standardError.write(Data(line.utf8))
+        StandardError.write(line)
         return 1
     }
 }
