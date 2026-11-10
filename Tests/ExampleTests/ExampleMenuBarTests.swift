@@ -113,6 +113,22 @@ struct ExampleMenuBarTests {
         #expect(ExampleStrings.g20["en"]?["controlStyle.thickBraille"] == "Thick Braille")
     }
 
+    /// The app menu's Settings… names F2, TUI's settings key, so F2 must
+    /// reach it: the Example cycled its palette on F2, an app's own binding,
+    /// which comes first, so the panel never opened on its key.
+    @Test("F2 opens the settings panel on any page, and ⇧F2 cycles the palette")
+    func settingsKey() {
+        let app = launched()
+        app.press(.f2)
+        #expect(app.screen.contains(text("settings.title")), "the panel: \(app.screen)")
+        app.press(.f2)
+        #expect(!app.screen.contains(text("settings.title")), "F2 again takes it down: \(app.screen)")
+        let before = app.screen.styledLines
+        app.press(.f2, modifiers: .shift)
+        #expect(app.screen.styledLines != before, "⇧F2 loads the next palette, which colours the screen anew")
+        #expect(!app.screen.contains(text("settings.title")), "and opens no panel: \(app.screen)")
+    }
+
     @Test("The top bar is customizable: Customize Toolbar… opens its panel")
     func customizeToolbar() throws {
         let app = launched()

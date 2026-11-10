@@ -269,7 +269,7 @@ extension ExampleStrings {
             "page.theme.themeHelp": "Theme",
             "page.theme.help.choosePreset": "Choose a preset, or edit the colours below to make a custom theme",
             "page.theme.help.moveFocus": "[⇥] / [↑↓] move focus; [←→] adjust the focused colour channel",
-            "page.theme.help.cyclePalette": "[F2] / [F3] cycle palette / appearance from any page",
+            "page.theme.help.cyclePalette": "[⇧F2] / [F3] cycle palette / appearance from any page",
             "page.theme.help.everyChange": "Every change here re-themes the whole app instantly",
             "page.theme.help.openSwatch": "[↩] on a colour's swatch opens the full editor (RGB · HSL · HSB · CMYK · semantic · 256)",
             // ContentUnavailable
@@ -541,7 +541,7 @@ extension ExampleStrings {
             "page.theme.themeHelp": "Design",
             "page.theme.help.choosePreset": "Wähle eine Vorlage oder bearbeite die Farben unten, um ein eigenes Design zu erstellen",
             "page.theme.help.moveFocus": "[⇥] / [↑↓] bewegen den Fokus; [←→] passen den fokussierten Farbkanal an",
-            "page.theme.help.cyclePalette": "[F2] / [F3] wechseln Palette / Erscheinungsbild von jeder Seite aus",
+            "page.theme.help.cyclePalette": "[⇧F2] / [F3] wechseln Palette / Erscheinungsbild von jeder Seite aus",
             "page.theme.help.everyChange": "Jede Änderung hier gestaltet die ganze App sofort neu",
             "page.theme.help.openSwatch": "[↩] auf dem Farbfeld einer Farbe öffnet den vollständigen Editor (RGB · HSL · HSB · CMYK · semantisch · 256)",
             // ContentUnavailable
@@ -813,7 +813,7 @@ extension ExampleStrings {
             "page.theme.themeHelp": "Thème",
             "page.theme.help.choosePreset": "Choisissez un préréglage, ou modifiez les couleurs ci-dessous pour créer un thème personnalisé",
             "page.theme.help.moveFocus": "[⇥] / [↑↓] déplacent le focus ; [←→] ajustent le canal de couleur ciblé",
-            "page.theme.help.cyclePalette": "[F2] / [F3] font défiler palette / apparence depuis n'importe quelle page",
+            "page.theme.help.cyclePalette": "[⇧F2] / [F3] font défiler palette / apparence depuis n'importe quelle page",
             "page.theme.help.everyChange": "Chaque changement ici réapplique le thème à toute l'app instantanément",
             "page.theme.help.openSwatch": "[↩] sur l'échantillon d'une couleur ouvre l'éditeur complet (RVB · TSL · TSV · CMJN · sémantique · 256)",
             // ContentUnavailable
@@ -1085,7 +1085,7 @@ extension ExampleStrings {
             "page.theme.themeHelp": "Tema",
             "page.theme.help.choosePreset": "Scegli una preimpostazione, oppure modifica i colori qui sotto per creare un tema personalizzato",
             "page.theme.help.moveFocus": "[⇥] / [↑↓] spostano il focus; [←→] regolano il canale di colore selezionato",
-            "page.theme.help.cyclePalette": "[F2] / [F3] scorrono palette / aspetto da qualsiasi pagina",
+            "page.theme.help.cyclePalette": "[⇧F2] / [F3] scorrono palette / aspetto da qualsiasi pagina",
             "page.theme.help.everyChange": "Ogni modifica qui riapplica il tema a tutta l'app all'istante",
             "page.theme.help.openSwatch": "[↩] sul campione di un colore apre l'editor completo (RGB · HSL · HSB · CMYK · semantico · 256)",
             // ContentUnavailable
@@ -1357,7 +1357,7 @@ extension ExampleStrings {
             "page.theme.themeHelp": "Tema",
             "page.theme.help.choosePreset": "Elige un predefinido, o edita los colores de abajo para crear un tema personalizado",
             "page.theme.help.moveFocus": "[⇥] / [↑↓] mueven el foco; [←→] ajustan el canal de color enfocado",
-            "page.theme.help.cyclePalette": "[F2] / [F3] alternan paleta / apariencia desde cualquier página",
+            "page.theme.help.cyclePalette": "[⇧F2] / [F3] alternan paleta / apariencia desde cualquier página",
             "page.theme.help.everyChange": "Cada cambio aquí reaplica el tema a toda la app al instante",
             "page.theme.help.openSwatch": "[↩] en la muestra de un color abre el editor completo (RGB · HSL · HSB · CMYK · semántico · 256)",
             // ContentUnavailable
@@ -1629,7 +1629,7 @@ extension ExampleStrings {
             "page.theme.themeHelp": "主题",
             "page.theme.help.choosePreset": "选择一个预设，或编辑下面的颜色以创建自定义主题",
             "page.theme.help.moveFocus": "[⇥] / [↑↓] 移动焦点；[←→] 调整选中的颜色通道",
-            "page.theme.help.cyclePalette": "[F2] / [F3] 可从任意页面循环切换调色板 / 外观",
+            "page.theme.help.cyclePalette": "[⇧F2] / [F3] 可从任意页面循环切换调色板 / 外观",
             "page.theme.help.everyChange": "此处的每次更改都会即时为整个应用重新设置主题",
             "page.theme.help.openSwatch": "[↩] 在颜色色块上打开完整编辑器（RGB · HSL · HSB · CMYK · 语义 · 256）",
             // ContentUnavailable
@@ -1901,7 +1901,7 @@ extension ExampleStrings {
             "page.theme.themeHelp": "テーマ",
             "page.theme.help.choosePreset": "プリセットを選ぶか、下の色を編集してカスタムテーマを作成します",
             "page.theme.help.moveFocus": "[⇥] / [↑↓] でフォーカスを移動、[←→] で選択中のカラーチャンネルを調整",
-            "page.theme.help.cyclePalette": "[F2] / [F3] でどのページからでもパレット / 外観を切り替え",
+            "page.theme.help.cyclePalette": "[⇧F2] / [F3] でどのページからでもパレット / 外観を切り替え",
             "page.theme.help.everyChange": "ここでの変更はすべて、アプリ全体に即座にテーマを再適用します",
             "page.theme.help.openSwatch": "[↩] 色のスウォッチで完全なエディタを開く（RGB · HSL · HSB · CMYK · セマンティック · 256）",
             // ContentUnavailable

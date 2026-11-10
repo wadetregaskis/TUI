@@ -52,7 +52,7 @@ struct ExampleApp: App {
         .theme(Theme(palette: palette, tint: styling.tint))
         // Apply the user-built custom border (Theme page) at the *scene* level so
         // it reaches the window's bars too — not just the page content. `nil` (no custom border) defers to the appearance manager, so
-        // F2 / F3 / the appearance picker keep driving the built-in border.
+        // F3 / the appearance picker keep driving the built-in border.
         .appearance(styling.customBorder.map {
             Appearance(id: Appearance.ID(rawValue: "custom"), borderStyle: $0)
         })

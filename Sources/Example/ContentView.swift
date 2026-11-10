@@ -112,7 +112,7 @@ struct ExampleStyling: Equatable {
     var toggleCharacterSet: ToggleCharacterSet = .automatic
     /// A user-built border, edited on the Theme page. When non-nil it overrides
     /// the appearance manager's built-in border for the whole app; nil falls back
-    /// to the built-in appearance (F2/F3/the appearance picker).
+    /// to the built-in appearance (F3/the appearance picker).
     var customBorder: BorderStyle?
     /// How the window's bars frame themselves, edited on the Theme page and
     /// applied with `Scene.windowToolbarStyle(_:)`: `.expanded` boxes them (the
@@ -162,7 +162,7 @@ enum ExampleToolbarStyle: CaseIterable {
 /// properties — exactly like SwiftUI.
 struct ContentView: View {
     /// The app-wide palette, owned by `ExampleApp` and applied to the scene.
-    /// F2 loads the next preset into it; the Theme page edits it. Editing this
+    /// ⇧F2 loads the next preset into it; the Theme page edits it. Editing this
     /// re-themes every page (it drives the scene's `.palette`).
     @Binding var palette: CustomizablePalette
     /// App-wide styling toggles (tint, uppercase headers, bold buttons), edited on
@@ -172,7 +172,7 @@ struct ContentView: View {
     /// The main menu's last chosen entry — restored as the focused row when
     /// you come back to the menu, so navigation resumes where you left it.
     @State private var menuSelection: DemoPage = .textStyles
-    /// Which built-in preset F2 last loaded — so F2 can cycle from there.
+    /// Which built-in preset ⇧F2 last loaded — so ⇧F2 can cycle from there.
     @State private var presetIndex: Int = 0
     /// Lifecycle-demo counters, owned here so they survive leaving and
     /// re-entering the Lifecycle page (per-page `@State` resets on each visit,
@@ -227,7 +227,7 @@ struct ContentView: View {
             .toggleCharacterSet(styling.toggleCharacterSet)
             // The app-wide border now flows from the scene: `main.swift` applies
             // `.appearance(...)` for the user-built custom border (or defers to
-            // the appearance manager / F2 / F3 / picker), reaching the window's
+            // the appearance manager / F3 / picker), reaching the window's
             // bars as well as this content. A local `.appearance(_:)`
             // still overrides per view.
             .onKeyEvent { event in
@@ -241,10 +241,12 @@ struct ContentView: View {
                         return true  // Consumed
                     }
                     return false
-                case .f2:
+                case .f2 where event.shift:
                     // Function keys are used (not a letter) so the shortcut
                     // works on EVERY page without colliding with TextField /
-                    // SecureField input.
+                    // SecureField input. Shifted: plain F2 is TUI's settings
+                    // panel, which the app menu's Settings… names, and an
+                    // app's own binding on it would come first and hide it.
                     nextPalette()
                     return true
                 case .f3:
@@ -259,7 +261,7 @@ struct ContentView: View {
             // page's own `.navigationTitle` (and `.navigationSubtitle`), with
             // the version beside it. It is customizable (`toolbar(id:)`), so
             // View ▸ Customize Toolbar…, or a right-click on the bar, lets the
-            // reader add what F2 and F3 do as buttons, which start out of it.
+            // reader add what ⇧F2 and F3 do as buttons, which start out of it.
             .toolbar(id: "example.main") {
                 ToolbarItem(id: "palette", placement: .primaryAction) {
                     Button(L("commands.nextPalette")) { nextPalette() }
@@ -281,13 +283,13 @@ struct ContentView: View {
             .focusedSceneValue(\.examplePage, pageSetter)
     }
 
-    /// Loads the next built-in preset into the app palette: F2, and the top
+    /// Loads the next built-in preset into the app palette: ⇧F2, and the top
     /// bar's Next Palette button (View ▸ Customize Toolbar… adds it; View ▸
     /// Palette picks a preset by name).
     ///
     /// From the palette on SCREEN, not from this view's own cursor: the Theme
     /// page's picker changes the palette without touching `presetIndex`, after
-    /// which F2 advanced from a stale cursor — a visible no-op, or a jump back.
+    /// which ⇧F2 advanced from a stale cursor — a visible no-op, or a jump back.
     /// A customised palette matches no preset; then the cursor is the best
     /// answer left.
     private func nextPalette() {
